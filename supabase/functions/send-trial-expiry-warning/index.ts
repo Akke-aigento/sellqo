@@ -168,7 +168,7 @@ serve(async (req) => {
               variant: "warning",
             },
             cta: { label: `Upgrade naar ${planName}`, url: billingUrl },
-            secondaryCta: { label: "Of neem contact op", url: "mailto:support@sellqo.app" },
+            secondaryCta: { label: "Of neem contact op", url: "mailto:info@sellqo.app" },
             ctaNote: "Je ontvangt deze e-mail omdat je een actieve proefperiode hebt.",
           });
           const textContent = htmlToPlainText(htmlContent);

@@ -4,11 +4,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
-import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { tenantSender } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail, formatAmount } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -148,7 +147,7 @@ serve(async (req) => {
       poweredByLabel: t(locale, "paymentRequest.poweredBy"),
     });
 
-    const sender = EMAIL_SENDERS.invoices(tenant.name, resolveCustomerContactEmail(tenant as any));
+    const sender = tenantSender(brand.senderSource);
     const response = await resend.emails.send({
       from: sender.from,
       reply_to: sender.replyTo,

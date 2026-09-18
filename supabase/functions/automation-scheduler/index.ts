@@ -1,7 +1,6 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
-import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
+import { tenantSender } from "../_shared/emailSenders.ts";
 import { isAuthorizedCronRequest, CRON_ALLOWED_HEADERS } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
@@ -52,7 +51,7 @@ Deno.serve(async (req) => {
       .select(`
         *,
         automation:email_automations(*),
-        tenant:tenants(name, owner_email, support_email, address, city, postal_code)
+        tenant:tenants(name, slug, inbound_email_prefix, owner_email, support_email, address, city, postal_code)
       `)
       .eq("status", "scheduled")
       .lte("scheduled_for", new Date().toISOString())
@@ -239,7 +238,7 @@ Deno.serve(async (req) => {
             // `owner_email` wordt nu ook daadwerkelijk geselecteerd; de oude
             // `|| tenant.email`-tak wees naar een kolom die niet bestaat en was
             // hoe dan ook onbereikbaar.
-            const autoSender = EMAIL_SENDERS.marketing(tenant?.name || 'Sellqo', resolveCustomerContactEmail(tenant));
+            const autoSender = tenantSender(tenant);
             await resend.emails.send({
               from: autoSender.from,
               reply_to: autoSender.replyTo,

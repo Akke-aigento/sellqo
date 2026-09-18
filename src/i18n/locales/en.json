@@ -481,14 +481,17 @@
       "openBol": "Open Bol.com store settings",
       "repliesAutomatic": "Replying works automatically",
       "contactTitle": "Customer contact email",
-      "contactHint": "Your customers see this address in order confirmations, invoices and newsletters, and their replies go here.",
+      "contactHint": "Your customers see this address in order confirmations, invoices and newsletters. Customer replies go here.",
       "contactLabel": "Email address for customers",
       "contactSave": "Save",
       "contactSaved": "Customer contact email saved",
-      "contactInvalid": "Enter a valid email address, or leave the field empty.",
-      "contactFallback": "If you leave it empty, we use the owner's address ({{email}}).",
+      "contactInvalid": "Enter a valid email address.",
       "contactReadOnly": "Only a store administrator can change this address.",
-      "contactNoRights": "You don't have permission to change this address."
+      "contactNoRights": "You don't have permission to change this address.",
+      "contactModeInbox": "My SellQo inbox",
+      "contactModeInboxHint": "Customer replies arrive in your SellQo inbox, alongside your other messages.",
+      "contactModeOwn": "My own address",
+      "contactModeOwnHint": "Customer replies go to this address, outside SellQo."
     },
     "communication": {
       "subtitle": "Configure which automatic messages your customers receive",

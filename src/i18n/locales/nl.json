@@ -481,14 +481,17 @@
       "openBol": "Open Bol.com Winkelsettings",
       "repliesAutomatic": "Antwoorden werkt automatisch",
       "contactTitle": "Klantcontact-e-mail",
-      "contactHint": "Dit adres zien je klanten in orderbevestigingen, facturen en nieuwsbrieven, en hun antwoorden gaan hierheen.",
+      "contactHint": "Dit adres zien je klanten in orderbevestigingen, facturen en nieuwsbrieven. Antwoorden van klanten gaan hierheen.",
       "contactLabel": "E-mailadres voor klanten",
       "contactSave": "Opslaan",
       "contactSaved": "Klantcontact-e-mail opgeslagen",
-      "contactInvalid": "Vul een geldig e-mailadres in, of laat het veld leeg.",
-      "contactFallback": "Laat je het leeg, dan gebruiken we het adres van de eigenaar ({{email}}).",
+      "contactInvalid": "Vul een geldig e-mailadres in.",
       "contactReadOnly": "Alleen een beheerder van de winkel kan dit adres wijzigen.",
-      "contactNoRights": "Je hebt geen rechten om dit adres te wijzigen."
+      "contactNoRights": "Je hebt geen rechten om dit adres te wijzigen.",
+      "contactModeInbox": "Mijn SellQo-inbox",
+      "contactModeInboxHint": "Antwoorden van klanten komen in je SellQo-inbox, naast je andere berichten.",
+      "contactModeOwn": "Eigen adres",
+      "contactModeOwnHint": "Antwoorden van klanten gaan naar dit adres, buiten SellQo om."
     },
     "communication": {
       "subtitle": "Configureer welke automatische berichten je klanten ontvangen",

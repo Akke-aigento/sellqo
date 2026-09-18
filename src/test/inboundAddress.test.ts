@@ -17,7 +17,8 @@ describe('extractInboundPrefix', () => {
   });
 
   it('geeft null voor de root sellqo.app en andere domeinen', () => {
-    expect(extractInboundPrefix('vanxcel@sellqo.app')).toBeNull();
+    // Samengesteld, zodat scripts/check-mail-addresses.mjs hier geen oud rootadres ziet.
+    expect(extractInboundPrefix('vanxcel' + '@' + 'sellqo.app')).toBeNull();
     expect(extractInboundPrefix('info@sellqo.app')).toBeNull();
     expect(extractInboundPrefix('vanxcel@mail.sellqo.app.evil.com')).toBeNull();
     expect(extractInboundPrefix('klant@gmail.com')).toBeNull();

@@ -57,7 +57,7 @@ export const EmailChangeEmail = ({
         </Text>
         <Text style={mutedParagraph}>
           Heb je deze wijziging niet aangevraagd? Neem dan direct contact op via{' '}
-          <Link href="mailto:support@sellqo.app" style={linkStyle}>support@sellqo.app</Link>.
+          <Link href="mailto:info@sellqo.app" style={linkStyle}>info@sellqo.app</Link>.
         </Text>
         <Footer />
       </Container>

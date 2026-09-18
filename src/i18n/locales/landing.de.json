@@ -1544,6 +1544,10 @@
         "customer_contact_email": {
           "title": "Legen Sie Ihre Kundenkontaktadresse selbst fest",
           "description": "Unter Einstellungen → E-Mail-Posteingang wählen Sie jetzt selbst die E-Mail-Adresse, die Ihre Kunden in Bestellbestätigungen, Rechnungen, Angeboten und Newslettern sehen. Antwortet ein Kunde auf eine solche E-Mail, kommt die Antwort an dieser Adresse an. Lassen Sie das Feld leer, verwenden wir die Adresse des Inhabers. Die Adresse für Ihre eigenen Benachrichtigungen sehen Kunden nicht mehr."
+        },
+        "customer_replies_inbox": {
+          "title": "Antworten von Kunden landen in Ihrem SellQo-Posteingang",
+          "description": "E-Mails Ihres Shops an Kunden kommen jetzt von Ihrer eigenen SellQo-Adresse: ihrshop@mail.sellqo.app. Antwortet ein Kunde, landet die Antwort direkt in Ihrem SellQo-Posteingang, mit einer Benachrichtigung. Lieber Ihre eigene E-Mail-Adresse? Wählen Sie sie unter Einstellungen → E-Mail-Posteingang bei Kundenkontakt-E-Mail."
         }
       },
       "copyLink": "Link kopieren",

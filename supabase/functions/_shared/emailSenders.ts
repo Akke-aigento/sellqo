@@ -1,25 +1,27 @@
 /**
- * Centralized email sender configuration.
+ * Afzenders van alle mail die SellQo verstuurt (MAIL-SENDER-1, 18 sep 2026).
  *
- * Stream A — Platform → Tenant-users (NL communicatie, SellQo-branded)
- * Stream B — Tenant → Customers (sender name = tenant name, address on sellqo.app)
+ * Stream A — platform → gebruikers van een winkel. Altijd info@sellqo.app, het
+ *   enige adres dat op de root sellqo.app (Migadu) bestaat. Het label staat in
+ *   de weergavenaam ("SellQo Billing"), niet in het adres.
+ * Stream B — winkel → klant. From "<winkelnaam> <<prefix>@mail.sellqo.app>"
+ *   (Resend), Reply-To de klantcontact-e-mail van de winkel, anders haar
+ *   SellQo-inbox. Eén bouwer voor alle soorten mail: de oude local parts per
+ *   stroom (orders@, invoices@, …) bestaan niet meer.
  *
- * sellqo.app is geverifieerd in Resend; geen extra DNS-werk.
- * Per-tenant verified domains zijn backlog (zie docs/email-architecture.md).
+ * Auth-mail (auth-email-hook) loopt apart via Lovable Managed op auth.sellqo.app.
+ * Zie docs/email-architecture.md.
  */
 
-const DEFAULT_REPLY_TO = "support@sellqo.app";
+import { resolveCustomerContactEmail, tenantMailAddress, type CustomerContactSource } from "./customerContact.ts";
 
-const sanitizeName = (raw: string | null | undefined, fallback = "SellQo"): string => {
+const PLATFORM_ADDRESS = "info@sellqo.app";
+
+export const sanitizeName = (raw: string | null | undefined, fallback = "SellQo"): string => {
   const v = (raw || "").trim();
   if (!v) return fallback;
   // strip control chars + double-quotes that would break the From header
   return v.replace(/["<>\r\n]/g, "").slice(0, 80) || fallback;
-};
-
-const resolveReplyTo = (tenantReplyTo?: string | null): string => {
-  const v = (tenantReplyTo || "").trim();
-  return v || DEFAULT_REPLY_TO;
 };
 
 export interface SenderConfig {
@@ -27,76 +29,43 @@ export interface SenderConfig {
   replyTo?: string;
 }
 
-export const EMAIL_SENDERS = {
-  // ── Stream A — Platform → Tenant-users ────────────────────────────
-  invite: {
-    from: "SellQo <invite@sellqo.app>",
-    replyTo: "support@sellqo.app",
-  } as SenderConfig,
-  billing: {
-    from: "SellQo <billing@sellqo.app>",
-    replyTo: "support@sellqo.app",
-  } as SenderConfig,
-  notifications: {
-    from: "SellQo <notifications@sellqo.app>",
-    replyTo: "support@sellqo.app",
-  } as SenderConfig,
-  security: {
-    from: "SellQo Security <security@sellqo.app>",
-    replyTo: "support@sellqo.app",
-  } as SenderConfig,
-  noReply: {
-    from: "SellQo <no-reply@sellqo.app>",
-    replyTo: undefined,
-  } as SenderConfig,
+const platform = (label?: string): SenderConfig => ({
+  from: `SellQo${label ? ` ${label}` : ""} <${PLATFORM_ADDRESS}>`,
+  replyTo: PLATFORM_ADDRESS,
+});
 
-  // ── Stream B — Tenant → Customers ─────────────────────────────────
-  orders: (tenantName: string, tenantReplyTo?: string | null): SenderConfig => ({
-    from: `${sanitizeName(tenantName)} <orders@sellqo.app>`,
-    replyTo: resolveReplyTo(tenantReplyTo),
-  }),
-  invoices: (tenantName: string, tenantReplyTo?: string | null): SenderConfig => ({
-    from: `${sanitizeName(tenantName)} <invoices@sellqo.app>`,
-    replyTo: resolveReplyTo(tenantReplyTo),
-  }),
-  quotes: (tenantName: string, tenantReplyTo?: string | null): SenderConfig => ({
-    from: `${sanitizeName(tenantName)} <quotes@sellqo.app>`,
-    replyTo: resolveReplyTo(tenantReplyTo),
-  }),
-  returns: (tenantName: string, tenantReplyTo?: string | null): SenderConfig => ({
-    from: `${sanitizeName(tenantName)} <returns@sellqo.app>`,
-    replyTo: resolveReplyTo(tenantReplyTo),
-  }),
-  giftCards: (tenantName: string, tenantReplyTo?: string | null): SenderConfig => ({
-    from: `${sanitizeName(tenantName)} <gift-cards@sellqo.app>`,
-    replyTo: resolveReplyTo(tenantReplyTo),
-  }),
-  marketing: (tenantName: string, tenantReplyTo?: string | null): SenderConfig => ({
-    from: `${sanitizeName(tenantName)} <marketing@sellqo.app>`,
-    replyTo: resolveReplyTo(tenantReplyTo),
-  }),
-  customerService: (tenantName: string, tenantReplyTo?: string | null): SenderConfig => ({
-    from: `${sanitizeName(tenantName)} <customer-service@sellqo.app>`,
-    replyTo: resolveReplyTo(tenantReplyTo),
-  }),
-  // TICKET-1 fase 4b — QR-tickets voor events
-  tickets: (tenantName: string, tenantReplyTo?: string | null): SenderConfig => ({
-    from: `${sanitizeName(tenantName)} <tickets@sellqo.app>`,
-    replyTo: resolveReplyTo(tenantReplyTo),
-  }),
+// ── Stream A — platform → gebruikers van een winkel ──────────────────
+export const EMAIL_SENDERS = {
+  invite: platform(),
+  billing: platform("Billing"),
+  notifications: platform(),
+  security: platform("Security"),
+  noReply: { from: `SellQo <${PLATFORM_ADDRESS}>`, replyTo: undefined } as SenderConfig,
 } as const;
 
-export type SenderKey =
-  | "invite"
-  | "billing"
-  | "notifications"
-  | "security"
-  | "noReply"
-  | "orders"
-  | "invoices"
-  | "quotes"
-  | "returns"
-  | "giftCards"
-  | "marketing"
-  | "customerService"
-  | "tickets";
+export type SenderKey = keyof typeof EMAIL_SENDERS;
+
+// ── Stream B — winkel → klant ────────────────────────────────────────
+export interface TenantSenderSource extends CustomerContactSource {
+  name?: string | null;
+}
+
+/**
+ * From = de winkel op haar eigen SellQo-adres, Reply-To = haar klantcontact.
+ * Zonder geldige prefix is er geen winkeladres: dan gaat de mail als SellQo
+ * via info@ de deur uit, en staat dat luid in de log — liever een herkenbare
+ * noodval dan een mail die niet vertrekt.
+ */
+export function tenantSender(source: TenantSenderSource | null | undefined): SenderConfig {
+  const address = tenantMailAddress(source);
+  const replyTo = resolveCustomerContactEmail(source);
+  if (!address) {
+    console.error("[emailSenders] winkel zonder geldige mailprefix; From valt terug op SellQo <info@sellqo.app>", {
+      name: source?.name ?? null,
+      inbound_email_prefix: source?.inbound_email_prefix ?? null,
+      slug: source?.slug ?? null,
+    });
+    return { from: `SellQo <${PLATFORM_ADDRESS}>`, replyTo };
+  }
+  return { from: `${sanitizeName(source?.name)} <${address}>`, replyTo };
+}

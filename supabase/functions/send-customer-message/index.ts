@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { tenantSender } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
 
@@ -84,7 +84,7 @@ const handler = async (req: Request): Promise<Response> => {
     const locale = brand.defaultLocale;
     const fromName = brand.tenantName;
     const replyToEmail = brand.supportEmail;
-    const csSender = EMAIL_SENDERS.customerService(fromName, replyToEmail);
+    const csSender = tenantSender(brand.senderSource);
 
     const contextBlock = context_type === 'order' && context_data?.order_number
       ? `<div style="margin-top:24px;padding:16px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;font-size:14px;color:#6b7280;">📦 Betreft bestelling: <strong style="color:#111827;">${String(context_data.order_number)}</strong></div>`
@@ -138,9 +138,9 @@ const handler = async (req: Request): Promise<Response> => {
       emailHeaders['References'] = references;
     }
 
-    // List-Unsubscribe headers (RFC 8058 / Gmail requirement)
-    emailHeaders['List-Unsubscribe'] = `<mailto:${replyToEmail}?subject=Unsubscribe>`;
-    emailHeaders['List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click';
+    // MAIL-SENDER-1: geen List-Unsubscribe meer. Dit is een 1-op-1-bericht van de
+    // winkel aan één klant, geen nieuwsbrief; met die header toonde iOS er
+    // "mailinglijst / Afmelden" boven. Campagnes en automations houden hem.
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({

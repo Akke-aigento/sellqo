@@ -1,8 +1,7 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { EMAIL_SENDERS, type SenderKey } from "../_shared/emailSenders.ts";
-import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
+import { tenantSender } from "../_shared/emailSenders.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +13,8 @@ interface SendTestEmailRequest {
   toEmail: string;
   subject: string;
   htmlContent: string;
-  sender?: SenderKey;
+  /** Genegeerd sinds MAIL-SENDER-1; bleef staan zodat oude clients niet falen. */
+  sender?: string;
   previewData?: {
     customer_name?: string;
     customer_email?: string;
@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     // "Tenant not found": de testmailknop heeft nooit gewerkt.
     const { data: tenant, error: tenantError } = await supabase
       .from("tenants")
-      .select("name, owner_email, support_email, address, city, postal_code, country, kvk_number, btw_number, billing_vat_number")
+      .select("name, slug, inbound_email_prefix, support_email, address, city, postal_code, country, kvk_number, btw_number, billing_vat_number")
       .eq("id", tenantId)
       .maybeSingle();
 
@@ -116,11 +116,11 @@ Deno.serve(async (req) => {
     }
 
     // Resolve sender (defaults to customerService stream)
-    const senderKey: SenderKey = sender || 'customerService';
-    const senderEntry = (EMAIL_SENDERS as any)[senderKey];
-    const resolvedSender = typeof senderEntry === 'function'
-      ? senderEntry(tenant.name, resolveCustomerContactEmail(tenant))
-      : senderEntry;
+    // MAIL-SENDER-1: een test gaat altijd uit als de winkel zelf. De `sender`-key
+    // van de client wordt genegeerd: daarmee kon een winkel eerder testen "als
+    // SellQo" (invite, billing, …). EmailPreview stuurt hem niet mee.
+    void sender;
+    const resolvedSender = tenantSender(tenant);
 
     // Send the test email
     const emailResponse = await resend.emails.send({

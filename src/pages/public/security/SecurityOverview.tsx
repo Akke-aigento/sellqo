@@ -36,8 +36,8 @@ export default function SecurityOverview() {
             </p>
             <p className="text-muted-foreground mt-4 pt-4 border-t border-border text-sm">
               <span className="font-medium text-foreground">Security contact:</span>{' '}
-              <a href="mailto:security@sellqo.app" className="text-accent hover:underline">
-                security@sellqo.app
+              <a href="mailto:info@sellqo.app" className="text-accent hover:underline">
+                info@sellqo.app
               </a>{' '}
               — for merchants, partners and security researchers.
             </p>

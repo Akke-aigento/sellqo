@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { tenantSender } from "../_shared/emailSenders.ts";
 import {
   getTenantBrand,
   renderTenantEmail,
@@ -142,7 +142,7 @@ serve(async (req) => {
     const { Resend } = await import("https://esm.sh/resend@2.0.0");
     const resend = new Resend(resendApiKey);
 
-    const orderSender = EMAIL_SENDERS.orders(brand.tenantName, brand.supportEmail);
+    const orderSender = tenantSender(brand.senderSource);
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: orderSender.from,
       to: [order.customer_email],

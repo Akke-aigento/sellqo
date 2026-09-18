@@ -2,8 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
-import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
+import { tenantSender } from "../_shared/emailSenders.ts";
 import {
   getTenantBrand,
   renderTenantEmail,
@@ -109,7 +108,7 @@ const handler = async (req: Request): Promise<Response> => {
       poweredByLabel: t(locale, "giftCard.poweredBy"),
     });
 
-    const gcSender = EMAIL_SENDERS.giftCards(fromName, resolveCustomerContactEmail(tenant));
+    const gcSender = tenantSender(brand.senderSource);
     // Send email
     const emailResponse = await resend.emails.send({
       from: gcSender.from,

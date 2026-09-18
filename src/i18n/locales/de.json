@@ -509,14 +509,17 @@
       "openBol": "Bol.com-Shopeinstellungen öffnen",
       "repliesAutomatic": "Antworten funktioniert automatisch",
       "contactTitle": "Kundenkontakt-E-Mail",
-      "contactHint": "Diese Adresse sehen Ihre Kunden in Bestellbestätigungen, Rechnungen und Newslettern, und ihre Antworten gehen hierhin.",
+      "contactHint": "Diese Adresse sehen Ihre Kunden in Bestellbestätigungen, Rechnungen und Newslettern. Antworten von Kunden gehen hierhin.",
       "contactLabel": "E-Mail-Adresse für Kunden",
       "contactSave": "Speichern",
       "contactSaved": "Kundenkontakt-E-Mail gespeichert",
-      "contactInvalid": "Geben Sie eine gültige E-Mail-Adresse ein oder lassen Sie das Feld leer.",
-      "contactFallback": "Wenn Sie es leer lassen, verwenden wir die Adresse des Inhabers ({{email}}).",
+      "contactInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
       "contactReadOnly": "Nur ein Administrator des Shops kann diese Adresse ändern.",
-      "contactNoRights": "Sie haben keine Berechtigung, diese Adresse zu ändern."
+      "contactNoRights": "Sie haben keine Berechtigung, diese Adresse zu ändern.",
+      "contactModeInbox": "Mein SellQo-Posteingang",
+      "contactModeInboxHint": "Antworten von Kunden landen in Ihrem SellQo-Posteingang, neben Ihren anderen Nachrichten.",
+      "contactModeOwn": "Eigene Adresse",
+      "contactModeOwnHint": "Antworten von Kunden gehen an diese Adresse, außerhalb von SellQo."
     },
     "communication": {
       "subtitle": "Legen Sie fest, welche automatischen Nachrichten Ihre Kunden erhalten",

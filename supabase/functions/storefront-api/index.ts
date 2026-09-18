@@ -3978,7 +3978,8 @@ async function submitContactForm(supabase: any, tenantId: string, params: Record
     .select('notification_email, owner_email, name')
     .eq('id', tenantId)
     .maybeSingle();
-  const toEmail = tenant?.notification_email || tenant?.owner_email || 'inbox@sellqo.app';
+  // MAIL-SENDER-1: owner_email is NOT NULL, dus de laatste tak is een vangnet.
+  const toEmail = tenant?.notification_email || tenant?.owner_email || 'info@sellqo.app';
 
   // Try to link to an existing customer (optional)
   const { data: existingCustomer } = await supabase
@@ -4153,7 +4154,7 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
       // Fetch tenant name and custom_domain for variable replacement
       const { data: tenantData, error: tenantError } = await supabase
         .from('tenants')
-        .select('name, custom_domain')
+        .select('name, custom_domain, slug, inbound_email_prefix, support_email')
         .eq('id', tenantId)
         .single();
       if (tenantError) {
@@ -4189,8 +4190,10 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
         console.log('[WELCOME-EMAIL] Sending to:', email, '| tenant:', tenantName);
         const { Resend } = await import("https://esm.sh/resend@2.0.0");
         const resend = new Resend(resendApiKey);
-        const { EMAIL_SENDERS: _SENDERS_WC } = await import('../_shared/emailSenders.ts');
-        const _wcSender = _SENDERS_WC.marketing(tenantName || 'Sellqo');
+        // MAIL-SENDER-1: de winkel verstuurt vanaf <prefix>@mail.sellqo.app, met
+        // haar klantcontact-e-mail als Reply-To (eerste wet: intern, geen contract).
+        const { tenantSender: _tenantSenderWc } = await import('../_shared/emailSenders.ts');
+        const _wcSender = _tenantSenderWc({ ...tenantData, name: tenantName || 'SellQo' });
         const emailResponse = await resend.emails.send({
           from: _wcSender.from,
           reply_to: _wcSender.replyTo,

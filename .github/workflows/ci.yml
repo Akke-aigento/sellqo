@@ -61,6 +61,11 @@ jobs:
       - name: i18n-pariteit
         run: node scripts/i18n-parity.mjs
 
+      # MAIL-SENDER-1: op sellqo.app bestaat alleen info@; winkels gebruiken
+      # <prefix>@mail.sellqo.app. Faalt op elk ander @sellqo.app-adres.
+      - name: Mailadressen (alleen info@sellqo.app en *@mail.sellqo.app)
+        run: node scripts/check-mail-addresses.mjs
+
       # 4. Capacitor-pariteit. De native manifesten (twee gradle-bestanden en de
       #    Podfile) zijn gegenereerd en worden alleen bijgewerkt als iemand
       #    `npx cap sync` draait en de uitkomst commit. Voor Android gebeurde dat

@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { buildContactFormForward } from "../_shared/contactFormForward.ts";
+import type { TenantSenderSource } from "../_shared/emailSenders.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,7 +27,7 @@ function validateInput(body: Record<string, unknown>) {
 }
 
 async function forwardEmail(
-  tenantName: string,
+  tenant: TenantSenderSource,
   forwardAddress: string,
   senderName: string,
   senderEmail: string,
@@ -34,17 +36,9 @@ async function forwardEmail(
   resendApiKey: string
 ) {
   try {
-    const htmlBody = `
-      <div style="font-family: sans-serif; max-width: 600px;">
-        <h2 style="color: #333;">Nieuw contactformulier bericht</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
-          <tr><td style="padding: 8px 0; color: #666; width: 100px;"><strong>Van:</strong></td><td>${senderName} (${senderEmail})</td></tr>
-          <tr><td style="padding: 8px 0; color: #666;"><strong>Onderwerp:</strong></td><td>${subject}</td></tr>
-        </table>
-        <div style="background: #f9f9f9; padding: 16px; border-radius: 8px; white-space: pre-wrap;">${message}</div>
-        <p style="color: #999; font-size: 12px; margin-top: 24px;">Dit bericht is doorgestuurd vanuit de ${tenantName} webshop via SellQo.</p>
-      </div>
-    `;
+    // MAIL-SENDER-1: From = het SellQo-adres van de winkel, Reply-To = de bezoeker.
+    // Vastgelegd in _shared/contactFormForward.ts (met test).
+    const payload = buildContactFormForward({ tenant, forwardAddress, senderName, senderEmail, subject, message });
 
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -52,13 +46,7 @@ async function forwardEmail(
         'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        from: `${tenantName} <noreply@sellqo.app>`,
-        to: [forwardAddress],
-        reply_to: senderEmail,
-        subject: `[Contact] ${subject}`,
-        html: htmlBody,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -103,7 +91,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Find tenant by slug
     const { data: tenant, error: tenantError } = await supabase
       .from("tenants")
-      .select("id, name, email_forward_enabled, email_forward_address")
+      .select("id, name, slug, inbound_email_prefix, email_forward_enabled, email_forward_address")
       .eq("slug", tenantSlug)
       .maybeSingle();
 
@@ -194,7 +182,7 @@ const handler = async (req: Request): Promise<Response> => {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (tenant.email_forward_enabled && tenant.email_forward_address && resendApiKey) {
       await forwardEmail(
-        tenant.name,
+        tenant,
         tenant.email_forward_address,
         name,
         email,

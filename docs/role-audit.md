@@ -1,3 +1,121 @@
+## MAIL-INBOUND-1 + MAIL-SENDER-1 — mail.sellqo.app voor winkels, platformmail alleen via info@sellqo.app — 18 september 2026
+
+### Beslissingen (vast, niet heropend)
+
+- Winkel-inbound én winkelafzender = `<prefix>@mail.sellqo.app` (Resend). De root `sellqo.app`
+  blijft bij Migadu.
+- Op de root bestaat na de opruiming alleen `info@sellqo.app`; elk ander `@sellqo.app`-adres
+  verdwijnt uit de code.
+- Stream A (platform → gebruikers): From `SellQo[ label] <info@sellqo.app>`, Reply-To
+  `info@sellqo.app`.
+- Stream B (winkel → klant): From `<winkelnaam> <<prefix>@mail.sellqo.app>`, Reply-To
+  `support_email`, anders `<prefix>@mail.sellqo.app`.
+- Auth-mail (`auth-email-hook`, Lovable Managed op `auth.sellqo.app`): alleen het local part
+  `noreply@` → `info@`.
+
+### DNS-stand (18 sep)
+
+`mail.sellqo.app`: DKIM TXT `resend._domainkey.mail`; CNAME `rsend.mail` →
+`rsend-euw1.forge.rmta.net`; CNAME `send.mail` → `send.forge.rmta.net`; MX `mail` →
+`inbound-smtp.eu-west-1.amazonaws.com` (prio 10). DMARC `rua` → `info@sellqo.app`.
+
+### Root cause
+
+- `handle-inbound-email` las alleen `<prefix>@sellqo.app`. De MX van de root is Migadu, dus die
+  mail bereikte SellQo nooit (laatste inkomende mail: tests van 30 januari).
+- Winkels verstuurden vanaf `orders@`, `invoices@`, `quotes@`, `returns@`, `gift-cards@`,
+  `marketing@`, `customer-service@`, `tickets@`, `noreply@` (contactformulier), met `support@` als
+  standaard-Reply-To. Die adressen bestaan niet als mailbox; een antwoord ging verloren.
+
+### Uitgevoerd
+
+**Commit 1 — MAIL-INBOUND-1**
+- `_shared/inboundAddress.ts` (nieuw, puur): `extractInboundPrefix` — kaal adres en
+  `Naam <adres>`, lowercase en trim, alleen `@mail.sellqo.app`, prefix gevalideerd; root → `null`.
+- `handle-inbound-email`: gebruikt die; logt een fout als de melding niet aangemaakt kan worden.
+  Die melding bestond al (`category: "messages"`, type `email_inbound`, ook push) — punt 2 van
+  de brief was dus gedekt.
+- Admin: `INBOUND_DOMAIN = 'mail.sellqo.app'`.
+- `docs/sql/mail-inbound-1.sql`: default `inbound_email_enabled = true` en aan voor de bestaande
+  winkels (vaste id-lijst door chat-Claude, na snapshot). Geen migratie.
+
+**Commit 2 — MAIL-SENDER-1**
+- `_shared/customerContact.ts`: `resolveTenantMailPrefix` (`inbound_email_prefix`, anders slug,
+  gevalideerd), `tenantMailAddress`, `resolveCustomerContactEmail` = `support_email` ||
+  `<prefix>@mail.sellqo.app` || `info@sellqo.app` (noodval, gelogd). `owner_email` uit de keten.
+- `_shared/emailSenders.ts` herschreven: Stream A allemaal `info@`; Stream B één
+  `tenantSender(source)`. **De Stream-B-keys zijn weg, geen wrappers**: hun signatuur
+  `(naam, replyTo)` kon geen prefix dragen, dus elke caller veranderde toch.
+- `TenantBrand.senderSource` (+ `slug`, `inbound_email_prefix` in de select van
+  `getTenantBrand`). Brand-callers: `tenantSender(brand.senderSource)`, zonder extra select.
+- Eigen selects uitgebreid met `slug, inbound_email_prefix` (R8 nagetrokken): `automation-scheduler`
+  (embed), `send-return-email` (embed), `send-campaign-batch`, `storefront-customer-api`,
+  `send-test-email`, `storefront-contact-form`.
+- `send-test-email` negeert de `sender`-key van de client: altijd de winkelafzender. Een winkel kon
+  eerder testen "als SellQo" (invite, billing, …).
+- **`storefront-contact-form`**: mail aan de winkel zelf. From = `tenantSender(tenant).from`,
+  Reply-To blijft de bezoeker (`senderEmail`). Vastgelegd in `_shared/contactFormForward.ts`
+  (`buildContactFormForward`) met test "from = winkeladres, reply_to = bezoeker, nooit het
+  supportadres". Bijvangst: de invoer van de bezoeker ging ongefilterd de HTML in; nu geëscapet.
+- `send-customer-message`: `List-Unsubscribe`/`-Post` weg (iOS toonde "mailinglijst / Afmelden"
+  op 1-op-1-berichten). Footer "Je antwoord gaat naar …" volgt de nieuwe Reply-To.
+- Logo-chip in `renderTenantEmail`: wit afgerond vlak (`sq-logo`), in de dark-mode-query van
+  `emailBaseLayout` `!important` wit.
+- Overige adressen → `info@sellqo.app`: `sellqoEmail.ts` (default footer), auth-templates
+  (`_shared/email-templates/*`), `send-trial-expiry-warning` (mailto), `securityPolicies.ts` en
+  `SecurityOverview.tsx` (was `security@`), `storefront-api` r.3981 (vangnet; `owner_email` is
+  NOT NULL — eerste wet: alleen die string). `auth-email-hook`: `noreply@` → `info@`.
+- UI: klantcontact-card met keuze "Mijn SellQo-inbox" (`support_email = null`, het echte adres
+  zichtbaar) of "Eigen adres". i18n in vijf talen.
+- Grep-guard `scripts/check-mail-addresses.mjs` (`npm run check:mail`, stap in
+  `.github/workflows/ci.yml` na i18n-pariteit; er zijn geen pre-commit hooks).
+- Docs: `docs/email-architecture.md` volledig herschreven; `docs/sql/mail-sender-1-doc-article.sql`;
+  changelog `2026.11b` in vijf talen; nieuwsbriefitem, en het nog niet verzonden item 2026.11a
+  rechtgezet ("niets ingevuld" = SellQo-inbox, niet meer het eigenaar-adres).
+
+### Security-keuzes
+
+- Geen RLS geraakt. `send-test-email` kan niet meer als platformafzender versturen.
+- Contactformulier: HTML-escaping van bezoekersinvoer.
+- **Eerste wet:** `storefront-api` (één fallbackstring) en `storefront-customer-api` (select +
+  afzender van verificatie- en resetmail) intern geraakt; geen contract of gedeelde tabel.
+
+### Data (niet door mij uitgevoerd)
+
+`docs/sql/mail-inbound-1.sql` en `docs/sql/mail-sender-1-doc-article.sql` voert chat-Claude uit via
+de connector, na snapshot.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| vitest (inboundAddress, customerContact, emailSenders, contactFormForward, colorContrast) | 25/25 |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 (herhaald op de definitieve code) |
+| Lint | 1507, beter dan de baseline 1512 (baseline bijgewerkt) |
+| `npm run build` | exit 0 |
+| `node scripts/i18n-parity.mjs` | exit 0 |
+| `npm run check:mail` | groen; vangt aantoonbaar `support@sellqo.app` en `${prefix}@sellqo.app` |
+| `deno check`, 21 functies, `e852b8a7` vs nieuw via worktree | **eerst 1 nieuwe fout**: `storefront-api` riep in de welkomstmail van de nieuwsbrief `_SENDERS_WC.marketing(...)` aan via een dynamische import onder een alias — mijn grep op `EMAIL_SENDERS.` had hem gemist, en in productie was dat pad gecrasht. Gefixt naar `tenantSender` (select + `slug, inbound_email_prefix, support_email`); daarna 0 nieuwe fouten in alle 21. |
+| Render-check (tsx) | logo-chip `#ffffff` + `.sq-logo` wit in de dark-mode-query; VanXcel From `VanXcel <vanxcel@mail.sellqo.app>`, Reply-To `info@vanxcel.com`; Loveke zonder eigen adres: Reply-To `loveke@mail.sellqo.app` |
+| 375px, klantcontact-card (fr, harness) | geen horizontale scroll; inbox-modus toont het adres; eigen adres ongeldig → foutmelding; kijker: alles uit, geen knop |
+
+**Les (voor R6/R8):** een grep op `EMAIL_SENDERS.` vindt geen dynamische import onder een alias
+(`const { EMAIL_SENDERS: _X } = await import(...)`). `deno check` op elke importeur wel.
+
+### Redeploy (import-grep op `emailSenders`, `customerContact`, `tenantEmail`, `sellqoEmail`, `email-templates`, `inboundAddress`, `contactFormForward`, + direct gewijzigd)
+
+`auth-email-hook`, `automation-scheduler`, `create-notification`, `handle-inbound-email`,
+`resend-team-invitation`, `send-campaign-batch`, `send-credit-note-email`, `send-customer-message`,
+`send-gift-card-email`, `send-invoice-email`, `send-order-confirmation`,
+`send-payment-request-email`, `send-quote-email`, `send-return-email`, `send-team-invitation`,
+`send-test-email`, `send-ticket-confirmation`, `send-trial-expiry-warning`, `storefront-api`,
+`storefront-contact-form`, `storefront-customer-api` (21).
+
+### Bewust ongemoeid / Vervolg
+
+Migadu-opruiming (MAIL-SQ-CLEAN), eigen domeinen per winkel, FEED-FIX-1, MAIL-LOG-1, contrast van de
+primaire kleur. `inbound_email_enabled` wordt in `handle-inbound-email` nog alleen gelogd.
+
 ## MAIL-THEME-1 — leesbare tekst op de witte mailcard bij een donker storefront-thema — 18 september 2026
 
 **Aanleiding.** Een echte testmail van VanXcel (18 sep, na MAIL-CONTACT-1) had kop en intro in
@@ -62,6 +180,12 @@ tenants waarvan de themakleur < 4.5:1 op wit haalt; voor alle andere is de uitvo
 `send-campaign-batch`, `send-credit-note-email`, `send-customer-message`, `send-gift-card-email`,
 `send-invoice-email`, `send-order-confirmation`, `send-payment-request-email`, `send-quote-email`,
 `send-return-email`, `send-ticket-confirmation`.
+
+### Uitrol
+
+Uitrol 18-09: 10 functies gedeployed via Lovable-agent (0,6 credits). Vingerafdruk
+send-customer-message VanXcel 12:56: light mode kop/intro donker op witte card, dark mode leesbaar.
+Bewezen.
 
 ### Bewust ongemoeid / Vervolg
 

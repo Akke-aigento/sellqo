@@ -1,97 +1,76 @@
-# Email Architecture — Sender Address Strategy
+# E-mailarchitectuur — afzenders, antwoordadressen en inbound
 
-_Last updated: 2026-06-09_
+_Laatst bijgewerkt: 18 september 2026 (MAIL-INBOUND-1 + MAIL-SENDER-1)._
 
-## Overview
+SellQo verstuurt en ontvangt mail op drie domeinen, elk met één taak.
 
-SellQo verstuurt e-mails vanuit **één geverifieerd domein** (`sellqo.app`, verified in Resend) maar gebruikt **14 dedicated mailboxes** om verschillende e-mailstreams te scheiden. Dit verbetert:
+| Domein | Waarvoor | Provider | DNS |
+|---|---|---|---|
+| `sellqo.app` (root) | alleen `info@sellqo.app`: platformmail en het publieke contactadres | Migadu (mailbox) + Resend (verzenden) | MX → Migadu; DMARC `p=quarantine`, `rua` → `info@sellqo.app` |
+| `mail.sellqo.app` | winkels: afzender én inbound, `<prefix>@mail.sellqo.app` | Resend | DKIM `resend._domainkey.mail`; CNAME `rsend.mail` → `rsend-euw1.forge.rmta.net`; CNAME `send.mail` → `send.forge.rmta.net`; MX `mail` → `inbound-smtp.eu-west-1.amazonaws.com` (prio 10) |
+| `auth.sellqo.app` | Supabase-auth-mail (login, signup, reset, e-mailwijziging) | Lovable Managed (Mailgun EU) | NS-delegatie naar Lovable |
 
-- **Deliverability** — banks/Gmail/Outlook reputation per address
-- **Inbox-organisatie** voor klanten (bestellingen vs. facturen vs. marketing)
-- **Reply-routing** — alle replies komen op `support@sellqo.app` tenzij tenant een eigen support-email heeft
-- **Threading & filtering** — klanten kunnen filters bouwen
+**Regel:** op de root bestaat alleen `info@sellqo.app`. Elk ander `…@sellqo.app`-adres in de
+code is fout; `scripts/check-mail-addresses.mjs` (`npm run check:mail`, ook in CI) faalt erop.
 
-Geen DNS-werk nodig: `sellqo.app` is al volledig geverifieerd.
+## Stream A — platform → gebruikers van een winkel
 
-## Stream A — Platform → Tenant-users (NL)
+Uitnodigingen, facturatie van SellQo zelf, meldingen, beveiligingsmail. Altijd vanaf
+`info@sellqo.app`; het soort mail staat in de weergavenaam.
 
-Communicatie van het SellQo-platform naar admins/team-leden van een tenant. Body is altijd in het Nederlands.
-
-| Address                       | Sender-key      | Edge functions                                |
-| ----------------------------- | --------------- | --------------------------------------------- |
-| `invite@sellqo.app`           | `invite`        | `send-team-invitation`, `resend-team-invitation` |
-| `billing@sellqo.app`          | `billing`       | `send-trial-expiry-warning` (+ toekomstige facturatie-emails platform) |
-| `notifications@sellqo.app`    | `notifications` | `create-notification` (email-kanaal)         |
-| `security@sellqo.app`         | `security`      | _(backlog: password-reset / suspicious-login)_ |
-| `no-reply@sellqo.app`         | `noReply`       | _(fallback voor system-emails zonder reply)_  |
-
-`reply_to` voor alle Stream A → `support@sellqo.app`.
-
-## Stream B — Tenant → Customers (EN sender, body lokaal)
-
-Communicatie van een tenant naar diens klanten. **Sender-naam = tenantnaam**, address blijft op `sellqo.app`. Body-taal komt uit `tenant_domains.locale` of order/customer locale.
-
-| Address                          | Sender-key        | Edge functions                          |
-| -------------------------------- | ----------------- | --------------------------------------- |
-| `orders@sellqo.app`              | `orders`          | `send-order-confirmation`               |
-| `invoices@sellqo.app`            | `invoices`        | `send-invoice-email`, `send-credit-note-email` |
-| `quotes@sellqo.app`              | `quotes`          | `send-quote-email`                      |
-| `returns@sellqo.app`             | `returns`         | `send-return-email`                     |
-| `gift-cards@sellqo.app`          | `giftCards`       | `send-gift-card-email`                  |
-| `marketing@sellqo.app`           | `marketing`       | `send-campaign-batch`, `automation-scheduler` |
-| `customer-service@sellqo.app`    | `customerService` | `send-customer-message`                 |
-
-`reply_to` voor Stream B → `resolveCustomerContactEmail(tenant)` uit `_shared/customerContact.ts`: `support_email || owner_email || info@sellqo.app` (MAIL-CONTACT-1, 18 sep 2026). `support_email` stelt de winkel zelf in bij Instellingen → E-mail (card "Klantcontact-e-mail"). `notification_email` hoort hier nooit in: dat is het adres voor de eigen meldingen van de winkel. Geen functie bouwt nog een eigen keten. De fallback wordt in MAIL-SENDER-1 `<prefix>@mail.sellqo.app`.
-
-## Stream C — Auth (Lovable Managed)
-
-Supabase auth-emails (magic-link, signup confirmation, password recovery, invite, email-change, reauthentication) lopen via Lovable Managed templates op Mailgun EU. Templates in SellQo-branding, NL-copy.
-
-| Address | Beheer | Notes |
+| Key (`EMAIL_SENDERS`) | From | Reply-To |
 |---|---|---|
-| noreply@auth.sellqo.app | Lovable Managed (NS-delegatie auth.sellqo.app naar ns3+ns4.lovable.cloud) | Display-From @sellqo.app via toggle (Outlook toont "namens"); SPF/MX Mailgun EU in delegated zone; relaxed alignment met apex-DMARC (p=quarantine) |
+| `invite` | `SellQo <info@sellqo.app>` | `info@sellqo.app` |
+| `billing` | `SellQo Billing <info@sellqo.app>` | `info@sellqo.app` |
+| `notifications` | `SellQo <info@sellqo.app>` | `info@sellqo.app` |
+| `security` | `SellQo Security <info@sellqo.app>` | `info@sellqo.app` |
+| `noReply` | `SellQo <info@sellqo.app>` | — |
 
-Stream C staat volledig los van Resend: eigen subdomein, eigen DKIM/SPF, eigen reputatie. Team-invites blijven bewust Stream A (invite@sellqo.app via Resend) — custom flow, geen Supabase auth-email. De apex _dmarc blijft eigendom van SellQo (p=quarantine, rapporten naar dmarc@sellqo.app).
+## Stream B — winkel → klant
 
-## Inbound
+Orderbevestigingen, facturen, creditnota's, betaalverzoeken, offertes, retouren, cadeaukaarten,
+tickets, klantenservicebericht, nieuwsbrieven en automations. Eén bouwer voor allemaal:
+`tenantSender(tenant)` in `_shared/emailSenders.ts`.
 
-`inbox@sellqo.app` blijft de inbound-route die door `storefront-api` / `storefront-customer-api` wordt verwerkt voor klant-replies. Niet gewijzigd.
+- **From:** `<winkelnaam> <<prefix>@mail.sellqo.app>`. `prefix` = `tenants.inbound_email_prefix`,
+  anders `slug`, gevalideerd tegen `^[a-z0-9][a-z0-9-]{0,62}$`. Zonder geldige prefix: luide fout
+  in de log en From `SellQo <info@sellqo.app>` als noodval.
+- **Reply-To:** `resolveCustomerContactEmail(tenant)` uit `_shared/customerContact.ts` =
+  `support_email` (eigen adres, ingesteld bij Instellingen → Email Inbox) of anders de SellQo-inbox
+  `<prefix>@mail.sellqo.app`. `owner_email` en `notification_email` horen hier nooit in.
+- Brand-callers geven `brand.senderSource` mee (`getTenantBrand`, `_shared/tenantEmail.ts`).
+- **Uitzondering: contactformulier van de webshop** (`storefront-contact-form`). Die mail gaat naar
+  de winkel zelf. From is het winkeladres, Reply-To is altijd de bezoeker
+  (`_shared/contactFormForward.ts`, met test).
+- **List-Unsubscribe** alleen op nieuwsbrieven en automations, niet op het 1-op-1-klantenservicebericht.
 
-## Body-taal vs Sender-taal
+## Inbound — klantmail naar de winkel
 
-- **Sender-address blijft EN/neutraal** (`orders@`, `invoices@`, etc.) — internationaal herkenbaar en stabiel.
-- **Sender-naam = tenant.name** — branding zichtbaar in inbox-preview.
-- **Body-taal** wordt per e-mail bepaald via `tenant_domains.locale` (storefront-emails) of `customer.locale`/order-locale (admin-emails). Geen wijziging in deze batch.
+1. Een klant mailt of antwoordt naar `<prefix>@mail.sellqo.app`.
+2. MX `mail.sellqo.app` → Resend Inbound → webhook `email.received` → `handle-inbound-email`
+   (svix-handtekening met `RESEND_INBOUND_WEBHOOK_SECRET`).
+3. `extractInboundPrefix` (`_shared/inboundAddress.ts`) haalt de prefix uit de To; alleen
+   `@mail.sellqo.app` telt. De winkel wordt gevonden op `tenants.inbound_email_prefix`.
+4. Het bericht komt in `customer_messages` (inbox in de admin) en er komt een melding
+   (`notifications`, category `messages`, ook push).
 
-## Implementatie
+Mail naar de root `sellqo.app` bereikt SellQo nooit: die gaat naar Migadu.
 
-Alle sender-config gecentraliseerd in `supabase/functions/_shared/emailSenders.ts`:
+## Auth — Lovable Managed
 
-```ts
-import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+`auth-email-hook` bouwt de templates (`_shared/email-templates/`) en zet ze in de wachtrij; Lovable
+Managed verstuurt via `auth.sellqo.app` met display-From `sellqo <info@sellqo.app>`. Contactadres in
+de templates: `info@sellqo.app`. Verder staat deze stroom volledig los van Resend.
 
-// Stream A
-const inv = EMAIL_SENDERS.invite; // { from, replyTo }
+## Talen
 
-// Stream B
-const orderSender = EMAIL_SENDERS.orders(tenant.name, tenant.support_email);
-```
+Afzendernaam = winkelnaam. De taal van de mail volgt de klant of de winkel (`tenantEmailI18n.ts`),
+niet het adres.
 
-`tenantName` wordt automatisch gesanitized (geen `<>`, `"`, controlechars, max 80 tekens). Lege of ontbrekende `tenantReplyTo` valt terug op `support@sellqo.app`; voor Stream B komt dat niet meer voor, want elke caller geeft `resolveCustomerContactEmail(...)` mee, en die geeft altijd een adres.
+## Historie
 
-## Resend domain status
-
-- `sellqo.app` — **verified** (alle 14 mailboxes gebruiken dit domain via verschillende local-parts; geen aparte verificatie per mailbox vereist binnen Resend).
-
-## Backlog
-
-- **Per-tenant verified domains**: bv. `orders@vanxcel.com`. Vereist:
-  - Resend `domains.create` per tenant
-  - DNS-records (SPF/DKIM/MX of return-path) in domein van tenant
-  - UI in `tenant_email_branding` voor "Bring Your Own Domain"
-  - Fallback naar `sellqo.app` als tenant-domain `unverified`/`failed`
-- **Per-stream open-rate / bounce tracking** per address (Resend Analytics + `email_send_log`).
-- **DMARC report parsing** om reputation per address te monitoren.
-- **`security@`-flow**: implementatie van password-reset & suspicious-login wanneer auth-hardening op de roadmap komt.
-- **Auth-email sender display Outlook ("namens"-notatie)** — wachten op editbare toggle bij Lovable
-- **Deliverability monitoring Outlook/Hotmail** (evt. aanmelden Microsoft SNDS); invite@sellqo.app als veilige afzender op testaccounts
+- Tot 18 sep 2026 had elke stroom een eigen adres op de root (`orders@`, `invoices@`,
+  `support@`, `marketing@`, …). Die bestonden bij Migadu niet als mailbox; antwoorden erop gingen
+  verloren, en `<prefix>@sellqo.app` als inbound kwam nooit bij SellQo aan.
+- MAIL-CONTACT-1 (18 sep): `support_email` als enige bron voor het klantcontactadres.
+- MAIL-INBOUND-1 + MAIL-SENDER-1 (18 sep): deze indeling.

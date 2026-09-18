@@ -1544,6 +1544,10 @@
         "customer_contact_email": {
           "title": "Stel zelf je klantcontactadres in",
           "description": "Onder Instellingen → Email Inbox kies je voortaan zelf het e-mailadres dat je klanten zien in orderbevestigingen, facturen, offertes en nieuwsbrieven. Antwoordt een klant op zo’n mail, dan komt dat antwoord op dit adres binnen. Laat je het leeg, dan gebruiken we het adres van de eigenaar. Het adres dat je instelt voor je eigen meldingen, zien klanten niet meer."
+        },
+        "customer_replies_inbox": {
+          "title": "Antwoorden van klanten komen in je SellQo-inbox",
+          "description": "Mails van je winkel aan klanten komen voortaan van je eigen SellQo-adres: jouwwinkel@mail.sellqo.app. Antwoordt een klant, dan komt dat antwoord rechtstreeks in je SellQo-inbox, met een melding erbij. Liever op je eigen e-mailadres? Kies dat onder Instellingen → Email Inbox bij Klantcontact-e-mail."
         }
       },
       "copyLink": "Kopieer link",

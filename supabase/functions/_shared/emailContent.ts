@@ -50,7 +50,8 @@ export interface VarRecipient {
 export interface VarTenant {
   name?: string | null;
   support_email?: string | null;
-  owner_email?: string | null;
+  slug?: string | null;
+  inbound_email_prefix?: string | null;
   phone?: string | null;
   custom_domain?: string | null;
   iban?: string | null;

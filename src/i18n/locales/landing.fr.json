@@ -1544,6 +1544,10 @@
         "customer_contact_email": {
           "title": "Définissez vous-même votre adresse de contact client",
           "description": "Dans Paramètres → Boîte de réception e-mail, vous choisissez désormais l'adresse e-mail que vos clients voient dans les confirmations de commande, les factures, les devis et les newsletters. Lorsqu'un client répond à l'un de ces e-mails, la réponse arrive à cette adresse. Si vous la laissez vide, nous utilisons l'adresse du propriétaire. L'adresse que vous définissez pour vos propres notifications n'est plus visible par les clients."
+        },
+        "customer_replies_inbox": {
+          "title": "Les réponses des clients arrivent dans votre boîte SellQo",
+          "description": "Les e-mails de votre boutique aux clients viennent désormais de votre propre adresse SellQo : votreboutique@mail.sellqo.app. Quand un client répond, la réponse arrive directement dans votre boîte de réception SellQo, avec une notification. Vous préférez votre propre adresse e-mail ? Choisissez-la dans Paramètres → Boîte de réception e-mail, sous E-mail de contact client."
         }
       },
       "copyLink": "Copier le lien",

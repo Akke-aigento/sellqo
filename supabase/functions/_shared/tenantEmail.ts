@@ -15,6 +15,7 @@
 // module is purely visual/templating.
 
 import { resolveCustomerContactEmail } from "./customerContact.ts";
+import type { TenantSenderSource } from "./emailSenders.ts";
 import { readableTextColor } from "./colorContrast.ts";
 import {
   BRAND,
@@ -50,6 +51,11 @@ export interface TenantBrand {
   headingFont: string;
   bodyFont: string;
   supportEmail: string;
+  /**
+   * MAIL-SENDER-1: wat `tenantSender` nodig heeft om From en Reply-To te bouwen
+   * (`_shared/emailSenders.ts`). Zo hoeft een brand-caller niets extra op te halen.
+   */
+  senderSource: TenantSenderSource;
   websiteUrl?: string;
   legalName?: string;
   address?: string;
@@ -121,7 +127,7 @@ export async function getTenantBrand(
     const { data, error } = await supabase
       .from("tenants")
       .select(
-        "id, name, billing_company_name, support_email, owner_email, primary_color, logo_url, custom_domain, address, city, postal_code, country, btw_number, billing_vat_number, language",
+        "id, name, slug, inbound_email_prefix, billing_company_name, support_email, owner_email, primary_color, logo_url, custom_domain, address, city, postal_code, country, btw_number, billing_vat_number, language",
       )
       .eq("id", tenantId)
       .maybeSingle();
@@ -185,6 +191,12 @@ export async function getTenantBrand(
     headingFont: (typeof th.heading_font === "string" && th.heading_font) || "Inter",
     bodyFont: (typeof th.body_font === "string" && th.body_font) || "Inter",
     supportEmail,
+    senderSource: {
+      name: (t.name && String(t.name).trim()) || "SellQo",
+      inbound_email_prefix: t.inbound_email_prefix ?? null,
+      slug: t.slug ?? null,
+      support_email: t.support_email ?? null,
+    },
     websiteUrl,
     address: (t.address && String(t.address).trim()) || undefined,
     city: (t.city && String(t.city).trim()) || undefined,
@@ -407,11 +419,18 @@ export function renderTenantEmail(opts: RenderTenantEmailOptions): { html: strin
   const headingFont = `${b.headingFont}, ${BRAND.primary === "" ? "" : ""}-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
   const bodyFont = `${b.bodyFont}, -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
 
-  // Header with tenant logo + name
+  // Header with tenant logo. MAIL-SENDER-1: het logo staat op een eigen wit vlak.
+  // Het stond rechtstreeks op de achtergrond van het thema (VanXcel #0f0f0f) en in
+  // dark mode op #0f172a — een zwart logo was dan onzichtbaar. `.sq-logo` blijft
+  // wit in de dark-mode-query van emailBaseLayout (sellqoEmail.ts).
   const header = `<tr><td align="center" style="padding:0 0 24px;">
-    <a href="${esc(b.websiteUrl || "https://sellqo.app")}" target="_blank" style="text-decoration:none;">
-      <img src="${esc(b.logoUrl)}" alt="${esc(b.tenantName)}" style="height:44px;width:auto;display:block;border:0;outline:none;margin:0 auto;" />
-    </a>
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"><tr>
+      <td class="sq-logo" bgcolor="#ffffff" style="background-color:#ffffff;border-radius:10px;padding:12px 20px;">
+        <a href="${esc(b.websiteUrl || "https://sellqo.app")}" target="_blank" style="text-decoration:none;">
+          <img src="${esc(b.logoUrl)}" alt="${esc(b.tenantName)}" style="height:44px;width:auto;display:block;border:0;outline:none;margin:0 auto;" />
+        </a>
+      </td>
+    </tr></table>
   </td></tr>`;
 
   const primaryBtn = opts.primaryCta

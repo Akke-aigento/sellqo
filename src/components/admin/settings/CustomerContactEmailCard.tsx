@@ -6,20 +6,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
 import { useTenant } from '@/hooks/useTenant';
 import { useCan } from '@/hooks/useCan';
 import { supabase } from '@/integrations/supabase/client';
 
 const emailSchema = z.string().trim().email();
+// Zelfde regel en domein als _shared/customerContact.ts en _shared/inboundAddress.ts.
+const MAIL_PREFIX_RE = /^[a-z0-9][a-z0-9-]{0,62}$/;
+const INBOUND_DOMAIN = 'mail.sellqo.app';
+
+type Mode = 'inbox' | 'own';
 
 /**
- * MAIL-CONTACT-1 — het adres dat klanten van de winkel zien.
+ * MAIL-CONTACT-1 / MAIL-SENDER-1 — het adres dat klanten van de winkel zien.
  *
  * `tenants.support_email` is de Reply-To, footer en mailto van elke mail aan
- * klanten (orderbevestigingen, facturen, nieuwsbrieven). Tot 18 sep 2026 kon
- * een winkel dit nergens instellen. Leeg laten mag: dan valt de server terug op
- * het eigenaar-adres (`_shared/customerContact.ts`).
+ * klanten. Twee keuzes:
+ * - Mijn SellQo-inbox: `support_email = null`. Antwoorden gaan naar
+ *   <prefix>@mail.sellqo.app en komen in de inbox in de admin.
+ * - Eigen adres: `support_email` = het ingevulde adres.
  *
  * Opslaan mag alleen wie `settings_general` kan schrijven — dat is precies wat
  * de RLS op `tenants` toelaat (tenant_admin, platform_admin).
@@ -30,22 +37,28 @@ export function CustomerContactEmailCard() {
   const { currentTenant, refreshTenants } = useTenant();
   const canWrite = useCan('write', 'settings_general');
 
-  const saved = currentTenant?.support_email ?? '';
-  const [value, setValue] = useState(saved);
+  const savedOwn = (currentTenant?.support_email ?? '').trim();
+  const prefixCandidate = (currentTenant?.inbound_email_prefix || currentTenant?.slug || '').trim().toLowerCase();
+  const inboxAddress = MAIL_PREFIX_RE.test(prefixCandidate) ? `${prefixCandidate}@${INBOUND_DOMAIN}` : null;
+
+  const [mode, setMode] = useState<Mode>(savedOwn ? 'own' : 'inbox');
+  const [value, setValue] = useState(savedOwn);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setValue(currentTenant?.support_email ?? '');
+    const own = (currentTenant?.support_email ?? '').trim();
+    setMode(own ? 'own' : 'inbox');
+    setValue(own);
     setError(null);
   }, [currentTenant?.id, currentTenant?.support_email]);
 
   const trimmed = value.trim();
-  const dirty = trimmed !== saved.trim();
+  const dirty = mode === 'inbox' ? savedOwn !== '' : trimmed !== savedOwn;
 
   const handleSave = async () => {
     if (!currentTenant?.id) return;
-    if (trimmed && !emailSchema.safeParse(trimmed).success) {
+    if (mode === 'own' && !emailSchema.safeParse(trimmed).success) {
       setError(t('settings.email.contactInvalid'));
       return;
     }
@@ -54,7 +67,7 @@ export function CustomerContactEmailCard() {
     try {
       const { data, error: updateError } = await supabase
         .from('tenants')
-        .update({ support_email: trimmed || null })
+        .update({ support_email: mode === 'own' ? trimmed : null })
         .eq('id', currentTenant.id)
         .select('id');
       if (updateError) throw updateError;
@@ -73,6 +86,8 @@ export function CustomerContactEmailCard() {
     }
   };
 
+  const disabled = !canWrite || saving;
+
   return (
     <Card>
       <CardHeader>
@@ -86,38 +101,68 @@ export function CustomerContactEmailCard() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <Label htmlFor="customer-contact-email">{t('settings.email.contactLabel')}</Label>
-        <div className="flex flex-col gap-2 sm:flex-row">
-          <Input
-            id="customer-contact-email"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            value={value}
-            placeholder={currentTenant?.owner_email || 'info@jouwwinkel.be'}
-            onChange={(e) => {
-              setValue(e.target.value);
-              if (error) setError(null);
-            }}
-            disabled={!canWrite || saving}
-            aria-invalid={!!error}
-            aria-describedby="customer-contact-email-help"
-            className="min-w-0 sm:flex-1"
-          />
-          {canWrite && (
-            <Button onClick={handleSave} disabled={!dirty || saving} className="shrink-0">
-              {saving && <Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" aria-hidden="true" />}
-              {t('settings.email.contactSave')}
-            </Button>
-          )}
-        </div>
-        {error && <p className="text-sm text-destructive">{error}</p>}
-        <p id="customer-contact-email-help" className="text-sm text-muted-foreground">
-          {canWrite
-            ? t('settings.email.contactFallback', { email: currentTenant?.owner_email || '' })
-            : t('settings.email.contactReadOnly')}
-        </p>
+      <CardContent className="space-y-4">
+        <RadioGroup
+          value={mode}
+          onValueChange={(v) => {
+            setMode(v as Mode);
+            setError(null);
+          }}
+          disabled={disabled}
+          className="space-y-3"
+        >
+          <div className="flex items-start gap-3">
+            <RadioGroupItem value="inbox" id="contact-mode-inbox" className="mt-1 shrink-0" />
+            <div className="min-w-0">
+              <Label htmlFor="contact-mode-inbox" className="font-medium">
+                {t('settings.email.contactModeInbox')}
+              </Label>
+              {inboxAddress && (
+                <p className="font-mono text-sm break-all">{inboxAddress}</p>
+              )}
+              <p className="text-sm text-muted-foreground">{t('settings.email.contactModeInboxHint')}</p>
+            </div>
+          </div>
+          <div className="flex items-start gap-3">
+            <RadioGroupItem value="own" id="contact-mode-own" className="mt-1 shrink-0" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Label htmlFor="contact-mode-own" className="font-medium">
+                {t('settings.email.contactModeOwn')}
+              </Label>
+              {mode === 'own' && (
+                <>
+                  <Input
+                    id="customer-contact-email"
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={value}
+                    placeholder="info@jouwwinkel.be"
+                    aria-label={t('settings.email.contactLabel')}
+                    onChange={(e) => {
+                      setValue(e.target.value);
+                      if (error) setError(null);
+                    }}
+                    disabled={disabled}
+                    aria-invalid={!!error}
+                    className="min-w-0"
+                  />
+                  {error && <p className="text-sm text-destructive">{error}</p>}
+                </>
+              )}
+              <p className="text-sm text-muted-foreground">{t('settings.email.contactModeOwnHint')}</p>
+            </div>
+          </div>
+        </RadioGroup>
+
+        {canWrite ? (
+          <Button onClick={handleSave} disabled={!dirty || saving} className="w-full sm:w-auto">
+            {saving && <Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" aria-hidden="true" />}
+            {t('settings.email.contactSave')}
+          </Button>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('settings.email.contactReadOnly')}</p>
+        )}
       </CardContent>
     </Card>
   );

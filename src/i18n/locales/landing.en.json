@@ -1544,6 +1544,10 @@
         "customer_contact_email": {
           "title": "Set your own customer contact address",
           "description": "Under Settings → Email inbox you now choose the email address your customers see in order confirmations, invoices, quotes and newsletters. When a customer replies to one of those emails, the reply arrives at this address. If you leave it empty, we use the owner's address. The address you set for your own notifications is no longer shown to customers."
+        },
+        "customer_replies_inbox": {
+          "title": "Customer replies arrive in your SellQo inbox",
+          "description": "Emails from your store to customers now come from your own SellQo address: yourstore@mail.sellqo.app. When a customer replies, the reply arrives straight in your SellQo inbox, with a notification. Prefer your own email address? Choose it under Settings → Email inbox, at Customer contact email."
         }
       },
       "copyLink": "Copy link",

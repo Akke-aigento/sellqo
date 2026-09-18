@@ -35,7 +35,7 @@ export interface RenderedAuthEmail {
   text: string;
 }
 
-const supportEmail = "support@sellqo.app";
+const supportEmail = "info@sellqo.app";
 
 function render(opts: {
   subject: string;

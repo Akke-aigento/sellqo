@@ -21,7 +21,7 @@ export const BRAND = {
 }
 
 export const LOGO_URL = 'https://sellqo.app/email-logo.png'
-export const SUPPORT_EMAIL = 'support@sellqo.app'
+export const SUPPORT_EMAIL = 'info@sellqo.app'
 
 export const main = {
   backgroundColor: '#ffffff',

@@ -4,6 +4,23 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11b — Antwoorden van klanten komen in je SellQo-inbox (feature, 18-09-2026)
+
+**Voor wie:** elke winkel die mails naar klanten stuurt.
+
+**Je eigen SellQo-adres.** Mails van je winkel aan klanten komen voortaan van
+jouwwinkel@mail.sellqo.app, met de naam van je winkel als afzender.
+
+**Antwoorden in je inbox.** Antwoordt een klant op een orderbevestiging, factuur of
+nieuwsbrief, dan komt dat antwoord rechtstreeks in je SellQo-inbox, met een melding erbij. Geen
+gemiste klantvragen meer tussen je andere mail.
+
+**Liever je eigen adres?** Onder Instellingen → Email Inbox kies je bij Klantcontact-e-mail voor
+"Eigen adres". Dan gaan antwoorden daarheen, buiten SellQo om.
+
+**i18n-key.** `public.changelog.changes.customer_replies_inbox` — vijf talen, volledige pariteit.
+
+
 ### 2026.11a — Stel zelf je klantcontactadres in (feature, 18-09-2026)
 
 **Voor wie:** elke winkel die mails naar klanten stuurt — dus iedereen.
@@ -12,7 +29,8 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 e-mailadres dat je klanten zien in orderbevestigingen, facturen, offertes en nieuwsbrieven.
 Antwoordt een klant op zo'n mail, dan komt dat antwoord op dit adres binnen.
 
-**Niets ingevuld?** Dan gebruiken we het adres van de eigenaar van de winkel, zoals voorheen.
+**Niets ingevuld?** Dan komen antwoorden in je SellQo-inbox (zie 2026.11b). _Bijgewerkt
+18-09, vóór verzending: in de eerste versie stond hier het adres van de eigenaar._
 
 **Je meldingsadres blijft van jou.** Het adres dat je bij Winkel Notificaties instelt voor
 je eigen meldingen, zien klanten niet meer.

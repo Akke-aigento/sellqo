@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { tenantSender } from "../_shared/emailSenders.ts";
 import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
@@ -174,7 +174,7 @@ serve(async (req) => {
         orders!returns_order_id_fkey(
           order_number, customer_email, customer_name,
           shipping_address, total, currency, locale, tenant_id,
-          tenants(name, support_email, owner_email, primary_color, logo_url, postal_code, city, country)
+          tenants(name, slug, inbound_email_prefix, support_email, primary_color, logo_url, postal_code, city, country)
         ),
         return_items(product_name, quantity)
       `)
@@ -212,8 +212,9 @@ serve(async (req) => {
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    // MAIL-CONTACT-1: de gedeelde keten. Voorheen viel een winkel zonder
-    // support_email terug op 'admin@sellqo.app' in de tekst van de mail.
+    // MAIL-CONTACT-1: de gedeelde keten (support_email, anders de SellQo-inbox van
+    // de winkel). Voorheen viel een winkel zonder support_email terug op een
+    // platformadres in de tekst van de mail.
     const supportEmail = resolveCustomerContactEmail(tenant);
     const to = order.customer_email;
 
@@ -259,7 +260,7 @@ serve(async (req) => {
     const { Resend } = await import("https://esm.sh/resend@2.0.0");
     const resend = new Resend(resendApiKey);
 
-    const returnSender = EMAIL_SENDERS.returns(tenant?.name || 'SellQo', supportEmail);
+    const returnSender = tenantSender(brand.senderSource);
     const { data: emailData, error: emailError } = await resend.emails.send({
       from: returnSender.from,
       to: [to],

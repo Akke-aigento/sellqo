@@ -57,7 +57,7 @@ export function emailFooter(opts: {
   align?: "left" | "center";
 }): string {
   const legal = opts.legal || `© ${new Date().getFullYear()} SellQo. Alle rechten voorbehouden.`;
-  const supportEmail = opts.supportEmail || "support@sellqo.app";
+  const supportEmail = opts.supportEmail || "info@sellqo.app";
   const align = opts.align || "left";
   const links: string[] = [];
   if (opts.extraLinks?.length) {
@@ -256,6 +256,7 @@ export function emailBaseLayout(opts: BaseLayoutOptions): string {
     @media (prefers-color-scheme: dark) {
       body, .sq-bg { background-color:#0f172a !important; }
       .sq-card { background-color:#1a2332 !important; border-color:#283449 !important; }
+      .sq-logo { background-color:#ffffff !important; }
       .sq-card h1, .sq-card h2, .sq-card h3, .sq-card p, .sq-card td { color:#e8edf5 !important; }
       .sq-footer p, .sq-footer a { color:#94a3b8 !important; }
       .sq-muted { color:#94a3b8 !important; }

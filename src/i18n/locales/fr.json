@@ -509,14 +509,17 @@
       "openBol": "Ouvrir les paramètres de boutique Bol.com",
       "repliesAutomatic": "Les réponses fonctionnent automatiquement",
       "contactTitle": "E-mail de contact client",
-      "contactHint": "Vos clients voient cette adresse dans les confirmations de commande, les factures et les newsletters, et leurs réponses y arrivent.",
+      "contactHint": "Vos clients voient cette adresse dans les confirmations de commande, les factures et les newsletters. Les réponses des clients arrivent ici.",
       "contactLabel": "Adresse e-mail pour les clients",
       "contactSave": "Enregistrer",
       "contactSaved": "E-mail de contact client enregistré",
-      "contactInvalid": "Saisissez une adresse e-mail valide ou laissez le champ vide.",
-      "contactFallback": "Si vous le laissez vide, nous utilisons l'adresse du propriétaire ({{email}}).",
+      "contactInvalid": "Saisissez une adresse e-mail valide.",
       "contactReadOnly": "Seul un administrateur de la boutique peut modifier cette adresse.",
-      "contactNoRights": "Vous n'avez pas les droits pour modifier cette adresse."
+      "contactNoRights": "Vous n'avez pas les droits pour modifier cette adresse.",
+      "contactModeInbox": "Ma boîte de réception SellQo",
+      "contactModeInboxHint": "Les réponses des clients arrivent dans votre boîte de réception SellQo, avec vos autres messages.",
+      "contactModeOwn": "Ma propre adresse",
+      "contactModeOwnHint": "Les réponses des clients arrivent à cette adresse, en dehors de SellQo."
     },
     "communication": {
       "subtitle": "Configurez les messages automatiques que reçoivent vos clients",

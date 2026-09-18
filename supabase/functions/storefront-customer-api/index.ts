@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -73,7 +72,7 @@ async function resolveStorefrontBase(
   // store_name bestaat NIET op tenants; die stond hier eerder wel in, waardoor de
   // hele select faalde en tenant null werd (en de reset-URL een lege slug kreeg).
   const { data: tenant } = await supabase
-    .from('tenants').select('name, slug, custom_domain, support_email, owner_email')
+    .from('tenants').select('name, slug, inbound_email_prefix, custom_domain, support_email')
     .eq('id', tenantId).maybeSingle();
 
   const cleanHost = (v: string) => v.replace(/^https?:\/\//, '').replace(/\/+$/, '').toLowerCase();
@@ -129,8 +128,8 @@ async function sendVerificationEmail(
     const verifyUrl = `${baseUrl}/account/verify?token=${encodeURIComponent(opts.token)}&email=${encodeURIComponent(opts.email)}`;
     console.log(`[storefront-customer-api] verificatielink via ${source} voor tenant ${tenantId}`);
 
-    const { EMAIL_SENDERS } = await import('../_shared/emailSenders.ts');
-    const sender = EMAIL_SENDERS.customerService(storeName, resolveCustomerContactEmail(tenant));
+    const { tenantSender } = await import('../_shared/emailSenders.ts');
+    const sender = tenantSender({ ...tenant, name: storeName });
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
@@ -487,8 +486,8 @@ serve(async (req) => {
 
             const resetUrl = `${baseUrl}/account/reset?token=${encodeURIComponent(resetToken)}&email=${encodeURIComponent(email)}`;
 
-            const { EMAIL_SENDERS: _SENDERS_PWR } = await import('../_shared/emailSenders.ts');
-            const _pwSender = _SENDERS_PWR.customerService(storeName, resolveCustomerContactEmail(tenant));
+            const { tenantSender: _tenantSenderPwr } = await import('../_shared/emailSenders.ts');
+            const _pwSender = _tenantSenderPwr({ ...tenant, name: storeName });
             const emailRes = await fetch('https://api.resend.com/emails', {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
