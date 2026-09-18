@@ -1,3 +1,98 @@
+## MAIL-CONTACT-1 — klantcontact-e-mail uit één bron, instelbaar door de winkel — 18 september 2026
+
+2026-09-18 MAIL-CONTACT-1. Grandfather door chat-Claude via connector (query_database, vaste
+ID-lijst, WHERE support_email IS NULL): tenants.support_email = owner_email voor Astra Sleep,
+Loveke, Mancini Milano, SellQo, SellQo Speeltuin, The Fonske Crawl, VanXcel, Zona Dorata (8 rijen,
+RETURNING geverifieerd). Snapshot vooraf: support_email alleen Benny Rich (info@bennyrich.com);
+SellQo notification_email = sellqo-alerts@outlook.com (was via fallback klantzichtbaar, nu
+info@sellqo.app). Demo's (Demo Bakkerij, Demo Fashion Store, SellQo Sandbox) bewust leeg. Code:
+support_email enige bron via resolveCustomerContactEmail; campagne-select-bug
+(email/street/vat_number) gefixt.
+
+### Root cause
+
+- `tenants.support_email` is de Reply-To, footer en mailto van alle Stream-B-mails, maar geen
+  scherm liet een winkel het invullen.
+- Elf functies bouwden elk hun eigen keten. `_shared/tenantEmail.ts` (r.155) nam
+  `support_email → notification_email → owner_email → support@sellqo.app`: het adres voor de
+  eigen meldingen van een winkel lekte zo naar klanten. `send-return-email` viel terug op
+  `'admin@sellqo.app'`, `send-gift-card-email` en `automation-scheduler` alleen op `owner_email`,
+  `send-campaign-batch` op een kolom die niet bestaat.
+- Spookkolommen in `.from("tenants").select(...)` (nagetrokken tegen `information_schema`, 18 sep):
+  - `send-campaign-batch`: `email`, `street` → select faalde, fout genegeerd, `tenant = null`:
+    campagnes gingen uit als "Sellqo <marketing@sellqo.app>" met Reply-To support@.
+  - `send-test-email`: `email`, `street`, `vat_number` → "Tenant not found" voor elke winkel; de
+    testmailknop heeft nooit gewerkt.
+  - `send-gift-card-email`: `website_url` → select faalde, de functie gooide "Tenant not found":
+    **cadeaukaartmails gingen nooit uit**. `gift_cards` is live leeg, dus geen achterstand.
+
+### Uitgevoerd
+
+- `_shared/customerContact.ts` (nieuw, puur): `resolveCustomerContactEmail(tenant)` =
+  `support_email || owner_email || "info@sellqo.app"`, getrimd, lege string telt als leeg.
+  Tijdelijke fallback; in MAIL-SENDER-1 wordt dat `<prefix>@mail.sellqo.app`.
+- `tenantEmail.ts`: `supportEmail` via de helper; `notification_email` uit keten en select.
+- Via de helper, geen eigen keten meer: `send-invoice-email`, `send-credit-note-email`,
+  `send-payment-request-email`, `send-quote-email`, `send-gift-card-email`,
+  `automation-scheduler`, `send-campaign-batch`, `send-return-email` (`'admin@sellqo.app'` en de
+  stringvergelijking weg), `storefront-customer-api`, `send-test-email`.
+  `send-order-confirmation`, `send-ticket-confirmation` en `send-customer-message` volgen via
+  `brand.supportEmail`.
+- Selects: `support_email`/`owner_email` toegevoegd waar ze ontbraken; spookkolommen vervangen
+  (`street` → `address`, `vat_number` → `btw_number || billing_vat_number` — dezelfde bron als
+  `brand.vatNumber`), `email` en `website_url` weg. `send-campaign-batch` en `send-test-email`
+  lezen nu `error` uit en falen luid.
+- `_shared/emailContent.ts`: `VarTenant` volgt de echte kolommen; `{{company_email}}` via de helper,
+  `{{company_address}}` uit `address`.
+- UI: `CustomerContactEmailCard` bovenaan Instellingen → Email Inbox (`InboundEmailSettings`).
+  Eén veld, zod-validatie, leeg = eigenaar-adres; opslaan alleen met
+  `useCan('write','settings_general')`, anders read-only met uitleg. De update controleert of er een
+  rij geraakt is (RLS geeft anders stil 0 rijen). Hint bij Winkel Notificaties: het meldingsadres
+  is niet klantzichtbaar. i18n in vijf talen.
+- `docs/email-architecture.md`: Stream-B `reply_to` = de helper.
+- Slottaken: changelog `2026.11a` (`customer_contact_email`, vijf talen) — alleen "stel zelf je
+  klantcontactadres in", het SellQo-inboxadres bewust niet (MAIL-SENDER-1); nieuwsbriefitem;
+  helpartikel als los bestand `docs/sql/mail-contact-1-doc-article.sql` voor Lovable (geen eigen
+  migratie). "Notificaties instellen" ongemoeid: noemt nergens dat klanten het meldingsadres zien.
+- `.eslint-baseline.json`: 1519 → 1512 (zeven `as any` minder).
+
+### Security-keuzes
+
+- RLS ongewijzigd: `tenants` UPDATE blijft tenant_admin (eigen winkel) en platform_admin. De UI
+  volgt die regel via `settings_general.write`.
+- **Eerste wet.** `storefront-customer-api` is geraakt, bewust en intern: de select krijgt
+  `owner_email`, en de Reply-To van de verificatie- en wachtwoordresetmail gaat via de helper.
+  Geen verandering aan het JSON-contract of aan een gedeelde tabel. Na de grandfather hebben alle
+  custom-frontend-winkels een `support_email`, dus hun Reply-To blijft gelijk.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| `vitest src/test/customerContact.test.ts` | 5/5 (volgorde, trim, lege string, null, notification_email genegeerd) |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1512, beter dan de baseline 1519 |
+| `npm run build` | exit 0 |
+| `node scripts/i18n-parity.mjs` | exit 0 |
+| `deno check` (npm `deno@2.9.6`, 13 functies, HEAD vs nieuw via een worktree) | **0 nieuwe fouten** in alle 13; de bestaande (kleurconstanten in de templates, supabase-js-versieverschil) staan identiek in HEAD |
+| R8 | alle nieuwe selectkolommen bestaan (`information_schema`) |
+| 375px, echte `InboundEmailSettings` met nagebootste auth | `scrollWidth` 375; ongeldig adres → foutmelding + `aria-invalid`; kijker: veld uit, geen knop, uitleg |
+
+### Redeploy (grep op imports, niet gegokt)
+
+`automation-scheduler`, `send-campaign-batch`, `send-credit-note-email`, `send-customer-message`,
+`send-gift-card-email`, `send-invoice-email`, `send-order-confirmation`,
+`send-payment-request-email`, `send-quote-email`, `send-return-email`, `send-test-email`,
+`send-ticket-confirmation`, `storefront-customer-api`.
+
+### Bewust ongemoeid / Vervolg
+
+- `generate-product-feed` selecteert `company_name`, `website_url`, `default_currency` op
+  `tenants`; minstens `website_url` bestaat niet. Buiten scope, niet aangeraakt.
+- From-adressen, `mail.sellqo.app` en het inbound-domein: MAIL-SENDER-1.
+- `emailSenders.ts` ongewijzigd, ook de eigen fallback `support@sellqo.app` (voor Stream B nu
+  onbereikbaar).
+
 ## WEBHOOK-SIG-1 — vijf webhooks controleerden niet wie ze aanriep — 13 september 2026
 
 **Aanleiding.** Vervolg op AUTH-TRIAGE-3 (`shipping-webhook` stond daar als open punt). De

@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { CustomerContactEmailCard } from '@/components/admin/settings/CustomerContactEmailCard';
 import { 
   Mail, 
   Copy, 
@@ -107,6 +108,9 @@ export function InboundEmailSettings() {
   };
 
   return (
+    <div className="space-y-6">
+    {/* MAIL-CONTACT-1: het adres dat klanten zien, op dezelfde e-mailpagina. */}
+    <CustomerContactEmailCard />
     <Card>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -225,5 +229,6 @@ export function InboundEmailSettings() {
         </Alert>
       </CardContent>
     </Card>
+    </div>
   );
 }

@@ -41,7 +41,7 @@ Communicatie van een tenant naar diens klanten. **Sender-naam = tenantnaam**, ad
 | `marketing@sellqo.app`           | `marketing`       | `send-campaign-batch`, `automation-scheduler` |
 | `customer-service@sellqo.app`    | `customerService` | `send-customer-message`                 |
 
-`reply_to` voor Stream B → `tenant.support_email || tenant.owner_email || support@sellqo.app`.
+`reply_to` voor Stream B → `resolveCustomerContactEmail(tenant)` uit `_shared/customerContact.ts`: `support_email || owner_email || info@sellqo.app` (MAIL-CONTACT-1, 18 sep 2026). `support_email` stelt de winkel zelf in bij Instellingen → E-mail (card "Klantcontact-e-mail"). `notification_email` hoort hier nooit in: dat is het adres voor de eigen meldingen van de winkel. Geen functie bouwt nog een eigen keten. De fallback wordt in MAIL-SENDER-1 `<prefix>@mail.sellqo.app`.
 
 ## Stream C — Auth (Lovable Managed)
 
@@ -77,7 +77,7 @@ const inv = EMAIL_SENDERS.invite; // { from, replyTo }
 const orderSender = EMAIL_SENDERS.orders(tenant.name, tenant.support_email);
 ```
 
-`tenantName` wordt automatisch gesanitized (geen `<>`, `"`, controlechars, max 80 tekens). Lege of ontbrekende `tenantReplyTo` valt terug op `support@sellqo.app`.
+`tenantName` wordt automatisch gesanitized (geen `<>`, `"`, controlechars, max 80 tekens). Lege of ontbrekende `tenantReplyTo` valt terug op `support@sellqo.app`; voor Stream B komt dat niet meer voor, want elke caller geeft `resolveCustomerContactEmail(...)` mee, en die geeft altijd een adres.
 
 ## Resend domain status
 

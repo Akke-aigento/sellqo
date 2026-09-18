@@ -8,6 +8,7 @@ import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail, formatAmount } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -147,7 +148,7 @@ serve(async (req) => {
       poweredByLabel: t(locale, "paymentRequest.poweredBy"),
     });
 
-    const sender = EMAIL_SENDERS.invoices(tenant.name, (tenant as any).support_email || (tenant as any).owner_email);
+    const sender = EMAIL_SENDERS.invoices(tenant.name, resolveCustomerContactEmail(tenant as any));
     const response = await resend.emails.send({
       from: sender.from,
       reply_to: sender.replyTo,

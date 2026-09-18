@@ -5,6 +5,7 @@ import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail, formatAmount } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
+import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -269,7 +270,7 @@ serve(async (req) => {
     // 1. Primaire e-mail naar klant (met PDF bijlage)
     logStep("Sending primary email", { to: customer.email, attachments: emailAttachments.length });
 
-    const invoiceSender = EMAIL_SENDERS.invoices(tenant.name, (tenant as any).support_email || (tenant as any).owner_email);
+    const invoiceSender = EMAIL_SENDERS.invoices(tenant.name, resolveCustomerContactEmail(tenant as any));
     const emailResponse = await resend.emails.send({
       from: invoiceSender.from,
       reply_to: invoiceSender.replyTo,

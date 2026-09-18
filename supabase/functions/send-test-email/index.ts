@@ -2,6 +2,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS, type SenderKey } from "../_shared/emailSenders.ts";
+import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,12 +53,22 @@ Deno.serve(async (req) => {
     }
 
     // Get tenant info
-    const { data: tenant } = await supabase
+    // MAIL-CONTACT-1: `email`, `street` en `vat_number` bestaan niet op tenants.
+    // De select faalde daardoor altijd en deze functie meldde voor elke winkel
+    // "Tenant not found": de testmailknop heeft nooit gewerkt.
+    const { data: tenant, error: tenantError } = await supabase
       .from("tenants")
-      .select("name, email, street, city, postal_code, country, vat_number, kvk_number")
+      .select("name, owner_email, support_email, address, city, postal_code, country, kvk_number, btw_number, billing_vat_number")
       .eq("id", tenantId)
-      .single();
+      .maybeSingle();
 
+    if (tenantError) {
+      console.error("[send-test-email] tenant select failed", { tenantId, error: tenantError });
+      return new Response(JSON.stringify({ error: "Could not load tenant" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (!tenant) {
       return new Response(JSON.stringify({ error: "Tenant not found" }), {
         status: 404,
@@ -67,7 +78,7 @@ Deno.serve(async (req) => {
 
     // Build company address
     const companyAddress = [
-      tenant.street,
+      tenant.address,
       `${tenant.postal_code || ""} ${tenant.city || ""}`.trim(),
       tenant.country,
     ].filter(Boolean).join(", ");
@@ -82,7 +93,7 @@ Deno.serve(async (req) => {
       .replace(/\{\{company_name\}\}/g, tenant.name || "")
       .replace(/\{\{company_address\}\}/g, companyAddress)
       .replace(/\{\{kvk_number\}\}/g, tenant.kvk_number || "")
-      .replace(/\{\{vat_number\}\}/g, tenant.vat_number || "")
+      .replace(/\{\{vat_number\}\}/g, tenant.btw_number || tenant.billing_vat_number || "")
       .replace(/\{\{unsubscribe_url\}\}/g, `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(customerEmail)}&tenant=${tenantId}`)
       .replace(/\{\{preferences_url\}\}/g, `${supabaseUrl}/functions/v1/email-preferences?email=${encodeURIComponent(customerEmail)}&tenant=${tenantId}`);
 
@@ -108,7 +119,7 @@ Deno.serve(async (req) => {
     const senderKey: SenderKey = sender || 'customerService';
     const senderEntry = (EMAIL_SENDERS as any)[senderKey];
     const resolvedSender = typeof senderEntry === 'function'
-      ? senderEntry(tenant.name, (tenant as any).owner_email)
+      ? senderEntry(tenant.name, resolveCustomerContactEmail(tenant))
       : senderEntry;
 
     // Send the test email

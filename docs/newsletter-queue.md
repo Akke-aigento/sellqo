@@ -4,6 +4,22 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11a — Stel zelf je klantcontactadres in (feature, 18-09-2026)
+
+**Voor wie:** elke winkel die mails naar klanten stuurt — dus iedereen.
+
+**Jouw adres, jouw keuze.** Onder Instellingen → Email Inbox kies je voortaan zelf het
+e-mailadres dat je klanten zien in orderbevestigingen, facturen, offertes en nieuwsbrieven.
+Antwoordt een klant op zo'n mail, dan komt dat antwoord op dit adres binnen.
+
+**Niets ingevuld?** Dan gebruiken we het adres van de eigenaar van de winkel, zoals voorheen.
+
+**Je meldingsadres blijft van jou.** Het adres dat je bij Winkel Notificaties instelt voor
+je eigen meldingen, zien klanten niet meer.
+
+**i18n-key.** `public.changelog.changes.customer_contact_email` — vijf talen, volledige pariteit.
+
+
 ### 2026.10z — Meldingen houden rekening met je rol (security, 13-09-2026)
 
 **Voor wie:** winkels met teamleden in een andere rol dan beheerder (magazijn,

@@ -58,6 +58,8 @@ interface Tenant {
   simplified_vat_acknowledged_at?: string | null;
   // Notification settings
   notification_email?: string | null;
+  // MAIL-CONTACT-1: het adres dat klanten zien (Reply-To, footer, mailto).
+  support_email?: string | null;
   // Platform newsletter (SellQo product news) opt-in
   platform_newsletter_opt_in?: boolean;
   // Reminder settings

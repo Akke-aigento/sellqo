@@ -1540,6 +1540,10 @@
         "notifications_follow_role": {
           "title": "Notifications respect your role",
           "description": "Until now, every team member saw all of the store's notifications in the bell, including those about invoices and payments. Notifications now follow the same permissions as the rest of SellQo: a warehouse or marketing team member no longer sees notifications about invoices, quotes, subscriptions or payments. Push notifications on your phone follow the same rule, even if you had turned them on earlier. As an administrator, nothing changes for you."
+        },
+        "customer_contact_email": {
+          "title": "Set your own customer contact address",
+          "description": "Under Settings → Email inbox you now choose the email address your customers see in order confirmations, invoices, quotes and newsletters. When a customer replies to one of those emails, the reply arrives at this address. If you leave it empty, we use the owner's address. The address you set for your own notifications is no longer shown to customers."
         }
       },
       "copyLink": "Copy link",

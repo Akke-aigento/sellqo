@@ -2,6 +2,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
 import { extractEmailBody, buildVariableMap, applyVariables } from "../_shared/emailContent.ts";
@@ -51,12 +52,19 @@ Deno.serve(async (req) => {
     requireRole(auth, campaign.tenant_id, ["tenant_admin", "staff", "marketing"]);
 
     // Get tenant info for email personalization
-    const { data: tenant } = await supabase
+    // MAIL-CONTACT-1: deze select vroeg `email` en `street` op, die niet bestaan.
+    // PostgREST weigerde de hele query, de fout werd genegeerd en elke campagne
+    // ging uit als "Sellqo <marketing@sellqo.app>" met Reply-To support@sellqo.app.
+    const { data: tenant, error: tenantError } = await supabase
       .from("tenants")
-      .select("name, email, owner_email, phone, custom_domain, iban, street, city, postal_code, country, language")
+      .select("name, owner_email, support_email, phone, custom_domain, iban, address, city, postal_code, country, language")
       .eq("id", campaign.tenant_id)
       .single();
-    const marketingSender = EMAIL_SENDERS.marketing(tenant?.name || 'Sellqo', (tenant as any)?.email || (tenant as any)?.owner_email);
+    if (tenantError || !tenant) {
+      console.error("[send-campaign-batch] tenant select failed", { tenantId: campaign.tenant_id, error: tenantError });
+      throw new Error("Tenant not found");
+    }
+    const marketingSender = EMAIL_SENDERS.marketing(tenant.name || 'Sellqo', resolveCustomerContactEmail(tenant));
     const brand = await getTenantBrand(supabase, campaign.tenant_id);
     const tenantLocale = brand.defaultLocale;
     // Campaign language wins over tenant default for wrapper chrome + formatting.

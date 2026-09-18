@@ -507,7 +507,16 @@
       "findField": "Suchen Sie das Feld",
       "clickOn": "Klicken Sie auf",
       "openBol": "Bol.com-Shopeinstellungen öffnen",
-      "repliesAutomatic": "Antworten funktioniert automatisch"
+      "repliesAutomatic": "Antworten funktioniert automatisch",
+      "contactTitle": "Kundenkontakt-E-Mail",
+      "contactHint": "Diese Adresse sehen Ihre Kunden in Bestellbestätigungen, Rechnungen und Newslettern, und ihre Antworten gehen hierhin.",
+      "contactLabel": "E-Mail-Adresse für Kunden",
+      "contactSave": "Speichern",
+      "contactSaved": "Kundenkontakt-E-Mail gespeichert",
+      "contactInvalid": "Geben Sie eine gültige E-Mail-Adresse ein oder lassen Sie das Feld leer.",
+      "contactFallback": "Wenn Sie es leer lassen, verwenden wir die Adresse des Inhabers ({{email}}).",
+      "contactReadOnly": "Nur ein Administrator des Shops kann diese Adresse ändern.",
+      "contactNoRights": "Sie haben keine Berechtigung, diese Adresse zu ändern."
     },
     "communication": {
       "subtitle": "Legen Sie fest, welche automatischen Nachrichten Ihre Kunden erhalten",
@@ -586,7 +595,7 @@
       "prefsHint": "Legen Sie fest, welche Benachrichtigungen der Shop erhält: in der App und per E-Mail",
       "playSound": "Bei neuen Benachrichtigungen einen Ton abspielen",
       "emailTitle": "E-Mail-Benachrichtigungen",
-      "emailHint": "Wählen Sie, an welche Adresse Systembenachrichtigungen gesendet werden",
+      "emailHint": "Wählen Sie, an welche Adresse Ihre eigenen Benachrichtigungen gehen. Kunden sehen diese Adresse nicht.",
       "useAlternative": "Alternative E-Mail-Adresse verwenden",
       "saveChange": "Änderung speichern",
       "inApp": "In-App-Benachrichtigung",

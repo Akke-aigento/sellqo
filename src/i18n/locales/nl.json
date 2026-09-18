@@ -479,7 +479,16 @@
       "findField": "Zoek het veld",
       "clickOn": "Klik op",
       "openBol": "Open Bol.com Winkelsettings",
-      "repliesAutomatic": "Antwoorden werkt automatisch"
+      "repliesAutomatic": "Antwoorden werkt automatisch",
+      "contactTitle": "Klantcontact-e-mail",
+      "contactHint": "Dit adres zien je klanten in orderbevestigingen, facturen en nieuwsbrieven, en hun antwoorden gaan hierheen.",
+      "contactLabel": "E-mailadres voor klanten",
+      "contactSave": "Opslaan",
+      "contactSaved": "Klantcontact-e-mail opgeslagen",
+      "contactInvalid": "Vul een geldig e-mailadres in, of laat het veld leeg.",
+      "contactFallback": "Laat je het leeg, dan gebruiken we het adres van de eigenaar ({{email}}).",
+      "contactReadOnly": "Alleen een beheerder van de winkel kan dit adres wijzigen.",
+      "contactNoRights": "Je hebt geen rechten om dit adres te wijzigen."
     },
     "communication": {
       "subtitle": "Configureer welke automatische berichten je klanten ontvangen",
@@ -558,7 +567,7 @@
       "prefsHint": "Bepaal welke notificaties de winkel ontvangt: in de app en via e-mail",
       "playSound": "Speel een geluid af bij nieuwe notificaties",
       "emailTitle": "Email Notificaties",
-      "emailHint": "Kies naar welk adres systeem notificaties worden gestuurd",
+      "emailHint": "Kies naar welk adres je eigen meldingen gaan. Klanten zien dit adres niet.",
       "useAlternative": "Gebruik alternatief email adres",
       "saveChange": "Wijziging opslaan",
       "inApp": "In-app notificatie",

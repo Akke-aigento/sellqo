@@ -3,6 +3,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import {
   getTenantBrand,
   renderTenantEmail,
@@ -59,7 +60,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Fetch tenant info
     const { data: tenant, error: tenantError } = await supabaseClient
       .from("tenants")
-      .select("name, owner_email, logo_url, primary_color, website_url")
+      .select("name, owner_email, support_email, logo_url, primary_color")
       .eq("id", giftCard.tenant_id)
       .single();
 
@@ -70,7 +71,10 @@ const handler = async (req: Request): Promise<Response> => {
     const brand = await getTenantBrand(supabaseClient, giftCard.tenant_id);
     const locale = brand.defaultLocale;
     const fromName = brand.tenantName;
-    const websiteUrl = (tenant.website_url as string) || brand.websiteUrl || "https://sellqo.app";
+    // `website_url` bestaat niet op tenants. Hij stond in de select, waardoor die
+    // faalde en deze functie bij elke cadeaukaart "Tenant not found" gooide:
+    // cadeaukaartmails gingen nooit uit (MAIL-CONTACT-1, 18 sep 2026).
+    const websiteUrl = brand.websiteUrl || "https://sellqo.app";
     const recipientName = giftCard.recipient_name || "ontvanger";
     const personalMessage = giftCard.recipient_name ? giftCard.personal_message : "";
     const expiresAt = giftCard.expires_at
@@ -105,7 +109,7 @@ const handler = async (req: Request): Promise<Response> => {
       poweredByLabel: t(locale, "giftCard.poweredBy"),
     });
 
-    const gcSender = EMAIL_SENDERS.giftCards(fromName, tenant.owner_email);
+    const gcSender = EMAIL_SENDERS.giftCards(fromName, resolveCustomerContactEmail(tenant));
     // Send email
     const emailResponse = await resend.emails.send({
       from: gcSender.from,

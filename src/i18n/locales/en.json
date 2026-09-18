@@ -479,7 +479,16 @@
       "findField": "Find the field",
       "clickOn": "Click",
       "openBol": "Open Bol.com store settings",
-      "repliesAutomatic": "Replying works automatically"
+      "repliesAutomatic": "Replying works automatically",
+      "contactTitle": "Customer contact email",
+      "contactHint": "Your customers see this address in order confirmations, invoices and newsletters, and their replies go here.",
+      "contactLabel": "Email address for customers",
+      "contactSave": "Save",
+      "contactSaved": "Customer contact email saved",
+      "contactInvalid": "Enter a valid email address, or leave the field empty.",
+      "contactFallback": "If you leave it empty, we use the owner's address ({{email}}).",
+      "contactReadOnly": "Only a store administrator can change this address.",
+      "contactNoRights": "You don't have permission to change this address."
     },
     "communication": {
       "subtitle": "Configure which automatic messages your customers receive",
@@ -558,7 +567,7 @@
       "prefsHint": "Choose which notifications the store receives: in the app and by email",
       "playSound": "Play a sound for new notifications",
       "emailTitle": "Email notifications",
-      "emailHint": "Choose which address system notifications are sent to",
+      "emailHint": "Choose which address your own notifications go to. Customers never see this address.",
       "useAlternative": "Use an alternative email address",
       "saveChange": "Save change",
       "inApp": "In-app notification",

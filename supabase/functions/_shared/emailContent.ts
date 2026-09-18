@@ -3,6 +3,8 @@
  * variable-map builder used by send-campaign-batch. Kept in sync manually.
  */
 
+import { resolveCustomerContactEmail } from "./customerContact.ts";
+
 export function extractEmailBody(html: string): string {
   if (!html) return '';
   const looksLikeDocument = /<!doctype|<html[\s>]/i.test(html);
@@ -41,14 +43,18 @@ export interface VarRecipient {
   total_spent?: number | null;
 }
 
+// MAIL-CONTACT-1: velden zoals ze op `tenants` bestaan. `email` en `street`
+// stonden hier eerder in; die kolommen bestaan niet, en send-campaign-batch
+// vroeg ze op — waardoor de hele select faalde en {{company_email}} en
+// {{company_address}} altijd leeg of fout waren.
 export interface VarTenant {
   name?: string | null;
-  email?: string | null;
+  support_email?: string | null;
   owner_email?: string | null;
   phone?: string | null;
   custom_domain?: string | null;
   iban?: string | null;
-  street?: string | null;
+  address?: string | null;
   city?: string | null;
   postal_code?: string | null;
   country?: string | null;
@@ -121,7 +127,7 @@ export function buildVariableMap(
     || 'Klant';
 
   const companyAddress = [
-    t.street ?? '',
+    t.address ?? '',
     [t.postal_code ?? '', t.city ?? ''].filter(Boolean).join(' '),
     t.country ?? '',
   ].filter((p) => p && p.trim().length > 0).join(', ');
@@ -151,7 +157,7 @@ export function buildVariableMap(
 
     // Company / tenant
     company_name: t.name ?? '',
-    company_email: t.email ?? t.owner_email ?? '',
+    company_email: resolveCustomerContactEmail(t),
     company_phone: t.phone ?? '',
     company_website: website,
     company_address: companyAddress,

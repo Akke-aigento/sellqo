@@ -5,6 +5,7 @@ import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
+import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -371,7 +372,7 @@ serve(async (req) => {
 
     logStep("Sending email", { to: quote.customer.email });
 
-    const quoteSender = EMAIL_SENDERS.quotes(tenant.name, (tenant as any).support_email || (tenant as any).owner_email);
+    const quoteSender = EMAIL_SENDERS.quotes(tenant.name, resolveCustomerContactEmail(tenant as any));
     // Send email
     const emailResponse = await resend.emails.send({
       from: quoteSender.from,

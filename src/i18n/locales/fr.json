@@ -507,7 +507,16 @@
       "findField": "Recherchez le champ",
       "clickOn": "Cliquez sur",
       "openBol": "Ouvrir les paramètres de boutique Bol.com",
-      "repliesAutomatic": "Les réponses fonctionnent automatiquement"
+      "repliesAutomatic": "Les réponses fonctionnent automatiquement",
+      "contactTitle": "E-mail de contact client",
+      "contactHint": "Vos clients voient cette adresse dans les confirmations de commande, les factures et les newsletters, et leurs réponses y arrivent.",
+      "contactLabel": "Adresse e-mail pour les clients",
+      "contactSave": "Enregistrer",
+      "contactSaved": "E-mail de contact client enregistré",
+      "contactInvalid": "Saisissez une adresse e-mail valide ou laissez le champ vide.",
+      "contactFallback": "Si vous le laissez vide, nous utilisons l'adresse du propriétaire ({{email}}).",
+      "contactReadOnly": "Seul un administrateur de la boutique peut modifier cette adresse.",
+      "contactNoRights": "Vous n'avez pas les droits pour modifier cette adresse."
     },
     "communication": {
       "subtitle": "Configurez les messages automatiques que reçoivent vos clients",
@@ -586,7 +595,7 @@
       "prefsHint": "Choisissez les notifications que la boutique reçoit : dans l'application et par e-mail",
       "playSound": "Émettre un son pour les nouvelles notifications",
       "emailTitle": "Notifications par e-mail",
-      "emailHint": "Choisissez à quelle adresse les notifications système sont envoyées",
+      "emailHint": "Choisissez l'adresse qui reçoit vos propres notifications. Les clients ne voient pas cette adresse.",
       "useAlternative": "Utiliser une autre adresse e-mail",
       "saveChange": "Enregistrer la modification",
       "inApp": "Notification dans l'application",

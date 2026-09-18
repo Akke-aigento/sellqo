@@ -1540,6 +1540,10 @@
         "notifications_follow_role": {
           "title": "Benachrichtigungen berücksichtigen Ihre Rolle",
           "description": "Bisher sah jedes Teammitglied alle Benachrichtigungen des Shops in der Glocke, auch zu Rechnungen und Zahlungen. Benachrichtigungen folgen jetzt denselben Rechten wie der Rest von SellQo: Mitarbeitende aus Lager oder Marketing sehen keine Benachrichtigungen mehr zu Rechnungen, Angeboten, Abonnements oder Zahlungen. Push-Benachrichtigungen auf Ihrem Telefon folgen derselben Regel, auch wenn Sie sie früher eingeschaltet hatten. Als Administrator ändert sich für Sie nichts."
+        },
+        "customer_contact_email": {
+          "title": "Legen Sie Ihre Kundenkontaktadresse selbst fest",
+          "description": "Unter Einstellungen → E-Mail-Posteingang wählen Sie jetzt selbst die E-Mail-Adresse, die Ihre Kunden in Bestellbestätigungen, Rechnungen, Angeboten und Newslettern sehen. Antwortet ein Kunde auf eine solche E-Mail, kommt die Antwort an dieser Adresse an. Lassen Sie das Feld leer, verwenden wir die Adresse des Inhabers. Die Adresse für Ihre eigenen Benachrichtigungen sehen Kunden nicht mehr."
         }
       },
       "copyLink": "Link kopieren",

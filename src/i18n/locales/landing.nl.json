@@ -1540,6 +1540,10 @@
         "notifications_follow_role": {
           "title": "Meldingen houden rekening met je rol",
           "description": "Tot nu toe zag elk teamlid alle meldingen van de winkel in het belletje, ook over facturen en betalingen. Voortaan volgen meldingen dezelfde rechten als de rest van SellQo: een magazijn- of marketingmedewerker ziet geen meldingen over facturen, offertes, abonnementen of betalingen meer. Pushmeldingen op je telefoon volgen dezelfde regel, ook als je ze eerder had aangezet. Als beheerder merk je niets."
+        },
+        "customer_contact_email": {
+          "title": "Stel zelf je klantcontactadres in",
+          "description": "Onder Instellingen → Email Inbox kies je voortaan zelf het e-mailadres dat je klanten zien in orderbevestigingen, facturen, offertes en nieuwsbrieven. Antwoordt een klant op zo’n mail, dan komt dat antwoord op dit adres binnen. Laat je het leeg, dan gebruiken we het adres van de eigenaar. Het adres dat je instelt voor je eigen meldingen, zien klanten niet meer."
         }
       },
       "copyLink": "Kopieer link",

@@ -14,6 +14,7 @@
 // All Stream B sender addresses live in `_shared/emailSenders.ts`; this
 // module is purely visual/templating.
 
+import { resolveCustomerContactEmail } from "./customerContact.ts";
 import {
   BRAND,
   LOGO_URL,
@@ -119,7 +120,7 @@ export async function getTenantBrand(
     const { data, error } = await supabase
       .from("tenants")
       .select(
-        "id, name, billing_company_name, support_email, owner_email, notification_email, primary_color, logo_url, custom_domain, address, city, postal_code, country, btw_number, billing_vat_number, language",
+        "id, name, billing_company_name, support_email, owner_email, primary_color, logo_url, custom_domain, address, city, postal_code, country, btw_number, billing_vat_number, language",
       )
       .eq("id", tenantId)
       .maybeSingle();
@@ -152,11 +153,10 @@ export async function getTenantBrand(
   const t = tenantRow || {};
   const th = themeRow || {};
 
-  const supportEmail =
-    (t.support_email && String(t.support_email).trim()) ||
-    (t.notification_email && String(t.notification_email).trim()) ||
-    (t.owner_email && String(t.owner_email).trim()) ||
-    "support@sellqo.app";
+  // MAIL-CONTACT-1: één bron. notification_email hoort hier niet in — dat is
+  // het adres voor de eigen meldingen van de winkel, en het lekte via deze keten
+  // naar klanten.
+  const supportEmail = resolveCustomerContactEmail(t);
 
   const customDomain = (t.custom_domain && String(t.custom_domain).trim()) || "";
   const websiteUrl = customDomain
