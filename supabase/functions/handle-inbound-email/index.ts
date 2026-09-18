@@ -566,7 +566,7 @@ const handler = async (req: Request): Promise<Response> => {
         from_email: payload.from,
         to_email: payload.to[0] || "",
         reply_to_email: payload.from,
-        status: "delivered",
+        delivery_status: "delivered",
         delivered_at: new Date().toISOString(),
         context_type: orderId ? "order" : "general",
         resend_id: payload.email_id,

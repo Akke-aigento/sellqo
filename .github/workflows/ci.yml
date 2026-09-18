@@ -66,6 +66,11 @@ jobs:
       - name: Mailadressen (alleen info@sellqo.app en *@mail.sellqo.app)
         run: node scripts/check-mail-addresses.mjs
 
+      # MSG-STATUS-FIX: schrijfacties naar customer_messages volgen het schema
+      # (geen hernoemde kolom `status`, delivery_status binnen de constraint).
+      - name: customer_messages-writes
+        run: node scripts/check-customer-messages-writes.mjs
+
       # 4. Capacitor-pariteit. De native manifesten (twee gradle-bestanden en de
       #    Podfile) zijn gegenereerd en worden alleen bijgewerkt als iemand
       #    `npx cap sync` draait en de uitkomst commit. Voor Android gebeurde dat

@@ -151,7 +151,7 @@ serve(async (req) => {
           body_text: messageText,
           from_email: fromPhone,
           to_email: connection.display_phone_number,
-          status: 'delivered',
+          delivery_status: 'delivered',
           delivered_at: new Date().toISOString(),
           whatsapp_message_id: message.id,
           whatsapp_status: 'delivered',

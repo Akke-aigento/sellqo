@@ -146,7 +146,7 @@ serve(async (req) => {
         body_text: template.body_text,
         from_email: connection.display_phone_number,
         to_email: to_phone,
-        status: 'failed',
+        delivery_status: 'failed',
         error_message: whatsappResult.error?.message || 'Unknown error',
         whatsapp_status: 'failed',
       });
@@ -172,7 +172,7 @@ serve(async (req) => {
       body_text: template.body_text,
       from_email: connection.display_phone_number,
       to_email: to_phone,
-      status: 'sent',
+      delivery_status: 'sent',
       sent_at: new Date().toISOString(),
       whatsapp_message_id: messageId,
       whatsapp_status: 'sent',

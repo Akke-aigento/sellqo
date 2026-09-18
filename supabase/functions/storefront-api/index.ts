@@ -4007,7 +4007,9 @@ async function submitContactForm(supabase: any, tenantId: string, params: Record
     from_email: email,
     to_email: toEmail,
     reply_to_email: email,
-    delivery_status: 'received',
+    // MSG-STATUS-FIX: 'received' staat niet in customer_messages_status_check;
+    // elke insert faalde. Inbound berichten krijgen 'delivered', zoals inbound e-mail.
+    delivery_status: 'delivered',
     message_status: 'active',
     context_type: 'contact_form',
     context_data: {

@@ -1,3 +1,84 @@
+## MSG-STATUS-FIX — customer_messages.status bestond sinds 30 januari niet meer — 18 september 2026
+
+2026-09-18 MSG-STATUS-FIX. Migratie 20260130103145 hernoemde customer_messages.status →
+delivery_status zonder de writers aan te passen. Gevolg sinds 30-01: elke inbound e-mail
+(handle-inbound-email), elk storefront-contactformulier (storefront-contact-form) en alle
+WhatsApp/Meta-berichten faalden bij de insert. Ontdekt via Resend-webhook 500 tijdens
+MAIL-INBOUND-1-vingerafdruk. Fix: status → delivery_status in 7 functies + CI-guard. Les: kolom
+hernoemen = alle writers + readers grep'en in dezelfde batch.
+
+### Root cause en bewijs
+
+- `20260130103145`: `ALTER TABLE customer_messages RENAME COLUMN status TO delivery_status` +
+  nieuwe kolom `message_status`. Live geen kolom `status`.
+- Live constraint `customer_messages_status_check`: `delivery_status IN ('draft','sending','sent',
+  'delivered','opened','failed')`, `NOT NULL DEFAULT 'draft'`.
+- Live rijen: laatste inbound op 2026-01-30 (de dag van de migratie); nooit een whatsapp- of
+  meta-rij; **nooit** een `context_type = 'contact_form'`-rij.
+- Resend-webhook `handle-inbound-email` → 500 "Could not find the 'status' column of
+  'customer_messages'".
+
+### Uitgevoerd (per functie; elke plek nagelezen: payload naar `customer_messages`, geen HTTP-status)
+
+| Functie | Regel | Wijziging |
+|---|---|---|
+| `handle-inbound-email` | 569 (insert) | `status: "delivered"` → `delivery_status` |
+| `storefront-contact-form` | 156 (insert) | `status: "delivered"` → `delivery_status` |
+| `whatsapp-webhook` | 154 (insert) | `status: 'delivered'` → `delivery_status` |
+| `send-whatsapp-message` | 149, 175 (insert) | `'failed'`, `'sent'` → `delivery_status` |
+| `meta-messaging-webhook` | 159 (insert), 209 (update), 233 (insert) | `'delivered'` → `delivery_status` |
+| `send-meta-message` | 109, 135 (insert) | `'failed'`, `'sent'` → `delivery_status` |
+| `storefront-api` | ~4023 (insert, `submitContactForm`) | waarde `'received'` → `'delivered'` |
+
+Vals positief uitgesloten: `whatsapp-webhook` r.187 is een update van `whatsapp_status`; de
+`status:` erna staat in een `console.log`.
+
+**Bijvangst, zelfde klasse.** `storefront-api` `submitContactForm` schreef al `delivery_status`,
+maar met `'received'` — buiten de constraint. De actie `submit_contact_form` (custom frontends)
+heeft daardoor nooit één bericht opgeslagen en antwoordde `{ success:false, error:'Could not
+submit contact form' }`. Eerste wet: alleen die interne waarde; request en response ongewijzigd.
+
+Alle overige sleutels in de 16 schrijfacties naar `customer_messages` (ook `send-customer-message`)
+staan tegen de live kolomlijst; `context_type` en `direction` vallen binnen hun constraints.
+Lezers in `src` gebruikten al `delivery_status`.
+
+### Impact
+
+- **Inbound e-mail:** elke mail sinds 30-01 → 500 bij Resend; niets in de inbox, geen melding.
+  (Tot MAIL-INBOUND-1 kwam er door de Migadu-MX toch al niets aan.)
+- **`storefront-contact-form`:** bij een mislukte insert een `throw` vóór de melding en vóór
+  `forwardEmail` → HTTP 500 naar de storefront. Geen opgeslagen bericht, geen melding, geen
+  doorgestuurde mail: elk contactbericht via deze functie sinds 30-01 is volledig verloren. Er is
+  geen aanroeper in deze repo; hoeveel er binnenkwamen, is uit de database niet af te lezen (er
+  werd niets geschreven) — alleen uit de functielogs.
+- **`storefront-api` `submit_contact_form`:** heeft nooit gewerkt (zie bijvangst).
+- **WhatsApp/Meta:** geen koppelingen live, dus geen verloren berichten.
+
+### CI-guard
+
+`scripts/check-customer-messages-writes.mjs` (`npm run check:messages`, stap in
+`.github/workflows/ci.yml` na `check:mail`). **Eigen script**, geen uitbreiding van `check:mail`:
+andere zorg (schema-drift vs. adresbeleid), en `RULES` (`tabel → verboden sleutels, toegestane
+waarden`) groeit bij een volgende rename met één regel. Heuristiek: argument van de eerstvolgende
+`.insert/.update/.upsert(` na `.from('customer_messages')`, met haakjes-balans; een identifier wordt
+opgezocht als object-literal in hetzelfde bestand.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| Guard op `HEAD` (`95b6fb6b`) | exit 1: exact de 10 `status:`-plekken + `'received'`, geen vals positief |
+| Guard na de fix | exit 0 |
+| `deno check`, 7 functies, HEAD vs nieuw | 0 nieuwe fouten. `deno` ziet de verkeerde kolom zelf niet (ongetypeerde client) — vandaar de guard. |
+| Payloadsleutels tegen live kolommen | alle 16 schrijfacties OK |
+
+### Redeploy
+
+`handle-inbound-email`, `storefront-contact-form`, `whatsapp-webhook`, `send-whatsapp-message`,
+`meta-messaging-webhook`, `send-meta-message`, `storefront-api`. **Let op:** de eerste twee en
+`storefront-api` bevatten ook de nog niet gedeployde MAIL-INBOUND-1/MAIL-SENDER-1-wijzigingen.
+Deploy deze batch samen met de 21 functies van MAIL-SENDER-1.
+
 ## WEBHOOK-SIG-1 nazorg — Resend-secrets en webhooks — 18 september 2026
 
 2026-09-18 WEBHOOK-SIG-1 nazorg (chat-Claude + Akke, dashboard-werk, geen code).

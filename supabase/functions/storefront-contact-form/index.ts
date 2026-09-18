@@ -153,7 +153,7 @@ const handler = async (req: Request): Promise<Response> => {
         from_email: `${name} <${email}>`,
         to_email: tenant.name,
         reply_to_email: email,
-        status: "delivered",
+        delivery_status: "delivered",
         delivered_at: new Date().toISOString(),
         context_type: "general",
         context_data: { source: 'storefront_contact_form', sender_name: name },

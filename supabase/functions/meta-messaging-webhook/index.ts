@@ -156,7 +156,7 @@ serve(async (req) => {
               body_text: messageText,
               from_email: senderId,
               to_email: recipientId,
-              status: 'delivered',
+              delivery_status: 'delivered',
               delivered_at: new Date(timestamp).toISOString(),
               meta_sender_id: senderId,
               meta_page_id: connection.page_id,
@@ -206,7 +206,7 @@ serve(async (req) => {
               await supabase
                 .from('customer_messages')
                 .update({
-                  status: 'delivered',
+                  delivery_status: 'delivered',
                   delivered_at: new Date().toISOString(),
                 })
                 .eq('meta_message_id', mid);
@@ -230,7 +230,7 @@ serve(async (req) => {
               body_text: `[Button: ${title}]`,
               from_email: senderId,
               to_email: recipientId,
-              status: 'delivered',
+              delivery_status: 'delivered',
               delivered_at: new Date(timestamp).toISOString(),
               meta_sender_id: senderId,
               meta_page_id: connection.page_id,
