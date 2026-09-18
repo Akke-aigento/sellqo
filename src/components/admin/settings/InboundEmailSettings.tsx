@@ -22,7 +22,10 @@ import {
   MessageSquare,
 } from 'lucide-react';
 
-const INBOUND_DOMAIN = 'sellqo.app';
+// MAIL-INBOUND-1: inkomende mail loopt via Resend op mail.sellqo.app. Op de
+// root sellqo.app (Migadu) kwam nooit iets bij SellQo aan. Zelfde waarde als
+// INBOUND_DOMAIN in supabase/functions/_shared/inboundAddress.ts.
+const INBOUND_DOMAIN = 'mail.sellqo.app';
 
 export function InboundEmailSettings() {
   const { t } = useTranslation();

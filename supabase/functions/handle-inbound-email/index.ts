@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { rejectUnlessSvix } from "../_shared/webhookAuth.ts";
+import { extractInboundPrefix } from "../_shared/inboundAddress.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -56,11 +57,8 @@ interface ResendRetrievedEmail {
   created_at: string;
 }
 
-// Extract email prefix from address like "prefix@sellqo.app"
-function extractPrefix(email: string): string | null {
-  const match = email.match(/^([^@]+)@sellqo\.app$/i);
-  return match ? match[1].toLowerCase() : null;
-}
+// MAIL-INBOUND-1: het winkeladres is <prefix>@mail.sellqo.app (Resend). De
+// herkenning staat in _shared/inboundAddress.ts, met tests.
 
 // Parse Bol.com order ID from subject
 function parseBolOrderId(subject: string): string | null {
@@ -436,7 +434,7 @@ const handler = async (req: Request): Promise<Response> => {
     let tenantPrefix: string | null = null;
 
     for (const toEmail of payload.to) {
-      const prefix = extractPrefix(toEmail);
+      const prefix = extractInboundPrefix(toEmail);
       if (prefix) {
         tenantPrefix = prefix;
         
@@ -662,7 +660,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const notificationMessage = `${customerName}: "${payload.subject.substring(0, 80)}${payload.subject.length > 80 ? "..." : ""}"`;
 
-    await supabase.from("notifications").insert({
+    const { error: notificationError } = await supabase.from("notifications").insert({
       tenant_id: tenantId,
       category: "messages",
       type: marketplace === "bol_com" ? "bol_inbound" : "email_inbound",
@@ -678,6 +676,11 @@ const handler = async (req: Request): Promise<Response> => {
         marketplace: marketplace,
       },
     });
+    if (notificationError) {
+      // De mail staat wel in de inbox; zonder melding ziet de winkel hem pas als
+      // iemand de inbox opent. Luid loggen, niet falen.
+      console.error("Inbound email stored but notification failed:", notificationError.message);
+    }
 
     console.log("Inbound email processed successfully:", {
       message_id: message.id,
