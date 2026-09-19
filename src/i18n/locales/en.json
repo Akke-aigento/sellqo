@@ -3824,7 +3824,8 @@
       "korting_u20ac": "Discount (€)",
       "product_nummer": "Product {{number}}",
       "sla_het_product_eerst_op_om_2": "Save the product first to manage dates",
-      "vast_bedrag_euro": "Fixed amount (&euro;)"
+      "vast_bedrag_euro": "Fixed amount (&euro;)",
+      "notFound": "This product no longer exists."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -4193,6 +4194,9 @@
         "permanent_verwijderen": "Delete permanently",
         "terugzetten_naar_inbox": "Move back to inbox",
         "verplaatsen_naar_map": "Move to folder"
+      },
+      "deepLink": {
+        "notFound": "This conversation can no longer be found."
       }
     },
     "customers": {
@@ -4898,6 +4902,12 @@
         "vertaling_vergrendeld": "Translation locked",
         "vertalingen_opgeslagen": "Translations saved"
       }
+    },
+    "pushTap": {
+      "noAccess": "This notification belongs to a store you no longer have access to."
+    },
+    "invoices": {
+      "deepLinkNotFound": "This invoice can no longer be found."
     }
   },
   "product_form": {

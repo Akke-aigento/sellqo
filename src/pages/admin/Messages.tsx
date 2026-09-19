@@ -1,4 +1,8 @@
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { findConversationForParam, folderFilterForMessage, isUuid } from '@/lib/inboxDeepLink';
 import { MessageSquare, PanelLeftClose, PanelLeft, PenSquare } from 'lucide-react';
 import { DndContext, DragOverlay, closestCenter, DragStartEvent, DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -80,6 +84,63 @@ export default function MessagesPage() {
       setMobileView('detail');
     }
   }, [setSelectedConversationId, isMobile, isTablet]);
+
+  // NOTIF-DEEPLINK-1 — ?conversation=<bericht-id of gesprekssleutel> opent dat
+  // gesprek, op mobiel meteen in de detailweergave. Staat het niet in de
+  // geladen set (andere map, filter, of voorbij de 200 nieuwste), dan zoeken we
+  // het bericht op en zetten de filters naar zijn map; één keer. Daarna gaat
+  // de parameter uit de URL, zodat Terug naar de lijst werkt.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const deepLink = searchParams.get('conversation');
+  const deepLinkLookedUp = useRef<string | null>(null);
+
+  const clearDeepLink = useCallback(() => {
+    const next = new URLSearchParams(searchParams);
+    next.delete('conversation');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!deepLink || isLoading) return;
+
+    const conversation = findConversationForParam(conversations, deepLink);
+    if (conversation) {
+      // Rechtstreeks, niet via handleSelectConversation: useIsMobile is bij de
+      // eerste render nog false. Op desktop doet mobileView niets.
+      setSelectedConversationId(conversation.id);
+      setMobileView('detail');
+      clearDeepLink();
+      return;
+    }
+
+    if (deepLinkLookedUp.current === deepLink || !isUuid(deepLink)) {
+      toast.info(t('admin.inbox.deepLink.notFound'));
+      clearDeepLink();
+      return;
+    }
+    deepLinkLookedUp.current = deepLink;
+
+    void supabase
+      .from('customer_messages')
+      .select('message_status, folder_id')
+      .eq('id', deepLink)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) {
+          toast.info(t('admin.inbox.deepLink.notFound'));
+          clearDeepLink();
+          return;
+        }
+        // Nieuwe filters → nieuwe query → dit effect draait opnieuw.
+        setFilters((f) => ({
+          ...f,
+          channel: 'all',
+          status: 'all',
+          search: '',
+          folderId: folderFilterForMessage(data),
+        }));
+      });
+  }, [deepLink, isLoading, conversations, clearDeepLink, setFilters, setSelectedConversationId, t]);
 
   // Handle back from detail on mobile
   const handleBack = useCallback(() => {

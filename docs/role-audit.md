@@ -1,3 +1,102 @@
+## NOTIF-DEEPLINK-1 — een melding opent het juiste item — 19 september 2026
+
+2026-09-19 NOTIF-DEEPLINK-1: meldingen openen het juiste item. Oorzaak dashboard: een koude-start-race
+in `PushTapListener` — het bewaarde tap-event kwam binnen vóór `TenantProvider` de winkels had
+geladen, de winkel telde als "onbekend" en de app ging bewust naar `/admin`. Daarnaast wees ruim de
+helft van de `action_url`'s naar een pagina die niet bestaat (kale 404). Gedeeld routeregister,
+tap-handler wacht op winkels en winkelwissel, inbox-deeplink `?conversation=`.
+
+### Root cause
+
+- **Dashboard na tik** — `PushTapListener.tsx:44-57` (oud) besliste meteen bij het tap-event. Bij een
+  koude start levert `@capacitor-firebase/messaging` het event af zodra de listener registreert
+  (`retainUntilConsumed`); dat is vóór `fetchTenants()` klaar is (`tenants=[]`,
+  `currentTenant=null`). De push draagt altijd `tenant_id` → `tenants.find()` = undefined →
+  `navigate('/admin')`. Event verbruikt, niets in de wachtrij. Gold voor élke koude-start-tik, ook
+  voor de actieve winkel. Bijkomend: `[navigate]` als effect-dependency registreerde de listener bij
+  elke routewissel opnieuw.
+- **Dode routes** — 42 plekken maken meldingen (20 edge functions, 3 frontend, 19 DB-functies).
+  Bestaan niet: `/admin/invoices…` (echt: `/admin/orders/invoices`), `/admin/quotes/:id`
+  (`/admin/orders/quotes/:id`), `/admin/subscriptions`, `/admin/products/:id`, `/admin/payouts`,
+  `/admin/ai-center`, `/admin/settings/billing`. `?tab=` wordt nergens gelezen (Settings leest
+  `?section=`); `/admin/products?id=` negeert `id`. Bel, push en e-mailknop volgden `action_url` rauw.
+- **Inbox** — las geen URL-parameter. `CustomerDetail` linkte `?conversation=<bericht-uuid>`, de
+  inbox kent gesprekken als `klant::onderwerp`: dode link.
+
+### Uitgevoerd
+
+- `supabase/functions/_shared/notificationRoutes.ts` (nieuw, puur, gedeeld met src):
+  `notificationRoute` (id uit `data` → item; anders `canonicalAdminPath(action_url)`; anders de
+  lijst per categorie, nooit `/admin`) en `canonicalAdminPath` (alle oude patronen → bestaande
+  pagina; alleen interne `/admin`-paden). Canoniek: facturen `/admin/orders/invoices?invoice=<id>`
+  (enige factuurpagina; `?invoice=` was al 84 van 94 rijen), producten `/admin/products/<id>/edit`
+  (enige productpagina, alle app-links), berichten `/admin/messages?conversation=<message_id>`.
+- Router (`App.tsx`): `LegacyAdminRedirect` op de dode paden, `LegacyQueryRedirect` voor
+  `/admin/settings?tab=` en `/admin/products?id=` (`src/components/admin/LegacyAdminRedirect.tsx`).
+  Oude rijen, e-mails en alle 42 bronnen werken zonder data-migratie.
+- `send-push-notification`: `action_url` in de FCM-data = `notificationRoute(payload)`.
+  `create-notification`: e-mailknop via hetzelfde register (volledige URL van de aanroeper blijft).
+- `src/native/pushTaps.ts`: `pushTapTarget` via het register; nieuwe pure `decidePushTap` (wait /
+  navigate / switch / no-access). `PushTapListener`: tap in een wachtrij, beslissen pas als
+  `useTenant().loading` false is; bij wissel navigeren zodra `currentTenant` de nieuwe is; geen
+  toegang → toast + `/admin/notifications`. Listener registreert één keer (navigate via ref).
+- `Messages.tsx` + `src/lib/inboxDeepLink.ts`: `?conversation=` (bericht-id of gesprekssleutel) →
+  dat gesprek, mobiel meteen detail; niet geladen → bericht opzoeken, filters naar zijn map, één
+  keer; niet gevonden → toast. Parameter daarna uit de URL (Terug werkt). Dode link op
+  CustomerDetail werkt nu zonder wijziging daar.
+- `Invoices.tsx`: `?invoice=` → zoekveld op het factuurnummer. `ProductForm.tsx`: onbekend id →
+  toast + `/admin/products` (was een leeg formulier "Bewerk undefined").
+- `NotificationCenter.tsx`, `Notifications.tsx`: link via `src/lib/notificationLink.ts`; geen knop
+  als er niets beters is dan de meldingenlijst zelf.
+- i18n: `admin.pushTap.noAccess`, `admin.inbox.deepLink.notFound`, `admin.invoices.deepLinkNotFound`,
+  `admin.productForm.notFound` in vijf talen. Changelog `2026.11e`, nieuwsbriefitem.
+
+### Security-keuzes
+
+Geen RLS, policies of grants geraakt. De inbox-lookup en de factuurlookup lopen onder de bestaande
+RLS (`customer_messages`, `invoices`). `canonicalAdminPath` volgt alleen interne `/admin`-paden:
+een volledige URL of `//host` uit een melding wordt nooit gevolgd (test).
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt: `storefront-api`, `storefront-customer-api`, `storefront-resolve` en de
+gedeelde tabellen ongewijzigd. Geen DB-wijziging (keuze Akke: centraal oplossen).
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| vitest (hele suite) | 372/372; nieuw: register (elk type → echte pagina, redirects uitgesloten), `decidePushTap`, inbox-resolutie |
+| Browser dev (Akke's sessie, VanXcel) | 9 oude patronen → bestaande pagina, geen 404; echte factuur → zoekt `INV-2026-0165`; product → bewerkpagina; `?conversation=` op 375px → meteen detail, Terug → lijst, geen overflow; meldingenpagina: alleen canonieke links |
+| `deno check` `create-notification`, `send-push-notification`, HEAD vs nieuw | 1 en 1 (bestaande `crypto.subtle.importKey`-typing) |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1507, gelijk aan de baseline |
+| `npm run build` | exit 0 |
+| i18n-parity, `check:mail`, `check:messages` | groen |
+
+Niet in de browser te toetsen: de native tap. Handmatig na native build 7 (Akke, iOS): testmeldingen
+in SellQo + Demo Bakkerij, tik vanaf het vergrendelscherm met de app gesloten én op de achtergrond.
+
+Redeploy: `send-push-notification`, `create-notification` (import-grep op `notificationRoutes`).
+Publiceren + native build (de app draait gebundelde code).
+
+### Bewust ongemoeid / Vervolg
+
+- De 42 bronnen schrijven hun oude `action_url` verder; register en router vangen dat op.
+- `stripe-connect-webhook:41-49` roept `send_notification` met `p_data` (bestaat niet: `p_metadata`)
+  → payout-meldingen falen stil.
+- `ai-proactive-monitor`, `ai-business-coach` sturen `tenantId`/`actionUrl` in camelCase naar
+  `create-notification` → geen melding.
+- Twee triggers op `orders` (`trigger_order_notification`, `on_order_notification`) roepen allebei
+  `handle_order_notification` → mogelijk dubbele bestelmeldingen. Niet live nagetrokken.
+- Een bron die via `create-notification` insert, kan een tweede e-mail geven (trigger mailt opnieuw).
+- Categorieën die edge functions gebruiken maar niet in de enum staan (`billing`, `inventory`,
+  `shipping`, `returns`): register heeft een lijstroute, de inserts zelf niet nagetrokken.
+- `/admin/products/:id/edit` vereist schrijfrecht op producten; een alleen-lezen-rol landt op
+  no-access. Een leesbare productpagina bestaat niet.
+- Geen factuurdetailpagina; de lijst zoekt op het nummer.
+- `QuickActionButton` (AI-acties) volgt zijn eigen `action_url` nog rauw.
+
 ## APP-INBOX-CRASH-1 — wit scherm bij openen ongelezen bericht + dubbele inbound — 18 september 2026
 
 2026-09-18 APP-INBOX-CRASH-1: wit scherm bij openen bericht. Vermoeden vooraf: ai_assistant_config-RLS
@@ -113,6 +212,14 @@ iOS-app.
 - Racegeval inbound: twee gelijktijdige replays kunnen allebei een prospect aanmaken vóór de index de
   tweede rij tegenhoudt. Zeldzaam, aanvaard.
 - Changelog/nieuwsbrief: niet gedaan — bugfix zonder nieuwe functie.
+
+### Uitrol
+
+Uitrol 18/19-09 (chat-Claude, connector): 3 additieve platform-admin-policies op
+ai_assistant_config; dubbele inbound a609efb8 + melding 0cfd1867 verwijderd (snapshot in chat);
+unieke index customer_messages_inbound_resend_id_key aangemaakt (0 duplicaten); handle-inbound-email
+gedeployed. Vingerafdruk: replay van msg_3JV8uXcQ5eaA3A6riOpTVY3WDuB → 200
+{"duplicate":true,"message_id":"eff89884…"}, geen nieuwe rij.
 
 ## PUSH-DEFAULT-1 — meldingen standaard aan, uitzetten per type — 18 september 2026
 

@@ -71,6 +71,7 @@ import TenantAction, { TenantActionSuccess } from "./pages/public/TenantAction";
 
 import AppDeepLinkHandler from "./pages/AppDeepLinkHandler";
 import NotFound from "./pages/NotFound";
+import { LegacyAdminRedirect, LegacyQueryRedirect } from "./components/admin/LegacyAdminRedirect";
 import NoAccess from "./pages/NoAccess";
 import PlatformBillingPage from "./pages/platform/PlatformBilling";
 import TenantDetailPage from "./pages/platform/TenantDetail";
@@ -213,7 +214,7 @@ const App = () => (
               <Route path="messages" element={<RouteGuard requireRead="inbox"><MessagesPage /></RouteGuard>} />
               <Route path="badges" element={<BadgesPage />} />
               <Route path="fulfillment" element={<RouteGuard requireRead="orders"><FulfillmentPage /></RouteGuard>} />
-              <Route path="products" element={<RouteGuard requireRead="products"><ProductsPage /></RouteGuard>} />
+              <Route path="products" element={<LegacyQueryRedirect param="id"><RouteGuard requireRead="products"><ProductsPage /></RouteGuard></LegacyQueryRedirect>} />
               {/* PROD-TRIGGER-1 — aanmaken blijft bij tenant_admin/staff: de
                   INSERT-policy op products laat marketing niet toe, dus zonder
                   deze rolcheck krijgt marketing een formulier dat bij opslaan faalt. */}
@@ -250,7 +251,7 @@ const App = () => (
               <Route path="shipping" element={<ShippingPage />} />
               <Route path="payments" element={<RouteGuard requireRead="payments"><PaymentsPage /></RouteGuard>} />
               <Route path="billing" element={<RouteGuard requireRead="platform_billing"><BillingPage /></RouteGuard>} />
-              <Route path="settings" element={<RouteGuard requireRead="profile"><SettingsPage /></RouteGuard>} />
+              <Route path="settings" element={<LegacyQueryRedirect param="tab"><RouteGuard requireRead="profile"><SettingsPage /></RouteGuard></LegacyQueryRedirect>} />
               <Route path="connect" element={<RouteGuard requireRead="integrations"><MarketplacesPage /></RouteGuard>} />
               <Route path="connect/conflicts" element={<RouteGuard requireRead="integrations"><SyncConflictsPage /></RouteGuard>} />
               <Route path="connect/:connectionId" element={<RouteGuard requireRead="integrations"><MarketplaceDetailPage /></RouteGuard>} />
@@ -261,6 +262,17 @@ const App = () => (
               <Route path="marketing/seo" element={<RouteGuard requireRead="seo"><SEODashboard /></RouteGuard>} />
               <Route path="marketing/translations" element={<RouteGuard requireRead="cms"><TranslationHub /></RouteGuard>} />
               <Route path="notifications" element={<RouteGuard requireRead="profile"><NotificationsPage /></RouteGuard>} />
+              {/* NOTIF-DEEPLINK-1: oude paden uit meldingen en e-mails → de bestaande pagina. */}
+              <Route path="invoices" element={<LegacyAdminRedirect />} />
+              <Route path="invoices/:id" element={<LegacyAdminRedirect />} />
+              <Route path="quotes" element={<LegacyAdminRedirect />} />
+              <Route path="quotes/:id" element={<LegacyAdminRedirect />} />
+              <Route path="products/:id" element={<LegacyAdminRedirect />} />
+              <Route path="subscriptions" element={<LegacyAdminRedirect />} />
+              <Route path="subscriptions/:id" element={<LegacyAdminRedirect />} />
+              <Route path="payouts" element={<LegacyAdminRedirect />} />
+              <Route path="ai-center" element={<LegacyAdminRedirect />} />
+              <Route path="settings/:section" element={<LegacyAdminRedirect />} />
               <Route path="import" element={<RouteGuard requireRead="integrations"><ImportPage /></RouteGuard>} />
               <Route path="reports" element={<RouteGuard requireRead="reports_financial"><ReportsPage /></RouteGuard>} />
               <Route path="analytics" element={<RouteGuard requireRead="reports_analytics"><AnalyticsPage /></RouteGuard>} />

@@ -17,6 +17,7 @@ import { useAIActions } from '@/hooks/useAIActions';
 import { AICoachNotificationItem } from './notifications/AICoachNotificationItem';
 import type { Notification, NotificationPriority } from '@/types/notification';
 import { cn } from '@/lib/utils';
+import { notificationLink } from '@/lib/notificationLink';
 
 const priorityConfig: Record<NotificationPriority, { icon: React.ElementType; color: string }> = {
   low: { icon: Info, color: 'text-muted-foreground' },
@@ -36,6 +37,7 @@ function NotificationItem({
 }) {
   const { icon: PriorityIcon, color } = priorityConfig[notification.priority];
   const isUnread = !notification.read_at;
+  const link = notificationLink(notification);
 
   return (
     <div
@@ -65,9 +67,9 @@ function NotificationItem({
           </p>
         </div>
         <div className="flex items-center gap-1">
-          {notification.action_url && (
+          {link && (
             <Button variant="ghost" size="icon" className="h-7 w-7" asChild>
-              <Link to={notification.action_url}>
+              <Link to={link}>
                 <ExternalLink className="h-3.5 w-3.5" />
               </Link>
             </Button>

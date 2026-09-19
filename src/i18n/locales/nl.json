@@ -3905,7 +3905,8 @@
         "slug_mag_alleen_kleine_letters_cijfers": "Slug mag alleen kleine letters, cijfers en streepjes bevatten",
         "slug_is_verplicht": "Slug is verplicht",
         "naam_mag_maximaal_200_tekens_zijn": "Naam mag maximaal 200 tekens zijn"
-      }
+      },
+      "notFound": "Dit product bestaat niet meer."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -4357,6 +4358,9 @@
         "verplaatsen_naar_map": "Verplaatsen naar map",
         "naar_prullenbak": "Naar prullenbak",
         "permanent_verwijderen": "Permanent verwijderen"
+      },
+      "deepLink": {
+        "notFound": "Dit gesprek is niet (meer) te vinden."
       }
     },
     "customers": {
@@ -4912,6 +4916,12 @@
         "failed": "Mislukt",
         "partially_refunded": "Deels terugbetaald"
       }
+    },
+    "pushTap": {
+      "noAccess": "Deze melding hoort bij een winkel waar je geen toegang (meer) toe hebt."
+    },
+    "invoices": {
+      "deepLinkNotFound": "Deze factuur is niet (meer) te vinden."
     }
   },
   "product_form": {

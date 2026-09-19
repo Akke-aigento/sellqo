@@ -1556,6 +1556,10 @@
         "notifications_on_by_default": {
           "title": "Meldingen staan standaard aan",
           "description": "Je krijgt nu standaard pushmeldingen in de SellQo-app voor alles wat bij je rol hoort; zet uit wat je niet wil onder Instellingen → Mijn meldingen. Berichten van klanten krijg je standaard ook per e-mail. Stuurt dezelfde klant via hetzelfde kanaal meerdere berichten kort na elkaar, dan krijg je hooguit één e-mail per kwartier."
+        },
+        "notification_opens_item": {
+          "title": "Een melding opent meteen het juiste item",
+          "description": "Tik op een melding en je komt meteen bij de bestelling, het product of het bericht — in de app en in de browser. Bij een factuur toont de factuurlijst meteen die factuur. Hoort de melding bij een andere winkel die je beheert, dan wisselt SellQo eerst naar die winkel. Kan een item niet meer geopend worden, dan kom je in de lijst van die soort."
         }
       },
       "copyLink": "Kopieer link",

@@ -1556,6 +1556,10 @@
         "notifications_on_by_default": {
           "title": "Les notifications sont activées par défaut",
           "description": "Vous recevez désormais par défaut des notifications push dans l'application SellQo pour tout ce qui relève de votre rôle ; désactivez ce que vous ne voulez pas dans Paramètres → Mes notifications. Les messages de clients vous sont aussi envoyés par e-mail par défaut. Si un même client envoie plusieurs messages par le même canal en peu de temps, vous recevez au maximum un e-mail par quart d'heure."
+        },
+        "notification_opens_item": {
+          "title": "Une notification ouvre directement le bon élément",
+          "description": "Touchez une notification et vous arrivez directement à la commande, au produit ou au message — dans l'application et dans le navigateur. Pour une facture, la liste des factures affiche directement cette facture. Si la notification concerne une autre boutique que vous gérez, SellQo bascule d'abord vers cette boutique. Si un élément ne peut plus être ouvert, vous arrivez dans la liste correspondante."
         }
       },
       "copyLink": "Copier le lien",

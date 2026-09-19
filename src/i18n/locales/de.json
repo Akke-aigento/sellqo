@@ -3604,7 +3604,8 @@
       "korting_u20ac": "Rabatt (€)",
       "product_nummer": "Produkt {{number}}",
       "sla_het_product_eerst_op_om_2": "Speichern Sie zuerst das Produkt, um Termine zu verwalten",
-      "vast_bedrag_euro": "Fester Betrag (&euro;)"
+      "vast_bedrag_euro": "Fester Betrag (&euro;)",
+      "notFound": "Dieses Produkt existiert nicht mehr."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -3973,6 +3974,9 @@
         "permanent_verwijderen": "Endgültig löschen",
         "terugzetten_naar_inbox": "Zurück in den Posteingang",
         "verplaatsen_naar_map": "In Ordner verschieben"
+      },
+      "deepLink": {
+        "notFound": "Diese Unterhaltung ist nicht (mehr) auffindbar."
       }
     },
     "customers": {
@@ -4678,6 +4682,12 @@
         "vertaling_vergrendeld": "Übersetzung gesperrt",
         "vertalingen_opgeslagen": "Übersetzungen gespeichert"
       }
+    },
+    "pushTap": {
+      "noAccess": "Diese Benachrichtigung gehört zu einem Shop, auf den Sie keinen Zugriff (mehr) haben."
+    },
+    "invoices": {
+      "deepLinkNotFound": "Diese Rechnung ist nicht (mehr) auffindbar."
     }
   },
   "billing": {

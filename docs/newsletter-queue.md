@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11e — Een melding opent meteen het juiste item (improvement, 19-09-2026)
+
+**Voor wie:** alle winkels, in de app en in de browser.
+
+**Tik op een melding en je komt meteen bij de bestelling of het bericht.** Ook producten, offertes,
+klanten en campagnes openen rechtstreeks; bij een factuur toont de factuurlijst meteen die factuur.
+Tot nu toe kwam je soms op het dashboard of op een foutpagina terecht.
+
+**Meerdere winkels?** Hoort de melding bij een andere winkel die je beheert, dan wisselt SellQo eerst
+naar die winkel en opent daarna het item.
+
+**i18n-key.** `public.changelog.changes.notification_opens_item` — vijf talen, volledige pariteit.
+
 ### 2026.11d — Meldingen staan standaard aan (improvement, 18-09-2026)
 
 **Voor wie:** alle winkels, iedereen met de SellQo-app op de telefoon.

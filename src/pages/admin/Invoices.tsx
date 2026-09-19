@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from 'react-i18next';
+import { supabase } from '@/integrations/supabase/client';
 import type { InvoiceStatus } from '@/types/invoice';
 import { CreateCreditNoteFromInvoiceButton } from '@/components/admin/CreateCreditNoteFromInvoiceButton';
 import { RefundInvoiceButton } from '@/components/admin/RefundInvoiceButton';
@@ -69,6 +70,35 @@ export default function InvoicesPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tab]);
+
+  // NOTIF-DEEPLINK-1 — `?invoice=<id>` (uit een melding) toont die factuur.
+  // Er is geen factuurdetailpagina; de lijst zoekt op zijn nummer. Daarna gaat
+  // de parameter uit de URL.
+  const invoiceParam = searchParams.get('invoice');
+  useEffect(() => {
+    if (!invoiceParam || !currentTenant?.id) return;
+    let cancelled = false;
+    void supabase
+      .from('invoices')
+      .select('invoice_number')
+      .eq('id', invoiceParam)
+      .eq('tenant_id', currentTenant.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled) return;
+        if (data?.invoice_number) {
+          setSearch(data.invoice_number);
+          setTab('invoices');
+        } else {
+          toast({ title: t('admin.invoices.deepLinkNotFound') });
+        }
+        const next = new URLSearchParams(searchParams);
+        next.delete('invoice');
+        setSearchParams(next, { replace: true });
+      });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceParam, currentTenant?.id]);
 
   const { invoices, isLoading, resendInvoice, markPeppolSent, refundInvoice, refetch } = useInvoices({
     search: search || undefined,

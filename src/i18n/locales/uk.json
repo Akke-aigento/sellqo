@@ -3838,7 +3838,8 @@
       "korting_u20ac": "Знижка (€)",
       "product_nummer": "Товар {{number}}",
       "sla_het_product_eerst_op_om_2": "Спершу збережіть товар, щоб керувати датами",
-      "vast_bedrag_euro": "Фіксована сума (&euro;)"
+      "vast_bedrag_euro": "Фіксована сума (&euro;)",
+      "notFound": "Цей товар більше не існує."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -4207,6 +4208,9 @@
         "permanent_verwijderen": "Видалити назавжди",
         "terugzetten_naar_inbox": "Повернути до вхідних",
         "verplaatsen_naar_map": "Перемістити до теки"
+      },
+      "deepLink": {
+        "notFound": "Цю розмову не вдається знайти."
       }
     },
     "customers": {
@@ -4912,6 +4916,12 @@
         "vertaling_vergrendeld": "Переклад заблоковано",
         "vertalingen_opgeslagen": "Переклади збережено"
       }
+    },
+    "pushTap": {
+      "noAccess": "Це сповіщення стосується магазину, до якого у вас (більше) немає доступу."
+    },
+    "invoices": {
+      "deepLinkNotFound": "Цей рахунок не вдається знайти."
     }
   },
   "product_form": {

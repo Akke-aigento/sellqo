@@ -5,6 +5,7 @@ import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/au
 import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 import { resolveEmailEnabled, messageConversationKey, isEmailThrottled, MESSAGE_EMAIL_WINDOW_MS } from "../_shared/notificationDefaults.ts";
+import { notificationRoute } from "../_shared/notificationRoutes.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -194,7 +195,11 @@ serve(async (req: Request): Promise<Response> => {
         // Convert relative action_url (e.g. "/admin/orders/abc") to absolute URL for email links.
         // In-app navigation uses relative paths, but email clients need absolute URLs.
         const ADMIN_BASE_URL = (Deno.env.get('ADMIN_BASE_URL') || 'https://sellqo.app').replace(/\/$/, '');
-        const rawActionUrl = notification.action_url;
+        // NOTIF-DEEPLINK-1: het pad uit het gedeelde register (type + data), zoals
+        // de bel en de pushmelding. Een volledige URL van de aanroeper blijft staan.
+        const rawActionUrl = notification.action_url && /^https?:\/\//i.test(notification.action_url)
+          ? notification.action_url
+          : notificationRoute(notification);
         const fullActionUrl = rawActionUrl
           ? (/^https?:\/\//i.test(rawActionUrl)
               ? rawActionUrl

@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useNotifications } from '@/hooks/useNotifications';
 import { NOTIFICATION_CONFIG, NotificationCategory, NotificationPriority, Notification } from '@/types/notification';
 import { cn } from '@/lib/utils';
+import { notificationLink } from '@/lib/notificationLink';
 
 const priorityConfig: Record<NotificationPriority, { icon: React.ElementType; color: string; label: string }> = {
   low: { icon: Info, color: 'text-muted-foreground', label: 'Laag' },
@@ -41,6 +42,7 @@ function NotificationRow({
 }) {
   const { icon: PriorityIcon, color, label: priorityLabel } = priorityConfig[notification.priority];
   const isUnread = !notification.read_at;
+  const link = notificationLink(notification);
   const categoryConfig = NOTIFICATION_CONFIG.find(c => c.category === notification.category);
 
   return (
@@ -90,9 +92,9 @@ function NotificationRow({
         </div>
       </div>
       <div className="flex items-center gap-1">
-        {notification.action_url && (
+        {link && (
           <Button variant="outline" size="sm" asChild>
-            <Link to={notification.action_url}>
+            <Link to={link}>
               <ExternalLink className="h-4 w-4 mr-1" />
               Bekijk
             </Link>

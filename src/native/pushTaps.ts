@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import type { PluginListenerHandle } from '@capacitor/core';
+import { notificationRoute } from '../../supabase/functions/_shared/notificationRoutes';
 
 /** Waar een aangetikte melding naartoe wil. */
 export interface PushTapTarget {
@@ -10,25 +11,55 @@ export interface PushTapTarget {
 /**
  * Leest de bestemming uit de data van een pushmelding.
  *
- * `send-push-notification` stuurt `action_url` en `tenant_id` mee als
- * datavelden. Die werden tot 13 september 2026 nergens uitgelezen: een melding
- * aantikken opende de app op het scherm waar je toevallig was.
+ * `send-push-notification` stuurt `action_url`, `category`, `type` en
+ * `tenant_id` mee als datavelden. Sinds NOTIF-DEEPLINK-1 gaat het pad door
+ * hetzelfde register als de bel (`notificationRoute`): een oud of kapot pad
+ * uit een eerdere build van de server wordt zo alsnog de juiste pagina, en er
+ * komt altijd een admin-pad uit — nooit een volledige URL of `//host`.
  *
- * Alleen interne admin-paden worden gevolgd. De data komt van onze eigen
- * server, maar een melding is een ingang van buiten de app, en een pad dat niet
- * met `/admin` begint — een volledige URL, een protocol-relatieve `//host` —
- * hoort hier nooit naar te leiden. Dezelfde houding als `deepLinkPath`.
+ * `null` alleen als er niets bruikbaars in zit (geen tenant én geen type of pad).
  */
 export function pushTapTarget(data: unknown): PushTapTarget | null {
   if (!data || typeof data !== 'object') return null;
   const record = data as Record<string, unknown>;
+  const str = (key: string) => (typeof record[key] === 'string' ? (record[key] as string) : null);
 
-  const actionUrl = typeof record.action_url === 'string' ? record.action_url : '';
-  const isAdminPath = actionUrl === '/admin' || actionUrl.startsWith('/admin/');
-  if (!isAdminPath) return null;
+  const tenantId = str('tenant_id') || null;
+  if (!tenantId && !str('type') && !str('action_url')) return null;
 
-  const tenantId = typeof record.tenant_id === 'string' && record.tenant_id ? record.tenant_id : null;
-  return { path: actionUrl, tenantId };
+  const path = notificationRoute({
+    category: str('category'),
+    type: str('type'),
+    action_url: str('action_url'),
+  });
+  return { path, tenantId };
+}
+
+/** Wat de app met een aangetikte melding doet, gegeven de stand van de winkels. */
+export type PushTapDecision =
+  | { kind: 'wait' }
+  | { kind: 'navigate'; path: string }
+  | { kind: 'switch'; tenantId: string; path: string }
+  | { kind: 'no-access' };
+
+/**
+ * NOTIF-DEEPLINK-1 — de beslissing, los van React zodat hij testbaar is.
+ *
+ * Tot 19 sep 2026 viel die meteen: bij een koude start levert de plugin het
+ * bewaarde tap-event af vóór TenantProvider de winkels heeft geladen, dus
+ * `tenants` was leeg, de winkel "onbekend" en de app ging naar het dashboard.
+ * Nu: zolang de winkels laden → wachten.
+ */
+export function decidePushTap(
+  target: PushTapTarget,
+  state: { tenantsLoading: boolean; currentTenantId: string | null; tenantIds: readonly string[] },
+): PushTapDecision {
+  if (state.tenantsLoading) return { kind: 'wait' };
+  if (!target.tenantId || target.tenantId === state.currentTenantId) {
+    return { kind: 'navigate', path: target.path };
+  }
+  if (!state.tenantIds.includes(target.tenantId)) return { kind: 'no-access' };
+  return { kind: 'switch', tenantId: target.tenantId, path: target.path };
 }
 
 /**

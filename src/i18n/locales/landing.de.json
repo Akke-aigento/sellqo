@@ -1556,6 +1556,10 @@
         "notifications_on_by_default": {
           "title": "Benachrichtigungen sind standardmäßig eingeschaltet",
           "description": "Sie erhalten jetzt standardmäßig Push-Benachrichtigungen in der SellQo-App für alles, was zu Ihrer Rolle gehört; schalten Sie unter Einstellungen → Meine Benachrichtigungen aus, was Sie nicht möchten. Kundennachrichten erhalten Sie standardmäßig auch per E-Mail. Sendet derselbe Kunde über denselben Kanal kurz hintereinander mehrere Nachrichten, erhalten Sie höchstens eine E-Mail pro Viertelstunde."
+        },
+        "notification_opens_item": {
+          "title": "Eine Benachrichtigung öffnet direkt das richtige Element",
+          "description": "Tippen Sie auf eine Benachrichtigung, und Sie gelangen direkt zur Bestellung, zum Produkt oder zur Nachricht — in der App und im Browser. Bei einer Rechnung zeigt die Rechnungsliste sofort diese Rechnung. Gehört die Benachrichtigung zu einem anderen Shop, den Sie verwalten, wechselt SellQo zuerst zu diesem Shop. Lässt sich ein Element nicht mehr öffnen, landen Sie in der passenden Liste."
         }
       },
       "copyLink": "Link kopieren",

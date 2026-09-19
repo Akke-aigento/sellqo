@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { resolvePushEnabled } from "../_shared/notificationDefaults.ts";
+import { notificationRoute } from "../_shared/notificationRoutes.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -275,7 +276,10 @@ serve(async (req: Request): Promise<Response> => {
     const endpoint = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
     const dataPayload: Record<string, string> = {
       notification_id: payload.notification_id ?? "",
-      action_url: payload.action_url ?? "",
+      // NOTIF-DEEPLINK-1: de route uit het gedeelde register (type + data), niet
+      // de rauwe action_url — die wijst in ruim de helft van de bronnen naar een
+      // pagina die niet bestaat. De app vertaalt oude payloads zelf ook nog.
+      action_url: notificationRoute(payload),
       category: payload.category,
       type: payload.type,
       tenant_id: payload.tenant_id,

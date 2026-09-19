@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, Navigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -168,7 +168,14 @@ export default function ProductForm() {
   const canEditStock = !isRestrictedRole || roleNames.includes('warehouse');
   const adminManagedHint = 'Wordt door een beheerder beheerd.';
   const { enforceLimit } = useUsageLimits();
-  const { data: product, isLoading: productLoading } = useProduct(id);
+  const { data: product, isLoading: productLoading, isFetched: productFetched } = useProduct(id);
+  // NOTIF-DEEPLINK-1 — een melding of oude link naar een verwijderd product
+  // toonde hier een leeg formulier ("Bewerk undefined") dat bij opslaan een
+  // onbestaand id bijwerkte. Nu: melden en terug naar de lijst.
+  const productMissing = isEditing && productFetched && !product;
+  useEffect(() => {
+    if (productMissing) toast.info(t('admin.productForm.notFound'));
+  }, [productMissing, t]);
   const { products: allProducts, createProduct, updateProduct } = useProducts();
   const { categories, flatCategoryTree, getCategoryPath } = useCategories();
   const { uploadImage, uploading } = useImageUpload();
@@ -621,6 +628,8 @@ export default function ProductForm() {
       </div>
     );
   }
+
+  if (productMissing) return <Navigate to="/admin/products" replace />;
 
   if (isEditing && productLoading) {
     return (

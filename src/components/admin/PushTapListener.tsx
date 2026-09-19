@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useTenant } from '@/hooks/useTenant';
-import { initPushNotificationTaps, type PushTapTarget } from '@/native/pushTaps';
+import { decidePushTap, initPushNotificationTaps, type PushTapTarget } from '@/native/pushTaps';
 
 /**
  * Stuurt een aangetikte pushmelding naar het juiste scherm, en de juiste tenant.
@@ -14,61 +16,73 @@ import { initPushNotificationTaps, type PushTapTarget } from '@/native/pushTaps'
  * op een bestelling van VanXcel terwijl Loveke actief is, dan zou je anders op
  * `/admin/orders/<id>` landen in de verkeerde tenant — een lege of foute pagina.
  *
- * Eerst wisselen en pas navigeren zodra de wissel doorgekomen is. Meteen na
- * `setCurrentTenant` navigeren zou de bestemming één render lang met de oude
- * tenant tonen.
+ * NOTIF-DEEPLINK-1 (19 sep 2026): een tap wordt eerst in een wachtrij gezet en
+ * pas beslist als de winkels geladen zijn (`decidePushTap`). Bij een koude start
+ * komt het bewaarde tap-event binnen vóór TenantProvider klaar is; tot deze
+ * datum telde de winkel dan als "onbekend" en ging de app naar het dashboard.
+ * Bij een wissel: eerst wisselen, navigeren zodra `currentTenant` de nieuwe is.
  *
  * Rendert niets. Op web doet de listener niets.
  */
 export function PushTapListener() {
   const navigate = useNavigate();
-  const { currentTenant, tenants, setCurrentTenant } = useTenant();
-  const pending = useRef<PushTapTarget | null>(null);
+  const { t } = useTranslation();
+  const { currentTenant, tenants, loading, setCurrentTenant } = useTenant();
+  // Een tap die nog niet afgehandeld is: wacht op de winkels of op de wissel.
+  const [queued, setQueued] = useState<PushTapTarget | null>(null);
+  const switchingTo = useRef<string | null>(null);
 
-  // Refs zodat de listener één keer registreert en toch altijd de actuele
-  // waarden ziet. Dat geldt ook voor setCurrentTenant: in useTenant is dat een
-  // gewone functie die elke render opnieuw ontstaat. Als effect-dependency zou
-  // hij de listener bij élke render afbreken en opnieuw registreren — en een
-  // bewaard tap-event van een koude start kan precies in dat gat vallen.
-  const tenantsRef = useRef(tenants);
-  const currentRef = useRef(currentTenant);
+  // navigate en setCurrentTenant veranderen per render/route. Via refs, zodat de
+  // listener één keer registreert: elke herregistratie is een async gat.
+  const navigateRef = useRef(navigate);
   const setTenantRef = useRef(setCurrentTenant);
-  tenantsRef.current = tenants;
-  currentRef.current = currentTenant;
+  navigateRef.current = navigate;
   setTenantRef.current = setCurrentTenant;
 
-  useEffect(
-    () =>
-      initPushNotificationTaps((target) => {
-        const active = currentRef.current;
-
-        if (!target.tenantId || target.tenantId === active?.id) {
-          navigate(target.path);
-          return;
-        }
-
-        const tenant = tenantsRef.current.find((t) => t.id === target.tenantId);
-        if (!tenant) {
-          // Geen toegang (meer) tot die tenant: dan ook niet naar een
-          // tenant-gebonden pagina. Het dashboard is de veilige landing.
-          console.info('[push] melding voor een tenant zonder toegang — naar dashboard');
-          navigate('/admin');
-          return;
-        }
-
-        pending.current = target;
-        setTenantRef.current(tenant);
-      }),
-    [navigate],
-  );
+  useEffect(() => initPushNotificationTaps((target) => setQueued(target)), []);
 
   useEffect(() => {
-    const target = pending.current;
-    if (target && currentTenant?.id === target.tenantId) {
-      pending.current = null;
-      navigate(target.path);
+    if (!queued) return;
+
+    // Een wissel is ingezet: wachten tot hij doorgekomen is, dán navigeren.
+    if (switchingTo.current) {
+      if (currentTenant?.id === switchingTo.current) {
+        switchingTo.current = null;
+        setQueued(null);
+        navigateRef.current(queued.path);
+      }
+      return;
     }
-  }, [currentTenant?.id, navigate]);
+
+    const decision = decidePushTap(queued, {
+      tenantsLoading: loading,
+      currentTenantId: currentTenant?.id ?? null,
+      tenantIds: tenants.map((tenant) => tenant.id),
+    });
+
+    switch (decision.kind) {
+      case 'wait':
+        return;
+      case 'navigate':
+        setQueued(null);
+        navigateRef.current(decision.path);
+        return;
+      case 'switch': {
+        const tenant = tenants.find((x) => x.id === decision.tenantId);
+        if (!tenant) return;
+        switchingTo.current = decision.tenantId;
+        setTenantRef.current(tenant);
+        return;
+      }
+      case 'no-access':
+        // Geen toegang (meer) tot die winkel: niets van die winkel tonen, wel
+        // zeggen waarom. De meldingenlijst, niet het dashboard.
+        setQueued(null);
+        toast.info(t('admin.pushTap.noAccess'));
+        navigateRef.current('/admin/notifications');
+        return;
+    }
+  }, [queued, loading, currentTenant?.id, tenants, t]);
 
   return null;
 }

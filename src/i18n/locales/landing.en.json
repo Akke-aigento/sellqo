@@ -1556,6 +1556,10 @@
         "notifications_on_by_default": {
           "title": "Notifications are on by default",
           "description": "You now get push notifications in the SellQo app by default for everything that belongs to your role; turn off what you don't want under Settings → My notifications. Customer messages are also emailed to you by default. If the same customer sends several messages through the same channel in quick succession, you get at most one email per 15 minutes."
+        },
+        "notification_opens_item": {
+          "title": "A notification opens the right item straight away",
+          "description": "Tap a notification and you go straight to the order, product or message — in the app and in the browser. For an invoice, the invoice list shows that invoice right away. If the notification belongs to another store you manage, SellQo switches to that store first. If an item can no longer be opened, you land in the list for that kind of item."
         }
       },
       "copyLink": "Copy link",
