@@ -4,7 +4,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
-import { resolveEmailEnabled, messageConversationKey, isEmailThrottled, MESSAGE_EMAIL_WINDOW_MS } from "../_shared/notificationDefaults.ts";
+import { messageConversationKey, planEmail, MESSAGE_EMAIL_WINDOW_MS } from "../_shared/notificationDefaults.ts";
 import { notificationRoute } from "../_shared/notificationRoutes.ts";
 
 const corsHeaders = {
@@ -115,12 +115,29 @@ serve(async (req: Request): Promise<Response> => {
         .single();
 
       if (notificationError) {
+        // NOTIF-SOURCES-1: een unieke index (bv. notifications_payout_once) wees
+        // hem af — dezelfde melding bestaat al. Geen fout, zoals bij inbound.
+        if ((notificationError as { code?: string }).code === '23505') {
+          console.log('Duplicate notification skipped', { type: notification.type });
+          return new Response(JSON.stringify({ success: true, duplicate: true }), {
+            status: 200,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          });
+        }
         console.error('Error creating notification:', notificationError);
         throw notificationError;
       }
 
       notificationId = notificationData.id;
       console.log('Notification created:', notificationId);
+
+      // NOTIF-SOURCES-1: één mailplek. Deze insert vuurt de trigger
+      // notify_email_on_notification, die ons intern (skip_in_app) opnieuw
+      // aanroept en dán mailt. Hier ook mailen gaf elke tenant twee mails.
+      return new Response(
+        JSON.stringify({ success: true, notification_id: notificationId, email: 'via_trigger' }),
+        { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
     } else {
       console.log('Skipping in-app creation, notification_id:', notificationId);
     }
@@ -136,40 +153,50 @@ serve(async (req: Request): Promise<Response> => {
 
     // PUSH-DEFAULT-1: één bron. Een rij beslist; zonder rij de default van het type
     // (_shared/notificationDefaults.ts, gelijk aan NOTIFICATION_CONFIG), en high/urgent
-    // mailen zoals voorheen altijd.
-    let shouldSendEmail = resolveEmailEnabled(settings, notification.category, notification.type, priority);
-
-    // Berichten: hooguit één mail per gesprek (kanaal + afzender) per 15 minuten. Een
-    // klant die vijf keer achter elkaar mailt, geeft één mail, niet vijf. In-app en push
-    // worden niet gethrottled.
-    if (shouldSendEmail && notification.category === 'messages') {
-      const key = messageConversationKey(notification.type, notification.data);
-      if (key) {
-        const since = new Date(Date.now() - MESSAGE_EMAIL_WINDOW_MS).toISOString();
-        const { data: recentRows, error: recentError } = await supabase
-          .from('notifications')
-          .select('id, type, data, email_sent_at')
-          .eq('tenant_id', notification.tenant_id)
-          .eq('category', 'messages')
-          .eq('type', notification.type)
-          .gte('email_sent_at', since);
-        if (recentError) {
-          // Liever een mail te veel dan een klantbericht dat niemand ziet.
-          console.error('Throttle lookup failed, sending anyway:', recentError.message);
-        } else {
-          const recent = (recentRows ?? [])
-            .filter((r: { id: string }) => r.id !== notificationId)
-            .map((r: { type: string; data: Record<string, unknown> | null; email_sent_at: string | null }) => ({
-              key: messageConversationKey(r.type, r.data),
-              emailSentAt: r.email_sent_at,
-            }));
-          if (isEmailThrottled(key, recent, new Date())) {
-            console.log('Email throttled for conversation', { key, notification_id: notificationId });
-            shouldSendEmail = false;
-          }
-        }
+    // mailen zoals voorheen altijd. Berichten: hooguit één mail per gesprek (kanaal +
+    // afzender) per 15 minuten; in-app en push worden niet gethrottled.
+    // NOTIF-SOURCES-1: de beslissing zit in planEmail (puur, getest); hier alleen de
+    // lookup van recente mails voor de throttle.
+    const conversationKey = notification.category === 'messages'
+      ? messageConversationKey(notification.type, notification.data)
+      : null;
+    let recent: Array<{ key: string | null; emailSentAt: string | null }> = [];
+    if (conversationKey) {
+      const since = new Date(Date.now() - MESSAGE_EMAIL_WINDOW_MS).toISOString();
+      const { data: recentRows, error: recentError } = await supabase
+        .from('notifications')
+        .select('id, type, data, email_sent_at')
+        .eq('tenant_id', notification.tenant_id)
+        .eq('category', 'messages')
+        .eq('type', notification.type)
+        .gte('email_sent_at', since);
+      if (recentError) {
+        // Liever een mail te veel dan een klantbericht dat niemand ziet.
+        console.error('Throttle lookup failed, sending anyway:', recentError.message);
+      } else {
+        recent = (recentRows ?? [])
+          .filter((r: { id: string }) => r.id !== notificationId)
+          .map((r: { type: string; data: Record<string, unknown> | null; email_sent_at: string | null }) => ({
+            key: messageConversationKey(r.type, r.data),
+            emailSentAt: r.email_sent_at,
+          }));
       }
     }
+
+    const emailPlan = planEmail({
+      insertedHere: false,
+      row: settings,
+      category: notification.category,
+      type: notification.type,
+      priority,
+      conversationKey,
+      recent,
+      now: new Date(),
+    });
+    if (!emailPlan.send && emailPlan.reason === 'throttled') {
+      console.log('Email throttled for conversation', { key: conversationKey, notification_id: notificationId });
+    }
+    const shouldSendEmail = emailPlan.send;
 
     if (shouldSendEmail && resendApiKey) {
       // Get tenant info for email including branding and notification_email

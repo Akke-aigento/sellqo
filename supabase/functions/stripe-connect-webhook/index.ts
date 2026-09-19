@@ -3,6 +3,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from "../_shared/vat.ts";
 import { handleSubscriptionChargeWebhook } from "../_shared/subscriptionCharge.ts";
+import { notifyPayout, type PayoutClient } from "../_shared/payoutNotification.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,7 +15,10 @@ const logStep = (step: string, details?: unknown) => {
   console.log(`[STRIPE-CONNECT-WEBHOOK] ${step}${detailsStr}`);
 };
 
-// Helper function to send payout notifications
+// Helper function to send payout notifications.
+// NOTIF-SOURCES-1: via het gedeelde pad (_shared/payoutNotification.ts). Hier
+// stond een RPC send_notification met `p_data` — die parameter bestaat niet, dus
+// faalde elke payout-melding stil (0 ooit).
 async function sendPayoutNotification(
   supabaseClient: SupabaseClient,
   stripeAccountId: string,
@@ -25,35 +29,10 @@ async function sendPayoutNotification(
   metadata: Record<string, unknown>
 ) {
   try {
-    // Find tenant by stripe_account_id
-    const { data: tenant, error: tenantError } = await supabaseClient
-      .from("tenants")
-      .select("id")
-      .eq("stripe_account_id", stripeAccountId)
-      .single();
-
-    if (tenantError || !tenant) {
-      logStep("Could not find tenant for stripe account", { stripeAccountId, error: tenantError?.message });
-      return;
-    }
-
-    // Send notification using RPC
-    const { error: notifError } = await supabaseClient.rpc("send_notification", {
-      p_tenant_id: tenant.id,
-      p_category: "payments",
-      p_type: notificationType,
-      p_title: title,
-      p_message: message,
-      p_priority: priority,
-      p_action_url: "/admin/payments",
-      p_data: metadata,
+    const result = await notifyPayout(supabaseClient as unknown as PayoutClient, {
+      stripeAccountId, type: notificationType, title, message, priority, data: metadata,
     });
-
-    if (notifError) {
-      logStep("Error sending notification", { error: notifError.message });
-    } else {
-      logStep("Notification sent successfully", { type: notificationType, tenantId: tenant.id });
-    }
+    logStep("Payout notification", { type: notificationType, result });
   } catch (err) {
     logStep("Exception sending notification", { error: err instanceof Error ? err.message : String(err) });
   }
@@ -294,7 +273,7 @@ serve(async (req) => {
         await sendPayoutNotification(
           supabaseClient,
           event.account || '',
-          'payout_available',
+          'payout_canceled',
           `Uitbetaling geannuleerd: ${amountFormatted}`,
           `De geplande uitbetaling van ${amountFormatted} is geannuleerd`,
           'medium',
@@ -562,27 +541,9 @@ serve(async (req) => {
             logStep("Ticket confirmation email error (non-blocking)", { error: e instanceof Error ? e.message : String(e) });
           }
 
-          // Admin notification for new storefront order (non-blocking)
-          try {
-            const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
-            const totalFormatted = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: tenant?.currency || 'EUR' }).format(Number(newOrder.total) || 0);
-            await fetch(`${supabaseUrl}/functions/v1/create-notification`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}` },
-              body: JSON.stringify({
-                tenant_id: tenantId,
-                category: 'orders',
-                type: 'storefront_order_new',
-                title: `Nieuwe bestelling: ${newOrder.order_number}`,
-                message: `${cart.customer_first_name || 'Klant'} ${cart.customer_last_name || ''} — ${totalFormatted}`.trim(),
-                priority: 'medium',
-                action_url: `/admin/orders/${newOrder.id}`,
-                data: { order_id: newOrder.id, order_number: newOrder.order_number, total: newOrder.total },
-              }),
-            });
-          } catch (e) {
-            logStep("Admin notification error (non-blocking)", { error: e instanceof Error ? e.message : String(e) });
-          }
+          // NOTIF-SOURCES-1: geen eigen melding meer. De trigger
+          // handle_order_notification maakt order_new zodra de order betaald is;
+          // hier stond ~9 s later een tweede (storefront_order_new, niet instelbaar).
 
         } else if (orderId) {
           // LEGACY FLOW: Order-based (backward compat for old sessions)

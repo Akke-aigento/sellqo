@@ -39,6 +39,7 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "payments/payment_received": { category: "payments", inApp: true, email: false },
   "payments/payout_available": { category: "payments", inApp: true, email: false },
   "payments/payout_completed": { category: "payments", inApp: true, email: false },
+  "payments/payout_canceled": { category: "payments", inApp: true, email: false },
   "payments/stripe_account_issue": { category: "payments", inApp: true, email: false },
   "payments/chargeback_received": { category: "payments", inApp: true, email: false },
   "customers/customer_new": { category: "customers", inApp: true, email: false },
@@ -172,4 +173,40 @@ export function isEmailThrottled(
   if (!key) return false;
   const since = now.getTime() - windowMs;
   return recent.some((r) => r.key === key && !!r.emailSentAt && new Date(r.emailSentAt).getTime() >= since);
+}
+
+// ── Wie mailt: NOTIF-SOURCES-1 ─────────────────────────────────────────
+
+export type EmailPlan =
+  | { send: false; reason: "via_trigger" | "disabled" | "throttled" }
+  | { send: true };
+
+/**
+ * Eén mailplek. Tot 19 sep 2026 mailde `create-notification` twee keer wanneer
+ * een bron hem van buitenaf aanriep: in de aanroep zelf, én via de trigger
+ * `notify_email_on_notification` die op zijn insert vuurt en hem intern
+ * (`skip_in_app`) opnieuw aanroept. Nu mailt alleen het interne pad.
+ *
+ * - `insertedHere`: deze aanroep deed de insert → de trigger mailt, wij niet.
+ * - anders: voorkeur (rij of default), en voor `messages` de throttle van
+ *   PUSH-DEFAULT-1 (1 mail per gesprek per 15 min).
+ */
+export function planEmail(input: {
+  insertedHere: boolean;
+  row: { email_enabled?: boolean | null } | null | undefined;
+  category: string;
+  type: string;
+  priority: string | null | undefined;
+  conversationKey: string | null;
+  recent: ReadonlyArray<{ key: string | null; emailSentAt: string | null }>;
+  now: Date;
+}): EmailPlan {
+  if (input.insertedHere) return { send: false, reason: "via_trigger" };
+  if (!resolveEmailEnabled(input.row, input.category, input.type, input.priority)) {
+    return { send: false, reason: "disabled" };
+  }
+  if (input.category === "messages" && isEmailThrottled(input.conversationKey, input.recent, input.now)) {
+    return { send: false, reason: "throttled" };
+  }
+  return { send: true };
 }

@@ -116,7 +116,8 @@ serve(async (req) => {
           .from('notifications')
           .insert({
             tenant_id: trial.tenant_id,
-            category: 'billing',
+            // NOTIF-SOURCES-1: 'billing' bestaat niet in enum notification_category — de insert faalde stil.
+            category: 'system',
             type: 'trial_expiring',
             title: 'Je proefperiode eindigt morgen',
             message: `Je ${trial.plan_id} trial loopt morgen af (${formattedDate}). Upgrade nu om al je features te behouden.`,

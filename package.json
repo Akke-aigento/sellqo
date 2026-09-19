@@ -12,6 +12,7 @@
     "test": "vitest run",
     "check:mail": "node scripts/check-mail-addresses.mjs",
     "check:messages": "node scripts/check-customer-messages-writes.mjs",
+    "check:notifications": "node scripts/check-notification-sources.mjs",
     "test:watch": "vitest",
     "predev": "bunx tsx scripts/generate-sitemap.ts",
     "prebuild": "bunx tsx scripts/generate-sitemap.ts"

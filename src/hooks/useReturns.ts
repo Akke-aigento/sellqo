@@ -642,7 +642,8 @@ export function useReturnMutations() {
       await supabase.functions.invoke('create-notification', {
         body: {
           tenant_id: newReturn.tenant_id,
-          category: 'returns',
+          // NOTIF-SOURCES-1: 'returns' bestaat niet in enum notification_category — de melding faalde stil.
+          category: 'orders',
           type: 'return_new_request',
           title: `Nieuwe retour: ${newReturn.rma_number || 'RMA'}`,
           message: `${order?.customer_name || 'Klant'} heeft een retour aangevraagd voor order ${order?.order_number || ''}`,

@@ -115,6 +115,7 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'payment_received', label: 'Betaling ontvangen', description: 'Wanneer een betaling binnenkomt', defaultInApp: true, defaultEmail: false },
       { type: 'payout_available', label: 'Uitbetaling beschikbaar', description: 'Wanneer een uitbetaling klaar staat', defaultInApp: true, defaultEmail: false },
       { type: 'payout_completed', label: 'Uitbetaling voltooid', description: 'Wanneer een uitbetaling is gedaan', defaultInApp: true, defaultEmail: false },
+      { type: 'payout_canceled', label: 'Uitbetaling geannuleerd', description: 'Wanneer een geplande uitbetaling is geannuleerd', defaultInApp: true, defaultEmail: false },
       { type: 'stripe_account_issue', label: 'Stripe probleem', description: 'Probleem met je Stripe account', defaultInApp: true, defaultEmail: false },
       { type: 'chargeback_received', label: 'Chargeback ontvangen', description: 'Wanneer een klant een chargeback indient', defaultInApp: true, defaultEmail: false },
     ]

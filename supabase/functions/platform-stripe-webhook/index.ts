@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { handleSubscriptionChargeWebhook } from "../_shared/subscriptionCharge.ts";
+import { notifyPayout, type PayoutClient } from "../_shared/payoutNotification.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -21,7 +22,9 @@ const formatDate = (timestamp: number): string => {
   return date.toLocaleDateString('nl-BE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 };
 
-// Helper: Send payout notification to tenant
+// Helper: Send payout notification to tenant.
+// NOTIF-SOURCES-1: via het gedeelde pad (_shared/payoutNotification.ts), zodat
+// deze webhook en stripe-connect-webhook samen één melding per payout geven.
 const sendPayoutNotification = async (
   supabase: any,
   stripeAccountId: string,
@@ -31,48 +34,8 @@ const sendPayoutNotification = async (
   priority: string,
   data: Record<string, unknown>
 ) => {
-  // Find tenant by stripe_account_id (Connect) or stripe_customer_id (Platform)
-  let tenantId: string | null = null;
-  
-  // First try stripe_account_id for Connect merchants
-  const { data: connectTenant } = await supabase
-    .from("tenants")
-    .select("id")
-    .eq("stripe_account_id", stripeAccountId)
-    .single();
-  
-  if (connectTenant?.id) {
-    tenantId = connectTenant.id;
-  } else {
-    // Fallback to stripe_customer_id via tenant_subscriptions for platform payouts
-    const { data: subscription } = await supabase
-      .from("tenant_subscriptions")
-      .select("tenant_id")
-      .eq("stripe_customer_id", stripeAccountId)
-      .maybeSingle();
-    tenantId = subscription?.tenant_id || null;
-  }
-  
-  if (!tenantId) {
-    logStep("Tenant not found for payout notification", { stripeAccountId });
-    return;
-  }
-
-  logStep("Sending payout notification", { tenantId, type, title });
-
-  // Use invoke to call the create-notification function
-  await supabase.functions.invoke("create-notification", {
-    body: {
-      tenant_id: tenantId,
-      category: "payments",
-      type,
-      title,
-      message,
-      priority,
-      action_url: "/admin/payouts",
-      data,
-    },
-  });
+  const result = await notifyPayout(supabase as PayoutClient, { stripeAccountId, type, title, message, priority, data });
+  logStep("Payout notification", { type, result });
 };
 
 serve(async (req) => {
@@ -239,7 +202,7 @@ serve(async (req) => {
           await sendPayoutNotification(
             supabase,
             stripeAccountId,
-            "payout_available",
+            "payout_canceled",
             `Uitbetaling geannuleerd: ${amount}`,
             `Je uitbetaling van ${amount} is geannuleerd. Het saldo blijft beschikbaar voor een volgende uitbetaling.`,
             "medium",

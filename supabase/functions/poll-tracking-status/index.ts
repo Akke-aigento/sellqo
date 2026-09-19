@@ -357,7 +357,8 @@ async function processOrder(
       try {
         await supabase.from("notifications").insert([{
           tenant_id: setting.tenant_id,
-          category: "shipping",
+          // NOTIF-SOURCES-1: "shipping" bestaat niet in enum notification_category — de insert faalde stil.
+          category: "orders",
           type: `tracking_${newStatus}`,
           title: `Verzending ${STATUS_LABELS[newStatus] || newStatus}: ${order.order_number}`,
           message: `Bestelling ${order.order_number} (${order.customer_name || order.customer_email}) is nu "${STATUS_LABELS[newStatus] || newStatus}"`,

@@ -75,7 +75,7 @@ const SETTINGS_SECTION_ALIASES: Readonly<Record<string, string>> = {
   notifications: "shop-notifications",
 };
 
-const UUID =/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function idFrom(data: unknown, key: string): string | null {
   if (!data || typeof data !== "object") return null;
@@ -111,10 +111,10 @@ function itemRoute(category: string, type: string, data: unknown): string | null
     const c = id("campaign_id");
     return c ? `/admin/marketing/campaigns/${c}` : null;
   }
-  if (category === "returns") {
-    const r = id("return_id");
-    return r ? `/admin/returns/${r}` : null;
-  }
+  // Een retour heeft sinds NOTIF-SOURCES-1 categorie `orders` (de enum kent geen
+  // `returns`) en draagt ook een order_id: het retour gaat voor.
+  const r = id("return_id");
+  if (r) return `/admin/returns/${r}`;
   // Bestellingen, betalingen (terugbetaling), verzending: allemaal de bestelling.
   const o = id("order_id");
   return o ? `/admin/orders/${o}` : null;

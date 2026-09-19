@@ -1,3 +1,105 @@
+## NOTIF-SOURCES-1 — meldingsbronnen die stil faalden of dubbel stuurden — 19 september 2026
+
+2026-09-19 NOTIF-SOURCES-1: payout-meldingen faalden sinds 27-01-2026 stil (p_data i.p.v. p_metadata,
+0 ooit); AI-coach-meldingen faalden (camelCase, 0 in 90 d); order_new had een tweede bron — geen
+tweede order_new, maar per order een tweede type: storefront_order_new (storefront-api,
+stripe-connect-webhook) en marketplace_order_new (sync-bol-orders), telkens seconden na de trigger;
+dubbele mail: ja, bewezen in code voor elke bron die create-notification van buitenaf aanroept.
+Fix + CI-guard check:notifications.
+
+### Root cause en bewijs
+
+- **Payouts** — `stripe-connect-webhook:41-49` riep `.rpc('send_notification', { …, p_data })`;
+  de live signatuur heeft `p_metadata`. Sinds `a30cd0cd` (27-01-2026) faalde elke aanroep; de fout
+  bleef in de log. Live: 0 payout-meldingen ooit. `platform-stripe-webhook` verwerkt dezelfde
+  `payout.*`-events via create-notification (ook 0 ooit); welke van de twee Stripe aflevert is
+  hier niet vast te stellen — alleen `p_data` fixen had een nieuwe dubbeling kunnen geven.
+- **AI** — `ai-proactive-monitor:252` en `ai-business-coach:581` stuurden `tenantId` (shorthand)
+  en `actionUrl`; create-notification leest `tenant_id`/`action_url` → auth/insert faalt. Sinds
+  januari 2026 (`051138e7`, `f089f9dc`). Live 0 `ai_suggestion`/`ai_coach_*` in 90 dagen.
+- **Categorieën buiten de enum** — `inventory` (sync-bol-orders ×2), `returns` (useReturns),
+  `shipping` (poll-tracking-status), `billing` (send-trial-expiry-warning, check-expired-trials).
+  Enum `notification_category` kent ze niet → insert faalt. Live 0 `product_unmapped`,
+  `out_of_stock`, `return_new_request`, `trial_*` ooit.
+- **Bestellingen** — de "dubbele order_new" uit de brief was de deeplink-testmelding
+  (`data.test = "deeplink-1"`). De echte dubbeling: elke webshop-order `order_new` (trigger) +
+  `storefront_order_new` (~9 s later; niet instelbaar, 0 voorkeursrijen); elke Bol-order `order_new`
+  + `marketplace_order_new`. `on_order_notification` staat alleen in migratie `20260223095626`,
+  live niet. Sinds 15-07 kregen Bol-orders alléén `order_new` (de sync-melding stopte na 10-07;
+  oorzaak niet te zien in git).
+- **Dubbele mail** — create-notification van buitenaf: insert (stap 1) + zelf mailen (stap 2); de
+  insert vuurt `trigger_notification_email` → `notify_email_on_notification` → create-notification
+  intern (`skip_in_app`) → mailt opnieuw. `email_sent_at` is één kolom; de DB toont het niet.
+
+### Uitgevoerd
+
+- `_shared/payoutNotification.ts` (nieuw): tenant op `stripe_account_id` (terugval
+  `tenant_subscriptions.stripe_customer_id`), dedup op `type` + `data.payout_id`, create-notification
+  met snake_case-body. Beide webhooks gebruiken hem; de RPC met `p_data` is weg. `payout.canceled`
+  kreeg type `payout_canceled` (was `payout_available`, zou door de dedup worden opgeslokt) —
+  toegevoegd aan `NOTIFICATION_CONFIG` en `NOTIFICATION_DEFAULTS`.
+- AI-functies: `tenant_id`, `action_url: '/admin/marketing/ai-center'`.
+- Categorieën: `inventory` → `products`, `returns` → `orders`, `shipping` → `orders`, `billing` →
+  `system`. Register: `return_id` gaat vóór `order_id`.
+- `create-notification`: mailt niet meer in het pad waar hij zelf insert (`email: 'via_trigger'`);
+  alleen het interne triggerpad mailt. Beslissing in pure `planEmail` (`_shared/notificationDefaults.ts`);
+  de throttle van PUSH-DEFAULT-1 zit in dat blijvende pad (alle `messages`-bronnen inserten al
+  rechtstreeks: voor berichten verandert niets). Insert-fout `23505` → `200 { duplicate: true }`.
+- Bestellingen (keuze Akke): `storefront_order_new` weg uit `storefront-api` (eerste wet: apart
+  akkoord Akke 19-09; alleen een interne melding ná de insert, request/response ongewijzigd) en
+  `stripe-connect-webhook`; `marketplace_order_new` weg uit `sync-bol-orders`.
+  `docs/sql/notif-sources-1.sql`: snapshot van `handle_order_notification` als terugdraai; nieuwe
+  versie maakt bij `marketplace_source IN ('bol_com')` `marketplace_order_new` (Bol-titel), anders
+  `order_new`. Waarom de trigger en niet de sync: `bol_com` wordt ook door import-bol-csv en
+  import-bol-shipments geschreven en geen kolom onderscheidt ze. Plus unieke index
+  `notifications_payout_once ((data->>'payout_id'), type) WHERE data ? 'payout_id'`.
+- `scripts/check-notification-sources.mjs` + `npm run check:notifications` + CI-stap: parameters van
+  `send_notification`, sleutels naar create-notification (geen camelCase), categorie ∈ enum.
+
+### Security-keuzes
+
+Geen RLS, policies of grants geraakt. De nieuwe index is een dedup-constraint op `notifications`.
+Het SQL-bestand bevat geen keys (gescand; de live functie ook niet).
+
+### Gedeelde-paden-waarschuwing
+
+`storefront-api` geraakt (apart akkoord): alleen de niet-blokkerende `storefront_order_new`-melding
+na de order-insert verwijderd. Request, response en het `storefront-api`-contract ongewijzigd; custom
+frontends merken niets. Webshop-orders krijgen hun melding van de trigger (`paid` bij insert,
+nagekeken: alle 3 historische `storefront_order_new` hadden ook `order_new`).
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| `check:notifications` tegen HEAD | 11 bevindingen — precies de bekende: 2×2 camelCase, `p_data`, 5× categorie |
+| `check:notifications` na de fix | 0 |
+| vitest (hele suite) | 389/389; nieuw: guard-fixtures, `notifyPayout` (dedup, body), `planEmail` (via trigger; 2 berichten zelfde afzender < 15 min → 1 mail), retour-route |
+| `deno check` 11 functies, HEAD vs nieuw | overal gelijk (0/0, 1/1, 15/15 bestaand) |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1506 (baseline 1507) |
+| `npm run build` | exit 0 |
+| i18n-parity, `check:mail`, `check:messages` | groen |
+| SQL-bestand op JWT-prefix | 0 treffers |
+
+Niet gedraaid: het SQL-bestand (chat-Claude). Bestellingen: geen testorders in productie (Akke);
+de droogtest in het bestand + de eerstvolgende echte Bol- en webshop-order zijn de bevestiging.
+
+Redeploy: create-notification, send-push-notification (importeert `notificationDefaults`),
+stripe-connect-webhook, platform-stripe-webhook, ai-proactive-monitor, ai-business-coach,
+sync-bol-orders, storefront-api, poll-tracking-status, send-trial-expiry-warning,
+check-expired-trials. Publiceren voor useReturns en `payout_canceled` in de instellingen.
+
+### Bewust ongemoeid / Vervolg
+
+- Waarom de `marketplace_order_new` van sync-bol-orders na 10-07 stopte: niet uitgezocht (moot).
+- import-bol-csv / import-bol-shipments leverden geen van de 52 live Bol-orders; na de fix geven ze
+  via de trigger `marketplace_order_new`.
+- Types `product_unmapped`, `out_of_stock`, `tracking_*`, `trial_*`, `return_new_request`,
+  `ai_suggestion`, `ai_coach_suggestion` staan niet in `NOTIFICATION_CONFIG`: ze verschijnen, maar
+  zijn niet per type in te stellen.
+- De dubbele-mailfout is uit code bewezen, niet uit logs; vingerafdruk via Resend-log na deploy.
+
 ## NOTIF-DEEPLINK-1 — een melding opent het juiste item — 19 september 2026
 
 2026-09-19 NOTIF-DEEPLINK-1: meldingen openen het juiste item. Oorzaak dashboard: een koude-start-race
@@ -96,6 +198,11 @@ Publiceren + native build (de app draait gebundelde code).
   no-access. Een leesbare productpagina bestaat niet.
 - Geen factuurdetailpagina; de lijst zoekt op het nummer.
 - `QuickActionButton` (AI-acties) volgt zijn eigen `action_url` nog rauw.
+
+### Vingerafdruk
+
+2026-09-19 vingerafdruk: 10 testmeldingen (8 Demo Bakkerij, 2 SellQo), alle {"sent":2,"failed":0};
+tap op iOS build 7 opent telkens het juiste item, incl. oude URL-patronen en winkelwissel. Bewezen.
 
 ## APP-INBOX-CRASH-1 — wit scherm bij openen ongelezen bericht + dubbele inbound — 18 september 2026
 

@@ -92,7 +92,8 @@ serve(async (req) => {
           .from('notifications')
           .insert({
             tenant_id: trial.tenant_id,
-            category: 'billing',
+            // NOTIF-SOURCES-1: 'billing' bestaat niet in enum notification_category — de insert faalde stil.
+            category: 'system',
             type: 'trial_expired',
             title: 'Je proefperiode is verlopen',
             message: 'Je bent nu op het gratis plan. Al je data is behouden - upgrade om alle features te herstellen.',

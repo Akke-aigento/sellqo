@@ -584,7 +584,8 @@ Deno.serve(async (req) => {
                 await supabase.functions.invoke('create-notification', {
                   body: {
                     tenant_id: connection.tenant_id,
-                    category: 'inventory',
+                    // NOTIF-SOURCES-1: 'inventory' bestaat niet in enum notification_category — de melding faalde stil.
+                    category: 'products',
                     type: 'product_unmapped',
                     title: 'Bol-order zonder product-koppeling',
                     message:
@@ -649,7 +650,8 @@ Deno.serve(async (req) => {
                       await supabase.functions.invoke('create-notification', {
                         body: {
                           tenant_id: connection.tenant_id,
-                          category: 'inventory',
+                          // NOTIF-SOURCES-1: zie hierboven.
+                          category: 'products',
                           type: 'out_of_stock',
                           title: `Uitverkocht: ${productInfo.name}`,
                           message: `${productInfo.name} is uitverkocht na verkoop via Bol order ${bolOrder.orderId}.`,
@@ -669,30 +671,10 @@ Deno.serve(async (req) => {
               }
             }
 
-            // Send marketplace order notification
-            try {
-              await supabase.functions.invoke('create-notification', {
-                body: {
-                  tenant_id: connection.tenant_id,
-                  category: 'orders',
-                  type: 'marketplace_order_new',
-                  title: `Bol.com bestelling: ${orderNumber}`,
-                  message: `Nieuwe Bol.com bestelling van €${safeSubtotal.toFixed(2)} ontvangen`,
-                  priority: 'medium',
-                  action_url: `/admin/orders/${newOrder.id}`,
-                  data: {
-                    order_id: newOrder.id,
-                    order_number: orderNumber,
-                    marketplace_order_id: bolOrder.orderId,
-                    marketplace: 'bol_com',
-                    total: safeSubtotal
-                  }
-                }
-              })
-            } catch (notificationError) {
-              console.error('Failed to send marketplace notification:', notificationError)
-              // Non-blocking - continue with sync
-            }
+            // NOTIF-SOURCES-1: geen eigen melding meer. De trigger
+            // handle_order_notification maakt voor een Bol-order (marketplace_source
+            // 'bol_com') de marketplace_order_new; hier stond een tweede melding voor
+            // dezelfde order. Zie docs/sql/notif-sources-1.sql.
 
             console.log(`Successfully imported order ${bolOrder.orderId} (${customerName}, €${safeSubtotal.toFixed(2)})`)
             totalImported++

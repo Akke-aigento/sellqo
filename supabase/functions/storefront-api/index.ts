@@ -3610,25 +3610,9 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
     });
   } catch {}
 
-  // Admin notification for new storefront order (non-blocking)
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
-    const totalFormatted = new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(Number(newOrder.total) || 0);
-    await fetch(`${supabaseUrl}/functions/v1/create-notification`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
-      body: JSON.stringify({
-        tenant_id: tenantId,
-        category: 'orders',
-        type: 'storefront_order_new',
-        title: `Nieuwe bestelling: ${newOrder.order_number}`,
-        message: `${cart.customer_first_name || 'Klant'} ${cart.customer_last_name || ''} — ${totalFormatted}`.trim(),
-        priority: 'medium',
-        action_url: `/admin/orders/${newOrder.id}`,
-        data: { order_id: newOrder.id, order_number: newOrder.order_number, total: newOrder.total },
-      }),
-    });
-  } catch {}
+  // NOTIF-SOURCES-1: geen eigen melding meer. De trigger handle_order_notification
+  // maakt order_new zodra de order betaald is; hier stond ~9 s later een tweede
+  // (storefront_order_new, niet instelbaar). Request en response ongewijzigd.
 
   return { success: true, status: 'completed', order_id: newOrder.id, order_number: newOrder.order_number };
 }

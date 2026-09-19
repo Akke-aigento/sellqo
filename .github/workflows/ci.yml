@@ -71,6 +71,12 @@ jobs:
       - name: customer_messages-writes
         run: node scripts/check-customer-messages-writes.mjs
 
+      # NOTIF-SOURCES-1: meldingsbronnen gebruiken de echte parameters van
+      # send_notification, snake_case naar create-notification, en een categorie
+      # die in de enum staat. Drie bronnen faalden daar maandenlang stil op.
+      - name: Meldingsbronnen
+        run: node scripts/check-notification-sources.mjs
+
       # 4. Capacitor-pariteit. De native manifesten (twee gradle-bestanden en de
       #    Podfile) zijn gegenereerd en worden alleen bijgewerkt als iemand
       #    `npx cap sync` draait en de uitkomst commit. Voor Android gebeurde dat

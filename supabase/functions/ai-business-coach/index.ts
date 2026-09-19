@@ -580,13 +580,15 @@ serve(async (req) => {
       for (const suggestion of urgentSuggestions) {
         await supabase.functions.invoke('create-notification', {
           body: {
-            tenantId,
+            // NOTIF-SOURCES-1: snake_case. create-notification leest `tenant_id`
+            // en `action_url`; met camelCase faalde elke melding stil (0 in 90 d).
+            tenant_id: tenantId,
             category: 'ai_coach',
             type: 'ai_coach_suggestion',
             title: `🤖 ${suggestion.title}`,
             message: suggestion.conversational_message,
             priority: suggestion.priority,
-            actionUrl: '/admin/ai-center',
+            action_url: '/admin/marketing/ai-center',
             data: {
               suggestion_type: suggestion.suggestion_type,
               related_entity_type: suggestion.related_entity_type,
