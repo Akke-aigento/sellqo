@@ -69,6 +69,17 @@ Geen gedeeld pad geraakt.
 - Geen changelog: alleen zichtbaar voor platform-admins.
 - Gewone gebruikers met meerdere winkels houden de platte lijst.
 
+### Nazorg — scrollen op mobiel
+
+2026-09-19 (Akke): in de app (mobiel) scrolde de winkellijst niet; tablet en desktop wel. Oorzaak: op
+mobiel zit de sidebar in een Sheet (Radix Dialog) met scroll-lock; de popover van de kiezer rendert via
+een portal buiten die Sheet, dus de lock blokkeerde het scrollen in de lijst. Fix: `modal` op de
+`Popover` in `GroupedTenantPicker.tsx` — de popover krijgt een eigen lock die zijn inhoud laat scrollen.
+Geverifieerd op 375px: vóór `scrollTop` 0 na scrollen, na 132 (einde lijst); selecteren werkt. Desktop:
+toetsenbord scrolt mee; muiswiel niet te toetsen in de geschaalde emulatie (Akke bevestigt). eslint, tsc,
+build, `cap sync` groen. Buildnummer niet opnieuw opgehoogd (iOS 8 / Android 7): was build 8 al naar
+TestFlight, dan volgt 9.
+
 ## NOTIF-TYPES-1 — elk meldingstype geregistreerd, en CI bewaakt het — 19 september 2026
 
 2026-09-19 NOTIF-TYPES-1: ai_suggestion en ai_coach_suggestion waren niet geregistreerd (net als eerder

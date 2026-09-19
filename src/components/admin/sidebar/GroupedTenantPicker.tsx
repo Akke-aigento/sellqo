@@ -39,7 +39,11 @@ export function GroupedTenantPicker<T extends GroupableTenant>({ groups, current
   const total = groups.reduce((n, g) => n + g.tenants.length, 0);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    // `modal`: op mobiel zit de sidebar in een Sheet (Radix Dialog) met scroll-lock.
+    // De popover rendert via een portal buiten die Sheet, dus zonder eigen lock
+    // blokkeerde de Sheet het scrollen in de lijst. Modal geeft de popover een
+    // eigen lock die zijn inhoud wél laat scrollen.
+    <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
