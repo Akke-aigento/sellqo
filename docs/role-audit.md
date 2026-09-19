@@ -100,6 +100,15 @@ check-expired-trials. Publiceren voor useReturns en `payout_canceled` in de inst
   zijn niet per type in te stellen.
 - De dubbele-mailfout is uit code bewezen, niet uit logs; vingerafdruk via Resend-log na deploy.
 
+### Uitrol
+
+Uitrol 19-09 (chat-Claude, connector): snapshot handle_order_notification bewaard in chat; droogtest
+52 bol_com → marketplace_order_new, 96 overige → order_new; functie vervangen (kolommen vooraf
+gecheckt); index notifications_payout_once aangemaakt. Vingerafdruk: dubbele payout_id-insert →
+23505, 0 rijen. Functies gedeployed + publish door Akke. Open: AI-melding (via AI-center),
+één-mail-bevestiging bij eerstvolgende echte event. Vaststelling: ai-proactive-monitor en
+ai-business-coach draaien alleen on-demand vanuit de frontend (geen cron).
+
 ## NOTIF-DEEPLINK-1 — een melding opent het juiste item — 19 september 2026
 
 2026-09-19 NOTIF-DEEPLINK-1: meldingen openen het juiste item. Oorzaak dashboard: een koude-start-race
