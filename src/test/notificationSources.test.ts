@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { scanSource, topLevelKeys } from '../../scripts/check-notification-sources.mjs';
+import { scanSource, topLevelKeys, typeValues, registeredTypes, sqlTypePairs } from '../../scripts/check-notification-sources.mjs';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { notifyPayout, payoutNotificationBody, type PayoutClient } from '../../supabase/functions/_shared/payoutNotification';
 import { planEmail } from '../../supabase/functions/_shared/notificationDefaults';
 import { notificationRoute } from '../../supabase/functions/_shared/notificationRoutes';
@@ -113,9 +115,44 @@ describe('register — retour heeft nu categorie orders', () => {
   });
 });
 
+describe('check:notifications — elk type geregistreerd (NOTIF-TYPES-1)', () => {
+  const registered = registeredTypes(readFileSync(resolve(__dirname, '../types/notification.ts'), 'utf8'));
+
+  it('leest de config, ook types met cijfers', () => {
+    expect(registered.has('invoices/invoice_overdue_7days')).toBe(true);
+    expect(registered.has('ai_coach/ai_suggestion')).toBe(true);
+    expect(registered.has('ai_coach/ai_coach_suggestion')).toBe(true);
+    expect(registered.has('quotes/quote_created')).toBe(false);
+  });
+  it('onbekend type → fout', () => {
+    const src = `await s.functions.invoke('create-notification', { body: { tenant_id: t, category: 'orders', type: 'order_teleported' } });`;
+    expect(scanSource(src, 'x', registered).join()).toMatch(/"orders\/order_teleported" staat niet in NOTIFICATION_CONFIG/);
+  });
+  it('bekend type onder de verkeerde categorie → fout', () => {
+    const src = `await s.from('notifications').insert({ tenant_id: t, category: 'system', type: 'order_new' });`;
+    expect(scanSource(src, 'x', registered).join()).toMatch(/"system\/order_new"/);
+  });
+  it('ternary: alleen de takken, niet de vergelijkingswaarde', () => {
+    expect(typeValues(`marketplace === "bol_com" ? "bol_inbound" : "email_inbound"`)).toEqual(['bol_inbound', 'email_inbound']);
+  });
+  it('template via DYNAMIC_TYPES; onbekende template → fout', () => {
+    expect(typeValues('`tracking_${newStatus}`')).toContain('tracking_delivered');
+    const src = "await s.from('notifications').insert({ tenant_id: t, category: 'orders', type: `x_${y}` });";
+    expect(scanSource(src, 'x', registered).join()).toMatch(/dynamisch/);
+  });
+  it('SQL: laatste definitie per functie wint, $$-bodies worden correct afgesloten', () => {
+    const files = [
+      { rel: 'a.sql', src: "CREATE OR REPLACE FUNCTION public.f() RETURNS trigger AS $$ BEGIN PERFORM public.send_notification(t, 'orders', 'order_oud', 'a','b','c','d', x); END; $$ LANGUAGE plpgsql;\nCREATE OR REPLACE FUNCTION public.g() RETURNS trigger AS $$ BEGIN PERFORM public.send_notification(t, 'quotes', 'quote_new', 'a','b','c','d', x); END; $$ LANGUAGE plpgsql;" },
+      { rel: 'b.sql', src: "CREATE OR REPLACE FUNCTION public.f() RETURNS trigger AS $function$ BEGIN v_type := 'order_new'; PERFORM public.send_notification(t, 'orders', v_type, 'a','b','c','d', x); END; $function$;" },
+    ];
+    const pairs = sqlTypePairs(files).map((p: { category: string; type: string }) => `${p.category}/${p.type}`).sort();
+    expect(pairs).toEqual(['orders/order_new', 'quotes/quote_new']);
+  });
+});
+
 describe('repo — nul bevindingen', () => {
   it('check:notifications is groen', async () => {
     const { execFileSync } = await import('node:child_process');
     expect(execFileSync('node', ['scripts/check-notification-sources.mjs'], { encoding: 'utf8' })).toMatch(/ok/);
-  });
+  }, 30_000); // start het hele script; onder CI-belasting ruim boven de 5 s-default
 });

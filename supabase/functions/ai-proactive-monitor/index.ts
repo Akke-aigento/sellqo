@@ -254,7 +254,8 @@ serve(async (req) => {
             // NOTIF-SOURCES-1: snake_case. create-notification leest `tenant_id`
             // en `action_url`; met camelCase faalde elke melding stil (0 in 90 d).
             tenant_id: tenantId,
-            category: 'system',
+            // NOTIF-TYPES-1: AI-meldingen onder één categorie (ai_coach), zoals ai-business-coach.
+            category: 'ai_coach',
             type: 'ai_suggestion',
             title: `AI Suggestie: ${suggestion.title}`,
             message: suggestion.description,

@@ -1,3 +1,101 @@
+## NOTIF-TYPES-1 — elk meldingstype geregistreerd, en CI bewaakt het — 19 september 2026
+
+2026-09-19 NOTIF-TYPES-1: ai_suggestion en ai_coach_suggestion waren niet geregistreerd (net als eerder
+contact_form_inbound). Guard check:notifications controleert nu ook het type. Live: AI-monitor
+gedraaid, suggestie medium → terecht geen melding.
+
+### Root cause
+
+- `NOTIFICATION_CONFIG` (`src/types/notification.ts`) en de bronnen liepen uit elkaar. Een type dat
+  niet in de config staat, is niet instelbaar en valt terug op de generieke defaults.
+- Zes config-types heetten anders dan wat de triggers sturen; de config-schakelaars deden dus niets,
+  de echte types waren niet instelbaar. Twee stonden onder een andere categorie dan de bron stuurt
+  (de sleutel is `categorie/type`).
+- De extra guard vond tegen HEAD 25 niet-geregistreerde `categorie/type`-paren (lijst hieronder),
+  plus 4 via array/variabele (`subscription_expiring`, `quote_expiring_soon`, `ai_credits_low`
+  onder system, `admin_announcement`).
+- **Schema-drift:** live is de `paid`-tak uit `handle_payment_notification` gehaald; geen migratie in
+  de repo bevat dat. De repo-versie (20260120184941) stuurt nog `order_paid`.
+
+### Uitgevoerd
+
+Keuze Akke (19-09): de config volgt de bron; voorkeuren verhuizen mee.
+
+| Oud (config) | Nieuw (bron) | tenant-rijen | user-rijen |
+|---|---|---|---|
+| quotes/quote_created | quotes/quote_new | 2 | 1 |
+| team/team_invitation_sent | team/team_member_invited | 2 | 1 |
+| team/team_invitation_accepted | team/team_member_joined | 2 | 1 |
+| customers/customer_vip_status | customers/customer_vip | 2 | 1 |
+| marketing/campaign_bounce_alert | marketing/campaign_high_bounce | 2 | 1 |
+| integrations/shopify_request_submitted | integrations/shopify_request_received | 1 | 1 |
+| marketing/ai_credits_low | system/ai_credits_low | 2 | 1 |
+| orders/order_payment_failed | payments/order_payment_failed | 2 | 1 |
+| **Totaal** (0 conflicten, UNIQUE-constraints nagetrokken) | | **15** | **8** |
+
+- Nieuw geregistreerd: orders `tracking_in_transit/out_for_delivery/delivered/exception`,
+  `return_new_request`; payments `order_refunded`; invoices `invoice_final_reminder`,
+  `invoice_charge_exhausted`, `mandate_setup_stalled`; subscriptions `billing_cycle_expired`;
+  products `product_unmapped`, `out_of_stock`; system `trial_expiring`, `trial_expired`,
+  `admin_announcement`; integrations `shopify_request_updated`; nieuwe sectie **ai_coach**
+  ("AI-coach", icoon Sparkles) met `ai_suggestion` en `ai_coach_suggestion`. Config: 103 types.
+- `defaultEmail` false buiten `messages` (regel PUSH-DEFAULT-1); AI-meldingen zijn altijd
+  high/urgent en mailen daardoor zonder schakelaar.
+- `_shared/notificationDefaults.ts` gegenereerd uit de config (pariteitstest groen).
+- `ai-proactive-monitor`: categorie `system` → `ai_coach`.
+- Instelschermen: icoon-maps kregen `Sparkles` en `Plug` (SellQo Connect toonde tot nu het terugval-
+  belletje).
+- `scripts/check-notification-sources.mjs`: elk verstuurd `categorie/type` moet in de config staan —
+  in code (letterlijk, ternary-takken, templates via `DYNAMIC_TYPES`, variabelen via
+  `VARIABLE_TYPE_SOURCES`) en in de DB-functies (laatste definitie per functie uit
+  `supabase/migrations`, daarna `docs/sql`; dollar-tag-bewust).
+- `docs/sql/notif-types-1.sql` (chat-Claude): snapshot, conflict-SELECT, `UPDATE … RETURNING` per
+  mapping zonder conflict, controle (0 oude sleutels); plus een **no-op drift-sync** van
+  `handle_payment_notification` — letterlijk de live definitie, md5 vóór en na
+  `551cf642ab1d7557e9b946b75add787a` (lokaal nagerekend).
+
+### Security-keuzes
+
+Geen RLS, policies of grants. `ai_coach` staat al in `notificationResources.ts` en in
+`can_read_notification_category` (tenant_admin, staff, viewer).
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt: storefront-api, storefront-customer-api, storefront-resolve en de gedeelde
+tabellen ongewijzigd.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| Uitgebreide guard tegen HEAD | 25 paren + 4 via variabele, zie boven |
+| Guard na de fix | 0 |
+| vitest (hele suite) | 431/431; nieuw: type-fixtures (onbekend type, verkeerde categorie, ternary, template, SQL-parser) |
+| `deno check` ai-proactive-monitor, create-notification, send-push-notification | 0/0, 1/1, 1/1 (bestaand) |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1506, gelijk aan de baseline |
+| `npm run build` | exit 0 |
+| i18n-parity, check:mail, check:messages, check:notifications | groen |
+| Browser dev (Akke's sessie) | Winkel Notificaties en Mijn meldingen tonen AI-coach (Sparkles) en SellQo Connect (Plug) |
+| SQL-bestand op JWT-prefix | 0 |
+
+Redeploy: ai-proactive-monitor, create-notification, send-push-notification (importeren
+`notificationDefaults`). Publish + native build (zelfde als TENANT-SWITCHER-1).
+
+### Bewust ongemoeid / Vervolg (productkeuze)
+
+36 config-types worden door niets verstuurd (dode schakelaars): `order_paid`, `order_refund_requested`,
+`invoice_reminder_sent`, `payment_received`, `chargeback_received`, `customer_first_order`,
+`customer_inactive_30days`, `customer_inactive_90days`, `customer_message_received`,
+`newsletter_signup`, `newsletter_unsubscribe`, `product_bestseller`, `product_no_sales_30days`,
+`quote_sent`, `quote_viewed`, `subscription_payment_failed`, `campaign_high_open_rate`,
+`ab_test_winner`, `ai_credits_empty`, `team_member_removed`, `team_role_changed`, `login_new_device`,
+`login_failed_attempts`, `platform_update`, `feature_new`, `usage_limit_80`, `usage_limit_reached`,
+`integration_error` (system én integrations), `export_ready`, `backup_completed`,
+`shopify_request_approved`, `shopify_request_completed`, `shopify_request_rejected`,
+`integration_connected`, `integration_disconnected`. Verbergen, een bron bouwen of laten: aparte keuze.
+Ook: `out_of_stock` (Bol-sync) naast `stock_out` (trigger) — twee namen voor hetzelfde.
+
 ## NOTIF-SOURCES-1 — meldingsbronnen die stil faalden of dubbel stuurden — 19 september 2026
 
 2026-09-19 NOTIF-SOURCES-1: payout-meldingen faalden sinds 27-01-2026 stil (p_data i.p.v. p_metadata,

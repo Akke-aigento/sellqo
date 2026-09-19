@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   ShoppingCart, FileText, CreditCard, Users, Package, FileEdit,
   RefreshCw, Megaphone, UserPlus, Settings, ChevronDown, ChevronRight,
-  Bell, Mail, Loader2, Volume2, VolumeX, MessageSquare, AtSign, Newspaper, Smartphone
+  Bell, Mail, Loader2, Volume2, VolumeX, MessageSquare, AtSign, Newspaper, Smartphone, Plug, Sparkles
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -23,7 +23,7 @@ import { toast } from 'sonner';
 
 const categoryIcons: Record<string, React.ElementType> = {
   ShoppingCart, FileText, CreditCard, Users, Package, FileEdit,
-  RefreshCw, Megaphone, UserPlus, Settings, MessageSquare,
+  RefreshCw, Megaphone, UserPlus, Settings, MessageSquare, Plug, Sparkles,
 };
 
 // Push staat hier bewust niet tussen: dat is een persoonlijke keuze en staat

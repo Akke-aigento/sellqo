@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   ShoppingCart, FileText, CreditCard, Users, Package, FileEdit,
   RefreshCw, Megaphone, UserPlus, Settings, MessageSquare,
-  Bell, ChevronDown, ChevronRight, Loader2, Smartphone,
+  Bell, ChevronDown, ChevronRight, Loader2, Smartphone, Plug, Sparkles
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,7 +20,7 @@ import { cn } from '@/lib/utils';
 
 const categoryIcons: Record<string, React.ElementType> = {
   ShoppingCart, FileText, CreditCard, Users, Package, FileEdit,
-  RefreshCw, Megaphone, UserPlus, Settings, MessageSquare,
+  RefreshCw, Megaphone, UserPlus, Settings, MessageSquare, Plug, Sparkles,
 };
 
 type Prefs = ReturnType<typeof useUserNotificationPreferences>;
