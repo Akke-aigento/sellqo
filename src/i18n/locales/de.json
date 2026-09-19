@@ -5156,7 +5156,13 @@
       "featureBlocked": "Durch Abonnement gesperrt — zum trotzdem Freigeben klicken",
       "pageHidden": "Für Mandanten ausgeblendet — zum Anzeigen klicken",
       "pageVisible": "Für Mandanten sichtbar — zum Ausblenden klicken"
-    }
+    },
+    "storeGroups": {
+      "own": "Meine Shops",
+      "clients": "Kunden",
+      "demo": "Demo"
+    },
+    "searchStores": "Shop suchen…"
   },
   "storefront": {
     "bankTransferPayment": {

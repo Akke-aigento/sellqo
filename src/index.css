@@ -94,6 +94,12 @@
     --sellqo-accent: 16 100% 60%;
     --sellqo-surface: 0 0% 96%;
     --sellqo-text-secondary: 215 16% 47%;
+
+    /* TENANT-SWITCHER-1 — 2px-lijntje per groep in de winkelkiezer (platform-admins).
+       Bewust lage opaciteit: een hint, geen label. */
+    --tenant-group-own: hsl(var(--sellqo-accent) / 0.55);
+    --tenant-group-clients: hsl(var(--muted-foreground) / 0.3);
+    --tenant-group-demo: hsl(var(--warning) / 0.45);
   }
 
   .dark {
@@ -148,6 +154,11 @@
     --sellqo-accent: 16 100% 60%;
     --sellqo-surface: 217 33% 17%;
     --sellqo-text-secondary: 215 20% 65%;
+
+    /* TENANT-SWITCHER-1 — iets meer dekking op donker, zelfde subtiliteit. */
+    --tenant-group-own: hsl(var(--sellqo-accent) / 0.6);
+    --tenant-group-clients: hsl(var(--muted-foreground) / 0.35);
+    --tenant-group-demo: hsl(var(--warning) / 0.5);
     /* Landing page specific */
     --landing-light: 200 30% 96%;
     --landing-gradient-start: 212 52% 24%;

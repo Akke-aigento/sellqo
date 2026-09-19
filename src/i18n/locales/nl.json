@@ -5156,7 +5156,13 @@
       "featureBlocked": "Geblokkeerd door abonnement — klik om toch toe te kennen",
       "pageHidden": "Verborgen voor tenant — klik om te tonen",
       "pageVisible": "Zichtbaar voor tenant — klik om te verbergen"
-    }
+    },
+    "storeGroups": {
+      "own": "Mijn winkels",
+      "clients": "Klanten",
+      "demo": "Demo"
+    },
+    "searchStores": "Zoek winkel…"
   },
   "storefront": {
     "bankTransferPayment": {

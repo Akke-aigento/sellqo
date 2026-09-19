@@ -5156,7 +5156,13 @@
       "featureBlocked": "Blocked by subscription — click to grant anyway",
       "pageHidden": "Hidden from tenant — click to show",
       "pageVisible": "Visible to tenant — click to hide"
-    }
+    },
+    "storeGroups": {
+      "own": "My stores",
+      "clients": "Clients",
+      "demo": "Demo"
+    },
+    "searchStores": "Search store…"
   },
   "storefront": {
     "bankTransferPayment": {

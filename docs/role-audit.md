@@ -1,3 +1,74 @@
+## TENANT-SWITCHER-1 — winkelkiezer gegroepeerd voor platform-admins — 19 september 2026
+
+2026-09-19 Rollen (chat-Claude, connector): Akke tenant_admin toegevoegd in VanXcel, Loveke, The Fonske
+Crawl (vooraf: alleen SellQo + platform_admin); SellQo Speeltuin is_demo false → true (geen
+Stripe-account, geen orders). TENANT-SWITCHER-1: kiezer gegroepeerd voor platform-admins (Mijn winkels /
+Klanten / Demo), afgeleid uit user_roles + is_demo.
+
+### Root cause
+
+Geen fout: de kiezer (`src/components/admin/AdminSidebar.tsx`) toonde alle winkels in één platte lijst.
+Voor een platform-admin met 12 winkels liepen eigen winkels, klanten en demo's door elkaar.
+
+### Uitgevoerd
+
+- `src/lib/tenantGroups.ts` (nieuw, puur): `groupTenants(tenants, roles, isPlatformAdmin)` — demo wint
+  (`is_demo`), anders eigen rol in `user_roles` → Mijn winkels, anders Klanten; alfabetisch binnen een
+  groep; `null` voor een gewone gebruiker. Geen nieuwe kolom, `is_internal_tenant` bewust niet (Stripe/
+  billing). Geen extra query: `useTenant()` laadt `is_demo` al (`select('*')`), `useAuth().roles` heeft
+  `tenant_id`.
+- `src/components/admin/sidebar/GroupedTenantPicker.tsx` (nieuw): Popover + Command (cmdk) — groepskoppen,
+  zoekveld vanaf > 8 winkels (zoekt alleen op naam), lege groepen verborgen, toetsenbordnavigatie, huidige
+  winkel `bg-accent` + `aria-current`, 2px-lijntje links per groep. `AdminSidebar.tsx` gebruikt hem voor
+  platform-admins; de gewone `DropdownMenu` is ongewijzigd voor iedereen anders.
+- `src/index.css`: tokens `--tenant-group-own` (merkkleur `--sellqo-accent`), `--tenant-group-clients`
+  (`--muted-foreground`), `--tenant-group-demo` (`--warning`), lage opaciteit, in `:root` én `.dark`.
+- i18n `sidebar.storeGroups.{own,clients,demo}` + `sidebar.searchStores` in vijf talen.
+- Build: iOS `CURRENT_PROJECT_VERSION` **8**, Android `versionCode` **7**.
+
+### Buildnummers
+
+| Bron | iOS | Android |
+|---|---|---|
+| Lokaal Xcode-archief (04-09) | 1 (1.0) | – |
+| Lokale `.aab` (10-09, merged manifest) | – | 5 (1.0.1) |
+| git, hoogste vóór deze commit (`604e0b47`, 18-09) | 6 | 6 |
+| NOTIF-DEEPLINK-1-vingerafdruk (Akke) | 7 | – |
+
+iOS 7 staat niet in de repo of lokaal (Xcode Cloud of handmatig; App Store Connect is de volledige bron).
+Hoogste + 1 → **iOS 8 / Android 7**. Deze build bevat TENANT-SWITCHER-1, NOTIF-SOURCES-1 (useReturns:
+categorie `orders`), NOTIF-TYPES-1 (config: 103 types, AI-coach) en alles wat sinds build 6/7 op main
+kwam. `npm run build` + `npx cap sync` lokaal gedraaid (beide bundels bevatten de nieuwe kiezer);
+archiveren naar TestFlight/Play door Akke.
+
+### Security-keuzes
+
+n.v.t.: alleen weergave. Welke winkels iemand ziet, blijft RLS op `tenants` (ongewijzigd); de groepering
+leest alleen wat al geladen is.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| vitest `groupTenants` | eigen rol, alleen platform, demo met eigen rol, gewone gebruiker → null, alfabetisch, live 12 → 4/4/4 |
+| vitest (hele suite) | 436/436 |
+| Browser dev, desktop (Akke) | 3 koppen in volgorde, 4/4/4 alfabetisch, lijntjes merk/grijs/amber, VanXcel gemarkeerd, zoekveld |
+| Zoeken + toetsenbord | "zon" → alleen Zona Dorata; Enter wisselt; heropenen start op de huidige winkel; "vanx" + Enter terug |
+| 375px, donker | past in de sheet, `scrollWidth` 375 = breedte, lijst scrolt verticaal, lijntjes zichtbaar |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1506, gelijk aan de baseline |
+| `npm run build`, `npx cap sync` | exit 0 |
+| i18n-parity, check:mail, check:messages, check:notifications | groen |
+
+### Bewust ongemoeid / Vervolg
+
+- Geen changelog: alleen zichtbaar voor platform-admins.
+- Gewone gebruikers met meerdere winkels houden de platte lijst.
+
 ## NOTIF-TYPES-1 — elk meldingstype geregistreerd, en CI bewaakt het — 19 september 2026
 
 2026-09-19 NOTIF-TYPES-1: ai_suggestion en ai_coach_suggestion waren niet geregistreerd (net als eerder

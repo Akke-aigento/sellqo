@@ -5156,7 +5156,13 @@
       "featureBlocked": "Bloqué par l'abonnement — cliquez pour l'accorder malgré tout",
       "pageHidden": "Masqué pour le locataire — cliquez pour l'afficher",
       "pageVisible": "Visible pour le locataire — cliquez pour le masquer"
-    }
+    },
+    "storeGroups": {
+      "own": "Mes boutiques",
+      "clients": "Clients",
+      "demo": "Démo"
+    },
+    "searchStores": "Rechercher une boutique…"
   },
   "storefront": {
     "bankTransferPayment": {

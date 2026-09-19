@@ -14,6 +14,8 @@ import { sidebarGroups, platformGroup, getAllMenuItems, type NavItem, type NavGr
 import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
 import { InboxBadge } from './sidebar/InboxBadge';
 import { AdsAiBadge } from './sidebar/AdsAiBadge';
+import { GroupedTenantPicker } from './sidebar/GroupedTenantPicker';
+import { groupTenants } from '@/lib/tenantGroups';
 import {
   Sidebar,
   SidebarContent,
@@ -48,12 +50,15 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function AdminSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
-  const { user, signOut, isPlatformAdmin } = useAuth();
+  const { user, signOut, isPlatformAdmin, roles } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { hiddenItems } = useSidebarPreferences();
   const { isPageHidden, togglePage, isToggling, isFeatureGranted, toggleGrantedFeature, isTogglingFeature } = useTenantPageOverrides();
   const { isAdminView } = usePlatformViewMode();
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  // TENANT-SWITCHER-1: platform-admins krijgen de gegroepeerde kiezer; voor
+  // iedereen anders is dit null en blijft de gewone kiezer hieronder staan.
+  const tenantGroups = groupTenants(tenants, roles ?? [], isPlatformAdmin);
 
   // De zichtbaarheidsregels stonden hier, en de mobiele onderbalk paste ze
   // niet toe. Ze zijn verhuisd naar useNavItemVisibility zodat beide weergaven
@@ -229,7 +234,18 @@ export function AdminSidebar() {
             <SellqoLogo variant="full" width={140} className="h-auto" />
           </Link>
 
-          {(isPlatformAdmin || tenants.length > 1) && (
+          {tenantGroups && (
+            <div className="px-2 pb-2">
+              <GroupedTenantPicker
+                groups={tenantGroups}
+                currentTenant={currentTenant}
+                loading={tenantsLoading}
+                onSelect={setCurrentTenant}
+              />
+            </div>
+          )}
+
+          {!tenantGroups && (isPlatformAdmin || tenants.length > 1) && (
             <div className="px-2 pb-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
