@@ -96,6 +96,13 @@ Redeploy: ai-proactive-monitor, create-notification, send-push-notification (imp
 `integration_connected`, `integration_disconnected`. Verbergen, een bron bouwen of laten: aparte keuze.
 Ook: `out_of_stock` (Bol-sync) naast `stock_out` (trigger) — twee namen voor hetzelfde.
 
+### Uitrol
+
+Uitrol 19-09 (chat-Claude, connector): snapshot in chat; 15 tenant- + 8 user-voorkeursrijen verhuisd
+naar de bron-sleutels, 0 conflicten, 0 oude sleutels over. Stap 5 (handle_payment_notification) niet
+uitgevoerd: live md5 551cf642ab1d7557e9b946b75add787a = bestand, dus al gelijk. Live check: alle 34
+types uit live DB-functies (send_notification + v_type) staan in NOTIFICATION_CONFIG.
+
 ## NOTIF-SOURCES-1 — meldingsbronnen die stil faalden of dubbel stuurden — 19 september 2026
 
 2026-09-19 NOTIF-SOURCES-1: payout-meldingen faalden sinds 27-01-2026 stil (p_data i.p.v. p_metadata,
