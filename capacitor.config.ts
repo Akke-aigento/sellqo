@@ -10,9 +10,13 @@ const config: CapacitorConfig = {
   plugins: {
     Keyboard: {
       // iOS-only. 'native' is ook de Capacitor-default; expliciet vastgelegd
-      // omdat de hele app erop leunt: de WebView krimpt als het toetsenbord
-      // opkomt, waardoor de fixed onderbalken (bottom nav, savebalk) bóven het
-      // toetsenbord blijven staan in plaats van erachter te verdwijnen.
+      // omdat de WebView dan meekrimpt met het toetsenbord — fixed elementen
+      // blijven daardoor binnen beeld in plaats van eronder te verdwijnen.
+      //
+      // APP-KEYBOARD-1 (22 sep 2026): dat was óók het probleem. De zwevende
+      // navigatiepil bleef zo boven het toetsenbord hangen, midden in beeld.
+      // Wat er moet wijken, bepaalt nu de app zelf via useKeyboardInset
+      // (src/hooks/useKeyboardInset.ts), die hier op de plugin-events leunt.
       resize: 'native',
       // Android-only. Onder de afgedwongen edge-to-edge van targetSdk 36 telt
       // de app als fullscreen en resizet de WebView niet vanzelf bij het

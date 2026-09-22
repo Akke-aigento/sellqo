@@ -16,6 +16,7 @@ import { PushTapListener } from './PushTapListener';
 import { SandboxBanner } from '@/components/SandboxBanner';
 import { PushPermissionBanner } from '@/components/PushPermissionBanner';
 import { useTenant } from '@/hooks/useTenant';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 
 function AdminLayoutContent() {
   // Global notification listener for sounds + toasts on ALL admin pages
@@ -38,6 +39,21 @@ function AdminLayoutContent() {
     mainRef.current?.scrollTo({ top: 0 });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
+
+  // APP-KEYBOARD-1 — zolang het toetsenbord open staat, zakken de zwevende
+  // balken (opslaan, bulkacties, AI-hulp) naar de onderrand: ze rekenen allemaal
+  // via --admin-nav-offset om de navigatiepil heen, en die is er dan niet.
+  // Op documentElement en niet op een wrapper: niet elke zwevende balk hangt in
+  // dezelfde boom (sommige zitten in een portal).
+  const keyboard = useKeyboardInset();
+  useEffect(() => {
+    const root = document.documentElement;
+    if (keyboard.isOpen) root.style.setProperty('--admin-nav-offset', 'var(--safe-bottom)');
+    else root.style.removeProperty('--admin-nav-offset');
+    return () => {
+      root.style.removeProperty('--admin-nav-offset');
+    };
+  }, [keyboard.isOpen]);
 
   return (
     <>
@@ -70,8 +86,9 @@ function AdminLayoutContent() {
       <TrialExpiredBlocker />
       {/* AI Help Widget - floating chat assistant, only on dashboard */}
       {isDashboard && <AIHelpWidget />}
-      {/* Mobile bottom navigation */}
-      <AdminMobileBottomNav />
+      {/* Mobile bottom navigation — APP-KEYBOARD-1: weg zolang je typt, anders
+          zweeft de pil boven het toetsenbord midden in beeld. */}
+      {!keyboard.isOpen && <AdminMobileBottomNav />}
       {/* Aangetikte pushmelding → juiste scherm en juiste tenant. Hier en niet
           in App.tsx, want de tenantwissel heeft TenantContext nodig. */}
       <PushTapListener />

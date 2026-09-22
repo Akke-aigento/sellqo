@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Store } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,10 +9,15 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from '@/components/ui/command';
 import { cn } from '@/lib/utils';
+import { availableListHeight, shouldAutoFocusSearch } from '@/lib/keyboardInset';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import type { TenantGroup, TenantGroupKey, GroupableTenant } from '@/lib/tenantGroups';
 
 /** Zoekveld pas vanaf dit aantal winkels: daaronder is de lijst in één oogopslag te zien. */
 const SEARCH_THRESHOLD = 8;
+
+/** Hoger dan dit wordt de lijst nooit, ook niet op een groot scherm. */
+const MAX_LIST_HEIGHT = 360;
 
 // Een 2px-lijntje links, via design tokens (src/index.css) — geen label of badge.
 const GROUP_ACCENT: Record<TenantGroupKey, string> = {
@@ -38,6 +44,33 @@ export function GroupedTenantPicker<T extends GroupableTenant>({ groups, current
   const [open, setOpen] = useState(false);
   const total = groups.reduce((n, g) => n + g.tenants.length, 0);
 
+  // APP-KEYBOARD-1 — Radix focust bij openen het eerste tabbare element; dat is
+  // het zoekveld, en op een telefoon schiet daarmee meteen het toetsenbord op.
+  // De lijst werd dan afgekapt en de onderste groep onbereikbaar. Op touch dus
+  // geen autofocus: tikken op het veld opent het toetsenbord alsnog.
+  const autoFocusSearch = shouldAutoFocusSearch({
+    isCoarsePointer: typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches === true,
+    isNative: Capacitor.isNativePlatform(),
+  });
+
+  // De lijst blijft binnen het zichtbare deel, ook met het toetsenbord open.
+  const keyboard = useKeyboardInset();
+  const listRef = useRef<HTMLDivElement>(null);
+  const [maxHeight, setMaxHeight] = useState(MAX_LIST_HEIGHT);
+  const measure = useCallback(() => {
+    const top = listRef.current?.getBoundingClientRect().top;
+    if (top === undefined) return;
+    setMaxHeight(availableListHeight({
+      viewportHeight: keyboard.viewportHeight || window.innerHeight,
+      top,
+      max: MAX_LIST_HEIGHT,
+    }));
+  }, [keyboard.viewportHeight]);
+  useLayoutEffect(() => {
+    if (!open) return;
+    measure();
+  }, [open, measure, keyboard.isOpen, keyboard.viewportHeight]);
+
   return (
     // `modal`: op mobiel zit de sidebar in een Sheet (Radix Dialog) met scroll-lock.
     // De popover rendert via een portal buiten die Sheet, dus zonder eigen lock
@@ -62,7 +95,13 @@ export function GroupedTenantPicker<T extends GroupableTenant>({ groups, current
           <ChevronDown className="h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-56 p-0" align="start">
+      <PopoverContent
+        className="w-[--radix-popover-trigger-width] min-w-56 p-0"
+        align="start"
+        onOpenAutoFocus={(event) => {
+          if (!autoFocusSearch) event.preventDefault();
+        }}
+      >
         <Command
           defaultValue={currentTenant?.id}
           // Alleen op naam zoeken, niet op het id (een uuid bevat a-f en cijfers).
@@ -71,7 +110,7 @@ export function GroupedTenantPicker<T extends GroupableTenant>({ groups, current
           }
         >
           {total > SEARCH_THRESHOLD && <CommandInput placeholder={t('sidebar.searchStores')} />}
-          <CommandList className="max-h-[min(360px,60vh)]">
+          <CommandList ref={listRef} style={{ maxHeight }}>
             <CommandEmpty>{t('sidebar.noStores')}</CommandEmpty>
             {groups.map((group) => (
               <CommandGroup key={group.key} heading={t(`sidebar.storeGroups.${group.key}`)}>

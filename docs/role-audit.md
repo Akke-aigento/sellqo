@@ -1,3 +1,85 @@
+## APP-KEYBOARD-1 — toetsenbord verbergt winkelkiezer en zwevende balk niet meer — 22 september 2026
+
+2026-09-22 APP-KEYBOARD-1: winkelkiezer focuste het zoekveld automatisch (toetsenbord dekte de lijst
+af, Demo onbereikbaar) en de zwevende onderbalk zweefde boven het toetsenbord. Fix: geen autofocus op
+touch, lijsthoogte volgt visualViewport, gedeelde useKeyboardVisible voor zwevende elementen
+(geïmplementeerd als `useKeyboardInset`, die naast open/dicht ook de hoogte levert).
+
+### Root cause
+
+- **Kiezer.** `GroupedTenantPicker` heeft zelf geen autofocus en cmdk focust niet. Radix Popover draait
+  in `modal`-mode; zijn FocusScope focust bij openen het eerste tabbare element, en dat is de
+  `CommandInput`. Die bestaat alleen bij meer dan 8 winkels (`SEARCH_THRESHOLD`); bij 8 of minder valt
+  Radix terug op de container. Dát verklaart "soms wel, soms niet". Met het toetsenbord open bleef de
+  lijst op `max-h-[min(360px,60vh)]` staan — 60vh rekent met het volle venster, niet met het zichtbare
+  deel, dus de onderste groep viel erbuiten.
+- **Zwevende balk.** `AdminMobileBottomNav` (`fixed bottom-[calc(1rem+var(--safe-bottom))]`) wordt altijd
+  gerenderd vanuit `AdminLayout`. Met `resize: 'native'` krimpt de WebView, dus de pil bleef keurig
+  zichtbaar — bóven het toetsenbord, midden in beeld. Het commentaar in `capacitor.config.ts` noemde dat
+  nog wenselijk; dat is nu bijgewerkt.
+- Er was geen enkele toetsenbordlogica in `src`: geen `visualViewport`, geen `Keyboard.addListener`
+  (de plugin was een dependency zonder importeur), geen `--keyboard-*`-CSS.
+
+### Uitgevoerd
+
+- `src/lib/keyboardInset.ts` (nieuw, puur): `keyboardInsetFromViewport` (web: venster minus zichtbaar
+  deel, drempel 120px tegen adresbalk-ruis), `keyboardInsetFromNative` (app: WebView krimpt zelf →
+  `isOpen` zonder inset), `shouldAutoFocusSearch`, `availableListHeight`.
+- `src/hooks/useKeyboardInset.ts` (nieuw): één bron — `visualViewport` op web, `keyboardWillShow`/
+  `keyboardWillHide` op native via dynamische import (zoals `src/native/pushTaps.ts`, zodat de plugin
+  niet in de webbundel landt).
+- `AdminLayout.tsx`: zolang het toetsenbord open is rendert de navigatiepil niet en staat
+  `--admin-nav-offset` op `var(--safe-bottom)` (op `documentElement`, want niet elke zwevende balk hangt
+  in dezelfde boom). Keuze Akke: opslaan-balk, bulkacties en AI-hulp blijven zichtbaar en zakken mee, zodat
+  opslaan bereikbaar blijft terwijl je typt. Ze rekenen allemaal al via die ene variabele — één ingreep
+  dekt `FloatingSaveBar` (10 formulierpagina's), vier bulkactiebalken, `MediaAssetsLibrary` en de AI-hulp.
+- `GroupedTenantPicker.tsx`: `onOpenAutoFocus` → `preventDefault()` op touch (`(pointer: coarse)` of
+  Capacitor-native; geen user-agent-sniffing), desktop ongewijzigd. `CommandList` krijgt zijn maximum uit
+  de hook: `min(360, zichtbare hoogte − top − 16)`.
+- `capacitor.config.ts`: commentaar bij `resize: 'native'` bijgewerkt.
+
+### Security-keuzes
+
+n.v.t.: alleen weergave. Geen nieuwe rechten, geen netwerk- of databasepaden geraakt.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| vitest `keyboardInset` | 14 tests: web-krimp, terug, adresbalk-ruis onder de drempel, offsetTop, native met/zonder krimp, autofocus-matrix, lijsthoogte |
+| vitest (hele suite) | 450/450 |
+| Browser dev 375px (touch) | kiezer opent zonder focus op het zoekveld (actief element blijft de knop) |
+| Idem, toetsenbord gesimuleerd (visualViewport 812 → 476) | pil verdwijnt, `--admin-nav-offset` → safe-area, lijst 360 → 260px en scrollbaar, laatste Demo-item bereikbaar |
+| Idem, toetsenbord dicht | pil terug, offset terug op `calc(5.5rem + 0px)`, lijst weer 360px |
+| Browser dev 1280px (muis) | zoekveld krijgt wél focus — desktopgedrag ongewijzigd |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1506, gelijk aan de baseline |
+| `npm run build`, `npx cap sync` | exit 0 |
+| i18n-parity, check:mail, check:messages, check:notifications | groen |
+
+Niet hier te toetsen: het echte toetsenbord op een toestel. Akke bevestigt na de build.
+
+### Buildnummers
+
+`~/keys/AuthKey_XT88S7Q29X.p8` bestaat, maar nergens een issuer-id (niet in `~/keys`, keychain, Xcode,
+`ci_scripts`; geen fastlane). Zonder issuer-id geen JWT voor de App Store Connect API — TestFlight is
+hier dus niet te lezen en er is geen inlogpoging gedaan. Daarom het veilige hogere nummer:
+**iOS `CURRENT_PROJECT_VERSION` 9, Android `versionCode` 8**. Die build bevat APP-KEYBOARD-1,
+TENANT-SWITCHER-1 inclusief de scrollfix, NOTIF-SOURCES-1 (useReturns) en NOTIF-TYPES-1.
+
+### Bewust ongemoeid / Vervolg
+
+- `Messages.tsx:356` bouwt zijn hoogteklasse met een template-literal (`h-[calc(100%-${…})]`); Tailwind
+  ziet die niet, dus die hoogte is dood. `h-[calc(100dvh-4rem)]` (`:334`) trekt de navigatiehoogte niet af.
+- `AIHelpChatWindow` heeft een eigen invoerveld in een vaste box van 500px.
+- Elf dialogen met `autoFocus` (POS, retour, Ads, onboarding) openen op touch ook het toetsenbord.
+- `ui/sheet.tsx` met `side="bottom"` heeft geen `pb-safe`.
+- Geen changelog: mobiel gedrag, geen nieuwe functie.
+
 ## TENANT-SWITCHER-1 — winkelkiezer gegroepeerd voor platform-admins — 19 september 2026
 
 2026-09-19 Rollen (chat-Claude, connector): Akke tenant_admin toegevoegd in VanXcel, Loveke, The Fonske
