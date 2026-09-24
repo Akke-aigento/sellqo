@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -257,7 +258,9 @@ serve(async (req) => {
     const { tenantId }: CoachRequest = await req.json();
 
 
-    await authenticateRequest(req, tenantId);
+    const auth = await authenticateRequest(req, tenantId);
+    // BILLING-ENFORCE-1: AI kost per gebruik en gaat al bij de eerste achterstand uit.
+    await requireBillingState(supabase, auth, tenantId, "ai_coach");
     if (!tenantId) {
       return new Response(
         JSON.stringify({ error: 'Missing tenantId' }),

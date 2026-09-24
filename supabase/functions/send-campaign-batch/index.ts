@@ -6,6 +6,7 @@ import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
 import { extractEmailBody, buildVariableMap, applyVariables } from "../_shared/emailContent.ts";
 import { resolvePresetRules } from "../_shared/audiencePresets.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -49,6 +50,8 @@ Deno.serve(async (req) => {
     }
 
     requireRole(auth, campaign.tenant_id, ["tenant_admin", "staff", "marketing"]);
+    // BILLING-ENFORCE-1: schrijven kan niet terwijl er een betaling openstaat.
+    await requireBillingState(supabase, auth, campaign.tenant_id, "marketing");
 
     // Get tenant info for email personalization
     // MAIL-CONTACT-1: deze select vroeg `email` en `street` op, die niet bestaan.

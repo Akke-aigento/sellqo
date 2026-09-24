@@ -348,16 +348,12 @@ export function usePlatformAdmin() {
 
       if (error) throw error;
 
-      // Update tenant subscription_status if status changed
-      if (updates.status) {
-        await supabase
-          .from('tenants')
-          .update({ 
-            subscription_status: updates.status as string,
-            updated_at: new Date().toISOString() 
-          })
-          .eq('id', tenantId);
-      }
+      // BILLING-ENFORCE-1: `tenants.subscription_status` wordt hier NIET meer
+      // meegeschreven. Die kolom stuurt de RLS van de webshop-chatbot
+      // ("Anon can insert conversations for active tenants", waarden 'active' /
+      // 'trial'); er `restricted` of `suspended` in zetten zou de chatbot van een
+      // klantwebshop uitzetten. De webshop blijft in elke toestand online, dus de
+      // statusmachine leeft alleen in tenant_subscriptions.status.
 
       // Log the action
       await supabase.rpc('log_admin_action', {

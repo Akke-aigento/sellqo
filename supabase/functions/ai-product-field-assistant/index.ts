@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -82,6 +83,8 @@ Deno.serve(async (req) => {
     }
 
     requireRole(auth, tenantId, ['tenant_admin', 'staff', 'marketing']);
+    // BILLING-ENFORCE-1: schrijven kan niet terwijl er een betaling openstaat.
+    await requireBillingState(supabase, auth, tenantId, "ai_assistant");
 
     const body: RequestBody = await req.json();
     const { fieldType, currentValue, action, briefing, language, productContext, existingTranslation, seoKeywords } = body;

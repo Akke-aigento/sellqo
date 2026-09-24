@@ -1292,6 +1292,22 @@
       "received": "Betaling ontvangen — je abonnement is bijgewerkt",
       "processing": "We verwerken je betaling ({{reference}})…",
       "slow": "Je betaling is ontvangen. Het kan nog even duren voordat alles is bijgewerkt."
+    },
+    "state": {
+      "past_due": {
+        "title": "Er staat een betaling open.",
+        "body": "Betaal {{amount}} om onderbreking te voorkomen."
+      },
+      "restricted": {
+        "title": "Je winkel staat in leesmodus.",
+        "body": "Bekijken, exporteren en betalen kan gewoon. Wijzigen kan weer zodra {{amount}} betaald is."
+      },
+      "suspended": {
+        "title": "Je winkel is opgeschort.",
+        "body": "Alleen facturatie en betalen zijn nog beschikbaar. Betaal {{amount}} om je winkel te openen."
+      },
+      "payNow": "Nu betalen",
+      "toBilling": "Naar facturatie"
     }
   },
   "admin_billing": {

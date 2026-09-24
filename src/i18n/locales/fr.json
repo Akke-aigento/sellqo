@@ -4826,7 +4826,23 @@
     "pay_now": "Montant à payer maintenant",
     "proration": "Prorata",
     "reactivate": "Réactiver l'abonnement",
-    "upgrade_to": "Passer à"
+    "upgrade_to": "Passer à",
+    "state": {
+      "past_due": {
+        "title": "Un paiement est en attente.",
+        "body": "Payez {{amount}} pour éviter une interruption."
+      },
+      "restricted": {
+        "title": "Votre boutique est en lecture seule.",
+        "body": "Consulter, exporter et payer restent possibles. Les modifications reviennent dès que {{amount}} est payé."
+      },
+      "suspended": {
+        "title": "Votre boutique est suspendue.",
+        "body": "Seuls la facturation et le paiement restent disponibles. Payez {{amount}} pour rouvrir votre boutique."
+      },
+      "payNow": "Payer maintenant",
+      "toBilling": "Vers la facturation"
+    }
   },
   "product_form": {
     "title_edit": "Modifier le produit",

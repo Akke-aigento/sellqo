@@ -1,3 +1,129 @@
+## BILLING-ENFORCE-1 — abonnementsstatus dwingt toegang af — 24 september 2026
+
+2026-09-24 BILLING-ENFORCE-1: niets dwong betaling af. `process-cycle-reminders` zette een cyclus op
+`expired` en stopte met de opmerking "suspension is LOCK-1" — LOCK-1 is nooit gebouwd, staat nergens in
+de repo. Astra Sleep werkte daardoor maanden met volledige toegang zonder te betalen. Nu: één
+statusmachine (trialing → active → past_due → restricted → suspended), toegang die die status volgt, en
+automatisch weer open zodra er betaald is. De webshop van de klant blijft in elke toestand online.
+
+### Root cause
+
+- **Geen enforcement.** `tenant_subscriptions.status` werd alleen geschreven door de trial-trigger
+  (`trialing`), `sync-tenant-plan`/`planEffectuate` (`active`) en de cancel-paden. `past_due` schreef
+  niemand; `restricted`/`suspended` bestonden niet. De twee faalsignalen staan in verschillende tabellen
+  (`billing_cycles.status='expired'` en `invoices.dunning_level=3`) en raakten het abonnement niet.
+- **Vervaldatum-bug.** `generate-subscription-invoices` zette `due_date = period_start` en
+  `grace_until = +7` hardcoded; `payment_term_days` werd in het pay-first-pad nooit gelezen. Een cyclus
+  met terugwerkende kracht (inhaalrun, handmatige run, de sweep) was bij zijn geboorte al over zijn
+  respijt heen en sprong de volgende ochtend meteen naar niveau 3 + `expired`, zonder eerste
+  herinnering. Met enforcement eraan vast zou dat een stille afsluiting zijn geweest. Chat-Claude
+  corrigeerde PR-2026-0003 handmatig (due_date 01-09 → 24-09, grace 08-09 → 08-10).
+- **Twee verborgen afhankelijkheden van de status**, gevonden tijdens de recon:
+  1. DB-functie `record_transaction` zoekt het plan met `status = 'active'`. Bij `past_due` vond hij geen
+     abonnement meer, viel `included_transactions` terug op 0 en werd élke transactie als overage geteld
+     (€0,50) — stil verkeerd factureren bij precies de klanten die al achterlopen. (De recon noemde
+     `increment_transaction_usage`; die bestaat live niet meer, `record_transaction` wel.)
+  2. RLS `"Anon can insert conversations for active tenants"` op `ai_chatbot_conversations` kijkt naar
+     `tenants.subscription_status IN ('active','trial')`, en `usePlatformAdmin` spiegelde de
+     abonnementsstatus naar die kolom. `restricted` daarin zou de chatbot van een klantwebshop uitzetten.
+
+### Uitgevoerd
+
+- `_shared/billingState.ts` (nieuw, puur, ook door `src/` geïmporteerd — geen tweede kopie):
+  `cycleDueDates`, `resolveBillingState`, `billingAllows`. Keuzes Akke: pay-first termijn **7 dagen**
+  (payment_term_days van 30 blijft voor de invoice-first-domeinfacturen), respijt **14 dagen**,
+  `suspended` na **30 dagen** leesmodus. `since` komt uit de data; geen nieuwe kolom.
+- `generate-subscription-invoices`: vervaldatum = `max(period_start, vandaag) + 7`, respijt + 14.
+  De hardcoded `GRACE_DAYS` en de lokale `addDays` zijn weg.
+- `sync-billing-state` (nieuw, cron 07:45 — ná dunning 07:00 en cyclusherinneringen 07:30). Waarom een
+  eigen functie: `process-cycle-reminders` kent alleen pay-first-cycli, de machine weegt ook de
+  domeinfacturen; en geld verdient een functie die je apart kunt draaien. `{ dry_run: true }`
+  rapporteert per winkel "nu → zou worden" zonder te schrijven. Slaat demo- en interne winkels over,
+  laat `canceled` met rust, en meldt een wissel aan de **klant**-tenant (de verloopmelding van
+  process-cycle-reminders gaat vandaag naar SellQo).
+- Toegang in de app: `useCan` kreeg de billing-laag (`useCanWithReason` geeft de reden).
+  `restricted`/`suspended` → alle `write`/`correct` uit, behalve `profile`, `platform_billing`,
+  `reports_financial`, `reports_analytics`; lezen blijft altijd aan. `past_due` → alleen `ai_assistant`
+  en `ai_coach` uit (kost per gebruik). Bypass: platform-admin, `is_internal_tenant`, `is_demo`.
+  `GatedButton` en `ReadOnlyBadge` zeggen nu "betaling openstaand" in plaats van de rol-tekst.
+- Toegang op de server: `_shared/billingGuard.ts` met `requireBillingState` (402, bypass service_role +
+  platform_admin), toegepast op `update-order-fulfillment-status`, `duplicate-product`, `run-csv-import`,
+  `send-campaign-batch`, `ads-bolcom-manage`, `social-post-publish`, `ai-business-coach`,
+  `ai-product-field-assistant`, `ai-generate-social`, `ai-generate-email`. **Bewust geen guard in
+  `authenticateRequest`**: de betaalfuncties gebruiken die ook, en dan zou een winkel niet meer kunnen
+  betalen.
+- Automatisch open: `refreshBillingStateForCustomer` in `_shared/billingGuard.ts`, aangeroepen na
+  `settled` (mandaat én handmatige betaling lopen allebei door `handleCycleCharge`) en na een betaalde
+  factuur. Zonder dat zou wie 's avonds betaalt tot 07:45 in leesmodus blijven.
+- UI: `BillingStateBanner` in `AdminLayout` (bedrag + betaallink, stapelt op mobiel), i18n in vijf talen.
+  `/admin/billing` blijft in elke toestand bereikbaar.
+- `tenants.subscription_status`: de spiegel in `usePlatformAdmin` is weg en de machine schrijft die kolom
+  niet. Motivatie: hij stuurt de RLS van de webshop-chatbot (zie root cause). De kolom blijft als
+  legacy-label in het platformformulier.
+- Twee meldingstypes geregistreerd (`subscription_state_changed`, `subscription_reactivated`) — de guard
+  uit NOTIF-TYPES-1 ving het ontbreken meteen.
+- `docs/sql/billing-enforce-1.sql` (chat-Claude): `record_transaction` met planlookup op
+  "niet geannuleerd" (md5 vóór moet `70fd35f9ca42c37bb4f8dbe37c1bb9c0` zijn; lokaal nagerekend dat de
+  reproductie byte-voor-byte klopt op die ene regel na) en de cron voor `sync-billing-state`.
+- Build: iOS `CURRENT_PROJECT_VERSION` **10**, Android `versionCode` **9**.
+
+### Security-keuzes
+
+Geen RLS of policies gewijzigd. De guard dwingt af bóven de bestaande rolcheck (`requireRole` blijft
+staan) en heeft dezelfde bypasses; status 402 zodat de app "betaal om verder te gaan" kan tonen in
+plaats van "geen toegang". Platform-admins houden volledige toegang tot een restricted winkel.
+
+### Gedeelde-paden-waarschuwing
+
+**De webshop blijft in elke toestand online.** `storefront-api`, `storefront-customer-api`,
+`storefront-resolve` en `storefront-contact-form` importeren `_shared/auth.ts` niet en dus de guard ook
+niet — grep-bewijs in de verificatie. Checkout, bestellingen en betalingen van eindklanten zijn
+ongewijzigd. De chatbot-RLS blijft werken doordat `tenants.subscription_status` niet meer meeschrijft.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| vitest `billingState` | 25 tests: elke overgang, grens 29 vs 30 dagen, respijt 14, domein vs platform, betaald → active, trial, `billingAllows` per toestand |
+| vitest (hele suite) | 479/479 |
+| Guard raakt de webshop niet | `grep -rln billingGuard supabase/functions/storefront-*` → leeg; 11 importeurs, alle admin/backoffice |
+| `deno check` 12 functies, HEAD vs nieuw | overal gelijk (0/0; `send-campaign-batch` 9/9 bestaand) |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1506, gelijk aan de baseline (een verkeerd geplaatste import gaf eerst 1507; hersteld) |
+| `npm run build`, `npx cap sync` | exit 0; beide app-bundels bevatten de nieuwe code |
+| i18n-parity, check:mail, check:messages, check:notifications | groen |
+| SQL-bestand op JWT-prefix | 0 treffers |
+| `record_transaction`-reproductie | md5 zonder onze ene regelwijziging = live md5 |
+
+Geen enkele live-write vanuit de tests. Niet hier te toetsen: de echte afsluiting van een winkel — dat
+loopt via de dry-run hieronder.
+
+### Uitrol — eerst dry-run
+
+1. Deploy (import-grep): `sync-billing-state` (nieuw), `generate-subscription-invoices`,
+   `platform-stripe-webhook` + `stripe-connect-webhook` (beide importeren `subscriptionCharge`),
+   `update-order-fulfillment-status`, `duplicate-product`, `run-csv-import`, `send-campaign-batch`,
+   `ads-bolcom-manage`, `social-post-publish`, `ai-business-coach`, `ai-product-field-assistant`,
+   `ai-generate-social`, `ai-generate-email`. Publish + native build (iOS 10 / Android 9).
+2. `docs/sql/billing-enforce-1.sql` deel (1)+(2) draaien (planlookup). De cron in deel (3) **pas ná** de
+   dry-run plannen.
+3. `sync-billing-state` handmatig met `{"dry_run": true}` → tabel per winkel. Akke kijkt eerst; Astra
+   Sleep (tenant 169cf7b9-…, PR-2026-0003 open, domeinfactuur dunning 3) wordt **niet** automatisch
+   dichtgezet bij uitrol.
+
+### Bewust ongemoeid / Vervolg
+
+- Ongeveer 40 andere schrijvende edge functions hebben de guard nog niet; `useCan` dekt ~30 aanroepen en
+  2 routes, dus POS, inbox, storefront-studio, events, automations, suppliers, inkooporders en de
+  marketplace-koppelingen blijven in leesmodus schrijfbaar tot ze de guard krijgen.
+- `ai-generate-ab-variant`, `ai-generate-storefront-copy` en `nano-studio` hebben helemaal geen
+  `authenticateRequest`; `accept-bol-order`, `duplicate-product` en `ai-business-coach` missen
+  `requireRole`; `process-order-refund` heeft geen auth.
+- `TrialExpiredBlocker` blijft als losse curtain naast de machine bestaan (blokkeert alles, ook de
+  betaalpagina) — kandidaat om te vervangen door de banner.
+- `reopened` wordt nergens geschreven; `send-trial-expiry-warning` heeft nog steeds geen cron.
+- `npx cap sync` vereist Node 22; met de standaard Node 20 faalt hij met een misleidende melding.
+
 ## APP-KEYBOARD-1 — toetsenbord verbergt winkelkiezer en zwevende balk niet meer — 22 september 2026
 
 2026-09-22 APP-KEYBOARD-1: winkelkiezer focuste het zoekveld automatisch (toetsenbord dekte de lijst

@@ -17,6 +17,7 @@ import { SandboxBanner } from '@/components/SandboxBanner';
 import { PushPermissionBanner } from '@/components/PushPermissionBanner';
 import { useTenant } from '@/hooks/useTenant';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { BillingStateBanner } from './BillingStateBanner';
 
 function AdminLayoutContent() {
   // Global notification listener for sounds + toasts on ALL admin pages
@@ -73,6 +74,8 @@ function AdminLayoutContent() {
           <PushPermissionBanner />
           {/* Trial Banner - shows remaining trial days */}
           <TrialBanner />
+          {/* BILLING-ENFORCE-1: openstaande betaling of leesmodus. */}
+          <BillingStateBanner />
           <main ref={mainRef} className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden pb-[var(--admin-nav-offset)] md:pb-6">
             <div className="p-4 lg:p-6 max-w-screen-2xl mx-auto w-full min-w-0">
               <Outlet />

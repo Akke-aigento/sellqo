@@ -6,8 +6,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useCan, type PermissionAction, type Resource } from "@/hooks/useCan";
+import { useCanWithReason, type PermissionAction, type Resource } from "@/hooks/useCan";
 import {
+  TOOLTIP_BILLING_LOCKED_LONG,
+  TOOLTIP_BILLING_LOCKED_SHORT,
   TOOLTIP_NO_ACCESS_LONG,
   TOOLTIP_NO_ACCESS_SHORT,
 } from "@/lib/permissions/constants";
@@ -47,7 +49,8 @@ export const GatedButton = forwardRef<HTMLButtonElement, GatedButtonProps>(
     },
     ref,
   ) {
-    const allowed = useCan(action, resource);
+    const { allowed, reason } = useCanWithReason(action, resource);
+    const isBilling = reason === "billing";
 
     if (allowed) {
       return (
@@ -74,7 +77,7 @@ export const GatedButton = forwardRef<HTMLButtonElement, GatedButtonProps>(
                 ref={ref}
                 disabled
                 aria-disabled
-                aria-label={TOOLTIP_NO_ACCESS_SHORT}
+                aria-label={isBilling ? TOOLTIP_BILLING_LOCKED_SHORT : TOOLTIP_NO_ACCESS_SHORT}
                 onClick={(e) => e.preventDefault()}
                 {...rest}
               >
@@ -82,7 +85,9 @@ export const GatedButton = forwardRef<HTMLButtonElement, GatedButtonProps>(
               </Button>
             </span>
           </TooltipTrigger>
-          <TooltipContent>{tooltip ?? TOOLTIP_NO_ACCESS_LONG}</TooltipContent>
+          <TooltipContent>
+            {tooltip ?? (isBilling ? TOOLTIP_BILLING_LOCKED_LONG : TOOLTIP_NO_ACCESS_LONG)}
+          </TooltipContent>
         </Tooltip>
       </TooltipProvider>
     );

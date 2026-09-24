@@ -2,6 +2,8 @@ import { useContext } from "react";
 import { useAuth, type AppRole } from "@/hooks/useAuth";
 import { TenantContext } from "@/hooks/useTenant";
 import { SimulatedRoleContext } from "@/components/dev/RoleSimulator";
+import { useBillingState } from "@/hooks/useBillingState";
+import { billingAllows } from "../../supabase/functions/_shared/billingState";
 
 /**
  * Fase 2 Foundation — permissie-matrix.
@@ -296,12 +298,37 @@ export function useScopedRoles(): AppRole[] | null {
   return scoped.map((r) => r.role as AppRole);
 }
 
+/** Waarom iets niet mag: door je rol, of doordat er nog een betaling openstaat. */
+export type DenyReason = "role" | "billing";
+
 /**
  * `useCan('write', 'orders')` → boolean.
  * Geeft `false` zolang auth nog laadt of er geen user is.
+ *
+ * BILLING-ENFORCE-1: staat de winkel in leesmodus (restricted/suspended), dan
+ * gaat schrijven uit — behalve op facturatie, profiel en rapporten, anders kan
+ * niemand meer betalen. Bij een eerste achterstand (past_due) gaat alleen AI uit,
+ * want dat kost per gebruik. Lezen blijft altijd aan. De serverguard
+ * (_shared/billingGuard.ts) is het echte slot; dit houdt het scherm eerlijk.
  */
 export function useCan(action: PermissionAction, resource: Resource): boolean {
+  return useCanWithReason(action, resource).allowed;
+}
+
+/** Zelfde check, maar met de reden — voor knoppen en badges die iets willen uitleggen. */
+export function useCanWithReason(
+  action: PermissionAction,
+  resource: Resource,
+): { allowed: boolean; reason: DenyReason | null } {
   const roles = useScopedRoles();
-  if (roles === null) return false;
-  return canWithRoles(roles, action, resource);
+  const billing = useBillingState();
+
+  if (roles === null) return { allowed: false, reason: "role" };
+  if (!canWithRoles(roles, action, resource)) return { allowed: false, reason: "role" };
+  if (roles.includes("platform_admin")) return { allowed: true, reason: null };
+  if (billing.isLoading) return { allowed: true, reason: null };
+
+  return billingAllows(billing.state, action, resource).allowed
+    ? { allowed: true, reason: null }
+    : { allowed: false, reason: "billing" };
 }

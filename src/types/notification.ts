@@ -190,6 +190,9 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'subscription_paused', label: 'Abonnement gepauzeerd', description: 'Abonnement is gepauzeerd', defaultInApp: true, defaultEmail: false },
       // NOTIF-TYPES-1: process-cycle-reminders.
       { type: 'billing_cycle_expired', label: 'Betaaltermijn verlopen', description: 'Een factuurcyclus van een abonnement is verlopen zonder betaling', defaultInApp: true, defaultEmail: false },
+      // BILLING-ENFORCE-1: de statusmachine meldt een wissel aan de winkel zelf.
+      { type: 'subscription_state_changed', label: 'Abonnementsstatus gewijzigd', description: 'Je abonnement staat open, in leesmodus of opgeschort', defaultInApp: true, defaultEmail: false },
+      { type: 'subscription_reactivated', label: 'Abonnement weer actief', description: 'Na betaling staat alles weer open', defaultInApp: true, defaultEmail: false },
     ]
   },
   {

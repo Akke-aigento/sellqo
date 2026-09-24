@@ -6,6 +6,7 @@ import {
   authErrorResponse,
   requireRole,
 } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 type OrderStatus =
   | "pending"
@@ -145,6 +146,17 @@ Deno.serve(async (req) => {
     .select("id, tenant_id, status")
     .eq("id", order_id)
     .maybeSingle();
+
+  // BILLING-ENFORCE-1: schrijven kan niet terwijl er een betaling openstaat.
+  // De tenant komt uit de order, niet uit de body.
+  if (currentOrder?.tenant_id) {
+    try {
+      await requireBillingState(admin, auth, currentOrder.tenant_id, "orders");
+    } catch (err) {
+      if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
+      throw err;
+    }
+  }
 
   if (loadError) {
     return json(req, { success: false, error: loadError.message }, 500);

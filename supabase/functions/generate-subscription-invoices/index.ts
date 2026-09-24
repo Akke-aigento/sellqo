@@ -10,6 +10,7 @@ import {
 // gebruikte setUTCMonth (2026-01-31 + 1 mnd = 2026-03-03) en had geen anchor,
 // waardoor een 31e-abonnement na februari op de 28e bleef hangen.
 import { advanceDate } from "../_shared/billingDates.ts";
+import { cycleDueDates } from "../_shared/billingState.ts";
 import { computeVatTotals } from "../_shared/billingMoney.ts";
 
 const corsHeaders = {
@@ -26,15 +27,6 @@ function toISODate(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
-// CYCLE-1: grace period after the due date of a payment request.
-// TODO: make configurable per tenant/plan.
-const GRACE_DAYS = 7;
-
-function addDays(iso: string, days: number): string {
-  const dt = new Date(iso + "T00:00:00Z");
-  dt.setUTCDate(dt.getUTCDate() + days);
-  return toISODate(dt);
-}
 
 type CycleSummary = {
   cycles_created: number;
@@ -68,8 +60,15 @@ async function handlePendingCycle(
   cycle: BillingCycleRow,
   summary: CycleSummary,
 ): Promise<void> {
-  const dueDate = cycle.period_start;
-  const graceUntil = addDays(dueDate, GRACE_DAYS);
+  // BILLING-ENFORCE-1: de vervaldatum kwam uit period_start, dus een cyclus die
+  // met terugwerkende kracht werd aangemaakt (inhaalrun, handmatige run, sweep)
+  // was bij zijn geboorte al over zijn respijt heen — de eerstvolgende
+  // herinneringsronde sprong dan meteen naar niveau 3 en zette hem op 'expired'.
+  // Nu: nooit een vervaldatum in het verleden, en respijt telt vanaf de vervaldatum.
+  const { dueDate, graceUntil } = cycleDueDates({
+    periodStart: cycle.period_start,
+    today: toISODate(new Date()),
+  });
 
   const toAwaitingPayment = async (extra: Record<string, unknown> = {}) => {
     await supabase

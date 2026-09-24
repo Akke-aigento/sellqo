@@ -1292,7 +1292,23 @@
     "pay_now": "Amount due now",
     "proration": "Proration",
     "reactivate": "Reactivate subscription",
-    "upgrade_to": "Upgrade to"
+    "upgrade_to": "Upgrade to",
+    "state": {
+      "past_due": {
+        "title": "A payment is outstanding.",
+        "body": "Pay {{amount}} to avoid interruption."
+      },
+      "restricted": {
+        "title": "Your store is in read-only mode.",
+        "body": "Viewing, exporting and paying still work. Editing returns as soon as {{amount}} is paid."
+      },
+      "suspended": {
+        "title": "Your store is suspended.",
+        "body": "Only billing and payment are available. Pay {{amount}} to reopen your store."
+      },
+      "payNow": "Pay now",
+      "toBilling": "Go to billing"
+    }
   },
   "import": {
     "title": "Import Data",

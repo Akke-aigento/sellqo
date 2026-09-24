@@ -1,6 +1,7 @@
 // CSV Import Edge Function v3 - Fixed customer_type constraint
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -98,6 +99,8 @@ Deno.serve(async (req) => {
     const auth = await authenticateRequest(req, tenant_id);
     // Batch 2A1: role gate — only tenant_admin may run bulk CSV imports.
     requireRole(auth, tenant_id, ["tenant_admin"]);
+    // BILLING-ENFORCE-1: schrijven kan niet terwijl er een betaling openstaat.
+    await requireBillingState(supabase, auth, tenant_id, "products");
 
     if (!tenant_id || !data_type || !records?.length) {
       return new Response(

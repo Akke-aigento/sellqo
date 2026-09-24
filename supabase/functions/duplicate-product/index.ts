@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -95,6 +96,14 @@ Deno.serve(async (req) => {
     return json(403, { error: "Geen toegang tot dit product" });
   }
   const tenantId: string = original.tenant_id;
+
+  // BILLING-ENFORCE-1: schrijven kan niet terwijl er een betaling openstaat.
+  try {
+    await requireBillingState(supabase, auth, tenantId, "products");
+  } catch (err) {
+    if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);
+    throw err;
+  }
 
   // 3. Build new product payload
   const newProduct: Record<string, unknown> = {};

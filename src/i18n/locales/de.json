@@ -4826,7 +4826,23 @@
     "pay_now": "Jetzt fälliger Betrag",
     "proration": "Anteilige Verrechnung",
     "reactivate": "Abonnement reaktivieren",
-    "upgrade_to": "Upgrade auf"
+    "upgrade_to": "Upgrade auf",
+    "state": {
+      "past_due": {
+        "title": "Eine Zahlung steht offen.",
+        "body": "Zahlen Sie {{amount}}, um eine Unterbrechung zu vermeiden."
+      },
+      "restricted": {
+        "title": "Ihr Shop ist im Lesemodus.",
+        "body": "Ansehen, Exportieren und Bezahlen funktionieren weiterhin. Änderungen sind wieder möglich, sobald {{amount}} bezahlt ist."
+      },
+      "suspended": {
+        "title": "Ihr Shop ist gesperrt.",
+        "body": "Nur Rechnungsstellung und Zahlung sind verfügbar. Zahlen Sie {{amount}}, um Ihren Shop wieder zu öffnen."
+      },
+      "payNow": "Jetzt bezahlen",
+      "toBilling": "Zur Abrechnung"
+    }
   },
   "product_form": {
     "title_edit": "Produkt bearbeiten",

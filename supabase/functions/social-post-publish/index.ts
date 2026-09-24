@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -164,6 +165,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+    // BILLING-ENFORCE-1: schrijven kan niet terwijl er een betaling openstaat.
+    await requireBillingState(supabase, auth, tenantId, "social_channels");
 
     // Get the connection for this tenant and platform
     const { data: connection, error: connError } = await supabase

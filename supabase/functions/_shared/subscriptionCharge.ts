@@ -10,6 +10,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { effectuatePlanSwitch } from "./planEffectuate.ts";
 import { advanceDate, type Interval } from "./planProration.ts";
 import { resolveInvoiceFiscalFields } from "./invoiceFiscalFields.ts";
+import { refreshBillingStateForCustomer } from "./billingGuard.ts";
 
 type SupabaseLike = {
   from: (table: string) => any;
@@ -186,6 +187,13 @@ async function handleInvoiceCharge(
       log("Failed to mark invoice paid", { invoiceId, error: updErr.message });
     } else {
       log("Invoice marked paid", { invoiceId, intent: intent.id });
+      // BILLING-ENFORCE-1: een betaalde domeinfactuur kan de leesmodus opheffen.
+      const { data: paidInvoice } = await supabase
+        .from("invoices")
+        .select("customer_id")
+        .eq("id", invoiceId)
+        .maybeSingle();
+      await refreshBillingStateForCustomer(supabase, paidInvoice?.customer_id ?? null);
     }
     return true;
   }
@@ -483,6 +491,11 @@ async function handleCycleCharge(
     invoiceNumber: numData,
     intent: intent.id,
   });
+
+  // BILLING-ENFORCE-1: betaald is betaald — meteen herberekenen, niet pas bij de
+  // cron van morgenochtend. Geldt voor het mandaat-pad én voor een handmatige
+  // betaling via de betaallink; beide komen hier langs.
+  await refreshBillingStateForCustomer(supabase, cycle.customer_id);
 
   // UPGRADE-PF-1: settlement of a proration cycle effectuates the plan switch.
   // Mandate mode already applied it in sync-tenant-plan (logged as a no-op
