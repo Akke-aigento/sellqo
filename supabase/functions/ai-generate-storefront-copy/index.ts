@@ -324,28 +324,43 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    // Get tenant from auth
+    // Get tenant from auth.
+    // HOTFIX-AUTH-1: het token was optioneel — zonder token draaide deze functie
+    // gewoon door en riep hij de AI-API met de platformsleutel aan. Dat is een
+    // open, betalende eindpunt op het internet, en anonieme aanroepen kwamen
+    // niet eens in ai_usage_log (die insert staat ín `if (tenantId)`). Nu eerst
+    // een geldig token, zoals ai-generate-ab-variant doet.
     const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let tenantId: string | null = null;
-    let userId: string | null = null;
-    
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: { user } } = await supabase.auth.getUser(token);
-      if (user) {
-        userId = user.id;
-        const { data: userRole } = await supabase
-          .from("user_roles")
-          .select("tenant_id")
-          .eq("user_id", user.id)
-          .single();
-        tenantId = userRole?.tenant_id;
-      }
+    const { data: { user }, error: authError } = await supabase.auth.getUser(
+      authHeader.replace("Bearer ", ""),
+    );
+    if (authError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    // De tenant blijft uit user_roles komen, niet uit de body: zo kan niemand
+    // met een geldig token de context van een andere winkel opvragen.
+    const userId: string | null = user.id;
+    const { data: userRole } = await supabase
+      .from("user_roles")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .single();
+    const tenantId: string | null = userRole?.tenant_id ?? null;
 
     const { fieldType, sectionType, currentValue, action, tenantContext }: GenerateRequest = await req.json();
 

@@ -36,11 +36,36 @@ serve(async (req) => {
     const body: GenerateABVariantRequest = await req.json();
     const { tenantId, originalCampaignId, variationType = 'subject' } = body;
 
-    // Get original campaign
+    // HOTFIX-AUTH-1: deze functie draait op de service-role, en `tenantId` kwam
+    // ongecontroleerd uit de body. Daarmee kon elke ingelogde gebruiker de
+    // campagne van een andere winkel laten lezen én de AI-credits van die winkel
+    // opmaken. Nu: lid van die winkel, of platform-admin.
+    if (!tenantId) throw new Error('tenantId is required');
+    const { data: callerRoles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('tenant_id, role')
+      .eq('user_id', user.id);
+    if (rolesError) throw rolesError;
+    const isPlatformAdmin = (callerRoles ?? []).some((r) => r.role === 'platform_admin');
+    const isMember = (callerRoles ?? []).some((r) => r.tenant_id === tenantId);
+    if (!isPlatformAdmin && !isMember) {
+      console.error('[ai-generate-ab-variant] geweigerd: geen toegang tot deze winkel', {
+        user_id: user.id,
+        tenant_id: tenantId,
+      });
+      return new Response(JSON.stringify({ error: 'Geen toegang tot deze winkel' }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Get original campaign — op tenant gefilterd, zodat een id uit een andere
+    // winkel niets teruggeeft.
     const { data: originalCampaign, error: campaignError } = await supabase
       .from('email_campaigns')
       .select('*')
       .eq('id', originalCampaignId)
+      .eq('tenant_id', tenantId)
       .single();
 
     if (campaignError || !originalCampaign) {

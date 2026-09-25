@@ -1,6 +1,22 @@
+// DEPRECATED — de app gebruikt `process-refund`; deze functie wordt nergens in
+// `src` aangeroepen. Niet verwijderen zonder ook de gedeployde functie in
+// Supabase te verwijderen: de map weghalen laat de live functie gewoon draaien.
+// Zie DEPRECATE-REFUND-1 in docs/role-audit.md.
+//
+// HOTFIX-AUTH-1 (25 sep 2026): hier gebeurde een echte Stripe-refund op het
+// connected account van de winkel zónder rolcheck. Lezen van een order mag elke
+// rol (RLS), schrijven niet — dus een `viewer` kon geld terugstorten, waarna de
+// order-update onder RLS 0 rijen raakte en die fout niet werd gelezen: geld weg,
+// status ongewijzigd. Nu: rol eerst, dan pas geld.
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import {
+  AuthError,
+  authenticateRequest,
+  authErrorResponse,
+  requireRole,
+} from "../_shared/auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -38,6 +54,14 @@ serve(async (req) => {
       .single();
 
     if (orderError || !order) throw new Error("Bestelling niet gevonden");
+
+    // HOTFIX-AUTH-1: rolcheck vóór élke schrijfactie en vóór de Stripe-refund.
+    // De order hierboven is al RLS-gebonden (alleen eigen winkels), maar lezen
+    // mag elke rol; terugbetalen hoort bij tenant_admin en staff — dezelfde
+    // rollen die `orders` mogen bijwerken. service_role en platform_admin
+    // houden hun bypass uit _shared/auth.ts.
+    const auth = await authenticateRequest(req, order.tenant_id);
+    requireRole(auth, order.tenant_id, ["tenant_admin", "staff"]);
 
     if (order.payment_status === "refunded") {
       throw new Error("Bestelling is al volledig terugbetaald");
@@ -133,11 +157,28 @@ serve(async (req) => {
       throw new Error("Kon retour niet opslaan: " + returnError.message);
     }
 
-    // Update order payment status
-    await supabaseClient
+    // Update order payment status.
+    // HOTFIX-AUTH-1: fout én aantal rijen lezen. Onder RLS levert een update
+    // zonder schrijfrecht geen error op maar 0 rijen — en dan zou het geld
+    // vertrokken zijn terwijl de order op 'paid' bleef staan.
+    const { data: updatedOrders, error: orderUpdateError } = await supabaseClient
       .from("orders")
       .update({ payment_status: newPaymentStatus })
-      .eq("id", orderId);
+      .eq("id", orderId)
+      .select("id");
+    if (orderUpdateError || !updatedOrders || updatedOrders.length === 0) {
+      console.error("Order status update failed after refund", {
+        orderId,
+        orderNumber: order.order_number,
+        stripeRefundId,
+        refundMethod,
+        error: orderUpdateError?.message ?? "0 rijen bijgewerkt (RLS?)",
+      });
+      throw new Error(
+        "Terugbetaling is verwerkt, maar de bestelstatus kon niet worden bijgewerkt. " +
+          "Noteer refund " + (stripeRefundId ?? "(handmatig)") + " en neem contact op met support.",
+      );
+    }
 
     // Restock items if requested
     if (restockItems && items?.length > 0) {
@@ -177,6 +218,8 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     );
   } catch (error) {
+    // AuthError eerst: anders wordt een 401/403 een 400.
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
     console.error("Process order refund error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Onbekende fout" }),

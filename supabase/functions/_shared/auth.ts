@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { hasRequiredRole } from "./authRoles.ts";
 
 export class AuthError extends Error {
   status: number;
@@ -133,10 +134,9 @@ export function requireRole(
   tenantId: string,
   allowed: AppRole[]
 ): void {
-  if (auth.user_id === "service_role") return;
-  if (auth.is_platform_admin) return;
-  const roles = auth.roles_by_tenant?.[tenantId] ?? [];
-  if (!roles.some((r) => allowed.includes(r))) {
+  // HOTFIX-AUTH-1: de beslissing zelf staat in _shared/authRoles.ts, puur en
+  // zonder Deno-afhankelijkheden, zodat vitest hem kan toetsen.
+  if (!hasRequiredRole(auth, tenantId, allowed)) {
     throw new AuthError("Insufficient role for this action", 403);
   }
 }

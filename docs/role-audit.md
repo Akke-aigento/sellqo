@@ -1,3 +1,98 @@
+## HOTFIX-AUTH-1 — rolcheck op refunds, token verplicht bij AI-endpoints — 25 september 2026
+
+2026-09-24 HOTFIX-AUTH-1: process-order-refund deed een echte Stripe-refund zonder rolcheck en
+negeerde de RLS-fout op de order-update (geld weg, status ongewijzigd); ai-generate-storefront-copy was
+zonder token aanroepbaar en verbruikte platform-AI-budget; ai-generate-ab-variant vertrouwde tenantId
+uit de body (cross-tenant lezen + credits). Gevonden tijdens de recon van BILLING-ENFORCE-1.
+
+### Root cause
+
+- **process-order-refund**: staat niet in `config.toml` (dus platformdefault `verify_jwt = true`) en
+  controleert zelf het token (`:16-17`, `:25-26`), maar deed géén rolcheck. De Stripe-refund op het
+  connected account (`:71-83`) gebeurde vóór elke schrijfactie, terwijl `orders` UPDATE
+  `tenant_admin`/`staff` vereist en `returns` INSERT ook `warehouse`. Lezen mag élke rol, dus een
+  `viewer` kon geld terugstorten; de update daarna raakte onder RLS 0 rijen zonder error, en die
+  uitkomst werd niet gelezen (`:137-140`).
+- **ai-generate-storefront-copy**: `verify_jwt = false` én het token was optioneel
+  (`:336 if (authHeader)`). Zonder token draaide de functie door en riep de AI-API met de
+  platformsleutel aan (`:443`) — een open, betalend eindpunt. Anonieme aanroepen werden niet gelogd:
+  de `ai_usage_log`-insert staat ín `if (tenantId)`.
+- **ai-generate-ab-variant**: draait op de service-role, las de campagne op id zonder tenantfilter en
+  verbruikte credits van de `tenantId` uit de body. Elke ingelogde gebruiker kon zo de campagne van een
+  andere winkel lezen en diens credits opmaken.
+
+### Uitgevoerd
+
+- `process-order-refund`: `authenticateRequest(req, order.tenant_id)` + `requireRole(tenant_admin,
+  staff)` ná het laden van de order (RLS-gebonden) en vóór de Stripe-aanroep; `AuthError` geeft nu 401/403
+  in plaats van 400. De order-update leest fout én aantal rijen: 0 rijen of een fout → foutmelding met het
+  refund-id in de log, nooit stil door. Bovenaan een **Deprecated**-comment: de app gebruikt
+  `process-refund`; niet verwijderen zonder ook de gedeployde functie in Supabase te verwijderen, want
+  de map weghalen laat de live functie draaien.
+- `ai-generate-storefront-copy`: token verplicht (401 zonder of bij ongeldig), zelfde vorm als
+  ai-generate-ab-variant. De tenant blijft uit `user_roles` komen, niet uit de body.
+- `ai-generate-ab-variant`: `tenantId` alleen als de aanroeper lid is van die winkel of platform-admin
+  is (403 zonder), en de campagne wordt op `tenant_id` gefilterd.
+- `_shared/authRoles.ts` (nieuw, puur): `hasRequiredRole` — de beslissing die `requireRole` gebruikt,
+  los van Deno en de supabase-client, zodat vitest de échte regel toetst in plaats van een kopie.
+
+### Security-keuzes
+
+Bypasses ongewijzigd: `service_role` (cron, interne aanroepen) en `platform_admin` gaan door beide
+guards heen. Refund-rollen gelijkgetrokken met wie de order mag bijwerken (`tenant_admin`, `staff`) —
+`warehouse` mag wel een retour registreren maar geen geld terugstorten. Geen RLS of policies gewijzigd.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt. `ai-generate-storefront-copy` wordt in de core alleen aangeroepen door
+`AICopyButton.tsx:72` (admin visual editor, via `functions.invoke`, dus mét sessietoken); de custom
+frontends praten alleen met `storefront-api`/`storefront-customer-api`. Geen legitieme anonieme
+aanroeper gevonden.
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| vitest `refundGuard` | 10 tests op `hasRequiredRole`: viewer/marketing/accountant/warehouse geweigerd, tenant_admin/staff door, platform-admin en service_role door, rol in een andere winkel telt niet |
+| vitest (hele suite) | 489/489 |
+| `deno check` de drie functies + `_shared/auth.ts`, HEAD vs nieuw | 0 en 0 |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 |
+| Lint | 1506, gelijk aan de baseline |
+| `npm run build` | exit 0 |
+| i18n-parity, check:mail, check:messages, check:notifications | groen |
+
+Geen live-writes vanuit de tests.
+
+### Is het al gebeurd?
+
+Nee, voor zover de data het toont: **0 van de 10 `returns` heeft een `stripe_refund_id`**, dus deze
+functie heeft nooit een Stripe-refund geproduceerd. De drie orders met `payment_status = 'refunded'`
+horen bij retouren uit het handmatige pad (`source = 'manual'`, methode bolcom/shopify). Wat de data
+niet kan uitsluiten: een Stripe-refund die nooit een `returns`-rij kreeg — daarvoor is het
+Stripe-dashboard de bron. Voor `ai-generate-storefront-copy` is misbruik niet vast te stellen:
+`storefront_copy` heeft 0 rijen in `ai_usage_log` en anonieme aanroepen werden per definitie niet
+gelogd; alleen het verbruik bij de AI-provider zou het laten zien.
+
+### Zelfde patroon elders (alleen gerapporteerd)
+
+Service-role + tenant uit de body zonder lidmaatschapscheck, ruwe scan:
+`create-checkout-session`, `create-bank-transfer-order`, `generate-sitemap` (storefront-paden waar de
+tenant uit de body hoort), `nano-studio` (eist `service_role` in het token), `platform-gift-month`
+(checkt `is_platform_admin`), `generate-storefront-api-key` (doet `getUser`; lidmaatschapscheck niet
+nagetrokken). Niets gewijzigd.
+
+### Openstaand — DEPRECATE-REFUND-1
+
+`process-order-refund` wordt nergens in `src` aangeroepen; de app gebruikt `process-refund`. Bij de
+deploy aan de Lovable-agent vragen om de invocatie-aantallen over de laatste 90 dagen (alleen
+aantallen, geen payloads). Nul aanroepen → later verwijderen, **inclusief** de gedeployde functie in
+Supabase; wel aanroepen → eerst uitzoeken wie.
+
+Redeploy: `process-order-refund`, `ai-generate-storefront-copy`, `ai-generate-ab-variant` (plus alles
+wat `_shared/auth.ts` importeert, want `requireRole` leunt nu op `_shared/authRoles.ts` — bij Supabase
+worden gedeelde bestanden per functie meegebundeld, dus de eerstvolgende deploy van een functie neemt
+de nieuwe versie mee; gedrag is ongewijzigd). Geen native build nodig.
+
 ## BILLING-ENFORCE-1 — abonnementsstatus dwingt toegang af — 24 september 2026
 
 2026-09-24 BILLING-ENFORCE-1: niets dwong betaling af. `process-cycle-reminders` zette een cyclus op
