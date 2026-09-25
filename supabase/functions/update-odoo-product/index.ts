@@ -126,8 +126,8 @@ Deno.serve(async (req) => {
     const odooProductId = parseInt(product.odoo_product_id)
 
     // Authenticate with Odoo
-    const auth = await odooAuthenticate(credentials)
-    if (!auth) throw new Error('Odoo authentication failed')
+    const odooAuth = await odooAuthenticate(credentials)
+    if (!odooAuth) throw new Error('Odoo authentication failed')
 
     // Update product in Odoo
     const productData = {
@@ -141,7 +141,7 @@ Deno.serve(async (req) => {
 
     await odooCallMethod(
       credentials,
-      auth.sessionId,
+      odooAuth.sessionId,
       'product.product',
       'write',
       [[odooProductId], productData]

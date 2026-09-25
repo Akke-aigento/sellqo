@@ -37,9 +37,11 @@ function constantTimeEquals(a: string, b: string): boolean {
 }
 
 async function hmacSha256(key: Uint8Array, message: string): Promise<Uint8Array> {
+  // Cast nodig: TS 5.7+ typt Uint8Array als Uint8Array<ArrayBufferLike>, maar
+  // Web Crypto's importKey vereist BufferSource (ArrayBufferView<ArrayBuffer>).
   const cryptoKey = await crypto.subtle.importKey(
     "raw",
-    key,
+    key as unknown as BufferSource,
     { name: "HMAC", hash: "SHA-256" },
     false,
     ["sign"],
