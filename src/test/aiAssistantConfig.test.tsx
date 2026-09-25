@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { renderHook } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { resolveAIConfig, DEFAULT_AI_ASSISTANT_CONFIG, isPersistedConfig } from '@/lib/aiAssistantConfig';
@@ -73,7 +73,12 @@ describe('useAIAssistant — geen write in het leespad', () => {
     selectResult = result;
     let renders = 0;
     const { result: hook } = renderHook(() => { renders++; return useAIAssistant(); }, { wrapper });
-    await waitFor(() => expect(hook.current.isLoading).toBe(false));
+    // Poll until loading completes (inline replacement for waitFor)
+    for (let i = 0; i < 50; i++) {
+      if (!hook.current.isLoading) break;
+      await new Promise(r => setTimeout(r, 10));
+    }
+    expect(hook.current.isLoading).toBe(false);
     const rendersAfterLoad = renders;
     await new Promise(r => setTimeout(r, 50));
 
