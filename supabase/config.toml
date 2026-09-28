@@ -462,3 +462,6 @@ verify_jwt = false
 
 [functions.resolve-tenant-action]
 verify_jwt = false
+
+[functions.mail-billing-api]
+verify_jwt = false

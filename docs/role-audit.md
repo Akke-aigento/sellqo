@@ -50,6 +50,110 @@ n.v.t. — geen edge function, geen migratie, geen gedeelde tabel gewijzigd. De 
   SQL-bestand met een expliciete go.
 - Geen changelog-entry: het scherm is platform-admin-only en voor tenants onzichtbaar.
 
+## MAIL-BILLING-1 — facturatie-API voor Studio Akke Mail — 28 september 2026
+
+2026-09-28 MAIL-BILLING-1: nieuwe edge function `mail-billing-api` waarmee de aparte app Studio Akke
+Mail (repo nomadix-mail-app) zijn klanten via SellQo factureert, in één eigen tenant "Studio Akke".
+Plan en go: `nomadix-mail/docs/tickets/SELLQO-KOPPELING.md` (beslissingen Akke 28-09). Strikt additief:
+geen bestaande functie, tabel, policy of gedeeld pad gewijzigd.
+
+### Root cause
+
+Geen bug maar een ontbrekende ingang. SellQo had de volledige pay-first-motor
+(`subscriptions` + `subscription_lines`, `billing_cycles`, `customer_payment_mandates`, de runner
+`generate-subscription-invoices`, herinneringen, facturen), maar geen API voor een andere app: elke
+bestaande ingang (`create-mandate-setup`, `create-manual-invoice`, de admin-UI) veronderstelt een
+ingelogde tenantgebruiker.
+
+### Uitgevoerd
+
+- `supabase/functions/mail-billing-api/index.ts` (nieuw, Deno). Eén POST-eindpunt, `action` in de body,
+  antwoord altijd `{ ok: true, ... }` of `{ ok: false, code, error }` met een passende HTTP-status
+  (400 `ongeldige_invoer`, 401 `niet_geautoriseerd`, 404 `niet_gevonden`, 405, 409, 502
+  `mandaat_mislukt`/`opstartfactuur_mislukt`, 503 `niet_ingesteld`, 500 `interne_fout`).
+  - `upsert_customer` — klant in de facturatietenant, `external_id = 'mail:<org>'`, `customer_type b2b`,
+    `company_name`, `email`, `billing_street/postal_code/city/country`, `vat_number`,
+    `preferred_language`. Match op `external_id`, anders op e-mail (uniek per tenant) zolang die klant
+    geen ander `external_id` heeft (anders 409 `email_in_gebruik`). VIES via `_shared/vies.ts`, best
+    effort: alleen een definitieve uitkomst zet `vat_verified`.
+  - `create_subscription` — `subscriptions` in dezelfde vorm als `sync-tenant-plan` (pay_first,
+    mandate, `interval_count 1`, `billing_anchor_day` = startdag, `payment_term_days 7`,
+    `generate_days_before 5`, `auto_send`) + één `subscription_lines` (Start €10/€100, Zaak €20/€200
+    excl. btw, 21 %). Naam `Studio Akke Mail — Start|Zaak` is de markering. Idempotent: een lopend
+    (`active`/`paused`) abonnement met die markering wordt teruggegeven. Opstart `aanrekenen` roept de
+    bestaande `create-manual-invoice` aan (service role; €150 excl. btw) en markeert de factuur met
+    `metadata.mail_billing_setup_for = <subscription_id>` zodat een herhaling hem terugvindt.
+    Mandaatlink via `_shared/mandateToken.ts` (dezelfde helper als `create-mandate-setup`), alleen als
+    er nog geen actief mandaat is.
+  - `change_plan` — herschrijft de ene lijn en het interval; de runner leest die pas bij de volgende
+    cyclus, dus de lopende periode blijft ongemoeid (geen proratie).
+  - `cancel` — `end_date` = dag vóór `next_invoice_date` (de runner slaat over zodra
+    `end_date < next_invoice_date`, `generate-subscription-invoices:430`); status blijft `active`.
+    Nog nooit een cyclus → meteen `cancelled`, `end_date` = vandaag.
+  - `status` — `resolveBillingState` (`_shared/billingState.ts`) over de cycli van dit abonnement,
+    plus `pending` (nog nooit betaald, niets achterstallig) en `cancelled`; oudste open vervaldag,
+    dagen achterstallig, laatst betaald (`invoices.paid_at` van de jongste settled cyclus), mandaat
+    actief.
+  - `mandate_link` — nieuwe link via dezelfde helper.
+- `supabase/config.toml`: blok `[functions.mail-billing-api] verify_jwt = false`.
+- `supabase/migrations/20260928120000_mail_billing_config.sql` (nieuw, **niet gedraaid**): twee
+  `internal_config`-sleutels met lege plaatshouder (`value` is NOT NULL; leeg = functie dicht, 503),
+  `ON CONFLICT DO NOTHING`; gedeeltelijke unieke index `customers (tenant_id, external_id) WHERE
+  external_id LIKE 'mail:%'`. Terugdraaien staat in de kop van de migratie.
+
+### Security-keuzes
+
+- Nieuwe publieke functie (`verify_jwt = false`) met een eigen geheim: kop `x-mail-billing-secret`,
+  tijdsconstant vergeleken met `internal_config.mail_billing_secret` (zelfde bron en vergelijking als
+  `_shared/cronAuth.ts`; die helper is niet aangepast, de vergelijking is lokaal gekopieerd omdat hij
+  daar niet geëxporteerd wordt). `internal_config` heeft RLS aan zonder policies: alleen de service
+  role leest het.
+- De tenant komt uitsluitend uit `internal_config.mail_billing_tenant_id`, nooit uit het verzoek. Elke
+  klant/abonnement-id wordt tegen die tenant gecontroleerd, en alleen klanten met `external_id 'mail:%'`
+  en abonnementen met de naammarkering zijn bereikbaar — de functie kan niets anders in die tenant
+  lezen of wijzigen, en niets in een andere tenant.
+- Zonder geheim: 503 `niet_ingesteld` (vóór auth, er valt dan niets te autoriseren). Tenantconfig
+  wordt pas ná geldige auth gemeld. Geen geheimen in code, migratie of logs.
+- Geen RLS, policies of grants gewijzigd.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad gewijzigd. `storefront-api`, `storefront-customer-api`, `storefront-resolve` en de
+gedeelde storefront-tabellen zijn niet aangeraakt. Hergebruikt, ongewijzigd: `_shared/mandateToken.ts`,
+`_shared/stripe.ts`, `_shared/billingState.ts`, `_shared/billingMoney.ts`, `_shared/vies.ts` en de
+functie `create-manual-invoice`. Er is geen `_shared`-bestand gewijzigd, dus de redeploy-lijst is
+alleen `mail-billing-api`. De rijen die de functie schrijft hebben exact de vorm van bestaande
+schrijvers, zodat runner, webhook en herinneringen ze behandelen als elk ander pay-first-abonnement.
+De nieuwe index op `customers` is partieel en raakt alleen `mail:`-rijen (op 28-09: geen).
+
+### Verificatie
+
+| Onderdeel | Uitkomst |
+|---|---|
+| `deno check supabase/functions/mail-billing-api/index.ts` (deno 2.9.6) | exit 0 |
+| `npx eslint supabase/functions/mail-billing-api/index.ts` | exit 0, 0 meldingen (nieuw bestand, geen baseline nodig) |
+| vitest `billingState`, `billingMoney`, `billingDates` | 44/44 |
+| `npx tsc --noEmit -p tsconfig.app.json` | exit 0 (geen `src/`-wijziging; tsc dekt Deno niet, zie R7/R8) |
+| R8 — tabel- en kolomnamen | alle `.from()`/`.select()`/updates nagelopen tegen `types.ts`: `customers`, `subscriptions`, `subscription_lines`, `billing_cycles`, `invoices` (`metadata`, `paid_at`), `customer_payment_mandates`, `tenants`, `internal_config` (`key`, `value` NOT NULL) |
+| Runner-gedrag `end_date` | `generate-subscription-invoices:419-431`: overslaan bij `end_date < next_invoice_date` |
+| Migratie | niet gedraaid; geen DB-schrijfactie gedaan |
+| Live test | niet gedaan (tenant Studio Akke bestaat nog niet) |
+
+### Bewust ongemoeid / Vervolg
+
+- **Geen publieke changelog, geen `doc_articles`, geen nieuwsbriefitem**: niet tenant-zichtbaar — een
+  interne API voor één eigen tenant (§4.2-4.4 niet van toepassing).
+- Niet gecommit, niet gepusht, migratie niet gedraaid, functie niet gedeployd (R6: deploy via
+  Lovable-prompt, migratie vóór deploy, met bestandscontrole vooraf).
+- Door Akke in te stellen: tenant "Studio Akke" + Stripe Connect; daarna `mail_billing_tenant_id` en
+  `mail_billing_secret` (SQL in de migratiekop, geheim in de database gegenereerd).
+- Open keuzes: de opstartfactuur landt als **concept** (`create-manual-invoice` standaard
+  `send_email=false`) en moet nog verstuurd worden; btw staat vast op 21 % (geen verlegging voor
+  EU-klanten buiten BE op de abonnementslijnen); `status` kijkt alleen naar de cycli, niet naar de
+  opstartfactuur; de idempotentie van `create_subscription` heeft geen unieke index (gelijktijdige
+  dubbele aanroep kan twee abonnementen maken).
+- Niet getest tegen een echte database of Stripe: dat vraagt de Studio Akke-tenant in testmodus.
+
 ## HOTFIX-AUTH-1 — rolcheck op refunds, token verplicht bij AI-endpoints — 25 september 2026
 
 2026-09-24 HOTFIX-AUTH-1: process-order-refund deed een echte Stripe-refund zonder rolcheck en
