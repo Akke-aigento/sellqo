@@ -52,6 +52,7 @@ export interface TenantFormData {
   auto_generate_invoice?: boolean;
   auto_send_invoice_email?: boolean;
   is_demo?: boolean;
+  is_internal_tenant?: boolean;
 }
 
 export function useTenants() {
@@ -91,6 +92,10 @@ export function useTenants() {
           subscription_status: data.subscription_status || 'trial',
           currency: data.currency || 'EUR',
           tax_percentage: data.tax_percentage ?? 21,
+          // TENANT-INTERNAL-1: beide vlaggen stonden alleen in het updatepad, dus
+          // bij het aanmaken deed de schakelaar niets.
+          is_demo: data.is_demo ?? false,
+          is_internal_tenant: data.is_internal_tenant ?? false,
         })
         .select()
         .single();
@@ -135,6 +140,9 @@ export function useTenants() {
           currency: data.currency,
           tax_percentage: data.tax_percentage,
           is_demo: data.is_demo,
+          // TENANT-INTERNAL-1: eigen winkels (SellQo, VanXcel, Loveke, …) staan
+          // buiten facturatie, limieten en de platformstatistieken.
+          is_internal_tenant: data.is_internal_tenant,
         })
         .eq('id', id)
         .select()

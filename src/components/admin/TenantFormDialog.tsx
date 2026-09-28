@@ -48,6 +48,7 @@ const tenantSchema = z.object({
   currency: z.string().optional(),
   tax_percentage: z.coerce.number().min(0).max(100).optional(),
   is_demo: z.boolean().optional(),
+  is_internal_tenant: z.boolean().optional(),
 });
 
 interface TenantFormDialogProps {
@@ -84,6 +85,7 @@ export function TenantFormDialog({
       currency: 'EUR',
       tax_percentage: 21,
       is_demo: false,
+      is_internal_tenant: false,
     },
   });
 
@@ -106,6 +108,7 @@ export function TenantFormDialog({
         currency: tenant.currency || 'EUR',
         tax_percentage: tenant.tax_percentage ?? 21,
         is_demo: tenant.is_demo ?? false,
+        is_internal_tenant: tenant.is_internal_tenant ?? false,
       });
     } else {
       form.reset({
@@ -125,6 +128,7 @@ export function TenantFormDialog({
         currency: 'EUR',
         tax_percentage: 21,
         is_demo: false,
+        is_internal_tenant: false,
       });
     }
   }, [tenant, form]);
@@ -447,6 +451,32 @@ export function TenantFormDialog({
                         <Switch
                           checked={field.value}
                           onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* TENANT-INTERNAL-1: eigen winkels stonden alleen in de database
+                    aan of uit; hier was er geen schakelaar voor. */}
+                <FormField
+                  control={form.control}
+                  name="is_internal_tenant"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-sky-200 bg-sky-50/50 p-4">
+                      <div className="min-w-0">
+                        <FormLabel className="text-sky-900">Interne winkel</FormLabel>
+                        <p className="text-sm text-sky-700">
+                          Een eigen winkel (VanXcel, Loveke, …). Geen facturatie of leesmodus bij een
+                          openstaande betaling, geen plan- en AI-limieten, en telt niet mee in de
+                          platformstatistieken.
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="shrink-0"
                         />
                       </FormControl>
                     </FormItem>

@@ -1,3 +1,55 @@
+## TENANT-INTERNAL-1 — schakelaar "interne winkel" in het tenantformulier — 28 september 2026
+
+Kleine fix op verzoek: bij een winkel kon je wel "demo" aanzetten, maar niet "intern" (zoals VanXcel
+of Loveke). Die vlag bestond alleen in de database en was dus onbereikbaar vanuit de UI.
+
+### Root cause
+
+`tenants.is_internal_tenant` stuurt vier plekken aan — facturatie-afdwinging
+(`src/hooks/useBillingState.ts:29`), de proefperiode (`src/hooks/useTrialStatus.ts:42`), de plan- en
+AI-limieten (`src/hooks/useUsageLimits.ts:32`, `src/hooks/useAICredits.ts:21`) en de
+platformstatistieken (`src/hooks/usePlatformAdmin.ts:95-106`) — maar kwam in
+`src/components/admin/TenantFormDialog.tsx` nergens voor. Live stond alleen SellQo op `true`; VanXcel,
+Loveke en The Fonske Crawl op `false`, terwijl het eigen winkels zijn.
+
+Daarnaast bleek `is_demo` in `src/hooks/useTenants.ts` alléén in het updatepad te staan, niet in de
+insert. De demoschakelaar deed bij het *aanmaken* van een winkel dus niets; pas een tweede keer
+opslaan zette de vlag. Dezelfde fout zou `is_internal_tenant` hebben getroffen.
+
+### Uitgevoerd
+
+- `src/hooks/useTenants.ts` — `is_internal_tenant` toegevoegd aan de interface en aan de
+  veldenwitte lijst van zowel insert als update; `is_demo` aangevuld in de insert (`?? false`).
+- `src/components/admin/TenantFormDialog.tsx` — veld in het zod-schema, in de defaults, in het laden
+  van een bestaande winkel en in de reset; `Switch` in het tabblad naast "Demo winkel", met een
+  omschrijving die de gevolgen benoemt (geen facturatie of leesmodus, geen plan- en AI-limieten, niet
+  in de platformstatistieken) in plaats van alleen de naam.
+
+### Security-keuzes
+
+Geen nieuwe rechten. Het formulier zit achter `ProtectedRoute requirePlatformAdmin` (`/admin/platform`)
+en schrijft via dezelfde `tenants`-update als de bestaande demoschakelaar; RLS en policies ongewijzigd.
+De vlag is bewust alleen voor platform-admins bereikbaar: hij zet facturatie en limieten uit.
+
+### Gedeelde-paden-waarschuwing
+
+n.v.t. — geen edge function, geen migratie, geen gedeelde tabel gewijzigd. De custom frontends lezen
+`tenants` niet via `storefront-api`.
+
+### Verificatie
+
+`npx tsc --noEmit -p tsconfig.app.json` exit 0; `npx vitest run` 27 bestanden / 489 tests groen;
+`npm run build` groen (bestaande chunk-waarschuwing); eslint op de twee bestanden: 2 bestaande
+`no-explicit-any` in `useTenants.ts` (identiek aan HEAD, alleen verschoven regelnummers), 0 in
+`TenantFormDialog.tsx` — geen regressie op de baseline van 1506.
+
+### Bewust ongemoeid / Vervolg
+
+- De bestaande winkels zijn **niet** omgezet: VanXcel, Loveke en The Fonske Crawl staan nog op
+  `false`. Dat is nu met de schakelaar te doen; wil je het in bulk, dan hoort dat in een los
+  SQL-bestand met een expliciete go.
+- Geen changelog-entry: het scherm is platform-admin-only en voor tenants onzichtbaar.
+
 ## HOTFIX-AUTH-1 — rolcheck op refunds, token verplicht bij AI-endpoints — 25 september 2026
 
 2026-09-24 HOTFIX-AUTH-1: process-order-refund deed een echte Stripe-refund zonder rolcheck en
