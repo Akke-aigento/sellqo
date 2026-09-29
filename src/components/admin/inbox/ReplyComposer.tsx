@@ -237,6 +237,9 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
             body_text: message.trim(),
             context_type: 'general',
             customer_id: realCustomerId(conversation.customer?.id),
+            // MAIL-REPLY-FORMAT-1: de tekst van de gebruiker is de mail — geen kop,
+            // geen "Beste …," en geen tweede groet.
+            layout: 'inbox',
             in_reply_to: inReplyTo,
             references: references,
           },

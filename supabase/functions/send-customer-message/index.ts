@@ -4,8 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { ownedCustomerIdOrNull } from "../_shared/customerGuard.ts";
 import { tenantSender } from "../_shared/emailSenders.ts";
-import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
-import { t } from "../_shared/tenantEmailI18n.ts";
+import { getTenantBrand } from "../_shared/tenantEmail.ts";
+import { buildCustomerMessageEmail, customerMessageLayout } from "../_shared/customerMessageEmail.ts";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -34,6 +34,8 @@ interface SendMessageRequest {
   bcc?: string[];
   // Attachments
   attachments?: { filename: string; path: string }[];
+  // MAIL-REPLY-FORMAT-1: 'inbox' = geen kop, aanhef of groet; weg = de huidige vorm.
+  layout?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -64,6 +66,7 @@ const handler = async (req: Request): Promise<Response> => {
       cc,
       bcc,
       attachments,
+      layout,
     }: SendMessageRequest = await req.json();
 
     const auth = await authenticateRequest(req, tenant_id);
@@ -86,26 +89,20 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const brand = await getTenantBrand(supabaseClient, tenant_id);
-    const locale = brand.defaultLocale;
-    const fromName = brand.tenantName;
     const replyToEmail = brand.supportEmail;
     const csSender = tenantSender(brand.senderSource);
 
-    const contextBlock = context_type === 'order' && context_data?.order_number
-      ? `<div style="margin-top:24px;padding:16px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;font-size:14px;color:#6b7280;">📦 Betreft bestelling: <strong style="color:#111827;">${String(context_data.order_number)}</strong></div>`
-      : context_type === 'quote' && context_data?.quote_number
-      ? `<div style="margin-top:24px;padding:16px;background:#f9fafb;border-radius:6px;border:1px solid #e5e7eb;font-size:14px;color:#6b7280;">📄 Betreft offerte: <strong style="color:#111827;">${String(context_data.quote_number)}</strong></div>`
-      : "";
-
-    const { html: emailHtml, text: emailText } = renderTenantEmail({
-      tenantBrand: brand,
-      locale,
-      preheader: subject,
-      heading: subject,
-      intro: `<p style="margin:0 0 16px;">${t(locale, 'message.greeting', { customerName: customer_name || 'klant' })}</p><div style="font-size:15px;line-height:1.65;">${body_html}</div>`,
-      content: `${contextBlock}<p style="margin:32px 0 0;font-size:15px;">${t(locale, 'message.regards')},<br/><strong>${fromName}</strong></p>`,
-      footerNote: `Je kunt direct antwoorden op deze email. Je antwoord gaat naar ${replyToEmail}.`,
-      poweredByLabel: t(locale, 'message.poweredBy'),
+    // MAIL-REPLY-FORMAT-1: opbouw verhuisd naar _shared/customerMessageEmail.ts;
+    // zonder `layout` exact de vorige mail.
+    const { html: emailHtml, text: emailText } = buildCustomerMessageEmail({
+      brand,
+      subject,
+      bodyHtml: body_html,
+      customerName: customer_name,
+      contextType: context_type,
+      contextData: context_data,
+      replyToEmail,
+      layout: customerMessageLayout(layout),
     });
 
     // Create message record first

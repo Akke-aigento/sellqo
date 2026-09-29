@@ -57,3 +57,22 @@ describe('groupConversations', () => {
     expect(realCustomerId(convo.customer?.id)).toBe(UUID);
   });
 });
+
+describe('groupConversations — naam van de afzender (MAIL-REPLY-FORMAT-1)', () => {
+  it('contactformulier zonder klant → naam uit context_data, e-mail kaal adres', () => {
+    const [convo] = groupConversations([msg({ context_data: { source: 'contact_form', name: 'Cissy' } })]);
+    expect(convo.customer?.name).toBe('Cissy');
+    expect(convo.customer?.email).toBe('administratie@vanempel.nl');
+  });
+
+  it('inkomende mail met From-header → weergavenaam, e-mail zonder <>', () => {
+    const [convo] = groupConversations([msg({ from_email: 'Cissy Janssen <cissy@x.nl>', channel: 'email' as InboxMessage['channel'] })]);
+    expect(convo.customer?.name).toBe('Cissy Janssen');
+    expect(convo.customer?.email).toBe('cissy@x.nl');
+  });
+
+  it('alleen een uitgaand bericht → de ontvanger, niet ons eigen adres', () => {
+    const [convo] = groupConversations([msg({ direction: 'outbound', from_email: 'info@vanxcel.com', to_email: 'klant@x.nl' })]);
+    expect(convo.customer?.email).toBe('klant@x.nl');
+  });
+});

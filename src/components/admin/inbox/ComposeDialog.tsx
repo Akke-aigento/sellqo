@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { realCustomerId } from '../../../../supabase/functions/_shared/customerId';
+import { resolveSenderName } from '@/lib/senderName';
 import { Mail, MessageSquare, Send, Search, Facebook, Instagram, ChevronDown, ChevronUp, Paperclip, X, FileIcon, User } from 'lucide-react';
 import {
   Dialog,
@@ -224,7 +225,8 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
     try {
       if (channel === 'email') {
         const toEmail = selectedCustomer?.email || manualRecipient;
-        const toName = selectedCustomer?.name || manualRecipient;
+        // MAIL-REPLY-FORMAT-1: bij een getypt adres de weergavenaam als die er is ("Naam <a@b>").
+        const toName = selectedCustomer?.name || resolveSenderName({ from: manualRecipient });
 
         const ccList = parseCcBcc(cc);
         const bccList = parseCcBcc(bcc);
@@ -242,6 +244,8 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
             body_text: messageHtml.replace(/<[^>]*>/g, ''),
             context_type: 'general',
             customer_id: realCustomerId(selectedCustomer?.id),
+            // MAIL-REPLY-FORMAT-1: geen automatische kop, aanhef of groet.
+            layout: 'inbox',
             ...(ccList.length > 0 && { cc: ccList }),
             ...(bccList.length > 0 && { bcc: bccList }),
             ...(attachmentsList.length > 0 && { attachments: attachmentsList }),

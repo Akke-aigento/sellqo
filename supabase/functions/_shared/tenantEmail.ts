@@ -401,7 +401,12 @@ export interface RenderTenantEmailOptions {
   tenantBrand: TenantBrand;
   locale: TenantLocale;
   preheader?: string;
-  heading: string;
+  /**
+   * MAIL-REPLY-FORMAT-1: optioneel. Ontbreekt hij (undefined), dan geen <h1> —
+   * voor een 1-op-1-bericht uit de inbox. Een lege string rendert nog steeds een
+   * (lege) <h1>, zoals vroeger: zo blijft elke bestaande mail byte-gelijk.
+   */
+  heading?: string;
   intro?: string;          // raw HTML allowed
   content?: string;        // template-specific HTML body
   primaryCta?: { label: string; url: string };
@@ -442,7 +447,7 @@ export function renderTenantEmail(opts: RenderTenantEmailOptions): { html: strin
     : "";
 
   const content = `<tr><td class="sq-card" style="background-color:${b.cardColor};border:1px solid ${b.borderColor};border-radius:12px;padding:40px;font-family:${bodyFont};color:${b.textColor};">
-    <h1 style="margin:0 0 16px;font-family:${headingFont};font-size:22px;line-height:1.3;font-weight:700;color:${b.textColor};">${esc(opts.heading)}</h1>
+    ${opts.heading !== undefined ? `<h1 style="margin:0 0 16px;font-family:${headingFont};font-size:22px;line-height:1.3;font-weight:700;color:${b.textColor};">${esc(opts.heading)}</h1>` : ""}
     ${opts.intro ? `<div style="font-size:15px;line-height:1.65;color:${b.textColor};">${opts.intro}</div>` : ""}
     ${opts.content || ""}
     ${primaryBtn}

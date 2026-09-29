@@ -6,6 +6,7 @@ import { useToast } from './use-toast';
 import { useAuth } from './useAuth';
 import { useNotificationSound } from './useNotificationSound';
 import { useInboxFolders } from './useInboxFolders';
+import { parseFromHeader, resolveSenderName } from '@/lib/senderName';
 
 export type MessageChannel = 'email' | 'whatsapp' | 'sms' | 'facebook' | 'instagram';
 export type ConversationChannel = MessageChannel | 'mixed' | 'social';
@@ -42,6 +43,8 @@ export interface InboxMessage {
   meta_sender_id?: string | null;
   meta_page_id?: string | null;
   meta_message_id?: string | null;
+  /** Vrije contextvelden; een contactformulier zet hier o.a. `name` (MAIL-REPLY-FORMAT-1). */
+  context_data?: Record<string, unknown> | null;
   customers?: {
     id: string;
     first_name: string | null;
@@ -165,6 +168,13 @@ export function groupConversations(messages: InboxMessage[]): Conversation[] {
     const lastInboundMessage = sortedMsgs.find(m => m.direction === 'inbound');
     const replyToEmail = lastInboundMessage?.reply_to_email || customer?.email;
 
+    // MAIL-REPLY-FORMAT-1: de afzender is de klant — bij alleen uitgaande
+    // berichten de ontvanger, niet ons eigen afzenderadres.
+    const senderFrom = lastInboundMessage
+      ? lastInboundMessage.from_email
+      : lastMessage.direction === 'outbound' ? lastMessage.to_email : lastMessage.from_email;
+    const contextName = (lastInboundMessage ?? lastMessage).context_data?.name;
+
     // Determine conversation status from last message
     const messageStatus = (lastMessage.message_status as MessageStatus) || 'active';
     const folderId = lastMessage.folder_id || null;
@@ -174,7 +184,12 @@ export function groupConversations(messages: InboxMessage[]): Conversation[] {
       customer: customer
         ? {
             id: customer.id,
-            name: [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email,
+            name: resolveSenderName({
+              customerName: [customer.first_name, customer.last_name].filter(Boolean).join(' '),
+              contextName,
+              from: lastInboundMessage?.from_email,
+              fallback: customer.email,
+            }),
             email: customer.email,
             phone: customer.whatsapp_number || customer.phone || undefined,
             facebook_psid: customer.facebook_psid || undefined,
@@ -182,8 +197,9 @@ export function groupConversations(messages: InboxMessage[]): Conversation[] {
           }
         : {
             id: null,
-            name: lastMessage.from_email || lastMessage.to_email,
-            email: lastMessage.from_email || lastMessage.to_email,
+            name: resolveSenderName({ contextName, from: senderFrom }),
+            // Kaal adres: from_email kan de volledige From-header zijn ("Naam <a@b>").
+            email: parseFromHeader(senderFrom).address,
           },
       lastMessage,
       unreadCount,

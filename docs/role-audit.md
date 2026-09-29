@@ -1,3 +1,88 @@
+## MAIL-REPLY-FORMAT-1 — antwoord uit de inbox leest als een gewone e-mail — 29 september 2026
+
+2026-09-29 MAIL-REPLY-FORMAT-1: antwoorden uit de inbox kregen een automatische aanhef met e-mailadres, een
+dubbele afsluiting en het onderwerp als kop.
+
+Aanleiding: het antwoord van VanXcel aan administratie@vanempel.nl (via `send-customer-message`) begon met
+"Beste administratie@vanempel.nl,", had onder de eigen afsluiting nog "Met vriendelijke groet, VanXcel", en
+toonde "Re: …" als h1-kop.
+
+### Root cause
+
+- `send-customer-message` bouwde **elke** mail met `heading: subject`, een aanhef
+  `t('message.greeting', { customerName: customer_name || 'klant' })` en een afsluiting
+  `t('message.regards') + winkelnaam`. Voor een antwoord dat de gebruiker zelf schrijft en afsluit, is dat
+  dubbel.
+- `_shared/tenantEmail.ts` rendert de `<h1>` altijd: `heading` was verplicht.
+- De naam: `useInbox` gaf een afzender zonder klant `name = from_email`, terwijl het contactformulier de
+  naam in `context_data.name` zet ("Cissy") en inkomende mail de volledige From-header in `from_email`
+  opslaat (`handle-inbound-email`, bv. `Cissy <c@x.nl>`).
+- **`send-customer-message` is niet alleen de inbox.** Ook de verzendmeldingen (`useOrderShipping`,
+  `fulfillment-api`, `tracking-webhook`, `printful-webhook`) en `CustomerMessageDialog` (bestelling/offerte)
+  gebruiken hem, met teksten zónder eigen aanhef of groet. Die leunen op de template; de nieuwe vorm is dus
+  opt-in.
+
+### Uitgevoerd
+
+- `supabase/functions/_shared/tenantEmail.ts` — `heading?: string`; de `<h1>` alleen als `heading !==
+  undefined`. Een lege string (kan bij `send-campaign-batch`) rendert nog steeds een lege `<h1>`, zoals
+  vroeger.
+- `supabase/functions/_shared/customerMessageEmail.ts` (nieuw, puur) — `buildCustomerMessageEmail` met twee
+  vormen: `standard` (de vorige opbouw, letterlijk verplaatst) en `inbox` (geen kop, aanhef of groet; de
+  tekst van de gebruiker is de mail; preheader = onderwerp; logo-chip, kaart, footer en "Je kunt direct
+  antwoorden…" blijven). `customerMessageLayout()`: alleen exact `"inbox"` kiest de nieuwe vorm.
+- `supabase/functions/send-customer-message/index.ts` — nieuw optioneel body-veld `layout`; gebruikt de
+  helper. Zonder het veld: exact de vorige mail.
+- `ReplyComposer.tsx` (e-mailantwoord) en `ComposeDialog.tsx` (nieuw e-mailbericht) sturen `layout:
+  'inbox'`. `CustomerMessageDialog` en de verzendmeldingen niet.
+- `src/lib/senderName.ts` (nieuw, puur) — `parseFromHeader` en `resolveSenderName`: klantnaam →
+  `context_data.name` → From-weergavenaam → e-mailadres; een "naam" die gewoon het adres is, telt niet.
+  - `useInbox.groupConversations`: naam via `resolveSenderName` (echte klant: terugval blijft het
+    klantadres); de afgeleide klant krijgt een **kaal** adres (was de ruwe From-header — "Maak klant aan"
+    zou `Cissy <c@x.nl>` als e-mail hebben opgeslagen); bij alleen uitgaande berichten de ontvanger i.p.v.
+    ons eigen afzenderadres. `InboxMessage.context_data` getypeerd.
+  - `ComposeDialog`: handmatige ontvanger → weergavenaam als die er is.
+- Android `versionCode 12`; `npx cap sync`.
+
+### Security-keuzes
+
+n.v.t. — geen rechten, RLS of policies geraakt. `layout` is een weergavekeuze; een onbekende waarde valt
+terug op de huidige vorm.
+
+### Gedeelde-paden-waarschuwing
+
+`_shared/tenantEmail.ts` bedient alle tien de klantmails; `send-customer-message` bedient inbox,
+verzendmeldingen en bestelling/offerte. Veilig aangetoond met een **render-diff**: HEAD- en nieuwe
+renderer apart gebundeld (esbuild) en met dezelfde opties gerenderd — per aanroeper een optieset zoals die
+hem werkelijk aanroept (plus lege campagnekop en een set met alle opties), twee merken (licht/donker, nl/en),
+plus de standaardvorm van `send-customer-message` (HEAD-inline vs de helper; algemeen/bestelling/offerte;
+met, lege en ontbrekende naam): **40 renders, 0 verschillen** in HTML en tekst. Controle dat de vergelijking
+scherp is: zonder kop verschilt de uitvoer en bevat hij geen `<h1`.
+
+### Verificatie
+
+vitest 530 groen (nieuw: `customerMessageEmail.test.ts` 6, `senderName.test.ts` 6, 3 extra in
+`inboxCustomerId.test.ts`); `deno check` alle functies 0 fouten; `tsc` exit 0; lint 1506 (= baseline);
+check:mail/messages/notifications en i18n-parity exit 0; `npm run build` groen; `npx cap sync` uitgevoerd.
+
+### Redeploy (transitieve import-grep)
+
+`send-customer-message`, `send-campaign-batch`, `send-credit-note-email`, `send-gift-card-email`,
+`send-invoice-email`, `send-order-confirmation`, `send-payment-request-email`, `send-quote-email`,
+`send-return-email`, `send-ticket-confirmation`. Alleen `send-customer-message` verandert van uitvoer (en
+alleen met `layout: 'inbox'`); de andere negen zijn byte-gelijk volgens de render-diff. Daarna publish,
+iOS via Xcode Cloud (TestFlight-nummer hier noteren), Android `versionCode 12` (samen met INBOX-REPLY-1).
+
+### Bewust ongemoeid / Vervolg
+
+- `CustomerMessageDialog` (bestelling/offerte) en de verzendmeldingen houden kop, aanhef en groet: hun
+  sjablonen hebben die nodig.
+- **Handtekening — rapport, niet gebouwd:** er bestaat al een tabel `email_signatures` (migratie
+  20260608204159: `tenant_id`, `user_id` (null = winkelbreed), `name`, `body_html`, `is_default`; RLS: lezen
+  voor winkelgebruikers, schrijven voor marketingrollen). **0 rijen, geen UI, geen functie gebruikt hem.**
+  Voorstel: een handtekening per gebruiker met winkelbrede terugval, ingevoegd onder de tekst in de
+  `inbox`-vorm. Wacht op go.
+
 ## BUILD-GREEN-1 — deno check groen over alle edge functions — 29 september 2026
 
 Aanleiding: de Lovable-agent zette tijdens een deploy-only-opdracht ongevraagd `f8071849` + merge
@@ -109,6 +194,14 @@ Verplicht (runtime-fix): `check-amazon-listing-status`, `lookup-bol-offer-id`, `
 Aanbevolen (equivalente wijziging, repo = productie): `create-platform-mandate-setup`, `sync-tenant-plan`,
 `process-gift-card-order`, `vat-report-engine`.
 Niet nodig: de overige 60 functies uit de transitieve import-grep — hun gegenereerde JavaScript is gelijk.
+
+### Uitrol
+
+Uitrol 29-09: 10 functies gedeployed via de Lovable-agent (check-amazon-listing-status, lookup-bol-offer-id,
+import-bol-csv, create-odoo-product, sync-odoo-customers, trigger-manual-sync, create-platform-mandate-setup,
+sync-tenant-plan, process-gift-card-order, vat-report-engine). main bleef op d759cde4: geen agent-commit.
+Eerste deploy na groene build zonder ontsporing, bevestigt de oorzaak (agent repareert alleen bij rode
+build). Open verificatie: eerste echte gebruik van de Bol-, Amazon- en Odoo-functies in de UI.
 
 ### Bewust ongemoeid / Vervolg
 
