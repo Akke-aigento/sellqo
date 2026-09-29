@@ -45,7 +45,6 @@ Deno.serve(async (req) => {
 
   try {
     const { connectionId, dataType, direction, sampleSize = 10 } = await req.json() as TestSyncRequest
-    await authenticateRequest(req, tenantId);
 
     if (!connectionId || !dataType) {
       return new Response(
@@ -65,8 +64,11 @@ Deno.serve(async (req) => {
       throw new Error('Connection not found')
     }
 
-    const platformType = connection.marketplace_type as string
+    // Resolve-then-authorize: de tenant komt uit de verbinding, niet uit de body.
     const tenantId = connection.tenant_id as string
+    await authenticateRequest(req, tenantId);
+
+    const platformType = connection.marketplace_type as string
 
     // Initialize test result
     const result: TestResult = {

@@ -24,7 +24,6 @@ Deno.serve(async (req) => {
 
   try {
     const { connectionId, dataType, direction = 'import' } = await req.json() as ManualSyncRequest
-    await authenticateRequest(req, tenant_id);
 
     if (!connectionId || !dataType) {
       return new Response(
@@ -43,6 +42,9 @@ Deno.serve(async (req) => {
     if (connectionError || !connection) {
       throw new Error('Connection not found')
     }
+
+    // Resolve-then-authorize: de tenant komt uit de verbinding, niet uit de body.
+    await authenticateRequest(req, connection.tenant_id as string);
 
     const startedAt = new Date().toISOString()
     let recordsProcessed = 0
@@ -184,6 +186,9 @@ Deno.serve(async (req) => {
     }
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     console.error('Manual sync error:', errorMessage)
 

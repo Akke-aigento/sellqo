@@ -1,7 +1,7 @@
 // Shared helper: log a stock movement to the stock_movements ledger from an
 // edge function. Uses a service-role Supabase client (RLS-bypassing insert is
 // intentional — clients cannot insert directly).
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export type StockLedgerReason =
   | 'sale' | 'return' | 'purchase' | 'sync' | 'manual' | 'opening' | 'adjustment';
