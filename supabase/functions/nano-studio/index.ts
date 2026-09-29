@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+// BUILD-GREEN-1: `ReturnType<typeof createClient>` werd met de nieuwere supabase-js een
+// client met schema `never` (elke rij `never`). Het type uit dezelfde module heeft
+// een ongetypeerd schema en past altijd op wat createClient hier teruggeeft.
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,7 +119,7 @@ serve(async (req) => {
 });
 
 async function handleGenerate(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   apiKey: string,
   body: GenerateBody,
 ): Promise<Response> {
@@ -243,7 +247,7 @@ async function handleGenerate(
 }
 
 async function handleStatus(
-  admin: ReturnType<typeof createClient>,
+  admin: SupabaseClient,
   apiKey: string,
   body: StatusBody,
 ): Promise<Response> {

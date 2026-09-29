@@ -2,6 +2,10 @@
 // Actions: save | test | status | journals
 // Auth: tenant_admin of own tenant, or platform_admin (bypass in requireRole).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+// BUILD-GREEN-1: `ReturnType<typeof createClient>` werd met de nieuwere supabase-js een
+// client met schema `never` (elke rij `never`). Het type uit dezelfde module heeft
+// een ongetypeerd schema en past altijd op wat createClient hier teruggeeft.
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from '../_shared/auth.ts';
 import { assertValidOdooUrl, odooAuthenticate, odooVersion, odooExecKw, type OdooEnv } from '../_shared/odooRpc.ts';
 import { encryptOdooKey, decryptOdooKey } from '../_shared/odooCrypto.ts';
@@ -20,7 +24,7 @@ function jsonResponse(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 }
 
-async function loadStoredEnv(supabase: ReturnType<typeof createClient>, tenantId: string): Promise<OdooEnv | null> {
+async function loadStoredEnv(supabase: SupabaseClient, tenantId: string): Promise<OdooEnv | null> {
   const { data, error } = await supabase
     .from('tenant_odoo_credentials')
     .select('odoo_url, odoo_db, odoo_login, api_key_ciphertext')

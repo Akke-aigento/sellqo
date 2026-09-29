@@ -225,7 +225,7 @@ Deno.serve(async (req) => {
           email: billingEmail,
           company_name: companyName,
           customer_type: "b2b",
-          external_id: `tenant:${tenant.id}`,
+          external_id: `tenant:${tenantId}`, // BUILD-GREEN-1: = tenant.id (opgehaald op tenantId)
         })
         .select("id")
         .single();
@@ -243,7 +243,7 @@ Deno.serve(async (req) => {
       startISO: string,
     ): Promise<{ id: string }> {
       const unit = priceForPlan(plan, iv);
-      const subName = `${(tenant as any).billing_company_name || tenant.name} — ${plan.name} (${iv})`;
+      const subName = `${(tenant as any).billing_company_name || tenant?.name} — ${plan.name} (${iv})`; // BUILD-GREEN-1: guard op r. 171, closure verliest hem
       const { data: sub, error: subErr } = await supabase
         .from("subscriptions")
         .insert({

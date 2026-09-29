@@ -66,7 +66,7 @@ async function getFcmAccessToken(sa: ServiceAccount): Promise<string> {
   const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claims))}`;
   const key = await crypto.subtle.importKey(
     "pkcs8",
-    pemToPkcs8(sa.private_key.replace(/\\n/g, "\n")),
+    pemToPkcs8(sa.private_key.replace(/\\n/g, "\n")) as unknown as BufferSource, // BUILD-GREEN-1: TS 5.7-lib
     { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
     false,
     ["sign"],

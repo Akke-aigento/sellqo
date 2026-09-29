@@ -223,7 +223,9 @@ export function createBolAdvertisingClient(
   };
 
   return {
-    async post(base, path, body) {
+    // BUILD-GREEN-1: <T> expliciet, zoals in BolAdvertisingClient hierboven — alleen
+    // typing; de gegenereerde JavaScript en de Bol-aanroep zijn byte-gelijk.
+    async post<T = BolJson>(base: string, path: string, body: unknown): Promise<T | null> {
       const url = `${base}${path}`;
       console.log(`POST ${url}`);
       return await withFreshToken((t) =>
@@ -239,7 +241,7 @@ export function createBolAdvertisingClient(
       ) as T | null;
     },
 
-    async get(base, path, params) {
+    async get<T = BolJson>(base: string, path: string, params: URLSearchParams): Promise<T | null> {
       const url = `${base}${path}?${params.toString()}`;
       console.log(`GET ${url}`);
       // Bewust géén Content-Type: een GET heeft geen body, en een Content-Type

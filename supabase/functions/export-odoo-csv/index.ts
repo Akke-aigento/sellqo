@@ -4,6 +4,11 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+// BUILD-GREEN-1: `ReturnType<typeof createClient>` werd met de nieuwere supabase-js een
+// client met schema `never` (elke rij `never`). Het type uit dezelfde module heeft
+// een ongetypeerd schema en past altijd op wat createClient hier teruggeeft.
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+// @ts-expect-error BUILD-GREEN-1: de esm.sh-typing van jszip mist de default-export; runtime levert hem wel (deze import werkt in productie)
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
@@ -73,7 +78,7 @@ function badRequest(msg: string, cors: Record<string, string>) {
   });
 }
 
-async function loadTenantSlug(sb: ReturnType<typeof createClient>, id: string): Promise<{ slug: string; name: string }> {
+async function loadTenantSlug(sb: SupabaseClient, id: string): Promise<{ slug: string; name: string }> {
   const { data, error } = await sb.from("tenants").select("name,slug").eq("id", id).maybeSingle();
   if (error || !data) throw new Error(`tenant ${id} not found`);
   return { slug: slugify((data as any).slug || (data as any).name), name: (data as any).name ?? "" };
@@ -257,7 +262,7 @@ serve(async (req) => {
     const auth = await authenticateRequest(req, body.tenant_id);
     requireRole(auth, body.tenant_id, ['tenant_admin', 'accountant']);
     const { buffer, filename } = await buildOdooZip(body.tenant_id, body.period_start, body.period_end);
-    return new Response(buffer, {
+    return new Response(buffer as unknown as BodyInit, { // BUILD-GREEN-1: TS 5.7-lib, runtime gelijk
       status: 200,
       headers: {
         ...cors,

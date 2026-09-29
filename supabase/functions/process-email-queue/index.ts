@@ -1,5 +1,9 @@
 import { sendLovableEmail } from 'npm:@lovable.dev/email-js'
 import { createClient } from 'npm:@supabase/supabase-js@2'
+// BUILD-GREEN-1: `ReturnType<typeof createClient>` werd met de nieuwere supabase-js een
+// client met schema `never` (elke rij `never`). Het type uit dezelfde module heeft
+// een ongetypeerd schema en past altijd op wat createClient hier teruggeeft.
+import type { SupabaseClient } from 'npm:@supabase/supabase-js@2'
 
 const MAX_RETRIES = 5
 const DEFAULT_BATCH_SIZE = 10
@@ -54,7 +58,7 @@ function parseJwtClaims(token: string): Record<string, unknown> | null {
 
 // Move a message to the dead letter queue and log the reason.
 async function moveToDlq(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   queue: string,
   msg: { msg_id: number; message: Record<string, unknown> },
   reason: string
@@ -156,12 +160,13 @@ Deno.serve(async (req) => {
     const messageIds = Array.from(
       new Set(
         messages
-          .map((msg) =>
+          // BUILD-GREEN-1: rpc() geeft `any`; de callback-parameters expliciet typen.
+          .map((msg: { message?: { message_id?: unknown } } | null) =>
             msg?.message?.message_id && typeof msg.message.message_id === 'string'
               ? msg.message.message_id
               : null
           )
-          .filter((id): id is string => Boolean(id))
+          .filter((id: string | null): id is string => Boolean(id))
       )
     )
     const failedAttemptsByMessageId = new Map<string, number>()

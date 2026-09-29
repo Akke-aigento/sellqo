@@ -20,7 +20,8 @@ const errMsg = (e: unknown) => (e instanceof Error ? e.message : (typeof e === '
 // NOT expose a `.catch()` method — calling `.catch()` on them throws
 // synchronously and aborts the surrounding block. Always wrap Supabase
 // mutations here instead of using `.catch()`.
-async function safe<T>(label: string, op: () => Promise<T>): Promise<T | null> {
+// BUILD-GREEN-1: PromiseLike — een Postgrest-builder is een thenable, geen Promise; `await` werkt op beide.
+async function safe<T>(label: string, op: () => PromiseLike<T>): Promise<T | null> {
   try {
     return await op();
   } catch (e) {

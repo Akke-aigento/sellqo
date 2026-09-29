@@ -4,6 +4,10 @@
 // - Per-tenant try/catch: one tenant's failure never breaks the whole run.
 // - Pushes issued invoices + credit notes; account.move.name = Sellqo number.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+// BUILD-GREEN-1: `ReturnType<typeof createClient>` werd met de nieuwere supabase-js een
+// client met schema `never` (elke rij `never`). Het type uit dezelfde module heeft
+// een ongetypeerd schema en past altijd op wat createClient hier teruggeeft.
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { denyUnlessCron } from '../_shared/marketplaceSyncAuth.ts'
 import { decryptOdooKey } from '../_shared/odooCrypto.ts'
 import { odooRpc as sharedOdooRpc, odooAuthenticate as sharedAuth, odooVersion as sharedVersion, assertValidOdooUrl, type OdooEnv } from '../_shared/odooRpc.ts'
@@ -39,7 +43,7 @@ interface SyncCtx {
   aggregateB2C: boolean
   dummyPartnerName: string
   tenantId: string
-  supabase: ReturnType<typeof createClient>
+  supabase: SupabaseClient
   peppolSendEnabled: boolean
   tenantName: string
   channelAliases: Record<string, string>
@@ -73,7 +77,7 @@ function resolveChannelDisplayName(ctx: SyncCtx, channel: string): string | null
 //   2. invoice.subscription_id set -> 'subscription'
 //   3. neither -> 'manual'
 async function resolveChannelsForInvoices(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   tenantId: string,
   invoiceIds: string[],
 ): Promise<Map<string, string>> {
@@ -114,7 +118,7 @@ async function resolveChannelsForInvoices(
 }
 
 async function resolveChannelsForCreditNotes(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   tenantId: string,
   cnIds: string[],
 ): Promise<Map<string, string>> {
@@ -501,7 +505,7 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
   return { moveId, peppol }
 }
 
-async function syncTenant(supabase: ReturnType<typeof createClient>, env: OdooEnv, uid: number, versionMajor: number, tenantId: string, opts: { invoiceIds?: string[]; creditNoteIds?: string[] } = {}) {
+async function syncTenant(supabase: SupabaseClient, env: OdooEnv, uid: number, versionMajor: number, tenantId: string, opts: { invoiceIds?: string[]; creditNoteIds?: string[] } = {}) {
   // Load per-tenant settings
   const { data: settings, error: sErr } = await supabase
     .from('tenant_odoo_settings')

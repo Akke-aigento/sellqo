@@ -416,7 +416,8 @@ export interface RenderTenantEmailOptions {
 export function renderTenantEmail(opts: RenderTenantEmailOptions): { html: string; text: string } {
   const b = opts.tenantBrand;
   const sellqoFooter = opts.showSellqoFooter !== false;
-  const headingFont = `${b.headingFont}, ${BRAND.primary === "" ? "" : ""}-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
+  // BUILD-GREEN-1: hier stond `${BRAND.primary === "" ? "" : ""}` — altijd "", dus weggelaten; uitvoer gelijk.
+  const headingFont = `${b.headingFont}, -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
   const bodyFont = `${b.bodyFont}, -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
 
   // Header with tenant logo. MAIL-SENDER-1: het logo staat op een eigen wit vlak.

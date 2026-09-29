@@ -439,7 +439,7 @@ serve(async (req) => {
     const path = `${cn.tenant_id}/${safeNumber}.pdf`;
     const { error: upErr } = await admin.storage
       .from("credit-notes")
-      .upload(path, new Blob([pdfBytes], { type: "application/pdf" }), {
+      .upload(path, new Blob([pdfBytes as unknown as BlobPart], { type: "application/pdf" }), { // BUILD-GREEN-1: TS 5.7-lib
         contentType: "application/pdf",
         upsert: true,
       });

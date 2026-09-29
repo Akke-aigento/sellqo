@@ -1,13 +1,13 @@
 {
-  "total": 1507,
-  "errors": 1414,
+  "total": 1506,
+  "errors": 1413,
   "warnings": 93,
   "byRule": {
     "react-refresh/only-export-components": 40,
     "react-hooks/exhaustive-deps": 51,
     "no-useless-escape": 5,
     "@typescript-eslint/no-explicit-any": 1327,
-    "no-empty": 22,
+    "no-empty": 21,
     "no-case-declarations": 29,
     "@typescript-eslint/no-empty-object-type": 4,
     "@typescript-eslint/no-unused-expressions": 3,

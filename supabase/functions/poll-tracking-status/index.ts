@@ -1,4 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2?bundle";
+// BUILD-GREEN-1: `ReturnType<typeof createClient>` werd met de nieuwere supabase-js een
+// client met schema `never` (elke rij `never`). Het type uit dezelfde module heeft
+// een ongetypeerd schema en past altijd op wat createClient hier teruggeeft.
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2?bundle";
 import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 
 const corsHeaders = {
@@ -270,7 +274,7 @@ async function fetchTrackingStatus(
 
 // ── Process a single order ──
 async function processOrder(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient,
   order: Record<string, unknown>,
   setting: Record<string, unknown>,
 ): Promise<boolean> {

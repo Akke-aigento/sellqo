@@ -2,7 +2,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { tenantSender } from "../_shared/emailSenders.ts";
-import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
+import { getTenantBrand, renderTenantEmail, type TenantLocale } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
 import { extractEmailBody, buildVariableMap, applyVariables } from "../_shared/emailContent.ts";
 import { resolvePresetRules } from "../_shared/audiencePresets.ts";
@@ -207,14 +207,14 @@ Deno.serve(async (req) => {
     for (const recipient of validRecipients) {
       const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(recipient.email)}&tenant=${campaign.tenant_id}`;
       // Pick per-recipient language variant.
-      let recipientLocale: string = locale;
+      let recipientLocale: TenantLocale = locale as TenantLocale; // BUILD-GREEN-1: renderTenantEmail wil TenantLocale
       let variantSubject = campaign.subject || "";
       let variantPreview = campaign.preview_text || "";
       let variantBody = campaign.html_content || "";
       if (isMultiLang) {
         const pref = (recipient.preferred_language as string) || 'nl';
         const chosen = availableLanguages.includes(pref) ? pref : 'nl';
-        recipientLocale = chosen as any;
+        recipientLocale = chosen as TenantLocale;
         if (chosen !== 'nl' && translations[chosen]) {
           const v = translations[chosen];
           if (v.subject) variantSubject = v.subject;

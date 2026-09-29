@@ -42,7 +42,7 @@ const BUCKET = "peppol-archive";
 const SIGNED_URL_TTL_SECONDS = 7 * 24 * 60 * 60; // 7 days
 
 async function sha256Hex(bytes: Uint8Array): Promise<string> {
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const digest = await crypto.subtle.digest("SHA-256", bytes as unknown as BufferSource); // BUILD-GREEN-1: TS 5.7-lib
   return Array.from(new Uint8Array(digest))
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");

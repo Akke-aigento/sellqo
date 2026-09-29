@@ -5,6 +5,11 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+// BUILD-GREEN-1: `ReturnType<typeof createClient>` werd met de nieuwere supabase-js een
+// client met schema `never` (elke rij `never`). Het type uit dezelfde module heeft
+// een ongetypeerd schema en past altijd op wat createClient hier teruggeeft.
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+// @ts-expect-error BUILD-GREEN-1: de esm.sh-typing van jszip mist de default-export; runtime levert hem wel (deze import werkt in productie)
 import JSZip from "https://esm.sh/jszip@3.10.1";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
@@ -181,7 +186,7 @@ function buildAuditCsv(payload: Record<string, unknown>): Uint8Array {
 }
 
 async function fetchInvoicePdfs(
-  sb: ReturnType<typeof createClient>,
+  sb: SupabaseClient,
   tenantId: string,
   start: string,
   end: string,
@@ -239,7 +244,7 @@ async function fetchInvoicePdfs(
 }
 
 async function fetchCreditNotePdfs(
-  sb: ReturnType<typeof createClient>,
+  sb: SupabaseClient,
   tenantId: string,
   start: string,
   end: string,

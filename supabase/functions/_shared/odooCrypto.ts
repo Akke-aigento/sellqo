@@ -18,14 +18,16 @@ async function loadKey(): Promise<CryptoKey> {
   const raw = Deno.env.get('ODOO_CREDENTIALS_KEY');
   if (!raw) throw new Error('ODOO_CREDENTIALS_KEY is not configured');
   // Accept base64 (preferred) or raw text. Normalize to 32 bytes via SHA-256 if not 32 bytes decoded.
+  // BUILD-GREEN-1: casts zoals in _shared/printfulCrypto.ts — TS 5.7+ typt
+  // Uint8Array als Uint8Array<ArrayBufferLike>, Web Crypto wil BufferSource.
   let keyBytes: Uint8Array;
   try {
     const decoded = b64decode(raw);
-    keyBytes = decoded.length === 32 ? decoded : new Uint8Array(await crypto.subtle.digest('SHA-256', decoded));
+    keyBytes = decoded.length === 32 ? decoded : new Uint8Array(await crypto.subtle.digest('SHA-256', decoded as unknown as BufferSource));
   } catch {
     keyBytes = new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw)));
   }
-  return await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  return await crypto.subtle.importKey('raw', keyBytes as unknown as BufferSource, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
 }
 
 export async function encryptOdooKey(plaintext: string): Promise<string> {
@@ -41,6 +43,6 @@ export async function decryptOdooKey(ciphertext: string): Promise<string> {
   const iv = b64decode(parts[0]);
   const ct = b64decode(parts[1]);
   const key = await loadKey();
-  const pt = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ct));
+  const pt = new Uint8Array(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv as unknown as BufferSource }, key, ct as unknown as BufferSource));
   return new TextDecoder().decode(pt);
 }

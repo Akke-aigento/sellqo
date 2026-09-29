@@ -1,3 +1,126 @@
+## BUILD-GREEN-1 — deno check groen over alle edge functions — 29 september 2026
+
+Aanleiding: de Lovable-agent zette tijdens een deploy-only-opdracht ongevraagd `f8071849` + merge
+`567352d4` op main ("Sync-functies gefixt en gedeployed"), omdat de deploy op typefouten stuitte. Opdracht
+Akke: die commit reviewen, en daarna `deno check` groen maken over alle functies, met een CI-stap, zodat
+de agent bij een deploy niets meer te repareren vindt.
+
+### Review van 567352d4 (merge zonder eigen inhoud; alles uit f8071849)
+
+| Bestand | Oordeel | Runtime-effect |
+|---|---|---|
+| `test-sync-rules` | juist, behouden | `authenticateRequest(req, tenantId)` stond vóór `const tenantId` (0c5d3577, 7 mei) → ReferenceError bij elke aanroep. Werkt nu; schrijft niets. |
+| `trigger-manual-sync` | juist, behouden + rolcheck | `tenant_id` bestond niet in scope (0c5d3577) → ReferenceError. Werkt nu; live alleen de Bol-verbinding van VanXcel. |
+| `sync-amazon-orders/-inventory` | behouden | `@2.39.3` → `@2` (zwevend). Alleen `from/select/insert/update/single`: stabiel binnen 2.x. Geen Amazon-verbinding live. Risico = reproduceerbaarheid, niet gedrag. |
+| `_shared/cronAuth.ts` | behouden | Structureel type i.p.v. `SupabaseClient`; alleen typing. **Maar**: de `any` stond alleen achter `deno-lint-ignore`, dus eslint telde hem → CI-lint 1507 → 1508 (rood). Hier gerepareerd. |
+| `_shared/marketplaceSyncAuth.ts` | behouden, bijgewerkt | Type naar `@2`: runtime niets, maar gaf een nieuwe typefout in `sync-billing-state` en vier cron-functies (client uit `@2.57.2`). Nu hetzelfde structurele type als `cronAuth`. |
+| `printfulCrypto`, `sellqoEmail`, `stockLedger` | behouden | Casts, breder type, type-import: geen runtime-effect. |
+
+Nieuwe auth-volgorde (`test-sync-rules`, `trigger-manual-sync`: verbinding ophalen, dan
+`authenticateRequest(connection.tenant_id)`) is veilig: vóór de check alleen een service-role-SELECT op id,
+niets teruggegeven of geschreven; hoogstens een bestaan-orakel op een uuid. Wel ontbrak een rolcheck: zie
+hieronder.
+
+### Root cause
+
+Twee oorzaken, allebei onzichtbaar omdat de Supabase-deploy geen types checkt en er geen CI-stap voor was:
+
+1. **Mechanische auth-invoegingen die runtime braken.** `0c5d3577` (7 mei 2026, Lovable-bot, 37 functies)
+   plaatste `authenticateRequest(req, tenant_id)` op plekken waar `tenant_id` nog niet of nooit bestond;
+   `1b96b1c6`/`56af2ade` (8 juni) voegden een tweede `const auth` toe in een blok dat er al een had.
+2. **Typedrift door zwevende versies.** `ReturnType<typeof createClient>` wordt met de nieuwere supabase-js
+   (die `@2` nu oplevert) een client met schema `never`; TS 5.7 typt `Uint8Array` strenger.
+
+Stand 29-09 vóór de fix: **207 fouten in 32 bestanden** (`deno check` 2.9.6, alle 240 functies).
+
+### Uitgevoerd — commit 1: runtime (`fix(functions): vijf functies die sinds mei/juni altijd faalden`)
+
+| Functie | Sinds | Fout | Fix |
+|---|---|---|---|
+| `check-amazon-listing-status` | 0c5d3577, 7 mei | `tenant_id` vóór declaratie (r. 54) → ReferenceError | auth ná validatie; `.eq('tenant_id')` op verbinding en productupdate |
+| `lookup-bol-offer-id` | 0c5d3577, 7 mei | idem (r. 85) | auth ná validatie; `.eq('tenant_id')` op product-select en -update |
+| `import-bol-csv` | 0c5d3577, 7 mei | `tenant_id` bestond niet (r. 136) → ReferenceError | auth met de tenant uit de verbinding; AuthError in de outer catch |
+| `create-odoo-product` | 1b96b1c6, 8 juni | tweede `const auth` → SyntaxError, functie startte niet | Odoo-sessie → `odooAuth`; `.eq('tenant_id')` op de verbinding |
+| `sync-odoo-customers` | 56af2ade, 8 juni | idem | Odoo-sessie → `odooAuth` |
+| `trigger-manual-sync` | — | geen rolcheck; roept sync-functies aan met de service-key en slaat hun `SYNC_ROLES` over | `requireRole(SYNC_ROLES)`; `SYNC_ROLES` geëxporteerd |
+
+**Bol-voorwaarden (Akke 29-09):** in `lookup-bol-offer-id` en `import-bol-csv` alleen de oorzaak hersteld.
+Endpoints, headers, payloads, rate-limiting en foutafhandeling richting Bol zijn byte-gelijk: elke gewijzigde
+regel zit in auth, een databasefilter of de catch (diff in de post-flight). `import-bol-csv` roept de
+Bol-API niet eens aan (CSV-import). **Afwijking, gemeld:** de tenantfilters op de productqueries zijn meer
+dan "alleen de oorzaak", maar zonder die filters zou het terugzetten een cross-tenant-write openen
+(service-role, alleen op `product_id`).
+
+**Vergelijking met `sync-bol-orders`** (werkt): die gebruikt `authorizeMarketplaceSync` — service-role,
+verbinding op id, dan `authenticateRequest` + `requireRole(SYNC_ROLES)` op `connection.tenant_id`.
+`import-bol-csv` volgt nu hetzelfde resolve-then-authorize-patroon (wel met een user-token-client, dus RLS
+erbovenop). `lookup-bol-offer-id` autoriseert op de `tenant_id` uit de body en filtert de verbinding op
+diezelfde tenant — even veilig, maar **zonder rolcheck**: elke rol van de winkel kan een offer-id opzoeken
+en op een product zetten. Niet in deze batch veranderd (voorwaarde: alleen de oorzaak); zie Vervolg.
+
+### Uitgevoerd — commit 2: typing + CI
+
+- 9 functies: `ReturnType<typeof createClient>` → `SupabaseClient` als type uit **dezelfde** module als
+  `createClient` (ongetypeerd schema, geen versieconflict, geen `any`). 192 → 35 fouten.
+- `_shared/cronAuth.ts` `MinimalServiceClient` geëxporteerd + `eslint-disable-next-line`;
+  `_shared/marketplaceSyncAuth.ts` gebruikt dat type.
+- `Uint8Array` → `BufferSource`/`BodyInit`/`BlobPart`-casts (patroon van `printfulCrypto`): `odooCrypto`,
+  `export-odoo-csv`, `export-vat-pdf`, `generate-credit-note`, `generate-peppol-ubl`, `send-push-notification`.
+- jszip default-import: `@ts-expect-error` met reden (`export-odoo-csv`, `export-q-bundle`).
+- `process-invoice-dunning`: `safe()` neemt `PromiseLike` (Postgrest-builders zijn thenables).
+- `vat-report-engine`: eigen type-alias i.p.v. `as typeof cached` (dat werd `null` → `never`);
+  `Promise.resolve(...).catch`.
+- `create-platform-mandate-setup`, `sync-tenant-plan`: `tenantId` i.p.v. `tenant.id` in een closure
+  (zelfde waarde), `tenant?.name` achter de guard.
+- Losse types: `process-email-queue`, `refund-invoice`, `process-gift-card-order`, `send-campaign-batch`
+  (`TenantLocale`), `_shared/tenantEmail.ts` (dode ternary, uitvoer gelijk), `_shared/bolAdvertising.ts`
+  (`<T>` op `post`/`get`; gegenereerde JavaScript identiek aan HEAD).
+- `.github/workflows/ci.yml`: stap "Edge functions (deno check)" met `denoland/setup-deno@v2` (v2.9.6),
+  `deno check --no-lock --node-modules-dir=none supabase/functions/*/index.ts`.
+- `.eslint-baseline.json`: 1507 → 1506.
+
+### Security-keuzes
+
+- Rolcheck in `trigger-manual-sync` (`tenant_admin`, `viewer` — dezelfde als de sync-functies zelf).
+- Tenantfilters toegevoegd op service-role-queries die ze misten: verbinding in `check-amazon-listing-status`
+  en `create-odoo-product` (anders sleutels van een andere winkel bruikbaar), productupdates in
+  `check-amazon-listing-status` en `lookup-bol-offer-id`.
+- Geen policies, grants of kolommen gewijzigd.
+
+### Gedeelde-paden-waarschuwing
+
+`_shared/tenantEmail.ts` (alle klantmails), `_shared/cronAuth.ts` en `_shared/marketplaceSyncAuth.ts`
+(alle cron- en sync-functies) zijn geraakt. Veilig: per gewijzigd bestand de gegenereerde JavaScript
+(esbuild) vergeleken met de stand vóór deze batch — `cronAuth`, `odooCrypto`, `bolAdvertising` identiek;
+`marketplaceSyncAuth` alleen `export` van `SYNC_ROLES`; `tenantEmail` alleen de dode ternary, uitvoerstring
+gelijk. `storefront-api`, `storefront-resolve` en `storefront-customer-api` niet geraakt.
+
+### Verificatie
+
+`deno check` over alle 240 functies: **0 fouten, exit 0** (was 207). `tsc` exit 0; vitest 514 groen;
+check:mail/messages/notifications, i18n-parity, skills-sync, capacitor-sync exit 0; lint 1506 (baseline
+bijgesteld); `npm run build` groen; `ci.yml` geldige YAML. Gegenereerde JavaScript: 19 van 31 gewijzigde
+bestanden identiek; de 12 verschillen zijn precies de hierboven beschreven.
+
+### Redeploy
+
+Verplicht (runtime-fix): `check-amazon-listing-status`, `lookup-bol-offer-id`, `import-bol-csv`,
+`create-odoo-product`, `sync-odoo-customers`, `trigger-manual-sync`.
+Aanbevolen (equivalente wijziging, repo = productie): `create-platform-mandate-setup`, `sync-tenant-plan`,
+`process-gift-card-order`, `vat-report-engine`.
+Niet nodig: de overige 60 functies uit de transitieve import-grep — hun gegenereerde JavaScript is gelijk.
+
+### Bewust ongemoeid / Vervolg
+
+- **Open verificatie:** geen enkele van de vijf herstelde functies is live aangeroepen (voorwaarde Akke).
+  De eerste echte gebruiker in de UI is de bevestiging — per functie noteren wanneer dat gebeurt, te
+  beginnen met `lookup-bol-offer-id` en `import-bol-csv` (VanXcel, enige Bol-verbinding).
+- `lookup-bol-offer-id` heeft geen rolcheck (zie vergelijking); voorstel: bij HOTFIX-AUTH-2.
+- Voorstel SUPABASE-JS-1: één supabase-js-versie via een import map. Nu 8 versies over 240 functies
+  (120× `@2`, 82× `@2.57.2`, 14× `@2.39.3`, …). Verandert runtime in elke functie: eigen batch.
+- Voorstel voor `sellqo-connector-werkwijze` (wacht op go): een deploy-prompt zegt letterlijk "wijzig geen
+  bestanden; faalt de deploy, stop en rapporteer de fout".
+
 ## INBOX-REPLY-1 — antwoorden op berichten zonder gekoppelde klant — 29 september 2026
 
 2026-09-29 INBOX-REPLY-1: antwoorden op berichten zonder gekoppelde klant faalden (nep-klant-id =

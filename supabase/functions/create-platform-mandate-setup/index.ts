@@ -114,7 +114,7 @@ Deno.serve(async (req) => {
           email: billingEmail,
           company_name: companyName,
           customer_type: "b2b",
-          external_id: `tenant:${tenant.id}`,
+          external_id: `tenant:${tenantId}`, // BUILD-GREEN-1: = tenant.id (opgehaald op tenantId); de closure verloor de null-vernauwing
         })
         .select("id")
         .single();

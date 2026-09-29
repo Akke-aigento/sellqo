@@ -769,7 +769,7 @@ serve(async (req) => {
     const slug = slugify(String(tenantRow.slug ?? tenantName));
     const filename = `SellQo_BTW-aangifte_${slug}_${periodCode(body.period_start, body.period_end, body.period_type)}.pdf`;
 
-    return new Response(bytes, {
+    return new Response(bytes as unknown as BodyInit, { // BUILD-GREEN-1: TS 5.7-lib, runtime gelijk
       status: 200,
       headers: {
         ...cors,

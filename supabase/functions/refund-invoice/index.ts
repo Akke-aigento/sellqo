@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
         { query: `metadata['invoice_id']:'${invoiceId}'` },
         requestOptions,
       );
-      paymentIntentId = search.data.find((pi) => pi.status === "succeeded")?.id ?? null;
+      paymentIntentId = search.data.find((pi: { status: string; id: string }) => pi.status === "succeeded")?.id ?? null;
     } catch (e) {
       return json({ success: false, error: `Stripe-zoekopdracht mislukt: ${errMsg(e)}` }, 502);
     }

@@ -86,11 +86,14 @@ serve(async (req) => {
           .is('invalidated_at', null)
           .gt('computed_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
           .maybeSingle();
-    let cached: { payload: VatReportPayload; computed_at: string } | null = null;
+    // BUILD-GREEN-1: eigen alias — `as typeof cached` verwees naar het vernauwde
+    // type (null), waardoor cached.payload `never` werd.
+    type CachedReport = { payload: VatReportPayload; computed_at: string } | null;
+    let cached: CachedReport = null;
     try {
       const [auth, cacheRes] = await Promise.all([authPromise, cachePromise]);
       requireRole(auth, body.tenant_id, ['tenant_admin', 'accountant']);
-      cached = (cacheRes?.data ?? null) as typeof cached;
+      cached = (cacheRes?.data ?? null) as CachedReport;
     } catch (e) {
       if (e instanceof AuthError) return authErrorResponse(e, cors);
       throw e;
@@ -250,7 +253,7 @@ serve(async (req) => {
       // @ts-ignore
       EdgeRuntime.waitUntil(upsertPromise);
     } else {
-      upsertPromise.catch(() => {});
+      Promise.resolve(upsertPromise).catch(() => {}); // BUILD-GREEN-1: PromiseLike heeft geen .catch in de types
     }
 
     return new Response(JSON.stringify({ success: true, payload }), {

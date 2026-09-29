@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   checks:
-    name: typecheck, lint, i18n-pariteit, capacitor-sync, skills-sync en build
+    name: typecheck, lint, i18n-pariteit, capacitor-sync, skills-sync, deno check en build
     runs-on: ubuntu-latest
 
     steps:
@@ -94,7 +94,23 @@ jobs:
       - name: Skills-sync
         run: node scripts/verify-skills-sync.mjs
 
-      # 6. Productiebuild. Draait via npm omdat het prebuild-script daaraan
+      # 6. Edge functions typechecken. De Supabase-deploy checkt geen types,
+      #    dus niets hield ze tegen: op 29 sep 2026 gaf `deno check` 207 fouten
+      #    in 32 bestanden, waaronder vijf functies die al sinds mei/juni bij
+      #    élke aanroep faalden (tenant_id vóór de declaratie, een dubbele
+      #    `const auth`). De Lovable-agent repareerde er intussen op eigen
+      #    houtje een paar tijdens een deploy. `--node-modules-dir=none`: anders
+      #    zoekt deno `npm:`-imports in de node_modules van de webapp en breekt
+      #    hij af. `--no-lock`: de functies hebben geen gedeelde lockfile.
+      - name: Deno opzetten
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.9.6
+
+      - name: Edge functions (deno check)
+        run: deno check --no-lock --node-modules-dir=none supabase/functions/*/index.ts
+
+      # 7. Productiebuild. Draait via npm omdat het prebuild-script daaraan
       #    hangt; npm staat standaard op de runner naast de bun-installatie.
       - name: Build
         run: npm run build

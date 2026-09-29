@@ -16,8 +16,10 @@
 // Zonder connectionId is een sync "alle connecties van alle winkels"; dat is
 // alleen voor de cron.
 
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { isAuthorizedCronRequest } from "./cronAuth.ts";
+// BUILD-GREEN-1: structureel type i.p.v. SupabaseClient uit één vaste versie. De
+// aanroepers maken hun client met @2, @2.57.2 of @2.39.3; met een versiegebonden
+// type paste de client van sync-billing-state (en vier cron-functies) niet meer.
+import { isAuthorizedCronRequest, type MinimalServiceClient } from "./cronAuth.ts";
 import { AuthError, authenticateRequest, requireRole } from "./auth.ts";
 
 /** read-rollen van `integrations` in PERMISSION_MATRIX (src/hooks/useCan.ts). */
@@ -36,7 +38,7 @@ function deny(status: number, message: string, corsHeaders: Record<string, strin
  */
 export async function authorizeMarketplaceSync(
   req: Request,
-  admin: SupabaseClient,
+  admin: MinimalServiceClient,
   connectionId: string | null | undefined,
   corsHeaders: Record<string, string>,
 ): Promise<Response | null> {
@@ -73,7 +75,7 @@ export async function authorizeMarketplaceSync(
 /** Voor functies die alleen door de cron of een andere functie aangeroepen worden. */
 export async function denyUnlessCron(
   req: Request,
-  admin: SupabaseClient,
+  admin: MinimalServiceClient,
   corsHeaders: Record<string, string>,
 ): Promise<Response | null> {
   if (await isAuthorizedCronRequest(req, admin)) return null;

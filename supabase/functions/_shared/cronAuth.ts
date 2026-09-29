@@ -26,8 +26,12 @@
 // Losse structuur i.p.v. SupabaseClient: dit bestand krijgt clients uit
 // verschillende supabase-js-versies (de sync-functies importeren `@2`, de
 // cron-functies een gepinde versie). Structureel typen laat beide toe.
+// BUILD-GREEN-1: geëxporteerd, zodat marketplaceSyncAuth hetzelfde type gebruikt.
+// Het eslint-commentaar hoort erbij: alleen `deno-lint-ignore` telde eslint gewoon
+// mee, en sinds 567352d4 stond de CI-lintbaseline daardoor op +1.
 // deno-lint-ignore no-explicit-any
-type MinimalServiceClient = { from: (table: string) => any };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type MinimalServiceClient = { from: (table: string) => any };
 
 const CRON_SECRET_HEADER = "x-cron-secret";
 const CONFIG_KEY = "internal_webhook_secret";
