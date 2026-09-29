@@ -516,10 +516,10 @@
       "contactInvalid": "Geben Sie eine gültige E-Mail-Adresse ein.",
       "contactReadOnly": "Nur ein Administrator des Shops kann diese Adresse ändern.",
       "contactNoRights": "Sie haben keine Berechtigung, diese Adresse zu ändern.",
-      "contactModeInbox": "Mein SellQo-Posteingang",
-      "contactModeInboxHint": "Antworten von Kunden landen in Ihrem SellQo-Posteingang, neben Ihren anderen Nachrichten.",
+      "contactModeInbox": "Mein SellQo-Posteingang (empfohlen)",
+      "contactModeInboxHint": "Standard. Antworten von Kunden landen in Ihrem SellQo-Posteingang, neben Ihren anderen Nachrichten.",
       "contactModeOwn": "Eigene Adresse",
-      "contactModeOwnHint": "Antworten von Kunden gehen an diese Adresse, außerhalb von SellQo."
+      "contactModeOwnHint": "Antworten von Kunden gehen an diese Adresse und landen nicht in Ihrem SellQo-Posteingang. Für Nachrichten, die doch in SellQo eingehen, etwa Kontaktformulare, erhalten Sie weiterhin eine Benachrichtigung per E-Mail."
     },
     "communication": {
       "subtitle": "Legen Sie fest, welche automatischen Nachrichten Ihre Kunden erhalten",

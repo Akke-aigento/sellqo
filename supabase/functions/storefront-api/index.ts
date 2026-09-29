@@ -4,6 +4,8 @@ import { calculateStripeFee, getAvailablePaymentMethods } from "../_shared/strip
 import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross, netFromGross } from "../_shared/vat.ts";
 import { decideVatRegime, isZeroRatedRegime, rateForRegime, type VatRegimeCode } from "../_shared/regimeResolver.ts";
 import { callVies, cleanVatNumber, isEuCountry, parseVatCountry } from "../_shared/vies.ts";
+import { submitContactForm, isContactFormAlias, normalizeContactAlias } from "../_shared/contactForm.ts";
+import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -302,7 +304,10 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
       vat_rate: tenant.tax_percentage || 21,
     },
     contact: {
-      email: tenant.contact_email,
+      // UNIFIED-MAIL-1: `tenants.contact_email` bestaat niet, dus dit veld was altijd
+      // leeg. Nu het klantcontactadres van de winkel — hetzelfde als de Reply-To van
+      // haar mails: haar eigen adres als ze dat bewust instelde, anders haar SellQo-inbox.
+      email: resolveCustomerContactEmail(tenant),
       phone: tenant.contact_phone,
       company_name: tenant.company_name || null,
       address: tenant.company_address || null,
@@ -3941,105 +3946,7 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
 }
 
 // ============== CONTACT FORM ==============
-
-async function submitContactForm(supabase: any, tenantId: string, params: Record<string, unknown>) {
-  const name = ((params.name as string) || '').trim();
-  const email = ((params.email as string) || '').trim().toLowerCase();
-  const subject = ((params.subject as string) || '').trim();
-  const message = ((params.message as string) || '').trim();
-  const orderNumber = ((params.orderNumber as string) || (params.order_number as string) || '').trim();
-
-  if (!name || name.length > 200) return { success: false, error: 'Name is required (max 200 chars)' };
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!email || !emailRegex.test(email) || email.length > 320) return { success: false, error: 'Valid email is required' };
-  if (!subject || subject.length > 300) return { success: false, error: 'Subject is required (max 300 chars)' };
-  if (!message || message.length > 5000) return { success: false, error: 'Message is required (max 5000 chars)' };
-  if (orderNumber && orderNumber.length > 50) return { success: false, error: 'Order number too long (max 50 chars)' };
-
-  // Resolve tenant inbox recipient
-  const { data: tenant } = await supabase
-    .from('tenants')
-    .select('notification_email, owner_email, name')
-    .eq('id', tenantId)
-    .maybeSingle();
-  // MAIL-SENDER-1: owner_email is NOT NULL, dus de laatste tak is een vangnet.
-  const toEmail = tenant?.notification_email || tenant?.owner_email || 'info@sellqo.app';
-
-  // Try to link to an existing customer (optional)
-  const { data: existingCustomer } = await supabase
-    .from('customers')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('email', email)
-    .maybeSingle();
-
-  const escapeHtml = (s: string) => s
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  const bodyHtml = `<p><strong>From:</strong> ${escapeHtml(name)} &lt;${escapeHtml(email)}&gt;</p>`
-    + (orderNumber ? `<p><strong>Order:</strong> ${escapeHtml(orderNumber)}</p>` : '')
-    + `<p>${escapeHtml(message).replace(/\n/g, '<br>')}</p>`;
-
-  const insertRow: Record<string, unknown> = {
-    tenant_id: tenantId,
-    customer_id: existingCustomer?.id || null,
-    direction: 'inbound',
-    channel: 'web',
-    subject: subject.slice(0, 300),
-    body_html: bodyHtml,
-    body_text: message,
-    from_email: email,
-    to_email: toEmail,
-    reply_to_email: email,
-    // MSG-STATUS-FIX: 'received' staat niet in customer_messages_status_check;
-    // elke insert faalde. Inbound berichten krijgen 'delivered', zoals inbound e-mail.
-    delivery_status: 'delivered',
-    message_status: 'active',
-    context_type: 'contact_form',
-    context_data: {
-      source: 'contact_form',
-      name,
-      order_number: orderNumber || null,
-    },
-  };
-
-  const { data: inserted, error } = await supabase
-    .from('customer_messages')
-    .insert(insertRow)
-    .select('id')
-    .single();
-
-  if (error) {
-    console.error('[submit_contact_form] insert failed:', error);
-    return { success: false, error: 'Could not submit contact form' };
-  }
-
-  // CONTACT-NOTIFY-1: melding voor de winkel, zoals bij inbound e-mail
-  // (handle-inbound-email). Zonder melding zag niemand het bericht, en was er geen
-  // push. Een mislukte melding laat het contactbericht niet falen: het staat al in
-  // de inbox. Response ongewijzigd (eerste wet).
-  const { error: notificationError } = await supabase.from('notifications').insert({
-    tenant_id: tenantId,
-    category: 'messages',
-    type: 'contact_form_inbound',
-    title: 'Nieuw contactformulier bericht',
-    message: `${name}: "${subject.slice(0, 80)}${subject.length > 80 ? '...' : ''}"`,
-    priority: 'medium',
-    action_url: '/admin/messages',
-    data: {
-      message_id: inserted.id,
-      from: email,
-      sender_name: name,
-      order_number: orderNumber || null,
-      source: 'submit_contact_form',
-    },
-  });
-  if (notificationError) {
-    console.error('[submit_contact_form] notification failed:', notificationError.message);
-  }
-
-  return { success: true, message_id: inserted.id };
-}
+// UNIFIED-MAIL-1: submitContactForm staat in _shared/contactForm.ts.
 
 async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params: Record<string, unknown>, email: string) {
   const firstName = (params.first_name as string) || undefined;
@@ -4284,10 +4191,11 @@ serve(async (req) => {
       || req.headers.get('x-forwarded-for')?.split(',')[0].trim()
       || 'unknown');
 
-    if (action === 'newsletter_subscribe' || action === 'submit_contact_form') {
-
-
-      const rlKey = `${action}:${tenant_id}:${clientIp}`;
+    // UNIFIED-MAIL-1: de contact-aliassen delen de bucket van submit_contact_form,
+    // zodat een alias geen manier is om de limiet te omzeilen.
+    if (action === 'newsletter_subscribe' || action === 'submit_contact_form' || isContactFormAlias(action)) {
+      const rlAction = isContactFormAlias(action) ? 'submit_contact_form' : action;
+      const rlKey = `${rlAction}:${tenant_id}:${clientIp}`;
       if (!checkIpActionRateLimit(rlKey, 5, 10 * 60 * 1000)) {
         return new Response(
           JSON.stringify({ success: false, error: { code: 'RATE_LIMITED', message: 'Te veel aanvragen. Probeer het over enkele minuten opnieuw.' } }),
@@ -4326,6 +4234,17 @@ serve(async (req) => {
       case 'get_sitemap_data': result = await getSitemapData(supabase, tenant_id); cacheControl = 'public, max-age=3600'; break;
       case 'newsletter_subscribe': result = await newsletterSubscribe(supabase, tenant_id, params); break;
       case 'submit_contact_form': result = await submitContactForm(supabase, tenant_id, params); break;
+      // UNIFIED-MAIL-1: tijdelijke aliassen (akkoord Akke 29-09). Loveke stuurt
+      // `contact`, Mancini Milano en Benny Rich `submit_contact`; die bestonden hier
+      // niet, dus hun formulieren leverden nooit af. De warn laat zien wanneer een
+      // frontend is overgestapt en de alias weg kan (FRONTEND-CONTACT-2).
+      case 'submit_contact':
+      case 'contact': {
+        console.warn(`[storefront-api] contact-alias gebruikt: action=${action} tenant=${tenant_id}`);
+        const alias = normalizeContactAlias(params);
+        result = await submitContactForm(supabase, tenant_id, alias.params, { extraContext: alias.extraContext });
+        break;
+      }
       // Cart actions
       case 'cart_create': result = await cartCreate(supabase, tenant_id, params); break;
       case 'cart_get': result = await cartGet(supabase, tenant_id, params); break;

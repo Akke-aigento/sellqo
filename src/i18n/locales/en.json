@@ -488,10 +488,10 @@
       "contactInvalid": "Enter a valid email address.",
       "contactReadOnly": "Only a store administrator can change this address.",
       "contactNoRights": "You don't have permission to change this address.",
-      "contactModeInbox": "My SellQo inbox",
-      "contactModeInboxHint": "Customer replies arrive in your SellQo inbox, alongside your other messages.",
+      "contactModeInbox": "My SellQo inbox (recommended)",
+      "contactModeInboxHint": "Default. Customer replies arrive in your SellQo inbox, alongside your other messages.",
       "contactModeOwn": "My own address",
-      "contactModeOwnHint": "Customer replies go to this address, outside SellQo."
+      "contactModeOwnHint": "Customer replies go to this address and do not arrive in your SellQo inbox. For messages that do arrive in SellQo, such as contact forms, you still get a notification email."
     },
     "communication": {
       "subtitle": "Configure which automatic messages your customers receive",

@@ -145,6 +145,24 @@ Zodra de landenlijst dynamisch is, wordt de tenant-configuratie leidend. Control
 
 ---
 
+## PATROON 6 — Contact & e-mail (UNIFIED-MAIL-1)
+
+**Root cause (29-09-2026):** van de vijf custom frontends met een contactformulier leverde er één af. Loveke stuurde actie `contact` (proxy-default, sinds 13-03), Mancini Milano en Benny Rich `submit_contact` (sinds 02-04 en 18-08). `storefront-api` kent alleen `submit_contact_form` en antwoordde `Unknown action` (400) — geen enkel bericht kwam ooit in de SellQo-inbox. Daarnaast stonden eigenaar- en info@-adressen hardcoded in footers en contactpagina's, en had Loveke een eigen mailfunctie naar info@loveke.be.
+
+### 6a — Regels
+
+- Contactformulieren MOETEN `storefront-api` `submit_contact_form` aanroepen, met `name`, `email`, `subject`, `message` (en optioneel `orderNumber`). Het bericht landt in de SellQo-inbox en de winkel krijgt een meldingsmail.
+- Geen `mailto:` naar eigenaar- of info@-adressen.
+- Een getoond contactadres komt uit de `storefront-api`-respons (`get_config` → `contact.email`), nooit hardcoded. Dat is het klantcontactadres van de winkel: haar SellQo-inbox, tenzij ze bewust een eigen adres instelde.
+- Nooit een eigen mailfunctie of een externe formulierdienst (Formspree, EmailJS, …).
+
+### 6b — Let op
+
+- `storefront-api` accepteert tijdelijk ook `submit_contact` en `contact` (aliassen, UNIFIED-MAIL-1) zodat de drie bestaande formulieren werken. Nieuwe code gebruikt ze nooit: ze verdwijnen zodra elke frontend is overgestapt (FRONTEND-CONTACT-2). Elke alias-aanroep staat als `console.warn` in de logs van `storefront-api`.
+- Check na het bouwen de proxy-routering: een ontbrekende regel voor `/contact` valt in veel proxies terug op `segments.join('_')` en geeft een onbestaande actie. Test het formulier tegen de echte API en controleer dat het bericht in de inbox verschijnt.
+
+---
+
 ## CHECKLIST bij elke nieuwe custom frontend
 
 - [ ] Cart self-healing (patroon 1) — afhankelijk van architectuur
@@ -158,6 +176,7 @@ Zodra de landenlijst dynamisch is, wordt de tenant-configuratie leidend. Control
 - [ ] Variantlabel: normalizer gecontroleerd tegen wat `storefront-api` stuurt (patroon 3)
 - [ ] Landenlijst uit `get_shipping_countries`, geen hardcoded landen (patroon 4)
 - [ ] `min-w-0` op grid/flex-items met scroll-strips + `overflow-x-hidden` op `<main>` (patroon 5); overflow gemeten op 390px
+- [ ] Contactformulier → `submit_contact_form`, geen `mailto:` of hardcoded adres, contactadres uit `get_config` (patroon 6)
 
 ---
 

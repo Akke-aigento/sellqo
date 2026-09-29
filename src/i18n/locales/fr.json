@@ -516,10 +516,10 @@
       "contactInvalid": "Saisissez une adresse e-mail valide.",
       "contactReadOnly": "Seul un administrateur de la boutique peut modifier cette adresse.",
       "contactNoRights": "Vous n'avez pas les droits pour modifier cette adresse.",
-      "contactModeInbox": "Ma boîte de réception SellQo",
-      "contactModeInboxHint": "Les réponses des clients arrivent dans votre boîte de réception SellQo, avec vos autres messages.",
+      "contactModeInbox": "Ma boîte de réception SellQo (recommandé)",
+      "contactModeInboxHint": "Par défaut. Les réponses des clients arrivent dans votre boîte de réception SellQo, avec vos autres messages.",
       "contactModeOwn": "Ma propre adresse",
-      "contactModeOwnHint": "Les réponses des clients arrivent à cette adresse, en dehors de SellQo."
+      "contactModeOwnHint": "Les réponses des clients arrivent à cette adresse et non dans votre boîte de réception SellQo. Pour les messages qui arrivent bien dans SellQo, comme les formulaires de contact, vous recevez toujours un e-mail de notification."
     },
     "communication": {
       "subtitle": "Configurez les messages automatiques que reçoivent vos clients",

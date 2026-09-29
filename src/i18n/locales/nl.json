@@ -488,10 +488,10 @@
       "contactInvalid": "Vul een geldig e-mailadres in.",
       "contactReadOnly": "Alleen een beheerder van de winkel kan dit adres wijzigen.",
       "contactNoRights": "Je hebt geen rechten om dit adres te wijzigen.",
-      "contactModeInbox": "Mijn SellQo-inbox",
-      "contactModeInboxHint": "Antwoorden van klanten komen in je SellQo-inbox, naast je andere berichten.",
+      "contactModeInbox": "Mijn SellQo-inbox (aanbevolen)",
+      "contactModeInboxHint": "Standaard. Antwoorden van klanten komen in je SellQo-inbox, naast je andere berichten.",
       "contactModeOwn": "Eigen adres",
-      "contactModeOwnHint": "Antwoorden van klanten gaan naar dit adres, buiten SellQo om."
+      "contactModeOwnHint": "Antwoorden van klanten gaan naar dit adres en komen niet in je SellQo-inbox. Voor berichten die wel in SellQo binnenkomen, zoals contactformulieren, krijg je nog steeds een meldingsmail."
     },
     "communication": {
       "subtitle": "Configureer welke automatische berichten je klanten ontvangen",

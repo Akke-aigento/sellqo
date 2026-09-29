@@ -98,6 +98,12 @@ type Strings = {
     greeting: string;
     regards: string;
   };
+  /** UNIFIED-MAIL-1: meldingsmail aan de winkel bij een nieuw klantbericht. */
+  inboxNotification: {
+    from: string;
+    openMessage: string;
+    replyInSellqo: string;
+  };
   campaign: {
     unsubscribe: string;
     poweredBy: string;
@@ -229,6 +235,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       poweredBy: "Mogelijk gemaakt door SellQo",
     },
     message: { poweredBy: "Mogelijk gemaakt door SellQo", greeting: "Beste {customerName},", regards: "Met vriendelijke groet" },
+    inboxNotification: { from: "Van", openMessage: "Bericht openen", replyInSellqo: "Beantwoord dit bericht in SellQo — antwoorden op deze e-mail komen niet bij je klant." },
     campaign: { unsubscribe: "Uitschrijven", poweredBy: "Mogelijk gemaakt door SellQo" },
     ticket: {
       subject: "Je tickets voor {eventName}",
@@ -348,6 +355,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       poweredBy: "Powered by SellQo",
     },
     message: { poweredBy: "Powered by SellQo", greeting: "Dear {customerName},", regards: "Kind regards" },
+    inboxNotification: { from: "From", openMessage: "Open message", replyInSellqo: "Reply to this message in SellQo — replies to this email do not reach your customer." },
     campaign: { unsubscribe: "Unsubscribe", poweredBy: "Powered by SellQo" },
     ticket: {
       subject: "Your tickets for {eventName}",
@@ -467,6 +475,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       poweredBy: "Propulsé par SellQo",
     },
     message: { poweredBy: "Propulsé par SellQo", greeting: "Cher/Chère {customerName},", regards: "Cordialement" },
+    inboxNotification: { from: "De", openMessage: "Ouvrir le message", replyInSellqo: "Répondez à ce message dans SellQo — les réponses à cet e-mail n'arrivent pas chez votre client." },
     campaign: { unsubscribe: "Se désabonner", poweredBy: "Propulsé par SellQo" },
     ticket: {
       subject: "Vos billets pour {eventName}",
@@ -586,6 +595,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       poweredBy: "Bereitgestellt von SellQo",
     },
     message: { poweredBy: "Bereitgestellt von SellQo", greeting: "Sehr geehrte/r {customerName},", regards: "Mit freundlichen Grüßen" },
+    inboxNotification: { from: "Von", openMessage: "Nachricht öffnen", replyInSellqo: "Beantworten Sie diese Nachricht in SellQo — Antworten auf diese E-Mail erreichen Ihren Kunden nicht." },
     campaign: { unsubscribe: "Abmelden", poweredBy: "Bereitgestellt von SellQo" },
     ticket: {
       subject: "Ihre Tickets für {eventName}",

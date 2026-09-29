@@ -41,3 +41,18 @@ describe('resolveTenantMailPrefix / tenantMailAddress', () => {
     expect(tenantMailAddress({ slug: '-fout' })).toBeNull();
   });
 });
+
+// UNIFIED-MAIL-1 — storefront-api get_config → contact.email gebruikt dezelfde keuze
+// als de Reply-To. De rij is wat `select('*')` op tenants oplevert.
+describe('get_config contact.email (UNIFIED-MAIL-1)', () => {
+  const row = {
+    name: 'VanXcel', slug: 'vanxcel', inbound_email_prefix: 'vanxcel', support_email: null as string | null,
+    owner_email: 'info@vanxcel.com', notification_email: 'alerts@vanxcel.com',
+  };
+  it('standaard → <prefix>@mail.sellqo.app, nooit owner- of notification-adres', () => {
+    expect(resolveCustomerContactEmail(row)).toBe('vanxcel@mail.sellqo.app');
+  });
+  it('bewust eigen adres → dat adres', () => {
+    expect(resolveCustomerContactEmail({ ...row, support_email: 'klantendienst@vanxcel.com' })).toBe('klantendienst@vanxcel.com');
+  });
+});

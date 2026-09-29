@@ -107,7 +107,13 @@ jobs:
         with:
           deno-version: v2.9.6
 
+      # UNIFIED-MAIL-1: DENO_NO_PACKAGE_JSON — anders leest deno de package.json van
+      # de webapp mee, en faalt de stap zodra een (dev)dependency daar jonger is dan
+      # 24 uur (deno's minimum-dependency-age). De functies gebruiken die package.json
+      # niet: alleen URL- en npm:-imports.
       - name: Edge functions (deno check)
+        env:
+          DENO_NO_PACKAGE_JSON: "1"
         run: deno check --no-lock --node-modules-dir=none supabase/functions/*/index.ts
 
       # 7. Productiebuild. Draait via npm omdat het prebuild-script daaraan

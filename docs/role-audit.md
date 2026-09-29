@@ -1,3 +1,135 @@
+## UNIFIED-MAIL-1 — één adres per winkel voor uitgaand en antwoorden — 29 september 2026
+
+2026-09-29 UNIFIED-MAIL-1: standaard voor elke winkel From én Reply-To = <winkel>@mail.sellqo.app,
+contactformulieren naar de SellQo-inbox; eigen adres alleen als bewuste instelling. Strikt gescheiden van de
+eigen info@-mailboxen (geen doorsturing, keuze Akke). Data (chat-Claude, 29-09): support_email → NULL voor
+Astra Sleep, Benny Rich, Loveke, Mancini Milano, SellQo, SellQo Speeltuin, The Fonske Crawl, VanXcel, Zona
+Dorata (snapshot in chat). Meldingsmail bij een nieuw bericht bewezen: contactformulier Van Empel 29-09 09:59
+→ mail naar info@vanxcel.com 6 s later. Meldingsmail uitgebreid met afzender, fragment en 'beantwoord in
+SellQo'. Frontend-inventaris: van de zeven frontend-projecten levert alleen VanXcel contactformulieren af;
+Loveke, Mancini Milano en Benny Rich stuurden een actienaam die storefront-api weigerde (nu opgevangen met
+tijdelijke aliassen), Zona Dorata en Astra Sleep hebben geen formulier, The Fonske Crawl gebruikt een eigen
+backend; vijf van de zeven tonen hardcoded eigenaar- of info@-adressen.
+
+### Root cause
+
+- **Uitgaande mails: al in orde.** Alle klantgerichte verzendpaden gebruiken `tenantSender`
+  (`_shared/emailSenders.ts`); Reply-To, footer, mailto en "Je antwoord gaat naar …" komen uit
+  `resolveCustomerContactEmail` (`_shared/customerContact.ts`, via `getTenantBrand().supportEmail`). Geen
+  afwijkend pad gevonden. Live: alle 13 winkels hebben een geldige prefix en `support_email` NULL.
+- **Contactformulieren van drie custom frontends leverden nooit af.** `storefront-api` kent alleen
+  `submit_contact_form`; andere acties krijgen `Unknown action` (400). Live: alleen VanXcel heeft ooit een
+  contactformulier in `customer_messages` (5, sinds 18-09).
+  - **Loveke — contactformulier leverde nooit af tot 29-09.** Sinds 13-03 (`e69a139`) via de eigen
+    `sellqo-proxy`, die `/contact` niet kent en terugvalt op actie `contact`. Van 24-02 tot 13-03 ging het
+    formulier via een eigen functie `send-contact-email` rechtstreeks naar info@loveke.be; die functie staat
+    nog in het project, zonder aanroeper.
+  - **Mancini Milano — contactformulier leverde nooit af tot 29-09.** Sinds 02-04 (`4e68731`): proxy →
+    `submit_contact`.
+  - **Benny Rich — contactformulier leverde nooit af tot 29-09.** Sinds 18-08 (`e44113f`): eigen
+    TanStack-serverfunctie → `submit_contact`; stuurt bovendien geen `subject`, dat `submitContactForm` eist.
+- **Contactadres naar de frontends was altijd leeg.** `get_config` gaf `contact.email = tenants.contact_email`;
+  die kolom bestaat niet. `get_tenant` selecteert meerdere niet-bestaande kolommen en faalt bij elke aanroep
+  (geen frontend gebruikt hem → backlog GET-TENANT-1).
+- **Meldingsmail bij een bericht was weinig bruikbaar**: titel + `notification.message` + "Bekijk details", en
+  niets zei dat antwoorden op die mail (van info@sellqo.app) de klant niet bereiken.
+
+### Frontend-inventaris (read-only; repo's gecloned, Astra Sleep en Fonske via de connector)
+
+| Winkel | Contactformulier | Hardcoded adres |
+|---|---|---|
+| VanXcel | proxy → `submit_contact_form` (name, email, subject, message, orderNumber?) — werkt | info@vanxcel.com op de contactpagina; owner-check in `Account.tsx` |
+| Loveke | proxy → `contact` (name, email, subject, message) — nu via alias | mailto info@loveke.be; dode `send-contact-email` |
+| Mancini Milano | proxy → `submit_contact` (name, email, subject, message) — nu via alias | mailto + privacy/FAQ info@mancinimilano.com |
+| Benny Rich | serverfn → `submit_contact` (name, email, message) — nu via alias, onderwerp "Contactformulier" | `CONTACT_EMAIL` info@bennyrich.com (footer, contact) |
+| Zona Dorata ("Boutique", meest recente van drie projecten) | geen | geen |
+| Astra Sleep | geen formulier | mailto Astrasleepbelgium@hotmail.com (contact, footer) |
+| The Fonske Crawl | eigen serverfn → eigen Supabase (`availability_requests`) + eigen mail naar `NOTIFY_ADDRESS` | mailto info@fonskecrawl.com |
+
+The Fonske Crawl staat niet op `use_custom_frontend` (DB), maar heeft wel een eigen frontend-project.
+Geen enkele frontend gebruikt een externe formulierdienst.
+
+### Uitgevoerd
+
+- `supabase/functions/_shared/contactForm.ts` (nieuw) — `submitContactForm` inhoudelijk ongewijzigd verhuisd uit
+  `storefront-api` (neemt `supabase` als parameter, zodat vitest hem draait), plus een optionele
+  `extraContext`. `CONTACT_FORM_ALIASES` (`submit_contact`, `contact`) en `normalizeContactAlias`: geen
+  veldsynoniemen (geen frontend stuurt andere namen dan name/email/subject/message/orderNumber); ontbrekend
+  onderwerp → "Contactformulier"; onbekende velden → `context_data.extra_fields` (tekst, begrensd);
+  transportvelden (locale, tenant_id, action) niet.
+- `supabase/functions/storefront-api/index.ts` — aliassen naar dezelfde handler met één `console.warn` per
+  aanroep (actienaam + tenant_id, geen PII); aliassen delen de rate-limit-bucket van `submit_contact_form`;
+  `get_config` → `contact.email = resolveCustomerContactEmail(tenant)`.
+- `supabase/functions/_shared/notificationEmail.ts` (nieuw) — `buildNotificationEmail`: andere categorieën
+  exact de vorige mail; `messages` krijgt afzender (naam + adres/telefoon), een fragment van ±200 tekens
+  (HTML gestript, ge-escaped), knop "Bericht openen" en de regel "Beantwoord dit bericht in SellQo —
+  antwoorden op deze e-mail komen niet bij je klant." `loadMessageEmailInfo`: bron `data.message_id` →
+  `customer_messages` (met `tenant_id`-filter), anders `message_preview`/`from_phone`/klantnaam uit `data`
+  (WhatsApp, Meta). Niets nieuws opgeslagen in `notifications`; zonder bron de oude mail.
+- `supabase/functions/create-notification/index.ts` — gebruikt de bouwer; leest `tenants.language` voor de
+  nieuwe teksten. Throttle ongemoeid.
+- `supabase/functions/_shared/tenantEmailI18n.ts` — `inboxNotification.{from, openMessage, replyInSellqo}` in
+  nl/en/fr/de (handmatig gecontroleerd; Duits in de Sie-vorm zoals de rest van dit onderwerp). Taal buiten
+  nl/en/fr/de → nl (`t()` zou Engels kiezen).
+- `supabase/functions/_shared/senderName.ts` — naamkeuze verhuisd uit `src/lib/senderName.ts` (dat nu
+  her-exporteert), zodat de meldingsmail dezelfde keuze maakt als de inbox.
+- `CustomerContactEmailCard` (teksten in nl/en/fr/de/uk): "Mijn SellQo-inbox (aanbevolen)", "Standaard.";
+  eigen adres: antwoorden komen dan niet in SellQo, voor berichten die wel binnenkomen (contactformulieren)
+  blijft de meldingsmail komen.
+- `.claude/skills` + `.agents/skills` `sellqo-custom-frontend-runbook`: PATROON 6 "Contact & e-mail" +
+  checklistregel (sha256 `e0bb170d9acc5b6567bf25019defe8a1f47eff909a9c27263541c638b7aa4026`).
+- `docs/sql/unified-mail-1-doc-articles.sql` — `klantcontact-email-instellen` bijgewerkt + nieuw
+  platform-artikel `custom-frontend-contactformulier` (chat-Claude draait het).
+- `.github/workflows/ci.yml` — de deno-stap krijgt `DENO_NO_PACKAGE_JSON=1`. Gevonden tijdens de post-flight:
+  deno leest anders de `package.json` van de webapp mee en weigert een devDependency die jonger is dan 24 uur
+  (`@typescript-eslint/eslint-plugin` 8.71.0) — de eerstvolgende push na `c4f8bbe6` was rood geworden.
+- Android `versionCode 13`; `.eslint-baseline.json` 1506 → 1505.
+
+### Security-keuzes
+
+- Aliassen delen de rate-limit (5 per 10 min per IP per winkel) van `submit_contact_form`; geen omweg.
+- De alias-log bevat alleen actienaam en tenant_id.
+- `loadMessageEmailInfo` leest `customer_messages` en `customers` met de service-role, altijd gefilterd op de
+  `tenant_id` van de melding. Geen nieuwe persoonsgegevens in `notifications`; het fragment staat alleen in de
+  mail aan de winkel zelf.
+- Geen policies, grants of kolommen gewijzigd.
+
+### Gedeelde-paden-waarschuwing
+
+- `storefront-api` (eerste wet, akkoord Akke 29-09): strikt additief. `submit_contact_form` gedraagt zich
+  byte-gelijk (test: zelfde `context_data`, zelfde validatie, zelfde respons); de aliassen zijn nieuwe
+  acties; `contact.email` was een lege sleutel en krijgt nu een waarde — respons-vorm ongewijzigd.
+- `create-notification` bedient alle meldingscategorieën: **render-diff** HEAD-inline vs de nieuwe bouwer
+  over 14 categorieën × 4 prioriteiten × met/zonder actie-URL × 2 winkelnamen (incl. berichten zonder bron):
+  **224 mails, 0 verschillen** (HTML en tekst); controle dat de diff scherp is: met afzenderinfo verschilt hij.
+- `tenantEmailI18n.ts` wordt door tien mailfuncties geïmporteerd; alleen nieuwe sleutels, hun uitvoer blijft gelijk.
+
+### Verificatie
+
+vitest 554 groen (nieuw: `contactForm.test.ts` 8 — drie frontend-fixtures met hun exacte payloads, extra
+velden, VanXcel ongewijzigd, validatie; `notificationEmail.test.ts` 14; `customerContact.test.ts` +2 voor
+`get_config`); `deno check` alle functies 0 fouten (met `DENO_NO_PACKAGE_JSON=1`); `tsc` exit 0; lint 1505;
+check:mail/messages/notifications, i18n-parity, skills-sync exit 0; `npm run build` groen; `npx cap sync`.
+
+### Redeploy (transitieve import-grep)
+
+`create-notification`, `storefront-api` (gedrag verandert) + `send-campaign-batch`, `send-credit-note-email`,
+`send-customer-message`, `send-gift-card-email`, `send-invoice-email`, `send-order-confirmation`,
+`send-payment-request-email`, `send-quote-email`, `send-return-email`, `send-ticket-confirmation` (alleen
+nieuwe i18n-sleutels, uitvoer gelijk). Alleen met groene build. Daarna publish, iOS via Xcode Cloud
+(TestFlight-nummer hier noteren), Android `versionCode 13`.
+
+### Bewust ongemoeid / Vervolg
+
+- **Open verificatie:** het eerste echte contactformulier van Loveke, Mancini Milano en Benny Rich na de
+  deploy (zichtbaar als `contact-alias gebruikt` in de logs van `storefront-api`).
+- PDF's dragen `owner_email` (factuur-PDF, Factur-X/UBL-XML, creditnota, betaalverzoek,
+  abonnementsfactuur): bedrijfsgegeven, niet vervangen → PDF-CONTACT-1.
+- `storefront-contact-form`: doorsturing naar `email_forward_address` (0 winkels aan, geen UI, geen aanroeper
+  van de functie) — slapend, strijdig met "geen doorsturing"; niet aangeraakt.
+- De frontends zelf (frozen): hardcoded adressen en de proxy-routering → FRONTEND-CONTACT-2.
+- `docs/storefront-koppeling-recon.md` stond ongecommit in de werkboom (andere sessie); niet meegenomen.
+
 ## MAIL-REPLY-FORMAT-1 — antwoord uit de inbox leest als een gewone e-mail — 29 september 2026
 
 2026-09-29 MAIL-REPLY-FORMAT-1: antwoorden uit de inbox kregen een automatische aanhef met e-mailadres, een
@@ -323,6 +455,18 @@ Cloud (nummert zelf), Android `versionCode 11`.
   `is_default`; RLS: lezen voor winkelgebruikers, schrijven voor marketingrollen), maar heeft **0 rijen,
   geen UI en geen functie die hem gebruikt**. Nog te beslissen: wie mag een handtekening beheren (nu alleen
   marketingrollen), en of de handtekening client- of serverzijdig wordt ingevoegd.
+- **FRONTEND-CONTACT-2 — frontends naar `submit_contact_form`, daarna aliassen weg** (uit UNIFIED-MAIL-1).
+  Loveke (proxy: regel voor `/contact`), Mancini Milano (proxy), Benny Rich (serverfn, plus `subject`) sturen
+  `submit_contact_form`; hardcoded adressen vervangen door `get_config` → `contact.email` (VanXcel, Loveke,
+  Mancini Milano, Benny Rich, Astra Sleep); Loveke's dode `send-contact-email` weg. Pas als de alias-warn
+  in de logs van `storefront-api` wegblijft, de aliassen verwijderen.
+- **GET-TENANT-1 — `storefront-api` `get_tenant` faalt altijd** (selecteert niet-bestaande kolommen
+  `contact_email`, `contact_phone`, `store_name`, `store_description`). Geen frontend roept hem aan
+  (29-09). Repareren of verwijderen; eerste wet.
+- **PDF-CONTACT-1 — e-mailadres op PDF's en e-facturen.** `owner_email` op factuur-PDF
+  (`generate-invoice:822`), Factur-X (`:413`) en UBL (`:632`), creditnota, betaalverzoek,
+  abonnementsfactuur. Bedrijfsgegeven, geen antwoordadres; voorstel: keuze tussen klantcontactadres en
+  een apart factuuradres, niet stil vervangen.
 - **SUPABASE-JS-1 — één gedeelde supabase-js-versie (runtime-batch).** Stand 29-09: 8 versies over 240
   functies (120× `@2`, 82× `@2.57.2`, 14× `@2.39.3`, 7× `@2.90.1`, 7× `@2.45.0`, 2× `@2.49.1`, 1×
   `@2.95.0`, 1× `@2.49.4`) plus 2× `npm:@supabase/supabase-js@2`. `@2` zweeft: elke deploy kan een andere

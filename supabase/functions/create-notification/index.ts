@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
+import { buildNotificationEmail, loadMessageEmailInfo } from "../_shared/notificationEmail.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
 import { messageConversationKey, planEmail, MESSAGE_EMAIL_WINDOW_MS } from "../_shared/notificationDefaults.ts";
 import { notificationRoute } from "../_shared/notificationRoutes.ts";
@@ -202,7 +202,7 @@ serve(async (req: Request): Promise<Response> => {
       // Get tenant info for email including branding and notification_email
       const { data: tenant } = await supabase
         .from('tenants')
-        .select('name, owner_email, notification_email, logo_url, primary_color')
+        .select('name, owner_email, notification_email, logo_url, primary_color, language')
         .eq('id', notification.tenant_id)
         .single();
 
@@ -233,27 +233,20 @@ serve(async (req: Request): Promise<Response> => {
               : `${ADMIN_BASE_URL}${rawActionUrl.startsWith('/') ? '' : '/'}${rawActionUrl}`)
           : null;
 
-        const priorityBanner =
-          priority === 'urgent'
-            ? `<div style="background-color:#fee2e2;color:#dc2626;padding:12px 16px;border-radius:6px;margin:0 0 16px;font-weight:600;">⚠️ Urgente melding — directe aandacht vereist</div>`
-            : priority === 'high'
-              ? `<div style="background-color:#ffedd5;color:#ea580c;padding:12px 16px;border-radius:6px;margin:0 0 16px;font-weight:600;">Hoge prioriteit</div>`
-              : '';
-
-        const introHtml = `
-          ${priorityBanner}
-          <p style="margin:0 0 12px;font-size:13px;color:#5b6b7d;">Melding voor <strong>${tenantName}</strong></p>
-          <p style="margin:0;">${notification.message}</p>
-        `;
-
-        const htmlContent = renderSellqoEmail({
-          preheader: `${notification.title} — ${tenantName}`,
-          heading: notification.title,
-          intro: introHtml,
-          cta: fullActionUrl ? { label: 'Bekijk details', url: fullActionUrl } : undefined,
-          footerNote: `Je ontvangt deze e-mail omdat e-mailnotificaties voor ${notification.category} aanstaan.`,
+        // UNIFIED-MAIL-1: opbouw in _shared/notificationEmail.ts. Andere categorieën
+        // byte-gelijk; een klantbericht krijgt afzender, fragment, "Bericht openen"
+        // en de regel dat antwoorden op deze mail niet bij de klant komen.
+        const messageInfo = notification.category === 'messages'
+          ? await loadMessageEmailInfo(supabase, notification.tenant_id, notification.data)
+          : null;
+        const { html: htmlContent, text: textContent } = buildNotificationEmail({
+          notification: { category: notification.category, title: notification.title, message: notification.message },
+          priority,
+          tenantName,
+          fullActionUrl,
+          messageInfo,
+          locale: (tenant as { language?: string | null } | null)?.language ?? null,
         });
-        const textContent = htmlToPlainText(htmlContent);
 
         try {
           const emailResponse = await resend.emails.send({
