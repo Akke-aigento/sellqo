@@ -164,6 +164,17 @@ schrijfstijl). Puur technische wijziging zonder UI-impact: expliciet "DOCS-1:
 n.v.t." melden. Let op: `doc_articles` heeft één `content`-veld (geen
 taalvarianten) — alleen changelog en blog zijn meertalig.
 
+## Native builds (iOS/Android)
+iOS-buildnummers komen uit Xcode Cloud, niet uit de pbxproj; alleen Android
+`versionCode` ophogen (`android/app/build.gradle`). Na elke Xcode Cloud-build
+het TestFlight-nummer in de role-audit noteren.
+
+Waarom: Xcode Cloud kent zelf het buildnummer toe (29-09-2026: build 74, terwijl
+`CURRENT_PROJECT_VERSION` op 11 stond). Een bump in
+`ios/App/App.xcodeproj/project.pbxproj` verandert dus niets in TestFlight, en
+"welk buildnummer staat er op je telefoon" is alleen te beantwoorden met het
+TestFlight-nummer dat in de role-audit staat.
+
 ## Eerlijkheidsregel (spoor 2, 3 en 4)
 Geen claims over wat niet live is, geen verzonnen cijfers, geen "coming soon" als
 bestaand, plan-gebondenheid altijd vermelden. Bij twijfel: verifieer in de code
