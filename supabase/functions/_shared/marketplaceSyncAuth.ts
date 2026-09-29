@@ -16,7 +16,7 @@
 // Zonder connectionId is een sync "alle connecties van alle winkels"; dat is
 // alleen voor de cron.
 
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { isAuthorizedCronRequest } from "./cronAuth.ts";
 import { AuthError, authenticateRequest, requireRole } from "./auth.ts";
 

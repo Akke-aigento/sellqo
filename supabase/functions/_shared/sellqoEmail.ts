@@ -22,7 +22,7 @@ export const BRAND = {
   footerText: "#8a96a4",
 } as const;
 
-export type BrandTokens = typeof BRAND;
+export type BrandTokens = { -readonly [K in keyof typeof BRAND]: string };
 
 export const LOGO_URL = "https://sellqo.app/email-logo.png";
 

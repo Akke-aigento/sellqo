@@ -23,7 +23,11 @@
 // schijnveiligheid én stuk. Het secret uit `internal_config` is dat wel: die
 // tabel heeft RLS aan zonder policies, dus alleen service-role komt erbij.
 
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+// Losse structuur i.p.v. SupabaseClient: dit bestand krijgt clients uit
+// verschillende supabase-js-versies (de sync-functies importeren `@2`, de
+// cron-functies een gepinde versie). Structureel typen laat beide toe.
+// deno-lint-ignore no-explicit-any
+type MinimalServiceClient = { from: (table: string) => any };
 
 const CRON_SECRET_HEADER = "x-cron-secret";
 const CONFIG_KEY = "internal_webhook_secret";
@@ -61,7 +65,7 @@ function constantTimeEquals(a: string, b: string): boolean {
  */
 export async function isAuthorizedCronRequest(
   req: Request,
-  admin: SupabaseClient,
+  admin: MinimalServiceClient,
 ): Promise<boolean> {
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const authHeader = req.headers.get("Authorization");
