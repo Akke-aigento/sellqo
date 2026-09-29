@@ -61,6 +61,16 @@ query of write (zie sellqo-db-safety).
 - Write-SQL: guard + idempotentie + `returning`/natrek in één script (zie
   sellqo-db-safety).
 
+## Deploy via de agent
+Deploy via de Lovable-agent is alleen veilig als de build groen is. De agent
+repareert build-fouten altijd, ook als de opdracht 'wijzig geen bestanden'
+zegt — die regel verliest van zijn platforminstructie (bewezen 25-09 en 29-09:
+6 en 1 ongevraagde commits op main). Daarom: (1) vóór een deploy moet deno check
+over alle functies groen zijn (CI-stap, deno v2.9.6); (2) de deploy-prompt zegt
+letterlijk: wijzig geen bestanden, faalt iets, stop en rapporteer; (3) na elke
+agent-deploy git log origin/main vergelijken met de verwachte hash; een nieuwe
+agent-commit eerst laten reviewen door CC vóór verder werken.
+
 ## Vier valkuilen
 1. **Write-error ≠ mislukt.** Een tool-error op send_message betekent vaak
    dat de run tóch `accepted`/`running` is. Check via `list_messages` vóór
