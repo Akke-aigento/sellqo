@@ -115,11 +115,9 @@ Niet nodig: de overige 60 functies uit de transitieve import-grep — hun gegene
 - **Open verificatie:** geen enkele van de vijf herstelde functies is live aangeroepen (voorwaarde Akke).
   De eerste echte gebruiker in de UI is de bevestiging — per functie noteren wanneer dat gebeurt, te
   beginnen met `lookup-bol-offer-id` en `import-bol-csv` (VanXcel, enige Bol-verbinding).
-- `lookup-bol-offer-id` heeft geen rolcheck (zie vergelijking); voorstel: bij HOTFIX-AUTH-2.
-- Voorstel SUPABASE-JS-1: één supabase-js-versie via een import map. Nu 8 versies over 240 functies
-  (120× `@2`, 82× `@2.57.2`, 14× `@2.39.3`, …). Verandert runtime in elke functie: eigen batch.
-- Voorstel voor `sellqo-connector-werkwijze` (wacht op go): een deploy-prompt zegt letterlijk "wijzig geen
-  bestanden; faalt de deploy, stop en rapporteer de fout".
+- `lookup-bol-offer-id` heeft geen rolcheck (zie vergelijking): opgenomen als punt 3 van HOTFIX-AUTH-2.
+- SUPABASE-JS-1 (één supabase-js-versie): opgenomen in de backlog onder INBOX-REPLY-1.
+- `sellqo-connector-werkwijze` kreeg de sectie "Deploy via de agent" (go Akke 29-09, eigen tekst).
 
 ## INBOX-REPLY-1 — antwoorden op berichten zonder gekoppelde klant — 29 september 2026
 
@@ -220,6 +218,19 @@ Cloud (nummert zelf), Android `versionCode 11`.
      die winkel, en het gat wordt scherp zodra iemand sleutelvalidatie toevoegt. Fix:
      `authenticateRequest(req, tenant_id)` + `requireRole(auth, tenant_id, ['tenant_admin'])` vóór de
      insert.
+  3. `lookup-bol-offer-id` (toegevoegd 29-09, uit BUILD-GREEN-1): autoriseert alleen op lidmaatschap
+     (`authenticateRequest(req, tenant_id)`), zonder rolcheck — elke rol van de winkel kan een Bol-offer-id
+     opzoeken en op een product zetten (`products.bol_offer_id`, `marketplace_mappings.bol_com`). De
+     werkende referentie `sync-bol-orders` eist via `authorizeMarketplaceSync` `SYNC_ROLES` (`tenant_admin`,
+     `viewer`). Fix: `requireRole` na de authenticatie; welke rollen, afstemmen met de schrijfactie op
+     `products` (viewer mag daar niet schrijven). Bol-aanroep zelf blijft ongemoeid.
+- **SUPABASE-JS-1 — één gedeelde supabase-js-versie (runtime-batch).** Stand 29-09: 8 versies over 240
+  functies (120× `@2`, 82× `@2.57.2`, 14× `@2.39.3`, 7× `@2.90.1`, 7× `@2.45.0`, 2× `@2.49.1`, 1×
+  `@2.95.0`, 1× `@2.49.4`) plus 2× `npm:@supabase/supabase-js@2`. `@2` zweeft: elke deploy kan een andere
+  versie binnenhalen. Gevolg op 29-09: typedrift (`never`-schema's, 207 deno-fouten) en een versiegebonden
+  type in `marketplaceSyncAuth` dat niet meer paste. Aanpak: één vaste versie via een import map, alle
+  functies in één keer. Verandert runtime in élke functie → eigen batch met eigen recon en redeploy van
+  alles; `deno check` in CI (BUILD-GREEN-1) is het vangnet.
 - Correctie op APP-KEYBOARD-2: iOS-builds komen uit Xcode Cloud, dat zelf nummert (build 74);
   `CURRENT_PROJECT_VERSION` in de pbxproj bepaalt het TestFlight-nummer niet. "APP-KEYBOARD-1 nooit op
   de telefoon" is daarmee niet bewezen.
