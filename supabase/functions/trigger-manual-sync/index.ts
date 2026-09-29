@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { SYNC_ROLES } from "../_shared/marketplaceSyncAuth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,7 +45,11 @@ Deno.serve(async (req) => {
     }
 
     // Resolve-then-authorize: de tenant komt uit de verbinding, niet uit de body.
-    await authenticateRequest(req, connection.tenant_id as string);
+    // BUILD-GREEN-1: plus dezelfde rollen als de sync-functies zelf. Deze functie
+    // roept ze aan met de service-key en slaat hun rolcheck dus over; zonder
+    // deze regel kon elke rol (ook warehouse of marketing) een Bol-sync starten.
+    const auth = await authenticateRequest(req, connection.tenant_id as string);
+    requireRole(auth, connection.tenant_id as string, [...SYNC_ROLES]);
 
     const startedAt = new Date().toISOString()
     let recordsProcessed = 0

@@ -82,7 +82,6 @@ Deno.serve(async (req) => {
     )
 
     const body: LookupRequest = await req.json()
-    await authenticateRequest(req, tenant_id);
     const { ean, tenant_id, connection_id, product_id } = body
 
     if (!ean || !tenant_id || !connection_id) {
@@ -91,6 +90,11 @@ Deno.serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // BUILD-GREEN-1: stond vóór de destructurering hierboven (0c5d3577, 7 mei
+    // 2026) → ReferenceError op tenant_id bij élke aanroep. De verbinding
+    // hieronder filtert al op dezelfde tenant_id, dus lid zijn volstaat.
+    await authenticateRequest(req, tenant_id);
 
     console.log(`Looking up Offer ID for EAN: ${ean}`)
 
@@ -198,6 +202,7 @@ Deno.serve(async (req) => {
         .from('products')
         .select('marketplace_mappings')
         .eq('id', product_id)
+        .eq('tenant_id', tenant_id) // BUILD-GREEN-1: service-role, dus zelf op de winkel filteren
         .single()
 
       if (prodError) {
@@ -221,6 +226,7 @@ Deno.serve(async (req) => {
             bol_offer_id: offerId  // Also store in dedicated field
           })
           .eq('id', product_id)
+          .eq('tenant_id', tenant_id) // BUILD-GREEN-1: geen product van een andere winkel overschrijven
 
         if (updateError) {
           console.error('Error updating product:', updateError)

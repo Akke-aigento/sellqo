@@ -133,7 +133,6 @@ Deno.serve(async (req: Request) => {
     }
 
     const { connectionId, headers, rows } = await req.json();
-    await authenticateRequest(req, tenant_id);
     
     if (!connectionId || !headers || !rows) {
       return new Response(
@@ -157,6 +156,10 @@ Deno.serve(async (req: Request) => {
     }
 
     const tenantId = connection.tenant_id;
+    // BUILD-GREEN-1: stond direct na req.json() met `tenant_id`, een naam die
+    // hier nergens bestaat (0c5d3577, 7 mei 2026) → ReferenceError bij élke
+    // aanroep. Resolve-then-authorize: de winkel komt uit de verbinding.
+    await authenticateRequest(req, tenantId);
     
     // Group rows by order ID (Bol.com exports have one row per order item)
     const orderGroups: Map<string, BolOrderRow[]> = new Map();
@@ -311,6 +314,9 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Error in import-bol-csv:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),

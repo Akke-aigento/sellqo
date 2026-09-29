@@ -94,6 +94,7 @@ Deno.serve(async (req) => {
       .from('marketplace_connections')
       .select('*')
       .eq('id', connection_id)
+      .eq('tenant_id', tenant_id) // BUILD-GREEN-1: niet de Odoo-sleutels van een andere winkel gebruiken
       .single()
 
     if (connError || !connection) throw new Error('Connection not found')
@@ -126,8 +127,11 @@ Deno.serve(async (req) => {
       .eq('id', product_id)
 
     // Authenticate with Odoo
-    const auth = await odooAuthenticate(credentials)
-    if (!auth) throw new Error('Odoo authentication failed')
+    // BUILD-GREEN-1: heette ook `auth`, in hetzelfde blok als de SellQo-auth
+    // hierboven → SyntaxError "Identifier 'auth' has already been declared";
+    // de functie startte niet eens.
+    const odooAuth = await odooAuthenticate(credentials)
+    if (!odooAuth) throw new Error('Odoo authentication failed')
 
     // Create product in Odoo
     const productData = {
@@ -144,7 +148,7 @@ Deno.serve(async (req) => {
 
     const odooProductId = await odooCallMethod(
       credentials,
-      auth.sessionId,
+      odooAuth.sessionId,
       'product.product',
       'create',
       [productData]

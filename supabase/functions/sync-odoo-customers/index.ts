@@ -113,8 +113,11 @@ Deno.serve(async (req) => {
     }
 
     // Authenticate with Odoo
-    const auth = await odooAuthenticate(credentials)
-    if (!auth) throw new Error('Odoo authentication failed')
+    // BUILD-GREEN-1: heette ook `auth`, in hetzelfde blok als de SellQo-auth
+    // hierboven → SyntaxError "Identifier 'auth' has already been declared";
+    // de functie startte niet eens.
+    const odooAuth = await odooAuthenticate(credentials)
+    if (!odooAuth) throw new Error('Odoo authentication failed')
 
     let syncedCount = 0
 
@@ -163,7 +166,7 @@ Deno.serve(async (req) => {
           if (customer.email) {
             const existingPartners = await odooCallMethod(
               credentials,
-              auth.sessionId,
+              odooAuth.sessionId,
               'res.partner',
               'search',
               [[['email', '=', customer.email]]],
@@ -189,10 +192,10 @@ Deno.serve(async (req) => {
 
           if (partnerId) {
             // Update existing partner
-            await odooCallMethod(credentials, auth.sessionId, 'res.partner', 'write', [[partnerId], partnerData])
+            await odooCallMethod(credentials, odooAuth.sessionId, 'res.partner', 'write', [[partnerId], partnerData])
           } else {
             // Create new partner
-            partnerId = await odooCallMethod(credentials, auth.sessionId, 'res.partner', 'create', [partnerData]) as number
+            partnerId = await odooCallMethod(credentials, odooAuth.sessionId, 'res.partner', 'create', [partnerData]) as number
           }
 
           // Log the sync
@@ -224,7 +227,7 @@ Deno.serve(async (req) => {
       // Pull customers from Odoo
       const partnerIds = await odooCallMethod(
         credentials,
-        auth.sessionId,
+        odooAuth.sessionId,
         'res.partner',
         'search',
         [[['customer_rank', '>', 0]]],
@@ -234,7 +237,7 @@ Deno.serve(async (req) => {
       if (partnerIds.length > 0) {
         const partners = await odooCallMethod(
           credentials,
-          auth.sessionId,
+          odooAuth.sessionId,
           'res.partner',
           'read',
           [partnerIds],

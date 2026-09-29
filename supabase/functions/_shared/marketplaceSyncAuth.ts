@@ -21,7 +21,7 @@ import { isAuthorizedCronRequest } from "./cronAuth.ts";
 import { AuthError, authenticateRequest, requireRole } from "./auth.ts";
 
 /** read-rollen van `integrations` in PERMISSION_MATRIX (src/hooks/useCan.ts). */
-const SYNC_ROLES = ["tenant_admin", "viewer"] as const;
+export const SYNC_ROLES = ["tenant_admin", "viewer"] as const;
 
 function deny(status: number, message: string, corsHeaders: Record<string, string>): Response {
   return new Response(JSON.stringify({ success: false, error: message }), {

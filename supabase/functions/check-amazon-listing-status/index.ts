@@ -51,7 +51,6 @@ serve(async (req) => {
 
   try {
     const body: RequestBody = await req.json();
-    await authenticateRequest(req, tenant_id);
     const { product_id, tenant_id, connection_id, sku } = body;
 
     console.log('Checking Amazon listing status:', { product_id, sku });
@@ -64,6 +63,10 @@ serve(async (req) => {
       );
     }
 
+    // BUILD-GREEN-1: stond vóór de destructurering (0c5d3577, 7 mei 2026) →
+    // ReferenceError op tenant_id bij élke aanroep.
+    await authenticateRequest(req, tenant_id);
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -74,6 +77,7 @@ serve(async (req) => {
       .from('marketplace_connections')
       .select('credentials, settings')
       .eq('id', connection_id)
+      .eq('tenant_id', tenant_id) // BUILD-GREEN-1: niet de API-sleutels van een andere winkel gebruiken
       .single();
 
     if (connError || !connection) {
@@ -194,7 +198,8 @@ serve(async (req) => {
     const { error: updateError } = await supabase
       .from('products')
       .update(updateData)
-      .eq('id', product_id);
+      .eq('id', product_id)
+      .eq('tenant_id', tenant_id);
 
     if (updateError) {
       console.error('Failed to update product:', updateError);
@@ -212,6 +217,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    if (error instanceof AuthError) {
+      return authErrorResponse(error, corsHeaders);
+    }
     console.error('Check Amazon listing status error:', error);
     return new Response(
       JSON.stringify({ 
