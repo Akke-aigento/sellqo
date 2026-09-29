@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { ownedCustomerIdOrNull } from "../_shared/customerGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -55,6 +56,10 @@ serve(async (req) => {
     // nummer. Het goedgekeurde template beperkte de inhoud, niet de ontvanger.
     // Zie docs/audits/edge-function-auth.md.
     await authenticateRequest(req, tenant_id);
+
+    // INBOX-REPLY-1: alleen een echte klant van deze winkel koppelen; een
+    // afgeleide gesprekssleutel of een id uit een andere winkel wordt null.
+    const safeCustomerId = await ownedCustomerIdOrNull(supabase, tenant_id, customer_id, "send-whatsapp-message");
 
     // Get WhatsApp connection for tenant
     const { data: connection, error: connectionError } = await supabase
@@ -134,9 +139,9 @@ serve(async (req) => {
       console.error('WhatsApp API error:', whatsappResult);
       
       // Log failed message
-      await supabase.from('customer_messages').insert({
+      const { error: failedLogError } = await supabase.from('customer_messages').insert({
         tenant_id,
-        customer_id,
+        customer_id: safeCustomerId,
         order_id,
         quote_id,
         direction: 'outbound',
@@ -150,6 +155,9 @@ serve(async (req) => {
         error_message: whatsappResult.error?.message || 'Unknown error',
         whatsapp_status: 'failed',
       });
+      if (failedLogError) {
+        console.error('[send-whatsapp-message] mislukte poging niet opgeslagen:', failedLogError.message);
+      }
 
       return new Response(
         JSON.stringify({ error: whatsappResult.error?.message || 'Failed to send WhatsApp message' }),
@@ -160,9 +168,11 @@ serve(async (req) => {
     const messageId = whatsappResult.messages?.[0]?.id;
 
     // Log successful message
-    await supabase.from('customer_messages').insert({
+    // INBOX-REPLY-1: het bericht is op dit punt al verstuurd. Een mislukte insert
+    // was stil, waardoor het in de inbox ontbrak en de tenant opnieuw verstuurde.
+    const { error: loggedError } = await supabase.from('customer_messages').insert({
       tenant_id,
-      customer_id,
+      customer_id: safeCustomerId,
       order_id,
       quote_id,
       direction: 'outbound',
@@ -179,6 +189,9 @@ serve(async (req) => {
       context_type: order_id ? 'order' : quote_id ? 'quote' : 'general',
       context_data: template_variables || {},
     });
+    if (loggedError) {
+      console.error('[send-whatsapp-message] verstuurd, maar niet opgeslagen:', loggedError.message);
+    }
 
     return new Response(
       JSON.stringify({ 

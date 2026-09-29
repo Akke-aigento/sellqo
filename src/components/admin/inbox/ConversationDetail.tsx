@@ -10,7 +10,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { MessageBubble } from './MessageBubble';
 import { ReplyComposer } from './ReplyComposer';
 import { ConversationActions } from './ConversationActions';
-import { useCustomers } from '@/hooks/useCustomers';
+import { useTenant } from '@/hooks/useTenant';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { realCustomerId } from '../../../../supabase/functions/_shared/customerId';
 import { useToast } from '@/hooks/use-toast';
 import type { Conversation, MessageStatus } from '@/hooks/useInbox';
 import { useTranslation } from 'react-i18next';
@@ -42,7 +45,8 @@ export function ConversationDetail({
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const { createCustomer } = useCustomers();
+  const { currentTenant } = useTenant();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [isCreatingCustomer, setIsCreatingCustomer] = useState(false);
@@ -124,31 +128,69 @@ export function ConversationDetail({
   const isDeleted = conversationStatus === 'deleted';
 
   // Handle creating a customer from conversation
+  // INBOX-REPLY-1: tot 29-09 onbereikbaar (de afgeleide klant had altijd een id,
+  // dus stond hier een 404-link naar /admin/customers/<gesprekssleutel>). Nu:
+  // bestaande klant met dit adres gebruiken of een prospect aanmaken, zoals
+  // handle-inbound-email doet, en daarna de berichten van dit gesprek koppelen.
+  // Zonder die koppeling bleef het gesprek klantloos en faalde een tweede klik
+  // op de unieke index (tenant_id, email).
   const handleCreateCustomer = async () => {
-    if (!customer?.email) return;
-    
+    if (!customer?.email || !currentTenant?.id) return;
+    const tenantId = currentTenant.id;
+    const email = customer.email.toLowerCase().trim();
+
     setIsCreatingCustomer(true);
     try {
-      // Parse name from display name if available
-      const nameParts = (customer.name || '').split(' ');
-      const firstName = nameParts[0] || '';
-      const lastName = nameParts.slice(1).join(' ') || '';
-      
-      await createCustomer.mutateAsync({
-        email: customer.email,
-        first_name: firstName,
-        last_name: lastName,
-        phone: customer.phone || undefined,
-        customer_type: 'prospect',
-      });
-      
+      const { data: existing, error: findError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('email', email)
+        .maybeSingle();
+      if (findError) throw findError;
+
+      let customerId = existing?.id ?? null;
+      if (!customerId) {
+        const nameParts = (customer.name && customer.name !== customer.email ? customer.name : '').split(' ');
+        const { data: created, error: createError } = await supabase
+          .from('customers')
+          .insert({
+            tenant_id: tenantId,
+            email,
+            first_name: nameParts[0] || null,
+            last_name: nameParts.slice(1).join(' ') || null,
+            phone: customer.phone || null,
+            customer_type: 'prospect',
+            notes: 'Aangemaakt vanuit de inbox',
+            total_orders: 0,
+            total_spent: 0,
+          })
+          .select('id')
+          .single();
+        if (createError) throw createError;
+        customerId = created.id;
+      }
+
+      const messageIds = messages.filter((m) => !m.customer_id).map((m) => m.id);
+      if (messageIds.length) {
+        const { error: linkError } = await supabase
+          .from('customer_messages')
+          .update({ customer_id: customerId })
+          .eq('tenant_id', tenantId)
+          .is('customer_id', null)
+          .in('id', messageIds);
+        if (linkError) throw linkError;
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['inbox-messages'] }),
+        queryClient.invalidateQueries({ queryKey: ['customers'] }),
+      ]);
+
       toast({
         title: t('admin.inbox.conversationDetail.klant_aangemaakt'),
         description: t('admin.inbox.conversationDetail.toegevoegd_als_prospect', { customer: customer.name || customer.email }),
       });
-      
-      // Refresh the conversation to get the new customer ID
-      onMessageSent();
     } catch (error) {
       console.error('Failed to create customer:', error);
       toast({
@@ -206,9 +248,9 @@ export function ConversationDetail({
               </Link>
             </Button>
           )}
-          {!isMobile && (customer?.id ? (
+          {!isMobile && (realCustomerId(customer?.id) ? (
             <Button variant="outline" size="sm" asChild>
-              <Link to={`/admin/customers/${customer.id}`}>
+              <Link to={`/admin/customers/${customer?.id}`}>
                 <User className="h-4 w-4 mr-1" />
                 {t('admin.inbox.conversationDetail.klantprofiel')}
                 <ExternalLink className="h-3 w-3 ml-1" />

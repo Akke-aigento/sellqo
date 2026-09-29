@@ -57,7 +57,13 @@ export interface InboxMessage {
 export interface Conversation {
   id: string;
   customer: {
-    id: string;
+    /**
+     * INBOX-REPLY-1: null bij een afzender zonder klantrecord. Tot 29-09 stond
+     * hier de gesprekssleutel (`e-mail::onderwerp`), en die belandde bij een
+     * antwoord in een uuid-kolom. Nullable i.p.v. een vlag: tsc dwingt zo elke
+     * gebruiker om het geval af te handelen. Het gesprek zelf heet `id` hierboven.
+     */
+    id: string | null;
     name: string;
     email: string;
     phone?: string;
@@ -103,6 +109,99 @@ export interface InboxFilters {
 export const isSocialChannel = (channel: MessageChannel): boolean => {
   return channel === 'whatsapp' || channel === 'facebook' || channel === 'instagram';
 };
+
+/**
+ * Berichten → gesprekken, gegroepeerd op klant (of e-mailadres) + onderwerp.
+ * Uit de hook gehaald (INBOX-REPLY-1) zodat de test de echte groepering raakt.
+ */
+export function groupConversations(messages: InboxMessage[]): Conversation[] {
+  const grouped = new Map<string, InboxMessage[]>();
+
+  for (const msg of messages) {
+    // Normaliseer subject voor threading
+    const normalizedSubject = (msg.subject || '')
+      .replace(/^(Re:|Fw:|Fwd:)\s*/gi, '')
+      .trim()
+      .toLowerCase();
+    
+    // Groepeer op contact + onderwerp
+    const contactKey = msg.customer_id 
+      || (msg.direction === 'outbound' ? msg.to_email : msg.from_email) 
+      || 'unknown';
+    const key = `${contactKey}::${normalizedSubject || 'no-subject'}`;
+    const existing = grouped.get(key) || [];
+    grouped.set(key, [...existing, msg]);
+  }
+
+  const convos: Conversation[] = [];
+
+  for (const [key, msgs] of grouped.entries()) {
+    const sortedMsgs = msgs.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    const lastMessage = sortedMsgs[0];
+    const customer = lastMessage.customers;
+    
+    // Determine channel type
+    const channels = new Set(msgs.map((m) => m.channel));
+    let channel: ConversationChannel = 'email';
+    if (channels.size > 1) {
+      // Check if all are social channels
+      const allSocial = [...channels].every(c => isSocialChannel(c as MessageChannel));
+      channel = allSocial ? 'social' : 'mixed';
+    } else if (channels.has('whatsapp')) {
+      channel = 'whatsapp';
+    } else if (channels.has('facebook')) {
+      channel = 'facebook';
+    } else if (channels.has('instagram')) {
+      channel = 'instagram';
+    }
+
+    const unreadCount = msgs.filter(
+      (m) => m.direction === 'inbound' && !m.read_at
+    ).length;
+
+    // Find the most recent inbound message to get the reply_to_email
+    const lastInboundMessage = sortedMsgs.find(m => m.direction === 'inbound');
+    const replyToEmail = lastInboundMessage?.reply_to_email || customer?.email;
+
+    // Determine conversation status from last message
+    const messageStatus = (lastMessage.message_status as MessageStatus) || 'active';
+    const folderId = lastMessage.folder_id || null;
+
+    convos.push({
+      id: key,
+      customer: customer
+        ? {
+            id: customer.id,
+            name: [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email,
+            email: customer.email,
+            phone: customer.whatsapp_number || customer.phone || undefined,
+            facebook_psid: customer.facebook_psid || undefined,
+            instagram_id: customer.instagram_id || undefined,
+          }
+        : {
+            id: null,
+            name: lastMessage.from_email || lastMessage.to_email,
+            email: lastMessage.from_email || lastMessage.to_email,
+          },
+      lastMessage,
+      unreadCount,
+      channel,
+      messages: sortedMsgs,
+      replyToEmail,
+      messageStatus,
+      folderId,
+    });
+  }
+
+  // Sort by unread first, then by date
+  return convos.sort((a, b) => {
+    if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
+    if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
+    return new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime();
+  });
+}
 
 export function useInbox() {
   const { currentTenant } = useTenant();
@@ -227,94 +326,7 @@ export function useInbox() {
   });
 
   // Group messages into conversations
-  const conversations = useMemo(() => {
-    const grouped = new Map<string, InboxMessage[]>();
-
-    for (const msg of messages) {
-      // Normaliseer subject voor threading
-      const normalizedSubject = (msg.subject || '')
-        .replace(/^(Re:|Fw:|Fwd:)\s*/gi, '')
-        .trim()
-        .toLowerCase();
-      
-      // Groepeer op contact + onderwerp
-      const contactKey = msg.customer_id 
-        || (msg.direction === 'outbound' ? msg.to_email : msg.from_email) 
-        || 'unknown';
-      const key = `${contactKey}::${normalizedSubject || 'no-subject'}`;
-      const existing = grouped.get(key) || [];
-      grouped.set(key, [...existing, msg]);
-    }
-
-    const convos: Conversation[] = [];
-
-    for (const [key, msgs] of grouped.entries()) {
-      const sortedMsgs = msgs.sort(
-        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      const lastMessage = sortedMsgs[0];
-      const customer = lastMessage.customers;
-      
-      // Determine channel type
-      const channels = new Set(msgs.map((m) => m.channel));
-      let channel: ConversationChannel = 'email';
-      if (channels.size > 1) {
-        // Check if all are social channels
-        const allSocial = [...channels].every(c => isSocialChannel(c as MessageChannel));
-        channel = allSocial ? 'social' : 'mixed';
-      } else if (channels.has('whatsapp')) {
-        channel = 'whatsapp';
-      } else if (channels.has('facebook')) {
-        channel = 'facebook';
-      } else if (channels.has('instagram')) {
-        channel = 'instagram';
-      }
-
-      const unreadCount = msgs.filter(
-        (m) => m.direction === 'inbound' && !m.read_at
-      ).length;
-
-      // Find the most recent inbound message to get the reply_to_email
-      const lastInboundMessage = sortedMsgs.find(m => m.direction === 'inbound');
-      const replyToEmail = lastInboundMessage?.reply_to_email || customer?.email;
-
-      // Determine conversation status from last message
-      const messageStatus = (lastMessage.message_status as MessageStatus) || 'active';
-      const folderId = lastMessage.folder_id || null;
-
-      convos.push({
-        id: key,
-        customer: customer
-          ? {
-              id: customer.id,
-              name: [customer.first_name, customer.last_name].filter(Boolean).join(' ') || customer.email,
-              email: customer.email,
-              phone: customer.whatsapp_number || customer.phone || undefined,
-              facebook_psid: customer.facebook_psid || undefined,
-              instagram_id: customer.instagram_id || undefined,
-            }
-          : {
-              id: key,
-              name: lastMessage.from_email || lastMessage.to_email,
-              email: lastMessage.from_email || lastMessage.to_email,
-            },
-        lastMessage,
-        unreadCount,
-        channel,
-        messages: sortedMsgs,
-        replyToEmail,
-        messageStatus,
-        folderId,
-      });
-    }
-
-    // Sort by unread first, then by date
-    return convos.sort((a, b) => {
-      if (a.unreadCount > 0 && b.unreadCount === 0) return -1;
-      if (a.unreadCount === 0 && b.unreadCount > 0) return 1;
-      return new Date(b.lastMessage.created_at).getTime() - new Date(a.lastMessage.created_at).getTime();
-    });
-  }, [messages]);
+  const conversations = useMemo(() => groupConversations(messages), [messages]);
 
   // Client-side filtering is no longer needed for search (moved to database query)
   // Keep for additional client-side filtering like customer name matching

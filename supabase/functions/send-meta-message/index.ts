@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { ownedCustomerIdOrNull } from "../_shared/customerGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -39,6 +40,10 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // INBOX-REPLY-1: alleen een echte klant van deze winkel koppelen; een
+    // afgeleide gesprekssleutel of een id uit een andere winkel wordt null.
+    const safeCustomerId = await ownedCustomerIdOrNull(supabase, tenant_id, customer_id, "send-meta-message");
 
     // Get the connection for this tenant and platform
     let query = supabase
@@ -94,9 +99,9 @@ serve(async (req) => {
       console.error('Meta API error:', result);
       
       // Store failed message for retry
-      await supabase.from('customer_messages').insert({
+      const { error: failedLogError } = await supabase.from('customer_messages').insert({
         tenant_id,
-        customer_id,
+        customer_id: safeCustomerId,
         order_id,
         quote_id,
         direction: 'outbound',
@@ -112,6 +117,9 @@ serve(async (req) => {
         meta_page_id: connection.page_id,
         context_type: 'general',
       });
+      if (failedLogError) {
+        console.error('[send-meta-message] mislukte poging niet opgeslagen:', failedLogError.message);
+      }
 
       return new Response(
         JSON.stringify({ error: result.error?.message || 'Failed to send message' }),
@@ -122,7 +130,7 @@ serve(async (req) => {
     // Store successful outbound message
     const { error: insertError } = await supabase.from('customer_messages').insert({
       tenant_id,
-      customer_id,
+      customer_id: safeCustomerId,
       order_id,
       quote_id,
       direction: 'outbound',

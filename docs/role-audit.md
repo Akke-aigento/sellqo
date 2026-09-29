@@ -1,3 +1,88 @@
+## INBOX-REPLY-1 — antwoorden op berichten zonder gekoppelde klant — 29 september 2026
+
+2026-09-29 INBOX-REPLY-1: antwoorden op berichten zonder gekoppelde klant faalden (nep-klant-id =
+gesprekssleutel → uuid-fout bij insert). Ontdekt bij antwoord op contactformulier Van Empel vanuit iOS
+build 74.
+
+### Root cause
+
+- `src/hooks/useInbox.ts` (groepering, was ~r.296) gaf een afzender zonder klantrecord een afgeleide
+  klant met `id: key`, de gesprekssleutel `e-mail::onderwerp`. `ReplyComposer.tsx` stuurde die mee als
+  `customer_id`; `send-customer-message` schreef hem met de service-role in de uuid-kolom
+  `customer_messages.customer_id` → `invalid input syntax for type uuid`. De insert staat vóór het
+  versturen, dus er ging niets de deur uit.
+- Zelfde id voedde `ConversationDetail.tsx:209`: bij elke onbekende afzender een link "Klantprofiel" naar
+  `/admin/customers/<gesprekssleutel>` (404), waardoor de knop "Maak klant aan" nooit verscheen. Die
+  knop maakte bovendien een prospect zonder de berichten te koppelen; een tweede klik faalde op de
+  unieke index `customers (tenant_id, email)`.
+- `send-whatsapp-message` en `send-meta-message` versturen eerst en slaan daarna op; bij WhatsApp werd
+  de insert-fout niet gelezen. Een foute `customer_id` gaf daar dus een verstuurd bericht dat niet in de
+  inbox stond.
+- Alle drie schreven de `customer_id` uit de body ongecontroleerd weg met de service-role: een geldige
+  uuid van een klant uit een andere winkel werd gewoon gekoppeld.
+- Bron van klantloze contactformulieren: `storefront-api` → `submitContactForm` (r. ~3970) koppelt alleen
+  een bestaande klant en maakt geen prospect, anders dan `storefront-contact-form` en
+  `handle-inbound-email`. Live op 29-09: 1 contactformulier zonder klant (VanXcel, Van Empel), plus 12
+  oudere inbound e-mails zonder klant (Demo Bakkerij 7, SellQo 5, januari 2026).
+
+### Uitgevoerd
+
+- `supabase/functions/_shared/customerId.ts` (nieuw, puur) — `realCustomerId()`: uuid of null. Gedeeld
+  met `src/`.
+- `supabase/functions/_shared/customerGuard.ts` (nieuw) — `ownedCustomerIdOrNull()`: uuid-vorm én
+  `customers.tenant_id = tenant_id`; anders null met een waarschuwing (zonder de waarde te loggen).
+- `send-customer-message`, `send-whatsapp-message`, `send-meta-message` — `customer_id` via de guard;
+  WhatsApp (beide inserts) en Meta (mislukte poging) loggen nu een insert-fout.
+- `src/hooks/useInbox.ts` — `Conversation.customer.id` is `string | null`; afgeleide klant krijgt `null`
+  (nullable i.p.v. een `isVirtual`-vlag: tsc dwingt elke gebruiker het geval af te handelen). De
+  groepering is als pure `groupConversations()` uit de hook gehaald, zodat de test de echte code raakt.
+- `ReplyComposer.tsx` (3×), `ComposeDialog.tsx` (3×, defensief) — `customer_id: realCustomerId(...)`.
+- `ConversationDetail.tsx` — "Klantprofiel" alleen bij een echte uuid; "Maak klant aan" (keuze Akke
+  29-09): bestaande klant met dat adres gebruiken of een prospect aanmaken (velden zoals
+  `handle-inbound-email`), daarna de klantloze berichten van dít gesprek koppelen en de inbox verversen.
+  Eén toast in plaats van de dubbele via `useCustomers.createCustomer`.
+
+### Security-keuzes
+
+- Serverkant dicht nu ook het cross-tenant-koppelen van een `customer_id` (keuze Akke 29-09: vorm +
+  eigen winkel). Eén extra select op `customers` per verzending.
+- Klant koppelen vanuit de inbox loopt onder bestaande RLS: `customer_messages` UPDATE vereist
+  `tenant_admin`/`staff` (policy "Users can update messages for their tenant"); de update filtert op
+  `tenant_id`, `customer_id is null` en de message-id's van het gesprek.
+- Geen policies, grants of kolommen gewijzigd.
+
+### Gedeelde-paden-waarschuwing
+
+`customer_messages` en `customers` zijn gedeeld met de storefront-paden, maar hier alleen gelezen/
+geschreven vanuit de admin en drie admin-verzendfuncties. `storefront-api` is **niet** aangeraakt.
+
+### Verificatie
+
+`tsc` exit 0; vitest 514 groen (5 nieuw in `inboxCustomerId.test.ts`: uuid mee, gesprekssleutel/
+undefined/null → null, groepering zonder klant → `id: null`, met klant → uuid; mocks van
+`conversationMarkAsRead.test.tsx` bijgewerkt); `deno check` via `npx -y deno` (2.9.6) HEAD vs nieuw:
+WhatsApp en Meta 0/0, `send-customer-message` 8/8 identieke bestaande fouten in
+`_shared/tenantEmail.ts`/`sellqoEmail.ts`; check:mail/messages/notifications en i18n-parity exit 0;
+eslint per bestand gelijk aan HEAD; `npm run build` groen; `npx cap sync` uitgevoerd.
+
+### Redeploy (import-grep op `_shared/customerGuard|customerId`)
+
+`send-customer-message`, `send-whatsapp-message`, `send-meta-message`. Daarna publish, iOS via Xcode
+Cloud (nummert zelf), Android `versionCode 11`.
+
+### Bewust ongemoeid / Vervolg
+
+- **Punt 4, voorstel (wacht op apart akkoord, eerste wet):** `submitContactForm` in `storefront-api`
+  laten doen wat `storefront-contact-form` en `handle-inbound-email` al doen: klant zoeken op
+  `(tenant_id, email)`, anders een prospect aanmaken (`customer_type 'prospect'`, notitie
+  "Aangemaakt via contactformulier"). Additief, antwoordcontract ongewijzigd.
+- De 12 oude klantloze e-mails blijven zoals ze zijn; per gesprek te koppelen met "Maak klant aan".
+- `order_id`/`quote_id` uit de body worden in dezelfde functies nog ongecontroleerd weggeschreven —
+  zelfde patroon als het cross-tenant-gat; niet in deze batch.
+- Correctie op APP-KEYBOARD-2: iOS-builds komen uit Xcode Cloud, dat zelf nummert (build 74);
+  `CURRENT_PROJECT_VERSION` in de pbxproj bepaalt het TestFlight-nummer niet. "APP-KEYBOARD-1 nooit op
+  de telefoon" is daarmee niet bewezen.
+
 ## APP-KEYBOARD-3 — toetsenbord wegtikken en wegvegen — 29 september 2026
 
 Vervolg op APP-KEYBOARD-2, zelfde build (iOS 11 / Android 10). Vraag Akke: het toetsenbord moet weg

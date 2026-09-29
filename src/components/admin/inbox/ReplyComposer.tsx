@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Send, Paperclip, Mail, MessageSquare, Sparkles, X, Facebook, Instagram } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { realCustomerId } from '../../../../supabase/functions/_shared/customerId';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useTenant } from '@/hooks/useTenant';
@@ -195,7 +196,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
         const { error } = await supabase.functions.invoke('send-whatsapp-message', {
           body: {
             tenant_id: currentTenant.id,
-            customer_id: conversation.customer?.id,
+            customer_id: realCustomerId(conversation.customer?.id),
             to_phone: conversation.customer?.phone,
             message: message.trim(),
             template_type: 'custom',
@@ -211,7 +212,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
             recipient_id: conversation.lastMessage?.meta_sender_id,
             page_id: conversation.lastMessage?.meta_page_id,
             message: message.trim(),
-            customer_id: conversation.customer?.id,
+            customer_id: realCustomerId(conversation.customer?.id),
           },
         });
         if (error) throw error;
@@ -235,7 +236,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
             body_html: message.trim().replace(/\n/g, '<br>'),
             body_text: message.trim(),
             context_type: 'general',
-            customer_id: conversation.customer?.id,
+            customer_id: realCustomerId(conversation.customer?.id),
             in_reply_to: inReplyTo,
             references: references,
           },

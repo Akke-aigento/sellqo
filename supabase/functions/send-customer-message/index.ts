@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { ownedCustomerIdOrNull } from "../_shared/customerGuard.ts";
 import { tenantSender } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
@@ -69,6 +70,10 @@ const handler = async (req: Request): Promise<Response> => {
     // Fase 2 — Batch 2B2b: klantenservice context (tenant_admin/staff/accountant)
     requireRole(auth, tenant_id, ['tenant_admin', 'staff', 'accountant']);
 
+    // INBOX-REPLY-1: alleen een echte klant van deze winkel koppelen; een
+    // afgeleide gesprekssleutel of een id uit een andere winkel wordt null.
+    const safeCustomerId = await ownedCustomerIdOrNull(supabaseClient, tenant_id, customer_id, "send-customer-message");
+
     // Fetch tenant info for branding and reply-to
     const { data: tenant, error: tenantError } = await supabaseClient
       .from("tenants")
@@ -108,7 +113,7 @@ const handler = async (req: Request): Promise<Response> => {
       .from("customer_messages")
       .insert({
         tenant_id,
-        customer_id,
+        customer_id: safeCustomerId,
         order_id,
         quote_id,
         direction: 'outbound',

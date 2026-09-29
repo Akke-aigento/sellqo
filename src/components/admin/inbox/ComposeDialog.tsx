@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
+import { realCustomerId } from '../../../../supabase/functions/_shared/customerId';
 import { Mail, MessageSquare, Send, Search, Facebook, Instagram, ChevronDown, ChevronUp, Paperclip, X, FileIcon, User } from 'lucide-react';
 import {
   Dialog,
@@ -240,7 +241,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
             body_html: messageHtml,
             body_text: messageHtml.replace(/<[^>]*>/g, ''),
             context_type: 'general',
-            customer_id: selectedCustomer?.id,
+            customer_id: realCustomerId(selectedCustomer?.id),
             ...(ccList.length > 0 && { cc: ccList }),
             ...(bccList.length > 0 && { bcc: bccList }),
             ...(attachmentsList.length > 0 && { attachments: attachmentsList }),
@@ -252,7 +253,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
         const { error } = await supabase.functions.invoke('send-whatsapp-message', {
           body: {
             tenant_id: currentTenant.id,
-            customer_id: selectedCustomer?.id,
+            customer_id: realCustomerId(selectedCustomer?.id),
             to_phone: toPhone,
             message: message.trim(),
             template_type: 'custom',
@@ -271,7 +272,7 @@ export function ComposeDialog({ open, onOpenChange, onSent }: ComposeDialogProps
             recipient_id: selectedCustomer.metaSenderId,
             page_id: connection.page_id,
             message: message.trim(),
-            customer_id: selectedCustomer.id,
+            customer_id: realCustomerId(selectedCustomer.id),
           },
         });
         if (error) throw error;

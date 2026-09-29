@@ -9,7 +9,10 @@ import type { Conversation, InboxMessage } from '@/hooks/useInbox';
 vi.mock('@/components/admin/inbox/ReplyComposer', () => ({ ReplyComposer: () => null }));
 vi.mock('@/components/admin/inbox/ConversationActions', () => ({ ConversationActions: () => null }));
 vi.mock('@/components/admin/inbox/MessageBubble', () => ({ MessageBubble: () => null }));
-vi.mock('@/hooks/useCustomers', () => ({ useCustomers: () => ({ createCustomer: { mutateAsync: vi.fn() } }) }));
+// INBOX-REPLY-1: ConversationDetail maakt klanten nu zelf aan (zoeken of aanmaken + koppelen).
+vi.mock('@/hooks/useTenant', () => ({ useTenant: () => ({ currentTenant: { id: 't1' } }) }));
+vi.mock('@tanstack/react-query', () => ({ useQueryClient: () => ({ invalidateQueries: vi.fn() }) }));
+vi.mock('@/integrations/supabase/client', () => ({ supabase: {} }));
 vi.mock('@/hooks/use-toast', () => ({ useToast: () => ({ toast: vi.fn() }) }));
 vi.mock('@/hooks/useDateFnsLocale', () => ({ useDateFnsLocale: () => undefined }));
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (k: string) => k }) }));
