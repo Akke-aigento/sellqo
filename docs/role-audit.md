@@ -72,13 +72,31 @@ Cloud (nummert zelf), Android `versionCode 11`.
 
 ### Bewust ongemoeid / Vervolg
 
-- **Punt 4, voorstel (wacht op apart akkoord, eerste wet):** `submitContactForm` in `storefront-api`
-  laten doen wat `storefront-contact-form` en `handle-inbound-email` al doen: klant zoeken op
-  `(tenant_id, email)`, anders een prospect aanmaken (`customer_type 'prospect'`, notitie
-  "Aangemaakt via contactformulier"). Additief, antwoordcontract ongewijzigd.
 - De 12 oude klantloze e-mails blijven zoals ze zijn; per gesprek te koppelen met "Maak klant aan".
-- `order_id`/`quote_id` uit de body worden in dezelfde functies nog ongecontroleerd weggeschreven —
-  zelfde patroon als het cross-tenant-gat; niet in deze batch.
+
+**Backlog (29-09, op verzoek Akke):**
+
+- **CONTACT-PROSPECT-1 — automatisch prospect via `storefront-api`.** `submitContactForm`
+  (`supabase/functions/storefront-api/index.ts`, r. ~3945-4010) koppelt alleen een bestaande klant;
+  `storefront-contact-form` en `handle-inbound-email` maken bij een onbekend adres een prospect aan
+  (`customer_type 'prospect'`, notitie). Gelijktrekken is additief en laat het antwoordcontract
+  ongemoeid, maar raakt een eerste-wet-functie: apart akkoord nodig. **Pas samen met een spamfilter**:
+  het formulier is anoniem aanroepbaar, dus zonder filter wordt elke spam-inzending een klantrecord
+  (unieke index `customers (tenant_id, email)` vangt alleen dubbels).
+- **HOTFIX-AUTH-2 — twee onbewaakte id's.**
+  1. `order_id`/`quote_id` uit de body worden in `send-customer-message`, `send-whatsapp-message` en
+     `send-meta-message` nog ongecontroleerd met de service-role weggeschreven — hetzelfde patroon als
+     het cross-tenant-gat dat INBOX-REPLY-1 voor `customer_id` dichtte. Fix: vorm + `tenant_id`-check,
+     anders null met waarschuwing (zelfde vorm als `_shared/customerGuard.ts`).
+  2. `generate-storefront-api-key` (nagelezen 29-09): controleert alleen `auth.getUser()` (r. 26) en
+     neemt `tenant_id` uit de body (r. 34), waarna hij met de service-role een actieve sleutel in
+     `storefront_api_keys` zet (r. 58-68) en de volledige sleutel teruggeeft. Elke ingelogde gebruiker
+     kan dus een sleutel aanmaken voor élke winkel. **Huidige impact beperkt**: geen enkele functie in
+     de repo valideert deze sleutels (grep op `storefront_api_keys`/`key_hash`: alleen deze functie,
+     `types.ts` en `StorefrontApiKeysManager.tsx`), maar de rij verschijnt wel in de sleutellijst van
+     die winkel, en het gat wordt scherp zodra iemand sleutelvalidatie toevoegt. Fix:
+     `authenticateRequest(req, tenant_id)` + `requireRole(auth, tenant_id, ['tenant_admin'])` vóór de
+     insert.
 - Correctie op APP-KEYBOARD-2: iOS-builds komen uit Xcode Cloud, dat zelf nummert (build 74);
   `CURRENT_PROJECT_VERSION` in de pbxproj bepaalt het TestFlight-nummer niet. "APP-KEYBOARD-1 nooit op
   de telefoon" is daarmee niet bewezen.
