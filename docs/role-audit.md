@@ -80,8 +80,7 @@ iOS via Xcode Cloud (TestFlight-nummer hier noteren), Android `versionCode 12` (
 - **Handtekening — rapport, niet gebouwd:** er bestaat al een tabel `email_signatures` (migratie
   20260608204159: `tenant_id`, `user_id` (null = winkelbreed), `name`, `body_html`, `is_default`; RLS: lezen
   voor winkelgebruikers, schrijven voor marketingrollen). **0 rijen, geen UI, geen functie gebruikt hem.**
-  Voorstel: een handtekening per gebruiker met winkelbrede terugval, ingevoegd onder de tekst in de
-  `inbox`-vorm. Wacht op go.
+  Opgenomen in de backlog als MAIL-SIGNATURE-1 (onder INBOX-REPLY-1).
 
 ## BUILD-GREEN-1 — deno check groen over alle edge functions — 29 september 2026
 
@@ -317,6 +316,13 @@ Cloud (nummert zelf), Android `versionCode 11`.
      werkende referentie `sync-bol-orders` eist via `authorizeMarketplaceSync` `SYNC_ROLES` (`tenant_admin`,
      `viewer`). Fix: `requireRole` na de authenticatie; welke rollen, afstemmen met de schrijfactie op
      `products` (viewer mag daar niet schrijven). Bol-aanroep zelf blijft ongemoeid.
+- **MAIL-SIGNATURE-1 — handtekening onder inbox-mails.** Per gebruiker, met een winkelbrede handtekening
+  als terugval, ingevoegd onder de tekst in de `inbox`-vorm van `send-customer-message`
+  (`_shared/customerMessageEmail.ts`, MAIL-REPLY-FORMAT-1). De tabel `email_signatures` bestaat al
+  (migratie 20260608204159, 8 juni: `tenant_id`, `user_id` — null = winkelbreed —, `name`, `body_html`,
+  `is_default`; RLS: lezen voor winkelgebruikers, schrijven voor marketingrollen), maar heeft **0 rijen,
+  geen UI en geen functie die hem gebruikt**. Nog te beslissen: wie mag een handtekening beheren (nu alleen
+  marketingrollen), en of de handtekening client- of serverzijdig wordt ingevoegd.
 - **SUPABASE-JS-1 — één gedeelde supabase-js-versie (runtime-batch).** Stand 29-09: 8 versies over 240
   functies (120× `@2`, 82× `@2.57.2`, 14× `@2.39.3`, 7× `@2.90.1`, 7× `@2.45.0`, 2× `@2.49.1`, 1×
   `@2.95.0`, 1× `@2.49.4`) plus 2× `npm:@supabase/supabase-js@2`. `@2` zweeft: elke deploy kan een andere
