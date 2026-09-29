@@ -1,12 +1,17 @@
 /**
  * TENANT-SWITCHER-1 — de winkelkiezer voor platform-admins in drie groepen.
  *
- * Volledig afgeleid, geen eigen kolom:
- *   - demo     → `tenants.is_demo = true` (wint, ook bij een eigen rol);
- *   - own      → de gebruiker heeft een eigen rij in `user_roles` voor die winkel;
- *   - clients  → alleen bereikbaar via platform_admin (die rij heeft tenant_id NULL).
+ *   - demo     → `tenants.is_demo = true` (wint, ook bij een interne winkel);
+ *   - own      → `tenants.is_internal_tenant = true`;
+ *   - clients  → al het overige.
  *
- * `is_internal_tenant` bewust niet: die stuurt Stripe/billing, niet de weergave.
+ * TENANT-INTERNAL-1 (28-09): eerst kwam "Mijn winkels" uit de eigen rijen in
+ * `user_roles`, omdat `is_internal_tenant` toen geen schakelaar had en dus niet
+ * te vertrouwen was als signaal. Sinds die schakelaar bestaat is de vlag de
+ * expliciete bron, en de afgeleide versie liep er aantoonbaar naast: Studio
+ * Akke (intern, geen rol) stond bij de klanten en The Fonske Crawl (rol, niet
+ * intern) bij de eigen winkels. Keuze Akke: alleen de vlag telt.
+ *
  * Een gewone gebruiker krijgt `null` — de kiezer blijft dan zoals hij was.
  */
 
@@ -16,6 +21,7 @@ export interface GroupableTenant {
   id: string;
   name: string;
   is_demo?: boolean | null;
+  is_internal_tenant?: boolean | null;
 }
 
 export interface TenantGroup<T extends GroupableTenant> {
@@ -27,15 +33,13 @@ const ORDER: TenantGroupKey[] = ['own', 'clients', 'demo'];
 
 export function groupTenants<T extends GroupableTenant>(
   tenants: readonly T[],
-  roles: ReadonlyArray<{ tenant_id: string | null }>,
   isPlatformAdmin: boolean,
 ): TenantGroup<T>[] | null {
   if (!isPlatformAdmin) return null;
 
-  const ownIds = new Set(roles.map((r) => r.tenant_id).filter((id): id is string => !!id));
   const buckets: Record<TenantGroupKey, T[]> = { own: [], clients: [], demo: [] };
   for (const tenant of tenants) {
-    const key: TenantGroupKey = tenant.is_demo ? 'demo' : ownIds.has(tenant.id) ? 'own' : 'clients';
+    const key: TenantGroupKey = tenant.is_demo ? 'demo' : tenant.is_internal_tenant ? 'own' : 'clients';
     buckets[key].push(tenant);
   }
 

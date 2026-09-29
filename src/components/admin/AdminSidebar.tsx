@@ -50,7 +50,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 export function AdminSidebar() {
   const { t } = useTranslation();
   const location = useLocation();
-  const { user, signOut, isPlatformAdmin, roles } = useAuth();
+  const { user, signOut, isPlatformAdmin } = useAuth();
   const { currentTenant, tenants, setCurrentTenant, loading: tenantsLoading } = useTenant();
   const { hiddenItems } = useSidebarPreferences();
   const { isPageHidden, togglePage, isToggling, isFeatureGranted, toggleGrantedFeature, isTogglingFeature } = useTenantPageOverrides();
@@ -58,7 +58,7 @@ export function AdminSidebar() {
   const [customizeOpen, setCustomizeOpen] = useState(false);
   // TENANT-SWITCHER-1: platform-admins krijgen de gegroepeerde kiezer; voor
   // iedereen anders is dit null en blijft de gewone kiezer hieronder staan.
-  const tenantGroups = groupTenants(tenants, roles ?? [], isPlatformAdmin);
+  const tenantGroups = groupTenants(tenants, isPlatformAdmin);
 
   // De zichtbaarheidsregels stonden hier, en de mobiele onderbalk paste ze
   // niet toe. Ze zijn verhuisd naar useNavItemVisibility zodat beide weergaven

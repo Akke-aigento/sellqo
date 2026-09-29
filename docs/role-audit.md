@@ -43,6 +43,19 @@ n.v.t. — geen edge function, geen migratie, geen gedeelde tabel gewijzigd. De 
 `no-explicit-any` in `useTenants.ts` (identiek aan HEAD, alleen verschoven regelnummers), 0 in
 `TenantFormDialog.tsx` — geen regressie op de baseline van 1506.
 
+### Naverwerking — groepering van de winkelkiezer
+
+De schakelaar legde bloot dat de kiezer "Mijn winkels" afleidde uit `user_roles` in plaats van uit de
+vlag (`src/lib/tenantGroups.ts`, keuze TENANT-SWITCHER-1 toen de vlag nog onbereikbaar was). Live liep
+dat er op twee punten naast: **Studio Akke** (intern, geen rol van de admin) stond bij de klanten, en
+**The Fonske Crawl** (wel een rol, niet intern) bij de eigen winkels. Keuze Akke 28-09: alleen de vlag
+telt. `groupTenants` groepeert nu op `is_internal_tenant`, `is_demo` wint nog steeds, en de parameter
+`roles` is vervallen — ook uit `AdminSidebar.tsx`. Sortering binnen een groep blijft alfabetisch (NL,
+hoofdletterongevoelig); de lijst komt al op naam uit de database.
+
+Gevolg dat je in de UI ziet: The Fonske Crawl verhuist naar "Klanten" zolang die winkel niet als intern
+gemarkeerd is. Dat is nu met de schakelaar te doen.
+
 ### Bewust ongemoeid / Vervolg
 
 - De bestaande winkels zijn **niet** omgezet: VanXcel, Loveke en The Fonske Crawl staan nog op
