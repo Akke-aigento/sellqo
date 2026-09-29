@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11f — Al je klantberichten in je SellQo-inbox (improvement, 29-09-2026)
+
+**Voor wie:** alle winkels.
+
+**Berichten via het contactformulier van je webshop komen nu altijd in je SellQo-inbox**, net als
+antwoorden van klanten op je mails. Komt er een nieuw bericht binnen, dan krijg je een e-mail met wie het
+stuurde en het begin van het bericht, en een knop om het meteen te openen.
+
+**Liever je eigen adres?** Wil je antwoorden van klanten op je eigen e-mailadres ontvangen, kies dat dan
+onder Instellingen → Email Inbox bij Klantcontact-e-mail.
+
+**i18n-key.** `public.changelog.changes.all_messages_in_inbox` — vijf talen, volledige pariteit.
+
 ### 2026.11e — Een melding opent meteen het juiste item (improvement, 19-09-2026)
 
 **Voor wie:** alle winkels, in de app en in de browser.

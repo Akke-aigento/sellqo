@@ -1560,6 +1560,10 @@
         "notification_opens_item": {
           "title": "A notification opens the right item straight away",
           "description": "Tap a notification and you go straight to the order, product or message — in the app and in the browser. For an invoice, the invoice list shows that invoice right away. If the notification belongs to another store you manage, SellQo switches to that store first. If an item can no longer be opened, you land in the list for that kind of item."
+        },
+        "all_messages_in_inbox": {
+          "title": "All your customer messages in your SellQo inbox",
+          "description": "Messages sent through the contact form of your store now always arrive in your SellQo inbox, just like customer replies to your emails. When a new message comes in, you get an email showing who sent it and the start of the message, with a button to open it right away. Prefer replies on your own email address? Choose it under Settings → Email inbox, at Customer contact email."
         }
       },
       "copyLink": "Copy link",

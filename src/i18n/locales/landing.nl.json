@@ -1560,6 +1560,10 @@
         "notification_opens_item": {
           "title": "Een melding opent meteen het juiste item",
           "description": "Tik op een melding en je komt meteen bij de bestelling, het product of het bericht — in de app en in de browser. Bij een factuur toont de factuurlijst meteen die factuur. Hoort de melding bij een andere winkel die je beheert, dan wisselt SellQo eerst naar die winkel. Kan een item niet meer geopend worden, dan kom je in de lijst van die soort."
+        },
+        "all_messages_in_inbox": {
+          "title": "Al je klantberichten in je SellQo-inbox",
+          "description": "Berichten via het contactformulier van je webshop komen nu altijd in je SellQo-inbox, net als antwoorden van klanten op je mails. Komt er een nieuw bericht binnen, dan krijg je een e-mail met wie het stuurde en het begin van het bericht, en een knop om het meteen te openen. Liever antwoorden op je eigen e-mailadres? Kies dat onder Instellingen → Email Inbox bij Klantcontact-e-mail."
         }
       },
       "copyLink": "Kopieer link",

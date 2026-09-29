@@ -1560,6 +1560,10 @@
         "notification_opens_item": {
           "title": "Eine Benachrichtigung öffnet direkt das richtige Element",
           "description": "Tippen Sie auf eine Benachrichtigung, und Sie gelangen direkt zur Bestellung, zum Produkt oder zur Nachricht — in der App und im Browser. Bei einer Rechnung zeigt die Rechnungsliste sofort diese Rechnung. Gehört die Benachrichtigung zu einem anderen Shop, den Sie verwalten, wechselt SellQo zuerst zu diesem Shop. Lässt sich ein Element nicht mehr öffnen, landen Sie in der passenden Liste."
+        },
+        "all_messages_in_inbox": {
+          "title": "Alle Kundennachrichten in Ihrem SellQo-Posteingang",
+          "description": "Nachrichten über das Kontaktformular Ihres Shops landen jetzt immer in Ihrem SellQo-Posteingang, genau wie Antworten von Kunden auf Ihre E-Mails. Kommt eine neue Nachricht an, erhalten Sie eine E-Mail mit dem Absender und dem Anfang der Nachricht, samt einer Schaltfläche, um sie direkt zu öffnen. Lieber Antworten an Ihre eigene E-Mail-Adresse? Wählen Sie sie unter Einstellungen → E-Mail-Posteingang bei Kundenkontakt-E-Mail."
         }
       },
       "copyLink": "Link kopieren",

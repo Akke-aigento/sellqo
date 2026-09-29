@@ -1560,6 +1560,10 @@
         "notification_opens_item": {
           "title": "Une notification ouvre directement le bon élément",
           "description": "Touchez une notification et vous arrivez directement à la commande, au produit ou au message — dans l'application et dans le navigateur. Pour une facture, la liste des factures affiche directement cette facture. Si la notification concerne une autre boutique que vous gérez, SellQo bascule d'abord vers cette boutique. Si un élément ne peut plus être ouvert, vous arrivez dans la liste correspondante."
+        },
+        "all_messages_in_inbox": {
+          "title": "Tous vos messages clients dans votre boîte SellQo",
+          "description": "Les messages envoyés via le formulaire de contact de votre boutique arrivent désormais toujours dans votre boîte de réception SellQo, tout comme les réponses des clients à vos e-mails. Quand un nouveau message arrive, vous recevez un e-mail indiquant qui l'a envoyé et le début du message, avec un bouton pour l'ouvrir directement. Vous préférez recevoir les réponses sur votre propre adresse e-mail ? Choisissez-la dans Paramètres → Boîte de réception e-mail, sous E-mail de contact client."
         }
       },
       "copyLink": "Copier le lien",

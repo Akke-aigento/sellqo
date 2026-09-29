@@ -129,6 +129,9 @@ nieuwe i18n-sleutels, uitvoer gelijk). Alleen met groene build. Daarna publish, 
   van de functie) — slapend, strijdig met "geen doorsturing"; niet aangeraakt.
 - De frontends zelf (frozen): hardcoded adressen en de proxy-routering → FRONTEND-CONTACT-2.
 - `docs/storefront-koppeling-recon.md` stond ongecommit in de werkboom (andere sessie); niet meegenomen.
+- Release-sporen (aparte commit): changelog `2026.11f` `all_messages_in_inbox` (improvement, vijf talen) en
+  nieuwsbriefitem in `docs/newsletter-queue.md`. Nuance bij "altijd": geldt voor contactformulieren die met
+  SellQo verbonden zijn; The Fonske Crawl heeft een eigen formulier-backend.
 
 ## MAIL-REPLY-FORMAT-1 — antwoord uit de inbox leest als een gewone e-mail — 29 september 2026
 
