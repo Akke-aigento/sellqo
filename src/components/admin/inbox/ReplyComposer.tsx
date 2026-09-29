@@ -287,7 +287,8 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
   };
 
   return (
-    <div className="border-t p-4 bg-background">
+    // data-keep-keyboard: een tik net naast het tekstvak sluit het toetsenbord niet (APP-KEYBOARD-3).
+    <div data-keep-keyboard className="shrink-0 border-t p-4 bg-background">
       {/* Channel selector */}
       {hasMultipleChannels && (
         <Tabs value={channel} onValueChange={(v) => setChannel(v as ReplyChannel)} className="mb-3">
@@ -364,13 +365,15 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
       />
 
       {/* Message input */}
+      {/* APP-KEYBOARD-2: min-w-0 + shrink-0 — zonder die twee duwde het tekstvak
+          de verzendknop op een telefoon rechts het scherm uit (nomadix-mobiel M4). */}
       <div className="flex gap-2">
-        <div className="flex-1 relative">
+        <div className="flex-1 min-w-0 relative">
           <Textarea
             placeholder={t('admin.inbox.replyComposer.typ_je_antwoord')}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            className="min-h-[120px] resize-y pr-10"
+            className="min-h-[88px] sm:min-h-[120px] resize-y pr-10"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 handleSend();
@@ -387,7 +390,7 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
             <Paperclip className="h-4 w-4" />
           </Button>
         </div>
-        <div className="flex flex-col gap-1 self-end">
+        <div className="flex flex-col gap-1 self-end shrink-0">
           {shouldShowAISuggestion && !suggestion && !isSuggestionLoading && (
             <Button
               variant="outline"
@@ -409,7 +412,8 @@ export function ReplyComposer({ conversation, onSent }: ReplyComposerProps) {
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground mt-2">
+      {/* Een sneltoets die op een touchscherm niet bestaat: alleen tonen met een muis. */}
+      <p className="hidden [@media(pointer:fine)]:block text-xs text-muted-foreground mt-2">
         {t('admin.inbox.replyComposer.druk_op_cmd_enter_om_te')}
       </p>
     </div>

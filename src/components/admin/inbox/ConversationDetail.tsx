@@ -15,6 +15,8 @@ import { useToast } from '@/hooks/use-toast';
 import type { Conversation, MessageStatus } from '@/hooks/useInbox';
 import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useStickToBottom } from '@/hooks/useStickToBottom';
+import { useSwipeDownToDismissKeyboard } from '@/hooks/useKeyboardDismiss';
 
 interface ConversationDetailProps {
   conversation: Conversation;
@@ -63,12 +65,10 @@ export function ConversationDetail({
     onMarkAsReadRef.current();
   }, [conversation.id, conversation.unreadCount]);
 
-  // Scroll to bottom when conversation changes
-  useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
-  }, [conversation.id]);
+  // APP-KEYBOARD-3: onderaan openen en daar blijven als het toetsenbord op- of
+  // wegkomt; naar beneden vegen over de berichten sluit het toetsenbord.
+  useStickToBottom(scrollRef, conversation.id);
+  useSwipeDownToDismissKeyboard(scrollRef);
 
   const { customer, channel } = conversation;
   const messages = conversation.messages || [];
@@ -237,7 +237,7 @@ export function ConversationDetail({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 min-h-0 p-4" ref={scrollRef}>
         <div className="space-y-6">
           {sortedDates.map((date) => (
             <div key={date}>

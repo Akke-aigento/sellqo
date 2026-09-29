@@ -1,3 +1,118 @@
+## APP-KEYBOARD-3 — toetsenbord wegtikken en wegvegen — 29 september 2026
+
+Vervolg op APP-KEYBOARD-2, zelfde build (iOS 11 / Android 10). Vraag Akke: het toetsenbord moet weg
+kunnen voor overzicht, en terugkomen bij een tik in het tekstvak — "mooi vloeiend en natuurlijk".
+
+### Root cause
+
+- **Geen enkele manier om het toetsenbord te sluiten.** `@capacitor/keyboard` verbergt op iOS standaard
+  de balk met "Gereed" (`node_modules/@capacitor/keyboard/ios/Sources/KeyboardPlugin/Keyboard.m:187`,
+  `hideFormAccessoryBar = YES`; in de app wordt `setAccessoryBarVisible` nergens aangeroepen), en in een
+  WKWebView sluit een tik náást een veld het toetsenbord niet.
+- **Een gesprek opende nooit onderaan.** `ConversationDetail.tsx:67` zette `scrollTop` op de Root van de
+  Radix ScrollArea, die `overflow-hidden` is; de Viewport erbinnen scrolt. Onzichtbaar zolang de hele
+  pagina scrolde; met de vaste hoogte uit APP-KEYBOARD-2 zou een gesprek op het oudste bericht openen.
+
+### Uitgevoerd
+
+Keuze Akke 29-09: chat-gebaren, geen Gereed-balk.
+
+- `src/lib/keyboardDismiss.ts` (nieuw) — `shouldDismissKeyboardOnTap` (nooit bij knoppen, links,
+  velden, ARIA-rollen of `[data-keep-keyboard]`), `isTap` (≤ 10px, ≤ 500ms), `isDismissSwipe` (≥ 24px
+  naar beneden, overwegend verticaal), `isNearBottom` (≤ 48px).
+- `src/hooks/useKeyboardDismiss.ts` (nieuw) — `useTapToDismissKeyboard` (AdminLayout, alleen native of
+  touch): een tik op een lege plek blurt het veld. Touch-events i.p.v. `click` (iOS stuurt geen click
+  voor niet-klikbare elementen naar document), en pas bij het loslaten, zodat een tik op Verzenden nooit
+  zijn doel mist doordat de layout verschuift. `useSwipeDownToDismissKeyboard` op de berichtenlijst.
+- `src/hooks/useStickToBottom.ts` (nieuw) — gesprek opent onderaan en blijft daar als het venster krimpt
+  of groeit (toetsenbord op/weg) of er een bericht bijkomt; wie omhoog scrolt, wordt niet teruggetrokken.
+- `ConversationDetail.tsx` — beide hooks i.p.v. het oude scroll-effect.
+- `ReplyComposer.tsx` — `data-keep-keyboard` op de box: een tik net naast het tekstvak houdt het
+  toetsenbord open. Getypte tekst blijft staan (blur wist de state niet).
+
+### Security-keuzes
+
+n.v.t. — alleen weergave en gebaren.
+
+### Gedeelde-paden-waarschuwing
+
+n.v.t. — alleen de admin-app.
+
+### Verificatie
+
+`tsc` exit 0; vitest 509 tests groen (13 nieuw in `keyboardDismiss.test.ts`, met jsdom-DOM voor de
+tik-regel); `npm run build` groen; `npx cap sync` uitgevoerd; eslint: nieuwe bestanden schoon,
+ReplyComposer/ConversationDetail gelijk aan HEAD. **Niet op een toestel geverifieerd** — build 11.
+
+### Bewust ongemoeid / Vervolg
+
+- Geen Gereed-balk (keuze). Geen changelog, zoals APP-KEYBOARD-1/2.
+- Android: de terugknop sluit het toetsenbord al standaard; de gebaren werken daar ook.
+
+## APP-KEYBOARD-2 — navigatiepil over de antwoordbox in de inbox — 29 september 2026
+
+Melding Akke (screenshot, iPhone, VanXcel): bij het typen van een antwoord in de inbox hing de zwevende
+navigatiepil midden over het tekstvak, en viel de verzendknop rechts buiten beeld.
+
+### Root cause
+
+Drie oorzaken die samen het screenshot gaven:
+
+1. **Eén enkel signaal voor "toetsenbord open".** `AdminLayout.tsx` verbergt de pil zolang
+   `keyboard.isOpen`, en in de native app kwam die status alléén uit het `keyboardWillShow`-event van
+   `@capacitor/keyboard` (`src/hooks/useKeyboardInset.ts`). Zonder dat event geen vangnet. Op Akkes
+   telefoon stond bovendien build 8 of lager (keuze in chat 29-09): APP-KEYBOARD-1 (build 9) heeft er
+   nooit op gestaan. De app draait gebundelde code, dus webfixes bereiken hem pas met een nieuwe build.
+2. **De inbox had op mobiel geen hoogte.** `src/pages/admin/Messages.tsx:357` bouwde de klasse
+   `h-[calc(100%-${isSinglePanel ? '2.5rem' : '5rem'})]`. Tailwind genereert geen klassen met een
+   variabele erin: nagetrokken dat `calc(100% - 2.5rem)` niet in de gebouwde CSS stond. Daardoor viel
+   `h-full` in `ConversationDetail` terug op `auto`, stond de antwoordbox onder het laatste bericht in
+   plaats van onderaan, en lag hij precies onder de pil. Het enige geval van dit patroon in `src`.
+3. **Antwoordbox breder dan het scherm.** De tekstvak-wrapper in `ReplyComposer.tsx` was `flex-1`
+   zonder `min-w-0` (nomadix-mobiel M4), dus de verzendknop werd rechts het scherm uit geduwd.
+
+### Uitgevoerd
+
+- `src/lib/keyboardInset.ts` — `isEditableElement` en `resolveKeyboardOpen`: native met een plugin die
+  zich al gemeld heeft → de plugin is leidend (ziet ook wegvegen met focus); anders krimpende viewport
+  óf een tekstveld met focus op een touchtoestel.
+- `src/hooks/useKeyboardInset.ts` — volgt `focusin`/`focusout` (met één tick uitstel, zodat de pil niet
+  knippert tussen twee velden) en combineert de signalen via `resolveKeyboardOpen`.
+- `src/hooks/useAdminBottomNav.ts` (nieuw) — een scherm kan de pil wegzetten; teller i.p.v. boolean.
+- `src/components/admin/AdminLayout.tsx` — pil weg bij toetsenbord óf op verzoek van de pagina; op
+  `/admin/messages` krijgt de contentwrapper `h-full`.
+- `src/pages/admin/Messages.tsx` — flex-kolom (`h-full`, kop `shrink-0`, paneel `flex-1 min-h-0`) in
+  plaats van `100dvh-4rem` en de niet-bestaande klasse; desktop-padding ongewijzigd. In een open gesprek
+  op mobiel geen pil (keuze Akke 29-09, zoals in elke chat-app; terug via de pijl bovenaan).
+- `src/components/admin/inbox/ReplyComposer.tsx` — `shrink-0` op de box, `min-w-0` op het tekstvak,
+  `shrink-0` op de knoppenkolom; tekstvak `min-h-[88px]` op mobiel (was 120px, met het toetsenbord
+  open bleef er nauwelijks gesprek over); "Press Cmd+Enter to send" alleen bij `pointer: fine` — op een
+  touchscherm bestaat die sneltoets niet.
+- `src/components/admin/inbox/ConversationDetail.tsx` — `min-h-0` op de berichtenlijst.
+- Build: iOS 11 / Android 10, `npx cap sync` uitgevoerd.
+
+### Security-keuzes
+
+n.v.t. — alleen weergave; geen data, rechten, RLS of edge functions geraakt.
+
+### Gedeelde-paden-waarschuwing
+
+n.v.t. — alleen de admin-app. Geen storefront-code, geen gedeelde tabel.
+
+### Verificatie
+
+`tsc` exit 0; vitest 496 tests groen (6 nieuw in `keyboardInset.test.ts`, waaronder "native, plugin
+zwijgt, tekstveld met focus → open"); `npm run build` groen; `pointer:fine` en `min-height:88px`
+aanwezig in de gebouwde CSS; eslint: gewijzigde bestanden gelijk aan HEAD (ReplyComposer 3,
+ConversationDetail 2 bestaande meldingen), nieuwe bestanden schoon.
+**Niet op een toestel geverifieerd**: het browserpaneel was niet ingelogd. Te testen op build 11.
+
+### Bewust ongemoeid / Vervolg
+
+- Geen changelog, net als APP-KEYBOARD-1: mobiel gedrag, geen nieuwe functie.
+- Voorstel voor `sellqo-engineering-rules`: nooit `${}` binnen een Tailwind-arbitrary-klasse — tsc,
+  lint en build zijn dan allemaal groen terwijl de klasse niet bestaat. Wacht op go.
+
 ## TENANT-INTERNAL-1 — schakelaar "interne winkel" in het tenantformulier — 28 september 2026
 
 Kleine fix op verzoek: bij een winkel kon je wel "demo" aanzetten, maar niet "intern" (zoals VanXcel

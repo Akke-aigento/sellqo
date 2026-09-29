@@ -67,3 +67,53 @@ export function availableListHeight(opts: {
   const min = opts.min ?? 120;
   return Math.max(min, Math.min(opts.max, Math.round(opts.viewportHeight - opts.top - margin)));
 }
+
+// ── APP-KEYBOARD-2: meer dan één signaal ─────────────────────────────
+
+/** Invoertypes die géén schermtoetsenbord openen. */
+const NON_TEXT_INPUT_TYPES = new Set([
+  'button', 'checkbox', 'color', 'file', 'hidden', 'image', 'radio', 'range', 'reset', 'submit',
+]);
+
+export interface FocusedElementLike {
+  tagName: string;
+  type?: string | null;
+  readOnly?: boolean;
+  disabled?: boolean;
+  isContentEditable?: boolean;
+}
+
+/** Opent focus op dit element een schermtoetsenbord? */
+export function isEditableElement(el: FocusedElementLike | null | undefined): boolean {
+  if (!el) return false;
+  if (el.isContentEditable) return true;
+  if (el.disabled || el.readOnly) return false;
+  const tag = el.tagName.toUpperCase();
+  if (tag === 'TEXTAREA') return true;
+  if (tag !== 'INPUT') return false;
+  return !NON_TEXT_INPUT_TYPES.has((el.type ?? 'text').toLowerCase());
+}
+
+/**
+ * Staat het toetsenbord open? Tot 29-09 hing dat in de native app aan één
+ * enkel signaal: het `keyboardWillShow`-event van de plugin. Kwam dat niet
+ * binnen, dan bleef de navigatiepil midden over de antwoordbox hangen.
+ *
+ * - Native, en de plugin heeft zich al eens gemeld: de plugin is leidend. Hij
+ *   ziet ook een toetsenbord dat wegveegt terwijl het veld focus houdt.
+ * - Anders (web, of een plugin die zwijgt): krimpende viewport, óf een
+ *   tekstveld met focus op een touchtoestel. Dat laatste hangt van geen enkele
+ *   plugin of browsereigenaardigheid af.
+ */
+export function resolveKeyboardOpen(signals: {
+  isNative: boolean;
+  pluginSeen: boolean;
+  pluginOpen: boolean;
+  viewportOpen: boolean;
+  editableFocused: boolean;
+  isCoarsePointer: boolean;
+}): boolean {
+  if (signals.isNative && signals.pluginSeen) return signals.pluginOpen;
+  if (signals.viewportOpen) return true;
+  return (signals.isNative || signals.isCoarsePointer) && signals.editableFocused;
+}

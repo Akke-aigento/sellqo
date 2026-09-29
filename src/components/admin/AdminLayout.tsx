@@ -17,7 +17,10 @@ import { SandboxBanner } from '@/components/SandboxBanner';
 import { PushPermissionBanner } from '@/components/PushPermissionBanner';
 import { useTenant } from '@/hooks/useTenant';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
+import { useAdminBottomNavHidden } from '@/hooks/useAdminBottomNav';
+import { useTapToDismissKeyboard } from '@/hooks/useKeyboardDismiss';
 import { BillingStateBanner } from './BillingStateBanner';
+import { cn } from '@/lib/utils';
 
 function AdminLayoutContent() {
   // Global notification listener for sounds + toasts on ALL admin pages
@@ -47,14 +50,25 @@ function AdminLayoutContent() {
   // Op documentElement en niet op een wrapper: niet elke zwevende balk hangt in
   // dezelfde boom (sommige zitten in een portal).
   const keyboard = useKeyboardInset();
+  // APP-KEYBOARD-3: tik op een lege plek → toetsenbord weg.
+  useTapToDismissKeyboard();
+  // APP-KEYBOARD-2: een scherm kan de pil ook zelf wegzetten (open gesprek).
+  const navHiddenByPage = useAdminBottomNavHidden();
+  const navHidden = keyboard.isOpen || navHiddenByPage;
   useEffect(() => {
     const root = document.documentElement;
-    if (keyboard.isOpen) root.style.setProperty('--admin-nav-offset', 'var(--safe-bottom)');
+    if (navHidden) root.style.setProperty('--admin-nav-offset', 'var(--safe-bottom)');
     else root.style.removeProperty('--admin-nav-offset');
     return () => {
       root.style.removeProperty('--admin-nav-offset');
     };
-  }, [keyboard.isOpen]);
+  }, [navHidden]);
+
+  // APP-KEYBOARD-2: de inbox moet precies het beschikbare deel vullen, zodat
+  // de antwoordbox onderaan vastzit — boven de pil, of boven het toetsenbord.
+  // `h-full` op de wrapper geeft de pagina een definiete hoogte; <main> heeft
+  // die al (flex-1 in een h-dvh-keten), minus zijn eigen padding-bottom.
+  const fillHeight = location.pathname.startsWith('/admin/messages');
 
   return (
     <>
@@ -77,7 +91,7 @@ function AdminLayoutContent() {
           {/* BILLING-ENFORCE-1: openstaande betaling of leesmodus. */}
           <BillingStateBanner />
           <main ref={mainRef} className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden pb-[var(--admin-nav-offset)] md:pb-6">
-            <div className="p-4 lg:p-6 max-w-screen-2xl mx-auto w-full min-w-0">
+            <div className={cn('p-4 lg:p-6 max-w-screen-2xl mx-auto w-full min-w-0', fillHeight && 'h-full')}>
               <Outlet />
             </div>
           </main>
@@ -91,7 +105,7 @@ function AdminLayoutContent() {
       {isDashboard && <AIHelpWidget />}
       {/* Mobile bottom navigation — APP-KEYBOARD-1: weg zolang je typt, anders
           zweeft de pil boven het toetsenbord midden in beeld. */}
-      {!keyboard.isOpen && <AdminMobileBottomNav />}
+      {!navHidden && <AdminMobileBottomNav />}
       {/* Aangetikte pushmelding → juiste scherm en juiste tenant. Hier en niet
           in App.tsx, want de tenantwissel heeft TenantContext nodig. */}
       <PushTapListener />

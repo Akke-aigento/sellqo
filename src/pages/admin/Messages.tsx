@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ConversationDragOverlay } from '@/components/admin/inbox/ConversationDragOverlay';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useHideAdminBottomNav } from '@/hooks/useAdminBottomNav';
 import type { Conversation } from '@/hooks/useInbox';
 import { useTranslation } from 'react-i18next';
 
@@ -212,6 +213,9 @@ export default function MessagesPage() {
   const isSinglePanel = isMobile || isTablet;
   const showList = !isSinglePanel || mobileView === 'list';
   const showDetail = !isSinglePanel || mobileView === 'detail';
+  // APP-KEYBOARD-2 (keuze Akke 29-09): in een open gesprek op mobiel geen
+  // navigatiepil — terug via de pijl bovenaan, de onderrand is voor de antwoordbox.
+  useHideAdminBottomNav(isSinglePanel && mobileView === 'detail');
 
   const conversationIds = useMemo(() => conversations.map(c => c.id), [conversations]);
 
@@ -302,7 +306,7 @@ export default function MessagesPage() {
 
       {/* Right - Conversation detail */}
       {showDetail && (
-        <div className={`${isSinglePanel ? 'w-full' : 'flex-1'} min-w-0 flex flex-col`}>
+        <div className={`${isSinglePanel ? 'w-full' : 'flex-1'} min-w-0 min-h-0 flex flex-col`}>
           {selectedConversation ? (
             <ConversationDetail
               conversation={selectedConversation}
@@ -331,8 +335,13 @@ export default function MessagesPage() {
   );
 
   return (
-    <div className="h-[calc(100dvh-4rem)]">
-      <div className={`${isSinglePanel ? 'px-0 pt-0.5 pb-0' : 'p-6 pb-0'}`}>
+    // APP-KEYBOARD-2: een flex-kolom die de hoogte van AdminLayout vult, in
+    // plaats van `100dvh-4rem` en een paneel met `h-[calc(100%-${...})]`. Die
+    // laatste klasse bestond niet: Tailwind kan een klassenaam met een variabele
+    // erin niet genereren, dus het paneel had geen hoogte en de antwoordbox
+    // stond niet onderaan maar onder het laatste bericht — onder de pil.
+    <div className="h-full min-h-0 flex flex-col">
+      <div className={`shrink-0 ${isSinglePanel ? 'px-0 pt-0.5 pb-0' : 'p-6 pb-0'}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className={`${isSinglePanel ? 'text-lg' : 'text-2xl'} font-bold tracking-tight flex items-center gap-2`}>
@@ -354,7 +363,7 @@ export default function MessagesPage() {
         <ComposeDialog open={composeOpen} onOpenChange={setComposeOpen} />
       </div>
 
-      <div className={`${isSinglePanel ? 'px-0 pb-0' : 'p-6'} h-[calc(100%-${isSinglePanel ? '2.5rem' : '5rem'})]`}>
+      <div className={`flex-1 min-h-0 ${isSinglePanel ? '' : 'p-6'}`}>
         {isSinglePanel ? (
           <div className="h-full flex overflow-hidden border-t">
             {innerContent}
