@@ -16,6 +16,7 @@
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { loadBillingTenant } from "../_shared/billingTenant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -72,11 +73,8 @@ Deno.serve(async (req) => {
     const auth = await authenticateRequest(req, tenantId);
     requireRole(auth, tenantId, ["tenant_admin"]);
 
-    const { data: internalTenant, error: itErr } = await supabase
-      .from("tenants")
-      .select("id")
-      .eq("is_internal_tenant", true)
-      .maybeSingle();
+    // HOTFIX-BILLING-TENANT-1: op slug, niet op is_internal_tenant (zie _shared/billingTenant.ts).
+    const { data: internalTenant, error: itErr } = await loadBillingTenant(supabase, "id");
     if (itErr) throw itErr;
     if (!internalTenant) {
       return json({ success: false, error: "Internal SellQo tenant not configured" }, 500);

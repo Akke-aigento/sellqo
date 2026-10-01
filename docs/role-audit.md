@@ -1,3 +1,76 @@
+## HOTFIX-BILLING-TENANT-1 — de facturatietenant op slug, niet op is_internal_tenant — 1 oktober 2026
+
+Gevonden tijdens de recon van PAY-LINK-1. Losse hotfix vóór die batch (keuze Akke 01-10).
+
+### Root cause
+
+Vier functies zochten "de" SellQo-facturatietenant met `.from("tenants").select(…).eq("is_internal_tenant",
+true).maybeSingle()` — een aanname die bij 2a·1 expliciet werd vastgelegd ("geverifieerd: exact één rij").
+Sinds TENANT-INTERNAL-1 (`644ecc4d`, 28-09: schakelaar in het tenantformulier) staan er vijf winkels op intern:
+SellQo, VanXcel, Loveke, The Fonske Crawl, Studio Akke. `maybeSingle` geeft bij meerdere rijen een fout:
+
+| Functie | Gevolg sinds ±28-09 |
+|---|---|
+| `get-platform-billing-status` | facturatiepagina van élke betalende winkel: fout (status én documenten) |
+| `sync-tenant-plan` | plan wijzigen/upgraden faalt |
+| `create-platform-mandate-setup` | machtiging instellen vanaf de facturatiepagina faalt |
+| `get-document-url` | fout ingeslikt → `null` → factuur-/betaalverzoek-PDF's van het abonnement niet te downloaden |
+
+Herkomst van de vlag (geen auditlog op `tenants`; `updated_at` van vier tenants = 29-09 16:31:59, een
+bulkupdate, zegt niets over de vlag): uit eigen queries — 28-09 vóór de schakelaar alleen SellQo; kort na
+`644ecc4d` ook Loveke, VanXcel en Studio Akke (Studio Akke bij aanmaak, 28-09 11:20, MAIL-BILLING-1); The Fonske
+Crawl tussen 28-09 en 01-10. Gezet via de schakelaar, buiten deze sessie; wie precies is niet te achterhalen.
+
+### Uitgevoerd
+
+- `supabase/functions/_shared/billingTenant.ts` (nieuw) — `BILLING_TENANT_SLUG = "sellqo"`,
+  `loadBillingTenant(client, columns)`: `eq("slug", "sellqo")`. Live 01-10: slug `sellqo` = `d03c63fe-…`,
+  de tenant van alle `billing_cycles` en van elke `billing_customer_id`.
+- `sync-tenant-plan`, `get-platform-billing-status`, `create-platform-mandate-setup`, `get-document-url` —
+  dezelfde kolommen als voorheen, via de helper.
+- `src/test/billingTenant.test.ts` — filter op slug, nooit op de vlag.
+
+### Wat `is_internal_tenant` vandaag betekent (inventaris 01-10)
+
+| Betekenis | Waar |
+|---|---|
+| **Stripe via het platformaccount** (`getStripeContext`, `_shared/stripe.ts:128`) | facturen-betaallinks en dunning-incasso van de winkel zelf (`create-invoice-payment-link`, `process-invoice-dunning`), klantmachtigingen (`create-mandate-setup`, `mandate-setup-info/-complete`), abonnementsfacturatie (`generate-subscription-invoices`, `sync-tenant-plan`, `create-cycle-payment-link`, `create-platform-mandate-setup`), `mail-billing-api`; `process-refund` forceert `false` |
+| **Geen SellQo-facturatie / geen afdwinging** | `sync-billing-state:72`, `useBillingState.ts:29`, `useTrialStatus.ts:42`, `Tenants.tsx` (abonnementskolom, badges) |
+| **Geen limieten / AI onbeperkt** | `useUsageLimits.ts:32`, `useAICredits.ts:21`, `ai-product-field-assistant:101`, `ai-translate-content:238` |
+| **Telt niet mee in platformstatistieken** | `usePlatformAdmin.ts:95-106` |
+| **"Mijn winkels" in de winkelkiezer** | `src/lib/tenantGroups.ts:42` (TENANT-INTERNAL-1) |
+| ~~Dé facturatietenant~~ | nu op slug (deze hotfix) |
+
+**Niet geraakt: webshopbetalingen.** De webshop-checkout (`storefront-api` r. 3068/3147,
+`create-checkout-session` r. 390-400) gebruikt `stripe_account_id` rechtstreeks, niet `getStripeContext`.
+Wél omgeleid naar het platformaccount zolang de vlag aan staat bij een winkel met eigen Connect-account
+(VanXcel, Loveke, Fonske): betaallinks en dunning-incasso van hun eigen facturen en klantmachtigingen.
+chat-Claude zet de vlag voor die drie terug op `false` (na go Akke).
+
+### Security-keuzes
+
+n.v.t. — geen rechten, RLS of policies; dezelfde tenant als bedoeld, nu ondubbelzinnig gevonden.
+
+### Gedeelde-paden-waarschuwing
+
+`get-document-url` bedient ook verzendlabels en winkelfacturen: alleen de interne-tenantfallback voor
+billing-doctypes gebruikt de helper (zelfde plek als voorheen, LABEL-PRINT-FIX-1-scoping ongewijzigd).
+
+### Verificatie
+
+`deno check` alle functies 0 fouten (`DENO_NO_PACKAGE_JSON=1`); vitest `billingTenant.test.ts` 2 groen; lint
+gelijk aan de baseline. Redeploy (import-grep): `sync-tenant-plan`, `get-platform-billing-status`,
+`get-document-url`, `create-platform-mandate-setup`.
+
+### Vervolg
+
+- **Voorstel BILLING-EXEMPT-1 (niet gebouwd, wacht op go):** een aparte kolom `tenants.billing_exempt` voor
+  "geen SellQo-facturatie, geen limieten, niet in de statistieken", en de schakelaar in het tenantformulier
+  daarnaar laten wijzen. `is_internal_tenant` betekent dan alleen nog "dit is SellQo zelf" (Stripe via het
+  platformaccount). Raakt de lezers in de tweede tot vierde rij hierboven; `tenantGroups` ("Mijn winkels")
+  volgt `billing_exempt`. Additief (`ADD COLUMN IF NOT EXISTS … DEFAULT false`), backfill = de huidige vlaggen.
+- Tot dan: de schakelaar "Interne winkel" nooit aanzetten voor een winkel met een eigen Stripe-account.
+
 ## UNIFIED-MAIL-1 — één adres per winkel voor uitgaand en antwoorden — 29 september 2026
 
 2026-09-29 UNIFIED-MAIL-1: standaard voor elke winkel From én Reply-To = <winkel>@mail.sellqo.app,

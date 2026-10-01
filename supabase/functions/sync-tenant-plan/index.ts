@@ -21,6 +21,7 @@ import {
 import { advanceDate } from "../_shared/billingDates.ts";
 import { effectuatePlanSwitch } from "../_shared/planEffectuate.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
+import { loadBillingTenant } from "../_shared/billingTenant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -170,11 +171,8 @@ Deno.serve(async (req) => {
     if (tenantErr) throw tenantErr;
     if (!tenant) return jsonResponse({ success: false, error: "Tenant not found" }, 404);
 
-    const { data: internalTenant, error: itErr } = await supabase
-      .from("tenants")
-      .select("id")
-      .eq("is_internal_tenant", true)
-      .maybeSingle();
+    // HOTFIX-BILLING-TENANT-1: op slug, niet op is_internal_tenant (zie _shared/billingTenant.ts).
+    const { data: internalTenant, error: itErr } = await loadBillingTenant(supabase, "id");
     if (itErr) throw itErr;
     if (!internalTenant) {
       return jsonResponse(

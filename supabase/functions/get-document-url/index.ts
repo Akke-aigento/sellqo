@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { loadBillingTenant } from "../_shared/billingTenant.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -146,11 +147,8 @@ serve(async (req) => {
       // subscription live on the INTERNAL tenant with the tenant as customer.
       // Allow it only when every requested document belongs to a billing
       // customer that is linked to one of the caller's own tenants.
-      const { data: internalTenant } = await admin
-        .from("tenants")
-        .select("id")
-        .eq("is_internal_tenant", true)
-        .maybeSingle();
+      // HOTFIX-BILLING-TENANT-1: op slug, niet op is_internal_tenant (zie _shared/billingTenant.ts).
+      const { data: internalTenant } = await loadBillingTenant(admin, "id");
 
       let allowed = false;
       if (internalTenant?.id === tenantId && auth.tenant_ids.length > 0) {
