@@ -465,3 +465,6 @@ verify_jwt = false
 
 [functions.mail-billing-api]
 verify_jwt = false
+
+[functions.pay-link]
+verify_jwt = false

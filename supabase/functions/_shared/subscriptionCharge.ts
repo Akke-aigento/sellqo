@@ -11,6 +11,14 @@ import { effectuatePlanSwitch } from "./planEffectuate.ts";
 import { advanceDate, type Interval } from "./planProration.ts";
 import { resolveInvoiceFiscalFields } from "./invoiceFiscalFields.ts";
 import { refreshBillingStateForCustomer } from "./billingGuard.ts";
+import {
+  classifyPayment,
+  cycleState,
+  invoiceState,
+  routeChargeEvent,
+  settleBundleItems,
+  type BundleItem,
+} from "./payLink.ts";
 
 type SupabaseLike = {
   from: (table: string) => any;
@@ -125,25 +133,119 @@ export async function handleSubscriptionChargeWebhook(
   supabase: SupabaseLike,
   event: Stripe.Event,
 ): Promise<boolean> {
-  if (
-    event.type !== "payment_intent.succeeded" &&
-    event.type !== "payment_intent.payment_failed"
-  ) {
-    return false;
-  }
+  // PAY-LINK-1: de keuze staat puur in payLink.ts (getest). Een webshopbetaling
+  // (stripe-connect-webhook) heeft geen billing-sleutel → null → false, en de
+  // webhook gaat door naar zijn eigen order-, checkout- en refundtakken.
+  const intentMeta = (event.data.object as { metadata?: Record<string, unknown> } | null)?.metadata;
+  const route = routeChargeEvent(event.type, intentMeta);
+  if (!route) return false;
 
   const intent = event.data.object as Stripe.PaymentIntent;
 
+  if (route === "bundle") {
+    return await handleBundleCharge(supabase, event, intent, String(intent.metadata?.payment_bundle_id));
+  }
   // CYCLE-3: pay-first cycles take precedence — checked before invoice_id.
-  const cycleId = intent.metadata?.billing_cycle_id;
-  if (cycleId) {
-    return await handleCycleCharge(supabase, event, intent, cycleId);
+  if (route === "cycle") {
+    return await handleCycleCharge(supabase, event, intent, String(intent.metadata?.billing_cycle_id));
+  }
+  return await handleInvoiceCharge(supabase, event, intent, String(intent.metadata?.invoice_id));
+}
+
+// ---------------------------------------------------------------------------
+// PAY-LINK-1: "Alles betalen" — één betaling, per post dezelfde afboekcode.
+// ---------------------------------------------------------------------------
+async function handleBundleCharge(
+  supabase: SupabaseLike,
+  event: Stripe.Event,
+  intent: Stripe.PaymentIntent,
+  bundleId: string,
+): Promise<boolean> {
+  const { data: bundle, error } = await supabase
+    .from("payment_bundles")
+    .select("id, tenant_id, items, status, payment_intent_id")
+    .eq("id", bundleId)
+    .maybeSingle();
+  if (error || !bundle) {
+    log("Bundle not found — dropping event", { bundleId, error: error?.message });
+    return true;
+  }
+  // Een mislukte bundelbetaling raakt geen enkele post: die blijven open en betaalbaar.
+  if (event.type === "payment_intent.payment_failed") {
+    log("Bundle payment failed — posts untouched", { bundleId, intent: intent.id });
+    return true;
+  }
+  if (bundle.status === "paid" && bundle.payment_intent_id === intent.id) {
+    log("Idempotent: bundle already settled", { bundleId });
+    return true;
   }
 
-  const invoiceId = intent.metadata?.invoice_id;
-  if (!invoiceId) return false;
+  const results = await settleBundleItems((bundle.items ?? []) as BundleItem[], async (item) => {
+    if (item.type === "cycle") await handleCycleCharge(supabase, event, intent, item.id, bundleId);
+    else await handleInvoiceCharge(supabase, event, intent, item.id, bundleId);
+  });
 
-  return await handleInvoiceCharge(supabase, event, intent, invoiceId);
+  await supabase
+    .from("payment_bundles")
+    .update({ status: "paid", payment_intent_id: intent.id, paid_at: new Date().toISOString() })
+    .eq("id", bundleId);
+  log("Bundle settled", {
+    bundleId,
+    intent: intent.id,
+    results: results.map((r) => ({ type: r.item.type, id: r.item.id, ok: r.ok, error: r.error })),
+  });
+  return true;
+}
+
+/**
+ * PAY-LINK-1: een betaling op een post die al betaald of geannuleerd was.
+ * Nooit opnieuw afboeken en nooit automatisch terugbetalen (beslissing Akke
+ * 01-10): een rij in payment_anomalies (de markering op de post) en een melding
+ * aan de tenant van de post — voor platformposten is dat SellQo.
+ */
+async function recordPaymentAnomaly(
+  supabase: SupabaseLike,
+  kind: "duplicate" | "closed_item",
+  post: { tenantId: string; billingCycleId?: string; invoiceId?: string; number?: string | null },
+  intent: Stripe.PaymentIntent,
+  bundleId?: string,
+): Promise<void> {
+  const amount = Number(intent.amount_received ?? intent.amount ?? 0) / 100;
+  const { error } = await supabase.from("payment_anomalies").insert({
+    kind,
+    tenant_id: post.tenantId,
+    billing_cycle_id: post.billingCycleId ?? null,
+    invoice_id: post.invoiceId ?? null,
+    bundle_id: bundleId ?? null,
+    payment_intent_id: intent.id,
+    amount,
+    currency: intent.currency ?? null,
+  });
+  if (error) {
+    // 23505: dezelfde betaling op dezelfde post is al gemeld (webhook-retry).
+    if ((error as { code?: string }).code === "23505") return;
+    log("Failed to record payment anomaly", { kind, intent: intent.id, error: error.message });
+  }
+  const what = post.billingCycleId ? `betaalverzoek ${post.number ?? ""}` : `factuur ${post.number ?? ""}`;
+  const { error: nErr } = await supabase.from("notifications").insert({
+    tenant_id: post.tenantId,
+    category: "payments",
+    type: "payment_duplicate",
+    priority: "high",
+    title: kind === "duplicate" ? "Dubbele betaling ontvangen" : "Betaling op een geannuleerde post",
+    message: kind === "duplicate"
+      ? `Er kwam een tweede betaling binnen voor ${what.trim()}, die al betaald was. Niet automatisch terugbetaald (Stripe ${intent.id}).`
+      : `Er kwam een betaling binnen voor ${what.trim()}, die geannuleerd was. Niet afgeboekt en niet automatisch terugbetaald (Stripe ${intent.id}).`,
+    data: {
+      payment_intent_id: intent.id,
+      billing_cycle_id: post.billingCycleId ?? null,
+      invoice_id: post.invoiceId ?? null,
+      bundle_id: bundleId ?? null,
+      amount,
+    },
+  });
+  if (nErr) log("Failed to notify payment anomaly", { intent: intent.id, error: nErr.message });
+  log(kind === "duplicate" ? "Duplicate payment recorded" : "Payment on closed item recorded", { ...post, intent: intent.id, bundleId });
 }
 
 // ---------------------------------------------------------------------------
@@ -154,11 +256,12 @@ async function handleInvoiceCharge(
   event: Stripe.Event,
   intent: Stripe.PaymentIntent,
   invoiceId: string,
+  bundleId?: string,
 ): Promise<boolean> {
   // Fetch current invoice state — used for idempotency.
   const { data: invoice, error: fetchErr } = await supabase
     .from("invoices")
-    .select("id, status, charge_attempts, paid_at")
+    .select("id, tenant_id, invoice_number, status, charge_attempts, paid_at, metadata")
     .eq("id", invoiceId)
     .maybeSingle();
 
@@ -172,8 +275,18 @@ async function handleInvoiceCharge(
   }
 
   if (event.type === "payment_intent.succeeded") {
-    if (invoice.status === "paid") {
+    // PAY-LINK-1: retry, dubbele betaling of betaling op een geannuleerde factuur?
+    const metadata = (invoice.metadata ?? {}) as Record<string, unknown>;
+    const decision = classifyPayment(
+      { state: invoiceState(invoice), paidIntentId: (metadata.paid_payment_intent_id as string | undefined) ?? null },
+      intent.id,
+    );
+    if (decision === "retry") {
       log("Idempotent: invoice already paid", { invoiceId });
+      return true;
+    }
+    if (decision === "duplicate" || decision === "closed_item") {
+      await recordPaymentAnomaly(supabase, decision, { tenantId: invoice.tenant_id, invoiceId, number: invoice.invoice_number }, intent, bundleId);
       return true;
     }
     const { error: updErr } = await supabase
@@ -181,6 +294,8 @@ async function handleInvoiceCharge(
       .update({
         status: "paid",
         paid_at: invoice.paid_at ?? new Date().toISOString(),
+        // PAY-LINK-1: welke betaling deze factuur betaalde, zodat een tweede herkend wordt.
+        metadata: { ...metadata, paid_payment_intent_id: intent.id },
       })
       .eq("id", invoiceId);
     if (updErr) {
@@ -208,7 +323,8 @@ async function handleInvoiceCharge(
       charge_attempts: (invoice.charge_attempts ?? 0) + 1,
     })
     .eq("id", invoiceId)
-    .neq("status", "paid"); // never overwrite a paid invoice
+    .neq("status", "paid") // never overwrite a paid invoice
+    .neq("status", "cancelled"); // PAY-LINK-1: en een geannuleerde factuur niet heropenen
   if (updErr) {
     log("Failed to mark invoice unpaid", { invoiceId, error: updErr.message });
   } else {
@@ -249,11 +365,12 @@ async function handleCycleCharge(
   event: Stripe.Event,
   intent: Stripe.PaymentIntent,
   cycleId: string,
+  bundleId?: string,
 ): Promise<boolean> {
   const { data: cycle, error: cErr } = await supabase
     .from("billing_cycles")
     .select(
-      "id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, status, invoice_id, due_date, grace_until, cycle_type, target_plan_id, target_interval, description",
+      "id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, status, invoice_id, due_date, grace_until, cycle_type, target_plan_id, target_interval, description, payment_request_number, stripe_payment_intent_id",
     )
     .eq("id", cycleId)
     .maybeSingle();
@@ -268,6 +385,12 @@ async function handleCycleCharge(
   }
 
   if (event.type === "payment_intent.payment_failed") {
+    // PAY-LINK-1: een mislukte poging op een geannuleerde cyclus (bv. PR-2026-0003)
+    // mag hem niet heropenen.
+    if (cycle.status === "cancelled") {
+      log("Payment failed on cancelled cycle — left cancelled", { cycleId, intent: intent.id });
+      return true;
+    }
     const lastError = intent.last_payment_error;
     const patch: Record<string, unknown> = {
       status: "awaiting_payment",
@@ -287,6 +410,7 @@ async function handleCycleCharge(
       .update(patch)
       .eq("id", cycle.id)
       .neq("status", "settled")
+      .neq("status", "cancelled")
       .is("invoice_id", null);
     if (updErr) {
       log("Failed to mark cycle awaiting_payment", { cycleId, error: updErr.message });
@@ -303,8 +427,25 @@ async function handleCycleCharge(
   }
 
   // payment_intent.succeeded
-  if (cycle.status === "settled" || cycle.invoice_id) {
+  // PAY-LINK-1: retry, dubbele betaling of betaling op een geannuleerde cyclus?
+  // Tot 01-10 werd een geannuleerde cyclus gewoon afgeboekt en een tweede betaling
+  // alleen gelogd.
+  const decision = classifyPayment(
+    { state: cycleState(cycle), paidIntentId: cycle.stripe_payment_intent_id ?? null },
+    intent.id,
+  );
+  if (decision === "retry") {
     log("Idempotent: cycle already settled", { cycleId, invoiceId: cycle.invoice_id });
+    return true;
+  }
+  if (decision === "duplicate" || decision === "closed_item") {
+    await recordPaymentAnomaly(
+      supabase,
+      decision,
+      { tenantId: cycle.tenant_id, billingCycleId: cycleId, number: cycle.payment_request_number },
+      intent,
+      bundleId,
+    );
     return true;
   }
 

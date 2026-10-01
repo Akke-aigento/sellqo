@@ -4807,6 +4807,7 @@
       "upgrade_request": "Upgrade",
       "due_date": "À payer avant le {{date}}",
       "pay": "Payer",
+      "pay_all": "Tout payer",
       "pdf": "PDF",
       "credit_notes": "Notes de crédit",
       "credit_notes_desc": "Remboursements et corrections sur vos factures.",

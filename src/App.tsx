@@ -100,6 +100,7 @@ import ApiDocs from "./pages/public/ApiDocs";
 import PublicChangelog from "./pages/public/PublicChangelog";
 import PaySuccess from "./pages/public/PaySuccess";
 import PayCancelled from "./pages/public/PayCancelled";
+import PayLink from "./pages/public/PayLink";
 import NotificationsPage from "./pages/admin/Notifications";
 import POSPage from "./pages/admin/POS";
 import TicketCheckinPage from "./pages/admin/TicketCheckin";
@@ -392,6 +393,8 @@ const App = () => (
             <Route path="/changelog" element={<PublicChangelog />} />
             <Route path="/pay/success" element={<PaySuccess />} />
             <Route path="/pay/cancelled" element={<PayCancelled />} />
+            {/* PAY-LINK-1: vaste betaallink per openstaande post — publiek, geen login. */}
+            <Route path="/betalen/:token" element={<PayLink />} />
             
             {/* DEEP-LINK D: landing voor Universal Links (iOS) en App Links
                 (Android) op sellqo.app/app/*. Zonder deze route valt elke

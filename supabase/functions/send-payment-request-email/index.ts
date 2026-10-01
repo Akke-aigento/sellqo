@@ -8,6 +8,7 @@ import { tenantSender } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail, formatAmount } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { payUrlFor } from "../_shared/payCheckout.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -112,9 +113,21 @@ serve(async (req) => {
       ? t(locale, `paymentRequest.reminderIntro${reminderLevel}`, { customerName, requestNumber: prNumber })
       : t(locale, "paymentRequest.intro", { customerName, requestNumber: prNumber });
 
-    const payBlock = cycle.checkout_session_url
+    // PAY-LINK-1: de vaste link, nooit meer de Stripe-sessie (die was na 24 u dood).
+    let payUrl: string | null = null;
+    try {
+      payUrl = await payUrlFor(supabase, {
+        kind: "cycle",
+        tenantId: cycle.tenant_id,
+        customerId: cycle.customer_id ?? null,
+        billingCycleId: cycle.id,
+      });
+    } catch (e) {
+      console.warn("[send-payment-request-email] geen vaste link:", e instanceof Error ? e.message : String(e));
+    }
+    const payBlock = payUrl
       ? `<div style="text-align:center;margin:24px 0;">
-          <a href="${cycle.checkout_session_url}" style="display:inline-block;padding:14px 28px;background:#3b82f6;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;font-size:16px;">
+          <a href="${payUrl}" style="display:inline-block;padding:14px 28px;background:#3b82f6;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;font-size:16px;">
             ${t(locale, "paymentRequest.payNow")}
           </a>
         </div>`

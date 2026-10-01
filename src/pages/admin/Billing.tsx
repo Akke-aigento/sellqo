@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import { nl, enUS, fr, de } from 'date-fns/locale';
@@ -44,6 +45,16 @@ const INVOICE_PAGE_SIZE = 10;
 
 export default function BillingPage() {
   const { t, i18n } = useTranslation();
+  // PAY-LINK-1: de vaste betaallink staat in deze app (/betalen/<token>). Intern
+  // navigeren i.p.v. naar sellqo.app: in de native app zou dat de webview verlaten.
+  const navigate = useNavigate();
+  const openPayUrl = (url: string) => {
+    try {
+      navigate(new URL(url).pathname);
+    } catch {
+      window.location.assign(url);
+    }
+  };
   const {
     subscription,
     usage,
@@ -539,10 +550,10 @@ export default function BillingPage() {
                     <p className="text-xs text-muted-foreground">{pendingUpgrade.description}</p>
                   )}
                   <div className="flex flex-col gap-2 sm:flex-row">
-                    {pendingUpgrade.checkout_session_url && (
+                    {pendingUpgrade.pay_url && (
                       <Button
                         size="sm"
-                        onClick={() => window.location.assign(pendingUpgrade.checkout_session_url!)}
+                        onClick={() => openPayUrl(pendingUpgrade.pay_url!)}
                       >
                         <ExternalLink className="mr-2 h-4 w-4" />
                         {t('billing.pending_upgrade.pay_now')}
@@ -719,8 +730,19 @@ export default function BillingPage() {
       {(documents?.payment_requests?.length ?? 0) > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>{t('billing.documents.payment_requests')}</CardTitle>
-            <CardDescription>{t('billing.documents.payment_requests_desc')}</CardDescription>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <CardTitle>{t('billing.documents.payment_requests')}</CardTitle>
+                <CardDescription>{t('billing.documents.payment_requests_desc')}</CardDescription>
+              </div>
+              {/* PAY-LINK-1: alle openstaande posten in één betaling. */}
+              {documents?.pay_all_url && (
+                <Button className="shrink-0" onClick={() => openPayUrl(documents.pay_all_url!)}>
+                  <ExternalLink className="mr-2 h-4 w-4" />
+                  {t('billing.documents.pay_all')}
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             {documents!.payment_requests.map((pr) => (
@@ -750,10 +772,10 @@ export default function BillingPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-semibold">{formatPrice(Number(pr.total))}</span>
-                  {pr.checkout_session_url && (
+                  {pr.pay_url && (
                     <Button
                       size="sm"
-                      onClick={() => window.location.assign(pr.checkout_session_url!)}
+                      onClick={() => openPayUrl(pr.pay_url!)}
                     >
                       <ExternalLink className="mr-2 h-4 w-4" />
                       {t('billing.documents.pay')}
@@ -825,6 +847,13 @@ export default function BillingPage() {
                         ? `✓ ${t('billing.paid')}`
                         : t(`billing.status.${invoice.status}`, { defaultValue: invoice.status })}
                     </Badge>
+                    {/* PAY-LINK-1: een openstaande factuur (bv. een domeinfactuur) is nu betaalbaar. */}
+                    {invoice.pay_url && (
+                      <Button size="sm" onClick={() => openPayUrl(invoice.pay_url!)}>
+                        <ExternalLink className="mr-2 h-4 w-4" />
+                        {t('billing.documents.pay')}
+                      </Button>
+                    )}
                     {invoice.has_pdf && (
                       <Button
                         size="sm"
@@ -893,6 +922,13 @@ export default function BillingPage() {
                       </div>
                     </TableCell>
                     <TableCell>
+                      <div className="flex items-center justify-end gap-1">
+                      {invoice.pay_url && (
+                        <Button size="sm" onClick={() => openPayUrl(invoice.pay_url!)}>
+                          <ExternalLink className="mr-2 h-4 w-4" />
+                          {t('billing.documents.pay')}
+                        </Button>
+                      )}
                       {invoice.has_pdf && (
                         <Tooltip>
                           <TooltipTrigger asChild>
@@ -908,6 +944,7 @@ export default function BillingPage() {
                           <TooltipContent>{t('billing.download_pdf')}</TooltipContent>
                         </Tooltip>
                       )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

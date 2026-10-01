@@ -12,7 +12,8 @@ export interface PendingUpgrade {
   description: string | null;
   target_plan_id: string | null;
   target_interval: 'monthly' | 'yearly' | null;
-  checkout_session_url: string | null;
+  /** PAY-LINK-1: vaste betaallink van de upgrade. */
+  pay_url: string | null;
   payment_request_number: string | null;
   due_date: string | null;
   grace_until: string | null;

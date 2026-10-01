@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
 import { mintMandateSetupLink } from "../_shared/mandateToken.ts";
+import { payUrlFor } from "../_shared/payCheckout.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -501,15 +502,25 @@ Deno.serve(async (req) => {
   }
 });
 
+// PAY-LINK-1: de vaste betaallink van de factuur, nooit meer een Stripe-sessie
+// (die stond in de herinnering en was na 24 u dood). Elke klik maakt een verse sessie.
 async function ensureCheckoutUrl(supabase: any, invoiceId: string): Promise<string | null> {
   try {
-    const { data, error } = await supabase.functions.invoke('create-invoice-payment-link', {
-      body: { invoice_id: invoiceId },
-    });
+    const { data: inv, error } = await supabase
+      .from('invoices')
+      .select('id, tenant_id, customer_id')
+      .eq('id', invoiceId)
+      .maybeSingle();
     if (error) throw error;
-    return data?.checkout_url ?? null;
+    if (!inv) return null;
+    return await payUrlFor(supabase, {
+      kind: 'invoice',
+      tenantId: inv.tenant_id,
+      customerId: inv.customer_id ?? null,
+      invoiceId: inv.id,
+    });
   } catch (e) {
-    console.warn('[DUNNING] Could not create checkout link:', errMsg(e));
+    console.warn('[DUNNING] Could not create payment link:', errMsg(e));
     return null;
   }
 }

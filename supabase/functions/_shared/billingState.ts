@@ -76,6 +76,8 @@ export interface CycleInput {
   total?: number | string | null;
   invoice_id?: string | null;
   checkout_session_url?: string | null;
+  /** PAY-LINK-1: de vaste betaallink, als de aanroeper hem kent. */
+  pay_url?: string | null;
   payment_request_number?: string | null;
 }
 
@@ -104,7 +106,7 @@ export interface BillingStateResult {
   reason: BillingReason;
   /** Totaal openstaand bedrag dat de toestand veroorzaakt. */
   openAmount: number;
-  /** Betaallink van het oudste openstaande verzoek, als die er is. */
+  /** Vaste betaallink (PAY-LINK-1) van het oudste openstaande verzoek, als de aanroeper hem meegaf. */
   payUrl: string | null;
 }
 
@@ -152,7 +154,8 @@ export function resolveBillingState(input: {
 
   for (const cycle of cycles) {
     openAmount += amount(cycle.total);
-    if (!payUrl && cycle.checkout_session_url) payUrl = cycle.checkout_session_url;
+    // PAY-LINK-1: nooit de opgeslagen Stripe-sessie (na 24 u dood), alleen de vaste link.
+    if (!payUrl && cycle.pay_url) payUrl = cycle.pay_url;
 
     const graceOver = cycle.status === "expired"
       || (cycle.grace_until != null && daysBetween(cycle.grace_until, today) > 0);

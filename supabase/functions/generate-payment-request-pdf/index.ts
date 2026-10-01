@@ -8,6 +8,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { payUrlFor } from "../_shared/payCheckout.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -218,12 +219,24 @@ serve(async (req) => {
     page.drawText("Te betalen", { x: totalsX, y, size: 12, font: bold, color: accent });
     page.drawText(fmt(Number(cycle.total), currency), { x: 480, y, size: 12, font: bold, color: accent });
 
-    if (cycle.checkout_session_url) {
+    // PAY-LINK-1: de vaste link, volledig (±45 tekens, over te typen). Tot 01-10
+    // stond hier de Stripe-sessie-URL, afgekapt op 95 tekens en na 24 u dood.
+    let payUrl: string | null = null;
+    try {
+      payUrl = await payUrlFor(admin, {
+        kind: "cycle",
+        tenantId: cycle.tenant_id,
+        customerId: cycle.customer_id ?? null,
+        billingCycleId: cycle.id,
+      });
+    } catch (e) {
+      console.warn("[generate-payment-request-pdf] geen vaste link:", e instanceof Error ? e.message : String(e));
+    }
+    if (payUrl) {
       y -= 40;
       page.drawText("Online betalen:", { x: margin, y, size: 10, font: bold, color: text });
-      y -= 12;
-      const link = String(cycle.checkout_session_url);
-      page.drawText(link.substring(0, 95), { x: margin, y, size: 8, font: helv, color: accent });
+      y -= 14;
+      page.drawText(payUrl, { x: margin, y, size: 10, font: helv, color: accent });
     }
 
     // Footer repeats the notice so it can never be mistaken for an invoice.

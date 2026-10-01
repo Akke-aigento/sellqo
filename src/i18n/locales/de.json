@@ -4807,6 +4807,7 @@
       "upgrade_request": "Upgrade",
       "due_date": "Zahlbar bis {{date}}",
       "pay": "Bezahlen",
+      "pay_all": "Alles bezahlen",
       "pdf": "PDF",
       "credit_notes": "Gutschriften",
       "credit_notes_desc": "Rückzahlungen und Korrekturen zu deinen Rechnungen.",

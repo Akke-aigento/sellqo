@@ -1281,6 +1281,7 @@
       "upgrade_request": "Upgrade",
       "due_date": "Te betalen vóór {{date}}",
       "pay": "Betalen",
+      "pay_all": "Alles betalen",
       "pdf": "PDF",
       "credit_notes": "Creditnota's",
       "credit_notes_desc": "Terugbetalingen en correcties op je facturen.",

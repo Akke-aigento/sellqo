@@ -17,6 +17,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { loadBillingTenant } from "../_shared/billingTenant.ts";
+import { payUrlFor } from "../_shared/payCheckout.ts";
+import { cycleState, invoiceState } from "../_shared/payLink.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -181,11 +183,13 @@ Deno.serve(async (req) => {
         supabase
           .from("billing_cycles")
           .select(
-            "id, payment_request_number, total, due_date, checkout_session_url, pdf_path, status, cycle_type, description",
+            "id, payment_request_number, total, due_date, pdf_path, status, cycle_type, description",
           )
           .eq("tenant_id", internalTenantId)
           .eq("customer_id", billingCustomerId)
-          .in("status", ["awaiting_payment", "processing", "reopened"])
+          // PAY-LINK-1: ook `expired` — juist dat verzoek zet een winkel in leesmodus,
+          // en ze moet het hier kunnen betalen.
+          .in("status", ["awaiting_payment", "processing", "reopened", "expired"])
           .order("created_at", { ascending: false }),
       ]);
       if (invRes.error) throw invRes.error;
@@ -225,8 +229,41 @@ Deno.serve(async (req) => {
         has_pdf: !!c.pdf_path,
       }));
 
+      // PAY-LINK-1: per openstaande post de vaste link, en één voor "Alles betalen".
+      // Nooit meer de opgeslagen Stripe-sessie: die was na 24 u dood.
+      const cycleRows = cycRes.data ?? [];
+      const linkFor = async (target: Parameters<typeof payUrlFor>[1]): Promise<string | null> => {
+        try {
+          return await payUrlFor(supabase, target);
+        } catch (e) {
+          console.warn("[get-platform-billing-status] geen vaste link:", e instanceof Error ? e.message : String(e));
+          return null;
+        }
+      };
+      const cyclePayUrls = new Map<string, string | null>();
+      for (const c of cycleRows) {
+        if (cycleState(c as { status: string }) === "open") {
+          cyclePayUrls.set(c.id as string, await linkFor({
+            kind: "cycle", tenantId: internalTenantId, customerId: billingCustomerId, billingCycleId: c.id as string,
+          }));
+        }
+      }
+      const invoicePayUrls = new Map<string, string | null>();
+      for (const i of invoiceRows) {
+        if (invoiceState(i as { status: string }) === "open") {
+          invoicePayUrls.set(i.id as string, await linkFor({
+            kind: "invoice", tenantId: internalTenantId, customerId: billingCustomerId, invoiceId: i.id as string,
+          }));
+        }
+      }
+      const openCount = cyclePayUrls.size + invoicePayUrls.size;
+      const payAllUrl = openCount > 1
+        ? await linkFor({ kind: "customer", tenantId: internalTenantId, customerId: billingCustomerId })
+        : null;
+
       return json({
         success: true,
+        pay_all_url: payAllUrl,
         invoices: invoiceRows.map((i) => ({
           id: i.id,
           invoice_number: i.invoice_number,
@@ -235,17 +272,18 @@ Deno.serve(async (req) => {
           issue_date: i.issue_date ?? i.created_at,
           paid_at: i.paid_at,
           has_pdf: !!i.pdf_path,
+          pay_url: invoicePayUrls.get(i.id as string) ?? null,
           credited_by: creditNotes
             .filter((c) => c.original_invoice_id === i.id)
             .map((c) => c.credit_note_number),
         })),
         credit_notes: creditNotes,
-        payment_requests: (cycRes.data ?? []).map((c) => ({
+        payment_requests: cycleRows.map((c) => ({
           id: c.id,
           payment_request_number: c.payment_request_number,
           total: Number(c.total ?? 0),
           due_date: c.due_date,
-          checkout_session_url: c.checkout_session_url,
+          pay_url: cyclePayUrls.get(c.id as string) ?? null,
           has_pdf: !!c.pdf_path,
           status: c.status,
           cycle_type: c.cycle_type,
@@ -298,7 +336,7 @@ Deno.serve(async (req) => {
       const { data: pc, error: pcErr } = await supabase
         .from("billing_cycles")
         .select(
-          "id, status, total, description, target_plan_id, target_interval, checkout_session_url, payment_request_number, due_date, grace_until",
+          "id, tenant_id, customer_id, status, total, description, target_plan_id, target_interval, payment_request_number, due_date, grace_until",
         )
         .eq("id", ts.pending_billing_cycle_id as string)
         .maybeSingle();
@@ -311,7 +349,12 @@ Deno.serve(async (req) => {
           description: pc.description,
           target_plan_id: pc.target_plan_id,
           target_interval: pc.target_interval,
-          checkout_session_url: pc.checkout_session_url,
+          // PAY-LINK-1: de vaste link van deze upgrade, niet de opgeslagen sessie.
+          pay_url: ["pending", "awaiting_payment", "reopened"].includes(pc.status as string)
+            ? await payUrlFor(supabase, {
+              kind: "cycle", tenantId: pc.tenant_id as string, customerId: (pc.customer_id as string) ?? null, billingCycleId: pc.id as string,
+            }).catch(() => null)
+            : null,
           payment_request_number: pc.payment_request_number,
           due_date: pc.due_date,
           grace_until: pc.grace_until,

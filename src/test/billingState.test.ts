@@ -27,7 +27,7 @@ describe('cycleDueDates — de vervaldatum-bug', () => {
 
 const cycle = (over: Partial<Parameters<typeof resolveBillingState>[0]['cycles'][number]> = {}) => ({
   status: 'awaiting_payment', due_date: '2026-09-01', grace_until: '2026-09-15', total: 35.09,
-  checkout_session_url: 'https://pay.example/abc', ...over,
+  checkout_session_url: 'https://checkout.stripe.com/c/pay/oud', pay_url: 'https://sellqo.app/betalen/abc', ...over,
 });
 
 describe('resolveBillingState — platformcyclus', () => {
@@ -40,7 +40,7 @@ describe('resolveBillingState — platformcyclus', () => {
   });
   it('voorbij de vervaldatum → past_due, met bedrag en betaallink', () => {
     const r = resolveBillingState({ cycles: [cycle({ due_date: '2026-09-20', grace_until: '2026-10-04' })], now: NOW });
-    expect(r).toMatchObject({ state: 'past_due', reason: 'cycle_overdue', openAmount: 35.09, payUrl: 'https://pay.example/abc', since: '2026-09-20' });
+    expect(r).toMatchObject({ state: 'past_due', reason: 'cycle_overdue', openAmount: 35.09, payUrl: 'https://sellqo.app/betalen/abc', since: '2026-09-20' });
   });
   it('respijt voorbij → restricted (leesmodus)', () => {
     const r = resolveBillingState({ cycles: [cycle()], now: NOW });
@@ -137,5 +137,16 @@ describe('billingAllows — wat blijft er open', () => {
       expect(billingAllows(state, 'write', 'profile').allowed).toBe(true);
       expect(billingAllows(state, 'write', 'reports_financial').allowed).toBe(true);
     }
+  });
+});
+
+// PAY-LINK-1: de banner krijgt nooit de opgeslagen Stripe-sessie.
+describe('payUrl (PAY-LINK-1)', () => {
+  it('zonder vaste link geen payUrl, ook al staat er een oude sessie-URL', () => {
+    const r = resolveBillingState({
+      cycles: [{ status: 'awaiting_payment', due_date: '2026-09-01', grace_until: '2026-09-15', total: 10, checkout_session_url: 'https://checkout.stripe.com/c/pay/oud' }],
+      now: '2026-09-05',
+    });
+    expect(r.payUrl).toBeNull();
   });
 });

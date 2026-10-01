@@ -18,7 +18,8 @@ const STORAGE_KEY = 'sellqo-cookie-consent';
 const CONSENT_VERSION = 1;
 
 /** Routes waar de platform-banner NIET hoort (tenant storefront + ingelogde apps). */
-const EXCLUDED_PREFIXES = ['/shop/', '/admin', '/platform', '/pos', '/checkout', '/betaling'];
+// PAY-LINK-1: /betalen — de vaste betaallink toont het merk van de winkel, niet SellQo.
+const EXCLUDED_PREFIXES = ['/shop/', '/admin', '/platform', '/pos', '/checkout', '/betaling', '/betalen'];
 
 export function getPlatformCookieConsent(): PlatformCookieConsent | null {
   try {

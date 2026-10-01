@@ -1273,6 +1273,7 @@
       "upgrade_request": "Upgrade",
       "due_date": "Due before {{date}}",
       "pay": "Pay",
+      "pay_all": "Pay everything",
       "pdf": "PDF",
       "credit_notes": "Credit notes",
       "credit_notes_desc": "Refunds and corrections on your invoices.",

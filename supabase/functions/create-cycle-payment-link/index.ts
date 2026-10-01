@@ -6,6 +6,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getStripeContext } from "../_shared/stripe.ts";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { cycleState } from "../_shared/payLink.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,6 +55,14 @@ Deno.serve(async (req) => {
     // `authenticateRequest` door (_shared/auth.ts:48-56). De keten blijft dus
     // werken.
     await authenticateRequest(req, cycle.tenant_id);
+
+    // PAY-LINK-1: geen sessie voor een betaalde, geannuleerde of lopende cyclus.
+    const payState = cycleState(cycle);
+    if (payState !== "open") {
+      return new Response(JSON.stringify({ success: false, error: "not_payable", state: payState }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const ageMs = cycle.checkout_session_created_at
       ? Date.now() - new Date(cycle.checkout_session_created_at).getTime()

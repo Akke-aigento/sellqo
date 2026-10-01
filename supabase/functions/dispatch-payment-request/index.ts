@@ -5,6 +5,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { ensurePaymentLink } from "../_shared/payCheckout.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -43,7 +44,7 @@ serve(async (req) => {
     // die door — de keten blijft dus werken.
     const { data: cycle, error: cycleErr } = await supabase
       .from("billing_cycles")
-      .select("tenant_id")
+      .select("tenant_id, customer_id")
       .eq("id", billing_cycle_id)
       .maybeSingle();
     if (cycleErr) throw cycleErr;
@@ -58,9 +59,16 @@ serve(async (req) => {
       return data;
     };
 
-    // 1. Payment link (idempotent — reuses a session younger than 24h)
+    // 1. Vaste betaallink (PAY-LINK-1). Tot 01-10 werd hier een Stripe-sessie
+    //    gemaakt die na 24 u dood was — en die stond in de mail en de PDF. Nu een
+    //    link die bij elke klik een verse sessie maakt. Idempotent.
     try {
-      await call("create-cycle-payment-link", { billing_cycle_id });
+      await ensurePaymentLink(supabase, {
+        kind: "cycle",
+        tenantId: cycle.tenant_id,
+        customerId: cycle.customer_id ?? null,
+        billingCycleId: billing_cycle_id,
+      });
       steps.link = "ok";
     } catch (e) {
       steps.link = `failed: ${e instanceof Error ? e.message : String(e)}`;

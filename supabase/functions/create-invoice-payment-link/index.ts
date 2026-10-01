@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getStripeContext } from "../_shared/stripe.ts";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { invoiceState } from "../_shared/payLink.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,6 +48,14 @@ Deno.serve(async (req) => {
     // kennen; nu pas wordt de aanroeper getoetst. Interne aanroepers gebruiken
     // een service-role-client en komen er doorheen (_shared/auth.ts:48-56).
     await authenticateRequest(req, invoice.tenant_id);
+
+    // PAY-LINK-1: geen sessie voor een betaalde, geannuleerde of lopende factuur.
+    const payState = invoiceState(invoice);
+    if (payState !== "open") {
+      return new Response(JSON.stringify({ success: false, error: "not_payable", state: payState }), {
+        status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     // Reuse recent session (<24h) if still openable
     const ageMs = invoice.checkout_session_created_at

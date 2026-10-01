@@ -12,6 +12,8 @@ export interface PlatformBillingInvoice {
   paid_at: string | null;
   has_pdf: boolean;
   credited_by: string[];
+  /** PAY-LINK-1: vaste betaallink bij een openstaande factuur. */
+  pay_url?: string | null;
 }
 
 export interface PlatformBillingCreditNote {
@@ -29,7 +31,8 @@ export interface PlatformBillingPaymentRequest {
   payment_request_number: string | null;
   total: number;
   due_date: string | null;
-  checkout_session_url: string | null;
+  /** PAY-LINK-1: vaste betaallink (sellqo.app/betalen/<token>), null als de post niet open is. */
+  pay_url: string | null;
   has_pdf: boolean;
   status: string;
   cycle_type: 'recurring' | 'proration' | string;
@@ -41,6 +44,8 @@ export interface PlatformBillingDocuments {
   invoices: PlatformBillingInvoice[];
   credit_notes: PlatformBillingCreditNote[];
   payment_requests: PlatformBillingPaymentRequest[];
+  /** PAY-LINK-1: één link voor alle openstaande posten (alleen bij meer dan één). */
+  pay_all_url?: string | null;
 }
 
 /**

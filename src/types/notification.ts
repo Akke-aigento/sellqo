@@ -127,6 +127,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'payout_canceled', label: 'Uitbetaling geannuleerd', description: 'Wanneer een geplande uitbetaling is geannuleerd', defaultInApp: true, defaultEmail: false },
       { type: 'stripe_account_issue', label: 'Stripe probleem', description: 'Probleem met je Stripe account', defaultInApp: true, defaultEmail: false },
       { type: 'chargeback_received', label: 'Chargeback ontvangen', description: 'Wanneer een klant een chargeback indient', defaultInApp: true, defaultEmail: false },
+      // PAY-LINK-1: betaling op een post die al betaald of geannuleerd was — nooit automatisch terugbetaald.
+      { type: 'payment_duplicate', label: 'Dubbele betaling', description: 'Een klant betaalde een post die al betaald of geannuleerd was', defaultInApp: true, defaultEmail: false },
       // NOTIF-TYPES-1: handle_payment_notification stuurt deze met categorie payments.
       { type: 'order_payment_failed', label: 'Betaling mislukt', description: 'Wanneer een betaling van een bestelling faalt', defaultInApp: true, defaultEmail: false },
       { type: 'order_refunded', label: 'Terugbetaald', description: 'Wanneer een bestelling is terugbetaald', defaultInApp: true, defaultEmail: false },

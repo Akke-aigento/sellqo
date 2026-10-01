@@ -1,3 +1,148 @@
+## PAY-LINK-1 — vaste betaallink per openstaande post en "Alles betalen" — 1 oktober 2026
+
+2026-10-01 PAY-LINK-1: elke betaallink naar een klant was een Stripe-sessie van 24 u (of machtiging van 7 d); in
+mails, PDF's en de banner dus vaak dood. Nu een vaste link per post die bij elke klik een verse sessie maakt, plus
+'Alles betalen'. Factuur blijft pas na betaling. PR-2026-0003 kwijtgescholden (chat-Claude).
+
+### Root cause
+
+BILLING-AUDIT-1 (recon 01-10, read-only):
+- Elke betaallink naar een klant was een rauwe Stripe Checkout-URL: `send-payment-request-email` (betaalblok),
+  `generate-payment-request-pdf` (afgekapt op 95 tekens), `process-invoice-dunning` → `send-invoice-email`
+  (`checkout_url`), `get-platform-billing-status` (`checkout_session_url`) → `Billing.tsx` en de banner
+  (`_shared/billingState.ts` `payUrl`). Een sessie verloopt na 24 u; de klant kan zelf geen verse maken, want
+  `create-cycle-payment-link` / `create-invoice-payment-link` autoriseren op de facturatietenant.
+- `dispatch-payment-request` maakte bij elk verzoek al een sessie die bij de eerste herinnering dood was.
+- Gaten in de afboeking (`_shared/subscriptionCharge.ts`): `succeeded` op een `cancelled` cyclus boekte hem
+  gewoon af; `payment_failed` zette een `cancelled` cyclus terug op `awaiting_payment` (alleen
+  `.neq('settled')`) — PR-2026-0003 zou zo heropenen; "al afgeboekt" werd alleen gelogd, zonder onderscheid
+  tussen webhook-retry en tweede betaling; een factuur bewaarde niet welke betaling haar betaalde.
+- De link-functies hadden geen statuscontrole: ook voor een betaalde of geannuleerde post kwam er een sessie.
+
+### Uitgevoerd
+
+- `docs/sql/pay-link-1.sql` (nieuw, chat-Claude draait het) — drie **nieuwe** tabellen, geen kolommen op
+  gedeelde tabellen (`invoices` loopt via `select('*')` door naar storefront-paden; een token hoort daar niet):
+  `payment_links` (token PK, Crockford-regex-check, `kind` cycle|invoice|customer, uniek per cyclus / factuur /
+  (tenant, klant)), `payment_bundles` (snapshot van de posten, status open|paid|superseded), `payment_anomalies`
+  (duplicate|closed_item, uniek per intent + post). RLS aan zonder policies (alleen service-role). Idempotent,
+  DOWN in commentaar, controlequery's onderaan.
+- `_shared/payLink.ts` (nieuw, puur, vitest-testbaar): token (26 tekens Crockford-base32 = 130 bit,
+  normalisatie i/l→1, o→0, streepjes/spaties weg), `cycleState` / `invoiceState` (open = cyclus
+  pending/awaiting_payment/reopened/expired, factuur unpaid/sent), `withPendingSession` (vorige sessie
+  `complete` maar nog niet afgeboekt → `processing`, geen tweede betaling), bundelselectie en -afwikkeling,
+  `routeChargeEvent`, `classifyPayment` (settle | retry | duplicate | closed_item), `payPageBrand`.
+- `_shared/payCheckout.ts` (nieuw): `ensurePaymentLink` (idempotent, vangt 23505), `payUrlFor`, `resolveLink`,
+  `createLinkCheckout` — expireert de vorige open sessie van het token (geen twee betaalbare tabbladen), maakt een
+  verse sessie in dezelfde Stripe-context en met dezelfde metadata als voorheen (`billing_cycle_id` /
+  `invoice_id`, factuur houdt `card, ideal, bancontact, sepa_debit`), plus `payment_link_token`; bundel:
+  `payment_bundle_id`, één regel per post, oude open bundels → `superseded`.
+- `supabase/functions/pay-link/index.ts` (nieuw, publiek, `verify_jwt = false` in `supabase/config.toml`):
+  `info` en `checkout`; rate-limit 60/IP en 10 checkouts/token per 10 min. Geeft alleen staat, merk, posten
+  (nummer, omschrijving, bedrag) en totaal terug — geen e-mailadressen of klantgegevens.
+- `_shared/subscriptionCharge.ts`: routering via `routeChargeEvent`; nieuwe tak `payment_bundle_id` → per post
+  dezelfde afboekcode als een losse betaling → bundel `paid` (mislukte bundelbetaling raakt de posten niet);
+  per post `classifyPayment` — duplicate of closed_item → rij in `payment_anomalies` + melding
+  `payments/payment_duplicate` (prioriteit high) aan de tenant van de post, **nooit automatisch terugbetalen**;
+  `payment_failed` raakt geen `cancelled` cyclus of factuur meer; factuur bewaart de betalende intent in
+  `invoices.metadata.paid_payment_intent_id` (bestaande jsonb, geen schemawijziging).
+- Overal de vaste link: `dispatch-payment-request` (maakt geen sessie meer, alleen de link),
+  `send-payment-request-email`, `generate-payment-request-pdf` (volledige korte URL), `process-invoice-dunning`,
+  `get-platform-billing-status` (`pay_url` per open betaalverzoek en open factuur, `pay_all_url` bij meer dan
+  één post, `pendingUpgrade.pay_url`; `checkout_session_url` niet meer uitgegeven), `_shared/billingState.ts`
+  (`payUrl` alleen uit `pay_url`).
+- `create-cycle-payment-link` / `create-invoice-payment-link`: statuscontrole → 409 `not_payable` met de staat.
+- Frontend: `src/pages/public/PayLink.tsx` (nieuw, route `/betalen/:token` in `App.tsx`, `noindex`,
+  cookiebanner uitgesloten in `PlatformCookieBanner.tsx`), `Billing.tsx` (knop **Alles betalen**, "Betalen"
+  bij open facturen in kaart- en tabelweergave, interne navigatie naar de link), hooks
+  `usePlatformBillingStatus` / `usePlatformBillingDocuments` (types). i18n: `billing.documents.pay_all` in
+  nl/en/fr/de/uk, `public.pay.link.*` (28 keys) in alle vijf landing-bestanden.
+- Meldingstype `payment_duplicate` geregistreerd in `src/types/notification.ts` en
+  `_shared/notificationDefaults.ts` (e-mail standaard uit; prioriteit high mailt toch).
+
+### Ontwerpkeuzes
+
+- **Openen ≠ betalen** (omkeerbaar): de link toont een pagina met winkel, nummer(s) en bedrag + knop
+  **Betalen**; pas de klik maakt de Stripe-sessie. Reden: mailscanners openen links automatisch — bij
+  doorsturen-bij-openen zou elke scan een sessie maken en de vorige laten vervallen.
+- **Factuur pas na betaling** (pay_first): een link betaalt een betaalverzoek of een al bestaande factuur en maakt
+  zelf nooit een factuur. Facturen ontstaan alleen in de bestaande cyclus-afboeking. Een test scant `pay-link`,
+  `payCheckout` en `payLink` op schrijfacties naar `invoices`.
+- **Branding (aanvulling Akke):** `pay-link info` geeft het merk van de tenant van de post via `getTenantBrand`.
+  Een factuur van een gewone winkel toont de **winkel**, met klein onderaan "Mogelijk gemaakt door SellQo"; een
+  platformpost (tenant SellQo) toont SellQo zonder die regel. Getest voor beide.
+- **PR-2026-0003** (`cancelled`) telt overal als gesloten: de link toont "geannuleerd", `checkout` weigert,
+  `payment_failed` heropent hem niet meer, een eventuele betaling wordt `closed_item` (melding, niet afgeboekt).
+- **SQ-2026-0001** (Astra, domeinfactuur `sent`) is via de link betaalbaar als factuur (`kind = invoice`).
+
+### Security-keuzes
+
+Nieuwe tabellen met RLS aan en geen policies: alleen service-role leest en schrijft. `pay-link` is publiek; de
+enige sleutel is het token (130 bit willekeur, `crypto.getRandomValues`), elke sessie vertrekt van een
+tokenlookup. Rate-limit per IP en per token (in-memory per instance — remt brute force en sessiespam, is geen
+harde garantie). De pagina krijgt geen e-mailadressen, adressen of klant-ID's. Geen bestaande policies of grants
+geraakt.
+
+### Gedeelde-paden-waarschuwing
+
+`stripe-connect-webhook` verwerkt ook alle **webshopbetalingen** van alle winkels. Bewezen ongewijzigd
+(aanvulling Akke): `git diff` op `supabase/functions/stripe-connect-webhook/index.ts` en
+`supabase/functions/platform-stripe-webhook/index.ts` is **leeg**. Beide roepen eerst
+`handleSubscriptionChargeWebhook` aan, die `false` teruggeeft als `routeChargeEvent` `null` geeft, waarna hun
+order-, checkout- en refundtakken lopen. Test: een order-`payment_intent.succeeded` met de metadata zoals de
+webshop-checkout hem zet (geen `billing_cycle_id` / `invoice_id` / `payment_bundle_id`) → `null`. Ze staan op de
+redeploylijst alleen omdat ze `subscriptionCharge` importeren. `storefront-api`, `storefront-customer-api`,
+`storefront-resolve` en de gedeelde storefront-tabellen niet geraakt; `invoices` en `billing_cycles` krijgen geen
+kolommen. De nieuwe route `/betalen/:token` leeft alleen in de SellQo-app; de custom frontends merken niets.
+
+### Verificatie
+
+- vitest 583 groen (nieuw `src/test/payLink.test.ts`, 17 tests: token, staat per post, bundelselectie en
+  -afwikkeling met geïnjecteerde afboeker, `classifyPayment` voor cyclus en factuur, `routeChargeEvent` met een
+  order-intent → `null`, `payPageBrand` winkel vs platform, geen factuur vóór betaling; `billingState.test.ts`
+  bijgewerkt + nieuwe test).
+- `deno check` alle functies 0 fouten; `tsc` exit 0; lint gelijk aan de baseline (1505); check:* en
+  i18n-parity exit 0; `npm run build` groen; `npx cap sync`.
+- Browser 390px: `/betalen/<onbekend token>` toont de foutstaat, geen horizontale scroll, geen cookiebanner.
+  De open staat kon lokaal niet getoond worden zonder tabellen en functie — dat is de vingerafdruk hieronder.
+- Geen live-betalingen, geen Stripe-aanroepen, geen DB-writes vanuit de tests.
+
+### Uitrol — volgorde is hard
+
+Zonder tabellen breken de betaalmails.
+
+(a) chat-Claude draait docs/sql/pay-link-1.sql en verifieert de tabellen; (b) pas dan de deploy van de functies;
+(c) dan publish.
+
+(b) via import-grep, 25 functies: `ads-bolcom-manage ai-business-coach ai-generate-email ai-generate-social
+ai-product-field-assistant create-cycle-payment-link create-invoice-payment-link create-notification
+dispatch-payment-request duplicate-product generate-payment-request-pdf generate-subscription-invoices
+get-platform-billing-status mail-billing-api pay-link platform-stripe-webhook process-invoice-dunning
+run-csv-import send-campaign-batch send-payment-request-email send-push-notification social-post-publish
+stripe-connect-webhook sync-billing-state update-order-fulfillment-status`. Alleen met groene build. (c) publish +
+app-builds. Pas daarna stuurt Akke de link naar Astra; cron `sync-billing-state` blijft uit.
+
+Vingerafdruk na deploy (chat-Claude): link PR-2026-0004 openen → pagina → knop → verse Stripe-sessie (**niet
+betalen**); link PR-2026-0003 → pagina "geannuleerd".
+
+### Bewust ongemoeid / Vervolg
+
+- Bestaande Stripe-sessies in al verstuurde mails/PDF's blijven wat ze waren (verlopen); nieuwe zendingen en de
+  facturatiepagina gebruiken de vaste link.
+- `/pay/success` en `/pay/cancelled` blijven bestaan voor de oude link-functies.
+- Changelog / `doc_articles` / nieuwsbrief: niet in deze batch (zie §4), apart af te stemmen.
+- **Backlog:**
+  - **INVOICE-AFTER-PAY-1** — overal (niet alleen bij betaalverzoeken) de factuur pas na betaling laten
+    ontstaan; inventaris van paden die nu nog vooraf factureren.
+  - **BILLING-VISIBILITY-1** — RLS laat tenantgebruikers de `billing_cycles` / `invoices` van de
+    facturatietenant niet lezen, dus de banner toont niets terwijl de server Astra sinds 25-09 afsluit; banner
+    voeden via `get-platform-billing-status` en rechtstreeks naar de betaallink laten wijzen.
+  - **PLATFORM-BILLING-ADMIN-1** — platform-adminscherm voor posten: kwijtschelden, link opnieuw sturen,
+    `payment_anomalies` inzien en afhandelen (nu alleen via SQL en de melding).
+  - **CYCLE-STACK-1** — beleid: maanden op slot worden achteraf gefactureerd. Cycli niet opstapelen terwijl een
+    tenant afgesloten is.
+  - **MANDATE-1** — de machtigingslink (7 d) dezelfde behandeling geven als de betaallink.
+
 ## BILLING-EXEMPT-1 — billing_exempt los van is_internal_tenant — 1 oktober 2026
 
 2026-10-01 BILLING-EXEMPT-1: is_internal_tenant had vijf betekenissen; voor Akke's eigen winkels aangezet om
