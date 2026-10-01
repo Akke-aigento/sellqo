@@ -35,6 +35,7 @@ import { TenantBulkActions } from '@/components/admin/TenantBulkActions';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
+import { isBillingExempt } from '../../../supabase/functions/_shared/billingExempt';
 
 function getStatusBadge(status: string | null) {
   switch (status) {
@@ -271,13 +272,13 @@ export default function TenantsPage() {
                     <p className="mt-1 truncate text-xs">{tenant.owner_name || '-'}</p>
                     <p className="truncate text-xs text-muted-foreground">{tenant.owner_email}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
-                      {!tenant.is_internal_tenant &&
+                      {!isBillingExempt(tenant) &&
                         (tenant.is_demo ? (
                           <Badge variant="secondary">N/A</Badge>
                         ) : (
                           getPlanBadge(tenant.subscription_plan)
                         ))}
-                      {!tenant.is_internal_tenant &&
+                      {!isBillingExempt(tenant) &&
                         (tenant.is_demo ? (
                           <Badge variant="secondary">N/A</Badge>
                         ) : (
@@ -371,14 +372,14 @@ export default function TenantsPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    {tenant.is_internal_tenant ? null : tenant.is_demo ? (
+                    {isBillingExempt(tenant) ? null : tenant.is_demo ? (
                       <Badge variant="secondary">N/A</Badge>
                     ) : (
                       getPlanBadge(tenant.subscription_plan)
                     )}
                   </TableCell>
                   <TableCell>
-                    {tenant.is_internal_tenant ? null : tenant.is_demo ? (
+                    {isBillingExempt(tenant) ? null : tenant.is_demo ? (
                       <Badge variant="secondary">N/A</Badge>
                     ) : (
                       getStatusBadge(tenant.subscription_status)

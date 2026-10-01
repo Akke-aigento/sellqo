@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { isBillingExempt } from "../_shared/billingExempt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -234,8 +235,8 @@ serve(async (req) => {
     let isInternal = false;
     if (!auth.is_platform_admin) {
       const { data: tenantRow } = await supabase
-        .from('tenants').select('is_internal_tenant').eq('id', tenantId).maybeSingle();
-      isInternal = !!tenantRow?.is_internal_tenant;
+        .from('tenants').select('is_internal_tenant, billing_exempt').eq('id', tenantId).maybeSingle();
+      isInternal = isBillingExempt(tenantRow); // BILLING-EXEMPT-1
 
       if (!isInternal) {
         const { data: creditsRow } = await supabase

@@ -30,6 +30,8 @@ interface Tenant {
   // Demo and internal flags
   is_demo?: boolean;
   is_internal_tenant?: boolean;
+  /** BILLING-EXEMPT-1: geen SellQo-facturatie, geen limieten, niet in de statistieken. */
+  billing_exempt?: boolean;
   // Peppol
   peppol_id?: string | null;
   // Invoice settings

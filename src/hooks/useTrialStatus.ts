@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { isBillingExempt } from '../../supabase/functions/_shared/billingExempt';
 
 export interface TrialStatus {
   isLoading: boolean;
@@ -38,8 +39,8 @@ export function useTrialStatus() {
       return;
     }
 
-    // Internal tenants (SellQo) are never on trial - they're the platform owners
-    if (currentTenant.is_internal_tenant) {
+    // SellQo zelf en vrijgestelde winkels (BILLING-EXEMPT-1) hebben geen proefperiode.
+    if (isBillingExempt(currentTenant)) {
       setTrialStatus({
         isLoading: false,
         isTrialing: false,

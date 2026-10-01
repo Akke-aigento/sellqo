@@ -17982,6 +17982,7 @@ export type Database = {
           billing_address: Json | null
           billing_company_name: string | null
           billing_email: string | null
+          billing_exempt: boolean
           billing_vat_number: string | null
           block_invalid_vat_orders: boolean | null
           btw_number: string | null
@@ -18093,6 +18094,7 @@ export type Database = {
           billing_address?: Json | null
           billing_company_name?: string | null
           billing_email?: string | null
+          billing_exempt?: boolean
           billing_vat_number?: string | null
           block_invalid_vat_orders?: boolean | null
           btw_number?: string | null
@@ -18204,6 +18206,7 @@ export type Database = {
           billing_address?: Json | null
           billing_company_name?: string | null
           billing_email?: string | null
+          billing_exempt?: boolean
           billing_vat_number?: string | null
           block_invalid_vat_orders?: boolean | null
           btw_number?: string | null

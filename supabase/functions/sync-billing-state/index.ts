@@ -19,6 +19,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 import { resolveBillingState, type BillingState } from "../_shared/billingState.ts";
 import { notificationRoute } from "../_shared/notificationRoutes.ts";
+import { isBillingExempt } from "../_shared/billingExempt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -57,7 +58,7 @@ serve(async (req) => {
 
     const { data: subs, error: subsErr } = await supabase
       .from("tenant_subscriptions")
-      .select("tenant_id, status, trial_end, plan_id, billing_customer_id, tenants(name, is_demo, is_internal_tenant)");
+      .select("tenant_id, status, trial_end, plan_id, billing_customer_id, tenants(name, is_demo, is_internal_tenant, billing_exempt)");
     if (subsErr) throw subsErr;
 
     const rows: Row[] = [];
@@ -66,10 +67,10 @@ serve(async (req) => {
     for (const sub of (subs ?? []) as Array<Record<string, unknown>>) {
       const tenantId = sub.tenant_id as string;
       if (onlyTenant && tenantId !== onlyTenant) continue;
-      const tenant = (sub.tenants ?? {}) as { name?: string; is_demo?: boolean; is_internal_tenant?: boolean };
+      const tenant = (sub.tenants ?? {}) as { name?: string; is_demo?: boolean; is_internal_tenant?: boolean; billing_exempt?: boolean };
 
-      // Demo- en interne winkels betalen niet: nooit afsluiten.
-      if (tenant.is_demo === true || tenant.is_internal_tenant === true) continue;
+      // Demo, SellQo zelf en vrijgestelde winkels (BILLING-EXEMPT-1) betalen niet: nooit afsluiten.
+      if (tenant.is_demo === true || isBillingExempt(tenant)) continue;
       const current = String(sub.status ?? "");
       if (!MANAGED.has(current)) continue; // canceled / onbekend: met rust laten
 

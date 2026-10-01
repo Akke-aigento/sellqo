@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useAuth } from './useAuth';
+import { isBillingExempt } from '../../supabase/functions/_shared/billingExempt';
 
 interface AICredits {
   id: string;
@@ -18,7 +19,8 @@ export function useAICredits() {
   const { isPlatformAdmin } = useAuth();
 
   // Platform admins en internal tenants hebben onbeperkte credits
-  const isUnlimited = currentTenant?.is_internal_tenant === true || isPlatformAdmin;
+  // BILLING-EXEMPT-1: SellQo zelf en vrijgestelde winkels.
+  const isUnlimited = isBillingExempt(currentTenant) || isPlatformAdmin;
 
   const { data: credits, isLoading, refetch } = useQuery({
     queryKey: ['ai-credits', currentTenant?.id],

@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
+import { isBillingExempt } from '../../supabase/functions/_shared/billingExempt';
 
 export type LimitType = 'products' | 'orders' | 'customers' | 'users';
 
@@ -29,7 +30,8 @@ export function useUsageLimits() {
   const isPlatformBypass = isPlatformAdmin && isAdminView;
 
   // Internal tenants (SellQo) and demo tenants have unlimited everything
-  const isUnlimited = isPlatformBypass || currentTenant?.is_internal_tenant === true || currentTenant?.is_demo === true;
+  // BILLING-EXEMPT-1: SellQo zelf, vrijgestelde winkels en demo's.
+  const isUnlimited = isPlatformBypass || isBillingExempt(currentTenant) || currentTenant?.is_demo === true;
 
   const checkLimit = async (limitType: LimitType): Promise<boolean> => {
     // Unlimited tenants bypass all limits

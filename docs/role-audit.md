@@ -1,3 +1,86 @@
+## BILLING-EXEMPT-1 — billing_exempt los van is_internal_tenant — 1 oktober 2026
+
+2026-10-01 BILLING-EXEMPT-1: is_internal_tenant had vijf betekenissen; voor Akke's eigen winkels aangezet om
+facturatie te vermijden, waardoor factuurbetaallinks/dunning/machtigingen via het SellQo-Stripe-account zouden
+lopen (niet gebruikt, geverifieerd). Gesplitst: billing_exempt voor de vrijstelling, is_internal_tenant alleen
+voor SellQo zelf.
+
+### Root cause
+
+`is_internal_tenant` betekende vijf dingen tegelijk (inventaris in HOTFIX-BILLING-TENANT-1): Stripe via het
+platformaccount (`getStripeContext`), geen facturatie/afdwinging, geen limieten, niet in de statistieken, en
+"Mijn winkels". De schakelaar uit TENANT-INTERNAL-1 zette die vlag; Akke gebruikte hem op 28/29-09 voor Loveke,
+VanXcel, The Fonske Crawl en Studio Akke met de bedoeling "niet factureren". Voor de drie met een eigen Stripe
+Connect-account liepen daardoor de betaallinks en dunning-incasso van hun eigen facturen en hun klantmachtigingen
+via SellQo's account (chat-Claude: VanXcel 22 facturen `sent`, 0 betaallinks, dunning 0 — niet gebruikt). De
+webshop-checkout zelf was nooit geraakt (die leest `stripe_account_id` rechtstreeks).
+
+### Uitgevoerd
+
+- `docs/sql/billing-exempt-1.sql` (chat-Claude draait het): snapshot; `tenants.billing_exempt boolean NOT NULL
+  DEFAULT false` (additief); `billing_exempt = true` voor Loveke, VanXcel, The Fonske Crawl en Studio Akke (vaste
+  ID's); daarna `is_internal_tenant = false` voor **Loveke, VanXcel, The Fonske Crawl**. Controlequery: geen
+  interne tenant met een Connect-account.
+- **Afwijking van de brief (keuze Akke 01-10): Studio Akke blijft `is_internal_tenant = true`.** Studio Akke
+  heeft geen Connect-account; `mail-billing-api` (r. 250) int voor Studio Akke Mail via
+  `getStripeContext(Studio Akke)`, dat zonder de vlag zou gooien ("no stripe_account_id and is not internal").
+- `_shared/stripeRouting.ts` (nieuw, puur) — `resolveStripeRouting`: **uitsluitend** `is_internal_tenant`
+  stuurt naar het platformaccount; `getStripeContext` (`_shared/stripe.ts`) gebruikt het (gedrag gelijk).
+- `_shared/billingExempt.ts` (nieuw, puur) — `isBillingExempt = is_internal_tenant || billing_exempt`, gebruikt in
+  `sync-billing-state`, `ai-product-field-assistant`, `ai-translate-content`, `useBillingState`,
+  `useTrialStatus`, `useUsageLimits`, `useAICredits`, `usePlatformAdmin` (statistieken), `Tenants.tsx`
+  (plan/status verborgen; OWNER-badge blijft alleen voor `is_internal_tenant`).
+- `_shared/billingGuard.ts` — `loadBillingState` geeft `active` voor demo, `is_internal_tenant` en
+  `billing_exempt`. Tot nu kende de **serverguard geen enkele vrijstelling** (app en `sync-billing-state` wel);
+  daardoor stond demowinkel SellQo Sandbox op de server in leesmodus (BILLING-AUDIT-1). Gedragswijziging: die
+  is nu vrij.
+- `src/lib/tenantGroups.ts` — "Mijn winkels" = `is_internal_tenant` of `billing_exempt` (keuze Akke 01-10). De
+  brief ging uit van `user_roles`, maar op 29-09 koos Akke "alleen de vlag" (`019991d9`); deze keuze zet dat
+  voort op de vlag die echt "eigen winkel" betekent.
+- Tenantformulier: de schakelaar heet **"Geen SellQo-facturatie"** en zet `billing_exempt`; `useTenants` schrijft
+  `is_internal_tenant` niet meer. `types.ts`, `useTenant`, `useTenants`: `billing_exempt` toegevoegd.
+
+**WAARSCHUWING:** `is_internal_tenant` is alleen nog via SQL te zetten, en nooit voor een winkel met een eigen
+Stripe Connect-account — dan lopen haar factuurbetalingen, dunning-incasso en klantmachtigingen via SellQo.
+
+### Security-keuzes
+
+Geen RLS of policies geraakt. Het formulier (platform-admin) kan de Stripe-routering niet meer wijzigen.
+
+### Gedeelde-paden-waarschuwing
+
+`tenants` is gedeeld: de nieuwe kolom is additief met default, en `get_config` bouwt een eigen object (geen
+spread), dus de custom frontends zien hem niet. `_shared/stripe.ts` en `_shared/billingGuard.ts` worden door 32
+functies geïmporteerd; de routering is functioneel identiek (alleen verplaatst en getest), de guard krijgt
+alleen een vrijstelling.
+
+### Verificatie
+
+vitest 563 groen (nieuw `billingExempt.test.ts`: routering — intern → platform, `billing_exempt` + Connect →
+eigen account, `billing_exempt` zonder account → fout; vrijstelling met beide vlaggen; winkelkiezer);
+`deno check` alle functies 0 fouten; `tsc` exit 0; lint gelijk aan de baseline; check:* en i18n-parity exit 0;
+`npm run build` groen; `npx cap sync`.
+
+### Uitrol — volgorde is hard
+
+(a) chat-Claude draait `docs/sql/billing-exempt-1.sql` en controleert (geen interne tenant met Connect-account);
+(b) pas dan deploy (import-grep, 32 functies: `ads-bolcom-manage ai-business-coach ai-generate-email
+ai-generate-social ai-product-field-assistant ai-translate-content check-connect-status create-connect-account
+create-cycle-payment-link create-invoice-payment-link create-mandate-setup create-platform-mandate-setup
+disconnect-stripe-account duplicate-product generate-subscription-invoices get-merchant-payouts
+get-merchant-transactions get-stripe-login-link mail-billing-api mandate-setup-complete mandate-setup-info
+platform-stripe-webhook process-invoice-dunning process-refund resolve-tenant-action run-csv-import
+send-campaign-batch social-post-publish stripe-connect-webhook sync-billing-state sync-tenant-plan
+update-order-fulfillment-status`); (c) publish + app-builds. Zonder de kolom falen o.a. `sync-billing-state`
+en de platformstatistieken op hun select.
+
+### Bewust ongemoeid / Vervolg
+
+- Het tenantformulier is volledig hardcoded Nederlands (0× `t()`, ook de demoschakelaar) — i18n-schuld van
+  dit platform-admin-scherm, niet in deze batch.
+- `is_internal_tenant` wordt nog door de interne `get-platform-billing-status`-documenten e.d. niet gelezen; de
+  facturatietenant komt sinds HOTFIX-BILLING-TENANT-1 uit de slug.
+
 ## HOTFIX-BILLING-TENANT-1 — de facturatietenant op slug, niet op is_internal_tenant — 1 oktober 2026
 
 Gevonden tijdens de recon van PAY-LINK-1. Losse hotfix vóór die batch (keuze Akke 01-10).

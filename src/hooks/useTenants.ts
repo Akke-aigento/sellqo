@@ -31,6 +31,7 @@ export interface Tenant {
   auto_send_invoice_email: boolean | null;
   is_demo: boolean | null;
   is_internal_tenant: boolean | null;
+  billing_exempt: boolean | null;
 }
 
 export interface TenantFormData {
@@ -52,7 +53,7 @@ export interface TenantFormData {
   auto_generate_invoice?: boolean;
   auto_send_invoice_email?: boolean;
   is_demo?: boolean;
-  is_internal_tenant?: boolean;
+  billing_exempt?: boolean;
 }
 
 export function useTenants() {
@@ -95,7 +96,9 @@ export function useTenants() {
           // TENANT-INTERNAL-1: beide vlaggen stonden alleen in het updatepad, dus
           // bij het aanmaken deed de schakelaar niets.
           is_demo: data.is_demo ?? false,
-          is_internal_tenant: data.is_internal_tenant ?? false,
+          // BILLING-EXEMPT-1: de schakelaar zet billing_exempt; is_internal_tenant
+          // (SellQo zelf, Stripe via het platformaccount) is niet meer via de UI te zetten.
+          billing_exempt: data.billing_exempt ?? false,
         })
         .select()
         .single();
@@ -140,9 +143,10 @@ export function useTenants() {
           currency: data.currency,
           tax_percentage: data.tax_percentage,
           is_demo: data.is_demo,
-          // TENANT-INTERNAL-1: eigen winkels (SellQo, VanXcel, Loveke, …) staan
-          // buiten facturatie, limieten en de platformstatistieken.
-          is_internal_tenant: data.is_internal_tenant,
+          // BILLING-EXEMPT-1: eigen winkels (VanXcel, Loveke, …) staan buiten
+          // facturatie, limieten en de platformstatistieken. is_internal_tenant niet:
+          // die stuurt Stripe naar het platformaccount en is alleen via SQL te zetten.
+          billing_exempt: data.billing_exempt,
         })
         .eq('id', id)
         .select()

@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { TenantSubscription, PlatformInvoice, PricingPlan } from '@/types/billing';
+import { isBillingExempt } from '../../supabase/functions/_shared/billingExempt';
 
 export interface TenantDetail {
   id: string;
@@ -92,18 +93,19 @@ export function usePlatformAdmin() {
       queryFn: async () => {
         const { data, error } = await supabase
           .from('tenants')
-          .select('id, subscription_status, is_internal_tenant, is_demo');
+          .select('id, subscription_status, is_internal_tenant, billing_exempt, is_demo');
         
         if (error) throw error;
         
         // Exclude demo and internal tenants from main counts
-        const realTenants = data?.filter(t => !t.is_demo && !t.is_internal_tenant) || [];
+        // BILLING-EXEMPT-1: SellQo zelf en vrijgestelde winkels tellen niet mee.
+        const realTenants = data?.filter(t => !t.is_demo && !isBillingExempt(t)) || [];
         
         const stats: TenantStats = {
           total: realTenants.length,
           active: realTenants.filter(t => t.subscription_status === 'active').length,
           trialing: realTenants.filter(t => t.subscription_status === 'trialing').length,
-          internal: data?.filter(t => t.is_internal_tenant).length || 0,
+          internal: data?.filter(t => isBillingExempt(t)).length || 0,
           demo: data?.filter(t => t.is_demo).length || 0,
         };
         

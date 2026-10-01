@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { requireBillingState } from "../_shared/billingGuard.ts";
+import { isBillingExempt } from "../_shared/billingExempt.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -94,11 +95,12 @@ Deno.serve(async (req) => {
     // Check if tenant is internal (unlimited credits)
     const { data: tenantData } = await supabase
       .from("tenants")
-      .select("name, is_internal_tenant")
+      .select("name, is_internal_tenant, billing_exempt")
       .eq("id", tenantId)
       .single();
 
-    const isUnlimited = tenantData?.is_internal_tenant === true;
+    // BILLING-EXEMPT-1: SellQo zelf of een vrijgestelde winkel (billing_exempt).
+    const isUnlimited = isBillingExempt(tenantData);
     const creditsNeeded = action === "generate_variations" ? 2 : 1;
 
     // Credit check (skip for unlimited tenants)

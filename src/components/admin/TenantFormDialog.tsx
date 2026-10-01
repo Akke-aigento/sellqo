@@ -48,7 +48,7 @@ const tenantSchema = z.object({
   currency: z.string().optional(),
   tax_percentage: z.coerce.number().min(0).max(100).optional(),
   is_demo: z.boolean().optional(),
-  is_internal_tenant: z.boolean().optional(),
+  billing_exempt: z.boolean().optional(),
 });
 
 interface TenantFormDialogProps {
@@ -85,7 +85,7 @@ export function TenantFormDialog({
       currency: 'EUR',
       tax_percentage: 21,
       is_demo: false,
-      is_internal_tenant: false,
+      billing_exempt: false,
     },
   });
 
@@ -108,7 +108,7 @@ export function TenantFormDialog({
         currency: tenant.currency || 'EUR',
         tax_percentage: tenant.tax_percentage ?? 21,
         is_demo: tenant.is_demo ?? false,
-        is_internal_tenant: tenant.is_internal_tenant ?? false,
+        billing_exempt: tenant.billing_exempt ?? false,
       });
     } else {
       form.reset({
@@ -128,7 +128,7 @@ export function TenantFormDialog({
         currency: 'EUR',
         tax_percentage: 21,
         is_demo: false,
-        is_internal_tenant: false,
+        billing_exempt: false,
       });
     }
   }, [tenant, form]);
@@ -457,19 +457,20 @@ export function TenantFormDialog({
                   )}
                 />
 
-                {/* TENANT-INTERNAL-1: eigen winkels stonden alleen in de database
-                    aan of uit; hier was er geen schakelaar voor. */}
+                {/* BILLING-EXEMPT-1: deze schakelaar zette tot 01-10 is_internal_tenant, wat
+                    ook de Stripe-betalingen van de winkel naar SellQo's account stuurde.
+                    Nu billing_exempt; is_internal_tenant is alleen via SQL te zetten. */}
                 <FormField
                   control={form.control}
-                  name="is_internal_tenant"
+                  name="billing_exempt"
                   render={({ field }) => (
                     <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-sky-200 bg-sky-50/50 p-4">
                       <div className="min-w-0">
-                        <FormLabel className="text-sky-900">Interne winkel</FormLabel>
+                        <FormLabel className="text-sky-900">Geen SellQo-facturatie</FormLabel>
                         <p className="text-sm text-sky-700">
-                          Een eigen winkel (VanXcel, Loveke, …). Geen facturatie of leesmodus bij een
-                          openstaande betaling, geen plan- en AI-limieten, en telt niet mee in de
-                          platformstatistieken.
+                          Voor een eigen winkel (VanXcel, Loveke, …). SellQo factureert deze winkel niet,
+                          zet haar nooit in leesmodus, past geen plan- en AI-limieten toe en telt haar niet
+                          mee in de platformstatistieken. Betalingen blijven via haar eigen Stripe-account lopen.
                         </p>
                       </div>
                       <FormControl>

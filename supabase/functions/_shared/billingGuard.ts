@@ -14,6 +14,7 @@
 
 import { AuthError, type AuthResult } from "./auth.ts";
 import { billingAllows, resolveBillingState, type BillingState } from "./billingState.ts";
+import { isBillingExempt } from "./billingExempt.ts";
 
 /** 402: "betaal om verder te gaan" — te onderscheiden van 403 (rol). */
 export const BILLING_BLOCKED_STATUS = 402;
@@ -33,6 +34,16 @@ export async function loadBillingState(
   tenantId: string,
   now: Date = new Date(),
 ): Promise<BillingState> {
+  // BILLING-EXEMPT-1: wie SellQo niet factureert, kan ook niet op slot. Tot 01-10
+  // kende de server deze vrijstelling niet (de app en sync-billing-state wel), en
+  // stond demowinkel SellQo Sandbox op de server in leesmodus.
+  const { data: tenant } = await client
+    .from("tenants")
+    .select("is_demo, is_internal_tenant, billing_exempt")
+    .eq("id", tenantId)
+    .maybeSingle();
+  if (tenant?.is_demo === true || isBillingExempt(tenant)) return "active";
+
   const { data: sub } = await client
     .from("tenant_subscriptions")
     .select("status, trial_end, plan_id, billing_customer_id")

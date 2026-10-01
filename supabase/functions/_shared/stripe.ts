@@ -3,6 +3,7 @@
 // If STRIPE_TEST_SECRET_KEY is not configured, demo tenants fall back to live key with a warning.
 
 import Stripe from "https://esm.sh/stripe@18.5.0";
+import { resolveStripeRouting } from "./stripeRouting.ts";
 
 export interface StripeResolution {
   stripe: Stripe;
@@ -124,8 +125,11 @@ export function getStripeContext(
   apiVersion: string = "2025-08-27.basil"
 ): StripeContext {
   const resolution = tenant.is_demo ? getStripeTest(apiVersion) : getStripeLive(apiVersion);
+  // BILLING-EXEMPT-1: de keuze zelf staat puur in stripeRouting.ts (getest);
+  // alleen is_internal_tenant stuurt naar het platformaccount, billing_exempt nooit.
+  const routing = resolveStripeRouting(tenant);
 
-  if (tenant.is_internal_tenant) {
+  if (routing.account === "platform") {
     return {
       stripe: resolution.stripe,
       requestOptions: undefined,
@@ -134,15 +138,9 @@ export function getStripeContext(
     };
   }
 
-  if (!tenant.stripe_account_id) {
-    throw new Error(
-      `Tenant ${tenant.id} has no stripe_account_id and is not internal — cannot charge`,
-    );
-  }
-
   return {
     stripe: resolution.stripe,
-    requestOptions: { stripeAccount: tenant.stripe_account_id },
+    requestOptions: { stripeAccount: routing.stripeAccountId },
     keyMode: resolution.keyMode,
     onPlatformAccount: false,
   };

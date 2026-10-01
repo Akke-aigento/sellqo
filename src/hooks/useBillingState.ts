@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
+import { isBillingExempt } from '../../supabase/functions/_shared/billingExempt';
 import {
   resolveBillingState,
   type BillingState,
@@ -26,7 +27,7 @@ export function useBillingState(): BillingStateResult & { isLoading: boolean } {
   const { currentTenant } = useTenant();
   const { isPlatformAdmin } = useAuth();
   const exempt = isPlatformAdmin
-    || currentTenant?.is_internal_tenant === true
+    || isBillingExempt(currentTenant) // BILLING-EXEMPT-1: SellQo zelf of billing_exempt
     || currentTenant?.is_demo === true;
 
   const { data, isLoading } = useQuery({
