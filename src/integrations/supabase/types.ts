@@ -9926,6 +9926,158 @@ export type Database = {
           },
         ]
       }
+      payment_anomalies: {
+        Row: {
+          amount: number | null
+          billing_cycle_id: string | null
+          bundle_id: string | null
+          created_at: string
+          currency: string | null
+          id: string
+          invoice_id: string | null
+          kind: string
+          payment_intent_id: string
+          resolved_at: string | null
+          tenant_id: string
+        }
+        Insert: {
+          amount?: number | null
+          billing_cycle_id?: string | null
+          bundle_id?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          kind: string
+          payment_intent_id: string
+          resolved_at?: string | null
+          tenant_id: string
+        }
+        Update: {
+          amount?: number | null
+          billing_cycle_id?: string | null
+          bundle_id?: string | null
+          created_at?: string
+          currency?: string | null
+          id?: string
+          invoice_id?: string | null
+          kind?: string
+          payment_intent_id?: string
+          resolved_at?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_anomalies_billing_cycle_id_fkey"
+            columns: ["billing_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "billing_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_anomalies_bundle_id_fkey"
+            columns: ["bundle_id"]
+            isOneToOne: false
+            referencedRelation: "payment_bundles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_anomalies_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_anomalies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_anomalies_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_bundles: {
+        Row: {
+          checkout_session_id: string | null
+          created_at: string
+          currency: string
+          customer_id: string
+          id: string
+          items: Json
+          paid_at: string | null
+          payment_intent_id: string | null
+          status: string
+          tenant_id: string
+          token: string
+          total: number
+        }
+        Insert: {
+          checkout_session_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_id: string
+          id?: string
+          items: Json
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          status?: string
+          tenant_id: string
+          token: string
+          total: number
+        }
+        Update: {
+          checkout_session_id?: string | null
+          created_at?: string
+          currency?: string
+          customer_id?: string
+          id?: string
+          items?: Json
+          paid_at?: string | null
+          payment_intent_id?: string | null
+          status?: string
+          tenant_id?: string
+          token?: string
+          total?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_bundles_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_bundles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_bundles_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_bundles_token_fkey"
+            columns: ["token"]
+            isOneToOne: false
+            referencedRelation: "payment_links"
+            referencedColumns: ["token"]
+          },
+        ]
+      }
       payment_confirmations: {
         Row: {
           confirmed_at: string
@@ -9984,6 +10136,78 @@ export type Database = {
           },
           {
             foreignKeyName: "payment_confirmations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_links: {
+        Row: {
+          billing_cycle_id: string | null
+          created_at: string
+          customer_id: string | null
+          invoice_id: string | null
+          kind: string
+          last_checkout_session_id: string | null
+          last_opened_at: string | null
+          tenant_id: string
+          token: string
+        }
+        Insert: {
+          billing_cycle_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          invoice_id?: string | null
+          kind: string
+          last_checkout_session_id?: string | null
+          last_opened_at?: string | null
+          tenant_id: string
+          token: string
+        }
+        Update: {
+          billing_cycle_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          invoice_id?: string | null
+          kind?: string
+          last_checkout_session_id?: string | null
+          last_opened_at?: string | null
+          tenant_id?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_links_billing_cycle_id_fkey"
+            columns: ["billing_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "billing_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_links_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_links_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_links_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payment_links_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
