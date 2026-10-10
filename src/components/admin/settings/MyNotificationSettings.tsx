@@ -17,6 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { canReceiveNotificationCategory } from '@/lib/notificationResources';
 import { NOTIFICATION_CONFIG, type NotificationCategoryConfig } from '@/types/notification';
 import { cn } from '@/lib/utils';
+import { MyDevicesSettings } from '@/components/admin/settings/MyDevicesSettings';
 
 const categoryIcons: Record<string, React.ElementType> = {
   ShoppingCart, FileText, CreditCard, Users, Package, FileEdit,
@@ -163,7 +164,7 @@ function PushCategorySection({
  * Welke categorieën je ziet, volgt je leesrechten in deze winkel — een
  * magazijnmedewerker krijgt geen schakelaar voor facturen.
  */
-export function MyNotificationSettings() {
+function MyPushCategories() {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const roles = useScopedRoles();
@@ -250,5 +251,19 @@ export function MyNotificationSettings() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * WEBPUSH-1: bovenaan de toestellen (en web-meldingen voor dit toestel),
+ * daaronder welke meldingen je krijgt. Toestellen staan los van de winkel:
+ * ze tonen ook zonder gekozen winkel.
+ */
+export function MyNotificationSettings() {
+  return (
+    <div className="space-y-6">
+      <MyDevicesSettings />
+      <MyPushCategories />
+    </div>
   );
 }

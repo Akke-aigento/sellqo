@@ -604,7 +604,7 @@
       "inApp": "Notification dans l'application",
       "email": "Notification par e-mail",
       "push": "Notification push",
-      "pushHint": "Les notifications push n'arrivent que dans l'application SellQo sur votre téléphone, et uniquement si votre téléphone autorise les notifications de SellQo.",
+      "pushHint": "Les notifications push arrivent sur les appareils listés sous Mes appareils — dans l'app SellQo ou l'app web — et uniquement si cet appareil autorise les notifications de SellQo.",
       "typesCount": "{{count}} types de notifications",
       "allOf": "Tous : {{label}}",
       "saved": "Enregistré",
@@ -700,6 +700,47 @@
         "empty": "Aucun modèle créé pour le moment",
         "columnTemplate": "Modèle",
         "preview": "Aperçu du modèle"
+      }
+    },
+    "myDevices": {
+      "title": "Mes appareils",
+      "description": "Voyez sur quels appareils arrivent vos notifications push : l'app SellQo et l'app web.",
+      "listTitle": "Appareils qui reçoivent vos notifications",
+      "empty": "Aucun appareil pour l'instant. Ouvrez l'app SellQo ou activez les notifications web ci-dessus.",
+      "thisDevice": "Cet appareil",
+      "lastSeen": "Dernière activité {{when}}",
+      "remove": "Déconnecter",
+      "removed": "Appareil déconnecté",
+      "removeError": "Impossible de déconnecter l'appareil",
+      "browser": "Navigateur",
+      "webLabel": "App web · {{name}}",
+      "nativeLabel": "App SellQo · {{name}}",
+      "duplicateHint": "Si SellQo est installé sur le même téléphone à la fois comme app et comme app web, vous recevez tout en double. Déconnectez alors l'app web : l'app est prioritaire.",
+      "webPush": {
+        "title": "Notifications web sur cet appareil",
+        "needsInstall": "Sur iPhone et iPad, les notifications ne fonctionnent que depuis SellQo sur votre écran d'accueil. Dans Safari, touchez Partager puis « Sur l'écran d'accueil ». Ouvrez ensuite SellQo via cette icône et revenez ici.",
+        "unsupported": "Ce navigateur ne prend pas en charge les notifications push.",
+        "denied": "Vous avez bloqué les notifications de SellQo dans votre navigateur. Autorisez-les dans les paramètres du site, puis rechargez la page.",
+        "offHint": "Recevez aussi vos notifications ici, sans l'app SellQo.",
+        "onHint": "Vos notifications arrivent sur cet appareil.",
+        "enable": "Activer les notifications",
+        "disable": "Désactiver",
+        "enabledToast": "Notifications web activées sur cet appareil",
+        "disabledToast": "Notifications web désactivées sur cet appareil",
+        "deniedToast": "Les notifications sont bloquées. Autorisez-les dans les paramètres de votre navigateur.",
+        "errorToast": "Impossible d'activer les notifications. Réessayez."
+      },
+      "conflict": {
+        "title": "L'app SellQo est-elle sur ce téléphone ?",
+        "description": "L'app SellQo est active sur un téléphone avec le même système d'exploitation. Si c'est ce téléphone, vous recevrez chaque notification en double. Utilisez alors l'app et laissez les notifications web désactivées ici.",
+        "sameDevice": "Oui, le même téléphone",
+        "otherDevice": "Non, un autre appareil — activer"
+      },
+      "nativeDuplicate": {
+        "title": "Notifications web aussi sur ce téléphone ?",
+        "description": "Des notifications web sont actives sur un appareil avec le même système d'exploitation. Si SellQo est aussi sur ce téléphone comme app web sur l'écran d'accueil, vous recevez tout en double. L'app est prioritaire.",
+        "keep": "Non, un autre appareil",
+        "remove": "Oui, désactiver les notifications web"
       }
     }
   },

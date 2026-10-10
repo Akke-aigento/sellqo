@@ -1592,6 +1592,10 @@
         "all_messages_in_inbox": {
           "title": "Tous vos messages clients dans votre boîte SellQo",
           "description": "Les messages envoyés via le formulaire de contact de votre boutique arrivent désormais toujours dans votre boîte de réception SellQo, tout comme les réponses des clients à vos e-mails. Quand un nouveau message arrive, vous recevez un e-mail indiquant qui l'a envoyé et le début du message, avec un bouton pour l'ouvrir directement. Vous préférez recevoir les réponses sur votre propre adresse e-mail ? Choisissez-la dans Paramètres → Boîte de réception e-mail, sous E-mail de contact client."
+        },
+        "web_app_push": {
+          "title": "Notifications push dans l'app web",
+          "description": "Vous ne pouvez pas installer l'app SellQo, par exemple sur un téléphone professionnel ? Ajoutez SellQo à votre écran d'accueil et activez les notifications sous Paramètres → Mes notifications. Sur iPhone et iPad, cela se fait depuis Safari via Partager → Sur l'écran d'accueil. Vous y voyez aussi sur quels appareils arrivent vos notifications, et vous pouvez en déconnecter un. Si l'app et l'app web sont sur le même téléphone, SellQo vous propose de désactiver l'app web pour ne rien recevoir en double."
         }
       },
       "copyLink": "Copier le lien",

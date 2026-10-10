@@ -576,7 +576,7 @@
       "inApp": "In-app notification",
       "email": "Email notification",
       "push": "Push notification",
-      "pushHint": "Push notifications only arrive in the SellQo app on your phone, and only if your phone allows notifications from SellQo.",
+      "pushHint": "Push notifications arrive on the devices listed under My devices — in the SellQo app or the web app — and only if that device allows notifications from SellQo.",
       "typesCount": "{{count}} notification types",
       "allOf": "All {{label}}",
       "saved": "Saved",
@@ -672,6 +672,47 @@
         "empty": "No templates created yet",
         "columnTemplate": "Template",
         "preview": "Template preview"
+      }
+    },
+    "myDevices": {
+      "title": "My devices",
+      "description": "See which devices receive your push notifications: the SellQo app and the web app.",
+      "listTitle": "Devices that receive your notifications",
+      "empty": "No devices yet. Open the SellQo app or turn on web notifications above.",
+      "thisDevice": "This device",
+      "lastSeen": "Last active {{when}}",
+      "remove": "Disconnect",
+      "removed": "Device disconnected",
+      "removeError": "Could not disconnect the device",
+      "browser": "Browser",
+      "webLabel": "Web app · {{name}}",
+      "nativeLabel": "SellQo app · {{name}}",
+      "duplicateHint": "If SellQo is on the same phone as both the app and the web app, you get everything twice. Disconnect the web app then: the app takes priority.",
+      "webPush": {
+        "title": "Web notifications on this device",
+        "needsInstall": "On iPhone and iPad, notifications only work from SellQo on your home screen. In Safari, tap Share and choose \"Add to Home Screen\". Then open SellQo from that icon and come back here.",
+        "unsupported": "This browser does not support push notifications.",
+        "denied": "You have blocked notifications for SellQo in your browser. Allow them in your browser's site settings and reload the page.",
+        "offHint": "Receive your notifications here too, without the SellQo app.",
+        "onHint": "Your notifications arrive on this device.",
+        "enable": "Turn on notifications",
+        "disable": "Turn off",
+        "enabledToast": "Web notifications are on for this device",
+        "disabledToast": "Web notifications are off for this device",
+        "deniedToast": "Notifications are blocked. Allow them in your browser settings.",
+        "errorToast": "Could not turn on notifications. Please try again."
+      },
+      "conflict": {
+        "title": "Is the SellQo app on this phone?",
+        "description": "You have the SellQo app active on a phone with the same operating system. If that is this phone, you will get every notification twice. Use the app and keep web notifications off here.",
+        "sameDevice": "Yes, same phone",
+        "otherDevice": "No, another device — turn on"
+      },
+      "nativeDuplicate": {
+        "title": "Web notifications on this phone too?",
+        "description": "Web notifications are on for a device with the same operating system. If SellQo is also on this phone as a web app on the home screen, you get everything twice. The app takes priority.",
+        "keep": "No, another device",
+        "remove": "Yes, turn off web notifications"
       }
     }
   },

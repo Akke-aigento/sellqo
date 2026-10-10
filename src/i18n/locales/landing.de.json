@@ -1592,6 +1592,10 @@
         "all_messages_in_inbox": {
           "title": "Alle Kundennachrichten in Ihrem SellQo-Posteingang",
           "description": "Nachrichten über das Kontaktformular Ihres Shops landen jetzt immer in Ihrem SellQo-Posteingang, genau wie Antworten von Kunden auf Ihre E-Mails. Kommt eine neue Nachricht an, erhalten Sie eine E-Mail mit dem Absender und dem Anfang der Nachricht, samt einer Schaltfläche, um sie direkt zu öffnen. Lieber Antworten an Ihre eigene E-Mail-Adresse? Wählen Sie sie unter Einstellungen → E-Mail-Posteingang bei Kundenkontakt-E-Mail."
+        },
+        "web_app_push": {
+          "title": "Push-Benachrichtigungen in der Web-App",
+          "description": "Sie können die SellQo-App nicht installieren, etwa auf einem Firmentelefon? Legen Sie SellQo auf Ihren Home-Bildschirm und aktivieren Sie Benachrichtigungen unter Einstellungen → Meine Benachrichtigungen. Auf iPhone und iPad geht das in Safari über Teilen → Zum Home-Bildschirm. Dort sehen Sie auch, auf welchen Geräten Ihre Benachrichtigungen ankommen, und können eines trennen. Sind App und Web-App auf demselben Telefon, schlägt SellQo vor, die Web-App zu deaktivieren, damit Sie nichts doppelt erhalten."
         }
       },
       "copyLink": "Link kopieren",

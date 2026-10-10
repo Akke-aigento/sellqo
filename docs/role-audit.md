@@ -1,3 +1,75 @@
+## WEBPUSH-1 — pushmeldingen in de webapp, native app houdt voorrang — 10 oktober 2026
+
+**Aanleiding.** Sommige bedrijfstelefoons (Arval-MDM) blokkeren TestFlight-apps. Daar kan SellQo alleen
+als webapp op het beginscherm, en die kreeg geen pushmeldingen: push liep uitsluitend via FCM in de
+native app. Watchtower en Studio Akke mail hadden al werkende web push.
+
+**Root cause / recon.**
+- `send-push-notification` stuurde alleen naar FCM (`device_tokens` met `ios`/`android`).
+- `device_tokens.platform` kende `'web'` al sinds de aanmaak (`20260807064228`, live nagetrokken), RLS is
+  per gebruiker (vier policies `auth.uid() = user_id`). Er ontbraken alleen de abonnementssleutels.
+- `site.webmanifest` had geen `start_url`/`id`; er was geen service worker.
+- `vite.config.ts` stubt `firebase/messaging` bewust → web push via FCM-web zou daar tegenin gaan;
+  rechtstreeks VAPID (RFC 8291/8292) is korter en is al bewezen in Watchtower.
+
+**Uitgevoerd.**
+- `supabase/migrations/20261010090000_webpush_device_tokens.sql` — additief: `p256dh`, `auth`, `os` op
+  `device_tokens` + check dat een web-rij beide sleutels heeft. Idempotent, terugdraaien in commentaar.
+- `supabase/functions/_shared/webpush.ts` — port van Watchtower `webpush.server.ts` (pure WebCrypto).
+- `supabase/functions/send-push-notification/index.ts` — devices gesplitst in web en FCM. Web gaat vóór
+  FCM, zodat een ontbrekende Firebase-config of FCM-storing web niet meesleept. Dode endpoints (404/410)
+  ruimen op via hetzelfde pad als FCM-tokens. Respons heeft nu `web_sent`/`web_failed` (vingerafdruk).
+  Ontvangerslogica (rollen, voorkeuren, winkelvoorvoegsel) onveranderd.
+- `public/sw.js` — alleen `push` + `notificationclick`, geen fetch-handler, geen caching. Klik volgt
+  alleen paden binnen de eigen origin.
+- `public/site.webmanifest` — `id`/`start_url` `/admin`, `scope` `/`, iconen ook als `any`.
+- `src/lib/webPush.ts` — status, inschrijven, uitschrijven. Harde guard: nooit binnen Capacitor of een
+  iframe. iOS buiten het beginscherm → `needs-install`. Toestemming alleen na een tik.
+- `src/components/admin/settings/MyDevicesSettings.tsx` — kaart "Web-meldingen op dit toestel" + lijst
+  "Mijn toestellen" (native en web, laatst actief, loskoppelen). Waarschuwing vóór inschrijven als er een
+  native token van hetzelfde OS jonger dan 30 dagen bestaat.
+- `src/components/admin/settings/MyNotificationSettings.tsx` — toestellen bovenaan "Mijn meldingen".
+- `src/components/NativeWebPushDuplicateDialog.tsx` + `AdminLayout.tsx` — native-only: staan er
+  web-abonnementen van hetzelfde OS, dan vraagt de app of dat deze telefoon is; ja → die rijen weg.
+- `src/native/pushRegistration.ts` — native upsert vult `os`.
+- `src/integrations/supabase/types.ts` — de drie kolommen (Lovable regenereert identiek).
+- i18n: `settings.myDevices.*` (nieuw) en `settings.notifications.pushHint` (was "alleen in de app")
+  in nl/en/fr/de/uk.
+- Slottaken: changelog `2026.11g` (`web_app_push`, 5 talen), helpartikel
+  `meldingen-aanzetten-in-de-app` bijgewerkt (`20261010090100`), nieuwsbrief-wachtrij.
+
+**Waarom dedup per toestel met bevestiging, niet automatisch.** Een server kan niet zien dat een
+web-abonnement en een native app op dezelfde telefoon staan (iOS sandboxt beide volledig). Een
+per-gebruiker-regel ("native aanwezig → geen web") zou precies de aanleiding breken: iemand met de
+native app op telefoon A en de webapp op een MDM-telefoon B kreeg op B dan niets meer. Daarom: `os`
+bewaren en de gebruiker laten bevestigen, aan beide kanten.
+
+**Security-keuzes.**
+- Geen RLS-wijziging: bestaande policies op `device_tokens` dekken de nieuwe kolommen.
+- Private VAPID-sleutel in `public.internal_config` (`vapid_private_jwk`): RLS aan, geen policies →
+  alleen de service role. Bewust niet in een migratie: de repo is publiek. De publieke sleutel staat in
+  de code (`_shared/webpush.ts` en `src/lib/webPush.ts`, moeten gelijk blijven).
+- Service worker cachet niets en registreert pas na een expliciete tik in de admin.
+
+**Gedeelde-paden-waarschuwing.** Geen `storefront-*`-functie en geen gedeelde storefront-tabel geraakt.
+`sw.js` staat op scope `/`, maar wordt alleen vanuit de admin geregistreerd en onderschept geen fetches;
+winkelbezoekers en custom frontends merken niets. De manifest-wijziging raakt alleen wie SellQo vanaf
+een SellQo-domein op het beginscherm zet (opent nu `/admin`).
+
+**Verificatie (lokaal).**
+- Crypto-roundtrip in Deno: versleuteld met `_shared/webpush.ts`, ontsleuteld als ontvanger volgens RFC
+  8291 → identiek; VAPID-handtekening geldig tegen de publieke sleutel; privé-JWK hoort bij die sleutel.
+- `deno check` op `_shared/webpush.ts` schoon; `send-push-notification` met gestubde remote imports:
+  dezelfde 3 stub-artefacten als op HEAD, 0 nieuwe.
+- `tsc --noEmit -p tsconfig.app.json` exit 0, `npm run build` groen, `vitest` 583/583,
+  `i18n-parity` volledige pariteit, eslint op de 6 bestanden 0 fouten (baseline ook 0).
+
+**Bewust ongemoeid / Vervolg.**
+- `PushPermissionBanner` heeft hardcoded NL-tekst — eigen batch (i18n).
+- De native dialoog werkt pas vanaf de volgende native build; tot dan waarschuwt alleen de webapp.
+- 7 Android-tokens zijn sinds 10 sep niet meer gezien; ruimen zich op bij een 404/410.
+- Live-verificatie (migratie, sleutel, deploy, vingerafdruk) volgt hieronder na de deploy.
+
 ## PAY-LINK-1 — vaste betaallink per openstaande post en "Alles betalen" — 1 oktober 2026
 
 2026-10-01 PAY-LINK-1: elke betaallink naar een klant was een Stripe-sessie van 24 u (of machtiging van 7 d); in

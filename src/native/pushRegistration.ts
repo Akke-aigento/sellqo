@@ -32,6 +32,9 @@ async function upsertToken(userId: string, token: string, platform: NativePlatfo
         user_id: userId,
         token,
         platform,
+        // WEBPUSH-1: zelfde veld als bij web-abonnementen, voor de
+        // dubbele-melding-check (NativeWebPushDuplicateDialog).
+        os: platform,
         device_name: `${platform} device`,
         last_seen_at: new Date().toISOString(),
       },

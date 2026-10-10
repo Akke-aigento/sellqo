@@ -576,7 +576,7 @@
       "inApp": "In-app notificatie",
       "email": "Email notificatie",
       "push": "Pushmelding",
-      "pushHint": "Pushmeldingen komen alleen binnen in de SellQo-app op je telefoon, en alleen als je telefoon meldingen van SellQo toestaat.",
+      "pushHint": "Pushmeldingen komen binnen op de toestellen onder Mijn toestellen — in de SellQo-app of in de webapp — en alleen als dat toestel meldingen van SellQo toestaat.",
       "typesCount": "{{count}} notificatietypes",
       "allOf": "Alle {{label}}",
       "saved": "Opgeslagen",
@@ -672,6 +672,47 @@
         "empty": "Nog geen templates aangemaakt",
         "columnTemplate": "Template",
         "preview": "Template preview"
+      }
+    },
+    "myDevices": {
+      "title": "Mijn toestellen",
+      "description": "Hier zie je op welke toestellen jouw pushmeldingen binnenkomen: de SellQo-app en de webapp.",
+      "listTitle": "Toestellen die jouw meldingen krijgen",
+      "empty": "Nog geen toestellen. Open de SellQo-app of zet hierboven web-meldingen aan.",
+      "thisDevice": "Dit toestel",
+      "lastSeen": "Laatst actief {{when}}",
+      "remove": "Loskoppelen",
+      "removed": "Toestel losgekoppeld",
+      "removeError": "Loskoppelen is niet gelukt",
+      "browser": "Browser",
+      "webLabel": "Webapp · {{name}}",
+      "nativeLabel": "SellQo-app · {{name}}",
+      "duplicateHint": "Staat SellQo als app én als webapp op dezelfde telefoon, dan krijg je alles dubbel. Koppel dan de webapp los: de app heeft voorrang.",
+      "webPush": {
+        "title": "Web-meldingen op dit toestel",
+        "needsInstall": "Op iPhone en iPad werken meldingen alleen vanuit SellQo op je beginscherm. Tik in Safari op Deel en kies \"Zet op beginscherm\". Open SellQo daarna via dat icoon en kom hier terug.",
+        "unsupported": "Deze browser ondersteunt geen pushmeldingen.",
+        "denied": "Je hebt meldingen voor SellQo geblokkeerd in je browser. Sta ze toe via de site-instellingen van je browser en laad de pagina opnieuw.",
+        "offHint": "Krijg je meldingen ook hier binnen, zonder de SellQo-app.",
+        "onHint": "Je meldingen komen binnen op dit toestel.",
+        "enable": "Meldingen aanzetten",
+        "disable": "Uitzetten",
+        "enabledToast": "Web-meldingen staan aan op dit toestel",
+        "disabledToast": "Web-meldingen staan uit op dit toestel",
+        "deniedToast": "Meldingen zijn geblokkeerd. Sta ze toe in je browserinstellingen.",
+        "errorToast": "Meldingen aanzetten is niet gelukt. Probeer het opnieuw."
+      },
+      "conflict": {
+        "title": "Staat de SellQo-app op deze telefoon?",
+        "description": "Je hebt de SellQo-app actief op een telefoon met hetzelfde besturingssysteem. Is dat deze telefoon, dan krijg je elke melding dubbel. Gebruik dan de app en laat web-meldingen hier uit.",
+        "sameDevice": "Ja, dezelfde telefoon",
+        "otherDevice": "Nee, ander toestel — aanzetten"
+      },
+      "nativeDuplicate": {
+        "title": "Web-meldingen ook op deze telefoon?",
+        "description": "Er staan web-meldingen aan op een toestel met hetzelfde besturingssysteem. Staat SellQo op deze telefoon ook als webapp op het beginscherm, dan krijg je alles dubbel. De app heeft voorrang.",
+        "keep": "Nee, ander toestel",
+        "remove": "Ja, web-meldingen uitzetten"
       }
     }
   },

@@ -4,6 +4,20 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11g — Pushmeldingen in de webapp (feature, 10-10-2026)
+
+**Voor wie:** alle winkels, vooral teamleden die de SellQo-app niet mogen installeren (bedrijfstelefoons).
+
+**Meldingen zonder de app.** Zet SellQo op je beginscherm en zet meldingen aan onder Instellingen → Mijn
+meldingen. Op iPhone en iPad doe je dat vanuit Safari via Deel → Zet op beginscherm; meldingen werken
+daar alleen vanuit het beginscherm.
+
+**Geen dubbele meldingen.** Onder Mijn toestellen zie je alle toestellen die jouw meldingen krijgen, en
+koppel je er één los. Staat de app en de webapp op dezelfde telefoon, dan vraagt SellQo om de webapp uit
+te zetten: de app heeft voorrang.
+
+**i18n-key.** `public.changelog.changes.web_app_push` — vijf talen, volledige pariteit.
+
 ### 2026.11f — Al je klantberichten in je SellQo-inbox (improvement, 29-09-2026)
 
 **Voor wie:** alle winkels.

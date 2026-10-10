@@ -15,6 +15,7 @@ import { AdminMobileBottomNav } from './AdminMobileBottomNav';
 import { PushTapListener } from './PushTapListener';
 import { SandboxBanner } from '@/components/SandboxBanner';
 import { PushPermissionBanner } from '@/components/PushPermissionBanner';
+import { NativeWebPushDuplicateDialog } from '@/components/NativeWebPushDuplicateDialog';
 import { useTenant } from '@/hooks/useTenant';
 import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useAdminBottomNavHidden } from '@/hooks/useAdminBottomNav';
@@ -86,6 +87,8 @@ function AdminLayoutContent() {
           <SandboxBanner isDemo={currentTenant?.is_demo === true} />
           {/* Native-only: recovery path when OS notification permission was denied */}
           <PushPermissionBanner />
+          {/* WEBPUSH-1 — native-only: web-meldingen op dezelfde telefoon uitzetten */}
+          <NativeWebPushDuplicateDialog />
           {/* Trial Banner - shows remaining trial days */}
           <TrialBanner />
           {/* BILLING-ENFORCE-1: openstaande betaling of leesmodus. */}

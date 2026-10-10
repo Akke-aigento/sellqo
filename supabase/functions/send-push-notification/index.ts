@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { resolvePushEnabled } from "../_shared/notificationDefaults.ts";
 import { notificationRoute } from "../_shared/notificationRoutes.ts";
+import { sendWebPush } from "../_shared/webpush.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -214,7 +215,7 @@ serve(async (req: Request): Promise<Response> => {
     // 4. Devices
     const { data: devices, error: devErr } = await supabase
       .from("device_tokens")
-      .select("token, platform, user_id")
+      .select("token, platform, user_id, p256dh, auth")
       .in("user_id", targetUsers);
     if (devErr) throw devErr;
 
@@ -246,11 +247,95 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
+    type DeviceRow = { token: string; platform: string; user_id: string; p256dh: string | null; auth: string | null };
+    const allDevices = devices as DeviceRow[];
+    const fcmDevices = allDevices.filter((d) => d.platform !== "web");
+    const webDevices = allDevices.filter((d) => d.platform === "web");
+
+    const titleFor = (userId: string) =>
+      tenantName && multiTenantUsers.has(userId) ? `${tenantName} · ${payload.title}` : payload.title;
+    // NOTIF-DEEPLINK-1: de route uit het gedeelde register, niet de rauwe action_url.
+    const route = notificationRoute(payload);
+    const staleTokens: string[] = [];
+
+    // 4c. WEBPUSH-1 — web-abonnementen (beginscherm-webapp / browser). Vóór FCM,
+    //     zodat een FCM-storing of ontbrekende Firebase-config web niet meesleept.
+    //     De private VAPID-sleutel staat in internal_config (alleen service role).
+    let webSent = 0;
+    let webFailed = 0;
+    if (webDevices.length > 0) {
+      const { data: vapidRow } = await supabase
+        .from("internal_config")
+        .select("value")
+        .eq("key", "vapid_private_jwk")
+        .maybeSingle();
+      let vapidJwk: JsonWebKey | null = null;
+      try {
+        vapidJwk = vapidRow?.value ? (JSON.parse(vapidRow.value as string) as JsonWebKey) : null;
+      } catch {
+        vapidJwk = null;
+      }
+      if (!vapidJwk) {
+        console.error("vapid_private_jwk not configured — web push skipped");
+      } else {
+        for (const device of webDevices) {
+          if (!device.p256dh || !device.auth) {
+            webFailed++;
+            continue;
+          }
+          const result = await sendWebPush(
+            { endpoint: device.token, p256dh: device.p256dh, auth: device.auth },
+            {
+              title: titleFor(device.user_id),
+              body: payload.message,
+              url: route,
+              tag: payload.notification_id ?? undefined,
+            },
+            vapidJwk,
+          );
+          if (result.status >= 200 && result.status < 300) {
+            webSent++;
+          } else {
+            webFailed++;
+            if (result.gone) staleTokens.push(device.token);
+            console.error(`web push failed (${result.status}): ${result.error ?? ""}`);
+          }
+        }
+      }
+    }
+
+    // Opruimen van dode tokens/endpoints — gedeeld door web en FCM.
+    const cleanStale = async (): Promise<number> => {
+      if (staleTokens.length === 0) return 0;
+      const { error: delErr } = await supabase
+        .from("device_tokens")
+        .delete()
+        .in("token", staleTokens);
+      if (delErr) {
+        console.error("Failed to clean stale device tokens:", delErr.message ?? JSON.stringify(delErr));
+        return 0;
+      }
+      return staleTokens.length;
+    };
+    // FCM kan niet (of hoeft niet): geef het web-resultaat terug.
+    const webOnly = async (reason: string) => {
+      const cleaned = await cleanStale();
+      if (fcmDevices.length > 0) console.error(`FCM skipped: ${reason}`);
+      return json({
+        ...(fcmDevices.length > 0 ? { reason } : {}),
+        sent: 0, failed: 0, web_sent: webSent, web_failed: webFailed, cleaned,
+      });
+    };
+
+    if (fcmDevices.length === 0) {
+      return await webOnly("no_fcm_devices");
+    }
+
     // 5. Firebase credentials — graceful degradation, never a crash.
     const rawSa = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
     if (!rawSa) {
       console.error("FIREBASE_SERVICE_ACCOUNT not configured");
-      return json({ skipped: true, reason: "firebase_not_configured" });
+      return await webOnly("firebase_not_configured");
     }
 
     let sa: ServiceAccount;
@@ -258,11 +343,11 @@ serve(async (req: Request): Promise<Response> => {
       sa = JSON.parse(rawSa) as ServiceAccount;
     } catch {
       console.error("FIREBASE_SERVICE_ACCOUNT not configured (invalid JSON)");
-      return json({ skipped: true, reason: "firebase_not_configured" });
+      return await webOnly("firebase_not_configured");
     }
     if (!sa.project_id || !sa.client_email || !sa.private_key) {
       console.error("FIREBASE_SERVICE_ACCOUNT not configured (missing fields)");
-      return json({ skipped: true, reason: "firebase_not_configured" });
+      return await webOnly("firebase_not_configured");
     }
 
     let accessToken: string;
@@ -270,7 +355,7 @@ serve(async (req: Request): Promise<Response> => {
       accessToken = await getFcmAccessToken(sa);
     } catch (e) {
       console.error("FCM auth failed:", e instanceof Error ? e.message : String(e));
-      return json({ skipped: true, reason: "fcm_auth_failed" });
+      return await webOnly("fcm_auth_failed");
     }
 
     const endpoint = `https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`;
@@ -279,7 +364,7 @@ serve(async (req: Request): Promise<Response> => {
       // NOTIF-DEEPLINK-1: de route uit het gedeelde register (type + data), niet
       // de rauwe action_url — die wijst in ruim de helft van de bronnen naar een
       // pagina die niet bestaat. De app vertaalt oude payloads zelf ook nog.
-      action_url: notificationRoute(payload),
+      action_url: route,
       category: payload.category,
       type: payload.type,
       tenant_id: payload.tenant_id,
@@ -287,12 +372,9 @@ serve(async (req: Request): Promise<Response> => {
 
     let sent = 0;
     let failed = 0;
-    const staleTokens: string[] = [];
 
-    for (const device of devices as Array<{ token: string; platform: string; user_id: string }>) {
-      const title = tenantName && multiTenantUsers.has(device.user_id)
-        ? `${tenantName} · ${payload.title}`
-        : payload.title;
+    for (const device of fcmDevices) {
+      const title = titleFor(device.user_id);
       try {
         const res = await fetch(endpoint, {
           method: "POST",
@@ -331,22 +413,11 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    // 6. Token rotation cleanup
-    let cleaned = 0;
-    if (staleTokens.length > 0) {
-      const { error: delErr } = await supabase
-        .from("device_tokens")
-        .delete()
-        .in("token", staleTokens);
-      if (delErr) {
-        console.error("Failed to clean stale device tokens:", delErr.message ?? JSON.stringify(delErr));
-      } else {
-        cleaned = staleTokens.length;
-      }
-    }
+    // 6. Token rotation cleanup (web + FCM)
+    const cleaned = await cleanStale();
 
-    console.log(`push result: sent=${sent} failed=${failed} cleaned=${cleaned} notification=${payload.notification_id ?? "n/a"}`);
-    return json({ sent, failed, cleaned });
+    console.log(`push result: sent=${sent} failed=${failed} web_sent=${webSent} web_failed=${webFailed} cleaned=${cleaned} notification=${payload.notification_id ?? "n/a"}`);
+    return json({ sent, failed, web_sent: webSent, web_failed: webFailed, cleaned });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : JSON.stringify(error);
     console.error("Error in send-push-notification:", msg);

@@ -604,7 +604,7 @@
       "inApp": "In-App-Benachrichtigung",
       "email": "E-Mail-Benachrichtigung",
       "push": "Push-Benachrichtigung",
-      "pushHint": "Push-Benachrichtigungen erscheinen nur in der SellQo-App auf Ihrem Telefon, und nur wenn Ihr Telefon Benachrichtigungen von SellQo zulässt.",
+      "pushHint": "Push-Benachrichtigungen kommen auf den Geräten unter Meine Geräte an — in der SellQo-App oder in der Web-App — und nur, wenn das Gerät Benachrichtigungen von SellQo zulässt.",
       "typesCount": "{{count}} Benachrichtigungstypen",
       "allOf": "Alle: {{label}}",
       "saved": "Gespeichert",
@@ -700,6 +700,47 @@
         "empty": "Noch keine Vorlagen erstellt",
         "columnTemplate": "Vorlage",
         "preview": "Vorlagenvorschau"
+      }
+    },
+    "myDevices": {
+      "title": "Meine Geräte",
+      "description": "Hier sehen Sie, auf welchen Geräten Ihre Push-Benachrichtigungen ankommen: die SellQo-App und die Web-App.",
+      "listTitle": "Geräte, die Ihre Benachrichtigungen erhalten",
+      "empty": "Noch keine Geräte. Öffnen Sie die SellQo-App oder aktivieren Sie oben Web-Benachrichtigungen.",
+      "thisDevice": "Dieses Gerät",
+      "lastSeen": "Zuletzt aktiv {{when}}",
+      "remove": "Trennen",
+      "removed": "Gerät getrennt",
+      "removeError": "Das Gerät konnte nicht getrennt werden",
+      "browser": "Browser",
+      "webLabel": "Web-App · {{name}}",
+      "nativeLabel": "SellQo-App · {{name}}",
+      "duplicateHint": "Ist SellQo auf demselben Telefon sowohl als App als auch als Web-App installiert, erhalten Sie alles doppelt. Trennen Sie dann die Web-App: Die App hat Vorrang.",
+      "webPush": {
+        "title": "Web-Benachrichtigungen auf diesem Gerät",
+        "needsInstall": "Auf iPhone und iPad funktionieren Benachrichtigungen nur aus SellQo auf Ihrem Home-Bildschirm. Tippen Sie in Safari auf Teilen und wählen Sie „Zum Home-Bildschirm“. Öffnen Sie SellQo danach über dieses Symbol und kommen Sie hierher zurück.",
+        "unsupported": "Dieser Browser unterstützt keine Push-Benachrichtigungen.",
+        "denied": "Sie haben Benachrichtigungen für SellQo in Ihrem Browser blockiert. Erlauben Sie sie in den Website-Einstellungen Ihres Browsers und laden Sie die Seite neu.",
+        "offHint": "Erhalten Sie Ihre Benachrichtigungen auch hier, ohne die SellQo-App.",
+        "onHint": "Ihre Benachrichtigungen kommen auf diesem Gerät an.",
+        "enable": "Benachrichtigungen aktivieren",
+        "disable": "Deaktivieren",
+        "enabledToast": "Web-Benachrichtigungen sind auf diesem Gerät aktiv",
+        "disabledToast": "Web-Benachrichtigungen sind auf diesem Gerät deaktiviert",
+        "deniedToast": "Benachrichtigungen sind blockiert. Erlauben Sie sie in Ihren Browser-Einstellungen.",
+        "errorToast": "Benachrichtigungen konnten nicht aktiviert werden. Bitte versuchen Sie es erneut."
+      },
+      "conflict": {
+        "title": "Ist die SellQo-App auf diesem Telefon?",
+        "description": "Die SellQo-App ist auf einem Telefon mit demselben Betriebssystem aktiv. Ist das dieses Telefon, erhalten Sie jede Benachrichtigung doppelt. Nutzen Sie dann die App und lassen Sie Web-Benachrichtigungen hier aus.",
+        "sameDevice": "Ja, dasselbe Telefon",
+        "otherDevice": "Nein, anderes Gerät — aktivieren"
+      },
+      "nativeDuplicate": {
+        "title": "Web-Benachrichtigungen auch auf diesem Telefon?",
+        "description": "Auf einem Gerät mit demselben Betriebssystem sind Web-Benachrichtigungen aktiv. Ist SellQo auf diesem Telefon auch als Web-App auf dem Home-Bildschirm, erhalten Sie alles doppelt. Die App hat Vorrang.",
+        "keep": "Nein, anderes Gerät",
+        "remove": "Ja, Web-Benachrichtigungen deaktivieren"
       }
     }
   },

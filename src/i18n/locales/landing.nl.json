@@ -1592,6 +1592,10 @@
         "all_messages_in_inbox": {
           "title": "Al je klantberichten in je SellQo-inbox",
           "description": "Berichten via het contactformulier van je webshop komen nu altijd in je SellQo-inbox, net als antwoorden van klanten op je mails. Komt er een nieuw bericht binnen, dan krijg je een e-mail met wie het stuurde en het begin van het bericht, en een knop om het meteen te openen. Liever antwoorden op je eigen e-mailadres? Kies dat onder Instellingen → Email Inbox bij Klantcontact-e-mail."
+        },
+        "web_app_push": {
+          "title": "Pushmeldingen in de webapp",
+          "description": "Kun je de SellQo-app niet installeren, bijvoorbeeld op een bedrijfstelefoon? Zet SellQo dan op je beginscherm en zet meldingen aan onder Instellingen → Mijn meldingen. Op iPhone en iPad gaat dat vanuit Safari via Deel → Zet op beginscherm. Daar zie je ook op welke toestellen je meldingen binnenkomen, en koppel je er één los. Staat de app en de webapp op dezelfde telefoon, dan vraagt SellQo om de webapp uit te zetten, zodat je niets dubbel krijgt."
         }
       },
       "copyLink": "Kopieer link",

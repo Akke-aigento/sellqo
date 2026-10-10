@@ -1592,6 +1592,10 @@
         "all_messages_in_inbox": {
           "title": "All your customer messages in your SellQo inbox",
           "description": "Messages sent through the contact form of your store now always arrive in your SellQo inbox, just like customer replies to your emails. When a new message comes in, you get an email showing who sent it and the start of the message, with a button to open it right away. Prefer replies on your own email address? Choose it under Settings → Email inbox, at Customer contact email."
+        },
+        "web_app_push": {
+          "title": "Push notifications in the web app",
+          "description": "Can't install the SellQo app, for example on a work phone? Add SellQo to your home screen and turn on notifications under Settings → My notifications. On iPhone and iPad, do this from Safari via Share → Add to Home Screen. There you also see which devices receive your notifications, and you can disconnect one. If the app and the web app are on the same phone, SellQo asks you to turn off the web app so you don't get anything twice."
         }
       },
       "copyLink": "Copy link",
