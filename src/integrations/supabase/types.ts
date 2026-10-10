@@ -5284,39 +5284,30 @@ export type Database = {
       }
       device_tokens: {
         Row: {
-          auth: string | null
           created_at: string
           device_name: string | null
           id: string
           last_seen_at: string
-          os: string | null
-          p256dh: string | null
           platform: string
           tenant_id: string | null
           token: string
           user_id: string
         }
         Insert: {
-          auth?: string | null
           created_at?: string
           device_name?: string | null
           id?: string
           last_seen_at?: string
-          os?: string | null
-          p256dh?: string | null
           platform: string
           tenant_id?: string | null
           token: string
           user_id: string
         }
         Update: {
-          auth?: string | null
           created_at?: string
           device_name?: string | null
           id?: string
           last_seen_at?: string
-          os?: string | null
-          p256dh?: string | null
           platform?: string
           tenant_id?: string | null
           token?: string
