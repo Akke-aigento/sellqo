@@ -1,3 +1,66 @@
+## WATCHTOWER-HEALTH-1 — read-only health-endpoint voor Nomadix Watchtower — 10 oktober 2026
+
+2026-10-10 WATCHTOWER-HEALTH-1: nieuwe edge function `watchtower-health` + SQL-functie
+`watchtower_health_snapshot()`, zodat Watchtower de binnenkant van SellQo bewaakt (crons, betalingen,
+Odoo, mail, webhooks). **Gebouwd op branch `watchtower-health-1`, NIET gedeployed** — Akke beslist.
+
+### Root cause
+
+Geen bug: ontbrekende zichtbaarheid. Recon 10-10 (read-only, connector):
+- `cron.job_run_details.status = 'succeeded'` zegt alleen dat `net.http_post` in de wachtrij stond, niet dat
+  de edge function werkte. Het echte antwoord staat in `net._http_response` (pg_net bewaart ~6 u). Vandaag:
+  285 aanroepen in 24 u, allemaal 2xx — er is nu niets stuk, maar niets zou het melden als het stuk ging
+  (zie de bol-advertentie-uitval van 6 mei in `_shared/cronAuth.ts`).
+- Stilte op bestellingen als signaal afgewezen: VanXcel ~1 webshop-order per 8 dagen (12 in 90 d) — een
+  kapotte checkout zou pas na weken opvallen. Watchtower test de storefront nu rechtstreeks (zie
+  nomadix-watchtower `checkStore`: `get_products` + `get_shipping_methods`, enkel publieke leesacties).
+- `email_send_log` is append-only (pending → sent als aparte rij per `message_id`); 8 "pending"-rijen
+  (recovery/magiclink) hebben elk een `sent`-tegenhanger. Een naïeve telling zou vals alarm geven; de check
+  kijkt daarom naar de laatste status per `message_id`.
+
+### Uitgevoerd
+
+- `supabase/migrations/20261010090000_watchtower_health.sql` (nieuw) — één `SECURITY DEFINER`-functie, enkel
+  `service_role`. Geen tabellen, kolommen of data. DOWN in commentaar.
+- `supabase/functions/watchtower-health/index.ts` (nieuw) — GET met `x-health-token` (constant-time vergeleken
+  tegen `internal_config.watchtower_health_token`), antwoordt in het Watchtower-health-contract. Zes checks:
+  `cron_http`, `cron_jobs`, `payments` (open `payment_anomalies` = fail), `odoo_sync`, `email`, `webhooks`.
+- `supabase/config.toml` — `[functions.watchtower-health] verify_jwt = false` (auth via eigen token).
+
+### Security-keuzes
+
+- Token in `internal_config` (RLS aan, geen policies → alleen service-role), nooit in de repo.
+- `watchtower_health_snapshot()`: `REVOKE ... FROM PUBLIC, anon, authenticated`, alleen `service_role`.
+- Het antwoord bevat aantallen en foutteksten, geen klantgegevens.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt: `storefront-api`, `storefront-customer-api`, `storefront-resolve` en de gedeelde
+tabellen blijven onaangeroerd. Eerste wet niet van toepassing.
+
+### Verificatie
+
+- Body van `watchtower_health_snapshot()` read-only gedraaid op live (10-10 ~08:15): geldig, alles groen
+  (0 cron-fouten, 0 anomalieën, 0 Odoo-fouten, 0 mailproblemen, 0 webhookfouten).
+- `evaluate()` getest met de live snapshot (alles ok) en met een probleem-snapshot (payments/cron fail, mail warn).
+- Niet gedraaid: de migratie zelf, de deploy, `tsc` op de app (geen frontendwijziging).
+
+### Uitrol (als Akke go geeft)
+
+1. Migratie draaien; controleren met `select public.watchtower_health_snapshot();`.
+2. Token zetten: `insert into public.internal_config (key, value) values ('watchtower_health_token', '<random>') on conflict (key) do nothing;`
+3. `watchtower-health` deployen via de Lovable-agent (deploy-only, met STOP-clausule); verifiëren met een
+   GET zonder token (verwacht 401) en met token (verwacht JSON met `checks`).
+4. In Watchtower bij "Sellqo platform": `health_url` = `https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/watchtower-health`,
+   `health_token` = hetzelfde token, `checks.health = true`.
+
+### Bewust ongemoeid / Vervolg
+
+- **Bevinding (niet gefixt):** webshop-orders krijgen `payment_status = 'paid'` maar `paid_at` blijft `NULL`
+  (VanXcel #1167–#1172, aug–okt 2026; laatste gevulde `paid_at` is 2 feb 2026). Rapporten of exports die op
+  `paid_at` filteren missen deze orders. Recon nodig: welk betaalpad zet `payment_status` zonder `paid_at`.
+- Geen changelog/doc_articles/newsletter: niet tenant-zichtbaar.
+
 ## PAY-LINK-1 — vaste betaallink per openstaande post en "Alles betalen" — 1 oktober 2026
 
 2026-10-01 PAY-LINK-1: elke betaallink naar een klant was een Stripe-sessie van 24 u (of machtiging van 7 d); in
