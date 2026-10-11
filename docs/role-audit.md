@@ -54,6 +54,16 @@ Code (`bill-fix-1`):
 - Meldingtypes geregistreerd (`src/types/notification.ts`, `notificationDefaults.ts`, `notificationRoutes.ts`).
 - Tests: `src/test/billFix1.test.ts` (21). `check:notifications` groen.
 
+### Deploy en verificatie (11/10)
+
+- Gepusht 9c2926cf naar main; deploy-only via de Lovable-agent (18 functies). De agent committe ondanks
+  "geen wijzigingen" 67fc5c22 + 980bae2f: een structureel `StripeContext`-type in `_shared/stripeCustomer.ts`
+  (de app-typecheck kon `stripe.ts` via de testimport niet resolven). Gedragsneutraal, behouden.
+- Nulmeting check-expired-trials: `{"downgraded":0}` (oude code). Na deploy: `version: "bill-fix-1"`,
+  `skip_demo: 2` (Sandbox, Speeltuin), niets geactiveerd. pay-link `info` op de Astra-bundellink: 200, €95,59.
+  sync-tenant-plan zonder auth: 401. platform-stripe-webhook zonder handtekening: 400 "No signature".
+  create-platform-mandate-setup: 400 "tenant_id is required". Alle functies booten met de nieuwe imports.
+
 ### Open / bewust niet
 
 - `tenants.subscription_plan` en `tenant_subscriptions.plan_id` lopen uiteen (Mancini: professional vs starter,
