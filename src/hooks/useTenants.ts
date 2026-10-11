@@ -32,6 +32,7 @@ export interface Tenant {
   is_demo: boolean | null;
   is_internal_tenant: boolean | null;
   billing_exempt: boolean | null;
+  billing_on_hold: boolean | null;
 }
 
 export interface TenantFormData {
@@ -54,6 +55,7 @@ export interface TenantFormData {
   auto_send_invoice_email?: boolean;
   is_demo?: boolean;
   billing_exempt?: boolean;
+  billing_on_hold?: boolean;
 }
 
 export function useTenants() {
@@ -99,6 +101,8 @@ export function useTenants() {
           // BILLING-EXEMPT-1: de schakelaar zet billing_exempt; is_internal_tenant
           // (SellQo zelf, Stripe via het platformaccount) is niet meer via de UI te zetten.
           billing_exempt: data.billing_exempt ?? false,
+          // BILL-FIX-1: gratis tot omschakeling — geen betaalabonnement bij trial-einde.
+          billing_on_hold: data.billing_on_hold ?? false,
         })
         .select()
         .single();
@@ -147,6 +151,9 @@ export function useTenants() {
           // facturatie, limieten en de platformstatistieken. is_internal_tenant niet:
           // die stuurt Stripe naar het platformaccount en is alleen via SQL te zetten.
           billing_exempt: data.billing_exempt,
+          // BILL-FIX-1: gratis tot omschakeling. Uitzetten = facturatie start bij de
+          // volgende nachtrun van check-expired-trials (als de trial voorbij is).
+          billing_on_hold: data.billing_on_hold,
         })
         .eq('id', id)
         .select()

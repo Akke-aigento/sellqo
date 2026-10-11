@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import Stripe from "https://esm.sh/stripe@18.5.0";
 import { handleSubscriptionChargeWebhook } from "../_shared/subscriptionCharge.ts";
 import { notifyPayout, type PayoutClient } from "../_shared/payoutNotification.ts";
+import { reusablePaymentMethod, wantsMandateSave } from "../_shared/linkMandate.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -36,6 +37,68 @@ const sendPayoutNotification = async (
 ) => {
   const result = await notifyPayout(supabase as PayoutClient, { stripeAccountId, type, title, message, priority, data });
   logStep("Payout notification", { type, result });
+};
+
+// BILL-FIX-1: een betaling via de betaallink met setup_future_usage bewaart het
+// betaalmiddel. Hier wordt het het mandaat van de klant, zodat de volgende
+// periode off-session geïnd wordt. Nooit over een actief mandaat heen, en een
+// fout hier mag de afboeking (al gebeurd) nooit raken.
+const saveMandateFromIntent = async (supabase: any, stripe: Stripe, intent: Stripe.PaymentIntent) => {
+  try {
+    const meta = (intent.metadata ?? {}) as Record<string, unknown>;
+    if (!wantsMandateSave(meta)) return;
+    const tenantId = String(meta.tenant_id);
+    const customerId = String(meta.mandate_customer_id);
+    const stripeCustomerId = typeof intent.customer === "string" ? intent.customer : intent.customer?.id;
+    const pmId = typeof intent.payment_method === "string" ? intent.payment_method : intent.payment_method?.id;
+    if (!stripeCustomerId || !pmId) {
+      logStep("Mandate save skipped — no customer or payment method", { intent: intent.id });
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from("customer_payment_mandates")
+      .select("status")
+      .eq("tenant_id", tenantId)
+      .eq("customer_id", customerId)
+      .maybeSingle();
+    if (existing?.status === "active") {
+      logStep("Mandate save skipped — active mandate exists", { intent: intent.id });
+      return;
+    }
+
+    const pm = await stripe.paymentMethods.retrieve(pmId);
+    let details: unknown = null;
+    if (pm.type !== "card" && pm.type !== "sepa_debit") {
+      const chargeId = typeof intent.latest_charge === "string" ? intent.latest_charge : intent.latest_charge?.id;
+      if (chargeId) {
+        const charge = await stripe.charges.retrieve(chargeId);
+        details = charge.payment_method_details ?? null;
+      }
+    }
+    const reusable = reusablePaymentMethod(pm.type, pm.id, details);
+    if (!reusable) {
+      logStep("Mandate save skipped — payment method not reusable", { intent: intent.id, type: pm.type });
+      return;
+    }
+
+    const { error } = await supabase.from("customer_payment_mandates").upsert(
+      {
+        tenant_id: tenantId,
+        customer_id: customerId,
+        stripe_customer_id: stripeCustomerId,
+        stripe_payment_method_id: reusable.paymentMethodId,
+        method_type: reusable.methodType,
+        status: "active",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "tenant_id,customer_id" },
+    );
+    if (error) throw error;
+    logStep("Mandate saved from pay link", { intent: intent.id, method: reusable.methodType });
+  } catch (e) {
+    logStep("Mandate save failed", { intent: intent.id, error: e instanceof Error ? e.message : String(e) });
+  }
 };
 
 serve(async (req) => {
@@ -80,6 +143,9 @@ serve(async (req) => {
       event.type === "payment_intent.payment_failed"
     ) {
       const handled = await handleSubscriptionChargeWebhook(supabase, event);
+      if (handled && event.type === "payment_intent.succeeded") {
+        await saveMandateFromIntent(supabase, stripe, event.data.object as Stripe.PaymentIntent);
+      }
       if (handled) {
         return new Response(JSON.stringify({ received: true }), {
           status: 200,

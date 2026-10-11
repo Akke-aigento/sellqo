@@ -7,6 +7,8 @@
 
 import { getStripeContext } from "./stripe.ts";
 import { loadBillingTenant } from "./billingTenant.ts";
+import { withSaveMandate } from "./linkMandate.ts";
+import { resolveStripeCustomerId } from "./stripeCustomer.ts";
 import {
   cycleState,
   generatePayToken,
@@ -199,10 +201,31 @@ export async function createLinkCheckout(supabase: Db, resolved: ResolvedLink): 
   }
 
   let customerEmail: string | undefined;
+  // deno-lint-ignore no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let cust: any = null;
   if (link.customer_id) {
-    const { data: cust } = await supabase.from("customers").select("email").eq("id", link.customer_id).maybeSingle();
+    const { data } = await supabase
+      .from("customers")
+      .select("id, email, first_name, last_name, company_name")
+      .eq("id", link.customer_id)
+      .maybeSingle();
+    cust = data ?? null;
     customerEmail = cust?.email || undefined;
   }
+
+  // BILL-FIX-1: platformfacturatie aan een klant op een mandaat-abonnement zonder
+  // mandaat → het betaalmiddel bewaren, zodat volgende maand off-session kan.
+  // Faalt de bepaling, dan gewoon een gewone betaling (nooit de betaling blokkeren).
+  let mandateCustomer: string | null = null;
+  try {
+    mandateCustomer = cust ? await saveMandateCustomer(supabase, ctx, link.tenant_id, cust) : null;
+  } catch (e) {
+    console.warn("[payCheckout] mandaat bewaren overgeslagen:", e instanceof Error ? e.message : String(e));
+  }
+  // deno-lint-ignore no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const finalize = (p: any) => (mandateCustomer && cust ? withSaveMandate(p, mandateCustomer, cust.id) : p);
 
   const common = {
     mode: "payment" as const,
@@ -257,13 +280,51 @@ export async function createLinkCheckout(supabase: Db, resolved: ResolvedLink): 
       metadata: { payment_bundle_id: bundle.id, tenant_id: link.tenant_id, payment_link_token: link.token },
       payment_intent_data: { metadata: { payment_bundle_id: bundle.id, tenant_id: link.tenant_id } },
     };
-    const session = await ctx.stripe.checkout.sessions.create(params, ctx.requestOptions);
+    const session = await ctx.stripe.checkout.sessions.create(finalize(params), ctx.requestOptions);
     await supabase.from("payment_bundles").update({ checkout_session_id: session.id }).eq("id", bundle.id);
     await supabase.from("payment_links").update({ last_checkout_session_id: session.id, last_opened_at: new Date().toISOString() }).eq("token", link.token);
     return session.url as string;
   }
 
-  const session = await ctx.stripe.checkout.sessions.create(params, ctx.requestOptions);
+  const session = await ctx.stripe.checkout.sessions.create(finalize(params), ctx.requestOptions);
   await supabase.from("payment_links").update({ last_checkout_session_id: session.id, last_opened_at: new Date().toISOString() }).eq("token", link.token);
   return session.url as string;
+}
+
+/**
+ * BILL-FIX-1: Stripe-klant om het betaalmiddel op te bewaren, of null.
+ * Alleen voor SellQo's eigen facturatie (de platformwebhook zet het mandaat
+ * vast), alleen bij een actief mandaat-abonnement, en nooit over een actief
+ * mandaat heen.
+ */
+async function saveMandateCustomer(
+  supabase: Db,
+  ctx: ReturnType<typeof getStripeContext>,
+  tenantId: string,
+  // deno-lint-ignore no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cust: any,
+): Promise<string | null> {
+  if (!(await isBillingTenant(supabase, tenantId))) return null;
+
+  const { data: mandate } = await supabase
+    .from("customer_payment_mandates")
+    .select("status")
+    .eq("tenant_id", tenantId)
+    .eq("customer_id", cust.id)
+    .maybeSingle();
+  if (mandate?.status === "active") return null;
+
+  const { data: subs } = await supabase
+    .from("subscriptions")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("customer_id", cust.id)
+    .eq("status", "active")
+    .eq("payment_mode", "mandate")
+    .limit(1);
+  if (!subs || subs.length === 0) return null;
+
+  const resolved = await resolveStripeCustomerId(supabase, ctx, { tenantId, customer: cust });
+  return resolved.stripeCustomerId;
 }

@@ -240,6 +240,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'ai_credits_low', label: 'AI credits laag', description: 'AI credits zijn bijna op', defaultInApp: true, defaultEmail: false },
       { type: 'trial_expiring', label: 'Proefperiode eindigt', description: 'Je proefperiode eindigt morgen', defaultInApp: true, defaultEmail: false },
       { type: 'trial_expired', label: 'Proefperiode verlopen', description: 'Je proefperiode is verlopen', defaultInApp: true, defaultEmail: false },
+      { type: 'trial_converted', label: 'Abonnement gestart', description: 'Je proefperiode is voorbij en je abonnement is gestart', defaultInApp: true, defaultEmail: false },
+      { type: 'trial_conversion_failed', label: 'Abonnement starten mislukt', description: 'Een proefperiode is voorbij maar het abonnement kon niet starten', defaultInApp: true, defaultEmail: false },
       { type: 'admin_announcement', label: 'Bericht van SellQo', description: 'Een mededeling van het SellQo-team', defaultInApp: true, defaultEmail: false },
     ]
   },

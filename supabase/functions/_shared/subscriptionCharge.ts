@@ -11,6 +11,7 @@ import { effectuatePlanSwitch } from "./planEffectuate.ts";
 import { advanceDate, type Interval } from "./planProration.ts";
 import { resolveInvoiceFiscalFields } from "./invoiceFiscalFields.ts";
 import { refreshBillingStateForCustomer } from "./billingGuard.ts";
+import { tenantPeriodAfterSettle } from "./tenantPeriod.ts";
 import {
   classifyPayment,
   cycleState,
@@ -637,6 +638,31 @@ async function handleCycleCharge(
   // cron van morgenochtend. Geldt voor het mandaat-pad én voor een handmatige
   // betaling via de betaallink; beide komen hier langs.
   await refreshBillingStateForCustomer(supabase, cycle.customer_id);
+
+  // BILL-FIX-1: de tenant volgt de betaalde periode (alleen recurring, alleen vooruit).
+  try {
+    const { data: ts } = await supabase
+      .from("tenant_subscriptions")
+      .select("id, current_period_end")
+      .eq("billing_subscription_id", cycle.subscription_id)
+      .maybeSingle();
+    if (ts) {
+      const period = tenantPeriodAfterSettle(ts.current_period_end, cycle);
+      const { error: tsErr } = await supabase
+        .from("tenant_subscriptions")
+        .update({
+          ...(period ?? {}),
+          last_payment_date: new Date().toISOString(),
+          last_payment_amount: Number(cycle.total ?? 0),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", ts.id);
+      if (tsErr) log("Tenant period update failed", { cycleId, error: tsErr.message });
+      else log("Tenant period updated", { cycleId, advanced: !!period });
+    }
+  } catch (e) {
+    log("Tenant period update skipped", { cycleId, error: e instanceof Error ? e.message : String(e) });
+  }
 
   // UPGRADE-PF-1: settlement of a proration cycle effectuates the plan switch.
   // Mandate mode already applied it in sync-tenant-plan (logged as a no-op

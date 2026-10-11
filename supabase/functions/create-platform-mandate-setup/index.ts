@@ -5,6 +5,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
+import { resolveStripeCustomerId } from "../_shared/stripeCustomer.ts";
 import { loadBillingTenant } from "../_shared/billingTenant.ts";
 
 const corsHeaders = {
@@ -145,40 +146,15 @@ Deno.serve(async (req) => {
     // Stripe context = internal tenant → platform account.
     const ctx = getStripeContext(internalTenant as any);
 
-    let stripeCustomerId: string | null = null;
-    const { data: existingMandate } = await supabase
-      .from("customer_payment_mandates")
-      .select("stripe_customer_id")
-      .eq("tenant_id", internalTenantId)
-      .eq("customer_id", billingCustomerId)
-      .maybeSingle();
-    if (existingMandate?.stripe_customer_id) {
-      stripeCustomerId = existingMandate.stripe_customer_id as string;
-    }
-
-    if (!stripeCustomerId) {
-      const displayName =
-        billingCustomer.company_name ||
-        [billingCustomer.first_name, billingCustomer.last_name].filter(Boolean).join(" ").trim() ||
-        billingCustomer.email ||
-        undefined;
-      const stripeCustomer = await ctx.stripe.customers.create(
-        {
-          email: billingCustomer.email ?? undefined,
-          name: displayName,
-          metadata: {
-            tenant_id: internalTenantId,
-            customer_id: billingCustomerId,
-            platform_tenant_id: tenantId,
-          },
-        },
-        ctx.requestOptions,
-      );
-      stripeCustomerId = stripeCustomer.id;
-      log("Created Stripe customer", {
-        stripeCustomerId,
-        onPlatform: ctx.onPlatformAccount,
-      });
+    // BILL-FIX-1: mandaat → recentste token → nieuw (zie _shared/stripeCustomer.ts).
+    const resolvedCustomer = await resolveStripeCustomerId(supabase, ctx, {
+      tenantId: internalTenantId,
+      customer: billingCustomer,
+      metadata: { platform_tenant_id: tenantId },
+    });
+    const stripeCustomerId: string = resolvedCustomer.stripeCustomerId;
+    if (resolvedCustomer.source === "created") {
+      log("Created Stripe customer", { stripeCustomerId, onPlatform: ctx.onPlatformAccount });
     }
 
     const token = randomToken();

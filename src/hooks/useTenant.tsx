@@ -32,6 +32,7 @@ interface Tenant {
   is_internal_tenant?: boolean;
   /** BILLING-EXEMPT-1: geen SellQo-facturatie, geen limieten, niet in de statistieken. */
   billing_exempt?: boolean;
+  billing_on_hold?: boolean;
   // Peppol
   peppol_id?: string | null;
   // Invoice settings

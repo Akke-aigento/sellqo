@@ -1,3 +1,70 @@
+## BILL-FIX-1 — trial-einde wordt betaalabonnement, mandaat via betaallink, één Stripe-klant — 11 oktober 2026
+
+2026-10-11 BILL-FIX-1: platformbetalingen-audit (chat-Claude, recon via connector + repo) vond vijf gaten.
+Data live gezet door chat-Claude met snapshot in `admin_billing_actions` (`action LIKE 'BILL-FIX-1%'`);
+code op branch `bill-fix-1`, deploy via Lovable na expliciete go van Akke.
+
+### Root cause
+
+1. `check-expired-trials` pakte alleen `status = 'trialing'` en zette die op free. Klantwinkels in trial staan
+   op `active` + `trial_end` (Mancini, Benny Rich: 27/10; Loveke: 10/11): na de trial bleven ze gratis op hun
+   betaalde plan, zonder abonnement en zonder betaalverzoek. Astra Sleep betaalde alleen omdat er op 23/9
+   handmatig een abonnement was aangemaakt. Eigen winkels met `billing_exempt` werden niet uitgezonderd
+   (Studio Akke, trialing, zou 12/10 naar free zakken).
+2. Domeinabonnement Astra (`Domein: https://astrasleep.shop/`) stond nog op `invoice_first` (aangemaakt juli,
+   vóór de pay_first-default). SQ-2026-0001 (€60,50, 18/7) bleef open; dunning stuurde drie
+   machtigingsuitnodigingen en stopte op niveau 3 (overdracht aan mens), nooit een betaallink.
+3. `mintMandateSetupLink` en `create-platform-mandate-setup` hergebruikten alleen de Stripe-klant van een
+   bestaand mandaat. Zonder mandaat = nieuwe Stripe-klant per uitnodiging: Ozay Group had er 9.
+4. Betalen via `/betalen/<token>` was een gewone betaling (`mode: payment`, geen `setup_future_usage`): een
+   klant op een mandaat-abonnement zonder mandaat kreeg elke maand opnieuw een link.
+5. Een afgerekende recurring cycle schoof `tenant_subscriptions.current_period_*` niet op (Astra stond op 1/10
+   terwijl oktober gefactureerd was). Raakt ook de pro-rata bij upgrades, die deze velden leest.
+
+### Uitgevoerd
+
+Data (live, 11/10, chat-Claude, snapshot vooraf):
+- Studio Akke, Loveke, VanXcel (`billing_exempt`/intern): `tenant_subscriptions.trial_end = null`, `status = 'active'`.
+- Domeinabonnement `dfe77faa…` → `billing_model = 'pay_first'` (volgende verlenging 10/07/2027 = cycle).
+  SQ-2026-0001 blijft open; Akke stuurde Marawan op 11/10 de "Alles betalen"-link (€95,59).
+- Nieuwe kolom `tenants.billing_on_hold` (migratie `20261011120000_bill_fix_1_billing_on_hold.sql`, idempotent,
+  live al uitgevoerd) en aan gezet voor Mancini Milano, Zona Dorata en Benny Rich (keuze Akke: gratis maanden
+  tot de omschakeling).
+
+Code (`bill-fix-1`):
+- `_shared/trialEnd.ts` (nieuw, puur): `decideTrialEnd` → activate | clear_exempt | hold | skip_*.
+- `check-expired-trials`: herschreven. Pakt `trialing` én `active` met verlopen `trial_end`. activate →
+  `sync-tenant-plan` action=activate (pay-first abonnement op het huidige plan + eerste betaalverzoek), daarna
+  `trial_end = null` en `tenants.subscription_plan` gelijkgetrokken, melding `system/trial_converted` aan de
+  tenant. Mislukt → `system/trial_conversion_failed` aan de SellQo-tenant, trial_end blijft (morgen opnieuw).
+  Nooit meer stil naar free. Respons draagt `version: "bill-fix-1"` (deploy-vingerafdruk).
+- `sync-tenant-plan`: accepteert een systeemaanroep (service-key of cron-secret via `isAuthorizedCronRequest`);
+  gebruikersauth ongewijzigd.
+- Admin → tenant bewerken: schakelaar **Gratis tot omschakeling** (`billing_on_hold`). Uitzetten = facturatie
+  start bij de volgende nachtrun als de trial voorbij is.
+- `_shared/stripeCustomer.ts` (nieuw): `resolveStripeCustomerId` — mandaat → recentste token (als de klant in
+  Stripe nog bestaat) → nieuw. Gebruikt door `mandateToken.ts`, `create-platform-mandate-setup` en `payCheckout.ts`.
+- `_shared/linkMandate.ts` (nieuw, puur) + `payCheckout.ts`: voor de facturatietenant, bij een actief
+  mandaat-abonnement zonder actief mandaat, zet de betaallink `customer` + `setup_future_usage: off_session` +
+  metadata `save_mandate`. `platform-stripe-webhook` zet na `payment_intent.succeeded` het betaalmiddel vast
+  als mandaat (kaart/SEPA direct; Bancontact/iDEAL via `generated_sepa_debit`), nooit over een actief mandaat
+  heen; fouten raken de afboeking niet.
+- `_shared/tenantPeriod.ts` (nieuw, puur) + `subscriptionCharge.ts`: na afrekening van een recurring cycle
+  `current_period_*` vooruit (nooit terug) en `last_payment_date/amount`.
+- Meldingtypes geregistreerd (`src/types/notification.ts`, `notificationDefaults.ts`, `notificationRoutes.ts`).
+- Tests: `src/test/billFix1.test.ts` (21). `check:notifications` groen.
+
+### Open / bewust niet
+
+- `tenants.subscription_plan` en `tenant_subscriptions.plan_id` lopen uiteen (Mancini: professional vs starter,
+  Benny Rich: free vs starter). Billing volgt `tenant_subscriptions.plan_id`; het label wordt pas bij activatie
+  gelijkgetrokken. Eigen batch als de gating het label leest.
+- `create-cycle-payment-link` / `create-invoice-payment-link` (oude paden) bewaren geen mandaat; alleen de vaste
+  betaallink doet dat.
+- De 9 overtollige Stripe-klanten van Ozay blijven staan (opruimen in het Stripe-dashboard kan, hoeft niet).
+- Eerste echte betaling via `/betalen` (Marawan) is de end-to-end-test van het bundelpad; natrekken in
+  `payment_bundles` + `billing_cycles` + `customer_payment_mandates`.
+
 ## WEBPUSH-1 — pushmeldingen in de webapp, native app houdt voorrang — 10 oktober 2026
 
 **Aanleiding.** Sommige bedrijfstelefoons (Arval-MDM) blokkeren TestFlight-apps. Daar kan SellQo alleen

@@ -62,6 +62,7 @@ const TYPE_ROUTES: Readonly<Record<string, string>> = {
   platform_gift: "/admin/billing",
   trial_expiring: "/admin/billing",
   trial_expired: "/admin/billing",
+  trial_converted: "/admin/billing",
 };
 
 // Settings.tsx leest alleen `?section=`. Oude `?tab=`- en `/settings/<x>`-links

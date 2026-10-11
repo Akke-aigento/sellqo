@@ -10,6 +10,7 @@
 // unchanged; only the base URL is now resolved instead of assumed.
 
 import type { StripeContext } from "./stripe.ts";
+import { resolveStripeCustomerId } from "./stripeCustomer.ts";
 
 const log = (step: string, details?: unknown) => {
   const suffix = details !== undefined ? ` - ${JSON.stringify(details)}` : "";
@@ -131,34 +132,11 @@ export async function mintMandateSetupLink(
     ? await buildSubscriptionContext(supabase, tenant, customer.id, opts.subscriptionId)
     : null;
 
-  // Reuse an existing Stripe customer if we already stored one for a previous
-  // (revoked/failed) mandate; otherwise create a fresh one.
-  let stripeCustomerId: string | null = null;
-  const { data: existingMandate } = await supabase
-    .from("customer_payment_mandates")
-    .select("stripe_customer_id")
-    .eq("tenant_id", tenant.id)
-    .eq("customer_id", customer.id)
-    .maybeSingle();
-  if (existingMandate?.stripe_customer_id) {
-    stripeCustomerId = existingMandate.stripe_customer_id;
-  }
-
-  if (!stripeCustomerId) {
-    const displayName =
-      customer.company_name ||
-      [customer.first_name, customer.last_name].filter(Boolean).join(" ").trim() ||
-      customer.email ||
-      undefined;
-    const stripeCustomer = await ctx.stripe.customers.create(
-      {
-        email: customer.email ?? undefined,
-        name: displayName,
-        metadata: { tenant_id: tenant.id, customer_id: customer.id },
-      },
-      ctx.requestOptions,
-    );
-    stripeCustomerId = stripeCustomer.id;
+  // BILL-FIX-1: mandaat → recentste token → nieuw. Vroeger alleen het mandaat,
+  // waardoor elke uitnodiging aan een klant zonder mandaat een nieuwe Stripe-klant gaf.
+  const resolved = await resolveStripeCustomerId(supabase, ctx, { tenantId: tenant.id, customer });
+  const stripeCustomerId: string = resolved.stripeCustomerId;
+  if (resolved.source === "created") {
     log("Created Stripe customer", { stripeCustomerId, onPlatform: ctx.onPlatformAccount });
   }
 
@@ -179,5 +157,5 @@ export async function mintMandateSetupLink(
     hasContext: !!context,
   });
 
-  return { token, url, stripeCustomerId: stripeCustomerId! };
+  return { token, url, stripeCustomerId };
 }

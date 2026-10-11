@@ -49,6 +49,7 @@ const tenantSchema = z.object({
   tax_percentage: z.coerce.number().min(0).max(100).optional(),
   is_demo: z.boolean().optional(),
   billing_exempt: z.boolean().optional(),
+  billing_on_hold: z.boolean().optional(),
 });
 
 interface TenantFormDialogProps {
@@ -86,6 +87,7 @@ export function TenantFormDialog({
       tax_percentage: 21,
       is_demo: false,
       billing_exempt: false,
+      billing_on_hold: false,
     },
   });
 
@@ -109,6 +111,7 @@ export function TenantFormDialog({
         tax_percentage: tenant.tax_percentage ?? 21,
         is_demo: tenant.is_demo ?? false,
         billing_exempt: tenant.billing_exempt ?? false,
+        billing_on_hold: tenant.billing_on_hold ?? false,
       });
     } else {
       form.reset({
@@ -129,6 +132,7 @@ export function TenantFormDialog({
         tax_percentage: 21,
         is_demo: false,
         billing_exempt: false,
+        billing_on_hold: false,
       });
     }
   }, [tenant, form]);
@@ -471,6 +475,34 @@ export function TenantFormDialog({
                           Voor een eigen winkel (VanXcel, Loveke, …). SellQo factureert deze winkel niet,
                           zet haar nooit in leesmodus, past geen plan- en AI-limieten toe en telt haar niet
                           mee in de platformstatistieken. Betalingen blijven via haar eigen Stripe-account lopen.
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="shrink-0"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {/* BILL-FIX-1: klantwinkel die (nog) gratis draait. Anders dan billing_exempt:
+                    de winkel blijft een externe klant, maar krijgt bij trial-einde geen
+                    betaalabonnement tot deze schakelaar uit gaat. */}
+                <FormField
+                  control={form.control}
+                  name="billing_on_hold"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between gap-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4">
+                      <div className="min-w-0">
+                        <FormLabel className="text-amber-900">Gratis tot omschakeling</FormLabel>
+                        <p className="text-sm text-amber-700">
+                          Voor een klantwinkel die voorlopig gratis draait. Zolang dit aan staat, start SellQo
+                          bij het einde van de proefperiode geen betaalabonnement. Zet je het uit, dan start de
+                          facturatie bij de volgende nachtrun: abonnement op het huidige plan, eerste
+                          betaalverzoek per mail.
                         </p>
                       </div>
                       <FormControl>

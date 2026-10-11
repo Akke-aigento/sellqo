@@ -107,6 +107,8 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "system/ai_credits_low": { category: "system", inApp: true, email: false },
   "system/trial_expiring": { category: "system", inApp: true, email: false },
   "system/trial_expired": { category: "system", inApp: true, email: false },
+  "system/trial_converted": { category: "system", inApp: true, email: false },
+  "system/trial_conversion_failed": { category: "system", inApp: true, email: false },
   "system/admin_announcement": { category: "system", inApp: true, email: false },
   "ai_coach/ai_suggestion": { category: "ai_coach", inApp: true, email: false },
   "ai_coach/ai_coach_suggestion": { category: "ai_coach", inApp: true, email: false },

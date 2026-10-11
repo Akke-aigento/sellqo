@@ -22,6 +22,7 @@ import { advanceDate } from "../_shared/billingDates.ts";
 import { effectuatePlanSwitch } from "../_shared/planEffectuate.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
 import { loadBillingTenant } from "../_shared/billingTenant.ts";
+import { isAuthorizedCronRequest } from "../_shared/cronAuth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -110,16 +111,22 @@ Deno.serve(async (req) => {
 
   try {
     // ---- Auth: platform_admin OR tenant_admin of the target tenant ----
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return jsonResponse({ success: false, error: "Missing Authorization" }, 401);
+    // BILL-FIX-1: of een systeemaanroep (check-expired-trials bij trial-einde) met
+    // de service-key of het cron-secret — zelfde check als de cron-functies.
+    const isSystemCall = await isAuthorizedCronRequest(req, supabase);
+    let userId: string | null = null;
+    if (!isSystemCall) {
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader?.startsWith("Bearer ")) {
+        return jsonResponse({ success: false, error: "Missing Authorization" }, 401);
+      }
+      const token = authHeader.replace("Bearer ", "");
+      const { data: userData, error: userErr } = await supabase.auth.getUser(token);
+      if (userErr || !userData?.user) {
+        return jsonResponse({ success: false, error: "Invalid session" }, 401);
+      }
+      userId = userData.user.id;
     }
-    const token = authHeader.replace("Bearer ", "");
-    const { data: userData, error: userErr } = await supabase.auth.getUser(token);
-    if (userErr || !userData?.user) {
-      return jsonResponse({ success: false, error: "Invalid session" }, 401);
-    }
-    const userId = userData.user.id;
 
     const body = (await req.json().catch(() => ({}))) as SyncBody;
     const tenantId = body.tenant_id;
@@ -140,18 +147,20 @@ Deno.serve(async (req) => {
       return jsonResponse({ success: false, error: "action invalid" }, 400);
     }
 
-    // Authorization: platform admin OR tenant_admin for this tenant
-    const { data: roles, error: rolesErr } = await supabase
-      .from("user_roles")
-      .select("role, tenant_id")
-      .eq("user_id", userId);
-    if (rolesErr) throw rolesErr;
-    const isPlatformAdmin = (roles ?? []).some((r: any) => r.role === "platform_admin");
-    const isTenantAdmin = (roles ?? []).some(
-      (r: any) => r.role === "tenant_admin" && r.tenant_id === tenantId,
-    );
-    if (!isPlatformAdmin && !isTenantAdmin) {
-      return jsonResponse({ success: false, error: "Forbidden" }, 403);
+    // Authorization: platform admin OR tenant_admin for this tenant (of systeem)
+    if (!isSystemCall) {
+      const { data: roles, error: rolesErr } = await supabase
+        .from("user_roles")
+        .select("role, tenant_id")
+        .eq("user_id", userId);
+      if (rolesErr) throw rolesErr;
+      const isPlatformAdmin = (roles ?? []).some((r: any) => r.role === "platform_admin");
+      const isTenantAdmin = (roles ?? []).some(
+        (r: any) => r.role === "tenant_admin" && r.tenant_id === tenantId,
+      );
+      if (!isPlatformAdmin && !isTenantAdmin) {
+        return jsonResponse({ success: false, error: "Forbidden" }, 403);
+      }
     }
 
     // ---- Load supporting rows ----
