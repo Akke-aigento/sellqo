@@ -35,17 +35,28 @@ export default function Contact() {
     responseTime: t(`public.contact.responseTimes.${s.responseKey}`),
   }));
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  // Er is (nog) geen backend voor dit formulier: het deed tot SELLQO-INSIGHTS-1 alsof het
+  // verstuurde (setTimeout + "Bericht verzonden"). Nu opent het een mail naar info@sellqo.app
+  // met alles ingevuld, zodat er echt iets aankomt.
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const value = (name: string) =>
+      ((form.elements.namedItem(name) as HTMLInputElement | HTMLTextAreaElement | null)?.value ?? '').trim();
+    const subjectLabel = subjects.find(s => s.value === selectedSubject)?.label ?? '';
+    const body = [
+      value('message'),
+      '',
+      '—',
+      `${t('public.contact.form.name')}: ${value('name')}`,
+      ...(value('company') ? [`${t('public.contact.form.company')}: ${value('company')}`] : []),
+      `${t('public.contact.form.email')}: ${value('email')}`,
+    ].join('\n');
+    const subject = `[SellQo] ${subjectLabel || t('public.contact.form.title')} — ${value('name')}`;
     setIsSubmitting(true);
-    
-    // Simulate form submission
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    toast.success(t('public.contact.form.success'));
+    window.location.href = `mailto:info@sellqo.app?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    toast.success(t('public.contact.form.mailOpened'));
     setIsSubmitting(false);
-    (e.target as HTMLFormElement).reset();
-    setSelectedSubject('');
   };
 
   const currentSubject = subjects.find(s => s.value === selectedSubject);
@@ -89,16 +100,16 @@ export default function Contact() {
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">{t('public.contact.form.name')} *</Label>
-                <Input id="name" placeholder={t('public.contact.form.namePlaceholder')} required />
+                <Input id="name" name="name" placeholder={t('public.contact.form.namePlaceholder')} required />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="company">{t('public.contact.form.company')}</Label>
-                <Input id="company" placeholder={t('public.contact.form.companyPlaceholder')} />
+                <Input id="company" name="company" placeholder={t('public.contact.form.companyPlaceholder')} />
               </div>
             </div>
             <div className="space-y-2">
               <Label htmlFor="email">{t('public.contact.form.email')} *</Label>
-              <Input id="email" type="email" placeholder={t('public.contact.form.emailPlaceholder')} required />
+              <Input id="email" name="email" type="email" placeholder={t('public.contact.form.emailPlaceholder')} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="subject">{t('public.contact.form.subject')} *</Label>
@@ -124,7 +135,8 @@ export default function Contact() {
             <div className="space-y-2">
               <Label htmlFor="message">{t('public.contact.form.message')} *</Label>
               <Textarea 
-                id="message" 
+                id="message"
+                name="message"
                 placeholder={t('public.contact.form.messagePlaceholder')}
                 rows={5}
                 required 

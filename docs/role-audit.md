@@ -1,3 +1,60 @@
+## SELLQO-INSIGHTS-1 — Akke Insights op sellqo.app + echt contactformulier — 11 oktober 2026
+
+2026-10-11 SELLQO-INSIGHTS-1 (Claude Code, go van Akke 11/10 21:17). Puur frontend, geen DB, geen edge functions.
+
+### Root cause
+
+1. sellqo.app had geen meting: Akke had geen zicht op bezoekers, herkomst of aanmeldingen van de publieke site.
+2. `src/pages/public/Contact.tsx` deed alsof het verstuurde: `await new Promise(r => setTimeout(r, 1000))`
+   gevolgd door de toast "Bericht verzonden!". Er ging niets weg. Dode affordance (CLAUDE.md §2), en erger:
+   een bezoeker dacht dat zijn vraag binnen was.
+
+### Uitgevoerd
+
+- `src/lib/akkeInsights.ts` (nieuw): `loadAkkeInsights()` laadt `https://insights.studioakke.com/t.js`
+  (site `xh7aj47tq0rk`) alleen als `!Capacitor.isNativePlatform()` én hostname `sellqo.app`/`*.sellqo.app`.
+  `data-exclude`: `/admin*`, `/shop/*`, `/pay/*`, `/betalen/*`, `/betaling/*`, `/actie/*`, `/invite/*`, `/app/*`,
+  `/reset-password`, `/no-access`. `trackGoal()` = veilige wrapper rond `window.akke`.
+- `src/main.tsx`: `loadAkkeInsights()` bij opstart.
+- `src/pages/Auth.tsx`: `trackGoal('Account aangemaakt')` na een geslaagde `signUp`.
+- `HeroSection`, `FinalCtaSection`, `LandingNavbar` (2×), `PricingSection`: `data-akke-goal="Start gratis"` op de
+  registratieknoppen (enterprise-knop: "Offerte enterprise").
+- `Contact.tsx`: submit opent nu `mailto:info@sellqo.app` met onderwerp `[SellQo] <onderwerp> — <naam>` en het
+  bericht + naam/bedrijf/e-mail in de body; inputs kregen `name`-attributen. Toast `public.contact.form.mailOpened`
+  (nieuw) in nl/en/fr/de/uk. De oude key `success` blijft staan (additief).
+
+### Security-keuzes
+
+Geen RLS/grants geraakt. De tracker is cookieloos: geen cookies, IP en user-agent worden niet bewaard (visitor-id
+= dagelijks wisselende hash), dus geen toestemming via `PlatformCookieBanner` nodig. Hij draait nooit in de
+native app en nooit in admin, webshops of betaalflows (tenantdata en klantgegevens blijven buiten beeld).
+**Vervolg:** het platform-privacybeleid (`/privacy`, SellqoLegal) moet Akke Insights als verwerker vermelden.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt: geen `storefront-api`/`storefront-customer-api`, geen gedeelde tabellen. Custom
+frontends merken niets (eerste wet): de tracker laadt alleen op het hostname sellqo.app en sluit `/shop/*` uit.
+Capacitor-app: code wordt meegebundeld, maar `isNativePlatform()` houdt hem uit; geen nieuwe native build nodig
+(het gedrag in de app verandert niet).
+
+### Verificatie
+
+- `node scripts/i18n-parity.mjs`: volledige pariteit (exit 0).
+- `vite build`: groen.
+- `tsc --noEmit -p tsconfig.app.json`: 33 fouten, geen enkele in een geraakt bestand (bestaand; lokale
+  `npm install` i.p.v. bun-lock kan versie-drift geven).
+- eslint op de geraakte bestanden: 0 problemen vóór en na.
+- Na publish: `net.http_get('https://sellqo.app/')` + JS-bundle bevat `insights.studioakke.com/t.js`; eerste
+  pageview in Insights (site SellQo).
+
+### Bewust ongemoeid / Vervolg
+
+- Geen backend voor het contactformulier (mailto is eerlijk en werkt meteen). Een echte verzending via Resend
+  vraagt een publieke edge function met rate limit + honeypot: eigen batch.
+- Geen changelog/doc_articles/nieuwsbrief: niet tenant-zichtbaar.
+- SEO van de publieke pagina's (12 pagina's met dezelfde titel/beschrijving in de Insights-scan, score 74):
+  recon gedaan, plan apart (SELLQO-SEO-1).
+
 ## BILL-FIX-1 — trial-einde wordt betaalabonnement, mandaat via betaallink, één Stripe-klant — 11 oktober 2026
 
 2026-10-11 BILL-FIX-1: platformbetalingen-audit (chat-Claude, recon via connector + repo) vond vijf gaten.

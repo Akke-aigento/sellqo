@@ -20,6 +20,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
+import { trackGoal } from '@/lib/akkeInsights';
 
 /**
  * De schema's worden per render opgebouwd omdat de foutmeldingen door i18n
@@ -192,6 +193,7 @@ export default function Auth() {
     setIsSubmitting(false);
 
     if (!error) {
+      trackGoal('Account aangemaakt');
       // Auto login after signup since email is auto-confirmed
       await signIn(signupEmail, signupPassword);
       navigate('/admin');

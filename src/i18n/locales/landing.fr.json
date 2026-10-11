@@ -1035,7 +1035,8 @@
         "submit": "Envoyer le message",
         "submitting": "Envoi...",
         "success": "Message envoyé ! Nous vous répondrons dès que possible.",
-        "error": "Une erreur est survenue. Veuillez réessayer."
+        "error": "Une erreur est survenue. Veuillez réessayer.",
+        "mailOpened": "Votre messagerie s'ouvre avec votre message prêt à être envoyé à info@sellqo.app."
       },
       "responseTitle": "Temps de réponse",
       "companyTitle": "Informations sur l'entreprise",

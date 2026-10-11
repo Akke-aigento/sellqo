@@ -1035,7 +1035,8 @@
         "submit": "Send message",
         "submitting": "Sending...",
         "success": "Message sent! We'll get back to you as soon as possible.",
-        "error": "Something went wrong. Please try again."
+        "error": "Something went wrong. Please try again.",
+        "mailOpened": "Your email app opens with your message ready to send to info@sellqo.app."
       },
       "responseTitle": "Response times",
       "companyTitle": "Company information",

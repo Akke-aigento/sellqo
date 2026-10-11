@@ -71,7 +71,7 @@ export function LandingNavbar() {
               <Link to="/auth">{t('landing.nav.login')}</Link>
             </Button>
             <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
-              <Link to="/auth?mode=register" className="flex items-center gap-2">
+              <Link data-akke-goal="Start gratis" to="/auth?mode=register" className="flex items-center gap-2">
                 {t('landing.nav.start')}
                 <ArrowRight className="w-4 h-4" />
               </Link>
@@ -126,7 +126,7 @@ export function LandingNavbar() {
               <Link to="/auth">{t('landing.nav.login')}</Link>
             </Button>
             <Button asChild className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
-              <Link to="/auth?mode=register">{t('landing.nav.start')}</Link>
+              <Link data-akke-goal="Start gratis" to="/auth?mode=register">{t('landing.nav.start')}</Link>
             </Button>
           </div>
         </div>

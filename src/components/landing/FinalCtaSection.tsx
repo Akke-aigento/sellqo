@@ -39,7 +39,7 @@ export function FinalCtaSection() {
             asChild
             className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg px-10 py-7 shadow-lg hover:shadow-xl transition-all"
           >
-            <Link to="/auth?mode=register" className="flex items-center gap-2">
+            <Link data-akke-goal="Start gratis" to="/auth?mode=register" className="flex items-center gap-2">
               <Sparkles className="w-5 h-5" />
               {t('landing.finalCta.cta')}
             </Link>

@@ -1035,7 +1035,8 @@
         "submit": "Nachricht senden",
         "submitting": "Wird gesendet...",
         "success": "Nachricht gesendet! Wir melden uns so schnell wie möglich.",
-        "error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut."
+        "error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+        "mailOpened": "Dein E-Mail-Programm öffnet sich mit deiner Nachricht, bereit zum Senden an info@sellqo.app."
       },
       "responseTitle": "Antwortzeiten",
       "companyTitle": "Unternehmensangaben",

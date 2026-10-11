@@ -199,7 +199,7 @@ export function PricingSection() {
                   variant={plan.highlighted ? 'default' : 'outline'}
                   size="lg"
                 >
-                  <Link to={plan.key === 'enterprise' ? '/contact' : '/auth?mode=register'}>
+                  <Link data-akke-goal={plan.key === 'enterprise' ? 'Offerte enterprise' : 'Start gratis'} to={plan.key === 'enterprise' ? '/contact' : '/auth?mode=register'}>
                     {cta}
                   </Link>
                 </Button>

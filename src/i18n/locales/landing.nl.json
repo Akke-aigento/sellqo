@@ -1035,7 +1035,8 @@
         "submit": "Verstuur Bericht",
         "submitting": "Verzenden...",
         "success": "Bericht verzonden! We nemen zo snel mogelijk contact met je op.",
-        "error": "Er ging iets mis. Probeer het opnieuw."
+        "error": "Er ging iets mis. Probeer het opnieuw.",
+        "mailOpened": "Je mailprogramma opent met je bericht klaar om te versturen naar info@sellqo.app."
       },
       "responseTitle": "Reactietijden",
       "companyTitle": "Bedrijfsgegevens",

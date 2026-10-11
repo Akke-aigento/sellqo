@@ -63,7 +63,7 @@ export function HeroSection() {
                 asChild
                 className="bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-4 px-8 h-auto min-h-[44px] shadow-lg hover:shadow-xl hover:brightness-110 transition-all rounded-lg"
               >
-                <Link to="/auth?mode=register" className="flex items-center gap-2">
+                <Link data-akke-goal="Start gratis" to="/auth?mode=register" className="flex items-center gap-2">
                   {t('landing.hero.ctaPrimary')}
                   <ArrowRight className="w-5 h-5" />
                 </Link>
