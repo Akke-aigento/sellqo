@@ -11,7 +11,18 @@
 // Ook gebruikt door de betaallink (payCheckout.ts) wanneer die het betaalmiddel
 // meteen als mandaat bewaart.
 
-import type { StripeContext } from "./stripe.ts";
+// Structureel type i.p.v. `import type { StripeContext } from "./stripe.ts"`:
+// dit bestand wordt ook door een vitest-test (src/test) geïmporteerd, en de
+// app-typecheck kan stripe.ts (esm.sh-import, Deno-globals) niet resolven.
+// StripeContext uit stripe.ts past hier structureel op.
+type StripeContext = {
+  // deno-lint-ignore no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  stripe: { customers: { retrieve: (id: string, opts?: any) => Promise<unknown>; create: (params: any, opts?: any) => Promise<{ id: string }> } };
+  // deno-lint-ignore no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  requestOptions?: any;
+};
 
 // deno-lint-ignore no-explicit-any
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
