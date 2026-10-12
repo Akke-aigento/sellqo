@@ -1,3 +1,39 @@
+## CREDITS-202610 — realtime-publicatie en */5-crons afslanken — 12 oktober 2026
+
+2026-10-12 CREDITS-202610 (Claude Code via Watchtower-uitvoerder, go van Akke 12/10 16:56 op voorstel "SellQo: */5-crons en realtime-publicatie afslanken"). Eén migratie, geen code, geen edge functions. Branch `credits-202610`, niet gedeployd: Akke deployt.
+
+### Root cause
+
+Realtime-WAL-polling is ~39% van de DB-tijd (Watchtower-meting). `supabase_realtime` bevat 9 tabellen; ripgrep op `postgres_changes` (src/ + supabase/functions) toont dat schermen er maar 6 live volgen (customer_messages, customers, notifications, orders, team_invitations, ticket_scans). `automation_runs` (migratie 20260123101758:251), `sync_activity_log` (20260126130004:37) en `external_reviews` (20260126205957:34) werden toegevoegd maar door niets beluisterd. Daarnaast drie crons op `*/5`.
+
+### Uitgevoerd
+
+- `supabase/migrations/20261012160000_credits_202610_realtime_en_crons.sql`:
+  - de drie onbeluisterde tabellen uit `supabase_realtime` (idempotent, met check op `pg_publication_tables`);
+  - `auto-invoice-cron` → `*/15 6-23 * * *` (UTC). Nachtelijke betaalde orders krijgen hun factuur bij de eerste run na 06:00 UTC (de functie kijkt 30 dagen terug, er gaat niets verloren);
+  - `update-bol-tracking-every-5min` → `*/15 * * * *`, bewust zonder nachtpauze: de functie meldt track & trace aan bol.com en die bevestiging telt tegen de beloofde leverdatum. Jobnaam ongewijzigd.
+
+### Security-keuzes
+
+Geen RLS, policies of grants geraakt. Uit de publicatie halen verkleint enkel wat Realtime uitzendt. Geen secrets in de migratie: jobs worden op naam opgezocht, enkel het schema wijzigt.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeelde storefront-tabel of storefront-edge-functie geraakt. Custom frontends gebruiken storefront-api/-customer-api, niet Realtime op deze drie tabellen.
+
+### Verificatie
+
+- Recon live (query_database 12/10): publicatie = 9 tabellen; crons 1, 2, 4 op `*/5`.
+- Na deploy natrekken: `select tablename from pg_publication_tables where pubname='supabase_realtime'` → 6 tabellen; `select jobname, schedule from cron.job where jobid in (2,4)`.
+- **Risico:** 20260912140000 meldt een platform-guard die `cron.schedule` met een sub-hourly schema blokkeert. Of `cron.alter_job(schedule := '*/15 …')` er doorheen komt, is niet getest. Faalt de migratie daarop: enkel het publicatiedeel draaien en de cadans via query_database zetten.
+
+### Bewust ongemoeid / Vervolg
+
+- `marketplace-sync-scheduler` (`*/5`) ongemoeid: eerst bespreken.
+- **Dode realtime gevonden:** `src/components/admin/marketing/RealtimeActivityFeed.tsx:62` luistert op `campaign_sends`, maar die tabel zit niet in de publicatie — die "live" feed krijgt nooit een event. Niet aangepast (buiten scope).
+- `docs/cron-inventaris.md` toont nog `*/5`; bijwerken na de deploy.
+- Geen changelog, doc_article of nieuwsbriefitem: geen zichtbare wijziging voor tenants buiten iets later aangemaakte automatische facturen.
+
 ## SELLQO-INDEXNOW-1 — IndexNow-sleutelbestand voor sellqo.app — 12 oktober 2026
 
 2026-10-12 SELLQO-INDEXNOW-1 (Claude Code, opdracht van Akke 12/10 17:06 "alles zelf doen wat je kan"). Eén statisch bestand, geen code, geen DB, geen edge functions.
