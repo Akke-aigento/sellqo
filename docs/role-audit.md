@@ -1,3 +1,12 @@
+## APP-CLEAN-4 — nep-"herinnering verstuurd" weg, plus schemascans — 13 oktober 2026
+
+- `usePaymentReminders.sendReminder` is weg. Die mutatie maakte een `payment_reminders`-rij aan, zette `invoices.reminder_level` hoger en toonde de toast "Herinnering verstuurd", maar verstuurde geen mail (de aanroep van `send-payment-reminder` stond als TODO in commentaar, en die functie bestaat niet). Er waren geen aanroepers meer, maar zo kan het niet opnieuw ingeplugd worden. Herinneringen lopen via `process-invoice-dunning` (dagelijkse cron).
+- **Scans zonder vondsten:**
+  - alle 56 `.rpc()`-namen en hun argumentnamen tegen de live `pg_proc`;
+  - alle storage-buckets tegen `storage.buckets`;
+  - alle aangeroepen edge functions tegen `supabase/functions/`. Alleen `send-payment-reminder` ontbrak, en die is hierboven opgeruimd.
+- De lint-baseline is verlaagd van 1505 naar 1493.
+
 ## SCHEMA-FIX-3 — onboarding-product, bankreconciliatie-audit en bol-importlog — 13 oktober 2026
 
 Tweede ronde van de automatische schemascan, nu op `.insert/.update/.upsert`-sleutels en filters:

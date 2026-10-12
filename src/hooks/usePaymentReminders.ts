@@ -75,71 +75,13 @@ export function usePaymentReminders() {
     },
   });
 
-  const sendReminder = useMutation({
-    mutationFn: async ({ invoiceId, level }: { invoiceId: string; level: 1 | 2 | 3 }) => {
-      // Get invoice details
-      const { data: invoice, error: invoiceError } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          customer:customers(email, first_name, last_name, company_name)
-        `)
-        .eq('id', invoiceId)
-        .single();
-
-      if (invoiceError) throw invoiceError;
-
-      // Calculate late fee if level 3 and enabled
-      let lateFeeAmount = 0;
-      let totalDueAmount = invoice.total;
-
-      if (level === 3 && settings.reminder_late_fee_enabled) {
-        lateFeeAmount = invoice.total * (settings.reminder_late_fee_percentage / 100);
-        totalDueAmount = invoice.total + lateFeeAmount;
-      }
-
-      // Create reminder record
-      const { error } = await supabase
-        .from('payment_reminders')
-        .insert({
-          invoice_id: invoiceId,
-          level,
-          late_fee_amount: lateFeeAmount,
-          total_due_amount: totalDueAmount,
-          email_sent_to: invoice.customer?.email,
-        });
-
-      if (error) throw error;
-
-      // Update invoice
-      await supabase
-        .from('invoices')
-        .update({
-          reminder_level: level,
-          last_reminder_at: new Date().toISOString(),
-        })
-        .eq('id', invoiceId);
-
-      // TODO: Send actual email via edge function
-      // await supabase.functions.invoke('send-payment-reminder', { ... });
-
-      return { invoice, level, lateFeeAmount, totalDueAmount };
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['payment-reminders'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      toast.success(`Herinnering niveau ${data.level} verstuurd`);
-    },
-    onError: (error: Error) => {
-      toast.error('Fout bij versturen herinnering', { description: error.message });
-    },
-  });
+  // Handmatige herinnering verwijderd (APP-CLEAN-4): die maakte alleen een rij aan en
+  // toonde "verstuurd" zonder mail. Herinneringen lopen via process-invoice-dunning (cron).
 
   return {
     reminders,
     isLoading,
     settings,
     updateSettings,
-    sendReminder,
   };
 }

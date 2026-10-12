@@ -1,21 +1,21 @@
 {
-  "total": 1505,
-  "errors": 1412,
-  "warnings": 93,
+  "total": 1493,
+  "errors": 1399,
+  "warnings": 94,
   "byRule": {
     "react-refresh/only-export-components": 40,
     "react-hooks/exhaustive-deps": 51,
     "no-useless-escape": 5,
-    "@typescript-eslint/no-explicit-any": 1326,
+    "@typescript-eslint/no-explicit-any": 1316,
     "no-empty": 21,
-    "no-case-declarations": 29,
     "@typescript-eslint/no-empty-object-type": 4,
+    "no-case-declarations": 26,
     "@typescript-eslint/no-unused-expressions": 3,
     "no-shadow-restricted-names": 1,
     "prefer-const": 17,
+    "(parse)": 3,
     "no-control-regex": 1,
     "no-constant-condition": 1,
-    "(parse)": 2,
     "@typescript-eslint/ban-ts-comment": 2,
     "@typescript-eslint/no-require-imports": 2
   }
