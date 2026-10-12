@@ -51,6 +51,18 @@ export function CardPaymentDialog({
   }, [open, amount]);
 
   const startPayment = async () => {
+    // APP-CLEAN-2: zonder gekoppelde kaartlezer bestaat er geen kaartbetaling.
+    // Tot 12-10-2026 "simuleerde" de kassa hier na 2 s een geslaagde Visa ****4242
+    // en registreerde de verkoop als betaald, terwijl er nooit geld binnenkwam
+    // (VanXcel, bon 20260316-0001, €422,29). Nu: duidelijke fout, geen PaymentIntent.
+    if (!readerId) {
+      setPaymentState('error');
+      setErrorMessage(
+        'Geen kaartlezer gekoppeld aan deze kassa. Koppel een Stripe-lezer, of reken contant of via overschrijving af.',
+      );
+      return;
+    }
+
     setPaymentState('creating');
     setErrorMessage(null);
 
@@ -59,41 +71,30 @@ export function CardPaymentDialog({
       const { payment_intent_id, client_secret } = await createPaymentIntent(amount, terminalId);
       setPaymentIntentId(payment_intent_id);
 
-      if (readerId) {
-        // Process on physical terminal
-        setPaymentState('waiting');
-        await processPayment(payment_intent_id, readerId);
-        
-        // Start polling for payment status
-        const interval = setInterval(async () => {
-          try {
-            const result = await processPayment(payment_intent_id);
-            if (result.status === 'succeeded') {
-              clearInterval(interval);
-              setPaymentState('success');
-              setTimeout(() => {
-                onSuccess(payment_intent_id);
-              }, 1500);
-            } else if (result.status === 'canceled' || result.status === 'requires_payment_method') {
-              clearInterval(interval);
-              setPaymentState('error');
-              setErrorMessage('Betaling geannuleerd of mislukt');
-            }
-          } catch (error) {
-            console.error('Polling error:', error);
+      // Process on physical terminal
+      setPaymentState('waiting');
+      await processPayment(payment_intent_id, readerId);
+      
+      // Start polling for payment status
+      const interval = setInterval(async () => {
+        try {
+          const result = await processPayment(payment_intent_id);
+          if (result.status === 'succeeded') {
+            clearInterval(interval);
+            setPaymentState('success');
+            setTimeout(() => {
+              onSuccess(payment_intent_id);
+            }, 1500);
+          } else if (result.status === 'canceled' || result.status === 'requires_payment_method') {
+            clearInterval(interval);
+            setPaymentState('error');
+            setErrorMessage('Betaling geannuleerd of mislukt');
           }
-        }, 2000);
-        setPollInterval(interval);
-      } else {
-        // Simulated payment for testing (no physical reader)
-        setPaymentState('processing');
-        setTimeout(() => {
-          setPaymentState('success');
-          setTimeout(() => {
-            onSuccess(payment_intent_id, { brand: 'visa', last4: '4242' });
-          }, 1500);
-        }, 2000);
-      }
+        } catch (error) {
+          console.error('Polling error:', error);
+        }
+      }, 2000);
+      setPollInterval(interval);
     } catch (error: any) {
       setPaymentState('error');
       setErrorMessage(error.message || 'Er is een fout opgetreden');

@@ -1,3 +1,17 @@
+## APP-CLEAN-2a — Kassa: PIN zonder kaartlezer registreerde een nep-betaling — 12 oktober 2026
+
+2026-10-12 APP-CLEAN-2a (chat-Claude, sweep op go van Akke 21:06 "doorpakken").
+
+**Vondst (Explore-sweep, zelf geverifieerd):** `CardPaymentDialog` maakte bij PIN zonder `readerId` een PaymentIntent aan en "simuleerde" daarna na 2 s een geslaagde betaling met `{brand:'visa', last4:'4242'}`. `POSTerminal` registreerde de verkoop dan als betaald. Er kwam nooit geld binnen: de PaymentIntent werd nooit bevestigd.
+
+**Live gevolg:** 1 transactie. VanXcel, `pos_transactions` 8ab03cea-137c-409a-bc7a-9b32dc1e3e38, bon 20260316-0001, 16-03-2026, €422,29, status completed, card visa/4242, `stripe_reader_id` null, PI pi_3TBgT62OokKpgnyV1c6DMbtA. Niet aangeraakt: Akke beslist of dit een test was (void) of een echte verkoop die anders betaald werd.
+
+**Fix:** zonder lezer volgt een directe fout ("Geen kaartlezer gekoppeld…"): er wordt geen PaymentIntent aangemaakt en er is geen succespad meer. De simulatietak is verwijderd. Dit geldt ook voor de kaarttak van gemengd betalen, die dezelfde dialoog opent.
+
+**Checks:** tsc 33 = ongewijzigd. Puur frontend: publish voor web, native build voor de app.
+
+---
+
 ## APP-CLEAN-1 — nepdata eruit: sociale bewijskracht, SEO-cijfers, dode zoekknoppen — 12 oktober 2026
 
 2026-10-12 APP-CLEAN-1 (chat-Claude, go van Akke 12/10 21:01).
