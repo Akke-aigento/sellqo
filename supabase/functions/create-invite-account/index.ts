@@ -54,6 +54,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // SEC-INVITE-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return json(200, { ok: true, version: "SEC-INVITE-1" });
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -83,48 +85,43 @@ serve(async (req) => {
 
     const email = invitation.email.toLowerCase();
 
-    // 2. Check of auth-user bestaat. Prefer profiles, maar val terug op
-    // Auth Admin lookup zodat orphaned users zonder profiel ook werken.
-    let userId: string | null = await findAuthUserIdByEmail(supabase, email);
-    let created = false;
-
-    if (userId) {
-      // Bestaande shell auth-user: update wachtwoord + bevestig email
-      const { error: updErr } = await supabase.auth.admin.updateUserById(userId, {
-        password,
-        email_confirm: true,
+    // 2. SEC-INVITE-1 (13-10-2026): NOOIT een bestaand account aanpassen.
+    //
+    // Tot nu toe zette deze functie het wachtwoord van een BESTAANDE auth-user met
+    // het uitnodigings-e-mailadres op wat de aanroeper meestuurde. Een tenant-admin
+    // mag uitnodigingen met elk e-mailadres aanmaken en het token lezen (RLS "Admins
+    // can manage invitations"), dus elke winkeleigenaar kon zo elk account
+    // overnemen — ook dat van de platform-admin. Een uitnodigingstoken bewijst
+    // alleen dat iemand een nieuwe gebruiker mag worden, niet dat hij een bestaand
+    // account bezit. Bestaande gebruikers loggen in (of gebruiken "wachtwoord
+    // vergeten") en aanvaarden daarna; accept-team-invitation controleert de match.
+    const existingUserId = await findAuthUserIdByEmail(supabase, email);
+    if (existingUserId) {
+      return json(409, {
+        error: "Er bestaat al een account voor dit e-mailadres. Log in (of gebruik 'Wachtwoord vergeten') en open de uitnodiging daarna opnieuw.",
+        code: "account_exists",
       });
-      if (updErr) {
-        console.error("updateUserById failed", updErr);
-        return json(500, { error: "Kon wachtwoord niet instellen: " + updErr.message });
-      }
-    } else {
-      // Nieuwe user: aanmaken met bevestigd emailadres (invite-token = bewijs)
-      const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-      });
-      if (createErr || !newUser?.user) {
-        const retryUserId = await findAuthUserIdByEmail(supabase, email);
-        if (!retryUserId) {
-          console.error("createUser failed", createErr);
-          return json(500, { error: "Kon account niet aanmaken: " + (createErr?.message ?? "unknown") });
-        }
-        const { error: updErr } = await supabase.auth.admin.updateUserById(retryUserId, {
-          password,
-          email_confirm: true,
-        });
-        if (updErr) {
-          console.error("updateUserById after create conflict failed", updErr);
-          return json(500, { error: "Kon wachtwoord niet instellen: " + updErr.message });
-        }
-        userId = retryUserId;
-      } else {
-        userId = newUser.user.id;
-        created = true;
-      }
     }
+
+    const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (createErr || !newUser?.user) {
+      // Bestaat het account intussen toch (race of geen profiel-rij)? Dan niet
+      // overschrijven, maar dezelfde 409 als hierboven.
+      const raceUserId = await findAuthUserIdByEmail(supabase, email);
+      if (raceUserId) {
+        return json(409, {
+          error: "Er bestaat al een account voor dit e-mailadres. Log in (of gebruik 'Wachtwoord vergeten') en open de uitnodiging daarna opnieuw.",
+          code: "account_exists",
+        });
+      }
+      console.error("createUser failed", createErr);
+      return json(500, { error: "Kon account niet aanmaken: " + (createErr?.message ?? "unknown") });
+    }
+    const created = true;
 
     return json(200, { success: true, created, email });
   } catch (e: any) {

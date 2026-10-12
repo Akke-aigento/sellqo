@@ -1,3 +1,17 @@
+## SEC-INVITE-1 — account-overname via uitnodigingstoken gedicht — 13 oktober 2026
+
+2026-10-13 SEC-INVITE-1 (chat-Claude, zelfstandig: kritiek beveiligingslek, gevonden door de backend-sweep en zelf geverifieerd).
+
+**Lek:** `create-invite-account` zette met een geldig `team_invitations.token` het wachtwoord van een BESTAANDE auth-user met het uitnodigings-e-mailadres op wat de aanroeper meestuurde (`auth.admin.updateUserById`). Live RLS "Admins can manage invitations" (ALL, authenticated) laat elke tenant-admin uitnodigingen met een willekeurig e-mailadres invoegen, en `authenticated` mag de kolom `token` lezen (geverifieerd via has_column_privilege). Keten: tenant-admin (of wie via de onboarding een winkel aanmaakt) → uitnodiging voor het doel-e-mailadres → token lezen → `create-invite-account {token, password}` → het wachtwoord van het doel is vervangen → inloggen als het doel, ook info@sellqo.app (platform_admin). De eerdere audit (`docs/audits/edge-function-auth.md`) had het token als voldoende autorisatie beschouwd. Les: een token-flow die een *bestaand* account wijzigt, is account-overname.
+
+**Fix:** de functie wijzigt nooit nog een bestaand account. Bestaat er een auth-user met dat e-mailadres (via profiles of de listUsers-terugval, ook bij een race na `createUser`), dan volgt een 409 `account_exists` met de melding "log in of gebruik Wachtwoord vergeten". AcceptInvitation toont die fout al. Nieuwe accounts aanmaken blijft zoals voorheen. GET-versiestempel "SEC-INVITE-1".
+
+**Niet gewijzigd (opvolging):** de RLS die tenant-admins tokens laat lezen, en uitnodigingen naar willekeurige adressen. Met deze fix zijn die niet meer gevaarlijk; het token niet meer uitlezen is extra hardening (beslissing).
+
+**Checks:** esbuild-syntax ok, deno lint ok. Deploy plus vingerafdruk volgen direct.
+
+---
+
 ## APP-CLEAN-3c — kassa: btw per tarief op het ticket, mandkorting wordt geregistreerd, offline rekent juist — 13 oktober 2026
 
 2026-10-13 APP-CLEAN-3c (chat-Claude, zelfstandig). Live-impact: geen (1 kassatransactie, de gevoide test).
