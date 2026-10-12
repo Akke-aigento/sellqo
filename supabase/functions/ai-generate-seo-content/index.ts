@@ -9,7 +9,6 @@ const corsHeaders = {
 
 interface TenantInfo {
   name: string;
-  description: string | null;
 }
 
 async function generateContent(
