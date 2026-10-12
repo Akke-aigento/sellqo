@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
-import { calculatePosTotals } from '@/lib/calculations/posTotals';
+import { calculatePosTotals, type PosCartDiscount } from '@/lib/calculations/posTotals';
 import type {
   POSTerminal,
   POSSession,
@@ -283,6 +283,7 @@ export function usePOSTransactions(sessionId?: string) {
       stripePaymentIntentId,
       cardBrand,
       cardLast4,
+      cartDiscount,
     }: {
       terminalId: string;
       sessionId: string | null;
@@ -294,13 +295,16 @@ export function usePOSTransactions(sessionId?: string) {
       stripePaymentIntentId?: string;
       cardBrand?: string;
       cardLast4?: string;
+      /** APP-CLEAN-3c: kassakorting op het hele mandje. Werd niet meegegeven, waardoor
+       *  het geregistreerde totaal en het ticket de korting misten. */
+      cartDiscount?: PosCartDiscount | null;
     }) => {
       if (!currentTenant || !user) throw new Error('Not authenticated');
 
       // Same helper as the POS screen → receipt equals what the cashier saw.
       const totals = calculatePosTotals(
         items,
-        null,
+        cartDiscount ?? null,
         (currentTenant as { default_vat_handling?: string | null }).default_vat_handling || 'inclusive'
       );
       const subtotal = totals.subtotal;

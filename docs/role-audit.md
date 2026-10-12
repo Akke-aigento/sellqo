@@ -1,3 +1,18 @@
+## APP-CLEAN-3c — kassa: btw per tarief op het ticket, mandkorting wordt geregistreerd, offline rekent juist — 13 oktober 2026
+
+2026-10-13 APP-CLEAN-3c (chat-Claude, zelfstandig). Live-impact: geen (1 kassatransactie, de gevoide test).
+
+**Drie fouten, één bron (`src/lib/calculations/posTotals.ts`):**
+1. Ticket, download en kassascherm toonden altijd "BTW (21%)", ook bij 6%-producten: een fiscaal fout ticket. Nu `vatLines` per tarief ("BTW 6% over €10,00 … €0,60"). `receiptVatLines()` herberekent uit de opgeslagen regels; klopt de som niet met het opgeslagen `tax_total` (oude data), dan staat er één regel "BTW" zonder percentage.
+2. Een mandkorting (`cartDiscount`) werd op het scherm getoond en afgerekend, maar `createTransaction` rekende opnieuw met `null`. Het geregistreerde totaal en het ticket misten de korting, terwijl de klant minder betaalde. Nu gaat `cartDiscount` mee in alle vier de online betaalpaden en in het offline pad.
+3. Offline (`usePOSOffline.saveForOffline`) rekende btw bovenop de prijs (`price × rate`) en negeerde de mandkorting, terwijl de kassa standaard inclusieve prijzen hanteert. Een offline verkoop kreeg zo een te hoog totaal. Nu exact `calculatePosTotals` met de btw-modus van de winkel.
+
+**Tests:** `src/test/posVatLines.test.ts` (5): splitsing 21/6, mandkorting proportioneel, ticket-herberekening, null bij mismatch, label. Suite 630/630, tsc 33 = ongewijzigd, `vite build` ok.
+
+**Aandachtspunt:** de app (Capacitor) heeft hiervoor een nieuwe native build nodig. Web: publish.
+
+---
+
 ## APP-CLEAN-3b — admin: geen nep-succes meer, genegeerde instellingen gerespecteerd — 13 oktober 2026
 
 2026-10-13 APP-CLEAN-3b (chat-Claude, zelfstandig). Bron: tweede Explore-sweep, elke vondst zelf nagelezen.

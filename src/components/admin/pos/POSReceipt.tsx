@@ -4,6 +4,7 @@ import { nl } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
 import type { POSTransaction, POSCartItem, POSPayment } from '@/types/pos';
 import type { GiftCard } from '@/types/giftCard';
+import { receiptVatLines, vatLabel } from '@/lib/calculations/posTotals';
 
 interface POSReceiptProps {
   transaction: POSTransaction;
@@ -13,6 +14,8 @@ interface POSReceiptProps {
   storeVatNumber?: string;
   footerText?: string;
   soldGiftCards?: GiftCard[];
+  /** APP-CLEAN-3c: btw-modus van de winkel, voor de opsplitsing per tarief. */
+  vatHandling?: string | null;
 }
 
 export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
@@ -23,7 +26,10 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
   storeVatNumber,
   footerText,
   soldGiftCards = [],
+  vatHandling = 'inclusive',
 }, ref) => {
+  // APP-CLEAN-3c: was altijd "BTW (21%)", ook bij 6%-producten — fiscaal fout ticket.
+  const vatLines = receiptVatLines(transaction, vatHandling);
   const paymentMethodLabels: Record<string, string> = {
     cash: 'Contant',
     card: 'Pinbetaling',
@@ -112,10 +118,19 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
             <span>-{formatCurrency(transaction.discount_total)}</span>
           </div>
         )}
-        <div className="flex justify-between">
-          <span>BTW (21%)</span>
-          <span>{formatCurrency(transaction.tax_total)}</span>
-        </div>
+        {vatLines && vatLines.length > 0 ? (
+          vatLines.map((line) => (
+            <div key={line.rate} className="flex justify-between">
+              <span>{vatLabel(line.rate)} over {formatCurrency(line.base)}</span>
+              <span>{formatCurrency(line.tax)}</span>
+            </div>
+          ))
+        ) : (
+          <div className="flex justify-between">
+            <span>BTW</span>
+            <span>{formatCurrency(transaction.tax_total)}</span>
+          </div>
+        )}
         <div className="border-t border-black my-1" />
         <div className="flex justify-between font-bold text-base">
           <span>TOTAAL</span>

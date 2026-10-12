@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { calculatePosTotals, type PosCartDiscount } from '@/lib/calculations/posTotals';
 import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 
 // IndexedDB database name and version
@@ -196,16 +197,21 @@ export function usePOSOffline(options: UsePOSOfflineOptions) {
     cashReceived?: number;
     cashChange?: number;
     customerId?: string;
+    /** APP-CLEAN-3c: zelfde invoer als online (calculatePosTotals). */
+    cartDiscount?: PosCartDiscount | null;
+    vatHandling?: string | null;
   }): Promise<OfflineTransaction | null> => {
     if (!terminalId || !tenantId || !userId) return null;
 
-    const subtotal = data.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const discountTotal = data.items.reduce((sum, item) => sum + item.discount, 0);
-    const taxTotal = data.items.reduce(
-      (sum, item) => sum + (item.price * item.quantity - item.discount) * (item.tax_rate / 100),
-      0
-    );
-    const total = subtotal - discountTotal + taxTotal;
+    // APP-CLEAN-3c: offline rekende btw altijd BOVENOP de prijs (price × rate) en
+    // negeerde de mandkorting, terwijl de kassa standaard inclusieve prijzen toont.
+    // Een offline verkoop werd zo met een te hoog totaal geregistreerd. Nu exact
+    // dezelfde berekening als online en als het scherm.
+    const totals = calculatePosTotals(data.items, data.cartDiscount ?? null, data.vatHandling || 'inclusive');
+    const subtotal = totals.subtotal;
+    const discountTotal = totals.discount;
+    const taxTotal = totals.taxTotal;
+    const total = totals.total;
 
     const offlineTxn: OfflineTransaction = {
       id: crypto.randomUUID(),

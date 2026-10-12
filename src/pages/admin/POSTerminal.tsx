@@ -58,7 +58,7 @@ import { usePOSLoyalty } from '@/hooks/usePOSLoyalty';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
 import { useVatRates } from '@/hooks/useVatRates';
-import { calculatePosTotals } from '@/lib/calculations/posTotals';
+import { calculatePosTotals, vatLabel } from '@/lib/calculations/posTotals';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
@@ -336,6 +336,8 @@ export default function POSTerminalPage() {
       try {
         const offlineTxn = await saveForOffline({
           items: cart,
+          cartDiscount,
+          vatHandling: currentTenant?.default_vat_handling || 'inclusive',
           payments,
           sessionId: activeSession?.id || null,
           cashReceived: cashReceivedAmount,
@@ -367,6 +369,7 @@ export default function POSTerminalPage() {
         terminalId,
         sessionId: activeSession?.id || null,
         items: cart,
+        cartDiscount,
         payments,
         cashReceived: cashReceivedAmount,
         cashChange: cashChangeAmount,
@@ -424,6 +427,7 @@ export default function POSTerminalPage() {
         terminalId,
         sessionId: activeSession?.id || null,
         items: cart,
+        cartDiscount,
         payments,
         stripePaymentIntentId: paymentIntentId,
         cardBrand: cardDetails?.brand,
@@ -472,6 +476,7 @@ export default function POSTerminalPage() {
         terminalId,
         sessionId: activeSession?.id || null,
         items: cart,
+        cartDiscount,
         payments,
         customerId: selectedCustomer?.id,
       });
@@ -546,6 +551,7 @@ export default function POSTerminalPage() {
         terminalId,
         sessionId: activeSession?.id || null,
         items: cart,
+        cartDiscount,
         payments,
         cashReceived: paymentData.cashReceived || undefined,
         cashChange: paymentData.cashChange || undefined,
@@ -829,10 +835,13 @@ export default function POSTerminalPage() {
                   <span>-{formatCurrency(cartTotals.discount)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">BTW (21%)</span>
-                <span>{formatCurrency(cartTotals.taxTotal)}</span>
-              </div>
+              {/* APP-CLEAN-3c: btw per tarief i.p.v. altijd "BTW (21%)". */}
+              {cartTotals.vatLines.map((line) => (
+                <div key={line.rate} className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{vatLabel(line.rate)}</span>
+                  <span>{formatCurrency(line.tax)}</span>
+                </div>
+              ))}
               <Separator />
               <div className="flex justify-between text-lg font-bold">
                 <span>Totaal</span>

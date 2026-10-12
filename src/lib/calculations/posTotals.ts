@@ -7,12 +7,23 @@ export interface PosCartDiscount {
   value: number;
 }
 
+export interface PosVatLine {
+  /** btw-tarief in procent */
+  rate: number;
+  /** maatstaf (netto, na korting) */
+  base: number;
+  /** btw-bedrag */
+  tax: number;
+}
+
 export interface PosTotals {
   subtotal: number;
   discount: number;
   cartDiscountAmount: number;
   taxTotal: number;
   total: number;
+  /** APP-CLEAN-3c: btw per tarief, voor het kassaticket (was altijd "BTW (21%)"). */
+  vatLines: PosVatLine[];
 }
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -58,16 +69,20 @@ export function calculatePosTotals(
   const inclusive = (vatHandling || 'inclusive') !== 'exclusive';
 
   let taxTotal = 0;
+  const vatLines: PosVatLine[] = [];
   for (const [rate, amount] of groups.entries()) {
     // Distribute the cart-level discount proportionally over the rate groups
     const share = groupBase > 0 ? amount / groupBase : 0;
     const base = amount - cartDiscountAmount * share;
     if (rate === 0 || base === 0) continue;
-    taxTotal += inclusive
+    const tax = inclusive
       ? round2(base - base / (1 + rate / 100))
       : round2(base * (rate / 100));
+    taxTotal += tax;
+    vatLines.push({ rate, base: round2(inclusive ? base - tax : base), tax });
   }
   taxTotal = round2(taxTotal);
+  vatLines.sort((a, b) => b.rate - a.rate);
 
   const total = inclusive
     ? round2(itemSubtotal - totalDiscount)
@@ -79,5 +94,32 @@ export function calculatePosTotals(
     cartDiscountAmount,
     taxTotal,
     total,
+    vatLines,
   };
+}
+/**
+ * APP-CLEAN-3c — btw-regels voor een opgeslagen kassatransactie (ticket, download).
+ *
+ * Herberekent per tarief uit de bewaarde regels; de mandkorting is het deel van
+ * discount_total dat niet op een regel staat. Geeft `null` als de som niet klopt
+ * met het opgeslagen tax_total (oude transacties, andere btw-modus): dan toont het
+ * ticket één regel "BTW" met het opgeslagen bedrag, zonder verzonnen percentage.
+ */
+export function receiptVatLines(
+  transaction: { items: POSCartItem[]; discount_total?: number | null; tax_total: number },
+  vatHandling: PosVatHandling | string | null | undefined,
+): PosVatLine[] | null {
+  const itemDiscount = transaction.items.reduce((s, i) => s + (i.discount || 0), 0);
+  const cartDiscount = Math.max(0, round2((transaction.discount_total || 0) - itemDiscount));
+  const totals = calculatePosTotals(
+    transaction.items,
+    cartDiscount > 0 ? { type: 'fixed', value: cartDiscount } : null,
+    vatHandling,
+  );
+  return Math.abs(totals.taxTotal - Number(transaction.tax_total)) <= 0.02 ? totals.vatLines : null;
+}
+
+/** "BTW 21%" / "BTW 6%" — Belgische notatie zonder overbodige decimalen. */
+export function vatLabel(rate: number): string {
+  return `BTW ${Number.isInteger(rate) ? rate : rate.toFixed(1).replace('.', ',')}%`;
 }

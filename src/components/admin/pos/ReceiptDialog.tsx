@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { receiptVatLines, vatLabel } from '@/lib/calculations/posTotals';
 import { Printer, Download, X, Mail, Copy, DollarSign } from 'lucide-react';
 import {
   Dialog,
@@ -126,7 +127,13 @@ export function ReceiptDialog({
     if (transaction.discount_total > 0) {
       lines.push(`Korting`.padEnd(32) + `-€${transaction.discount_total.toFixed(2)}`);
     }
-    lines.push(`BTW (21%)`.padEnd(32) + `€${transaction.tax_total.toFixed(2)}`);
+    // APP-CLEAN-3c: btw per tarief i.p.v. altijd "BTW (21%)".
+    const vatLines = receiptVatLines(transaction, currentTenant?.default_vat_handling);
+    if (vatLines && vatLines.length > 0) {
+      for (const line of vatLines) lines.push(`${vatLabel(line.rate)} over €${line.base.toFixed(2)}`.padEnd(32) + `€${line.tax.toFixed(2)}`);
+    } else {
+      lines.push(`BTW`.padEnd(32) + `€${transaction.tax_total.toFixed(2)}`);
+    }
     lines.push('='.repeat(40));
     lines.push(`TOTAAL`.padEnd(32) + `€${transaction.total.toFixed(2)}`);
     lines.push('='.repeat(40));
@@ -167,6 +174,7 @@ export function ReceiptDialog({
               transaction={transaction}
               storeName={currentTenant?.name}
               footerText={footerText || undefined}
+              vatHandling={currentTenant?.default_vat_handling}
             />
           </div>
         </ScrollArea>
