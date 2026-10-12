@@ -767,7 +767,9 @@ export function useOnboarding() {
           slug: slug,
           price: productPrice,
           description: productDescription || null,
-          image_url: productImageUrl || null,
+          // products heeft geen image_url: foto's staan in images[] + featured_image.
+          images: productImageUrl ? [productImageUrl] : [],
+          featured_image: productImageUrl || null,
           is_active: true,
           track_inventory: false,
           stock: 999,

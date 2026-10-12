@@ -179,6 +179,10 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
+  // SCHEMA-FIX-3: versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ ok: true, version: 'SCHEMA-FIX-3' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
 
   try {
     console.log('Starting Bol.com shipments import...')
@@ -427,8 +431,6 @@ Deno.serve(async (req) => {
         direction: 'inbound',
         status: totalErrors > 0 ? 'partial' : 'success',
         records_processed: uniqueShipmentIds.length,
-        records_created: totalImported,
-        records_updated: 0,
         records_failed: totalErrors,
         started_at: new Date().toISOString(),
         completed_at: new Date().toISOString()

@@ -1,3 +1,18 @@
+## SCHEMA-FIX-3 — onboarding-product, bankreconciliatie-audit en bol-importlog — 13 oktober 2026
+
+Tweede ronde van de automatische schemascan, nu op `.insert/.update/.upsert`-sleutels en filters:
+
+- **`useOnboarding.createFirstProduct`** zette `products.image_url`, maar die kolom bestaat niet. Daardoor faalde stap 4 van de onboarding ("eerste product") altijd. Nu worden `images: [url]` en `featured_image` gezet. Dit was ook een van de 33 tsc-fouten in de baseline.
+- **`BankReconciliationUpload`** schreef `amount` en `metadata` naar `payment_confirmations`, maar die kolommen bestaan niet. Daardoor faalde de audit-rij altijd stil. De order werd wél op betaald gezet, dus aan dat gedrag verandert niets. Nu gaan de OGM naar `reference` en het bedrag mee in `notes`. Ook dit waren 2 tsc-fouten.
+- **`import-bol-csv` / `import-bol-shipments`** logden `records_created/records_updated`, maar die kolommen bestaan niet in `sync_activity_log`, dus de log-insert faalde. Die sleutels zijn weg. GET-stempel `SCHEMA-FIX-3`, **niet gedeployed**.
+
+De tsc-baseline zakt van **33 naar 30**.
+
+**Gevonden maar bewust niet aangeraakt (zie het ochtendverslag):**
+- `orders.marketplace_sync_error` bestaat niet. Daardoor faalt elke succes-update van `confirm-bol-shipment`/`update-bol-tracking`, en kwamen 17 van de 18 bol-orders nooit op `sync_status='shipped'`. Een additieve kolom zou dit meteen oplossen, maar dan kan de trigger `auto_send_tracking_email` voor het eerst bol-klanten mailen (live staan er 0 berichten voor bol-orders). Dat is een beslissing voor Akke. Het voorstel-SQL ligt klaar.
+- `check-scheduled-notifications` staat op geen enkele cron, en de filter `subscriptions.auto_renew` bestaat niet.
+- `usePlatformPromotions` schrijft `tenant_subscriptions.discount_percent/discount_end_date`, maar die kolommen bestaan niet. Het gaat om billing, dus dat blijft liggen.
+
 ## SCHEMA-FIX-2 — vertaalscherm categorieën, bewerkte foto's in mediabibliotheek, chatbot-contactgegevens — 13 oktober 2026
 
 **Aanleiding.** Ik heb elke `.from(…).select(…)` in `src/` en `supabase/functions/` automatisch vergeleken met de live `information_schema.columns`. Dat leverde drie echte fouten op:

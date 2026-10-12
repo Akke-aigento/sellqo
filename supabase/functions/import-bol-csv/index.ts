@@ -108,6 +108,10 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // SCHEMA-FIX-3: versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ ok: true, version: 'SCHEMA-FIX-3' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
 
   try {
     const authHeader = req.headers.get('Authorization');
@@ -291,8 +295,6 @@ Deno.serve(async (req: Request) => {
         direction: 'import',
         status: ordersFailed > 0 ? 'partial' : 'success',
         records_processed: orderGroups.size,
-        records_created: ordersImported,
-        records_updated: 0,
         records_failed: ordersFailed,
         started_at: new Date().toISOString(),
         completed_at: new Date().toISOString(),

@@ -244,16 +244,11 @@ export function BankReconciliationUpload() {
                 order_id: order.id,
                 confirmed_by: (await supabase.auth.getUser()).data.user?.id,
                 payment_method: 'bank_transfer',
-                amount: tx.amount,
-                notes: `Bank reconciliatie: ${tx.date} - ${tx.description}`,
-                metadata: {
-                  bank_reconciliation: {
-                    date: tx.date,
-                    description: tx.description,
-                    ogm_reference: tx.ogm_reference,
-                    reconciled_at: new Date().toISOString(),
-                  },
-                },
+                // payment_confirmations heeft geen amount/metadata-kolommen; die
+                // lieten deze audit-insert altijd stil falen. Bedrag en OGM gaan nu
+                // in reference + notes.
+                reference: tx.ogm_reference || null,
+                notes: `Bank reconciliatie: ${tx.date} - €${Number(tx.amount).toFixed(2)} - ${tx.description}`,
               });
             
             // Record transaction for usage tracking
