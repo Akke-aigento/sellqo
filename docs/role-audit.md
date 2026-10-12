@@ -1,3 +1,27 @@
+## APP-CLEAN-1 — nepdata eruit: sociale bewijskracht, SEO-cijfers, dode zoekknoppen — 12 oktober 2026
+
+2026-10-12 APP-CLEAN-1 (chat-Claude, go van Akke 12/10 21:01).
+
+**Recon:** grep op lege handlers, "binnenkort" en `Math.random()` in `src/pages` + `src/components`. De "Binnenkort"-badges bij connectoren zijn eerlijk en bleven staan. Nepdata gevonden:
+- Webshop (ingebouwd, `ShopLayout`/`ShopProductDetail`): "X mensen bekijken dit nu" was een willekeurig getal 2–9. `RecentPurchaseToast` verzon stad, product en tijdstip. Live geen schade: alle echte winkels draaien op een eigen frontend (`use_custom_frontend`). Nep-sociale bewijskracht naar consumenten is een verboden handelspraktijk (EU-richtlijn oneerlijke handelspraktijken), dus het mag nooit meer aan kunnen.
+- SEO-dashboard: Search Console, Core Web Vitals, concurrentieanalyse en geplande audits genereerden `Math.random()`-cijfers en schreven die weg. Live: 1 rij `seo_web_vitals`, verder 0.
+- Ingebouwde webshop, Centered- en Minimal-header: zoekknop met `onClick={() => {}}`.
+
+**Data:** functie `storefront_recent_purchases(p_tenant_id)` (migratie `20261012210000_app_clean_1_recent_purchases.sql`, via de connector toegepast). SECURITY DEFINER, alleen productnaam + tijdstip van betaalde webshoporders van de laatste 7 dagen (geen marketplace), max 10, en alleen als `show_recent_purchases` aan staat. Execute voor anon/authenticated. Nagelezen: anon mag uitvoeren, Loveke (schakelaar uit) → 0 rijen. De 1 nep-rij `seo_web_vitals` is verwijderd, met snapshot in `admin_billing_actions` ("APP-CLEAN-1: nep-Web-Vitals verwijderd").
+
+**Code:**
+- `RecentPurchaseToast` haalt echte aankopen via de RPC. Tekst: "“product” werd X geleden gekocht", zonder stad of klant. Geen aankopen = geen melding.
+- "Kijkers tonen" is verwijderd: zowel de weergave in `ShopProductDetail` als de schakelaar in `StorefrontFeaturesSettings`. De DB-kolom blijft bestaan, maar niets leest hem nog.
+- Tooltip "Recente aankopen popup" zegt nu wat hij echt doet.
+- Nieuw `SeoComingSoon` vervangt de vier SEO-panelen in `SEODashboard`, met i18n `admin.seo.comingSoon.*` in nl/en/fr/de/uk. De paneelbestanden zelf zijn (nog) niet verwijderd, maar worden nergens meer gemount.
+- Dode zoekknoppen in Centered- en MinimalHeader openen nu de bestaande zoekmodal (`onSearchModalOpen`), met aria-label via i18n.
+
+**Checks:** tsc 33 = ongewijzigd. i18n-parity volledig (5318 keys). Suite groen. Lint op de webshopbestanden 53 → 52 (bestaande `any`'s); nieuwe bestanden schoon. Geen edge function geraakt, dus geen deploy: publish via Lovable volstaat voor web, de app krijgt het bij de volgende native build.
+
+**Open (APP-CLEAN-2):** systematische sweep naar knoppen zonder werking, die niet met één grep te vinden zijn (knoppen zonder onClick, toast-only acties zoals "FAQ generatie wordt binnenkort beschikbaar" in SEODashboard, `useAIActions` "Action type not implemented").
+
+---
+
 ## AI-CRED-3 — AI-functies die gratis liepen nu op credits (of gelogd) — 12 oktober 2026
 
 2026-10-12 AI-CRED-3 (chat-Claude, go van Akke 12/10 20:47 "knallen").

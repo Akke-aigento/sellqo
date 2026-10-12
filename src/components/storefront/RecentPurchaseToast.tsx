@@ -1,44 +1,68 @@
 import { useState, useEffect } from 'react';
 import { X, ShoppingBag } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { supabase } from '@/integrations/supabase/client';
 
-const CITIES = ['Amsterdam', 'Rotterdam', 'Utrecht', 'Den Haag', 'Eindhoven', 'Groningen', 'Breda', 'Tilburg', 'Arnhem', 'Leiden', 'Antwerpen', 'Gent', 'Brussel'];
-const INTERVALS = [15000, 25000, 35000, 45000]; // ms between toasts
+/**
+ * APP-CLEAN-1 — "recent gekocht" op echte orders.
+ *
+ * Verzon tot 12-10-2026 stad, product en tijdstip met Math.random(). Nep-sociale
+ * bewijskracht naar consumenten is een verboden handelspraktijk. Nu: alleen
+ * betaalde webshoporders van de laatste 7 dagen (storefront_recent_purchases),
+ * zonder stad of klant. Geen echte aankopen = geen melding.
+ */
+const SHOW_MS = 5000;
+const GAP_MS = 30000;
 
 interface RecentPurchaseToastProps {
-  tenantSlug: string;
-  productNames?: string[];
+  tenantId: string;
 }
 
-export function RecentPurchaseToast({ tenantSlug, productNames = [] }: RecentPurchaseToastProps) {
-  const [visible, setVisible] = useState(false);
-  const [message, setMessage] = useState('');
+interface Purchase {
+  product_name: string;
+  purchased_at: string;
+}
+
+function timeAgo(iso: string): string {
+  const minutes = Math.max(1, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
+  if (minutes < 60) return `${minutes} min geleden`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} uur geleden`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? 'gisteren' : `${days} dagen geleden`;
+}
+
+export function RecentPurchaseToast({ tenantId }: RecentPurchaseToastProps) {
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [current, setCurrent] = useState<Purchase | null>(null);
 
   useEffect(() => {
-    if (productNames.length === 0) return;
+    let active = true;
+    supabase
+      .rpc('storefront_recent_purchases' as never, { p_tenant_id: tenantId } as never)
+      .then(({ data }) => {
+        if (active && Array.isArray(data)) setPurchases(data as Purchase[]);
+      });
+    return () => { active = false; };
+  }, [tenantId]);
 
-    const showToast = () => {
-      const city = CITIES[Math.floor(Math.random() * CITIES.length)];
-      const product = productNames[Math.floor(Math.random() * productNames.length)];
-      const minutes = Math.floor(Math.random() * 30) + 1;
-      setMessage(`Iemand uit ${city} kocht "${product}" ${minutes} min geleden`);
-      setVisible(true);
-      setTimeout(() => setVisible(false), 5000);
+  useEffect(() => {
+    if (purchases.length === 0) return;
+    let index = 0;
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    const show = () => {
+      setCurrent(purchases[index % purchases.length]);
+      index += 1;
+      timers.push(setTimeout(() => setCurrent(null), SHOW_MS));
     };
-
-    const interval = INTERVALS[Math.floor(Math.random() * INTERVALS.length)];
-    const timer = setInterval(showToast, interval);
-
-    // Show first one after a delay
-    const initialTimer = setTimeout(showToast, 8000);
-
+    timers.push(setTimeout(show, 8000));
+    const interval = setInterval(show, GAP_MS);
     return () => {
-      clearInterval(timer);
-      clearTimeout(initialTimer);
+      clearInterval(interval);
+      timers.forEach(clearTimeout);
     };
-  }, [productNames]);
+  }, [purchases]);
 
-  if (!visible) return null;
+  if (!current) return null;
 
   return (
     <div className="fixed bottom-4 left-4 z-[90] animate-in slide-in-from-left-full duration-300 max-w-sm">
@@ -47,9 +71,15 @@ export function RecentPurchaseToast({ tenantSlug, productNames = [] }: RecentPur
           <ShoppingBag className="h-4 w-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm">{message}</p>
+          <p className="text-sm">
+            &ldquo;{current.product_name}&rdquo; werd {timeAgo(current.purchased_at)} gekocht
+          </p>
         </div>
-        <button onClick={() => setVisible(false)} className="text-muted-foreground hover:text-foreground flex-shrink-0">
+        <button
+          onClick={() => setCurrent(null)}
+          className="text-muted-foreground hover:text-foreground flex-shrink-0"
+          aria-label="Sluiten"
+        >
           <X className="h-4 w-4" />
         </button>
       </div>

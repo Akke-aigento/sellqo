@@ -3314,6 +3314,25 @@
       "sEOQuickWins": {
         "geen_verbeterpunten_gevonden": "Покращень не знайдено",
         "voer_een_analyse_uit_om_suggesties": "Запустіть аналіз, щоб отримати пропозиції"
+      },
+      "comingSoon": {
+        "badge": "незабаром",
+        "searchConsole": {
+          "title": "Google Search Console",
+          "body": "Щойно ви підключите Search Console, тут з’являться ваші справжні запити, кліки та позиції."
+        },
+        "webVitals": {
+          "title": "Core Web Vitals",
+          "body": "Тут з’являться справжні вимірювання швидкості вашого магазину через Google PageSpeed."
+        },
+        "competitors": {
+          "title": "Аналіз конкурентів",
+          "body": "Незабаром тут можна буде порівнювати ваші позиції з конкурентами на основі справжніх пошукових даних."
+        },
+        "audits": {
+          "title": "Автоматичні аудити",
+          "body": "Незабаром тут можна буде планувати регулярні SEO-перевірки вашого магазину."
+        }
       }
     },
     "products": {

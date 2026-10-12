@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { usePublicStorefront } from '@/hooks/usePublicStorefront';
 import { usePublicReviews } from '@/hooks/useReviewsHub';
-import { usePublicProducts } from '@/hooks/usePublicStorefront';
 import { useCart } from '@/context/CartContext';
 import { useWishlist } from '@/context/WishlistContext';
 import { ReviewsFloatingWidget } from '@/components/storefront/reviews/ReviewsFloatingWidget';
@@ -156,9 +155,6 @@ export function ShopLayout({ children }: ShopLayoutProps) {
     tenantId: tenant?.id || '',
   });
 
-  // Fetch product names for RecentPurchaseToast
-  const { data: allProducts } = usePublicProducts(tenant?.id, { limit: 20 });
-  const productNames = (allProducts || []).map((p: any) => p.name);
 
   // Read storefront config settings
   const ts = themeSettings as any;
@@ -169,7 +165,6 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const cookieBannerEnabled = ts?.cookie_banner_enabled || false;
   const cookieBannerStyle = ts?.cookie_banner_style || 'minimal';
   const showStockCount = ts?.show_stock_count || false;
-  const showViewersCount = ts?.show_viewers_count || false;
   const showRecentPurchases = ts?.show_recent_purchases || false;
   const exitIntentPopup = ts?.exit_intent_popup || false;
   const newsletterPopupEnabled = ts?.newsletter_popup_enabled || false;
@@ -417,6 +412,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
         <div className="container mx-auto px-4">
           {headerStyle === 'centered' ? (
             <CenteredHeader
+              onSearchModalOpen={() => setSearchModalOpen(true)}
               tenant={tenant} basePath={basePath} categories={categories}
               navPages={navPages} themeSettings={themeSettings} logoUrl={logoUrl}
               cartCount={cartCount} mobileMenuOpen={mobileMenuOpen}
@@ -428,6 +424,7 @@ export function ShopLayout({ children }: ShopLayoutProps) {
             />
           ) : headerStyle === 'minimal' ? (
             <MinimalHeader
+              onSearchModalOpen={() => setSearchModalOpen(true)}
               tenant={tenant} basePath={basePath} categories={categories}
               navPages={navPages} themeSettings={themeSettings} logoUrl={logoUrl}
               mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen}
@@ -575,8 +572,9 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       )}
 
       {/* Recent Purchases Toast */}
-      {showRecentPurchases && tenantSlug && productNames.length > 0 && (
-        <RecentPurchaseToast tenantSlug={tenantSlug} productNames={productNames} />
+      {/* APP-CLEAN-1: echte orders, niets verzonnen. */}
+      {showRecentPurchases && tenant?.id && (
+        <RecentPurchaseToast tenantId={tenant.id} />
       )}
 
       {/* Mobile Bottom Nav */}
@@ -751,7 +749,7 @@ function StandardHeader({ tenant, basePath, categories, navPages, themeSettings,
 }
 
 // Centered Header Component
-function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
+function CenteredHeader({ onSearchModalOpen, tenant, basePath, categories, navPages, themeSettings, logoUrl, cartCount, mobileMenuOpen, setMobileMenuOpen, navStyle, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
   const { t } = useTranslation();
   const { openDrawer } = useCart();
   const { getWishlistCount } = useWishlist();
@@ -816,7 +814,7 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings,
         
         {/* Action icons */}
         <div className="flex items-center gap-1 ml-4 border-l pl-4">
-          <Button variant="ghost" size="icon" onClick={() => {}}>
+          <Button variant="ghost" size="icon" onClick={onSearchModalOpen} aria-label={t('storefront.mobileBottomNav.zoeken')}>
             <Search className="h-4 w-4" />
           </Button>
           {multilingualEnabled && storefrontLanguages.length > 1 && (
@@ -850,7 +848,7 @@ function CenteredHeader({ tenant, basePath, categories, navPages, themeSettings,
 }
 
 // Minimal Header Component
-function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, logoUrl, mobileMenuOpen, setMobileMenuOpen, cartCount, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
+function MinimalHeader({ onSearchModalOpen, tenant, basePath, categories, navPages, themeSettings, logoUrl, mobileMenuOpen, setMobileMenuOpen, cartCount, multilingualEnabled, storefrontLanguages, storefrontLanguage, onLanguageChange, languageSelectorStyle, resolvedHeadingFont }: any) {
   const { t } = useTranslation();
   const { openDrawer } = useCart();
   const { getWishlistCount } = useWishlist();
@@ -893,7 +891,7 @@ function MinimalHeader({ tenant, basePath, categories, navPages, themeSettings, 
       </Link>
 
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" onClick={() => {}}>
+        <Button variant="ghost" size="icon" onClick={onSearchModalOpen} aria-label={t('storefront.mobileBottomNav.zoeken')}>
           <Search className="h-5 w-5" />
         </Button>
         {multilingualEnabled && storefrontLanguages.length > 1 && (

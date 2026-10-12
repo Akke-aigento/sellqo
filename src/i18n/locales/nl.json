@@ -3346,6 +3346,25 @@
           "generate_faq": "Genereer FAQ",
           "uitvoeren": "Uitvoeren"
         }
+      },
+      "comingSoon": {
+        "badge": "binnenkort beschikbaar",
+        "searchConsole": {
+          "title": "Google Search Console",
+          "body": "Zodra je Search Console koppelt, zie je hier je echte zoekopdrachten, klikken en posities."
+        },
+        "webVitals": {
+          "title": "Core Web Vitals",
+          "body": "Hier komen echte snelheidsmetingen van je webshop via Google PageSpeed."
+        },
+        "competitors": {
+          "title": "Concurrentieanalyse",
+          "body": "Hier vergelijk je straks je posities met concurrenten op basis van echte zoekdata."
+        },
+        "audits": {
+          "title": "Automatische audits",
+          "body": "Hier plan je straks terugkerende SEO-controles van je webshop."
+        }
       }
     },
     "sEODashboard": {

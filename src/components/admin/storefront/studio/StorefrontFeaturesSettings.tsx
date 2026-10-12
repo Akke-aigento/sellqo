@@ -678,20 +678,8 @@ export function StorefrontFeaturesSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="viewers_count">Kijkers tonen</Label>
-                <InfoTooltip text="Toon aantal mensen dat dit product bekijkt" />
-              </div>
-              <Switch
-                id="viewers_count"
-                checked={formData.show_viewers_count}
-                onCheckedChange={(checked) => updateField('show_viewers_count', checked)}
-              />
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
                 <Label htmlFor="recent_purchases">Recente aankopen popup</Label>
-                <InfoTooltip text="Toon notificaties van recente aankopen door anderen" />
+                <InfoTooltip text="Toont echte aankopen uit je webshop van de laatste 7 dagen (alleen productnaam en tijdstip). Geen aankopen = geen melding." />
               </div>
               <Switch
                 id="recent_purchases"

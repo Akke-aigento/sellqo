@@ -40,13 +40,10 @@ import { SocialMediaPreview } from '@/components/admin/seo/SocialMediaPreview';
 import { StructuredDataPreview } from '@/components/admin/seo/StructuredDataPreview';
 import { KeywordResearchPanel } from '@/components/admin/seo/KeywordResearchPanel';
 import { ImageAltTextPanel } from '@/components/admin/seo/ImageAltTextPanel';
+import { SeoComingSoon } from '@/components/admin/seo/SeoComingSoon';
 import { RobotsTxtEditor } from '@/components/admin/seo/RobotsTxtEditor';
 import { AISearchOptimizer } from '@/components/admin/seo/AISearchOptimizer';
 import { SlugManager } from '@/components/admin/seo/SlugManager';
-import { CoreWebVitalsPanel } from '@/components/admin/seo/CoreWebVitalsPanel';
-import { CompetitorAnalysisPanel } from '@/components/admin/seo/CompetitorAnalysisPanel';
-import { SearchConsolePanel } from '@/components/admin/seo/SearchConsolePanel';
-import { ScheduledAuditsPanel } from '@/components/admin/seo/ScheduledAuditsPanel';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useSEO } from '@/hooks/useSEO';
 import { useProducts } from '@/hooks/useProducts';
@@ -413,7 +410,7 @@ export default function SEODashboard() {
             badge={`Score: ${tenantScore?.technical_score ?? '--'}`}
           >
             <div className="space-y-6">
-              <CoreWebVitalsPanel />
+              <SeoComingSoon part="webVitals" />
               
               <div className="border-t pt-6">
                 <div className="grid gap-6 lg:grid-cols-2">
@@ -458,7 +455,7 @@ export default function SEODashboard() {
               />
               
               <div className="border-t pt-6">
-                <SearchConsolePanel />
+                <SeoComingSoon part="searchConsole" />
               </div>
             </div>
           </SectionCard>
@@ -488,7 +485,7 @@ export default function SEODashboard() {
                   <Users className="h-4 w-4" />
                   {t('admin.seo.competitorAnalysisPanel.concurrent_analyse')}
                 </h4>
-                <CompetitorAnalysisPanel />
+                <SeoComingSoon part="competitors" />
               </div>
 
               <div className="border-t pt-6">
@@ -496,7 +493,7 @@ export default function SEODashboard() {
                   <Calendar className="h-4 w-4" />
                   {t('admin.sEODashboard.automatische_audits')}
                 </h4>
-                <ScheduledAuditsPanel />
+                <SeoComingSoon part="audits" />
               </div>
             </div>
           </SectionCard>

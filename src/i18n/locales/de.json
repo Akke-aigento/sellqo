@@ -3063,6 +3063,25 @@
       "sEOQuickWins": {
         "geen_verbeterpunten_gevonden": "Keine Verbesserungen gefunden",
         "voer_een_analyse_uit_om_suggesties": "Führen Sie eine Analyse durch, um Vorschläge zu erhalten"
+      },
+      "comingSoon": {
+        "badge": "bald verfügbar",
+        "searchConsole": {
+          "title": "Google Search Console",
+          "body": "Sobald du die Search Console verbindest, siehst du hier deine echten Suchanfragen, Klicks und Positionen."
+        },
+        "webVitals": {
+          "title": "Core Web Vitals",
+          "body": "Hier erscheinen echte Geschwindigkeitsmessungen deines Shops über Google PageSpeed."
+        },
+        "competitors": {
+          "title": "Wettbewerbsanalyse",
+          "body": "Bald vergleichst du hier deine Positionen mit Wettbewerbern auf Basis echter Suchdaten."
+        },
+        "audits": {
+          "title": "Automatische Audits",
+          "body": "Bald planst du hier wiederkehrende SEO-Prüfungen deines Shops."
+        }
       }
     },
     "products": {

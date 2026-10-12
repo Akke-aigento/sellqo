@@ -3063,6 +3063,25 @@
       "sEOQuickWins": {
         "geen_verbeterpunten_gevonden": "Aucune amélioration trouvée",
         "voer_een_analyse_uit_om_suggesties": "Lancez une analyse pour obtenir des suggestions"
+      },
+      "comingSoon": {
+        "badge": "bientôt disponible",
+        "searchConsole": {
+          "title": "Google Search Console",
+          "body": "Une fois Search Console connecté, vous verrez ici vos vraies requêtes, clics et positions."
+        },
+        "webVitals": {
+          "title": "Core Web Vitals",
+          "body": "Les vraies mesures de vitesse de votre boutique via Google PageSpeed apparaîtront ici."
+        },
+        "competitors": {
+          "title": "Analyse de la concurrence",
+          "body": "Bientôt, vous comparerez ici vos positions avec celles de vos concurrents, sur la base de vraies données de recherche."
+        },
+        "audits": {
+          "title": "Audits automatiques",
+          "body": "Bientôt, vous planifierez ici des contrôles SEO récurrents de votre boutique."
+        }
       }
     },
     "products": {

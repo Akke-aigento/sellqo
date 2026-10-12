@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check, Eye, Package, Layers } from 'lucide-react';
+import { ChevronRight, Minus, Plus, ShoppingCart, Heart, Check, Package, Layers } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -31,7 +31,6 @@ export default function ShopProductDetail() {
   const [quantity, setQuantity] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const [lightboxOpen, setLightboxOpen] = useState(false);
-  const [viewerCount] = useState(() => Math.floor(Math.random() * 8) + 2);
   const [bundleQuantities, setBundleQuantities] = useState<Record<string, number>>({});
 
   // Read storefront config settings
@@ -40,7 +39,6 @@ export default function ShopProductDetail() {
   const variantStyle = ts?.product_variant_style || 'buttons';
   const reviewsDisplay = ts?.product_reviews_display || 'full';
   const showStockCount = ts?.show_stock_count || false;
-  const showViewersCount = ts?.show_viewers_count || false;
   const stockIndicator = ts?.product_stock_indicator !== false; // default true
   const relatedMode = ts?.product_related_mode || 'off';
 
@@ -301,14 +299,6 @@ export default function ShopProductDetail() {
                 </>
               )}
             </div>
-
-            {/* Viewers count */}
-            {showViewersCount && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                <Eye className="h-4 w-4" />
-                <span>{viewerCount} mensen bekijken dit nu</span>
-              </div>
-            )}
 
             {/* Variant Selection - respects variant_style setting */}
             {product.has_variants && product.options?.length > 0 && (

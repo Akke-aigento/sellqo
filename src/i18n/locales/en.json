@@ -3300,6 +3300,25 @@
       "sEOQuickWins": {
         "geen_verbeterpunten_gevonden": "No improvements found",
         "voer_een_analyse_uit_om_suggesties": "Run an analysis to get suggestions"
+      },
+      "comingSoon": {
+        "badge": "coming soon",
+        "searchConsole": {
+          "title": "Google Search Console",
+          "body": "Once you connect Search Console, you will see your real queries, clicks and positions here."
+        },
+        "webVitals": {
+          "title": "Core Web Vitals",
+          "body": "Real speed measurements of your shop via Google PageSpeed will appear here."
+        },
+        "competitors": {
+          "title": "Competitor analysis",
+          "body": "Soon you will compare your positions with competitors here, based on real search data."
+        },
+        "audits": {
+          "title": "Automatic audits",
+          "body": "Soon you will schedule recurring SEO checks of your shop here."
+        }
       }
     },
     "products": {
