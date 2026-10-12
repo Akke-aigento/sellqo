@@ -311,10 +311,12 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
       // leeg. Nu het klantcontactadres van de winkel — hetzelfde als de Reply-To van
       // haar mails: haar eigen adres als ze dat bewust instelde, anders haar SellQo-inbox.
       email: resolveCustomerContactEmail(tenant),
-      phone: tenant.contact_phone,
-      company_name: tenant.company_name || null,
-      address: tenant.company_address || null,
-      vat_number: tenant.vat_number || null,
+      // RESOLVE-FIX-1: contact_phone/company_name/company_address/vat_number bestaan niet
+      // op tenants (select('*') gaf dus altijd null). Nu de echte kolommen.
+      phone: tenant.phone || null,
+      company_name: tenant.billing_company_name || null,
+      address: [tenant.address, [tenant.postal_code, tenant.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null,
+      vat_number: tenant.btw_number || tenant.billing_vat_number || null,
       kvk_number: tenant.kvk_number || null,
     },
     social: (() => {
@@ -4173,7 +4175,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  // SCHEMA-FIX-4: versiestempel voor deploy-verificatie (neveneffectvrij).
+  // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
   if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'RESOLVE-FIX-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
