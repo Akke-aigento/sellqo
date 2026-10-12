@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -13,14 +13,10 @@ import {
   Package,
   ExternalLink,
   Download,
-  Upload,
   FileText,
-  Eye,
   MoreVertical,
   CheckCircle,
   Copy,
-  Edit,
-  Key,
   Bell,
   Unlink,
   AlertCircle,
@@ -53,7 +49,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -80,6 +75,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { toCsv, downloadCsv } from '@/lib/csvExport';
 
 export default function MarketplaceDetailPage() {
   const { connectionId } = useParams<{ connectionId: string }>();
@@ -107,6 +103,26 @@ export default function MarketplaceDetailPage() {
   const [autoSyncInventory, setAutoSyncInventory] = useState(true);
   const [safetyStock, setSafetyStock] = useState('0');
   const [lowStockThreshold, setLowStockThreshold] = useState('5');
+
+  // APP-CLEAN-2c: de velden hieronder werden nooit gevuld uit de opgeslagen
+  // instellingen. De pagina toonde standaarden (bv. 15 min terwijl VanXcel op 5
+  // stond) en "Opslaan" overschreef de echte instellingen daarmee. Nu: laden bij
+  // openen, en "Annuleer" zet terug naar wat opgeslagen is.
+  const resetSettingsForm = () => {
+    if (!connection) return;
+    const st = (connection.settings ?? {}) as Partial<MarketplaceSettings>;
+    setConnectionName(connection.marketplace_name ?? '');
+    setAutoImportOrders(st.autoImport ?? true);
+    setSyncInterval(String(st.syncInterval ?? 15));
+    setAutoSyncInventory(st.autoSyncInventory ?? true);
+    setSafetyStock(String(st.safetyStock ?? 0));
+    setLowStockThreshold(String(st.lowStockThreshold ?? 5));
+  };
+  const settingsKey = connection ? `${connection.id}:${JSON.stringify(connection.settings ?? {})}:${connection.marketplace_name ?? ''}` : '';
+  useEffect(() => {
+    resetSettingsForm();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settingsKey]);
 
   const info = connection ? MARKETPLACE_INFO[connection.marketplace_type] : null;
 
@@ -312,6 +328,111 @@ export default function MarketplaceDetailPage() {
       toast.error('Import mislukt: ' + message);
     } finally {
       setImportingHistorical(false);
+    }
+  };
+
+  // APP-CLEAN-2c: echte CSV-export van alle orders van deze koppeling (niet alleen de 50 op het scherm).
+  const handleExportOrders = async () => {
+    if (!connection || !currentTenant?.id) return;
+    const all: Array<Record<string, unknown>> = [];
+    for (let from = 0; from < 20000; from += 1000) {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('order_number, marketplace_order_id, created_at, customer_name, customer_email, status, payment_status, total, currency')
+        .eq('marketplace_connection_id', connection.id)
+        .eq('tenant_id', currentTenant.id)
+        .order('created_at', { ascending: false })
+        .range(from, from + 999);
+      if (error) {
+        toast.error('Export mislukt: ' + error.message);
+        return;
+      }
+      all.push(...(data ?? []));
+      if (!data || data.length < 1000) break;
+    }
+    if (all.length === 0) {
+      toast.info('Geen orders om te exporteren');
+      return;
+    }
+    const csv = toCsv(
+      ['Ordernummer', `${info?.name ?? 'Marketplace'}-ordernummer`, 'Datum', 'Klant', 'E-mail', 'Status', 'Betaalstatus', 'Totaal', 'Munt'],
+      all.map((o) => [
+        o.order_number as string, o.marketplace_order_id as string,
+        o.created_at ? format(new Date(o.created_at as string), 'yyyy-MM-dd HH:mm') : '',
+        o.customer_name as string, o.customer_email as string, o.status as string, o.payment_status as string,
+        o.total != null ? String(o.total).replace('.', ',') : '', o.currency as string,
+      ]),
+    );
+    downloadCsv(`orders-${connection.marketplace_type}-${format(new Date(), 'yyyy-MM-dd')}.csv`, csv);
+    toast.success(`${all.length} orders geëxporteerd`);
+  };
+
+  // APP-CLEAN-2c: echte export van de sync-logs (de tabel toont alleen de laatste 10).
+  const handleExportLogs = async () => {
+    if (!connection) return;
+    const { data, error } = await supabase
+      .from('sync_activity_log')
+      .select('started_at, completed_at, data_type, direction, status, records_processed, records_failed, error_details')
+      .eq('connection_id', connection.id)
+      .order('started_at', { ascending: false })
+      .limit(5000);
+    if (error) {
+      toast.error('Export mislukt: ' + error.message);
+      return;
+    }
+    if (!data?.length) {
+      toast.info('Geen logs om te exporteren');
+      return;
+    }
+    const csv = toCsv(
+      ['Start', 'Einde', 'Type', 'Richting', 'Status', 'Verwerkt', 'Mislukt', 'Fout'],
+      data.map((l) => [
+        l.started_at ? format(new Date(l.started_at), 'yyyy-MM-dd HH:mm:ss') : '',
+        l.completed_at ? format(new Date(l.completed_at), 'yyyy-MM-dd HH:mm:ss') : '',
+        l.data_type, l.direction, l.status, l.records_processed, l.records_failed,
+        l.error_details ? (typeof l.error_details === 'string' ? l.error_details : JSON.stringify(l.error_details)) : '',
+      ]),
+    );
+    downloadCsv(`sync-logs-${connection.marketplace_type}-${format(new Date(), 'yyyy-MM-dd')}.csv`, csv);
+  };
+
+  // APP-CLEAN-2c: "Sync Nu" per product — sync-bol-inventory kent productId.
+  const handleSyncProduct = async (productId: string) => {
+    if (!connection) return;
+    const syncFns = getSyncFunctions(connection.marketplace_type);
+    const { error } = await supabase.functions.invoke(syncFns.inventory, {
+      body: { connectionId: connection.id, productId },
+    });
+    if (error) toast.error('Voorraad sync mislukt: ' + error.message);
+    else toast.success('Voorraad gesynchroniseerd');
+    queryClient.invalidateQueries({ queryKey: ['marketplace-products', currentTenant?.id] });
+  };
+
+  // APP-CLEAN-2c: voorraadsync per product pauzeren. De lijst toont alleen
+  // producten met sync aan, dus een gepauzeerd product verdwijnt hieruit.
+  const handlePauseProductSync = async (productId: string) => {
+    if (!currentTenant?.id) return;
+    const { error } = await supabase
+      .from('products')
+      .update({ sync_inventory: false })
+      .eq('id', productId)
+      .eq('tenant_id', currentTenant.id);
+    if (error) {
+      toast.error('Pauzeren mislukt: ' + error.message);
+      return;
+    }
+    toast.success('Voorraadsync gepauzeerd voor dit product. Zet hem terug aan op de productpagina.');
+    queryClient.invalidateQueries({ queryKey: ['marketplace-products', currentTenant.id] });
+  };
+
+  const copyClientId = async () => {
+    const id = connection?.credentials?.clientId;
+    if (!id) return;
+    try {
+      await navigator.clipboard.writeText(String(id));
+      toast.success('Client ID gekopieerd');
+    } catch {
+      toast.error('Kopiëren lukte niet');
     }
   };
 
@@ -571,13 +692,9 @@ export default function MarketplaceDetailPage() {
                   <History className="w-4 h-4 mr-2" />
                   Import Historische Orders
                 </Button>
-                <Button variant="outline" className="justify-start">
+                <Button variant="outline" className="justify-start" onClick={handleExportOrders}>
                   <Download className="w-4 h-4 mr-2" />
                   Export Orders
-                </Button>
-                <Button variant="outline" className="justify-start">
-                  <Upload className="w-4 h-4 mr-2" />
-                  Bulk Voorraad Update
                 </Button>
               </CardContent>
             </Card>
@@ -601,7 +718,7 @@ export default function MarketplaceDetailPage() {
                     <History className="w-4 h-4 mr-2" />
                     Import Historisch
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={handleExportOrders}>
                     <Download className="w-4 h-4 mr-2" />
                     Exporteer
                   </Button>
@@ -751,10 +868,6 @@ export default function MarketplaceDetailPage() {
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
-                  <Button variant="outline">
-                    <Upload className="w-4 h-4 mr-2" />
-                    Bulk Update
-                  </Button>
                   <Button onClick={handleSyncNow} disabled={syncing}>
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Sync Alles
@@ -823,21 +936,21 @@ export default function MarketplaceDetailPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleSyncProduct(product.id)}>
                               <RefreshCw className="w-4 h-4 mr-2" />
                               Sync Nu
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              {product.sync_inventory ? 'Pauseer Sync' : 'Activeer Sync'}
+                            <DropdownMenuItem onClick={() => handlePauseProductSync(product.id)}>
+                              Pauzeer Sync
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
-                              <ExternalLink className="w-4 h-4 mr-2" />
-                              Bekijk op {info.name}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive">
-                              Ontkoppel Product
-                            </DropdownMenuItem>
+                            {connection.marketplace_type === 'bol_com' && product.bol_ean && (
+                              <DropdownMenuItem asChild>
+                                <a href={`https://www.bol.com/nl/nl/s/?searchtext=${encodeURIComponent(product.bol_ean)}`} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="w-4 h-4 mr-2" />
+                                  Bekijk op {info.name}
+                                </a>
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -920,21 +1033,21 @@ export default function MarketplaceDetailPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleSyncProduct(product.id)}>
                                 <RefreshCw className="w-4 h-4 mr-2" />
                                 Sync Nu
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                {product.sync_inventory ? 'Pauseer Sync' : 'Activeer Sync'}
+                              <DropdownMenuItem onClick={() => handlePauseProductSync(product.id)}>
+                                Pauzeer Sync
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <ExternalLink className="w-4 h-4 mr-2" />
-                                Bekijk op {info.name}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem className="text-destructive">
-                                Ontkoppel Product
-                              </DropdownMenuItem>
+                              {connection.marketplace_type === 'bol_com' && product.bol_ean && (
+                                <DropdownMenuItem asChild>
+                                  <a href={`https://www.bol.com/nl/nl/s/?searchtext=${encodeURIComponent(product.bol_ean)}`} target="_blank" rel="noopener noreferrer">
+                                    <ExternalLink className="w-4 h-4 mr-2" />
+                                    Bekijk op {info.name}
+                                  </a>
+                                </DropdownMenuItem>
+                              )}
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -980,9 +1093,11 @@ export default function MarketplaceDetailPage() {
                       readOnly
                       className="flex-1 bg-muted font-mono text-sm"
                     />
-                    <Button variant="outline" size="icon">
-                      <Copy className="w-4 h-4" />
-                    </Button>
+                    {connection.credentials?.clientId && (
+                      <Button variant="outline" size="icon" onClick={copyClientId} aria-label="Kopieer Client ID">
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    )}
                   </div>
                 </div>
                 <div>
@@ -994,15 +1109,13 @@ export default function MarketplaceDetailPage() {
                       readOnly
                       className="flex-1 bg-muted"
                     />
-                    <Button variant="outline" size="icon">
-                      <Edit className="w-4 h-4" />
-                    </Button>
                   </div>
                 </div>
-                <Button variant="outline">
-                  <Key className="w-4 h-4 mr-2" />
-                  Update API Credentials
-                </Button>
+                {/* APP-CLEAN-2c: "Update API Credentials" en het potlood deden niets; bijwerken van
+                    bestaande credentials bestaat (nog) niet. Eerlijk zeggen in plaats van een dode knop. */}
+                <p className="text-xs text-muted-foreground">
+                  API-gegevens gewijzigd bij {info.name}? Neem contact op met SellQo-support om ze bij te werken.
+                </p>
               </CardContent>
             </Card>
 
@@ -1118,33 +1231,11 @@ export default function MarketplaceDetailPage() {
               (connection.settings as { odooModuleAccounting?: boolean })?.odooModuleAccounting && (
                 <OdooB2CAggregationSettings tenantId={connection.tenant_id} />
               )}
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Notificaties</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">Email bij nieuwe orders</p>
-                  <Switch />
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">Email bij sync fouten</p>
-                  <Switch defaultChecked />
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">Email bij lage voorraad</p>
-                  <Switch />
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">Dagelijkse sync rapport</p>
-                  <Switch />
-                </div>
-              </CardContent>
-            </Card>
+            {/* APP-CLEAN-2c: kaart "Notificaties" weg — 4 schakelaars zonder state die niets lazen of schreven.
+                Meldingen lopen via de centrale notificatie-instellingen. */}
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline">Annuleer</Button>
+              <Button variant="outline" onClick={resetSettingsForm}>Annuleer</Button>
               <Button onClick={handleSaveSettings}>
                 Instellingen Opslaan
               </Button>
@@ -1178,10 +1269,10 @@ export default function MarketplaceDetailPage() {
                 <div>
                   <CardTitle>Synchronisatie Logs</CardTitle>
                   <CardDescription>
-                    Volledige geschiedenis van alle sync activiteiten
+                    Laatste 10 sync-activiteiten (export bevat de volledige geschiedenis)
                   </CardDescription>
                 </div>
-                <Button variant="outline">
+                <Button variant="outline" onClick={handleExportLogs}>
                   <Download className="w-4 h-4 mr-2" />
                   Export Logs
                 </Button>
@@ -1233,7 +1324,6 @@ export default function MarketplaceDetailPage() {
                       <TableHead>Details</TableHead>
                       <TableHead>Status</TableHead>
                       <TableHead>Records</TableHead>
-                      <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -1248,6 +1338,11 @@ export default function MarketplaceDetailPage() {
                         <TableCell className="text-sm">
                           {log.records_processed > 0 ? `${log.records_processed} verwerkt` : '-'}
                           {log.records_failed > 0 && `, ${log.records_failed} mislukt`}
+                          {log.status === 'failed' && log.error_details && (
+                            <span className="block max-w-[280px] truncate text-xs text-destructive" title={typeof log.error_details === 'string' ? log.error_details : JSON.stringify(log.error_details)}>
+                              {typeof log.error_details === 'string' ? log.error_details : JSON.stringify(log.error_details)}
+                            </span>
+                          )}
                         </TableCell>
                         <TableCell>
                           {log.status === 'success' && (
@@ -1261,11 +1356,6 @@ export default function MarketplaceDetailPage() {
                           )}
                         </TableCell>
                         <TableCell className="text-sm">{log.records_processed || 0}</TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="sm">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

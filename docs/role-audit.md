@@ -1,3 +1,23 @@
+## APP-CLEAN-2c — bol-detailpagina: 18 dode knoppen + instellingen-bug — 12 oktober 2026
+
+2026-10-12 APP-CLEAN-2c (chat-Claude, go van Akke 21:40 "knallen").
+
+**Bug (belangrijkste vondst):** de instellingenvelden op `MarketplaceDetail` (sync-interval, auto-import, voorraadsync, veiligheidsvoorraad, lage-voorraaddrempel, naam) werden nooit gevuld uit `marketplace_connections.settings`. De pagina toonde de standaarden, en "Instellingen Opslaan" overschreef de echte waarden daarmee. Live: VanXcel heeft `syncInterval: 5`, de pagina toonde 15. Eén klik zou de bol-sync stil naar 15 min gezet hebben. Nu: `resetSettingsForm()` vult bij het openen en bij elke wijziging van de opgeslagen instellingen, en "Annuleer" zet terug naar de opgeslagen waarden.
+
+**Knoppen:**
+- Export Orders / Exporteer: echte CSV (`src/lib/csvExport.ts`, `;` + BOM voor Excel BE/NL) van alle orders van de koppeling, gepagineerd per 1000, max 20k.
+- Bulk Voorraad Update en Bulk Update: weg ("Sync Alles" bestaat).
+- Productmenu (2×): "Sync Nu" roept `sync-bol-inventory` aan met `productId` (wordt ondersteund). "Pauzeer Sync" zet `products.sync_inventory=false`; het product verdwijnt dan uit de lijst, die alleen sync-aan toont. "Activeer Sync" was onbereikbaar om dezelfde reden. "Bekijk op bol" linkt nu echt (bol-zoek op EAN, alleen bol_com). "Ontkoppel Product" is weg: de semantiek was onduidelijk en riskant.
+- Credentials: kopiëren van Client ID werkt. Potlood en "Update API Credentials" zijn weg (bijwerken van bestaande credentials bestaat niet), met een eerlijke regel in de plaats.
+- Kaart "Notificaties" is weg: 4 `<Switch />` zonder state. De `emailNotify*`-instellingen die `ConnectMarketplaceDialog` opslaat, worden door geen enkele functie gelezen (grep).
+- Export Logs: echte CSV van `sync_activity_log` (max 5000). De omschrijving zegt nu eerlijk "laatste 10". Het oog-icoon per log is weg; bij `failed` staat `error_details` in de rij.
+
+**Checks:** tsc 33 = ongewijzigd, suite 617/617 (+2 `csvExport`), lint: alleen de bestaande `any` op regel 466. Puur frontend.
+
+**Open (2d):** de e-mailschakelaars in `ConnectMarketplaceDialog` zijn ook nep (niets leest `emailNotify*`). Verder ads "binnenkort" verbergen, dode bestanden met nepdata weg en een CI-check op knoppen zonder handler.
+
+---
+
 ## APP-CLEAN-2b — dode knoppen in dashboard, marketing, SEO, offertes + void zet voorraad terug — 12 oktober 2026
 
 2026-10-12 APP-CLEAN-2b (chat-Claude, go van Akke 21:22 "doorknallen"; een eerste run liep vast midden in de batch, en die half-af wijzigingen zijn nagelezen en afgewerkt).
