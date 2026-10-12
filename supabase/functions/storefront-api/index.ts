@@ -4170,7 +4170,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  // SCHEMA-FIX-4: versiestempel voor deploy-verificatie (neveneffectvrij).
+  // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
   if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'PROMO-FIX-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {

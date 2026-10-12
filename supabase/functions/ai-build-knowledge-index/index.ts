@@ -62,7 +62,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SCHEMA-FIX-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SCHEMA-FIX-1b" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -262,7 +262,12 @@ serve(async (req) => {
     // Add custom instructions if present
     if (config?.knowledge_custom_instructions) {
       const customContent = config.knowledge_custom_instructions;
-      await supabase.from('ai_knowledge_index').upsert({
+      // SCHEMA-FIX-1: source_id is hier null, en null botst nooit op de upsert-index
+      // (NULL's zijn verschillend), terwijl idx_ai_knowledge_unique_null wél botst.
+      // Een upsert faalde dus vanaf de tweede keer. Vervangen = weghalen + invoegen.
+      await supabase.from('ai_knowledge_index').delete()
+        .eq('tenant_id', tenant_id).eq('source_type', 'custom').is('source_id', null);
+      await supabase.from('ai_knowledge_index').insert({
         tenant_id,
         source_type: 'custom',
         source_id: null,
@@ -270,9 +275,6 @@ serve(async (req) => {
         content_summary: summarize(customContent, 1000),
         content_hash: simpleHash(customContent),
         keywords: extractKeywords(customContent)
-      }, {
-        onConflict: 'tenant_id,source_type,source_id',
-        ignoreDuplicates: false
       });
       
       indexed.push({ type: 'custom', count: 1 });

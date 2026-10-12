@@ -1,3 +1,10 @@
+## SCHEMA-FIX-1b — nazorg uit onafhankelijke review — 13 oktober 2026
+
+Een aparte reviewagent heeft alle commits van vannacht nagelopen (zie het verslag) en vond één echt defect:
+
+- **`ai-build-knowledge-index` "aangepaste instructies".** Deze rij heeft `source_id = null`. NULL's botsen nooit op de nieuwe upsert-index, maar wél op de partiële `idx_ai_knowledge_unique_null`, dus vanaf de tweede rebuild faalde de upsert stil met 23505. Nu: eerst weghalen, dan invoegen. Live getest in een teruggedraaid blok (insert A, delete, insert B → 1 rij). De stempel van die functie is nu **`SCHEMA-FIX-1b`**.
+- **Cosmetisch.** Het commentaar bij de storefront-api-stempel verwees nog naar SCHEMA-FIX-4.
+
 ## OPS-COST-1 — databanklast (Lovable run-credits): bloat en log-hygiëne — 13 oktober 2026
 
 **Aanleiding.** De workspace zit zonder credits. Ik heb `pg_stat_statements` bekeken (loopt sinds 13-01-2026) en de grootste posten op `total_exec_time` gezet:
