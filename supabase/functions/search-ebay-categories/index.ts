@@ -34,6 +34,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
+  // SEC-TENANT-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-TENANT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -56,6 +58,7 @@ Deno.serve(async (req) => {
       .from('marketplace_connections')
       .select('*')
       .eq('id', connection_id)
+      .eq('tenant_id', tenant_id) // SEC-TENANT-1: alleen de eigen koppeling
       .single()
 
     if (connError || !connection) {

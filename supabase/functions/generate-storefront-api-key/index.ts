@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { corsHeaders } from "https://esm.sh/@supabase/supabase-js@2.95.0/cors";
 
 Deno.serve(async (req) => {
@@ -6,6 +7,8 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // SEC-TENANT-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-TENANT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
@@ -37,6 +40,16 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    // SEC-TENANT-1: elke ingelogde gebruiker kon voor ELKE winkel een sleutel maken
+    // (insert met service role, RLS omzeild). Nu alleen een admin van die winkel.
+    try {
+      const auth = await authenticateRequest(req, tenant_id);
+      requireRole(auth, tenant_id, ["tenant_admin"]);
+    } catch (e) {
+      if (e instanceof AuthError) return authErrorResponse(e, corsHeaders);
+      throw e;
     }
 
     // Generate random key: sk_live_ + 48 hex chars

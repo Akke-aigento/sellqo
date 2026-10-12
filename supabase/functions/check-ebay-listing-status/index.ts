@@ -49,6 +49,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // SEC-TENANT-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-TENANT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
     const { product_id, tenant_id, connection_id, offer_id }: CheckStatusRequest = await req.json();
     await authenticateRequest(req, tenant_id);
@@ -170,7 +172,8 @@ serve(async (req) => {
     await supabase
       .from('products')
       .update(updateData)
-      .eq('id', product_id);
+      .eq('id', product_id)
+      .eq('tenant_id', tenant_id); // SEC-TENANT-1
 
     return new Response(
       JSON.stringify({

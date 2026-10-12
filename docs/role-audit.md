@@ -1,3 +1,22 @@
+## SEC-TENANT-1 — cross-tenant gaten in 15 edge functions gedicht — 13 oktober 2026
+
+2026-10-13 SEC-TENANT-1 (chat-Claude, zelfstandig; backend-sweep, elke vondst zelf nagelezen).
+
+**Koppelingen van een andere winkel gebruiken:** de autorisatie keek naar `tenant_id` uit de body, maar de koppeling werd alleen op `connection_id` geladen. Met een vreemd connection_id pushte je eigen producten naar de Shopify/WooCommerce/Odoo van een andere winkel, ververste je diens eBay-token (en schreef het terug), of haalde je diens reviews op met diens API-sleutel. Fix: `.eq('tenant_id', tenant_id)` op de lookup in create-/update-shopify-product, create-/update-woocommerce-product, update-odoo-product, search-ebay-categories (marketplace_connections) en sync-platform-reviews (review_platform_connections). Latere updates op hetzelfde id worden alleen nog bereikt na een gefilterde lookup.
+
+**Productupdates op alleen het id (16 plekken):** create-/update-bol-offer, create-/update-amazon-offer, check-ebay-listing-status en de vijf hierboven: `products.update().eq('id', product_id)` zonder tenantfilter. Daarmee kon je met een geraden product-id de bol_/amazon_/ebay_-velden van een andere winkel overschrijven. Fix: `.eq('tenant_id', tenant_id)` erbij.
+
+**Authenticatie aangescherpt:**
+- `send-gift-card-email`: "ingelogd" volstond, dus elke gebruiker kon met een gift_card_id + `recipient_email_override` de code naar zichzelf sturen. Nu alleen leden van de winkel van de kaart, plus service/admin. Bewust geen strikte rol, omdat de kassa (kassiers) deze functie gebruikt.
+- `generate-storefront-api-key`: elke ingelogde gebruiker kon voor elke winkel een sleutel maken (service-role-insert). Nu authenticateRequest(tenant) + tenant_admin.
+- `accept-bol-order`: elke ingelogde gebruiker kon `sync_status` van elke order zetten. Nu de order eerst laden en lidmaatschap controleren; de update is beperkt tot die tenant.
+
+**Deploybewijs:** alle 15 krijgen een GET-versiestempel "SEC-TENANT-1", direct na OPTIONS en vóór de auth (geverifieerd per bestand). esbuild-syntax ok op alle 15.
+
+**Niet gedaan (beslissingen/opvolging):** `email-preferences`/`unsubscribe` (iedereen kan een willekeurig e-mailadres aan- en afmelden: een getekende token nodig, met gevolgen voor bestaande mails), `create-checkout-session`/`create-bank-transfer-order` (`shipping_cost` uit de body; geldpad en bevroren frontends), `track-storefront-event` (anonieme events), `changelog-subscribe` (geen double opt-in), `send-order-confirmation`/`send-ticket-confirmation` (spam-risico, ontvanger vast).
+
+---
+
 ## SEC-INVITE-1 — account-overname via uitnodigingstoken gedicht — 13 oktober 2026
 
 2026-10-13 SEC-INVITE-1 (chat-Claude, zelfstandig: kritiek beveiligingslek, gevonden door de backend-sweep en zelf geverifieerd).

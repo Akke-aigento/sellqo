@@ -16,6 +16,8 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
+  // SEC-TENANT-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-TENANT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -48,6 +50,7 @@ Deno.serve(async (req) => {
       .from('marketplace_connections')
       .select('*')
       .eq('id', connection_id)
+      .eq('tenant_id', tenant_id) // SEC-TENANT-1: alleen de eigen koppeling
       .single()
 
     if (connError || !connection) {
@@ -129,6 +132,7 @@ Deno.serve(async (req) => {
           woocommerce_listing_error: `API Error: ${response.status}`,
         })
         .eq('id', product_id)
+        .eq('tenant_id', tenant_id) // SEC-TENANT-1
 
       throw new Error(`WooCommerce API error: ${response.status}`)
     }
@@ -146,6 +150,7 @@ Deno.serve(async (req) => {
         woocommerce_last_synced_at: new Date().toISOString(),
       })
       .eq('id', product_id)
+      .eq('tenant_id', tenant_id) // SEC-TENANT-1
 
     return new Response(
       JSON.stringify({ 

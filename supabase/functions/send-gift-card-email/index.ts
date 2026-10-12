@@ -27,8 +27,10 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // SEC-TENANT-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-TENANT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
-    await authenticateRequest(req);
+    const auth = await authenticateRequest(req);
 
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -49,6 +51,13 @@ const handler = async (req: Request): Promise<Response> => {
 
     if (giftCardError || !giftCard) {
       throw new Error("Gift card not found");
+    }
+
+    // SEC-TENANT-1: tot nu toe volstond "ingelogd". Elke gebruiker van elke winkel kon
+    // met een gift_card_id + recipient_email_override de code naar zichzelf sturen en
+    // het saldo besteden. Nu: alleen leden van de winkel van de kaart (en service/admin).
+    if (auth.user_id !== "service_role" && !auth.is_platform_admin && !auth.tenant_ids.includes(giftCard.tenant_id)) {
+      throw new AuthError("No access to this gift card", 403);
     }
 
     const recipientEmail = recipient_email_override || giftCard.recipient_email;

@@ -48,6 +48,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // SEC-TENANT-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-TENANT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -167,7 +169,8 @@ serve(async (req) => {
         bol_last_synced_at: new Date().toISOString(),
         bol_listing_error: hasError ? errorMessage.substring(0, 500) : null,
       })
-      .eq('id', product_id);
+      .eq('id', product_id)
+      .eq('tenant_id', tenant_id); // SEC-TENANT-1
 
     return new Response(
       JSON.stringify({
