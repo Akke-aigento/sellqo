@@ -85,7 +85,7 @@ export function EntityTranslationTabs({
       const metaDescCol = `meta_description_${defaultLocale}`;
       const { data, error } = await (supabase as any)
         .from('categories')
-        .select(`name, description, meta_title, meta_description, ${metaTitleCol}, ${metaDescCol}`)
+        .select(`name, description, ${metaTitleCol}, ${metaDescCol}`)
         .eq('id', entityId)
         .maybeSingle();
       if (error) throw error;
@@ -93,8 +93,8 @@ export function EntityTranslationTabs({
       return {
         name: row.name ?? null,
         description: row.description ?? null,
-        meta_title: row[metaTitleCol] ?? row.meta_title ?? null,
-        meta_description: row[metaDescCol] ?? row.meta_description ?? null,
+        meta_title: row[metaTitleCol] ?? null,
+        meta_description: row[metaDescCol] ?? null,
       };
     },
     enabled: !!entityId,

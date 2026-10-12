@@ -18,6 +18,10 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // SCHEMA-FIX-2: versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ ok: true, version: 'SCHEMA-FIX-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  }
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -76,7 +80,7 @@ serve(async (req) => {
     // Get tenant info
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('name, domain, support_email, support_phone')
+      .select('name, custom_domain, support_email, phone')
       .eq('id', tenant_id)
       .single();
 
@@ -152,8 +156,8 @@ ${webResearch}` : ''}
 
 ## Contactgegevens
 ${tenant?.support_email ? `E-mail: ${tenant.support_email}` : ''}
-${tenant?.support_phone ? `Telefoon: ${tenant.support_phone}` : ''}
-${tenant?.domain ? `Website: ${tenant.domain}` : ''}
+${tenant?.phone ? `Telefoon: ${tenant.phone}` : ''}
+${tenant?.custom_domain ? `Website: ${tenant.custom_domain}` : ''}
 
 ## Regels
 - Wees behulpzaam en oplossingsgericht

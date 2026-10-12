@@ -1,3 +1,21 @@
+## SCHEMA-FIX-2 — vertaalscherm categorieën, bewerkte foto's in mediabibliotheek, chatbot-contactgegevens — 13 oktober 2026
+
+**Aanleiding.** Ik heb elke `.from(…).select(…)` in `src/` en `supabase/functions/` automatisch vergeleken met de live `information_schema.columns`. Dat leverde drie echte fouten op:
+
+- `EntityTranslationTabs` (Vertalingen → categorie) vroeg `categories.meta_title/meta_description` op. Die kolommen bestaan niet, alleen `meta_title_nl` enz. Daardoor faalde de hele query en bleef de bronkolom leeg, ook naam en beschrijving. Live hebben 85 van de 94 categorieën een `meta_title_nl`. → select zonder die twee kolommen. *Frontend: komt live bij de volgende publish.*
+- `MediaAssetsLibrary` (Marketing → Media), bij "bewerkte foto toepassen":
+  - **Productfoto:** schreef naar de tabel `product_images`, die niet bestaat, dus het opslaan faalde altijd. Nu wordt `products.images[]` vers opgehaald en wordt alleen die URL vervangen, en `featured_image` als die gelijk was.
+  - **Categoriefoto:** filterde op `id = 'category-<uuid>'`. Er werd dus niets opgeslagen terwijl de toast "Afbeelding opgeslagen!" toonde. Nu wordt op de echte `categoryId` gefilterd.
+  - *Frontend.*
+- `ai-chatbot-respond` vroeg `tenants.domain/support_phone` op (bestaan niet), dus de chatbot kende de winkel niet. Nu `custom_domain` en `phone`. GET-stempel `SCHEMA-FIX-2`. **Niet gedeployed** (geen credits).
+
+**Bewust niet aangeraakt, staat op de beslislijst:**
+- `refund-invoice` leest `tenant_settings` (bestaat niet). Het valt terug op de platform-Stripe-key en werkt dus, maar het raakt geld.
+- `storefront-api` leest `storefront_config` (bestaat niet), waardoor `newsletter_enabled` enz. altijd standaard staan. Dit is een bevroren storefront-contract.
+- `sync-ebay-inventory` logt naar `inventory_sync_logs` (bestaat niet).
+
+**Checks.** tsc 33 (baseline), check:buttons 2/2, eslint op EntityTranslationTabs: geen nieuwe meldingen (10, ook vóór de wijziging).
+
 ## SCHEMA-FIX-1 — AI-functies die kolommen/tabellen lazen die niet bestaan — 13 oktober 2026
 
 **Aanleiding.** Een sweep van edge functions tegen `information_schema` vond selects op kolommen die er niet (meer) zijn. Supabase geeft dan een fout terug en de functie valt stil terug op "Onbekend" of op niets.

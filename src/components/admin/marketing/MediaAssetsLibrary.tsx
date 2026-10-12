@@ -45,6 +45,7 @@ interface VirtualAsset {
   source: 'upload' | 'product' | 'category';
   productId?: string;
   productName?: string;
+  categoryId?: string;
   categoryName?: string;
 }
 
@@ -252,6 +253,7 @@ export function MediaAssetsLibrary() {
         is_ai_generated: false,
         is_favorite: false,
         source: 'category' as const,
+        categoryId: cat.id,
         categoryName: cat.name,
       }));
   }, [categories, folder]);
@@ -542,11 +544,24 @@ export function MediaAssetsLibrary() {
           productName={editingAsset.productName || editingAsset.categoryName || editingAsset.file_name}
           onApply={async (newUrl) => {
             try {
-              if (editingAsset.source === 'product' && editingAsset.id) {
-                const { error } = await (supabase as any)
-                  .from('product_images')
-                  .update({ image_url: newUrl })
-                  .eq('id', editingAsset.id);
+              if (editingAsset.source === 'product' && editingAsset.productId) {
+                // Productfoto's staan in products.images (array) en featured_image;
+                // een tabel product_images bestaat niet. Vers ophalen en alleen deze
+                // foto vervangen, zodat we niets overschrijven.
+                const oldUrl = editingAsset.file_url;
+                const { data: product, error: readErr } = await supabase
+                  .from('products')
+                  .select('images, featured_image')
+                  .eq('id', editingAsset.productId)
+                  .single();
+                if (readErr) throw readErr;
+                const images = ((product?.images as string[] | null) || []).map((u) => (u === oldUrl ? newUrl : u));
+                const update: { images: string[]; featured_image?: string } = { images };
+                if (product?.featured_image === oldUrl) update.featured_image = newUrl;
+                const { error } = await supabase
+                  .from('products')
+                  .update(update)
+                  .eq('id', editingAsset.productId);
                 if (error) throw error;
               } else if (editingAsset.source === 'upload' && editingAsset.id) {
                 const { error } = await (supabase as any)
@@ -554,11 +569,12 @@ export function MediaAssetsLibrary() {
                   .update({ file_url: newUrl })
                   .eq('id', editingAsset.id);
                 if (error) throw error;
-              } else if (editingAsset.source === 'category' && editingAsset.id) {
+              } else if (editingAsset.source === 'category' && editingAsset.categoryId) {
+                // De asset-id is 'category-<uuid>'; de echte id staat in categoryId.
                 const { error } = await (supabase as any)
                   .from('categories')
                   .update({ image_url: newUrl })
-                  .eq('id', editingAsset.id);
+                  .eq('id', editingAsset.categoryId);
                 if (error) throw error;
               }
               queryClient.invalidateQueries({ queryKey: ['media-assets'] });
