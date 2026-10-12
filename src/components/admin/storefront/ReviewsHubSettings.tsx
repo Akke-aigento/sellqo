@@ -217,9 +217,9 @@ export function ReviewsHubSettings() {
               {/* Trust Bar */}
               <div className="flex items-center justify-between">
                 <div>
-                  <Label>Trust Bar in Header</Label>
+                  <Label>Trust Bar in footer</Label>
                   <p className="text-sm text-muted-foreground">
-                    Toon platform badges boven de header
+                    Toon platform badges onderaan je winkel (footer)
                   </p>
                 </div>
                 <Switch

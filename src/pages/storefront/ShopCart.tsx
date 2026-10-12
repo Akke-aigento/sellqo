@@ -1,3 +1,5 @@
+import { storefrontPaymentMethods } from '@/lib/storefrontPaymentMethods';
+import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react';
@@ -21,6 +23,11 @@ import {
 export default function ShopCart() {
   const { tenantSlug } = useParams<{ tenantSlug: string }>();
   const { tenant, themeSettings } = usePublicStorefront(tenantSlug || '');
+  const { t } = useTranslation();
+  const PAYMENT_LABELS: Record<string, string> = {
+    card: 'creditcard', ideal: 'iDEAL', bancontact: 'Bancontact', klarna: 'Klarna', bank_transfer: t('checkout.bankTransfer'),
+  };
+  const cartPaymentLabels = storefrontPaymentMethods(tenant as never).map((m) => PAYMENT_LABELS[m]);
   const { items: cartItems, updateQuantity, removeItem, setTenantSlug, getSubtotal } = useCart();
   
   const [discountCode, setDiscountCode] = useState('');
@@ -246,9 +253,12 @@ export default function ShopCart() {
                   </Link>
                 </Button>
 
-                <p className="text-xs text-muted-foreground text-center mt-4">
-                  Veilig betalen met iDEAL, Bancontact, creditcard en meer
-                </p>
+                {/* APP-CLEAN-3a: was een vaste tekst; nu de methoden die de checkout echt aanbiedt. */}
+                {cartPaymentLabels.length > 0 && (
+                  <p className="text-xs text-muted-foreground text-center mt-4">
+                    {t('checkout.securePayment')} {cartPaymentLabels.join(', ')}
+                  </p>
+                )}
               </div>
             </div>
           </div>

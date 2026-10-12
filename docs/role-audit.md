@@ -1,3 +1,25 @@
+## APP-CLEAN-3a — ingebouwde webshop: valse beloftes en kapotte links — 13 oktober 2026
+
+2026-10-12/13 APP-CLEAN-3a (chat-Claude, zelfstandig). Bron: tweede Explore-sweep (36 vondsten), elke vondst zelf nagelezen.
+
+**Live-impact:** beperkt. Alle echte winkels draaien op een eigen frontend; de ingebouwde webshop is voor demo's en nieuwe winkels.
+
+**Fixes:**
+- `PaymentMethodIcons` (footer): "Stripe Geverifieerd Partner" is weg. Stripe kent die status niet, en de claim stond ook bij winkels die alleen overschrijving doen. De iconen volgen nu de methoden die de checkout echt aanbiedt, via de nieuwe `src/lib/storefrontPaymentMethods.ts` (zelfde afleiding als ShopCheckout; kaart = Visa + Mastercard; geen wallets of Revolut meer, want de checkout kent die niet). Test: `storefrontPaymentMethods.test.ts` (4).
+- `ShopCart`: de vaste tekst "Veilig betalen met iDEAL, Bancontact, creditcard en meer" is vervangen door de echte methoden.
+- `ExitIntentPopup`: "Aanmelden" sloot alleen de popup, het e-mailadres verdween. Nu `storefront-api` → `newsletter_subscribe` (source `exit_intent`, geen constraint op source), met een bedank-state zoals NewsletterPopup.
+- `ShopProductDetail`: de varianten-link naar een gekoppeld product miste `/product/` en gaf een 404.
+- `ShopProducts`: `?category=` aanvaardt nu slug én id. Collectiesecties sturen de id mee, waardoor "Bekijk alle" alles ongefilterd toonde.
+- `useStorefront.saveThemeSettings`: de 9 `reviews_*`-keys stonden niet in `allowedFields`, dus "Reviews instellingen opgeslagen" schreef niets weg en de Reviews Hub kon nooit aan. De publieke view las ze al.
+- ReviewsHubSettings: het label "Trust Bar in Header / boven de header" klopte niet, want de bar rendert in de footer.
+- CardPaymentDialog: het verouderde label "Simulatie modus" heet nu "Geen kaartlezer gekoppeld".
+
+**Niet gedaan (naar beslissingen):** de kortingscode in het winkelmandje (doet een nep-`setTimeout` en toont altijd "ongeldig"; aansluiten raakt checkout-totalen), promoties die de ingebouwde webshop niet bereiken, de taalwisselaar die niets doet, trust badges ("Keurmerk", "Gratis verzending" niet getoetst) en de 5 nooit gelezen reviews-keys.
+
+**Checks:** tsc 33 = ongewijzigd, suite 625/625, i18n-pariteit volledig, check:buttons 2 = baseline.
+
+---
+
 ## CI-BUTTONS-1 — CI-poortwachter op knoppen zonder werking — 13 oktober 2026
 
 2026-10-12/13 CI-BUTTONS-1 (chat-Claude, zelfstandig, voorstel uit de APP-CLEAN-2-sweep).

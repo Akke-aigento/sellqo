@@ -202,7 +202,7 @@ export function CardPaymentDialog({
             Kaartbetaling
           </DialogTitle>
           <DialogDescription>
-            {readerId ? 'Betaling via pinautomaat' : 'Simulatie modus (geen reader gekoppeld)'}
+            {readerId ? 'Betaling via pinautomaat' : 'Geen kaartlezer gekoppeld'}
           </DialogDescription>
         </DialogHeader>
 

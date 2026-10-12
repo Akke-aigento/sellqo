@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next';
-import { Lock, ShieldCheck } from 'lucide-react';
+import { Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface PaymentMethodIconsProps {
   variant: 'checkout' | 'footer';
+  /** APP-CLEAN-3a: alleen de merken die de checkout echt aanbiedt (paymentIconKeys). */
+  iconKeys?: string[];
 }
 
 // Inline SVG payment method icons - clean, minimal style
@@ -74,8 +76,9 @@ const PAYMENT_ICONS = [
   { key: 'revolut', Icon: RevolutPayIcon, label: 'Revolut Pay' },
 ];
 
-export function PaymentMethodIcons({ variant }: PaymentMethodIconsProps) {
+export function PaymentMethodIcons({ variant, iconKeys }: PaymentMethodIconsProps) {
   const { t } = useTranslation();
+  const icons = iconKeys ? PAYMENT_ICONS.filter((i) => iconKeys.includes(i.key)) : PAYMENT_ICONS;
 
   if (variant === 'checkout') {
     return (
@@ -84,7 +87,7 @@ export function PaymentMethodIcons({ variant }: PaymentMethodIconsProps) {
           {t('checkout.securePayment')}
         </span>
         <div className="flex flex-wrap items-center justify-center gap-3">
-          {PAYMENT_ICONS.map(({ key, Icon, label }) => (
+          {icons.map(({ key, Icon, label }) => (
             <div
               key={key}
               className="h-8 w-auto text-muted-foreground/60 hover:text-muted-foreground transition-colors"
@@ -103,7 +106,7 @@ export function PaymentMethodIcons({ variant }: PaymentMethodIconsProps) {
     <div className="flex flex-col items-center gap-4">
       {/* Payment icons row */}
       <div className="flex flex-wrap items-center justify-center gap-3">
-        {PAYMENT_ICONS.map(({ key, Icon, label }) => (
+        {icons.map(({ key, Icon, label }) => (
           <div
             key={key}
             className="h-6 w-auto text-muted-foreground/40"
@@ -120,11 +123,8 @@ export function PaymentMethodIcons({ variant }: PaymentMethodIconsProps) {
           <Lock className="h-3.5 w-3.5" />
           <span>{t('footer.sslSecure')}</span>
         </div>
-        <span className="text-muted-foreground/30">•</span>
-        <div className="flex items-center gap-1.5">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          <span>{t('footer.verifiedPartner')}</span>
-        </div>
+        {/* APP-CLEAN-3a: "Stripe Geverifieerd Partner" weg — Stripe kent zo'n status voor
+            winkeliers niet, en het stond ook bij winkels die alleen overschrijving doen. */}
       </div>
     </div>
   );

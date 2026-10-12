@@ -156,6 +156,11 @@ export function useStorefront() {
         'storefront_language_selector_style',
         // Intelligent palette
         'brand_color', 'theme_mode', 'theme_style',
+        // APP-CLEAN-3a: Reviews Hub. Ontbraken hier, dus "Reviews instellingen opgeslagen"
+        // schreef niets weg en de Reviews Hub kon nooit aan.
+        'reviews_hub_enabled', 'reviews_display_platforms', 'reviews_aggregate_display',
+        'reviews_widget_position', 'reviews_floating_style', 'reviews_min_rating_filter',
+        'reviews_homepage_section', 'reviews_trust_bar_enabled', 'reviews_auto_feature_threshold',
       ];
 
       for (const key of allowedFields) {

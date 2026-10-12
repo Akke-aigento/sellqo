@@ -34,7 +34,9 @@ export default function ShopProducts() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [quickViewProduct, setQuickViewProduct] = useState<any>(null);
 
-  const selectedCategory = categories.find(c => c.slug === categorySlug);
+  // APP-CLEAN-3a: collectiesecties sturen de categorie-id mee (SectionEditor bewaart de id),
+  // menu's en breadcrumbs de slug. Beide aanvaarden, anders toont "Bekijk alle" alles ongefilterd.
+  const selectedCategory = categories.find(c => c.slug === categorySlug || c.id === categorySlug);
 
   const { data: products = [], isLoading } = usePublicProducts(tenant?.id, {
     categoryId: selectedCategory?.id,

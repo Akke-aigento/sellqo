@@ -132,7 +132,8 @@ export default function ShopProductDetail() {
         return keys.every((k: string) => attrs[k] === newAttrs[k]);
       });
       if (matchingVariant?.linked_product_slug && tenantSlug) {
-        navigate(`/shop/${tenantSlug}/${matchingVariant.linked_product_slug}`);
+        // APP-CLEAN-3a: het /product/-segment ontbrak, dus deze link gaf een 404.
+        navigate(`/shop/${tenantSlug}/product/${matchingVariant.linked_product_slug}`);
         return;
       }
     }

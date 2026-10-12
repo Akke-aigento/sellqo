@@ -2,17 +2,45 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExitIntentPopupProps {
   tenantSlug: string;
+  /** APP-CLEAN-3a: nodig om echt in te schrijven (newsletter_subscribe). */
+  tenantId?: string;
   incentiveText?: string | null;
 }
 
 const SESSION_KEY = 'exit-intent-shown';
 
-export function ExitIntentPopup({ tenantSlug, incentiveText }: ExitIntentPopupProps) {
+export function ExitIntentPopup({ tenantSlug, tenantId, incentiveText }: ExitIntentPopupProps) {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  // APP-CLEAN-3a: "Aanmelden" sloot tot nu toe alleen de popup; het e-mailadres
+  // verdween. Nu dezelfde inschrijving als NewsletterPopup (met double opt-in in de API).
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim() || !tenantId) return;
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.functions.invoke('storefront-api', {
+        body: { action: 'newsletter_subscribe', tenant_id: tenantId, email: email.trim(), source: 'exit_intent' },
+      });
+      if (error) throw error;
+      setSubmitted(true);
+      setTimeout(() => setVisible(false), 2000);
+    } catch (err) {
+      console.error('Newsletter signup error:', err);
+      toast.error('Er ging iets mis. Probeer het later opnieuw.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   useEffect(() => {
     const key = `${SESSION_KEY}-${tenantSlug}`;
@@ -48,21 +76,33 @@ export function ExitIntentPopup({ tenantSlug, incentiveText }: ExitIntentPopupPr
           <X className="h-5 w-5" />
         </button>
 
-        <h2 className="text-2xl font-bold mb-3">{t('storefront.exitIntentPopup.wacht_even')}</h2>
-        <p className="text-muted-foreground mb-6">
-          {incentiveText || 'Schrijf je in voor onze nieuwsbrief en ontvang exclusieve aanbiedingen!'}
-        </p>
+        {submitted ? (
+          <>
+            <h2 className="text-xl font-bold mb-2">{t('storefront.newsletterPopup.bedankt')}</h2>
+            <p className="text-muted-foreground">{t('storefront.newsletterPopup.je_bent_succesvol_ingeschreven')}</p>
+          </>
+        ) : (
+          <>
+            <h2 className="text-2xl font-bold mb-3">{t('storefront.exitIntentPopup.wacht_even')}</h2>
+            <p className="text-muted-foreground mb-6">
+              {incentiveText || 'Schrijf je in voor onze nieuwsbrief en ontvang exclusieve aanbiedingen!'}
+            </p>
 
-        <div className="flex gap-2 max-w-sm mx-auto">
-          <input
-            type="email"
-            placeholder={t('storefront.exitIntentPopup.je_email_nl')}
-            className="flex-1 rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
-          />
-          <Button onClick={() => setVisible(false)}>
-            {t('storefront.exitIntentPopup.aanmelden')}
-          </Button>
-        </div>
+            <form onSubmit={handleSubmit} className="flex gap-2 max-w-sm mx-auto">
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder={t('storefront.exitIntentPopup.je_email_nl')}
+                className="flex-1 rounded-md border border-input bg-background text-foreground px-3 py-2 text-sm"
+              />
+              <Button type="submit" disabled={isSubmitting || !tenantId}>
+                {t('storefront.exitIntentPopup.aanmelden')}
+              </Button>
+            </form>
+          </>
+        )}
 
         <button
           onClick={() => setVisible(false)}
