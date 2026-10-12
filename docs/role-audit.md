@@ -1,3 +1,24 @@
+## OPS-COST-1 — databanklast (Lovable run-credits): bloat en log-hygiëne — 13 oktober 2026
+
+**Aanleiding.** De workspace zit zonder credits. Ik heb `pg_stat_statements` bekeken (loopt sinds 13-01-2026) en de grootste posten op `total_exec_time` gezet:
+
+1. **De cleanup-DELETE van pg_net op `net._http_response`:** 61.244 s, gemiddeld **1.080 ms** per keer, 56.729 keer. De tabel had 325 rijen maar woog 143 MB door bloat. Sinds 5 augustus was er geen autovacuum meer geweest.
+2. **Realtime WAL-polling:** samen ±66.000 s.
+3. **`net.http_post` van de crons:** 8.561 s.
+
+**Uitgevoerd** (logdata, geen klantdata, volgens de vaste cron-hygiëneregel):
+- `VACUUM FULL net._http_response` via een eenmalige cronjob (287, daarna verwijderd): **143 MB → 576 kB**.
+- `cron.job_run_details`: 1,5 GB en 599.531 rijen sinds februari, zonder purge.
+  - Nieuwe dagelijkse job `purge-cron-run-details-daily` (03:20, alles > 7 dagen weg).
+  - Eenmalig 591.557 rijen gewist en `VACUUM FULL` gedraaid: **1,5 GB → 4,5 MB**. De eenmalige jobs 289 en 290 zijn verwijderd.
+- Realtime-publicatie: `sync_activity_log` en `automation_runs` (logtabellen, geen enkele listener in de code) zijn eruit gehaald. Over blijven: customer_messages, customers, external_reviews, notifications, orders, team_invitations, ticket_scans.
+
+**Bewust niet gedaan:**
+- `external_reviews` laten staan. Een eigen frontend zou erop kunnen luisteren.
+- `RealtimeActivityFeed` luistert op `campaign_sends`, maar die tabel zit niet in de publicatie, dus die feed is nooit live geweest.
+
+**Kost:** 0 credits (alles via query_database). Meet over een paar dagen opnieuw op `pg_stat_statements` of in Watchtower /kosten.
+
 ## PROMO-FIX-1 — automatische korting "eerste bestelling" gaf iedereen korting — 13 oktober 2026
 
 - **Wat er mis was.** In `storefront-api` (cart-promoties) viel `trigger_type = 'first_order'`, en elk onbekend type, in `default: triggered = true`. Een winkel die "korting op de eerste bestelling" instelde, gaf die dus op **elke** bestelling.
