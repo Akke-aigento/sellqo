@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { useBillingState } from '@/hooks/useBillingState';
 import { useTenant } from '@/hooks/useTenant';
+import { BILLING_LOCK_OPEN_EVENT } from '@/lib/billingLock';
 
 const seenKey = (tenantId?: string | null) => `billing_lock_seen_${tenantId ?? 'unknown'}`;
 
@@ -22,6 +23,7 @@ const seenKey = (tenantId?: string | null) => `billing_lock_seen_${tenantId ?? '
  * De banner (BillingStateBanner) blijft het permanente signaal; deze dialog zegt
  * het één keer per sessie per winkel luid: je winkel staat op slot, zo betaal je.
  * Sluiten mag altijd — de winkel blijft leesbaar en de betaalpagina bereikbaar.
+ * Een klik op de banner opent hem opnieuw (openBillingLockDialog).
  * Platform-admins, demo- en vrijgestelde winkels zien hem nooit: useBillingState
  * geeft voor hen altijd 'active'.
  */
@@ -46,6 +48,12 @@ export function BillingLockDialog() {
     }
     setOpen(!seen);
   }, [isLoading, locked, currentTenant?.id]);
+
+  useEffect(() => {
+    const reopen = () => { if (locked) setOpen(true); };
+    window.addEventListener(BILLING_LOCK_OPEN_EVENT, reopen);
+    return () => window.removeEventListener(BILLING_LOCK_OPEN_EVENT, reopen);
+  }, [locked]);
 
   const close = () => {
     try {

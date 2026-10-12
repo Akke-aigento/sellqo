@@ -11,6 +11,8 @@
 
 **Code:** nieuw `src/components/admin/BillingLockDialog.tsx`, gemount in `AdminLayout` naast `TrialExpiredBlocker`. Toont één keer per sessie per winkel (sessionStorage) een dialog bij `restricted`/`suspended`, met "Nu betalen" (vaste betaallink), "Naar facturatie" en "Sluiten". Hergebruikt de bestaande keys `billing.state.*` + `common.close`: geen nieuwe i18n. Platform-admins, demo en vrijgestelde winkels zien hem nooit (useBillingState geeft daar `active`).
 
+**Banner (aanvulling 19:49, Akke):** `BillingStateBanner` is nu in z'n geheel klikbaar (ook met toetsenbord). In leesmodus opent een klik de popup opnieuw, via het event in `src/lib/billingLock.ts`. Bij een openstaande betaling (past_due) gaat een klik naar `/admin/billing`. De knoppen in de banner houden hun eigen actie (stopPropagation). De banner blijft permanent zichtbaar, er is geen sluitknop.
+
 **Verificatie:** cyclus nagelezen na de UPDATE (grace_until 2026-10-11). tsc: 33 bestaande fouten vóór en na, nul in de gewijzigde bestanden. `src/test/billFix1.test.ts` 21/21 groen.
 
 **Open:** (1) Native app toont de popup pas na een nieuwe build. (2) Wortel van het Astra-probleem: `mode=mandate` zonder mandaat; de mandaatflow (backlog "blanco cheque", `mandate_setup_tokens.context`) moet nagekeken worden. (3) Zona Dorata staat op het free-plan: zet Akke de schakelaar later uit, dan geeft `decideTrialEnd` `skip_free` en start er geen facturatie.

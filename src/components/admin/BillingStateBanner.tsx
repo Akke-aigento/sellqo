@@ -1,9 +1,10 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useBillingState } from '@/hooks/useBillingState';
+import { openBillingLockDialog } from '@/lib/billingLock';
 
 /**
  * BILLING-ENFORCE-1 — één regel die zegt wat er aan de hand is en hoe je het
@@ -12,6 +13,7 @@ import { useBillingState } from '@/hooks/useBillingState';
  */
 export function BillingStateBanner() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { state, openAmount, payUrl } = useBillingState();
 
   if (state === 'active' || state === 'trialing') return null;
@@ -21,14 +23,26 @@ export function BillingStateBanner() {
     ? new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(openAmount)
     : null;
 
+  // BILL-LOCK-1: de hele banner is klikbaar. Leesmodus → de betaalpopup,
+  // openstaande betaling → de abonnementspagina. Knoppen erin houden hun eigen actie.
+  const activate = () => (isLocked ? openBillingLockDialog() : navigate('/admin/billing'));
+
   return (
     <div
-      role="status"
+      role="button"
+      tabIndex={0}
+      aria-live="polite"
+      onClick={activate}
+      onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); }
+      }}
       className={cn(
+        'cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
         // Mobiel stapelt de knop onder de tekst; min-w-0 + truncate houdt een lang
         // bedrag binnen de rand (M4).
         'mx-3 mt-2 flex flex-col gap-2 rounded-md border px-3 py-2 text-sm sm:flex-row sm:items-center sm:justify-between',
-        isLocked ? 'border-destructive/30 bg-destructive/10' : 'border-amber-500/30 bg-amber-500/10',
+        isLocked ? 'border-destructive/30 bg-destructive/10 hover:bg-destructive/15' : 'border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/15',
       )}
     >
       <div className="flex min-w-0 items-start gap-2">
@@ -42,7 +56,7 @@ export function BillingStateBanner() {
           </span>
         </p>
       </div>
-      <div className="flex shrink-0 gap-2">
+      <div className="flex shrink-0 gap-2" onClick={(e) => e.stopPropagation()}>
         {payUrl && (
           <Button asChild size="sm">
             <a href={payUrl} rel="noopener noreferrer">{t('billing.state.payNow')}</a>
