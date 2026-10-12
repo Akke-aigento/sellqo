@@ -20657,6 +20657,13 @@ export type Database = {
         }
         Returns: string
       }
+      storefront_recent_purchases: {
+        Args: { p_tenant_id: string }
+        Returns: {
+          product_name: string
+          purchased_at: string
+        }[]
+      }
       sync_cron_service_role_key: {
         Args: { new_value: string }
         Returns: boolean
