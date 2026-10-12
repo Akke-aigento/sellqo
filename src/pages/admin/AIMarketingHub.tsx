@@ -21,6 +21,7 @@ import { FeatureGate } from '@/components/FeatureGate';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function AIMarketingHub() {
   const { t } = useTranslation();
@@ -47,15 +48,41 @@ export default function AIMarketingHub() {
     }
     
     if (purchaseStatus === 'success' && creditsAdded) {
-      toast.success(`${creditsAdded} AI credits toegevoegd!`, {
-        description: 'Je credits zijn nu beschikbaar.'
-      });
-      refetchCredits();
-      // Clean up URL params
+      const sessionId = searchParams.get('session_id');
+      // Clean up URL params meteen, zodat een refresh niet opnieuw verifieert.
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('purchase');
       newParams.delete('credits');
+      newParams.delete('session_id');
       setSearchParams(newParams, { replace: true });
+
+      // AI-CRED-2: niet blind "toegevoegd" melden, maar de betaling laten nakijken.
+      // De functie kent idempotent toe; de webhook blijft het vangnet.
+      const verify = async () => {
+        if (!sessionId) {
+          refetchCredits();
+          return;
+        }
+        const { data, error } = await supabase.functions.invoke('verify-ai-credits-purchase', {
+          body: { sessionId },
+        });
+        const status = (data as { status?: string } | null)?.status;
+        if (!error && (status === 'granted' || status === 'already_completed')) {
+          toast.success(`${creditsAdded} AI credits toegevoegd!`, {
+            description: 'Je credits zijn nu beschikbaar.',
+          });
+        } else if (!error && status === 'pending') {
+          toast.info('Je betaling wordt nog verwerkt', {
+            description: 'De credits verschijnen zodra je bank de betaling bevestigt.',
+          });
+        } else {
+          toast.error('We konden je aankoop nog niet bevestigen', {
+            description: 'Je betaling is veilig. Ververs de pagina over een minuutje.',
+          });
+        }
+        refetchCredits();
+      };
+      void verify();
     } else if (purchaseStatus === 'cancelled') {
       toast.info('Aankoop geannuleerd');
       const newParams = new URLSearchParams(searchParams);

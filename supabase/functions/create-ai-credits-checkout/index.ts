@@ -19,6 +19,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // AI-CRED-2: neveneffectvrije versiestempel om een deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "AI-CRED-2" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabaseClient = createClient(
@@ -122,7 +129,8 @@ serve(async (req) => {
         },
       ],
       mode: 'payment',
-      success_url: `${origin}/admin/marketing/ai?purchase=success&credits=${pkg.credits}`,
+      // AI-CRED-2: sessie-id mee terug, zodat de app de betaling zelf kan verifiëren.
+      success_url: `${origin}/admin/marketing/ai?purchase=success&credits=${pkg.credits}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/admin/marketing/ai?purchase=cancelled`,
       metadata: {
         tenant_id: tenantId,

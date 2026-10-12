@@ -1,3 +1,17 @@
+## AI-CRED-2 — credits toekennen bij terugkeer na betalen (webhook-onafhankelijk) — 12 oktober 2026
+
+2026-10-12 AI-CRED-2 (chat-Claude, go van Akke 12/10 20:35).
+
+**Waarom:** of het Stripe-endpoint van platform-stripe-webhook op `checkout.session.completed` geabonneerd is, valt zonder dashboard niet te controleren. De Stripe-connector heeft geen webhook-endpoints en de functielogs dekken maar minuten. In plaats van op het dashboard te vertrouwen, verifieert de app de betaling nu zelf.
+
+**Code:** nieuwe edge function `verify-ai-credits-purchase` (auth vereist). Die zoekt de aankoop op via `stripe_session_id`, controleert `user_roles` voor die winkel, haalt de sessie op bij Stripe (alleen lezen), checkt dat metadata purchase_id/tenant_id overeenkomen, en kent dan toe via dezelfde `grantAiCreditPurchase` als de webhook. Dat is idempotent: wie eerst komt kent toe, de ander krijgt `already_completed`. `create-ai-credits-checkout`: success_url bevat nu `session_id={CHECKOUT_SESSION_ID}`, plus een GET-versiestempel "AI-CRED-2". `AIMarketingHub`: meldt niet langer blind "toegevoegd", maar roept de verificatie aan en toont granted, pending of een fout. De URL-params worden meteen gewist.
+
+**Deploybewijs AI-CRED-1 (20:3x):** de GET op platform-stripe-webhook gaf vóór de deploy `400 No signature` en erna `200 {"version":"AI-CRED-1"}`. Main bleef op e752a28, dus geen agent-commits. De agent stopte eerst correct omdat z'n spiegel e752a28 nog niet kende.
+
+**Checks:** tsc 33 = ongewijzigd, lint schoon, suite 615/615.
+
+---
+
 ## AI-CRED-1 — AI-credits: maandreset, bijkopen werkt, eigen winkels vrij, verbruik altijd gelogd — 12 oktober 2026
 
 2026-10-12 AI-CRED-1 (chat-Claude, go van Akke 12/10 20:14 "moet inderdaad goed lopen").
