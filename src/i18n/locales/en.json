@@ -36,7 +36,8 @@
       "remove": "Remove {{value}}"
     },
     "error": "Error",
-    "done": "Done"
+    "done": "Done",
+    "comingSoon": "coming soon"
   },
   "auth": {
     "login": "Log in",

@@ -36,7 +36,8 @@
       "remove": "{{value}} verwijderen"
     },
     "error": "Fout",
-    "done": "Klaar"
+    "done": "Klaar",
+    "comingSoon": "binnenkort"
   },
   "auth": {
     "login": "Inloggen",

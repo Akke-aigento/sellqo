@@ -64,7 +64,8 @@
       "remove": "Supprimer {{value}}"
     },
     "error": "Erreur",
-    "done": "Terminé"
+    "done": "Terminé",
+    "comingSoon": "bientôt"
   },
   "auth": {
     "login": "Connexion",

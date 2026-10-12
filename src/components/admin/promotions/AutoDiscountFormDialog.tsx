@@ -204,7 +204,9 @@ export function AutoDiscountFormDialog({
                         <SelectItem value="cart_total">{t('admin.promotions.autoDiscountFormDialog.winkelwagen_totaal')}</SelectItem>
                         <SelectItem value="item_count">{t('admin.promotions.autoDiscountFormDialog.aantal_producten')}</SelectItem>
                         <SelectItem value="specific_products">{t('admin.promotions.autoDiscountFormDialog.specifieke_producten')}</SelectItem>
-                        <SelectItem value="first_order">{t('admin.promotions.autoDiscountFormDialog.eerste_bestelling')}</SelectItem>
+                        {/* PROMO-FIX-1: de webshop kan "eerste bestelling" nog niet bepalen; tot dat
+                            gebouwd is, niet kiesbaar (gaf vroeger iedereen korting). */}
+                        <SelectItem value="first_order" disabled>{t('admin.promotions.autoDiscountFormDialog.eerste_bestelling')} ({t('common.comingSoon')})</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

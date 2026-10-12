@@ -1416,7 +1416,11 @@ async function calculatePromotions(supabase: any, tenantId: string, params: Reco
       case 'item_count': triggered = ad.trigger_value ? totalQuantity >= ad.trigger_value : false; break;
       case 'specific_products': triggered = ad.trigger_product_ids?.some((id: string) => cartProductIds.includes(id)) || false; break;
       case 'schedule': triggered = true; break;
-      default: triggered = true;
+      // PROMO-FIX-1: 'first_order' (en elk onbekend type) gaf vroeger via default
+      // korting op ÉLKE bestelling. Er is hier geen betrouwbare klantcontext om
+      // "eerste bestelling" te bepalen, dus faalt dit nu dicht — net als de
+      // admin-berekening (src/lib/promotions/calculators/autoDiscount.ts).
+      default: triggered = false;
     }
     if (!triggered) continue;
     if (ad.discount_type === 'free_shipping') {
@@ -4167,7 +4171,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // SCHEMA-FIX-4: versiestempel voor deploy-verificatie (neveneffectvrij).
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SCHEMA-FIX-4' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'PROMO-FIX-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

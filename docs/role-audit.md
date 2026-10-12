@@ -1,3 +1,10 @@
+## PROMO-FIX-1 — automatische korting "eerste bestelling" gaf iedereen korting — 13 oktober 2026
+
+- **Wat er mis was.** In `storefront-api` (cart-promoties) viel `trigger_type = 'first_order'`, en elk onbekend type, in `default: triggered = true`. Een winkel die "korting op de eerste bestelling" instelde, gaf die dus op **elke** bestelling.
+- **Fix.** Het onbekende of niet-bepaalbare type valt nu dicht (`triggered = false`), net als de admin-berekening. In het formulier staat "Eerste bestelling" nu uitgeschakeld met "(binnenkort)". Daarvoor is de key `common.comingSoon` in 5 talen toegevoegd.
+- **Live blootstelling: geen.** `automatic_discounts` is leeg.
+- **Deploy.** `storefront-api` staat al in de wachtrij (SCHEMA-FIX-4). De stempel is nu **`PROMO-FIX-1`** en dekt beide wijzigingen.
+
 ## SCHEMA-SCAN tool — `scripts/schema-scan/scan.py` — 13 oktober 2026
 
 Dit is de herbruikbare versie van de scans die SCHEMA-FIX-1 t/m 4 opleverden. Het script legt `select`, geneste relaties, `insert/update/upsert`-sleutels, filters en `.from()`-tabellen naast een `cols.json` van het live schema. De SQL om dat bestand te maken staat in de kop van het script.

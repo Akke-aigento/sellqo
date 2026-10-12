@@ -64,7 +64,8 @@
       "remove": "{{value}} entfernen"
     },
     "error": "Fehler",
-    "done": "Fertig"
+    "done": "Fertig",
+    "comingSoon": "demnächst"
   },
   "auth": {
     "login": "Anmelden",
