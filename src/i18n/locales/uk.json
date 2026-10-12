@@ -1920,7 +1920,9 @@
         "gepubliceerd": "Опубліковано",
         "probeer_andere_filters_of_zoektermen": "Спробуйте інші фільтри або пошукові запити",
         "social_posts": "Дописи в соцмережах",
-        "titel": "Заголовок"
+        "titel": "Заголовок",
+        "delete_title": "Видалити цей елемент?",
+        "delete_failed": "Не вдалося видалити."
       },
       "creditPurchaseDialog": {
         "bezig": "Виконується...",
@@ -4634,7 +4636,9 @@
       "van_verzending_tot_conversie": "Від надсилання до конверсії",
       "vernieuwen": "Оновити",
       "wachten": "Очікування",
-      "welke_links_presteren_het_best": "Які посилання найефективніші"
+      "welke_links_presteren_het_best": "Які посилання найефективніші",
+      "confirm_send_title": "Надіслати кампанію зараз?",
+      "confirm_send_body": "Кампанія одразу піде всім одержувачам. Цю дію не можна скасувати."
     },
     "translationHub": {
       "instellingen": "Налаштування",

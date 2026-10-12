@@ -1,7 +1,19 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { format } from 'date-fns';
-import { Search, Filter, Mail, Instagram, Facebook, Linkedin, Twitter, Sparkles, Lightbulb, MoreHorizontal, Eye, Copy, Trash2 } from 'lucide-react';
+import { Search, Filter, Mail, Instagram, Facebook, Linkedin, Twitter, Sparkles, Lightbulb, MoreHorizontal, Eye, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -40,6 +52,17 @@ const platformIcons: Record<string, React.ReactNode> = {
   email: <Mail className="h-3 w-3" />,
 };
 
+// APP-CLEAN-2b: het rijmenu had geen handlers. Bekijken en verwijderen werken nu;
+// "Kopiëren" is weg (er is hier alleen een afgekapte titel, geen volledige tekst).
+const SOURCE_TABLE: Record<ContentHistoryItem['type'], 'email_campaigns' | 'social_posts' | 'ai_generated_content'> = {
+  email_campaign: 'email_campaigns',
+  social_post: 'social_posts',
+  ai_content: 'ai_generated_content',
+  ai_suggestion: 'ai_generated_content',
+};
+// Verzonden of gepubliceerde content blijft staan (analytics, historiek).
+const DELETABLE_STATUSES = new Set(['draft', 'failed', 'pending']);
+
 const statusConfig: Record<string, { labelKey: string; className: string }> = {
   draft: { labelKey: 'admin.marketing.contentHistoryList.status.draft', className: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' },
   scheduled: { labelKey: 'admin.marketing.contentHistoryList.status.gepland', className: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' },
@@ -56,6 +79,24 @@ export function ContentHistoryList() {
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [toDelete, setToDelete] = useState<ContentHistoryItem | null>(null);
+
+  const openItem = (item: ContentHistoryItem) => {
+    if (item.type === 'email_campaign') navigate(`/admin/marketing/campaigns/${item.id}`);
+    else navigate('/admin/marketing/ai?tab=library');
+  };
+
+  const deleteItem = async (item: ContentHistoryItem) => {
+    const { error } = await supabase.from(SOURCE_TABLE[item.type]).delete().eq('id', item.id).eq('tenant_id', currentTenant!.id);
+    if (error) {
+      toast.error(t('admin.marketing.contentHistoryList.delete_failed'));
+      return;
+    }
+    queryClient.invalidateQueries({ queryKey: ['content-history'] });
+    queryClient.invalidateQueries({ queryKey: ['email-campaigns'] });
+  };
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['content-history', currentTenant?.id, typeFilter, statusFilter],
@@ -213,7 +254,7 @@ export function ContentHistoryList() {
             </TableHeader>
             <TableBody>
               {filteredItems.map(item => (
-                <TableRow key={`${item.type}-${item.id}`} className="cursor-pointer hover:bg-muted/50">
+                <TableRow key={`${item.type}-${item.id}`} className="cursor-pointer hover:bg-muted/50" onClick={() => openItem(item)}>
                   <TableCell>
                     <span className="text-muted-foreground">{typeIcons[item.type]}</span>
                   </TableCell>
@@ -239,7 +280,7 @@ export function ContentHistoryList() {
                   <TableCell className="text-sm text-muted-foreground">
                     {format(new Date(item.created_at), 'd MMM yyyy', { locale: dateLocale })}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -247,18 +288,16 @@ export function ContentHistoryList() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openItem(item)}>
                           <Eye className="h-4 w-4 mr-2" />
                           {t('admin.marketing.aIContentLibrary.bekijken')}
                         </DropdownMenuItem>
-                        <DropdownMenuItem>
-                          <Copy className="h-4 w-4 mr-2" />
-                          {t('admin.marketing.aIContentLibrary.kopieren')}
-                        </DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {t('common.delete')}
-                        </DropdownMenuItem>
+                        {DELETABLE_STATUSES.has(item.status) && (
+                          <DropdownMenuItem className="text-destructive" onClick={() => setToDelete(item)}>
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {t('common.delete')}
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -268,6 +307,20 @@ export function ContentHistoryList() {
           </Table>
         )}
       </CardContent>
+      <AlertDialog open={!!toDelete} onOpenChange={(open) => { if (!open) setToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('admin.marketing.contentHistoryList.delete_title')}</AlertDialogTitle>
+            <AlertDialogDescription>{toDelete?.title}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (toDelete) void deleteItem(toDelete); }}>
+              {t('common.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

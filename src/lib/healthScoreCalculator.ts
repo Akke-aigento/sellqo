@@ -454,7 +454,7 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
       label: 'Juridische pagina\'s',
       status: data.missingLegalPages > 3 ? 'critical' : 'warning',
       value: `${7 - data.missingLegalPages}/7`,
-      action: { label: 'Aanmaken', url: '/admin/storefront?tab=legal' },
+      action: { label: 'Aanmaken', url: '/admin/storefront?section=legal' },
     });
   } else {
     items.push({ label: 'Juridische pagina\'s', status: 'ok', value: '7/7 ✓' });
@@ -499,7 +499,7 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
     status,
     items,
     emotionalMessage: message,
-    actionUrl: '/admin/storefront?tab=legal',
+    actionUrl: '/admin/storefront?section=legal',
   };
 }
 

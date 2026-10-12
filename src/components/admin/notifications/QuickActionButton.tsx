@@ -58,13 +58,9 @@ export function QuickActionButton({
 
         case 'open_visual_editor':
           // Navigate to visual editor with specific context
-          const sectionType = action.action_params?.section_type || 'hero';
-          const context = action.action_params?.context || {};
-          const queryParams = new URLSearchParams({
-            section: String(sectionType),
-            aiContext: JSON.stringify(context),
-          });
-          navigate(`/admin/storefront/edit?${queryParams.toString()}`);
+          // APP-CLEAN-2b: /admin/storefront/edit bestaat niet (404). De editor
+          // zit in de Storefront-studio, sectie Design.
+          navigate('/admin/storefront?section=design');
           break;
 
         case 'dismiss':

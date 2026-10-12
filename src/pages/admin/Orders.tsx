@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Package, Eye, MoreHorizontal, Truck, CheckCircle, XCircle, Clock, Printer, Download, Trash2 } from 'lucide-react';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
@@ -28,7 +28,13 @@ export default function OrdersPage() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { currentTenant, loading: tenantLoading } = useTenant();
-  const [filters, setFilters] = useState<OrderFiltersType>({});
+  // APP-CLEAN-2b: dashboardlinks sturen ?status=pending mee; die werden genegeerd.
+  const [searchParams] = useSearchParams();
+  const [filters, setFilters] = useState<OrderFiltersType>(() => {
+    const status = searchParams.get('status');
+    const allowed = ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'partially_returned'];
+    return status && allowed.includes(status) ? { status: status as OrderFiltersType['status'] } : {};
+  });
   const { orders, isLoading, updateOrderStatus, deleteOrder } = useOrders(filters);
   const canWriteOrders = useCan('write', 'orders');
   

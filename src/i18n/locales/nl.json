@@ -1965,7 +1965,9 @@
           "verzonden": "Verzonden",
           "wachtend": "Wachtend",
           "mislukt": "Mislukt"
-        }
+        },
+        "delete_title": "Dit item verwijderen?",
+        "delete_failed": "Verwijderen is mislukt."
       },
       "creditPurchaseDialog": {
         "credit_kosten_per_actie": "Credit kosten per actie",
@@ -4907,7 +4909,9 @@
       "vernieuwen": "Vernieuwen",
       "uitgeschreven": "Uitgeschreven",
       "wachten": "Wachten",
-      "versturen": "Versturen..."
+      "versturen": "Versturen...",
+      "confirm_send_title": "Campagne nu versturen?",
+      "confirm_send_body": "De campagne gaat meteen naar alle ontvangers. Dit kan je niet terugdraaien."
     },
     "translationHub": {
       "bulk_vertaling_starten": "Bulk vertaling starten",

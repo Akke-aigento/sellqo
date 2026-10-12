@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Bot, ArrowLeft, Library, Calendar, ImageIcon, UtensilsCrossed } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
@@ -26,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 export default function AIMarketingHub() {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('create');
   const [purchaseDialogOpen, setPurchaseDialogOpen] = useState(false);
   
@@ -158,7 +159,13 @@ export default function AIMarketingHub() {
             {/* Two Column Layout: Insights + Advanced Tools */}
             <div className="grid gap-6 lg:grid-cols-2">
               {/* Left: AI Insights */}
-              <AIInsightsCard />
+              {/* APP-CLEAN-2b: inzichten waren niet klikbaar (onInsightClick werd nooit meegegeven). */}
+              <AIInsightsCard
+                onInsightClick={(insight) => {
+                  if (insight.type === 'low_stock') navigate('/admin/products?stock=low');
+                  else navigate('/admin/marketing?new=campaign');
+                }}
+              />
 
               {/* Right: Recent Content */}
               <RecentContentStrip />

@@ -307,7 +307,8 @@ export default function SEODashboard() {
           <CardContent>
             <SEOQuickWins
               issues={tenantScore?.issues || []}
-              suggestions={tenantScore?.suggestions || []}
+              // APP-CLEAN-2b: FAQ-generatie bestaat nog niet; die suggestie niet aanbieden.
+              suggestions={(tenantScore?.suggestions || []).filter((sg: { action?: string }) => sg?.action !== 'generate_faq')}
               onAction={(action, entityId) => {
                 const productIds = entityId ? [entityId] : [];
                 switch (action) {
@@ -325,16 +326,14 @@ export default function SEODashboard() {
                   case 'optimize_categories':
                     toast.info('Ga naar Categorie SEO hieronder om te optimaliseren');
                     break;
-                  case 'generate_faq':
-                    toast.info('FAQ generatie wordt binnenkort beschikbaar');
-                    break;
                   case 'view_product':
                     if (entityId) {
                       window.open(`/admin/products/${entityId}`, '_blank');
                     }
                     break;
                   default:
-                    toast.info(`Actie: ${action}`);
+                    // APP-CLEAN-2b: onbekende actie → niet doen alsof, maar zeggen dat het (nog) niet kan.
+                    console.warn('SEO quick win zonder handler:', action);
                 }
               }}
               isLoading={isLoading}
@@ -445,9 +444,6 @@ export default function SEODashboard() {
                 aiSearchScore={tenantScore?.ai_search_score ?? null}
                 products={products || []}
                 isLoading={isLoading}
-                onGenerateFAQ={(productIds) => {
-                  toast.info('FAQ generatie wordt binnenkort toegevoegd');
-                }}
                 onGenerateLongForm={(productIds) => {
                   generateContent({ type: 'product_description', productIds });
                 }}

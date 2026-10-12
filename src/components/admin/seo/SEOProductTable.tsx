@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -243,8 +244,10 @@ export function SEOProductTable({
                                 <DropdownMenuItem onClick={() => onGenerateContent('meta_description', [product.id])}>
                                   <Wand2 className="h-4 w-4 mr-2" />{t('admin.seo.sEOCategoryTable.genereer_meta_description')}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <ExternalLink className="h-4 w-4 mr-2" />{t('admin.seo.seOQuickWins.actions.view_product')}
+                                <DropdownMenuItem asChild>
+                                  <Link to={`/admin/products/${product.id}/edit`}>
+                                    <ExternalLink className="h-4 w-4 mr-2" />{t('admin.seo.seOQuickWins.actions.view_product')}
+                                  </Link>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

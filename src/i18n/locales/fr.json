@@ -1669,7 +1669,9 @@
         "gepubliceerd": "Publié",
         "probeer_andere_filters_of_zoektermen": "Essayez d'autres filtres ou termes de recherche",
         "social_posts": "Publications sociales",
-        "titel": "Titre"
+        "titel": "Titre",
+        "delete_title": "Supprimer cet élément ?",
+        "delete_failed": "La suppression a échoué."
       },
       "creditPurchaseDialog": {
         "bezig": "En cours...",
@@ -4383,7 +4385,9 @@
       "van_verzending_tot_conversie": "De l'envoi à la conversion",
       "vernieuwen": "Actualiser",
       "wachten": "En attente",
-      "welke_links_presteren_het_best": "Quels liens sont les plus performants"
+      "welke_links_presteren_het_best": "Quels liens sont les plus performants",
+      "confirm_send_title": "Envoyer la campagne maintenant ?",
+      "confirm_send_body": "La campagne part immédiatement vers tous les destinataires. Cette action est irréversible."
     },
     "translationHub": {
       "instellingen": "Paramètres",

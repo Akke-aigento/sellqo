@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -251,8 +252,10 @@ export function SEOCategoryTable({
                                 <DropdownMenuItem onClick={() => onGenerateContent('category_description', [category.id])}>
                                   <Wand2 className="h-4 w-4 mr-2" />{t('admin.seo.sEOCategoryTable.optimaliseer_beschrijving')}
                                 </DropdownMenuItem>
-                                <DropdownMenuItem>
-                                  <ExternalLink className="h-4 w-4 mr-2" />{t('admin.seo.sEOCategoryTable.bekijk_categorie')}
+                                <DropdownMenuItem asChild>
+                                  <Link to={'/admin/categories'}>
+                                    <ExternalLink className="h-4 w-4 mr-2" />{t('admin.seo.sEOCategoryTable.bekijk_categorie')}
+                                  </Link>
                                 </DropdownMenuItem>
                               </DropdownMenuContent>
                             </DropdownMenu>

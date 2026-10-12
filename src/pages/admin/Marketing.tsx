@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { MarketingStatsCards } from '@/components/admin/marketing/MarketingStatsCards';
 import { CampaignCard } from '@/components/admin/marketing/CampaignCard';
 import { CampaignDialog } from '@/components/admin/marketing/CampaignDialog';
+import type { EmailCampaign } from '@/types/marketing';
 import { TemplateDialog } from '@/components/admin/marketing/TemplateDialog';
 import { SegmentDialog } from '@/components/admin/marketing/SegmentDialog';
 import { RealtimeActivityFeed } from '@/components/admin/marketing/RealtimeActivityFeed';
@@ -28,6 +29,18 @@ import { useTranslation } from 'react-i18next';
 export default function MarketingPage() {
   const { t } = useTranslation();
   const [campaignDialogOpen, setCampaignDialogOpen] = useState(false);
+  // APP-CLEAN-2b: "Bewerken" op een conceptcampagne opent dezelfde dialoog.
+  const [editingCampaign, setEditingCampaign] = useState<EmailCampaign | null>(null);
+  // APP-CLEAN-2b: ?new=campaign (bv. vanuit AI-inzichten) opent meteen een nieuwe campagne.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get('new') === 'campaign') {
+      setCampaignDialogOpen(true);
+      const next = new URLSearchParams(searchParams);
+      next.delete('new');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | '90d'>('30d');
@@ -37,7 +50,7 @@ export default function MarketingPage() {
   const { toast } = useToast();
 
   const { data: stats, isLoading: statsLoading } = useMarketingStats();
-  const { campaigns, isLoading: campaignsLoading, createCampaign, deleteCampaign, sendCampaign } = useEmailCampaigns();
+  const { campaigns, isLoading: campaignsLoading, createCampaign, deleteCampaign, sendCampaign, updateCampaign } = useEmailCampaigns();
   const { templates, isLoading: templatesLoading, createTemplate, deleteTemplate } = useEmailTemplates();
 
   const handleSeedTemplates = async () => {
@@ -209,6 +222,7 @@ export default function MarketingPage() {
                     campaign={campaign}
                     onDelete={(id) => deleteCampaign.mutate(id)}
                     onSend={(id) => sendCampaign.mutate(id)}
+                    onEdit={(c) => setEditingCampaign(c)}
                   />
                 ))}
               </div>
@@ -257,6 +271,7 @@ export default function MarketingPage() {
                   campaign={campaign}
                   onDelete={(id) => deleteCampaign.mutate(id)}
                   onSend={(id) => sendCampaign.mutate(id)}
+                  onEdit={(c) => setEditingCampaign(c)}
                 />
               ))}
             </div>
@@ -358,6 +373,20 @@ export default function MarketingPage() {
           createCampaign.mutate(data as any, { onSuccess: () => setCampaignDialogOpen(false) });
         }}
         isLoading={createCampaign.isPending}
+      />
+      <CampaignDialog
+        open={!!editingCampaign}
+        onOpenChange={(open) => { if (!open) setEditingCampaign(null); }}
+        campaign={editingCampaign ?? undefined}
+        onSave={(data) => {
+          if (!editingCampaign) return;
+          const { tenant_id: _tenantId, ...updates } = data as Record<string, unknown>;
+          updateCampaign.mutate(
+            { id: editingCampaign.id, ...(updates as object) },
+            { onSuccess: () => setEditingCampaign(null) },
+          );
+        }}
+        isLoading={updateCampaign.isPending}
       />
 
       <TemplateDialog

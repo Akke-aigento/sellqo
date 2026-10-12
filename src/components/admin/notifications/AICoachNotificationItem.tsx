@@ -8,8 +8,6 @@ import {
   ExternalLink, 
   ChevronDown, 
   ChevronUp,
-  ThumbsUp,
-  ThumbsDown,
   X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -154,15 +152,9 @@ export function AICoachNotificationItem({
                   )}
                 </div>
 
-                {/* Feedback buttons */}
+                {/* Acties */}
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-xs text-muted-foreground">Was dit nuttig?</span>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <ThumbsUp className="h-3 w-3" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-6 w-6">
-                    <ThumbsDown className="h-3 w-3" />
-                  </Button>
+                  {/* APP-CLEAN-2b: 👍/👎 verwijderd — er was geen opslag voor feedback. */}
                   <Button 
                     variant="ghost" 
                     size="sm" 

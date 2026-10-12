@@ -288,9 +288,6 @@ export default function ReturnDetailPage() {
             <div className="flex flex-wrap gap-2">
               {logisticsStatus === 'approved' && (
                 <>
-                  <Button size="sm" variant="outline" disabled>
-                    Genereer label <Badge variant="secondary" className="ml-1 text-[10px]">Fase 3</Badge>
-                  </Button>
                   <Button size="sm" onClick={() => updateReturnStatus.mutate({ returnId: returnRecord.id, status: 'label_sent' as ReturnStatus })}>
                     Label als verstuurd markeren
                   </Button>

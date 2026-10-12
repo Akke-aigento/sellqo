@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { 
   Select,
   SelectContent,
@@ -12,7 +11,7 @@ import {
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wand2, Check, AlertTriangle, Minus } from 'lucide-react';
+import { Check, AlertTriangle, Minus } from 'lucide-react';
 
 function formatTargetField(field: string): string {
   if (field.startsWith('_spec_')) {
@@ -63,7 +62,6 @@ export function FieldMappingStep({
 }: FieldMappingStepProps) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState(dataTypes[0]);
-  const [isAutoMapping, setIsAutoMapping] = useState(false);
 
   // Initialize mappings from default platform mappings with flexible matching
   useEffect(() => {
@@ -117,15 +115,6 @@ export function FieldMappingStep({
     onMappingChange(dataType, updated);
   };
 
-  const handleAutoMap = async () => {
-    setIsAutoMapping(true);
-    // TODO: Call AI mapping edge function
-    // For now, just use default mappings
-    setTimeout(() => {
-      setIsAutoMapping(false);
-    }, 1000);
-  };
-
   const getMappingStats = (dataType: ImportDataType) => {
     const currentMappings = mappings.get(dataType) || [];
     const mapped = currentMappings.filter(m => m.targetField).length;
@@ -140,15 +129,6 @@ export function FieldMappingStep({
         <Label className="text-base font-semibold">
           {t('import.field_mapping')}
         </Label>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleAutoMap}
-          disabled={isAutoMapping}
-        >
-          <Wand2 className={`mr-2 h-4 w-4 ${isAutoMapping ? 'animate-spin' : ''}`} />
-          {t('import.ai_map')}
-        </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ImportDataType)}>

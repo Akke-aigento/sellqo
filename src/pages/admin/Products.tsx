@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Plus, 
   Search, 
@@ -128,7 +128,12 @@ export default function ProductsPage() {
   const [search, setSearchRaw] = useState(initial.search || '');
   const [statusFilter, setStatusFilterRaw] = useState<ProductStatus>(initial.statusFilter || 'all');
   const [visibilityFilter, setVisibilityFilterRaw] = useState<VisibilityStatus>(initial.visibilityFilter || 'all');
-  const [stockFilter, setStockFilterRaw] = useState<StockStatus>(initial.stockFilter || 'all');
+  // APP-CLEAN-2b: dashboardlinks sturen ?stock=out|low mee; die gaan voor de bewaarde filter.
+  const [searchParams] = useSearchParams();
+  const stockParam = searchParams.get('stock');
+  const stockFromUrl: StockStatus | null =
+    stockParam === 'out' ? 'out_of_stock' : stockParam === 'low' ? 'low_stock' : null;
+  const [stockFilter, setStockFilterRaw] = useState<StockStatus>(stockFromUrl ?? (initial.stockFilter || 'all'));
   const [categoryFilter, setCategoryFilterRaw] = useState<string>(initial.categoryFilter || 'all');
   const [viewMode, setViewModeRaw] = useState<'list' | 'grid'>(initial.viewMode || 'list');
 

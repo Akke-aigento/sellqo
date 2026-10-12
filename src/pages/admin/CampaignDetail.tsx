@@ -8,7 +8,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useEmailCampaign, useCampaignSends } from '@/hooks/useEmailCampaigns';
+import { useEmailCampaign, useCampaignSends, useEmailCampaigns } from '@/hooks/useEmailCampaigns';
+import { useQueryClient } from '@tanstack/react-query';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useCampaignAnalytics } from '@/hooks/useCampaignAnalytics';
 import { CampaignPerformanceChart } from '@/components/admin/marketing/CampaignPerformanceChart';
 import { CampaignFunnel } from '@/components/admin/marketing/CampaignFunnel';
@@ -25,6 +36,15 @@ export default function CampaignDetailPage() {
   const { campaign, isLoading: campaignLoading } = useEmailCampaign(id);
   const { sends, isLoading: sendsLoading } = useCampaignSends(id);
   const { linkClicks, hourlyStats, isLoading: analyticsLoading } = useCampaignAnalytics(id);
+  // APP-CLEAN-2b: "Vernieuwen" en "Verzenden" hadden geen handler.
+  const queryClient = useQueryClient();
+  const { sendCampaign } = useEmailCampaigns();
+  const [confirmSend, setConfirmSend] = useState(false);
+  const refresh = () => {
+    for (const key of ['email-campaign', 'campaign-sends', 'campaign-link-clicks', 'campaign-hourly-stats']) {
+      queryClient.invalidateQueries({ queryKey: [key, id] });
+    }
+  };
 
   if (campaignLoading) {
     return (
@@ -97,16 +117,35 @@ export default function CampaignDetailPage() {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" size="sm">
+          <Button variant="outline" size="sm" onClick={refresh}>
             <RefreshCw className="mr-2 h-4 w-4" />
             {t('admin.campaignDetail.vernieuwen')}
           </Button>
           {campaign.status === 'draft' && (
-            <Button size="sm">
+            <Button size="sm" onClick={() => setConfirmSend(true)} disabled={sendCampaign.isPending}>
               <Send className="mr-2 h-4 w-4" />
               {t('admin.inbox.composeDialog.verzenden')}
             </Button>
           )}
+          <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>{t('admin.campaignDetail.confirm_send_title')}</AlertDialogTitle>
+                <AlertDialogDescription>{t('admin.campaignDetail.confirm_send_body')}</AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => {
+                    if (!campaign) return;
+                    sendCampaign.mutate(campaign.id, { onSuccess: refresh });
+                  }}
+                >
+                  {t('admin.inbox.composeDialog.verzenden')}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </div>
 

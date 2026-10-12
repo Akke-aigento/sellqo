@@ -230,6 +230,8 @@ export function AISearchOptimizer({
           <div className="pt-4 border-t">
             <h4 className="font-medium mb-3">{t('admin.seo.aISearchOptimizer.ai_content_genereren')}</h4>
             <div className="grid gap-3 sm:grid-cols-2">
+              {/* APP-CLEAN-2b: alleen tonen als er echt een FAQ-generator is aangesloten. */}
+              {onGenerateFAQ && (
               <Button
                 variant="outline"
                 className="justify-start"
@@ -243,6 +245,7 @@ export function AISearchOptimizer({
                 )}
                 FAQ's Genereren
               </Button>
+              )}
               <Button
                 variant="outline"
                 className="justify-start"

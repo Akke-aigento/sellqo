@@ -26,6 +26,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { ResponsiveDataTable, type ColumnDef } from '@/components/ui/responsive-data-table';
 import { ActionsMenu, type ActionItem } from '@/components/ui/actions-menu';
 import { useQuotes } from '@/hooks/useQuotes';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import type { QuoteStatus, Quote } from '@/types/quote';
@@ -36,7 +37,7 @@ export default function QuotesPage() {
   const [statusFilter, setStatusFilter] = useState<QuoteStatus | 'all'>('all');
   const [deleteQuote, setDeleteQuote] = useState<Quote | null>(null);
 
-  const { quotes, isLoading, deleteQuote: deleteQuoteMutation, sendQuote } = useQuotes({
+  const { quotes, isLoading, deleteQuote: deleteQuoteMutation, sendQuote, createQuote } = useQuotes({
     search: search || undefined,
     status: statusFilter === 'all' ? undefined : statusFilter,
   });
@@ -52,6 +53,34 @@ export default function QuotesPage() {
     await sendQuote.mutateAsync(quote.id);
   };
 
+  // APP-CLEAN-2b: "Kopiëren" deed niets (TODO). Nu: nieuwe concept-offerte met
+  // dezelfde klant, regels, notities en korting, via de bestaande createQuote.
+  const handleDuplicate = async (quote: Quote) => {
+    if (!quote.customer_id) return;
+    const { data: items, error } = await supabase
+      .from('quote_items')
+      .select('product_id, product_name, product_sku, description, quantity, unit_price, discount_percent, sort_order')
+      .eq('quote_id', quote.id)
+      .order('sort_order');
+    if (error) throw error;
+    const created = await createQuote.mutateAsync({
+      customerId: quote.customer_id,
+      items: (items ?? []).map((it) => ({
+        product_id: it.product_id ?? undefined,
+        product_name: it.product_name,
+        product_sku: it.product_sku ?? undefined,
+        description: it.description ?? undefined,
+        quantity: Number(it.quantity),
+        unit_price: Number(it.unit_price),
+        discount_percent: Number(it.discount_percent ?? 0),
+      })),
+      notes: quote.notes ?? undefined,
+      internalNotes: quote.internal_notes ?? undefined,
+      discountAmount: Number(quote.discount_amount ?? 0),
+    });
+    if (created?.id) navigate(`/admin/orders/quotes/${created.id}`);
+  };
+
   const getCustomerName = (quote: Quote) => {
     if (!quote.customer) return '-';
     const name = `${quote.customer.first_name || ''} ${quote.customer.last_name || ''}`.trim();
@@ -61,7 +90,7 @@ export default function QuotesPage() {
   const buildActions = (quote: Quote): ActionItem[] => {
     const items: ActionItem[] = [
       { label: 'Bekijken', icon: <Eye className="h-4 w-4" />, onClick: () => navigate(`/admin/orders/quotes/${quote.id}`) },
-      { label: 'Kopiëren', icon: <Copy className="h-4 w-4" />, onClick: () => { /* TODO */ } },
+      { label: 'Kopiëren', icon: <Copy className="h-4 w-4" />, onClick: () => { void handleDuplicate(quote); } },
     ];
     if (quote.status === 'draft') {
       items.push({ label: 'Versturen', icon: <Send className="h-4 w-4" />, onClick: () => handleSend(quote) });

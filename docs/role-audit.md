@@ -1,3 +1,28 @@
+## APP-CLEAN-2b — dode knoppen in dashboard, marketing, SEO, offertes + void zet voorraad terug — 12 oktober 2026
+
+2026-10-12 APP-CLEAN-2b (chat-Claude, go van Akke 21:22 "doorknallen"; een eerste run liep vast midden in de batch, en die half-af wijzigingen zijn nagelezen en afgewerkt).
+
+**Testtransactie VanXcel 16-03:** door de vastgelopen run om 21:17 op `voided` gezet (reden in `voided_reason`), met Akkes bevestiging dat het een test was. Die void zette de voorraad niet terug (bug hieronder). De VanXcel 500W Powerstation staat op 4; of dat fysiek klopt, beslist Akke, dus niet blind gecorrigeerd.
+
+**Code (frontend):**
+- Dashboard/gezondheidsscore: Orders leest nu `?status=`, Products leest `?stock=out|low` (gaat vóór de bewaarde filter). De juridische links wijzen naar `?section=legal` in plaats van het genegeerde `?tab=legal`.
+- AI-coach: de knop "open visual editor" ging naar het niet-bestaande `/admin/storefront/edit` (404) en gaat nu naar `?section=design`. De 👍/👎-knoppen zonder opslag zijn weg.
+- Offertes: "Kopiëren" maakt een nieuwe concept-offerte met dezelfde klant, regels, notities en korting via de bestaande `createQuote`, en opent die.
+- Import: de nep-knop "AI mapping" (alleen een spinner) is weg. Retour: de permanent uitgeschakelde knop "Genereer label · Fase 3" is weg.
+- Marketing: campagne-"Bewerken" ging naar een 404-route en opent nu de bestaande `CampaignDialog` in bewerkmodus (`updateCampaign`). Op CampaignDetail doet "Vernieuwen" nu echt een refetch, en "Verzenden" vraagt eerst een bevestiging (onomkeerbaar) en roept dan `sendCampaign` aan. In de contenthistoriek opent "Bekijken" het item (campagne → detail, rest → bibliotheek) en werkt "Verwijderen" met bevestiging, alleen voor draft/failed/pending. "Kopiëren" is weg. AI-inzichten zijn klikbaar: lage voorraad → producten, de rest → `/admin/marketing?new=campaign`, wat de nieuwe-campagnedialoog opent. Kalenderkaarten tonen geen nep-klikaffordance meer.
+- SEO: de FAQ-knop en de FAQ-suggesties zijn verborgen tot er een generator is. De terugval-toast "Actie: x" is weg. "Bekijk product" en "Bekijk categorie" linken echt door.
+- i18n: nieuwe keys in alle 5 talen (`admin.campaignDetail.confirm_send_*`, `admin.marketing.contentHistoryList.delete_*`).
+
+**DB:** migratie `20261012213000_app_clean_2b_pos_void_restores_stock.sql`, via de connector toegepast. `handle_pos_refund_stock` zet nu ook terug bij `voided` vanuit `completed`, nooit dubbel (refunded↔voided). Gedragstest in een zichzelf terugdraaiend blok op de Powerstation: 4 → verkoop 3 → void 4 → refund erna 4. Nagelezen: stock 4 en 1 transactie, er is niets blijven hangen.
+
+**Bewust niet gewijzigd:** de AI-snelknoppen social/e-mail landen op het tabblad "Maken", waar die tools staan. Dat is acceptabel.
+
+**Checks:** tsc 33 = ongewijzigd, suite 615/615, i18n-pariteit volledig. Puur frontend plus één DB-functie: geen edge-deploy.
+
+**Open:** 2c (bol-detailpagina, 18 dode knoppen), 2d (ads "binnenkort" verbergen, 15 dode bestanden met nepdata weg, CI-check op knoppen zonder handler).
+
+---
+
 ## APP-CLEAN-2a — Kassa: PIN zonder kaartlezer registreerde een nep-betaling — 12 oktober 2026
 
 2026-10-12 APP-CLEAN-2a (chat-Claude, sweep op go van Akke 21:06 "doorpakken").

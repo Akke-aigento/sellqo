@@ -19,6 +19,8 @@ interface CampaignCardProps {
   campaign: EmailCampaign;
   onDelete: (id: string) => void;
   onSend: (id: string) => void;
+  /** APP-CLEAN-2b: opent de bestaande CampaignDialog; de oude /edit-route bestond niet (404). */
+  onEdit?: (campaign: CampaignCardProps['campaign']) => void;
 }
 
 const statusConfig: Record<CampaignStatus, { labelKey: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
@@ -30,7 +32,7 @@ const statusConfig: Record<CampaignStatus, { labelKey: string; variant: 'default
   cancelled: { labelKey: 'admin.marketing.campaignCard.status.geannuleerd', variant: 'destructive' },
 };
 
-export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) {
+export function CampaignCard({ campaign, onDelete, onSend, onEdit }: CampaignCardProps) {
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const navigate = useNavigate();
@@ -73,10 +75,12 @@ export function CampaignCard({ campaign, onDelete, onSend }: CampaignCardProps) 
               </DropdownMenuItem>
               {campaign.status === 'draft' && (
                 <>
-                  <DropdownMenuItem onClick={() => navigate(`/admin/marketing/campaigns/${campaign.id}/edit`)}>
-                    <Edit className="mr-2 h-4 w-4" />
-                    {t('common.edit')}
-                  </DropdownMenuItem>
+                  {onEdit && (
+                    <DropdownMenuItem onClick={() => onEdit(campaign)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      {t('common.edit')}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={() => onSend(campaign.id)}>
                     <Send className="mr-2 h-4 w-4" />
                     {t('admin.marketing.campaignCard.nu_verzenden')}

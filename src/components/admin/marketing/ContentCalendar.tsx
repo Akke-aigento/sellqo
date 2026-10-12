@@ -30,7 +30,8 @@ function ContentItemCard({ item }: { item: CalendarContentItem }) {
   const icon = item.platform ? platformIcons[item.platform.toLowerCase()] : <Sparkles className="h-3 w-3" />;
   
   return (
-    <div className="p-2 rounded-md bg-card border text-xs hover:shadow-md transition-shadow cursor-pointer group">
+    // APP-CLEAN-2b: zag eruit als een knop (cursor/hover) maar deed niets; nu gewoon een kaart.
+    <div className="p-2 rounded-md bg-card border text-xs">
       <div className="flex items-center gap-1.5 mb-1">
         <span className="text-muted-foreground">{icon}</span>
         <span className="font-medium truncate flex-1">{item.title}</span>
