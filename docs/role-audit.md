@@ -1,3 +1,31 @@
+## SELLQO-INDEXNOW-1 — IndexNow-sleutelbestand voor sellqo.app — 12 oktober 2026
+
+2026-10-12 SELLQO-INDEXNOW-1 (Claude Code, opdracht van Akke 12/10 17:06 "alles zelf doen wat je kan"). Eén statisch bestand, geen code, geen DB, geen edge functions.
+
+### Root cause
+
+Akke Insights meldt na elke vindbaarheidsscan nieuwe en gewijzigde pagina's aan Bing en de andere IndexNow-zoekmachines. Voor sellqo.app faalde dat met 404: het sleutelbestand dat eigendom bewijst, ontbrak.
+
+### Uitgevoerd
+
+- `public/ca5f4dca369ad346c551c8e8f0b6baf7.txt` — inhoud is enkel de sleutel (`sites.indexnow_key` van SellQo in Insights).
+
+### Security-keuzes
+
+n.v.t.: de sleutel is per definitie publiek (IndexNow vraagt dat hij op het domein staat) en geeft enkel het recht om URL's van sellqo.app te melden.
+
+### Gedeelde-paden-waarschuwing
+
+Geen gedeeld pad geraakt. Custom frontends en storefronts merken niets; het bestand bestaat enkel op sellqo.app.
+
+### Verificatie
+
+Na publish: `https://sellqo.app/ca5f4dca369ad346c551c8e8f0b6baf7.txt` geeft 200 met de sleutel (natrek via pg_net vanuit Insights).
+
+### Bewust ongemoeid / Vervolg
+
+Geen changelog, doc_article of nieuwsbriefitem: niet zichtbaar voor tenants. Niet hernoemen of verwijderen.
+
 ## SELLQO-INSIGHTS-1 — Akke Insights op sellqo.app + echt contactformulier — 11 oktober 2026
 
 2026-10-11 SELLQO-INSIGHTS-1 (Claude Code, go van Akke 11/10 21:17). Puur frontend, geen DB, geen edge functions.
