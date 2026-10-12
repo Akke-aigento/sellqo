@@ -1,3 +1,19 @@
+## SEC-INVITE-1 (mitigatie) — databasetrigger zolang de functie-fix niet live staat — 13 oktober 2026
+
+2026-10-13 ~00:00 (chat-Claude). De deploy van SEC-INVITE-1 en SEC-TENANT-1 kon niet: de Lovable-agent weigerde met "workspace is out of credits". Om het account-overname-lek toch dicht te zetten: migratie `20261013000000_sec_invite_1_mitigation.sql`, via de connector toegepast (query_database kost geen Lovable-credits).
+
+**Trigger `sec_invite_block_existing_accounts`** (BEFORE INSERT OR UPDATE op team_invitations, SECURITY DEFINER): weigert een rij die bruikbaar wordt voor create-invite-account (exact diens check: niet aanvaard, niet revoked/rejected, niet verlopen) wanneer het e-mailadres al een auth-account heeft. Dat dekt een nieuwe uitnodiging (ook via de service-role-insert van send-team-invitation), het ompersen van het e-mailadres, en het heropwekken van een oude ingetrokken/verlopen/aanvaarde uitnodiging. Dat laatste is reëel: Zona Dorata (admin Sander) heeft een ingetrokken uitnodiging naar een adres van Akke. Aanvaarden en intrekken blijven vrij.
+
+**Gedragstest** (zichzelf terugdraaiend DO-blok): bestaand=BLOCKED, nieuw adres=ok, ompersen=BLOCKED, heropwekken revoked=BLOCKED, heropwekken expired=BLOCKED, intrekken=ok. Nagelezen: 13 rijen, 0 pending, 0 testrijen.
+
+**Misbruik-audit:** alle 13 uitnodigingen ooit zijn legitiem (eigen winkels en bekende personen). Geen spoor van misbruik.
+
+**Bijwerking:** bestaande SellQo-gebruikers kunnen tijdelijk niet in een (ander) team uitgenodigd worden.
+
+**Opruimen** na de deploy van create-invite-account (GET-stempel "SEC-INVITE-1"): `DROP TRIGGER sec_invite_block_existing_accounts ON public.team_invitations; DROP FUNCTION public.sec_invite_block_existing_accounts();`
+
+---
+
 ## SEC-TENANT-1 — cross-tenant gaten in 15 edge functions gedicht — 13 oktober 2026
 
 2026-10-13 SEC-TENANT-1 (chat-Claude, zelfstandig; backend-sweep, elke vondst zelf nagelezen).
