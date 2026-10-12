@@ -102,7 +102,16 @@ const saveMandateFromIntent = async (supabase: any, stripe: Stripe, intent: Stri
   }
 };
 
+// AI-CRED-1: neveneffectvrije versiestempel om een deploy te bewijzen (GET doet niets anders).
+const WEBHOOK_VERSION = "AI-CRED-1";
+
 serve(async (req) => {
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: WEBHOOK_VERSION }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
   try {
     logStep("Webhook received");
 
