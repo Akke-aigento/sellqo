@@ -17,6 +17,8 @@
 - `external_reviews` laten staan. Een eigen frontend zou erop kunnen luisteren.
 - `RealtimeActivityFeed` luistert op `campaign_sends`, maar die tabel zit niet in de publicatie, dus die feed is nooit live geweest.
 
+**Nameting.** Tussen 22:24 en 22:31 UTC liep de cleanup-DELETE 6 keer, samen +91 ms, dus ±15 ms per keer (was 1.080 ms).
+
 **Kost:** 0 credits (alles via query_database). Meet over een paar dagen opnieuw op `pg_stat_statements` of in Watchtower /kosten.
 
 ## PROMO-FIX-1 — automatische korting "eerste bestelling" gaf iedereen korting — 13 oktober 2026
