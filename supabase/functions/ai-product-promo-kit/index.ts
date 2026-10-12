@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -38,6 +40,13 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // AI-CRED-3: neveneffectvrije versiestempel om een deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "AI-CRED-3" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
@@ -66,6 +75,34 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // AI-CRED-3: deze functie was volledig gratis (tot 3 AI-calls per run).
+    // Tekst = 3 credits (zoals ai-generate-email), elk beeld = 5 (zoals ai-generate-image),
+    // pas afgeboekt vlak voor de beeldcall; zonder credits volgt alleen de tekst.
+    const supabaseCredits = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+    // BILLING-ENFORCE-1: in leesmodus geen AI (zoals de andere AI-functies).
+    await requireBillingState(supabaseCredits, auth, tenantId, 'ai_assistant');
+
+    const chargeCredits = async (credits: number, part: string, model: string) => {
+      const { data, error } = await supabaseCredits.rpc('use_ai_credits', {
+        p_tenant_id: tenantId,
+        p_credits: credits,
+        p_feature: 'product_promo_kit',
+        p_model: model,
+        p_metadata: { part, productId },
+      });
+      if (error) console.error('use_ai_credits failed:', error.message);
+      return !error && data === true;
+    };
+    if (!(await chargeCredits(3, 'text', 'google/gemini-3-flash-preview'))) {
+      return new Response(
+        JSON.stringify({ error: 'Onvoldoende AI credits' }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -219,6 +256,9 @@ Antwoord ALLEEN met een JSON object in dit exacte format (geen markdown, geen ba
     // Generate enhanced and new images if requested
     if (generateImages && productImageUrl) {
       try {
+        if (!(await chargeCredits(5, 'image_enhanced', 'google/gemini-2.5-flash-image-preview'))) {
+          throw new Error('Onvoldoende AI credits voor beeld');
+        }
         // Generate enhanced image with lifestyle setting
         const enhancePrompt = `Transform this product photo into a professional marketing lifestyle image. 
 Add an appealing ${tone === 'casual' ? 'relaxed home' : tone === 'professional' ? 'clean studio' : tone === 'urgent' ? 'dynamic promotional' : 'playful colorful'} background setting.
@@ -262,6 +302,9 @@ Make it look like a high-end advertisement.`;
       }
 
       try {
+        if (!(await chargeCredits(5, 'image_generated', 'google/gemini-2.5-flash-image-preview'))) {
+          throw new Error('Onvoldoende AI credits voor beeld');
+        }
         // Generate completely new marketing image
         const generatePrompt = `Create a stunning marketing advertisement image for: ${productName}.
 ${productDescription ? `Product: ${productDescription}` : ''}

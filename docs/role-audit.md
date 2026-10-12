@@ -1,3 +1,20 @@
+## AI-CRED-3 — AI-functies die gratis liepen nu op credits (of gelogd) — 12 oktober 2026
+
+2026-10-12 AI-CRED-3 (chat-Claude, go van Akke 12/10 20:47 "knallen").
+
+**Recon:** grep op `use_ai_credits` over alle `ai-*`-functies, daarna per functie gecontroleerd of er een LLM-call in zat (gateway/fetch) en wie de aanroeper is. Correctie op de eerste recon: `ai-product-field-assistant` trok wél af, maar ná het AI-antwoord en met een losse lees-dan-schrijf (racy), niet via `use_ai_credits`. `ai-proactive-monitor`, `ai-build-knowledge-index`, `ai-business-coach` en `ai-marketing-context` doen geen LLM-call, dus daar gaat niets af. `ai-help-assistant` blijft gratis (support).
+
+**Wijzigingen:**
+- `ai-product-field-assistant`: de nabetaling (log-insert + handmatige update) is vervangen door één `use_ai_credits` (feature `product_field_assistant`, 1 of 2 credits). Betalen-na-succes blijft; het is nu atomair en de vrijstelling zit in de DB-functie.
+- `ai-product-promo-kit` (was volledig gratis, tot 3 AI-calls): 3 credits vooraf voor de tekst (anders 402) en 5 per beeld, vlak vóór elke beeldcall. Zonder credits wordt het beeld overgeslagen en volgt alleen de tekst. Feature `product_promo_kit` met part text/image_enhanced/image_generated. Nieuw: `requireBillingState` (leesmodus = geen AI, zoals de andere AI-functies).
+- `ai-optimize-marketplace-content` (was gratis en kende geen winkel): `tenantId` uit de body, met als terugval de enige winkel van de gebruiker voor oudere app-builds. Daarnaast lidmaatschapscheck, `requireRole`, `requireBillingState` en 1 credit (`marketplace_optimize`). Frontend `useMarketplaceListing` stuurt nu `tenantId` mee.
+- `ai-learn-from-feedback`: 0 credits, wel gelogd (`learn_from_feedback`). SellQo leert, de klant betaalt niet.
+- Alle vier: GET-versiestempel "AI-CRED-3" als deploybewijs.
+
+**Checks:** suite 615/615, tsc 33 = ongewijzigd, esbuild-syntaxcheck ok op alle gewijzigde functies. `deno check` kan hier niet (deno.land/esm.sh niet bereikbaar uit de sandbox); de boot ná de deploy (GET-stempel) is het bewijs. De lintfout op field-assistant regel 195 (`any`) bestond al.
+
+---
+
 ## AI-CRED-2 — credits toekennen bij terugkeer na betalen (webhook-onafhankelijk) — 12 oktober 2026
 
 2026-10-12 AI-CRED-2 (chat-Claude, go van Akke 12/10 20:35).

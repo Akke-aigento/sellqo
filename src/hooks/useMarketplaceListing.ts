@@ -100,6 +100,7 @@ export function useMarketplaceListing() {
     try {
       const { data, error } = await supabase.functions.invoke('ai-optimize-marketplace-content', {
         body: {
+          tenantId: currentTenant.id, // AI-CRED-3
           product: {
             id: product.id,
             name: product.name,

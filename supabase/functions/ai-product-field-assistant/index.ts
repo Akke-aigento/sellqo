@@ -62,6 +62,13 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // AI-CRED-3: neveneffectvrije versiestempel om een deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "AI-CRED-3" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -309,30 +316,18 @@ Antwoord ALLEEN met de JSON array, geen extra tekst.`;
     const data = await response.json();
     const generatedText = data.choices?.[0]?.message?.content?.trim() || "";
 
-    // Log usage & deduct credits
-    await supabase.from("ai_usage_log").insert({
-      tenant_id: tenantId,
-      feature: "product_field_assistant",
-      credits_used: creditsNeeded,
-      model_used: "google/gemini-3-flash-preview",
-      metadata: { fieldType, action, language },
+    // AI-CRED-3: afboeken + loggen in één atomaire call (was: los log-insert +
+    // lees-dan-schrijf op credits_used, raceconditie bij gelijktijdige calls).
+    // Betalen-na-succes blijft: pas hier, nadat de AI geantwoord heeft.
+    // use_ai_credits kent de vrijstelling zelf (aftrek 0, wel gelogd).
+    const { error: creditErr } = await supabase.rpc("use_ai_credits", {
+      p_tenant_id: tenantId,
+      p_credits: creditsNeeded,
+      p_feature: "product_field_assistant",
+      p_model: "google/gemini-3-flash-preview",
+      p_metadata: { fieldType, action, language },
     });
-
-    if (!isUnlimited) {
-      // Deduct credits properly
-      const { data: currentCredits } = await supabase
-        .from("tenant_ai_credits")
-        .select("credits_used")
-        .eq("tenant_id", tenantId)
-        .single();
-
-      if (currentCredits) {
-        await supabase
-          .from("tenant_ai_credits")
-          .update({ credits_used: currentCredits.credits_used + creditsNeeded })
-          .eq("tenant_id", tenantId);
-      }
-    }
+    if (creditErr) console.error("use_ai_credits failed:", creditErr.message);
 
     // Handle description field: parse JSON with SEO data
     if (fieldType === "description" && action !== "generate_variations") {

@@ -20,6 +20,13 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // AI-CRED-3: neveneffectvrije versiestempel om een deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "AI-CRED-3" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -113,6 +120,16 @@ Analyze the changes and extract learning patterns.`
         });
 
         if (analysisResponse.ok) {
+          // AI-CRED-3: SellQo leert hier zelf bij; de klant betaalt daar niet voor.
+          // 0 credits, wel gelogd, zodat het verbruiksoverzicht compleet is.
+          const { error: logErr } = await supabase.rpc('use_ai_credits', {
+            p_tenant_id: tenantId,
+            p_credits: 0,
+            p_feature: 'learn_from_feedback',
+            p_model: 'google/gemini-2.5-flash',
+            p_metadata: { contentType },
+          });
+          if (logErr) console.error('use_ai_credits log failed:', logErr.message);
           const analysisData = await analysisResponse.json();
           const toolCall = analysisData.choices?.[0]?.message?.tool_calls?.[0];
           if (toolCall?.function?.arguments) {

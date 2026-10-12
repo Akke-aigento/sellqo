@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,6 +23,8 @@ interface OptimizeRequest {
   };
   marketplace: 'bol_com' | 'amazon' | 'shopify' | 'woocommerce' | 'ebay';
   language?: string;
+  /** AI-CRED-3: de winkel waarvoor dit gebeurt (oudere app-builds sturen hem niet mee). */
+  tenantId?: string;
 }
 
 interface OptimizedContent {
@@ -37,10 +41,34 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // AI-CRED-3: neveneffectvrije versiestempel om een deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "AI-CRED-3" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
-    await authenticateRequest(req);
-    const { product, marketplace, language = 'nl' }: OptimizeRequest = await req.json();
+    const auth = await authenticateRequest(req);
+    const { product, marketplace, language = 'nl', tenantId: bodyTenantId }: OptimizeRequest = await req.json();
+
+    // AI-CRED-3: deze functie kende geen winkel en was dus gratis voor elke ingelogde
+    // gebruiker. Nu: winkel uit de body, of — voor oudere app-builds zonder tenantId —
+    // de enige winkel van de gebruiker. Dan rol, leesmodus en credits zoals elders.
+    const tenantId = bodyTenantId ?? (auth.tenant_ids.length === 1 ? auth.tenant_ids[0] : null);
+    if (!tenantId) {
+      return new Response(
+        JSON.stringify({ error: 'tenantId is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    if (!auth.is_platform_admin && auth.user_id !== 'service_role' && !auth.tenant_ids.includes(tenantId)) {
+      throw new AuthError('No access to this tenant', 403);
+    }
+    requireRole(auth, tenantId, ['tenant_admin', 'staff', 'marketing']);
+    const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    await requireBillingState(supabase, auth, tenantId, 'ai_assistant');
     
     if (!product?.name) {
       return new Response(
@@ -54,6 +82,20 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'AI service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { data: hasCredits, error: creditErr } = await supabase.rpc('use_ai_credits', {
+      p_tenant_id: tenantId,
+      p_credits: 1,
+      p_feature: 'marketplace_optimize',
+      p_model: 'google/gemini-2.5-flash',
+      p_metadata: { marketplace, productId: product.id },
+    });
+    if (creditErr || !hasCredits) {
+      return new Response(
+        JSON.stringify({ error: 'Onvoldoende AI credits' }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
