@@ -77,6 +77,12 @@ jobs:
       - name: Meldingsbronnen
         run: node scripts/check-notification-sources.mjs
 
+      # APP-CLEAN-2: knoppen en menu-items zonder werking. Op 12-10-2026 vond een
+      # sweep er 30 (18 op de bol-detailpagina) plus een kassaknop die een nep-
+      # kaartbetaling registreerde. Baseline per bestand; elke nieuwe dode knop faalt.
+      - name: Knoppen zonder werking
+        run: node scripts/check-dead-buttons.mjs
+
       # 4. Capacitor-pariteit. De native manifesten (twee gradle-bestanden en de
       #    Podfile) zijn gegenereerd en worden alleen bijgewerkt als iemand
       #    `npx cap sync` draait en de uitkomst commit. Voor Android gebeurde dat

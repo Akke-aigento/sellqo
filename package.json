@@ -13,6 +13,7 @@
     "check:mail": "node scripts/check-mail-addresses.mjs",
     "check:messages": "node scripts/check-customer-messages-writes.mjs",
     "check:notifications": "node scripts/check-notification-sources.mjs",
+    "check:buttons": "node scripts/check-dead-buttons.mjs",
     "test:watch": "vitest",
     "predev": "bunx tsx scripts/generate-sitemap.ts",
     "prebuild": "bunx tsx scripts/generate-sitemap.ts"

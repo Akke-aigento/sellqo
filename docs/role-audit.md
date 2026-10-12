@@ -1,3 +1,17 @@
+## CI-BUTTONS-1 — CI-poortwachter op knoppen zonder werking — 13 oktober 2026
+
+2026-10-12/13 CI-BUTTONS-1 (chat-Claude, zelfstandig, voorstel uit de APP-CLEAN-2-sweep).
+
+**Wat:** `scripts/check-dead-buttons.mjs` (+ `npm run check:buttons`, CI-stap "Knoppen zonder werking"). Een heuristiek in de stijl van check-notification-sources: een `<Button>`/`<DropdownMenuItem>` zonder onClick/onSelect/asChild/href/to/form/disabled/type="submit"/spread is dood, tenzij hij direct in een `…Trigger asChild>`, in `<Link>`/`<a>` of als `trigger={…}`-prop staat. `onClick={() => {}}` telt altijd als dood. Voorbeelden in commentaar tellen niet.
+
+**Baseline** `.dead-buttons-baseline.json`: 2 bekende, aanvaardbare gevallen. TrialExpiredBlocker "Kiezen" staat in een klikbare Card. AIEmailPlanner toont een CTA-voorbeeld met pointer-events-none. Elk bestand dat er meer krijgt, of een nieuw bestand met een vondst, laat CI falen.
+
+**Kalibratie:** eerste run 170 vondsten → kale booleaanse props (`asChild`, `disabled`) gemist; daarna 12 → Link-omhulling, commentaar en trigger-props; daarna 2, beide terecht. Test `src/test/deadButtons.test.ts` (4 cases, positief en negatief).
+
+**Checks:** tsc 33 = ongewijzigd, suite 621/621.
+
+---
+
 ## APP-CLEAN-2d — dode bestanden met nepdata weg, nep-e-mailschakelaars, ads-KPI's eerlijk — 12/13 oktober 2026
 
 2026-10-12 APP-CLEAN-2d (chat-Claude, zelfstandig: Akke 21:52 "simpele dingen zelfstandig oplossen, steeds testen").
