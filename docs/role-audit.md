@@ -1,3 +1,21 @@
+## SCHEMA-SCAN tool — `scripts/schema-scan/scan.py` — 13 oktober 2026
+
+Dit is de herbruikbare versie van de scans die SCHEMA-FIX-1 t/m 4 opleverden. Het script legt `select`, geneste relaties, `insert/update/upsert`-sleutels, filters en `.from()`-tabellen naast een `cols.json` van het live schema. De SQL om dat bestand te maken staat in de kop van het script.
+
+Stand na deze nacht: 13 select-/table-vondsten en ±30 write-/filter-vondsten. Allemaal bekend en ondergebracht in één van drie groepen:
+
+- **Bevroren of beslissing:**
+  - `storefront-api`/`storefront-resolve` (`store_name` enz.);
+  - `storefront_config`;
+  - `refund-invoice` `tenant_settings`;
+  - `marketplace_sync_error`;
+  - `usePlatformPromotions`;
+  - `confirm-platform-bank-payment`.
+- **Ongebruikte koppelingen:** eBay, Amazon, Odoo-orders/klanten, Meta-catalogus, `sync-bol-products`, `test-sync-rules`. Er staat live alleen een bol-koppeling.
+- **Vals alarm:** strings in de code (`opslaan`, `niet`).
+
+Het script is geen CI-poort, omdat het de live kolomlijst nodig heeft. Draai het na elke batch die queries raakt.
+
 ## SCHEMA-FIX-4 — geneste selects op niet-bestaande kolommen (klantaccount, AI-coach, promoties) — 13 oktober 2026
 
 Derde schemascan, nu op kolommen binnen geneste relaties (`order_items(…)`, `products(…)`). Bij een fout in een geneste kolom faalt de hele query; Supabase geeft dan `data: null`. Elke fix hieronder is een **alias**, dus de vorm van het antwoord blijft identiek:
