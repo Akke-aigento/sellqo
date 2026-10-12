@@ -1,3 +1,22 @@
+## BILL-LOCK-1 — Astra in leesmodus met betaalpopup; planlabels Sander-winkels gelijkgetrokken — 12 oktober 2026
+
+2026-10-12 BILL-LOCK-1 (chat-Claude, go van Akke 12/10 19:39). Twee data-ingrepen via de connector + één frontendbestand.
+
+**Aanleiding.** Astra Sleep (Marawan, Ozay Group) heeft de oktobercyclus (€35,09, due 08/10) niet betaald. De cyclus staat op `mode=mandate`, maar er bestaat geen enkel mandaat in `customer_payment_mandates`: er wordt dus nooit automatisch geïnd. September is om dezelfde reden kwijtgescholden (01/10). Akke: Astra moet in leesmodus met een popup die zegt dat hij moet betalen.
+
+**Data (live, met snapshot + `admin_billing_actions`):**
+- `billing_cycles` 00a5ebd8-f98f-4086-84f0-0f88aa071a41: `grace_until` 2026-10-22 → 2026-10-11. `resolveBillingState` geeft daarmee `restricted` vanaf 12/10. App (`useBillingState`) en server (`loadBillingState` in `billingGuard`) rekenen vers uit de cycli: geen deploy nodig. Opheffen = cyclus settled (betalen), of `grace_until` terugzetten (snapshot in de log).
+- Mancini Milano + Benny Rich: `tenants.subscription_plan` (professional resp. free) → `starter`, gelijk aan `tenant_subscriptions.plan_id`. Alleen een label: feature-gating leest het abonnement (`useTenant`). Zona Dorata klopte al (free/free).
+- Sander-winkels: `billing_on_hold` stond al aan sinds BILL-FIX-1 (11/10). `trial_end` 27/10 bij Mancini/Benny bewust NIET gewist: `decideTrialEnd` heeft een verlopen trial nodig om bij het uitzetten van de schakelaar de facturatie te starten.
+
+**Code:** nieuw `src/components/admin/BillingLockDialog.tsx`, gemount in `AdminLayout` naast `TrialExpiredBlocker`. Toont één keer per sessie per winkel (sessionStorage) een dialog bij `restricted`/`suspended`, met "Nu betalen" (vaste betaallink), "Naar facturatie" en "Sluiten". Hergebruikt de bestaande keys `billing.state.*` + `common.close`: geen nieuwe i18n. Platform-admins, demo en vrijgestelde winkels zien hem nooit (useBillingState geeft daar `active`).
+
+**Verificatie:** cyclus nagelezen na de UPDATE (grace_until 2026-10-11). tsc: 33 bestaande fouten vóór en na, nul in de gewijzigde bestanden. `src/test/billFix1.test.ts` 21/21 groen.
+
+**Open:** (1) Native app toont de popup pas na een nieuwe build. (2) Wortel van het Astra-probleem: `mode=mandate` zonder mandaat; de mandaatflow (backlog "blanco cheque", `mandate_setup_tokens.context`) moet nagekeken worden. (3) Zona Dorata staat op het free-plan: zet Akke de schakelaar later uit, dan geeft `decideTrialEnd` `skip_free` en start er geen facturatie.
+
+---
+
 ## SELLQO-FEED-1 — productfeed (Google Shopping/Meta/Pinterest) werkt weer — 12 oktober 2026
 
 2026-10-12 SELLQO-FEED-1 (Claude Code, go van Akke 12/10 19:09 "doorpakken"). Eén edge function, één additieve kolom.

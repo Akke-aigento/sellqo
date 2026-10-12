@@ -21,6 +21,7 @@ import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import { useAdminBottomNavHidden } from '@/hooks/useAdminBottomNav';
 import { useTapToDismissKeyboard } from '@/hooks/useKeyboardDismiss';
 import { BillingStateBanner } from './BillingStateBanner';
+import { BillingLockDialog } from './BillingLockDialog';
 import { cn } from '@/lib/utils';
 
 function AdminLayoutContent() {
@@ -104,6 +105,8 @@ function AdminLayoutContent() {
       <OnboardingWizard />
       {/* Trial expired blocker - blocks access when trial ends */}
       <TrialExpiredBlocker />
+      {/* BILL-LOCK-1: popup één keer per sessie zodra de winkel in leesmodus staat. */}
+      <BillingLockDialog />
       {/* AI Help Widget - floating chat assistant, only on dashboard */}
       {isDashboard && <AIHelpWidget />}
       {/* Mobile bottom navigation — APP-KEYBOARD-1: weg zolang je typt, anders
