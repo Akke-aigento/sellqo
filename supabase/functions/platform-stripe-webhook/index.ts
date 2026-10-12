@@ -4,6 +4,7 @@ import Stripe from "https://esm.sh/stripe@18.5.0";
 import { handleSubscriptionChargeWebhook } from "../_shared/subscriptionCharge.ts";
 import { notifyPayout, type PayoutClient } from "../_shared/payoutNotification.ts";
 import { reusablePaymentMethod, wantsMandateSave } from "../_shared/linkMandate.ts";
+import { grantAiCreditPurchase } from "../_shared/aiCreditPurchase.ts";
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -168,9 +169,19 @@ serve(async (req) => {
       // CHECKOUT EVENTS
       // ============================================
 
-      case "checkout.session.completed": {
+      case "checkout.session.completed":
+      case "checkout.session.async_payment_succeeded": {
         const session = event.data.object as Stripe.Checkout.Session;
-        logStep("Checkout completed", { sessionId: session.id });
+        logStep("Checkout completed", { sessionId: session.id, type: event.type });
+        // AI-CRED-1: bijgekochte AI-credits toekennen (idempotent).
+        const result = await grantAiCreditPurchase(supabase, session as never, logStep);
+        if (typeof result === "object") {
+          // 500 → Stripe probeert opnieuw; de aankoop staat dan terug op pending.
+          return new Response(JSON.stringify({ error: "ai_credits_grant_failed" }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
         break;
       }
 

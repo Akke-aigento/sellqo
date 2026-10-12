@@ -1,3 +1,21 @@
+## AI-CRED-1 — AI-credits: maandreset, bijkopen werkt, eigen winkels vrij, verbruik altijd gelogd — 12 oktober 2026
+
+2026-10-12 AI-CRED-1 (chat-Claude, go van Akke 12/10 20:14 "moet inderdaad goed lopen").
+
+**Recon (live):** (1) `reset_monthly_ai_credits()` had geen cron: de resetdata stonden op februari tot juli en iedereen zat op 10 credits, ongeacht het plan (starter 50 / pro 500 / enterprise 5000). (2) `create-ai-credits-checkout` neemt betaling aan, maar `platform-stripe-webhook` logde `checkout.session.completed` alleen: betaald = geen credits, geen betaalbewijs. Er waren nog 0 aankopen, dus niemand gedupeerd. (3) `use_ai_credits` kende alleen `is_internal_tenant`, waardoor VanXcel, Loveke en Fonske (billing_exempt) betaalden. (4) Twee versies van `use_ai_credits`: de korte logde niets, waardoor ai_usage_log in totaal maar 6 regels telde.
+
+**Data (live, snapshot per tenant in `admin_billing_actions`, "AI-CRED-1: maandreset aangezet"):** alle 13 rijen `tenant_ai_credits` op `credits_reset_at = now()` gezet en daarna `reset_monthly_ai_credits()` gedraaid: 13 gereset, iedereen op het plan-aantal met teller 0, volgende reset 12/11. VanXcel houdt z'n 200 gekochte credits. Cron `reset-monthly-ai-credits-daily` (jobid 285, `10 3 * * *`) roept de SQL-functie direct aan, zonder edge function en zonder secret.
+
+**Migratie** `20261012200000_ai_cred_1_use_ai_credits.sql`, via de connector toegepast en nagelezen in pg_proc: de lange versie stelt internal OF billing_exempt vrij (aftrek 0, wel gelogd met `exempt:true`), gebruikt `FOR UPDATE` en logt altijd. De korte versie delegeert met feature `unspecified`. De signaturen zijn ongewijzigd. Gedragstest in een zichzelf terugdraaiend DO-blok: VanXcel 5 credits → toegestaan, 0 afgetrokken, gelogd als exempt. Benny via de korte versie 3 credits → afgetrokken en gelogd. Benny 999 → geweigerd. Daarna nagelezen: niets bewaard.
+
+**Code:** nieuw `_shared/aiCreditPurchase.ts` (puur `decideAiCreditGrant` + `grantAiCreditPurchase`). `platform-stripe-webhook` verwerkt nu `checkout.session.completed` en `checkout.session.async_payment_succeeded`. Idempotent: een conditionele update pending → completed, alleen de winnaar kent toe via `add_ai_credits` en maakt een `platform_invoices`-betaalbewijs (status paid, payment_type ai_credits), zoals confirm-platform-bank-payment doet. Faalt de toekenning, dan gaat de aankoop terug op pending en antwoordt de webhook 500, zodat Stripe opnieuw probeert. Test `src/test/aiCreditPurchase.test.ts` 7/7, volledige suite 615/615, tsc 33 = ongewijzigd.
+
+**Deploy:** alleen `platform-stripe-webhook` importeert het nieuwe _shared-bestand (grep). Deploy-only via de Lovable-agent nadat main gepusht is.
+
+**Open:** (a) Stripe-dashboard checken of het webhook-endpoint van platform-stripe-webhook geabonneerd is op `checkout.session.completed` + `checkout.session.async_payment_succeeded`. Zonder dat komt er niets binnen. (b) Echte proefaankoop van het kleinste pakket (€4,99) op een niet-vrijgestelde winkel als gedragsbewijs, want de webhook is ondertekend en dus niet neveneffectvrij aan te roepen. (c) Er komt geen echte SellQo-factuur in `invoices` voor een creditaankoop, alleen een platform_invoices-betaalbewijs. Dat geldt ook voor de overschrijvingsroute; aparte batch. (d) Ongeveer 9 AI-functies trekken nog geen credits af (business coach, product-field-assistant, …): per functie bepalen of dat zo hoort.
+
+---
+
 ## BILL-LOCK-1 — Astra in leesmodus met betaalpopup; planlabels Sander-winkels gelijkgetrokken — 12 oktober 2026
 
 2026-10-12 BILL-LOCK-1 (chat-Claude, go van Akke 12/10 19:39). Twee data-ingrepen via de connector + één frontendbestand.
