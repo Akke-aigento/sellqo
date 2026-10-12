@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 import type { 
   AIActionSuggestion, 
   AISuggestionType, 
@@ -37,6 +38,7 @@ function parseAISuggestion(row: any): AIActionSuggestion {
 }
 
 export function useAIActions() {
+  const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
 
@@ -157,16 +159,21 @@ export function useAIActions() {
 
       if (error) throw error;
 
-      // Trigger the actual action based on type
+      // APP-CLEAN-3b: de suggestie wordt als afgehandeld gemarkeerd; de eigenlijke actie
+      // (inkooporder, campagne) maakt de gebruiker in het juiste scherm. Tot 12-10-2026
+      // meldde dit "succesvol verwerkt" terwijl er alleen een console.log draaide.
       const suggestion = parseAISuggestion(data);
-      await executeAction(suggestion);
+      const followUpUrl = followUpFor(suggestion);
 
-      return suggestion;
+      return { suggestion, followUpUrl };
     },
-    onSuccess: (data) => {
+    onSuccess: ({ suggestion, followUpUrl }) => {
       queryClient.invalidateQueries({ queryKey: ['ai-action-suggestions'] });
-      toast.success('Actie uitgevoerd!', {
-        description: `${data.title} is succesvol verwerkt.`,
+      toast.success('Gemarkeerd als afgehandeld', {
+        description: followUpUrl
+          ? `${suggestion.title}: maak de actie zelf aan in het volgende scherm.`
+          : suggestion.title,
+        action: followUpUrl ? { label: 'Openen', onClick: () => navigate(followUpUrl) } : undefined,
       });
     },
     onError: (error) => {
@@ -266,42 +273,17 @@ export function useAIActions() {
   };
 }
 
-// Execute the actual action based on suggestion type
-async function executeAction(suggestion: AIActionSuggestion): Promise<void> {
-  const actionData = suggestion.action_data as Record<string, unknown>;
-  const modifications = suggestion.user_modifications || {};
-  const finalData = { ...actionData, ...modifications };
-
+// APP-CLEAN-3b: waar de gebruiker de eigenlijke actie doet. Er wordt hier niets
+// automatisch aangemaakt (dat deden de oude create*-functies ook niet: alleen console.log).
+function followUpFor(suggestion: AIActionSuggestion): string | null {
   switch (suggestion.suggestion_type) {
     case 'purchase_order':
-      await createPurchaseOrder(finalData);
-      break;
-    case 'marketing_campaign':
-      await createMarketingCampaign(finalData);
-      break;
-    case 'customer_winback':
-      await createWinbackCampaign(finalData);
-      break;
     case 'stock_alert':
-      // Just acknowledge - the PO creation is separate
-      break;
+      return '/admin/purchase-orders';
+    case 'marketing_campaign':
+    case 'customer_winback':
+      return '/admin/marketing?new=campaign';
     default:
-      console.log('Action type not implemented:', suggestion.suggestion_type);
+      return null;
   }
-}
-
-async function createPurchaseOrder(data: Record<string, unknown>): Promise<void> {
-  // Create PO via edge function or direct insert
-  // This will be expanded based on existing PO creation logic
-  console.log('Creating purchase order:', data);
-}
-
-async function createMarketingCampaign(data: Record<string, unknown>): Promise<void> {
-  // Create campaign via existing email campaign flow
-  console.log('Creating marketing campaign:', data);
-}
-
-async function createWinbackCampaign(data: Record<string, unknown>): Promise<void> {
-  // Create winback campaign
-  console.log('Creating winback campaign:', data);
 }

@@ -30,6 +30,12 @@ function generateOGM(source: string): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // APP-CLEAN-3b: neveneffectvrije versiestempel om een deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "APP-CLEAN-3b" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -66,6 +72,16 @@ serve(async (req) => {
       .eq("id", return_id)
       .single();
     if (retErr || !ret) throw new Error(`Return not found: ${retErr?.message}`);
+
+    // APP-CLEAN-3b: de schakelaar "Creditnota automatisch e-mailen" (tenant_return_settings.
+    // credit_note_auto_email) werd genegeerd: useReturns en process-refund sturen altijd
+    // auto_send_email: true mee. Staat hij uit, dan mailt deze functie nooit.
+    const { data: returnSettings } = await admin
+      .from("tenant_return_settings")
+      .select("credit_note_auto_email")
+      .eq("tenant_id", ret.tenant_id)
+      .maybeSingle();
+    const sendEmail = auto_send_email && returnSettings?.credit_note_auto_email !== false;
 
     // AUTH-TRIAGE-2 — deze functie stond volledig open, en `verify_jwt` staat
     // voor haar op false. Eén `return_id` was genoeg om een creditnota aan te
@@ -244,7 +260,7 @@ serve(async (req) => {
       await fetch(`${url}/functions/v1/generate-credit-note`, {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${sr}`, "apikey": sr },
-        body: JSON.stringify({ credit_note_id: cn.id, auto_send_email }),
+        body: JSON.stringify({ credit_note_id: cn.id, auto_send_email: sendEmail }),
       });
     } catch (docErr) {
       console.warn("[create-credit-note-from-return] doc generation failed", errMsg(docErr));

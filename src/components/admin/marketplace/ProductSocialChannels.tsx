@@ -97,8 +97,14 @@ export function ProductSocialChannels({ product, onRefresh }: ProductSocialChann
         
         if (error) throw error;
       } else {
-        // For other channels (Google Shopping, etc.) - placeholder for future implementation
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // APP-CLEAN-3b: hier stond een nep-wachttijd van 1 s gevolgd door "Sync gestart".
+        // Google Shopping, Pinterest en TikTok halen de productfeed (generate-product-feed)
+        // zelf op; er valt niets te pushen. Eerlijk zeggen in plaats van te doen alsof.
+        toast({
+          title: 'Geen sync nodig',
+          description: 'Dit kanaal haalt je productfeed zelf op (meestal dagelijks). Wijzigingen verschijnen bij de volgende ophaling.',
+        });
+        return;
       }
 
       toast({

@@ -1467,6 +1467,7 @@ export default function POSTerminalPage() {
         transaction={lastTransaction}
         autoPrint={terminal?.settings?.auto_print === true}
         openCashDrawer={lastPaymentWasCash}
+        footerText={terminal?.settings?.receipt_footer}
       />
 
       {/* Session Report Dialog */}

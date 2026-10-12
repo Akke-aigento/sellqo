@@ -86,16 +86,24 @@ export function BolCampaignEditForm({ campaign, onClose, adGroupId }: Props) {
 
       // Add negative keywords if any and adGroupId exists
       if (negKeywords.length > 0 && adGroupId) {
+        // APP-CLEAN-3b: de velden stonden niet in `payload`, waardoor ads-bolcom-manage
+        // elke keer 400 gaf, en het resultaat werd niet gecontroleerd ("bijgewerkt"
+        // terwijl er geen enkel negatief keyword bij bol terechtkwam).
+        const failed: string[] = [];
         for (const nk of negKeywords) {
-          await supabase.functions.invoke('ads-bolcom-manage', {
+          const { data: res, error: nkError } = await supabase.functions.invoke('ads-bolcom-manage', {
             body: {
               tenant_id: campaign.tenant_id,
               action: 'add_negative_keyword',
-              adgroup_id: adGroupId,
-              keyword: nk.keyword,
-              match_type: nk.matchType,
+              payload: { adgroup_id: adGroupId, keyword: nk.keyword, match_type: nk.matchType },
             },
           });
+          if (nkError || (res as { error?: string } | null)?.error) failed.push(nk.keyword);
+        }
+        if (failed.length > 0) {
+          toast.error(`Campagne bijgewerkt, maar ${failed.length} negatieve keyword(s) niet toegevoegd: ${failed.join(', ')}`);
+          qc.invalidateQueries({ queryKey: ['bolcom-campaign', campaign.id] });
+          return;
         }
       }
 

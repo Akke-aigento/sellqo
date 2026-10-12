@@ -98,12 +98,15 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
         add_negative: { action: 'add_negative_keyword', payload: { adgroup_id: rec.entity_id, keyword: rec.entity_name, match_type: 'exact' } },
       };
 
+      // APP-CLEAN-3b: het resultaat werd niet gecontroleerd en onbekende types werden
+      // ook als "toegepast" gemeld. Nu alleen bij echt succes.
       const mapped = actionMap[rec.action_type];
-      if (mapped) {
-        await supabase.functions.invoke('ads-bolcom-manage', {
-          body: { tenant_id: tenantId, action: mapped.action, payload: mapped.payload },
-        });
-      }
+      if (!mapped) throw new Error('Deze suggestie kan (nog) niet automatisch worden toegepast');
+      const { data: res, error } = await supabase.functions.invoke('ads-bolcom-manage', {
+        body: { tenant_id: tenantId, action: mapped.action, payload: mapped.payload },
+      });
+      if (error) throw error;
+      if ((res as { error?: string } | null)?.error) throw new Error((res as { error: string }).error);
 
       return rec.id;
     },
@@ -111,7 +114,7 @@ export function CampaignAIAnalysis({ campaignId, tenantId }: Props) {
       toast.success('Suggestie toegepast');
       setSuggestions(prev => prev.map(s => s.id === id ? { ...s, status: 'accepted' } : s));
     },
-    onError: () => toast.error('Kon suggestie niet toepassen'),
+    onError: (e: Error) => toast.error('Kon suggestie niet toepassen', { description: e?.message }),
   });
 
   const handleReject = (id: string) => {

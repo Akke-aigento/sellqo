@@ -25,6 +25,8 @@ interface ReceiptDialogProps {
   onPrintComplete?: () => void;
   autoPrint?: boolean;
   openCashDrawer?: boolean;
+  /** APP-CLEAN-3b: "Voettekst bon" uit de kassa-instellingen; werd opgeslagen maar nooit getoond. */
+  footerText?: string;
 }
 
 export function ReceiptDialog({ 
@@ -34,6 +36,7 @@ export function ReceiptDialog({
   onPrintComplete,
   autoPrint = false,
   openCashDrawer: shouldOpenDrawer = false,
+  footerText,
 }: ReceiptDialogProps) {
   const { currentTenant } = useTenant();
   const receiptRef = useRef<HTMLDivElement>(null);
@@ -87,11 +90,14 @@ export function ReceiptDialog({
   };
 
   const handleOpenCashDrawer = async () => {
+    // APP-CLEAN-3b: openCashDrawer stuurt een printopdracht (de meeste bonprinters
+    // openen de lade bij een print). Of de lade echt opengaat, weet de browser niet;
+    // "Kaslade geopend" beloofde meer dan we kunnen zien.
     const success = await openCashDrawer();
     if (success) {
-      toast.success('Kaslade geopend');
+      toast.success('Opdracht om de kaslade te openen verstuurd');
     } else {
-      toast.error('Kon kaslade niet openen');
+      toast.error('Kon geen opdracht naar de printer sturen');
     }
   };
 
@@ -160,6 +166,7 @@ export function ReceiptDialog({
               ref={receiptRef}
               transaction={transaction}
               storeName={currentTenant?.name}
+              footerText={footerText || undefined}
             />
           </div>
         </ScrollArea>

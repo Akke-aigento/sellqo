@@ -1,3 +1,28 @@
+## APP-CLEAN-3b — admin: geen nep-succes meer, genegeerde instellingen gerespecteerd — 13 oktober 2026
+
+2026-10-13 APP-CLEAN-3b (chat-Claude, zelfstandig). Bron: tweede Explore-sweep, elke vondst zelf nagelezen.
+
+**Nep-succes weg:**
+- AI-actiecentrum (`useAIActions`): "Actie uitgevoerd! … succesvol verwerkt" terwijl `createPurchaseOrder`/`createMarketingCampaign`/`createWinbackCampaign` alleen `console.log` deden. Nu "Gemarkeerd als afgehandeld" met een knop "Openen" naar het scherm waar je het zelf doet (inkooporders of `/admin/marketing?new=campaign`). De nep-functies zijn verwijderd.
+- `BolCampaignEditForm`: negatieve keywords stonden niet in `payload`. `ads-bolcom-manage` gaf daardoor altijd 400, en "Campagne bijgewerkt" verscheen toch. Nu `payload` en een resultaatcontrole per keyword, met een foutmelding als er een mislukt.
+- `CampaignAIAnalysis`: het resultaat van de bol-call werd genegeerd en onbekende types werden als "toegepast" gemeld. Nu alleen succes bij echt succes.
+- `ProductSocialChannels`: Google Shopping/Pinterest/TikTok deden `setTimeout(1000)` en meldden "Sync gestart". Die kanalen halen de feed zelf op; nu staat er een eerlijke melding "Geen sync nodig".
+- `MetaShopWizard`: "+ Nieuwe catalogus aanmaken" maakte niets aan (catalog_id null, de naam werd nergens gebruikt). Vervangen door een verwijzing naar Meta Commerce Manager; ook een business zonder catalogi toont nu die uitleg.
+- Kassa: de melding "Kaslade geopend" heet nu "Opdracht om de kaslade te openen verstuurd" (de browser kan niet weten of de lade echt opengaat).
+
+**Genegeerde instellingen:**
+- `create-credit-note-from-return` (**edge**): `tenant_return_settings.credit_note_auto_email` werd genegeerd, omdat useReturns en process-refund altijd `auto_send_email: true` sturen. Staat de schakelaar uit, dan mailt de functie nu nooit. process-refund is bewust niet aangeraakt (geldpad). GET-versiestempel "APP-CLEAN-3b".
+- Kassa "Voettekst bon" (`receipt_footer`) gaat nu via ReceiptDialog naar POSReceipt (die kon het al tonen).
+- Webshop-instellingen: de provider-keuze voor de nieuwsbrief (theme `newsletter_provider`, nergens gelezen) is vervangen door een link naar Instellingen → Nieuwsbrief, waar de echte `tenant_newsletter_config.provider` staat.
+
+**Links:** ReturnDetail → `?section=return-settings` (was `/settings/returns`, wat op "Mijn profiel" uitkwam). BulkChannelsTab → `?tab=channels` (was het genegeerde `social`). Alle `?section=`/`?tab=`-deeplinks naar instellingen, studio en connect zijn daarna nagelopen: alle geldig.
+
+**Niet gedaan (beslissingen):** de loyaliteitsmodule is stuk door een schema-mismatch (aanmaken faalt altijd, 0 programma's), dus de niveau-fix is teruggedraaid tot er een keuze is. Inkooporders/leveranciers: geen pagina's, links geven 404, 0 gebruik. De chatbot-sectie en de schakelaar voor juridische pagina's: er bestaat geen widget.
+
+**Checks:** tsc 33 = ongewijzigd, suite 625/625, i18n-pariteit volledig, check:buttons 2, esbuild-syntax ok op de edge function.
+
+---
+
 ## APP-CLEAN-3a — ingebouwde webshop: valse beloftes en kapotte links — 13 oktober 2026
 
 2026-10-12/13 APP-CLEAN-3a (chat-Claude, zelfstandig). Bron: tweede Explore-sweep (36 vondsten), elke vondst zelf nagelezen.

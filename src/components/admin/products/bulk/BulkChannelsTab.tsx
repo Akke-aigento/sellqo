@@ -70,7 +70,7 @@ export function BulkChannelsTab({ state, onChange, enabledFields, onToggleField 
               <div className="text-sm text-muted-foreground">
                 <p>{t('admin.products.bulk.bulkChannelsTab.geen_social_channels_verbonden')}</p>
                 <Button variant="link" asChild className="p-0 h-auto">
-                  <Link to="/admin/connect?tab=social">
+                  <Link to="/admin/connect?tab=channels">
                     <ExternalLink className="mr-1 h-3 w-3" />
                     {t('admin.products.bulk.bulkChannelsTab.verbind_kanalen_in_sellqo_connect')}
                   </Link>

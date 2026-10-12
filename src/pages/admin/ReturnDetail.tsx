@@ -541,7 +541,7 @@ export default function ReturnDetailPage() {
                 <Lock className="h-4 w-4" />
                 <AlertDescription className="text-xs">
                   Inspectie eerst afronden, of wijzig in{' '}
-                  <button className="underline text-primary" onClick={() => navigate('/admin/settings/returns')}>
+                  <button className="underline text-primary" onClick={() => navigate('/admin/settings?section=return-settings')}>
                     Instellingen → Retouren
                   </button>{' '}
                   → "Inspectie vereist voor refund"

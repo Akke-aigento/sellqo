@@ -53,8 +53,6 @@ export function MetaShopWizard({ open, onOpenChange, channelType, onSuccess }: M
   const [businesses, setBusinesses] = useState<(MetaBusiness & { catalogs: MetaCatalog[] })[]>([]);
   const [selectedBusiness, setSelectedBusiness] = useState<string | null>(null);
   const [selectedCatalog, setSelectedCatalog] = useState<string | null>(null);
-  const [createNewCatalog, setCreateNewCatalog] = useState(false);
-  const [newCatalogName, setNewCatalogName] = useState('SellQo Products');
   const [syncAllProducts, setSyncAllProducts] = useState(true);
 
   const config = CHANNEL_CONFIG[channelType as keyof typeof CHANNEL_CONFIG] || CHANNEL_CONFIG.facebook_shop;
@@ -132,23 +130,13 @@ export function MetaShopWizard({ open, onOpenChange, channelType, onSuccess }: M
 
   const handleSelectBusiness = (businessId: string) => {
     setSelectedBusiness(businessId);
-    const business = businesses.find(b => b.id === businessId);
-    if (business?.catalogs && business.catalogs.length > 0) {
-      setStep('catalog');
-    } else {
-      setCreateNewCatalog(true);
-      setStep('options');
-    }
+    // APP-CLEAN-3b: ook zonder catalogi naar de catalogusstap; die legt uit dat je er
+    // eerst een maakt in Meta Commerce Manager (aanmaken vanuit SellQo bestaat niet).
+    setStep('catalog');
   };
 
-  const handleSelectCatalog = (catalogId: string | 'new') => {
-    if (catalogId === 'new') {
-      setCreateNewCatalog(true);
-      setSelectedCatalog(null);
-    } else {
-      setCreateNewCatalog(false);
-      setSelectedCatalog(catalogId);
-    }
+  const handleSelectCatalog = (catalogId: string) => {
+    setSelectedCatalog(catalogId);
     setStep('options');
   };
 
@@ -167,7 +155,7 @@ export function MetaShopWizard({ open, onOpenChange, channelType, onSuccess }: M
           channel_type: channelType as string,
           channel_name: config.name,
           business_id: selectedBusiness,
-          catalog_id: createNewCatalog ? null : selectedCatalog,
+          catalog_id: selectedCatalog,
           credentials: {
             accessToken,
             businessId: selectedBusiness,
@@ -181,9 +169,6 @@ export function MetaShopWizard({ open, onOpenChange, channelType, onSuccess }: M
         .single();
 
       if (error) throw error;
-
-      // If creating new catalog, we'd call Meta API here
-      // For now, user needs to create catalog in Meta Commerce Manager
 
       setStep('complete');
       toast.success(`${config.name} verbonden!`);
@@ -312,13 +297,16 @@ export function MetaShopWizard({ open, onOpenChange, channelType, onSuccess }: M
                     </Label>
                   </div>
                 ))}
-                <div className="flex items-center space-x-2 p-3 border rounded-lg hover:bg-muted/50 border-dashed">
-                  <RadioGroupItem value="new" id="new-catalog" />
-                  <Label htmlFor="new-catalog" className="flex-1 cursor-pointer">
-                    <span className="font-medium">+ Nieuwe catalogus aanmaken</span>
-                  </Label>
-                </div>
               </RadioGroup>
+              {/* APP-CLEAN-3b: "+ Nieuwe catalogus aanmaken" maakte niets aan (catalog_id bleef
+                  null, de naam werd nergens gebruikt). Eerlijk doorverwijzen naar Meta. */}
+              <p className="text-sm text-muted-foreground">
+                Nog geen catalogus? Maak er een aan in{' '}
+                <a href="https://business.facebook.com/commerce/" target="_blank" rel="noopener noreferrer" className="underline">
+                  Meta Commerce Manager
+                </a>{' '}
+                en start deze wizard daarna opnieuw.
+              </p>
             </div>
           )}
 
@@ -330,18 +318,6 @@ export function MetaShopWizard({ open, onOpenChange, channelType, onSuccess }: M
                   Configureer hoe je producten worden gesynchroniseerd
                 </p>
               </div>
-              
-              {createNewCatalog && (
-                <div className="space-y-2">
-                  <Label htmlFor="catalog-name">Catalogus naam</Label>
-                  <Input
-                    id="catalog-name"
-                    value={newCatalogName}
-                    onChange={(e) => setNewCatalogName(e.target.value)}
-                    placeholder="Bijv. Mijn Webshop Producten"
-                  />
-                </div>
-              )}
 
               <div className="space-y-3">
                 <div className="flex items-start space-x-2">

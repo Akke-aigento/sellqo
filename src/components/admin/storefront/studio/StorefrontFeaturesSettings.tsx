@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { 
   Mail, 
@@ -37,7 +38,6 @@ import {
 import { useStorefront } from '@/hooks/useStorefront';
 import { toast } from 'sonner';
 import {
-  NEWSLETTER_PROVIDERS,
   COMPANY_FIELD_OPTIONS,
   IMAGE_ZOOM_OPTIONS,
   VARIANT_STYLE_OPTIONS,
@@ -217,27 +217,12 @@ export function StorefrontFeaturesSettings() {
 
             {formData.newsletter_enabled && (
               <>
-                <div className="space-y-2">
-                  <Label>Provider</Label>
-                  <Select
-                    value={formData.newsletter_provider}
-                    onValueChange={(value) => updateField('newsletter_provider', value as any)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {NEWSLETTER_PROVIDERS.map((provider) => (
-                        <SelectItem key={provider.value} value={provider.value}>
-                          <div>
-                            <div className="font-medium">{provider.label}</div>
-                            <div className="text-xs text-muted-foreground">{provider.description}</div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* APP-CLEAN-3b: de provider-keuze hier (theme newsletter_provider) werd door niets gelezen;
+                    inschrijvingen volgen tenant_newsletter_config.provider uit Instellingen → Nieuwsbrief. */}
+                <p className="text-sm text-muted-foreground">
+                  Welke nieuwsbriefdienst je gebruikt (intern, Mailchimp, Klaviyo) stel je in bij{' '}
+                  <Link to="/admin/settings?section=newsletter" className="underline">Instellingen → Nieuwsbrief</Link>.
+                </p>
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
