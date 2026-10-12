@@ -1,3 +1,37 @@
+## SELLQO-FEED-1 — productfeed (Google Shopping/Meta/Pinterest) werkt weer — 12 oktober 2026
+
+2026-10-12 SELLQO-FEED-1 (Claude Code, go van Akke 12/10 19:09 "doorpakken"). Eén edge function, één additieve kolom.
+
+### Root cause
+
+1. `supabase/functions/generate-product-feed/index.ts` selecteerde `tenants.company_name`, `website_url` en `default_currency`. Die kolommen bestaan niet (live: `name`, `currency`, `custom_domain`). De select faalde dus altijd en de functie antwoordde voor élke tenant `404 {"error":"Tenant not found"}` (nulmeting 12-10 via pg_net met VanXcel: 404).
+2. Uitverkoop: `g:price` en `g:sale_price` kregen allebei `price`; de oorspronkelijke prijs (`compare_at_price`) werd nooit meegegeven.
+3. Productlinks waren altijd `<site>/product/<slug>`, terwijl de custom frontends elk een eigen pad hebben (Loveke en VanXcel `/shop/<slug>`, Mancini `/streetwear/products/<slug>`, BennyRich `/product/<slug>`).
+4. Verborgen producten (`hide_from_storefront`) en producten zonder voorraadopvolging (`track_inventory = false`) werden niet correct behandeld.
+
+### Uitgevoerd
+
+- `generate-product-feed/index.ts`: select op bestaande kolommen (`name, slug, currency, product_url_template`) + `tenant_theme_settings.use_custom_frontend`; productlink via `tenants.product_url_template` (`{slug}`), anders `https://sellqo.app/shop/<tenant>/product/<slug>`; custom frontend zonder template → `422` met uitleg in plaats van verkeerde links. Prijs = `compare_at_price` en `sale_price` = `price` bij een echte korting, ook in de Meta-CSV (nieuwe kolom `sale_price`) en Pinterest. `hide_from_storefront` eruit gefilterd, `track_inventory = false` = op voorraad.
+- Migratie `20261012190000_sellqo_feed_1_product_url_template.sql`: `tenants.product_url_template text` (nullable) + templates voor Loveke, VanXcel, Mancini en BennyRich (paden nagekeken in hun repo's), enkel waar nog leeg. Toegepast via query_database en nagetrokken: 4 rijen gevuld.
+
+### Security-keuzes
+
+Kolom staat op `tenants`, niet op de gedeelde storefront-tabellen, en bevat enkel een publieke URL. De functie blijft `verify_jwt=false` (feeds worden door Google/Meta zonder login opgehaald) en leest met de service-role enkel publieke productgegevens van actieve, niet-verborgen producten.
+
+### Gedeelde-paden-waarschuwing
+
+`generate-product-feed` wordt door geen enkele custom frontend aangeroepen (enkel de admin bouwt de feed-URL). `storefront-api`, `storefront-customer-api` en de gedeelde tabellen zijn niet geraakt; de eerste wet blijft gerespecteerd.
+
+### Verificatie
+
+Syntax via esbuild; kolomnamen tegen `information_schema` nagekeken; na deploy: feed voor VanXcel opgehaald via pg_net (zie hieronder).
+
+### Bewust ongemoeid / Vervolg
+
+- Geen changelog, nieuwsbrief of doc_article: Google Shopping, Meta en Pinterest staan in SellQo Connect nog op **Binnenkort** (doc_article `beschikbare-koppelingen-sellqo-connect`), dus geen tenant kan de feed vandaag koppelen. Wordt het kanaal opengezet, dan horen changelog, doc_article en een instelveld voor de productlink in de admin bij die batch.
+- Astra Sleep en Zona Dorata hebben nog geen template (productpad niet nagekeken) → hun feed geeft 422 tot iemand het invult.
+- Voor onze eigen winkels kan de feed-URL nu rechtstreeks in Google Merchant Center (gratis producten in Shopping): `…/functions/v1/generate-product-feed?tenant_id=<id>&format=google_shopping`.
+
 ## SELLQO-INDEXNOW-1 — IndexNow-sleutelbestand voor sellqo.app — 12 oktober 2026
 
 2026-10-12 SELLQO-INDEXNOW-1 (Claude Code, opdracht van Akke 12/10 17:06 "alles zelf doen wat je kan"). Eén statisch bestand, geen code, geen DB, geen edge functions.
