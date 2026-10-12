@@ -24,7 +24,7 @@ Kolom staat op `tenants`, niet op de gedeelde storefront-tabellen, en bevat enke
 
 ### Verificatie
 
-Syntax via esbuild; kolomnamen tegen `information_schema` nagekeken; na deploy: feed voor VanXcel opgehaald via pg_net (zie hieronder).
+Syntax via esbuild; kolomnamen tegen `information_schema` nagekeken. Deploy via de Lovable-agent (deploy-only, 0,8 credits; agent-commit 502bbfe raakt enkel het gegenereerde `src/integrations/supabase/types.ts`). Vingerafdruk na deploy via pg_net: VanXcel → `200`, geldige RSS met 27 items en links `https://vanxcel.com/shop/<slug>`; Astra Sleep (custom frontend zonder template) → `422 Product link not configured`. Uitverkooplogica niet live te testen: geen enkel actief product heeft vandaag `compare_at_price > price`.
 
 ### Bewust ongemoeid / Vervolg
 
