@@ -1,3 +1,16 @@
+## SCHEMA-FIX-4 — geneste selects op niet-bestaande kolommen (klantaccount, AI-coach, promoties) — 13 oktober 2026
+
+Derde schemascan, nu op kolommen binnen geneste relaties (`order_items(…)`, `products(…)`). Bij een fout in een geneste kolom faalt de hele query; Supabase geeft dan `data: null`. Elke fix hieronder is een **alias**, dus de vorm van het antwoord blijft identiek:
+
+- **`storefront-customer-api` `get_order`:** `order_items(… total …)` wordt `total:total_price`. Een ingelogde webshopklant kreeg bij het openen van een bestelling altijd "Order not found".
+- **`ai-business-coach` en `ai-proactive-monitor`:** `product_suppliers(cost_price)` wordt `cost_price:purchase_price`. De voorraadanalyse (stockalerts en herbestelvoorstellen) kreeg nooit producten binnen.
+- **`storefront-api` cart-promoties:** `products(image_url)` wordt `image_url:featured_image` voor bundels en cadeaupromoties. Die twee promotietypes konden nooit toegepast worden. Live staan er **0 actieve bundels en 0 actieve cadeaupromoties**, dus er verandert vandaag geen enkele prijs. Het wordt pas relevant als een winkel er een activeert.
+- **`useProductSuppliers`** (frontend): `image_url:featured_image`, `stock_quantity:stock`.
+
+**Deploy en checks:**
+- De 4 functies hebben de GET-stempel `SCHEMA-FIX-4`. Ze zijn **niet gedeployed**. Voor `storefront-api` is dat een deploy van de grote contractfunctie, dus die gaat apart en met een vingerafdruk.
+- Hercontrole: de scan van geneste kolommen geeft 0 vondsten. tsc 30.
+
 ## I18N-FIX-1 — kale vertaalkeys in de import en op de prijzenpagina, plus CI-poort — 13 oktober 2026
 
 **Probleem.** De productimport (FileUpload, PlatformSelect, PreviewValidation, FieldMappingStep, ImportResult, ImportWizard) toonde letterlijke key-paden zoals `import.drop_or_click`, `import.supported_formats`, `import.options`, `common.error` en `common.done`. Die keys bestonden in geen enkele taal. Hetzelfde gold voor `landing.pricing.availableAddons` op de publieke prijzenpagina.

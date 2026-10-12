@@ -249,6 +249,8 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // SCHEMA-FIX-4: versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SCHEMA-FIX-4' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -290,7 +292,7 @@ serve(async (req) => {
           product_suppliers (
             supplier_id,
             lead_time_days,
-            cost_price,
+            cost_price:purchase_price,
             suppliers (id, name)
           )
         `)

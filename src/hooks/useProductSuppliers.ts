@@ -20,7 +20,7 @@ export function useProductSuppliers(filters?: {
         .select(`
           *,
           supplier:suppliers(id, name, email, is_active),
-          product:products(id, name, sku, image_url, stock_quantity, price)
+          product:products(id, name, sku, image_url:featured_image, stock_quantity:stock, price)
         `)
         .eq("tenant_id", currentTenant.id);
 

@@ -162,6 +162,8 @@ async function sendVerificationEmail(
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  // SCHEMA-FIX-4: versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SCHEMA-FIX-4' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -320,7 +322,7 @@ serve(async (req) => {
         if (!orderId) throw new Error('order_id is required');
         const { data: order } = await supabase
           .from('orders')
-          .select('*, order_items(product_name, quantity, unit_price, total, product_image)')
+          .select('*, order_items(product_name, quantity, unit_price, total:total_price, product_image)')
           .eq('id', orderId).eq('tenant_id', tenant_id).eq('customer_email', customer.email).single();
         if (!order) throw new Error('Order not found');
         result = order;

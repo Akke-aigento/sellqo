@@ -1323,9 +1323,9 @@ async function calculatePromotions(supabase: any, tenantId: string, params: Reco
   ] = await Promise.all([
     supabase.from('volume_discounts').select('*, volume_discount_tiers(*)').eq('tenant_id', tenantId).eq('is_active', true),
     supabase.from('bogo_promotions').select('*').eq('tenant_id', tenantId).eq('is_active', true),
-    supabase.from('product_bundles').select('*, bundle_products(*, products(id, name, price, image_url))').eq('tenant_id', tenantId).eq('is_active', true),
+    supabase.from('product_bundles').select('*, bundle_products(*, products(id, name, price, image_url:featured_image))').eq('tenant_id', tenantId).eq('is_active', true),
     supabase.from('automatic_discounts').select('*').eq('tenant_id', tenantId).eq('is_active', true).order('priority', { ascending: true }),
-    supabase.from('gift_promotions').select('*, gift_product:products!gift_promotions_gift_product_id_fkey(id, name, price, image_url)').eq('tenant_id', tenantId).eq('is_active', true),
+    supabase.from('gift_promotions').select('*, gift_product:products!gift_promotions_gift_product_id_fkey(id, name, price, image_url:featured_image)').eq('tenant_id', tenantId).eq('is_active', true),
     supabase.from('discount_stacking_rules').select('*').eq('tenant_id', tenantId).eq('is_active', true),
     discount_code ? supabase.from('discount_codes').select('*').eq('tenant_id', tenantId).eq('code', discount_code).eq('is_active', true).maybeSingle() : { data: null },
     customer_id ? supabase.from('customer_group_members').select('customer_groups(*)').eq('customer_id', customer_id) : { data: [] },
@@ -4166,6 +4166,8 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  // SCHEMA-FIX-4: versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SCHEMA-FIX-4' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
