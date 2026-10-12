@@ -31,7 +31,6 @@ import {
   CheckCircle,
   ShoppingCart,
   Package,
-  Bell,
   Calculator,
   Building2,
   AlertTriangle,
@@ -74,9 +73,6 @@ export function ConnectMarketplaceDialog({
   const [autoSyncInventory, setAutoSyncInventory] = useState(true);
   const [safetyStock, setSafetyStock] = useState('0');
   const [lowStockThreshold, setLowStockThreshold] = useState('5');
-  const [emailNotifyNewOrders, setEmailNotifyNewOrders] = useState(false);
-  const [emailNotifySyncErrors, setEmailNotifySyncErrors] = useState(true);
-  const [emailNotifyLowStock, setEmailNotifyLowStock] = useState(false);
   
   // Sync progress
   const [syncProgress, setSyncProgress] = useState(0);
@@ -195,9 +191,6 @@ export function ConnectMarketplaceDialog({
           autoSyncInventory,
           safetyStock: parseInt(safetyStock),
           lowStockThreshold: parseInt(lowStockThreshold),
-          emailNotifyNewOrders,
-          emailNotifySyncErrors,
-          emailNotifyLowStock,
           importHistorical,
           historicalPeriodDays: importHistorical ? (historicalPeriod === 'all' ? 730 : parseInt(historicalPeriod)) : 0,
           // Odoo module settings
@@ -1189,32 +1182,9 @@ export function ConnectMarketplaceDialog({
                 </div>
               </div>
             )}
-
-            {/* Notifications */}
-            <div>
-              <h4 className="font-semibold mb-3 flex items-center gap-2">
-                <Bell className="w-4 h-4" />
-                Notificaties
-              </h4>
-              <div className="space-y-3 ml-6">
-                {(marketplaceType !== 'odoo' || odooModuleEcommerce) && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm">Email bij nieuwe orders</p>
-                    <Switch checked={emailNotifyNewOrders} onCheckedChange={setEmailNotifyNewOrders} />
-                  </div>
-                )}
-                <div className="flex items-center justify-between">
-                  <p className="text-sm">Email bij sync fouten</p>
-                  <Switch checked={emailNotifySyncErrors} onCheckedChange={setEmailNotifySyncErrors} />
-                </div>
-                {(marketplaceType !== 'odoo' || odooModuleEcommerce) && (
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm">Email bij lage voorraad</p>
-                    <Switch checked={emailNotifyLowStock} onCheckedChange={setEmailNotifyLowStock} />
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* APP-CLEAN-2d: blok "Notificaties" weg. De e-mailschakelaars werden opgeslagen in
+                settings.emailNotify*, maar geen enkele functie las ze. Meldingen lopen via de
+                centrale notificatie-instellingen. */}
           </div>
 
           <DialogFooter>

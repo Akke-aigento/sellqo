@@ -39,7 +39,7 @@ function formatCurrency(val: number) {
   return new Intl.NumberFormat('nl-NL', { style: 'currency', currency: 'EUR' }).format(val);
 }
 
-function ChangeIndicator({ value, inverse = false }: { value: number; inverse?: boolean }) {
+function ChangeIndicator({ value, inverse = false, unit = '%' }: { value: number; inverse?: boolean; unit?: string }) {
   const isPositive = inverse ? value < 0 : value > 0;
   const Icon = isPositive ? TrendingUp : TrendingDown;
   const color = isPositive ? 'text-green-600' : 'text-red-500';
@@ -47,7 +47,7 @@ function ChangeIndicator({ value, inverse = false }: { value: number; inverse?: 
   return (
     <span className={`flex items-center gap-1 text-xs font-medium ${color}`}>
       <Icon className="h-3 w-3" />
-      {value > 0 ? '+' : ''}{value.toFixed(1)}%
+      {value > 0 ? '+' : ''}{value.toFixed(1)}{unit}
     </span>
   );
 }
@@ -129,8 +129,8 @@ export default function AdsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title={t('admin.ads.totale_spend')} value={formatCurrency(kpis.spend)} change={kpis.spendChange} loading={isLoading} />
         <KPICard title={t('admin.ads.totale_omzet')} value={formatCurrency(kpis.revenue)} change={kpis.revenueChange} loading={isLoading} />
-        <KPICard title={t('admin.ads.blended_acos')} value={`${kpis.acos.toFixed(1)}%`} change={kpis.acosChange} inverse loading={isLoading} />
-        <KPICard title="ROAS" value={`${kpis.roas.toFixed(2)}x`} change={kpis.roasChange * 10} loading={isLoading} />
+        <KPICard title={t('admin.ads.blended_acos')} value={`${kpis.acos.toFixed(1)}%`} change={kpis.acosChange} inverse unit=" pp" loading={isLoading} />
+        <KPICard title="ROAS" value={`${kpis.roas.toFixed(2)}x`} change={kpis.roasChange} loading={isLoading} />
       </div>
 
       {/* Channel Breakdown */}
@@ -308,9 +308,9 @@ export default function AdsPage() {
 }
 
 function KPICard({
-  title, value, change, inverse = false, loading,
+  title, value, change, inverse = false, loading, unit,
 }: {
-  title: string; value: string; change: number; inverse?: boolean; loading: boolean;
+  title: string; value: string; change: number; inverse?: boolean; loading: boolean; unit?: string;
 }) {
   if (loading) {
     return (
@@ -328,7 +328,7 @@ function KPICard({
         <p className="text-sm text-muted-foreground">{title}</p>
         <div className="flex items-baseline gap-2 mt-1">
           <span className="text-2xl font-bold">{value}</span>
-          <ChangeIndicator value={change} inverse={inverse} />
+          <ChangeIndicator value={change} inverse={inverse} unit={unit} />
         </div>
       </CardContent>
     </Card>

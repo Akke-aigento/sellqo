@@ -163,7 +163,8 @@ export function useAdsOverview(period: AdsPeriod = 30) {
       spendChange: pctChange(current.spend, prev.spend),
       revenueChange: pctChange(current.revenue, prev.revenue),
       acosChange: acos - prevAcos,
-      roasChange: roas - prevRoas,
+      // APP-CLEAN-2d: was een absoluut verschil (0,5x) dat de pagina ×10 als "+5%" toonde.
+      roasChange: pctChange(roas, prevRoas),
     },
     bolConnection: bolConnectionQuery.data,
     chartData,

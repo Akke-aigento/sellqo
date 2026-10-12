@@ -1,3 +1,19 @@
+## APP-CLEAN-2d — dode bestanden met nepdata weg, nep-e-mailschakelaars, ads-KPI's eerlijk — 12/13 oktober 2026
+
+2026-10-12 APP-CLEAN-2d (chat-Claude, zelfstandig: Akke 21:52 "simpele dingen zelfstandig oplossen, steeds testen").
+
+**Verwijderd (14 bestanden, telkens 0 importers geverifieerd met grep op statische en dynamische imports):** de SEO-panelen SearchConsole/CompetitorAnalysis/CoreWebVitals/ScheduledAudits (Math.random, schreven naar de DB), ABTestingPanel ("Mock data"), ContentEngagementStats (hardgecodeerde trends), StatsGridWidget (+ export uit het ongebruikte `widgets/index.ts`), PlaceholderPage, DomainSettings (oud), CreditNotes, GiftCardDetail, GiftCardDesigns, ads/PlatformConnections, ads/CampaignsList. Zo kan niemand de nepdata per ongeluk opnieuw mounten.
+
+**ConnectMarketplaceDialog:** blok "Notificaties" weg. `emailNotify*` werd opgeslagen, maar door niets gelezen. De type-velden in `types/marketplace.ts` blijven staan, omdat bestaande connecties ze nog in `settings` hebben.
+
+**Ads-overzicht:** de ROAS-verandering was het absolute verschil (bv. 0,5x), getoond ×10 als "+5,0%". Nu een echte procentuele verandering (`pctChange`). De ACoS-verandering is een verschil in procentpunten en wordt nu als " pp" getoond in plaats van "%". De bol-adspagina deed het al juist (AbsChangeIndicator).
+
+**Bewust niet gedaan (beslissing Akke):** de "Binnenkort"-kanalen Amazon/Google/Meta in ads (sidebar, overzicht, productpagina) blijven zichtbaar. Ze zijn eerlijk gelabeld; tonen als roadmap of verbergen is een productkeuze.
+
+**Checks:** tsc 33 = ongewijzigd, suite 617/617, i18n-pariteit volledig, `vite build` geslaagd.
+
+---
+
 ## APP-CLEAN-2c — bol-detailpagina: 18 dode knoppen + instellingen-bug — 12 oktober 2026
 
 2026-10-12 APP-CLEAN-2c (chat-Claude, go van Akke 21:40 "knallen").
