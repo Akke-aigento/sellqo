@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.1"
   }
   public: {
     Tables: {
@@ -18278,6 +18278,7 @@ export type Database = {
           platform_newsletter_opt_in: boolean
           postal_code: string | null
           primary_color: string | null
+          product_url_template: string | null
           proforma_prefix: string | null
           proforma_start_number: number | null
           proforma_validity_days: number | null
@@ -18391,6 +18392,7 @@ export type Database = {
           platform_newsletter_opt_in?: boolean
           postal_code?: string | null
           primary_color?: string | null
+          product_url_template?: string | null
           proforma_prefix?: string | null
           proforma_start_number?: number | null
           proforma_validity_days?: number | null
@@ -18504,6 +18506,7 @@ export type Database = {
           platform_newsletter_opt_in?: boolean
           postal_code?: string | null
           primary_color?: string | null
+          product_url_template?: string | null
           proforma_prefix?: string | null
           proforma_start_number?: number | null
           proforma_validity_days?: number | null
