@@ -34,7 +34,9 @@
     "tag_input": {
       "placeholder": "Type a value and press Enter",
       "remove": "Remove {{value}}"
-    }
+    },
+    "error": "Error",
+    "done": "Done"
   },
   "auth": {
     "login": "Log in",
@@ -1584,7 +1586,19 @@
       "categories": "Product categories and subcategories",
       "orders": "Historical orders and payment status",
       "coupons": "Discount and coupon codes"
-    }
+    },
+    "drop_or_click": "Drop a file here or click to choose",
+    "supported_formats": "Supported formats: CSV, XLSX",
+    "select_source": "Choose the source",
+    "options": "Options",
+    "skip_errors_description": "Rows with errors are skipped; the rest is imported.",
+    "update_existing_description": "Existing records with the same key are updated instead of skipped.",
+    "skip": "Skip",
+    "row_one": "row",
+    "row_other": "rows",
+    "row": "Row",
+    "importing": "Importing…",
+    "more_errors": "more errors"
   },
   "checkout": {
     "securePayment": "Pay securely with",

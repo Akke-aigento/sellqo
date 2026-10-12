@@ -61,6 +61,11 @@ jobs:
       - name: i18n-pariteit
         run: node scripts/i18n-parity.mjs
 
+      # I18N-FIX-1: keys die de code opvraagt maar die nergens bestaan (toonden
+      # "import.drop_or_click" in de productimport). Pariteit ziet dat niet.
+      - name: Gebruikte vertaalkeys
+        run: node scripts/check-i18n-used-keys.mjs
+
       # MAIL-SENDER-1: op sellqo.app bestaat alleen info@; winkels gebruiken
       # <prefix>@mail.sellqo.app. Faalt op elk ander @sellqo.app-adres.
       - name: Mailadressen (alleen info@sellqo.app en *@mail.sellqo.app)

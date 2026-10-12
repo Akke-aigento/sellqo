@@ -34,7 +34,9 @@
     "tag_input": {
       "placeholder": "Typ een waarde en druk op Enter",
       "remove": "{{value}} verwijderen"
-    }
+    },
+    "error": "Fout",
+    "done": "Klaar"
   },
   "auth": {
     "login": "Inloggen",
@@ -1598,7 +1600,19 @@
       "categories": "Productcategorieën en subcategorieën",
       "orders": "Historische bestellingen en betaalstatus",
       "coupons": "Kortings- en couponcodes"
-    }
+    },
+    "drop_or_click": "Sleep een bestand hierheen of klik om te kiezen",
+    "supported_formats": "Ondersteunde formaten: CSV, XLSX",
+    "select_source": "Kies de bron",
+    "options": "Opties",
+    "skip_errors_description": "Rijen met fouten worden overgeslagen; de rest wordt geïmporteerd.",
+    "update_existing_description": "Bestaande records met dezelfde sleutel worden bijgewerkt in plaats van overgeslagen.",
+    "skip": "Overslaan",
+    "row_one": "rij",
+    "row_other": "rijen",
+    "row": "Rij",
+    "importing": "Bezig met importeren…",
+    "more_errors": "meer fouten"
   },
   "checkout": {
     "securePayment": "Veilig betalen met",

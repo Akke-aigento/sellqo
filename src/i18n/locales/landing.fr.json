@@ -360,7 +360,8 @@
             "Onboarding prioritaire"
           ]
         }
-      }
+      },
+      "availableAddons": "Modules complémentaires disponibles"
     },
     "faq": {
       "heading": "Questions fréquentes",

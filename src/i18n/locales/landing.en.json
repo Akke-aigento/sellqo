@@ -360,7 +360,8 @@
             "Priority onboarding"
           ]
         }
-      }
+      },
+      "availableAddons": "Available add-ons"
     },
     "faq": {
       "heading": "Frequently Asked Questions",

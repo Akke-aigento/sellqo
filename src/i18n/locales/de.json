@@ -62,7 +62,9 @@
     "tag_input": {
       "placeholder": "Wert eingeben und Enter drücken",
       "remove": "{{value}} entfernen"
-    }
+    },
+    "error": "Fehler",
+    "done": "Fertig"
   },
   "auth": {
     "login": "Anmelden",
@@ -1270,7 +1272,19 @@
       "categories": "Produktkategorien und Unterkategorien",
       "orders": "Frühere Bestellungen und Zahlungsstatus",
       "coupons": "Rabatt- und Gutscheincodes"
-    }
+    },
+    "drop_or_click": "Datei hierher ziehen oder klicken zum Auswählen",
+    "supported_formats": "Unterstützte Formate: CSV, XLSX",
+    "select_source": "Quelle wählen",
+    "options": "Optionen",
+    "skip_errors_description": "Zeilen mit Fehlern werden übersprungen; der Rest wird importiert.",
+    "update_existing_description": "Vorhandene Datensätze mit demselben Schlüssel werden aktualisiert statt übersprungen.",
+    "skip": "Überspringen",
+    "row_one": "Zeile",
+    "row_other": "Zeilen",
+    "row": "Zeile",
+    "importing": "Wird importiert…",
+    "more_errors": "weitere Fehler"
   },
   "checkout": {
     "securePayment": "Sicher bezahlen mit",

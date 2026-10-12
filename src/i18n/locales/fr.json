@@ -62,7 +62,9 @@
     "tag_input": {
       "placeholder": "Saisissez une valeur et appuyez sur Entrée",
       "remove": "Supprimer {{value}}"
-    }
+    },
+    "error": "Erreur",
+    "done": "Terminé"
   },
   "auth": {
     "login": "Connexion",
@@ -1270,7 +1272,19 @@
       "categories": "Catégories et sous-catégories",
       "orders": "Commandes passées et statut de paiement",
       "coupons": "Codes de réduction et coupons"
-    }
+    },
+    "drop_or_click": "Déposez un fichier ici ou cliquez pour choisir",
+    "supported_formats": "Formats pris en charge : CSV, XLSX",
+    "select_source": "Choisissez la source",
+    "options": "Options",
+    "skip_errors_description": "Les lignes en erreur sont ignorées ; le reste est importé.",
+    "update_existing_description": "Les enregistrements existants avec la même clé sont mis à jour au lieu d’être ignorés.",
+    "skip": "Ignorer",
+    "row_one": "ligne",
+    "row_other": "lignes",
+    "row": "Ligne",
+    "importing": "Importation…",
+    "more_errors": "erreurs supplémentaires"
   },
   "checkout": {
     "securePayment": "Payer en toute sécurité avec",

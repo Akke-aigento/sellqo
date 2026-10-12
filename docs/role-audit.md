@@ -1,3 +1,13 @@
+## I18N-FIX-1 — kale vertaalkeys in de import en op de prijzenpagina, plus CI-poort — 13 oktober 2026
+
+**Probleem.** De productimport (FileUpload, PlatformSelect, PreviewValidation, FieldMappingStep, ImportResult, ImportWizard) toonde letterlijke key-paden zoals `import.drop_or_click`, `import.supported_formats`, `import.options`, `common.error` en `common.done`. Die keys bestonden in geen enkele taal. Hetzelfde gold voor `landing.pricing.availableAddons` op de publieke prijzenpagina.
+
+**Opgelost.** 15 keys toegevoegd, in alle 5 talen (nl/en/de/fr/uk), plus `import.row_one/_other` voor de teller. Pariteit blijft volledig.
+
+**Nieuw: `scripts/check-i18n-used-keys.mjs`** (`npm run check:i18n-keys`, CI-stap "Gebruikte vertaalkeys"). Die controleert elke letterlijke `t('a.b')` zonder terugvaltekst tegen nl.json + landing.nl.json. Met een proefbestand getest: een ontbrekende key geeft exit 1.
+
+*Frontend: komt live bij de volgende publish (web) of de volgende native build (app).*
+
 ## APP-CLEAN-4 — nep-"herinnering verstuurd" weg, plus schemascans — 13 oktober 2026
 
 - `usePaymentReminders.sendReminder` is weg. Die mutatie maakte een `payment_reminders`-rij aan, zette `invoices.reminder_level` hoger en toonde de toast "Herinnering verstuurd", maar verstuurde geen mail (de aanroep van `send-payment-reminder` stond als TODO in commentaar, en die functie bestaat niet). Er waren geen aanroepers meer, maar zo kan het niet opnieuw ingeplugd worden. Herinneringen lopen via `process-invoice-dunning` (dagelijkse cron).
