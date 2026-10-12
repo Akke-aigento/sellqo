@@ -53,7 +53,7 @@ serve(async (req) => {
     // Get tenant
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('id, slug, name, store_name, logo_url, currency, country')
+      .select('id, slug, name, logo_url, currency, country') // RESOLVE-FIX-1: store_name bestaat niet; de hele select faalde
       .eq('id', domain.tenant_id)
       .single();
 
@@ -88,7 +88,7 @@ serve(async (req) => {
         data: {
           tenant_id: tenant.id,
           tenant_slug: tenant.slug,
-          tenant_name: tenant.store_name || tenant.name,
+          tenant_name: tenant.name,
           logo_url: tenant.logo_url,
           currency: tenant.currency || 'EUR',
           country: tenant.country || 'NL',
