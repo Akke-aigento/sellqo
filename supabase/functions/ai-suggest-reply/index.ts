@@ -26,6 +26,8 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SCHEMA-FIX-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -118,7 +120,7 @@ serve(async (req) => {
     // Get tenant info
     const { data: tenant } = await supabase
       .from('tenants')
-      .select('name, support_email, support_phone')
+      .select('name, support_email, phone') // SCHEMA-FIX-1: support_phone bestaat niet; de hele select faalde
       .eq('id', tenant_id)
       .single();
 
@@ -197,7 +199,7 @@ ${userPrefsSection}
 
 ## Contactgegevens
 ${tenant?.support_email ? `E-mail: ${tenant.support_email}` : ''}
-${tenant?.support_phone ? `Telefoon: ${tenant.support_phone}` : ''}
+${tenant?.phone ? `Telefoon: ${tenant.phone}` : ''}
 
 ## Regels
 - Antwoord alleen op basis van beschikbare informatie

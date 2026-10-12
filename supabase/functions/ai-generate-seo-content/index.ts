@@ -125,6 +125,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SCHEMA-FIX-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const { tenantId, type, productIds, categoryIds, entityType = 'product' } = await req.json();
@@ -164,7 +166,7 @@ serve(async (req) => {
     // Fetch tenant info for context
     const { data: tenant } = await supabase
       .from("tenants")
-      .select("name, description")
+      .select("name") // SCHEMA-FIX-1: description bestaat niet; de hele select faalde
       .eq("id", tenantId)
       .single();
 

@@ -9,6 +9,8 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SCHEMA-FIX-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -77,7 +79,7 @@ serve(async (req) => {
     // Tenant info for prompt context
     const { data: tenant } = await adminClient
       .from("tenants")
-      .select("company_name")
+      .select("name, billing_company_name") // SCHEMA-FIX-1: company_name bestaat niet
       .eq("id", tenantId)
       .single();
 
@@ -163,7 +165,7 @@ ${knowledgeBase || "Er is momenteel geen documentatie beschikbaar."}
 ## Context
 - De gebruiker bevindt zich momenteel op: ${current_route || "onbekende pagina"}
 - Dit account heeft het "${planName}" abonnement
-- Bedrijfsnaam: ${tenant?.company_name || "Onbekend"}
+- Bedrijfsnaam: ${tenant?.billing_company_name || tenant?.name || "Onbekend"}
 - Actieve feature-flags in dit plan: ${currentFeats.length ? currentFeats.join(", ") : "geen"}
 
 ## Overzicht abonnementen

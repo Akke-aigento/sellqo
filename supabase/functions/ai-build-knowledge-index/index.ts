@@ -61,6 +61,8 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SCHEMA-FIX-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -160,8 +162,9 @@ serve(async (req) => {
 
     // Index pages if enabled
     if (config?.knowledge_include_pages !== false) {
+      // SCHEMA-FIX-1: de tabel heet storefront_pages; 'pages' bestaat niet (altijd leeg).
       const { data: pages } = await supabase
-        .from('pages')
+        .from('storefront_pages')
         .select('id, title, content, slug')
         .eq('tenant_id', tenant_id)
         .eq('is_published', true);
@@ -186,6 +189,39 @@ serve(async (req) => {
         });
 
         indexed.push({ type: 'pages', count: pages.length });
+      }
+    }
+
+    // SCHEMA-FIX-1: de schakelaar "Juridische pagina's" (knowledge_include_legal) werd
+    // nergens gelezen. Nu: gepubliceerde legal_pages, Nederlandse versie (met terugval).
+    if (config?.knowledge_include_legal !== false) {
+      const { data: legal } = await supabase
+        .from('legal_pages')
+        .select('id, page_type, title_nl, title_en, content_nl, content_en')
+        .eq('tenant_id', tenant_id)
+        .eq('is_published', true);
+
+      if (legal && legal.length > 0) {
+        const legalRecords = legal.map(l => {
+          const title = l.title_nl || l.title_en || l.page_type;
+          const content = `${title}. ${l.content_nl || l.content_en || ''}`;
+          return {
+            tenant_id,
+            source_type: 'legal',
+            source_id: l.id,
+            title,
+            content_summary: summarize(content),
+            content_hash: simpleHash(content),
+            keywords: extractKeywords(content)
+          };
+        });
+
+        await supabase.from('ai_knowledge_index').upsert(legalRecords, {
+          onConflict: 'tenant_id,source_type,source_id',
+          ignoreDuplicates: false
+        });
+
+        indexed.push({ type: 'legal', count: legal.length });
       }
     }
 

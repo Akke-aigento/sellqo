@@ -1,3 +1,15 @@
+## SCHEMA-FIX-1 — AI-functies die kolommen/tabellen lazen die niet bestaan — 13 oktober 2026
+
+**Aanleiding.** Een sweep van edge functions tegen `information_schema` vond selects op kolommen die er niet (meer) zijn. Supabase geeft dan een fout terug en de functie valt stil terug op "Onbekend" of op niets.
+
+- `ai-suggest-reply`: selecteerde `tenants.store_name`/`contact_phone` → nu `name, support_email, phone`.
+- `ai-help-assistant`: selecteerde `tenants.company_name` → nu `name, billing_company_name`.
+- `ai-generate-seo-content`: selecteerde `tenants.store_name` → nu `name`.
+- `ai-build-knowledge-index`: las tabel `pages` (bestaat niet) → nu `storefront_pages`; indexeert ook `legal_pages` (uit te zetten met `knowledge_include_legal = false`).
+- **Live databank:** `ai_knowledge_index` had nooit één rij. De enige unieke index was partieel, dus elke `upsert(onConflict: tenant_id,source_type,source_id)` faalde. Migratie `20261013003000_ai_knowledge_index_upsert_target.sql` (volle unieke index) is **live toegepast** en getest: twee keer upserten levert 1 rij op, met de laatste titel. De testrij is weer verwijderd.
+
+**Status.** De code staat op main, maar de 4 functies zijn **niet gedeployed** (Lovable-workspace heeft geen credits). Ze hebben de GET-stempel `SCHEMA-FIX-1`. Checks: esbuild ok, tsc 33 (baseline), check:buttons 2/2.
+
 ## SEC-INVITE-1 (mitigatie) — databasetrigger zolang de functie-fix niet live staat — 13 oktober 2026
 
 2026-10-13 ~00:00 (chat-Claude). De deploy van SEC-INVITE-1 en SEC-TENANT-1 kon niet: de Lovable-agent weigerde met "workspace is out of credits". Om het account-overname-lek toch dicht te zetten: migratie `20261013000000_sec_invite_1_mitigation.sql`, via de connector toegepast (query_database kost geen Lovable-credits).
