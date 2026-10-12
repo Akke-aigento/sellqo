@@ -15,6 +15,17 @@
 -- grep op from('products') / from('product_variants') met '*'.
 -- storefront-api/storefront-customer-api draaien als service_role: niet geraakt.
 --
+-- LET OP (review 13-10): de policy "Public can view active storefront products" staat op
+-- rol {public}, dus ook INGELOGDE gebruikers van een andere winkel lezen cost_price
+-- (gemeten: Mancini-admin ziet 74 producten van andere winkels, alle kolommen). Kolomrechten
+-- kunnen dat voor 'authenticated' niet oplossen (admins hebben cost_price van hun eigen
+-- producten nodig). Aanvullende stap B: de publieke policies op products/product_variants
+-- beperken tot TO anon, zodat ingelogde gebruikers alleen via de tenant-policies lezen.
+-- Bijwerking B: een ingelogde SellQo-gebruiker die de ingebouwde webshop van een ANDERE
+-- winkel bekijkt, ziet daar geen producten (eigen winkel blijft werken). Eerst policy-
+-- definities ophalen: select policyname, roles, qual from pg_policies where tablename in
+-- ('products','product_variants');
+--
 -- Afgeschermd products: amazon_listing_error, bol_listing_error, cost_price, ebay_listing_error, import_job_id, import_source, imported_at, license_generator, marketplace_last_sync_hash, marketplace_lock_reason, marketplace_mappings, odoo_listing_error, original_category_value, original_created_at, raw_import_data, shopify_listing_error, woocommerce_listing_error
 -- Afgeschermd product_variants: cost_price
 
