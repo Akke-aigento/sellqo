@@ -4877,7 +4877,14 @@
       "geluid_aan": "Son activé",
       "geluid_uit": "Son désactivé",
       "auto_print_aan": "Impression auto activée",
-      "auto_print_uit": "Impression auto désactivée"
+      "auto_print_uit": "Impression auto désactivée",
+      "pause_online": "Suspendre les commandes en ligne",
+      "pause_hint": "Le retrait et la livraison via la boutique en ligne n’acceptent plus de nouvelles commandes pendant un moment. La commande à table continue de fonctionner.",
+      "pause_minutes": "{{count}} minutes",
+      "pause_today": "Reste de la journée",
+      "paused_until": "En pause jusqu’à {{time}} · reprendre",
+      "paused_toast": "Commandes en ligne suspendues jusqu’à {{time}}",
+      "resumed_toast": "Les commandes en ligne sont à nouveau ouvertes"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -5040,7 +5047,12 @@
         "allergens_title": "Allergènes",
         "allergens_desc": "Lesquels des 14 allergènes contient ce plat ? Votre client les voit sur la page produit et la carte avant de commander (obligatoire pour la vente à distance).",
         "dietary_title": "Caractéristiques",
-        "allergens_none_hint": "Rien de coché : la boutique n’indique alors aucun allergène pour ce plat. En cas de doute, renseignez-vous auprès de votre fournisseur."
+        "allergens_none_hint": "Rien de coché : la boutique n’indique alors aucun allergène pour ce plat. En cas de doute, renseignez-vous auprès de votre fournisseur.",
+        "closed_title": "Jours de fermeture",
+        "closed_desc": "Vacances ou jour férié ? Ces jours-là, personne ne peut commander à emporter ou en livraison. La commande à table suit simplement votre établissement.",
+        "closed_date": "Date",
+        "closed_add": "Ajouter un jour",
+        "closed_none": "Aucun jour de fermeture prévu."
       },
       "schema": {
         "themeGallery": {

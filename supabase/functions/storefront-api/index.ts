@@ -9,7 +9,7 @@ import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { computeCartPromotions, round2 as promoRound2, type PromotionResult } from "../_shared/promotionEngine.ts";
 import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, type DbRow, type SupabaseLike } from "../_shared/catalogFilters.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
-import { computeSlots, postalCodeAllowed, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
+import { computeSlots, orderingBlocked, postalCodeAllowed, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -814,7 +814,7 @@ const SERVICE_TYPES: ServiceType[] = ['pickup', 'local_delivery'];
 type ShopFulfillment = FulfillmentSettings & { pay_on_pickup?: boolean; qr_mode?: string; qr_pay_counter?: boolean; qr_pay_online?: boolean };
 async function loadFulfillmentSettings(supabase: SupabaseLike, tenantId: string): Promise<ShopFulfillment | null> {
   const { data } = await supabase.from('fulfillment_settings')
-    .select('slots_enabled, slot_minutes, prep_minutes, days_ahead, max_orders_per_slot, timezone, hours, pay_on_pickup, qr_mode, qr_pay_counter, qr_pay_online')
+    .select('slots_enabled, slot_minutes, prep_minutes, days_ahead, max_orders_per_slot, timezone, hours, pay_on_pickup, qr_mode, qr_pay_counter, qr_pay_online, paused_until, closed_dates')
     .eq('tenant_id', tenantId).maybeSingle();
   return (data as ShopFulfillment | null) || null;
 }
@@ -854,10 +854,13 @@ async function slotCounts(supabase: SupabaseLike, tenantId: string, fromIso: str
 
 async function fulfillmentSlotsFor(supabase: SupabaseLike, tenantId: string, type: ServiceType, nowMs = Date.now()) {
   const settings = await loadFulfillmentSettings(supabase, tenantId);
-  if (!settings || !settings.slots_enabled) return { enabled: false, type, slot_minutes: settings?.slot_minutes ?? null, slots: [] as ReturnType<typeof computeSlots> };
+  // PAUSE-1 — additief: alleen aanwezig als de zaak gepauzeerd of vandaag dicht is.
+  const blocked = orderingBlocked(settings, nowMs);
+  const pause = blocked ? { blocked } : {};
+  if (!settings || !settings.slots_enabled) return { enabled: false, type, slot_minutes: settings?.slot_minutes ?? null, slots: [] as ReturnType<typeof computeSlots>, ...pause };
   const horizon = new Date(nowMs + (Number(settings.days_ahead) + 2) * 86400000).toISOString();
   const counts = settings.max_orders_per_slot ? await slotCounts(supabase, tenantId, new Date(nowMs).toISOString(), horizon) : {};
-  return { enabled: true, type, slot_minutes: settings.slot_minutes, slots: computeSlots(settings, type, nowMs, counts) };
+  return { enabled: true, type, slot_minutes: settings.slot_minutes, slots: computeSlots(settings, type, nowMs, counts), ...pause };
 }
 
 async function getFulfillmentSlots(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
@@ -930,7 +933,14 @@ async function validateCartFulfillment(supabase: SupabaseLike, tenantId: string,
   if (m?.min_order_amount != null && Number(cart.subtotal) < Number(m.min_order_amount)) {
     return { code: 'MIN_ORDER', message: `Het minimumbedrag hiervoor is ${Number(m.min_order_amount).toFixed(2).replace('.', ',')} euro` };
   }
-  const { enabled, slots } = await fulfillmentSlotsFor(supabase, tenantId, type as ServiceType);
+  const { enabled, slots, blocked } = await fulfillmentSlotsFor(supabase, tenantId, type as ServiceType) as { enabled: boolean; slots: ReturnType<typeof computeSlots>; blocked?: ReturnType<typeof orderingBlocked> };
+  // PAUSE-1 — "zo snel mogelijk" kan niet als de zaak gepauzeerd of vandaag dicht is.
+  // Met tijdsloten vallen de gepauzeerde tijden al weg; een later slot kiezen mag wel.
+  if (!enabled && blocked) {
+    return blocked.reason === 'paused'
+      ? { code: 'ORDERING_PAUSED', message: 'We nemen even geen online bestellingen aan. Probeer het straks opnieuw.' }
+      : { code: 'CLOSED_TODAY', message: 'We zijn vandaag gesloten.' };
+  }
   if (enabled) {
     if (!cart.requested_time) return { code: 'SLOT_REQUIRED', message: type === 'pickup' ? 'Kies een afhaaltijd' : 'Kies een levertijd' };
     const iso = new Date(String(cart.requested_time)).toISOString();
@@ -4614,7 +4624,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'ALLERGEN-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'PAUSE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

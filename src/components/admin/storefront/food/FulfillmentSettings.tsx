@@ -3,7 +3,7 @@
 // verzendmethodes met een soort; gewone verzendmethodes blijven in Instellingen > Verzending.
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Banknote, Bike, ChefHat, Clock, Loader2, Mail, Plus, Store, Trash2 } from 'lucide-react';
+import { Banknote, Bike, CalendarOff, ChefHat, Clock, Loader2, Mail, Plus, Store, Trash2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,8 +26,10 @@ interface Method {
 interface Settings {
   slots_enabled: boolean; slot_minutes: number; prep_minutes: number; days_ahead: number;
   max_orders_per_slot: number | null; hours: Hours; pay_on_pickup: boolean; notify_ready: boolean;
+  /** PAUSE-1: sluitingsdagen (YYYY-MM-DD). */
+  closed_dates: string[];
 }
-const DEFAULT_SETTINGS: Settings = { slots_enabled: false, slot_minutes: 15, prep_minutes: 20, days_ahead: 0, max_orders_per_slot: null, hours: emptyHours(), pay_on_pickup: false, notify_ready: true };
+const DEFAULT_SETTINGS: Settings = { slots_enabled: false, slot_minutes: 15, prep_minutes: 20, days_ahead: 0, max_orders_per_slot: null, hours: emptyHours(), pay_on_pickup: false, notify_ready: true, closed_dates: [] };
 // Labels als i18n-key; de sleutel is de enum-waarde.
 const HOURS_TAB_KEY: Record<ServiceType, string> = { pickup: 'admin.storefront.food.hours_pickup', local_delivery: 'admin.storefront.food.hours_delivery' };
 
@@ -114,6 +116,39 @@ function HoursEditor({ hours, type, onChange }: { hours: Hours; type: ServiceTyp
   );
 }
 
+function ClosedDatesCard({ value, onChange }: { value: string[]; onChange: (v: string[]) => void }) {
+  const { t, i18n } = useTranslation();
+  const [draft, setDraft] = useState('');
+  const today = new Date().toLocaleDateString('sv-SE'); // lokale datum als YYYY-MM-DD
+  const upcoming = [...value].filter((d) => d >= today).sort();
+  const add = () => { if (/^\d{4}-\d{2}-\d{2}$/.test(draft) && !value.includes(draft)) onChange([...value.filter((d) => d >= today), draft].sort()); setDraft(''); };
+  const fmt = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(i18n.language, { weekday: 'long', day: 'numeric', month: 'long' });
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><CalendarOff className="h-5 w-5" />{t('admin.storefront.food.closed_title')}</CardTitle>
+        <CardDescription>{t('admin.storefront.food.closed_desc')}</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Input type="date" min={today} value={draft} onChange={(e) => setDraft(e.target.value)} className="h-9 w-auto" aria-label={t('admin.storefront.food.closed_date')} />
+          <Button type="button" variant="outline" size="sm" onClick={add} disabled={!draft}><Plus className="mr-1.5 h-4 w-4" />{t('admin.storefront.food.closed_add')}</Button>
+        </div>
+        {upcoming.length ? (
+          <ul className="flex flex-wrap gap-2">
+            {upcoming.map((d) => (
+              <li key={d} className="inline-flex items-center gap-1 rounded-full border bg-muted/50 py-1 pl-3 pr-1 text-sm">
+                {fmt(d)}
+                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => onChange(value.filter((x) => x !== d))} aria-label={t('common.delete')}><X className="h-3.5 w-3.5" /></Button>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="text-sm text-muted-foreground">{t('admin.storefront.food.closed_none')}</p>}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function FulfillmentSettings() {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
@@ -149,6 +184,7 @@ export function FulfillmentSettings() {
       days_ahead: data.settings.days_ahead, max_orders_per_slot: data.settings.max_orders_per_slot, hours: parseHours(data.settings.hours),
       pay_on_pickup: !!data.settings.pay_on_pickup,
       notify_ready: data.settings.notify_ready !== false,
+      closed_dates: data.settings.closed_dates || [],
     } : DEFAULT_SETTINGS);
   }, [data]);
 
@@ -188,6 +224,7 @@ export function FulfillmentSettings() {
         days_ahead: settings.days_ahead, max_orders_per_slot: settings.max_orders_per_slot, hours: settings.hours as unknown as Json,
         pay_on_pickup: settings.pay_on_pickup,
         notify_ready: settings.notify_ready,
+        closed_dates: settings.closed_dates,
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;
@@ -305,6 +342,9 @@ export function FulfillmentSettings() {
           </CardContent>
         ) : null}
       </Card>
+
+      {/* PAUSE-1 — sluitingsdagen: geen afhaal- of levertijden, "zo snel mogelijk" kan niet. */}
+      <ClosedDatesCard value={settings.closed_dates} onChange={(closed_dates) => setSettings((s) => ({ ...s, closed_dates }))} />
 
       <div className="flex justify-end">
         <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{t('common.save')}</Button>

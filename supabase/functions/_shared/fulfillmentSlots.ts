@@ -12,6 +12,10 @@ export interface FulfillmentSettings {
   timezone: string;
   /** { pickup: { "0": [["17:00","22:00"]], ... }, local_delivery: {...} }  (0 = zondag) */
   hours: Record<string, Record<string, [string, string][]>>;
+  /** PAUSE-1: geen sloten vóór dit moment (druk in de keuken). */
+  paused_until?: string | null;
+  /** PAUSE-1: lokale datums (YYYY-MM-DD) waarop de zaak dicht is. */
+  closed_dates?: string[] | null;
 }
 export interface Slot { start: string; date: string; label: string; available: boolean }
 
@@ -54,7 +58,9 @@ const pad = (n: number) => String(n).padStart(2, '0');
 export function computeSlots(s: FulfillmentSettings, type: ServiceType, nowMs: number, counts: Record<string, number> = {}): Slot[] {
   const tz = s.timezone || 'Europe/Brussels';
   const step = Math.max(5, Math.min(120, Number(s.slot_minutes) || 15));
-  const earliest = nowMs + Math.max(0, Number(s.prep_minutes) || 0) * 60000;
+  const pausedMs = s.paused_until ? new Date(s.paused_until).getTime() : NaN;
+  const earliest = Math.max(nowMs + Math.max(0, Number(s.prep_minutes) || 0) * 60000, Number.isFinite(pausedMs) ? pausedMs : 0);
+  const closed = new Set(s.closed_dates || []);
   const days = Math.max(0, Math.min(14, Number(s.days_ahead) || 0));
   const week = s.hours?.[type] || {};
   const out: Slot[] = [];
@@ -63,6 +69,7 @@ export function computeSlots(s: FulfillmentSettings, type: ServiceType, nowMs: n
     // Kalenderdag i dagen verder (niet "+24u": rond zomertijd zou dat een dag overslaan).
     const cal = new Date(Date.UTC(today.y, today.m - 1, today.d + i, 12));
     const day = { y: cal.getUTCFullYear(), m: cal.getUTCMonth() + 1, d: cal.getUTCDate(), weekday: cal.getUTCDay() };
+    if (closed.has(`${day.y}-${pad(day.m)}-${pad(day.d)}`)) continue;
     const ranges = week[String(day.weekday)] || [];
     for (const [from, to] of ranges) {
       const a = hm(from); const b = hm(to);
@@ -80,6 +87,20 @@ export function computeSlots(s: FulfillmentSettings, type: ServiceType, nowMs: n
   // Dubbele (overlappende openingsuren) eruit, op tijd gesorteerd.
   const seen = new Set<string>();
   return out.filter((x) => (seen.has(x.start) ? false : (seen.add(x.start), true))).sort((x, y) => x.start.localeCompare(y.start));
+}
+
+/**
+ * PAUSE-1 — kan er nu "zo snel mogelijk" besteld worden (zonder tijdsloten)?
+ * Nee als de zaak gepauzeerd is of vandaag een sluitingsdag is. Geeft de reden terug.
+ */
+export function orderingBlocked(s: Pick<FulfillmentSettings, 'paused_until' | 'closed_dates' | 'timezone'> | null | undefined, nowMs: number):
+  { reason: 'paused'; until: string } | { reason: 'closed_today' } | null {
+  if (!s) return null;
+  const until = s.paused_until ? new Date(s.paused_until).getTime() : NaN;
+  if (Number.isFinite(until) && until > nowMs) return { reason: 'paused', until: new Date(until).toISOString() };
+  const d = localDay(nowMs, s.timezone || 'Europe/Brussels');
+  if ((s.closed_dates || []).includes(`${d.y}-${pad(d.m)}-${pad(d.d)}`)) return { reason: 'closed_today' };
+  return null;
 }
 
 /** Postcode valt binnen de leverzone? Lege lijst = overal. "30*" of "30" = begint met 30. */

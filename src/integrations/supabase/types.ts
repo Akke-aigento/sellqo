@@ -6941,12 +6941,14 @@ export type Database = {
       }
       fulfillment_settings: {
         Row: {
+          closed_dates: string[]
           created_at: string
           days_ahead: number
           hours: Json
           max_orders_per_slot: number | null
           notify_ready: boolean
           pay_on_pickup: boolean
+          paused_until: string | null
           prep_minutes: number
           qr_mode: string
           qr_pay_counter: boolean
@@ -6958,6 +6960,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          closed_dates?: string[]
+          paused_until?: string | null
           created_at?: string
           days_ahead?: number
           hours?: Json
@@ -6975,6 +6979,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          closed_dates?: string[]
+          paused_until?: string | null
           created_at?: string
           days_ahead?: number
           hours?: Json

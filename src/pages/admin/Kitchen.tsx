@@ -10,6 +10,7 @@ import type { TFunction } from 'i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
+import { KitchenPauseControl } from '@/components/admin/kitchen/KitchenPauseControl';
 import { minutesLeft, NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
 import { useTranslation } from 'react-i18next';
 
@@ -208,6 +209,7 @@ export default function KitchenPage() {
           {t('admin.kitchen.summary', { new: byStatus.new.length, preparing: byStatus.preparing.length, ready: byStatus.ready.length, nextHour })}
         </span>
         <div className="ml-auto flex items-center gap-2">
+          <KitchenPauseControl now={now} />
           <Button variant={autoPrint ? 'secondary' : 'outline'} size="sm" onClick={toggleAutoPrint} title={t('admin.kitchen.auto_print_hint')}>
             <Printer className="mr-1.5 h-4 w-4" />{autoPrint ? t('admin.kitchen.auto_print_aan') : t('admin.kitchen.auto_print_uit')}
           </Button>

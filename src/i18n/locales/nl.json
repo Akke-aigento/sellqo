@@ -5170,7 +5170,12 @@
         "allergens_title": "Allergenen",
         "allergens_desc": "Welke van de 14 allergenen zitten in dit gerecht? Je klant ziet ze op de productpagina en de menukaart, vóór hij bestelt (verplicht bij verkoop op afstand).",
         "dietary_title": "Kenmerken",
-        "allergens_none_hint": "Niets aangevinkt: de winkel vermeldt dan geen allergenen bij dit gerecht. Twijfel je, vraag het na bij je leverancier."
+        "allergens_none_hint": "Niets aangevinkt: de winkel vermeldt dan geen allergenen bij dit gerecht. Twijfel je, vraag het na bij je leverancier.",
+        "closed_title": "Sluitingsdagen",
+        "closed_desc": "Vakantie of feestdag? Op deze dagen kan niemand afhalen of laten leveren. Bestellen aan tafel volgt gewoon je zaak.",
+        "closed_date": "Datum",
+        "closed_add": "Dag toevoegen",
+        "closed_none": "Geen sluitingsdagen gepland."
       },
       "shopOpenCard": {
         "klanten_kunnen_afrekenen_uit_je_winkel": "Klanten kunnen afrekenen. Uit = je winkel toont je producten, zonder winkelmandje.",
@@ -5360,7 +5365,14 @@
       "print_footer": "Besteld {{ordered}} · afgedrukt {{printed}}",
       "notify_failed": "Klant verwittigen lukte niet",
       "notified_ready": "Klant gemaild: bestelling klaar",
-      "notified_on_the_way": "Klant gemaild: bestelling onderweg"
+      "notified_on_the_way": "Klant gemaild: bestelling onderweg",
+      "pause_online": "Online pauzeren",
+      "pause_hint": "Afhalen en leveren via de webshop nemen even geen nieuwe bestellingen aan. Bestellen aan tafel blijft werken.",
+      "pause_minutes": "{{count}} minuten",
+      "pause_today": "Rest van vandaag",
+      "paused_until": "Gepauzeerd tot {{time}} · hervatten",
+      "paused_toast": "Online bestellingen gepauzeerd tot {{time}}",
+      "resumed_toast": "Online bestellingen staan weer open"
     },
     "allergens": {
       "gluten": "Gluten (granen)",

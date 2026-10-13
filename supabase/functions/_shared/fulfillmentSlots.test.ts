@@ -1,6 +1,6 @@
 // FOOD-1 — unit tests voor tijdsloten en leverzones (geen netwerk).
 // Run: deno test --no-lock supabase/functions/_shared/fulfillmentSlots.test.ts
-import { computeSlots, postalCodeAllowed, zonedToUtc, type FulfillmentSettings } from './fulfillmentSlots.ts';
+import { computeSlots, orderingBlocked, postalCodeAllowed, zonedToUtc, type FulfillmentSettings } from './fulfillmentSlots.ts';
 
 function eq(actual: unknown, expected: unknown, msg = '') {
   const a = JSON.stringify(actual); const e = JSON.stringify(expected);
@@ -78,4 +78,23 @@ Deno.test('postcodes: leeg = overal, prefix en sterretje', () => {
   eq(postalCodeAllowed('1012 AB', ['1012']), true);
   eq(postalCodeAllowed('', ['3000']), false);
   eq(postalCodeAllowed('2000', ['']), false);
+});
+
+Deno.test('PAUSE-1: gepauzeerd tot 17:30 = geen sloten ervoor', () => {
+  const s = computeSlots(base({ paused_until: '2026-10-13T15:30:00.000Z' }), 'pickup', TUE_10);
+  eq(s.map((x) => x.label), ['17:30', '17:45']);
+});
+
+Deno.test('PAUSE-1: sluitingsdag = geen sloten die dag', () => {
+  eq(computeSlots(base({ closed_dates: ['2026-10-13'] }), 'pickup', TUE_10).length, 0);
+  eq(computeSlots(base({ closed_dates: ['2026-10-14'] }), 'pickup', TUE_10).length, 4, 'andere dag: gewoon open');
+});
+
+Deno.test('PAUSE-1: orderingBlocked', () => {
+  eq(orderingBlocked(base(), TUE_10), null);
+  eq(orderingBlocked(base({ paused_until: '2026-10-13T08:30:00.000Z' }), TUE_10), { reason: 'paused', until: '2026-10-13T08:30:00.000Z' });
+  eq(orderingBlocked(base({ paused_until: '2026-10-13T07:30:00.000Z' }), TUE_10), null, 'pauze voorbij');
+  eq(orderingBlocked(base({ closed_dates: ['2026-10-13'] }), TUE_10), { reason: 'closed_today' });
+  // 23:30 Brussel op 13/10 = 21:30 UTC; lokale datum blijft 13/10.
+  eq(orderingBlocked(base({ closed_dates: ['2026-10-13'] }), Date.UTC(2026, 9, 13, 21, 30)), { reason: 'closed_today' });
 });

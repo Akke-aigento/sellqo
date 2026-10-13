@@ -4877,7 +4877,14 @@
       "geluid_aan": "Ton an",
       "geluid_uit": "Ton aus",
       "auto_print_aan": "Autodruck an",
-      "auto_print_uit": "Autodruck aus"
+      "auto_print_uit": "Autodruck aus",
+      "pause_online": "Online-Bestellungen pausieren",
+      "pause_hint": "Abholung und Lieferung über den Webshop nehmen vorübergehend keine neuen Bestellungen an. Bestellen am Tisch funktioniert weiter.",
+      "pause_minutes": "{{count}} Minuten",
+      "pause_today": "Rest des Tages",
+      "paused_until": "Pausiert bis {{time}} · fortsetzen",
+      "paused_toast": "Online-Bestellungen pausiert bis {{time}}",
+      "resumed_toast": "Online-Bestellungen sind wieder möglich"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -5040,7 +5047,12 @@
         "allergens_title": "Allergene",
         "allergens_desc": "Welche der 14 Allergene sind in diesem Gericht? Ihr Kunde sieht sie vor der Bestellung auf der Produktseite und der Speisekarte (Pflicht beim Fernabsatz).",
         "dietary_title": "Merkmale",
-        "allergens_none_hint": "Nichts angekreuzt: Der Shop nennt dann keine Allergene für dieses Gericht. Fragen Sie im Zweifel bei Ihrem Lieferanten nach."
+        "allergens_none_hint": "Nichts angekreuzt: Der Shop nennt dann keine Allergene für dieses Gericht. Fragen Sie im Zweifel bei Ihrem Lieferanten nach.",
+        "closed_title": "Schließtage",
+        "closed_desc": "Urlaub oder Feiertag? An diesen Tagen kann niemand Abholung oder Lieferung bestellen. Bestellen am Tisch richtet sich einfach nach Ihrem Lokal.",
+        "closed_date": "Datum",
+        "closed_add": "Tag hinzufügen",
+        "closed_none": "Keine Schließtage geplant."
       },
       "schema": {
         "themeGallery": {

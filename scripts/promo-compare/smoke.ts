@@ -156,6 +156,21 @@ await check('leverzone gaat voor minimumbedrag (DEMO-1)', async () => {
   assert(S.fulfillmentAvailability(m, { postal_code: '3000', subtotal: 20 }).available === true, 'in zone, genoeg');
 });
 
+await check('pauze en sluitingsdag (PAUSE-1)', async () => {
+  const fs = db.tables.fulfillment_settings[0];
+  fs.slots_enabled = false;
+  assert(await S.validateCartFulfillment(db, T, { shipping_method_id: 'sm-pickup', subtotal: 20 }) === null, 'zonder pauze: zo snel mogelijk kan');
+  fs.paused_until = new Date(Date.now() + 30 * 60000).toISOString();
+  const p = await S.validateCartFulfillment(db, T, { shipping_method_id: 'sm-pickup', subtotal: 20 });
+  assert(p?.code === 'ORDERING_PAUSED', `gepauzeerd: ${p?.code}`);
+  const r = await S.getFulfillmentSlots(db, T, { type: 'pickup' });
+  assert(r.blocked?.reason === 'paused', `slots melden pauze: ${JSON.stringify(r.blocked)}`);
+  fs.paused_until = null;
+  fs.slots_enabled = true;
+  const r2 = await S.getFulfillmentSlots(db, T, { type: 'pickup' });
+  assert(!('blocked' in r2), 'geen pauze = geen extra sleutel');
+});
+
 await check('allergenen alleen als ingevuld (ALLERGEN-1)', async () => {
   assert(JSON.stringify(S.foodInfo({ allergens: [], dietary: [] })) === '{}', 'leeg = geen sleutels (respons ongewijzigd)');
   assert(JSON.stringify(S.foodInfo({})) === '{}', 'ontbrekend = geen sleutels');

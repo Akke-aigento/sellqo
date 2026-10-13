@@ -5114,7 +5114,14 @@
       "geluid_aan": "Sound on",
       "geluid_uit": "Sound off",
       "auto_print_aan": "Auto-print on",
-      "auto_print_uit": "Auto-print off"
+      "auto_print_uit": "Auto-print off",
+      "pause_online": "Pause online orders",
+      "pause_hint": "Pickup and delivery via the webshop stop taking new orders for a while. Ordering at the table keeps working.",
+      "pause_minutes": "{{count}} minutes",
+      "pause_today": "Rest of today",
+      "paused_until": "Paused until {{time}} · resume",
+      "paused_toast": "Online orders paused until {{time}}",
+      "resumed_toast": "Online orders are open again"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -5277,7 +5284,12 @@
         "allergens_title": "Allergens",
         "allergens_desc": "Which of the 14 allergens are in this dish? Your customer sees them on the product page and the menu before ordering (required for distance selling).",
         "dietary_title": "Labels",
-        "allergens_none_hint": "Nothing checked: the store then lists no allergens for this dish. If in doubt, check with your supplier."
+        "allergens_none_hint": "Nothing checked: the store then lists no allergens for this dish. If in doubt, check with your supplier.",
+        "closed_title": "Closing days",
+        "closed_desc": "Holiday or bank holiday? On these days nobody can order pickup or delivery. Ordering at the table simply follows your venue.",
+        "closed_date": "Date",
+        "closed_add": "Add day",
+        "closed_none": "No closing days planned."
       },
       "schema": {
         "themeGallery": {
