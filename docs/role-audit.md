@@ -1,3 +1,52 @@
+## Nachtbatch 14 oktober 2026 — SEO-1, I18N-HORECA, ALLERGEN-1, PAUSE-1
+
+Onbewaakt gebouwd (00:40–06:00). Regels die nacht: geen edge-function-deploys en niets dat echte klanten of hun frontends raakt. Migraties zijn additief en live gezet via `query_database`.
+
+**storefront-api staat op main op versie `PAUSE-1` en is NOG NIET gedeployed.** Wat er in die deploy meegaat:
+- de leverzone gaat voor het minimumbedrag (5c0d4c1);
+- allergenen in de API (ALLERGEN-1);
+- pauze en sluitingsdagen (PAUSE-1).
+
+`_shared/fulfillmentSlots.ts` wordt alleen door storefront-api geïmporteerd (nagekeken met grep), dus er hoeft maar één functie gedeployed te worden.
+- Nulmeting vóór de deploy: GET-stempel `HORECA-1`. Na de deploy: `PAUSE-1`.
+- Daarna de catalog-probe draaien (`ops.catalog_probe` tegen `ops.snap_catalog_pre`). Allergenen en `blocked` zijn conditionele sleutels, dus de respons voor andere winkels moet byte-gelijk blijven.
+
+### SEO-1 — robots.txt en sitemap.xml per winkel (storefront, live, e045adf)
+- De vaste `public/robots.txt` met `Disallow: /` gold ook voor winkels die online staan. Nu is robots.txt dynamisch: dicht zolang de winkel niet live is. Is hij live, dan gaan alleen afrekenen, mandje, bestelling, zoeken en preview dicht, met een verwijzing naar de sitemap.
+- `sitemap.xml` bevat home, alle producten (gepagineerd, max. 5000), collecties, eigen en juridische pagina's en `/menu`. Een winkel die niet indexeerbaar is, geeft 404.
+- `NOINDEX_TENANT_SLUGS` (wrangler.jsonc): de demowinkels en de speeltuin worden nooit geïndexeerd, ook niet via de robots-meta.
+- Nagekeken: geen echte tenant staat op `shop_live`, dus er wordt nog geen echte winkel geïndexeerd. Live gecontroleerd: robots.txt van demo-pizzeria geeft `Disallow: /`, de sitemap geeft 404 en de pagina's hebben `noindex`.
+
+### I18N-HORECA — horeca-schermen door i18n (767abd3)
+- FOOD-1 t/m 4, HORECA-1 en DEMO-1 hadden hardcoded Nederlands, in strijd met sellqo-i18n-verplicht. Dat is nu opgelost voor:
+  - de Bestellen-hub en het keukenscherm (ook de afgedrukte keukenbon);
+  - afhalen en leveren, extra's, QR-menu en QR-afdrukken;
+  - Winkel openen;
+  - themagalerij, menu-editor en de pictogramnamen van het schema;
+  - de extra's in de kassa.
+
+  Samen zo'n 170 keys, echt vertaald in en/fr/de/uk.
+- Module-arrays gebruiken nu het key-in-de-array-patroon. Tijden volgen de UI-taal; de waarde van `<input type=time>` blijft HH:MM.
+- `kitchenModel` is taalneutraal gemaakt: de tafel staat in een eigen veld `table` in plaats van "Tafel 4" in de klantnaam. Tests zijn aangepast (9/9).
+- **Les:** de codemod `i18n-extract` brak een TypeScript-type in `SchemaForm.tsx`. Hij herkende `Record<string, unknown>[]; onChange: (next: Record` als JSX-tekst. tsc ving het niet, omdat het patroon toevallig geldige syntax opleverde. Ik heb het hersteld en de foute key verwijderd. Lees de diff na een codemod altijd na op `{t(` midden in een type.
+- Nog Nederlands: de veldlabels van het themaschema (`schema.json` in de storefront-repo) en de oudere kassa (`src/components/admin/pos`, ±230 strings van vóór de horeca-batches).
+
+### ALLERGEN-1 — allergenen en dieetlabels (c9729ba + shop 6ca6c6d)
+- Migratie `20261014020000_allergen_1.sql` (live): `products.allergens` en `products.dietary`, beide `text[]`, met check-constraints op de 14 EU-codes en 5 labels (vegetarian, vegan, spicy, halal, gluten_free).
+- Admin: in het productscherm, alleen met de horeca-module, een kaart Allergenen die meteen bewaart. Wie "vegan" aanvinkt, krijgt ook "vegetarisch".
+- storefront-api: `allergens` en `dietary` in `get_product` en `get_products`, alleen als ze ingevuld zijn (`foodInfo`), met een rooktest.
+- Shop: "Bevat: gluten, melk" plus badges op de productpagina, boven de bestelknop (EU 1169/2011: vóór de aankoop), en op de menukaart. Dat werkt zodra de API gedeployed is.
+- Demo-pizzeria: alle 17 gerechten ingevuld. De FAQ "Waar vind ik de allergenen?" klopt daarmee na de deploy.
+- Nog open: allergenen per extra (bv. ansjovis = vis).
+
+### PAUSE-1 — online bestellingen pauzeren en sluitingsdagen (953a8b8 + shop 67ec213)
+- Migratie `20261014030000_pause_1.sql` (live): `fulfillment_settings.paused_until` en `closed_dates`.
+- Keukenscherm: knop "Online pauzeren" (15, 30 of 60 minuten, of de rest van vandaag), en tijdens de pauze een rode knop "Gepauzeerd tot … · hervatten".
+- Afhalen & leveren: een kaart Sluitingsdagen.
+- `computeSlots` slaat sloten vóór de pauze en op sluitingsdagen over. `orderingBlocked()` zit in de deno-tests (13/13).
+- storefront-api: "zo snel mogelijk" wordt geweigerd met `ORDERING_PAUSED` of `CLOSED_TODAY`. Met tijdsloten mag de klant wel een later slot kiezen. Bestellen aan tafel blijft altijd werken. `get_fulfillment_slots` geeft alleen `blocked` mee als dat van toepassing is.
+- Shop: een melding bij het afrekenen.
+
 ## DEMO-1 — Twee publieke demowinkels: Pizzeria Fiamma en Atelier Nord — 14 oktober 2026
 
 Doel: testtenants voor Akke én voorbeeldwinkels voor verkoop (prospects tonen wat SellQo kan). Eerst alleen data; het nachtwerk hieronder voegde een migratie (demo-reset) en kleine codewijzigingen toe.
