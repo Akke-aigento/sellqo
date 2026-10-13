@@ -1,3 +1,53 @@
+## FOOD-2 — Keukenscherm, betalen bij afhalen, extra's en keukenbonnen in de kassa — 13 oktober 2026
+
+SellQo dc6d773 (+ Lovable-typesync e66e925), sellqo-storefront 5e9a4a2. Vraag van Akke: "DE oplossing voor pizzeria's, kebabzaken en frituren, in combinatie met onze POS". Aanname: POS is de SellQo-kassa, niet Toog.
+
+- **Databank** (migratie `20261013200000_food_2_kitchen.sql`, vóór de code live toegepast en nagekeken):
+  - Nieuwe tabel `kitchen_tickets`. Elke bon hoort bij een webshoporder, een kassabon of een geparkeerde (telefonische) bon; er is een unieke index per bron. RLS: alle tenantleden mogen lezen en schrijven (kok en kassier).
+  - De keukenstatus staat bewust NIET op `orders` of `pos_transactions`. Op `orders` hangen 9 update-triggers (meldingen, loyalty, tracking-mail, klantstatistiek); op `pos_transactions` hangt een voorraadtrigger. Een statusklik in de keuken mag die nooit laten afgaan.
+  - `fulfillment_settings.pay_on_pickup`, `storefront_carts.customer_note`, en een index op `orders(tenant_id, created_at) where service_type is not null`.
+- **storefront-api (FOOD-2):**
+  - Betaalmethode `pay_on_pickup`. Die verschijnt alleen als de cart afhalen of leveren heeft en de winkel het aanzette, en ze rekent geen transactiekost aan.
+  - De nieuwe tak in `checkout_complete` boekt de voorraad af, maakt de order aan als `pending` zonder vervaldatum en stuurt een bevestiging.
+  - `getAvailablePaymentMethods` (`_shared`) is niet gewijzigd, dus eigen frontends zien niets nieuws.
+  - De opmerking van de klant gaat via de cart naar `orders.notes`; dat geldt ook voor de verify-flow.
+- **send-order-confirmation (FOOD-2, met GET-stempel):** een blok "Afhalen: dinsdag 13 oktober om 18:15", en "je betaalt bij het afhalen" waar dat van toepassing is. Bij afhalen staat er geen adresblok. De teksten staan lokaal in 4 e-mailtalen; `_shared/tenantEmailI18n.ts` en zijn importers zijn ongemoeid gebleven.
+- **stripe-connect-webhook (FOOD-2):** de opmerking gaat ook mee in de fallback-orderaanmaak.
+- **Admin:**
+  - `/admin/keuken`, een volledig scherm voor een tablet:
+    - kolommen Nieuw, In bereiding en Klaar, plus "Afgerond" met een knop om terug te zetten;
+    - gesorteerd op afhaal- of levertijd, met aftelling en een rode rand als de bestelling te laat is;
+    - extra's apart in beeld, de opmerking in geel, betaald of nog te betalen;
+    - een belletje via WebAudio en tabbladen op gsm;
+    - polling elke 10 s, geen realtime.
+  - Webshoporders komen op het scherm als ze betaald zijn of als de klant bij het afhalen betaalt. Overschrijvingen die nog open staan, komen er niet op.
+  - De zijbalk toont "Keuken" alleen voor winkels met een actieve afhaal- of levermethode (`useHasFoodService`).
+  - Afhalen & leveren kreeg een toggle voor betalen bij afhalen en een knop "Keukenscherm".
+- **Kassa:**
+  - Extra's kies je bij het aanslaan (`POSAddonDialog`). Elke combinatie is een eigen regel, de prijs bevat de extra's en ze staan op het ticket.
+  - Het keukenblok heeft ter plaatse, meenemen en levering, de keuzes Nu, +15, +30, +45 en +60 of een eigen uur, en naam, telefoon en opmerking. Het staat standaard aan bij winkels met afhalen of leveren.
+  - Bij een verkoop ontstaat een keukenbon die als betaald gemarkeerd is. Die stap blokkeert nooit: lukt hij niet, dan wordt dat gelogd en is de verkoop toch geregistreerd.
+  - De knop "Telefoon" parkeert de bon en zet hem meteen in de keuken als onbetaald. Hervat je hem en reken je af, dan wordt dezelfde bon gekoppeld en betaald gezet.
+  - Offline verkopen gaan niet naar de keuken.
+- **Shop:** de klant kan een opmerking voor de zaak meegeven en bij het afhalen of de levering betalen. Het bevestigingsscherm toont dan "Te betalen bij het afhalen".
+- **Deploy:**
+  - Nulmeting vooraf: storefront-api en webhook gaven FOOD-1, send-order-confirmation gaf 401 zonder stempel.
+  - Deploy-only met STOP-clausule (0,7 credits). Daarna gaven alle drie de GET's `FOOD-2`.
+  - De agentcommit e66e925 raakte alleen `src/integrations/supabase/types.ts` (platformsync).
+- **Regressie:** `get_products`-probe batch food2, 81/81 dezelfde status, 78/81 dezelfde ID's en paginering, 71/81 identiek. Dat is gelijk aan de FOOD-1- en shop-api-2-baseline.
+- **Getest:**
+  - Vitest voor `kitchenModel`: filter, extra's uit de varianttitel, samenvoegen, sorteren, verbergen.
+  - De rooktest is uitgebreid met `payOnPickupMethod`.
+  - In de harness: keukenscherm op 1366 en 390 px (geen horizontale scroll), statusklikken, de keuze van extra's met een verplichte saus en het keukenblok.
+  - Playwright tegen de shop-mock: betalen bij afhalen met opmerking.
+  - tsc ligt op de baseline (27), lint is gelijk aan de baseline, de i18n-pariteit klopt en CI is groen.
+- **Nog te doen:**
+  - De admin publiceren in Lovable (Akke).
+  - Een nieuwe native build als de kassa en de keuken in de app moeten.
+  - Een sms of mail "je bestelling is klaar" bij Klaar.
+  - Bonprinter in de keuken.
+  - Extra's via de categoriekoppeling (`product_categories`) in de kassa; vandaag kijkt de kassa alleen naar de hoofdcategorie en naar productkoppelingen.
+
 ## FOOD-1 — Afhalen en leveren met tijdslot, leverzone, minimumbedrag en extra's — 13 oktober 2026
 
 SellQo e505c2b (+ Lovable-typesync 7b64b57), sellqo-storefront 85bfcd9. Vraag van Akke: "Pizzeriabatch knallen".
