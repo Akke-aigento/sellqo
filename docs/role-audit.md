@@ -1,3 +1,16 @@
+## THEME-RESTAURANT-1 + EDITOR-1c — Restaurant & afhaal, menukaart, opruiming Demo Bakkerij — 13 oktober 2026
+
+SellQo 940894f, sellqo-storefront 303605d. Vraag van Akke: pizzeria en andere eetzaken ontbraken, en de zijbalk zat vol doorgestreepte secties.
+
+- **Thema "Restaurant & afhaal"** (pizzeria, frituur, bakker, traiteur): crème met tomatenrood, Poppins/Nunito, volle banner met een pizzaoven, voordelen in de merkkleur, menukaart, openingsuren, FAQ (allergenen, levering, afhalen). De Unsplash-foto's zijn nagekeken (200).
+- **Nieuwe sectie "Menukaart":** alle hoofdcategorieën (max. 12), elk met haar producten als lijst, plus snelknoppen per categorie.
+- **Nieuwe kaartstijl "Menukaart":** foto, naam, omschrijving, prijs en een plus-knop. Op gsm staat de prijs onder de naam.
+- **Wat er nog niet is:** afhalen werkt vandaag via een verzendmethode "Afhalen" (prijs 0). Tijdsloten, leverzones op postcode en extra's (toppings) bestaan in SellQo nog niet: aparte batch.
+- **Zijbalk:**
+  - Verborgen secties krijgen een label "Verborgen" in plaats van een doorhaling.
+  - Demo Bakkerij had 31 verborgen dubbele secties van de oude template-seeds. Na een snapshot in `ops.snap_demo_bakkerij_sections_20261013` zijn ze verwijderd; er blijven 9 zichtbare. Dit gebeurde alleen bij deze demo-tenant; de andere tenants hebben 0 verborgen secties.
+- **Getest:** harness voor het thema en de lijstkaarten; menukaart op 1280 en 390 px zonder horizontale scroll. CI en deploy zijn groen.
+
 ## THEME-LAYOUT-1 + EDITOR-MOBILE-1 — thema's verschillen echt, editor op gsm — 13 oktober 2026
 
 SellQo 8a90c31, sellqo-storefront 5751bc3. Feedback van Akke: buiten de kleuren veranderde er weinig tussen de thema's, en mobiel moest bekeken worden.
