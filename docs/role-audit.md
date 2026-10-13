@@ -1,3 +1,16 @@
+## TRACK-SHIPPED-1 — order automatisch naar "verzonden" bij de eerste echte vervoerdersscan — 13 oktober 2026
+
+**Vraag van Akke.** De SellQo-status moet automatisch van "in behandeling" naar "verzonden" gaan zodra de tracking een echte beweging toont, zoals nu al gebeurt met "delivered". Niets naar bol en geen mails.
+
+**Recon.**
+- De handmatige klik (`update-order-fulfillment-status`) zet alleen `status`, `shipped_at` en `fulfillment_status` en schrijft een auditregel. Er gaat niets naar bol en er vertrekt geen mail.
+- De databanktriggers bij een statuswissel geven een interne melding "Bestelling verzonden", dezelfde als bij de handmatige klik.
+- De bol-aanroep in `poll-tracking-status` hangt aan `sync_status`, en dat veld raken we niet.
+
+**Valkuil die gevonden is.** bpost meldt bij het aanmaken van het label "Informatie over de zending ontvangen van de afzender", en `normalizeStatus` maakt daar `in_transit` van (live 42 keer). Een naïeve regel had elke bol-order meteen bij de import op "verzonden" gezet. Daarom telt nu alleen een fysieke scan in de omschrijving, zoals "Afgifte zending door afzender", "sortering" of "in bezorging". De pre-shipmentteksten worden uitgesloten. Lokaal getest op de echte bpost-teksten.
+
+**Wijziging.** In `poll-tracking-status`, voor orders met `status = processing`: `status`, `shipped_at` en `fulfillment_status` worden `shipped`, net als bij de handmatige klik. De GET-stempel is `TRACK-SHIPPED-1`.
+
 ## BOL-SYNC-1 — kolom teruggedraaid (mailuitsluiting blijft) — 13 oktober 2026, 08:35
 
 **Waarom.** Akke verzendt de bol-orders zelf, en de verzendstatus komt al uit de trackingpagina (`poll-tracking-status`). Zijn voorwaarde was dat er van en naar bol niets verandert.

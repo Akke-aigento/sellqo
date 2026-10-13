@@ -310,6 +310,22 @@ async function processOrder(
     carrier: carrier,
   };
 
+  // TRACK-SHIPPED-1: zodra de vervoerder het pakket onderweg meldt, gaat een order die
+  // nog op "processing" staat naar "shipped" — net als de handmatige klik (zelfde velden
+  // als update-order-fulfillment-status). Alleen de SellQo-status: geen bol-aanroep
+  // (die hangt hieronder aan sync_status, dat we niet raken) en geen klantmail.
+  // Let op: normalizeStatus maakt van "Informatie over de zending ontvangen van de afzender"
+  // (= label aangemaakt, pakket nog niet afgegeven) ook "in_transit". Daarom kijken we
+  // naar de echte omschrijving: alleen een afgifte-/sorteer-/bezorgscan telt.
+  const desc = (result.description || "").toLowerCase();
+  const isPreShipment = /informatie over de zending|information .*received|aangemeld|voorgemeld|announced|registered|label/.test(desc);
+  const isPhysicalScan = /afgifte|afgegeven|opgehaald|picked.?up|collected|sorteer|sortering|gesorteerd|sorting|onderweg|transit|hub|depot|vervoer|in bezorging|out.for.delivery|aangekomen|arrived/.test(desc);
+  if ((newStatus === "in_transit" || newStatus === "out_for_delivery") && order.status === "processing" && isPhysicalScan && !isPreShipment) {
+    orderUpdate.status = "shipped";
+    orderUpdate.shipped_at = new Date().toISOString();
+    orderUpdate.fulfillment_status = "shipped";
+  }
+
   if (newStatus === "delivered" && order.tracking_status !== "delivered") {
     orderUpdate.status = "delivered";
     orderUpdate.delivered_at = new Date().toISOString();
@@ -406,6 +422,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // TRACK-SHIPPED-1: versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "TRACK-SHIPPED-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -442,7 +462,7 @@ Deno.serve(async (req) => {
 
       const { data: orders, error: ordersError } = await supabase
         .from("orders")
-        .select("id, tracking_number, carrier, tracking_status, order_number, customer_email, customer_name, shipping_address, billing_address")
+        .select("id, status, tracking_number, carrier, tracking_status, order_number, customer_email, customer_name, shipping_address, billing_address")
         .eq("tenant_id", setting.tenant_id)
         .in("status", ["shipped", "processing"])
         .not("tracking_number", "is", null)
