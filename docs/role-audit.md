@@ -5,6 +5,14 @@ Hoort bij de start van de standaardshop (repo `Akke-aigento/sellqo-storefront`, 
 - `resolve_domain`: een hostnaam `<slug>.sellqo.shop` zonder rij in `tenant_domains` wordt de tenant met die slug. Een expliciete koppeling gaat altijd voor. Gereserveerde namen (www, app, api, admin, mail, …) worden nooit een winkel. Andere hostnamen werken zoals vroeger.
 - `get_storefront_bundle` (nog door geen enkele frontend gebruikt): `theme` laat `custom_frontend_config` en `custom_head_scripts` weg. De bundel gaf de API-sleutelhash van eigen frontends publiek terug sinds STOREFRONT-BUNDLE-1, live sinds de deploy van PROMO-ENGINE-1. Het ging om een hash, niet om de sleutel zelf. Die is nu weg.
 - Stempel `SHOP-API-1`. Rooktest groen.
+- **Deploy bewezen (13-10):**
+  - stempel `SHOP-API-1`;
+  - `vanxcel.sellqo.shop` → VanXcel;
+  - `www.sellqo.shop` en een onbekende naam → "Domain not found";
+  - een bestaand gekoppeld domein werkt zoals vroeger;
+  - de bundel bevat geen `custom_frontend_config` en geen `custom_head_scripts` meer;
+  - `get_products`: 71 van 72 identiek aan de nulmeting. De ene afwijking is de bekende gelijkstand bij VanXcel `price_asc`.
+- **Standaardshop:** repo `sellqo-storefront`, SHOP-1 (e3db53f / 99b0ad5). Homepage, collectie en product zijn lokaal getest tegen echte VanXcel-API-antwoorden. Pilot-allowlist staat op `vanxcel`, noindex en bestellen uit. GitHub Actions deployt zodra de Cloudflare-secrets er zijn.
 
 ## CATALOG-FILTERS-1 — filters, facetten en "bestverkocht" in de webshop-API — 13 oktober 2026
 
