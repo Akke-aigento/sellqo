@@ -1,3 +1,27 @@
+## DECISIONS-1013 en SEC-SHIP-1 — 13 oktober 2026
+
+### Beslissingen van Akke, uitgevoerd in de live DB
+
+Snapshot staat in `ops.snap_decisions_20261013`.
+
+- **Loveke:** de codes TEST99 en TEST100 staan op `is_active = false`.
+- **VanXcel WELCOME10:** `usage_limit` is leeg (onbeperkt) en `usage_limit_per_customer` = 1. De regel "alleen eerste bestelling" wordt sinds BATCH-1013 afgedwongen.
+- **Demo Bakkerij:** het "test"-abonnement staat op `status = cancelled` met `end_date = vandaag`. `generate-subscription-invoices` neemt alleen actieve abonnementen mee. De 4 open testfacturen blijven staan voor Pieter.
+- **Landingspagina:** cijfers en testimonials blijven voorlopig staan, op Akkes keuze.
+
+### SEC-SHIP-1 (code; wacht op de gebundelde deploy)
+
+`create-checkout-session` en `create-bank-transfer-order` namen `shipping_cost` letterlijk over uit de request-body. Productprijzen werden al server-side gecontroleerd, maar de verzendkost niet. Beide functies zijn publiek aanroepbaar (`verify_jwt = false`). In SellQo en de eigen frontends roept niemand ze vandaag nog aan.
+
+**Nieuw:** `_shared/serverShipping.ts` haalt de prijs uit `shipping_methods` (eigen winkel, actief, met `free_above`). Wordt er een verzendkost meegestuurd zonder `shipping_method_id`, dan volgt een weigering.
+
+**Stempel:** `SEC-SHIP-1`. payLink-tests: 17/17.
+
+**Nog open (eigen batch nodig):**
+- Afmelden en voorkeuren hebben geen getekende token. Elke mail-link moet daarvoor aangepast worden.
+- `track-storefront-event` is anoniem.
+- De changelog-inschrijving heeft geen opt-in.
+
 ## BATCH-1013 — kostprijs dicht, storefront-resolve, eerste-bestelling-codes, interne meldingen, app-opruiming — 13 oktober 2026
 
 Akke gaf akkoord op de vervolgstappen ("doe maar dikke batch") met deploys gebundeld.

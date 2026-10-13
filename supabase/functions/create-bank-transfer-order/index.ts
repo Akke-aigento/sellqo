@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { verifiedCustomerId } from "../_shared/checkoutCustomer.ts";
+import { resolveServerShippingCost } from "../_shared/serverShipping.ts";
 import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from "../_shared/vat.ts";
 
 const corsHeaders = {
@@ -106,6 +107,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // SEC-SHIP-1: versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "SEC-SHIP-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   try {
     logStep("Function started");
@@ -126,7 +131,7 @@ serve(async (req) => {
       shipping_address,
       billing_address,
       shipping_method_id,
-      shipping_cost = 0,
+      shipping_cost: requested_shipping_cost = 0,
       delivery_type = 'home_delivery',
       service_point_id,
       service_point_data,
@@ -251,6 +256,9 @@ serve(async (req) => {
 
     // Calculate subtotal using verified prices
     const subtotal = verifiedItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
+
+    // SEC-SHIP-1: verzendkost uit shipping_methods, nooit uit de request-body.
+    const shipping_cost = await resolveServerShippingCost(supabaseClient, tenant_id, shipping_method_id, requested_shipping_cost, subtotal);
 
     // Calculate VAT (simplified - standard rate)
     const tenantCountry = tenant.country?.toUpperCase() || 'BE';
