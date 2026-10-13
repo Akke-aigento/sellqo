@@ -1,3 +1,20 @@
+## WEBSHOP-PAGE-1 + SHOP-7 — Webshop-pagina opgeruimd, laadfeedback in de shop — 13 oktober 2026
+
+SellQo 3363175, sellqo-storefront f0fd034. Feedback van Akke: de oude indeling stond er nog volledig, en een klik deed soms zichtbaar niets terwijl de shop laadde.
+
+- **Webshop-pagina:**
+  - Het overzicht toont de winkel op `<slug>.sellqo.shop` met een verkleind live voorbeeld en de knoppen Aanpassen en Bekijk winkel. Pagina's en Juridisch blijven.
+  - Weg: Design, Homepage, Status/publiceren, templates en de lanceer-checklist. Die gingen over de oude ingebouwde winkel; design en homepage zitten in Aanpassen.
+  - `?section=design` en `?section=homepage` sturen door naar de editor.
+  - Winkels met een eigen website krijgen een korte melding in plaats van een blokkerend scherm, en houden "Functies (eigen website)" omdat hun frontend die instellingen leest.
+  - De componenten van de oude schermen staan nog in de repo (ongebruikt): opruimen in een aparte batch.
+- **Shop:**
+  - Een laadbalk bovenaan zodra navigeren langer dan 120 ms duurt.
+  - De winkelgegevens (bundle) worden 60 s in de browser hergebruikt, in plaats van bij elke klik opnieuw opgehaald. De editor wist die cache na opslaan.
+  - `demo-bakkerij` staat in de pilot-allowlist; `demo-bakkerij.sellqo.shop` geeft live 200.
+- **Getest:** lokaal met een vertraagde nep-API: de laadbalk verschijnt tijdens het laden en verdwijnt daarna. CI is groen in beide repo's.
+- **Open:** de admin moet opnieuw gepubliceerd worden (Lovable).
+
 ## EDITOR-1 + SHOP-API-3 + SHOP-6 — "Aanpassen"-editor voor de standaardshop — 13 oktober 2026
 
 SellQo bf35da0 + b1a67cb, sellqo-storefront 11f4602 + e6ed6ae.
