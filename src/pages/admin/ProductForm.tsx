@@ -62,6 +62,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ProductAddonsCard } from '@/components/admin/storefront/food/ProductAddonsCard';
+import { useHorecaModule } from '@/hooks/useHorecaModule';
 import {
   Select,
   SelectContent,
@@ -148,6 +150,7 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
 export default function ProductForm() {
   const { t } = useTranslation();
   const { id } = useParams();
+  const horeca = useHorecaModule();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEditing = !!id;
@@ -1575,6 +1578,9 @@ export default function ProductForm() {
                       </CardContent>
                     </Card>
                   )}
+
+                  {/* DEMO-1 — extra's (horeca-module) */}
+                  {horeca && isEditing && id ? <ProductAddonsCard productId={id} categoryIds={selectedCategoryIds} /> : null}
 
                   {/* Events & Datums (alleen bij ticket) */}
                   {isTicket && (isEditing && id ? (

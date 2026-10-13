@@ -155,6 +155,11 @@ export default function OrderingHubPage() {
       <div>
         <h1 className="flex items-center gap-3 text-3xl font-bold"><UtensilsCrossed className="h-8 w-8 text-primary" />Bestellen</h1>
         <p className="mt-1 text-muted-foreground">Twee manieren om bij jou te bestellen: thuis via de webshop, en in je zaak via het QR-menu. Dezelfde kaart, dezelfde keuken.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Zo ziet het eruit bij een klant:{' '}
+          <a href="https://demo-pizzeria.sellqo.shop" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">webshop<ExternalLink className="h-3 w-3" /></a>{' '}en{' '}
+          <a href="https://demo-pizzeria.sellqo.shop/menu?tafel=4" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">bestellen aan tafel 4<ExternalLink className="h-3 w-3" /></a>{' '}van onze demopizzeria.
+        </p>
       </div>
       <div className="flex gap-1 overflow-x-auto border-b">
         {TABS.map((t) => (

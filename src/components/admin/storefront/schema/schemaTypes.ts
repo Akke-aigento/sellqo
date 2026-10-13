@@ -31,6 +31,8 @@ export interface ThemePreset {
   settings: Record<string, unknown>;
   product_page: Record<string, unknown>;
   sections: PresetSection[];
+  /** DEMO-1 — een echte demowinkel die dit thema gebruikt. */
+  example?: { url: string; label: string };
 }
 
 
