@@ -1,3 +1,48 @@
+## FOOD-1 — Afhalen en leveren met tijdslot, leverzone, minimumbedrag en extra's — 13 oktober 2026
+
+SellQo e505c2b (+ Lovable-typesync 7b64b57), sellqo-storefront 85bfcd9. Vraag van Akke: "Pizzeriabatch knallen".
+
+- **Databank:**
+  - Migratie `20261013180000_food_1.sql`, vóór de code live toegepast en nagekeken via information_schema.
+  - Nieuwe kolommen: `shipping_methods.fulfillment_type` (shipping/pickup/local_delivery, default shipping), `postal_codes`, `min_order_amount`; `service_type` en `requested_time` op carts en orders; `addons`, `addon_key` en `addons_total` op cartregels; `addons` op orderregels.
+  - Nieuwe tabellen: `fulfillment_settings`, `product_addon_groups` en `product_addon_options`. RLS: lezen voor tenantleden, schrijven voor tenant_admin of platform admin.
+  - De unieke index op cartregels bevat nu ook `addon_key`. Regels zonder extra's houden dezelfde uniciteit.
+  - Alle 8 bestaande verzendmethodes staan op `shipping`.
+- **storefront-api (stempel FOOD-1), alles additief:**
+  - `get_product`: `addon_groups`, alleen als de winkel extra's heeft.
+  - `cart_add_item` accepteert `addons`. De validatie loopt via `_shared/productAddons.ts`; de prijs komt uit de DB. Elke combinatie van extra's is een eigen regel.
+  - Verzendopties tonen `fulfillment_type`, `available` en `unavailable_reason` (minimum of leverzone).
+  - `checkout_shipping` weigert levering buiten de zone of onder het minimum.
+  - Nieuwe acties: `get_fulfillment_slots` en `checkout_service`.
+  - `checkout_complete` controleert opnieuw zone, minimum en slot. `checkout_start` reset ook `service_type` en `requested_time`.
+  - Orders krijgen `service_type` en `requested_time`. Orderregels krijgen `addons`, en de extra's staan ook in `variant_title`, zodat mail, factuur en Odoo ze zonder aanpassing tonen.
+- **stripe-connect-webhook:** de fallback-orderaanmaak vanuit de cart neemt dezelfde velden over. De functie kreeg een GET-versiestempel voor neveneffectvrije deployverificatie.
+- **Standaardshop:**
+  - Keuzelijst voor extra's op de productpagina: verplicht of optioneel, maximum, prijs live bijgewerkt.
+  - Extra's in het mandje en bij het afrekenen.
+  - Bij het afrekenen kiest de klant afhalen, leveren of verzenden. Afhalen vraagt geen adres. Bij leveren meldt de shop een postcode buiten de zone of een bestelling onder het minimum. Tijdsloten kies je per dag; het eerste vrije slot staat voorgeselecteerd.
+  - Winkels zonder afhaal- of levermethode houden het afrekenen van voorheen.
+- **Admin (Webshop):**
+  - Nieuw: "Afhalen & leveren" (methodes, postcodes, minimum, tijdsloten, uren per weekdag met een tweede blok) en "Extra's" (groepen, opties, categorieën).
+  - Het orderdetail toont afhalen of levering met datum en uur. i18n is aangevuld in 5 talen.
+- **Deploy:**
+  - Nulmeting vooraf: storefront-api SHOP-API-3; de webhook had geen GET (400).
+  - Lovable-deploy-only met STOP-clausule. `send_message` gaf na 230 s een MCP-timeout; die is niet opnieuw verstuurd.
+  - Na de deploy gaven beide GET's `FOOD-1`. De agentcommit 7b64b57 raakte alleen `src/integrations/supabase/types.ts` (platformsync, consistent met de handmatig toegevoegde types).
+- **Regressie:**
+  - `get_products`-probe tegen `ops.snap_catalog_pre`, batches food1 en food1b (de 37 DNS-timeouts van pg_net opnieuw afgevuurd): 81/81 dezelfde status, 78/81 dezelfde ID's en paginering, 71/81 identiek. Dat is hetzelfde niveau als de shop-api-2-baseline (78/71); de verschillen zijn catalogusdrift.
+  - VanXcel live: `get_product` heeft geen `addon_groups`; `get_shipping_methods` geeft `fulfillment_type: shipping, available: true`; `get_fulfillment_slots` geeft `enabled: false`.
+- **Getest:**
+  - 17 nieuwe unit tests (slots met zomertijdwissel, bereidingstijd, capaciteit, postcodes; extra's met min/max/ongeldig). De rooktest in CI is uitgebreid met cart_add_item met en zonder extra's, verplichte groep, slots en fulfillmentvalidatie.
+  - Shop-flow in Playwright tegen de mock: afhalen (desktop), leveren (390 px) en een postcode buiten de zone.
+  - Admin-schermen in de harness: opslaan, komma's in bedragen en postcodes.
+  - CI is groen in beide repo's.
+- **Nog te doen:**
+  - De admin publiceren in Lovable (Akke).
+  - Een keukenoverzicht of afhaallijst per tijdslot.
+  - Extra's ook per product koppelen vanuit het productscherm; vandaag kan dat alleen via de categorie.
+  - Openingsuren op de shop automatisch uit de tijdsloten halen.
+
 ## THEME-RESTAURANT-1 + EDITOR-1c — Restaurant & afhaal, menukaart, opruiming Demo Bakkerij — 13 oktober 2026
 
 SellQo 940894f, sellqo-storefront 303605d. Vraag van Akke: pizzeria en andere eetzaken ontbraken, en de zijbalk zat vol doorgestreepte secties.
