@@ -100,6 +100,22 @@ de Reply-To naar de winkel zelf gezet — de eigenaar zou zichzelf antwoorden.
 (richting van de mail, wie antwoordt naar wie) dezelfde is; afwijkers nemen enkel
 het deel over dat klopt, vastgelegd met een test.
 
+## G6 — Storefront-API: korting, mandje en checkout bewijs je met de vergelijkingstest
+`storefront-api` bedient alle eigen frontends (VanXcel, Mancini, Benny Rich, Zona,
+Loveke, Fonske, Astra) én de standaardshop. Elke wijziging aan korting, mandje-
+totalen, verzendkost of het bedrag dat de betaling leest, raakt al die winkels
+tegelijk. Kortingslogica staat op één plek: `_shared/promotionEngine.ts`.
+Bereken korting nooit opnieuw in een losse actie.
+**Incident (PROMO-ENGINE-1, 13 okt 2026):** korting werd op drie plaatsen
+berekend en de betaling las een vierde, opgeslagen waarde
+(`storefront_carts.discount_amount`). "Loveke for Two" (7%) stond daardoor in het
+mandje, maar de klant betaalde de volle prijs.
+**Regel:** vóór de deploy draai je `scripts/promo-compare/` (README daar) tegen
+de vorige commit, op een verse fixture uit de live-databank. Het mandje moet
+100% identiek blijven. Elk verschil in de checkout moet je per winkel kunnen
+verklaren, en Akke keurt het goed vóór de deploy. Na de deploy: GET-stempel,
+plus `cart_get` op de live carts tegen een nulmeting in `ops.*`.
+
 ## Checklist bij werk aan een gedeeld pad
 - [ ] Hoeveel werelden bedient deze functie? (doc-types, factuur-soorten,
       marketplaces, platform/tenant) — allemaal benoemd?
@@ -112,3 +128,5 @@ het deel over dat klopt, vastgelegd met een test.
 - [ ] Bij "werkt al maanden, nu stuk": trigger + externe status read-only
       geverifieerd vóór enige wijziging; bewezen integratie niet aangeraakt
 - [ ] Diagnose gebaseerd op live data/gedrag, niet enkel op broncode
+- [ ] Storefront-API korting/mandje/checkout geraakt? `scripts/promo-compare/`
+      gedraaid, verschillen verklaard en door Akke goedgekeurd (G6)
