@@ -8325,6 +8325,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "kitchen_tickets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "kitchen_tickets_parked_cart_id_fkey"
             columns: ["parked_cart_id"]
             isOneToOne: false
@@ -8336,6 +8343,13 @@ export type Database = {
             columns: ["pos_transaction_id"]
             isOneToOne: false
             referencedRelation: "pos_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_tickets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
             referencedColumns: ["id"]
           },
           {
@@ -15601,6 +15615,7 @@ export type Database = {
           customer_first_name: string | null
           customer_id: string | null
           customer_last_name: string | null
+          customer_note: string | null
           customer_phone: string | null
           customer_vat_company_name: string | null
           customer_vat_country: string | null
@@ -15635,6 +15650,7 @@ export type Database = {
           customer_first_name?: string | null
           customer_id?: string | null
           customer_last_name?: string | null
+          customer_note?: string | null
           customer_phone?: string | null
           customer_vat_company_name?: string | null
           customer_vat_country?: string | null
@@ -15669,6 +15685,7 @@ export type Database = {
           customer_first_name?: string | null
           customer_id?: string | null
           customer_last_name?: string | null
+          customer_note?: string | null
           customer_phone?: string | null
           customer_vat_company_name?: string | null
           customer_vat_country?: string | null
