@@ -1,3 +1,62 @@
+## BATCH-1013 — kostprijs dicht, storefront-resolve, eerste-bestelling-codes, interne meldingen, app-opruiming — 13 oktober 2026
+
+Akke gaf akkoord op de vervolgstappen ("doe maar dikke batch") met deploys gebundeld.
+
+### SEC-COST-1 (live DB, getest)
+
+**Snapshot.** `ops.snap_sec_cost_1` bevat de grants en policies van products en product_variants.
+
+**Recon vooraf:**
+- Geen enkele eigen frontend (vanxcel, loveke, mancini-milano, bennyrich, zona-dorata, goudhaan, fonske-crawl-hq) leest products of variants rechtstreeks: ze gaan allemaal via storefront-api of sellqo-proxy, met de service-rol.
+- De SellQo-webshop gebruikt expliciete kolomlijsten.
+- `pg_stat_statements` toont `select=*` door anoniem alleen in de Lovable-securityscan, zonder tenantfilter.
+
+**Uitgevoerd:**
+- anon: SELECT op products ingetrokken; daarna kolom-grant op alles behalve `cost_price`, `raw_import_data`, `license_generator`, `marketplace_mappings`, `marketplace_last_sync_hash`, `import_*`, `original_*`, `marketplace_lock_reason` en `*_listing_error`.
+- product_variants: alles behalve `cost_price`.
+- De policy "Public can view active storefront products" geldt nu `TO anon` (was `public`).
+
+**Test** (blok dat zichzelf terugdraait, plus live HTTP):
+- Anoniem: 94 producten, 323 varianten en 117 productcategorieën leesbaar; `cost_price` geeft `permission denied`.
+- Ingelogde Mancini-admin: 0 producten van andere winkels, 73 eigen producten, eigen `cost_price` leesbaar.
+- REST anoniem met expliciete kolommen: 200. REST met `select=*`: 401 (42501).
+- `storefront-api get_products`: 200.
+
+**Terugdraaien:** `GRANT SELECT ON products, product_variants TO anon`, en de policy terugzetten naar `TO public` (zie de snapshot).
+
+### RESOLVE-FIX-1 (gemerged)
+
+De branch `voorstel/storefront-resolve-fix` is gemerged. `storefront-resolve`, `resolve_domain` en `get_tenant` lezen nu bestaande kolommen. Het contactblok in `get_config` gebruikt phone, billing_company_name, adres en btw-nummer.
+
+### FIRST-ORDER-CODE-1 (storefront-api)
+
+`validateDiscountCode` krijgt het `customer_email` van de winkelwagen mee. Bij `first_order_only` met een bekend e-mailadres en een eerdere betaalde order in dezelfde winkel is de code ongeldig. Gaat de controle zelf fout, dan blijft het oude gedrag gelden. Dit kan alleen strenger maken, nooit goedkoper.
+
+### NOTIF-CRON-1 (check-scheduled-notifications)
+
+**Wijzigingen:**
+- De `auto_renew`-filter is weg (die kolom bestaat niet).
+- De ontdubbeling is gerepareerd: `.eq(kolom, null)` matchte nooit.
+- Een vervallen factuur geeft één melding per factuur; al het andere hoogstens één keer per 24 uur.
+
+**Droge telling:** 6 vervallen facturen, allemaal van testwinkels (Demo Bakkerij en SellQo). Die geven elk één keer een melding. Er verlopen 0 abonnementen en 0 offertes.
+
+**Cron:** wordt pas aangemaakt na de bewezen deploy.
+
+### APP-CLEAN-5 (frontend)
+
+- Ads Amazon, Google en Meta uit het menu gehaald; ze stonden er als uitgeschakelde items.
+- Inkooporders uit het menu gehaald: er is geen pagina om er een aan te maken of te openen. De route blijft bestaan.
+- De leveranciersnaam opent nu het bewerkvenster in plaats van een 404-detailpagina. In leveranciersdocumenten is de naam platte tekst.
+- In de chatbot-sectie (AI-instellingen) staat "binnenkort", want er bestaat geen widget.
+- 14 retouropties die niets doen, staan uitgeschakeld met een melding. Nagekeken in code, databankfuncties en alle eigen frontends.
+
+**Bewust niet gedaan:**
+- Taalwisselaar van de ingebouwde webshop: alleen zichtbaar bij meertalig + ingebouwde webshop, en dat geldt voor 0 winkels (VanXcel heeft een eigen frontend).
+- Realtime-feed in Marketing: laadt bij openen wel echte verzendingen.
+
+**Checks:** tsc 30 (baseline), 630 tests, check:buttons 2/2, i18n-keys, pariteit. De lint-baseline is bijgewerkt.
+
 ## TRACK-SHIPPED-1 — order automatisch naar "verzonden" bij de eerste echte vervoerdersscan — 13 oktober 2026
 
 **Vraag van Akke.** De SellQo-status moet automatisch van "in behandeling" naar "verzonden" gaan zodra de tracking een echte beweging toont, zoals nu al gebeurt met "delivered". Niets naar bol en geen mails.

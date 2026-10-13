@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Bot, MessageSquare, Sparkles, BookOpen, RefreshCw, Save } from 'lucide-react';
@@ -132,62 +133,10 @@ export function AIAssistantSettings() {
             {t('settings.ai.chatbotBody')}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="chatbot-enabled">{t('settings.ai.enableChatbot')}</Label>
-            <Switch
-              id="chatbot-enabled"
-              checked={formState.chatbot_enabled}
-              onCheckedChange={(checked) => setFormState((s) => ({ ...s, chatbot_enabled: checked }))}
-            />
-          </div>
-
-          {formState.chatbot_enabled && (
-            <>
-              <Separator />
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="chatbot-name">Naam</Label>
-                  <Input
-                    id="chatbot-name"
-                    value={formState.chatbot_name}
-                    onChange={(e) => setFormState((s) => ({ ...s, chatbot_name: e.target.value }))}
-                    placeholder="Assistent"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="chatbot-position">Positie</Label>
-                  <Select
-                    value={formState.chatbot_position}
-                    onValueChange={(v) => setFormState((s) => ({ ...s, chatbot_position: v as any }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {POSITION_OPTIONS.map((opt) => (
-                        <SelectItem key={opt.value} value={opt.value}>
-                          {opt.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="chatbot-welcome">Welkomstbericht</Label>
-                <Input
-                  id="chatbot-welcome"
-                  value={formState.chatbot_welcome_message}
-                  onChange={(e) => setFormState((s) => ({ ...s, chatbot_welcome_message: e.target.value }))}
-                  placeholder={t('settings.ai.greetingPlaceholder')}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                💳 Verbruikt 1 AI credit per gesprek
-              </p>
-            </>
-          )}
+        <CardContent>
+          {/* APP-CLEAN-5: er bestaat nog geen chatbot-widget voor de webshop; de schakelaar
+              hier deed niets. Instellingen blijven bewaard, maar zijn niet bedienbaar tot de widget er is. */}
+          <Badge variant="secondary">{t('common.comingSoon')}</Badge>
         </CardContent>
       </Card>
 

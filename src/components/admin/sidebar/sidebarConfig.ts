@@ -150,9 +150,7 @@ const salesItems: NavItem[] = [
       { id: 'ads-overview', titleKey: 'navigation.items.ads_overview', url: '/admin/ads', requireRead: 'ads' },
       { id: 'ads-bolcom', titleKey: 'navigation.items.ads_bolcom', url: '/admin/ads/bolcom', requireRead: 'ads' },
       { id: 'ads-products', titleKey: 'navigation.items.ads_products', url: '/admin/ads/products', requireRead: 'ads' },
-      { id: 'ads-amazon', titleKey: 'navigation.items.ads_amazon', url: '/admin/ads/amazon', disabled: true },
-      { id: 'ads-google', titleKey: 'navigation.items.ads_google', url: '/admin/ads/google', disabled: true },
-      { id: 'ads-meta', titleKey: 'navigation.items.ads_meta', url: '/admin/ads/meta', disabled: true },
+      // APP-CLEAN-5: Amazon/Google/Meta-ads verborgen tot ze bestaan (stonden als uitgeschakelde items in het menu).
       { id: 'ads-ai', titleKey: 'navigation.items.ads_ai', url: '/admin/ads/ai', badge: true, requireRead: 'ads' },
     ],
   },
@@ -207,7 +205,8 @@ const managementItems: NavItem[] = [
     requireRead: 'suppliers',
     children: [
       { id: 'suppliers', titleKey: 'navigation.items.suppliers', url: '/admin/suppliers', requireRead: 'suppliers' },
-      { id: 'purchase-orders', titleKey: 'navigation.items.purchase_orders', url: '/admin/purchase-orders', requireRead: 'suppliers' },
+      // SUPPLIER-404-1: inkooporders verborgen — er is geen pagina om er een aan te maken of te openen
+      // (/admin/purchase-orders/new en /:id gaven 404; 0 inkooporders in gebruik). Route blijft bestaan.
       { id: 'supplier-docs', titleKey: 'navigation.items.supplier_docs', url: '/admin/supplier-documents', requireRead: 'suppliers' },
     ],
   },

@@ -1534,6 +1534,21 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
     const { count } = await supabase.from('discount_code_usage').select('*', { count: 'exact', head: true }).eq('discount_code_id', data.id).eq('customer_email', customer_id);
     if (count && count >= data.usage_limit_per_customer) return { valid: false, error: 'Je hebt deze kortingscode al gebruikt' };
   }
+  // FIRST-ORDER-CODE-1: "alleen eerste bestelling" werd nergens afgedwongen. Zodra het
+  // e-mailadres van de klant bekend is (checkout), telt een eerdere betaalde bestelling
+  // in deze winkel als "niet de eerste". Zonder e-mail (nog geen checkout) blijft de
+  // code zichtbaar; bij een fout in de controle valt het terug op het oude gedrag.
+  if (data.first_order_only) {
+    const email = typeof (params as Record<string, unknown>).customer_email === 'string'
+      ? String((params as Record<string, unknown>).customer_email).trim().toLowerCase() : '';
+    if (email) {
+      try {
+        const { count: prior } = await supabase.from('orders').select('id', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId).ilike('customer_email', email.replace(/[%_\\]/g, '\\$&')).eq('payment_status', 'paid');
+        if (prior && prior > 0) return { valid: false, error: 'Deze kortingscode geldt alleen voor je eerste bestelling' };
+      } catch (_e) { /* fail open: zelfde gedrag als vóór FIRST-ORDER-CODE-1 */ }
+    }
+  }
   return { valid: true, code: data.code, discount_type: data.discount_type, discount_value: data.discount_value, applies_to: data.applies_to, product_ids: data.product_ids || null, category_ids: data.category_ids || null, description: data.description, max_discount_amount: data.maximum_discount_amount || null, discount_code_id: data.id };
 }
 
@@ -1614,7 +1629,7 @@ async function computeCartTotals(
 
 
   for (const raw of codes) {
-    const v = await validateDiscountCode(supabase, tenantId, { code: raw, subtotal });
+    const v = await validateDiscountCode(supabase, tenantId, { code: raw, subtotal, customer_email: cart?.customer_email });
     if (!v.valid) continue;
     const code = v.code || normalizeDiscountCode(raw);
     if (!canonicalCode) canonicalCode = code;
@@ -2127,7 +2142,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   const appliedDiscounts: { code: string; description: string; amount: number }[] = [];
 
   for (const dc of discountCodes) {
-    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal });
+    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal, customer_email: cart?.customer_email });
     if (!v.valid) continue;
     if (v.discount_type === 'free_shipping') {
       hasFreeShipping = true;
@@ -2845,7 +2860,7 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
   const discountCodes: string[] = cart.discount_codes || [];
   if (discountCodes.length > 0) {
     for (const dc of discountCodes) {
-      const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal });
+      const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal, customer_email: cart.customer_email });
       if (v.valid && v.discount_type === 'free_shipping') {
         shippingCost = 0;
         break;
@@ -3641,7 +3656,7 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
 
   const currentCodes: string[] = cart.discount_codes || [];
 
-  const validation = await validateDiscountCode(supabase, tenantId, { code: discountCode, subtotal: cart.subtotal });
+  const validation = await validateDiscountCode(supabase, tenantId, { code: discountCode, subtotal: cart.subtotal, customer_email: cart.customer_email });
   if (!validation.valid) throw new DiscountCodeError(validation.error || 'Ongeldige kortingscode');
 
   const canonical = validation.code || discountCode;
@@ -3654,7 +3669,7 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
   let totalDiscountAmount = 0;
   let hasFreeShipping = false;
   for (const dc of updatedCodes) {
-    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal });
+    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal, customer_email: cart.customer_email });
     if (!v.valid) continue;
     if (v.discount_type === 'free_shipping') {
       hasFreeShipping = true;
@@ -3691,7 +3706,7 @@ async function checkoutRemoveDiscount(supabase: any, tenantId: string, params: R
   let totalDiscountAmount = 0;
   let hasFreeShipping = false;
   for (const dc of updatedCodes) {
-    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal });
+    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal, customer_email: cart.customer_email });
     if (!v.valid) continue;
     if (v.discount_type === 'free_shipping') {
       hasFreeShipping = true;
@@ -4176,7 +4191,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'RESOLVE-FIX-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'BATCH-1013' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

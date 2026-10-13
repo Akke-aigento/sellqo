@@ -84,6 +84,8 @@ export function ReturnSettingsPage() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight">Retourinstellingen</h2>
         <p className="text-muted-foreground">Configureer het retourbeleid, refund logica en klant-portaal.</p>
+        {/* APP-CLEAN-5: 14 opties werden opgeslagen maar door niets gebruikt; die staan uitgeschakeld. */}
+        <p className="text-xs text-muted-foreground mt-1">Uitgeschakelde opties komen binnenkort: ze worden nog niet toegepast.</p>
       </div>
       <Accordion type="multiple" defaultValue={['general', 'credit-notes', 'portal', 'refund', 'marketplace', 'shipping', 'stock', 'notifications', 'reasons']} className="space-y-4">
         
@@ -101,12 +103,12 @@ export function ReturnSettingsPage() {
           <AccordionContent className="px-4 pb-4 space-y-4">
             <div className="flex items-center justify-between">
               <Label>Retours geactiveerd</Label>
-              <Switch checked={settings.returns_enabled} onCheckedChange={v => handleSwitch('returns_enabled', v)} />
+              <Switch checked={settings.returns_enabled} disabled onCheckedChange={v => handleSwitch('returns_enabled', v)} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Retourtermijn (dagen)</Label>
-                <Input type="number" min={1} value={settings.return_window_days} onChange={e => handleNumber('return_window_days', e.target.value)} />
+                <Input type="number" min={1} value={settings.return_window_days} disabled onChange={e => handleNumber('return_window_days', e.target.value)} />
                 <p className="text-xs text-muted-foreground">EU minimum: 14 dagen</p>
               </div>
               <div className="space-y-1.5">
@@ -131,7 +133,7 @@ export function ReturnSettingsPage() {
           <AccordionContent className="px-4 pb-4 space-y-4">
             <div className="space-y-2">
               <Label>Credit nota beleid</Label>
-              <RadioGroup value={settings.credit_note_policy} onValueChange={v => handleRadio('credit_note_policy', v)}>
+              <RadioGroup value={settings.credit_note_policy} disabled onValueChange={v => handleRadio('credit_note_policy', v)}>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="never" id="cn-never" /><Label htmlFor="cn-never">Nooit</Label></div>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="b2b_only" id="cn-b2b" /><Label htmlFor="cn-b2b">Alleen B2B</Label></div>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="always" id="cn-always" /><Label htmlFor="cn-always">Altijd (ook B2C)</Label></div>
@@ -165,24 +167,24 @@ export function ReturnSettingsPage() {
                 <Label>Klanten mogen zelf retours aanvragen</Label>
                 <Badge variant="outline" className="ml-2 text-xs">Komt in fase 4</Badge>
               </div>
-              <Switch checked={settings.customer_portal_enabled} onCheckedChange={v => handleSwitch('customer_portal_enabled', v)} />
+              <Switch checked={settings.customer_portal_enabled} disabled onCheckedChange={v => handleSwitch('customer_portal_enabled', v)} />
             </div>
             {settings.customer_portal_enabled && (
               <>
                 <div className="space-y-2">
                   <Label>Authenticatie methode</Label>
-                  <RadioGroup value={settings.customer_portal_auth} onValueChange={v => handleRadio('customer_portal_auth', v)}>
+                  <RadioGroup value={settings.customer_portal_auth} disabled onValueChange={v => handleRadio('customer_portal_auth', v)}>
                     <div className="flex items-center space-x-2"><RadioGroupItem value="email_order_lookup" id="auth-email" /><Label htmlFor="auth-email">Email + ordernummer (geen account)</Label></div>
                     <div className="flex items-center space-x-2"><RadioGroupItem value="logged_in_only" id="auth-login" /><Label htmlFor="auth-login">Alleen ingelogde klanten</Label></div>
                   </RadioGroup>
                 </div>
                 <div className="flex items-center justify-between">
                   <Label>Auto-goedkeuren binnen retourtermijn</Label>
-                  <Switch checked={settings.auto_approve_within_window} onCheckedChange={v => handleSwitch('auto_approve_within_window', v)} />
+                  <Switch checked={settings.auto_approve_within_window} disabled onCheckedChange={v => handleSwitch('auto_approve_within_window', v)} />
                 </div>
                 <div className="flex items-center justify-between">
                   <Label>Buiten retourtermijn alleen op aanvraag</Label>
-                  <Switch checked={settings.manual_approval_outside_window} onCheckedChange={v => handleSwitch('manual_approval_outside_window', v)} />
+                  <Switch checked={settings.manual_approval_outside_window} disabled onCheckedChange={v => handleSwitch('manual_approval_outside_window', v)} />
                 </div>
               </>
             )}
@@ -217,7 +219,7 @@ export function ReturnSettingsPage() {
             </div>
             <div className="flex items-center justify-between">
               <Label>Gedeeltelijke refunds toestaan (per item)</Label>
-              <Switch checked={settings.allow_partial_refunds} onCheckedChange={v => handleSwitch('allow_partial_refunds', v)} />
+              <Switch checked={settings.allow_partial_refunds} disabled onCheckedChange={v => handleSwitch('allow_partial_refunds', v)} />
             </div>
             <div className="flex items-center justify-between">
               <div>
@@ -263,7 +265,7 @@ export function ReturnSettingsPage() {
             {settings.marketplace_refund_mode === 'auto_via_api' && (
               <div className="flex items-center justify-between">
                 <Label>Auto-accepteren binnen retourtermijn</Label>
-                <Switch checked={settings.marketplace_auto_accept_within_window} onCheckedChange={v => handleSwitch('marketplace_auto_accept_within_window', v)} />
+                <Switch checked={settings.marketplace_auto_accept_within_window} disabled onCheckedChange={v => handleSwitch('marketplace_auto_accept_within_window', v)} />
               </div>
             )}
           </AccordionContent>
@@ -283,7 +285,7 @@ export function ReturnSettingsPage() {
           <AccordionContent className="px-4 pb-4 space-y-4">
             <div className="space-y-2">
               <Label>Retourverzending betaald door</Label>
-              <RadioGroup value={settings.return_shipping_paid_by} onValueChange={v => handleRadio('return_shipping_paid_by', v)}>
+              <RadioGroup value={settings.return_shipping_paid_by} disabled onValueChange={v => handleRadio('return_shipping_paid_by', v)}>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="customer" id="ship-cust" /><Label htmlFor="ship-cust">Klant betaalt</Label></div>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="merchant" id="ship-merch" /><Label htmlFor="ship-merch">Wij betalen</Label></div>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="conditional" id="ship-cond" /><Label htmlFor="ship-cond">Conditioneel (gratis bij bepaalde redenen)</Label></div>
@@ -297,8 +299,7 @@ export function ReturnSettingsPage() {
                     <Badge
                       key={code}
                       variant={(settings.conditional_free_reasons || []).includes(code) ? 'default' : 'outline'}
-                      className="cursor-pointer"
-                      onClick={() => toggleConditionalReason(code)}
+                      className="opacity-60"
                     >
                       {REASON_CODE_LABELS[code] || code}
                     </Badge>
@@ -309,7 +310,7 @@ export function ReturnSettingsPage() {
             <Separator />
             <div className="space-y-2">
               <Label>Verzendintegratie</Label>
-              <RadioGroup value={settings.return_shipping_provider} onValueChange={v => handleRadio('return_shipping_provider', v)}>
+              <RadioGroup value={settings.return_shipping_provider} disabled onValueChange={v => handleRadio('return_shipping_provider', v)}>
                 <div className="flex items-center space-x-2"><RadioGroupItem value="none" id="prov-none" /><Label htmlFor="prov-none">Geen integratie</Label></div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="sendcloud" id="prov-sc" disabled />
@@ -326,7 +327,7 @@ export function ReturnSettingsPage() {
               <Switch
                 checked={settings.auto_generate_return_label}
                 onCheckedChange={v => handleSwitch('auto_generate_return_label', v)}
-                disabled={settings.return_shipping_provider === 'none'}
+                disabled
               />
             </div>
           </AccordionContent>
@@ -354,7 +355,7 @@ export function ReturnSettingsPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Notificatie bij voorraad-impact (%)</Label>
-              <Input type="number" min={1} max={100} value={settings.stock_impact_notification_threshold} onChange={e => handleNumber('stock_impact_notification_threshold', e.target.value)} className="w-32" />
+              <Input type="number" min={1} max={100} value={settings.stock_impact_notification_threshold} disabled onChange={e => handleNumber('stock_impact_notification_threshold', e.target.value)} className="w-32" />
               <p className="text-xs text-muted-foreground">Stuur notificatie als retour meer dan X% van voorraad betreft</p>
             </div>
           </AccordionContent>

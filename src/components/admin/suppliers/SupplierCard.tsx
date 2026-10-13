@@ -15,12 +15,10 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
-  Eye,
   Star,
   Package,
 } from "lucide-react";
 import type { Supplier } from "@/types/supplier";
-import { Link } from "react-router-dom";
 
 interface SupplierCardProps {
   supplier: Supplier;
@@ -44,12 +42,14 @@ export function SupplierCard({
               <Building2 className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <Link
-                to={`/admin/suppliers/${supplier.id}`}
-                className="font-semibold hover:text-primary transition-colors"
+              {/* SUPPLIER-404-1: er bestaat geen detailpagina; de naam opent het bewerkvenster. */}
+              <button
+                type="button"
+                onClick={() => onEdit(supplier)}
+                className="font-semibold hover:text-primary transition-colors text-left"
               >
                 {supplier.name}
-              </Link>
+              </button>
               {supplier.contact_person && (
                 <p className="text-sm text-muted-foreground">
                   {supplier.contact_person}
@@ -69,12 +69,6 @@ export function SupplierCard({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link to={`/admin/suppliers/${supplier.id}`}>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Bekijken
-                  </Link>
-                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onEdit(supplier)}>
                   <Pencil className="h-4 w-4 mr-2" />
                   Bewerken

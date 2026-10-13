@@ -21,6 +21,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // NOTIF-CRON-1: versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "BATCH-1013" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -128,7 +132,7 @@ Deno.serve(async (req) => {
         customers (first_name, last_name, company_name, email)
       `)
       .eq("status", "active")
-      .eq("auto_renew", false)
+      // NOTIF-CRON-1: subscriptions heeft geen auto_renew; die filter liet de hele query falen.
       .not("end_date", "is", null)
       .eq("end_date", expiringDate);
 
@@ -255,16 +259,23 @@ Deno.serve(async (req) => {
       const uniqueNotifications: NotificationToSend[] = [];
       
       for (const notif of notifications) {
-        const { data: existing } = await supabase
+        // NOTIF-CRON-1: `.eq(kolom, null)` matcht nooit (= NULL), dus de ontdubbeling
+        // werkte niet. Alleen sleutels die de melding heeft, filteren. Een vervallen
+        // factuur meldt één keer per factuur (geen dagelijkse herhaling); de rest
+        // hoogstens één keer per 24 uur.
+        let dup = supabase
           .from("notifications")
           .select("id")
           .eq("tenant_id", notif.tenant_id)
-          .eq("type", notif.type)
-          .eq("data->>invoice_id", notif.data.invoice_id || null)
-          .eq("data->>subscription_id", notif.data.subscription_id || null)
-          .eq("data->>quote_id", notif.data.quote_id || null)
-          .gte("created_at", new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString())
-          .limit(1);
+          .eq("type", notif.type);
+        for (const key of ["invoice_id", "subscription_id", "quote_id"]) {
+          const val = notif.data[key];
+          if (val) dup = dup.eq(`data->>${key}`, String(val));
+        }
+        if (!notif.data.invoice_id) {
+          dup = dup.gte("created_at", new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString());
+        }
+        const { data: existing } = await dup.limit(1);
 
         if (!existing || existing.length === 0) {
           uniqueNotifications.push(notif);

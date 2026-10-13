@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -233,12 +232,8 @@ export default function SupplierDocuments() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Link
-                          to={`/admin/suppliers/${doc.supplier_id}`}
-                          className="hover:text-primary"
-                        >
-                          {doc.supplier?.name}
-                        </Link>
+                        {/* SUPPLIER-404-1: geen leveranciersdetailpagina. */}
+                        {doc.supplier?.name}
                       </TableCell>
                       <TableCell>
                         {doc.document_date
