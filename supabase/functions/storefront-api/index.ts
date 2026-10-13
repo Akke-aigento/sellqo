@@ -1131,12 +1131,26 @@ async function getPages(supabase: any, tenantId: string, params: Record<string, 
   }));
 }
 
+// SHOP-API-2 — nieuwe actie: één gepubliceerde eigen pagina (storefront_pages) op slug,
+// voor de standaardshop (/p/<slug>). Juridische pagina's blijven via get_pages.
+async function getStorefrontPage(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
+  const slug = String(params.slug || '').trim();
+  if (!slug) throw new Error('slug is required');
+  const { data, error } = await supabase
+    .from('storefront_pages')
+    .select('slug, title, content, meta_title, meta_description, updated_at')
+    .eq('tenant_id', tenantId).eq('slug', slug).eq('is_published', true).maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error('Page not found');
+  return data;
+}
+
 // ============== GET HOMEPAGE ==============
 
 async function getHomepage(supabase: any, tenantId: string) {
   const { data, error } = await supabase
     .from('homepage_sections')
-    .select('id, section_type, title, content, settings, sort_order, is_visible')
+    .select('id, section_type, title, subtitle, content, settings, sort_order, is_visible')
     .eq('tenant_id', tenantId).eq('is_visible', true)
     .order('sort_order', { ascending: true });
   if (error) throw error;
@@ -4274,7 +4288,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SHOP-API-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SHOP-API-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -4328,6 +4342,7 @@ serve(async (req) => {
       case 'get_categories': result = await getCategories(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
+      case 'get_page': result = await getStorefrontPage(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_storefront_bundle': result = await getStorefrontBundle(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
       case 'get_reviews': result = await getReviews(supabase, tenant_id, params); cacheControl = 'public, max-age=120'; break;
       case 'get_shipping_methods': {

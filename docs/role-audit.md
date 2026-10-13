@@ -1,3 +1,10 @@
+## SHOP-API-2 — eigen pagina's en sectie-ondertitels voor de standaardshop — 13 oktober 2026
+
+Alles is additief.
+- Nieuwe actie `get_page` (param `slug`) geeft één gepubliceerde `storefront_pages`-pagina terug: slug, titel, content (HTML), meta_title, meta_description. De standaardshop toont die op `/p/<slug>`. Juridische pagina's blijven via `get_pages`.
+- `get_homepage` geeft nu ook `subtitle` mee. Er komt alleen een sleutel bij.
+- Stempel `SHOP-API-2`. Rooktest groen.
+
 ## SHOP-2/3/4 — standaardshop: homepage-secties, filters, winkelmandje en afrekenen — 13 oktober 2026
 
 Repo `sellqo-storefront` (c5cb5af, 8f6f7e7, 40f5cd4), live op `vanxcel.sellqo.shop` via GitHub Actions. Geen wijziging aan de SellQo-API nodig.
