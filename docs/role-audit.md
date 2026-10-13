@@ -1,3 +1,45 @@
+## HORECA-1 — Horeca-module, Bestellen-hub (webshop vs QR-menu), bestellen aan tafel — 13 oktober 2026
+
+SellQo c227d28, sellqo-storefront 6b3c641. Vraag van Akke: webshop en QR-menu waren door elkaar niet duidelijk; zaken willen soms beide, en winkels zonder horeca mogen er niets van zien.
+
+- **Module `horeca`:**
+  - Het is een featureKey die in geen enkel standaardplan zit. Een platformadmin ontgrendelt hem per winkel (slotje in de zijbalk, `tenant_feature_overrides.granted_features`), later kan dat via een horecaplan (`pricing_plans.features.horeca`).
+  - Zonder de module zijn er geen menu's Bestellen en Keuken, geen extra's en geen keukenblok in de kassa. `/admin/bestellen` toont dan "Horeca-module".
+  - `useHasFoodService` (afleiden uit de verzendmethodes) is vervangen door `useHorecaModule`.
+- **/admin/bestellen:**
+  - Het overzicht toont twee kanalen met hun status:
+    - Webshop, thuis bestellen: winkel online, online bestellen, afhalen of leveren, tijdsloten, betalen bij afhalen.
+    - QR-menu, in de zaak: uit, alleen bekijken of bestellen aan tafel, plus de afrekenwijze.
+  - Gedeeld door beide: Extra's, Keukenscherm, Kassa.
+  - Tabbladen: Webshop (afhalen & leveren), QR-menu (stand + QR-afdrukken), Extra's.
+  - De Webshop-pagina gaat weer alleen over de winkel. Oude `?section=service|extras|menu-qr` verwijzen door.
+- **Databank** (migratie `20261013230000_horeca_1_table.sql`, live en nagekeken):
+  - `fulfillment_settings.qr_mode` ('off'/'view'/'order', standaard 'view'), `qr_pay_counter` (standaard aan) en `qr_pay_online` (standaard uit).
+  - `table_label` op `storefront_carts` en `orders`.
+- **storefront-api (HORECA-1):**
+  - Nieuwe actie `checkout_table`: alleen bij qr_mode 'order' en met een geldig tafelnummer. Ze zet eat_in, het tafelnummer en de klantnaam, zonder verzending.
+  - Afrekenen aan tafel kan via "Betalen aan de toog" (`pay_on_pickup`, als `qr_pay_counter` aan staat) en via online methodes alleen als `qr_pay_online` aan staat; overschrijving kan nooit.
+  - `checkout_complete` vraagt aan tafel geen e-mailadres. `orders.customer_email` is NOT NULL, dus de waarde wordt `''`; de Stripe-sessie krijgt in dat geval `undefined`.
+  - `table_label` gaat mee op de order. Een naamloze tafelbestelling krijgt als klantnaam "Tafel N".
+  - `resolve_domain` geeft additief `qr_mode` mee.
+- **stripe-connect-webhook (HORECA-1):** `table_label` en de lege e-mail ook in de fallback-orderaanmaak.
+- **Shop:**
+  - `/menu?tafel=N` bij bestellen aan tafel: de tafel staat 4 uur in een cookie en bestellen staat aan in die browser, ook als de webshop zelf niet bestelt.
+  - Afrekenen aan tafel heeft geen adres; naam en opmerking zijn optioneel, betalen gaat aan de toog of online. "Niet aan tafel?" schakelt terug.
+  - Staat het QR-menu uit, dan bestaat `/menu` niet.
+- **Keuken:** "Tafel 4 · naam" staat vooraan op de kaart en de bon.
+- **Deploy:**
+  - Deploy-only van storefront-api en de webhook; beide GET's gaven `HORECA-1`.
+  - `resolve_domain` voor demo-bakkerij geeft `qr_mode: view`.
+  - Geen agentcommits.
+- **Regressie:** `get_products`-probe horeca1 en horeca1b. Alle 81 gaven dezelfde status; één Mancini-probe had pas na een opnieuw verstuurde aanvraag een antwoord, door een DNS-timeout van pg_net. 78/81 dezelfde ID's: dezelfde 3 verschillen als in eerdere batches. Het aantal identieke antwoorden daalde van 71 naar 69 door gewijzigde VanXcel-voorraad (`stock`) sinds shopopen1. `get_products` zelf is ongewijzigd.
+- **Getest:**
+  - Rooktest voor `checkoutTable` (standaard uit, ongeldig tafelnummer) en "betalen aan de toog".
+  - Vitest voor `kitchenModel`: 6 tests, inclusief tafel.
+  - Harness voor de hub: overzicht, QR-stand opslaan, module uit op 390 px.
+  - Playwright tegen de shop-mock: zonder tafel geen plus-knop, met `?tafel=7` wel, tafelafrekening bij de toog, bevestiging.
+  - tsc ligt op de baseline (27), lint is gelijk, de i18n-pariteit klopt en CI is groen.
+
 ## SHOP-OPEN-1 + FOOD-4 — Winkel zelf openen, online bestellen per winkel, keukenbonnen afdrukken — 13 oktober 2026
 
 SellQo 3dd136b, sellqo-storefront 1ef3477.
