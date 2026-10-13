@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, ChevronRight, Eye, EyeOff, ExternalLink, GripVertical, Image, LayoutList, Loader2,
   Mail, Megaphone, MessageSquare, Monitor, Palette, PanelBottom, Play, Plus, Smartphone, Star, Grid3X3, Trash2,
+  BadgeCheck, HelpCircle, Clock, Menu as MenuIcon, ShoppingBag, Activity, Pipette,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -31,16 +32,24 @@ import { useStorefront } from '@/hooks/useStorefront';
 import { SectionEditor } from '@/components/admin/storefront/SectionEditor';
 import { BrandingUploader } from '@/components/admin/storefront/BrandingUploader';
 import { GOOGLE_FONTS, type HomepageSection, type HomepageSectionType } from '@/types/storefront';
+import { useCategories } from '@/hooks/useCategories';
+import { BlocksEditor, SchemaForm } from '@/components/admin/storefront/schema/SchemaForm';
+import { schemaDefaults, type ThemeSchema } from '@/components/admin/storefront/schema/schemaTypes';
+import { MenuEditor, type MenuItem } from '@/components/admin/storefront/schema/MenuEditor';
 
 // Thema-velden die de standaardshop echt gebruikt. Andere instellingen staan hier
 // bewust niet: een knop die niets doet, is erger dan geen knop.
 const THEME_FIELDS = [
   'brand_color', 'primary_color', 'logo_url', 'favicon_url', 'heading_font', 'body_font',
   'header_sticky', 'product_stock_indicator', 'show_announcement_bar', 'announcement_text',
-  'announcement_link', 'footer_text',
+  'announcement_link', 'footer_text', 'theme_config',
 ] as const;
 type ThemeField = (typeof THEME_FIELDS)[number];
-type ThemeDraft = Partial<Record<ThemeField, string | boolean | null>>;
+type ThemeDraft = Partial<Record<ThemeField, unknown>>;
+type Obj = Record<string, unknown>;
+const asObj = (v: unknown): Obj => (v && typeof v === 'object' && !Array.isArray(v) ? (v as Obj) : {});
+// Sectietypes die volledig uit het themaschema komen (geen eigen formulier in SectionEditor).
+const PRODUCT_TYPES = ['featured_products', 'collection'];
 
 // Sectietypes die de standaardshop toont (externe reviews volgen later).
 const ADDABLE: Array<{ type: HomepageSectionType; label: string; hint: string; icon: typeof Image }> = [
@@ -53,12 +62,45 @@ const ADDABLE: Array<{ type: HomepageSectionType; label: string; hint: string; i
   { type: 'video', label: 'Video', hint: 'YouTube, Vimeo of eigen video', icon: Play },
   { type: 'announcement', label: 'Aankondiging', hint: 'Korte opvallende melding', icon: Megaphone },
 ];
-const ICONS: Record<string, typeof Image> = Object.fromEntries(ADDABLE.map((a) => [a.type, a.icon]));
-const LABELS: Record<string, string> = { ...Object.fromEntries(ADDABLE.map((a) => [a.type, a.label])), external_reviews: 'Externe reviews' };
+const SCHEMA_ICONS: Record<string, typeof Image> = { usp_bar: BadgeCheck, faq: HelpCircle, contact_hours: Clock };
+const ICONS: Record<string, typeof Image> = { ...Object.fromEntries(ADDABLE.map((a) => [a.type, a.icon])), ...SCHEMA_ICONS };
+const LABELS: Record<string, string> = {
+  ...Object.fromEntries(ADDABLE.map((a) => [a.type, a.label])), external_reviews: 'Externe reviews',
+  usp_bar: 'Voordelenbalk', faq: 'Veelgestelde vragen', contact_hours: 'Openingsuren en contact',
+};
 
 const SWATCHES = ['#0d9488', '#00a0a8', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#22c55e', '#374151'];
 
-type Panel = { kind: 'list' } | { kind: 'section'; id: string } | { kind: 'announcement' } | { kind: 'footer' };
+type Panel = { kind: 'list' } | { kind: 'section'; id: string } | { kind: 'announcement' } | { kind: 'footer' }
+  | { kind: 'menu' } | { kind: 'product' } | { kind: 'tracking' };
+
+// Meest voorkomende, verzadigde kleur uit het logo (wit, zwart en grijs tellen niet mee).
+async function colorFromLogo(url: string): Promise<string | null> {
+  const img = new window.Image();
+  img.crossOrigin = 'anonymous';
+  img.src = url;
+  await img.decode();
+  const c = document.createElement('canvas');
+  c.width = 64; c.height = 64;
+  const ctx = c.getContext('2d');
+  if (!ctx) return null;
+  ctx.drawImage(img, 0, 0, 64, 64);
+  const { data } = ctx.getImageData(0, 0, 64, 64);
+  const buckets = new Map<string, { n: number; r: number; g: number; b: number }>();
+  for (let i = 0; i < data.length; i += 4) {
+    const [r, g, b, a] = [data[i], data[i + 1], data[i + 2], data[i + 3]];
+    if (a < 200) continue;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    if (max < 40 || min > 225 || max - min < 40) continue;
+    const key = `${r >> 5}-${g >> 5}-${b >> 5}`;
+    const e = buckets.get(key) || { n: 0, r: 0, g: 0, b: 0 };
+    e.n++; e.r += r; e.g += g; e.b += b;
+    buckets.set(key, e);
+  }
+  const best = [...buckets.values()].sort((x, y) => y.n - x.n)[0];
+  if (!best) return null;
+  return '#' + [best.r, best.g, best.b].map((v) => Math.round(v / best.n).toString(16).padStart(2, '0')).join('');
+}
 
 const sectionTitle = (s: HomepageSection) => (s.title && s.title !== 'Hero Banner' ? s.title : LABELS[s.section_type] || s.section_type);
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
@@ -66,7 +108,7 @@ const tempId = () => `nieuw-${Math.random().toString(36).slice(2, 10)}`;
 
 function pickTheme(src: Record<string, unknown> | null | undefined): ThemeDraft {
   const out: ThemeDraft = {};
-  for (const k of THEME_FIELDS) out[k] = (src?.[k] as string | boolean | null | undefined) ?? null;
+  for (const k of THEME_FIELDS) out[k] = k === 'theme_config' ? asObj(src?.[k]) : (src?.[k] ?? null);
   return out;
 }
 
@@ -85,6 +127,7 @@ function themeForShop(t: ThemeDraft) {
     announcement_text: t.announcement_text ?? null,
     announcement_link: t.announcement_link ?? null,
     footer_text: t.footer_text ?? null,
+    theme_config: asObj(t.theme_config),
   };
 }
 
@@ -132,9 +175,40 @@ function RowButton({ icon: Icon, label, hint, onClick }: { icon: typeof Image; l
   );
 }
 
+// Titel, ondertitel, velden en blokken van een sectie die volledig uit het schema komt.
+function SchemaSectionFields({ section, def, icons, onChange }: {
+  section: HomepageSection; def: NonNullable<ThemeSchema['sections'][string]>; icons: string[];
+  onChange: (patch: Partial<HomepageSection>) => void;
+}) {
+  const content = asObj(section.content);
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <Label htmlFor={`t-${section.id}`}>Titel (optioneel)</Label>
+        <Input id={`t-${section.id}`} value={section.title || ''} onChange={(e) => onChange({ title: e.target.value || null })} />
+      </div>
+      {def.fields.length ? (
+        <SchemaForm idPrefix={`c-${section.id}`} fields={def.fields} values={content} icons={icons}
+          onChange={(v) => onChange({ content: { ...content, ...v } as HomepageSection['content'] })} />
+      ) : null}
+      {def.blocks ? (
+        <div className="space-y-2 border-t pt-4">
+          <p className="text-sm font-semibold">{def.blocks.plural || def.blocks.label}</p>
+          <BlocksEditor blocks={def.blocks} icons={icons}
+            items={(Array.isArray(content[def.blocks.key]) ? content[def.blocks.key] : []) as Record<string, unknown>[]}
+            onChange={(items) => onChange({ content: { ...content, [def.blocks!.key]: items } as HomepageSection['content'] })} />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function StorefrontCustomizePage() {
   const { currentTenant } = useTenant();
-  const { themeSettings, sections: serverSections, settingsLoading, sectionsLoading } = useStorefront();
+  const { themeSettings, sections: serverSections, pages, settingsLoading, sectionsLoading } = useStorefront();
+  const { categories } = useCategories();
+  const [schema, setSchema] = useState<ThemeSchema | null>(null);
+  const [schemaError, setSchemaError] = useState(false);
   const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<'sections' | 'theme'>('sections');
@@ -152,6 +226,17 @@ export default function StorefrontCustomizePage() {
   const slug = currentTenant?.slug || '';
   const origin = slug ? shopOrigin(slug) : '';
   const baseTheme = useMemo(() => pickTheme(themeSettings as unknown as Record<string, unknown>), [themeSettings]);
+
+  // Het themaschema komt van de shop zelf: één bron voor shop en editor.
+  useEffect(() => {
+    if (!origin) return;
+    let stop = false;
+    fetch(`${origin}/theme/schema.json`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((j: ThemeSchema) => { if (!stop) { setSchema(j); setSchemaError(false); } })
+      .catch(() => { if (!stop) setSchemaError(true); });
+    return () => { stop = true; };
+  }, [origin]);
 
   // Concept vullen zodra de gegevens er zijn, en opnieuw na elke opslag (resync),
   // zonder het scherm of het voorbeeld weg te halen.
@@ -225,20 +310,50 @@ export default function StorefrontCustomizePage() {
     if (panel.kind === 'section' && frameState === 'ready') post({ type: 'sellqo:focus', sectionId: panel.id });
   }, [panel, frameState, post]);
 
+  // Productpagina-instellingen: toon in het voorbeeld een productpagina, daarna terug naar home.
+  const onProductPage = useRef(false);
+  useEffect(() => {
+    if (frameState !== 'ready') return;
+    if (panel.kind === 'product') { onProductPage.current = true; post({ type: 'sellqo:goto', target: 'product' }); }
+    else if (onProductPage.current) { onProductPage.current = false; post({ type: 'sellqo:goto', target: 'home' }); }
+  }, [panel, frameState, post]);
+
   // ---------- Bewerken ----------
-  const setField = (k: ThemeField, v: string | boolean | null) => setTheme((t) => ({ ...t, [k]: v }));
+  const setField = (k: ThemeField, v: unknown) => setTheme((t) => ({ ...t, [k]: v }));
+  const cfg = asObj(theme.theme_config);
+  const setCfg = (part: string, v: unknown) => setTheme((t) => ({ ...t, theme_config: { ...asObj(t.theme_config), [part]: v } }));
+  const [pickingColor, setPickingColor] = useState(false);
+  const pickFromLogo = async () => {
+    const url = (theme.logo_url as string) || currentTenant?.logo_url;
+    if (!url) { toast.error('Upload eerst een logo.'); return; }
+    setPickingColor(true);
+    try {
+      const c = await colorFromLogo(url);
+      if (c) { setField('brand_color', c); toast.success(`Merkkleur ${c} uit je logo gehaald`); }
+      else toast.error('Geen duidelijke kleur gevonden in je logo.');
+    } catch {
+      toast.error('Je logo kon niet gelezen worden.');
+    } finally {
+      setPickingColor(false);
+    }
+  };
   const updateSection = (s: HomepageSection) => setSections((list) => list.map((x) => (x.id === s.id ? { ...s } : x)));
+  // SectionEditor kent alleen titel en inhoud; stijl en zichtbaarheid komen uit de editor zelf.
+  const updateFromEditor = (s: HomepageSection) => setSections((list) => list.map((x) => (x.id === s.id ? { ...s, settings: x.settings, is_visible: x.is_visible } : x)));
   const toggleSection = (id: string) => setSections((list) => list.map((x) => (x.id === id ? { ...x, is_visible: !x.is_visible } : x)));
   const removeSection = (id: string) => {
     setSections((list) => list.filter((x) => x.id !== id));
     if (!id.startsWith('nieuw-')) setDeleted((d) => [...d, id]);
     setPanel({ kind: 'list' });
   };
-  const addSection = (type: HomepageSectionType) => {
-    const label = LABELS[type];
+  const addSection = (type: HomepageSectionType | string) => {
+    const label = LABELS[type] || schema?.sections[type]?.label || type;
+    const def = schema?.sections[type];
+    // Schema-secties krijgen meteen hun standaardinhoud (bv. drie voorbeeldvoordelen).
+    const schemaContent = def ? { ...schemaDefaults(def.fields), ...(def.blocks ? { [def.blocks.key]: def.blocks.default || [] } : {}) } : null;
     const s = {
-      id: tempId(), tenant_id: currentTenant!.id, section_type: type, title: type === 'hero' ? 'Welkom' : label,
-      subtitle: null, content: type === 'featured_products' || type === 'collection' ? { max_products: 8 } : {},
+      id: tempId(), tenant_id: currentTenant!.id, section_type: type, title: type === 'hero' ? 'Welkom' : def ? null : label,
+      subtitle: null, content: schemaContent || (type === 'featured_products' || type === 'collection' ? { max_products: 8 } : {}),
       settings: {}, sort_order: sections.length, is_visible: true, created_at: '', updated_at: '',
     } as unknown as HomepageSection;
     setSections((list) => [...list, s]);
@@ -385,6 +500,7 @@ export default function StorefrontCustomizePage() {
                     <div>
                       <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bovenaan</p>
                       <RowButton icon={Megaphone} label="Aankondigingsbalk" hint={theme.show_announcement_bar ? 'Aan' : 'Uit'} onClick={() => setPanel({ kind: 'announcement' })} />
+                      <RowButton icon={MenuIcon} label="Menu" hint={Array.isArray(cfg.menu) && cfg.menu.length ? `${cfg.menu.length} items` : 'Automatisch'} onClick={() => setPanel({ kind: 'menu' })} />
                     </div>
                     <div>
                       <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Homepage</p>
@@ -404,7 +520,7 @@ export default function StorefrontCustomizePage() {
                           </Button>
                         </PopoverTrigger>
                         <PopoverContent align="start" className="w-[340px] p-1.5">
-                          {ADDABLE.map((a) => (
+                          {[...ADDABLE, ...Object.entries(schema?.sections || {}).map(([type, d]) => ({ type, label: d.label, hint: d.hint || '', icon: SCHEMA_ICONS[type] || LayoutList }))].map((a) => (
                             <button key={a.type} type="button" onClick={() => addSection(a.type)}
                               className="flex w-full items-start gap-2.5 rounded-md px-2.5 py-2 text-left hover:bg-muted">
                               <a.icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -417,6 +533,11 @@ export default function StorefrontCustomizePage() {
                     <div>
                       <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Onderaan</p>
                       <RowButton icon={PanelBottom} label="Footer" onClick={() => setPanel({ kind: 'footer' })} />
+                    </div>
+                    <div>
+                      <p className="mb-1 px-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overal in je winkel</p>
+                      <RowButton icon={ShoppingBag} label="Productpagina" onClick={() => setPanel({ kind: 'product' })} />
+                      <RowButton icon={Activity} label="Tracking en pixels" hint={[cfg.tracking].some((t) => Object.values(asObj(t)).some((v) => typeof v === 'string' && v)) ? 'Actief' : 'Uit'} onClick={() => setPanel({ kind: 'tracking' })} />
                     </div>
                     <p className="px-2 text-xs text-muted-foreground">Tip: klik in het voorbeeld op een sectie om ze meteen te bewerken.</p>
                   </div>
@@ -437,6 +558,9 @@ export default function StorefrontCustomizePage() {
                         <Input value={brand} onChange={(e) => /^#[0-9a-f]{0,6}$/i.test(e.target.value) && setField('brand_color', e.target.value)}
                           className="h-9 font-mono text-sm" aria-label="Hex-kleur" />
                       </div>
+                      <Button type="button" variant="outline" size="sm" onClick={pickFromLogo} disabled={pickingColor}>
+                        {pickingColor ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Pipette className="mr-1.5 h-4 w-4" />}Kleur uit mijn logo halen
+                      </Button>
                       <p className="text-xs text-muted-foreground">Voor knoppen, links en de aankondigingsbalk. Tekst wordt automatisch leesbaar gemaakt.</p>
                     </div>
                     <div className="space-y-2.5">
@@ -470,6 +594,15 @@ export default function StorefrontCustomizePage() {
                         <Switch checked={theme.product_stock_indicator !== false} onCheckedChange={(v) => setField('product_stock_indicator', v)} />
                       </div>
                     </div>
+                    {schema ? schema.settings.map((g) => (
+                      <div key={g.id} className="space-y-3 border-t pt-5">
+                        <Label className="text-sm font-semibold">{g.label}</Label>
+                        <SchemaForm idPrefix={`set-${g.id}`} fields={g.fields} values={asObj(cfg.settings)} icons={schema.icons}
+                          onChange={(v) => setCfg('settings', v)} />
+                      </div>
+                    )) : schemaError ? (
+                      <p className="text-xs text-muted-foreground">Extra thema-instellingen konden niet geladen worden (winkel niet bereikbaar).</p>
+                    ) : null}
                   </div>
                 )}
               </div>
@@ -481,7 +614,8 @@ export default function StorefrontCustomizePage() {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <p className="truncate text-sm font-semibold">
-                  {panel.kind === 'announcement' ? 'Aankondigingsbalk' : panel.kind === 'footer' ? 'Footer' : current ? LABELS[current.section_type] || 'Sectie' : 'Sectie'}
+                  {({ announcement: 'Aankondigingsbalk', footer: 'Footer', menu: 'Menu', product: 'Productpagina', tracking: 'Tracking en pixels' } as Record<string, string>)[panel.kind]
+                    || (current ? LABELS[current.section_type] || schema?.sections[current.section_type]?.label || 'Sectie' : 'Sectie')}
                 </p>
               </div>
               <div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -502,6 +636,20 @@ export default function StorefrontCustomizePage() {
                         onChange={(e) => setField('announcement_link', e.target.value || null)} />
                     </div>
                   </div>
+                ) : panel.kind === 'menu' ? (
+                  <MenuEditor menu={(Array.isArray(cfg.menu) ? cfg.menu : []) as MenuItem[]} onChange={(m) => setCfg('menu', m)}
+                    categories={categories} pages={pages.filter((pg) => pg.is_published).map((pg) => ({ slug: pg.slug, title: pg.title }))} />
+                ) : panel.kind === 'product' ? (
+                  schema ? (
+                    <div className="space-y-4">
+                      <p className="text-xs text-muted-foreground">Geldt voor alle productpagina's. Het voorbeeld toont er één.</p>
+                      <SchemaForm idPrefix="pp" fields={schema.product_page} values={asObj(cfg.product_page)} onChange={(v) => setCfg('product_page', v)} />
+                    </div>
+                  ) : <p className="text-sm text-muted-foreground">Laden…</p>
+                ) : panel.kind === 'tracking' ? (
+                  schema ? (
+                    <SchemaForm idPrefix="tr" fields={schema.tracking} values={asObj(cfg.tracking)} onChange={(v) => setCfg('tracking', v)} />
+                  ) : <p className="text-sm text-muted-foreground">Laden…</p>
                 ) : panel.kind === 'footer' ? (
                   <div className="space-y-4">
                     <div className="space-y-1.5">
@@ -516,8 +664,22 @@ export default function StorefrontCustomizePage() {
                   </div>
                 ) : current ? (
                   <div className="space-y-6">
-                    <SectionEditor key={current.id} section={current} onSave={updateSection} onCancel={() => setPanel({ kind: 'list' })}
-                      onChange={updateSection} hideActions compact />
+                    {schema?.sections[current.section_type] ? (
+                      <SchemaSectionFields key={current.id} section={current} def={schema.sections[current.section_type]} icons={schema.icons}
+                        onChange={(patch) => updateSection({ ...current, ...patch })} />
+                    ) : (
+                      <SectionEditor key={current.id} section={current} onSave={updateFromEditor} onCancel={() => setPanel({ kind: 'list' })}
+                        onChange={updateFromEditor} hideActions compact />
+                    )}
+                    {schema ? (
+                      <div className="space-y-3 border-t pt-4">
+                        <p className="text-sm font-semibold">Stijl</p>
+                        <SchemaForm idPrefix={`st-${current.id}`}
+                          fields={[...schema.section_style, ...(PRODUCT_TYPES.includes(current.section_type) ? schema.product_section_style : [])]}
+                          values={asObj(asObj(current.settings).style)}
+                          onChange={(v) => updateSection({ ...current, settings: { ...asObj(current.settings), style: v } as HomepageSection['settings'] })} />
+                      </div>
+                    ) : null}
                     <div className="flex items-center justify-between border-t pt-4">
                       <div className="flex items-center gap-2">
                         <Switch id="sec-vis" checked={current.is_visible} onCheckedChange={() => toggleSection(current.id)} />
