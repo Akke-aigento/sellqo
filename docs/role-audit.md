@@ -45,7 +45,12 @@ Snapshot staat in `ops.snap_decisions_20261013`.
 - **Demo Bakkerij:** het "test"-abonnement staat op `status = cancelled` met `end_date = vandaag`. `generate-subscription-invoices` neemt alleen actieve abonnementen mee. De 4 open testfacturen blijven staan voor Pieter.
 - **Landingspagina:** cijfers en testimonials blijven voorlopig staan, op Akkes keuze.
 
-### SEC-SHIP-1 (code; wacht op de gebundelde deploy)
+### SEC-SHIP-1 (gedeployed en bewezen, 10:35)
+
+**Deploy.** Nulmeting: 500/400, dus de oude code. Daarna een gebundelde deploy-only opdracht (0,8 credits). Nameting: beide functies geven 200 met `SEC-SHIP-1`.
+
+**Agent-commits.** De Lovable-agent zette 2 commits op main (bf5bd11 en a3ea98a). Die raken alleen `src/integrations/supabase/types.ts`: platformbestanden met de nieuwe loyaliteitskolommen.
+
 
 `create-checkout-session` en `create-bank-transfer-order` namen `shipping_cost` letterlijk over uit de request-body. Productprijzen werden al server-side gecontroleerd, maar de verzendkost niet. Beide functies zijn publiek aanroepbaar (`verify_jwt = false`). In SellQo en de eigen frontends roept niemand ze vandaag nog aan.
 
