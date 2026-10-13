@@ -20675,6 +20675,13 @@ export type Database = {
         }
         Returns: string
       }
+      storefront_product_sales: {
+        Args: { p_days?: number; p_tenant_id: string }
+        Returns: {
+          product_id: string
+          qty: number
+        }[]
+      }
       storefront_recent_purchases: {
         Args: { p_tenant_id: string }
         Returns: {
