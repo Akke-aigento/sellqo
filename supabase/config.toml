@@ -468,3 +468,6 @@ verify_jwt = false
 
 [functions.pay-link]
 verify_jwt = false
+
+[functions.send-order-ready]
+verify_jwt = false

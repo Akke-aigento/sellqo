@@ -83,6 +83,7 @@ function TicketCard({ card, now, onAdvance, onBack, busy, fresh }: {
       {card.note ? <p className="rounded-md bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-950 dark:bg-amber-900/40 dark:text-amber-100">“{card.note}”</p> : null}
 
       <footer className="mt-auto flex items-center gap-2">
+        {card.notified ? <span className="text-xs font-semibold text-muted-foreground">Gemaild</span> : null}
         <span className={cn('mr-auto text-xs font-bold', card.paid ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400')}>
           {card.paid ? 'Betaald' : card.total != null ? `Nog te betalen ${euro(card.total)}` : 'Nog te betalen'}
         </span>

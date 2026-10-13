@@ -25,6 +25,8 @@ export interface KitchenCard {
   paid: boolean;
   status: KitchenStatus;
   statusAt: string;
+  /** FOOD-3: klant al gemaild (klaar/onderweg). */
+  notified: boolean;
 }
 
 export interface OrderRow {
@@ -37,7 +39,7 @@ export interface OrderRow {
 export interface TicketRow {
   id: string; source: string; order_id: string | null; service_type: string | null; requested_time: string | null;
   customer_label: string | null; customer_phone: string | null; note: string | null; items: unknown; total: number | null;
-  paid: boolean; status: string; status_at: string; created_at: string;
+  paid: boolean; status: string; status_at: string; created_at: string; notified_at?: string | null;
 }
 
 const asService = (s: string | null | undefined): ServiceKind | null =>
@@ -96,6 +98,7 @@ export function cardFromOrder(o: OrderRow, ticket: TicketRow | undefined): Kitch
     paid: o.payment_status === 'paid',
     status: asStatus(ticket?.status),
     statusAt: ticket?.status_at || o.created_at,
+    notified: !!ticket?.notified_at,
   };
 }
 
@@ -124,6 +127,7 @@ export function cardFromTicket(t: TicketRow): KitchenCard {
     paid: t.paid,
     status: asStatus(t.status),
     statusAt: t.status_at,
+    notified: !!t.notified_at,
   };
 }
 
@@ -154,6 +158,12 @@ export const NEXT_STATUS: Record<KitchenStatus, KitchenStatus | null> = {
 export const PREV_STATUS: Record<KitchenStatus, KitchenStatus | null> = {
   new: null, preparing: 'new', ready: 'preparing', done: 'ready', cancelled: null,
 };
+
+/** FOOD-3 — welke klik verwittigt de webshopklant? Klaar bij afhalen, meegegeven bij levering. */
+export function notifiesCustomer(card: KitchenCard, status: KitchenStatus): boolean {
+  if (!card.orderId || card.notified) return false;
+  return (card.service === 'pickup' && status === 'ready') || (card.service === 'local_delivery' && status === 'done');
+}
 
 /** Minuten tot het afhaal-/levermoment (negatief = te laat). */
 export const minutesLeft = (c: KitchenCard, nowMs: number) => Math.round((dueAt(c) - nowMs) / 60_000);

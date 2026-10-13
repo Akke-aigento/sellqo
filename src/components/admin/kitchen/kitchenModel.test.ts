@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildBoard, cardFromOrder, orderBelongsInKitchen, type OrderRow, type TicketRow } from './kitchenModel';
+import { buildBoard, cardFromOrder, notifiesCustomer, orderBelongsInKitchen, type OrderRow, type TicketRow } from './kitchenModel';
 
 const NOW = Date.parse('2026-10-13T16:00:00Z');
 const order = (over: Partial<OrderRow> = {}): OrderRow => ({
@@ -48,4 +48,20 @@ describe('kitchenModel', () => {
     );
     expect(board.map((c) => c.key)).toEqual(['t:t3']);
   });
+
+  it('mailt de klant alleen bij klaar (afhalen) of meegegeven (levering), één keer', () => {
+    const pickup = cardFromOrder(order(), undefined);
+    expect(notifiesCustomer(pickup, 'ready')).toBe(true);
+    expect(notifiesCustomer(pickup, 'preparing')).toBe(false);
+    const delivery = cardFromOrder(order({ service_type: 'local_delivery' }), undefined);
+    expect(notifiesCustomer(delivery, 'ready')).toBe(false);
+    expect(notifiesCustomer(delivery, 'done')).toBe(true);
+    expect(notifiesCustomer({ ...pickup, notified: true }, 'ready')).toBe(false);
+    expect(notifiesCustomer(cardFromTicketLike(), 'ready')).toBe(false);
+  });
 });
+
+function cardFromTicketLike() {
+  return { ...cardFromOrder(order(), undefined), orderId: null };
+}
+

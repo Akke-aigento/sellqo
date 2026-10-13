@@ -4,7 +4,8 @@ import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
-import { buildBoard, type KitchenCard, type KitchenStatus, type OrderRow, type TicketRow } from './kitchenModel';
+import { toast } from 'sonner';
+import { buildBoard, notifiesCustomer, type KitchenCard, type KitchenStatus, type OrderRow, type TicketRow } from './kitchenModel';
 
 const WINDOW_MS = 3 * 24 * 3600_000;
 
@@ -73,6 +74,14 @@ export function useKitchenBoard(nowMs: number) {
       return { prev };
     },
     onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); },
+    // FOOD-3 — klant mailen bij "Klaar" (afhalen) of "Meegegeven" (levering). Best-effort:
+    // de functie doet het maar één keer en respecteert de winkelinstelling.
+    onSuccess: async (_d, { card, status }) => {
+      if (!notifiesCustomer(card, status)) return;
+      const { data, error } = await supabase.functions.invoke('send-order-ready', { body: { order_id: card.orderId } });
+      if (error) toast.error('Klant verwittigen lukte niet');
+      else if ((data as { success?: boolean } | null)?.success) toast.success(status === 'ready' ? 'Klant gemaild: bestelling klaar' : 'Klant gemaild: bestelling onderweg');
+    },
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 

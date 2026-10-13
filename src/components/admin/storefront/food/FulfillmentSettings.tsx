@@ -3,7 +3,7 @@
 // verzendmethodes met een soort; gewone verzendmethodes blijven in Instellingen > Verzending.
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Banknote, Bike, ChefHat, Clock, Loader2, Plus, Store, Trash2 } from 'lucide-react';
+import { Banknote, Bike, ChefHat, Clock, Loader2, Mail, Plus, Store, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,9 +24,9 @@ interface Method {
 }
 interface Settings {
   slots_enabled: boolean; slot_minutes: number; prep_minutes: number; days_ahead: number;
-  max_orders_per_slot: number | null; hours: Hours; pay_on_pickup: boolean;
+  max_orders_per_slot: number | null; hours: Hours; pay_on_pickup: boolean; notify_ready: boolean;
 }
-const DEFAULT_SETTINGS: Settings = { slots_enabled: false, slot_minutes: 15, prep_minutes: 20, days_ahead: 0, max_orders_per_slot: null, hours: emptyHours(), pay_on_pickup: false };
+const DEFAULT_SETTINGS: Settings = { slots_enabled: false, slot_minutes: 15, prep_minutes: 20, days_ahead: 0, max_orders_per_slot: null, hours: emptyHours(), pay_on_pickup: false, notify_ready: true };
 const TYPE_LABEL: Record<ServiceType, string> = { pickup: 'Afhalen', local_delivery: 'Levering' };
 
 function MethodRow({ m, onChange, onRemove }: { m: Method; onChange: (m: Method) => void; onRemove: () => void }) {
@@ -142,6 +142,7 @@ export function FulfillmentSettings() {
       slots_enabled: data.settings.slots_enabled, slot_minutes: data.settings.slot_minutes, prep_minutes: data.settings.prep_minutes,
       days_ahead: data.settings.days_ahead, max_orders_per_slot: data.settings.max_orders_per_slot, hours: parseHours(data.settings.hours),
       pay_on_pickup: !!data.settings.pay_on_pickup,
+      notify_ready: data.settings.notify_ready !== false,
     } : DEFAULT_SETTINGS);
   }, [data]);
 
@@ -180,6 +181,7 @@ export function FulfillmentSettings() {
         tenant_id: tenantId, slots_enabled: settings.slots_enabled, slot_minutes: settings.slot_minutes, prep_minutes: settings.prep_minutes,
         days_ahead: settings.days_ahead, max_orders_per_slot: settings.max_orders_per_slot, hours: settings.hours as unknown as Json,
         pay_on_pickup: settings.pay_on_pickup,
+        notify_ready: settings.notify_ready,
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;
@@ -227,6 +229,18 @@ export function FulfillmentSettings() {
               <CardDescription>Je klant betaalt contant of met de bankkaart aan de toog of aan de deur. De bestelling komt meteen binnen, gemarkeerd als "nog te betalen".</CardDescription>
             </div>
             <Switch checked={settings.pay_on_pickup} onCheckedChange={(v) => setSettings((s) => ({ ...s, pay_on_pickup: v }))} aria-label="Betalen bij afhalen aan" />
+          </div>
+        </CardHeader>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5" />Klant verwittigen</CardTitle>
+              <CardDescription>Je klant krijgt een mail zodra de keuken een afhaalbestelling op "Klaar" zet of een levering op "Meegegeven".</CardDescription>
+            </div>
+            <Switch checked={settings.notify_ready} onCheckedChange={(v) => setSettings((s) => ({ ...s, notify_ready: v }))} aria-label="Klant verwittigen aan" />
           </div>
         </CardHeader>
       </Card>
