@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, ChevronRight, Eye, EyeOff, ExternalLink, GripVertical, Image, LayoutList, Loader2,
   Mail, Megaphone, MessageSquare, Monitor, Palette, PanelBottom, Play, Plus, Smartphone, Star, Grid3X3, Trash2,
-  BadgeCheck, HelpCircle, Clock, Menu as MenuIcon, ShoppingBag, Activity, Pipette,
+  BadgeCheck, HelpCircle, Clock, Menu as MenuIcon, ShoppingBag, Activity, Pipette, UtensilsCrossed,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -64,11 +64,11 @@ const ADDABLE: Array<{ type: HomepageSectionType; label: string; hint: string; i
   { type: 'video', label: 'Video', hint: 'YouTube, Vimeo of eigen video', icon: Play },
   { type: 'announcement', label: 'Aankondiging', hint: 'Korte opvallende melding', icon: Megaphone },
 ];
-const SCHEMA_ICONS: Record<string, typeof Image> = { usp_bar: BadgeCheck, faq: HelpCircle, contact_hours: Clock };
+const SCHEMA_ICONS: Record<string, typeof Image> = { usp_bar: BadgeCheck, faq: HelpCircle, contact_hours: Clock, menu_card: UtensilsCrossed };
 const ICONS: Record<string, typeof Image> = { ...Object.fromEntries(ADDABLE.map((a) => [a.type, a.icon])), ...SCHEMA_ICONS };
 const LABELS: Record<string, string> = {
   ...Object.fromEntries(ADDABLE.map((a) => [a.type, a.label])), external_reviews: 'Externe reviews',
-  usp_bar: 'Voordelenbalk', faq: 'Veelgestelde vragen', contact_hours: 'Openingsuren en contact',
+  usp_bar: 'Voordelenbalk', faq: 'Veelgestelde vragen', contact_hours: 'Openingsuren en contact', menu_card: 'Menukaart',
 };
 
 const SWATCHES = ['#0d9488', '#00a0a8', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#22c55e', '#374151'];
@@ -156,7 +156,8 @@ function SortableRow({ section, active, onOpen, onToggle }: {
       </button>
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 py-2 text-left text-sm">
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className={cn('truncate', !section.is_visible && 'text-muted-foreground line-through')}>{sectionTitle(section)}</span>
+        <span className={cn('truncate', !section.is_visible && 'text-muted-foreground')}>{sectionTitle(section)}</span>
+        {!section.is_visible ? <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Verborgen</span> : null}
       </button>
       <button type="button" onClick={onToggle} aria-label={section.is_visible ? 'Verbergen' : 'Tonen'}
         className="flex h-8 w-8 items-center justify-center rounded text-muted-foreground opacity-0 hover:bg-background group-hover:opacity-100 focus:opacity-100">
