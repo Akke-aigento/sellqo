@@ -1,6 +1,6 @@
 ## DEMO-1 — Twee publieke demowinkels: Pizzeria Fiamma en Atelier Nord — 14 oktober 2026
 
-Doel: testtenants voor Akke én voorbeeldwinkels voor verkoop (prospects tonen wat SellQo kan). Alleen data, geen code of migraties.
+Doel: testtenants voor Akke én voorbeeldwinkels voor verkoop (prospects tonen wat SellQo kan). Eerst alleen data; het nachtwerk hieronder voegde een migratie (demo-reset) en kleine codewijzigingen toe.
 
 - **Tenants:** `demo-pizzeria` "Pizzeria Fiamma" (`7879b472-2672-4212-8531-4c587870752d`, btw 6 %) en `demo-webshop` "Atelier Nord" (`0e06e256-308a-4903-8b27-64959418a9ad`, btw 21 %). Beide `is_demo=true` + `billing_exempt=true` (sync-billing-state slaat ze over), abonnement enterprise/active zonder trial, `platform_newsletter_opt_in=false`. De automatische klantrij in de SellQo-tenant (trigger `register_tenant_as_sellqo_customer`) is weer verwijderd.
 - **Pizzeria:** horeca-module via `tenant_feature_overrides.granted_features=['horeca']`. 5 categorieën, 17 producten zonder voorraadbeheer. Extra's: Formaat (verplicht, 1 keuze), Extra toppings (max 5), Extra bij je pasta (max 2). Verzendmethodes Afhalen (gratis) en Levering (€ 2,50, gratis vanaf € 40, min. € 15, postcodes 3000/3001/3010/3012/3018). `fulfillment_settings`: tijdsloten 15 min, 20 min voorbereiding, 1 dag vooruit, max 6 per slot, elke dag 11:30–14:00 en 17:00–22:00 (vr/za tot 22:30), betalen bij afhalen aan, klant mailen bij klaar aan, `qr_mode='order'` met afrekenen aan de toog.
@@ -8,6 +8,32 @@ Doel: testtenants voor Akke én voorbeeldwinkels voor verkoop (prospects tonen w
 - **Thema:** pizzeria op preset `restaurant`, webshop op preset `bloemen` met eigen merkkleur `#3d5a4c` en teksten. Beide `shop_live` + `shop_ordering` aan, aankondigingsbalk "Demowinkel van SellQo: bestellen werkt, maar er wordt niets bereid, geleverd of aangerekend." en een FAQ-vraag "Is dit een echte winkel?".
 - **Foto's:** 32 beelden via nano-studio (nano-banana-pro, 1K, 6 credits per stuk = 192 credits): één per product plus hero's en een atelierfoto. Prompts en job-ID's staan in `ops.demo_img`, om later één beeld opnieuw te genereren.
 - **Verificatie:** `net.http_get` op beide shops gaf 200, titel juist, geen "binnenkort", foto's uit ai-images. `/menu?tafel=4` toont de badge "Tafel 4" en 17 plusknoppen. Productpagina Mok Fjord toont de kleuren. Via storefront-api gaf `get_product diavola` de groepen Formaat (2) en Extra toppings (7), en `get_fulfillment_slots type=pickup` 60 slots.
+
+- **Nachtwerk 14 okt (00:40–06:00):**
+  - **Mails:** `tenants.notification_email = info@sellqo.app` voor beide demo's. Meldingen en contactformulieren gingen anders naar het onbestaande `demo-*@sellqo.app` (Migadu), met bounces en schade aan de Resend-reputatie tot gevolg. Klantantwoorden blijven naar `<slug>@mail.sellqo.app` gaan (de inbox in de admin).
+  - **Nachtelijke reset:** migratie `20261014010000_demo_1_reset.sql`, live gezet via `query_database` (geen Lovable-migratie, dus geen duplicaat). `ops.demo_shops` (2 tenants) en `ops.demo_stock` (18 rijen basisvoorraad). `ops.reset_demo_shops()` is security definer, niet uitvoerbaar voor anon/authenticated, en draait via cron `reset-demo-shops-daily` (`7 2 * * *` UTC). Wat de reset doet:
+    - voorraad terug naar de basisstand;
+    - keukenbonnen ouder dan 12 uur op "done";
+    - orders, kassaverkopen en klanten ouder dan 14 dagen gewist;
+    - carts ouder dan 2 dagen gewist.
+
+    Getest: voorraad 20 → 25 en variant 5 → 12 teruggezet. Echte tenants staan niet in `ops.demo_shops` en worden nooit geraakt.
+  - **Juridische pagina's:** contact, voorwaarden, privacy (en voor de webshop verzending en retour) als eerlijke demoteksten (`is_auto_generated=false`), met contact naar info@sellqo.app.
+  - **Storefront (live):**
+    - Favicon-terugval: de eerste letter op de merkkleur als de winkel geen favicon heeft (f9583e8). Winkels met een eigen favicon (demo-bakkerij) zijn ongewijzigd, gecontroleerd via `net.http_get`.
+    - Themaschema: `presets[].example` (98660b6).
+  - **Admin (main, wacht op Akke's publish):**
+    - Productscherm: kaart Extra's (horeca), met groepen per product aan/uit en categoriegroepen zichtbaar.
+    - Kassa: extra's ook via `product_categories`.
+    - Themagalerij: link "Bekijk een winkel met dit thema".
+    - Bestellen-hub: link naar de demopizzeria.
+    - Gecontroleerd: tsc 27 (baseline), lint gelijk aan de baseline, i18n-pariteit ok, kitchen-tests 9/9 en screenshots via de harness. Commit 66abe31.
+  - **storefront-api (main, NIET gedeployed):** de leverzone gaat voor het minimumbedrag in `fulfillmentAvailability`, met een rooktest erbij (5c0d4c1). Gaat mee in de volgende centrale deploy.
+  - **Live E2E-tests op de demo's (via storefront-api):**
+    - Pizzeria #0001: tafel 4, Diavola groot met burrata, € 21, betalen aan de toog. `table_label` en de extra's staan correct op de order. Zonder formaat geweigerd met `ADDON_MIN`.
+    - Pizzeria #0002: afhalen om 11:30, 3× tiramisu, betalen bij afhalen, bevestiging naar info@sellqo.app.
+    - Levering naar 2000 met € 6,50 gaf `min_order`; vanaf 5c0d4c1 wordt dat `delivery_zone`.
+    - Atelier Nord #0001: 2× mok Salie, overschrijving met QR, € 40,95 inclusief € 4,95 verzending. Variantvoorraad 12 → 10.
 
 ## HORECA-1 — Horeca-module, Bestellen-hub (webshop vs QR-menu), bestellen aan tafel — 13 oktober 2026
 
