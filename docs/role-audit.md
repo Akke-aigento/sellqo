@@ -1,3 +1,29 @@
+## PROMO-ENGINE-1 — één promotiemotor voor mandje, checkout en betaling — 13 oktober 2026
+
+Onderdeel van het webshoptraject (fase 1, "de motor compleet"). Afspraak met Akke: eigen frontends merken niks, behalve bedoelde correcties die hij goedkeurt.
+
+**Gevonden bij de recon:**
+- Korting werd op drie plaatsen berekend (`computeCartTotals` voor `cart_*`, `buildCartResponse` voor de checkout, `checkout_apply/remove_discount`). De betaling las een vierde waarde: `storefront_carts.discount_amount`, die alleen `checkout_apply/remove_discount` bijwerkten.
+- Gevolg 1: een staffelkorting stond wel in het mandje, maar niet in de checkout of de betaling. Live geldt dat voor Loveke "Loveke for Two" (7% vanaf 2 stuks). Er zijn nog 0 Loveke-orders, dus niemand werd te veel aangerekend.
+- Gevolg 2: een code die alleen via `cart_apply_discount` werd toegepast, of een cart die na het toepassen veranderde, gaf een betaald bedrag dat afweek van wat de checkout toonde.
+- Een tweede motor (`calculate_promotions`: 1+1, combinatiekorting, automatische korting, klantgroep, stapelregels) werd door niemand aangeroepen.
+
+**Wijziging:**
+- Nieuw `supabase/functions/_shared/promotionEngine.ts`: `evaluatePromotions` (puur) en `computeCartPromotions` (laadt de data). Volgorde: staffel, 1+1, combinatie, automatisch (ook gratis verzending en "eerste bestelling" via het e-mailadres, dicht zonder e-mail), klantgroep (via het e-mailadres → customers → customer_group_members), codes, stapelregel. Afronding gelijk aan vroeger. Cadeau-acties en puntenkorting zitten er bewust nog niet in.
+- `computeCartTotals`, `buildCartResponse`, `checkout_shipping`, `checkout_apply/remove_discount` gebruiken de motor.
+- `refreshCartDiscount` schrijft het verse bedrag naar de cart. `checkout_complete`, en daarmee ook `checkout_place_order` en `checkout_create_session`, roept die aan vlak vóór de betaling. De klant betaalt dus exact wat hij ziet.
+- De checkout-respons zet codes eerst in `applied_discounts`. Frontends die `[0]` als "de code" lezen, blijven kloppen. Er komen alleen velden bij.
+- De actie `calculate_promotions` blijft ongewijzigd bestaan.
+- Stempel `storefront-api`: `PROMO-ENGINE-1`. Die bevat ook STOREFRONT-BUNDLE-1.
+
+**Tests:**
+- 11 unit tests (`promotionEngine.test.ts`), nu ook in CI (`deno test`).
+- Vergelijkingstest `scripts/promo-compare/` op live data (136 echte carts en 3.483 synthetische): `cart_get` 3.619/3.619 identiek.
+- Checkout: identiek, behalve 434 Loveke-scenario's met staffelkorting. Die zijn bedoeld en wachten op Akkes akkoord.
+- `deno check` lokaal met gestubde remote imports: groen. Lint −9 (baseline bijgewerkt).
+
+**Deploy:** alleen `storefront-api`. Wacht op Akkes antwoord over "Loveke for Two". Na de deploy: GET-stempel meten en `cart_get` op de live carts vergelijken met de nulmeting.
+
 ## STOREFRONT-BUNDLE-1 — nieuwe additieve API-actie voor de standaardshop — 13 oktober 2026
 
 Dit is de start van het webshoptraject (recon: document "SellQo Webshop — recon en voorstel").

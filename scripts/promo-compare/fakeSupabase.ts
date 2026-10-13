@@ -1,0 +1,47 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- testharnas: ongetypeerde databankrijen */
+// Minimal in-memory Supabase client for the PROMO-ENGINE-1 comparison test.
+// Supports the query shapes used by computeCartTotals / validateDiscountCode /
+// computeCartPromotions: select (pre-joined rows), eq, in, gt, ilike, order, limit,
+// maybeSingle, single, count/head, update (logged, no-op), rpc (no-op).
+type Row = Record<string, any>;
+
+function unescapeLike(p: string) { return p.replace(/\\([%_\\])/g, '$1'); }
+
+class Query {
+  private filters: ((r: Row) => boolean)[] = [];
+  private lim: number | null = null;
+  private head = false;
+  private countMode = false;
+  private single: 'maybe' | 'one' | null = null;
+  private isUpdate = false;
+  constructor(private db: FakeDb, private table: string) {}
+  select(_cols?: string, opts?: { count?: string; head?: boolean }) { if (opts?.count) this.countMode = true; if (opts?.head) this.head = true; return this; }
+  update(patch: Row) { this.isUpdate = true; this.db.writes.push({ table: this.table, patch }); return this; }
+  insert(rows: any) { this.db.writes.push({ table: this.table, insert: rows }); return this; }
+  eq(c: string, v: any) { this.filters.push((r) => String(r[c]) === String(v)); return this; }
+  neq(c: string, v: any) { this.filters.push((r) => String(r[c]) !== String(v)); return this; }
+  in(c: string, vs: any[]) { const s = new Set(vs.map(String)); this.filters.push((r) => s.has(String(r[c]))); return this; }
+  gt(c: string, v: any) { this.filters.push((r) => r[c] != null && (typeof v === 'number' ? Number(r[c]) > v : String(r[c]) > String(v))); return this; }
+  ilike(c: string, p: string) { const t = unescapeLike(p).toLowerCase(); this.filters.push((r) => r[c] != null && String(r[c]).toLowerCase() === t); return this; }
+  order() { return this; }
+  limit(n: number) { this.lim = n; return this; }
+  maybeSingle() { this.single = 'maybe'; return this; }
+  // deno-lint-ignore no-explicit-any
+  then(res: (v: any) => any, rej?: (e: any) => any) { return Promise.resolve(this.run()).then(res, rej); }
+  private run() {
+    if (this.isUpdate) return { data: null, error: null };
+    let rows = (this.db.tables[this.table] || []).filter((r) => this.filters.every((f) => f(r)));
+    const count = rows.length;
+    if (this.lim != null) rows = rows.slice(0, this.lim);
+    if (this.head) return { data: null, error: null, count };
+    if (this.single === 'maybe') return { data: rows[0] ?? null, error: null, count: this.countMode ? count : null };
+    return { data: rows.map((r) => structuredClone(r)), error: null, count: this.countMode ? count : null };
+  }
+}
+
+export class FakeDb {
+  writes: Row[] = [];
+  constructor(public tables: Record<string, Row[]>) {}
+  from(t: string) { return new Query(this, t); }
+  rpc() { return Promise.resolve({ data: null, error: null }); }
+}

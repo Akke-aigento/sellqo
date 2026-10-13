@@ -6,6 +6,7 @@ import { decideVatRegime, isZeroRatedRegime, rateForRegime, type VatRegimeCode }
 import { callVies, cleanVatNumber, isEuCountry, parseVatCountry } from "../_shared/vies.ts";
 import { submitContactForm, isContactFormAlias, normalizeContactAlias } from "../_shared/contactForm.ts";
 import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
+import { computeCartPromotions, round2 as promoRound2, type PromotionResult } from "../_shared/promotionEngine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1593,6 +1594,38 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
   return { valid: true, code: data.code, discount_type: data.discount_type, discount_value: data.discount_value, applies_to: data.applies_to, product_ids: data.product_ids || null, category_ids: data.category_ids || null, description: data.description, max_discount_amount: data.maximum_discount_amount || null, discount_code_id: data.id };
 }
 
+// ============== PROMOTIONS (PROMO-ENGINE-1) ==============
+
+function promoValidator(supabase: any, tenantId: string) {
+  return (code: string, subtotal: number, email: string | null) =>
+    validateDiscountCode(supabase, tenantId, { code, subtotal, customer_email: email ?? undefined });
+}
+
+// Rekent de korting van een checkout-cart opnieuw uit met de promotiemotor en schrijft
+// het resultaat naar storefront_carts (discount_amount, en verzending 0 bij gratis
+// verzending). Elke betaling leest daarna dit verse bedrag, dus de klant betaalt exact
+// wat mandje en checkout tonen. Muteert het meegegeven cart-object.
+async function refreshCartDiscount(supabase: any, tenantId: string, cart: any): Promise<PromotionResult> {
+  const promo = await computeCartPromotions(supabase, tenantId, cart, cart.cartItems || [], promoValidator(supabase, tenantId));
+  const patch: Record<string, unknown> = {};
+  const stored = promoRound2(Number(cart.discount_amount) || 0);
+  if (Math.abs(stored - promo.discount_total) > 0.004) patch.discount_amount = promo.discount_total;
+  if (promo.free_shipping && (Number(cart.shipping_cost) || 0) > 0) patch.shipping_cost = 0;
+  if (Object.keys(patch).length > 0) {
+    const { error } = await supabase.from('storefront_carts').update({ ...patch, updated_at: new Date().toISOString() })
+      .eq('id', cart.id).eq('tenant_id', tenantId);
+    if (error) throw error;
+    Object.assign(cart, patch);
+  }
+  return promo;
+}
+
+// Checkout-weergave: codes eerst, dan automatische acties. Eigen frontends lezen vaak
+// applied_discounts[0] als "de kortingscode"; zo blijft dat kloppen.
+function codesFirst<T extends { code: string | null }>(list: T[]): T[] {
+  return [...list.filter((d) => d.code), ...list.filter((d) => !d.code)];
+}
+
 // ============== CART ACTIONS ==============
 
 // CART-DISCOUNT-TOTALS-1 — één volledige cart-shape voor alle cart_* acties.
@@ -1606,110 +1639,14 @@ async function computeCartTotals(
 ): Promise<Record<string, any>> {
   const round2 = (n: number) => Math.round(n * 100) / 100;
   const subtotal = round2(cartItems.reduce((s: number, i: any) => s + Number(i.line_total || 0), 0));
-  const codes: string[] = cart.discount_codes || [];
 
-  let discountTotal = 0;
-  let hasFreeShipping = false;
-  let canonicalCode: string | null = null;
-  const appliedDiscounts: { code: string | null; description: string; amount: number; type?: string }[] = [];
-
-  // VOLUME-CART-1 — staffelkortingen (volume_discounts) vóór de codes, zodat
-  // kortingscodes stapelen op de al volume-gereduceerde grondslag.
-  // Strikt additief: zonder actieve, matchende staffel verandert er niets.
-  if (cartItems.length > 0) {
-    const { data: volumeDiscounts } = await supabase
-      .from('volume_discounts')
-      .select('*, volume_discount_tiers(*)')
-      .eq('tenant_id', tenantId)
-      .eq('is_active', true);
-
-    for (const vd of volumeDiscounts || []) {
-      if (!isPromotionActive(true, vd.valid_from, vd.valid_until)) continue;
-
-      let eligibleItems: any[] = [];
-      if (vd.applies_to === 'all') {
-        eligibleItems = cartItems;
-      } else if (vd.applies_to === 'specific_products' || vd.applies_to === 'product') {
-        const ids: string[] = vd.product_ids || [];
-        eligibleItems = cartItems.filter((i: any) => ids.includes(i.product_id));
-      } else if (vd.applies_to === 'specific_categories' || vd.applies_to === 'category') {
-        const catIds: string[] = vd.category_ids || [];
-        if (catIds.length > 0) {
-          const productIds = cartItems.map((i: any) => i.product_id);
-          const { data: links } = await supabase
-            .from('product_categories').select('product_id')
-            .in('product_id', productIds).in('category_id', catIds);
-          const eligible = new Set((links || []).map((l: any) => l.product_id));
-          eligibleItems = cartItems.filter((i: any) => eligible.has(i.product_id));
-        }
-      }
-
-      if (eligibleItems.length === 0) continue;
-
-      const qty = eligibleItems.reduce((s: number, i: any) => s + Number(i.quantity || 0), 0);
-      const tiers = vd.volume_discount_tiers || [];
-      const tier = tiers
-        .filter((t: any) => qty >= t.min_quantity && (!t.max_quantity || qty <= t.max_quantity))
-        .sort((a: any, b: any) => b.min_quantity - a.min_quantity)[0];
-      if (!tier) continue;
-
-      const base = round2(eligibleItems.reduce((s: number, i: any) => s + Number(i.line_total || 0), 0));
-      if (base <= 0) continue;
-      const amt = round2(calculateDiscountValue(base, tier.discount_type, tier.discount_value));
-      if (amt <= 0) continue;
-
-      discountTotal += amt;
-      appliedDiscounts.push({
-        code: null,
-        description: vd.name || 'Staffelkorting',
-        amount: amt,
-        type: 'volume',
-      });
-    }
-  }
-
-
-  for (const raw of codes) {
-    const v = await validateDiscountCode(supabase, tenantId, { code: raw, subtotal, customer_email: cart?.customer_email });
-    if (!v.valid) continue;
-    const code = v.code || normalizeDiscountCode(raw);
-    if (!canonicalCode) canonicalCode = code;
-
-    if (v.discount_type === 'free_shipping') {
-      hasFreeShipping = true;
-      appliedDiscounts.push({ code, description: 'Gratis verzending', amount: 0 });
-      continue;
-    }
-
-    // Per-product / per-categorie restricties bepalen de grondslag.
-    let base = subtotal;
-    if (v.applies_to === 'specific_products') {
-      const ids: string[] = v.product_ids || [];
-      base = round2(cartItems.filter((i: any) => ids.includes(i.product_id)).reduce((s: number, i: any) => s + Number(i.line_total || 0), 0));
-    } else if (v.applies_to === 'specific_categories' || v.applies_to === 'category') {
-      const catIds: string[] = v.category_ids || [];
-      if (catIds.length > 0) {
-        const productIds = cartItems.map((i: any) => i.product_id);
-        const { data: links } = await supabase
-          .from('product_categories').select('product_id')
-          .in('product_id', productIds).in('category_id', catIds);
-        const eligible = new Set((links || []).map((l: any) => l.product_id));
-        base = round2(cartItems.filter((i: any) => eligible.has(i.product_id)).reduce((s: number, i: any) => s + Number(i.line_total || 0), 0));
-      } else {
-        base = 0;
-      }
-    }
-
-    if (base <= 0) continue;
-    const amt = round2(calculateDiscountValue(base, v.discount_type, v.discount_value, v.max_discount_amount));
-    if (amt <= 0) continue;
-    discountTotal += amt;
-    appliedDiscounts.push({
-      code,
-      description: v.description || `${v.discount_value}${v.discount_type === 'percentage' ? '%' : '€'} korting`,
-      amount: amt,
-    });
-  }
+  // PROMO-ENGINE-1 — één promotiemotor (staffel, 1+1, bundels, automatisch, klantgroep,
+  // codes, stapelregel). Volgorde en afronding gelijk aan VOLUME-CART-1 + CART-DISCOUNT-TOTALS-1.
+  const promo = await computeCartPromotions(supabase, tenantId, cart, cartItems, promoValidator(supabase, tenantId));
+  let discountTotal = promo.discount_total;
+  const hasFreeShipping = promo.free_shipping;
+  const canonicalCode: string | null = promo.canonical_code;
+  const appliedDiscounts = promo.applied_discounts;
 
   discountTotal = Math.min(round2(discountTotal), subtotal);
   const netSubtotal = round2(subtotal - discountTotal);
@@ -2177,23 +2114,12 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   const subtotal = cart.subtotal;
   const discountCodes: string[] = cart.discount_codes || [];
 
-  // Recalculate discount amounts from stored codes
-  let discountTotal = 0;
-  let hasFreeShipping = false;
-  const appliedDiscounts: { code: string; description: string; amount: number }[] = [];
-
-  for (const dc of discountCodes) {
-    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal, customer_email: cart?.customer_email });
-    if (!v.valid) continue;
-    if (v.discount_type === 'free_shipping') {
-      hasFreeShipping = true;
-      appliedDiscounts.push({ code: dc, description: 'Gratis verzending', amount: 0 });
-    } else {
-      const amt = calculateDiscountValue(subtotal, v.discount_type, v.discount_value, v.max_discount_amount);
-      discountTotal += amt;
-      appliedDiscounts.push({ code: dc, description: v.description || `${v.discount_value}${v.discount_type === 'percentage' ? '%' : '€'} korting`, amount: Math.round(amt * 100) / 100 });
-    }
-  }
+  // PROMO-ENGINE-1 — zelfde motor als het mandje, en het resultaat wordt op de cart
+  // bewaard zodat de betaling exact dit bedrag gebruikt.
+  const promo = await refreshCartDiscount(supabase, tenantId, cart);
+  const discountTotal = promo.discount_total;
+  const hasFreeShipping = promo.free_shipping;
+  const appliedDiscounts = codesFirst(promo.applied_discounts);
 
   // Shipping
   let shippingCost = Number(cart.shipping_cost) || 0;
@@ -2897,17 +2823,9 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
     ? Number(allowedEntry.price ?? 0)
     : (method.free_above && cart.subtotal >= method.free_above ? 0 : method.price);
 
-  // Check if any discount code provides free shipping
-  const discountCodes: string[] = cart.discount_codes || [];
-  if (discountCodes.length > 0) {
-    for (const dc of discountCodes) {
-      const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal, customer_email: cart.customer_email });
-      if (v.valid && v.discount_type === 'free_shipping') {
-        shippingCost = 0;
-        break;
-      }
-    }
-  }
+  // PROMO-ENGINE-1 — gratis verzending via code of automatische actie.
+  const promo = await computeCartPromotions(supabase, tenantId, cart, cart.cartItems || [], promoValidator(supabase, tenantId));
+  if (promo.free_shipping) shippingCost = 0;
 
   const { error } = await supabase.from('storefront_carts').update({
     shipping_method_id: shippingMethodId,
@@ -2933,6 +2851,11 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
   if (cart.checkout_status === 'converted') return { success: false, error: { code: 'ORDER_ALREADY_PAID', message: 'Deze bestelling is al afgerond' } };
   if (cart.cartItems.length === 0) return { success: false, error: { code: 'CART_EMPTY', message: 'Cart is leeg' } };
+
+  // PROMO-ENGINE-1 — korting vlak vóór de betaling opnieuw uitrekenen. Zo betaalt de
+  // klant exact wat mandje en checkout tonen, ook als de cart sinds het toepassen van
+  // een code veranderde of de code alleen via cart_apply_discount werd toegepast.
+  await refreshCartDiscount(supabase, tenantId, cart);
 
   // ── FASE 3a — capaciteitspoort vóór betaling (geen geld wisselt van hand) ──
   // Sub-cap per (event, product); event-cap over alle tickettypes van het event.
@@ -3706,28 +3629,13 @@ async function checkoutApplyDiscount(supabase: any, tenantId: string, params: Re
     ? currentCodes
     : [...currentCodes, canonical];
 
-  // Recalculate all discounts
-  let totalDiscountAmount = 0;
-  let hasFreeShipping = false;
-  for (const dc of updatedCodes) {
-    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal, customer_email: cart.customer_email });
-    if (!v.valid) continue;
-    if (v.discount_type === 'free_shipping') {
-      hasFreeShipping = true;
-    } else {
-      totalDiscountAmount += calculateDiscountValue(cart.subtotal, v.discount_type, v.discount_value, v.max_discount_amount);
-    }
-  }
-
-  let shippingCost = Number(cart.shipping_cost) || 0;
-  if (hasFreeShipping) shippingCost = 0;
-
-  await supabase.from('storefront_carts').update({
+  // PROMO-ENGINE-1 — codes bewaren; buildCartResponse rekent korting en gratis
+  // verzending uit met de promotiemotor en bewaart het bedrag op de cart.
+  const { error: updErr } = await supabase.from('storefront_carts').update({
     discount_codes: updatedCodes,
-    discount_amount: totalDiscountAmount,
-    shipping_cost: shippingCost,
     updated_at: new Date().toISOString(),
-  }).eq('id', cartId);
+  }).eq('id', cartId).eq('tenant_id', tenantId);
+  if (updErr) throw updErr;
 
   return buildCartResponse(supabase, tenantId, cartId);
 }
@@ -3743,36 +3651,27 @@ async function checkoutRemoveDiscount(supabase: any, tenantId: string, params: R
   const currentCodes: string[] = cart.discount_codes || [];
   const updatedCodes = codeToRemove ? currentCodes.filter((c: string) => c !== codeToRemove) : [];
 
-  // Recalculate remaining discounts
-  let totalDiscountAmount = 0;
-  let hasFreeShipping = false;
-  for (const dc of updatedCodes) {
-    const v = await validateDiscountCode(supabase, tenantId, { code: dc, subtotal: cart.subtotal, customer_email: cart.customer_email });
-    if (!v.valid) continue;
-    if (v.discount_type === 'free_shipping') {
-      hasFreeShipping = true;
-    } else {
-      totalDiscountAmount += calculateDiscountValue(cart.subtotal, v.discount_type, v.discount_value, v.max_discount_amount);
-    }
-  }
-
-  // Recalculate shipping if free_shipping was removed
+  // PROMO-ENGINE-1 — geeft de rest nog gratis verzending? Zo niet, dan de prijs van
+  // de gekozen methode terugzetten. De korting zelf rekent buildCartResponse uit.
+  const promo = await computeCartPromotions(
+    supabase, tenantId, { ...cart, discount_codes: updatedCodes }, cart.cartItems || [], promoValidator(supabase, tenantId),
+  );
   let shippingCost = Number(cart.shipping_cost) || 0;
-  if (!hasFreeShipping && cart.shipping_method_id) {
+  if (promo.free_shipping) {
+    shippingCost = 0;
+  } else if (cart.shipping_method_id) {
     const { data: method } = await supabase.from('shipping_methods').select('price, free_above').eq('id', cart.shipping_method_id).eq('tenant_id', tenantId).maybeSingle();
     if (method) {
       shippingCost = method.free_above && cart.subtotal >= method.free_above ? 0 : method.price;
     }
-  } else if (hasFreeShipping) {
-    shippingCost = 0;
   }
 
-  await supabase.from('storefront_carts').update({
+  const { error: updErr } = await supabase.from('storefront_carts').update({
     discount_codes: updatedCodes,
-    discount_amount: totalDiscountAmount,
     shipping_cost: shippingCost,
     updated_at: new Date().toISOString(),
-  }).eq('id', cartId);
+  }).eq('id', cartId).eq('tenant_id', tenantId);
+  if (updErr) throw updErr;
 
   return buildCartResponse(supabase, tenantId, cartId);
 }
@@ -4232,7 +4131,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'STOREFRONT-BUNDLE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'PROMO-ENGINE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

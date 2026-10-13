@@ -127,6 +127,13 @@ jobs:
           DENO_NO_PACKAGE_JSON: "1"
         run: deno check --no-lock --node-modules-dir=none supabase/functions/*/index.ts
 
+      # PROMO-ENGINE-1: de promotiemotor bepaalt wat klanten betalen. Unit tests zonder
+      # netwerk; een rode test houdt een verkeerde kortingsberekening tegen.
+      - name: Edge functions (deno test promotiemotor)
+        env:
+          DENO_NO_PACKAGE_JSON: "1"
+        run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts
+
       # 7. Productiebuild. Draait via npm omdat het prebuild-script daaraan
       #    hangt; npm staat standaard op de runner naast de bun-installatie.
       - name: Build
