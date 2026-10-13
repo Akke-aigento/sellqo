@@ -6945,8 +6945,8 @@ export type Database = {
           days_ahead: number
           hours: Json
           max_orders_per_slot: number | null
-          pay_on_pickup: boolean
           notify_ready: boolean
+          pay_on_pickup: boolean
           prep_minutes: number
           slot_minutes: number
           slots_enabled: boolean
@@ -6959,8 +6959,8 @@ export type Database = {
           days_ahead?: number
           hours?: Json
           max_orders_per_slot?: number | null
-          pay_on_pickup?: boolean
           notify_ready?: boolean
+          pay_on_pickup?: boolean
           prep_minutes?: number
           slot_minutes?: number
           slots_enabled?: boolean
@@ -6973,8 +6973,8 @@ export type Database = {
           days_ahead?: number
           hours?: Json
           max_orders_per_slot?: number | null
-          pay_on_pickup?: boolean
           notify_ready?: boolean
+          pay_on_pickup?: boolean
           prep_minutes?: number
           slot_minutes?: number
           slots_enabled?: boolean
