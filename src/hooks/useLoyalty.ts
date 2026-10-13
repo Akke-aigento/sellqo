@@ -11,6 +11,35 @@ import type {
   LoyaltyTierFormData 
 } from '@/types/promotions';
 
+// LOYALTY-1: het formulier en de types gebruiken andere veldnamen dan de databank
+// (point_value, min_redemption_points, points_expiry_days). Daardoor faalde aanmaken
+// altijd. Deze twee functies vertalen in beide richtingen.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function programFromDb(row: any): LoyaltyProgram {
+  return {
+    ...row,
+    points_value: Number(row.point_value ?? 0),
+    min_points_redeem: Number(row.min_redemption_points ?? 0),
+    points_expiry_months: row.points_expiry_days != null ? Math.round(Number(row.points_expiry_days) / 30) : null,
+    tiers: (row.tiers || []).slice().sort((a: LoyaltyTier, b: LoyaltyTier) => a.min_points - b.min_points),
+  } as LoyaltyProgram;
+}
+
+function programToDb(formData: Partial<LoyaltyProgramFormData>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (formData.name !== undefined) out.name = formData.name;
+  if (formData.description !== undefined) out.description = formData.description;
+  if (formData.points_per_euro !== undefined) out.points_per_euro = formData.points_per_euro;
+  if (formData.points_value !== undefined) out.point_value = formData.points_value;
+  if (formData.min_points_redeem !== undefined) out.min_redemption_points = formData.min_points_redeem;
+  if (formData.max_redemption_percentage !== undefined) out.max_redemption_percentage = formData.max_redemption_percentage;
+  if (formData.points_expiry_months !== undefined) {
+    out.points_expiry_days = formData.points_expiry_months ? formData.points_expiry_months * 30 : null;
+  }
+  if (formData.is_active !== undefined) out.is_active = formData.is_active;
+  return out;
+}
+
 export function useLoyaltyPrograms() {
   const { currentTenant } = useTenant();
 
@@ -29,7 +58,7 @@ export function useLoyaltyPrograms() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data as unknown as LoyaltyProgram[];
+      return (data || []).map(programFromDb);
     },
     enabled: !!currentTenant?.id,
   });
@@ -51,7 +80,7 @@ export function useLoyaltyProgram(id: string | undefined) {
         .single();
 
       if (error) throw error;
-      return data as unknown as LoyaltyProgram;
+      return programFromDb(data);
     },
     enabled: !!id,
   });
@@ -110,9 +139,9 @@ export function useCreateLoyaltyProgram() {
       const { data, error } = await supabase
         .from('loyalty_programs')
         .insert({
-          ...formData,
+          ...programToDb(formData),
           tenant_id: currentTenant.id,
-        })
+        } as never)
         .select()
         .single();
 
@@ -140,7 +169,7 @@ export function useUpdateLoyaltyProgram() {
     mutationFn: async ({ id, formData }: { id: string; formData: Partial<LoyaltyProgramFormData> }) => {
       const { data, error } = await supabase
         .from('loyalty_programs')
-        .update(formData)
+        .update(programToDb(formData) as never)
         .eq('id', id)
         .select()
         .single();
@@ -198,7 +227,7 @@ export function useCreateLoyaltyTier() {
         .insert({
           ...formData,
           loyalty_program_id: programId,
-        })
+        } as never)
         .select()
         .single();
 
@@ -265,7 +294,8 @@ export function useAdjustLoyaltyPoints() {
         .from('loyalty_transactions')
         .insert({
           customer_loyalty_id: customerLoyaltyId,
-          transaction_type: type,
+          // LOYALTY-1: de databank kent 'adjustment', niet 'adjust' (check constraint).
+          transaction_type: type === 'adjust' ? 'adjustment' : type,
           points: type === 'redeem' ? -Math.abs(points) : points,
           description,
         });
@@ -308,6 +338,50 @@ export function useAdjustLoyaltyPoints() {
         description: error.message,
         variant: 'destructive',
       });
+    },
+  });
+}
+
+// LOYALTY-1: niveaus bewerken. Bestaande niveaus worden in place bijgewerkt (klanten
+// verwijzen ernaar via current_tier_id), nieuwe toegevoegd, weggehaalde verwijderd
+// zolang geen klant op dat niveau staat.
+export function useSyncLoyaltyTiers() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ programId, tiers }: { programId: string; tiers: (LoyaltyTierFormData & { id?: string })[] }) => {
+      const { data: existing, error } = await supabase
+        .from('loyalty_tiers')
+        .select('id')
+        .eq('loyalty_program_id', programId);
+      if (error) throw error;
+      const keep = new Set(tiers.map((t) => t.id).filter(Boolean) as string[]);
+      for (const tier of tiers) {
+        const row = {
+          name: tier.name,
+          min_points: tier.min_points,
+          points_multiplier: tier.points_multiplier,
+          discount_percentage: tier.discount_percentage ?? null,
+        };
+        if (tier.id) {
+          const { error: upErr } = await supabase.from('loyalty_tiers').update(row as never).eq('id', tier.id);
+          if (upErr) throw upErr;
+        } else {
+          const { error: insErr } = await supabase.from('loyalty_tiers').insert({ ...row, loyalty_program_id: programId } as never);
+          if (insErr) throw insErr;
+        }
+      }
+      for (const old of existing || []) {
+        if (keep.has(old.id)) continue;
+        const { error: delErr } = await supabase.from('loyalty_tiers').delete().eq('id', old.id);
+        if (delErr) throw new Error('Een niveau waar nog klanten op staan kan niet verwijderd worden.');
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loyalty-programs'] });
+    },
+    onError: (error) => {
+      toast({ title: 'Fout bij opslaan niveaus', description: error.message, variant: 'destructive' });
     },
   });
 }

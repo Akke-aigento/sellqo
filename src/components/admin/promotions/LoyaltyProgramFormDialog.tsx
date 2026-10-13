@@ -22,11 +22,12 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Plus, Trash2 } from 'lucide-react';
-import { useCreateLoyaltyProgram, useUpdateLoyaltyProgram, useCreateLoyaltyTier } from '@/hooks/useLoyalty';
+import { useCreateLoyaltyProgram, useUpdateLoyaltyProgram, useCreateLoyaltyTier, useSyncLoyaltyTiers } from '@/hooks/useLoyalty';
 import type { LoyaltyProgram, LoyaltyProgramFormData } from '@/types/promotions';
 import { useTranslation } from 'react-i18next';
 
 const tierSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1, 'admin.promotions.autoDiscountFormDialog.validation.naam_is_verplicht'),
   min_points: z.coerce.number().min(0),
   points_multiplier: z.coerce.number().min(1),
@@ -60,6 +61,7 @@ export function LoyaltyProgramFormDialog({
   const createProgram = useCreateLoyaltyProgram();
   const updateProgram = useUpdateLoyaltyProgram();
   const createTier = useCreateLoyaltyTier();
+  const syncTiers = useSyncLoyaltyTiers();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -93,6 +95,7 @@ export function LoyaltyProgramFormDialog({
         min_points_redeem: program.min_points_redeem,
         is_active: program.is_active,
         tiers: program.tiers?.map((t) => ({
+          id: t.id,
           name: t.name,
           min_points: t.min_points,
           points_multiplier: t.points_multiplier,
@@ -128,7 +131,17 @@ export function LoyaltyProgramFormDialog({
 
     if (program) {
       await updateProgram.mutateAsync({ id: program.id, formData });
-      // Note: Tier updates would need separate handling in production
+      // LOYALTY-1: niveaus worden nu ook bij bewerken opgeslagen.
+      await syncTiers.mutateAsync({
+        programId: program.id,
+        tiers: values.tiers.map((tier) => ({
+          id: tier.id,
+          name: tier.name,
+          min_points: tier.min_points,
+          points_multiplier: tier.points_multiplier,
+          discount_percentage: tier.discount_percentage ?? undefined,
+        })),
+      });
     } else {
       const newProgram = await createProgram.mutateAsync(formData);
       // Create tiers for new program

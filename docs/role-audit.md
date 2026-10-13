@@ -1,3 +1,39 @@
+## LOYALTY-1 — loyaliteitsprogramma werkend: admin + automatische punten op webshoporders — 13 oktober 2026
+
+Akke koos voor "volledig bouwen". Fase 1 bestaat uit het admin-gedeelte, het verdienen en het terugboeken. Inwisselen in de webshop-API is fase 2, omdat daarvoor de frontends aangepast moeten worden. Aan de kassa bestond inwisselen al.
+
+**Bugs die gevonden zijn:**
+- Formulier en databank gebruikten andere veldnamen: `points_value` tegenover `point_value`, `min_points_redeem` tegenover `min_redemption_points`, en maanden tegenover dagen. Bovendien bestonden `description`, `max_redemption_percentage` en `discount_percentage` per niveau niet. Daardoor faalde aanmaken altijd: live stonden er 0 programma's.
+- Niveaus werden bij bewerken niet opgeslagen.
+- Handmatige puntencorrecties stuurden `transaction_type = 'adjust'`, maar de check constraint verwacht `adjustment`.
+- Bij webshoporders werden nergens punten toegekend.
+
+**Migratie `20261013100000_loyalty_1.sql`** (live toegepast):
+- 3 ontbrekende kolommen.
+- Unieke partiële indexen: één `earn` en één `adjustment` per order.
+- `loyalty_award_for_order`: kent punten toe als de order betaald is, een klant heeft, niet van een marketplace komt en het programma actief is. Formule: `floor(total × points_per_euro × vermenigvuldiger van het huidige niveau)`. De vervaldatum wordt gezet als `points_expiry_days` is ingevuld.
+- `loyalty_reverse_for_order`: boekt de punten terug bij een geannuleerde of terugbetaalde order.
+- `loyalty_recompute_tier`: zet het niveau op basis van het totaal verdiende punten.
+- Trigger `trg_orders_loyalty` (AFTER INSERT/UPDATE OF payment_status, status). Een fout in het puntensysteem blokkeert nooit een order (EXCEPTION → WARNING).
+- Kassaverkopen maken geen orders aan en kennen hun punten zelf toe, dus er is geen dubbeltelling.
+
+**Test** op de Sandbox-tenant, in een blok dat zichzelf terugdraait:
+- Order van €150 betaald → 150 punten en niveau Zilver (vanaf 100 punten).
+- Dezelfde order nog eens op betaald zetten → niets extra.
+- Tweede order van €50 → 100 punten (×2 voor Zilver), saldo 250.
+- Annulering van die tweede order → saldo terug naar 150, 3 transacties.
+- Er gaan geen extra mails uit van het puntensysteem.
+
+**Frontend:**
+- `useLoyalty` vertaalt de velden in beide richtingen.
+- Nieuwe `useSyncLoyaltyTiers`: werkt niveaus bij, voegt ze toe of verwijdert ze. Verwijderen wordt geweigerd zolang er klanten op dat niveau staan.
+- Het formulier slaat niveaus nu ook bij bewerken op.
+- `adjust` wordt `adjustment`.
+
+**Checks:** tsc 30 → 27, 630 tests, check:buttons 2/2.
+
+**Fase 2 (open):** punten inwisselen in de checkout van de webshop-API (`loyalty_points_to_redeem` bestaat als parameter, maar doet nog niets), en het puntensaldo tonen in de eigen frontends en in het klantaccount.
+
 ## DECISIONS-1013 en SEC-SHIP-1 — 13 oktober 2026
 
 ### Beslissingen van Akke, uitgevoerd in de live DB
