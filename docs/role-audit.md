@@ -1,3 +1,38 @@
+## SHOP-5 — standaardshop: Shopify-basis (mini-mandje, aantallen, favicon, zoeken, menu, juridische pagina's) — 13 oktober 2026
+
+Repo `sellqo-storefront` 1784b8d, live op `vanxcel.sellqo.shop` (GitHub Actions groen). Geen API-wijziging nodig buiten SHOP-API-2.
+
+- **Favicon:** `<link rel="icon">` uit het winkelthema (`favicon_url`, anders `config.store.favicon_url`), plus apple-touch-icon en theme-color.
+- **Mandje:** één gedeelde mandjestaat voor header, mini-mandje, lade en mandjepagina.
+  - Hover of focus op de mandjeknop toont het mini-mandje.
+  - Een klik, of "In winkelmandje", opent de lade met een melding "Toegevoegd".
+  - Aantallen zijn aan te passen in de lade en op de mandjepagina.
+- **Productpagina:**
+  - aantal kiezen, begrensd op voorraad;
+  - sale-badge (−X%) en "Nog maar X op voorraad" bij ≤ 5, als `product_stock_indicator` aan staat;
+  - foto van de gekozen variant, uitverkochte opties doorgestreept, opties met één waarde vooraf gekozen;
+  - JSON-LD Product.
+- **Navigatie:**
+  - zoeken (`/zoeken`, via `get_products` met `search`);
+  - hamburgermenu op mobiel;
+  - sticky header (thema `header_sticky`);
+  - link "Naar de inhoud".
+- **Footer:**
+  - juridische pagina's op `/info/<slug>` (via `get_pages`) en eigen pagina's op `/p/<slug>` (via `get_page`);
+  - een eigen pagina met dezelfde slug als een juridische wordt verborgen, zodat het lege "Contact" niet naast "Contactgegevens" staat;
+  - contactgegevens en btw-nummer uit `config.contact`.
+- **SEO:**
+  - titel "<pagina> | <winkel>", meta description, OG en canonical per pagina; mandje, afrekenen, bestelling en zoeken op noindex;
+  - les: in `head()` is `matches[0].loaderData` van de root tijdens server-rendering nog leeg, waardoor de titels zonder winkelnaam in de HTML stonden;
+  - de winkel wordt nu geladen in de root-`beforeLoad`, zodat hij in de context staat. De root-loader geeft alleen nog het mandje terug.
+- **Mobiel:** 2 kolommen producten, filters dichtgeklapt, sorteerknoppen scrollen horizontaal.
+- **Getest:**
+  - lokaal met Playwright tegen de nep-API: favicon, titels, JSON-LD, aantal 2 → lade, hover-popup, + in het mandje → header 3, zoeken, juridische pagina zonder `<script>`, 404 voor een onbekende pagina, mobiel menu, geen horizontale scroll, en van de lade naar afrekenen;
+  - live via `net.http_get`: favicon, titels, JSON-LD op het product, `/info/terms` en `/info/privacy` 200, `/info/bestaatniet` 404, `/zoeken?q=fuse` geeft 4 resultaten, `/p/contact` 200, `loveke.sellqo.shop` 404.
+- **SHOP-API-2 live:** stempel `SHOP-API-2`; `get_page` contact → 200; een onbekende slug → fout.
+  - `get_products` tegen `ops.snap_catalog_pre` (81 probes, batch `shop-api-2`): status en paginering zijn overal gelijk.
+  - De verschillen zijn alleen voorraaddrift (94 → 93) en de bekende volgorde bij gelijke prijs of `created_at` (price_asc, unknown_sort). `get_products` is in deze batch niet gewijzigd.
+
 ## SHOP-API-2 — eigen pagina's en sectie-ondertitels voor de standaardshop — 13 oktober 2026
 
 Alles is additief.
