@@ -1,3 +1,30 @@
+## CATALOG-FILTERS-1 — filters, facetten en "bestverkocht" in de webshop-API — 13 oktober 2026
+
+Webshoptraject fase 1, "de motor compleet". Alles is additief: zonder de nieuwe parameters loopt `get_products` exact zoals vroeger, met dezelfde query, paginering en respons.
+
+**Nieuw:**
+- Actie `get_product_filters` (params: `category_id`/`category_slug`, `search`). Geeft terug:
+  - `total` en `available`;
+  - `price {min, max}`, met variantprijzen meegerekend;
+  - `categories` met aantallen;
+  - `options`: variantopties zoals Maat en Kleur, met waarden en het aantal producten;
+  - `tags` met aantallen;
+  - `sort_options`.
+- Rommelige data wordt samengevoegd: "White " en "white" worden één waarde, de meest gebruikte schrijfwijze wint, en maten staan in maatvolgorde. Optienamen worden niet vertaald: Kleur en Color blijven gescheiden.
+- `get_products` krijgt drie optionele parameters. Ze filteren vóór de paginering, zodat `total_count` en de pagina's kloppen (bovengrens 2.000 producten):
+  - `options` ({"Maat": ["S","M"]}): minstens één actieve variant die op elke gekozen optie past;
+  - `available_only`: echt beschikbaar, per passende variant;
+  - `sort_by: "best_selling"`: verkochte stuks in betaalde orders van de laatste 365 dagen, bij gelijkstand nieuwste eerst.
+- RPC `storefront_product_sales(p_tenant_id, p_days)`, migratie `20261013120000_catalog_filters_1.sql`. Live toegepast en nagekeken: anon mag niet uitvoeren, service_role wel. Alleen lezen. Marketplace-orders tellen mee als verkoop; er wordt niets naar bol geschreven.
+- Pure helpers in `_shared/catalogFilters.ts` met 7 unit tests (CI draait nu beide testbestanden).
+
+**Gevonden, niet aangepast:** een pagina voorbij het einde (bv. `page: 2` met weinig producten) geeft vandaag HTTP 500 "Requested range not satisfiable" in plaats van een lege lijst. Dat gedrag is ongewijzigd gebleven. Het is een kandidaat voor een aparte batch.
+
+**Bewijs:**
+- Nulmeting `ops.snap_catalog_pre`: 81 `get_products`-aanroepen, 9 situaties × 9 winkels.
+- Na de deploy wordt dezelfde set opnieuw gemeten en vergeleken. `sort_by: best_selling` moet bewust verschillen; vroeger viel dat terug op "nieuwste".
+- Lint −1 (baseline bijgewerkt). `deno check` lokaal groen.
+
 ## PROMO-ENGINE-1 — één promotiemotor voor mandje, checkout en betaling — 13 oktober 2026
 
 Onderdeel van het webshoptraject (fase 1, "de motor compleet"). Afspraak met Akke: eigen frontends merken niks, behalve bedoelde correcties die hij goedkeurt.

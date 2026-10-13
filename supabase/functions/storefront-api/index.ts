@@ -7,6 +7,7 @@ import { callVies, cleanVatNumber, isEuCountry, parseVatCountry } from "../_shar
 import { submitContactForm, isContactFormAlias, normalizeContactAlias } from "../_shared/contactForm.ts";
 import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { computeCartPromotions, round2 as promoRound2, type PromotionResult } from "../_shared/promotionEngine.ts";
+import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, type DbRow, type SupabaseLike } from "../_shared/catalogFilters.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -752,6 +753,116 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
 
 // ============== GET PRODUCTS (EXTENDED) ==============
 
+// ============== CATALOG FILTERS (CATALOG-FILTERS-1) ==============
+
+// Bovengrens voor het geavanceerde pad (filteren vóór paginering). Ruim boven de
+// grootste catalogus (Mancini ~350 varianten); daarboven wordt er afgekapt.
+const ADVANCED_PRODUCT_CAP = 2000;
+
+// Categorie (id of slug, ook via product_categories) en zoekterm, identiek aan wat
+// get_products altijd deed. Gedeeld met get_product_filters.
+async function applyCategoryAndSearch(supabase: SupabaseLike, tenantId: string, query: SupabaseLike, categoryId?: string, categorySlug?: string, search?: string) {
+  let resolvedCategoryId = categoryId;
+  if (!resolvedCategoryId && categorySlug) {
+    const { data: cat } = await supabase
+      .from('categories').select('id').eq('tenant_id', tenantId).eq('slug', categorySlug).maybeSingle();
+    resolvedCategoryId = cat?.id;
+  }
+  if (resolvedCategoryId) {
+    // Also include products linked via junction table (non-primary categories)
+    const { data: junctionProducts } = await supabase
+      .from('product_categories')
+      .select('product_id')
+      .eq('category_id', resolvedCategoryId);
+
+    const junctionIds = (junctionProducts || []).map((jp: DbRow) => jp.product_id);
+
+    if (junctionIds.length > 0) {
+      query = query.or(`category_id.eq.${resolvedCategoryId},id.in.(${junctionIds.join(',')})`);
+    } else {
+      query = query.eq('category_id', resolvedCategoryId);
+    }
+  }
+  if (search) query = query.ilike('name', `%${search}%`);
+  return query;
+}
+
+async function loadActiveVariants(supabase: SupabaseLike, productIds: string[]): Promise<Map<string, DbRow[]>> {
+  const map = new Map<string, DbRow[]>();
+  for (let i = 0; i < productIds.length; i += 300) {
+    const chunk = productIds.slice(i, i + 300);
+    const { data, error } = await supabase
+      .from('product_variants').select('product_id, price, stock, track_inventory, attribute_values')
+      .in('product_id', chunk).eq('is_active', true);
+    if (error) throw error;
+    for (const v of data || []) {
+      if (!map.has(v.product_id)) map.set(v.product_id, []);
+      map.get(v.product_id)!.push(v);
+    }
+  }
+  return map;
+}
+
+// Verkochte stuks per product (betaalde orders, laatste 365 dagen). Fout → lege map:
+// sorteren valt dan terug op de basisvolgorde.
+async function loadProductSales(supabase: SupabaseLike, tenantId: string): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  try {
+    const { data, error } = await supabase.rpc('storefront_product_sales', { p_tenant_id: tenantId, p_days: 365 });
+    if (error) throw error;
+    for (const r of data || []) map.set(r.product_id, Number(r.qty) || 0);
+  } catch (e) {
+    console.warn('[CATALOG-FILTERS-1] product sales unavailable:', errMsg(e));
+  }
+  return map;
+}
+
+// Nieuwe actie: welke filters zijn er voor deze categorie of zoekterm, met aantallen.
+async function getProductFilters(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown> = {}) {
+  let query = supabase
+    .from('products')
+    .select('id, price, tags, track_inventory, stock, categories(id, name, slug, hide_from_storefront)')
+    .eq('tenant_id', tenantId)
+    .eq('is_active', true)
+    .eq('hide_from_storefront', false);
+  query = await applyCategoryAndSearch(
+    supabase, tenantId, query,
+    params?.category_id as string | undefined, params?.category_slug as string | undefined, params?.search as string | undefined,
+  );
+  const { data, error } = await query.range(0, ADVANCED_PRODUCT_CAP - 1);
+  if (error) throw error;
+  const products = (data || []).filter((p: DbRow) => !(p.categories && p.categories.hide_from_storefront));
+  const vmap = await loadActiveVariants(supabase, products.map((p: DbRow) => p.id));
+
+  let min: number | null = null, max: number | null = null;
+  let available = 0;
+  const catCounts = new Map<string, { id: string; name: string; slug: string; count: number }>();
+  for (const p of products) {
+    const vs = vmap.get(p.id) || [];
+    const prices = vs.length > 0 ? vs.map((v: DbRow) => Number(v.price ?? p.price)) : [Number(p.price)];
+    for (const pr of prices) {
+      if (!Number.isFinite(pr)) continue;
+      min = min == null ? pr : Math.min(min, pr);
+      max = max == null ? pr : Math.max(max, pr);
+    }
+    if (productMatches(p, vs, null, true)) available++;
+    if (p.categories?.id) {
+      const e = catCounts.get(p.categories.id) || { id: p.categories.id, name: p.categories.name, slug: p.categories.slug, count: 0 };
+      e.count++;
+      catCounts.set(p.categories.id, e);
+    }
+  }
+  return {
+    total: products.length,
+    available,
+    price: { min, max },
+    categories: [...catCounts.values()].sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'nl')),
+    options: buildOptionFacets(vmap),
+    tags: buildTagFacets(products),
+    sort_options: ['newest', 'best_selling', 'price_asc', 'price_desc', 'name_asc', 'name_desc', 'featured'],
+  };
+}
+
 async function getProducts(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const locale = params?.locale as string | undefined;
   const page = Math.max(1, Number(params?.page) || 1);
@@ -765,14 +876,11 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
   const tags = params?.tags as string[] | undefined;
   const inStockOnly = params?.in_stock_only === true;
   const isFeatured = params?.is_featured === true;
-
-  // Resolve category slug to id
-  let resolvedCategoryId = categoryId;
-  if (!resolvedCategoryId && categorySlug) {
-    const { data: cat } = await supabase
-      .from('categories').select('id').eq('tenant_id', tenantId).eq('slug', categorySlug).maybeSingle();
-    resolvedCategoryId = cat?.id;
-  }
+  // CATALOG-FILTERS-1 — nieuwe, optionele parameters. Zonder deze drie loopt alles
+  // exact zoals vroeger (zelfde query, zelfde paginering).
+  const optionFilter = parseOptionFilter(params?.options);
+  const availableOnly = params?.available_only === true;
+  const advanced = !!optionFilter || availableOnly || sortBy === 'best_selling';
 
   let query = supabase
     .from('products')
@@ -781,22 +889,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
 
-  if (resolvedCategoryId) {
-    // Also include products linked via junction table (non-primary categories)
-    const { data: junctionProducts } = await supabase
-      .from('product_categories')
-      .select('product_id')
-      .eq('category_id', resolvedCategoryId);
-    
-    const junctionIds = (junctionProducts || []).map((jp: any) => jp.product_id);
-    
-    if (junctionIds.length > 0) {
-      query = query.or(`category_id.eq.${resolvedCategoryId},id.in.(${junctionIds.join(',')})`);
-    } else {
-      query = query.eq('category_id', resolvedCategoryId);
-    }
-  }
-  if (search) query = query.ilike('name', `%${search}%`);
+  query = await applyCategoryAndSearch(supabase, tenantId, query, categoryId, categorySlug, search);
   if (minPrice != null) query = query.gte('price', minPrice);
   if (maxPrice != null) query = query.lte('price', maxPrice);
   if (isFeatured) query = query.eq('is_featured', true);
@@ -814,16 +907,42 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   // Pagination
   const from = (page - 1) * perPage;
-  query = query.range(from, from + perPage - 1);
+  let filtered: DbRow[];
+  let count: number | null;
+  if (!advanced) {
+    query = query.range(from, from + perPage - 1);
 
-  const { data, error, count } = await query;
-  if (error) throw error;
+    const { data, error, count: c } = await query;
+    if (error) throw error;
+    count = c;
 
-  // Filter hidden categories
-  const visible = (data || []).filter((p: any) => !(p.categories && p.categories.hide_from_storefront));
+    // Filter hidden categories
+    const visible = (data || []).filter((p: any) => !(p.categories && p.categories.hide_from_storefront));
 
-  // Filter in-stock
-  const filtered = inStockOnly ? visible.filter((p: any) => !p.track_inventory || p.stock > 0) : visible;
+    // Filter in-stock
+    filtered = inStockOnly ? visible.filter((p: any) => !p.track_inventory || p.stock > 0) : visible;
+  } else {
+    // CATALOG-FILTERS-1 — filteren op varianten (maat, kleur), echte beschikbaarheid en
+    // bestverkocht gebeurt vóór de paginering, zodat aantallen en pagina's kloppen.
+    const { data, error } = await query.range(0, ADVANCED_PRODUCT_CAP - 1);
+    if (error) throw error;
+    let candidates = (data || []).filter((p: DbRow) => !(p.categories && p.categories.hide_from_storefront));
+    if (inStockOnly) candidates = candidates.filter((p: DbRow) => !p.track_inventory || p.stock > 0);
+    if (optionFilter || availableOnly) {
+      const vmap = await loadActiveVariants(supabase, candidates.map((p: DbRow) => p.id));
+      candidates = candidates.filter((p: DbRow) => productMatches(p, vmap.get(p.id) || [], optionFilter, availableOnly));
+    }
+    if (sortBy === 'best_selling') {
+      const sales = await loadProductSales(supabase, tenantId);
+      // Stabiel: bij gelijke verkoop blijft de basisvolgorde (nieuwste eerst).
+      candidates = candidates
+        .map((p: DbRow, i: number) => ({ p, i, q: sales.get(p.id) || 0 }))
+        .sort((a: DbRow, b: DbRow) => b.q - a.q || a.i - b.i)
+        .map((x: DbRow) => x.p);
+    }
+    count = candidates.length;
+    filtered = candidates.slice(from, from + perPage);
+  }
 
   // Translations
   const tMap = locale && filtered.length > 0
@@ -4131,7 +4250,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'PROMO-ENGINE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'CATALOG-FILTERS-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -4181,6 +4300,7 @@ serve(async (req) => {
       case 'get_config': result = await getConfig(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_products': result = await getProducts(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
       case 'get_product': result = await getProduct(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
+      case 'get_product_filters': result = await getProductFilters(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
       case 'get_categories': result = await getCategories(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
