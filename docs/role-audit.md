@@ -1,3 +1,27 @@
+## FOOD-3 — Klant verwittigen bij klaar/onderweg, menukaart met QR — 13 oktober 2026
+
+SellQo d6853fc (+ Lovable-typesync 4e54dfc), sellqo-storefront 375de62. Eerste stap van het horecapakket, zoals afgesproken: een menukaart met QR-code. Een tafelplan en bestellen aan tafel komen pas later, wegens GKS 2.0 (de witte kassa).
+
+- **Databank** (migratie `20261013210000_food_3_ready.sql`, live en nagekeken): `kitchen_tickets.notified_at` en `fulfillment_settings.notify_ready` (standaard aan).
+- **send-order-ready (nieuwe functie, `verify_jwt = false`, auth in de code, GET-stempel FOOD-3):**
+  - Ze mailt bij "Klaar" voor afhalen en bij "Meegegeven" voor levering, in 4 e-mailtalen. Wie bij het afhalen betaalt, ziet "nog te betalen".
+  - Alleen leden van de winkel kunnen haar aanroepen (`authenticateRequest(req, order.tenant_id)`).
+  - De functie claimt eerst `notified_at`, zodat er één mail per bestelling vertrekt, ook bij een dubbelklik of twee tablets. Mislukt de mail, dan wordt de claim teruggedraaid.
+  - Ze houdt rekening met de winkelinstelling.
+- **Keukenscherm:** na de statusklik volgt de aanroep met een melding "Klant gemaild"; op de kaart staat dan "Gemaild".
+- **Webshop › Menukaart & QR:** poster (A4), tafelkaartjes (4 per A4 met `?tafel=N`) en stickers (12 per A4). Je drukt af of bewaart als PDF in een eigen venster, zonder admin-layout. De QR-codes zijn SVG.
+- **Shop:** de pagina `/menu` toont alle hoofdcategorieën met hun producten, met snelknoppen per categorie en een "Tafel N"-label via `?tafel=`. De plus-knop staat er alleen als bestellen aan staat.
+- **Deploy:**
+  - Nulmeting: 404, de functie bestond nog niet.
+  - De eerste deploy-opdracht noemde een verkeerde commit-hash (8f1c3e1). De agent stopte correct, dankzij de STOP-clausule. Na de bevestiging van d6853fc volgde de deploy.
+  - Daarna: GET gaf `FOOD-3`. Een POST met een onbekende order gaf 404, een POST met een echte order zonder JWT gaf 401. Er zijn geen mails verstuurd.
+- **Getest:**
+  - Vitest voor `kitchenModel`: 5 tests, waaronder `notifiesCustomer`.
+  - In de harness voor de QR-pagina gaf de afdruk 3 A4-pagina's met 12 tafelkaartjes; het PDF-voorbeeld is nagekeken.
+  - `/menu` op 390 px: 200, titel "Menukaart | <winkel>", geen horizontale scroll.
+  - tsc ligt op de baseline (27), lint is gelijk, deno check is groen en CI is groen.
+- **Let op:** `<slug>.sellqo.shop` werkt alleen voor slugs in `PILOT_TENANT_SLUGS`. Een nieuwe horecaklant moet daar bij, tot de winkels zelf online kunnen.
+
 ## FOOD-2 — Keukenscherm, betalen bij afhalen, extra's en keukenbonnen in de kassa — 13 oktober 2026
 
 SellQo dc6d773 (+ Lovable-typesync e66e925), sellqo-storefront 5e9a4a2. Vraag van Akke: "DE oplossing voor pizzeria's, kebabzaken en frituren, in combinatie met onze POS". Aanname: POS is de SellQo-kassa, niet Toog.
