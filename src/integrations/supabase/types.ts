@@ -8355,8 +8355,10 @@ export type Database = {
       loyalty_programs: {
         Row: {
           created_at: string
+          description: string | null
           id: string
           is_active: boolean
+          max_redemption_percentage: number | null
           min_redemption_points: number
           name: string
           point_value: number
@@ -8367,8 +8369,10 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
+          max_redemption_percentage?: number | null
           min_redemption_points?: number
           name: string
           point_value?: number
@@ -8379,8 +8383,10 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
           is_active?: boolean
+          max_redemption_percentage?: number | null
           min_redemption_points?: number
           name?: string
           point_value?: number
@@ -8411,6 +8417,7 @@ export type Database = {
           benefits: Json | null
           color: string | null
           created_at: string
+          discount_percentage: number | null
           icon: string | null
           id: string
           loyalty_program_id: string
@@ -8423,6 +8430,7 @@ export type Database = {
           benefits?: Json | null
           color?: string | null
           created_at?: string
+          discount_percentage?: number | null
           icon?: string | null
           id?: string
           loyalty_program_id: string
@@ -8435,6 +8443,7 @@ export type Database = {
           benefits?: Json | null
           color?: string | null
           created_at?: string
+          discount_percentage?: number | null
           icon?: string | null
           id?: string
           loyalty_program_id?: string
@@ -20555,6 +20564,15 @@ export type Database = {
           p_target_tenant_id: string
         }
         Returns: string
+      }
+      loyalty_award_for_order: { Args: { p_order_id: string }; Returns: number }
+      loyalty_recompute_tier: {
+        Args: { p_customer_loyalty_id: string }
+        Returns: undefined
+      }
+      loyalty_reverse_for_order: {
+        Args: { p_order_id: string }
+        Returns: number
       }
       move_to_dlq: {
         Args: {
