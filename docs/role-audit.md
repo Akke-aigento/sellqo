@@ -1,3 +1,17 @@
+## SHOP-2/3/4 — standaardshop: homepage-secties, filters, winkelmandje en afrekenen — 13 oktober 2026
+
+Repo `sellqo-storefront` (c5cb5af, 8f6f7e7, 40f5cd4), live op `vanxcel.sellqo.shop` via GitHub Actions. Geen wijziging aan de SellQo-API nodig.
+
+- **Homepage:** de `homepage_sections` van de winkel (hero, producten, categorieën, tekst+beeld, reviews, aankondiging, nieuwsbrief) in hun volgorde. Oude links van het ingebouwde shopje (`/products`, `?category=`, `/shop/<slug>/…`) worden omgezet. Nieuwe pagina "Alle producten".
+- **Filters:** variantopties, beschikbaarheid en prijs via `get_product_filters` en de CATALOG-FILTERS-1-parameters.
+- **Winkelmandje en afrekenen:**
+  - de API-acties `cart_*` en `checkout_*`, met het cart-ID in een httpOnly-cookie;
+  - betalen via Stripe-redirect met `success_url` `/bestelling?cart=…` en `checkout_verify_payment`, of via overschrijving/QR.
+  - De bug uit het oude ingebouwde shopje (`{{ORDER_ID}}` werd nooit ingevuld) komt hier niet voor.
+- **Pilot:** bestellen en de nieuwsbrief blijven uit tot `ORDERING_ENABLED`. Akke kan testen via `/preview/<sleutel>`, wat bestellen aanzet in die ene browser. Een testbestelling is een echte order.
+- **Contrast:** accentkleur als tekst wordt automatisch donkerder tot ≥ 4,5:1. Actieve sorteerknop gefixt; de basisstijlen staan nu in `@layer base`.
+- **Getest:** lokaal end-to-end tegen een nep-API (filter, toevoegen, kortingscode, aantal, gegevens, verzending, overschrijving → bestelnummer). Live: collecties, beschikbaarheidsfilter, en "Online bestellen kan binnenkort" op mandje en product.
+
 ## SHOP-API-1 — webshop-API klaar voor de standaardshop op sellqo.shop — 13 oktober 2026
 
 Hoort bij de start van de standaardshop (repo `Akke-aigento/sellqo-storefront`, SHOP-1).
