@@ -1,3 +1,19 @@
+## STOREFRONT-BUNDLE-1 — nieuwe additieve API-actie voor de standaardshop — 13 oktober 2026
+
+Dit is de start van het webshoptraject (recon: document "SellQo Webshop — recon en voorstel").
+
+**Afspraak met Akke:** de bestaande eigen frontends worden niet geraakt, en in de webshop-API komt alleen iets bij.
+
+**Nieuw:** `get_storefront_bundle` geeft in één aanroep alles terug wat de gedeelde standaardshop nodig heeft:
+- config (de bestaande `get_config`);
+- het thema uit `tenant_theme_settings`, zonder `storefront_password`, met logo en kleur als terugval;
+- categorieën;
+- juridische pagina's;
+- homepage-secties;
+- navigatie: hoofdcategorieën plus `storefront_pages` met `show_in_nav`.
+
+Geen enkele bestaande actie is gewijzigd. De stempel van `storefront-api` wordt `STOREFRONT-BUNDLE-1`. De deploy wordt gebundeld met de volgende API-batch.
+
 ## LOYALTY-1 — loyaliteitsprogramma werkend: admin + automatische punten op webshoporders — 13 oktober 2026
 
 Akke koos voor "volledig bouwen". Fase 1 bestaat uit het admin-gedeelte, het verdienen en het terugboeken. Inwisselen in de webshop-API is fase 2, omdat daarvoor de frontends aangepast moeten worden. Aan de kassa bestond inwisselen al.

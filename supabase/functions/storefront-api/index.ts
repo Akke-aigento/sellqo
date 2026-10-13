@@ -1003,6 +1003,47 @@ async function getHomepage(supabase: any, tenantId: string) {
   return data || [];
 }
 
+// ============== GET STOREFRONT BUNDLE ==============
+// STOREFRONT-BUNDLE-1 (13-10-2026) — nieuwe, ADDITIEVE actie voor de gedeelde
+// standaardshop: alles wat een pagina-shell nodig heeft in één aanroep. Bestaande
+// acties en hun antwoorden blijven ongewijzigd (eigen frontends draaien erop).
+// `theme` komt uit tenant_theme_settings (de bron die de winkelier in de editor
+// instelt), zonder geheimen (storefront_password). Logo/kleur vallen terug op tenants.
+async function getStorefrontBundle(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
+  const [config, categories, legal, homepage, themeRes, navRes] = await Promise.all([
+    getConfig(supabase, tenantId, params),
+    getCategories(supabase, tenantId, params),
+    getPages(supabase, tenantId, params),
+    getHomepage(supabase, tenantId),
+    supabase.from('tenant_theme_settings').select('*').eq('tenant_id', tenantId).maybeSingle(),
+    supabase.from('storefront_pages').select('slug, title, nav_order').eq('tenant_id', tenantId)
+      .eq('is_published', true).eq('show_in_nav', true).order('nav_order', { ascending: true }),
+  ]);
+  if (themeRes.error) throw themeRes.error;
+  if (navRes.error) throw navRes.error;
+  const rawTheme: Record<string, unknown> = { ...(themeRes.data || {}) };
+  delete rawTheme.storefront_password;
+  delete rawTheme.id;
+  delete rawTheme.tenant_id;
+  const store = (config as any)?.store || {};
+  const theme = {
+    ...rawTheme,
+    logo_url: rawTheme.logo_url || store.logo_url || null,
+    primary_color: rawTheme.primary_color || store.primary_color || null,
+  };
+  return {
+    config,
+    theme,
+    categories,
+    legal_pages: legal,
+    homepage,
+    navigation: {
+      categories: (categories as any[]).filter((c) => !c.parent_id),
+      pages: (navRes.data || []).map((p: any) => ({ slug: p.slug, title: p.title, url: `/p/${p.slug}` })),
+    },
+  };
+}
+
 // ============== GET REVIEWS ==============
 
 async function getReviews(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
@@ -4191,7 +4232,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'BATCH-1013' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'STOREFRONT-BUNDLE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -4244,6 +4285,7 @@ serve(async (req) => {
       case 'get_categories': result = await getCategories(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_pages': result = await getPages(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_homepage': result = await getHomepage(supabase, tenant_id); cacheControl = 'public, max-age=300'; break;
+      case 'get_storefront_bundle': result = await getStorefrontBundle(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;
       case 'get_reviews': result = await getReviews(supabase, tenant_id, params); cacheControl = 'public, max-age=120'; break;
       case 'get_shipping_methods': {
         const geoCountry = (params.country as string | undefined) || null;
