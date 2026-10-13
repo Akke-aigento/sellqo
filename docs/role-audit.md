@@ -1,3 +1,29 @@
+## DEPLOY 13-10 — 27 edge functions live, mitigatietrigger weg — 13 oktober 2026
+
+**Nulmeting (GET met anon-key).** Alle 27 functies gaven nog de oude code terug: 500 "Unexpected end of JSON input" of 401.
+
+**Deploy via de Lovable-agent, in twee deploy-only opdrachten** (stap 0 = commitcheck 7663774, plus de STOP-clausule):
+1. 26 functies (1,2 credits);
+2. alleen `storefront-api` (0,7 credits).
+
+De agent heeft niets gecommit: main staat nog op 7663774.
+
+**Nameting.** Alle 27 functies geven 200 met de verwachte stempel:
+- SEC-INVITE-1: 1 functie
+- SEC-TENANT-1: 15 functies
+- SCHEMA-FIX-1: 3 functies
+- SCHEMA-FIX-1b: 1 functie
+- SCHEMA-FIX-2: 1 functie
+- SCHEMA-FIX-3: 2 functies
+- SCHEMA-FIX-4: 3 functies
+- PROMO-FIX-1: `storefront-api`
+
+Extra functionele check zonder neveneffect: `storefront-api` `get_config` voor VanXcel geeft `success: true`.
+
+**Na de bewezen SEC-INVITE-1-stempel** zijn de trigger en de functie `sec_invite_block_existing_accounts` gedropt (gecontroleerd: 0 triggers over). Bestaande gebruikers zijn weer uitnodigbaar.
+
+**Proefresultaten** staan in `ops.deploy_probe` (batches pre, post1 en post2).
+
 ## SCHEMA-FIX-1b — nazorg uit onafhankelijke review — 13 oktober 2026
 
 Een aparte reviewagent heeft alle commits van vannacht nagelopen (zie het verslag) en vond één echt defect:
