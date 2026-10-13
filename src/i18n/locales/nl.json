@@ -4899,7 +4899,11 @@
       "klantadres": "Klantadres",
       "verzendadres": "Verzendadres",
       "marketplace_id": "Marketplace ID:",
-      "datum_tijd_formaat": "d MMMM yyyy 'om' HH:mm"
+      "datum_tijd_formaat": "d MMMM yyyy 'om' HH:mm",
+      "serviceAfhalen": "Afhalen",
+      "serviceLevering": "Levering",
+      "serviceOm": "om",
+      "serviceZoSnel": "Zo snel mogelijk"
     },
     "campaignDetail": {
       "bounced": "Bounced",

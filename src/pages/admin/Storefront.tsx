@@ -1,5 +1,5 @@
 import { Navigate, Link, useSearchParams } from 'react-router-dom';
-import { Globe, Home, FileText, Scale, Wand2, ExternalLink, Info, ChevronRight, Link2, SlidersHorizontal } from 'lucide-react';
+import { Globe, Home, FileText, Scale, Wand2, ExternalLink, Info, ChevronRight, Link2, SlidersHorizontal, Bike, Pizza } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollHint } from '@/components/ui/scroll-hint';
@@ -9,6 +9,8 @@ import { useFrontendMode } from '@/hooks/useFrontendMode';
 import { StorefrontPagesManager } from '@/components/admin/storefront/StorefrontPagesManager';
 import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManager';
 import { StorefrontFeaturesSettings } from '@/components/admin/storefront/studio/StorefrontFeaturesSettings';
+import { FulfillmentSettings } from '@/components/admin/storefront/food/FulfillmentSettings';
+import { AddonGroupsManager } from '@/components/admin/storefront/food/AddonGroupsManager';
 
 // WEBSHOP-PAGE-1 (13-10-2026): de Webshop-pagina draait rond de standaardshop op
 // <slug>.sellqo.shop en de "Aanpassen"-editor. Design en Homepage zitten in de editor;
@@ -19,6 +21,9 @@ const baseNav = [
   { id: 'overview', label: 'Overzicht', icon: Home },
   { id: 'pages', label: "Pagina's", icon: FileText },
   { id: 'legal', label: 'Juridisch', icon: Scale },
+  // FOOD-1 — restaurants, frituren, bakkers: afhalen/leveren met tijdslot en extra's.
+  { id: 'service', label: 'Afhalen & leveren', icon: Bike },
+  { id: 'extras', label: "Extra's", icon: Pizza },
 ];
 // Eigen websites lezen sommige van deze instellingen via de API (bv. gastafrekenen):
 // voor die winkels blijft het scherm bereikbaar.
@@ -83,6 +88,8 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
         {[
           { id: 'pages', icon: FileText, title: "Pagina's", text: 'Over ons, contact en andere eigen pagina’s' },
           { id: 'legal', icon: Scale, title: 'Juridisch', text: 'Voorwaarden, privacy, retour en verzending' },
+          { id: 'service', icon: Bike, title: 'Afhalen & leveren', text: 'Afhaal- en levertijden, leverzone, minimumbedrag' },
+          { id: 'extras', icon: Pizza, title: "Extra's", text: 'Toppings, sauzen en bijgerechten bij je producten' },
         ].map((c) => (
           <button key={c.id} type="button" onClick={() => onNavigate(c.id)}
             className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50">
@@ -149,6 +156,10 @@ export default function StorefrontPage() {
         return <LegalPagesManager />;
       case 'features':
         return <StorefrontFeaturesSettings />;
+      case 'service':
+        return <FulfillmentSettings />;
+      case 'extras':
+        return <AddonGroupsManager />;
       default:
         return <ShopOverview slug={currentTenant.slug} onNavigate={goToSection} />;
     }

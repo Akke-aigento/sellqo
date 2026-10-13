@@ -108,6 +108,9 @@ export interface Order {
   raw_marketplace_data?: Json | null;
   // Service point / pickup fields
   delivery_type?: DeliveryType | string;
+  /** FOOD-1: afhalen/leveren via de standaardshop (null bij gewone verzending). */
+  service_type?: 'pickup' | 'local_delivery' | string | null;
+  requested_time?: string | null;
   service_point_id?: string | null;
   service_point_data?: Json | null;
   // VAT tracking fields

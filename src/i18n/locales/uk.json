@@ -4626,7 +4626,11 @@
       "versturen": "Надіслати",
       "verzendadres": "Адреса доставки",
       "verzending_tracking": "Доставка та відстеження",
-      "voeg_een_interne_notitie_toe": "Додайте внутрішню нотатку..."
+      "voeg_een_interne_notitie_toe": "Додайте внутрішню нотатку...",
+      "serviceAfhalen": "Самовивіз",
+      "serviceLevering": "Доставка",
+      "serviceOm": "о",
+      "serviceZoSnel": "Якнайшвидше"
     },
     "campaignDetail": {
       "van_totaal": "% від загальної суми",

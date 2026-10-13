@@ -4612,7 +4612,11 @@
       "versturen": "Send",
       "verzendadres": "Shipping address",
       "verzending_tracking": "Shipping & tracking",
-      "voeg_een_interne_notitie_toe": "Add an internal note..."
+      "voeg_een_interne_notitie_toe": "Add an internal note...",
+      "serviceAfhalen": "Pickup",
+      "serviceLevering": "Delivery",
+      "serviceOm": "at",
+      "serviceZoSnel": "As soon as possible"
     },
     "campaignDetail": {
       "van_totaal": "% of total",

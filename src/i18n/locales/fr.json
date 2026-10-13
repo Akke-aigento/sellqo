@@ -4375,7 +4375,11 @@
       "versturen": "Envoyer",
       "verzendadres": "Adresse de livraison",
       "verzending_tracking": "Expédition et suivi",
-      "voeg_een_interne_notitie_toe": "Ajoutez une note interne..."
+      "voeg_een_interne_notitie_toe": "Ajoutez une note interne...",
+      "serviceAfhalen": "À emporter",
+      "serviceLevering": "Livraison",
+      "serviceOm": "à",
+      "serviceZoSnel": "Dès que possible"
     },
     "campaignDetail": {
       "van_totaal": "% du total",

@@ -8,6 +8,8 @@ import { submitContactForm, isContactFormAlias, normalizeContactAlias } from "..
 import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { computeCartPromotions, round2 as promoRound2, type PromotionResult } from "../_shared/promotionEngine.ts";
 import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, type DbRow, type SupabaseLike } from "../_shared/catalogFilters.ts";
+import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
+import { computeSlots, postalCodeAllowed, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -721,6 +723,8 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     eventData = { event: { upcoming: withCounts } };
   }
 
+  const addonGroups = await loadProductAddonGroups(supabase, tenantId, product.id, product.category_id);
+
   return {
     id: product.id,
     name: t.name || product.name,
@@ -766,7 +770,122 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     },
     ...bundleData,
     ...eventData,
+    // FOOD-1 — additief: alleen aanwezig als de winkel extra's voor dit product heeft.
+    ...(addonGroups.length ? { addon_groups: addonGroups } : {}),
   };
+}
+
+// ============== FOOD-1: EXTRA'S, AFHALEN EN LEVEREN ==============
+
+// Extra's (toppings, sauzen) die gelden voor dit product. Eén query als de winkel geen
+// extra's heeft; dan blijft alles zoals voorheen.
+async function loadProductAddonGroups(supabase: SupabaseLike, tenantId: string, productId: string, legacyCategoryId?: string | null): Promise<AddonGroup[]> {
+  const { data: groups } = await supabase
+    .from('product_addon_groups').select('id, name, min_select, max_select, category_ids, product_ids, sort_order')
+    .eq('tenant_id', tenantId).eq('is_active', true).order('sort_order', { ascending: true });
+  if (!groups || groups.length === 0) return [];
+  const categoryIds: string[] = legacyCategoryId ? [legacyCategoryId] : [];
+  const { data: junction } = await supabase.from('product_categories').select('category_id').eq('product_id', productId);
+  for (const j of (junction || []) as DbRow[]) if (j.category_id && !categoryIds.includes(String(j.category_id))) categoryIds.push(String(j.category_id));
+  const ids = (groups as DbRow[]).map((g) => String(g.id));
+  const { data: options } = await supabase
+    .from('product_addon_options').select('id, group_id, name, price, sort_order')
+    .eq('tenant_id', tenantId).eq('is_active', true).in('group_id', ids).order('sort_order', { ascending: true });
+  return applicableGroups(groups as unknown as Parameters<typeof applicableGroups>[0], (options || []) as unknown as Parameters<typeof applicableGroups>[1], productId, categoryIds);
+}
+
+const SERVICE_TYPES: ServiceType[] = ['pickup', 'local_delivery'];
+
+async function loadFulfillmentSettings(supabase: SupabaseLike, tenantId: string): Promise<FulfillmentSettings | null> {
+  const { data } = await supabase.from('fulfillment_settings')
+    .select('slots_enabled, slot_minutes, prep_minutes, days_ahead, max_orders_per_slot, timezone, hours')
+    .eq('tenant_id', tenantId).maybeSingle();
+  return (data as FulfillmentSettings | null) || null;
+}
+
+// Bestellingen per slot (alle soorten samen: de keuken is dezelfde).
+async function slotCounts(supabase: SupabaseLike, tenantId: string, fromIso: string, toIso: string): Promise<Record<string, number>> {
+  const { data } = await supabase.from('orders').select('requested_time, status')
+    .eq('tenant_id', tenantId).gte('requested_time', fromIso).lte('requested_time', toIso);
+  const counts: Record<string, number> = {};
+  for (const o of (data || []) as DbRow[]) {
+    if (!o.requested_time || o.status === 'cancelled') continue;
+    const k = new Date(String(o.requested_time)).toISOString();
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  return counts;
+}
+
+async function fulfillmentSlotsFor(supabase: SupabaseLike, tenantId: string, type: ServiceType, nowMs = Date.now()) {
+  const settings = await loadFulfillmentSettings(supabase, tenantId);
+  if (!settings || !settings.slots_enabled) return { enabled: false, type, slot_minutes: settings?.slot_minutes ?? null, slots: [] as ReturnType<typeof computeSlots> };
+  const horizon = new Date(nowMs + (Number(settings.days_ahead) + 2) * 86400000).toISOString();
+  const counts = settings.max_orders_per_slot ? await slotCounts(supabase, tenantId, new Date(nowMs).toISOString(), horizon) : {};
+  return { enabled: true, type, slot_minutes: settings.slot_minutes, slots: computeSlots(settings, type, nowMs, counts) };
+}
+
+async function getFulfillmentSlots(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  let type = params.type as ServiceType | undefined;
+  if (!type && params.cart_id) {
+    const { data: cart } = await supabase.from('storefront_carts').select('service_type').eq('id', String(params.cart_id)).eq('tenant_id', tenantId).maybeSingle();
+    type = (cart?.service_type as ServiceType | undefined) || undefined;
+  }
+  if (!type || !SERVICE_TYPES.includes(type)) return { enabled: false, type: null, slot_minutes: null, slots: [] };
+  return fulfillmentSlotsFor(supabase, tenantId, type);
+}
+
+// Gewenst afhaal- of levertijdstip op de cart zetten (of wissen met null).
+async function checkoutService(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const cartId = params.cart_id as string;
+  if (!cartId) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'cart_id is required' } };
+  const { data: cart } = await supabase.from('storefront_carts').select('id, service_type').eq('id', cartId).eq('tenant_id', tenantId).maybeSingle();
+  if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
+  const raw = params.requested_time;
+  let requested: string | null = null;
+  if (raw) {
+    const type = cart.service_type as ServiceType | null;
+    if (!type) return { success: false, error: { code: 'SERVICE_NOT_SELECTED', message: 'Kies eerst afhalen of leveren' } };
+    const ms = new Date(String(raw)).getTime();
+    if (!Number.isFinite(ms)) return { success: false, error: { code: 'SLOT_UNAVAILABLE', message: 'Ongeldig tijdstip' } };
+    requested = new Date(ms).toISOString();
+    const { enabled, slots } = await fulfillmentSlotsFor(supabase, tenantId, type);
+    const hit = slots.find((x) => x.start === requested);
+    if (enabled && (!hit || !hit.available)) return { success: false, error: { code: 'SLOT_UNAVAILABLE', message: 'Dit tijdstip is niet (meer) beschikbaar, kies een ander' } };
+  }
+  const { error } = await supabase.from('storefront_carts').update({ requested_time: requested, updated_at: new Date().toISOString() }).eq('id', cartId).eq('tenant_id', tenantId);
+  if (error) throw error;
+  return buildCartResponse(supabase, tenantId, cartId);
+}
+
+// Controle vlak vóór de bestelling: leverzone, minimumbedrag en tijdslot. Geeft null als
+// alles klopt (ook voor gewone verzending, waar niets verandert).
+async function validateCartFulfillment(supabase: SupabaseLike, tenantId: string, cart: DbRow): Promise<{ code: string; message: string } | null> {
+  if (!cart.shipping_method_id) return null;
+  const { data: m } = await supabase.from('shipping_methods').select('fulfillment_type, postal_codes, min_order_amount')
+    .eq('id', String(cart.shipping_method_id)).eq('tenant_id', tenantId).maybeSingle();
+  const type = (m?.fulfillment_type as string | undefined) || 'shipping';
+  if (type === 'shipping') return null;
+  if (type === 'local_delivery') {
+    const postal = (cart.shipping_address as DbRow | null)?.postal_code as string | undefined;
+    if (!postalCodeAllowed(postal, m?.postal_codes as string[] | null)) return { code: 'DELIVERY_ZONE', message: 'We leveren niet op dit adres. Kies afhalen of een ander adres.' };
+  }
+  if (m?.min_order_amount != null && Number(cart.subtotal) < Number(m.min_order_amount)) {
+    return { code: 'MIN_ORDER', message: `Het minimumbedrag hiervoor is ${Number(m.min_order_amount).toFixed(2).replace('.', ',')} euro` };
+  }
+  const { enabled, slots } = await fulfillmentSlotsFor(supabase, tenantId, type as ServiceType);
+  if (enabled) {
+    if (!cart.requested_time) return { code: 'SLOT_REQUIRED', message: type === 'pickup' ? 'Kies een afhaaltijd' : 'Kies een levertijd' };
+    const iso = new Date(String(cart.requested_time)).toISOString();
+    const hit = slots.find((x) => x.start === iso);
+    if (!hit || !hit.available) return { code: 'SLOT_UNAVAILABLE', message: 'Je gekozen tijdstip is niet meer beschikbaar, kies een ander' };
+  }
+  return null;
+}
+
+// Orderregel: extra's ook in de varianttitel, zodat bon, mail, admin en Odoo ze tonen.
+function lineVariantTitle(item: DbRow): string | null {
+  const variant = (item.variant as DbRow | null)?.title as string | undefined;
+  return [variant, addonsLabel(item.addons as { name: string }[] | null)].filter(Boolean).join(' · ') || null;
 }
 
 // ============== GET PRODUCTS (EXTENDED) ==============
@@ -1376,10 +1495,12 @@ async function getShippingMethods(
   tenantId: string,
   shippingClassIds?: string[],
   country?: string | null,
+  // FOOD-1 — optioneel: postcode en subtotaal van de cart, voor leverzone en minimumbedrag.
+  orderCtx?: { postal_code?: string | null; subtotal?: number | null },
 ) {
   const { data, error } = await supabase
     .from('shipping_methods')
-    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, sort_order, shipping_class_id, countries, shipping_classes(name)')
+    .select('id, name, description, price, free_above, estimated_days_min, estimated_days_max, is_default, sort_order, shipping_class_id, countries, fulfillment_type, postal_codes, min_order_amount, shipping_classes(name)')
     .eq('tenant_id', tenantId).eq('is_active', true)
     .order('sort_order', { ascending: true });
   if (error) throw error;
@@ -1458,7 +1579,23 @@ async function getShippingMethods(
     shipping_class: m.shipping_classes?.name ?? null,
     is_combined: !!combined,
     shipping_breakdown: combined ? combined.breakdown : null,
+    // FOOD-1 — additief. `available` is false als de cart onder het minimum zit of de
+    // postcode buiten de leverzone valt (alleen bij methodes die dat instellen).
+    fulfillment_type: m.fulfillment_type || 'shipping',
+    min_order_amount: m.min_order_amount != null ? Number(m.min_order_amount) : null,
+    has_delivery_zone: Array.isArray(m.postal_codes) && m.postal_codes.length > 0,
+    ...fulfillmentAvailability(m, orderCtx),
   }));
+}
+
+function fulfillmentAvailability(m: { fulfillment_type?: string | null; min_order_amount?: number | string | null; postal_codes?: string[] | null }, ctx?: { postal_code?: string | null; subtotal?: number | null }) {
+  if (ctx?.subtotal != null && m.min_order_amount != null && Number(ctx.subtotal) < Number(m.min_order_amount)) {
+    return { available: false, unavailable_reason: 'min_order' };
+  }
+  if (m.fulfillment_type === 'local_delivery' && ctx?.postal_code && !postalCodeAllowed(ctx.postal_code, m.postal_codes)) {
+    return { available: false, unavailable_reason: 'delivery_zone' };
+  }
+  return { available: true, unavailable_reason: null };
 }
 
 // ============== SERVICE POINTS ==============
@@ -1917,7 +2054,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, quantity, unit_price, products(id, name, slug, images, price, track_inventory, stock), product_variants(price, compare_at_price)')
+    .select('id, product_id, variant_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, track_inventory, stock), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
 
   // Fetch variant info for items that have variant_id
@@ -1931,7 +2068,8 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
   const cartItems = (items || []).map((item: any) => {
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
     const variantRow = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
-    const effectivePrice = variantRow?.price ?? item.unit_price;
+    // FOOD-1: unit_price bevat de extra's al; bij een variant komt de actuele variantprijs + extra's.
+    const effectivePrice = variantRow?.price != null ? Number(variantRow.price) + (Number(item.addons_total) || 0) : item.unit_price;
     const compareAt = variantRow?.compare_at_price ?? null;
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
@@ -1939,6 +2077,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
       compare_at_price: compareAt,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
+      ...(Array.isArray(item.addons) && item.addons.length ? { addons: item.addons } : {}),
       line_total: item.quantity * effectivePrice,
     };
   });
@@ -1949,6 +2088,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
     id: cart.id, session_id: cart.session_id, currency: cart.currency,
     items: cartItems, item_count: cartItems.reduce((s: number, i: any) => s + i.quantity, 0),
     expires_at: cart.expires_at,
+    ...(cart.service_type ? { service_type: cart.service_type, requested_time: cart.requested_time || null } : {}),
     ...totals,
   };
 }
@@ -1963,7 +2103,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
 
   // Verify product exists and get price
   const { data: product } = await supabase
-    .from('products').select('id, price, track_inventory, stock, is_active')
+    .from('products').select('id, price, track_inventory, stock, is_active, category_id')
     .eq('id', productId).eq('tenant_id', tenantId).single();
   if (!product || !product.is_active) throw new Error('Product not found or inactive');
 
@@ -2069,6 +2209,23 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     }
   }
 
+  // FOOD-1 — extra's: gevalideerd tegen de groepen van dit product, prijs uit de databank.
+  let addonSel: { addons: unknown[]; total: number; key: string | null } = { addons: [], total: 0, key: null };
+  const wantsAddons = Array.isArray(params.addons) && (params.addons as unknown[]).length > 0;
+  if (!eventDetailId) {
+    const groups = await loadProductAddonGroups(supabase, tenantId, productId, product.category_id ?? null);
+    if (groups.length || wantsAddons) {
+      try { addonSel = resolveAddonSelection(groups, params.addons); }
+      catch (e) {
+        if (e instanceof AddonError) throw new Error(JSON.stringify({ code: e.code, message: e.message, group_id: e.group_id ?? null }));
+        throw e;
+      }
+    }
+  } else if (wantsAddons) {
+    throw new Error(JSON.stringify({ code: 'ADDON_INVALID', message: 'Extra\'s kunnen niet bij tickets' }));
+  }
+  unitPrice = Number(unitPrice) + addonSel.total;
+
   if (stockSource.track_inventory && stockSource.stock < quantity) {
     const msg = stockSource.stock <= 0
       ? JSON.stringify({ code: 'INSUFFICIENT_STOCK', message: 'Dit product is uitverkocht', available_stock: 0 })
@@ -2082,6 +2239,9 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   else existingQuery = existingQuery.is('variant_id', null);
   if (eventDetailId) existingQuery = existingQuery.eq('event_detail_id', eventDetailId);
   else existingQuery = existingQuery.is('event_detail_id', null);
+  // FOOD-1 — zelfde product met andere extra's = aparte regel.
+  if (addonSel.key) existingQuery = existingQuery.eq('addon_key', addonSel.key);
+  else existingQuery = existingQuery.is('addon_key', null);
   const { data: existing } = await existingQuery.maybeSingle();
 
   if (existing) {
@@ -2098,6 +2258,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     const insertData: any = { cart_id: cartId, product_id: productId, quantity, unit_price: unitPrice };
     if (variantId) insertData.variant_id = variantId;
     if (eventDetailId) insertData.event_detail_id = eventDetailId;
+    if (addonSel.key) { insertData.addons = addonSel.addons; insertData.addon_key = addonSel.key; insertData.addons_total = addonSel.total; }
     const { error } = await supabase.from('storefront_cart_items').insert(insertData);
     if (error) throw error;
   }
@@ -2220,7 +2381,7 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, products(id, name, slug, images, price, sku, track_inventory, stock, category_id), product_variants(price, compare_at_price)')
+    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, sku, track_inventory, stock, category_id), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
 
   const variantIds = (items || []).filter((i: any) => i.variant_id).map((i: any) => i.variant_id);
@@ -2233,7 +2394,7 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
   const cartItems = (items || []).map((item: any) => {
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
     const variantRow = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
-    const effectivePrice = variantRow?.price ?? item.unit_price;
+    const effectivePrice = variantRow?.price != null ? Number(variantRow.price) + (Number(item.addons_total) || 0) : item.unit_price;
     const compareAt = variantRow?.compare_at_price ?? null;
     // Variant-aware stock check: if variant_id present, variant.stock is authoritative;
     // otherwise fall back to product.stock. Respect track_inventory at the correct level.
@@ -2250,6 +2411,7 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
       compare_at_price: compareAt,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, sku: variant?.sku || item.products.sku || null, current_price: item.products.price, in_stock, category_id: item.products.category_id } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
+      addons: Array.isArray(item.addons) && item.addons.length ? item.addons : null,
       line_total: item.quantity * effectivePrice,
     };
   });
@@ -2355,6 +2517,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     image: item.product?.image || null,
     sku: item.product?.sku || null,
     in_stock: item.product?.in_stock ?? true,
+    ...(item.addons ? { addons: item.addons } : {}),
   }));
 
   // B2B-2b — bij verlegging tonen we netto bedragen (btw uit de prijs gehaald).
@@ -2428,6 +2591,10 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
 
     available_shipping_methods: availableShipping,
     available_payment_methods: availablePayment,
+
+    // FOOD-1 — additief: afhalen/leveren met tijdslot (null bij gewone verzending).
+    service_type: cart.service_type || null,
+    requested_time: cart.requested_time || null,
 
     fee_label: tenant?.transaction_fee_label || 'Transactiekosten',
     pass_fee_to_customer: passFee,
@@ -2706,6 +2873,9 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
       ...vatRegimeOrderFields(vatCtx),
+      // FOOD-1 — afhalen/leveren met tijdslot (null bij gewone verzending).
+      service_type: cart.service_type || null,
+      requested_time: cart.requested_time || null,
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
@@ -2721,7 +2891,8 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
     product_sku: item.product?.sku || null,
     product_image: item.product?.image || null,
     variant_id: item.variant_id || null,
-    variant_title: item.variant?.title || null,
+    variant_title: lineVariantTitle(item),
+    addons: item.addons || null,
     event_detail_id: item.event_detail_id || null,
     vat_rate,
     vat_rate_id,
@@ -2775,6 +2946,9 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     calculated_fee_cents: 0,
     shipping_method_id: null,
     shipping_cost: 0,
+    // FOOD-1 — afhalen/leveren hangt aan de verzendmethode: mee resetten.
+    service_type: null,
+    requested_time: null,
     updated_at: new Date().toISOString(),
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (resetError) {
@@ -2982,6 +3156,14 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
       message: 'Deze verzendmethode is niet beschikbaar voor je winkelwagen of bezorgland',
     }};
   }
+  // FOOD-1 — leverzone en minimumbedrag (alleen bij methodes die dat instellen).
+  const avail = fulfillmentAvailability(allowedEntry, { postal_code: cart.shipping_address?.postal_code || null, subtotal: cart.subtotal });
+  if (!avail.available) {
+    return { success: false, error: avail.unavailable_reason === 'min_order'
+      ? { code: 'MIN_ORDER', message: `Het minimumbedrag hiervoor is ${Number(allowedEntry.min_order_amount).toFixed(2).replace('.', ',')} euro` }
+      : { code: 'DELIVERY_ZONE', message: 'We leveren niet op dit adres. Kies afhalen of een ander adres.' } };
+  }
+  const serviceType = SERVICE_TYPES.includes(allowedEntry.fulfillment_type) ? allowedEntry.fulfillment_type : null;
 
   // SHIP-CLASS-2 — bij de 'sum'-regel geldt de gecombineerde prijs, niet de DB-prijs.
   let shippingCost = allowedEntry.is_combined
@@ -2996,6 +3178,8 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
     shipping_method_id: shippingMethodId,
     shipping_cost: shippingCost,
     updated_at: new Date().toISOString(),
+    // FOOD-1 — alleen bij een wissel van soort het tijdstip wissen; gewone verzending blijft null.
+    ...(serviceType !== (cart.service_type || null) ? { service_type: serviceType, requested_time: null } : {}),
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
 
@@ -3073,6 +3257,10 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (!cart.customer_email) {
     return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Klantgegevens zijn nog niet ingevuld' } };
   }
+
+  // FOOD-1 — afhalen/leveren: leverzone, minimumbedrag en tijdslot nog eens controleren.
+  const fulfillmentError = await validateCartFulfillment(supabase, tenantId, cart);
+  if (fulfillmentError) return { success: false, error: fulfillmentError };
 
   // Save payment method on cart
   await supabase.from('storefront_carts').update({
@@ -3405,7 +3593,7 @@ async function checkoutGetOrder(supabase: any, tenantId: string, params: Record<
       items: cart.cartItems.map((item: any) => ({
         id: item.id, product_id: item.product_id, product_name: item.product?.name || '', product_sku: item.product?.sku || null,
         product_image: item.product?.image || null, quantity: item.quantity, unit_price: item.unit_price, total_price: item.line_total,
-        variant_id: item.variant_id, variant_title: item.variant?.title || null,
+        variant_id: item.variant_id, variant_title: lineVariantTitle(item),
       })),
       customer: cart.customer_email ? {
         email: cart.customer_email,
@@ -3671,6 +3859,9 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
       ...vatRegimeOrderFields(vatCtx),
+      // FOOD-1 — afhalen/leveren met tijdslot (null bij gewone verzending).
+      service_type: cart.service_type || null,
+      requested_time: cart.requested_time || null,
     })
     .select('id, order_number').single();
 
@@ -3697,7 +3888,8 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
     product_sku: item.product?.sku || null,
     product_image: item.product?.image || null,
     variant_id: item.variant_id || null,
-    variant_title: item.variant?.title || null,
+    variant_title: lineVariantTitle(item),
+    addons: item.addons || null,
     event_detail_id: item.event_detail_id || null,
     vat_rate,
     vat_rate_id,
@@ -3871,6 +4063,7 @@ async function checkoutGetShippingOptions(supabase: any, tenantId: string, param
   let country = (params.country as string | undefined) || null;
 
   let shippingClasses: string[] | undefined;
+  let postal: string | null = (params.postal_code as string | undefined) || null;
   if (cartId) {
     const cart = await getCartForCheckout(supabase, tenantId, cartId);
     if (cart) {
@@ -3879,10 +4072,11 @@ async function checkoutGetShippingOptions(supabase: any, tenantId: string, param
         .filter((v: any) => !!v);
       shippingClasses = await resolveCartShippingClasses(supabase, tenantId, productIds);
       if (!country) country = cart.shipping_address?.country || null;
+      if (!postal) postal = cart.shipping_address?.postal_code || null;
     }
   }
 
-  const methods = await getShippingMethods(supabase, tenantId, shippingClasses, country);
+  const methods = await getShippingMethods(supabase, tenantId, shippingClasses, country, { postal_code: postal, subtotal });
   return methods.map((m: any) => ({
     ...m,
     effective_price: m.free_above && subtotal >= m.free_above ? 0 : m.price,
@@ -4296,7 +4490,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SHOP-API-3' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FOOD-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -4393,6 +4587,8 @@ serve(async (req) => {
       case 'checkout_validate_vat': result = await checkoutValidateVat(supabase, tenant_id, params); break;
       case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
       case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
+      case 'checkout_service': result = await checkoutService(supabase, tenant_id, params); break;
+      case 'get_fulfillment_slots': result = await getFulfillmentSlots(supabase, tenant_id, params); break;
       case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
       case 'checkout_select_payment_method': result = await checkoutSelectPaymentMethod(supabase, tenant_id, params); break;
       case 'checkout_verify_payment': result = await checkoutVerifyPayment(supabase, tenant_id, params); break;

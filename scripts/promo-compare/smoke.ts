@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -30,7 +30,26 @@ const db = new FakeDb({
   categories: [{ ...cat, tenant_id: T }],
   product_categories: [],
   volume_discounts: [], bogo_promotions: [], product_bundles: [], automatic_discounts: [], discount_stacking_rules: [],
-  discount_codes: [], customer_groups: [], shipping_methods: [], tenants: [{ id: T, tax_percentage: 21 }],
+  discount_codes: [], customer_groups: [], tenants: [{ id: T, tax_percentage: 21 }],
+  // FOOD-1
+  shipping_methods: [
+    { id: 'sm-pickup', tenant_id: T, name: 'Afhalen', price: 0, is_active: true, fulfillment_type: 'pickup', postal_codes: null, min_order_amount: null },
+    { id: 'sm-del', tenant_id: T, name: 'Levering', price: 2.5, is_active: true, fulfillment_type: 'local_delivery', postal_codes: ['3000'], min_order_amount: 15 },
+  ],
+  product_addon_groups: [
+    { id: 'g1', tenant_id: T, name: 'Toppings', min_select: 0, max_select: 2, category_ids: ['c1'], product_ids: [], sort_order: 0, is_active: true },
+    { id: 'g2', tenant_id: T, name: 'Saus', min_select: 1, max_select: 1, category_ids: [], product_ids: ['p3'], sort_order: 1, is_active: true },
+  ],
+  product_addon_options: [
+    { id: 'o1', group_id: 'g1', tenant_id: T, name: 'Kaas', price: 1.5, sort_order: 0, is_active: true },
+    { id: 'o2', group_id: 'g1', tenant_id: T, name: 'Ham', price: 2, sort_order: 1, is_active: true },
+    { id: 'o3', group_id: 'g2', tenant_id: T, name: 'Tomaat', price: 0, sort_order: 0, is_active: true },
+  ],
+  storefront_carts: [{ id: 'cart1', tenant_id: T, session_id: 's', currency: 'EUR', discount_codes: [], expires_at: '2999-01-01T00:00:00Z' }],
+  storefront_cart_items: [],
+  fulfillment_settings: [{ tenant_id: T, slots_enabled: true, slot_minutes: 15, prep_minutes: 0, days_ahead: 1, max_orders_per_slot: null, timezone: 'Europe/Brussels',
+    hours: { pickup: Object.fromEntries([0, 1, 2, 3, 4, 5, 6].map((d) => [String(d), [['00:00', '23:45']]])) } }],
+  orders: [],
 });
 
 let failures = 0;
@@ -71,6 +90,39 @@ await check('get_product_filters', async () => {
 await check('computeCartTotals', async () => {
   const r = await S.computeCartTotals(db, T, { discount_codes: [] }, [{ product_id: 'p1', quantity: 2, unit_price: 20, line_total: 40 }]);
   assert(r.subtotal === 40 && r.total === 40, `subtotal/total ${r.subtotal}/${r.total}`);
+});
+
+await check('cart_add_item met extra\'s (FOOD-1)', async () => {
+  db.writes.length = 0;
+  await S.cartAddItem(db, T, { cart_id: 'cart1', product_id: 'p1', addons: ['o2', 'o1'] });
+  const ins = db.writes.find((w) => w.table === 'storefront_cart_items' && w.insert)?.insert as Record<string, unknown>;
+  assert(ins && ins.unit_price === 23.5 && ins.addons_total === 3.5 && ins.addon_key === 'o1,o2', `insert ${JSON.stringify(ins)}`);
+});
+await check('cart_add_item zonder extra\'s blijft zoals voorheen', async () => {
+  db.writes.length = 0;
+  await S.cartAddItem(db, T, { cart_id: 'cart1', product_id: 'p1' });
+  const ins = db.writes.find((w) => w.table === 'storefront_cart_items' && w.insert)?.insert as Record<string, unknown>;
+  assert(ins && ins.unit_price === 20 && !('addons' in ins) && !('addon_key' in ins), `insert ${JSON.stringify(ins)}`);
+});
+await check('cart_add_item verplichte groep', async () => {
+  let code = '';
+  try { await S.cartAddItem(db, T, { cart_id: 'cart1', product_id: 'p3' }); } catch (e) { code = JSON.parse((e as Error).message).code; }
+  assert(code === 'ADDON_MIN', `code ${code}`);
+});
+await check('get_fulfillment_slots', async () => {
+  const r = await S.getFulfillmentSlots(db, T, { type: 'pickup' });
+  assert(r.enabled && r.slots.length > 0, `slots ${r.slots.length}`);
+  const none = await S.getFulfillmentSlots(db, T, { type: 'local_delivery' });
+  assert(none.enabled && none.slots.length === 0, 'geen leveruren = geen sloten');
+});
+await check('validateCartFulfillment', async () => {
+  const e1 = await S.validateCartFulfillment(db, T, { shipping_method_id: 'sm-pickup', subtotal: 20 });
+  assert(e1?.code === 'SLOT_REQUIRED', `pickup zonder slot: ${e1?.code}`);
+  const e2 = await S.validateCartFulfillment(db, T, { shipping_method_id: 'sm-del', subtotal: 20, shipping_address: { postal_code: '2000' } });
+  assert(e2?.code === 'DELIVERY_ZONE', `zone: ${e2?.code}`);
+  const e3 = await S.validateCartFulfillment(db, T, { shipping_method_id: 'sm-del', subtotal: 10, shipping_address: { postal_code: '3000' } });
+  assert(e3?.code === 'MIN_ORDER', `minimum: ${e3?.code}`);
+  assert(await S.validateCartFulfillment(db, T, { shipping_method_id: null, subtotal: 1 }) === null, 'gewone verzending ongemoeid');
 });
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }

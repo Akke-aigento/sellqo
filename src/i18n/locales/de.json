@@ -4375,7 +4375,11 @@
       "versturen": "Senden",
       "verzendadres": "Lieferadresse",
       "verzending_tracking": "Versand & Tracking",
-      "voeg_een_interne_notitie_toe": "Interne Notiz hinzufügen..."
+      "voeg_een_interne_notitie_toe": "Interne Notiz hinzufügen...",
+      "serviceAfhalen": "Abholung",
+      "serviceLevering": "Lieferung",
+      "serviceOm": "um",
+      "serviceZoSnel": "So schnell wie möglich"
     },
     "campaignDetail": {
       "van_totaal": "% vom Gesamt",

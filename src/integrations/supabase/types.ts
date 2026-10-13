@@ -6939,6 +6939,53 @@ export type Database = {
           },
         ]
       }
+      fulfillment_settings: {
+        Row: {
+          created_at: string
+          days_ahead: number
+          hours: Json
+          max_orders_per_slot: number | null
+          prep_minutes: number
+          slot_minutes: number
+          slots_enabled: boolean
+          tenant_id: string
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          days_ahead?: number
+          hours?: Json
+          max_orders_per_slot?: number | null
+          prep_minutes?: number
+          slot_minutes?: number
+          slots_enabled?: boolean
+          tenant_id: string
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          days_ahead?: number
+          hours?: Json
+          max_orders_per_slot?: number | null
+          prep_minutes?: number
+          slot_minutes?: number
+          slots_enabled?: boolean
+          tenant_id?: string
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fulfillment_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gift_card_designs: {
         Row: {
           created_at: string
@@ -9452,6 +9499,7 @@ export type Database = {
       }
       order_items: {
         Row: {
+          addons: Json | null
           created_at: string | null
           event_detail_id: string | null
           gift_card_id: string | null
@@ -9474,6 +9522,7 @@ export type Database = {
           vendor: string | null
         }
         Insert: {
+          addons?: Json | null
           created_at?: string | null
           event_detail_id?: string | null
           gift_card_id?: string | null
@@ -9496,6 +9545,7 @@ export type Database = {
           vendor?: string | null
         }
         Update: {
+          addons?: Json | null
           created_at?: string | null
           event_detail_id?: string | null
           gift_card_id?: string | null
@@ -9613,10 +9663,12 @@ export type Database = {
           payment_method: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data: Json | null
+          requested_time: string | null
           risk_level: string | null
           sales_channel: string | null
           service_point_data: Json | null
           service_point_id: string | null
+          service_type: string | null
           shipped_at: string | null
           shipping_address: Json | null
           shipping_cost: number | null
@@ -9683,10 +9735,12 @@ export type Database = {
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
+          requested_time?: string | null
           risk_level?: string | null
           sales_channel?: string | null
           service_point_data?: Json | null
           service_point_id?: string | null
+          service_type?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
@@ -9753,10 +9807,12 @@ export type Database = {
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
           raw_marketplace_data?: Json | null
+          requested_time?: string | null
           risk_level?: string | null
           sales_channel?: string | null
           service_point_data?: Json | null
           service_point_id?: string | null
+          service_type?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
@@ -11631,6 +11687,104 @@ export type Database = {
             columns: ["variant_id"]
             isOneToOne: false
             referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_addon_groups: {
+        Row: {
+          category_ids: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          max_select: number | null
+          min_select: number
+          name: string
+          product_ids: string[]
+          sort_order: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          category_ids?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_select?: number | null
+          min_select?: number
+          name: string
+          product_ids?: string[]
+          sort_order?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          category_ids?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          max_select?: number | null
+          min_select?: number
+          name?: string
+          product_ids?: string[]
+          sort_order?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_addon_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_addon_options: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          is_active: boolean
+          name: string
+          price: number
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          name: string
+          price?: number
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          price?: number
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_addon_options_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "product_addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_addon_options_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -14608,14 +14762,17 @@ export type Database = {
           estimated_days_max: number | null
           estimated_days_min: number | null
           free_above: number | null
+          fulfillment_type: string
           id: string
           is_active: boolean
           is_default: boolean | null
+          min_order_amount: number | null
           name: string
           name_de: string | null
           name_en: string | null
           name_fr: string | null
           name_nl: string | null
+          postal_codes: string[] | null
           price: number
           shipping_class: string | null
           shipping_class_id: string | null
@@ -14631,14 +14788,17 @@ export type Database = {
           estimated_days_max?: number | null
           estimated_days_min?: number | null
           free_above?: number | null
+          fulfillment_type?: string
           id?: string
           is_active?: boolean
           is_default?: boolean | null
+          min_order_amount?: number | null
           name: string
           name_de?: string | null
           name_en?: string | null
           name_fr?: string | null
           name_nl?: string | null
+          postal_codes?: string[] | null
           price?: number
           shipping_class?: string | null
           shipping_class_id?: string | null
@@ -14654,14 +14814,17 @@ export type Database = {
           estimated_days_max?: number | null
           estimated_days_min?: number | null
           free_above?: number | null
+          fulfillment_type?: string
           id?: string
           is_active?: boolean
           is_default?: boolean | null
+          min_order_amount?: number | null
           name?: string
           name_de?: string | null
           name_en?: string | null
           name_fr?: string | null
           name_nl?: string | null
+          postal_codes?: string[] | null
           price?: number
           shipping_class?: string | null
           shipping_class_id?: string | null
@@ -15237,6 +15400,9 @@ export type Database = {
       }
       storefront_cart_items: {
         Row: {
+          addon_key: string | null
+          addons: Json | null
+          addons_total: number
           cart_id: string
           created_at: string
           event_detail_id: string | null
@@ -15248,6 +15414,9 @@ export type Database = {
           variant_id: string | null
         }
         Insert: {
+          addon_key?: string | null
+          addons?: Json | null
+          addons_total?: number
           cart_id: string
           created_at?: string
           event_detail_id?: string | null
@@ -15259,6 +15428,9 @@ export type Database = {
           variant_id?: string | null
         }
         Update: {
+          addon_key?: string | null
+          addons?: Json | null
+          addons_total?: number
           cart_id?: string
           created_at?: string
           event_detail_id?: string | null
@@ -15325,6 +15497,8 @@ export type Database = {
           is_b2b: boolean | null
           locale: string | null
           payment_method: string | null
+          requested_time: string | null
+          service_type: string | null
           session_id: string
           shipping_address: Json | null
           shipping_cost: number | null
@@ -15357,6 +15531,8 @@ export type Database = {
           is_b2b?: boolean | null
           locale?: string | null
           payment_method?: string | null
+          requested_time?: string | null
+          service_type?: string | null
           session_id: string
           shipping_address?: Json | null
           shipping_cost?: number | null
@@ -15389,6 +15565,8 @@ export type Database = {
           is_b2b?: boolean | null
           locale?: string | null
           payment_method?: string | null
+          requested_time?: string | null
+          service_type?: string | null
           session_id?: string
           shipping_address?: Json | null
           shipping_cost?: number | null

@@ -58,6 +58,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // FOOD-1 — versiestempel om een deploy zonder neveneffect te verifiëren.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "FOOD-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   try {
     logStep("Webhook received");
@@ -321,7 +325,7 @@ serve(async (req) => {
           // Get cart items
           const { data: cartItems } = await supabaseClient
             .from("storefront_cart_items")
-            .select("id, product_id, variant_id, event_detail_id, quantity, unit_price, products(id, name, sku, images, category_id)")
+            .select("id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, products(id, name, sku, images, category_id)")
             .eq("cart_id", cartId);
 
           // Get variant info
@@ -340,6 +344,7 @@ serve(async (req) => {
               quantity: item.quantity, unit_price: item.unit_price,
               product: item.products ? { name: item.products.name, sku: variant?.sku || item.products.sku || null, image: variant?.image_url || item.products.images?.[0] || null } : null,
               variant: variant ? { title: variant.title } : null,
+              addons: Array.isArray(item.addons) && item.addons.length ? item.addons : null,
               line_total: item.quantity * item.unit_price,
             };
           });
@@ -430,6 +435,9 @@ serve(async (req) => {
               currency: cart.currency || tenant?.currency || "EUR",
               stripe_payment_intent_id: session.payment_intent as string,
               stripe_checkout_session_id: session.id,
+              // FOOD-1 — afhalen/leveren met tijdslot (null bij gewone verzending).
+              service_type: cart.service_type || null,
+              requested_time: cart.requested_time || null,
             })
             .select("id, order_number, total").single();
 
@@ -451,7 +459,9 @@ serve(async (req) => {
             product_sku: item.product?.sku || null,
             product_image: item.product?.image || null,
             variant_id: item.variant_id || null,
-            variant_title: item.variant?.title || null,
+            // FOOD-1 — extra's staan ook in de varianttitel, zodat bon, mail en Odoo ze tonen.
+            variant_title: [item.variant?.title, (item.addons || []).map((a: { name?: string }) => a.name).join(', ')].filter(Boolean).join(' · ') || null,
+            addons: item.addons || null,
             event_detail_id: item.event_detail_id || null,
             vat_rate,
             vat_rate_id,

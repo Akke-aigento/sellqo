@@ -13,7 +13,7 @@ class Query {
   private rangeFrom = 0;
   private head = false;
   private countMode = false;
-  private single: 'maybe' | 'one' | null = null;
+  private singleMode: 'maybe' | 'one' | null = null;
   private isUpdate = false;
   constructor(private db: FakeDb, private table: string) {}
   select(_cols?: string, opts?: { count?: string; head?: boolean }) { if (opts?.count) this.countMode = true; if (opts?.head) this.head = true; return this; }
@@ -54,7 +54,9 @@ class Query {
   range(from: number, to: number) { this.rangeFrom = from; this.lim = to - from + 1; return this; }
   order() { return this; }
   limit(n: number) { this.lim = n; return this; }
-  maybeSingle() { this.single = 'maybe'; return this; }
+  maybeSingle() { this.singleMode = 'maybe'; return this; }
+  single() { this.singleMode = 'one'; return this; }
+  is(c: string, v: any) { this.filters.push((r) => (v === null ? r[c] == null : r[c] === v)); return this; }
   // deno-lint-ignore no-explicit-any
   then(res: (v: any) => any, rej?: (e: any) => any) { return Promise.resolve(this.run()).then(res, rej); }
   private run() {
@@ -63,7 +65,7 @@ class Query {
     const count = rows.length;
     if (this.rangeFrom || this.lim != null) rows = rows.slice(this.rangeFrom, this.lim != null ? this.rangeFrom + this.lim : undefined);
     if (this.head) return { data: null, error: null, count };
-    if (this.single === 'maybe') return { data: rows[0] ?? null, error: null, count: this.countMode ? count : null };
+    if (this.singleMode) return { data: rows[0] ?? null, error: null, count: this.countMode ? count : null };
     return { data: rows.map((r) => structuredClone(r)), error: null, count: this.countMode ? count : null };
   }
 }

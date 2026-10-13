@@ -132,7 +132,7 @@ jobs:
       - name: Edge functions (deno test promotiemotor en catalogusfilters)
         env:
           DENO_NO_PACKAGE_JSON: "1"
-        run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts supabase/functions/_shared/catalogFilters.test.ts
+        run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts supabase/functions/_shared/catalogFilters.test.ts supabase/functions/_shared/fulfillmentSlots.test.ts supabase/functions/_shared/productAddons.test.ts
 
       # R10 (CATALOG-FILTERS-1b): rooktest van de echte storefront-api-functies tegen een
       # thenable nep-databank. Vangt o.a. `await` op een querybuilder, wat deno check mist.
@@ -141,7 +141,7 @@ jobs:
           DENO_NO_PACKAGE_JSON: "1"
         run: |
           cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-          echo 'export { getProducts, getProductFilters, computeCartTotals };' >> supabase/functions/storefront-api/__smoke.ts
+          echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment };' >> supabase/functions/storefront-api/__smoke.ts
           deno run --allow-read --allow-env --allow-net --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
           rm supabase/functions/storefront-api/__smoke.ts
 

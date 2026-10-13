@@ -415,6 +415,19 @@ export default function OrderDetailPage() {
 
               <Separator />
 
+              {/* FOOD-1 — afhalen of leveren met gewenst tijdstip. */}
+              {order.service_type ? (
+                <div className="flex items-center gap-2 rounded-md bg-primary/10 px-3 py-2 text-sm">
+                  <Clock className="h-4 w-4 text-primary" />
+                  <span className="font-semibold">{order.service_type === 'pickup' ? t('admin.orderDetail.serviceAfhalen') : t('admin.orderDetail.serviceLevering')}</span>
+                  <span>
+                    {order.requested_time
+                      ? `${format(new Date(order.requested_time), 'dd/MM/yyyy')} ${t('admin.orderDetail.serviceOm')} ${format(new Date(order.requested_time), 'HH:mm')}`
+                      : t('admin.orderDetail.serviceZoSnel')}
+                  </span>
+                </div>
+              ) : null}
+
               {/* Adressen in 2 kolommen */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                 <div>
