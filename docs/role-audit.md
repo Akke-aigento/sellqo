@@ -1,3 +1,31 @@
+## THEME-SCHEMA-1 — schema-gedreven editor, dieper aanpasbare standaardshop — 13 oktober 2026
+
+SellQo bd29a2d, sellqo-storefront 3d40d1a. Afgesproken met Akke: eerst de editor dieper, daarna de branchethema's (kleding, bloemen, pizzeria).
+
+- **Architectuur:**
+  - `src/theme/schema.json` in de shop is de enige bron. De shop publiceert hem op `/theme/schema.json` (CORS open, voor elke `*.sellqo.shop`-host, ook buiten de pilot).
+  - De editor bouwt er zijn formulieren mee: een nieuwe instelling of sectie = een regel in het schema plus de weergave in de shop, geen admin-code. Dit is de basis voor meerdere thema's.
+- **DB:** `tenant_theme_settings.theme_config jsonb not null default '{}'`.
+  - Additief, live toegepast via query_database en nagetrokken in information_schema. Het migratiebestand `20261013160000_theme_schema_1.sql` is idempotent.
+  - `get_storefront_bundle` (select `*`) geeft het mee zonder deploy; live gemeten: `theme_config: {}`. `get_config` (eigen frontends) verandert niet.
+- **Nieuw in de editor:**
+  - **Thema:** achtergrond- en tekstkleur (alle tinten afgeleid, ook voor een donkere winkel), knopvorm, afronding, logo links of in het midden, logogrootte voor computer en gsm, zoekknop, en "Kleur uit mijn logo halen".
+  - **Menu-editor:** categorie, eigen pagina, juridische pagina, alle producten of een eigen link, met submenu's. Een leeg menu = de categorieën zoals voorheen.
+  - **Nieuwe secties:** voordelenbalk, veelgestelde vragen, openingsuren en contact (de kaart laadt pas na een klik). Elk blok is toe te voegen, te verplaatsen en te verwijderen.
+  - **Stijl per sectie:** achtergrond (standaard, licht vlak, merkkleur, donker), ruimte, producten per rij en fotovorm.
+  - **Productpagina:** levering- en retourregel, betaalmethodes, gerelateerde producten aan/uit met eigen titel, bestelknop onderaan op gsm. Het voorbeeld springt naar een product.
+  - **Tracking:** GA4, Meta en TikTok, met validatie. De pixels laden pas na cookietoestemming en nooit in het editorvoorbeeld.
+- **Bugfix in het concept:** een titelwijziging via `SectionEditor` overschreef de sectiestijl en de zichtbaarheid. Nu worden die behouden (`updateFromEditor`).
+- **Getest:**
+  - de shop met Playwright: donker thema, hoekige knoppen, menu met submenu, nieuwe secties, productpagina-blokken, bestelknop op gsm;
+  - de editor in een harness (gemockte tenant en supabase) tegen de lokale shop: alles live in het voorbeeld; opslaan schrijft `theme_config`, de sectiestijl en de nieuwe sectie;
+  - lint gelijk aan de baseline, CI groen in beide repo's;
+  - live: `/theme/schema.json` 200 met CORS `*`, homepage met de nieuwe radiusvariabelen.
+- **Open:**
+  - Lovable-publish van de admin.
+  - Kleuren voor voorraadstatus (groen/oranje) nog niet aangepast aan donkere winkels.
+  - Daarna: concept naast live, AI-hulp, en de branchethema's.
+
 ## WEBSHOP-PAGE-1 + SHOP-7 — Webshop-pagina opgeruimd, laadfeedback in de shop — 13 oktober 2026
 
 SellQo 3363175, sellqo-storefront f0fd034. Feedback van Akke: de oude indeling stond er nog volledig, en een klik deed soms zichtbaar niets terwijl de shop laadde.
