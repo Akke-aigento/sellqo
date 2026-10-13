@@ -9,6 +9,8 @@
 
 **Valkuil die gevonden is.** bpost meldt bij het aanmaken van het label "Informatie over de zending ontvangen van de afzender", en `normalizeStatus` maakt daar `in_transit` van (live 42 keer). Een naïeve regel had elke bol-order meteen bij de import op "verzonden" gezet. Daarom telt nu alleen een fysieke scan in de omschrijving, zoals "Afgifte zending door afzender", "sortering" of "in bezorging". De pre-shipmentteksten worden uitgesloten. Lokaal getest op de echte bpost-teksten.
 
+**Deploy (08:58).** Nulmeting: 401, dus de oude code. De Lovable-agent kreeg een deploy-only opdracht. Na een MCP-time-out heb ik die niet opnieuw verstuurd: main stond nog op 6336bea, er waren geen agent-commits. Nameting: 200 met `TRACK-SHIPPED-1`.
+
 **Wijziging.** In `poll-tracking-status`, voor orders met `status = processing`: `status`, `shipped_at` en `fulfillment_status` worden `shipped`, net als bij de handmatige klik. De GET-stempel is `TRACK-SHIPPED-1`.
 
 ## BOL-SYNC-1 — kolom teruggedraaid (mailuitsluiting blijft) — 13 oktober 2026, 08:35
