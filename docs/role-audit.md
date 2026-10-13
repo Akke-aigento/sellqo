@@ -1,3 +1,14 @@
+## DEMO-1 — Twee publieke demowinkels: Pizzeria Fiamma en Atelier Nord — 14 oktober 2026
+
+Doel: testtenants voor Akke én voorbeeldwinkels voor verkoop (prospects tonen wat SellQo kan). Alleen data, geen code of migraties.
+
+- **Tenants:** `demo-pizzeria` "Pizzeria Fiamma" (`7879b472-2672-4212-8531-4c587870752d`, btw 6 %) en `demo-webshop` "Atelier Nord" (`0e06e256-308a-4903-8b27-64959418a9ad`, btw 21 %). Beide `is_demo=true` + `billing_exempt=true` (sync-billing-state slaat ze over), abonnement enterprise/active zonder trial, `platform_newsletter_opt_in=false`. De automatische klantrij in de SellQo-tenant (trigger `register_tenant_as_sellqo_customer`) is weer verwijderd.
+- **Pizzeria:** horeca-module via `tenant_feature_overrides.granted_features=['horeca']`. 5 categorieën, 17 producten zonder voorraadbeheer. Extra's: Formaat (verplicht, 1 keuze), Extra toppings (max 5), Extra bij je pasta (max 2). Verzendmethodes Afhalen (gratis) en Levering (€ 2,50, gratis vanaf € 40, min. € 15, postcodes 3000/3001/3010/3012/3018). `fulfillment_settings`: tijdsloten 15 min, 20 min voorbereiding, 1 dag vooruit, max 6 per slot, elke dag 11:30–14:00 en 17:00–22:00 (vr/za tot 22:30), betalen bij afhalen aan, klant mailen bij klaar aan, `qr_mode='order'` met afrekenen aan de toog.
+- **Webshop:** 4 categorieën, 12 producten met voorraad (hanglamp 3 stuks; mok Fjord en kussenhoes met kleurvarianten, mok "Nacht" uitverkocht; vaas met doorstreepte prijs). Standaard verzending € 4,95, gratis vanaf € 50, BE/NL. Overschrijving met demo-IBAN `BE00 0000 0000 0000` / `DEMOBEBB`.
+- **Thema:** pizzeria op preset `restaurant`, webshop op preset `bloemen` met eigen merkkleur `#3d5a4c` en teksten. Beide `shop_live` + `shop_ordering` aan, aankondigingsbalk "Demowinkel van SellQo: bestellen werkt, maar er wordt niets bereid, geleverd of aangerekend." en een FAQ-vraag "Is dit een echte winkel?".
+- **Foto's:** 32 beelden via nano-studio (nano-banana-pro, 1K, 6 credits per stuk = 192 credits): één per product plus hero's en een atelierfoto. Prompts en job-ID's staan in `ops.demo_img`, om later één beeld opnieuw te genereren.
+- **Verificatie:** `net.http_get` op beide shops gaf 200, titel juist, geen "binnenkort", foto's uit ai-images. `/menu?tafel=4` toont de badge "Tafel 4" en 17 plusknoppen. Productpagina Mok Fjord toont de kleuren. Via storefront-api gaf `get_product diavola` de groepen Formaat (2) en Extra toppings (7), en `get_fulfillment_slots type=pickup` 60 slots.
+
 ## HORECA-1 — Horeca-module, Bestellen-hub (webshop vs QR-menu), bestellen aan tafel — 13 oktober 2026
 
 SellQo c227d28, sellqo-storefront 6b3c641. Vraag van Akke: webshop en QR-menu waren door elkaar niet duidelijk; zaken willen soms beide, en winkels zonder horeca mogen er niets van zien.
