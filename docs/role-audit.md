@@ -1,3 +1,28 @@
+## BOL-SYNC-1 — bol-orders kunnen weer op 'shipped', zonder eigen trackingmail — 13 oktober 2026
+
+Uitgevoerd met akkoord van Akke ("als er van en naar bol niets verandert"). Er is geen code van de bol-koppeling geraakt, er was geen deploy en er is geen enkele bol-API-aanroep gedaan.
+
+**Snapshot vooraf:**
+- `ops.snap_bol_sync_20261013`: 53 bol-orders, met sync_status, tracking en carrier.
+- `ops.snap_fn_auto_send_tracking_email_20261013`: de oude functiedefinitie.
+- De hash van de live functie was nog identiek aan het voorstel.
+
+**Uitgevoerd** (zie `docs/voorstellen/bol-sync-1-verzendstatus.sql`):
+1. `auto_send_tracking_email` slaat marketplace-orders (`bol_com`, `amazon`, `ebay`) over. De rest van de functie is via hash bewezen identiek aan voorheen.
+2. `ALTER TABLE orders ADD COLUMN marketplace_sync_error text`.
+
+**Nameting:**
+- De kolom bestaat.
+- De uitsluiting staat live.
+- Test in een blok dat zichzelf terugdraait, op bol-order #1172: tracking leeg zetten en daarna een nieuw nummer plus sync_status shipped. Resultaat: sync_status wordt `shipped` en er gaan **0 mails** in de pg_net-wachtrij.
+- Daarna vergeleken met de snapshot: 0 van de 53 orders gewijzigd.
+
+**Gevolg:** vanaf nu bewaren `confirm-bol-shipment` en `update-bol-tracking` hun status en eventuele bol-foutmeldingen lokaal. Het verkeer naar bol blijft gelijk.
+
+**Terugdraaien:** de oude functie staat in de snapshot-tabel. `ALTER TABLE orders DROP COLUMN marketplace_sync_error`.
+
+**Nog open, apart:** `update-bol-tracking` vraagt elke 5 minuten de status op van tot 20 bol-orders, ook als die al geleverd zijn. Het zijn alleen leesvragen. Niet aangeraakt.
+
 ## DEPLOY 13-10 — 27 edge functions live, mitigatietrigger weg — 13 oktober 2026
 
 **Nulmeting (GET met anon-key).** Alle 27 functies gaven nog de oude code terug: 500 "Unexpected end of JSON input" of 401.
