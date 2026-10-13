@@ -18219,6 +18219,9 @@ export type Database = {
           reviews_widget_position: string | null
           search_display: string | null
           secondary_color: string | null
+          shop_live: boolean
+          shop_live_at: string | null
+          shop_ordering: boolean
           show_announcement_bar: boolean | null
           show_breadcrumbs: boolean | null
           show_recent_purchases: boolean | null
@@ -18296,6 +18299,9 @@ export type Database = {
           reviews_widget_position?: string | null
           search_display?: string | null
           secondary_color?: string | null
+          shop_live?: boolean
+          shop_live_at?: string | null
+          shop_ordering?: boolean
           show_announcement_bar?: boolean | null
           show_breadcrumbs?: boolean | null
           show_recent_purchases?: boolean | null
@@ -18373,6 +18379,9 @@ export type Database = {
           reviews_widget_position?: string | null
           search_display?: string | null
           secondary_color?: string | null
+          shop_live?: boolean
+          shop_live_at?: string | null
+          shop_ordering?: boolean
           show_announcement_bar?: boolean | null
           show_breadcrumbs?: boolean | null
           show_recent_purchases?: boolean | null

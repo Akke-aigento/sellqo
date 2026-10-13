@@ -3,7 +3,9 @@
 // een tablet aan de muur: grote knoppen, belletje bij een nieuwe bestelling.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, Bike, ChevronDown, Maximize2, Phone, Store, Undo2, UtensilsCrossed } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, Bike, ChevronDown, Maximize2, Phone, Printer, Store, Undo2, UtensilsCrossed } from 'lucide-react';
+import { useTenant } from '@/hooks/useTenant';
+import { printTicket } from '@/components/admin/kitchen/printTicket';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
@@ -20,6 +22,7 @@ const SERVICE = {
   eat_in: { label: 'Ter plaatse', icon: UtensilsCrossed, cls: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100' },
 } as const;
 const SOUND_KEY = 'sq_kitchen_sound';
+const PRINT_KEY = 'sq_kitchen_autoprint';
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString('nl-BE', { hour: '2-digit', minute: '2-digit' });
 const euro = (n: number) => new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
@@ -41,8 +44,8 @@ function Countdown({ card, now }: { card: KitchenCard; now: number }) {
   return <span className={cn('text-sm font-semibold', m <= 10 ? 'text-orange-600' : 'text-muted-foreground')}>over {m >= 90 ? `${Math.floor(m / 60)} u ${m % 60} min` : `${m} min`}</span>;
 }
 
-function TicketCard({ card, now, onAdvance, onBack, busy, fresh }: {
-  card: KitchenCard; now: number; onAdvance: () => void; onBack: () => void; busy: boolean; fresh: boolean;
+function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh }: {
+  card: KitchenCard; now: number; onAdvance: () => void; onBack: () => void; onPrint: () => void; busy: boolean; fresh: boolean;
 }) {
   const svc = card.service ? SERVICE[card.service] : null;
   const late = card.requestedTime ? minutesLeft(card, now) < 0 : false;
@@ -87,6 +90,7 @@ function TicketCard({ card, now, onAdvance, onBack, busy, fresh }: {
         <span className={cn('mr-auto text-xs font-bold', card.paid ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400')}>
           {card.paid ? 'Betaald' : card.total != null ? `Nog te betalen ${euro(card.total)}` : 'Nog te betalen'}
         </span>
+        <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onPrint} aria-label="Bon afdrukken"><Printer className="h-4 w-4" /></Button>
         {PREV_STATUS[card.status] ? (
           <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onBack} disabled={busy} aria-label="Terugzetten"><Undo2 className="h-4 w-4" /></Button>
         ) : null}
@@ -122,6 +126,9 @@ export default function KitchenPage() {
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(t); }, []);
   const { cards, isLoading, error, setStatus } = useKitchenBoard(now);
   const [sound, setSound] = useState(() => { try { return localStorage.getItem(SOUND_KEY) === '1'; } catch { return false; } });
+  const [autoPrint, setAutoPrint] = useState(() => { try { return localStorage.getItem(PRINT_KEY) === '1'; } catch { return false; } });
+  const { currentTenant } = useTenant();
+  const storeName = currentTenant?.name || '';
   const [tab, setTab] = useState<KitchenStatus>('new');
   const [showDone, setShowDone] = useState(false);
   const [fresh, setFresh] = useState<Set<string>>(new Set());
@@ -136,9 +143,17 @@ export default function KitchenPage() {
     cards.forEach((c) => seen.current!.add(c.key));
     if (!added.length) return;
     if (sound) ding();
+    // FOOD-4 — nieuwe bon meteen naar de bonprinter (als dat op dit toestel aan staat).
+    if (autoPrint) cards.filter((c) => added.includes(c.key)).forEach((c, i) => setTimeout(() => printTicket(c, storeName), i * 1500));
     setFresh((f) => new Set([...f, ...added]));
     setTimeout(() => setFresh((f) => { const n = new Set(f); added.forEach((k) => n.delete(k)); return n; }), 20_000);
-  }, [cards, isLoading, sound]);
+  }, [cards, isLoading, sound, autoPrint, storeName]);
+
+  const toggleAutoPrint = () => {
+    const next = !autoPrint;
+    setAutoPrint(next);
+    try { localStorage.setItem(PRINT_KEY, next ? '1' : '0'); } catch { /* privémodus */ }
+  };
 
   const toggleSound = () => {
     const next = !sound;
@@ -167,6 +182,9 @@ export default function KitchenPage() {
           {byStatus.new.length} nieuw · {byStatus.preparing.length} bezig · {byStatus.ready.length} klaar · {nextHour} het komende uur
         </span>
         <div className="ml-auto flex items-center gap-2">
+          <Button variant={autoPrint ? 'secondary' : 'outline'} size="sm" onClick={toggleAutoPrint} title="Nieuwe bonnen automatisch afdrukken op dit toestel">
+            <Printer className="mr-1.5 h-4 w-4" />{autoPrint ? 'Auto-print aan' : 'Auto-print uit'}
+          </Button>
           <Button variant={sound ? 'secondary' : 'outline'} size="sm" onClick={toggleSound}>
             {sound ? <Bell className="mr-1.5 h-4 w-4" /> : <BellOff className="mr-1.5 h-4 w-4" />}{sound ? 'Geluid aan' : 'Geluid uit'}
           </Button>
@@ -204,7 +222,7 @@ export default function KitchenPage() {
               ) : null}
               {byStatus[col.status].map((c) => (
                 <TicketCard key={c.key} card={c} now={now} busy={setStatus.isPending} fresh={fresh.has(c.key)}
-                  onAdvance={() => move(c, NEXT_STATUS[c.status])} onBack={() => move(c, PREV_STATUS[c.status])} />
+                  onAdvance={() => move(c, NEXT_STATUS[c.status])} onBack={() => move(c, PREV_STATUS[c.status])} onPrint={() => printTicket(c, storeName)} />
               ))}
             </div>
           </section>

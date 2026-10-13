@@ -236,7 +236,7 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
 
   const [{ data: tenant }, { data: themeSettings }, { data: allDomains }] = await Promise.all([
     supabase.from('tenants').select('id, slug, name').eq('id', domain.tenant_id).single(), // RESOLVE-FIX-1
-    supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url').eq('tenant_id', domain.tenant_id).maybeSingle(),
+    supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url, shop_live, shop_ordering').eq('tenant_id', domain.tenant_id).maybeSingle(),
     supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', domain.tenant_id).eq('is_active', true),
   ]);
 
@@ -246,6 +246,8 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
     tenant_id: tenant.id, tenant_slug: tenant.slug, tenant_name: tenant.name,
     locale: domain.locale, is_canonical: domain.is_canonical, dns_verified: domain.dns_verified, ssl_active: domain.ssl_active,
     use_custom_frontend: themeSettings?.use_custom_frontend || false, custom_frontend_url: themeSettings?.custom_frontend_url || null,
+    // SHOP-OPEN-1 — additief: staat de standaardshop open en mag er online besteld worden?
+    shop_live: themeSettings?.shop_live === true, shop_ordering: themeSettings?.shop_ordering === true,
     all_domains: (allDomains || []).map((d: any) => ({ domain: d.domain, locale: d.locale, is_canonical: d.is_canonical })),
   };
 }
@@ -4548,7 +4550,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FOOD-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SHOP-OPEN-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

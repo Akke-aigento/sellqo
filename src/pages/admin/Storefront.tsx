@@ -12,6 +12,7 @@ import { StorefrontFeaturesSettings } from '@/components/admin/storefront/studio
 import { FulfillmentSettings } from '@/components/admin/storefront/food/FulfillmentSettings';
 import { AddonGroupsManager } from '@/components/admin/storefront/food/AddonGroupsManager';
 import { MenuQrManager } from '@/components/admin/storefront/food/MenuQrManager';
+import { ShopOpenCard } from '@/components/admin/storefront/ShopOpenCard';
 
 // WEBSHOP-PAGE-1 (13-10-2026): de Webshop-pagina draait rond de standaardshop op
 // <slug>.sellqo.shop en de "Aanpassen"-editor. Design en Homepage zitten in de editor;
@@ -54,7 +55,7 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
             {/* Verkleinde, niet-klikbare weergave van de echte winkel. */}
             <iframe
               title="Voorbeeld van je winkel"
-              src={shopUrl}
+              src={`${shopUrl}/?editor=1`}
               tabIndex={-1}
               aria-hidden="true"
               loading="lazy"
@@ -85,6 +86,8 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
           </CardContent>
         </div>
       </Card>
+
+      <ShopOpenCard />
 
       <div className="grid gap-3 sm:grid-cols-3">
         {[
