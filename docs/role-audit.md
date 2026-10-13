@@ -1,3 +1,37 @@
+## EDITOR-1 + SHOP-API-3 + SHOP-6 — "Aanpassen"-editor voor de standaardshop — 13 oktober 2026
+
+SellQo bf35da0 + b1a67cb, sellqo-storefront 11f4602 + e6ed6ae.
+
+- **Admin `/admin/storefront/aanpassen`** (knop "Aanpassen" op de Webshop-pagina) is een nieuw scherm dat volledig additief is. De bestaande schermen zijn niet gewijzigd.
+  - **Links:**
+    - de aankondigingsbalk;
+    - homepage-secties: slepen, tonen/verbergen, toevoegen, verwijderen, bewerken met de bestaande `SectionEditor`;
+    - de footertekst;
+    - het tabblad "Thema": merkkleur, logo, favicon, lettertypes, vaste menubalk en voorraadindicator.
+  - **Rechts:** de echte winkel `https://<slug>.sellqo.shop/?editor=1` in een iframe, met weergave voor computer en gsm.
+  - **Voorbeeld:** wijzigingen gaan live naar het voorbeeld via postMessage. Klik je in het voorbeeld op een sectie, dan opent die sectie.
+  - **Opslaan:** pas met "Opslaan", en alleen de gewijzigde velden en rijen in `tenant_theme_settings` en `homepage_sections`. "Ongedaan maken" zet het concept terug.
+  - Alleen instellingen die de standaardshop echt gebruikt staan erin. Headerstijl, kaartstijl, producten per rij en donkere modus volgen later.
+- **`SectionEditor`:** optionele props `onChange`, `hideActions` en `compact`. Het gedrag van de bestaande schermen blijft gelijk.
+- **SHOP-API-3:** `get_products` kreeg een optionele parameter `ids` (max 50, in die volgorde), voor uitgelichte producten die de winkelier zelf koos.
+  - Stempel `SHOP-API-3` is live; `ids` geeft de gevraagde volgorde.
+  - Probes tegen `ops.snap_catalog_pre` (batch `shop-api-3`): 80/81 met dezelfde status en paginering (1 DNS-timeout van pg_net). 79/81 zijn identiek aan SHOP-API-2; het verschil is alleen de bekende volgorde bij gelijke prijs.
+  - De rooktest kreeg een geval voor `ids` erbij.
+- **Lint-fix:** de CI faalde sinds SHOP-API-2 op de lint-baseline (+1 `any` in `getStorefrontPage`). Les: na elke push de CI-run nakijken, niet alleen de deploy.
+- **Standaardshop (SHOP-6):**
+  - **Editorbrug:** berichten worden alleen aanvaard van sellqo.app, *.lovable.app, *.lovableproject.com en localhost, en alleen in een iframe. Zelf-geposte berichten worden genegeerd.
+  - **Lettertypes:** komen uit het thema (vaste lijst, dezelfde als in de admin). VanXcel toont nu Montserrat/Roboto, zoals in SellQo ingesteld.
+  - **Bug: de merkkleur werkte nooit.** `--color-accent: var(--shop-accent)` in `@theme` wordt al op `:root` uitgerekend, dus overal stond de terugvalkleur. Nu worden de Tailwind-variabelen rechtstreeks op de wrapper gezet; VanXcel toont #00a0a8.
+  - **Uitgelichte producten:** volgen de gekozen `product_ids`.
+  - **Collectie:** toont de gekozen categorie, en "Bekijk alles" linkt naar die collectie.
+  - **Nieuw of nu gevolgd:** prijzen verbergen, de video-sectie (YouTube/Vimeo/mp4), links in aankondigingen, en de hero-uitlijning zoals de admin ze toont (leeg = gecentreerd).
+- **Getest:**
+  - de shopbrug met Playwright via een harness-iframe: kleur, aankondiging, lettertype, volgorde, verborgen sectie, nieuwe video- en productsectie, klik-om-te-kiezen, reload wist overrides, vreemde berichten genegeerd;
+  - de editor zelf in een lokale harness (gemockte tenant en supabase) tegen de lokale shop: live kleur en titel, klik in het voorbeeld, toevoegen/verbergen, gsm, opslaan schrijft alleen wat gewijzigd is.
+- **Open:**
+  - Het admin-scherm staat pas op sellqo.app na een publish (Lovable). Tot dan staat het in de Lovable-preview.
+  - Het voorbeeld werkt alleen voor winkels die op `*.sellqo.shop` actief zijn (pilot: VanXcel). Voor andere winkels toont de editor na 12 s "voorbeeld laadt niet".
+
 ## SHOP-5 — standaardshop: Shopify-basis (mini-mandje, aantallen, favicon, zoeken, menu, juridische pagina's) — 13 oktober 2026
 
 Repo `sellqo-storefront` 1784b8d, live op `vanxcel.sellqo.shop` (GitHub Actions groen). Geen API-wijziging nodig buiten SHOP-API-2.
