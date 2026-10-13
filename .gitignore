@@ -42,3 +42,7 @@ supabase/.temp/
 
 # Claude Code, sessie-output (rapporten, kaarten) — geen projectcode
 Claude outputs/
+
+# rooktest/vergelijkingstest-kopieën (scripts/promo-compare)
+supabase/functions/storefront-api/__smoke.ts
+supabase/functions/storefront-api/__cmp_*.ts

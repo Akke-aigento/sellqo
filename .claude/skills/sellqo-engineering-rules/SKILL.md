@@ -251,3 +251,18 @@ de native kant van die plugins niet mee: `Browser` (`src/lib/openExternal.ts`) e
 toetsenbord-over-de-onderbalk-probleem dat de M3a-batch had opgelost.
 **Les:** een gegenereerd bestand dat in git staat, is pas gegenereerd als het
 gecommit is. En een platform zonder CI meldt zijn eigen scheefstand nooit.
+
+## R10 — Geef een supabase-querybuilder nooit rechtstreeks terug uit een async functie.
+Een supabase-querybuilder is "thenable". `await builder` voert de query dus uit
+en levert het resultaat (`{ data, error }`) op, niet de builder. Een async helper
+die `return query` doet, geeft na `await` geen builder meer terug: de volgende
+`.order()` of `.range()` faalt met "query.order is not a function". `deno check`,
+tsc en unit tests met pure functies zien dit niet, want de types zijn `any`.
+**Regel:** pak de builder in (`return { q: query }` → `(await helper(...)).q`),
+of houd de helper synchroon. Na elke storefront-api-deploy meteen opnieuw meten
+tegen de nulmeting, en vóór de deploy `scripts/promo-compare/smoke.ts` draaien
+(draait ook in CI): die roept de echte functies aan tegen een thenable nep-databank.
+**Incident (CATALOG-FILTERS-1, 13 okt 2026):** `applyCategoryAndSearch` gaf de
+builder terug. Na de deploy gaf élke `get_products` van alle winkels HTTP 500,
+van 11:36 tot 11:42. De nameting tegen `ops.snap_catalog_pre` ving het; de
+hotfix 1b pakte de builder in.

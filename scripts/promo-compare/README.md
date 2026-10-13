@@ -43,3 +43,12 @@ productmixen × codes × klant met/zonder eerdere bestelling × verzendmethode):
 Uitkomst op 13-10-2026 (747a79a → PROMO-ENGINE-1): 3.619 scenario's, cart_get 100%
 identiek; checkout identiek behalve Loveke "Loveke for Two" (staffelkorting werd vroeger
 niet aangerekend, nu wel), zoals bedoeld.
+
+## Rooktest (`smoke.ts`)
+
+Roept `getProducts`, `getProductFilters` en `computeCartTotals` uit de echte
+`storefront-api/index.ts` aan tegen de thenable nep-databank. Draait in CI. Hij vangt
+fouten die `deno check` mist, zoals een `await` op een querybuilder (R10 in
+sellqo-engineering-rules, incident CATALOG-FILTERS-1). Hoe je hem draait, staat bovenaan
+`smoke.ts`. Na een wijziging in de API-functies die de rooktest aanroept, breid je de
+tests mee uit.
