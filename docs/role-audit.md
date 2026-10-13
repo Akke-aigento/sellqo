@@ -1,3 +1,18 @@
+## BOL-SYNC-1 — kolom teruggedraaid (mailuitsluiting blijft) — 13 oktober 2026, 08:35
+
+**Waarom.** Akke verzendt de bol-orders zelf, en de verzendstatus komt al uit de trackingpagina (`poll-tracking-status`). Zijn voorwaarde was dat er van en naar bol niets verandert.
+
+Bij nacontrole bleek één indirecte route die vóór de kolom nooit liep: `poll-tracking-status` roept `update-bol-tracking` aan bij een trackingwijziging als `sync_status` op `shipped` staat. Met de kolom erbij konden orders wél op `shipped` komen. Om 08:30 had de cron al 12 oude, afgeleverde orders lokaal op `shipped` gezet.
+
+**Teruggedraaid:**
+- `sync_status` van die 12 orders terug op de snapshotwaarde.
+- `DROP COLUMN marketplace_sync_error`.
+- Nameting: 0 van 53 orders wijken af van de snapshot, en de kolom bestaat niet meer.
+
+**Blijft staan:** de uitsluiting van marketplace-orders in `auto_send_tracking_email`. Die raakt alleen mails vanuit SellQo, niet het verkeer naar bol.
+
+**Les.** Vóór een wijziging aan iets dat met bol te maken heeft, alle lezers van `orders.sync_status` nalopen. Daar zitten ook de trackingpoller en de VVB-retry bij.
+
 ## BOL-SYNC-1 — bol-orders kunnen weer op 'shipped', zonder eigen trackingmail — 13 oktober 2026
 
 Uitgevoerd met akkoord van Akke ("als er van en naar bol niets verandert"). Er is geen code van de bol-koppeling geraakt, er was geen deploy en er is geen enkele bol-API-aanroep gedaan.
