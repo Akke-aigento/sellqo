@@ -777,7 +777,17 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     ...eventData,
     // FOOD-1 — additief: alleen aanwezig als de winkel extra's voor dit product heeft.
     ...(addonGroups.length ? { addon_groups: addonGroups } : {}),
+    // ALLERGEN-1 — additief: alleen als de winkel allergenen of dieetlabels invulde.
+    ...foodInfo(product),
   };
+}
+
+// ALLERGEN-1 — allergenen (14 EU-codes) en dieetlabels, alleen als ze ingevuld zijn,
+// zodat de respons voor andere winkels byte-gelijk blijft.
+function foodInfo(p: { allergens?: string[] | null; dietary?: string[] | null }): { allergens?: string[]; dietary?: string[] } {
+  const a = Array.isArray(p.allergens) ? p.allergens : [];
+  const d = Array.isArray(p.dietary) ? p.dietary : [];
+  return { ...(a.length ? { allergens: a } : {}), ...(d.length ? { dietary: d } : {}) };
 }
 
 // ============== FOOD-1: EXTRA'S, AFHALEN EN LEVEREN ==============
@@ -1076,7 +1086,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   let query = supabase
     .from('products')
-    .select('id, name, slug, description, price, compare_at_price, images, featured_image, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, bundle_pricing_model, bundle_discount_value, created_at, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
+    .select('id, name, slug, description, price, compare_at_price, images, featured_image, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, bundle_pricing_model, bundle_discount_value, created_at, allergens, dietary, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
@@ -1248,6 +1258,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         ...(product.product_type === 'ticket'
           ? { next_event_date: nextEventDateMap[product.id] ?? null }
           : {}),
+        ...foodInfo(product),
       };
     }),
     pagination: {
@@ -4603,7 +4614,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'HORECA-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'ALLERGEN-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

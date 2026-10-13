@@ -12675,6 +12675,8 @@ export type Database = {
       }
       products: {
         Row: {
+          allergens: string[]
+          dietary: string[]
           access_duration_days: number | null
           allow_backorder: boolean | null
           amazon_asin: string | null
@@ -12806,6 +12808,8 @@ export type Database = {
           woocommerce_variant_id: string | null
         }
         Insert: {
+          allergens?: string[]
+          dietary?: string[]
           access_duration_days?: number | null
           allow_backorder?: boolean | null
           amazon_asin?: string | null
@@ -12937,6 +12941,8 @@ export type Database = {
           woocommerce_variant_id?: string | null
         }
         Update: {
+          allergens?: string[]
+          dietary?: string[]
           access_duration_days?: number | null
           allow_backorder?: boolean | null
           amazon_asin?: string | null

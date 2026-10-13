@@ -5036,7 +5036,11 @@
           "afdrukken_of_opslaan_als_pdf": "Drucken oder als PDF speichern"
         },
         "never": "nie",
-        "none_lower": "keiner"
+        "none_lower": "keiner",
+        "allergens_title": "Allergene",
+        "allergens_desc": "Welche der 14 Allergene sind in diesem Gericht? Ihr Kunde sieht sie vor der Bestellung auf der Produktseite und der Speisekarte (Pflicht beim Fernabsatz).",
+        "dietary_title": "Merkmale",
+        "allergens_none_hint": "Nichts angekreuzt: Der Shop nennt dann keine Allergene für dieses Gericht. Fragen Sie im Zweifel bei Ihrem Lieferanten nach."
       },
       "schema": {
         "themeGallery": {
@@ -5106,6 +5110,29 @@
         "online_bestellen_staat_uit": "Online-Bestellung ist aus",
         "je_winkel_staat_offline": "Ihr Shop ist offline"
       }
+    },
+    "allergens": {
+      "gluten": "Gluten (Getreide)",
+      "crustaceans": "Krebstiere",
+      "eggs": "Eier",
+      "fish": "Fisch",
+      "peanuts": "Erdnüsse",
+      "soy": "Soja",
+      "milk": "Milch (Laktose)",
+      "nuts": "Schalenfrüchte",
+      "celery": "Sellerie",
+      "mustard": "Senf",
+      "sesame": "Sesam",
+      "sulphites": "Sulfite",
+      "lupin": "Lupinen",
+      "molluscs": "Weichtiere"
+    },
+    "dietary": {
+      "vegetarian": "Vegetarisch",
+      "vegan": "Vegan",
+      "spicy": "Scharf",
+      "halal": "Halal",
+      "gluten_free": "Glutenfrei"
     }
   },
   "billing": {

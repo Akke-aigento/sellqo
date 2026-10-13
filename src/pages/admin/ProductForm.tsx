@@ -63,6 +63,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ProductAddonsCard } from '@/components/admin/storefront/food/ProductAddonsCard';
+import { ProductAllergensCard } from '@/components/admin/storefront/food/ProductAllergensCard';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
 import {
   Select,
@@ -1581,6 +1582,8 @@ export default function ProductForm() {
 
                   {/* DEMO-1 — extra's (horeca-module) */}
                   {horeca && isEditing && id ? <ProductAddonsCard productId={id} categoryIds={selectedCategoryIds} /> : null}
+                  {/* ALLERGEN-1 — allergenen en dieetlabels (horeca-module) */}
+                  {horeca && isEditing && id ? <ProductAllergensCard productId={id} /> : null}
 
                   {/* Events & Datums (alleen bij ticket) */}
                   {isTicket && (isEditing && id ? (

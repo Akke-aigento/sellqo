@@ -5166,7 +5166,11 @@
         "qr_popup_blocked": "Je browser blokkeerde het afdrukvenster. Sta pop-ups toe voor SellQo.",
         "qr_print_hint": "A4-pagina's: {{count}} · zet de marges op \"geen\" en schalen op 100%",
         "never": "nooit",
-        "none_lower": "geen"
+        "none_lower": "geen",
+        "allergens_title": "Allergenen",
+        "allergens_desc": "Welke van de 14 allergenen zitten in dit gerecht? Je klant ziet ze op de productpagina en de menukaart, vóór hij bestelt (verplicht bij verkoop op afstand).",
+        "dietary_title": "Kenmerken",
+        "allergens_none_hint": "Niets aangevinkt: de winkel vermeldt dan geen allergenen bij dit gerecht. Twijfel je, vraag het na bij je leverancier."
       },
       "shopOpenCard": {
         "klanten_kunnen_afrekenen_uit_je_winkel": "Klanten kunnen afrekenen. Uit = je winkel toont je producten, zonder winkelmandje.",
@@ -5357,6 +5361,29 @@
       "notify_failed": "Klant verwittigen lukte niet",
       "notified_ready": "Klant gemaild: bestelling klaar",
       "notified_on_the_way": "Klant gemaild: bestelling onderweg"
+    },
+    "allergens": {
+      "gluten": "Gluten (granen)",
+      "crustaceans": "Schaaldieren",
+      "eggs": "Eieren",
+      "fish": "Vis",
+      "peanuts": "Pinda’s",
+      "soy": "Soja",
+      "milk": "Melk (lactose)",
+      "nuts": "Noten",
+      "celery": "Selder",
+      "mustard": "Mosterd",
+      "sesame": "Sesamzaad",
+      "sulphites": "Sulfieten",
+      "lupin": "Lupine",
+      "molluscs": "Weekdieren"
+    },
+    "dietary": {
+      "vegetarian": "Vegetarisch",
+      "vegan": "Veganistisch",
+      "spicy": "Pikant",
+      "halal": "Halal",
+      "gluten_free": "Glutenvrij"
     }
   },
   "product_form": {

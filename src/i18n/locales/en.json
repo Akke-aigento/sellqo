@@ -5273,7 +5273,11 @@
           "afdrukken_of_opslaan_als_pdf": "Print or save as PDF"
         },
         "never": "never",
-        "none_lower": "none"
+        "none_lower": "none",
+        "allergens_title": "Allergens",
+        "allergens_desc": "Which of the 14 allergens are in this dish? Your customer sees them on the product page and the menu before ordering (required for distance selling).",
+        "dietary_title": "Labels",
+        "allergens_none_hint": "Nothing checked: the store then lists no allergens for this dish. If in doubt, check with your supplier."
       },
       "schema": {
         "themeGallery": {
@@ -5343,6 +5347,29 @@
         "online_bestellen_staat_uit": "Online ordering is off",
         "je_winkel_staat_offline": "Your store is offline"
       }
+    },
+    "allergens": {
+      "gluten": "Gluten (cereals)",
+      "crustaceans": "Crustaceans",
+      "eggs": "Eggs",
+      "fish": "Fish",
+      "peanuts": "Peanuts",
+      "soy": "Soy",
+      "milk": "Milk (lactose)",
+      "nuts": "Tree nuts",
+      "celery": "Celery",
+      "mustard": "Mustard",
+      "sesame": "Sesame",
+      "sulphites": "Sulphites",
+      "lupin": "Lupin",
+      "molluscs": "Molluscs"
+    },
+    "dietary": {
+      "vegetarian": "Vegetarian",
+      "vegan": "Vegan",
+      "spicy": "Spicy",
+      "halal": "Halal",
+      "gluten_free": "Gluten-free"
     }
   },
   "product_form": {

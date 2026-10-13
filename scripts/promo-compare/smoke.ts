@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -154,6 +154,13 @@ await check('leverzone gaat voor minimumbedrag (DEMO-1)', async () => {
   assert(S.fulfillmentAvailability(m, { postal_code: '2000', subtotal: 5 }).unavailable_reason === 'delivery_zone', 'buiten zone en te weinig: zone eerst');
   assert(S.fulfillmentAvailability(m, { postal_code: '3000', subtotal: 5 }).unavailable_reason === 'min_order', 'in zone, te weinig');
   assert(S.fulfillmentAvailability(m, { postal_code: '3000', subtotal: 20 }).available === true, 'in zone, genoeg');
+});
+
+await check('allergenen alleen als ingevuld (ALLERGEN-1)', async () => {
+  assert(JSON.stringify(S.foodInfo({ allergens: [], dietary: [] })) === '{}', 'leeg = geen sleutels (respons ongewijzigd)');
+  assert(JSON.stringify(S.foodInfo({})) === '{}', 'ontbrekend = geen sleutels');
+  const r = S.foodInfo({ allergens: ['gluten', 'milk'], dietary: ['vegetarian'] });
+  assert(r.allergens?.join() === 'gluten,milk' && r.dietary?.join() === 'vegetarian', JSON.stringify(r));
 });
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }
