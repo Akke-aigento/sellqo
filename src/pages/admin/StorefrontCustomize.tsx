@@ -74,8 +74,9 @@ function pickTheme(src: Record<string, unknown> | null | undefined): ThemeDraft 
 function themeForShop(t: ThemeDraft) {
   return {
     primary_color: (t.brand_color as string) || (t.primary_color as string) || null,
-    logo_url: t.logo_url ?? null,
-    favicon_url: t.favicon_url ?? null,
+    // Leeg = niets meesturen: de winkel valt dan terug op het logo uit de winkelinstellingen.
+    ...(t.logo_url ? { logo_url: t.logo_url } : {}),
+    ...(t.favicon_url ? { favicon_url: t.favicon_url } : {}),
     heading_font: t.heading_font ?? null,
     body_font: t.body_font ?? null,
     header_sticky: t.header_sticky !== false,
@@ -152,14 +153,17 @@ export default function StorefrontCustomizePage() {
   const origin = slug ? shopOrigin(slug) : '';
   const baseTheme = useMemo(() => pickTheme(themeSettings as unknown as Record<string, unknown>), [themeSettings]);
 
-  // Concept vullen zodra de gegevens er zijn (en na elke opslag).
+  // Concept vullen zodra de gegevens er zijn, en opnieuw na elke opslag (resync),
+  // zonder het scherm of het voorbeeld weg te halen.
+  const [resync, setResync] = useState(false);
   useEffect(() => {
-    if (settingsLoading || sectionsLoading || loaded) return;
+    if (settingsLoading || sectionsLoading || (loaded && !resync)) return;
     setTheme(baseTheme);
     setSections(serverSections);
     setDeleted([]);
     setLoaded(true);
-  }, [settingsLoading, sectionsLoading, loaded, baseTheme, serverSections]);
+    setResync(false);
+  }, [settingsLoading, sectionsLoading, loaded, resync, baseTheme, serverSections]);
 
   const themeDirty = loaded && !sameJson(theme, baseTheme);
   const sectionsDirty = loaded && (deleted.length > 0 || !sameJson(
@@ -305,7 +309,7 @@ export default function StorefrontCustomizePage() {
         queryClient.invalidateQueries({ queryKey: ['homepage-sections', currentTenant.id] }),
       ]);
       // Concept opnieuw vullen uit de verse gegevens (nieuwe secties krijgen hun echte ID).
-      setLoaded(false);
+      setResync(true);
       setPanel({ kind: 'list' });
       post({ type: 'sellqo:reload' });
       toast.success('Opgeslagen — je winkel is bijgewerkt');
