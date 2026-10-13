@@ -761,6 +761,8 @@ const ADVANCED_PRODUCT_CAP = 2000;
 
 // Categorie (id of slug, ook via product_categories) en zoekterm, identiek aan wat
 // get_products altijd deed. Gedeeld met get_product_filters.
+// LET OP: een supabase-querybuilder is "thenable": `await builder` VOERT hem uit. Daarom
+// komt de builder terug ingepakt in { q }, nooit rechtstreeks uit een async functie.
 async function applyCategoryAndSearch(supabase: SupabaseLike, tenantId: string, query: SupabaseLike, categoryId?: string, categorySlug?: string, search?: string) {
   let resolvedCategoryId = categoryId;
   if (!resolvedCategoryId && categorySlug) {
@@ -784,7 +786,7 @@ async function applyCategoryAndSearch(supabase: SupabaseLike, tenantId: string, 
     }
   }
   if (search) query = query.ilike('name', `%${search}%`);
-  return query;
+  return { q: query };
 }
 
 async function loadActiveVariants(supabase: SupabaseLike, productIds: string[]): Promise<Map<string, DbRow[]>> {
@@ -825,10 +827,10 @@ async function getProductFilters(supabase: SupabaseLike, tenantId: string, param
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
-  query = await applyCategoryAndSearch(
+  query = (await applyCategoryAndSearch(
     supabase, tenantId, query,
     params?.category_id as string | undefined, params?.category_slug as string | undefined, params?.search as string | undefined,
-  );
+  )).q;
   const { data, error } = await query.range(0, ADVANCED_PRODUCT_CAP - 1);
   if (error) throw error;
   const products = (data || []).filter((p: DbRow) => !(p.categories && p.categories.hide_from_storefront));
@@ -889,7 +891,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
 
-  query = await applyCategoryAndSearch(supabase, tenantId, query, categoryId, categorySlug, search);
+  query = (await applyCategoryAndSearch(supabase, tenantId, query, categoryId, categorySlug, search)).q;
   if (minPrice != null) query = query.gte('price', minPrice);
   if (maxPrice != null) query = query.lte('price', maxPrice);
   if (isFeatured) query = query.eq('is_featured', true);
@@ -4250,7 +4252,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'CATALOG-FILTERS-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'CATALOG-FILTERS-1b' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
