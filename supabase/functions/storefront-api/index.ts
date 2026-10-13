@@ -203,15 +203,33 @@ async function getTranslations(supabase: any, tenantId: string, entityType: stri
 
 // ============== RESOLVE DOMAIN ==============
 
+// SHOP-API-1 — subdomeinen van sellqo.shop die nooit een winkel mogen zijn.
+const SELLQO_SHOP_RESERVED = new Set([
+  'www', 'app', 'api', 'admin', 'mail', 'smtp', 'imap', 'webmail', 'shop', 'shops', 'store', 'cdn', 'static',
+  'assets', 'img', 'images', 'docs', 'help', 'support', 'status', 'blog', 'dev', 'staging', 'test', 'preview',
+  'sellqo', 'studio-akke', 'auth', 'login', 'account', 'billing', 'pay', 'checkout', 'ns1', 'ns2',
+]);
+
 async function resolveDomain(supabase: any, params: Record<string, unknown>) {
   const hostname = (params.hostname as string || '').toLowerCase().trim();
   if (!hostname) throw new Error('hostname is required');
 
-  const { data: domain, error } = await supabase
+  const { data: found, error } = await supabase
     .from('tenant_domains')
     .select('id, tenant_id, domain, locale, is_canonical, is_active, dns_verified, ssl_active')
     .eq('domain', hostname).eq('is_active', true).maybeSingle();
   if (error) throw error;
+  let domain = found;
+  // SHOP-API-1 — `<winkel>.sellqo.shop` (gratis SellQo-adres van de standaardshop):
+  // geen rij in tenant_domains nodig, de subdomeinnaam is de tenant-slug. Alleen als er
+  // geen expliciete koppeling is; gereserveerde namen nooit.
+  if (!domain) {
+    const m = hostname.match(/^([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)\.sellqo\.shop$/);
+    if (m && !SELLQO_SHOP_RESERVED.has(m[1])) {
+      const { data: t } = await supabase.from('tenants').select('id').eq('slug', m[1]).maybeSingle();
+      if (t) domain = { id: null, tenant_id: t.id, domain: hostname, locale: null, is_canonical: false, is_active: true, dns_verified: true, ssl_active: true };
+    }
+  }
   if (!domain) throw new Error('Domain not found');
 
   const [{ data: tenant }, { data: themeSettings }, { data: allDomains }] = await Promise.all([
@@ -1147,6 +1165,10 @@ async function getStorefrontBundle(supabase: any, tenantId: string, params: Reco
   delete rawTheme.storefront_password;
   delete rawTheme.id;
   delete rawTheme.tenant_id;
+  // SHOP-API-1 — interne configuratie van eigen frontends (o.a. API-sleutelhash) en
+  // eigen scripts horen niet in een publiek antwoord.
+  delete rawTheme.custom_frontend_config;
+  delete rawTheme.custom_head_scripts;
   const store = (config as any)?.store || {};
   const theme = {
     ...rawTheme,
@@ -4252,7 +4274,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'CATALOG-FILTERS-1b' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SHOP-API-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

@@ -1,3 +1,11 @@
+## SHOP-API-1 — webshop-API klaar voor de standaardshop op sellqo.shop — 13 oktober 2026
+
+Hoort bij de start van de standaardshop (repo `Akke-aigento/sellqo-storefront`, SHOP-1).
+
+- `resolve_domain`: een hostnaam `<slug>.sellqo.shop` zonder rij in `tenant_domains` wordt de tenant met die slug. Een expliciete koppeling gaat altijd voor. Gereserveerde namen (www, app, api, admin, mail, …) worden nooit een winkel. Andere hostnamen werken zoals vroeger.
+- `get_storefront_bundle` (nog door geen enkele frontend gebruikt): `theme` laat `custom_frontend_config` en `custom_head_scripts` weg. De bundel gaf de API-sleutelhash van eigen frontends publiek terug sinds STOREFRONT-BUNDLE-1, live sinds de deploy van PROMO-ENGINE-1. Het ging om een hash, niet om de sleutel zelf. Die is nu weg.
+- Stempel `SHOP-API-1`. Rooktest groen.
+
 ## CATALOG-FILTERS-1 — filters, facetten en "bestverkocht" in de webshop-API — 13 oktober 2026
 
 Webshoptraject fase 1, "de motor compleet". Alles is additief: zonder de nieuwe parameters loopt `get_products` exact zoals vroeger, met dezelfde query, paginering en respons.
