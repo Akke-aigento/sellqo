@@ -15,6 +15,7 @@ import { formatCurrency } from '@/lib/utils';
 import { generateEPCString } from '@/lib/epcQrCode';
 import { generateOGM } from '@/lib/ogm';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface POSBankTransferDialogProps {
   open: boolean;
@@ -37,6 +38,7 @@ export function POSBankTransferDialog({
   onConfirmPayment,
   isProcessing = false,
 }: POSBankTransferDialogProps) {
+  const { t } = useTranslation();
   // Generate OGM using timestamp as base
   const ogmReference = useMemo(() => generateOGM(Date.now()), []);
   
@@ -53,7 +55,7 @@ export function POSBankTransferDialog({
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(`${label} gekopieerd`);
+    toast.success(t('admin.pos.msg.copied', { label }));
   };
 
   const handleConfirm = () => {
@@ -65,14 +67,14 @@ export function POSBankTransferDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Bank instellingen ontbreken</DialogTitle>
+            <DialogTitle>{t('admin.pos.pOSBankTransferDialog.bank_instellingen_ontbreken')}</DialogTitle>
             <DialogDescription>
-              Configureer eerst uw IBAN en BIC in de bedrijfsinstellingen om bankoverschrijvingen te accepteren.
+              {t('admin.pos.pOSBankTransferDialog.configureer_eerst_uw_iban_en_bic')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Sluiten
+              {t('common.close')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -86,10 +88,10 @@ export function POSBankTransferDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Banknote className="h-5 w-5" />
-            Directe Bankoverschrijving
+            {t('admin.pos.pOSBankTransferDialog.directe_bankoverschrijving')}
           </DialogTitle>
           <DialogDescription>
-            Laat de klant de QR-code scannen met hun bank-app voor directe betaling
+            {t('admin.pos.pOSBankTransferDialog.laat_de_klant_de_qr_code')}
           </DialogDescription>
         </DialogHeader>
 
@@ -105,7 +107,7 @@ export function POSBankTransferDialog({
 
           {/* Amount */}
           <div className="text-center">
-            <p className="text-sm text-muted-foreground">Te betalen</p>
+            <p className="text-sm text-muted-foreground">{t('admin.pos.pOSBankTransferDialog.te_betalen')}</p>
             <p className="text-3xl font-bold">{formatCurrency(amount)}</p>
           </div>
 
@@ -114,7 +116,7 @@ export function POSBankTransferDialog({
           {/* Payment Details */}
           <div className="space-y-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Begunstigde</span>
+              <span className="text-muted-foreground">{t('admin.pos.pOSBankTransferDialog.begunstigde')}</span>
               <span className="font-medium">{tenantName}</span>
             </div>
             
@@ -134,7 +136,7 @@ export function POSBankTransferDialog({
             </div>
             
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Mededeling</span>
+              <span className="text-muted-foreground">{t('admin.pos.pOSBankTransferDialog.mededeling')}</span>
               <div className="flex items-center gap-2">
                 <span className="font-mono font-medium text-primary">{ogmReference}</span>
                 <Button 
@@ -150,10 +152,9 @@ export function POSBankTransferDialog({
           </div>
 
           <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 text-sm text-blue-700 dark:text-blue-300">
-            <p className="font-medium mb-1">SEPA Instant Overschrijving</p>
+            <p className="font-medium mb-1">{t('admin.pos.pOSBankTransferDialog.sepa_instant_overschrijving')}</p>
             <p className="text-xs">
-              Bij de meeste banken komt de betaling binnen enkele seconden binnen. 
-              Bevestig zodra de klant de betaling heeft uitgevoerd.
+              {t('admin.pos.pOSBankTransferDialog.bij_de_meeste_banken_komt_de')}
             </p>
           </div>
         </div>
@@ -164,7 +165,7 @@ export function POSBankTransferDialog({
             onClick={() => onOpenChange(false)}
             disabled={isProcessing}
           >
-            Annuleren
+            {t('common.cancel')}
           </Button>
           <Button 
             onClick={handleConfirm}

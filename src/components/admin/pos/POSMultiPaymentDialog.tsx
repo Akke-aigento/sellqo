@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { POSGiftCardInput, AppliedGiftCard } from './POSGiftCardInput';
 import { POSLoyaltyPanel } from './POSLoyaltyPanel';
 import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface POSMultiPaymentDialogProps {
   open: boolean;
@@ -53,6 +54,7 @@ export function POSMultiPaymentDialog({
   onPaymentComplete,
   isProcessing = false,
 }: POSMultiPaymentDialogProps) {
+  const { t } = useTranslation();
   const [appliedGiftCards, setAppliedGiftCards] = useState<AppliedGiftCard[]>([]);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [loyaltyEuroValue, setLoyaltyEuroValue] = useState(0);
@@ -139,16 +141,16 @@ export function POSMultiPaymentDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Betaling</DialogTitle>
+          <DialogTitle>{t('admin.orders.betaling')}</DialogTitle>
           <DialogDescription>
-            Kies betaalmethode(s) voor dit bedrag
+            {t('admin.pos.pOSMultiPaymentDialog.kies_betaalmethode_s_voor_dit_bedrag')}
           </DialogDescription>
         </DialogHeader>
 
         {/* Summary */}
         <div className="p-4 rounded-lg bg-muted/50 space-y-2">
           <div className="flex justify-between">
-            <span>Totaal</span>
+            <span>{t('common.total')}</span>
             <span className="font-bold">{formatCurrency(total)}</span>
           </div>
           
@@ -156,7 +158,7 @@ export function POSMultiPaymentDialog({
             <div className="flex justify-between text-green-600">
               <span className="flex items-center gap-1">
                 <Gift className="h-3 w-3" />
-                Cadeaukaarten
+                {t('admin.promotions.modules.gift-cards.title')}
               </span>
               <span>-{formatCurrency(giftCardTotal)}</span>
             </div>
@@ -175,7 +177,7 @@ export function POSMultiPaymentDialog({
           <Separator />
           
           <div className="flex justify-between text-lg font-bold">
-            <span>Te betalen</span>
+            <span>{t('admin.pos.pOSBankTransferDialog.te_betalen')}</span>
             <span>{formatCurrency(remainingAmount)}</span>
           </div>
         </div>
@@ -185,11 +187,11 @@ export function POSMultiPaymentDialog({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="giftcard" className="flex items-center gap-2">
               <Gift className="h-4 w-4" />
-              Cadeaukaart
+              {t('admin.pOSTerminal.cadeaukaart')}
             </TabsTrigger>
             <TabsTrigger value="loyalty" className="flex items-center gap-2">
               <Star className="h-4 w-4" />
-              Loyalty
+              {t('admin.pos.pOSMultiPaymentDialog.loyalty')}
             </TabsTrigger>
           </TabsList>
 
@@ -218,18 +220,18 @@ export function POSMultiPaymentDialog({
           <>
             <Separator />
             <div className="space-y-3">
-              <Label>Restbedrag betalen</Label>
+              <Label>{t('admin.pos.pOSMultiPaymentDialog.restbedrag_betalen')}</Label>
               
               {/* Cash option */}
               <div className="p-3 rounded-lg border space-y-2">
                 <div className="flex items-center gap-2">
                   <Banknote className="h-4 w-4" />
-                  <span className="font-medium">Contant</span>
+                  <span className="font-medium">{t('admin.pos.pOSMultiPaymentDialog.contant')}</span>
                 </div>
                 <div className="flex gap-2">
                   <Input
                     type="number"
-                    placeholder="Ontvangen bedrag"
+                    placeholder={t('admin.pos.pOSMultiPaymentDialog.ontvangen_bedrag')}
                     value={cashReceived}
                     onChange={(e) => setCashReceived(e.target.value)}
                     step={0.01}
@@ -244,7 +246,7 @@ export function POSMultiPaymentDialog({
                     ) : (
                       <>
                         <Check className="mr-2 h-4 w-4" />
-                        Betalen
+                        {t('admin.pos.pOSMultiPaymentDialog.betalen')}
                       </>
                     )}
                   </Button>

@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import type { POSSession, POSTransaction, POSCashMovement } from '@/types/pos';
+import { useTranslation } from 'react-i18next';
 
 interface SessionReportDialogProps {
   open: boolean;
@@ -65,6 +66,7 @@ export function SessionReportDialog({
   cashMovements,
   onClose,
 }: SessionReportDialogProps) {
+  const { t, i18n } = useTranslation();
   // Calculate payment summary
   const paymentSummary = useMemo<PaymentSummary>(() => {
     const summary = { cash: 0, card: 0, other: 0, total: 0 };
@@ -134,43 +136,46 @@ export function SessionReportDialog({
   const handleExport = () => {
     if (!session) return;
 
+    // Labels in de UI-taal; uitgelijnd met padEnd zodat het tekstbestand leesbaar blijft.
+    const row = (key: string, value: string) => `${`${t(key)}:`.padEnd(16)}${value}`;
+    const title = (key: string) => t(key).toUpperCase().padStart(Math.floor((39 + t(key).length) / 2));
     const lines = [
       '═══════════════════════════════════════',
-      '           DAGAFSLUITING',
+      title('admin.pos.zreport.title'),
       '═══════════════════════════════════════',
       '',
-      `Terminal: ${session.terminal?.name || 'Onbekend'}`,
-      `Datum: ${new Date(session.opened_at).toLocaleDateString('nl-NL')}`,
-      `Geopend: ${new Date(session.opened_at).toLocaleTimeString('nl-NL')}`,
-      session.closed_at ? `Gesloten: ${new Date(session.closed_at).toLocaleTimeString('nl-NL')}` : '',
+      row('admin.pos.zreport.terminal', session.terminal?.name || t('admin.pos.zreport.unknown')),
+      row('admin.pos.zreport.date', new Date(session.opened_at).toLocaleDateString(i18n.language)),
+      row('admin.pos.zreport.opened', new Date(session.opened_at).toLocaleTimeString(i18n.language)),
+      session.closed_at ? row('admin.pos.zreport.closed', new Date(session.closed_at).toLocaleTimeString(i18n.language)) : '',
       '',
       '───────────────────────────────────────',
-      '            TRANSACTIES',
+      title('admin.pos.zreport.transactions'),
       '───────────────────────────────────────',
-      `Totaal transacties: ${transactionSummary.count}`,
-      `Afgerond: ${transactionSummary.completed}`,
-      `Geannuleerd: ${transactionSummary.voided}`,
-      `Terugbetaald: ${transactionSummary.refunded}`,
+      row('admin.pos.zreport.total_transactions', String(transactionSummary.count)),
+      row('admin.pos.zreport.completed', String(transactionSummary.completed)),
+      row('admin.pos.zreport.voided', String(transactionSummary.voided)),
+      row('admin.pos.zreport.refunded', String(transactionSummary.refunded)),
       '',
       '───────────────────────────────────────',
-      '          BETALINGSMETHODES',
+      title('admin.pos.zreport.payment_methods'),
       '───────────────────────────────────────',
-      `Contant:     ${formatCurrency(paymentSummary.cash)}`,
-      `PIN/Kaart:   ${formatCurrency(paymentSummary.card)}`,
-      `Overig:      ${formatCurrency(paymentSummary.other)}`,
+      row('admin.pos.zreport.cash', formatCurrency(paymentSummary.cash)),
+      row('admin.pos.zreport.card', formatCurrency(paymentSummary.card)),
+      row('admin.pos.zreport.other', formatCurrency(paymentSummary.other)),
       `─────────────────────────────`,
-      `TOTAAL:      ${formatCurrency(paymentSummary.total)}`,
+      row('admin.pos.zreport.total', formatCurrency(paymentSummary.total)),
       '',
       '───────────────────────────────────────',
-      '           KASCONTROLE',
+      title('admin.pos.zreport.cash_check'),
       '───────────────────────────────────────',
-      `Startbedrag:   ${formatCurrency(session.opening_cash)}`,
-      `Contant omzet: ${formatCurrency(paymentSummary.cash)}`,
-      `Kasmutaties:   ${formatCurrency(cashMovementsSummary.net)}`,
+      row('admin.pos.zreport.opening_cash', formatCurrency(session.opening_cash)),
+      row('admin.pos.zreport.cash_sales', formatCurrency(paymentSummary.cash)),
+      row('admin.pos.zreport.cash_movements', formatCurrency(cashMovementsSummary.net)),
       `─────────────────────────────`,
-      `Verwacht:      ${formatCurrency(expectedCash)}`,
-      session.closing_cash !== null ? `Geteld:        ${formatCurrency(session.closing_cash)}` : '',
-      cashDifference !== null ? `Verschil:      ${formatCurrency(cashDifference)}` : '',
+      row('admin.pos.zreport.expected', formatCurrency(expectedCash)),
+      session.closing_cash !== null ? row('admin.pos.zreport.counted', formatCurrency(session.closing_cash)) : '',
+      cashDifference !== null ? row('admin.pos.zreport.difference', formatCurrency(cashDifference)) : '',
       '',
       '═══════════════════════════════════════',
     ].filter(Boolean);
@@ -179,7 +184,7 @@ export function SessionReportDialog({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `dagafsluiting-${new Date(session.opened_at).toISOString().split('T')[0]}.txt`;
+    a.download = `${t('admin.pos.zreport.file_name')}-${new Date(session.opened_at).toISOString().split('T')[0]}.txt`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -192,10 +197,10 @@ export function SessionReportDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Dagafsluiting
+            {t('admin.pos.sessionReportDialog.dagafsluiting')}
           </DialogTitle>
           <DialogDescription>
-            {session.terminal?.name || 'Terminal'} - {new Date(session.opened_at).toLocaleDateString('nl-NL', {
+            {session.terminal?.name || 'Terminal'} - {new Date(session.opened_at).toLocaleDateString(i18n.language, {
               weekday: 'long',
               day: 'numeric',
               month: 'long',
@@ -211,41 +216,41 @@ export function SessionReportDialog({
               <div className="flex items-center gap-3">
                 <Clock className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <p className="text-sm text-muted-foreground">Sessieduur</p>
+                  <p className="text-sm text-muted-foreground">{t('admin.pos.sessionReportDialog.sessieduur')}</p>
                   <p className="font-medium">
-                    {new Date(session.opened_at).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })}
+                    {new Date(session.opened_at).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })}
                     {' - '}
                     {session.closed_at 
-                      ? new Date(session.closed_at).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' })
+                      ? new Date(session.closed_at).toLocaleTimeString(i18n.language, { hour: '2-digit', minute: '2-digit' })
                       : 'Nu'
                     }
                   </p>
                 </div>
               </div>
               <Badge variant={session.status === 'open' ? 'default' : 'secondary'}>
-                {session.status === 'open' ? 'Actief' : 'Gesloten'}
+                {session.status === 'open' ? t('admin.marketing.aBTestingPanel.actief') : t('admin.storefront.food.fulfillmentSettings.gesloten')}
               </Badge>
             </div>
 
             {/* Transaction Summary */}
             <div>
-              <h3 className="text-sm font-medium mb-3">Transacties</h3>
+              <h3 className="text-sm font-medium mb-3">{t('admin.pos.dashboardPOSWidget.transacties')}</h3>
               <div className="grid grid-cols-4 gap-3">
                 <div className="p-3 rounded-lg bg-muted/50 text-center">
                   <p className="text-2xl font-bold">{transactionSummary.count}</p>
-                  <p className="text-xs text-muted-foreground">Totaal</p>
+                  <p className="text-xs text-muted-foreground">{t('common.total')}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-green-50 dark:bg-green-950 text-center">
                   <p className="text-2xl font-bold text-green-600">{transactionSummary.completed}</p>
-                  <p className="text-xs text-green-600">Afgerond</p>
+                  <p className="text-xs text-green-600">{t('admin.products.productEventDatesTab.statuses.completed')}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950 text-center">
                   <p className="text-2xl font-bold text-orange-600">{transactionSummary.voided}</p>
-                  <p className="text-xs text-orange-600">Geannuleerd</p>
+                  <p className="text-xs text-orange-600">{t('admin.marketing.aBTestingPanel.geannuleerd')}</p>
                 </div>
                 <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 text-center">
                   <p className="text-2xl font-bold text-blue-600">{transactionSummary.refunded}</p>
-                  <p className="text-xs text-blue-600">Terugbetaald</p>
+                  <p className="text-xs text-blue-600">{t('admin.orderFilters.terugbetaald')}</p>
                 </div>
               </div>
             </div>
@@ -254,19 +259,19 @@ export function SessionReportDialog({
 
             {/* Payment Methods */}
             <div>
-              <h3 className="text-sm font-medium mb-3">Betalingsmethodes</h3>
+              <h3 className="text-sm font-medium mb-3">{t('admin.pos.sessionReportDialog.betalingsmethodes')}</h3>
               <div className="space-y-2">
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-3">
                     <Banknote className="h-5 w-5 text-green-600" />
-                    <span>Contant</span>
+                    <span>{t('admin.pos.pOSMultiPaymentDialog.contant')}</span>
                   </div>
                   <span className="font-semibold">{formatCurrency(paymentSummary.cash)}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                   <div className="flex items-center gap-3">
                     <CreditCard className="h-5 w-5 text-blue-600" />
-                    <span>PIN / Kaart</span>
+                    <span>{t('admin.pos.sessionReportDialog.pin_kaart')}</span>
                   </div>
                   <span className="font-semibold">{formatCurrency(paymentSummary.card)}</span>
                 </div>
@@ -274,13 +279,13 @@ export function SessionReportDialog({
                   <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
                     <div className="flex items-center gap-3">
                       <Receipt className="h-5 w-5 text-muted-foreground" />
-                      <span>Overig</span>
+                      <span>{t('admin.pos.sessionReportDialog.overig')}</span>
                     </div>
                     <span className="font-semibold">{formatCurrency(paymentSummary.other)}</span>
                   </div>
                 )}
                 <div className="flex items-center justify-between p-4 rounded-lg bg-primary/10 border-2 border-primary/20">
-                  <span className="font-semibold">Totale Omzet</span>
+                  <span className="font-semibold">{t('admin.ads.totale_omzet')}</span>
                   <span className="text-xl font-bold">{formatCurrency(paymentSummary.total)}</span>
                 </div>
               </div>
@@ -290,18 +295,18 @@ export function SessionReportDialog({
 
             {/* Cash Reconciliation */}
             <div>
-              <h3 className="text-sm font-medium mb-3">Kascontrole</h3>
+              <h3 className="text-sm font-medium mb-3">{t('admin.pos.sessionReportDialog.kascontrole')}</h3>
               <div className="w-full overflow-x-auto">
               <Table>
                 <TableBody>
                   <TableRow>
-                    <TableCell className="text-muted-foreground">Startbedrag</TableCell>
+                    <TableCell className="text-muted-foreground">{t('admin.pos.sessionReportDialog.startbedrag')}</TableCell>
                     <TableCell className="text-right font-medium">
                       {formatCurrency(session.opening_cash)}
                     </TableCell>
                   </TableRow>
                   <TableRow>
-                    <TableCell className="text-muted-foreground">Contante omzet</TableCell>
+                    <TableCell className="text-muted-foreground">{t('admin.pos.sessionReportDialog.contante_omzet')}</TableCell>
                     <TableCell className="text-right font-medium text-green-600">
                       +{formatCurrency(paymentSummary.cash)}
                     </TableCell>
@@ -311,7 +316,7 @@ export function SessionReportDialog({
                       <TableCell className="text-muted-foreground">
                         <span className="flex items-center gap-2">
                           <TrendingUp className="h-4 w-4 text-green-600" />
-                          Kasstortingen
+                          {t('admin.pos.sessionReportDialog.kasstortingen')}
                         </span>
                       </TableCell>
                       <TableCell className="text-right font-medium text-green-600">
@@ -324,7 +329,7 @@ export function SessionReportDialog({
                       <TableCell className="text-muted-foreground">
                         <span className="flex items-center gap-2">
                           <TrendingDown className="h-4 w-4 text-red-600" />
-                          Kasopnames
+                          {t('admin.pos.sessionReportDialog.kasopnames')}
                         </span>
                       </TableCell>
                       <TableCell className="text-right font-medium text-red-600">
@@ -333,7 +338,7 @@ export function SessionReportDialog({
                     </TableRow>
                   )}
                   <TableRow className="border-t-2">
-                    <TableCell className="font-semibold">Verwacht in kas</TableCell>
+                    <TableCell className="font-semibold">{t('admin.pos.sessionReportDialog.verwacht_in_kas')}</TableCell>
                     <TableCell className="text-right font-bold">
                       {formatCurrency(expectedCash)}
                     </TableCell>
@@ -341,19 +346,19 @@ export function SessionReportDialog({
                   {session.closing_cash !== null && (
                     <>
                       <TableRow>
-                        <TableCell className="text-muted-foreground">Geteld bedrag</TableCell>
+                        <TableCell className="text-muted-foreground">{t('admin.pos.sessionReportDialog.geteld_bedrag')}</TableCell>
                         <TableCell className="text-right font-medium">
                           {formatCurrency(session.closing_cash)}
                         </TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell className="font-semibold">Verschil</TableCell>
+                        <TableCell className="font-semibold">{t('admin.seo.competitorAnalysisPanel.verschil')}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             {cashDifference === 0 ? (
                               <>
                                 <CheckCircle2 className="h-4 w-4 text-green-600" />
-                                <span className="font-bold text-green-600">Kloppend</span>
+                                <span className="font-bold text-green-600">{t('admin.pos.sessionReportDialog.kloppend')}</span>
                               </>
                             ) : cashDifference !== null && cashDifference > 0 ? (
                               <>
@@ -385,7 +390,7 @@ export function SessionReportDialog({
               <>
                 <Separator />
                 <div>
-                  <h3 className="text-sm font-medium mb-3">Kasmutaties</h3>
+                  <h3 className="text-sm font-medium mb-3">{t('admin.pos.sessionReportDialog.kasmutaties')}</h3>
                   <div className="space-y-2">
                     {cashMovements.map((movement) => (
                       <div
@@ -395,7 +400,7 @@ export function SessionReportDialog({
                         <div>
                           <p className="font-medium">{movement.reason}</p>
                           <p className="text-xs text-muted-foreground">
-                            {new Date(movement.created_at).toLocaleTimeString('nl-NL', {
+                            {new Date(movement.created_at).toLocaleTimeString(i18n.language, {
                               hour: '2-digit',
                               minute: '2-digit',
                             })}
@@ -421,17 +426,17 @@ export function SessionReportDialog({
           <div className="flex gap-2 w-full">
             <Button variant="outline" onClick={handleExport}>
               <FileDown className="mr-2 h-4 w-4" />
-              Exporteren
+              {t('admin.pos.sessionReportDialog.exporteren')}
             </Button>
             <Button variant="outline" onClick={handlePrint}>
               <Printer className="mr-2 h-4 w-4" />
-              Afdrukken
+              {t('admin.pos.sessionReportDialog.afdrukken')}
             </Button>
             <Button onClick={() => {
               onOpenChange(false);
               onClose?.();
             }} className="flex-1">
-              {session.status === 'open' ? 'Sluiten' : 'Gereed'}
+              {session.status === 'open' ? t('common.close') : t('admin.pos.sessionReportDialog.gereed')}
             </Button>
           </div>
         </DialogFooter>

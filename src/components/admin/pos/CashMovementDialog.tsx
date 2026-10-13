@@ -14,6 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import type { POSCashMovementType } from '@/types/pos';
+import { useTranslation } from 'react-i18next';
 
 interface CashMovementDialogProps {
   open: boolean;
@@ -47,6 +48,7 @@ export function CashMovementDialog({
   onSubmit,
   isPending,
 }: CashMovementDialogProps) {
+  const { t } = useTranslation();
   const [movementType, setMovementType] = useState<POSCashMovementType>('in');
   const [amount, setAmount] = useState('');
   const [reason, setReason] = useState('');
@@ -79,16 +81,16 @@ export function CashMovementDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Kasmutatie Toevoegen</DialogTitle>
+          <DialogTitle>{t('admin.pos.cashMovementDialog.kasmutatie_toevoegen')}</DialogTitle>
           <DialogDescription>
-            Registreer een kasstorting of -opname.
+            {t('admin.pos.cashMovementDialog.registreer_een_kasstorting_of_opname')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Movement Type */}
           <div className="space-y-2">
-            <Label>Type mutatie</Label>
+            <Label>{t('admin.pos.cashMovementDialog.type_mutatie')}</Label>
             <div className="grid grid-cols-2 gap-3">
               <button
                 type="button"
@@ -103,7 +105,7 @@ export function CashMovementDialog({
                 }`}
               >
                 <TrendingUp className="h-5 w-5" />
-                <span className="font-medium">Geld IN</span>
+                <span className="font-medium">{t('admin.pos.cashMovementDialog.geld_in')}</span>
               </button>
               <button
                 type="button"
@@ -118,14 +120,14 @@ export function CashMovementDialog({
                 }`}
               >
                 <TrendingDown className="h-5 w-5" />
-                <span className="font-medium">Geld UIT</span>
+                <span className="font-medium">{t('admin.pos.cashMovementDialog.geld_uit')}</span>
               </button>
             </div>
           </div>
 
           {/* Amount */}
           <div className="space-y-2">
-            <Label htmlFor="amount">Bedrag (€)</Label>
+            <Label htmlFor="amount">{t('admin.promotions.autoDiscountFormDialog.bedrag')}</Label>
             <Input
               id="amount"
               type="number"
@@ -140,7 +142,7 @@ export function CashMovementDialog({
 
           {/* Reason */}
           <div className="space-y-2">
-            <Label>Reden</Label>
+            <Label>{t('admin.stockLedger.colReason')}</Label>
             <RadioGroup value={reason} onValueChange={setReason}>
               {reasons.map((r) => (
                 <div key={r} className="flex items-center space-x-2">
@@ -153,14 +155,14 @@ export function CashMovementDialog({
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="custom" id="custom" />
                 <Label htmlFor="custom" className="font-normal cursor-pointer">
-                  Anders...
+                  {t('admin.pos.cashMovementDialog.anders')}
                 </Label>
               </div>
             </RadioGroup>
             
             {reason === 'custom' && (
               <Input
-                placeholder="Specificeer reden"
+                placeholder={t('admin.pos.cashMovementDialog.specificeer_reden')}
                 value={customReason}
                 onChange={(e) => setCustomReason(e.target.value)}
                 className="mt-2"
@@ -170,10 +172,10 @@ export function CashMovementDialog({
 
           {/* Notes */}
           <div className="space-y-2">
-            <Label htmlFor="notes">Opmerkingen (optioneel)</Label>
+            <Label htmlFor="notes">{t('admin.marketing.aIFeedbackWidget.opmerkingen_optioneel')}</Label>
             <Textarea
               id="notes"
-              placeholder="Extra informatie..."
+              placeholder={t('admin.pos.cashMovementDialog.extra_informatie')}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={2}
@@ -183,7 +185,7 @@ export function CashMovementDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annuleren
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={handleSubmit}
@@ -195,7 +197,7 @@ export function CashMovementDialog({
             }
             className={movementType === 'in' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
           >
-            {isPending ? 'Verwerken...' : movementType === 'in' ? 'Geld Toevoegen' : 'Geld Opnemen'}
+            {isPending ? 'Verwerken...' : movementType === 'in' ? t('admin.pos.cashMovementDialog.geld_toevoegen') : t('admin.pos.cashMovementDialog.geld_opnemen')}
           </Button>
         </DialogFooter>
       </DialogContent>

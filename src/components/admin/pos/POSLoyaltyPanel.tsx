@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface CustomerLoyaltyData {
   id: string;
@@ -32,6 +33,7 @@ export function POSLoyaltyPanel({
   onPointsChange,
   maxRedeemValue,
 }: POSLoyaltyPanelProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const [loyaltyData, setLoyaltyData] = useState<CustomerLoyaltyData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -93,12 +95,12 @@ export function POSLoyaltyPanel({
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
           <Star className="h-4 w-4" />
-          Loyalty Punten
+          {t('admin.pos.pOSLoyaltyPanel.loyalty_punten')}
         </Label>
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Selecteer eerst een klant om loyalty punten te kunnen gebruiken.
+            {t('admin.pos.pOSLoyaltyPanel.selecteer_eerst_een_klant_om_loyalty')}
           </AlertDescription>
         </Alert>
       </div>
@@ -110,9 +112,9 @@ export function POSLoyaltyPanel({
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
           <Star className="h-4 w-4" />
-          Loyalty Punten
+          {t('admin.pos.pOSLoyaltyPanel.loyalty_punten')}
         </Label>
-        <p className="text-sm text-muted-foreground">Laden...</p>
+        <p className="text-sm text-muted-foreground">{t('common.loading')}</p>
       </div>
     );
   }
@@ -122,10 +124,10 @@ export function POSLoyaltyPanel({
       <div className="space-y-2">
         <Label className="flex items-center gap-2">
           <Star className="h-4 w-4" />
-          Loyalty Punten
+          {t('admin.pos.pOSLoyaltyPanel.loyalty_punten')}
         </Label>
         <p className="text-sm text-muted-foreground">
-          Deze klant heeft geen loyalty punten of er is geen actief programma.
+          {t('admin.pos.pOSLoyaltyPanel.deze_klant_heeft_geen_loyalty_punten')}
         </p>
       </div>
     );
@@ -166,7 +168,7 @@ export function POSLoyaltyPanel({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span>In te wisselen punten:</span>
+            <span>{t('admin.pos.pOSLoyaltyPanel.in_te_wisselen_punten')}</span>
             <span className="font-medium text-green-600">
               -{formatCurrency(euroValue)}
             </span>

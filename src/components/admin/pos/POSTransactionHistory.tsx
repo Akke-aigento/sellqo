@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import type { POSTransaction } from '@/types/pos';
+import { useTranslation } from 'react-i18next';
 
 interface POSTransactionHistoryProps {
   open: boolean;
@@ -33,11 +34,12 @@ interface POSTransactionHistoryProps {
   onRefund: (transaction: POSTransaction) => void;
 }
 
-const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
-  completed: { label: 'Voltooid', variant: 'default' },
-  pending: { label: 'In behandeling', variant: 'secondary' },
-  voided: { label: 'Geannuleerd', variant: 'destructive' },
-  refunded: { label: 'Geretourneerd', variant: 'outline' },
+// Labels als i18n-key; de sleutel is de status uit de databank.
+const statusConfig: Record<string, { labelKey: string; variant: 'default' | 'secondary' | 'destructive' | 'outline' }> = {
+  completed: { labelKey: 'admin.pos.status.completed', variant: 'default' },
+  pending: { labelKey: 'admin.pos.status.pending', variant: 'secondary' },
+  voided: { labelKey: 'admin.pos.status.voided', variant: 'destructive' },
+  refunded: { labelKey: 'admin.pos.status.refunded', variant: 'outline' },
 };
 
 const paymentIcons: Record<string, React.ReactNode> = {
@@ -54,6 +56,7 @@ export function POSTransactionHistory({
   onViewReceipt,
   onRefund,
 }: POSTransactionHistoryProps) {
+  const { t, i18n } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTransaction, setSelectedTransaction] = useState<POSTransaction | null>(null);
 
@@ -70,7 +73,7 @@ export function POSTransactionHistory({
 
   // Group by date
   const groupedTransactions = filteredTransactions.reduce((acc, transaction) => {
-    const date = new Date(transaction.created_at).toLocaleDateString('nl-NL', {
+    const date = new Date(transaction.created_at).toLocaleDateString(i18n.language, {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
@@ -90,7 +93,7 @@ export function POSTransactionHistory({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Receipt className="h-5 w-5" />
-            Transactiegeschiedenis
+            {t('admin.pos.pOSTransactionHistory.transactiegeschiedenis')}
           </DialogTitle>
         </DialogHeader>
 
@@ -99,7 +102,7 @@ export function POSTransactionHistory({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Zoek op bonnummer, ID of productnaam..."
+              placeholder={t('admin.pos.pOSTransactionHistory.zoek_op_bonnummer_id_of_productnaam')}
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -142,7 +145,7 @@ export function POSTransactionHistory({
                 {filteredTransactions.length === 0 && (
                   <div className="text-center py-12 text-muted-foreground">
                     <Receipt className="h-12 w-12 mx-auto mb-3 opacity-30" />
-                    <p>Geen transacties gevonden</p>
+                    <p>{t('admin.pos.pOSTransactionHistory.geen_transacties_gevonden')}</p>
                   </div>
                 )}
               </div>
@@ -161,8 +164,9 @@ function TransactionCard({
   transaction: POSTransaction;
   onClick: () => void;
 }) {
+  const { t, i18n } = useTranslation();
   const status = statusConfig[transaction.status] || statusConfig.completed;
-  const time = new Date(transaction.created_at).toLocaleTimeString('nl-NL', {
+  const time = new Date(transaction.created_at).toLocaleTimeString(i18n.language, {
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -179,7 +183,7 @@ function TransactionCard({
               #{transaction.receipt_number || transaction.id.slice(0, 8)}
             </span>
             <Badge variant={status.variant} className="text-xs">
-              {status.label}
+              {t(status.labelKey)}
             </Badge>
           </div>
           <p className="text-sm text-muted-foreground mt-1 truncate">
@@ -195,8 +199,7 @@ function TransactionCard({
               {transaction.payments[0]?.method === 'card' && transaction.card_last4
                 ? `•••• ${transaction.card_last4}`
                 : transaction.payments[0]?.method === 'cash'
-                ? 'Contant'
-                : 'Overig'}
+                ? t('admin.pos.pOSMultiPaymentDialog.contant') : t('admin.pos.sessionReportDialog.overig')}
             </span>
           </div>
         </div>
@@ -222,6 +225,7 @@ function TransactionDetail({
   onViewReceipt: () => void;
   onRefund: () => void;
 }) {
+  const { t, i18n } = useTranslation();
   const status = statusConfig[transaction.status] || statusConfig.completed;
   const canRefund = transaction.status === 'completed';
 
@@ -229,7 +233,7 @@ function TransactionDetail({
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={onBack} className="mb-2">
         <X className="mr-2 h-4 w-4" />
-        Terug naar overzicht
+        {t('admin.pos.pOSTransactionHistory.terug_naar_overzicht')}
       </Button>
 
       {/* Header */}
@@ -239,17 +243,17 @@ function TransactionDetail({
             #{transaction.receipt_number || transaction.id.slice(0, 8)}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {new Date(transaction.created_at).toLocaleString('nl-NL')}
+            {new Date(transaction.created_at).toLocaleString(i18n.language)}
           </p>
         </div>
-        <Badge variant={status.variant}>{status.label}</Badge>
+        <Badge variant={status.variant}>{t(status.labelKey)}</Badge>
       </div>
 
       <Separator />
 
       {/* Items */}
       <div>
-        <h4 className="text-sm font-medium mb-2">Items</h4>
+        <h4 className="text-sm font-medium mb-2">{t('admin.pos.pOSTransactionHistory.items')}</h4>
         <div className="space-y-2">
           {transaction.items.map((item) => (
             <div key={item.id} className="flex justify-between text-sm">
@@ -267,12 +271,12 @@ function TransactionDetail({
       {/* Totals */}
       <div className="space-y-1 text-sm">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Subtotaal</span>
+          <span className="text-muted-foreground">{t('admin.orderDetail.subtotaal')}</span>
           <span>{formatCurrency(transaction.subtotal)}</span>
         </div>
         {transaction.discount_total > 0 && (
           <div className="flex justify-between text-green-600">
-            <span>Korting</span>
+            <span>{t('admin.promotions.volumeDiscountFormDialog.korting')}</span>
             <span>-{formatCurrency(transaction.discount_total)}</span>
           </div>
         )}
@@ -281,7 +285,7 @@ function TransactionDetail({
           <span>{formatCurrency(transaction.tax_total)}</span>
         </div>
         <div className="flex justify-between font-bold text-base pt-2">
-          <span>Totaal</span>
+          <span>{t('common.total')}</span>
           <span>{formatCurrency(transaction.total)}</span>
         </div>
       </div>
@@ -290,7 +294,7 @@ function TransactionDetail({
 
       {/* Payment info */}
       <div>
-        <h4 className="text-sm font-medium mb-2">Betaling</h4>
+        <h4 className="text-sm font-medium mb-2">{t('admin.orders.betaling')}</h4>
         <div className="space-y-1 text-sm">
           {transaction.payments.map((payment, idx) => (
             <div key={idx} className="flex items-center justify-between">
@@ -311,7 +315,7 @@ function TransactionDetail({
           ))}
           {transaction.cash_change !== null && transaction.cash_change > 0 && (
             <div className="flex justify-between text-muted-foreground">
-              <span>Wisselgeld</span>
+              <span>{t('admin.pos.pOSTransactionHistory.wisselgeld')}</span>
               <span>{formatCurrency(transaction.cash_change)}</span>
             </div>
           )}
@@ -323,9 +327,9 @@ function TransactionDetail({
         <>
           <Separator />
           <div className="bg-destructive/10 rounded-lg p-3">
-            <h4 className="text-sm font-medium text-destructive mb-1">Geretourneerd</h4>
+            <h4 className="text-sm font-medium text-destructive mb-1">{t('admin.orderStatusBadge.status.returned')}</h4>
             <p className="text-sm text-muted-foreground">
-              {new Date(transaction.refunded_at).toLocaleString('nl-NL')}
+              {new Date(transaction.refunded_at).toLocaleString(i18n.language)}
             </p>
           </div>
         </>
@@ -336,9 +340,9 @@ function TransactionDetail({
         <>
           <Separator />
           <div className="bg-destructive/10 rounded-lg p-3">
-            <h4 className="text-sm font-medium text-destructive mb-1">Geannuleerd</h4>
+            <h4 className="text-sm font-medium text-destructive mb-1">{t('admin.marketing.aBTestingPanel.geannuleerd')}</h4>
             <p className="text-sm text-muted-foreground">
-              {new Date(transaction.voided_at).toLocaleString('nl-NL')}
+              {new Date(transaction.voided_at).toLocaleString(i18n.language)}
             </p>
             {transaction.voided_reason && (
               <p className="text-sm mt-1">Reden: {transaction.voided_reason}</p>
@@ -351,12 +355,12 @@ function TransactionDetail({
       <div className="flex gap-2 pt-2">
         <Button variant="outline" className="flex-1" onClick={onViewReceipt}>
           <Receipt className="mr-2 h-4 w-4" />
-          Bekijk bon
+          {t('admin.pos.pOSTransactionHistory.bekijk_bon')}
         </Button>
         {canRefund && (
           <Button variant="destructive" className="flex-1" onClick={onRefund}>
             <RotateCcw className="mr-2 h-4 w-4" />
-            Retour
+            {t('admin.stockLedger.reason.return')}
           </Button>
         )}
       </div>

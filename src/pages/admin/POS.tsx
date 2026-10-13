@@ -33,8 +33,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { usePOSTerminals, usePOSSessions } from '@/hooks/usePOS';
 import type { POSTerminal } from '@/types/pos';
+import { useTranslation } from 'react-i18next';
 
 export default function POSPage() {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { terminals, isLoading, createTerminal, deleteTerminal } = usePOSTerminals();
   const { sessions } = usePOSSessions();
@@ -63,15 +65,15 @@ export default function POSPage() {
     const activeSession = getTerminalSession(terminal.id);
     
     if (terminal.status === 'maintenance') {
-      return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">Onderhoud</Badge>;
+      return <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">{t('admin.pOS.onderhoud')}</Badge>;
     }
     if (terminal.status === 'inactive') {
-      return <Badge variant="outline" className="bg-muted text-muted-foreground">Inactief</Badge>;
+      return <Badge variant="outline" className="bg-muted text-muted-foreground">{t('admin.products.inactief')}</Badge>;
     }
     if (activeSession) {
-      return <Badge className="bg-green-500 hover:bg-green-600">Actief</Badge>;
+      return <Badge className="bg-green-500 hover:bg-green-600">{t('admin.marketing.aBTestingPanel.actief')}</Badge>;
     }
-    return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">Beschikbaar</Badge>;
+    return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{t('admin.productForm.beschikbaar')}</Badge>;
   };
 
   const handleOpenPOS = (terminal: POSTerminal) => {
@@ -91,14 +93,14 @@ export default function POSPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Kassa (POS)</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('admin.pOS.kassa_pos')}</h1>
           <p className="text-muted-foreground">
-            Beheer je kassaterminals en start een verkoopddag
+            {t('admin.pOS.beheer_je_kassaterminals_en_start_een')}
           </p>
         </div>
         <Button onClick={() => setShowCreateDialog(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Nieuwe Terminal
+          {t('admin.pOS.nieuwe_terminal')}
         </Button>
       </div>
 
@@ -107,13 +109,13 @@ export default function POSPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Monitor className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Geen terminals</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('admin.pOS.geen_terminals')}</h3>
             <p className="text-muted-foreground text-center mb-4">
-              Maak je eerste kassaterminal aan om te beginnen met verkopen.
+              {t('admin.pOS.maak_je_eerste_kassaterminal_aan_om')}
             </p>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="mr-2 h-4 w-4" />
-              Terminal Aanmaken
+              {t('admin.pOS.terminal_aanmaken')}
             </Button>
           </CardContent>
         </Card>
@@ -149,13 +151,13 @@ export default function POSPage() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onClick={() => navigate(`/admin/pos/terminals/${terminal.id}`)}>
                           <Settings className="mr-2 h-4 w-4" />
-                          Instellingen
+                          {t('admin.translationHub.instellingen')}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
                           onClick={() => deleteTerminal.mutate(terminal.id)}
                           className="text-destructive"
                         >
-                          Verwijderen
+                          {t('common.delete')}
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -167,7 +169,7 @@ export default function POSPage() {
                     {activeSession && (
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {new Date(activeSession.opened_at).toLocaleTimeString('nl-NL', {
+                        {new Date(activeSession.opened_at).toLocaleTimeString(i18n.language, {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
@@ -178,13 +180,13 @@ export default function POSPage() {
                   {/* Capabilities */}
                   <div className="flex gap-2">
                     {terminal.capabilities.scanner && (
-                      <Badge variant="secondary" className="text-xs">Scanner</Badge>
+                      <Badge variant="secondary" className="text-xs">{t('admin.pOS.scanner')}</Badge>
                     )}
                     {terminal.capabilities.printer && (
-                      <Badge variant="secondary" className="text-xs">Printer</Badge>
+                      <Badge variant="secondary" className="text-xs">{t('admin.pOS.printer')}</Badge>
                     )}
                     {terminal.capabilities.cash_drawer && (
-                      <Badge variant="secondary" className="text-xs">Kassalade</Badge>
+                      <Badge variant="secondary" className="text-xs">{t('admin.pOS.kassalade')}</Badge>
                     )}
                   </div>
 
@@ -197,12 +199,12 @@ export default function POSPage() {
                     {activeSession ? (
                       <>
                         <Play className="mr-2 h-4 w-4" />
-                        Kassa Openen
+                        {t('admin.pOS.kassa_openen')}
                       </>
                     ) : (
                       <>
                         <Play className="mr-2 h-4 w-4" />
-                        Dag Starten
+                        {t('admin.pOS.dag_starten')}
                       </>
                     )}
                   </Button>
@@ -217,8 +219,8 @@ export default function POSPage() {
       {sessions.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Recente Sessies</CardTitle>
-            <CardDescription>Overzicht van de laatste kassadagen</CardDescription>
+            <CardTitle>{t('admin.pOS.recente_sessies')}</CardTitle>
+            <CardDescription>{t('admin.pOS.overzicht_van_de_laatste_kassadagen')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -240,7 +242,7 @@ export default function POSPage() {
                         {session.terminal?.name || 'Terminal'}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(session.opened_at).toLocaleDateString('nl-NL', {
+                        {new Date(session.opened_at).toLocaleDateString(i18n.language, {
                           day: 'numeric',
                           month: 'short',
                           year: 'numeric',
@@ -250,7 +252,7 @@ export default function POSPage() {
                   </div>
                   <div className="text-right">
                     <Badge variant={session.status === 'open' ? 'default' : 'secondary'}>
-                      {session.status === 'open' ? 'Actief' : 'Gesloten'}
+                      {session.status === 'open' ? t('admin.marketing.aBTestingPanel.actief') : t('admin.storefront.food.fulfillmentSettings.gesloten')}
                     </Badge>
                     {session.status === 'closed' && session.cash_difference !== null && (
                       <p className={`text-sm mt-1 ${
@@ -280,26 +282,26 @@ export default function POSPage() {
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Nieuwe Terminal Aanmaken</DialogTitle>
+            <DialogTitle>{t('admin.pOS.nieuwe_terminal_aanmaken')}</DialogTitle>
             <DialogDescription>
-              Geef je kassaterminal een naam en optionele locatie.
+              {t('admin.pOS.geef_je_kassaterminal_een_naam_en')}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Naam *</Label>
+              <Label htmlFor="name">{t('admin.productForm.naam')}</Label>
               <Input
                 id="name"
-                placeholder="bijv. Kassa 1"
+                placeholder={t('admin.pos.stripeReaderDialog.bijv_kassa_1')}
                 value={newTerminalName}
                 onChange={(e) => setNewTerminalName(e.target.value)}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="location">Locatie</Label>
+              <Label htmlFor="location">{t('admin.storefront.schema.icon.map')}</Label>
               <Input
                 id="location"
-                placeholder="bijv. Winkel Amsterdam"
+                placeholder={t('admin.pOS.bijv_winkel_amsterdam')}
                 value={newTerminalLocation}
                 onChange={(e) => setNewTerminalLocation(e.target.value)}
               />
@@ -307,13 +309,13 @@ export default function POSPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCreateDialog(false)}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button 
               onClick={handleCreateTerminal}
               disabled={!newTerminalName.trim() || createTerminal.isPending}
             >
-              {createTerminal.isPending ? 'Aanmaken...' : 'Aanmaken'}
+              {createTerminal.isPending ? t('admin.promotions.giftCardFormDialog.aanmaken') : t('admin.adsAiRules.aanmaken')}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { RotateCcw, Package } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import type { POSTransaction, POSCartItem } from '@/types/pos';
+import { useTranslation } from 'react-i18next';
 
 interface POSRefundDialogProps {
   open: boolean;
@@ -45,6 +46,7 @@ export function POSRefundDialog({
   onRefund,
   isProcessing,
 }: POSRefundDialogProps) {
+  const { t } = useTranslation();
   const [reason, setReason] = useState('');
   const [selectedItems, setSelectedItems] = useState<Record<string, number>>({});
   const [restockItems, setRestockItems] = useState(true);
@@ -133,7 +135,7 @@ export function POSRefundDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RotateCcw className="h-5 w-5" />
-            Retour verwerken
+            {t('admin.pos.pOSRefundDialog.retour_verwerken')}
           </DialogTitle>
           <DialogDescription>
             Transactie #{transaction.receipt_number || transaction.id.slice(0, 8)}
@@ -143,7 +145,7 @@ export function POSRefundDialog({
         <div className="space-y-4">
           {/* Items selection */}
           <div>
-            <Label className="text-sm font-medium">Selecteer items voor retour</Label>
+            <Label className="text-sm font-medium">{t('admin.pos.pOSRefundDialog.selecteer_items_voor_retour')}</Label>
             <ScrollArea className="h-48 mt-2 border rounded-lg">
               <div className="p-2 space-y-2">
                 {transaction.items.map((item) => (
@@ -182,10 +184,10 @@ export function POSRefundDialog({
 
           {/* Reason */}
           <div>
-            <Label htmlFor="reason">Reden voor retour *</Label>
+            <Label htmlFor="reason">{t('admin.pos.pOSRefundDialog.reden_voor_retour')}</Label>
             <Textarea
               id="reason"
-              placeholder="Bijv. defect product, verkeerd artikel, klant niet tevreden..."
+              placeholder={t('admin.pos.pOSRefundDialog.bijv_defect_product_verkeerd_artikel_klant')}
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="mt-1"
@@ -202,21 +204,21 @@ export function POSRefundDialog({
             />
             <Label htmlFor="restock" className="flex items-center gap-2 cursor-pointer">
               <Package className="h-4 w-4" />
-              Items terugboeken naar voorraad
+              {t('admin.pos.pOSRefundDialog.items_terugboeken_naar_voorraad')}
             </Label>
           </div>
 
           {/* Summary */}
           <div className="bg-muted/50 rounded-lg p-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Retour bedrag</span>
+              <span className="text-sm text-muted-foreground">{t('admin.pos.pOSRefundDialog.retour_bedrag')}</span>
               <span className="text-xl font-bold text-destructive">
                 -{formatCurrency(refundAmount)}
               </span>
             </div>
             {transaction.payments[0]?.method === 'card' && (
               <p className="text-xs text-muted-foreground mt-2">
-                💳 Kaartbetaling wordt automatisch teruggestort via Stripe
+                {t('admin.pos.pOSRefundDialog.kaartbetaling_wordt_automatisch_teruggestort_via_stripe')}
               </p>
             )}
           </div>
@@ -224,7 +226,7 @@ export function POSRefundDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annuleren
+            {t('common.cancel')}
           </Button>
           <Button
             variant="destructive"

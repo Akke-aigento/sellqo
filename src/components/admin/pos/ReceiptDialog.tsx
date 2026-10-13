@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import { receiptVatLines, vatLabel } from '@/lib/calculations/posTotals';
+import { receiptVatLines, vatLabelT } from '@/lib/calculations/posTotals';
 import { Printer, Download, X, Mail, Copy, DollarSign } from 'lucide-react';
 import {
   Dialog,
@@ -18,6 +18,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { usePOSPrinter } from '@/hooks/usePOSPrinter';
 import type { POSTransaction } from '@/types/pos';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 interface ReceiptDialogProps {
   open: boolean;
@@ -39,6 +40,7 @@ export function ReceiptDialog({
   openCashDrawer: shouldOpenDrawer = false,
   footerText,
 }: ReceiptDialogProps) {
+  const { t, i18n } = useTranslation();
   const { currentTenant } = useTenant();
   const receiptRef = useRef<HTMLDivElement>(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -82,7 +84,7 @@ export function ReceiptDialog({
       });
 
       if (success) {
-        toast.success('Bon wordt afgedrukt');
+        toast.success(t('admin.pos.msg.printing'));
         onPrintComplete?.();
       }
     } finally {
@@ -96,9 +98,9 @@ export function ReceiptDialog({
     // "Kaslade geopend" beloofde meer dan we kunnen zien.
     const success = await openCashDrawer();
     if (success) {
-      toast.success('Opdracht om de kaslade te openen verstuurd');
+      toast.success(t('admin.pos.msg.drawer_sent'));
     } else {
-      toast.error('Kon geen opdracht naar de printer sturen');
+      toast.error(t('admin.pos.msg.printer_failed'));
     }
   };
 
@@ -107,12 +109,12 @@ export function ReceiptDialog({
     const lines: string[] = [];
     
     lines.push('='.repeat(40));
-    lines.push(currentTenant?.name?.toUpperCase() || 'WINKEL');
+    lines.push((currentTenant?.name || t('admin.pos.receipt.store')).toUpperCase());
     lines.push('='.repeat(40));
     lines.push('');
-    lines.push(`Bon: ${transaction.receipt_number || transaction.id.slice(0, 8).toUpperCase()}`);
-    lines.push(`Datum: ${new Date(transaction.created_at).toLocaleDateString('nl-NL')}`);
-    lines.push(`Tijd: ${new Date(transaction.created_at).toLocaleTimeString('nl-NL')}`);
+    lines.push(`${t('admin.pos.receipt.receipt')} ${transaction.receipt_number || transaction.id.slice(0, 8).toUpperCase()}`);
+    lines.push(`${t('admin.pos.receipt.date')} ${new Date(transaction.created_at).toLocaleDateString(i18n.language)}`);
+    lines.push(`${t('admin.pos.receipt.time')} ${new Date(transaction.created_at).toLocaleTimeString(i18n.language)}`);
     lines.push('-'.repeat(40));
     lines.push('');
     
@@ -124,35 +126,35 @@ export function ReceiptDialog({
     
     lines.push('');
     lines.push('-'.repeat(40));
-    lines.push(`Subtotaal`.padEnd(32) + `€${transaction.subtotal.toFixed(2)}`);
+    lines.push(t('admin.pos.receipt.subtotal').padEnd(32) + `€${transaction.subtotal.toFixed(2)}`);
     if (transaction.discount_total > 0) {
-      lines.push(`Korting`.padEnd(32) + `-€${transaction.discount_total.toFixed(2)}`);
+      lines.push(t('admin.pos.receipt.discount').padEnd(32) + `-€${transaction.discount_total.toFixed(2)}`);
     }
     // APP-CLEAN-3c: btw per tarief i.p.v. altijd "BTW (21%)".
     const vatLines = receiptVatLines(transaction, currentTenant?.default_vat_handling);
     if (vatLines && vatLines.length > 0) {
-      for (const line of vatLines) lines.push(`${vatLabel(line.rate)} over €${line.base.toFixed(2)}`.padEnd(32) + `€${line.tax.toFixed(2)}`);
+      for (const line of vatLines) lines.push(t('admin.pos.receipt.vat_over', { vat: vatLabelT(line.rate, t), base: `€${line.base.toFixed(2)}` }).padEnd(32) + `€${line.tax.toFixed(2)}`);
     } else {
-      lines.push(`BTW`.padEnd(32) + `€${transaction.tax_total.toFixed(2)}`);
+      lines.push(t('admin.pos.receipt.vat').padEnd(32) + `€${transaction.tax_total.toFixed(2)}`);
     }
     lines.push('='.repeat(40));
-    lines.push(`TOTAAL`.padEnd(32) + `€${transaction.total.toFixed(2)}`);
+    lines.push(t('admin.pos.receipt.total').padEnd(32) + `€${transaction.total.toFixed(2)}`);
     lines.push('='.repeat(40));
     lines.push('');
-    lines.push('Bedankt voor uw aankoop!');
+    lines.push(t('admin.pos.receipt.thanks'));
     
     const content = lines.join('\n');
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `bon-${transaction.receipt_number || transaction.id.slice(0, 8)}.txt`;
+    a.download = `${t('admin.pos.msg.receipt_file')}-${transaction.receipt_number || transaction.id.slice(0, 8)}.txt`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     
-    toast.success('Bon gedownload');
+    toast.success(t('admin.pos.msg.receipt_downloaded'));
   };
 
   // Check if this was a cash payment (show cash drawer button)
@@ -162,7 +164,7 @@ export function ReceiptDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Kassabon</DialogTitle>
+          <DialogTitle>{t('admin.pos.receiptDialog.kassabon')}</DialogTitle>
           <DialogDescription>
             Bon #{transaction.receipt_number || transaction.id.slice(0, 8).toUpperCase()}
           </DialogDescription>
@@ -190,7 +192,7 @@ export function ReceiptDialog({
             />
             <Label htmlFor="printCopy" className="text-sm cursor-pointer">
               <Copy className="inline h-3 w-3 mr-1" />
-              Kopie afdrukken
+              {t('admin.pos.receiptDialog.kopie_afdrukken')}
             </Label>
           </div>
         </div>
@@ -199,16 +201,16 @@ export function ReceiptDialog({
           {hasCashPayment && (
             <Button variant="outline" onClick={handleOpenCashDrawer} className="sm:mr-auto">
               <DollarSign className="mr-2 h-4 w-4" />
-              Kaslade
+              {t('admin.pos.receiptDialog.kaslade')}
             </Button>
           )}
           <Button variant="outline" onClick={handleDownload}>
             <Download className="mr-2 h-4 w-4" />
-            Download
+            {t('admin.seo.sEOHealthChecklist.download')}
           </Button>
           <Button onClick={handlePrint} disabled={isPrinting}>
             <Printer className="mr-2 h-4 w-4" />
-            {isPrinting ? 'Printen...' : 'Printen'}
+            {isPrinting ? t('admin.pos.receiptDialog.printen') : t('admin.pos.receiptDialog.printen_2')}
           </Button>
         </DialogFooter>
       </DialogContent>

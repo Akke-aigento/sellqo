@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { useStripeTerminal } from '@/hooks/useStripeTerminal';
 import { Loader2, CreditCard, Trash2, Plus, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface StripeReaderDialogProps {
   open: boolean;
@@ -25,6 +26,7 @@ export function StripeReaderDialog({
   onOpenChange,
   onReaderSelect,
 }: StripeReaderDialogProps) {
+  const { t } = useTranslation();
   const {
     readers,
     listReaders,
@@ -75,9 +77,9 @@ export function StripeReaderDialog({
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'online':
-        return <Badge className="bg-green-500">Online</Badge>;
+        return <Badge className="bg-green-500">{t('admin.products.online')}</Badge>;
       case 'offline':
-        return <Badge variant="secondary">Offline</Badge>;
+        return <Badge variant="secondary">{t('admin.pos.stripeReaderDialog.offline')}</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -89,10 +91,10 @@ export function StripeReaderDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Stripe Terminal Readers
+            {t('admin.pos.stripeReaderDialog.stripe_terminal_readers')}
           </DialogTitle>
           <DialogDescription>
-            Beheer je pinautomaten voor kaartbetalingen
+            {t('admin.pos.stripeReaderDialog.beheer_je_pinautomaten_voor_kaartbetalingen')}
           </DialogDescription>
         </DialogHeader>
 
@@ -105,40 +107,40 @@ export function StripeReaderDialog({
               disabled={isLoading}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Vernieuwen
+              {t('admin.campaignDetail.vernieuwen')}
             </Button>
             <Button
               size="sm"
               onClick={() => setShowRegister(!showRegister)}
             >
               <Plus className="h-4 w-4 mr-2" />
-              Reader toevoegen
+              {t('admin.pos.stripeReaderDialog.reader_toevoegen')}
             </Button>
           </div>
 
           {showRegister && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Nieuwe reader registreren</CardTitle>
+                <CardTitle className="text-base">{t('admin.pos.stripeReaderDialog.nieuwe_reader_registreren')}</CardTitle>
                 <CardDescription>
-                  Voer de registratiecode in die op het scherm van de reader staat
+                  {t('admin.pos.stripeReaderDialog.voer_de_registratiecode_in_die_op')}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="registration-code">Registratiecode</Label>
+                  <Label htmlFor="registration-code">{t('admin.pos.stripeReaderDialog.registratiecode')}</Label>
                   <Input
                     id="registration-code"
-                    placeholder="bijv. seagull-local-apple"
+                    placeholder={t('admin.pos.stripeReaderDialog.bijv_seagull_local_apple')}
                     value={registrationCode}
                     onChange={(e) => setRegistrationCode(e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="reader-label">Label</Label>
+                  <Label htmlFor="reader-label">{t('admin.pos.stripeReaderDialog.label')}</Label>
                   <Input
                     id="reader-label"
-                    placeholder="bijv. Kassa 1"
+                    placeholder={t('admin.pos.stripeReaderDialog.bijv_kassa_1')}
                     value={readerLabel}
                     onChange={(e) => setReaderLabel(e.target.value)}
                   />
@@ -155,7 +157,7 @@ export function StripeReaderDialog({
                     variant="outline"
                     onClick={() => setShowRegister(false)}
                   >
-                    Annuleren
+                    {t('common.cancel')}
                   </Button>
                 </div>
               </CardContent>
@@ -169,8 +171,8 @@ export function StripeReaderDialog({
           ) : readers.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>Geen readers gevonden</p>
-              <p className="text-sm">Registreer een Stripe Terminal reader om kaartbetalingen te accepteren</p>
+              <p>{t('admin.pos.stripeReaderDialog.geen_readers_gevonden')}</p>
+              <p className="text-sm">{t('admin.pos.stripeReaderDialog.registreer_een_stripe_terminal_reader_om')}</p>
             </div>
           ) : (
             <div className="grid gap-3">

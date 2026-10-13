@@ -1,6 +1,7 @@
 import React, { forwardRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { dateFnsLocaleFor } from '@/hooks/useDateFnsLocale';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import type { GiftCard, GiftCardDesign } from '@/types/giftCard';
 
 interface POSGiftCardPrintProps {
@@ -13,6 +14,7 @@ interface POSGiftCardPrintProps {
 
 export const POSGiftCardPrint = forwardRef<HTMLDivElement, POSGiftCardPrintProps>(
   ({ giftCard, design, tenantName, tenantLogo, format: printFormat = 'thermal' }, ref) => {
+    const { t, i18n } = useTranslation();
     const formatCurrency = (amount: number) => {
       return new Intl.NumberFormat('nl-NL', {
         style: 'currency',
@@ -61,7 +63,7 @@ export const POSGiftCardPrint = forwardRef<HTMLDivElement, POSGiftCardPrintProps
 
         {/* Titel */}
         <div className={`text-center font-bold uppercase tracking-wider ${isThermal ? 'text-base mb-2' : 'text-xl mb-3'}`}>
-          Cadeaukaart
+          {t('admin.pos.receipt.gift_card_title')}
         </div>
 
         {/* Bedrag */}
@@ -76,7 +78,7 @@ export const POSGiftCardPrint = forwardRef<HTMLDivElement, POSGiftCardPrintProps
 
         {/* Code */}
         <div className={`text-center ${isThermal ? 'mb-3' : 'mb-4'}`}>
-          <div className="text-xs uppercase text-gray-600 mb-1">Code</div>
+          <div className="text-xs uppercase text-gray-600 mb-1">{t('admin.pos.receipt.code_label')}</div>
           <div
             className={`font-mono font-bold tracking-wider ${isThermal ? 'text-lg' : 'text-2xl'}`}
             style={{ letterSpacing: '2px' }}
@@ -111,7 +113,7 @@ export const POSGiftCardPrint = forwardRef<HTMLDivElement, POSGiftCardPrintProps
         {/* Vervaldatum */}
         {giftCard.expires_at && (
           <div className={`text-center text-gray-600 ${isThermal ? 'text-xs mb-2' : 'text-sm mb-3'}`}>
-            Geldig tot: {format(new Date(giftCard.expires_at), 'd MMMM yyyy', { locale: nl })}
+            {t('admin.pos.receipt.valid_until', { date: format(new Date(giftCard.expires_at), 'd MMMM yyyy', { locale: dateFnsLocaleFor(i18n.language) }) })}
           </div>
         )}
 
@@ -131,8 +133,8 @@ export const POSGiftCardPrint = forwardRef<HTMLDivElement, POSGiftCardPrintProps
 
         {/* Footer */}
         <div className={`text-center text-gray-500 border-t border-gray-300 ${isThermal ? 'text-[10px] pt-2 mt-3' : 'text-xs pt-3 mt-4'}`}>
-          <div>Inwisselen in de winkel of online</div>
-          <div className="mt-1">Niet inwisselbaar voor contant geld</div>
+          <div>{t('admin.pos.receipt.redeem')}</div>
+          <div className="mt-1">{t('admin.pos.receipt.not_cash')}</div>
         </div>
       </div>
     );

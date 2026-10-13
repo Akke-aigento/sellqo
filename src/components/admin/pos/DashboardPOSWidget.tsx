@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
 import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface POSDashboardStats {
   activeSessions: number;
@@ -31,6 +32,7 @@ interface POSDashboardStats {
 }
 
 export function DashboardPOSWidget() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
 
   const { data: stats, isLoading } = useQuery({
@@ -128,20 +130,20 @@ export function DashboardPOSWidget() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Monitor className="h-5 w-5 text-primary" />
-            Kassa (POS)
+            {t('admin.pOS.kassa_pos')}
           </CardTitle>
-          <CardDescription>Start met fysieke verkoop</CardDescription>
+          <CardDescription>{t('admin.pos.dashboardPOSWidget.start_met_fysieke_verkoop')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center py-6 text-center">
             <Monitor className="h-10 w-10 text-muted-foreground/50 mb-3" />
             <p className="text-sm text-muted-foreground mb-4">
-              Nog geen kassaterminals ingesteld
+              {t('admin.pos.dashboardPOSWidget.nog_geen_kassaterminals_ingesteld')}
             </p>
             <Button asChild size="sm">
               <Link to="/admin/pos">
                 <Play className="mr-2 h-4 w-4" />
-                POS instellen
+                {t('admin.pos.dashboardPOSWidget.pos_instellen')}
               </Link>
             </Button>
           </div>
@@ -156,13 +158,13 @@ export function DashboardPOSWidget() {
         <div>
           <CardTitle className="flex items-center gap-2 text-base">
             <Monitor className="h-5 w-5 text-primary" />
-            Kassa (POS)
+            {t('admin.pOS.kassa_pos')}
           </CardTitle>
-          <CardDescription>Vandaag</CardDescription>
+          <CardDescription>{t('admin.marketing.contentCalendar.vandaag')}</CardDescription>
         </div>
         <Button asChild variant="ghost" size="sm">
           <Link to="/admin/pos">
-            Openen
+            {t('admin.pos.dashboardPOSWidget.openen')}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
@@ -175,26 +177,26 @@ export function DashboardPOSWidget() {
             <p className="text-lg font-bold text-green-600">
               {formatCurrency(stats.todayRevenue)}
             </p>
-            <p className="text-xs text-muted-foreground">Omzet</p>
+            <p className="text-xs text-muted-foreground">{t('admin.adsBolcom.omzet')}</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-muted/50">
             <Receipt className="h-4 w-4 mx-auto mb-1 text-primary" />
             <p className="text-lg font-bold">{stats.todayTransactions}</p>
-            <p className="text-xs text-muted-foreground">Transacties</p>
+            <p className="text-xs text-muted-foreground">{t('admin.pos.dashboardPOSWidget.transacties')}</p>
           </div>
           <div className="text-center p-2 rounded-lg bg-muted/50">
             <TrendingUp className="h-4 w-4 mx-auto mb-1 text-blue-600" />
             <p className="text-lg font-bold">
               {formatCurrency(stats.avgTransactionValue)}
             </p>
-            <p className="text-xs text-muted-foreground">Gem.</p>
+            <p className="text-xs text-muted-foreground">{t('admin.pos.dashboardPOSWidget.gem')}</p>
           </div>
         </div>
 
         {/* Terminals Status */}
         <div className="space-y-2">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Terminals
+            {t('admin.pos.dashboardPOSWidget.terminals')}
           </p>
           {stats.terminals.slice(0, 3).map((terminal) => (
             <Link
@@ -209,11 +211,11 @@ export function DashboardPOSWidget() {
               {terminal.isActive ? (
                 <Badge className="bg-green-500 hover:bg-green-600 text-xs">
                   <Clock className="h-3 w-3 mr-1" />
-                  Actief
+                  {t('admin.marketing.aBTestingPanel.actief')}
                 </Badge>
               ) : (
                 <Badge variant="outline" className="text-xs">
-                  Inactief
+                  {t('admin.products.inactief')}
                 </Badge>
               )}
             </Link>

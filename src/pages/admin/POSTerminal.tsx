@@ -59,7 +59,7 @@ import { usePOSLoyalty } from '@/hooks/usePOSLoyalty';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
 import { useVatRates } from '@/hooks/useVatRates';
-import { calculatePosTotals, vatLabel } from '@/lib/calculations/posTotals';
+import { calculatePosTotals, vatLabelT } from '@/lib/calculations/posTotals';
 import { CardPaymentDialog } from '@/components/admin/pos/CardPaymentDialog';
 import { StripeReaderDialog } from '@/components/admin/pos/StripeReaderDialog';
 import { QuickButtonDialog } from '@/components/admin/pos/QuickButtonDialog';
@@ -87,8 +87,10 @@ import type { Customer } from '@/types/order';
 import { formatCurrency } from '@/lib/utils';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { supabase } from '@/integrations/supabase/client';
+import { useTranslation } from 'react-i18next';
 
 export default function POSTerminalPage() {
+  const { t } = useTranslation();
   const { terminalId } = useParams<{ terminalId: string }>();
   const navigate = useNavigate();
   
@@ -345,7 +347,7 @@ export default function POSTerminalPage() {
       },
     });
     
-    toast.success(data.movement_type === 'in' ? 'Kasstorting geregistreerd' : 'Kasopname geregistreerd');
+    toast.success(data.movement_type === 'in' ? t('admin.pOSTerminal.kasstorting_geregistreerd') : t('admin.pOSTerminal.kasopname_geregistreerd'));
   };
   
   // Handle cash payment (with offline support)
@@ -375,8 +377,8 @@ export default function POSTerminalPage() {
         });
         
         if (offlineTxn) {
-          toast.success(`Offline verkoop opgeslagen! Wisselgeld: ${formatCurrency(cashChangeAmount)}`, {
-            description: 'Wordt gesynchroniseerd wanneer online.',
+          toast.success(t('admin.pos.msg.offline_saved', { change: formatCurrency(cashChangeAmount) }), {
+            description: t('admin.pOSTerminal.wordt_gesynchroniseerd_wanneer_online'),
           });
           clearCart();
           setSelectedCustomer(null);
@@ -384,10 +386,10 @@ export default function POSTerminalPage() {
           setShowPaymentDialog(false);
           setCashReceived('');
         } else {
-          toast.error('Kon offline verkoop niet opslaan');
+          toast.error(t('admin.pos.msg.offline_save_failed'));
         }
       } catch (error) {
-        toast.error('Fout bij offline opslag');
+        toast.error(t('admin.pos.msg.offline_error'));
       }
       return;
     }
@@ -415,7 +417,7 @@ export default function POSTerminalPage() {
         });
       }
       
-      toast.success(`Betaling succesvol! Wisselgeld: ${formatCurrency(cashChangeAmount)}`);
+      toast.success(t('admin.pos.msg.payment_ok_change', { change: formatCurrency(cashChangeAmount) }));
       clearCart();
       setSelectedCustomer(null);
       setCartDiscount(null);
@@ -429,7 +431,7 @@ export default function POSTerminalPage() {
         setShowReceiptDialog(true);
       }
     } catch (error) {
-      toast.error('Betaling mislukt');
+      toast.error(t('admin.pos.msg.payment_failed'));
     }
   };
   
@@ -475,7 +477,7 @@ export default function POSTerminalPage() {
         });
       }
       
-      toast.success('Kaartbetaling succesvol!');
+      toast.success(t('admin.pos.msg.card_payment_ok'));
       clearCart();
       setSelectedCustomer(null);
       setCartDiscount(null);
@@ -488,7 +490,7 @@ export default function POSTerminalPage() {
         setShowReceiptDialog(true);
       }
     } catch (error) {
-      toast.error('Fout bij opslaan transactie');
+      toast.error(t('admin.pos.msg.transaction_save_failed'));
     }
   };
 
@@ -522,7 +524,7 @@ export default function POSTerminalPage() {
         });
       }
       
-      toast.success('Bankoverschrijving geregistreerd!');
+      toast.success(t('admin.pos.msg.bank_transfer_registered'));
       clearCart();
       setSelectedCustomer(null);
       setCartDiscount(null);
@@ -535,7 +537,7 @@ export default function POSTerminalPage() {
         setShowReceiptDialog(true);
       }
     } catch (error) {
-      toast.error('Fout bij opslaan transactie');
+      toast.error(t('admin.pos.msg.transaction_save_failed'));
     }
   };
 
@@ -628,7 +630,7 @@ export default function POSTerminalPage() {
         setShowReceiptDialog(true);
       }
     } catch (error) {
-      toast.error('Betaling mislukt');
+      toast.error(t('admin.pos.msg.payment_failed'));
     }
   };
   
@@ -643,7 +645,7 @@ export default function POSTerminalPage() {
           id: terminalId,
           data: { stripe_reader_id: readerId } as unknown as { name?: string },
         });
-        toast.success('Reader gekoppeld aan terminal');
+        toast.success(t('admin.pos.msg.reader_linked'));
       } catch (error) {
         // Silent fail - reader is still selected locally
       }
@@ -660,7 +662,7 @@ export default function POSTerminalPage() {
       items: cart,
     });
     
-    toast.success('Winkelwagen geparkeerd');
+    toast.success(t('admin.pos.msg.cart_parked'));
     clearCart();
   };
 
@@ -668,7 +670,7 @@ export default function POSTerminalPage() {
   const handlePhoneOrder = async () => {
     if (!terminalId || cart.length === 0) return;
     if (!kitchen.customer_label.trim() && !kitchen.customer_phone.trim()) {
-      toast.error('Vul een naam of telefoonnummer in bij "Naar de keuken"');
+      toast.error(t('admin.pos.msg.kitchen_name_required'));
       return;
     }
     try {
@@ -680,10 +682,10 @@ export default function POSTerminalPage() {
         notes: kitchen.note || undefined,
         kitchen: { ...kitchen, enabled: true },
       });
-      toast.success('Bestelling staat in de keuken. Afrekenen via "Geparkeerd" bij het afhalen.');
+      toast.success(t('admin.pos.msg.sent_to_kitchen'));
       clearCart();
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Telefonische bestelling mislukt');
+      toast.error(e instanceof Error ? e.message : t('admin.pOSTerminal.telefonische_bestelling_mislukt'));
     }
   };
   
@@ -702,7 +704,7 @@ export default function POSTerminalPage() {
           requested_time: ticket.requested_time, customer_label: ticket.customer_label || '', customer_phone: ticket.customer_phone || '', note: ticket.note || '',
         });
       }
-      toast.success('Winkelwagen hervat');
+      toast.success(t('admin.pos.msg.cart_resumed'));
     }
     setShowParkedCartsDialog(false);
   };
@@ -734,12 +736,12 @@ export default function POSTerminalPage() {
       const product = findProductByBarcode(barcode);
       if (product) {
         addToCart(product);
-        toast.success(`${product.name} toegevoegd`);
+        toast.success(t('admin.pos.msg.product_added', { name: product.name }));
         setSearchQuery('');
       } else {
         // Show barcode in search so user can see what was scanned
         setSearchQuery(barcode);
-        toast.error(`Product niet gevonden: ${barcode}`);
+        toast.error(t('admin.pos.msg.product_not_found', { barcode }));
       }
     },
     enabled: !!activeSession, // Only scan when session is active
@@ -755,7 +757,7 @@ export default function POSTerminalPage() {
   if (!terminal) {
     return (
       <div className="flex items-center justify-center min-h-dvh">
-        <p>Terminal niet gevonden</p>
+        <p>{t('admin.pOSTerminal.terminal_niet_gevonden')}</p>
       </div>
     );
   }
@@ -766,7 +768,7 @@ export default function POSTerminalPage() {
           <div className="p-4 border-b flex items-center justify-between">
             <div className="flex items-center gap-2">
               <ShoppingCart className="h-5 w-5" />
-              <h2 className="font-semibold">Winkelwagen</h2>
+              <h2 className="font-semibold">{t('admin.customers.customerActivityTab.winkelwagen')}</h2>
               {cart.length > 0 && (
                 <Badge variant="secondary">{cart.length}</Badge>
               )}
@@ -830,8 +832,8 @@ export default function POSTerminalPage() {
             {cart.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8">
                 <ShoppingCart className="h-12 w-12 mb-4 opacity-50" />
-                <p>Winkelwagen is leeg</p>
-                <p className="text-sm">Scan een product of gebruik snelknoppen</p>
+                <p>{t('admin.pOSTerminal.winkelwagen_is_leeg')}</p>
+                <p className="text-sm">{t('admin.pOSTerminal.scan_een_product_of_gebruik_snelknoppen')}</p>
               </div>
             ) : (
               <div className="p-4 space-y-3">
@@ -894,25 +896,25 @@ export default function POSTerminalPage() {
             {/* Totals */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotaal</span>
+                <span className="text-muted-foreground">{t('admin.orderDetail.subtotaal')}</span>
                 <span>{formatCurrency(cartTotals.subtotal)}</span>
               </div>
               {cartTotals.discount > 0 && (
                 <div className="flex justify-between text-sm text-green-600">
-                  <span>Korting</span>
+                  <span>{t('admin.promotions.volumeDiscountFormDialog.korting')}</span>
                   <span>-{formatCurrency(cartTotals.discount)}</span>
                 </div>
               )}
               {/* APP-CLEAN-3c: btw per tarief i.p.v. altijd "BTW (21%)". */}
               {cartTotals.vatLines.map((line) => (
                 <div key={line.rate} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{vatLabel(line.rate)}</span>
+                  <span className="text-muted-foreground">{vatLabelT(line.rate, t)}</span>
                   <span>{formatCurrency(line.tax)}</span>
                 </div>
               ))}
               <Separator />
               <div className="flex justify-between text-lg font-bold">
-                <span>Totaal</span>
+                <span>{t('common.total')}</span>
                 <span>{formatCurrency(cartTotals.total)}</span>
               </div>
             </div>
@@ -925,7 +927,7 @@ export default function POSTerminalPage() {
                 onClick={handleParkCart}
               >
                 <PauseCircle className="mr-2 h-4 w-4" />
-                Parkeren
+                {t('admin.pOSTerminal.parkeren')}
               </Button>
               {horeca ? (
                 <Button
@@ -934,7 +936,7 @@ export default function POSTerminalPage() {
                   onClick={handlePhoneOrder}
                 >
                   <PhoneCall className="mr-2 h-4 w-4" />
-                  Telefoon
+                  {t('common.phone')}
                 </Button>
               ) : null}
               <Button 
@@ -942,7 +944,7 @@ export default function POSTerminalPage() {
                 onClick={() => setShowCustomerDialog(true)}
               >
                 <User className="mr-2 h-4 w-4" />
-                {selectedCustomer ? 'Klant ✓' : 'Klant'}
+                {selectedCustomer ? t('admin.pOSTerminal.klant') : t('admin.marketing.variableInserter.groups.customer.label')}
               </Button>
               <Button 
                 variant={cartDiscount ? 'secondary' : 'outline'}
@@ -950,7 +952,7 @@ export default function POSTerminalPage() {
                 onClick={() => setShowDiscountPanel(true)}
               >
                 <Percent className="mr-2 h-4 w-4" />
-                {cartDiscount ? 'Korting ✓' : 'Korting'}
+                {cartDiscount ? t('admin.pOSTerminal.korting') : t('admin.promotions.volumeDiscountFormDialog.korting')}
               </Button>
             </div>
             
@@ -961,7 +963,7 @@ export default function POSTerminalPage() {
                 onClick={() => setShowPaymentDialog(true)}
               >
                 <Banknote className="mr-2 h-5 w-5" />
-                Contant
+                {t('admin.pos.pOSMultiPaymentDialog.contant')}
               </Button>
               <Button 
                 className="h-14 text-base"
@@ -978,7 +980,7 @@ export default function POSTerminalPage() {
                 onClick={() => setShowBankTransferDialog(true)}
               >
                 <QrCode className="mr-2 h-5 w-5" />
-                Bank
+                {t('admin.pOSTerminal.bank')}
               </Button>
               <Button 
                 variant="secondary"
@@ -987,7 +989,7 @@ export default function POSTerminalPage() {
                 onClick={() => setShowMultiPaymentDialog(true)}
               >
                 <Gift className="mr-2 h-4 w-4" />
-                Meer
+                {t('admin.pOSTerminal.meer')}
               </Button>
             </div>
           </div>
@@ -1021,7 +1023,7 @@ export default function POSTerminalPage() {
           {!isOnline && (
             <Badge variant="destructive" className="gap-1 shrink-0">
               <CloudOff className="h-3 w-3" />
-              Offline
+              {t('admin.pos.stripeReaderDialog.offline')}
             </Badge>
           )}
           {pendingCount > 0 && (
@@ -1060,7 +1062,7 @@ export default function POSTerminalPage() {
             ) : (
               <>
                 <CreditCard className="mr-2 h-4 w-4" />
-                Geen reader
+                {t('admin.pOSTerminal.geen_reader')}
               </>
             )}
           </Button>
@@ -1084,7 +1086,7 @@ export default function POSTerminalPage() {
                 onClick={() => setShowCashMovementDialog(true)}
               >
                 <TrendingUp className="mr-2 h-4 w-4" />
-                Kas +/-
+                {t('admin.pOSTerminal.kas')}
               </Button>
               <Button 
                 variant="outline" 
@@ -1093,7 +1095,7 @@ export default function POSTerminalPage() {
                 onClick={() => setShowSessionReportDialog(true)}
               >
                 <BarChart3 className="mr-2 h-4 w-4" />
-                Rapport
+                {t('admin.pOSTerminal.rapport')}
               </Button>
               <Button 
                 variant="outline" 
@@ -1102,7 +1104,7 @@ export default function POSTerminalPage() {
                 onClick={() => setShowTransactionHistory(true)}
               >
                 <ListOrdered className="mr-2 h-4 w-4" />
-                Retouren
+                {t('admin.pOSTerminal.retouren')}
               </Button>
             </>
           )}
@@ -1117,7 +1119,7 @@ export default function POSTerminalPage() {
               onClick={() => setShowCloseSessionDialog(true)}
             >
               <LogOut className="mr-2 h-4 w-4" />
-              Dag Sluiten
+              {t('admin.pOSTerminal.dag_sluiten')}
             </Button>
           )}
         </div>
@@ -1127,7 +1129,7 @@ export default function POSTerminalPage() {
           {!isOnline && (
             <Badge variant="destructive" className="gap-1 shrink-0">
               <CloudOff className="h-3 w-3" />
-              Offline
+              {t('admin.pos.stripeReaderDialog.offline')}
             </Badge>
           )}
           <Button
@@ -1162,15 +1164,15 @@ export default function POSTerminalPage() {
                 <>
                   <DropdownMenuItem onClick={() => setShowCashMovementDialog(true)}>
                     <TrendingUp className="mr-2 h-4 w-4" />
-                    Kas +/-
+                    {t('admin.pOSTerminal.kas')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowSessionReportDialog(true)}>
                     <BarChart3 className="mr-2 h-4 w-4" />
-                    Rapport
+                    {t('admin.pOSTerminal.rapport')}
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setShowTransactionHistory(true)}>
                     <ListOrdered className="mr-2 h-4 w-4" />
-                    Retouren
+                    {t('admin.pOSTerminal.retouren')}
                   </DropdownMenuItem>
                 </>
               )}
@@ -1182,7 +1184,7 @@ export default function POSTerminalPage() {
               )}
               <DropdownMenuItem onClick={() => setShowReaderDialog(true)}>
                 <Settings className="mr-2 h-4 w-4" />
-                Instellingen
+                {t('admin.translationHub.instellingen')}
               </DropdownMenuItem>
               {activeSession && (
                 <>
@@ -1192,7 +1194,7 @@ export default function POSTerminalPage() {
                     onClick={() => setShowCloseSessionDialog(true)}
                   >
                     <LogOut className="mr-2 h-4 w-4" />
-                    Dag Sluiten
+                    {t('admin.pOSTerminal.dag_sluiten')}
                   </DropdownMenuItem>
                 </>
               )}
@@ -1209,7 +1211,7 @@ export default function POSTerminalPage() {
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Zoek product of scan barcode..."
+              placeholder={t('admin.pOSTerminal.zoek_product_of_scan_barcode')}
               className="pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -1254,7 +1256,7 @@ export default function POSTerminalPage() {
           {/* Quick Buttons */}
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-medium text-muted-foreground">Snelknoppen</h3>
+              <h3 className="text-sm font-medium text-muted-foreground">{t('admin.pOSTerminal.snelknoppen')}</h3>
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -1262,7 +1264,7 @@ export default function POSTerminalPage() {
                 className="h-7 text-xs"
               >
                 <Grid3X3 className="mr-1 h-3 w-3" />
-                Configureren
+                {t('admin.pOSTerminal.configureren')}
               </Button>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
@@ -1291,8 +1293,8 @@ export default function POSTerminalPage() {
                 disabled={!activeSession}
               >
                 <Gift className="h-5 w-5 mb-1 text-primary" />
-                <span className="text-xs font-medium text-center w-full break-words">Cadeaukaart</span>
-                <span className="text-[10px] text-muted-foreground w-full text-center break-words">Verkopen</span>
+                <span className="text-xs font-medium text-center w-full break-words">{t('admin.pOSTerminal.cadeaukaart')}</span>
+                <span className="text-[10px] text-muted-foreground w-full text-center break-words">{t('admin.pOSTerminal.verkopen')}</span>
               </button>
               {quickButtons.length === 0 && (
                 <button
@@ -1300,7 +1302,7 @@ export default function POSTerminalPage() {
                   onClick={() => setShowQuickButtonDialog(true)}
                 >
                   <Plus className="h-4 w-4 mb-1" />
-                  <span className="text-xs">Snelknop toevoegen</span>
+                  <span className="text-xs">{t('admin.pOSTerminal.snelknop_toevoegen')}</span>
                 </button>
               )}
             </div>
@@ -1326,7 +1328,7 @@ export default function POSTerminalPage() {
         </div>
         <Button className="shrink-0" onClick={() => setMobileCartOpen(true)}>
           <ShoppingCart className="mr-2 h-4 w-4" />
-          Afrekenen
+          {t('admin.marketing.creditPurchaseDialog.afrekenen')}
         </Button>
       </div>
       <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
@@ -1339,13 +1341,13 @@ export default function POSTerminalPage() {
       <Dialog open={showOpenSessionDialog} onOpenChange={setShowOpenSessionDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Kassadag Openen</DialogTitle>
+            <DialogTitle>{t('admin.pOSTerminal.kassadag_openen')}</DialogTitle>
             <DialogDescription>
-              Voer het startbedrag in de kassalade in om de dag te beginnen.
+              {t('admin.pOSTerminal.voer_het_startbedrag_in_de_kassalade')}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <Label htmlFor="openingCash">Startbedrag (€)</Label>
+            <Label htmlFor="openingCash">{t('admin.pOSTerminal.startbedrag')}</Label>
             <Input
               id="openingCash"
               type="number"
@@ -1358,10 +1360,10 @@ export default function POSTerminalPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => navigate('/admin/pos')}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleOpenSession} disabled={openSession.isPending}>
-              {openSession.isPending ? 'Openen...' : 'Dag Starten'}
+              {openSession.isPending ? t('admin.pOSTerminal.openen') : t('admin.pOS.dag_starten')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1371,18 +1373,18 @@ export default function POSTerminalPage() {
       <Dialog open={showCloseSessionDialog} onOpenChange={setShowCloseSessionDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Kassadag Sluiten</DialogTitle>
+            <DialogTitle>{t('admin.pOSTerminal.kassadag_sluiten')}</DialogTitle>
             <DialogDescription>
-              Tel de kassalade en voer het eindbedrag in.
+              {t('admin.pOSTerminal.tel_de_kassalade_en_voer_het')}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div>
-              <Label>Startbedrag</Label>
+              <Label>{t('admin.pos.sessionReportDialog.startbedrag')}</Label>
               <p className="text-lg font-semibold">{formatCurrency(activeSession?.opening_cash || 0)}</p>
             </div>
             <div>
-              <Label htmlFor="closingCash">Eindbedrag (€)</Label>
+              <Label htmlFor="closingCash">{t('admin.pOSTerminal.eindbedrag')}</Label>
               <Input
                 id="closingCash"
                 type="number"
@@ -1396,10 +1398,10 @@ export default function POSTerminalPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCloseSessionDialog(false)}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button onClick={handleCloseSession} disabled={closeSession.isPending}>
-              {closeSession.isPending ? 'Afsluiten...' : 'Dag Afsluiten'}
+              {closeSession.isPending ? t('admin.pOSTerminal.afsluiten') : t('admin.pOSTerminal.dag_afsluiten')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1409,14 +1411,14 @@ export default function POSTerminalPage() {
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Contante Betaling</DialogTitle>
+            <DialogTitle>{t('admin.pOSTerminal.contante_betaling')}</DialogTitle>
             <DialogDescription>
               Totaal te betalen: {formatCurrency(cartTotals.total)}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-4">
             <div>
-              <Label htmlFor="cashReceived">Ontvangen bedrag (€)</Label>
+              <Label htmlFor="cashReceived">{t('admin.pOSTerminal.ontvangen_bedrag')}</Label>
               <Input
                 id="cashReceived"
                 type="number"
@@ -1430,7 +1432,7 @@ export default function POSTerminalPage() {
             </div>
             {parseFloat(cashReceived) > cartTotals.total && (
               <div className="p-4 rounded-lg bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800">
-                <p className="text-sm text-green-700 dark:text-green-300">Wisselgeld</p>
+                <p className="text-sm text-green-700 dark:text-green-300">{t('admin.pos.pOSTransactionHistory.wisselgeld')}</p>
                 <p className="text-2xl font-bold text-green-700 dark:text-green-300">
                   {formatCurrency(parseFloat(cashReceived) - cartTotals.total)}
                 </p>
@@ -1463,14 +1465,14 @@ export default function POSTerminalPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
             <Button 
               onClick={handleCashPayment} 
               disabled={createTransaction.isPending}
             >
               <Receipt className="mr-2 h-4 w-4" />
-              {createTransaction.isPending ? 'Verwerken...' : 'Afronden'}
+              {createTransaction.isPending ? t('admin.pOSTerminal.verwerken') : t('admin.pOSTerminal.afronden')}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1513,9 +1515,9 @@ export default function POSTerminalPage() {
       <Dialog open={showParkedCartsDialog} onOpenChange={setShowParkedCartsDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Geparkeerde Winkelwagens</DialogTitle>
+            <DialogTitle>{t('admin.pOSTerminal.geparkeerde_winkelwagens')}</DialogTitle>
             <DialogDescription>
-              Selecteer een winkelwagen om verder te gaan.
+              {t('admin.pOSTerminal.selecteer_een_winkelwagen_om_verder_te')}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4 space-y-2 max-h-80 overflow-auto">
@@ -1546,7 +1548,7 @@ export default function POSTerminalPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowParkedCartsDialog(false)}>
-              Sluiten
+              {t('common.close')}
             </Button>
           </DialogFooter>
         </DialogContent>

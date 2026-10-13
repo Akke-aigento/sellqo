@@ -1,10 +1,11 @@
 import { forwardRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { dateFnsLocaleFor } from '@/hooks/useDateFnsLocale';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { formatCurrency } from '@/lib/utils';
 import type { POSTransaction, POSCartItem, POSPayment } from '@/types/pos';
 import type { GiftCard } from '@/types/giftCard';
-import { receiptVatLines, vatLabel } from '@/lib/calculations/posTotals';
+import { receiptVatLines, vatLabelT } from '@/lib/calculations/posTotals';
 
 interface POSReceiptProps {
   transaction: POSTransaction;
@@ -20,7 +21,7 @@ interface POSReceiptProps {
 
 export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
   transaction,
-  storeName = 'Winkel',
+  storeName,
   storeAddress,
   storePhone,
   storeVatNumber,
@@ -28,15 +29,18 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
   soldGiftCards = [],
   vatHandling = 'inclusive',
 }, ref) => {
+  // De bon volgt de taal van de kassa (winkel en medewerker spreken meestal dezelfde taal).
+  const { t, i18n } = useTranslation();
+  const dfLocale = dateFnsLocaleFor(i18n.language);
   // APP-CLEAN-3c: was altijd "BTW (21%)", ook bij 6%-producten — fiscaal fout ticket.
   const vatLines = receiptVatLines(transaction, vatHandling);
   const paymentMethodLabels: Record<string, string> = {
-    cash: 'Contant',
-    card: 'Pinbetaling',
+    cash: t('admin.pos.receipt.pay_cash'),
+    card: t('admin.pos.receipt.pay_card'),
     ideal: 'iDEAL',
-    gift_card: 'Cadeaubon',
-    loyalty_points: 'Punten',
-    manual: 'Handmatig',
+    gift_card: t('admin.pos.receipt.pay_gift_card'),
+    loyalty_points: t('admin.pos.receipt.pay_points'),
+    manual: t('admin.pos.receipt.pay_manual'),
   };
 
   // Detect if any items are gift cards (by SKU pattern)
@@ -52,12 +56,12 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
     >
       {/* Header */}
       <div className="text-center mb-4">
-        <h1 className="text-lg font-bold uppercase">{storeName}</h1>
+        <h1 className="text-lg font-bold uppercase">{storeName || t('admin.pos.receipt.store')}</h1>
         {storeAddress && (
           <p className="text-xs whitespace-pre-line">{storeAddress}</p>
         )}
-        {storePhone && <p className="text-xs">Tel: {storePhone}</p>}
-        {storeVatNumber && <p className="text-xs">BTW: {storeVatNumber}</p>}
+        {storePhone && <p className="text-xs">{t('admin.pos.receipt.phone', { phone: storePhone })}</p>}
+        {storeVatNumber && <p className="text-xs">{t('admin.pos.receipt.vat_number', { number: storeVatNumber })}</p>}
       </div>
 
       {/* Separator */}
@@ -66,16 +70,16 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
       {/* Transaction Info */}
       <div className="text-xs mb-3">
         <div className="flex justify-between">
-          <span>Bon:</span>
+          <span>{t('admin.pos.receipt.receipt')}</span>
           <span>{transaction.receipt_number || transaction.id.slice(0, 8).toUpperCase()}</span>
         </div>
         <div className="flex justify-between">
-          <span>Datum:</span>
-          <span>{format(new Date(transaction.created_at), 'dd-MM-yyyy', { locale: nl })}</span>
+          <span>{t('admin.pos.receipt.date')}</span>
+          <span>{format(new Date(transaction.created_at), 'dd-MM-yyyy', { locale: dfLocale })}</span>
         </div>
         <div className="flex justify-between">
-          <span>Tijd:</span>
-          <span>{format(new Date(transaction.created_at), 'HH:mm:ss', { locale: nl })}</span>
+          <span>{t('admin.pos.receipt.time')}</span>
+          <span>{format(new Date(transaction.created_at), 'HH:mm:ss', { locale: dfLocale })}</span>
         </div>
       </div>
 
@@ -96,7 +100,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
             </div>
             {item.discount > 0 && (
               <div className="flex justify-between pl-2 text-xs">
-                <span>Korting</span>
+                <span>{t('admin.pos.receipt.discount')}</span>
                 <span>-{formatCurrency(item.discount)}</span>
               </div>
             )}
@@ -110,31 +114,31 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
       {/* Totals */}
       <div className="text-xs space-y-1 mb-3">
         <div className="flex justify-between">
-          <span>Subtotaal</span>
+          <span>{t('admin.pos.receipt.subtotal')}</span>
           <span>{formatCurrency(transaction.subtotal)}</span>
         </div>
         {transaction.discount_total > 0 && (
           <div className="flex justify-between">
-            <span>Korting</span>
+            <span>{t('admin.pos.receipt.discount')}</span>
             <span>-{formatCurrency(transaction.discount_total)}</span>
           </div>
         )}
         {vatLines && vatLines.length > 0 ? (
           vatLines.map((line) => (
             <div key={line.rate} className="flex justify-between">
-              <span>{vatLabel(line.rate)} over {formatCurrency(line.base)}</span>
+              <span>{t('admin.pos.receipt.vat_over', { vat: vatLabelT(line.rate, t), base: formatCurrency(line.base) })}</span>
               <span>{formatCurrency(line.tax)}</span>
             </div>
           ))
         ) : (
           <div className="flex justify-between">
-            <span>BTW</span>
+            <span>{t('admin.pos.receipt.vat')}</span>
             <span>{formatCurrency(transaction.tax_total)}</span>
           </div>
         )}
         <div className="border-t border-black my-1" />
         <div className="flex justify-between font-bold text-base">
-          <span>TOTAAL</span>
+          <span>{t('admin.pos.receipt.total')}</span>
           <span>{formatCurrency(transaction.total)}</span>
         </div>
       </div>
@@ -150,18 +154,18 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
         {transaction.cash_received && transaction.cash_change && transaction.cash_change > 0 && (
           <>
             <div className="flex justify-between">
-              <span>Ontvangen</span>
+              <span>{t('admin.pos.receipt.received')}</span>
               <span>{formatCurrency(transaction.cash_received)}</span>
             </div>
             <div className="flex justify-between font-bold">
-              <span>Wisselgeld</span>
+              <span>{t('admin.pos.receipt.change')}</span>
               <span>{formatCurrency(transaction.cash_change)}</span>
             </div>
           </>
         )}
         {transaction.card_brand && transaction.card_last4 && (
           <div className="flex justify-between text-xs mt-1">
-            <span>Kaart</span>
+            <span>{t('admin.pos.receipt.card')}</span>
             <span>{transaction.card_brand} ****{transaction.card_last4}</span>
           </div>
         )}
@@ -173,26 +177,26 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
           <div className="border-t border-dashed border-black my-2" />
           <div className="text-center mb-2">
             <div className="text-xs font-bold uppercase tracking-wider">
-              ★ CADEAUKAART ★
+              ★ {t('admin.pos.receipt.gift_card_heading')} ★
             </div>
           </div>
           
           {soldGiftCards.map((gc, index) => (
             <div key={gc.id} className="text-center mb-3">
               <div className="border-2 border-black p-2 mx-2">
-                <div className="text-xs mb-1">Code:</div>
+                <div className="text-xs mb-1">{t('admin.pos.receipt.code')}</div>
                 <div className="text-lg font-bold tracking-wider">{gc.code}</div>
                 <div className="text-sm font-bold mt-1">
                   {formatCurrency(gc.initial_balance)}
                 </div>
                 {gc.expires_at && (
                   <div className="text-[10px] mt-1">
-                    Geldig tot: {format(new Date(gc.expires_at), 'd MMM yyyy', { locale: nl })}
+                    {t('admin.pos.receipt.valid_until', { date: format(new Date(gc.expires_at), 'd MMM yyyy', { locale: dfLocale }) })}
                   </div>
                 )}
               </div>
               <div className="text-[10px] mt-1">
-                Inwisselen in de winkel of online
+                {t('admin.pos.receipt.redeem')}
               </div>
             </div>
           ))}
@@ -201,14 +205,14 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
           {soldGiftCards.length === 0 && giftCardItems.map((item, index) => (
             <div key={index} className="text-center mb-3">
               <div className="border-2 border-black p-2 mx-2">
-                <div className="text-xs mb-1">Code:</div>
+                <div className="text-xs mb-1">{t('admin.pos.receipt.code')}</div>
                 <div className="text-lg font-bold tracking-wider">{item.sku}</div>
                 <div className="text-sm font-bold mt-1">
                   {formatCurrency(item.price)}
                 </div>
               </div>
               <div className="text-[10px] mt-1">
-                Inwisselen in de winkel of online
+                {t('admin.pos.receipt.redeem')}
               </div>
             </div>
           ))}
@@ -224,8 +228,8 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
           <p className="whitespace-pre-line">{footerText}</p>
         ) : (
           <>
-            <p>Bedankt voor uw aankoop!</p>
-            <p className="mt-1">Bezoek ons binnenkort weer</p>
+            <p>{t('admin.pos.receipt.thanks')}</p>
+            <p className="mt-1">{t('admin.pos.receipt.come_again')}</p>
           </>
         )}
       </div>

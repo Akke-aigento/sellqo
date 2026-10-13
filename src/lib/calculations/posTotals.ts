@@ -1,4 +1,5 @@
 import type { POSCartItem } from '@/types/pos';
+import type { TFunction } from 'i18next';
 
 export type PosVatHandling = 'inclusive' | 'exclusive';
 
@@ -122,4 +123,9 @@ export function receiptVatLines(
 /** "BTW 21%" / "BTW 6%" — Belgische notatie zonder overbodige decimalen. */
 export function vatLabel(rate: number): string {
   return `BTW ${Number.isInteger(rate) ? rate : rate.toFixed(1).replace('.', ',')}%`;
+}
+
+/** Zelfde label, in de UI-taal ("VAT 21%", "TVA 21 %"). `t` komt van de aanroeper. */
+export function vatLabelT(rate: number, t: TFunction): string {
+  return t('admin.pos.receipt.vat_rate', { rate: Number.isInteger(rate) ? rate : rate.toFixed(1).replace('.', ',') });
 }

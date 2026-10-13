@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useValidateGiftCardCode } from '@/hooks/useGiftCards';
 import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export interface AppliedGiftCard {
   id: string;
@@ -28,6 +29,7 @@ export function POSGiftCardInput({
   onUpdateAmount,
   maxAmount,
 }: POSGiftCardInputProps) {
+  const { t } = useTranslation();
   const [code, setCode] = useState('');
   const validateCode = useValidateGiftCardCode();
 
@@ -65,7 +67,7 @@ export function POSGiftCardInput({
     <div className="space-y-3">
       <Label className="flex items-center gap-2">
         <Gift className="h-4 w-4" />
-        Cadeaukaart
+        {t('admin.pOSTerminal.cadeaukaart')}
       </Label>
 
       {/* Applied cards */}
@@ -103,7 +105,7 @@ export function POSGiftCardInput({
       {/* Add new card */}
       <div className="flex gap-2">
         <Input
-          placeholder="Voer cadeaukaart code in..."
+          placeholder={t('admin.pos.pOSGiftCardInput.voer_cadeaukaart_code_in')}
           value={code}
           onChange={(e) => setCode(e.target.value.toUpperCase())}
           onKeyDown={(e) => e.key === 'Enter' && handleValidate()}

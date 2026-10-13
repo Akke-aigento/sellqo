@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { useStripeTerminal } from '@/hooks/useStripeTerminal';
 import { Loader2, CreditCard, CheckCircle2, XCircle, Smartphone } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface CardPaymentDialogProps {
   open: boolean;
@@ -32,6 +33,7 @@ export function CardPaymentDialog({
   onSuccess,
   onCancel,
 }: CardPaymentDialogProps) {
+  const { t } = useTranslation();
   const { createPaymentIntent, processPayment, cancelReaderAction, isProcessing } = useStripeTerminal();
   const [paymentState, setPaymentState] = useState<PaymentState>('idle');
   const [paymentIntentId, setPaymentIntentId] = useState<string | null>(null);
@@ -125,7 +127,7 @@ export function CardPaymentDialog({
         return (
           <div className="flex flex-col items-center py-8 space-y-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg">Betaling voorbereiden...</p>
+            <p className="text-lg">{t('admin.pos.cardPaymentDialog.betaling_voorbereiden')}</p>
           </div>
         );
 
@@ -136,9 +138,9 @@ export function CardPaymentDialog({
               <Smartphone className="h-16 w-16 text-primary animate-pulse" />
               <CreditCard className="h-8 w-8 text-primary absolute -right-2 -bottom-2" />
             </div>
-            <p className="text-lg font-medium">Wacht op kaart...</p>
+            <p className="text-lg font-medium">{t('admin.pos.cardPaymentDialog.wacht_op_kaart')}</p>
             <p className="text-muted-foreground text-center">
-              Laat de klant de kaart aanbieden op de pinautomaat
+              {t('admin.pos.cardPaymentDialog.laat_de_klant_de_kaart_aanbieden')}
             </p>
             <div className="text-3xl font-bold text-primary">
               {formatCurrency(amount)}
@@ -150,7 +152,7 @@ export function CardPaymentDialog({
         return (
           <div className="flex flex-col items-center py-8 space-y-4">
             <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-lg">Betaling verwerken...</p>
+            <p className="text-lg">{t('admin.pos.cardPaymentDialog.betaling_verwerken')}</p>
             <div className="text-2xl font-bold">
               {formatCurrency(amount)}
             </div>
@@ -161,7 +163,7 @@ export function CardPaymentDialog({
         return (
           <div className="flex flex-col items-center py-8 space-y-4">
             <CheckCircle2 className="h-16 w-16 text-green-500" />
-            <p className="text-lg font-medium text-green-600">Betaling geslaagd!</p>
+            <p className="text-lg font-medium text-green-600">{t('admin.pos.cardPaymentDialog.betaling_geslaagd')}</p>
             <div className="text-2xl font-bold">
               {formatCurrency(amount)}
             </div>
@@ -172,13 +174,13 @@ export function CardPaymentDialog({
         return (
           <div className="flex flex-col items-center py-8 space-y-4">
             <XCircle className="h-16 w-16 text-destructive" />
-            <p className="text-lg font-medium text-destructive">Betaling mislukt</p>
+            <p className="text-lg font-medium text-destructive">{t('admin.pos.cardPaymentDialog.betaling_mislukt')}</p>
             {errorMessage && (
               <p className="text-muted-foreground text-center">{errorMessage}</p>
             )}
             <div className="flex gap-2">
-              <Button onClick={startPayment}>Opnieuw proberen</Button>
-              <Button variant="outline" onClick={handleCancel}>Annuleren</Button>
+              <Button onClick={startPayment}>{t('admin.pos.cardPaymentDialog.opnieuw_proberen')}</Button>
+              <Button variant="outline" onClick={handleCancel}>{t('common.cancel')}</Button>
             </div>
           </div>
         );
@@ -199,10 +201,10 @@ export function CardPaymentDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="h-5 w-5" />
-            Kaartbetaling
+            {t('admin.pos.cardPaymentDialog.kaartbetaling')}
           </DialogTitle>
           <DialogDescription>
-            {readerId ? 'Betaling via pinautomaat' : 'Geen kaartlezer gekoppeld'}
+            {readerId ? t('admin.pos.cardPaymentDialog.betaling_via_pinautomaat') : t('admin.pos.cardPaymentDialog.geen_kaartlezer_gekoppeld')}
           </DialogDescription>
         </DialogHeader>
 
@@ -211,7 +213,7 @@ export function CardPaymentDialog({
         {(paymentState === 'waiting' || paymentState === 'processing') && (
           <div className="flex justify-center">
             <Button variant="outline" onClick={handleCancel}>
-              Annuleren
+              {t('common.cancel')}
             </Button>
           </div>
         )}

@@ -18,16 +18,18 @@ import { usePOSQuickButtons } from '@/hooks/usePOS';
 import { formatCurrency } from '@/lib/utils';
 import type { POSQuickButton } from '@/types/pos';
 import type { Product } from '@/types/product';
+import { useTranslation } from 'react-i18next';
 
+// Kleurnaam als i18n-key (admin.pos.color.<naam>).
 const COLORS = [
-  { name: 'Blauw', value: '#3B82F6' },
-  { name: 'Groen', value: '#22C55E' },
-  { name: 'Geel', value: '#EAB308' },
-  { name: 'Oranje', value: '#F97316' },
-  { name: 'Rood', value: '#EF4444' },
-  { name: 'Paars', value: '#A855F7' },
-  { name: 'Roze', value: '#EC4899' },
-  { name: 'Grijs', value: '#6B7280' },
+  { name: 'blue', value: '#3B82F6' },
+  { name: 'green', value: '#22C55E' },
+  { name: 'yellow', value: '#EAB308' },
+  { name: 'orange', value: '#F97316' },
+  { name: 'red', value: '#EF4444' },
+  { name: 'purple', value: '#A855F7' },
+  { name: 'pink', value: '#EC4899' },
+  { name: 'gray', value: '#6B7280' },
 ];
 
 interface QuickButtonDialogProps {
@@ -37,6 +39,7 @@ interface QuickButtonDialogProps {
 }
 
 export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButtonDialogProps) {
+  const { t } = useTranslation();
   const { products } = useProducts();
   const { buttons, createButton, deleteButton, refetch } = usePOSQuickButtons(terminalId);
   
@@ -99,9 +102,9 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Snelknoppen Configureren</DialogTitle>
+          <DialogTitle>{t('admin.pos.quickButtonDialog.snelknoppen_configureren')}</DialogTitle>
           <DialogDescription>
-            Voeg producten toe als snelknoppen voor snellere verkoop.
+            {t('admin.pos.quickButtonDialog.voeg_producten_toe_als_snelknoppen_voor')}
           </DialogDescription>
         </DialogHeader>
 
@@ -109,7 +112,7 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
           {/* Current buttons list */}
           {buttons.length > 0 && !showAddForm && (
             <div className="space-y-2">
-              <Label className="text-sm text-muted-foreground">Huidige snelknoppen</Label>
+              <Label className="text-sm text-muted-foreground">{t('admin.pos.quickButtonDialog.huidige_snelknoppen')}</Label>
               <ScrollArea className="h-64 rounded-md border">
                 <div className="p-2 space-y-2">
                   {buttons.map((button) => (
@@ -149,8 +152,8 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
           {/* Empty state */}
           {buttons.length === 0 && !showAddForm && (
             <div className="text-center py-8 text-muted-foreground">
-              <p>Nog geen snelknoppen geconfigureerd</p>
-              <p className="text-sm">Voeg producten toe voor snelle toegang</p>
+              <p>{t('admin.pos.quickButtonDialog.nog_geen_snelknoppen_geconfigureerd')}</p>
+              <p className="text-sm">{t('admin.pos.quickButtonDialog.voeg_producten_toe_voor_snelle_toegang')}</p>
             </div>
           )}
 
@@ -162,7 +165,7 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Zoek product..."
+                      placeholder={t('admin.marketing.inlinePromoWizard.zoek_product')}
                       className="pl-10"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -192,7 +195,7 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
 
                   {searchQuery && filteredProducts.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground">
-                      <p>Geen producten gevonden</p>
+                      <p>{t('admin.marketing.productSelectDialog.geen_producten_gevonden')}</p>
                     </div>
                   )}
                 </>
@@ -211,12 +214,12 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
 
                   {/* Label */}
                   <div className="space-y-2">
-                    <Label htmlFor="button-label">Knoplabel</Label>
+                    <Label htmlFor="button-label">{t('admin.pos.quickButtonDialog.knoplabel')}</Label>
                     <Input
                       id="button-label"
                       value={label}
                       onChange={(e) => setLabel(e.target.value)}
-                      placeholder="Kort label voor de knop"
+                      placeholder={t('admin.pos.quickButtonDialog.kort_label_voor_de_knop')}
                       maxLength={20}
                     />
                     <p className="text-xs text-muted-foreground">
@@ -226,7 +229,7 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
 
                   {/* Color picker */}
                   <div className="space-y-2">
-                    <Label>Kleur</Label>
+                    <Label>{t('admin.products.specs.materialFields.kleur')}</Label>
                     <div className="flex flex-wrap gap-2">
                       {COLORS.map((color) => (
                         <button
@@ -239,7 +242,7 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
                           }`}
                           style={{ backgroundColor: color.value }}
                           onClick={() => setSelectedColor(color.value)}
-                          title={color.name}
+                          title={t(`admin.pos.color.${color.name}`)}
                         />
                       ))}
                     </div>
@@ -247,7 +250,7 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
 
                   {/* Preview */}
                   <div className="space-y-2">
-                    <Label>Voorbeeld</Label>
+                    <Label>{t('admin.marketing.templateDialog.voorbeeld')}</Label>
                     <div className="flex justify-center p-4 rounded-lg bg-muted/50">
                       <div
                         className="w-24 h-24 rounded-lg border-2 flex flex-col items-center justify-center p-2 bg-background"
@@ -272,24 +275,24 @@ export function QuickButtonDialog({ open, onOpenChange, terminalId }: QuickButto
           {!showAddForm ? (
             <>
               <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Sluiten
+                {t('common.close')}
               </Button>
               <Button onClick={() => setShowAddForm(true)}>
                 <Plus className="mr-2 h-4 w-4" />
-                Snelknop Toevoegen
+                {t('admin.pos.quickButtonDialog.snelknop_toevoegen')}
               </Button>
             </>
           ) : (
             <>
               <Button variant="outline" onClick={handleCancelAdd}>
-                Annuleren
+                {t('common.cancel')}
               </Button>
               {selectedProduct && (
                 <Button 
                   onClick={handleAddButton} 
                   disabled={!label || createButton.isPending}
                 >
-                  {createButton.isPending ? 'Toevoegen...' : 'Toevoegen'}
+                  {createButton.isPending ? t('admin.pos.quickButtonDialog.toevoegen') : t('common.add')}
                 </Button>
               )}
             </>

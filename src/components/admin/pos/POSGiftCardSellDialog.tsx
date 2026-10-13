@@ -25,6 +25,7 @@ import { usePOSPrinter } from '@/hooks/usePOSPrinter';
 import { useTenant } from '@/hooks/useTenant';
 import { POSGiftCardPrint } from './POSGiftCardPrint';
 import type { GiftCard } from '@/types/giftCard';
+import { useTranslation } from 'react-i18next';
 
 interface POSGiftCardSellDialogProps {
   open: boolean;
@@ -41,6 +42,7 @@ export function POSGiftCardSellDialog({
   terminalId,
   onGiftCardCreated,
 }: POSGiftCardSellDialogProps) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { data: designs } = useGiftCardDesigns();
   const { createGiftCard, markAsPrinted, isCreating } = usePOSGiftCardSale();
@@ -127,14 +129,14 @@ export function POSGiftCardSellDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Gift className="h-5 w-5" />
-            Cadeaukaart Verkopen
+            {t('admin.pos.pOSGiftCardSellDialog.cadeaukaart_verkopen')}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 py-4">
           {/* Bedrag selectie */}
           <div className="space-y-3">
-            <Label className="text-base font-medium">Bedrag</Label>
+            <Label className="text-base font-medium">{t('admin.promotions.giftCardBalanceDialog.bedrag')}</Label>
             <div className="grid grid-cols-4 gap-2">
               {PRESET_AMOUNTS.map((preset) => (
                 <Button
@@ -158,7 +160,7 @@ export function POSGiftCardSellDialog({
                 onCheckedChange={(checked) => setIsCustomAmount(checked === true)}
               />
               <Label htmlFor="custom-amount" className="text-sm">
-                Ander bedrag
+                {t('admin.pos.pOSGiftCardSellDialog.ander_bedrag')}
               </Label>
               {isCustomAmount && (
                 <div className="flex-1">
@@ -181,14 +183,14 @@ export function POSGiftCardSellDialog({
             <div className="space-y-2">
               <Label className="flex items-center gap-2">
                 <Palette className="h-4 w-4" />
-                Design (optioneel)
+                {t('admin.pos.pOSGiftCardSellDialog.design_optioneel')}
               </Label>
               <Select value={designId} onValueChange={setDesignId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecteer een design..." />
+                  <SelectValue placeholder={t('admin.pos.pOSGiftCardSellDialog.selecteer_een_design')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Geen design</SelectItem>
+                  <SelectItem value="">{t('admin.pos.pOSGiftCardSellDialog.geen_design')}</SelectItem>
                   {activeDesigns.map((design) => (
                     <SelectItem key={design.id} value={design.id}>
                       {design.name}
@@ -210,17 +212,17 @@ export function POSGiftCardSellDialog({
           <div className="space-y-3">
             <Label className="flex items-center gap-2 text-base font-medium">
               <User className="h-4 w-4" />
-              Ontvanger (optioneel)
+              {t('admin.pos.pOSGiftCardSellDialog.ontvanger_optioneel')}
             </Label>
             <div className="grid gap-3">
               <Input
-                placeholder="Naam ontvanger"
+                placeholder={t('admin.promotions.giftCardFormDialog.naam_ontvanger')}
                 value={recipientName}
                 onChange={(e) => setRecipientName(e.target.value)}
               />
               <Input
                 type="email"
-                placeholder="E-mail ontvanger"
+                placeholder={t('admin.pos.pOSGiftCardSellDialog.e_mail_ontvanger')}
                 value={recipientEmail}
                 onChange={(e) => setRecipientEmail(e.target.value)}
               />
@@ -231,10 +233,10 @@ export function POSGiftCardSellDialog({
           <div className="space-y-2">
             <Label className="flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
-              Persoonlijke boodschap (optioneel)
+              {t('admin.pos.pOSGiftCardSellDialog.persoonlijke_boodschap_optioneel')}
             </Label>
             <Textarea
-              placeholder="Bijv. 'Veel plezier met je verjaardag!'"
+              placeholder={t('admin.pos.pOSGiftCardSellDialog.bijv_veel_plezier_met_je_verjaardag')}
               value={personalMessage}
               onChange={(e) => setPersonalMessage(e.target.value)}
               rows={2}
@@ -243,7 +245,7 @@ export function POSGiftCardSellDialog({
 
           {/* Aflevering opties */}
           <div className="space-y-3 pt-2 border-t">
-            <Label className="text-base font-medium">Aflevering</Label>
+            <Label className="text-base font-medium">{t('admin.pos.pOSGiftCardSellDialog.aflevering')}</Label>
             <div className="flex flex-col gap-3">
               <div className="flex items-center gap-2">
                 <Checkbox
@@ -253,7 +255,7 @@ export function POSGiftCardSellDialog({
                 />
                 <Label htmlFor="should-print" className="flex items-center gap-2 cursor-pointer">
                   <Printer className="h-4 w-4" />
-                  Direct afdrukken
+                  {t('admin.pos.pOSGiftCardSellDialog.direct_afdrukken')}
                 </Label>
               </div>
               <div className="flex items-center gap-2">
@@ -272,7 +274,7 @@ export function POSGiftCardSellDialog({
                   <Mail className="h-4 w-4" />
                   E-mail naar ontvanger
                   {!recipientEmail && (
-                    <span className="text-xs text-muted-foreground">(vul e-mail in)</span>
+                    <span className="text-xs text-muted-foreground">{t('admin.pos.pOSGiftCardSellDialog.vul_e_mail_in')}</span>
                   )}
                 </Label>
               </div>
@@ -281,20 +283,20 @@ export function POSGiftCardSellDialog({
 
           {/* Totaal */}
           <div className="bg-muted rounded-lg p-4 text-center">
-            <div className="text-sm text-muted-foreground">Totaal</div>
+            <div className="text-sm text-muted-foreground">{t('common.total')}</div>
             <div className="text-3xl font-bold">{formatCurrency(finalAmount)}</div>
           </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annuleren
+            {t('common.cancel')}
           </Button>
           <Button
             onClick={handleCreate}
             disabled={finalAmount <= 0 || isCreating}
           >
-            {isCreating ? 'Bezig...' : 'Toevoegen aan Kassa'}
+            {isCreating ? t('admin.marketing.creditPurchaseDialog.bezig') : t('admin.pos.pOSGiftCardSellDialog.toevoegen_aan_kassa')}
           </Button>
         </DialogFooter>
 

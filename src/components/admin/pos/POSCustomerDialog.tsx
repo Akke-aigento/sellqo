@@ -12,6 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { useCustomers } from '@/hooks/useCustomers';
 import type { Customer } from '@/types/order';
+import { useTranslation } from 'react-i18next';
 
 interface POSCustomerDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ export function POSCustomerDialog({
   selectedCustomer,
   onSelectCustomer,
 }: POSCustomerDialogProps) {
+  const { t } = useTranslation();
   const [searchQuery, setSearchQuery] = useState('');
   const { customers, isLoading } = useCustomers(searchQuery);
 
@@ -57,7 +59,7 @@ export function POSCustomerDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
-            Klant Selecteren
+            {t('admin.pos.pOSCustomerDialog.klant_selecteren')}
           </DialogTitle>
         </DialogHeader>
 
@@ -85,7 +87,7 @@ export function POSCustomerDialog({
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Zoek op naam, email of bedrijf..."
+            placeholder={t('admin.pos.pOSCustomerDialog.zoek_op_naam_email_of_bedrijf')}
             className="pl-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -97,14 +99,14 @@ export function POSCustomerDialog({
         <ScrollArea className="h-[300px] -mx-6 px-6">
           {isLoading ? (
             <div className="flex items-center justify-center h-full text-muted-foreground">
-              <p>Laden...</p>
+              <p>{t('common.loading')}</p>
             </div>
           ) : filteredCustomers.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
               <User className="h-10 w-10 mb-2 opacity-50" />
-              <p>Geen klanten gevonden</p>
+              <p>{t('admin.customers.geen_klanten_gevonden')}</p>
               {searchQuery && (
-                <p className="text-sm">Probeer een andere zoekopdracht</p>
+                <p className="text-sm">{t('admin.customers.probeer_een_andere_zoekopdracht')}</p>
               )}
             </div>
           ) : (
@@ -147,10 +149,10 @@ export function POSCustomerDialog({
         {/* Actions */}
         <div className="flex justify-between pt-2 border-t">
           <Button variant="ghost" onClick={handleClear} disabled={!selectedCustomer}>
-            Zonder klant
+            {t('admin.pos.pOSCustomerDialog.zonder_klant')}
           </Button>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Sluiten
+            {t('common.close')}
           </Button>
         </div>
       </DialogContent>

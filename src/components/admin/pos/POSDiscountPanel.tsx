@@ -17,6 +17,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { formatCurrency } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 export interface POSDiscount {
   type: 'percentage' | 'fixed';
@@ -39,6 +40,7 @@ export function POSDiscountPanel({
   cartSubtotal,
   onApplyDiscount,
 }: POSDiscountPanelProps) {
+  const { t } = useTranslation();
   const [discountType, setDiscountType] = useState<'percentage' | 'fixed'>(
     currentDiscount?.type || 'percentage'
   );
@@ -83,7 +85,7 @@ export function POSDiscountPanel({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            Korting Toepassen
+            {t('admin.pos.pOSDiscountPanel.korting_toepassen')}
           </DialogTitle>
         </DialogHeader>
 
@@ -113,11 +115,11 @@ export function POSDiscountPanel({
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="percentage" className="flex items-center gap-2">
               <Percent className="h-4 w-4" />
-              Percentage
+              {t('admin.promotions.autoDiscountFormDialog.percentage')}
             </TabsTrigger>
             <TabsTrigger value="fixed" className="flex items-center gap-2">
               <Euro className="h-4 w-4" />
-              Vast bedrag
+              {t('admin.promotions.autoDiscountFormDialog.vast_bedrag')}
             </TabsTrigger>
           </TabsList>
 
@@ -138,7 +140,7 @@ export function POSDiscountPanel({
 
             {/* Manual Input */}
             <div>
-              <Label htmlFor="percentageValue">Of voer percentage in</Label>
+              <Label htmlFor="percentageValue">{t('admin.pos.pOSDiscountPanel.of_voer_percentage_in')}</Label>
               <div className="relative mt-1">
                 <Input
                   id="percentageValue"
@@ -175,7 +177,7 @@ export function POSDiscountPanel({
 
             {/* Manual Input */}
             <div>
-              <Label htmlFor="fixedValue">Of voer bedrag in</Label>
+              <Label htmlFor="fixedValue">{t('admin.pos.pOSDiscountPanel.of_voer_bedrag_in')}</Label>
               <div className="relative mt-1">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
                   €
@@ -197,10 +199,10 @@ export function POSDiscountPanel({
 
         {/* Reason */}
         <div>
-          <Label htmlFor="reason">Reden (optioneel)</Label>
+          <Label htmlFor="reason">{t('admin.promotions.giftCardBalanceDialog.reden_optioneel')}</Label>
           <Input
             id="reason"
-            placeholder="Bijv: Klantkorting, Beschadigde verpakking..."
+            placeholder={t('admin.pos.pOSDiscountPanel.bijv_klantkorting_beschadigde_verpakking')}
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             className="mt-1"
@@ -211,15 +213,15 @@ export function POSDiscountPanel({
         {parsedValue > 0 && (
           <div className="p-3 bg-muted rounded-lg space-y-1">
             <div className="flex justify-between text-sm">
-              <span>Subtotaal</span>
+              <span>{t('admin.orderDetail.subtotaal')}</span>
               <span>{formatCurrency(cartSubtotal)}</span>
             </div>
             <div className="flex justify-between text-sm text-green-600">
-              <span>Korting</span>
+              <span>{t('admin.promotions.volumeDiscountFormDialog.korting')}</span>
               <span>-{formatCurrency(Math.min(calculatedDiscount, cartSubtotal))}</span>
             </div>
             <div className="flex justify-between font-medium pt-1 border-t">
-              <span>Nieuw subtotaal</span>
+              <span>{t('admin.pos.pOSDiscountPanel.nieuw_subtotaal')}</span>
               <span>{formatCurrency(Math.max(0, cartSubtotal - calculatedDiscount))}</span>
             </div>
           </div>
@@ -227,21 +229,21 @@ export function POSDiscountPanel({
 
         {discountExceedsTotal && (
           <p className="text-sm text-destructive">
-            Korting kan niet hoger zijn dan het subtotaal
+            {t('admin.pos.pOSDiscountPanel.korting_kan_niet_hoger_zijn_dan')}
           </p>
         )}
 
         <DialogFooter className="gap-2">
           {currentDiscount && (
             <Button variant="ghost" onClick={handleClear} className="mr-auto">
-              Verwijderen
+              {t('common.delete')}
             </Button>
           )}
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Annuleren
+            {t('common.cancel')}
           </Button>
           <Button onClick={handleApply} disabled={!isValidDiscount}>
-            Toepassen
+            {t('admin.ads.toepassen')}
           </Button>
         </DialogFooter>
       </DialogContent>

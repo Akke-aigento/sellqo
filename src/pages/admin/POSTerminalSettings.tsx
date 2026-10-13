@@ -41,8 +41,10 @@ import { usePOSTerminals } from '@/hooks/usePOS';
 import { toast } from 'sonner';
 import type { POSTerminalStatus } from '@/types/pos';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
+import { useTranslation } from 'react-i18next';
 
 export default function POSTerminalSettingsPage() {
+  const { t } = useTranslation();
   const { terminalId } = useParams<{ terminalId: string }>();
   const navigate = useNavigate();
   const { terminals, updateTerminal, deleteTerminal, isLoading } = usePOSTerminals();
@@ -73,7 +75,7 @@ export default function POSTerminalSettingsPage() {
       setHasCashDrawer(terminal.capabilities?.cash_drawer || false);
       setAutoPrint(terminal.settings?.auto_print || false);
       setRequireCustomer(terminal.settings?.require_customer || false);
-      setDefaultTaxRate(String(terminal.settings?.default_tax_rate || 21));
+      setDefaultTaxRate(String(terminal.settings?.default_tax_rate ?? 21));
       setReceiptFooter(terminal.settings?.receipt_footer || '');
     }
   }, [terminal]);
@@ -97,14 +99,14 @@ export default function POSTerminalSettingsPage() {
           settings: {
             auto_print: autoPrint,
             require_customer: requireCustomer,
-            default_tax_rate: parseFloat(defaultTaxRate) || 21,
+            default_tax_rate: Number.isFinite(parseFloat(defaultTaxRate)) ? parseFloat(defaultTaxRate) : 21, // 0 % (vrijgesteld) mag; || zette dat op 21
             receipt_footer: receiptFooter.trim() || undefined,
           },
         },
       });
-      toast.success('Terminal instellingen opgeslagen');
+      toast.success(t('admin.pos.msg.terminal_saved'));
     } catch (error) {
-      toast.error('Fout bij opslaan instellingen');
+      toast.error(t('admin.pos.msg.terminal_save_failed'));
     } finally {
       setIsSaving(false);
     }
@@ -115,10 +117,10 @@ export default function POSTerminalSettingsPage() {
     
     try {
       await deleteTerminal.mutateAsync(terminalId);
-      toast.success('Terminal verwijderd');
+      toast.success(t('admin.pos.msg.terminal_deleted'));
       navigate('/admin/pos');
     } catch (error) {
-      toast.error('Fout bij verwijderen terminal');
+      toast.error(t('admin.pos.msg.terminal_delete_failed'));
     }
   };
   
@@ -135,14 +137,14 @@ export default function POSTerminalSettingsPage() {
       <div className="space-y-6">
         <Button variant="ghost" onClick={() => navigate('/admin/pos')}>
           <ArrowLeft className="mr-2 h-4 w-4" />
-          Terug
+          {t('common.back')}
         </Button>
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Monitor className="h-12 w-12 text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">Terminal niet gevonden</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('admin.pOSTerminal.terminal_niet_gevonden')}</h3>
             <p className="text-muted-foreground">
-              Deze terminal bestaat niet of is verwijderd.
+              {t('admin.pOSTerminalSettings.deze_terminal_bestaat_niet_of_is')}
             </p>
           </CardContent>
         </Card>
@@ -161,7 +163,7 @@ export default function POSTerminalSettingsPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Terminal Instellingen</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t('admin.pOSTerminalSettings.terminal_instellingen')}</h1>
             <p className="text-muted-foreground">{terminal.name}</p>
           </div>
         </div>
@@ -170,21 +172,21 @@ export default function POSTerminalSettingsPage() {
             <AlertDialogTrigger asChild>
               <Button variant="outline" className="text-destructive">
                 <Trash2 className="mr-2 h-4 w-4" />
-                Verwijderen
+                {t('common.delete')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Terminal verwijderen?</AlertDialogTitle>
+                <AlertDialogTitle>{t('admin.pOSTerminalSettings.terminal_verwijderen')}</AlertDialogTitle>
                 <AlertDialogDescription>
                   Weet je zeker dat je "{terminal.name}" wilt verwijderen? 
                   Alle gekoppelde sessies en transacties blijven bewaard.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground">
-                  Verwijderen
+                  {t('common.delete')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -198,41 +200,41 @@ export default function POSTerminalSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Monitor className="h-5 w-5" />
-              Algemeen
+              {t('admin.ads.bolCampaignEditForm.algemeen')}
             </CardTitle>
-            <CardDescription>Basisinstellingen voor deze terminal</CardDescription>
+            <CardDescription>{t('admin.pOSTerminalSettings.basisinstellingen_voor_deze_terminal')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="name">Naam *</Label>
+              <Label htmlFor="name">{t('admin.productForm.naam')}</Label>
               <Input
                 id="name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="bijv. Kassa 1"
+                placeholder={t('admin.pos.stripeReaderDialog.bijv_kassa_1')}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="location">Locatie</Label>
+              <Label htmlFor="location">{t('admin.storefront.schema.icon.map')}</Label>
               <Input
                 id="location"
                 value={locationName}
                 onChange={(e) => setLocationName(e.target.value)}
-                placeholder="bijv. Winkel Amsterdam"
+                placeholder={t('admin.pOS.bijv_winkel_amsterdam')}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
+              <Label htmlFor="status">{t('common.status')}</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as POSTerminalStatus)}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="active">Actief</SelectItem>
-                  <SelectItem value="inactive">Inactief</SelectItem>
-                  <SelectItem value="maintenance">Onderhoud</SelectItem>
+                  <SelectItem value="active">{t('admin.marketing.aBTestingPanel.actief')}</SelectItem>
+                  <SelectItem value="inactive">{t('admin.products.inactief')}</SelectItem>
+                  <SelectItem value="maintenance">{t('admin.pOS.onderhoud')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -241,7 +243,7 @@ export default function POSTerminalSettingsPage() {
               <div className="p-3 rounded-lg bg-muted/50">
                 <div className="flex items-center gap-2 text-sm">
                   <CreditCard className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Stripe Reader:</span>
+                  <span className="text-muted-foreground">{t('admin.pOSTerminalSettings.stripe_reader')}</span>
                   <Badge variant="secondary" className="font-mono text-xs">
                     {terminal.stripe_reader_id.slice(0, 20)}...
                   </Badge>
@@ -256,17 +258,17 @@ export default function POSTerminalSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings2 className="h-5 w-5" />
-              Hardware
+              {t('admin.pOSTerminalSettings.hardware')}
             </CardTitle>
-            <CardDescription>Aangesloten apparatuur</CardDescription>
+            <CardDescription>{t('admin.pOSTerminalSettings.aangesloten_apparatuur')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Printer className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <Label className="text-base">Bonprinter</Label>
-                  <p className="text-sm text-muted-foreground">80mm thermische printer</p>
+                  <Label className="text-base">{t('admin.pOSTerminalSettings.bonprinter')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('admin.pOSTerminalSettings.80mm_thermische_printer')}</p>
                 </div>
               </div>
               <Switch checked={hasPrinter} onCheckedChange={setHasPrinter} />
@@ -278,8 +280,8 @@ export default function POSTerminalSettingsPage() {
               <div className="flex items-center gap-3">
                 <ScanBarcode className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <Label className="text-base">Barcode Scanner</Label>
-                  <p className="text-sm text-muted-foreground">USB of Bluetooth scanner</p>
+                  <Label className="text-base">{t('admin.pOSTerminalSettings.barcode_scanner')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('admin.pOSTerminalSettings.usb_of_bluetooth_scanner')}</p>
                 </div>
               </div>
               <Switch checked={hasScanner} onCheckedChange={setHasScanner} />
@@ -291,8 +293,8 @@ export default function POSTerminalSettingsPage() {
               <div className="flex items-center gap-3">
                 <Wallet className="h-5 w-5 text-muted-foreground" />
                 <div>
-                  <Label className="text-base">Kassalade</Label>
-                  <p className="text-sm text-muted-foreground">Automatisch openen bij contant</p>
+                  <Label className="text-base">{t('admin.pOS.kassalade')}</Label>
+                  <p className="text-sm text-muted-foreground">{t('admin.pOSTerminalSettings.automatisch_openen_bij_contant')}</p>
                 </div>
               </div>
               <Switch checked={hasCashDrawer} onCheckedChange={setHasCashDrawer} />
@@ -305,16 +307,16 @@ export default function POSTerminalSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Printer className="h-5 w-5" />
-              Bonnen
+              {t('admin.pOSTerminalSettings.bonnen')}
             </CardTitle>
-            <CardDescription>Instellingen voor kassabonnen</CardDescription>
+            <CardDescription>{t('admin.pOSTerminalSettings.instellingen_voor_kassabonnen')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-base">Automatisch printen</Label>
+                <Label className="text-base">{t('admin.pOSTerminalSettings.automatisch_printen')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Print automatisch een bon na elke verkoop
+                  {t('admin.pOSTerminalSettings.print_automatisch_een_bon_na_elke')}
                 </p>
               </div>
               <Switch 
@@ -327,16 +329,16 @@ export default function POSTerminalSettingsPage() {
             <Separator />
             
             <div className="space-y-2">
-              <Label htmlFor="footer">Voettekst bon</Label>
+              <Label htmlFor="footer">{t('admin.pOSTerminalSettings.voettekst_bon')}</Label>
               <Textarea
                 id="footer"
                 value={receiptFooter}
                 onChange={(e) => setReceiptFooter(e.target.value)}
-                placeholder="bijv. Bedankt voor uw aankoop!"
+                placeholder={t('admin.pOSTerminalSettings.bijv_bedankt_voor_uw_aankoop')}
                 rows={3}
               />
               <p className="text-xs text-muted-foreground">
-                Deze tekst verschijnt onderaan elke kassabon
+                {t('admin.pOSTerminalSettings.deze_tekst_verschijnt_onderaan_elke_kassabon')}
               </p>
             </div>
           </CardContent>
@@ -347,16 +349,16 @@ export default function POSTerminalSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Settings2 className="h-5 w-5" />
-              Afrekenen
+              {t('admin.marketing.creditPurchaseDialog.afrekenen')}
             </CardTitle>
-            <CardDescription>Instellingen voor het afrekenproces</CardDescription>
+            <CardDescription>{t('admin.pOSTerminalSettings.instellingen_voor_het_afrekenproces')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-base">Klant verplicht</Label>
+                <Label className="text-base">{t('admin.pOSTerminalSettings.klant_verplicht')}</Label>
                 <p className="text-sm text-muted-foreground">
-                  Vereis klantgegevens bij elke verkoop
+                  {t('admin.pOSTerminalSettings.vereis_klantgegevens_bij_elke_verkoop')}
                 </p>
               </div>
               <Switch checked={requireCustomer} onCheckedChange={setRequireCustomer} />
@@ -365,19 +367,22 @@ export default function POSTerminalSettingsPage() {
             <Separator />
             
             <div className="space-y-2">
-              <Label htmlFor="tax-rate">Standaard BTW-tarief (%)</Label>
+              <Label htmlFor="tax-rate">{t('admin.pOSTerminalSettings.standaard_btw_tarief')}</Label>
               <Select value={defaultTaxRate} onValueChange={setDefaultTaxRate}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="0">0% (Vrijgesteld)</SelectItem>
-                  <SelectItem value="9">9% (Laag tarief)</SelectItem>
-                  <SelectItem value="21">21% (Standaard)</SelectItem>
+                  <SelectItem value="0">{t('admin.pOSTerminalSettings.0_vrijgesteld')}</SelectItem>
+                  {/* België: 6 % (o.a. voeding, afhaal) en 12 % (o.a. eten ter plaatse); 9 % is het Nederlandse lage tarief. */}
+                  <SelectItem value="6">{t('admin.pOSTerminalSettings.vat_6')}</SelectItem>
+                  <SelectItem value="9">{t('admin.pOSTerminalSettings.9_laag_tarief')}</SelectItem>
+                  <SelectItem value="12">{t('admin.pOSTerminalSettings.vat_12')}</SelectItem>
+                  <SelectItem value="21">{t('admin.pOSTerminalSettings.21_standaard')}</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Wordt toegepast op producten zonder BTW-instelling
+                {t('admin.pOSTerminalSettings.wordt_toegepast_op_producten_zonder_btw')}
               </p>
             </div>
           </CardContent>
@@ -394,7 +399,7 @@ export default function POSTerminalSettingsPage() {
             hasCashDrawer !== (terminal.capabilities?.cash_drawer || false) ||
             autoPrint !== (terminal.settings?.auto_print || false) ||
             requireCustomer !== (terminal.settings?.require_customer || false) ||
-            defaultTaxRate !== String(terminal.settings?.default_tax_rate || 21) ||
+            defaultTaxRate !== String(terminal.settings?.default_tax_rate ?? 21) ||
             receiptFooter !== (terminal.settings?.receipt_footer || '')
           ) : false
         }
@@ -410,7 +415,7 @@ export default function POSTerminalSettingsPage() {
             setHasCashDrawer(terminal.capabilities?.cash_drawer || false);
             setAutoPrint(terminal.settings?.auto_print || false);
             setRequireCustomer(terminal.settings?.require_customer || false);
-            setDefaultTaxRate(String(terminal.settings?.default_tax_rate || 21));
+            setDefaultTaxRate(String(terminal.settings?.default_tax_rate ?? 21));
             setReceiptFooter(terminal.settings?.receipt_footer || '');
           }
         }}
