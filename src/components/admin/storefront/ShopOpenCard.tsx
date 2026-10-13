@@ -12,10 +12,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 interface OpenState { shop_live: boolean; shop_ordering: boolean; products: number; legal: number; payments: boolean }
 
 export function ShopOpenCard() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { isCustomFrontend } = useFrontendMode();
   const tenantId = currentTenant?.id;
@@ -52,33 +54,33 @@ export function ShopOpenCard() {
     };
     const { error } = await supabase.from('tenant_theme_settings').upsert(row, { onConflict: 'tenant_id' });
     setSaving(false);
-    if (error) { toast.error(`Opslaan lukte niet: ${error.message}`); return; }
-    toast.success(patch.shop_live === true ? 'Je winkel staat online' : patch.shop_live === false ? 'Je winkel staat offline' : patch.shop_ordering ? 'Online bestellen staat aan' : 'Online bestellen staat uit');
+    if (error) { toast.error(t('admin.storefront.food.save_failed_reason', { reason: error.message })); return; }
+    toast.success(patch.shop_live === true ? t('admin.storefront.shopOpenCard.je_winkel_staat_online') : patch.shop_live === false ? t('admin.storefront.shopOpenCard.je_winkel_staat_offline') : patch.shop_ordering ? t('admin.storefront.shopOpenCard.online_bestellen_staat_aan') : t('admin.storefront.shopOpenCard.online_bestellen_staat_uit'));
     await qc.invalidateQueries({ queryKey: ['shop-open', tenantId] });
   };
 
   if (isLoading || !data) return <Card><CardContent className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card>;
 
   const checks = [
-    { ok: data.products > 0, text: data.products > 0 ? `${data.products} actieve producten` : 'Nog geen actieve producten' },
-    { ok: data.payments, text: data.payments ? 'Betaalmethode ingesteld' : 'Nog geen betaalmethode (Stripe, overschrijving of betalen bij afhalen)' },
-    { ok: data.legal > 0, text: data.legal > 0 ? 'Juridische pagina’s aanwezig' : 'Nog geen algemene voorwaarden en privacybeleid' },
+    { ok: data.products > 0, text: data.products > 0 ? t('admin.storefront.shopOpenCard.active_products', { count: data.products }) : t('admin.storefront.shopOpenCard.no_active_products') },
+    { ok: data.payments, text: data.payments ? t('admin.storefront.shopOpenCard.betaalmethode_ingesteld') : t('admin.storefront.shopOpenCard.nog_geen_betaalmethode_stripe_overschrijving_of') },
+    { ok: data.legal > 0, text: data.legal > 0 ? t('admin.storefront.shopOpenCard.juridische_pagina_s_aanwezig') : t('admin.storefront.shopOpenCard.nog_geen_algemene_voorwaarden_en_privacybeleid') },
   ];
 
   return (
     <Card className={cn(data.shop_live && 'border-emerald-500/50')}>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><Rocket className="h-5 w-5" />{data.shop_live ? 'Je winkel staat online' : 'Winkel openen'}</CardTitle>
+        <CardTitle className="flex items-center gap-2"><Rocket className="h-5 w-5" />{data.shop_live ? t('admin.storefront.shopOpenCard.je_winkel_staat_online') : t('admin.orderingHub.winkel_openen')}</CardTitle>
         <CardDescription>
           {data.shop_live
-            ? `Iedereen kan je winkel bezoeken op ${currentTenant?.slug}.sellqo.shop, en Google mag hem vinden.`
-            : 'Zolang je winkel niet open is, zien bezoekers "We openen binnenkort". In de editor zie je hem wel gewoon.'}
+            ? t('admin.storefront.shopOpenCard.live_desc', { domain: `${currentTenant?.slug}.sellqo.shop` })
+            : t('admin.storefront.shopOpenCard.closed_desc')}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isCustomFrontend && !data.shop_live ? (
           <p className="rounded-md bg-amber-100 p-3 text-sm text-amber-950 dark:bg-amber-900/40 dark:text-amber-100">
-            Je hebt ook een eigen website. Open deze webshop alleen als je hem echt wil gebruiken: twee winkels met dezelfde producten verwarren klanten en Google.
+            {t('admin.storefront.shopOpenCard.je_hebt_ook_een_eigen_website')}
           </p>
         ) : null}
         <ul className="space-y-1.5 text-sm">
@@ -91,13 +93,13 @@ export function ShopOpenCard() {
         </ul>
         <div className="space-y-3 border-t pt-4">
           <div className="flex items-center justify-between gap-3">
-            <Label htmlFor="shop-live" className="font-medium">Winkel online</Label>
+            <Label htmlFor="shop-live" className="font-medium">{t('admin.orderingHub.winkel_online')}</Label>
             <Switch id="shop-live" checked={data.shop_live} disabled={saving} onCheckedChange={(v) => save({ shop_live: v })} />
           </div>
           <div className="flex items-center justify-between gap-3">
             <div>
-              <Label htmlFor="shop-order" className="font-medium">Online bestellen</Label>
-              <p className="text-xs text-muted-foreground">Klanten kunnen afrekenen. Uit = je winkel toont je producten, zonder winkelmandje.</p>
+              <Label htmlFor="shop-order" className="font-medium">{t('admin.orderingHub.online_bestellen')}</Label>
+              <p className="text-xs text-muted-foreground">{t('admin.storefront.shopOpenCard.klanten_kunnen_afrekenen_uit_je_winkel')}</p>
             </div>
             <Switch id="shop-order" checked={data.shop_ordering} disabled={saving || !data.shop_live} onCheckedChange={(v) => save({ shop_ordering: v })} />
           </div>

@@ -10,17 +10,17 @@ import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { schemaDefaults, type SchemaBlocks, type SchemaField } from './schemaTypes';
+import { useTranslation } from 'react-i18next';
 
 type Values = Record<string, unknown>;
 
-const ICON_LABEL: Record<string, string> = {
-  truck: 'Vrachtwagen', return: 'Retour', shield: 'Schild', star: 'Ster', heart: 'Hart', leaf: 'Blad',
-  clock: 'Klok', gift: 'Cadeau', chat: 'Chat', euro: 'Euro', check: 'Vinkje', map: 'Locatie',
-};
+// Pictogramnamen als i18n-key (admin.storefront.schema.icon.<naam>).
+const ICONS_WITH_LABEL = ['truck', 'return', 'shield', 'star', 'heart', 'leaf', 'clock', 'gift', 'chat', 'euro', 'check', 'map'];
 
 function Field({ f, value, onChange, idPrefix, icons }: {
   f: SchemaField; value: unknown; onChange: (v: unknown) => void; idPrefix: string; icons?: string[];
 }) {
+  const { t } = useTranslation();
   const id = `${idPrefix}-${f.key}`;
   const v = value === undefined || value === null ? f.default : value;
   switch (f.type) {
@@ -40,7 +40,7 @@ function Field({ f, value, onChange, idPrefix, icons }: {
     case 'select':
     case 'icon': {
       const opts = f.type === 'icon'
-        ? (icons || []).map((i) => ({ value: i, label: ICON_LABEL[i] || i }))
+        ? (icons || []).map((i) => ({ value: i, label: ICONS_WITH_LABEL.includes(i) ? t(`admin.storefront.schema.icon.${i}`) : i }))
         : f.options || [];
       return (
         <div className="space-y-1.5">
@@ -88,7 +88,7 @@ function Field({ f, value, onChange, idPrefix, icons }: {
           <Label htmlFor={id}>{f.label}</Label>
           <Input id={id} value={s} placeholder={f.placeholder} aria-invalid={bad} onChange={(e) => onChange(e.target.value)}
             className={bad ? 'border-destructive' : undefined} />
-          {bad ? <p className="text-xs text-destructive">Dit ziet er niet uit als een geldige code — hij wordt niet geladen.</p>
+          {bad ? <p className="text-xs text-destructive">{t('admin.storefront.schema.schemaForm.dit_ziet_er_niet_uit_als')}</p>
             : f.help ? <p className="text-xs text-muted-foreground">{f.help}</p> : null}
         </div>
       );
@@ -115,6 +115,7 @@ export function SchemaForm({ fields, values, onChange, idPrefix = 'sf', icons }:
 export function BlocksEditor({ blocks, items, onChange, icons }: {
   blocks: SchemaBlocks; items: Record<string, unknown>[]; onChange: (next: Record<string, unknown>[]) => void; icons?: string[];
 }) {
+  const { t } = useTranslation();
   const move = (i: number, d: number) => {
     const next = [...items];
     const [x] = next.splice(i, 1);
@@ -128,9 +129,9 @@ export function BlocksEditor({ blocks, items, onChange, icons }: {
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{blocks.label} {i + 1}</span>
             <div className="flex gap-0.5">
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Omhoog"><ArrowUp className="h-3.5 w-3.5" /></Button>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label="Omlaag"><ArrowDown className="h-3.5 w-3.5" /></Button>
-              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onChange(items.filter((_, j) => j !== i))} aria-label="Verwijderen"><Trash2 className="h-3.5 w-3.5" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={i === 0} onClick={() => move(i, -1)} aria-label={t('admin.storefront.food.addonGroupsManager.omhoog')}><ArrowUp className="h-3.5 w-3.5" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label={t('admin.storefront.food.addonGroupsManager.omlaag')}><ArrowDown className="h-3.5 w-3.5" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onChange(items.filter((_, j) => j !== i))} aria-label={t('common.delete')}><Trash2 className="h-3.5 w-3.5" /></Button>
             </div>
           </div>
           <SchemaForm fields={blocks.fields} values={it} icons={icons} idPrefix={`${blocks.key}-${i}`}

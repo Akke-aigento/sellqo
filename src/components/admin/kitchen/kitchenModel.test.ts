@@ -70,8 +70,9 @@ describe('bestellen aan tafel (HORECA-1)', () => {
     const o = order({ service_type: 'eat_in', table_label: '4', customer_name: 'Tafel 4', payment_status: 'pending', payment_method: 'pay_on_pickup', requested_time: null });
     expect(orderBelongsInKitchen(o)).toBe(true);
     const c = cardFromOrder(o, undefined);
-    expect(c.customer).toBe('Tafel 4');
+    expect(c.table).toBe('4');
+    expect(c.customer).toBeNull();
     expect(c.service).toBe('eat_in');
-    expect(cardFromOrder({ ...o, customer_name: 'Sofie' }, undefined).customer).toBe('Tafel 4 · Sofie');
+    expect(cardFromOrder({ ...o, customer_name: 'Sofie' }, undefined).customer).toBe('Sofie');
   });
 });

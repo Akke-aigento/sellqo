@@ -15,6 +15,7 @@ import { Label } from '@/components/ui/label';
 import { DecimalInput } from './DecimalInput';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTranslation } from 'react-i18next';
 
 interface Option { id?: string; name: string; price: number; is_active: boolean }
 interface Group {
@@ -35,6 +36,7 @@ function GroupCard({ g, categories, onChange, onRemove, onSave, saving }: {
   g: Group; categories: { id: string; name: string }[]; saving: boolean;
   onChange: (g: Group) => void; onRemove: () => void; onSave: () => void;
 }) {
+  const { t } = useTranslation();
   const set = (patch: Partial<Group>) => onChange({ ...g, ...patch, dirty: true });
   const rule = ruleOf(g);
   const setOpt = (i: number, patch: Partial<Option>) => set({ options: g.options.map((o, j) => (j === i ? { ...o, ...patch } : o)) });
@@ -43,14 +45,14 @@ function GroupCard({ g, categories, onChange, onRemove, onSave, saving }: {
     <Card>
       <CardContent className="space-y-4 p-4">
         <div className="flex items-center gap-2">
-          <Input value={g.name} onChange={(e) => set({ name: e.target.value })} placeholder="bv. Extra toppings" className="h-9 font-medium" aria-label="Naam van de groep" />
-          <Switch checked={g.is_active} onCheckedChange={(v) => set({ is_active: v })} aria-label="Actief" />
-          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onRemove} aria-label="Groep verwijderen"><Trash2 className="h-4 w-4" /></Button>
+          <Input value={g.name} onChange={(e) => set({ name: e.target.value })} placeholder={t('admin.storefront.food.addonGroupsManager.bv_extra_toppings')} className="h-9 font-medium" aria-label={t('admin.storefront.food.addonGroupsManager.naam_van_de_groep')} />
+          <Switch checked={g.is_active} onCheckedChange={(v) => set({ is_active: v })} aria-label={t('admin.marketing.aBTestingPanel.actief')} />
+          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onRemove} aria-label={t('admin.storefront.food.addonGroupsManager.groep_verwijderen')}><Trash2 className="h-4 w-4" /></Button>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
-            <Label>Keuze</Label>
+            <Label>{t('admin.storefront.food.addonGroupsManager.keuze')}</Label>
             <Select value={rule} onValueChange={(v) => {
               const r = v as Rule;
               if (r === 'optional_many') set({ min_select: 0, max_select: null });
@@ -60,47 +62,47 @@ function GroupCard({ g, categories, onChange, onRemove, onSave, saving }: {
             }}>
               <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="optional_many">Optioneel, meerdere mogelijk (toppings)</SelectItem>
-                <SelectItem value="optional_one">Optioneel, maximaal één</SelectItem>
-                <SelectItem value="required_one">Verplicht één kiezen (saus, formaat)</SelectItem>
-                <SelectItem value="custom">Eigen aantal…</SelectItem>
+                <SelectItem value="optional_many">{t('admin.storefront.food.addonGroupsManager.optioneel_meerdere_mogelijk_toppings')}</SelectItem>
+                <SelectItem value="optional_one">{t('admin.storefront.food.addonGroupsManager.optioneel_maximaal_een')}</SelectItem>
+                <SelectItem value="required_one">{t('admin.storefront.food.addonGroupsManager.verplicht_een_kiezen_saus_formaat')}</SelectItem>
+                <SelectItem value="custom">{t('admin.storefront.food.addonGroupsManager.eigen_aantal')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           {rule === 'custom' ? (
             <div className="grid grid-cols-2 gap-2">
-              <div className="space-y-1.5"><Label>Minimum</Label>
+              <div className="space-y-1.5"><Label>{t('admin.productForm.minimum')}</Label>
                 <Input inputMode="numeric" value={String(g.min_select)} onChange={(e) => set({ min_select: Math.max(0, parseInt(e.target.value, 10) || 0) })} className="h-9" /></div>
-              <div className="space-y-1.5"><Label>Maximum</Label>
-                <Input inputMode="numeric" placeholder="onbeperkt" value={g.max_select == null ? '' : String(g.max_select)}
+              <div className="space-y-1.5"><Label>{t('admin.productForm.maximum')}</Label>
+                <Input inputMode="numeric" placeholder={t('admin.storefront.food.unlimited')} value={g.max_select == null ? '' : String(g.max_select)}
                   onChange={(e) => { const n = parseInt(e.target.value, 10); set({ max_select: Number.isFinite(n) && n > 0 ? n : null }); }} className="h-9" /></div>
             </div>
           ) : null}
         </div>
 
         <div className="space-y-2">
-          <Label>Opties</Label>
+          <Label>{t('admin.storefront.food.addonGroupsManager.opties')}</Label>
           {g.options.map((o, i) => (
             <div key={o.id || `n${i}`} className="flex items-center gap-2">
-              <Input value={o.name} onChange={(e) => setOpt(i, { name: e.target.value })} placeholder="bv. Extra mozzarella" className="h-9" aria-label="Optie" />
+              <Input value={o.name} onChange={(e) => setOpt(i, { name: e.target.value })} placeholder={t('admin.storefront.food.addonGroupsManager.bv_extra_mozzarella')} className="h-9" aria-label={t('admin.storefront.food.addonGroupsManager.optie')} />
               <div className="relative w-28 shrink-0">
                 <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">€</span>
-                <DecimalInput value={o.price} onChange={(v) => setOpt(i, { price: v ?? 0 })} className="h-9 pl-6" aria-label="Meerprijs" />
+                <DecimalInput value={o.price} onChange={(v) => setOpt(i, { price: v ?? 0 })} className="h-9 pl-6" aria-label={t('admin.storefront.food.addonGroupsManager.meerprijs')} />
               </div>
-              <Switch checked={o.is_active} onCheckedChange={(v) => setOpt(i, { is_active: v })} aria-label="Beschikbaar" />
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={i === 0} onClick={() => moveOpt(i, -1)} aria-label="Omhoog"><ArrowUp className="h-3.5 w-3.5" /></Button>
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={i === g.options.length - 1} onClick={() => moveOpt(i, 1)} aria-label="Omlaag"><ArrowDown className="h-3.5 w-3.5" /></Button>
-              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" aria-label="Optie verwijderen"
+              <Switch checked={o.is_active} onCheckedChange={(v) => setOpt(i, { is_active: v })} aria-label={t('admin.productForm.beschikbaar')} />
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={i === 0} onClick={() => moveOpt(i, -1)} aria-label={t('admin.storefront.food.addonGroupsManager.omhoog')}><ArrowUp className="h-3.5 w-3.5" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0" disabled={i === g.options.length - 1} onClick={() => moveOpt(i, 1)} aria-label={t('admin.storefront.food.addonGroupsManager.omlaag')}><ArrowDown className="h-3.5 w-3.5" /></Button>
+              <Button type="button" variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-destructive" aria-label={t('admin.storefront.food.addonGroupsManager.optie_verwijderen')}
                 onClick={() => set({ options: g.options.filter((_, j) => j !== i), removedOptions: o.id ? [...g.removedOptions, o.id] : g.removedOptions })}><Trash2 className="h-3.5 w-3.5" /></Button>
             </div>
           ))}
-          <Button type="button" variant="outline" size="sm" onClick={() => set({ options: [...g.options, { name: '', price: 0, is_active: true }] })}><Plus className="mr-1.5 h-4 w-4" />Optie toevoegen</Button>
-          <p className="text-xs text-muted-foreground">Uitgezette opties blijven bewaard maar zijn tijdelijk niet te kiezen (bv. op = op).</p>
+          <Button type="button" variant="outline" size="sm" onClick={() => set({ options: [...g.options, { name: '', price: 0, is_active: true }] })}><Plus className="mr-1.5 h-4 w-4" />{t('admin.storefront.food.addonGroupsManager.optie_toevoegen')}</Button>
+          <p className="text-xs text-muted-foreground">{t('admin.storefront.food.addonGroupsManager.uitgezette_opties_blijven_bewaard_maar_zijn')}</p>
         </div>
 
         <div className="space-y-2">
-          <Label>Geldt voor de categorieën</Label>
-          {categories.length === 0 ? <p className="text-sm text-muted-foreground">Nog geen categorieën.</p> : (
+          <Label>{t('admin.storefront.food.addonGroupsManager.geldt_voor_de_categorieen')}</Label>
+          {categories.length === 0 ? <p className="text-sm text-muted-foreground">{t('admin.storefront.food.addonGroupsManager.nog_geen_categorieen')}</p> : (
             <div className="grid gap-1.5 sm:grid-cols-2">
               {categories.map((c) => (
                 <label key={c.id} className="flex items-center gap-2 text-sm">
@@ -115,7 +117,7 @@ function GroupCard({ g, categories, onChange, onRemove, onSave, saving }: {
         </div>
 
         <div className="flex justify-end">
-          <Button type="button" size="sm" onClick={onSave} disabled={saving || !g.dirty}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{g.dirty ? 'Opslaan' : 'Opgeslagen'}</Button>
+          <Button type="button" size="sm" onClick={onSave} disabled={saving || !g.dirty}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{g.dirty ? t('common.save') : t('admin.adsProductMap.opgeslagen')}</Button>
         </div>
       </CardContent>
     </Card>
@@ -123,6 +125,7 @@ function GroupCard({ g, categories, onChange, onRemove, onSave, saving }: {
 }
 
 export function AddonGroupsManager() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const [groups, setGroups] = useState<Group[]>([]);
@@ -155,9 +158,9 @@ export function AddonGroupsManager() {
   const saveGroup = async (i: number) => {
     const g = groups[i];
     if (!tenantId) return;
-    if (!g.name.trim()) { toast.error('Geef de groep een naam'); return; }
-    if (g.options.some((o) => !o.name.trim())) { toast.error('Elke optie heeft een naam nodig'); return; }
-    if (g.max_select != null && g.min_select > g.max_select) { toast.error('Het minimum is groter dan het maximum'); return; }
+    if (!g.name.trim()) { toast.error(t('admin.storefront.food.addon_name_required')); return; }
+    if (g.options.some((o) => !o.name.trim())) { toast.error(t('admin.storefront.food.addon_option_name_required')); return; }
+    if (g.max_select != null && g.min_select > g.max_select) { toast.error(t('admin.storefront.food.addon_min_gt_max')); return; }
     setSavingIdx(i);
     try {
       const row = { tenant_id: tenantId, name: g.name.trim(), min_select: g.min_select, max_select: g.max_select, category_ids: g.category_ids,
@@ -188,9 +191,9 @@ export function AddonGroupsManager() {
       if (fErr) throw fErr;
       setGroups((gs) => gs.map((x, j) => (j === i ? { ...x, id: groupId, dirty: false, removedOptions: [],
         options: (fresh || []).map((op) => ({ id: op.id, name: op.name, price: Number(op.price), is_active: op.is_active })) } : x)));
-      toast.success(`"${g.name}" opgeslagen`);
+      toast.success(t('admin.storefront.food.saved_named', { name: g.name }));
     } catch (e) {
-      toast.error(`Opslaan lukte niet: ${e instanceof Error ? e.message : 'onbekende fout'}`);
+      toast.error(t('admin.storefront.food.save_failed_reason', { reason: e instanceof Error ? e.message : t('admin.storefront.food.unknown_error') }));
     } finally {
       setSavingIdx(null);
     }
@@ -199,9 +202,9 @@ export function AddonGroupsManager() {
   const removeGroup = async (i: number) => {
     const g = groups[i];
     if (g.id) {
-      if (!window.confirm(`Groep "${g.name}" en al zijn opties verwijderen? Bestaande bestellingen behouden hun extra's.`)) return;
+      if (!window.confirm(t('admin.storefront.food.addon_delete_confirm', { name: g.name }))) return;
       const { error } = await supabase.from('product_addon_groups').delete().eq('id', g.id).eq('tenant_id', tenantId!);
-      if (error) { toast.error(`Verwijderen lukte niet: ${error.message}`); return; }
+      if (error) { toast.error(t('admin.storefront.food.delete_failed_reason', { reason: error.message })); return; }
     }
     setGroups((gs) => gs.filter((_, j) => j !== i));
   };
@@ -212,8 +215,8 @@ export function AddonGroupsManager() {
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Extra's</CardTitle>
-          <CardDescription>Toppings, sauzen, bijgerechten of formaten die je klant op de productpagina kiest. Een groep geldt voor alle producten in de gekozen categorieën; de meerprijs komt bovenop de productprijs.</CardDescription>
+          <CardTitle>{t('admin.storefront.food.addonGroupsManager.extra_s')}</CardTitle>
+          <CardDescription>{t('admin.storefront.food.addonGroupsManager.toppings_sauzen_bijgerechten_of_formaten_die')}</CardDescription>
         </CardHeader>
       </Card>
       {groups.map((g, i) => (
@@ -222,9 +225,9 @@ export function AddonGroupsManager() {
           onRemove={() => removeGroup(i)} onSave={() => saveGroup(i)} />
       ))}
       <Button type="button" variant="outline" onClick={() => setGroups((gs) => [...gs, {
-        name: gs.length === 0 ? 'Extra toppings' : '', min_select: 0, max_select: null, category_ids: [], product_ids: [], is_active: true,
+        name: gs.length === 0 ? t('admin.storefront.food.addon_default_name') : '', min_select: 0, max_select: null, category_ids: [], product_ids: [], is_active: true,
         options: [{ name: '', price: 0, is_active: true }], removedOptions: [], dirty: true,
-      }])}><Plus className="mr-1.5 h-4 w-4" />Groep toevoegen</Button>
+      }])}><Plus className="mr-1.5 h-4 w-4" />{t('admin.storefront.food.addonGroupsManager.groep_toevoegen')}</Button>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { addonSelectionError, chosenAddons, type AddonGroupLite, type ChosenAddon } from '@/lib/productAddons';
+import { useTranslation } from 'react-i18next';
 
 const euro = (n: number) => new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
 
@@ -11,6 +12,7 @@ export function POSAddonDialog({ open, productName, basePrice, groups, onCancel,
   open: boolean; productName: string; basePrice: number; groups: AddonGroupLite[];
   onCancel: () => void; onConfirm: (addons: ChosenAddon[]) => void;
 }) {
+  const { t } = useTranslation();
   const [picked, setPicked] = useState<string[]>([]);
   const [tried, setTried] = useState(false);
   useEffect(() => { if (open) { setPicked([]); setTried(false); } }, [open]);
@@ -41,7 +43,7 @@ export function POSAddonDialog({ open, productName, basePrice, groups, onCancel,
                 <div className="flex items-baseline justify-between">
                   <span className="font-semibold">{g.name}</span>
                   <span className={cn('text-xs', bad ? 'font-semibold text-destructive' : 'text-muted-foreground')}>
-                    {g.min_select > 0 ? `Verplicht${g.max_select === 1 ? ' · kies 1' : ''}` : g.max_select ? `Optioneel · max. ${g.max_select}` : 'Optioneel'}
+                    {g.min_select > 0 ? (g.max_select === 1 ? t('admin.storefront.food.rule_required_one') : t('admin.pos.pOSAddonDialog.required')) : g.max_select ? t('admin.storefront.food.rule_optional_max', { max: g.max_select }) : t('admin.storefront.food.rule_optional')}
                   </span>
                 </div>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -63,7 +65,7 @@ export function POSAddonDialog({ open, productName, basePrice, groups, onCancel,
         </div>
         {tried && error ? <p className="text-sm font-semibold text-destructive">{error}</p> : null}
         <DialogFooter className="gap-2 sm:gap-2">
-          <Button variant="outline" onClick={onCancel}>Annuleren</Button>
+          <Button variant="outline" onClick={onCancel}>{t('common.cancel')}</Button>
           <Button className="min-w-40" onClick={() => { setTried(true); if (!error) onConfirm(chosenAddons(groups, picked)); }}>
             Toevoegen · {euro(basePrice + extra)}
           </Button>

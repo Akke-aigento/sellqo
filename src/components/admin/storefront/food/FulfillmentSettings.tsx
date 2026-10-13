@@ -17,6 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import type { Json } from '@/integrations/supabase/types';
 import { DecimalInput } from './DecimalInput';
 import { DAYS, emptyHours, parseHours, type Hours, type ServiceType } from './fulfillmentHours';
+import { useTranslation } from 'react-i18next';
 
 interface Method {
   id?: string; name: string; price: number; free_above: number | null; is_active: boolean;
@@ -27,9 +28,11 @@ interface Settings {
   max_orders_per_slot: number | null; hours: Hours; pay_on_pickup: boolean; notify_ready: boolean;
 }
 const DEFAULT_SETTINGS: Settings = { slots_enabled: false, slot_minutes: 15, prep_minutes: 20, days_ahead: 0, max_orders_per_slot: null, hours: emptyHours(), pay_on_pickup: false, notify_ready: true };
-const TYPE_LABEL: Record<ServiceType, string> = { pickup: 'Afhalen', local_delivery: 'Levering' };
+// Labels als i18n-key; de sleutel is de enum-waarde.
+const HOURS_TAB_KEY: Record<ServiceType, string> = { pickup: 'admin.storefront.food.hours_pickup', local_delivery: 'admin.storefront.food.hours_delivery' };
 
 function MethodRow({ m, onChange, onRemove }: { m: Method; onChange: (m: Method) => void; onRemove: () => void }) {
+  const { t } = useTranslation();
   const delivery = m.fulfillment_type === 'local_delivery';
   // Eigen tekst bijhouden, anders verdwijnt een getypte komma meteen.
   const [zone, setZone] = useState((m.postal_codes || []).join(', '));
@@ -37,65 +40,67 @@ function MethodRow({ m, onChange, onRemove }: { m: Method; onChange: (m: Method)
     <div className="space-y-3 rounded-lg border p-4">
       <div className="flex items-center gap-2">
         {delivery ? <Bike className="h-4 w-4 text-muted-foreground" /> : <Store className="h-4 w-4 text-muted-foreground" />}
-        <Input value={m.name} onChange={(e) => onChange({ ...m, name: e.target.value })} className="h-9" aria-label="Naam" />
+        <Input value={m.name} onChange={(e) => onChange({ ...m, name: e.target.value })} className="h-9" aria-label={t('common.name')} />
         <div className="flex items-center gap-2 pl-2">
-          <Switch checked={m.is_active} onCheckedChange={(v) => onChange({ ...m, is_active: v })} aria-label="Actief" />
-          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onRemove} aria-label="Verwijderen"><Trash2 className="h-4 w-4" /></Button>
+          <Switch checked={m.is_active} onCheckedChange={(v) => onChange({ ...m, is_active: v })} aria-label={t('admin.marketing.aBTestingPanel.actief')} />
+          <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={onRemove} aria-label={t('common.delete')}><Trash2 className="h-4 w-4" /></Button>
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="space-y-1.5">
-          <Label>Kost (€)</Label>
+          <Label>{t('admin.storefront.food.fulfillmentSettings.kost')}</Label>
           <DecimalInput value={m.price ?? 0} onChange={(v) => onChange({ ...m, price: v ?? 0 })} className="h-9" />
         </div>
         <div className="space-y-1.5">
-          <Label>Gratis vanaf (€)</Label>
-          <DecimalInput placeholder="nooit" value={m.free_above} onChange={(v) => onChange({ ...m, free_above: v })} className="h-9" />
+          <Label>{t('admin.storefront.food.fulfillmentSettings.gratis_vanaf')}</Label>
+          <DecimalInput placeholder={t('admin.storefront.food.never')} value={m.free_above} onChange={(v) => onChange({ ...m, free_above: v })} className="h-9" />
         </div>
         <div className="space-y-1.5">
-          <Label>Minimumbedrag (€)</Label>
-          <DecimalInput placeholder="geen" value={m.min_order_amount} onChange={(v) => onChange({ ...m, min_order_amount: v })} className="h-9" />
+          <Label>{t('admin.storefront.food.fulfillmentSettings.minimumbedrag')}</Label>
+          <DecimalInput placeholder={t('admin.storefront.food.none_lower')} value={m.min_order_amount} onChange={(v) => onChange({ ...m, min_order_amount: v })} className="h-9" />
         </div>
       </div>
       {delivery ? (
         <div className="space-y-1.5">
-          <Label>Postcodes waar je levert</Label>
-          <Input placeholder="bv. 3000, 3001, 3010 of 30* (leeg = overal)" value={zone}
+          <Label>{t('admin.storefront.food.fulfillmentSettings.postcodes_waar_je_levert')}</Label>
+          <Input placeholder={t('admin.storefront.food.fulfillmentSettings.bv_3000_3001_3010_of_30')} value={zone}
             onChange={(e) => { setZone(e.target.value); onChange({ ...m, postal_codes: e.target.value.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean) }); }} className="h-9" />
-          <p className="text-xs text-muted-foreground">Een sterretje betekent "begint met": 30* = alle postcodes die met 30 beginnen.</p>
+          <p className="text-xs text-muted-foreground">{t('admin.storefront.food.fulfillmentSettings.een_sterretje_betekent_begint_met_30')}</p>
         </div>
       ) : null}
       <div className="space-y-1.5">
-        <Label>Uitleg voor de klant (optioneel)</Label>
-        <Input placeholder={delivery ? 'bv. Levering binnen 45 minuten' : 'bv. Kerkstraat 1, Leuven'} value={m.description || ''} onChange={(e) => onChange({ ...m, description: e.target.value || null })} className="h-9" />
+        <Label>{t('admin.storefront.food.fulfillmentSettings.uitleg_voor_de_klant_optioneel')}</Label>
+        <Input placeholder={delivery ? t('admin.storefront.food.fulfillmentSettings.bv_levering_binnen_45_minuten') : t('admin.storefront.food.fulfillmentSettings.bv_kerkstraat_1_leuven')} value={m.description || ''} onChange={(e) => onChange({ ...m, description: e.target.value || null })} className="h-9" />
       </div>
     </div>
   );
 }
 
 function HoursEditor({ hours, type, onChange }: { hours: Hours; type: ServiceType; onChange: (h: Hours) => void }) {
+  const { t } = useTranslation();
   const week = hours[type];
   const setDay = (d: string, ranges: [string, string][]) => onChange({ ...hours, [type]: { ...week, [d]: ranges } });
   return (
     <div className="space-y-2">
-      {DAYS.map(({ key, label }) => {
+      {DAYS.map(({ key, labelKey }) => {
+        const label = t(labelKey);
         const ranges = week[key] || [];
         const open = ranges.length > 0;
         return (
           <div key={key} className="flex flex-wrap items-center gap-2 border-b py-2 last:border-0">
             <span className="w-24 text-sm font-medium">{label}</span>
-            <Switch checked={open} onCheckedChange={(v) => setDay(key, v ? [['17:00', '22:00']] : [])} aria-label={`${label} open`} />
+            <Switch checked={open} onCheckedChange={(v) => setDay(key, v ? [['17:00', '22:00']] : [])} aria-label={t('admin.storefront.food.day_open', { day: label })} />
             {open ? ranges.map((r, i) => (
               <span key={i} className="flex items-center gap-1">
-                <Input type="time" value={r[0]} onChange={(e) => setDay(key, ranges.map((x, j) => (j === i ? [e.target.value, x[1]] : x)))} className="h-8 w-[6.5rem]" aria-label="Van" />
+                <Input type="time" value={r[0]} onChange={(e) => setDay(key, ranges.map((x, j) => (j === i ? [e.target.value, x[1]] : x)))} className="h-8 w-[6.5rem]" aria-label={t('admin.storefront.food.fulfillmentSettings.van')} />
                 <span className="text-muted-foreground">–</span>
-                <Input type="time" value={r[1]} onChange={(e) => setDay(key, ranges.map((x, j) => (j === i ? [x[0], e.target.value] : x)))} className="h-8 w-[6.5rem]" aria-label="Tot" />
-                {i > 0 ? <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDay(key, ranges.filter((_, j) => j !== i))} aria-label="Blok verwijderen"><Trash2 className="h-3.5 w-3.5" /></Button> : null}
+                <Input type="time" value={r[1]} onChange={(e) => setDay(key, ranges.map((x, j) => (j === i ? [x[0], e.target.value] : x)))} className="h-8 w-[6.5rem]" aria-label={t('admin.storefront.food.fulfillmentSettings.tot')} />
+                {i > 0 ? <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setDay(key, ranges.filter((_, j) => j !== i))} aria-label={t('admin.storefront.food.fulfillmentSettings.blok_verwijderen')}><Trash2 className="h-3.5 w-3.5" /></Button> : null}
               </span>
-            )) : <span className="text-sm text-muted-foreground">Gesloten</span>}
+            )) : <span className="text-sm text-muted-foreground">{t('admin.storefront.food.fulfillmentSettings.gesloten')}</span>}
             {open && ranges.length < 2 ? (
               <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs" onClick={() => setDay(key, [...ranges, ['17:00', '22:00']])}>
-                <Plus className="mr-1 h-3 w-3" />2e blok
+                <Plus className="mr-1 h-3 w-3" />{t('admin.storefront.food.fulfillmentSettings.2e_blok')}
               </Button>
             ) : null}
           </div>
@@ -104,12 +109,13 @@ function HoursEditor({ hours, type, onChange }: { hours: Hours; type: ServiceTyp
       <Button type="button" variant="link" size="sm" className="h-auto px-0" onClick={() => {
         const mon = week['1'] || [];
         onChange({ ...hours, [type]: Object.fromEntries(DAYS.map(({ key }) => [key, key === '1' || (week[key] || []).length ? mon : []])) });
-      }}>Uren van maandag kopiëren naar alle open dagen</Button>
+      }}>{t('admin.storefront.food.fulfillmentSettings.uren_van_maandag_kopieren_naar_alle')}</Button>
     </div>
   );
 }
 
 export function FulfillmentSettings() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();
@@ -147,15 +153,15 @@ export function FulfillmentSettings() {
   }, [data]);
 
   const addMethod = (type: ServiceType) => setMethods((ms) => [...ms, {
-    name: type === 'pickup' ? 'Afhalen' : 'Levering aan huis', price: type === 'pickup' ? 0 : 2.5, free_above: null, is_active: true,
+    name: type === 'pickup' ? t('admin.orderDetail.serviceAfhalen') : t('admin.storefront.food.fulfillmentSettings.levering_aan_huis'), price: type === 'pickup' ? 0 : 2.5, free_above: null, is_active: true,
     fulfillment_type: type, postal_codes: type === 'local_delivery' ? [] : null, min_order_amount: type === 'local_delivery' ? 15 : null, description: null,
   }]);
 
   const save = async () => {
     if (!tenantId) return;
-    if (methods.some((m) => !m.name.trim())) { toast.error('Elke methode heeft een naam nodig'); return; }
+    if (methods.some((m) => !m.name.trim())) { toast.error(t('admin.storefront.food.method_name_required')); return; }
     const badRange = (['pickup', 'local_delivery'] as ServiceType[]).some((t) => Object.values(settings.hours[t]).some((rs) => rs.some(([a, b]) => !a || !b || b <= a)));
-    if (settings.slots_enabled && badRange) { toast.error('Controleer je uren: het einde moet na het begin liggen'); return; }
+    if (settings.slots_enabled && badRange) { toast.error(t('admin.storefront.food.hours_end_before_start')); return; }
     setSaving(true);
     try {
       for (const id of removed) {
@@ -185,11 +191,11 @@ export function FulfillmentSettings() {
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;
-      toast.success('Afhalen en leveren opgeslagen');
+      toast.success(t('admin.storefront.food.fulfillment_saved'));
       await qc.invalidateQueries({ queryKey: ['fulfillment', tenantId] });
       await qc.invalidateQueries({ queryKey: ['shipping-methods'] });
     } catch (e) {
-      toast.error(`Opslaan lukte niet: ${e instanceof Error ? e.message : 'onbekende fout'}`);
+      toast.error(t('admin.storefront.food.save_failed_reason', { reason: e instanceof Error ? e.message : t('admin.storefront.food.unknown_error') }));
     } finally {
       setSaving(false);
     }
@@ -202,21 +208,21 @@ export function FulfillmentSettings() {
       <Card>
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <CardTitle>Afhalen en leveren</CardTitle>
-            <Button asChild variant="outline" size="sm"><Link to="/admin/keuken"><ChefHat className="mr-1.5 h-4 w-4" />Keukenscherm</Link></Button>
+            <CardTitle>{t('admin.storefront.food.fulfillmentSettings.afhalen_en_leveren')}</CardTitle>
+            <Button asChild variant="outline" size="sm"><Link to="/admin/keuken"><ChefHat className="mr-1.5 h-4 w-4" />{t('admin.orderingHub.keukenscherm')}</Link></Button>
           </div>
-          <CardDescription>Voor restaurants, frituren, bakkers en traiteurs. Je klanten kiezen bij het afrekenen of ze afhalen of laten leveren. Verzenden met de post stel je in bij Instellingen › Verzending.</CardDescription>
+          <CardDescription>{t('admin.storefront.food.fulfillmentSettings.voor_restaurants_frituren_bakkers_en_traiteurs')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {methods.length === 0 ? <p className="text-sm text-muted-foreground">Nog geen afhaal- of levermethode. Voeg er een toe.</p> : null}
+          {methods.length === 0 ? <p className="text-sm text-muted-foreground">{t('admin.storefront.food.fulfillmentSettings.nog_geen_afhaal_of_levermethode_voeg')}</p> : null}
           {methods.map((m, i) => (
             <MethodRow key={m.id || `new-${i}`} m={m}
               onChange={(next) => setMethods((ms) => ms.map((x, j) => (j === i ? next : x)))}
               onRemove={() => { if (m.id) setRemoved((r) => [...r, m.id!]); setMethods((ms) => ms.filter((_, j) => j !== i)); }} />
           ))}
           <div className="flex flex-wrap gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={() => addMethod('pickup')}><Store className="mr-1.5 h-4 w-4" />Afhalen toevoegen</Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => addMethod('local_delivery')}><Bike className="mr-1.5 h-4 w-4" />Levering toevoegen</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => addMethod('pickup')}><Store className="mr-1.5 h-4 w-4" />{t('admin.storefront.food.fulfillmentSettings.afhalen_toevoegen')}</Button>
+            <Button type="button" variant="outline" size="sm" onClick={() => addMethod('local_delivery')}><Bike className="mr-1.5 h-4 w-4" />{t('admin.storefront.food.fulfillmentSettings.levering_toevoegen')}</Button>
           </div>
         </CardContent>
       </Card>
@@ -225,10 +231,10 @@ export function FulfillmentSettings() {
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle className="flex items-center gap-2"><Banknote className="h-5 w-5" />Betalen bij afhalen of levering</CardTitle>
-              <CardDescription>Je klant betaalt contant of met de bankkaart aan de toog of aan de deur. De bestelling komt meteen binnen, gemarkeerd als "nog te betalen".</CardDescription>
+              <CardTitle className="flex items-center gap-2"><Banknote className="h-5 w-5" />{t('admin.storefront.food.fulfillmentSettings.betalen_bij_afhalen_of_levering')}</CardTitle>
+              <CardDescription>{t('admin.storefront.food.fulfillmentSettings.je_klant_betaalt_contant_of_met')}</CardDescription>
             </div>
-            <Switch checked={settings.pay_on_pickup} onCheckedChange={(v) => setSettings((s) => ({ ...s, pay_on_pickup: v }))} aria-label="Betalen bij afhalen aan" />
+            <Switch checked={settings.pay_on_pickup} onCheckedChange={(v) => setSettings((s) => ({ ...s, pay_on_pickup: v }))} aria-label={t('admin.storefront.food.fulfillmentSettings.betalen_bij_afhalen_aan')} />
           </div>
         </CardHeader>
       </Card>
@@ -237,10 +243,10 @@ export function FulfillmentSettings() {
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5" />Klant verwittigen</CardTitle>
-              <CardDescription>Je klant krijgt een mail zodra de keuken een afhaalbestelling op "Klaar" zet of een levering op "Meegegeven".</CardDescription>
+              <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5" />{t('admin.storefront.food.fulfillmentSettings.klant_verwittigen')}</CardTitle>
+              <CardDescription>{t('admin.storefront.food.fulfillmentSettings.je_klant_krijgt_een_mail_zodra')}</CardDescription>
             </div>
-            <Switch checked={settings.notify_ready} onCheckedChange={(v) => setSettings((s) => ({ ...s, notify_ready: v }))} aria-label="Klant verwittigen aan" />
+            <Switch checked={settings.notify_ready} onCheckedChange={(v) => setSettings((s) => ({ ...s, notify_ready: v }))} aria-label={t('admin.storefront.food.fulfillmentSettings.klant_verwittigen_aan')} />
           </div>
         </CardHeader>
       </Card>
@@ -249,48 +255,48 @@ export function FulfillmentSettings() {
         <CardHeader>
           <div className="flex items-start justify-between gap-4">
             <div>
-              <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />Tijdsloten</CardTitle>
-              <CardDescription>Laat klanten een afhaal- of levertijd kiezen. Zonder tijdsloten bestellen ze "zo snel mogelijk".</CardDescription>
+              <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />{t('admin.orderingHub.tijdsloten')}</CardTitle>
+              <CardDescription>{t('admin.storefront.food.fulfillmentSettings.laat_klanten_een_afhaal_of_levertijd')}</CardDescription>
             </div>
-            <Switch checked={settings.slots_enabled} onCheckedChange={(v) => setSettings((s) => ({ ...s, slots_enabled: v }))} aria-label="Tijdsloten aan" />
+            <Switch checked={settings.slots_enabled} onCheckedChange={(v) => setSettings((s) => ({ ...s, slots_enabled: v }))} aria-label={t('admin.storefront.food.fulfillmentSettings.tijdsloten_aan')} />
           </div>
         </CardHeader>
         {settings.slots_enabled ? (
           <CardContent className="space-y-5">
             <div className="grid gap-3 sm:grid-cols-4">
               <div className="space-y-1.5">
-                <Label>Slot van</Label>
+                <Label>{t('admin.storefront.food.fulfillmentSettings.slot_van')}</Label>
                 <Select value={String(settings.slot_minutes)} onValueChange={(v) => setSettings((s) => ({ ...s, slot_minutes: Number(v) }))}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>{[10, 15, 20, 30, 60].map((n) => <SelectItem key={n} value={String(n)}>{n} minuten</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Bereidingstijd</Label>
+                <Label>{t('admin.storefront.food.fulfillmentSettings.bereidingstijd')}</Label>
                 <Select value={String(settings.prep_minutes)} onValueChange={(v) => setSettings((s) => ({ ...s, prep_minutes: Number(v) }))}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>{[0, 10, 15, 20, 30, 45, 60, 90, 120].map((n) => <SelectItem key={n} value={String(n)}>{n === 0 ? 'Geen' : `${n} minuten`}</SelectItem>)}</SelectContent>
+                  <SelectContent>{[0, 10, 15, 20, 30, 45, 60, 90, 120].map((n) => <SelectItem key={n} value={String(n)}>{n === 0 ? t('admin.storefront.food.none') : t('admin.storefront.food.n_minutes', { count: n })}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Vooruit bestellen</Label>
+                <Label>{t('admin.storefront.food.fulfillmentSettings.vooruit_bestellen')}</Label>
                 <Select value={String(settings.days_ahead)} onValueChange={(v) => setSettings((s) => ({ ...s, days_ahead: Number(v) }))}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>{[0, 1, 2, 3, 7, 14].map((n) => <SelectItem key={n} value={String(n)}>{n === 0 ? 'Alleen vandaag' : n === 1 ? 'Tot morgen' : `${n} dagen vooruit`}</SelectItem>)}</SelectContent>
+                  <SelectContent>{[0, 1, 2, 3, 7, 14].map((n) => <SelectItem key={n} value={String(n)}>{n === 0 ? t('admin.storefront.food.today_only') : n === 1 ? t('admin.storefront.food.until_tomorrow') : t('admin.storefront.food.n_days_ahead', { count: n })}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Max. bestellingen per slot</Label>
-                <Input inputMode="numeric" placeholder="onbeperkt" value={settings.max_orders_per_slot == null ? '' : String(settings.max_orders_per_slot)}
+                <Label>{t('admin.storefront.food.fulfillmentSettings.max_bestellingen_per_slot')}</Label>
+                <Input inputMode="numeric" placeholder={t('admin.storefront.food.unlimited')} value={settings.max_orders_per_slot == null ? '' : String(settings.max_orders_per_slot)}
                   onChange={(e) => { const n = parseInt(e.target.value, 10); setSettings((s) => ({ ...s, max_orders_per_slot: Number.isFinite(n) && n > 0 ? n : null })); }} className="h-9" />
               </div>
             </div>
             <div className="space-y-3">
               <div className="inline-flex rounded-md border p-0.5">
-                {(['pickup', 'local_delivery'] as ServiceType[]).map((t) => (
-                  <button key={t} type="button" onClick={() => setHoursTab(t)}
-                    className={`rounded px-3 py-1.5 text-sm font-medium ${hoursTab === t ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
-                    Uren {TYPE_LABEL[t].toLowerCase()}
+                {(['pickup', 'local_delivery'] as ServiceType[]).map((st) => (
+                  <button key={st} type="button" onClick={() => setHoursTab(st)}
+                    className={`rounded px-3 py-1.5 text-sm font-medium ${hoursTab === st ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
+                    {t(HOURS_TAB_KEY[st])}
                   </button>
                 ))}
               </div>
@@ -301,7 +307,7 @@ export function FulfillmentSettings() {
       </Card>
 
       <div className="flex justify-end">
-        <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Opslaan</Button>
+        <Button onClick={save} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{t('common.save')}</Button>
       </div>
     </div>
   );

@@ -13,6 +13,8 @@ export interface KitchenCard {
   orderId: string | null;
   ticketId: string | null;
   label: string;
+  /** HORECA-1: tafelnummer bij bestellen aan tafel (de UI zet er "Tafel" voor, vertaald). */
+  table: string | null;
   service: ServiceKind | null;
   requestedTime: string | null;
   createdAt: string;
@@ -87,8 +89,9 @@ export function cardFromOrder(o: OrderRow, ticket: TicketRow | undefined): Kitch
     service: asService(o.service_type),
     requestedTime: o.requested_time,
     createdAt: o.created_at,
-    // HORECA-1 — bestelling aan tafel: "Tafel 4" voorop.
-    customer: o.table_label ? [`Tafel ${o.table_label}`, o.customer_name && o.customer_name !== `Tafel ${o.table_label}` ? o.customer_name : null].filter(Boolean).join(' · ') : o.customer_name,
+    table: o.table_label || null,
+    // Aan tafel zonder naam zet de webshop "Tafel 4" als klantnaam; dat toont de UI al via `table`.
+    customer: o.table_label && o.customer_name === `Tafel ${o.table_label}` ? null : o.customer_name,
     phone: o.customer_phone,
     address: o.service_type === 'local_delivery' ? addressLine(o.shipping_address) : null,
     note: o.notes,
@@ -111,7 +114,8 @@ export function cardFromTicket(t: TicketRow): KitchenCard {
     source: t.source === 'phone' ? 'phone' : 'pos',
     orderId: null,
     ticketId: t.id,
-    label: t.source === 'phone' ? 'Telefoon' : 'Kassa',
+    label: t.source === 'phone' ? 'phone' : 'pos',
+    table: null,
     service: asService(t.service_type),
     requestedTime: t.requested_time,
     createdAt: t.created_at,

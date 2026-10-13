@@ -5,11 +5,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import { buildBoard, notifiesCustomer, type KitchenCard, type KitchenStatus, type OrderRow, type TicketRow } from './kitchenModel';
 
 const WINDOW_MS = 3 * 24 * 3600_000;
 
 export function useKitchenBoard(nowMs: number) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();
@@ -79,8 +81,8 @@ export function useKitchenBoard(nowMs: number) {
     onSuccess: async (_d, { card, status }) => {
       if (!notifiesCustomer(card, status)) return;
       const { data, error } = await supabase.functions.invoke('send-order-ready', { body: { order_id: card.orderId } });
-      if (error) toast.error('Klant verwittigen lukte niet');
-      else if ((data as { success?: boolean } | null)?.success) toast.success(status === 'ready' ? 'Klant gemaild: bestelling klaar' : 'Klant gemaild: bestelling onderweg');
+      if (error) toast.error(t('admin.kitchen.notify_failed'));
+      else if ((data as { success?: boolean } | null)?.success) toast.success(status === 'ready' ? t('admin.kitchen.notified_ready') : t('admin.kitchen.notified_on_the_way'));
     },
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });

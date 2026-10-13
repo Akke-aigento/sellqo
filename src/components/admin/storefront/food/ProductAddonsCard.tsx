@@ -11,6 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 interface GroupRow {
   id: string; name: string; min_select: number; max_select: number | null;
@@ -20,15 +22,16 @@ interface GroupRow {
 
 const eur = (n: number) => new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
 
-function rule(g: GroupRow): string {
+function rule(g: GroupRow, t: TFunction): string {
   const min = g.min_select || 0;
   const max = g.max_select;
-  if (min === 1 && max === 1) return 'Verplicht, 1 keuze';
-  if (min > 0) return max != null ? `Kies ${min} tot ${max}` : `Minstens ${min}`;
-  return max != null ? `Optioneel, max ${max}` : 'Optioneel';
+  if (min === 1 && max === 1) return t('admin.storefront.food.rule_required_one');
+  if (min > 0) return max != null ? t('admin.storefront.food.rule_range', { min, max }) : t('admin.storefront.food.rule_min', { min });
+  return max != null ? t('admin.storefront.food.rule_optional_max', { max }) : t('admin.storefront.food.rule_optional');
 }
 
 export function ProductAddonsCard({ productId, categoryIds }: { productId: string; categoryIds: string[] }) {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();
@@ -57,8 +60,8 @@ export function ProductAddonsCard({ productId, categoryIds }: { productId: strin
         .update({ product_ids: [...current], updated_at: new Date().toISOString() }).eq('id', group.id);
       if (e2) throw e2;
     },
-    onSuccess: (_d, { group, on }) => toast.success(on ? `"${group.name}" geldt nu voor dit product` : `"${group.name}" losgekoppeld`),
-    onError: () => toast.error('Opslaan lukte niet'),
+    onSuccess: (_d, { group, on }) => toast.success(on ? t('admin.storefront.food.addon_linked', { name: group.name }) : t('admin.storefront.food.addon_unlinked', { name: group.name })),
+    onError: () => toast.error(t('admin.storefront.food.save_failed')),
     onSettled: () => {
       qc.invalidateQueries({ queryKey: key });
       qc.invalidateQueries({ queryKey: ['addon-catalog', tenantId] });
@@ -70,11 +73,11 @@ export function ProductAddonsCard({ productId, categoryIds }: { productId: strin
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle>Extra's</CardTitle>
-            <CardDescription>Toppings, sauzen of formaten die klanten bij dit product kunnen kiezen, in de webshop, het QR-menu en de kassa.</CardDescription>
+            <CardTitle>{t('admin.storefront.food.addonGroupsManager.extra_s')}</CardTitle>
+            <CardDescription>{t('admin.storefront.food.productAddonsCard.toppings_sauzen_of_formaten_die_klanten')}</CardDescription>
           </div>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/admin/bestellen?tab=extras"><Settings2 className="mr-1.5 h-4 w-4" />Extra's beheren</Link>
+            <Link to="/admin/bestellen?tab=extras"><Settings2 className="mr-1.5 h-4 w-4" />{t('admin.storefront.food.productAddonsCard.extra_s_beheren')}</Link>
           </Button>
         </div>
       </CardHeader>
@@ -82,7 +85,7 @@ export function ProductAddonsCard({ productId, categoryIds }: { productId: strin
         {isLoading ? (
           <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
         ) : !groups?.length ? (
-          <p className="text-sm text-muted-foreground">Je hebt nog geen extra's. Maak ze aan in Bestellen → Extra's, bijvoorbeeld "Extra toppings" of "Saus naar keuze".</p>
+          <p className="text-sm text-muted-foreground">{t('admin.storefront.food.productAddonsCard.je_hebt_nog_geen_extra_s')}</p>
         ) : (
           <ul className="divide-y">
             {groups.map((g) => {
@@ -95,21 +98,21 @@ export function ProductAddonsCard({ productId, categoryIds }: { productId: strin
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium">{g.name}</span>
-                      <Badge variant="secondary" className="font-normal">{rule(g)}</Badge>
-                      {viaCategory ? <Badge variant="outline" className="font-normal">Via de categorie</Badge> : null}
+                      <Badge variant="secondary" className="font-normal">{rule(g, t)}</Badge>
+                      {viaCategory ? <Badge variant="outline" className="font-normal">{t('admin.storefront.food.productAddonsCard.via_de_categorie')}</Badge> : null}
                     </div>
                     <p className="mt-0.5 truncate text-sm text-muted-foreground">
                       {options.length
                         ? options.map((o) => (Number(o.price) ? `${o.name} (+${eur(Number(o.price))})` : o.name)).join(', ')
-                        : 'Nog geen keuzes in deze groep'}
+                        : t('admin.storefront.food.group_no_options')}
                     </p>
                   </div>
                   <Switch
                     checked={viaCategory || direct}
                     disabled={viaCategory || busy}
-                    title={viaCategory ? 'Geldt al via de categorie van dit product. Pas dat aan in Bestellen → Extra\'s.' : undefined}
+                    title={viaCategory ? t('admin.storefront.food.via_category_hint') : undefined}
                     onCheckedChange={(on) => toggle.mutate({ group: g, on })}
-                    aria-label={`${g.name} bij dit product`}
+                    aria-label={t('admin.storefront.food.addon_for_product', { name: g.name })}
                   />
                 </li>
               );

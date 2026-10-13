@@ -11,9 +11,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { QR_MODES, type QrMode } from './qrModes';
+import { useTranslation } from 'react-i18next';
 
 
 export function QrModeSettings() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();
@@ -35,12 +37,12 @@ export function QrModeSettings() {
   const dirty = !!data && (mode !== data.qr_mode || counter !== data.qr_pay_counter || online !== data.qr_pay_online);
   const save = async () => {
     if (!tenantId) return;
-    if (mode === 'order' && !counter && !online) { toast.error('Kies minstens één manier van afrekenen'); return; }
+    if (mode === 'order' && !counter && !online) { toast.error(t('admin.storefront.food.qr_pay_required')); return; }
     setSaving(true);
     const { error } = await supabase.from('fulfillment_settings').upsert({ tenant_id: tenantId, qr_mode: mode, qr_pay_counter: counter, qr_pay_online: online, updated_at: new Date().toISOString() }, { onConflict: 'tenant_id' });
     setSaving(false);
-    if (error) { toast.error(`Opslaan lukte niet: ${error.message}`); return; }
-    toast.success('QR-menu opgeslagen');
+    if (error) { toast.error(t('admin.storefront.food.save_failed_reason', { reason: error.message })); return; }
+    toast.success(t('admin.storefront.food.qr_saved'));
     await qc.invalidateQueries({ queryKey: ['qr-mode', tenantId] });
     await qc.invalidateQueries({ queryKey: ['ordering-hub', tenantId] });
   };
@@ -50,38 +52,38 @@ export function QrModeSettings() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>QR-menu in je zaak</CardTitle>
-        <CardDescription>Wat ziet een klant die de QR-code op tafel of aan de toog scant?</CardDescription>
+        <CardTitle>{t('admin.storefront.food.qrModeSettings.qr_menu_in_je_zaak')}</CardTitle>
+        <CardDescription>{t('admin.storefront.food.qrModeSettings.wat_ziet_een_klant_die_de')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="grid gap-2 sm:grid-cols-3">
           {QR_MODES.map((m) => (
             <button key={m.value} type="button" onClick={() => setMode(m.value)} aria-pressed={mode === m.value}
               className={cn('rounded-lg border-2 p-3 text-left', mode === m.value ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50')}>
-              <span className="block font-medium">{m.title}</span>
-              <span className="block text-sm text-muted-foreground">{m.text}</span>
+              <span className="block font-medium">{t(m.titleKey)}</span>
+              <span className="block text-sm text-muted-foreground">{t(m.textKey)}</span>
             </button>
           ))}
         </div>
         {mode === 'order' ? (
           <div className="space-y-3 rounded-lg border p-4">
-            <p className="text-sm font-medium">Hoe rekent de klant af?</p>
+            <p className="text-sm font-medium">{t('admin.storefront.food.qrModeSettings.hoe_rekent_de_klant_af')}</p>
             <label className="flex items-start gap-2 text-sm">
               <Checkbox checked={counter} onCheckedChange={(v) => setCounter(v === true)} className="mt-0.5" />
-              <span><span className="font-medium">Aan de toog</span><span className="block text-muted-foreground">Na de maaltijd, via je eigen kassa. De bestelling komt als "nog te betalen" in de keuken.</span></span>
+              <span><span className="font-medium">{t('admin.storefront.food.qrModeSettings.aan_de_toog')}</span><span className="block text-muted-foreground">{t('admin.storefront.food.qrModeSettings.na_de_maaltijd_via_je_eigen')}</span></span>
             </label>
             <label className="flex items-start gap-2 text-sm">
               <Checkbox checked={online} onCheckedChange={(v) => setOnline(v === true)} className="mt-0.5" />
-              <span><span className="font-medium">Meteen online</span><span className="block text-muted-foreground">Bancontact, kaart of Apple Pay, zoals in de webshop.</span></span>
+              <span><span className="font-medium">{t('admin.storefront.food.qrModeSettings.meteen_online')}</span><span className="block text-muted-foreground">{t('admin.storefront.food.qrModeSettings.bancontact_kaart_of_apple_pay_zoals')}</span></span>
             </label>
             <p className="flex gap-2 rounded-md bg-muted/60 p-2.5 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              Restaurant met een witte kassa (GKS)? Laat "aan de toog" aan: SellQo geeft de bestelling door aan de keuken, je gecertificeerde kassa registreert de verkoop.
+              {t('admin.storefront.food.qrModeSettings.restaurant_met_een_witte_kassa_gks')}
             </p>
           </div>
         ) : null}
         <div className="flex justify-end">
-          <Button onClick={save} disabled={saving || !dirty}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{dirty ? 'Opslaan' : 'Opgeslagen'}</Button>
+          <Button onClick={save} disabled={saving || !dirty}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{dirty ? t('common.save') : t('admin.adsProductMap.opgeslagen')}</Button>
         </div>
       </CardContent>
     </Card>

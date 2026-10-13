@@ -5,8 +5,8 @@ export type Week = Record<string, [string, string][]>;
 export type Hours = Record<ServiceType, Week>;
 
 export const DAYS = [
-  { key: '1', label: 'Maandag' }, { key: '2', label: 'Dinsdag' }, { key: '3', label: 'Woensdag' },
-  { key: '4', label: 'Donderdag' }, { key: '5', label: 'Vrijdag' }, { key: '6', label: 'Zaterdag' }, { key: '0', label: 'Zondag' },
+  { key: '1', labelKey: 'admin.storefront.food.day_1' }, { key: '2', labelKey: 'admin.storefront.food.day_2' }, { key: '3', labelKey: 'admin.storefront.food.day_3' },
+  { key: '4', labelKey: 'admin.storefront.food.day_4' }, { key: '5', labelKey: 'admin.storefront.food.day_5' }, { key: '6', labelKey: 'admin.storefront.food.day_6' }, { key: '0', labelKey: 'admin.storefront.food.day_0' },
 ];
 
 export const emptyHours = (): Hours => ({ pickup: {}, local_delivery: {} });

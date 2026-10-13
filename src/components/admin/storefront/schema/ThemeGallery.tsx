@@ -7,27 +7,29 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { ThemePreset } from './schemaTypes';
+import { useTranslation } from 'react-i18next';
 
 export function ThemeGallery({ presets, current, hasSections, onApply }: {
   presets: ThemePreset[]; current: string | null; hasSections: boolean;
   onApply: (p: ThemePreset, opts: { homepage: boolean; keepBrand: boolean }) => void;
 }) {
+  const { t } = useTranslation();
   // Lege homepage: de opbouw van het thema meteen meenemen. Al secties: alleen als je dat wil.
   const [homepage, setHomepage] = useState(!hasSections);
   const [keepBrand, setKeepBrand] = useState(false);
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">
-        Kies een startpunt. Je producten, logo en winkelgegevens blijven altijd staan. Je ziet het meteen rechts; pas met "Opslaan" wordt het echt.
+        {t('admin.storefront.schema.themeGallery.intro')}
       </p>
       <div className="space-y-2.5 rounded-lg border p-3">
         <div className="flex items-start gap-2.5">
           <Checkbox id="tg-home" checked={homepage} onCheckedChange={(v) => setHomepage(v === true)} />
-          <Label htmlFor="tg-home" className="font-normal leading-snug">Ook de homepage-opbouw en voorbeeldteksten van het thema overnemen</Label>
+          <Label htmlFor="tg-home" className="font-normal leading-snug">{t('admin.storefront.schema.themeGallery.ook_de_homepage_opbouw_en_voorbeeldteksten')}</Label>
         </div>
         <div className="flex items-start gap-2.5">
           <Checkbox id="tg-brand" checked={keepBrand} onCheckedChange={(v) => setKeepBrand(v === true)} />
-          <Label htmlFor="tg-brand" className="font-normal leading-snug">Mijn eigen merkkleur behouden</Label>
+          <Label htmlFor="tg-brand" className="font-normal leading-snug">{t('admin.storefront.schema.themeGallery.mijn_eigen_merkkleur_behouden')}</Label>
         </div>
       </div>
       <div className="space-y-3">
@@ -44,7 +46,7 @@ export function ThemeGallery({ presets, current, hasSections, onApply }: {
                     <span className="text-lg font-bold leading-tight" style={{ fontFamily: p.theme.heading_font || undefined }}>{p.name}</span>
                     <span className="inline-flex w-fit items-center px-2.5 py-1 text-[11px] font-bold"
                       style={{ background: accent, color: '#fff', borderRadius: p.settings.button_style === 'square' ? 0 : p.settings.button_style === 'rounded' ? 6 : 999 }}>
-                      Bekijk
+                      {t('admin.storefront.schema.themeGallery.bekijk')}
                     </span>
                   </div>
                   {on ? <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-background"><Check className="h-4 w-4" /></span> : null}
@@ -56,7 +58,7 @@ export function ThemeGallery({ presets, current, hasSections, onApply }: {
               <div className="bg-card px-3 pb-3 pt-1.5">
                 {p.example ? (
                   <a href={p.example.url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
-                    Bekijk een winkel met dit thema: {p.example.label}<ExternalLink className="h-3 w-3" />
+                    {t('admin.storefront.schema.themeGallery.example_shop', { name: p.example.label })}<ExternalLink className="h-3 w-3" />
                   </a>
                 ) : null}
               </div>
@@ -64,7 +66,7 @@ export function ThemeGallery({ presets, current, hasSections, onApply }: {
           );
         })}
       </div>
-      <p className="text-xs text-muted-foreground">Foto's in de thema's komen van Unsplash (vrij te gebruiken). Vervang ze gerust door je eigen beelden.</p>
+      <p className="text-xs text-muted-foreground">{t('admin.storefront.schema.themeGallery.foto_s_in_de_thema_s')}</p>
     </div>
   );
 }
