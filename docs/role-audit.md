@@ -12,7 +12,14 @@ Hoort bij de start van de standaardshop (repo `Akke-aigento/sellqo-storefront`, 
   - een bestaand gekoppeld domein werkt zoals vroeger;
   - de bundel bevat geen `custom_frontend_config` en geen `custom_head_scripts` meer;
   - `get_products`: 71 van 72 identiek aan de nulmeting. De ene afwijking is de bekende gelijkstand bij VanXcel `price_asc`.
-- **Standaardshop:** repo `sellqo-storefront`, SHOP-1 (e3db53f / 99b0ad5). Homepage, collectie en product zijn lokaal getest tegen echte VanXcel-API-antwoorden. Pilot-allowlist staat op `vanxcel`, noindex en bestellen uit. GitHub Actions deployt zodra de Cloudflare-secrets er zijn.
+- **Standaardshop live (13-10, 12:50):** `https://vanxcel.sellqo.shop` draait op Cloudflare Workers via GitHub Actions (repo `sellqo-storefront`, 57e278e). Externe meting via net.http_get:
+  - homepage 200;
+  - `loveke.sellqo.shop` 404, want die staat niet op de pilot-lijst;
+  - een onbekend product 404;
+  - noindex en `robots.txt` Disallow staan aan;
+  - productpagina's tonen "Online bestellen kan binnenkort".
+  Eerder gaf een onbekende winkel HTTP 500; dat is opgelost.
+- **Standaardshop (voorbereiding):** repo `sellqo-storefront`, SHOP-1 (e3db53f / 99b0ad5). Homepage, collectie en product zijn lokaal getest tegen echte VanXcel-API-antwoorden. Pilot-allowlist staat op `vanxcel`, noindex en bestellen uit. GitHub Actions deployt zodra de Cloudflare-secrets er zijn.
 
 ## CATALOG-FILTERS-1 — filters, facetten en "bestverkocht" in de webshop-API — 13 oktober 2026
 
