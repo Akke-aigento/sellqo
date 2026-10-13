@@ -69,6 +69,9 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
                 <Link to="/admin/storefront/aanpassen"><Wand2 className="mr-2 h-4 w-4" />Aanpassen</Link>
               </Button>
               <Button asChild variant="outline">
+                <Link to="/admin/storefront/aanpassen?panel=themes">Thema kiezen</Link>
+              </Button>
+              <Button asChild variant="ghost">
                 <a href={shopUrl} target="_blank" rel="noreferrer">Bekijk winkel</a>
               </Button>
             </div>

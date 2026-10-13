@@ -21,6 +21,16 @@ export interface ThemeSchema {
   product_section_style: SchemaField[];
   sections: Record<string, SchemaSection>;
   icons: string[];
+  presets?: ThemePreset[];
+}
+export interface PresetSection { section_type: string; title: string | null; subtitle?: string | null; content: Record<string, unknown>; settings: Record<string, unknown> }
+export interface ThemePreset {
+  id: string; name: string; description: string;
+  preview: { background: string; text: string; accent: string | null; image: string | null };
+  theme: { brand_color?: string; heading_font: string | null; body_font: string | null };
+  settings: Record<string, unknown>;
+  product_page: Record<string, unknown>;
+  sections: PresetSection[];
 }
 
 

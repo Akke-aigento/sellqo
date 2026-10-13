@@ -36,6 +36,8 @@ import { useCategories } from '@/hooks/useCategories';
 import { BlocksEditor, SchemaForm } from '@/components/admin/storefront/schema/SchemaForm';
 import { schemaDefaults, type ThemeSchema } from '@/components/admin/storefront/schema/schemaTypes';
 import { MenuEditor, type MenuItem } from '@/components/admin/storefront/schema/MenuEditor';
+import { ThemeGallery } from '@/components/admin/storefront/schema/ThemeGallery';
+import type { ThemePreset } from '@/components/admin/storefront/schema/schemaTypes';
 
 // Thema-velden die de standaardshop echt gebruikt. Andere instellingen staan hier
 // bewust niet: een knop die niets doet, is erger dan geen knop.
@@ -72,7 +74,7 @@ const LABELS: Record<string, string> = {
 const SWATCHES = ['#0d9488', '#00a0a8', '#3b82f6', '#6366f1', '#8b5cf6', '#ec4899', '#ef4444', '#f97316', '#22c55e', '#374151'];
 
 type Panel = { kind: 'list' } | { kind: 'section'; id: string } | { kind: 'announcement' } | { kind: 'footer' }
-  | { kind: 'menu' } | { kind: 'product' } | { kind: 'tracking' };
+  | { kind: 'menu' } | { kind: 'product' } | { kind: 'tracking' } | { kind: 'themes' };
 
 // Meest voorkomende, verzadigde kleur uit het logo (wit, zwart en grijs tellen niet mee).
 async function colorFromLogo(url: string): Promise<string | null> {
@@ -212,7 +214,11 @@ export default function StorefrontCustomizePage() {
   const queryClient = useQueryClient();
 
   const [tab, setTab] = useState<'sections' | 'theme'>('sections');
-  const [panel, setPanel] = useState<Panel>({ kind: 'list' });
+  // ?panel=themes (vanaf de Webshop-pagina) opent meteen "Thema kiezen".
+  const [panel, setPanel] = useState<Panel>(() => {
+    try { return new URLSearchParams(window.location.search).get('panel') === 'themes' ? { kind: 'themes' } : { kind: 'list' }; } catch { return { kind: 'list' }; }
+  });
+  const [tried, setTried] = useState<string | null>(null);
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [theme, setTheme] = useState<ThemeDraft>({});
   const [sections, setSections] = useState<HomepageSection[]>([]);
@@ -370,7 +376,30 @@ export default function StorefrontCustomizePage() {
     });
   };
 
+  // Thema toepassen op het concept (nog niet opgeslagen).
+  const applyPreset = (p: ThemePreset, opts: { homepage: boolean; keepBrand: boolean }) => {
+    setTheme((t) => {
+      const tc = asObj(t.theme_config);
+      return {
+        ...t,
+        ...(!opts.keepBrand && p.theme.brand_color ? { brand_color: p.theme.brand_color } : {}),
+        heading_font: p.theme.heading_font ?? null,
+        body_font: p.theme.body_font ?? null,
+        theme_config: { ...tc, preset: p.id, settings: { ...p.settings }, product_page: { ...asObj(tc.product_page), ...p.product_page } },
+      };
+    });
+    if (opts.homepage) {
+      setDeleted((d) => [...new Set([...d, ...sections.filter((x) => !x.id.startsWith('nieuw-')).map((x) => x.id)])]);
+      setSections(p.sections.map((x, i) => ({
+        id: tempId(), tenant_id: currentTenant!.id, section_type: x.section_type, title: x.title, subtitle: x.subtitle ?? null,
+        content: x.content, settings: x.settings, sort_order: i, is_visible: true, created_at: '', updated_at: '',
+      }) as unknown as HomepageSection));
+    }
+    setTried(p.name);
+  };
+
   const discard = () => {
+    setTried(null);
     setTheme(baseTheme);
     setSections(serverSections);
     setDeleted([]);
@@ -425,6 +454,7 @@ export default function StorefrontCustomizePage() {
       ]);
       // Concept opnieuw vullen uit de verse gegevens (nieuwe secties krijgen hun echte ID).
       setResync(true);
+      setTried(null);
       setPanel({ kind: 'list' });
       post({ type: 'sellqo:reload' });
       toast.success('Opgeslagen — je winkel is bijgewerkt');
@@ -481,6 +511,11 @@ export default function StorefrontCustomizePage() {
         </div>
       </header>
 
+      {tried && dirty ? (
+        <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          <span>Je bekijkt het thema <strong>{tried}</strong>. Klik op Opslaan om het te gebruiken, of op Ongedaan maken.</span>
+        </div>
+      ) : null}
       <div className="flex min-h-0 flex-1">
         {/* Zijpaneel */}
         <aside className="flex w-full max-w-[380px] shrink-0 flex-col border-r">
@@ -543,6 +578,14 @@ export default function StorefrontCustomizePage() {
                   </div>
                 ) : (
                   <div className="space-y-6">
+                    <button type="button" onClick={() => setPanel({ kind: 'themes' })}
+                      className="flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left hover:bg-muted">
+                      <span>
+                        <span className="block text-xs text-muted-foreground">Thema</span>
+                        <span className="block font-semibold">{schema?.presets?.find((x) => x.id === cfg.preset)?.name || 'Standaard'}</span>
+                      </span>
+                      <span className="text-sm font-medium text-primary">Thema kiezen</span>
+                    </button>
                     <div className="space-y-2.5">
                       <Label className="flex items-center gap-1.5"><Palette className="h-4 w-4" />Merkkleur</Label>
                       <div className="flex flex-wrap gap-2">
@@ -614,7 +657,7 @@ export default function StorefrontCustomizePage() {
                   <ArrowLeft className="h-4 w-4" />
                 </Button>
                 <p className="truncate text-sm font-semibold">
-                  {({ announcement: 'Aankondigingsbalk', footer: 'Footer', menu: 'Menu', product: 'Productpagina', tracking: 'Tracking en pixels' } as Record<string, string>)[panel.kind]
+                  {({ announcement: 'Aankondigingsbalk', footer: 'Footer', menu: 'Menu', product: 'Productpagina', tracking: 'Tracking en pixels', themes: 'Thema kiezen' } as Record<string, string>)[panel.kind]
                     || (current ? LABELS[current.section_type] || schema?.sections[current.section_type]?.label || 'Sectie' : 'Sectie')}
                 </p>
               </div>
@@ -636,6 +679,11 @@ export default function StorefrontCustomizePage() {
                         onChange={(e) => setField('announcement_link', e.target.value || null)} />
                     </div>
                   </div>
+                ) : panel.kind === 'themes' ? (
+                  schema?.presets?.length ? (
+                    <ThemeGallery presets={schema.presets} current={(cfg.preset as string) || 'standaard'} hasSections={sections.length > 0} onApply={applyPreset} />
+                  ) : schemaError ? <p className="text-sm text-muted-foreground">Thema's konden niet geladen worden (winkel niet bereikbaar).</p>
+                    : <p className="text-sm text-muted-foreground">Laden…</p>
                 ) : panel.kind === 'menu' ? (
                   <MenuEditor menu={(Array.isArray(cfg.menu) ? cfg.menu : []) as MenuItem[]} onChange={(m) => setCfg('menu', m)}
                     categories={categories} pages={pages.filter((pg) => pg.is_published).map((pg) => ({ slug: pg.slug, title: pg.title }))} />
