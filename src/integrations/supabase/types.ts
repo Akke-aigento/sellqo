@@ -6980,7 +6980,14 @@ export type Database = {
           {
             foreignKeyName: "fulfillment_settings_tenant_id_fkey"
             columns: ["tenant_id"]
-            isOneToOne: false
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fulfillment_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -11736,6 +11743,13 @@ export type Database = {
             foreignKeyName: "product_addon_groups_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_addon_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -11778,6 +11792,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "product_addon_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_addon_options_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
             referencedColumns: ["id"]
           },
           {
@@ -18095,6 +18116,7 @@ export type Database = {
           storefront_status: string
           tenant_id: string
           text_color: string | null
+          theme_config: Json
           theme_id: string | null
           theme_mode: string | null
           theme_style: string | null
@@ -18171,6 +18193,7 @@ export type Database = {
           storefront_status?: string
           tenant_id: string
           text_color?: string | null
+          theme_config?: Json
           theme_id?: string | null
           theme_mode?: string | null
           theme_style?: string | null
@@ -18247,6 +18270,7 @@ export type Database = {
           storefront_status?: string
           tenant_id?: string
           text_color?: string | null
+          theme_config?: Json
           theme_id?: string | null
           theme_mode?: string | null
           theme_style?: string | null
