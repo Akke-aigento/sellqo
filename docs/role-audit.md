@@ -1,3 +1,22 @@
+## THEME-PRESETS-1 — Thema kiezen: Standaard, Kledingzaak, Bloemenwinkel — 13 oktober 2026
+
+SellQo 3784e33, sellqo-storefront b483013.
+
+- **Thema's:** een thema is een startpakket in `schema.json` (`presets`): merkkleur, lettertypes, thema-instellingen, productpagina-instellingen en een homepage-opbouw met voorbeeldteksten. Er zijn geen aparte templates of code per branche.
+  - **Kledingzaak:** zwart-wit, hoekige knoppen, gecentreerd logo, staande foto's, maat-FAQ.
+  - **Bloemenwinkel:** roze en crème, ronde vormen, openingsuren, "vandaag bezorgd".
+  - Foto's komen van Unsplash (vrije licentie). Alle URL's zijn live nagekeken (200 image/jpeg); de Unsplash+-foto's zijn bewust overgeslagen.
+- **Admin:** "Thema kiezen" staat in Aanpassen en op de Webshop-pagina (`?panel=themes`).
+  - Een klik = live in het voorbeeld met een melding "Je bekijkt het thema …". Opslaan bewaart het, "Ongedaan maken" zet alles terug.
+  - Opties: de homepage overnemen (standaard aan bij een lege homepage) en de eigen merkkleur behouden. Producten, logo en winkelgegevens blijven altijd.
+  - Het gekozen thema staat in `theme_config.preset`.
+- **Shop:** de voorraadkleuren en de melding in de lade worden gemengd met de tekstkleur, zodat ze leesbaar zijn op een donkere winkel.
+- **Getest:**
+  - harness: Kledingzaak en Bloemenwinkel live in het voorbeeld (6 secties, Space Grotesk / hoekige knoppen);
+  - bij opslaan: oude secties verwijderd, nieuwe ingevoegd, `preset: bloemen`, merkkleur `#b84a6e`;
+  - CI en deploy groen.
+- **Volgt:** Pizzeria, zodra afhalen/leveren en tijdsloten bestaan.
+
 ## THEME-SCHEMA-1 — schema-gedreven editor, dieper aanpasbare standaardshop — 13 oktober 2026
 
 SellQo bd29a2d, sellqo-storefront 3d40d1a. Afgesproken met Akke: eerst de editor dieper, daarna de branchethema's (kleding, bloemen, pizzeria).
