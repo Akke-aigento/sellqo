@@ -1,3 +1,20 @@
+## THEME-LAYOUT-1 + EDITOR-MOBILE-1 — thema's verschillen echt, editor op gsm — 13 oktober 2026
+
+SellQo 8a90c31, sellqo-storefront 5751bc3. Feedback van Akke: buiten de kleuren veranderde er weinig tussen de thema's, en mobiel moest bekeken worden.
+
+- **Nieuwe groep "Opmaak" in het schema** (de thema's zetten ze, winkeliers kunnen ze ook los kiezen):
+  - grote banner: in een kader, over de volle breedte, of tekst naast de foto;
+  - sectietitels: links, gecentreerd, of klein in hoofdletters;
+  - productkaarten: standaard, minimaal gecentreerd, of in een kader met knop;
+  - paginabreedte: normaal of breed;
+  - menu en knoppen in hoofdletters.
+- **Thema's:**
+  - **Kledingzaak:** volle banner, labeltitels, minimale kaarten, brede pagina, hoofdletters.
+  - **Bloemenwinkel:** tekst naast de foto, gecentreerde serif-titels, kaarten met knop.
+- **Les:** overrides die Tailwind-klassen moeten overschrijven (`text-3xl` op titels) staan buiten `@layer`. In `@layer components` verliezen ze van de utilities.
+- **Editor op gsm:** onderaan wissel je tussen "Bewerken" en "Voorbeeld". Tik je in het voorbeeld op een sectie, dan opent die meteen. De bovenbalk is compact.
+- **Getest:** harness op 1440 px en 390 px. Beide thema's zijn op computer en gsm-weergave nagekeken, op 390 px is er geen horizontale scroll, en tikken op een sectie opent het bewerkpaneel. CI en deploy zijn groen.
+
 ## THEME-PRESETS-1 — Thema kiezen: Standaard, Kledingzaak, Bloemenwinkel — 13 oktober 2026
 
 SellQo 3784e33, sellqo-storefront b483013.
