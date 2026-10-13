@@ -234,10 +234,11 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
   }
   if (!domain) throw new Error('Domain not found');
 
-  const [{ data: tenant }, { data: themeSettings }, { data: allDomains }] = await Promise.all([
+  const [{ data: tenant }, { data: themeSettings }, { data: allDomains }, { data: fsQr }] = await Promise.all([
     supabase.from('tenants').select('id, slug, name').eq('id', domain.tenant_id).single(), // RESOLVE-FIX-1
     supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url, shop_live, shop_ordering').eq('tenant_id', domain.tenant_id).maybeSingle(),
     supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', domain.tenant_id).eq('is_active', true),
+    supabase.from('fulfillment_settings').select('qr_mode').eq('tenant_id', domain.tenant_id).maybeSingle(),
   ]);
 
   if (!tenant) throw new Error('Tenant not found for domain');
@@ -248,6 +249,8 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
     use_custom_frontend: themeSettings?.use_custom_frontend || false, custom_frontend_url: themeSettings?.custom_frontend_url || null,
     // SHOP-OPEN-1 — additief: staat de standaardshop open en mag er online besteld worden?
     shop_live: themeSettings?.shop_live === true, shop_ordering: themeSettings?.shop_ordering === true,
+    // HORECA-1 — additief: QR-menu alleen bekijken of bestellen aan tafel.
+    qr_mode: fsQr?.qr_mode || 'view',
     all_domains: (allDomains || []).map((d: any) => ({ domain: d.domain, locale: d.locale, is_canonical: d.is_canonical })),
   };
 }
@@ -798,17 +801,24 @@ async function loadProductAddonGroups(supabase: SupabaseLike, tenantId: string, 
 
 const SERVICE_TYPES: ServiceType[] = ['pickup', 'local_delivery'];
 
-async function loadFulfillmentSettings(supabase: SupabaseLike, tenantId: string): Promise<(FulfillmentSettings & { pay_on_pickup?: boolean }) | null> {
+type ShopFulfillment = FulfillmentSettings & { pay_on_pickup?: boolean; qr_mode?: string; qr_pay_counter?: boolean; qr_pay_online?: boolean };
+async function loadFulfillmentSettings(supabase: SupabaseLike, tenantId: string): Promise<ShopFulfillment | null> {
   const { data } = await supabase.from('fulfillment_settings')
-    .select('slots_enabled, slot_minutes, prep_minutes, days_ahead, max_orders_per_slot, timezone, hours, pay_on_pickup')
+    .select('slots_enabled, slot_minutes, prep_minutes, days_ahead, max_orders_per_slot, timezone, hours, pay_on_pickup, qr_mode, qr_pay_counter, qr_pay_online')
     .eq('tenant_id', tenantId).maybeSingle();
-  return (data as (FulfillmentSettings & { pay_on_pickup?: boolean }) | null) || null;
+  return (data as ShopFulfillment | null) || null;
 }
 
 // FOOD-2 — "betalen bij afhalen/levering": alleen als de winkel het aanzette én de klant
 // afhaalt of laat leveren. Zit niet in getAvailablePaymentMethods, zodat eigen frontends
 // zonder afhalen/leveren niets nieuws zien.
 async function payOnPickupMethod(supabase: SupabaseLike, tenantId: string, serviceType: string | null | undefined) {
+  // HORECA-1 — aan tafel: "betalen aan de toog" als de zaak dat toelaat (standaard aan).
+  if (serviceType === 'eat_in') {
+    const fs = await loadFulfillmentSettings(supabase, tenantId);
+    if (fs?.qr_mode !== 'order' || fs.qr_pay_counter === false) return null;
+    return { method: 'pay_on_pickup', group: 'later', name: 'Betalen aan de toog', description: 'Na je maaltijd, contant of met je bankkaart', fee_cents: 0, available: true };
+  }
   if (!serviceType || !SERVICE_TYPES.includes(serviceType as ServiceType)) return null;
   const fs = await loadFulfillmentSettings(supabase, tenantId);
   if (!fs?.pay_on_pickup) return null;
@@ -869,6 +879,28 @@ async function checkoutService(supabase: SupabaseLike, tenantId: string, params:
     if (enabled && (!hit || !hit.available)) return { success: false, error: { code: 'SLOT_UNAVAILABLE', message: 'Dit tijdstip is niet (meer) beschikbaar, kies een ander' } };
   }
   const { error } = await supabase.from('storefront_carts').update({ requested_time: requested, updated_at: new Date().toISOString() }).eq('id', cartId).eq('tenant_id', tenantId);
+  if (error) throw error;
+  return buildCartResponse(supabase, tenantId, cartId);
+}
+
+// HORECA-1 — bestellen aan tafel via het QR-menu: geen adres, geen verzending; het
+// tafelnummer gaat mee naar de keuken. Alleen als de zaak "bestellen aan tafel" aanzette.
+async function checkoutTable(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const cartId = params.cart_id as string;
+  if (!cartId) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'cart_id is required' } };
+  const table = String(params.table ?? '').trim().slice(0, 12);
+  if (!/^[\w-]{1,12}$/.test(table)) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Ongeldig tafelnummer' } };
+  const fs = await loadFulfillmentSettings(supabase, tenantId);
+  if (fs?.qr_mode !== 'order') return { success: false, error: { code: 'TABLE_ORDERING_OFF', message: 'Bestellen aan tafel staat uit in deze zaak' } };
+  const c = (params.customer || {}) as Record<string, unknown>;
+  const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+  const { error } = await supabase.from('storefront_carts').update({
+    service_type: 'eat_in', table_label: table, requested_time: null,
+    shipping_method_id: null, shipping_cost: 0,
+    customer_first_name: str(c.first_name, 100), customer_last_name: str(c.last_name, 100),
+    customer_phone: str(c.phone, 40), customer_email: str(c.email, 254),
+    updated_at: new Date().toISOString(),
+  }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
   return buildCartResponse(supabase, tenantId, cartId);
 }
@@ -2518,7 +2550,13 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   const total = Math.round((subtotal - discountTotal + shippingCost + (fee?.amount || 0)) * 100) / 100;
 
   // Available payment methods
-  const availablePayment = tenant ? getAvailablePaymentMethods(tenant, subtotalCents, country) : [];
+  let availablePayment = tenant ? getAvailablePaymentMethods(tenant, subtotalCents, country) : [];
+  // HORECA-1 — aan tafel alleen online betalen als de zaak dat aanzette.
+  if (cart.service_type === 'eat_in') {
+    const fsT = await loadFulfillmentSettings(supabase, tenantId);
+    if (!fsT?.qr_pay_online) availablePayment = [];
+    else availablePayment = availablePayment.filter((m: { method: string }) => m.method !== 'bank_transfer');
+  }
   const payOnPickup = await payOnPickupMethod(supabase, tenantId, cart.service_type);
   if (payOnPickup) availablePayment.push(payOnPickup);
 
@@ -2613,6 +2651,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     // FOOD-1 — additief: afhalen/leveren met tijdslot (null bij gewone verzending).
     service_type: cart.service_type || null,
     requested_time: cart.requested_time || null,
+    table_label: cart.table_label || null,
 
     fee_label: tenant?.transaction_fee_label || 'Transactiekosten',
     pass_fee_to_customer: passFee,
@@ -2649,7 +2688,10 @@ function b2bCustomerFields(cart: any) {
 
 function orderCustomerName(cart: any) {
   if (cart.is_b2b && cart.customer_company_name) return String(cart.customer_company_name).trim();
-  return `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim();
+  const name = `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim();
+  // HORECA-1 — bestelling aan tafel zonder naam: "Tafel 4".
+  if (!name && cart.table_label) return `Tafel ${cart.table_label}`;
+  return name;
 }
 
 // VAT-CHECKOUT-PARITY-1 — de checkout beslist het btw-regime via dezelfde
@@ -2878,7 +2920,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       discount_amount: discountAmount,
       discount_code: (cart.discount_codes || []).join(', ') || null,
       total,
-      customer_email: cart.customer_email,
+      customer_email: cart.customer_email || '', // HORECA-1: aan tafel mag e-mail leeg zijn (kolom is NOT NULL)
       customer_name: orderCustomerName(cart),
       customer_phone: cart.customer_phone || null,
       customer_id: customerId,
@@ -2895,6 +2937,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       service_type: cart.service_type || null,
       requested_time: cart.requested_time || null,
       ...(cart.customer_note ? { notes: cart.customer_note } : {}),
+      ...(cart.table_label ? { table_label: cart.table_label } : {}),
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
@@ -3273,8 +3316,14 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   }
 
   // Validate required fields
-  if (!cart.customer_email) {
+  // HORECA-1 — aan tafel is een e-mailadres niet nodig.
+  if (!cart.customer_email && cart.service_type !== 'eat_in') {
     return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Klantgegevens zijn nog niet ingevuld' } };
+  }
+  if (cart.service_type === 'eat_in') {
+    const fsT = await loadFulfillmentSettings(supabase, tenantId);
+    if (fsT?.qr_mode !== 'order' || !cart.table_label) return { success: false, error: { code: 'TABLE_ORDERING_OFF', message: 'Bestellen aan tafel staat uit in deze zaak' } };
+    if (paymentMethodId !== 'pay_on_pickup' && !fsT.qr_pay_online) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'Online betalen kan niet aan tafel; betaal aan de toog' } };
   }
 
   // FOOD-1 — afhalen/leveren: leverzone, minimumbedrag en tijdslot nog eens controleren.
@@ -3480,7 +3529,8 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       ...(paymentMethodId !== 'stripe' ? { payment_method_types: [stripeMethodMap[paymentMethodId]] } : {}),
       success_url: successUrl,
       cancel_url: cancelUrl,
-      customer_email: cart.customer_email,
+      // HORECA-1: aan tafel kan e-mail ontbreken; dan vraagt Stripe hem zelf.
+      customer_email: cart.customer_email || undefined,
       metadata: { cart_id: cartId, tenant_id: tenantId },
       payment_intent_data: {
         application_fee_amount: 0,
@@ -3906,7 +3956,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       tenant_id: tenantId, order_number: orderNumber, status: 'processing', payment_status: 'paid',
       payment_method: cart.payment_method || 'stripe', subtotal, tax_amount: vatAmount,
       shipping_cost: shippingCost, discount_amount: discountAmount, discount_code: (cart.discount_codes && cart.discount_codes.length > 0) ? cart.discount_codes.join(', ') : null,
-      total, customer_email: cart.customer_email,
+      total, customer_email: cart.customer_email || '',
       customer_name: orderCustomerName(cart),
       customer_phone: cart.customer_phone || null, customer_id: customerId,
       shipping_address: cart.shipping_address || null,
@@ -3922,6 +3972,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       service_type: cart.service_type || null,
       requested_time: cart.requested_time || null,
       ...(cart.customer_note ? { notes: cart.customer_note } : {}),
+      ...(cart.table_label ? { table_label: cart.table_label } : {}),
     })
     .select('id, order_number').single();
 
@@ -4550,7 +4601,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SHOP-OPEN-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'HORECA-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -4648,6 +4699,7 @@ serve(async (req) => {
       case 'checkout_address': result = await checkoutAddress(supabase, tenant_id, params); break;
       case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
       case 'checkout_service': result = await checkoutService(supabase, tenant_id, params); break;
+      case 'checkout_table': result = await checkoutTable(supabase, tenant_id, params); break;
       case 'get_fulfillment_slots': result = await getFulfillmentSlots(supabase, tenant_id, params); break;
       case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
       case 'checkout_select_payment_method': result = await checkoutSelectPaymentMethod(supabase, tenant_id, params); break;

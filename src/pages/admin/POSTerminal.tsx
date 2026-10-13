@@ -80,7 +80,7 @@ import type { Product } from '@/types/product';
 import { POSAddonDialog } from '@/components/admin/pos/POSAddonDialog';
 import { POSKitchenPanel } from '@/components/admin/pos/POSKitchenPanel';
 import { useAddonCatalog } from '@/hooks/useAddonCatalog';
-import { useHasFoodService } from '@/hooks/useHasFoodService';
+import { useHorecaModule } from '@/hooks/useHorecaModule';
 import { defaultKitchenOrder, type KitchenOrderInput } from '@/components/admin/kitchen/kitchenOrder';
 import { addonsKey, addonsTotal, type AddonGroupLite, type ChosenAddon } from '@/lib/productAddons';
 import type { Customer } from '@/types/order';
@@ -187,14 +187,15 @@ export default function POSTerminalPage() {
   const terminal = terminals.find(t => t.id === terminalId);
 
   // FOOD-2 — extra's bij het aanslaan en keukenbon (restaurant, frituur, kebabzaak).
-  const hasFoodService = useHasFoodService();
-  const { forProduct: addonGroupsFor } = useAddonCatalog();
+  // HORECA-1 — alleen met de horeca-module.
+  const horeca = useHorecaModule();
+  const { forProduct: addonGroupsFor } = useAddonCatalog(horeca);
   const [kitchen, setKitchen] = useState<KitchenOrderInput>(() => defaultKitchenOrder(false));
   const [addonFor, setAddonFor] = useState<{ product: Product; groups: AddonGroupLite[] } | null>(null);
   useEffect(() => {
     // Zodra bekend is dat de zaak afhaalt/levert: keukenbon standaard aan (zolang de kassier niets koos).
-    setKitchen((k) => (k.ticket_id || k.customer_label || k.requested_time ? k : { ...k, enabled: hasFoodService }));
-  }, [hasFoodService]);
+    setKitchen((k) => (k.ticket_id || k.customer_label || k.requested_time ? k : { ...k, enabled: horeca }));
+  }, [horeca]);
   
   // Load Stripe readers on mount
   useEffect(() => {
@@ -291,8 +292,8 @@ export default function POSTerminalPage() {
   // Clear cart (FOOD-2: keukenbon terug naar standaard)
   const clearCart = useCallback(() => {
     setCart([]);
-    setKitchen(defaultKitchenOrder(hasFoodService));
-  }, [hasFoodService]);
+    setKitchen(defaultKitchenOrder(horeca));
+  }, [horeca]);
   
   // Handle session open
   const handleOpenSession = async () => {
@@ -889,7 +890,7 @@ export default function POSTerminalPage() {
           
           {/* Cart Footer */}
           <div className="border-t p-4 space-y-4">
-            {hasFoodService ? <POSKitchenPanel value={kitchen} onChange={setKitchen} /> : null}
+            {horeca ? <POSKitchenPanel value={kitchen} onChange={setKitchen} /> : null}
             {/* Totals */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -926,7 +927,7 @@ export default function POSTerminalPage() {
                 <PauseCircle className="mr-2 h-4 w-4" />
                 Parkeren
               </Button>
-              {hasFoodService ? (
+              {horeca ? (
                 <Button
                   variant="outline"
                   disabled={cart.length === 0 || !!kitchen.ticket_id || parkCart.isPending}

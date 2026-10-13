@@ -34,6 +34,7 @@ export interface OrderRow {
   customer_name: string | null; customer_phone: string | null; notes: string | null; total: number | null;
   payment_status: string | null; payment_method: string | null; status: string | null;
   shipping_address: unknown;
+  table_label?: string | null;
   order_items: { product_name: string | null; variant_title: string | null; quantity: number | null; addons: unknown }[] | null;
 }
 export interface TicketRow {
@@ -86,7 +87,8 @@ export function cardFromOrder(o: OrderRow, ticket: TicketRow | undefined): Kitch
     service: asService(o.service_type),
     requestedTime: o.requested_time,
     createdAt: o.created_at,
-    customer: o.customer_name,
+    // HORECA-1 — bestelling aan tafel: "Tafel 4" voorop.
+    customer: o.table_label ? [`Tafel ${o.table_label}`, o.customer_name && o.customer_name !== `Tafel ${o.table_label}` ? o.customer_name : null].filter(Boolean).join(' · ') : o.customer_name,
     phone: o.customer_phone,
     address: o.service_type === 'local_delivery' ? addressLine(o.shipping_address) : null,
     note: o.notes,

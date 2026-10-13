@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -133,6 +133,20 @@ await check('payOnPickupMethod (FOOD-2)', async () => {
   assert((await S.payOnPickupMethod(db, T, 'local_delivery'))?.name === 'Betalen bij levering', 'levering');
   assert(await S.payOnPickupMethod(db, T, null) === null, 'gewone verzending: nooit');
   db.tables.fulfillment_settings[0].pay_on_pickup = false;
+});
+
+await check('bestellen aan tafel (HORECA-1)', async () => {
+  const off = await S.checkoutTable(db, T, { cart_id: 'cart1', table: '4' });
+  assert(off?.error?.code === 'TABLE_ORDERING_OFF', `standaard uit: ${JSON.stringify(off)}`);
+  const bad = await S.checkoutTable(db, T, { cart_id: 'cart1', table: '4; drop' });
+  assert(bad?.error?.code === 'VALIDATION_ERROR', 'ongeldig tafelnummer');
+  db.tables.fulfillment_settings[0].qr_mode = 'order';
+  const m = await S.payOnPickupMethod(db, T, 'eat_in');
+  assert(m?.name === 'Betalen aan de toog', `toog: ${JSON.stringify(m)}`);
+  db.tables.fulfillment_settings[0].qr_pay_counter = false;
+  assert(await S.payOnPickupMethod(db, T, 'eat_in') === null, 'toog uit');
+  db.tables.fulfillment_settings[0].qr_mode = 'view';
+  db.tables.fulfillment_settings[0].qr_pay_counter = true;
 });
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }

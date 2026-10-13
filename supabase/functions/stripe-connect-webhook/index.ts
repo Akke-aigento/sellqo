@@ -60,7 +60,7 @@ serve(async (req) => {
   }
   // FOOD-1 — versiestempel om een deploy zonder neveneffect te verifiëren.
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "FOOD-2" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, version: "HORECA-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {
@@ -425,7 +425,7 @@ serve(async (req) => {
               discount_amount: discountAmount,
               discount_code: cart.discount_code || null,
               total,
-              customer_email: cart.customer_email,
+              customer_email: cart.customer_email || '', // HORECA-1: aan tafel mag e-mail leeg zijn
               customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),
               customer_phone: cart.customer_phone || null,
               customer_id: customerId,
@@ -439,6 +439,7 @@ serve(async (req) => {
               service_type: cart.service_type || null,
               requested_time: cart.requested_time || null,
               ...(cart.customer_note ? { notes: cart.customer_note } : {}),
+              ...(cart.table_label ? { table_label: cart.table_label } : {}),
             })
             .select("id, order_number, total").single();
 

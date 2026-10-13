@@ -198,7 +198,8 @@
       "platform_health": "Moniteur de santé",
       "platform_legal": "Juridique",
       "platform_docs": "Documentation",
-      "kitchen": "Cuisine"
+      "kitchen": "Cuisine",
+      "ordering": "Commandes"
     }
   },
   "settings": {

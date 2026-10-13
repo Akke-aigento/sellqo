@@ -5,11 +5,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { groupsForProduct, type AddonGroupLite } from '@/lib/productAddons';
 
-export function useAddonCatalog() {
+export function useAddonCatalog(enabled = true) {
   const { currentTenant } = useTenant();
   const { data } = useQuery({
     queryKey: ['addon-catalog', currentTenant?.id],
-    enabled: !!currentTenant?.id,
+    enabled: enabled && !!currentTenant?.id,
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const [g, o] = await Promise.all([
@@ -25,8 +25,8 @@ export function useAddonCatalog() {
   });
   const forProduct = useCallback(
     (productId: string, categoryId: string | null | undefined): AddonGroupLite[] =>
-      data ? groupsForProduct(data.groups, data.options, productId, [categoryId]) : [],
-    [data],
+      data && enabled ? groupsForProduct(data.groups, data.options, productId, [categoryId]) : [],
+    [data, enabled],
   );
   return { forProduct, ready: !!data };
 }

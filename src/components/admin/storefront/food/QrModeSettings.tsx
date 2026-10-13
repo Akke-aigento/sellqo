@@ -1,0 +1,89 @@
+// HORECA-1 — QR-menu in de zaak: uit, alleen bekijken of bestellen aan tafel, en hoe
+// de klant aan tafel afrekent (aan de toog en/of meteen online).
+import { useEffect, useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Info, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useTenant } from '@/hooks/useTenant';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
+import { cn } from '@/lib/utils';
+import { QR_MODES, type QrMode } from './qrModes';
+
+
+export function QrModeSettings() {
+  const { currentTenant } = useTenant();
+  const tenantId = currentTenant?.id;
+  const qc = useQueryClient();
+  const { data, isLoading } = useQuery({
+    queryKey: ['qr-mode', tenantId],
+    enabled: !!tenantId,
+    queryFn: async () => {
+      const { data: row, error } = await supabase.from('fulfillment_settings').select('qr_mode, qr_pay_counter, qr_pay_online').eq('tenant_id', tenantId!).maybeSingle();
+      if (error) throw error;
+      return { qr_mode: (row?.qr_mode as QrMode) || 'view', qr_pay_counter: row?.qr_pay_counter !== false, qr_pay_online: !!row?.qr_pay_online };
+    },
+  });
+  const [mode, setMode] = useState<QrMode>('view');
+  const [counter, setCounter] = useState(true);
+  const [online, setOnline] = useState(false);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { if (data) { setMode(data.qr_mode); setCounter(data.qr_pay_counter); setOnline(data.qr_pay_online); } }, [data]);
+
+  const dirty = !!data && (mode !== data.qr_mode || counter !== data.qr_pay_counter || online !== data.qr_pay_online);
+  const save = async () => {
+    if (!tenantId) return;
+    if (mode === 'order' && !counter && !online) { toast.error('Kies minstens één manier van afrekenen'); return; }
+    setSaving(true);
+    const { error } = await supabase.from('fulfillment_settings').upsert({ tenant_id: tenantId, qr_mode: mode, qr_pay_counter: counter, qr_pay_online: online, updated_at: new Date().toISOString() }, { onConflict: 'tenant_id' });
+    setSaving(false);
+    if (error) { toast.error(`Opslaan lukte niet: ${error.message}`); return; }
+    toast.success('QR-menu opgeslagen');
+    await qc.invalidateQueries({ queryKey: ['qr-mode', tenantId] });
+    await qc.invalidateQueries({ queryKey: ['ordering-hub', tenantId] });
+  };
+
+  if (isLoading) return <Card><CardContent className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card>;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>QR-menu in je zaak</CardTitle>
+        <CardDescription>Wat ziet een klant die de QR-code op tafel of aan de toog scant?</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid gap-2 sm:grid-cols-3">
+          {QR_MODES.map((m) => (
+            <button key={m.value} type="button" onClick={() => setMode(m.value)} aria-pressed={mode === m.value}
+              className={cn('rounded-lg border-2 p-3 text-left', mode === m.value ? 'border-primary bg-primary/5' : 'border-border hover:bg-muted/50')}>
+              <span className="block font-medium">{m.title}</span>
+              <span className="block text-sm text-muted-foreground">{m.text}</span>
+            </button>
+          ))}
+        </div>
+        {mode === 'order' ? (
+          <div className="space-y-3 rounded-lg border p-4">
+            <p className="text-sm font-medium">Hoe rekent de klant af?</p>
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox checked={counter} onCheckedChange={(v) => setCounter(v === true)} className="mt-0.5" />
+              <span><span className="font-medium">Aan de toog</span><span className="block text-muted-foreground">Na de maaltijd, via je eigen kassa. De bestelling komt als "nog te betalen" in de keuken.</span></span>
+            </label>
+            <label className="flex items-start gap-2 text-sm">
+              <Checkbox checked={online} onCheckedChange={(v) => setOnline(v === true)} className="mt-0.5" />
+              <span><span className="font-medium">Meteen online</span><span className="block text-muted-foreground">Bancontact, kaart of Apple Pay, zoals in de webshop.</span></span>
+            </label>
+            <p className="flex gap-2 rounded-md bg-muted/60 p-2.5 text-xs text-muted-foreground">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              Restaurant met een witte kassa (GKS)? Laat "aan de toog" aan: SellQo geeft de bestelling door aan de keuken, je gecertificeerde kassa registreert de verkoop.
+            </p>
+          </div>
+        ) : null}
+        <div className="flex justify-end">
+          <Button onClick={save} disabled={saving || !dirty}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{dirty ? 'Opslaan' : 'Opgeslagen'}</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

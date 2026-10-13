@@ -6948,6 +6948,9 @@ export type Database = {
           notify_ready: boolean
           pay_on_pickup: boolean
           prep_minutes: number
+          qr_mode: string
+          qr_pay_counter: boolean
+          qr_pay_online: boolean
           slot_minutes: number
           slots_enabled: boolean
           tenant_id: string
@@ -6962,6 +6965,9 @@ export type Database = {
           notify_ready?: boolean
           pay_on_pickup?: boolean
           prep_minutes?: number
+          qr_mode?: string
+          qr_pay_counter?: boolean
+          qr_pay_online?: boolean
           slot_minutes?: number
           slots_enabled?: boolean
           tenant_id: string
@@ -6976,6 +6982,9 @@ export type Database = {
           notify_ready?: boolean
           pay_on_pickup?: boolean
           prep_minutes?: number
+          qr_mode?: string
+          qr_pay_counter?: boolean
+          qr_pay_online?: boolean
           slot_minutes?: number
           slots_enabled?: boolean
           tenant_id?: string
@@ -9800,6 +9809,7 @@ export type Database = {
           stripe_payment_intent_id: string | null
           subtotal: number
           sync_status: string | null
+          table_label: string | null
           tax_amount: number | null
           tenant_id: string
           total: number
@@ -9872,6 +9882,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           subtotal?: number
           sync_status?: string | null
+          table_label?: string | null
           tax_amount?: number | null
           tenant_id: string
           total?: number
@@ -9944,6 +9955,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           subtotal?: number
           sync_status?: string | null
+          table_label?: string | null
           tax_amount?: number | null
           tenant_id?: string
           total?: number
@@ -15641,6 +15653,7 @@ export type Database = {
           shipping_cost: number | null
           shipping_method_id: string | null
           stripe_session_id: string | null
+          table_label: string | null
           tenant_id: string
           updated_at: string
         }
@@ -15676,6 +15689,7 @@ export type Database = {
           shipping_cost?: number | null
           shipping_method_id?: string | null
           stripe_session_id?: string | null
+          table_label?: string | null
           tenant_id: string
           updated_at?: string
         }
@@ -15711,6 +15725,7 @@ export type Database = {
           shipping_cost?: number | null
           shipping_method_id?: string | null
           stripe_session_id?: string | null
+          table_label?: string | null
           tenant_id?: string
           updated_at?: string
         }

@@ -24,7 +24,7 @@ export function useKitchenBoard(nowMs: number) {
       const since = new Date(Date.now() - WINDOW_MS).toISOString();
       const [o, t] = await Promise.all([
         supabase.from('orders')
-          .select('id, order_number, created_at, service_type, requested_time, customer_name, customer_phone, notes, total, payment_status, payment_method, status, shipping_address, order_items(product_name, variant_title, quantity, addons)')
+          .select('id, order_number, created_at, service_type, requested_time, customer_name, customer_phone, notes, total, payment_status, payment_method, status, shipping_address, table_label, order_items(product_name, variant_title, quantity, addons)')
           .eq('tenant_id', tenantId!).not('service_type', 'is', null).gte('created_at', since)
           .order('created_at', { ascending: false }).limit(300),
         supabase.from('kitchen_tickets').select('*').eq('tenant_id', tenantId!).gte('created_at', since)
