@@ -60,7 +60,7 @@ serve(async (req) => {
   }
   // FOOD-1 — versiestempel om een deploy zonder neveneffect te verifiëren.
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "FOOD-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, version: "FOOD-2" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {
@@ -438,6 +438,7 @@ serve(async (req) => {
               // FOOD-1 — afhalen/leveren met tijdslot (null bij gewone verzending).
               service_type: cart.service_type || null,
               requested_time: cart.requested_time || null,
+              ...(cart.customer_note ? { notes: cart.customer_note } : {}),
             })
             .select("id, order_number, total").single();
 

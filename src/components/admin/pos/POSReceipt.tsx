@@ -89,6 +89,7 @@ export const POSReceipt = forwardRef<HTMLDivElement, POSReceiptProps>(({
             <div className="flex justify-between">
               <span className="truncate flex-1">{item.name}</span>
             </div>
+            {item.addons?.length ? <div className="pl-2">+ {item.addons.map((x) => x.name).join(', + ')}</div> : null}
             <div className="flex justify-between pl-2">
               <span>{item.quantity} x {formatCurrency(item.price)}</span>
               <span>{formatCurrency(item.quantity * item.price)}</span>

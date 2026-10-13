@@ -118,6 +118,7 @@ export function ReceiptDialog({
     
     transaction.items.forEach((item) => {
       lines.push(item.name);
+      if (item.addons?.length) lines.push(`  + ${item.addons.map((x) => x.name).join(', + ')}`);
       lines.push(`  ${item.quantity} x €${item.price.toFixed(2)}`.padEnd(32) + `€${(item.quantity * item.price).toFixed(2)}`);
     });
     

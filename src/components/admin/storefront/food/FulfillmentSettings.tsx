@@ -3,7 +3,8 @@
 // verzendmethodes met een soort; gewone verzendmethodes blijven in Instellingen > Verzending.
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Bike, Clock, Loader2, Plus, Store, Trash2 } from 'lucide-react';
+import { Banknote, Bike, ChefHat, Clock, Loader2, Plus, Store, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -23,9 +24,9 @@ interface Method {
 }
 interface Settings {
   slots_enabled: boolean; slot_minutes: number; prep_minutes: number; days_ahead: number;
-  max_orders_per_slot: number | null; hours: Hours;
+  max_orders_per_slot: number | null; hours: Hours; pay_on_pickup: boolean;
 }
-const DEFAULT_SETTINGS: Settings = { slots_enabled: false, slot_minutes: 15, prep_minutes: 20, days_ahead: 0, max_orders_per_slot: null, hours: emptyHours() };
+const DEFAULT_SETTINGS: Settings = { slots_enabled: false, slot_minutes: 15, prep_minutes: 20, days_ahead: 0, max_orders_per_slot: null, hours: emptyHours(), pay_on_pickup: false };
 const TYPE_LABEL: Record<ServiceType, string> = { pickup: 'Afhalen', local_delivery: 'Levering' };
 
 function MethodRow({ m, onChange, onRemove }: { m: Method; onChange: (m: Method) => void; onRemove: () => void }) {
@@ -140,6 +141,7 @@ export function FulfillmentSettings() {
     setSettings(data.settings ? {
       slots_enabled: data.settings.slots_enabled, slot_minutes: data.settings.slot_minutes, prep_minutes: data.settings.prep_minutes,
       days_ahead: data.settings.days_ahead, max_orders_per_slot: data.settings.max_orders_per_slot, hours: parseHours(data.settings.hours),
+      pay_on_pickup: !!data.settings.pay_on_pickup,
     } : DEFAULT_SETTINGS);
   }, [data]);
 
@@ -177,6 +179,7 @@ export function FulfillmentSettings() {
       const { error } = await supabase.from('fulfillment_settings').upsert({
         tenant_id: tenantId, slots_enabled: settings.slots_enabled, slot_minutes: settings.slot_minutes, prep_minutes: settings.prep_minutes,
         days_ahead: settings.days_ahead, max_orders_per_slot: settings.max_orders_per_slot, hours: settings.hours as unknown as Json,
+        pay_on_pickup: settings.pay_on_pickup,
         updated_at: new Date().toISOString(),
       });
       if (error) throw error;
@@ -196,7 +199,10 @@ export function FulfillmentSettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Afhalen en leveren</CardTitle>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <CardTitle>Afhalen en leveren</CardTitle>
+            <Button asChild variant="outline" size="sm"><Link to="/admin/keuken"><ChefHat className="mr-1.5 h-4 w-4" />Keukenscherm</Link></Button>
+          </div>
           <CardDescription>Voor restaurants, frituren, bakkers en traiteurs. Je klanten kiezen bij het afrekenen of ze afhalen of laten leveren. Verzenden met de post stel je in bij Instellingen › Verzending.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -211,6 +217,18 @@ export function FulfillmentSettings() {
             <Button type="button" variant="outline" size="sm" onClick={() => addMethod('local_delivery')}><Bike className="mr-1.5 h-4 w-4" />Levering toevoegen</Button>
           </div>
         </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle className="flex items-center gap-2"><Banknote className="h-5 w-5" />Betalen bij afhalen of levering</CardTitle>
+              <CardDescription>Je klant betaalt contant of met de bankkaart aan de toog of aan de deur. De bestelling komt meteen binnen, gemarkeerd als "nog te betalen".</CardDescription>
+            </div>
+            <Switch checked={settings.pay_on_pickup} onCheckedChange={(v) => setSettings((s) => ({ ...s, pay_on_pickup: v }))} aria-label="Betalen bij afhalen aan" />
+          </div>
+        </CardHeader>
       </Card>
 
       <Card>

@@ -796,11 +796,25 @@ async function loadProductAddonGroups(supabase: SupabaseLike, tenantId: string, 
 
 const SERVICE_TYPES: ServiceType[] = ['pickup', 'local_delivery'];
 
-async function loadFulfillmentSettings(supabase: SupabaseLike, tenantId: string): Promise<FulfillmentSettings | null> {
+async function loadFulfillmentSettings(supabase: SupabaseLike, tenantId: string): Promise<(FulfillmentSettings & { pay_on_pickup?: boolean }) | null> {
   const { data } = await supabase.from('fulfillment_settings')
-    .select('slots_enabled, slot_minutes, prep_minutes, days_ahead, max_orders_per_slot, timezone, hours')
+    .select('slots_enabled, slot_minutes, prep_minutes, days_ahead, max_orders_per_slot, timezone, hours, pay_on_pickup')
     .eq('tenant_id', tenantId).maybeSingle();
-  return (data as FulfillmentSettings | null) || null;
+  return (data as (FulfillmentSettings & { pay_on_pickup?: boolean }) | null) || null;
+}
+
+// FOOD-2 — "betalen bij afhalen/levering": alleen als de winkel het aanzette én de klant
+// afhaalt of laat leveren. Zit niet in getAvailablePaymentMethods, zodat eigen frontends
+// zonder afhalen/leveren niets nieuws zien.
+async function payOnPickupMethod(supabase: SupabaseLike, tenantId: string, serviceType: string | null | undefined) {
+  if (!serviceType || !SERVICE_TYPES.includes(serviceType as ServiceType)) return null;
+  const fs = await loadFulfillmentSettings(supabase, tenantId);
+  if (!fs?.pay_on_pickup) return null;
+  return {
+    method: 'pay_on_pickup', group: 'later',
+    name: serviceType === 'pickup' ? 'Betalen bij afhalen' : 'Betalen bij levering',
+    description: 'Contant of met je bankkaart', fee_cents: 0, available: true,
+  };
 }
 
 // Bestellingen per slot (alle soorten samen: de keuken is dezelfde).
@@ -2472,7 +2486,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   let fee: { label: string; amount: number } | null = null;
   const passFee = tenant?.pass_transaction_fee_to_customer || false;
 
-  if (paymentMethod && passFee) {
+  if (paymentMethod && passFee && paymentMethod !== 'pay_on_pickup') {
     const feeCents = calculateStripeFee(subtotalCents, paymentMethod);
     if (feeCents > 0) {
       fee = { label: tenant?.transaction_fee_label || 'Transactiekosten', amount: Math.round(feeCents) / 100 };
@@ -2503,6 +2517,8 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
 
   // Available payment methods
   const availablePayment = tenant ? getAvailablePaymentMethods(tenant, subtotalCents, country) : [];
+  const payOnPickup = await payOnPickupMethod(supabase, tenantId, cart.service_type);
+  if (payOnPickup) availablePayment.push(payOnPickup);
 
   // Items
   let items = cart.cartItems.map((item: any) => ({
@@ -2876,6 +2892,7 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       // FOOD-1 — afhalen/leveren met tijdslot (null bij gewone verzending).
       service_type: cart.service_type || null,
       requested_time: cart.requested_time || null,
+      ...(cart.customer_note ? { notes: cart.customer_note } : {}),
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
@@ -3263,11 +3280,16 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (fulfillmentError) return { success: false, error: fulfillmentError };
 
   // Save payment method on cart
+  // FOOD-2 — optionele opmerking van de klant, bewaard op de cart zodat ook de
+  // Stripe-paden (verify/webhook) hem op de order zetten.
+  const customerNote = typeof params.customer_note === 'string' ? params.customer_note.trim().slice(0, 500) : '';
   await supabase.from('storefront_carts').update({
     payment_method: paymentMethodId,
+    ...(customerNote ? { customer_note: customerNote } : {}),
     updated_at: new Date().toISOString(),
   }).eq('id', cartId);
   cart.payment_method = paymentMethodId;
+  if (customerNote) cart.customer_note = customerNote;
 
   // Get tenant info
   const { data: tenantData, error: tenantError } = await supabase
@@ -3296,7 +3318,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   // Recalculate fee from scratch — never trust cart.calculated_fee_cents which may be stale
   const subtotalCentsForFee = Math.round((cart.subtotal - discountAmount) * 100);
   let feeCents = 0;
-  if (paymentMethodId && tenantData.pass_transaction_fee_to_customer) {
+  if (paymentMethodId && tenantData.pass_transaction_fee_to_customer && paymentMethodId !== 'pay_on_pickup') {
     feeCents = calculateStripeFee(subtotalCentsForFee, paymentMethodId);
   }
   console.log('[checkoutComplete] payment_method:', paymentMethodId);
@@ -3570,6 +3592,41 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
         payload: qrPayload,
         image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`,
       },
+    };
+  }
+
+  // FOOD-2 — betalen bij afhalen of levering: order meteen aanmaken (nog te betalen),
+  // bevestiging sturen; de kassa of de koerier int het bedrag.
+  if (paymentMethodId === 'pay_on_pickup') {
+    if (!(await payOnPickupMethod(supabase, tenantId, cart.service_type))) {
+      return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'Betalen bij afhalen is niet mogelijk voor deze bestelling' } };
+    }
+    for (const item of cart.cartItems) {
+      if (item.variant_id) {
+        const { error: vsErr } = await supabase.rpc('decrement_variant_stock', { p_variant_id: item.variant_id, p_quantity: item.quantity });
+        if (vsErr) console.warn('decrement_variant_stock failed:', vsErr.message);
+      } else if (item.product_id) {
+        const { error: sErr } = await supabase.rpc('decrement_stock', { p_product_id: item.product_id, p_quantity: item.quantity });
+        if (sErr) console.warn('decrement_stock failed:', sErr.message);
+      }
+    }
+    const order = await createOrderFromCart(supabase, tenantId, cart, 'pending');
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+      await fetch(`${supabaseUrl}/functions/v1/send-order-confirmation`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+        body: JSON.stringify({ order_id: order.id }),
+      });
+    } catch { /* bevestiging is best-effort */ }
+    return {
+      order_id: order.id,
+      order_number: order.order_number,
+      status: 'awaiting_payment',
+      payment_type: 'manual',
+      pay_on_pickup: true,
+      total: order.total,
+      currency,
     };
   }
 
@@ -3862,6 +3919,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       // FOOD-1 — afhalen/leveren met tijdslot (null bij gewone verzending).
       service_type: cart.service_type || null,
       requested_time: cart.requested_time || null,
+      ...(cart.customer_note ? { notes: cart.customer_note } : {}),
     })
     .select('id, order_number').single();
 
@@ -4490,7 +4548,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FOOD-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FOOD-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

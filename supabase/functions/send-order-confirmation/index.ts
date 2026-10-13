@@ -22,8 +22,37 @@ const log = (step: string, details?: any) => {
   console.log(`[SEND-ORDER-CONFIRMATION] ${step}`, details ? JSON.stringify(details) : '');
 };
 
+// FOOD-2 — afhalen/levering in de bevestiging.
+interface ServiceOrder { service_type?: string | null; requested_time?: string | null; payment_method?: string | null }
+const SERVICE_TEXT: Record<TenantLocale, { pickup: string; delivery: string; asap: string; at: string; payPickup: string; payDelivery: string }> = {
+  nl: { pickup: 'Afhalen', delivery: 'Levering', asap: 'zo snel mogelijk', at: 'om', payPickup: 'Je betaalt bij het afhalen, contant of met je bankkaart.', payDelivery: 'Je betaalt bij de levering, contant of met je bankkaart.' },
+  en: { pickup: 'Pickup', delivery: 'Delivery', asap: 'as soon as possible', at: 'at', payPickup: 'You pay when you pick up your order, in cash or by card.', payDelivery: 'You pay on delivery, in cash or by card.' },
+  fr: { pickup: 'À emporter', delivery: 'Livraison', asap: 'dès que possible', at: 'à', payPickup: 'Vous payez au retrait, en espèces ou par carte.', payDelivery: 'Vous payez à la livraison, en espèces ou par carte.' },
+  de: { pickup: 'Abholung', delivery: 'Lieferung', asap: 'so schnell wie möglich', at: 'um', payPickup: 'Sie zahlen bei der Abholung, bar oder mit Karte.', payDelivery: 'Sie zahlen bei der Lieferung, bar oder mit Karte.' },
+};
+const DATE_LOCALE: Record<TenantLocale, string> = { nl: 'nl-BE', en: 'en-GB', fr: 'fr-BE', de: 'de-BE' };
+function renderServiceBlock(order: ServiceOrder, locale: TenantLocale, accent: string): string {
+  if (order.service_type !== 'pickup' && order.service_type !== 'local_delivery') return '';
+  const tx = SERVICE_TEXT[locale] || SERVICE_TEXT.nl;
+  const label = order.service_type === 'pickup' ? tx.pickup : tx.delivery;
+  let when = tx.asap;
+  if (order.requested_time) {
+    const d = new Date(order.requested_time);
+    const tz = 'Europe/Brussels';
+    const day = new Intl.DateTimeFormat(DATE_LOCALE[locale] || 'nl-BE', { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long' }).format(d);
+    const time = new Intl.DateTimeFormat(DATE_LOCALE[locale] || 'nl-BE', { timeZone: tz, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(d);
+    when = `${day} ${tx.at} ${time}`;
+  }
+  const pay = order.payment_method === 'pay_on_pickup' ? `<p style="margin:6px 0 0;font-size:14px;">${order.service_type === 'pickup' ? tx.payPickup : tx.payDelivery}</p>` : '';
+  return `<div style="margin:16px 0;padding:14px 16px;border-radius:10px;border-left:4px solid ${accent};background:#f6f6f4;">
+    <p style="margin:0;font-size:16px;"><strong>${label}:</strong> ${when}</p>${pay}
+  </div>`;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
+  // FOOD-2 — versiestempel om een deploy zonder neveneffect te verifiëren.
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FOOD-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     await authenticateRequest(req);
@@ -47,7 +76,7 @@ serve(async (req) => {
       .select(`
         id, order_number, customer_email, customer_name, total, subtotal,
         shipping_cost, tax_amount, discount_amount, currency, locale,
-        shipping_address, created_at, payment_method, tenant_id,
+        shipping_address, created_at, payment_method, tenant_id, service_type, requested_time,
         order_items(product_name, variant_title, quantity, unit_price, total_price)
       `)
       .eq('id', order_id).single();
@@ -109,10 +138,16 @@ serve(async (req) => {
       total: t(locale, 'order.total'),
     };
 
+    // FOOD-2 — afhalen of levering met tijdstip, en "betalen bij afhalen". Teksten staan
+    // hier lokaal (4 e-mailtalen), zodat _shared/tenantEmailI18n.ts en al zijn functies
+    // ongemoeid blijven.
+    const serviceBlock = renderServiceBlock(order as unknown as ServiceOrder, locale, brand.primaryColor);
+
     const content = `
+      ${serviceBlock}
       <h2 style="margin:24px 0 8px;font-size:18px;font-weight:600;">${t(locale, 'order.summary')} — ${orderNumber}</h2>
       ${renderOrderLineItems(items, currency, locale, labels.subtotal)}
-      ${renderAddressBlocks({
+      ${(order as unknown as ServiceOrder).service_type === 'pickup' ? '' : renderAddressBlocks({
         shipping: {
           name: addr.name,
           line1: [addr.street, addr.house_number].filter(Boolean).join(' '),

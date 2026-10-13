@@ -169,7 +169,8 @@
       "platform_blog": "Blog",
       "platform_health": "Health monitor",
       "platform_legal": "Legal",
-      "platform_docs": "Documentation"
+      "platform_docs": "Documentation",
+      "kitchen": "Kitchen"
     }
   },
   "settings": {

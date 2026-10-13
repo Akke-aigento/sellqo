@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useHasFoodService } from '@/hooks/useHasFoodService';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
@@ -29,6 +30,9 @@ export function useNavItemVisibility() {
   const { isPageHidden, isFeatureGranted } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
+
+  // FOOD-2 — biedt deze winkel afhalen of leveren aan? Dan hoort "Keuken" in de zijbalk.
+  const hasFoodService = useHasFoodService();
 
   // H4a — whitelist via permissie-matrix. Filter rollen per-tenant (matcht
   // useCan H4-5 hardening) en evalueer `requireRead` per item.
@@ -122,8 +126,9 @@ export function useNavItemVisibility() {
       isResourceHidden(item.requireRead) ||
       isItemRoleHidden(item) ||
       isItemFeatureHidden(item) ||
-      isItemPageOverridden(item),
-    [isResourceHidden, isItemRoleHidden, isItemFeatureHidden, isItemPageOverridden],
+      isItemPageOverridden(item) ||
+      (!!item.requireFoodService && !hasFoodService),
+    [isResourceHidden, isItemRoleHidden, isItemFeatureHidden, isItemPageOverridden, hasFoodService],
   );
 
   /** `isItemBlocked` plus de persoonlijke voorkeuren. Voor de zijbalk. */

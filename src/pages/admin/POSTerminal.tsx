@@ -11,6 +11,7 @@ import {
   CreditCard,
   Banknote,
   PauseCircle,
+  PhoneCall,
   Clock,
   ShoppingCart,
   X,
@@ -76,6 +77,12 @@ import type { AppliedGiftCard } from '@/components/admin/pos/POSGiftCardInput';
 import type { POSCartItem, POSPayment, POSTransaction } from '@/types/pos';
 import type { GiftCard } from '@/types/giftCard';
 import type { Product } from '@/types/product';
+import { POSAddonDialog } from '@/components/admin/pos/POSAddonDialog';
+import { POSKitchenPanel } from '@/components/admin/pos/POSKitchenPanel';
+import { useAddonCatalog } from '@/hooks/useAddonCatalog';
+import { useHasFoodService } from '@/hooks/useHasFoodService';
+import { defaultKitchenOrder, type KitchenOrderInput } from '@/components/admin/kitchen/kitchenOrder';
+import { addonsKey, addonsTotal, type AddonGroupLite, type ChosenAddon } from '@/lib/productAddons';
 import type { Customer } from '@/types/order';
 import { formatCurrency } from '@/lib/utils';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
@@ -178,6 +185,16 @@ export default function POSTerminalPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [cartDiscount, setCartDiscount] = useState<POSDiscount | null>(null);
   const terminal = terminals.find(t => t.id === terminalId);
+
+  // FOOD-2 — extra's bij het aanslaan en keukenbon (restaurant, frituur, kebabzaak).
+  const hasFoodService = useHasFoodService();
+  const { forProduct: addonGroupsFor } = useAddonCatalog();
+  const [kitchen, setKitchen] = useState<KitchenOrderInput>(() => defaultKitchenOrder(false));
+  const [addonFor, setAddonFor] = useState<{ product: Product; groups: AddonGroupLite[] } | null>(null);
+  useEffect(() => {
+    // Zodra bekend is dat de zaak afhaalt/levert: keukenbon standaard aan (zolang de kassier niets koos).
+    setKitchen((k) => (k.ticket_id || k.customer_label || k.requested_time ? k : { ...k, enabled: hasFoodService }));
+  }, [hasFoodService]);
   
   // Load Stripe readers on mount
   useEffect(() => {
@@ -210,14 +227,17 @@ export default function POSTerminalPage() {
     return Number(currentTenant?.tax_percentage ?? 0);
   }, [vatRates, currentTenant?.tax_percentage]);
   
-  // Add product to cart
-  const addToCart = useCallback((product: Product) => {
+  // Add product to cart (FOOD-2: zelfde product met andere extra's = aparte regel)
+  const addLine = useCallback((product: Product, addons: ChosenAddon[]) => {
+    const key = addonsKey(addons);
+    const price = Math.round((product.price + addonsTotal(addons)) * 100) / 100;
     setCart(prev => {
-      const existing = prev.find(item => item.product_id === product.id);
+      const same = (item: POSCartItem) => item.product_id === product.id && addonsKey(item.addons) === key;
+      const existing = prev.find(same);
       
       if (existing) {
         return prev.map(item =>
-          item.product_id === product.id
+          same(item)
             ? { ...item, quantity: item.quantity + 1, total: (item.quantity + 1) * item.price }
             : item
         );
@@ -228,17 +248,24 @@ export default function POSTerminalPage() {
         product_id: product.id,
         name: product.name,
         sku: product.sku || null,
-        price: product.price,
+        price,
         quantity: 1,
         tax_rate: resolveProductTaxRate(product),
         discount: 0,
-        total: product.price,
+        total: price,
         image_url: (product as unknown as { image_url?: string }).image_url || null,
+        ...(addons.length ? { addons } : {}),
       };
       
       return [...prev, newItem];
     });
   }, [resolveProductTaxRate]);
+
+  const addToCart = useCallback((product: Product) => {
+    const groups = addonGroupsFor(product.id, product.category_id);
+    if (groups.length) { setAddonFor({ product, groups }); return; }
+    addLine(product, []);
+  }, [addonGroupsFor, addLine]);
   
   // Update quantity
   const updateQuantity = useCallback((itemId: string, delta: number) => {
@@ -261,10 +288,11 @@ export default function POSTerminalPage() {
     setCart(prev => prev.filter(item => item.id !== itemId));
   }, []);
   
-  // Clear cart
+  // Clear cart (FOOD-2: keukenbon terug naar standaard)
   const clearCart = useCallback(() => {
     setCart([]);
-  }, []);
+    setKitchen(defaultKitchenOrder(hasFoodService));
+  }, [hasFoodService]);
   
   // Handle session open
   const handleOpenSession = async () => {
@@ -371,6 +399,7 @@ export default function POSTerminalPage() {
         items: cart,
         cartDiscount,
         payments,
+        kitchen,
         cashReceived: cashReceivedAmount,
         cashChange: cashChangeAmount,
         customerId: selectedCustomer?.id,
@@ -429,6 +458,7 @@ export default function POSTerminalPage() {
         items: cart,
         cartDiscount,
         payments,
+        kitchen,
         stripePaymentIntentId: paymentIntentId,
         cardBrand: cardDetails?.brand,
         cardLast4: cardDetails?.last4,
@@ -478,6 +508,7 @@ export default function POSTerminalPage() {
         items: cart,
         cartDiscount,
         payments,
+        kitchen,
         customerId: selectedCustomer?.id,
       });
       
@@ -553,6 +584,7 @@ export default function POSTerminalPage() {
         items: cart,
         cartDiscount,
         payments,
+        kitchen,
         cashReceived: paymentData.cashReceived || undefined,
         cashChange: paymentData.cashChange || undefined,
         customerId: selectedCustomer?.id,
@@ -630,12 +662,45 @@ export default function POSTerminalPage() {
     toast.success('Winkelwagen geparkeerd');
     clearCart();
   };
+
+  // FOOD-2 — telefonische bestelling: parkeren én meteen naar de keuken; afrekenen bij afhalen.
+  const handlePhoneOrder = async () => {
+    if (!terminalId || cart.length === 0) return;
+    if (!kitchen.customer_label.trim() && !kitchen.customer_phone.trim()) {
+      toast.error('Vul een naam of telefoonnummer in bij "Naar de keuken"');
+      return;
+    }
+    try {
+      await parkCart.mutateAsync({
+        terminalId,
+        sessionId: activeSession?.id,
+        items: cart,
+        customerName: kitchen.customer_label || kitchen.customer_phone,
+        notes: kitchen.note || undefined,
+        kitchen: { ...kitchen, enabled: true },
+      });
+      toast.success('Bestelling staat in de keuken. Afrekenen via "Geparkeerd" bij het afhalen.');
+      clearCart();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Telefonische bestelling mislukt');
+    }
+  };
   
   // Handle resume cart
   const handleResumeCart = async (cartId: string) => {
     const resumed = await resumeCart.mutateAsync(cartId);
     if (resumed) {
       setCart(resumed.items);
+      // FOOD-2 — hoort er een keukenbon bij? Dan rekent deze verkoop die bon af.
+      const { data: ticket } = await supabase.from('kitchen_tickets')
+        .select('id, service_type, requested_time, customer_label, customer_phone, note').eq('parked_cart_id', cartId).maybeSingle();
+      if (ticket) {
+        setKitchen({
+          enabled: true, ticket_id: ticket.id,
+          service_type: (ticket.service_type as KitchenOrderInput['service_type']) || 'pickup',
+          requested_time: ticket.requested_time, customer_label: ticket.customer_label || '', customer_phone: ticket.customer_phone || '', note: ticket.note || '',
+        });
+      }
       toast.success('Winkelwagen hervat');
     }
     setShowParkedCartsDialog(false);
@@ -784,6 +849,7 @@ export default function POSTerminalPage() {
                     )}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium truncate">{item.name}</p>
+                      {item.addons?.length ? <p className="text-xs text-primary truncate">+ {item.addons.map((a) => a.name).join(', + ')}</p> : null}
                       <p className="text-sm text-muted-foreground">
                         {formatCurrency(item.price)} × {item.quantity}
                       </p>
@@ -823,6 +889,7 @@ export default function POSTerminalPage() {
           
           {/* Cart Footer */}
           <div className="border-t p-4 space-y-4">
+            {hasFoodService ? <POSKitchenPanel value={kitchen} onChange={setKitchen} /> : null}
             {/* Totals */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -859,6 +926,16 @@ export default function POSTerminalPage() {
                 <PauseCircle className="mr-2 h-4 w-4" />
                 Parkeren
               </Button>
+              {hasFoodService ? (
+                <Button
+                  variant="outline"
+                  disabled={cart.length === 0 || !!kitchen.ticket_id || parkCart.isPending}
+                  onClick={handlePhoneOrder}
+                >
+                  <PhoneCall className="mr-2 h-4 w-4" />
+                  Telefoon
+                </Button>
+              ) : null}
               <Button 
                 variant={selectedCustomer ? 'secondary' : 'outline'}
                 onClick={() => setShowCustomerDialog(true)}
@@ -1417,6 +1494,14 @@ export default function POSTerminalPage() {
       />
       
       {/* Quick Button Configuration Dialog */}
+      <POSAddonDialog
+        open={!!addonFor}
+        productName={addonFor?.product.name || ''}
+        basePrice={addonFor?.product.price || 0}
+        groups={addonFor?.groups || []}
+        onCancel={() => setAddonFor(null)}
+        onConfirm={(addons) => { if (addonFor) addLine(addonFor.product, addons); setAddonFor(null); }}
+      />
       <QuickButtonDialog
         open={showQuickButtonDialog}
         onOpenChange={setShowQuickButtonDialog}

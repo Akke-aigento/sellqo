@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -123,6 +123,16 @@ await check('validateCartFulfillment', async () => {
   const e3 = await S.validateCartFulfillment(db, T, { shipping_method_id: 'sm-del', subtotal: 10, shipping_address: { postal_code: '3000' } });
   assert(e3?.code === 'MIN_ORDER', `minimum: ${e3?.code}`);
   assert(await S.validateCartFulfillment(db, T, { shipping_method_id: null, subtotal: 1 }) === null, 'gewone verzending ongemoeid');
+});
+
+await check('payOnPickupMethod (FOOD-2)', async () => {
+  assert(await S.payOnPickupMethod(db, T, 'pickup') === null, 'uit zonder instelling');
+  db.tables.fulfillment_settings[0].pay_on_pickup = true;
+  const m = await S.payOnPickupMethod(db, T, 'pickup');
+  assert(m?.method === 'pay_on_pickup' && m.name === 'Betalen bij afhalen', `pickup: ${JSON.stringify(m)}`);
+  assert((await S.payOnPickupMethod(db, T, 'local_delivery'))?.name === 'Betalen bij levering', 'levering');
+  assert(await S.payOnPickupMethod(db, T, null) === null, 'gewone verzending: nooit');
+  db.tables.fulfillment_settings[0].pay_on_pickup = false;
 });
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }

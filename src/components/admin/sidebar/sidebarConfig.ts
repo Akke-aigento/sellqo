@@ -24,6 +24,7 @@ import {
   BellRing,
   Bot,
   Monitor,
+  ChefHat,
   CalendarDays,
   Globe,
   Search,
@@ -65,6 +66,8 @@ export interface NavItem {
    * zien. Heeft voorrang op legacy allowedRoles/excludeRoles.
    */
   requireRead?: Resource;
+  /** FOOD-2 — alleen tonen als de winkel afhalen of leveren aanbiedt (restaurants). */
+  requireFoodService?: boolean;
 }
 
 export interface NavGroup {
@@ -126,6 +129,7 @@ const dailyItems: NavItem[] = [
 // VERKOOP - Verkoopgerelateerde functies
 const salesItems: NavItem[] = [
   { id: 'pos', titleKey: 'navigation.items.pos', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'], requireRead: 'pos' },
+  { id: 'kitchen', titleKey: 'navigation.items.kitchen', url: '/admin/keuken', icon: ChefHat, excludeRoles: ['marketing', 'accountant'], requireRead: 'orders', requireFoodService: true },
   {
     id: 'event-dashboard',
     titleKey: 'navigation.items.event_dashboard',

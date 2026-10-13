@@ -6945,6 +6945,7 @@ export type Database = {
           days_ahead: number
           hours: Json
           max_orders_per_slot: number | null
+          pay_on_pickup: boolean
           prep_minutes: number
           slot_minutes: number
           slots_enabled: boolean
@@ -6957,6 +6958,7 @@ export type Database = {
           days_ahead?: number
           hours?: Json
           max_orders_per_slot?: number | null
+          pay_on_pickup?: boolean
           prep_minutes?: number
           slot_minutes?: number
           slots_enabled?: boolean
@@ -6969,6 +6971,7 @@ export type Database = {
           days_ahead?: number
           hours?: Json
           max_orders_per_slot?: number | null
+          pay_on_pickup?: boolean
           prep_minutes?: number
           slot_minutes?: number
           slots_enabled?: boolean
@@ -8249,6 +8252,98 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vat_regimes"
             referencedColumns: ["code"]
+          },
+        ]
+      }
+      kitchen_tickets: {
+        Row: {
+          created_at: string
+          customer_label: string | null
+          customer_phone: string | null
+          id: string
+          items: Json | null
+          note: string | null
+          order_id: string | null
+          paid: boolean
+          parked_cart_id: string | null
+          pos_transaction_id: string | null
+          requested_time: string | null
+          service_type: string | null
+          source: string
+          status: string
+          status_at: string
+          tenant_id: string
+          total: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          customer_label?: string | null
+          customer_phone?: string | null
+          id?: string
+          items?: Json | null
+          note?: string | null
+          order_id?: string | null
+          paid?: boolean
+          parked_cart_id?: string | null
+          pos_transaction_id?: string | null
+          requested_time?: string | null
+          service_type?: string | null
+          source: string
+          status?: string
+          status_at?: string
+          tenant_id: string
+          total?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          customer_label?: string | null
+          customer_phone?: string | null
+          id?: string
+          items?: Json | null
+          note?: string | null
+          order_id?: string | null
+          paid?: boolean
+          parked_cart_id?: string | null
+          pos_transaction_id?: string | null
+          requested_time?: string | null
+          service_type?: string | null
+          source?: string
+          status?: string
+          status_at?: string
+          tenant_id?: string
+          total?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_tickets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_tickets_parked_cart_id_fkey"
+            columns: ["parked_cart_id"]
+            isOneToOne: false
+            referencedRelation: "pos_parked_carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_tickets_pos_transaction_id_fkey"
+            columns: ["pos_transaction_id"]
+            isOneToOne: false
+            referencedRelation: "pos_transactions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_tickets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
           },
         ]
       }

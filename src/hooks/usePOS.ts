@@ -4,6 +4,7 @@ import { useTenant } from './useTenant';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 import { calculatePosTotals, type PosCartDiscount } from '@/lib/calculations/posTotals';
+import { kitchenItems, type KitchenOrderInput } from '@/components/admin/kitchen/kitchenOrder';
 import type {
   POSTerminal,
   POSSession,
@@ -284,11 +285,14 @@ export function usePOSTransactions(sessionId?: string) {
       cardBrand,
       cardLast4,
       cartDiscount,
+      kitchen,
     }: {
       terminalId: string;
       sessionId: string | null;
       items: POSCartItem[];
       payments: POSPayment[];
+      /** FOOD-2: keukenbon bij deze verkoop (of een telefonische bon afrekenen). */
+      kitchen?: KitchenOrderInput | null;
       cashReceived?: number;
       cashChange?: number;
       customerId?: string;
@@ -337,6 +341,23 @@ export function usePOSTransactions(sessionId?: string) {
         .single();
 
       if (error) throw error;
+
+      // FOOD-2 — keukenbon. Nooit blokkerend: de verkoop is al geregistreerd.
+      if (kitchen?.enabled && data?.id) {
+        try {
+          const ticket = {
+            pos_transaction_id: data.id, paid: true, items: kitchenItems(items), total,
+            service_type: kitchen.service_type, requested_time: kitchen.requested_time,
+            customer_label: kitchen.customer_label || null, customer_phone: kitchen.customer_phone || null, note: kitchen.note || null,
+          };
+          const { error: kErr } = kitchen.ticket_id
+            ? await supabase.from('kitchen_tickets').update({ ...ticket, updated_at: new Date().toISOString() }).eq('id', kitchen.ticket_id)
+            : await supabase.from('kitchen_tickets').insert({ ...ticket, tenant_id: currentTenant.id, source: 'pos' });
+          if (kErr) console.warn('[FOOD-2] keukenbon mislukt:', kErr.message);
+        } catch (kErr) {
+          console.warn('[FOOD-2] keukenbon mislukt:', kErr);
+        }
+      }
 
       // Record transaction for usage tracking
       const primaryMethod = payments[0]?.method;
@@ -661,6 +682,7 @@ export function usePOSParkedCarts(terminalId?: string) {
       customerName,
       customerId,
       notes,
+      kitchen,
     }: {
       terminalId: string;
       sessionId?: string;
@@ -668,10 +690,12 @@ export function usePOSParkedCarts(terminalId?: string) {
       customerName?: string;
       customerId?: string;
       notes?: string;
+      /** FOOD-2: telefonische bestelling → bon meteen in de keuken, afrekenen bij afhalen. */
+      kitchen?: KitchenOrderInput | null;
     }) => {
       if (!currentTenant || !user) throw new Error('Not authenticated');
 
-      const { error } = await supabase.from('pos_parked_carts').insert([{
+      const { data: parked, error } = await supabase.from('pos_parked_carts').insert([{
         tenant_id: currentTenant.id,
         terminal_id: terminalId,
         session_id: sessionId || null,
@@ -680,9 +704,20 @@ export function usePOSParkedCarts(terminalId?: string) {
         items: JSON.parse(JSON.stringify(items)),
         notes: notes || null,
         parked_by: user.id,
-      }]);
+      }]).select('id').single();
 
       if (error) throw error;
+
+      if (kitchen?.enabled && parked?.id) {
+        const total = calculatePosTotals(items, null, (currentTenant as { default_vat_handling?: string | null }).default_vat_handling || 'inclusive').total;
+        const { error: kErr } = await supabase.from('kitchen_tickets').insert({
+          tenant_id: currentTenant.id, source: 'phone', parked_cart_id: parked.id, paid: false, items: kitchenItems(items), total,
+          service_type: kitchen.service_type, requested_time: kitchen.requested_time,
+          customer_label: kitchen.customer_label || customerName || null, customer_phone: kitchen.customer_phone || null, note: kitchen.note || null,
+        });
+        if (kErr) throw new Error(`Bestelling geparkeerd, maar niet naar de keuken gestuurd: ${kErr.message}`);
+      }
+      return parked?.id ?? null;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-parked-carts'] });

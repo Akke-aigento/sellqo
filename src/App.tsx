@@ -107,6 +107,7 @@ import TicketCheckinPage from "./pages/admin/TicketCheckin";
 import EventDashboardPage from "./pages/admin/EventDashboard";
 import EventDetailPage from "./pages/admin/EventDetail";
 import POSTerminalPage from "./pages/admin/POSTerminal";
+import KitchenPage from "./pages/admin/Kitchen";
 import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 import SEODashboard from "./pages/admin/SEODashboard";
 import TranslationHub from "./pages/admin/TranslationHub";
@@ -283,6 +284,8 @@ const App = () => (
               <Route path="purchase-orders" element={<RouteGuard requireRead="suppliers"><PurchaseOrdersPage /></RouteGuard>} />
               <Route path="supplier-documents" element={<RouteGuard requireRead="suppliers"><SupplierDocumentsPage /></RouteGuard>} />
               <Route path="pos" element={<RouteGuard requireRead="pos"><POSPage /></RouteGuard>} />
+              {/* FOOD-2: keukenscherm (volledig scherm) voor afhaal-/leverbestellingen en kassabonnen. */}
+              <Route path="keuken" element={<RouteGuard requireRead="orders"><KitchenPage /></RouteGuard>} />
               <Route path="checkin" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><TicketCheckinPage /></RouteGuard>} />
               <Route path="events" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventDashboardPage /></RouteGuard>} />
               <Route path="events/:eventId" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventDetailPage /></RouteGuard>} />

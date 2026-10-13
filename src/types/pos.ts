@@ -73,6 +73,8 @@ export interface POSCartItem {
   discount: number;
   total: number;
   image_url?: string | null;
+  /** FOOD-2: gekozen extra's; `price` bevat ze al. */
+  addons?: { group: string; name: string; price: number }[];
 }
 
 export interface POSTransaction {
