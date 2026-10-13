@@ -2,6 +2,21 @@
 
 Akke gaf akkoord op de vervolgstappen ("doe maar dikke batch") met deploys gebundeld.
 
+### Deploy en nameting (09:45)
+
+**Deploy.** Eén gebundelde deploy-only opdracht voor 3 functies. Na een MCP-time-out heb ik die niet opnieuw verstuurd. Main bleef op 7bd3c14: er waren geen agent-commits.
+
+**Nameting:**
+- `storefront-api` en `check-scheduled-notifications` geven de stempel `BATCH-1013`.
+- `storefront-resolve?hostname=vanxcel.com` gaf eerst 404 "Tenant not found" en geeft nu 200 `resolved: true` met VanXcel.
+
+**Functioneel (storefront-api):**
+- `get_tenant`: 200.
+- Het contactblok in `get_config` is nu gevuld met bedrijfsnaam, adres, btw- en KBO-nummer. Het telefoonnummer staat in SellQo niet ingevuld en blijft dus leeg.
+- `validate_discount_code` WELCOME10: een nieuw e-mailadres is geldig; een klant met een eerdere betaalde order krijgt "geldt alleen voor je eerste bestelling".
+
+**Cron.** `check-scheduled-notifications-daily` (jobid 293) staat op `52 6 * * *` UTC, met `x-cron-secret` zoals de andere cronjobs. Een handmatige proefrun gaf 200 met 0 meldingen. Dat klopt: vervallen facturen melden alleen op dag 1, 7 en 30 na de vervaldatum, en vandaag valt er geen enkele op zo'n dag.
+
 ### SEC-COST-1 (live DB, getest)
 
 **Snapshot.** `ops.snap_sec_cost_1` bevat de grants en policies van products en product_variants.
