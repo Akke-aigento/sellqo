@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -147,6 +147,13 @@ await check('bestellen aan tafel (HORECA-1)', async () => {
   assert(await S.payOnPickupMethod(db, T, 'eat_in') === null, 'toog uit');
   db.tables.fulfillment_settings[0].qr_mode = 'view';
   db.tables.fulfillment_settings[0].qr_pay_counter = true;
+});
+
+await check('leverzone gaat voor minimumbedrag (DEMO-1)', async () => {
+  const m = { fulfillment_type: 'local_delivery', min_order_amount: 15, postal_codes: ['3000'] };
+  assert(S.fulfillmentAvailability(m, { postal_code: '2000', subtotal: 5 }).unavailable_reason === 'delivery_zone', 'buiten zone en te weinig: zone eerst');
+  assert(S.fulfillmentAvailability(m, { postal_code: '3000', subtotal: 5 }).unavailable_reason === 'min_order', 'in zone, te weinig');
+  assert(S.fulfillmentAvailability(m, { postal_code: '3000', subtotal: 20 }).available === true, 'in zone, genoeg');
 });
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }

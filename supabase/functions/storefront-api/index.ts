@@ -1636,12 +1636,14 @@ async function getShippingMethods(
   }));
 }
 
+// DEMO-1: eerst de leverzone, dan het minimumbedrag. Buiten de zone helpt extra bestellen
+// niet; anders vult de klant zijn mandje aan om daarna alsnog "we leveren hier niet" te zien.
 function fulfillmentAvailability(m: { fulfillment_type?: string | null; min_order_amount?: number | string | null; postal_codes?: string[] | null }, ctx?: { postal_code?: string | null; subtotal?: number | null }) {
-  if (ctx?.subtotal != null && m.min_order_amount != null && Number(ctx.subtotal) < Number(m.min_order_amount)) {
-    return { available: false, unavailable_reason: 'min_order' };
-  }
   if (m.fulfillment_type === 'local_delivery' && ctx?.postal_code && !postalCodeAllowed(ctx.postal_code, m.postal_codes)) {
     return { available: false, unavailable_reason: 'delivery_zone' };
+  }
+  if (ctx?.subtotal != null && m.min_order_amount != null && Number(ctx.subtotal) < Number(m.min_order_amount)) {
+    return { available: false, unavailable_reason: 'min_order' };
   }
   return { available: true, unavailable_reason: null };
 }
