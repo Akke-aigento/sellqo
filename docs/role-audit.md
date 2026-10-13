@@ -22,7 +22,11 @@ Onderdeel van het webshoptraject (fase 1, "de motor compleet"). Afspraak met Akk
 - Checkout: identiek, behalve 434 Loveke-scenario's met staffelkorting. Die zijn bedoeld en wachten op Akkes akkoord.
 - `deno check` lokaal met gestubde remote imports: groen. Lint −9 (baseline bijgewerkt).
 
-**Deploy:** alleen `storefront-api`. Wacht op Akkes antwoord over "Loveke for Two". Na de deploy: GET-stempel meten en `cart_get` op de live carts vergelijken met de nulmeting.
+**Deploy (13-10, Akke akkoord met Loveke for Two):** alleen `storefront-api`, via een deploy-only opdracht aan de Lovable-agent (0,7 credits, geen commits).
+- GET-stempel `PROMO-ENGINE-1`.
+- `cart_get` op de 2 live carts identiek aan de nulmeting in `ops.snap_promo_engine_pre`.
+- Testcart bij Loveke met 2 t-shirts (€49,98): het mandje toont "Loveke for Two" −€3,50. `checkout_start` toont nu ook −€3,50 (vroeger €0). Het bedrag dat de betaling leest (`storefront_carts.discount_amount`) staat op 3,50. Testcart daarna verwijderd.
+- Frontend: Loveke-batch LOVEKE-FORTWO-1 (repo loveke, 713448f).
 
 ## STOREFRONT-BUNDLE-1 — nieuwe additieve API-actie voor de standaardshop — 13 oktober 2026
 
