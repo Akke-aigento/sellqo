@@ -111,6 +111,7 @@ import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 import SEODashboard from "./pages/admin/SEODashboard";
 import TranslationHub from "./pages/admin/TranslationHub";
 import StorefrontPage from "./pages/admin/Storefront";
+import StorefrontCustomizePage from "./pages/admin/StorefrontCustomize";
 import FulfillmentPage from "./pages/admin/Fulfillment";
 import BadgesPage from "./pages/admin/Badges";
 import SyncConflictsPage from "./pages/admin/SyncConflicts";
@@ -288,6 +289,8 @@ const App = () => (
               <Route path="pos/:terminalId" element={<POSTerminalPage />} />
               <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />
               <Route path="storefront" element={<RouteGuard requireRead="themes"><StorefrontPage /></RouteGuard>} />
+              {/* EDITOR-1: "Aanpassen" — volledig scherm over de admin heen. Opslaan vraagt themes-schrijfrechten (RLS). */}
+              <Route path="storefront/aanpassen" element={<RouteGuard requireRead="themes"><StorefrontCustomizePage /></RouteGuard>} />
               <Route path="ads" element={<RouteGuard requireRead="ads"><AdsPage /></RouteGuard>} />
               <Route path="ads/bolcom" element={<RouteGuard requireRead="ads"><AdsBolcomPage /></RouteGuard>} />
               <Route path="ads/bolcom/campaigns/:id" element={<AdsBolcomCampaignDetailPage />} />

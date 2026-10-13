@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Save, Search, X, Plus, Trash2, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,10 +17,23 @@ interface SectionEditorProps {
   section: HomepageSection;
   onSave: (section: HomepageSection) => void;
   onCancel: () => void;
+  /** EDITOR-1: elke wijziging meteen doorgeven (live voorbeeld in "Aanpassen"). */
+  onChange?: (section: HomepageSection) => void;
+  /** EDITOR-1: geen eigen Opslaan/Annuleren (de editor slaat alles samen op). */
+  hideActions?: boolean;
+  /** EDITOR-1: smal zijpaneel — velden onder elkaar. */
+  compact?: boolean;
 }
 
-export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps) {
+export function SectionEditor({ section, onSave, onCancel, onChange, hideActions, compact }: SectionEditorProps) {
   const [formData, setFormData] = useState<HomepageSection>(section);
+  const onChangeRef = useRef(onChange);
+  onChangeRef.current = onChange;
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) { first.current = false; return; }
+    onChangeRef.current?.(formData);
+  }, [formData]);
   const { categories } = useCategories();
   const { products } = useProducts();
 
@@ -465,7 +478,7 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
   return (
     <div className="space-y-6">
       {/* Common fields */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className={compact ? 'grid grid-cols-1 gap-4' : 'grid grid-cols-2 gap-4'}>
         <div className="space-y-2">
           <Label>Titel</Label>
           <Input
@@ -491,7 +504,7 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end gap-2 pt-4 border-t">
+      {hideActions ? null : <div className="flex justify-end gap-2 pt-4 border-t">
         <Button variant="outline" onClick={onCancel}>
           Annuleren
         </Button>
@@ -499,7 +512,7 @@ export function SectionEditor({ section, onSave, onCancel }: SectionEditorProps)
           <Save className="h-4 w-4 mr-2" />
           Opslaan
         </Button>
-      </div>
+      </div>}
     </div>
   );
 }

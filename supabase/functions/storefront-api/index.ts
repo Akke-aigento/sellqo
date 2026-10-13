@@ -901,6 +901,11 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
   const optionFilter = parseOptionFilter(params?.options);
   const availableOnly = params?.available_only === true;
   const advanced = !!optionFilter || availableOnly || sortBy === 'best_selling';
+  // SHOP-API-3 — optioneel: alleen deze product-ID's (max 50), in die volgorde. Voor
+  // homepage-secties met zelf gekozen producten. Zonder `ids` verandert er niets.
+  const ids = Array.isArray(params?.ids)
+    ? (params.ids as unknown[]).map(String).filter((x) => /^[0-9a-z-]{1,64}$/i.test(x)).slice(0, 50)
+    : null;
 
   let query = supabase
     .from('products')
@@ -914,6 +919,7 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
   if (maxPrice != null) query = query.lte('price', maxPrice);
   if (isFeatured) query = query.eq('is_featured', true);
   if (tags?.length) query = query.overlaps('tags', tags);
+  if (ids) query = query.in('id', ids.length ? ids : ['00000000-0000-0000-0000-000000000000']);
 
   // Sorting
   switch (sortBy) {
@@ -963,6 +969,8 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     count = candidates.length;
     filtered = candidates.slice(from, from + perPage);
   }
+
+  if (ids) filtered = [...filtered].sort((a: DbRow, b: DbRow) => ids.indexOf(a.id) - ids.indexOf(b.id));
 
   // Translations
   const tMap = locale && filtered.length > 0
@@ -1133,7 +1141,7 @@ async function getPages(supabase: any, tenantId: string, params: Record<string, 
 
 // SHOP-API-2 — nieuwe actie: één gepubliceerde eigen pagina (storefront_pages) op slug,
 // voor de standaardshop (/p/<slug>). Juridische pagina's blijven via get_pages.
-async function getStorefrontPage(supabase: any, tenantId: string, params: Record<string, unknown> = {}) {
+async function getStorefrontPage(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown> = {}) {
   const slug = String(params.slug || '').trim();
   if (!slug) throw new Error('slug is required');
   const { data, error } = await supabase
@@ -4288,7 +4296,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SHOP-API-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SHOP-API-3' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

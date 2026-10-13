@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
 import {
   Globe,
   Paintbrush,
@@ -9,6 +10,7 @@ import {
   Home,
   Power,
   SlidersHorizontal,
+  Wand2,
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { ScrollHint } from '@/components/ui/scroll-hint';
@@ -98,14 +100,23 @@ export default function StorefrontPage() {
   };
 
   const header = (
-    <div>
-      <h1 className="flex items-center gap-3 text-3xl font-bold">
-        <Globe className="h-8 w-8 text-primary" />
-        Webshop
-      </h1>
-      <p className="mt-1 text-muted-foreground">
-        Richt je SellQo-winkel in: design, homepage, pagina's en status
-      </p>
+    <div className="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h1 className="flex items-center gap-3 text-3xl font-bold">
+          <Globe className="h-8 w-8 text-primary" />
+          Webshop
+        </h1>
+        <p className="mt-1 text-muted-foreground">
+          Richt je SellQo-winkel in: design, homepage, pagina's en status
+        </p>
+      </div>
+      {/* EDITOR-1: alles in één scherm, met je echte winkel ernaast. */}
+      <Button asChild>
+        <Link to="/admin/storefront/aanpassen">
+          <Wand2 className="mr-2 h-4 w-4" />
+          Aanpassen
+        </Link>
+      </Button>
     </div>
   );
 
