@@ -219,6 +219,8 @@ export default function StorefrontCustomizePage() {
     try { return new URLSearchParams(window.location.search).get('panel') === 'themes' ? { kind: 'themes' } : { kind: 'list' }; } catch { return { kind: 'list' }; }
   });
   const [tried, setTried] = useState<string | null>(null);
+  // Gsm: bewerken en voorbeeld wisselen elkaar af (geen plaats voor beide naast elkaar).
+  const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [theme, setTheme] = useState<ThemeDraft>({});
   const [sections, setSections] = useState<HomepageSection[]>([]);
@@ -299,7 +301,7 @@ export default function StorefrontCustomizePage() {
       const d = e.data as { source?: string; type?: string; sectionId?: string } | null;
       if (!d || d.source !== 'sellqo-shop') return;
       if (d.type === 'sellqo:ready') setFrameState('ready');
-      if (d.type === 'sellqo:select' && d.sectionId) { setTab('sections'); setPanel({ kind: 'section', id: d.sectionId }); }
+      if (d.type === 'sellqo:select' && d.sectionId) { setTab('sections'); setPanel({ kind: 'section', id: d.sectionId }); setMobileView('edit'); }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -481,11 +483,11 @@ export default function StorefrontCustomizePage() {
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background">
       {/* Bovenbalk */}
-      <header className="flex h-14 shrink-0 items-center gap-3 border-b px-3">
-        <Button variant="ghost" size="sm" asChild>
-          <Link to="/admin/storefront" onClick={confirmLeave}><ArrowLeft className="mr-1.5 h-4 w-4" />Webshop</Link>
+      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-2 sm:gap-3 sm:px-3">
+        <Button variant="ghost" size="sm" asChild className="px-2 sm:px-3">
+          <Link to="/admin/storefront" onClick={confirmLeave} aria-label="Terug naar Webshop"><ArrowLeft className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">Webshop</span></Link>
         </Button>
-        <div className="min-w-0">
+        <div className="hidden min-w-0 sm:block">
           <p className="truncate text-sm font-semibold leading-tight">{currentTenant.name}</p>
           <p className="truncate text-xs text-muted-foreground">Aanpassen · {slug}.sellqo.shop</p>
         </div>
@@ -503,7 +505,7 @@ export default function StorefrontCustomizePage() {
           <Button variant="ghost" size="sm" asChild className="hidden md:inline-flex">
             <a href={`https://${slug}.sellqo.shop`} target="_blank" rel="noreferrer">Bekijk winkel<ExternalLink className="ml-1.5 h-3.5 w-3.5" /></a>
           </Button>
-          {dirty ? <Button variant="outline" size="sm" onClick={discard} disabled={saving}>Ongedaan maken</Button> : null}
+          {dirty ? <Button variant="outline" size="sm" onClick={discard} disabled={saving}><span className="sm:hidden">Herstel</span><span className="hidden sm:inline">Ongedaan maken</span></Button> : null}
           <Button size="sm" onClick={save} disabled={!dirty || saving}>
             {saving ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
             {dirty ? 'Opslaan' : 'Opgeslagen'}
@@ -518,7 +520,7 @@ export default function StorefrontCustomizePage() {
       ) : null}
       <div className="flex min-h-0 flex-1">
         {/* Zijpaneel */}
-        <aside className="flex w-full max-w-[380px] shrink-0 flex-col border-r">
+        <aside className={cn('w-full shrink-0 flex-col border-r md:flex md:max-w-[380px]', mobileView === 'edit' ? 'flex' : 'hidden')}>
           {panel.kind === 'list' ? (
             <>
               <div className="grid shrink-0 grid-cols-2 gap-1 border-b p-2" role="tablist">
@@ -747,9 +749,9 @@ export default function StorefrontCustomizePage() {
         </aside>
 
         {/* Voorbeeld */}
-        <main className="relative hidden min-w-0 flex-1 items-start justify-center overflow-auto bg-muted/40 p-3 md:flex">
-          <div className={cn('h-full overflow-hidden rounded-lg border bg-white shadow-sm transition-all',
-            device === 'mobile' ? 'w-[390px] max-w-full' : 'w-full')}>
+        <main className={cn('relative min-w-0 flex-1 items-start justify-center overflow-auto bg-muted/40 p-0 md:flex md:p-3', mobileView === 'preview' ? 'flex' : 'hidden')}>
+          <div className={cn('h-full overflow-hidden bg-white transition-all md:rounded-lg md:border md:shadow-sm',
+            device === 'mobile' ? 'w-full md:w-[390px] md:max-w-full' : 'w-full')}>
             {slug ? (
               <iframe key={frameKey} ref={frameRef} title="Voorbeeld van je winkel" src={`${origin}/?editor=1`}
                 className="h-full w-full border-0" />
@@ -767,6 +769,16 @@ export default function StorefrontCustomizePage() {
             </div>
           ) : null}
         </main>
+      </div>
+
+      {/* Gsm: wisselen tussen bewerken en het voorbeeld. */}
+      <div className="grid shrink-0 grid-cols-2 gap-1 border-t bg-background p-2 md:hidden" role="tablist" aria-label="Weergave">
+        {(['edit', 'preview'] as const).map((v) => (
+          <button key={v} type="button" role="tab" aria-selected={mobileView === v} onClick={() => setMobileView(v)}
+            className={cn('flex h-11 items-center justify-center gap-2 rounded-md text-sm font-medium', mobileView === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}>
+            {v === 'edit' ? <><Palette className="h-4 w-4" />Bewerken</> : <><Eye className="h-4 w-4" />Voorbeeld</>}
+          </button>
+        ))}
       </div>
     </div>
   );
