@@ -20,10 +20,18 @@ Webshoptraject fase 1, "de motor compleet". Alles is additief: zonder de nieuwe 
 
 **Gevonden, niet aangepast:** een pagina voorbij het einde (bv. `page: 2` met weinig producten) geeft vandaag HTTP 500 "Requested range not satisfiable" in plaats van een lege lijst. Dat gedrag is ongewijzigd gebleven. Het is een kandidaat voor een aparte batch.
 
+**Incident tijdens de deploy (13-10, 11:36–11:42):** de eerste deploy gaf HTTP 500 op élke `get_products`-aanroep, bij alle winkels. Oorzaak: `applyCategoryAndSearch` gaf de supabase-querybuilder terug uit een async functie. Een querybuilder is "thenable", dus `await` voerde hem al uit, en daarna faalde `query.order`. `deno check` en de unit tests zien dit niet. De nameting na de deploy ving het binnen een paar minuten. Hotfix CATALOG-FILTERS-1b: de builder komt ingepakt terug in `{ q }`. Die ging live om 11:42 (stempel bewezen). Productdetail, mandje en checkout bleven werken. De Lovable-analytics van VanXcel en Loveke toonden 0 bezoekers in die periode.
+**Les:** geef een supabase-querybuilder nooit rechtstreeks terug uit een async functie, en meet na elke API-deploy meteen opnieuw.
+
 **Bewijs:**
 - Nulmeting `ops.snap_catalog_pre`: 81 `get_products`-aanroepen, 9 situaties × 9 winkels.
 - Na de deploy wordt dezelfde set opnieuw gemeten en vergeleken. `sort_by: best_selling` moet bewust verschillen; vroeger viel dat terug op "nieuwste".
 - Lint −1 (baseline bijgewerkt). `deno check` lokaal groen.
+- Na de hotfix (stempel `CATALOG-FILTERS-1b`): 78 van 81 identiek aan de nulmeting. 2 zijn bedoeld (`best_selling`). De derde is VanXcel `price_asc`, waar twee producten van €23,95 van plaats wisselden: zonder tweede sorteersleutel was die volgorde altijd al willekeurig.
+- Nieuwe functies live getest:
+  - Mancini-filters: 20 producten, 15 beschikbaar, prijs €59,95–550, opties Color/Kleur/Maat/Size. Mancini gebruikt Nederlandse en Engelse optienamen door elkaar: datakwestie voor de winkel.
+  - Mancini Maat=S en beschikbaar: 2 producten.
+  - VanXcel bestverkocht: powerstrip, USB-plug, zekeringhouders, 200Ah-accu.
 
 ## PROMO-ENGINE-1 — één promotiemotor voor mandje, checkout en betaling — 13 oktober 2026
 
