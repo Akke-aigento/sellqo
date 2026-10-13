@@ -213,7 +213,7 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
   if (!domain) throw new Error('Domain not found');
 
   const [{ data: tenant }, { data: themeSettings }, { data: allDomains }] = await Promise.all([
-    supabase.from('tenants').select('id, slug, name, store_name').eq('id', domain.tenant_id).single(),
+    supabase.from('tenants').select('id, slug, name').eq('id', domain.tenant_id).single(), // RESOLVE-FIX-1
     supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url').eq('tenant_id', domain.tenant_id).maybeSingle(),
     supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', domain.tenant_id).eq('is_active', true),
   ]);
@@ -221,7 +221,7 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
   if (!tenant) throw new Error('Tenant not found for domain');
 
   return {
-    tenant_id: tenant.id, tenant_slug: tenant.slug, tenant_name: tenant.store_name || tenant.name,
+    tenant_id: tenant.id, tenant_slug: tenant.slug, tenant_name: tenant.name,
     locale: domain.locale, is_canonical: domain.is_canonical, dns_verified: domain.dns_verified, ssl_active: domain.ssl_active,
     use_custom_frontend: themeSettings?.use_custom_frontend || false, custom_frontend_url: themeSettings?.custom_frontend_url || null,
     all_domains: (allDomains || []).map((d: any) => ({ domain: d.domain, locale: d.locale, is_canonical: d.is_canonical })),
@@ -234,13 +234,16 @@ async function getTenant(supabase: any, tenantId: string, params: Record<string,
   const locale = params.locale as string | undefined;
   const { data, error } = await supabase
     .from('tenants')
-    .select('id, name, slug, logo_url, primary_color, currency, country, tax_percentage, store_name, store_description, contact_email, contact_phone')
+    // RESOLVE-FIX-1: store_name/store_description/contact_email/contact_phone bestaan niet; de
+    // hele select faalde, dus get_tenant gaf altijd een fout. Zelfde antwoordvorm als voorheen:
+    // naam en beschrijving komen uit name + vertalingen, contact uit support_email/phone.
+    .select('id, name, slug, logo_url, primary_color, currency, country, tax_percentage, support_email, inbound_email_prefix, phone')
     .eq('id', tenantId).maybeSingle();
   if (error) throw error;
   if (!data) throw new Error('Tenant not found');
 
-  let storeName = data.store_name || data.name;
-  let storeDescription = data.store_description;
+  let storeName = data.name;
+  let storeDescription: string | null = null;
 
   if (locale) {
     const tMap = await getTranslations(supabase, tenantId, 'tenant', [tenantId], locale);
@@ -253,7 +256,7 @@ async function getTenant(supabase: any, tenantId: string, params: Record<string,
     id: data.id, slug: data.slug, name: storeName, description: storeDescription,
     logo_url: data.logo_url, primary_color: data.primary_color,
     currency: data.currency || 'EUR', country: data.country || 'NL',
-    contact_email: data.contact_email, contact_phone: data.contact_phone,
+    contact_email: resolveCustomerContactEmail(data), contact_phone: data.phone ?? null,
   };
 }
 
@@ -308,10 +311,12 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
       // leeg. Nu het klantcontactadres van de winkel — hetzelfde als de Reply-To van
       // haar mails: haar eigen adres als ze dat bewust instelde, anders haar SellQo-inbox.
       email: resolveCustomerContactEmail(tenant),
-      phone: tenant.contact_phone,
-      company_name: tenant.company_name || null,
-      address: tenant.company_address || null,
-      vat_number: tenant.vat_number || null,
+      // RESOLVE-FIX-1: contact_phone/company_name/company_address/vat_number bestaan niet
+      // op tenants (select('*') gaf dus altijd null). Nu de echte kolommen.
+      phone: tenant.phone || null,
+      company_name: tenant.billing_company_name || null,
+      address: [tenant.address, [tenant.postal_code, tenant.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || null,
+      vat_number: tenant.btw_number || tenant.billing_vat_number || null,
       kvk_number: tenant.kvk_number || null,
     },
     social: (() => {
@@ -4171,7 +4176,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'PROMO-FIX-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'RESOLVE-FIX-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
