@@ -1,3 +1,34 @@
+## SHOP-OPEN-1 + FOOD-4 — Winkel zelf openen, online bestellen per winkel, keukenbonnen afdrukken — 13 oktober 2026
+
+SellQo 3dd136b, sellqo-storefront 1ef3477.
+
+- **Databank** (migratie `20261013220000_shop_open_1.sql`, live en nagekeken): `tenant_theme_settings.shop_live`, `shop_ordering` (beide standaard uit) en `shop_live_at`. `storefront_status` is bewust niet hergebruikt: die staat bij 9 tenants op 'online' door de oude ingebouwde winkel. Daarmee hadden onder meer de winkels met een eigen website (Mancini, Loveke, Zona Dorata, Astra Sleep, Benny Rich) ongevraagd een tweede winkel op sellqo.shop gekregen.
+- **storefront-api (SHOP-OPEN-1):** `resolve_domain` geeft additief `shop_live` en `shop_ordering` mee. Op de triggers van `tenant_theme_settings` is gecontroleerd: alleen `updated_at` en de validatie van `storefront_status`.
+- **Shop:**
+  - Een winkel is open als hij zelf online gezet is, op de pilotlijst staat (VanXcel en Demo Bakkerij blijven werken) of via een eigen domein komt.
+  - Een winkel die niet open is, toont "We openen binnenkort" (noindex). In de editor (`?editor=1`, bewaard per tab) en met de preview-cookie zie je de echte winkel.
+  - Bestellen staat aan per winkel via `shop_ordering`, naast de globale vlag en de preview.
+  - Indexeren gebeurt alleen voor winkels die echt online staan.
+- **Admin:**
+  - Het Webshop-overzicht kreeg een kaart "Winkel openen" met een checklist: actieve producten, betaalmethode, juridische pagina's.
+  - De schakelaars zijn Winkel online en Online bestellen; bestellen kan pas als de winkel online staat, en offline zetten zet ook bestellen uit.
+  - Bij een eigen website verschijnt een waarschuwing voor dubbele inhoud.
+  - Het voorbeeld in de overzichtskaart laadt met `?editor=1`.
+- **Keukenscherm (FOOD-4):**
+  - Per bestelling kun je een 80 mm-bon afdrukken via een verborgen iframe, dus zonder pop-up.
+  - "Auto-print" per toestel stuurt nieuwe bonnen meteen naar de printer.
+  - Helemaal stil afdrukken lukt alleen met Chrome in kioskmodus (`--kiosk-printing`); anders toont de browser het printvenster.
+- **Deploy:**
+  - Deploy-only van storefront-api; de GET gaf `SHOP-OPEN-1`.
+  - Live gemeten: `sellqo-speeltuin.sellqo.shop` toont "binnenkort" met noindex, `demo-bakkerij.sellqo.shop` is open (pilot), `vanxcel.sellqo.shop/menu` toont de menukaart.
+  - Geen agentcommits.
+- **Regressie:** `get_products`-probe batch shopopen1, 81/81 dezelfde status, 78/81 dezelfde ID's en paginering, 71/81 identiek. Dat is gelijk aan de baseline.
+- **Getest:**
+  - Shop via een Host-header: een gesloten winkel toont "binnenkort", een pilotwinkel is open, een gesloten winkel met `?editor=1` is open.
+  - In de harness: de winkel-open-kaart (upserts, bestellen pas na online) en het afdrukken van een bon (inhoud nagekeken).
+  - Vitest voor `ticketHtml`: 3 tests, waaronder escaping.
+  - tsc ligt op de baseline (27), lint is gelijk, de rooktest is groen en CI is groen.
+
 ## FOOD-3 — Klant verwittigen bij klaar/onderweg, menukaart met QR — 13 oktober 2026
 
 SellQo d6853fc (+ Lovable-typesync 4e54dfc), sellqo-storefront 375de62. Eerste stap van het horecapakket, zoals afgesproken: een menukaart met QR-code. Een tafelplan en bestellen aan tafel komen pas later, wegens GKS 2.0 (de witte kassa).
