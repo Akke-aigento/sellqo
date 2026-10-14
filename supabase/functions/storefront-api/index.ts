@@ -2161,7 +2161,7 @@ async function getSeatMap(supabase: SupabaseLike, tenantId: string, params: Reco
   const nowMs = Date.now();
   let mineExpires: string | null = null;
   const outSeats = rows.map((r) => {
-    let status = seatPublicStatus(r, cartId, nowMs);
+    let status = seatPublicStatus(r as SeatStatusRow, cartId, nowMs);
     const pr = r.product_id ? pricing.get(r.product_id) : undefined;
     if (status === 'available' && (!open || !pr?.on_sale)) status = 'unavailable';
     if (status === 'mine' && r.hold_expires_at && (!mineExpires || r.hold_expires_at < mineExpires)) mineExpires = r.hold_expires_at;
