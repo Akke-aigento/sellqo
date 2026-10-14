@@ -178,5 +178,20 @@ await check('allergenen alleen als ingevuld (ALLERGEN-1)', async () => {
   assert(r.allergens?.join() === 'gluten,milk' && r.dietary?.join() === 'vegetarian', JSON.stringify(r));
 });
 
+await check('kost per ticket alleen bij Flex en betaalde tickets (FLEX-1)', async () => {
+  const stub = (fee: number | null) => ({ from: () => { const b = { select: () => b, eq: () => b, maybeSingle: async () => ({ data: fee == null ? null : { plan_id: 'x', pricing_plans: { ticket_fee: fee } }, error: null }) }; return b; } });
+  const items = [
+    { event_detail_id: 'e1', unit_price: 20, quantity: 2 },
+    { event_detail_id: 'e1', unit_price: 0, quantity: 3 },
+    { event_detail_id: null, unit_price: 10, quantity: 1 },
+  ];
+  const flex = await S.ticketFeeFor(stub(0.49), T, items);
+  assert(flex.tickets === 2 && flex.feeCents === 98, `flex: ${JSON.stringify(flex)}`);
+  const normal = await S.ticketFeeFor(stub(0), T, items);
+  assert(normal.feeCents === 0, 'plan zonder ticket_fee: geen kost');
+  const none = await S.ticketFeeFor(stub(0.49), T, [{ event_detail_id: null, unit_price: 10, quantity: 1 }]);
+  assert(none.feeCents === 0 && none.tickets === 0, 'geen tickets: geen kost');
+});
+
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }
 console.log('Rooktest storefront-api groen.');

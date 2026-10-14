@@ -2459,6 +2459,23 @@ async function eventLabels(supabase: SupabaseLike, tenantId: string, ids: (strin
   return out;
 }
 
+// FLEX-1 — kost per betaald ticket voor winkels op een plan met ticket_fee (Events Flex).
+// Wordt geïnd als Stripe application fee op de online betaling. Gratis tickets en alle
+// winkels zonder ticket_fee: 0, dus geen enkel effect op bestaande winkels.
+const STRIPE_ONLINE_METHODS = new Set(['bancontact', 'ideal', 'card', 'klarna', 'stripe']);
+async function ticketFeeFor(supabase: SupabaseLike, tenantId: string, cartItems: DbRow[]): Promise<{ tickets: number; feeCents: number }> {
+  const tickets = cartItems
+    .filter((i) => i.event_detail_id && Number(i.unit_price) > 0)
+    .reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+  if (!tickets) return { tickets: 0, feeCents: 0 };
+  const { data: sub } = await supabase.from('tenant_subscriptions')
+    .select('plan_id, pricing_plans!plan_id(ticket_fee)').eq('tenant_id', tenantId).maybeSingle();
+  const plan = (sub as DbRow | null)?.pricing_plans as DbRow | DbRow[] | null | undefined;
+  const fee = Number((Array.isArray(plan) ? plan[0] : plan)?.ticket_fee ?? 0);
+  if (!(fee > 0)) return { tickets, feeCents: 0 };
+  return { tickets, feeCents: Math.round(fee * 100) * tickets };
+}
+
 async function getCartForCheckout(supabase: any, tenantId: string, cartId: string) {
   const { data: cart, error } = await supabase
     .from('storefront_carts').select('*')
@@ -2598,6 +2615,10 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   }
   const payOnPickup = await payOnPickupMethod(supabase, tenantId, cart.service_type);
   if (payOnPickup) availablePayment.push(payOnPickup);
+  // FLEX-1 — tickets met een kost per ticket kunnen alleen online betaald worden.
+  if ((await ticketFeeFor(supabase, tenantId, cart.cartItems)).feeCents > 0) {
+    availablePayment = availablePayment.filter((m: { method: string }) => STRIPE_ONLINE_METHODS.has(m.method));
+  }
 
   // Items
   const evLabels = await eventLabels(supabase, tenantId, cart.cartItems.map((i: DbRow) => i.event_detail_id as string | null));
@@ -3519,6 +3540,10 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     'stripe': 'card', // backward compat: legacy 'stripe' umbrella defaults to card
   };
   const isStripeMethod = paymentMethodId in stripeMethodMap;
+  const ticketFee = await ticketFeeFor(supabase, tenantId, cart.cartItems);
+  if (ticketFee.feeCents > 0 && !isStripeMethod) {
+    return { success: false, error: { code: 'TICKETS_ONLINE_ONLY', message: 'Tickets kan je alleen online betalen' } };
+  }
 
   if (isStripeMethod && tenantData?.stripe_account_id) {
     if (!successUrl || !cancelUrl) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'success_url en cancel_url zijn verplicht voor Stripe' } };
@@ -3572,7 +3597,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       cancel_url: cancelUrl,
       // HORECA-1: aan tafel kan e-mail ontbreken; dan vraagt Stripe hem zelf.
       customer_email: cart.customer_email || undefined,
-      metadata: { cart_id: cartId, tenant_id: tenantId },
+      metadata: { cart_id: cartId, tenant_id: tenantId, ...(ticketFee.feeCents > 0 ? { platform_ticket_fee_cents: String(ticketFee.feeCents), platform_ticket_count: String(ticketFee.tickets) } : {}) },
       payment_intent_data: {
         application_fee_amount: 0,
       },
@@ -3598,6 +3623,13 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
         li.price_data.unit_amount = Math.max(0, li.price_data.unit_amount - perUnitDiscount);
         remaining -= perUnitDiscount * li.quantity;
       });
+    }
+
+    // FLEX-1 — kost per ticket, nooit meer dan het bedrag van de sessie zelf.
+    if (ticketFee.feeCents > 0) {
+      const sessionCents = (sessionParams.line_items as { price_data: { unit_amount: number }; quantity: number }[])
+        .reduce((sum, li) => sum + li.price_data.unit_amount * li.quantity, 0);
+      sessionParams.payment_intent_data.application_fee_amount = Math.min(ticketFee.feeCents, sessionCents);
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams, { stripeAccount: tenantData.stripe_account_id });

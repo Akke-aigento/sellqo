@@ -293,18 +293,30 @@ serve(async (req) => {
       logStep("Default theme settings created");
     }
 
-    // === Update subscription with selected plan (if not free) ===
+    // === Gekozen plan vastleggen (PRICE-2) ===
+    // De trigger create_tenant_trial_subscription zet elke nieuwe winkel op een Pro-proef.
+    // - Betaald plan: de proef loopt op dat plan, bij het einde start het abonnement.
+    // - Plan zonder maandprijs (free, events_flex): geen proef. Vóór PRICE-2 bleef wie
+    //   'free' koos op de Pro-proef staan en werd na 14 dagen Pro aangerekend.
+    // Alleen actieve plannen; een onbekend of inactief plan laat de Pro-proef staan.
     const selectedPlanId = body.selected_plan_id;
-    if (selectedPlanId && selectedPlanId !== 'free') {
-      const { error: subError } = await supabase
-        .from("tenant_subscriptions")
-        .update({ plan_id: selectedPlanId })
-        .eq("tenant_id", tenant.id);
-      
-      if (subError) {
-        logStep("WARNING: Failed to update subscription plan", { error: subError.message });
+    if (selectedPlanId) {
+      const { data: plan } = await supabase
+        .from("pricing_plans").select("id, monthly_price, active").eq("id", selectedPlanId).maybeSingle();
+      if (plan?.active) {
+        const noMonthly = Number(plan.monthly_price) === 0;
+        const { error: subError } = await supabase
+          .from("tenant_subscriptions")
+          .update(noMonthly ? { plan_id: plan.id, status: "active", trial_end: null } : { plan_id: plan.id })
+          .eq("tenant_id", tenant.id);
+        if (subError) {
+          logStep("WARNING: Failed to update subscription plan", { error: subError.message });
+        } else {
+          await supabase.from("tenants").update({ subscription_plan: plan.id }).eq("id", tenant.id);
+          logStep("Subscription plan updated", { plan: plan.id, trial: !noMonthly });
+        }
       } else {
-        logStep("Subscription plan updated", { plan: selectedPlanId });
+        logStep("WARNING: selected plan not active, keeping trial", { plan: selectedPlanId });
       }
     }
 

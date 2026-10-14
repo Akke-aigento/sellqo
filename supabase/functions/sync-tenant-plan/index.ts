@@ -282,6 +282,41 @@ Deno.serve(async (req) => {
       return { id: sub.id as string };
     }
 
+    // ================================= €0 + GEBRUIK (FLEX-1) =============
+    // Een plan zonder maandprijs maar met een kost per ticket (events_flex): geen
+    // facturatie-abonnement (de ticketkost loopt via de Stripe application fee), maar
+    // het plan blijft wél het gekozen plan en staat actief — niet terugvallen op 'free'.
+    const isUsagePlan = targetPlan.slug !== "free" && Number(targetPlan.monthly_price) === 0 && Number(targetPlan.ticket_fee ?? 0) > 0;
+    if (action !== "cancel" && isUsagePlan) {
+      if (currentSub?.billing_subscription_id) {
+        const { error: subUpdErr } = await supabase
+          .from("subscriptions")
+          .update({ status: "cancelled" })
+          .eq("id", currentSub.billing_subscription_id);
+        if (subUpdErr) throw subUpdErr;
+      }
+      const { error: usageErr } = await supabase
+        .from("tenant_subscriptions")
+        .upsert(
+          {
+            tenant_id: tenantId,
+            plan_id: targetPlan.id,
+            billing_interval: interval,
+            status: "active",
+            canceled_at: null,
+            cancel_at_period_end: false,
+            billing_subscription_id: null,
+            pending_plan_id: null,
+            pending_interval: null,
+            pending_effective_at: null,
+          },
+          { onConflict: "tenant_id" },
+        );
+      if (usageErr) throw usageErr;
+      log("Usage plan active", { tenantId, plan: targetPlan.id });
+      return jsonResponse({ success: true, action: "activate", plan_id: targetPlan.id, usage_based: true });
+    }
+
     // ================================= CANCEL / FREE =====================
     const isFreePlan = (targetPlan.slug === "free") || Number(targetPlan.monthly_price) === 0;
     if (action === "cancel" || (action !== "activate" && isFreePlan) || (action === "activate" && isFreePlan)) {
