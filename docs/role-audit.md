@@ -1,4 +1,4 @@
-## Nachtbatch 14 oktober 2026 — SEO-1, I18N-HORECA, ALLERGEN-1/2, PAUSE-1, I18N-POS, I18N-EDITOR
+## Nachtbatch 14 oktober 2026 — SEO-1, I18N-HORECA, ALLERGEN-1/2/3, PAUSE-1, I18N-POS, I18N-EDITOR
 
 Onbewaakt gebouwd (00:40–06:00). Regels die nacht: geen edge-function-deploys en niets dat echte klanten of hun frontends raakt. Migraties zijn additief en live gezet via `query_database`.
 
@@ -52,6 +52,12 @@ Onbewaakt gebouwd (00:40–06:00). Regels die nacht: geen edge-function-deploys 
 - Admin: per optie een allergenen-popover in de extra's-beheerder.
 - storefront-api en `_shared/productAddons.ts`: de allergenen van een optie gaan alleen mee als ze ingevuld zijn (deno-tests 8/8). Shop: de AddonPicker toont ze, na de deploy.
 - Demo-pizzeria: mozzarella, burrata en parmezaan = melk, ansjovis = vis, stokbrood = gluten + melk.
+
+### ALLERGEN-3 — afdrukbare allergenenkaart (869ac0c)
+- Bestellen → tabblad Allergenen: alle actieve, zichtbare gerechten per categorie plus de extra's, tegen de 14 EU-allergenen. Een Belgische horecazaak moet die informatie ook in de zaak hebben.
+- Waarschuwing als gerechten geen allergenen hebben: een lege rij leest als "bevat niets".
+- Afdrukken op A4 liggend in een apart venster met eigen CSS (geen admin-stijlen nodig). Getest in de harness in nl en fr, inclusief de afdrukweergave.
+- Geen migratie of API: leest `products.allergens` en `product_addon_options.allergens`.
 
 ### I18N-POS — kassa door i18n (137dcb5)
 - Kassa, kassabon, cadeaubon-afdruk en de tekstexport van het Z-rapport vertaald (nl/en/fr/de/uk).
