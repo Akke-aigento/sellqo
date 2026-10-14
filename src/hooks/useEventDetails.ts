@@ -89,6 +89,8 @@ export function useCreateEventDate(productId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
+      queryClient.invalidateQueries({ queryKey: ['event-sibling-dates'] });
+      queryClient.invalidateQueries({ queryKey: ['event-dashboard-events'] });
       toast({ title: 'Datum toegevoegd' });
     },
     onError: (error: Error) => {
@@ -146,6 +148,8 @@ export function useUpdateEventDate(productId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
+      queryClient.invalidateQueries({ queryKey: ['event-sibling-dates'] });
+      queryClient.invalidateQueries({ queryKey: ['event-dashboard-events'] });
       toast({ title: 'Datum bijgewerkt' });
     },
     onError: (error: Error) => {
@@ -174,6 +178,8 @@ export function useBulkCreateEventDates(productId: string | undefined) {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
+      queryClient.invalidateQueries({ queryKey: ['event-sibling-dates'] });
+      queryClient.invalidateQueries({ queryKey: ['event-dashboard-events'] });
       toast({ title: `${(data as unknown[]).length} datum(s) aangemaakt` });
     },
     onError: (error: Error) => {
@@ -194,6 +200,8 @@ export function useDeleteEventDate(productId: string | undefined) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event-details', productId] });
+      queryClient.invalidateQueries({ queryKey: ['event-sibling-dates'] });
+      queryClient.invalidateQueries({ queryKey: ['event-dashboard-events'] });
       toast({ title: 'Datum verwijderd' });
     },
     onError: (error: Error) => {

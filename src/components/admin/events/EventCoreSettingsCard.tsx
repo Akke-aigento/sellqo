@@ -6,7 +6,8 @@
 // wordt hier als echte NULL geschreven — nooit als 0.
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Save, Settings2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { CalendarDays, Loader2, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,6 +35,9 @@ export interface EventCoreValues {
   meeting_point: string | null;
   capacity: number | null;
   min_attendees: number;
+  early_bird_price: number | null;
+  early_bird_deadline: string | null;
+  early_bird_quantity: number | null;
 }
 
 interface FormState {
@@ -46,6 +50,10 @@ interface FormState {
   capacity: string;
   unlimited: boolean;
   min_attendees: string;
+  eb_on: boolean;
+  eb_price: string;
+  eb_deadline: string;
+  eb_quantity: string;
 }
 
 const toForm = (e: EventCoreValues): FormState => ({
@@ -58,6 +66,11 @@ const toForm = (e: EventCoreValues): FormState => ({
   capacity: e.capacity == null ? '' : String(e.capacity),
   unlimited: e.capacity == null,
   min_attendees: String(e.min_attendees ?? 0),
+  eb_on: e.early_bird_price != null,
+  eb_price: e.early_bird_price == null ? '' : String(e.early_bird_price),
+  // datetime-local werkt in de lokale tijd van de beheerder.
+  eb_deadline: e.early_bird_deadline ? format(new Date(e.early_bird_deadline), "yyyy-MM-dd'T'HH:mm") : '',
+  eb_quantity: e.early_bird_quantity == null ? '' : String(e.early_bird_quantity),
 });
 
 export function EventCoreSettingsCard({
@@ -81,6 +94,10 @@ export function EventCoreSettingsCard({
   const capacityNum = form.unlimited || form.capacity.trim() === '' ? null : Number(form.capacity);
   const capacityInvalid = !form.unlimited && (form.capacity.trim() === '' || !Number.isFinite(capacityNum!) || (capacityNum as number) < 0);
   const dateInvalid = !form.event_date || !form.start_time;
+  const ebPrice = form.eb_price.trim() === '' ? null : Number(form.eb_price.replace(',', '.'));
+  const ebQty = form.eb_quantity.trim() === '' ? null : Number(form.eb_quantity);
+  const ebInvalid = form.eb_on && (ebPrice === null || !Number.isFinite(ebPrice) || ebPrice < 0
+    || (ebQty !== null && (!Number.isInteger(ebQty) || ebQty < 1)) || (form.eb_quantity.trim() === '' && form.eb_deadline === ''));
 
   const hidesEvent = HIDING_STATUSES.has(form.status) && !HIDING_STATUSES.has(event.status as EventStatus);
   const lowersCapacity = capacityNum !== null && sold > 0 && capacityNum < sold;
@@ -98,6 +115,9 @@ export function EventCoreSettingsCard({
         meeting_point: form.meeting_point.trim() || null,
         capacity: capacityNum,
         min_attendees: Number(form.min_attendees || 0),
+        early_bird_price: form.eb_on ? ebPrice : null,
+        early_bird_deadline: form.eb_on && form.eb_deadline ? new Date(form.eb_deadline).toISOString() : null,
+        early_bird_quantity: form.eb_on ? ebQty : null,
       },
     });
     onSaved?.();
@@ -112,7 +132,7 @@ export function EventCoreSettingsCard({
     <Card>
       <CardHeader className="pb-2">
         <CardTitle className="text-base flex items-center gap-2">
-          <Settings2 className="h-4 w-4" /> {t('events.settings.title')}
+          <CalendarDays className="h-4 w-4" /> {t('events.workspace.date_title')}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -174,10 +194,35 @@ export function EventCoreSettingsCard({
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground">{t('events.settings.earlyBirdNote')}</p>
+        <div className="space-y-3 rounded-lg border p-3">
+          <label className="flex items-center justify-between gap-3">
+            <span>
+              <span className="block text-sm font-medium">{t('events.workspace.eb_title')}</span>
+              <span className="block text-xs text-muted-foreground">{t('events.workspace.eb_hint')}</span>
+            </span>
+            <Checkbox checked={form.eb_on} onCheckedChange={(v) => set('eb_on', v === true)} />
+          </label>
+          {form.eb_on && (
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5 min-w-0">
+                <Label>{t('events.workspace.eb_price')}</Label>
+                <Input inputMode="decimal" value={form.eb_price} onChange={(e) => set('eb_price', e.target.value)} />
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label>{t('events.workspace.eb_until')}</Label>
+                <Input type="datetime-local" value={form.eb_deadline} onChange={(e) => set('eb_deadline', e.target.value)} />
+              </div>
+              <div className="space-y-1.5 min-w-0">
+                <Label>{t('events.workspace.eb_qty')}</Label>
+                <Input type="number" min={1} value={form.eb_quantity} onChange={(e) => set('eb_quantity', e.target.value)} placeholder={t('events.workspace.eb_qty_ph')} />
+              </div>
+              <p className="text-xs text-muted-foreground sm:col-span-3">{t('events.workspace.eb_rule')}</p>
+            </div>
+          )}
+        </div>
 
         <div className="flex justify-end">
-          <Button onClick={handleSaveClick} disabled={!isDirty || update.isPending || capacityInvalid || dateInvalid}>
+          <Button onClick={handleSaveClick} disabled={!isDirty || update.isPending || capacityInvalid || dateInvalid || ebInvalid}>
             {update.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
             {t('events.settings.save')}
           </Button>
@@ -216,7 +261,7 @@ export function EventCoreSettingsCard({
         isDirty={isDirty}
         isSaving={update.isPending}
         onSave={() => {
-          if (capacityInvalid || dateInvalid) return;
+          if (capacityInvalid || dateInvalid || ebInvalid) return;
           handleSaveClick();
         }}
         onCancel={resetForm}

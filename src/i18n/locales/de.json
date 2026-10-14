@@ -3534,7 +3534,10 @@
       },
       "zichtbaarheid": "Sichtbarkeit",
       "zichtbaarheid_2": "Sichtbarkeit",
-      "zoek_op_naam_sku_of_barcode": "Nach Name, SKU oder Barcode suchen..."
+      "zoek_op_naam_sku_of_barcode": "Nach Name, SKU oder Barcode suchen...",
+      "tickets_in_events_one": "{{count}} Ticket verwalten Sie unter Events.",
+      "tickets_in_events_other": "{{count}} Tickets verwalten Sie unter Events.",
+      "to_events": "Zu Events"
     },
     "productForm": {
       "vertalingen": "Übersetzungen",
@@ -6584,7 +6587,9 @@
       "warn_no_meeting_point": "kein Treffpunkt",
       "warn_no_meeting_point_hint": "Für diesen Termin gibt es keinen Ort und keinen Treffpunkt. Käufer erhalten dann keinen Ort in ihrer Ticket-Mail.",
       "meeting_point_warning": "Ohne Ort oder Treffpunkt steht in der Ticket-Mail Ihrer Besucher kein Ort.",
-      "end_time_optional": "Endzeit (optional)"
+      "end_time_optional": "Endzeit (optional)",
+      "warn_hidden_in_shop": "im Shop verborgen",
+      "warn_hidden_in_shop_hint": "Das Event ist verborgen: Niemand sieht es in Ihrem Shop. Machen Sie es im Block „Das Event“ sichtbar, um zu verkaufen."
     },
     "wizard": {
       "new_event": "Neues Event",
@@ -6664,6 +6669,52 @@
       "to_overview": "Zur Übersicht",
       "hidden": "Noch nicht im Shop zeigen",
       "hidden_hint": "Praktisch zum Testen oder Vorbereiten. Machen Sie das Event später beim Produkt sichtbar."
+    },
+    "workspace": {
+      "date_title": "Dieser Termin",
+      "description": "Beschreibung",
+      "eb_title": "Early Bird",
+      "eb_hint": "Ein niedrigerer Preis für Frühbucher.",
+      "eb_price": "Early-Bird-Preis (€)",
+      "eb_until": "Gültig bis",
+      "eb_qty": "Maximale Tickets",
+      "eb_qty_ph": "keine Grenze",
+      "eb_rule": "Geben Sie ein Enddatum, ein Maximum oder beides an. Was zuerst erreicht wird, beendet den Early Bird.",
+      "event_title": "Das Event",
+      "event_hint_one": "Gilt für diesen Termin.",
+      "event_hint_other": "Gilt für alle {{count}} Termine dieses Events.",
+      "hidden": "Im Shop verborgen",
+      "hidden_hint": "Niemand sieht oder kauft dieses Event. Praktisch zum Testen oder Vorbereiten.",
+      "visible": "Im Shop sichtbar",
+      "visible_hint": "Besucher sehen dieses Event und können Tickets kaufen.",
+      "name": "Name",
+      "open_scanner": "Scanner",
+      "other_dates": "Andere Termine",
+      "photo_add": "Foto hinzufügen",
+      "photo_change": "Ändern",
+      "photo_remove": "Foto entfernen",
+      "save": "Speichern",
+      "saved": "Gespeichert",
+      "save_failed": "Speichern fehlgeschlagen",
+      "tab_visitors": "Besucher",
+      "tab_door": "Eingang",
+      "tt_new": "Neuer Tickettyp",
+      "tt_edit": "Tickettyp bearbeiten",
+      "tt_hint": "Z. B. VIP, Tagesticket, Wochenende oder Camping. Eigener Preis und bei Bedarf eigene Anzahl.",
+      "tt_main_hint": "Das Standardticket trägt den Namen des Events.",
+      "tt_main_price_hint": "Dieser Preis gilt für alle Termine dieses Events.",
+      "tt_name": "Name",
+      "tt_name_ph": "z. B. VIP",
+      "tt_price": "Preis (€)",
+      "tt_capacity": "Anzahl dieses Typs",
+      "tt_capacity_ph": "keine eigene Grenze",
+      "tt_capacity_hint": "Innerhalb der Kapazität des Termins. Leer = nur die Kapazität des Termins zählt.",
+      "tt_sales_start": "Verkauf ab",
+      "tt_sales_end": "Verkauf bis",
+      "tt_window_hint": "Leer = sofort im Verkauf bis zum Event.",
+      "tt_active": "Im Verkauf",
+      "tt_all_dates": "Auch zu den anderen kommenden Terminen dieses Events hinzufügen",
+      "tab_dates": "Termine"
     }
   },
   "content_menu": {
@@ -6988,6 +7039,8 @@
     "pick_title": "Scannen am Eingang",
     "pick_text": "Wählen Sie das Event, das Sie scannen. Events über Mitternacht bleiben auf ihrem eigenen Datum; nichts wird automatisch gewählt.",
     "loading_events": "Events werden geladen…",
-    "no_events": "Keine geplanten oder bestätigten Events gefunden."
+    "no_events": "Keine geplanten oder bestätigten Events gefunden.",
+    "photo_scan": "Foto vom QR-Code machen",
+    "photo_no_qr": "Kein QR-Code auf dem Foto gefunden. Näher heran oder nach Namen suchen."
   }
 }

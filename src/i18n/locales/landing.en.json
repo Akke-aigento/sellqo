@@ -1927,6 +1927,10 @@
         "event_wizard_and_door_scanner": {
           "title": "New event in four steps, and a scanner for your door",
           "description": "Under Events, 'New event' creates an event in one flow: what, when and where (also weekly recurring), tickets with early bird, and a scan link for your door team. The event is on sale right away. The scan link opens SellQo Door: a full-screen scanner without an account, with a green or red result, vibration and sound, a flashlight, a screen that stays on, and search by name or order number when a QR code won't scan. Add it to your home screen and open it with one tap."
+        },
+        "event_workspace": {
+          "title": "Everything about your event on one screen",
+          "description": "The event page now has four tabs: Overview, Dates, Visitors and Door. On Overview you edit the event's name, photo, description and visibility, the date with times, place, capacity and early bird, and the ticket types. Create a new ticket type such as VIP or Camping with a name and a price, optionally for all upcoming dates at once. Tickets no longer sit among your products, and an empty date can simply be deleted. In the scanner you can also take a photo of the QR code if the live camera won't work."
         }
       },
       "copyLink": "Copy link",

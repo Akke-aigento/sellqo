@@ -31,6 +31,9 @@ describe('eventReadiness', () => {
     const r = eventReadiness({ ...ev, event_date: '2026-10-01' }, [tt()], { now, productActive: false });
     expect(r.blocks).toEqual(['past_date', 'product_inactive']);
   });
+  it('warns when the event is hidden in the shop', () => {
+    expect(eventReadiness(ev, [tt()], { now, productHidden: true }).warnings).toEqual(['hidden_in_shop']);
+  });
   it('ignores dates that no longer sell', () => {
     expect(eventReadiness({ ...ev, status: 'cancelled' }, [], { now }).state).toBeNull();
   });

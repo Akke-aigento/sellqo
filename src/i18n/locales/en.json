@@ -3771,7 +3771,10 @@
       },
       "zichtbaarheid": "Visibility",
       "zichtbaarheid_2": "Visibility",
-      "zoek_op_naam_sku_of_barcode": "Search by name, SKU or barcode..."
+      "zoek_op_naam_sku_of_barcode": "Search by name, SKU or barcode...",
+      "tickets_in_events_one": "{{count}} ticket is managed in Events.",
+      "tickets_in_events_other": "{{count}} tickets are managed in Events.",
+      "to_events": "Go to Events"
     },
     "productForm": {
       "vertalingen": "Translations",
@@ -6584,7 +6587,9 @@
       "warn_no_meeting_point": "no meeting point",
       "warn_no_meeting_point_hint": "There's no location or meeting point for this date. Buyers won't get a place in their ticket email.",
       "meeting_point_warning": "Without a location or meeting point, your visitors' ticket email won't include a place.",
-      "end_time_optional": "End time (optional)"
+      "end_time_optional": "End time (optional)",
+      "warn_hidden_in_shop": "hidden in the shop",
+      "warn_hidden_in_shop_hint": "The event is hidden: nobody sees it in your shop. Make it visible in 'The event' block when you want to sell."
     },
     "wizard": {
       "new_event": "New event",
@@ -6664,6 +6669,52 @@
       "to_overview": "Go to the overview",
       "hidden": "Don't show in the shop yet",
       "hidden_hint": "Handy for testing or getting everything ready. Make the event visible later on the product."
+    },
+    "workspace": {
+      "date_title": "This date",
+      "description": "Description",
+      "eb_title": "Early bird",
+      "eb_hint": "A lower price for early bookers.",
+      "eb_price": "Early-bird price (€)",
+      "eb_until": "Valid until",
+      "eb_qty": "Maximum tickets",
+      "eb_qty_ph": "no limit",
+      "eb_rule": "Set an end date, a maximum or both. Whichever comes first ends the early bird.",
+      "event_title": "The event",
+      "event_hint_one": "Applies to this date.",
+      "event_hint_other": "Applies to all {{count}} dates of this event.",
+      "hidden": "Hidden in the shop",
+      "hidden_hint": "Nobody sees or buys this event. Handy for testing or getting it ready.",
+      "visible": "Visible in the shop",
+      "visible_hint": "Visitors see this event and can buy tickets.",
+      "name": "Name",
+      "open_scanner": "Scanner",
+      "other_dates": "Other dates",
+      "photo_add": "Add photo",
+      "photo_change": "Change",
+      "photo_remove": "Remove photo",
+      "save": "Save",
+      "saved": "Saved",
+      "save_failed": "Saving failed",
+      "tab_visitors": "Visitors",
+      "tab_door": "Door",
+      "tt_new": "New ticket type",
+      "tt_edit": "Edit ticket type",
+      "tt_hint": "E.g. VIP, Day ticket, Weekend or Camping. Its own price and, if you like, its own number of places.",
+      "tt_main_hint": "The standard ticket carries the event's name.",
+      "tt_main_price_hint": "This price applies to all dates of this event.",
+      "tt_name": "Name",
+      "tt_name_ph": "e.g. VIP",
+      "tt_price": "Price (€)",
+      "tt_capacity": "Number of this type",
+      "tt_capacity_ph": "no own limit",
+      "tt_capacity_hint": "Within the date's capacity. Empty = only the date's capacity counts.",
+      "tt_sales_start": "On sale from",
+      "tt_sales_end": "On sale until",
+      "tt_window_hint": "Empty = on sale right away until the event.",
+      "tt_active": "On sale",
+      "tt_all_dates": "Also add to the other upcoming dates of this event",
+      "tab_dates": "Dates"
     }
   },
   "content_menu": {
@@ -6988,6 +7039,8 @@
     "pick_title": "Scanning at the door",
     "pick_text": "Choose the event you're scanning. Events that run past midnight stay on their own date; nothing is picked automatically.",
     "loading_events": "Loading events…",
-    "no_events": "No scheduled or confirmed events found."
+    "no_events": "No scheduled or confirmed events found.",
+    "photo_scan": "Take a photo of the QR",
+    "photo_no_qr": "No QR code found in the photo. Try closer, or search by name."
   }
 }

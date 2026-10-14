@@ -1927,6 +1927,10 @@
         "event_wizard_and_door_scanner": {
           "title": "Nieuw event in vier stappen, en een scanner voor je deur",
           "description": "Onder Events maak je met 'Nieuw event' in één flow een event aan: wat, wanneer en waar (ook wekelijks terugkerend), tickets met early bird, en een scanlink voor je deurploeg. Het event is meteen te koop. Die scanlink opent SellQo Deur: een schermvullende scanner zonder account, met groen of rood resultaat, trilling en geluid, zaklamp, een scherm dat aan blijft en zoeken op naam of bestelnummer als een QR-code niet scant. Zet hem op je beginscherm en je opent hem met één tik."
+        },
+        "event_workspace": {
+          "title": "Alles van je event op één scherm",
+          "description": "De eventpagina heeft nog vier tabbladen: Overzicht, Datums, Bezoekers en Deur. Op Overzicht pas je naam, foto, beschrijving en zichtbaarheid van het event aan, de datum met uren, plaats, capaciteit en early bird, en de tickettypes. Een nieuw tickettype zoals VIP of Camping maak je met een naam en een prijs, eventueel meteen voor alle komende datums. Tickets staan niet meer tussen je producten, en een lege datum kan je gewoon verwijderen. In de scanner kan je ook een foto van de QR-code nemen als de live camera niet wil."
         }
       },
       "copyLink": "Kopieer link",

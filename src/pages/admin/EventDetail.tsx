@@ -11,7 +11,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
   ArrowLeft, Users, Ticket, MapPin, CalendarDays, ScanLine, LogIn, LogOut,
-  Plus, Pencil, Trash2, Power, PowerOff, Tags, KeyRound, QrCode, Ban, Settings2,
+  Plus, Pencil, Trash2, Power, PowerOff, Tags, KeyRound, QrCode, Ban,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -28,11 +28,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { TicketTypeDialog, type TicketTypeEditable } from '@/components/admin/events/TicketTypeDialog';
+import { TicketTypeEditorDialog, type TicketTypeEditTarget } from '@/components/admin/events/TicketTypeEditorDialog';
+import { EventInfoCard } from '@/components/admin/events/EventInfoCard';
+import { ProductEventDatesTab } from '@/components/admin/products/ProductEventDatesTab';
+import { EventCardActions } from '@/components/admin/events/EventCardActions';
+import { useEventProduct, useSaveTicketType, type TicketTypeInput } from '@/hooks/useEventWorkspace';
 import {
-  useTicketProducts, useCreateTicketType, useUpdateTicketType,
-  useToggleTicketTypeActive, useDeleteTicketType, isDuplicateProductError,
-  type ReentryPolicy, type TicketTypeFormData,
+  useToggleTicketTypeActive, useDeleteTicketType, type ReentryPolicy,
 } from '@/hooks/useEventTicketTypes';
 import {
   useScannerAccesses, useCreateScannerAccess, useRevokeScannerAccess,
@@ -56,6 +58,9 @@ interface EventRow {
   min_attendees: number;
   product_name: string;
   product_active: boolean;
+  early_bird_price: number | null;
+  early_bird_deadline: string | null;
+  early_bird_quantity: number | null;
 }
 
 interface Attendee {
@@ -118,11 +123,8 @@ export default function EventDetail() {
 
   // --- Tickettype-beheer (4b) ---
   const [ttDialogOpen, setTtDialogOpen] = useState(false);
-  const [ttEditing, setTtEditing] = useState<TicketTypeEditable | null>(null);
+  const [ttEditing, setTtEditing] = useState<TicketTypeEditTarget | null>(null);
   const [ttDeleteTarget, setTtDeleteTarget] = useState<TicketTypeRow | null>(null);
-  const { data: ticketProducts = [] } = useTicketProducts();
-  const createTicketType = useCreateTicketType(eventId);
-  const updateTicketType = useUpdateTicketType(eventId);
   const toggleTicketType = useToggleTicketTypeActive(eventId);
   const deleteTicketType = useDeleteTicketType(eventId);
 
@@ -143,7 +145,7 @@ export default function EventDetail() {
       if (!currentTenant || !eventId) return null;
       const { data, error } = await supabase
         .from('event_details')
-        .select('id, product_id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name, is_active)')
+        .select('id, product_id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, early_bird_price, early_bird_deadline, early_bird_quantity, products(name, is_active)')
         .eq('id', eventId)
         .eq('tenant_id', currentTenant.id)
         .maybeSingle();
@@ -162,6 +164,9 @@ export default function EventDetail() {
         min_attendees: (data.min_attendees as number) ?? 0,
         product_name: ((data as { products?: { name?: string } }).products?.name) ?? 'Event',
         product_active: ((data as { products?: { is_active?: boolean } }).products?.is_active) !== false,
+        early_bird_price: data.early_bird_price != null ? Number(data.early_bird_price) : null,
+        early_bird_deadline: (data.early_bird_deadline as string | null) ?? null,
+        early_bird_quantity: (data.early_bird_quantity as number | null) ?? null,
       };
     },
     enabled: !!currentTenant && !!eventId,
@@ -275,6 +280,26 @@ export default function EventDetail() {
     enabled: !!currentTenant && !!eventId,
   });
 
+  // EVENT-WORKSPACE-1: het event zelf (ticketproduct) en zijn andere datums.
+  const { data: product } = useEventProduct(event?.product_id);
+  const saveTicketType = useSaveTicketType(eventId, event?.product_id);
+  const { data: siblingDates = [] } = useQuery({
+    queryKey: ['event-sibling-dates', currentTenant?.id, event?.product_id],
+    queryFn: async () => {
+      if (!currentTenant || !event?.product_id) return [];
+      const { data, error } = await supabase.from('event_details')
+        .select('id, event_date, start_time, status')
+        .eq('tenant_id', currentTenant.id).eq('product_id', event.product_id)
+        .not('status', 'eq', 'merged')
+        .order('event_date', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as { id: string; event_date: string; start_time: string; status: string }[];
+    },
+    enabled: !!currentTenant && !!event?.product_id,
+  });
+  const todayIso = new Date().toISOString().slice(0, 10);
+  const hasOtherUpcoming = siblingDates.some((d) => d.id !== eventId && d.event_date >= todayIso && (d.status === 'scheduled' || d.status === 'confirmed'));
+
   const zoneName = useMemo(() => {
     const m: Record<string, string> = {};
     for (const z of zones) m[z.id] = z.name;
@@ -375,28 +400,17 @@ export default function EventDetail() {
   };
 
   // ---- Tickettype-acties (4b) ----
-  const usedProductIds = ticketTypes.map((tt) => tt.product_id);
   const capacitySum = ticketTypes.reduce((acc, tt) => acc + (tt.sub_capacity ?? 0), 0);
   const capacityOverflow = capacity != null && capacity > 0 && capacitySum > capacity;
 
-  const handleTicketTypeSubmit = async (form: TicketTypeFormData) => {
+  const handleTicketTypeSubmit = async (input: TicketTypeInput) => {
     try {
-      if (ttEditing) {
-        await updateTicketType.mutateAsync({ id: ttEditing.id, form });
-      } else {
-        await createTicketType.mutateAsync(form);
-      }
+      await saveTicketType.mutateAsync(input);
       toast({ title: t('events.ticketTypes.toast.saved') });
       setTtDialogOpen(false);
       setTtEditing(null);
     } catch (error) {
-      toast({
-        title: isDuplicateProductError(error)
-          ? t('events.ticketTypes.toast.duplicate')
-          : t('events.ticketTypes.toast.error'),
-        description: isDuplicateProductError(error) ? undefined : (error as Error).message,
-        variant: 'destructive',
-      });
+      toast({ title: t('events.ticketTypes.toast.error'), description: (error as Error).message, variant: 'destructive' });
     }
   };
 
@@ -439,12 +453,15 @@ export default function EventDetail() {
     setTtEditing({
       id: tt.id,
       product_id: tt.product_id,
+      name: tt.name,
+      price: tt.price,
       sub_capacity: tt.sub_capacity,
       sales_start: tt.sales_start,
       sales_end: tt.sales_end,
-      sort_order: tt.sort_order,
-      is_active: tt.is_active,
       reentry_policy: tt.reentry_policy,
+      is_active: tt.is_active,
+      isMain: tt.product_id === event?.product_id,
+      sold: soldPerProduct[tt.product_id] ?? 0,
     });
     setTtDialogOpen(true);
   };
@@ -537,7 +554,7 @@ export default function EventDetail() {
   }
 
   // EVENT-FLOW-2: zelfde poorten als de winkel (zie src/lib/eventReadiness.ts).
-  const readiness = eventReadiness(event, ticketTypes, { productActive: event.product_active });
+  const readiness = eventReadiness(event, ticketTypes, { productActive: event.product_active, productHidden: product?.hide_from_storefront });
 
   return (
     <div className="space-y-4">
@@ -545,50 +562,72 @@ export default function EventDetail() {
         <ArrowLeft className="h-4 w-4 mr-1" /> {t('events.back')}
       </Button>
 
-      <div className="space-y-1">
-        <h1 className="text-xl md:text-2xl font-bold break-words">{event.product_name}</h1>
-        <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="flex items-center gap-1">
-            <CalendarDays className="h-3.5 w-3.5" />
-            {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
-            {event.end_time ? `–${fmtTime(event.end_time)}` : ''}
-          </span>
-          {(event.location_name || event.meeting_point) && (
-            <span className="flex items-center gap-1 break-words">
-              <MapPin className="h-3.5 w-3.5 shrink-0" />
-              {event.location_name || event.meeting_point}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <h1 className="text-xl md:text-2xl font-bold break-words">{product?.name ?? event.product_name}</h1>
+          <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="flex items-center gap-1">
+              <CalendarDays className="h-3.5 w-3.5" />
+              {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
+              {event.end_time ? `–${fmtTime(event.end_time)}` : ''}
             </span>
+            {(event.location_name || event.meeting_point) && (
+              <span className="flex items-center gap-1 break-words">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                {[event.location_name, event.meeting_point].filter(Boolean).join(' · ')}
+              </span>
+            )}
+            <Badge variant="secondary">{t(`events.status.${event.status}`, event.status)}</Badge>
+            <EventReadinessBadge readiness={readiness} />
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {siblingDates.length > 1 && (
+            <select
+              aria-label={t('events.workspace.other_dates')}
+              className="h-9 max-w-[11rem] rounded-md border bg-background px-2 text-sm"
+              value={event.id}
+              onChange={(e) => navigate(`/admin/events/${e.target.value}`)}
+            >
+              {siblingDates.map((d) => (
+                <option key={d.id} value={d.id}>{fmtDate(d.event_date)} · {fmtTime(d.start_time)}</option>
+              ))}
+            </select>
           )}
-          <Badge variant="secondary">{t(`events.status.${event.status}`, event.status)}</Badge>
-          <EventReadinessBadge readiness={readiness} />
-        </p>
-        {readiness.state === 'blocked' || readiness.state === 'warning' ? (
-          <ul className="mt-2 space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
-            {readiness.blocks.map((b) => <li key={b}>{t(`events.readiness.block_${b}_hint`)}</li>)}
-            {readiness.warnings.map((w) => <li key={w}>{t(`events.readiness.warn_${w}_hint`)}</li>)}
-          </ul>
-        ) : null}
+          <Button size="sm" onClick={() => navigate(`/admin/checkin?event=${event.id}`)}>
+            <ScanLine className="h-4 w-4 mr-1" /> {t('events.workspace.open_scanner')}
+          </Button>
+          <EventCardActions
+            eventId={event.id}
+            status={event.status}
+            eventDate={event.event_date}
+            startTime={event.start_time}
+            endTime={event.end_time}
+            sold={sold}
+            deleteBlocked={attendees.length > 0}
+          />
+        </div>
       </div>
+      {readiness.state === 'blocked' || readiness.state === 'warning' ? (
+        <ul className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          {readiness.blocks.map((b) => <li key={b}>{t(`events.readiness.block_${b}_hint`)}</li>)}
+          {readiness.warnings.map((w) => <li key={w}>{t(`events.readiness.warn_${w}_hint`)}</li>)}
+        </ul>
+      ) : null}
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="flex-wrap h-auto">
+        <TabsList className="h-auto flex-wrap">
           <TabsTrigger value="overview" className="gap-2">
             <Ticket className="h-4 w-4" /> {t('events.tabs.overview')}
           </TabsTrigger>
-          <TabsTrigger value="settings" className="gap-2">
-            <Settings2 className="h-4 w-4" /> {t('events.tabs.settings')}
-          </TabsTrigger>
-          <TabsTrigger value="ticket_types" className="gap-2">
-            <Tags className="h-4 w-4" /> {t('events.tabs.ticketTypes')}
-          </TabsTrigger>
-          <TabsTrigger value="access" className="gap-2">
-            <KeyRound className="h-4 w-4" /> {t('events.tabs.access')}
+          <TabsTrigger value="dates" className="gap-2">
+            <CalendarDays className="h-4 w-4" /> {t('events.workspace.tab_dates')} ({siblingDates.length})
           </TabsTrigger>
           <TabsTrigger value="attendees" className="gap-2">
-            <Users className="h-4 w-4" /> {t('events.tabs.attendees')}
+            <Users className="h-4 w-4" /> {t('events.workspace.tab_visitors')} ({sold})
           </TabsTrigger>
-          <TabsTrigger value="scans" className="gap-2">
-            <ScanLine className="h-4 w-4" /> {t('events.tabs.scanLog')}
+          <TabsTrigger value="door" className="gap-2">
+            <KeyRound className="h-4 w-4" /> {t('events.workspace.tab_door')}
           </TabsTrigger>
         </TabsList>
 
@@ -602,6 +641,10 @@ export default function EventDetail() {
             <div className="rounded-lg border bg-card p-3">
               <p className="text-xs text-muted-foreground">{t('events.stats.sold')}</p>
               <p className="text-xl font-bold">{sold}</p>
+              {capacity != null && <Progress value={pct} className="mt-2 h-1.5" />}
+              {event.min_attendees > 0 && (
+                <p className="mt-1 text-[11px] text-muted-foreground">{t('events.stats.minimum')}: {event.min_attendees}</p>
+              )}
             </div>
             <div className="rounded-lg border bg-card p-3">
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
@@ -621,67 +664,20 @@ export default function EventDetail() {
             </div>
           </div>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">{t('events.stats.occupancy')}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Progress value={pct} className="h-2" />
-              <p className="text-xs text-muted-foreground tabular-nums">
-                {sold} / {capacityLabel}{capacity != null ? ` (${pct}%)` : ''}
-                {event.min_attendees > 0
-                  ? ` · ${t('events.stats.minimum')}: ${event.min_attendees}`
-                  : ''}
-              </p>
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Ticket className="h-4 w-4" /> {t('events.ticketTypes.title')}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {ticketTypes.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('events.ticketTypes.empty')}</p>
-              ) : (
-                <div className="space-y-2">
-                  {ticketTypes.map((tt) => {
-                    const typeSold = soldPerProduct[tt.product_id] ?? 0;
-                    return (
-                      <div key={tt.id} className="flex items-center justify-between gap-2 text-sm">
-                        <span className="break-words">{tt.name}</span>
-                        <span className="text-muted-foreground tabular-nums shrink-0">
-                          {typeSold}{tt.sub_capacity != null ? ` / ${tt.sub_capacity}` : ''}
-                        </span>
-                      </div>
-                    );
-                  })}
-                  <Button variant="outline" size="sm" className="mt-2" onClick={openNewTicketType}>
-                    <Tags className="h-4 w-4 mr-1" /> {t('events.ticketTypes.manage')}
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+          <div className="grid gap-4 xl:grid-cols-2">
+            {product && <EventInfoCard eventId={event.id} product={product} dateCount={siblingDates.length} />}
+            <EventCoreSettingsCard
+              event={event}
+              sold={sold}
+              onSaved={() =>
+                queryClient.invalidateQueries({
+                  queryKey: ['event-detail', currentTenant?.id, eventId],
+                })
+              }
+            />
+          </div>
 
-        {/* ---------------- Instellingen (4d, bewerkbaar) ---------------- */}
-        <TabsContent value="settings" className="space-y-4 data-[state=inactive]:hidden" forceMount>
-          <EventCoreSettingsCard
-            event={event}
-            sold={sold}
-            onSaved={() =>
-              queryClient.invalidateQueries({
-                queryKey: ['event-detail', currentTenant?.id, eventId],
-              })
-            }
-          />
-        </TabsContent>
-
-        {/* ---------------- Tickettypes (4b, bewerkbaar) ---------------- */}
-        <TabsContent value="ticket_types" className="space-y-4">
           <Card>
             <CardHeader className="pb-2 flex-row items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base flex items-center gap-2">
@@ -718,7 +714,7 @@ export default function EventDetail() {
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {tt.price != null ? `€ ${Number(tt.price).toFixed(2)}` : '—'}
+                            {tt.price != null ? new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(Number(tt.price)) : '—'}
                             {' · '}{t('events.ticketTypes.sold')}: {typeSold}
                             {tt.sub_capacity != null ? ` / ${tt.sub_capacity}` : ` / ${t('events.ticketTypes.form.unlimited')}`}
                             {tt.sub_capacity != null
@@ -757,7 +753,6 @@ export default function EventDetail() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b text-left text-muted-foreground">
-                          <th className="py-2 pr-3 font-medium">#</th>
                           <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.name')}</th>
                           <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.price')}</th>
                           <th className="py-2 pr-3 font-medium">{t('events.ticketTypes.columns.capacity')}</th>
@@ -773,10 +768,9 @@ export default function EventDetail() {
                           const typeSold = soldPerProduct[tt.product_id] ?? 0;
                           return (
                             <tr key={tt.id} className="border-b last:border-0">
-                              <td className="py-2 pr-3 tabular-nums">{tt.sort_order}</td>
                               <td className="py-2 pr-3">{tt.name}</td>
                               <td className="py-2 pr-3 tabular-nums">
-                                {tt.price != null ? `€ ${Number(tt.price).toFixed(2)}` : '—'}
+                                {tt.price != null ? new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(Number(tt.price)) : '—'}
                               </td>
                               <td className="py-2 pr-3 tabular-nums">
                                 {tt.sub_capacity ?? t('events.ticketTypes.form.unlimited')}
@@ -843,7 +837,17 @@ export default function EventDetail() {
         </TabsContent>
 
         {/* ---------------- Deur-toegangen (4c) ---------------- */}
-        <TabsContent value="access" className="space-y-4">
+        <TabsContent value="dates" className="space-y-4">
+          {event.product_id && (
+            <Card>
+              <CardContent className="pt-6">
+                <ProductEventDatesTab productId={event.product_id} regularPrice={product?.price ?? 0} />
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="door" className="space-y-4">
           <Card>
             <CardHeader className="pb-2 flex-row items-center justify-between gap-2 space-y-0">
               <CardTitle className="text-base flex items-center gap-2">
@@ -987,6 +991,44 @@ export default function EventDetail() {
               )}
             </CardContent>
           </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <ScanLine className="h-4 w-4" /> {t('events.tabs.scanLog')} ({scans.length})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {scans.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('events.scanLog.empty')}</p>
+              ) : (
+                <div className="space-y-2">
+                  {scans.map((s) => (
+                    <div key={s.id} className="rounded-lg border p-3 space-y-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="font-medium text-sm break-words">
+                          {attendeeName[s.ticket_instance_id] ?? s.ticket_instance_id.slice(0, 8)}
+                        </span>
+                        <Badge variant={s.direction === 'in' ? 'default' : 'outline'} className="gap-1">
+                          {s.direction === 'in'
+                            ? <><LogIn className="h-3 w-3" /> {t('events.scanLog.in')}</>
+                            : <><LogOut className="h-3 w-3" /> {t('events.scanLog.out')}</>}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {fmtFull(s.scanned_at)} · {t(`events.scanResult.${s.result}`, s.result)}
+                        {s.zone_id && zoneName[s.zone_id] ? ` · ${zoneName[s.zone_id]}` : ''}
+                        {' · '}
+                        {s.scanner_access_id
+                          ? (scannerName[s.scanner_access_id] ?? t('events.scanLog.scanner'))
+                          : t('events.scanLog.host')}
+                      </p>
+                      {s.note && <p className="text-xs text-muted-foreground break-words">{s.note}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
 
         {/* ---------------- Deelnemers ---------------- */}
@@ -1061,58 +1103,15 @@ export default function EventDetail() {
           </Card>
         </TabsContent>
 
-        {/* ---------------- Scan-log ---------------- */}
-        <TabsContent value="scans">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <ScanLine className="h-4 w-4" /> {t('events.tabs.scanLog')} ({scans.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {scans.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{t('events.scanLog.empty')}</p>
-              ) : (
-                <div className="space-y-2">
-                  {scans.map((s) => (
-                    <div key={s.id} className="rounded-lg border p-3 space-y-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <span className="font-medium text-sm break-words">
-                          {attendeeName[s.ticket_instance_id] ?? s.ticket_instance_id.slice(0, 8)}
-                        </span>
-                        <Badge variant={s.direction === 'in' ? 'default' : 'outline'} className="gap-1">
-                          {s.direction === 'in'
-                            ? <><LogIn className="h-3 w-3" /> {t('events.scanLog.in')}</>
-                            : <><LogOut className="h-3 w-3" /> {t('events.scanLog.out')}</>}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {fmtFull(s.scanned_at)} · {t(`events.scanResult.${s.result}`, s.result)}
-                        {s.zone_id && zoneName[s.zone_id] ? ` · ${zoneName[s.zone_id]}` : ''}
-                        {' · '}
-                        {s.scanner_access_id
-                          ? (scannerName[s.scanner_access_id] ?? t('events.scanLog.scanner'))
-                          : t('events.scanLog.host')}
-                      </p>
-                      {s.note && <p className="text-xs text-muted-foreground break-words">{s.note}</p>}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
-      <TicketTypeDialog
+      <TicketTypeEditorDialog
         open={ttDialogOpen}
         onOpenChange={(o) => { setTtDialogOpen(o); if (!o) setTtEditing(null); }}
-        editing={ttEditing}
-        products={ticketProducts}
-        usedProductIds={usedProductIds}
-        soldForProduct={(pid) => soldPerProduct[pid] ?? 0}
-        saving={createTicketType.isPending || updateTicketType.isPending}
-        onSubmit={handleTicketTypeSubmit}
+        target={ttEditing}
+        hasOtherDates={hasOtherUpcoming}
+        saving={saveTicketType.isPending}
+        onSubmit={(input) => void handleTicketTypeSubmit(input)}
       />
 
       <AlertDialog

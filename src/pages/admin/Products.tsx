@@ -157,8 +157,11 @@ export default function ProductsPage() {
   const [activeTab, setActiveTab] = useState('catalog');
 
   // Filter products
+  // EVENT-WORKSPACE-1: tickets beheer je in Events, niet in de productlijst.
+  const ticketCount = useMemo(() => products.filter((p) => p.product_type === 'ticket').length, [products]);
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
+      if (product.product_type === 'ticket') return false;
       // Search filter
       if (search) {
         const searchLower = search.toLowerCase();
@@ -427,6 +430,12 @@ export default function ProductsPage() {
 
   return (
     <div className={`space-y-6 ${selectedIds.size > 0 ? 'pb-20' : ''}`}>
+      {ticketCount > 0 && (
+        <Link to="/admin/events" className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm hover:bg-muted">
+          <span>{t('admin.products.tickets_in_events', { count: ticketCount })}</span>
+          <span className="shrink-0 font-medium text-primary">{t('admin.products.to_events')} →</span>
+        </Link>
+      )}
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

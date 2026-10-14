@@ -1927,6 +1927,10 @@
         "event_wizard_and_door_scanner": {
           "title": "Neues Event in vier Schritten und ein Scanner für den Eingang",
           "description": "Unter Events legen Sie mit „Neues Event“ ein Event in einem Ablauf an: was, wann und wo (auch wöchentlich), Tickets mit Early Bird und ein Scan-Link für Ihr Einlassteam. Das Event ist sofort im Verkauf. Der Scan-Link öffnet SellQo Eingang: einen Vollbild-Scanner ohne Konto, mit grünem oder rotem Ergebnis, Vibration und Ton, Taschenlampe, einem Bildschirm, der an bleibt, und Suche nach Name oder Bestellnummer, wenn ein QR-Code nicht scannt. Fügen Sie ihn zum Startbildschirm hinzu und öffnen Sie ihn mit einem Tipp."
+        },
+        "event_workspace": {
+          "title": "Alles zu Ihrem Event auf einem Bildschirm",
+          "description": "Die Eventseite hat jetzt vier Reiter: Übersicht, Termine, Besucher und Eingang. In der Übersicht bearbeiten Sie Name, Foto, Beschreibung und Sichtbarkeit des Events, den Termin mit Zeiten, Ort, Kapazität und Early Bird sowie die Tickettypen. Einen neuen Tickettyp wie VIP oder Camping legen Sie mit Name und Preis an, auf Wunsch gleich für alle kommenden Termine. Tickets stehen nicht mehr bei Ihren Produkten, und ein leerer Termin lässt sich einfach löschen. Im Scanner können Sie auch ein Foto vom QR-Code machen, wenn die Live-Kamera nicht will."
         }
       },
       "copyLink": "Link kopieren",

@@ -1927,6 +1927,10 @@
         "event_wizard_and_door_scanner": {
           "title": "Nouvel événement en quatre étapes, et un scanner pour l'entrée",
           "description": "Dans Événements, « Nouvel événement » crée un événement en un seul parcours : quoi, quand et où (aussi chaque semaine), billets avec early bird, et un lien de scan pour l'équipe d'entrée. L'événement est en vente immédiatement. Le lien ouvre SellQo Entrée : un scanner plein écran sans compte, avec résultat vert ou rouge, vibration et son, lampe torche, écran toujours allumé et recherche par nom ou numéro de commande si un QR code ne passe pas. Ajoutez-le à l'écran d'accueil et ouvrez-le d'un geste."
+        },
+        "event_workspace": {
+          "title": "Tout votre événement sur un seul écran",
+          "description": "La page de l'événement compte désormais quatre onglets : Aperçu, Dates, Visiteurs et Entrée. Dans Aperçu, vous modifiez le nom, la photo, la description et la visibilité de l'événement, la date avec horaires, lieu, capacité et early bird, ainsi que les types de billets. Créez un type comme VIP ou Camping avec un nom et un prix, si vous le souhaitez pour toutes les dates à venir. Les billets ne figurent plus parmi vos produits, et une date vide peut simplement être supprimée. Dans le scanner, vous pouvez aussi photographier le QR code si la caméra en direct ne fonctionne pas."
         }
       },
       "copyLink": "Copier le lien",

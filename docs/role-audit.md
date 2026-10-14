@@ -17806,3 +17806,45 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
 **Wizard:** de optie "Nog niet tonen in de webshop" zet `hide_from_storefront` aan, om te testen zonder dat een event op een custom frontend verschijnt.
 
 **Opruimen na de test:** testproduct en testdatum op inactief of verwijderen. De €0-factuur blijft (fiscaal geldig, €0).
+
+## 2026-10-14 — EVENT-WORKSPACE-1: alles van een event op één scherm
+
+**Aanleiding (Akke, na de test):**
+- De navigatiepil van de admin lag over de scanner.
+- De camera ging niet open vanuit de app op het beginscherm.
+- Early bird was niet in te stellen op de eventpagina.
+- Er waren te veel tabbladen.
+- Een event-tenant moest nog via Producten werken.
+
+**Uitgevoerd:**
+- **Scanner:**
+  - `useHideAdminBottomNav` in `DoorScanner`;
+  - terugval "Maak een foto van de QR": een `<input capture>` opent de gewone camera-app en `html5-qrcode.scanFile` leest de foto uit;
+  - de ruwe camerafout staat klein onder de melding.
+- **Eventpagina:** 4 tabbladen in plaats van 6 (Overzicht · Datums · Bezoekers · Deur).
+  - Kop: datumkiezer naar de andere datums, een knop Scanner, en het actiemenu (dupliceren, afronden, annuleren, verwijderen).
+  - Overzicht: tellers (de bezetting zit in "Verkocht"), "Het event" (`EventInfoCard`), "Deze datum" (`EventCoreSettingsCard`, nu met early bird) en "Tickettypes".
+  - Datums: `ProductEventDatesTab` (toevoegen, reeks plannen, verplaatsen, overslaan, samenvoegen).
+  - Deur: scanlinks plus scan-log.
+- **"Het event"** wijzigt naam, foto, beschrijving en zichtbaarheid (`hide_from_storefront`) van het hoofdproduct. Dat geldt voor alle datums.
+- **Tickettypes (`TicketTypeEditorDialog` + `useSaveTicketType`):**
+  - een nieuw type = naam + prijs. SellQo maakt er een verborgen ticketproduct voor (`hide_from_storefront`, zodat het niet als apart event verschijnt op frontends die `get_products` lezen) en koppelt het via `event_ticket_types`, eventueel aan alle komende datums;
+  - het standaardtype draagt de eventnaam; alleen de prijs is aanpasbaar.
+  - Oude `TicketTypeDialog` (product kiezen) verwijderd.
+- **Readiness:** nieuwe waarschuwing "verborgen in de winkel" (+1 test, 8/8).
+- **Producten:** ticketproducten staan niet meer in de productlijst; er staat een link naar Events.
+- **Verwijderen:** een datum zonder tickets ruimt nu zelf zijn tickettypes, zones, scanlinks, verlopen winkelmandregels en change tokens op.
+  - Sinds EVENT-FLOW-1 blokkeerden die elke delete.
+  - De child-count-query op het dashboard is weg.
+- **Sporen:**
+  - i18n: `events.workspace.*` (46+), `door.photo_*` en de readiness-waarschuwing, in vijf talen;
+  - changelog 2026.11k;
+  - doc_articles: `event-detailpagina` herschreven, `ticket-product-datums` aangepast.
+
+**Visueel:** harness met mock-data, desktop 1440 en mobiel 390, plus de dialoog "Nieuw tickettype". Geen JS-fouten.
+
+**Gevonden, NIET gefixt (raakt geld, wacht op go):**
+- storefront-api past de early bird toe op élk tickettype van een datum (`resolveEventPrice(e, basePrice…)` met een absolute `early_bird_price`).
+- Gevolg: met early bird €19 kost een VIP-ticket van €40 in die periode ook €19, zowel op de webshop als bij `cart_add_item`.
+- Voorstel: de early bird alleen voor het standaardtype (`product_id === event.product_id`), of als korting in plaats van een vaste prijs.
+- Vandaag geen impact: geen enkele datum combineert early bird met extra types.

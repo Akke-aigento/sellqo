@@ -39,6 +39,7 @@ interface EventRow {
   min_attendees: number;
   product_name: string;
   product_active: boolean;
+  product_hidden: boolean;
 }
 
 interface EventStats {
@@ -93,7 +94,7 @@ export default function EventDashboard() {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from('event_details')
-        .select('id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name, is_active)')
+        .select('id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name, is_active, hide_from_storefront)')
         .eq('tenant_id', currentTenant.id)
         .gte('event_date', since)
         .order('event_date', { ascending: true })
@@ -112,6 +113,7 @@ export default function EventDashboard() {
         min_attendees: (e.min_attendees as number) ?? 0,
         product_name: ((e as { products?: { name?: string } }).products?.name) ?? 'Event',
         product_active: ((e as { products?: { is_active?: boolean } }).products?.is_active) !== false,
+        product_hidden: ((e as { products?: { hide_from_storefront?: boolean } }).products?.hide_from_storefront) === true,
       }));
     },
     enabled: !!currentTenant,
@@ -146,59 +148,6 @@ export default function EventDashboard() {
     },
     enabled: !!currentTenant && eventIds.length > 0,
     refetchInterval: 30000,
-  });
-
-  // Blokkerende kinderen per event. GEEN enkele FK naar event_details heeft
-  // ON DELETE CASCADE, dus elk kind laat een DELETE stuklopen op een 23503.
-  // Drie selects over de hele set ineens (geen N+1 per kaart); tickets komen uit
-  // de stats-query hierboven, en ticket_scans hoeft niet apart geteld te worden
-  // omdat ticket_scans.ticket_instance_id NOT NULL naar ticket_instances wijst.
-  const { data: childCounts = {} } = useQuery({
-    queryKey: ['event-dashboard-child-counts', currentTenant?.id, eventIds.join(',')],
-    queryFn: async (): Promise<Record<string, number>> => {
-      if (!currentTenant || eventIds.length === 0) return {};
-      // Elke query apart opschrijven in plaats van over een tabel-lijst te mappen:
-      // een conditionele .eq() op een union van query-builders laat de
-      // typechecker ontsporen (TS2589).
-      const [ticketTypes, zones, scannerAccess] = await Promise.all([
-        supabase
-          .from('event_ticket_types')
-          .select('event_detail_id')
-          .eq('tenant_id', currentTenant.id)
-          .in('event_detail_id', eventIds),
-        // Een default-zone ontstaat automatisch (fase 4c en bij dupliceren); die
-        // heeft de tenant nooit bewust aangemaakt, dus hij mag het verwijderen niet
-        // blokkeren — useDeleteEventQuick ruimt hem vlak vóór de delete op. Een
-        // zelf aangemaakte (niet-default) zone telt wél als blokker.
-        supabase
-          .from('event_zones')
-          .select('event_detail_id')
-          .eq('tenant_id', currentTenant.id)
-          .eq('is_default', false)
-          .in('event_detail_id', eventIds),
-        supabase
-          .from('event_scanner_access')
-          .select('event_detail_id')
-          .eq('tenant_id', currentTenant.id)
-          .in('event_detail_id', eventIds),
-      ]);
-
-      const out: Record<string, number> = {};
-      const named: [string, typeof ticketTypes][] = [
-        ['event_ticket_types', ticketTypes],
-        ['event_zones', zones],
-        ['event_scanner_access', scannerAccess],
-      ];
-      for (const [label, res] of named) {
-        if (res.error) throw new Error(`${label}: ${res.error.message}`);
-        for (const row of res.data ?? []) {
-          const key = (row as { event_detail_id: string | null }).event_detail_id;
-          if (key) out[key] = (out[key] ?? 0) + 1;
-        }
-      }
-      return out;
-    },
-    enabled: !!currentTenant && eventIds.length > 0,
   });
 
   if (!eventsModule) return <ModuleOffCard module="events" />;
@@ -240,7 +189,8 @@ export default function EventDashboard() {
             const s = stats[e.id] ?? { sold: 0, checked_in: 0, refunded: 0, total: 0 };
             // Verwijderen kan alleen als er nul kinderen zijn: tickets in welke
             // status dan ook, tickettypes, zones of scanner-toegangen.
-            const deleteBlocked = s.total > 0 || (childCounts[e.id] ?? 0) > 0;
+            // EVENT-WORKSPACE-1: alleen tickets blokkeren; configuratie ruimt de delete zelf op.
+            const deleteBlocked = s.total > 0;
             const pct = e.capacity > 0 ? Math.min(100, Math.round((s.sold / e.capacity) * 100)) : 0;
             const minReached = e.min_attendees > 0 && s.sold >= e.min_attendees;
             return (
@@ -268,7 +218,7 @@ export default function EventDashboard() {
                   <EventReadinessBadge
                     className="self-start"
                     loading={readinessLoading}
-                    readiness={eventReadiness(e, ticketTypesByEvent[e.id] ?? [], { productActive: e.product_active })}
+                    readiness={eventReadiness(e, ticketTypesByEvent[e.id] ?? [], { productActive: e.product_active, productHidden: e.product_hidden })}
                   />
                   <p className="text-xs text-muted-foreground">
                     {fmtDate(e.event_date)} · {fmtTime(e.start_time)}

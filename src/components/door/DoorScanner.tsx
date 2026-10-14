@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { doorFeedback, keepScreenOn, unlockDoorAudio, type DoorTone } from '@/lib/doorFeedback';
+import { useHideAdminBottomNav } from '@/hooks/useAdminBottomNav';
 
 export interface DoorScanResult {
   success: boolean;
@@ -44,6 +45,7 @@ export interface DoorAdapter {
 interface Recent { id: string; token: string; result: string; attendee: string | null; seq: number | null; at: number; undone?: boolean }
 
 const SCANNER_ID = 'door-scanner-video';
+const FILE_SCAN_ID = 'door-scanner-file';
 const SAME_TOKEN_COOLDOWN_MS = 4000;
 const RESULT_MS = 1700;
 const SOUND_KEY = 'sellqo.door.sound';
@@ -65,6 +67,9 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
 }) {
   const { t } = useTranslation();
   const k = (x: string, o?: Record<string, unknown>) => t(`door.${x}`, o);
+  // Schermvullende scanner: de navigatiepil van de admin hoort hier niet.
+  useHideAdminBottomNav(true);
+  const photoRef = useRef<HTMLInputElement>(null);
 
   const [started, setStarted] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -165,6 +170,24 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
     return keepScreenOn();
   }, [started]);
   useEffect(() => () => { void stop(); if (resultTimer.current) window.clearTimeout(resultTimer.current); }, [stop]);
+
+  // Terugval als de live camera niet wil (bv. sommige beginscherm-apps op iPhone):
+  // een foto van de QR met de gewone camera-app, en die foto lezen we uit.
+  const scanPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    unlockDoorAudio();
+    try {
+      const reader = new Html5Qrcode(FILE_SCAN_ID, { verbose: false });
+      const decoded = await reader.scanFile(file, false);
+      try { reader.clear(); } catch { /* noop */ }
+      lastRef.current = null;
+      await handle(decoded);
+    } catch {
+      showResult({ success: false, error: k('photo_no_qr') }, 'photo');
+    } finally {
+      if (photoRef.current) photoRef.current.value = '';
+    }
+  };
 
   const toggleTorch = async () => {
     const s = scannerRef.current;
@@ -272,6 +295,8 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
       <div className="relative mx-4 flex-1 overflow-hidden rounded-2xl bg-black">
         {/* html5-qrcode zet zelf de maten van video en kader; we centreren alleen, zodat het kader klopt met wat er gescand wordt. */}
         <div className="absolute inset-0 flex items-center"><div id={SCANNER_ID} className="w-full" /></div>
+        <div id={FILE_SCAN_ID} className="hidden" />
+        <input ref={photoRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void scanPhoto(e.target.files?.[0])} />
         {!started && (
           <button type="button" onClick={() => void start()}
             className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0b1220] text-center">
@@ -287,7 +312,9 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
             <TriangleAlert className="h-10 w-10 text-amber-400" />
             <p className="font-semibold">{k('camera_error')}</p>
             <p className="text-sm text-white/60">{k('camera_error_hint')}</p>
-            <button type="button" onClick={() => void start()} className="mt-2 rounded-lg bg-white/15 px-5 py-2.5 font-semibold">{k('retry')}</button>
+            <p className="max-w-xs break-words font-mono text-[11px] text-white/40">{cameraError}</p>
+            <button type="button" onClick={() => photoRef.current?.click()} className="mt-2 rounded-lg bg-emerald-500 px-5 py-3 font-semibold">{k('photo_scan')}</button>
+            <button type="button" onClick={() => void start()} className="rounded-lg bg-white/15 px-5 py-2.5 font-semibold">{k('retry')}</button>
           </div>
         )}
 

@@ -3534,7 +3534,10 @@
       },
       "zichtbaarheid": "Visibilité",
       "zichtbaarheid_2": "Visibilité",
-      "zoek_op_naam_sku_of_barcode": "Rechercher par nom, SKU ou code-barres..."
+      "zoek_op_naam_sku_of_barcode": "Rechercher par nom, SKU ou code-barres...",
+      "tickets_in_events_one": "{{count}} billet se gère dans Événements.",
+      "tickets_in_events_other": "{{count}} billets se gèrent dans Événements.",
+      "to_events": "Vers Événements"
     },
     "productForm": {
       "vertalingen": "Traductions",
@@ -6584,7 +6587,9 @@
       "warn_no_meeting_point": "pas de point de rendez-vous",
       "warn_no_meeting_point_hint": "Aucun lieu ni point de rendez-vous pour cette date. Les acheteurs n'auront pas de lieu dans leur e-mail de billet.",
       "meeting_point_warning": "Sans lieu ni point de rendez-vous, l'e-mail de billet de vos visiteurs n'indiquera aucun lieu.",
-      "end_time_optional": "Heure de fin (facultatif)"
+      "end_time_optional": "Heure de fin (facultatif)",
+      "warn_hidden_in_shop": "masqué dans la boutique",
+      "warn_hidden_in_shop_hint": "L'événement est masqué : personne ne le voit dans votre boutique. Rendez-le visible dans le bloc « L'événement » pour vendre."
     },
     "wizard": {
       "new_event": "Nouvel événement",
@@ -6664,6 +6669,52 @@
       "to_overview": "Vers l'aperçu",
       "hidden": "Ne pas encore afficher dans la boutique",
       "hidden_hint": "Pratique pour tester ou tout préparer. Rendez l'événement visible plus tard depuis le produit."
+    },
+    "workspace": {
+      "date_title": "Cette date",
+      "description": "Description",
+      "eb_title": "Early bird",
+      "eb_hint": "Un prix réduit pour ceux qui réservent tôt.",
+      "eb_price": "Prix early bird (€)",
+      "eb_until": "Valable jusqu'au",
+      "eb_qty": "Billets maximum",
+      "eb_qty_ph": "pas de limite",
+      "eb_rule": "Indiquez une date de fin, un maximum ou les deux. Le premier atteint clôt l'early bird.",
+      "event_title": "L'événement",
+      "event_hint_one": "S'applique à cette date.",
+      "event_hint_other": "S'applique aux {{count}} dates de cet événement.",
+      "hidden": "Masqué dans la boutique",
+      "hidden_hint": "Personne ne voit ni n'achète cet événement. Pratique pour tester ou préparer.",
+      "visible": "Visible dans la boutique",
+      "visible_hint": "Les visiteurs voient cet événement et peuvent acheter des billets.",
+      "name": "Nom",
+      "open_scanner": "Scanner",
+      "other_dates": "Autres dates",
+      "photo_add": "Ajouter une photo",
+      "photo_change": "Modifier",
+      "photo_remove": "Supprimer la photo",
+      "save": "Enregistrer",
+      "saved": "Enregistré",
+      "save_failed": "Échec de l'enregistrement",
+      "tab_visitors": "Visiteurs",
+      "tab_door": "Entrée",
+      "tt_new": "Nouveau type de billet",
+      "tt_edit": "Modifier le type de billet",
+      "tt_hint": "P. ex. VIP, Billet jour, Week-end ou Camping. Son propre prix et, si besoin, son propre nombre.",
+      "tt_main_hint": "Le billet standard porte le nom de l'événement.",
+      "tt_main_price_hint": "Ce prix s'applique à toutes les dates de cet événement.",
+      "tt_name": "Nom",
+      "tt_name_ph": "p. ex. VIP",
+      "tt_price": "Prix (€)",
+      "tt_capacity": "Nombre de ce type",
+      "tt_capacity_ph": "pas de limite propre",
+      "tt_capacity_hint": "Dans la capacité de la date. Vide = seule la capacité de la date compte.",
+      "tt_sales_start": "En vente à partir du",
+      "tt_sales_end": "En vente jusqu'au",
+      "tt_window_hint": "Vide = en vente immédiatement jusqu'à l'événement.",
+      "tt_active": "En vente",
+      "tt_all_dates": "Ajouter aussi aux autres dates à venir de cet événement",
+      "tab_dates": "Dates"
     }
   },
   "content_menu": {
@@ -6988,6 +7039,8 @@
     "pick_title": "Scan à l'entrée",
     "pick_text": "Choisissez l'événement que vous scannez. Les événements qui dépassent minuit restent à leur date ; rien n'est choisi automatiquement.",
     "loading_events": "Chargement des événements…",
-    "no_events": "Aucun événement planifié ou confirmé."
+    "no_events": "Aucun événement planifié ou confirmé.",
+    "photo_scan": "Prendre une photo du QR",
+    "photo_no_qr": "Aucun QR code trouvé sur la photo. Rapprochez-vous ou cherchez par nom."
   }
 }

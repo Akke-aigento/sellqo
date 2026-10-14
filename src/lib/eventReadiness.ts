@@ -4,7 +4,7 @@
 // geen plaats in zijn ticketmail; dat is een waarschuwing.
 
 export type ReadinessBlock = 'no_ticket_type' | 'sales_not_started' | 'sales_ended' | 'past_date' | 'product_inactive';
-export type ReadinessWarning = 'no_meeting_point';
+export type ReadinessWarning = 'no_meeting_point' | 'hidden_in_shop';
 
 export interface ReadinessEvent {
   event_date: string;
@@ -38,7 +38,7 @@ const todayIso = (now: Date) => {
 export function eventReadiness(
   event: ReadinessEvent,
   ticketTypes: ReadinessTicketType[],
-  opts: { now?: Date; productActive?: boolean } = {},
+  opts: { now?: Date; productActive?: boolean; productHidden?: boolean } = {},
 ): Readiness {
   if (!SELLING_STATUSES.includes(event.status)) return { state: null, blocks: [], warnings: [] };
   const now = opts.now ?? new Date();
@@ -65,6 +65,7 @@ export function eventReadiness(
   }
 
   if (!event.meeting_point?.trim() && !event.location_name?.trim()) warnings.push('no_meeting_point');
+  if (opts.productHidden) warnings.push('hidden_in_shop');
 
   return { state: blocks.length > 0 ? 'blocked' : warnings.length > 0 ? 'warning' : 'ready', blocks, warnings };
 }

@@ -3852,7 +3852,10 @@
       "nog_geen_producten_voeg_je_eerste": "Nog geen producten. Voeg je eerste product toe!",
       "geen_producten_gevonden_met_deze_filters": "Geen producten gevonden met deze filters",
       "nog_geen_producten": "Nog geen producten.",
-      "overgeslagen_variantvoorraad": "{{count}} product(en) overgeslagen — voorraad wordt per variant beheerd."
+      "overgeslagen_variantvoorraad": "{{count}} product(en) overgeslagen — voorraad wordt per variant beheerd.",
+      "tickets_in_events_one": "{{count}} ticket beheer je in Events.",
+      "tickets_in_events_other": "{{count}} tickets beheer je in Events.",
+      "to_events": "Naar Events"
     },
     "productForm": {
       "vertalingen": "Vertalingen",
@@ -6586,7 +6589,9 @@
       "warn_no_meeting_point": "geen verzamelpunt",
       "warn_no_meeting_point_hint": "Er staat geen locatie of verzamelpunt bij deze datum. Kopers krijgen dan geen plaats in hun ticketmail.",
       "meeting_point_warning": "Zonder locatie of verzamelpunt staat er geen plaats in de ticketmail van je bezoekers.",
-      "end_time_optional": "Eindtijd (optioneel)"
+      "end_time_optional": "Eindtijd (optioneel)",
+      "warn_hidden_in_shop": "verborgen in de winkel",
+      "warn_hidden_in_shop_hint": "Het event staat op verborgen: niemand ziet het in je winkel. Zet het zichtbaar in het blok 'Het event' als je wil verkopen."
     },
     "wizard": {
       "new_event": "Nieuw event",
@@ -6666,6 +6671,52 @@
       "to_overview": "Naar het overzicht",
       "hidden": "Nog niet tonen in de webshop",
       "hidden_hint": "Handig om te testen of om alles klaar te zetten. Je zet het event later zichtbaar bij het product."
+    },
+    "workspace": {
+      "date_title": "Deze datum",
+      "description": "Beschrijving",
+      "eb_title": "Early bird",
+      "eb_hint": "Een lagere prijs voor wie vroeg boekt.",
+      "eb_price": "Early-bird prijs (€)",
+      "eb_until": "Geldig tot",
+      "eb_qty": "Maximum tickets",
+      "eb_qty_ph": "geen grens",
+      "eb_rule": "Vul een einddatum, een maximum of allebei in. Wat het eerst bereikt is, sluit de early bird af.",
+      "event_title": "Het event",
+      "event_hint_one": "Geldt voor deze datum.",
+      "event_hint_other": "Geldt voor alle {{count}} datums van dit event.",
+      "hidden": "Verborgen in de winkel",
+      "hidden_hint": "Niemand ziet of koopt dit event. Handig om te testen of klaar te zetten.",
+      "visible": "Zichtbaar in de winkel",
+      "visible_hint": "Bezoekers zien dit event en kunnen tickets kopen.",
+      "name": "Naam",
+      "open_scanner": "Scanner",
+      "other_dates": "Andere datums",
+      "photo_add": "Foto toevoegen",
+      "photo_change": "Wijzigen",
+      "photo_remove": "Foto verwijderen",
+      "save": "Opslaan",
+      "saved": "Opgeslagen",
+      "save_failed": "Opslaan mislukt",
+      "tab_visitors": "Bezoekers",
+      "tab_door": "Deur",
+      "tt_new": "Nieuw tickettype",
+      "tt_edit": "Tickettype bewerken",
+      "tt_hint": "Bv. VIP, Dagticket, Weekend of Camping. Een eigen prijs en eventueel een eigen aantal.",
+      "tt_main_hint": "Het standaardticket draagt de naam van het event.",
+      "tt_main_price_hint": "Deze prijs geldt voor alle datums van dit event.",
+      "tt_name": "Naam",
+      "tt_name_ph": "bv. VIP",
+      "tt_price": "Prijs (€)",
+      "tt_capacity": "Aantal van dit type",
+      "tt_capacity_ph": "geen eigen grens",
+      "tt_capacity_hint": "Binnen de capaciteit van de datum. Leeg = alleen de capaciteit van de datum telt.",
+      "tt_sales_start": "Verkoop vanaf",
+      "tt_sales_end": "Verkoop tot",
+      "tt_window_hint": "Leeg = verkoop meteen open en tot het event.",
+      "tt_active": "Te koop",
+      "tt_all_dates": "Ook toevoegen aan de andere komende datums van dit event",
+      "tab_dates": "Datums"
     }
   },
   "content_menu": {
@@ -6990,6 +7041,8 @@
     "pick_title": "Scannen aan de deur",
     "pick_text": "Kies het event dat je scant. Events die over middernacht lopen, blijven op hun eigen datum staan; er wordt niets automatisch gekozen.",
     "loading_events": "Events laden…",
-    "no_events": "Geen geplande of bevestigde events gevonden."
+    "no_events": "Geen geplande of bevestigde events gevonden.",
+    "photo_scan": "Maak een foto van de QR",
+    "photo_no_qr": "Geen QR-code gevonden op de foto. Probeer dichterbij, of zoek op naam."
   }
 }
