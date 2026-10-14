@@ -1,3 +1,36 @@
+## Ochtendbatch 14 oktober 2026 — MODULES-1, MKT-1, EVENTS-SHOP-1
+
+Akke vroeg om SellQo als één geheel neer te zetten: een kern met sectorpakketten voor horeca en events, en een marketingsite die dat verhaal vertelt.
+
+### MODULES-1 — sectormodules per winkel (f23ef19)
+- Migratie `20261014060000_modules_1.sql` (live, nagekeken): `tenants.business_modules text[]` met een check op horeca en events.
+  - Backfill: fonske-crawl krijgt events, demo-pizzeria krijgt horeca. Andere tenants staan leeg.
+  - Tenant-admins mogen hun eigen tenant al bijwerken (bestaande RLS-policy).
+- `useBusinessModules`: een module staat aan als de winkel hem zelf koos, als een platformadmin hem ontgrendelde, of als het plan hem bevat. `useHorecaModule` gebruikt dezelfde regel.
+- Events (zijbalk, eventdashboard, tickettype in het productformulier) staat nu achter de module. Tot vandaag zag elke winkel Events, maar alleen Fonske heeft events.
+  - Check-in blijft altijd bereikbaar, want crew werkt met scanlinks.
+- Instellingen → Modules: de winkel zet zelf horeca of events aan. Een uitgeschakelde module toont een kaart met een knop "aanzetten".
+- Onboarding: de eerste vraag is nu "Wat verkoop je?" (producten, eten en drinken, events). De keuze zet de module aan. De welkomststap is vertaald en toont `<slug>.sellqo.shop` in plaats van `sellqo.app/shop/`.
+- Horeca-plan (`pricing_plans.id = 'horeca'`, €49, `active = false`): webshop + kassa + horeca, zonder marktplaatsen en Odoo. Het gaat pas aan na Akkes go op de prijs, met Stripe-prijzen.
+  - Daarvoor moet ook de planstap van de onboarding horeca kennen, want de features van die stap staan hardcoded.
+
+### MKT-1 — homepage en sectorpagina's (098d122)
+- Hero "Jouw zaak. Simpel online." (uit de merkstrategie) met drie deuren: producten, horeca, events.
+- `/horeca`: eigen bestelsite zonder commissie, met de demopizzeria live in een telefoonkader en links om online of aan tafel 4 te bestellen.
+- `/events`: tickets, scannen, crew zonder account. Als voorbeeld The Fonske Crawl, een echte zaak van Akke.
+- Alleen claims die het product waarmaakt (nagekeken in de code: capaciteitspoort, dubbele scan, scanlinks). Het prijsblok verschijnt pas als het Horeca-plan actief is.
+- Wie een sectorpagina bezoekt, krijgt die sector voorgeselecteerd in de onboarding (localStorage `sellqo_signup_sector`).
+- De ankers in de navigatie werken nu ook vanaf andere pagina's. Sitemap en llms.txt zijn aangevuld. Alles in 5 talen.
+- Akke koos om de bestaande testimonials en tellers te laten staan.
+
+### EVENTS-SHOP-1 — tickets in de standaardshop (shop 5ede3e6, API 61e3385)
+- Shop: ticketproduct met datumkeuze en een aantal per tickettype ("vanaf"-prijs, early bird, uitverkocht). Mandje en afrekenen tonen datum en plaats.
+  - Alleen tickets in het mandje: geen adres en geen verzending, meteen naar betalen.
+  - Getest tegen de mock: kiezen, de cap op het tickettype, afrekenen zonder adres en de bedankpagina.
+- storefront-api: `cart_get` en de checkout-state krijgen een `event`-sleutel op ticketregels (additief). De GET-stempel wordt **EVENTS-SHOP-1**.
+- **De storefront-api-deploy staat nog open.** Ze bevat PAUSE-1, ALLERGEN-1/2 en EVENTS-SHOP-1. De nulmeting is `HORECA-1`, na de deploy moet het `EVENTS-SHOP-1` zijn. Draai daarna de catalog-probe.
+- Les: na een wijziging aan een edge function moet ook `verify-lint-baseline` draaien (CI viel even om op +4 `any`).
+
 ## Nachtbatch 14 oktober 2026 — SEO-1, I18N-HORECA, ALLERGEN-1/2/3, PAUSE-1, I18N-POS, I18N-EDITOR
 
 Onbewaakt gebouwd (00:40–06:00). Regels die nacht: geen edge-function-deploys en niets dat echte klanten of hun frontends raakt. Migraties zijn additief en live gezet via `query_database`.
