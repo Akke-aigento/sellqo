@@ -17999,3 +17999,38 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
   - geen horizontale scroll (eerst wel: een `fieldset` heeft standaard min-width min-content, opgelost met `min-w-0`);
   - het conflictpad toont een melding en houdt de rest van de selectie.
 - **Deploy:** GitHub Actions deploy groen. Datums zonder zaalplan blijven exact zoals ze waren.
+
+## 2026-10-14 — DEMO-2 + EVENT-THEME-1: demowinkels concertzaal en festival, agenda-sectie en eventthema's
+
+- **Tenants** (beide `is_demo`, `billing_exempt`, enterprise/active, module `events`, `notification_email` info@sellqo.app, betalen met demo-overschrijving, btw 6 %):
+  - `demo-concertzaal` "Zaal De Linde" (`3c8915ea-dea9-49b9-b7e5-871fcc2a19e0`);
+  - `demo-festival` "Zomerfest Leuven" (`c1bde589-b846-4e17-98b5-49515d4ea953`).
+  - De automatische klantrijen in de SellQo-tenant zijn verwijderd. Beide staan in `ops.demo_shops` (nachtelijke reset).
+- **Concertzaal:**
+  - Zaal "Grote zaal": parterre A–L × 20 met gangpad. Rij L heeft 2 rolstoelplaatsen, 2 begeleidersplaatsen en 2 stoelen niet te koop (techniek). Daarnaast een balkon A–D × 16.
+  - Drie prijsklassen: Categorie 1 (A–E), Categorie 2 (F–L) en Balkon.
+  - 6 voorstellingen van november tot februari (verzonnen artiesten). Elke voorstelling heeft drie tickettypes: het hoofdproduct is Categorie 1, de twee andere zijn verborgen producten "<voorstelling> · Categorie 2/Balkon".
+  - Gekoppeld via `link_event_venue`, aangeroepen als Akke met een tijdelijke tenant_admin-rol die daarna verwijderd is. Dat geeft 302 stoelen per datum.
+  - Voor het demo-effect staat een deel van de stoelen op "sold" zonder ticket: vooraan en bij de eerste voorstellingen meer.
+- **Festival:**
+  - "Zomerfest 2027: dagticket", 3 datums (9–11 juli 2027), capaciteit 4000, met early bird €49 tot 1 maart (normaal €59).
+  - VIP als tickettype per dag: €119, early bird €99, maximaal 250.
+  - Een apart product "Camping (vrijdag tot zondag)" à €45, maximaal 800.
+  - **Een weekend-/combiticket zit er nog níet in:** een ticket dat op meerdere datums scant, vraagt een aanpassing in `ticket-checkin`/`can_scan`. Na 24/10.
+- **Thema, homepage, juridische pagina's, foto's:**
+  - Thema's uit de nieuwe presets, met een aankondigingsbalk "Demowinkel…" en een FAQ "Is dit een echte winkel?".
+  - Juridische pagina's: contact, voorwaarden en privacy.
+  - 10 nano-studio-beelden (60 credits). Prompts en job-ID's staan in `ops.demo_img`.
+- **Storefront 343c7a6:**
+  - Nieuwe homepagesectie `event_agenda`: ticketproducten op hun eerstvolgende datum, met een datumtegel, een foto en een knop "Tickets". Via `schema.json` kan je ze toevoegen in de thema-editor.
+  - Presets "Concertzaal & theater" (donker, Playfair Display) en "Festival" (fel, Bricolage Grotesque), met een voorbeeldlink naar de demo's.
+  - In de stoellegende staat de naam van de prijsklasse.
+- **Admin:** een icoon voor de agenda en vertalingen van de nieuwe schemateksten in 5 talen.
+- **Verificatie:**
+  - `net.http_get` op de homepage en de productpagina van beide shops gaf 200, met de juiste titel, de agenda-sectie, beelden uit ai-images en niet "binnenkort".
+  - De concertpagina bevat "Kies je plaatsen".
+  - `get_seat_map` gaf 3 klassen (€38/30/22), en `get_product` van het festival gaf dagticket €49 en VIP €99 (early bird).
+  - De gegenereerde foto's zelf kon ik niet bekijken (de sandbox bereikt de opslag niet). Akke kijkt ze na.
+- **Incident tijdens deze batch:**
+  - De pg_net-worker stond stil met 13 verzoeken in de wachtrij, waaronder 3 crons (marketplace-sync-scheduler, update-bol-tracking en auto-invoice-cron).
+  - `select net.wake()` haalde hem meteen weer op gang. marketplace-sync-scheduler gaf daarbij geen antwoord (status null); de volgende cronrun pakt het op.
