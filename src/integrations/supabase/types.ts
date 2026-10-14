@@ -19325,6 +19325,62 @@ export type Database = {
           },
         ]
       }
+      ticket_mail_log: {
+        Row: {
+          first_sent_at: string
+          last_sent_at: string
+          last_source: string
+          order_id: string
+          send_count: number
+          tenant_id: string
+        }
+        Insert: {
+          first_sent_at?: string
+          last_sent_at?: string
+          last_source?: string
+          order_id: string
+          send_count?: number
+          tenant_id: string
+        }
+        Update: {
+          first_sent_at?: string
+          last_sent_at?: string
+          last_source?: string
+          order_id?: string
+          send_count?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_mail_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_mail_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_mail_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_mail_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_scans: {
         Row: {
           device_id: string | null
