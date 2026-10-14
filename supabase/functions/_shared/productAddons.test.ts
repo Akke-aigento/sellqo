@@ -71,3 +71,14 @@ Deno.test('afronding en label', () => {
   eq(addonsLabel([{ name: 'A' }, { name: 'B' }]), 'A, B');
   eq(addonsLabel(null), '');
 });
+
+Deno.test('ALLERGEN-2: allergenen van een extra alleen als ingevuld', () => {
+  const groups = [{ id: 'g', name: 'Toppings', min_select: 0, max_select: null, category_ids: [], product_ids: ['p'] }];
+  const opts = [
+    { id: 'a', group_id: 'g', name: 'Ansjovis', price: 1.5, allergens: ['fish'] },
+    { id: 'b', group_id: 'g', name: 'Rucola', price: 1, allergens: [] },
+  ];
+  const [g] = applicableGroups(groups, opts, 'p', []);
+  if (JSON.stringify(g.options[0].allergens) !== '["fish"]') throw new Error('ansjovis = vis');
+  if ('allergens' in g.options[1]) throw new Error('leeg = geen sleutel');
+});

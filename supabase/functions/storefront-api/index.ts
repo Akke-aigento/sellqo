@@ -804,7 +804,7 @@ async function loadProductAddonGroups(supabase: SupabaseLike, tenantId: string, 
   for (const j of (junction || []) as DbRow[]) if (j.category_id && !categoryIds.includes(String(j.category_id))) categoryIds.push(String(j.category_id));
   const ids = (groups as DbRow[]).map((g) => String(g.id));
   const { data: options } = await supabase
-    .from('product_addon_options').select('id, group_id, name, price, sort_order')
+    .from('product_addon_options').select('id, group_id, name, price, sort_order, allergens')
     .eq('tenant_id', tenantId).eq('is_active', true).in('group_id', ids).order('sort_order', { ascending: true });
   return applicableGroups(groups as unknown as Parameters<typeof applicableGroups>[0], (options || []) as unknown as Parameters<typeof applicableGroups>[1], productId, categoryIds);
 }

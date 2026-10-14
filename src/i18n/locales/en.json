@@ -5547,7 +5547,10 @@
         "closed_desc": "Holiday or bank holiday? On these days nobody can order pickup or delivery. Ordering at the table simply follows your venue.",
         "closed_date": "Date",
         "closed_add": "Add day",
-        "closed_none": "No closing days planned."
+        "closed_none": "No closing days planned.",
+        "option_allergens": "Allergens in {{name}}",
+        "option_allergens_count": "Allergens: {{count}}",
+        "also_linked_products": "Also linked to individual products: {{count}}."
       },
       "schema": {
         "themeGallery": {

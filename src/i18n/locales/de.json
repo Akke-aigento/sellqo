@@ -5310,7 +5310,10 @@
         "closed_desc": "Urlaub oder Feiertag? An diesen Tagen kann niemand Abholung oder Lieferung bestellen. Bestellen am Tisch richtet sich einfach nach Ihrem Lokal.",
         "closed_date": "Datum",
         "closed_add": "Tag hinzufügen",
-        "closed_none": "Keine Schließtage geplant."
+        "closed_none": "Keine Schließtage geplant.",
+        "option_allergens": "Allergene in {{name}}",
+        "option_allergens_count": "Allergene: {{count}}",
+        "also_linked_products": "Auch mit einzelnen Produkten verknüpft: {{count}}."
       },
       "schema": {
         "themeGallery": {

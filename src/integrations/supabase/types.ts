@@ -11890,6 +11890,7 @@ export type Database = {
       }
       product_addon_options: {
         Row: {
+          allergens: string[]
           created_at: string
           group_id: string
           id: string
@@ -11900,6 +11901,7 @@ export type Database = {
           tenant_id: string
         }
         Insert: {
+          allergens?: string[]
           created_at?: string
           group_id: string
           id?: string
@@ -11910,6 +11912,7 @@ export type Database = {
           tenant_id: string
         }
         Update: {
+          allergens?: string[]
           created_at?: string
           group_id?: string
           id?: string

@@ -2,7 +2,8 @@
 // storefront-api laadt de groepen die bij een product horen en valideert hier de keuze
 // van de klant. De prijs komt altijd uit de databank, nooit van de klant.
 
-export interface AddonOption { id: string; name: string; price: number }
+/** ALLERGEN-2: `allergens` alleen als de winkel ze invulde (respons blijft anders gelijk). */
+export interface AddonOption { id: string; name: string; price: number; allergens?: string[] }
 export interface AddonGroup { id: string; name: string; min_select: number; max_select: number | null; options: AddonOption[] }
 export interface ChosenAddon { group_id: string; group: string; option_id: string; name: string; price: number }
 export interface AddonSelection { addons: ChosenAddon[]; total: number; key: string | null }
@@ -12,7 +13,7 @@ export class AddonError extends Error {
 }
 
 interface GroupRow { id: string; name: string; min_select: number | null; max_select: number | null; category_ids: string[] | null; product_ids: string[] | null }
-interface OptionRow { id: string; group_id: string; name: string; price: number | string | null }
+interface OptionRow { id: string; group_id: string; name: string; price: number | string | null; allergens?: string[] | null }
 
 /** Groepen die gelden voor dit product (rechtstreeks of via een van zijn categorieën), met hun opties. */
 export function applicableGroups(groups: GroupRow[], options: OptionRow[], productId: string, categoryIds: string[]): AddonGroup[] {
@@ -20,7 +21,7 @@ export function applicableGroups(groups: GroupRow[], options: OptionRow[], produ
     .filter((g) => (g.product_ids || []).includes(productId) || (g.category_ids || []).some((c) => categoryIds.includes(c)))
     .map((g) => ({
       id: g.id, name: g.name, min_select: Math.max(0, Number(g.min_select) || 0), max_select: g.max_select == null ? null : Number(g.max_select),
-      options: options.filter((o) => o.group_id === g.id).map((o) => ({ id: o.id, name: o.name, price: round2(Number(o.price) || 0) })),
+      options: options.filter((o) => o.group_id === g.id).map((o) => ({ id: o.id, name: o.name, price: round2(Number(o.price) || 0), ...(o.allergens?.length ? { allergens: o.allergens } : {}) })),
     }))
     .filter((g) => g.options.length > 0);
 }

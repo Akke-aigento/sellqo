@@ -5175,7 +5175,10 @@
         "closed_desc": "Vakantie of feestdag? Op deze dagen kan niemand afhalen of laten leveren. Bestellen aan tafel volgt gewoon je zaak.",
         "closed_date": "Datum",
         "closed_add": "Dag toevoegen",
-        "closed_none": "Geen sluitingsdagen gepland."
+        "closed_none": "Geen sluitingsdagen gepland.",
+        "option_allergens": "Allergenen in {{name}}",
+        "option_allergens_count": "Allergenen: {{count}}",
+        "also_linked_products": "Ook gekoppeld aan losse producten: {{count}}."
       },
       "shopOpenCard": {
         "klanten_kunnen_afrekenen_uit_je_winkel": "Klanten kunnen afrekenen. Uit = je winkel toont je producten, zonder winkelmandje.",

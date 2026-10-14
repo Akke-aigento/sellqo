@@ -5310,7 +5310,10 @@
         "closed_desc": "Vacances ou jour férié ? Ces jours-là, personne ne peut commander à emporter ou en livraison. La commande à table suit simplement votre établissement.",
         "closed_date": "Date",
         "closed_add": "Ajouter un jour",
-        "closed_none": "Aucun jour de fermeture prévu."
+        "closed_none": "Aucun jour de fermeture prévu.",
+        "option_allergens": "Allergènes dans {{name}}",
+        "option_allergens_count": "Allergènes : {{count}}",
+        "also_linked_products": "Aussi associé à des produits individuels : {{count}}."
       },
       "schema": {
         "themeGallery": {
