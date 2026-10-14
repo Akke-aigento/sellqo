@@ -266,3 +266,20 @@ tegen de nulmeting, en vóór de deploy `scripts/promo-compare/smoke.ts` draaien
 builder terug. Na de deploy gaf élke `get_products` van alle winkels HTTP 500,
 van 11:36 tot 11:42. De nameting tegen `ops.snap_catalog_pre` ving het; de
 hotfix 1b pakte de builder in.
+
+## R11 — Lokaal groene lint ≠ groene CI. Draai de baseline ook na edge-function-werk.
+`scripts/verify-lint-baseline.mjs` vergelijkt met een vaste baseline, maar CI
+installeert de eslint-plugins uit `bun.lock`, terwijl een lokale `node_modules`
+vaak nieuwere versies heeft. Regels die alleen in de ene versie vuren, zie je
+dan lokaal niet. Bekend geval: `react-refresh/only-export-components` vuurt in
+CI op een niet-component-export uit een `.tsx` met componenten.
+**Regel:**
+- exporteer uit componentbestanden alleen componenten en types; constanten en
+  helpers horen in `src/lib/`;
+- draai de lint-baseline ook na wijzigingen in `supabase/functions/**`
+  (eslint dekt die map; `any` telt mee);
+- haal tijdelijke mappen zoals `.harness/` weg vóór de lint;
+- na de push: `gh run list --limit 1` tot de run groen is.
+**Incidenten (14 okt 2026):** FLEX-1 brak CI met 4 nieuwe `any` in
+`storefront-api`. MKT-3 brak CI op een geëxporteerde `SCENE_LOOP_MS` uit
+`LiveScene.tsx`, terwijl de lokale lint groen was.
