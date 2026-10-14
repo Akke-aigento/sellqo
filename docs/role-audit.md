@@ -1,3 +1,13 @@
+## Fonske readiness 24/10 — check op 14 oktober 2026
+
+- **Event 24/10** (7ae8364e): scheduled, capaciteit 40, minimum 15. Early bird €19 tot 23/10 22:00, daarna €25. 0 verkocht. De API geeft dit correct terug; fonskecrawl.com en /crawls geven 200 en tonen de datum.
+- **Toegevoegd:** scanlink "Deur 24/10" (zone Ingang, verloopt 25/10 06:00). scanner-context is getest en geeft 200. Er was voor 24/10 geen enkele deurlink.
+- **Mail:** ticketmails komen van SellQo (mail.sellqo.app). Resend is niet geverifieerd voor fonskecrawl.com, maar dat is niet nodig.
+- **Open, beslissing Akke:**
+  - Code `FONSKE` is €25 vast op de bestelling, limiet 40, geldig tot 24/10 21:00. Op één early-birdticket van €19 maakt dat het ticket gratis. Per-klantlimiet wordt niet afgedwongen. Iemand kan dus in theorie alle 40 plaatsen gratis boeken.
+  - Er bestaat nog geen echte betaalde Stripe-bestelling (alleen €0). Een betaald ticket is dus nog niet bewezen.
+- Verkeer fonskecrawl.com, 7–14/10: 26 bezoekers, 72 pageviews, vooral direct.
+
 ## TICKET-MAIL-1 — ticketmail ook na handmatig "betaald" — 14 oktober 2026
 
 **Probleem (gevonden bij FEST-E2E):** alleen de Stripe-webhook en gratis bestellingen riepen send-ticket-confirmation aan. Wie per overschrijving betaalde, kreeg na "betaald" markeren (knop, bankafstemming, bulkactie) geen tickets, en een knop om opnieuw te mailen ontbrak.
