@@ -1,3 +1,17 @@
+## MKT-3 + PERF-1 — levende hero en snelle demowinkels — 14 oktober 2026
+
+- **PERF-1 (storefront 0f13617, live, nagekeken):** de demowinkels waren traag door zo'n 20 AI-studiofoto's van ±800 kB per pagina.
+  - Foto's uit Supabase Storage gaan nu via `/storage/v1/render/image` met srcset en lazy loading. Voorbeeld: 846 kB wordt 94 kB bij 600 px.
+  - Live HTML van demo-pizzeria: 58 render-URL's, 0 ruwe.
+  - Dit geldt voor elke winkel op de standaardshop. Supabase rekent image transformations per origin-beeld; kost opvolgen.
+- **MKT-3 (a13f2db + fix):** donkerblauwe hero met een geanimeerde scène "een bestelling, overal tegelijk" (React/CSS, geen iframe).
+  - De scène draait door winkel, horeca en events, met echte foto's uit de demowinkels. Bij prefers-reduced-motion staat ze stil in de eindtoestand.
+  - /horeca en /events gebruiken dezelfde hero.
+  - Koppelingen: alleen wat vandaag werkt. Footer in het Nederlands.
+- **Les (CI):** de lokale node_modules (npm) hebben nieuwere eslint-plugins dan `bun.lock`. Lokaal "gelijk aan de baseline" bewijst dus niets.
+  - Hier faalde CI op `react-refresh/only-export-components` (een geëxporteerde constante in een componentbestand).
+  - Afspraak: in componentbestanden alleen componenten en types exporteren, en altijd `gh run list` nakijken.
+
 ## Prijzen per sector — PRICE-2, FLEX-1, MKT-2, SEO-2 — 14 oktober 2026
 
 Akke ging akkoord met: Horeca €49 per maand plus een opstartpakket van €149 via Studio Akke, Events Flex (€0 per maand, €0,49 per betaald ticket), Free als mini-webshop op sellqo.shop, één bron voor prijzen, en de homepage inkorten en eerlijk maken.
