@@ -6,7 +6,7 @@ NO_PEOPLE = "No text, no logos, no people."
 
 SHOPS = [
 # ───────────────────────────── WEBSHOP: MODE ─────────────────────────────
-dict(slug="demo-mode", name="Maison Lune", preset="kleding", tax=21, color="#111111", horeca=False, verb="verzonden",
+dict(slug="demo-kleding", name="Maison Lune", preset="kleding", tax=21, color="#111111", horeca=False, verb="verzonden",
   style="Editorial fashion product photograph, soft natural daylight, neutral warm beige studio backdrop, minimal and calm.",
   hero=("Een vrouw-loze mode-flatlay: linnen blouse, wollen trui en leren tas", "Editorial fashion still life: a linen shirt on a wooden hanger, a folded wool sweater and a leather bag on a beige plinth, morning light, wide composition."),
   story="Studio-detail: rekken met kleding in zachte tinten",
