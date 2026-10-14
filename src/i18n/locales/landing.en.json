@@ -1998,6 +1998,10 @@
         "festival_combos_and_tokens": {
           "title": "Combo tickets and tokens for festivals",
           "description": "Sell a weekend ticket, a combo with camping or a VIP weekend: one purchase, and the buyer gets a separate ticket with a QR code for each day. Also new: tokens for food and drinks. You sell token packs in your shop, the buyer gets one QR code, and at the bar your staff deduct tokens with a bar link on their phone, no account needed. Customers can request a refund for unused tokens themselves: it arrives as a return for you to approve. Find it under Events → Combo tickets and Events → Tokens."
+        },
+        "ticket_mail_after_manual_payment": {
+          "title": "Ticket email also after bank transfer payments",
+          "description": "When a customer pays for tickets or tokens by bank transfer, the ticket email now goes out automatically as soon as you mark the order as paid, including via bank reconciliation or a bulk action. Every order with tickets also shows when the email was sent, and Email tickets again sends it once more."
         }
       },
       "copyLink": "Copy link",

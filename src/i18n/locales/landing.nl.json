@@ -1998,6 +1998,10 @@
         "festival_combos_and_tokens": {
           "title": "Combitickets en munten voor festivals",
           "description": "Verkoop een weekendticket, een combi met camping of een VIP-weekend: één aankoop, en de koper krijgt per dag een eigen ticket met QR-code. Nieuw zijn ook munten voor drank en eten. Je verkoopt muntenpakketten in je webshop, de koper krijgt één QR-code, en aan de bar schrijft je personeel munten af met een barlink op hun gsm, zonder account. Ongebruikte munten laat de klant zelf terugstorten: dat komt als retour binnen, jij keurt goed. Te vinden onder Events → Combitickets en Events → Munten."
+        },
+        "ticket_mail_after_manual_payment": {
+          "title": "Ticketmail ook na betaling per overschrijving",
+          "description": "Betaalt een klant zijn tickets of munten per overschrijving, dan gaat de ticketmail nu automatisch uit zodra je de bestelling op betaald zet, ook via bankafstemming of een bulkactie. Bij elke bestelling met tickets zie je ook wanneer de mail vertrok, en met Tickets opnieuw mailen stuur je hem nog eens."
         }
       },
       "copyLink": "Kopieer link",

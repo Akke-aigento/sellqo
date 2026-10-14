@@ -1,3 +1,30 @@
+## TICKET-MAIL-1 — ticketmail ook na handmatig "betaald" — 14 oktober 2026
+
+**Probleem (gevonden bij FEST-E2E):** alleen de Stripe-webhook en gratis bestellingen riepen send-ticket-confirmation aan. Wie per overschrijving betaalde, kreeg na "betaald" markeren (knop, bankafstemming, bulkactie) geen tickets, en een knop om opnieuw te mailen ontbrak.
+
+**Migratie `20261014180000_ticket_mail_1.sql` (a155883, live via raw-fetch + md5 f85d2517…, nagekeken):**
+- `ticket_mail_log` (order_id pk, first/last_sent_at, send_count, last_source) is de claim: wie de rij aanmaakt, verstuurt. Dubbel mailen (webhook en trigger tegelijk) kan dus niet. RLS: lezen voor tenant_admin/staff.
+- Backfill: 5 bestaande ticketbestellingen (Fonske 3, demo's 2) als `backfill` op hun eigen besteldatum (vaste grens 2026-10-14 17:00 UTC).
+- Trigger `trg_ticket_mail_on_paid` (AFTER UPDATE OF payment_status, naar paid): bij tickets of een muntenkaart en nog geen log volgt een pg_net-post met de anon-key en `auto: true`. Hij draait na `trg_issue_tickets_on_paid` (alfabetisch), dus de tickets bestaan al.
+
+**send-ticket-confirmation `TICKET-MAIL-1` (deploy via Lovable, vingerafdruk gemeten).** Er zijn drie modi:
+- **service** (webhook, storefront-api): één keer, via de claim;
+- **user** (admin-knop): `requireRole` tenant_admin/staff op de winkel van de bestelling, en versturen mag altijd opnieuw. Voordien kon elke ingelogde gebruiker de mail voor eender welke bestelling triggeren;
+- **auto** (trigger): alleen voor betaalde bestellingen, één keer.
+
+Mislukt het versturen, dan wordt de claim weer vrijgegeven.
+
+**Admin (a155883, live na publish):** een kaart "Tickets en munten" bij de bestelling toont het aantal tickets, het muntensaldo en wanneer de mail vertrok. Knop **Tickets opnieuw mailen**. i18n: 15 keys in 5 talen.
+
+**E2E (demo-festival #0002, weekendticket + 10 munten, overschrijving):**
+- Op betaald gezet: 3 tickets en een kaart, de trigger mailt (Resend-id 01a13b53…) en de log staat op `auto`.
+- Nog eens `auto`: `already sent`.
+- Anon zonder `auto`: 401.
+- `auto` op een onbetaalde bestelling: `not paid`.
+- **Niet getest:** de admin-knop (user-JWT). Die test Akke na de publish.
+
+**Fonske:** de mailinhoud is ongewijzigd. Gratis en Stripe-bestellingen mailen zoals voorheen, nu wel via de claim. Scanner niet aangeraakt. Changelog 2026.11o, newsletter-wachtrij. DOCS-1: n.v.t. (geen nieuw scherm buiten de bestelling; staat in de changelog).
+
 ## FEST-1 + FEST-2 — combitickets en munten (drank/eten) voor festivals — 14 oktober 2026
 
 **Migratie `20261014160000_fest_1_2_bundles_tokens.sql` (4f23613, live en nagekeken).** Strikt additief.

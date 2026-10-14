@@ -1998,6 +1998,10 @@
         "festival_combos_and_tokens": {
           "title": "Billets combinés et jetons pour les festivals",
           "description": "Vendez un pass week-end, un combiné avec camping ou un week-end VIP : un seul achat, et l'acheteur reçoit un billet avec QR code pour chaque jour. Nouveau aussi : des jetons pour boissons et nourriture. Vous vendez des packs de jetons dans votre boutique, l'acheteur reçoit un seul QR code, et au bar votre équipe débite les jetons avec un lien bar sur son téléphone, sans compte. Le client demande lui-même le remboursement des jetons non utilisés : cela arrive comme retour, que vous validez. Dans Événements → Billets combinés et Événements → Jetons."
+        },
+        "ticket_mail_after_manual_payment": {
+          "title": "E-mail des billets aussi après un paiement par virement",
+          "description": "Quand un client paie ses billets ou jetons par virement, l'e-mail des billets part désormais automatiquement dès que vous marquez la commande comme payée, y compris via le rapprochement bancaire ou une action groupée. Chaque commande avec billets indique aussi quand l'e-mail est parti, et Renvoyer les billets l'envoie à nouveau."
         }
       },
       "copyLink": "Copier le lien",

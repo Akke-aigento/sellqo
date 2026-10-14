@@ -1998,6 +1998,10 @@
         "festival_combos_and_tokens": {
           "title": "Kombitickets und Marken für Festivals",
           "description": "Verkaufen Sie ein Wochenendticket, eine Kombi mit Camping oder ein VIP-Wochenende: ein Kauf, und der Käufer erhält pro Tag ein eigenes Ticket mit QR-Code. Neu sind auch Marken für Essen und Getränke. Sie verkaufen Markenpakete im Shop, der Käufer erhält einen QR-Code, und an der Bar bucht Ihr Personal mit einem Bar-Link auf dem Handy ab, ohne Konto. Ungenutzte Marken lässt der Kunde selbst erstatten: Das kommt als Retoure an, die Sie freigeben. Unter Events → Kombitickets und Events → Marken."
+        },
+        "ticket_mail_after_manual_payment": {
+          "title": "Ticket-E-Mail auch nach Zahlung per Überweisung",
+          "description": "Bezahlt ein Kunde Tickets oder Marken per Überweisung, geht die Ticket-E-Mail jetzt automatisch raus, sobald Sie die Bestellung als bezahlt markieren, auch über den Bankabgleich oder eine Sammelaktion. Bei jeder Bestellung mit Tickets sehen Sie außerdem, wann die E-Mail rausging, und mit Tickets erneut mailen senden Sie sie noch einmal."
         }
       },
       "copyLink": "Link kopieren",

@@ -4,6 +4,15 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11o — Ticketmail ook na betaling per overschrijving (bugfix, 14-10-2026)
+
+**Voor wie:** winkels die tickets of munten verkopen met overschrijving.
+
+De ticketmail gaat nu ook uit als je een bestelling handmatig op betaald zet (knop, bankafstemming, bulkactie).
+Nieuwe kaart Tickets en munten bij de bestelling, met verzenddatum en Tickets opnieuw mailen.
+
+**i18n-keys.** `public.changelog.changes.ticket_mail_after_manual_payment` — 5 talen.
+
 ### 2026.11n — Combitickets en munten voor festivals (feature, 14-10-2026)
 
 **Voor wie:** festivals, meerdaagse events, iedereen met een bar of foodstand (events-module).
