@@ -7,7 +7,7 @@
 // Geen ticket_instances voor de order → skip (veilig bij onbedoelde aanroep).
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, AuthError, authErrorResponse, requireRole, type AuthResult } from "../_shared/auth.ts";
 import { tenantSender } from "../_shared/emailSenders.ts";
 import {
   getTenantBrand,
@@ -68,10 +68,23 @@ function formatTime(start: string | null, end: string | null): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "FEST-2b" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "TICKET-MAIL-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
-    await authenticateRequest(req);
+    // TICKET-MAIL-1 — drie soorten aanroepen:
+    //  - service: webhook/storefront-api bij betaling (één keer, via de claim in ticket_mail_log);
+    //  - user:    "Tickets opnieuw mailen" in de admin (tenant_admin/staff van die winkel, altijd versturen);
+    //  - auto:    trigger trg_ticket_mail_on_paid met de anon-key; enkel betaalde bestellingen, één keer.
+    const body = await req.json().catch(() => ({})) as { order_id?: string; auto?: boolean };
+    let mode: "service" | "user" | "auto";
+    let auth: AuthResult | null = null;
+    try {
+      auth = await authenticateRequest(req);
+      mode = auth.user_id === "service_role" ? "service" : "user";
+    } catch (e) {
+      if (e instanceof AuthError && body.auto === true) mode = "auto";
+      else throw e;
+    }
 
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) throw new Error("RESEND_API_KEY is not set");
@@ -83,18 +96,24 @@ serve(async (req) => {
       { auth: { persistSession: false } },
     );
 
-    const { order_id } = await req.json();
-    if (!order_id) throw new Error("order_id is required");
+    const order_id = body.order_id;
+    if (!order_id || !/^[0-9a-f-]{36}$/i.test(order_id)) throw new Error("order_id is required");
 
     log("Processing", { order_id });
 
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("id, order_number, customer_email, customer_name, locale, tenant_id, shipping_address")
+      .select("id, order_number, customer_email, customer_name, locale, tenant_id, shipping_address, payment_status")
       .eq("id", order_id)
       .single();
 
     if (orderError || !order) throw new Error(`Order not found: ${orderError?.message}`);
+    if (mode === "user") requireRole(auth!, order.tenant_id, ["tenant_admin", "staff"]);
+    if (mode === "auto" && order.payment_status !== "paid") {
+      return new Response(JSON.stringify({ skipped: true, reason: "not paid" }), {
+        status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { data: tickets, error: ticketsError } = await supabase
       .from("ticket_instances")
@@ -329,7 +348,23 @@ serve(async (req) => {
       ? t(locale, "ticket.subject", { eventName })
       : t(locale, "ticket.walletSubject", { tokenNamePlural, shopName: brand.tenantName });
 
-    log("Sending", { to: recipient, tickets: total, wallet: !!wallet });
+    // TICKET-MAIL-1 — claim: alleen wie de logrij aanmaakt, verstuurt. Opnieuw mailen werkt de rij bij.
+    const resend_ = mode === "user";
+    if (!resend_) {
+      const { data: claimed, error: claimErr } = await supabase
+        .from("ticket_mail_log")
+        .upsert({ order_id, tenant_id: order.tenant_id, last_source: mode }, { onConflict: "order_id", ignoreDuplicates: true })
+        .select("order_id");
+      if (claimErr) throw new Error(`Claim failed: ${claimErr.message}`);
+      if (!claimed || claimed.length === 0) {
+        log("Already sent — skipping", { order_id, mode });
+        return new Response(JSON.stringify({ skipped: true, reason: "already sent" }), {
+          status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    log("Sending", { to: recipient, tickets: total, wallet: !!wallet, mode });
 
     const { Resend } = await import("https://esm.sh/resend@2.0.0");
     const resend = new Resend(resendApiKey);
@@ -344,7 +379,23 @@ serve(async (req) => {
       reply_to: sender.replyTo,
     });
 
-    if (emailError) throw new Error(`Email verzenden mislukt: ${emailError.message}`);
+    if (emailError) {
+      // Claim vrijgeven, zodat een volgende poging (of de admin) opnieuw kan versturen.
+      if (!resend_) await supabase.from("ticket_mail_log").delete().eq("order_id", order_id).eq("send_count", 1);
+      throw new Error(`Email verzenden mislukt: ${emailError.message}`);
+    }
+    if (resend_) {
+      const { data: prev } = await supabase.from("ticket_mail_log").select("send_count").eq("order_id", order_id).maybeSingle();
+      const now = new Date().toISOString();
+      if (prev) {
+        await supabase.from("ticket_mail_log")
+          .update({ last_sent_at: now, send_count: Number(prev.send_count ?? 0) + 1, last_source: "user" })
+          .eq("order_id", order_id);
+      } else {
+        await supabase.from("ticket_mail_log")
+          .insert({ order_id, tenant_id: order.tenant_id, first_sent_at: now, last_sent_at: now, last_source: "user" });
+      }
+    }
 
     log("Sent", { id: emailData?.id });
     return new Response(JSON.stringify({ success: true, email_id: emailData?.id, tickets: total }), {

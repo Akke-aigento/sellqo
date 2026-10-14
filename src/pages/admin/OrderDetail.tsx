@@ -39,6 +39,7 @@ import { AlertTriangle } from 'lucide-react';
 import { ORDER_STATUS_TRANSITIONS, ALL_ORDER_STATUSES, getValidNextStatuses } from '@/lib/orderTransitions';
 import { OrderReturnTimeline } from '@/components/admin/OrderReturnTimeline';
 import { PrintfulOrderCard } from '@/components/admin/fulfilment/PrintfulOrderCard';
+import { OrderTicketsCard } from '@/components/admin/OrderTicketsCard';
 import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
@@ -369,6 +370,10 @@ export default function OrderDetailPage() {
               </div>
             </CardContent>
           </Card>
+
+          {currentTenant?.id && id && (
+            <OrderTicketsCard orderId={id} tenantId={currentTenant.id} paid={order.payment_status === 'paid' || order.payment_status === 'partially_refunded'} />
+          )}
 
           {/* Card 2: Klant & Adressen */}
           {currentTenant?.id && id && (

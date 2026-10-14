@@ -5738,6 +5738,23 @@
       "turn_on": "Activer {{name}}",
       "ask_admin": "Demandez à l'administrateur de votre boutique d'activer ce module.",
       "save_failed": "L'enregistrement a échoué. Réessayez."
+    },
+    "orderTickets": {
+      "title": "Billets et jetons",
+      "tickets_one": "{{count}} billet valide",
+      "tickets_other": "{{count}} billets valides",
+      "checked_in_one": "{{count}} enregistré",
+      "checked_in_other": "{{count}} enregistrés",
+      "wallet": "Carte de jetons : {{balance}} sur {{purchased}}",
+      "open_wallet": "Voir",
+      "mail_sent": "E-mail des billets envoyé le {{date}}.",
+      "mail_sent_again": "E-mail des billets envoyé en dernier le {{date}} ({{count}}×).",
+      "mail_not_sent": "L'e-mail des billets n'a pas encore été envoyé.",
+      "mail_after_payment": "Les billets sont envoyés par e-mail dès que la commande est payée.",
+      "send": "Envoyer les billets",
+      "resend": "Renvoyer les billets",
+      "resent": "Les billets ont été envoyés",
+      "resend_failed": "L'envoi a échoué"
     }
   },
   "billing": {

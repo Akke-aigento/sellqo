@@ -5989,6 +5989,23 @@
       "turn_on": "{{name}} aanzetten",
       "ask_admin": "Vraag de beheerder van je winkel om deze module aan te zetten.",
       "save_failed": "Opslaan mislukt. Probeer het opnieuw."
+    },
+    "orderTickets": {
+      "title": "Tickets en munten",
+      "tickets_one": "{{count}} geldig ticket",
+      "tickets_other": "{{count}} geldige tickets",
+      "checked_in_one": "{{count}} ingecheckt",
+      "checked_in_other": "{{count}} ingecheckt",
+      "wallet": "Muntenkaart: {{balance}} van {{purchased}}",
+      "open_wallet": "Bekijken",
+      "mail_sent": "Ticketmail verstuurd op {{date}}.",
+      "mail_sent_again": "Ticketmail laatst verstuurd op {{date}} ({{count}}×).",
+      "mail_not_sent": "De ticketmail is nog niet verstuurd.",
+      "mail_after_payment": "De tickets gaan per mail zodra de bestelling betaald is.",
+      "send": "Tickets mailen",
+      "resend": "Tickets opnieuw mailen",
+      "resent": "Tickets zijn gemaild",
+      "resend_failed": "Mailen lukte niet"
     }
   },
   "product_form": {

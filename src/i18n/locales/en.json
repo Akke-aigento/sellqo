@@ -5975,6 +5975,23 @@
       "turn_on": "Switch on {{name}}",
       "ask_admin": "Ask your shop's administrator to switch on this module.",
       "save_failed": "Saving failed. Please try again."
+    },
+    "orderTickets": {
+      "title": "Tickets and tokens",
+      "tickets_one": "{{count}} valid ticket",
+      "tickets_other": "{{count}} valid tickets",
+      "checked_in_one": "{{count}} checked in",
+      "checked_in_other": "{{count}} checked in",
+      "wallet": "Token card: {{balance}} of {{purchased}}",
+      "open_wallet": "View",
+      "mail_sent": "Ticket email sent on {{date}}.",
+      "mail_sent_again": "Ticket email last sent on {{date}} ({{count}}×).",
+      "mail_not_sent": "The ticket email hasn't been sent yet.",
+      "mail_after_payment": "Tickets are emailed once the order is paid.",
+      "send": "Email tickets",
+      "resend": "Email tickets again",
+      "resent": "Tickets have been emailed",
+      "resend_failed": "Could not send the email"
     }
   },
   "product_form": {

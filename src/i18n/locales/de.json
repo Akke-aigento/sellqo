@@ -5738,6 +5738,23 @@
       "turn_on": "{{name}} aktivieren",
       "ask_admin": "Bitten Sie den Administrator Ihres Shops, dieses Modul zu aktivieren.",
       "save_failed": "Speichern fehlgeschlagen. Bitte erneut versuchen."
+    },
+    "orderTickets": {
+      "title": "Tickets und Marken",
+      "tickets_one": "{{count}} gültiges Ticket",
+      "tickets_other": "{{count}} gültige Tickets",
+      "checked_in_one": "{{count}} eingecheckt",
+      "checked_in_other": "{{count}} eingecheckt",
+      "wallet": "Markenkarte: {{balance}} von {{purchased}}",
+      "open_wallet": "Ansehen",
+      "mail_sent": "Ticket-E-Mail am {{date}} gesendet.",
+      "mail_sent_again": "Ticket-E-Mail zuletzt am {{date}} gesendet ({{count}}×).",
+      "mail_not_sent": "Die Ticket-E-Mail wurde noch nicht gesendet.",
+      "mail_after_payment": "Die Tickets werden per E-Mail gesendet, sobald die Bestellung bezahlt ist.",
+      "send": "Tickets mailen",
+      "resend": "Tickets erneut mailen",
+      "resent": "Tickets wurden gesendet",
+      "resend_failed": "Senden fehlgeschlagen"
     }
   },
   "billing": {
