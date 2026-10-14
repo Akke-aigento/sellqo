@@ -17867,3 +17867,10 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
   - `types.ts` is aangevuld met de nieuwe kolom.
 
 **Gedeelde-paden-waarschuwing:** voor het standaardtype verandert er niets, dus ook niet voor Fonske en de andere frontends die `current_price` en `early_bird_price` van de datum lezen. Enkel extra types krijgen een andere (correcte) prijs. Live combineerde geen enkele datum vandaag een early bird met extra types.
+- **Deploy-verificatie EB-TYPES-1 (14-10, ±13u35):**
+  - CI groen, inclusief de nieuwe rooktest. storefront-api gedeployed via Lovable (deploy-only, geen agent-commits); GET-stempel `EB-TYPES-1`.
+  - Nulmeting en nameting zijn byte-identiek (md5): Fonske `get_product` (1555 b), VanXcel `get_products` (98367 b), Mancini `get_products` (37728 b).
+  - Gedragstest op het TEST-event:
+    - verborgen type "VIP" (€40) met een eigen early bird van €30, en een early-bird-einddatum op de testdatum;
+    - `get_product` gaf VIP €30, en het standaardticket bleef €0.
+  - Het VIP-type blijft staan om mee te testen.
