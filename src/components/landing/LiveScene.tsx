@@ -11,7 +11,7 @@ export type SceneSector = 'retail' | 'horeca' | 'events';
 
 // Stappen: 0 product · 1 knop ingedrukt · 2 besteld, verschijnt rechts · 3 verwerkt · 4 klaar
 const STEP_MS = [1500, 700, 1700, 1700, 2600];
-export const SCENE_LOOP_MS = STEP_MS.reduce((a, b) => a + b, 0);
+
 const LAST = STEP_MS.length - 1;
 
 const ICONS: Record<SceneSector, { product: LucideIcon; screen: LucideIcon }> = {
