@@ -388,7 +388,7 @@
       "badge_horeca": "Für die Gastronomie",
       "badge_events_flex": "Für Events",
       "desc_free": "Ein kleiner Webshop für den Start.",
-      "desc_starter": "Ihr eigener Shop, mit eigener Domain.",
+      "desc_starter": "Ein vollwertiger Webshop für Ihr Geschäft.",
       "desc_pro": "Webshop, Kasse und bol.com zusammen.",
       "desc_enterprise": "Für große Sortimente und Teams.",
       "desc_horeca": "Bestellseite, QR-Menü, Küche und Kasse.",
@@ -411,7 +411,7 @@
       "feat_events": "Tickets, QR per E-Mail und Einlass",
       "feat_webshop": "Webshop unter ihrgeschaeft.sellqo.shop",
       "feat_pos": "Kasse",
-      "feat_domain": "Eigene Domain",
+      "feat_domain": "Eigene Domain (demnächst)",
       "feat_editor": "Erweiterter Shop-Editor",
       "feat_bol": "bol.com-Anbindung",
       "feat_odoo": "Odoo-Buchhaltung, mit Peppol",
@@ -461,7 +461,7 @@
         },
         {
           "q": "Was kostet Events Flex?",
-          "a": "Nichts pro Monat und 0,49 € pro bezahltem Ticket, ohne Prozentsatz. Die Gebühr wird automatisch von der Online-Zahlung abgezogen. Kostenlose Tickets kosten nichts. Tickets mit Events Flex werden online bezahlt, dafür verbinden Sie Ihr Stripe-Konto."
+          "a": "Nichts pro Monat und 0,49 € pro bezahltem Ticket, ohne Prozentsatz. Die Gebühr wird automatisch von der Online-Zahlung abgezogen. Kostenlose Tickets kosten nichts. Tickets mit Events Flex werden online bezahlt."
         },
         {
           "q": "Gibt es Kosten zusätzlich zum Abo?",
@@ -473,11 +473,11 @@
         },
         {
           "q": "Kann ich auch im Laden verkaufen?",
-          "a": "Ja. Die Kasse nutzt dieselben Produkte, Preise und Bestände wie Ihr Webshop, mit Kassenbon, Gutscheinen und Tagesabschluss. Sie ist in Pro, Enterprise und im Gastronomie-Tarif enthalten."
+          "a": "Ja. Die Kasse nutzt dieselben Produkte, Preise und Bestände wie Ihr Webshop, mit Kassenbon und Tagesabschluss. Sie ist in Pro, Enterprise und im Gastronomie-Tarif enthalten."
         },
         {
           "q": "In welchen Sprachen funktioniert SellQo?",
-          "a": "Die Verwaltung gibt es auf Niederländisch, Englisch, Französisch, Deutsch und Ukrainisch. Rechnungen und Kundenmails gehen auf Niederländisch, Englisch, Französisch oder Deutsch raus. Der Standard-Webshop ist heute niederländischsprachig; weitere Sprachen folgen."
+          "a": "Die Verwaltung gibt es auf Niederländisch, Englisch, Französisch, Deutsch und Ukrainisch. Kundenmails gehen auf Niederländisch, Englisch, Französisch oder Deutsch raus. Rechnungen sind niederländisch, mit dem MwSt.-Hinweis in der Sprache Ihres Kunden. Der Standard-Webshop ist heute niederländischsprachig; weitere Sprachen folgen."
         },
         {
           "q": "Kann ich meinen bestehenden Webshop umziehen?",
@@ -555,13 +555,13 @@
         "why_text": "Sie bringen Gäste, berechnen aber einen Prozentsatz pro Bestellung. Und der Gast bleibt ihrer. Mit Ihrer eigenen Bestellseite zahlen Sie einen festen Monatsbetrag, Bestellungen kommen direkt bei Ihnen an und Sie bauen Ihren eigenen Kundenstamm auf.",
         "features_title": "Alles, was Ihr Betrieb braucht",
         "f_site": "Eigene Bestellseite",
-        "f_site_text": "Ihre Speisekarte ist sofort online, mit Fotos, Extras und Ihren Farben. Eine eigene Domain können Sie auch verbinden.",
+        "f_site_text": "Ihre Speisekarte ist sofort online, mit Fotos, Extras und Ihren Farben. Eine eigene Domain verbinden kommt demnächst.",
         "f_pickup": "Abholung und Lieferung",
         "f_pickup_text": "Mit Zeitfenstern, Liefergebieten, Liefergebühren und Mindestbestellwert. Gäste wählen ihren Zeitpunkt selbst.",
         "f_qr": "Bestellen am Tisch",
         "f_qr_text": "Ein QR-Code pro Tisch. Gäste sehen die Karte oder bestellen direkt und zahlen online oder an der Theke.",
         "f_kitchen": "Ein Küchenbildschirm",
-        "f_kitchen_text": "Webshop, Tische und Kasse laufen zusammen, mit druckbarem Küchenbon. Gäste bekommen eine Nachricht, wenn alles fertig ist.",
+        "f_kitchen_text": "Webshop, Tische und Kasse laufen zusammen, mit druckbarem Küchenbon. Online-Kunden bekommen eine E-Mail, wenn alles fertig ist.",
         "f_pos": "Kasse mit derselben Karte",
         "f_pos_text": "An der Theke kassieren Sie dieselben Gerichte, Extras und Preise wie online. Eine Karte, einmal pflegen.",
         "f_allergens": "Allergene geregelt",
@@ -582,7 +582,7 @@
         "demo_table": "An Tisch 4 bestellen",
         "plan_text": "Bestellseite, Kasse, Küchenbildschirm und QR-Menü. Keine Provision pro Bestellung.",
         "q1": "Brauche ich schon eine Website?",
-        "q1_a": "Nein. Ihre Bestellseite ist sofort unter ihrgeschaeft.sellqo.shop online. Eine eigene Domain können Sie später verbinden.",
+        "q1_a": "Nein. Ihre Bestellseite ist sofort unter ihrgeschaeft.sellqo.shop online. Eine eigene Domain verbinden kommt demnächst.",
         "q2": "Wie bezahlen meine Gäste?",
         "q2_a": "Online mit Bancontact, Karte oder Apple Pay über Ihr eigenes Stripe-Konto, oder bei Abholung und an der Theke. Sie wählen, was Sie anbieten. SellQo berechnet nichts pro Bestellung.",
         "q3": "Kann ich Bestellungen stoppen, wenn es zu voll wird?",
@@ -600,7 +600,7 @@
         "title1": "Ihre Tickets.",
         "title2": "Ihre Gäste.",
         "subtitle": "Verkaufen Sie Tickets für Partys, Touren und Workshops und scannen Sie sie am Einlass mit dem Handy. Nichts pro Monat, eine feste Gebühr pro verkauftem Ticket, und die Daten Ihrer Gäste bleiben Ihre.",
-        "trust1": "14 Tage kostenlos",
+        "trust1": "Kein Abo nötig",
         "trust2": "0 € pro Monat",
         "trust3": "Einlass mit dem Handy",
         "proof_label": "Läuft schon auf SellQo",
@@ -674,17 +674,17 @@
       "heading": "Was in jedem SellQo steckt",
       "subheading": "Die Basis Ihres Geschäfts, ob Sie Kleidung, Pizza oder Tickets verkaufen.",
       "shop_title": "Ihr eigener Webshop",
-      "shop_text": "Sofort online unter ihrgeschaeft.sellqo.shop. Thema wählen, im Editor anpassen und später die eigene Domain verbinden.",
+      "shop_text": "Sofort online unter ihrgeschaeft.sellqo.shop. Thema wählen und im Editor anpassen. Eine eigene Domain verbinden kommt demnächst.",
       "pos_title": "Kasse",
-      "pos_text": "Dieselben Produkte und Bestände wie online, mit Kassenbon, Gutscheinen und Tagesabschluss. Ab Pro und im Gastronomie-Tarif.",
+      "pos_text": "Dieselben Produkte und Bestände wie online, mit Kassenbon und Tagesabschluss. Ab Pro und im Gastronomie-Tarif.",
       "orders_title": "Bestellungen und Bestand",
       "orders_text": "Alle Bestellungen an einem Ort, aus Webshop, Kasse und bol.com. Der Bestand folgt automatisch.",
       "invoices_title": "Rechnungen und MwSt.",
-      "invoices_text": "Rechnungen in vier Sprachen, MwSt. und OSS korrekt berechnet. Mit der Odoo-Anbindung (Pro) laufen B2B-Rechnungen über Peppol.",
+      "invoices_text": "Nach einer bezahlten Bestellung erstellt SellQo sofort die Rechnung, mit korrekt berechneter MwSt. und OSS. Mit der Odoo-Anbindung (Pro) laufen B2B-Rechnungen über Peppol.",
       "bol_title": "Verkaufen auf bol.com",
-      "bol_text": "Bestellungen von bol.com landen in SellQo und Ihr Bestand bleibt überall gleich. Ab Pro.",
-      "promos_title": "Rabatte und Gutscheine",
-      "promos_text": "Rabattcodes im Webshop und Gutscheine an der Kasse."
+      "bol_text": "Bestellungen von bol.com landen in SellQo und Ihr Bestand wird alle 30 Minuten auf bol.com aktualisiert. Ab Pro.",
+      "promos_title": "Rabattcodes",
+      "promos_text": "Erstellen Sie Rabattcodes, die Kunden im Warenkorb eingeben."
     },
     "scene": {
       "live": "Live",
@@ -695,20 +695,20 @@
         "price": "18,00 €",
         "button": "In den Warenkorb",
         "confirm_title": "Danke, Lotte!",
-        "confirm_text": "Ihre Bestellung ist unterwegs. Sie erhalten eine E-Mail mit Sendungsverfolgung.",
+        "confirm_text": "Ihre Bestellung ist aufgegeben. Sie erhalten eine Bestätigung per E-Mail.",
         "screen_title": "Bestellungen",
         "row_old_1": "#1041 · bol.com · versendet",
         "row_old_2": "#1042 · Kasse · bezahlt",
         "row_new": "#1043 · Lotte V.",
         "row_new_detail": "Webshop · Tasse Fjord Salbei · 18,00 €",
         "status_new": "Neu",
-        "status_busy": "Verpacken",
-        "status_done": "Versendet",
+        "status_busy": "Bezahlt",
+        "status_done": "Rechnung erstellt",
         "metric_label": "Bestand Tasse Fjord Salbei",
         "metric_before": "12",
-        "metric_after": "11, auch auf bol.com",
-        "toast": "Rechnung erstellt und Bestand auf bol.com aktualisiert",
-        "caption": "Eine Bestellung im Webshop: Der Bestand stimmt sofort überall, auch auf bol.com und an der Kasse."
+        "metric_after": "11, auch in der Kasse",
+        "toast": "Rechnung erstellt und Bestand aktualisiert",
+        "caption": "Eine Bestellung im Webshop: Die Rechnung steht bereit, der Bestand sinkt sofort in der Kasse und auf bol.com innerhalb von 30 Minuten."
       },
       "horeca": {
         "shop": "Pizzeria Fiamma",
@@ -717,7 +717,7 @@
         "price": "21,00 €",
         "button": "Für 18:30 bestellen",
         "confirm_title": "Bestellung #0042",
-        "confirm_text": "Abholung um 18:30. Wir melden uns, sobald es fertig ist.",
+        "confirm_text": "Abholung um 18:30. Sie bekommen eine E-Mail, sobald es fertig ist.",
         "screen_title": "Küche",
         "row_old_1": "Tisch 2 · 2× Margherita",
         "row_old_2": "Kasse · Tiramisu",
@@ -729,7 +729,7 @@
         "metric_label": "Warteschlange",
         "metric_before": "3 Bestellungen",
         "metric_after": "2 Bestellungen",
-        "toast": "Sam hat eine Nachricht bekommen: Ihre Pizza ist fertig",
+        "toast": "Sam hat eine E-Mail bekommen: Ihre Pizza ist fertig",
         "caption": "Online, am Tisch oder an der Theke: Alles landet auf einem Küchenbildschirm.",
         "more": "Mehr zur Gastronomie"
       },
@@ -761,12 +761,32 @@
       "heading": "Arbeitet mit dem, was Sie schon nutzen",
       "subheading": "Keine Tools zusammenbasteln. Diese Anbindungen sind eingebaut und funktionieren heute.",
       "soon": "Demnächst: Amazon, Google Shopping und Meta.",
-      "bol": "Bestellungen und Bestand synchron. Ab Pro.",
+      "bol": "Bestellungen rein, Bestand alle 30 Minuten aktualisiert. Ab Pro.",
       "stripe": "Online-Zahlungen auf Ihr eigenes Konto.",
       "bancontact": "Belgiens Bezahlkarte, über Stripe.",
       "ideal": "Für Ihre niederländischen Kunden, über Stripe.",
       "odoo": "Rechnungen in Ihre Buchhaltung. Ab Pro.",
       "peppol": "B2B-Rechnungen elektronisch, über Odoo."
+    },
+    "facts": {
+      "one": "1 Plattform",
+      "one_label": "für Webshop, Kasse und bol.com",
+      "trial": "14 Tage",
+      "trial_label": "kostenlos testen, ohne Kreditkarte",
+      "languages": "5 Sprachen",
+      "languages_label": "in Ihrer Verwaltung",
+      "belgium": "Gebaut in Belgien",
+      "belgium_label": "von Nomadix BV, Oud-Heverlee"
+    },
+    "running": {
+      "heading": "Läuft heute schon auf SellQo",
+      "subheading": "Echte Unternehmen, darunter unsere eigenen. So bemerken wir einen Fehler als Erste.",
+      "vanxcel_what": "Wohnmobil-Elektronik",
+      "vanxcel_uses": "Eigener Webshop auf SellQo, mit bol.com verbunden.",
+      "loveke_what": "Streetwear",
+      "loveke_uses": "Der Katalog liegt in SellQo, der Webshop folgt.",
+      "fonske_what": "Kneipentour in Löwen",
+      "fonske_uses": "Tickets mit Terminen und Ticketarten, und QR-Tickets per E-Mail."
     }
   },
   "public": {

@@ -1,89 +1,21 @@
-import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
-import { cn } from '@/lib/utils';
-import { TrendingUp, Users, Shield } from 'lucide-react';
-import { useEffect, useState } from 'react';
+// MKT-4 — alleen feiten die kloppen. (Vroeger: verzonnen tellers "500+ ondernemers",
+// "€2,4M omzet", "99,9% uptime".)
 import { useTranslation } from 'react-i18next';
 
-function AnimatedCounter({ value, prefix = '', suffix = '' }: { value: number; prefix?: string; suffix?: string }) {
-  const [count, setCount] = useState(0);
-  const { ref, isIntersecting } = useIntersectionObserver({ triggerOnce: true });
-
-  useEffect(() => {
-    if (!isIntersecting) return;
-    
-    const duration = 2000;
-    const steps = 60;
-    const increment = value / steps;
-    let current = 0;
-    
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= value) {
-        setCount(value);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(current));
-      }
-    }, duration / steps);
-
-    return () => clearInterval(timer);
-  }, [isIntersecting, value]);
-
-  const formatNumber = (num: number) => {
-    if (num >= 1000000) {
-      return (num / 1000000).toFixed(1) + 'M';
-    }
-    if (num >= 1000) {
-      return (num / 1000).toFixed(num % 1000 === 0 ? 0 : 1) + 'K';
-    }
-    return num.toLocaleString('nl-NL');
-  };
-
-  return (
-    <span ref={ref}>
-      {prefix}{typeof value === 'number' && value < 100 ? count.toFixed(1) : formatNumber(count)}{suffix}
-    </span>
-  );
-}
+const FACTS = ['one', 'trial', 'languages', 'belgium'] as const;
 
 export function SocialProofSection() {
-  const { ref, isIntersecting } = useIntersectionObserver();
   const { t } = useTranslation();
-
-  const stats = [
-    { icon: Users, value: 500, suffix: '+', label: t('landing.social.entrepreneurs') },
-    { icon: TrendingUp, value: 2400000, prefix: '€', suffix: '+', label: t('landing.social.revenue') },
-    { icon: Shield, value: 99.9, suffix: '%', label: t('landing.social.uptime') },
-  ];
-
   return (
-    <section className="py-12 md:py-16 bg-secondary/30">
-      <div className="container mx-auto px-4">
-        {/* Stats Grid */}
-        <div
-          ref={ref}
-          className="grid grid-cols-3 gap-4 md:gap-8 max-w-4xl mx-auto"
-        >
-          {stats.map((stat, index) => (
-            <div
-              key={index}
-              className={cn(
-                'text-center p-4 md:p-6 bg-background rounded-2xl border border-border shadow-sellqo',
-                isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
-              )}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <div className="w-10 h-10 md:w-14 md:h-14 mx-auto mb-3 md:mb-4 bg-primary/10 rounded-xl md:rounded-2xl flex items-center justify-center">
-                <stat.icon className="w-5 h-5 md:w-7 md:h-7 text-primary" />
-              </div>
-              <div className="text-xl md:text-3xl lg:text-4xl font-bold text-foreground mb-1 md:mb-2">
-                <AnimatedCounter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
-              </div>
-              <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+    <section className="border-b border-border bg-background py-10 md:py-12">
+      <dl className="container mx-auto grid max-w-6xl grid-cols-2 gap-x-6 gap-y-8 px-4 md:grid-cols-4">
+        {FACTS.map((f) => (
+          <div key={f} className="md:border-l md:border-border md:pl-6 md:first:border-l-0 md:first:pl-0">
+            <dt className="text-2xl font-extrabold tracking-tight text-foreground md:text-3xl">{t(`landing.facts.${f}`)}</dt>
+            <dd className="mt-1 text-sm text-muted-foreground">{t(`landing.facts.${f}_label`)}</dd>
+          </div>
+        ))}
+      </dl>
     </section>
   );
 }

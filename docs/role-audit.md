@@ -17602,3 +17602,28 @@ De buitenste div blijft clippen, de binnenste regelt horizontale scroll.
 **Niet aangeraakt:** wizardstate, auth-refresh, `ProtectedRoute`, rollen-refresh, styling, RLS en grants.
 **Security-impact:** geen toegangsverbreding; de bestaande SECURITY DEFINER-trigger en guards blijven intact. De migratie wijzigt uitsluitend de conflictbestendige verwerking binnen dezelfde triggerfunctie.
 **Verificatie:** productiedata bevestigde vóór de fix de combinatie "geen tenant met slug test" + "wel bestaande interne klant test@test.com" + backendlog `Inserting tenant` → `Duplicate key error`. De nieuwe databasefunctie is na migratie teruggelezen en de aangescherpte `create-tenant` edge function is expliciet gedeployed. Changelog `2026.08aj` met i18n-key `onboarding_existing_customer_fix` in NL/EN/FR/DE.
+
+## 2026-10-14 — MKT-4: elke claim op de marketingsite klopt
+
+Aanleiding: "alles wat we zeggen op de marketingspagina moet nu 100% correct staan". Elke claim is nagelopen tegen code en live-DB.
+
+- **Verzonnen cijfers en citaten weg.** De tellers (500+ winkels, €2.4M, 99.9%) zijn vervangen door feiten: 1 platform, 14 dagen gratis, 5 talen in de beheeromgeving, gebouwd in België. De klantcitaten zijn vervangen door "Draait vandaag al op SellQo" met VanXcel (147 orders, waarvan 140 via bol.com) en The Fonske Crawl (ticketorders). Beide sites zijn live gemeten met status 200. Loveke staat er niet bij: 0 orders, de webshop is nog niet live.
+- **Planregels.** visual_editor, multi_warehouse en whiteLabel zijn geschrapt, want die vlaggen doen niets. De badge-noot is weg. Eigen domein staat er nu als "(binnenkort)": de nieuwe storefront-worker serveert alleen *.sellqo.shop.
+- **Copy rechtgezet:**
+  - kassa zonder cadeaubonnen (het saldo daalt niet bij inwisselen);
+  - facturen Nederlandstalig met de btw-vermelding in de taal van de klant;
+  - bol.com-voorraad elk half uur (cron sync-bol-inventory);
+  - promoties = kortingscodes;
+  - scène retail: "Betaald" en "Factuur klaar" in plaats van verzendclaims;
+  - "klaar"-mail bij horeca alleen voor online klanten;
+  - events: "Geen abonnement nodig" in plaats van "14 dagen gratis";
+  - onboarding url_tip: eigen domein "komt binnenkort".
+- **Gevonden productgaten (nog niet gefixt, apart te plannen):**
+  - cadeaubonsaldo daalt niet bij inwisselen in de POS;
+  - factuur-PDF-labels alleen in het Nederlands;
+  - geen verzend- of track&trace-mail, terwijl de orderbevestiging er een belooft;
+  - de custom-domain-flow verwijst nog naar het oude Lovable-IP 185.158.133.1;
+  - plan-orderlimieten worden niet afgedwongen;
+  - reverse charge op abonnementen staat geforceerd op 21% (BILL-2);
+  - Events Flex zonder Stripe Connect kan geen betaalde tickets verkopen.
+- Checks: tsc 27 (baseline), lint gelijk aan de baseline, i18n-parity, used-keys en dead-buttons groen.

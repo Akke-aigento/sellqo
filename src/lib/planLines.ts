@@ -1,5 +1,7 @@
-// PRICE-2 — wat een plan bevat, als leesbare regels. Volgt uit de limieten en feature-
-// vlaggen in pricing_plans, zodat marketingsite, /pricing en onboarding nooit uiteenlopen.
+// PRICE-2 / MKT-4 — wat een plan bevat. Alleen vlaggen die het product echt waarmaakt
+// (visual_editor, multi_warehouse en whiteLabel doen vandaag niets en staan er dus niet).
+// Volgt uit de limieten en feature-vlaggen in pricing_plans, zodat marketingsite, /pricing
+// en onboarding nooit uiteenlopen.
 import type { TFunction } from 'i18next';
 import type { PricingPlan } from '@/types/billing';
 
@@ -9,12 +11,9 @@ const FEATURE_LINES: { key: string; label: string }[] = [
   { key: 'webshop_builder', label: 'feat_webshop' },
   { key: 'pos', label: 'feat_pos' },
   { key: 'customDomain', label: 'feat_domain' },
-  { key: 'visual_editor', label: 'feat_editor' },
   { key: 'bol_com', label: 'feat_bol' },
   { key: 'odoo_sync', label: 'feat_odoo' },
   { key: 'loyalty_program', label: 'feat_loyalty' },
-  { key: 'multi_warehouse', label: 'feat_warehouse' },
-  { key: 'whiteLabel', label: 'feat_whitelabel' },
   { key: 'prioritySupport', label: 'feat_priority' },
 ];
 
@@ -32,7 +31,7 @@ export function planLines(plan: PricingPlan, t: TFunction, lng: string): { lines
       ...FEATURE_LINES.filter((l) => f[l.key]).map((l) => k(l.label)),
       ...(aiCredits > 0 ? [k('feat_ai', { n: aiCredits.toLocaleString(lng) })] : []),
     ],
-    note: f.removeWatermark ? null : k('note_badge'),
+    note: null,
   };
 }
 

@@ -6824,7 +6824,7 @@
       "name_tip": "Ce nom figure sur vos factures, dans vos e-mails et en haut de votre boutique.",
       "name_placeholder": "P. ex. Pizzeria Bella",
       "url_label": "Adresse de votre boutique",
-      "url_tip": "C'est là que vos clients trouvent votre boutique, immédiatement et gratuitement. Vous pourrez relier votre propre domaine plus tard.",
+      "url_tip": "C'est là que vos clients trouvent votre boutique, immédiatement et gratuitement. La connexion de votre propre domaine arrive bientôt.",
       "url_placeholder": "votre-activite",
       "slug_taken": "Cette adresse est déjà utilisée",
       "slug_check_failed": "Impossible de vérifier si cette adresse est libre",

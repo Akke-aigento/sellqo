@@ -388,7 +388,7 @@
       "badge_horeca": "Voor horeca",
       "badge_events_flex": "Voor events",
       "desc_free": "Een kleine webshop om te starten.",
-      "desc_starter": "Je eigen winkel, met je eigen domein.",
+      "desc_starter": "Een volwaardige webshop voor je winkel.",
       "desc_pro": "Webshop, kassa en bol.com samen.",
       "desc_enterprise": "Voor grote catalogi en teams.",
       "desc_horeca": "Bestelsite, QR-menu, keuken en kassa.",
@@ -411,7 +411,7 @@
       "feat_events": "Tickets, QR per mail en inchecken",
       "feat_webshop": "Webshop op jouwzaak.sellqo.shop",
       "feat_pos": "Kassa",
-      "feat_domain": "Eigen domeinnaam",
+      "feat_domain": "Eigen domeinnaam (binnenkort)",
       "feat_editor": "Uitgebreide winkel-editor",
       "feat_bol": "bol.com-koppeling",
       "feat_odoo": "Odoo-boekhouding, met Peppol",
@@ -461,7 +461,7 @@
         },
         {
           "q": "Wat kost Events Flex?",
-          "a": "Niets per maand en €0,49 per betaald ticket, zonder percentage. De kost wordt automatisch afgehouden bij de online betaling. Gratis tickets kosten niets. Tickets met Events Flex worden online betaald, dus je koppelt je Stripe-account."
+          "a": "Niets per maand en €0,49 per betaald ticket, zonder percentage. De kost wordt automatisch afgehouden bij de online betaling. Gratis tickets kosten niets. Tickets met Events Flex betaal je online."
         },
         {
           "q": "Zijn er extra kosten bovenop het abonnement?",
@@ -473,11 +473,11 @@
         },
         {
           "q": "Kan ik ook in de winkel verkopen?",
-          "a": "Ja. De kassa gebruikt dezelfde producten, prijzen en voorraad als je webshop, met kassabon, cadeaubonnen en een dagafsluiting. Ze zit in Pro, Enterprise en het Horeca-plan."
+          "a": "Ja. De kassa gebruikt dezelfde producten, prijzen en voorraad als je webshop, met kassabon en een dagafsluiting. Ze zit in Pro, Enterprise en het Horeca-plan."
         },
         {
           "q": "In welke talen werkt SellQo?",
-          "a": "De beheeromgeving is er in het Nederlands, Engels, Frans, Duits en Oekraïens. Facturen en klantmails gaan in het Nederlands, Engels, Frans of Duits. De standaardwebshop is vandaag Nederlandstalig; meer talen volgen."
+          "a": "De beheeromgeving is er in het Nederlands, Engels, Frans, Duits en Oekraïens. Klantmails gaan in het Nederlands, Engels, Frans of Duits. Facturen zijn Nederlandstalig, met de btw-vermelding in de taal van je klant. De standaardwebshop is vandaag Nederlandstalig; meer talen volgen."
         },
         {
           "q": "Kan ik mijn bestaande webshop overzetten?",
@@ -555,13 +555,13 @@
         "why_text": "Ze brengen klanten, maar rekenen per bestelling een percentage aan. En de klant blijft van hen. Met je eigen bestelsite betaal je een vast bedrag per maand, komen bestellingen rechtstreeks bij jou binnen en bouw je je eigen klantenbestand op.",
         "features_title": "Alles wat je zaak nodig heeft",
         "f_site": "Eigen bestelsite",
-        "f_site_text": "Je kaart staat meteen online, met foto's, extra's en je eigen kleuren. Een eigen domeinnaam koppelen kan ook.",
+        "f_site_text": "Je kaart staat meteen online, met foto's, extra's en je eigen kleuren. Een eigen domeinnaam koppelen komt binnenkort.",
         "f_pickup": "Afhalen en leveren",
         "f_pickup_text": "Met tijdsloten, leverzones, leverkosten en een minimumbedrag. Klanten kiezen zelf hun moment.",
         "f_qr": "Bestellen aan tafel",
         "f_qr_text": "Een QR-code per tafel. Gasten bekijken de kaart of bestellen meteen, en betalen online of aan de toonbank.",
         "f_kitchen": "Eén keukenscherm",
-        "f_kitchen_text": "Webshop, tafels en kassa komen samen binnen, met een keukenbon om af te drukken. Klanten krijgen een bericht als het klaar is.",
+        "f_kitchen_text": "Webshop, tafels en kassa komen samen binnen, met een keukenbon om af te drukken. Wie online bestelde, krijgt een mail als het klaar is.",
         "f_pos": "Kassa met dezelfde kaart",
         "f_pos_text": "Aan de toog reken je af met dezelfde gerechten, extra's en prijzen als online. Eén kaart, één keer bijhouden.",
         "f_allergens": "Allergenen geregeld",
@@ -582,7 +582,7 @@
         "demo_table": "Bestel aan tafel 4",
         "plan_text": "Bestelsite, kassa, keukenscherm en QR-menu. Geen commissie per bestelling.",
         "q1": "Heb ik al een website nodig?",
-        "q1_a": "Nee. Je bestelsite staat meteen online op jouwzaak.sellqo.shop. Een eigen domeinnaam kan je later koppelen.",
+        "q1_a": "Nee. Je bestelsite staat meteen online op jouwzaak.sellqo.shop. Een eigen domeinnaam koppelen komt binnenkort.",
         "q2": "Hoe betalen mijn klanten?",
         "q2_a": "Online met Bancontact, kaart of Apple Pay via je eigen Stripe-account, of bij het afhalen en aan de toonbank. Jij kiest wat je aanbiedt. SellQo rekent niets per bestelling.",
         "q3": "Kan ik bestellingen stoppen als het te druk wordt?",
@@ -600,7 +600,7 @@
         "title1": "Jouw tickets.",
         "title2": "Jouw bezoekers.",
         "subtitle": "Verkoop tickets voor feesten, tours en workshops, en scan ze aan de deur met je gsm. Niets per maand, een vaste kost per verkocht ticket, en de gegevens van je bezoekers blijven van jou.",
-        "trust1": "14 dagen gratis",
+        "trust1": "Geen abonnement nodig",
         "trust2": "€0 per maand",
         "trust3": "Inchecken met je gsm",
         "proof_label": "Draait al op SellQo",
@@ -674,17 +674,17 @@
       "heading": "Wat in elke SellQo zit",
       "subheading": "De basis waar je zaak op draait, of je nu kledij, pizza's of tickets verkoopt.",
       "shop_title": "Je eigen webshop",
-      "shop_text": "Meteen online op jouwzaak.sellqo.shop. Kies een thema, pas het aan in de editor en koppel later je eigen domein.",
+      "shop_text": "Meteen online op jouwzaak.sellqo.shop. Kies een thema en pas het aan in de editor. Een eigen domeinnaam koppelen komt binnenkort.",
       "pos_title": "Kassa",
-      "pos_text": "Dezelfde producten en voorraad als online, met kassabon, cadeaubonnen en een dagafsluiting. Vanaf Pro en in het Horeca-plan.",
+      "pos_text": "Dezelfde producten en voorraad als online, met kassabon en dagafsluiting. Vanaf Pro en in het Horeca-plan.",
       "orders_title": "Bestellingen en voorraad",
       "orders_text": "Alle bestellingen op één plek, van webshop, kassa en bol.com. De voorraad volgt vanzelf.",
       "invoices_title": "Facturen en btw",
-      "invoices_text": "Facturen in vier talen, btw en OSS correct berekend. Met de Odoo-koppeling (Pro) gaan B2B-facturen via Peppol.",
+      "invoices_text": "Na een betaalde bestelling maakt SellQo meteen de factuur, met btw en OSS correct berekend. Met de Odoo-koppeling (Pro) gaan B2B-facturen via Peppol.",
       "bol_title": "Verkopen op bol.com",
-      "bol_text": "Bestellingen van bol.com komen binnen in SellQo en je voorraad blijft overal gelijk. Vanaf Pro.",
-      "promos_title": "Kortingen en cadeaubonnen",
-      "promos_text": "Kortingscodes in de webshop en cadeaubonnen aan de kassa."
+      "bol_text": "Bestellingen van bol.com komen binnen in SellQo en je voorraad wordt elk half uur bijgewerkt op bol.com. Vanaf Pro.",
+      "promos_title": "Kortingscodes",
+      "promos_text": "Maak kortingscodes aan die je klanten in het winkelmandje invullen."
     },
     "scene": {
       "live": "Live",
@@ -695,20 +695,20 @@
         "price": "€ 18,00",
         "button": "In winkelmandje",
         "confirm_title": "Bedankt, Lotte!",
-        "confirm_text": "Je bestelling is onderweg. Je krijgt een mail met de track & trace.",
+        "confirm_text": "Je bestelling is geplaatst. Je krijgt een bevestiging per mail.",
         "screen_title": "Bestellingen",
         "row_old_1": "#1041 · bol.com · verzonden",
         "row_old_2": "#1042 · kassa · betaald",
         "row_new": "#1043 · Lotte V.",
         "row_new_detail": "Webshop · Mok Fjord salie · € 18,00",
         "status_new": "Nieuw",
-        "status_busy": "Inpakken",
-        "status_done": "Verzonden",
+        "status_busy": "Betaald",
+        "status_done": "Factuur klaar",
         "metric_label": "Voorraad Mok Fjord salie",
         "metric_before": "12",
-        "metric_after": "11, ook op bol.com",
-        "toast": "Factuur gemaakt en voorraad bijgewerkt op bol.com",
-        "caption": "Eén bestelling in je webshop: de voorraad klopt meteen overal, ook op bol.com en aan de kassa."
+        "metric_after": "11, ook in de kassa",
+        "toast": "Factuur gemaakt en voorraad bijgewerkt",
+        "caption": "Eén bestelling in je webshop: de factuur staat klaar, de voorraad daalt meteen mee in je kassa en op bol.com binnen het half uur."
       },
       "horeca": {
         "shop": "Pizzeria Fiamma",
@@ -717,7 +717,7 @@
         "price": "€ 21,00",
         "button": "Bestel voor 18:30",
         "confirm_title": "Bestelling #0042",
-        "confirm_text": "Afhalen om 18:30. We sturen een bericht zodra het klaar is.",
+        "confirm_text": "Afhalen om 18:30. Je krijgt een mail zodra het klaar is.",
         "screen_title": "Keuken",
         "row_old_1": "Tafel 2 · 2× Margherita",
         "row_old_2": "Kassa · Tiramisu",
@@ -729,7 +729,7 @@
         "metric_label": "Wachtrij",
         "metric_before": "3 bestellingen",
         "metric_after": "2 bestellingen",
-        "toast": "Sam kreeg een bericht: je pizza is klaar",
+        "toast": "Sam kreeg een mail: je pizza is klaar",
         "caption": "Online, aan tafel of aan de toog: alles komt op één keukenscherm.",
         "more": "Meer over horeca"
       },
@@ -761,12 +761,32 @@
       "heading": "Werkt samen met wat je al gebruikt",
       "subheading": "Geen losse tools aan elkaar knopen. Deze koppelingen zitten erin en werken vandaag.",
       "soon": "Binnenkort: Amazon, Google Shopping en Meta.",
-      "bol": "Bestellingen en voorraad in sync. Vanaf Pro.",
+      "bol": "Bestellingen binnen, voorraad elk half uur bijgewerkt. Vanaf Pro.",
       "stripe": "Online betalingen op je eigen account.",
       "bancontact": "De betaalkaart van België, via Stripe.",
       "ideal": "Voor je Nederlandse klanten, via Stripe.",
       "odoo": "Facturen naar je boekhouding. Vanaf Pro.",
       "peppol": "B2B-facturen elektronisch, via Odoo."
+    },
+    "facts": {
+      "one": "1 platform",
+      "one_label": "voor webshop, kassa en bol.com",
+      "trial": "14 dagen",
+      "trial_label": "gratis proberen, zonder kredietkaart",
+      "languages": "5 talen",
+      "languages_label": "in je beheeromgeving",
+      "belgium": "Gebouwd in België",
+      "belgium_label": "door Nomadix BV, Oud-Heverlee"
+    },
+    "running": {
+      "heading": "Draait vandaag al op SellQo",
+      "subheading": "Echte zaken, waaronder onze eigen. Zo merken wij een fout als eerste.",
+      "vanxcel_what": "Campervan-elektronica",
+      "vanxcel_uses": "Eigen webshop op SellQo, gekoppeld aan bol.com.",
+      "loveke_what": "Streetwear",
+      "loveke_uses": "Catalogus staat in SellQo, de webshop komt eraan.",
+      "fonske_what": "Pub crawl in Leuven",
+      "fonske_uses": "Tickets met datums en tickettypes, en QR-tickets per mail."
     }
   },
   "public": {

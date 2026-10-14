@@ -1,66 +1,35 @@
-import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
-import { cn } from '@/lib/utils';
-import { Quote } from 'lucide-react';
+// MKT-4 — geen verzonnen klantcitaten meer. Wat we wel kunnen tonen: zaken die vandaag
+// op SellQo draaien en echte bestellingen verwerken (nagekeken in de live-DB, 14-10).
+import { ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const meta = [
-  { initials: 'SB', color: 'bg-primary' },
-  { initials: 'TH', color: 'bg-accent' },
-  { initials: 'LJ', color: 'bg-green-500' },
+const SHOPS = [
+  { id: 'vanxcel', name: 'VanXcel', url: 'https://vanxcel.com' },
+  { id: 'fonske', name: 'The Fonske Crawl', url: 'https://fonskecrawl.com' },
 ];
 
 export function TestimonialsSection() {
-  const { ref, isIntersecting } = useIntersectionObserver();
   const { t } = useTranslation();
-  const testimonials = t('landing.testimonials.items', { returnObjects: true }) as Array<{ quote: string; name: string; company: string }>;
-
+  const k = (x: string) => t(`landing.running.${x}`);
   return (
-    <section className="pt-12 pb-20 md:pt-16 md:pb-28 bg-secondary/20">
-      <div className="container mx-auto px-4">
-        <div
-          ref={ref}
-          className={cn(
-            'text-center mb-16',
-            isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
-          )}
-        >
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground">
-            {t('landing.testimonials.heading')}
-          </h2>
+    <section className="bg-secondary/20 py-20 md:py-24">
+      <div className="container mx-auto max-w-5xl px-4">
+        <div className="max-w-2xl">
+          <h2 className="text-3xl font-bold text-foreground md:text-4xl">{k('heading')}</h2>
+          <p className="mt-3 text-lg text-muted-foreground">{k('subheading')}</p>
         </div>
-
-        <div className="grid md:grid-cols-3 gap-6 md:gap-8 max-w-5xl mx-auto">
-          {testimonials.map((testimonial, index) => {
-            const m = meta[index];
-            return (
-            <div
-              key={index}
-              className={cn(
-                'p-6 md:p-8 bg-card rounded-2xl border border-border shadow-sellqo hover:shadow-sellqo-lg transition-all duration-300',
-                isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
-              )}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              <Quote className="w-8 h-8 text-accent/30 mb-4" />
-              
-              <p className="text-foreground mb-6 italic">"{testimonial.quote}"</p>
-              
-              <div className="flex items-center gap-3">
-                <div className={cn(
-                  'w-12 h-12 rounded-full flex items-center justify-center text-white font-bold',
-                  m.color
-                )}>
-                  {m.initials}
-                </div>
-                <div>
-                  <p className="font-semibold text-foreground">{testimonial.name}</p>
-                  <p className="text-sm text-muted-foreground">{testimonial.company}</p>
-                </div>
-              </div>
-            </div>
-            );
-          })}
-        </div>
+        <ul className="mt-10 grid gap-6 md:grid-cols-2">
+          {SHOPS.map((s) => (
+            <li key={s.id} className="flex flex-col rounded-2xl border border-border bg-card p-6">
+              <span className="text-xl font-bold text-foreground">{s.name}</span>
+              <span className="mt-1 text-sm font-medium text-accent">{k(`${s.id}_what`)}</span>
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-muted-foreground">{k(`${s.id}_uses`)}</p>
+              <a href={s.url} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary underline-offset-4 hover:underline">
+                {s.url.replace('https://', '')}<ExternalLink className="h-3.5 w-3.5" />
+              </a>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );

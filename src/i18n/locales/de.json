@@ -6824,7 +6824,7 @@
       "name_tip": "Dieser Name erscheint auf Ihren Rechnungen, in Ihren E-Mails und oben in Ihrem Webshop.",
       "name_placeholder": "Z. B. Pizzeria Bella",
       "url_label": "Adresse Ihres Webshops",
-      "url_tip": "Hier finden Kunden Ihren Shop, sofort und kostenlos. Eine eigene Domain können Sie später verbinden.",
+      "url_tip": "Hier finden Kunden Ihren Shop, sofort und kostenlos. Eine eigene Domain verbinden kommt bald.",
       "url_placeholder": "ihr-geschaeft",
       "slug_taken": "Diese Adresse ist bereits vergeben",
       "slug_check_failed": "Konnte nicht prüfen, ob diese Adresse frei ist",

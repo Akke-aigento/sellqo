@@ -6826,7 +6826,7 @@
       "name_tip": "Deze naam staat op je facturen, in je e-mails en bovenaan je webshop.",
       "name_placeholder": "Bv. Pizzeria Bella",
       "url_label": "Adres van je webshop",
-      "url_tip": "Hier vinden klanten je winkel, meteen en gratis. Een eigen domein kan je later koppelen.",
+      "url_tip": "Hier vinden klanten je winkel, meteen en gratis. Een eigen domein koppelen komt binnenkort.",
       "url_placeholder": "jouw-zaak",
       "slug_taken": "Dit adres is al in gebruik",
       "slug_check_failed": "Kon niet nagaan of dit adres vrij is",

@@ -388,7 +388,7 @@
       "badge_horeca": "For food & drink",
       "badge_events_flex": "For events",
       "desc_free": "A small webshop to get started.",
-      "desc_starter": "Your own shop, with your own domain.",
+      "desc_starter": "A full webshop for your shop.",
       "desc_pro": "Webshop, POS and bol.com together.",
       "desc_enterprise": "For large catalogues and teams.",
       "desc_horeca": "Ordering site, QR menu, kitchen and POS.",
@@ -411,7 +411,7 @@
       "feat_events": "Tickets, QR by email and check-in",
       "feat_webshop": "Webshop at yourbusiness.sellqo.shop",
       "feat_pos": "POS",
-      "feat_domain": "Your own domain name",
+      "feat_domain": "Your own domain name (coming soon)",
       "feat_editor": "Advanced shop editor",
       "feat_bol": "bol.com integration",
       "feat_odoo": "Odoo accounting, with Peppol",
@@ -461,7 +461,7 @@
         },
         {
           "q": "What does Events Flex cost?",
-          "a": "Nothing per month and €0.49 per paid ticket, with no percentage. The fee is deducted automatically from the online payment. Free tickets cost nothing. Tickets on Events Flex are paid online, so you connect your Stripe account."
+          "a": "Nothing per month and €0.49 per paid ticket, with no percentage. The fee is deducted automatically from the online payment. Free tickets cost nothing. Tickets on Events Flex are paid online."
         },
         {
           "q": "Are there extra costs on top of the subscription?",
@@ -473,11 +473,11 @@
         },
         {
           "q": "Can I sell in store too?",
-          "a": "Yes. The POS uses the same products, prices and stock as your webshop, with receipts, gift cards and an end-of-day report. It's included in Pro, Enterprise and the Hospitality plan."
+          "a": "Yes. The POS uses the same products, prices and stock as your webshop, with receipts and an end-of-day report. It's included in Pro, Enterprise and the Hospitality plan."
         },
         {
           "q": "Which languages does SellQo support?",
-          "a": "The admin is available in Dutch, English, French, German and Ukrainian. Invoices and customer emails go out in Dutch, English, French or German. The standard webshop is in Dutch today; more languages will follow."
+          "a": "The admin is available in Dutch, English, French, German and Ukrainian. Customer emails go out in Dutch, English, French or German. Invoices are in Dutch, with the VAT note in your customer's language. The standard webshop is in Dutch today; more languages will follow."
         },
         {
           "q": "Can I move my existing webshop?",
@@ -555,13 +555,13 @@
         "why_text": "They bring customers, but charge a percentage on every order. And the customer stays theirs. With your own ordering site you pay a fixed monthly amount, orders come straight to you and you build your own customer base.",
         "features_title": "Everything your business needs",
         "f_site": "Your own ordering site",
-        "f_site_text": "Your menu is online right away, with photos, extras and your own colours. You can also connect your own domain name.",
+        "f_site_text": "Your menu is online right away, with photos, extras and your own colours. Connecting your own domain name is coming soon.",
         "f_pickup": "Pickup and delivery",
         "f_pickup_text": "With time slots, delivery zones, delivery fees and a minimum order. Customers pick their own time.",
         "f_qr": "Ordering at the table",
         "f_qr_text": "One QR code per table. Guests browse the menu or order right away, and pay online or at the counter.",
         "f_kitchen": "One kitchen screen",
-        "f_kitchen_text": "Webshop, tables and POS arrive together, with a printable kitchen ticket. Customers get a message when their order is ready.",
+        "f_kitchen_text": "Webshop, tables and POS arrive together, with a printable kitchen ticket. Online customers get an email when their order is ready.",
         "f_pos": "A POS with the same menu",
         "f_pos_text": "At the counter you ring up the same dishes, extras and prices as online. One menu, kept up to date once.",
         "f_allergens": "Allergens sorted",
@@ -582,7 +582,7 @@
         "demo_table": "Order at table 4",
         "plan_text": "Ordering site, POS, kitchen screen and QR menu. No commission per order.",
         "q1": "Do I need a website already?",
-        "q1_a": "No. Your ordering site is online right away at yourbusiness.sellqo.shop. You can connect your own domain name later.",
+        "q1_a": "No. Your ordering site is online right away at yourbusiness.sellqo.shop. Connecting your own domain name is coming soon.",
         "q2": "How do my customers pay?",
         "q2_a": "Online with Bancontact, card or Apple Pay through your own Stripe account, or on pickup and at the counter. You choose what you offer. SellQo charges nothing per order.",
         "q3": "Can I stop orders when it gets too busy?",
@@ -600,7 +600,7 @@
         "title1": "Your tickets.",
         "title2": "Your guests.",
         "subtitle": "Sell tickets for parties, tours and workshops, and scan them at the door with your phone. Nothing per month, a fixed fee per ticket sold, and your guests' details stay yours.",
-        "trust1": "14 days free",
+        "trust1": "No subscription needed",
         "trust2": "€0 per month",
         "trust3": "Check-in with your phone",
         "proof_label": "Already running on SellQo",
@@ -674,17 +674,17 @@
       "heading": "What's in every SellQo",
       "subheading": "The foundation your business runs on, whether you sell clothes, pizzas or tickets.",
       "shop_title": "Your own webshop",
-      "shop_text": "Online right away at yourbusiness.sellqo.shop. Pick a theme, adjust it in the editor and connect your own domain later.",
+      "shop_text": "Online right away at yourbusiness.sellqo.shop. Pick a theme and adjust it in the editor. Connecting your own domain name is coming soon.",
       "pos_title": "POS",
-      "pos_text": "The same products and stock as online, with receipts, gift cards and an end-of-day report. From Pro and in the Hospitality plan.",
+      "pos_text": "The same products and stock as online, with receipts and an end-of-day report. From Pro and in the Hospitality plan.",
       "orders_title": "Orders and stock",
       "orders_text": "All orders in one place, from webshop, POS and bol.com. Stock follows automatically.",
       "invoices_title": "Invoices and VAT",
-      "invoices_text": "Invoices in four languages, VAT and OSS calculated correctly. With the Odoo integration (Pro), B2B invoices go via Peppol.",
+      "invoices_text": "After a paid order SellQo creates the invoice right away, with VAT and OSS calculated correctly. With the Odoo integration (Pro), B2B invoices go via Peppol.",
       "bol_title": "Selling on bol.com",
-      "bol_text": "Orders from bol.com arrive in SellQo and your stock stays the same everywhere. From Pro.",
-      "promos_title": "Discounts and gift cards",
-      "promos_text": "Discount codes in the webshop and gift cards at the POS."
+      "bol_text": "Orders from bol.com arrive in SellQo and your stock is updated on bol.com every half hour. From Pro.",
+      "promos_title": "Discount codes",
+      "promos_text": "Create discount codes your customers enter in the cart."
     },
     "scene": {
       "live": "Live",
@@ -695,20 +695,20 @@
         "price": "€18.00",
         "button": "Add to cart",
         "confirm_title": "Thanks, Lotte!",
-        "confirm_text": "Your order is on its way. You'll get an email with tracking.",
+        "confirm_text": "Your order is placed. You'll get a confirmation by email.",
         "screen_title": "Orders",
         "row_old_1": "#1041 · bol.com · shipped",
         "row_old_2": "#1042 · POS · paid",
         "row_new": "#1043 · Lotte V.",
         "row_new_detail": "Webshop · Fjord mug sage · €18.00",
         "status_new": "New",
-        "status_busy": "Packing",
-        "status_done": "Shipped",
+        "status_busy": "Paid",
+        "status_done": "Invoiced",
         "metric_label": "Fjord mug sage stock",
         "metric_before": "12",
-        "metric_after": "11, on bol.com too",
-        "toast": "Invoice created and stock updated on bol.com",
-        "caption": "One order in your webshop: stock is right everywhere at once, on bol.com and at the POS too."
+        "metric_after": "11, in the POS too",
+        "toast": "Invoice created and stock updated",
+        "caption": "One order in your webshop: the invoice is ready, stock drops in your POS straight away and on bol.com within half an hour."
       },
       "horeca": {
         "shop": "Pizzeria Fiamma",
@@ -717,7 +717,7 @@
         "price": "€21.00",
         "button": "Order for 6:30 pm",
         "confirm_title": "Order #0042",
-        "confirm_text": "Pickup at 6:30 pm. We'll message you when it's ready.",
+        "confirm_text": "Pickup at 6:30 pm. You'll get an email when it's ready.",
         "screen_title": "Kitchen",
         "row_old_1": "Table 2 · 2× Margherita",
         "row_old_2": "POS · Tiramisu",
@@ -729,7 +729,7 @@
         "metric_label": "Queue",
         "metric_before": "3 orders",
         "metric_after": "2 orders",
-        "toast": "Sam got a message: your pizza is ready",
+        "toast": "Sam got an email: your pizza is ready",
         "caption": "Online, at the table or at the counter: everything lands on one kitchen screen.",
         "more": "More about food & drink"
       },
@@ -761,12 +761,32 @@
       "heading": "Works with what you already use",
       "subheading": "No stitching tools together. These integrations are built in and work today.",
       "soon": "Coming soon: Amazon, Google Shopping and Meta.",
-      "bol": "Orders and stock in sync. From Pro.",
+      "bol": "Orders in, stock updated every half hour. From Pro.",
       "stripe": "Online payments to your own account.",
       "bancontact": "Belgium's payment card, via Stripe.",
       "ideal": "For your Dutch customers, via Stripe.",
       "odoo": "Invoices to your accounting. From Pro.",
       "peppol": "B2B invoices electronically, via Odoo."
+    },
+    "facts": {
+      "one": "1 platform",
+      "one_label": "for webshop, POS and bol.com",
+      "trial": "14 days",
+      "trial_label": "free trial, no credit card",
+      "languages": "5 languages",
+      "languages_label": "in your admin",
+      "belgium": "Built in Belgium",
+      "belgium_label": "by Nomadix BV, Oud-Heverlee"
+    },
+    "running": {
+      "heading": "Already running on SellQo today",
+      "subheading": "Real businesses, including our own. That way we're the first to spot a bug.",
+      "vanxcel_what": "Campervan electrics",
+      "vanxcel_uses": "Own webshop on SellQo, connected to bol.com.",
+      "loveke_what": "Streetwear",
+      "loveke_uses": "Catalogue lives in SellQo, the webshop is on its way.",
+      "fonske_what": "Pub crawl in Leuven",
+      "fonske_uses": "Tickets with dates and ticket types, and QR tickets by email."
     }
   },
   "public": {
