@@ -98,9 +98,9 @@ Modules:
 
 ## 6. Foto's (nano-studio)
 - Leg prompts vast in `ops.demo_img (slug, tenant_id, prompt, ar, req_id, job_id, result_url)`. Gebruik één vaste stijlzin per winkel plus het onderwerp, en zet er altijd "No text, no logos, no people" in.
-- **Vuur af in batches van ±30** (`timeout_milliseconds` 60000): `net.http_post` naar `/functions/v1/nano-studio` met Bearer `vault.decrypted_secrets` `email_queue_service_role_key`. Body: `{action:'generate', tenant_id, prompt, mode:'text', model:'nano-banana-pro', aspect_ratio, resolution:'1K', source_product_id}`.
+- **Vuur af in batches van ±30** (`timeout_milliseconds` 60000): `net.http_post` naar `/functions/v1/nano-studio` met Bearer `vault.decrypted_secrets` `email_queue_service_role_key` (het `sb_`-sleuteltje `cron_service_role_key` geeft 403). Body: `{action:'generate', tenant_id, prompt, mode:'text', model:'nano-banana-pro', aspect_ratio, resolution:'1K', source_product_id}`.
 - **pg_net kan stilvallen:** komen er geen antwoorden, kijk dan naar `select count(*) from net.http_request_queue` en wek hem met `select net.wake()`. Daar staan ook crons in.
-- `job_id` uit `net._http_response`. Na ±2 à 3 minuten de status opvragen (`{action:'status', job_id}`, met de req_id's in een hulptabel) en `result_url` eruit halen met `substring(content from '"result_url":"([^"]+)"')`. Geen `::jsonb`-cast op alle rijen.
+- `job_id` uit `net._http_response`. Na ±2 à 3 minuten de status opvragen (`{action:'status', job_id}`, met de req_id's in een hulptabel) en `result_url` eruit halen met `substring(content from '"result_url":"([^"]+)"')`. Geen `::jsonb`-cast op alle rijen: een HTML-foutantwoord laat die cast ontploffen.
 - **Koppelen:** `products.images = array[url]`, `featured_image = url`. De hero gaat naar `homepage_sections.content.image_url` (`<slug>-hero`), het sfeerbeeld naar `text_image` (`<slug>-story`).
 - De sandbox kan Supabase-opslag niet openen, dus Claude kan de beelden niet zelf bekijken. Vraag Akke om ze na te kijken.
 
@@ -118,6 +118,7 @@ De reset zet de voorraad terug, rondt keukenbonnen ouder dan 12 uur af en wist o
 - `net.http_get` (`timeout_milliseconds` 25000) op `https://<slug>.sellqo.shop/`, een productpagina en, bij horeca, `/menu?tafel=4`. Controleer status 200, de `<title>`, geen "binnenkort", foto's uit `ai-images`, en de optienamen (Maat, Gewicht, Maling). De tafelbadge staat in de HTML als `Tafel <!-- -->4`.
 - **E2E via `ops.sf`:**
   - een verplichte extra overslaan geeft `ADDON_MIN`;
+  - `get_fulfillment_slots` met `params.type` (niet `service_type`);
   - prijs met extra en variant klopt;
   - een order: horeca met `checkout_table` en `pay_on_pickup`, webshop met customer, address, shipping en `bank_transfer`. De voorraad van de variant moet zakken.
 - Role-audit-entry, commit, en `gh run list` tot de CI groen staat (beide repo's).
