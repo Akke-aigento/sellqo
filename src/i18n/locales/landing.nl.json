@@ -432,7 +432,7 @@
       "events_alt_title": "Liever een vaste prijs?",
       "events_alt_text": "Verkoop je het hele jaar door veel tickets? Met Starter ({{price}} per maand) betaal je geen kost per ticket. Zet daarna de events-module aan.",
       "events_alt_cta": "Bekijk Starter",
-      "foot_trial": "Betaalde plannen: 14 dagen gratis, zonder kredietkaart. Daarna start je abonnement en krijg je een betaalverzoek. Maandelijks opzegbaar.",
+      "foot_trial": "Betaalde plannen: 14 dagen gratis, zonder kredietkaart. Daarna start je abonnement: automatisch via domiciliëring of kaart, of met een betaalverzoek. Maandelijks opzegbaar.",
       "foot_payments": "Online betalingen lopen via je eigen Stripe-account, aan de gewone tarieven van Stripe. SellQo rekent niets per bestelling, behalve de ticketkost bij Events Flex.",
       "foot_qr": "Overschrijving met QR-code: je klant betaalt via zijn bank-app, zonder kosten voor jou.",
       "from_short": "vanaf"
@@ -442,11 +442,15 @@
       "items": [
         {
           "q": "Hoe werkt de gratis proefperiode?",
-          "a": "Je gebruikt een betaald plan 14 dagen gratis, zonder kredietkaart. Daarna start je abonnement op het plan dat je koos en krijg je een betaalverzoek. Zolang dat niet betaald is, blijft je webshop online, maar kan je in je beheeromgeving niets aanpassen. Free en Events Flex hebben geen proef nodig: die kosten niets per maand."
+          "a": "Je gebruikt een betaald plan 14 dagen gratis, zonder kredietkaart. Daarna start je abonnement op het plan dat je koos. Heb je een domiciliëring of kaart ingesteld, dan wordt het automatisch betaald; anders krijg je een betaalverzoek per mail. Je webshop blijft altijd online. Betaal je na herinneringen en een respijtperiode nog niet, dan kan je je beheeromgeving niet meer aanpassen. Free en Events Flex hebben geen proef nodig: die kosten niets per maand."
         },
         {
-          "q": "Kan ik later van plan wisselen?",
-          "a": "Ja, in je beheeromgeving onder Abonnement. Een upgrade gaat meteen in, een downgrade bij de volgende periode."
+          "q": "Hoe betaal ik mijn abonnement?",
+          "a": "In je beheeromgeving onder Abonnement zet je een SEPA-domiciliëring of een kaart op; dan gaat elke periode automatisch. Liever niet? Dan krijg je per periode een betaalverzoek dat je met een link betaalt. Je factuur krijg je pas na de betaling."
+        },
+        {
+          "q": "Kan ik later van plan wisselen of stoppen?",
+          "a": "Ja, in je beheeromgeving onder Abonnement, zonder opzegtermijn. Een upgrade gaat in zodra het verschil voor de lopende periode betaald is. Een downgrade gaat in bij de volgende periode. Stop je en ga je naar Free, dan stopt je betaalde abonnement meteen."
         },
         {
           "q": "Wat zit er in het Horeca-plan?",
@@ -454,7 +458,7 @@
         },
         {
           "q": "Wat kost Events Flex?",
-          "a": "Niets per maand en €0,49 per betaald ticket, zonder percentage. De kost wordt automatisch afgehouden bij de online betaling. Gratis tickets kosten niets. Tickets met Events Flex betaal je online."
+          "a": "Niets per maand en €0,49 per betaald ticket, zonder percentage. De kost wordt automatisch afgehouden bij de online betaling. Gratis tickets kosten niets. Tickets met Events Flex worden online betaald, dus je koppelt je Stripe-account."
         },
         {
           "q": "Zijn er extra kosten bovenop het abonnement?",
@@ -482,7 +486,7 @@
         },
         {
           "q": "Wat gebeurt er met mijn gegevens als ik stop?",
-          "a": "Je gegevens blijven van jou. Je exporteert producten, klanten en bestellingen als CSV of Excel. We verwijderen je gegevens pas 30 dagen nadat je account is opgezegd."
+          "a": "Je gegevens blijven van jou. Je exporteert je bestellingen als CSV en je voorraad als Excel; voor een volledige export helpen we je. Vraag je het, dan verwijderen we je account en gegevens volledig."
         }
       ]
     },
@@ -675,7 +679,7 @@
       "bol_title": "Verkopen op bol.com",
       "bol_text": "Bestellingen van bol.com komen binnen in SellQo en je voorraad blijft overal gelijk. Vanaf Pro.",
       "promos_title": "Kortingen en cadeaubonnen",
-      "promos_text": "Kortingscodes in de webshop en cadeaubonnen met QR-code aan de kassa."
+      "promos_text": "Kortingscodes in de webshop en cadeaubonnen aan de kassa."
     }
   },
   "public": {

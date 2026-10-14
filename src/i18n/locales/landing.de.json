@@ -432,7 +432,7 @@
       "events_alt_title": "Lieber ein Festpreis?",
       "events_alt_text": "Verkaufen Sie das ganze Jahr viele Tickets? Mit Starter ({{price}} pro Monat) zahlen Sie keine Gebühr pro Ticket. Aktivieren Sie dann das Event-Modul.",
       "events_alt_cta": "Starter ansehen",
-      "foot_trial": "Bezahlte Tarife: 14 Tage kostenlos, ohne Kreditkarte. Danach startet Ihr Abo und Sie erhalten eine Zahlungsaufforderung. Monatlich kündbar.",
+      "foot_trial": "Bezahlte Tarife: 14 Tage kostenlos, ohne Kreditkarte. Danach startet Ihr Abo: automatisch per Lastschrift oder Karte oder mit einer Zahlungsaufforderung. Monatlich kündbar.",
       "foot_payments": "Online-Zahlungen laufen über Ihr eigenes Stripe-Konto zu den üblichen Stripe-Tarifen. SellQo berechnet nichts pro Bestellung, außer der Ticketgebühr bei Events Flex.",
       "foot_qr": "Überweisung per QR-Code: Ihr Kunde zahlt in seiner Banking-App, ohne Kosten für Sie.",
       "from_short": "ab"
@@ -442,11 +442,15 @@
       "items": [
         {
           "q": "Wie funktioniert die kostenlose Testphase?",
-          "a": "Sie nutzen einen bezahlten Tarif 14 Tage kostenlos, ohne Kreditkarte. Danach startet Ihr Abo im gewählten Tarif und Sie erhalten eine Zahlungsaufforderung. Solange sie nicht bezahlt ist, bleibt Ihr Webshop online, aber Sie können in der Verwaltung nichts ändern. Free und Events Flex brauchen keine Testphase: Sie kosten nichts pro Monat."
+          "a": "Sie nutzen einen bezahlten Tarif 14 Tage kostenlos, ohne Kreditkarte. Danach startet Ihr Abo im gewählten Tarif. Haben Sie eine Lastschrift oder Karte hinterlegt, wird automatisch bezahlt; sonst erhalten Sie eine Zahlungsaufforderung per E-Mail. Ihr Webshop bleibt immer online. Bleibt die Zahlung nach Erinnerungen und einer Kulanzfrist aus, können Sie in der Verwaltung nichts mehr ändern. Free und Events Flex brauchen keine Testphase: Sie kosten nichts pro Monat."
         },
         {
-          "q": "Kann ich später den Tarif wechseln?",
-          "a": "Ja, in Ihrer Verwaltung unter Abonnement. Ein Upgrade gilt sofort, ein Downgrade ab der nächsten Periode."
+          "q": "Wie bezahle ich mein Abo?",
+          "a": "In Ihrer Verwaltung unter Abonnement richten Sie eine SEPA-Lastschrift oder eine Karte ein; dann läuft jede Periode automatisch. Lieber nicht? Dann erhalten Sie pro Periode eine Zahlungsaufforderung, die Sie per Link bezahlen. Die Rechnung kommt erst nach der Zahlung."
+        },
+        {
+          "q": "Kann ich später den Tarif wechseln oder aufhören?",
+          "a": "Ja, in Ihrer Verwaltung unter Abonnement, ohne Kündigungsfrist. Ein Upgrade gilt, sobald die Differenz für die laufende Periode bezahlt ist. Ein Downgrade gilt ab der nächsten Periode. Wenn Sie aufhören und zu Free wechseln, endet Ihr bezahltes Abo sofort."
         },
         {
           "q": "Was ist im Gastronomie-Tarif enthalten?",
@@ -454,7 +458,7 @@
         },
         {
           "q": "Was kostet Events Flex?",
-          "a": "Nichts pro Monat und 0,49 € pro bezahltem Ticket, ohne Prozentsatz. Die Gebühr wird automatisch von der Online-Zahlung abgezogen. Kostenlose Tickets kosten nichts. Tickets mit Events Flex werden online bezahlt."
+          "a": "Nichts pro Monat und 0,49 € pro bezahltem Ticket, ohne Prozentsatz. Die Gebühr wird automatisch von der Online-Zahlung abgezogen. Kostenlose Tickets kosten nichts. Tickets mit Events Flex werden online bezahlt, dafür verbinden Sie Ihr Stripe-Konto."
         },
         {
           "q": "Gibt es Kosten zusätzlich zum Abo?",
@@ -482,7 +486,7 @@
         },
         {
           "q": "Was passiert mit meinen Daten, wenn ich aufhöre?",
-          "a": "Ihre Daten bleiben Ihre. Sie exportieren Produkte, Kunden und Bestellungen als CSV oder Excel. Wir löschen Ihre Daten erst 30 Tage nach der Kündigung Ihres Kontos."
+          "a": "Ihre Daten bleiben Ihre. Sie exportieren Bestellungen als CSV und Ihren Bestand als Excel; bei einem vollständigen Export helfen wir. Auf Wunsch löschen wir Ihr Konto und Ihre Daten vollständig."
         }
       ]
     },
@@ -675,7 +679,7 @@
       "bol_title": "Verkaufen auf bol.com",
       "bol_text": "Bestellungen von bol.com landen in SellQo und Ihr Bestand bleibt überall gleich. Ab Pro.",
       "promos_title": "Rabatte und Gutscheine",
-      "promos_text": "Rabattcodes im Webshop und Gutscheine mit QR-Code an der Kasse."
+      "promos_text": "Rabattcodes im Webshop und Gutscheine an der Kasse."
     }
   },
   "public": {

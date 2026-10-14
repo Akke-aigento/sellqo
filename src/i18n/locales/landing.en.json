@@ -432,7 +432,7 @@
       "events_alt_title": "Prefer a fixed price?",
       "events_alt_text": "Selling lots of tickets all year round? With Starter ({{price}} per month) there is no fee per ticket. Then switch on the events module.",
       "events_alt_cta": "See Starter",
-      "foot_trial": "Paid plans: 14 days free, no credit card. Then your subscription starts and you receive a payment request. Cancel monthly.",
+      "foot_trial": "Paid plans: 14 days free, no credit card. Then your subscription starts: automatically by direct debit or card, or with a payment request. Cancel monthly.",
       "foot_payments": "Online payments run through your own Stripe account, at Stripe's usual rates. SellQo charges nothing per order, except the ticket fee on Events Flex.",
       "foot_qr": "Bank transfer with a QR code: your customer pays in their banking app, at no cost to you.",
       "from_short": "from"
@@ -442,11 +442,15 @@
       "items": [
         {
           "q": "How does the free trial work?",
-          "a": "You use a paid plan free for 14 days, without a credit card. After that your subscription starts on the plan you chose and you receive a payment request. Until it's paid your webshop stays online, but you can't change anything in your admin. Free and Events Flex need no trial: they cost nothing per month."
+          "a": "You use a paid plan free for 14 days, without a credit card. After that your subscription starts on the plan you chose. If you've set up a direct debit or card, it's paid automatically; otherwise you get a payment request by email. Your webshop always stays online. If it remains unpaid after reminders and a grace period, you can no longer make changes in your admin. Free and Events Flex need no trial: they cost nothing per month."
         },
         {
-          "q": "Can I switch plans later?",
-          "a": "Yes, in your admin under Subscription. An upgrade takes effect immediately, a downgrade at the next period."
+          "q": "How do I pay my subscription?",
+          "a": "In your admin under Subscription you set up a SEPA direct debit or a card, so every period is paid automatically. Prefer not to? Then you receive a payment request each period that you pay via a link. You only get the invoice after payment."
+        },
+        {
+          "q": "Can I switch plans or stop later?",
+          "a": "Yes, in your admin under Subscription, with no notice period. An upgrade takes effect once the difference for the current period is paid. A downgrade takes effect at the next period. If you stop and move to Free, your paid subscription ends immediately."
         },
         {
           "q": "What's in the Hospitality plan?",
@@ -454,7 +458,7 @@
         },
         {
           "q": "What does Events Flex cost?",
-          "a": "Nothing per month and €0.49 per paid ticket, with no percentage. The fee is deducted automatically from the online payment. Free tickets cost nothing. Tickets on Events Flex are paid online."
+          "a": "Nothing per month and €0.49 per paid ticket, with no percentage. The fee is deducted automatically from the online payment. Free tickets cost nothing. Tickets on Events Flex are paid online, so you connect your Stripe account."
         },
         {
           "q": "Are there extra costs on top of the subscription?",
@@ -482,7 +486,7 @@
         },
         {
           "q": "What happens to my data if I stop?",
-          "a": "Your data stays yours. You export products, customers and orders as CSV or Excel. We only delete your data 30 days after your account is cancelled."
+          "a": "Your data stays yours. You export your orders as CSV and your stock as Excel; for a full export we'll help you. If you ask, we delete your account and data completely."
         }
       ]
     },
@@ -675,7 +679,7 @@
       "bol_title": "Selling on bol.com",
       "bol_text": "Orders from bol.com arrive in SellQo and your stock stays the same everywhere. From Pro.",
       "promos_title": "Discounts and gift cards",
-      "promos_text": "Discount codes in the webshop and gift cards with a QR code at the POS."
+      "promos_text": "Discount codes in the webshop and gift cards at the POS."
     }
   },
   "public": {

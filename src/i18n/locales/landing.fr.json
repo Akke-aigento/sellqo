@@ -432,7 +432,7 @@
       "events_alt_title": "Vous préférez un prix fixe ?",
       "events_alt_text": "Vous vendez beaucoup de billets toute l'année ? Avec Starter ({{price}} par mois), aucun frais par billet. Activez ensuite le module événements.",
       "events_alt_cta": "Voir Starter",
-      "foot_trial": "Formules payantes : 14 jours gratuits, sans carte de crédit. Ensuite, votre abonnement démarre et vous recevez une demande de paiement. Résiliable chaque mois.",
+      "foot_trial": "Formules payantes : 14 jours gratuits, sans carte de crédit. Ensuite, votre abonnement démarre : automatiquement par domiciliation ou carte, ou via une demande de paiement. Résiliable chaque mois.",
       "foot_payments": "Les paiements en ligne passent par votre propre compte Stripe, aux tarifs habituels de Stripe. SellQo ne prend rien par commande, sauf les frais par billet d'Events Flex.",
       "foot_qr": "Virement avec code QR : votre client paie via son appli bancaire, sans frais pour vous.",
       "from_short": "dès"
@@ -442,11 +442,15 @@
       "items": [
         {
           "q": "Comment fonctionne l'essai gratuit ?",
-          "a": "Vous utilisez une formule payante gratuitement pendant 14 jours, sans carte de crédit. Ensuite, votre abonnement démarre sur la formule choisie et vous recevez une demande de paiement. Tant qu'elle n'est pas réglée, votre boutique reste en ligne, mais vous ne pouvez rien modifier dans votre administration. Free et Events Flex ne nécessitent pas d'essai : ils ne coûtent rien par mois."
+          "a": "Vous utilisez une formule payante gratuitement pendant 14 jours, sans carte de crédit. Ensuite, votre abonnement démarre sur la formule choisie. Si vous avez configuré une domiciliation ou une carte, le paiement est automatique ; sinon, vous recevez une demande de paiement par e-mail. Votre boutique reste toujours en ligne. Si rien n'est payé après les rappels et un délai de grâce, vous ne pouvez plus rien modifier dans votre administration. Free et Events Flex ne nécessitent pas d'essai : ils ne coûtent rien par mois."
         },
         {
-          "q": "Puis-je changer de formule plus tard ?",
-          "a": "Oui, dans votre espace d'administration sous Abonnement. Une montée en gamme s'applique immédiatement, une baisse à la période suivante."
+          "q": "Comment payer mon abonnement ?",
+          "a": "Dans votre administration, sous Abonnement, vous configurez une domiciliation SEPA ou une carte ; chaque période est alors payée automatiquement. Vous préférez pas ? Vous recevez alors à chaque période une demande de paiement à régler via un lien. La facture n'arrive qu'après le paiement."
+        },
+        {
+          "q": "Puis-je changer de formule ou arrêter plus tard ?",
+          "a": "Oui, dans votre administration sous Abonnement, sans préavis. Une montée en gamme s'applique dès que la différence pour la période en cours est payée. Une baisse s'applique à la période suivante. Si vous arrêtez et passez à Free, votre abonnement payant s'arrête immédiatement."
         },
         {
           "q": "Que contient la formule Restauration ?",
@@ -454,7 +458,7 @@
         },
         {
           "q": "Combien coûte Events Flex ?",
-          "a": "Rien par mois et 0,49 € par billet payant, sans pourcentage. Le montant est déduit automatiquement du paiement en ligne. Les billets gratuits ne coûtent rien. Avec Events Flex, les billets se paient en ligne."
+          "a": "Rien par mois et 0,49 € par billet payant, sans pourcentage. Le montant est déduit automatiquement du paiement en ligne. Les billets gratuits ne coûtent rien. Avec Events Flex, les billets se paient en ligne : vous reliez donc votre compte Stripe."
         },
         {
           "q": "Y a-t-il des frais en plus de l'abonnement ?",
@@ -482,7 +486,7 @@
         },
         {
           "q": "Que deviennent mes données si j'arrête ?",
-          "a": "Vos données restent les vôtres. Vous exportez produits, clients et commandes en CSV ou Excel. Nous ne supprimons vos données que 30 jours après la résiliation de votre compte."
+          "a": "Vos données restent les vôtres. Vous exportez vos commandes en CSV et votre stock en Excel ; pour un export complet, nous vous aidons. Sur demande, nous supprimons entièrement votre compte et vos données."
         }
       ]
     },
@@ -675,7 +679,7 @@
       "bol_title": "Vendre sur bol.com",
       "bol_text": "Les commandes bol.com arrivent dans SellQo et votre stock reste identique partout. Dès Pro.",
       "promos_title": "Réductions et chèques-cadeaux",
-      "promos_text": "Codes de réduction dans la boutique et chèques-cadeaux avec code QR en caisse."
+      "promos_text": "Codes de réduction dans la boutique et chèques-cadeaux en caisse."
     }
   },
   "public": {
