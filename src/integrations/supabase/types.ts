@@ -6947,8 +6947,8 @@ export type Database = {
           hours: Json
           max_orders_per_slot: number | null
           notify_ready: boolean
-          pay_on_pickup: boolean
           paused_until: string | null
+          pay_on_pickup: boolean
           prep_minutes: number
           qr_mode: string
           qr_pay_counter: boolean
@@ -6961,12 +6961,12 @@ export type Database = {
         }
         Insert: {
           closed_dates?: string[]
-          paused_until?: string | null
           created_at?: string
           days_ahead?: number
           hours?: Json
           max_orders_per_slot?: number | null
           notify_ready?: boolean
+          paused_until?: string | null
           pay_on_pickup?: boolean
           prep_minutes?: number
           qr_mode?: string
@@ -6980,12 +6980,12 @@ export type Database = {
         }
         Update: {
           closed_dates?: string[]
-          paused_until?: string | null
           created_at?: string
           days_ahead?: number
           hours?: Json
           max_orders_per_slot?: number | null
           notify_ready?: boolean
+          paused_until?: string | null
           pay_on_pickup?: boolean
           prep_minutes?: number
           qr_mode?: string
@@ -11623,7 +11623,6 @@ export type Database = {
       }
       pricing_plans: {
         Row: {
-          ticket_fee: number
           active: boolean | null
           ai_credits_monthly: number | null
           created_at: string | null
@@ -11645,12 +11644,12 @@ export type Database = {
           stripe_price_id_monthly: string | null
           stripe_price_id_yearly: string | null
           stripe_product_id: string | null
+          ticket_fee: number
           transaction_overage_fee: number | null
           updated_at: string | null
           yearly_price: number
         }
         Insert: {
-          ticket_fee?: number
           active?: boolean | null
           ai_credits_monthly?: number | null
           created_at?: string | null
@@ -11672,12 +11671,12 @@ export type Database = {
           stripe_price_id_monthly?: string | null
           stripe_price_id_yearly?: string | null
           stripe_product_id?: string | null
+          ticket_fee?: number
           transaction_overage_fee?: number | null
           updated_at?: string | null
           yearly_price?: number
         }
         Update: {
-          ticket_fee?: number
           active?: boolean | null
           ai_credits_monthly?: number | null
           created_at?: string | null
@@ -11699,6 +11698,7 @@ export type Database = {
           stripe_price_id_monthly?: string | null
           stripe_price_id_yearly?: string | null
           stripe_product_id?: string | null
+          ticket_fee?: number
           transaction_overage_fee?: number | null
           updated_at?: string | null
           yearly_price?: number
@@ -12687,9 +12687,8 @@ export type Database = {
       }
       products: {
         Row: {
-          allergens: string[]
-          dietary: string[]
           access_duration_days: number | null
+          allergens: string[]
           allow_backorder: boolean | null
           amazon_asin: string | null
           amazon_bullets: string[] | null
@@ -12719,6 +12718,7 @@ export type Database = {
           cost_price: number | null
           created_at: string | null
           description: string | null
+          dietary: string[]
           digital_delivery_type:
             | Database["public"]["Enums"]["digital_delivery_type"]
             | null
@@ -12820,9 +12820,8 @@ export type Database = {
           woocommerce_variant_id: string | null
         }
         Insert: {
-          allergens?: string[]
-          dietary?: string[]
           access_duration_days?: number | null
+          allergens?: string[]
           allow_backorder?: boolean | null
           amazon_asin?: string | null
           amazon_bullets?: string[] | null
@@ -12852,6 +12851,7 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           description?: string | null
+          dietary?: string[]
           digital_delivery_type?:
             | Database["public"]["Enums"]["digital_delivery_type"]
             | null
@@ -12953,9 +12953,8 @@ export type Database = {
           woocommerce_variant_id?: string | null
         }
         Update: {
-          allergens?: string[]
-          dietary?: string[]
           access_duration_days?: number | null
+          allergens?: string[]
           allow_backorder?: boolean | null
           amazon_asin?: string | null
           amazon_bullets?: string[] | null
@@ -12985,6 +12984,7 @@ export type Database = {
           cost_price?: number | null
           created_at?: string | null
           description?: string | null
+          dietary?: string[]
           digital_delivery_type?:
             | Database["public"]["Enums"]["digital_delivery_type"]
             | null
@@ -18575,7 +18575,6 @@ export type Database = {
       }
       tenants: {
         Row: {
-          business_modules: string[]
           address: string | null
           apply_oss_rules: boolean | null
           auto_generate_invoice: boolean | null
@@ -18592,6 +18591,7 @@ export type Database = {
           billing_vat_number: string | null
           block_invalid_vat_orders: boolean | null
           btw_number: string | null
+          business_modules: string[]
           city: string | null
           country: string | null
           created_at: string | null
@@ -18690,7 +18690,6 @@ export type Database = {
           whatsapp_shipping_updates: boolean | null
         }
         Insert: {
-          business_modules?: string[]
           address?: string | null
           apply_oss_rules?: boolean | null
           auto_generate_invoice?: boolean | null
@@ -18707,6 +18706,7 @@ export type Database = {
           billing_vat_number?: string | null
           block_invalid_vat_orders?: boolean | null
           btw_number?: string | null
+          business_modules?: string[]
           city?: string | null
           country?: string | null
           created_at?: string | null
@@ -18805,7 +18805,6 @@ export type Database = {
           whatsapp_shipping_updates?: boolean | null
         }
         Update: {
-          business_modules?: string[]
           address?: string | null
           apply_oss_rules?: boolean | null
           auto_generate_invoice?: boolean | null
@@ -18822,6 +18821,7 @@ export type Database = {
           billing_vat_number?: string | null
           block_invalid_vat_orders?: boolean | null
           btw_number?: string | null
+          business_modules?: string[]
           city?: string | null
           country?: string | null
           created_at?: string | null
