@@ -2127,7 +2127,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
     .from('storefront_cart_items')
     .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, track_inventory, stock), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
-  const evLabels = await eventLabels(supabase, tenantId, (items || []).map((i: any) => i.event_detail_id));
+  const evLabels = await eventLabels(supabase, tenantId, (items || []).map((i: DbRow) => i.event_detail_id as string | null));
 
   // Fetch variant info for items that have variant_id
   const variantIds = (items || []).filter((i: any) => i.variant_id).map((i: any) => i.variant_id);
@@ -2447,14 +2447,14 @@ function deriveCartCheckoutStatus(cart: any): string {
 
 // EVENTS-SHOP-1 — datum en plaats van ticketregels, zodat mandje en afrekenen tonen
 // voor welk event een ticket is. Alleen voor regels met een event_detail_id (additief).
-async function eventLabels(supabase: any, tenantId: string, ids: (string | null | undefined)[]): Promise<Map<string, Record<string, unknown>>> {
+async function eventLabels(supabase: SupabaseLike, tenantId: string, ids: (string | null | undefined)[]): Promise<Map<string, Record<string, unknown>>> {
   const uniq = [...new Set(ids.filter(Boolean) as string[])];
   const out = new Map<string, Record<string, unknown>>();
   if (!uniq.length) return out;
   const { data } = await supabase.from('event_details')
     .select('id, event_date, start_time, end_time, location_name').in('id', uniq).eq('tenant_id', tenantId);
-  for (const e of (data || []) as any[]) {
-    out.set(e.id, { id: e.id, date: e.event_date, start_time: e.start_time ?? null, end_time: e.end_time ?? null, location: e.location_name ?? null });
+  for (const e of (data || []) as DbRow[]) {
+    out.set(String(e.id), { id: e.id, date: e.event_date, start_time: e.start_time ?? null, end_time: e.end_time ?? null, location: e.location_name ?? null });
   }
   return out;
 }
@@ -2600,7 +2600,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   if (payOnPickup) availablePayment.push(payOnPickup);
 
   // Items
-  const evLabels = await eventLabels(supabase, tenantId, cart.cartItems.map((i: any) => i.event_detail_id));
+  const evLabels = await eventLabels(supabase, tenantId, cart.cartItems.map((i: DbRow) => i.event_detail_id as string | null));
   let items = cart.cartItems.map((item: any) => ({
     id: item.id,
     product_id: item.product_id,
