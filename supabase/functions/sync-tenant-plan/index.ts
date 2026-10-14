@@ -99,6 +99,8 @@ function jsonResponse(body: unknown, status = 200): Response {
 }
 
 Deno.serve(async (req) => {
+  // Versiestempel om een deploy zonder neveneffect na te meten (geen auth, geen data).
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "PRICE-2" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

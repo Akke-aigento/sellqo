@@ -1,3 +1,43 @@
+## Prijzen per sector — PRICE-2, FLEX-1, MKT-2, SEO-2 — 14 oktober 2026
+
+Akke ging akkoord met: Horeca €49 per maand plus een opstartpakket van €149 via Studio Akke, Events Flex (€0 per maand, €0,49 per betaald ticket), Free als mini-webshop op sellqo.shop, één bron voor prijzen, en de homepage inkorten en eerlijk maken.
+
+### PRICE-2 — plannen (migratie `20261014070000_price_2.sql`, live en nagekeken)
+- `pricing_plans.ticket_fee` (default 0).
+- Plan `events_flex`: €0, ticket_fee 0,49, events, webshop en eigen domein. Het staat op `active = false`.
+- Free krijgt `webshop_builder`.
+- Transactie-overage overal uit (`included = -1`, `fee = 0`). Die werd nooit aangerekend, maar Instellingen → Transacties toonde wel "extra kosten".
+- **Activatie na de deploy:** `update pricing_plans set active = true where id in ('horeca','events_flex')`. Pas dan verschijnen ze op /pricing, in de onboarding en bij Abonnement.
+
+### FLEX-1 — kost per ticket als Stripe application fee
+- storefront-api (`ticketFeeFor`, rooktest): bij een plan met ticket_fee gaat er per betaald ticket `ticket_fee` als `application_fee_amount` mee, nooit meer dan de sessie zelf. Metadata: `platform_ticket_fee_cents` en `platform_ticket_count`.
+  - Zulke tickets kunnen alleen online betaald worden (`TICKETS_ONLINE_ONLY`; overschrijving en betalen ter plaatse vallen weg).
+  - Winkels zonder ticket_fee: niets verandert.
+- sync-tenant-plan: een €0-plan met ticket_fee blijft het gekozen plan en staat actief. Vroeger viel elk €0-plan terug op 'free' met status canceled.
+- create-tenant, **geldbug**: wie 'free' koos, bleef op de Pro-proef van de trigger staan en zou na 14 dagen Pro (€79) aangerekend krijgen.
+  - Nu: een plan zonder maandprijs krijgt `status active` zonder proef, en alleen actieve plannen worden aanvaard.
+  - Nagekeken: er stond niemand in proef, er is dus niemand geraakt.
+- Nog open: een maandoverzicht en factuur van de geïnde ticketkosten aan de organisator (btw). De bron daarvoor is Stripe (application fees per connected account). Dat is een eigen batch, met Pieter.
+
+### MKT-2 — homepage en prijzen
+- De hero toont een echte demowinkel (Atelier Nord) in een browserkader in plaats van het nep-dashboard. Blokken: drie soorten zaken, wat in elke SellQo zit (alleen werkende functies), prijzen, FAQ.
+- Geschrapt: Probleem, Oplossing, Unieke functies en de vergelijking met concurrentieprijzen.
+- `PricingSection` haalt alles uit `pricing_plans` (regels via `src/lib/planLines.ts`), met tabbladen Winkels, Horeca (plus opstartpakket) en Events (plus "liever vast? Starter").
+  - Dezelfde component draait op /pricing (`?sector=`), /horeca en /events.
+- Onboarding-planstap: uit de database, per sector gefilterd en aanbevolen, vertaald.
+- FAQ herschreven volgens de facturatie, de talen, Flex en Horeca, en Peppol sinds 1/1/2026. Kopteksten in zinsvorm. Testimonials en tellers blijven (keuze Akke).
+
+### SEO-2
+`scripts/prerender-meta.mjs` draait na `vite build` en schrijft `dist/{horeca,events,pricing}/index.html` met een eigen title, description, canonical en og-tags. Lokaal nagekeken.
+
+### Deploy (open)
+- Drie functies, met een GET-stempel als nulmeting:
+  - storefront-api: `HORECA-1`, moet `FLEX-1` worden.
+  - sync-tenant-plan: 401, moet `PRICE-2` worden.
+  - create-tenant: 401, moet `PRICE-2` worden.
+- Daarna de catalog-probe, dan de plannen activeren, dan de admin publiceren.
+- Niet gedaan: de oude routes `/shop/:slug` doorsturen. Ze worden nog gebruikt door de productfeed, create-checkout-session en storefront-customer-api. Dat vraagt eerst recon.
+
 ## Ochtendbatch 14 oktober 2026 — MODULES-1, MKT-1, EVENTS-SHOP-1
 
 Akke vroeg om SellQo als één geheel neer te zetten: een kern met sectorpakketten voor horeca en events, en een marketingsite die dat verhaal vertelt.
