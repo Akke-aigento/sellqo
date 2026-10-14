@@ -12911,6 +12911,7 @@ export type Database = {
           sync_inventory: boolean | null
           tags: string[] | null
           tenant_id: string
+          token_amount: number | null
           track_inventory: boolean | null
           updated_at: string | null
           vat_rate_id: string | null
@@ -13044,6 +13045,7 @@ export type Database = {
           sync_inventory?: boolean | null
           tags?: string[] | null
           tenant_id: string
+          token_amount?: number | null
           track_inventory?: boolean | null
           updated_at?: string | null
           vat_rate_id?: string | null
@@ -13177,6 +13179,7 @@ export type Database = {
           sync_inventory?: boolean | null
           tags?: string[] | null
           tenant_id?: string
+          token_amount?: number | null
           track_inventory?: boolean | null
           updated_at?: string | null
           vat_rate_id?: string | null
@@ -19077,6 +19080,69 @@ export type Database = {
         }
         Relationships: []
       }
+      ticket_bundle_items: {
+        Row: {
+          bundle_product_id: string
+          component_product_id: string
+          event_detail_id: string
+          id: string
+          sort_order: number
+          tenant_id: string
+        }
+        Insert: {
+          bundle_product_id: string
+          component_product_id: string
+          event_detail_id: string
+          id?: string
+          sort_order?: number
+          tenant_id: string
+        }
+        Update: {
+          bundle_product_id?: string
+          component_product_id?: string
+          event_detail_id?: string
+          id?: string
+          sort_order?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ticket_bundle_items_bundle_product_id_fkey"
+            columns: ["bundle_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_bundle_items_component_product_id_fkey"
+            columns: ["component_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_bundle_items_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_bundle_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ticket_bundle_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ticket_change_tokens: {
         Row: {
           choice: string | null
@@ -19349,6 +19415,254 @@ export type Database = {
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "event_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      token_scanner_access: {
+        Row: {
+          access_token: string
+          created_at: string
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          name: string
+          tenant_id: string
+          use_count: number
+        }
+        Insert: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name: string
+          tenant_id: string
+          use_count?: number
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          name?: string
+          tenant_id?: string
+          use_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_scanner_access_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_scanner_access_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      token_settings: {
+        Row: {
+          refund_enabled: boolean
+          refund_fee: number
+          refund_until: string | null
+          tenant_id: string
+          token_name: string
+          token_name_plural: string
+          updated_at: string
+        }
+        Insert: {
+          refund_enabled?: boolean
+          refund_fee?: number
+          refund_until?: string | null
+          tenant_id: string
+          token_name?: string
+          token_name_plural?: string
+          updated_at?: string
+        }
+        Update: {
+          refund_enabled?: boolean
+          refund_fee?: number
+          refund_until?: string | null
+          tenant_id?: string
+          token_name?: string
+          token_name_plural?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      token_transactions: {
+        Row: {
+          balance_after: number
+          created_at: string
+          delta: number
+          id: string
+          idempotency_key: string | null
+          kind: string
+          note: string | null
+          scanner_id: string | null
+          tenant_id: string
+          user_id: string | null
+          wallet_id: string
+        }
+        Insert: {
+          balance_after: number
+          created_at?: string
+          delta: number
+          id?: string
+          idempotency_key?: string | null
+          kind: string
+          note?: string | null
+          scanner_id?: string | null
+          tenant_id: string
+          user_id?: string | null
+          wallet_id: string
+        }
+        Update: {
+          balance_after?: number
+          created_at?: string
+          delta?: number
+          id?: string
+          idempotency_key?: string | null
+          kind?: string
+          note?: string | null
+          scanner_id?: string | null
+          tenant_id?: string
+          user_id?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_transactions_scanner_id_fkey"
+            columns: ["scanner_id"]
+            isOneToOne: false
+            referencedRelation: "token_scanner_access"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_transactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "token_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      token_wallets: {
+        Row: {
+          balance: number
+          code: string
+          created_at: string
+          customer_email: string | null
+          customer_name: string | null
+          id: string
+          order_id: string | null
+          paid_amount: number
+          purchased: number
+          return_id: string | null
+          status: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          code: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          id?: string
+          order_id?: string | null
+          paid_amount?: number
+          purchased?: number
+          return_id?: string | null
+          status?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          code?: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          id?: string
+          order_id?: string | null
+          paid_amount?: number
+          purchased?: number
+          return_id?: string | null
+          status?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_wallets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_wallets_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_wallets_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_wallets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_wallets_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -20954,6 +21268,10 @@ export type Database = {
         Args: { p_credits: number; p_tenant_id: string }
         Returns: undefined
       }
+      adjust_wallet: {
+        Args: { p_delta: number; p_note: string; p_wallet_id: string }
+        Returns: Json
+      }
       admin_adjust_ai_credits: {
         Args: { p_adjustment: number; p_reason?: string; p_tenant_id: string }
         Returns: boolean
@@ -21017,6 +21335,10 @@ export type Database = {
           p_ticket_id: string
           p_zone_id: string
         }
+        Returns: Json
+      }
+      check_bundle_capacity: {
+        Args: { p_bundle_product_id: string; p_qty: number }
         Returns: Json
       }
       check_event_capacity: {
@@ -21256,7 +21578,19 @@ export type Database = {
       }
       is_platform_admin: { Args: { _user_id: string }; Returns: boolean }
       is_warehouse_user: { Args: { _user_id: string }; Returns: boolean }
+      issue_bundle_tickets_for_order: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
       issue_tickets_for_order: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
+      issue_tickets_for_order_core: {
+        Args: { p_order_id: string }
+        Returns: undefined
+      }
+      issue_wallet_for_order: {
         Args: { p_order_id: string }
         Returns: undefined
       }
@@ -21345,6 +21679,10 @@ export type Database = {
         Returns: number
       }
       repair_orphaned_user_roles: { Args: never; Returns: Json }
+      request_token_refund: {
+        Args: { p_code: string; p_iban: string }
+        Returns: Json
+      }
       reset_monthly_ai_credits:
         | { Args: never; Returns: number }
         | {
@@ -21386,6 +21724,16 @@ export type Database = {
           p_blocked: boolean
           p_event_detail_id: string
           p_seat_ids: string[]
+        }
+        Returns: Json
+      }
+      spend_tokens: {
+        Args: {
+          p_amount: number
+          p_code: string
+          p_key: string
+          p_scanner_id: string
+          p_tenant_id: string
         }
         Returns: Json
       }
@@ -21462,6 +21810,14 @@ export type Database = {
           should_auto_apply: boolean
           should_learn: boolean
         }[]
+      }
+      undo_token_spend: {
+        Args: {
+          p_scanner_id: string
+          p_tenant_id: string
+          p_transaction_id: string
+        }
+        Returns: Json
       }
       unlink_event_venue: { Args: { p_event_detail_id: string }; Returns: Json }
       update_ai_learning_pattern: {
