@@ -6661,7 +6661,9 @@
       "copied": "Link kopiert",
       "open_scanner": "Scanner öffnen",
       "to_event": "Zur Eventseite",
-      "to_overview": "Zur Übersicht"
+      "to_overview": "Zur Übersicht",
+      "hidden": "Noch nicht im Shop zeigen",
+      "hidden_hint": "Praktisch zum Testen oder Vorbereiten. Machen Sie das Event später beim Produkt sichtbar."
     }
   },
   "content_menu": {

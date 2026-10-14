@@ -17773,3 +17773,36 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
 - een tickets-blok in de orderdetail;
 - een Scanner-knop in de native onderbalk;
 - het zaalplan (eerst ontwerp).
+
+## 2026-10-14 — Fonske 24/10 vers aangemaakt + testevent voor de scanner
+
+**Op vraag van Akke** ("verwijder event van 24ste en maak hem opnieuw aan, en een testevent").
+
+**Snapshot vooraf** (`e25b325c`):
+- 21:00, capaciteit 40 (sold), min. 15;
+- early bird €19 tot 2026-10-23T20:00Z;
+- Ladeuzeplein / Big bug;
+- 1 tickettype, 1 zone 'Ingang', 0 scans, 0 scantoegangen;
+- 1 cancelled testticket uit Claude's E2E-order #0003 (€0) en 1 cart-item.
+
+**Verwijderd:**
+- het cancelled testticket, ticket_change_tokens en het cart-item;
+- tickettype, zone en de eventrij;
+- de koppeling `order_items.event_detail_id` van order #0003 staat op null. De order en de factuur zelf blijven staan.
+
+**Opnieuw aangemaakt:**
+- **Event `7ae8364e`:** zelfde velden en zelfde product (`1daee896`, dat Fonske's frontend leest). De trigger maakte het tickettype en de zone 'Ingang' aan.
+- **Probe:** `get_product` toont de datum met 40 vrij, early bird €19 actief en het tickettype.
+
+**Testevent:**
+- **Product `c565e07f`:** "TEST — SellQo Deur (niet publiek)", €0, `hide_from_storefront`, dus niet zichtbaar op fonskecrawl.com.
+- **Datum `e4848b1b`:** vandaag 14/10, 20:00–23:00, capaciteit 20.
+- **Scantoegang:** "Test Deur".
+- **Gratis order #0004** via de echte storefront-api-flow (cart, customer, `checkout_complete`) voor info@sellqo.app:
+  - 2 geldige tickets;
+  - ticketmail en orderbevestiging verstuurd via het normale pad;
+  - automatisch een €0-factuur in Fonske's boeken (zoals elke gratis order).
+
+**Wizard:** de optie "Nog niet tonen in de webshop" zet `hide_from_storefront` aan, om te testen zonder dat een event op een custom frontend verschijnt.
+
+**Opruimen na de test:** testproduct en testdatum op inactief of verwijderen. De €0-factuur blijft (fiscaal geldig, €0).

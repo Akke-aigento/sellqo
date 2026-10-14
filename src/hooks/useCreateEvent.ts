@@ -13,6 +13,8 @@ export interface NewEventInput {
   name: string;
   description: string;
   image: string | null;
+  /** Nog niet tonen in de webshop (en dus ook niet op custom frontends die get_products lezen). */
+  hidden: boolean;
   dates: string[];
   start_time: string;
   end_time: string | null;
@@ -64,6 +66,7 @@ export function useCreateEvent() {
         track_inventory: false,
         stock: 0,
         is_active: true,
+        hide_from_storefront: input.hidden,
         images: input.image ? [input.image] : [],
         featured_image: input.image,
       } as never).select('id').single();

@@ -6661,7 +6661,9 @@
       "copied": "Lien copié",
       "open_scanner": "Ouvrir le scanner",
       "to_event": "Vers la page de l'événement",
-      "to_overview": "Vers l'aperçu"
+      "to_overview": "Vers l'aperçu",
+      "hidden": "Ne pas encore afficher dans la boutique",
+      "hidden_hint": "Pratique pour tester ou tout préparer. Rendez l'événement visible plus tard depuis le produit."
     }
   },
   "content_menu": {

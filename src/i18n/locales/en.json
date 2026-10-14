@@ -6661,7 +6661,9 @@
       "copied": "Link copied",
       "open_scanner": "Open scanner",
       "to_event": "Go to the event page",
-      "to_overview": "Go to the overview"
+      "to_overview": "Go to the overview",
+      "hidden": "Don't show in the shop yet",
+      "hidden_hint": "Handy for testing or getting everything ready. Make the event visible later on the product."
     }
   },
   "content_menu": {

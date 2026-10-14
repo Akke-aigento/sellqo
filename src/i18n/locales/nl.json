@@ -6663,7 +6663,9 @@
       "copied": "Link gekopieerd",
       "open_scanner": "Scanner openen",
       "to_event": "Naar de eventpagina",
-      "to_overview": "Naar het overzicht"
+      "to_overview": "Naar het overzicht",
+      "hidden": "Nog niet tonen in de webshop",
+      "hidden_hint": "Handig om te testen of om alles klaar te zetten. Je zet het event later zichtbaar bij het product."
     }
   },
   "content_menu": {

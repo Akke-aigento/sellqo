@@ -41,6 +41,7 @@ export default function EventWizard() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState<string | null>(null);
+  const [hidden, setHidden] = useState(false);
   // Wanneer & waar
   const [repeat, setRepeat] = useState(false);
   const [date, setDate] = useState('');
@@ -90,7 +91,7 @@ export default function EventWizard() {
   const submit = async () => {
     try {
       const res = await create.mutateAsync({
-        name, description, image, dates,
+        name, description, image, hidden, dates,
         start_time: startTime, end_time: endTime || null,
         location_name: location.trim() || null, meeting_point: meeting.trim() || null,
         price: priceN ?? 0, capacity: capN, min_attendees: Number(minAttendees) || 0,
@@ -189,6 +190,10 @@ export default function EventWizard() {
                   </button>
                 )}
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => void onFile(e.target.files?.[0])} />
+              </div>
+              <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                <div><p className="text-sm font-medium">{k('hidden')}</p><p className="text-xs text-muted-foreground">{k('hidden_hint')}</p></div>
+                <Switch checked={hidden} onCheckedChange={setHidden} />
               </div>
             </>
           )}
