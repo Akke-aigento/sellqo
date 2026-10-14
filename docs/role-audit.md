@@ -17985,3 +17985,17 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
   - Tickets zonder stoel krijgen een identieke mail.
 - **Scanner:** `DoorScanResult.seat` wordt getoond als die er is.
   - `ticket-checkin` geeft dat veld nog níet mee. Die functie bewust niet aanraken vóór Fonske 24/10; backlog ZAAL-3b na 24/10: `seat_label` in de select en `...(seat ? { seat } : {})` in het antwoord.
+
+## 2026-10-14 — ZAAL-SHOP-1: stoelkiezer in de standaard-webshop (sellqo-storefront 791dda9)
+
+- Een datum met `seating: true` toont het zaalplan in plaats van de aantallen per tickettype:
+  - podium, rijletters, kleuren per prijsklasse, bezette stoelen grijs, rolstoelplaatsen ♿;
+  - het plan past zich aan de kolombreedte aan, met minstens 16 px per stoel.
+- **"x plaatsen vastleggen · €…"** roept `cart_set_seats` aan, en het mandje opent.
+  - Is een stoel net weg, dan verschijnt een melding, verdwijnt die stoel uit de keuze, en blijven de andere staan.
+  - "Mijn plaatsen vrijgeven" maakt de stoelen weer vrij.
+- **Mandje:** ticketregels met stoelen tonen "Parterre · rij C: 4, 5" en hebben geen aantal-knoppen. Verwijderen kan wel en geeft de stoelen vrij.
+- **Gecontroleerd** met de mock-API (8787) en vite preview (4321), via Playwright op desktop en mobiel:
+  - geen horizontale scroll (eerst wel: een `fieldset` heeft standaard min-width min-content, opgelost met `min-w-0`);
+  - het conflictpad toont een melding en houdt de rest van de selectie.
+- **Deploy:** GitHub Actions deploy groen. Datums zonder zaalplan blijven exact zoals ze waren.
