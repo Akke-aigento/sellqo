@@ -1,4 +1,4 @@
-## Nachtbatch 14 oktober 2026 — SEO-1, I18N-HORECA, ALLERGEN-1, PAUSE-1
+## Nachtbatch 14 oktober 2026 — SEO-1, I18N-HORECA, ALLERGEN-1/2, PAUSE-1, I18N-POS, I18N-EDITOR
 
 Onbewaakt gebouwd (00:40–06:00). Regels die nacht: geen edge-function-deploys en niets dat echte klanten of hun frontends raakt. Migraties zijn additief en live gezet via `query_database`.
 
@@ -37,7 +37,7 @@ Onbewaakt gebouwd (00:40–06:00). Regels die nacht: geen edge-function-deploys 
 - storefront-api: `allergens` en `dietary` in `get_product` en `get_products`, alleen als ze ingevuld zijn (`foodInfo`), met een rooktest.
 - Shop: "Bevat: gluten, melk" plus badges op de productpagina, boven de bestelknop (EU 1169/2011: vóór de aankoop), en op de menukaart. Dat werkt zodra de API gedeployed is.
 - Demo-pizzeria: alle 17 gerechten ingevuld. De FAQ "Waar vind ik de allergenen?" klopt daarmee na de deploy.
-- Nog open: allergenen per extra (bv. ansjovis = vis).
+- Allergenen per extra: zie ALLERGEN-2.
 
 ### PAUSE-1 — online bestellingen pauzeren en sluitingsdagen (953a8b8 + shop 67ec213)
 - Migratie `20261014030000_pause_1.sql` (live): `fulfillment_settings.paused_until` en `closed_dates`.
@@ -46,6 +46,23 @@ Onbewaakt gebouwd (00:40–06:00). Regels die nacht: geen edge-function-deploys 
 - `computeSlots` slaat sloten vóór de pauze en op sluitingsdagen over. `orderingBlocked()` zit in de deno-tests (13/13).
 - storefront-api: "zo snel mogelijk" wordt geweigerd met `ORDERING_PAUSED` of `CLOSED_TODAY`. Met tijdsloten mag de klant wel een later slot kiezen. Bestellen aan tafel blijft altijd werken. `get_fulfillment_slots` geeft alleen `blocked` mee als dat van toepassing is.
 - Shop: een melding bij het afrekenen.
+
+### ALLERGEN-2 — allergenen per extra (3ff34f2)
+- Migratie `20261014040000_allergen_2_addons.sql` (live): `product_addon_options.allergens` met dezelfde check-constraint.
+- Admin: per optie een allergenen-popover in de extra's-beheerder.
+- storefront-api en `_shared/productAddons.ts`: de allergenen van een optie gaan alleen mee als ze ingevuld zijn (deno-tests 8/8). Shop: de AddonPicker toont ze, na de deploy.
+- Demo-pizzeria: mozzarella, burrata en parmezaan = melk, ansjovis = vis, stokbrood = gluten + melk.
+
+### I18N-POS — kassa door i18n (137dcb5)
+- Kassa, kassabon, cadeaubon-afdruk en de tekstexport van het Z-rapport vertaald (nl/en/fr/de/uk).
+- `vatLabelT()` in `posTotals.ts`. Bug opgelost: de standaard-btw stond op 0%. Belgische tarieven 6% en 12% toegevoegd; 9% heet nu het Nederlandse tarief.
+- Rest: ±30 scanner-hits in `src/components/admin/pos` zijn vals-positief (CSS-klassen, codes).
+
+### I18N-EDITOR — winkel-editor en themaschema (a233fa7)
+- Nieuw `schema/schemaText.ts`: `schemaText(t, tekst)` maakt van de Nederlandse schematekst een key (`admin.storefront.schemaText.*`) met de originele tekst als default. Een nieuw schemaveld zonder vertaling blijft dus Nederlands in plaats van een key-pad te tonen.
+- 97 schemateksten plus ±75 editor-keys vertaald. `SchemaForm`, `ThemeGallery` en `StorefrontCustomize` (sectielabels, panelen, toasts) gaan erdoor.
+- De VanXcel-specifieke footer-placeholder is vervangen door een neutrale.
+- Nog Nederlands: de standaard-inhoud van de thema's (voorbeeldteksten in de secties). Die is content, geen UI.
 
 ## DEMO-1 — Twee publieke demowinkels: Pizzeria Fiamma en Atelier Nord — 14 oktober 2026
 
