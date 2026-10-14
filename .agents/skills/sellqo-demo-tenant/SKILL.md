@@ -11,7 +11,7 @@ Bestaande demo's (allemaal getoond op sellqo.app/voorbeelden, `src/pages/public/
 - `demo-pizzeria` (Pizzeria Fiamma, horeca)
 - `demo-webshop` (Atelier Nord)
 - `demo-concertzaal` (Zaal De Linde, events met zaalplan)
-- `demo-festival` (Zomerfest)
+- `demo-festival` (Zomerfest): dagtickets, VIP, camping, combitickets (weekend, + camping, VIP-weekend), munten (10/25/50) met barlinks Hoofdbar en Foodtrucks, terugbetalen aan
 - `demo-kleding` (Maison Lune)
 - `demo-tech` (Voltaro)
 - `demo-beauty` (Bloom & Balm)
@@ -24,7 +24,9 @@ De oude `demo-mode` ("Demo Fashion Store", januari 2026) en `demo-bakkerij` (tes
 
 Een nieuwe publieke demo hoort ook op /voorbeelden: voeg een rij toe aan `DEMOS` in `Examples.tsx`, met kleuren uit het thema en de herofoto, plus een `try_<naam>`-tekst in `landing.*.json` (5 talen).
 
-Paper trail: role-audit DEMO-1, DEMO-2 en DEMO-3 (14 okt 2026).
+Paper trail: role-audit DEMO-1, DEMO-2, DEMO-3 en FEST-1/2 (14 okt 2026).
+
+`ops.reset_demo_shops` ruimt bestellingen ouder dan de retentie op, behalve ticketbestellingen. Muntenkaarten (`token_wallets`) van die bestellingen gaan mee; transacties volgen via cascade.
 
 Alles loopt via `query_database` op het Lovable-project sellqo (`9932a7fe-43a1-42de-9c64-168968599600`). Geen edge-function-deploy nodig, dus het kost geen Lovable-credits. Alleen de foto's kosten nano-studio-credits (6 per beeld).
 

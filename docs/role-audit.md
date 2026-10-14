@@ -52,6 +52,8 @@
   - retour afgewezen: kaart weer `active`;
   - opnieuw aangevraagd en completed: kaart `refunded`, saldo 0.
 
+**DOCS-1:** doc_articles `combitickets-maken`, `munten-drank-en-eten` en (ingehaald voor ZAAL) `zaalplan-stoelkeuze`, tenant, categorie Producten.
+
 **Gevonden, niet opgelost (backlog):**
 - Tickets betaald met **overschrijving** krijgen na "betaald" markeren geen ticketmail. Alleen Stripe en gratis bestellingen roepen send-ticket-confirmation aan, en de admin heeft geen knop om de tickets opnieuw te mailen. Dit bestond al.
 - De service-key in de vault (`email_queue_service_role_key`) is niet de `SUPABASE_SERVICE_ROLE_KEY` van de functies, dus vanuit de DB kunnen we die mail niet triggeren.
