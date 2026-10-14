@@ -17965,3 +17965,23 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
     - Een tweede cart die A1 + A3 vraagt krijgt `SEATS_UNAVAILABLE [A1]`, en A3 blijft vrij (alles of niets).
     - `checkout_complete` maakt een gratis order (#1004, €0). Dat geeft 3 tickets met `seat_label` "Parterre · A 1", "A 2" en "B 1", elk bij het juiste type. De stoelen staan op sold, en er zijn geen fallback-logs.
     - De bevestigingsmails van die order gingen naar info@sellqo.app.
+
+## 2026-10-14 — ZAAL-3: stoel in de ticketmail, stoelen vrijgeven, per voorstelling blokkeren
+
+- **Migratie** `20261014140000_zaal_3_seat_release.sql` (additief), gedraaid via de connector.
+  - Triggers `ticket_instances_release_seat` en `_delete` geven de stoel vrij bij een geannuleerd of terugbetaald ticket, of als het ticket verdwijnt.
+  - De WHEN-voorwaarde vuurt alleen voor tickets mét `seat_label`, dus check-ins van Fonske raken dit niet.
+  - Getest: het testticket B1 op Demo Bakkerij geannuleerd, waarna de stoel weer vrij werd.
+- **`set_event_seats_blocked(event, seat_ids, blocked)`:**
+  - admin (tenant_admin of staff) zet vrije stoelen van één datum uit of in de verkoop;
+  - de capaciteit van de datum en de `sub_capacity` per tickettype volgen mee.
+- **Admin, kaart Zaalplan:**
+  - een klik op vrije stoelen geeft "Uit verkoop" / "Terug in verkoop";
+  - een klik op een verkochte stoel toont wie er zit (naam, order, status);
+  - verkochte stoelen zijn grijs, zodat ze niet verward worden met een donkere prijsklasse.
+  - Gecontroleerd in de harness.
+- **send-ticket-confirmation** (GET-stempel `ZAAL-3`): elk ticket met stoel krijgt de regel "Plaats: Parterre · Rij F · Stoel 12", in nl/en/fr/de.
+  - Hiervoor zijn 3 keys toegevoegd aan `_shared/tenantEmailI18n.ts` (rowWord, seatWord, seatLabel). Die zijn additief, en de andere 8 importeurs gebruiken ze niet, dus enkel deze functie wordt gedeployed.
+  - Tickets zonder stoel krijgen een identieke mail.
+- **Scanner:** `DoorScanResult.seat` wordt getoond als die er is.
+  - `ticket-checkin` geeft dat veld nog níet mee. Die functie bewust niet aanraken vóór Fonske 24/10; backlog ZAAL-3b na 24/10: `seat_label` in de select en `...(seat ? { seat } : {})` in het antwoord.

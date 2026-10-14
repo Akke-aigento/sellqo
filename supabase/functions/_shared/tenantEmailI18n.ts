@@ -124,6 +124,9 @@ type TicketStrings = {
   timeLabel: string;
   locationLabel: string;
   meetingPointLabel: string;
+  seatLabel: string;
+  rowWord: string;
+  seatWord: string;
   codeLabel: string;
   disclaimer: string;
   footerNote: string;
@@ -248,6 +251,9 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       timeLabel: "Tijd",
       locationLabel: "Locatie",
       meetingPointLabel: "Verzamelpunt",
+      seatLabel: "Plaats",
+      rowWord: "Rij",
+      seatWord: "Stoel",
       codeLabel: "Ticketcode",
       disclaimer: "Let op: datums kunnen in uitzonderlijke gevallen verschuiven of worden samengevoegd. Je wordt hier altijd van op de hoogte gebracht.",
       footerNote: "Vragen over je tickets? Antwoord gewoon op deze e-mail.",
@@ -368,6 +374,9 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       timeLabel: "Time",
       locationLabel: "Location",
       meetingPointLabel: "Meeting point",
+      seatLabel: "Seat",
+      rowWord: "Row",
+      seatWord: "Seat",
       codeLabel: "Ticket code",
       disclaimer: "Please note: in exceptional cases dates may move or be merged. We will always inform you if that happens.",
       footerNote: "Questions about your tickets? Just reply to this email.",
@@ -488,6 +497,9 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       timeLabel: "Heure",
       locationLabel: "Lieu",
       meetingPointLabel: "Point de rendez-vous",
+      seatLabel: "Place",
+      rowWord: "Rang",
+      seatWord: "Siège",
       codeLabel: "Code du billet",
       disclaimer: "Remarque : dans des cas exceptionnels, les dates peuvent être déplacées ou regroupées. Vous en serez toujours informé.",
       footerNote: "Des questions sur vos billets ? Répondez simplement à cet e-mail.",
@@ -608,6 +620,9 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       timeLabel: "Uhrzeit",
       locationLabel: "Ort",
       meetingPointLabel: "Treffpunkt",
+      seatLabel: "Platz",
+      rowWord: "Reihe",
+      seatWord: "Platz",
       codeLabel: "Ticketcode",
       disclaimer: "Hinweis: In Ausnahmefällen können Termine verschoben oder zusammengelegt werden. Wir informieren Sie in diesem Fall immer.",
       footerNote: "Fragen zu Ihren Tickets? Antworten Sie einfach auf diese E-Mail.",

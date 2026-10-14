@@ -21260,6 +21260,10 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: undefined
       }
+      set_event_seats_blocked: {
+        Args: { p_blocked: boolean; p_event_detail_id: string; p_seat_ids: string[] }
+        Returns: Json
+      }
       link_event_venue: {
         Args: { p_event_detail_id: string; p_mapping: Json; p_venue_id: string }
         Returns: Json

@@ -6844,7 +6844,25 @@
       "err_product_not_on_date": "Ein gewählter Tickettyp gehört nicht zu diesem Termin.",
       "err_venue_not_found": "Dieser Saal existiert nicht (mehr).",
       "err_not_allowed": "Dazu fehlen Ihnen die Rechte.",
-      "err_unknown": "Das hat nicht geklappt. Bitte erneut versuchen."
+      "err_unknown": "Das hat nicht geklappt. Bitte erneut versuchen.",
+      "overview_hint": "Klicken Sie auf freie Plätze, um sie für diesen Termin aus dem Verkauf zu nehmen. Klicken Sie auf einen verkauften Platz, um zu sehen, wer dort sitzt.",
+      "selected_one": "{{count}} Platz ausgewählt",
+      "selected_other": "{{count}} Plätze ausgewählt",
+      "block": "Aus dem Verkauf",
+      "unblock": "Wieder verkaufen",
+      "clear": "Schließen",
+      "blocked_done_one": "{{count}} Platz aus dem Verkauf",
+      "blocked_done_other": "{{count}} Plätze aus dem Verkauf",
+      "unblocked_done_one": "{{count}} Platz wieder im Verkauf",
+      "unblocked_done_other": "{{count}} Plätze wieder im Verkauf",
+      "row": "Reihe",
+      "seat": "Platz",
+      "held_info": "Im Warenkorb eines Besuchers; wird automatisch frei, wenn er nicht bezahlt.",
+      "ticket_valid": "gültig",
+      "ticket_checked_in": "eingecheckt",
+      "ticket_cancelled": "storniert",
+      "ticket_refunded": "erstattet",
+      "ticket_transferred": "übertragen"
     }
   },
   "content_menu": {

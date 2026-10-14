@@ -6844,7 +6844,25 @@
       "err_product_not_on_date": "Un type de billet choisi n'appartient pas à cette date.",
       "err_venue_not_found": "Cette salle n'existe pas (plus).",
       "err_not_allowed": "Vous n'avez pas les droits pour cela.",
-      "err_unknown": "Cela n'a pas fonctionné. Réessayez."
+      "err_unknown": "Cela n'a pas fonctionné. Réessayez.",
+      "overview_hint": "Cliquez sur des sièges libres pour les retirer de la vente pour cette date. Cliquez sur un siège vendu pour voir qui l'occupe.",
+      "selected_one": "{{count}} siège sélectionné",
+      "selected_other": "{{count}} sièges sélectionnés",
+      "block": "Retirer de la vente",
+      "unblock": "Remettre en vente",
+      "clear": "Fermer",
+      "blocked_done_one": "{{count}} siège retiré de la vente",
+      "blocked_done_other": "{{count}} sièges retirés de la vente",
+      "unblocked_done_one": "{{count}} siège remis en vente",
+      "unblocked_done_other": "{{count}} sièges remis en vente",
+      "row": "Rang",
+      "seat": "Siège",
+      "held_info": "Dans le panier d'un visiteur ; se libère automatiquement s'il ne finalise pas.",
+      "ticket_valid": "valide",
+      "ticket_checked_in": "entré",
+      "ticket_cancelled": "annulé",
+      "ticket_refunded": "remboursé",
+      "ticket_transferred": "transféré"
     }
   },
   "content_menu": {

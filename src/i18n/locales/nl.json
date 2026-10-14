@@ -6846,7 +6846,25 @@
       "err_product_not_on_date": "Een gekozen tickettype hoort niet bij deze datum.",
       "err_venue_not_found": "Deze zaal bestaat niet (meer).",
       "err_not_allowed": "Je hebt geen rechten om dit te doen.",
-      "err_unknown": "Dat lukte niet. Probeer opnieuw."
+      "err_unknown": "Dat lukte niet. Probeer opnieuw.",
+      "overview_hint": "Klik op vrije stoelen om ze voor deze datum uit de verkoop te halen. Klik op een verkochte stoel om te zien wie er zit.",
+      "selected_one": "{{count}} stoel gekozen",
+      "selected_other": "{{count}} stoelen gekozen",
+      "block": "Uit verkoop",
+      "unblock": "Terug in verkoop",
+      "clear": "Sluiten",
+      "blocked_done_one": "{{count}} stoel uit verkoop",
+      "blocked_done_other": "{{count}} stoelen uit verkoop",
+      "unblocked_done_one": "{{count}} stoel terug in verkoop",
+      "unblocked_done_other": "{{count}} stoelen terug in verkoop",
+      "row": "Rij",
+      "seat": "Stoel",
+      "held_info": "Zit in het mandje van een bezoeker en komt vanzelf vrij als die niet afrekent.",
+      "ticket_valid": "geldig",
+      "ticket_checked_in": "binnen",
+      "ticket_cancelled": "geannuleerd",
+      "ticket_refunded": "terugbetaald",
+      "ticket_transferred": "overgedragen"
     }
   },
   "content_menu": {

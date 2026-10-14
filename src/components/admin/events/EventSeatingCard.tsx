@@ -15,7 +15,10 @@ import {
 } from '@/components/ui/alert-dialog';
 import { bounds } from '@/lib/seatLayout';
 import { useVenueData, useVenues } from '@/hooks/useVenues';
-import { effectiveSeatStatus, seatingErrorCode, useEventSeating, useLinkVenue, useUnlinkVenue, type EventSeat } from '@/hooks/useEventSeating';
+import {
+  effectiveSeatStatus, seatingErrorCode, useEventSeating, useLinkVenue, useSeatTickets, useSetSeatsBlocked, useUnlinkVenue, type EventSeat,
+} from '@/hooks/useEventSeating';
+import { cn } from '@/lib/utils';
 import { useSaveTicketType } from '@/hooks/useEventWorkspace';
 
 const NEW = '__new__';
@@ -69,7 +72,7 @@ export function EventSeatingCard({
       </CardHeader>
       <CardContent>
         {linked
-          ? <SeatOverview seats={seating.seats} ticketTypes={ticketTypes} k={k} />
+          ? <SeatOverview eventId={eventId} seats={seating.seats} ticketTypes={ticketTypes} k={k} />
           : <LinkVenueForm eventId={eventId} mainProductId={mainProductId} ticketTypes={ticketTypes} sold={sold} k={k} />}
       </CardContent>
 
@@ -192,12 +195,17 @@ function LinkVenueForm({
   );
 }
 
-const CELL = 12;
+const CELL = 14;
 
-function SeatOverview({ seats, ticketTypes, k }: { seats: EventSeat[]; ticketTypes: TypeOption[]; k: K }) {
+function SeatOverview({ eventId, seats, ticketTypes, k }: { eventId: string; seats: EventSeat[]; ticketTypes: TypeOption[]; k: K }) {
   const nowMs = Date.now();
   const withStatus = seats.map((s) => ({ ...s, eff: effectiveSeatStatus(s, nowMs) }));
   const count = (st: EventSeat['status']) => withStatus.filter((s) => s.eff === st).length;
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [infoId, setInfoId] = useState<string | null>(null);
+  const block = useSetSeatsBlocked(eventId);
+  const { data: tickets } = useSeatTickets(eventId, count('sold') > 0);
+
   const b = bounds(seats) ?? { minX: 0, maxX: 0, minY: 0, maxY: 0 };
   const w = (b.maxX - b.minX + 1) * CELL;
   const h = (b.maxY - b.minY + 1) * CELL;
@@ -207,6 +215,27 @@ function SeatOverview({ seats, ticketTypes, k }: { seats: EventSeat[]; ticketTyp
       return { ...tt, total: mine.filter((s) => s.eff !== 'blocked').length, sold: mine.filter((s) => s.eff === 'sold').length, color: mine[0]?.color };
     })
     .filter((x) => x.total > 0);
+
+  const sel = withStatus.filter((s) => selected.has(s.id));
+  const canBlock = sel.some((s) => s.eff === 'available');
+  const canUnblock = sel.some((s) => s.eff === 'blocked' && s.product_id);
+  const info = infoId ? withStatus.find((s) => s.id === infoId) ?? null : null;
+  const infoTicket = info?.ticket_instance_id ? tickets?.get(info.ticket_instance_id) : undefined;
+
+  const click = (s: (typeof withStatus)[number]) => {
+    if (s.eff === 'sold' || s.eff === 'held') { setInfoId(s.id); return; }
+    setInfoId(null);
+    setSelected((cur) => { const n = new Set(cur); if (n.has(s.id)) n.delete(s.id); else n.add(s.id); return n; });
+  };
+  const apply = async (blocked: boolean) => {
+    try {
+      const r = await block.mutateAsync({ seatIds: [...selected], blocked });
+      toast.success(k(blocked ? 'blocked_done' : 'unblocked_done', { count: r?.changed ?? 0 }));
+      setSelected(new Set());
+    } catch (e) {
+      toast.error(k(`err_${seatingErrorCode(e)}`));
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -218,21 +247,49 @@ function SeatOverview({ seats, ticketTypes, k }: { seats: EventSeat[]; ticketTyp
           </div>
         ))}
       </div>
+      <div className="flex min-h-9 flex-wrap items-center gap-2">
+        {selected.size === 0 ? (
+          <p className="text-xs text-muted-foreground">{k('overview_hint')}</p>
+        ) : (
+          <>
+            <span className="text-sm font-medium">{k('selected', { count: selected.size })}</span>
+            <Button size="sm" variant="outline" className="h-8" disabled={!canBlock || block.isPending} onClick={() => void apply(true)}>{k('block')}</Button>
+            <Button size="sm" variant="outline" className="h-8" disabled={!canUnblock || block.isPending} onClick={() => void apply(false)}>{k('unblock')}</Button>
+            <Button size="sm" variant="ghost" className="h-8" onClick={() => setSelected(new Set())}>{k('clear')}</Button>
+          </>
+        )}
+      </div>
       <div className="overflow-auto rounded-md border bg-muted/30 p-3">
-        <div className="relative mx-auto" style={{ width: w, height: h }} role="img" aria-label={k('map_label')}>
-          {withStatus.map((s) => (
-            <span
-              key={s.id}
-              title={`${s.section_name} · ${s.row_label} ${s.seat_number}`}
-              className="absolute rounded-[3px]"
-              style={{
-                left: (s.x - b.minX) * CELL + 1, top: (s.y - b.minY) * CELL + 1, width: CELL - 2, height: CELL - 2,
-                background: s.eff === 'sold' ? 'hsl(var(--foreground))' : s.eff === 'held' ? '#F59E0B' : s.eff === 'blocked' ? 'hsl(var(--muted-foreground) / 0.25)' : s.color,
-              }}
-            />
-          ))}
+        <div className="relative mx-auto" style={{ width: w, height: h }}>
+          {withStatus.map((s) => {
+            const label = `${s.section_name} · ${s.row_label} ${s.seat_number}`;
+            return (
+              <button
+                key={s.id} type="button" title={`${label} · ${k(`status_${s.eff}`)}`} aria-label={`${label} · ${k(`status_${s.eff}`)}`}
+                aria-pressed={selected.has(s.id)} onClick={() => click(s)}
+                className={cn('absolute rounded-[3px]', (selected.has(s.id) || infoId === s.id) && 'ring-2 ring-primary ring-offset-1')}
+                style={{
+                  left: (s.x - b.minX) * CELL + 1, top: (s.y - b.minY) * CELL + 1, width: CELL - 2, height: CELL - 2,
+                  background: s.eff === 'sold' ? '#94A3B8' : s.eff === 'held' ? '#F59E0B' : s.eff === 'blocked' ? 'repeating-linear-gradient(45deg, #CBD5E1, #CBD5E1 2px, transparent 2px, transparent 4px)' : s.color,
+                }}
+              />
+            );
+          })}
         </div>
       </div>
+      {info && (
+        <div className="flex items-start justify-between gap-3 rounded-md border p-3 text-sm">
+          <div>
+            <p className="font-semibold">{info.section_name} · {k('row')} {info.row_label} · {k('seat')} {info.seat_number}</p>
+            <p className="text-muted-foreground">
+              {info.eff === 'held'
+                ? k('held_info')
+                : [infoTicket?.attendee_name, infoTicket?.order_number, infoTicket ? k(`ticket_${infoTicket.status}`) : null].filter(Boolean).join(' · ')}
+            </p>
+          </div>
+          <Button size="sm" variant="ghost" onClick={() => setInfoId(null)}>{k('clear')}</Button>
+        </div>
+      )}
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
         {perType.map((tt) => (
           <span key={tt.product_id} className="flex items-center gap-1.5">
@@ -241,7 +298,7 @@ function SeatOverview({ seats, ticketTypes, k }: { seats: EventSeat[]; ticketTyp
           </span>
         ))}
         <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-amber-500" />{k('status_held')}</span>
-        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-foreground" />{k('status_sold')}</span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-full bg-slate-400" />{k('status_sold')}</span>
       </div>
     </div>
   );

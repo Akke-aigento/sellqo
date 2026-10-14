@@ -103,3 +103,40 @@ export function useUnlinkVenue(eventId: string | undefined) {
     onSuccess: invalidate,
   });
 }
+
+export function useSetSeatsBlocked(eventId: string | undefined) {
+  const invalidate = useInvalidateSeating(eventId);
+  return useMutation({
+    mutationFn: async ({ seatIds, blocked }: { seatIds: string[]; blocked: boolean }) => {
+      if (!eventId) throw new Error('no_event');
+      const { data, error } = await supabase.rpc('set_event_seats_blocked', { p_event_detail_id: eventId, p_seat_ids: seatIds, p_blocked: blocked });
+      if (error) throw error;
+      return data as { ok: boolean; changed: number; capacity: number };
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export interface SeatTicketInfo { attendee_name: string | null; status: string; order_number: string | null }
+
+/** Wie zit op welke stoel: ticketinfo per ticket_instance_id. */
+export function useSeatTickets(eventId: string | undefined, enabled: boolean) {
+  const { currentTenant } = useTenant();
+  return useQuery({
+    queryKey: ['event-seat-tickets', currentTenant?.id, eventId],
+    queryFn: async () => {
+      const map = new Map<string, SeatTicketInfo>();
+      if (!currentTenant || !eventId) return map;
+      const { data, error } = await supabase.from('ticket_instances')
+        .select('id, attendee_name, status, orders(order_number)')
+        .eq('tenant_id', currentTenant.id).eq('event_detail_id', eventId).not('seat_label', 'is', null);
+      if (error) throw error;
+      for (const r of data ?? []) {
+        const o = (r as { orders?: { order_number?: string | null } | null }).orders;
+        map.set(r.id as string, { attendee_name: (r.attendee_name as string | null) ?? null, status: r.status as string, order_number: o?.order_number ?? null });
+      }
+      return map;
+    },
+    enabled: !!currentTenant && !!eventId && enabled,
+  });
+}

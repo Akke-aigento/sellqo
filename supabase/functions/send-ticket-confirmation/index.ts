@@ -59,6 +59,7 @@ function formatTime(start: string | null, end: string | null): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "ZAAL-3" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     await authenticateRequest(req);
@@ -90,7 +91,7 @@ serve(async (req) => {
       .from("ticket_instances")
       .select(`
         id, qr_token, seq, attendee_name, attendee_email, status, order_item_id,
-        event_detail_id
+        event_detail_id, seat_label
       `)
       .eq("order_id", order_id)
       .order("seq", { ascending: true });
@@ -124,6 +125,18 @@ serve(async (req) => {
         .select("id, product_name")
         .in("id", itemIds);
       for (const it of its || []) itemMap.set(it.id, it);
+    }
+
+    // ZAAL-2/3 — stoel per ticket (alleen bij een datum met zaalplan).
+    type SeatRow = { ticket_instance_id: string; section_name: string; row_label: string; seat_number: string };
+    type TicketRow = { id: string; seat_label: string | null };
+    const seatMap = new Map<string, SeatRow>();
+    if ((tickets as TicketRow[]).some((x) => x.seat_label)) {
+      const { data: seats } = await supabase
+        .from("event_seats")
+        .select("ticket_instance_id, section_name, row_label, seat_number")
+        .in("ticket_instance_id", (tickets as TicketRow[]).map((x) => x.id));
+      for (const st of (seats || []) as SeatRow[]) seatMap.set(st.ticket_instance_id, st);
     }
 
     const recipient = order.customer_email || tickets.find((x: any) => x.attendee_email)?.attendee_email;
@@ -179,6 +192,12 @@ serve(async (req) => {
       addRow(t(locale, "ticket.timeLabel"), formatTime(ev.start_time, ev.end_time));
       addRow(t(locale, "ticket.locationLabel"), ev.location_name || "");
       addRow(t(locale, "ticket.meetingPointLabel"), ev.meeting_point || "");
+      const seat = seatMap.get(tk.id);
+      if (seat) {
+        addRow(t(locale, "ticket.seatLabel"), `${seat.section_name} · ${t(locale, "ticket.rowWord")} ${seat.row_label} · ${t(locale, "ticket.seatWord")} ${seat.seat_number}`);
+      } else if (tk.seat_label) {
+        addRow(t(locale, "ticket.seatLabel"), tk.seat_label);
+      }
       if (tk.attendee_name) addRow(t(locale, "ticket.attendeeLabel"), tk.attendee_name);
 
       return `

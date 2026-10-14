@@ -6844,7 +6844,25 @@
       "err_product_not_on_date": "A chosen ticket type doesn't belong to this date.",
       "err_venue_not_found": "This venue does not exist (any more).",
       "err_not_allowed": "You don't have permission to do this.",
-      "err_unknown": "That didn't work. Please try again."
+      "err_unknown": "That didn't work. Please try again.",
+      "overview_hint": "Click free seats to take them off sale for this date. Click a sold seat to see who sits there.",
+      "selected_one": "{{count}} seat selected",
+      "selected_other": "{{count}} seats selected",
+      "block": "Take off sale",
+      "unblock": "Back on sale",
+      "clear": "Close",
+      "blocked_done_one": "{{count}} seat taken off sale",
+      "blocked_done_other": "{{count}} seats taken off sale",
+      "unblocked_done_one": "{{count}} seat back on sale",
+      "unblocked_done_other": "{{count}} seats back on sale",
+      "row": "Row",
+      "seat": "Seat",
+      "held_info": "In a visitor's basket; it frees up automatically if they don't check out.",
+      "ticket_valid": "valid",
+      "ticket_checked_in": "checked in",
+      "ticket_cancelled": "cancelled",
+      "ticket_refunded": "refunded",
+      "ticket_transferred": "transferred"
     }
   },
   "content_menu": {

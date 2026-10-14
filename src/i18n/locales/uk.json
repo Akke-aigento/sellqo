@@ -6844,7 +6844,25 @@
       "err_product_not_on_date": "Обраний тип квитка не належить до цієї дати.",
       "err_venue_not_found": "Цього залу не існує.",
       "err_not_allowed": "У вас немає прав на це.",
-      "err_unknown": "Не вдалося. Спробуйте ще раз."
+      "err_unknown": "Не вдалося. Спробуйте ще раз.",
+      "overview_hint": "Натисніть на вільні місця, щоб зняти їх із продажу на цю дату. Натисніть на продане місце, щоб побачити, хто там сидить.",
+      "selected_one": "Обрано {{count}} місце",
+      "selected_other": "Обрано {{count}} місць",
+      "block": "Зняти з продажу",
+      "unblock": "Повернути в продаж",
+      "clear": "Закрити",
+      "blocked_done_one": "{{count}} місце знято з продажу",
+      "blocked_done_other": "{{count}} місць знято з продажу",
+      "unblocked_done_one": "{{count}} місце знову в продажу",
+      "unblocked_done_other": "{{count}} місць знову в продажу",
+      "row": "Ряд",
+      "seat": "Місце",
+      "held_info": "У кошику відвідувача; звільниться автоматично, якщо він не оплатить.",
+      "ticket_valid": "дійсний",
+      "ticket_checked_in": "всередині",
+      "ticket_cancelled": "скасовано",
+      "ticket_refunded": "повернено",
+      "ticket_transferred": "передано"
     }
   },
   "content_menu": {

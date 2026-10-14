@@ -21,6 +21,8 @@ export interface DoorScanResult {
   attendee?: string | null;
   seq?: number | null;
   checked_in_at?: string | null;
+  /** ZAAL-3: stoel, alleen bij een datum met zaalplan. */
+  seat?: string | null;
   expected_event?: { date: string | null; start_time: string | null; name: string | null };
 }
 
@@ -266,6 +268,7 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
     if (r.result === 'wrong_event' && r.expected_event?.date) {
       return k('result.for_date', { date: new Date(`${r.expected_event.date}T00:00:00`).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) });
     }
+    if (r.result === 'ok' && r.seat) return r.seat;
     if (r.result === 'ok' && r.seq) return k('result.ticket_no', { n: r.seq });
     return r.attendee ?? '';
   };
