@@ -17643,3 +17643,8 @@ Wijziging:
 - **`useOrderShipping`** roept de nieuwe functie aan. **De twee webhooks** ook, telkens achter `notify_on_shipped`.
 - **send-customer-message is niet gewijzigd** (additief).
 - Deploy via Lovable: send-order-shipped, printful-webhook, tracking-webhook.
+- **Deploy-verificatie (14-10, ±10:05):**
+  - send-order-shipped: nulmeting gaf 404; na de deploy geeft GET `{"version":"SHIP-MAIL-1"}`. Een POST met een niet-bestaand order-id gaf 404 "Order not found", zonder neveneffect.
+  - printful-webhook en tracking-webhook: deployed per agentrapport (supabase--deploy_edge_functions). Die hebben geen versiestempel.
+  - Bij de eerste deploy-poging zag de agent 7ee1b86 nog niet en stopte correct. In de merge f6394ee zit één Lovable-commit e209220: 12 blog-URL's in public/sitemap.xml. Dat is geen agentwerk binnen deze batch.
+  - Kost: 0,7 credits.
