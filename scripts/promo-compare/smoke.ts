@@ -193,5 +193,19 @@ await check('kost per ticket alleen bij Flex en betaalde tickets (FLEX-1)', asyn
   assert(none.feeCents === 0 && none.tickets === 0, 'geen tickets: geen kost');
 });
 
+await check('early bird per tickettype (EB-TYPES-1)', async () => {
+  const future = new Date(Date.now() + 864e5).toISOString();
+  const ev = { product_id: 'main', early_bird_price: 19, early_bird_deadline: future, early_bird_quantity: null };
+  const price = (pid: string, typeEb: number | null, base: number) =>
+    S.resolveEventPrice(S.earlyBirdForType(ev, pid, typeEb), base, 0, new Date()).price;
+  assert(price('main', null, 25) === 19, 'standaardtype volgt de early bird van de datum');
+  assert(price('vip', null, 40) === 40, 'VIP zonder eigen early bird: gewone prijs (niet €19)');
+  assert(price('vip', 32, 40) === 32, 'VIP met eigen early bird: eigen prijs');
+  const noPeriod = { ...ev, early_bird_deadline: null, early_bird_quantity: null };
+  assert(S.resolveEventPrice(S.earlyBirdForType(noPeriod, 'vip', 32), 40, 0, new Date()).price === 40, 'extra type zonder periode: geen eindeloze korting');
+  const over = { ...ev, early_bird_deadline: new Date(Date.now() - 864e5).toISOString() };
+  assert(S.resolveEventPrice(S.earlyBirdForType(over, 'vip', 32), 40, 0, new Date()).price === 40, 'na de periode: gewone prijs');
+});
+
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }
 console.log('Rooktest storefront-api groen.');

@@ -6576,6 +6576,7 @@ export type Database = {
       event_ticket_types: {
         Row: {
           created_at: string
+          early_bird_price: number | null
           event_detail_id: string | null
           event_group_id: string | null
           id: string
@@ -6594,6 +6595,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          early_bird_price?: number | null
           event_detail_id?: string | null
           event_group_id?: string | null
           id?: string
@@ -6612,6 +6614,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          early_bird_price?: number | null
           event_detail_id?: string | null
           event_group_id?: string | null
           id?: string

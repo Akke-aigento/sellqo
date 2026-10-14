@@ -85,6 +85,8 @@ export interface TicketTypeInput {
   sales_end: string | null;
   reentry_policy: ReentryPolicy;
   is_active: boolean;
+  /** EB-TYPES-1: eigen early-bird-prijs (alleen extra types; het standaardtype volgt de datum). */
+  early_bird_price: number | null;
   /** Nieuw type: ook toevoegen aan de andere komende datums van dit event. */
   apply_to_other_dates: boolean;
 }
@@ -102,6 +104,7 @@ export function useSaveTicketType(eventId: string | undefined, mainProductId: st
         sales_end: input.sales_end,
         reentry_policy: input.reentry_policy,
         is_active: input.is_active,
+        ...(input.existing?.product_id === mainProductId ? {} : { early_bird_price: input.early_bird_price }),
       };
 
       if (input.existing) {
@@ -111,7 +114,7 @@ export function useSaveTicketType(eventId: string | undefined, mainProductId: st
         const { error: pErr } = await supabase.from('products').update(productPatch as never)
           .eq('id', input.existing.product_id).eq('tenant_id', tenantId);
         if (pErr) throw pErr;
-        const { error } = await supabase.from('event_ticket_types').update(typeFields)
+        const { error } = await supabase.from('event_ticket_types').update(typeFields as never)
           .eq('id', input.existing.id).eq('tenant_id', tenantId);
         if (error) throw error;
         return;
@@ -150,7 +153,7 @@ export function useSaveTicketType(eventId: string | undefined, mainProductId: st
       const rows = eventIds.map((id) => ({
         tenant_id: tenantId, event_detail_id: id, product_id: productId, sort_order: (count ?? 0), ...typeFields,
       }));
-      const { error } = await supabase.from('event_ticket_types').insert(rows);
+      const { error } = await supabase.from('event_ticket_types').insert(rows as never);
       if (error) {
         await supabase.from('products').delete().eq('id', productId).eq('tenant_id', tenantId);
         throw error;

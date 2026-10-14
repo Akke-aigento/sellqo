@@ -122,6 +122,22 @@ function resolveEventPrice(
   };
 }
 
+// EB-TYPES-1: early bird per tickettype. Het standaardtype (product van de datum) volgt
+// event_details.early_bird_price zoals altijd; een extra type (VIP, Camping…) gebruikt zijn
+// eigen event_ticket_types.early_bird_price, of geen early bird als die leeg is. Periode en
+// maximum blijven die van de datum. Voorheen kreeg elk type de prijs van de datum.
+function earlyBirdForType<T extends EarlyBirdEvent>(
+  event: T & { product_id?: string | null },
+  productId: string | null | undefined,
+  typeEarlyBirdPrice: number | string | null | undefined,
+): T {
+  if (!productId || !event?.product_id || productId === event.product_id) return event;
+  // Zonder periode (geen einddatum én geen maximum) geen early bird voor een extra type:
+  // anders zou de korting nooit aflopen.
+  const hasPeriod = !!event.early_bird_deadline || event.early_bird_quantity != null;
+  return { ...event, early_bird_price: hasPeriod ? (typeEarlyBirdPrice ?? null) : null };
+}
+
 // true zolang het event nog bezig of toekomstig is.
 function isEventStillOpen(
   ev: { event_date: string; start_time?: string | null; end_time?: string | null; timezone?: string | null },
@@ -656,7 +672,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
       const [ttRes, cntRes] = await Promise.all([
         supabase
           .from('event_ticket_types')
-          .select('id, product_id, event_detail_id, sub_capacity, sales_start, sales_end, sort_order, is_active, products!event_ticket_types_product_id_fkey(id, name, price)')
+          .select('id, product_id, event_detail_id, sub_capacity, sales_start, sales_end, sort_order, is_active, early_bird_price, products!event_ticket_types_product_id_fkey(id, name, price)')
           .in('event_detail_id', openIds)
           .eq('tenant_id', tenantId)
           .eq('is_active', true)
@@ -682,7 +698,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
           const ttProduct = tt.products || null;
           const basePrice = Number(ttProduct?.price ?? product.price) || 0;
           // early-bird blijft event-breed: dezelfde `sold` als de betaalkant.
-          const ttPrice = resolveEventPrice(e, basePrice, sold, new Date()).price;
+          const ttPrice = resolveEventPrice(earlyBirdForType({ ...e, product_id: product.id }, tt.product_id, tt.early_bird_price), basePrice, sold, new Date()).price;
           const typeSold = countMap.get(`${e.id}|${tt.product_id}`) ?? 0;
           const startOk = !tt.sales_start || nowMs >= new Date(tt.sales_start).getTime();
           const endOk = !tt.sales_end || nowMs <= new Date(tt.sales_end).getTime();
@@ -2225,7 +2241,14 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     const { data: cnt } = await supabase.rpc('get_event_signup_count', { p_event_detail_id: eventDetailId });
     const sold = typeof cnt === 'number' ? cnt : 0;
     if (!variantId) {
-      unitPrice = resolveEventPrice(eventDetail, product.price, sold, new Date()).price;
+      let typeEb: number | null = null;
+      if (eventDetail.product_id && eventDetail.product_id !== productId) {
+        const { data: ttEb } = await supabase
+          .from('event_ticket_types').select('early_bird_price')
+          .eq('event_detail_id', eventDetailId).eq('product_id', productId).eq('tenant_id', tenantId).maybeSingle();
+        typeEb = ttEb?.early_bird_price ?? null;
+      }
+      unitPrice = resolveEventPrice(earlyBirdForType(eventDetail, productId, typeEb), product.price, sold, new Date()).price;
     }
 
     // ── FASE 3a — tickettype-validatie + vriendelijke cap-check ──────────────
@@ -4674,7 +4697,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FLEX-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'EB-TYPES-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

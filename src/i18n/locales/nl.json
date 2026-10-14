@@ -6716,7 +6716,14 @@
       "tt_window_hint": "Leeg = verkoop meteen open en tot het event.",
       "tt_active": "Te koop",
       "tt_all_dates": "Ook toevoegen aan de andere komende datums van dit event",
-      "tab_dates": "Datums"
+      "tab_dates": "Datums",
+      "eb_short": "early bird",
+      "tt_main_eb_hint": "De early bird van dit ticket stel je in bij 'Deze datum'.",
+      "tt_eb_price": "Early-bird prijs voor dit type (€)",
+      "tt_eb_none": "geen early bird",
+      "tt_eb_hint": "Geldt in dezelfde early-bird-periode als de datum (einddatum of maximum). Leeg = dit type krijgt geen korting.",
+      "tt_eb_no_period": "Stel eerst een early-bird-periode in bij 'Deze datum' (einddatum of maximum).",
+      "tt_eb_bad": "De early-bird prijs moet lager zijn dan de gewone prijs."
     }
   },
   "content_menu": {

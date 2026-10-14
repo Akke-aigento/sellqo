@@ -6714,7 +6714,14 @@
       "tt_window_hint": "Leer = sofort im Verkauf bis zum Event.",
       "tt_active": "Im Verkauf",
       "tt_all_dates": "Auch zu den anderen kommenden Terminen dieses Events hinzufügen",
-      "tab_dates": "Termine"
+      "tab_dates": "Termine",
+      "eb_short": "Early Bird",
+      "tt_main_eb_hint": "Den Early Bird dieses Tickets stellen Sie unter „Dieser Termin“ ein.",
+      "tt_eb_price": "Early-Bird-Preis für diesen Typ (€)",
+      "tt_eb_none": "kein Early Bird",
+      "tt_eb_hint": "Gilt im selben Early-Bird-Zeitraum wie der Termin (Enddatum oder Maximum). Leer = dieser Typ erhält keinen Rabatt.",
+      "tt_eb_no_period": "Legen Sie zuerst unter „Dieser Termin“ einen Early-Bird-Zeitraum fest (Enddatum oder Maximum).",
+      "tt_eb_bad": "Der Early-Bird-Preis muss unter dem regulären Preis liegen."
     }
   },
   "content_menu": {

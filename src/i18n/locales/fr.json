@@ -6714,7 +6714,14 @@
       "tt_window_hint": "Vide = en vente immédiatement jusqu'à l'événement.",
       "tt_active": "En vente",
       "tt_all_dates": "Ajouter aussi aux autres dates à venir de cet événement",
-      "tab_dates": "Dates"
+      "tab_dates": "Dates",
+      "eb_short": "early bird",
+      "tt_main_eb_hint": "L'early bird de ce billet se règle dans « Cette date ».",
+      "tt_eb_price": "Prix early bird pour ce type (€)",
+      "tt_eb_none": "pas d'early bird",
+      "tt_eb_hint": "S'applique pendant la même période early bird que la date (date de fin ou maximum). Vide = pas de réduction pour ce type.",
+      "tt_eb_no_period": "Définissez d'abord une période early bird dans « Cette date » (date de fin ou maximum).",
+      "tt_eb_bad": "Le prix early bird doit être inférieur au prix normal."
     }
   },
   "content_menu": {

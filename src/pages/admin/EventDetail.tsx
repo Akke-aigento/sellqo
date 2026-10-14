@@ -85,6 +85,7 @@ interface TicketTypeRow {
   sales_end: string | null;
   sort_order: number;
   reentry_policy: ReentryPolicy;
+  early_bird_price: number | null;
 }
 
 interface ScanRow {
@@ -208,7 +209,7 @@ export default function EventDetail() {
       if (!currentTenant || !eventId) return [];
       const { data, error } = await supabase
         .from('event_ticket_types')
-        .select('id, product_id, sub_capacity, is_active, sales_start, sales_end, sort_order, reentry_policy, products!event_ticket_types_product_id_fkey(name, price)')
+        .select('id, product_id, sub_capacity, is_active, sales_start, sales_end, sort_order, reentry_policy, early_bird_price, products!event_ticket_types_product_id_fkey(name, price)')
         .eq('tenant_id', currentTenant.id)
         .eq('event_detail_id', eventId)
         .order('sort_order', { ascending: true });
@@ -226,6 +227,7 @@ export default function EventDetail() {
           sales_end: (row.sales_end as string | null) ?? null,
           sort_order: (row.sort_order as number) ?? 0,
           reentry_policy: ((row.reentry_policy as ReentryPolicy | null) ?? 'none'),
+          early_bird_price: row.early_bird_price != null ? Number(row.early_bird_price) : null,
         };
       });
     },
@@ -382,6 +384,11 @@ export default function EventDetail() {
     return m;
   }, [attendees]);
 
+  const eur = (n: number) => new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(n);
+  // EB-TYPES-1: standaardtype volgt de early bird van de datum, een extra type zijn eigen prijs.
+  const ebOf = (tt: TicketTypeRow): number | null =>
+    tt.product_id === event?.product_id ? (event?.early_bird_price ?? null) : tt.early_bird_price;
+
   const isOnSale = (tt: TicketTypeRow) => {
     const now = Date.now();
     if (!tt.is_active) return false;
@@ -460,6 +467,7 @@ export default function EventDetail() {
       sales_end: tt.sales_end,
       reentry_policy: tt.reentry_policy,
       is_active: tt.is_active,
+      early_bird_price: tt.early_bird_price,
       isMain: tt.product_id === event?.product_id,
       sold: soldPerProduct[tt.product_id] ?? 0,
     });
@@ -714,7 +722,7 @@ export default function EventDetail() {
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {tt.price != null ? new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(Number(tt.price)) : '—'}
+                            {tt.price != null ? eur(Number(tt.price)) : '—'}{ebOf(tt) != null ? ` · ${t('events.workspace.eb_short')} ${eur(ebOf(tt) as number)}` : ''}
                             {' · '}{t('events.ticketTypes.sold')}: {typeSold}
                             {tt.sub_capacity != null ? ` / ${tt.sub_capacity}` : ` / ${t('events.ticketTypes.form.unlimited')}`}
                             {tt.sub_capacity != null
@@ -770,7 +778,7 @@ export default function EventDetail() {
                             <tr key={tt.id} className="border-b last:border-0">
                               <td className="py-2 pr-3">{tt.name}</td>
                               <td className="py-2 pr-3 tabular-nums">
-                                {tt.price != null ? new Intl.NumberFormat(undefined, { style: 'currency', currency: 'EUR' }).format(Number(tt.price)) : '—'}
+                                {tt.price != null ? eur(Number(tt.price)) : '—'}{ebOf(tt) != null ? ` · ${t('events.workspace.eb_short')} ${eur(ebOf(tt) as number)}` : ''}
                               </td>
                               <td className="py-2 pr-3 tabular-nums">
                                 {tt.sub_capacity ?? t('events.ticketTypes.form.unlimited')}
@@ -1110,6 +1118,7 @@ export default function EventDetail() {
         onOpenChange={(o) => { setTtDialogOpen(o); if (!o) setTtEditing(null); }}
         target={ttEditing}
         hasOtherDates={hasOtherUpcoming}
+        dateHasEarlyBird={!!event.early_bird_deadline || event.early_bird_quantity != null}
         saving={saveTicketType.isPending}
         onSubmit={(input) => void handleTicketTypeSubmit(input)}
       />

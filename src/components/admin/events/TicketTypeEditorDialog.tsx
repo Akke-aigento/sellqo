@@ -23,6 +23,7 @@ export interface TicketTypeEditTarget {
   sales_end: string | null;
   reentry_policy: ReentryPolicy;
   is_active: boolean;
+  early_bird_price: number | null;
   isMain: boolean;
   sold: number;
 }
@@ -30,12 +31,14 @@ export interface TicketTypeEditTarget {
 const toLocal = (iso: string | null) => (iso ? format(new Date(iso), "yyyy-MM-dd'T'HH:mm") : '');
 const fromLocal = (v: string) => (v ? new Date(v).toISOString() : null);
 
-export function TicketTypeEditorDialog({ open, onOpenChange, target, hasOtherDates, saving, onSubmit }: {
+export function TicketTypeEditorDialog({ open, onOpenChange, target, hasOtherDates, dateHasEarlyBird, saving, onSubmit }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   /** null = nieuw type */
   target: TicketTypeEditTarget | null;
   hasOtherDates: boolean;
+  /** Heeft de datum een early-bird-periode? Dan kan dit type een eigen early-bird-prijs krijgen. */
+  dateHasEarlyBird: boolean;
   saving: boolean;
   onSubmit: (input: TicketTypeInput) => void;
 }) {
@@ -49,6 +52,7 @@ export function TicketTypeEditorDialog({ open, onOpenChange, target, hasOtherDat
   const [reentry, setReentry] = useState<ReentryPolicy>('none');
   const [active, setActive] = useState(true);
   const [allDates, setAllDates] = useState(true);
+  const [eb, setEb] = useState('');
 
   useEffect(() => {
     if (!open) return;
@@ -60,13 +64,16 @@ export function TicketTypeEditorDialog({ open, onOpenChange, target, hasOtherDat
     setReentry(target?.reentry_policy ?? 'none');
     setActive(target?.is_active ?? true);
     setAllDates(true);
+    setEb(target?.early_bird_price != null ? String(target.early_bird_price) : '');
   }, [open, target]);
 
   const priceN = price.trim() === '' ? NaN : Number(price.replace(',', '.'));
   const capN = cap.trim() === '' ? null : Number(cap);
   const windowBad = !!start && !!end && new Date(end) < new Date(start);
+  const ebN = eb.trim() === '' ? null : Number(eb.replace(',', '.'));
+  const ebBad = ebN !== null && (!Number.isFinite(ebN) || ebN < 0 || (Number.isFinite(priceN) && ebN >= priceN));
   const nameBad = !target?.isMain && name.trim().length < 2;
-  const invalid = nameBad || !Number.isFinite(priceN) || priceN < 0 || (capN !== null && (!Number.isInteger(capN) || capN < 0)) || windowBad;
+  const invalid = nameBad || !Number.isFinite(priceN) || priceN < 0 || (capN !== null && (!Number.isInteger(capN) || capN < 0)) || windowBad || ebBad;
 
   const submit = () => {
     if (invalid) return;
@@ -76,6 +83,7 @@ export function TicketTypeEditorDialog({ open, onOpenChange, target, hasOtherDat
       name: name.trim(), price: priceN, sub_capacity: capN,
       sales_start: fromLocal(start), sales_end: fromLocal(end),
       reentry_policy: reentry, is_active: active,
+      early_bird_price: target?.isMain ? null : ebN,
       apply_to_other_dates: !target && hasOtherDates && allDates,
     });
   };
@@ -98,7 +106,15 @@ export function TicketTypeEditorDialog({ open, onOpenChange, target, hasOtherDat
               <Input inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="25" />
             </div>
           </div>
-          {target?.isMain && <p className="-mt-2 text-xs text-muted-foreground">{k('tt_main_price_hint')}</p>}
+          {target?.isMain && <p className="-mt-2 text-xs text-muted-foreground">{k('tt_main_price_hint')} {k('tt_main_eb_hint')}</p>}
+          {!target?.isMain && (
+            <div className="space-y-1.5">
+              <Label>{k('tt_eb_price')}</Label>
+              <Input inputMode="decimal" value={eb} disabled={!dateHasEarlyBird && eb === ''} onChange={(e) => setEb(e.target.value)} placeholder={k('tt_eb_none')} />
+              <p className="text-xs text-muted-foreground">{dateHasEarlyBird ? k('tt_eb_hint') : k('tt_eb_no_period')}</p>
+              {ebBad && <p className="text-xs text-destructive">{k('tt_eb_bad')}</p>}
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label>{k('tt_capacity')}</Label>
             <Input type="number" min={0} value={cap} onChange={(e) => setCap(e.target.value)} placeholder={k('tt_capacity_ph')} />

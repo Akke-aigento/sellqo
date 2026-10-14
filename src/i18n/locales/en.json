@@ -6714,7 +6714,14 @@
       "tt_window_hint": "Empty = on sale right away until the event.",
       "tt_active": "On sale",
       "tt_all_dates": "Also add to the other upcoming dates of this event",
-      "tab_dates": "Dates"
+      "tab_dates": "Dates",
+      "eb_short": "early bird",
+      "tt_main_eb_hint": "This ticket's early bird is set under 'This date'.",
+      "tt_eb_price": "Early-bird price for this type (€)",
+      "tt_eb_none": "no early bird",
+      "tt_eb_hint": "Applies in the same early-bird period as the date (end date or maximum). Empty = this type gets no discount.",
+      "tt_eb_no_period": "First set an early-bird period under 'This date' (end date or maximum).",
+      "tt_eb_bad": "The early-bird price must be lower than the regular price."
     }
   },
   "content_menu": {

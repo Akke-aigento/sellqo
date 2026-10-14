@@ -17848,3 +17848,22 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
 - Gevolg: met early bird €19 kost een VIP-ticket van €40 in die periode ook €19, zowel op de webshop als bij `cart_add_item`.
 - Voorstel: de early bird alleen voor het standaardtype (`product_id === event.product_id`), of als korting in plaats van een vaste prijs.
 - Vandaag geen impact: geen enkele datum combineert early bird met extra types.
+
+## 2026-10-14 — EB-TYPES-1: early bird per tickettype
+
+**Root cause:** storefront-api rekende de early bird van de datum (`event_details.early_bird_price`, een absolute prijs) door op élk tickettype. Gevolg: een VIP van €40 kostte tijdens de early bird €19. Akke: "VIP mag ook korting krijgen, maar niet dezelfde."
+
+**Uitgevoerd:**
+- **Migratie** `20261014090000_tt_early_bird.sql`: `event_ticket_types.early_bird_price numeric(10,2) NULL` met de check `>= 0`. Strikt additief. Gedraaid via de connector en live nagekeken via `information_schema`.
+- **storefront-api**, stempel `EB-TYPES-1`, `earlyBirdForType()`:
+  - het standaardtype (`product_id` = product van de datum) volgt de early bird van de datum, zoals voorheen;
+  - een extra type gebruikt zijn eigen `early_bird_price` (NULL = geen korting), binnen dezelfde periode van de datum (einddatum en/of maximum);
+  - zonder periode krijgt een extra type nooit korting, zodat een korting niet eindeloos kan lopen;
+  - toegepast in `get_product` (`ticket_types[].price`) en `cart_add_item` (`unit_price`).
+- **Rooktest:** 5 controles (standaard = €19, VIP zonder eigen prijs = €40, VIP met eigen prijs = €32, na de periode = €40, zonder periode = €40). `resolveEventPrice` en `earlyBirdForType` zijn toegevoegd aan de CI-exportregel.
+- **Admin:**
+  - het tickettypedialoog heeft een veld "Early-bird prijs voor dit type", uitgeschakeld zolang de datum geen periode heeft;
+  - de tickettabel toont per type "· early bird €x";
+  - `types.ts` is aangevuld met de nieuwe kolom.
+
+**Gedeelde-paden-waarschuwing:** voor het standaardtype verandert er niets, dus ook niet voor Fonske en de andere frontends die `current_price` en `early_bird_price` van de datum lezen. Enkel extra types krijgen een andere (correcte) prijs. Live combineerde geen enkele datum vandaag een early bird met extra types.
