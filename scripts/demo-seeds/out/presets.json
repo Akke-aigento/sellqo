@@ -1,0 +1,785 @@
+[
+  {
+    "id": "tech",
+    "name": "Tech & gadgets",
+    "description": "Donker en strak, voor elektronica, gadgets en accessoires. Productfoto’s springen eruit.",
+    "preview": {
+      "background": "#0b0f17",
+      "text": "#e6edf6",
+      "accent": "#22d3ee",
+      "image": ""
+    },
+    "theme": {
+      "brand_color": "#22d3ee",
+      "heading_font": "Space Grotesk",
+      "body_font": "Inter"
+    },
+    "settings": {
+      "background": "#0b0f17",
+      "text": "#e6edf6",
+      "button_style": "rounded",
+      "corner_radius": "medium",
+      "header_layout": "left",
+      "logo_height": 40,
+      "show_search": true,
+      "hero_style": "split",
+      "heading_style": "left",
+      "card_style": "framed",
+      "container": "wide",
+      "caps": false
+    },
+    "product_page": {
+      "show_delivery": true,
+      "delivery_text": "Vandaag besteld, morgen in huis",
+      "show_returns": true,
+      "returns_text": "30 dagen retour, ook geopend",
+      "show_payment_icons": true,
+      "show_related": true,
+      "related_title": "Past er perfect bij"
+    },
+    "sections": [
+      {
+        "section_type": "hero",
+        "title": "Tech die gewoon werkt",
+        "subtitle": "Audio, laden en slimme gadgets. Vandaag besteld, morgen in huis.",
+        "content": {
+          "image_url": "",
+          "button_text": "Bekijk alles",
+          "button_link": "/producten",
+          "text_alignment": "left",
+          "overlay_opacity": 0.4
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "usp_bar",
+        "title": null,
+        "content": {
+          "items": [
+            {
+              "icon": "truck",
+              "title": "Gratis verzending",
+              "text": "Altijd, in België en Nederland"
+            },
+            {
+              "icon": "shield",
+              "title": "2 jaar garantie",
+              "text": "Op alles wat we verkopen"
+            },
+            {
+              "icon": "chat",
+              "title": "Echte hulp",
+              "text": "Mail ons, we antwoorden dezelfde dag"
+            }
+          ]
+        },
+        "settings": {
+          "style": {
+            "background": "accent",
+            "spacing": "compact"
+          }
+        }
+      },
+      {
+        "section_type": "featured_products",
+        "title": "Uitgelicht",
+        "content": {
+          "max_products": 8
+        },
+        "settings": {
+          "style": {
+            "columns": "4",
+            "image_ratio": "square"
+          }
+        }
+      },
+      {
+        "section_type": "text_image",
+        "title": "Getest voor je het koopt",
+        "content": {
+          "text": "We verkopen alleen wat we zelf weken gebruikt hebben. Elk product krijgt een eerlijke beschrijving: wat het goed doet, en wat niet.",
+          "image_url": "",
+          "image_position": "right",
+          "button_text": "Bekijk alles",
+          "button_link": "/producten"
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "faq",
+        "title": "Goed om te weten",
+        "content": {
+          "items": [
+            {
+              "question": "Hoe lang is de garantie?",
+              "answer": "Twee jaar op alles. Werkt iets niet, dan sturen we meteen een nieuw toestel."
+            },
+            {
+              "question": "Kan ik retourneren?",
+              "answer": "Ja, binnen 30 dagen, ook als je de doos al geopend hebt."
+            }
+          ]
+        },
+        "settings": {}
+      }
+    ],
+    "example": {
+      "url": "https://demo-tech.sellqo.shop",
+      "label": "Voltaro"
+    }
+  },
+  {
+    "id": "beauty",
+    "name": "Beauty & verzorging",
+    "description": "Zacht en luchtig, voor huidverzorging, cosmetica en wellness.",
+    "preview": {
+      "background": "#fbf3ef",
+      "text": "#3b2a2c",
+      "accent": "#c06c84",
+      "image": ""
+    },
+    "theme": {
+      "brand_color": "#c06c84",
+      "heading_font": "Playfair Display",
+      "body_font": "DM Sans"
+    },
+    "settings": {
+      "background": "#fbf3ef",
+      "text": "#3b2a2c",
+      "button_style": "pill",
+      "corner_radius": "large",
+      "header_layout": "center",
+      "logo_height": 44,
+      "show_search": false,
+      "hero_style": "boxed",
+      "heading_style": "center",
+      "card_style": "minimal",
+      "container": "normal",
+      "caps": false
+    },
+    "product_page": {
+      "show_delivery": true,
+      "delivery_text": "Gratis staaltjes bij elke bestelling",
+      "show_returns": true,
+      "returns_text": "Niet tevreden? Geld terug",
+      "show_payment_icons": true,
+      "show_related": true,
+      "related_title": "Maak je ritueel compleet"
+    },
+    "sections": [
+      {
+        "section_type": "hero",
+        "title": "Huidverzorging die zacht blijft",
+        "subtitle": "Natuurlijke ingrediënten, gemaakt in Gent",
+        "content": {
+          "image_url": "",
+          "button_text": "Ontdek de verzorging",
+          "button_link": "/producten",
+          "text_alignment": "left",
+          "overlay_opacity": 0.4
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "usp_bar",
+        "title": null,
+        "content": {
+          "items": [
+            {
+              "icon": "leaf",
+              "title": "Natuurlijk",
+              "text": "Zonder parfum en parabenen"
+            },
+            {
+              "icon": "gift",
+              "title": "Gratis staaltjes",
+              "text": "Bij elke bestelling"
+            },
+            {
+              "icon": "truck",
+              "title": "Gratis verzending",
+              "text": "Vanaf €40"
+            }
+          ]
+        },
+        "settings": {
+          "style": {
+            "background": "accent",
+            "spacing": "compact"
+          }
+        }
+      },
+      {
+        "section_type": "featured_products",
+        "title": "Uitgelicht",
+        "content": {
+          "max_products": 8
+        },
+        "settings": {
+          "style": {
+            "columns": "4",
+            "image_ratio": "portrait"
+          }
+        }
+      },
+      {
+        "section_type": "text_image",
+        "title": "Uit eigen atelier",
+        "content": {
+          "text": "We maken elke crème in kleine batches, met plantaardige oliën en zo weinig mogelijk ingrediënten. Geschikt voor de gevoelige huid.",
+          "image_url": "",
+          "image_position": "right",
+          "button_text": "Bekijk alles",
+          "button_link": "/producten"
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "faq",
+        "title": "Goed om te weten",
+        "content": {
+          "items": [
+            {
+              "question": "Is dit geschikt voor een gevoelige huid?",
+              "answer": "Ja, al onze producten zijn parfumvrij en dermatologisch getest."
+            },
+            {
+              "question": "Hoe lang blijft een crème goed?",
+              "answer": "Twaalf maanden na opening. De datum staat op de verpakking."
+            }
+          ]
+        },
+        "settings": {}
+      }
+    ],
+    "example": {
+      "url": "https://demo-beauty.sellqo.shop",
+      "label": "Bloom & Balm"
+    }
+  },
+  {
+    "id": "bar",
+    "name": "Bar & café",
+    "description": "Donker en warm, voor cafés en bars: drankkaart, bestellen aan tafel via QR en betalen aan de toog.",
+    "preview": {
+      "background": "#12100c",
+      "text": "#f1e7d3",
+      "accent": "#e0a526",
+      "image": ""
+    },
+    "theme": {
+      "brand_color": "#e0a526",
+      "heading_font": "Bricolage Grotesque",
+      "body_font": "DM Sans"
+    },
+    "settings": {
+      "background": "#12100c",
+      "text": "#f1e7d3",
+      "button_style": "rounded",
+      "corner_radius": "medium",
+      "header_layout": "left",
+      "logo_height": 44,
+      "show_search": false,
+      "hero_style": "full",
+      "heading_style": "label",
+      "card_style": "list",
+      "container": "normal",
+      "caps": true
+    },
+    "product_page": {
+      "show_delivery": false,
+      "show_returns": false,
+      "show_payment_icons": false,
+      "show_related": true,
+      "related_title": "Lekker erbij"
+    },
+    "sections": [
+      {
+        "section_type": "hero",
+        "title": "Bestel aan je tafel",
+        "subtitle": "Scan de QR-code op je tafel, kies je drankje en wij brengen het.",
+        "content": {
+          "image_url": "",
+          "button_text": "Bekijk de kaart",
+          "button_link": "/menu",
+          "text_alignment": "left",
+          "overlay_opacity": 0.4
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "usp_bar",
+        "title": null,
+        "content": {
+          "items": [
+            {
+              "icon": "clock",
+              "title": "Snel aan tafel",
+              "text": "Geen wachten aan de toog"
+            },
+            {
+              "icon": "star",
+              "title": "Belgische bieren",
+              "text": "Van de tap en op fles"
+            },
+            {
+              "icon": "euro",
+              "title": "Betalen aan de toog",
+              "text": "Wanneer het jou past"
+            }
+          ]
+        },
+        "settings": {
+          "style": {
+            "background": "accent",
+            "spacing": "compact"
+          }
+        }
+      },
+      {
+        "section_type": "menu_card",
+        "title": "Onze kaart",
+        "content": {
+          "show_images": true,
+          "max_per_category": 20
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "contact_hours",
+        "title": "Openingsuren",
+        "content": {
+          "show_hours": true,
+          "show_map": true,
+          "hours": [
+            {
+              "day": "Elke dag",
+              "time": "15:00 – 24:00"
+            },
+            {
+              "day": "Keuken (hapjes)",
+              "time": "Tot 23:00"
+            }
+          ]
+        },
+        "settings": {
+          "style": {
+            "background": "muted"
+          }
+        }
+      },
+      {
+        "section_type": "faq",
+        "title": "Goed om te weten",
+        "content": {
+          "items": [
+            {
+              "question": "Hoe bestel ik aan tafel?",
+              "answer": "Scan de QR-code op je tafel. Je bestelling komt meteen op ons scherm achter de toog."
+            },
+            {
+              "question": "Moet ik meteen betalen?",
+              "answer": "Nee, je betaalt aan de toog wanneer het jou past."
+            }
+          ]
+        },
+        "settings": {}
+      }
+    ],
+    "example": {
+      "url": "https://demo-bar.sellqo.shop",
+      "label": "Café De Wissel"
+    }
+  },
+  {
+    "id": "bistro",
+    "name": "Restaurant & bistro",
+    "description": "Klassiek en verzorgd, voor restaurants: menukaart met allergenen, afhalen, leveren en bestellen aan tafel.",
+    "preview": {
+      "background": "#f7f1e6",
+      "text": "#1f2a24",
+      "accent": "#2f5d46",
+      "image": ""
+    },
+    "theme": {
+      "brand_color": "#2f5d46",
+      "heading_font": "Playfair Display",
+      "body_font": "Lato"
+    },
+    "settings": {
+      "background": "#f7f1e6",
+      "text": "#1f2a24",
+      "button_style": "square",
+      "corner_radius": "small",
+      "header_layout": "center",
+      "logo_height": 48,
+      "show_search": false,
+      "hero_style": "split",
+      "heading_style": "center",
+      "card_style": "list",
+      "container": "normal",
+      "caps": false
+    },
+    "product_page": {
+      "show_delivery": true,
+      "delivery_text": "Afhalen, leveren of aan tafel",
+      "show_returns": false,
+      "show_payment_icons": true,
+      "show_related": true,
+      "related_title": "Lekker erbij"
+    },
+    "sections": [
+      {
+        "section_type": "hero",
+        "title": "Franse bistrokeuken, ook om mee te nemen",
+        "subtitle": "Seizoensgerechten van onze chef. Eet bij ons, of haal af en geniet thuis.",
+        "content": {
+          "image_url": "",
+          "button_text": "Bekijk de kaart",
+          "button_link": "/menu",
+          "text_alignment": "left",
+          "overlay_opacity": 0.4
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "usp_bar",
+        "title": null,
+        "content": {
+          "items": [
+            {
+              "icon": "leaf",
+              "title": "Seizoensgebonden",
+              "text": "De kaart wisselt elke maand"
+            },
+            {
+              "icon": "clock",
+              "title": "Afhalen op tijd",
+              "text": "Kies je afhaaluur"
+            },
+            {
+              "icon": "star",
+              "title": "Huisgemaakt",
+              "text": "Ook de desserts"
+            }
+          ]
+        },
+        "settings": {
+          "style": {
+            "background": "accent",
+            "spacing": "compact"
+          }
+        }
+      },
+      {
+        "section_type": "menu_card",
+        "title": "Onze kaart",
+        "content": {
+          "show_images": true,
+          "max_per_category": 20
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "contact_hours",
+        "title": "Openingsuren",
+        "content": {
+          "show_hours": true,
+          "show_map": true,
+          "hours": [
+            {
+              "day": "Elke dag",
+              "time": "12:00 – 14:00 en 18:00 – 22:00"
+            },
+            {
+              "day": "Afhalen en leveren",
+              "time": "Tot 21:30"
+            }
+          ]
+        },
+        "settings": {
+          "style": {
+            "background": "muted"
+          }
+        }
+      },
+      {
+        "section_type": "faq",
+        "title": "Goed om te weten",
+        "content": {
+          "items": [
+            {
+              "question": "Kan ik ook reserveren?",
+              "answer": "Bel ons gerust. Online bestellen is voor afhalen, leveren of aan tafel."
+            },
+            {
+              "question": "Hebben jullie vegetarische gerechten?",
+              "answer": "Ja, die staan met een groen label op de kaart."
+            }
+          ]
+        },
+        "settings": {}
+      }
+    ],
+    "example": {
+      "url": "https://demo-restaurant.sellqo.shop",
+      "label": "Bistro Mirabelle"
+    }
+  },
+  {
+    "id": "wijn",
+    "name": "Wijn & delicatessen",
+    "description": "Elegant en rustig, voor wijnhandels, delicatessen en geschenken.",
+    "preview": {
+      "background": "#faf6f1",
+      "text": "#2a1418",
+      "accent": "#7a2334",
+      "image": ""
+    },
+    "theme": {
+      "brand_color": "#7a2334",
+      "heading_font": "Merriweather",
+      "body_font": "Lato"
+    },
+    "settings": {
+      "background": "#faf6f1",
+      "text": "#2a1418",
+      "button_style": "square",
+      "corner_radius": "none",
+      "header_layout": "center",
+      "logo_height": 44,
+      "show_search": true,
+      "hero_style": "full",
+      "heading_style": "label",
+      "card_style": "minimal",
+      "container": "normal",
+      "caps": true
+    },
+    "product_page": {
+      "show_delivery": true,
+      "delivery_text": "Zorgvuldig verpakt, binnen 2 werkdagen",
+      "show_returns": false,
+      "show_payment_icons": true,
+      "show_related": true,
+      "related_title": "Ook lekker"
+    },
+    "sections": [
+      {
+        "section_type": "hero",
+        "title": "Wijnen met een verhaal",
+        "subtitle": "Rechtstreeks van kleine domeinen in Frankrijk, Italië en Spanje",
+        "content": {
+          "image_url": "",
+          "button_text": "Ontdek de wijnen",
+          "button_link": "/producten",
+          "text_alignment": "left",
+          "overlay_opacity": 0.4
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "usp_bar",
+        "title": null,
+        "content": {
+          "items": [
+            {
+              "icon": "truck",
+              "title": "Gratis verzending",
+              "text": "Vanaf €150"
+            },
+            {
+              "icon": "gift",
+              "title": "Cadeauverpakking",
+              "text": "Gratis bij elke fles"
+            },
+            {
+              "icon": "star",
+              "title": "Persoonlijk advies",
+              "text": "Mail ons voor een suggestie"
+            }
+          ]
+        },
+        "settings": {
+          "style": {
+            "background": "accent",
+            "spacing": "compact"
+          }
+        }
+      },
+      {
+        "section_type": "featured_products",
+        "title": "Uitgelicht",
+        "content": {
+          "max_products": 8
+        },
+        "settings": {
+          "style": {
+            "columns": "4",
+            "image_ratio": "square"
+          }
+        }
+      },
+      {
+        "section_type": "text_image",
+        "title": "Van het domein naar je tafel",
+        "content": {
+          "text": "Elke wijn proeven we zelf op het domein. We kiezen kleine wijnboeren die met respect voor de natuur werken, en vertellen je eerlijk bij welk gerecht hij past.",
+          "image_url": "",
+          "image_position": "right",
+          "button_text": "Bekijk alles",
+          "button_link": "/producten"
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "faq",
+        "title": "Goed om te weten",
+        "content": {
+          "items": [
+            {
+              "question": "Moet ik 18 zijn?",
+              "answer": "Ja, alcohol verkopen we enkel aan meerderjarigen. Bij de levering kan naar je identiteitskaart gevraagd worden."
+            },
+            {
+              "question": "Leveren jullie per doos?",
+              "answer": "Je mag flessen mixen. De verzending is gratis vanaf €150."
+            }
+          ]
+        },
+        "settings": {}
+      }
+    ],
+    "example": {
+      "url": "https://demo-wijn.sellqo.shop",
+      "label": "Vinotheek Lemmens"
+    }
+  },
+  {
+    "id": "koffie",
+    "name": "Koffie & thee",
+    "description": "Warm en ambachtelijk, voor koffiebranders, theehuizen en lokale makers.",
+    "preview": {
+      "background": "#f4ede4",
+      "text": "#2b1d14",
+      "accent": "#b5651d",
+      "image": ""
+    },
+    "theme": {
+      "brand_color": "#b5651d",
+      "heading_font": "Bricolage Grotesque",
+      "body_font": "Work Sans"
+    },
+    "settings": {
+      "background": "#f4ede4",
+      "text": "#2b1d14",
+      "button_style": "pill",
+      "corner_radius": "large",
+      "header_layout": "left",
+      "logo_height": 44,
+      "show_search": false,
+      "hero_style": "boxed",
+      "heading_style": "left",
+      "card_style": "framed",
+      "container": "normal",
+      "caps": false
+    },
+    "product_page": {
+      "show_delivery": true,
+      "delivery_text": "Vers gebrand, door je brievenbus",
+      "show_returns": false,
+      "show_payment_icons": true,
+      "show_related": true,
+      "related_title": "Ook proberen"
+    },
+    "sections": [
+      {
+        "section_type": "hero",
+        "title": "Vers gebrand, elke dinsdag",
+        "subtitle": "Specialty koffie van kleine boerderijen, gebrand in Leuven",
+        "content": {
+          "image_url": "",
+          "button_text": "Kies je bonen",
+          "button_link": "/producten",
+          "text_alignment": "left",
+          "overlay_opacity": 0.4
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "usp_bar",
+        "title": null,
+        "content": {
+          "items": [
+            {
+              "icon": "clock",
+              "title": "Vers gebrand",
+              "text": "Maximaal 7 dagen oud"
+            },
+            {
+              "icon": "truck",
+              "title": "Door de brievenbus",
+              "text": "Gratis vanaf €35"
+            },
+            {
+              "icon": "leaf",
+              "title": "Direct van de boer",
+              "text": "Eerlijke prijzen"
+            }
+          ]
+        },
+        "settings": {
+          "style": {
+            "background": "accent",
+            "spacing": "compact"
+          }
+        }
+      },
+      {
+        "section_type": "featured_products",
+        "title": "Uitgelicht",
+        "content": {
+          "max_products": 8
+        },
+        "settings": {
+          "style": {
+            "columns": "4",
+            "image_ratio": "square"
+          }
+        }
+      },
+      {
+        "section_type": "text_image",
+        "title": "Onze branderij",
+        "content": {
+          "text": "Elke dinsdag branden we in kleine hoeveelheden. Je koffie vertrekt dezelfde week, zodat hij vers bij je aankomt. Kies je maling bij het bestellen.",
+          "image_url": "",
+          "image_position": "right",
+          "button_text": "Bekijk alles",
+          "button_link": "/producten"
+        },
+        "settings": {}
+      },
+      {
+        "section_type": "faq",
+        "title": "Goed om te weten",
+        "content": {
+          "items": [
+            {
+              "question": "Welke maling moet ik kiezen?",
+              "answer": "Bonen als je zelf maalt. Filter voor V60 of filterkoffie, espresso voor je espressomachine."
+            },
+            {
+              "question": "Hoe lang blijft koffie vers?",
+              "answer": "Het lekkerst binnen 4 weken na het branden. Bewaar luchtdicht en koel."
+            }
+          ]
+        },
+        "settings": {}
+      }
+    ],
+    "example": {
+      "url": "https://demo-koffie.sellqo.shop",
+      "label": "Koffiebranderij Mokka"
+    }
+  }
+]
