@@ -2125,8 +2125,9 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, track_inventory, stock), product_variants(price, compare_at_price)')
+    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, track_inventory, stock), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
+  const evLabels = await eventLabels(supabase, tenantId, (items || []).map((i: any) => i.event_detail_id));
 
   // Fetch variant info for items that have variant_id
   const variantIds = (items || []).filter((i: any) => i.variant_id).map((i: any) => i.variant_id);
@@ -2149,6 +2150,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
       ...(Array.isArray(item.addons) && item.addons.length ? { addons: item.addons } : {}),
+      ...(item.event_detail_id && evLabels.has(item.event_detail_id) ? { event: evLabels.get(item.event_detail_id) } : {}),
       line_total: item.quantity * effectivePrice,
     };
   });
@@ -2443,6 +2445,20 @@ function deriveCartCheckoutStatus(cart: any): string {
   return 'cart';
 }
 
+// EVENTS-SHOP-1 — datum en plaats van ticketregels, zodat mandje en afrekenen tonen
+// voor welk event een ticket is. Alleen voor regels met een event_detail_id (additief).
+async function eventLabels(supabase: any, tenantId: string, ids: (string | null | undefined)[]): Promise<Map<string, Record<string, unknown>>> {
+  const uniq = [...new Set(ids.filter(Boolean) as string[])];
+  const out = new Map<string, Record<string, unknown>>();
+  if (!uniq.length) return out;
+  const { data } = await supabase.from('event_details')
+    .select('id, event_date, start_time, end_time, location_name').in('id', uniq).eq('tenant_id', tenantId);
+  for (const e of (data || []) as any[]) {
+    out.set(e.id, { id: e.id, date: e.event_date, start_time: e.start_time ?? null, end_time: e.end_time ?? null, location: e.location_name ?? null });
+  }
+  return out;
+}
+
 async function getCartForCheckout(supabase: any, tenantId: string, cartId: string) {
   const { data: cart, error } = await supabase
     .from('storefront_carts').select('*')
@@ -2584,6 +2600,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   if (payOnPickup) availablePayment.push(payOnPickup);
 
   // Items
+  const evLabels = await eventLabels(supabase, tenantId, cart.cartItems.map((i: any) => i.event_detail_id));
   let items = cart.cartItems.map((item: any) => ({
     id: item.id,
     product_id: item.product_id,
@@ -2597,6 +2614,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     sku: item.product?.sku || null,
     in_stock: item.product?.in_stock ?? true,
     ...(item.addons ? { addons: item.addons } : {}),
+    ...(item.event_detail_id && evLabels.has(item.event_detail_id) ? { event: evLabels.get(item.event_detail_id) } : {}),
   }));
 
   // B2B-2b — bij verlegging tonen we netto bedragen (btw uit de prijs gehaald).
@@ -4624,7 +4642,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'PAUSE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'EVENTS-SHOP-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
