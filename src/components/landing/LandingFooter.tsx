@@ -45,7 +45,7 @@ export function LandingFooter() {
     { label: t('landing.footer.links.privacy'), href: '/privacy' },
     { label: t('landing.footer.links.terms'), href: '/terms' },
     { label: t('landing.footer.links.cookies'), href: '/cookies' },
-    { label: 'Security', href: '/security' },
+    { label: t('landing.footer.links.security'), href: '/security' },
     { label: t('landing.footer.links.changelog'), href: '/changelog' },
   ];
 
@@ -166,7 +166,7 @@ export function LandingFooter() {
         {/* Legal entity block — required for App Store / regulatory transparency */}
         <div className="pt-8 border-t border-border">
           <div className="bg-secondary/40 rounded-lg p-5 md:p-6 mb-6">
-            <h4 className="font-semibold text-foreground mb-2 text-sm uppercase tracking-wide">
+            <h4 className="font-semibold text-foreground mb-2 text-sm">
               {t('landing.footer.legalEntity')}
             </h4>
             <div className="text-sm text-muted-foreground space-y-1">

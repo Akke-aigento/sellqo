@@ -33,7 +33,7 @@ export default function LandingPage() {
         path="/"
       />
       <div className="min-h-screen bg-background">
-        <LandingNavbar />
+        <LandingNavbar tone="dark" />
         <main>
           <HeroSection />
           <SocialProofSection />

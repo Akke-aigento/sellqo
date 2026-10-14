@@ -7,7 +7,8 @@ import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { LandingLanguageSwitcher } from './LandingLanguageSwitcher';
 
-export function LandingNavbar() {
+/** tone='dark': transparante balk boven een donkere hero (witte tekst tot je scrolt). */
+export function LandingNavbar({ tone = 'light' }: { tone?: 'light' | 'dark' } = {}) {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useTranslation();
@@ -42,6 +43,8 @@ export function LandingNavbar() {
     }
   };
 
+  const onDark = tone === 'dark' && !isScrolled && !isMobileMenuOpen;
+
   return (
     <nav
       className={cn(
@@ -55,7 +58,7 @@ export function LandingNavbar() {
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <SellqoLogo variant="tagline" width={200} />
+            {onDark ? <SellqoLogo variant="full" onDark width={130} /> : <SellqoLogo variant="tagline" width={200} />}
           </Link>
 
           {/* Desktop Navigation */}
@@ -64,7 +67,7 @@ export function LandingNavbar() {
               <button
                 key={link.href}
                 onClick={() => handleNavClick(link.href)}
-                className="text-sm font-medium text-foreground/80 hover:text-foreground transition-colors"
+                className={cn('text-sm font-medium transition-colors', onDark ? 'text-white/80 hover:text-white' : 'text-foreground/80 hover:text-foreground')}
               >
                 {link.label}
               </button>
@@ -73,8 +76,8 @@ export function LandingNavbar() {
 
           {/* Desktop CTA Buttons */}
           <div className="hidden lg:flex items-center gap-3">
-            <LandingLanguageSwitcher variant="compact" className="mr-2" />
-            <Button variant="outline" asChild>
+            <LandingLanguageSwitcher variant="compact" className={cn('mr-2', onDark && 'text-white [&_*]:text-white')} />
+            <Button variant="outline" asChild className={cn(onDark && 'border-white/30 bg-transparent text-white hover:bg-white/10 hover:text-white')}>
               <Link to="/auth">{t('landing.nav.login')}</Link>
             </Button>
             <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground">
@@ -88,7 +91,7 @@ export function LandingNavbar() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 text-foreground"
+            className={cn('lg:hidden p-2', onDark ? 'text-white' : 'text-foreground')}
             aria-label="Toggle menu"
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

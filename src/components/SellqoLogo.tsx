@@ -8,9 +8,11 @@ interface SellqoLogoProps {
   variant?: 'full' | 'icon' | 'tagline';
   className?: string;
   width?: number;
+  /** Altijd de versie voor een donkere achtergrond (bv. de donkere hero). */
+  onDark?: boolean;
 }
 
-export function SellqoLogo({ variant = 'full', className = '', width }: SellqoLogoProps) {
+export function SellqoLogo({ variant = 'full', className = '', width, onDark = false }: SellqoLogoProps) {
   const { resolvedTheme } = useTheme();
   
   if (variant === 'icon') {
@@ -35,7 +37,7 @@ export function SellqoLogo({ variant = 'full', className = '', width }: SellqoLo
     );
   }
   
-  const logoSrc = resolvedTheme === 'dark' ? logoDark : logoLight;
+  const logoSrc = onDark || resolvedTheme === 'dark' ? logoDark : logoLight;
   
   return (
     <img 

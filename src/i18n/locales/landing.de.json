@@ -38,7 +38,10 @@
         "events_hint": "Tickets und Einlass"
       },
       "demo_title": "Demo-Shop Atelier Nord auf SellQo",
-      "demo_caption": "Ein echter Demo-Shop auf SellQo. Klicken Sie sich ruhig durch."
+      "demo_caption": "Ein echter Demo-Shop auf SellQo. Klicken Sie sich ruhig durch.",
+      "demo_retail": "Demo-Shop ansehen",
+      "demo_horeca": "In der Demo-Pizzeria bestellen",
+      "demo_events": "Fonske Crawl ansehen"
     },
     "social": {
       "entrepreneurs": "Aktive Unternehmer",
@@ -496,10 +499,11 @@
       "cta": "Kostenlos starten",
       "trust": "Keine Kreditkarte nötig • Monatlich kündbar • Gebaut in Belgien",
       "ssl": "SSL-gesichert",
-      "gdpr": "DSGVO-konform"
+      "gdpr": "DSGVO-konform",
+      "cta_pricing": "Preise ansehen"
     },
     "footer": {
-      "tagline": "E-Commerce-Management, so wie es sein sollte.",
+      "tagline": "Ihr Geschäft. Einfach online. Gebaut in Belgien.",
       "product": "Produkt",
       "company": "Unternehmen",
       "support": "Support",
@@ -516,13 +520,14 @@
         "partners": "Partner",
         "help": "Hilfe-Center",
         "faq": "FAQ",
-        "status": "Status-Seite",
+        "status": "Status",
         "contactUs": "Kontakt aufnehmen",
         "privacy": "Datenschutz",
         "terms": "AGB",
-        "cookies": "Cookie-Richtlinie"
+        "cookies": "Cookie-Richtlinie",
+        "security": "Sicherheit"
       },
-      "legalEntity": "Anbieter",
+      "legalEntity": "Wer dahintersteht",
       "legalLine1": "SellQo ist ein Produkt von Nomadix BV",
       "legalLine2": "Beekstraat 49, 3051 Oud-Heverlee, Belgien",
       "legalLine3": "USt./Firmennummer: BE 1017.500.207",
@@ -680,6 +685,88 @@
       "bol_text": "Bestellungen von bol.com landen in SellQo und Ihr Bestand bleibt überall gleich. Ab Pro.",
       "promos_title": "Rabatte und Gutscheine",
       "promos_text": "Rabattcodes im Webshop und Gutscheine an der Kasse."
+    },
+    "scene": {
+      "live": "Live",
+      "retail": {
+        "shop": "Atelier Nord",
+        "product": "Tasse Fjord",
+        "product_detail": "Salbei · handgemacht",
+        "price": "18,00 €",
+        "button": "In den Warenkorb",
+        "confirm_title": "Danke, Lotte!",
+        "confirm_text": "Ihre Bestellung ist unterwegs. Sie erhalten eine E-Mail mit Sendungsverfolgung.",
+        "screen_title": "Bestellungen",
+        "row_old_1": "#1041 · bol.com · versendet",
+        "row_old_2": "#1042 · Kasse · bezahlt",
+        "row_new": "#1043 · Lotte V.",
+        "row_new_detail": "Webshop · Tasse Fjord Salbei · 18,00 €",
+        "status_new": "Neu",
+        "status_busy": "Verpacken",
+        "status_done": "Versendet",
+        "metric_label": "Bestand Tasse Fjord Salbei",
+        "metric_before": "12",
+        "metric_after": "11, auch auf bol.com",
+        "toast": "Rechnung erstellt und Bestand auf bol.com aktualisiert",
+        "caption": "Eine Bestellung im Webshop: Der Bestand stimmt sofort überall, auch auf bol.com und an der Kasse."
+      },
+      "horeca": {
+        "shop": "Pizzeria Fiamma",
+        "product": "Diavola",
+        "product_detail": "Groß · + Burrata",
+        "price": "21,00 €",
+        "button": "Für 18:30 bestellen",
+        "confirm_title": "Bestellung #0042",
+        "confirm_text": "Abholung um 18:30. Wir melden uns, sobald es fertig ist.",
+        "screen_title": "Küche",
+        "row_old_1": "Tisch 2 · 2× Margherita",
+        "row_old_2": "Kasse · Tiramisu",
+        "row_new": "Abholung 18:30 · Sam",
+        "row_new_detail": "Diavola groß · + Burrata · bezahlt",
+        "status_new": "Neu",
+        "status_busy": "Im Ofen",
+        "status_done": "Fertig",
+        "metric_label": "Warteschlange",
+        "metric_before": "3 Bestellungen",
+        "metric_after": "2 Bestellungen",
+        "toast": "Sam hat eine Nachricht bekommen: Ihre Pizza ist fertig",
+        "caption": "Online, am Tisch oder an der Theke: Alles landet auf einem Küchenbildschirm.",
+        "more": "Mehr zur Gastronomie"
+      },
+      "events": {
+        "shop": "Leuven Pub Crawl",
+        "product": "Sa 24. Okt · 20:00",
+        "product_detail": "2× Early Bird · noch 6 Plätze",
+        "price": "40,00 €",
+        "button": "Tickets kaufen",
+        "confirm_title": "Ihre Tickets sind im Postfach",
+        "confirm_text": "Zeigen Sie diesen QR-Code am Einlass.",
+        "screen_title": "Einlass",
+        "row_old_1": "Lien D. · eingelassen",
+        "row_old_2": "Tom V. · eingelassen",
+        "row_new": "Jan P. · 2 Tickets",
+        "row_new_detail": "Early Bird · Sa 24. Okt",
+        "status_new": "Verkauft",
+        "status_busy": "Gescannt",
+        "status_done": "Willkommen!",
+        "metric_label": "Drinnen",
+        "metric_before": "32 / 40",
+        "metric_after": "34 / 40",
+        "toast": "Schon gescannt? Das sehen Sie sofort am Einlass",
+        "caption": "Tickets kaufen, QR per E-Mail, scannen am Einlass. Nichts pro Monat, 0,49 € pro verkauftem Ticket.",
+        "more": "Mehr zu Events"
+      }
+    },
+    "links": {
+      "heading": "Arbeitet mit dem, was Sie schon nutzen",
+      "subheading": "Keine Tools zusammenbasteln. Diese Anbindungen sind eingebaut und funktionieren heute.",
+      "soon": "Demnächst: Amazon, Google Shopping und Meta.",
+      "bol": "Bestellungen und Bestand synchron. Ab Pro.",
+      "stripe": "Online-Zahlungen auf Ihr eigenes Konto.",
+      "bancontact": "Belgiens Bezahlkarte, über Stripe.",
+      "ideal": "Für Ihre niederländischen Kunden, über Stripe.",
+      "odoo": "Rechnungen in Ihre Buchhaltung. Ab Pro.",
+      "peppol": "B2B-Rechnungen elektronisch, über Odoo."
     }
   },
   "public": {

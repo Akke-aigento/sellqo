@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
+import { LiveScene } from '@/components/landing/LiveScene';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { ForcedLightMode } from '@/components/ForcedLightMode';
 import { PageMeta } from '@/components/seo/PageMeta';
@@ -72,15 +73,6 @@ const CONFIG: Record<Sector, SectorConfig> = {
   },
 };
 
-function PhoneFrame({ src, title }: { src: string; title: string }) {
-  return (
-    <div className="relative mx-auto w-[300px] max-w-full rounded-[2.5rem] border-[10px] border-foreground/90 bg-foreground/90 shadow-2xl">
-      <div className="absolute left-1/2 top-0 z-10 h-5 w-24 -translate-x-1/2 rounded-b-xl bg-foreground/90" />
-      <iframe src={src} title={title} loading="lazy" className="h-[580px] w-full rounded-[1.9rem] bg-white" />
-    </div>
-  );
-}
-
 export function SectorLanding({ sector }: { sector: Sector }) {
   const { t } = useTranslation();
   const cfg = CONFIG[sector];
@@ -93,52 +85,39 @@ export function SectorLanding({ sector }: { sector: Sector }) {
     <ForcedLightMode>
       <PageMeta title={t(k('meta_title'))} description={t(k('meta_desc'))} path={cfg.path} />
       <div className="min-h-screen bg-background">
-        <LandingNavbar />
+        <LandingNavbar tone="dark" />
         <main>
-          {/* Hero */}
-          <section className="relative overflow-hidden pb-16 pt-[calc(6rem+var(--safe-top))] md:pb-24 md:pt-32">
-            <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 via-background to-accent/10" />
-            <div className="container mx-auto grid items-center gap-12 px-4 lg:grid-cols-[1.15fr_1fr]">
+          {/* Hero — zelfde donkere toon en scène als de homepage, vast op deze sector. */}
+          <section className="relative overflow-hidden bg-[#13294a] pb-16 pt-[calc(6rem+var(--safe-top))] text-white md:pb-24 md:pt-32">
+            <div className="pointer-events-none absolute -right-40 top-10 h-[620px] w-[620px] rounded-full bg-[#2b5a8f]/40 blur-3xl" aria-hidden="true" />
+            <div className="container relative mx-auto grid items-center gap-12 px-4 lg:grid-cols-[1fr_1.05fr] lg:gap-16">
               <div className="text-center lg:text-left">
-                <span className="mb-5 inline-flex items-center gap-2 rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-sm font-semibold text-accent">
-                  {t(k('badge'))}
-                </span>
-                <h1 className="mb-6 text-4xl font-extrabold leading-tight sm:text-5xl lg:text-6xl">
-                  <span className="gradient-text">{t(k('title1'))}</span>
+                <p className="mb-5 text-sm font-semibold text-[#FF6B35]">{t(k('badge'))}</p>
+                <h1 className="text-5xl font-extrabold leading-[1.02] tracking-tight sm:text-6xl">
+                  {t(k('title1'))}
                   <br />
-                  <span className="text-foreground">{t(k('title2'))}</span>
+                  {t(k('title2'))}
                 </h1>
-                <p className="mx-auto mb-8 max-w-xl text-lg leading-relaxed text-muted-foreground md:text-xl lg:mx-0">{t(k('subtitle'))}</p>
-                <div className="mb-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
-                  <Button size="lg" asChild className="h-auto min-h-[44px] rounded-lg bg-accent px-8 py-4 text-lg text-accent-foreground shadow-lg hover:bg-accent/90">
-                    <Link data-akke-goal="Start gratis" to={register} className="flex items-center gap-2">{t('landing.sector.common.cta_start')}<ArrowRight className="h-5 w-5" /></Link>
-                  </Button>
-                  <Button size="lg" variant="outline" asChild className="h-auto min-h-[44px] rounded-lg border-2 px-8 py-4 text-lg">
-                    <a href={cfg.demo.links[0].href} target="_blank" rel="noreferrer" className="flex items-center gap-2">{t(k(cfg.demo.links[0].key))}<ExternalLink className="h-4 w-4" /></a>
-                  </Button>
+                <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-white/75 md:text-xl lg:mx-0">{t(k('subtitle'))}</p>
+                <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
+                  <Link data-akke-goal="Start gratis" to={register}
+                    className="inline-flex min-h-14 py-3 text-center items-center justify-center gap-2 rounded-lg bg-[#FF6B35] px-8 text-lg font-semibold text-white shadow-lg hover:bg-[#f15d27] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                    {t('landing.sector.common.cta_start')}<ArrowRight className="h-5 w-5" />
+                  </Link>
+                  <a href={cfg.demo.links[0].href} target="_blank" rel="noreferrer"
+                    className="inline-flex min-h-14 py-3 text-center items-center justify-center gap-2 rounded-lg border-2 border-white/30 px-7 text-lg font-semibold text-white hover:border-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                    {t(k(cfg.demo.links[0].key))}<ExternalLink className="h-4 w-4" />
+                  </a>
                 </div>
-                <ul className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-muted-foreground lg:justify-start">
+                <ul className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-white/65 lg:justify-start">
                   {['trust1', 'trust2', 'trust3'].map((tk) => (
-                    <li key={tk} className="flex items-center gap-2"><CircleCheck className="h-4 w-4 text-green-600" />{t(k(tk))}</li>
+                    <li key={tk} className="flex items-center gap-2"><CircleCheck className="h-4 w-4 text-emerald-400" />{t(k(tk))}</li>
                   ))}
                 </ul>
               </div>
               <div>
-                {cfg.demo.frame ? (
-                  <>
-                    <PhoneFrame src={cfg.demo.frame} title={t(k('demo_title'))} />
-                    <p className="mt-4 text-center text-sm text-muted-foreground">{t(k('frame_caption'))}</p>
-                  </>
-                ) : (
-                  <div className="rounded-2xl border bg-card p-8 shadow-lg">
-                    <p className="text-sm font-semibold uppercase tracking-wide text-accent">{t(k('proof_label'))}</p>
-                    <p className="mt-3 text-2xl font-bold">{t(k('proof_title'))}</p>
-                    <p className="mt-3 text-muted-foreground">{t(k('proof_text'))}</p>
-                    <a href={cfg.demo.links[0].href} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-1 font-semibold text-primary hover:underline">
-                      {t(k(cfg.demo.links[0].key))}<ExternalLink className="h-4 w-4" />
-                    </a>
-                  </div>
-                )}
+                <LiveScene sector={sector} />
+                <p className="mx-auto mt-6 max-w-[520px] text-center text-sm text-white/70">{t(`landing.scene.${sector}.caption`)}</p>
               </div>
             </div>
           </section>

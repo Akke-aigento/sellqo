@@ -38,7 +38,10 @@
         "events_hint": "Billets et contrôle d'accès"
       },
       "demo_title": "Boutique de démo Atelier Nord sur SellQo",
-      "demo_caption": "Une vraie boutique de démo sur SellQo. Cliquez librement."
+      "demo_caption": "Une vraie boutique de démo sur SellQo. Cliquez librement.",
+      "demo_retail": "Voir la boutique de démo",
+      "demo_horeca": "Commander à la pizzeria de démo",
+      "demo_events": "Voir Fonske Crawl"
     },
     "social": {
       "entrepreneurs": "Entrepreneurs actifs",
@@ -496,10 +499,11 @@
       "cta": "Commencer gratuitement",
       "trust": "Sans carte de crédit • Résiliable chaque mois • Conçu en Belgique",
       "ssl": "Sécurisé SSL",
-      "gdpr": "Conforme au RGPD"
+      "gdpr": "Conforme au RGPD",
+      "cta_pricing": "Voir les tarifs"
     },
     "footer": {
-      "tagline": "La gestion e-commerce, comme elle devrait être.",
+      "tagline": "Votre commerce. Simplement en ligne. Conçu en Belgique.",
       "product": "Produit",
       "company": "Entreprise",
       "support": "Support",
@@ -520,9 +524,10 @@
         "contactUs": "Nous contacter",
         "privacy": "Politique de confidentialité",
         "terms": "Conditions générales",
-        "cookies": "Politique cookies"
+        "cookies": "Politique cookies",
+        "security": "Sécurité"
       },
-      "legalEntity": "Entité légale",
+      "legalEntity": "Qui est derrière",
       "legalLine1": "SellQo est un produit de Nomadix BV",
       "legalLine2": "Beekstraat 49, 3051 Oud-Heverlee, Belgique",
       "legalLine3": "TVA / Numéro d'entreprise : BE 1017.500.207",
@@ -680,6 +685,88 @@
       "bol_text": "Les commandes bol.com arrivent dans SellQo et votre stock reste identique partout. Dès Pro.",
       "promos_title": "Réductions et chèques-cadeaux",
       "promos_text": "Codes de réduction dans la boutique et chèques-cadeaux en caisse."
+    },
+    "scene": {
+      "live": "En direct",
+      "retail": {
+        "shop": "Atelier Nord",
+        "product": "Tasse Fjord",
+        "product_detail": "Sauge · artisanale",
+        "price": "18,00 €",
+        "button": "Ajouter au panier",
+        "confirm_title": "Merci, Lotte !",
+        "confirm_text": "Votre commande est en route. Vous recevrez un e-mail de suivi.",
+        "screen_title": "Commandes",
+        "row_old_1": "#1041 · bol.com · expédiée",
+        "row_old_2": "#1042 · caisse · payée",
+        "row_new": "#1043 · Lotte V.",
+        "row_new_detail": "Boutique · Tasse Fjord sauge · 18,00 €",
+        "status_new": "Nouvelle",
+        "status_busy": "Emballage",
+        "status_done": "Expédiée",
+        "metric_label": "Stock Tasse Fjord sauge",
+        "metric_before": "12",
+        "metric_after": "11, aussi sur bol.com",
+        "toast": "Facture créée et stock mis à jour sur bol.com",
+        "caption": "Une commande dans votre boutique : le stock est juste partout, aussi sur bol.com et en caisse."
+      },
+      "horeca": {
+        "shop": "Pizzeria Fiamma",
+        "product": "Diavola",
+        "product_detail": "Grande · + burrata",
+        "price": "21,00 €",
+        "button": "Commander pour 18h30",
+        "confirm_title": "Commande n° 0042",
+        "confirm_text": "Retrait à 18h30. Nous vous prévenons dès que c'est prêt.",
+        "screen_title": "Cuisine",
+        "row_old_1": "Table 2 · 2× Margherita",
+        "row_old_2": "Caisse · Tiramisu",
+        "row_new": "Retrait 18h30 · Sam",
+        "row_new_detail": "Diavola grande · + burrata · payée",
+        "status_new": "Nouveau",
+        "status_busy": "Au four",
+        "status_done": "Prêt",
+        "metric_label": "File d'attente",
+        "metric_before": "3 commandes",
+        "metric_after": "2 commandes",
+        "toast": "Sam a reçu un message : votre pizza est prête",
+        "caption": "En ligne, à table ou au comptoir : tout arrive sur un seul écran de cuisine.",
+        "more": "En savoir plus sur la restauration"
+      },
+      "events": {
+        "shop": "Leuven Pub Crawl",
+        "product": "Sam 24 oct · 20h",
+        "product_detail": "2× Early bird · plus que 6 places",
+        "price": "40,00 €",
+        "button": "Acheter les billets",
+        "confirm_title": "Vos billets sont dans votre boîte mail",
+        "confirm_text": "Montrez ce code QR à l'entrée.",
+        "screen_title": "Contrôle d'accès",
+        "row_old_1": "Lien D. · entrée",
+        "row_old_2": "Tom V. · entré",
+        "row_new": "Jan P. · 2 billets",
+        "row_new_detail": "Early bird · sam 24 oct",
+        "status_new": "Vendu",
+        "status_busy": "Scanné",
+        "status_done": "Bienvenue !",
+        "metric_label": "Entrés",
+        "metric_before": "32 / 40",
+        "metric_after": "34 / 40",
+        "toast": "Déjà scanné ? Vous le voyez tout de suite à l'entrée",
+        "caption": "Achat du billet, QR par e-mail, scan à l'entrée. Rien par mois, 0,49 € par billet vendu.",
+        "more": "En savoir plus sur les événements"
+      }
+    },
+    "links": {
+      "heading": "Fonctionne avec ce que vous utilisez déjà",
+      "subheading": "Pas d'outils à bricoler ensemble. Ces intégrations sont incluses et fonctionnent aujourd'hui.",
+      "soon": "Bientôt : Amazon, Google Shopping et Meta.",
+      "bol": "Commandes et stock synchronisés. Dès Pro.",
+      "stripe": "Paiements en ligne sur votre propre compte.",
+      "bancontact": "La carte de paiement belge, via Stripe.",
+      "ideal": "Pour vos clients néerlandais, via Stripe.",
+      "odoo": "Factures vers votre comptabilité. Dès Pro.",
+      "peppol": "Factures B2B électroniques, via Odoo."
     }
   },
   "public": {
