@@ -39,8 +39,6 @@ export function useOrderShipping() {
       trackingUrl,
       notifyCustomer,
       customerEmail,
-      customerName,
-      orderNumber,
     }: UpdateTrackingInput) => {
       // Generate tracking URL if not provided
       const finalTrackingUrl = trackingUrl || generateTrackingUrl(carrier, trackingNumber) || '';
@@ -68,61 +66,22 @@ export function useOrderShipping() {
         .eq('id', orderId);
       if (extrasError) throw extrasError;
 
-      // Send notification if requested
-      if (notifyCustomer && customerEmail && currentTenant?.id) {
-        const carrierInfo = getCarrierById(carrier);
-        const carrierName = carrierInfo?.name || carrier;
-
-        const bodyHtml = `
-          <p>Goed nieuws! Je bestelling <strong>${orderNumber}</strong> is verzonden.</p>
-          
-          <table style="margin: 24px 0; border-collapse: collapse;">
-            <tr>
-              <td style="padding: 8px 16px 8px 0; color: #6b7280;">Carrier:</td>
-              <td style="padding: 8px 0; font-weight: 500;">${carrierName}</td>
-            </tr>
-            <tr>
-              <td style="padding: 8px 16px 8px 0; color: #6b7280;">Tracknummer:</td>
-              <td style="padding: 8px 0; font-weight: 500;">${trackingNumber}</td>
-            </tr>
-          </table>
-          
-          ${finalTrackingUrl ? `
-            <p>
-              <a href="${finalTrackingUrl}" 
-                 style="display: inline-block; background-color: #2563eb; color: #ffffff; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: 500;">
-                📦 Volg je pakket
-              </a>
-            </p>
-          ` : ''}
-          
-          <p style="margin-top: 24px; color: #6b7280; font-size: 14px;">
-            Je ontvangt automatisch updates over de status van je zending.
-          </p>
-        `;
-
-        const { error: messageError } = await supabase.functions.invoke('send-customer-message', {
+      // SHIP-MAIL-1: de verzendmail wordt op de server opgebouwd, in de taal van de klant
+      // en in de huisstijl van de winkel (send-order-shipped). Eén mail per tracknummer.
+      if (notifyCustomer && customerEmail) {
+        const carrierName = getCarrierById(carrier)?.name || carrier;
+        const { error: messageError } = await supabase.functions.invoke('send-order-shipped', {
           body: {
-            tenant_id: currentTenant.id,
-            customer_email: customerEmail,
-            customer_name: customerName,
-            subject: `Je bestelling ${orderNumber} is onderweg! 📦`,
-            body_html: bodyHtml,
-            body_text: `Goed nieuws! Je bestelling ${orderNumber} is verzonden via ${carrierName}. Tracknummer: ${trackingNumber}. Volg je pakket: ${finalTrackingUrl}`,
-            context_type: 'order',
             order_id: orderId,
-            context_data: {
-              order_number: orderNumber,
-              carrier: carrierName,
-              tracking_number: trackingNumber,
-              tracking_url: finalTrackingUrl,
-            },
+            source: 'manual',
+            carrier_name: carrierName,
+            tracking_number: trackingNumber,
+            tracking_url: finalTrackingUrl || null,
           },
         });
-
         if (messageError) {
           console.error('Failed to send tracking notification:', messageError);
-          // Don't throw - tracking was still updated
+          // Niet gooien: de tracking zelf is wel opgeslagen.
         }
       }
 

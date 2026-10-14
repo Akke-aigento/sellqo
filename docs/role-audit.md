@@ -17621,9 +17621,25 @@ Aanleiding: "alles wat we zeggen op de marketingspagina moet nu 100% correct sta
 - **Gevonden productgaten (nog niet gefixt, apart te plannen):**
   - cadeaubonsaldo daalt niet bij inwisselen in de POS;
   - factuur-PDF-labels alleen in het Nederlands;
-  - geen verzend- of track&trace-mail, terwijl de orderbevestiging er een belooft;
+  - verzendmail (correctie, zie SHIP-MAIL-1): de handmatige verzendmail bestaat wél, maar is hardcoded Nederlands; de automatische route via de webhooks faalde stil;
   - de custom-domain-flow verwijst nog naar het oude Lovable-IP 185.158.133.1;
   - plan-orderlimieten worden niet afgedwongen;
   - reverse charge op abonnementen staat geforceerd op 21% (BILL-2);
   - Events Flex zonder Stripe Connect kan geen betaalde tickets verkopen.
 - Checks: tsc 27 (baseline), lint gelijk aan de baseline, i18n-parity, used-keys en dead-buttons groen.
+
+## 2026-10-14 — SHIP-MAIL-1: verzendmail in de taal van de klant, ook automatisch
+
+Correctie op de MKT-4-bevinding. Er bestond wél een verzendmail: VanXcel verstuurde er 25, waarvan 23 naar bol.com-orders. Maar:
+- de mail werd in de browser opgebouwd, hardcoded in het Nederlands, met een vaste blauwe knop;
+- printful-webhook en tracking-webhook riepen send-customer-message aan met `{order_id, message_type}`. Die payload kende de functie niet, dus de automatische verzendmail ging nooit weg.
+
+Wijziging:
+- **Nieuwe functie `send-order-shipped`**, GET-stempel `SHIP-MAIL-1`.
+  - Mail in nl/en/fr/de via resolveEmailLocale, in de tenant-huisstijl.
+  - Wordt gelogd in customer_messages, zodat hij in de inbox staat.
+  - Idempotent per tracknummer.
+  - Automatische route (`source: 'auto'`): marketplace-orders worden overgeslagen. Handmatige route: het vinkje beslist, zoals voorheen, dus het bestaande gedrag voor bol-orders blijft ongewijzigd.
+- **`useOrderShipping`** roept de nieuwe functie aan. **De twee webhooks** ook, telkens achter `notify_on_shipped`.
+- **send-customer-message is niet gewijzigd** (additief).
+- Deploy via Lovable: send-order-shipped, printful-webhook, tracking-webhook.

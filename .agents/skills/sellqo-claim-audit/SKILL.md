@@ -43,8 +43,9 @@ citaten of cijfers kunnen nooit, ook niet als placeholder.
 - Waar: kassa (Pro, Enterprise, Horeca), bol.com-voorraad elke 30 min,
   facturen met btw/OSS, Odoo + Peppol (Pro), kortingscodes, 5 adminlocales,
   klantmails in nl/en/fr/de, Events Flex €0,49 per betaald ticket,
-  scanlink voor crew, ticketmail in tenant-huisstijl.
+  scanlink voor crew, ticketmail in tenant-huisstijl, verzendmail
+  met tracking in nl/en/fr/de (SHIP-MAIL-1).
 - Niet waar of nog niet af: eigen domein (DOMAIN-1), cadeaubonsaldo (GIFT-1),
-  verzendmail (SHIP-MAIL-1), factuurlabels i18n, afdwingen van orderlimieten,
+  factuurlabels i18n, afdwingen van orderlimieten,
   loyalty inwisselen in de storefront.
 - Na elke fix-batch: werk deze lijst en de copy bij.

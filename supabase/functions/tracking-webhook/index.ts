@@ -387,11 +387,9 @@ Deno.serve(async (req) => {
     // Trigger customer notification if enabled
     if (shouldNotify && updateData.status === 'shipped') {
       try {
-        await supabase.functions.invoke('send-customer-message', {
-          body: {
-            order_id: orderId,
-            message_type: 'order_shipped',
-          },
+        // SHIP-MAIL-1: send-customer-message kende deze payload niet; de mail ging nooit.
+        await supabase.functions.invoke('send-order-shipped', {
+          body: { order_id: orderId, source: 'auto' },
         });
       } catch (notifyError) {
         console.error('Notification error (non-fatal):', notifyError);

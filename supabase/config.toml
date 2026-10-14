@@ -471,3 +471,6 @@ verify_jwt = false
 
 [functions.send-order-ready]
 verify_jwt = false
+
+[functions.send-order-shipped]
+verify_jwt = false

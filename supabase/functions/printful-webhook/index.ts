@@ -224,8 +224,9 @@ Deno.serve(async (req) => {
           .maybeSingle();
         if (settings?.notify_on_shipped !== false) {
           try {
-            await admin.functions.invoke('send-customer-message', {
-              body: { order_id: link.order_id, message_type: 'order_shipped' },
+            // SHIP-MAIL-1: send-customer-message kende deze payload niet; de mail ging nooit.
+            await admin.functions.invoke('send-order-shipped', {
+              body: { order_id: link.order_id, source: 'auto' },
             });
           } catch (notifyErr) {
             console.error('[printful-webhook] notify error (non-fatal):', (notifyErr as Error)?.message);
