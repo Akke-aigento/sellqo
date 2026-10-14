@@ -11,6 +11,7 @@
 // Elke write doet .select() na de mutatie (persistence-verificatie: vangt stille
 // RLS-weigeringen die anders als "succes" ogen).
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 
@@ -53,9 +54,13 @@ const ROW_COLUMNS =
 export const isExpired = (row: Pick<ScannerAccessRow, 'expires_at'>): boolean =>
   !!row.expires_at && new Date(row.expires_at).getTime() <= Date.now();
 
-/** De scanner-URL die in de QR gaat. Fase 5 gaat /scan/:token bedienen. */
+/**
+ * De scanner-URL die in de QR gaat (SellQo Deur, /scan/:token). Altijd de publieke host:
+ * in de native app is window.location.origin capacitor://localhost en dan werkt de link
+ * op geen enkele andere gsm.
+ */
 export const scannerUrl = (token: string): string =>
-  `${window.location.origin}/scan/${token}`;
+  `${PUBLIC_SITE_URL}/scan/${token}`;
 
 export function useScannerAccesses(eventId: string | undefined) {
   const { currentTenant } = useTenant();

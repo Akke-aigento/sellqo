@@ -10,7 +10,8 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { CalendarDays, MapPin, Check, Ticket } from 'lucide-react';
+import { CalendarDays, MapPin, Check, Ticket, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useBusinessModules } from '@/hooks/useBusinessModules';
@@ -210,10 +211,11 @@ export default function EventDashboard() {
             <CalendarDays className="h-5 w-5" /> Events
           </h1>
           <p className="text-sm text-muted-foreground">
-            Stand van je events: verkochte tickets, check-ins en bezetting.
+            {t('events.wizard.dashboard_subtitle')}
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0 pt-1">
+        <div className="flex flex-wrap items-center justify-end gap-3 shrink-0 pt-1">
+          <Button size="sm" onClick={() => navigate('/admin/events/new')}><Plus className="mr-1 h-4 w-4" />{t('events.wizard.new_event')}</Button>
           <Switch id="show-past" checked={showPast} onCheckedChange={setShowPast} />
           <Label htmlFor="show-past" className="text-sm cursor-pointer whitespace-nowrap">
             {t('events.dashboard.showPast', 'Toon afgelopen')}
@@ -227,8 +229,9 @@ export default function EventDashboard() {
         </div>
       ) : events.length === 0 ? (
         <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            Geen aankomende events gevonden. Voeg datums toe bij een ticketproduct.
+          <CardContent className="flex flex-col items-center gap-3 py-10 text-center text-sm text-muted-foreground">
+            <p>{t('events.wizard.empty')}</p>
+            <Button onClick={() => navigate('/admin/events/new')}><Plus className="mr-1 h-4 w-4" />{t('events.wizard.first_event')}</Button>
           </CardContent>
         </Card>
       ) : (

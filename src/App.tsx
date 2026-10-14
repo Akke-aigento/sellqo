@@ -105,6 +105,7 @@ import PayLink from "./pages/public/PayLink";
 import NotificationsPage from "./pages/admin/Notifications";
 import POSPage from "./pages/admin/POS";
 import TicketCheckinPage from "./pages/admin/TicketCheckin";
+import EventWizardPage from "./pages/admin/EventWizard";
 import DoorScanPage, { DoorScanHome } from "./pages/public/DoorScan";
 import { EventsModuleGate } from "./components/admin/events/EventsModuleGate";
 import EventDashboardPage from "./pages/admin/EventDashboard";
@@ -299,6 +300,7 @@ const App = () => (
               <Route path="bestellen" element={<RouteGuard requireRead="orders"><OrderingHubPage /></RouteGuard>} />
               <Route path="checkin" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><TicketCheckinPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventDashboardPage /></RouteGuard>} />
+              <Route path="events/new" element={<RouteGuard requireRole={['tenant_admin']}><EventsModuleGate><EventWizardPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events/:eventId" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><EventDetailPage /></EventsModuleGate></RouteGuard>} />
               <Route path="pos/:terminalId" element={<POSTerminalPage />} />
               <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />

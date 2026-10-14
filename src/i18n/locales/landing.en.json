@@ -1923,6 +1923,10 @@
         "event_dates_ready_to_sell": {
           "title": "Every event date on sale right away, with a clear status",
           "description": "A new date for a ticket product is now on sale right away: the ticket type and the entrance are created automatically. Every date shows whether it's ready to sell and, if not, why (no active ticket type, sales not open yet or already closed, date has passed). A date without a location or meeting point gets a warning, because the ticket email would have no place. 'Add date' and 'Plan multiple dates' now also take an end time, location and meeting point, prefilled from your latest date."
+        },
+        "event_wizard_and_door_scanner": {
+          "title": "New event in four steps, and a scanner for your door",
+          "description": "Under Events, 'New event' creates an event in one flow: what, when and where (also weekly recurring), tickets with early bird, and a scan link for your door team. The event is on sale right away. The scan link opens SellQo Door: a full-screen scanner without an account, with a green or red result, vibration and sound, a flashlight, a screen that stays on, and search by name or order number when a QR code won't scan. Add it to your home screen and open it with one tap."
         }
       },
       "copyLink": "Copy link",

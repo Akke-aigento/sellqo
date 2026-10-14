@@ -1923,6 +1923,10 @@
         "event_dates_ready_to_sell": {
           "title": "Chaque date d'événement en vente immédiatement, avec un statut clair",
           "description": "Une nouvelle date pour un produit billet est désormais en vente immédiatement : le type de billet et l'entrée sont créés automatiquement. Chaque date indique si elle est prête à la vente et, sinon, pourquoi (aucun type de billet actif, vente pas encore ouverte ou déjà fermée, date passée). Une date sans lieu ni point de rendez-vous reçoit un avertissement, car l'e-mail de billet n'indiquerait aucun lieu. « Ajouter une date » et « Planifier plusieurs dates » proposent aussi l'heure de fin, le lieu et le point de rendez-vous, préremplis à partir de votre dernière date."
+        },
+        "event_wizard_and_door_scanner": {
+          "title": "Nouvel événement en quatre étapes, et un scanner pour l'entrée",
+          "description": "Dans Événements, « Nouvel événement » crée un événement en un seul parcours : quoi, quand et où (aussi chaque semaine), billets avec early bird, et un lien de scan pour l'équipe d'entrée. L'événement est en vente immédiatement. Le lien ouvre SellQo Entrée : un scanner plein écran sans compte, avec résultat vert ou rouge, vibration et son, lampe torche, écran toujours allumé et recherche par nom ou numéro de commande si un QR code ne passe pas. Ajoutez-le à l'écran d'accueil et ouvrez-le d'un geste."
         }
       },
       "copyLink": "Copier le lien",

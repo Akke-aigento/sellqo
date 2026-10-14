@@ -1923,6 +1923,10 @@
         "event_dates_ready_to_sell": {
           "title": "Elke eventdatum meteen te koop, met een duidelijke status",
           "description": "Een nieuwe datum voor een ticketproduct is nu meteen verkoopbaar: het tickettype en de ingang worden automatisch aangemaakt. Bij elke datum zie je of hij klaar is voor verkoop, en zo niet, waarom (geen actief tickettype, verkoop nog niet open of al gesloten, datum voorbij). Een datum zonder locatie of verzamelpunt krijgt een waarschuwing, want dan staat er geen plaats in de ticketmail. Bij 'Datum toevoegen' en 'Plan meerdere datums' vul je nu ook eindtijd, locatie en verzamelpunt in, vooraf ingevuld met je laatste datum."
+        },
+        "event_wizard_and_door_scanner": {
+          "title": "Nieuw event in vier stappen, en een scanner voor je deur",
+          "description": "Onder Events maak je met 'Nieuw event' in één flow een event aan: wat, wanneer en waar (ook wekelijks terugkerend), tickets met early bird, en een scanlink voor je deurploeg. Het event is meteen te koop. Die scanlink opent SellQo Deur: een schermvullende scanner zonder account, met groen of rood resultaat, trilling en geluid, zaklamp, een scherm dat aan blijft en zoeken op naam of bestelnummer als een QR-code niet scant. Zet hem op je beginscherm en je opent hem met één tik."
         }
       },
       "copyLink": "Kopieer link",

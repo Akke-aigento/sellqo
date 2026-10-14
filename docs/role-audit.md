@@ -17745,3 +17745,31 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
 **Fonske 24/10:** `location_name` 'Ladeuzeplein' en `meeting_point` 'Big bug' ingevuld (guard `is null`), op vraag van Akke.
 
 **Visueel:** Playwright 390×844 met een nep-camera: start, camerabeeld, zoeken, groen, oranje. Een echte gsm-test volgt in de generale repetitie.
+
+## 2026-10-14 — EVENT-WIZARD-1: "Nieuw event" in vier stappen
+
+**Root cause:** een event aanmaken kostte vier schermen. Je maakte een product met type Ticket, ging naar het datums-tab, en dan per datum naar de eventpagina voor tickettypes. Een scanlink maken was een aparte zoektocht.
+
+**Uitgevoerd:**
+- **`/admin/events/new` (`EventWizard`)**, achter de module en alleen voor `tenant_admin`. Vier stappen:
+  - wat: naam, beschrijving, foto;
+  - wanneer: één datum of een wekelijkse reeks (1–52 weken met voorbeeld), start- en eindtijd, locatie en verzamelpunt, met een waarschuwing als die laatste twee leeg zijn;
+  - tickets: prijs (0 = gratis), plaatsen per datum (verplicht, zodat het bekende 0-vrij-probleem bij onbeperkt niet optreedt), minimum, optionele early bird (prijs plus aantal);
+  - deur: optionele scanlink voor de eerste datum, met samenvatting. Na het aanmaken toont de wizard de QR-code met kopiëren en openen.
+- **`useCreateEvent`** maakt eerst het ticketproduct aan (unieke slug, geen verzending, geen voorraad), dan de `event_details`-rijen (de trigger maakt per datum tickettype en zone), dan optioneel de scantoegang. Bij een fout ruimt hij alles op: tickettypes, zones, datums en product.
+- **Helpers en tests:** `src/lib/eventSeries.ts` (wekelijkse datums, slug) met 4 vitest-tests.
+- **Eventdashboard:** een knop "Nieuw event" en een lege staat met CTA. De koptekst gebruikt nu i18n.
+- **Bugfix:** `scannerUrl` gebruikt nu `PUBLIC_SITE_URL`. In de native app wezen de QR-codes van scanlinks naar `capacitor://localhost`.
+- **i18n:** 75 `events.wizard.*`-keys in vijf talen.
+- **Changelog 2026.11j:** wizard en SellQo Deur.
+- **doc_articles:** `event-aanmaken` en `tickets-scannen-aan-de-deur`, nieuw.
+
+**Gecontroleerd:**
+- **Rollbacktest:** de product- en `event_details`-inserts van de wizard (2 datums) zijn geldig, en de trigger maakte 2 tickettypes aan. Alles teruggedraaid.
+- **Playwright 390×844:** alle vier stappen nagekeken, zonder JS-fouten.
+
+**Niet gedaan (na 24/10):**
+- ticketproducten uit de gewone productlijst halen;
+- een tickets-blok in de orderdetail;
+- een Scanner-knop in de native onderbalk;
+- het zaalplan (eerst ontwerp).

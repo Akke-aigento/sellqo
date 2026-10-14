@@ -1923,6 +1923,10 @@
         "event_dates_ready_to_sell": {
           "title": "Jeder Eventtermin sofort im Verkauf, mit klarem Status",
           "description": "Ein neuer Termin für ein Ticketprodukt ist jetzt sofort im Verkauf: Tickettyp und Eingang werden automatisch angelegt. Jeder Termin zeigt, ob er verkaufsbereit ist, und falls nicht, warum (kein aktiver Tickettyp, Verkauf noch nicht geöffnet oder bereits geschlossen, Termin vorbei). Ein Termin ohne Ort oder Treffpunkt erhält eine Warnung, denn dann steht in der Ticket-Mail kein Ort. Bei „Termin hinzufügen“ und „Mehrere Termine planen“ geben Sie jetzt auch Endzeit, Ort und Treffpunkt ein, vorausgefüllt mit Ihrem letzten Termin."
+        },
+        "event_wizard_and_door_scanner": {
+          "title": "Neues Event in vier Schritten und ein Scanner für den Eingang",
+          "description": "Unter Events legen Sie mit „Neues Event“ ein Event in einem Ablauf an: was, wann und wo (auch wöchentlich), Tickets mit Early Bird und ein Scan-Link für Ihr Einlassteam. Das Event ist sofort im Verkauf. Der Scan-Link öffnet SellQo Eingang: einen Vollbild-Scanner ohne Konto, mit grünem oder rotem Ergebnis, Vibration und Ton, Taschenlampe, einem Bildschirm, der an bleibt, und Suche nach Name oder Bestellnummer, wenn ein QR-Code nicht scannt. Fügen Sie ihn zum Startbildschirm hinzu und öffnen Sie ihn mit einem Tipp."
         }
       },
       "copyLink": "Link kopieren",
