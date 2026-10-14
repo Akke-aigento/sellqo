@@ -130,8 +130,29 @@ export function useDuplicateEvent() {
         .eq('tenant_id', currentTenant.id);
       if (zoneErr) throw zoneErr;
 
+      // EVENT-FLOW-1: de trigger op event_details heeft al een default-zone 'Ingang' gemaakt.
+      // Een tweede default-zone botst op ux_event_zones_default_per_event; de default-zone
+      // van het origineel overschrijft daarom die trigger-rij in plaats van een nieuwe te maken.
+      const { data: triggerZone } = await supabase
+        .from('event_zones')
+        .select('id')
+        .eq('event_detail_id', newEvent.id)
+        .eq('tenant_id', currentTenant.id)
+        .eq('is_default', true)
+        .maybeSingle();
+
       const zoneIdMap = new Map<string, string>();
       for (const z of sourceZones ?? []) {
+        if (z.is_default && triggerZone) {
+          const { error: zUpdErr } = await supabase
+            .from('event_zones')
+            .update({ name: z.name, capacity: z.capacity, sort_order: z.sort_order, location_name: z.location_name })
+            .eq('id', triggerZone.id)
+            .eq('tenant_id', currentTenant.id);
+          if (zUpdErr) throw zUpdErr;
+          zoneIdMap.set(z.id, triggerZone.id);
+          continue;
+        }
         const { data: newZone, error: zInsErr } = await supabase
           .from('event_zones')
           .insert({
@@ -173,8 +194,33 @@ export function useDuplicateEvent() {
           // scan-RPC weigert erop. Omgezet naar de zone-id's van het duplicaat.
           zone_ids: mapZoneIds(tt.zone_ids, zoneIdMap),
         }));
-        const { error: copyErr } = await supabase.from('event_ticket_types').insert(rows);
-        if (copyErr) throw copyErr;
+        // EVENT-FLOW-1: het tickettype voor het eigen product bestaat al (trigger) en zou op
+        // ux_event_ticket_types_event_product botsen. Die rij krijgt de instellingen van het
+        // origineel (verkoopvenster, sub_capacity, zones); de rest wordt gewoon ingevoegd.
+        // Geen upsert: de unieke index is partieel, PostgREST kan er niet op 'onConflict'en.
+        for (const row of rows.filter((r) => r.product_id === newEvent.product_id)) {
+          const settings = {
+            sub_capacity: row.sub_capacity, sales_start: row.sales_start, sales_end: row.sales_end,
+            sort_order: row.sort_order, is_active: row.is_active, reentry_policy: row.reentry_policy, zone_ids: row.zone_ids,
+          };
+          const { data: updated, error: updErr } = await supabase
+            .from('event_ticket_types')
+            .update(settings)
+            .eq('event_detail_id', newEvent.id)
+            .eq('product_id', newEvent.product_id)
+            .eq('tenant_id', currentTenant.id)
+            .select('id');
+          if (updErr) throw updErr;
+          if (!updated || updated.length === 0) {
+            const { error: insOneErr } = await supabase.from('event_ticket_types').insert(row);
+            if (insOneErr) throw insOneErr;
+          }
+        }
+        const others = rows.filter((r) => r.product_id !== newEvent.product_id);
+        if (others.length > 0) {
+          const { error: copyErr } = await supabase.from('event_ticket_types').insert(others);
+          if (copyErr) throw copyErr;
+        }
       }
 
       return { id: newEvent.id, product_id: newEvent.product_id, ticketTypesCopied: ticketTypes?.length ?? 0 };

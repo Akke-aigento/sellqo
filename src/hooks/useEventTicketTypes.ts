@@ -87,6 +87,35 @@ export function useCreateTicketType(eventId: string | undefined) {
   return useMutation({
     mutationFn: async (form: TicketTypeFormData) => {
       if (!eventId || !currentTenant) throw new Error('Geen event of tenant');
+      // EVENT-FLOW-1: elke datum krijgt bij het aanmaken al een tickettype voor zijn eigen
+      // product (trigger). Kiest de winkel dat product opnieuw, dan passen we die rij aan
+      // in plaats van op de unieke index (event, product) te botsen.
+      const { data: existing, error: exErr } = await supabase
+        .from('event_ticket_types')
+        .select('id')
+        .eq('tenant_id', currentTenant.id)
+        .eq('event_detail_id', eventId)
+        .eq('product_id', form.product_id)
+        .maybeSingle();
+      if (exErr) throw exErr;
+      if (existing) {
+        const { data: upd, error: updErr } = await supabase
+          .from('event_ticket_types')
+          .update({
+            sub_capacity: form.sub_capacity,
+            sales_start: form.sales_start,
+            sales_end: form.sales_end,
+            sort_order: form.sort_order,
+            is_active: form.is_active,
+            reentry_policy: form.reentry_policy,
+          })
+          .eq('id', existing.id)
+          .eq('tenant_id', currentTenant.id)
+          .select('id, product_id, sub_capacity, is_active, sort_order')
+          .single();
+        if (updErr) throw updErr;
+        return upd;
+      }
       const { data, error } = await supabase
         .from('event_ticket_types')
         .insert({

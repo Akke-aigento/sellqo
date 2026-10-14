@@ -98,3 +98,14 @@ niet heeft.
 tenants die het gezet hebben. De eerste optie is eenvoudiger maar zet
 tenant-scripts in een publiek leesbare view; de tweede is preciezer. Raakt geen
 custom frontend: die bouwen hun eigen `<head>`.
+
+## Onbeperkte capaciteit toont "0 plaatsen vrij" (event-datums)
+*Gevonden 14-10-2026 bij EVENT-FLOW. Bewust niet in die batch.*
+In storefront-api (`get_product` → event-datums, ±regel 715) rekent `spots_left` als
+`Math.max(0, (e.capacity ?? 0) - sold)`. Een datum met `capacity` NULL (onbeperkt) geeft
+dus `spots_left: 0`. Een frontend die daarop "uitverkocht" toont, verkoopt niets meer.
+**Waarom apart:** storefront-api is het gedeelde pad naar de custom frontends (eerste wet).
+De verandering (bv. `spots_left: null` bij onbeperkt) is niet additief: frontends die op
+een getal rekenen, kunnen breken.
+**Voorstel:** een nieuwe sleutel `unlimited: true` (additief). Laat `spots_left` ongemoeid
+tot alle frontends (Fonske, sellqo-storefront) de nieuwe sleutel lezen.

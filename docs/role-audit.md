@@ -17648,3 +17648,35 @@ Wijziging:
   - printful-webhook en tracking-webhook: deployed per agentrapport (supabase--deploy_edge_functions). Die hebben geen versiestempel.
   - Bij de eerste deploy-poging zag de agent 7ee1b86 nog niet en stopte correct. In de merge f6394ee zit één Lovable-commit e209220: 12 blog-URL's in public/sitemap.xml. Dat is geen agentwerk binnen deze batch.
   - Kost: 0,7 credits.
+
+## 2026-10-14 — EVENT-FLOW-1: elke nieuwe eventdatum is meteen verkoopbaar
+
+**Aanleiding:** Fonske 24/10 (e25b325c) was onverkoopbaar, met TICKET_TYPE_UNAVAILABLE bij cart_add_item. Akke heeft die datum handmatig rechtgezet.
+
+**Root cause** (nagekeken met grep en SQL): useCreateEventDate en useBulkCreateEventDates maakten geen event_ticket_types-rij en geen default-zone aan. Alleen de backfill van 19-08 had ze voor de toen bestaande events. Er zijn geen andere insert-paden voor event_details (ook niet in edge functions).
+
+**Wijziging:**
+- **Migratie 20261014080000_event_flow_1.sql** (gedraaid via de connector):
+  - AFTER INSERT-trigger `trg_event_details_create_defaults` (SECURITY DEFINER, `search_path` public) maakt een tickettype aan (`none`, `zone_ids` NULL, actief) plus een default-zone 'Ingang', met ON CONFLICT DO NOTHING op de partiële unieke indexen;
+  - natrek voor datums ≥ 2026-10-14, met een vaste peildatum.
+- **useDuplicateEvent:** de default-zone en het tickettype van het eigen product overschrijven de trigger-rijen met update. Een upsert kan niet, want de index is partieel. Andere zones en tickettypes worden gewoon ingevoegd.
+- **useCreateTicketType:** kiest de winkel het product dat al een rij heeft, dan wordt die rij bijgewerkt. Zonder deze aanpassing gaf dat 23505.
+- **Backlog:** "onbeperkte capaciteit toont 0 vrij" staat in docs/fase2-backlog.md. Storefront-api is niet aangeraakt.
+
+**Pre-flight (10u45):**
+- 1 toekomstige datum, 0 zonder tickettype, 0 zonder default-zone;
+- totalen: 4 tickettypes en 4 zones;
+- triggers op event_details: alleen updated_at.
+
+**Verificatie live:**
+- pg_trigger toont `trg_event_details_create_defaults` als enabled.
+- Rollbacktest: een insert maakte precies 1 tickettype en 1 'Ingang'-zone aan; na de rollback bleef er niets over.
+- End-to-end test op Demo Bakkerij:
+  - een datum ingevoegd (cef46519) → cart_create → cart_add_item met event_detail_id gaf 200 met het item erin;
+  - daarna cart, items, tickettype, zone en datum verwijderd; de totalen staan weer op 4/4.
+
+**Openstaand risico:** tot Akke de admin publiceert, geeft de live admin een 23505 in twee gevallen:
+- "Tickettype toevoegen" voor het eigen product van een nieuwe datum;
+- "Event dupliceren".
+
+Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
