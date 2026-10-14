@@ -17954,3 +17954,14 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
 - stoelkeuze in de standaard-webshop (sellqo-storefront);
 - stoel in de ticketmail en de scanner (ZAAL-3);
 - vrijgeven van een stoel bij een geannuleerd ticket (ZAAL-3).
+- **Deploy-verificatie ZAAL-2 (14-10, ±14u15):**
+  - CI groen na een typefix (8f655fa). storefront-api gedeployed via Lovable (deploy-only); `git ls-remote` toont geen agent-commits. GET-stempel `ZAAL-2`.
+  - Nulmeting en nameting zijn byte-identiek (md5): Fonske `get_product` (1555 b), VanXcel `get_products` (98367 b) en Mancini `get_products` (37728 b).
+  - **End-to-end op Demo Bakkerij:**
+    - Testopzet: product "ZAAL-TEST concert" plus het type "balkon", beide €0 en verborgen. De zaal heeft 2 rijen van 4 stoelen, waarvan 1 niet te koop.
+    - `link_event_venue` aangeroepen als Akke met een tijdelijke tenant_admin-rol, die daarna verwijderd is. Resultaat: 7 stoelen, 4 + 3 per type, capaciteit 7.
+    - `get_product` geeft `seating: true` en `sub_capacity` 4/3. `get_seat_map` geeft B4 als unavailable.
+    - `cart_add_item` geeft `SEAT_SELECTION_REQUIRED`. `cart_set_seats` met A1, A2 en B1 maakt 2 regels, met de stoelen in `cart_get`.
+    - Een tweede cart die A1 + A3 vraagt krijgt `SEATS_UNAVAILABLE [A1]`, en A3 blijft vrij (alles of niets).
+    - `checkout_complete` maakt een gratis order (#1004, €0). Dat geeft 3 tickets met `seat_label` "Parterre · A 1", "A 2" en "B 1", elk bij het juiste type. De stoelen staan op sold, en er zijn geen fallback-logs.
+    - De bevestigingsmails van die order gingen naar info@sellqo.app.
