@@ -14,7 +14,7 @@ import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 import { ForcedLightMode } from '@/components/ForcedLightMode';
 import { PageMeta } from '@/components/seo/PageMeta';
-import { usePricingPlans } from '@/hooks/usePricingPlans';
+import { PricingSection } from '@/components/landing/PricingSection';
 import { SIGNUP_SECTOR_KEY } from '@/lib/signupSector';
 
 type Sector = 'horeca' | 'events';
@@ -85,8 +85,6 @@ export function SectorLanding({ sector }: { sector: Sector }) {
   const { t } = useTranslation();
   const cfg = CONFIG[sector];
   const k = (key: string) => `landing.sector.${sector}.${key}`;
-  const { plans } = usePricingPlans();
-  const plan = cfg.planId ? plans.find((p) => p.id === cfg.planId) : undefined;
   const register = '/auth?mode=register';
   // Interesse onthouden: de onboarding selecteert deze sector dan al voor.
   useEffect(() => { try { localStorage.setItem(SIGNUP_SECTOR_KEY, sector); } catch { /* geen opslag */ } }, [sector]);
@@ -200,22 +198,8 @@ export function SectorLanding({ sector }: { sector: Sector }) {
             </div>
           </section>
 
-          {/* Prijs: alleen als het sectorplan actief is */}
-          {plan ? (
-            <section className="bg-secondary/30 py-16 md:py-20">
-              <div className="container mx-auto max-w-md px-4">
-                <div className="rounded-2xl border-2 border-primary bg-card p-8 text-center shadow-lg">
-                  <p className="text-sm font-semibold uppercase tracking-wide text-accent">{plan.name}</p>
-                  <p className="mt-2 text-5xl font-extrabold">€{Number(plan.monthly_price).toLocaleString('nl-BE')}<span className="text-base font-medium text-muted-foreground">{t('landing.pricing.perMonth')}</span></p>
-                  <p className="mt-1 text-xs text-muted-foreground">{t('landing.pricing.exclVatShort')}</p>
-                  <p className="mt-4 text-muted-foreground">{t(k('plan_text'))}</p>
-                  <Button size="lg" asChild className="mt-6 w-full bg-accent text-accent-foreground hover:bg-accent/90">
-                    <Link to={register}>{t('landing.sector.common.cta_start')}</Link>
-                  </Button>
-                </div>
-              </div>
-            </section>
-          ) : null}
+          {/* PRICE-2 — dezelfde prijzen als overal, met het tabblad van deze sector open. */}
+          <PricingSection initialTab={sector} />
 
           {/* FAQ */}
           <section className="py-16 md:py-24">

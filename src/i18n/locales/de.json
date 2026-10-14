@@ -6830,6 +6830,16 @@
       "slug_check_failed": "Konnte nicht prüfen, ob diese Adresse frei ist",
       "slug_free": "{{url}} ist frei",
       "next": "Nächster Schritt"
+    },
+    "plan": {
+      "title": "Wählen Sie Ihren Tarif",
+      "subtitle": "Sie können später jederzeit wechseln. Bezahlte Tarife sind die ersten 14 Tage kostenlos.",
+      "recommended": "Empfohlen",
+      "trial_then": "14 Tage kostenlos, danach {{price}} pro Monat",
+      "no_trial": "Keine Testphase nötig, nichts pro Monat",
+      "footer": "Keine Kreditkarte nötig. Nach der Testphase erhalten Sie eine Zahlungsaufforderung.",
+      "prev": "Zurück",
+      "next": "Weiter"
     }
   }
 }

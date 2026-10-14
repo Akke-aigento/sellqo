@@ -11623,6 +11623,7 @@ export type Database = {
       }
       pricing_plans: {
         Row: {
+          ticket_fee: number
           active: boolean | null
           ai_credits_monthly: number | null
           created_at: string | null
@@ -11649,6 +11650,7 @@ export type Database = {
           yearly_price: number
         }
         Insert: {
+          ticket_fee?: number
           active?: boolean | null
           ai_credits_monthly?: number | null
           created_at?: string | null
@@ -11675,6 +11677,7 @@ export type Database = {
           yearly_price?: number
         }
         Update: {
+          ticket_fee?: number
           active?: boolean | null
           ai_credits_monthly?: number | null
           created_at?: string | null

@@ -18,6 +18,9 @@ export interface PricingPlanFeatures {
   // Modules
   pos: boolean;
   webshop_builder: boolean;
+  /** MODULES-1 / PRICE-2: sectormodules die in het plan zitten. */
+  horeca?: boolean;
+  events?: boolean;
   visual_editor: boolean;
   
   // AI Capabilities
@@ -72,6 +75,8 @@ export interface PricingPlan {
   limit_storage_gb: number;
   limit_api_calls: number | null;
   features: PricingPlanFeatures;
+  /** FLEX-1: vaste kost per betaald ticket (EUR), 0 = geen. */
+  ticket_fee?: number | string | null;
   highlighted: boolean;
   sort_order: number;
   active: boolean;

@@ -15,13 +15,13 @@
       "title1": "Votre commerce.",
       "title2": "Simplement en ligne.",
       "subtitle": "Boutique en ligne, caisse et commandes sur une seule plateforme. Pour les commerces, la restauration et les événements en Belgique et aux Pays-Bas.",
-      "ctaPrimary": "Essai gratuit 14 jours",
-      "ctaSecondary": "Voir la plateforme",
+      "ctaPrimary": "Essai gratuit de 14 jours",
+      "ctaSecondary": "Voir une boutique de démo",
       "trust": {
-        "noCard": "Sans carte bancaire",
+        "noCard": "Sans carte de crédit",
         "trial": "14 jours d'essai gratuit",
         "setup": "Votre premier produit en ligne en quelques minutes",
-        "support": "Support néerlandophone"
+        "support": "Support en néerlandais et en anglais"
       },
       "float": {
         "sync": "Sync en direct",
@@ -36,7 +36,9 @@
         "horeca_hint": "Pizzeria, friterie, café",
         "events": "Événements",
         "events_hint": "Billets et contrôle d'accès"
-      }
+      },
+      "demo_title": "Boutique de démo Atelier Nord sur SellQo",
+      "demo_caption": "Une vraie boutique de démo sur SellQo. Cliquez librement."
     },
     "social": {
       "entrepreneurs": "Entrepreneurs actifs",
@@ -84,7 +86,7 @@
     },
     "integrations": {
       "badge": "SellQo Connect",
-      "heading": "Vendez partout. Gérez ici.",
+      "heading": "Vendez partout, gérez ici",
       "subheading": "SellQo Connect relie votre boutique à Bol.com — et bientôt Amazon, eBay et les réseaux sociaux — depuis un seul dashboard.",
       "comingSoon": "Bientôt",
       "missing": "Une intégration manque ?",
@@ -276,8 +278,8 @@
       ]
     },
     "pricing": {
-      "heading": "Tarifs transparents, évolutifs avec votre croissance",
-      "subheading": "Commencez gratuitement, montez en gamme quand vous voulez. Aucun frais caché.",
+      "heading": "Des prix honnêtes, pour chaque type de commerce",
+      "subheading": "Vous pouvez toujours commencer gratuitement. Aucun frais par commande, résiliable chaque mois.",
       "monthly": "Mensuel",
       "yearly": "Annuel",
       "save2months": "Économisez 2 mois",
@@ -372,84 +374,125 @@
           ]
         }
       },
-      "availableAddons": "Modules complémentaires disponibles"
+      "availableAddons": "Modules complémentaires disponibles",
+      "meta_title": "Tarifs — SellQo pour commerces, restauration et événements",
+      "meta_desc": "Boutique gratuite sur votrecommerce.sellqo.shop, Starter dès 29 €, Restauration 49 € par mois, Events Flex sans abonnement. Aucun frais par commande.",
+      "tabs_label": "Type de commerce",
+      "tab_retail": "Commerces",
+      "tab_horeca": "Restauration",
+      "tab_events": "Événements",
+      "most_chosen": "Le plus choisi",
+      "badge_horeca": "Pour la restauration",
+      "badge_events_flex": "Pour les événements",
+      "desc_free": "Une petite boutique pour démarrer.",
+      "desc_starter": "Votre propre boutique, avec votre domaine.",
+      "desc_pro": "Boutique, caisse et bol.com réunis.",
+      "desc_enterprise": "Pour les grands catalogues et les équipes.",
+      "desc_horeca": "Site de commande, menu QR, cuisine et caisse.",
+      "desc_events_flex": "Rien par mois, vous payez par billet.",
+      "from": "À partir de {{price}}",
+      "per_ticket": "+ {{fee}} par billet vendu",
+      "free_tickets_free": "Les billets gratuits ne coûtent rien. Aucun pourcentage.",
+      "yearly_short": "ou {{price}} par an",
+      "no_card": "Sans carte de crédit",
+      "lim_products_one": "1 produit",
+      "lim_products": "{{n}} produits",
+      "lim_products_unlimited": "Produits illimités",
+      "lim_orders_one": "1 commande par mois",
+      "lim_orders": "{{n}} commandes par mois",
+      "lim_orders_unlimited": "Commandes illimitées",
+      "lim_users_one": "1 utilisateur",
+      "lim_users": "{{n}} membres d'équipe",
+      "lim_users_unlimited": "Membres d'équipe illimités",
+      "feat_horeca": "Site de commande, menu QR et écran de cuisine",
+      "feat_events": "Billets, QR par e-mail et contrôle d'accès",
+      "feat_webshop": "Boutique sur votrecommerce.sellqo.shop",
+      "feat_pos": "Caisse",
+      "feat_domain": "Votre nom de domaine",
+      "feat_editor": "Éditeur de boutique avancé",
+      "feat_bol": "Intégration bol.com",
+      "feat_odoo": "Comptabilité Odoo, avec Peppol",
+      "feat_loyalty": "Programme de fidélité",
+      "feat_warehouse": "Plusieurs entrepôts",
+      "feat_whitelabel": "Marque blanche",
+      "feat_priority": "Support prioritaire",
+      "feat_ai": "{{n}} crédits IA par mois",
+      "note_badge": "Avec la mention « Boutique par SellQo »",
+      "cta_contact": "Contactez-nous",
+      "cta_free": "Commencer gratuitement",
+      "cta_trial": "Essai gratuit de 14 jours",
+      "setup_title": "Pack de démarrage",
+      "setup_by": "Nous préparons tout pour vous, via Studio Akke.",
+      "setup_once": "une fois",
+      "setup_p1": "Votre carte complète, avec suppléments",
+      "setup_p2": "Allergènes renseignés par plat",
+      "setup_p3": "Horaires de retrait, zones de livraison et paiements",
+      "setup_p4": "Codes QR pour vos tables, prêts à imprimer",
+      "setup_cta": "Demander le pack de démarrage",
+      "events_alt_title": "Vous préférez un prix fixe ?",
+      "events_alt_text": "Vous vendez beaucoup de billets toute l'année ? Avec Starter ({{price}} par mois), aucun frais par billet. Activez ensuite le module événements.",
+      "events_alt_cta": "Voir Starter",
+      "foot_trial": "Formules payantes : 14 jours gratuits, sans carte de crédit. Ensuite, votre abonnement démarre et vous recevez une demande de paiement. Résiliable chaque mois.",
+      "foot_payments": "Les paiements en ligne passent par votre propre compte Stripe, aux tarifs habituels de Stripe. SellQo ne prend rien par commande, sauf les frais par billet d'Events Flex.",
+      "foot_qr": "Virement avec code QR : votre client paie via son appli bancaire, sans frais pour vous.",
+      "from_short": "dès"
     },
     "faq": {
       "heading": "Questions fréquentes",
       "items": [
         {
           "q": "Comment fonctionne l'essai gratuit ?",
-          "a": "14 jours entièrement gratuits, toutes les fonctionnalités. Sans carte bancaire. Vous choisissez votre plan à l'inscription mais ne payez qu'après 14 jours. Upgrade possible à tout moment."
+          "a": "Vous utilisez une formule payante gratuitement pendant 14 jours, sans carte de crédit. Ensuite, votre abonnement démarre sur la formule choisie et vous recevez une demande de paiement. Tant qu'elle n'est pas réglée, votre boutique reste en ligne, mais vous ne pouvez rien modifier dans votre administration. Free et Events Flex ne nécessitent pas d'essai : ils ne coûtent rien par mois."
         },
         {
-          "q": "Que se passe-t-il après les 14 jours ?",
-          "a": "Après 14 jours, on vous demande de choisir un plan. D'ici là votre compte reste actif mais les nouvelles fonctions sont bloquées. Vos données restent en sécurité et l'upgrade reste possible à tout moment."
+          "q": "Puis-je changer de formule plus tard ?",
+          "a": "Oui, dans votre espace d'administration sous Abonnement. Une montée en gamme s'applique immédiatement, une baisse à la période suivante."
         },
         {
-          "q": "Comment se déroule l'onboarding ?",
-          "a": "À l'inscription vous suivez un assistant en 7 étapes : nom de boutique, choix du plan, infos entreprise, upload du logo, premier produit, paiements et lancement. Étapes contournables et complétables plus tard via les paramètres."
+          "q": "Que contient la formule Restauration ?",
+          "a": "Un site de commande à emporter et en livraison, la commande à table par QR, un écran de cuisine, la caisse, les suppléments et les allergènes, pour 49 € par mois. Si vous voulez que nous encodions votre carte et préparions tout, il y a le pack de démarrage à 149 € une fois."
         },
         {
-          "q": "Qu'est-ce que le Shop Health Score ?",
-          "a": "Un score en temps réel (0-100 %) mesurant la santé de votre boutique sur 6 axes : fulfillment, stock, service client, finance, SEO et conformité. Conseils personnalisés quotidiens pour l'améliorer."
-        },
-        {
-          "q": "Puis-je changer de plan plus tard ?",
-          "a": "Oui ! Vous pouvez upgrader ou downgrader à tout moment via Paramètres → Abonnement. Upgrade immédiat, downgrade à la prochaine période de facturation. Aucun frais caché."
-        },
-        {
-          "q": "Quelles langues SellQo prend en charge ?",
-          "a": "Néerlandais, anglais, français et allemand. L'admin et votre boutique sont entièrement traduisibles. Traductions IA disponibles pour fiches produits et contenu marketing."
-        },
-        {
-          "q": "Puis-je migrer ma boutique existante ?",
-          "a": "Oui — importez produits, clients et commandes via des exports CSV/Excel depuis Shopify, WooCommerce et d'autres plateformes. Les clients Enterprise bénéficient d'un accompagnement à la migration inclus."
-        },
-        {
-          "q": "Quels moyens de paiement sont supportés ?",
-          "a": "Via Stripe Connect : iDEAL, Bancontact, cartes, Apple Pay, Google Pay et 40+ autres. Vos clients paient directement sur votre compte Stripe."
-        },
-        {
-          "q": "SellQo convient-il au B2B ?",
-          "a": "Absolument ! Transactions exonérées de TVA, prix nets, tarifs par client et e-facturation Peppol automatique pour les professionnels via l'intégration Odoo (à partir de Pro)."
-        },
-        {
-          "q": "Comment fonctionnent les crédits IA ?",
-          "a": "Les crédits IA servent à générer du contenu : posts sociaux, e-mails, fiches produits. Pro : 500/mois, Enterprise : 5 000/mois. Besoin de plus de crédits ? Passez à un plan supérieur ou contactez-nous."
-        },
-        {
-          "q": "Puis-je vendre en boutique physique avec SellQo ?",
-          "a": "Oui ! Notre module POS est une caisse complète avec interface tactile, scanner, vente de cartes cadeaux et Stripe Terminal. Inclus à partir de Pro ; disponible sur demande sur Starter."
-        },
-        {
-          "q": "Quelles promotions puis-je créer ?",
-          "a": "SellQo supporte 8 types : codes de réduction, remises par quantité, BOGO, packs produits, groupes clients avec prix spéciaux, remises automatiques, cartes cadeaux et programme de fidélité à points."
-        },
-        {
-          "q": "Comment construire ma boutique ?",
-          "a": "Avec le Webshop Builder intégré : choisissez un thème, ajustez les sections par drag & drop, connectez votre domaine. Starter : thèmes de base, Pro : 1 thème premium, Enterprise : tous."
+          "q": "Combien coûte Events Flex ?",
+          "a": "Rien par mois et 0,49 € par billet payant, sans pourcentage. Le montant est déduit automatiquement du paiement en ligne. Les billets gratuits ne coûtent rien. Avec Events Flex, les billets se paient en ligne."
         },
         {
           "q": "Y a-t-il des frais en plus de l'abonnement ?",
-          "a": "Non. Seuls les frais Stripe standards (1,5 % + 0,25 € par transaction). Nous ne prélevons aucun frais de transaction supplémentaire. Add-ons optionnels."
+          "a": "SellQo ne prend rien par commande, sauf les frais par billet d'Events Flex. Si votre client paie en ligne, Stripe applique ses tarifs habituels sur votre propre compte Stripe. Un virement avec code QR ne vous coûte rien."
         },
         {
-          "q": "Qu'est-ce que Peppol et pourquoi c'est important ?",
-          "a": "Depuis 2026, la facturation électronique via Peppol est obligatoire pour les transactions B2B en Belgique. Avec l'intégration Odoo de SellQo (à partir de Pro), vos factures B2B sont automatiquement envoyées en tant qu'e-factures via votre propre Odoo, pour rester conforme."
+          "q": "Quels moyens de paiement puis-je proposer ?",
+          "a": "Via votre propre compte Stripe : Bancontact, iDEAL, carte, Apple Pay et Google Pay. Aussi le virement avec code QR et, en restauration, le paiement au retrait ou au comptoir. L'argent vous arrive directement."
+        },
+        {
+          "q": "Puis-je aussi vendre en magasin ?",
+          "a": "Oui. La caisse utilise les mêmes produits, prix et stocks que votre boutique, avec ticket, chèques-cadeaux et clôture journalière. Elle est incluse dans Pro, Enterprise et la formule Restauration."
+        },
+        {
+          "q": "Dans quelles langues SellQo fonctionne-t-il ?",
+          "a": "L'espace d'administration existe en néerlandais, anglais, français, allemand et ukrainien. Factures et e-mails clients partent en néerlandais, anglais, français ou allemand. La boutique standard est aujourd'hui en néerlandais ; d'autres langues suivront."
+        },
+        {
+          "q": "Puis-je transférer ma boutique existante ?",
+          "a": "Oui. Vous importez produits, clients et commandes via des exports CSV ou Excel depuis Shopify, WooCommerce et d'autres plateformes. Avec Enterprise, nous vous aidons à migrer."
+        },
+        {
+          "q": "Qu'est-ce que Peppol et en ai-je besoin ?",
+          "a": "Depuis le 1er janvier 2026, la facturation électronique via Peppol est obligatoire entre entreprises belges. Avec l'intégration Odoo (dès Pro), vos factures B2B passent par Peppol. Si vous ne vendez qu'à des particuliers, vous n'en avez pas besoin."
         },
         {
           "q": "Que deviennent mes données si j'arrête ?",
-          "a": "Vos données vous appartiennent. Vous pouvez tout exporter (produits, clients, commandes) en CSV, Excel ou via API. Nous supprimons vos données 30 jours après la résiliation."
+          "a": "Vos données restent les vôtres. Vous exportez produits, clients et commandes en CSV ou Excel. Nous ne supprimons vos données que 30 jours après la résiliation de votre compte."
         }
       ]
     },
     "finalCta": {
-      "heading": "Prêt à passer votre e-commerce au niveau supérieur ?",
-      "subheading": "Rejoignez les entrepreneurs qui font grandir leur business avec SellQo",
-      "cta": "Démarrer votre essai gratuit",
-      "trust": "Sans carte bancaire • 14 jours entièrement gratuits • Annulez quand vous voulez",
-      "ssl": "SSL sécurisé",
-      "gdpr": "Conforme RGPD"
+      "heading": "Prêt à mettre votre commerce en ligne ?",
+      "subheading": "Commencez gratuitement dès aujourd'hui sur votrecommerce.sellqo.shop. Choisissez votre formule plus tard.",
+      "cta": "Commencer gratuitement",
+      "trust": "Sans carte de crédit • Résiliable chaque mois • Conçu en Belgique",
+      "ssl": "Sécurisé SSL",
+      "gdpr": "Conforme au RGPD"
     },
     "footer": {
       "tagline": "La gestion e-commerce, comme elle devrait être.",
@@ -532,7 +575,7 @@
         "q1": "Ai-je déjà besoin d'un site web ?",
         "q1_a": "Non. Votre site de commande est en ligne immédiatement sur votrecommerce.sellqo.shop. Vous pourrez relier votre propre nom de domaine plus tard.",
         "q2": "Comment mes clients paient-ils ?",
-        "q2_a": "En ligne par Bancontact, carte ou Apple Pay via votre propre compte Stripe, ou au retrait et au comptoir. Vous choisissez ce que vous proposez.",
+        "q2_a": "En ligne par Bancontact, carte ou Apple Pay via votre propre compte Stripe, ou au retrait et au comptoir. Vous choisissez ce que vous proposez. SellQo ne prend rien par commande.",
         "q3": "Puis-je arrêter les commandes en cas de rush ?",
         "q3_a": "Oui. Sur l'écran de cuisine, vous mettez les commandes en ligne en pause pour 15, 30 ou 60 minutes ou le reste de la journée. La commande à table continue de fonctionner.",
         "q4": "Dois-je afficher les allergènes ?",
@@ -543,20 +586,20 @@
       },
       "events": {
         "meta_title": "SellQo Événements — vendez des billets et contrôlez l'entrée avec votre téléphone",
-        "meta_desc": "Vendez des billets pour soirées, visites et ateliers : dates, types de billets, capacité, billets QR par e-mail et contrôle à l'entrée. Aucuns frais par billet de la part de SellQo.",
+        "meta_desc": "Vendez des billets pour soirées, visites et ateliers : dates, types de billets, capacité, billets QR par e-mail et contrôle à l'entrée. Events Flex : 0 € par mois, 0,49 € par billet vendu.",
         "badge": "SellQo pour les événements",
         "title1": "Vos billets.",
         "title2": "Vos visiteurs.",
-        "subtitle": "Vendez des billets pour soirées, visites et ateliers, et scannez-les à l'entrée avec votre téléphone. Aucuns frais par billet de la part de SellQo, et les données de vos visiteurs restent les vôtres.",
+        "subtitle": "Vendez des billets pour soirées, visites et ateliers, et scannez-les à l'entrée avec votre téléphone. Rien par mois, un coût fixe par billet vendu, et les données de vos visiteurs restent les vôtres.",
         "trust1": "14 jours gratuits",
-        "trust2": "Aucuns frais par billet",
+        "trust2": "0 € par mois",
         "trust3": "Contrôle avec votre téléphone",
         "proof_label": "Déjà sur SellQo",
         "proof_title": "The Fonske Crawl",
         "proof_text": "Une tournée des bars à Louvain qui vend tous ses billets avec SellQo : dates, types de billets et billets QR par e-mail.",
         "demo_live": "Voir fonskecrawl.com",
         "why_title": "Les plateformes de billetterie gagnent sur chaque billet",
-        "why_text": "Souvent, vous ou votre visiteur payez des frais par billet vendu, et votre liste de clients reste chez eux. Avec SellQo, vous payez un montant mensuel fixe, vendez sous votre propre nom et constituez votre propre public pour le prochain événement.",
+        "why_text": "Souvent, vous ou votre visiteur payez un pourcentage plus un coût fixe par billet vendu, et votre liste de clients reste chez eux. Avec Events Flex, vous ne payez rien par mois et 0,49 € par billet vendu, sans pourcentage. Vous vendez sous votre propre nom et constituez votre propre public.",
         "features_title": "De la vente jusqu'à l'entrée",
         "f_dates": "Plusieurs dates",
         "f_dates_text": "Un événement avec autant de dates que vous voulez, chacune avec son horaire, son lieu et sa capacité.",
@@ -572,8 +615,8 @@
         "f_crew_text": "Donnez un lien de scan à votre équipe d'accueil. Elle peut contrôler les billets, sans rien voir d'autre de votre boutique.",
         "f_overview": "Vue par événement",
         "f_overview_text": "Combien de billets sont vendus et combien de personnes sont déjà entrées, par date.",
-        "f_pay": "Aucuns frais par billet",
-        "f_pay_text": "Les visiteurs paient en ligne par Bancontact ou carte. SellQo ne prend rien par billet ; seul votre prestataire de paiement facture.",
+        "f_pay": "Coût fixe par billet",
+        "f_pay_text": "Les visiteurs paient en ligne par Bancontact ou carte. Avec Events Flex, 0,49 € par billet payant est déduit automatiquement. Les billets gratuits ne coûtent rien.",
         "s1_title": "Créez votre événement",
         "s1_text": "Dates, lieu, types de billets et prix. Prêt en quelques minutes.",
         "s2_title": "Vendez en ligne",
@@ -582,8 +625,8 @@
         "s3_text": "Avec votre téléphone ou celui de votre équipe. Vous voyez en direct qui est entré.",
         "demo_title": "Voyez-le en action",
         "demo_text": "The Fonske Crawl à Louvain vend ses billets avec SellQo. Voyez ce que ça donne pour un visiteur.",
-        "q1": "SellQo prend-il des frais par billet ?",
-        "q1_a": "Non. Vous payez votre abonnement. Pour les paiements en ligne, seul votre prestataire (Stripe) facture ses frais de transaction habituels.",
+        "q1": "Combien coûte SellQo pour les événements ?",
+        "q1_a": "Avec Events Flex, vous ne payez rien par mois et 0,49 € par billet payant, déduit automatiquement du paiement en ligne ; les billets gratuits ne coûtent rien. Si vous vendez beaucoup toute l'année, Starter (prix mensuel fixe, sans frais par billet) est plus avantageux. Stripe facture en plus ses frais de paiement habituels.",
         "q2": "Puis-je proposer plusieurs dates et types de billets ?",
         "q2_a": "Oui. Chaque événement peut avoir plusieurs dates, et par date vous vendez différents types de billets, par exemple un early bird avec son prix, sa période de vente et son quota.",
         "q3": "Comment contrôler les entrées ?",
@@ -592,6 +635,47 @@
         "q4_a": "Oui. Vous les vendez dans votre boutique SellQo, ou votre propre site les récupère via l'API SellQo, comme The Fonske Crawl.",
         "final_title": "Prêt pour votre prochain événement ?"
       }
+    },
+    "sectors": {
+      "heading": "Une plateforme, trois types de commerce",
+      "subheading": "Produits, commandes, clients et caisse partagent le même socle. Vous n'activez que ce qui convient à votre commerce.",
+      "retail_title": "Commerces et boutiques en ligne",
+      "retail_text": "Votre boutique est en ligne tout de suite sur votrecommerce.sellqo.shop, et vous vendez aussi en magasin et sur bol.com.",
+      "retail_p1": "Choisissez un thème et adaptez-le dans l'éditeur",
+      "retail_p2": "Un seul stock pour la boutique, la caisse et bol.com",
+      "retail_p3": "Factures et TVA gérées automatiquement",
+      "retail_more": "Ce qui est inclus",
+      "retail_demo": "Boutique de démo",
+      "horeca_title": "Restauration",
+      "horeca_text": "Votre site de commande sans commission, la commande à table par QR et un seul écran de cuisine pour tout.",
+      "horeca_p1": "À emporter et livraison avec créneaux",
+      "horeca_p2": "Suppléments, allergènes et tableau des allergènes",
+      "horeca_p3": "Pause des commandes en ligne en cas de rush",
+      "horeca_more": "En savoir plus sur la restauration",
+      "horeca_demo": "Pizzeria de démo",
+      "events_title": "Événements",
+      "events_text": "Vendez des billets sous votre nom et scannez-les à l'entrée. Rien par mois, un coût fixe par billet.",
+      "events_p1": "Dates, types de billets et early bird",
+      "events_p2": "Billet QR par e-mail, jamais de surréservation",
+      "events_p3": "Contrôle avec votre téléphone, équipe comprise",
+      "events_more": "En savoir plus sur les événements",
+      "events_demo": "Fonske Crawl"
+    },
+    "core": {
+      "heading": "Ce que contient chaque SellQo",
+      "subheading": "La base de votre commerce, que vous vendiez des vêtements, des pizzas ou des billets.",
+      "shop_title": "Votre propre boutique",
+      "shop_text": "En ligne immédiatement sur votrecommerce.sellqo.shop. Choisissez un thème, adaptez-le dans l'éditeur et reliez plus tard votre domaine.",
+      "pos_title": "Caisse",
+      "pos_text": "Les mêmes produits et stocks qu'en ligne, avec ticket, chèques-cadeaux et clôture journalière. Dès Pro et dans la formule Restauration.",
+      "orders_title": "Commandes et stock",
+      "orders_text": "Toutes les commandes au même endroit : boutique, caisse et bol.com. Le stock suit automatiquement.",
+      "invoices_title": "Factures et TVA",
+      "invoices_text": "Factures en quatre langues, TVA et OSS calculées correctement. Avec l'intégration Odoo (Pro), les factures B2B passent par Peppol.",
+      "bol_title": "Vendre sur bol.com",
+      "bol_text": "Les commandes bol.com arrivent dans SellQo et votre stock reste identique partout. Dès Pro.",
+      "promos_title": "Réductions et chèques-cadeaux",
+      "promos_text": "Codes de réduction dans la boutique et chèques-cadeaux avec code QR en caisse."
     }
   },
   "public": {

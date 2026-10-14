@@ -1,12 +1,9 @@
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { SocialProofSection } from '@/components/landing/SocialProofSection';
-import { ProblemSection } from '@/components/landing/ProblemSection';
-import { SolutionOverviewSection } from '@/components/landing/SolutionOverviewSection';
 import { IntegrationsShowcaseSection } from '@/components/landing/IntegrationsShowcaseSection';
-import { UniqueAdvantagesSection } from '@/components/landing/UniqueAdvantagesSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
-import { ComparisonSection } from '@/components/landing/ComparisonSection';
+import { SectorsSection } from '@/components/landing/SectorsSection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { PricingSection } from '@/components/landing/PricingSection';
 import { FaqSection } from '@/components/landing/FaqSection';
@@ -31,8 +28,8 @@ export default function LandingPage() {
   return (
     <ForcedLightMode>
       <PageMeta
-        title="Sellqo — Jouw webshop, bol.com & POS in één platform"
-        description="Start je webshop, koppel bol.com en verkoop in de winkel met de POS. Eén abonnement, geen transactiekosten. 14 dagen gratis proberen."
+        title="SellQo — webshop, kassa en bestellingen voor winkels, horeca en events"
+        description="Je eigen webshop op jouwzaak.sellqo.shop, een kassa, een bestelsite voor horeca en tickets voor events. Gebouwd in België, gratis te starten."
         path="/"
       />
       <div className="min-h-screen bg-background">
@@ -40,12 +37,9 @@ export default function LandingPage() {
         <main>
           <HeroSection />
           <SocialProofSection />
-          <ProblemSection />
-          <SolutionOverviewSection />
-          <IntegrationsShowcaseSection />
-          <UniqueAdvantagesSection />
+          <SectorsSection />
           <FeaturesSection />
-          <ComparisonSection />
+          <IntegrationsShowcaseSection />
           <TestimonialsSection />
           <PricingSection />
           <FaqSection />

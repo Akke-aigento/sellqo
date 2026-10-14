@@ -57,6 +57,8 @@ const featureLabels: Record<keyof PricingPlanFeatures, string> = {
   promo_bogo: 'Buy One Get One',
   promo_volume: 'Volume kortingen',
   promo_giftcards: 'Cadeaubonnen',
+  horeca: 'Horeca: bestelsite, QR-menu en keukenscherm',
+  events: 'Events: tickets en inchecken',
 };
 
 const tierConfig: Record<string, {
@@ -233,6 +235,11 @@ export function PlanComparisonCards({
                     <span className="text-muted-foreground text-sm">/mnd</span>
                     {monthlyEquivalent > 0 && (
                       <span className="text-xs text-muted-foreground ml-1">{t('pricing.excl_vat_short')}</span>
+                    )}
+                    {Number(plan.ticket_fee ?? 0) > 0 && (
+                      <p className="text-sm font-semibold text-foreground mt-0.5">
+                        {t('landing.pricing.per_ticket', { fee: formatPrice(Number(plan.ticket_fee)) })}
+                      </p>
                     )}
                     {currentInterval === 'yearly' && price > 0 && (
                       <p className="text-xs text-muted-foreground mt-0.5">

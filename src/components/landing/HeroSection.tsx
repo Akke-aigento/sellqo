@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Play, Check, Zap, TrendingUp, FileText, ShoppingBag, UtensilsCrossed, Ticket } from 'lucide-react';
+import { ArrowRight, Check, ExternalLink, ShoppingBag, UtensilsCrossed, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
-import { HeroDashboardMockup } from './HeroDashboardMockup';
 import { useTranslation } from 'react-i18next';
+
+const DEMO_HOST = 'demo-webshop.sellqo.shop';
 
 export function HeroSection() {
   const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.1 });
@@ -17,15 +18,6 @@ export function HeroSection() {
     { icon: Check, text: t('landing.hero.trust.support') },
   ];
 
-  const floatingCards = [
-    { icon: Zap, text: t('landing.hero.float.sync'), color: 'bg-blue-500' },
-    { icon: TrendingUp, text: t('landing.hero.float.conversion'), color: 'bg-green-500' },
-    { icon: FileText, text: t('landing.hero.float.invoicing'), color: 'bg-accent' },
-  ];
-
-  const handleDemoScroll = () => {
-    document.querySelector('#demo')?.scrollIntoView({ behavior: 'smooth' });
-  };
 
   return (
     <section className="relative pt-[calc(6rem+var(--safe-top))] md:pt-32 pb-16 md:pb-24 overflow-hidden">
@@ -97,11 +89,13 @@ export function HeroSection() {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={handleDemoScroll}
+                asChild
                 className="text-lg py-4 px-8 h-auto min-h-[44px] border-2 hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all rounded-lg"
               >
-                <Play className="w-5 h-5 mr-2" />
-                {t('landing.hero.ctaSecondary')}
+                <a href={`https://${DEMO_HOST}/`} target="_blank" rel="noreferrer" className="flex items-center gap-2">
+                  <ExternalLink className="w-5 h-5" />
+                  {t('landing.hero.ctaSecondary')}
+                </a>
               </Button>
             </div>
 
@@ -116,32 +110,18 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* Right column - Dashboard mockup */}
-          <div id="demo" className="relative overflow-hidden lg:overflow-visible scroll-mt-24">
-            {/* Main dashboard mockup - responsive scaling */}
-            <div className="relative animate-float transform scale-[0.85] sm:scale-90 md:scale-95 lg:scale-100 origin-top">
-              <HeroDashboardMockup />
-            </div>
-
-            {/* Floating cards */}
-            {floatingCards.map((card, index) => (
-              <div
-                key={index}
-                className={cn(
-                  'absolute bg-card rounded-xl shadow-lg border border-border p-3 flex items-center gap-3',
-                  'animate-float-delayed hidden md:flex',
-                  index === 0 && 'top-8 left-0 lg:top-4 lg:-left-4',
-                  index === 1 && 'top-1/3 right-2 lg:-right-8',
-                  index === 2 && 'bottom-2 left-4 lg:-bottom-4 lg:left-8'
-                )}
-                style={{ animationDelay: `${index * 0.5}s` }}
-              >
-                <div className={cn('w-10 h-10 rounded-lg flex items-center justify-center', card.color)}>
-                  <card.icon className="w-5 h-5 text-white" />
-                </div>
-                <span className="font-semibold text-sm whitespace-nowrap">{card.text}</span>
+          {/* MKT-2 — rechts geen nagemaakt dashboard maar een echte winkel op SellQo. */}
+          <div className="relative mx-auto w-full max-w-[640px]">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-2xl">
+              <div className="flex items-center gap-2 border-b border-border bg-secondary/60 px-4 py-2.5">
+                <span className="h-2.5 w-2.5 rounded-full bg-red-400" aria-hidden="true" />
+                <span className="h-2.5 w-2.5 rounded-full bg-amber-400" aria-hidden="true" />
+                <span className="h-2.5 w-2.5 rounded-full bg-green-400" aria-hidden="true" />
+                <span className="ml-3 flex-1 truncate rounded-md bg-background px-3 py-1 text-xs text-muted-foreground">{DEMO_HOST}</span>
               </div>
-            ))}
+              <iframe src={`https://${DEMO_HOST}/`} title={t('landing.hero.demo_title')} loading="lazy" className="block h-[420px] w-full bg-white md:h-[520px]" />
+            </div>
+            <p className="mt-3 text-center text-sm text-muted-foreground">{t('landing.hero.demo_caption')}</p>
           </div>
         </div>
       </div>

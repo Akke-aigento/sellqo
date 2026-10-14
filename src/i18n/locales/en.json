@@ -6830,6 +6830,16 @@
       "slug_check_failed": "Couldn't check whether this address is available",
       "slug_free": "{{url}} is available",
       "next": "Next step"
+    },
+    "plan": {
+      "title": "Choose your plan",
+      "subtitle": "You can always switch later. Paid plans are free for the first 14 days.",
+      "recommended": "Recommended",
+      "trial_then": "14 days free, then {{price}} per month",
+      "no_trial": "No trial needed, nothing per month",
+      "footer": "No credit card needed. After the trial you receive a payment request.",
+      "prev": "Back",
+      "next": "Next"
     }
   }
 }

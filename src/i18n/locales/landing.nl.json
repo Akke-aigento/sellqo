@@ -1,12 +1,12 @@
 {
   "landing": {
     "nav": {
-      "features": "Features",
+      "features": "Functies",
       "pricing": "Prijzen",
       "why": "Waarom SellQo?",
       "faq": "FAQ",
       "login": "Inloggen",
-      "start": "Gratis Starten",
+      "start": "Gratis starten",
       "languageSelect": "Taal kiezen",
       "horeca": "Horeca",
       "events": "Events"
@@ -15,13 +15,13 @@
       "title1": "Jouw zaak.",
       "title2": "Simpel online.",
       "subtitle": "Webshop, kassa en bestellingen in één platform. Voor winkels, horeca en events in België en Nederland.",
-      "ctaPrimary": "Start 14 Dagen Gratis",
-      "ctaSecondary": "Bekijk het platform",
+      "ctaPrimary": "Start 14 dagen gratis",
+      "ctaSecondary": "Bekijk een demowinkel",
       "trust": {
-        "noCard": "Geen creditcard nodig",
+        "noCard": "Geen kredietkaart nodig",
         "trial": "14 dagen gratis proberen",
         "setup": "Binnen enkele minuten je eerste product online",
-        "support": "Nederlandse support"
+        "support": "Nederlandstalige support"
       },
       "float": {
         "sync": "Live data sync",
@@ -36,12 +36,14 @@
         "horeca_hint": "Pizzeria, frituur, café",
         "events": "Events",
         "events_hint": "Tickets en inchecken"
-      }
+      },
+      "demo_title": "Demowinkel Atelier Nord op SellQo",
+      "demo_caption": "Een echte demowinkel op SellQo. Klik gerust rond."
     },
     "social": {
-      "entrepreneurs": "Actieve Ondernemers",
-      "revenue": "Verwerkte Omzet",
-      "uptime": "Uptime Garantie"
+      "entrepreneurs": "Actieve ondernemers",
+      "revenue": "Verwerkte omzet",
+      "uptime": "Uptime-garantie"
     },
     "problem": {
       "heading": "Herken Je Dit?",
@@ -84,7 +86,7 @@
     },
     "integrations": {
       "badge": "SellQo Connect",
-      "heading": "Verkoop Overal. Beheer Het Hier.",
+      "heading": "Verkoop overal, beheer het hier",
       "subheading": "SellQo Connect koppelt je webshop aan Bol.com — en binnenkort ook Amazon, eBay en sociale kanalen — vanuit één dashboard.",
       "comingSoon": "Binnenkort",
       "missing": "Mis je een integratie?",
@@ -256,7 +258,7 @@
       "footnote": "Vergelijking o.b.v. standaard-functionaliteit; bij concurrenten vaak mogelijk via betaalde apps."
     },
     "testimonials": {
-      "heading": "Dit Zeggen Onze Klanten",
+      "heading": "Dit zeggen onze klanten",
       "items": [
         {
           "quote": "SellQo heeft ons €500/maand bespaard aan apptarieven en ik heb eindelijk overzicht over onze winstmarges. Game changer.",
@@ -276,8 +278,8 @@
       ]
     },
     "pricing": {
-      "heading": "Transparante Prijzen, Schaalbaar Met Jouw Groei",
-      "subheading": "Begin gratis, upgrade wanneer je wilt. Geen verborgen kosten.",
+      "heading": "Eerlijke prijzen, per soort zaak",
+      "subheading": "Gratis starten kan altijd. Geen kosten per bestelling, maandelijks opzegbaar.",
       "monthly": "Maandelijks",
       "yearly": "Jaarlijks",
       "save2months": "Bespaar 2 maanden",
@@ -372,84 +374,125 @@
           ]
         }
       },
-      "availableAddons": "Beschikbare add-ons"
+      "availableAddons": "Beschikbare add-ons",
+      "meta_title": "Prijzen — SellQo voor winkels, horeca en events",
+      "meta_desc": "Gratis webshop op jouwzaak.sellqo.shop, Starter vanaf €29, Horeca €49 per maand, Events Flex zonder maandprijs. Geen kosten per bestelling.",
+      "tabs_label": "Soort zaak",
+      "tab_retail": "Winkels",
+      "tab_horeca": "Horeca",
+      "tab_events": "Events",
+      "most_chosen": "Meest gekozen",
+      "badge_horeca": "Voor horeca",
+      "badge_events_flex": "Voor events",
+      "desc_free": "Een kleine webshop om te starten.",
+      "desc_starter": "Je eigen winkel, met je eigen domein.",
+      "desc_pro": "Webshop, kassa en bol.com samen.",
+      "desc_enterprise": "Voor grote catalogi en teams.",
+      "desc_horeca": "Bestelsite, QR-menu, keuken en kassa.",
+      "desc_events_flex": "Niets per maand, je betaalt per ticket.",
+      "from": "Vanaf {{price}}",
+      "per_ticket": "+ {{fee}} per verkocht ticket",
+      "free_tickets_free": "Gratis tickets kosten niets. Geen percentage.",
+      "yearly_short": "of {{price}} per jaar",
+      "no_card": "Geen kredietkaart nodig",
+      "lim_products_one": "1 product",
+      "lim_products": "{{n}} producten",
+      "lim_products_unlimited": "Onbeperkt aantal producten",
+      "lim_orders_one": "1 bestelling per maand",
+      "lim_orders": "{{n}} bestellingen per maand",
+      "lim_orders_unlimited": "Onbeperkt aantal bestellingen",
+      "lim_users_one": "1 gebruiker",
+      "lim_users": "{{n}} teamleden",
+      "lim_users_unlimited": "Onbeperkt aantal teamleden",
+      "feat_horeca": "Bestelsite, QR-menu en keukenscherm",
+      "feat_events": "Tickets, QR per mail en inchecken",
+      "feat_webshop": "Webshop op jouwzaak.sellqo.shop",
+      "feat_pos": "Kassa",
+      "feat_domain": "Eigen domeinnaam",
+      "feat_editor": "Uitgebreide winkel-editor",
+      "feat_bol": "bol.com-koppeling",
+      "feat_odoo": "Odoo-boekhouding, met Peppol",
+      "feat_loyalty": "Loyaliteitsprogramma",
+      "feat_warehouse": "Meerdere magazijnen",
+      "feat_whitelabel": "White-label",
+      "feat_priority": "Voorrang bij support",
+      "feat_ai": "{{n}} AI-credits per maand",
+      "note_badge": "Met de vermelding 'Webshop door SellQo'",
+      "cta_contact": "Neem contact op",
+      "cta_free": "Gratis starten",
+      "cta_trial": "Start 14 dagen gratis",
+      "setup_title": "Opstartpakket",
+      "setup_by": "Wij zetten alles voor je klaar, via Studio Akke.",
+      "setup_once": "eenmalig",
+      "setup_p1": "Je volledige kaart erin, met extra's",
+      "setup_p2": "Allergenen per gerecht ingevuld",
+      "setup_p3": "Afhaaluren, leverzones en betalingen",
+      "setup_p4": "QR-codes voor je tafels, klaar om te printen",
+      "setup_cta": "Vraag het opstartpakket aan",
+      "events_alt_title": "Liever een vaste prijs?",
+      "events_alt_text": "Verkoop je het hele jaar door veel tickets? Met Starter ({{price}} per maand) betaal je geen kost per ticket. Zet daarna de events-module aan.",
+      "events_alt_cta": "Bekijk Starter",
+      "foot_trial": "Betaalde plannen: 14 dagen gratis, zonder kredietkaart. Daarna start je abonnement en krijg je een betaalverzoek. Maandelijks opzegbaar.",
+      "foot_payments": "Online betalingen lopen via je eigen Stripe-account, aan de gewone tarieven van Stripe. SellQo rekent niets per bestelling, behalve de ticketkost bij Events Flex.",
+      "foot_qr": "Overschrijving met QR-code: je klant betaalt via zijn bank-app, zonder kosten voor jou.",
+      "from_short": "vanaf"
     },
     "faq": {
-      "heading": "Veelgestelde Vragen",
+      "heading": "Veelgestelde vragen",
       "items": [
         {
-          "q": "Hoe werkt de gratis trial?",
-          "a": "14 dagen volledig gratis, alle features beschikbaar. Geen creditcard nodig. Je kiest je plan tijdens onboarding, maar betaalt pas na 14 dagen. Je kunt op elk moment upgraden naar een betaald plan."
-        },
-        {
-          "q": "Wat gebeurt er na de 14 dagen trial?",
-          "a": "Na 14 dagen word je gevraagd een plan te kiezen. Tot die tijd blijft je account actief maar worden nieuwe functies geblokkeerd. Je data blijft veilig behouden en je kunt op elk moment upgraden."
-        },
-        {
-          "q": "Hoe werkt het onboarding proces?",
-          "a": "Bij registratie doorloop je een 7-stappen wizard: winkelnaam, plan selectie, bedrijfsgegevens, logo upload, eerste product, betalingen en lancering. Je kunt stappen overslaan en later voltooien via je instellingen."
-        },
-        {
-          "q": "Wat is de Shop Health Score?",
-          "a": "Een realtime score (0-100%) die de gezondheid van je shop meet op 6 gebieden: fulfillment, voorraad, klantenservice, financiën, SEO en compliance. Je krijgt dagelijks gepersonaliseerde tips om je score te verbeteren."
+          "q": "Hoe werkt de gratis proefperiode?",
+          "a": "Je gebruikt een betaald plan 14 dagen gratis, zonder kredietkaart. Daarna start je abonnement op het plan dat je koos en krijg je een betaalverzoek. Zolang dat niet betaald is, blijft je webshop online, maar kan je in je beheeromgeving niets aanpassen. Free en Events Flex hebben geen proef nodig: die kosten niets per maand."
         },
         {
           "q": "Kan ik later van plan wisselen?",
-          "a": "Ja! Je kunt op elk moment upgraden of downgraden via Instellingen → Abonnement. Upgrades zijn direct actief, downgrades gaan in bij de volgende facturatieperiode. Geen verborgen kosten."
+          "a": "Ja, in je beheeromgeving onder Abonnement. Een upgrade gaat meteen in, een downgrade bij de volgende periode."
         },
         {
-          "q": "Welke talen ondersteunt SellQo?",
-          "a": "Nederlands, Engels, Frans en Duits. Zowel de admin interface als je webshop zijn volledig vertaalbaar. AI vertalingen zijn beschikbaar voor productbeschrijvingen en marketing content."
+          "q": "Wat zit er in het Horeca-plan?",
+          "a": "Een bestelsite voor afhalen en leveren, bestellen aan tafel via QR, een keukenscherm, de kassa, extra's en allergenen, voor €49 per maand. Wil je dat wij je kaart erin zetten en alles klaarzetten, dan kan dat met het opstartpakket van €149 eenmalig."
         },
         {
-          "q": "Kan ik mijn bestaande webshop migreren?",
-          "a": "Ja — importeer producten, klanten en bestellingen via CSV/Excel-exports vanuit Shopify, WooCommerce en andere platforms. Enterprise-klanten krijgen migratie-ondersteuning inbegrepen."
-        },
-        {
-          "q": "Welke betaalmethoden worden ondersteund?",
-          "a": "Via Stripe Connect ondersteun je iDEAL, Bancontact, creditcards, Apple Pay, Google Pay en 40+ andere methoden. Jouw klanten betalen direct op jouw Stripe account."
-        },
-        {
-          "q": "Is SellQo geschikt voor B2B verkoop?",
-          "a": "Absoluut! We ondersteunen BTW-vrijgestelde transacties, netto prijzen, klantenspecifieke prijzen, en automatische Peppol e-facturatie voor zakelijke klanten via de Odoo-koppeling (vanaf Pro)."
-        },
-        {
-          "q": "Hoe werken de AI credits?",
-          "a": "AI credits worden gebruikt voor het genereren van content zoals social posts, emails en productbeschrijvingen. Pro krijgt 500 credits/maand, Enterprise 5.000 credits/maand. Meer credits nodig? Upgrade je plan of neem contact op."
-        },
-        {
-          "q": "Kan ik ook fysiek verkopen met SellQo?",
-          "a": "Ja! Met onze POS module heb je een complete kassa met touch-interface, barcode scanner, cadeaubon verkoop en Stripe Terminal integratie. Inbegrepen vanaf Pro; op Starter beschikbaar op aanvraag."
-        },
-        {
-          "q": "Welke promoties kan ik instellen?",
-          "a": "SellQo ondersteunt 8 promotietypen: kortingscodes, staffelkorting, BOGO (buy one get one), productbundels, klantgroepen met speciale prijzen, automatische kortingen, cadeaubonnen en een compleet loyaliteitsprogramma met punten."
-        },
-        {
-          "q": "Hoe bouw ik mijn eigen webshop?",
-          "a": "Met de ingebouwde Webshop Builder kies je een theme, pas je secties aan via drag & drop, en koppel je je eigen domein. Starter krijgt basis themes, Pro krijgt 1 premium theme, Enterprise alle themes."
+          "q": "Wat kost Events Flex?",
+          "a": "Niets per maand en €0,49 per betaald ticket, zonder percentage. De kost wordt automatisch afgehouden bij de online betaling. Gratis tickets kosten niets. Tickets met Events Flex betaal je online."
         },
         {
           "q": "Zijn er extra kosten bovenop het abonnement?",
-          "a": "Nee. Het enige wat je betaalt zijn de standaard Stripe betaalkosten (1,5% + €0,25 per transactie). Wij rekenen geen extra transactiekosten. Add-ons zoals POS zijn optioneel."
+          "a": "SellQo rekent niets per bestelling, behalve de ticketkost bij Events Flex. Betaalt je klant online, dan rekent Stripe zijn gewone tarieven op je eigen Stripe-account. Een overschrijving met QR-code kost je niets."
         },
         {
-          "q": "Wat is Peppol en waarom is het belangrijk?",
-          "a": "Sinds 2026 is elektronische facturatie via Peppol verplicht voor B2B-transacties in België. Met de Odoo-koppeling van SellQo (vanaf Pro) worden je B2B-facturen automatisch als e-factuur verstuurd via je eigen Odoo, zodat je compliant bent."
+          "q": "Welke betaalmethoden kan ik aanbieden?",
+          "a": "Via je eigen Stripe-account Bancontact, iDEAL, kaart, Apple Pay en Google Pay. Daarnaast overschrijving met QR-code, en in de horeca betalen bij het afhalen of aan de toonbank. Het geld komt rechtstreeks bij jou."
         },
         {
-          "q": "Wat gebeurt er met mijn data als ik stop?",
-          "a": "Je data blijft van jou. Je kunt alles exporteren (producten, klanten, bestellingen) in CSV, Excel of via API. We verwijderen je data pas 30 dagen na opzegging."
+          "q": "Kan ik ook in de winkel verkopen?",
+          "a": "Ja. De kassa gebruikt dezelfde producten, prijzen en voorraad als je webshop, met kassabon, cadeaubonnen en een dagafsluiting. Ze zit in Pro, Enterprise en het Horeca-plan."
+        },
+        {
+          "q": "In welke talen werkt SellQo?",
+          "a": "De beheeromgeving is er in het Nederlands, Engels, Frans, Duits en Oekraïens. Facturen en klantmails gaan in het Nederlands, Engels, Frans of Duits. De standaardwebshop is vandaag Nederlandstalig; meer talen volgen."
+        },
+        {
+          "q": "Kan ik mijn bestaande webshop overzetten?",
+          "a": "Ja. Je importeert producten, klanten en bestellingen met CSV- of Excel-exports uit Shopify, WooCommerce en andere platformen. Bij Enterprise helpen we je met de overstap."
+        },
+        {
+          "q": "Wat is Peppol en heb ik het nodig?",
+          "a": "Sinds 1 januari 2026 is e-facturatie via Peppol verplicht tussen Belgische bedrijven. Met de Odoo-koppeling (vanaf Pro) gaan je B2B-facturen via Peppol. Verkoop je enkel aan particulieren, dan heb je het niet nodig."
+        },
+        {
+          "q": "Wat gebeurt er met mijn gegevens als ik stop?",
+          "a": "Je gegevens blijven van jou. Je exporteert producten, klanten en bestellingen als CSV of Excel. We verwijderen je gegevens pas 30 dagen nadat je account is opgezegd."
         }
       ]
     },
     "finalCta": {
-      "heading": "Klaar Om Je E-commerce Naar Het Volgende Level Te Tillen?",
-      "subheading": "Sluit je aan bij ondernemers die hun business laten groeien met SellQo",
-      "cta": "Start Je Gratis Proefperiode",
-      "trust": "Geen creditcard nodig • 14 dagen volledig gratis • Annuleer wanneer je wilt",
-      "ssl": "SSL Beveiligd",
-      "gdpr": "GDPR Compliant"
+      "heading": "Klaar om je zaak online te zetten?",
+      "subheading": "Begin vandaag gratis op jouwzaak.sellqo.shop. Kies later het plan dat bij je past.",
+      "cta": "Gratis starten",
+      "trust": "Geen kredietkaart nodig • Maandelijks opzegbaar • Gebouwd in België",
+      "ssl": "SSL-beveiligd",
+      "gdpr": "GDPR-conform"
     },
     "footer": {
       "tagline": "E-commerce management, zoals het hoort.",
@@ -457,7 +500,7 @@
       "company": "Bedrijf",
       "support": "Support",
       "links": {
-        "features": "Features",
+        "features": "Functies",
         "pricing": "Prijzen",
         "integrations": "Integraties",
         "apiDocs": "API Docs",
@@ -532,7 +575,7 @@
         "q1": "Heb ik al een website nodig?",
         "q1_a": "Nee. Je bestelsite staat meteen online op jouwzaak.sellqo.shop. Een eigen domeinnaam kan je later koppelen.",
         "q2": "Hoe betalen mijn klanten?",
-        "q2_a": "Online met Bancontact, kaart of Apple Pay via je eigen Stripe-account, of bij het afhalen en aan de toonbank. Jij kiest wat je aanbiedt.",
+        "q2_a": "Online met Bancontact, kaart of Apple Pay via je eigen Stripe-account, of bij het afhalen en aan de toonbank. Jij kiest wat je aanbiedt. SellQo rekent niets per bestelling.",
         "q3": "Kan ik bestellingen stoppen als het te druk wordt?",
         "q3_a": "Ja. Op het keukenscherm pauzeer je online bestellingen voor 15, 30 of 60 minuten of de rest van de dag. Bestellen aan tafel blijft gewoon werken.",
         "q4": "Moet ik allergenen tonen?",
@@ -543,20 +586,20 @@
       },
       "events": {
         "meta_title": "SellQo Events — tickets verkopen en inchecken met je gsm",
-        "meta_desc": "Verkoop tickets voor feesten, tours en workshops: datums, tickettypes, capaciteit, QR-tickets per mail en inchecken aan de deur. Geen kosten per ticket van SellQo.",
+        "meta_desc": "Verkoop tickets voor feesten, tours en workshops: datums, tickettypes, capaciteit, QR-tickets per mail en inchecken aan de deur. Events Flex: €0 per maand, €0,49 per verkocht ticket.",
         "badge": "SellQo voor events",
         "title1": "Jouw tickets.",
         "title2": "Jouw bezoekers.",
-        "subtitle": "Verkoop tickets voor feesten, tours en workshops, en scan ze aan de deur met je gsm. Geen kosten per ticket van SellQo, en de gegevens van je bezoekers blijven van jou.",
+        "subtitle": "Verkoop tickets voor feesten, tours en workshops, en scan ze aan de deur met je gsm. Niets per maand, een vaste kost per verkocht ticket, en de gegevens van je bezoekers blijven van jou.",
         "trust1": "14 dagen gratis",
-        "trust2": "Geen kosten per ticket",
+        "trust2": "€0 per maand",
         "trust3": "Inchecken met je gsm",
         "proof_label": "Draait al op SellQo",
         "proof_title": "The Fonske Crawl",
         "proof_text": "Een pub crawl in Leuven die al zijn tickets verkoopt met SellQo: datums, tickettypes en QR-tickets per mail.",
         "demo_live": "Bekijk fonskecrawl.com",
         "why_title": "Ticketplatformen verdienen aan elk ticket",
-        "why_text": "Vaak betaal jij of je bezoeker een vergoeding per verkocht ticket, en zit je klantenlijst bij hen. Met SellQo betaal je een vast bedrag per maand, verkoop je onder je eigen naam en bouw je je eigen publiek op voor het volgende event.",
+        "why_text": "Vaak betaal jij of je bezoeker een percentage plus een vaste kost per verkocht ticket, en zit je klantenlijst bij hen. Met Events Flex betaal je niets per maand en €0,49 per verkocht ticket, zonder percentage. Je verkoopt onder je eigen naam en bouwt je eigen publiek op.",
         "features_title": "Van verkoop tot aan de deur",
         "f_dates": "Meerdere datums",
         "f_dates_text": "Eén event met zoveel data als je wil, elk met een eigen starttijd, plaats en capaciteit.",
@@ -572,8 +615,8 @@
         "f_crew_text": "Geef je deurploeg een scanlink. Ze kunnen inchecken, maar zien niets anders van je winkel.",
         "f_overview": "Overzicht per event",
         "f_overview_text": "Hoeveel tickets er verkocht zijn en hoeveel mensen al binnen zijn, per datum.",
-        "f_pay": "Geen kosten per ticket",
-        "f_pay_text": "Bezoekers betalen online met Bancontact of kaart. SellQo rekent niets per ticket, enkel je betaalprovider.",
+        "f_pay": "Vaste kost per ticket",
+        "f_pay_text": "Bezoekers betalen online met Bancontact of kaart. Met Events Flex gaat er €0,49 per betaald ticket af, automatisch. Gratis tickets kosten niets.",
         "s1_title": "Maak je event aan",
         "s1_text": "Datums, plaats, tickettypes en prijzen. In een paar minuten klaar.",
         "s2_title": "Verkoop online",
@@ -582,8 +625,8 @@
         "s3_text": "Met je gsm of die van je crew. Je ziet live wie er binnen is.",
         "demo_title": "Zie het in actie",
         "demo_text": "The Fonske Crawl in Leuven verkoopt zijn tickets met SellQo. Kijk hoe dat er voor een bezoeker uitziet.",
-        "q1": "Rekent SellQo kosten per ticket?",
-        "q1_a": "Nee. Je betaalt je abonnement. Bij online betalen rekent enkel je betaalprovider (Stripe) zijn gewone transactiekost.",
+        "q1": "Wat kost SellQo voor events?",
+        "q1_a": "Met Events Flex betaal je niets per maand en €0,49 per betaald ticket. Dat wordt automatisch afgehouden bij de online betaling; gratis tickets kosten niets. Verkoop je het hele jaar veel tickets, dan is Starter (vaste maandprijs, geen kost per ticket) voordeliger. Stripe rekent daarnaast zijn gewone betaalkosten.",
         "q2": "Kan ik meerdere datums en tickettypes aanbieden?",
         "q2_a": "Ja. Elk event kan meerdere datums hebben, en per datum verkoop je verschillende tickettypes, bijvoorbeeld een early bird met een eigen prijs, verkoopperiode en aantal.",
         "q3": "Hoe check ik bezoekers in?",
@@ -592,6 +635,47 @@
         "q4_a": "Ja. Je verkoopt ze in je SellQo-winkel, of je eigen website haalt ze op via de SellQo-API, zoals bij The Fonske Crawl.",
         "final_title": "Klaar voor je volgende event?"
       }
+    },
+    "sectors": {
+      "heading": "Eén platform, drie soorten zaken",
+      "subheading": "Producten, bestellingen, klanten en kassa delen dezelfde kern. Je zet alleen aan wat bij jouw zaak past.",
+      "retail_title": "Winkels en webshops",
+      "retail_text": "Je webshop staat meteen online op jouwzaak.sellqo.shop, en je verkoopt ook in de winkel en op bol.com.",
+      "retail_p1": "Thema kiezen en aanpassen in de editor",
+      "retail_p2": "Eén voorraad voor webshop, kassa en bol.com",
+      "retail_p3": "Facturen en btw automatisch in orde",
+      "retail_more": "Wat zit erin",
+      "retail_demo": "Demowinkel",
+      "horeca_title": "Horeca",
+      "horeca_text": "Je eigen bestelsite zonder commissie, bestellen aan tafel via QR en één keukenscherm voor alles.",
+      "horeca_p1": "Afhalen en leveren met tijdsloten",
+      "horeca_p2": "Extra's, allergenen en een allergenenkaart",
+      "horeca_p3": "Online pauzeren als het druk is",
+      "horeca_more": "Meer over horeca",
+      "horeca_demo": "Demopizzeria",
+      "events_title": "Events",
+      "events_text": "Verkoop tickets onder je eigen naam en scan ze aan de deur. Niets per maand, een vaste kost per ticket.",
+      "events_p1": "Datums, tickettypes en early bird",
+      "events_p2": "QR-ticket per mail, nooit overboekt",
+      "events_p3": "Inchecken met je gsm, ook voor crew",
+      "events_more": "Meer over events",
+      "events_demo": "Fonske Crawl"
+    },
+    "core": {
+      "heading": "Wat in elke SellQo zit",
+      "subheading": "De basis waar je zaak op draait, of je nu kledij, pizza's of tickets verkoopt.",
+      "shop_title": "Je eigen webshop",
+      "shop_text": "Meteen online op jouwzaak.sellqo.shop. Kies een thema, pas het aan in de editor en koppel later je eigen domein.",
+      "pos_title": "Kassa",
+      "pos_text": "Dezelfde producten en voorraad als online, met kassabon, cadeaubonnen en een dagafsluiting. Vanaf Pro en in het Horeca-plan.",
+      "orders_title": "Bestellingen en voorraad",
+      "orders_text": "Alle bestellingen op één plek, van webshop, kassa en bol.com. De voorraad volgt vanzelf.",
+      "invoices_title": "Facturen en btw",
+      "invoices_text": "Facturen in vier talen, btw en OSS correct berekend. Met de Odoo-koppeling (Pro) gaan B2B-facturen via Peppol.",
+      "bol_title": "Verkopen op bol.com",
+      "bol_text": "Bestellingen van bol.com komen binnen in SellQo en je voorraad blijft overal gelijk. Vanaf Pro.",
+      "promos_title": "Kortingen en cadeaubonnen",
+      "promos_text": "Kortingscodes in de webshop en cadeaubonnen met QR-code aan de kassa."
     }
   },
   "public": {

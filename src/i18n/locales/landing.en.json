@@ -6,7 +6,7 @@
       "why": "Why SellQo?",
       "faq": "FAQ",
       "login": "Log in",
-      "start": "Get Started Free",
+      "start": "Start for free",
       "languageSelect": "Choose language",
       "horeca": "Food & drink",
       "events": "Events"
@@ -15,13 +15,13 @@
       "title1": "Your business.",
       "title2": "Simply online.",
       "subtitle": "Webshop, POS and orders in one platform. For shops, restaurants and events in Belgium and the Netherlands.",
-      "ctaPrimary": "Start 14-Day Free Trial",
-      "ctaSecondary": "View the platform",
+      "ctaPrimary": "Start your 14-day free trial",
+      "ctaSecondary": "See a demo shop",
       "trust": {
-        "noCard": "No credit card required",
+        "noCard": "No credit card needed",
         "trial": "14-day free trial",
         "setup": "Your first product online within minutes",
-        "support": "Dutch-speaking support"
+        "support": "Support in Dutch and English"
       },
       "float": {
         "sync": "Live data sync",
@@ -36,12 +36,14 @@
         "horeca_hint": "Pizzeria, chip shop, café",
         "events": "Events",
         "events_hint": "Tickets and check-in"
-      }
+      },
+      "demo_title": "Atelier Nord demo shop on SellQo",
+      "demo_caption": "A real demo shop on SellQo. Feel free to click around."
     },
     "social": {
-      "entrepreneurs": "Active Entrepreneurs",
-      "revenue": "Revenue Processed",
-      "uptime": "Uptime Guarantee"
+      "entrepreneurs": "Active entrepreneurs",
+      "revenue": "Revenue processed",
+      "uptime": "Uptime guarantee"
     },
     "problem": {
       "heading": "Sound Familiar?",
@@ -84,7 +86,7 @@
     },
     "integrations": {
       "badge": "SellQo Connect",
-      "heading": "Sell Everywhere. Manage It Here.",
+      "heading": "Sell everywhere, manage it here",
       "subheading": "SellQo Connect links your webshop to Bol.com — with Amazon, eBay and social channels coming soon — from a single dashboard.",
       "comingSoon": "Coming soon",
       "missing": "Missing an integration?",
@@ -256,7 +258,7 @@
       "footnote": "Comparison based on standard functionality; competitors often support these via paid apps."
     },
     "testimonials": {
-      "heading": "What Our Customers Say",
+      "heading": "What our customers say",
       "items": [
         {
           "quote": "SellQo saved us €500/month in app fees and I finally have a clear view of our margins. Game changer.",
@@ -276,8 +278,8 @@
       ]
     },
     "pricing": {
-      "heading": "Transparent Pricing, Scales With Your Growth",
-      "subheading": "Start free, upgrade whenever you want. No hidden fees.",
+      "heading": "Fair prices, for every kind of business",
+      "subheading": "You can always start for free. No fees per order, cancel monthly.",
       "monthly": "Monthly",
       "yearly": "Yearly",
       "save2months": "Save 2 months",
@@ -372,84 +374,125 @@
           ]
         }
       },
-      "availableAddons": "Available add-ons"
+      "availableAddons": "Available add-ons",
+      "meta_title": "Pricing — SellQo for shops, restaurants and events",
+      "meta_desc": "Free webshop at yourbusiness.sellqo.shop, Starter from €29, Hospitality €49 per month, Events Flex with no monthly fee. No fees per order.",
+      "tabs_label": "Type of business",
+      "tab_retail": "Shops",
+      "tab_horeca": "Food & drink",
+      "tab_events": "Events",
+      "most_chosen": "Most popular",
+      "badge_horeca": "For food & drink",
+      "badge_events_flex": "For events",
+      "desc_free": "A small webshop to get started.",
+      "desc_starter": "Your own shop, with your own domain.",
+      "desc_pro": "Webshop, POS and bol.com together.",
+      "desc_enterprise": "For large catalogues and teams.",
+      "desc_horeca": "Ordering site, QR menu, kitchen and POS.",
+      "desc_events_flex": "Nothing per month, you pay per ticket.",
+      "from": "From {{price}}",
+      "per_ticket": "+ {{fee}} per ticket sold",
+      "free_tickets_free": "Free tickets cost nothing. No percentage.",
+      "yearly_short": "or {{price}} per year",
+      "no_card": "No credit card needed",
+      "lim_products_one": "1 product",
+      "lim_products": "{{n}} products",
+      "lim_products_unlimited": "Unlimited products",
+      "lim_orders_one": "1 order per month",
+      "lim_orders": "{{n}} orders per month",
+      "lim_orders_unlimited": "Unlimited orders",
+      "lim_users_one": "1 user",
+      "lim_users": "{{n}} team members",
+      "lim_users_unlimited": "Unlimited team members",
+      "feat_horeca": "Ordering site, QR menu and kitchen screen",
+      "feat_events": "Tickets, QR by email and check-in",
+      "feat_webshop": "Webshop at yourbusiness.sellqo.shop",
+      "feat_pos": "POS",
+      "feat_domain": "Your own domain name",
+      "feat_editor": "Advanced shop editor",
+      "feat_bol": "bol.com integration",
+      "feat_odoo": "Odoo accounting, with Peppol",
+      "feat_loyalty": "Loyalty programme",
+      "feat_warehouse": "Multiple warehouses",
+      "feat_whitelabel": "White label",
+      "feat_priority": "Priority support",
+      "feat_ai": "{{n}} AI credits per month",
+      "note_badge": "Shows 'Webshop by SellQo'",
+      "cta_contact": "Contact us",
+      "cta_free": "Start for free",
+      "cta_trial": "Start your 14-day free trial",
+      "setup_title": "Setup package",
+      "setup_by": "We set everything up for you, via Studio Akke.",
+      "setup_once": "one-off",
+      "setup_p1": "Your full menu added, with extras",
+      "setup_p2": "Allergens filled in per dish",
+      "setup_p3": "Pickup hours, delivery zones and payments",
+      "setup_p4": "QR codes for your tables, ready to print",
+      "setup_cta": "Request the setup package",
+      "events_alt_title": "Prefer a fixed price?",
+      "events_alt_text": "Selling lots of tickets all year round? With Starter ({{price}} per month) there is no fee per ticket. Then switch on the events module.",
+      "events_alt_cta": "See Starter",
+      "foot_trial": "Paid plans: 14 days free, no credit card. Then your subscription starts and you receive a payment request. Cancel monthly.",
+      "foot_payments": "Online payments run through your own Stripe account, at Stripe's usual rates. SellQo charges nothing per order, except the ticket fee on Events Flex.",
+      "foot_qr": "Bank transfer with a QR code: your customer pays in their banking app, at no cost to you.",
+      "from_short": "from"
     },
     "faq": {
-      "heading": "Frequently Asked Questions",
+      "heading": "Frequently asked questions",
       "items": [
         {
           "q": "How does the free trial work?",
-          "a": "14 days fully free, all features included. No credit card required. You pick a plan during onboarding but only pay after 14 days. You can upgrade to a paid plan at any time."
-        },
-        {
-          "q": "What happens after the 14-day trial?",
-          "a": "After 14 days you'll be asked to choose a plan. Until then your account remains active but new features are blocked. Your data stays safe and you can upgrade whenever you want."
-        },
-        {
-          "q": "How does onboarding work?",
-          "a": "On signup you'll go through a 7-step wizard: shop name, plan selection, company details, logo upload, first product, payments and launch. You can skip steps and complete them later in your settings."
-        },
-        {
-          "q": "What is the Shop Health Score?",
-          "a": "A real-time score (0-100%) measuring your shop's health across 6 areas: fulfillment, inventory, customer service, finance, SEO and compliance. You get personalized daily tips to improve it."
+          "a": "You use a paid plan free for 14 days, without a credit card. After that your subscription starts on the plan you chose and you receive a payment request. Until it's paid your webshop stays online, but you can't change anything in your admin. Free and Events Flex need no trial: they cost nothing per month."
         },
         {
           "q": "Can I switch plans later?",
-          "a": "Yes! You can upgrade or downgrade at any time via Settings → Subscription. Upgrades are instant, downgrades take effect next billing period. No hidden fees."
+          "a": "Yes, in your admin under Subscription. An upgrade takes effect immediately, a downgrade at the next period."
         },
         {
-          "q": "Which languages does SellQo support?",
-          "a": "Dutch, English, French and German. Both the admin interface and your webshop are fully translatable. AI translations are available for product descriptions and marketing content."
+          "q": "What's in the Hospitality plan?",
+          "a": "An ordering site for pickup and delivery, ordering at the table via QR, a kitchen screen, the POS, extras and allergens, for €49 per month. If you'd like us to add your menu and set everything up, there's a one-off €149 setup package."
         },
         {
-          "q": "Can I migrate my existing webshop?",
-          "a": "Yes — import products, customers and orders via CSV/Excel exports from Shopify, WooCommerce and other platforms. Enterprise customers get migration support included."
-        },
-        {
-          "q": "Which payment methods are supported?",
-          "a": "Via Stripe Connect you support iDEAL, Bancontact, credit cards, Apple Pay, Google Pay and 40+ other methods. Your customers pay directly into your Stripe account."
-        },
-        {
-          "q": "Is SellQo suitable for B2B?",
-          "a": "Absolutely! We support VAT-exempt transactions, net pricing, customer-specific prices and automatic Peppol e-invoicing for business customers via the Odoo integration (from Pro)."
-        },
-        {
-          "q": "How do AI credits work?",
-          "a": "AI credits are used to generate content like social posts, emails and product descriptions. Pro gets 500/month, Enterprise 5,000/month. Need more credits? Upgrade your plan or get in touch."
-        },
-        {
-          "q": "Can I sell in-store with SellQo?",
-          "a": "Yes! Our POS module is a full register with touch interface, barcode scanner, gift card sales and Stripe Terminal. Included from Pro; available on request on Starter."
-        },
-        {
-          "q": "Which promotions can I set up?",
-          "a": "SellQo supports 8 promotion types: discount codes, volume discounts, BOGO (buy one get one), product bundles, customer groups with special prices, automatic discounts, gift cards and a complete loyalty program with points."
-        },
-        {
-          "q": "How do I build my own webshop?",
-          "a": "With the built-in Webshop Builder you pick a theme, customize sections via drag & drop and connect your own domain. Starter gets basic themes, Pro gets 1 premium theme, Enterprise gets all."
+          "q": "What does Events Flex cost?",
+          "a": "Nothing per month and €0.49 per paid ticket, with no percentage. The fee is deducted automatically from the online payment. Free tickets cost nothing. Tickets on Events Flex are paid online."
         },
         {
           "q": "Are there extra costs on top of the subscription?",
-          "a": "No. You only pay the standard Stripe payment fees (1.5% + €0.25 per transaction). We charge no extra transaction fees. Add-ons like POS are optional."
+          "a": "SellQo charges nothing per order, except the ticket fee on Events Flex. If your customer pays online, Stripe charges its usual rates on your own Stripe account. A bank transfer with a QR code costs you nothing."
         },
         {
-          "q": "What is Peppol and why does it matter?",
-          "a": "Since 2026, electronic invoicing via Peppol has been mandatory for B2B transactions in Belgium. With SellQo's Odoo integration (from Pro), your B2B invoices are automatically sent as e-invoices via your own Odoo, so you stay compliant."
+          "q": "Which payment methods can I offer?",
+          "a": "Through your own Stripe account: Bancontact, iDEAL, card, Apple Pay and Google Pay. Also bank transfer with a QR code and, for hospitality, paying on pickup or at the counter. The money goes straight to you."
         },
         {
-          "q": "What happens to my data if I cancel?",
-          "a": "Your data stays yours. You can export everything (products, customers, orders) in CSV, Excel or via API. We only delete your data 30 days after cancellation."
+          "q": "Can I sell in store too?",
+          "a": "Yes. The POS uses the same products, prices and stock as your webshop, with receipts, gift cards and an end-of-day report. It's included in Pro, Enterprise and the Hospitality plan."
+        },
+        {
+          "q": "Which languages does SellQo support?",
+          "a": "The admin is available in Dutch, English, French, German and Ukrainian. Invoices and customer emails go out in Dutch, English, French or German. The standard webshop is in Dutch today; more languages will follow."
+        },
+        {
+          "q": "Can I move my existing webshop?",
+          "a": "Yes. You import products, customers and orders with CSV or Excel exports from Shopify, WooCommerce and other platforms. On Enterprise we help you with the move."
+        },
+        {
+          "q": "What is Peppol and do I need it?",
+          "a": "Since 1 January 2026, e-invoicing via Peppol is mandatory between Belgian businesses. With the Odoo integration (from Pro), your B2B invoices go via Peppol. If you only sell to consumers, you don't need it."
+        },
+        {
+          "q": "What happens to my data if I stop?",
+          "a": "Your data stays yours. You export products, customers and orders as CSV or Excel. We only delete your data 30 days after your account is cancelled."
         }
       ]
     },
     "finalCta": {
-      "heading": "Ready To Take Your E-commerce To The Next Level?",
-      "subheading": "Join entrepreneurs growing their business with SellQo",
-      "cta": "Start Your Free Trial",
-      "trust": "No credit card required • 14 days fully free • Cancel anytime",
-      "ssl": "SSL Secured",
-      "gdpr": "GDPR Compliant"
+      "heading": "Ready to take your business online?",
+      "subheading": "Start for free today at yourbusiness.sellqo.shop. Pick the plan that suits you later.",
+      "cta": "Start for free",
+      "trust": "No credit card needed • Cancel monthly • Built in Belgium",
+      "ssl": "SSL secured",
+      "gdpr": "GDPR compliant"
     },
     "footer": {
       "tagline": "E-commerce management, the way it should be.",
@@ -532,7 +575,7 @@
         "q1": "Do I need a website already?",
         "q1_a": "No. Your ordering site is online right away at yourbusiness.sellqo.shop. You can connect your own domain name later.",
         "q2": "How do my customers pay?",
-        "q2_a": "Online with Bancontact, card or Apple Pay through your own Stripe account, or on pickup and at the counter. You choose what you offer.",
+        "q2_a": "Online with Bancontact, card or Apple Pay through your own Stripe account, or on pickup and at the counter. You choose what you offer. SellQo charges nothing per order.",
         "q3": "Can I stop orders when it gets too busy?",
         "q3_a": "Yes. On the kitchen screen you pause online orders for 15, 30 or 60 minutes or the rest of the day. Ordering at the table keeps working.",
         "q4": "Do I have to show allergens?",
@@ -543,20 +586,20 @@
       },
       "events": {
         "meta_title": "SellQo Events — sell tickets and check guests in with your phone",
-        "meta_desc": "Sell tickets for parties, tours and workshops: dates, ticket types, capacity, QR tickets by email and check-in at the door. No per-ticket fees from SellQo.",
+        "meta_desc": "Sell tickets for parties, tours and workshops: dates, ticket types, capacity, QR tickets by email and check-in at the door. Events Flex: €0 per month, €0.49 per ticket sold.",
         "badge": "SellQo for events",
         "title1": "Your tickets.",
         "title2": "Your guests.",
-        "subtitle": "Sell tickets for parties, tours and workshops, and scan them at the door with your phone. No per-ticket fees from SellQo, and your guests' details stay yours.",
+        "subtitle": "Sell tickets for parties, tours and workshops, and scan them at the door with your phone. Nothing per month, a fixed fee per ticket sold, and your guests' details stay yours.",
         "trust1": "14 days free",
-        "trust2": "No per-ticket fees",
+        "trust2": "€0 per month",
         "trust3": "Check-in with your phone",
         "proof_label": "Already running on SellQo",
         "proof_title": "The Fonske Crawl",
         "proof_text": "A pub crawl in Leuven that sells all its tickets with SellQo: dates, ticket types and QR tickets by email.",
         "demo_live": "Visit fonskecrawl.com",
         "why_title": "Ticketing platforms earn on every ticket",
-        "why_text": "Often you or your guest pay a fee per ticket sold, and your customer list sits with them. With SellQo you pay a fixed monthly amount, sell under your own name and build your own audience for the next event.",
+        "why_text": "Often you or your guest pay a percentage plus a fixed fee per ticket sold, and your customer list sits with them. With Events Flex you pay nothing per month and €0.49 per ticket sold, with no percentage. You sell under your own name and build your own audience.",
         "features_title": "From sale to the door",
         "f_dates": "Multiple dates",
         "f_dates_text": "One event with as many dates as you like, each with its own start time, venue and capacity.",
@@ -572,8 +615,8 @@
         "f_crew_text": "Give your door crew a scan link. They can check guests in, but see nothing else of your shop.",
         "f_overview": "Overview per event",
         "f_overview_text": "How many tickets have been sold and how many people are already in, per date.",
-        "f_pay": "No per-ticket fees",
-        "f_pay_text": "Guests pay online with Bancontact or card. SellQo charges nothing per ticket; only your payment provider does.",
+        "f_pay": "Fixed fee per ticket",
+        "f_pay_text": "Guests pay online with Bancontact or card. With Events Flex, €0.49 per paid ticket is deducted automatically. Free tickets cost nothing.",
         "s1_title": "Create your event",
         "s1_text": "Dates, venue, ticket types and prices. Ready in a few minutes.",
         "s2_title": "Sell online",
@@ -582,8 +625,8 @@
         "s3_text": "With your phone or your crew's. You see live who's in.",
         "demo_title": "See it in action",
         "demo_text": "The Fonske Crawl in Leuven sells its tickets with SellQo. See what that looks like for a guest.",
-        "q1": "Does SellQo charge per ticket?",
-        "q1_a": "No. You pay your subscription. For online payments only your payment provider (Stripe) charges its usual transaction fee.",
+        "q1": "What does SellQo cost for events?",
+        "q1_a": "With Events Flex you pay nothing per month and €0.49 per paid ticket. It's deducted automatically from the online payment; free tickets cost nothing. If you sell lots of tickets all year, Starter (fixed monthly price, no fee per ticket) works out cheaper. Stripe also charges its usual payment fees.",
         "q2": "Can I offer multiple dates and ticket types?",
         "q2_a": "Yes. Each event can have multiple dates, and per date you sell different ticket types, for example an early bird with its own price, sales period and quantity.",
         "q3": "How do I check guests in?",
@@ -592,6 +635,47 @@
         "q4_a": "Yes. You sell them in your SellQo shop, or your own website pulls them in through the SellQo API, as The Fonske Crawl does.",
         "final_title": "Ready for your next event?"
       }
+    },
+    "sectors": {
+      "heading": "One platform, three kinds of business",
+      "subheading": "Products, orders, customers and POS share the same core. You only switch on what fits your business.",
+      "retail_title": "Shops and webshops",
+      "retail_text": "Your webshop is online right away at yourbusiness.sellqo.shop, and you sell in store and on bol.com too.",
+      "retail_p1": "Pick a theme and adjust it in the editor",
+      "retail_p2": "One stock for webshop, POS and bol.com",
+      "retail_p3": "Invoices and VAT handled automatically",
+      "retail_more": "What's included",
+      "retail_demo": "Demo shop",
+      "horeca_title": "Food & drink",
+      "horeca_text": "Your own ordering site without commission, ordering at the table via QR and one kitchen screen for everything.",
+      "horeca_p1": "Pickup and delivery with time slots",
+      "horeca_p2": "Extras, allergens and an allergen chart",
+      "horeca_p3": "Pause online orders when it's busy",
+      "horeca_more": "More about food & drink",
+      "horeca_demo": "Demo pizzeria",
+      "events_title": "Events",
+      "events_text": "Sell tickets under your own name and scan them at the door. Nothing per month, a fixed fee per ticket.",
+      "events_p1": "Dates, ticket types and early bird",
+      "events_p2": "QR ticket by email, never overbooked",
+      "events_p3": "Check-in with your phone, crew included",
+      "events_more": "More about events",
+      "events_demo": "Fonske Crawl"
+    },
+    "core": {
+      "heading": "What's in every SellQo",
+      "subheading": "The foundation your business runs on, whether you sell clothes, pizzas or tickets.",
+      "shop_title": "Your own webshop",
+      "shop_text": "Online right away at yourbusiness.sellqo.shop. Pick a theme, adjust it in the editor and connect your own domain later.",
+      "pos_title": "POS",
+      "pos_text": "The same products and stock as online, with receipts, gift cards and an end-of-day report. From Pro and in the Hospitality plan.",
+      "orders_title": "Orders and stock",
+      "orders_text": "All orders in one place, from webshop, POS and bol.com. Stock follows automatically.",
+      "invoices_title": "Invoices and VAT",
+      "invoices_text": "Invoices in four languages, VAT and OSS calculated correctly. With the Odoo integration (Pro), B2B invoices go via Peppol.",
+      "bol_title": "Selling on bol.com",
+      "bol_text": "Orders from bol.com arrive in SellQo and your stock stays the same everywhere. From Pro.",
+      "promos_title": "Discounts and gift cards",
+      "promos_text": "Discount codes in the webshop and gift cards with a QR code at the POS."
     }
   },
   "public": {

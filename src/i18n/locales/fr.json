@@ -6830,6 +6830,16 @@
       "slug_check_failed": "Impossible de vérifier si cette adresse est libre",
       "slug_free": "{{url}} est disponible",
       "next": "Étape suivante"
+    },
+    "plan": {
+      "title": "Choisissez votre formule",
+      "subtitle": "Vous pouvez toujours changer plus tard. Les formules payantes sont gratuites les 14 premiers jours.",
+      "recommended": "Recommandé",
+      "trial_then": "14 jours gratuits, puis {{price}} par mois",
+      "no_trial": "Pas besoin d'essai, rien par mois",
+      "footer": "Sans carte de crédit. Après l'essai, vous recevez une demande de paiement.",
+      "prev": "Précédent",
+      "next": "Suivant"
     }
   }
 }

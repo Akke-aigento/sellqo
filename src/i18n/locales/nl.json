@@ -6832,6 +6832,16 @@
       "slug_check_failed": "Kon niet nagaan of dit adres vrij is",
       "slug_free": "{{url}} is nog vrij",
       "next": "Volgende stap"
+    },
+    "plan": {
+      "title": "Kies je plan",
+      "subtitle": "Je kan later altijd wisselen. Betaalde plannen zijn de eerste 14 dagen gratis.",
+      "recommended": "Aanbevolen",
+      "trial_then": "14 dagen gratis, daarna {{price}} per maand",
+      "no_trial": "Geen proefperiode nodig, niets per maand",
+      "footer": "Geen kredietkaart nodig. Na de proefperiode krijg je een betaalverzoek.",
+      "prev": "Vorige",
+      "next": "Volgende"
     }
   }
 }

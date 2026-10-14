@@ -1,230 +1,171 @@
-import { useState } from 'react';
+// PRICE-2 — prijzen per sector, rechtstreeks uit pricing_plans (één bron: dezelfde tabel
+// waar de facturatie mee rekent). Wat een plan bevat, volgt uit zijn limieten en
+// feature-vlaggen; er staat geen enkel bedrag of aantal hardcoded in deze component,
+// behalve het opstartpakket (een dienst van Studio Akke, geen SellQo-plan).
+import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
-import { cn } from '@/lib/utils';
-import { Check, Star } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
+import { Check, Minus } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
+import { usePricingPlans } from '@/hooks/usePricingPlans';
+import { useAuth } from '@/hooks/useAuth';
+import type { PricingPlan } from '@/types/billing';
+import { eur, planLines } from '@/lib/planLines';
 
-const planMeta = [
-  {
-    key: 'free',
-    price: 0,
-    yearlyPrice: 0,
-    hasLimitations: true,
-    highlighted: false,
-  },
-  {
-    key: 'starter',
-    price: 29,
-    yearlyPrice: 290,
-    hasAddons: true,
-    highlighted: false,
-  },
-  {
-    key: 'pro',
-    price: 79,
-    yearlyPrice: 790,
-    highlighted: true,
-  },
-  {
-    key: 'enterprise',
-    price: 199,
-    yearlyPrice: 1990,
-    highlighted: false,
-  },
-];
-
-export function PricingSection() {
-  const { ref, isIntersecting } = useIntersectionObserver();
-  const [isYearly, setIsYearly] = useState(false);
-  const { t } = useTranslation();
+export type PricingTab = 'retail' | 'horeca' | 'events';
+const TAB_PLANS: Record<PricingTab, string[]> = {
+  retail: ['free', 'starter', 'pro', 'enterprise'],
+  horeca: ['horeca'],
+  events: ['events_flex'],
+};
+function PlanCard({ plan, yearly, featured }: { plan: PricingPlan; yearly: boolean; featured: boolean }) {
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const k = (x: string, o?: Record<string, unknown>) => t(`landing.pricing.${x}`, o);
+  const monthly = Number(plan.monthly_price);
+  const yearlyPrice = Number(plan.yearly_price);
+  const ticketFee = Number(plan.ticket_fee ?? 0);
+  const isEnterprise = plan.id === 'enterprise';
+  const showYearly = yearly && yearlyPrice > 0;
+  const { lines, note } = planLines(plan, t, i18n.language);
+  const to = isEnterprise ? '/contact' : user ? `/admin/billing?plan=${plan.id}&interval=${showYearly ? 'yearly' : 'monthly'}` : '/auth?mode=register';
 
   return (
-    <section id="pricing" className="py-20 md:py-28 bg-background">
-      <div className="container mx-auto px-4">
-        <div
-          ref={ref}
-          className={cn(
-            'text-center mb-12',
-            isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
-          )}
-        >
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            {t('landing.pricing.heading')}
-          </h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            {t('landing.pricing.subheading')}
-          </p>
-          
-          {/* Monthly/Yearly Toggle */}
-          <div className="flex items-center justify-center gap-4">
-            <span className={cn(
-              'text-sm font-medium transition-colors',
-              !isYearly ? 'text-foreground' : 'text-muted-foreground'
-            )}>
-              {t('landing.pricing.monthly')}
-            </span>
-            <Switch
-              checked={isYearly}
-              onCheckedChange={setIsYearly}
-              className="data-[state=checked]:bg-accent"
-            />
-            <span className={cn(
-              'text-sm font-medium transition-colors',
-              isYearly ? 'text-foreground' : 'text-muted-foreground'
-            )}>
-              {t('landing.pricing.yearly')}
-            </span>
-            {isYearly && (
-              <Badge className="bg-green-500/10 text-green-600 border-green-500/20">
-                {t('landing.pricing.save2months')}
-              </Badge>
-            )}
+    <div className={cn('relative flex flex-col rounded-2xl border bg-card p-6 md:p-7', featured ? 'border-2 border-accent shadow-lg' : 'border-border')}>
+      {featured ? (
+        <span className="absolute -top-3 left-6 rounded-full bg-accent px-3 py-0.5 text-xs font-semibold text-accent-foreground">{k(`badge_${plan.id}`, { defaultValue: k('most_chosen') })}</span>
+      ) : null}
+      <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
+      <p className="mt-1 min-h-[2.5rem] text-sm text-muted-foreground">{k(`desc_${plan.id}`)}</p>
+      <div className="mt-5">
+        {isEnterprise ? (
+          <p className="text-3xl font-bold text-foreground"><span className="mr-1.5 text-base font-medium text-muted-foreground">{k('from_short')}</span>{eur(monthly, i18n.language)}<span className="text-base font-medium text-muted-foreground">{k('perMonth')}</span></p>
+        ) : monthly === 0 && ticketFee === 0 ? (
+          <p className="text-3xl font-bold text-foreground">{k('free')}</p>
+        ) : showYearly ? (
+          <p className="text-3xl font-bold text-foreground">{eur(yearlyPrice, i18n.language)}<span className="text-base font-medium text-muted-foreground">{k('perYear')}</span></p>
+        ) : (
+          <p className="text-3xl font-bold text-foreground">{eur(monthly, i18n.language)}<span className="text-base font-medium text-muted-foreground">{k('perMonth')}</span></p>
+        )}
+        {ticketFee > 0 ? (
+          <p className="mt-1 text-sm font-semibold text-foreground">{k('per_ticket', { fee: eur(ticketFee, i18n.language) })}</p>
+        ) : null}
+        <p className="mt-1 text-xs text-muted-foreground">
+          {ticketFee > 0 ? k('free_tickets_free') : monthly > 0 ? `${k('exclVatShort')}${!yearly && yearlyPrice > 0 ? ` · ${k('yearly_short', { price: eur(yearlyPrice, i18n.language) })}` : ''}` : k('no_card')}
+        </p>
+      </div>
+      <ul className="mt-6 flex-1 space-y-2.5">
+        {lines.map((l) => (
+          <li key={l} className="flex items-start gap-2 text-sm text-foreground"><Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />{l}</li>
+        ))}
+        {note ? <li className="flex items-start gap-2 text-sm text-muted-foreground"><Minus className="mt-0.5 h-4 w-4 shrink-0" />{note}</li> : null}
+      </ul>
+      <Link
+        to={to}
+        data-akke-goal={isEnterprise ? 'Offerte enterprise' : 'Start gratis'}
+        className={cn('mt-7 inline-flex h-11 items-center justify-center rounded-lg px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          featured ? 'bg-accent text-accent-foreground hover:bg-accent/90' : 'border-2 border-border text-foreground hover:border-foreground')}
+      >
+        {isEnterprise ? k('cta_contact') : monthly === 0 ? k('cta_free') : k('cta_trial')}
+      </Link>
+    </div>
+  );
+}
+
+// Opstartpakket: een dienst van Studio Akke (geen SellQo-plan), daarom niet in pricing_plans.
+const SETUP_PRICE = 149;
+
+export function PricingSection({ initialTab = 'retail', heading = true }: { initialTab?: PricingTab; heading?: boolean }) {
+  const { t, i18n } = useTranslation();
+  const k = (x: string, o?: Record<string, unknown>) => t(`landing.pricing.${x}`, o);
+  const { plans, isLoading } = usePricingPlans();
+  const [yearly, setYearly] = useState(false);
+  const tabs = useMemo(
+    () => (Object.keys(TAB_PLANS) as PricingTab[]).filter((tab) => TAB_PLANS[tab].some((id) => plans.some((p) => p.id === id))),
+    [plans],
+  );
+  const [tab, setTab] = useState<PricingTab>(initialTab);
+  const active: PricingTab = tabs.includes(tab) ? tab : 'retail';
+  const shown = TAB_PLANS[active].map((id) => plans.find((p) => p.id === id)).filter((p): p is PricingPlan => !!p);
+  const hasYearly = shown.some((p) => Number(p.yearly_price) > 0);
+  const starter = plans.find((p) => p.id === 'starter');
+
+  return (
+    <section id="pricing" className={cn('scroll-mt-24 bg-background', heading ? 'py-20 md:py-28' : 'pb-20 pt-2 md:pb-28')}>
+      <div className="container mx-auto max-w-6xl px-4">
+        {heading ? (
+          <div className="max-w-2xl">
+            <h2 className="text-3xl font-bold text-foreground md:text-4xl">{k('heading')}</h2>
+            <p className="mt-3 text-lg text-muted-foreground">{k('subheading')}</p>
           </div>
+        ) : null}
+
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+          {tabs.length > 1 ? (
+            <div role="tablist" aria-label={k('tabs_label')} className="inline-flex rounded-xl border bg-card p-1">
+              {tabs.map((id) => (
+                <button key={id} type="button" role="tab" aria-selected={active === id} onClick={() => setTab(id)}
+                  className={cn('h-10 rounded-lg px-4 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    active === id ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}>
+                  {k(`tab_${id}`)}
+                </button>
+              ))}
+            </div>
+          ) : <span />}
+          {hasYearly ? (
+            <label className="flex items-center gap-3 text-sm font-medium text-foreground">
+              {k('monthly')}
+              <Switch checked={yearly} onCheckedChange={setYearly} className="data-[state=checked]:bg-accent" aria-label={k('yearly')} />
+              {k('yearly')}
+              <span className="text-xs font-semibold text-green-700">{k('save2months')}</span>
+            </label>
+          ) : null}
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 max-w-6xl mx-auto mb-16 items-stretch">
-          {planMeta.map((plan, index) => {
-            const name = t(`landing.pricing.plans.${plan.key}.name`);
-            const badge = t(`landing.pricing.plans.${plan.key}.badge`);
-            const cta = t(`landing.pricing.plans.${plan.key}.cta`);
-            const features = t(`landing.pricing.plans.${plan.key}.features`, { returnObjects: true }) as string[];
-            const limitations = plan.hasLimitations
-              ? (t(`landing.pricing.plans.${plan.key}.limitations`, { returnObjects: true }) as string[])
-              : null;
-            const addons = null;
-            return (
-            <div
-              key={index}
-              className={cn(
-                'relative p-6 md:p-8 rounded-2xl border transition-all duration-300 flex flex-col',
-                plan.highlighted
-                  ? 'bg-card border-accent shadow-lg scale-105 z-10'
-                  : 'bg-card border-border shadow-sellqo hover:shadow-sellqo-lg hover:-translate-y-1',
-                isIntersecting ? 'animate-fade-in-up' : 'opacity-0'
-              )}
-              style={{ animationDelay: `${index * 0.1}s` }}
-            >
-              {plan.highlighted && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-accent text-accent-foreground px-4 py-1">
-                    <Star className="w-3 h-3 mr-1 inline" />
-                    {badge}
-                  </Badge>
-                </div>
-              )}
+        {isLoading ? (
+          <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[460px] rounded-2xl" />)}</div>
+        ) : (
+          <div className={cn('mt-8 grid gap-6', active === 'retail' ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:max-w-4xl')}>
+            {shown.map((p) => <PlanCard key={p.id} plan={p} yearly={yearly} featured={active === 'retail' ? p.highlighted : true} />)}
 
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-foreground mb-2">{name}</h3>
-                {!plan.highlighted && (
-                  <Badge variant="secondary" className="mb-4">{badge}</Badge>
-                )}
-                <div className="mb-2">
-                  {isYearly && plan.yearlyPrice > 0 ? (
-                    <>
-                      <span className="text-4xl font-bold text-foreground">
-                        €{plan.yearlyPrice}
-                      </span>
-                      <span className="text-muted-foreground">{t('landing.pricing.perYear')}</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="text-4xl font-bold text-foreground">
-                        {plan.price === 0 ? t('landing.pricing.free') : `€${plan.price}`}
-                      </span>
-                      {plan.price > 0 && <span className="text-muted-foreground">{t('landing.pricing.perMonth')}</span>}
-                    </>
-                  )}
-                </div>
-                {!isYearly && plan.yearlyPrice > 0 && (
-                  <p className="text-sm text-muted-foreground">
-                    {t('landing.pricing.yearlyHint', { price: plan.yearlyPrice })}
-                  </p>
-                )}
-                {plan.price > 0 && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {t('landing.pricing.exclVatShort')}
-                  </p>
-                )}
-              </div>
-
-              {/* Features list with flex-grow to push button to bottom */}
-              <div className="flex-grow">
-                <ul className="space-y-3 mb-6">
-                  {features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <Check className="w-4 h-4 text-green-500 mt-0.5 shrink-0" />
-                      <span className="text-foreground">{feature}</span>
-                    </li>
+            {active === 'horeca' ? (
+              <div className="flex flex-col rounded-2xl border border-dashed border-border bg-card/60 p-6 md:p-7">
+                <h3 className="text-xl font-bold text-foreground">{k('setup_title')}</h3>
+                <p className="mt-1 min-h-[2.5rem] text-sm text-muted-foreground">{k('setup_by')}</p>
+                <p className="mt-5 text-3xl font-bold text-foreground">{eur(SETUP_PRICE, i18n.language)}<span className="text-base font-medium text-muted-foreground"> {k('setup_once')}</span></p>
+                <p className="mt-1 text-xs text-muted-foreground">{k('exclVatShort')}</p>
+                <ul className="mt-6 flex-1 space-y-2.5">
+                  {['setup_p1', 'setup_p2', 'setup_p3', 'setup_p4'].map((x) => (
+                    <li key={x} className="flex items-start gap-2 text-sm text-foreground"><Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />{k(x)}</li>
                   ))}
                 </ul>
-
-                {limitations && (
-                  <ul className="space-y-2 mb-6 pt-4 border-t border-border">
-                    {limitations.map((limitation, i) => (
-                      <li key={i} className="text-sm text-muted-foreground">
-                        {limitation}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-
-                {addons && (
-                  <div className="pt-4 border-t border-border mb-6">
-                    <p className="text-xs text-muted-foreground mb-2">{t('landing.pricing.availableAddons')}</p>
-                    <div className="flex flex-wrap gap-1">
-                      {addons.map((addon, i) => (
-                        <span key={i} className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded">
-                          +{addon}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <Link to="/contact?onderwerp=horeca-opstart" className="mt-7 inline-flex h-11 items-center justify-center rounded-lg border-2 border-border px-4 text-sm font-semibold text-foreground hover:border-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  {k('setup_cta')}
+                </Link>
               </div>
+            ) : null}
 
-              {/* Button always at bottom */}
-              <div className="mt-auto pt-4">
-                <Button
-                  asChild
-                  className={cn(
-                    'w-full',
-                    plan.highlighted
-                      ? 'bg-accent hover:bg-accent/90 text-accent-foreground'
-                      : ''
-                  )}
-                  variant={plan.highlighted ? 'default' : 'outline'}
-                  size="lg"
-                >
-                  <Link data-akke-goal={plan.key === 'enterprise' ? 'Offerte enterprise' : 'Start gratis'} to={plan.key === 'enterprise' ? '/contact' : '/auth?mode=register'}>
-                    {cta}
-                  </Link>
-                </Button>
+            {active === 'events' && starter ? (
+              <div className="flex flex-col rounded-2xl border border-dashed border-border bg-card/60 p-6 md:p-7">
+                <h3 className="text-xl font-bold text-foreground">{k('events_alt_title')}</h3>
+                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                  {k('events_alt_text', { price: eur(Number(starter.monthly_price), i18n.language) })}
+                </p>
+                <button type="button" onClick={() => setTab('retail')} className="mt-5 self-start text-sm font-semibold text-primary underline-offset-4 hover:underline">
+                  {k('events_alt_cta')}
+                </button>
               </div>
-            </div>
-            );
-          })}
-        </div>
-
-        <div className="text-center mt-12 space-y-4">
-          <p
-            className="text-muted-foreground"
-            dangerouslySetInnerHTML={{ __html: t('landing.pricing.footnoteTrial') }}
-          />
-          <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 max-w-2xl mx-auto">
-            <p className="text-sm text-green-700 dark:text-green-400">
-              💡 <strong>{t('landing.pricing.footnoteTipTitle')}</strong> {t('landing.pricing.footnoteTipBody')}
-            </p>
+            ) : null}
           </div>
-          <p className="text-sm text-muted-foreground">
-            {t('landing.pricing.footnoteStripe')}
-          </p>
-          <p className="text-sm text-muted-foreground font-medium">
-            {t('landing.pricing.footnoteVat')}
-          </p>
+        )}
+
+        <div className="mt-10 grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
+          <p>{k('foot_trial')}</p>
+          <p>{k('foot_payments')}</p>
+          <p>{k('foot_qr')}</p>
+          <p>{k('footnoteVat')}</p>
         </div>
       </div>
     </section>

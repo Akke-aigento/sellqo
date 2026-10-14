@@ -175,6 +175,7 @@ export function OnboardingWizard() {
         return (
           <PlanSelectionStep
             selectedPlanId={data.selectedPlanId}
+            sector={data.sector || 'retail'}
             onSelectPlan={(planId) => updateData({ selectedPlanId: planId })}
             onNext={() => handleStepTransition(2)}
             onPrev={prevStep}
