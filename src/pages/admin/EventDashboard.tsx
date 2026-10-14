@@ -22,6 +22,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { EventCardActions } from '@/components/admin/events/EventCardActions';
+import { EventReadinessBadge } from '@/components/admin/events/EventReadinessBadge';
+import { eventReadiness } from '@/lib/eventReadiness';
+import { useEventTicketTypesByEvent } from '@/hooks/useEventReadiness';
 
 interface EventRow {
   id: string;
@@ -34,6 +37,7 @@ interface EventRow {
   capacity: number;
   min_attendees: number;
   product_name: string;
+  product_active: boolean;
 }
 
 interface EventStats {
@@ -88,7 +92,7 @@ export default function EventDashboard() {
       const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
       const { data, error } = await supabase
         .from('event_details')
-        .select('id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name)')
+        .select('id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name, is_active)')
         .eq('tenant_id', currentTenant.id)
         .gte('event_date', since)
         .order('event_date', { ascending: true })
@@ -106,12 +110,14 @@ export default function EventDashboard() {
         capacity: (e.capacity as number) ?? 0,
         min_attendees: (e.min_attendees as number) ?? 0,
         product_name: ((e as { products?: { name?: string } }).products?.name) ?? 'Event',
+        product_active: ((e as { products?: { is_active?: boolean } }).products?.is_active) !== false,
       }));
     },
     enabled: !!currentTenant,
   });
 
   const eventIds = useMemo(() => events.map((e) => e.id).sort(), [events]);
+  const { data: ticketTypesByEvent = {}, isLoading: readinessLoading } = useEventTicketTypesByEvent(eventIds);
 
   // ÉÉN select voor alle events in het venster; client-side aggregeren (geen N+1).
   const { data: stats = {} } = useQuery({
@@ -256,6 +262,11 @@ export default function EventDashboard() {
                       />
                     </div>
                   </div>
+                  <EventReadinessBadge
+                    className="self-start"
+                    loading={readinessLoading}
+                    readiness={eventReadiness(e, ticketTypesByEvent[e.id] ?? [], { productActive: e.product_active })}
+                  />
                   <p className="text-xs text-muted-foreground">
                     {fmtDate(e.event_date)} · {fmtTime(e.start_time)}
                     {e.end_time ? `–${fmtTime(e.end_time)}` : ''}

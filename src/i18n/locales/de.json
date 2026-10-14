@@ -6338,7 +6338,7 @@
     },
     "ticketTypes": {
       "title": "Ticketarten",
-      "empty": "Keine Ticketarten eingerichtet.",
+      "empty": "Keine Tickettypen: Dieser Termin ist nicht im Verkauf. Fügen Sie einen Tickettyp hinzu.",
       "onSale": "Im Verkauf",
       "notOnSale": "Nicht im Verkauf",
       "sold": "Verkauft",
@@ -6566,6 +6566,25 @@
     },
     "checkin": {
       "preselectCancelled": "Dieses Event wurde abgesagt, Scannen hat keinen Sinn."
+    },
+    "readiness": {
+      "ready": "Bereit zum Verkauf",
+      "ready_but": "Im Verkauf, aber:",
+      "blocked": "Nicht verkäuflich",
+      "block_no_ticket_type": "kein aktiver Tickettyp",
+      "block_no_ticket_type_hint": "Dieser Termin hat keinen aktiven Tickettyp. Aktivieren Sie einen unter Tickettypen, sonst kann niemand Tickets kaufen.",
+      "block_sales_not_started": "Verkauf noch nicht geöffnet",
+      "block_sales_not_started_hint": "Das Verkaufsfenster der Tickettypen hat noch nicht begonnen.",
+      "block_sales_ended": "Verkauf geschlossen",
+      "block_sales_ended_hint": "Das Verkaufsfenster aller Tickettypen ist vorbei. Passen Sie es unter Tickettypen an, wenn Sie weiter verkaufen möchten.",
+      "block_past_date": "Termin vorbei",
+      "block_past_date_hint": "Dieser Termin liegt in der Vergangenheit, ist aber noch geplant. Setzen Sie ihn auf abgeschlossen oder abgesagt.",
+      "block_product_inactive": "Produkt inaktiv",
+      "block_product_inactive_hint": "Das Ticketprodukt ist inaktiv. Aktivieren Sie es unter Produkte.",
+      "warn_no_meeting_point": "kein Treffpunkt",
+      "warn_no_meeting_point_hint": "Für diesen Termin gibt es keinen Ort und keinen Treffpunkt. Käufer erhalten dann keinen Ort in ihrer Ticket-Mail.",
+      "meeting_point_warning": "Ohne Ort oder Treffpunkt steht in der Ticket-Mail Ihrer Besucher kein Ort.",
+      "end_time_optional": "Endzeit (optional)"
     }
   },
   "content_menu": {

@@ -1915,6 +1915,14 @@
         "web_app_push": {
           "title": "Pushmeldingen in de webapp",
           "description": "Kun je de SellQo-app niet installeren, bijvoorbeeld op een bedrijfstelefoon? Zet SellQo dan op je beginscherm en zet meldingen aan onder Instellingen → Mijn meldingen. Op iPhone en iPad gaat dat vanuit Safari via Deel → Zet op beginscherm. Daar zie je ook op welke toestellen je meldingen binnenkomen, en koppel je er één los. Staat de app en de webapp op dezelfde telefoon, dan vraagt SellQo om de webapp uit te zetten, zodat je niets dubbel krijgt."
+        },
+        "shipping_email_customer_language": {
+          "title": "Verzendmail in de taal van je klant",
+          "description": "Voeg je een tracknummer toe aan een bestelling, dan krijgt je klant de verzendmail nu in zijn eigen taal (Nederlands, Engels, Frans of Duits) en in de huisstijl van je winkel, met een knop om het pakket te volgen. De mail staat ook in je inbox bij de bestelling, en dezelfde zending wordt nooit twee keer gemaild. Zendingen die Printful of je vervoerder automatisch op verzonden zetten, krijgen dezelfde mail."
+        },
+        "event_dates_ready_to_sell": {
+          "title": "Elke eventdatum meteen te koop, met een duidelijke status",
+          "description": "Een nieuwe datum voor een ticketproduct is nu meteen verkoopbaar: het tickettype en de ingang worden automatisch aangemaakt. Bij elke datum zie je of hij klaar is voor verkoop, en zo niet, waarom (geen actief tickettype, verkoop nog niet open of al gesloten, datum voorbij). Een datum zonder locatie of verzamelpunt krijgt een waarschuwing, want dan staat er geen plaats in de ticketmail. Bij 'Datum toevoegen' en 'Plan meerdere datums' vul je nu ook eindtijd, locatie en verzamelpunt in, vooraf ingevuld met je laatste datum."
         }
       },
       "copyLink": "Kopieer link",
@@ -1925,7 +1933,8 @@
         "q4_2024": "Q4 2024",
         "q2_2026": "Q2 2026",
         "aug_2026": "Augustus 2026",
-        "sep_2026": "September 2026"
+        "sep_2026": "September 2026",
+        "oct_2026": "Oktober 2026"
       },
       "filters": {
         "all": "Alles",

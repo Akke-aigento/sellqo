@@ -33,6 +33,9 @@ import {
   type EventDetail, type EventStatus,
 } from '@/hooks/useEventDetails';
 import { useTranslation } from 'react-i18next';
+import { eventReadiness } from '@/lib/eventReadiness';
+import { useEventTicketTypesByEvent } from '@/hooks/useEventReadiness';
+import { EventReadinessBadge } from '@/components/admin/events/EventReadinessBadge';
 
 /** Handmatig kiesbare statussen. skipped/merged worden enkel via acties gezet. */
 const STATUS_OPTIONS: { value: EventStatus; labelKey: string }[] = [
@@ -134,6 +137,7 @@ function ActionTooltip({ label, children }: { label: string; children: React.Rea
 interface FormState {
   event_date: Date | undefined;
   start_time: string;
+  end_time: string;
   capacity: string;
   min_attendees: string;
   status: EventStatus;
@@ -148,6 +152,7 @@ interface FormState {
 const emptyForm = (): FormState => ({
   event_date: undefined,
   start_time: '21:00',
+  end_time: '',
   capacity: '',
   min_attendees: '0',
   status: 'scheduled',
@@ -172,6 +177,9 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
   const bulkCreate = useBulkCreateEventDates(productId);
   const eventIds = useMemo(() => dates.map((d) => d.id), [dates]);
   const { data: signupCounts = {} } = useEventSignupCounts(productId, eventIds);
+  const { data: ticketTypesByEvent = {}, isLoading: readinessLoading } = useEventTicketTypesByEvent(eventIds);
+  // EVENT-FLOW-2: nieuwe datums nemen de praktische velden over van de laatste datum van dit product.
+  const template = useMemo(() => [...dates].reverse().find((d) => d.status !== 'merged') ?? null, [dates]);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<EventDetail | null>(null);
@@ -191,6 +199,9 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
   const [bulkTime, setBulkTime] = useState('21:00');
   const [bulkCapacity, setBulkCapacity] = useState('');
   const [bulkMin, setBulkMin] = useState('0');
+  const [bulkEndTime, setBulkEndTime] = useState('');
+  const [bulkLocation, setBulkLocation] = useState('');
+  const [bulkMeeting, setBulkMeeting] = useState('');
   const [bulkUnchecked, setBulkUnchecked] = useState<Set<string>>(new Set());
 
   // Merge
@@ -203,7 +214,19 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
 
   const openCreate = () => {
     setEditing(null);
-    setForm(emptyForm());
+    setForm({
+      ...emptyForm(),
+      ...(template
+        ? {
+            start_time: (template.start_time || '21:00').slice(0, 5),
+            end_time: (template.end_time || '').slice(0, 5),
+            capacity: template.capacity == null ? '' : String(template.capacity),
+            min_attendees: String(template.min_attendees ?? 0),
+            location_name: template.location_name || '',
+            meeting_point: template.meeting_point || '',
+          }
+        : {}),
+    });
     setFormTz(DEFAULT_EVENT_TZ);
     setDialogOpen(true);
   };
@@ -216,6 +239,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
     setForm({
       event_date: row.event_date ? toDate(row.event_date) : undefined,
       start_time: (row.start_time || '21:00').slice(0, 5),
+      end_time: (row.end_time || '').slice(0, 5),
       capacity: String(row.capacity ?? ''),
       min_attendees: String(row.min_attendees ?? 0),
       status: (STATUS_OPTIONS.find((s) => s.value === row.status)?.value ?? 'scheduled') as EventStatus,
@@ -274,6 +298,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
     const payload = {
       event_date: format(form.event_date, 'yyyy-MM-dd'),
       start_time: form.start_time || '21:00',
+      end_time: form.end_time || null,
       capacity: Number(form.capacity),
       min_attendees: Number(form.min_attendees || 0),
       status: form.status,
@@ -299,9 +324,12 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
     setBulkStart(undefined);
     setBulkWeeks('6');
     setBulkWeekday('6');
-    setBulkTime('21:00');
-    setBulkCapacity('');
-    setBulkMin('0');
+    setBulkTime((template?.start_time || '21:00').slice(0, 5));
+    setBulkEndTime((template?.end_time || '').slice(0, 5));
+    setBulkCapacity(template?.capacity == null ? '' : String(template.capacity));
+    setBulkMin(String(template?.min_attendees ?? 0));
+    setBulkLocation(template?.location_name || '');
+    setBulkMeeting(template?.meeting_point || '');
     setBulkUnchecked(new Set());
     setBulkOpen(true);
   };
@@ -337,8 +365,11 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       bulkChecked.map((iso) => ({
         event_date: iso,
         start_time: bulkTime || '21:00',
+        end_time: bulkEndTime || null,
         capacity: Number(bulkCapacity),
         min_attendees: Number(bulkMin || 0),
+        location_name: bulkLocation.trim() || null,
+        meeting_point: bulkMeeting.trim() || null,
         status: 'scheduled' as EventStatus,
       })),
     );
@@ -484,6 +515,10 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                         </span>
                         <span className="text-sm text-muted-foreground">{(row.start_time || '').slice(0, 5)}</span>
                         <Badge variant={statusVariant(row.status)}>{statusLabel(row.status, t)}</Badge>
+                        <EventReadinessBadge
+                          loading={readinessLoading}
+                          readiness={eventReadiness(row, ticketTypesByEvent[row.id] ?? [])}
+                        />
                         {isMerged && winner && (
                           <span className="text-xs text-muted-foreground">→ {fmtDate(winner.event_date, dateLocale)}</span>
                         )}
@@ -630,6 +665,15 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 />
               </div>
               <div className="space-y-2">
+                <Label>{t('events.readiness.end_time_optional')}</Label>
+                <Input
+                  type="time"
+                  disabled={!!editing}
+                  value={form.end_time}
+                  onChange={(e) => setForm((f) => ({ ...f, end_time: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
                 <Label>{t('admin.products.productEventDatesTab.capaciteit')}</Label>
                 <Input
                   type="number"
@@ -687,6 +731,9 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
                 onChange={(e) => setForm((f) => ({ ...f, meeting_point: e.target.value }))}
                 placeholder={t('admin.products.productEventDatesTab.bijv_hoofdingang_aan_de_fontein')}
               />
+              {!editing && !form.meeting_point.trim() && !form.location_name.trim() && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">{t('events.readiness.meeting_point_warning')}</p>
+              )}
             </div>
 
             {/* EARLY-BIRD fase D — vroegboekkorting per event */}
@@ -882,6 +929,23 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
               <div className="space-y-2">
                 <Label>{t('admin.products.productEventDatesTab.minimum_deelnemers_2')}</Label>
                 <Input type="number" min={0} value={bulkMin} onChange={(e) => setBulkMin(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('events.readiness.end_time_optional')}</Label>
+                <Input type="time" value={bulkEndTime} onChange={(e) => setBulkEndTime(e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label>{t('admin.products.productEventDatesTab.locatie_optioneel')}</Label>
+                <Input value={bulkLocation} onChange={(e) => setBulkLocation(e.target.value)}
+                  placeholder={t('admin.products.productEventDatesTab.bijv_stadspark')} />
+              </div>
+              <div className="space-y-2 sm:col-span-2">
+                <Label>{t('admin.products.productEventDatesTab.verzamelpunt_optioneel')}</Label>
+                <Input value={bulkMeeting} onChange={(e) => setBulkMeeting(e.target.value)}
+                  placeholder={t('admin.products.productEventDatesTab.bijv_hoofdingang_aan_de_fontein')} />
+                {!bulkMeeting.trim() && !bulkLocation.trim() && (
+                  <p className="text-xs text-amber-700 dark:text-amber-400">{t('events.readiness.meeting_point_warning')}</p>
+                )}
               </div>
             </div>
 

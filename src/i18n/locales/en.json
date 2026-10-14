@@ -6338,7 +6338,7 @@
     },
     "ticketTypes": {
       "title": "Ticket types",
-      "empty": "No ticket types configured.",
+      "empty": "No ticket types: this date isn't on sale. Add a ticket type.",
       "onSale": "On sale",
       "notOnSale": "Not on sale",
       "sold": "Sold",
@@ -6566,6 +6566,25 @@
     },
     "checkin": {
       "preselectCancelled": "This event has been cancelled, there is no point in scanning."
+    },
+    "readiness": {
+      "ready": "Ready to sell",
+      "ready_but": "On sale, but:",
+      "blocked": "Not on sale",
+      "block_no_ticket_type": "no active ticket type",
+      "block_no_ticket_type_hint": "This date has no active ticket type. Turn one on under Ticket types, otherwise nobody can buy tickets.",
+      "block_sales_not_started": "sales not open yet",
+      "block_sales_not_started_hint": "The sales window of the ticket types hasn't started yet.",
+      "block_sales_ended": "sales closed",
+      "block_sales_ended_hint": "The sales window of every ticket type has ended. Adjust it under Ticket types if you still want to sell.",
+      "block_past_date": "date has passed",
+      "block_past_date_hint": "This date is in the past but still marked as scheduled. Set it to completed or cancelled.",
+      "block_product_inactive": "product is inactive",
+      "block_product_inactive_hint": "The ticket product is inactive. Turn it on under Products.",
+      "warn_no_meeting_point": "no meeting point",
+      "warn_no_meeting_point_hint": "There's no location or meeting point for this date. Buyers won't get a place in their ticket email.",
+      "meeting_point_warning": "Without a location or meeting point, your visitors' ticket email won't include a place.",
+      "end_time_optional": "End time (optional)"
     }
   },
   "content_menu": {

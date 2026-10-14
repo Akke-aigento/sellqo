@@ -17680,3 +17680,30 @@ Wijziging:
 - "Event dupliceren".
 
 Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
+
+## 2026-10-14 — EVENT-FLOW-2: vloeiende eventflow met verkoopstatus per datum
+
+**Root cause:** de tenant kreeg geen enkel signaal dat een datum niet te koop was. Op de eventpagina stond alleen "Geen tickettypes ingesteld." Verzamelpunt, locatie en eindtijd ontbraken in het aanmaakdialoog of in de bulkplanner. Twee doc_articles beschreven een flow die niet meer klopte.
+
+**Uitgevoerd:**
+- **`src/lib/eventReadiness.ts`** (+7 vitest-tests) volgt exact de poorten van storefront-api cart_add_item:
+  - de status moet scheduled of confirmed zijn, er moet een actief tickettype zijn en het verkoopvenster moet open staan;
+  - extra blokkades: datum voorbij of product inactief;
+  - waarschuwing: geen verzamelpunt én geen locatie.
+- **`useEventTicketTypesByEvent`** haalt de tickettypes van alle datums in één query op, zonder N+1. **`EventReadinessBadge`** toont de status in ProductEventDatesTab, EventDashboard en EventDetail. EventDetail toont onder de badge ook wat je eraan doet.
+- **"Datum toevoegen"** heeft nu een eindtijd en wordt vooraf ingevuld met de laatste datum van het product (tijden, capaciteit, minimum, locatie, verzamelpunt).
+- **De bulkplanner** heeft nu eindtijd, locatie en verzamelpunt, vooraf ingevuld zoals hierboven.
+- **Waarschuwing** als verzamelpunt en locatie leeg zijn. Opslaan blijft mogelijk.
+- **i18n:** `events.readiness.*` (18 keys) plus `events.ticketTypes.empty`, in vijf talen met volledige pariteit.
+
+**Security-keuzes:** n.v.t. Alleen leesquery's, tenant-scoped, onder de bestaande RLS.
+
+**Gedeelde-paden-waarschuwing:** n.v.t. storefront-api en storefront-customer-api zijn niet aangeraakt.
+
+**Sporen:**
+- changelog 2026.11h (SHIP-MAIL-1) en 2026.11i (EVENT-FLOW-2), nieuwe datumkey oct_2026;
+- newsletter-queue: twee items;
+- blogconcept `elke-eventdatum-meteen-te-koop` (draft, nl/en/fr/de/uk);
+- doc_articles: `ticket-product-datums` en `event-detailpagina` herschreven, `bestellingen-verwerken` aangevuld met de verzendmail.
+
+**Vervolg:** Akke publiceert de admin; daarna komt de badge live.

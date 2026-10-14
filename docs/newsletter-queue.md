@@ -4,6 +4,30 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11i — Elke eventdatum meteen te koop (improvement, 14-10-2026)
+
+**Voor wie:** winkels die tickets verkopen (Events Flex en elk plan met tickets).
+
+**Geen vergeten stap meer.** Een nieuwe datum is meteen verkoopbaar; tickettype en ingang maakt SellQo
+zelf aan. Bij elke datum staat "Klaar voor verkoop" of waarom niet.
+
+**Minder klikken.** Eindtijd, locatie en verzamelpunt vul je in bij het aanmaken, vooraf ingevuld met je
+laatste datum. Zonder verzamelpunt krijg je een waarschuwing, want dan staat er geen plaats in de ticketmail.
+
+**i18n-key.** `public.changelog.changes.event_dates_ready_to_sell` — vijf talen, volledige pariteit.
+
+### 2026.11h — Verzendmail in de taal van je klant (improvement, 14-10-2026)
+
+**Voor wie:** winkels die verzenden.
+
+**In de taal van je klant.** De verzendmail met tracknummer gaat in het Nederlands, Engels, Frans of Duits,
+in de huisstijl van je winkel. Hij staat ook in je inbox bij de bestelling.
+
+**Ook automatisch.** Zendingen die Printful of je vervoerder op verzonden zetten, krijgen dezelfde mail.
+Dezelfde zending wordt nooit twee keer gemaild.
+
+**i18n-key.** `public.changelog.changes.shipping_email_customer_language` — vijf talen, volledige pariteit.
+
 ### 2026.11g — Pushmeldingen in de webapp (feature, 10-10-2026)
 
 **Voor wie:** alle winkels, vooral teamleden die de SellQo-app niet mogen installeren (bedrijfstelefoons).

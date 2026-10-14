@@ -1915,6 +1915,14 @@
         "web_app_push": {
           "title": "Push-Benachrichtigungen in der Web-App",
           "description": "Sie können die SellQo-App nicht installieren, etwa auf einem Firmentelefon? Legen Sie SellQo auf Ihren Home-Bildschirm und aktivieren Sie Benachrichtigungen unter Einstellungen → Meine Benachrichtigungen. Auf iPhone und iPad geht das in Safari über Teilen → Zum Home-Bildschirm. Dort sehen Sie auch, auf welchen Geräten Ihre Benachrichtigungen ankommen, und können eines trennen. Sind App und Web-App auf demselben Telefon, schlägt SellQo vor, die Web-App zu deaktivieren, damit Sie nichts doppelt erhalten."
+        },
+        "shipping_email_customer_language": {
+          "title": "Versandmail in der Sprache Ihres Kunden",
+          "description": "Wenn Sie einer Bestellung eine Sendungsnummer hinzufügen, erhält Ihr Kunde die Versandmail jetzt in seiner eigenen Sprache (Niederländisch, Englisch, Französisch oder Deutsch) und im Design Ihres Shops, mit einer Schaltfläche zur Sendungsverfolgung. Die Mail erscheint auch in Ihrem Posteingang bei der Bestellung, und dieselbe Sendung wird nie zweimal gemailt. Sendungen, die Printful oder Ihr Versanddienst automatisch als versandt markieren, erhalten dieselbe Mail."
+        },
+        "event_dates_ready_to_sell": {
+          "title": "Jeder Eventtermin sofort im Verkauf, mit klarem Status",
+          "description": "Ein neuer Termin für ein Ticketprodukt ist jetzt sofort im Verkauf: Tickettyp und Eingang werden automatisch angelegt. Jeder Termin zeigt, ob er verkaufsbereit ist, und falls nicht, warum (kein aktiver Tickettyp, Verkauf noch nicht geöffnet oder bereits geschlossen, Termin vorbei). Ein Termin ohne Ort oder Treffpunkt erhält eine Warnung, denn dann steht in der Ticket-Mail kein Ort. Bei „Termin hinzufügen“ und „Mehrere Termine planen“ geben Sie jetzt auch Endzeit, Ort und Treffpunkt ein, vorausgefüllt mit Ihrem letzten Termin."
         }
       },
       "copyLink": "Link kopieren",
@@ -1925,7 +1933,8 @@
         "q4_2024": "Q4 2024",
         "q2_2026": "Q2 2026",
         "aug_2026": "August 2026",
-        "sep_2026": "September 2026"
+        "sep_2026": "September 2026",
+        "oct_2026": "Oktober 2026"
       },
       "filters": {
         "all": "Alle",

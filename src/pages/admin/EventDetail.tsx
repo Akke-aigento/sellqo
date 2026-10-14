@@ -19,6 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { EventReadinessBadge } from '@/components/admin/events/EventReadinessBadge';
+import { eventReadiness } from '@/lib/eventReadiness';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -53,6 +55,7 @@ interface EventRow {
   capacity: number | null;
   min_attendees: number;
   product_name: string;
+  product_active: boolean;
 }
 
 interface Attendee {
@@ -140,7 +143,7 @@ export default function EventDetail() {
       if (!currentTenant || !eventId) return null;
       const { data, error } = await supabase
         .from('event_details')
-        .select('id, product_id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name)')
+        .select('id, product_id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, products(name, is_active)')
         .eq('id', eventId)
         .eq('tenant_id', currentTenant.id)
         .maybeSingle();
@@ -158,6 +161,7 @@ export default function EventDetail() {
         capacity: (data.capacity as number | null) ?? null,
         min_attendees: (data.min_attendees as number) ?? 0,
         product_name: ((data as { products?: { name?: string } }).products?.name) ?? 'Event',
+        product_active: ((data as { products?: { is_active?: boolean } }).products?.is_active) !== false,
       };
     },
     enabled: !!currentTenant && !!eventId,
@@ -532,6 +536,9 @@ export default function EventDetail() {
     );
   }
 
+  // EVENT-FLOW-2: zelfde poorten als de winkel (zie src/lib/eventReadiness.ts).
+  const readiness = eventReadiness(event, ticketTypes, { productActive: event.product_active });
+
   return (
     <div className="space-y-4">
       <Button variant="ghost" size="sm" onClick={() => navigate('/admin/events')}>
@@ -553,7 +560,14 @@ export default function EventDetail() {
             </span>
           )}
           <Badge variant="secondary">{t(`events.status.${event.status}`, event.status)}</Badge>
+          <EventReadinessBadge readiness={readiness} />
         </p>
+        {readiness.state === 'blocked' || readiness.state === 'warning' ? (
+          <ul className="mt-2 space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+            {readiness.blocks.map((b) => <li key={b}>{t(`events.readiness.block_${b}_hint`)}</li>)}
+            {readiness.warnings.map((w) => <li key={w}>{t(`events.readiness.warn_${w}_hint`)}</li>)}
+          </ul>
+        ) : null}
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">

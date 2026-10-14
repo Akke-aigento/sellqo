@@ -6340,7 +6340,7 @@
     },
     "ticketTypes": {
       "title": "Tickettypes",
-      "empty": "Geen tickettypes ingesteld.",
+      "empty": "Geen tickettypes: deze datum is niet te koop. Voeg een tickettype toe.",
       "onSale": "In verkoop",
       "notOnSale": "Niet in verkoop",
       "sold": "Verkocht",
@@ -6568,6 +6568,25 @@
     },
     "checkin": {
       "preselectCancelled": "Dit event is geannuleerd, scannen heeft geen zin."
+    },
+    "readiness": {
+      "ready": "Klaar voor verkoop",
+      "ready_but": "Te koop, maar:",
+      "blocked": "Niet verkoopbaar",
+      "block_no_ticket_type": "geen actief tickettype",
+      "block_no_ticket_type_hint": "Deze datum heeft geen actief tickettype. Zet er een aan bij Tickettypes, anders kan niemand tickets kopen.",
+      "block_sales_not_started": "verkoop nog niet open",
+      "block_sales_not_started_hint": "Het verkoopvenster van de tickettypes is nog niet begonnen.",
+      "block_sales_ended": "verkoop gesloten",
+      "block_sales_ended_hint": "Het verkoopvenster van alle tickettypes is voorbij. Pas het aan bij Tickettypes als je nog wil verkopen.",
+      "block_past_date": "datum voorbij",
+      "block_past_date_hint": "Deze datum ligt in het verleden maar staat nog op gepland. Zet hem op afgerond of geannuleerd.",
+      "block_product_inactive": "product staat uit",
+      "block_product_inactive_hint": "Het ticketproduct staat op inactief. Zet het aan bij Producten.",
+      "warn_no_meeting_point": "geen verzamelpunt",
+      "warn_no_meeting_point_hint": "Er staat geen locatie of verzamelpunt bij deze datum. Kopers krijgen dan geen plaats in hun ticketmail.",
+      "meeting_point_warning": "Zonder locatie of verzamelpunt staat er geen plaats in de ticketmail van je bezoekers.",
+      "end_time_optional": "Eindtijd (optioneel)"
     }
   },
   "content_menu": {

@@ -1915,6 +1915,14 @@
         "web_app_push": {
           "title": "Push notifications in the web app",
           "description": "Can't install the SellQo app, for example on a work phone? Add SellQo to your home screen and turn on notifications under Settings → My notifications. On iPhone and iPad, do this from Safari via Share → Add to Home Screen. There you also see which devices receive your notifications, and you can disconnect one. If the app and the web app are on the same phone, SellQo asks you to turn off the web app so you don't get anything twice."
+        },
+        "shipping_email_customer_language": {
+          "title": "Shipping email in your customer's language",
+          "description": "When you add a tracking number to an order, your customer now gets the shipping email in their own language (Dutch, English, French or German) and in your shop's branding, with a button to track the parcel. The email also shows up in your inbox with the order, and the same shipment is never emailed twice. Shipments that Printful or your carrier mark as shipped automatically get the same email."
+        },
+        "event_dates_ready_to_sell": {
+          "title": "Every event date on sale right away, with a clear status",
+          "description": "A new date for a ticket product is now on sale right away: the ticket type and the entrance are created automatically. Every date shows whether it's ready to sell and, if not, why (no active ticket type, sales not open yet or already closed, date has passed). A date without a location or meeting point gets a warning, because the ticket email would have no place. 'Add date' and 'Plan multiple dates' now also take an end time, location and meeting point, prefilled from your latest date."
         }
       },
       "copyLink": "Copy link",
@@ -1925,7 +1933,8 @@
         "q4_2024": "Q4 2024",
         "q2_2026": "Q2 2026",
         "aug_2026": "August 2026",
-        "sep_2026": "September 2026"
+        "sep_2026": "September 2026",
+        "oct_2026": "October 2026"
       },
       "filters": {
         "all": "All",

@@ -1915,6 +1915,14 @@
         "web_app_push": {
           "title": "Notifications push dans l'app web",
           "description": "Vous ne pouvez pas installer l'app SellQo, par exemple sur un téléphone professionnel ? Ajoutez SellQo à votre écran d'accueil et activez les notifications sous Paramètres → Mes notifications. Sur iPhone et iPad, cela se fait depuis Safari via Partager → Sur l'écran d'accueil. Vous y voyez aussi sur quels appareils arrivent vos notifications, et vous pouvez en déconnecter un. Si l'app et l'app web sont sur le même téléphone, SellQo vous propose de désactiver l'app web pour ne rien recevoir en double."
+        },
+        "shipping_email_customer_language": {
+          "title": "E-mail d'expédition dans la langue du client",
+          "description": "Lorsque vous ajoutez un numéro de suivi à une commande, votre client reçoit désormais l'e-mail d'expédition dans sa langue (néerlandais, anglais, français ou allemand) et aux couleurs de votre boutique, avec un bouton pour suivre le colis. L'e-mail apparaît aussi dans votre boîte de réception avec la commande, et un même envoi n'est jamais notifié deux fois. Les envois que Printful ou votre transporteur marquent automatiquement comme expédiés reçoivent le même e-mail."
+        },
+        "event_dates_ready_to_sell": {
+          "title": "Chaque date d'événement en vente immédiatement, avec un statut clair",
+          "description": "Une nouvelle date pour un produit billet est désormais en vente immédiatement : le type de billet et l'entrée sont créés automatiquement. Chaque date indique si elle est prête à la vente et, sinon, pourquoi (aucun type de billet actif, vente pas encore ouverte ou déjà fermée, date passée). Une date sans lieu ni point de rendez-vous reçoit un avertissement, car l'e-mail de billet n'indiquerait aucun lieu. « Ajouter une date » et « Planifier plusieurs dates » proposent aussi l'heure de fin, le lieu et le point de rendez-vous, préremplis à partir de votre dernière date."
         }
       },
       "copyLink": "Copier le lien",
@@ -1925,7 +1933,8 @@
         "q4_2024": "T4 2024",
         "q2_2026": "T2 2026",
         "aug_2026": "Août 2026",
-        "sep_2026": "Septembre 2026"
+        "sep_2026": "Septembre 2026",
+        "oct_2026": "Octobre 2026"
       },
       "filters": {
         "all": "Tout",

@@ -6338,7 +6338,7 @@
     },
     "ticketTypes": {
       "title": "Types de billets",
-      "empty": "Aucun type de billet configuré.",
+      "empty": "Aucun type de billet : cette date n'est pas en vente. Ajoutez un type de billet.",
       "onSale": "En vente",
       "notOnSale": "Pas en vente",
       "sold": "Vendus",
@@ -6566,6 +6566,25 @@
     },
     "checkin": {
       "preselectCancelled": "Cet événement a été annulé, le scan n'a aucun intérêt."
+    },
+    "readiness": {
+      "ready": "Prêt à la vente",
+      "ready_but": "En vente, mais :",
+      "blocked": "Pas en vente",
+      "block_no_ticket_type": "aucun type de billet actif",
+      "block_no_ticket_type_hint": "Cette date n'a aucun type de billet actif. Activez-en un dans Types de billets, sinon personne ne peut acheter.",
+      "block_sales_not_started": "vente pas encore ouverte",
+      "block_sales_not_started_hint": "La période de vente des types de billets n'a pas encore commencé.",
+      "block_sales_ended": "vente fermée",
+      "block_sales_ended_hint": "La période de vente de tous les types de billets est terminée. Modifiez-la dans Types de billets pour continuer à vendre.",
+      "block_past_date": "date passée",
+      "block_past_date_hint": "Cette date est passée mais reste planifiée. Passez-la en terminée ou annulée.",
+      "block_product_inactive": "produit inactif",
+      "block_product_inactive_hint": "Le produit billet est inactif. Activez-le dans Produits.",
+      "warn_no_meeting_point": "pas de point de rendez-vous",
+      "warn_no_meeting_point_hint": "Aucun lieu ni point de rendez-vous pour cette date. Les acheteurs n'auront pas de lieu dans leur e-mail de billet.",
+      "meeting_point_warning": "Sans lieu ni point de rendez-vous, l'e-mail de billet de vos visiteurs n'indiquera aucun lieu.",
+      "end_time_optional": "Heure de fin (facultatif)"
     }
   },
   "content_menu": {
