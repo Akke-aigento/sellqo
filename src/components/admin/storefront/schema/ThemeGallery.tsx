@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import type { ThemePreset } from './schemaTypes';
 import { useTranslation } from 'react-i18next';
+import { schemaText } from './schemaText';
 
 export function ThemeGallery({ presets, current, hasSections, onApply }: {
   presets: ThemePreset[]; current: string | null; hasSections: boolean;
@@ -43,7 +44,7 @@ export function ThemeGallery({ presets, current, hasSections, onApply }: {
                 <div className="relative h-28" style={{ background: p.preview.background, color: p.preview.text }}>
                   {p.preview.image ? <img src={p.preview.image.replace('w=1600', 'w=600')} alt="" className="absolute inset-0 h-full w-full object-cover opacity-90" loading="lazy" /> : null}
                   <div className="absolute inset-0 flex flex-col justify-end gap-1.5 p-3" style={p.preview.image ? { background: 'linear-gradient(to top, rgba(0,0,0,.55), transparent)', color: '#fff' } : undefined}>
-                    <span className="text-lg font-bold leading-tight" style={{ fontFamily: p.theme.heading_font || undefined }}>{p.name}</span>
+                    <span className="text-lg font-bold leading-tight" style={{ fontFamily: p.theme.heading_font || undefined }}>{schemaText(t, p.name)}</span>
                     <span className="inline-flex w-fit items-center px-2.5 py-1 text-[11px] font-bold"
                       style={{ background: accent, color: '#fff', borderRadius: p.settings.button_style === 'square' ? 0 : p.settings.button_style === 'rounded' ? 6 : 999 }}>
                       {t('admin.storefront.schema.themeGallery.bekijk')}
@@ -52,7 +53,7 @@ export function ThemeGallery({ presets, current, hasSections, onApply }: {
                   {on ? <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-background"><Check className="h-4 w-4" /></span> : null}
                 </div>
                 <div className="bg-card px-3 pt-3">
-                  <p className="text-sm text-muted-foreground">{p.description}</p>
+                  <p className="text-sm text-muted-foreground">{schemaText(t, p.description)}</p>
                 </div>
               </button>
               <div className="bg-card px-3 pb-3 pt-1.5">

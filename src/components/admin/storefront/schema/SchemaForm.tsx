@@ -11,6 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { schemaDefaults, type SchemaBlocks, type SchemaField } from './schemaTypes';
 import { useTranslation } from 'react-i18next';
+import { schemaText } from './schemaText';
 
 type Values = Record<string, unknown>;
 
@@ -27,13 +28,13 @@ function Field({ f, value, onChange, idPrefix, icons }: {
     case 'info':
       return (
         <p className="flex gap-2 rounded-md bg-muted/60 p-2.5 text-xs text-muted-foreground">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />{f.label}
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />{schemaText(t, f.label)}
         </p>
       );
     case 'toggle':
       return (
         <div className="flex items-center justify-between gap-3">
-          <Label htmlFor={id} className="font-normal">{f.label}</Label>
+          <Label htmlFor={id} className="font-normal">{schemaText(t, f.label)}</Label>
           <Switch id={id} checked={v === true} onCheckedChange={onChange} />
         </div>
       );
@@ -44,10 +45,10 @@ function Field({ f, value, onChange, idPrefix, icons }: {
         : f.options || [];
       return (
         <div className="space-y-1.5">
-          <Label htmlFor={id}>{f.label}</Label>
+          <Label htmlFor={id}>{schemaText(t, f.label)}</Label>
           <Select value={String(v ?? '')} onValueChange={onChange}>
             <SelectTrigger id={id} className="h-9"><SelectValue /></SelectTrigger>
-            <SelectContent>{opts.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+            <SelectContent>{opts.map((o) => <SelectItem key={o.value} value={o.value}>{f.type === 'icon' ? o.label : schemaText(t, o.label)}</SelectItem>)}</SelectContent>
           </Select>
         </div>
       );
@@ -56,7 +57,7 @@ function Field({ f, value, onChange, idPrefix, icons }: {
       const n = Number(v ?? f.min ?? 0);
       return (
         <div className="space-y-2">
-          <div className="flex items-center justify-between"><Label htmlFor={id}>{f.label}</Label><span className="text-xs text-muted-foreground">{n}{f.unit || ''}</span></div>
+          <div className="flex items-center justify-between"><Label htmlFor={id}>{schemaText(t, f.label)}</Label><span className="text-xs text-muted-foreground">{n}{f.unit || ''}</span></div>
           <Slider id={id} min={f.min ?? 0} max={f.max ?? 100} step={f.step ?? 1} value={[n]} onValueChange={([x]) => onChange(x)} />
         </div>
       );
@@ -64,9 +65,9 @@ function Field({ f, value, onChange, idPrefix, icons }: {
     case 'color':
       return (
         <div className="space-y-1.5">
-          <Label htmlFor={id}>{f.label}</Label>
+          <Label htmlFor={id}>{schemaText(t, f.label)}</Label>
           <div className="flex items-center gap-2">
-            <input type="color" aria-label={f.label} value={/^#[0-9a-f]{6}$/i.test(String(v)) ? String(v) : '#000000'}
+            <input type="color" aria-label={schemaText(t, f.label)} value={/^#[0-9a-f]{6}$/i.test(String(v)) ? String(v) : '#000000'}
               onChange={(e) => onChange(e.target.value)} className="h-9 w-11 cursor-pointer rounded border bg-transparent p-0" />
             <Input id={id} value={String(v ?? '')} onChange={(e) => /^#[0-9a-f]{0,6}$/i.test(e.target.value) && onChange(e.target.value)} className="h-9 font-mono text-sm" />
           </div>
@@ -75,9 +76,9 @@ function Field({ f, value, onChange, idPrefix, icons }: {
     case 'textarea':
       return (
         <div className="space-y-1.5">
-          <Label htmlFor={id}>{f.label}</Label>
-          <Textarea id={id} rows={3} value={String(v ?? '')} placeholder={f.placeholder} onChange={(e) => onChange(e.target.value)} />
-          {f.help ? <p className="text-xs text-muted-foreground">{f.help}</p> : null}
+          <Label htmlFor={id}>{schemaText(t, f.label)}</Label>
+          <Textarea id={id} rows={3} value={String(v ?? '')} placeholder={f.placeholder ? schemaText(t, f.placeholder) : undefined} onChange={(e) => onChange(e.target.value)} />
+          {f.help ? <p className="text-xs text-muted-foreground">{schemaText(t, f.help)}</p> : null}
         </div>
       );
     default: {
@@ -85,11 +86,11 @@ function Field({ f, value, onChange, idPrefix, icons }: {
       const bad = !!f.pattern && s !== '' && !new RegExp(f.pattern).test(s);
       return (
         <div className="space-y-1.5">
-          <Label htmlFor={id}>{f.label}</Label>
-          <Input id={id} value={s} placeholder={f.placeholder} aria-invalid={bad} onChange={(e) => onChange(e.target.value)}
+          <Label htmlFor={id}>{schemaText(t, f.label)}</Label>
+          <Input id={id} value={s} placeholder={f.placeholder ? schemaText(t, f.placeholder) : undefined} aria-invalid={bad} onChange={(e) => onChange(e.target.value)}
             className={bad ? 'border-destructive' : undefined} />
           {bad ? <p className="text-xs text-destructive">{t('admin.storefront.schema.schemaForm.dit_ziet_er_niet_uit_als')}</p>
-            : f.help ? <p className="text-xs text-muted-foreground">{f.help}</p> : null}
+            : f.help ? <p className="text-xs text-muted-foreground">{schemaText(t, f.help)}</p> : null}
         </div>
       );
     }
@@ -127,7 +128,7 @@ export function BlocksEditor({ blocks, items, onChange, icons }: {
       {items.map((it, i) => (
         <div key={i} className="space-y-3 rounded-lg border p-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{blocks.label} {i + 1}</span>
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{schemaText(t, blocks.label)} {i + 1}</span>
             <div className="flex gap-0.5">
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={i === 0} onClick={() => move(i, -1)} aria-label={t('admin.storefront.food.addonGroupsManager.omhoog')}><ArrowUp className="h-3.5 w-3.5" /></Button>
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label={t('admin.storefront.food.addonGroupsManager.omlaag')}><ArrowDown className="h-3.5 w-3.5" /></Button>
@@ -140,7 +141,7 @@ export function BlocksEditor({ blocks, items, onChange, icons }: {
       ))}
       {!blocks.max || items.length < blocks.max ? (
         <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => onChange([...items, schemaDefaults(blocks.fields)])}>
-          <Plus className="mr-1.5 h-4 w-4" />{blocks.label} toevoegen
+          <Plus className="mr-1.5 h-4 w-4" />{t('admin.storefront.schema.add_block', { name: schemaText(t, blocks.label) })}
         </Button>
       ) : null}
     </div>
