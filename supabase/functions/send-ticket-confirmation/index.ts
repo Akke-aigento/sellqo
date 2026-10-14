@@ -49,6 +49,15 @@ function formatDate(dateStr: string | null, locale: TenantLocale): string {
   }
 }
 
+/** Zwart of wit, naargelang de achtergrondkleur (#rrggbb). */
+function fgOn(bg: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(bg.trim());
+  if (!m) return "#ffffff";
+  const n = parseInt(m[1], 16);
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  return lum > 0.6 ? "#111111" : "#ffffff";
+}
+
 function formatTime(start: string | null, end: string | null): string {
   const trim = (v: string | null) => (v ? String(v).slice(0, 5) : "");
   const s = trim(start);
@@ -59,7 +68,7 @@ function formatTime(start: string | null, end: string | null): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "ZAAL-3" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "FEST-2" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     await authenticateRequest(req);
@@ -98,7 +107,14 @@ serve(async (req) => {
 
     if (ticketsError) throw new Error(`Ticket lookup failed: ${ticketsError.message}`);
 
-    if (!tickets || tickets.length === 0) {
+    // FEST-2 — muntenkaart bij deze bestelling (drank- en etenbonnen).
+    const { data: wallet } = await supabase
+      .from("token_wallets")
+      .select("code, purchased, balance")
+      .eq("order_id", order_id)
+      .maybeSingle();
+
+    if ((!tickets || tickets.length === 0) && !wallet) {
       log("No tickets for order — skipping", { order_id });
       return new Response(JSON.stringify({ skipped: true, reason: "no ticket_instances" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -139,7 +155,7 @@ serve(async (req) => {
       for (const st of (seats || []) as SeatRow[]) seatMap.set(st.ticket_instance_id, st);
     }
 
-    const recipient = order.customer_email || tickets.find((x: any) => x.attendee_email)?.attendee_email;
+    const recipient = order.customer_email || (tickets || []).find((x: any) => x.attendee_email)?.attendee_email;
     if (!recipient) {
       return new Response(JSON.stringify({ skipped: true, reason: "no recipient email" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -171,12 +187,12 @@ serve(async (req) => {
       tenantDefault: brand.defaultLocale,
     });
 
-    const total = tickets.length;
+    const total = (tickets || []).length;
     const eventName =
-      itemMap.get((tickets[0] as any)?.order_item_id)?.product_name ||
+      itemMap.get((tickets?.[0] as any)?.order_item_id)?.product_name ||
       (locale === "nl" ? "je event" : locale === "fr" ? "votre événement" : locale === "de" ? "Ihr Event" : "your event");
 
-    const blocks = tickets.map((tk: any, i: number) => {
+    const blocks = (tickets || []).map((tk: any, i: number) => {
       const ev = eventMap.get(tk.event_detail_id) || {};
       const item = itemMap.get(tk.order_item_id) || {};
       const qrUrl = `${supabaseUrl}/functions/v1/ticket-qr?token=${encodeURIComponent(tk.qr_token)}&size=220`;
@@ -222,9 +238,40 @@ serve(async (req) => {
       </table>`;
     });
 
+    // FEST-2 — muntenblok: één QR voor alle munten, plus link naar de muntenpagina.
+    let walletBlock = "";
+    let tokenNamePlural = "munten";
+    if (wallet) {
+      const { data: ts } = await supabase
+        .from("token_settings")
+        .select("token_name_plural")
+        .eq("tenant_id", order.tenant_id)
+        .maybeSingle();
+      tokenNamePlural = (ts?.token_name_plural as string) || ({ nl: "munten", en: "tokens", fr: "jetons", de: "Marken" } as Record<TenantLocale, string>)[locale];
+      const tVars = {
+        count: Number(wallet.balance),
+        tokenNamePlural,
+        tokenNamePluralCap: tokenNamePlural.charAt(0).toUpperCase() + tokenNamePlural.slice(1),
+      };
+      const appUrl = (Deno.env.get("PUBLIC_APP_URL") || "https://sellqo.app").replace(/\/$/, "");
+      const walletUrl = `${appUrl}/munten/${encodeURIComponent(wallet.code as string)}`;
+      const qrUrl = `${supabaseUrl}/functions/v1/ticket-qr?token=${encodeURIComponent(wallet.code as string)}&size=220`;
+      walletBlock = `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0 0;border:2px solid ${brand.primaryColor};border-radius:10px;">
+        <tr><td style="padding:20px;text-align:center;">
+          <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:${brand.textColor};">${esc(t(locale, "ticket.walletHeading", tVars))}</p>
+          <p style="margin:0 0 16px;font-size:13px;line-height:1.6;color:${brand.mutedColor};">${esc(t(locale, "ticket.walletBody", tVars))}</p>
+          <img src="${qrUrl}" width="220" height="220" alt="QR ${esc(tokenNamePlural)}" style="display:block;margin:0 auto;border:0;outline:none;background:#ffffff;padding:10px;border-radius:8px;" />
+          <p style="margin:16px 0 0;"><a href="${esc(walletUrl)}" style="display:inline-block;padding:10px 18px;border-radius:8px;background:${brand.primaryColor};color:${fgOn(brand.primaryColor)};font-weight:600;font-size:14px;text-decoration:none;">${esc(t(locale, "ticket.walletLink"))}</a></p>
+          <p style="margin:12px 0 0;font-size:12px;color:${brand.mutedColor};">${esc(t(locale, "ticket.walletRefund", tVars))}</p>
+        </td></tr>
+      </table>`;
+    }
+
     const content = `
-      <p style="margin:16px 0 0;font-size:14px;line-height:1.6;">${esc(t(locale, "ticket.instructions"))}</p>
+      ${total > 0 ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;">${esc(t(locale, "ticket.instructions"))}</p>` : ""}
       ${blocks.join("")}
+      ${walletBlock}
       <p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:${brand.mutedColor};">${esc(
         t(locale, "ticket.disclaimer"),
       )}</p>
@@ -236,19 +283,26 @@ serve(async (req) => {
       preheader: t(locale, "ticket.instructions"),
       heading: t(locale, "ticket.heading"),
       intro: `<p>${esc(
-        t(locale, "ticket.intro", {
-          customerName: order.customer_name || (locale === "nl" ? "Klant" : "there"),
-          ticketCount: total,
-        }),
+        total > 0
+          ? t(locale, "ticket.intro", {
+            customerName: order.customer_name || (locale === "nl" ? "Klant" : "there"),
+            ticketCount: total,
+          })
+          : t(locale, "ticket.walletIntro", {
+            customerName: order.customer_name || (locale === "nl" ? "Klant" : "there"),
+            tokenNamePlural,
+          }),
       )}</p>`,
       content,
       footerNote: t(locale, "ticket.footerNote"),
       poweredByLabel: t(locale, "ticket.poweredBy"),
     });
 
-    const subject = t(locale, "ticket.subject", { eventName });
+    const subject = total > 0
+      ? t(locale, "ticket.subject", { eventName })
+      : t(locale, "ticket.walletSubject", { tokenNamePlural, shopName: brand.tenantName });
 
-    log("Sending", { to: recipient, tickets: total });
+    log("Sending", { to: recipient, tickets: total, wallet: !!wallet });
 
     const { Resend } = await import("https://esm.sh/resend@2.0.0");
     const resend = new Resend(resendApiKey);

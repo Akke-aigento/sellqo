@@ -131,6 +131,12 @@ type TicketStrings = {
   disclaimer: string;
   footerNote: string;
   poweredBy: string;
+  walletSubject: string;
+  walletIntro: string;
+  walletHeading: string;
+  walletBody: string;
+  walletLink: string;
+  walletRefund: string;
 };
 
 // CYCLE-2: payment-request strings (pay-first subscriptions). Friendly
@@ -258,6 +264,12 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       disclaimer: "Let op: datums kunnen in uitzonderlijke gevallen verschuiven of worden samengevoegd. Je wordt hier altijd van op de hoogte gebracht.",
       footerNote: "Vragen over je tickets? Antwoord gewoon op deze e-mail.",
       poweredBy: "Mogelijk gemaakt door SellQo",
+      walletSubject: "Je {tokenNamePlural} van {shopName}",
+      walletIntro: "Hi {customerName}, bedankt voor je bestelling. Hieronder vind je je {tokenNamePlural}.",
+      walletHeading: "{count} {tokenNamePlural}",
+      walletBody: "Toon deze QR-code aan de bar of foodstand. Er worden munten afgeschreven per drankje of hapje; je saldo zie je altijd op je muntenpagina.",
+      walletLink: "Saldo bekijken",
+      walletRefund: "{tokenNamePluralCap} over na afloop? Vraag ze terug via dezelfde pagina.",
     },
     paymentRequest: {
       subject: "Betalingsverzoek {requestNumber} — {tenantName}",
@@ -381,6 +393,12 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       disclaimer: "Please note: in exceptional cases dates may move or be merged. We will always inform you if that happens.",
       footerNote: "Questions about your tickets? Just reply to this email.",
       poweredBy: "Powered by SellQo",
+      walletSubject: "Your {tokenNamePlural} from {shopName}",
+      walletIntro: "Hi {customerName}, thanks for your order. Below you'll find your {tokenNamePlural}.",
+      walletHeading: "{count} {tokenNamePlural}",
+      walletBody: "Show this QR code at the bar or food stand. Tokens are deducted per drink or snack; you can always check your balance on your token page.",
+      walletLink: "Check balance",
+      walletRefund: "{tokenNamePluralCap} left over afterwards? Request a refund on the same page.",
     },
     paymentRequest: {
       subject: "Payment request {requestNumber} — {tenantName}",
@@ -504,6 +522,12 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       disclaimer: "Remarque : dans des cas exceptionnels, les dates peuvent être déplacées ou regroupées. Vous en serez toujours informé.",
       footerNote: "Des questions sur vos billets ? Répondez simplement à cet e-mail.",
       poweredBy: "Propulsé par SellQo",
+      walletSubject: "Vos {tokenNamePlural} de {shopName}",
+      walletIntro: "Bonjour {customerName}, merci pour votre commande. Vous trouverez ci-dessous vos {tokenNamePlural}.",
+      walletHeading: "{count} {tokenNamePlural}",
+      walletBody: "Montrez ce QR code au bar ou au stand de nourriture. Les jetons sont débités par boisson ou en-cas ; votre solde est toujours visible sur votre page de jetons.",
+      walletLink: "Voir le solde",
+      walletRefund: "Il vous reste des {tokenNamePlural} après l'événement ? Demandez leur remboursement sur la même page.",
     },
     paymentRequest: {
       subject: "Demande de paiement {requestNumber} — {tenantName}",
@@ -627,6 +651,12 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       disclaimer: "Hinweis: In Ausnahmefällen können Termine verschoben oder zusammengelegt werden. Wir informieren Sie in diesem Fall immer.",
       footerNote: "Fragen zu Ihren Tickets? Antworten Sie einfach auf diese E-Mail.",
       poweredBy: "Bereitgestellt von SellQo",
+      walletSubject: "Ihre {tokenNamePlural} von {shopName}",
+      walletIntro: "Hallo {customerName}, vielen Dank für Ihre Bestellung. Unten finden Sie Ihre {tokenNamePlural}.",
+      walletHeading: "{count} {tokenNamePlural}",
+      walletBody: "Zeigen Sie diesen QR-Code an der Bar oder am Essensstand. Pro Getränk oder Snack werden Marken abgebucht; Ihr Guthaben sehen Sie jederzeit auf Ihrer Markenseite.",
+      walletLink: "Guthaben ansehen",
+      walletRefund: "Nach dem Event noch {tokenNamePlural} übrig? Beantragen Sie die Erstattung auf derselben Seite.",
     },
     paymentRequest: {
       subject: "Zahlungsaufforderung {requestNumber} — {tenantName}",

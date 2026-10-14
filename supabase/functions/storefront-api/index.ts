@@ -728,7 +728,8 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
         status: e.status,
         timezone: e.timezone,
         tickets_sold: sold,
-        spots_left: Math.max(0, (e.capacity ?? 0) - sold),
+        // BACKLOG: zonder capaciteit is er geen limiet (null), niet "0 plaatsen".
+        spots_left: e.capacity == null ? null : Math.max(0, e.capacity - sold),
         min_reached: sold >= (e.min_attendees ?? 0),
         current_price: pr.price,
         early_bird_active: pr.earlyBirdActive,
@@ -744,7 +745,12 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     }));
 
     eventData = { event: { upcoming: withCounts } };
+    // FEST-1 — combiticket: de datums die erin zitten, en hoeveel er nog kunnen.
+    const bundle = await loadBundle(supabase, tenantId, product.id);
+    if (bundle) eventData = { ...eventData, bundle };
   }
+  // FEST-2 — muntenpakket: aantal munten (alleen als ingesteld).
+  if (product.token_amount) eventData = { ...eventData, token_amount: Number(product.token_amount) };
 
   const addonGroups = await loadProductAddonGroups(supabase, tenantId, product.id, product.category_id);
 
@@ -1249,6 +1255,21 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     for (const ev of ticketEvents || []) {
       if (!isEventStillOpen(ev)) continue;
       if (!nextEventDateMap[ev.product_id]) nextEventDateMap[ev.product_id] = ev.event_date;
+    }
+    // FEST-1 — combitickets hebben geen eigen datum: neem de vroegste open datum erin.
+    const noDate = ticketProductIds.filter((id: string) => !nextEventDateMap[id]);
+    if (noDate.length) {
+      const { data: bItems } = await supabase
+        .from('ticket_bundle_items')
+        .select('bundle_product_id, event_details!inner(event_date, start_time, end_time, timezone, status)')
+        .eq('tenant_id', tenantId)
+        .in('bundle_product_id', noDate);
+      for (const b of (bItems || []) as DbRow[]) {
+        const ev = b.event_details as DbRow;
+        if (!ev || !['scheduled', 'confirmed'].includes(ev.status) || !isEventStillOpen(ev as { event_date: string })) continue;
+        const cur = nextEventDateMap[b.bundle_product_id];
+        if (!cur || ev.event_date < cur) nextEventDateMap[b.bundle_product_id] = ev.event_date;
+      }
     }
   }
 
@@ -2085,6 +2106,37 @@ async function computeCartTotals(
   };
 }
 
+// ── FEST-1 — combitickets ─────────────────────────────────────────────────────
+/** Datums in een combiticket, met tickettype en plaatsen; null als het product geen combi is. */
+async function loadBundle(supabase: SupabaseLike, tenantId: string, productId: string) {
+  const { data: items } = await supabase
+    .from('ticket_bundle_items')
+    .select('event_detail_id, component_product_id, sort_order, event_details!inner(id, event_date, start_time, end_time, location_name, meeting_point, status), products!ticket_bundle_items_component_product_id_fkey(name)')
+    .eq('tenant_id', tenantId)
+    .eq('bundle_product_id', productId)
+    .order('sort_order', { ascending: true });
+  const rows = (items || []) as DbRow[];
+  if (!rows.length) return null;
+  const { data: cap } = await supabase.rpc('check_bundle_capacity', { p_bundle_product_id: productId, p_qty: 1 });
+  const open = rows.every((r) => ['scheduled', 'confirmed'].includes((r.event_details as DbRow)?.status) && isEventStillOpen(r.event_details as { event_date: string }));
+  return {
+    items: rows.map((r) => {
+      const e = r.event_details as DbRow;
+      return {
+        event_detail_id: r.event_detail_id,
+        product_id: r.component_product_id,
+        name: (r.products as DbRow | null)?.name ?? null,
+        event_date: e.event_date,
+        start_time: e.start_time ?? null,
+        end_time: e.end_time ?? null,
+        location_name: e.location_name ?? null,
+      };
+    }),
+    is_on_sale: open && (cap?.ok !== false),
+    spots_left: cap?.ok === false ? 0 : (cap?.spots_left ?? null),
+  };
+}
+
 // ── ZAAL-2 — stoelkeuze voor datums met een zaalplan ────────────────────────
 // Strikt additief: zonder event_details.venue_id verandert er niets. De zware
 // logica (alles-of-niets vasthouden, stoel op ticket) zit in SQL
@@ -2352,7 +2404,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, track_inventory, stock), product_variants(price, compare_at_price)')
+    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, track_inventory, stock, product_type, token_amount), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
   const evLabels = await eventLabels(supabase, tenantId, (items || []).map((i: DbRow) => i.event_detail_id as string | null));
   const heldSeats = await cartHeldSeats(supabase, cart.id, (items || []).some((i: DbRow) => i.event_detail_id));
@@ -2380,6 +2432,9 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
       ...(Array.isArray(item.addons) && item.addons.length ? { addons: item.addons } : {}),
       ...(item.event_detail_id && evLabels.has(item.event_detail_id) ? { event: evLabels.get(item.event_detail_id) } : {}),
       ...(item.event_detail_id && heldSeats.has(`${item.event_detail_id}|${item.product_id}`) ? heldSeats.get(`${item.event_detail_id}|${item.product_id}`) : {}),
+      // FEST-1/2 — tickets, combitickets en munten komen per mail: geen verzending nodig.
+      ...(item.products && (item.products.product_type === 'ticket' || item.products.token_amount) ? { email_delivery: true } : {}),
+      ...(item.products?.token_amount ? { token_amount: Number(item.products.token_amount) * item.quantity } : {}),
       line_total: item.quantity * effectivePrice,
     };
   });
@@ -2519,6 +2574,22 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     });
     if (eventCap && eventCap.ok === false) {
       throw new Error(JSON.stringify({ code: 'EVENT_FULL', message: 'Dit evenement is volzet', spots_left: eventCap.event_spots_left ?? 0 }));
+    }
+  }
+
+  // FEST-1 — combiticket: elke datum erin moet nog plaats hebben (ook voor wat al in de cart zit).
+  if (!eventDetailId) {
+    const { data: isBundle } = await supabase.from('ticket_bundle_items').select('id').eq('bundle_product_id', productId).eq('tenant_id', tenantId).limit(1);
+    if (isBundle && isBundle.length) {
+      if (Array.isArray(params.addons) && (params.addons as unknown[]).length) {
+        throw new Error(JSON.stringify({ code: 'ADDON_INVALID', message: 'Extra\'s kunnen niet bij tickets' }));
+      }
+      const { data: inCart } = await supabase.from('storefront_cart_items').select('quantity').eq('cart_id', cartId).eq('product_id', productId);
+      const already = ((inCart || []) as DbRow[]).reduce((sum: number, r: DbRow) => sum + (Number(r.quantity) || 0), 0);
+      const { data: cap } = await supabase.rpc('check_bundle_capacity', { p_bundle_product_id: productId, p_qty: already + quantity });
+      if (cap && cap.ok === false) {
+        throw new Error(JSON.stringify({ code: cap.reason === 'date_unavailable' ? 'EVENT_DATE_UNAVAILABLE' : 'TICKET_TYPE_FULL', message: cap.reason === 'date_unavailable' ? 'Een datum in dit combiticket is niet meer beschikbaar' : 'Dit combiticket is uitverkocht', spots_left: cap.spots_left ?? 0 }));
+      }
     }
   }
 
@@ -2884,6 +2955,8 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     in_stock: item.product?.in_stock ?? true,
     ...(item.addons ? { addons: item.addons } : {}),
     ...(item.event_detail_id && evLabels.has(item.event_detail_id) ? { event: evLabels.get(item.event_detail_id) } : {}),
+    ...(item.email_delivery ? { email_delivery: true } : {}),
+    ...(item.token_amount ? { token_amount: item.token_amount } : {}),
   }));
 
   // B2B-2b — bij verlegging tonen we netto bedragen (btw uit de prijs gehaald).
@@ -3600,6 +3673,22 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     const prev = evTypeQty.get(key);
     evTypeQty.set(key, { eventId: it.event_detail_id, productId: it.product_id, qty: q + (prev?.qty || 0) });
     evTotalQty.set(it.event_detail_id, (evTotalQty.get(it.event_detail_id) || 0) + q);
+  }
+  // FEST-1 — combitickets tellen mee op elke datum die erin zit.
+  const plainIds = [...new Set((cart.cartItems as DbRow[]).filter((i) => !i.event_detail_id).map((i) => i.product_id as string))];
+  if (plainIds.length) {
+    const { data: bItems } = await supabase.from('ticket_bundle_items')
+      .select('bundle_product_id, event_detail_id, component_product_id').eq('tenant_id', tenantId).in('bundle_product_id', plainIds);
+    for (const it of cart.cartItems as DbRow[]) {
+      if (it.event_detail_id) continue;
+      for (const b of ((bItems || []) as DbRow[]).filter((x) => x.bundle_product_id === it.product_id)) {
+        const q = Number(it.quantity) || 0;
+        const key = `${b.event_detail_id}|${b.component_product_id}`;
+        const prev = evTypeQty.get(key);
+        evTypeQty.set(key, { eventId: b.event_detail_id, productId: b.component_product_id, qty: q + (prev?.qty || 0) });
+        evTotalQty.set(b.event_detail_id, (evTotalQty.get(b.event_detail_id) || 0) + q);
+      }
+    }
   }
   const capChecks: Array<{ eventId: string; productId: string | null; qty: number }> = [
     ...[...evTypeQty.values()].map((e) => ({ eventId: e.eventId, productId: e.productId, qty: e.qty })),
@@ -4939,7 +5028,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'ZAAL-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FEST-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

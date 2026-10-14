@@ -477,3 +477,9 @@ verify_jwt = false
 
 [functions.scanner-door]
 verify_jwt = false
+
+[functions.token-bar]
+verify_jwt = false
+
+[functions.token-wallet]
+verify_jwt = false
