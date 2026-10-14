@@ -165,7 +165,7 @@ export function AdminSidebar() {
                         <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-medium">{t('navigation.soon')}</span>
                       </SidebarMenuSubButton>
                     ) : (
-                      <SidebarMenuSubButton asChild isActive={isActive(child.url)} className={cn(showAdminToggles && isPageHidden(child.id) && 'opacity-40')}>
+                      <SidebarMenuSubButton asChild isActive={isActive(child.url) && !item.children?.some((o) => o.url.length > child.url.length && isActive(o.url))} className={cn(showAdminToggles && isPageHidden(child.id) && 'opacity-40')}>
                         <NavLink to={child.url} className="flex items-center justify-between w-full">
                           <span>{t(child.titleKey)}</span>
                           {child.badge && child.id === 'ads-ai' && <AdsAiBadge />}

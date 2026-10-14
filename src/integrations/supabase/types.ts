@@ -14,6 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
+      venues: {
+        Row: {
+          id: string
+          tenant_id: string
+          name: string
+          stage_label: string
+          address: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          name: string
+          stage_label?: string
+          address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          name?: string
+          stage_label?: string
+          address?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      venue_sections: {
+        Row: {
+          id: string
+          tenant_id: string
+          venue_id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          venue_id: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          venue_id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      venue_price_classes: {
+        Row: {
+          id: string
+          tenant_id: string
+          venue_id: string
+          name: string
+          color: string
+          default_price: number
+          sort_order: number
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          venue_id: string
+          name: string
+          color?: string
+          default_price?: number
+          sort_order?: number
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          venue_id?: string
+          name?: string
+          color?: string
+          default_price?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      venue_seats: {
+        Row: {
+          id: string
+          tenant_id: string
+          venue_id: string
+          section_id: string
+          price_class_id: string | null
+          row_label: string
+          seat_number: string
+          x: number
+          y: number
+          kind: string
+          sellable: boolean
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          venue_id: string
+          section_id: string
+          price_class_id?: string | null
+          row_label: string
+          seat_number: string
+          x: number
+          y: number
+          kind?: string
+          sellable?: boolean
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          venue_id?: string
+          section_id?: string
+          price_class_id?: string | null
+          row_label?: string
+          seat_number?: string
+          x?: number
+          y?: number
+          kind?: string
+          sellable?: boolean
+        }
+        Relationships: []
+      }
       ab_test_configs: {
         Row: {
           auto_select_winner: boolean | null

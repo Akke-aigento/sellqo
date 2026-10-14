@@ -17874,3 +17874,34 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
     - verborgen type "VIP" (€40) met een eigen early bird van €30, en een early-bird-einddatum op de testdatum;
     - `get_product` gaf VIP €30, en het standaardticket bleef €0.
   - Het VIP-type blijft staan om mee te testen.
+
+## 2026-10-14 — ZAAL-1: zalen met een stoelplan (datamodel en ontwerper)
+
+**Waarom:** Akke wil concertzalen en theaters met genummerde plaatsen kunnen verkopen ("zoals vliegtuigen"). Eerst het ontwerp (canvas "SellQo Zaalplan"), daarna bouwen in drie stappen. ZAAL-1 is de basis: een zaal tekenen. Er verandert nog niets aan verkoop of checkout.
+
+**Uitgevoerd:**
+- **Migratie** `20261014100000_zaal_1_venues.sql`, strikt additief. Nieuwe tabellen:
+  - `venues`;
+  - `venue_sections`;
+  - `venue_price_classes`;
+  - `venue_seats`: een rooster (x, y), uniek per zaal, en rij + nummer uniek per sectie. Soort is seat / wheelchair / companion. Er is een veld `sellable`.
+- **RLS:** hetzelfde predicaat als de eventtabellen (tenant_admin of staff van de winkel), met 4 policies per tabel. Gedraaid via de connector en live nagekeken: de tabellen, de policies en de trigger `updated_at`.
+- **Admin:**
+  - `/admin/events/venues` toont het overzicht en maakt nieuwe zalen aan.
+  - `/admin/events/venues/:id` is de ontwerper:
+    - een generator per sectie met rijen, stoelen per rij, gangpaden, eerste rij en nummering (links-rechts, rechts-links of oneven/even);
+    - stoelen kies je met een klik, shift-klik of een kader;
+    - op een selectie kan je een prijsklasse toekennen, een rolstoelplek of begeleider instellen, niet te koop zetten, verschuiven of weghalen;
+    - prijsklassen met kleur en standaardprijs;
+    - je wijzigingen staan lokaal tot je op Bewaren drukt, en er komt een waarschuwing als je de pagina verlaat zonder te bewaren.
+  - De pagina's zitten achter `EventsModuleGate`. Zalen staan in het eventsmenu en als knop op het eventsoverzicht.
+  - In de zijbalk licht voortaan het meest specifieke subitem op, dus niet tegelijk "Alle events" en "Zalen".
+- **Pure logica** staat in `src/lib/seatLayout.ts`, met 4 vitest-tests.
+- **Checks:**
+  - tsc 27 (baseline);
+  - lint gelijk aan de baseline;
+  - i18n-pariteit (87 keys × 5 talen);
+  - gebruikte keys en dode knoppen in orde.
+- **Visuele check in de harness:** een parterre van 8×16 met gangpad en een balkon van 3×12 opgeslagen. Dat gaf 164 stoel-upserts. Mobiel geeft geen horizontale scroll.
+
+**Nog niet:** de koppeling van een zaal aan een datum, stoelen kiezen in de webshop, en stoel op ticket, mail en scanner. Dat volgt in ZAAL-2 en ZAAL-3.

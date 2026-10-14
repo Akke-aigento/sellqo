@@ -141,6 +141,7 @@ const salesItems: NavItem[] = [
     allowedRoles: ['platform_admin', 'tenant_admin', 'staff'],
     children: [
       { id: 'events-all', titleKey: 'navigation.items.events_all', url: '/admin/events', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
+      { id: 'event-venues', titleKey: 'navigation.items.event_venues', url: '/admin/events/venues', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
       { id: 'ticket-checkin', titleKey: 'navigation.items.ticket_checkin', url: '/admin/checkin', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
     ],
   },
