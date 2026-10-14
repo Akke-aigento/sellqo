@@ -62,7 +62,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCan, type Resource } from '@/hooks/useCan';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
-import { Wrench } from 'lucide-react';
+import { Wrench, Blocks } from 'lucide-react';
+import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
 
 interface SettingsSection {
   id: string;
@@ -108,6 +109,7 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'company', titleKey: 'settings.sections.company', icon: Building2, component: BusinessSettings, requiredRead: 'settings_general' },
       { id: 'branding', titleKey: 'settings.sections.branding', icon: Palette, component: BrandingSettings, requiredRead: 'settings_general' },
       { id: 'domain', titleKey: 'settings.sections.domain', icon: Globe, component: MultiDomainSettings, requiredRead: 'settings_general' },
+      { id: 'modules', titleKey: 'settings.sections.modules', icon: Blocks, component: BusinessModulesSettings, adminOnly: true },
     ],
   },
   {

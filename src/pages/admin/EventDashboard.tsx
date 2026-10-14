@@ -13,6 +13,8 @@ import { useQuery } from '@tanstack/react-query';
 import { CalendarDays, MapPin, Check, Ticket } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { useBusinessModules } from '@/hooks/useBusinessModules';
+import { ModuleOffCard } from '@/components/admin/ModuleOffCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -75,6 +77,7 @@ export default function EventDashboard() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [showPast, setShowPast] = useState(false);
+  const eventsModule = useBusinessModules().has('events');
 
   // Events binnen het venster (middernacht-veilige ondergrens).
   const { data: events = [], isLoading } = useQuery({
@@ -190,6 +193,8 @@ export default function EventDashboard() {
     },
     enabled: !!currentTenant && eventIds.length > 0,
   });
+
+  if (!eventsModule) return <ModuleOffCard module="events" />;
 
   return (
     <div className="space-y-4">

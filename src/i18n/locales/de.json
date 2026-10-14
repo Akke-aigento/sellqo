@@ -329,7 +329,8 @@
       "social": "Social Media",
       "reviews": "Bewertungen",
       "fulfillment_api": "Fulfillment-API",
-      "platform_tools": "Plattform-Tools"
+      "platform_tools": "Plattform-Tools",
+      "modules": "Module"
     },
     "business": {
       "subtitle": "Verwalten Sie Ihre Shop- und Unternehmensdaten",
@@ -5691,6 +5692,29 @@
       "secties": "Abschnitte",
       "verbergen": "Ausblenden",
       "footer_placeholder": "Z. B. Handgemacht in Löwen seit 2024."
+    },
+    "modules": {
+      "title": "Module für Ihr Geschäft",
+      "intro": "SellQo ist ein Kern: Produkte, Bestellungen, Kasse und Webshop. Schalten Sie hier ein, was zu Ihrem Geschäft passt. Was ausgeschaltet ist, sehen Sie nirgends.",
+      "horeca_title": "Gastronomie",
+      "horeca_desc": "Für Pizzerien, Imbisse, Dönerläden und Cafés: Online-Bestellung, QR-Menü am Tisch und Küchenbildschirm.",
+      "horeca_p1": "Abholung und Lieferung mit Zeitfenstern, Liefergebieten und Mindestbestellwert",
+      "horeca_p2": "QR-Menü vor Ort, mit oder ohne Bestellung am Tisch",
+      "horeca_p3": "Küchenbildschirm und Küchenbon, Extras wie Beläge und Saucen",
+      "horeca_p4": "Allergene pro Gericht und eine druckbare Allergenkarte",
+      "events_title": "Events & Tickets",
+      "events_desc": "Verkaufen Sie Tickets für Ihre Events: Termine, Ticketarten, Kapazität und Scannen am Einlass.",
+      "events_p1": "Ticketprodukte mit mehreren Terminen und Ticketarten (z. B. Early Bird)",
+      "events_p2": "Jedes Ticket erhält per E-Mail einen eigenen QR-Code",
+      "events_p3": "Check-in am Einlass mit dem Handy, auch für Crew ohne Konto",
+      "via_plan": "In Ihrem Tarif",
+      "open": "{{name}} öffnen",
+      "see_demo": "Demo ansehen",
+      "turned_on": "{{name}} ist aktiviert",
+      "turned_off": "{{name}} ist deaktiviert",
+      "turn_on": "{{name}} aktivieren",
+      "ask_admin": "Bitten Sie den Administrator Ihres Shops, dieses Modul zu aktivieren.",
+      "save_failed": "Speichern fehlgeschlagen. Bitte erneut versuchen."
     }
   },
   "billing": {
@@ -6782,6 +6806,30 @@
       "origin_unresolved": "Wir konnten das Ziel dieses Links nicht bestimmen.",
       "unknown": "Beim Öffnen dieses Links ist etwas schiefgelaufen.",
       "contact_hint": "Bitte deine Kontaktperson um einen neuen Link."
+    }
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Willkommen bei SellQo!",
+      "subtitle": "Wir richten Ihren Shop in wenigen Minuten ein. Sagen Sie uns zuerst, was Sie verkaufen und wie Ihr Geschäft heißt.",
+      "sector_label": "Was verkaufen Sie?",
+      "sector_retail": "Produkte",
+      "sector_retail_hint": "Laden oder Webshop",
+      "sector_horeca": "Essen und Trinken",
+      "sector_horeca_hint": "Pizzeria, Imbiss, Döner, Café",
+      "sector_events": "Events und Tickets",
+      "sector_events_hint": "Partys, Touren, Workshops",
+      "name_label": "Name Ihres Geschäfts *",
+      "name_tip_title": "Name Ihres Geschäfts",
+      "name_tip": "Dieser Name erscheint auf Ihren Rechnungen, in Ihren E-Mails und oben in Ihrem Webshop.",
+      "name_placeholder": "Z. B. Pizzeria Bella",
+      "url_label": "Adresse Ihres Webshops",
+      "url_tip": "Hier finden Kunden Ihren Shop, sofort und kostenlos. Eine eigene Domain können Sie später verbinden.",
+      "url_placeholder": "ihr-geschaeft",
+      "slug_taken": "Diese Adresse ist bereits vergeben",
+      "slug_check_failed": "Konnte nicht prüfen, ob diese Adresse frei ist",
+      "slug_free": "{{url}} ist frei",
+      "next": "Nächster Schritt"
     }
   }
 }

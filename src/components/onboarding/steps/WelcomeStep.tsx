@@ -1,11 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Store, ArrowRight, Loader2, Check, X } from 'lucide-react';
+import { Store, ArrowRight, Loader2, Check, X, ShoppingBag, UtensilsCrossed, Ticket } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { OnboardingTooltip } from '../OnboardingTooltip';
 import { OnboardingData } from '@/hooks/useOnboarding';
 import { cn } from '@/lib/utils';
+
+const SECTORS = [
+  { id: 'retail', icon: ShoppingBag },
+  { id: 'horeca', icon: UtensilsCrossed },
+  { id: 'events', icon: Ticket },
+] as const;
 
 interface WelcomeStepProps {
   data: OnboardingData;
@@ -22,6 +29,7 @@ export function WelcomeStep({
   generateSlug,
   checkSlugAvailable,
 }: WelcomeStepProps) {
+  const { t } = useTranslation();
   const [isCheckingSlug, setIsCheckingSlug] = useState(false);
   const [isSlugAvailable, setIsSlugAvailable] = useState<boolean | null>(null);
   const [slugError, setSlugError] = useState<string | null>(null);
@@ -49,17 +57,17 @@ export function WelcomeStep({
         const available = await checkSlugAvailable(data.shopSlug);
         setIsSlugAvailable(available);
         if (!available) {
-          setSlugError('Deze URL is al in gebruik');
+          setSlugError(t('onboarding.welcome.slug_taken'));
         }
       } catch (error) {
-        setSlugError('Kon beschikbaarheid niet controleren');
+        setSlugError(t('onboarding.welcome.slug_check_failed'));
       }
       
       setIsCheckingSlug(false);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [data.shopSlug, checkSlugAvailable]);
+  }, [data.shopSlug, checkSlugAvailable, t]);
 
   const canContinue = data.shopName.trim().length >= 2 && isSlugAvailable === true;
 
@@ -76,26 +84,43 @@ export function WelcomeStep({
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
           <Store className="h-8 w-8 text-primary" />
         </div>
-        <h2 className="text-2xl font-bold">Welkom bij Sellqo!</h2>
-        <p className="text-muted-foreground">
-          Laten we je webshop in 5 minuten opzetten. Begin met een naam voor je winkel.
-        </p>
+        <h2 className="text-2xl font-bold">{t('onboarding.welcome.title')}</h2>
+        <p className="text-muted-foreground">{t('onboarding.welcome.subtitle')}</p>
       </div>
 
       <div className="space-y-4">
+        {/* MODULES-1 — wat verkoop je? Bepaalt welke sectormodule aangaat. */}
+        <div className="space-y-2">
+          <Label>{t('onboarding.welcome.sector_label')}</Label>
+          <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label={t('onboarding.welcome.sector_label')}>
+            {SECTORS.map(({ id, icon: Icon }) => {
+              const active = (data.sector || 'retail') === id;
+              return (
+                <button key={id} type="button" role="radio" aria-checked={active} onClick={() => updateData({ sector: id })}
+                  className={cn('flex flex-col items-start gap-1 rounded-lg border-2 p-3 text-left transition-colors',
+                    active ? 'border-primary bg-primary/5' : 'border-muted hover:border-primary/40')}>
+                  <Icon className={cn('h-5 w-5', active ? 'text-primary' : 'text-muted-foreground')} />
+                  <span className="text-sm font-medium">{t(`onboarding.welcome.sector_${id}`)}</span>
+                  <span className="text-xs text-muted-foreground">{t(`onboarding.welcome.sector_${id}_hint`)}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Label htmlFor="shopName">Winkelnaam *</Label>
+            <Label htmlFor="shopName">{t('onboarding.welcome.name_label')}</Label>
             <OnboardingTooltip
-              title="Winkelnaam"
-              content="Je winkelnaam verschijnt op facturen, e-mails en in je webshop header. Kies een naam die je merk vertegenwoordigt."
+              title={t('onboarding.welcome.name_tip_title')}
+              content={t('onboarding.welcome.name_tip')}
             />
           </div>
           <Input
             id="shopName"
             value={data.shopName}
             onChange={(e) => updateData({ shopName: e.target.value })}
-            placeholder="Bijv. Jouw Winkel"
+            placeholder={t('onboarding.welcome.name_placeholder')}
             autoFocus
             className="text-lg"
           />
@@ -103,29 +128,21 @@ export function WelcomeStep({
 
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Label htmlFor="shopSlug">Winkel URL</Label>
+            <Label htmlFor="shopSlug">{t('onboarding.welcome.url_label')}</Label>
             <OnboardingTooltip
-              title="Winkel URL"
-              content={
-                <span>
-                  Dit is het adres waar klanten je webshop bezoeken. 
-                  De URL wordt automatisch gegenereerd op basis van je winkelnaam.
-                </span>
-              }
+              title={t('onboarding.welcome.url_label')}
+              content={t('onboarding.welcome.url_tip')}
             />
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex-shrink-0 text-sm text-muted-foreground bg-muted px-3 py-2 rounded-l-md border border-r-0">
-              sellqo.app/shop/
-            </div>
+          <div className="flex items-center">
             <div className="relative flex-1">
               <Input
                 id="shopSlug"
                 value={data.shopSlug}
                 onChange={(e) => updateData({ shopSlug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-') })}
-                placeholder="jouw-winkel"
+                placeholder={t('onboarding.welcome.url_placeholder')}
                 className={cn(
-                  'rounded-l-none pr-10',
+                  'rounded-r-none pr-10',
                   isSlugAvailable === true && 'border-green-500 focus-visible:ring-green-500',
                   isSlugAvailable === false && 'border-destructive focus-visible:ring-destructive'
                 )}
@@ -142,12 +159,15 @@ export function WelcomeStep({
                 )}
               </div>
             </div>
+            <div className="flex-shrink-0 text-sm text-muted-foreground bg-muted px-3 py-2 rounded-r-md border border-l-0">
+              .sellqo.shop
+            </div>
           </div>
           {slugError && (
             <p className="text-sm text-destructive">{slugError}</p>
           )}
           {isSlugAvailable === true && (
-            <p className="text-sm text-green-600">✓ Deze URL is beschikbaar</p>
+            <p className="text-sm text-green-600">✓ {t('onboarding.welcome.slug_free', { url: `${data.shopSlug}.sellqo.shop` })}</p>
           )}
         </div>
       </div>
@@ -159,7 +179,7 @@ export function WelcomeStep({
           size="lg"
           disabled={!canContinue}
         >
-          Volgende stap
+          {t('onboarding.welcome.next')}
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </div>

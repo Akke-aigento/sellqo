@@ -329,7 +329,8 @@
       "social": "Réseaux sociaux",
       "reviews": "Avis",
       "fulfillment_api": "API de préparation",
-      "platform_tools": "Outils de la plateforme"
+      "platform_tools": "Outils de la plateforme",
+      "modules": "Modules"
     },
     "business": {
       "subtitle": "Gérez les informations de votre boutique et de votre entreprise",
@@ -5691,6 +5692,29 @@
       "secties": "Sections",
       "verbergen": "Masquer",
       "footer_placeholder": "P. ex. Fait main à Louvain depuis 2024."
+    },
+    "modules": {
+      "title": "Modules pour votre activité",
+      "intro": "SellQo, c'est un seul socle : produits, commandes, caisse et boutique en ligne. Activez ici ce qui convient à votre activité. Ce qui est désactivé n'apparaît nulle part.",
+      "horeca_title": "Horeca",
+      "horeca_desc": "Pour pizzerias, friteries, kebabs et cafés : commande en ligne, menu QR à table et écran de cuisine.",
+      "horeca_p1": "À emporter et livraison avec créneaux, zones de livraison et montant minimum",
+      "horeca_p2": "Menu QR sur place, avec ou sans commande à table",
+      "horeca_p3": "Écran et ticket de cuisine, suppléments comme garnitures et sauces",
+      "horeca_p4": "Allergènes par plat et tableau des allergènes imprimable",
+      "events_title": "Événements & billets",
+      "events_desc": "Vendez des billets pour vos événements : dates, types de billets, capacité et scan à l'entrée.",
+      "events_p1": "Billets avec plusieurs dates et types de billets (p. ex. early bird)",
+      "events_p2": "Chaque billet reçoit son propre code QR par e-mail",
+      "events_p3": "Contrôle à l'entrée avec votre téléphone, aussi pour l'équipe sans compte",
+      "via_plan": "Inclus dans votre formule",
+      "open": "Ouvrir {{name}}",
+      "see_demo": "Voir la démo",
+      "turned_on": "{{name}} est activé",
+      "turned_off": "{{name}} est désactivé",
+      "turn_on": "Activer {{name}}",
+      "ask_admin": "Demandez à l'administrateur de votre boutique d'activer ce module.",
+      "save_failed": "L'enregistrement a échoué. Réessayez."
     }
   },
   "billing": {
@@ -6782,6 +6806,30 @@
       "origin_unresolved": "Nous n'avons pas pu déterminer la destination de ce lien.",
       "unknown": "Une erreur est survenue lors de l'ouverture de ce lien.",
       "contact_hint": "Demande un nouveau lien à ta personne de contact."
+    }
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Bienvenue sur SellQo !",
+      "subtitle": "Nous configurons votre boutique en quelques minutes. Dites-nous d'abord ce que vous vendez et le nom de votre activité.",
+      "sector_label": "Que vendez-vous ?",
+      "sector_retail": "Produits",
+      "sector_retail_hint": "Magasin ou boutique en ligne",
+      "sector_horeca": "Restauration",
+      "sector_horeca_hint": "Pizzeria, friterie, kebab, café",
+      "sector_events": "Événements et billets",
+      "sector_events_hint": "Fêtes, visites, ateliers",
+      "name_label": "Nom de votre activité *",
+      "name_tip_title": "Nom de votre activité",
+      "name_tip": "Ce nom figure sur vos factures, dans vos e-mails et en haut de votre boutique.",
+      "name_placeholder": "P. ex. Pizzeria Bella",
+      "url_label": "Adresse de votre boutique",
+      "url_tip": "C'est là que vos clients trouvent votre boutique, immédiatement et gratuitement. Vous pourrez relier votre propre domaine plus tard.",
+      "url_placeholder": "votre-activite",
+      "slug_taken": "Cette adresse est déjà utilisée",
+      "slug_check_failed": "Impossible de vérifier si cette adresse est libre",
+      "slug_free": "{{url}} est disponible",
+      "next": "Étape suivante"
     }
   }
 }

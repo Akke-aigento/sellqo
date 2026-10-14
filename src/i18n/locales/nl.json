@@ -301,7 +301,8 @@
       "social": "Social Media",
       "reviews": "Reviews",
       "fulfillment_api": "Fulfillment API",
-      "platform_tools": "Platform Tools"
+      "platform_tools": "Platform Tools",
+      "modules": "Modules"
     },
     "business": {
       "subtitle": "Beheer je winkel- en bedrijfsinformatie",
@@ -5942,6 +5943,29 @@
       "saved": "Opgeslagen — je winkel is bijgewerkt",
       "save_failed": "Opslaan lukte niet. Je wijzigingen staan nog klaar; probeer opnieuw.",
       "footer_placeholder": "Bv. Handgemaakt in Leuven, sinds 2024."
+    },
+    "modules": {
+      "title": "Modules voor jouw zaak",
+      "intro": "SellQo is één kern: producten, bestellingen, kassa en webshop. Zet hier aan wat bij jouw zaak past. Wat uit staat, zie je nergens.",
+      "horeca_title": "Horeca",
+      "horeca_desc": "Voor pizzeria's, frituren, kebabzaken en cafés: online bestellen, QR-menu aan tafel en een keukenscherm.",
+      "horeca_p1": "Afhalen en leveren met tijdsloten, leverzones en minimumbedrag",
+      "horeca_p2": "QR-menu in de zaak, met of zonder bestellen aan tafel",
+      "horeca_p3": "Keukenscherm en keukenbon, extra's zoals toppings en sauzen",
+      "horeca_p4": "Allergenen per gerecht en een afdrukbare allergenenkaart",
+      "events_title": "Events & tickets",
+      "events_desc": "Verkoop tickets voor je events: datums, tickettypes, capaciteit en scannen aan de deur.",
+      "events_p1": "Ticketproducten met meerdere datums en tickettypes (bv. early bird)",
+      "events_p2": "Elk ticket krijgt een eigen QR-code per mail",
+      "events_p3": "Inchecken aan de deur met je gsm, ook voor crew zonder account",
+      "via_plan": "In je plan",
+      "open": "{{name}} openen",
+      "see_demo": "Bekijk de demo",
+      "turned_on": "{{name}} staat aan",
+      "turned_off": "{{name}} staat uit",
+      "turn_on": "{{name}} aanzetten",
+      "ask_admin": "Vraag de beheerder van je winkel om deze module aan te zetten.",
+      "save_failed": "Opslaan mislukt. Probeer het opnieuw."
     }
   },
   "product_form": {
@@ -6784,6 +6808,30 @@
       "origin_unresolved": "We konden de bestemming van deze link niet bepalen.",
       "unknown": "Er ging iets mis bij het openen van deze link.",
       "contact_hint": "Vraag een nieuwe link aan bij je contactpersoon."
+    }
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welkom bij SellQo!",
+      "subtitle": "We zetten je winkel in een paar minuten op. Vertel eerst wat je verkoopt en hoe je zaak heet.",
+      "sector_label": "Wat verkoop je?",
+      "sector_retail": "Producten",
+      "sector_retail_hint": "Winkel of webshop",
+      "sector_horeca": "Eten en drinken",
+      "sector_horeca_hint": "Pizzeria, frituur, kebab, café",
+      "sector_events": "Events en tickets",
+      "sector_events_hint": "Feesten, tours, workshops",
+      "name_label": "Naam van je zaak *",
+      "name_tip_title": "Naam van je zaak",
+      "name_tip": "Deze naam staat op je facturen, in je e-mails en bovenaan je webshop.",
+      "name_placeholder": "Bv. Pizzeria Bella",
+      "url_label": "Adres van je webshop",
+      "url_tip": "Hier vinden klanten je winkel, meteen en gratis. Een eigen domein kan je later koppelen.",
+      "url_placeholder": "jouw-zaak",
+      "slug_taken": "Dit adres is al in gebruik",
+      "slug_check_failed": "Kon niet nagaan of dit adres vrij is",
+      "slug_free": "{{url}} is nog vrij",
+      "next": "Volgende stap"
     }
   }
 }

@@ -136,6 +136,8 @@ const salesItems: NavItem[] = [
     titleKey: 'navigation.items.event_dashboard',
     url: '/admin/events',
     icon: CalendarDays,
+    // MODULES-1 — events-module: alleen voor winkels die tickets verkopen.
+    featureKey: 'events',
     allowedRoles: ['platform_admin', 'tenant_admin', 'staff'],
     children: [
       { id: 'events-all', titleKey: 'navigation.items.events_all', url: '/admin/events', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },

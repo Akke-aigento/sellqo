@@ -12,6 +12,8 @@ export interface OnboardingData {
   // Step 1: Welcome
   shopName: string;
   shopSlug: string;
+  // MODULES-1: wat de winkel verkoopt (bepaalt de sectormodules)
+  sector?: 'retail' | 'horeca' | 'events';
   // Step 2: Plan Selection (NEW)
   selectedPlanId: string;
   // Step 3: Business Details
@@ -56,6 +58,7 @@ const TOTAL_STEPS = 7;
 const initialData: OnboardingData = {
   shopName: '',
   shopSlug: '',
+  sector: 'retail',
   selectedPlanId: 'free', // Default to free trial
   businessName: '',
   email: '',
@@ -664,6 +667,18 @@ export function useOnboarding() {
           });
         }
         
+        // MODULES-1 — gekozen sector → sectormodule aanzetten (niet-kritiek).
+        const sector = state.data.sector;
+        if (!wasExisting && (sector === 'horeca' || sector === 'events')) {
+          try {
+            const { error: modErr } = await supabase.from('tenants').update({ business_modules: [sector] }).eq('id', tenant.id);
+            if (modErr) console.warn('[Onboarding] kon sectormodule niet zetten:', modErr);
+            else (tenant as { business_modules?: string[] }).business_modules = [sector];
+          } catch (modErr) {
+            console.warn('[Onboarding] kon sectormodule niet zetten:', modErr);
+          }
+        }
+
         // Non-critical follow-up calls - wrapped in try/catch
         try {
           await refreshTenants();

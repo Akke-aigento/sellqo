@@ -65,6 +65,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ProductAddonsCard } from '@/components/admin/storefront/food/ProductAddonsCard';
 import { ProductAllergensCard } from '@/components/admin/storefront/food/ProductAllergensCard';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
+import { useBusinessModules } from '@/hooks/useBusinessModules';
 import {
   Select,
   SelectContent,
@@ -152,6 +153,7 @@ export default function ProductForm() {
   const { t } = useTranslation();
   const { id } = useParams();
   const horeca = useHorecaModule();
+  const eventsModule = useBusinessModules().has('events');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEditing = !!id;
@@ -702,7 +704,7 @@ export default function ProductForm() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-4 md:grid-cols-3">
-                        {(Object.keys(productTypeInfo) as ProductType[]).map((type) => {
+                        {(Object.keys(productTypeInfo) as ProductType[]).filter((type) => type !== 'ticket' || eventsModule || productType === 'ticket').map((type) => {
                           const info = productTypeInfo[type];
                           const isSelected = productType === type;
                           return (

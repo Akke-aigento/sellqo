@@ -4,7 +4,7 @@
 // Producten, extra's en keuken zijn gedeeld. Alleen met de horeca-module.
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Bike, ChefHat, ExternalLink, Globe, Lock, Pizza, QrCode, UtensilsCrossed } from 'lucide-react';
+import { ArrowRight, Bike, ChefHat, ExternalLink, Globe, Pizza, QrCode, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
@@ -19,6 +19,7 @@ import { MenuQrManager } from '@/components/admin/storefront/food/MenuQrManager'
 import { QrModeSettings } from '@/components/admin/storefront/food/QrModeSettings';
 import { QR_MODES, type QrMode } from '@/components/admin/storefront/food/qrModes';
 import { useTranslation } from 'react-i18next';
+import { ModuleOffCard } from '@/components/admin/ModuleOffCard';
 
 const TABS = [
   { id: 'overview', labelKey: 'admin.orderingHub.tab_overview' },
@@ -142,19 +143,7 @@ export default function OrderingHubPage() {
   const tab: Tab = TABS.some((tb) => tb.id === raw) ? (raw as Tab) : 'overview';
   const go = (t: Tab) => setParams((p) => { const n = new URLSearchParams(p); if (t === 'overview') n.delete('tab'); else n.set('tab', t); return n; }, { replace: true });
 
-  if (!horeca) {
-    return (
-      <div className="p-6">
-        <Card className="mx-auto max-w-xl">
-          <CardContent className="space-y-3 py-10 text-center">
-            <Lock className="mx-auto h-8 w-8 text-muted-foreground" />
-            <h1 className="text-xl font-semibold">{t('admin.orderingHub.horeca_module')}</h1>
-            <p className="text-sm text-muted-foreground">{t('admin.orderingHub.afhalen_en_leveren_qr_menu_bestellen')}</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  if (!horeca) return <ModuleOffCard module="horeca" />;
 
   return (
     <div className="space-y-6 p-6">

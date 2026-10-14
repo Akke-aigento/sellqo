@@ -301,7 +301,8 @@
       "social": "Social media",
       "reviews": "Reviews",
       "fulfillment_api": "Fulfilment API",
-      "platform_tools": "Platform tools"
+      "platform_tools": "Platform tools",
+      "modules": "Modules"
     },
     "business": {
       "subtitle": "Manage your store and company information",
@@ -5928,6 +5929,29 @@
       "secties": "Sections",
       "verbergen": "Hide",
       "footer_placeholder": "E.g. Handmade in Leuven since 2024."
+    },
+    "modules": {
+      "title": "Modules for your business",
+      "intro": "SellQo is one core: products, orders, POS and webshop. Switch on what fits your business here. Anything switched off stays out of sight.",
+      "horeca_title": "Hospitality",
+      "horeca_desc": "For pizzerias, chip shops, kebab shops and cafés: online ordering, a QR menu at the table and a kitchen screen.",
+      "horeca_p1": "Pickup and delivery with time slots, delivery zones and a minimum order",
+      "horeca_p2": "QR menu on the premises, with or without ordering at the table",
+      "horeca_p3": "Kitchen screen and kitchen ticket, extras such as toppings and sauces",
+      "horeca_p4": "Allergens per dish and a printable allergen chart",
+      "events_title": "Events & tickets",
+      "events_desc": "Sell tickets for your events: dates, ticket types, capacity and scanning at the door.",
+      "events_p1": "Ticket products with multiple dates and ticket types (e.g. early bird)",
+      "events_p2": "Every ticket gets its own QR code by email",
+      "events_p3": "Check-in at the door with your phone, also for crew without an account",
+      "via_plan": "In your plan",
+      "open": "Open {{name}}",
+      "see_demo": "See the demo",
+      "turned_on": "{{name}} is on",
+      "turned_off": "{{name}} is off",
+      "turn_on": "Switch on {{name}}",
+      "ask_admin": "Ask your shop's administrator to switch on this module.",
+      "save_failed": "Saving failed. Please try again."
     }
   },
   "product_form": {
@@ -6782,6 +6806,30 @@
       "origin_unresolved": "We could not determine where this link should go.",
       "unknown": "Something went wrong while opening this link.",
       "contact_hint": "Ask your contact person for a new link."
+    }
+  },
+  "onboarding": {
+    "welcome": {
+      "title": "Welcome to SellQo!",
+      "subtitle": "We'll set up your shop in a few minutes. First tell us what you sell and what your business is called.",
+      "sector_label": "What do you sell?",
+      "sector_retail": "Products",
+      "sector_retail_hint": "Shop or webshop",
+      "sector_horeca": "Food and drink",
+      "sector_horeca_hint": "Pizzeria, chip shop, kebab, café",
+      "sector_events": "Events and tickets",
+      "sector_events_hint": "Parties, tours, workshops",
+      "name_label": "Business name *",
+      "name_tip_title": "Business name",
+      "name_tip": "This name appears on your invoices, in your emails and at the top of your webshop.",
+      "name_placeholder": "E.g. Pizzeria Bella",
+      "url_label": "Your webshop address",
+      "url_tip": "This is where customers find your shop, right away and for free. You can connect your own domain later.",
+      "url_placeholder": "your-business",
+      "slug_taken": "This address is already taken",
+      "slug_check_failed": "Couldn't check whether this address is available",
+      "slug_free": "{{url}} is available",
+      "next": "Next step"
     }
   }
 }

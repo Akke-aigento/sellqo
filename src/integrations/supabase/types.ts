@@ -18572,6 +18572,7 @@ export type Database = {
       }
       tenants: {
         Row: {
+          business_modules: string[]
           address: string | null
           apply_oss_rules: boolean | null
           auto_generate_invoice: boolean | null
@@ -18686,6 +18687,7 @@ export type Database = {
           whatsapp_shipping_updates: boolean | null
         }
         Insert: {
+          business_modules?: string[]
           address?: string | null
           apply_oss_rules?: boolean | null
           auto_generate_invoice?: boolean | null
@@ -18800,6 +18802,7 @@ export type Database = {
           whatsapp_shipping_updates?: boolean | null
         }
         Update: {
+          business_modules?: string[]
           address?: string | null
           apply_oss_rules?: boolean | null
           auto_generate_invoice?: boolean | null

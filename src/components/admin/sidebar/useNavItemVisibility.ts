@@ -6,6 +6,7 @@ import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { canWithRoles, type Resource } from '@/hooks/useCan';
+import { isBusinessModule, tenantModules } from '@/hooks/useBusinessModules';
 import { WAREHOUSE_ALLOWED_ITEMS, type NavItem } from './sidebarConfig';
 
 /**
@@ -58,12 +59,14 @@ export function useNavItemVisibility() {
       if (isPlatformAdmin && isAdminView) return false;
       // If feature is explicitly granted by admin, show it
       if (isFeatureGranted(item.featureKey)) return false;
+      // MODULES-1: sectormodule die de winkel zelf gekozen heeft (horeca, events)
+      if (isBusinessModule(item.featureKey) && tenantModules(currentTenant).includes(item.featureKey)) return false;
 
       const features = subscription?.pricing_plan?.features;
       if (!features) return true; // No subscription = hide premium features
       return features[item.featureKey as keyof typeof features] !== true;
     },
-    [isPlatformAdmin, isAdminView, isFeatureGranted, subscription],
+    [isPlatformAdmin, isAdminView, isFeatureGranted, subscription, currentTenant],
   );
 
   /** Blokkeert het abonnement dit item? Voor het slotje in de sidebar. */
