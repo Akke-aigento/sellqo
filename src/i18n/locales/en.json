@@ -5059,7 +5059,8 @@
       "winkel_openen": "Open your store",
       "qr_menu_in_de_zaak": "QR menu: in your venue",
       "aan": "On",
-      "uit_zo_snel_mogelijk": "Off (as soon as possible)"
+      "uit_zo_snel_mogelijk": "Off (as soon as possible)",
+      "tab_allergens": "Allergens"
     },
     "kitchen": {
       "col_new": "New",
@@ -5550,7 +5551,19 @@
         "closed_none": "No closing days planned.",
         "option_allergens": "Allergens in {{name}}",
         "option_allergens_count": "Allergens: {{count}}",
-        "also_linked_products": "Also linked to individual products: {{count}}."
+        "also_linked_products": "Also linked to individual products: {{count}}.",
+        "allergenChart": {
+          "title": "Allergen chart",
+          "desc": "All active dishes and extras against the 14 EU allergens. Print it for your premises: allergen information must be available there too.",
+          "print": "Print or save as PDF",
+          "product": "Dish",
+          "other": "Other",
+          "extras_group": "Extras: {{name}}",
+          "empty": "There are no active dishes yet.",
+          "missing": "{{count}} dish(es) have no allergens set. Check that this is correct: on the chart an empty row reads as \"contains no allergens\". You can fill them in on the product.",
+          "updated": "Updated on {{date}}",
+          "print_footer": "● = contains this allergen. Do you have an allergy? Feel free to ask our staff."
+        }
       },
       "schema": {
         "themeGallery": {

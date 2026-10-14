@@ -4822,7 +4822,8 @@
       "winkel_openen": "Shop öffnen",
       "qr_menu_in_de_zaak": "QR-Menü: im Lokal",
       "aan": "An",
-      "uit_zo_snel_mogelijk": "Aus (so schnell wie möglich)"
+      "uit_zo_snel_mogelijk": "Aus (so schnell wie möglich)",
+      "tab_allergens": "Allergene"
     },
     "kitchen": {
       "col_new": "Neu",
@@ -5313,7 +5314,19 @@
         "closed_none": "Keine Schließtage geplant.",
         "option_allergens": "Allergene in {{name}}",
         "option_allergens_count": "Allergene: {{count}}",
-        "also_linked_products": "Auch mit einzelnen Produkten verknüpft: {{count}}."
+        "also_linked_products": "Auch mit einzelnen Produkten verknüpft: {{count}}.",
+        "allergenChart": {
+          "title": "Allergenkarte",
+          "desc": "Alle aktiven Gerichte und Extras mit den 14 EU-Allergenen. Drucken Sie die Karte für Ihr Lokal aus: Dort müssen die Allergeninformationen ebenfalls verfügbar sein.",
+          "print": "Drucken oder als PDF speichern",
+          "product": "Gericht",
+          "other": "Sonstige",
+          "extras_group": "Extras: {{name}}",
+          "empty": "Es gibt noch keine aktiven Gerichte.",
+          "missing": "Bei {{count}} Gericht(en) sind keine Allergene angegeben. Prüfen Sie, ob das stimmt: Auf der Karte liest sich eine leere Zeile wie „enthält keine Allergene“. Sie tragen sie beim Produkt ein.",
+          "updated": "Aktualisiert am {{date}}",
+          "print_footer": "● = enthält dieses Allergen. Haben Sie eine Allergie? Fragen Sie gern unser Personal."
+        }
       },
       "schema": {
         "themeGallery": {

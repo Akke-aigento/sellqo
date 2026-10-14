@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { cn } from '@/lib/utils';
 import { FulfillmentSettings } from '@/components/admin/storefront/food/FulfillmentSettings';
 import { AddonGroupsManager } from '@/components/admin/storefront/food/AddonGroupsManager';
+import { AllergenChart } from '@/components/admin/storefront/food/AllergenChart';
 import { MenuQrManager } from '@/components/admin/storefront/food/MenuQrManager';
 import { QrModeSettings } from '@/components/admin/storefront/food/QrModeSettings';
 import { QR_MODES, type QrMode } from '@/components/admin/storefront/food/qrModes';
@@ -24,6 +25,7 @@ const TABS = [
   { id: 'webshop', labelKey: 'admin.orderingHub.tab_webshop' },
   { id: 'qr', labelKey: 'admin.orderingHub.tab_qr' },
   { id: 'extras', labelKey: 'admin.orderingHub.tab_extras' },
+  { id: 'allergens', labelKey: 'admin.orderingHub.tab_allergens' },
 ] as const;
 type Tab = (typeof TABS)[number]['id'];
 
@@ -178,6 +180,7 @@ export default function OrderingHubPage() {
         {tab === 'webshop' ? <FulfillmentSettings /> : null}
         {tab === 'qr' ? <div className="space-y-6"><QrModeSettings /><MenuQrManager /></div> : null}
         {tab === 'extras' ? <AddonGroupsManager /> : null}
+        {tab === 'allergens' ? <AllergenChart /> : null}
       </div>
     </div>
   );

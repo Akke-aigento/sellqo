@@ -4822,7 +4822,8 @@
       "winkel_openen": "Ouvrir la boutique",
       "qr_menu_in_de_zaak": "Menu QR : sur place",
       "aan": "Activé",
-      "uit_zo_snel_mogelijk": "Désactivé (dès que possible)"
+      "uit_zo_snel_mogelijk": "Désactivé (dès que possible)",
+      "tab_allergens": "Allergènes"
     },
     "kitchen": {
       "col_new": "Nouveau",
@@ -5313,7 +5314,19 @@
         "closed_none": "Aucun jour de fermeture prévu.",
         "option_allergens": "Allergènes dans {{name}}",
         "option_allergens_count": "Allergènes : {{count}}",
-        "also_linked_products": "Aussi associé à des produits individuels : {{count}}."
+        "also_linked_products": "Aussi associé à des produits individuels : {{count}}.",
+        "allergenChart": {
+          "title": "Tableau des allergènes",
+          "desc": "Tous les plats et suppléments actifs face aux 14 allergènes UE. Imprimez-le pour votre établissement : l'information sur les allergènes doit aussi y être disponible.",
+          "print": "Imprimer ou enregistrer en PDF",
+          "product": "Plat",
+          "other": "Autres",
+          "extras_group": "Suppléments : {{name}}",
+          "empty": "Il n'y a pas encore de plats actifs.",
+          "missing": "{{count}} plat(s) n'ont aucun allergène renseigné. Vérifiez que c'est correct : sur le tableau, une ligne vide se lit comme « ne contient aucun allergène ». Vous pouvez les renseigner sur le produit.",
+          "updated": "Mis à jour le {{date}}",
+          "print_footer": "● = contient cet allergène. Vous avez une allergie ? N'hésitez pas à demander à notre personnel."
+        }
       },
       "schema": {
         "themeGallery": {

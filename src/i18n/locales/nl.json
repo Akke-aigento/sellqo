@@ -5178,7 +5178,19 @@
         "closed_none": "Geen sluitingsdagen gepland.",
         "option_allergens": "Allergenen in {{name}}",
         "option_allergens_count": "Allergenen: {{count}}",
-        "also_linked_products": "Ook gekoppeld aan losse producten: {{count}}."
+        "also_linked_products": "Ook gekoppeld aan losse producten: {{count}}.",
+        "allergenChart": {
+          "title": "Allergenenkaart",
+          "desc": "Alle actieve gerechten en extra's tegen de 14 EU-allergenen. Druk hem af voor in de zaak: daar moet de allergeneninformatie ook beschikbaar zijn.",
+          "print": "Afdrukken of opslaan als pdf",
+          "product": "Gerecht",
+          "other": "Overige",
+          "extras_group": "Extra's: {{name}}",
+          "empty": "Er zijn nog geen actieve gerechten.",
+          "missing": "Bij {{count}} gerecht(en) staan geen allergenen. Kijk na of dat klopt: op de kaart lijkt een lege rij op \"bevat geen allergenen\". Je vult ze in bij het product.",
+          "updated": "Bijgewerkt op {{date}}",
+          "print_footer": "● = bevat dit allergeen. Heb je een allergie? Vraag het gerust aan ons personeel."
+        }
       },
       "shopOpenCard": {
         "klanten_kunnen_afrekenen_uit_je_winkel": "Klanten kunnen afrekenen. Uit = je winkel toont je producten, zonder winkelmandje.",
@@ -5397,7 +5409,8 @@
       "groups_empty": "Toppings, sauzen, bijgerechten",
       "horeca_module": "Horeca-module",
       "demo_intro": "Zo ziet het eruit bij een klant, in onze demopizzeria:",
-      "demo_webshop": "webshop"
+      "demo_webshop": "webshop",
+      "tab_allergens": "Allergenen"
     },
     "pos": {
       "pOSKitchenPanel": {
