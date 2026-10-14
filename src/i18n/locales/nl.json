@@ -5363,7 +5363,14 @@
         "weinig": "Weinig",
         "zacht_en_warm_met_afgeronde_vormen_openingsuren_en_bezorging": "Zacht en warm, met afgeronde vormen, openingsuren en bezorging in de buurt.",
         "zodra_je_een_code_invult_vraagt_je_winkel_bezoekers_eerst_to": "Zodra je een code invult, vraagt je winkel bezoekers eerst toestemming voor cookies (verplicht in de EU). Zonder toestemming laden de pixels niet.",
-        "zoekknop_tonen": "Zoekknop tonen"
+        "zoekknop_tonen": "Zoekknop tonen",
+        "agenda": "Agenda",
+        "je_komende_events_en_voorstellingen_op_datum_met_een_knop_na": "Je komende events en voorstellingen op datum, met een knop naar de tickets",
+        "aantal_events": "Aantal events",
+        "concertzaal_theater": "Concertzaal & theater",
+        "voor_concertzalen_theaters_en_cultuurcentra_een_agenda_op_da": "Voor concertzalen, theaters en cultuurcentra: een agenda op datum, stoelen kiezen in het zaalplan en e-tickets.",
+        "festival": "Festival",
+        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Voor festivals en evenementen over meerdere dagen: dagtickets, VIP en camping, met een felle, vrolijke stijl."
       }
     },
     "orderingHub": {

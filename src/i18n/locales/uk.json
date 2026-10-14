@@ -5750,7 +5750,14 @@
         "weinig": "Мало",
         "zacht_en_warm_met_afgeronde_vormen_openingsuren_en_bezorging": "М’яка й тепла, із заокругленими формами, годинами роботи та доставкою поблизу.",
         "zodra_je_een_code_invult_vraagt_je_winkel_bezoekers_eerst_to": "Щойно ви введете код, магазин спершу попросить у відвідувачів згоду на cookie (обов’язково в ЄС). Без згоди пікселі не завантажуються.",
-        "zoekknop_tonen": "Показувати кнопку пошуку"
+        "zoekknop_tonen": "Показувати кнопку пошуку",
+        "agenda": "Афіша",
+        "je_komende_events_en_voorstellingen_op_datum_met_een_knop_na": "Ваші найближчі події та вистави за датою, з кнопкою до квитків",
+        "aantal_events": "Кількість подій",
+        "concertzaal_theater": "Концертний зал і театр",
+        "voor_concertzalen_theaters_en_cultuurcentra_een_agenda_op_da": "Для концертних залів, театрів і культурних центрів: афіша за датами, вибір місць на плані залу та е-квитки.",
+        "festival": "Фестиваль",
+        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Для фестивалів і багатоденних подій: денні квитки, VIP і кемпінг, у яскравому, веселому стилі."
       }
     },
     "allergens": {

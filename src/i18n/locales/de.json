@@ -5499,7 +5499,14 @@
         "weinig": "Wenig",
         "zacht_en_warm_met_afgeronde_vormen_openingsuren_en_bezorging": "Sanft und warm, mit runden Formen, Öffnungszeiten und Lieferung in der Nähe.",
         "zodra_je_een_code_invult_vraagt_je_winkel_bezoekers_eerst_to": "Sobald Sie einen Code eingeben, fragt Ihr Shop Besucher zuerst nach der Cookie-Einwilligung (Pflicht in der EU). Ohne Einwilligung laden die Pixel nicht.",
-        "zoekknop_tonen": "Suchknopf anzeigen"
+        "zoekknop_tonen": "Suchknopf anzeigen",
+        "agenda": "Programm",
+        "je_komende_events_en_voorstellingen_op_datum_met_een_knop_na": "Ihre kommenden Events und Vorstellungen nach Datum, mit einem Button zu den Tickets",
+        "aantal_events": "Anzahl Events",
+        "concertzaal_theater": "Konzertsaal & Theater",
+        "voor_concertzalen_theaters_en_cultuurcentra_een_agenda_op_da": "Für Konzertsäle, Theater und Kulturzentren: ein Programm nach Datum, Platzwahl im Saalplan und E-Tickets.",
+        "festival": "Festival",
+        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Für Festivals und mehrtägige Events: Tagestickets, VIP und Camping, in einem kräftigen, fröhlichen Stil."
       }
     },
     "allergens": {

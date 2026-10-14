@@ -9,7 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, ChevronRight, Eye, EyeOff, ExternalLink, GripVertical, Image, LayoutList, Loader2,
   Mail, Megaphone, MessageSquare, Monitor, Palette, PanelBottom, Play, Plus, Smartphone, Star, Grid3X3, Trash2,
-  BadgeCheck, HelpCircle, Clock, Menu as MenuIcon, ShoppingBag, Activity, Pipette, UtensilsCrossed,
+  BadgeCheck, HelpCircle, Clock, Menu as MenuIcon, ShoppingBag, Activity, Pipette, UtensilsCrossed, CalendarDays,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -68,7 +68,7 @@ const ADDABLE: Array<{ type: HomepageSectionType; icon: typeof Image }> = [
   { type: 'video', icon: Play },
   { type: 'announcement', icon: Megaphone },
 ];
-const SCHEMA_ICONS: Record<string, typeof Image> = { usp_bar: BadgeCheck, faq: HelpCircle, contact_hours: Clock, menu_card: UtensilsCrossed };
+const SCHEMA_ICONS: Record<string, typeof Image> = { usp_bar: BadgeCheck, faq: HelpCircle, contact_hours: Clock, menu_card: UtensilsCrossed, event_agenda: CalendarDays };
 const ICONS: Record<string, typeof Image> = { ...Object.fromEntries(ADDABLE.map((a) => [a.type, a.icon])), ...SCHEMA_ICONS };
 // Vaste sectietypes met een vertaalde naam; schema-secties gebruiken hun schemalabel (schemaText).
 const LABELED = new Set<string>([...ADDABLE.map((a) => a.type), 'external_reviews']);

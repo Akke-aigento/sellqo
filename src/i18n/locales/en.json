@@ -5736,7 +5736,14 @@
         "weinig": "A little",
         "zacht_en_warm_met_afgeronde_vormen_openingsuren_en_bezorging": "Soft and warm, with rounded shapes, opening hours and local delivery.",
         "zodra_je_een_code_invult_vraagt_je_winkel_bezoekers_eerst_to": "As soon as you enter a code, your store first asks visitors for cookie consent (required in the EU). Without consent the pixels don’t load.",
-        "zoekknop_tonen": "Show search button"
+        "zoekknop_tonen": "Show search button",
+        "agenda": "Agenda",
+        "je_komende_events_en_voorstellingen_op_datum_met_een_knop_na": "Your upcoming events and shows by date, with a button to the tickets",
+        "aantal_events": "Number of events",
+        "concertzaal_theater": "Concert hall & theatre",
+        "voor_concertzalen_theaters_en_cultuurcentra_een_agenda_op_da": "For concert halls, theatres and cultural centres: a dated programme, seat selection in the seating plan and e-tickets.",
+        "festival": "Festival",
+        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "For festivals and multi-day events: day tickets, VIP and camping, in a bright, cheerful style."
       }
     },
     "allergens": {

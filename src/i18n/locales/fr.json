@@ -5499,7 +5499,14 @@
         "weinig": "Peu",
         "zacht_en_warm_met_afgeronde_vormen_openingsuren_en_bezorging": "Doux et chaleureux, avec des formes arrondies, des horaires et une livraison locale.",
         "zodra_je_een_code_invult_vraagt_je_winkel_bezoekers_eerst_to": "Dès que vous saisissez un code, votre boutique demande d’abord le consentement aux cookies (obligatoire dans l’UE). Sans consentement, les pixels ne se chargent pas.",
-        "zoekknop_tonen": "Afficher le bouton de recherche"
+        "zoekknop_tonen": "Afficher le bouton de recherche",
+        "agenda": "Agenda",
+        "je_komende_events_en_voorstellingen_op_datum_met_een_knop_na": "Vos prochains événements et spectacles par date, avec un bouton vers les billets",
+        "aantal_events": "Nombre d'événements",
+        "concertzaal_theater": "Salle de concert & théâtre",
+        "voor_concertzalen_theaters_en_cultuurcentra_een_agenda_op_da": "Pour les salles de concert, théâtres et centres culturels : un agenda par date, le choix des sièges dans le plan de salle et des e-billets.",
+        "festival": "Festival",
+        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Pour les festivals et événements sur plusieurs jours : billets journaliers, VIP et camping, dans un style vif et joyeux."
       }
     },
     "allergens": {
