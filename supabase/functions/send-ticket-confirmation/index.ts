@@ -68,7 +68,7 @@ function formatTime(start: string | null, end: string | null): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "FEST-2" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "FEST-2b" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     await authenticateRequest(req);
@@ -100,7 +100,7 @@ serve(async (req) => {
       .from("ticket_instances")
       .select(`
         id, qr_token, seq, attendee_name, attendee_email, status, order_item_id,
-        event_detail_id, seat_label
+        event_detail_id, seat_label, product_id
       `)
       .eq("order_id", order_id)
       .order("seq", { ascending: true });
@@ -138,9 +138,34 @@ serve(async (req) => {
     if (itemIds.length) {
       const { data: its } = await supabase
         .from("order_items")
-        .select("id, product_name")
+        .select("id, product_name, product_id")
         .in("id", itemIds);
       for (const it of its || []) itemMap.set(it.id, it);
+    }
+
+    // FEST-1 — combitickets: per ticket de naam van het onderdeel (dagticket, camping),
+    // met de combi eronder. Gewone tickets houden exact hun huidige titel.
+    const componentName = new Map<string, string>();
+    const bundleProductIds = [...new Set([...itemMap.values()].map((it: { product_id?: string }) => it.product_id).filter(Boolean))] as string[];
+    if (bundleProductIds.length) {
+      const { data: bItems } = await supabase
+        .from("ticket_bundle_items")
+        .select("bundle_product_id")
+        .in("bundle_product_id", bundleProductIds);
+      const bundles = new Set(((bItems || []) as { bundle_product_id: string }[]).map((b) => b.bundle_product_id));
+      const compIds = [...new Set((tickets || [])
+        .filter((tk: { order_item_id: string }) => bundles.has(itemMap.get(tk.order_item_id)?.product_id))
+        .map((tk: { product_id: string }) => tk.product_id))] as string[];
+      if (compIds.length) {
+        const { data: comps } = await supabase.from("products").select("id, name").in("id", compIds);
+        for (const c of (comps || []) as { id: string; name: string }[]) componentName.set(c.id, c.name);
+      }
+      // Alleen tickets die uit een combi komen, krijgen de onderdeelnaam.
+      for (const tk of (tickets || []) as { id: string; order_item_id: string; product_id: string }[]) {
+        if (bundles.has(itemMap.get(tk.order_item_id)?.product_id) && componentName.has(tk.product_id)) {
+          componentName.set(`ticket:${tk.id}`, componentName.get(tk.product_id)!);
+        }
+      }
     }
 
     // ZAAL-2/3 — stoel per ticket (alleen bij een datum met zaalplan).
@@ -223,8 +248,10 @@ serve(async (req) => {
             t(locale, "ticket.ticketLabel", { index: i + 1, total }),
           )}</p>
           <p style="margin:0 0 12px;font-size:17px;font-weight:700;color:${brand.textColor};">${esc(
-            item.product_name || eventName,
-          )}</p>
+            componentName.get(`ticket:${tk.id}`) || item.product_name || eventName,
+          )}${componentName.has(`ticket:${tk.id}`) && item.product_name
+            ? `<span style="display:block;margin-top:2px;font-size:13px;font-weight:400;color:${brand.mutedColor};">${esc(item.product_name)}</span>`
+            : ""}</p>
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 16px;">${rows.join("")}</table>
           <div style="text-align:center;">
             <img src="${qrUrl}" width="220" height="220" alt="QR ${esc(
@@ -272,16 +299,16 @@ serve(async (req) => {
       ${total > 0 ? `<p style="margin:16px 0 0;font-size:14px;line-height:1.6;">${esc(t(locale, "ticket.instructions"))}</p>` : ""}
       ${blocks.join("")}
       ${walletBlock}
-      <p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:${brand.mutedColor};">${esc(
+      ${total > 0 ? `<p style="margin:24px 0 0;font-size:12px;line-height:1.6;color:${brand.mutedColor};">${esc(
         t(locale, "ticket.disclaimer"),
-      )}</p>
+      )}</p>` : ""}
     `;
 
     const { html, text } = renderTenantEmail({
       tenantBrand: brand,
       locale,
       preheader: t(locale, "ticket.instructions"),
-      heading: t(locale, "ticket.heading"),
+      heading: total > 0 ? t(locale, "ticket.heading") : t(locale, "ticket.walletMailHeading", { tokenNamePlural }),
       intro: `<p>${esc(
         total > 0
           ? t(locale, "ticket.intro", {

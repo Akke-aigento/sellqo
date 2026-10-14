@@ -137,6 +137,7 @@ type TicketStrings = {
   walletBody: string;
   walletLink: string;
   walletRefund: string;
+  walletMailHeading: string;
 };
 
 // CYCLE-2: payment-request strings (pay-first subscriptions). Friendly
@@ -270,6 +271,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       walletBody: "Toon deze QR-code aan de bar of foodstand. Er worden munten afgeschreven per drankje of hapje; je saldo zie je altijd op je muntenpagina.",
       walletLink: "Saldo bekijken",
       walletRefund: "{tokenNamePluralCap} over na afloop? Vraag ze terug via dezelfde pagina.",
+      walletMailHeading: "Je {tokenNamePlural} zijn klaar",
     },
     paymentRequest: {
       subject: "Betalingsverzoek {requestNumber} — {tenantName}",
@@ -399,6 +401,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       walletBody: "Show this QR code at the bar or food stand. Tokens are deducted per drink or snack; you can always check your balance on your token page.",
       walletLink: "Check balance",
       walletRefund: "{tokenNamePluralCap} left over afterwards? Request a refund on the same page.",
+      walletMailHeading: "Your {tokenNamePlural} are ready",
     },
     paymentRequest: {
       subject: "Payment request {requestNumber} — {tenantName}",
@@ -528,6 +531,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       walletBody: "Montrez ce QR code au bar ou au stand de nourriture. Les jetons sont débités par boisson ou en-cas ; votre solde est toujours visible sur votre page de jetons.",
       walletLink: "Voir le solde",
       walletRefund: "Il vous reste des {tokenNamePlural} après l'événement ? Demandez leur remboursement sur la même page.",
+      walletMailHeading: "Vos {tokenNamePlural} sont prêts",
     },
     paymentRequest: {
       subject: "Demande de paiement {requestNumber} — {tenantName}",
@@ -657,6 +661,7 @@ export const TENANT_EMAIL_STRINGS: Record<TenantLocale, Strings> = {
       walletBody: "Zeigen Sie diesen QR-Code an der Bar oder am Essensstand. Pro Getränk oder Snack werden Marken abgebucht; Ihr Guthaben sehen Sie jederzeit auf Ihrer Markenseite.",
       walletLink: "Guthaben ansehen",
       walletRefund: "Nach dem Event noch {tokenNamePlural} übrig? Beantragen Sie die Erstattung auf derselben Seite.",
+      walletMailHeading: "Ihre {tokenNamePlural} sind bereit",
     },
     paymentRequest: {
       subject: "Zahlungsaufforderung {requestNumber} — {tenantName}",
