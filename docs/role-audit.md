@@ -17905,3 +17905,52 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
 - **Visuele check in de harness:** een parterre van 8×16 met gangpad en een balkon van 3×12 opgeslagen. Dat gaf 164 stoel-upserts. Mobiel geeft geen horizontale scroll.
 
 **Nog niet:** de koppeling van een zaal aan een datum, stoelen kiezen in de webshop, en stoel op ticket, mail en scanner. Dat volgt in ZAAL-2 en ZAAL-3.
+
+## 2026-10-14 — ZAAL-2: stoelen per datum (koppelen, vasthouden, stoel op ticket)
+
+**Gedeelde-paden-waarschuwing:** raakt storefront-api (cart en checkout) en `ticket_instances`. Alles hangt af van `event_details.venue_id`. Vandaag heeft geen enkele datum een zaal, dus Fonske, VanXcel en Mancini krijgen exact dezelfde antwoorden. Dat wordt nagemeten met md5 vóór en na de deploy.
+
+**Migratie** `20261014120000_zaal_2_event_seats.sql`, strikt additief. Gedraaid via de connector en live nagekeken: de kolom, 2 policies, 5 functies en de trigger. `hold_event_seats` en `release_cart_seats` zijn niet uitvoerbaar voor anon of authenticated.
+- `event_details.venue_id`, met ON DELETE SET NULL.
+- `event_seats`: een kopie van het zaalplan per datum, met per stoel het tickettype (`product_id`) en een status (available / held / sold / blocked).
+  - Velden: `hold_cart_id`, `hold_expires_at`, `order_id`, `ticket_instance_id`.
+  - RLS: admin (tenant_admin of staff) mag lezen en bijwerken. De storefront werkt via service_role.
+- `link_event_venue(event, venue, mapping)`:
+  - koppelt per prijsklasse een product van de datum;
+  - weigert als de datum al tickets heeft (`date_has_tickets`) of als er stoelen verkocht of vastgehouden zijn;
+  - zet de capaciteit van de datum en de `sub_capacity` per tickettype op het aantal stoelen;
+  - `unlink_event_venue` kan alleen zonder lopende of verkochte stoelen.
+- `hold_event_seats(cart, event, seat_ids, minutes)`:
+  - alles of niets, met een advisory lock per datum en maximaal 20 stoelen;
+  - een verlopen hold telt als vrij;
+  - `release_cart_seats` geeft vastgehouden stoelen vrij.
+- Trigger `ticket_instances_assign_seat` (AFTER INSERT): geeft elk nieuw ticket op een datum met zaalplan een stoel en vult `seat_label` in.
+  - Eerst de stoelen van deze order: via `order_id`, of via de cart van dezelfde Stripe-sessie.
+  - Anders de eerste vrije stoel van hetzelfde type, gelogd als `ticket_seat_reassigned`.
+  - Anders geen stoel, gelogd als `ticket_without_seat`.
+  - Een fout in de trigger houdt een betaald ticket nooit tegen (EXCEPTION, met een WARNING).
+  - `issue_tickets_for_order` zelf is niet aangeraakt.
+
+**storefront-api** (stempel `ZAAL-2`):
+- **Nieuwe acties:**
+  - `get_seat_map`: zaal, stoelen met publieke status (available / mine / unavailable) en prijsklassen met prijs (dezelfde early-bird-regels).
+  - `cart_set_seats`: zet de selectie (alles of niets) en bouwt de ticketregels van die datum opnieuw op.
+- **Additief:**
+  - `get_product` geeft `seating: true`, maar alleen voor een datum met zaalplan;
+  - `cart_get` geeft per ticketregel `seats` en `seats_held_until`, maar alleen als er stoelen vastgehouden worden.
+- **Wachters op datums met zaalplan:**
+  - `cart_add_item` en `cart_update_item` geven `SEAT_SELECTION_REQUIRED`;
+  - `cart_remove_item` geeft de stoelen van die regel vrij;
+  - `checkout_complete` controleert of de vastgehouden stoelen gelijk zijn aan de hoeveelheid (anders `SEATS_EXPIRED`) en verlengt de hold met 35 minuten;
+  - `createOrderFromCart` bindt de stoelen aan de order. Bij overschrijving tot de vervaldatum, standaard 7 dagen.
+- **Rooktest:** `seatPublicStatus`, 8 controles.
+
+**Admin:** de kaart "Zaalplan" op de eventpagina, alleen zichtbaar voor winkels met zalen of voor een gekoppelde datum.
+- Zaal kiezen, en per prijsklasse een nieuw of bestaand tickettype kiezen, of "niet verkopen".
+- Overzicht van de stoelen per status, met een minikaart en "x van y verkocht" per type.
+- Ontkoppelen.
+
+**Nog niet:**
+- stoelkeuze in de standaard-webshop (sellqo-storefront);
+- stoel in de ticketmail en de scanner (ZAAL-3);
+- vrijgeven van een stoel bij een geannuleerd ticket (ZAAL-3).

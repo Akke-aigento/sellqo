@@ -654,7 +654,7 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
   if (product.product_type === 'ticket') {
     const { data: events } = await supabase
       .from('event_details')
-      .select('id, event_date, start_time, end_time, meeting_point, location_name, capacity, min_attendees, status, timezone, early_bird_price, early_bird_deadline, early_bird_quantity')
+      .select('id, event_date, start_time, end_time, meeting_point, location_name, capacity, min_attendees, status, timezone, early_bird_price, early_bird_deadline, early_bird_quantity, venue_id')
       .eq('product_id', product.id)
       .eq('tenant_id', tenantId)
       .gte('event_date', eventQueryLowerBound())
@@ -738,6 +738,8 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
         // FASE 3b additief (bestaande sleutels hierboven blijven ongewijzigd):
         product_id: product.id,
         ticket_types: ticketTypes,
+        // ZAAL-2 additief: alleen bij een datum met zaalplan (stoelkeuze via get_seat_map).
+        ...(e.venue_id ? { seating: true } : {}),
       };
     }));
 
@@ -2083,6 +2085,215 @@ async function computeCartTotals(
   };
 }
 
+// ── ZAAL-2 — stoelkeuze voor datums met een zaalplan ────────────────────────
+// Strikt additief: zonder event_details.venue_id verandert er niets. De zware
+// logica (alles-of-niets vasthouden, stoel op ticket) zit in SQL
+// (hold_event_seats, release_cart_seats, trigger assign_event_seat_to_ticket).
+const SEAT_HOLD_MINUTES = 15;
+const SEAT_CHECKOUT_MINUTES = 35;
+
+type SeatStatusRow = { status: string; hold_cart_id: string | null; hold_expires_at: string | null; order_id: string | null; ticket_instance_id: string | null; product_id: string | null };
+
+/** Publieke status van een stoel: vrij, van deze cart, of niet beschikbaar. */
+function seatPublicStatus(s: SeatStatusRow, cartId: string | null, nowMs: number): 'available' | 'mine' | 'unavailable' {
+  if (!s.product_id || s.ticket_instance_id) return 'unavailable';
+  if (s.status === 'available') return 'available';
+  if (s.status === 'held') {
+    const expired = !!s.hold_expires_at && new Date(s.hold_expires_at).getTime() < nowMs;
+    if (expired) return 'available';
+    if (!s.order_id && cartId && s.hold_cart_id === cartId) return 'mine';
+  }
+  return 'unavailable';
+}
+
+async function seatedVenueId(supabase: SupabaseLike, tenantId: string, eventDetailId: string): Promise<string | null> {
+  const { data } = await supabase.from('event_details').select('venue_id').eq('id', eventDetailId).eq('tenant_id', tenantId).maybeSingle();
+  return (data?.venue_id as string | null) ?? null;
+}
+
+/** Prijs en verkoopstatus per tickettype-product van één datum (zelfde regels als get_product). */
+async function seatProductPricing(supabase: SupabaseLike, tenantId: string, ev: DbRow, productIds: string[]) {
+  const out = new Map<string, { name: string | null; price: number; on_sale: boolean }>();
+  if (!productIds.length) return out;
+  const [{ data: products }, { data: types }, { data: cnt }] = await Promise.all([
+    supabase.from('products').select('id, name, price, is_active').eq('tenant_id', tenantId).in('id', productIds),
+    supabase.from('event_ticket_types').select('product_id, is_active, sales_start, sales_end, early_bird_price').eq('tenant_id', tenantId).eq('event_detail_id', ev.id).in('product_id', productIds),
+    supabase.rpc('get_event_signup_count', { p_event_detail_id: ev.id }),
+  ]);
+  const sold = typeof cnt === 'number' ? cnt : 0;
+  const nowMs = Date.now();
+  for (const pid of productIds) {
+    const p = (products || []).find((x: DbRow) => x.id === pid);
+    const tt = (types || []).find((x: DbRow) => x.product_id === pid);
+    if (!p) continue;
+    const typeEb = ev.product_id && ev.product_id !== pid ? (tt?.early_bird_price ?? null) : null;
+    const price = resolveEventPrice(earlyBirdForType(ev, pid, typeEb), Number(p.price) || 0, sold, new Date()).price;
+    const startOk = !tt?.sales_start || nowMs >= new Date(tt.sales_start).getTime();
+    const endOk = !tt?.sales_end || nowMs <= new Date(tt.sales_end).getTime();
+    out.set(pid, { name: p.name ?? null, price, on_sale: !!p.is_active && !!tt && tt.is_active !== false && startOk && endOk });
+  }
+  return out;
+}
+
+async function loadSeatedEvent(supabase: SupabaseLike, tenantId: string, eventDetailId: string) {
+  if (!eventDetailId) throw new Error('event_detail_id is required');
+  const { data: ev } = await supabase
+    .from('event_details').select('id, product_id, tenant_id, status, venue_id, early_bird_price, early_bird_deadline, early_bird_quantity')
+    .eq('id', eventDetailId).eq('tenant_id', tenantId).maybeSingle();
+  if (!ev) throw new Error(JSON.stringify({ code: 'EVENT_DATE_INVALID', message: 'Deze datum bestaat niet' }));
+  if (!ev.venue_id) throw new Error(JSON.stringify({ code: 'SEATING_NOT_AVAILABLE', message: 'Deze datum heeft geen zaalplan' }));
+  return ev;
+}
+
+async function getSeatMap(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const ev = await loadSeatedEvent(supabase, tenantId, params.event_detail_id as string);
+  const cartId = (params.cart_id as string | undefined) || null;
+  const [{ data: venue }, { data: seats }] = await Promise.all([
+    supabase.from('venues').select('name, stage_label').eq('id', ev.venue_id).eq('tenant_id', tenantId).maybeSingle(),
+    supabase.from('event_seats')
+      .select('id, section_name, row_label, seat_number, x, y, kind, class_name, color, product_id, status, hold_cart_id, hold_expires_at, order_id, ticket_instance_id')
+      .eq('event_detail_id', ev.id).eq('tenant_id', tenantId).limit(10000),
+  ]);
+  const rows = (seats || []) as DbRow[];
+  const productIds = [...new Set(rows.map((r) => r.product_id).filter(Boolean))] as string[];
+  const pricing = await seatProductPricing(supabase, tenantId, ev, productIds);
+  const open = ['scheduled', 'confirmed'].includes(ev.status);
+  const nowMs = Date.now();
+  let mineExpires: string | null = null;
+  const outSeats = rows.map((r) => {
+    let status = seatPublicStatus(r, cartId, nowMs);
+    const pr = r.product_id ? pricing.get(r.product_id) : undefined;
+    if (status === 'available' && (!open || !pr?.on_sale)) status = 'unavailable';
+    if (status === 'mine' && r.hold_expires_at && (!mineExpires || r.hold_expires_at < mineExpires)) mineExpires = r.hold_expires_at;
+    return { id: r.id, section: r.section_name, row: r.row_label, number: r.seat_number, x: r.x, y: r.y, kind: r.kind, product_id: r.product_id, status };
+  });
+  const classes = productIds.map((pid) => {
+    const first = rows.find((r) => r.product_id === pid);
+    const pr = pricing.get(pid);
+    return {
+      product_id: pid,
+      name: pr?.name ?? first?.class_name ?? null,
+      class_name: first?.class_name ?? null,
+      color: first?.color ?? '#94A3B8',
+      price: pr?.price ?? null,
+      is_on_sale: open && !!pr?.on_sale,
+      available: outSeats.filter((x) => x.product_id === pid && x.status === 'available').length,
+    };
+  });
+  return {
+    event_detail_id: ev.id,
+    venue: { name: venue?.name ?? null, stage_label: venue?.stage_label ?? 'PODIUM' },
+    seats: outSeats,
+    classes,
+    max_seats_per_order: 20,
+    hold_minutes: SEAT_HOLD_MINUTES,
+    held_until: mineExpires,
+  };
+}
+
+/** Zet de stoelkeuze van een cart voor één datum (alles of niets) en bouwt de ticketregels opnieuw op. */
+async function cartSetSeats(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const cartId = params.cart_id as string;
+  if (!cartId) throw new Error('cart_id is required');
+  const ev = await loadSeatedEvent(supabase, tenantId, params.event_detail_id as string);
+  if (!['scheduled', 'confirmed'].includes(ev.status)) {
+    throw new Error(JSON.stringify({ code: 'EVENT_DATE_UNAVAILABLE', message: 'Deze datum is niet meer beschikbaar' }));
+  }
+  const raw = Array.isArray(params.seat_ids) ? (params.seat_ids as unknown[]) : [];
+  const seatIds = [...new Set(raw.filter((x): x is string => typeof x === 'string' && /^[0-9a-f-]{36}$/i.test(x)))];
+  if (seatIds.length !== raw.length) throw new Error(JSON.stringify({ code: 'VALIDATION_ERROR', message: 'seat_ids moet een lijst unieke stoel-id\'s zijn' }));
+  if (seatIds.length > 20) throw new Error(JSON.stringify({ code: 'TOO_MANY_SEATS', message: 'Maximaal 20 plaatsen per bestelling' }));
+
+  const { data: cart } = await supabase.from('storefront_carts').select('id, checkout_status')
+    .eq('id', cartId).eq('tenant_id', tenantId).gt('expires_at', new Date().toISOString()).maybeSingle();
+  if (!cart) throw new Error(JSON.stringify({ code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' }));
+  if (cart.checkout_status === 'converted') throw new Error(JSON.stringify({ code: 'ORDER_ALREADY_PAID', message: 'Deze bestelling is al afgerond' }));
+
+  // Tickettypes van de gevraagde stoelen moeten in verkoop zijn, vóór er iets vastgezet wordt.
+  let seatRows: DbRow[] = [];
+  if (seatIds.length) {
+    const { data } = await supabase.from('event_seats').select('id, product_id').eq('event_detail_id', ev.id).eq('tenant_id', tenantId).in('id', seatIds);
+    seatRows = data || [];
+  }
+  const productIds = [...new Set(seatRows.map((r) => r.product_id).filter(Boolean))] as string[];
+  const pricing = await seatProductPricing(supabase, tenantId, ev, productIds);
+  if (productIds.some((pid) => !pricing.get(pid)?.on_sale)) {
+    throw new Error(JSON.stringify({ code: 'TICKET_TYPE_NOT_ON_SALE', message: 'De verkoop voor deze plaatsen is niet open' }));
+  }
+
+  const { data: hold, error: holdErr } = await supabase.rpc('hold_event_seats', {
+    p_cart_id: cartId, p_event_detail_id: ev.id, p_seat_ids: seatIds, p_minutes: SEAT_HOLD_MINUTES,
+  });
+  if (holdErr) throw holdErr;
+  if (!hold?.ok) {
+    if (hold?.reason === 'too_many_seats') throw new Error(JSON.stringify({ code: 'TOO_MANY_SEATS', message: 'Maximaal 20 plaatsen per bestelling' }));
+    throw new Error(JSON.stringify({ code: 'SEATS_UNAVAILABLE', message: 'Een of meer plaatsen zijn net door iemand anders gekozen', seat_ids: hold?.seat_ids ?? [] }));
+  }
+
+  // Ticketregels voor deze datum opnieuw opbouwen: één regel per tickettype.
+  const perProduct = new Map<string, number>();
+  for (const h of (hold.held || []) as DbRow[]) perProduct.set(h.product_id, (perProduct.get(h.product_id) || 0) + 1);
+  const { error: delErr } = await supabase.from('storefront_cart_items').delete().eq('cart_id', cartId).eq('event_detail_id', ev.id);
+  if (delErr) throw delErr;
+  const rowsToInsert = [...perProduct.entries()].map(([pid, qty]) => ({
+    cart_id: cartId, product_id: pid, quantity: qty, unit_price: pricing.get(pid)?.price ?? 0, event_detail_id: ev.id,
+  }));
+  if (rowsToInsert.length) {
+    const { error: insErr } = await supabase.from('storefront_cart_items').insert(rowsToInsert);
+    if (insErr) throw insErr;
+  }
+  await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId);
+  return cartGet(supabase, tenantId, { cart_id: cartId });
+}
+
+/** Stoelen per ticketregel voor cart_get (enkel als de cart ticketregels heeft). */
+async function cartHeldSeats(supabase: SupabaseLike, cartId: string, hasTickets: boolean) {
+  const out = new Map<string, { seats: Array<{ id: string; section: string; row: string; number: string }>; seats_held_until: string | null }>();
+  if (!hasTickets) return out;
+  const { data } = await supabase.from('event_seats')
+    .select('id, event_detail_id, product_id, section_name, row_label, seat_number, hold_expires_at, y, x')
+    .eq('hold_cart_id', cartId).eq('status', 'held').is('order_id', null);
+  const rows = ((data || []) as DbRow[]).sort((a, b) => a.y - b.y || a.x - b.x);
+  for (const r of rows) {
+    const key = `${r.event_detail_id}|${r.product_id}`;
+    const cur = out.get(key) ?? { seats: [], seats_held_until: null };
+    cur.seats.push({ id: r.id, section: r.section_name, row: r.row_label, number: r.seat_number });
+    if (r.hold_expires_at && (!cur.seats_held_until || r.hold_expires_at < cur.seats_held_until)) cur.seats_held_until = r.hold_expires_at;
+    out.set(key, cur);
+  }
+  return out;
+}
+
+/** Stoelpoort voor checkout_complete. Geeft een foutobject terug, of null als alles klopt. */
+async function checkCartSeats(supabase: SupabaseLike, tenantId: string, cartId: string, items: DbRow[]) {
+  const evIds = [...new Set(items.filter((i) => i.event_detail_id).map((i) => i.event_detail_id as string))];
+  if (!evIds.length) return null;
+  const { data: seated } = await supabase.from('event_details').select('id').eq('tenant_id', tenantId).in('id', evIds).not('venue_id', 'is', null);
+  const seatedIds = new Set(((seated || []) as DbRow[]).map((e) => e.id as string));
+  if (!seatedIds.size) return null;
+  const { data: held } = await supabase.from('event_seats')
+    .select('id, event_detail_id, product_id, hold_expires_at')
+    .eq('hold_cart_id', cartId).eq('status', 'held').is('order_id', null).in('event_detail_id', [...seatedIds]);
+  const nowMs = Date.now();
+  const count = new Map<string, number>();
+  for (const h of (held || []) as DbRow[]) {
+    if (h.hold_expires_at && new Date(h.hold_expires_at).getTime() < nowMs) continue;
+    const k = `${h.event_detail_id}|${h.product_id}`;
+    count.set(k, (count.get(k) || 0) + 1);
+  }
+  for (const it of items) {
+    if (!it.event_detail_id || !seatedIds.has(it.event_detail_id)) continue;
+    if ((count.get(`${it.event_detail_id}|${it.product_id}`) || 0) !== Number(it.quantity)) {
+      return { code: 'SEATS_EXPIRED', message: 'Je gekozen plaatsen zijn niet meer vastgehouden. Kies ze opnieuw.', event_detail_id: it.event_detail_id };
+    }
+  }
+  const { error } = await supabase.from('event_seats')
+    .update({ hold_expires_at: new Date(nowMs + SEAT_CHECKOUT_MINUTES * 60 * 1000).toISOString(), updated_at: new Date().toISOString() })
+    .eq('hold_cart_id', cartId).eq('status', 'held').is('order_id', null);
+  if (error) console.warn('[checkCartSeats] extend failed:', error.message);
+  return null;
+}
+
 async function cartCreate(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const sessionId = params.session_id as string;
   const currency = (params.currency as string) || 'EUR';
@@ -2144,6 +2355,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
     .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, track_inventory, stock), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
   const evLabels = await eventLabels(supabase, tenantId, (items || []).map((i: DbRow) => i.event_detail_id as string | null));
+  const heldSeats = await cartHeldSeats(supabase, cart.id, (items || []).some((i: DbRow) => i.event_detail_id));
 
   // Fetch variant info for items that have variant_id
   const variantIds = (items || []).filter((i: any) => i.variant_id).map((i: any) => i.variant_id);
@@ -2167,6 +2379,7 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
       ...(Array.isArray(item.addons) && item.addons.length ? { addons: item.addons } : {}),
       ...(item.event_detail_id && evLabels.has(item.event_detail_id) ? { event: evLabels.get(item.event_detail_id) } : {}),
+      ...(item.event_detail_id && heldSeats.has(`${item.event_detail_id}|${item.product_id}`) ? heldSeats.get(`${item.event_detail_id}|${item.product_id}`) : {}),
       line_total: item.quantity * effectivePrice,
     };
   });
@@ -2212,7 +2425,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   // TICKET-1 fase 3.5: optionele event-datum valideren (moet bij dit product + deze tenant horen)
   if (eventDetailId) {
     let { data: eventDetail } = await supabase
-      .from('event_details').select('id, product_id, tenant_id, status, early_bird_price, early_bird_deadline, early_bird_quantity')
+      .from('event_details').select('id, product_id, tenant_id, status, early_bird_price, early_bird_deadline, early_bird_quantity, venue_id')
       .eq('id', eventDetailId).eq('product_id', productId).eq('tenant_id', tenantId).maybeSingle();
     // FASE 3a — additief: een event kan meerdere tickettype-producten verkopen.
     // Hoort het product niet bij het host-product, dan is een actieve
@@ -2224,7 +2437,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
         .eq('tenant_id', tenantId).eq('is_active', true).maybeSingle();
       if (linked) {
         const { data: ed } = await supabase
-          .from('event_details').select('id, product_id, tenant_id, status, early_bird_price, early_bird_deadline, early_bird_quantity')
+          .from('event_details').select('id, product_id, tenant_id, status, early_bird_price, early_bird_deadline, early_bird_quantity, venue_id')
           .eq('id', eventDetailId).eq('tenant_id', tenantId).maybeSingle();
         eventDetail = ed;
       }
@@ -2234,6 +2447,10 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     }
     if (!['scheduled', 'confirmed'].includes(eventDetail.status)) {
       throw new Error(JSON.stringify({ code: 'EVENT_DATE_UNAVAILABLE', message: 'Deze datum is niet meer beschikbaar' }));
+    }
+    // ZAAL-2 — datum met zaalplan: tickets enkel via cart_set_seats (met stoel).
+    if (eventDetail.venue_id) {
+      throw new Error(JSON.stringify({ code: 'SEAT_SELECTION_REQUIRED', message: 'Kies eerst je plaatsen in het zaalplan' }));
     }
 
     // EARLY-BIRD fase B: prijs op de cart-regel volgt de early-bird-regel.
@@ -2369,8 +2586,11 @@ async function cartUpdateItem(supabase: any, tenantId: string, params: Record<st
   if (!itemId) throw new Error('item_id is required');
   if (quantity < 1) throw new Error('quantity must be at least 1');
 
-  const { data: item } = await supabase.from('storefront_cart_items').select('id, cart_id, product_id, variant_id').eq('id', itemId).single();
+  const { data: item } = await supabase.from('storefront_cart_items').select('id, cart_id, product_id, variant_id, event_detail_id').eq('id', itemId).single();
   if (!item) throw new Error('Cart item not found');
+  if (item.event_detail_id && await seatedVenueId(supabase, tenantId, item.event_detail_id)) {
+    throw new Error(JSON.stringify({ code: 'SEAT_SELECTION_REQUIRED', message: 'Pas je plaatsen aan in het zaalplan' }));
+  }
 
   // Stock check — use variant stock if variant_id present, otherwise product stock
   let availableStock: number | null = null;
@@ -2402,11 +2622,16 @@ async function cartRemoveItem(supabase: any, tenantId: string, params: Record<st
   const itemId = params.item_id as string;
   if (!itemId) throw new Error('item_id is required');
 
-  const { data: item } = await supabase.from('storefront_cart_items').select('cart_id').eq('id', itemId).single();
+  const { data: item } = await supabase.from('storefront_cart_items').select('cart_id, product_id, event_detail_id').eq('id', itemId).single();
   if (!item) throw new Error('Cart item not found');
 
   const { error } = await supabase.from('storefront_cart_items').delete().eq('id', itemId);
   if (error) throw error;
+  // ZAAL-2 — vastgehouden stoelen van deze regel vrijgeven (no-op zonder zaalplan).
+  if (item.event_detail_id) {
+    const { error: relErr } = await supabase.rpc('release_cart_seats', { p_cart_id: item.cart_id, p_event_detail_id: item.event_detail_id, p_product_id: item.product_id });
+    if (relErr) console.warn('release_cart_seats failed:', relErr.message);
+  }
   await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', item.cart_id);
   return cartGet(supabase, tenantId, { cart_id: item.cart_id });
 }
@@ -3048,6 +3273,17 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
   const { error: itemsError } = await supabase.from('order_items').insert(orderItems);
   if (itemsError) throw itemsError;
 
+  // ZAAL-2 — vastgehouden stoelen aan de order binden, zodat de ticketuitgifte ze
+  // terugvindt. Vasthouden tot de order verloopt (overschrijving: 7 dagen).
+  if (orderItems.some((i: DbRow) => i.event_detail_id)) {
+    const { error: bindErr } = await supabase.from('event_seats').update({
+      order_id: order.id,
+      hold_expires_at: expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      updated_at: new Date().toISOString(),
+    }).eq('hold_cart_id', cart.id).eq('status', 'held').is('order_id', null);
+    if (bindErr) console.warn('[createOrderFromCart] seat bind failed:', bindErr.message);
+  }
+
   // Mark cart as converted
   await supabase.from('storefront_carts').update({
     checkout_status: 'converted',
@@ -3391,6 +3627,12 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       };
     }
   }
+
+  // ZAAL-2 — stoelpoort: elke ticketregel op een datum met zaalplan heeft nog
+  // exact zoveel geldige stoelen vast als de hoeveelheid. Daarna 35 min verlengen
+  // zodat de stoelen de betaling overleven.
+  const seatGate = await checkCartSeats(supabase, tenantId, cartId, cart.cartItems as DbRow[]);
+  if (seatGate) return { success: false, error: seatGate };
 
   // B2B-2b — tenant kan zakelijke orders zonder geldig btw-nummer blokkeren.
   const vatCtx = await resolveCartVatContext(supabase, tenantId, cart);
@@ -4697,7 +4939,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'EB-TYPES-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'ZAAL-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -4786,6 +5028,9 @@ serve(async (req) => {
       case 'cart_add_item': result = await cartAddItem(supabase, tenant_id, params); break;
       case 'cart_update_item': result = await cartUpdateItem(supabase, tenant_id, params); break;
       case 'cart_remove_item': result = await cartRemoveItem(supabase, tenant_id, params); break;
+      // ZAAL-2 — stoelkeuze (alleen datums met zaalplan)
+      case 'get_seat_map': result = await getSeatMap(supabase, tenant_id, params); break;
+      case 'cart_set_seats': result = await cartSetSeats(supabase, tenant_id, params); break;
       case 'cart_apply_discount': result = await cartApplyDiscount(supabase, tenant_id, params); break;
       case 'cart_remove_discount': result = await cartRemoveDiscount(supabase, tenant_id, params); break;
       // Checkout actions (new stateful flow)

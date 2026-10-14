@@ -33,6 +33,7 @@ import { EventInfoCard } from '@/components/admin/events/EventInfoCard';
 import { ProductEventDatesTab } from '@/components/admin/products/ProductEventDatesTab';
 import { EventCardActions } from '@/components/admin/events/EventCardActions';
 import { useEventProduct, useSaveTicketType, type TicketTypeInput } from '@/hooks/useEventWorkspace';
+import { EventSeatingCard } from '@/components/admin/events/EventSeatingCard';
 import {
   useToggleTicketTypeActive, useDeleteTicketType, type ReentryPolicy,
 } from '@/hooks/useEventTicketTypes';
@@ -685,6 +686,13 @@ export default function EventDetail() {
               }
             />
           </div>
+
+          <EventSeatingCard
+            eventId={event.id}
+            mainProductId={event.product_id}
+            ticketTypes={ticketTypes.map((tt) => ({ product_id: tt.product_id, name: tt.name, price: tt.price }))}
+            sold={sold}
+          />
 
           <Card>
             <CardHeader className="pb-2 flex-row items-center justify-between gap-2 space-y-0">

@@ -68,6 +68,72 @@ export type Database = {
         }
         Relationships: []
       }
+      event_seats: {
+        Row: {
+          id: string
+          tenant_id: string
+          event_detail_id: string
+          venue_seat_id: string | null
+          section_name: string
+          row_label: string
+          seat_number: string
+          x: number
+          y: number
+          kind: string
+          class_name: string | null
+          color: string
+          product_id: string | null
+          status: string
+          hold_cart_id: string | null
+          hold_expires_at: string | null
+          order_id: string | null
+          ticket_instance_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id: string
+          event_detail_id: string
+          venue_seat_id?: string | null
+          section_name: string
+          row_label: string
+          seat_number: string
+          x: number
+          y: number
+          kind?: string
+          class_name?: string | null
+          color?: string
+          product_id?: string | null
+          status?: string
+          hold_cart_id?: string | null
+          hold_expires_at?: string | null
+          order_id?: string | null
+          ticket_instance_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string
+          event_detail_id?: string
+          venue_seat_id?: string | null
+          section_name?: string
+          row_label?: string
+          seat_number?: string
+          x?: number
+          y?: number
+          kind?: string
+          class_name?: string | null
+          color?: string
+          product_id?: string | null
+          status?: string
+          hold_cart_id?: string | null
+          hold_expires_at?: string | null
+          order_id?: string | null
+          ticket_instance_id?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       venue_price_classes: {
         Row: {
           id: string
@@ -6477,6 +6543,7 @@ export type Database = {
           early_bird_deadline: string | null
           early_bird_price: number | null
           early_bird_quantity: number | null
+          venue_id: string | null
           end_time: string | null
           event_date: string
           event_group_id: string | null
@@ -6499,6 +6566,7 @@ export type Database = {
           early_bird_deadline?: string | null
           early_bird_price?: number | null
           early_bird_quantity?: number | null
+          venue_id?: string | null
           end_time?: string | null
           event_date: string
           event_group_id?: string | null
@@ -6521,6 +6589,7 @@ export type Database = {
           early_bird_deadline?: string | null
           early_bird_price?: number | null
           early_bird_quantity?: number | null
+          venue_id?: string | null
           end_time?: string | null
           event_date?: string
           event_group_id?: string | null
@@ -20750,6 +20819,14 @@ export type Database = {
       }
     }
     Functions: {
+      link_event_venue: {
+        Args: { p_event_detail_id: string; p_venue_id: string; p_mapping: Json }
+        Returns: Json
+      }
+      unlink_event_venue: {
+        Args: { p_event_detail_id: string }
+        Returns: Json
+      }
       add_ai_credits: {
         Args: { p_credits: number; p_tenant_id: string }
         Returns: undefined

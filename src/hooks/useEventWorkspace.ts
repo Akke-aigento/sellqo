@@ -117,7 +117,7 @@ export function useSaveTicketType(eventId: string | undefined, mainProductId: st
         const { error } = await supabase.from('event_ticket_types').update(typeFields as never)
           .eq('id', input.existing.id).eq('tenant_id', tenantId);
         if (error) throw error;
-        return;
+        return input.existing.product_id;
       }
 
       // Nieuw type = nieuw, verborgen ticketproduct.
@@ -158,6 +158,7 @@ export function useSaveTicketType(eventId: string | undefined, mainProductId: st
         await supabase.from('products').delete().eq('id', productId).eq('tenant_id', tenantId);
         throw error;
       }
+      return productId;
     },
     onSuccess: invalidate,
   });

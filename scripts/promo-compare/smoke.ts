@@ -207,5 +207,20 @@ await check('early bird per tickettype (EB-TYPES-1)', async () => {
   assert(S.resolveEventPrice(S.earlyBirdForType(over, 'vip', 32), 40, 0, new Date()).price === 40, 'na de periode: gewone prijs');
 });
 
+await check('stoelstatus (ZAAL-2)', async () => {
+  const now = Date.now();
+  const base = { status: 'available', hold_cart_id: null, hold_expires_at: null, order_id: null, ticket_instance_id: null, product_id: 'p' };
+  const later = new Date(now + 60_000).toISOString();
+  const earlier = new Date(now - 60_000).toISOString();
+  assert(S.seatPublicStatus(base, null, now) === 'available', 'vrije stoel');
+  assert(S.seatPublicStatus({ ...base, product_id: null }, null, now) === 'unavailable', 'stoel zonder tickettype');
+  assert(S.seatPublicStatus({ ...base, status: 'blocked' }, null, now) === 'unavailable', 'niet te koop');
+  assert(S.seatPublicStatus({ ...base, status: 'held', hold_cart_id: 'c1', hold_expires_at: later }, 'c1', now) === 'mine', 'eigen vastgehouden stoel');
+  assert(S.seatPublicStatus({ ...base, status: 'held', hold_cart_id: 'c2', hold_expires_at: later }, 'c1', now) === 'unavailable', 'stoel van een ander');
+  assert(S.seatPublicStatus({ ...base, status: 'held', hold_cart_id: 'c2', hold_expires_at: earlier }, 'c1', now) === 'available', 'verlopen hold is weer vrij');
+  assert(S.seatPublicStatus({ ...base, status: 'held', hold_cart_id: 'c1', hold_expires_at: later, order_id: 'o1' }, 'c1', now) === 'unavailable', 'stoel van een lopende order');
+  assert(S.seatPublicStatus({ ...base, status: 'sold', ticket_instance_id: 't' }, 'c1', now) === 'unavailable', 'verkocht');
+});
+
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }
 console.log('Rooktest storefront-api groen.');
