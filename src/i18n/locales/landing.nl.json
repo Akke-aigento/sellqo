@@ -9,7 +9,8 @@
       "start": "Gratis starten",
       "languageSelect": "Taal kiezen",
       "horeca": "Horeca",
-      "events": "Events"
+      "events": "Events",
+      "examples": "Voorbeelden"
     },
     "hero": {
       "title1": "Jouw zaak.",
@@ -538,7 +539,8 @@
       "common": {
         "cta_start": "Start 14 dagen gratis",
         "how_title": "Zo werkt het",
-        "final_text": "14 dagen gratis, geen kredietkaart nodig. Vragen? Je krijgt antwoord van een mens, niet van een chatbot."
+        "final_text": "14 dagen gratis, geen kredietkaart nodig. Vragen? Je krijgt antwoord van een mens, niet van een chatbot.",
+        "demo_all": "Alle voorbeelden"
       },
       "horeca": {
         "meta_title": "SellQo Horeca — je eigen bestelsite, QR-menu en keukenscherm",
@@ -591,7 +593,8 @@
         "q4_a": "Ja: wie eten online verkoopt, moet de allergenen tonen vóór de klant bestelt (EU-verordening 1169/2011). SellQo toont ze per gerecht en per extra, en maakt een allergenenkaart die je in de zaak kan ophangen.",
         "q5": "Werkt het ook voor wie in de zaak eet?",
         "q5_a": "Ja. Elke tafel krijgt een QR-code. Gasten bekijken de kaart of bestellen aan tafel, en de bestelling komt op hetzelfde keukenscherm als de webshop en de kassa.",
-        "final_title": "Klaar om je eigen bestelsite te openen?"
+        "final_title": "Klaar om je eigen bestelsite te openen?",
+        "demo_bar": "Bekijk de demo van een bar"
       },
       "events": {
         "meta_title": "SellQo Events — tickets verkopen en inchecken met je gsm",
@@ -633,7 +636,7 @@
         "s3_title": "Scan aan de deur",
         "s3_text": "Met je gsm of die van je crew. Je ziet live wie er binnen is.",
         "demo_title": "Zie het in actie",
-        "demo_text": "The Fonske Crawl in Leuven verkoopt zijn tickets met SellQo. Kijk hoe dat er voor een bezoeker uitziet.",
+        "demo_text": "Kies zelf een stoel in een demo-concertzaal, bekijk een festival met dagtickets en VIP, of zie hoe The Fonske Crawl in Leuven zijn tickets met SellQo verkoopt.",
         "q1": "Wat kost SellQo voor events?",
         "q1_a": "Met Events Flex betaal je niets per maand en €0,49 per betaald ticket. Dat wordt automatisch afgehouden bij de online betaling; gratis tickets kosten niets. Verkoop je het hele jaar veel tickets, dan is Starter (vaste maandprijs, geen kost per ticket) voordeliger. Stripe rekent daarnaast zijn gewone betaalkosten.",
         "q2": "Kan ik meerdere datums en tickettypes aanbieden?",
@@ -642,7 +645,9 @@
         "q3_a": "Je scant de QR-code met je gsm in SellQo. Je deurploeg kan dat ook, met een scanlink zonder eigen account. Een ticket dat al gescand is, wordt meteen herkend.",
         "q4": "Kan ik tickets op mijn eigen website verkopen?",
         "q4_a": "Ja. Je verkoopt ze in je SellQo-winkel, of je eigen website haalt ze op via de SellQo-API, zoals bij The Fonske Crawl.",
-        "final_title": "Klaar voor je volgende event?"
+        "final_title": "Klaar voor je volgende event?",
+        "demo_seats": "Kies een stoel in de demo-concertzaal",
+        "demo_festival": "Bekijk de demo van een festival"
       }
     },
     "sectors": {
@@ -787,6 +792,56 @@
       "loveke_uses": "Catalogus staat in SellQo, de webshop komt eraan.",
       "fonske_what": "Pub crawl in Leuven",
       "fonske_uses": "Tickets met datums en tickettypes, en QR-tickets per mail."
+    },
+    "examples": {
+      "meta_title": "Voorbeelden: echte SellQo-winkels om uit te proberen | SellQo",
+      "meta_desc": "Elf voorbeeldwinkels op SellQo: webshops, horeca en events, elk in een ander thema. Klik rond en bestel gerust, er wordt niets aangerekend.",
+      "title": "Klik rond in een echte SellQo-winkel",
+      "subtitle": "Elf voorbeeldwinkels, elk in een ander thema. Bestel gerust iets: je ziet precies wat jouw klanten zien, en er wordt niets aangerekend.",
+      "filter_label": "Toon voorbeelden voor",
+      "filter_all": "Alles",
+      "filter_shop": "Webshops",
+      "filter_horeca": "Horeca",
+      "filter_events": "Events",
+      "sector_shop": "Webshop",
+      "sector_horeca": "Horeca",
+      "sector_events": "Events",
+      "open_shop": "Open de winkel",
+      "extra_table": "Bestel aan tafel 4",
+      "extra_seats": "Kies je stoel",
+      "extra_days": "Bekijk de tickets",
+      "theme_line": "Thema: {{theme}}",
+      "theme_concertzaal": "Concertzaal & theater",
+      "theme_festival": "Festival",
+      "theme_bar": "Bar & café",
+      "theme_bistro": "Restaurant & bistro",
+      "theme_restaurant": "Restaurant & afhaal",
+      "theme_kleding": "Kledingzaak",
+      "theme_tech": "Tech & gadgets",
+      "theme_beauty": "Beauty & verzorging",
+      "theme_wijn": "Wijn & delicatessen",
+      "theme_koffie": "Koffie & thee",
+      "theme_bloemen": "Bloemenwinkel",
+      "try_concertzaal": "Kies je eigen stoel in het zaalplan van een concertzaal, met drie prijsklassen en rolstoelplaatsen.",
+      "try_bar": "Bestel aan je tafel: kies een pintje in 25, 33 of 50 cl en betaal straks aan de toog.",
+      "try_kleding": "Kies een maat (sommige zijn uitverkocht), bekijk de doorgestreepte prijzen en reken af met een overschrijving.",
+      "try_restaurant": "Bekijk de kaart met allergenen, kies je bijgerecht en cuisson, en haal af, laat leveren of bestel aan tafel.",
+      "try_tech": "Een donkere winkel voor elektronica: kleuren kiezen, gratis verzending of express.",
+      "try_festival": "Drie festivaldagen met dagtickets, VIP en camping, en early-birdprijzen.",
+      "try_pizzeria": "Een volledige pizzeria: formaat en toppings kiezen, een afhaaluur prikken of bestellen aan tafel.",
+      "try_beauty": "Zacht en luchtig: kies 30 of 50 ml en bekijk de cadeausets.",
+      "try_wijn": "Wijnen per fles of per doos van zes, met geschenken en cadeaubonnen.",
+      "try_koffie": "Kies 250 g of 1 kg en je maling: bonen, filter, espresso of cafetière.",
+      "try_webshop": "Een woonwinkel met kleuren per product, een lage voorraad en een uitverkochte variant.",
+      "note": "Dit zijn echte SellQo-winkels met verzonnen producten. Bestellen werkt, maar er wordt niets aangerekend of geleverd. Elke nacht zetten we de voorraad terug, en testbestellingen verdwijnen na 14 dagen.",
+      "own_title": "Jouw eigen zaak als voorbeeld?",
+      "own_text": "Stuur ons je menukaart of een tiental producten. We zetten ze in een demowinkel in jouw kleuren, zodat je ziet hoe jouw zaak op SellQo staat voor je iets beslist.",
+      "own_s1": "Je stuurt ons je menukaart, productlijst of website.",
+      "own_s2": "Wij bouwen een demowinkel in jouw stijl, op een eigen adres.",
+      "own_s3": "Je klikt rond, bestelt een test en beslist pas daarna.",
+      "own_cta": "Vraag je demo aan",
+      "final_title": "Klaar voor je eigen winkel?",
+      "final_text": "Start gratis en kies een van deze thema's. Kleuren, lettertypes en teksten pas je daarna zelf aan."
     }
   },
   "public": {
@@ -1931,6 +1986,14 @@
         "event_workspace": {
           "title": "Alles van je event op één scherm",
           "description": "De eventpagina heeft nog vier tabbladen: Overzicht, Datums, Bezoekers en Deur. Op Overzicht pas je naam, foto, beschrijving en zichtbaarheid van het event aan, de datum met uren, plaats, capaciteit en early bird, en de tickettypes. Een nieuw tickettype zoals VIP of Camping maak je met een naam en een prijs, eventueel meteen voor alle komende datums. Tickets staan niet meer tussen je producten, en een lege datum kan je gewoon verwijderen. In de scanner kan je ook een foto van de QR-code nemen als de live camera niet wil."
+        },
+        "seating_plans": {
+          "title": "Zaalplannen: je bezoekers kiezen zelf hun stoel",
+          "description": "Onder Events → Zalen teken je je zaal: secties, rijen, gangpaden, prijsklassen, rolstoel- en begeleidersplaatsen. Koppel de zaal aan een datum en kies per prijsklasse een tickettype. In je webshop kiezen bezoekers dan zelf hun stoel; we houden die 15 minuten vast tijdens het afrekenen. Elk ticket krijgt zijn stoel, ook in de ticketmail, en een geannuleerd ticket geeft de stoel weer vrij. Per voorstelling haal je stoelen uit de verkoop en zie je wie waar zit."
+        },
+        "themes_and_examples": {
+          "title": "Acht nieuwe thema's en een pagina vol voorbeeldwinkels",
+          "description": "Nieuw in de themagalerij: Concertzaal & theater, Festival, Tech & gadgets, Beauty & verzorging, Bar & café, Restaurant & bistro, Wijn & delicatessen en Koffie & thee. Bij elk thema zie je een echte winkel die het gebruikt. Op sellqo.app/voorbeelden klik je rond in al onze voorbeeldwinkels en bestel je gerust iets: er wordt niets aangerekend. Nieuw is ook de homepagesectie Agenda, die je komende events op datum toont."
         }
       },
       "copyLink": "Kopieer link",

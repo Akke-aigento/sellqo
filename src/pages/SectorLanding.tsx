@@ -52,6 +52,7 @@ const CONFIG: Record<Sector, SectorConfig> = {
       links: [
         { key: 'demo_online', href: 'https://demo-pizzeria.sellqo.shop/' },
         { key: 'demo_table', href: 'https://demo-pizzeria.sellqo.shop/menu?tafel=4' },
+        { key: 'demo_bar', href: 'https://demo-bar.sellqo.shop/' },
       ],
     },
   },
@@ -69,7 +70,13 @@ const CONFIG: Record<Sector, SectorConfig> = {
     ],
     steps: ['s1', 's2', 's3'],
     faq: ['q1', 'q2', 'q3', 'q4'],
-    demo: { links: [{ key: 'demo_live', href: 'https://fonskecrawl.com/' }] },
+    demo: {
+      links: [
+        { key: 'demo_seats', href: 'https://demo-concertzaal.sellqo.shop/producten/brussels-string-quartet' },
+        { key: 'demo_festival', href: 'https://demo-festival.sellqo.shop/' },
+        { key: 'demo_live', href: 'https://fonskecrawl.com/' },
+      ],
+    },
   },
 };
 
@@ -174,6 +181,9 @@ export function SectorLanding({ sector }: { sector: Sector }) {
                   </Button>
                 ))}
               </div>
+              <Link to="/voorbeelden" className="mt-6 inline-flex items-center gap-1 font-semibold text-primary underline-offset-4 hover:underline">
+                {t('landing.sector.common.demo_all')}<ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
           </section>
 

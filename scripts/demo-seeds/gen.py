@@ -3,7 +3,10 @@
 Deterministische UUID's (uuid5 op slug), zodat een tweede run dezelfde ID's geeft."""
 import json, os, sys, uuid
 sys.path.insert(0, os.path.dirname(__file__))
-from spec import SHOPS, NOTE, NO_PEOPLE
+import importlib
+# `python3 gen.py` = de publieke demo's (spec.py); `python3 gen.py spec_prospects` = demo's voor prospects.
+_spec = importlib.import_module(sys.argv[1] if len(sys.argv) > 1 else 'spec')
+SHOPS, NOTE, NO_PEOPLE = _spec.SHOPS, _spec.NOTE, _spec.NO_PEOPLE
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out')
 os.makedirs(OUT, exist_ok=True)
@@ -180,6 +183,8 @@ if __name__ == '__main__':
     for shop in SHOPS:
         for kind, fn in (('data', shop_sql), ('theme', theme_sql), ('img', img_sql)):
             open(os.path.join(OUT, f"{shop['slug']}.{kind}.sql"), 'w').write(fn(shop))
-    json.dump(presets(), open(os.path.join(OUT, 'presets.json'), 'w'), ensure_ascii=False, indent=2)
-    json.dump({s['slug']: U(s['slug']) for s in SHOPS}, open(os.path.join(OUT, 'tenants.json'), 'w'), indent=2)
+    suffix = '' if _spec.__name__ == 'spec' else '.' + _spec.__name__
+    if not suffix:  # presets enkel uit de publieke demo's
+        json.dump(presets(), open(os.path.join(OUT, 'presets.json'), 'w'), ensure_ascii=False, indent=2)
+    json.dump({s['slug']: U(s['slug']) for s in SHOPS}, open(os.path.join(OUT, f'tenants{suffix}.json'), 'w'), indent=2)
     print('ok', len(SHOPS))

@@ -9,7 +9,8 @@
       "start": "Commencer gratuitement",
       "languageSelect": "Choisir la langue",
       "horeca": "Restauration",
-      "events": "Événements"
+      "events": "Événements",
+      "examples": "Exemples"
     },
     "hero": {
       "title1": "Votre commerce.",
@@ -538,7 +539,8 @@
       "common": {
         "cta_start": "Essai gratuit de 14 jours",
         "how_title": "Comment ça marche",
-        "final_text": "14 jours gratuits, sans carte de crédit. Des questions ? Une vraie personne vous répond, pas un chatbot."
+        "final_text": "14 jours gratuits, sans carte de crédit. Des questions ? Une vraie personne vous répond, pas un chatbot.",
+        "demo_all": "Tous les exemples"
       },
       "horeca": {
         "meta_title": "SellQo Restauration — votre site de commande, menu QR et écran de cuisine",
@@ -591,7 +593,8 @@
         "q4_a": "Oui : quiconque vend de la nourriture en ligne doit afficher les allergènes avant la commande (règlement UE 1169/2011). SellQo les affiche par plat et par supplément, et crée un tableau des allergènes à afficher dans l'établissement.",
         "q5": "Est-ce que ça marche aussi sur place ?",
         "q5_a": "Oui. Chaque table reçoit un code QR. Les clients consultent la carte ou commandent à table, et la commande arrive sur le même écran de cuisine que la boutique et la caisse.",
-        "final_title": "Prêt à ouvrir votre propre site de commande ?"
+        "final_title": "Prêt à ouvrir votre propre site de commande ?",
+        "demo_bar": "Voir la démo d'un bar"
       },
       "events": {
         "meta_title": "SellQo Événements — vendez des billets et contrôlez l'entrée avec votre téléphone",
@@ -633,7 +636,7 @@
         "s3_title": "Scannez à l'entrée",
         "s3_text": "Avec votre téléphone ou celui de votre équipe. Vous voyez en direct qui est entré.",
         "demo_title": "Voyez-le en action",
-        "demo_text": "The Fonske Crawl à Louvain vend ses billets avec SellQo. Voyez ce que ça donne pour un visiteur.",
+        "demo_text": "Choisissez un siège dans une salle de concert de démo, découvrez un festival avec billets journaliers et VIP, ou voyez comment The Fonske Crawl à Louvain vend ses billets avec SellQo.",
         "q1": "Combien coûte SellQo pour les événements ?",
         "q1_a": "Avec Events Flex, vous ne payez rien par mois et 0,49 € par billet payant, déduit automatiquement du paiement en ligne ; les billets gratuits ne coûtent rien. Si vous vendez beaucoup toute l'année, Starter (prix mensuel fixe, sans frais par billet) est plus avantageux. Stripe facture en plus ses frais de paiement habituels.",
         "q2": "Puis-je proposer plusieurs dates et types de billets ?",
@@ -642,7 +645,9 @@
         "q3_a": "Vous scannez le code QR avec votre téléphone dans SellQo. Votre équipe d'accueil aussi, avec un lien de scan sans compte. Un billet déjà scanné est reconnu tout de suite.",
         "q4": "Puis-je vendre des billets sur mon propre site ?",
         "q4_a": "Oui. Vous les vendez dans votre boutique SellQo, ou votre propre site les récupère via l'API SellQo, comme The Fonske Crawl.",
-        "final_title": "Prêt pour votre prochain événement ?"
+        "final_title": "Prêt pour votre prochain événement ?",
+        "demo_seats": "Choisir un siège dans la salle de démo",
+        "demo_festival": "Voir la démo d'un festival"
       }
     },
     "sectors": {
@@ -787,6 +792,56 @@
       "loveke_uses": "Le catalogue est dans SellQo, la boutique arrive.",
       "fonske_what": "Tournée des bars à Louvain",
       "fonske_uses": "Billets avec dates et types de billets, et billets QR par e-mail."
+    },
+    "examples": {
+      "meta_title": "Exemples : de vraies boutiques SellQo à essayer | SellQo",
+      "meta_desc": "Onze boutiques d'exemple sur SellQo : e-commerce, horeca et événements, chacune avec un thème différent. Naviguez et commandez, rien n'est facturé.",
+      "title": "Explorez une vraie boutique SellQo",
+      "subtitle": "Onze boutiques d'exemple, chacune avec un thème différent. Commandez sans crainte : vous voyez exactement ce que voient vos clients, et rien n'est facturé.",
+      "filter_label": "Afficher les exemples pour",
+      "filter_all": "Tout",
+      "filter_shop": "E-commerce",
+      "filter_horeca": "Horeca",
+      "filter_events": "Événements",
+      "sector_shop": "E-commerce",
+      "sector_horeca": "Horeca",
+      "sector_events": "Événements",
+      "open_shop": "Ouvrir la boutique",
+      "extra_table": "Commander à la table 4",
+      "extra_seats": "Choisir votre siège",
+      "extra_days": "Voir les billets",
+      "theme_line": "Thème : {{theme}}",
+      "theme_concertzaal": "Salle de concert & théâtre",
+      "theme_festival": "Festival",
+      "theme_bar": "Bar & café",
+      "theme_bistro": "Restaurant & bistrot",
+      "theme_restaurant": "Restaurant & à emporter",
+      "theme_kleding": "Boutique de mode",
+      "theme_tech": "Tech & gadgets",
+      "theme_beauty": "Beauté & soins",
+      "theme_wijn": "Vins & épicerie fine",
+      "theme_koffie": "Café & thé",
+      "theme_bloemen": "Fleuriste",
+      "try_concertzaal": "Choisissez votre siège sur le plan d'une salle de concert, avec trois catégories de prix et des places PMR.",
+      "try_bar": "Commandez à table : choisissez une bière en 25, 33 ou 50 cl et payez ensuite au comptoir.",
+      "try_kleding": "Choisissez une taille (certaines sont épuisées), voyez les prix barrés et payez par virement.",
+      "try_restaurant": "Parcourez la carte avec allergènes, choisissez l'accompagnement et la cuisson, puis emportez, faites livrer ou commandez à table.",
+      "try_tech": "Une boutique sombre pour l'électronique : choix des couleurs, livraison gratuite ou express.",
+      "try_festival": "Trois jours de festival avec billets journaliers, VIP et camping, et des prix early bird.",
+      "try_pizzeria": "Une pizzeria complète : taille et garnitures, créneau de retrait ou commande à table.",
+      "try_beauty": "Doux et aérien : choisissez 30 ou 50 ml et découvrez les coffrets.",
+      "try_wijn": "Vins à la bouteille ou au carton de six, avec coffrets et chèques-cadeaux.",
+      "try_koffie": "Choisissez 250 g ou 1 kg et la mouture : grains, filtre, espresso ou cafetière.",
+      "try_webshop": "Une boutique déco avec des couleurs par produit, un stock bas et une variante épuisée.",
+      "note": "Ce sont de vraies boutiques SellQo avec des produits fictifs. La commande fonctionne, mais rien n'est facturé ni livré. Le stock est réinitialisé chaque nuit, et les commandes de test disparaissent après 14 jours.",
+      "own_title": "Votre propre commerce en exemple ?",
+      "own_text": "Envoyez-nous votre carte ou une dizaine de produits. Nous les mettons dans une boutique de démo à vos couleurs, pour que vous voyiez votre commerce sur SellQo avant de décider quoi que ce soit.",
+      "own_s1": "Vous nous envoyez votre carte, votre liste de produits ou votre site.",
+      "own_s2": "Nous créons une boutique de démo à votre style, à sa propre adresse.",
+      "own_s3": "Vous naviguez, passez une commande test et décidez ensuite.",
+      "own_cta": "Demander votre démo",
+      "final_title": "Prêt pour votre propre boutique ?",
+      "final_text": "Commencez gratuitement et choisissez l'un de ces thèmes. Vous adaptez ensuite vous-même couleurs, polices et textes."
     }
   },
   "public": {
@@ -1931,6 +1986,14 @@
         "event_workspace": {
           "title": "Tout votre événement sur un seul écran",
           "description": "La page de l'événement compte désormais quatre onglets : Aperçu, Dates, Visiteurs et Entrée. Dans Aperçu, vous modifiez le nom, la photo, la description et la visibilité de l'événement, la date avec horaires, lieu, capacité et early bird, ainsi que les types de billets. Créez un type comme VIP ou Camping avec un nom et un prix, si vous le souhaitez pour toutes les dates à venir. Les billets ne figurent plus parmi vos produits, et une date vide peut simplement être supprimée. Dans le scanner, vous pouvez aussi photographier le QR code si la caméra en direct ne fonctionne pas."
+        },
+        "seating_plans": {
+          "title": "Plans de salle : vos visiteurs choisissent leur siège",
+          "description": "Sous Événements → Salles, vous dessinez votre salle : sections, rangées, allées, catégories de prix, places PMR et accompagnateurs. Liez la salle à une date et choisissez un type de billet par catégorie. Dans votre boutique, les visiteurs choisissent leur siège ; nous le réservons 15 minutes pendant le paiement. Chaque billet reçoit son siège, aussi dans l'e-mail, et un billet annulé libère son siège. Par représentation, vous retirez des sièges de la vente et voyez qui est assis où."
+        },
+        "themes_and_examples": {
+          "title": "Huit nouveaux thèmes et une page pleine de boutiques d'exemple",
+          "description": "Nouveau dans la galerie : Salle de concert & théâtre, Festival, Tech & gadgets, Beauté & soins, Bar & café, Restaurant & bistrot, Vins & épicerie fine et Café & thé. Chaque thème est accompagné d'une vraie boutique qui l'utilise. Sur sellqo.app/voorbeelden, explorez toutes nos boutiques d'exemple et commandez sans crainte : rien n'est facturé. Nouvelle aussi : la section Agenda, qui affiche vos prochains événements par date."
         }
       },
       "copyLink": "Copier le lien",

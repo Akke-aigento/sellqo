@@ -36,6 +36,11 @@ export function SectorsSection() {
             </div>
           ))}
         </div>
+        <p className="mt-12 text-center">
+          <Link to="/voorbeelden" className="inline-flex items-center gap-2 rounded-lg border-2 border-border px-6 py-3 font-semibold text-foreground hover:border-primary">
+            {t('landing.sector.common.demo_all')}
+          </Link>
+        </p>
       </div>
     </section>
   );

@@ -4,6 +4,25 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11m — Acht nieuwe thema's en voorbeeldwinkels (feature, 14-10-2026)
+
+**Voor wie:** iedereen met een SellQo-webshop.
+
+**Nieuwe thema's.** Concertzaal & theater, Festival, Tech & gadgets, Beauty & verzorging, Bar & café, Restaurant & bistro,
+Wijn & delicatessen en Koffie & thee. Elk thema met een echte voorbeeldwinkel; alles samen op sellqo.app/voorbeelden.
+Nieuwe homepagesectie Agenda voor events.
+
+**i18n-keys.** `public.changelog.changes.themes_and_examples` — 5 talen.
+
+### 2026.11l — Zaalplannen met stoelkeuze (feature, 14-10-2026)
+
+**Voor wie:** zalen, theaters, concertorganisatoren (events-module).
+
+**Kies je stoel.** Zaal tekenen onder Events → Zalen, koppelen aan een datum, en je bezoekers kiezen zelf hun stoel
+in de webshop. Stoel op het ticket en in de mail; annulatie geeft de stoel vrij. Demo: demo-concertzaal.sellqo.shop.
+
+**i18n-keys.** `public.changelog.changes.seating_plans` — 5 talen.
+
 ### 2026.11i — Elke eventdatum meteen te koop (improvement, 14-10-2026)
 
 **Voor wie:** winkels die tickets verkopen (Events Flex en elk plan met tickets).

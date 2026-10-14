@@ -18066,3 +18066,29 @@ Vraag van Akke: drie heel verschillende webshops met elk een eigen thema, plus e
     - tech: order #0001, de koptelefoon in Zand, €249 via overschrijving met QR. De variantvoorraad ging van 3 naar 2.
     - De bevestigingsmails gingen naar info@sellqo.app.
   - De foto's zelf kon ik niet bekijken (de sandbox bereikt de opslag niet). Akke kijkt ze na.
+
+## 2026-10-14 — SHOWCASE-1: /voorbeelden op sellqo.app, demo-skills in de repo
+
+- **Nieuwe publieke pagina `/voorbeelden`** (`src/pages/public/Examples.tsx`):
+  - Alle 11 demowinkels als etalage. Elke tegel staat in de kleuren en het titellettertype van het thema van die winkel, met de herofoto (Supabase image transform 720/1200 px).
+  - Filters Alles, Webshops, Horeca en Events, met aantallen.
+  - Per winkel "Open de winkel" en, waar zinvol, een tweede knop: "Bestel aan tafel 4", "Kies je stoel" of "Bekijk de tickets".
+  - Een blok "Jouw eigen zaak als voorbeeld?" met een CTA naar /contact: de prospect-demo als dienst, op Akke's vraag.
+  - Fonts via Google Fonts, alleen op deze pagina.
+- **Gekoppeld:**
+  - navigatie en footer ("Voorbeelden"), plus een knop "Alle voorbeelden" onder de sectoren op de homepage en op /horeca en /events;
+  - /horeca krijgt de bar-demo erbij;
+  - /events toont nu de demo-concertzaal (stoel kiezen) en het demofestival naast fonskecrawl.com. De demotekst is daarop aangepast.
+  - Sitemap: generator en `public/sitemap.xml`.
+- **i18n:** `landing.examples.*` en de nieuwe sector-keys in 5 talen, pariteit ok.
+- **Claim-audit:** elke "probeer"-tekst is nagelopen tegen de demo (tafel 4, 25/33/50 cl, maten deels uitverkocht, bijgerecht/cuisson, early bird, 30/50 ml, maling, …). In de nota staat de echte reset: de voorraad elke nacht, testbestellingen na 14 dagen.
+- **Changelog:** 2026.11l (zaalplannen) en 2026.11m (8 thema's en voorbeelden), plus de newsletter-wachtrij.
+- **Skills:**
+  - `sellqo-demo-tenant` (bijgewerkt: generator, events, /voorbeelden) en de nieuwe `sellqo-prospect-demo` staan in `.claude/skills` en `.agents/skills`. Skills-sync ok, 12 skills.
+  - Niet als Lovable-workspace-skill gezet: het zijn chat- en CC-werkwijzen, geen agentwerk.
+- **Generator:** `gen.py spec_prospects` voor demo's op maat. Die run laat `presets.json` en `tenants.json` ongemoeid.
+- **Checks:**
+  - tsc 27 (baseline), lint gelijk aan de baseline;
+  - pariteit, used-keys en dead-buttons ok;
+  - harness-screenshots op desktop en mobiel: geen horizontale scroll, en het filter Horeca toont 3.
+  - De foto's laden niet in de sandbox (geen toegang tot de opslag). Live controleren na de publish.

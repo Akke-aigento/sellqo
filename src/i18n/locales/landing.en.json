@@ -9,7 +9,8 @@
       "start": "Start for free",
       "languageSelect": "Choose language",
       "horeca": "Food & drink",
-      "events": "Events"
+      "events": "Events",
+      "examples": "Examples"
     },
     "hero": {
       "title1": "Your business.",
@@ -538,7 +539,8 @@
       "common": {
         "cta_start": "Start your 14-day free trial",
         "how_title": "How it works",
-        "final_text": "14 days free, no credit card needed. Questions? A real person answers, not a chatbot."
+        "final_text": "14 days free, no credit card needed. Questions? A real person answers, not a chatbot.",
+        "demo_all": "All examples"
       },
       "horeca": {
         "meta_title": "SellQo for food & drink — your own ordering site, QR menu and kitchen screen",
@@ -591,7 +593,8 @@
         "q4_a": "Yes: anyone selling food online must show allergens before the customer orders (EU Regulation 1169/2011). SellQo shows them per dish and per extra, and creates an allergen chart you can put up on your premises.",
         "q5": "Does it work for dine-in guests too?",
         "q5_a": "Yes. Every table gets a QR code. Guests browse the menu or order at the table, and the order arrives on the same kitchen screen as the webshop and the POS.",
-        "final_title": "Ready to open your own ordering site?"
+        "final_title": "Ready to open your own ordering site?",
+        "demo_bar": "See the bar demo"
       },
       "events": {
         "meta_title": "SellQo Events — sell tickets and check guests in with your phone",
@@ -633,7 +636,7 @@
         "s3_title": "Scan at the door",
         "s3_text": "With your phone or your crew's. You see live who's in.",
         "demo_title": "See it in action",
-        "demo_text": "The Fonske Crawl in Leuven sells its tickets with SellQo. See what that looks like for a guest.",
+        "demo_text": "Pick a seat in a demo concert hall, look at a festival with day tickets and VIP, or see how The Fonske Crawl in Leuven sells its tickets with SellQo.",
         "q1": "What does SellQo cost for events?",
         "q1_a": "With Events Flex you pay nothing per month and €0.49 per paid ticket. It's deducted automatically from the online payment; free tickets cost nothing. If you sell lots of tickets all year, Starter (fixed monthly price, no fee per ticket) works out cheaper. Stripe also charges its usual payment fees.",
         "q2": "Can I offer multiple dates and ticket types?",
@@ -642,7 +645,9 @@
         "q3_a": "You scan the QR code with your phone in SellQo. Your door crew can too, with a scan link and no account of their own. A ticket that has already been scanned is recognised right away.",
         "q4": "Can I sell tickets on my own website?",
         "q4_a": "Yes. You sell them in your SellQo shop, or your own website pulls them in through the SellQo API, as The Fonske Crawl does.",
-        "final_title": "Ready for your next event?"
+        "final_title": "Ready for your next event?",
+        "demo_seats": "Pick a seat in the demo concert hall",
+        "demo_festival": "See the festival demo"
       }
     },
     "sectors": {
@@ -787,6 +792,56 @@
       "loveke_uses": "Catalogue lives in SellQo, the webshop is on its way.",
       "fonske_what": "Pub crawl in Leuven",
       "fonske_uses": "Tickets with dates and ticket types, and QR tickets by email."
+    },
+    "examples": {
+      "meta_title": "Examples: real SellQo shops to try | SellQo",
+      "meta_desc": "Eleven example shops on SellQo: web shops, hospitality and events, each in a different theme. Click around and place an order, nothing is charged.",
+      "title": "Click around a real SellQo shop",
+      "subtitle": "Eleven example shops, each in a different theme. Go ahead and order something: you see exactly what your customers see, and nothing is charged.",
+      "filter_label": "Show examples for",
+      "filter_all": "All",
+      "filter_shop": "Web shops",
+      "filter_horeca": "Hospitality",
+      "filter_events": "Events",
+      "sector_shop": "Web shop",
+      "sector_horeca": "Hospitality",
+      "sector_events": "Events",
+      "open_shop": "Open the shop",
+      "extra_table": "Order at table 4",
+      "extra_seats": "Pick your seat",
+      "extra_days": "See the tickets",
+      "theme_line": "Theme: {{theme}}",
+      "theme_concertzaal": "Concert hall & theatre",
+      "theme_festival": "Festival",
+      "theme_bar": "Bar & café",
+      "theme_bistro": "Restaurant & bistro",
+      "theme_restaurant": "Restaurant & takeaway",
+      "theme_kleding": "Clothing store",
+      "theme_tech": "Tech & gadgets",
+      "theme_beauty": "Beauty & care",
+      "theme_wijn": "Wine & delicatessen",
+      "theme_koffie": "Coffee & tea",
+      "theme_bloemen": "Flower shop",
+      "try_concertzaal": "Pick your own seat in a concert hall's seating plan, with three price classes and wheelchair spaces.",
+      "try_bar": "Order at your table: pick a beer in 25, 33 or 50 cl and pay at the bar later.",
+      "try_kleding": "Pick a size (some are sold out), see the reduced prices and check out with a bank transfer.",
+      "try_restaurant": "Browse the menu with allergens, pick your side and cooking, then take away, get it delivered or order at the table.",
+      "try_tech": "A dark shop for electronics: pick colours, free shipping or express.",
+      "try_festival": "Three festival days with day tickets, VIP and camping, and early-bird prices.",
+      "try_pizzeria": "A complete pizzeria: pick size and toppings, choose a pickup time or order at the table.",
+      "try_beauty": "Soft and airy: pick 30 or 50 ml and browse the gift sets.",
+      "try_wijn": "Wines by the bottle or by the case of six, with gifts and gift cards.",
+      "try_koffie": "Pick 250 g or 1 kg and your grind: beans, filter, espresso or cafetière.",
+      "try_webshop": "A home-goods shop with colours per product, low stock and a sold-out variant.",
+      "note": "These are real SellQo shops with made-up products. Ordering works, but nothing is charged or delivered. Stock is reset every night, and test orders are removed after 14 days.",
+      "own_title": "Your own business as an example?",
+      "own_text": "Send us your menu or about ten products. We'll put them in a demo shop in your colours, so you see how your business looks on SellQo before you decide anything.",
+      "own_s1": "You send us your menu, product list or website.",
+      "own_s2": "We build a demo shop in your style, at its own address.",
+      "own_s3": "You click around, place a test order and only then decide.",
+      "own_cta": "Request your demo",
+      "final_title": "Ready for your own shop?",
+      "final_text": "Start for free and pick one of these themes. You can then change colours, fonts and texts yourself."
     }
   },
   "public": {
@@ -1931,6 +1986,14 @@
         "event_workspace": {
           "title": "Everything about your event on one screen",
           "description": "The event page now has four tabs: Overview, Dates, Visitors and Door. On Overview you edit the event's name, photo, description and visibility, the date with times, place, capacity and early bird, and the ticket types. Create a new ticket type such as VIP or Camping with a name and a price, optionally for all upcoming dates at once. Tickets no longer sit among your products, and an empty date can simply be deleted. In the scanner you can also take a photo of the QR code if the live camera won't work."
+        },
+        "seating_plans": {
+          "title": "Seating plans: your visitors pick their own seat",
+          "description": "Under Events → Venues you draw your venue: sections, rows, aisles, price classes, wheelchair and companion spaces. Link the venue to a date and choose a ticket type per price class. In your shop, visitors then pick their own seat; we hold it for 15 minutes while they check out. Every ticket gets its seat, also in the ticket email, and a cancelled ticket frees its seat again. Per show you can take seats off sale and see who sits where."
+        },
+        "themes_and_examples": {
+          "title": "Eight new themes and a page full of example shops",
+          "description": "New in the theme gallery: Concert hall & theatre, Festival, Tech & gadgets, Beauty & care, Bar & café, Restaurant & bistro, Wine & delicatessen and Coffee & tea. Each theme comes with a real shop that uses it. At sellqo.app/voorbeelden you can click around all our example shops and place an order: nothing is charged. Also new is the Agenda homepage section, which lists your upcoming events by date."
         }
       },
       "copyLink": "Copy link",

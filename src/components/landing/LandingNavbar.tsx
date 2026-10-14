@@ -18,6 +18,7 @@ export function LandingNavbar({ tone = 'light' }: { tone?: 'light' | 'dark' } = 
   const navLinks = [
     { href: '/horeca', label: t('landing.nav.horeca') },
     { href: '/events', label: t('landing.nav.events') },
+    { href: '/voorbeelden', label: t('landing.nav.examples') },
     { href: '#features', label: t('landing.nav.features') },
     { href: '#pricing', label: t('landing.nav.pricing') },
     { href: '#faq', label: t('landing.nav.faq') },

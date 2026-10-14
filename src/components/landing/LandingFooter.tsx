@@ -21,6 +21,7 @@ export function LandingFooter() {
     { label: t('landing.footer.links.pricing'), href: '#pricing', isAnchor: true },
     { label: t('landing.nav.horeca'), href: '/horeca', isAnchor: false },
     { label: t('landing.nav.events'), href: '/events', isAnchor: false },
+    { label: t('landing.nav.examples'), href: '/voorbeelden', isAnchor: false },
     { label: t('landing.footer.links.integrations'), href: '/integrations', isAnchor: false },
     { label: t('landing.footer.links.apiDocs'), href: '/api-docs', isAnchor: false },
     { label: t('landing.footer.links.changelog'), href: '/changelog', isAnchor: false },
