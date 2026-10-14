@@ -18034,3 +18034,35 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
 - **Incident tijdens deze batch:**
   - De pg_net-worker stond stil met 13 verzoeken in de wachtrij, waaronder 3 crons (marketplace-sync-scheduler, update-bol-tracking en auto-invoice-cron).
   - `select net.wake()` haalde hem meteen weer op gang. marketplace-sync-scheduler gaf daarbij geen antwoord (status null); de volgende cronrun pakt het op.
+
+## 2026-10-14 — DEMO-3: zeven extra demowinkels en zes nieuwe thema's
+
+Vraag van Akke: drie heel verschillende webshops met elk een eigen thema, plus een bar en een restaurant, "liever te veel dan te weinig".
+
+- **Aanpak (efficiëntie):** één generator `scripts/demo-seeds/` (`spec.py` en `gen.py`).
+  - Per winkel komt er data-, thema- en foto-SQL uit, plus `presets.json` voor het themaschema. De UUID's zijn deterministisch (uuid5).
+  - De sandbox bereikt Supabase niet, en 150 KB SQL plakken is foutgevoelig. Daarom haalt de DB de bestanden zelf op via GitHub raw (`net.http_get` op een vaste commit). Vóór `EXECUTE` controleert hij de md5 tegen de lokale bestanden: 21 van 21 identiek.
+- **Les:** de slug `demo-mode` bestond al ("Demo Fashion Store", januari 2026, niet aangeraakt). De run faalde daardoor op `tenants_slug_key`, en de hele transactie rolde terug. Maison Lune staat nu op `demo-kleding`. Vóór een nieuwe demo dus altijd eerst `select slug from tenants where slug like 'demo-%'`.
+- **Winkels** (allemaal `is_demo`, `billing_exempt`, enterprise/active, `notification_email` info@sellqo.app, in `ops.demo_shops`, met de basisvoorraad in `ops.demo_stock`). De automatische klantrijen in de SellQo-tenant zijn verwijderd.
+  - `demo-kleding` — Maison Lune (preset kleding): 10 producten, 29 maat- en kleurvarianten, waarvan een paar uitverkocht, en doorgestreepte prijzen.
+  - `demo-tech` — Voltaro (nieuwe preset tech, donker): 10 producten, kleur- en switchvarianten, gratis verzending en express.
+  - `demo-beauty` — Bloom & Balm (nieuwe preset beauty): 10 producten, inhoud 30/50 ml, cadeausets.
+  - `demo-bar` — Café De Wissel (nieuwe preset bar, horeca): 14 producten.
+    - Formaat 25/33/50 cl is verplicht bij het tapbier. Er zijn extra's bij cocktails en sauzen bij de hapjes.
+    - QR-bestellen aan tafel, met betalen aan de toog.
+  - `demo-restaurant` — Bistro Mirabelle (nieuwe preset bistro, horeca): 14 gerechten en wijnen, met allergenen en dieetlabels.
+    - Bijgerecht is verplicht en cuisson optioneel. Afhalen en leveren in Leuven (min. €25, gratis vanaf €60), plus QR aan tafel.
+  - `demo-wijn` — Vinotheek Lemmens (nieuwe preset wijn): 10 wijnen en geschenken, fles of doos van 6, en een FAQ over leeftijd.
+  - `demo-koffie` — Koffiebranderij Mokka (nieuwe preset koffie): 9 producten, gewicht 250 g of 1 kg, en maling verplicht als extra.
+- **Foto's:** 91 nano-studio-beelden (546 credits): één per product, plus een hero en een sfeerbeeld per winkel. Ze zijn gekoppeld aan de producten, de hero en `text_image`, en staan in `ops.demo_img`.
+- **Storefront 3bc24dd:** zes presets in `schema.json` (tech, beauty, bar, bistro, wijn, koffie), met preview, hero en voorbeeldlink. Kleding linkt nu naar Maison Lune.
+- **Admin:** de namen en beschrijvingen van de presets zijn vertaald in 5 talen (schemaText).
+- **Claims nagekeken:** de usp's en openingsuren van de bar en het restaurant volgen de echte instellingen. "Of gewoon online" is geschrapt, want online betalen staat uit. De uren zijn "Elke dag", zodat er altijd tijdsloten zijn.
+- **Verificatie:**
+  - `net.http_get` op 13 pagina's gaf overal 200, met de juiste titel, beelden uit ai-images en niet "binnenkort". Op de kledingpagina staat "Maat", op de koffiepagina "Gewicht" en "Maling". `/menu?tafel=4` op de bar toont de badge, net als bij de pizzeria.
+  - **E2E via storefront-api:**
+    - bar: Pils zonder formaat geeft `ADDON_MIN`. Met 33 cl kost hij €4,00. Order #0001 aan tafel 4 (€8, betalen aan de toog).
+    - koffie: 1 kg met filtermaling kost €32.
+    - tech: order #0001, de koptelefoon in Zand, €249 via overschrijving met QR. De variantvoorraad ging van 3 naar 2.
+    - De bevestigingsmails gingen naar info@sellqo.app.
+  - De foto's zelf kon ik niet bekijken (de sandbox bereikt de opslag niet). Akke kijkt ze na.
