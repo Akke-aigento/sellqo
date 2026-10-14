@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { SIGNUP_SECTOR_KEY } from '@/lib/signupSector';
 import { supabase } from '@/integrations/supabase/client';
 import { getAuthedClient } from '@/integrations/supabase/authedClient';
 import { restInsertSingle } from '@/integrations/supabase/authedRest';
@@ -76,6 +77,15 @@ const initialData: OnboardingData = {
   stripeConnected: false,
 };
 
+// MKT-1 — wie via /horeca of /events binnenkomt, krijgt die sector voorgeselecteerd.
+function withSignupSector(data: OnboardingData): OnboardingData {
+  try {
+    const s = localStorage.getItem(SIGNUP_SECTOR_KEY);
+    if (s === 'horeca' || s === 'events') return { ...data, sector: s };
+  } catch { /* geen opslag beschikbaar */ }
+  return data;
+}
+
 export function useOnboarding() {
   const { user, ensureAuthenticated, getVerifiedAccessToken, signOut, refetchRoles } = useAuth();
   const { toast } = useToast();
@@ -89,7 +99,7 @@ export function useOnboarding() {
     totalSteps: TOTAL_STEPS,
     isOpen: false,
     isLoading: true,
-    data: initialData,
+    data: withSignupSector(initialData),
     createdTenantId: null,
     createdProductId: null,
     sessionExpired: false,
@@ -203,7 +213,7 @@ export function useOnboarding() {
       // Restore saved onboarding data from database
       const savedOnboardingData = (profile?.onboarding_data as Partial<OnboardingData>) || {};
       const restoredData: OnboardingData = {
-        ...initialData,
+        ...withSignupSector(initialData),
         ...savedOnboardingData,
         email: savedOnboardingData.email || profile?.email || user.email || '',
       };
@@ -370,7 +380,7 @@ export function useOnboarding() {
       ...prev, 
       currentStep: 1, 
       isOpen: true,
-      data: initialData,
+      data: withSignupSector(initialData),
     }));
   }, [user]);
 

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Play, Check, Zap, TrendingUp, FileText } from 'lucide-react';
+import { ArrowRight, Play, Check, Zap, TrendingUp, FileText, ShoppingBag, UtensilsCrossed, Ticket } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useIntersectionObserver } from '@/hooks/useIntersectionObserver';
 import { cn } from '@/lib/utils';
@@ -52,9 +52,35 @@ export function HeroSection() {
               <span className="text-foreground">{t('landing.hero.title2')}</span>
             </h1>
             
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+            <p className="text-lg md:text-xl text-muted-foreground mb-6 max-w-xl mx-auto lg:mx-0 leading-relaxed">
               {t('landing.hero.subtitle')}
             </p>
+
+            {/* MKT-1 — twee deuren: wat verkoop je? */}
+            <div className="mb-8">
+              <p className="mb-3 text-sm font-medium text-foreground/70">{t('landing.hero.doors.label')}</p>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-xl mx-auto lg:mx-0">
+                {[
+                  { to: '#features', icon: ShoppingBag, key: 'retail' },
+                  { to: '/horeca', icon: UtensilsCrossed, key: 'horeca' },
+                  { to: '/events', icon: Ticket, key: 'events' },
+                ].map(({ to, icon: Icon, key }) => {
+                  const inner = (
+                    <>
+                      <Icon className="h-5 w-5 text-accent" />
+                      <span className="text-sm font-semibold text-foreground">{t(`landing.hero.doors.${key}`)}</span>
+                      <span className="hidden text-xs text-muted-foreground sm:block">{t(`landing.hero.doors.${key}_hint`)}</span>
+                    </>
+                  );
+                  const cls = 'flex flex-col items-center gap-1 rounded-xl border bg-card/80 p-3 text-center shadow-sm transition-all hover:-translate-y-0.5 hover:border-accent hover:shadow-md lg:items-start lg:text-left';
+                  return to.startsWith('#') ? (
+                    <button key={key} type="button" className={cls} onClick={() => document.querySelector(to)?.scrollIntoView({ behavior: 'smooth' })}>{inner}</button>
+                  ) : (
+                    <Link key={key} to={to} className={cls}>{inner}</Link>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-10">

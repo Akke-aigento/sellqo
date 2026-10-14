@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SellqoLogo } from '@/components/SellqoLogo';
@@ -12,10 +12,13 @@ export function LandingNavbar() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t } = useTranslation();
 
+  const navigate = useNavigate();
+  // MKT-1 — sectorpagina's als echte routes; de rest zijn ankers op de homepage.
   const navLinks = [
+    { href: '/horeca', label: t('landing.nav.horeca') },
+    { href: '/events', label: t('landing.nav.events') },
     { href: '#features', label: t('landing.nav.features') },
     { href: '#pricing', label: t('landing.nav.pricing') },
-    { href: '#why-sellqo', label: t('landing.nav.why') },
     { href: '#faq', label: t('landing.nav.faq') },
   ];
 
@@ -29,9 +32,13 @@ export function LandingNavbar() {
 
   const handleNavClick = (href: string) => {
     setIsMobileMenuOpen(false);
+    if (href.startsWith('/')) { navigate(href); window.scrollTo(0, 0); return; }
     const element = document.querySelector(href);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // Anker van de homepage vanaf een andere pagina: eerst naar de homepage.
+      navigate(`/${href}`);
     }
   };
 

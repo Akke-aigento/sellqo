@@ -6,6 +6,8 @@
 
 - [Home](/): Overzicht van het Sellqo platform en features.
 - [Pricing](/pricing): Abonnementen, add-ons en transparante prijzen.
+- [Horeca](/horeca): Eigen bestelsite voor pizzeria's, frituren en cafés: afhalen, leveren, bestellen aan tafel via QR, keukenscherm, kassa en allergenen.
+- [Events](/events): Tickets verkopen met datums, tickettypes en capaciteit, QR-tickets per mail en inchecken aan de deur.
 - [About](/about): Missie, team en achtergrond van Sellqo.
 - [Contact](/contact): Contactopties voor sales en support.
 - [Blog](/blog): Inzichten en tips over e-commerce.

@@ -31,6 +31,7 @@ import TenantsPage from "./pages/admin/Tenants";
 import SubscriptionsPage from "./pages/admin/Subscriptions";
 import BillingPage from "./pages/admin/Billing";
 import PricingPage from "./pages/Pricing";
+import { HorecaPage, EventsPage } from "./pages/SectorLanding";
 import AnalyticsPage from "./pages/admin/Analytics";
 import SettingsPage from "./pages/admin/Settings";
 import ImportPage from "./pages/admin/Import";
@@ -171,6 +172,8 @@ const App = () => (
             
             {/* Public pricing page */}
             <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/horeca" element={<HorecaPage />} />
+            <Route path="/events" element={<EventsPage />} />
             
             {/* Auth routes */}
             <Route path="/auth" element={<Auth />} />
