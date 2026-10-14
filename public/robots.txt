@@ -1,16 +1,21 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /scan
 
 User-agent: Bingbot
 Allow: /
+Disallow: /scan
 
 User-agent: Twitterbot
 Allow: /
+Disallow: /scan
 
 User-agent: facebookexternalhit
 Allow: /
+Disallow: /scan
 
 User-agent: *
 Allow: /
+Disallow: /scan
 
 Sitemap: https://sellqo.app/sitemap.xml

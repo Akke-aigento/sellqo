@@ -25,7 +25,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>SellQo gebruikt je camera om productfoto's te maken voor je webshop.</string>
+	<string>SellQo gebruikt je camera om productfoto's te maken en om tickets te scannen aan de deur.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>SellQo gebruikt je fotobibliotheek om productafbeeldingen te selecteren.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

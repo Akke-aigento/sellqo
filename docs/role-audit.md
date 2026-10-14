@@ -17707,3 +17707,41 @@ Het eerste is niet meer nodig, want de trigger maakt die rij al aan.
 - doc_articles: `ticket-product-datums` en `event-detailpagina` herschreven, `bestellingen-verwerken` aangevuld met de verzendmail.
 
 **Vervolg:** Akke publiceert de admin; daarna komt de badge live.
+
+## 2026-10-14 — EVENT-SCAN-1: SellQo Deur, de scanner voor de deur
+
+**Root cause:** de QR van een scantoegang wees naar `/scan/<token>`, maar die pagina bestond niet (fase 5 was nooit gebouwd). Scannen kon alleen via de admin met login, zonder geluid of trilling en zonder zoeken op naam. Een icoon op het beginscherm opende altijd `/admin`. `/admin/events/:id` en `/admin/checkin` waren bereikbaar zonder de module Events. Android had geen CAMERA-permissie.
+
+**Uitgevoerd:**
+- **`DoorScanner`** (`src/components/door`), schermvullend en donker:
+  - de start-knop is ook de gesture voor audio en camera;
+  - het resultaat vult het scherm in groen, oranje of rood, met naam en tijdstip;
+  - trillen (Android), een WebAudio-piep (aan/uit, bewaard per toestel), het scherm blijft aan via Wake Lock, zaklamp;
+  - zoeken op naam, e-mail of bestelnummer, met inchecken vanuit het resultaat;
+  - teller binnen/verkocht;
+  - laatste scans, met terugdraaien voor de host;
+  - uitleg "zet op beginscherm".
+- **Publieke routes:**
+  - `/scan/:token` (crew-token, geen account);
+  - `/scan` opent het bewaarde token, of een ingelogde gebruiker gaat naar `/admin/checkin`;
+  - een ingetrokken of verlopen token wordt van het toestel gewist.
+- **`/admin/checkin`** gebruikt dezelfde DoorScanner (JWT). Het event kies je nog altijd bewust.
+- **`public/scan.webmanifest`** (id `/scan`, `start_url` `/scan`, "SellQo Deur") plus `useDoorAppShell` (manifest en iOS-tags) op beide scanpagina's.
+- **Nieuwe edge function `scanner-door`** (stempel `EVENT-SCAN-1`, `verify_jwt = false`, auth in de code) met de acties `stats` en `search`.
+  - token-modus: het event komt uitsluitend uit de `event_scanner_access`-rij;
+  - JWT-modus: rol `tenant_admin` of `staff` in de tenant van het event.
+- **`ticket-checkin` en `scanner-context` zijn niet gewijzigd.**
+- **`EventsModuleGate`** op `/admin/checkin` en `/admin/events/:eventId`. robots: `Disallow /scan`.
+- **Native:** Android krijgt CAMERA-permissie + `uses-feature camera` (required=false); de iOS-cameratekst vermeldt nu ook ticketscannen. Pas actief in de volgende app-build.
+- **i18n:** 46 `door.*`-keys in vijf talen.
+
+**Security-keuzes:**
+- **Tokens:** zelfde validatie als `ticket-checkin` (64 hex), met één generieke afwijzing (geen orakel).
+- **Zoeken:** geeft geen e-mailadressen terug (wel naam, bestelnummer, tickettype, status en `qr_token`), max. 15 resultaten, minimaal 2 tekens, en `%_,()` worden uit de zoekterm gefilterd.
+- **Token-transport:** het token gaat via een header naar de API.
+
+**Gedeelde-paden-waarschuwing:** n.v.t. storefront-api is niet aangeraakt.
+
+**Fonske 24/10:** `location_name` 'Ladeuzeplein' en `meeting_point` 'Big bug' ingevuld (guard `is null`), op vraag van Akke.
+
+**Visueel:** Playwright 390×844 met een nep-camera: start, camerabeeld, zoeken, groen, oranje. Een echte gsm-test volgt in de generale repetitie.
