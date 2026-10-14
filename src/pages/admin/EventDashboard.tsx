@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Armchair, CalendarDays, MapPin, Check, Ticket, Plus } from 'lucide-react';
+import { Armchair, CalendarDays, Coins, Layers, MapPin, Check, Ticket, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -165,6 +165,8 @@ export default function EventDashboard() {
         </div>
         <div className="flex flex-wrap items-center justify-end gap-3 shrink-0 pt-1">
           <Button size="sm" variant="outline" onClick={() => navigate('/admin/events/venues')}><Armchair className="mr-1 h-4 w-4" />{t('events.venues.title')}</Button>
+          <Button size="sm" variant="outline" onClick={() => navigate('/admin/events/bundles')}><Layers className="mr-1 h-4 w-4" />{t('events.bundles.title')}</Button>
+          <Button size="sm" variant="outline" onClick={() => navigate('/admin/events/tokens')}><Coins className="mr-1 h-4 w-4" />{t('events.tokens.title')}</Button>
           <Button size="sm" onClick={() => navigate('/admin/events/new')}><Plus className="mr-1 h-4 w-4" />{t('events.wizard.new_event')}</Button>
           <Switch id="show-past" checked={showPast} onCheckedChange={setShowPast} />
           <Label htmlFor="show-past" className="text-sm cursor-pointer whitespace-nowrap">

@@ -108,8 +108,12 @@ import POSPage from "./pages/admin/POS";
 import TicketCheckinPage from "./pages/admin/TicketCheckin";
 import EventWizardPage from "./pages/admin/EventWizard";
 import VenueListPage from "./pages/admin/VenueList";
+import EventBundlesPage from "./pages/admin/EventBundles";
+import EventTokensPage from "./pages/admin/EventTokens";
 import VenueDesignerPage from "./pages/admin/VenueDesigner";
 import DoorScanPage, { DoorScanHome } from "./pages/public/DoorScan";
+import BarScanPage, { BarScanHome } from "./pages/public/BarScan";
+import TokenWalletPage from "./pages/public/TokenWallet";
 import { EventsModuleGate } from "./components/admin/events/EventsModuleGate";
 import EventDashboardPage from "./pages/admin/EventDashboard";
 import EventDetailPage from "./pages/admin/EventDetail";
@@ -184,6 +188,9 @@ const App = () => (
             {/* EVENT-SCAN-1: SellQo Deur, de scanner voor de deurploeg (scanlink, geen account). */}
             <Route path="/scan" element={<DoorScanHome />} />
             <Route path="/scan/:token" element={<DoorScanPage />} />
+            <Route path="/bar" element={<BarScanHome />} />
+            <Route path="/bar/:token" element={<BarScanPage />} />
+            <Route path="/munten/:code" element={<TokenWalletPage />} />
             
             {/* Auth routes */}
             <Route path="/auth" element={<Auth />} />
@@ -305,6 +312,8 @@ const App = () => (
               <Route path="checkin" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><TicketCheckinPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventDashboardPage /></RouteGuard>} />
               <Route path="events/new" element={<RouteGuard requireRole={['tenant_admin']}><EventsModuleGate><EventWizardPage /></EventsModuleGate></RouteGuard>} />
+              <Route path="events/bundles" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><EventBundlesPage /></EventsModuleGate></RouteGuard>} />
+              <Route path="events/tokens" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><EventTokensPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events/venues" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><VenueListPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events/venues/:venueId" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><VenueDesignerPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events/:eventId" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><EventDetailPage /></EventsModuleGate></RouteGuard>} />
