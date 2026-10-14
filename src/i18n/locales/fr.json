@@ -5506,7 +5506,19 @@
         "concertzaal_theater": "Salle de concert & théâtre",
         "voor_concertzalen_theaters_en_cultuurcentra_een_agenda_op_da": "Pour les salles de concert, théâtres et centres culturels : un agenda par date, le choix des sièges dans le plan de salle et des e-billets.",
         "festival": "Festival",
-        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Pour les festivals et événements sur plusieurs jours : billets journaliers, VIP et camping, dans un style vif et joyeux."
+        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Pour les festivals et événements sur plusieurs jours : billets journaliers, VIP et camping, dans un style vif et joyeux.",
+        "tech_gadgets": "Tech & gadgets",
+        "donker_en_strak_voor_elektronica_gadgets_en_accessoires_prod": "Sombre et épuré, pour l'électronique, les gadgets et les accessoires. Les photos de produits ressortent.",
+        "beauty_verzorging": "Beauté & soins",
+        "zacht_en_luchtig_voor_huidverzorging_cosmetica_en_wellness": "Doux et aérien, pour les soins de la peau, les cosmétiques et le bien-être.",
+        "bar_cafe": "Bar & café",
+        "donker_en_warm_voor_cafes_en_bars_drankkaart_bestellen_aan_t": "Sombre et chaleureux, pour les cafés et bars : carte des boissons, commande à table par QR et paiement au comptoir.",
+        "restaurant_bistro": "Restaurant & bistrot",
+        "klassiek_en_verzorgd_voor_restaurants_menukaart_met_allergen": "Classique et soigné, pour les restaurants : carte avec allergènes, à emporter, livraison et commande à table.",
+        "wijn_delicatessen": "Vins & épicerie fine",
+        "elegant_en_rustig_voor_wijnhandels_delicatessen_en_geschenke": "Élégant et calme, pour les cavistes, l'épicerie fine et les cadeaux.",
+        "koffie_thee": "Café & thé",
+        "warm_en_ambachtelijk_voor_koffiebranders_theehuizen_en_lokal": "Chaleureux et artisanal, pour les torréfacteurs, maisons de thé et artisans locaux."
       }
     },
     "allergens": {

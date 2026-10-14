@@ -5743,7 +5743,19 @@
         "concertzaal_theater": "Concert hall & theatre",
         "voor_concertzalen_theaters_en_cultuurcentra_een_agenda_op_da": "For concert halls, theatres and cultural centres: a dated programme, seat selection in the seating plan and e-tickets.",
         "festival": "Festival",
-        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "For festivals and multi-day events: day tickets, VIP and camping, in a bright, cheerful style."
+        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "For festivals and multi-day events: day tickets, VIP and camping, in a bright, cheerful style.",
+        "tech_gadgets": "Tech & gadgets",
+        "donker_en_strak_voor_elektronica_gadgets_en_accessoires_prod": "Dark and sleek, for electronics, gadgets and accessories. Product photos really stand out.",
+        "beauty_verzorging": "Beauty & care",
+        "zacht_en_luchtig_voor_huidverzorging_cosmetica_en_wellness": "Soft and airy, for skincare, cosmetics and wellness.",
+        "bar_cafe": "Bar & café",
+        "donker_en_warm_voor_cafes_en_bars_drankkaart_bestellen_aan_t": "Dark and warm, for cafés and bars: drinks menu, ordering at the table via QR and paying at the bar.",
+        "restaurant_bistro": "Restaurant & bistro",
+        "klassiek_en_verzorgd_voor_restaurants_menukaart_met_allergen": "Classic and refined, for restaurants: menu with allergens, takeaway, delivery and ordering at the table.",
+        "wijn_delicatessen": "Wine & delicatessen",
+        "elegant_en_rustig_voor_wijnhandels_delicatessen_en_geschenke": "Elegant and calm, for wine shops, delicatessens and gifts.",
+        "koffie_thee": "Coffee & tea",
+        "warm_en_ambachtelijk_voor_koffiebranders_theehuizen_en_lokal": "Warm and crafted, for coffee roasters, tea houses and local makers."
       }
     },
     "allergens": {

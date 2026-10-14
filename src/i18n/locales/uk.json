@@ -5757,7 +5757,19 @@
         "concertzaal_theater": "Концертний зал і театр",
         "voor_concertzalen_theaters_en_cultuurcentra_een_agenda_op_da": "Для концертних залів, театрів і культурних центрів: афіша за датами, вибір місць на плані залу та е-квитки.",
         "festival": "Фестиваль",
-        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Для фестивалів і багатоденних подій: денні квитки, VIP і кемпінг, у яскравому, веселому стилі."
+        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Для фестивалів і багатоденних подій: денні квитки, VIP і кемпінг, у яскравому, веселому стилі.",
+        "tech_gadgets": "Техніка й гаджети",
+        "donker_en_strak_voor_elektronica_gadgets_en_accessoires_prod": "Темна й стримана, для електроніки, гаджетів і аксесуарів. Фото товарів виділяються.",
+        "beauty_verzorging": "Краса й догляд",
+        "zacht_en_luchtig_voor_huidverzorging_cosmetica_en_wellness": "М'яка й легка, для догляду за шкірою, косметики та велнесу.",
+        "bar_cafe": "Бар і кафе",
+        "donker_en_warm_voor_cafes_en_bars_drankkaart_bestellen_aan_t": "Темна й тепла, для кафе та барів: меню напоїв, замовлення за столиком через QR і оплата біля стійки.",
+        "restaurant_bistro": "Ресторан і бістро",
+        "klassiek_en_verzorgd_voor_restaurants_menukaart_met_allergen": "Класична й охайна, для ресторанів: меню з алергенами, самовивіз, доставка та замовлення за столиком.",
+        "wijn_delicatessen": "Вино й делікатеси",
+        "elegant_en_rustig_voor_wijnhandels_delicatessen_en_geschenke": "Елегантна й спокійна, для винних крамниць, делікатесів і подарунків.",
+        "koffie_thee": "Кава й чай",
+        "warm_en_ambachtelijk_voor_koffiebranders_theehuizen_en_lokal": "Тепла й ремісницька, для обсмажувальників кави, чайних і місцевих виробників."
       }
     },
     "allergens": {

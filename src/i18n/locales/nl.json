@@ -5370,7 +5370,19 @@
         "concertzaal_theater": "Concertzaal & theater",
         "voor_concertzalen_theaters_en_cultuurcentra_een_agenda_op_da": "Voor concertzalen, theaters en cultuurcentra: een agenda op datum, stoelen kiezen in het zaalplan en e-tickets.",
         "festival": "Festival",
-        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Voor festivals en evenementen over meerdere dagen: dagtickets, VIP en camping, met een felle, vrolijke stijl."
+        "voor_festivals_en_evenementen_over_meerdere_dagen_dagtickets": "Voor festivals en evenementen over meerdere dagen: dagtickets, VIP en camping, met een felle, vrolijke stijl.",
+        "tech_gadgets": "Tech & gadgets",
+        "donker_en_strak_voor_elektronica_gadgets_en_accessoires_prod": "Donker en strak, voor elektronica, gadgets en accessoires. Productfoto’s springen eruit.",
+        "beauty_verzorging": "Beauty & verzorging",
+        "zacht_en_luchtig_voor_huidverzorging_cosmetica_en_wellness": "Zacht en luchtig, voor huidverzorging, cosmetica en wellness.",
+        "bar_cafe": "Bar & café",
+        "donker_en_warm_voor_cafes_en_bars_drankkaart_bestellen_aan_t": "Donker en warm, voor cafés en bars: drankkaart, bestellen aan tafel via QR en betalen aan de toog.",
+        "restaurant_bistro": "Restaurant & bistro",
+        "klassiek_en_verzorgd_voor_restaurants_menukaart_met_allergen": "Klassiek en verzorgd, voor restaurants: menukaart met allergenen, afhalen, leveren en bestellen aan tafel.",
+        "wijn_delicatessen": "Wijn & delicatessen",
+        "elegant_en_rustig_voor_wijnhandels_delicatessen_en_geschenke": "Elegant en rustig, voor wijnhandels, delicatessen en geschenken.",
+        "koffie_thee": "Koffie & thee",
+        "warm_en_ambachtelijk_voor_koffiebranders_theehuizen_en_lokal": "Warm en ambachtelijk, voor koffiebranders, theehuizen en lokale makers."
       }
     },
     "orderingHub": {
