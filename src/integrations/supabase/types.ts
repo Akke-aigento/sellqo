@@ -14,198 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      venues: {
-        Row: {
-          id: string
-          tenant_id: string
-          name: string
-          stage_label: string
-          address: string | null
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          name: string
-          stage_label?: string
-          address?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          name?: string
-          stage_label?: string
-          address?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      venue_sections: {
-        Row: {
-          id: string
-          tenant_id: string
-          venue_id: string
-          name: string
-          sort_order: number
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          venue_id: string
-          name: string
-          sort_order?: number
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          venue_id?: string
-          name?: string
-          sort_order?: number
-        }
-        Relationships: []
-      }
-      event_seats: {
-        Row: {
-          id: string
-          tenant_id: string
-          event_detail_id: string
-          venue_seat_id: string | null
-          section_name: string
-          row_label: string
-          seat_number: string
-          x: number
-          y: number
-          kind: string
-          class_name: string | null
-          color: string
-          product_id: string | null
-          status: string
-          hold_cart_id: string | null
-          hold_expires_at: string | null
-          order_id: string | null
-          ticket_instance_id: string | null
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          event_detail_id: string
-          venue_seat_id?: string | null
-          section_name: string
-          row_label: string
-          seat_number: string
-          x: number
-          y: number
-          kind?: string
-          class_name?: string | null
-          color?: string
-          product_id?: string | null
-          status?: string
-          hold_cart_id?: string | null
-          hold_expires_at?: string | null
-          order_id?: string | null
-          ticket_instance_id?: string | null
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          event_detail_id?: string
-          venue_seat_id?: string | null
-          section_name?: string
-          row_label?: string
-          seat_number?: string
-          x?: number
-          y?: number
-          kind?: string
-          class_name?: string | null
-          color?: string
-          product_id?: string | null
-          status?: string
-          hold_cart_id?: string | null
-          hold_expires_at?: string | null
-          order_id?: string | null
-          ticket_instance_id?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
-      venue_price_classes: {
-        Row: {
-          id: string
-          tenant_id: string
-          venue_id: string
-          name: string
-          color: string
-          default_price: number
-          sort_order: number
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          venue_id: string
-          name: string
-          color?: string
-          default_price?: number
-          sort_order?: number
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          venue_id?: string
-          name?: string
-          color?: string
-          default_price?: number
-          sort_order?: number
-        }
-        Relationships: []
-      }
-      venue_seats: {
-        Row: {
-          id: string
-          tenant_id: string
-          venue_id: string
-          section_id: string
-          price_class_id: string | null
-          row_label: string
-          seat_number: string
-          x: number
-          y: number
-          kind: string
-          sellable: boolean
-        }
-        Insert: {
-          id?: string
-          tenant_id: string
-          venue_id: string
-          section_id: string
-          price_class_id?: string | null
-          row_label: string
-          seat_number: string
-          x: number
-          y: number
-          kind?: string
-          sellable?: boolean
-        }
-        Update: {
-          id?: string
-          tenant_id?: string
-          venue_id?: string
-          section_id?: string
-          price_class_id?: string | null
-          row_label?: string
-          seat_number?: string
-          x?: number
-          y?: number
-          kind?: string
-          sellable?: boolean
-        }
-        Relationships: []
-      }
       ab_test_configs: {
         Row: {
           auto_select_winner: boolean | null
@@ -6543,7 +6351,6 @@ export type Database = {
           early_bird_deadline: string | null
           early_bird_price: number | null
           early_bird_quantity: number | null
-          venue_id: string | null
           end_time: string | null
           event_date: string
           event_group_id: string | null
@@ -6558,6 +6365,7 @@ export type Database = {
           tenant_id: string
           timezone: string
           updated_at: string
+          venue_id: string | null
         }
         Insert: {
           capacity?: number | null
@@ -6566,7 +6374,6 @@ export type Database = {
           early_bird_deadline?: string | null
           early_bird_price?: number | null
           early_bird_quantity?: number | null
-          venue_id?: string | null
           end_time?: string | null
           event_date: string
           event_group_id?: string | null
@@ -6581,6 +6388,7 @@ export type Database = {
           tenant_id: string
           timezone?: string
           updated_at?: string
+          venue_id?: string | null
         }
         Update: {
           capacity?: number | null
@@ -6589,7 +6397,6 @@ export type Database = {
           early_bird_deadline?: string | null
           early_bird_price?: number | null
           early_bird_quantity?: number | null
-          venue_id?: string | null
           end_time?: string | null
           event_date?: string
           event_group_id?: string | null
@@ -6604,6 +6411,7 @@ export type Database = {
           tenant_id?: string
           timezone?: string
           updated_at?: string
+          venue_id?: string | null
         }
         Relationships: [
           {
@@ -6639,6 +6447,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_details_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
             referencedColumns: ["id"]
           },
         ]
@@ -6764,6 +6579,101 @@ export type Database = {
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "event_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_seats: {
+        Row: {
+          class_name: string | null
+          color: string
+          event_detail_id: string
+          hold_cart_id: string | null
+          hold_expires_at: string | null
+          id: string
+          kind: string
+          order_id: string | null
+          product_id: string | null
+          row_label: string
+          seat_number: string
+          section_name: string
+          status: string
+          tenant_id: string
+          ticket_instance_id: string | null
+          updated_at: string
+          venue_seat_id: string | null
+          x: number
+          y: number
+        }
+        Insert: {
+          class_name?: string | null
+          color?: string
+          event_detail_id: string
+          hold_cart_id?: string | null
+          hold_expires_at?: string | null
+          id?: string
+          kind?: string
+          order_id?: string | null
+          product_id?: string | null
+          row_label: string
+          seat_number: string
+          section_name: string
+          status?: string
+          tenant_id: string
+          ticket_instance_id?: string | null
+          updated_at?: string
+          venue_seat_id?: string | null
+          x: number
+          y: number
+        }
+        Update: {
+          class_name?: string | null
+          color?: string
+          event_detail_id?: string
+          hold_cart_id?: string | null
+          hold_expires_at?: string | null
+          id?: string
+          kind?: string
+          order_id?: string | null
+          product_id?: string | null
+          row_label?: string
+          seat_number?: string
+          section_name?: string
+          status?: string
+          tenant_id?: string
+          ticket_instance_id?: string | null
+          updated_at?: string
+          venue_seat_id?: string | null
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_seats_event_detail_id_fkey"
+            columns: ["event_detail_id"]
+            isOneToOne: false
+            referencedRelation: "event_details"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_seats_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_seats_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_seats_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -20074,6 +19984,227 @@ export type Database = {
           },
         ]
       }
+      venue_price_classes: {
+        Row: {
+          color: string
+          default_price: number
+          id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+          venue_id: string
+        }
+        Insert: {
+          color?: string
+          default_price?: number
+          id?: string
+          name: string
+          sort_order?: number
+          tenant_id: string
+          venue_id: string
+        }
+        Update: {
+          color?: string
+          default_price?: number
+          id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_price_classes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_price_classes_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_price_classes_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venue_seats: {
+        Row: {
+          id: string
+          kind: string
+          price_class_id: string | null
+          row_label: string
+          seat_number: string
+          section_id: string
+          sellable: boolean
+          tenant_id: string
+          venue_id: string
+          x: number
+          y: number
+        }
+        Insert: {
+          id?: string
+          kind?: string
+          price_class_id?: string | null
+          row_label: string
+          seat_number: string
+          section_id: string
+          sellable?: boolean
+          tenant_id: string
+          venue_id: string
+          x: number
+          y: number
+        }
+        Update: {
+          id?: string
+          kind?: string
+          price_class_id?: string | null
+          row_label?: string
+          seat_number?: string
+          section_id?: string
+          sellable?: boolean
+          tenant_id?: string
+          venue_id?: string
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_seats_price_class_id_fkey"
+            columns: ["price_class_id"]
+            isOneToOne: false
+            referencedRelation: "venue_price_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_seats_section_id_fkey"
+            columns: ["section_id"]
+            isOneToOne: false
+            referencedRelation: "venue_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_seats_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_seats_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_seats_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venue_sections: {
+        Row: {
+          id: string
+          name: string
+          sort_order: number
+          tenant_id: string
+          venue_id: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          sort_order?: number
+          tenant_id: string
+          venue_id: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venue_sections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_sections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_sections_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "venues"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      venues: {
+        Row: {
+          address: string | null
+          created_at: string
+          id: string
+          name: string
+          stage_label: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name: string
+          stage_label?: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          id?: string
+          name?: string
+          stage_label?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "venues_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venues_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       volume_discount_tiers: {
         Row: {
           created_at: string
@@ -20819,14 +20950,6 @@ export type Database = {
       }
     }
     Functions: {
-      link_event_venue: {
-        Args: { p_event_detail_id: string; p_venue_id: string; p_mapping: Json }
-        Returns: Json
-      }
-      unlink_event_venue: {
-        Args: { p_event_detail_id: string }
-        Returns: Json
-      }
       add_ai_credits: {
         Args: { p_credits: number; p_tenant_id: string }
         Returns: undefined
@@ -21072,6 +21195,15 @@ export type Database = {
         Returns: boolean
       }
       hash_cashier_pin: { Args: { p_pin: string }; Returns: string }
+      hold_event_seats: {
+        Args: {
+          p_cart_id: string
+          p_event_detail_id: string
+          p_minutes?: number
+          p_seat_ids: string[]
+        }
+        Returns: Json
+      }
       increment_campaign_bounced: {
         Args: { p_campaign_id: string }
         Returns: undefined
@@ -21127,6 +21259,10 @@ export type Database = {
       issue_tickets_for_order: {
         Args: { p_order_id: string }
         Returns: undefined
+      }
+      link_event_venue: {
+        Args: { p_event_detail_id: string; p_mapping: Json; p_venue_id: string }
+        Returns: Json
       }
       log_admin_action: {
         Args: {
@@ -21198,6 +21334,14 @@ export type Database = {
       }
       redeem_gift_card: {
         Args: { p_amount: number; p_gift_card_id: string; p_order_id?: string }
+        Returns: number
+      }
+      release_cart_seats: {
+        Args: {
+          p_cart_id: string
+          p_event_detail_id?: string
+          p_product_id?: string
+        }
         Returns: number
       }
       repair_orphaned_user_roles: { Args: never; Returns: Json }
@@ -21311,6 +21455,7 @@ export type Database = {
           should_learn: boolean
         }[]
       }
+      unlink_event_venue: { Args: { p_event_detail_id: string }; Returns: Json }
       update_ai_learning_pattern: {
         Args: {
           p_learned_value: Json
