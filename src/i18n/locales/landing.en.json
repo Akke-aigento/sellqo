@@ -827,7 +827,7 @@
       "try_kleding": "Pick a size (some are sold out), see the reduced prices and check out with a bank transfer.",
       "try_restaurant": "Browse the menu with allergens, pick your side and cooking, then take away, get it delivered or order at the table.",
       "try_tech": "A dark shop for electronics: pick colours, free shipping or express.",
-      "try_festival": "Three festival days with day tickets, VIP and camping, and early-bird prices.",
+      "try_festival": "Three festival days with day tickets, VIP, camping, weekend combo tickets and tokens for food and drinks.",
       "try_pizzeria": "A complete pizzeria: pick size and toppings, choose a pickup time or order at the table.",
       "try_beauty": "Soft and airy: pick 30 or 50 ml and browse the gift sets.",
       "try_wijn": "Wines by the bottle or by the case of six, with gifts and gift cards.",
@@ -1994,6 +1994,10 @@
         "themes_and_examples": {
           "title": "Eight new themes and a page full of example shops",
           "description": "New in the theme gallery: Concert hall & theatre, Festival, Tech & gadgets, Beauty & care, Bar & café, Restaurant & bistro, Wine & delicatessen and Coffee & tea. Each theme comes with a real shop that uses it. At sellqo.app/voorbeelden you can click around all our example shops and place an order: nothing is charged. Also new is the Agenda homepage section, which lists your upcoming events by date."
+        },
+        "festival_combos_and_tokens": {
+          "title": "Combo tickets and tokens for festivals",
+          "description": "Sell a weekend ticket, a combo with camping or a VIP weekend: one purchase, and the buyer gets a separate ticket with a QR code for each day. Also new: tokens for food and drinks. You sell token packs in your shop, the buyer gets one QR code, and at the bar your staff deduct tokens with a bar link on their phone, no account needed. Customers can request a refund for unused tokens themselves: it arrives as a return for you to approve. Find it under Events → Combo tickets and Events → Tokens."
         }
       },
       "copyLink": "Copy link",

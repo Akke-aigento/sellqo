@@ -827,7 +827,7 @@
       "try_kleding": "Wählen Sie eine Größe (manche sind ausverkauft), sehen Sie die reduzierten Preise und bezahlen Sie per Überweisung.",
       "try_restaurant": "Speisekarte mit Allergenen ansehen, Beilage und Garstufe wählen, dann abholen, liefern lassen oder am Tisch bestellen.",
       "try_tech": "Ein dunkler Shop für Elektronik: Farben wählen, kostenloser Versand oder Express.",
-      "try_festival": "Drei Festivaltage mit Tagestickets, VIP und Camping sowie Early-Bird-Preisen.",
+      "try_festival": "Drei Festivaltage mit Tagestickets, VIP, Camping, Wochenend-Kombitickets und Marken für Essen und Getränke.",
       "try_pizzeria": "Eine komplette Pizzeria: Größe und Toppings wählen, Abholzeit festlegen oder am Tisch bestellen.",
       "try_beauty": "Sanft und luftig: 30 oder 50 ml wählen und die Geschenksets ansehen.",
       "try_wijn": "Weine pro Flasche oder im Sechserkarton, mit Geschenken und Gutscheinen.",
@@ -1994,6 +1994,10 @@
         "themes_and_examples": {
           "title": "Acht neue Themes und eine Seite voller Beispielshops",
           "description": "Neu in der Theme-Galerie: Konzertsaal & Theater, Festival, Tech & Gadgets, Beauty & Pflege, Bar & Café, Restaurant & Bistro, Wein & Delikatessen sowie Kaffee & Tee. Zu jedem Theme gibt es einen echten Shop, der es nutzt. Auf sellqo.app/voorbeelden klicken Sie sich durch alle Beispielshops und bestellen ruhig etwas: es wird nichts berechnet. Ebenfalls neu: der Homepage-Bereich Programm mit Ihren kommenden Events nach Datum."
+        },
+        "festival_combos_and_tokens": {
+          "title": "Kombitickets und Marken für Festivals",
+          "description": "Verkaufen Sie ein Wochenendticket, eine Kombi mit Camping oder ein VIP-Wochenende: ein Kauf, und der Käufer erhält pro Tag ein eigenes Ticket mit QR-Code. Neu sind auch Marken für Essen und Getränke. Sie verkaufen Markenpakete im Shop, der Käufer erhält einen QR-Code, und an der Bar bucht Ihr Personal mit einem Bar-Link auf dem Handy ab, ohne Konto. Ungenutzte Marken lässt der Kunde selbst erstatten: Das kommt als Retoure an, die Sie freigeben. Unter Events → Kombitickets und Events → Marken."
         }
       },
       "copyLink": "Link kopieren",

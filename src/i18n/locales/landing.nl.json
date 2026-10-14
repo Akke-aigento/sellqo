@@ -827,7 +827,7 @@
       "try_kleding": "Kies een maat (sommige zijn uitverkocht), bekijk de doorgestreepte prijzen en reken af met een overschrijving.",
       "try_restaurant": "Bekijk de kaart met allergenen, kies je bijgerecht en cuisson, en haal af, laat leveren of bestel aan tafel.",
       "try_tech": "Een donkere winkel voor elektronica: kleuren kiezen, gratis verzending of express.",
-      "try_festival": "Drie festivaldagen met dagtickets, VIP en camping, en early-birdprijzen.",
+      "try_festival": "Drie festivaldagen met dagtickets, VIP, camping, combitickets voor het hele weekend en munten voor drank en eten.",
       "try_pizzeria": "Een volledige pizzeria: formaat en toppings kiezen, een afhaaluur prikken of bestellen aan tafel.",
       "try_beauty": "Zacht en luchtig: kies 30 of 50 ml en bekijk de cadeausets.",
       "try_wijn": "Wijnen per fles of per doos van zes, met geschenken en cadeaubonnen.",
@@ -1994,6 +1994,10 @@
         "themes_and_examples": {
           "title": "Acht nieuwe thema's en een pagina vol voorbeeldwinkels",
           "description": "Nieuw in de themagalerij: Concertzaal & theater, Festival, Tech & gadgets, Beauty & verzorging, Bar & café, Restaurant & bistro, Wijn & delicatessen en Koffie & thee. Bij elk thema zie je een echte winkel die het gebruikt. Op sellqo.app/voorbeelden klik je rond in al onze voorbeeldwinkels en bestel je gerust iets: er wordt niets aangerekend. Nieuw is ook de homepagesectie Agenda, die je komende events op datum toont."
+        },
+        "festival_combos_and_tokens": {
+          "title": "Combitickets en munten voor festivals",
+          "description": "Verkoop een weekendticket, een combi met camping of een VIP-weekend: één aankoop, en de koper krijgt per dag een eigen ticket met QR-code. Nieuw zijn ook munten voor drank en eten. Je verkoopt muntenpakketten in je webshop, de koper krijgt één QR-code, en aan de bar schrijft je personeel munten af met een barlink op hun gsm, zonder account. Ongebruikte munten laat de klant zelf terugstorten: dat komt als retour binnen, jij keurt goed. Te vinden onder Events → Combitickets en Events → Munten."
         }
       },
       "copyLink": "Kopieer link",

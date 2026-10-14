@@ -4,6 +4,17 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11n — Combitickets en munten voor festivals (feature, 14-10-2026)
+
+**Voor wie:** festivals, meerdaagse events, iedereen met een bar of foodstand (events-module).
+
+**Combitickets.** Weekendticket, combi met camping, VIP-weekend: één aankoop, per dag een eigen ticket met QR.
+**Munten.** Muntenpakketten in de webshop, één QR per koper, afschrijven aan de bar met een barlink (geen account),
+terugdraaien binnen 10 minuten. Ongebruikte munten laat de klant zelf terugstorten (retour, jij keurt goed).
+Demo: demo-festival.sellqo.shop.
+
+**i18n-keys.** `public.changelog.changes.festival_combos_and_tokens` — 5 talen.
+
 ### 2026.11m — Acht nieuwe thema's en voorbeeldwinkels (feature, 14-10-2026)
 
 **Voor wie:** iedereen met een SellQo-webshop.

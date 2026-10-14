@@ -827,7 +827,7 @@
       "try_kleding": "Choisissez une taille (certaines sont épuisées), voyez les prix barrés et payez par virement.",
       "try_restaurant": "Parcourez la carte avec allergènes, choisissez l'accompagnement et la cuisson, puis emportez, faites livrer ou commandez à table.",
       "try_tech": "Une boutique sombre pour l'électronique : choix des couleurs, livraison gratuite ou express.",
-      "try_festival": "Trois jours de festival avec billets journaliers, VIP et camping, et des prix early bird.",
+      "try_festival": "Trois jours de festival avec billets journée, VIP, camping, pass week-end combinés et jetons pour boissons et nourriture.",
       "try_pizzeria": "Une pizzeria complète : taille et garnitures, créneau de retrait ou commande à table.",
       "try_beauty": "Doux et aérien : choisissez 30 ou 50 ml et découvrez les coffrets.",
       "try_wijn": "Vins à la bouteille ou au carton de six, avec coffrets et chèques-cadeaux.",
@@ -1994,6 +1994,10 @@
         "themes_and_examples": {
           "title": "Huit nouveaux thèmes et une page pleine de boutiques d'exemple",
           "description": "Nouveau dans la galerie : Salle de concert & théâtre, Festival, Tech & gadgets, Beauté & soins, Bar & café, Restaurant & bistrot, Vins & épicerie fine et Café & thé. Chaque thème est accompagné d'une vraie boutique qui l'utilise. Sur sellqo.app/voorbeelden, explorez toutes nos boutiques d'exemple et commandez sans crainte : rien n'est facturé. Nouvelle aussi : la section Agenda, qui affiche vos prochains événements par date."
+        },
+        "festival_combos_and_tokens": {
+          "title": "Billets combinés et jetons pour les festivals",
+          "description": "Vendez un pass week-end, un combiné avec camping ou un week-end VIP : un seul achat, et l'acheteur reçoit un billet avec QR code pour chaque jour. Nouveau aussi : des jetons pour boissons et nourriture. Vous vendez des packs de jetons dans votre boutique, l'acheteur reçoit un seul QR code, et au bar votre équipe débite les jetons avec un lien bar sur son téléphone, sans compte. Le client demande lui-même le remboursement des jetons non utilisés : cela arrive comme retour, que vous validez. Dans Événements → Billets combinés et Événements → Jetons."
         }
       },
       "copyLink": "Copier le lien",

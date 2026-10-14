@@ -1,3 +1,61 @@
+## FEST-1 + FEST-2 — combitickets en munten (drank/eten) voor festivals — 14 oktober 2026
+
+**Migratie `20261014160000_fest_1_2_bundles_tokens.sql` (4f23613, live en nagekeken).** Strikt additief.
+- Nieuwe tabellen: `ticket_bundle_items`, `token_settings`, `token_wallets`, `token_scanner_access`, `token_transactions`, plus `products.token_amount`. RLS: lezen tenant_admin/staff, beheren tenant_admin.
+- `issue_tickets_for_order` is hernoemd naar `issue_tickets_for_order_core` (prosrc-md5 24cb3e0c… ongewijzigd). De wrapper met de oude naam roept eerst de kern aan, daarna combi's en munten, elk in een EXCEPTION-blok. Een fout in de nieuwe code kan gewone tickets dus niet tegenhouden.
+- Functies: `check_bundle_capacity`, `issue_bundle_tickets_for_order`, `issue_wallet_for_order`, `spend_tokens` (idempotent), `undo_token_spend` (zelfde bar, ≤ 10 min, één keer), `adjust_wallet` (tenant_admin, reden verplicht), `request_token_refund`.
+- Trigger `returns_sync_token_wallet`: bij refund_status completed wordt de kaart `refunded` met saldo 0; bij rejected/cancelled gaat ze terug naar `active`.
+
+**Edge functions (deploy via Lovable, vingerafdruk gemeten):** storefront-api `FEST-1`, send-ticket-confirmation `FEST-2` → `FEST-2b`, token-bar `FEST-2` (nieuw), token-wallet `FEST-2` (nieuw). De laatste twee hebben `verify_jwt = false`.
+- storefront-api:
+  - get_product: `bundle` en `token_amount` (top-level, alleen als ze er zijn);
+  - get_products: een combi krijgt `next_event_date` = vroegste datum;
+  - cart_add_item: capaciteitscheck per onderdeel;
+  - checkout: combi's tellen mee per onderdeel;
+  - cart-regels: `email_delivery` en `token_amount`;
+  - backlog-fix: `spots_left` is null bij onbeperkte capaciteit.
+- **Nulmeting en nameting (md5):** Fonske get_product en get_products, Mancini get_products en VanXcel get_products zijn identiek.
+  - VanXcel get_product is identiek op `related_products` na. Die query heeft geen ORDER BY bij `limit 8` en geeft dus een willekeurige set. Dat bestond al; het is backlog.
+- `_shared/tenantEmailI18n.ts`: er zijn alleen nieuwe keys bijgekomen (`ticket.wallet*`). De andere importeurs zijn bewust niet opnieuw gedeployed: geen gedragsverschil.
+- Ticketmail:
+  - muntenblok met QR en de link `sellqo.app/munten/<code>`;
+  - een bestelling met alleen munten krijgt ook een mail, met eigen titel en zonder datum-disclaimer;
+  - bij een combi staat per ticket de naam van het onderdeel, met de combi eronder. Gewone tickets: titel byte-identiek (lokaal gerenderd en vergeleken).
+
+**Admin (7d74f0b, live na publish):**
+- Events → Combitickets (`/admin/events/bundles`) en Events → Munten (`/admin/events/tokens`), met pakketten, barlinks + QR, kaarten (bijsturen, blokkeren) en instellingen (naam, terugbetalen tot, kost).
+- Publieke pagina's `/bar/:token` ("SellQo Bar", beginscherm-app, snelle modus met beveiliging tegen dubbel afschrijven binnen 20 s) en `/munten/:code` (saldo, QR, geschiedenis, terugbetaling met IBAN mod-97).
+- i18n: 168 keys in 5 talen.
+
+**Storefront (71ff6b3):** op de productpagina "Hierin zit" bij een combi en "Je krijgt X munten" bij een pakket. Een mandje met alleen tickets, combi's en munten slaat verzending over.
+
+**Demo-festival:**
+- Weekendticket €139, weekend + camping €179, VIP-weekend €299.
+- 10, 25 en 50 munten (€30, €72,50, €140).
+- Terugbetalen tot 25-07-2027, kost €1.
+- Barlinks Hoofdbar en Foodtrucks.
+- 3 nieuwe foto's (nano-studio).
+- `ops.reset_demo_shops` ruimt nu ook muntenkaarten op.
+
+**E2E op demo-festival (bestelling #0001, overschrijving, handmatig betaald gezet):**
+- 2× weekend + camping gaf 8 tickets (seq 1–8, per dag plus camping).
+- 25 munten gaven één kaart (betaald €72,50).
+- Aan de bar:
+  - −2 (zelfde sleutel nog eens: `repeat`, geen dubbele afschrijving);
+  - ongedaan maken vanaf een andere bar: geweigerd;
+  - 99 munten: `insufficient`;
+  - −4 en daarna ongedaan maken: saldo terug naar 23.
+- Terugbetaling:
+  - ongeldige IBAN: geweigerd; zonder IBAN: `iban_required`;
+  - geldige IBAN: retour €65,70 (23 × €2,90 − €1), melding en kaart `refund_requested`;
+  - afschrijven tijdens de aanvraag: geweigerd;
+  - retour afgewezen: kaart weer `active`;
+  - opnieuw aangevraagd en completed: kaart `refunded`, saldo 0.
+
+**Gevonden, niet opgelost (backlog):**
+- Tickets betaald met **overschrijving** krijgen na "betaald" markeren geen ticketmail. Alleen Stripe en gratis bestellingen roepen send-ticket-confirmation aan, en de admin heeft geen knop om de tickets opnieuw te mailen. Dit bestond al.
+- De service-key in de vault (`email_queue_service_role_key`) is niet de `SUPABASE_SERVICE_ROLE_KEY` van de functies, dus vanuit de DB kunnen we die mail niet triggeren.
+
 ## MKT-3 + PERF-1 — levende hero en snelle demowinkels — 14 oktober 2026
 
 - **PERF-1 (storefront 0f13617, live, nagekeken):** de demowinkels waren traag door zo'n 20 AI-studiofoto's van ±800 kB per pagina.
