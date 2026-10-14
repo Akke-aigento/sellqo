@@ -30,7 +30,19 @@ Akke ging akkoord met: Horeca €49 per maand plus een opstartpakket van €149 
 ### SEO-2
 `scripts/prerender-meta.mjs` draait na `vite build` en schrijft `dist/{horeca,events,pricing}/index.html` met een eigen title, description, canonical en og-tags. Lokaal nagekeken.
 
-### Deploy (open)
+### Deploy en activatie (14-10, 08:45)
+- Deploy-only-agent: stempels gemeten — storefront-api `FLEX-1`, sync-tenant-plan `PRICE-2`, create-tenant `PRICE-2`. De agent commitete enkel `src/integrations/supabase/types.ts` (platformbestand, volgorde van mijn handmatige types).
+- Catalog-probe (`flex1`): 81 calls, statuscodes identiek, 8 bodies anders — enkel `stock` van VanXcel/demo-bakkerij (echte verkopen sinds de snapshot), geen structuurwijziging.
+- Plannen `horeca` en `events_flex` op `active = true` gezet en nagekeken.
+- Audit prijspagina tegen backend (8da0523 tekstfixes). Backend-gaten, nog open als eigen batches:
+  - opzeggen naar Free is meteen (geen einde-periode);
+  - reverse charge wordt op SellQo-abonnementen geforceerd naar 21% (BILL-2);
+  - geen klanten-/productexport in de UI (hooks bestaan maar zijn niet gekoppeld);
+  - de QR op de cadeaubon-afdruk is een placeholder;
+  - `limit_orders` wordt nergens afgedwongen;
+  - Events Flex zonder Stripe Connect kan geen betaalde tickets verkopen (sync-tenant-plan checkt dat niet).
+
+### Deploy (historiek)
 - Drie functies, met een GET-stempel als nulmeting:
   - storefront-api: `HORECA-1`, moet `FLEX-1` worden.
   - sync-tenant-plan: 401, moet `PRICE-2` worden.
