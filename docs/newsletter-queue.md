@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11w — Social planning: reels en een herinnering voor wat je zelf post (feature, 15-10-2026)
+
+**Voor wie:** iedereen die social posts plant.
+
+Reels staan nu ook in de Social planning, met videovoorbeeld en muziekvoorstel. Per reel kies je: automatisch
+posten in de versie met muziek, of zelf een nummer kiezen in de Instagram-app (video downloaden en caption
+kopiëren met één tik). Voor alles wat je zelf post krijg je ongeveer een uur vooraf een melding.
+
+**Niet versturen vóór** de eerste reel via de planning online stond (Loveke, 25-10).
+
+**i18n-keys.** `public.changelog.changes.social_reels_reminders` — 5 talen.
+
 ### 2026.11v — Social planning: je posts per week goedkeuren (feature, 15-10-2026)
 
 **Voor wie:** iedereen die social posts plant.

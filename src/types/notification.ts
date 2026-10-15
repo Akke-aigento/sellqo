@@ -204,6 +204,9 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'campaign_high_bounce', defaultInApp: true, defaultEmail: false },
       { type: 'ab_test_winner', defaultInApp: true, defaultEmail: false },
       { type: 'ai_credits_empty', defaultInApp: true, defaultEmail: false },
+      // SOCIAL-3: herinnering "zelf posten" en "nieuwe posts klaar om goed te keuren".
+      { type: 'social_manual_due', defaultInApp: true, defaultEmail: false },
+      { type: 'social_posts_ready', defaultInApp: true, defaultEmail: false },
     ]
   },
   {

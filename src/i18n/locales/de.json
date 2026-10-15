@@ -951,6 +951,14 @@
           "ai_credits_empty": {
             "label": "KI-Credits aufgebraucht",
             "description": "KI-Credits sind aufgebraucht"
+          },
+          "social_manual_due": {
+            "label": "Social: selbst posten",
+            "description": "Erinnerung eine Stunde vor einem Beitrag, den Sie selbst posten (Story mit Sticker, Reel mit eigener Musik)"
+          },
+          "social_posts_ready": {
+            "label": "Social: neue Beiträge bereit",
+            "description": "Neue oder neu erstellte Beiträge warten auf Ihre Genehmigung"
           }
         },
         "team": {
@@ -6705,7 +6713,8 @@
         "publishing": "Wird veröffentlicht",
         "posted": "Veröffentlicht",
         "failed": "Fehlgeschlagen",
-        "manual": "Selbst posten"
+        "manual": "Selbst posten",
+        "regenerate_requested": "Wird neu erstellt"
       },
       "toast": {
         "approved": "Genehmigt",
@@ -6713,7 +6722,33 @@
         "saved": "Gespeichert",
         "removed": "Entfernt",
         "markedPosted": "Als gepostet markiert",
-        "error": "Etwas ist schiefgelaufen: {{message}}"
+        "error": "Etwas ist schiefgelaufen: {{message}}",
+        "captionCopied": "Bildunterschrift kopiert",
+        "copyFailed": "Kopieren fehlgeschlagen. Markieren Sie den Text und kopieren Sie ihn selbst.",
+        "ownMusic": "Zum Selbstposten markiert. Sie erhalten eine Stunde vorher eine Erinnerung.",
+        "regenerateRequested": "Angefragt. Sie erhalten eine Benachrichtigung, sobald die neue Version bereitsteht."
+      },
+      "reel": "Reel",
+      "approveAuto": "Genehmigen (automatisch)",
+      "ownMusic": "Ich wähle die Musik",
+      "downloadVideo": "Video herunterladen",
+      "copyCaption": "Bildunterschrift kopieren",
+      "manualReelHint": "Laden Sie das Video herunter, wählen Sie in der Instagram-App einen Song, fügen Sie die Bildunterschrift ein und posten Sie. Haken Sie es danach ab.",
+      "music": {
+        "title": "Musikvorschlag",
+        "track": "Automatisch mit: {{title}}",
+        "mood": "Stimmung: {{mood}}",
+        "search": "Suchen Sie auf Instagram nach: {{terms}}"
+      },
+      "regenerate": {
+        "button": "Neu erstellen",
+        "title": "Neue Version erstellen",
+        "body": "Dieser Beitrag wird neu erstellt, für denselben Tag und dieselbe Uhrzeit. Sie erhalten eine Benachrichtigung, sobald die neue Version zur Genehmigung bereitsteht.",
+        "noteLabel": "Was soll anders sein? (optional)",
+        "notePlaceholder": "Zum Beispiel: lustiger, ein anderes Foto, mehr zum Preis",
+        "confirm": "Neu erstellen",
+        "pending": "Eine neue Version wird erstellt.",
+        "pendingWithNote": "Eine neue Version wird erstellt: „{{note}}“"
       }
     }
   },

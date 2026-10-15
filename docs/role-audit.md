@@ -1,3 +1,32 @@
+## SOCIAL-3 — Reels, muziekkeuze, herinneringen "zelf posten" en "Opnieuw maken" (2026.11w) — 15 oktober 2026
+
+**Waarom.** Akke wil reels (test-reel "Afscheid nemen in Kyiv" goedgekeurd), per reel kiezen tussen automatisch met bibliotheekmuziek of zelf een nummer in de Instagram-app, een herinnering vanuit SellQo zelf (i.p.v. losse Claude-taken per dag), en losse posts uit een goedgekeurde week kunnen laten herdoen.
+
+**Recon (feiten):**
+- `social_posts.media_type` had check (image|carousel|story); `status` heeft geen check. Claim-functie pakt enkel scheduled/approved.
+- `notifications`-insert triggert zelf push (`notify_push_on_notification` → send-push-notification, per type opt-out) en mail (create-notification). Categorie `marketing` bestaat in de enum; types staan in `NOTIFICATION_CONFIG` (UI) + `NOTIFICATION_DEFAULTS` (backend), pariteitstest.
+- Bucket `marketing-assets`: limiet 10 MB, `video/mp4` toegelaten → reels ≤ 9,5 MB (reel.mjs bewaakt dat), geen wijziging aan de bucket.
+- Meta-docs (Instagram API met Instagram Login): reels via `media_type=REELS`, `video_url`, `cover_url`, `share_to_feed`; status hooguit om de minuut, max 5 min; MP4/H.264/AAC ≤ 48 kHz, 3 s–15 min.
+
+**Uitgevoerd:**
+- `supabase/migrations/20261015190000_social_3_reels_reminders.sql` (additief): kolommen `video_url`, `video_silent_url`, `music_hint`, `manual_reason` (check sticker|music|other), `reminded_at`, `regenerate_note`, `regenerate_requested_at`, `regenerate_from`, `publish_container_id`; media_type-check breder met `reel`; partiële index manual-zonder-herinnering; cron `social-publish-due-hourly` opnieuw gepland met extra WHERE EXISTS-tak voor herinneringen (timeout 150 s).
+- `_shared/socialPublish.ts`: reel-pad (container REELS + cover + share_to_feed, statuspolling 9×10 s; nog bezig → `pendingContainerId`, geen fout), hervatten van een bewaarde container zonder nieuwe upload; reels geweigerd op Facebook/X/LinkedIn.
+- `_shared/socialMedia.ts`: `prepareInstagramVideo` (eigen opslag → ongewijzigd; anders kopie als video/mp4 naar `marketing-assets/<tenant>/social/<sha>.mp4`, hergebruik via HEAD, MP4-check op `ftyp`, max 10 MB met duidelijke fout).
+- `_shared/socialReminder.ts` (nieuw) + `social-publish-due`: mode publish doet ook `remindManual`: manual-posts zonder herinnering, gepland tussen −30 en +65 min → eerst voorwaardelijk `reminded_at` zetten, dan één melding `marketing/social_manual_due` (bel + push). Reel: video naar eigen opslag vóór publiceren; `pendingContainerId` → terug naar approved met bewaarde container, poging telt niet mee.
+- Meldingstypes `social_manual_due` en `social_posts_ready` (laatste voor de contenttaken) in `NOTIFICATION_DEFAULTS`, `NOTIFICATION_CONFIG`, `TYPE_ROUTES` (→ /admin/marketing/social) en labels × 5 talen.
+- Frontend: `useSocialPlanner` (nieuwe velden, `canAutoApprove`, `canRegenerate`, `chooseOwnMusic`, `requestRegenerate`; goedkeuren weigert reels zonder versie met muziek, ook in de query), `SocialPlannerCard` (videovoorbeeld, muziekvoorstel, "Goedkeuren (automatisch)"/"Ik kies zelf muziek", "Video downloaden", "Caption kopiëren", "Opnieuw maken"), `SocialPlanner` (dialoog met optionele opmerking). "Opnieuw maken" enkel bij `source = content_task`: daar draait een taak die het oppikt; elders zou het een dode knop zijn.
+- i18n: 27 keys × 5 talen; changelog `social_reels_reminders` (2026.11w) × 5 talen; helpartikel bijgewerkt (`20261015190100_social_3_doc_article.sql`); nieuwsbrief-item.
+
+**Security-keuzes:** geen nieuwe policies; de UI schrijft via de bestaande RLS op social_posts (update voor tenant_admin/staff/marketing). Filters in de mutaties (`source = content_task`, toegelaten statussen, `media_type = reel`) voorkomen een regeneratie of muziekkeuze op andermans of gepubliceerde posts. Meldingen volgen `can_read_notification_category` (marketing). Video's komen enkel in de eigen tenantmap van de publieke marketing-bucket (zoals de beelden sinds SOCIAL-1c).
+
+**Gedeelde-paden-waarschuwing:** `notificationDefaults.ts`/`notificationRoutes.ts` worden gedeeld door create-notification, send-push-notification en sync-billing-state: enkel twee nieuwe sleutels, geen bestaande gewijzigd. social_posts is geen custom-frontend-tabel; storefront-paden niet geraakt.
+
+**Verificatie:** tsc 27 = baseline; build groen; eslint 0 in de gewijzigde bestanden; i18n-pariteit (7855 keys × 5); vitest notificatie-tests 272/272; deno test 32/32 (nieuw: reel FINISHED, IN_PROGRESS → container, hervatten, ERROR, platformweigering, video kopiëren/hergebruik/geen MP4/te groot, herinneringstekst met Brussels uur); deno check op de 6 bereikbare functies (create-notification: esm.sh/resend niet bereikbaar uit de sandbox, enkel data-wijziging). Visueel: harness met echte Loveke-beelden en de Kyiv-reel, 390 px en 1280 px, NL en UK: 0 px overloop, geen consolefouten; knoppen van de reelkeuze over volle breedte na eerste screenshot (label viel af).
+
+**Deploy-lijst:** social-publish-due, social-post-publish, social-oauth-init, social-oauth-callback, create-notification, send-push-notification, sync-billing-state. Frontend: publiceren.
+
+**Bewust ongemoeid / Vervolg:** bucket-limiet (10 MB) niet verhoogd; Facebook-reels niet; de regeneratie zelf draait als Claude-taak buiten SellQo (elk uur 8–22 u) en enkel voor Nomadix-tenants met een contentpijplijn. Volgende: MARKETING-1 (reparaties uit de marketing-recon), MARKETING-2 (één geheel).
+
 ## SOCIAL-2 — Social planning: posts per week goedkeuren (2026.11v) — 15 oktober 2026
 
 **Waarom.** De motor (SOCIAL-1/1b/1c) publiceert, maar er was geen plek om posts te zien en goed te keuren. Akke's test met de bestaande AI-generator toonde dat die voor de Nomadix-brands niet bruikbaar is (enkel tekst + kale productfoto, generieke inhoud, mobiele layout loopt over). Beslissing (masterplan): de content komt uit de wekelijkse contenttaken als `pending_approval`; Akke keurt per week goed.

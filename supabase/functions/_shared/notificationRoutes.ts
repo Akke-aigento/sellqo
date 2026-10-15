@@ -63,6 +63,9 @@ const TYPE_ROUTES: Readonly<Record<string, string>> = {
   trial_expiring: "/admin/billing",
   trial_expired: "/admin/billing",
   trial_converted: "/admin/billing",
+  // SOCIAL-3
+  social_manual_due: "/admin/marketing/social",
+  social_posts_ready: "/admin/marketing/social",
 };
 
 // Settings.tsx leest alleen `?section=`. Oude `?tab=`- en `/settings/<x>`-links

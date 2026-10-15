@@ -181,3 +181,73 @@ Deno.test("Facebook: meerdere beelden = ongepubliceerde foto's + één feed-beri
     eq(m.calls[2].body.get("message"), "Twee");
   } finally { m.restore(); }
 });
+
+// --- SOCIAL-3: reels --------------------------------------------------------------------
+import { reelPolling } from "./socialPublish.ts";
+
+
+Deno.test("reel: container met REELS, video_url, cover en share_to_feed; FINISHED → publiceren", async () => {
+  reelPolling.intervalMs = 1;
+  const m = mockFetch((c) => {
+    if (c.method === "POST" && c.url.endsWith("/17841/media")) return { json: { id: "ctr-1" } };
+    if (c.method === "GET" && c.url.includes("/ctr-1")) return { json: { status_code: "FINISHED" } };
+    if (c.url.endsWith("/media_publish")) return { json: { id: "media-9" } };
+    return { status: 400, json: { error: { message: "onverwacht" } } };
+  });
+  try {
+    const r = await publishPost(IG, { text: "cap", imageUrls: ["https://x/cover.jpg"], mediaType: "reel", videoUrl: "https://x/v.mp4" });
+    eq(r.success, true, "gepubliceerd");
+    eq(r.platformPostId, "media-9");
+    const create = m.calls[0].body;
+    eq([create.get("media_type"), create.get("video_url"), create.get("cover_url"), create.get("share_to_feed"), create.get("caption")],
+      ["REELS", "https://x/v.mp4", "https://x/cover.jpg", "true", "cap"]);
+  } finally { m.restore(); }
+});
+
+Deno.test("reel: nog IN_PROGRESS na het wachten → pendingContainerId, geen fout", async () => {
+  reelPolling.intervalMs = 1; reelPolling.attempts = 3;
+  const m = mockFetch((c) => {
+    if (c.method === "POST" && c.url.endsWith("/17841/media")) return { json: { id: "ctr-2" } };
+    return { json: { status_code: "IN_PROGRESS" } };
+  });
+  try {
+    const r = await publishPost(IG, { text: "", imageUrls: [], mediaType: "reel", videoUrl: "https://x/v.mp4" });
+    eq([r.success, r.pendingContainerId], [false, "ctr-2"]);
+    ok(!m.calls.some((c) => c.url.endsWith("/media_publish")), "niet gepubliceerd");
+  } finally { m.restore(); reelPolling.attempts = 9; }
+});
+
+Deno.test("reel: bewaarde container wordt hervat zonder nieuwe upload", async () => {
+  reelPolling.intervalMs = 1;
+  const m = mockFetch((c) => {
+    if (c.method === "GET") return { json: { status_code: "FINISHED" } };
+    if (c.url.endsWith("/media_publish")) return { json: { id: "media-3" } };
+    return { status: 400, json: { error: { message: "mag niet" } } };
+  });
+  try {
+    const r = await publishPost(IG, { text: "", imageUrls: [], mediaType: "reel", containerId: "ctr-old" });
+    eq(r.success, true);
+    ok(!m.calls.some((c) => c.method === "POST" && c.url.endsWith("/17841/media")), "geen nieuwe container");
+    eq(m.calls.find((c) => c.url.endsWith("/media_publish"))?.body.get("creation_id"), "ctr-old");
+  } finally { m.restore(); }
+});
+
+Deno.test("reel: ERROR van Instagram is een blijvende fout", async () => {
+  reelPolling.intervalMs = 1;
+  const m = mockFetch((c) => c.method === "POST" ? { json: { id: "ctr-4" } } : { json: { status_code: "ERROR" } });
+  try {
+    const r = await publishPost(IG, { text: "", imageUrls: [], mediaType: "reel", videoUrl: "https://x/v.mp4" });
+    eq([r.success, r.retryable], [false, false]);
+  } finally { m.restore(); }
+});
+
+Deno.test("reel: niet op Facebook, X of LinkedIn, en nooit zonder video", async () => {
+  const fb: PublishTarget = { kind: "facebook", connectionId: "c", pageId: "p", token: "t" };
+  const li: PublishTarget = { kind: "linkedin", connectionId: "c", token: "t", authorId: "a" };
+  for (const t of [fb, li]) {
+    const r = await publishPost(t, { text: "x", imageUrls: [], mediaType: "reel", videoUrl: "https://x/v.mp4" });
+    eq([r.success, r.retryable], [false, false]);
+  }
+  const r = await publishPost(IG, { text: "x", imageUrls: [], mediaType: "reel" });
+  eq([r.success, r.retryable], [false, false]);
+});

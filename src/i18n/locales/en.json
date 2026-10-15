@@ -923,6 +923,14 @@
           "ai_credits_empty": {
             "label": "AI credits used up",
             "description": "AI credits have run out"
+          },
+          "social_manual_due": {
+            "label": "Social: post yourself",
+            "description": "Reminder an hour before a post you place yourself (story with a sticker, reel with your own music)"
+          },
+          "social_posts_ready": {
+            "label": "Social: new posts ready",
+            "description": "New or remade posts are waiting for your approval"
           }
         },
         "team": {
@@ -6942,7 +6950,8 @@
         "publishing": "Publishing",
         "posted": "Published",
         "failed": "Failed",
-        "manual": "Post yourself"
+        "manual": "Post yourself",
+        "regenerate_requested": "Being remade"
       },
       "toast": {
         "approved": "Approved",
@@ -6950,7 +6959,33 @@
         "saved": "Saved",
         "removed": "Removed",
         "markedPosted": "Marked as posted",
-        "error": "Something went wrong: {{message}}"
+        "error": "Something went wrong: {{message}}",
+        "captionCopied": "Caption copied",
+        "copyFailed": "Copying failed. Select the text and copy it yourself.",
+        "ownMusic": "Set to post yourself. You will get a reminder an hour before.",
+        "regenerateRequested": "Requested. You will get a notification when the new version is ready."
+      },
+      "reel": "Reel",
+      "approveAuto": "Approve (automatic)",
+      "ownMusic": "I'll pick the music",
+      "downloadVideo": "Download video",
+      "copyCaption": "Copy caption",
+      "manualReelHint": "Download the video, pick a song in the Instagram app, paste the caption and post. Tick it off afterwards.",
+      "music": {
+        "title": "Music suggestion",
+        "track": "Automatic with: {{title}}",
+        "mood": "Mood: {{mood}}",
+        "search": "Search Instagram for: {{terms}}"
+      },
+      "regenerate": {
+        "button": "Make again",
+        "title": "Make a new version",
+        "body": "This post will be made again, for the same day and time. You will get a notification as soon as the new version is ready to approve.",
+        "noteLabel": "What should be different? (optional)",
+        "notePlaceholder": "For example: funnier, a different photo, more about the price",
+        "confirm": "Make again",
+        "pending": "A new version is being made.",
+        "pendingWithNote": "A new version is being made: \"{{note}}\""
       }
     }
   },

@@ -39,12 +39,16 @@ const FB_HOST = "https://graph.facebook.com";
 const IG_HOST = "https://graph.instagram.com";
 
 export type SocialPlatform = "facebook" | "instagram" | "twitter" | "linkedin";
-export type SocialMediaType = "image" | "carousel" | "story";
+export type SocialMediaType = "image" | "carousel" | "story" | "reel";
 
 export interface PublishInput {
   text: string;
   imageUrls: string[];
   mediaType: SocialMediaType;
+  /** SOCIAL-3, reel: publieke MP4-URL. imageUrls[0] (optioneel) is de cover. */
+  videoUrl?: string | null;
+  /** SOCIAL-3, reel: container van een vorige run die nog verwerkt werd. */
+  containerId?: string | null;
 }
 
 export interface PublishResult {
@@ -54,6 +58,11 @@ export interface PublishResult {
   error?: string;
   /** true = tijdelijk probleem (netwerk, rate limit, 5xx): later opnieuw proberen heeft zin. */
   retryable?: boolean;
+  /**
+   * SOCIAL-3, reel: Instagram verwerkt de video nog. Geen fout: bewaar deze container en
+   * publiceer hem bij de volgende run (zonder opnieuw te uploaden).
+   */
+  pendingContainerId?: string;
 }
 
 export type PublishTarget =
@@ -303,10 +312,63 @@ async function waitForContainer(host: string, containerId: string, token: string
   throw new GraphCallError("Instagram was na 24 seconden nog bezig met het beeld.", true);
 }
 
+/** SOCIAL-3: wachttijd tussen statuschecks van een reel (aanpasbaar voor de tests). */
+export const reelPolling = { intervalMs: 10000, attempts: 9 };
+
+/**
+ * SOCIAL-3 — reel. Meta raadt aan de status hooguit om de minuut op te vragen, maximaal
+ * 5 minuten. Wij wachten binnen één run tot ~90 s; is de video dan nog niet verwerkt,
+ * dan geven we de container terug en publiceert de volgende run hem.
+ */
+async function publishInstagramReel(
+  target: Extract<PublishTarget, { kind: "instagram" }>,
+  input: PublishInput,
+): Promise<PublishResult> {
+  const { host, igUserId, token } = target;
+  let containerId = input.containerId ?? null;
+  if (!containerId) {
+    if (!input.videoUrl) {
+      return { success: false, error: "Een reel heeft een video nodig.", retryable: false };
+    }
+    const params: Record<string, string> = {
+      media_type: "REELS",
+      video_url: input.videoUrl,
+      caption: input.text,
+      share_to_feed: "true",
+    };
+    const cover = input.imageUrls.filter(Boolean)[0];
+    if (cover) params.cover_url = cover;
+    const c = await graph(host, `${igUserId}/media`, token, "POST", params);
+    containerId = String(c.id);
+  }
+
+  for (let i = 0; i < reelPolling.attempts; i++) {
+    const status = await graph(host, containerId, token, "GET", { fields: "status_code" });
+    const code = String(status.status_code ?? "");
+    if (code === "FINISHED") {
+      const published = await graph(host, `${igUserId}/media_publish`, token, "POST", { creation_id: containerId });
+      return { success: true, platformPostId: String(published.id), postedAt: new Date().toISOString() };
+    }
+    if (code === "PUBLISHED") {
+      return { success: true, postedAt: new Date().toISOString() };
+    }
+    if (code === "ERROR" || code === "EXPIRED") {
+      return {
+        success: false,
+        error: `Instagram kon de video niet verwerken (status ${code}). Controleer of het een MP4 (H.264, AAC) van 3 s tot 15 min is.`,
+        retryable: false,
+      };
+    }
+    await sleep(reelPolling.intervalMs);
+  }
+  return { success: false, pendingContainerId: containerId, error: "Instagram verwerkt de video nog.", retryable: true };
+}
+
 async function publishInstagram(
   target: Extract<PublishTarget, { kind: "instagram" }>,
   input: PublishInput,
 ): Promise<PublishResult> {
+  if (input.mediaType === "reel") return await publishInstagramReel(target, input);
   const { host, igUserId, token } = target;
   const images = input.imageUrls.filter(Boolean);
 
@@ -360,6 +422,9 @@ async function publishFacebook(
 
   if (input.mediaType === "story") {
     return { success: false, error: "Facebook-stories kunnen niet via SellQo gepubliceerd worden.", retryable: false };
+  }
+  if (input.mediaType === "reel") {
+    return { success: false, error: "Reels publiceert SellQo enkel op Instagram.", retryable: false };
   }
 
   if (images.length === 0) {
@@ -434,6 +499,9 @@ async function publishLinkedIn(token: string, authorId: string, text: string): P
 
 /** Publiceert één post. Gooit nooit: elke fout komt terug als PublishResult. */
 export async function publishPost(target: PublishTarget, input: PublishInput): Promise<PublishResult> {
+  if (input.mediaType === "reel" && target.kind !== "instagram") {
+    return { success: false, error: "Reels publiceert SellQo enkel op Instagram.", retryable: false };
+  }
   try {
     switch (target.kind) {
       case "instagram":

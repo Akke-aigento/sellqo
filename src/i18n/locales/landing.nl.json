@@ -2030,6 +2030,10 @@
         "social_planning_approval": {
           "title": "Social planning: je posts per week goedkeuren",
           "description": "Onder Marketing → Social planning zie je al je geplande posts per week, met het beeld zoals het op Instagram verschijnt, de tekst en het uur. Je keurt ze één voor één of per week in één keer goed, past tekst of uur aan, of schrapt een post. Goedgekeurde posts gaan vanzelf online op het geplande uur. Posts die niet automatisch kunnen, zoals een story met een sticker, staan er ook: je opent het beeld, post het zelf en vinkt het af."
+        },
+        "social_reels_reminders": {
+          "title": "Social planning: reels en een herinnering voor wat je zelf post",
+          "description": "Reels staan nu ook in je Social planning, met een videovoorbeeld en een muziekvoorstel. Je kiest per reel: automatisch laten posten in de versie met muziek, of zelf een nummer kiezen in de Instagram-app. Dan download je de video en kopieer je de caption met één tik. Voor alles wat je zelf post, zoals een story met een sticker of een reel met je eigen muziek, krijg je ongeveer een uur vooraf een melding."
         }
       },
       "copyLink": "Kopieer link",

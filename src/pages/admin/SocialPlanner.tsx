@@ -34,7 +34,7 @@ function toLocalParts(iso: string | null): { date: string; time: string } {
 export default function SocialPlanner() {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
-  const { weeks, pendingCount, isLoading, approve, update, remove, markPosted } = useSocialPlanner();
+  const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate } = useSocialPlanner();
   const { connections } = useSocialConnections();
 
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -43,6 +43,8 @@ export default function SocialPlanner() {
   const [editDate, setEditDate] = useState('');
   const [editTime, setEditTime] = useState('');
   const [removing, setRemoving] = useState<PlannerPost | null>(null);
+  const [regenerating, setRegenerating] = useState<PlannerPost | null>(null);
+  const [regenNote, setRegenNote] = useState('');
 
   const hasConnection = useMemo(
     () => connections.some((c) => c.is_active && (c.platform === 'instagram' || c.platform === 'facebook')),
@@ -116,6 +118,30 @@ export default function SocialPlanner() {
     }
   };
 
+  const handleOwnMusic = async (post: PlannerPost) => {
+    setBusyId(post.id);
+    try {
+      await chooseOwnMusic.mutateAsync(post.id);
+      toast.success(t('admin.socialPlanner.toast.ownMusic'));
+    } catch (err) {
+      fail(err);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const confirmRegenerate = async () => {
+    if (!regenerating) return;
+    try {
+      await requestRegenerate.mutateAsync({ post: regenerating, note: regenNote });
+      toast.success(t('admin.socialPlanner.toast.regenerateRequested'));
+      setRegenerating(null);
+      setRegenNote('');
+    } catch (err) {
+      fail(err);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -185,6 +211,8 @@ export default function SocialPlanner() {
                     onEdit={() => openEdit(post)}
                     onRemove={() => setRemoving(post)}
                     onMarkPosted={() => handleMarkPosted(post)}
+                    onChooseOwnMusic={() => handleOwnMusic(post)}
+                    onRegenerate={() => { setRegenerating(post); setRegenNote(''); }}
                   />
                 ))}
               </div>
@@ -232,6 +260,39 @@ export default function SocialPlanner() {
             </div>
           </div>
           <p className="text-xs text-muted-foreground">{t('admin.socialPlanner.hourHint')}</p>
+        </div>
+      </ResponsiveDialog>
+
+      <ResponsiveDialog
+        open={!!regenerating}
+        onOpenChange={(open) => !open && setRegenerating(null)}
+        title={t('admin.socialPlanner.regenerate.title')}
+        footer={
+          <div className="flex w-full gap-2 sm:justify-end">
+            <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => setRegenerating(null)}>
+              {t('common.cancel')}
+            </Button>
+            <Button className="flex-1 sm:flex-none" onClick={confirmRegenerate} disabled={requestRegenerate.isPending}>
+              {requestRegenerate.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              {t('admin.socialPlanner.regenerate.confirm')}
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">{t('admin.socialPlanner.regenerate.body')}</p>
+          <div className="space-y-2">
+            <Label htmlFor="social-regen-note">{t('admin.socialPlanner.regenerate.noteLabel')}</Label>
+            <Textarea
+              id="social-regen-note"
+              value={regenNote}
+              onChange={(e) => setRegenNote(e.target.value)}
+              rows={4}
+              maxLength={500}
+              placeholder={t('admin.socialPlanner.regenerate.notePlaceholder')}
+              className="text-sm"
+            />
+          </div>
         </div>
       </ResponsiveDialog>
 

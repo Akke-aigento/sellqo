@@ -250,3 +250,62 @@ export async function prepareInstagramImages(
   }
   return { ok: true, urls: out, converted };
 }
+
+// --- SOCIAL-3: video voor reels ------------------------------------------------------------
+
+/** Bucket-limiet van marketing-assets (10 MB, storage.buckets.file_size_limit, 15-10). */
+export const MAX_REEL_BYTES = 10 * 1024 * 1024;
+
+/** MP4/MOV: bytes 4..8 zijn "ftyp". */
+export function isMp4(bytes: Uint8Array): boolean {
+  return bytes.length > 12 && bytes[4] === 0x66 && bytes[5] === 0x74 && bytes[6] === 0x79 && bytes[7] === 0x70;
+}
+
+export type PrepareVideoResult =
+  | { ok: true; url: string; copied: boolean }
+  | { ok: false; error: string; retryable: boolean };
+
+/**
+ * Zet de video van een reel in de eigen opslag (marketing-assets/<tenant>/social/<sha>.mp4),
+ * zodat Instagram altijd van SellQo haalt en het juiste content-type (video/mp4) krijgt.
+ * Een video die al in de eigen opslag staat, gaat ongewijzigd door.
+ */
+export async function prepareInstagramVideo(
+  storage: SocialStorageClient,
+  tenantId: string,
+  url: string,
+  options: { ownHost?: string } = {},
+): Promise<PrepareVideoResult> {
+  if (!url) return { ok: false, retryable: false, error: "Deze reel heeft geen video." };
+  if (options.ownHost && hostOf(url) === options.ownHost) return { ok: true, url, copied: false };
+
+  const path = `${tenantId}/social/${await sha256Hex(url)}.mp4`;
+  const publicUrl = storage.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+  if (await exists(publicUrl)) return { ok: true, url: publicUrl, copied: false };
+
+  let response: Response;
+  try {
+    response = await fetch(url);
+  } catch (err) {
+    return { ok: false, retryable: true, error: `Video kon niet opgehaald worden (${(err as Error).message}).` };
+  }
+  if (!response.ok) {
+    return { ok: false, retryable: response.status >= 500, error: `Video kon niet opgehaald worden (HTTP ${response.status}): ${url}` };
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.length > MAX_REEL_BYTES) {
+    return { ok: false, retryable: false, error: `De video is ${(bytes.length / 1048576).toFixed(1)} MB; SellQo aanvaardt maximaal 10 MB per reel.` };
+  }
+  if (!isMp4(bytes)) {
+    return { ok: false, retryable: false, error: "De video is geen MP4. Instagram-reels moeten MP4 (H.264, AAC) zijn." };
+  }
+  const { error } = await storage.storage.from(BUCKET).upload(path, bytes, {
+    contentType: "video/mp4",
+    upsert: true,
+    cacheControl: "31536000",
+  });
+  if (error) {
+    return { ok: false, retryable: true, error: `Video kon niet opgeslagen worden: ${error.message}` };
+  }
+  return { ok: true, url: publicUrl, copied: true };
+}

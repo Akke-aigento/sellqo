@@ -2030,6 +2030,10 @@
         "social_planning_approval": {
           "title": "Social planning: approve your posts per week",
           "description": "Under Marketing → Social planning you see all your planned posts per week, with the image as it will appear on Instagram, the text and the hour. You approve them one by one or a whole week at once, edit the text or hour, or remove a post. Approved posts go live automatically at the planned hour. Posts that can't be published automatically, such as a story with a sticker, are listed too: you open the image, post it yourself and tick it off."
+        },
+        "social_reels_reminders": {
+          "title": "Social planning: reels and a reminder for what you post yourself",
+          "description": "Reels now appear in your Social planning too, with a video preview and a music suggestion. For each reel you choose: let it post automatically in the version with music, or pick a song yourself in the Instagram app. Then you download the video and copy the caption with one tap. For everything you post yourself, such as a story with a sticker or a reel with your own music, you get a notification about an hour beforehand."
         }
       },
       "copyLink": "Copy link",

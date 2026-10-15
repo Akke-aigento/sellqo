@@ -201,3 +201,68 @@ Deno.test("prepare (SOCIAL-2): externe JPEG wordt ongewijzigd naar de eigen opsl
     eq(uploads[0].size, jpg.length, "JPEG-bytes ongewijzigd gekopieerd");
   } finally { m.restore(); }
 });
+
+// --- SOCIAL-3: video voor reels -----------------------------------------------------------
+import { isMp4, MAX_REEL_BYTES, prepareInstagramVideo } from "./socialMedia.ts";
+import { manualReminderText } from "./socialReminder.ts";
+
+function fakeMp4(size = 64): Uint8Array<ArrayBuffer> {
+  const b = new Uint8Array(new ArrayBuffer(size));
+  b.set([0, 0, 0, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d]); // ....ftypisom
+  return b;
+}
+
+Deno.test("video: herkent MP4 aan ftyp", () => {
+  eq([isMp4(fakeMp4()), isMp4(new Uint8Array(64))], [true, false]);
+});
+
+Deno.test("video: video in eigen opslag gaat ongewijzigd door, zonder call", async () => {
+  const { client, uploads } = fakeStorage();
+  const m = mockFetch(() => new Response("nee", { status: 500 }));
+  try {
+    const r = await prepareInstagramVideo(client, "t1", "https://own.test/a.mp4", { ownHost: "own.test" });
+    eq(r, { ok: true, url: "https://own.test/a.mp4", copied: false });
+    eq([m.calls.length, uploads.length], [0, 0]);
+  } finally { m.restore(); }
+});
+
+Deno.test("video: externe MP4 wordt als video/mp4 naar de eigen opslag gekopieerd", async () => {
+  const { client, uploads } = fakeStorage();
+  const m = mockFetch((_u, method) => method === "HEAD" ? new Response(null, { status: 404 }) : new Response(new Blob([fakeMp4(2048)])));
+  try {
+    const r = await prepareInstagramVideo(client, "t1", "https://raw.githubusercontent.com/x/reel.mp4", { ownHost: "own.test" });
+    ok(r.ok && r.copied && r.url.startsWith("https://cdn.test/marketing-assets/t1/social/") && r.url.endsWith(".mp4"), JSON.stringify(r));
+    eq(uploads.map((u) => [u.type, u.size]), [["video/mp4", 2048]]);
+  } finally { m.restore(); }
+});
+
+Deno.test("video: al gekopieerd → hergebruik zonder download", async () => {
+  const { client, uploads } = fakeStorage();
+  const m = mockFetch((_u, method) => method === "HEAD" ? new Response(null, { status: 200 }) : new Response("x", { status: 500 }));
+  try {
+    const r = await prepareInstagramVideo(client, "t1", "https://elders.test/reel.mp4", { ownHost: "own.test" });
+    eq([r.ok, r.ok && r.copied, uploads.length], [true, false, 0]);
+  } finally { m.restore(); }
+});
+
+Deno.test("video: geen MP4 of te groot → blijvende fout met uitleg", async () => {
+  const { client } = fakeStorage();
+  let m = mockFetch((_u, method) => method === "HEAD" ? new Response(null, { status: 404 }) : new Response(new Blob([new Uint8Array(64)])));
+  try {
+    const r = await prepareInstagramVideo(client, "t1", "https://elders.test/a.mov", { ownHost: "own.test" });
+    eq([r.ok, !r.ok && r.retryable], [false, false]);
+  } finally { m.restore(); }
+  m = mockFetch((_u, method) => method === "HEAD" ? new Response(null, { status: 404 }) : new Response(new Blob([fakeMp4(MAX_REEL_BYTES + 1)])));
+  try {
+    const r = await prepareInstagramVideo(client, "t1", "https://elders.test/groot.mp4", { ownHost: "own.test" });
+    ok(!r.ok && !r.retryable && r.error.includes("10 MB"), JSON.stringify(r));
+  } finally { m.restore(); }
+});
+
+Deno.test("herinnering: tekst per soort, uur in Brussel", () => {
+  const at = "2026-10-25T18:00:00Z"; // 19:00 in Brussel (wintertijd)
+  const reel = manualReminderText({ media_type: "reel", manual_reason: "music", post_text: "cap", scheduled_for: at });
+  ok(reel.title.startsWith("Reel") && reel.message.includes("19:00"), JSON.stringify(reel));
+  const story = manualReminderText({ media_type: "story", manual_reason: "sticker", post_text: "Story: poll-sticker", scheduled_for: "2026-10-17T16:05:00Z" });
+  ok(story.title.startsWith("Story") && story.message.includes("18:05") && story.message.includes("poll-sticker"), JSON.stringify(story));
+});

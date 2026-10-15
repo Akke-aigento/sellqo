@@ -19,7 +19,17 @@ export type PlannerStatus =
   | 'publishing'
   | 'posted'
   | 'failed'
-  | 'manual';
+  | 'manual'
+  | 'regenerate_requested';
+
+/** SOCIAL-3: muziekvoorstel bij een reel. Alle velden optioneel: de weektaak vult in wat past. */
+export interface MusicHint {
+  mood?: string;
+  bpm?: number;
+  search_terms?: string[];
+  tip?: string;
+  track?: { title?: string; source?: string; license?: string };
+}
 
 export interface PlannerPost {
   id: string;
@@ -33,6 +43,27 @@ export interface PlannerPost {
   error_message: string | null;
   source: string | null;
   publish_attempts: number;
+  video_url: string | null;
+  video_silent_url: string | null;
+  music_hint: MusicHint | null;
+  manual_reason: string | null;
+  regenerate_note: string | null;
+}
+
+/** SOCIAL-3: een reel kan enkel automatisch als er een versie met muziek is. */
+export function canAutoApprove(post: Pick<PlannerPost, 'status' | 'media_type' | 'video_url'>): boolean {
+  if (post.status !== 'pending_approval' && post.status !== 'draft') return false;
+  return post.media_type !== 'reel' || !!post.video_url;
+}
+
+/**
+ * SOCIAL-3: "Opnieuw maken" bestaat enkel voor posts van de contentpijplijn (source
+ * content_task): daar draait een taak die verzoeken oppikt. Bij eigen posts zou de knop
+ * niets doen.
+ */
+export function canRegenerate(post: Pick<PlannerPost, 'status' | 'source'>): boolean {
+  return post.source === 'content_task'
+    && ['pending_approval', 'draft', 'approved', 'scheduled', 'manual', 'failed'].includes(post.status);
 }
 
 export interface PlannerWeek {
@@ -58,13 +89,13 @@ export function useSocialPlanner() {
       const since = subDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 7).toISOString();
       const { data, error } = await supabase
         .from('social_posts')
-        .select('id, platform, post_text, image_urls, media_type, scheduled_for, posted_at, status, error_message, source, publish_attempts')
+        .select('id, platform, post_text, image_urls, media_type, scheduled_for, posted_at, status, error_message, source, publish_attempts, video_url, video_silent_url, music_hint, manual_reason, regenerate_note')
         .eq('tenant_id', tenantId!)
-        .or(`scheduled_for.gte.${since},status.in.(pending_approval,failed,manual)`)
+        .or(`scheduled_for.gte.${since},status.in.(pending_approval,failed,manual,regenerate_requested)`)
         .order('scheduled_for', { ascending: true, nullsFirst: false })
         .limit(300);
       if (error) throw error;
-      return (data ?? []) as PlannerPost[];
+      return (data ?? []) as unknown as PlannerPost[];
     },
   });
 
@@ -81,7 +112,7 @@ export function useSocialPlanner() {
       .map(([weekStart, list]) => ({
         weekStart,
         posts: list,
-        pendingIds: list.filter((p) => p.status === 'pending_approval' || p.status === 'draft').map((p) => p.id),
+        pendingIds: list.filter(canAutoApprove).map((p) => p.id),
       }));
   }, [posts]);
 
@@ -106,6 +137,8 @@ export function useSocialPlanner() {
         })
         .in('id', ids)
         .in('status', ['pending_approval', 'draft'])
+        // SOCIAL-3: een reel zonder versie met muziek kan niet automatisch.
+        .or('media_type.neq.reel,video_url.not.is.null')
         .select('id');
       if (error) throw error;
       return data?.length ?? 0;
@@ -150,6 +183,40 @@ export function useSocialPlanner() {
     onSuccess: invalidate,
   });
 
+  /** SOCIAL-3: reel zelf posten met eigen muziek in de Instagram-app. */
+  const chooseOwnMusic = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('social_posts')
+        .update({ status: 'manual', manual_reason: 'music', reminded_at: null, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .eq('media_type', 'reel')
+        .in('status', ['pending_approval', 'draft', 'approved', 'scheduled']);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
+  /** SOCIAL-3: nieuwe versie vragen; de contenttaak pikt het verzoek op. */
+  const requestRegenerate = useMutation({
+    mutationFn: async (input: { post: PlannerPost; note: string }) => {
+      const { error } = await supabase
+        .from('social_posts')
+        .update({
+          status: 'regenerate_requested',
+          regenerate_from: input.post.status,
+          regenerate_note: input.note.trim() || null,
+          regenerate_requested_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', input.post.id)
+        .eq('source', 'content_task')
+        .in('status', ['pending_approval', 'draft', 'approved', 'scheduled', 'manual', 'failed']);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+
   /** Een post die je zelf geplaatst hebt (bv. story met sticker) afvinken. */
   const markPosted = useMutation({
     mutationFn: async (id: string) => {
@@ -163,5 +230,5 @@ export function useSocialPlanner() {
     onSuccess: invalidate,
   });
 
-  return { posts, weeks, pendingCount, isLoading, approve, update, remove, markPosted };
+  return { posts, weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate };
 }

@@ -15524,6 +15524,15 @@ export type Database = {
       }
       social_posts: {
         Row: {
+          manual_reason: string | null
+          music_hint: Json | null
+          publish_container_id: string | null
+          regenerate_from: string | null
+          regenerate_note: string | null
+          regenerate_requested_at: string | null
+          reminded_at: string | null
+          video_silent_url: string | null
+          video_url: string | null
           approved_at: string | null
           approved_by: string | null
           connection_id: string | null
@@ -15548,6 +15557,15 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          manual_reason?: string | null
+          music_hint?: Json | null
+          publish_container_id?: string | null
+          regenerate_from?: string | null
+          regenerate_note?: string | null
+          regenerate_requested_at?: string | null
+          reminded_at?: string | null
+          video_silent_url?: string | null
+          video_url?: string | null
           approved_at?: string | null
           approved_by?: string | null
           connection_id?: string | null
@@ -15572,6 +15590,15 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          manual_reason?: string | null
+          music_hint?: Json | null
+          publish_container_id?: string | null
+          regenerate_from?: string | null
+          regenerate_note?: string | null
+          regenerate_requested_at?: string | null
+          reminded_at?: string | null
+          video_silent_url?: string | null
+          video_url?: string | null
           approved_at?: string | null
           approved_by?: string | null
           connection_id?: string | null

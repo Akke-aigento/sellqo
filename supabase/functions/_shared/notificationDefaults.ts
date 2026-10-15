@@ -90,6 +90,8 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "marketing/campaign_high_bounce": { category: "marketing", inApp: true, email: false },
   "marketing/ab_test_winner": { category: "marketing", inApp: true, email: false },
   "marketing/ai_credits_empty": { category: "marketing", inApp: true, email: false },
+  "marketing/social_manual_due": { category: "marketing", inApp: true, email: false },
+  "marketing/social_posts_ready": { category: "marketing", inApp: true, email: false },
   "team/team_member_invited": { category: "team", inApp: false, email: false },
   "team/team_member_joined": { category: "team", inApp: true, email: false },
   "team/team_member_removed": { category: "team", inApp: true, email: false },

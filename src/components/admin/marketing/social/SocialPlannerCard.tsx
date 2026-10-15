@@ -1,20 +1,23 @@
 // SOCIAL-2 — één post in de Social planning: beeld, tijdstip, status, tekst en acties.
 // Mobiel eerst: één kolom, beeld bovenaan in 4:5 zoals op Instagram.
+// SOCIAL-3: reels (videovoorbeeld, muziekvoorstel, keuze automatisch of zelf muziek,
+// video downloaden, caption kopiëren) en "Opnieuw maken".
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import {
-  AlertTriangle, Check, CheckCircle2, Clock, ExternalLink, Facebook, Images,
-  Instagram, Linkedin, Loader2, Pencil, Trash2, Twitter,
+  AlertTriangle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Facebook, Images,
+  Instagram, Linkedin, Loader2, Music, Pencil, RefreshCw, Trash2, Twitter,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { GatedButton } from '@/components/permissions/GatedButton';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { cn } from '@/lib/utils';
-import type { PlannerPost, PlannerStatus } from '@/hooks/useSocialPlanner';
+import { canAutoApprove, canRegenerate, type PlannerPost, type PlannerStatus } from '@/hooks/useSocialPlanner';
 
 const PLATFORM_ICON: Record<string, typeof Instagram> = {
   instagram: Instagram,
@@ -39,6 +42,7 @@ const STATUS_CLASS: Record<PlannerStatus, string> = {
   posted: 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-200',
   failed: 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200',
   manual: 'bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-200',
+  regenerate_requested: 'bg-muted text-muted-foreground',
 };
 
 interface Props {
@@ -48,9 +52,13 @@ interface Props {
   onEdit: () => void;
   onRemove: () => void;
   onMarkPosted: () => void;
+  onChooseOwnMusic: () => void;
+  onRegenerate: () => void;
 }
 
-export function SocialPlannerCard({ post, busy, onApprove, onEdit, onRemove, onMarkPosted }: Props) {
+export function SocialPlannerCard({
+  post, busy, onApprove, onEdit, onRemove, onMarkPosted, onChooseOwnMusic, onRegenerate,
+}: Props) {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
   const [expanded, setExpanded] = useState(false);
@@ -59,14 +67,44 @@ export function SocialPlannerCard({ post, busy, onApprove, onEdit, onRemove, onM
   const images = post.image_urls ?? [];
   const when = post.scheduled_for ? new Date(post.scheduled_for) : null;
   const isPast = !!when && when.getTime() < Date.now();
-  const canApprove = post.status === 'pending_approval' || post.status === 'draft';
+  const isReel = post.media_type === 'reel';
+  const waiting = post.status === 'pending_approval' || post.status === 'draft';
+  const canApprove = canAutoApprove(post);
+  // Een reel met stille versie: zelf muziek kiezen in de Instagram-app.
+  const canOwnMusic = isReel && !!post.video_silent_url
+    && ['pending_approval', 'draft', 'approved', 'scheduled'].includes(post.status);
   const canEdit = ['pending_approval', 'draft', 'approved', 'scheduled', 'failed'].includes(post.status);
   const canRemove = post.status !== 'posted' && post.status !== 'publishing';
   const longText = (post.post_text ?? '').length > 220;
+  const video = isReel ? (post.status === 'manual' ? post.video_silent_url ?? post.video_url : post.video_url ?? post.video_silent_url) : null;
+  const hint = post.music_hint;
+
+  const copyCaption = async () => {
+    try {
+      await navigator.clipboard.writeText(post.post_text ?? '');
+      toast.success(t('admin.socialPlanner.toast.captionCopied'));
+    } catch {
+      toast.error(t('admin.socialPlanner.toast.copyFailed'));
+    }
+  };
 
   return (
     <Card className="overflow-hidden">
-      {images.length > 0 && (
+      {isReel && video ? (
+        <div className="relative bg-black aspect-[4/5]">
+          <video
+            src={video}
+            poster={images[0]}
+            controls
+            playsInline
+            preload="none"
+            className="absolute inset-0 h-full w-full object-contain"
+          />
+          <Badge className="absolute top-2 left-2 bg-black/70 text-white hover:bg-black/70">
+            {t('admin.socialPlanner.reel')}
+          </Badge>
+        </div>
+      ) : images.length > 0 && (
         <div className="relative bg-muted aspect-[4/5]">
           <img
             src={images[0]}
@@ -128,7 +166,35 @@ export function SocialPlannerCard({ post, busy, onApprove, onEdit, onRemove, onM
           </div>
         )}
 
-        {canApprove && isPast && (
+        {isReel && hint && (hint.mood || hint.search_terms?.length || hint.tip || hint.track?.title) && (
+          <div className="rounded-md border p-3 space-y-1 text-xs">
+            <p className="font-medium flex items-center gap-1">
+              <Music className="h-3.5 w-3.5" />
+              {t('admin.socialPlanner.music.title')}
+            </p>
+            {post.status !== 'manual' && hint.track?.title && (
+              <p>{t('admin.socialPlanner.music.track', { title: hint.track.title })}</p>
+            )}
+            {hint.mood && (
+              <p>{t('admin.socialPlanner.music.mood', { mood: hint.mood })}{hint.bpm ? ` · ${hint.bpm} BPM` : ''}</p>
+            )}
+            {!!hint.search_terms?.length && (
+              <p>{t('admin.socialPlanner.music.search', { terms: hint.search_terms.join(', ') })}</p>
+            )}
+            {hint.tip && <p className="text-muted-foreground">{hint.tip}</p>}
+          </div>
+        )}
+
+        {post.status === 'regenerate_requested' && (
+          <p className="text-xs text-muted-foreground flex items-start gap-1">
+            <RefreshCw className="h-3 w-3 mt-0.5 shrink-0" />
+            {post.regenerate_note
+              ? t('admin.socialPlanner.regenerate.pendingWithNote', { note: post.regenerate_note })
+              : t('admin.socialPlanner.regenerate.pending')}
+          </p>
+        )}
+
+        {waiting && isPast && (
           <p className="text-xs text-amber-700 dark:text-amber-300 flex items-start gap-1">
             <Clock className="h-3 w-3 mt-0.5 shrink-0" />
             {t('admin.socialPlanner.pastDue')}
@@ -143,17 +209,47 @@ export function SocialPlannerCard({ post, busy, onApprove, onEdit, onRemove, onM
         )}
 
         {post.status === 'manual' && (
-          <p className="text-xs text-muted-foreground">{t('admin.socialPlanner.manualHint')}</p>
+          <p className="text-xs text-muted-foreground">
+            {isReel ? t('admin.socialPlanner.manualReelHint') : t('admin.socialPlanner.manualHint')}
+          </p>
         )}
 
         <div className="flex flex-wrap gap-2 pt-1">
           {canApprove && (
-            <GatedButton action="write" resource="marketing" size="sm" className="flex-1 min-w-[8rem]" onClick={onApprove} disabled={busy}>
+            <GatedButton action="write" resource="marketing" size="sm" className={cn('flex-1 min-w-[8rem]', isReel && 'basis-full')} onClick={onApprove} disabled={busy}>
               {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
-              {t('admin.socialPlanner.approve')}
+              {isReel ? t('admin.socialPlanner.approveAuto') : t('admin.socialPlanner.approve')}
             </GatedButton>
           )}
-          {post.status === 'manual' && (
+          {canOwnMusic && (
+            <GatedButton action="write" resource="marketing" variant="outline" size="sm" className="flex-1 min-w-[8rem] basis-full" onClick={onChooseOwnMusic} disabled={busy}>
+              <Music className="h-4 w-4 mr-1" />
+              {t('admin.socialPlanner.ownMusic')}
+            </GatedButton>
+          )}
+          {post.status === 'manual' && isReel && (
+            <>
+              {video && (
+                <Button variant="outline" size="sm" asChild className="flex-1 min-w-[8rem]">
+                  <a href={video} target="_blank" rel="noopener noreferrer" download>
+                    <Download className="h-4 w-4 mr-1" />
+                    {t('admin.socialPlanner.downloadVideo')}
+                  </a>
+                </Button>
+              )}
+              {post.post_text && (
+                <Button variant="outline" size="sm" className="flex-1 min-w-[8rem]" onClick={copyCaption}>
+                  <Copy className="h-4 w-4 mr-1" />
+                  {t('admin.socialPlanner.copyCaption')}
+                </Button>
+              )}
+              <GatedButton action="write" resource="marketing" size="sm" className="flex-1 min-w-[8rem]" onClick={onMarkPosted} disabled={busy}>
+                <CheckCircle2 className="h-4 w-4 mr-1" />
+                {t('admin.socialPlanner.markPosted')}
+              </GatedButton>
+            </>
+          )}
+          {post.status === 'manual' && !isReel && (
             <>
               {images[0] && (
                 <Button variant="outline" size="sm" asChild className="flex-1 min-w-[8rem]">
@@ -173,6 +269,12 @@ export function SocialPlannerCard({ post, busy, onApprove, onEdit, onRemove, onM
             <GatedButton action="write" resource="marketing" variant="outline" size="sm" onClick={onEdit} disabled={busy}>
               <Pencil className="h-4 w-4 mr-1" />
               {post.status === 'failed' ? t('admin.socialPlanner.reschedule') : t('admin.socialPlanner.edit')}
+            </GatedButton>
+          )}
+          {canRegenerate(post) && (
+            <GatedButton action="write" resource="marketing" variant="outline" size="sm" onClick={onRegenerate} disabled={busy}>
+              <RefreshCw className="h-4 w-4 mr-1" />
+              {t('admin.socialPlanner.regenerate.button')}
             </GatedButton>
           )}
           {canRemove && (

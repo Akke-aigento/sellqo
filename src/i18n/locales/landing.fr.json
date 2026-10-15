@@ -2030,6 +2030,10 @@
         "social_planning_approval": {
           "title": "Planning social : approuvez vos publications par semaine",
           "description": "Dans Marketing → Planning social, vous voyez toutes vos publications prévues par semaine, avec l'image telle qu'elle apparaîtra sur Instagram, le texte et l'heure. Vous les approuvez une par une ou toute une semaine d'un coup, modifiez le texte ou l'heure, ou supprimez une publication. Les publications approuvées sont mises en ligne automatiquement à l'heure prévue. Celles qui ne peuvent pas être publiées automatiquement, comme une story avec un sticker, y figurent aussi : vous ouvrez l'image, la publiez vous-même et la cochez."
+        },
+        "social_reels_reminders": {
+          "title": "Planification sociale : reels et rappel pour ce que vous publiez vous-même",
+          "description": "Les reels apparaissent désormais aussi dans votre planification sociale, avec un aperçu vidéo et une suggestion musicale. Pour chaque reel, vous choisissez : publication automatique dans la version avec musique, ou choix d'un morceau vous-même dans l'app Instagram. Vous téléchargez alors la vidéo et copiez la légende d'un seul geste. Pour tout ce que vous publiez vous-même, comme une story avec un sticker ou un reel avec votre propre musique, vous recevez une notification environ une heure avant."
         }
       },
       "copyLink": "Copier le lien",

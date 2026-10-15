@@ -923,6 +923,14 @@
           "ai_credits_empty": {
             "label": "AI credits op",
             "description": "AI credits zijn op"
+          },
+          "social_manual_due": {
+            "label": "Social: zelf posten",
+            "description": "Herinnering een uur voor een post die je zelf plaatst (story met sticker, reel met eigen muziek)"
+          },
+          "social_posts_ready": {
+            "label": "Social: nieuwe posts klaar",
+            "description": "Nieuwe of opnieuw gemaakte posts wachten op je goedkeuring"
           }
         },
         "team": {
@@ -6956,7 +6964,8 @@
         "publishing": "Wordt gepubliceerd",
         "posted": "Gepubliceerd",
         "failed": "Mislukt",
-        "manual": "Zelf posten"
+        "manual": "Zelf posten",
+        "regenerate_requested": "Wordt opnieuw gemaakt"
       },
       "toast": {
         "approved": "Goedgekeurd",
@@ -6964,7 +6973,33 @@
         "saved": "Opgeslagen",
         "removed": "Geschrapt",
         "markedPosted": "Afgevinkt als gepost",
-        "error": "Er ging iets mis: {{message}}"
+        "error": "Er ging iets mis: {{message}}",
+        "captionCopied": "Caption gekopieerd",
+        "copyFailed": "Kopiëren lukte niet. Selecteer de tekst en kopieer hem zelf.",
+        "ownMusic": "Staat op zelf posten. Je krijgt een herinnering een uur vooraf.",
+        "regenerateRequested": "Gevraagd. Je krijgt een melding zodra de nieuwe versie klaarstaat."
+      },
+      "reel": "Reel",
+      "approveAuto": "Goedkeuren (automatisch)",
+      "ownMusic": "Ik kies zelf muziek",
+      "downloadVideo": "Video downloaden",
+      "copyCaption": "Caption kopiëren",
+      "manualReelHint": "Download de video, kies in de Instagram-app een nummer, plak de caption en post. Vink hem daarna af.",
+      "music": {
+        "title": "Muziekvoorstel",
+        "track": "Automatisch met: {{title}}",
+        "mood": "Sfeer: {{mood}}",
+        "search": "Zoek in Instagram op: {{terms}}"
+      },
+      "regenerate": {
+        "button": "Opnieuw maken",
+        "title": "Nieuwe versie maken",
+        "body": "Deze post wordt opnieuw gemaakt, op dezelfde dag en hetzelfde uur. Je krijgt een melding zodra de nieuwe versie klaarstaat om goed te keuren.",
+        "noteLabel": "Wat moet er anders? (optioneel)",
+        "notePlaceholder": "Bijvoorbeeld: grappiger, een andere foto, meer over de prijs",
+        "confirm": "Opnieuw maken",
+        "pending": "Er wordt een nieuwe versie gemaakt.",
+        "pendingWithNote": "Er wordt een nieuwe versie gemaakt: \"{{note}}\""
       }
     }
   },

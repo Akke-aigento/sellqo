@@ -2030,6 +2030,10 @@
         "social_planning_approval": {
           "title": "Social-Planung: Beiträge pro Woche genehmigen",
           "description": "Unter Marketing → Social-Planung sehen Sie alle geplanten Beiträge pro Woche, mit dem Bild, wie es auf Instagram erscheint, dem Text und der Uhrzeit. Sie genehmigen sie einzeln oder eine ganze Woche auf einmal, ändern Text oder Uhrzeit oder entfernen einen Beitrag. Genehmigte Beiträge gehen zur geplanten Stunde automatisch online. Beiträge, die nicht automatisch veröffentlicht werden können, etwa eine Story mit Sticker, stehen ebenfalls dort: Sie öffnen das Bild, posten es selbst und haken es ab."
+        },
+        "social_reels_reminders": {
+          "title": "Social-Planung: Reels und eine Erinnerung für das, was Sie selbst posten",
+          "description": "Reels erscheinen jetzt auch in Ihrer Social-Planung, mit Videovorschau und Musikvorschlag. Pro Reel wählen Sie: automatisch in der Version mit Musik posten lassen oder selbst einen Song in der Instagram-App auswählen. Dann laden Sie das Video herunter und kopieren die Bildunterschrift mit einem Tipp. Für alles, was Sie selbst posten, etwa eine Story mit Sticker oder ein Reel mit eigener Musik, erhalten Sie etwa eine Stunde vorher eine Benachrichtigung."
         }
       },
       "copyLink": "Link kopieren",
