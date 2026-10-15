@@ -16,6 +16,8 @@
 
 **Deploy-lijst (`_shared` gewijzigd, alle aanroepers):** social-publish-due, social-post-publish (socialMedia + socialPublish), social-oauth-init, social-oauth-callback (socialPublish).
 
+**Live (15-10, 18:15-18:20):** alle vier gedeployed via de Lovable-agent (1,7 credits, geen bestandswijzigingen, laatste commit bleef 36ee0c5). Helpartikel live bijgewerkt, md5 gelijk aan het migratiebestand (7f1377b1…). Droogtest `mode: prepare` op twee echte Loveke-productfoto's (PNG): 200, `converted: 2`, twee JPEG's in marketing-assets (78 en 90 kB, mimetype image/jpeg); de publieke URL geeft 200 met magic bytes ffd8ff; een tweede run op dezelfde foto geeft `converted: 0` (hergebruik). Let op: de preview-check van Lovable meldt "Could not find a matching package for 'npm:jpeg-js@0.4.4' in the node_modules directory". Dat is de lokale controle van de agent (zelfde als bij de bestaande `npm:@lovable.dev`-functies); de deploy en de live run bewijzen dat Edge de import wel laadt.
+
 **Vervolg (SOCIAL-2):** zelf beelden kiezen/uploaden in de generator; goedkeuringsscherm.
 
 ## SOCIAL-1b — Instagram koppelen in SellQo Connect i.p.v. in dode code — 15 oktober 2026
