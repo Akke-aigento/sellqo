@@ -25,6 +25,8 @@
 
 **Deploy-lijst:** social-publish-due, social-post-publish, social-oauth-init, social-oauth-callback, create-notification, send-push-notification, sync-billing-state. Frontend: publiceren.
 
+**Live (15 okt, 20:35-20:45):** migratie 20261015190000 en het helpartikel via query_database (9 kolommen, media_type-check met reel, cron-commando met herinneringstak; artikel md5 c63efe4c…). De 7 functies gedeployd door de Lovable-agent (deploy-only, geen bestandswijzigingen). Rooktest: social-publish-due met secret → 200 `{claimed:0,…,reminded:0}` (nieuwe versie), zonder secret → 401. Loveke-data: de 6 launchstories `manual_reason = sticker` en `reminded_at` gezet (die week heeft nog de Claude-dagreminders, anders dubbel); de test-reel (25-10 19:00) omgezet naar `media_type reel`, `manual_reason music`, `video_silent_url`, `music_hint` → eerste echte SellQo-herinnering op 25-10 rond 18:01. Claude-taak "Social: opnieuw maken" (elk uur 8-22 u) aangemaakt; weektaak en Loveke-README bijgewerkt (commit Loveke 1f… zie repo). Open: frontend publiceren in Lovable.
+
 **Bewust ongemoeid / Vervolg:** bucket-limiet (10 MB) niet verhoogd; Facebook-reels niet; de regeneratie zelf draait als Claude-taak buiten SellQo (elk uur 8–22 u) en enkel voor Nomadix-tenants met een contentpijplijn. Volgende: MARKETING-1 (reparaties uit de marketing-recon), MARKETING-2 (één geheel).
 
 ## SOCIAL-2 — Social planning: posts per week goedkeuren (2026.11v) — 15 oktober 2026
