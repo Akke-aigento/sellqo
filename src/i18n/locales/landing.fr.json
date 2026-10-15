@@ -2018,6 +2018,10 @@
         "ticket_orders_auto_complete": {
           "title": "Les commandes de billets se clôturent elles-mêmes",
           "description": "Plus besoin de traiter une commande qui ne contient que des billets, billets combinés ou jetons : dès qu'elle est payée et que l'e-mail des billets est parti, elle passe automatiquement en Livrée. Les commandes de billets affichent aussi des statuts plus clairs : En attente de paiement et Billets envoyés. Les commandes contenant aussi un produit physique suivent le flux d'expédition normal."
+        },
+        "door_scanner_auto": {
+          "title": "Le scanner reconnaît lui-même l'événement",
+          "description": "Plus besoin de choisir un événement à l'entrée : le billet indique lui-même l'événement et la date. Le scanner s'ouvre directement et vérifie si le billet est valable maintenant, par défaut d'une heure avant le début à une heure après la fin (réglable dans Événements → Porte). Si un billet concerne un autre moment, il s'affiche en orange avec la bonne date, et vous pouvez quand même l'enregistrer. Nouveau aussi : le lien de porte fixe, un seul lien pour tous vos événements, à ajouter une fois à votre écran d'accueil."
         }
       },
       "copyLink": "Copier le lien",

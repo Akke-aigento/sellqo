@@ -1,3 +1,23 @@
+## EVENT-SCAN-2 — gebouwd en live: de deur herkent het event zelf (2026.11t) — 15 oktober 2026
+
+**Op Akke's vraag meteen gebouwd i.p.v. na 24/10, dus strikt additief en met bewijs op de echte Fonske-deur.** Een voorbereide werkkopie (doorWindow, functies, UI) stond al klaar; nagekeken en afgewerkt: timezone ontbrak in de venstercheck van ticket-checkin (viel terug op Brussel — juist voor BE, fout voor andere zones), GET-versiestempel op ticket-checkin, vaste deurlinks in de /scan-kieslijst (de inner join sloot ze uit), typefixes.
+
+**Migratie `20261015150000_event_scan_2.sql` (md5 136d7eb3…, live via raw-fetch, nagekeken):** event_scanner_access.event_detail_id en zone_id nullable (vaste deurlink = rij zonder event); tabel event_scan_settings (60/60/6 standaard, RLS lezen tenant_admin/staff, schrijven tenant_admin).
+
+**Functies (d1a5c95, deploy via Lovable):** ticket-checkin, scanner-context, scanner-door `EVENT-SCAN-2`. Automatische stand = scanlink zonder event, of JWT met auto+tenant_id: het ticket bepaalt het event, venster via _shared/doorWindow.ts (eigen uren + tijdzone van het event, middernacht-veilig, geen eindtijd → +6u, valid_from/valid_until per tickettype wint). Buiten venster → result outside_window met can_force; force_window negeert het venster. Expliciet gekozen events blijven venstervrij (nascannen).
+
+**Incident onderweg:** de losse import `supabase-js@2` wees vandaag naar de verse 2.118.0, die esm.sh nog niet volledig bouwt ("Module not found auth-js@2.118.0") — deploy faalde 2×, CI flakete. Fix: de drie functies vastgepind op 2.57.2. Let op: 74 functies importeren nog de losse @2; zolang esm.sh 2.118 niet rond heeft, faalt élke redeploy daarvan. Backlog PIN-SUPABASE-1: alles op één vaste versie.
+
+**Bewijs:**
+- Nulmeting/nameting op de echte Fonske-deurlink "Deur 24/10": stats en ongeldige-QR byte-identiek; scanner-context identiek op twee nieuwe velden na (auto:false, auto_live:false).
+- Venster-unittests 8/8 (crawl 21:00→03:00: 19:30 vroeg, 20:30 en 02:30 live, 04:30 laat; geen eindtijd; camping-override; tz-epoch).
+- Live op demo-festival met nieuwe vaste deurlink "Deur Zomerfest": context auto:true; ticket van juli 2027 → outside_window met de datum van het ticket; Fonske-ticket op de Zomerfest-deur → unknown_token (geen lek tussen winkels); force_window → ok; demo-ticket daarna teruggezet.
+- deno check (ook tegen de echte supabase-js-types via npm), tsc 27 = baseline, lint gelijk, i18n-pariteit, CI groen.
+
+**Ontwerpkeuze om te bevestigen:** "Toch inchecken" staat ook op de crew-link (geen account), niet alleen bij de host — op een vaste deurlink ís de crew vaak de organisator zelf. Forced check-ins zijn in ticket_scans te herkennen aan de voorafgaande outside_window-regel.
+
+**DOCS-1:** doc_article `scanner-herkent-event` (tenant, Producten/events).
+
 ## EVENT-SCAN-2 — ontwerp vastgeklikt: scan-eerst, de deur herkent het event zelf — 15 oktober 2026
 
 **Beslist met Akke (bouwen ná 24/10, raakt ticket-checkin).** Volledig ontwerp in projectdoc `claude/event-scan-2-ontwerp.md`. Kern: het ticket zégt het event; de deur bewaakt alleen echt/nu/hier. Geen handmatige eventkeuze meer (stand "Automatisch"), vaste tenant-deurlink (één beginscherm-icoon voor altijd — absorbeert het SCAN-APP-1-backlogpunt), rijkere resultaatkaart.

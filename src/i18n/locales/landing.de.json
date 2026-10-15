@@ -2018,6 +2018,10 @@
         "ticket_orders_auto_complete": {
           "title": "Ticketbestellungen schließen sich selbst ab",
           "description": "Eine Bestellung mit nur Tickets, Kombitickets oder Marken müssen Sie nicht mehr bearbeiten: Sobald sie bezahlt ist und die Ticket-E-Mail raus ist, steht sie automatisch auf Geliefert. Ticketbestellungen zeigen in der Liste auch klarere Status: Wartet auf Zahlung und Tickets gesendet. Bestellungen mit zusätzlich einem physischen Produkt folgen dem normalen Versandablauf."
+        },
+        "door_scanner_auto": {
+          "title": "Der Scanner erkennt das Event selbst",
+          "description": "An der Tür wählen Sie kein Event mehr: Das Ticket sagt selbst, für welches Event und welches Datum es gilt. Der Scanner öffnet sofort und prüft, ob das Ticket jetzt gültig ist, standardmäßig ab einer Stunde vor Beginn bis eine Stunde nach Ende (einstellbar unter Events → Tür). Gilt ein Ticket für einen anderen Zeitpunkt, sehen Sie es orange mit dem richtigen Datum und können trotzdem einchecken. Neu ist auch der feste Tür-Link: ein Link für alle Ihre Events, den Sie einmal auf den Startbildschirm legen."
         }
       },
       "copyLink": "Link kopieren",

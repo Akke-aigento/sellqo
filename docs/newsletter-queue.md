@@ -4,6 +4,16 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11t — De scanner herkent zelf het event (feature, 15-10-2026)
+
+**Voor wie:** iedereen die tickets scant (events-module).
+
+Geen eventkeuze meer: het ticket wijst het event aan, de deur bewaakt het scanvenster (standaard 1u vóór
+tot 1u na, instelbaar onder Events → Deur). Buiten het venster: oranje met de juiste datum + Toch inchecken.
+Vaste deurlink per winkel: één beginscherm-icoon voor al je events.
+
+**i18n-keys.** `public.changelog.changes.door_scanner_auto` — 5 talen.
+
 ### 2026.11s — Ticketbestellingen ronden zichzelf af (improvement, 15-10-2026)
 
 **Voor wie:** iedereen die tickets of munten verkoopt (events-module).
