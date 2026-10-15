@@ -15458,49 +15458,49 @@ export type Database = {
       }
       social_connections: {
         Row: {
-          api_kind: string | null
-          target_page_id: string | null
           access_token: string
           account_avatar: string | null
           account_id: string | null
           account_name: string | null
+          api_kind: string | null
           created_at: string | null
           id: string
           is_active: boolean | null
           platform: string
           refresh_token: string | null
+          target_page_id: string | null
           tenant_id: string
           token_expires_at: string | null
           updated_at: string | null
         }
         Insert: {
-          api_kind?: string | null
-          target_page_id?: string | null
           access_token: string
           account_avatar?: string | null
           account_id?: string | null
           account_name?: string | null
+          api_kind?: string | null
           created_at?: string | null
           id?: string
           is_active?: boolean | null
           platform: string
           refresh_token?: string | null
+          target_page_id?: string | null
           tenant_id: string
           token_expires_at?: string | null
           updated_at?: string | null
         }
         Update: {
-          api_kind?: string | null
-          target_page_id?: string | null
           access_token?: string
           account_avatar?: string | null
           account_id?: string | null
           account_name?: string | null
+          api_kind?: string | null
           created_at?: string | null
           id?: string
           is_active?: boolean | null
           platform?: string
           refresh_token?: string | null
+          target_page_id?: string | null
           tenant_id?: string
           token_expires_at?: string | null
           updated_at?: string | null
@@ -15526,11 +15526,6 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
-          last_attempt_at: string | null
-          media_type: string
-          publish_attempts: number
-          publish_claimed_from: string | null
-          source: string | null
           connection_id: string | null
           content_id: string | null
           created_at: string | null
@@ -15538,11 +15533,16 @@ export type Database = {
           error_message: string | null
           id: string
           image_urls: string[] | null
+          last_attempt_at: string | null
+          media_type: string
           platform: string
           platform_post_id: string | null
           post_text: string
           posted_at: string | null
+          publish_attempts: number
+          publish_claimed_from: string | null
           scheduled_for: string | null
+          source: string | null
           status: string | null
           tenant_id: string
           updated_at: string | null
@@ -15550,11 +15550,6 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
-          last_attempt_at?: string | null
-          media_type?: string
-          publish_attempts?: number
-          publish_claimed_from?: string | null
-          source?: string | null
           connection_id?: string | null
           content_id?: string | null
           created_at?: string | null
@@ -15562,11 +15557,16 @@ export type Database = {
           error_message?: string | null
           id?: string
           image_urls?: string[] | null
+          last_attempt_at?: string | null
+          media_type?: string
           platform: string
           platform_post_id?: string | null
           post_text: string
           posted_at?: string | null
+          publish_attempts?: number
+          publish_claimed_from?: string | null
           scheduled_for?: string | null
+          source?: string | null
           status?: string | null
           tenant_id: string
           updated_at?: string | null
@@ -15574,11 +15574,6 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
-          last_attempt_at?: string | null
-          media_type?: string
-          publish_attempts?: number
-          publish_claimed_from?: string | null
-          source?: string | null
           connection_id?: string | null
           content_id?: string | null
           created_at?: string | null
@@ -15586,11 +15581,16 @@ export type Database = {
           error_message?: string | null
           id?: string
           image_urls?: string[] | null
+          last_attempt_at?: string | null
+          media_type?: string
           platform?: string
           platform_post_id?: string | null
           post_text?: string
           posted_at?: string | null
+          publish_attempts?: number
+          publish_claimed_from?: string | null
           scheduled_for?: string | null
+          source?: string | null
           status?: string | null
           tenant_id?: string
           updated_at?: string | null
@@ -21848,6 +21848,39 @@ export type Database = {
           p_seat_ids: string[]
         }
         Returns: Json
+      }
+      social_claim_due_posts: {
+        Args: { p_limit?: number }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          connection_id: string | null
+          content_id: string | null
+          created_at: string | null
+          engagement_data: Json | null
+          error_message: string | null
+          id: string
+          image_urls: string[] | null
+          last_attempt_at: string | null
+          media_type: string
+          platform: string
+          platform_post_id: string | null
+          post_text: string
+          posted_at: string | null
+          publish_attempts: number
+          publish_claimed_from: string | null
+          scheduled_for: string | null
+          source: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "social_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       spend_tokens: {
         Args: {
