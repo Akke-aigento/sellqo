@@ -16,6 +16,8 @@
 
 **Deploy-lijst:** social-publish-due, social-post-publish (socialMedia gewijzigd). Frontend: publiceren.
 
+**Live (15 okt, na commit e21b71e):** social-publish-due en social-post-publish gedeployd door de Lovable-agent (deploy-only). Helpartikel live (md5 dd0056f4…). Loveke-launchweek in social_posts gezet als eerste echte vulling (source `content_task`): 7 posts `pending_approval` om 18:00 Brussel van 17 t/m 23 okt, 6 stickerstories `manual` om 18:05; beelden als publieke raw-URL uit `Akke-aigento/loveke` `marketing/instagram/published/launch/` (commit b599637). Niets goedgekeurd: dat doet Akke. De carrousel van 16 okt (13 beelden, boven de limiet van 10) blijft handwerk. De dagreminders (17–23 okt) lezen nu de status van de post i.p.v. "post dit zelf" (anders dubbel online); de weektaak "Loveke IG: weekcontent" en de README in de Loveke-repo (commit 032f052) schrijven voortaan rechtstreeks in de Social planning. Open: frontend publiceren in Lovable.
+
 **Vervolg:** eigen beeld uploaden/kiezen in de planning; pushmelding naar de tenant als er een week klaarstaat; de AI-generator (mobiele layout, beeldkeuze) apart herbekijken.
 
 ## SOCIAL-1c — PNG-productfoto's automatisch naar JPEG voor Instagram — 15 oktober 2026
