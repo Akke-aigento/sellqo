@@ -24,6 +24,10 @@ import {
 import { GatedButton } from '@/components/permissions/GatedButton';
 import { SocialPlannerCard } from '@/components/admin/marketing/social/SocialPlannerCard';
 import { SocialImageTextEditor } from '@/components/admin/marketing/social/SocialImageTextEditor';
+import { SocialMediaViewer } from '@/components/admin/marketing/social/SocialMediaViewer';
+import { SocialTranslateDialog } from '@/components/admin/marketing/social/SocialTranslateDialog';
+import { postMedia } from '@/lib/social/media';
+import { useTenant } from '@/hooks/useTenant';
 import { useSocialPlanner, type PlannerPost } from '@/hooks/useSocialPlanner';
 import { useSocialConnections } from '@/hooks/useSocialConnections';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
@@ -37,7 +41,8 @@ function toLocalParts(iso: string | null): { date: string; time: string } {
 export default function SocialPlanner() {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
-  const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText } = useSocialPlanner();
+  const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText, saveTranslation } = useSocialPlanner();
+  const { currentTenant } = useTenant();
   const { connections } = useSocialConnections();
 
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -50,6 +55,15 @@ export default function SocialPlanner() {
   const [regenNote, setRegenNote] = useState('');
   const [regenLanguage, setRegenLanguage] = useState<string>('same');
   const [editingImage, setEditingImage] = useState<PlannerPost | null>(null);
+  const [viewing, setViewing] = useState<PlannerPost | null>(null);
+  const [translating, setTranslating] = useState<PlannerPost | null>(null);
+
+  const mediaOf = (post: PlannerPost) => postMedia(post, {
+    image: (n) => t('admin.socialPlanner.media.image', { n }),
+    video: t('admin.socialPlanner.media.video'),
+    silent: t('admin.socialPlanner.media.silent'),
+    cover: t('admin.socialPlanner.media.cover'),
+  });
 
   const hasConnection = useMemo(
     () => connections.some((c) => c.is_active && (c.platform === 'instagram' || c.platform === 'facebook')),
@@ -223,6 +237,9 @@ export default function SocialPlanner() {
                     onChooseOwnMusic={() => handleOwnMusic(post)}
                     onRegenerate={() => { setRegenerating(post); setRegenNote(''); setRegenLanguage('same'); }}
                     onEditImageText={() => setEditingImage(post)}
+                    onViewMedia={() => setViewing(post)}
+                    onTranslate={() => setTranslating(post)}
+                    media={mediaOf(post)}
                   />
                 ))}
               </div>
@@ -272,6 +289,20 @@ export default function SocialPlanner() {
           <p className="text-xs text-muted-foreground">{t('admin.socialPlanner.hourHint')}</p>
         </div>
       </ResponsiveDialog>
+
+      <SocialMediaViewer post={viewing} items={viewing ? mediaOf(viewing) : []} onClose={() => setViewing(null)} />
+
+      <SocialTranslateDialog
+        post={translating}
+        tenantId={currentTenant?.id}
+        onClose={() => setTranslating(null)}
+        onSave={async (r) => {
+          await saveTranslation.mutateAsync({ post: r.post, language: r.language, caption: r.caption, images: r.images });
+        }}
+        onRegenerateInLanguage={async (post, language) => {
+          await requestRegenerate.mutateAsync({ post, note: '', language });
+        }}
+      />
 
       <SocialImageTextEditor
         post={editingImage}

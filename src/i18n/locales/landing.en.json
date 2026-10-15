@@ -2042,6 +2042,10 @@
         "social_image_text": {
           "title": "Social planning: edit the text in your image yourself",
           "description": "For posts and stories prepared for you, you can now edit the text in the image itself, such as the title, the price or a bottom line. A preview updates as you type, and before you save you see the image exactly as it will go live. The design stays the same."
+        },
+        "social_media_language": {
+          "title": "Social planning: view and download every image, and change the language of a post",
+          "description": "Under every post you can now view and download each image separately, and for a reel also the video. With \"Change language\" you translate the caption and the text in the images into another language, for example English; you review everything and see the result before saving."
         }
       },
       "copyLink": "Copy link",

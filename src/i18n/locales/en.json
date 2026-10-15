@@ -7005,6 +7005,32 @@
         "save": "Save",
         "saved": "Image saved",
         "renderFailed": "The image could not be created: {{message}}"
+      },
+      "media": {
+        "view": "View",
+        "viewAll": "View all {{count}}",
+        "download": "Download",
+        "open": "Open",
+        "title": "Images and video",
+        "image": "Image {{n}}",
+        "video": "Video",
+        "silent": "Video without music",
+        "cover": "Cover"
+      },
+      "translate": {
+        "button": "Change language",
+        "title": "Change language",
+        "to": "Translate to",
+        "choose": "Choose a language",
+        "translate": "Translate",
+        "info": "The caption and the text in the images are translated. You review everything before saving.",
+        "reelInfo": "The text is in the video itself: a new version of the reel is made in this language (like Make again).",
+        "reelCaptionOnly": "Only the caption is translated; the text in the video stays as it is.",
+        "noRecipe_one": "The text in 1 image cannot be translated and stays as it is.",
+        "noRecipe_other": "The text in {{count}} images cannot be translated and stays as it is.",
+        "review": "Translated to {{language}}. Adjust where needed.",
+        "resultHint": "This is how the post will go live. If something is off, go back.",
+        "saved": "Translated version saved"
       }
     }
   },

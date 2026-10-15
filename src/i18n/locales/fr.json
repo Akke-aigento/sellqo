@@ -6768,6 +6768,32 @@
         "save": "Enregistrer",
         "saved": "Image enregistrée",
         "renderFailed": "L'image n'a pas pu être créée : {{message}}"
+      },
+      "media": {
+        "view": "Voir",
+        "viewAll": "Voir les {{count}}",
+        "download": "Télécharger",
+        "open": "Ouvrir",
+        "title": "Images et vidéo",
+        "image": "Image {{n}}",
+        "video": "Vidéo",
+        "silent": "Vidéo sans musique",
+        "cover": "Couverture"
+      },
+      "translate": {
+        "button": "Changer de langue",
+        "title": "Changer de langue",
+        "to": "Traduire en",
+        "choose": "Choisissez une langue",
+        "translate": "Traduire",
+        "info": "La légende et le texte des images sont traduits. Vous vérifiez tout avant d'enregistrer.",
+        "reelInfo": "Le texte se trouve dans la vidéo : une nouvelle version du reel est créée dans cette langue (comme Refaire).",
+        "reelCaptionOnly": "Seule la légende est traduite ; le texte de la vidéo reste tel quel.",
+        "noRecipe_one": "Le texte d'1 image ne peut pas être traduit et reste tel quel.",
+        "noRecipe_other": "Le texte de {{count}} images ne peut pas être traduit et reste tel quel.",
+        "review": "Traduit en {{language}}. Adaptez si nécessaire.",
+        "resultHint": "Voici comment la publication sera mise en ligne. Si quelque chose ne va pas, revenez en arrière.",
+        "saved": "Version traduite enregistrée"
       }
     }
   },

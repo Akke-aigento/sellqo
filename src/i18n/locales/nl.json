@@ -7019,6 +7019,32 @@
         "save": "Bewaren",
         "saved": "Beeld bewaard",
         "renderFailed": "Het beeld kon niet gemaakt worden: {{message}}"
+      },
+      "media": {
+        "view": "Bekijken",
+        "viewAll": "Bekijk alle {{count}}",
+        "download": "Downloaden",
+        "open": "Openen",
+        "title": "Beelden en video",
+        "image": "Beeld {{n}}",
+        "video": "Video",
+        "silent": "Video zonder muziek",
+        "cover": "Cover"
+      },
+      "translate": {
+        "button": "Taal veranderen",
+        "title": "Taal veranderen",
+        "to": "Vertalen naar",
+        "choose": "Kies een taal",
+        "translate": "Vertalen",
+        "info": "De caption en de tekst in de beelden worden vertaald. Je kijkt alles na voor je bewaart.",
+        "reelInfo": "De tekst zit in de video zelf: er wordt een nieuwe versie van de reel gemaakt in deze taal (zoals bij Opnieuw maken).",
+        "reelCaptionOnly": "Enkel de caption wordt vertaald; de tekst in de video blijft zoals hij is.",
+        "noRecipe_one": "De tekst in 1 beeld kan niet vertaald worden en blijft zoals hij is.",
+        "noRecipe_other": "De tekst in {{count}} beelden kan niet vertaald worden en blijft zoals hij is.",
+        "review": "Vertaald naar {{language}}. Pas aan waar nodig.",
+        "resultHint": "Zo gaat de post online. Klopt iets niet, ga dan terug.",
+        "saved": "Vertaalde versie bewaard"
       }
     }
   },

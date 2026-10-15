@@ -7,9 +7,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import {
-  AlertTriangle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Facebook, Images,
-  Instagram, Linkedin, Loader2, Music, Pencil, RefreshCw, Trash2, Twitter, Type,
+  AlertTriangle, Check, CheckCircle2, Clock, Copy, Download, Eye, Facebook, Images,
+  Instagram, Languages, Linkedin, Loader2, Music, Pencil, RefreshCw, Trash2, Twitter, Type,
 } from 'lucide-react';
+import { downloadMedia, mediaFileName } from '@/lib/social/download';
+import { mediaBaseName, type MediaItem } from '@/lib/social/media';
 import { editableImageIndexes } from '@/lib/social/imageRecipe';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
@@ -56,10 +58,14 @@ interface Props {
   onChooseOwnMusic: () => void;
   onRegenerate: () => void;
   onEditImageText: () => void;
+  onViewMedia: () => void;
+  onTranslate: () => void;
+  media: MediaItem[];
 }
 
 export function SocialPlannerCard({
   post, busy, onApprove, onEdit, onRemove, onMarkPosted, onChooseOwnMusic, onRegenerate, onEditImageText,
+  onViewMedia, onTranslate, media,
 }: Props) {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
@@ -84,6 +90,23 @@ export function SocialPlannerCard({
   const canEditImageText = !isReel
     && !['posted', 'publishing', 'regenerate_requested'].includes(post.status)
     && editableImageIndexes(post).length > 0;
+
+  // SOCIAL-4b: taal veranderen kan zolang de post niet online staat (geen tekst = niets te vertalen).
+  const canTranslate = !['posted', 'publishing', 'regenerate_requested'].includes(post.status)
+    && (!!post.post_text?.trim() || editableImageIndexes(post).length > 0 || (isReel && post.source === 'content_task'));
+  const [downloading, setDownloading] = useState(false);
+  const downloadAll = async () => {
+    if (media.length !== 1) {
+      onViewMedia();
+      return;
+    }
+    setDownloading(true);
+    try {
+      await downloadMedia(media[0].url, mediaFileName(media[0].url, mediaBaseName(post), 0));
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   const copyCaption = async () => {
     try {
@@ -137,6 +160,18 @@ export function SocialPlannerCard({
       )}
 
       <CardContent className="p-4 space-y-3">
+        {media.length > 0 && (
+          <div className="flex gap-2 -mt-1">
+            <Button variant="ghost" size="sm" className="h-8 px-2" onClick={onViewMedia}>
+              <Eye className="h-4 w-4 mr-1" />
+              {media.length > 1 ? t('admin.socialPlanner.media.viewAll', { count: media.length }) : t('admin.socialPlanner.media.view')}
+            </Button>
+            <Button variant="ghost" size="sm" className="h-8 px-2" onClick={downloadAll} disabled={downloading}>
+              {downloading ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Download className="h-4 w-4 mr-1" />}
+              {t('admin.socialPlanner.media.download')}
+            </Button>
+          </div>
+        )}
         <div className="flex items-start justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Icon className="h-4 w-4 shrink-0" />
@@ -257,14 +292,6 @@ export function SocialPlannerCard({
           )}
           {post.status === 'manual' && isReel && (
             <>
-              {video && (
-                <Button variant="outline" size="sm" asChild className="flex-1 min-w-[8rem]">
-                  <a href={video} target="_blank" rel="noopener noreferrer" download>
-                    <Download className="h-4 w-4 mr-1" />
-                    {t('admin.socialPlanner.downloadVideo')}
-                  </a>
-                </Button>
-              )}
               {post.post_text && (
                 <Button variant="outline" size="sm" className="flex-1 min-w-[8rem]" onClick={copyCaption}>
                   <Copy className="h-4 w-4 mr-1" />
@@ -279,14 +306,6 @@ export function SocialPlannerCard({
           )}
           {post.status === 'manual' && !isReel && (
             <>
-              {images[0] && (
-                <Button variant="outline" size="sm" asChild className="flex-1 min-w-[8rem]">
-                  <a href={images[0]} target="_blank" rel="noopener noreferrer">
-                    <ExternalLink className="h-4 w-4 mr-1" />
-                    {t('admin.socialPlanner.openImage')}
-                  </a>
-                </Button>
-              )}
               <GatedButton action="write" resource="marketing" size="sm" className="flex-1 min-w-[8rem]" onClick={onMarkPosted} disabled={busy}>
                 <CheckCircle2 className="h-4 w-4 mr-1" />
                 {t('admin.socialPlanner.markPosted')}
@@ -303,6 +322,12 @@ export function SocialPlannerCard({
             <GatedButton action="write" resource="marketing" variant="outline" size="sm" onClick={onEditImageText} disabled={busy}>
               <Type className="h-4 w-4 mr-1" />
               {t('admin.socialPlanner.imageText.button')}
+            </GatedButton>
+          )}
+          {canTranslate && (
+            <GatedButton action="write" resource="marketing" variant="outline" size="sm" onClick={onTranslate} disabled={busy}>
+              <Languages className="h-4 w-4 mr-1" />
+              {t('admin.socialPlanner.translate.button')}
             </GatedButton>
           )}
           {canRegenerate(post) && (

@@ -2042,6 +2042,10 @@
         "social_image_text": {
           "title": "Planification sociale : modifiez vous-même le texte de votre image",
           "description": "Pour les publications et stories préparées pour vous, vous pouvez désormais modifier le texte de l'image elle-même, comme le titre, le prix ou une ligne du bas. Un aperçu s'actualise pendant la saisie, et avant d'enregistrer vous voyez l'image exactement telle qu'elle sera publiée. Le design reste le même."
+        },
+        "social_media_language": {
+          "title": "Planification sociale : voir et télécharger chaque image, et changer la langue d'une publication",
+          "description": "Sous chaque publication, vous pouvez désormais voir et télécharger chaque image séparément, et pour un reel aussi la vidéo. Avec « Changer de langue », vous traduisez la légende et le texte des images dans une autre langue, par exemple l'anglais ; vous vérifiez tout et voyez le résultat avant d'enregistrer."
         }
       },
       "copyLink": "Copier le lien",

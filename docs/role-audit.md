@@ -1,3 +1,26 @@
+## SOCIAL-4b — Bekijken/downloaden per beeld en "Taal veranderen" (2026.11z) — 15 oktober 2026
+
+**Waarom.** Akke: elk beeld moet apart te bekijken en te downloaden zijn, en "taal veranderen" moest bij elke post zichtbaar zijn (in SOCIAL-3b zat het enkel verstopt in "Opnieuw maken").
+
+**Recon:** `<a download>` werkt niet voor andere domeinen (GitHub raw, Supabase-opslag) → eerst als blob ophalen (beide CORS `*`). Vertalen: er is een AI-gateway-patroon (`ai-generate-social`: Lovable AI gateway, `use_ai_credits`, `requireBillingState`); `ai-translate-content` is specifiek voor producten/categorieën. Loveke heeft 50 AI-credits; vrijgestelde winkels (`isBillingExempt`) betalen geen credits.
+
+**Uitgevoerd:**
+- `src/lib/social/download.ts` (blob-download met leesbare naam, terugval: openen in nieuw tabblad), `src/lib/social/media.ts` (media van een post in volgorde: beelden; reel: video, stille video, cover).
+- `SocialMediaViewer.tsx` (nieuw): alle media groot, per item Openen en Downloaden.
+- `SocialPlannerCard`: Bekijken en Downloaden onder elk beeld (één beeld: meteen downloaden; meerdere: viewer); knop "Taal veranderen"; de oude "Beeld openen"/"Video downloaden" vervallen (zelfde functie, nu overal).
+- `supabase/functions/social-translate-post` (nieuw, verify_jwt=false + `authenticateRequest`, rollen tenant_admin/staff/marketing, `requireBillingState`): vertaalt caption + tekstvakken van één post van die winkel (max 60 teksten × 2200 tekens), respecteert max-lengtes, 1 credit tenzij vrijgesteld. Schrijft niets in social_posts.
+- `SocialTranslateDialog.tsx` (nieuw): taal kiezen → vertalen → nakijken/aanpassen (caption + tekstvakken per beeld) → beelden opnieuw tekenen → resultaat → Bewaren. Reel van de pijplijn: "Opnieuw maken" in die taal. Beelden zonder recept: blijven, met melding.
+- `useSocialPlanner.saveTranslation`: uploads in de eigen tenantmap, caption + taal + beelden + recepten bijwerken; status ongewijzigd; niet bij posted/publishing.
+- i18n × 5; changelog `social_media_language` (2026.11z) × 5; helpartikel (`20261015220100_social_4b_doc_article.sql`); nieuwsbrief.
+
+**Security-keuzes:** de nieuwe functie controleert rol én dat de post bij de winkel hoort (geen vrije vertaaldienst), beperkt invoer en tikt credits af vóór de AI-call. Geen policies gewijzigd. Downloads gebruiken enkel publieke URL's die de pagina al toonde.
+
+**Gedeelde-paden-waarschuwing:** n.v.t.; enkel een nieuwe functie en de planningspagina. Geen gedeelde modules gewijzigd.
+
+**Verificatie:** tsc 27 = baseline; eslint 0; deno check social-translate-post; i18n-pariteit; harness (390 en 1280 px): Downloaden levert `instagram-2026-10-24-image-1.jpg`, Bekijken toont het beeld met eigen knoppen, Taal veranderen → English → vertaalde velden (nagebootste functie) → Volgende → resultaat met Engelse beeldtekst → Bewaren met taal `en`; 0 px overloop, geen consolefouten.
+
+**Bewust ongemoeid / Vervolg:** de vertaling zelf is pas na deploy live te testen (echte AI-call); dat doet de eerste "Taal veranderen" van Akke.
+
 ## SOCIAL-4 — "Tekst in beeld aanpassen" in de Social planning (2026.11y) — 15 oktober 2026
 
 **Waarom.** Akke wil de tekst in het beeld zelf (titel, prijs, onderregel) kunnen aanpassen zonder te wachten op een nieuwe render.

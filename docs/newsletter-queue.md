@@ -4,6 +4,17 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11z — Elk beeld bekijken en downloaden, taal van een post veranderen (improvement, 15-10-2026)
+
+**Voor wie:** iedereen die de Social planning gebruikt.
+
+Bekijken en Downloaden onder elke post (elk beeld apart, ook video). "Taal veranderen" vertaalt caption en
+tekst in de beelden (1 AI-credit), met nakijken en resultaat vóór bewaren.
+
+**Samen versturen met** 2026.11w t/m 2026.11y.
+
+**i18n-keys.** `public.changelog.changes.social_media_language` — 5 talen.
+
 ### 2026.11y — De tekst in je beeld zelf aanpassen (feature, 15-10-2026)
 
 **Voor wie:** iedereen die posts laat klaarzetten in de Social planning.

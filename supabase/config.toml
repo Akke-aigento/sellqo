@@ -486,3 +486,6 @@ verify_jwt = false
 
 [functions.token-wallet]
 verify_jwt = false
+
+[functions.social-translate-post]
+verify_jwt = false

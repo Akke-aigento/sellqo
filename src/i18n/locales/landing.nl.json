@@ -2042,6 +2042,10 @@
         "social_image_text": {
           "title": "Social planning: de tekst in je beeld zelf aanpassen",
           "description": "Bij posts en stories die voor je klaargezet zijn, pas je nu de tekst in het beeld zelf aan, zoals de titel, de prijs of een onderregel. Een voorbeeld verandert mee terwijl je typt, en voor je bewaart zie je het beeld precies zoals het online gaat. Het ontwerp blijft hetzelfde."
+        },
+        "social_media_language": {
+          "title": "Social planning: elk beeld bekijken en downloaden, en de taal van een post veranderen",
+          "description": "Onder elke post bekijk en download je nu elk beeld apart, en bij een reel ook de video. Met \"Taal veranderen\" vertaal je de caption en de tekst in de beelden naar een andere taal, bijvoorbeeld Engels; je kijkt alles na en ziet het resultaat voor je bewaart."
         }
       },
       "copyLink": "Kopieer link",

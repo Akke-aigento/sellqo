@@ -6768,6 +6768,32 @@
         "save": "Speichern",
         "saved": "Bild gespeichert",
         "renderFailed": "Das Bild konnte nicht erstellt werden: {{message}}"
+      },
+      "media": {
+        "view": "Ansehen",
+        "viewAll": "Alle {{count}} ansehen",
+        "download": "Herunterladen",
+        "open": "Öffnen",
+        "title": "Bilder und Video",
+        "image": "Bild {{n}}",
+        "video": "Video",
+        "silent": "Video ohne Musik",
+        "cover": "Cover"
+      },
+      "translate": {
+        "button": "Sprache ändern",
+        "title": "Sprache ändern",
+        "to": "Übersetzen nach",
+        "choose": "Wählen Sie eine Sprache",
+        "translate": "Übersetzen",
+        "info": "Die Bildunterschrift und der Text in den Bildern werden übersetzt. Sie prüfen alles vor dem Speichern.",
+        "reelInfo": "Der Text ist im Video selbst: Es wird eine neue Version des Reels in dieser Sprache erstellt (wie bei Neu erstellen).",
+        "reelCaptionOnly": "Nur die Bildunterschrift wird übersetzt; der Text im Video bleibt unverändert.",
+        "noRecipe_one": "Der Text in 1 Bild kann nicht übersetzt werden und bleibt unverändert.",
+        "noRecipe_other": "Der Text in {{count}} Bildern kann nicht übersetzt werden und bleibt unverändert.",
+        "review": "Übersetzt nach {{language}}. Passen Sie bei Bedarf an.",
+        "resultHint": "So geht der Beitrag online. Stimmt etwas nicht, gehen Sie zurück.",
+        "saved": "Übersetzte Version gespeichert"
       }
     }
   },

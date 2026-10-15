@@ -262,6 +262,48 @@ export function useSocialPlanner() {
     onSuccess: invalidate,
   });
 
+  /**
+   * SOCIAL-4b: vertaalde versie bewaren: caption, taal en de opnieuw getekende beelden.
+   * Beelden zonder recept blijven ongewijzigd. Status blijft wat hij was.
+   */
+  const saveTranslation = useMutation({
+    mutationFn: async (input: {
+      post: PlannerPost;
+      language: string;
+      caption: string;
+      images: { index: number; jpeg: Blob; recipe: unknown }[];
+    }) => {
+      if (!tenantId) throw new Error('Geen winkel geselecteerd.');
+      const urls = [...(input.post.image_urls ?? [])];
+      const recipes = [...(input.post.image_recipes ?? [])];
+      while (recipes.length < urls.length) recipes.push(null);
+      for (const img of input.images) {
+        const path = `${tenantId}/social/edit-${input.post.id}-${img.index}-${input.language}-${Date.now()}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from('marketing-assets')
+          .upload(path, img.jpeg, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+        if (uploadError) throw uploadError;
+        urls[img.index] = supabase.storage.from('marketing-assets').getPublicUrl(path).data.publicUrl;
+        recipes[img.index] = img.recipe;
+      }
+      const { data, error } = await supabase
+        .from('social_posts')
+        .update({
+          post_text: input.caption,
+          language: input.language,
+          image_urls: urls,
+          image_recipes: recipes as never,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', input.post.id)
+        .not('status', 'in', '(posted,publishing)')
+        .select('id');
+      if (error) throw error;
+      if (!data?.length) throw new Error('Deze post kan niet meer aangepast worden.');
+    },
+    onSuccess: invalidate,
+  });
+
   /** Een post die je zelf geplaatst hebt (bv. story met sticker) afvinken. */
   const markPosted = useMutation({
     mutationFn: async (id: string) => {
@@ -275,5 +317,5 @@ export function useSocialPlanner() {
     onSuccess: invalidate,
   });
 
-  return { posts, weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText };
+  return { posts, weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText, saveTranslation };
 }

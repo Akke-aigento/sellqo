@@ -2042,6 +2042,10 @@
         "social_image_text": {
           "title": "Social-Planung: den Text im Bild selbst bearbeiten",
           "description": "Bei Beiträgen und Stories, die für Sie vorbereitet wurden, bearbeiten Sie jetzt den Text im Bild selbst, etwa den Titel, den Preis oder eine Zeile unten. Eine Vorschau aktualisiert sich beim Tippen, und vor dem Speichern sehen Sie das Bild genau so, wie es online geht. Das Design bleibt gleich."
+        },
+        "social_media_language": {
+          "title": "Social-Planung: jedes Bild ansehen und herunterladen und die Sprache eines Beitrags ändern",
+          "description": "Unter jedem Beitrag können Sie jetzt jedes Bild einzeln ansehen und herunterladen, bei einem Reel auch das Video. Mit „Sprache ändern\" übersetzen Sie die Bildunterschrift und den Text in den Bildern in eine andere Sprache, zum Beispiel Englisch; Sie prüfen alles und sehen das Ergebnis vor dem Speichern."
         }
       },
       "copyLink": "Link kopieren",
