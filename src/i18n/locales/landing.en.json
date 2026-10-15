@@ -2050,6 +2050,10 @@
         "social_post_now": {
           "title": "Social planning: post now",
           "description": "With \"Post now\" you put a post from your Social planning live right away, without waiting for the planned time. If it does not work right away, SellQo tries again within the hour."
+        },
+        "event_admin_tickets": {
+          "title": "Every ticket separately in the order",
+          "description": "An order with tickets now shows every ticket separately: the event and date, the ticket type, the holder's name, the end of the ticket code and the status (valid, checked in with the time, or cancelled). That way you can answer a visitor's question without opening the scanner."
         }
       },
       "copyLink": "Copy link",

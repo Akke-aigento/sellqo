@@ -4384,8 +4384,7 @@
       "geen_producten_gevonden_met_deze_filters": "Geen producten gevonden met deze filters",
       "nog_geen_producten": "Nog geen producten.",
       "overgeslagen_variantvoorraad": "{{count}} product(en) overgeslagen — voorraad wordt per variant beheerd.",
-      "tickets_in_events_one": "{{count}} ticket beheer je in Events.",
-      "tickets_in_events_other": "{{count}} tickets beheer je in Events.",
+      "tickets_in_events_count": "Eventtickets: {{count}} — die beheer je onder Events.",
       "to_events": "Naar Events"
     },
     "productForm": {
@@ -6524,10 +6523,8 @@
     },
     "orderTickets": {
       "title": "Tickets en munten",
-      "tickets_one": "{{count}} geldig ticket",
-      "tickets_other": "{{count}} geldige tickets",
-      "checked_in_one": "{{count}} ingecheckt",
-      "checked_in_other": "{{count}} ingecheckt",
+      "tickets_count": "Geldige tickets: {{count}}",
+      "checked_in_count": "ingecheckt: {{count}}",
       "wallet": "Muntenkaart: {{balance}} van {{purchased}}",
       "open_wallet": "Bekijken",
       "mail_sent": "Ticketmail verstuurd op {{date}}.",
@@ -6537,7 +6534,17 @@
       "send": "Tickets mailen",
       "resend": "Tickets opnieuw mailen",
       "resent": "Tickets zijn gemaild",
-      "resend_failed": "Mailen lukte niet"
+      "resend_failed": "Mailen lukte niet",
+      "type_standard": "Standaardticket",
+      "seat": "plaats {{seat}}",
+      "code_masked_hint": "Ticketcode, deels verborgen: wie de volledige code heeft, komt binnen.",
+      "checked_in_at": "Ingecheckt op {{date}}",
+      "status_valid": "Geldig",
+      "status_checked_in": "Ingecheckt",
+      "status_cancelled": "Geannuleerd",
+      "status_refunded": "Terugbetaald",
+      "status_transferred": "Overgedragen",
+      "status_unknown": "Onbekend"
     },
     "printful": {
       "connected": "Verbonden",

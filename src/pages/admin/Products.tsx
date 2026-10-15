@@ -27,6 +27,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
+import { useBusinessModules } from '@/hooks/useBusinessModules';
 import { ProductBulkEditDialog } from '@/components/admin/products/ProductBulkEditDialog';
 import { BulkAIGenerateDialog } from '@/components/admin/products/BulkAIGenerateDialog';
 import { ProductGridView } from '@/components/admin/products/grid/ProductGridView';
@@ -158,10 +159,19 @@ export default function ProductsPage() {
 
   // Filter products
   // EVENT-WORKSPACE-1: tickets beheer je in Events, niet in de productlijst.
-  const ticketCount = useMemo(() => products.filter((p) => p.product_type === 'ticket').length, [products]);
+  // EVENT-ADMIN-1: alleen met de module Events — zonder module is Events onbereikbaar en
+  // blijven ticketproducten gewoon in de lijst staan (zoals vóór EVENT-WORKSPACE-1).
+  const { has: hasModule } = useBusinessModules();
+  const hideTickets = hasModule('events');
+  const ticketCount = useMemo(
+    () => (hideTickets ? products.filter((p) => p.product_type === 'ticket').length : 0),
+    [products, hideTickets],
+  );
+  // Producten die de lijst echt toont vóór filters: bepaalt "nog geen producten" vs "geen resultaat".
+  const listableCount = products.length - ticketCount;
   const filteredProducts = useMemo(() => {
     return products.filter(product => {
-      if (product.product_type === 'ticket') return false;
+      if (hideTickets && product.product_type === 'ticket') return false;
       // Search filter
       if (search) {
         const searchLower = search.toLowerCase();
@@ -203,7 +213,7 @@ export default function ProductsPage() {
 
       return true;
     });
-  }, [products, search, statusFilter, visibilityFilter, stockFilter, categoryFilter]);
+  }, [products, hideTickets, search, statusFilter, visibilityFilter, stockFilter, categoryFilter]);
 
   // Selection handlers
   const toggleSelectAll = () => {
@@ -432,7 +442,7 @@ export default function ProductsPage() {
     <div className={`space-y-6 ${selectedIds.size > 0 ? 'pb-20' : ''}`}>
       {ticketCount > 0 && (
         <Link to="/admin/events" className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm hover:bg-muted">
-          <span>{t('admin.products.tickets_in_events', { count: ticketCount })}</span>
+          <span>{t('admin.products.tickets_in_events_count', { count: ticketCount })}</span>
           <span className="shrink-0 font-medium text-primary">{t('admin.products.to_events')} →</span>
         </Link>
       )}
@@ -622,7 +632,7 @@ export default function ProductsPage() {
             <div className="flex flex-col items-center gap-2 py-12">
               <Package className="h-8 w-8 text-muted-foreground" />
               <p className="text-muted-foreground text-sm">
-                {products.length === 0 ? t('admin.products.nog_geen_producten') : t('admin.products.geen_producten_gevonden_met_deze_filters')}
+                {listableCount === 0 ? t('admin.products.nog_geen_producten') : t('admin.products.geen_producten_gevonden_met_deze_filters')}
               </p>
             </div>
           ) : (
@@ -739,10 +749,10 @@ export default function ProductsPage() {
                     <div className="flex flex-col items-center gap-2">
                       <Package className="h-8 w-8 text-muted-foreground" />
                       <p className="text-muted-foreground">
-                        {products.length === 0 
+                        {listableCount === 0 
                           ? t('admin.products.nog_geen_producten_voeg_je_eerste') : t('admin.products.geen_producten_gevonden_met_deze_filters')}
                       </p>
-                      {products.length === 0 && (
+                      {listableCount === 0 && (
                         <Button asChild size="sm">
                           <Link to="/admin/products/new">
                             <Plus className="mr-2 h-4 w-4" />

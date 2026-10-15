@@ -1,3 +1,27 @@
+## EVENT-ADMIN-1 — elk ticket apart in de orderdetail, ticketfilter achter de module (2026.12b) — 16 oktober 2026
+
+**Waarom.** Twee punten van de lijst "na 24/10" uit EVENT-WIZARD-1 (laag risico, puur admin-frontend): een events-tenant mag Producten niet nodig hebben, en eventbeheer mag niet verspreid zitten.
+
+**Recon (vangst):**
+- **Punt 1 bestond al.** EVENT-WORKSPACE-1 (14-10) filterde `product_type === 'ticket'` al uit `Products.tsx`, met een link naar Events. Wel drie gaten: (a) het filter gold voor élke winkel, ook zonder module Events — demo-bakkerij (2 ticketproducten, `business_modules = []`) zag haar tickets nergens meer, en de link wees naar een `EventsModuleGate`-scherm "module staat uit"; (b) de lege staat keek naar `products.length`, dus een winkel met alleen tickets kreeg "geen producten met deze filters" i.p.v. de lege staat; (c) de teller gebruikte i18next-plurals (`_one/_other`), verboden door de i18n-skill (Oekraïens heeft `few/many`, dus 2-4 tickets vielen terug).
+- **Punt 2 bestond half.** `OrderTicketsCard` (TICKET-MAIL-1) toonde enkel tellers, muntenkaart, maillog en de knop "Tickets opnieuw mailen". Die knop roept `send-ticket-confirmation` aan met de user-JWT; de functie doet `requireRole(tenant_admin|staff)` op de tenant van de order en mailt de bestaande `ticket_instances` (geen nieuwe tickets). Veilig en al in gebruik → hergebruikt, geen nieuwe knop.
+- Schema via de connector: `ticket_instances` (status-check `valid|checked_in|cancelled|refunded|transferred`, FK's `ticket_instances_product_id_fkey`, `ticket_instances_event_detail_id_fkey`), `event_details.product_id` → `event_details_product_id_fkey`. Live: 15 valid, 9 cancelled, allemaal met naam en product_id.
+
+**Uitgevoerd:**
+- `src/pages/admin/Products.tsx`: ticketfilter + banner alleen bij `useBusinessModules().has('events')` (zelfde check als `EventsModuleGate`); lege staat op `listableCount` (producten min verborgen tickets); teller via `admin.products.tickets_in_events_count` (één `{{count}}`, geen plurals). Alleen de lijstpagina; `useProducts` en alle productkiezers (kortingen, bundels, enz.) ongemoeid.
+- `src/components/admin/OrderTicketsCard.tsx`: per ticket event + datum/startuur, tickettype ("Standaardticket" als het product van het ticket het eventproduct is), houder, plaats (seat_label), code gemaskeerd (`••••` + laatste 6), statusbadge, en bij ingecheckt het tijdstip. Eén query met PostgREST-embeds via expliciete FK-hints; lijst scrollt boven 24rem. Lijst alleen met module Events; zonder module blijft de kaart exact zoals ze was. Tellers naar `tickets_count`/`checked_in_count` (plurals weg), datums via `i18n.language`/`useDateFnsLocale`. De mailknop blijft enkel staan bij geldige tickets of een muntenkaart (zoals voorheen).
+- `src/lib/orderTickets.ts` (+ `orderTickets.test.ts`, 3 vitest-tests): maskeren, status→i18n-sleutel met terugval, sortering op datum/tijd/volgnummer.
+- i18n: `admin.orderTickets.*` +10 keys (−4 plural-keys → 2 count-keys), `admin.products.tickets_in_events_count` (−2 plural-keys), × 5 talen.
+- Sporen: changelog 2026.12b `event_admin_tickets` (improvement) × 5 landing-bestanden; nieuwsbrief-item; helpartikel `tickets-in-een-bestelling` (tenant, Bestellingen, `/admin/orders`) als migratiebestand `supabase/migrations/20261016080000_event_admin_1_doc_article.sql` — **nog niet gedraaid**.
+
+**Security-keuzes:** geen policies, grants of DB-wijzigingen. Lezen loopt onder de bestaande RLS: `ticket_instances_select_tenant`, `event_details_select_tenant` en `event_ticket_types_select_tenant` = eigen tenants + rol tenant_admin/staff (pg_policies nagetrokken). De volledige `qr_token` komt wel naar de browser van tenant_admin/staff (dat deed de RLS al toe, en de scanner-zoekfunctie geeft hem ook), maar wordt in de UI nooit volledig getoond: wie hem heeft, komt binnen.
+
+**Gedeelde-paden-waarschuwing:** n.v.t. Geen edge functions, geen storefront-api, geen gedeelde tabellen. `send-ticket-confirmation` ongewijzigd.
+
+**Verificatie:** `npx tsc --noEmit -p tsconfig.app.json` exit 0; `node scripts/i18n-parity.mjs` exit 0 (5 talen, 7919 keys); vitest orderTickets 3/3; eslint op de gewijzigde bestanden 14 = 14 t.o.v. HEAD (alle bestaand, `Products.tsx`); `verify-lint-baseline` exit 0 (1482 → 1479); `npm run build` exit 0. Niet visueel getest in een browser.
+
+**Vervolg:** migratie van het helpartikel draaien en md5 natrekken; admin publiceren (`deploy_project`); daarna een Fonske-bestelling openen als rooktest (embeds). Nog open van de lijst: Scanner-knop in de native onderbalk, zaalplan.
+
 ## SOCIAL-4c — "Nu posten" in de Social planning (2026.12a) — 16 oktober 2026
 
 **Waarom.** Akke wil een post op elk moment meteen online kunnen zetten.

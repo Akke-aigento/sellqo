@@ -4066,8 +4066,7 @@
       "zichtbaarheid": "Visibilité",
       "zichtbaarheid_2": "Visibilité",
       "zoek_op_naam_sku_of_barcode": "Rechercher par nom, SKU ou code-barres...",
-      "tickets_in_events_one": "{{count}} billet se gère dans Événements.",
-      "tickets_in_events_other": "{{count}} billets se gèrent dans Événements.",
+      "tickets_in_events_count": "Billets d'événement : {{count}} — vous les gérez dans Événements.",
       "to_events": "Vers Événements"
     },
     "productForm": {
@@ -6273,10 +6272,8 @@
     },
     "orderTickets": {
       "title": "Billets et jetons",
-      "tickets_one": "{{count}} billet valide",
-      "tickets_other": "{{count}} billets valides",
-      "checked_in_one": "{{count}} enregistré",
-      "checked_in_other": "{{count}} enregistrés",
+      "tickets_count": "Billets valides : {{count}}",
+      "checked_in_count": "enregistrés : {{count}}",
       "wallet": "Carte de jetons : {{balance}} sur {{purchased}}",
       "open_wallet": "Voir",
       "mail_sent": "E-mail des billets envoyé le {{date}}.",
@@ -6286,7 +6283,17 @@
       "send": "Envoyer les billets",
       "resend": "Renvoyer les billets",
       "resent": "Les billets ont été envoyés",
-      "resend_failed": "L'envoi a échoué"
+      "resend_failed": "L'envoi a échoué",
+      "type_standard": "Billet standard",
+      "seat": "place {{seat}}",
+      "code_masked_hint": "Code du billet, partiellement masqué : quiconque possède le code complet peut entrer.",
+      "checked_in_at": "Enregistré le {{date}}",
+      "status_valid": "Valide",
+      "status_checked_in": "Enregistré",
+      "status_cancelled": "Annulé",
+      "status_refunded": "Remboursé",
+      "status_transferred": "Transféré",
+      "status_unknown": "Inconnu"
     },
     "printful": {
       "connected": "Connecté",

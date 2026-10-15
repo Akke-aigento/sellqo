@@ -2050,6 +2050,10 @@
         "social_post_now": {
           "title": "Planification sociale : publier maintenant",
           "description": "Avec « Publier maintenant », vous mettez une publication de votre planification sociale en ligne immédiatement, sans attendre l'heure prévue. Si cela ne fonctionne pas tout de suite, SellQo réessaie dans l'heure."
+        },
+        "event_admin_tickets": {
+          "title": "Chaque billet séparément dans la commande",
+          "description": "Une commande avec des billets affiche désormais chaque billet séparément : l'événement et la date, le type de billet, le nom du titulaire, la fin du code du billet et le statut (valide, enregistré avec l'heure, ou annulé). Vous répondez ainsi à la question d'un visiteur sans ouvrir le scanner."
         }
       },
       "copyLink": "Copier le lien",

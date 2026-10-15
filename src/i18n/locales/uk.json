@@ -4317,8 +4317,7 @@
       "zichtbaarheid": "Видимість",
       "zichtbaarheid_2": "Видимість",
       "zoek_op_naam_sku_of_barcode": "Пошук за назвою, SKU або штрихкодом...",
-      "tickets_in_events_one": "{{count}} квиток керується в розділі «Події».",
-      "tickets_in_events_other": "{{count}} квитків керуються в розділі «Події».",
+      "tickets_in_events_count": "Квитки на події: {{count}} — ними ви керуєте в розділі «Події».",
       "to_events": "До подій"
     },
     "productForm": {
@@ -6524,10 +6523,8 @@
     },
     "orderTickets": {
       "title": "Квитки та жетони",
-      "tickets_one": "{{count}} дійсний квиток",
-      "tickets_other": "{{count}} дійсних квитків",
-      "checked_in_one": "{{count}} зареєстровано",
-      "checked_in_other": "{{count}} зареєстровано",
+      "tickets_count": "Дійсні квитки: {{count}}",
+      "checked_in_count": "зареєстровано: {{count}}",
       "wallet": "Картка жетонів: {{balance}} з {{purchased}}",
       "open_wallet": "Переглянути",
       "mail_sent": "Лист із квитками надіслано {{date}}.",
@@ -6537,7 +6534,17 @@
       "send": "Надіслати квитки",
       "resend": "Надіслати квитки ще раз",
       "resent": "Квитки надіслано",
-      "resend_failed": "Не вдалося надіслати"
+      "resend_failed": "Не вдалося надіслати",
+      "type_standard": "Стандартний квиток",
+      "seat": "місце {{seat}}",
+      "code_masked_hint": "Код квитка, частково прихований: хто має повний код, той проходить.",
+      "checked_in_at": "Зареєстровано {{date}}",
+      "status_valid": "Дійсний",
+      "status_checked_in": "Зареєстровано",
+      "status_cancelled": "Скасовано",
+      "status_refunded": "Повернено кошти",
+      "status_transferred": "Передано",
+      "status_unknown": "Невідомо"
     },
     "printful": {
       "connected": "Підключено",

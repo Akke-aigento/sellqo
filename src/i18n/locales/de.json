@@ -4066,8 +4066,7 @@
       "zichtbaarheid": "Sichtbarkeit",
       "zichtbaarheid_2": "Sichtbarkeit",
       "zoek_op_naam_sku_of_barcode": "Nach Name, SKU oder Barcode suchen...",
-      "tickets_in_events_one": "{{count}} Ticket verwalten Sie unter Events.",
-      "tickets_in_events_other": "{{count}} Tickets verwalten Sie unter Events.",
+      "tickets_in_events_count": "Event-Tickets: {{count}} — diese verwalten Sie unter Events.",
       "to_events": "Zu Events"
     },
     "productForm": {
@@ -6273,10 +6272,8 @@
     },
     "orderTickets": {
       "title": "Tickets und Marken",
-      "tickets_one": "{{count}} gültiges Ticket",
-      "tickets_other": "{{count}} gültige Tickets",
-      "checked_in_one": "{{count}} eingecheckt",
-      "checked_in_other": "{{count}} eingecheckt",
+      "tickets_count": "Gültige Tickets: {{count}}",
+      "checked_in_count": "eingecheckt: {{count}}",
       "wallet": "Markenkarte: {{balance}} von {{purchased}}",
       "open_wallet": "Ansehen",
       "mail_sent": "Ticket-E-Mail am {{date}} gesendet.",
@@ -6286,7 +6283,17 @@
       "send": "Tickets mailen",
       "resend": "Tickets erneut mailen",
       "resent": "Tickets wurden gesendet",
-      "resend_failed": "Senden fehlgeschlagen"
+      "resend_failed": "Senden fehlgeschlagen",
+      "type_standard": "Standardticket",
+      "seat": "Platz {{seat}}",
+      "code_masked_hint": "Ticketcode, teilweise verborgen: Wer den vollständigen Code hat, kommt hinein.",
+      "checked_in_at": "Eingecheckt am {{date}}",
+      "status_valid": "Gültig",
+      "status_checked_in": "Eingecheckt",
+      "status_cancelled": "Storniert",
+      "status_refunded": "Erstattet",
+      "status_transferred": "Übertragen",
+      "status_unknown": "Unbekannt"
     },
     "printful": {
       "connected": "Verbunden",

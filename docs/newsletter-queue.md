@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12b — Elk ticket apart in de bestelling (improvement, 16-10-2026)
+
+**Voor wie:** iedereen die tickets verkoopt (events-module).
+
+Op een bestelling met tickets zie je nu elk ticket apart: event en datum, tickettype, houder, het einde van de
+ticketcode en de status (geldig, ingecheckt met tijdstip, geannuleerd). Een vraag van een bezoeker beantwoord je
+zo zonder de scanner te openen.
+
+**Samen versturen met** 2026.11s en 2026.11t (event-items).
+
+**i18n-keys.** `public.changelog.changes.event_admin_tickets` — 5 talen.
+
 ### 2026.12a — Nu posten vanuit de Social planning (feature, 16-10-2026)
 
 **Voor wie:** iedereen die de Social planning gebruikt.

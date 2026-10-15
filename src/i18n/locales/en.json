@@ -4303,8 +4303,7 @@
       "zichtbaarheid": "Visibility",
       "zichtbaarheid_2": "Visibility",
       "zoek_op_naam_sku_of_barcode": "Search by name, SKU or barcode...",
-      "tickets_in_events_one": "{{count}} ticket is managed in Events.",
-      "tickets_in_events_other": "{{count}} tickets are managed in Events.",
+      "tickets_in_events_count": "Event tickets: {{count}} — you manage them in Events.",
       "to_events": "Go to Events"
     },
     "productForm": {
@@ -6510,10 +6509,8 @@
     },
     "orderTickets": {
       "title": "Tickets and tokens",
-      "tickets_one": "{{count}} valid ticket",
-      "tickets_other": "{{count}} valid tickets",
-      "checked_in_one": "{{count}} checked in",
-      "checked_in_other": "{{count}} checked in",
+      "tickets_count": "Valid tickets: {{count}}",
+      "checked_in_count": "checked in: {{count}}",
       "wallet": "Token card: {{balance}} of {{purchased}}",
       "open_wallet": "View",
       "mail_sent": "Ticket email sent on {{date}}.",
@@ -6523,7 +6520,17 @@
       "send": "Email tickets",
       "resend": "Email tickets again",
       "resent": "Tickets have been emailed",
-      "resend_failed": "Could not send the email"
+      "resend_failed": "Could not send the email",
+      "type_standard": "Standard ticket",
+      "seat": "seat {{seat}}",
+      "code_masked_hint": "Ticket code, partly hidden: anyone with the full code gets in.",
+      "checked_in_at": "Checked in on {{date}}",
+      "status_valid": "Valid",
+      "status_checked_in": "Checked in",
+      "status_cancelled": "Cancelled",
+      "status_refunded": "Refunded",
+      "status_transferred": "Transferred",
+      "status_unknown": "Unknown"
     },
     "printful": {
       "connected": "Connected",

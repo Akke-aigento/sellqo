@@ -2050,6 +2050,10 @@
         "social_post_now": {
           "title": "Social-Planung: jetzt posten",
           "description": "Mit „Jetzt posten\" bringen Sie einen Beitrag aus Ihrer Social-Planung sofort online, ohne auf die geplante Uhrzeit zu warten. Klappt es nicht sofort, versucht SellQo es innerhalb einer Stunde erneut."
+        },
+        "event_admin_tickets": {
+          "title": "Jedes Ticket einzeln in der Bestellung",
+          "description": "In einer Bestellung mit Tickets sehen Sie jetzt jedes Ticket einzeln: Event und Datum, Tickettyp, den Namen des Inhabers, das Ende des Ticketcodes und den Status (gültig, eingecheckt mit Uhrzeit oder storniert). So beantworten Sie die Frage eines Besuchers, ohne den Scanner zu öffnen."
         }
       },
       "copyLink": "Link kopieren",

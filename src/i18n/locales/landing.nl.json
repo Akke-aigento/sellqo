@@ -2050,6 +2050,10 @@
         "social_post_now": {
           "title": "Social planning: een post nu posten",
           "description": "Met \"Nu posten\" zet je een post uit je Social planning meteen online, zonder op het geplande uur te wachten. Lukt het niet meteen, dan probeert SellQo het binnen het uur opnieuw."
+        },
+        "event_admin_tickets": {
+          "title": "Elk ticket apart in de bestelling",
+          "description": "In een bestelling met tickets zie je nu elk ticket apart: het event en de datum, het tickettype, de naam van de houder, het einde van de ticketcode en de status (geldig, ingecheckt met tijdstip, of geannuleerd). Zo beantwoord je een vraag van een bezoeker zonder de scanner te openen."
         }
       },
       "copyLink": "Kopieer link",
