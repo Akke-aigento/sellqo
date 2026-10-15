@@ -6573,6 +6573,88 @@
       },
       "trend_title": "Tendance (7 jours)",
       "week_total": "Total de la semaine"
+    },
+    "dashboardWidgets": {
+      "choose_layout": "Choisir une mise en page",
+      "customize": {
+        "title": "Personnaliser le tableau de bord",
+        "description": "Choisissez une mise en page et sélectionnez les widgets que vous souhaitez voir.",
+        "layout": "Mise en page",
+        "widgets": "Widgets",
+        "reset": "Par défaut",
+        "reset_confirm_title": "Êtes-vous sûr ?",
+        "reset_confirm_body": "Toutes les sélections de widgets et de mise en page seront réinitialisées à la configuration par défaut.",
+        "reset_confirm_hint": "Vous devez encore cliquer sur « Enregistrer » pour rendre les modifications définitives.",
+        "reset_confirm_action": "Oui, rétablir les valeurs par défaut"
+      },
+      "categories": {
+        "stats": "Statistiques",
+        "orders": "Commandes",
+        "products": "Produits",
+        "marketing": "Marketing",
+        "pos": "Point de vente",
+        "system": "Système"
+      },
+      "widgets": {
+        "health-banner": {
+          "title": "Shop Health",
+          "description": "Score en direct et statut du jour"
+        },
+        "health-categories": {
+          "title": "Catégories Health",
+          "description": "6 piliers de santé dans une grille"
+        },
+        "today-widget": {
+          "title": "Aujourd'hui",
+          "description": "Flux de ventes en direct et statistiques du jour"
+        },
+        "health-actions": {
+          "title": "Points d'action",
+          "description": "Tâches urgentes qui demandent votre attention"
+        },
+        "quick-actions": {
+          "title": "Actions rapides",
+          "description": "Accédez rapidement aux tâches fréquentes"
+        },
+        "ai-marketing": {
+          "title": "Coach IA",
+          "description": "Suggestions IA et conseils marketing"
+        },
+        "pos-overview": {
+          "title": "Aperçu caisse",
+          "description": "Statistiques et sessions de caisse"
+        },
+        "marketplace": {
+          "title": "Marketplaces",
+          "description": "Statut des canaux de vente connectés"
+        },
+        "badges": {
+          "title": "Badges et étapes",
+          "description": "Vos badges obtenus et votre progression"
+        }
+      },
+      "presets": {
+        "default": {
+          "name": "Par défaut",
+          "description": "Aperçu complet avec tous les widgets"
+        },
+        "compact": {
+          "name": "Compact",
+          "description": "Uniquement l'essentiel"
+        },
+        "analytics": {
+          "name": "Analytics",
+          "description": "Accent sur les données et les statistiques"
+        },
+        "pos": {
+          "name": "Focus caisse",
+          "description": "Optimisé pour la vente en magasin"
+        },
+        "ecommerce": {
+          "name": "E-commerce",
+          "description": "Accent sur la vente en ligne"
+        }
+      }
     }
   },
   "billing": {

@@ -135,7 +135,7 @@ export function useShopHealth(): ShopHealthData {
     
     // Analytics for achievements
     const todayRevenue = dailyStats?.find(d => 
-      d.date === format(now, 'dd MMM')
+      d.day === format(now, 'yyyy-MM-dd')
     )?.revenue || 0;
     const weekRevenue = dailyStats?.reduce((sum, d) => sum + d.revenue, 0) || 0;
     const newCustomersThisWeek = summary?.totalCustomers || 0;
@@ -208,7 +208,7 @@ export function useShopHealth(): ShopHealthData {
   // Today's stats
   const todayStats = useMemo(() => ({
     revenue: healthData.todayRevenue,
-    orders: dailyStats?.find(d => d.date === format(new Date(), 'dd MMM'))?.orders || 0,
+    orders: dailyStats?.find(d => d.day === format(new Date(), 'yyyy-MM-dd'))?.orders || 0,
     newCustomers: 0, // Would need today-specific query
   }), [healthData.todayRevenue, dailyStats]);
   

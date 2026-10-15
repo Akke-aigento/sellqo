@@ -6824,6 +6824,88 @@
       },
       "trend_title": "Trend (7 dagen)",
       "week_total": "Week totaal"
+    },
+    "dashboardWidgets": {
+      "choose_layout": "Kies layout",
+      "customize": {
+        "title": "Dashboard personaliseren",
+        "description": "Kies een layout en selecteer welke widgets je wilt zien.",
+        "layout": "Layout",
+        "widgets": "Widgets",
+        "reset": "Standaard",
+        "reset_confirm_title": "Weet je het zeker?",
+        "reset_confirm_body": "Alle widget- en layoutselecties worden teruggezet naar de standaardconfiguratie.",
+        "reset_confirm_hint": "Je moet nog op \"Opslaan\" klikken om de wijzigingen definitief te maken.",
+        "reset_confirm_action": "Ja, terug naar standaard"
+      },
+      "categories": {
+        "stats": "Statistieken",
+        "orders": "Bestellingen",
+        "products": "Producten",
+        "marketing": "Marketing",
+        "pos": "Point of Sale",
+        "system": "Systeem"
+      },
+      "widgets": {
+        "health-banner": {
+          "title": "Shop Health",
+          "description": "Live score en dagelijkse status"
+        },
+        "health-categories": {
+          "title": "Health Categorieën",
+          "description": "6 health pilaren in een grid"
+        },
+        "today-widget": {
+          "title": "Vandaag",
+          "description": "Live sales feed en dagelijkse statistieken"
+        },
+        "health-actions": {
+          "title": "Actie-items",
+          "description": "Urgente taken die aandacht nodig hebben"
+        },
+        "quick-actions": {
+          "title": "Snelle acties",
+          "description": "Veelgebruikte taken snel bereiken"
+        },
+        "ai-marketing": {
+          "title": "AI Coach",
+          "description": "AI-suggesties en marketingtips"
+        },
+        "pos-overview": {
+          "title": "POS Overzicht",
+          "description": "Kassastatistieken en sessies"
+        },
+        "marketplace": {
+          "title": "Marktplaatsen",
+          "description": "Status van gekoppelde verkoopkanalen"
+        },
+        "badges": {
+          "title": "Badges & Milestones",
+          "description": "Jouw verdiende badges en voortgang"
+        }
+      },
+      "presets": {
+        "default": {
+          "name": "Standaard",
+          "description": "Compleet overzicht met alle widgets"
+        },
+        "compact": {
+          "name": "Compact",
+          "description": "Alleen de essentiële informatie"
+        },
+        "analytics": {
+          "name": "Analytics",
+          "description": "Focus op data en statistieken"
+        },
+        "pos": {
+          "name": "POS Focus",
+          "description": "Optimaal voor winkelverkoop"
+        },
+        "ecommerce": {
+          "name": "E-commerce",
+          "description": "Focus op online verkoop"
+        }
+      }
     }
   },
   "product_form": {

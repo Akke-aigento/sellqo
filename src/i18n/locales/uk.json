@@ -6824,6 +6824,88 @@
       },
       "trend_title": "Тренд (7 днів)",
       "week_total": "Разом за тиждень"
+    },
+    "dashboardWidgets": {
+      "choose_layout": "Виберіть макет",
+      "customize": {
+        "title": "Персоналізувати панель",
+        "description": "Виберіть макет і позначте, які віджети ви хочете бачити.",
+        "layout": "Макет",
+        "widgets": "Віджети",
+        "reset": "За замовчуванням",
+        "reset_confirm_title": "Ви впевнені?",
+        "reset_confirm_body": "Усі вибрані віджети та макет буде скинуто до стандартної конфігурації.",
+        "reset_confirm_hint": "Вам ще потрібно натиснути «Зберегти», щоб остаточно застосувати зміни.",
+        "reset_confirm_action": "Так, скинути до стандартних"
+      },
+      "categories": {
+        "stats": "Статистика",
+        "orders": "Замовлення",
+        "products": "Товари",
+        "marketing": "Маркетинг",
+        "pos": "Каса (POS)",
+        "system": "Система"
+      },
+      "widgets": {
+        "health-banner": {
+          "title": "Shop Health",
+          "description": "Оцінка в реальному часі та щоденний статус"
+        },
+        "health-categories": {
+          "title": "Категорії Health",
+          "description": "6 стовпів здоров’я магазину в сітці"
+        },
+        "today-widget": {
+          "title": "Сьогодні",
+          "description": "Стрічка продажів наживо та щоденна статистика"
+        },
+        "health-actions": {
+          "title": "Завдання до виконання",
+          "description": "Термінові завдання, що потребують уваги"
+        },
+        "quick-actions": {
+          "title": "Швидкі дії",
+          "description": "Швидкий доступ до часто вживаних завдань"
+        },
+        "ai-marketing": {
+          "title": "AI-коуч",
+          "description": "AI-поради та маркетингові підказки"
+        },
+        "pos-overview": {
+          "title": "Огляд каси",
+          "description": "Статистика каси та сесії"
+        },
+        "marketplace": {
+          "title": "Маркетплейси",
+          "description": "Статус підключених каналів продажу"
+        },
+        "badges": {
+          "title": "Бейджі та досягнення",
+          "description": "Ваші здобуті бейджі та прогрес"
+        }
+      },
+      "presets": {
+        "default": {
+          "name": "Стандартний",
+          "description": "Повний огляд з усіма віджетами"
+        },
+        "compact": {
+          "name": "Компактний",
+          "description": "Лише найважливіша інформація"
+        },
+        "analytics": {
+          "name": "Аналітика",
+          "description": "Акцент на даних і статистиці"
+        },
+        "pos": {
+          "name": "Фокус на касі",
+          "description": "Оптимально для продажів у магазині"
+        },
+        "ecommerce": {
+          "name": "Електронна комерція",
+          "description": "Акцент на онлайн-продажах"
+        }
+      }
     }
   },
   "product_form": {

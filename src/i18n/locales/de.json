@@ -6573,6 +6573,88 @@
       },
       "trend_title": "Trend (7 Tage)",
       "week_total": "Wochensumme"
+    },
+    "dashboardWidgets": {
+      "choose_layout": "Layout wählen",
+      "customize": {
+        "title": "Dashboard personalisieren",
+        "description": "Wählen Sie ein Layout und legen Sie fest, welche Widgets Sie sehen möchten.",
+        "layout": "Layout",
+        "widgets": "Widgets",
+        "reset": "Standard",
+        "reset_confirm_title": "Sind Sie sicher?",
+        "reset_confirm_body": "Alle Widget- und Layout-Auswahlen werden auf die Standardkonfiguration zurückgesetzt.",
+        "reset_confirm_hint": "Sie müssen noch auf „Speichern“ klicken, um die Änderungen endgültig zu übernehmen.",
+        "reset_confirm_action": "Ja, auf Standard zurücksetzen"
+      },
+      "categories": {
+        "stats": "Statistiken",
+        "orders": "Bestellungen",
+        "products": "Produkte",
+        "marketing": "Marketing",
+        "pos": "Kasse (POS)",
+        "system": "System"
+      },
+      "widgets": {
+        "health-banner": {
+          "title": "Shop Health",
+          "description": "Live-Score und Tagesstatus"
+        },
+        "health-categories": {
+          "title": "Health-Kategorien",
+          "description": "6 Health-Säulen in einem Raster"
+        },
+        "today-widget": {
+          "title": "Heute",
+          "description": "Live-Verkaufsfeed und Tagesstatistiken"
+        },
+        "health-actions": {
+          "title": "Aufgaben",
+          "description": "Dringende Aufgaben, die Aufmerksamkeit erfordern"
+        },
+        "quick-actions": {
+          "title": "Schnellaktionen",
+          "description": "Häufig genutzte Aufgaben schnell erreichen"
+        },
+        "ai-marketing": {
+          "title": "KI-Coach",
+          "description": "KI-Vorschläge und Marketingtipps"
+        },
+        "pos-overview": {
+          "title": "Kassenübersicht",
+          "description": "Kassenstatistiken und Sitzungen"
+        },
+        "marketplace": {
+          "title": "Marktplätze",
+          "description": "Status der verbundenen Verkaufskanäle"
+        },
+        "badges": {
+          "title": "Abzeichen & Meilensteine",
+          "description": "Ihre verdienten Abzeichen und Ihr Fortschritt"
+        }
+      },
+      "presets": {
+        "default": {
+          "name": "Standard",
+          "description": "Vollständige Übersicht mit allen Widgets"
+        },
+        "compact": {
+          "name": "Kompakt",
+          "description": "Nur die wesentlichen Informationen"
+        },
+        "analytics": {
+          "name": "Analytics",
+          "description": "Fokus auf Daten und Statistiken"
+        },
+        "pos": {
+          "name": "Kassenfokus",
+          "description": "Optimal für den Ladenverkauf"
+        },
+        "ecommerce": {
+          "name": "E-Commerce",
+          "description": "Fokus auf Online-Verkauf"
+        }
+      }
     }
   },
   "billing": {

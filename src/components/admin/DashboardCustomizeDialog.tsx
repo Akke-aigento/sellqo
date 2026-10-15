@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -37,19 +38,11 @@ interface DashboardCustomizeDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const categoryLabels: Record<WidgetCategory, string> = {
-  stats: 'Statistieken',
-  orders: 'Bestellingen',
-  products: 'Producten',
-  marketing: 'Marketing',
-  pos: 'Point of Sale',
-  system: 'Systeem',
-};
-
 export function DashboardCustomizeDialog({
   open,
   onOpenChange,
 }: DashboardCustomizeDialogProps) {
+  const { t } = useTranslation();
   const {
     layoutType,
     hiddenWidgets,
@@ -103,9 +96,9 @@ export function DashboardCustomizeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Dashboard personaliseren</DialogTitle>
+          <DialogTitle>{t('admin.dashboardWidgets.customize.title')}</DialogTitle>
           <DialogDescription>
-            Kies een layout en selecteer welke widgets je wilt zien.
+            {t('admin.dashboardWidgets.customize.description')}
           </DialogDescription>
         </DialogHeader>
 
@@ -113,7 +106,7 @@ export function DashboardCustomizeDialog({
           <div className="space-y-6">
             {/* Layout Selection */}
             <div>
-              <h4 className="text-sm font-medium mb-3">Layout</h4>
+              <h4 className="text-sm font-medium mb-3">{t('admin.dashboardWidgets.customize.layout')}</h4>
               <RadioGroup
                 value={localLayout}
                 onValueChange={setLocalLayout}
@@ -134,9 +127,9 @@ export function DashboardCustomizeDialog({
                       >
                         <Icon className="h-5 w-5 shrink-0" />
                         <div className="min-w-0">
-                          <p className="text-sm font-medium">{preset.name}</p>
+                          <p className="text-sm font-medium">{t(preset.nameKey)}</p>
                           <p className="text-xs text-muted-foreground truncate">
-                            {preset.description}
+                            {t(preset.descriptionKey)}
                           </p>
                         </div>
                       </Label>
@@ -150,13 +143,13 @@ export function DashboardCustomizeDialog({
 
             {/* Widget Selection */}
             <div>
-              <h4 className="text-sm font-medium mb-3">Widgets</h4>
+              <h4 className="text-sm font-medium mb-3">{t('admin.dashboardWidgets.customize.widgets')}</h4>
               <div className="space-y-4">
                 {(Object.entries(widgetsByCategory) as [WidgetCategory, typeof dashboardWidgets][]).map(
                   ([category, widgets]) => (
                     <div key={category}>
                       <p className="text-xs text-muted-foreground mb-2">
-                        {categoryLabels[category]}
+                        {t(`admin.dashboardWidgets.categories.${category}`)}
                       </p>
                       <div className="space-y-2">
                         {widgets.map((widget) => {
@@ -177,10 +170,10 @@ export function DashboardCustomizeDialog({
                                 className="flex-1 cursor-pointer"
                               >
                                 <span className="text-sm font-normal">
-                                  {widget.title}
+                                  {t(widget.titleKey)}
                                 </span>
                                 <p className="text-xs text-muted-foreground">
-                                  {widget.description}
+                                  {t(widget.descriptionKey)}
                                 </p>
                               </Label>
                             </div>
@@ -203,28 +196,28 @@ export function DashboardCustomizeDialog({
                 className="w-full sm:w-auto"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Standaard
+                {t('admin.dashboardWidgets.customize.reset')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+                <AlertDialogTitle>{t('admin.dashboardWidgets.customize.reset_confirm_title')}</AlertDialogTitle>
                 <AlertDialogDescription className="space-y-2">
                   <p>
-                    Alle widget en layout selecties worden gereset naar de standaard configuratie.
+                    {t('admin.dashboardWidgets.customize.reset_confirm_body')}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Je moet nog steeds op "Opslaan" klikken om de wijzigingen definitief te maken.
+                    {t('admin.dashboardWidgets.customize.reset_confirm_hint')}
                   </p>
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction 
                   onClick={handleReset}
                   className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                 >
-                  Ja, reset naar standaard
+                  {t('admin.dashboardWidgets.customize.reset_confirm_action')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -234,7 +227,7 @@ export function DashboardCustomizeDialog({
             disabled={isUpdating}
             className="w-full sm:w-auto"
           >
-            {isUpdating ? 'Opslaan...' : 'Opslaan'}
+            {isUpdating ? t('common.saving') : t('common.save')}
           </Button>
         </DialogFooter>
       </DialogContent>

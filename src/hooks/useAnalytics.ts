@@ -1,10 +1,15 @@
+import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { startOfMonth, subMonths, format, eachDayOfInterval, subDays, startOfDay } from 'date-fns';
 import { fetchAllRows, REAL_CUSTOMER_OR, IMPORT_ACQUISITION_SOURCES } from '@/lib/salesStats';
+import { useDateFnsLocale } from './useDateFnsLocale';
 
 export interface DailyStats {
+  /** Taalonafhankelijke dagsleutel (yyyy-MM-dd) — gebruik deze om te vergelijken. */
+  day: string;
+  /** Weergavelabel ('dd MMM') in de UI-taal. Niet om op te vergelijken. */
   date: string;
   revenue: number;
   orders: number;
@@ -35,6 +40,7 @@ export interface AnalyticsSummary {
 
 export function useAnalytics(days: number = 30) {
   const { currentTenant } = useTenant();
+  const dateLocale = useDateFnsLocale();
 
   const summaryQuery = useQuery({
     queryKey: ['analytics', 'summary', currentTenant?.id, days],
@@ -140,7 +146,9 @@ export function useAnalytics(days: number = 30) {
 
   const dailyStatsQuery = useQuery({
     queryKey: ['analytics', 'daily', currentTenant?.id, days],
-    queryFn: async (): Promise<DailyStats[]> => {
+    // De cache bevat alleen de taalonafhankelijke `day`; het label wordt
+    // hieronder per UI-taal opgemaakt, zodat een taalwissel geen refetch vraagt.
+    queryFn: async (): Promise<Omit<DailyStats, 'date'>[]> => {
       if (!currentTenant) throw new Error('No tenant selected');
 
       const now = new Date();
@@ -185,7 +193,7 @@ export function useAnalytics(days: number = 30) {
         const daySubscribers = dayCustomersAll.filter(c => c.email_subscribed === true);
 
         return {
-          date: format(date, 'dd MMM'),
+          day: dateStr,
           revenue: dayOrders
             .filter(o => o.payment_status === 'paid')
             .reduce((sum, o) => sum + Number(o.total), 0),
@@ -275,9 +283,18 @@ export function useAnalytics(days: number = 30) {
     enabled: !!currentTenant,
   });
 
+  const dailyStats = useMemo<DailyStats[]>(
+    () =>
+      (dailyStatsQuery.data ?? []).map((d) => ({
+        ...d,
+        date: format(new Date(`${d.day}T00:00:00`), 'dd MMM', { locale: dateLocale }),
+      })),
+    [dailyStatsQuery.data, dateLocale],
+  );
+
   return {
     summary: summaryQuery.data,
-    dailyStats: dailyStatsQuery.data ?? [],
+    dailyStats,
     orderStatus: orderStatusQuery.data ?? [],
     topProducts: topProductsQuery.data ?? [],
     isLoading: summaryQuery.isLoading || dailyStatsQuery.isLoading,

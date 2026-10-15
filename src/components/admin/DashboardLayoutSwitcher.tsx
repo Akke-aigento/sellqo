@@ -7,11 +7,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
+import { useTranslation } from 'react-i18next';
 import { LayoutDashboard, Check } from 'lucide-react';
 import { layoutPresets } from '@/config/dashboardWidgets';
 import { useDashboardPreferences } from '@/hooks/useDashboardPreferences';
 
 export function DashboardLayoutSwitcher() {
+  const { t } = useTranslation();
   const { layoutType, setLayout, isUpdating } = useDashboardPreferences();
 
   const currentPreset = layoutPresets.find((p) => p.id === layoutType) || layoutPresets[0];
@@ -21,11 +23,11 @@ export function DashboardLayoutSwitcher() {
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" disabled={isUpdating}>
           <currentPreset.icon className="h-4 w-4 mr-2" />
-          {currentPreset.name}
+          {t(currentPreset.nameKey)}
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Kies layout</DropdownMenuLabel>
+        <DropdownMenuLabel>{t('admin.dashboardWidgets.choose_layout')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {layoutPresets.map((preset) => {
           const isActive = preset.id === layoutType;
@@ -39,11 +41,11 @@ export function DashboardLayoutSwitcher() {
               <Icon className="h-4 w-4 mt-0.5 shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">{preset.name}</span>
+                  <span className="font-medium">{t(preset.nameKey)}</span>
                   {isActive && <Check className="h-4 w-4 text-primary" />}
                 </div>
                 <p className="text-xs text-muted-foreground truncate">
-                  {preset.description}
+                  {t(preset.descriptionKey)}
                 </p>
               </div>
             </DropdownMenuItem>

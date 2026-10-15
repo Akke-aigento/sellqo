@@ -6810,6 +6810,88 @@
       },
       "trend_title": "Trend (7 days)",
       "week_total": "Week total"
+    },
+    "dashboardWidgets": {
+      "choose_layout": "Choose layout",
+      "customize": {
+        "title": "Personalise dashboard",
+        "description": "Choose a layout and select which widgets you want to see.",
+        "layout": "Layout",
+        "widgets": "Widgets",
+        "reset": "Default",
+        "reset_confirm_title": "Are you sure?",
+        "reset_confirm_body": "All widget and layout selections will be reset to the default configuration.",
+        "reset_confirm_hint": "You still need to click \"Save\" to make the changes permanent.",
+        "reset_confirm_action": "Yes, reset to default"
+      },
+      "categories": {
+        "stats": "Statistics",
+        "orders": "Orders",
+        "products": "Products",
+        "marketing": "Marketing",
+        "pos": "Point of Sale",
+        "system": "System"
+      },
+      "widgets": {
+        "health-banner": {
+          "title": "Shop Health",
+          "description": "Live score and daily status"
+        },
+        "health-categories": {
+          "title": "Health categories",
+          "description": "6 health pillars in a grid"
+        },
+        "today-widget": {
+          "title": "Today",
+          "description": "Live sales feed and daily statistics"
+        },
+        "health-actions": {
+          "title": "Action items",
+          "description": "Urgent tasks that need attention"
+        },
+        "quick-actions": {
+          "title": "Quick actions",
+          "description": "Reach frequently used tasks quickly"
+        },
+        "ai-marketing": {
+          "title": "AI Coach",
+          "description": "AI suggestions and marketing tips"
+        },
+        "pos-overview": {
+          "title": "POS overview",
+          "description": "Till statistics and sessions"
+        },
+        "marketplace": {
+          "title": "Marketplaces",
+          "description": "Status of connected sales channels"
+        },
+        "badges": {
+          "title": "Badges & milestones",
+          "description": "Your earned badges and progress"
+        }
+      },
+      "presets": {
+        "default": {
+          "name": "Default",
+          "description": "Complete overview with all widgets"
+        },
+        "compact": {
+          "name": "Compact",
+          "description": "Only the essential information"
+        },
+        "analytics": {
+          "name": "Analytics",
+          "description": "Focus on data and statistics"
+        },
+        "pos": {
+          "name": "POS focus",
+          "description": "Optimised for in-store sales"
+        },
+        "ecommerce": {
+          "name": "E-commerce",
+          "description": "Focus on online sales"
+        }
+      }
     }
   },
   "product_form": {

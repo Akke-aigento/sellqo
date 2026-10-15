@@ -13,14 +13,16 @@ import {
 // Widget size types
 export type WidgetSize = 'sm' | 'md' | 'lg' | 'full';
 
-// Widget category types
+// Widget category types — label via admin.dashboardWidgets.categories.<category>
 export type WidgetCategory = 'stats' | 'orders' | 'products' | 'marketing' | 'pos' | 'system';
 
 // Widget definition interface
 export interface DashboardWidgetDefinition {
   id: string;
-  title: string;
-  description: string;
+  /** i18n-key voor de widgettitel (admin.dashboardWidgets.widgets.<id>.title). */
+  titleKey: string;
+  /** i18n-key voor de omschrijving. */
+  descriptionKey: string;
   defaultSize: WidgetSize;
   minSize: WidgetSize;
   category: WidgetCategory;
@@ -37,8 +39,10 @@ export interface DashboardWidgetDefinition {
 // Layout preset interface
 export interface LayoutPreset {
   id: string;
-  name: string;
-  description: string;
+  /** i18n-key voor de layoutnaam (admin.dashboardWidgets.presets.<id>.name). */
+  nameKey: string;
+  /** i18n-key voor de omschrijving. */
+  descriptionKey: string;
   icon: LucideIcon;
   widgetOrder: string[];
   hiddenWidgets: string[];
@@ -48,8 +52,8 @@ export interface LayoutPreset {
 export const dashboardWidgets: DashboardWidgetDefinition[] = [
   {
     id: 'health-banner',
-    title: 'Shop Health',
-    description: 'Live score en dagelijkse status',
+    titleKey: 'admin.dashboardWidgets.widgets.health-banner.title',
+    descriptionKey: 'admin.dashboardWidgets.widgets.health-banner.description',
     defaultSize: 'full',
     minSize: 'full',
     category: 'stats',
@@ -57,8 +61,8 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
   },
   {
     id: 'health-categories',
-    title: 'Health Categorieën',
-    description: '6 health pilaren in een grid',
+    titleKey: 'admin.dashboardWidgets.widgets.health-categories.title',
+    descriptionKey: 'admin.dashboardWidgets.widgets.health-categories.description',
     defaultSize: 'full',
     minSize: 'full',
     category: 'stats',
@@ -66,8 +70,8 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
   },
   {
     id: 'today-widget',
-    title: 'Vandaag',
-    description: 'Live sales feed en dagelijkse statistieken',
+    titleKey: 'admin.dashboardWidgets.widgets.today-widget.title',
+    descriptionKey: 'admin.dashboardWidgets.widgets.today-widget.description',
     defaultSize: 'md',
     minSize: 'md',
     category: 'stats',
@@ -75,8 +79,8 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
   },
   {
     id: 'health-actions',
-    title: 'Actie-items',
-    description: 'Urgente taken die aandacht nodig hebben',
+    titleKey: 'admin.dashboardWidgets.widgets.health-actions.title',
+    descriptionKey: 'admin.dashboardWidgets.widgets.health-actions.description',
     defaultSize: 'full',
     minSize: 'full',
     category: 'stats',
@@ -84,8 +88,8 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
   },
   {
     id: 'quick-actions',
-    title: 'Snelle acties',
-    description: 'Veelgebruikte taken snel bereiken',
+    titleKey: 'admin.dashboardWidgets.widgets.quick-actions.title',
+    descriptionKey: 'admin.dashboardWidgets.widgets.quick-actions.description',
     defaultSize: 'md',
     minSize: 'sm',
     category: 'system',
@@ -93,8 +97,8 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
   },
   {
     id: 'ai-marketing',
-    title: 'AI Coach',
-    description: 'AI suggesties en marketing tips',
+    titleKey: 'admin.dashboardWidgets.widgets.ai-marketing.title',
+    descriptionKey: 'admin.dashboardWidgets.widgets.ai-marketing.description',
     defaultSize: 'md',
     minSize: 'sm',
     category: 'marketing',
@@ -104,8 +108,8 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
   },
   {
     id: 'pos-overview',
-    title: 'POS Overzicht',
-    description: 'Kassa statistieken en sessies',
+    titleKey: 'admin.dashboardWidgets.widgets.pos-overview.title',
+    descriptionKey: 'admin.dashboardWidgets.widgets.pos-overview.description',
     defaultSize: 'md',
     minSize: 'sm',
     category: 'pos',
@@ -115,8 +119,8 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
   },
   {
     id: 'marketplace',
-    title: 'Marktplaatsen',
-    description: 'Status van gekoppelde verkoopkanalen',
+    titleKey: 'admin.dashboardWidgets.widgets.marketplace.title',
+    descriptionKey: 'admin.dashboardWidgets.widgets.marketplace.description',
     defaultSize: 'md',
     minSize: 'md',
     category: 'orders',
@@ -126,8 +130,8 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
   },
   {
     id: 'badges',
-    title: 'Badges & Milestones',
-    description: 'Jouw verdiende badges en voortgang',
+    titleKey: 'admin.dashboardWidgets.widgets.badges.title',
+    descriptionKey: 'admin.dashboardWidgets.widgets.badges.description',
     defaultSize: 'full',
     minSize: 'lg',
     category: 'stats',
@@ -139,8 +143,8 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
 export const layoutPresets: LayoutPreset[] = [
   {
     id: 'default',
-    name: 'Standaard',
-    description: 'Compleet overzicht met alle widgets',
+    nameKey: 'admin.dashboardWidgets.presets.default.name',
+    descriptionKey: 'admin.dashboardWidgets.presets.default.description',
     icon: LayoutDashboard,
     widgetOrder: [
       'health-banner',
@@ -157,32 +161,32 @@ export const layoutPresets: LayoutPreset[] = [
   },
   {
     id: 'compact',
-    name: 'Compact',
-    description: 'Alleen de essentiële informatie',
+    nameKey: 'admin.dashboardWidgets.presets.compact.name',
+    descriptionKey: 'admin.dashboardWidgets.presets.compact.description',
     icon: Zap,
     widgetOrder: ['health-banner', 'today-widget', 'quick-actions', 'badges'],
     hiddenWidgets: ['health-categories', 'health-actions', 'ai-marketing', 'pos-overview', 'marketplace'],
   },
   {
     id: 'analytics',
-    name: 'Analytics',
-    description: 'Focus op data en statistieken',
+    nameKey: 'admin.dashboardWidgets.presets.analytics.name',
+    descriptionKey: 'admin.dashboardWidgets.presets.analytics.description',
     icon: BarChart3,
     widgetOrder: ['health-banner', 'health-categories', 'today-widget', 'marketplace', 'badges'],
     hiddenWidgets: ['health-actions', 'quick-actions', 'ai-marketing', 'pos-overview'],
   },
   {
     id: 'pos',
-    name: 'POS Focus',
-    description: 'Optimaal voor winkelverkoop',
+    nameKey: 'admin.dashboardWidgets.presets.pos.name',
+    descriptionKey: 'admin.dashboardWidgets.presets.pos.description',
     icon: Store,
     widgetOrder: ['health-banner', 'today-widget', 'pos-overview', 'quick-actions', 'badges'],
     hiddenWidgets: ['health-categories', 'health-actions', 'ai-marketing', 'marketplace'],
   },
   {
     id: 'ecommerce',
-    name: 'E-commerce',
-    description: 'Focus op online verkoop',
+    nameKey: 'admin.dashboardWidgets.presets.ecommerce.name',
+    descriptionKey: 'admin.dashboardWidgets.presets.ecommerce.description',
     icon: ShoppingCart,
     widgetOrder: [
       'health-banner',
