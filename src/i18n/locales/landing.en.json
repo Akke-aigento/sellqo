@@ -2034,6 +2034,10 @@
         "social_reels_reminders": {
           "title": "Social planning: reels and a reminder for what you post yourself",
           "description": "Reels now appear in your Social planning too, with a video preview and a music suggestion. For each reel you choose: let it post automatically in the version with music, or pick a song yourself in the Instagram app. Then you download the video and copy the caption with one tap. For everything you post yourself, such as a story with a sticker or a reel with your own music, you get a notification about an hour beforehand."
+        },
+        "social_songs_language": {
+          "title": "Social planning: song suggestions for reels and remaking in another language",
+          "description": "For a reel you now get concrete songs to search for in the Instagram music search, with the mood and tempo. And with \"Make again\" you also choose the language of the new version, for example English for your international followers. The language of each post is shown as a code next to the platform."
         }
       },
       "copyLink": "Copy link",

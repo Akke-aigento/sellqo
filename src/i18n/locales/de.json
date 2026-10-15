@@ -6738,7 +6738,9 @@
         "title": "Musikvorschlag",
         "track": "Automatisch mit: {{title}}",
         "mood": "Stimmung: {{mood}}",
-        "search": "Suchen Sie auf Instagram nach: {{terms}}"
+        "search": "Suchen Sie auf Instagram nach: {{terms}}",
+        "songs": "Songs zum Suchen in Instagram:",
+        "checkInApp": "Nicht jeder Song ist für jedes Konto verfügbar; wählen Sie einen, den Sie in der App finden."
       },
       "regenerate": {
         "button": "Neu erstellen",
@@ -6748,7 +6750,9 @@
         "notePlaceholder": "Zum Beispiel: lustiger, ein anderes Foto, mehr zum Preis",
         "confirm": "Neu erstellen",
         "pending": "Eine neue Version wird erstellt.",
-        "pendingWithNote": "Eine neue Version wird erstellt: „{{note}}“"
+        "pendingWithNote": "Eine neue Version wird erstellt: „{{note}}“",
+        "languageLabel": "Sprache",
+        "sameLanguage": "Gleiche Sprache"
       }
     }
   },

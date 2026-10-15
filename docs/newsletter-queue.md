@@ -4,6 +4,17 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11x — Songvoorstellen bij reels en opnieuw maken in een andere taal (improvement, 15-10-2026)
+
+**Voor wie:** iedereen die social posts plant.
+
+Bij een reel stelt de Social planning nu concrete nummers voor om in Instagram te zoeken. Bij "Opnieuw maken"
+kies je ook de taal van de nieuwe versie, bv. Engels voor internationale volgers.
+
+**Samen versturen met** 2026.11w.
+
+**i18n-keys.** `public.changelog.changes.social_songs_language` — 5 talen.
+
 ### 2026.11w — Social planning: reels en een herinnering voor wat je zelf post (feature, 15-10-2026)
 
 **Voor wie:** iedereen die social posts plant.

@@ -6989,7 +6989,9 @@
         "title": "Muziekvoorstel",
         "track": "Automatisch met: {{title}}",
         "mood": "Sfeer: {{mood}}",
-        "search": "Zoek in Instagram op: {{terms}}"
+        "search": "Zoek in Instagram op: {{terms}}",
+        "songs": "Nummers om te zoeken in Instagram:",
+        "checkInApp": "Niet elk nummer is beschikbaar voor elk account; kies er een die je in de app vindt."
       },
       "regenerate": {
         "button": "Opnieuw maken",
@@ -6999,7 +7001,9 @@
         "notePlaceholder": "Bijvoorbeeld: grappiger, een andere foto, meer over de prijs",
         "confirm": "Opnieuw maken",
         "pending": "Er wordt een nieuwe versie gemaakt.",
-        "pendingWithNote": "Er wordt een nieuwe versie gemaakt: \"{{note}}\""
+        "pendingWithNote": "Er wordt een nieuwe versie gemaakt: \"{{note}}\"",
+        "languageLabel": "Taal",
+        "sameLanguage": "Zelfde taal"
       }
     }
   },

@@ -15524,6 +15524,8 @@ export type Database = {
       }
       social_posts: {
         Row: {
+          language: string | null
+          regenerate_language: string | null
           approved_at: string | null
           approved_by: string | null
           connection_id: string | null
@@ -15557,6 +15559,8 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          language?: string | null
+          regenerate_language?: string | null
           approved_at?: string | null
           approved_by?: string | null
           connection_id?: string | null
@@ -15590,6 +15594,8 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          language?: string | null
+          regenerate_language?: string | null
           approved_at?: string | null
           approved_by?: string | null
           connection_id?: string | null

@@ -14,6 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -45,6 +47,7 @@ export default function SocialPlanner() {
   const [removing, setRemoving] = useState<PlannerPost | null>(null);
   const [regenerating, setRegenerating] = useState<PlannerPost | null>(null);
   const [regenNote, setRegenNote] = useState('');
+  const [regenLanguage, setRegenLanguage] = useState<string>('same');
 
   const hasConnection = useMemo(
     () => connections.some((c) => c.is_active && (c.platform === 'instagram' || c.platform === 'facebook')),
@@ -133,7 +136,11 @@ export default function SocialPlanner() {
   const confirmRegenerate = async () => {
     if (!regenerating) return;
     try {
-      await requestRegenerate.mutateAsync({ post: regenerating, note: regenNote });
+      await requestRegenerate.mutateAsync({
+        post: regenerating,
+        note: regenNote,
+        language: regenLanguage === 'same' ? null : regenLanguage,
+      });
       toast.success(t('admin.socialPlanner.toast.regenerateRequested'));
       setRegenerating(null);
       setRegenNote('');
@@ -212,7 +219,7 @@ export default function SocialPlanner() {
                     onRemove={() => setRemoving(post)}
                     onMarkPosted={() => handleMarkPosted(post)}
                     onChooseOwnMusic={() => handleOwnMusic(post)}
-                    onRegenerate={() => { setRegenerating(post); setRegenNote(''); }}
+                    onRegenerate={() => { setRegenerating(post); setRegenNote(''); setRegenLanguage('same'); }}
                   />
                 ))}
               </div>
@@ -281,6 +288,20 @@ export default function SocialPlanner() {
       >
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">{t('admin.socialPlanner.regenerate.body')}</p>
+          <div className="space-y-2">
+            <Label htmlFor="social-regen-language">{t('admin.socialPlanner.regenerate.languageLabel')}</Label>
+            <Select value={regenLanguage} onValueChange={setRegenLanguage}>
+              <SelectTrigger id="social-regen-language">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="same">{t('admin.socialPlanner.regenerate.sameLanguage')}</SelectItem>
+                {SUPPORTED_LANGUAGES.map((l) => (
+                  <SelectItem key={l.code} value={l.code}>{l.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="social-regen-note">{t('admin.socialPlanner.regenerate.noteLabel')}</Label>
             <Textarea

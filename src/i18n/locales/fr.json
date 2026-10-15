@@ -6738,7 +6738,9 @@
         "title": "Suggestion musicale",
         "track": "Automatique avec : {{title}}",
         "mood": "Ambiance : {{mood}}",
-        "search": "Cherchez sur Instagram : {{terms}}"
+        "search": "Cherchez sur Instagram : {{terms}}",
+        "songs": "Morceaux à chercher dans Instagram :",
+        "checkInApp": "Tous les morceaux ne sont pas disponibles pour chaque compte ; choisissez-en un que vous trouvez dans l'app."
       },
       "regenerate": {
         "button": "Refaire",
@@ -6748,7 +6750,9 @@
         "notePlaceholder": "Par exemple : plus drôle, une autre photo, davantage sur le prix",
         "confirm": "Refaire",
         "pending": "Une nouvelle version est en cours de création.",
-        "pendingWithNote": "Une nouvelle version est en cours de création : « {{note}} »"
+        "pendingWithNote": "Une nouvelle version est en cours de création : « {{note}} »",
+        "languageLabel": "Langue",
+        "sameLanguage": "Même langue"
       }
     }
   },

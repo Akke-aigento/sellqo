@@ -6975,7 +6975,9 @@
         "title": "Music suggestion",
         "track": "Automatic with: {{title}}",
         "mood": "Mood: {{mood}}",
-        "search": "Search Instagram for: {{terms}}"
+        "search": "Search Instagram for: {{terms}}",
+        "songs": "Songs to search for in Instagram:",
+        "checkInApp": "Not every song is available for every account; pick one you can find in the app."
       },
       "regenerate": {
         "button": "Make again",
@@ -6985,7 +6987,9 @@
         "notePlaceholder": "For example: funnier, a different photo, more about the price",
         "confirm": "Make again",
         "pending": "A new version is being made.",
-        "pendingWithNote": "A new version is being made: \"{{note}}\""
+        "pendingWithNote": "A new version is being made: \"{{note}}\"",
+        "languageLabel": "Language",
+        "sameLanguage": "Same language"
       }
     }
   },

@@ -23,7 +23,16 @@ export type PlannerStatus =
   | 'regenerate_requested';
 
 /** SOCIAL-3: muziekvoorstel bij een reel. Alle velden optioneel: de weektaak vult in wat past. */
+export interface SongSuggestion {
+  title: string;
+  artist?: string;
+  /** Waarom dit nummer past, of vanaf waar het moet starten. */
+  note?: string;
+}
+
 export interface MusicHint {
+  /** SOCIAL-3b: concrete nummers om in de Instagram-app te zoeken. */
+  songs?: SongSuggestion[];
   mood?: string;
   bpm?: number;
   search_terms?: string[];
@@ -48,6 +57,7 @@ export interface PlannerPost {
   music_hint: MusicHint | null;
   manual_reason: string | null;
   regenerate_note: string | null;
+  language: string | null;
 }
 
 /** SOCIAL-3: een reel kan enkel automatisch als er een versie met muziek is. */
@@ -89,7 +99,7 @@ export function useSocialPlanner() {
       const since = subDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 7).toISOString();
       const { data, error } = await supabase
         .from('social_posts')
-        .select('id, platform, post_text, image_urls, media_type, scheduled_for, posted_at, status, error_message, source, publish_attempts, video_url, video_silent_url, music_hint, manual_reason, regenerate_note')
+        .select('id, platform, post_text, image_urls, media_type, scheduled_for, posted_at, status, error_message, source, publish_attempts, video_url, video_silent_url, music_hint, manual_reason, regenerate_note, language')
         .eq('tenant_id', tenantId!)
         .or(`scheduled_for.gte.${since},status.in.(pending_approval,failed,manual,regenerate_requested)`)
         .order('scheduled_for', { ascending: true, nullsFirst: false })
@@ -199,13 +209,14 @@ export function useSocialPlanner() {
 
   /** SOCIAL-3: nieuwe versie vragen; de contenttaak pikt het verzoek op. */
   const requestRegenerate = useMutation({
-    mutationFn: async (input: { post: PlannerPost; note: string }) => {
+    mutationFn: async (input: { post: PlannerPost; note: string; language?: string | null }) => {
       const { error } = await supabase
         .from('social_posts')
         .update({
           status: 'regenerate_requested',
           regenerate_from: input.post.status,
           regenerate_note: input.note.trim() || null,
+          regenerate_language: input.language ?? null,
           regenerate_requested_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })

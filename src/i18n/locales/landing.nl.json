@@ -2034,6 +2034,10 @@
         "social_reels_reminders": {
           "title": "Social planning: reels en een herinnering voor wat je zelf post",
           "description": "Reels staan nu ook in je Social planning, met een videovoorbeeld en een muziekvoorstel. Je kiest per reel: automatisch laten posten in de versie met muziek, of zelf een nummer kiezen in de Instagram-app. Dan download je de video en kopieer je de caption met één tik. Voor alles wat je zelf post, zoals een story met een sticker of een reel met je eigen muziek, krijg je ongeveer een uur vooraf een melding."
+        },
+        "social_songs_language": {
+          "title": "Social planning: songvoorstellen bij reels en opnieuw maken in een andere taal",
+          "description": "Bij een reel krijg je nu concrete nummers voorgesteld om in de muziekzoeker van Instagram te zoeken, met de sfeer en het tempo erbij. En bij \"Opnieuw maken\" kies je ook de taal van de nieuwe versie, bijvoorbeeld Engels voor je internationale volgers. De taal van elke post staat als code naast het platform."
         }
       },
       "copyLink": "Kopieer link",

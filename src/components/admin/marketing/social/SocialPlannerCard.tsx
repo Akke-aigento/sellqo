@@ -135,7 +135,14 @@ export function SocialPlannerCard({
           <div className="flex items-center gap-2 min-w-0">
             <Icon className="h-4 w-4 shrink-0" />
             <div className="min-w-0">
-              <p className="text-sm font-medium truncate">{PLATFORM_NAME[post.platform] ?? post.platform}</p>
+              <p className="text-sm font-medium truncate">
+                {PLATFORM_NAME[post.platform] ?? post.platform}
+                {post.language && (
+                  <span className="ml-1.5 rounded border px-1 py-px text-[10px] font-semibold uppercase text-muted-foreground align-middle">
+                    {post.language}
+                  </span>
+                )}
+              </p>
               {when && (
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <Clock className="h-3 w-3" />
@@ -166,7 +173,7 @@ export function SocialPlannerCard({
           </div>
         )}
 
-        {isReel && hint && (hint.mood || hint.search_terms?.length || hint.tip || hint.track?.title) && (
+        {isReel && hint && (hint.songs?.length || hint.mood || hint.search_terms?.length || hint.tip || hint.track?.title) && (
           <div className="rounded-md border p-3 space-y-1 text-xs">
             <p className="font-medium flex items-center gap-1">
               <Music className="h-3.5 w-3.5" />
@@ -174,6 +181,21 @@ export function SocialPlannerCard({
             </p>
             {post.status !== 'manual' && hint.track?.title && (
               <p>{t('admin.socialPlanner.music.track', { title: hint.track.title })}</p>
+            )}
+            {post.status !== 'posted' && !!hint.songs?.length && (
+              <div>
+                <p>{t('admin.socialPlanner.music.songs')}</p>
+                <ul className="list-disc pl-4">
+                  {hint.songs.map((song, i) => (
+                    <li key={i}>
+                      <span className="font-medium">{song.title}</span>
+                      {song.artist ? ` · ${song.artist}` : ''}
+                      {song.note ? <span className="text-muted-foreground"> · {song.note}</span> : null}
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-muted-foreground">{t('admin.socialPlanner.music.checkInApp')}</p>
+              </div>
             )}
             {hint.mood && (
               <p>{t('admin.socialPlanner.music.mood', { mood: hint.mood })}{hint.bpm ? ` · ${hint.bpm} BPM` : ''}</p>

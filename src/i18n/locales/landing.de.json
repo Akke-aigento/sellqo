@@ -2034,6 +2034,10 @@
         "social_reels_reminders": {
           "title": "Social-Planung: Reels und eine Erinnerung für das, was Sie selbst posten",
           "description": "Reels erscheinen jetzt auch in Ihrer Social-Planung, mit Videovorschau und Musikvorschlag. Pro Reel wählen Sie: automatisch in der Version mit Musik posten lassen oder selbst einen Song in der Instagram-App auswählen. Dann laden Sie das Video herunter und kopieren die Bildunterschrift mit einem Tipp. Für alles, was Sie selbst posten, etwa eine Story mit Sticker oder ein Reel mit eigener Musik, erhalten Sie etwa eine Stunde vorher eine Benachrichtigung."
+        },
+        "social_songs_language": {
+          "title": "Social-Planung: Songvorschläge für Reels und Neuerstellung in einer anderen Sprache",
+          "description": "Für ein Reel erhalten Sie jetzt konkrete Songs, die Sie in der Musiksuche von Instagram suchen können, mit Stimmung und Tempo. Und bei „Neu erstellen\" wählen Sie auch die Sprache der neuen Version, zum Beispiel Englisch für Ihre internationalen Follower. Die Sprache jedes Beitrags steht als Kürzel neben der Plattform."
         }
       },
       "copyLink": "Link kopieren",

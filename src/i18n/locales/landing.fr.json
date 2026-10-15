@@ -2034,6 +2034,10 @@
         "social_reels_reminders": {
           "title": "Planification sociale : reels et rappel pour ce que vous publiez vous-même",
           "description": "Les reels apparaissent désormais aussi dans votre planification sociale, avec un aperçu vidéo et une suggestion musicale. Pour chaque reel, vous choisissez : publication automatique dans la version avec musique, ou choix d'un morceau vous-même dans l'app Instagram. Vous téléchargez alors la vidéo et copiez la légende d'un seul geste. Pour tout ce que vous publiez vous-même, comme une story avec un sticker ou un reel avec votre propre musique, vous recevez une notification environ une heure avant."
+        },
+        "social_songs_language": {
+          "title": "Planification sociale : suggestions de morceaux pour les reels et refaire dans une autre langue",
+          "description": "Pour un reel, vous recevez désormais des morceaux concrets à chercher dans la recherche musicale d'Instagram, avec l'ambiance et le tempo. Avec « Refaire », vous choisissez aussi la langue de la nouvelle version, par exemple l'anglais pour vos abonnés internationaux. La langue de chaque publication s'affiche sous forme de code à côté de la plateforme."
         }
       },
       "copyLink": "Copier le lien",

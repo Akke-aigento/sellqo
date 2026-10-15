@@ -1,3 +1,25 @@
+## SOCIAL-3b — Songvoorstellen bij reels en taal per post (2026.11x) — 15 oktober 2026
+
+**Waarom.** Akke: het muziekvoorstel moet concrete nummers noemen, geen sfeeromschrijving; en de taal van posts moet instelbaar zijn (Loveke is Belgisch, maar af en toe Engels voor internationale klanten). Keuze Akke: Engels **enkel op aanvraag** (geen standaardmix).
+
+**Recon:** `music_hint` is jsonb (geen schemawijziging nodig voor songs). Een actuele lijst (SocialPilot, 1-10-2026, "September 15 – 10 October 2026") bevestigt dat commerciële hits voor zakelijke accounts vaak niet beschikbaar zijn; songs moeten dus elke week uit een actuele bron komen, met de opmerking dat het in de app te controleren is.
+
+**Uitgevoerd:**
+- `supabase/migrations/20261015200000_social_3b_language.sql` (additief): `social_posts.language` en `regenerate_language` (check `^[a-z]{2}$`).
+- `useSocialPlanner`: `SongSuggestion`, `music_hint.songs`, veld `language`; `requestRegenerate` bewaart `regenerate_language`.
+- `SocialPlannerCard`: taalcode naast het platform; lijst "Nummers om te zoeken in Instagram" (titel · artiest · noot) met de opmerking dat niet elk nummer voor elk account beschikbaar is.
+- `SocialPlanner`: taalkeuze in "Opnieuw maken" (Zelfde taal + de talen uit `SUPPORTED_LANGUAGES`).
+- i18n 4 keys × 5 talen; changelog `social_songs_language` (2026.11x, improvement) × 5; helpartikel (`20261015200100_social_3b_doc_article.sql`); nieuwsbrief-item.
+- Loveke-repo (README, commit 0b5c00b): `language` altijd invullen, Engels enkel op aanvraag (caption én beeldtekst), 3 concrete songs per reel uit een bron van die week (WebSearch), voorkeur business-bruikbaar/original audio, nooit een verzonnen titel.
+
+**Security-keuzes:** geen policies geraakt; schrijven via de bestaande RLS.
+
+**Gedeelde-paden-waarschuwing:** n.v.t. (enkel social_posts en de planningspagina; geen edge functions gewijzigd, dus geen deploy).
+
+**Verificatie:** tsc 27 = baseline; build groen; eslint 0; i18n-pariteit 7861 × 5; harness 390/1280 px NL+UK: 0 px overloop, geen consolefouten, songlijst en taalcode leesbaar.
+
+**Bewust ongemoeid / Vervolg:** geen taalmix per brand (Akke koos "enkel op aanvraag"); kan later als instelling bij de planning.
+
 ## SOCIAL-3 — Reels, muziekkeuze, herinneringen "zelf posten" en "Opnieuw maken" (2026.11w) — 15 oktober 2026
 
 **Waarom.** Akke wil reels (test-reel "Afscheid nemen in Kyiv" goedgekeurd), per reel kiezen tussen automatisch met bibliotheekmuziek of zelf een nummer in de Instagram-app, een herinnering vanuit SellQo zelf (i.p.v. losse Claude-taken per dag), en losse posts uit een goedgekeurde week kunnen laten herdoen.
