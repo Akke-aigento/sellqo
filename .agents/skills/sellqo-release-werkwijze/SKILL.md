@@ -147,10 +147,34 @@ Regels voor een blogartikel:
   `tips`, `bedrijfsnieuws`), `meta_title`, `meta_description` (SEO),
   `cover_image_url`. `reading_minutes` wordt bij publiceren automatisch berekend
   als het leeg is.
-- **Plan-gebondenheid** altijd vermelden (Free/Starter/Pro/Enterprise) — zelfde
-  eerlijkheidsregel als hieronder.
-- **Idempotent inschieten**: `ON CONFLICT (slug) DO UPDATE` zodat een herwerkt
-  concept dezelfde rij hergebruikt.
+- **Plan-gebondenheid** altijd vermelden — zelfde eerlijkheidsregel als
+  hieronder. Plannen en vlaggen komen uit de live `pricing_plans` (er zijn er
+  meer dan vier: o.a. Horeca en Events Flex), nooit uit het geheugen of een
+  migratie. Check drie lagen: een gate in de functie/component zelf, de
+  `featureKey` van het menu-item in `sidebarConfig.ts` (Printful heeft zelf geen
+  plan-check maar hangt via SellQo Connect aan `apiAccess`), en modules die de
+  tenant zelf aanzet (Events).
+- **Aanspreekvorm per taal**: Duits altijd `du` (dein/dir, imperatief "Geh zu",
+  "Klicke auf"); Oekraïens de beleefde `ви`-vorm zoals de bestaande blog.
+  Vetgedrukte UI-labels volgen letterlijk de app-i18n van die taal.
+- **Idempotent inschieten**: `ON CONFLICT (slug) DO UPDATE ... WHERE
+  blog_posts.status='draft'` zodat een herwerkt concept dezelfde rij hergebruikt
+  en een gepubliceerde post nooit stil overschreven wordt. Via `query_database`
+  met de JSON in `$bj$…$bj$::jsonb` (±25 KB per aanroep gaat), daarna md5 per
+  veld vergelijken met de bronbestanden.
+- **Cover**: 16:9 (de blog toont `aspect-[16/9]`). Genereren via `nano-studio`
+  in image-mode met een bestaande cover uit `marketing-assets/blog/` als
+  stijlreferentie (`model` nano-banana-pro, `aspect_ratio` 16:9, prompt zonder
+  tekst/logo's). Authorization = `email_queue_service_role_key` uit de vault (een
+  JWT met role service_role); `cron_service_role_key` is een `sb_secret_` en wordt
+  door nano-studio met 403 geweigerd. Het resultaat landt publiek in `ai-images`.
+
+**Backlog-check (elke release-check én wekelijks):** vergelijk de nieuwste
+`published_at`/`created_at` in `blog_posts` met de entries in
+`PublicChangelog.tsx`. Elke tenant-merkbare `feature`/`improvement` sindsdien
+zonder artikel = achterstand. Bundel per onderwerp (geen artikel per regel) en
+zet ze als draft klaar. Op 15-10-2026 bleek spoor 4 twee maanden stil
+overgeslagen (2026.09g t/m 2026.11o, 12 artikels), ondanks "proactief".
 
 De nieuwsbrief-teaser (spoor 3) linkt naar het GEPUBLICEERDE artikel. Volgorde
 bij een release-bundel: eerst artikelen schrijven + laten goedkeuren +
