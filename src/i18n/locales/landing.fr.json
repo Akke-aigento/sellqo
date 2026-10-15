@@ -1945,7 +1945,7 @@
         },
         "customer_contact_email": {
           "title": "Définissez vous-même votre adresse de contact client",
-          "description": "Dans Paramètres → Boîte de réception e-mail, vous choisissez désormais l'adresse e-mail que vos clients voient dans les confirmations de commande, les factures, les devis et les newsletters. Lorsqu'un client répond à l'un de ces e-mails, la réponse arrive à cette adresse. Si vous la laissez vide, nous utilisons l'adresse du propriétaire. L'adresse que vous définissez pour vos propres notifications n'est plus visible par les clients."
+          "description": "Dans Paramètres → Boîte de réception e-mail, vous choisissez désormais l'adresse e-mail que vos clients voient dans les confirmations de commande, les factures, les devis et les newsletters. Lorsqu'un client répond à l'un de ces e-mails, la réponse arrive à cette adresse. Si vous la laissez vide, nous utilisons l'adresse de la boîte de réception SellQo de votre boutique (votreboutique@mail.sellqo.app), afin que les réponses arrivent dans votre boîte de réception dans SellQo. L'adresse que vous définissez pour vos propres notifications n'est plus visible par les clients."
         },
         "customer_replies_inbox": {
           "title": "Les réponses des clients arrivent dans votre boîte SellQo",
@@ -2002,6 +2002,10 @@
         "ticket_mail_after_manual_payment": {
           "title": "E-mail des billets aussi après un paiement par virement",
           "description": "Quand un client paie ses billets ou jetons par virement, l'e-mail des billets part désormais automatiquement dès que vous marquez la commande comme payée, y compris via le rapprochement bancaire ou une action groupée. Chaque commande avec billets indique aussi quand l'e-mail est parti, et Renvoyer les billets l'envoie à nouveau."
+        },
+        "translated_labels_and_event_menu": {
+          "title": "Billets combinés et Jetons dans le menu, plus de textes dans votre langue",
+          "description": "Les billets combinés et les jetons figurent désormais aussi dans le menu sous Événements, à côté de Tous les événements, Salles et Enregistrement des billets. Les textes de l'intégration Printful, du bloc OSS dans les paramètres de TVA, du statut Odoo sur les factures et notes de crédit, ainsi que les noms de vos notifications s'affichent maintenant dans la langue choisie dans SellQo."
         }
       },
       "copyLink": "Copier le lien",

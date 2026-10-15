@@ -1945,7 +1945,7 @@
         },
         "customer_contact_email": {
           "title": "Stel zelf je klantcontactadres in",
-          "description": "Onder Instellingen → Email Inbox kies je voortaan zelf het e-mailadres dat je klanten zien in orderbevestigingen, facturen, offertes en nieuwsbrieven. Antwoordt een klant op zo’n mail, dan komt dat antwoord op dit adres binnen. Laat je het leeg, dan gebruiken we het adres van de eigenaar. Het adres dat je instelt voor je eigen meldingen, zien klanten niet meer."
+          "description": "Onder Instellingen → Email Inbox kies je voortaan zelf het e-mailadres dat je klanten zien in orderbevestigingen, facturen, offertes en nieuwsbrieven. Antwoordt een klant op zo’n mail, dan komt dat antwoord op dit adres binnen. Laat je het leeg, dan gebruiken we het SellQo-inboxadres van je winkel (jouwwinkel@mail.sellqo.app), zodat antwoorden in je inbox in SellQo binnenkomen. Het adres dat je instelt voor je eigen meldingen, zien klanten niet meer."
         },
         "customer_replies_inbox": {
           "title": "Antwoorden van klanten komen in je SellQo-inbox",
@@ -2002,6 +2002,10 @@
         "ticket_mail_after_manual_payment": {
           "title": "Ticketmail ook na betaling per overschrijving",
           "description": "Betaalt een klant zijn tickets of munten per overschrijving, dan gaat de ticketmail nu automatisch uit zodra je de bestelling op betaald zet, ook via bankafstemming of een bulkactie. Bij elke bestelling met tickets zie je ook wanneer de mail vertrok, en met Tickets opnieuw mailen stuur je hem nog eens."
+        },
+        "translated_labels_and_event_menu": {
+          "title": "Combitickets en Munten in het menu, meer teksten in je eigen taal",
+          "description": "Combitickets en Munten staan nu ook in het menu onder Events, naast Alle events, Zalen en Check-in. De teksten van de Printful-koppeling, het OSS-blok bij de btw-instellingen, de Odoo-status bij facturen en creditnota's, en de namen van je meldingen zie je nu in de taal die je in SellQo gekozen hebt."
         }
       },
       "copyLink": "Kopieer link",

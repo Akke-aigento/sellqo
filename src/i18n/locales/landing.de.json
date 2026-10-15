@@ -1945,7 +1945,7 @@
         },
         "customer_contact_email": {
           "title": "Legen Sie Ihre Kundenkontaktadresse selbst fest",
-          "description": "Unter Einstellungen → E-Mail-Posteingang wählen Sie jetzt selbst die E-Mail-Adresse, die Ihre Kunden in Bestellbestätigungen, Rechnungen, Angeboten und Newslettern sehen. Antwortet ein Kunde auf eine solche E-Mail, kommt die Antwort an dieser Adresse an. Lassen Sie das Feld leer, verwenden wir die Adresse des Inhabers. Die Adresse für Ihre eigenen Benachrichtigungen sehen Kunden nicht mehr."
+          "description": "Unter Einstellungen → E-Mail-Posteingang wählen Sie jetzt selbst die E-Mail-Adresse, die Ihre Kunden in Bestellbestätigungen, Rechnungen, Angeboten und Newslettern sehen. Antwortet ein Kunde auf eine solche E-Mail, kommt die Antwort an dieser Adresse an. Lassen Sie das Feld leer, verwenden wir die SellQo-Posteingangsadresse Ihres Shops (ihrshop@mail.sellqo.app), sodass Antworten in Ihrem Posteingang in SellQo ankommen. Die Adresse für Ihre eigenen Benachrichtigungen sehen Kunden nicht mehr."
         },
         "customer_replies_inbox": {
           "title": "Antworten von Kunden landen in Ihrem SellQo-Posteingang",
@@ -2002,6 +2002,10 @@
         "ticket_mail_after_manual_payment": {
           "title": "Ticket-E-Mail auch nach Zahlung per Überweisung",
           "description": "Bezahlt ein Kunde Tickets oder Marken per Überweisung, geht die Ticket-E-Mail jetzt automatisch raus, sobald Sie die Bestellung als bezahlt markieren, auch über den Bankabgleich oder eine Sammelaktion. Bei jeder Bestellung mit Tickets sehen Sie außerdem, wann die E-Mail rausging, und mit Tickets erneut mailen senden Sie sie noch einmal."
+        },
+        "translated_labels_and_event_menu": {
+          "title": "Kombitickets und Marken im Menü, mehr Texte in Ihrer Sprache",
+          "description": "Kombitickets und Marken stehen jetzt auch im Menü unter Events, neben Alle Events, Säle und Ticket-Check-in. Die Texte der Printful-Verknüpfung, des OSS-Bereichs in den Mehrwertsteuer-Einstellungen, der Odoo-Status bei Rechnungen und Gutschriften sowie die Namen Ihrer Benachrichtigungen erscheinen jetzt in der Sprache, die Sie in SellQo gewählt haben."
         }
       },
       "copyLink": "Link kopieren",

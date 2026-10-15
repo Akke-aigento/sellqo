@@ -1945,7 +1945,7 @@
         },
         "customer_contact_email": {
           "title": "Set your own customer contact address",
-          "description": "Under Settings → Email inbox you now choose the email address your customers see in order confirmations, invoices, quotes and newsletters. When a customer replies to one of those emails, the reply arrives at this address. If you leave it empty, we use the owner's address. The address you set for your own notifications is no longer shown to customers."
+          "description": "Under Settings → Email inbox you now choose the email address your customers see in order confirmations, invoices, quotes and newsletters. When a customer replies to one of those emails, the reply arrives at this address. If you leave it empty, we use your store's SellQo inbox address (yourstore@mail.sellqo.app), so replies arrive in your inbox in SellQo. The address you set for your own notifications is no longer shown to customers."
         },
         "customer_replies_inbox": {
           "title": "Customer replies arrive in your SellQo inbox",
@@ -2002,6 +2002,10 @@
         "ticket_mail_after_manual_payment": {
           "title": "Ticket email also after bank transfer payments",
           "description": "When a customer pays for tickets or tokens by bank transfer, the ticket email now goes out automatically as soon as you mark the order as paid, including via bank reconciliation or a bulk action. Every order with tickets also shows when the email was sent, and Email tickets again sends it once more."
+        },
+        "translated_labels_and_event_menu": {
+          "title": "Combo tickets and Tokens in the menu, more text in your own language",
+          "description": "Combo tickets and Tokens are now also in the menu under Events, next to All events, Venues and Ticket check-in. The texts of the Printful integration, the OSS section in the VAT settings, the Odoo status on invoices and credit notes, and the names of your notifications now appear in the language you chose in SellQo."
         }
       },
       "copyLink": "Copy link",

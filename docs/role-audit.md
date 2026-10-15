@@ -1,3 +1,39 @@
+## BLOG-FIX-1 — Combitickets/Munten in het menu, Printful/OSS/Odoo/meldingen naar i18n — 15 oktober 2026
+
+**Root cause:**
+- Combitickets (`/admin/events/bundles`) en Munten (`/admin/events/tokens`) bestonden enkel als knop op het eventsoverzicht (`EventDashboard.tsx:168-169`); in `sidebarConfig.ts` stonden onder Events alleen Alle events / Zalen / Check-in. Wie niet via het overzicht kwam, vond ze niet.
+- De Printful-schermen (kaart, instellingen, import, variant-koppeling, orderkaart + hun hooks), het OSS-blok in `TaxSettings.tsx`, `OdooSyncBadge` ("Odoo mislukt" + tooltip) en de meldinglabels in `src/types/notification.ts` (`NOTIFICATION_CONFIG`: 13 categorieën, 108 types, o.a. "Contactformulier") waren hardcoded Nederlands. Door `fallbackLng: 'nl'` zag elke niet-NL gebruiker daar NL.
+- Printful-schakelaar "Bestellingen automatisch doorsturen" schreef `tenant_printful_settings.auto_forward_orders`, maar geen enkele lezer: `rg auto_forward_orders supabase/functions src` gaf alleen de UI, het hook-type en de aanmaak-migratie (`20260809123911_…`). Dode affordance. `auto_confirm` wordt wél gelezen (`forward-printful-order/index.ts:151`), dus die bleef.
+- De Printful-teksten "doorsturen volgt in een volgende release" en "Actief vanaf de order-forwarding release" waren achterhaald: `forward-printful-order` (manueel doorsturen via de orderkaart), `printful-webhook` (tracking, geregistreerd in `save-printful-credentials`) en `preview-/apply-printful-import` bestaan en worden vanuit de UI aangeroepen.
+- Changelog `customer_contact_email` beloofde een terugval op het adres van de eigenaar; `resolveCustomerContactEmail` (`_shared/customerContact.ts:42`) valt terug op `<prefix>@mail.sellqo.app` (en pas daarna, gelogd, op info@sellqo.app). `owner_email` komt er bewust niet in voor.
+
+**Uitgevoerd:**
+- `sidebarConfig.ts`: children `event-bundles` en `event-tokens` onder `event-dashboard`, zelfde `allowedRoles` als de zusteritems; de module-gating (`featureKey: 'events'`) zit op de ouder, net als bij Zalen/Check-in. Nav-labels `navigation.items.event_bundles/_tokens` in nl/en/fr/de/uk (zelfde woorden als de paginatitels `events.bundles.title`/`events.tokens.title`). Mobiele balk (`AdminMobileBottomNav`) toont alleen dashboard/orders/products/inbox via `findNavItems` — niets te doen; `useNavItemVisibility` filtert children op dezelfde manier.
+- Printful: `PrintfulPodCard`, `PrintfulPodSettings`, `PrintfulImportDialog`, `PrintfulVariantMapping`, `PrintfulOrderCard`, de Printful-dialoog in `Marketplaces.tsx` en de toasts/foutteksten in `usePrintfulConnection`, `usePrintfulImport`, `usePrintfulVariantMappings`, `usePrintfulOrderLink`, `useTenantPrintfulSettings` → `admin.printful.*` (Trans voor `<strong>`/link). date-fns-locale via `useDateFnsLocale`. Schakelaar auto_forward_orders weg uit de UI (kolom blijft, hook-type ongemoeid). Kaarttekst beschrijft nu wat er werkt; auto_confirm-hint legt uit wat aan/uit doet in plaats van "volgende release".
+- OSS-blok in `TaxSettings.tsx` → `tax.oss.*` (titel, tooltip, toggle, registratiedatum/-nummer, alerts, omzettracker, tarieventabel). Landnamen via `localizedCountryName(code, i18n.language)`. Bedragen blijven `toLocaleString('nl-NL')` (I18N-4-regel). NL-alerttekst rechtgezet: de factuur zegt niet letterlijk "OSS-regeling toegepast" maar de OSS-zin uit `vatInvoiceTexts.ts` in de klanttaal.
+- Odoo/Peppol-statuslabels → `admin.odooSync.*`: `OdooSyncBadge` (alle drie de toestanden + tooltips), Peppol-badges in `Invoices.tsx` (handmatig/verzonden/archief) en `CreditNotesTable.tsx` (pending/mislukt), Peppol-aandachtkaart in `OdooAccountingSettings.tsx`.
+- Meldingen: `label`/`description` weg uit `NOTIFICATION_CONFIG` en de interfaces; tekst komt uit `settings.notifications.categories.<cat>` en `settings.notifications.types.<cat>.<type>.{label,description}` via `src/lib/notificationLabels.ts`. Aangepast: `NotificationSettings`, `MyNotificationSettings`, `pages/admin/Notifications.tsx` (die pagina meteen volledig naar `notificationsPage.*`, incl. datum-locale). `check-notification-sources.mjs` en de notificationDefaults-test parsen alleen `category`/`type` en blijven werken.
+- Changelog: `customer_contact_email` in alle vijf landing-bestanden rechtgezet; nieuwe entry `2026.11p` / `translated_labels_and_event_menu` (improvement).
+
+**Security-keuzes:** gating geraakt, maar niet versoepeld. De twee nieuwe menu-items erven exact de gating van Zalen/Check-in (`allowedRoles` platform_admin/tenant_admin/staff + `featureKey 'events'` op de ouder); de routes zelf hebben ongewijzigd `RouteGuard requireRole ['tenant_admin','staff']` + `EventsModuleGate` (`App.tsx:315-316`). Geen RLS, policies, grants of functies aangeraakt. auto_forward_orders: alleen UI weg, kolom en RLS ongemoeid.
+
+**Gedeelde-paden-waarschuwing:** geen edge functions, `_shared/` of gedeelde tabellen gewijzigd. `NOTIFICATION_CONFIG` is gedeeld met `check-notification-sources.mjs`, `_shared/notificationDefaults.ts` (pariteitstest) en `create-notification`; alleen de labelvelden zijn weg, categorie/type/defaults byte-gelijk. Custom frontends: niets van dit raakt hen (admin-only).
+
+**Verificatie (lokaal, 15-10):**
+- `npx tsc --noEmit -p tsconfig.app.json` → exit 0, 0 fouten. Let op: met `npm install` kwam supabase-js 2.117.3 binnen (bun.lock pint 2.90.1) en dan gaf tsc 27 fouten in niet-aangeraakte bestanden (`RejectExcessProperties` op `.update()`); met de lock-versies 2.90.1 is het 0.
+- `node scripts/verify-lint-baseline.mjs` → 1482 problemen, gelijk aan de baseline, nultolerantieregels groen.
+- `node scripts/i18n-parity.mjs` → volledige pariteit (nl/en/fr/de/uk, 7524 keys app + landing). `check-i18n-used-keys.mjs` → alle keys bestaan.
+- `check-mail-addresses`, `check-customer-messages-writes`, `check-notification-sources`, `check-dead-buttons`, `verify-capacitor-sync`, `verify-skills-sync` → exit 0.
+- vitest `notificationDefaults/Resources/Routes/Sources` → 289/289 groen.
+- esbuild-parse van elk aangeraakt .ts/.tsx → geen fouten. `npm run build` → exit 0.
+- Niet lokaal gedraaid: de deno-stappen (geen edge functions gewijzigd). Niet in de browser geklikt.
+
+**Bewust ongemoeid / Vervolg:**
+- De kaart "BTW-beslisboom" en de andere kaarten in `TaxSettings.tsx` (Standaard tarief, B2B, VIES, …) zijn nog hardcoded NL — buiten scope (alleen het OSS-blok gevraagd).
+- `OdooAccountingSettings.tsx`/`OdooAccountingCard.tsx` hebben buiten de Peppol-aandachtkaart nog NL-tekst (bv. "Laatste test mislukt", "Zakelijke (B2B) klanten worden altijd individueel gesynct").
+- Kolom `auto_forward_orders` blijft staan; automatisch doorsturen bestaat niet. Als dat ooit gebouwd wordt: schakelaar terugzetten mét backend.
+- Niet gedaan: newsletter-wachtrij, blog-concept, doc_articles (DOCS-1) — niet gevraagd in deze batch. Niet gepusht.
+
 ## Fonske readiness 24/10 — check op 14 oktober 2026
 
 - **Event 24/10** (7ae8364e): scheduled, capaciteit 40, minimum 15. Early bird €19 tot 23/10 22:00, daarna €25. 0 verkocht. De API geeft dit correct terug; fonskecrawl.com en /crawls geven 200 en tonen de datum.
