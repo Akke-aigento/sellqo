@@ -41,6 +41,9 @@ export default function TicketCheckin() {
   useDoorAppShell();
 
   const [selectedEvent, setSelectedEvent] = useState<EventOption | null>(null);
+  // EVENT-SCAN-2 — de scanner opent automatisch (het ticket wijst het event aan);
+  // een event kiezen blijft bestaan voor nascannen, testen of streng scheiden.
+  const [mode, setMode] = useState<'auto' | 'pick'>('auto');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // host = tenant_admin voor deze tenant OF platform_admin. staff = crew.
@@ -125,6 +128,7 @@ export default function TicketCheckin() {
       toast.warning(t('events.checkin.preselectCancelled', 'Dit event is geannuleerd, scannen heeft geen zin.'));
     } else {
       setSelectedEvent(preselectEvent);
+      setMode('pick');
     }
 
     // Param opruimen zodat een handmatige deselectie niet meteen weer
@@ -135,14 +139,14 @@ export default function TicketCheckin() {
   }, [wantedEventId, preselectEvent, searchParams, setSearchParams, t]);
   // EVENT-SCAN-1: zelfde schermvullende scanner als de crew-scanlink (SellQo Deur),
   // met de JWT van de ingelogde gebruiker en het bewust gekozen event.
+  const call = async <T,>(fn: string, body: Record<string, unknown>): Promise<T> => {
+    const { data, error } = await supabase.functions.invoke(fn, { body });
+    if (error) throw error;
+    return data as T;
+  };
   const adapter = useMemo<DoorAdapter | null>(() => {
     if (!selectedEvent) return null;
     const eventId = selectedEvent.id;
-    const call = async <T,>(fn: string, body: Record<string, unknown>): Promise<T> => {
-      const { data, error } = await supabase.functions.invoke(fn, { body });
-      if (error) throw error;
-      return data as T;
-    };
     return {
       scan: (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, event_detail_id: eventId, action: 'checkin' }),
       undo: isHost ? (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, event_detail_id: eventId, action: 'undo' }) : undefined,
@@ -151,7 +155,26 @@ export default function TicketCheckin() {
       search: (q) => call<{ results: DoorSearchHit[] }>('scanner-door', { action: 'search', q, event_detail_id: eventId })
         .then((r) => r.results ?? []),
     };
+     
   }, [selectedEvent, isHost]);
+
+  // EVENT-SCAN-2 — automatische stand: geen event meegeven; het ticket beslist,
+  // het scanvenster bewaakt, en "Toch inchecken" (host) negeert het venster.
+  const autoAdapter = useMemo<DoorAdapter | null>(() => {
+    if (!currentTenant) return null;
+    const tenantId = currentTenant.id;
+    return {
+      scan: (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, auto: true, tenant_id: tenantId, action: 'checkin' }),
+      forceScan: isHost ? (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, auto: true, tenant_id: tenantId, action: 'checkin', force_window: true }) : undefined,
+      undo: isHost ? (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, auto: true, tenant_id: tenantId, action: 'undo' }) : undefined,
+      stats: () => call<{ sold: number; inside: number }>('scanner-door', { action: 'stats', auto: true, tenant_id: tenantId })
+        .then((r) => ({ sold: r.sold, inside: r.inside })),
+      search: (q) => call<{ results: DoorSearchHit[] }>('scanner-door', { action: 'search', q, auto: true, tenant_id: tenantId })
+        .then((r) => r.results ?? []),
+    };
+     
+  }, [currentTenant, isHost]);
+
 
   // SCAN-APP-1 — de actieve scanlink van dit event, voor "als eigen app op je beginscherm".
   const { data: appToken } = useQuery({
@@ -172,6 +195,39 @@ export default function TicketCheckin() {
     enabled: !!currentTenant && !!selectedEvent,
   });
 
+  // EVENT-SCAN-2 — de vaste deurlink van de winkel (voor "als eigen app").
+  const { data: doorLinkToken } = useQuery({
+    queryKey: ['door-link', currentTenant?.id],
+    queryFn: async (): Promise<string | null> => {
+      if (!currentTenant) return null;
+      const { data } = await (supabase as unknown as SupabaseClient)
+        .from('event_scanner_access')
+        .select('access_token, expires_at')
+        .eq('tenant_id', currentTenant.id)
+        .is('event_detail_id', null)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true });
+      const live = ((data ?? []) as { access_token: string; expires_at: string | null }[])
+        .find((r) => !r.expires_at || new Date(r.expires_at).getTime() > Date.now());
+      return live?.access_token ?? null;
+    },
+    enabled: !!currentTenant,
+  });
+
+  // Automatische stand: meteen scannen, het ticket wijst het event aan.
+  if (mode === 'auto' && !selectedEvent && autoAdapter) {
+    return (
+      <DoorScanner
+        title={currentTenant?.name ?? 'SellQo'}
+        subtitle={t('door.auto_subtitle')}
+        adapter={autoAdapter}
+        onBack={() => setMode('pick')}
+        backLabel={t('door.pick_event')}
+        appUrl={doorLinkToken ? `/scan/${doorLinkToken}` : undefined}
+      />
+    );
+  }
+
   // --- Event-keuze ---
   if (!selectedEvent) {
     return (
@@ -183,6 +239,13 @@ export default function TicketCheckin() {
         <p className="text-sm text-muted-foreground">
           {t('door.pick_text')}
         </p>
+        <button
+          onClick={() => { setSelectedEvent(null); setMode('auto'); }}
+          className="w-full text-left rounded-lg border-2 border-primary/50 bg-card p-4 active:scale-[0.99] transition-transform"
+        >
+          <p className="font-medium">{t('door.auto_card_title')}</p>
+          <p className="text-sm text-muted-foreground">{t('door.auto_card_text')}</p>
+        </button>
         {eventsLoading && <p className="text-sm text-muted-foreground">{t('door.loading_events')}</p>}
         {!eventsLoading && events.length === 0 && (
           <Card><CardContent className="p-4 text-sm text-muted-foreground">

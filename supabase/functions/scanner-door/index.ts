@@ -11,8 +11,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { loadScanWindow, resolveDoor } from "../_shared/doorWindow.ts";
 
-const VERSION = "EVENT-SCAN-1";
+const VERSION = "EVENT-SCAN-2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-scanner-token",
@@ -20,6 +21,15 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 const SCANNER_TOKEN_RE = /^[a-f0-9]{64}$/;
+
+/** EVENT-SCAN-2 — de events waar deze deur nu voor telt: venster open, anders
+ *  het eerstvolgende (zodat de teller vóór de deuren opengaan al iets toont). */
+async function doorEventIds(admin: { from(table: string): unknown }, tenantId: string): Promise<string[]> {
+  const settings = await loadScanWindow(admin, tenantId);
+  const door = await resolveDoor(admin, tenantId, settings);
+  if (door.live.length > 0) return door.live.map((e) => e.id);
+  return door.next ? [door.next.id] : [];
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -34,7 +44,9 @@ serve(async (req) => {
     const scannerToken = String(req.headers.get("x-scanner-token") ?? body.scanner_token ?? "").trim();
 
     let tenantId: string;
-    let eventId: string;
+    // EVENT-SCAN-2 — meerdere event-ids: een vaste deurlink of de automatische
+    // stand telt en zoekt over alle events waarvan het venster nu open staat.
+    let eventIds: string[];
     if (scannerToken) {
       if (!SCANNER_TOKEN_RE.test(scannerToken)) return json({ success: false, error: "invalid scanner token" }, 401);
       const { data: row } = await admin.from("event_scanner_access")
@@ -44,20 +56,27 @@ serve(async (req) => {
         return json({ success: false, error: "invalid scanner token" }, 401);
       }
       tenantId = row.tenant_id as string;
-      eventId = row.event_detail_id as string;
+      eventIds = row.event_detail_id ? [row.event_detail_id as string] : await doorEventIds(admin, tenantId);
+    } else if (body.auto === true && body.tenant_id) {
+      tenantId = String(body.tenant_id).trim();
+      const auth = await authenticateRequest(req, tenantId);
+      requireRole(auth, tenantId, ["tenant_admin", "staff"]);
+      eventIds = await doorEventIds(admin, tenantId);
     } else {
-      eventId = String(body.event_detail_id ?? "").trim();
+      const eventId = String(body.event_detail_id ?? "").trim();
       if (!eventId) return json({ success: false, error: "event_detail_id required" }, 400);
       const { data: ev } = await admin.from("event_details").select("tenant_id").eq("id", eventId).maybeSingle();
       if (!ev) return json({ success: false, error: "event not found" }, 404);
       tenantId = ev.tenant_id as string;
       const auth = await authenticateRequest(req, tenantId);
       requireRole(auth, tenantId, ["tenant_admin", "staff"]);
+      eventIds = [eventId];
     }
+    if (eventIds.length === 0) return json({ success: true, sold: 0, inside: 0, results: [] });
 
     if (action === "stats") {
       const base = () => admin.from("ticket_instances").select("id", { count: "exact", head: true })
-        .eq("tenant_id", tenantId).eq("event_detail_id", eventId);
+        .eq("tenant_id", tenantId).in("event_detail_id", eventIds);
       const [{ count: sold }, { count: inside }] = await Promise.all([
         base().in("status", ["valid", "checked_in"]),
         base().eq("status", "checked_in"),
@@ -73,13 +92,13 @@ serve(async (req) => {
     // Bestelnummers die matchen (binnen deze tenant), dan tickets op naam/e-mail of die orders.
     const { data: orders } = await admin.from("orders").select("id")
       .eq("tenant_id", tenantId).ilike("order_number", like).limit(20);
-    const orderIds = (orders ?? []).map((o) => o.id as string);
+    const orderIds = ((orders ?? []) as { id: string }[]).map((o) => o.id);
     const filters = [`attendee_name.ilike.${like}`, `attendee_email.ilike.${like}`];
     if (orderIds.length > 0) filters.push(`order_id.in.(${orderIds.join(",")})`);
 
     const { data: tickets, error } = await admin.from("ticket_instances")
       .select("qr_token, attendee_name, seq, status, checked_in_at, orders(order_number), products(name)")
-      .eq("tenant_id", tenantId).eq("event_detail_id", eventId)
+      .eq("tenant_id", tenantId).in("event_detail_id", eventIds)
       .or(filters.join(","))
       .order("attendee_name", { ascending: true })
       .limit(15);
@@ -89,7 +108,7 @@ serve(async (req) => {
     }
     return json({
       success: true,
-      results: (tickets ?? []).map((t) => ({
+      results: ((tickets ?? []) as Record<string, unknown>[]).map((t) => ({
         qr_token: t.qr_token,
         attendee: t.attendee_name ?? null,
         seq: t.seq ?? null,

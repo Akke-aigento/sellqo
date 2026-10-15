@@ -24,6 +24,8 @@ export interface DoorScanResult {
   /** ZAAL-3: stoel, alleen bij een datum met zaalplan. */
   seat?: string | null;
   expected_event?: { date: string | null; start_time: string | null; name: string | null };
+  /** EVENT-SCAN-2 — geldig ticket, maar buiten het scanvenster; host mag forceren. */
+  can_force?: boolean;
 }
 
 export interface DoorSearchHit {
@@ -38,6 +40,8 @@ export interface DoorSearchHit {
 
 export interface DoorAdapter {
   scan: (qrToken: string) => Promise<DoorScanResult>;
+  /** EVENT-SCAN-2 — zelfde scan, maar het scanvenster negerend ("Toch inchecken"). */
+  forceScan?: (qrToken: string) => Promise<DoorScanResult>;
   stats: () => Promise<{ sold: number; inside: number }>;
   search: (q: string) => Promise<DoorSearchHit[]>;
   /** Alleen voor de host (admin): een check-in terugdraaien. */
@@ -53,7 +57,7 @@ const RESULT_MS = 1700;
 const SOUND_KEY = 'sellqo.door.sound';
 
 const toneOf = (r?: string): DoorTone =>
-  r === 'ok' || r === 'undone' ? 'ok' : r === 'already' || r === 'reentry_blocked' || r === 'wrong_event' ? 'warn' : 'error';
+  r === 'ok' || r === 'undone' ? 'ok' : r === 'already' || r === 'reentry_blocked' || r === 'wrong_event' || r === 'outside_window' ? 'warn' : 'error';
 
 const hhmm = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
@@ -112,7 +116,9 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
     setResult(res);
     doorFeedback(res.success ? toneOf(res.result) : 'error', soundRef.current);
     if (resultTimer.current) window.clearTimeout(resultTimer.current);
-    resultTimer.current = window.setTimeout(() => setResult(null), RESULT_MS);
+    // EVENT-SCAN-2 — buiten het venster blijft de kaart staan: er valt te beslissen.
+    const ms = res.result === 'outside_window' ? 8000 : RESULT_MS;
+    resultTimer.current = window.setTimeout(() => setResult(null), ms);
     if (res.result) {
       setRecent((prev) => [{ id: `${token}-${Date.now()}`, token, result: res.result!, attendee: res.attendee ?? null, seq: res.seq ?? null, at: Date.now() }, ...prev].slice(0, 6));
     }
@@ -235,6 +241,17 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
     finally { window.setTimeout(() => { busyRef.current = false; }, 700); }
   };
 
+  // EVENT-SCAN-2 — "Toch inchecken": zelfde token, venster genegeerd. Host beslist.
+  const forceCheckin = async () => {
+    const token = lastRef.current?.token;
+    if (!token || !adapter.forceScan || busyRef.current) return;
+    busyRef.current = true;
+    setResult(null);
+    try { showResult(await adapter.forceScan(token), token); }
+    catch (e) { showResult({ success: false, error: e instanceof Error ? e.message : String(e) }, token); }
+    finally { window.setTimeout(() => { busyRef.current = false; }, 700); }
+  };
+
   const undo = async (r: Recent) => {
     if (!adapter.undo) return;
     try {
@@ -259,6 +276,7 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
       case 'already': return k('result.already');
       case 'reentry_blocked': return k('result.reentry_blocked');
       case 'wrong_event': return k('result.wrong_event');
+      case 'outside_window': return k('result.outside_window');
       case 'not_allowed_zone': return k('result.not_allowed');
       case 'zone_full': return k('result.full');
       case 'cancelled': case 'refunded': return k('result.cancelled');
@@ -268,8 +286,10 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
   const resultDetail = (r: DoorScanResult) => {
     if (!r.success) return r.error ?? '';
     if (r.result === 'already') return [r.checked_in_at ? k('result.at', { time: hhmm(r.checked_in_at) }) : '', r.attendee ?? ''].filter(Boolean).join(' · ');
-    if (r.result === 'wrong_event' && r.expected_event?.date) {
-      return k('result.for_date', { date: new Date(`${r.expected_event.date}T00:00:00`).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) });
+    if ((r.result === 'wrong_event' || r.result === 'outside_window') && r.expected_event?.date) {
+      const d = new Date(`${r.expected_event.date}T00:00:00`).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' });
+      const t0 = r.expected_event.start_time ? ` · ${String(r.expected_event.start_time).slice(0, 5)}` : '';
+      return k('result.for_date', { date: `${d}${t0}` });
     }
     if (r.result === 'ok' && r.seat) return r.seat;
     if (r.result === 'ok' && r.seq) return k('result.ticket_no', { n: r.seq });
@@ -332,6 +352,13 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
             {tone === 'ok' ? <Check className="h-20 w-20" strokeWidth={3} /> : tone === 'warn' ? <TriangleAlert className="h-20 w-20" /> : <X className="h-20 w-20" strokeWidth={3} />}
             <p className="text-3xl font-extrabold leading-tight break-words">{resultTitle(result)}</p>
             {resultDetail(result) && <p className="text-lg font-medium opacity-90">{resultDetail(result)}</p>}
+            {result.result === 'outside_window' && result.can_force && adapter.forceScan && lastRef.current && (
+              <span
+                role="button"
+                onClick={(e) => { e.stopPropagation(); void forceCheckin(); }}
+                className="mt-2 rounded-xl bg-black/80 px-6 py-3.5 text-lg font-bold text-white"
+              >{k('result.force_checkin')}</span>
+            )}
           </button>
         )}
       </div>

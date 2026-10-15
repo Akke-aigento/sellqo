@@ -1,8 +1,12 @@
 // TICKET-1 fase 5 — check-in endpoint voor QR-tickets aan de deur.
 //
-// MIDDERNACHT-PRINCIPE (niet-onderhandelbaar): een check-in bindt zich ALTIJD
-// aan een expliciet gekozen `event_detail_id`. Er wordt NERGENS afgeleid uit
-// "event_date = vandaag" — events lopen over middernacht (crawl 21:00 → 03:00).
+// MIDDERNACHT-PRINCIPE: er wordt NERGENS afgeleid uit "event_date = vandaag" —
+// events lopen over middernacht (crawl 21:00 → 03:00). Een check-in bindt zich
+// aan een expliciet event, OF (EVENT-SCAN-2, automatische stand) aan het event
+// dat het TICKET zelf aanwijst, bewaakt door het scanvenster van dat event
+// (_shared/doorWindow.ts — eigen uren en tijdzone van het event, dus ook
+// middernacht-veilig). Automatisch = scanlink zonder event (vaste deurlink),
+// of JWT-aanroep met { auto: true, tenant_id } zonder event_detail_id.
 //
 // Rolmapping:
 //   host  (checkin + undo) = tenant_admin voor die tenant OF platform_admin
@@ -11,6 +15,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { eventWindow, loadScanWindow, windowState } from "../_shared/doorWindow.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,8 +51,9 @@ interface CheckinAuth {
 interface ScannerContext {
   id: string;
   tenant_id: string;
-  event_detail_id: string;
-  zone_id: string;
+  /** EVENT-SCAN-2 — null = vaste deurlink: het event komt uit het ticket. */
+  event_detail_id: string | null;
+  zone_id: string | null;
   direction: string;
   scan_mode: string;
   allowed_product_ids: string[] | null;
@@ -55,6 +61,7 @@ interface ScannerContext {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (req.method === "GET") return json({ ok: true, version: "EVENT-SCAN-2" });
 
   try {
     // De body wordt bewust VÓÓR de auth gelezen: de modus-keuze hangt ervan af.
@@ -97,8 +104,8 @@ serve(async (req) => {
       scanner = {
         id: row.id as string,
         tenant_id: row.tenant_id as string,
-        event_detail_id: row.event_detail_id as string,
-        zone_id: row.zone_id as string,
+        event_detail_id: (row.event_detail_id as string | null) ?? null,
+        zone_id: (row.zone_id as string | null) ?? null,
         direction: String(row.direction ?? "in"),
         scan_mode: String(row.scan_mode ?? "check_in"),
         allowed_product_ids: (row.allowed_product_ids as string[] | null) ?? null,
@@ -117,7 +124,7 @@ serve(async (req) => {
         .from("event_scanner_access")
         .update({ last_used_at: new Date().toISOString(), use_count: ((row.use_count as number) ?? 0) + 1 })
         .eq("id", scanner.id)
-        .then(({ error }) => {
+        .then(({ error }: { error: { message?: string } | null }) => {
           if (error) console.error("[TICKET-CHECKIN] token telemetry failed", error.message ?? JSON.stringify(error));
         });
     } else {
@@ -126,19 +133,52 @@ serve(async (req) => {
 
     const qrToken = String(body?.qr_token ?? "").trim();
     // ANTI-TAMPERING: in token-modus komt het event UITSLUITEND uit de DB-rij.
-    const eventDetailId = scanner ? scanner.event_detail_id : String(body?.event_detail_id ?? "").trim();
+    let eventDetailId = scanner ? scanner.event_detail_id : String(body?.event_detail_id ?? "").trim();
     const action = String(body?.action ?? "checkin");
 
     if (!TOKEN_RE.test(qrToken)) return json({ success: false, error: "invalid qr_token" }, 400);
-    if (!eventDetailId) return json({ success: false, error: "event_detail_id required" }, 400);
     if (action !== "checkin" && action !== "undo") {
       return json({ success: false, error: "invalid action" }, 400);
+    }
+
+    // EVENT-SCAN-2 — automatische stand: het ticket wijst het event aan.
+    //  - token-modus: scanlink zonder event (vaste deurlink);
+    //  - JWT-modus:   { auto: true, tenant_id } zonder event_detail_id.
+    // ANTI-TAMPERING blijft overeind: de tenant komt uit de scanlink-rij (token)
+    // of wordt hieronder tegen de rollen van de gebruiker gecontroleerd (JWT).
+    const bodyAuto = (body as { auto?: unknown })?.auto === true;
+    const forceWindow = (body as { force_window?: unknown })?.force_window === true;
+    let autoMode = false;
+    if (!eventDetailId) {
+      const autoTenantId = scanner
+        ? scanner.tenant_id
+        : bodyAuto ? String((body as { tenant_id?: unknown })?.tenant_id ?? "").trim() : "";
+      if (!autoTenantId) return json({ success: false, error: "event_detail_id required" }, 400);
+      if (!scanner && !auth.is_platform_admin && !auth.tenant_ids.includes(autoTenantId)) {
+        return json({ success: false, error: "No access to this tenant" }, 403);
+      }
+      const { data: autoTicket, error: atErr } = await admin
+        .from("ticket_instances")
+        .select("event_detail_id")
+        .eq("qr_token", qrToken)
+        .eq("tenant_id", autoTenantId)
+        .maybeSingle();
+      if (atErr) {
+        console.error("[TICKET-CHECKIN] auto ticket lookup failed", atErr.message ?? JSON.stringify(atErr));
+        return json({ success: false, error: "ticket lookup failed" }, 500);
+      }
+      if (!autoTicket) {
+        log("unknown_token", { tenant_id: autoTenantId, auto: true });
+        return json({ success: true, result: "invalid", reason: "unknown_token" });
+      }
+      eventDetailId = autoTicket.event_detail_id as string;
+      autoMode = true;
     }
 
     // 1. Gekozen event ophalen — dit bepaalt de tenant-scope.
     const { data: chosenEvent, error: evErr } = await admin
       .from("event_details")
-      .select("id, tenant_id, event_date, start_time, end_time, location_name, status")
+      .select("id, tenant_id, event_date, start_time, end_time, timezone, location_name, status")
       .eq("id", eventDetailId)
       .maybeSingle();
 
@@ -198,9 +238,63 @@ serve(async (req) => {
       });
     }
 
+    // EVENT-SCAN-2 — scanvenster: alleen in de automatische stand. Een expliciet
+    // gekozen event is een bewuste keuze van de host en blijft venstervrij
+    // (nascannen van een afgelopen event moet kunnen, exact zoals voorheen).
+    if (autoMode && action === "checkin" && !forceWindow) {
+      const settings = await loadScanWindow(admin, tenantId);
+      const { data: typeRow } = await admin
+        .from("event_ticket_types")
+        .select("valid_from, valid_until")
+        .eq("event_detail_id", eventDetailId)
+        .eq("product_id", ticket.product_id as string)
+        .maybeSingle();
+      const w = eventWindow(
+        {
+          event_date: chosenEvent.event_date as string,
+          start_time: (chosenEvent.start_time as string | null) ?? null,
+          end_time: (chosenEvent.end_time as string | null) ?? null,
+          timezone: (chosenEvent as { timezone?: string | null }).timezone ?? null,
+        },
+        settings,
+        typeRow ?? undefined,
+      );
+      const state = windowState(Date.now(), w);
+      const eventOk = ["scheduled", "confirmed"].includes(String(chosenEvent.status));
+      if (state !== "live" || !eventOk) {
+        const reason = !eventOk ? `event_${chosenEvent.status}` : state === "early" ? "window_not_open" : "window_closed";
+        const { error: wLogErr } = await admin.from("ticket_scans").insert({
+          tenant_id: tenantId,
+          ticket_instance_id: ticket.id,
+          event_detail_id: eventDetailId,
+          zone_id: scanner?.zone_id ?? null,
+          scanner_access_id: scanner?.id ?? null,
+          scanned_by_user_id: !auth.user_id || auth.user_id === "service_role" ? null : auth.user_id,
+          direction: "in",
+          result: "event_not_active",
+          note: `outside_window:${reason}`,
+        });
+        if (wLogErr) console.error("[TICKET-CHECKIN] window log failed", wLogErr.message ?? JSON.stringify(wLogErr));
+        log("outside_window", { ticket_id: ticket.id, reason });
+        return json({
+          success: true,
+          result: "outside_window",
+          reason,
+          can_force: true,
+          attendee: ticket.attendee_name,
+          seq: ticket.seq,
+          expected_event: {
+            date: chosenEvent.event_date ?? null,
+            start_time: chosenEvent.start_time ?? null,
+            name: chosenEvent.location_name ?? null,
+          },
+        });
+      }
+    }
+
     // Zone: in token-modus uit de token-rij, anders de default-zone van het event.
     let zoneId: string | null = null;
-    if (scanner) {
+    if (scanner && scanner.zone_id) {
       zoneId = scanner.zone_id;
     } else {
       const { data: defaultZone } = await admin

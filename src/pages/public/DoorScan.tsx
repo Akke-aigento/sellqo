@@ -20,6 +20,9 @@ interface ScannerContext {
   event?: { id: string; date: string; start_time: string; end_time: string | null; location_name: string | null; status: string } | null;
   zone?: { id: string; name: string } | null;
   tenant_branding?: { name: string; logo_url: string | null } | null;
+  /** EVENT-SCAN-2 — vaste deurlink: het event is zelf opgelost (lopend of eerstvolgend). */
+  auto?: boolean;
+  auto_live?: boolean;
 }
 
 function invokeWithToken<T>(fn: string, token: string, body: Record<string, unknown>): Promise<T> {
@@ -31,7 +34,7 @@ function invokeWithToken<T>(fn: string, token: string, body: Record<string, unkn
     });
 }
 
-interface HomeLink { token: string; name: string; event_name: string; event_date: string; start_time: string | null }
+interface HomeLink { token: string; fixed: boolean; name: string; event_name: string; event_date: string; start_time: string | null }
 
 /** SCAN-APP-1 — /scan vlucht niet meer naar de admin. Zonder bewaard token en mét login
  *  tonen we de actieve deurlinks van je winkel: precies één → meteen door; meerdere →
@@ -52,25 +55,28 @@ export function DoorScanHome() {
       const { data } = await supabase.auth.getSession();
       if (!data.session) { setState('anon'); return; }
       try {
-        const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
         const { data: rows } = await (supabase as unknown as SupabaseClient)
           .from('event_scanner_access')
-          .select('access_token, name, expires_at, event_details!inner(event_date, start_time, status, products(name))')
+          .select('access_token, name, expires_at, event_detail_id, event_details(event_date, start_time, status, products(name))')
           .eq('is_active', true)
-          .gte('event_details.event_date', since)
-          .in('event_details.status', ['scheduled', 'confirmed'])
-          .limit(20);
+          .limit(50);
         const now = Date.now();
+        const since = new Date(now - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
         const found: HomeLink[] = ((rows ?? []) as DoorAccessRow[])
           .filter((r) => !r.expires_at || new Date(r.expires_at).getTime() > now)
+          // EVENT-SCAN-2 — vaste deurlinks (geen event) doen altijd mee; eventlinks
+          // alleen als hun event nog komt en gepland/bevestigd is.
+          .filter((r) => !r.event_detail_id
+            || (!!r.event_details && ['scheduled', 'confirmed'].includes(r.event_details.status ?? '') && (r.event_details.event_date ?? '') >= since))
           .map((r) => ({
             token: r.access_token,
+            fixed: !r.event_detail_id,
             name: r.name,
-            event_name: r.event_details?.products?.name ?? 'Event',
+            event_name: r.event_details?.products?.name ?? '',
             event_date: r.event_details?.event_date ?? '',
             start_time: r.event_details?.start_time ?? null,
           }))
-          .sort((a, b) => `${a.event_date}${a.start_time ?? ''}`.localeCompare(`${b.event_date}${b.start_time ?? ''}`));
+          .sort((a, b) => (Number(b.fixed) - Number(a.fixed)) || `${a.event_date}${a.start_time ?? ''}`.localeCompare(`${b.event_date}${b.start_time ?? ''}`));
         if (found.length === 1) { enter(found[0].token, setTarget); return; }
         setLinks(found);
         setState(found.length ? 'list' : 'empty');
@@ -109,7 +115,7 @@ export function DoorScanHome() {
               className="w-full rounded-xl bg-white/10 px-4 py-3 text-left active:scale-[0.99]"
             >
               <span className="block font-semibold">{l.name}</span>
-              <span className="block text-sm text-white/60 first-letter:uppercase">{l.event_name} · {eventWhenShort(l.event_date, l.start_time)}</span>
+              <span className="block text-sm text-white/60 first-letter:uppercase">{l.fixed ? t('door.fixed_link') : `${l.event_name} · ${eventWhenShort(l.event_date, l.start_time)}`}</span>
             </button>
           ))}
           <a href="/admin/checkin" className="block text-center text-sm text-white/50 underline">{t('door.open_admin')}</a>
@@ -123,7 +129,8 @@ interface DoorAccessRow {
   access_token: string;
   name: string;
   expires_at: string | null;
-  event_details?: { event_date?: string; start_time?: string | null; products?: { name?: string } } | null;
+  event_detail_id?: string | null;
+  event_details?: { event_date?: string; start_time?: string | null; status?: string; products?: { name?: string } } | null;
 }
 
 function enter(token: string, setTarget: (t: string) => void) {
@@ -160,6 +167,7 @@ export default function DoorScan() {
 
   const adapter = useMemo<DoorAdapter>(() => ({
     scan: (qr) => invokeWithToken<DoorScanResult>('ticket-checkin', token, { qr_token: qr, action: 'checkin' }),
+    forceScan: (qr) => invokeWithToken<DoorScanResult>('ticket-checkin', token, { qr_token: qr, action: 'checkin', force_window: true }),
     stats: () => invokeWithToken<{ success: boolean; sold: number; inside: number }>('scanner-door', token, { action: 'stats' })
       .then((r) => ({ sold: r.sold, inside: r.inside })),
     search: (q) => invokeWithToken<{ success: boolean; results: DoorSearchHit[] }>('scanner-door', token, { action: 'search', q })
@@ -181,10 +189,12 @@ export default function DoorScan() {
 
   const ev = ctx.event;
   const when = ev ? `${new Date(`${ev.date}T00:00:00`).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' })} · ${String(ev.start_time).slice(0, 5)}` : '';
+  // EVENT-SCAN-2 — vaste deurlink: toon het zelf opgeloste event, of dat er niks aankomt.
+  const autoLabel = ctx.auto ? (ev ? (ctx.auto_live ? t('door.auto_live') : t('door.auto_next')) : t('door.auto_none')) : null;
   return (
     <DoorScanner
       title={ctx.tenant_branding?.name ?? 'SellQo'}
-      subtitle={[when, ctx.zone?.name, ctx.scanner?.name].filter(Boolean).join(' · ')}
+      subtitle={[when, autoLabel, ctx.zone?.name, ctx.scanner?.name].filter(Boolean).join(' · ')}
       logoUrl={ctx.tenant_branding?.logo_url ?? null}
       adapter={adapter}
     />

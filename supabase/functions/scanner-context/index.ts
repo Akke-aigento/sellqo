@@ -3,8 +3,12 @@
 // Valideert uitsluitend een event_scanner_access.access_token en geeft de
 // scan-context terug. GEEN attendee-data, GEEN tellers, GEEN financiële data.
 // Auth gebeurt in-code (verify_jwt = false); de scanner heeft geen JWT.
+//
+// EVENT-SCAN-2 — een scanlink ZONDER event (vaste deurlink) lost zelf het
+// lopende of eerstvolgende event op via het scanvenster (_shared/doorWindow.ts).
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { loadScanWindow, resolveDoor } from "../_shared/doorWindow.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,20 +57,38 @@ serve(async (req) => {
     if (row.expires_at && new Date(row.expires_at as string).getTime() <= Date.now()) return rejected();
 
     const tenantId = row.tenant_id as string;
+    const isDoorLink = !row.event_detail_id;
 
-    const [{ data: event }, { data: zone }, { data: tenant }] = await Promise.all([
-      admin
+    let event: Record<string, unknown> | null = null;
+    let autoLive = false;
+    if (isDoorLink) {
+      // Vaste deurlink: lopend event (venster open), anders het eerstvolgende.
+      const settings = await loadScanWindow(admin, tenantId);
+      const door = await resolveDoor(admin, tenantId, settings);
+      const resolved = door.live[0] ?? door.next;
+      autoLive = door.live.length > 0;
+      event = resolved
+        ? { id: resolved.id, event_date: resolved.event_date, start_time: resolved.start_time, end_time: resolved.end_time, location_name: resolved.location_name ?? null, status: resolved.status }
+        : null;
+    } else {
+      const { data: ev } = await admin
         .from("event_details")
         .select("id, event_date, start_time, end_time, location_name, status")
         .eq("id", row.event_detail_id as string)
         .eq("tenant_id", tenantId)
-        .maybeSingle(),
-      admin
-        .from("event_zones")
-        .select("id, name")
-        .eq("id", row.zone_id as string)
-        .eq("tenant_id", tenantId)
-        .maybeSingle(),
+        .maybeSingle();
+      event = ev as Record<string, unknown> | null;
+    }
+
+    const [{ data: zone }, { data: tenant }] = await Promise.all([
+      row.zone_id
+        ? admin
+          .from("event_zones")
+          .select("id, name")
+          .eq("id", row.zone_id as string)
+          .eq("tenant_id", tenantId)
+          .maybeSingle()
+        : Promise.resolve({ data: null }),
       admin.from("tenants").select("name, logo_url").eq("id", tenantId).maybeSingle(),
     ]);
 
@@ -78,12 +100,14 @@ serve(async (req) => {
         .select("name")
         .eq("tenant_id", tenantId)
         .in("id", allowed);
-      allowedProductNames = (products ?? []).map((p) => String(p.name));
+      allowedProductNames = ((products ?? []) as { name?: string }[]).map((p) => String(p.name));
     }
 
     return json({
       success: true,
       scanner: { id: row.id, name: row.name },
+      auto: isDoorLink,
+      auto_live: autoLive,
       event: event
         ? {
             id: event.id,

@@ -10,7 +10,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
-import { Armchair, CalendarDays, Coins, Layers, MapPin, Check, Ticket, Plus } from 'lucide-react';
+import { Armchair, CalendarDays, Coins, DoorOpen, Layers, MapPin, Check, Ticket, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { EventCardActions } from '@/components/admin/events/EventCardActions';
+import { DoorSettingsDialog } from '@/components/admin/events/DoorSettingsDialog';
 import { EventReadinessBadge } from '@/components/admin/events/EventReadinessBadge';
 import { eventReadiness } from '@/lib/eventReadiness';
 import { useEventTicketTypesByEvent } from '@/hooks/useEventReadiness';
@@ -83,6 +84,7 @@ export default function EventDashboard() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [showPast, setShowPast] = useState(false);
+  const [doorOpen, setDoorOpen] = useState(false);
   const eventsModule = useBusinessModules().has('events');
 
   // Events binnen het venster (middernacht-veilige ondergrens).
@@ -167,6 +169,7 @@ export default function EventDashboard() {
           <Button size="sm" variant="outline" onClick={() => navigate('/admin/events/venues')}><Armchair className="mr-1 h-4 w-4" />{t('events.venues.title')}</Button>
           <Button size="sm" variant="outline" onClick={() => navigate('/admin/events/bundles')}><Layers className="mr-1 h-4 w-4" />{t('events.bundles.title')}</Button>
           <Button size="sm" variant="outline" onClick={() => navigate('/admin/events/tokens')}><Coins className="mr-1 h-4 w-4" />{t('events.tokens.title')}</Button>
+          <Button size="sm" variant="outline" onClick={() => setDoorOpen(true)}><DoorOpen className="mr-1 h-4 w-4" />{t('door.settings.button')}</Button>
           <Button size="sm" onClick={() => navigate('/admin/events/new')}><Plus className="mr-1 h-4 w-4" />{t('events.wizard.new_event')}</Button>
           <Switch id="show-past" checked={showPast} onCheckedChange={setShowPast} />
           <Label htmlFor="show-past" className="text-sm cursor-pointer whitespace-nowrap">
@@ -263,6 +266,7 @@ export default function EventDashboard() {
           })}
         </div>
       )}
+      <DoorSettingsDialog open={doorOpen} onOpenChange={setDoorOpen} />
     </div>
   );
 }
