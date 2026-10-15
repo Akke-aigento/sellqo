@@ -1,3 +1,19 @@
+## SCAN-APP-1 — de deurscanner als echte beginscherm-app — 15 oktober 2026
+
+**Probleem (Akke, met gsm in de hand).** De scanner op het beginscherm zetten gaf "gewoon de admin": het icoon startte op /scan, en een beginscherm-app begint in een eigen, lege browsercontainer. Zonder bewaard token stuurde /scan een ingelogde gebruiker naar /admin/checkin; op iOS deelt zo'n container zelfs login en localStorage niet met de browser, dus het token-in-localStorage-ontwerp was daar fundamenteel wankel.
+
+**Fix (bd7b8a8→, puur frontend — ticket-checkin en de hele verificatielogica onaangeroerd, veilig vóór 24/10):**
+- **Token in het icoon.** /scan/:token bouwt zijn manifest nu zelf (data-URI) met de volledige deurlink als start_url en absolute iconen (tokenManifest in useDoorAppShell). Beginscherm-icoon = één tik, meteen de juiste deur, onafhankelijk van opslag of login. Negeert iOS het data-manifest, dan valt het terug op de pagina-URL — zelfde tokenized adres. /bar/:token idem voor de barscanner.
+- **/scan vlucht niet meer naar de admin.** Ingelogd zonder bewaard token: actieve scanlinks (is_active, niet verlopen, event scheduled/confirmed vanaf gisteren) worden opgehaald; precies één → direct door (token bewaard), meerdere → donkere kieslijst, geen → uitleg + knop Admin-scanner.
+- **Funnel vanaf de admin-scanner.** DoorScanner kreeg een appUrl-prop: op /admin/checkin wordt de beginscherm-tip "Zet als eigen app op je beginscherm" en brengt hij je naar de scanlinkpagina van het gekozen event (eerste actieve link), waar het tokenized manifest leeft.
+- i18n: 7 nieuwe door.*-keys × 5 talen.
+
+**Getest (harness .harness/ + Playwright, daarna verwijderd):** kieslijst met 2 links rendert en navigeert + bewaart het token; precies één link → auto-enter; geen links → lege staat met admin-knop; anoniem → bestaande uitleg; manifest op /scan/:token heeft start_url http(s)://…/scan/<token>, id /scan, absolute iconen. tsc 27 = baseline, lint baseline gelijk, i18n-pariteit, CI groen.
+
+**Voor Akke:** admin publiceren, oude "Deur"-icoon verwijderen, scanlink Deur 24/10 openen op de gsm en opnieuw "Zet op beginscherm".
+
+**Backlog (na 24/10, raakt checkin-logica):** EVENT-SCAN-2 — vaste deurlink per tenant die zelf het lopende/eerstvolgende event oplost, zodat één icoon voor altijd werkt bij terugkerende events (Fonske). Nu verloopt een icoon mee met zijn scanlink.
+
 ## EVENT-DONE-1 — de ticketmail ís de levering — 15 oktober 2026
 
 **Waarom.** Ticketbestellingen bleven eeuwig op "In behandeling" staan: er valt niks te picken of te verzenden, maar niemand zette ze ooit op Geleverd. Akke: "raar dat we die nog moeten verwerken".
