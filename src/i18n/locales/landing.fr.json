@@ -2025,7 +2025,7 @@
         },
         "social_posts_published": {
           "title": "Les publications sociales programmées sont désormais réellement publiées",
-          "description": "Les publications que vous programmez pour Facebook ou Instagram sont désormais mises en ligne automatiquement, dans l'heure qui suit l'heure choisie. Les publications Instagram arrivent maintenant vraiment sur Instagram au lieu de votre page Facebook, avec prise en charge des carrousels (2 à 10 images, JPEG). Si une publication échoue, vous recevez une notification avec la raison, et en cas de panne temporaire SellQo essaie jusqu'à trois fois au total."
+          "description": "Les publications que vous programmez pour Facebook ou Instagram sont désormais mises en ligne automatiquement, dans l'heure qui suit l'heure choisie. Les publications Instagram arrivent maintenant vraiment sur Instagram au lieu de votre page Facebook, avec prise en charge des carrousels (2 à 10 images). SellQo convertit automatiquement les photos produit PNG en JPEG sur fond blanc, car Instagram n'accepte que le JPEG. Si une publication échoue, vous recevez une notification avec la raison, et en cas de panne temporaire SellQo essaie jusqu'à trois fois au total."
         }
       },
       "copyLink": "Copier le lien",

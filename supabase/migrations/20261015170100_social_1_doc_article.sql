@@ -35,7 +35,8 @@ VALUES
 <h3>Wat Instagram verwacht</h3>
 <ul>
 <li>Elke Instagram-post heeft minstens één beeld. Alleen tekst kan niet.</li>
-<li>Beelden moeten <strong>JPEG</strong> zijn (.jpg). PNG of WebP weigert Instagram.</li>
+<li>Instagram aanvaardt enkel <strong>JPEG</strong>. Een PNG (bijvoorbeeld een productfoto met transparante achtergrond) zet SellQo automatisch om naar JPEG op een witte achtergrond. WebP en andere formaten kan SellQo niet omzetten: gebruik dan JPEG of PNG.</li>
+<li>Is een beeld te hoog of te breed voor Instagram (buiten 4:5 tot 1,91:1), dan krijgt de omgezette versie witte randen.</li>
 <li>Meerdere beelden worden een carrousel: 2 tot 10 beelden.</li>
 <li>Stories kunnen alleen zonder stickers. Een story met een link-, poll- of vraagsticker plaats je zelf in de Instagram-app.</li>
 </ul>

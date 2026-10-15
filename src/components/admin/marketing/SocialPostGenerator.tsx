@@ -39,6 +39,10 @@ type ContentType = 'product_highlight' | 'low_stock_alert' | 'new_arrival' | 'se
 type Tone = 'professional' | 'casual' | 'playful' | 'urgent';
 
 // Merknamen blijven letterlijk staan.
+// SOCIAL-1c: Instagram aanvaardt maximaal 10 beelden per post (carrousel). De AI kan
+// meer suggesties geven; de eerste 10 gaan mee.
+const MAX_POST_IMAGES = 10;
+
 const platforms = [
   { id: 'instagram' as Platform, name: 'Instagram', icon: Instagram, color: 'text-pink-500' },
   { id: 'facebook' as Platform, name: 'Facebook', icon: Facebook, color: 'text-blue-600' },
@@ -310,7 +314,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                               tenantId: currentTenant.id,
                               platform,
                               text: generatedContent,
-                              imageUrls: suggestedImages.length > 0 ? suggestedImages : undefined,
+                              imageUrls: suggestedImages.length > 0 ? suggestedImages.slice(0, MAX_POST_IMAGES) : undefined,
                             },
                           });
                           if (error) throw error;
@@ -344,7 +348,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                             tenantId: currentTenant.id,
                             platform,
                             text: generatedContent,
-                            imageUrls: suggestedImages.length > 0 ? suggestedImages : undefined,
+                            imageUrls: suggestedImages.length > 0 ? suggestedImages.slice(0, MAX_POST_IMAGES) : undefined,
                             scheduledFor: scheduledAt.toISOString(),
                           },
                         });
@@ -360,7 +364,7 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                   </>
                 ) : (
                   <Button variant="outline" size="sm" asChild>
-                    <Link to="/admin/settings?section=social">
+                    <Link to="/admin/connect?tab=channels">
                       <Link2 className="h-4 w-4 mr-1" />
                       Koppel {selectedPlatform?.name}
                     </Link>

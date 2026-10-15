@@ -2025,7 +2025,7 @@
         },
         "social_posts_published": {
           "title": "Geplante Social-Posts werden jetzt wirklich veröffentlicht",
-          "description": "Beiträge, die Sie für Facebook oder Instagram planen, gehen jetzt automatisch online, innerhalb einer Stunde nach dem gewählten Zeitpunkt. Instagram-Beiträge landen jetzt wirklich auf Instagram statt auf Ihrer Facebook-Seite, mit Unterstützung für Karussells (2 bis 10 Bilder, JPEG). Schlägt ein Beitrag fehl, erhalten Sie eine Benachrichtigung mit dem Grund, und bei einer vorübergehenden Störung versucht SellQo es insgesamt bis zu dreimal."
+          "description": "Beiträge, die Sie für Facebook oder Instagram planen, gehen jetzt automatisch online, innerhalb einer Stunde nach dem gewählten Zeitpunkt. Instagram-Beiträge landen jetzt wirklich auf Instagram statt auf Ihrer Facebook-Seite, mit Unterstützung für Karussells (2 bis 10 Bilder). PNG-Produktfotos wandelt SellQo automatisch in JPEG auf weißem Hintergrund um, da Instagram nur JPEG akzeptiert. Schlägt ein Beitrag fehl, erhalten Sie eine Benachrichtigung mit dem Grund, und bei einer vorübergehenden Störung versucht SellQo es insgesamt bis zu dreimal."
         }
       },
       "copyLink": "Link kopieren",

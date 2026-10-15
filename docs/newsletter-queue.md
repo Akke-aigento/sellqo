@@ -10,7 +10,7 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 Ingeplande posts voor Facebook en Instagram gaan nu automatisch online, binnen het uur na het gekozen
 tijdstip. Instagram-posts komen echt op Instagram (voorheen op de Facebook-pagina), met carrousels
-(2–10 JPEG's). Instagram koppel je rechtstreeks in SellQo Connect → Kanalen. Mislukt iets, dan
+(2–10 beelden; PNG-productfoto's worden automatisch omgezet naar JPEG). Instagram koppel je rechtstreeks in SellQo Connect → Kanalen. Mislukt iets, dan
 volgt een melding met de reden.
 
 **Niet versturen vóór** SOCIAL-1 gedeployed is en minstens één echte post via de scheduler online stond.

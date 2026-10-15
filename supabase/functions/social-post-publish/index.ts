@@ -5,6 +5,7 @@ import { requireBillingState } from "../_shared/billingGuard.ts";
 // SOCIAL-1: het publiceren zelf zit in _shared/socialPublish.ts, samen met de scheduler
 // (social-publish-due). Hier blijft enkel het aanvragen: meteen posten of inplannen.
 import { publishPost, resolveTarget, type SocialMediaType, type SocialPlatform } from "../_shared/socialPublish.ts";
+import { prepareInstagramImages } from "../_shared/socialMedia.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,6 +65,21 @@ serve(async (req) => {
       );
     }
 
+    // SOCIAL-1c: beelden voor Instagram meteen klaarmaken (PNG -> JPEG, verhouding),
+    // zowel bij inplannen als bij meteen posten. Zo hoort de tenant nu al of een beeld
+    // niet bruikbaar is, en niet pas op het geplande moment.
+    let images = imageUrls || [];
+    if (resolved.target.kind === 'instagram' && images.length > 0) {
+      const prepared = await prepareInstagramImages(supabase, tenantId, images);
+      if (!prepared.ok) {
+        return new Response(
+          JSON.stringify({ error: prepared.error }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      images = prepared.urls;
+    }
+
     // Inplannen: social-publish-due pikt 'scheduled' op zodra scheduled_for voorbij is.
     if (scheduledFor && new Date(scheduledFor) > new Date()) {
       const { data: post, error: postError } = await supabase.from('social_posts').insert({
@@ -72,7 +88,7 @@ serve(async (req) => {
         content_id: contentId,
         platform,
         post_text: text,
-        image_urls: imageUrls || [],
+        image_urls: images,
         media_type: media,
         scheduled_for: scheduledFor,
         status: 'scheduled',
@@ -88,7 +104,7 @@ serve(async (req) => {
     }
 
     // Meteen posten.
-    const result = await publishPost(resolved.target, { text, imageUrls: imageUrls || [], mediaType: media });
+    const result = await publishPost(resolved.target, { text, imageUrls: images, mediaType: media });
 
     const { data: post, error: postError } = await supabase.from('social_posts').insert({
       tenant_id: tenantId,
@@ -96,7 +112,7 @@ serve(async (req) => {
       content_id: contentId,
       platform,
       post_text: text,
-      image_urls: imageUrls || [],
+      image_urls: images,
       media_type: media,
       posted_at: result.postedAt,
       platform_post_id: result.platformPostId,

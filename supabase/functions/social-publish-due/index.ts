@@ -6,6 +6,8 @@
 //     scheduled_for voorbij is.
 //   - social-token-refresh-daily body {"mode":"refresh"}: ververst Instagram Login-tokens
 //     die binnen 10 dagen verlopen.
+// Handmatig (zelfde secret): {"mode":"prepare","tenantId":…,"imageUrls":[…]} zet beelden
+// om voor Instagram zonder te posten (droogtest, SOCIAL-1c).
 // De cron roept deze functie enkel aan als er werk is (WHERE EXISTS in het cron-commando).
 //
 // Retry: een tijdelijke fout (netwerk, rate limit, 5xx) zet de post terug op zijn
@@ -24,6 +26,7 @@ import {
   type SocialMediaType,
   type SocialPlatform,
 } from "../_shared/socialPublish.ts";
+import { prepareInstagramImages } from "../_shared/socialMedia.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -124,9 +127,24 @@ async function publishDue(admin: Admin) {
       continue;
     }
 
+    // SOCIAL-1c: Instagram wil JPEG binnen 4:5..1,91:1. PNG's worden omgezet en de
+    // nieuwe URL's bewaard, zodat een nieuwe poging niet opnieuw moet omzetten.
+    let imageUrls = post.image_urls ?? [];
+    if (resolved.target.kind === "instagram" && imageUrls.length > 0) {
+      const prepared = await prepareInstagramImages(admin, post.tenant_id, imageUrls);
+      if (!prepared.ok) {
+        await fail(prepared.error, prepared.retryable);
+        continue;
+      }
+      if (prepared.converted > 0) {
+        imageUrls = prepared.urls;
+        await admin.from("social_posts").update({ image_urls: imageUrls }).eq("id", post.id);
+      }
+    }
+
     const result = await publishPost(resolved.target, {
       text: post.post_text ?? "",
-      imageUrls: post.image_urls ?? [],
+      imageUrls,
       mediaType,
     });
 
@@ -189,14 +207,27 @@ Deno.serve(async (req) => {
   }
 
   let mode = "publish";
+  // deno-lint-ignore no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let body: any = null;
   try {
-    const body = await req.json();
+    body = await req.json();
     if (body?.mode === "refresh") mode = "refresh";
+    if (body?.mode === "prepare") mode = "prepare";
   } catch {
     // lege body = publish
   }
 
   try {
+    // mode "prepare" (SOCIAL-1c): droogtest van de Instagram-beeldvoorbereiding op echte
+    // URL's, zonder iets te posten. Enkel met het cron-secret (zie hierboven).
+    if (mode === "prepare") {
+      const tenantId = String(body?.tenantId ?? "");
+      const urls = Array.isArray(body?.imageUrls) ? body.imageUrls.map(String) : [];
+      if (!tenantId || urls.length === 0) return json({ success: false, error: "tenantId en imageUrls verplicht" }, 400);
+      const prepared = await prepareInstagramImages(admin, tenantId, urls);
+      return json({ success: prepared.ok, mode, ...prepared });
+    }
     const result = mode === "refresh" ? await refreshTokens(admin) : await publishDue(admin);
     console.log(`[social-publish-due] ${mode}`, JSON.stringify(result));
     return json({ success: true, mode, ...result });

@@ -1,3 +1,23 @@
+## SOCIAL-1c — PNG-productfoto's automatisch naar JPEG voor Instagram — 15 oktober 2026
+
+**Root cause.** Instagram aanvaardt enkel JPEG (beeldverhouding 4:5 tot 1,91:1). De Social Post Generator stuurt de productfoto's van de tenant mee, en die zijn vaak PNG met transparantie: bij Loveke allemaal (`products.images`, bucket product-images). `socialPublish.ts` weigerde die terecht, met als gevolg dat de normale tenant-flow nooit op Instagram kon posten. Daarnaast stuurde de generator alle voorgestelde beelden mee (kan meer dan 10 zijn) en wees "Koppel Instagram" nog naar /admin/settings?section=social.
+
+**Uitgevoerd:**
+- `_shared/socialMedia.ts` (nieuw): `prepareInstagramImages`. JPEG (extensie of magic bytes) gaat ongewijzigd door; PNG (elke diepte, palet, grijs, alfa) wordt op wit gelegd, verkleind tot max 1440 px breed (box filter), met witte randen binnen 4:5..1,91:1 gebracht en als JPEG q90 opgeslagen in de publieke bucket `marketing-assets` onder `<tenant>/social/<sha256(bron-URL)>.jpg`. Bestaat dat bestand al (HEAD 200), dan wordt het hergebruikt zonder opnieuw te downloaden. WebP/GIF/andere: duidelijke fout. Max 10 beelden. Fouten dragen `retryable` (download-5xx en opslagfouten tijdelijk, de rest blijvend).
+- Bibliotheken `npm:fast-png@6.3.0` + `npm:jpeg-js@0.4.4`, gepind, pure JavaScript. **Niet imagescript**: het npm-pakket laadt een native binary via FFI (`codecs/node/bin/x64-linux.node`), wat op Supabase Edge niet bestaat. Gevonden doordat de unit test zonder `--allow-ffi` faalde; de eerste benchmark met `-A` had het verborgen. Gemeten zonder extra rechten: ±180 ms CPU voor 1000x1000.
+- `social-post-publish`: bij Instagram worden de beelden klaargemaakt vóór inplannen én vóór meteen posten. De tenant hoort het dus meteen als een beeld onbruikbaar is, niet pas op het geplande moment. De omgezette URL's worden bewaard.
+- `social-publish-due`: zelfde voorbereiding vóór publiceren (voor posts uit andere bronnen); omgezette URL's worden in `social_posts.image_urls` teruggeschreven. Nieuwe droogtestmodus `{"mode":"prepare","tenantId","imageUrls"}`, enkel met het cron-secret.
+- `SocialPostGenerator.tsx`: maximaal 10 beelden meesturen; "Koppel …" wijst naar /admin/connect?tab=channels.
+- Changelog `social_posts_published` (5 talen), helpartikel en nieuwsbrief vermelden de automatische omzetting. CI draait `socialMedia.test.ts` mee.
+
+**Security-keuzes:** schrijven in `marketing-assets` gebeurt met service-role vanuit de edge function (geen nieuwe policy). Het pad bevat de tenant-id; de bestandsnaam is een hash van de bron-URL, dus voorspelbaar maar niet gevoelig (enkel publieke productbeelden). De droogtestmodus vereist het cron-secret.
+
+**Verificatie:** deno test 20/20 zonder extra rechten (o.a. transparantie wordt wit, palet-PNG, randen tot 4:5 en 1,91:1, verkleinen boven 1440 px, hergebruik zonder download, JPEG herkend aan bytes, WebP/te veel/5xx-fouten); deno check op de vier social-functies; tsc 27 = baseline; lint gelijk; build groen; i18n-pariteit.
+
+**Deploy-lijst (`_shared` gewijzigd, alle aanroepers):** social-publish-due, social-post-publish (socialMedia + socialPublish), social-oauth-init, social-oauth-callback (socialPublish).
+
+**Vervolg (SOCIAL-2):** zelf beelden kiezen/uploaden in de generator; goedkeuringsscherm.
+
 ## SOCIAL-1b — Instagram koppelen in SellQo Connect i.p.v. in dode code — 15 oktober 2026
 
 **Root cause.** SOCIAL-1 zette de Instagram-kaart en de paginakeuze in `src/components/admin/settings/SocialConnectionsManager.tsx`. Die component wordt nergens geïmporteerd (`grep -rn SocialConnectionsManager src` geeft enkel het bestand zelf): Instellingen → Social Media toont `SocialMediaHub` (footerlinks + doorverwijzing), en koppelen gebeurt in SellQo Connect → Kanalen (`UnifiedChannelList.tsx`). Akke vond het bij de eerste live test. De recon van SOCIAL-1 had de rendering-plek moeten natrekken, niet enkel de component. Changelog, helpartikel en drie foutmeldingen verwezen daardoor naar "Instellingen → Social" en beloofden een paginakeuze die in de echte UI niet bestaat.
