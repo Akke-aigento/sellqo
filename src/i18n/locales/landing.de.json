@@ -2038,6 +2038,10 @@
         "social_songs_language": {
           "title": "Social-Planung: Songvorschläge für Reels und Neuerstellung in einer anderen Sprache",
           "description": "Für ein Reel erhalten Sie jetzt konkrete Songs, die Sie in der Musiksuche von Instagram suchen können, mit Stimmung und Tempo. Und bei „Neu erstellen\" wählen Sie auch die Sprache der neuen Version, zum Beispiel Englisch für Ihre internationalen Follower. Die Sprache jedes Beitrags steht als Kürzel neben der Plattform."
+        },
+        "social_image_text": {
+          "title": "Social-Planung: den Text im Bild selbst bearbeiten",
+          "description": "Bei Beiträgen und Stories, die für Sie vorbereitet wurden, bearbeiten Sie jetzt den Text im Bild selbst, etwa den Titel, den Preis oder eine Zeile unten. Eine Vorschau aktualisiert sich beim Tippen, und vor dem Speichern sehen Sie das Bild genau so, wie es online geht. Das Design bleibt gleich."
         }
       },
       "copyLink": "Link kopieren",

@@ -4,6 +4,17 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11y — De tekst in je beeld zelf aanpassen (feature, 15-10-2026)
+
+**Voor wie:** iedereen die posts laat klaarzetten in de Social planning.
+
+Nieuw: "Tekst in beeld". Pas de titel, prijs of onderregel in het beeld zelf aan, met een voorbeeld dat
+meeverandert. Voor je bewaart, zie je het beeld precies zoals het online gaat.
+
+**Samen versturen met** 2026.11w en 2026.11x.
+
+**i18n-keys.** `public.changelog.changes.social_image_text` — 5 talen.
+
 ### 2026.11x — Songvoorstellen bij reels en opnieuw maken in een andere taal (improvement, 15-10-2026)
 
 **Voor wie:** iedereen die social posts plant.

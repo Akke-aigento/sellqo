@@ -6753,6 +6753,21 @@
         "pendingWithNote": "Eine neue Version wird erstellt: „{{note}}“",
         "languageLabel": "Sprache",
         "sameLanguage": "Gleiche Sprache"
+      },
+      "imageText": {
+        "button": "Text im Bild",
+        "title": "Text im Bild bearbeiten",
+        "hint": "Nur der Text ändert sich; das Design bleibt gleich. Die Vorschau aktualisiert sich beim Tippen.",
+        "preview": "Vorschau",
+        "image": "Bild {{n}}",
+        "next": "Weiter",
+        "rendering": "Bild wird erstellt…",
+        "resultTitle": "So geht das Bild online",
+        "resultHint": "Das ist das Bild genau so, wie es veröffentlicht wird. Stimmt etwas nicht, gehen Sie zurück.",
+        "back": "Zurück",
+        "save": "Speichern",
+        "saved": "Bild gespeichert",
+        "renderFailed": "Das Bild konnte nicht erstellt werden: {{message}}"
       }
     }
   },

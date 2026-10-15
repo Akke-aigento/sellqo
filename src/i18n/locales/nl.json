@@ -7004,6 +7004,21 @@
         "pendingWithNote": "Er wordt een nieuwe versie gemaakt: \"{{note}}\"",
         "languageLabel": "Taal",
         "sameLanguage": "Zelfde taal"
+      },
+      "imageText": {
+        "button": "Tekst in beeld",
+        "title": "Tekst in het beeld aanpassen",
+        "hint": "Enkel de tekst verandert; het ontwerp blijft hetzelfde. Het voorbeeld past zich aan terwijl je typt.",
+        "preview": "Voorbeeld",
+        "image": "Beeld {{n}}",
+        "next": "Volgende",
+        "rendering": "Beeld wordt gemaakt…",
+        "resultTitle": "Zo komt het beeld online",
+        "resultHint": "Dit is het beeld zoals het gepubliceerd wordt. Klopt iets niet, ga dan terug.",
+        "back": "Terug",
+        "save": "Bewaren",
+        "saved": "Beeld bewaard",
+        "renderFailed": "Het beeld kon niet gemaakt worden: {{message}}"
       }
     }
   },

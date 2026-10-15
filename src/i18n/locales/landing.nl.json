@@ -2038,6 +2038,10 @@
         "social_songs_language": {
           "title": "Social planning: songvoorstellen bij reels en opnieuw maken in een andere taal",
           "description": "Bij een reel krijg je nu concrete nummers voorgesteld om in de muziekzoeker van Instagram te zoeken, met de sfeer en het tempo erbij. En bij \"Opnieuw maken\" kies je ook de taal van de nieuwe versie, bijvoorbeeld Engels voor je internationale volgers. De taal van elke post staat als code naast het platform."
+        },
+        "social_image_text": {
+          "title": "Social planning: de tekst in je beeld zelf aanpassen",
+          "description": "Bij posts en stories die voor je klaargezet zijn, pas je nu de tekst in het beeld zelf aan, zoals de titel, de prijs of een onderregel. Een voorbeeld verandert mee terwijl je typt, en voor je bewaart zie je het beeld precies zoals het online gaat. Het ontwerp blijft hetzelfde."
         }
       },
       "copyLink": "Kopieer link",

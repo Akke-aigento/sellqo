@@ -1,3 +1,26 @@
+## SOCIAL-4 — "Tekst in beeld aanpassen" in de Social planning (2026.11y) — 15 oktober 2026
+
+**Waarom.** Akke wil de tekst in het beeld zelf (titel, prijs, onderregel) kunnen aanpassen zonder te wachten op een nieuwe render.
+
+**Recon (feiten):** beelden worden gerenderd met Chromium (Playwright) in de Claude-sandbox; een edge function heeft geen browser. De browser van de gebruiker wel: dezelfde HTML via SVG `<foreignObject>` → canvas → JPEG. Lettertypes en beelden in de Loveke-repo komen van raw.githubusercontent.com met `access-control-allow-origin: *` (nagekeken), dus ze mogen als data-URL in het SVG. Storage: `marketing-assets` laat insert toe in de eigen tenantmap (`marketing-assets_insert_own_tenant`). Geen bestaande render-bibliotheek in package.json; er komt er ook geen bij.
+
+**Uitgevoerd:**
+- `supabase/migrations/20261015210000_social_4_image_recipes.sql` (additief): `social_posts.image_recipes jsonb` (array parallel aan `image_urls`, check: array en < 200 kB).
+- `src/lib/social/imageRecipe.ts` (nieuw): `parseRecipe`, `readSlots`, `applySlots` (max-lengte, meerdere regels), `sanitizeRecipeHtml` (geen script/iframe/object/embed/link/base, geen on…-attributen of javascript:-URL's), `recipeToSvg` + `rasterizeRecipe` (alles inline als data-URL, tweemaal tekenen voor Safari), `editableImageIndexes`.
+- `SocialImageTextEditor.tsx` (nieuw): veld per tekstvak met teller, live voorbeeld in `iframe sandbox=""`, "Volgende" tekent het beeld en toont het resultaat ("Zo komt het beeld online"), pas "Bewaren" schrijft. Meerdere beelden: keuze per beeld.
+- `useSocialPlanner.saveImageText`: upload naar `marketing-assets/<tenant>/social/edit-<post>-<i>-<ts>.jpg`, vervangt enkel dat beeld en zijn recept; niet bij posted/publishing; status blijft ongewijzigd (zoals tekst aanpassen).
+- `SocialPlannerCard`: knop "Tekst in beeld" enkel als er een recept met tekstvakken is (geen dode knop), niet voor reels, gepubliceerde of te herdoen posts.
+- i18n 13 keys × 5; changelog `social_image_text` (2026.11y) × 5; helpartikel (`20261015210100_social_4_doc_article.sql`); nieuwsbrief.
+- Loveke-repo (96d1165): `recipe.mjs` (HTML → zelfstandig recept, CSS inline, absolute raw-URL's, weigert scripts), launch- en sweatshirt-templates gemarkeerd met `data-slot`, README (markeren, recept maken, meegeven in de insert).
+
+**Security-keuzes:** geen nieuwe policies. Het recept is gebruikersdata uit de database en wordt nergens uitgevoerd: DOMParser voert niets uit, SVG-als-beeld ook niet, het voorbeeld draait in een iframe zonder scripts, en de sanitizer strips alles wat uitvoerbaar is (unit test). De upload volgt de bestaande storage-policy (eigen tenantmap). Het beeld is publiek, net als alle social-beelden (Instagram moet het kunnen ophalen).
+
+**Gedeelde-paden-waarschuwing:** n.v.t.: enkel social_posts en de planningspagina; geen edge functions gewijzigd (geen deploy). De publicatiefunctie leest `image_urls` zoals voorheen.
+
+**Verificatie:** pixelvergelijking browser-render (Chromium, via de nieuwe rasterizer) tegen de Playwright-render voor alle 12 recepten: gemiddeld verschil 0,00–0,09 op 255, hooguit 4 pixels > 60 (anti-aliasing), ook het verloop-wordmark en gedraaide stickers. Harness met de echte editor (390 en 1280 px): titel typen → voorbeeld past aan → Volgende → resultaat → Bewaren levert een JPEG van 141 kB met de nieuwe tekst in het recept; 0 px overloop, geen consolefouten. vitest imageRecipe 6/6; tsc 27 = baseline; build groen; eslint 0; i18n-pariteit.
+
+**Bewust ongemoeid / Vervolg:** WebKit/Safari kon hier niet getest worden (geen WebKit-browser in de sandbox); daarom toont de editor het resultaat vóór het bewaren, zodat een afwijking zichtbaar is in plaats van stil online te gaan. Reels: geen recept (video). Te testen door Akke op zijn iPhone.
+
 ## SOCIAL-3b — Songvoorstellen bij reels en taal per post (2026.11x) — 15 oktober 2026
 
 **Waarom.** Akke: het muziekvoorstel moet concrete nummers noemen, geen sfeeromschrijving; en de taal van posts moet instelbaar zijn (Loveke is Belgisch, maar af en toe Engels voor internationale klanten). Keuze Akke: Engels **enkel op aanvraag** (geen standaardmix).

@@ -6990,6 +6990,21 @@
         "pendingWithNote": "A new version is being made: \"{{note}}\"",
         "languageLabel": "Language",
         "sameLanguage": "Same language"
+      },
+      "imageText": {
+        "button": "Text in image",
+        "title": "Edit the text in the image",
+        "hint": "Only the text changes; the design stays the same. The preview updates as you type.",
+        "preview": "Preview",
+        "image": "Image {{n}}",
+        "next": "Next",
+        "rendering": "Creating image…",
+        "resultTitle": "This is how the image will go live",
+        "resultHint": "This is the image exactly as it will be published. If something is off, go back.",
+        "back": "Back",
+        "save": "Save",
+        "saved": "Image saved",
+        "renderFailed": "The image could not be created: {{message}}"
       }
     }
   },

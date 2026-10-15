@@ -2038,6 +2038,10 @@
         "social_songs_language": {
           "title": "Planification sociale : suggestions de morceaux pour les reels et refaire dans une autre langue",
           "description": "Pour un reel, vous recevez désormais des morceaux concrets à chercher dans la recherche musicale d'Instagram, avec l'ambiance et le tempo. Avec « Refaire », vous choisissez aussi la langue de la nouvelle version, par exemple l'anglais pour vos abonnés internationaux. La langue de chaque publication s'affiche sous forme de code à côté de la plateforme."
+        },
+        "social_image_text": {
+          "title": "Planification sociale : modifiez vous-même le texte de votre image",
+          "description": "Pour les publications et stories préparées pour vous, vous pouvez désormais modifier le texte de l'image elle-même, comme le titre, le prix ou une ligne du bas. Un aperçu s'actualise pendant la saisie, et avant d'enregistrer vous voyez l'image exactement telle qu'elle sera publiée. Le design reste le même."
         }
       },
       "copyLink": "Copier le lien",

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { GatedButton } from '@/components/permissions/GatedButton';
 import { SocialPlannerCard } from '@/components/admin/marketing/social/SocialPlannerCard';
+import { SocialImageTextEditor } from '@/components/admin/marketing/social/SocialImageTextEditor';
 import { useSocialPlanner, type PlannerPost } from '@/hooks/useSocialPlanner';
 import { useSocialConnections } from '@/hooks/useSocialConnections';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
@@ -36,7 +37,7 @@ function toLocalParts(iso: string | null): { date: string; time: string } {
 export default function SocialPlanner() {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
-  const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate } = useSocialPlanner();
+  const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText } = useSocialPlanner();
   const { connections } = useSocialConnections();
 
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -48,6 +49,7 @@ export default function SocialPlanner() {
   const [regenerating, setRegenerating] = useState<PlannerPost | null>(null);
   const [regenNote, setRegenNote] = useState('');
   const [regenLanguage, setRegenLanguage] = useState<string>('same');
+  const [editingImage, setEditingImage] = useState<PlannerPost | null>(null);
 
   const hasConnection = useMemo(
     () => connections.some((c) => c.is_active && (c.platform === 'instagram' || c.platform === 'facebook')),
@@ -220,6 +222,7 @@ export default function SocialPlanner() {
                     onMarkPosted={() => handleMarkPosted(post)}
                     onChooseOwnMusic={() => handleOwnMusic(post)}
                     onRegenerate={() => { setRegenerating(post); setRegenNote(''); setRegenLanguage('same'); }}
+                    onEditImageText={() => setEditingImage(post)}
                   />
                 ))}
               </div>
@@ -269,6 +272,14 @@ export default function SocialPlanner() {
           <p className="text-xs text-muted-foreground">{t('admin.socialPlanner.hourHint')}</p>
         </div>
       </ResponsiveDialog>
+
+      <SocialImageTextEditor
+        post={editingImage}
+        onClose={() => setEditingImage(null)}
+        onSave={async (input) => {
+          await saveImageText.mutateAsync({ ...input, recipe: input.recipe as unknown as Record<string, unknown> });
+        }}
+      />
 
       <ResponsiveDialog
         open={!!regenerating}

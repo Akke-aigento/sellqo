@@ -8,8 +8,9 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import {
   AlertTriangle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Facebook, Images,
-  Instagram, Linkedin, Loader2, Music, Pencil, RefreshCw, Trash2, Twitter,
+  Instagram, Linkedin, Loader2, Music, Pencil, RefreshCw, Trash2, Twitter, Type,
 } from 'lucide-react';
+import { editableImageIndexes } from '@/lib/social/imageRecipe';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -54,10 +55,11 @@ interface Props {
   onMarkPosted: () => void;
   onChooseOwnMusic: () => void;
   onRegenerate: () => void;
+  onEditImageText: () => void;
 }
 
 export function SocialPlannerCard({
-  post, busy, onApprove, onEdit, onRemove, onMarkPosted, onChooseOwnMusic, onRegenerate,
+  post, busy, onApprove, onEdit, onRemove, onMarkPosted, onChooseOwnMusic, onRegenerate, onEditImageText,
 }: Props) {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
@@ -78,6 +80,10 @@ export function SocialPlannerCard({
   const longText = (post.post_text ?? '').length > 220;
   const video = isReel ? (post.status === 'manual' ? post.video_silent_url ?? post.video_url : post.video_url ?? post.video_silent_url) : null;
   const hint = post.music_hint;
+  // SOCIAL-4: enkel waar een recept met tekstvakken bestaat; anders zou de knop niets doen.
+  const canEditImageText = !isReel
+    && !['posted', 'publishing', 'regenerate_requested'].includes(post.status)
+    && editableImageIndexes(post).length > 0;
 
   const copyCaption = async () => {
     try {
@@ -291,6 +297,12 @@ export function SocialPlannerCard({
             <GatedButton action="write" resource="marketing" variant="outline" size="sm" onClick={onEdit} disabled={busy}>
               <Pencil className="h-4 w-4 mr-1" />
               {post.status === 'failed' ? t('admin.socialPlanner.reschedule') : t('admin.socialPlanner.edit')}
+            </GatedButton>
+          )}
+          {canEditImageText && (
+            <GatedButton action="write" resource="marketing" variant="outline" size="sm" onClick={onEditImageText} disabled={busy}>
+              <Type className="h-4 w-4 mr-1" />
+              {t('admin.socialPlanner.imageText.button')}
             </GatedButton>
           )}
           {canRegenerate(post) && (

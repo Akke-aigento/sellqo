@@ -58,6 +58,8 @@ export interface PlannerPost {
   manual_reason: string | null;
   regenerate_note: string | null;
   language: string | null;
+  /** SOCIAL-4: per beeld een recept (of null), parallel aan image_urls. */
+  image_recipes: unknown[] | null;
 }
 
 /** SOCIAL-3: een reel kan enkel automatisch als er een versie met muziek is. */
@@ -99,7 +101,7 @@ export function useSocialPlanner() {
       const since = subDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 7).toISOString();
       const { data, error } = await supabase
         .from('social_posts')
-        .select('id, platform, post_text, image_urls, media_type, scheduled_for, posted_at, status, error_message, source, publish_attempts, video_url, video_silent_url, music_hint, manual_reason, regenerate_note, language')
+        .select('id, platform, post_text, image_urls, media_type, scheduled_for, posted_at, status, error_message, source, publish_attempts, video_url, video_silent_url, music_hint, manual_reason, regenerate_note, language, image_recipes')
         .eq('tenant_id', tenantId!)
         .or(`scheduled_for.gte.${since},status.in.(pending_approval,failed,manual,regenerate_requested)`)
         .order('scheduled_for', { ascending: true, nullsFirst: false })
@@ -228,6 +230,38 @@ export function useSocialPlanner() {
     onSuccess: invalidate,
   });
 
+  /**
+   * SOCIAL-4: nieuw beeld na "Tekst in beeld aanpassen". De JPEG is in de browser gemaakt;
+   * hier gaat hij naar de eigen tenantmap van marketing-assets en vervangt hij dat ene beeld.
+   * De status blijft wat hij was (zoals bij het aanpassen van de tekst).
+   */
+  const saveImageText = useMutation({
+    mutationFn: async (input: { post: PlannerPost; index: number; jpeg: Blob; recipe: Record<string, unknown> }) => {
+      if (!tenantId) throw new Error('Geen winkel geselecteerd.');
+      const path = `${tenantId}/social/edit-${input.post.id}-${input.index}-${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from('marketing-assets')
+        .upload(path, input.jpeg, { contentType: 'image/jpeg', cacheControl: '31536000', upsert: false });
+      if (uploadError) throw uploadError;
+      const url = supabase.storage.from('marketing-assets').getPublicUrl(path).data.publicUrl;
+
+      const urls = [...(input.post.image_urls ?? [])];
+      const recipes = [...(input.post.image_recipes ?? [])];
+      while (recipes.length < urls.length) recipes.push(null);
+      urls[input.index] = url;
+      recipes[input.index] = input.recipe;
+      const { data, error } = await supabase
+        .from('social_posts')
+        .update({ image_urls: urls, image_recipes: recipes as never, updated_at: new Date().toISOString() })
+        .eq('id', input.post.id)
+        .not('status', 'in', '(posted,publishing)')
+        .select('id');
+      if (error) throw error;
+      if (!data?.length) throw new Error('Deze post kan niet meer aangepast worden.');
+    },
+    onSuccess: invalidate,
+  });
+
   /** Een post die je zelf geplaatst hebt (bv. story met sticker) afvinken. */
   const markPosted = useMutation({
     mutationFn: async (id: string) => {
@@ -241,5 +275,5 @@ export function useSocialPlanner() {
     onSuccess: invalidate,
   });
 
-  return { posts, weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate };
+  return { posts, weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText };
 }

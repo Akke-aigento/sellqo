@@ -15524,6 +15524,7 @@ export type Database = {
       }
       social_posts: {
         Row: {
+          image_recipes: Json | null
           language: string | null
           regenerate_language: string | null
           approved_at: string | null
@@ -15559,6 +15560,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          image_recipes?: Json | null
           language?: string | null
           regenerate_language?: string | null
           approved_at?: string | null
@@ -15594,6 +15596,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          image_recipes?: Json | null
           language?: string | null
           regenerate_language?: string | null
           approved_at?: string | null

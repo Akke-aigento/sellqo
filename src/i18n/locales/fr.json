@@ -6753,6 +6753,21 @@
         "pendingWithNote": "Une nouvelle version est en cours de création : « {{note}} »",
         "languageLabel": "Langue",
         "sameLanguage": "Même langue"
+      },
+      "imageText": {
+        "button": "Texte dans l'image",
+        "title": "Modifier le texte de l'image",
+        "hint": "Seul le texte change ; le design reste le même. L'aperçu s'actualise pendant la saisie.",
+        "preview": "Aperçu",
+        "image": "Image {{n}}",
+        "next": "Suivant",
+        "rendering": "Création de l'image…",
+        "resultTitle": "Voici l'image qui sera publiée",
+        "resultHint": "C'est l'image exactement telle qu'elle sera publiée. Si quelque chose ne va pas, revenez en arrière.",
+        "back": "Retour",
+        "save": "Enregistrer",
+        "saved": "Image enregistrée",
+        "renderFailed": "L'image n'a pas pu être créée : {{message}}"
       }
     }
   },

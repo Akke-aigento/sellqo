@@ -2038,6 +2038,10 @@
         "social_songs_language": {
           "title": "Social planning: song suggestions for reels and remaking in another language",
           "description": "For a reel you now get concrete songs to search for in the Instagram music search, with the mood and tempo. And with \"Make again\" you also choose the language of the new version, for example English for your international followers. The language of each post is shown as a code next to the platform."
+        },
+        "social_image_text": {
+          "title": "Social planning: edit the text in your image yourself",
+          "description": "For posts and stories prepared for you, you can now edit the text in the image itself, such as the title, the price or a bottom line. A preview updates as you type, and before you save you see the image exactly as it will go live. The design stays the same."
         }
       },
       "copyLink": "Copy link",
