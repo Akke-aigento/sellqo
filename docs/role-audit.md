@@ -1,3 +1,19 @@
+## SOCIAL-1b — Instagram koppelen in SellQo Connect i.p.v. in dode code — 15 oktober 2026
+
+**Root cause.** SOCIAL-1 zette de Instagram-kaart en de paginakeuze in `src/components/admin/settings/SocialConnectionsManager.tsx`. Die component wordt nergens geïmporteerd (`grep -rn SocialConnectionsManager src` geeft enkel het bestand zelf): Instellingen → Social Media toont `SocialMediaHub` (footerlinks + doorverwijzing), en koppelen gebeurt in SellQo Connect → Kanalen (`UnifiedChannelList.tsx`). Akke vond het bij de eerste live test. De recon van SOCIAL-1 had de rendering-plek moeten natrekken, niet enkel de component. Changelog, helpartikel en drie foutmeldingen verwezen daardoor naar "Instellingen → Social" en beloofden een paginakeuze die in de echte UI niet bestaat.
+
+**Uitgevoerd:**
+- `UnifiedChannelList.tsx`: kanaal `instagram` (wizardType autopost, zelfde route als X en LinkedIn, platform 'instagram' naar social-oauth-init). Functie "Autopost" enkel bij een rechtstreekse instagram-koppeling (niet via getAutopostConnection, die voor instagram terugvalt op Meta). Beschikbaarheid via `checkOnly`: zonder Instagram Login-config blijft de kaart "Binnenkort", met config is hij ook voor gewone tenants klikbaar. Geen nieuwe UI-teksten (merknaam + bestaande "Autopost").
+- `SocialConnectionsManager.tsx` teruggezet naar de versie van vóór SOCIAL-1 (dode code, niet verder aanraken). De i18n-keys `settings.social.platforms.instagram` en `settings.social.pagePicker.*` blijven staan voor de paginakeuze in SOCIAL-2.
+- `_shared/socialPublish.ts`: vier foutmeldingen verwijzen nu naar SellQo Connect → Kanalen; bij meerdere pagina's: koppel Instagram rechtstreeks, paginakeuze volgt.
+- Changelog `social_posts_published` (5 talen): zin over de paginakeuze geschrapt. Helpartikel `social-posts-inplannen` herschreven (Connect, geen paginakeuze, "Instellingen" om opnieuw te koppelen) en live bijgewerkt (md5 content d5220bc7…). Nieuwsbrief-item idem.
+
+**Security-keuzes:** n.v.t. (zelfde edge functions, zelfde RLS; de kaart roept enkel social-oauth-init aan, die tenant_admin vereist).
+
+**Verificatie:** deno test 10/10, deno check groen, i18n-pariteit, tsc en lint (zie commit).
+
+**Vervolg:** paginakeuze voor Meta-autopost in de MetaConnectWizard (SOCIAL-2). De MetaConnectWizard vraagt nog altijd een eigen App ID/Secret, ook als de SellQo-platformapp beschikbaar is.
+
 ## SOCIAL-1 — social posts worden echt gepubliceerd (2026.11u) — 15 oktober 2026
 
 **Branch `social-1`, niet op main. Akke deployt.** Eerste batch van de Nomadix-socials-reeks (masterplan: projectdoc `claude/socials-masterplan.md`). Alle Nomadix-brands zijn SellQo-tenants en gaan via deze module posten; daarna is het een verkoopbare feature.

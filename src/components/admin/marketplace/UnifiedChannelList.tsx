@@ -52,6 +52,17 @@ const CHANNELS: ChannelConfig[] = [
     wizardType: 'meta',
   },
   {
+    // SOCIAL-1b: Instagram rechtstreeks (Instagram Login), zonder Facebook-pagina.
+    // Zelfde OAuth-route als X en LinkedIn (social-oauth-init, platform 'instagram').
+    id: 'instagram',
+    name: 'Instagram',
+    icon: Instagram,
+    iconColor: 'text-pink-600',
+    iconBg: 'bg-pink-100',
+    status: 'available',
+    wizardType: 'autopost',
+  },
+  {
     id: 'google_shopping',
     name: 'Google Shopping',
     icon: Search,
@@ -164,6 +175,21 @@ export function UnifiedChannelList() {
   const [feedConnectType, setFeedConnectType] = useState<SocialChannelType | null>(null);
   const [settingsType, setSettingsType] = useState<SocialChannelType | null>(null);
   const [connectingAutopost, setConnectingAutopost] = useState<string | null>(null);
+
+  // SOCIAL-1b: Instagram is pas echt beschikbaar als Instagram Login voor deze winkel
+  // ingesteld is (eigen app of vrijgegeven SellQo-app). Anders blijft hij "Binnenkort".
+  const { data: instagramAvailable = false } = useQuery({
+    queryKey: ['social-oauth-available', currentTenant?.id, 'instagram'],
+    enabled: !!currentTenant?.id,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('social-oauth-init', {
+        body: { platform: 'instagram', tenantId: currentTenant!.id, checkOnly: true },
+      });
+      if (error) return false;
+      return Boolean(data?.available);
+    },
+  });
   const [disconnectDialog, setDisconnectDialog] = useState<{
     channelId: string;
     features: ActiveFeature[];
@@ -188,6 +214,13 @@ export function UnifiedChannelList() {
         // Autopost
         const autopost = getAutopostConnection('facebook');
         if (autopost) features.push({ label: 'Autopost', source: 'social_connection', connectionId: autopost.id });
+        break;
+      }
+      case 'instagram': {
+        // Enkel een rechtstreekse Instagram-koppeling. Niet getAutopostConnection:
+        // die valt voor 'instagram' terug op de Meta-koppeling (postgenerator).
+        const conn = socialConnections.find((c) => c.platform === 'instagram' && c.is_active);
+        if (conn) features.push({ label: 'Autopost', source: 'social_connection', connectionId: conn.id });
         break;
       }
       case 'google_shopping': {
@@ -309,7 +342,8 @@ export function UnifiedChannelList() {
           // Gating: none of these channels has a live tenant connection yet, so
           // all of them show as "Binnenkort". A live connection wins over the
           // flag, and platform admins keep working buttons for testing.
-          const showComingSoonBadge = !isConnected;
+          const isLiveChannel = channel.id === 'instagram' && instagramAvailable;
+          const showComingSoonBadge = !isConnected && !isLiveChannel;
           const isComingSoon = showComingSoonBadge && !isPlatformAdmin;
           const isLoading = connectingAutopost === channel.id;
 

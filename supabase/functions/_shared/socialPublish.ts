@@ -123,7 +123,7 @@ async function pickPage(
   if (targetPageId) {
     const page = pages.find((p) => p.page_id === targetPageId);
     if (!page) {
-      return { ok: false, error: "De gekozen Facebook-pagina is niet meer gekoppeld. Koppel Meta opnieuw in Instellingen → Social." };
+      return { ok: false, error: "De gekozen Facebook-pagina is niet meer gekoppeld. Koppel Meta opnieuw in SellQo Connect → Kanalen." };
     }
     return { ok: true, page };
   }
@@ -131,7 +131,7 @@ async function pickPage(
   if (pages.length === 0) {
     return { ok: false, error: "Geen Facebook-pagina gevonden. Koppel Meta opnieuw met een account dat een pagina beheert." };
   }
-  return { ok: false, error: "Je beheert meerdere Facebook-pagina's. Kies in Instellingen → Social op welke pagina je post." };
+  return { ok: false, error: "Je beheert meerdere Facebook-pagina's en SellQo weet niet op welke je wil posten. Koppel Instagram rechtstreeks in SellQo Connect → Kanalen; een paginakeuze voor Facebook volgt." };
 }
 
 /** Bepaalt met welk account en token een post voor dit platform vertrekt. */
@@ -145,7 +145,7 @@ export async function resolveTarget(
     const ig = await loadConnection(db, tenantId, "instagram");
     if (ig && ig.api_kind === "instagram_login" && ig.access_token && ig.account_id) {
       if (isExpired(ig.token_expires_at)) {
-        return { ok: false, error: "De Instagram-koppeling is verlopen. Koppel Instagram opnieuw in Instellingen → Social." };
+        return { ok: false, error: "De Instagram-koppeling is verlopen. Koppel Instagram opnieuw in SellQo Connect → Kanalen." };
       }
       return {
         ok: true,
@@ -156,7 +156,7 @@ export async function resolveTarget(
     // 2. Facebook Login: het IG-account dat aan de gekozen pagina hangt.
     const fb = await loadConnection(db, tenantId, "facebook");
     if (!fb) {
-      return { ok: false, error: "Geen Instagram-koppeling. Koppel Instagram of Meta in Instellingen → Social." };
+      return { ok: false, error: "Geen Instagram-koppeling. Koppel Instagram in SellQo Connect → Kanalen." };
     }
     const picked = await pickPage(db, tenantId, fb.target_page_id);
     if (!picked.ok) return picked;

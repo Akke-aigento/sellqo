@@ -20,15 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useSocialConnections, type SocialConnection } from '@/hooks/useSocialConnections';
+import { useSocialConnections } from '@/hooks/useSocialConnections';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -55,16 +47,6 @@ const buildPlatformConfigs = (t: (key: string) => string): SocialPlatformConfig[
     description: t('settings.social.platforms.meta'),
     scopes: ['pages_manage_posts', 'instagram_content_publish'],
   },
-  {
-    // SOCIAL-1: Instagram rechtstreeks (Instagram Login), zonder Facebook-pagina.
-    id: 'instagram',
-    name: 'Instagram',
-    icon: Instagram,
-    color: 'text-pink-600',
-    bgColor: 'bg-pink-100',
-    description: t('settings.social.platforms.instagram'),
-    scopes: ['instagram_business_content_publish'],
-  },
   { 
     id: 'twitter',
     name: 'X (Twitter)', 
@@ -84,78 +66,6 @@ const buildPlatformConfigs = (t: (key: string) => string): SocialPlatformConfig[
     scopes: ['w_member_social'],
   },
 ];
-
-interface MetaPage {
-  page_id: string;
-  page_name: string | null;
-}
-
-/**
- * SOCIAL-1: wie meerdere Facebook-pagina's beheert, kiest hier op welke pagina deze
- * winkel post. Zonder keuze weigert de publicatie (geen gok op "de eerste pagina").
- * Bij één pagina toont dit niets: die wordt automatisch gebruikt.
- */
-function MetaPagePicker({ connection }: { connection: SocialConnection }) {
-  const { t } = useTranslation();
-  const queryClient = useQueryClient();
-  const [saving, setSaving] = useState(false);
-
-  const { data: pages = [] } = useQuery({
-    queryKey: ['meta-pages', connection.tenant_id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('meta_messaging_connections')
-        .select('page_id, page_name')
-        .eq('tenant_id', connection.tenant_id)
-        .eq('platform', 'facebook')
-        .eq('is_active', true)
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return (data ?? []) as MetaPage[];
-    },
-  });
-
-  if (pages.length < 2) return null;
-
-  const handleChange = async (pageId: string) => {
-    setSaving(true);
-    try {
-      const { error } = await supabase
-        .from('social_connections')
-        .update({ target_page_id: pageId, updated_at: new Date().toISOString() })
-        .eq('id', connection.id);
-      if (error) throw error;
-      await queryClient.invalidateQueries({ queryKey: ['social-connections'] });
-      toast.success(t('settings.social.pagePicker.saved'));
-    } catch {
-      toast.error(t('settings.social.pagePicker.saveError'));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  return (
-    <div className="mt-2 space-y-1">
-      <p className="text-xs text-muted-foreground">{t('settings.social.pagePicker.hint')}</p>
-      <Select
-        value={connection.target_page_id ?? undefined}
-        onValueChange={handleChange}
-        disabled={saving}
-      >
-        <SelectTrigger className="h-8 w-64" aria-label={t('settings.social.pagePicker.label')}>
-          <SelectValue placeholder={t('settings.social.pagePicker.placeholder')} />
-        </SelectTrigger>
-        <SelectContent>
-          {pages.map((page) => (
-            <SelectItem key={page.page_id} value={page.page_id}>
-              {page.page_name || page.page_id}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  );
-}
 
 export function SocialConnectionsManager() {
   const { t } = useTranslation();
@@ -213,29 +123,13 @@ export function SocialConnectionsManager() {
     }
   };
 
-  // SOCIAL-1: Instagram heeft nu een eigen kaart (Instagram Login); de Meta-kaart
-  // toont enkel de Facebook-koppeling.
-  const getConnectionForPlatform = (platformId: string) =>
-    connections.find(c => c.platform === platformId);
-
-  // SOCIAL-1: de Instagram-kaart verschijnt alleen als Instagram Login voor deze winkel
-  // ingesteld is (of er al een koppeling is). Anders zou Koppelen enkel op
-  // "niet geconfigureerd" uitkomen: een dode knop.
-  const { data: instagramAvailable = false } = useQuery({
-    queryKey: ['social-oauth-available', currentTenant?.id, 'instagram'],
-    enabled: !!currentTenant?.id,
-    staleTime: 5 * 60 * 1000,
-    queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('social-oauth-init', {
-        body: { platform: 'instagram', tenantId: currentTenant!.id, checkOnly: true },
-      });
-      if (error) return false;
-      return Boolean(data?.available);
-    },
-  });
-  const visiblePlatforms = platformConfigs.filter(
-    (p) => p.id !== 'instagram' || instagramAvailable || !!getConnectionForPlatform('instagram'),
-  );
+  const getConnectionForPlatform = (platformId: string) => {
+    // For Meta, check both facebook and instagram
+    if (platformId === 'facebook') {
+      return connections.find(c => c.platform === 'facebook' || c.platform === 'instagram');
+    }
+    return connections.find(c => c.platform === platformId);
+  };
 
   const isTokenExpired = (expiresAt: string | null) => {
     if (!expiresAt) return false;
@@ -271,7 +165,7 @@ export function SocialConnectionsManager() {
           </Alert>
 
           <div className="space-y-3">
-            {visiblePlatforms.map((platform) => {
+            {platformConfigs.map((platform) => {
               const connection = getConnectionForPlatform(platform.id);
               const isConnected = Boolean(connection?.is_active);
               const isExpired = connection && isTokenExpired(connection.token_expires_at);
@@ -320,9 +214,6 @@ export function SocialConnectionsManager() {
                         </div>
                       ) : (
                         <p className="text-sm text-muted-foreground">{platform.description}</p>
-                      )}
-                      {isConnected && connection && platform.id === 'facebook' && (
-                        <MetaPagePicker connection={connection} />
                       )}
                     </div>
                   </div>

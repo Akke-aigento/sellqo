@@ -2025,7 +2025,7 @@
         },
         "social_posts_published": {
           "title": "Scheduled social posts are now actually published",
-          "description": "Posts you schedule for Facebook or Instagram now go live automatically, within the hour after the time you chose. Instagram posts now really end up on Instagram instead of on your Facebook Page, with support for carousels (2 to 10 images, JPEG). If you manage several Facebook Pages, choose under Settings → Social media which Page your shop posts to. If a post fails, you get a notification with the reason, and after a temporary outage SellQo tries up to three times in total."
+          "description": "Posts you schedule for Facebook or Instagram now go live automatically, within the hour after the time you chose. Instagram posts now really end up on Instagram instead of on your Facebook Page, with support for carousels (2 to 10 images, JPEG). If a post fails, you get a notification with the reason, and after a temporary outage SellQo tries up to three times in total."
         }
       },
       "copyLink": "Copy link",
