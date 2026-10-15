@@ -15524,15 +15524,6 @@ export type Database = {
       }
       social_posts: {
         Row: {
-          manual_reason: string | null
-          music_hint: Json | null
-          publish_container_id: string | null
-          regenerate_from: string | null
-          regenerate_note: string | null
-          regenerate_requested_at: string | null
-          reminded_at: string | null
-          video_silent_url: string | null
-          video_url: string | null
           approved_at: string | null
           approved_by: string | null
           connection_id: string | null
@@ -15543,29 +15534,29 @@ export type Database = {
           id: string
           image_urls: string[] | null
           last_attempt_at: string | null
+          manual_reason: string | null
           media_type: string
+          music_hint: Json | null
           platform: string
           platform_post_id: string | null
           post_text: string
           posted_at: string | null
           publish_attempts: number
           publish_claimed_from: string | null
+          publish_container_id: string | null
+          regenerate_from: string | null
+          regenerate_note: string | null
+          regenerate_requested_at: string | null
+          reminded_at: string | null
           scheduled_for: string | null
           source: string | null
           status: string | null
           tenant_id: string
           updated_at: string | null
+          video_silent_url: string | null
+          video_url: string | null
         }
         Insert: {
-          manual_reason?: string | null
-          music_hint?: Json | null
-          publish_container_id?: string | null
-          regenerate_from?: string | null
-          regenerate_note?: string | null
-          regenerate_requested_at?: string | null
-          reminded_at?: string | null
-          video_silent_url?: string | null
-          video_url?: string | null
           approved_at?: string | null
           approved_by?: string | null
           connection_id?: string | null
@@ -15576,29 +15567,29 @@ export type Database = {
           id?: string
           image_urls?: string[] | null
           last_attempt_at?: string | null
+          manual_reason?: string | null
           media_type?: string
+          music_hint?: Json | null
           platform: string
           platform_post_id?: string | null
           post_text: string
           posted_at?: string | null
           publish_attempts?: number
           publish_claimed_from?: string | null
-          scheduled_for?: string | null
-          source?: string | null
-          status?: string | null
-          tenant_id: string
-          updated_at?: string | null
-        }
-        Update: {
-          manual_reason?: string | null
-          music_hint?: Json | null
           publish_container_id?: string | null
           regenerate_from?: string | null
           regenerate_note?: string | null
           regenerate_requested_at?: string | null
           reminded_at?: string | null
+          scheduled_for?: string | null
+          source?: string | null
+          status?: string | null
+          tenant_id: string
+          updated_at?: string | null
           video_silent_url?: string | null
           video_url?: string | null
+        }
+        Update: {
           approved_at?: string | null
           approved_by?: string | null
           connection_id?: string | null
@@ -15609,18 +15600,27 @@ export type Database = {
           id?: string
           image_urls?: string[] | null
           last_attempt_at?: string | null
+          manual_reason?: string | null
           media_type?: string
+          music_hint?: Json | null
           platform?: string
           platform_post_id?: string | null
           post_text?: string
           posted_at?: string | null
           publish_attempts?: number
           publish_claimed_from?: string | null
+          publish_container_id?: string | null
+          regenerate_from?: string | null
+          regenerate_note?: string | null
+          regenerate_requested_at?: string | null
+          reminded_at?: string | null
           scheduled_for?: string | null
           source?: string | null
           status?: string | null
           tenant_id?: string
           updated_at?: string | null
+          video_silent_url?: string | null
+          video_url?: string | null
         }
         Relationships: [
           {
@@ -21889,18 +21889,27 @@ export type Database = {
           id: string
           image_urls: string[] | null
           last_attempt_at: string | null
+          manual_reason: string | null
           media_type: string
+          music_hint: Json | null
           platform: string
           platform_post_id: string | null
           post_text: string
           posted_at: string | null
           publish_attempts: number
           publish_claimed_from: string | null
+          publish_container_id: string | null
+          regenerate_from: string | null
+          regenerate_note: string | null
+          regenerate_requested_at: string | null
+          reminded_at: string | null
           scheduled_for: string | null
           source: string | null
           status: string | null
           tenant_id: string
           updated_at: string | null
+          video_silent_url: string | null
+          video_url: string | null
         }[]
         SetofOptions: {
           from: "*"
