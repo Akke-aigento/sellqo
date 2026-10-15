@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  CalendarCheck,
   Package,
   ShoppingCart,
   Users,
@@ -200,6 +201,9 @@ const marketingItems: NavItem[] = [
       { id: 'ai-actions', titleKey: 'navigation.items.ai_actions', url: '/admin/marketing/ai-center', featureKey: 'ai_coach', requireRead: 'ai_coach' },
     ],
   },
+  // SOCIAL-2: posts goedkeuren en plannen. Geen featureKey: ook Starter/Free-winkels
+  // posten via een koppeling; plan-gating is een aparte beslissing.
+  { id: 'social-planner', titleKey: 'navigation.items.social_planner', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing' },
   { id: 'seo', titleKey: 'navigation.items.seo', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },
 ];
 

@@ -174,7 +174,8 @@
       "ordering": "Ordering",
       "event_venues": "Venues",
       "event_bundles": "Combo tickets",
-      "event_tokens": "Tokens"
+      "event_tokens": "Tokens",
+      "social_planner": "Social planning"
     }
   },
   "settings": {
@@ -6901,6 +6902,55 @@
           "name": "E-commerce",
           "description": "Focus on online sales"
         }
+      }
+    },
+    "socialPlanner": {
+      "title": "Social planning",
+      "description": "Review, edit and approve your posts. Approved posts go live automatically at the planned hour.",
+      "waiting": "Waiting for approval: {{count}}",
+      "week": "Week of {{from}} to {{to}}",
+      "approveWeek": "Approve week ({{count}})",
+      "approve": "Approve",
+      "edit": "Edit",
+      "reschedule": "Reschedule",
+      "remove": "Remove",
+      "openImage": "Open image",
+      "markPosted": "Posted",
+      "showMore": "More",
+      "showLess": "Less",
+      "carousel": "{{count}} images",
+      "story": "Story",
+      "pastDue": "The planned hour has passed. Once approved, the post goes live within the hour.",
+      "manualHint": "This can't be posted automatically (for example a story with a sticker). Open the image, post it yourself and tick it off afterwards.",
+      "editTitle": "Edit post",
+      "rescheduleTitle": "Reschedule post",
+      "caption": "Text",
+      "date": "Date",
+      "time": "Hour",
+      "hourHint": "Posts go live in the first minutes after the chosen hour.",
+      "invalidDate": "Choose a valid date and hour.",
+      "removeTitle": "Remove post?",
+      "removeBody": "The post disappears from the planning and won't be published. This can't be undone.",
+      "empty": "Nothing is planned yet. Posts prepared for you will appear here for approval.",
+      "noConnection": "There is no Instagram or Facebook connection yet. Approved posts only go live once you connect an account.",
+      "toConnect": "Go to SellQo Connect",
+      "status": {
+        "draft": "Draft",
+        "pending_approval": "Waiting for approval",
+        "approved": "Approved",
+        "scheduled": "Scheduled",
+        "publishing": "Publishing",
+        "posted": "Published",
+        "failed": "Failed",
+        "manual": "Post yourself"
+      },
+      "toast": {
+        "approved": "Approved",
+        "weekApproved": "{{count}} posts approved",
+        "saved": "Saved",
+        "removed": "Removed",
+        "markedPosted": "Marked as posted",
+        "error": "Something went wrong: {{message}}"
       }
     }
   },

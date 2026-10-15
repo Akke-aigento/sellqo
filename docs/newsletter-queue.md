@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11v — Social planning: je posts per week goedkeuren (feature, 15-10-2026)
+
+**Voor wie:** iedereen die social posts plant.
+
+Nieuw onder Marketing → Social planning: al je geplande posts per week, met het beeld zoals op Instagram,
+de tekst en het uur. Goedkeuren per post of per week, tekst en uur aanpassen, schrappen. Goedgekeurde posts
+gaan vanzelf online. Stories met stickers staan er ook, om zelf te posten en af te vinken.
+
+**Niet versturen vóór** de eerste echte posts via de planning online stonden (Loveke, launchweek).
+
+**i18n-keys.** `public.changelog.changes.social_planning_approval` — 5 talen.
+
 ### 2026.11u — Ingeplande social posts worden nu echt gepubliceerd (feature, 15-10-2026)
 
 **Voor wie:** iedereen die social posts maakt (SellQo Connect → Kanalen, social commerce).

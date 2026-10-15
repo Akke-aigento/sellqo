@@ -70,7 +70,7 @@ serve(async (req) => {
     // niet bruikbaar is, en niet pas op het geplande moment.
     let images = imageUrls || [];
     if (resolved.target.kind === 'instagram' && images.length > 0) {
-      const prepared = await prepareInstagramImages(supabase, tenantId, images);
+      const prepared = await prepareInstagramImages(supabase, tenantId, images, { ownHost: new URL(supabaseUrl).host });
       if (!prepared.ok) {
         return new Response(
           JSON.stringify({ error: prepared.error }),

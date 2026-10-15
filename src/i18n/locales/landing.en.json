@@ -2026,6 +2026,10 @@
         "social_posts_published": {
           "title": "Scheduled social posts are now actually published",
           "description": "Posts you schedule for Facebook or Instagram now go live automatically, within the hour after the time you chose. Instagram posts now really end up on Instagram instead of on your Facebook Page, with support for carousels (2 to 10 images). SellQo automatically converts PNG product photos to JPEG on a white background, because Instagram only accepts JPEG. If a post fails, you get a notification with the reason, and after a temporary outage SellQo tries up to three times in total."
+        },
+        "social_planning_approval": {
+          "title": "Social planning: approve your posts per week",
+          "description": "Under Marketing → Social planning you see all your planned posts per week, with the image as it will appear on Instagram, the text and the hour. You approve them one by one or a whole week at once, edit the text or hour, or remove a post. Approved posts go live automatically at the planned hour. Posts that can't be published automatically, such as a story with a sticker, are listed too: you open the image, post it yourself and tick it off."
         }
       },
       "copyLink": "Copy link",

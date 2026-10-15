@@ -122,6 +122,7 @@ import KitchenPage from "./pages/admin/Kitchen";
 import OrderingHubPage from "./pages/admin/OrderingHub";
 import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 import SEODashboard from "./pages/admin/SEODashboard";
+import SocialPlanner from "./pages/admin/SocialPlanner";
 import TranslationHub from "./pages/admin/TranslationHub";
 import StorefrontPage from "./pages/admin/Storefront";
 import StorefrontCustomizePage from "./pages/admin/StorefrontCustomize";
@@ -284,6 +285,7 @@ const App = () => (
               <Route path="marketing/ai-center" element={<RouteGuard requireRead="ai_coach"><AIActionCenter /></RouteGuard>} />
               <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
               <Route path="marketing/seo" element={<RouteGuard requireRead="seo"><SEODashboard /></RouteGuard>} />
+              <Route path="marketing/social" element={<RouteGuard requireRead="marketing"><SocialPlanner /></RouteGuard>} />
               <Route path="marketing/translations" element={<RouteGuard requireRead="cms"><TranslationHub /></RouteGuard>} />
               <Route path="notifications" element={<RouteGuard requireRead="profile"><NotificationsPage /></RouteGuard>} />
               {/* NOTIF-DEEPLINK-1: oude paden uit meldingen en e-mails → de bestaande pagina. */}

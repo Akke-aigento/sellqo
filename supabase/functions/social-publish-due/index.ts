@@ -34,6 +34,8 @@ const corsHeaders = {
 };
 
 const MAX_ATTEMPTS = 3;
+/** Host van de eigen opslag: beelden van elders worden naar SellQo gekopieerd (SOCIAL-2). */
+const OWN_HOST = new URL(Deno.env.get("SUPABASE_URL") ?? "http://localhost").host;
 const PLATFORMS: readonly SocialPlatform[] = ["facebook", "instagram", "twitter", "linkedin"];
 const MEDIA_TYPES: readonly SocialMediaType[] = ["image", "carousel", "story"];
 
@@ -131,7 +133,7 @@ async function publishDue(admin: Admin) {
     // nieuwe URL's bewaard, zodat een nieuwe poging niet opnieuw moet omzetten.
     let imageUrls = post.image_urls ?? [];
     if (resolved.target.kind === "instagram" && imageUrls.length > 0) {
-      const prepared = await prepareInstagramImages(admin, post.tenant_id, imageUrls);
+      const prepared = await prepareInstagramImages(admin, post.tenant_id, imageUrls, { ownHost: OWN_HOST });
       if (!prepared.ok) {
         await fail(prepared.error, prepared.retryable);
         continue;
@@ -225,7 +227,7 @@ Deno.serve(async (req) => {
       const tenantId = String(body?.tenantId ?? "");
       const urls = Array.isArray(body?.imageUrls) ? body.imageUrls.map(String) : [];
       if (!tenantId || urls.length === 0) return json({ success: false, error: "tenantId en imageUrls verplicht" }, 400);
-      const prepared = await prepareInstagramImages(admin, tenantId, urls);
+      const prepared = await prepareInstagramImages(admin, tenantId, urls, { ownHost: OWN_HOST });
       return json({ success: prepared.ok, mode, ...prepared });
     }
     const result = mode === "refresh" ? await refreshTokens(admin) : await publishDue(admin);

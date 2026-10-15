@@ -46,6 +46,14 @@ export type PrepareResult =
   | { ok: true; urls: string[]; converted: number }
   | { ok: false; error: string; retryable: boolean };
 
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "";
+  }
+}
+
 function isJpegUrl(url: string): boolean {
   try {
     return /\.(jpe?g)$/i.test(new URL(url).pathname);
@@ -173,6 +181,12 @@ export async function prepareInstagramImages(
   storage: SocialStorageClient,
   tenantId: string,
   urls: string[],
+  /**
+   * SOCIAL-2: host van de eigen Supabase-opslag. Beelden van elders (bv. GitHub, waar
+   * de weektaak zijn renders zet) worden dan ook gekopieerd, zodat een post niet afhangt
+   * van een externe host en Instagram altijd uit onze opslag haalt.
+   */
+  options: { ownHost?: string } = {},
 ): Promise<PrepareResult> {
   const clean = urls.filter(Boolean);
   if (clean.length > MAX_INSTAGRAM_IMAGES) {
@@ -182,7 +196,8 @@ export async function prepareInstagramImages(
   const out: string[] = [];
   let converted = 0;
   for (const url of clean) {
-    if (isJpegUrl(url)) {
+    const external = !!options.ownHost && hostOf(url) !== options.ownHost;
+    if (isJpegUrl(url) && !external) {
       out.push(url);
       continue;
     }
@@ -205,18 +220,19 @@ export async function prepareInstagramImages(
     }
     const bytes = new Uint8Array(await response.arrayBuffer());
     const kind = sniffImage(bytes);
-    if (kind === "jpeg") {
+    if (kind === "jpeg" && !external) {
       out.push(url);
       continue;
     }
-    if (kind !== "png") {
+    if (kind === "other") {
       const type = response.headers.get("content-type") ?? "onbekend";
       return { ok: false, retryable: false, error: `Dit beeldformaat (${type}) kan SellQo niet omzetten voor Instagram. Gebruik JPEG of PNG.` };
     }
 
     let jpegBytes: Uint8Array;
     try {
-      jpegBytes = toInstagramJpeg(bytes);
+      // Een externe JPEG gaat ongewijzigd mee (enkel gekopieerd); een PNG wordt omgezet.
+      jpegBytes = kind === "jpeg" ? bytes : toInstagramJpeg(bytes);
     } catch (err) {
       return { ok: false, retryable: false, error: `Beeld kon niet omgezet worden naar JPEG: ${(err as Error).message}` };
     }

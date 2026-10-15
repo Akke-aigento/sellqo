@@ -1,3 +1,23 @@
+## SOCIAL-2 — Social planning: posts per week goedkeuren (2026.11v) — 15 oktober 2026
+
+**Waarom.** De motor (SOCIAL-1/1b/1c) publiceert, maar er was geen plek om posts te zien en goed te keuren. Akke's test met de bestaande AI-generator toonde dat die voor de Nomadix-brands niet bruikbaar is (enkel tekst + kale productfoto, generieke inhoud, mobiele layout loopt over). Beslissing (masterplan): de content komt uit de wekelijkse contenttaken als `pending_approval`; Akke keurt per week goed.
+
+**Uitgevoerd:**
+- `src/pages/admin/SocialPlanner.tsx` (nieuw, route `/admin/marketing/social`, RouteGuard read marketing): posts per week (maandag-start), "Week goedkeuren (n)", lege staat, melding + link naar Connect zonder Instagram/Facebook-koppeling, bewerkdialoog (ResponsiveDialog: tekst met teller 2200, datum, uur), schrapbevestiging (AlertDialog).
+- `src/components/admin/marketing/social/SocialPlannerCard.tsx` (nieuw): beeld 4:5 bovenaan zoals op Instagram (story: volledig getoond i.p.v. bijgesneden), carrousel-badge, platform + korte datum, statusbadge per status, tekst met Meer/Minder, foutmelding bij Mislukt, acties per status (Goedkeuren, Aanpassen/Opnieuw inplannen, Schrappen, Beeld openen + Gepost voor manual). Alle schrijfknoppen via GatedButton (write marketing).
+- `src/hooks/useSocialPlanner.ts` (nieuw): ophalen (vanaf vorige week + alles wat nog aandacht vraagt), groeperen per week, approve (enkel pending_approval/draft; zet approved_at/approved_by), update (mislukte post terug naar approved met schone teller), remove (niet bij posted/publishing), markPosted (enkel manual).
+- Menu: Marketing → Social planning (`social-planner`), zonder featureKey: Loveke (starter) en Fonske (free) hebben geen social_commerce; plan-gating is een aparte beslissing voor Akke.
+- `_shared/socialMedia.ts`: optie `ownHost`: beelden van buiten de eigen opslag (bv. GitHub-renders van de weektaak) worden bij publiceren naar marketing-assets gekopieerd (JPEG ongewijzigd, PNG omgezet). Typecheck ving onderweg een bug: een externe JPEG zou als "formaat niet ondersteund" geweigerd zijn (`kind !== "png"` i.p.v. `kind === "other"`).
+- i18n: `admin.socialPlanner.*` (37 keys) + `navigation.items.social_planner` × 5 talen. Changelog `social_planning_approval` (2026.11v) × 5 talen. Helpartikel `social-planning-goedkeuren` (context /admin/marketing/social). Nieuwsbrief-item.
+
+**Security-keuzes:** geen nieuwe policies; alles via de bestaande RLS op social_posts (update/delete voor tenant_admin, staff, marketing; select voor leden). De filters in de mutaties (status-voorwaarden) voorkomen dat de UI een gepubliceerde post schrapt of een niet-wachtende post "goedkeurt".
+
+**Verificatie:** tsc 27 = baseline; lint 0 fouten in de nieuwe bestanden; build groen; i18n-pariteit; deno test 21/21 (nieuw: externe JPEG ongewijzigd gekopieerd, eigen opslag gaat door); deno check. Visueel: lokale harness (Vite, gemockte data met de echte Loveke-launchbeelden) in Chromium op 390 px en 1280 px, NL en UK: geen horizontale overloop (0 px), geen console-fouten; bijgestuurd na de eerste screenshots (story bijgesneden, datum op twee regels, sticky weekkop over de beelden).
+
+**Deploy-lijst:** social-publish-due, social-post-publish (socialMedia gewijzigd). Frontend: publiceren.
+
+**Vervolg:** eigen beeld uploaden/kiezen in de planning; pushmelding naar de tenant als er een week klaarstaat; de AI-generator (mobiele layout, beeldkeuze) apart herbekijken.
+
 ## SOCIAL-1c — PNG-productfoto's automatisch naar JPEG voor Instagram — 15 oktober 2026
 
 **Root cause.** Instagram aanvaardt enkel JPEG (beeldverhouding 4:5 tot 1,91:1). De Social Post Generator stuurt de productfoto's van de tenant mee, en die zijn vaak PNG met transparantie: bij Loveke allemaal (`products.images`, bucket product-images). `socialPublish.ts` weigerde die terecht, met als gevolg dat de normale tenant-flow nooit op Instagram kon posten. Daarnaast stuurde de generator alle voorgestelde beelden mee (kan meer dan 10 zijn) en wees "Koppel Instagram" nog naar /admin/settings?section=social.

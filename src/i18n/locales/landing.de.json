@@ -2026,6 +2026,10 @@
         "social_posts_published": {
           "title": "Geplante Social-Posts werden jetzt wirklich veröffentlicht",
           "description": "Beiträge, die Sie für Facebook oder Instagram planen, gehen jetzt automatisch online, innerhalb einer Stunde nach dem gewählten Zeitpunkt. Instagram-Beiträge landen jetzt wirklich auf Instagram statt auf Ihrer Facebook-Seite, mit Unterstützung für Karussells (2 bis 10 Bilder). PNG-Produktfotos wandelt SellQo automatisch in JPEG auf weißem Hintergrund um, da Instagram nur JPEG akzeptiert. Schlägt ein Beitrag fehl, erhalten Sie eine Benachrichtigung mit dem Grund, und bei einer vorübergehenden Störung versucht SellQo es insgesamt bis zu dreimal."
+        },
+        "social_planning_approval": {
+          "title": "Social-Planung: Beiträge pro Woche genehmigen",
+          "description": "Unter Marketing → Social-Planung sehen Sie alle geplanten Beiträge pro Woche, mit dem Bild, wie es auf Instagram erscheint, dem Text und der Uhrzeit. Sie genehmigen sie einzeln oder eine ganze Woche auf einmal, ändern Text oder Uhrzeit oder entfernen einen Beitrag. Genehmigte Beiträge gehen zur geplanten Stunde automatisch online. Beiträge, die nicht automatisch veröffentlicht werden können, etwa eine Story mit Sticker, stehen ebenfalls dort: Sie öffnen das Bild, posten es selbst und haken es ab."
         }
       },
       "copyLink": "Link kopieren",

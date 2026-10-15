@@ -174,3 +174,30 @@ Deno.test("prepare: WebP, te veel beelden en downloadfouten geven een duidelijke
     ok(!r.ok && r.retryable === true, "503 is tijdelijk: " + JSON.stringify(r));
   } finally { m.restore(); }
 });
+
+Deno.test("prepare (SOCIAL-2): externe JPEG wordt ongewijzigd naar de eigen opslag gekopieerd", async () => {
+  const jpg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
+  const { client, uploads } = fakeStorage();
+  const m = mockFetch((url, method) => {
+    if (method === "HEAD") return new Response(null, { status: 404 });
+    if (url.startsWith("https://raw.githubusercontent.com/")) {
+      return new Response(new Blob([jpg as BlobPart]), { headers: { "content-type": "image/jpeg" } });
+    }
+    return new Response("?", { status: 404 });
+  });
+  try {
+    const own = "https://cdn.test/marketing-assets/t1/social/al-van-ons.jpg";
+    const r = await prepareInstagramImages(client, "t1", [
+      "https://raw.githubusercontent.com/x/y/main/post.jpg",
+      own,
+    ], { ownHost: "cdn.test" });
+    ok(r.ok, JSON.stringify(r));
+    if (r.ok) {
+      eq(r.converted, 1);
+      ok(r.urls[0].startsWith("https://cdn.test/marketing-assets/t1/social/") && r.urls[0] !== own, r.urls[0]);
+      eq(r.urls[1], own, "eigen opslag gaat ongewijzigd door");
+    }
+    eq(uploads.length, 1);
+    eq(uploads[0].size, jpg.length, "JPEG-bytes ongewijzigd gekopieerd");
+  } finally { m.restore(); }
+});

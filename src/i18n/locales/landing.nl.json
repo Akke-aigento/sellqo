@@ -2026,6 +2026,10 @@
         "social_posts_published": {
           "title": "Ingeplande social posts worden nu echt gepubliceerd",
           "description": "Posts die je voor Facebook of Instagram inplant, gaan voortaan automatisch online, binnen het uur na het gekozen tijdstip. Posts voor Instagram komen nu ook echt op Instagram terecht in plaats van op je Facebook-pagina, met ondersteuning voor carrousels (2 tot 10 beelden). PNG-productfoto's zet SellQo daarbij automatisch om naar JPEG op een witte achtergrond, want Instagram aanvaardt enkel JPEG. Lukt een post niet, dan krijg je een melding met de reden, en bij een tijdelijke storing probeert SellQo het tot drie keer in totaal."
+        },
+        "social_planning_approval": {
+          "title": "Social planning: je posts per week goedkeuren",
+          "description": "Onder Marketing → Social planning zie je al je geplande posts per week, met het beeld zoals het op Instagram verschijnt, de tekst en het uur. Je keurt ze één voor één of per week in één keer goed, past tekst of uur aan, of schrapt een post. Goedgekeurde posts gaan vanzelf online op het geplande uur. Posts die niet automatisch kunnen, zoals een story met een sticker, staan er ook: je opent het beeld, post het zelf en vinkt het af."
         }
       },
       "copyLink": "Kopieer link",

@@ -202,7 +202,8 @@
       "ordering": "Commandes",
       "event_venues": "Salles",
       "event_bundles": "Billets combinés",
-      "event_tokens": "Jetons"
+      "event_tokens": "Jetons",
+      "social_planner": "Planning social"
     }
   },
   "settings": {
@@ -6664,6 +6665,55 @@
           "name": "E-commerce",
           "description": "Accent sur la vente en ligne"
         }
+      }
+    },
+    "socialPlanner": {
+      "title": "Planning social",
+      "description": "Consultez, modifiez et approuvez vos publications. Les publications approuvées sont mises en ligne automatiquement à l'heure prévue.",
+      "waiting": "En attente d'approbation : {{count}}",
+      "week": "Semaine du {{from}} au {{to}}",
+      "approveWeek": "Approuver la semaine ({{count}})",
+      "approve": "Approuver",
+      "edit": "Modifier",
+      "reschedule": "Reprogrammer",
+      "remove": "Supprimer",
+      "openImage": "Ouvrir l'image",
+      "markPosted": "Publié",
+      "showMore": "Plus",
+      "showLess": "Moins",
+      "carousel": "{{count}} images",
+      "story": "Story",
+      "pastDue": "L'heure prévue est passée. Une fois approuvée, la publication sera en ligne dans l'heure.",
+      "manualHint": "Ceci ne peut pas être publié automatiquement (par exemple une story avec un sticker). Ouvrez l'image, publiez-la vous-même puis cochez-la.",
+      "editTitle": "Modifier la publication",
+      "rescheduleTitle": "Reprogrammer la publication",
+      "caption": "Texte",
+      "date": "Date",
+      "time": "Heure",
+      "hourHint": "Les publications sont mises en ligne dans les premières minutes après l'heure choisie.",
+      "invalidDate": "Choisissez une date et une heure valides.",
+      "removeTitle": "Supprimer la publication ?",
+      "removeBody": "La publication disparaît du planning et ne sera pas publiée. Cette action est irréversible.",
+      "empty": "Rien n'est encore prévu. Les publications préparées pour vous apparaîtront ici pour approbation.",
+      "noConnection": "Aucune connexion Instagram ou Facebook pour l'instant. Les publications approuvées ne seront en ligne qu'après avoir connecté un compte.",
+      "toConnect": "Vers SellQo Connect",
+      "status": {
+        "draft": "Brouillon",
+        "pending_approval": "En attente d'approbation",
+        "approved": "Approuvée",
+        "scheduled": "Programmée",
+        "publishing": "Publication en cours",
+        "posted": "Publiée",
+        "failed": "Échec",
+        "manual": "À publier vous-même"
+      },
+      "toast": {
+        "approved": "Approuvée",
+        "weekApproved": "{{count}} publications approuvées",
+        "saved": "Enregistré",
+        "removed": "Supprimée",
+        "markedPosted": "Marquée comme publiée",
+        "error": "Une erreur s'est produite : {{message}}"
       }
     }
   },

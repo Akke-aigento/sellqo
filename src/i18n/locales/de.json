@@ -202,7 +202,8 @@
       "ordering": "Bestellungen",
       "event_venues": "Säle",
       "event_bundles": "Kombitickets",
-      "event_tokens": "Marken"
+      "event_tokens": "Marken",
+      "social_planner": "Social-Planung"
     }
   },
   "settings": {
@@ -6664,6 +6665,55 @@
           "name": "E-Commerce",
           "description": "Fokus auf Online-Verkauf"
         }
+      }
+    },
+    "socialPlanner": {
+      "title": "Social-Planung",
+      "description": "Prüfen, bearbeiten und genehmigen Sie Ihre Beiträge. Genehmigte Beiträge gehen zur geplanten Stunde automatisch online.",
+      "waiting": "Warten auf Genehmigung: {{count}}",
+      "week": "Woche vom {{from}} bis {{to}}",
+      "approveWeek": "Woche genehmigen ({{count}})",
+      "approve": "Genehmigen",
+      "edit": "Bearbeiten",
+      "reschedule": "Neu planen",
+      "remove": "Entfernen",
+      "openImage": "Bild öffnen",
+      "markPosted": "Gepostet",
+      "showMore": "Mehr",
+      "showLess": "Weniger",
+      "carousel": "{{count}} Bilder",
+      "story": "Story",
+      "pastDue": "Die geplante Stunde ist vorbei. Nach der Genehmigung geht der Beitrag innerhalb einer Stunde online.",
+      "manualHint": "Das kann nicht automatisch gepostet werden (zum Beispiel eine Story mit Sticker). Öffnen Sie das Bild, posten Sie es selbst und haken Sie es danach ab.",
+      "editTitle": "Beitrag bearbeiten",
+      "rescheduleTitle": "Beitrag neu planen",
+      "caption": "Text",
+      "date": "Datum",
+      "time": "Stunde",
+      "hourHint": "Beiträge gehen in den ersten Minuten nach der gewählten Stunde online.",
+      "invalidDate": "Wählen Sie ein gültiges Datum und eine gültige Stunde.",
+      "removeTitle": "Beitrag entfernen?",
+      "removeBody": "Der Beitrag verschwindet aus der Planung und wird nicht veröffentlicht. Das kann nicht rückgängig gemacht werden.",
+      "empty": "Noch nichts geplant. Für Sie vorbereitete Beiträge erscheinen hier zur Genehmigung.",
+      "noConnection": "Es gibt noch keine Instagram- oder Facebook-Verbindung. Genehmigte Beiträge gehen erst online, wenn Sie ein Konto verbinden.",
+      "toConnect": "Zu SellQo Connect",
+      "status": {
+        "draft": "Entwurf",
+        "pending_approval": "Wartet auf Genehmigung",
+        "approved": "Genehmigt",
+        "scheduled": "Geplant",
+        "publishing": "Wird veröffentlicht",
+        "posted": "Veröffentlicht",
+        "failed": "Fehlgeschlagen",
+        "manual": "Selbst posten"
+      },
+      "toast": {
+        "approved": "Genehmigt",
+        "weekApproved": "{{count}} Beiträge genehmigt",
+        "saved": "Gespeichert",
+        "removed": "Entfernt",
+        "markedPosted": "Als gepostet markiert",
+        "error": "Etwas ist schiefgelaufen: {{message}}"
       }
     }
   },

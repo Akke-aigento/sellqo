@@ -174,7 +174,8 @@
       "ordering": "Bestellen",
       "event_venues": "Zalen",
       "event_bundles": "Combitickets",
-      "event_tokens": "Munten"
+      "event_tokens": "Munten",
+      "social_planner": "Social planning"
     }
   },
   "settings": {
@@ -6915,6 +6916,55 @@
           "name": "E-commerce",
           "description": "Focus op online verkoop"
         }
+      }
+    },
+    "socialPlanner": {
+      "title": "Social planning",
+      "description": "Bekijk, pas aan en keur je posts goed. Goedgekeurde posts gaan vanzelf online op het geplande uur.",
+      "waiting": "Wacht op goedkeuring: {{count}}",
+      "week": "Week van {{from}} tot {{to}}",
+      "approveWeek": "Week goedkeuren ({{count}})",
+      "approve": "Goedkeuren",
+      "edit": "Aanpassen",
+      "reschedule": "Opnieuw inplannen",
+      "remove": "Schrappen",
+      "openImage": "Beeld openen",
+      "markPosted": "Gepost",
+      "showMore": "Meer",
+      "showLess": "Minder",
+      "carousel": "{{count}} beelden",
+      "story": "Story",
+      "pastDue": "Het geplande uur is voorbij. Na goedkeuring gaat de post binnen het uur online.",
+      "manualHint": "Dit kan niet automatisch (bijvoorbeeld een story met een sticker). Open het beeld, post het zelf en vink het daarna af.",
+      "editTitle": "Post aanpassen",
+      "rescheduleTitle": "Post opnieuw inplannen",
+      "caption": "Tekst",
+      "date": "Datum",
+      "time": "Uur",
+      "hourHint": "Posts gaan online in de eerste minuten na het gekozen uur.",
+      "invalidDate": "Kies een geldige datum en een geldig uur.",
+      "removeTitle": "Post schrappen?",
+      "removeBody": "De post verdwijnt uit de planning en wordt niet gepubliceerd. Dit kun je niet ongedaan maken.",
+      "empty": "Er staat nog niets gepland. Posts die voor je klaargezet worden, verschijnen hier om goed te keuren.",
+      "noConnection": "Er is nog geen Instagram- of Facebook-koppeling. Goedgekeurde posts gaan pas online als je een account koppelt.",
+      "toConnect": "Naar SellQo Connect",
+      "status": {
+        "draft": "Concept",
+        "pending_approval": "Wacht op goedkeuring",
+        "approved": "Goedgekeurd",
+        "scheduled": "Ingepland",
+        "publishing": "Wordt gepubliceerd",
+        "posted": "Gepubliceerd",
+        "failed": "Mislukt",
+        "manual": "Zelf posten"
+      },
+      "toast": {
+        "approved": "Goedgekeurd",
+        "weekApproved": "{{count}} posts goedgekeurd",
+        "saved": "Opgeslagen",
+        "removed": "Geschrapt",
+        "markedPosted": "Afgevinkt als gepost",
+        "error": "Er ging iets mis: {{message}}"
       }
     }
   },
