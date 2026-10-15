@@ -1,3 +1,11 @@
+## EVENT-SCAN-2 — ontwerp vastgeklikt: scan-eerst, de deur herkent het event zelf — 15 oktober 2026
+
+**Beslist met Akke (bouwen ná 24/10, raakt ticket-checkin).** Volledig ontwerp in projectdoc `claude/event-scan-2-ontwerp.md`. Kern: het ticket zégt het event; de deur bewaakt alleen echt/nu/hier. Geen handmatige eventkeuze meer (stand "Automatisch"), vaste tenant-deurlink (één beginscherm-icoon voor altijd — absorbeert het SCAN-APP-1-backlogpunt), rijkere resultaatkaart.
+
+**Vensterregel (Akke, 15-10):** standaard 1 uur vóór start tot 1 uur na einde, tenant-instelbaar; geen eindtijd → start + 6 u als einde; per tickettype overschrijfbaar via de bestaande `event_ticket_types.valid_from/valid_until` (camping-case); buiten venster = oranje kaart met toch-inchecken-knop voor de host.
+
+**Uitrol additief:** nieuwe automatische stand naast de bestaande aanroepen; crew-links, admin-scanner-met-gekozen-event en de Fonske-frontend blijven ongewijzigd werken. Praktijkervaring van 24/10 toetst de marges.
+
 ## SCAN-APP-1 — de deurscanner als echte beginscherm-app — 15 oktober 2026
 
 **Probleem (Akke, met gsm in de hand).** De scanner op het beginscherm zetten gaf "gewoon de admin": het icoon startte op /scan, en een beginscherm-app begint in een eigen, lege browsercontainer. Zonder bewaard token stuurde /scan een ingelogde gebruiker naar /admin/checkin; op iOS deelt zo'n container zelfs login en localStorage niet met de browser, dus het token-in-localStorage-ontwerp was daar fundamenteel wankel.
