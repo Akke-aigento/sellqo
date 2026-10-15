@@ -60,7 +60,7 @@ serve(async (req) => {
   }
   // FOOD-1 — versiestempel om een deploy zonder neveneffect te verifiëren.
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "HORECA-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, version: "DISCOUNT-LIMIT-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {
@@ -423,7 +423,10 @@ serve(async (req) => {
               tax_amount: vatAmount,
               shipping_cost: shippingCost,
               discount_amount: discountAmount,
-              discount_code: cart.discount_code || null,
+              // DISCOUNT-LIMIT-1 — storefront_carts heeft geen kolom discount_code (wel
+              // discount_codes[]); hier stond altijd null, dus Stripe-orders verloren hun
+              // code. Zelfde vorm als storefront-api: "A, B".
+              discount_code: (Array.isArray(cart.discount_codes) && cart.discount_codes.length > 0) ? cart.discount_codes.join(", ") : null,
               total,
               customer_email: cart.customer_email || '', // HORECA-1: aan tafel mag e-mail leeg zijn
               customer_name: `${cart.customer_first_name || ''} ${cart.customer_last_name || ''}`.trim(),

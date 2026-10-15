@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -220,6 +220,58 @@ await check('stoelstatus (ZAAL-2)', async () => {
   assert(S.seatPublicStatus({ ...base, status: 'held', hold_cart_id: 'c2', hold_expires_at: earlier }, 'c1', now) === 'available', 'verlopen hold is weer vrij');
   assert(S.seatPublicStatus({ ...base, status: 'held', hold_cart_id: 'c1', hold_expires_at: later, order_id: 'o1' }, 'c1', now) === 'unavailable', 'stoel van een lopende order');
   assert(S.seatPublicStatus({ ...base, status: 'sold', ticket_instance_id: 't' }, 'c1', now) === 'unavailable', 'verkocht');
+});
+
+await check('kortingscode één keer per klant (DISCOUNT-LIMIT-1)', async () => {
+  const now = Date.now();
+  const iso = (ms: number) => new Date(now + ms).toISOString();
+  const code = (c: string, extra: Record<string, unknown> = {}) => ({
+    id: `dc-${c}`, tenant_id: T, code: c, discount_type: 'percentage', discount_value: 10, is_active: true,
+    valid_from: null, valid_until: null, usage_limit: null, usage_count: 0, usage_limit_per_customer: 1,
+    minimum_order_amount: null, maximum_discount_amount: null, applies_to: 'all', first_order_only: false, ...extra,
+  });
+  const order = (email: string, dc: string, payment_status: string, extra: Record<string, unknown> = {}) => ({
+    id: `o-${email}-${payment_status}-${Math.random()}`, tenant_id: T, customer_email: email, discount_code: dc,
+    payment_status, status: payment_status === 'paid' ? 'processing' : 'pending', expires_at: null, created_at: iso(-3600_000), ...extra,
+  });
+  const ddb = new FakeDb({
+    discount_codes: [code('WELCOME10'), code('LIMIT2', { usage_limit: 2, usage_count: 1, usage_limit_per_customer: null })],
+    discount_code_usage: [{ discount_code_id: 'dc-WELCOME10', order_id: null, customer_email: 'usage@x.be' }],
+    customers: [{ id: 'cust-1', tenant_id: T, email: 'Paid@X.be' }],
+    orders: [
+      order('Paid@X.be', 'FREESHIP, WELCOME10', 'paid'),
+      order('open@x.be', 'WELCOME10', 'pending', { expires_at: iso(86400_000) }),
+      order('expired@x.be', 'WELCOME10', 'pending', { expires_at: iso(-60_000) }),
+      order('cancelled@x.be', 'WELCOME10', 'paid', { status: 'cancelled' }),
+      order('other@x.be', 'WELCOME100', 'paid'),
+      order('x@x.be', 'LIMIT2', 'pending', { expires_at: iso(86400_000) }),
+    ],
+  });
+  const v = (params: Record<string, unknown>) => S.validateDiscountCode(ddb, T, { code: 'welcome10', subtotal: 50, ...params });
+  assert((await v({})).valid === true, 'zonder e-mail blijft de code geldig');
+  assert((await v({ customer_email: 'new@x.be' })).valid === true, 'nieuwe klant');
+  const used = await v({ customer_email: '  PAID@x.be ' });
+  assert(used.valid === false && used.error === 'Je hebt deze kortingscode al gebruikt', `betaalde order, hoofdletters/spaties: ${JSON.stringify(used)}`);
+  assert((await v({ customer_email: 'open@x.be' })).valid === false, 'openstaande overschrijving telt');
+  assert((await v({ customer_email: 'expired@x.be' })).valid === true, 'vervallen overschrijving telt niet');
+  assert((await v({ customer_email: 'cancelled@x.be' })).valid === true, 'geannuleerde order telt niet');
+  assert((await v({ customer_email: 'other@x.be' })).valid === true, 'WELCOME100 is niet WELCOME10');
+  assert((await v({ customer_email: 'usage@x.be' })).valid === false, 'vastgelegd gebruik zonder order telt');
+  assert((await v({ customer_id: 'cust-1' })).valid === false, 'customer_id (klant-id) wordt opgezocht');
+  assert((await v({ customer_id: 'paid@x.be' })).valid === false, 'customer_id met e-mailadres');
+  const lim = await S.validateDiscountCode(ddb, T, { code: 'LIMIT2', subtotal: 50 });
+  assert(lim.valid === false && lim.error === 'Deze kortingscode is niet meer beschikbaar', `usage_limit telt openstaande orders: ${JSON.stringify(lim)}`);
+  // Interne uitzondering voor de cart van een al geplaatste order.
+  const own = await S.validateDiscountCode(ddb, T, { code: 'WELCOME10', subtotal: 50, customer_email: 'paid@x.be' }, { skipUsageChecks: true });
+  assert(own.valid === true, 'omgezette cart houdt zijn korting');
+  // Promotiemotor: een al gebruikte code geeft geen korting, ook niet via cart_get.
+  const promo = await S.computeCartTotals(ddb, T, { discount_codes: ['WELCOME10'], customer_email: 'paid@x.be' }, [{ product_id: 'p1', quantity: 2, unit_price: 25, line_total: 50 }]);
+  assert(promo.discount_amount === 0, `al gebruikt → geen korting, kreeg ${promo.discount_amount}`);
+  const promo2 = await S.computeCartTotals(ddb, T, { discount_codes: ['WELCOME10'], customer_email: 'new@x.be' }, [{ product_id: 'p1', quantity: 2, unit_price: 25, line_total: 50 }]);
+  assert(promo2.discount_amount === 5, `nieuwe klant → 10%, kreeg ${promo2.discount_amount}`);
+  const promo3 = await S.computeCartTotals(ddb, T, { discount_codes: ['WELCOME10'], customer_email: 'paid@x.be', checkout_status: 'converted' }, [{ product_id: 'p1', quantity: 2, unit_price: 25, line_total: 50 }]);
+  assert(promo3.discount_amount === 5, `omgezette cart → korting blijft, kreeg ${promo3.discount_amount}`);
+  assert(S.appliedCodesOnly(['WELCOME10', 'free'], [{ code: 'FREE' }]).join() === 'free', 'alleen toegepaste codes blijven');
 });
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }

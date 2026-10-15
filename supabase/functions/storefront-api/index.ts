@@ -1967,7 +1967,72 @@ class DiscountCodeError extends Error {
   constructor(message: string) { super(message); this.name = 'DiscountCodeError'; }
 }
 
-async function validateDiscountCode(supabase: any, tenantId: string, params: Record<string, unknown>) {
+// DISCOUNT-LIMIT-1 — een openstaande (nog niet betaalde) bestelling telt mee als gebruik,
+// zodat een klant een code niet twee keer kan gebruiken door eerst per overschrijving te
+// bestellen. Overschrijvingen vervallen na 7 dagen (expires_at); orders zonder vervaldatum
+// (betalen bij afhalen) tellen 7 dagen mee.
+const OPEN_ORDER_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** true als de code (canoniek, hoofdletters) in orders.discount_code ("A, B") staat. */
+function orderHasCode(discountCodeText: unknown, code: string): boolean {
+  return String(discountCodeText ?? '').split(',').some((c) => normalizeDiscountCode(c) === code);
+}
+
+/**
+ * Telt als gebruik: betaald (ook deels terugbetaald), of nog openstaand binnen het
+ * venster. Een geannuleerde of volledig terugbetaalde order telt niet: dan geeft de
+ * trigger op orders het gebruik ook terug (zelfde regel als de loyaltypunten).
+ */
+function orderCountsAsUse(o: { payment_status?: string | null; status?: string | null; expires_at?: string | null; created_at?: string | null }, nowMs: number): boolean {
+  if (o.status === 'cancelled') return false;
+  if (o.payment_status === 'paid' || o.payment_status === 'partially_refunded') return true;
+  if (o.payment_status !== 'pending') return false;
+  if (o.expires_at) return Date.parse(o.expires_at) > nowMs;
+  return !!o.created_at && Date.parse(o.created_at) > nowMs - OPEN_ORDER_WINDOW_MS;
+}
+
+/** Codes uit de cart die de klant ook echt korting of gratis verzending gaven. */
+function appliedCodesOnly(cartCodes: string[], applied: { code: string | null }[]): string[] {
+  const used = new Set(applied.map((d) => (d.code ? normalizeDiscountCode(d.code) : '')).filter(Boolean));
+  return cartCodes.filter((c) => used.has(normalizeDiscountCode(c)));
+}
+
+const escapeLike = (s: string) => s.replace(/[%_\\]/g, '\\$&');
+
+/** Openstaande orders (alle klanten) met deze code; voor de globale gebruikslimiet. */
+async function countOpenOrdersWithCode(supabase: SupabaseLike, tenantId: string, code: string): Promise<number> {
+  const nowMs = Date.now();
+  const { data, error } = await supabase.from('orders').select('id, discount_code, payment_status, status, expires_at, created_at')
+    .eq('tenant_id', tenantId).eq('payment_status', 'pending').neq('status', 'cancelled')
+    .gt('created_at', new Date(nowMs - 31 * 24 * 60 * 60 * 1000).toISOString())
+    .ilike('discount_code', `%${escapeLike(code)}%`);
+  if (error) throw error;
+  return (data || []).filter((o: DbRow) => orderHasCode(o.discount_code, code) && orderCountsAsUse(o, nowMs)).length;
+}
+
+/**
+ * Hoe vaak deze klant (e-mail, lowercase) de code al gebruikte: betaalde en openstaande
+ * orders met de code, plus vastgelegd gebruik (discount_code_usage) dat niet al bij die
+ * orders hoort. Zo telt het ook als de trigger een order ooit miste.
+ */
+async function countCustomerCodeUses(supabase: SupabaseLike, tenantId: string, dc: { id: string; code: string }, email: string): Promise<number> {
+  const nowMs = Date.now();
+  const code = normalizeDiscountCode(dc.code);
+  const { data: orders, error } = await supabase.from('orders').select('id, discount_code, payment_status, status, expires_at, created_at')
+    .eq('tenant_id', tenantId).ilike('customer_email', escapeLike(email)).ilike('discount_code', `%${escapeLike(code)}%`);
+  if (error) throw error;
+  const counted = new Set<string>(((orders || []) as DbRow[])
+    .filter((o) => orderHasCode(o.discount_code, code) && orderCountsAsUse(o, nowMs)).map((o) => String(o.id)));
+  const { data: usage, error: uErr } = await supabase.from('discount_code_usage').select('order_id')
+    .eq('discount_code_id', dc.id).eq('customer_email', email);
+  if (uErr) throw uErr;
+  const extra = ((usage || []) as DbRow[]).filter((u) => !u.order_id || !counted.has(String(u.order_id))).length;
+  return counted.size + extra;
+}
+
+// opts is alleen intern (de actie validate_discount_code geeft het niet door), zodat een
+// client de gebruikscontroles niet kan uitschakelen.
+async function validateDiscountCode(supabase: any, tenantId: string, params: Record<string, unknown>, opts: { skipUsageChecks?: boolean } = {}) {
   const { subtotal = 0, customer_id } = params as { subtotal?: number; customer_id?: string };
   // DISCOUNT-CASE-1 — codes zijn niet hoofdlettergevoelig.
   const code = normalizeDiscountCode(params.code ?? (params as Record<string, unknown>).discount_code);
@@ -1983,10 +2048,39 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
   if (!data) return { valid: false, error: 'Ongeldige kortingscode' };
   if (!isPromotionActive(data.is_active, data.valid_from, data.valid_until)) return { valid: false, error: 'Deze kortingscode is niet meer geldig' };
   if (data.usage_limit && data.usage_count >= data.usage_limit) return { valid: false, error: 'Deze kortingscode is niet meer beschikbaar' };
+  // DISCOUNT-LIMIT-1 — usage_count telt sinds deze batch alleen betaalde orders (trigger
+  // op orders). Openstaande overschrijvingen tellen hier mee, anders kan een code met een
+  // limiet via meerdere onbetaalde orders tegelijk overboekt worden. Fail open: een fout
+  // in deze controle mag een bestelling niet blokkeren.
+  if (data.usage_limit && !opts.skipUsageChecks) {
+    try {
+      const open = await countOpenOrdersWithCode(supabase, tenantId, normalizeDiscountCode(data.code));
+      if (data.usage_count + open >= data.usage_limit) return { valid: false, error: 'Deze kortingscode is niet meer beschikbaar' };
+    } catch (e) { console.error('[DISCOUNT-LIMIT-1] usage_limit check failed:', e instanceof Error ? e.message : e); }
+  }
   if (data.minimum_order_amount && subtotal < data.minimum_order_amount) return { valid: false, error: `Minimaal bestelbedrag: €${data.minimum_order_amount.toFixed(2)}` };
-  if (customer_id && data.usage_limit_per_customer) {
-    const { count } = await supabase.from('discount_code_usage').select('*', { count: 'exact', head: true }).eq('discount_code_id', data.id).eq('customer_email', customer_id);
-    if (count && count >= data.usage_limit_per_customer) return { valid: false, error: 'Je hebt deze kortingscode al gebruikt' };
+  // DISCOUNT-LIMIT-1 — "x keer per klant" werd nooit afgedwongen: niemand schreef in
+  // discount_code_usage, de interne aanroepers gaven geen customer_id mee, en de filter
+  // vergeleek customer_email met een id. Nu op e-mail (lowercase, getrimd); gastklanten
+  // tellen mee. customer_id blijft voor bestaande externe aanroepers: een e-mailadres wordt
+  // zo gebruikt, een klant-id wordt binnen de winkel opgezocht.
+  if (data.usage_limit_per_customer && !opts.skipUsageChecks) {
+    try {
+      const p = params as Record<string, unknown>;
+      let email = typeof p.customer_email === 'string' ? p.customer_email.trim().toLowerCase() : '';
+      if (!email && typeof customer_id === 'string' && customer_id.trim()) {
+        if (customer_id.includes('@')) {
+          email = customer_id.trim().toLowerCase();
+        } else {
+          const { data: cust } = await supabase.from('customers').select('email').eq('tenant_id', tenantId).eq('id', customer_id.trim()).maybeSingle();
+          email = cust?.email ? String(cust.email).trim().toLowerCase() : '';
+        }
+      }
+      if (email) {
+        const uses = await countCustomerCodeUses(supabase, tenantId, { id: data.id, code: data.code }, email);
+        if (uses >= data.usage_limit_per_customer) return { valid: false, error: 'Je hebt deze kortingscode al gebruikt' };
+      }
+    } catch (e) { console.error('[DISCOUNT-LIMIT-1] per-customer check failed:', e instanceof Error ? e.message : e); }
   }
   // FIRST-ORDER-CODE-1: "alleen eerste bestelling" werd nergens afgedwongen. Zodra het
   // e-mailadres van de klant bekend is (checkout), telt een eerdere betaalde bestelling
@@ -2008,9 +2102,13 @@ async function validateDiscountCode(supabase: any, tenantId: string, params: Rec
 
 // ============== PROMOTIONS (PROMO-ENGINE-1) ==============
 
-function promoValidator(supabase: any, tenantId: string) {
+// DISCOUNT-LIMIT-1 — een omgezette cart hoort bij een geplaatste order. Die order telt
+// zelf als gebruik; zonder deze uitzondering zou elke latere herberekening (cart_get,
+// checkout-weergave) de korting van de eigen bestelling op 0 zetten.
+function promoValidator(supabase: any, tenantId: string, cart?: { checkout_status?: string | null } | null) {
+  const skipUsageChecks = cart?.checkout_status === 'converted';
   return (code: string, subtotal: number, email: string | null) =>
-    validateDiscountCode(supabase, tenantId, { code, subtotal, customer_email: email ?? undefined });
+    validateDiscountCode(supabase, tenantId, { code, subtotal, customer_email: email ?? undefined }, { skipUsageChecks });
 }
 
 // Rekent de korting van een checkout-cart opnieuw uit met de promotiemotor en schrijft
@@ -2018,7 +2116,7 @@ function promoValidator(supabase: any, tenantId: string) {
 // verzending). Elke betaling leest daarna dit verse bedrag, dus de klant betaalt exact
 // wat mandje en checkout tonen. Muteert het meegegeven cart-object.
 async function refreshCartDiscount(supabase: any, tenantId: string, cart: any): Promise<PromotionResult> {
-  const promo = await computeCartPromotions(supabase, tenantId, cart, cart.cartItems || [], promoValidator(supabase, tenantId));
+  const promo = await computeCartPromotions(supabase, tenantId, cart, cart.cartItems || [], promoValidator(supabase, tenantId, cart));
   const patch: Record<string, unknown> = {};
   const stored = promoRound2(Number(cart.discount_amount) || 0);
   if (Math.abs(stored - promo.discount_total) > 0.004) patch.discount_amount = promo.discount_total;
@@ -2054,7 +2152,7 @@ async function computeCartTotals(
 
   // PROMO-ENGINE-1 — één promotiemotor (staffel, 1+1, bundels, automatisch, klantgroep,
   // codes, stapelregel). Volgorde en afronding gelijk aan VOLUME-CART-1 + CART-DISCOUNT-TOTALS-1.
-  const promo = await computeCartPromotions(supabase, tenantId, cart, cartItems, promoValidator(supabase, tenantId));
+  const promo = await computeCartPromotions(supabase, tenantId, cart, cartItems, promoValidator(supabase, tenantId, cart));
   let discountTotal = promo.discount_total;
   const hasFreeShipping = promo.free_shipping;
   const canonicalCode: string | null = promo.canonical_code;
@@ -2713,11 +2811,12 @@ async function cartApplyDiscount(supabase: any, tenantId: string, params: Record
   if (!cartId || !code) throw new Error('cart_id and code are required');
 
   // Get current cart to check existing codes
-  const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
+  const { data: cart } = await supabase.from('storefront_carts').select('discount_codes, customer_email').eq('id', cartId).single();
   const currentCodes: string[] = cart?.discount_codes || [];
 
-  // Validate code
-  const validation = await validateDiscountCode(supabase, tenantId, { code });
+  // Validate code — DISCOUNT-LIMIT-1: met het e-mailadres als de klant het al opgaf,
+  // zodat "x keer per klant" ook hier al weigert.
+  const validation = await validateDiscountCode(supabase, tenantId, { code, customer_email: cart?.customer_email || undefined });
   if (!validation.valid) throw new DiscountCodeError(validation.error || 'Ongeldige kortingscode');
 
   const canonical = validation.code || code;
@@ -3363,14 +3462,11 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
     updated_at: new Date().toISOString(),
   }).eq('id', cart.id);
 
-  // Increment discount code usage for all codes
-  const discountCodes: string[] = cart.discount_codes || [];
-  for (const dc of discountCodes) {
-    const { error: discountUsageError } = await supabase.rpc('increment_discount_usage', { _code: dc, _tenant_id: tenantId });
-    if (discountUsageError) {
-      console.warn('Failed to increment discount usage for', dc, discountUsageError.message);
-    }
-  }
+  // DISCOUNT-LIMIT-1 — hier stond increment_discount_usage, bij elke order (ook een nog
+  // niet betaalde overschrijving) en alleen in dit pad, niet bij Stripe. Gebruik wordt nu
+  // vastgelegd door de trigger trg_orders_discount_usage op orders zodra een order betaald
+  // is, voor elk pad (Stripe, overschrijving, bankafstemming, admin), en teruggegeven bij
+  // annulering of terugbetaling.
 
   return order;
 }
@@ -3627,7 +3723,7 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
     : (method.free_above && cart.subtotal >= method.free_above ? 0 : method.price);
 
   // PROMO-ENGINE-1 — gratis verzending via code of automatische actie.
-  const promo = await computeCartPromotions(supabase, tenantId, cart, cart.cartItems || [], promoValidator(supabase, tenantId));
+  const promo = await computeCartPromotions(supabase, tenantId, cart, cart.cartItems || [], promoValidator(supabase, tenantId, cart));
   if (promo.free_shipping) shippingCost = 0;
 
   const { error } = await supabase.from('storefront_carts').update({
@@ -3660,7 +3756,21 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   // PROMO-ENGINE-1 — korting vlak vóór de betaling opnieuw uitrekenen. Zo betaalt de
   // klant exact wat mandje en checkout tonen, ook als de cart sinds het toepassen van
   // een code veranderde of de code alleen via cart_apply_discount werd toegepast.
-  await refreshCartDiscount(supabase, tenantId, cart);
+  const finalPromo = await refreshCartDiscount(supabase, tenantId, cart);
+
+  // DISCOUNT-LIMIT-1 — definitieve controle: de motor hierboven valideerde elke code met
+  // het e-mailadres van de klant. Een code die niets meer oplevert (al gebruikt, verlopen,
+  // minimumbedrag niet gehaald) gaat van de cart, zodat de order hem niet draagt en er
+  // geen gebruik voor geregistreerd wordt. Het bedrag zelf verandert hierdoor niet.
+  const cartCodes: string[] = cart.discount_codes || [];
+  const keptCodes = appliedCodesOnly(cartCodes, finalPromo.applied_discounts);
+  if (keptCodes.length !== cartCodes.length) {
+    const { error: pruneErr } = await supabase.from('storefront_carts').update({ discount_codes: keptCodes, updated_at: new Date().toISOString() })
+      .eq('id', cartId).eq('tenant_id', tenantId);
+    if (pruneErr) throw pruneErr;
+    console.log('[DISCOUNT-LIMIT-1] codes zonder effect van de cart gehaald:', cartCodes.filter((c) => !keptCodes.includes(c)));
+    cart.discount_codes = keptCodes;
+  }
 
   // ── FASE 3a — capaciteitspoort vóór betaling (geen geld wisselt van hand) ──
   // Sub-cap per (event, product); event-cap over alle tickettypes van het event.
@@ -4549,7 +4659,7 @@ async function checkoutRemoveDiscount(supabase: any, tenantId: string, params: R
   // PROMO-ENGINE-1 — geeft de rest nog gratis verzending? Zo niet, dan de prijs van
   // de gekozen methode terugzetten. De korting zelf rekent buildCartResponse uit.
   const promo = await computeCartPromotions(
-    supabase, tenantId, { ...cart, discount_codes: updatedCodes }, cart.cartItems || [], promoValidator(supabase, tenantId),
+    supabase, tenantId, { ...cart, discount_codes: updatedCodes }, cart.cartItems || [], promoValidator(supabase, tenantId, cart),
   );
   let shippingCost = Number(cart.shipping_cost) || 0;
   if (promo.free_shipping) {
@@ -5028,7 +5138,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FEST-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'DISCOUNT-LIMIT-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
