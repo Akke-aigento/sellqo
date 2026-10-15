@@ -19,6 +19,8 @@
 
 **Verificatie:** pixelvergelijking browser-render (Chromium, via de nieuwe rasterizer) tegen de Playwright-render voor alle 12 recepten: gemiddeld verschil 0,00–0,09 op 255, hooguit 4 pixels > 60 (anti-aliasing), ook het verloop-wordmark en gedraaide stickers. Harness met de echte editor (390 en 1280 px): titel typen → voorbeeld past aan → Volgende → resultaat → Bewaren levert een JPEG van 141 kB met de nieuwe tekst in het recept; 0 px overloop, geen consolefouten. vitest imageRecipe 6/6; tsc 27 = baseline; build groen; eslint 0; i18n-pariteit.
 
+**Live (15 okt, 21:25):** migratie via query_database (kolom + check). Recepten voor de 12 bestaande Loveke-posts/stories met tekst (launch 17-23 okt + sweatshirt 24 okt) via `net.http_get` uit de repo opgehaald en gezet (md5 per bestand gelijk aan lokaal); de twee poll-stories en de reel hebben geen tekstvakken. Helpartikel live (md5 c37e088e…, gelijk aan de migratie). Geen edge functions gewijzigd: geen deploy. Weektaak bijgewerkt (recepten meegeven). Open: frontend publiceren in Lovable.
+
 **Bewust ongemoeid / Vervolg:** WebKit/Safari kon hier niet getest worden (geen WebKit-browser in de sandbox); daarom toont de editor het resultaat vóór het bewaren, zodat een afwijking zichtbaar is in plaats van stil online te gaan. Reels: geen recept (video). Te testen door Akke op zijn iPhone.
 
 ## SOCIAL-3b — Songvoorstellen bij reels en taal per post (2026.11x) — 15 oktober 2026
