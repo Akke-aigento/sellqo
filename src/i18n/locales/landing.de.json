@@ -2006,6 +2006,10 @@
         "translated_labels_and_event_menu": {
           "title": "Kombitickets und Marken im Menü, mehr Texte in Ihrer Sprache",
           "description": "Kombitickets und Marken stehen jetzt auch im Menü unter Events, neben Alle Events, Säle und Ticket-Check-in. Die Texte der Printful-Verknüpfung, des OSS-Bereichs in den Mehrwertsteuer-Einstellungen, der Odoo-Status bei Rechnungen und Gutschriften sowie die Namen Ihrer Benachrichtigungen erscheinen jetzt in der Sprache, die Sie in SellQo gewählt haben."
+        },
+        "discount_once_per_customer": {
+          "title": "Rabattcodes mit „einmal pro Kunde“ werden jetzt korrekt durchgesetzt",
+          "description": "Wenn Sie festlegen, dass ein Kunde einen Rabattcode nur einmal verwenden darf, hält sich Ihr Shop jetzt daran, auch bei Gastbestellungen: Der Kunde wird an seiner E-Mail-Adresse erkannt. Eine Bestellung, die noch auf die Zahlung per Überweisung wartet, zählt bereits mit. Die Anzahl der Verwendungen Ihres Rabattcodes zählt ab jetzt nur bezahlte Bestellungen, und eine stornierte oder erstattete Bestellung gibt die Verwendung wieder frei."
         }
       },
       "copyLink": "Link kopieren",

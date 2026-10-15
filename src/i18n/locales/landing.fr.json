@@ -2006,6 +2006,10 @@
         "translated_labels_and_event_menu": {
           "title": "Billets combinés et Jetons dans le menu, plus de textes dans votre langue",
           "description": "Les billets combinés et les jetons figurent désormais aussi dans le menu sous Événements, à côté de Tous les événements, Salles et Enregistrement des billets. Les textes de l'intégration Printful, du bloc OSS dans les paramètres de TVA, du statut Odoo sur les factures et notes de crédit, ainsi que les noms de vos notifications s'affichent maintenant dans la langue choisie dans SellQo."
+        },
+        "discount_once_per_customer": {
+          "title": "Les codes promo limités à « une fois par client » sont désormais respectés",
+          "description": "Si vous limitez un code promo à une seule utilisation par client, votre boutique le respecte désormais, y compris pour les commandes en tant qu'invité : le client est reconnu à son adresse e-mail. Une commande encore en attente d'un paiement par virement compte déjà. Le nombre d'utilisations de votre code promo ne compte désormais que les commandes payées, et une commande annulée ou remboursée libère l'utilisation."
         }
       },
       "copyLink": "Copier le lien",

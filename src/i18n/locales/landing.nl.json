@@ -2006,6 +2006,10 @@
         "translated_labels_and_event_menu": {
           "title": "Combitickets en Munten in het menu, meer teksten in je eigen taal",
           "description": "Combitickets en Munten staan nu ook in het menu onder Events, naast Alle events, Zalen en Check-in. De teksten van de Printful-koppeling, het OSS-blok bij de btw-instellingen, de Odoo-status bij facturen en creditnota's, en de namen van je meldingen zie je nu in de taal die je in SellQo gekozen hebt."
+        },
+        "discount_once_per_customer": {
+          "title": "Kortingscodes met 'één keer per klant' worden nu correct afgedwongen",
+          "description": "Stel je bij een kortingscode in dat een klant hem maar één keer mag gebruiken, dan houdt je winkel zich daar nu aan, ook bij gastbestellingen: de klant wordt herkend aan zijn e-mailadres. Een bestelling die nog op betaling per overschrijving wacht, telt al mee. Het aantal keer gebruikt bij je kortingscode telt vanaf nu alleen betaalde bestellingen, en een geannuleerde of terugbetaalde bestelling geeft het gebruik terug."
         }
       },
       "copyLink": "Kopieer link",

@@ -2006,6 +2006,10 @@
         "translated_labels_and_event_menu": {
           "title": "Combo tickets and Tokens in the menu, more text in your own language",
           "description": "Combo tickets and Tokens are now also in the menu under Events, next to All events, Venues and Ticket check-in. The texts of the Printful integration, the OSS section in the VAT settings, the Odoo status on invoices and credit notes, and the names of your notifications now appear in the language you chose in SellQo."
+        },
+        "discount_once_per_customer": {
+          "title": "Discount codes limited to 'once per customer' are now enforced",
+          "description": "If you set a discount code so a customer can only use it once, your shop now sticks to that, including for guest orders: the customer is recognised by their email address. An order still waiting for payment by bank transfer already counts. From now on, the number of times used on your discount code only counts paid orders, and a cancelled or refunded order gives the use back."
         }
       },
       "copyLink": "Copy link",
