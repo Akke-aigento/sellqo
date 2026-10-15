@@ -4,6 +4,38 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+> Teaser-kanaal: zodra de blogdrafts van 15-10 gepubliceerd zijn, linkt elk item naar zijn
+> artikel (`/blog/<slug>`). Niet versturen vóór publicatie en go van Akke.
+
+### 2026.11r — Verzending, Shop Health en je dashboard in je eigen taal (improvement, 15-10-2026)
+
+**Voor wie:** iedereen die SellQo in het Engels, Frans, Duits of Oekraïens gebruikt.
+
+Verzendmethodes, regio-keuzes, Shop Health en de dashboardwidgets volgen nu je eigen taal, inclusief landnamen en datums.
+Lees meer → /blog/sellqo-spreekt-nu-ook-oekraiens
+
+**i18n-keys.** `public.changelog.changes.shipping_health_dashboard_translated` — 5 talen.
+
+### 2026.11q — "Eén keer per klant" bij kortingscodes werkt nu echt (bugfix, 15-10-2026)
+
+**Voor wie:** iedereen die kortingscodes gebruikt.
+
+Een code met een limiet per klant wordt nu afgedwongen op e-mailadres, ook voor gasten. Gebruik telt vanaf de betaling;
+annuleren of terugbetalen geeft het gebruik terug.
+Wat betekent dit voor jou? Welkomstcodes en eenmalige acties kunnen niet meer herhaald worden door dezelfde klant.
+
+**i18n-keys.** `public.changelog.changes.discount_once_per_customer` — 5 talen.
+
+### 2026.11p — Combitickets en Munten in het menu, teksten in je eigen taal (improvement, 15-10-2026)
+
+**Voor wie:** eventorganisatoren en anderstalige teamleden.
+
+Combitickets en Munten staan nu onder Events in het menu. Printful-, OSS-btw- en meldingteksten verschijnen in je eigen taal.
+Lees meer → /blog/combitickets-en-munten-voor-festivals
+[Menukaart in Sellqo AI: nu ook in het Horeca-abonnement → /blog/sellqo-ai-merk-dna-en-dagmenu]
+
+**i18n-keys.** `public.changelog.changes.translated_labels_and_event_menu` — 5 talen.
+
 ### 2026.11o — Ticketmail ook na betaling per overschrijving (bugfix, 14-10-2026)
 
 **Voor wie:** winkels die tickets of munten verkopen met overschrijving.

@@ -1,3 +1,21 @@
+## SPOREN-15-10 — uitrol DISCOUNT-LIMIT-1, changelog 2026.11r, docs en nieuwsbrief — 15 oktober 2026
+
+**Root cause:** de batches van vandaag (BLOG-FIX-1, DISCOUNT-LIMIT-1, I18N-SHIP-HEALTH-1, RESTJES-1) misten nog uitrol-bewijs, spoor 2 voor de i18n-batches en de sporen 3 en 5.
+
+**Uitgevoerd:**
+- DISCOUNT-LIMIT-1 live gezet in deze volgorde: push `239eedd` → deploy-only `storefront-api` + `stripe-connect-webhook` via de Lovable-agent (MCP-timeout na 230 s, deploy liep door; `git ls-remote` bleef op `239eedd`, geen agent-commits) → vingerafdruk GET: storefront-api `FEST-1` → `DISCOUNT-LIMIT-1`, webhook `HORECA-1` → `DISCOUNT-LIMIT-1`, verzonnen functienaam 404 → pas dán migratie `20261015100000` (trigger + unieke index) en `20261015100100` (backfill) via de connector. Volgorde bewust: eerst de nieuwe functie (telt niet meer bij aanmaak), dan de trigger (telt bij betaling) → geen dubbeltelling.
+- Backfill: 1 rij, niet 0 zoals verwacht: Fonske-order #0008 (FONSKE, betaald op 15-10 09:13 UTC, nog onder de oude code). `usage_count` FONSKE = 1 = vastgelegd gebruik. Correctie-query gedraaid: alleen FONSKE-E2E-1014 1 → 0. Natrek: trigger 1, index 1, tellende orders zonder usage-rij 0, codes met afwijkende teller 0.
+- Gedragstest storefront-api `validate_discount_code` op WHADUP (limiet 1 per klant) met een tijdelijke usage-rij: `Discount-Limit-Test@sellqo.app ` (hoofdletters + spatie) → "Je hebt deze kortingscode al gebruikt"; ander adres → valid. Testrij daarna verwijderd. Trigger getest in een teruggedraaide transactie op #0008: annuleren → 0 rijen/teller 0, terugzetten → 1/1, nogmaals paid → 1/1. Na rollback ongewijzigd nagekeken.
+- Changelog `2026.11r` / `shipping_health_dashboard_translated` (improvement) in alle landing-bestanden voor I18N-SHIP-HEALTH-1 + RESTJES-1.
+- doc_articles (tenant): `kortingscodes-aanmaken` (sectie "Eén keer per klant"), `dagelijkse-menukaart` (plan nu Pro, Enterprise en Horeca; credits), `printful-print-on-demand-koppelen` volledig herschreven (geen "volgende release" meer, dode schakelaar weg, losse Markdown-koppen naar HTML, statussen compleet). `combitickets-maken` en `munten-drank-en-eten` klopten al (menupad bestaat nu echt).
+- `docs/newsletter-queue.md`: items 2026.11p, 2026.11q, 2026.11r, met blog-links; niet versturen vóór publicatie van de drafts.
+
+**Security-keuzes:** de trigger-functie is SECURITY DEFINER met vaste search_path en EXECUTE ingetrokken voor PUBLIC/anon/authenticated (zie DISCOUNT-LIMIT-1). Testrij in `discount_code_usage` via service-context aangemaakt en verwijderd.
+
+**Gedeelde-paden-waarschuwing:** storefront-api is gedeeld met de custom frontends; het JSON-contract bleef gelijk (weigering in de bestaande vorm `{valid:false,error}`), zie DISCOUNT-LIMIT-1.
+
+**Vervolg:** nieuwsbrief pas na publicatie van de blogdrafts en go van Akke.
+
 ## RESTJES-1 — Dashboardwidgets en Shop Health-datums in de UI-taal, deno-stub, promo-compare, skills — 15 oktober 2026
 
 **Root cause:**

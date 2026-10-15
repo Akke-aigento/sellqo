@@ -2010,6 +2010,10 @@
         "discount_once_per_customer": {
           "title": "Les codes promo limités à « une fois par client » sont désormais respectés",
           "description": "Si vous limitez un code promo à une seule utilisation par client, votre boutique le respecte désormais, y compris pour les commandes en tant qu'invité : le client est reconnu à son adresse e-mail. Une commande encore en attente d'un paiement par virement compte déjà. Le nombre d'utilisations de votre code promo ne compte désormais que les commandes payées, et une commande annulée ou remboursée libère l'utilisation."
+        },
+        "shipping_health_dashboard_translated": {
+          "title": "Expédition, Shop Health et votre tableau de bord dans votre langue",
+          "description": "La fenêtre de configuration d'un mode d'expédition, les régions prédéfinies (UE, Benelux, Europe hors UE), Shop Health et les widgets de votre tableau de bord utilisent désormais la langue choisie dans votre profil. Les noms de pays et les dates suivent aussi cette langue."
         }
       },
       "copyLink": "Copier le lien",

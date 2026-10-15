@@ -2010,6 +2010,10 @@
         "discount_once_per_customer": {
           "title": "Discount codes limited to 'once per customer' are now enforced",
           "description": "If you set a discount code so a customer can only use it once, your shop now sticks to that, including for guest orders: the customer is recognised by their email address. An order still waiting for payment by bank transfer already counts. From now on, the number of times used on your discount code only counts paid orders, and a cancelled or refunded order gives the use back."
+        },
+        "shipping_health_dashboard_translated": {
+          "title": "Shipping, Shop Health and your dashboard in your own language",
+          "description": "The window for setting up a shipping method, the region presets (EU, Benelux, Europe outside the EU), Shop Health and the widgets on your dashboard now use the language you choose in your profile. Country names and dates follow that language too."
         }
       },
       "copyLink": "Copy link",

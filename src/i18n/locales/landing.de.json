@@ -2010,6 +2010,10 @@
         "discount_once_per_customer": {
           "title": "Rabattcodes mit „einmal pro Kunde“ werden jetzt korrekt durchgesetzt",
           "description": "Wenn Sie festlegen, dass ein Kunde einen Rabattcode nur einmal verwenden darf, hält sich Ihr Shop jetzt daran, auch bei Gastbestellungen: Der Kunde wird an seiner E-Mail-Adresse erkannt. Eine Bestellung, die noch auf die Zahlung per Überweisung wartet, zählt bereits mit. Die Anzahl der Verwendungen Ihres Rabattcodes zählt ab jetzt nur bezahlte Bestellungen, und eine stornierte oder erstattete Bestellung gibt die Verwendung wieder frei."
+        },
+        "shipping_health_dashboard_translated": {
+          "title": "Versand, Shop Health und dein Dashboard in deiner Sprache",
+          "description": "Das Fenster zum Einrichten einer Versandart, die Regionsvorlagen (EU, Benelux, Europa außerhalb der EU), Shop Health und die Widgets auf deinem Dashboard sprechen jetzt die Sprache, die du in deinem Profil wählst. Ländernamen und Datumsangaben folgen dieser Sprache ebenfalls."
         }
       },
       "copyLink": "Link kopieren",
