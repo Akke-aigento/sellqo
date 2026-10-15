@@ -8236,7 +8236,14 @@
     "loading_events": "Loading events…",
     "no_events": "No scheduled or confirmed events found.",
     "photo_scan": "Take a photo of the QR",
-    "photo_no_qr": "No QR code found in the photo. Try closer, or search by name."
+    "photo_no_qr": "No QR code found in the photo. Try closer, or search by name.",
+    "choose_title": "Choose your door",
+    "choose_text": "Several scan links are active. Choose which door this device scans.",
+    "no_links_title": "No active scan link",
+    "no_links_text": "Create a scan link on your event under Access, open it on this phone and add it to your home screen.",
+    "open_admin": "Open admin scanner",
+    "as_app_button": "Add as its own app to your home screen",
+    "as_app_hint": "Opens this door's scan link. Add that page to your home screen: one icon that scans with a single tap, no login needed."
   },
   "bar": {
     "no_link_title": "No bar link on this device yet",

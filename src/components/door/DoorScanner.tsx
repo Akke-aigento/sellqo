@@ -58,7 +58,7 @@ const toneOf = (r?: string): DoorTone =>
 const hhmm = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLabel, installHint = true }: {
+export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLabel, installHint = true, appUrl }: {
   title: string;
   subtitle?: string;
   logoUrl?: string | null;
@@ -66,6 +66,9 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
   onBack?: () => void;
   backLabel?: string;
   installHint?: boolean;
+  /** SCAN-APP-1 — admin-scanner: stuur de beginscherm-tip naar de scanlinkpagina van deze
+   *  deur, want alleen dáár krijgt het icoon het token in de start_url mee. */
+  appUrl?: string;
 }) {
   const { t } = useTranslation();
   const k = (x: string, o?: Record<string, unknown>) => t(`door.${x}`, o);
@@ -362,7 +365,15 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
             )}
           </li>
         ))}
-        {installHint && !standalone && recent.length === 0 && (
+        {appUrl && !standalone && recent.length === 0 && (
+          <li>
+            <button type="button" onClick={() => { window.location.href = appUrl; }} className="flex w-full items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-left text-sm text-white/70">
+              <Smartphone className="h-4 w-4 shrink-0" />{k('as_app_button')}
+            </button>
+            <p className="px-3 pt-2 text-xs leading-relaxed text-white/60">{k('as_app_hint')}</p>
+          </li>
+        )}
+        {!appUrl && installHint && !standalone && recent.length === 0 && (
           <li>
             <button type="button" onClick={() => setHintOpen((v) => !v)} className="flex w-full items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-left text-sm text-white/70">
               <Smartphone className="h-4 w-4 shrink-0" />{k('install_title')}

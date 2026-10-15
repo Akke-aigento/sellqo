@@ -20,11 +20,33 @@ function setMeta(name: string, content: string): () => void {
   };
 }
 
-export function useDoorAppShell() {
+/** SCAN-APP-1 — manifest met het token in de start_url, zodat het beginscherm-icoon
+ *  meteen de juiste deur opent. Nodig omdat een beginscherm-app (zeker op iOS) een
+ *  eigen, lege opslag krijgt: localStorage en login uit de browser zijn daar weg.
+ *  Absolute URL's, want relatieve paden lossen niet op tegen een data:-manifest. */
+export function tokenManifest(path: string, name: string, shortName: string, color: string): string {
+  const abs = (p: string) => `${window.location.origin}${p}`;
+  return 'data:application/manifest+json,' + encodeURIComponent(JSON.stringify({
+    id: path.split('/').slice(0, 2).join('/'),
+    name, short_name: shortName,
+    start_url: abs(path), scope: abs('/'),
+    display: 'standalone', orientation: 'portrait',
+    background_color: color, theme_color: color,
+    icons: [
+      { src: abs('/web-app-manifest-192x192.png'), sizes: '192x192', type: 'image/png', purpose: 'any' },
+      { src: abs('/web-app-manifest-512x512.png'), sizes: '512x512', type: 'image/png', purpose: 'any' },
+      { src: abs('/web-app-manifest-512x512.png'), sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+    ],
+  }));
+}
+
+export function useDoorAppShell(scanToken?: string) {
   useEffect(() => {
     const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     const prevHref = link?.getAttribute('href') ?? null;
-    link?.setAttribute('href', '/scan.webmanifest');
+    link?.setAttribute('href', scanToken
+      ? tokenManifest(`/scan/${scanToken}`, 'SellQo Deur', 'Deur', '#0b1220')
+      : '/scan.webmanifest');
     const restores = [
       setMeta('apple-mobile-web-app-capable', 'yes'),
       setMeta('mobile-web-app-capable', 'yes'),
@@ -36,7 +58,7 @@ export function useDoorAppShell() {
       if (link && prevHref) link.setAttribute('href', prevHref);
       restores.forEach((r) => r());
     };
-  }, []);
+  }, [scanToken]);
 }
 
 export const DOOR_TOKEN_KEY = 'sellqo.door.token';

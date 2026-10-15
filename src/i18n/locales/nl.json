@@ -8238,7 +8238,14 @@
     "loading_events": "Events laden…",
     "no_events": "Geen geplande of bevestigde events gevonden.",
     "photo_scan": "Maak een foto van de QR",
-    "photo_no_qr": "Geen QR-code gevonden op de foto. Probeer dichterbij, of zoek op naam."
+    "photo_no_qr": "Geen QR-code gevonden op de foto. Probeer dichterbij, of zoek op naam.",
+    "choose_title": "Kies je deur",
+    "choose_text": "Er zijn meerdere scanlinks actief. Kies welke deur dit toestel scant.",
+    "no_links_title": "Geen actieve scanlink",
+    "no_links_text": "Maak een scanlink bij je event onder Toegangen, open hem op deze gsm en zet hem op je beginscherm.",
+    "open_admin": "Admin-scanner openen",
+    "as_app_button": "Zet als eigen app op je beginscherm",
+    "as_app_hint": "Opent de scanlink van deze deur. Zet dié pagina op je beginscherm: dan heb je één icoon dat met één tik meteen scant, zonder in te loggen."
   },
   "bar": {
     "no_link_title": "Nog geen barlink op dit toestel",

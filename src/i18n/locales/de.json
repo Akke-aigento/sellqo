@@ -8236,7 +8236,14 @@
     "loading_events": "Events werden geladen…",
     "no_events": "Keine geplanten oder bestätigten Events gefunden.",
     "photo_scan": "Foto vom QR-Code machen",
-    "photo_no_qr": "Kein QR-Code auf dem Foto gefunden. Näher heran oder nach Namen suchen."
+    "photo_no_qr": "Kein QR-Code auf dem Foto gefunden. Näher heran oder nach Namen suchen.",
+    "choose_title": "Wählen Sie Ihre Tür",
+    "choose_text": "Mehrere Scan-Links sind aktiv. Wählen Sie, welche Tür dieses Gerät scannt.",
+    "no_links_title": "Kein aktiver Scan-Link",
+    "no_links_text": "Erstellen Sie einen Scan-Link bei Ihrem Event unter Zugänge, öffnen Sie ihn auf diesem Handy und legen Sie ihn auf den Startbildschirm.",
+    "open_admin": "Admin-Scanner öffnen",
+    "as_app_button": "Als eigene App auf den Startbildschirm",
+    "as_app_hint": "Öffnet den Scan-Link dieser Tür. Legen Sie diese Seite auf den Startbildschirm: ein Symbol, das mit einem Tipp sofort scannt, ohne Login."
   },
   "bar": {
     "no_link_title": "Noch kein Bar-Link auf diesem Gerät",

@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Loader2, TriangleAlert } from 'lucide-react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { DoorScanner, type DoorAdapter, type DoorScanResult, type DoorSearchHit } from '@/components/door/DoorScanner';
 import { DOOR_TOKEN_KEY, useDoorAppShell } from '@/hooks/useDoorAppShell';
@@ -30,33 +31,113 @@ function invokeWithToken<T>(fn: string, token: string, body: Record<string, unkn
     });
 }
 
+interface HomeLink { token: string; name: string; event_name: string; event_date: string; start_time: string | null }
+
+/** SCAN-APP-1 — /scan vlucht niet meer naar de admin. Zonder bewaard token en mét login
+ *  tonen we de actieve deurlinks van je winkel: precies één → meteen door; meerdere →
+ *  kiezen (één tik). Zo opent een ouder beginscherm-icoon met start_url /scan voortaan
+ *  ook gewoon de scanner in plaats van de volledige admin. */
 export function DoorScanHome() {
   useDoorAppShell();
   const { t } = useTranslation();
   const [target, setTarget] = useState<string | null>(null);
+  const [state, setState] = useState<'loading' | 'anon' | 'empty' | 'list'>('loading');
+  const [links, setLinks] = useState<HomeLink[]>([]);
+
   useEffect(() => {
     let stored: string | null = null;
     try { stored = localStorage.getItem(DOOR_TOKEN_KEY); } catch { /* geen opslag */ }
     if (stored && TOKEN_RE.test(stored)) { setTarget(`/scan/${stored}`); return; }
-    void supabase.auth.getSession().then(({ data }) => setTarget(data.session ? '/admin/checkin' : 'none'));
+    void (async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) { setState('anon'); return; }
+      try {
+        const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        const { data: rows } = await (supabase as unknown as SupabaseClient)
+          .from('event_scanner_access')
+          .select('access_token, name, expires_at, event_details!inner(event_date, start_time, status, products(name))')
+          .eq('is_active', true)
+          .gte('event_details.event_date', since)
+          .in('event_details.status', ['scheduled', 'confirmed'])
+          .limit(20);
+        const now = Date.now();
+        const found: HomeLink[] = ((rows ?? []) as DoorAccessRow[])
+          .filter((r) => !r.expires_at || new Date(r.expires_at).getTime() > now)
+          .map((r) => ({
+            token: r.access_token,
+            name: r.name,
+            event_name: r.event_details?.products?.name ?? 'Event',
+            event_date: r.event_details?.event_date ?? '',
+            start_time: r.event_details?.start_time ?? null,
+          }))
+          .sort((a, b) => `${a.event_date}${a.start_time ?? ''}`.localeCompare(`${b.event_date}${b.start_time ?? ''}`));
+        if (found.length === 1) { enter(found[0].token, setTarget); return; }
+        setLinks(found);
+        setState(found.length ? 'list' : 'empty');
+      } catch {
+        setState('empty');
+      }
+    })();
   }, []);
-  if (target && target !== 'none') return <Navigate to={target} replace />;
+
+  if (target) return <Navigate to={target} replace />;
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-[#0b1220] p-8 text-center text-white">
-      {target === 'none' ? (
+      {state === 'loading' && <Loader2 className="h-8 w-8 animate-spin text-white/60" />}
+      {state === 'anon' && (
         <>
           <TriangleAlert className="h-10 w-10 text-amber-400" />
           <p className="text-lg font-semibold">{t('door.no_link_title')}</p>
           <p className="max-w-xs text-sm text-white/60">{t('door.no_link_text')}</p>
         </>
-      ) : <Loader2 className="h-8 w-8 animate-spin text-white/60" />}
+      )}
+      {state === 'empty' && (
+        <>
+          <TriangleAlert className="h-10 w-10 text-amber-400" />
+          <p className="text-lg font-semibold">{t('door.no_links_title')}</p>
+          <p className="max-w-xs text-sm text-white/60">{t('door.no_links_text')}</p>
+          <a href="/admin/checkin" className="mt-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold">{t('door.open_admin')}</a>
+        </>
+      )}
+      {state === 'list' && (
+        <div className="w-full max-w-sm space-y-3 text-left">
+          <p className="text-center text-lg font-semibold">{t('door.choose_title')}</p>
+          <p className="text-center text-sm text-white/60">{t('door.choose_text')}</p>
+          {links.map((l) => (
+            <button
+              key={l.token} type="button" onClick={() => enter(l.token, setTarget)}
+              className="w-full rounded-xl bg-white/10 px-4 py-3 text-left active:scale-[0.99]"
+            >
+              <span className="block font-semibold">{l.name}</span>
+              <span className="block text-sm text-white/60 first-letter:uppercase">{l.event_name} · {eventWhenShort(l.event_date, l.start_time)}</span>
+            </button>
+          ))}
+          <a href="/admin/checkin" className="block text-center text-sm text-white/50 underline">{t('door.open_admin')}</a>
+        </div>
+      )}
     </div>
   );
 }
 
+interface DoorAccessRow {
+  access_token: string;
+  name: string;
+  expires_at: string | null;
+  event_details?: { event_date?: string; start_time?: string | null; products?: { name?: string } } | null;
+}
+
+function enter(token: string, setTarget: (t: string) => void) {
+  try { localStorage.setItem(DOOR_TOKEN_KEY, token); } catch { /* geen opslag */ }
+  setTarget(`/scan/${token}`);
+}
+
+const eventWhenShort = (d: string, t: string | null) =>
+  `${d ? new Date(`${d}T00:00:00`).toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short' }) : ''}${t ? ` · ${String(t).slice(0, 5)}` : ''}`;
+
 export default function DoorScan() {
-  useDoorAppShell();
   const { token = '' } = useParams();
+  // SCAN-APP-1 — token in de start_url van het manifest: dit icoon opent altijd deze deur.
+  useDoorAppShell(TOKEN_RE.test(token) ? token : undefined);
   const { t } = useTranslation();
   const valid = TOKEN_RE.test(token);
   const [ctx, setCtx] = useState<ScannerContext | null>(null);

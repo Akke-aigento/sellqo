@@ -7,6 +7,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { QrCode } from 'lucide-react';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth, type AppRole } from '@/hooks/useAuth';
@@ -152,6 +153,25 @@ export default function TicketCheckin() {
     };
   }, [selectedEvent, isHost]);
 
+  // SCAN-APP-1 — de actieve scanlink van dit event, voor "als eigen app op je beginscherm".
+  const { data: appToken } = useQuery({
+    queryKey: ['checkin-app-link', currentTenant?.id, selectedEvent?.id],
+    queryFn: async (): Promise<string | null> => {
+      if (!currentTenant || !selectedEvent) return null;
+      const { data } = await (supabase as unknown as SupabaseClient)
+        .from('event_scanner_access')
+        .select('access_token, expires_at')
+        .eq('tenant_id', currentTenant.id)
+        .eq('event_detail_id', selectedEvent.id)
+        .eq('is_active', true)
+        .order('created_at', { ascending: true });
+      const live = ((data ?? []) as { access_token: string; expires_at: string | null }[])
+        .find((r) => !r.expires_at || new Date(r.expires_at).getTime() > Date.now());
+      return live?.access_token ?? null;
+    },
+    enabled: !!currentTenant && !!selectedEvent,
+  });
+
   // --- Event-keuze ---
   if (!selectedEvent) {
     return (
@@ -203,6 +223,7 @@ export default function TicketCheckin() {
       adapter={adapter!}
       onBack={() => setSelectedEvent(null)}
       backLabel={t('door.switch_event')}
+      appUrl={appToken ? `/scan/${appToken}` : undefined}
     />
   );
 }

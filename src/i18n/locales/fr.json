@@ -8236,7 +8236,14 @@
     "loading_events": "Chargement des événements…",
     "no_events": "Aucun événement planifié ou confirmé.",
     "photo_scan": "Prendre une photo du QR",
-    "photo_no_qr": "Aucun QR code trouvé sur la photo. Rapprochez-vous ou cherchez par nom."
+    "photo_no_qr": "Aucun QR code trouvé sur la photo. Rapprochez-vous ou cherchez par nom.",
+    "choose_title": "Choisissez votre porte",
+    "choose_text": "Plusieurs liens de scan sont actifs. Choisissez quelle porte cet appareil scanne.",
+    "no_links_title": "Aucun lien de scan actif",
+    "no_links_text": "Créez un lien de scan sur votre événement sous Accès, ouvrez-le sur ce téléphone et ajoutez-le à votre écran d'accueil.",
+    "open_admin": "Ouvrir le scanner admin",
+    "as_app_button": "Ajouter comme app sur l'écran d'accueil",
+    "as_app_hint": "Ouvre le lien de scan de cette porte. Ajoutez cette page à votre écran d'accueil : une icône qui scanne en un geste, sans connexion."
   },
   "bar": {
     "no_link_title": "Pas encore de lien bar sur cet appareil",

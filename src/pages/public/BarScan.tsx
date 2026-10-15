@@ -13,6 +13,7 @@ import { Camera, Check, Coins, Loader2, Minus, Plus, TriangleAlert, Undo2, Volum
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { doorFeedback, keepScreenOn, unlockDoorAudio } from '@/lib/doorFeedback';
+import { tokenManifest } from '@/hooks/useDoorAppShell';
 
 const TOKEN_RE = /^[a-f0-9]{64}$/;
 const BAR_TOKEN_KEY = 'sellqo.bar.token';
@@ -34,12 +35,16 @@ function call<T>(token: string, body: Record<string, unknown>): Promise<T> {
     .then(({ data, error }) => { if (error) throw error; return data as T; });
 }
 
-/** Eigen beginscherm-app ("SellQo Bar"), los van de admin en van de deurscanner. */
-function useBarAppShell() {
+/** Eigen beginscherm-app ("SellQo Bar"), los van de admin en van de deurscanner.
+ *  SCAN-APP-1 — met een token gaat dat in de start_url, zodat het icoon meteen
+ *  deze bar opent (een beginscherm-app heeft een eigen, lege opslag). */
+function useBarAppShell(barToken?: string) {
   useEffect(() => {
     const link = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
     const prev = link?.getAttribute('href') ?? null;
-    link?.setAttribute('href', '/bar.webmanifest');
+    link?.setAttribute('href', barToken
+      ? tokenManifest(`/bar/${barToken}`, 'SellQo Bar', 'Bar', '#1a1206')
+      : '/bar.webmanifest');
     const metas: [string, string][] = [
       ['apple-mobile-web-app-capable', 'yes'], ['mobile-web-app-capable', 'yes'],
       ['apple-mobile-web-app-title', 'Bar'], ['apple-mobile-web-app-status-bar-style', 'black-translucent'], ['theme-color', '#1a1206'],
@@ -53,7 +58,7 @@ function useBarAppShell() {
       return () => { if (created) el?.remove(); else if (before !== null) el?.setAttribute('content', before); };
     });
     return () => { if (link && prev) link.setAttribute('href', prev); restores.forEach((r) => r()); };
-  }, []);
+  }, [barToken]);
 }
 
 export function BarScanHome() {
@@ -80,8 +85,8 @@ export function BarScanHome() {
 }
 
 export default function BarScan() {
-  useBarAppShell();
   const { token = '' } = useParams();
+  useBarAppShell(TOKEN_RE.test(token) ? token : undefined);
   const { t } = useTranslation();
   const k = (x: string, o?: Record<string, unknown>) => t(`bar.${x}`, o);
   const valid = TOKEN_RE.test(token);
