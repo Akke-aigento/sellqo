@@ -19,6 +19,8 @@
 
 **Verificatie:** tsc 27 = baseline; eslint 0; deno check social-translate-post; i18n-pariteit; harness (390 en 1280 px): Downloaden levert `instagram-2026-10-24-image-1.jpg`, Bekijken toont het beeld met eigen knoppen, Taal veranderen → English → vertaalde velden (nagebootste functie) → Volgende → resultaat met Engelse beeldtekst → Bewaren met taal `en`; 0 px overloop, geen consolefouten.
 
+**Live (15 okt, 21:45):** social-translate-post gedeployd door de Lovable-agent (deploy-only); probe zonder token → 401 `Missing or invalid Authorization header` (eigen auth actief). Helpartikel live (md5 cc9e7c43…, gelijk aan de migratie). Open: frontend publiceren in Lovable.
+
 **Bewust ongemoeid / Vervolg:** de vertaling zelf is pas na deploy live te testen (echte AI-call); dat doet de eerste "Taal veranderen" van Akke.
 
 ## SOCIAL-4 — "Tekst in beeld aanpassen" in de Social planning (2026.11y) — 15 oktober 2026
