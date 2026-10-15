@@ -5235,7 +5235,9 @@
         "partially_returned": "Partly returned",
         "partially_refunded": "Partly refunded",
         "returned": "Returned",
-        "processing": "Processing"
+        "processing": "Processing",
+        "ticket_pending": "Awaiting payment",
+        "ticket_delivered": "Tickets sent"
       }
     },
     "orderBulkActions": {

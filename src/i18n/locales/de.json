@@ -4998,7 +4998,9 @@
         "partially_returned": "Teilweise zurückgesendet",
         "partially_refunded": "Teilweise erstattet",
         "returned": "Zurückgesendet",
-        "processing": "In Bearbeitung"
+        "processing": "In Bearbeitung",
+        "ticket_pending": "Wartet auf Zahlung",
+        "ticket_delivered": "Tickets gesendet"
       }
     },
     "orderBulkActions": {

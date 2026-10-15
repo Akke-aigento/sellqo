@@ -68,7 +68,7 @@ function formatTime(start: string | null, end: string | null): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "TICKET-MAIL-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "EVENT-DONE-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     // TICKET-MAIL-1 — drie soorten aanroepen:
@@ -103,7 +103,7 @@ serve(async (req) => {
 
     const { data: order, error: orderError } = await supabase
       .from("orders")
-      .select("id, order_number, customer_email, customer_name, locale, tenant_id, shipping_address, payment_status")
+      .select("id, order_number, customer_email, customer_name, locale, tenant_id, shipping_address, payment_status, status")
       .eq("id", order_id)
       .single();
 
@@ -398,6 +398,32 @@ serve(async (req) => {
     }
 
     log("Sent", { id: emailData?.id });
+
+    // EVENT-DONE-1 — de ticketmail ís de levering. Een betaalde bestelling waarvan
+    // ALLE regels per mail gaan (tickets, combitickets, muntenpakketten) is hiermee
+    // afgerond: status → delivered, zonder handmatige stap. Eén regel met een fysiek
+    // of onbekend product houdt de gewone flow (die moet nog echt verzonden worden).
+    try {
+      if (order.payment_status === "paid" && ["pending", "processing"].includes(order.status as string)) {
+        const { data: lines } = await supabase.from("order_items").select("product_id").eq("order_id", order_id);
+        const allLines = lines ?? [];
+        const pids = [...new Set(allLines.map((l: { product_id: string | null }) => l.product_id).filter(Boolean))] as string[];
+        if (allLines.length > 0 && allLines.every((l: { product_id: string | null }) => l.product_id)) {
+          const { data: prods } = await supabase.from("products").select("id, product_type, token_amount").in("id", pids);
+          const emailOnly = (prods ?? []).length === pids.length
+            && (prods ?? []).every((p: { product_type: string; token_amount: number | null }) => p.product_type === "ticket" || p.token_amount != null);
+          if (emailOnly) {
+            const { error: delivErr } = await supabase.from("orders")
+              .update({ status: "delivered", delivered_at: new Date().toISOString() })
+              .eq("id", order_id).in("status", ["pending", "processing"]);
+            if (delivErr) console.warn("[TICKET] auto-deliver failed:", delivErr.message);
+            else log("Auto-delivered", { order_id });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("[TICKET] auto-deliver threw:", e instanceof Error ? e.message : e);
+    }
     return new Response(JSON.stringify({ success: true, email_id: emailData?.id, tickets: total }), {
       status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

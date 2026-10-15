@@ -175,6 +175,23 @@ export function useUpdateBundle() {
   });
 }
 
+/** EVENT-DONE-1 — bestellingen waarvan de ticketmail vertrok, voor event-taal in de orderlijst.
+ *  ticket_mail_log is klein (één rij per ticketbestelling) en tenant-RLS'd. */
+export function useTicketOrderIds() {
+  const { currentTenant } = useTenant();
+  return useQuery({
+    queryKey: ['ticket-order-ids', currentTenant?.id],
+    queryFn: async (): Promise<Set<string>> => {
+      if (!currentTenant) return new Set<string>();
+      const { data } = await db.from('ticket_mail_log').select('order_id')
+        .eq('tenant_id', currentTenant.id).limit(10000);
+      return new Set<string>(((data ?? []) as { order_id: string }[]).map((r) => r.order_id));
+    },
+    enabled: !!currentTenant,
+    staleTime: 30_000,
+  });
+}
+
 // ── Munten ──────────────────────────────────────────────────────────────────
 
 export interface TokenSettings {

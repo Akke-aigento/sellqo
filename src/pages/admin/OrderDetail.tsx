@@ -40,6 +40,7 @@ import { ORDER_STATUS_TRANSITIONS, ALL_ORDER_STATUSES, getValidNextStatuses } fr
 import { OrderReturnTimeline } from '@/components/admin/OrderReturnTimeline';
 import { PrintfulOrderCard } from '@/components/admin/fulfilment/PrintfulOrderCard';
 import { OrderTicketsCard } from '@/components/admin/OrderTicketsCard';
+import { useTicketOrderIds } from '@/hooks/useFestival';
 import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
@@ -62,6 +63,10 @@ export default function OrderDetailPage() {
   const { openDocument } = useDocumentDownload();
   const openInvoiceDoc = (invoiceId: string, kind: 'pdf' | 'ubl') => openDocument('invoice', invoiceId, kind);
   const { order, isLoading, error } = useOrder(id);
+  // EVENT-DONE-1 — ticketbestelling: event-taal op de statusbadge.
+  const { data: ticketOrderIds } = useTicketOrderIds();
+  const isTicket = !!order && ((ticketOrderIds?.has(order.id) ?? false)
+    || (order.order_items ?? []).some((i) => !!(i as { event_detail_id?: string | null }).event_detail_id));
   const { invoice, resendInvoice } = useOrderInvoice(id);
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
   const { confirmPayment } = usePaymentConfirmation();
@@ -143,7 +148,7 @@ export default function OrderDetailPage() {
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <h1 className="text-xl sm:text-2xl font-semibold tracking-tight">{order.order_number}</h1>
               <OrderMarketplaceBadge source={order.marketplace_source} />
-              <OrderStatusBadge status={order.status} />
+              <OrderStatusBadge status={order.status} ticket={isTicket} />
               <PaymentStatusBadge status={order.payment_status} />
               <OrderReturnTag orderId={order.id} />
             </div>

@@ -4998,7 +4998,9 @@
         "partially_refunded": "Partiellement remboursé",
         "returned": "Retourné",
         "processing": "En cours de traitement",
-        "failed": "Échoué"
+        "failed": "Échoué",
+        "ticket_pending": "En attente de paiement",
+        "ticket_delivered": "Billets envoyés"
       }
     },
     "orderBulkActions": {

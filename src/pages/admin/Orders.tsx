@@ -20,6 +20,7 @@ import { OrderBulkActions } from '@/components/admin/OrderBulkActions';
 import type { Order, OrderFilters as OrderFiltersType, OrderStatus } from '@/types/order';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import { useCan } from '@/hooks/useCan';
+import { useTicketOrderIds } from '@/hooks/useFestival';
 import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
@@ -36,6 +37,11 @@ export default function OrdersPage() {
     return status && allowed.includes(status) ? { status: status as OrderFiltersType['status'] } : {};
   });
   const { orders, isLoading, updateOrderStatus, deleteOrder } = useOrders(filters);
+  // EVENT-DONE-1 — ticketbestellingen krijgen event-taal (Wacht op betaling / Tickets verstuurd).
+  const { data: ticketOrderIds } = useTicketOrderIds();
+  const isTicketOrder = (o: Order) =>
+    (ticketOrderIds?.has(o.id) ?? false)
+    || (o.order_items ?? []).some((i) => !!(i as { event_detail_id?: string | null }).event_detail_id);
   const canWriteOrders = useCan('write', 'orders');
   
   // Batch selection state
@@ -167,6 +173,7 @@ export default function OrdersPage() {
                   onStatusChange={handleStatusChange}
                   onDelete={handleDeleteOrder}
                   formatCurrency={formatCurrency}
+                  ticket={isTicketOrder(order)}
                 />
               ))}
             </div>
@@ -204,6 +211,7 @@ export default function OrdersPage() {
                     onStatusChange={handleStatusChange}
                     onDelete={handleDeleteOrder}
                     formatCurrency={formatCurrency}
+                    ticket={isTicketOrder(order)}
                   />
                 ))}
               </TableBody>
@@ -246,9 +254,10 @@ interface OrderRowProps {
   onStatusChange: (orderId: string, status: OrderStatus) => void;
   onDelete: (order: Order) => void;
   formatCurrency: (amount: number) => string;
+  ticket?: boolean;
 }
 
-function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency, ticket }: OrderRowProps) {
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const canWriteOrders = useCan('write', 'orders');
@@ -275,7 +284,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
         <OrderMarketplaceBadge source={order.marketplace_source} />
       </TableCell>
       <TableCell onClick={onView}>
-        <OrderStatusBadge status={order.status} />
+        <OrderStatusBadge status={order.status} ticket={ticket} />
       </TableCell>
       <TableCell className="hidden lg:table-cell" onClick={onView}>
         <div className="flex flex-col gap-1">
@@ -357,7 +366,7 @@ function OrderRow({ order, isSelected, onSelect, onView, onStatusChange, onDelet
   );
 }
 
-function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency }: OrderRowProps) {
+function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, onDelete, formatCurrency, ticket }: OrderRowProps) {
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const canWriteOrders = useCan('write', 'orders');
@@ -383,7 +392,7 @@ function MobileOrderCard({ order, isSelected, onSelect, onView, onStatusChange, 
             {order.customer_name || order.customer_email}
           </div>
           <div className="flex items-center gap-2 mt-2 flex-wrap">
-            <OrderStatusBadge status={order.status} />
+            <OrderStatusBadge status={order.status} ticket={ticket} />
             <PaymentStatusBadge status={order.payment_status} />
           </div>
           <div className="text-xs text-muted-foreground mt-1.5">

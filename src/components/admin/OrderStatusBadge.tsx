@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 
 interface OrderStatusBadgeProps {
   status: OrderStatus;
+  /** EVENT-DONE-1 — ticketbestelling: event-taal (Wacht op betaling / Tickets verstuurd). */
+  ticket?: boolean;
 }
 
 const statusConfig: Record<OrderStatus, { labelKey: string; className: string }> = {
@@ -38,13 +40,19 @@ const statusConfig: Record<OrderStatus, { labelKey: string; className: string }>
   },
 };
 
-export function OrderStatusBadge({ status }: OrderStatusBadgeProps) {
+const TICKET_LABEL_KEYS: Partial<Record<OrderStatus, string>> = {
+  pending: 'admin.orderStatusBadge.status.ticket_pending',
+  delivered: 'admin.orderStatusBadge.status.ticket_delivered',
+};
+
+export function OrderStatusBadge({ status, ticket }: OrderStatusBadgeProps) {
   const { t } = useTranslation();
   const config = statusConfig[status];
-  
+  const labelKey = (ticket && TICKET_LABEL_KEYS[status]) || config.labelKey;
+
   return (
     <Badge variant="outline" className={cn('font-medium', config.className)}>
-      {t(config.labelKey)}
+      {t(labelKey)}
     </Badge>
   );
 }

@@ -5534,7 +5534,9 @@
         "paid": "Betaald",
         "refunded": "Terugbetaald",
         "failed": "Mislukt",
-        "partially_refunded": "Deels terugbetaald"
+        "partially_refunded": "Deels terugbetaald",
+        "ticket_pending": "Wacht op betaling",
+        "ticket_delivered": "Tickets verstuurd"
       }
     },
     "pushTap": {

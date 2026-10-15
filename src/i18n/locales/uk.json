@@ -5249,7 +5249,9 @@
         "partially_returned": "Частково повернуто",
         "partially_refunded": "Частково відшкодовано",
         "returned": "Повернуто",
-        "processing": "В обробці"
+        "processing": "В обробці",
+        "ticket_pending": "Очікує оплати",
+        "ticket_delivered": "Квитки надіслано"
       }
     },
     "orderBulkActions": {
