@@ -6500,6 +6500,45 @@ export type Database = {
           },
         ]
       }
+      event_scan_settings: {
+        Row: {
+          close_after_minutes: number
+          no_end_fallback_hours: number
+          open_before_minutes: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          close_after_minutes?: number
+          no_end_fallback_hours?: number
+          open_before_minutes?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          close_after_minutes?: number
+          no_end_fallback_hours?: number
+          open_before_minutes?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_scan_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_scan_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       event_scanner_access: {
         Row: {
           access_token: string
@@ -6507,7 +6546,7 @@ export type Database = {
           created_at: string
           created_by: string | null
           direction: string
-          event_detail_id: string
+          event_detail_id: string | null
           expires_at: string | null
           id: string
           is_active: boolean
@@ -6516,7 +6555,7 @@ export type Database = {
           scan_mode: string
           tenant_id: string
           use_count: number
-          zone_id: string
+          zone_id: string | null
         }
         Insert: {
           access_token?: string
@@ -6524,7 +6563,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           direction?: string
-          event_detail_id: string
+          event_detail_id?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean
@@ -6533,7 +6572,7 @@ export type Database = {
           scan_mode?: string
           tenant_id: string
           use_count?: number
-          zone_id: string
+          zone_id?: string | null
         }
         Update: {
           access_token?: string
@@ -6541,7 +6580,7 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           direction?: string
-          event_detail_id?: string
+          event_detail_id?: string | null
           expires_at?: string | null
           id?: string
           is_active?: boolean
@@ -6550,7 +6589,7 @@ export type Database = {
           scan_mode?: string
           tenant_id?: string
           use_count?: number
-          zone_id?: string
+          zone_id?: string | null
         }
         Relationships: [
           {
