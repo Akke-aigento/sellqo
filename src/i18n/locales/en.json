@@ -368,7 +368,8 @@
       "platforms": {
         "meta": "Post to Facebook and Instagram via your Business account",
         "x": "Post automatically to your X account",
-        "linkedin": "Share updates on your LinkedIn company page"
+        "linkedin": "Share updates on your LinkedIn company page",
+        "instagram": "Post directly to your professional Instagram account, without a Facebook Page"
       },
       "noTenant": "No tenant selected",
       "disconnectError": "Could not disconnect the account",
@@ -379,7 +380,14 @@
       "connecting": "Connecting...",
       "noteLabel": "Note:",
       "disconnectTitle": "Disconnect account?",
-      "disconnectBody": "You can reconnect it later."
+      "disconnectBody": "You can reconnect it later.",
+      "pagePicker": {
+        "label": "Facebook Page to post to",
+        "placeholder": "Choose a Facebook Page",
+        "hint": "You manage several Facebook Pages. Choose which Page this shop posts to.",
+        "saved": "Page saved",
+        "saveError": "Could not save the Page"
+      }
     },
     "team": {
       "roles": {

@@ -2022,6 +2022,10 @@
         "door_scanner_auto": {
           "title": "Der Scanner erkennt das Event selbst",
           "description": "An der Tür wählen Sie kein Event mehr: Das Ticket sagt selbst, für welches Event und welches Datum es gilt. Der Scanner öffnet sofort und prüft, ob das Ticket jetzt gültig ist, standardmäßig ab einer Stunde vor Beginn bis eine Stunde nach Ende (einstellbar unter Events → Tür). Gilt ein Ticket für einen anderen Zeitpunkt, sehen Sie es orange mit dem richtigen Datum und können trotzdem einchecken. Neu ist auch der feste Tür-Link: ein Link für alle Ihre Events, den Sie einmal auf den Startbildschirm legen."
+        },
+        "social_posts_published": {
+          "title": "Geplante Social-Posts werden jetzt wirklich veröffentlicht",
+          "description": "Beiträge, die Sie für Facebook oder Instagram planen, gehen jetzt automatisch online, innerhalb einer Stunde nach dem gewählten Zeitpunkt. Instagram-Beiträge landen jetzt wirklich auf Instagram statt auf Ihrer Facebook-Seite, mit Unterstützung für Karussells (2 bis 10 Bilder, JPEG). Verwalten Sie mehrere Facebook-Seiten, wählen Sie unter Einstellungen → Social Media, auf welcher Seite Ihr Shop postet. Schlägt ein Beitrag fehl, erhalten Sie eine Benachrichtigung mit dem Grund, und bei einer vorübergehenden Störung versucht SellQo es insgesamt bis zu dreimal."
         }
       },
       "copyLink": "Link kopieren",

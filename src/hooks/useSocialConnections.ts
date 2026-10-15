@@ -14,6 +14,10 @@ export interface SocialConnection {
   account_name: string | null;
   account_avatar: string | null;
   is_active: boolean;
+  /** SOCIAL-1: 'instagram_login' = Instagram rechtstreeks; null = OAuth van het platform zelf. */
+  api_kind: string | null;
+  /** SOCIAL-1: Meta — op welke Facebook-pagina deze winkel post (bij meerdere pagina's). */
+  target_page_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -29,7 +33,9 @@ export interface SocialPost {
   scheduled_for: string | null;
   posted_at: string | null;
   platform_post_id: string | null;
-  status: 'draft' | 'scheduled' | 'posted' | 'failed';
+  // SOCIAL-1: pending_approval → approved → publishing → posted/failed; manual = enkel reminder.
+  status: 'draft' | 'pending_approval' | 'approved' | 'scheduled' | 'publishing' | 'posted' | 'failed' | 'manual';
+  media_type: 'image' | 'carousel' | 'story';
   error_message: string | null;
   engagement_data: {
     likes?: number;
@@ -93,7 +99,13 @@ export function useSocialConnections() {
   });
 
   const getConnectionByPlatform = (platform: string) => {
-    return connections.find(c => c.platform === platform && c.is_active);
+    const direct = connections.find(c => c.platform === platform && c.is_active);
+    // SOCIAL-1: Instagram kan ook via de Meta-koppeling (IG-account aan de Facebook-pagina).
+    // Of er echt een IG-account aan die pagina hangt, controleert social-post-publish.
+    if (!direct && platform === 'instagram') {
+      return connections.find(c => c.platform === 'facebook' && c.is_active);
+    }
+    return direct;
   };
 
   return {

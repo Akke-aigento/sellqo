@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { isAllowedOrigin } from '../_shared/cors.ts';
+import { GRAPH_VERSION } from '../_shared/socialPublish.ts';
+import { getOAuthCredentials } from '../_shared/socialOAuthCredentials.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,27 +23,79 @@ interface AccountInfo {
   profileUrl?: string;
 }
 
-async function getCredentialsFromDb(
+async function getCredentials(
   supabase: any,
   tenantId: string,
   platform: string
 ): Promise<{ clientId: string; clientSecret: string }> {
-  // whatsapp uses facebook credentials
-  const credentialPlatform = platform === 'whatsapp' ? 'facebook' : platform;
+  // SOCIAL-1: eigen app van de tenant, anders (indien vrijgegeven) de SellQo-platformapp.
+  const creds = await getOAuthCredentials(supabase, tenantId, platform);
+  if (!creds) {
+    throw new Error(`No OAuth credentials found for tenant ${tenantId}, platform ${platform}`);
+  }
+  return { clientId: creds.clientId, clientSecret: creds.clientSecret };
+}
 
-  const { data, error } = await supabase
-    .from('tenant_oauth_credentials')
-    .select('client_id, client_secret')
-    .eq('tenant_id', tenantId)
-    .eq('platform', credentialPlatform)
-    .eq('is_active', true)
-    .single();
+/**
+ * SOCIAL-1: Facebook geeft bij de code-exchange een kortlevend token (±1-2 uur).
+ * Page-tokens die daarmee opgehaald worden, verlopen even snel, waardoor een
+ * ingeplande post een paar uur later faalde. Met een long-lived user token zijn de
+ * page-tokens niet-verlopend. Lukt de ruil niet, dan het kortlevende token houden.
+ */
+async function toLongLivedFacebookToken(token: TokenResponse, clientId: string, clientSecret: string): Promise<TokenResponse> {
+  const params = new URLSearchParams({
+    grant_type: 'fb_exchange_token',
+    client_id: clientId,
+    client_secret: clientSecret,
+    fb_exchange_token: token.access_token,
+  });
+  try {
+    const response = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/oauth/access_token?${params}`);
+    const json = await response.json();
+    if (response.ok && json.access_token) return json as TokenResponse;
+    console.error('Facebook long-lived exchange failed:', json.error?.message ?? response.status);
+  } catch (err) {
+    console.error('Facebook long-lived exchange failed:', (err as Error).message);
+  }
+  return token;
+}
 
-  if (error || !data) {
-    throw new Error(`No OAuth credentials found for tenant ${tenantId}, platform ${credentialPlatform}`);
+/** Instagram Login: code → kortlevend token → long-lived token (60 dagen). */
+async function exchangeInstagramCode(
+  code: string,
+  redirectUri: string,
+  clientId: string,
+  clientSecret: string
+): Promise<TokenResponse> {
+  const form = new URLSearchParams({
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'authorization_code',
+    redirect_uri: redirectUri,
+    code: code.replace(/#_$/, ''),
+  });
+  const shortRes = await fetch('https://api.instagram.com/oauth/access_token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form.toString(),
+  });
+  const shortJson = await shortRes.json();
+  // De documentatie toont het antwoord in een data-array; vang beide vormen op.
+  const short = Array.isArray(shortJson?.data) ? shortJson.data[0] : shortJson;
+  if (!shortRes.ok || !short?.access_token) {
+    throw new Error(`Instagram token exchange failed: ${shortJson?.error_message ?? shortJson?.error?.message ?? shortRes.status}`);
   }
 
-  return { clientId: data.client_id, clientSecret: data.client_secret };
+  const longUrl = new URL('https://graph.instagram.com/access_token');
+  longUrl.searchParams.set('grant_type', 'ig_exchange_token');
+  longUrl.searchParams.set('client_secret', clientSecret);
+  longUrl.searchParams.set('access_token', short.access_token);
+  const longRes = await fetch(longUrl);
+  const longJson = await longRes.json();
+  if (!longRes.ok || !longJson.access_token) {
+    throw new Error(`Instagram long-lived exchange failed: ${longJson?.error?.message ?? longRes.status}`);
+  }
+  return { access_token: longJson.access_token, expires_in: longJson.expires_in, token_type: 'bearer' };
 }
 
 async function exchangeCodeForToken(
@@ -59,7 +113,7 @@ async function exchangeCodeForToken(
       redirect_uri: redirectUri,
       code,
     });
-    const response = await fetch(`https://graph.facebook.com/v18.0/oauth/access_token?${params}`);
+    const response = await fetch(`https://graph.facebook.com/${GRAPH_VERSION}/oauth/access_token?${params}`);
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Facebook token exchange failed: ${error}`);
@@ -109,9 +163,27 @@ async function exchangeCodeForToken(
 }
 
 async function getAccountInfo(platform: string, accessToken: string): Promise<AccountInfo> {
+  if (platform === 'instagram') {
+    const url = new URL(`https://graph.instagram.com/${GRAPH_VERSION}/me`);
+    url.searchParams.set('fields', 'user_id,username,profile_picture_url');
+    url.searchParams.set('access_token', accessToken);
+    const response = await fetch(url);
+    const raw = await response.json();
+    const data = Array.isArray(raw?.data) ? raw.data[0] : raw;
+    if (!response.ok || !data?.user_id) {
+      throw new Error(`Instagram account ophalen mislukt: ${raw?.error?.message ?? response.status}`);
+    }
+    // user_id = het professionele IG-account-id dat /<IG_ID>/media verwacht.
+    return {
+      id: String(data.user_id),
+      name: data.username ? `@${data.username}` : String(data.user_id),
+      avatar: data.profile_picture_url,
+      profileUrl: data.username ? `https://instagram.com/${data.username}` : undefined,
+    };
+  }
   if (platform === 'facebook' || platform === 'whatsapp') {
     const response = await fetch(
-      `https://graph.facebook.com/v18.0/me?fields=id,name,picture&access_token=${accessToken}`
+      `https://graph.facebook.com/${GRAPH_VERSION}/me?fields=id,name,picture&access_token=${accessToken}`
     );
     const data = await response.json();
     return {
@@ -244,11 +316,18 @@ serve(async (req) => {
       const { platform, tenant_id, code_verifier } = oauthState;
       const redirectUri = `${supabaseUrl}/functions/v1/social-oauth-callback`;
 
-      // Fetch per-tenant credentials from the database
-      const { clientId, clientSecret } = await getCredentialsFromDb(supabase, tenant_id, platform);
+      const { clientId, clientSecret } = await getCredentials(supabase, tenant_id, platform);
 
       // Exchange code for token
-      const tokenData = await exchangeCodeForToken(platform, code, redirectUri, clientId, clientSecret, code_verifier);
+      let tokenData: TokenResponse;
+      if (platform === 'instagram') {
+        tokenData = await exchangeInstagramCode(code, redirectUri, clientId, clientSecret);
+      } else {
+        tokenData = await exchangeCodeForToken(platform, code, redirectUri, clientId, clientSecret, code_verifier);
+        if (platform === 'facebook' || platform === 'whatsapp') {
+          tokenData = await toLongLivedFacebookToken(tokenData, clientId, clientSecret);
+        }
+      }
 
       // Get account info
       const accountInfo = await getAccountInfo(platform, tokenData.access_token);
@@ -269,6 +348,8 @@ serve(async (req) => {
         account_name: accountInfo.name,
         account_avatar: accountInfo.avatar || null,
         is_active: true,
+        // SOCIAL-1: Instagram via Instagram Login publiceert op graph.instagram.com.
+        api_kind: savePlatform === 'instagram' ? 'instagram_login' : null,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'tenant_id,platform',
@@ -286,7 +367,7 @@ serve(async (req) => {
       if (savePlatform === 'facebook') {
         try {
           const pagesResponse = await fetch(
-            `https://graph.facebook.com/v18.0/me/accounts?access_token=${tokenData.access_token}`
+            `https://graph.facebook.com/${GRAPH_VERSION}/me/accounts?access_token=${tokenData.access_token}`
           );
           const pagesData = await pagesResponse.json();
 
@@ -305,13 +386,13 @@ serve(async (req) => {
               });
 
               const igResponse = await fetch(
-                `https://graph.facebook.com/v18.0/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
+                `https://graph.facebook.com/${GRAPH_VERSION}/${page.id}?fields=instagram_business_account&access_token=${page.access_token}`
               );
               const igData = await igResponse.json();
 
               if (igData.instagram_business_account?.id) {
                 const igDetailsResponse = await fetch(
-                  `https://graph.facebook.com/v18.0/${igData.instagram_business_account.id}?fields=username,name&access_token=${page.access_token}`
+                  `https://graph.facebook.com/${GRAPH_VERSION}/${igData.instagram_business_account.id}?fields=username,name&access_token=${page.access_token}`
                 );
                 const igDetails = await igDetailsResponse.json();
 

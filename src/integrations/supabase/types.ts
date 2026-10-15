@@ -15458,6 +15458,8 @@ export type Database = {
       }
       social_connections: {
         Row: {
+          api_kind: string | null
+          target_page_id: string | null
           access_token: string
           account_avatar: string | null
           account_id: string | null
@@ -15472,6 +15474,8 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          api_kind?: string | null
+          target_page_id?: string | null
           access_token: string
           account_avatar?: string | null
           account_id?: string | null
@@ -15486,6 +15490,8 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          api_kind?: string | null
+          target_page_id?: string | null
           access_token?: string
           account_avatar?: string | null
           account_id?: string | null
@@ -15518,6 +15524,13 @@ export type Database = {
       }
       social_posts: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
+          last_attempt_at: string | null
+          media_type: string
+          publish_attempts: number
+          publish_claimed_from: string | null
+          source: string | null
           connection_id: string | null
           content_id: string | null
           created_at: string | null
@@ -15535,6 +15548,13 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          last_attempt_at?: string | null
+          media_type?: string
+          publish_attempts?: number
+          publish_claimed_from?: string | null
+          source?: string | null
           connection_id?: string | null
           content_id?: string | null
           created_at?: string | null
@@ -15552,6 +15572,13 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          last_attempt_at?: string | null
+          media_type?: string
+          publish_attempts?: number
+          publish_claimed_from?: string | null
+          source?: string | null
           connection_id?: string | null
           content_id?: string | null
           created_at?: string | null

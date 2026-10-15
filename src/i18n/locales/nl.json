@@ -368,7 +368,8 @@
       "platforms": {
         "meta": "Post naar Facebook en Instagram via je Business account",
         "x": "Tweet automatisch naar je X account",
-        "linkedin": "Deel updates op je LinkedIn bedrijfspagina"
+        "linkedin": "Deel updates op je LinkedIn bedrijfspagina",
+        "instagram": "Post rechtstreeks naar je professionele Instagram-account, zonder Facebook-pagina"
       },
       "noTenant": "Geen tenant geselecteerd",
       "disconnectError": "Kon account niet ontkoppelen",
@@ -379,7 +380,14 @@
       "connecting": "Verbinden...",
       "noteLabel": "Let op:",
       "disconnectTitle": "Account ontkoppelen?",
-      "disconnectBody": "Je kunt het later opnieuw koppelen."
+      "disconnectBody": "Je kunt het later opnieuw koppelen.",
+      "pagePicker": {
+        "label": "Facebook-pagina om op te posten",
+        "placeholder": "Kies een Facebook-pagina",
+        "hint": "Je beheert meerdere Facebook-pagina's. Kies op welke pagina deze winkel post.",
+        "saved": "Pagina opgeslagen",
+        "saveError": "Kon de pagina niet opslaan"
+      }
     },
     "team": {
       "roles": {

@@ -396,7 +396,8 @@
       "platforms": {
         "meta": "Publiez sur Facebook et Instagram via votre compte Business",
         "x": "Publiez automatiquement sur votre compte X",
-        "linkedin": "Partagez des actualités sur votre page entreprise LinkedIn"
+        "linkedin": "Partagez des actualités sur votre page entreprise LinkedIn",
+        "instagram": "Publiez directement sur votre compte Instagram professionnel, sans page Facebook"
       },
       "noTenant": "Aucun locataire sélectionné",
       "disconnectError": "Impossible de dissocier le compte",
@@ -407,7 +408,14 @@
       "connecting": "Connexion...",
       "noteLabel": "Remarque :",
       "disconnectTitle": "Dissocier le compte ?",
-      "disconnectBody": "Vous pourrez le reconnecter plus tard."
+      "disconnectBody": "Vous pourrez le reconnecter plus tard.",
+      "pagePicker": {
+        "label": "Page Facebook de publication",
+        "placeholder": "Choisissez une page Facebook",
+        "hint": "Vous gérez plusieurs pages Facebook. Choisissez sur quelle page cette boutique publie.",
+        "saved": "Page enregistrée",
+        "saveError": "Impossible d'enregistrer la page"
+      }
     },
     "team": {
       "roles": {

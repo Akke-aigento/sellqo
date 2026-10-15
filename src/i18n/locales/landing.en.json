@@ -2022,6 +2022,10 @@
         "door_scanner_auto": {
           "title": "The scanner recognises the event itself",
           "description": "You no longer pick an event at the door: the ticket says which event and date it's for. The scanner opens straight away and checks whether the ticket is valid right now, by default from one hour before the start until one hour after the end (adjustable under Events → Door). If a ticket is for another moment, you see it in orange with the right date, and you can still check it in. Also new: the fixed door link, one link for all your events that you add to your home screen once."
+        },
+        "social_posts_published": {
+          "title": "Scheduled social posts are now actually published",
+          "description": "Posts you schedule for Facebook or Instagram now go live automatically, within the hour after the time you chose. Instagram posts now really end up on Instagram instead of on your Facebook Page, with support for carousels (2 to 10 images, JPEG). If you manage several Facebook Pages, choose under Settings → Social media which Page your shop posts to. If a post fails, you get a notification with the reason, and after a temporary outage SellQo tries up to three times in total."
         }
       },
       "copyLink": "Copy link",

@@ -1,3 +1,55 @@
+## SOCIAL-1 — social posts worden echt gepubliceerd (2026.11u) — 15 oktober 2026
+
+**Branch `social-1`, niet op main. Akke deployt.** Eerste batch van de Nomadix-socials-reeks (masterplan: projectdoc `claude/socials-masterplan.md`). Alle Nomadix-brands zijn SellQo-tenants en gaan via deze module posten; daarna is het een verkoopbare feature.
+
+**Root cause (recon 15-10, alles nagetrokken in code en live DB):**
+- `social-post-publish` stuurde `instagram` naar `postToFacebook` (oude regels 219-223): `/{page}/photos` of `/feed`. Er verscheen nooit iets op Instagram, wel op de Facebook-pagina.
+- Graph API `v18.0` in `social-oauth-init`, `social-oauth-callback` en `social-post-publish`: verlopen.
+- Geen scheduler: `social_posts.status = 'scheduled'` werd door niets opgepikt (geen cronjob, geen functie; `grep social_posts supabase/functions` gaf enkel social-post-publish).
+- Altijd `pagesData.data[0]`: wie meerdere pagina's beheert, postte op een willekeurige pagina.
+- De callback bewaarde het kortlevende Facebook-token (±1-2 u) en haalde daarmee de page-tokens op, die even snel verliepen: een ingeplande post zou uren later sowieso falen.
+- Live: 0 rijen in `social_connections`, `social_posts`, `meta_messaging_connections`. Niets om te breken.
+
+**Uitgevoerd:**
+- `supabase/migrations/20261015170000_social_1_publish_pipeline.sql`: additief. `social_posts` + media_type (image/carousel/story, check), publish_attempts, last_attempt_at, publish_claimed_from, approved_at, approved_by, source; partiële index op due-statussen. `social_connections` + api_kind, target_page_id. Functie `social_claim_due_posts(p_limit)` (SECURITY DEFINER, enkel service_role): zet afgebroken 'publishing' (>2 u) op failed zonder herpublicatie, claimt daarna verlopen scheduled/approved-posts met FOR UPDATE SKIP LOCKED. Cronjobs `social-publish-due-hourly` (`1 * * * *`) en `social-token-refresh-daily` (`23 4 * * *`), x-cron-secret, met WHERE EXISTS in het commando: zonder werk vertrekt er geen HTTP-call.
+- `supabase/migrations/20261015170100_social_1_doc_article.sql`: helpartikel `social-posts-inplannen` (tenant, Marketing, /admin/marketing).
+- `_shared/socialPublish.ts` (nieuw): resolveTarget (IG via Instagram Login op graph.instagram.com, of via het aan de gekozen pagina gekoppelde IG-account met page-token; FB-pagina via target_page_id of de enige pagina, anders een fout met uitleg) en publishPost (IG: container → status_code → media_publish; carrousel 2-10; story zonder caption; enkel JPEG; FB: feed, foto, of meerdere ongepubliceerde foto's + één feedbericht). Tokens in de POST-body, niet in de URL. Fouten ingedeeld als tijdelijk (5xx, is_transient, codes 1/2/4/17/32/341/613) of blijvend. X en LinkedIn ongewijzigd overgenomen. Graph-versie v25.0, overschrijfbaar via secret META_GRAPH_VERSION.
+- `_shared/socialOAuthCredentials.ts` (nieuw): eigen app van de tenant blijft voorrang hebben; daarna de SellQo-platformapp (META_APP_ID/SECRET, INSTAGRAM_APP_ID/SECRET), maar enkel voor tenants in SOCIAL_PLATFORM_APP_TENANT_IDS of als SOCIAL_PLATFORM_APP_PUBLIC=true. Reden: in Development mode kan enkel wie een rol op de Meta-app heeft inloggen.
+- `social-publish-due/index.ts` (nieuw, verify_jwt=false, cronAuth): mode publish (claim → leesmodus-check via loadBillingState → resolve → publish; tijdelijke fout terug naar de vorige status, na 3 pogingen of bij een blijvende fout 'failed' + melding integrations/integration_error naar de tenant) en mode refresh (IG Login-tokens die binnen 10 dagen verlopen en >24 u oud zijn).
+- `social-post-publish/index.ts`: herschreven op de gedeelde module; zelfde auth (rollen tenant_admin/staff/marketing), zelfde billing-guard, zelfde antwoordvorm; nieuw optioneel veld mediaType.
+- `social-oauth-init/index.ts`: platform `instagram` (Instagram Login, scopes instagram_business_basic + instagram_business_content_publish, force_reauth), credentials via de nieuwe helper, `checkOnly` geeft `{available}` zonder state aan te maken.
+- `social-oauth-callback/index.ts`: Instagram Login (code → kort token → long-lived 60 d, /me user_id = IG-account-id, api_kind 'instagram_login'); Facebook-token eerst naar long-lived, zodat page-tokens niet verlopen; Graph-versie.
+- De drie bestaande functies vastgepind op supabase-js@2.57.2 (zie het esm.sh-incident bij EVENT-SCAN-2).
+- `SocialConnectionsManager.tsx`: Instagram-kaart (enkel zichtbaar als koppelen voor deze winkel kan, anders zou het een dode knop zijn); Meta-kaart toont enkel de Facebook-koppeling; paginakeuze (MetaPagePicker) bij 2+ pagina's. `useSocialConnections.ts`: statustypes, en Instagram valt terug op de Meta-koppeling in de postgenerator. `types.ts`: nieuwe kolommen.
+- i18n: `settings.social.platforms.instagram` + `settings.social.pagePicker.*` (5 keys) × 5 talen. Changelog `social_posts_published` (2026.11u, feature) × 5 talen. Nieuwsbrief-wachtrij aangevuld.
+- CI: `socialPublish.test.ts` toegevoegd aan de deno-teststap.
+
+**Security-keuzes:** claim-functie enkel voor service_role (REVOKE public/anon/authenticated). Geen nieuwe RLS-policies: de paginakeuze schrijft via de bestaande policy `social_connections_update_admin` (tenant_admin), de paginalijst leest via de bestaande select-policy op meta_messaging_connections. Platform-app-secrets enkel als Supabase-secrets, nooit in code. Cron-auth via x-cron-secret uit internal_config. De bestaande blootstelling van `social_connections.access_token` aan tenant_admins in de browser (`select('*')`) is niet nieuw en niet aangeraakt: zie Vervolg.
+
+**Gedeelde-paden-waarschuwing:** geen storefront-functies of gedeelde storefront-tabellen geraakt; de eerste wet is niet in het spel. Wel gedeeld binnen Meta: de callback vult ook `meta_messaging_connections` (messaging, Meta Shop). Daar verandert enkel dat de page-tokens nu niet meer na ±1 u verlopen; schema en upsert-sleutels zijn gelijk.
+
+**Verificatie:**
+- Migratie (zonder cron-deel) live gedraaid in een DO-blok dat eindigt op RAISE EXCEPTION, dus volledig teruggedraaid: 3 testposts → eerste claim geeft enkel de verlopen approved-post (status publishing, publish_claimed_from approved, attempts 1, media_type image), pending_approval en toekomst niet; tweede claim 0. Nagetrokken dat kolom en functie daarna niet bestaan en social_posts 0 rijen heeft.
+- deno check (deno 2.9.6, met import map naar npm: omdat esm.sh hier geblokkeerd is) op de vier social-functies: groen.
+- `socialPublish.test.ts`: 10/10 (pagina-keuze, IG Login vs IG via pagina, verlopen token, IG-callvolgorde enkel/carrousel/story, JPEG-weigering zonder call, tijdelijke vs blijvende Meta-fout, FB multi-foto).
+- tsc 27 = baseline (geen fouten in geraakte bestanden), `npm run build` groen, `verify-lint-baseline` 1482 → 1479, i18n-pariteit volledig.
+- NIET live getest tegen Meta: er is nog geen Meta-app. Eerste echte test = stap 4 hieronder.
+
+**Voor Akke (deploy + eerste test):**
+1. Branch `social-1` reviewen en mergen naar main; Lovable synct. Migraties draaien, functies deployen (social-publish-due is nieuw).
+2. Meta-app aanmaken (Business), producten Instagram (API setup with Instagram login) en Facebook Login for Business. Redirect-URI bij beide: `https://gczmfcabnoofnmfpzeop.supabase.co/functions/v1/social-oauth-callback`.
+3. Secrets: META_APP_ID, META_APP_SECRET, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, SOCIAL_PLATFORM_APP_TENANT_IDS = de vijf Nomadix-tenants.
+4. In één brand (Loveke) Instagram koppelen, één post inplannen op het volgende uur, na de run van :01 nakijken (status posted + platform_post_id).
+
+**Bewust ongemoeid / Vervolg:**
+- SOCIAL-2: goedkeurings-UI ("week goedkeuren" voor pending_approval), media naar SellQo-storage kopiëren, statusbadges voor de nieuwe statussen in de Contentkalender.
+- SOCIAL-3: insights (engagement_data), LinkedIn-bedrijfspagina's (Posts API + w_organization_social), App Review voor externe tenants.
+- `ai_generated_content.scheduled_at` / `publish_status` wordt nog steeds door niets gepubliceerd; dat is een tweede inplanpad naast social_posts. Samenvoegen in SOCIAL-2.
+- `SocialCredentialsForm.tsx` wordt nergens geïmporteerd (dode code) en kent geen Instagram; tenants met een eigen Instagram-app kunnen hun credentials dus nergens invullen. De Instagram-kaart blijft voor hen verborgen.
+- `social_connections.access_token` wordt met select('*') naar de browser gestuurd (tenant_admin). Kandidaat voor een view zonder tokens.
+- Scheduler-precisie is een uur (sub-hourly cron.schedule wordt door een platform-guard geblokkeerd).
+- `UnifiedChannelList` toont een rechtstreekse Instagram-koppeling niet als "Autopost".
+
 ## EVENT-SCAN-2 — gebouwd en live: de deur herkent het event zelf (2026.11t) — 15 oktober 2026
 
 **Op Akke's vraag meteen gebouwd i.p.v. na 24/10, dus strikt additief en met bewijs op de echte Fonske-deur.** Een voorbereide werkkopie (doorWindow, functies, UI) stond al klaar; nagekeken en afgewerkt: timezone ontbrak in de venstercheck van ticket-checkin (viel terug op Brussel — juist voor BE, fout voor andere zones), GET-versiestempel op ticket-checkin, vaste deurlinks in de /scan-kieslijst (de inner join sloot ze uit), typefixes.

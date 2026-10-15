@@ -2022,6 +2022,10 @@
         "door_scanner_auto": {
           "title": "De scanner herkent zelf het event",
           "description": "Aan de deur hoef je geen event meer te kiezen: het ticket zegt zelf voor welk event en welke datum het is. De scanner opent meteen en controleert of het ticket nu geldig is, standaard vanaf een uur voor de start tot een uur na het einde (instelbaar onder Events → Deur). Is een ticket voor een ander moment, dan zie je dat in het oranje met de juiste datum, en kun je toch inchecken. Nieuw is ook de vaste deurlink: één link voor al je events, die je één keer op je beginscherm zet."
+        },
+        "social_posts_published": {
+          "title": "Ingeplande social posts worden nu echt gepubliceerd",
+          "description": "Posts die je voor Facebook of Instagram inplant, gaan voortaan automatisch online, binnen het uur na het gekozen tijdstip. Posts voor Instagram komen nu ook echt op Instagram terecht in plaats van op je Facebook-pagina, met ondersteuning voor carrousels (2 tot 10 beelden, JPEG). Beheer je meerdere Facebook-pagina's, dan kies je onder Instellingen → Social Media op welke pagina je winkel post. Lukt een post niet, dan krijg je een melding met de reden, en bij een tijdelijke storing probeert SellQo het tot drie keer in totaal."
         }
       },
       "copyLink": "Kopieer link",

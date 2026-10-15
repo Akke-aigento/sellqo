@@ -1,6 +1,8 @@
 import { serve } from 'https://deno.land/std@0.190.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { GRAPH_VERSION } from "../_shared/socialPublish.ts";
+import { credentialPlatformFor, getOAuthCredentials } from "../_shared/socialOAuthCredentials.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,9 +10,11 @@ const corsHeaders = {
 };
 
 // Platform OAuth configurations
+// SOCIAL-1: Graph-versie uit _shared/socialPublish.ts (v18 was verlopen), en een
+// eigen 'instagram'-flow via Instagram Login: geen Facebook-pagina nodig.
 const PLATFORMS = {
   facebook: {
-    authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
+    authUrl: `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`,
     scopes: [
       'pages_manage_posts',
       'pages_read_engagement',
@@ -24,8 +28,12 @@ const PLATFORMS = {
       'pages_manage_metadata',
     ].join(','),
   },
+  instagram: {
+    authUrl: 'https://www.instagram.com/oauth/authorize',
+    scopes: ['instagram_business_basic', 'instagram_business_content_publish'].join(','),
+  },
   whatsapp: {
-    authUrl: 'https://www.facebook.com/v18.0/dialog/oauth',
+    authUrl: `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`,
     scopes: [
       'whatsapp_business_management',
       'whatsapp_business_messaging',
@@ -54,9 +62,9 @@ serve(async (req) => {
   }
 
   try {
-    const { platform, tenantId, redirectUrl } = await req.json();
+    const { platform, tenantId, redirectUrl, checkOnly } = await req.json();
 
-    if (!platform || !tenantId || !redirectUrl) {
+    if (!platform || !tenantId || (!redirectUrl && !checkOnly)) {
       return new Response(
         JSON.stringify({ error: 'Missing required parameters: platform, tenantId, redirectUrl' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -78,19 +86,20 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Determine the credential platform (whatsapp uses facebook credentials)
-    const credentialPlatform = platform === 'whatsapp' ? 'facebook' : platform;
+    // Eigen app van de tenant, anders (indien vrijgegeven) de SellQo-platformapp.
+    const credentialPlatform = credentialPlatformFor(platform);
+    const creds = await getOAuthCredentials(supabase, tenantId, platform);
 
-    // Fetch per-tenant credentials from the database
-    const { data: creds, error: credsError } = await supabase
-      .from('tenant_oauth_credentials')
-      .select('client_id, client_secret')
-      .eq('tenant_id', tenantId)
-      .eq('platform', credentialPlatform)
-      .eq('is_active', true)
-      .single();
+    // SOCIAL-1: de app vraagt vooraf of koppelen kan, zodat er geen Koppelen-knop
+    // verschijnt die enkel op "niet geconfigureerd" uitkomt.
+    if (checkOnly) {
+      return new Response(
+        JSON.stringify({ available: !!creds }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    if (credsError || !creds) {
+    if (!creds) {
       return new Response(
         JSON.stringify({
           error: `OAuth niet geconfigureerd voor ${platform}. Ga naar Instellingen → API Credentials om je ${credentialPlatform === 'facebook' ? 'Meta' : credentialPlatform} App credentials in te voeren.`,
@@ -100,7 +109,7 @@ serve(async (req) => {
       );
     }
 
-    const clientId = creds.client_id;
+    const clientId = creds.clientId;
 
     // Generate state for CSRF protection
     const state = generateState();
@@ -124,6 +133,18 @@ serve(async (req) => {
         scope: platformConfig.scopes,
         state,
         response_type: 'code',
+      });
+      authUrl = `${platformConfig.authUrl}?${params.toString()}`;
+    } else if (platform === 'instagram') {
+      // Instagram Login. force_reauth: wie meerdere IG-accounts heeft, kiest bewust het
+      // juiste account voor deze winkel in plaats van stil het laatst gebruikte te krijgen.
+      const params = new URLSearchParams({
+        client_id: clientId,
+        redirect_uri: `${supabaseUrl}/functions/v1/social-oauth-callback`,
+        scope: platformConfig.scopes,
+        state,
+        response_type: 'code',
+        force_reauth: 'true',
       });
       authUrl = `${platformConfig.authUrl}?${params.toString()}`;
     } else if (platform === 'twitter') {

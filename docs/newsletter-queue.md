@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11u — Ingeplande social posts worden nu echt gepubliceerd (feature, 15-10-2026)
+
+**Voor wie:** iedereen die social posts maakt (Instellingen → Social Media, social commerce).
+
+Ingeplande posts voor Facebook en Instagram gaan nu automatisch online, binnen het uur na het gekozen
+tijdstip. Instagram-posts komen echt op Instagram (voorheen op de Facebook-pagina), met carrousels
+(2–10 JPEG's). Meerdere Facebook-pagina's: kies de pagina onder de Meta-koppeling. Mislukt iets, dan
+volgt een melding met de reden.
+
+**Niet versturen vóór** SOCIAL-1 gedeployed is en minstens één echte post via de scheduler online stond.
+
+**i18n-keys.** `public.changelog.changes.social_posts_published` — 5 talen.
+
 ### 2026.11t — De scanner herkent zelf het event (feature, 15-10-2026)
 
 **Voor wie:** iedereen die tickets scant (events-module).

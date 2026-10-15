@@ -396,7 +396,8 @@
       "platforms": {
         "meta": "Über Ihr Business-Konto auf Facebook und Instagram posten",
         "x": "Automatisch auf Ihrem X-Konto posten",
-        "linkedin": "Teilen Sie Updates auf Ihrer LinkedIn-Unternehmensseite"
+        "linkedin": "Teilen Sie Updates auf Ihrer LinkedIn-Unternehmensseite",
+        "instagram": "Posten Sie direkt auf Ihr professionelles Instagram-Konto, ohne Facebook-Seite"
       },
       "noTenant": "Kein Mandant ausgewählt",
       "disconnectError": "Konto konnte nicht getrennt werden",
@@ -407,7 +408,14 @@
       "connecting": "Wird verbunden...",
       "noteLabel": "Hinweis:",
       "disconnectTitle": "Konto trennen?",
-      "disconnectBody": "Sie können es später wieder verbinden."
+      "disconnectBody": "Sie können es später wieder verbinden.",
+      "pagePicker": {
+        "label": "Facebook-Seite für Beiträge",
+        "placeholder": "Facebook-Seite auswählen",
+        "hint": "Sie verwalten mehrere Facebook-Seiten. Wählen Sie, auf welcher Seite dieser Shop postet.",
+        "saved": "Seite gespeichert",
+        "saveError": "Seite konnte nicht gespeichert werden"
+      }
     },
     "team": {
       "roles": {

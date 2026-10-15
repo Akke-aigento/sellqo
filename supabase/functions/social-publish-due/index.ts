@@ -1,0 +1,207 @@
+// SOCIAL-1 — de scheduler voor social posts.
+//
+// Aangeroepen door twee cronjobs (migratie 20261015170000), allebei met x-cron-secret:
+//   - social-publish-due-hourly  body {"mode":"publish"}: publiceert posts met status
+//     'scheduled' (door de tenant ingepland) of 'approved' (goedgekeurd) waarvan
+//     scheduled_for voorbij is.
+//   - social-token-refresh-daily body {"mode":"refresh"}: ververst Instagram Login-tokens
+//     die binnen 10 dagen verlopen.
+// De cron roept deze functie enkel aan als er werk is (WHERE EXISTS in het cron-commando).
+//
+// Retry: een tijdelijke fout (netwerk, rate limit, 5xx) zet de post terug op zijn
+// vorige status; de claim-functie pakt hem pas na 50 minuten opnieuw op. Na 3 pogingen,
+// of meteen bij een blijvende fout (token ongeldig, geen beeld, geen pagina), wordt de
+// post 'failed' en krijgt de tenant een melding.
+
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { isAuthorizedCronRequest, CRON_ALLOWED_HEADERS } from "../_shared/cronAuth.ts";
+import { loadBillingState } from "../_shared/billingGuard.ts";
+import { WRITE_BLOCKED_STATES } from "../_shared/billingState.ts";
+import {
+  publishPost,
+  refreshInstagramToken,
+  resolveTarget,
+  type SocialMediaType,
+  type SocialPlatform,
+} from "../_shared/socialPublish.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": CRON_ALLOWED_HEADERS,
+};
+
+const MAX_ATTEMPTS = 3;
+const PLATFORMS: readonly SocialPlatform[] = ["facebook", "instagram", "twitter", "linkedin"];
+const MEDIA_TYPES: readonly SocialMediaType[] = ["image", "carousel", "story"];
+
+interface ClaimedPost {
+  id: string;
+  tenant_id: string;
+  platform: string;
+  post_text: string | null;
+  image_urls: string[] | null;
+  media_type: string | null;
+  publish_attempts: number;
+  publish_claimed_from: string | null;
+}
+
+function json(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
+// deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type Admin = any;
+
+async function notifyFailure(admin: Admin, post: ClaimedPost, error: string): Promise<void> {
+  // Bestaand meldingstype (integrations/integration_error): geen nieuw type nodig,
+  // en de tenant ziet het in zijn meldingencentrum.
+  const { error: insertError } = await admin.from("notifications").insert({
+    tenant_id: post.tenant_id,
+    category: "integrations",
+    type: "integration_error",
+    priority: "high",
+    title: `Social post niet gepubliceerd (${post.platform})`,
+    message: error,
+    action_url: "/admin/marketing",
+    data: { social_post_id: post.id, platform: post.platform },
+  });
+  if (insertError) console.error("[social-publish-due] melding mislukt:", insertError.message);
+}
+
+async function publishDue(admin: Admin) {
+  const { data, error } = await admin.rpc("social_claim_due_posts", { p_limit: 20 });
+  if (error) throw new Error(`claim mislukt: ${error.message}`);
+  const posts = (data ?? []) as ClaimedPost[];
+
+  const summary = { claimed: posts.length, posted: 0, retry: 0, failed: 0 };
+  const billingCache = new Map<string, boolean>();
+
+  for (const post of posts) {
+    const fail = async (message: string, retryable: boolean) => {
+      if (retryable && post.publish_attempts < MAX_ATTEMPTS) {
+        summary.retry++;
+        await admin.from("social_posts").update({
+          status: post.publish_claimed_from ?? "approved",
+          error_message: `Poging ${post.publish_attempts} van ${MAX_ATTEMPTS} mislukt: ${message}`,
+          updated_at: new Date().toISOString(),
+        }).eq("id", post.id);
+        return;
+      }
+      summary.failed++;
+      await admin.from("social_posts").update({
+        status: "failed",
+        error_message: message,
+        updated_at: new Date().toISOString(),
+      }).eq("id", post.id);
+      await notifyFailure(admin, post, message);
+    };
+
+    // Winkel in leesmodus (onbetaald): niet publiceren.
+    if (!billingCache.has(post.tenant_id)) {
+      const state = await loadBillingState(admin, post.tenant_id);
+      billingCache.set(post.tenant_id, WRITE_BLOCKED_STATES.includes(state));
+    }
+    if (billingCache.get(post.tenant_id)) {
+      await fail("Niet gepubliceerd: je account staat in leesmodus door een openstaande betaling.", false);
+      continue;
+    }
+
+    if (!PLATFORMS.includes(post.platform as SocialPlatform)) {
+      await fail(`Platform '${post.platform}' wordt niet ondersteund.`, false);
+      continue;
+    }
+    const mediaType = MEDIA_TYPES.includes(post.media_type as SocialMediaType)
+      ? (post.media_type as SocialMediaType)
+      : "image";
+
+    const resolved = await resolveTarget(admin, post.tenant_id, post.platform as SocialPlatform);
+    if (!resolved.ok) {
+      await fail(resolved.error, false);
+      continue;
+    }
+
+    const result = await publishPost(resolved.target, {
+      text: post.post_text ?? "",
+      imageUrls: post.image_urls ?? [],
+      mediaType,
+    });
+
+    if (result.success) {
+      summary.posted++;
+      await admin.from("social_posts").update({
+        status: "posted",
+        posted_at: result.postedAt ?? new Date().toISOString(),
+        platform_post_id: result.platformPostId ?? null,
+        connection_id: resolved.target.connectionId,
+        error_message: null,
+        updated_at: new Date().toISOString(),
+      }).eq("id", post.id);
+    } else {
+      await fail(result.error ?? "Onbekende fout", result.retryable ?? false);
+    }
+  }
+
+  return summary;
+}
+
+async function refreshTokens(admin: Admin) {
+  const soon = new Date(Date.now() + 10 * 24 * 3600 * 1000).toISOString();
+  const dayAgo = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const { data, error } = await admin
+    .from("social_connections")
+    .select("id, tenant_id, access_token, token_expires_at, updated_at")
+    .eq("api_kind", "instagram_login")
+    .eq("is_active", true)
+    .gt("token_expires_at", new Date().toISOString())
+    .lt("token_expires_at", soon)
+    .lt("updated_at", dayAgo);
+  if (error) throw new Error(`tokens lezen mislukt: ${error.message}`);
+
+  const summary = { candidates: (data ?? []).length, refreshed: 0, failed: 0 };
+  for (const conn of data ?? []) {
+    const r = await refreshInstagramToken(conn.access_token);
+    if (r.ok) {
+      summary.refreshed++;
+      await admin.from("social_connections").update({
+        access_token: r.token,
+        token_expires_at: r.expiresAt,
+        updated_at: new Date().toISOString(),
+      }).eq("id", conn.id);
+    } else {
+      summary.failed++;
+      console.error(`[social-publish-due] token-refresh mislukt voor connectie ${conn.id}: ${r.error}`);
+    }
+  }
+  return summary;
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
+
+  const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+  if (!(await isAuthorizedCronRequest(req, admin))) {
+    return json({ success: false, error: "Unauthorized" }, 401);
+  }
+
+  let mode = "publish";
+  try {
+    const body = await req.json();
+    if (body?.mode === "refresh") mode = "refresh";
+  } catch {
+    // lege body = publish
+  }
+
+  try {
+    const result = mode === "refresh" ? await refreshTokens(admin) : await publishDue(admin);
+    console.log(`[social-publish-due] ${mode}`, JSON.stringify(result));
+    return json({ success: true, mode, ...result });
+  } catch (err) {
+    console.error("[social-publish-due] fout:", (err as Error).message);
+    return json({ success: false, error: (err as Error).message }, 500);
+  }
+});
