@@ -15524,9 +15524,6 @@ export type Database = {
       }
       social_posts: {
         Row: {
-          image_recipes: Json | null
-          language: string | null
-          regenerate_language: string | null
           approved_at: string | null
           approved_by: string | null
           connection_id: string | null
@@ -15535,7 +15532,9 @@ export type Database = {
           engagement_data: Json | null
           error_message: string | null
           id: string
+          image_recipes: Json | null
           image_urls: string[] | null
+          language: string | null
           last_attempt_at: string | null
           manual_reason: string | null
           media_type: string
@@ -15548,6 +15547,7 @@ export type Database = {
           publish_claimed_from: string | null
           publish_container_id: string | null
           regenerate_from: string | null
+          regenerate_language: string | null
           regenerate_note: string | null
           regenerate_requested_at: string | null
           reminded_at: string | null
@@ -15560,9 +15560,6 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
-          image_recipes?: Json | null
-          language?: string | null
-          regenerate_language?: string | null
           approved_at?: string | null
           approved_by?: string | null
           connection_id?: string | null
@@ -15571,7 +15568,9 @@ export type Database = {
           engagement_data?: Json | null
           error_message?: string | null
           id?: string
+          image_recipes?: Json | null
           image_urls?: string[] | null
+          language?: string | null
           last_attempt_at?: string | null
           manual_reason?: string | null
           media_type?: string
@@ -15584,6 +15583,7 @@ export type Database = {
           publish_claimed_from?: string | null
           publish_container_id?: string | null
           regenerate_from?: string | null
+          regenerate_language?: string | null
           regenerate_note?: string | null
           regenerate_requested_at?: string | null
           reminded_at?: string | null
@@ -15596,9 +15596,6 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
-          image_recipes?: Json | null
-          language?: string | null
-          regenerate_language?: string | null
           approved_at?: string | null
           approved_by?: string | null
           connection_id?: string | null
@@ -15607,7 +15604,9 @@ export type Database = {
           engagement_data?: Json | null
           error_message?: string | null
           id?: string
+          image_recipes?: Json | null
           image_urls?: string[] | null
+          language?: string | null
           last_attempt_at?: string | null
           manual_reason?: string | null
           media_type?: string
@@ -15620,6 +15619,7 @@ export type Database = {
           publish_claimed_from?: string | null
           publish_container_id?: string | null
           regenerate_from?: string | null
+          regenerate_language?: string | null
           regenerate_note?: string | null
           regenerate_requested_at?: string | null
           reminded_at?: string | null
@@ -21896,7 +21896,9 @@ export type Database = {
           engagement_data: Json | null
           error_message: string | null
           id: string
+          image_recipes: Json | null
           image_urls: string[] | null
+          language: string | null
           last_attempt_at: string | null
           manual_reason: string | null
           media_type: string
@@ -21909,6 +21911,7 @@ export type Database = {
           publish_claimed_from: string | null
           publish_container_id: string | null
           regenerate_from: string | null
+          regenerate_language: string | null
           regenerate_note: string | null
           regenerate_requested_at: string | null
           reminded_at: string | null
