@@ -13,7 +13,7 @@
 //   crew  (checkin only)   = staff
 // platform_admin bypasst op edge-niveau.
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { eventWindow, loadScanWindow, windowState } from "../_shared/doorWindow.ts";
 

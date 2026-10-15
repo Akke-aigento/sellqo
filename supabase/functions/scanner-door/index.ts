@@ -9,7 +9,7 @@
 //             e-mailadres terug, wel het qr_token zodat de scanner het ticket kan inchecken.
 // Check-in zelf blijft in ticket-checkin (één poort, één scanlog).
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { loadScanWindow, resolveDoor } from "../_shared/doorWindow.ts";
 
