@@ -1,3 +1,63 @@
+## RESTJES-1 — Dashboardwidgets en Shop Health-datums in de UI-taal, deno-stub, promo-compare, skills — 15 oktober 2026
+
+**Root cause:**
+- `src/config/dashboardWidgets.ts`: `title`/`description` van de 9 widgets en `name`/`description` van de 5 layout-presets waren hardcoded NL (o.a. "Shop Health", "Health Categorieën", "Standaard"). Ze verschijnen in `DashboardCustomizeDialog` en `DashboardLayoutSwitcher`. Die twee componenten hadden zelf ook geen `useTranslation` (dialoogtitel, categorielabels, reset-bevestiging, "Kies layout"). Door `fallbackLng: 'nl'` zag elke niet-NL gebruiker daar NL.
+- `useAnalytics` (`dailyStats`, vroeger r.188) maakte het label met `format(date, 'dd MMM')` zonder locale, binnen de queryFn: de Shop Health-trend (`useShopHealth` → `trends.labels`) en de prestatie "Beste dag" (`healthScoreCalculator.ts:564`) toonden dus altijd Engelse maandnamen. `useShopHealth` zocht "vandaag" door dat label te vergelijken met `format(now, 'dd MMM')`; met een gelokaliseerd label zou die vergelijking breken.
+- `scripts/promo-compare/stubs/stripe.ts` exporteerde alleen een `any`-waarde. Functies gebruiken `Stripe` ook als namespace (`Stripe.Event`, `Stripe.Checkout.Session`, …), dus `deno check` met de stubs gaf 19× TS2503 op `stripe-connect-webhook`.
+- `scripts/promo-compare/compare.ts`: de checkout-kolom rekende de oude kant áltijd met de lus van vóór PROMO-ENGINE (elke geldige code apart op het subtotaal, geen staffels/BOGO/stapelregels). Met een oude versie die de motor al had, gaf HEAD↔HEAD daardoor 451 verschillen (DISCOUNT-LIMIT-1). De README beweerde dat de kolom "oud vs. nieuw" vergelijkt.
+
+**Uitgevoerd:**
+- `src/config/dashboardWidgets.ts`: `title`/`description` → `titleKey`/`descriptionKey` (`admin.dashboardWidgets.widgets.<id>.*`), `name`/`description` → `nameKey`/`descriptionKey` (`admin.dashboardWidgets.presets.<id>.*`). Key-in-de-array-patroon; id's en volgorde ongewijzigd.
+- `DashboardCustomizeDialog.tsx`: `useTranslation`; `categoryLabels` vervangen door `admin.dashboardWidgets.categories.<category>`; titel, omschrijving, kopjes, reset-knop en reset-bevestiging via `admin.dashboardWidgets.customize.*`; Annuleren/Opslaan via `common.*`.
+- `DashboardLayoutSwitcher.tsx`: `useTranslation`; presetnamen via `nameKey`, "Kies layout" via `admin.dashboardWidgets.choose_layout`.
+- 34 nieuwe keys in nl/en/fr/de/uk (de: Sie, uk: ви, zoals de bestaande dashboard-keys). "Shop Health" blijft als productnaam in elke taal staan, in lijn met I18N-SHIP-HEALTH-1.
+- `src/hooks/useAnalytics.ts`: `DailyStats` krijgt `day` (yyyy-MM-dd, taalonafhankelijk). De queryFn levert alleen `day`; `date` ('dd MMM') wordt in een `useMemo` met `useDateFnsLocale()` opgemaakt. Een taalwissel vraagt dus geen refetch en de query-cache blijft taalonafhankelijk.
+- `src/hooks/useShopHealth.ts`: "vandaag" (omzet en orders) vergelijkt op `d.day === format(now, 'yyyy-MM-dd')` i.p.v. op het label.
+- `scripts/promo-compare/stubs/stripe.ts`: `declare namespace Stripe` met alle Stripe-types die in `supabase/functions` voorkomen (Event, Account, Payout, PayoutListParams, PaymentIntent, Refund, RequestOptions, BalanceTransaction(+ListParams), Balance.Available/Pending, Checkout.Session, Checkout.SessionCreateParams.LineItem), allemaal `any`.
+- Nieuw `scripts/promo-compare/import_map.stubs.json` (relatieve paden): server, stripe@18.5.0/14.21.0, supabase-js@2/2.57.2, resend@2.0.0 → `stubs/`. Werkt voor `deno check` én voor `compare.ts`.
+- `scripts/promo-compare/compare.ts`: exporteert de oude versie `promoValidator` + `computeCartPromotions`, dan rekent de oude kant met de oude validator en de oude motor (zoals de live checkout: `refreshCartDiscount`). Alleen een pre-engine-versie valt terug op de oude lus. Het script meldt de modus. Optioneel tweede argument: pad naar de fixture. `promoValidator` krijgt nu de cart mee (DISCOUNT-LIMIT-1-signatuur).
+- `scripts/promo-compare/README.md`: checkout-beschrijving, exportregels voor beide modi, draaien met `import_map.stubs.json`, correctienotitie over de 451, en een sectie "`deno check` zonder netwerk".
+- Skills (`.claude/skills` + `.agents/skills`, identiek): `sellqo-engineering-rules` R8 krijgt de `cart.<veld>`-alinea (DISCOUNT-LIMIT-1); `sellqo-i18n-verplicht` Verificatie krijgt de regel over dynamische keys en `check-i18n-used-keys`.
+
+**Security-keuzes:** n.v.t. Alleen frontend-tekst, een client-side datumlabel en testharnas/skills. Geen DB, RLS, edge function of secret geraakt.
+
+**Gedeelde-paden-waarschuwing:** `useAnalytics` wordt gebruikt door `useShopHealth` en `Analytics.tsx`. `DailyStats` krijgt er een veld bij (`day`); `date` blijft bestaan met dezelfde vorm ('dd MMM'), nu in de UI-taal. `Analytics.tsx` gebruikt `date` alleen als `dataKey` voor de x-as, dus die krijgt ook gelokaliseerde labels. Geen andere lezers (`rg dailyStats src`). Niets van storefront-api of de custom frontends geraakt.
+
+**Verificatie (lokaal, 15-10):**
+- `deno check` (2.9.6, `--import-map=scripts/promo-compare/import_map.stubs.json`) op `stripe-connect-webhook/index.ts` → groen (vóór de stub-wijziging: 19× TS2503). Ook `storefront-api/index.ts` groen.
+- `compare.ts` HEAD↔HEAD op een synthetische fixture (staffel 10% vanaf 3 stuks + twee stapelbare codes, 397 scenario's): cart_get 397/397, checkout 397/397 identiek, 0 db-writes. Tegenproef met de oude lus-modus op dezelfde fixture: 180 verschillen (staffel en code+code), dus de nieuwe modus discrimineert en de oude ruis is verklaard. Geen live-fixture gedraaid (zie Vervolg).
+- `i18n-parity` → volledige pariteit (7.721 keys per taal). `check-i18n-used-keys` → groen. De 34 dynamische keys (`t(widget.titleKey)`, `` t(`…categories.${category}`) ``) apart nagekeken in alle 5 talen: 0 ontbrekend.
+- `i18n-scan` op de twee componenten: 1 treffer elk, scan-ruis (`Record<…>`-generic).
+- esbuild-parse van beide `.tsx` → ok. `npx tsc --noEmit -p tsconfig.app.json` → exit 0. `npm run build` → ok. `verify-lint-baseline` → 1482, gelijk aan de baseline. `verify-skills-sync` → identiek.
+- Niet gedaan: browsertest in een andere UI-taal, push, workspace-skills bijwerken.
+
+**Bewust ongemoeid / Vervolg:**
+- promo-compare op een verse live-fixture opnieuw draaien (HEAD↔HEAD moet nu 0 geven); de fixture-query vraagt de Lovable-connector.
+- Workspace-kopieën van `sellqo-engineering-rules` en `sellqo-i18n-verplicht` bijwerken met `update_workspace_skill` (repo = bron).
+- De CI-`deno check` draait met netwerk en zonder stubs; de stub-import-map is enkel voor lokaal/sandbox-gebruik.
+- `HealthTrendChart` en andere Shop Health-componenten ongemoeid: ze krijgen het label nu al in de UI-taal via `useAnalytics`.
+
+## I18N-SHIP-HEALTH-1 — Verzendmethode-dialoog en Shop Health naar i18n — 15 oktober 2026
+
+**Root cause:**
+- `ShippingMethodDialog.tsx` (labels, hints, placeholders, zod-meldingen), de regio-presets in `src/lib/shippingRegions.ts` en heel Shop Health (`src/config/healthMessages.ts`, `src/lib/healthScoreCalculator.ts`, `useShopHealth` en de zes componenten in `src/components/shop-health/`) waren hardcoded Nederlands. Door `fallbackLng: 'nl'` zag elke niet-NL gebruiker daar NL. De landenlijst in de dialoog gebruikte vaste NL-namen.
+
+**Uitgevoerd:**
+- `ShippingMethodDialog.tsx`: alle tekst via `admin.shippingMethodDialog.*`, zod-meldingen als key; landenlijst via `localizedCountryOptions` in de UI-taal.
+- `shippingRegions.ts`: `REGION_PRESETS` met `labelKey` (`shipping.regions.*`); `summarizeCountries(codes, t, locale)` met `localizedCountryName`. `Shipping.tsx` past de aanroep aan.
+- Shop Health: `healthMessages` bevat alleen nog keys (`admin.shopHealth.*`); `healthScoreCalculator` en `useShopHealth` geven `t` door; banner, categorieën, acties, prestaties, trend en statusbadge vertaald. `formatMessage` verwijderd (geen gebruik meer).
+- 149 nieuwe keys in nl/en/fr/de/uk.
+- Bedragen blijven `nl-NL` (`formatCurrency` / `€x.toFixed(2)`), conform I18N-4.
+- `de.json`, events-namespace: overwegend Sie (90 vs 3); de drie du-strings naar Sie gezet.
+- Commit `02b228a`.
+
+**Security-keuzes:** n.v.t. Alleen frontend-tekst; geen DB, RLS, edge function of secret geraakt.
+
+**Verificatie:** `i18n-parity` groen, `tsc` exit 0, build ok, lint gelijk aan de baseline (zie commit `02b228a`).
+
+**Bewust ongemoeid / Vervolg:**
+- Datums in de trend en bij "Beste dag" kwamen nog uit `useAnalytics` zonder locale, en de widgettitels in `dashboardWidgets.ts` waren nog NL. Beide opgepakt in RESTJES-1.
+
 ## DISCOUNT-LIMIT-1 — "één keer per klant" afgedwongen, gebruik geteld bij betaling — 15 oktober 2026
 
 **Root cause:**

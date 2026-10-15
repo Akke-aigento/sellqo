@@ -1,13 +1,22 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- testharnas: ongetypeerde databankrijen */
-// PROMO-ENGINE-1 comparison test: legacy storefront-api (747a79a) vs new, on live data.
-// Usage: deno run --allow-read --import-map=import_map.json compare.ts <functionsDir>
+// PROMO-ENGINE-1 comparison test: legacy storefront-api vs new, on live data.
+// Usage: deno run --allow-read --import-map=import_map.stubs.json compare.ts <functionsDir> [fixture.json]
+//
+// Checkout column (RESTJES-1): when the legacy export has `promoValidator` and
+// `computeCartPromotions` (every version since PROMO-ENGINE-1), both sides go through
+// the engine — legacy with the legacy validator/engine, new with the new ones — so
+// HEAD↔HEAD is 0 differences. Only a pre-engine legacy (e.g. 747a79a) falls back to the
+// old per-code loop; then the differences are the intended engine changes.
 import { FakeDb } from './fakeSupabase.ts';
 
 const dir = Deno.args[0];
 const L = await import(`file://${dir}/storefront-api/__cmp_legacy.ts`);
 const N = await import(`file://${dir}/storefront-api/__cmp_new.ts`);
 const E = await import(`file://${dir}/_shared/promotionEngine.ts`);
-const fx = JSON.parse(await Deno.readTextFile(new URL('./fixture.json', import.meta.url)));
+const fixtureUrl = Deno.args[1] ? new URL(`file://${Deno.args[1]}`) : new URL('./fixture.json', import.meta.url);
+const fx = JSON.parse(await Deno.readTextFile(fixtureUrl));
+const legacyHasEngine = typeof L.promoValidator === 'function' && typeof L.computeCartPromotions === 'function';
+console.log(`checkout mode: ${legacyHasEngine ? 'engine vs engine (legacy validator + legacy engine)' : 'pre-engine legacy loop vs engine'}`);
 
 const tables: Record<string, any[]> = { ...fx };
 const tenantName = Object.fromEntries(fx.tenants.map((t: any) => [t.id, t.name]));
@@ -60,16 +69,22 @@ for (const s of scenarios) {
     cartDiff++;
     if (examples.length < 15) examples.push(`CART DIFF ${tenantName[s.tenant_id]} ${s.label}\n  legacy ${stableJson(a)}\n  new    ${stableJson(b)}`);
   }
-  // checkout path: legacy buildCartResponse loop vs engine
-  const subtotal = s.lines.reduce((x: number, l: any) => x + l.line_total, 0);
+  // checkout path: same route as the live checkout (refreshCartDiscount → engine).
   let legacy = 0; let legacyFree = false;
-  for (const dc of s.cart.discount_codes || []) {
-    const v = await L.validateDiscountCode(db, s.tenant_id, { code: dc, subtotal, customer_email: s.cart.customer_email });
-    if (!v.valid) continue;
-    if (v.discount_type === 'free_shipping') legacyFree = true;
-    else legacy += L.calculateDiscountValue(subtotal, v.discount_type, v.discount_value, v.max_discount_amount);
+  if (legacyHasEngine) {
+    const lp = await L.computeCartPromotions(db, s.tenant_id, s.cart, s.lines, L.promoValidator(db, s.tenant_id, s.cart));
+    legacy = lp.discount_total; legacyFree = lp.free_shipping;
+  } else {
+    // Pre-PROMO-ENGINE: buildCartResponse summed every valid code on the subtotal.
+    const subtotal = s.lines.reduce((x: number, l: any) => x + l.line_total, 0);
+    for (const dc of s.cart.discount_codes || []) {
+      const v = await L.validateDiscountCode(db, s.tenant_id, { code: dc, subtotal, customer_email: s.cart.customer_email });
+      if (!v.valid) continue;
+      if (v.discount_type === 'free_shipping') legacyFree = true;
+      else legacy += L.calculateDiscountValue(subtotal, v.discount_type, v.discount_value, v.max_discount_amount);
+    }
   }
-  const promo = await E.computeCartPromotions(db, s.tenant_id, s.cart, s.lines, N.promoValidator(db, s.tenant_id));
+  const promo = await (N.computeCartPromotions ?? E.computeCartPromotions)(db, s.tenant_id, s.cart, s.lines, N.promoValidator(db, s.tenant_id, s.cart));
   const same = Math.abs(Math.round(legacy * 100) / 100 - promo.discount_total) < 0.005 && legacyFree === promo.free_shipping;
   if (same) coSame++; else {
     const kinds = promo.applied_discounts.map((d: any) => d.type || 'code').join('+');

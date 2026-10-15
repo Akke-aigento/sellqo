@@ -140,6 +140,7 @@ name: z.string().min(1, 'admin.foo.validation.naam_is_verplicht'),
    - `npx tsc --noEmit -p tsconfig.app.json` → exit 0. Dit vangt `t` dat niet in scope is en dependency-fouten na een codemod.
    - Parse elk aangeraakt `.tsx`-bestand met esbuild (`loader: 'tsx'`). Dit is de belangrijkste zeef: alle vier de codemod-bugs die in I18N-4 boven water kwamen brachten geldige TypeScript-ogende maar kapotte JSX voort, en alleen een echte parse ving dat.
    - `node scripts/i18n-scan.mjs <pad>` opnieuw en het verschil verklaren. Wat overblijft is meestal scan-ruis (TS-generics als `useState<X>(`, ternary-takken); loop het na, neem het niet aan.
+   - Keys die via `${prefix}.x` of `t(variabele)` lopen, ziet `check-i18n-used-keys` niet; controleer die apart tegen `nl.json`.
 
 De oude losse grep `>[A-Z][a-z].{3,}<` is géén afdoende controle — die mist tekst op een eigen regel, tekst na een self-closing tag, object-literals, ternary's en zod-meldingen. Gebruik de scan.
 

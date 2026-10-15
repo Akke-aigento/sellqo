@@ -229,6 +229,11 @@ console.error(...)` meldt zich groen met een teller op nul.
 query een naam noemt — een tabel, een kolom, een index, een constraint — is een
 aanname tot je hem hebt opgezocht.
 
+Ook `cart.<veld>` (of een ander veld uit een `select('*')`) is een naam die je
+natrekt tegen het schema: een onbestaand veld wordt stil `undefined` → `null`
+(DISCOUNT-LIMIT-1: `stripe-connect-webhook` schreef maandenlang
+`cart.discount_code`, een kolom die nooit bestond).
+
 ## R9 — Een native plugin wijzigen = beide platforms syncen én committen.
 Een `@capacitor/*`-dependency toevoegen of verwijderen is pas af na
 `npx cap sync` én het committen van de drie gegenereerde manifesten:

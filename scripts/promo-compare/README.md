@@ -9,8 +9,15 @@ Wat hij test, per scenario (alle echte carts + ~3.500 synthetische carts per win
 productmixen × codes × klant met/zonder eerdere bestelling × verzendmethode):
 
 - **cart_get**: het volledige `computeCartTotals`-resultaat moet identiek zijn.
-- **checkout**: de korting die de klant betaalt, oud vs. nieuw. Verschillen worden per
-  winkel en soort korting geteld, zodat je ziet of ze bedoeld zijn.
+- **checkout**: de korting die de klant betaalt, oud vs. nieuw, via dezelfde route als de
+  echte checkout (`refreshCartDiscount` → `computeCartPromotions` met `promoValidator`).
+  Verschillen worden per winkel en soort korting geteld, zodat je ziet of ze bedoeld zijn.
+
+  Exporteert de oude versie `promoValidator` en `computeCartPromotions` (elke versie sinds
+  PROMO-ENGINE-1), dan rekent de oude kant met de óude validator en de óude motor. Een
+  controlerun HEAD↔HEAD geeft dan 0 verschillen. Alleen bij een oude versie van vóór de
+  motor (zoals 747a79a) valt de checkout-kolom terug op de toenmalige lus per code
+  (elke geldige code apart op het subtotaal). Het script meldt bovenaan welke modus loopt.
 
 ## Draaien
 
@@ -22,27 +29,49 @@ productmixen × codes × klant met/zonder eerdere bestelling × verzendmethode):
    ```sh
    F=supabase/functions
    git show <oude-commit>:$F/storefront-api/index.ts > $F/storefront-api/__cmp_legacy.ts
-   echo 'export { computeCartTotals, validateDiscountCode, calculateDiscountValue };' >> $F/storefront-api/__cmp_legacy.ts
+   # oude versie mét motor (sinds PROMO-ENGINE-1):
+   echo 'export { computeCartTotals, validateDiscountCode, calculateDiscountValue, promoValidator, computeCartPromotions };' >> $F/storefront-api/__cmp_legacy.ts
+   # oude versie van vóór de motor (747a79a en ouder): zonder de laatste twee
    cp $F/storefront-api/index.ts $F/storefront-api/__cmp_new.ts
-   echo 'export { computeCartTotals, validateDiscountCode, promoValidator };' >> $F/storefront-api/__cmp_new.ts
+   echo 'export { computeCartTotals, validateDiscountCode, promoValidator, computeCartPromotions };' >> $F/storefront-api/__cmp_new.ts
    ```
 
-3. Een import map maken die de remote imports naar `stubs/` laat wijzen (de sandbox
-   bereikt deno.land/esm.sh niet), en draaien:
+3. Draaien met `import_map.stubs.json`, die de remote imports naar `stubs/` laat wijzen
+   (de sandbox bereikt deno.land/esm.sh niet):
 
    ```sh
    cd scripts/promo-compare
-   deno run --allow-read --import-map=import_map.json compare.ts "$(pwd)/../../supabase/functions"
+   DENO_NO_PACKAGE_JSON=1 deno run --allow-read --allow-env --no-lock --node-modules-dir=none \
+     --import-map=import_map.stubs.json compare.ts "$(pwd)/../../supabase/functions" [pad/naar/fixture.json]
    rm ../../supabase/functions/storefront-api/__cmp_*.ts
    ```
 
-   `import_map.json` mapt `https://deno.land/std@0.190.0/http/server.ts`,
-   `https://esm.sh/@supabase/supabase-js@2`, `…@2.57.2`, `https://esm.sh/resend@2.0.0` en
-   `https://esm.sh/stripe@14.21.0` naar de bestanden in `stubs/` (absolute paden).
+   Zonder tweede argument leest het script `fixture.json` naast zichzelf.
 
 Uitkomst op 13-10-2026 (747a79a → PROMO-ENGINE-1): 3.619 scenario's, cart_get 100%
 identiek; checkout identiek behalve Loveke "Loveke for Two" (staffelkorting werd vroeger
 niet aangerekend, nu wel), zoals bedoeld.
+
+**Correctie (RESTJES-1, 15-10-2026).** Tot RESTJES-1 vergeleek de checkout-kolom áltijd
+met de lus van vóór de motor, ook als de oude versie al de motor had. Bij DISCOUNT-LIMIT-1
+gaf HEAD↔HEAD daardoor al 451 verschillen (Loveke-staffel, Fonske code+code): ruis van
+het harnas, geen regressie. Na de aanpassing geeft HEAD↔HEAD op een synthetische fixture
+(staffel + twee stapelbare codes, 397 scenario's) 0 verschillen; dezelfde fixture in de
+oude lus-modus geeft 180. Een run op een verse live-fixture staat nog open.
+
+## `deno check` zonder netwerk
+
+Dezelfde `import_map.stubs.json` werkt ook voor `deno check` op losse functies:
+
+```sh
+DENO_NO_PACKAGE_JSON=1 deno check --no-lock --node-modules-dir=none \
+  --import-map=scripts/promo-compare/import_map.stubs.json supabase/functions/stripe-connect-webhook/index.ts
+```
+
+`stubs/stripe.ts` declareert de `Stripe`-namespace (`Stripe.Event`, `Stripe.Checkout.Session`, …)
+met `any`-types. Gebruikt een functie een Stripe-type dat er nog niet in staat, dan faalt
+de check met TS2503/TS2694: voeg het type daar toe. Een remote import met een versie die nog
+niet in de map staat, voeg je aan de map toe.
 
 ## Rooktest (`smoke.ts`)
 
