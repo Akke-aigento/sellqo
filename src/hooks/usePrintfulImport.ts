@@ -2,6 +2,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 export interface PrintfulImportPreviewVariant {
   sync_variant_id: number;
@@ -48,21 +50,22 @@ async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<T> 
         catch { serverMsg = txt || null; }
       }
     } catch { /* fall back on error.message */ }
-    throw new Error(serverMsg || error.message || 'Aanroep mislukt');
+    throw new Error(serverMsg || error.message || i18n.t('admin.printful.toast.call_failed'));
   }
   const payload = data as ({ success?: boolean; error?: string } & T) | null;
-  if (!payload || payload.success === false) throw new Error(payload?.error || 'Onbekende fout');
+  if (!payload || payload.success === false) throw new Error(payload?.error || i18n.t('admin.printful.toast.unknown_error'));
   return payload as T;
 }
 
 export function usePrintfulImportPreview(tenantId: string | undefined) {
+  const { t } = useTranslation();
   return useMutation({
     mutationFn: (payload?: { syncProductIds?: number[] }) =>
       invoke<{ products: PrintfulImportPreviewProduct[] }>('preview-printful-import', {
         tenantId,
         ...(payload?.syncProductIds?.length ? { syncProductIds: payload.syncProductIds } : {}),
       }),
-    onError: (err: Error) => toast.error(err.message || 'Preview ophalen mislukt'),
+    onError: (err: Error) => toast.error(err.message || t('admin.printful.toast.preview_failed')),
   });
 }
 
@@ -82,6 +85,7 @@ export interface ApplyPayloadProduct {
 }
 
 export function usePrintfulImportApply(tenantId: string | undefined) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: ApplyPayloadProduct[] | { products: ApplyPayloadProduct[]; reimport?: boolean }) =>
@@ -96,17 +100,17 @@ export function usePrintfulImportApply(tenantId: string | undefined) {
       qc.invalidateQueries({ queryKey: ['printful-variant-mappings', tenantId] });
       qc.invalidateQueries({ queryKey: ['printful-tenant-variants', tenantId] });
       if (res.reimported && !res.imported && !res.skipped) {
-        if (res.failed) toast.error('Beelden bijwerken mislukt');
-        else toast.success('Beelden bijgewerkt');
+        if (res.failed) toast.error(t('admin.printful.toast.images_failed'));
+        else toast.success(t('admin.printful.toast.images_updated'));
         return;
       }
-      const parts = [`${res.imported} geïmporteerd`];
-      if (res.skipped) parts.push(`${res.skipped} overgeslagen`);
-      if (res.reimported) parts.push(`${res.reimported} beelden bijgewerkt`);
-      if (res.failed) parts.push(`${res.failed} mislukt`);
+      const parts = [t('admin.printful.toast.imported', { count: res.imported })];
+      if (res.skipped) parts.push(t('admin.printful.toast.skipped', { count: res.skipped }));
+      if (res.reimported) parts.push(t('admin.printful.toast.reimported', { count: res.reimported }));
+      if (res.failed) parts.push(t('admin.printful.toast.failed_count', { count: res.failed }));
       if (res.failed) toast.error(parts.join(', '));
       else toast.success(parts.join(', '));
     },
-    onError: (err: Error) => toast.error(err.message || 'Importeren mislukt'),
+    onError: (err: Error) => toast.error(err.message || t('admin.printful.toast.import_failed')),
   });
 }

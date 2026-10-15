@@ -200,7 +200,9 @@
       "platform_docs": "Dokumentation",
       "kitchen": "Küche",
       "ordering": "Bestellungen",
-      "event_venues": "Säle"
+      "event_venues": "Säle",
+      "event_bundles": "Kombitickets",
+      "event_tokens": "Marken"
     }
   },
   "settings": {
@@ -621,7 +623,482 @@
       "categoryDisabled": "{{channel}} für {{category}} deaktiviert",
       "pushMovedHint": "Push-Benachrichtigungen auf dem Telefon werden pro Person eingestellt.",
       "pushMovedLink": "Zu Meine Benachrichtigungen",
-      "urgentEmailHint": "Dringende Benachrichtigungen (Priorität hoch oder dringend) erhalten Sie auch per E-Mail, wenn Sie dafür nichts eingestellt haben. Schalten Sie E-Mail für diesen Typ ausdrücklich aus, wenn Sie das nicht möchten."
+      "urgentEmailHint": "Dringende Benachrichtigungen (Priorität hoch oder dringend) erhalten Sie auch per E-Mail, wenn Sie dafür nichts eingestellt haben. Schalten Sie E-Mail für diesen Typ ausdrücklich aus, wenn Sie das nicht möchten.",
+      "categories": {
+        "orders": "Bestellungen",
+        "invoices": "Rechnungen",
+        "payments": "Zahlungen",
+        "customers": "Kunden",
+        "products": "Produkte & Lagerbestand",
+        "quotes": "Angebote",
+        "subscriptions": "Abonnements",
+        "marketing": "Marketing",
+        "team": "Team",
+        "system": "System",
+        "ai_coach": "KI-Coach",
+        "messages": "Nachrichten",
+        "integrations": "SellQo Connect"
+      },
+      "types": {
+        "orders": {
+          "order_new": {
+            "label": "Neue Bestellung",
+            "description": "Erhalten Sie bei jeder neuen Bestellung eine Benachrichtigung"
+          },
+          "order_paid": {
+            "label": "Zahlung erhalten",
+            "description": "Wenn eine Bestellung bezahlt wurde"
+          },
+          "order_cancelled": {
+            "label": "Bestellung storniert",
+            "description": "Wenn eine Bestellung storniert wird"
+          },
+          "order_refund_requested": {
+            "label": "Erstattung angefordert",
+            "description": "Wenn ein Kunde eine Erstattung anfordert"
+          },
+          "order_shipped": {
+            "label": "Bestellung versandt",
+            "description": "Wenn eine Bestellung versandt wurde"
+          },
+          "order_delivered": {
+            "label": "Bestellung zugestellt",
+            "description": "Wenn eine Bestellung zugestellt wurde"
+          },
+          "order_high_value": {
+            "label": "Bestellung mit hohem Wert",
+            "description": "Bestellungen über 500 €"
+          },
+          "marketplace_order_new": {
+            "label": "Marktplatz-Bestellung",
+            "description": "Neue Bestellung über einen Marktplatz"
+          },
+          "tracking_in_transit": {
+            "label": "Sendung unterwegs",
+            "description": "Sendungsverfolgung: Die Sendung ist unterwegs"
+          },
+          "tracking_out_for_delivery": {
+            "label": "Sendung in Zustellung",
+            "description": "Sendungsverfolgung: Die Sendung ist heute auf dem Weg zum Kunden"
+          },
+          "tracking_delivered": {
+            "label": "Sendung zugestellt",
+            "description": "Sendungsverfolgung: Die Sendung wurde zugestellt"
+          },
+          "tracking_exception": {
+            "label": "Problem mit der Sendung",
+            "description": "Die Sendungsverfolgung meldet ein Problem mit der Sendung"
+          },
+          "return_new_request": {
+            "label": "Neue Retoure",
+            "description": "Wenn ein Kunde eine Retoure anfordert"
+          }
+        },
+        "invoices": {
+          "invoice_created": {
+            "label": "Rechnung erstellt",
+            "description": "Wenn eine neue Rechnung erstellt wird"
+          },
+          "invoice_sent": {
+            "label": "Rechnung versendet",
+            "description": "Wenn eine Rechnung versendet wurde"
+          },
+          "invoice_paid": {
+            "label": "Rechnung bezahlt",
+            "description": "Wenn eine Rechnung bezahlt wurde"
+          },
+          "invoice_overdue": {
+            "label": "Rechnung überfällig",
+            "description": "Wenn eine Rechnung das Fälligkeitsdatum überschritten hat"
+          },
+          "invoice_overdue_7days": {
+            "label": "7 Tage überfällig",
+            "description": "Rechnung ist seit 7 Tagen überfällig"
+          },
+          "invoice_overdue_30days": {
+            "label": "30 Tage überfällig",
+            "description": "Rechnung ist seit 30 Tagen überfällig - dringend"
+          },
+          "invoice_reminder_sent": {
+            "label": "Erinnerung versendet",
+            "description": "Wenn eine Zahlungserinnerung versendet wurde"
+          },
+          "peppol_invoice_accepted": {
+            "label": "Peppol akzeptiert",
+            "description": "Peppol-Rechnung wurde akzeptiert"
+          },
+          "peppol_invoice_rejected": {
+            "label": "Peppol abgelehnt",
+            "description": "Peppol-Rechnung wurde abgelehnt"
+          },
+          "invoice_final_reminder": {
+            "label": "Letzte Erinnerung",
+            "description": "Letzte Zahlungserinnerung für eine Rechnung"
+          },
+          "invoice_charge_exhausted": {
+            "label": "Lastschrift fehlgeschlagen",
+            "description": "Der automatische Einzug einer Rechnung ist ausgeschöpft"
+          },
+          "mandate_setup_stalled": {
+            "label": "Mandat nicht abgeschlossen",
+            "description": "Der Kunde hat das Lastschriftmandat nicht abgeschlossen"
+          }
+        },
+        "payments": {
+          "payment_received": {
+            "label": "Zahlung erhalten",
+            "description": "Wenn eine Zahlung eingeht"
+          },
+          "payout_available": {
+            "label": "Auszahlung verfügbar",
+            "description": "Wenn eine Auszahlung bereitsteht"
+          },
+          "payout_completed": {
+            "label": "Auszahlung abgeschlossen",
+            "description": "Wenn eine Auszahlung erfolgt ist"
+          },
+          "payout_canceled": {
+            "label": "Auszahlung storniert",
+            "description": "Wenn eine geplante Auszahlung storniert wurde"
+          },
+          "stripe_account_issue": {
+            "label": "Stripe-Problem",
+            "description": "Problem mit Ihrem Stripe-Konto"
+          },
+          "chargeback_received": {
+            "label": "Rückbuchung erhalten",
+            "description": "Wenn ein Kunde eine Rückbuchung veranlasst"
+          },
+          "payment_duplicate": {
+            "label": "Doppelte Zahlung",
+            "description": "Ein Kunde hat einen bereits bezahlten oder stornierten Posten bezahlt"
+          },
+          "order_payment_failed": {
+            "label": "Zahlung fehlgeschlagen",
+            "description": "Wenn die Zahlung einer Bestellung fehlschlägt"
+          },
+          "order_refunded": {
+            "label": "Erstattet",
+            "description": "Wenn eine Bestellung erstattet wurde"
+          }
+        },
+        "customers": {
+          "customer_new": {
+            "label": "Neuer Kunde",
+            "description": "Wenn sich ein neuer Kunde registriert"
+          },
+          "customer_first_order": {
+            "label": "Erste Bestellung",
+            "description": "Wenn ein Kunde seine erste Bestellung aufgibt"
+          },
+          "customer_vip": {
+            "label": "VIP-Status erreicht",
+            "description": "Wenn ein Kunde VIP wird"
+          },
+          "customer_inactive_30days": {
+            "label": "30 Tage inaktiv",
+            "description": "Kunde war 30 Tage nicht aktiv"
+          },
+          "customer_inactive_90days": {
+            "label": "90 Tage inaktiv",
+            "description": "Kunde war 90 Tage nicht aktiv"
+          },
+          "customer_message_received": {
+            "label": "Nachricht erhalten",
+            "description": "Wenn ein Kunde auf eine E-Mail antwortet"
+          },
+          "newsletter_signup": {
+            "label": "Newsletter-Anmeldung",
+            "description": "Neue Anmeldung zum Newsletter"
+          },
+          "newsletter_unsubscribe": {
+            "label": "Newsletter-Abmeldung",
+            "description": "Kunde meldet sich vom Newsletter ab"
+          }
+        },
+        "products": {
+          "stock_low": {
+            "label": "Niedriger Bestand",
+            "description": "Wenn der Bestand unter das Mindestniveau fällt"
+          },
+          "stock_critical": {
+            "label": "Kritischer Bestand",
+            "description": "Bestand kritisch niedrig (< 5 Stück)"
+          },
+          "stock_out": {
+            "label": "Ausverkauft",
+            "description": "Produkt ist ausverkauft"
+          },
+          "stock_replenished": {
+            "label": "Bestand aufgefüllt",
+            "description": "Bestand ist wieder aufgefüllt"
+          },
+          "product_bestseller": {
+            "label": "Bestseller",
+            "description": "Produkt ist zum Bestseller geworden"
+          },
+          "product_no_sales_30days": {
+            "label": "Keine Verkäufe",
+            "description": "Produkt hatte 30 Tage keine Verkäufe"
+          },
+          "product_unmapped": {
+            "label": "Bol-Produkt nicht verknüpft",
+            "description": "Eine Bol-Bestellung enthält ein Produkt ohne Verknüpfung"
+          },
+          "out_of_stock": {
+            "label": "Ausverkauft nach Bol-Verkauf",
+            "description": "Produkt ist nach einem Verkauf über Bol.com ausverkauft"
+          }
+        },
+        "quotes": {
+          "quote_new": {
+            "label": "Angebot erstellt",
+            "description": "Wenn ein neues Angebot erstellt wird"
+          },
+          "quote_sent": {
+            "label": "Angebot versendet",
+            "description": "Wenn ein Angebot versendet wurde"
+          },
+          "quote_viewed": {
+            "label": "Angebot angesehen",
+            "description": "Kunde hat das Angebot angesehen"
+          },
+          "quote_accepted": {
+            "label": "Angebot angenommen",
+            "description": "Kunde hat das Angebot angenommen"
+          },
+          "quote_rejected": {
+            "label": "Angebot abgelehnt",
+            "description": "Kunde hat das Angebot abgelehnt"
+          },
+          "quote_expiring_soon": {
+            "label": "Angebot läuft ab",
+            "description": "Angebot läuft innerhalb von 3 Tagen ab"
+          },
+          "quote_expired": {
+            "label": "Angebot abgelaufen",
+            "description": "Angebot ist abgelaufen"
+          }
+        },
+        "subscriptions": {
+          "subscription_new": {
+            "label": "Neues Abonnement",
+            "description": "Neues Abonnement gestartet"
+          },
+          "subscription_renewed": {
+            "label": "Abonnement verlängert",
+            "description": "Abonnement wurde automatisch verlängert"
+          },
+          "subscription_cancelled": {
+            "label": "Abonnement gekündigt",
+            "description": "Kunde hat das Abonnement gekündigt"
+          },
+          "subscription_payment_failed": {
+            "label": "Zahlung fehlgeschlagen",
+            "description": "Abonnementzahlung ist fehlgeschlagen"
+          },
+          "subscription_expiring": {
+            "label": "Abonnement läuft ab",
+            "description": "Abonnement läuft bald ab"
+          },
+          "subscription_paused": {
+            "label": "Abonnement pausiert",
+            "description": "Abonnement wurde pausiert"
+          },
+          "billing_cycle_expired": {
+            "label": "Zahlungsfrist abgelaufen",
+            "description": "Ein Abrechnungszyklus eines Abonnements ist ohne Zahlung abgelaufen"
+          },
+          "subscription_state_changed": {
+            "label": "Abonnementstatus geändert",
+            "description": "Ihr Abonnement ist offen, schreibgeschützt oder ausgesetzt"
+          },
+          "subscription_reactivated": {
+            "label": "Abonnement wieder aktiv",
+            "description": "Nach der Zahlung ist wieder alles freigeschaltet"
+          }
+        },
+        "marketing": {
+          "campaign_sent": {
+            "label": "Kampagne versendet",
+            "description": "E-Mail-Kampagne wurde versendet"
+          },
+          "campaign_completed": {
+            "label": "Kampagne abgeschlossen",
+            "description": "Kampagne ist vollständig abgeschlossen"
+          },
+          "campaign_high_open_rate": {
+            "label": "Hohe Öffnungsrate",
+            "description": "Kampagne hat eine Öffnungsrate über 50 %"
+          },
+          "campaign_high_bounce": {
+            "label": "Bounce-Warnung",
+            "description": "Viele Bounces in einer Kampagne"
+          },
+          "ab_test_winner": {
+            "label": "A/B-Test-Gewinner",
+            "description": "Der Gewinner des A/B-Tests steht fest"
+          },
+          "ai_credits_empty": {
+            "label": "KI-Credits aufgebraucht",
+            "description": "KI-Credits sind aufgebraucht"
+          }
+        },
+        "team": {
+          "team_member_invited": {
+            "label": "Einladung versendet",
+            "description": "Team-Einladung wurde versendet"
+          },
+          "team_member_joined": {
+            "label": "Einladung angenommen",
+            "description": "Neues Teammitglied wurde hinzugefügt"
+          },
+          "team_member_removed": {
+            "label": "Teammitglied entfernt",
+            "description": "Teammitglied wurde entfernt"
+          },
+          "team_role_changed": {
+            "label": "Rolle geändert",
+            "description": "Die Rolle eines Teammitglieds wurde geändert"
+          },
+          "login_new_device": {
+            "label": "Neues Gerät",
+            "description": "Anmeldung von einem neuen Gerät"
+          },
+          "login_failed_attempts": {
+            "label": "Fehlgeschlagene Anmeldeversuche",
+            "description": "Mehrere fehlgeschlagene Anmeldeversuche"
+          }
+        },
+        "system": {
+          "platform_gift": {
+            "label": "Gratis-Geschenk",
+            "description": "Benachrichtigung, wenn Sie kostenlose Credits, Monate oder Funktionen erhalten"
+          },
+          "platform_update": {
+            "label": "Plattform-Update",
+            "description": "Neues Plattform-Update verfügbar"
+          },
+          "feature_new": {
+            "label": "Neue Funktion",
+            "description": "Neue Funktion verfügbar"
+          },
+          "usage_limit_80": {
+            "label": "80-%-Limit",
+            "description": "80 % des Tarif-Limits erreicht"
+          },
+          "usage_limit_reached": {
+            "label": "Limit erreicht",
+            "description": "Tarif-Limit wurde erreicht"
+          },
+          "integration_error": {
+            "label": "Integrationsfehler",
+            "description": "Fehler bei einer Marktplatz- oder Versandintegration"
+          },
+          "export_ready": {
+            "label": "Export bereit",
+            "description": "Datenexport steht zum Download bereit"
+          },
+          "backup_completed": {
+            "label": "Backup abgeschlossen",
+            "description": "Datenbank-Backup ist abgeschlossen"
+          },
+          "ai_credits_low": {
+            "label": "KI-Credits niedrig",
+            "description": "KI-Credits sind fast aufgebraucht"
+          },
+          "trial_expiring": {
+            "label": "Testphase endet",
+            "description": "Ihre Testphase endet morgen"
+          },
+          "trial_expired": {
+            "label": "Testphase abgelaufen",
+            "description": "Ihre Testphase ist abgelaufen"
+          },
+          "trial_converted": {
+            "label": "Abonnement gestartet",
+            "description": "Ihre Testphase ist vorbei und Ihr Abonnement hat begonnen"
+          },
+          "trial_conversion_failed": {
+            "label": "Abonnementstart fehlgeschlagen",
+            "description": "Eine Testphase ist vorbei, aber das Abonnement konnte nicht starten"
+          },
+          "admin_announcement": {
+            "label": "Nachricht von SellQo",
+            "description": "Eine Mitteilung des SellQo-Teams"
+          }
+        },
+        "ai_coach": {
+          "ai_suggestion": {
+            "label": "KI-Vorschlag",
+            "description": "Ein dringender Vorschlag des KI-Monitors"
+          },
+          "ai_coach_suggestion": {
+            "label": "KI-Coach",
+            "description": "Ein dringender Vorschlag Ihres KI-Coaches"
+          }
+        },
+        "messages": {
+          "email_inbound": {
+            "label": "E-Mail erhalten",
+            "description": "Wenn eine eingehende E-Mail eintrifft"
+          },
+          "whatsapp_inbound": {
+            "label": "WhatsApp erhalten",
+            "description": "Wenn eine WhatsApp-Nachricht eintrifft"
+          },
+          "facebook_inbound": {
+            "label": "Facebook-Nachricht",
+            "description": "Wenn eine Facebook-Nachricht eintrifft"
+          },
+          "instagram_inbound": {
+            "label": "Instagram-DM",
+            "description": "Wenn eine Instagram-DM eintrifft"
+          },
+          "bol_inbound": {
+            "label": "Bol.com-Frage",
+            "description": "Wenn eine Frage über Bol.com eintrifft"
+          },
+          "contact_form_inbound": {
+            "label": "Kontaktformular",
+            "description": "Wenn ein Besucher das Kontaktformular Ihres Webshops ausfüllt"
+          }
+        },
+        "integrations": {
+          "shopify_request_received": {
+            "label": "Shopify-Anfrage eingereicht",
+            "description": "Wenn Sie eine Shopify-Verknüpfungsanfrage einreichen"
+          },
+          "shopify_request_approved": {
+            "label": "Shopify-Anfrage genehmigt",
+            "description": "Wenn Ihre Shopify-Anfrage genehmigt wurde"
+          },
+          "shopify_request_completed": {
+            "label": "Shopify-Verknüpfung aktiv",
+            "description": "Wenn Ihre Shopify-Verknüpfung aktiviert wurde"
+          },
+          "shopify_request_rejected": {
+            "label": "Shopify-Anfrage abgelehnt",
+            "description": "Wenn Ihre Shopify-Anfrage abgelehnt wurde"
+          },
+          "shopify_request_updated": {
+            "label": "Shopify-Anfrage aktualisiert",
+            "description": "Wenn es ein Update zu Ihrer Shopify-Anfrage gibt"
+          },
+          "integration_connected": {
+            "label": "SellQo Connect verbunden",
+            "description": "Wenn eine neue Integration verbunden wird"
+          },
+          "integration_disconnected": {
+            "label": "SellQo Connect getrennt",
+            "description": "Wenn eine Integration getrennt wird"
+          },
+          "integration_error": {
+            "label": "SellQo-Connect-Fehler",
+            "description": "Wenn bei einer Integration ein Fehler auftritt"
+          }
+        }
+      }
     },
     "myNotifications": {
       "title": "Meine Benachrichtigungen",
@@ -791,6 +1268,33 @@
       "ossDescription": "Für B2C-Verkäufe an Verbraucher in anderen EU-Ländern unter der OSS-Regelung",
       "previewInLanguage": "Vorschau in Sprache:",
       "defaultTexts": "Dies sind die gesetzlich korrekten Standardtexte. Nur bei Bedarf anpassen."
+    },
+    "oss": {
+      "title": "OSS-Regelung (One-Stop-Shop)",
+      "tooltip": "Bei B2C-Verkäufen an Privatpersonen in anderen EU-Ländern wird automatisch der Mehrwertsteuersatz des Bestimmungslandes angewendet. Die Schwelle liegt bei 10.000 € pro Jahr (kumuliert über alle EU-Länder).",
+      "description": "EU-Regelung für B2C-Verkäufe an Privatpersonen in anderen EU-Ländern",
+      "activate": "OSS-Regelung aktivieren",
+      "activate_hint": "Bei Überschreiten der Schwelle von 10.000 € muss der Mehrwertsteuersatz des Bestimmungslandes angewendet werden",
+      "registration_date": "Datum der OSS-Registrierung",
+      "registration_date_hint": "Das Datum, an dem Sie sich bei der Steuerbehörde registriert haben",
+      "identification_number": "OSS-Identifikationsnummer",
+      "identification_number_hint": "Ihre OSS-Registrierungsnummer (oft identisch mit Ihrer USt-IdNr.)",
+      "active_title": "OSS-Regelung aktiv",
+      "active_description": "Bei B2C-Verkäufen an Privatpersonen in anderen EU-Ländern wird automatisch der lokale Mehrwertsteuersatz angewendet. Die Rechnung vermerkt in der Sprache des Kunden, dass die OSS-Regelung angewendet wurde.",
+      "revenue_title": "B2C-EU-Umsatz {{year}}",
+      "revenue_description": "Kumulierter Umsatz mit Privatpersonen in anderen EU-Ländern",
+      "of_threshold": "von {{amount}} € Schwelle",
+      "threshold_reached": "{{percent}} % der Schwelle erreicht",
+      "near_title": "Sie nähern sich der OSS-Schwelle",
+      "near_description": "Sie haben 80 % oder mehr der Schwelle von 10.000 € erreicht. Erwägen Sie eine OSS-Registrierung bei der Steuerbehörde.",
+      "over_title": "OSS-Schwelle überschritten!",
+      "over_description": "Sie haben die Schwelle von 10.000 € überschritten. Sie sind verpflichtet, sich für OSS zu registrieren und den Mehrwertsteuersatz des Bestimmungslandes anzuwenden.",
+      "revenue_by_country": "Umsatz nach Land:",
+      "view_rates": "EU-Mehrwertsteuersätze anzeigen",
+      "col_country": "Land",
+      "col_standard": "Normalsatz",
+      "col_reduced": "Ermäßigter Satz",
+      "own_country": "Eigenes Land"
     }
   },
   "vat": {
@@ -5755,6 +6259,131 @@
       "resend": "Tickets erneut mailen",
       "resent": "Tickets wurden gesendet",
       "resend_failed": "Senden fehlgeschlagen"
+    },
+    "printful": {
+      "connected": "Verbunden",
+      "not_connected": "Nicht verbunden",
+      "beta": "Beta",
+      "settings": "Einstellungen",
+      "card_description": "Print-on-Demand-Fulfillment über Printful. Verbinden Sie Ihren Printful-Shop, importieren Sie Ihre Produkte und leiten Sie Bestellungen weiter. Versandupdates mit Sendungsverfolgung kommen automatisch zurück.",
+      "sync": "Verknüpfung",
+      "on": "An",
+      "off": "Aus",
+      "last_test": "Letzter Test",
+      "not_yet": "Noch nicht",
+      "shipping_updates_active": "Versandupdates: aktiv",
+      "connect": "Printful verbinden",
+      "dialog_title": "Printful Print-on-Demand",
+      "dialog_description": "Verbinden Sie Ihren Printful-Shop und konfigurieren Sie die Fulfillment-Einstellungen.",
+      "no_tenant": "Kein Shop ausgewählt.",
+      "connection_title": "Verbindung",
+      "connection_description": "Erstellen Sie im Printful Developer Portal ein privates Token mit den Scopes <strong>orders</strong>, <strong>sync_products</strong> und <strong>webhooks</strong>.",
+      "last_test_failed": "Letzter Test fehlgeschlagen",
+      "token_label": "Privates Token",
+      "token_placeholder_saved": "Gespeichert — neues eingeben, um es zu ersetzen",
+      "token_placeholder": "Privates Printful-Token",
+      "token_hint": "Das Token wird verschlüsselt gespeichert und nie wieder angezeigt.",
+      "store_id_label": "Store-ID (optional)",
+      "store_id_placeholder": "Nur bei Tokens auf Kontoebene nötig",
+      "test_connection": "Verbindung testen",
+      "save": "Speichern",
+      "disconnect": "Verbindung trennen",
+      "settings_description": "Legen Sie fest, wie SellQo mit Ihrem Printful-Shop zusammenarbeitet.",
+      "sync_enabled_label": "Printful-Verknüpfung aktiv",
+      "sync_enabled_hint": "Schalten Sie die Verknüpfung ein oder aus, ohne Ihr Token zu löschen.",
+      "auto_confirm_label": "Bestellungen sofort bei Printful bestätigen",
+      "auto_confirm_hint": "An = eine weitergeleitete Bestellung wird sofort bestätigt und geht in Produktion. Aus = sie kommt als Entwurf bei Printful an, und Sie bestätigen sie dort selbst.",
+      "import_title": "Produkte importieren",
+      "import_description": "Übernehmen Sie Ihre Printful-Designs als SellQo-Produkte mit Varianten, Bildern und automatischer Variantenverknüpfung. Sie sehen zuerst eine Vorschau und legen die Preise selbst fest.",
+      "import_button": "Produkte aus Printful importieren",
+      "disconnect_confirm_title": "Printful-Verbindung trennen?",
+      "disconnect_confirm_description": "Das gespeicherte Token wird gelöscht und die Verknüpfung ausgeschaltet. Ihre Variantenverknüpfungen bleiben erhalten, sodass eine neue Verbindung sofort wieder funktioniert.",
+      "cancel": "Abbrechen",
+      "disconnect_confirm": "Verbindung trennen",
+      "order": {
+        "not_forwarded": "Noch nicht weitergeleitet",
+        "draft": "Entwurf bei Printful",
+        "confirmed": "Bestätigt",
+        "canceled": "Storniert",
+        "failed": "Fehlgeschlagen",
+        "retry": "Erneut versuchen",
+        "forward_again": "Erneut weiterleiten",
+        "forward": "An Printful weiterleiten"
+      },
+      "mapping": {
+        "title": "Variantenverknüpfung",
+        "description": "Verknüpfen Sie Ihre SellQo-Varianten mit einer Printful-Sync-Variante. Nur verknüpfte Varianten können weitergeleitet werden.",
+        "refresh": "Printful aktualisieren",
+        "load_error": "Printful-Produkte konnten nicht geladen werden",
+        "search_placeholder": "Nach Produkt, Variante oder SKU suchen",
+        "loading_variants": "Varianten werden geladen…",
+        "no_variants": "Keine aktiven Varianten gefunden.",
+        "linked": "Verknüpft",
+        "not_linked": "Nicht verknüpft",
+        "loading": "Wird geladen…",
+        "choose_variant": "Printful-Variante wählen",
+        "unlink": "Variante trennen"
+      },
+      "importDialog": {
+        "description": "Wählen Sie, welche Printful-Produkte Sie als SellQo-Produkte anlegen möchten. Jede Printful-Variante wird eine SellQo-Variante.",
+        "price_notice": "Die Preise sind ein <strong>Vorschlag</strong> von Printful — passen Sie sie hier gern an. Importierte Produkte werden auf <strong>inaktiv und verborgen</strong> gesetzt, damit Sie sie prüfen können, bevor Sie sie selbst live schalten.",
+        "loading": "Printful-Produkte werden abgerufen…",
+        "empty": "Keine Produkte in Ihrem Printful-Shop gefunden.",
+        "already_imported": "Bereits importiert",
+        "variant_count": "Varianten: {{count}}",
+        "image_count": "Zu übernehmende Bilder: {{count}}",
+        "update_images": "Bilder aktualisieren",
+        "sku_in_use": "SKU existiert bereits bei einer anderen Variante",
+        "done": "Fertig. Prüfen Sie die neuen Produkte unter <link>Produkte</link> und schalten Sie sie live, wenn alles stimmt.",
+        "close": "Schließen",
+        "import": "Importieren"
+      },
+      "toast": {
+        "call_failed": "Anfrage fehlgeschlagen",
+        "unknown_error": "Unbekannter Fehler",
+        "connection_ok": "Verbindung OK",
+        "connection_failed": "Verbindung fehlgeschlagen",
+        "connected": "Printful verbunden",
+        "disconnected": "Printful-Verbindung getrennt",
+        "preview_failed": "Vorschau konnte nicht geladen werden",
+        "images_failed": "Bilder konnten nicht aktualisiert werden",
+        "images_updated": "Bilder aktualisiert",
+        "imported": "Importiert: {{count}}",
+        "skipped": "Übersprungen: {{count}}",
+        "reimported": "Bilder aktualisiert: {{count}}",
+        "failed_count": "Fehlgeschlagen: {{count}}",
+        "import_failed": "Import fehlgeschlagen",
+        "variant_linked": "Variante verknüpft",
+        "link_failed": "Verknüpfen fehlgeschlagen",
+        "link_removed": "Verknüpfung entfernt",
+        "remove_failed": "Entfernen fehlgeschlagen",
+        "forward_failed": "Weiterleiten fehlgeschlagen",
+        "order_confirmed": "Bestellung bei Printful bestätigt",
+        "order_draft": "Bestellung als Entwurf bei Printful angelegt",
+        "settings_saved": "Printful-Einstellungen gespeichert",
+        "save_failed": "Speichern fehlgeschlagen"
+      }
+    },
+    "odooSync": {
+      "synced": "Odoo #{{id}}",
+      "synced_peppol_manual": "Odoo #{{id}} · Peppol manuell",
+      "synced_tip": "In Odoo als Buchung {{id}} gebucht.",
+      "synced_peppol_sent_tip": "In Odoo als Buchung {{id}} gebucht · Peppol versendet.",
+      "synced_peppol_manual_tip": "In Odoo als Buchung {{id}} gebucht. Der Peppol-Versand war nicht automatisch möglich: {{note}}. Versenden Sie manuell in Odoo.",
+      "unknown": "unbekannt",
+      "failed": "Odoo fehlgeschlagen",
+      "unknown_error": "Unbekannter Fehler",
+      "pending": "Odoo-Warteschlange",
+      "peppol_manual": "Peppol manuell",
+      "peppol_sent": "Peppol versendet",
+      "peppol_archive": "Archiv",
+      "peppol_failed": "Peppol fehlgeschlagen",
+      "peppol_send_manually": "Manuell versenden",
+      "peppol_queued": "In Warteschlange",
+      "attention_title": "Peppol-Hinweise ({{count}})",
+      "attention_description": "Diese Dokumente warten auf den Versand oder erfordern eine manuelle Aktion in Peppol/Odoo.",
+      "invoice_label": "Rechnung {{number}}",
+      "credit_note_label": "Gutschrift {{number}}"
     }
   },
   "billing": {
@@ -7402,5 +8031,36 @@
     "kind_refund": "Erstattet",
     "kind_adjust": "Korrektur",
     "powered": "Bereitgestellt von SellQo"
+  },
+  "notificationsPage": {
+    "title": "Benachrichtigungen",
+    "subtitle": "Alle Benachrichtigungen und Warnungen an einem Ort",
+    "mark_all_read": "Alle gelesen ({{count}})",
+    "delete_read": "Gelesene löschen",
+    "stats": {
+      "total": "Gesamt",
+      "unread": "Ungelesen"
+    },
+    "read": "Gelesen",
+    "view": "Ansehen",
+    "mark_read": "Als gelesen markieren",
+    "delete": "Löschen",
+    "search_placeholder": "Benachrichtigungen durchsuchen...",
+    "category": "Kategorie",
+    "all_categories": "Alle Kategorien",
+    "priority_label": "Priorität",
+    "all_priorities": "Alle Prioritäten",
+    "priority": {
+      "urgent": "Dringend",
+      "high": "Hoch",
+      "medium": "Normal",
+      "low": "Niedrig"
+    },
+    "clear_filters": "Filter löschen",
+    "results": "Ergebnisse: {{count}}",
+    "all_notifications": "Alle Benachrichtigungen",
+    "empty_title": "Keine Benachrichtigungen gefunden",
+    "empty_filtered": "Versuchen Sie andere Suchbegriffe oder Filter",
+    "empty_all": "Sie sind auf dem neuesten Stand!"
   }
 }

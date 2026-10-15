@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 export interface PrintfulOrderLink {
   id: string;
@@ -15,6 +16,7 @@ export interface PrintfulOrderLink {
 }
 
 export function usePrintfulOrderLink(tenantId: string | undefined, orderId: string | undefined) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const link = useQuery({
@@ -43,18 +45,18 @@ export function usePrintfulOrderLink(tenantId: string | undefined, orderId: stri
           const ctx = (error as unknown as { context?: { json?: () => Promise<{ error?: string } | null> } }).context;
           if (ctx?.json) serverMsg = (await ctx.json())?.error ?? null;
         } catch { /* ignore */ }
-        throw new Error(serverMsg || error.message || 'Doorsturen mislukt');
+        throw new Error(serverMsg || error.message || t('admin.printful.toast.forward_failed'));
       }
       const payload = data as { success?: boolean; error?: string; printful_order_id?: number | null; status?: string };
-      if (!payload?.success) throw new Error(payload?.error || 'Doorsturen mislukt');
+      if (!payload?.success) throw new Error(payload?.error || t('admin.printful.toast.forward_failed'));
       return payload;
     },
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['printful-order-link', tenantId, orderId] });
       toast.success(
         res.status === 'confirmed'
-          ? `Bestelling bevestigd bij Printful${res.printful_order_id ? ` (#${res.printful_order_id})` : ''}`
-          : `Bestelling als concept aangemaakt bij Printful${res.printful_order_id ? ` (#${res.printful_order_id})` : ''}`,
+          ? `${t('admin.printful.toast.order_confirmed')}${res.printful_order_id ? ` (#${res.printful_order_id})` : ''}`
+          : `${t('admin.printful.toast.order_draft')}${res.printful_order_id ? ` (#${res.printful_order_id})` : ''}`,
       );
     },
     onError: (err: Error) => {

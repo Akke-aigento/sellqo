@@ -7,6 +7,7 @@ import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import { Loader2, RefreshCw, Unlink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useCan } from '@/hooks/useCan';
 import {
   usePrintfulSyncProducts, usePrintfulVariantMappings, useTenantVariants,
@@ -17,6 +18,7 @@ interface Props {
 }
 
 export function PrintfulVariantMapping({ tenantId }: Props) {
+  const { t } = useTranslation();
   const canWrite = useCan('write', 'integrations');
   const [search, setSearch] = useState('');
   const variants = useTenantVariants(tenantId);
@@ -54,11 +56,8 @@ export function PrintfulVariantMapping({ tenantId }: Props) {
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-base">Variant-koppeling</CardTitle>
-            <CardDescription>
-              Koppel je SellQo-varianten aan een Printful sync-variant. Alleen gekoppelde varianten
-              kunnen worden doorgestuurd.
-            </CardDescription>
+            <CardTitle className="text-base">{t('admin.printful.mapping.title')}</CardTitle>
+            <CardDescription>{t('admin.printful.mapping.description')}</CardDescription>
           </div>
           <Button
             variant="outline"
@@ -69,29 +68,29 @@ export function PrintfulVariantMapping({ tenantId }: Props) {
             {products.isFetching
               ? <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               : <RefreshCw className="w-4 h-4 mr-2" />}
-            Printful verversen
+            {t('admin.printful.mapping.refresh')}
           </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {products.isError && (
           <p className="text-sm text-destructive">
-            {(products.error as Error)?.message || 'Printful-producten konden niet worden geladen'}
+            {(products.error as Error)?.message || t('admin.printful.mapping.load_error')}
           </p>
         )}
 
         <Input
-          placeholder="Zoek op product, variant of SKU"
+          placeholder={t('admin.printful.mapping.search_placeholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
 
         {variants.isLoading ? (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin" /> Varianten laden…
+            <Loader2 className="w-4 h-4 animate-spin" /> {t('admin.printful.mapping.loading_variants')}
           </div>
         ) : rows.length === 0 ? (
-          <p className="text-sm text-muted-foreground">Geen actieve varianten gevonden.</p>
+          <p className="text-sm text-muted-foreground">{t('admin.printful.mapping.no_variants')}</p>
         ) : (
           <div className="space-y-3">
             {rows.map((v) => {
@@ -109,10 +108,10 @@ export function PrintfulVariantMapping({ tenantId }: Props) {
                     <div className="mt-1">
                       {mapping ? (
                         <Badge variant="secondary">
-                          Gekoppeld{mapping.printful_variant_name ? ` · ${mapping.printful_variant_name}` : ''}
+                          {t('admin.printful.mapping.linked')}{mapping.printful_variant_name ? ` · ${mapping.printful_variant_name}` : ''}
                         </Badge>
                       ) : (
-                        <Badge variant="outline">Niet gekoppeld</Badge>
+                        <Badge variant="outline">{t('admin.printful.mapping.not_linked')}</Badge>
                       )}
                     </div>
                   </div>
@@ -124,7 +123,7 @@ export function PrintfulVariantMapping({ tenantId }: Props) {
                       disabled={!canWrite || products.isLoading || (products.data ?? []).length === 0}
                     >
                       <SelectTrigger className="flex-1">
-                        <SelectValue placeholder={products.isLoading ? 'Laden…' : 'Kies Printful-variant'} />
+                        <SelectValue placeholder={products.isLoading ? t('admin.printful.mapping.loading') : t('admin.printful.mapping.choose_variant')} />
                       </SelectTrigger>
                       <SelectContent>
                         {(products.data ?? []).map((p) => (
@@ -143,7 +142,7 @@ export function PrintfulVariantMapping({ tenantId }: Props) {
                       <Button
                         variant="ghost"
                         size="icon"
-                        aria-label="Ontkoppel variant"
+                        aria-label={t('admin.printful.mapping.unlink')}
                         onClick={() => remove.mutate(v.id)}
                         disabled={!canWrite}
                       >

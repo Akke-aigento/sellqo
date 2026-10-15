@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, Package, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { usePrintfulConnection } from '@/hooks/usePrintfulConnection';
 import { useTenantPrintfulSettings } from '@/hooks/useTenantPrintfulSettings';
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function PrintfulOrderCard({ tenantId, orderId }: Props) {
+  const { t } = useTranslation();
   const { roles, isPlatformAdmin } = useAuth();
   const { status } = usePrintfulConnection(tenantId);
   const { settings } = useTenantPrintfulSettings(tenantId);
@@ -36,11 +38,11 @@ export function PrintfulOrderCard({ tenantId, orderId }: Props) {
       </CardHeader>
       <CardContent className="space-y-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          {!link && <Badge variant="outline">Nog niet doorgestuurd</Badge>}
-          {link?.status === 'draft' && <Badge variant="secondary">Concept bij Printful</Badge>}
-          {link?.status === 'confirmed' && <Badge>Bevestigd</Badge>}
-          {link?.status === 'canceled' && <Badge variant="outline">Geannuleerd</Badge>}
-          {failed && <Badge variant="destructive">Mislukt</Badge>}
+          {!link && <Badge variant="outline">{t('admin.printful.order.not_forwarded')}</Badge>}
+          {link?.status === 'draft' && <Badge variant="secondary">{t('admin.printful.order.draft')}</Badge>}
+          {link?.status === 'confirmed' && <Badge>{t('admin.printful.order.confirmed')}</Badge>}
+          {link?.status === 'canceled' && <Badge variant="outline">{t('admin.printful.order.canceled')}</Badge>}
+          {failed && <Badge variant="destructive">{t('admin.printful.order.failed')}</Badge>}
           {link?.printful_order_id && (
             <span className="text-xs text-muted-foreground">#{link.printful_order_id}</span>
           )}
@@ -62,7 +64,7 @@ export function PrintfulOrderCard({ tenantId, orderId }: Props) {
             : failed
               ? <RefreshCw className="w-4 h-4 mr-2" />
               : <Package className="w-4 h-4 mr-2" />}
-          {failed ? 'Opnieuw proberen' : link ? 'Opnieuw doorsturen' : 'Doorsturen naar Printful'}
+          {failed ? t('admin.printful.order.retry') : link ? t('admin.printful.order.forward_again') : t('admin.printful.order.forward')}
         </Button>
       </CardContent>
     </Card>

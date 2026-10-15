@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 export interface PrintfulVariantMapping {
   id: string;
@@ -37,7 +39,7 @@ export function usePrintfulSyncProducts(tenantId: string | undefined, enabled: b
       });
       if (error) throw new Error(error.message);
       const payload = data as { success?: boolean; error?: string; products?: PrintfulSyncProduct[] };
-      if (!payload?.success) throw new Error(payload?.error || 'Printful-producten ophalen mislukt');
+      if (!payload?.success) throw new Error(payload?.error || i18n.t('admin.printful.mapping.load_error'));
       return payload.products ?? [];
     },
   });
@@ -71,6 +73,7 @@ export function useTenantVariants(tenantId: string | undefined) {
 }
 
 export function usePrintfulVariantMappings(tenantId: string | undefined) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const query = useQuery({
@@ -111,8 +114,8 @@ export function usePrintfulVariantMappings(tenantId: string | undefined) {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => { invalidate(); toast.success('Variant gekoppeld'); },
-    onError: (err: Error) => toast.error(err.message || 'Koppelen mislukt'),
+    onSuccess: () => { invalidate(); toast.success(t('admin.printful.toast.variant_linked')); },
+    onError: (err: Error) => toast.error(err.message || t('admin.printful.toast.link_failed')),
   });
 
   const remove = useMutation({
@@ -125,8 +128,8 @@ export function usePrintfulVariantMappings(tenantId: string | undefined) {
         .eq('variant_id', variantId);
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success('Koppeling verwijderd'); },
-    onError: (err: Error) => toast.error(err.message || 'Verwijderen mislukt'),
+    onSuccess: () => { invalidate(); toast.success(t('admin.printful.toast.link_removed')); },
+    onError: (err: Error) => toast.error(err.message || t('admin.printful.toast.remove_failed')),
   });
 
   return { mappings: query.data ?? [], isLoading: query.isLoading, upsert, remove };

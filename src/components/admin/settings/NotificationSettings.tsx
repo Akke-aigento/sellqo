@@ -18,6 +18,7 @@ import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
 import { NOTIFICATION_CONFIG, type NotificationCategoryConfig, type NotificationTypeConfig } from '@/types/notification';
+import { notificationCategoryLabel, notificationTypeDescription, notificationTypeLabel } from '@/lib/notificationLabels';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
@@ -74,6 +75,7 @@ function CategorySection({
   const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const Icon = categoryIcons[config.icon] || Bell;
+  const categoryLabel = notificationCategoryLabel(t, config.category);
 
   const valueOf = (typeConfig: NotificationTypeConfig) =>
     getSettingValue(config.category, typeConfig.type, channelDefaults(typeConfig));
@@ -95,7 +97,7 @@ function CategorySection({
               <Icon className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="truncate font-medium">{config.label}</p>
+              <p className="truncate font-medium">{categoryLabel}</p>
               <p className="text-xs text-muted-foreground">
                 {t('settings.notifications.typesCount', { count: config.types.length })}
               </p>
@@ -126,17 +128,17 @@ function CategorySection({
           {/* Alles in één keer, per kanaal */}
           <div className="flex flex-col gap-2 border-b pb-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm font-medium">
-              {t('settings.notifications.allOf', { label: config.label.toLowerCase() })}
+              {t('settings.notifications.allOf', { label: categoryLabel.toLowerCase() })}
             </span>
             <div className="flex items-center gap-4">
               {CHANNELS.map(({ channel, icon, labelKey }, i) => (
                 <ChannelSwitch
                   key={channel}
                   icon={icon}
-                  label={`${t(labelKey)} — ${config.label}`}
+                  label={`${t(labelKey)} — ${categoryLabel}`}
                   checked={counts[i] === config.types.length}
                   onCheckedChange={(checked) =>
-                    toggleCategoryChannel(channel, config.category, checked, config.types, config.label)
+                    toggleCategoryChannel(channel, config.category, checked, config.types, categoryLabel)
                   }
                   disabled={isSaving}
                 />
@@ -148,6 +150,7 @@ function CategorySection({
           <div className="space-y-3">
             {config.types.map(typeConfig => {
               const value = valueOf(typeConfig);
+              const typeLabel = notificationTypeLabel(t, config.category, typeConfig.type);
 
               return (
                 /*
@@ -162,15 +165,15 @@ function CategorySection({
                   className="flex flex-col gap-2 py-2 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0 flex-1 sm:pr-4">
-                    <Label className="block truncate text-sm font-normal">{typeConfig.label}</Label>
-                    <p className="text-xs text-muted-foreground truncate">{typeConfig.description}</p>
+                    <Label className="block truncate text-sm font-normal">{typeLabel}</Label>
+                    <p className="text-xs text-muted-foreground truncate">{notificationTypeDescription(t, config.category, typeConfig.type)}</p>
                   </div>
                   <div className="flex shrink-0 items-center gap-4">
                     {CHANNELS.map(({ channel, icon, labelKey, field }) => (
                       <ChannelSwitch
                         key={channel}
                         icon={icon}
-                        label={`${t(labelKey)} — ${typeConfig.label}`}
+                        label={`${t(labelKey)} — ${typeLabel}`}
                         checked={value[field]}
                         onCheckedChange={(checked) =>
                           updateSetting(

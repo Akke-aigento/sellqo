@@ -172,7 +172,9 @@
       "platform_docs": "Documentatie",
       "kitchen": "Keuken",
       "ordering": "Bestellen",
-      "event_venues": "Zalen"
+      "event_venues": "Zalen",
+      "event_bundles": "Combitickets",
+      "event_tokens": "Munten"
     }
   },
   "settings": {
@@ -593,7 +595,482 @@
       "categoryDisabled": "{{channel}} uitgeschakeld voor {{category}}",
       "pushMovedHint": "Pushmeldingen op je telefoon stel je zelf in, per persoon.",
       "pushMovedLink": "Naar Mijn meldingen",
-      "urgentEmailHint": "Urgente meldingen (prioriteit hoog of dringend) krijg je ook per e-mail als je daar niets hebt aangezet. Zet e-mail voor zo'n type expliciet uit als je dat niet wil."
+      "urgentEmailHint": "Urgente meldingen (prioriteit hoog of dringend) krijg je ook per e-mail als je daar niets hebt aangezet. Zet e-mail voor zo'n type expliciet uit als je dat niet wil.",
+      "categories": {
+        "orders": "Bestellingen",
+        "invoices": "Facturen",
+        "payments": "Betalingen",
+        "customers": "Klanten",
+        "products": "Producten & Voorraad",
+        "quotes": "Offertes",
+        "subscriptions": "Abonnementen",
+        "marketing": "Marketing",
+        "team": "Team",
+        "system": "Systeem",
+        "ai_coach": "AI-coach",
+        "messages": "Berichten",
+        "integrations": "SellQo Connect"
+      },
+      "types": {
+        "orders": {
+          "order_new": {
+            "label": "Nieuwe bestelling",
+            "description": "Ontvang een melding bij elke nieuwe bestelling"
+          },
+          "order_paid": {
+            "label": "Betaling ontvangen",
+            "description": "Wanneer een bestelling is betaald"
+          },
+          "order_cancelled": {
+            "label": "Bestelling geannuleerd",
+            "description": "Wanneer een bestelling wordt geannuleerd"
+          },
+          "order_refund_requested": {
+            "label": "Terugbetaling aangevraagd",
+            "description": "Wanneer een klant terugbetaling vraagt"
+          },
+          "order_shipped": {
+            "label": "Bestelling verzonden",
+            "description": "Wanneer een bestelling is verzonden"
+          },
+          "order_delivered": {
+            "label": "Bestelling afgeleverd",
+            "description": "Wanneer een bestelling is afgeleverd"
+          },
+          "order_high_value": {
+            "label": "Hoge waarde bestelling",
+            "description": "Bestellingen boven €500"
+          },
+          "marketplace_order_new": {
+            "label": "Marketplace bestelling",
+            "description": "Nieuwe bestelling via marketplace"
+          },
+          "tracking_in_transit": {
+            "label": "Zending onderweg",
+            "description": "Track & trace: de zending is onderweg"
+          },
+          "tracking_out_for_delivery": {
+            "label": "Zending wordt bezorgd",
+            "description": "Track & trace: de zending is vandaag onderweg naar de klant"
+          },
+          "tracking_delivered": {
+            "label": "Zending bezorgd",
+            "description": "Track & trace: de zending is bezorgd"
+          },
+          "tracking_exception": {
+            "label": "Probleem met zending",
+            "description": "Track & trace meldt een probleem met de zending"
+          },
+          "return_new_request": {
+            "label": "Nieuwe retour",
+            "description": "Wanneer een klant een retour aanvraagt"
+          }
+        },
+        "invoices": {
+          "invoice_created": {
+            "label": "Factuur aangemaakt",
+            "description": "Wanneer een nieuwe factuur wordt aangemaakt"
+          },
+          "invoice_sent": {
+            "label": "Factuur verzonden",
+            "description": "Wanneer een factuur is verzonden"
+          },
+          "invoice_paid": {
+            "label": "Factuur betaald",
+            "description": "Wanneer een factuur is betaald"
+          },
+          "invoice_overdue": {
+            "label": "Factuur achterstallig",
+            "description": "Wanneer een factuur over de vervaldatum is"
+          },
+          "invoice_overdue_7days": {
+            "label": "7 dagen achterstallig",
+            "description": "Factuur is 7 dagen over datum"
+          },
+          "invoice_overdue_30days": {
+            "label": "30 dagen achterstallig",
+            "description": "Factuur is 30 dagen over datum - urgent"
+          },
+          "invoice_reminder_sent": {
+            "label": "Herinnering verzonden",
+            "description": "Wanneer een betalingsherinnering is verzonden"
+          },
+          "peppol_invoice_accepted": {
+            "label": "Peppol geaccepteerd",
+            "description": "Peppol factuur is geaccepteerd"
+          },
+          "peppol_invoice_rejected": {
+            "label": "Peppol afgewezen",
+            "description": "Peppol factuur is afgewezen"
+          },
+          "invoice_final_reminder": {
+            "label": "Laatste herinnering",
+            "description": "Laatste betalingsherinnering voor een factuur"
+          },
+          "invoice_charge_exhausted": {
+            "label": "Incasso mislukt",
+            "description": "Automatische incasso van een factuur is uitgeput"
+          },
+          "mandate_setup_stalled": {
+            "label": "Machtiging niet afgerond",
+            "description": "Klant heeft de incassomachtiging niet afgerond"
+          }
+        },
+        "payments": {
+          "payment_received": {
+            "label": "Betaling ontvangen",
+            "description": "Wanneer een betaling binnenkomt"
+          },
+          "payout_available": {
+            "label": "Uitbetaling beschikbaar",
+            "description": "Wanneer een uitbetaling klaar staat"
+          },
+          "payout_completed": {
+            "label": "Uitbetaling voltooid",
+            "description": "Wanneer een uitbetaling is gedaan"
+          },
+          "payout_canceled": {
+            "label": "Uitbetaling geannuleerd",
+            "description": "Wanneer een geplande uitbetaling is geannuleerd"
+          },
+          "stripe_account_issue": {
+            "label": "Stripe probleem",
+            "description": "Probleem met je Stripe account"
+          },
+          "chargeback_received": {
+            "label": "Chargeback ontvangen",
+            "description": "Wanneer een klant een chargeback indient"
+          },
+          "payment_duplicate": {
+            "label": "Dubbele betaling",
+            "description": "Een klant betaalde een post die al betaald of geannuleerd was"
+          },
+          "order_payment_failed": {
+            "label": "Betaling mislukt",
+            "description": "Wanneer een betaling van een bestelling faalt"
+          },
+          "order_refunded": {
+            "label": "Terugbetaald",
+            "description": "Wanneer een bestelling is terugbetaald"
+          }
+        },
+        "customers": {
+          "customer_new": {
+            "label": "Nieuwe klant",
+            "description": "Wanneer een nieuwe klant registreert"
+          },
+          "customer_first_order": {
+            "label": "Eerste bestelling",
+            "description": "Wanneer een klant zijn eerste bestelling plaatst"
+          },
+          "customer_vip": {
+            "label": "VIP status bereikt",
+            "description": "Wanneer een klant VIP wordt"
+          },
+          "customer_inactive_30days": {
+            "label": "30 dagen inactief",
+            "description": "Klant is 30 dagen niet actief geweest"
+          },
+          "customer_inactive_90days": {
+            "label": "90 dagen inactief",
+            "description": "Klant is 90 dagen niet actief geweest"
+          },
+          "customer_message_received": {
+            "label": "Bericht ontvangen",
+            "description": "Wanneer een klant reageert op een email"
+          },
+          "newsletter_signup": {
+            "label": "Nieuwsbrief inschrijving",
+            "description": "Nieuwe inschrijving op de nieuwsbrief"
+          },
+          "newsletter_unsubscribe": {
+            "label": "Nieuwsbrief uitschrijving",
+            "description": "Klant schrijft zich uit voor nieuwsbrief"
+          }
+        },
+        "products": {
+          "stock_low": {
+            "label": "Voorraad laag",
+            "description": "Wanneer voorraad onder minimum niveau komt"
+          },
+          "stock_critical": {
+            "label": "Voorraad kritiek",
+            "description": "Voorraad kritiek laag (< 5 stuks)"
+          },
+          "stock_out": {
+            "label": "Uitverkocht",
+            "description": "Product is uitverkocht"
+          },
+          "stock_replenished": {
+            "label": "Voorraad aangevuld",
+            "description": "Voorraad is weer op peil"
+          },
+          "product_bestseller": {
+            "label": "Bestseller",
+            "description": "Product is bestseller geworden"
+          },
+          "product_no_sales_30days": {
+            "label": "Geen verkopen",
+            "description": "Product heeft 30 dagen geen verkopen"
+          },
+          "product_unmapped": {
+            "label": "Bol-product niet gekoppeld",
+            "description": "Een Bol-bestelling bevat een product zonder koppeling"
+          },
+          "out_of_stock": {
+            "label": "Uitverkocht na Bol-verkoop",
+            "description": "Product is uitverkocht na een verkoop via Bol.com"
+          }
+        },
+        "quotes": {
+          "quote_new": {
+            "label": "Offerte aangemaakt",
+            "description": "Wanneer een nieuwe offerte wordt aangemaakt"
+          },
+          "quote_sent": {
+            "label": "Offerte verzonden",
+            "description": "Wanneer een offerte is verzonden"
+          },
+          "quote_viewed": {
+            "label": "Offerte bekeken",
+            "description": "Klant heeft offerte bekeken"
+          },
+          "quote_accepted": {
+            "label": "Offerte geaccepteerd",
+            "description": "Klant heeft offerte geaccepteerd"
+          },
+          "quote_rejected": {
+            "label": "Offerte afgewezen",
+            "description": "Klant heeft offerte afgewezen"
+          },
+          "quote_expiring_soon": {
+            "label": "Offerte verloopt",
+            "description": "Offerte verloopt binnen 3 dagen"
+          },
+          "quote_expired": {
+            "label": "Offerte verlopen",
+            "description": "Offerte is verlopen"
+          }
+        },
+        "subscriptions": {
+          "subscription_new": {
+            "label": "Nieuw abonnement",
+            "description": "Nieuw abonnement gestart"
+          },
+          "subscription_renewed": {
+            "label": "Abonnement verlengd",
+            "description": "Abonnement is automatisch verlengd"
+          },
+          "subscription_cancelled": {
+            "label": "Abonnement opgezegd",
+            "description": "Klant heeft abonnement opgezegd"
+          },
+          "subscription_payment_failed": {
+            "label": "Betaling mislukt",
+            "description": "Abonnement betaling is mislukt"
+          },
+          "subscription_expiring": {
+            "label": "Abonnement verloopt",
+            "description": "Abonnement verloopt binnenkort"
+          },
+          "subscription_paused": {
+            "label": "Abonnement gepauzeerd",
+            "description": "Abonnement is gepauzeerd"
+          },
+          "billing_cycle_expired": {
+            "label": "Betaaltermijn verlopen",
+            "description": "Een factuurcyclus van een abonnement is verlopen zonder betaling"
+          },
+          "subscription_state_changed": {
+            "label": "Abonnementsstatus gewijzigd",
+            "description": "Je abonnement staat open, in leesmodus of opgeschort"
+          },
+          "subscription_reactivated": {
+            "label": "Abonnement weer actief",
+            "description": "Na betaling staat alles weer open"
+          }
+        },
+        "marketing": {
+          "campaign_sent": {
+            "label": "Campagne verzonden",
+            "description": "Email campagne is verzonden"
+          },
+          "campaign_completed": {
+            "label": "Campagne afgerond",
+            "description": "Campagne is volledig afgerond"
+          },
+          "campaign_high_open_rate": {
+            "label": "Hoge open rate",
+            "description": "Campagne heeft > 50% open rate"
+          },
+          "campaign_high_bounce": {
+            "label": "Bounce alert",
+            "description": "Veel bounces in campagne"
+          },
+          "ab_test_winner": {
+            "label": "A/B test winnaar",
+            "description": "A/B test winnaar is bepaald"
+          },
+          "ai_credits_empty": {
+            "label": "AI credits op",
+            "description": "AI credits zijn op"
+          }
+        },
+        "team": {
+          "team_member_invited": {
+            "label": "Uitnodiging verzonden",
+            "description": "Team uitnodiging is verzonden"
+          },
+          "team_member_joined": {
+            "label": "Uitnodiging geaccepteerd",
+            "description": "Nieuw teamlid is toegevoegd"
+          },
+          "team_member_removed": {
+            "label": "Teamlid verwijderd",
+            "description": "Teamlid is verwijderd"
+          },
+          "team_role_changed": {
+            "label": "Rol gewijzigd",
+            "description": "Rol van teamlid is gewijzigd"
+          },
+          "login_new_device": {
+            "label": "Nieuwe apparaat",
+            "description": "Inlog vanaf nieuw apparaat"
+          },
+          "login_failed_attempts": {
+            "label": "Mislukte inlogpogingen",
+            "description": "Meerdere mislukte inlogpogingen"
+          }
+        },
+        "system": {
+          "platform_gift": {
+            "label": "Gratis geschenk",
+            "description": "Ontvang meldingen wanneer je gratis credits, maanden of features krijgt"
+          },
+          "platform_update": {
+            "label": "Platform update",
+            "description": "Nieuwe platform update beschikbaar"
+          },
+          "feature_new": {
+            "label": "Nieuwe functie",
+            "description": "Nieuwe functie beschikbaar"
+          },
+          "usage_limit_80": {
+            "label": "80% limiet",
+            "description": "80% van plan limiet bereikt"
+          },
+          "usage_limit_reached": {
+            "label": "Limiet bereikt",
+            "description": "Plan limiet is bereikt"
+          },
+          "integration_error": {
+            "label": "Integratie fout",
+            "description": "Fout met marketplace of shipping integratie"
+          },
+          "export_ready": {
+            "label": "Export gereed",
+            "description": "Gegevensexport is gereed voor download"
+          },
+          "backup_completed": {
+            "label": "Backup voltooid",
+            "description": "Database backup is voltooid"
+          },
+          "ai_credits_low": {
+            "label": "AI credits laag",
+            "description": "AI credits zijn bijna op"
+          },
+          "trial_expiring": {
+            "label": "Proefperiode eindigt",
+            "description": "Je proefperiode eindigt morgen"
+          },
+          "trial_expired": {
+            "label": "Proefperiode verlopen",
+            "description": "Je proefperiode is verlopen"
+          },
+          "trial_converted": {
+            "label": "Abonnement gestart",
+            "description": "Je proefperiode is voorbij en je abonnement is gestart"
+          },
+          "trial_conversion_failed": {
+            "label": "Abonnement starten mislukt",
+            "description": "Een proefperiode is voorbij maar het abonnement kon niet starten"
+          },
+          "admin_announcement": {
+            "label": "Bericht van SellQo",
+            "description": "Een mededeling van het SellQo-team"
+          }
+        },
+        "ai_coach": {
+          "ai_suggestion": {
+            "label": "AI-suggestie",
+            "description": "Een dringende suggestie van de AI-monitor"
+          },
+          "ai_coach_suggestion": {
+            "label": "AI-coach",
+            "description": "Een dringende suggestie van je AI-coach"
+          }
+        },
+        "messages": {
+          "email_inbound": {
+            "label": "Email ontvangen",
+            "description": "Wanneer een inkomende email binnenkomt"
+          },
+          "whatsapp_inbound": {
+            "label": "WhatsApp ontvangen",
+            "description": "Wanneer een WhatsApp bericht binnenkomt"
+          },
+          "facebook_inbound": {
+            "label": "Facebook bericht",
+            "description": "Wanneer een Facebook bericht binnenkomt"
+          },
+          "instagram_inbound": {
+            "label": "Instagram DM",
+            "description": "Wanneer een Instagram DM binnenkomt"
+          },
+          "bol_inbound": {
+            "label": "Bol.com vraag",
+            "description": "Wanneer een vraag via Bol.com binnenkomt"
+          },
+          "contact_form_inbound": {
+            "label": "Contactformulier",
+            "description": "Wanneer een bezoeker het contactformulier van je webshop invult"
+          }
+        },
+        "integrations": {
+          "shopify_request_received": {
+            "label": "Shopify verzoek ingediend",
+            "description": "Wanneer je een Shopify koppelverzoek indient"
+          },
+          "shopify_request_approved": {
+            "label": "Shopify verzoek goedgekeurd",
+            "description": "Wanneer je Shopify verzoek is goedgekeurd"
+          },
+          "shopify_request_completed": {
+            "label": "Shopify koppeling actief",
+            "description": "Wanneer je Shopify koppeling is geactiveerd"
+          },
+          "shopify_request_rejected": {
+            "label": "Shopify verzoek afgewezen",
+            "description": "Wanneer je Shopify verzoek is afgewezen"
+          },
+          "shopify_request_updated": {
+            "label": "Shopify verzoek bijgewerkt",
+            "description": "Wanneer er een update is op je Shopify verzoek"
+          },
+          "integration_connected": {
+            "label": "SellQo Connect verbonden",
+            "description": "Wanneer een nieuwe integratie wordt gekoppeld"
+          },
+          "integration_disconnected": {
+            "label": "SellQo Connect ontkoppeld",
+            "description": "Wanneer een integratie wordt ontkoppeld"
+          },
+          "integration_error": {
+            "label": "SellQo Connect fout",
+            "description": "Wanneer er een fout optreedt bij een integratie"
+          }
+        }
+      }
     },
     "myNotifications": {
       "title": "Mijn meldingen",
@@ -763,6 +1240,33 @@
       "ossDescription": "Voor B2C verkopen aan consumenten in andere EU-landen onder de OSS-regeling",
       "previewInLanguage": "Voorbeeld in taal:",
       "defaultTexts": "Dit zijn de wettelijk correcte standaardteksten. Pas alleen aan indien noodzakelijk."
+    },
+    "oss": {
+      "title": "OSS-regeling (One-Stop-Shop)",
+      "tooltip": "Bij B2C verkopen aan particulieren in andere EU-landen wordt automatisch het BTW-tarief van het bestemmingsland toegepast. De drempel is €10.000 per jaar (cumulatief alle EU-landen).",
+      "description": "EU-regeling voor B2C verkopen aan particulieren in andere EU-landen",
+      "activate": "OSS-regeling activeren",
+      "activate_hint": "Bij overschrijding van de €10.000 drempel moet het BTW-tarief van het bestemmingsland worden toegepast",
+      "registration_date": "Datum OSS-registratie",
+      "registration_date_hint": "De datum waarop je je hebt geregistreerd bij de Belastingdienst",
+      "identification_number": "OSS-identificatienummer",
+      "identification_number_hint": "Je OSS-registratienummer (vaak gelijk aan je BTW-nummer)",
+      "active_title": "OSS-regeling actief",
+      "active_description": "Bij B2C verkopen aan particulieren in andere EU-landen wordt automatisch het lokale BTW-tarief toegepast. De factuur vermeldt in de taal van de klant dat de OSS-regeling is toegepast.",
+      "revenue_title": "B2C EU-omzet {{year}}",
+      "revenue_description": "Cumulatieve omzet aan particulieren in andere EU-landen",
+      "of_threshold": "van €{{amount}} drempel",
+      "threshold_reached": "{{percent}}% van de drempel bereikt",
+      "near_title": "Je nadert de OSS-drempel",
+      "near_description": "Je bent op 80% of meer van de €10.000 drempel. Overweeg OSS-registratie bij de Belastingdienst.",
+      "over_title": "OSS-drempel overschreden!",
+      "over_description": "Je hebt de €10.000 drempel overschreden. Je bent verplicht om OSS te registreren en het BTW-tarief van het bestemmingsland toe te passen.",
+      "revenue_by_country": "Omzet per land:",
+      "view_rates": "EU BTW-tarieven bekijken",
+      "col_country": "Land",
+      "col_standard": "Standaard tarief",
+      "col_reduced": "Verlaagd tarief",
+      "own_country": "Eigen land"
     }
   },
   "vat": {
@@ -6006,6 +6510,131 @@
       "resend": "Tickets opnieuw mailen",
       "resent": "Tickets zijn gemaild",
       "resend_failed": "Mailen lukte niet"
+    },
+    "printful": {
+      "connected": "Verbonden",
+      "not_connected": "Niet verbonden",
+      "beta": "Beta",
+      "settings": "Instellingen",
+      "card_description": "Print-on-demand fulfilment via Printful. Koppel je Printful-winkel, importeer je producten en stuur bestellingen door. Verzendupdates met track & trace komen automatisch terug.",
+      "sync": "Koppeling",
+      "on": "Aan",
+      "off": "Uit",
+      "last_test": "Laatste test",
+      "not_yet": "Nog niet",
+      "shipping_updates_active": "Verzendupdates: actief",
+      "connect": "Verbind Printful",
+      "dialog_title": "Printful print-on-demand",
+      "dialog_description": "Verbind je Printful-winkel en configureer de fulfilment-instellingen.",
+      "no_tenant": "Geen winkel geselecteerd.",
+      "connection_title": "Verbinding",
+      "connection_description": "Maak een private token aan in het Printful Developer Portal met de scopes <strong>orders</strong>, <strong>sync_products</strong> en <strong>webhooks</strong>.",
+      "last_test_failed": "Laatste test mislukt",
+      "token_label": "Private token",
+      "token_placeholder_saved": "Opgeslagen — vul in om te vervangen",
+      "token_placeholder": "Printful private token",
+      "token_hint": "Het token wordt versleuteld opgeslagen en nooit meer teruggetoond.",
+      "store_id_label": "Store-ID (optioneel)",
+      "store_id_placeholder": "Alleen nodig bij account-level tokens",
+      "test_connection": "Test verbinding",
+      "save": "Opslaan",
+      "disconnect": "Verbinding verbreken",
+      "settings_description": "Bepaal hoe SellQo met je Printful-winkel samenwerkt.",
+      "sync_enabled_label": "Printful-koppeling actief",
+      "sync_enabled_hint": "Zet de koppeling aan of uit zonder je token te verwijderen.",
+      "auto_confirm_label": "Bestellingen direct bevestigen bij Printful",
+      "auto_confirm_hint": "Aan = een doorgestuurde bestelling wordt meteen bevestigd en gaat in productie. Uit = ze komt als concept bij Printful, en je bevestigt ze daar zelf.",
+      "import_title": "Producten importeren",
+      "import_description": "Neem je Printful-ontwerpen over als SellQo-producten met varianten, beelden en automatische variant-koppeling. Je bekijkt eerst een voorbeeld en bepaalt zelf de prijzen.",
+      "import_button": "Producten importeren uit Printful",
+      "disconnect_confirm_title": "Printful-verbinding verbreken?",
+      "disconnect_confirm_description": "Het opgeslagen token wordt verwijderd en de koppeling wordt uitgezet. Je variant-koppelingen blijven bewaard, zodat een nieuwe verbinding direct weer werkt.",
+      "cancel": "Annuleer",
+      "disconnect_confirm": "Verbreek verbinding",
+      "order": {
+        "not_forwarded": "Nog niet doorgestuurd",
+        "draft": "Concept bij Printful",
+        "confirmed": "Bevestigd",
+        "canceled": "Geannuleerd",
+        "failed": "Mislukt",
+        "retry": "Opnieuw proberen",
+        "forward_again": "Opnieuw doorsturen",
+        "forward": "Doorsturen naar Printful"
+      },
+      "mapping": {
+        "title": "Variant-koppeling",
+        "description": "Koppel je SellQo-varianten aan een Printful sync-variant. Alleen gekoppelde varianten kunnen worden doorgestuurd.",
+        "refresh": "Printful verversen",
+        "load_error": "Printful-producten konden niet worden geladen",
+        "search_placeholder": "Zoek op product, variant of SKU",
+        "loading_variants": "Varianten laden…",
+        "no_variants": "Geen actieve varianten gevonden.",
+        "linked": "Gekoppeld",
+        "not_linked": "Niet gekoppeld",
+        "loading": "Laden…",
+        "choose_variant": "Kies Printful-variant",
+        "unlink": "Ontkoppel variant"
+      },
+      "importDialog": {
+        "description": "Kies welke Printful-producten je als SellQo-product wilt aanmaken. Elke Printful-variant wordt een SellQo-variant.",
+        "price_notice": "De prijzen zijn een <strong>suggestie</strong> uit Printful — pas ze hier gerust aan. Geïmporteerde producten komen op <strong>niet-actief en verborgen</strong> te staan, zodat je ze eerst kunt nakijken voordat je ze zelf live zet.",
+        "loading": "Printful-producten ophalen…",
+        "empty": "Geen producten gevonden in je Printful-winkel.",
+        "already_imported": "Al geïmporteerd",
+        "variant_count": "Varianten: {{count}}",
+        "image_count": "Beelden die worden overgenomen: {{count}}",
+        "update_images": "Beelden bijwerken",
+        "sku_in_use": "SKU bestaat al bij een andere variant",
+        "done": "Klaar. Bekijk de nieuwe producten in <link>Producten</link> en zet ze live wanneer ze goed staan.",
+        "close": "Sluiten",
+        "import": "Importeren"
+      },
+      "toast": {
+        "call_failed": "Aanroep mislukt",
+        "unknown_error": "Onbekende fout",
+        "connection_ok": "Verbinding OK",
+        "connection_failed": "Verbinding mislukt",
+        "connected": "Printful verbonden",
+        "disconnected": "Printful-verbinding verbroken",
+        "preview_failed": "Preview ophalen mislukt",
+        "images_failed": "Beelden bijwerken mislukt",
+        "images_updated": "Beelden bijgewerkt",
+        "imported": "Geïmporteerd: {{count}}",
+        "skipped": "Overgeslagen: {{count}}",
+        "reimported": "Beelden bijgewerkt: {{count}}",
+        "failed_count": "Mislukt: {{count}}",
+        "import_failed": "Importeren mislukt",
+        "variant_linked": "Variant gekoppeld",
+        "link_failed": "Koppelen mislukt",
+        "link_removed": "Koppeling verwijderd",
+        "remove_failed": "Verwijderen mislukt",
+        "forward_failed": "Doorsturen mislukt",
+        "order_confirmed": "Bestelling bevestigd bij Printful",
+        "order_draft": "Bestelling als concept aangemaakt bij Printful",
+        "settings_saved": "Printful-instellingen opgeslagen",
+        "save_failed": "Opslaan mislukt"
+      }
+    },
+    "odooSync": {
+      "synced": "Odoo #{{id}}",
+      "synced_peppol_manual": "Odoo #{{id}} · Peppol handmatig",
+      "synced_tip": "Gepost in Odoo als move {{id}}.",
+      "synced_peppol_sent_tip": "Gepost in Odoo als move {{id}} · Peppol verzonden.",
+      "synced_peppol_manual_tip": "Gepost in Odoo als move {{id}}. Peppol-verzending kon niet automatisch: {{note}}. Verstuur manueel in Odoo.",
+      "unknown": "onbekend",
+      "failed": "Odoo mislukt",
+      "unknown_error": "Onbekende fout",
+      "pending": "Odoo wachtrij",
+      "peppol_manual": "Peppol handmatig",
+      "peppol_sent": "Peppol verzonden",
+      "peppol_archive": "Archief",
+      "peppol_failed": "Peppol mislukt",
+      "peppol_send_manually": "Handmatig verzenden",
+      "peppol_queued": "In wachtrij",
+      "attention_title": "Peppol-aandacht ({{count}})",
+      "attention_description": "Deze documenten wachten op verzending of vereisen een handmatige actie in Peppol/Odoo.",
+      "invoice_label": "Factuur {{number}}",
+      "credit_note_label": "Creditnota {{number}}"
     }
   },
   "product_form": {
@@ -7404,5 +8033,36 @@
     "kind_refund": "Terugbetaald",
     "kind_adjust": "Correctie",
     "powered": "Mogelijk gemaakt door SellQo"
+  },
+  "notificationsPage": {
+    "title": "Notificaties",
+    "subtitle": "Alle meldingen en alerts op één plek",
+    "mark_all_read": "Alles gelezen ({{count}})",
+    "delete_read": "Gelezen verwijderen",
+    "stats": {
+      "total": "Totaal",
+      "unread": "Ongelezen"
+    },
+    "read": "Gelezen",
+    "view": "Bekijk",
+    "mark_read": "Markeer als gelezen",
+    "delete": "Verwijderen",
+    "search_placeholder": "Zoek in notificaties...",
+    "category": "Categorie",
+    "all_categories": "Alle categorieën",
+    "priority_label": "Prioriteit",
+    "all_priorities": "Alle prioriteiten",
+    "priority": {
+      "urgent": "Urgent",
+      "high": "Hoog",
+      "medium": "Normaal",
+      "low": "Laag"
+    },
+    "clear_filters": "Wis filters",
+    "results": "Resultaten: {{count}}",
+    "all_notifications": "Alle notificaties",
+    "empty_title": "Geen notificaties gevonden",
+    "empty_filtered": "Probeer andere zoektermen of filters",
+    "empty_all": "Je bent helemaal bij!"
   }
 }

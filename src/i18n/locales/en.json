@@ -172,7 +172,9 @@
       "platform_docs": "Documentation",
       "kitchen": "Kitchen",
       "ordering": "Ordering",
-      "event_venues": "Venues"
+      "event_venues": "Venues",
+      "event_bundles": "Combo tickets",
+      "event_tokens": "Tokens"
     }
   },
   "settings": {
@@ -593,7 +595,482 @@
       "categoryDisabled": "{{channel}} turned off for {{category}}",
       "pushMovedHint": "Push notifications on your phone are set per person.",
       "pushMovedLink": "Go to My notifications",
-      "urgentEmailHint": "Urgent notifications (priority high or urgent) are also emailed to you if you haven't set anything for them. Explicitly turn off email for such a type if you don't want that."
+      "urgentEmailHint": "Urgent notifications (priority high or urgent) are also emailed to you if you haven't set anything for them. Explicitly turn off email for such a type if you don't want that.",
+      "categories": {
+        "orders": "Orders",
+        "invoices": "Invoices",
+        "payments": "Payments",
+        "customers": "Customers",
+        "products": "Products & Stock",
+        "quotes": "Quotes",
+        "subscriptions": "Subscriptions",
+        "marketing": "Marketing",
+        "team": "Team",
+        "system": "System",
+        "ai_coach": "AI coach",
+        "messages": "Messages",
+        "integrations": "SellQo Connect"
+      },
+      "types": {
+        "orders": {
+          "order_new": {
+            "label": "New order",
+            "description": "Get a notification for every new order"
+          },
+          "order_paid": {
+            "label": "Payment received",
+            "description": "When an order has been paid"
+          },
+          "order_cancelled": {
+            "label": "Order cancelled",
+            "description": "When an order is cancelled"
+          },
+          "order_refund_requested": {
+            "label": "Refund requested",
+            "description": "When a customer requests a refund"
+          },
+          "order_shipped": {
+            "label": "Order shipped",
+            "description": "When an order has been shipped"
+          },
+          "order_delivered": {
+            "label": "Order delivered",
+            "description": "When an order has been delivered"
+          },
+          "order_high_value": {
+            "label": "High-value order",
+            "description": "Orders above €500"
+          },
+          "marketplace_order_new": {
+            "label": "Marketplace order",
+            "description": "New order via a marketplace"
+          },
+          "tracking_in_transit": {
+            "label": "Shipment in transit",
+            "description": "Track & trace: the shipment is on its way"
+          },
+          "tracking_out_for_delivery": {
+            "label": "Shipment out for delivery",
+            "description": "Track & trace: the shipment is on its way to the customer today"
+          },
+          "tracking_delivered": {
+            "label": "Shipment delivered",
+            "description": "Track & trace: the shipment has been delivered"
+          },
+          "tracking_exception": {
+            "label": "Problem with shipment",
+            "description": "Track & trace reports a problem with the shipment"
+          },
+          "return_new_request": {
+            "label": "New return",
+            "description": "When a customer requests a return"
+          }
+        },
+        "invoices": {
+          "invoice_created": {
+            "label": "Invoice created",
+            "description": "When a new invoice is created"
+          },
+          "invoice_sent": {
+            "label": "Invoice sent",
+            "description": "When an invoice has been sent"
+          },
+          "invoice_paid": {
+            "label": "Invoice paid",
+            "description": "When an invoice has been paid"
+          },
+          "invoice_overdue": {
+            "label": "Invoice overdue",
+            "description": "When an invoice is past its due date"
+          },
+          "invoice_overdue_7days": {
+            "label": "7 days overdue",
+            "description": "Invoice is 7 days past due"
+          },
+          "invoice_overdue_30days": {
+            "label": "30 days overdue",
+            "description": "Invoice is 30 days past due - urgent"
+          },
+          "invoice_reminder_sent": {
+            "label": "Reminder sent",
+            "description": "When a payment reminder has been sent"
+          },
+          "peppol_invoice_accepted": {
+            "label": "Peppol accepted",
+            "description": "Peppol invoice has been accepted"
+          },
+          "peppol_invoice_rejected": {
+            "label": "Peppol rejected",
+            "description": "Peppol invoice has been rejected"
+          },
+          "invoice_final_reminder": {
+            "label": "Final reminder",
+            "description": "Final payment reminder for an invoice"
+          },
+          "invoice_charge_exhausted": {
+            "label": "Direct debit failed",
+            "description": "Automatic collection of an invoice has been exhausted"
+          },
+          "mandate_setup_stalled": {
+            "label": "Mandate not completed",
+            "description": "Customer has not completed the direct debit mandate"
+          }
+        },
+        "payments": {
+          "payment_received": {
+            "label": "Payment received",
+            "description": "When a payment comes in"
+          },
+          "payout_available": {
+            "label": "Payout available",
+            "description": "When a payout is ready"
+          },
+          "payout_completed": {
+            "label": "Payout completed",
+            "description": "When a payout has been made"
+          },
+          "payout_canceled": {
+            "label": "Payout cancelled",
+            "description": "When a scheduled payout has been cancelled"
+          },
+          "stripe_account_issue": {
+            "label": "Stripe issue",
+            "description": "Problem with your Stripe account"
+          },
+          "chargeback_received": {
+            "label": "Chargeback received",
+            "description": "When a customer files a chargeback"
+          },
+          "payment_duplicate": {
+            "label": "Duplicate payment",
+            "description": "A customer paid an item that was already paid or cancelled"
+          },
+          "order_payment_failed": {
+            "label": "Payment failed",
+            "description": "When a payment for an order fails"
+          },
+          "order_refunded": {
+            "label": "Refunded",
+            "description": "When an order has been refunded"
+          }
+        },
+        "customers": {
+          "customer_new": {
+            "label": "New customer",
+            "description": "When a new customer registers"
+          },
+          "customer_first_order": {
+            "label": "First order",
+            "description": "When a customer places their first order"
+          },
+          "customer_vip": {
+            "label": "VIP status reached",
+            "description": "When a customer becomes VIP"
+          },
+          "customer_inactive_30days": {
+            "label": "30 days inactive",
+            "description": "Customer has not been active for 30 days"
+          },
+          "customer_inactive_90days": {
+            "label": "90 days inactive",
+            "description": "Customer has not been active for 90 days"
+          },
+          "customer_message_received": {
+            "label": "Message received",
+            "description": "When a customer replies to an email"
+          },
+          "newsletter_signup": {
+            "label": "Newsletter signup",
+            "description": "New signup for the newsletter"
+          },
+          "newsletter_unsubscribe": {
+            "label": "Newsletter unsubscribe",
+            "description": "Customer unsubscribes from the newsletter"
+          }
+        },
+        "products": {
+          "stock_low": {
+            "label": "Low stock",
+            "description": "When stock drops below the minimum level"
+          },
+          "stock_critical": {
+            "label": "Critical stock",
+            "description": "Stock critically low (< 5 units)"
+          },
+          "stock_out": {
+            "label": "Sold out",
+            "description": "Product is sold out"
+          },
+          "stock_replenished": {
+            "label": "Stock replenished",
+            "description": "Stock is back to level"
+          },
+          "product_bestseller": {
+            "label": "Bestseller",
+            "description": "Product has become a bestseller"
+          },
+          "product_no_sales_30days": {
+            "label": "No sales",
+            "description": "Product has had no sales for 30 days"
+          },
+          "product_unmapped": {
+            "label": "Bol product not linked",
+            "description": "A Bol order contains a product without a link"
+          },
+          "out_of_stock": {
+            "label": "Sold out after Bol sale",
+            "description": "Product is sold out after a sale via Bol.com"
+          }
+        },
+        "quotes": {
+          "quote_new": {
+            "label": "Quote created",
+            "description": "When a new quote is created"
+          },
+          "quote_sent": {
+            "label": "Quote sent",
+            "description": "When a quote has been sent"
+          },
+          "quote_viewed": {
+            "label": "Quote viewed",
+            "description": "Customer has viewed the quote"
+          },
+          "quote_accepted": {
+            "label": "Quote accepted",
+            "description": "Customer has accepted the quote"
+          },
+          "quote_rejected": {
+            "label": "Quote rejected",
+            "description": "Customer has rejected the quote"
+          },
+          "quote_expiring_soon": {
+            "label": "Quote expiring",
+            "description": "Quote expires within 3 days"
+          },
+          "quote_expired": {
+            "label": "Quote expired",
+            "description": "Quote has expired"
+          }
+        },
+        "subscriptions": {
+          "subscription_new": {
+            "label": "New subscription",
+            "description": "New subscription started"
+          },
+          "subscription_renewed": {
+            "label": "Subscription renewed",
+            "description": "Subscription was renewed automatically"
+          },
+          "subscription_cancelled": {
+            "label": "Subscription cancelled",
+            "description": "Customer has cancelled the subscription"
+          },
+          "subscription_payment_failed": {
+            "label": "Payment failed",
+            "description": "Subscription payment failed"
+          },
+          "subscription_expiring": {
+            "label": "Subscription expiring",
+            "description": "Subscription expires soon"
+          },
+          "subscription_paused": {
+            "label": "Subscription paused",
+            "description": "Subscription has been paused"
+          },
+          "billing_cycle_expired": {
+            "label": "Payment term expired",
+            "description": "A billing cycle of a subscription expired without payment"
+          },
+          "subscription_state_changed": {
+            "label": "Subscription status changed",
+            "description": "Your subscription is open, read-only or suspended"
+          },
+          "subscription_reactivated": {
+            "label": "Subscription active again",
+            "description": "Everything is open again after payment"
+          }
+        },
+        "marketing": {
+          "campaign_sent": {
+            "label": "Campaign sent",
+            "description": "Email campaign has been sent"
+          },
+          "campaign_completed": {
+            "label": "Campaign completed",
+            "description": "Campaign has fully completed"
+          },
+          "campaign_high_open_rate": {
+            "label": "High open rate",
+            "description": "Campaign has an open rate above 50%"
+          },
+          "campaign_high_bounce": {
+            "label": "Bounce alert",
+            "description": "Many bounces in a campaign"
+          },
+          "ab_test_winner": {
+            "label": "A/B test winner",
+            "description": "A/B test winner has been determined"
+          },
+          "ai_credits_empty": {
+            "label": "AI credits used up",
+            "description": "AI credits have run out"
+          }
+        },
+        "team": {
+          "team_member_invited": {
+            "label": "Invitation sent",
+            "description": "Team invitation has been sent"
+          },
+          "team_member_joined": {
+            "label": "Invitation accepted",
+            "description": "New team member has been added"
+          },
+          "team_member_removed": {
+            "label": "Team member removed",
+            "description": "Team member has been removed"
+          },
+          "team_role_changed": {
+            "label": "Role changed",
+            "description": "A team member's role has changed"
+          },
+          "login_new_device": {
+            "label": "New device",
+            "description": "Login from a new device"
+          },
+          "login_failed_attempts": {
+            "label": "Failed login attempts",
+            "description": "Multiple failed login attempts"
+          }
+        },
+        "system": {
+          "platform_gift": {
+            "label": "Free gift",
+            "description": "Get notified when you receive free credits, months or features"
+          },
+          "platform_update": {
+            "label": "Platform update",
+            "description": "New platform update available"
+          },
+          "feature_new": {
+            "label": "New feature",
+            "description": "New feature available"
+          },
+          "usage_limit_80": {
+            "label": "80% limit",
+            "description": "80% of plan limit reached"
+          },
+          "usage_limit_reached": {
+            "label": "Limit reached",
+            "description": "Plan limit has been reached"
+          },
+          "integration_error": {
+            "label": "Integration error",
+            "description": "Error with a marketplace or shipping integration"
+          },
+          "export_ready": {
+            "label": "Export ready",
+            "description": "Data export is ready for download"
+          },
+          "backup_completed": {
+            "label": "Backup completed",
+            "description": "Database backup has completed"
+          },
+          "ai_credits_low": {
+            "label": "AI credits low",
+            "description": "AI credits are almost used up"
+          },
+          "trial_expiring": {
+            "label": "Trial ending",
+            "description": "Your trial ends tomorrow"
+          },
+          "trial_expired": {
+            "label": "Trial expired",
+            "description": "Your trial has expired"
+          },
+          "trial_converted": {
+            "label": "Subscription started",
+            "description": "Your trial is over and your subscription has started"
+          },
+          "trial_conversion_failed": {
+            "label": "Starting subscription failed",
+            "description": "A trial has ended but the subscription could not start"
+          },
+          "admin_announcement": {
+            "label": "Message from SellQo",
+            "description": "An announcement from the SellQo team"
+          }
+        },
+        "ai_coach": {
+          "ai_suggestion": {
+            "label": "AI suggestion",
+            "description": "An urgent suggestion from the AI monitor"
+          },
+          "ai_coach_suggestion": {
+            "label": "AI coach",
+            "description": "An urgent suggestion from your AI coach"
+          }
+        },
+        "messages": {
+          "email_inbound": {
+            "label": "Email received",
+            "description": "When an incoming email arrives"
+          },
+          "whatsapp_inbound": {
+            "label": "WhatsApp received",
+            "description": "When a WhatsApp message arrives"
+          },
+          "facebook_inbound": {
+            "label": "Facebook message",
+            "description": "When a Facebook message arrives"
+          },
+          "instagram_inbound": {
+            "label": "Instagram DM",
+            "description": "When an Instagram DM arrives"
+          },
+          "bol_inbound": {
+            "label": "Bol.com question",
+            "description": "When a question arrives via Bol.com"
+          },
+          "contact_form_inbound": {
+            "label": "Contact form",
+            "description": "When a visitor fills in your webshop's contact form"
+          }
+        },
+        "integrations": {
+          "shopify_request_received": {
+            "label": "Shopify request submitted",
+            "description": "When you submit a Shopify connection request"
+          },
+          "shopify_request_approved": {
+            "label": "Shopify request approved",
+            "description": "When your Shopify request has been approved"
+          },
+          "shopify_request_completed": {
+            "label": "Shopify connection active",
+            "description": "When your Shopify connection has been activated"
+          },
+          "shopify_request_rejected": {
+            "label": "Shopify request rejected",
+            "description": "When your Shopify request has been rejected"
+          },
+          "shopify_request_updated": {
+            "label": "Shopify request updated",
+            "description": "When there is an update on your Shopify request"
+          },
+          "integration_connected": {
+            "label": "SellQo Connect connected",
+            "description": "When a new integration is connected"
+          },
+          "integration_disconnected": {
+            "label": "SellQo Connect disconnected",
+            "description": "When an integration is disconnected"
+          },
+          "integration_error": {
+            "label": "SellQo Connect error",
+            "description": "When an error occurs in an integration"
+          }
+        }
+      }
     },
     "myNotifications": {
       "title": "My notifications",
@@ -763,6 +1240,33 @@
       "ossDescription": "For B2C sales to consumers in other EU countries under the OSS scheme",
       "previewInLanguage": "Preview in language:",
       "defaultTexts": "These are the legally correct default texts. Customize only if necessary."
+    },
+    "oss": {
+      "title": "OSS scheme (One-Stop-Shop)",
+      "tooltip": "For B2C sales to consumers in other EU countries, the VAT rate of the destination country is applied automatically. The threshold is €10,000 per year (cumulative across all EU countries).",
+      "description": "EU scheme for B2C sales to consumers in other EU countries",
+      "activate": "Activate the OSS scheme",
+      "activate_hint": "Once the €10,000 threshold is exceeded, the VAT rate of the destination country must be applied",
+      "registration_date": "OSS registration date",
+      "registration_date_hint": "The date on which you registered with the tax authority",
+      "identification_number": "OSS identification number",
+      "identification_number_hint": "Your OSS registration number (often the same as your VAT number)",
+      "active_title": "OSS scheme active",
+      "active_description": "For B2C sales to consumers in other EU countries, the local VAT rate is applied automatically. The invoice states that the OSS scheme was applied, in the customer's language.",
+      "revenue_title": "B2C EU revenue {{year}}",
+      "revenue_description": "Cumulative revenue from consumers in other EU countries",
+      "of_threshold": "of €{{amount}} threshold",
+      "threshold_reached": "{{percent}}% of the threshold reached",
+      "near_title": "You are approaching the OSS threshold",
+      "near_description": "You are at 80% or more of the €10,000 threshold. Consider registering for OSS with the tax authority.",
+      "over_title": "OSS threshold exceeded!",
+      "over_description": "You have exceeded the €10,000 threshold. You are required to register for OSS and apply the VAT rate of the destination country.",
+      "revenue_by_country": "Revenue by country:",
+      "view_rates": "View EU VAT rates",
+      "col_country": "Country",
+      "col_standard": "Standard rate",
+      "col_reduced": "Reduced rate",
+      "own_country": "Own country"
     }
   },
   "vat": {
@@ -5992,6 +6496,131 @@
       "resend": "Email tickets again",
       "resent": "Tickets have been emailed",
       "resend_failed": "Could not send the email"
+    },
+    "printful": {
+      "connected": "Connected",
+      "not_connected": "Not connected",
+      "beta": "Beta",
+      "settings": "Settings",
+      "card_description": "Print-on-demand fulfilment via Printful. Connect your Printful store, import your products and forward orders. Shipping updates with tracking come back automatically.",
+      "sync": "Integration",
+      "on": "On",
+      "off": "Off",
+      "last_test": "Last test",
+      "not_yet": "Not yet",
+      "shipping_updates_active": "Shipping updates: active",
+      "connect": "Connect Printful",
+      "dialog_title": "Printful print-on-demand",
+      "dialog_description": "Connect your Printful store and configure the fulfilment settings.",
+      "no_tenant": "No store selected.",
+      "connection_title": "Connection",
+      "connection_description": "Create a private token in the Printful Developer Portal with the scopes <strong>orders</strong>, <strong>sync_products</strong> and <strong>webhooks</strong>.",
+      "last_test_failed": "Last test failed",
+      "token_label": "Private token",
+      "token_placeholder_saved": "Saved — enter a new one to replace it",
+      "token_placeholder": "Printful private token",
+      "token_hint": "The token is stored encrypted and never shown again.",
+      "store_id_label": "Store ID (optional)",
+      "store_id_placeholder": "Only needed for account-level tokens",
+      "test_connection": "Test connection",
+      "save": "Save",
+      "disconnect": "Disconnect",
+      "settings_description": "Decide how SellQo works with your Printful store.",
+      "sync_enabled_label": "Printful integration active",
+      "sync_enabled_hint": "Turn the integration on or off without removing your token.",
+      "auto_confirm_label": "Confirm orders at Printful right away",
+      "auto_confirm_hint": "On = a forwarded order is confirmed immediately and goes into production. Off = it arrives at Printful as a draft, and you confirm it there yourself.",
+      "import_title": "Import products",
+      "import_description": "Bring your Printful designs into SellQo as products with variants, images and automatic variant linking. You see a preview first and set the prices yourself.",
+      "import_button": "Import products from Printful",
+      "disconnect_confirm_title": "Disconnect Printful?",
+      "disconnect_confirm_description": "The saved token is removed and the integration is turned off. Your variant links are kept, so a new connection works again right away.",
+      "cancel": "Cancel",
+      "disconnect_confirm": "Disconnect",
+      "order": {
+        "not_forwarded": "Not forwarded yet",
+        "draft": "Draft at Printful",
+        "confirmed": "Confirmed",
+        "canceled": "Canceled",
+        "failed": "Failed",
+        "retry": "Try again",
+        "forward_again": "Forward again",
+        "forward": "Forward to Printful"
+      },
+      "mapping": {
+        "title": "Variant linking",
+        "description": "Link your SellQo variants to a Printful sync variant. Only linked variants can be forwarded.",
+        "refresh": "Refresh Printful",
+        "load_error": "Printful products could not be loaded",
+        "search_placeholder": "Search by product, variant or SKU",
+        "loading_variants": "Loading variants…",
+        "no_variants": "No active variants found.",
+        "linked": "Linked",
+        "not_linked": "Not linked",
+        "loading": "Loading…",
+        "choose_variant": "Choose Printful variant",
+        "unlink": "Unlink variant"
+      },
+      "importDialog": {
+        "description": "Choose which Printful products you want to create as SellQo products. Each Printful variant becomes a SellQo variant.",
+        "price_notice": "The prices are a <strong>suggestion</strong> from Printful — feel free to adjust them here. Imported products are set to <strong>inactive and hidden</strong>, so you can review them before you put them live yourself.",
+        "loading": "Fetching Printful products…",
+        "empty": "No products found in your Printful store.",
+        "already_imported": "Already imported",
+        "variant_count": "Variants: {{count}}",
+        "image_count": "Images to be imported: {{count}}",
+        "update_images": "Update images",
+        "sku_in_use": "SKU already exists on another variant",
+        "done": "Done. Check the new products in <link>Products</link> and put them live when they look right.",
+        "close": "Close",
+        "import": "Import"
+      },
+      "toast": {
+        "call_failed": "Request failed",
+        "unknown_error": "Unknown error",
+        "connection_ok": "Connection OK",
+        "connection_failed": "Connection failed",
+        "connected": "Printful connected",
+        "disconnected": "Printful disconnected",
+        "preview_failed": "Loading the preview failed",
+        "images_failed": "Updating images failed",
+        "images_updated": "Images updated",
+        "imported": "Imported: {{count}}",
+        "skipped": "Skipped: {{count}}",
+        "reimported": "Images updated: {{count}}",
+        "failed_count": "Failed: {{count}}",
+        "import_failed": "Import failed",
+        "variant_linked": "Variant linked",
+        "link_failed": "Linking failed",
+        "link_removed": "Link removed",
+        "remove_failed": "Removing failed",
+        "forward_failed": "Forwarding failed",
+        "order_confirmed": "Order confirmed at Printful",
+        "order_draft": "Order created as a draft at Printful",
+        "settings_saved": "Printful settings saved",
+        "save_failed": "Saving failed"
+      }
+    },
+    "odooSync": {
+      "synced": "Odoo #{{id}}",
+      "synced_peppol_manual": "Odoo #{{id}} · Peppol manual",
+      "synced_tip": "Posted in Odoo as move {{id}}.",
+      "synced_peppol_sent_tip": "Posted in Odoo as move {{id}} · Peppol sent.",
+      "synced_peppol_manual_tip": "Posted in Odoo as move {{id}}. Peppol sending could not happen automatically: {{note}}. Send it manually in Odoo.",
+      "unknown": "unknown",
+      "failed": "Odoo failed",
+      "unknown_error": "Unknown error",
+      "pending": "Odoo queued",
+      "peppol_manual": "Peppol manual",
+      "peppol_sent": "Peppol sent",
+      "peppol_archive": "Archive",
+      "peppol_failed": "Peppol failed",
+      "peppol_send_manually": "Send manually",
+      "peppol_queued": "Queued",
+      "attention_title": "Peppol attention ({{count}})",
+      "attention_description": "These documents are waiting to be sent or need a manual action in Peppol/Odoo.",
+      "invoice_label": "Invoice {{number}}",
+      "credit_note_label": "Credit note {{number}}"
     }
   },
   "product_form": {
@@ -7402,5 +8031,36 @@
     "kind_refund": "Refunded",
     "kind_adjust": "Correction",
     "powered": "Powered by SellQo"
+  },
+  "notificationsPage": {
+    "title": "Notifications",
+    "subtitle": "All notifications and alerts in one place",
+    "mark_all_read": "Mark all read ({{count}})",
+    "delete_read": "Delete read",
+    "stats": {
+      "total": "Total",
+      "unread": "Unread"
+    },
+    "read": "Read",
+    "view": "View",
+    "mark_read": "Mark as read",
+    "delete": "Delete",
+    "search_placeholder": "Search notifications...",
+    "category": "Category",
+    "all_categories": "All categories",
+    "priority_label": "Priority",
+    "all_priorities": "All priorities",
+    "priority": {
+      "urgent": "Urgent",
+      "high": "High",
+      "medium": "Normal",
+      "low": "Low"
+    },
+    "clear_filters": "Clear filters",
+    "results": "Results: {{count}}",
+    "all_notifications": "All notifications",
+    "empty_title": "No notifications found",
+    "empty_filtered": "Try other search terms or filters",
+    "empty_all": "You're all caught up!"
   }
 }

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ChevronDown, Images, Info, Loader2, Package } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   usePrintfulImportApply, usePrintfulImportPreview,
   type ApplyPayloadProduct, type PrintfulImportPreviewProduct,
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
+  const { t } = useTranslation();
   const preview = usePrintfulImportPreview(tenantId);
   const apply = usePrintfulImportApply(tenantId);
 
@@ -93,31 +95,26 @@ export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Producten importeren uit Printful</DialogTitle>
-          <DialogDescription>
-            Kies welke Printful-producten je als SellQo-product wilt aanmaken. Elke Printful-variant wordt een
-            SellQo-variant.
-          </DialogDescription>
+          <DialogTitle>{t('admin.printful.import_button')}</DialogTitle>
+          <DialogDescription>{t('admin.printful.importDialog.description')}</DialogDescription>
         </DialogHeader>
 
         <Alert>
           <Info className="w-4 h-4" />
           <AlertDescription className="text-xs">
-            De prijzen zijn een <strong>suggestie</strong> uit Printful — pas ze hier gerust aan. Geïmporteerde
-            producten komen op <strong>niet-actief en verborgen</strong> te staan, zodat je ze eerst kunt nakijken
-            voordat je ze zelf live zet.
+            <Trans i18nKey="admin.printful.importDialog.price_notice" components={{ strong: <strong /> }} />
           </AlertDescription>
         </Alert>
 
         {preview.isPending && (
           <div className="flex items-center gap-2 py-10 justify-center text-sm text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin" /> Printful-producten ophalen…
+            <Loader2 className="w-4 h-4 animate-spin" /> {t('admin.printful.importDialog.loading')}
           </div>
         )}
 
         {!preview.isPending && products.length === 0 && (
           <p className="py-10 text-center text-sm text-muted-foreground">
-            Geen producten gevonden in je Printful-winkel.
+            {t('admin.printful.importDialog.empty')}
           </p>
         )}
 
@@ -140,12 +137,12 @@ export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-medium text-sm break-words">{p.name}</span>
-                    {p.duplicate && <Badge variant="secondary">Al geïmporteerd</Badge>}
+                    {p.duplicate && <Badge variant="secondary">{t('admin.printful.importDialog.already_imported')}</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    {p.variants.length} varianten
+                    {t('admin.printful.importDialog.variant_count', { count: p.variants.length })}
                     {typeof p.image_count === 'number' && p.image_count > 0
-                      ? ` · ${p.image_count} beelden worden overgenomen`
+                      ? ` · ${t('admin.printful.importDialog.image_count', { count: p.image_count })}`
                       : ''}
                   </p>
                   {p.duplicate && (
@@ -159,7 +156,7 @@ export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
                       {reimportingId === p.sync_product_id
                         ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                         : <Images className="w-3 h-3 mr-1" />}
-                      Beelden bijwerken
+                      {t('admin.printful.importDialog.update_images')}
                     </Button>
                   )}
                 </div>
@@ -186,7 +183,7 @@ export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
                           {v.sku ? ` · ${v.sku}` : ''}
                         </p>
                         {v.sku_in_use && (
-                          <p className="text-xs text-muted-foreground">SKU bestaat al bij een andere variant</p>
+                          <p className="text-xs text-muted-foreground">{t('admin.printful.importDialog.sku_in_use')}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
@@ -209,17 +206,19 @@ export function PrintfulImportDialog({ tenantId, open, onOpenChange }: Props) {
         {done && (
           <Alert>
             <AlertDescription className="text-xs">
-              Klaar. Bekijk de nieuwe producten in{' '}
-              <Link to="/admin/products" className="underline">Producten</Link> en zet ze live wanneer ze goed staan.
+              <Trans
+                i18nKey="admin.printful.importDialog.done"
+                components={{ link: <Link to="/admin/products" className="underline" /> }}
+              />
             </AlertDescription>
           </Alert>
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Sluiten</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>{t('admin.printful.importDialog.close')}</Button>
           <Button onClick={handleImport} disabled={apply.isPending || selectedCount === 0}>
             {apply.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-            Importeren{selectedCount > 0 ? ` (${selectedCount})` : ''}
+            {t('admin.printful.importDialog.import')}{selectedCount > 0 ? ` (${selectedCount})` : ''}
           </Button>
         </DialogFooter>
       </DialogContent>

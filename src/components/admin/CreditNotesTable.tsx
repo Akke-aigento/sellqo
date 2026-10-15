@@ -135,14 +135,14 @@ export function CreditNotesTable({ hideNewButton = false }: Props) {
     if (s === 'pending') {
       return (
         <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-          <Clock className="h-3 w-3 mr-1" /> Peppol pending
+          <Clock className="h-3 w-3 mr-1" /> {t('peppol.status_pending')}
         </Badge>
       );
     }
     if (s === 'failed' || s === 'error') {
       return (
         <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/30">
-          <AlertCircle className="h-3 w-3 mr-1" /> Peppol mislukt
+          <AlertCircle className="h-3 w-3 mr-1" /> {t('admin.odooSync.peppol_failed')}
         </Badge>
       );
     }

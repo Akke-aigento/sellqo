@@ -58,17 +58,21 @@ export interface NotificationSetting {
   updated_at: string;
 }
 
+/**
+ * BLOG-FIX-1: labels en omschrijvingen staan niet meer hier maar in i18n —
+ * `settings.notifications.categories.<category>` en
+ * `settings.notifications.types.<category>.<type>.{label,description}`
+ * (helpers in src/lib/notificationLabels.ts). Een nieuw type krijgt die keys
+ * in ALLE talen, anders toont het scherm de ruwe type-id.
+ */
 export interface NotificationTypeConfig {
   type: string;
-  label: string;
-  description: string;
   defaultInApp: boolean;
   defaultEmail: boolean;
 }
 
 export interface NotificationCategoryConfig {
   category: NotificationCategory;
-  label: string;
   icon: string;
   types: NotificationTypeConfig[];
 }
@@ -77,212 +81,199 @@ export interface NotificationCategoryConfig {
 export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
   {
     category: 'orders',
-    label: 'Bestellingen',
     icon: 'ShoppingCart',
     types: [
-      { type: 'order_new', label: 'Nieuwe bestelling', description: 'Ontvang een melding bij elke nieuwe bestelling', defaultInApp: true, defaultEmail: false },
-      { type: 'order_paid', label: 'Betaling ontvangen', description: 'Wanneer een bestelling is betaald', defaultInApp: true, defaultEmail: false },
-      { type: 'order_cancelled', label: 'Bestelling geannuleerd', description: 'Wanneer een bestelling wordt geannuleerd', defaultInApp: true, defaultEmail: false },
-      { type: 'order_refund_requested', label: 'Terugbetaling aangevraagd', description: 'Wanneer een klant terugbetaling vraagt', defaultInApp: true, defaultEmail: false },
-      { type: 'order_shipped', label: 'Bestelling verzonden', description: 'Wanneer een bestelling is verzonden', defaultInApp: false, defaultEmail: false },
-      { type: 'order_delivered', label: 'Bestelling afgeleverd', description: 'Wanneer een bestelling is afgeleverd', defaultInApp: false, defaultEmail: false },
-      { type: 'order_high_value', label: 'Hoge waarde bestelling', description: 'Bestellingen boven €500', defaultInApp: true, defaultEmail: false },
-      { type: 'marketplace_order_new', label: 'Marketplace bestelling', description: 'Nieuwe bestelling via marketplace', defaultInApp: true, defaultEmail: false },
+      { type: 'order_new', defaultInApp: true, defaultEmail: false },
+      { type: 'order_paid', defaultInApp: true, defaultEmail: false },
+      { type: 'order_cancelled', defaultInApp: true, defaultEmail: false },
+      { type: 'order_refund_requested', defaultInApp: true, defaultEmail: false },
+      { type: 'order_shipped', defaultInApp: false, defaultEmail: false },
+      { type: 'order_delivered', defaultInApp: false, defaultEmail: false },
+      { type: 'order_high_value', defaultInApp: true, defaultEmail: false },
+      { type: 'marketplace_order_new', defaultInApp: true, defaultEmail: false },
       // NOTIF-TYPES-1: poll-tracking-status (tracking_<status>) en useReturns.
-      { type: 'tracking_in_transit', label: 'Zending onderweg', description: 'Track & trace: de zending is onderweg', defaultInApp: true, defaultEmail: false },
-      { type: 'tracking_out_for_delivery', label: 'Zending wordt bezorgd', description: 'Track & trace: de zending is vandaag onderweg naar de klant', defaultInApp: true, defaultEmail: false },
-      { type: 'tracking_delivered', label: 'Zending bezorgd', description: 'Track & trace: de zending is bezorgd', defaultInApp: true, defaultEmail: false },
-      { type: 'tracking_exception', label: 'Probleem met zending', description: 'Track & trace meldt een probleem met de zending', defaultInApp: true, defaultEmail: false },
-      { type: 'return_new_request', label: 'Nieuwe retour', description: 'Wanneer een klant een retour aanvraagt', defaultInApp: true, defaultEmail: false },
+      { type: 'tracking_in_transit', defaultInApp: true, defaultEmail: false },
+      { type: 'tracking_out_for_delivery', defaultInApp: true, defaultEmail: false },
+      { type: 'tracking_delivered', defaultInApp: true, defaultEmail: false },
+      { type: 'tracking_exception', defaultInApp: true, defaultEmail: false },
+      { type: 'return_new_request', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     category: 'invoices',
-    label: 'Facturen',
     icon: 'FileText',
     types: [
-      { type: 'invoice_created', label: 'Factuur aangemaakt', description: 'Wanneer een nieuwe factuur wordt aangemaakt', defaultInApp: false, defaultEmail: false },
-      { type: 'invoice_sent', label: 'Factuur verzonden', description: 'Wanneer een factuur is verzonden', defaultInApp: false, defaultEmail: false },
-      { type: 'invoice_paid', label: 'Factuur betaald', description: 'Wanneer een factuur is betaald', defaultInApp: true, defaultEmail: false },
-      { type: 'invoice_overdue', label: 'Factuur achterstallig', description: 'Wanneer een factuur over de vervaldatum is', defaultInApp: true, defaultEmail: false },
-      { type: 'invoice_overdue_7days', label: '7 dagen achterstallig', description: 'Factuur is 7 dagen over datum', defaultInApp: true, defaultEmail: false },
-      { type: 'invoice_overdue_30days', label: '30 dagen achterstallig', description: 'Factuur is 30 dagen over datum - urgent', defaultInApp: true, defaultEmail: false },
-      { type: 'invoice_reminder_sent', label: 'Herinnering verzonden', description: 'Wanneer een betalingsherinnering is verzonden', defaultInApp: false, defaultEmail: false },
-      { type: 'peppol_invoice_accepted', label: 'Peppol geaccepteerd', description: 'Peppol factuur is geaccepteerd', defaultInApp: true, defaultEmail: false },
-      { type: 'peppol_invoice_rejected', label: 'Peppol afgewezen', description: 'Peppol factuur is afgewezen', defaultInApp: true, defaultEmail: false },
+      { type: 'invoice_created', defaultInApp: false, defaultEmail: false },
+      { type: 'invoice_sent', defaultInApp: false, defaultEmail: false },
+      { type: 'invoice_paid', defaultInApp: true, defaultEmail: false },
+      { type: 'invoice_overdue', defaultInApp: true, defaultEmail: false },
+      { type: 'invoice_overdue_7days', defaultInApp: true, defaultEmail: false },
+      { type: 'invoice_overdue_30days', defaultInApp: true, defaultEmail: false },
+      { type: 'invoice_reminder_sent', defaultInApp: false, defaultEmail: false },
+      { type: 'peppol_invoice_accepted', defaultInApp: true, defaultEmail: false },
+      { type: 'peppol_invoice_rejected', defaultInApp: true, defaultEmail: false },
       // NOTIF-TYPES-1: process-invoice-dunning.
-      { type: 'invoice_final_reminder', label: 'Laatste herinnering', description: 'Laatste betalingsherinnering voor een factuur', defaultInApp: true, defaultEmail: false },
-      { type: 'invoice_charge_exhausted', label: 'Incasso mislukt', description: 'Automatische incasso van een factuur is uitgeput', defaultInApp: true, defaultEmail: false },
-      { type: 'mandate_setup_stalled', label: 'Machtiging niet afgerond', description: 'Klant heeft de incassomachtiging niet afgerond', defaultInApp: true, defaultEmail: false },
+      { type: 'invoice_final_reminder', defaultInApp: true, defaultEmail: false },
+      { type: 'invoice_charge_exhausted', defaultInApp: true, defaultEmail: false },
+      { type: 'mandate_setup_stalled', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     category: 'payments',
-    label: 'Betalingen',
     icon: 'CreditCard',
     types: [
-      { type: 'payment_received', label: 'Betaling ontvangen', description: 'Wanneer een betaling binnenkomt', defaultInApp: true, defaultEmail: false },
-      { type: 'payout_available', label: 'Uitbetaling beschikbaar', description: 'Wanneer een uitbetaling klaar staat', defaultInApp: true, defaultEmail: false },
-      { type: 'payout_completed', label: 'Uitbetaling voltooid', description: 'Wanneer een uitbetaling is gedaan', defaultInApp: true, defaultEmail: false },
-      { type: 'payout_canceled', label: 'Uitbetaling geannuleerd', description: 'Wanneer een geplande uitbetaling is geannuleerd', defaultInApp: true, defaultEmail: false },
-      { type: 'stripe_account_issue', label: 'Stripe probleem', description: 'Probleem met je Stripe account', defaultInApp: true, defaultEmail: false },
-      { type: 'chargeback_received', label: 'Chargeback ontvangen', description: 'Wanneer een klant een chargeback indient', defaultInApp: true, defaultEmail: false },
+      { type: 'payment_received', defaultInApp: true, defaultEmail: false },
+      { type: 'payout_available', defaultInApp: true, defaultEmail: false },
+      { type: 'payout_completed', defaultInApp: true, defaultEmail: false },
+      { type: 'payout_canceled', defaultInApp: true, defaultEmail: false },
+      { type: 'stripe_account_issue', defaultInApp: true, defaultEmail: false },
+      { type: 'chargeback_received', defaultInApp: true, defaultEmail: false },
       // PAY-LINK-1: betaling op een post die al betaald of geannuleerd was — nooit automatisch terugbetaald.
-      { type: 'payment_duplicate', label: 'Dubbele betaling', description: 'Een klant betaalde een post die al betaald of geannuleerd was', defaultInApp: true, defaultEmail: false },
+      { type: 'payment_duplicate', defaultInApp: true, defaultEmail: false },
       // NOTIF-TYPES-1: handle_payment_notification stuurt deze met categorie payments.
-      { type: 'order_payment_failed', label: 'Betaling mislukt', description: 'Wanneer een betaling van een bestelling faalt', defaultInApp: true, defaultEmail: false },
-      { type: 'order_refunded', label: 'Terugbetaald', description: 'Wanneer een bestelling is terugbetaald', defaultInApp: true, defaultEmail: false },
+      { type: 'order_payment_failed', defaultInApp: true, defaultEmail: false },
+      { type: 'order_refunded', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     category: 'customers',
-    label: 'Klanten',
     icon: 'Users',
     types: [
-      { type: 'customer_new', label: 'Nieuwe klant', description: 'Wanneer een nieuwe klant registreert', defaultInApp: true, defaultEmail: false },
-      { type: 'customer_first_order', label: 'Eerste bestelling', description: 'Wanneer een klant zijn eerste bestelling plaatst', defaultInApp: true, defaultEmail: false },
-      { type: 'customer_vip', label: 'VIP status bereikt', description: 'Wanneer een klant VIP wordt', defaultInApp: true, defaultEmail: false },
-      { type: 'customer_inactive_30days', label: '30 dagen inactief', description: 'Klant is 30 dagen niet actief geweest', defaultInApp: false, defaultEmail: false },
-      { type: 'customer_inactive_90days', label: '90 dagen inactief', description: 'Klant is 90 dagen niet actief geweest', defaultInApp: true, defaultEmail: false },
-      { type: 'customer_message_received', label: 'Bericht ontvangen', description: 'Wanneer een klant reageert op een email', defaultInApp: true, defaultEmail: false },
-      { type: 'newsletter_signup', label: 'Nieuwsbrief inschrijving', description: 'Nieuwe inschrijving op de nieuwsbrief', defaultInApp: true, defaultEmail: false },
-      { type: 'newsletter_unsubscribe', label: 'Nieuwsbrief uitschrijving', description: 'Klant schrijft zich uit voor nieuwsbrief', defaultInApp: false, defaultEmail: false },
+      { type: 'customer_new', defaultInApp: true, defaultEmail: false },
+      { type: 'customer_first_order', defaultInApp: true, defaultEmail: false },
+      { type: 'customer_vip', defaultInApp: true, defaultEmail: false },
+      { type: 'customer_inactive_30days', defaultInApp: false, defaultEmail: false },
+      { type: 'customer_inactive_90days', defaultInApp: true, defaultEmail: false },
+      { type: 'customer_message_received', defaultInApp: true, defaultEmail: false },
+      { type: 'newsletter_signup', defaultInApp: true, defaultEmail: false },
+      { type: 'newsletter_unsubscribe', defaultInApp: false, defaultEmail: false },
     ]
   },
   {
     category: 'products',
-    label: 'Producten & Voorraad',
     icon: 'Package',
     types: [
-      { type: 'stock_low', label: 'Voorraad laag', description: 'Wanneer voorraad onder minimum niveau komt', defaultInApp: true, defaultEmail: false },
-      { type: 'stock_critical', label: 'Voorraad kritiek', description: 'Voorraad kritiek laag (< 5 stuks)', defaultInApp: true, defaultEmail: false },
-      { type: 'stock_out', label: 'Uitverkocht', description: 'Product is uitverkocht', defaultInApp: true, defaultEmail: false },
-      { type: 'stock_replenished', label: 'Voorraad aangevuld', description: 'Voorraad is weer op peil', defaultInApp: false, defaultEmail: false },
-      { type: 'product_bestseller', label: 'Bestseller', description: 'Product is bestseller geworden', defaultInApp: true, defaultEmail: false },
-      { type: 'product_no_sales_30days', label: 'Geen verkopen', description: 'Product heeft 30 dagen geen verkopen', defaultInApp: true, defaultEmail: false },
+      { type: 'stock_low', defaultInApp: true, defaultEmail: false },
+      { type: 'stock_critical', defaultInApp: true, defaultEmail: false },
+      { type: 'stock_out', defaultInApp: true, defaultEmail: false },
+      { type: 'stock_replenished', defaultInApp: false, defaultEmail: false },
+      { type: 'product_bestseller', defaultInApp: true, defaultEmail: false },
+      { type: 'product_no_sales_30days', defaultInApp: true, defaultEmail: false },
       // NOTIF-TYPES-1: sync-bol-orders.
-      { type: 'product_unmapped', label: 'Bol-product niet gekoppeld', description: 'Een Bol-bestelling bevat een product zonder koppeling', defaultInApp: true, defaultEmail: false },
-      { type: 'out_of_stock', label: 'Uitverkocht na Bol-verkoop', description: 'Product is uitverkocht na een verkoop via Bol.com', defaultInApp: true, defaultEmail: false },
+      { type: 'product_unmapped', defaultInApp: true, defaultEmail: false },
+      { type: 'out_of_stock', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     category: 'quotes',
-    label: 'Offertes',
     icon: 'FileEdit',
     types: [
-      { type: 'quote_new', label: 'Offerte aangemaakt', description: 'Wanneer een nieuwe offerte wordt aangemaakt', defaultInApp: false, defaultEmail: false },
-      { type: 'quote_sent', label: 'Offerte verzonden', description: 'Wanneer een offerte is verzonden', defaultInApp: false, defaultEmail: false },
-      { type: 'quote_viewed', label: 'Offerte bekeken', description: 'Klant heeft offerte bekeken', defaultInApp: true, defaultEmail: false },
-      { type: 'quote_accepted', label: 'Offerte geaccepteerd', description: 'Klant heeft offerte geaccepteerd', defaultInApp: true, defaultEmail: false },
-      { type: 'quote_rejected', label: 'Offerte afgewezen', description: 'Klant heeft offerte afgewezen', defaultInApp: true, defaultEmail: false },
-      { type: 'quote_expiring_soon', label: 'Offerte verloopt', description: 'Offerte verloopt binnen 3 dagen', defaultInApp: true, defaultEmail: false },
-      { type: 'quote_expired', label: 'Offerte verlopen', description: 'Offerte is verlopen', defaultInApp: true, defaultEmail: false },
+      { type: 'quote_new', defaultInApp: false, defaultEmail: false },
+      { type: 'quote_sent', defaultInApp: false, defaultEmail: false },
+      { type: 'quote_viewed', defaultInApp: true, defaultEmail: false },
+      { type: 'quote_accepted', defaultInApp: true, defaultEmail: false },
+      { type: 'quote_rejected', defaultInApp: true, defaultEmail: false },
+      { type: 'quote_expiring_soon', defaultInApp: true, defaultEmail: false },
+      { type: 'quote_expired', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     category: 'subscriptions',
-    label: 'Abonnementen',
     icon: 'RefreshCw',
     types: [
-      { type: 'subscription_new', label: 'Nieuw abonnement', description: 'Nieuw abonnement gestart', defaultInApp: true, defaultEmail: false },
-      { type: 'subscription_renewed', label: 'Abonnement verlengd', description: 'Abonnement is automatisch verlengd', defaultInApp: true, defaultEmail: false },
-      { type: 'subscription_cancelled', label: 'Abonnement opgezegd', description: 'Klant heeft abonnement opgezegd', defaultInApp: true, defaultEmail: false },
-      { type: 'subscription_payment_failed', label: 'Betaling mislukt', description: 'Abonnement betaling is mislukt', defaultInApp: true, defaultEmail: false },
-      { type: 'subscription_expiring', label: 'Abonnement verloopt', description: 'Abonnement verloopt binnenkort', defaultInApp: true, defaultEmail: false },
-      { type: 'subscription_paused', label: 'Abonnement gepauzeerd', description: 'Abonnement is gepauzeerd', defaultInApp: true, defaultEmail: false },
+      { type: 'subscription_new', defaultInApp: true, defaultEmail: false },
+      { type: 'subscription_renewed', defaultInApp: true, defaultEmail: false },
+      { type: 'subscription_cancelled', defaultInApp: true, defaultEmail: false },
+      { type: 'subscription_payment_failed', defaultInApp: true, defaultEmail: false },
+      { type: 'subscription_expiring', defaultInApp: true, defaultEmail: false },
+      { type: 'subscription_paused', defaultInApp: true, defaultEmail: false },
       // NOTIF-TYPES-1: process-cycle-reminders.
-      { type: 'billing_cycle_expired', label: 'Betaaltermijn verlopen', description: 'Een factuurcyclus van een abonnement is verlopen zonder betaling', defaultInApp: true, defaultEmail: false },
+      { type: 'billing_cycle_expired', defaultInApp: true, defaultEmail: false },
       // BILLING-ENFORCE-1: de statusmachine meldt een wissel aan de winkel zelf.
-      { type: 'subscription_state_changed', label: 'Abonnementsstatus gewijzigd', description: 'Je abonnement staat open, in leesmodus of opgeschort', defaultInApp: true, defaultEmail: false },
-      { type: 'subscription_reactivated', label: 'Abonnement weer actief', description: 'Na betaling staat alles weer open', defaultInApp: true, defaultEmail: false },
+      { type: 'subscription_state_changed', defaultInApp: true, defaultEmail: false },
+      { type: 'subscription_reactivated', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     category: 'marketing',
-    label: 'Marketing',
     icon: 'Megaphone',
     types: [
-      { type: 'campaign_sent', label: 'Campagne verzonden', description: 'Email campagne is verzonden', defaultInApp: true, defaultEmail: false },
-      { type: 'campaign_completed', label: 'Campagne afgerond', description: 'Campagne is volledig afgerond', defaultInApp: true, defaultEmail: false },
-      { type: 'campaign_high_open_rate', label: 'Hoge open rate', description: 'Campagne heeft > 50% open rate', defaultInApp: true, defaultEmail: false },
-      { type: 'campaign_high_bounce', label: 'Bounce alert', description: 'Veel bounces in campagne', defaultInApp: true, defaultEmail: false },
-      { type: 'ab_test_winner', label: 'A/B test winnaar', description: 'A/B test winnaar is bepaald', defaultInApp: true, defaultEmail: false },
-      { type: 'ai_credits_empty', label: 'AI credits op', description: 'AI credits zijn op', defaultInApp: true, defaultEmail: false },
+      { type: 'campaign_sent', defaultInApp: true, defaultEmail: false },
+      { type: 'campaign_completed', defaultInApp: true, defaultEmail: false },
+      { type: 'campaign_high_open_rate', defaultInApp: true, defaultEmail: false },
+      { type: 'campaign_high_bounce', defaultInApp: true, defaultEmail: false },
+      { type: 'ab_test_winner', defaultInApp: true, defaultEmail: false },
+      { type: 'ai_credits_empty', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     category: 'team',
-    label: 'Team',
     icon: 'UserPlus',
     types: [
-      { type: 'team_member_invited', label: 'Uitnodiging verzonden', description: 'Team uitnodiging is verzonden', defaultInApp: false, defaultEmail: false },
-      { type: 'team_member_joined', label: 'Uitnodiging geaccepteerd', description: 'Nieuw teamlid is toegevoegd', defaultInApp: true, defaultEmail: false },
-      { type: 'team_member_removed', label: 'Teamlid verwijderd', description: 'Teamlid is verwijderd', defaultInApp: true, defaultEmail: false },
-      { type: 'team_role_changed', label: 'Rol gewijzigd', description: 'Rol van teamlid is gewijzigd', defaultInApp: true, defaultEmail: false },
-      { type: 'login_new_device', label: 'Nieuwe apparaat', description: 'Inlog vanaf nieuw apparaat', defaultInApp: true, defaultEmail: false },
-      { type: 'login_failed_attempts', label: 'Mislukte inlogpogingen', description: 'Meerdere mislukte inlogpogingen', defaultInApp: true, defaultEmail: false },
+      { type: 'team_member_invited', defaultInApp: false, defaultEmail: false },
+      { type: 'team_member_joined', defaultInApp: true, defaultEmail: false },
+      { type: 'team_member_removed', defaultInApp: true, defaultEmail: false },
+      { type: 'team_role_changed', defaultInApp: true, defaultEmail: false },
+      { type: 'login_new_device', defaultInApp: true, defaultEmail: false },
+      { type: 'login_failed_attempts', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     category: 'system',
-    label: 'Systeem',
     icon: 'Settings',
     types: [
-      { type: 'platform_gift', label: 'Gratis geschenk', description: 'Ontvang meldingen wanneer je gratis credits, maanden of features krijgt', defaultInApp: true, defaultEmail: false },
-      { type: 'platform_update', label: 'Platform update', description: 'Nieuwe platform update beschikbaar', defaultInApp: true, defaultEmail: false },
-      { type: 'feature_new', label: 'Nieuwe functie', description: 'Nieuwe functie beschikbaar', defaultInApp: true, defaultEmail: false },
-      { type: 'usage_limit_80', label: '80% limiet', description: '80% van plan limiet bereikt', defaultInApp: true, defaultEmail: false },
-      { type: 'usage_limit_reached', label: 'Limiet bereikt', description: 'Plan limiet is bereikt', defaultInApp: true, defaultEmail: false },
-      { type: 'integration_error', label: 'Integratie fout', description: 'Fout met marketplace of shipping integratie', defaultInApp: true, defaultEmail: false },
-      { type: 'export_ready', label: 'Export gereed', description: 'Gegevensexport is gereed voor download', defaultInApp: true, defaultEmail: false },
-      { type: 'backup_completed', label: 'Backup voltooid', description: 'Database backup is voltooid', defaultInApp: false, defaultEmail: false },
+      { type: 'platform_gift', defaultInApp: true, defaultEmail: false },
+      { type: 'platform_update', defaultInApp: true, defaultEmail: false },
+      { type: 'feature_new', defaultInApp: true, defaultEmail: false },
+      { type: 'usage_limit_80', defaultInApp: true, defaultEmail: false },
+      { type: 'usage_limit_reached', defaultInApp: true, defaultEmail: false },
+      { type: 'integration_error', defaultInApp: true, defaultEmail: false },
+      { type: 'export_ready', defaultInApp: true, defaultEmail: false },
+      { type: 'backup_completed', defaultInApp: false, defaultEmail: false },
       // NOTIF-TYPES-1: check-scheduled-notifications stuurt ai_credits_low met categorie system.
-      { type: 'ai_credits_low', label: 'AI credits laag', description: 'AI credits zijn bijna op', defaultInApp: true, defaultEmail: false },
-      { type: 'trial_expiring', label: 'Proefperiode eindigt', description: 'Je proefperiode eindigt morgen', defaultInApp: true, defaultEmail: false },
-      { type: 'trial_expired', label: 'Proefperiode verlopen', description: 'Je proefperiode is verlopen', defaultInApp: true, defaultEmail: false },
-      { type: 'trial_converted', label: 'Abonnement gestart', description: 'Je proefperiode is voorbij en je abonnement is gestart', defaultInApp: true, defaultEmail: false },
-      { type: 'trial_conversion_failed', label: 'Abonnement starten mislukt', description: 'Een proefperiode is voorbij maar het abonnement kon niet starten', defaultInApp: true, defaultEmail: false },
-      { type: 'admin_announcement', label: 'Bericht van SellQo', description: 'Een mededeling van het SellQo-team', defaultInApp: true, defaultEmail: false },
+      { type: 'ai_credits_low', defaultInApp: true, defaultEmail: false },
+      { type: 'trial_expiring', defaultInApp: true, defaultEmail: false },
+      { type: 'trial_expired', defaultInApp: true, defaultEmail: false },
+      { type: 'trial_converted', defaultInApp: true, defaultEmail: false },
+      { type: 'trial_conversion_failed', defaultInApp: true, defaultEmail: false },
+      { type: 'admin_announcement', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     // NOTIF-TYPES-1: ai-proactive-monitor en ai-business-coach. Alleen bij prioriteit
     // high/urgent — die mailen volgens PUSH-DEFAULT-1 ook zonder e-mailschakelaar.
     category: 'ai_coach',
-    label: 'AI-coach',
     icon: 'Sparkles',
     types: [
-      { type: 'ai_suggestion', label: 'AI-suggestie', description: 'Een dringende suggestie van de AI-monitor', defaultInApp: true, defaultEmail: false },
-      { type: 'ai_coach_suggestion', label: 'AI-coach', description: 'Een dringende suggestie van je AI-coach', defaultInApp: true, defaultEmail: false },
+      { type: 'ai_suggestion', defaultInApp: true, defaultEmail: false },
+      { type: 'ai_coach_suggestion', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
     category: 'messages',
-    label: 'Berichten',
     icon: 'MessageSquare',
     types: [
-      { type: 'email_inbound', label: 'Email ontvangen', description: 'Wanneer een inkomende email binnenkomt', defaultInApp: true, defaultEmail: true },
-      { type: 'whatsapp_inbound', label: 'WhatsApp ontvangen', description: 'Wanneer een WhatsApp bericht binnenkomt', defaultInApp: true, defaultEmail: true },
-      { type: 'facebook_inbound', label: 'Facebook bericht', description: 'Wanneer een Facebook bericht binnenkomt', defaultInApp: true, defaultEmail: true },
-      { type: 'instagram_inbound', label: 'Instagram DM', description: 'Wanneer een Instagram DM binnenkomt', defaultInApp: true, defaultEmail: true },
-      { type: 'bol_inbound', label: 'Bol.com vraag', description: 'Wanneer een vraag via Bol.com binnenkomt', defaultInApp: true, defaultEmail: true },
+      { type: 'email_inbound', defaultInApp: true, defaultEmail: true },
+      { type: 'whatsapp_inbound', defaultInApp: true, defaultEmail: true },
+      { type: 'facebook_inbound', defaultInApp: true, defaultEmail: true },
+      { type: 'instagram_inbound', defaultInApp: true, defaultEmail: true },
+      { type: 'bol_inbound', defaultInApp: true, defaultEmail: true },
       // CONTACT-NOTIFY-1: storefront-api (submit_contact_form) en storefront-contact-form.
-      { type: 'contact_form_inbound', label: 'Contactformulier', description: 'Wanneer een bezoeker het contactformulier van je webshop invult', defaultInApp: true, defaultEmail: true },
+      { type: 'contact_form_inbound', defaultInApp: true, defaultEmail: true },
     ]
   },
   {
     category: 'integrations',
-    label: 'SellQo Connect',
     icon: 'Plug',
     types: [
-      { type: 'shopify_request_received', label: 'Shopify verzoek ingediend', description: 'Wanneer je een Shopify koppelverzoek indient', defaultInApp: true, defaultEmail: false },
-      { type: 'shopify_request_approved', label: 'Shopify verzoek goedgekeurd', description: 'Wanneer je Shopify verzoek is goedgekeurd', defaultInApp: true, defaultEmail: false },
-      { type: 'shopify_request_completed', label: 'Shopify koppeling actief', description: 'Wanneer je Shopify koppeling is geactiveerd', defaultInApp: true, defaultEmail: false },
-      { type: 'shopify_request_rejected', label: 'Shopify verzoek afgewezen', description: 'Wanneer je Shopify verzoek is afgewezen', defaultInApp: true, defaultEmail: false },
-      { type: 'shopify_request_updated', label: 'Shopify verzoek bijgewerkt', description: 'Wanneer er een update is op je Shopify verzoek', defaultInApp: true, defaultEmail: false },
-      { type: 'integration_connected', label: 'SellQo Connect verbonden', description: 'Wanneer een nieuwe integratie wordt gekoppeld', defaultInApp: true, defaultEmail: false },
-      { type: 'integration_disconnected', label: 'SellQo Connect ontkoppeld', description: 'Wanneer een integratie wordt ontkoppeld', defaultInApp: true, defaultEmail: false },
-      { type: 'integration_error', label: 'SellQo Connect fout', description: 'Wanneer er een fout optreedt bij een integratie', defaultInApp: true, defaultEmail: false },
+      { type: 'shopify_request_received', defaultInApp: true, defaultEmail: false },
+      { type: 'shopify_request_approved', defaultInApp: true, defaultEmail: false },
+      { type: 'shopify_request_completed', defaultInApp: true, defaultEmail: false },
+      { type: 'shopify_request_rejected', defaultInApp: true, defaultEmail: false },
+      { type: 'shopify_request_updated', defaultInApp: true, defaultEmail: false },
+      { type: 'integration_connected', defaultInApp: true, defaultEmail: false },
+      { type: 'integration_disconnected', defaultInApp: true, defaultEmail: false },
+      { type: 'integration_error', defaultInApp: true, defaultEmail: false },
     ]
   },
 ];

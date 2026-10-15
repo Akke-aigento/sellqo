@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, ArrowUp, Calculator, Package } from 'lucide-react';
@@ -33,6 +34,7 @@ import { MARKETPLACE_INFO, type MarketplaceType } from '@/types/marketplace';
 import { toast } from 'sonner';
 
 export default function MarketplacesPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { currentTenant } = useTenant();
   const {
@@ -322,15 +324,13 @@ export default function MarketplacesPage() {
       <Dialog open={printfulOpen} onOpenChange={setPrintfulOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Printful print-on-demand</DialogTitle>
-            <DialogDescription>
-              Verbind je Printful-winkel en configureer de fulfilment-instellingen.
-            </DialogDescription>
+            <DialogTitle>{t('admin.printful.dialog_title')}</DialogTitle>
+            <DialogDescription>{t('admin.printful.dialog_description')}</DialogDescription>
           </DialogHeader>
           {currentTenant?.id ? (
             <PrintfulPodSettings tenantId={currentTenant.id} />
           ) : (
-            <p className="text-sm text-muted-foreground">Geen tenant geselecteerd.</p>
+            <p className="text-sm text-muted-foreground">{t('admin.printful.no_tenant')}</p>
           )}
         </DialogContent>
       </Dialog>

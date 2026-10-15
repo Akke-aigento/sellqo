@@ -387,28 +387,28 @@ export function OdooAccountingSettings({ tenantId }: Props) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-amber-800">
               <AlertTriangle className="h-5 w-5" />
-              Peppol-aandacht ({attentionCount})
+              {t('admin.odooSync.attention_title', { count: attentionCount })}
             </CardTitle>
             <CardDescription>
-              Deze documenten wachten op verzending of vereisen een handmatige actie in Peppol/Odoo.
+              {t('admin.odooSync.attention_description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             {attention.data?.invoices.map(i => (
               <div key={i.id} className="flex items-center justify-between border-b py-1 last:border-b-0">
                 <Link to={`/admin/invoices/${i.id}`} className="hover:underline">
-                  Factuur {i.invoice_number}
+                  {t('admin.odooSync.invoice_label', { number: i.invoice_number })}
                 </Link>
                 <span className="text-xs text-amber-700">
-                  {i.peppol_status === 'manual_action' ? 'Handmatig verzenden' : 'In wachtrij'}
+                  {i.peppol_status === 'manual_action' ? t('admin.odooSync.peppol_send_manually') : t('admin.odooSync.peppol_queued')}
                 </span>
               </div>
             ))}
             {attention.data?.creditNotes.map(c => (
               <div key={c.id} className="flex items-center justify-between border-b py-1 last:border-b-0">
-                <span>Creditnota {c.credit_note_number}</span>
+                <span>{t('admin.odooSync.credit_note_label', { number: c.credit_note_number })}</span>
                 <span className="text-xs text-amber-700">
-                  {c.peppol_status === 'manual_action' ? 'Handmatig verzenden' : 'In wachtrij'}
+                  {c.peppol_status === 'manual_action' ? t('admin.odooSync.peppol_send_manually') : t('admin.odooSync.peppol_queued')}
                 </span>
               </div>
             ))}

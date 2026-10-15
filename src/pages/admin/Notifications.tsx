@@ -4,7 +4,9 @@ import {
   Info, AlertCircle, Search, Filter, X
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { notificationCategoryLabel } from '@/lib/notificationLabels';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,11 +26,11 @@ import { NOTIFICATION_CONFIG, NotificationCategory, NotificationPriority, Notifi
 import { cn } from '@/lib/utils';
 import { notificationLink } from '@/lib/notificationLink';
 
-const priorityConfig: Record<NotificationPriority, { icon: React.ElementType; color: string; label: string }> = {
-  low: { icon: Info, color: 'text-muted-foreground', label: 'Laag' },
-  medium: { icon: Info, color: 'text-blue-500', label: 'Normaal' },
-  high: { icon: AlertCircle, color: 'text-orange-500', label: 'Hoog' },
-  urgent: { icon: AlertTriangle, color: 'text-destructive', label: 'Urgent' },
+const priorityConfig: Record<NotificationPriority, { icon: React.ElementType; color: string }> = {
+  low: { icon: Info, color: 'text-muted-foreground' },
+  medium: { icon: Info, color: 'text-blue-500' },
+  high: { icon: AlertCircle, color: 'text-orange-500' },
+  urgent: { icon: AlertTriangle, color: 'text-destructive' },
 };
 
 function NotificationRow({
@@ -40,10 +42,11 @@ function NotificationRow({
   onMarkAsRead: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
-  const { icon: PriorityIcon, color, label: priorityLabel } = priorityConfig[notification.priority];
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
+  const { icon: PriorityIcon, color } = priorityConfig[notification.priority];
   const isUnread = !notification.read_at;
   const link = notificationLink(notification);
-  const categoryConfig = NOTIFICATION_CONFIG.find(c => c.category === notification.category);
 
   return (
     <div
@@ -61,13 +64,13 @@ function NotificationRow({
             {notification.title}
           </p>
           {notification.priority === 'urgent' && (
-            <Badge variant="destructive" className="text-xs">Urgent</Badge>
+            <Badge variant="destructive" className="text-xs">{t('notificationsPage.priority.urgent')}</Badge>
           )}
           {notification.priority === 'high' && (
-            <Badge variant="outline" className="text-xs border-orange-500 text-orange-500">Hoog</Badge>
+            <Badge variant="outline" className="text-xs border-orange-500 text-orange-500">{t('notificationsPage.priority.high')}</Badge>
           )}
           <Badge variant="secondary" className="text-xs">
-            {categoryConfig?.label || notification.category}
+            {notificationCategoryLabel(t, notification.category)}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground mt-1">
@@ -75,17 +78,17 @@ function NotificationRow({
         </p>
         <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
           <span>
-            {format(new Date(notification.created_at), 'dd MMM yyyy HH:mm', { locale: nl })}
+            {format(new Date(notification.created_at), 'dd MMM yyyy HH:mm', { locale: dateLocale })}
           </span>
           <span>•</span>
           <span>
-            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: nl })}
+            {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true, locale: dateLocale })}
           </span>
           {notification.read_at && (
             <>
               <span>•</span>
               <span className="flex items-center gap-1">
-                <Check className="h-3 w-3" /> Gelezen
+                <Check className="h-3 w-3" /> {t('notificationsPage.read')}
               </span>
             </>
           )}
@@ -96,7 +99,7 @@ function NotificationRow({
           <Button variant="outline" size="sm" asChild>
             <Link to={link}>
               <ExternalLink className="h-4 w-4 mr-1" />
-              Bekijk
+              {t('notificationsPage.view')}
             </Link>
           </Button>
         )}
@@ -105,7 +108,7 @@ function NotificationRow({
             variant="ghost"
             size="icon"
             onClick={() => onMarkAsRead(notification.id)}
-            title="Markeer als gelezen"
+            title={t('notificationsPage.mark_read')}
           >
             <Check className="h-4 w-4" />
           </Button>
@@ -115,7 +118,7 @@ function NotificationRow({
           size="icon"
           onClick={() => onDelete(notification.id)}
           className="text-muted-foreground hover:text-destructive"
-          title="Verwijderen"
+          title={t('notificationsPage.delete')}
         >
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -125,6 +128,7 @@ function NotificationRow({
 }
 
 export default function NotificationsPage() {
+  const { t } = useTranslation();
   const {
     notifications,
     isLoading,
@@ -187,22 +191,22 @@ export default function NotificationsPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Notificaties</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('notificationsPage.title')}</h1>
           <p className="text-muted-foreground">
-            Alle meldingen en alerts op één plek
+            {t('notificationsPage.subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           {unreadCount > 0 && (
             <Button variant="outline" onClick={markAllAsRead}>
               <CheckCheck className="h-4 w-4 mr-2" />
-              Alles gelezen ({unreadCount})
+              {t('notificationsPage.mark_all_read', { count: unreadCount })}
             </Button>
           )}
           {notifications.some(n => n.read_at) && (
             <Button variant="outline" onClick={deleteAllRead}>
               <Trash2 className="h-4 w-4 mr-2" />
-              Gelezen verwijderen
+              {t('notificationsPage.delete_read')}
             </Button>
           )}
         </div>
@@ -218,7 +222,7 @@ export default function NotificationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{notifications.length}</p>
-                <p className="text-xs text-muted-foreground">Totaal</p>
+                <p className="text-xs text-muted-foreground">{t('notificationsPage.stats.total')}</p>
               </div>
             </div>
           </CardContent>
@@ -231,7 +235,7 @@ export default function NotificationsPage() {
               </div>
               <div>
                 <p className="text-2xl font-bold">{unreadCount}</p>
-                <p className="text-xs text-muted-foreground">Ongelezen</p>
+                <p className="text-xs text-muted-foreground">{t('notificationsPage.stats.unread')}</p>
               </div>
             </div>
           </CardContent>
@@ -246,7 +250,7 @@ export default function NotificationsPage() {
                 <p className="text-2xl font-bold">
                   {notifications.filter(n => n.priority === 'high').length}
                 </p>
-                <p className="text-xs text-muted-foreground">Hoog</p>
+                <p className="text-xs text-muted-foreground">{t('notificationsPage.priority.high')}</p>
               </div>
             </div>
           </CardContent>
@@ -261,7 +265,7 @@ export default function NotificationsPage() {
                 <p className="text-2xl font-bold">
                   {notifications.filter(n => n.priority === 'urgent').length}
                 </p>
-                <p className="text-xs text-muted-foreground">Urgent</p>
+                <p className="text-xs text-muted-foreground">{t('notificationsPage.priority.urgent')}</p>
               </div>
             </div>
           </CardContent>
@@ -276,7 +280,7 @@ export default function NotificationsPage() {
                 <p className="text-2xl font-bold">
                   {notifications.filter(n => n.read_at).length}
                 </p>
-                <p className="text-xs text-muted-foreground">Gelezen</p>
+                <p className="text-xs text-muted-foreground">{t('notificationsPage.read')}</p>
               </div>
             </div>
           </CardContent>
@@ -290,7 +294,7 @@ export default function NotificationsPage() {
             <div className="relative flex-1 min-w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Zoek in notificaties..."
+                placeholder={t('notificationsPage.search_placeholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-9"
@@ -299,13 +303,13 @@ export default function NotificationsPage() {
             <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as NotificationCategory | 'all')}>
               <SelectTrigger className="w-48">
                 <Filter className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Categorie" />
+                <SelectValue placeholder={t('notificationsPage.category')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle categorieën</SelectItem>
+                <SelectItem value="all">{t('notificationsPage.all_categories')}</SelectItem>
                 {NOTIFICATION_CONFIG.map(config => (
                   <SelectItem key={config.category} value={config.category}>
-                    {config.label}
+                    {notificationCategoryLabel(t, config.category)}
                     {unreadByCategory[config.category] && (
                       <span className="ml-2 text-muted-foreground">
                         ({unreadByCategory[config.category]})
@@ -317,20 +321,20 @@ export default function NotificationsPage() {
             </Select>
             <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as NotificationPriority | 'all')}>
               <SelectTrigger className="w-40">
-                <SelectValue placeholder="Prioriteit" />
+                <SelectValue placeholder={t('notificationsPage.priority_label')} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Alle prioriteiten</SelectItem>
-                <SelectItem value="urgent">Urgent</SelectItem>
-                <SelectItem value="high">Hoog</SelectItem>
-                <SelectItem value="medium">Normaal</SelectItem>
-                <SelectItem value="low">Laag</SelectItem>
+                <SelectItem value="all">{t('notificationsPage.all_priorities')}</SelectItem>
+                <SelectItem value="urgent">{t('notificationsPage.priority.urgent')}</SelectItem>
+                <SelectItem value="high">{t('notificationsPage.priority.high')}</SelectItem>
+                <SelectItem value="medium">{t('notificationsPage.priority.medium')}</SelectItem>
+                <SelectItem value="low">{t('notificationsPage.priority.low')}</SelectItem>
               </SelectContent>
             </Select>
             {hasActiveFilters && (
               <Button variant="ghost" size="sm" onClick={clearFilters}>
                 <X className="h-4 w-4 mr-1" />
-                Wis filters
+                {t('notificationsPage.clear_filters')}
               </Button>
             )}
           </div>
@@ -341,18 +345,18 @@ export default function NotificationsPage() {
       <Card>
         <CardHeader className="pb-0">
           <CardTitle>
-            {hasActiveFilters ? `${filteredNotifications.length} resultaten` : 'Alle notificaties'}
+            {hasActiveFilters ? t('notificationsPage.results', { count: filteredNotifications.length }) : t('notificationsPage.all_notifications')}
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {filteredNotifications.length === 0 ? (
             <div className="p-12 text-center text-muted-foreground">
               <Bell className="h-12 w-12 mx-auto mb-4 opacity-30" />
-              <p className="text-lg font-medium">Geen notificaties gevonden</p>
+              <p className="text-lg font-medium">{t('notificationsPage.empty_title')}</p>
               <p className="text-sm">
                 {hasActiveFilters
-                  ? 'Probeer andere zoektermen of filters'
-                  : 'Je bent helemaal bij!'}
+                  ? t('notificationsPage.empty_filtered')
+                  : t('notificationsPage.empty_all')}
               </p>
             </div>
           ) : (

@@ -225,7 +225,7 @@ export default function InvoicesPage() {
       return (
         <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
           <Clock className="h-3 w-3 mr-1" />
-          Peppol handmatig
+          {t('admin.odooSync.peppol_manual')}
         </Badge>
       );
     }
@@ -234,7 +234,7 @@ export default function InvoicesPage() {
       return (
         <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
           <CheckCircle className="h-3 w-3 mr-1" />
-          Peppol verzonden
+          {t('admin.odooSync.peppol_sent')}
         </Badge>
       );
     }
@@ -242,7 +242,7 @@ export default function InvoicesPage() {
     if (invoice.peppol_status === 'archive_only') {
       return (
         <Badge variant="outline" className="bg-slate-50 text-slate-700 border-slate-200">
-          Archief
+          {t('admin.odooSync.peppol_archive')}
         </Badge>
       );
     }

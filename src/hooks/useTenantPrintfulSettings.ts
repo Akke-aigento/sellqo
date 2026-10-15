@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 export interface TenantPrintfulSettings {
   tenant_id: string;
@@ -11,6 +12,7 @@ export interface TenantPrintfulSettings {
 }
 
 export function useTenantPrintfulSettings(tenantId: string | undefined) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const query = useQuery({
@@ -40,9 +42,9 @@ export function useTenantPrintfulSettings(tenantId: string | undefined) {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tenant_printful_settings', tenantId] });
-      toast.success('Printful-instellingen opgeslagen');
+      toast.success(t('admin.printful.toast.settings_saved'));
     },
-    onError: (err: Error) => toast.error(err.message || 'Opslaan mislukt'),
+    onError: (err: Error) => toast.error(err.message || t('admin.printful.toast.save_failed')),
   });
 
   return { settings: query.data, isLoading: query.isLoading, upsert };

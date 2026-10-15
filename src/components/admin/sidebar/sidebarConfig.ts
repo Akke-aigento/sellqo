@@ -142,6 +142,9 @@ const salesItems: NavItem[] = [
     children: [
       { id: 'events-all', titleKey: 'navigation.items.events_all', url: '/admin/events', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
       { id: 'event-venues', titleKey: 'navigation.items.event_venues', url: '/admin/events/venues', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
+      // BLOG-FIX-1: stonden enkel als knop op het eventsoverzicht; zelfde gating als de zusteritems.
+      { id: 'event-bundles', titleKey: 'navigation.items.event_bundles', url: '/admin/events/bundles', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
+      { id: 'event-tokens', titleKey: 'navigation.items.event_tokens', url: '/admin/events/tokens', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
       { id: 'ticket-checkin', titleKey: 'navigation.items.ticket_checkin', url: '/admin/checkin', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
     ],
   },

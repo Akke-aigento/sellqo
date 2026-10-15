@@ -8,7 +8,8 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { CheckCircle2, Download, Info, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Download, Loader2, XCircle } from 'lucide-react';
+import { Trans, useTranslation } from 'react-i18next';
 import { useCan } from '@/hooks/useCan';
 import { usePrintfulConnection } from '@/hooks/usePrintfulConnection';
 import { useTenantPrintfulSettings } from '@/hooks/useTenantPrintfulSettings';
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function PrintfulPodSettings({ tenantId }: Props) {
+  const { t } = useTranslation();
   const canWrite = useCan('write', 'integrations');
   const { status, test, save, disconnect } = usePrintfulConnection(tenantId);
   const { settings, upsert } = useTenantPrintfulSettings(tenantId);
@@ -32,13 +34,11 @@ export function PrintfulPodSettings({ tenantId }: Props) {
   const [importOpen, setImportOpen] = useState(false);
 
   const [syncEnabled, setSyncEnabled] = useState(false);
-  const [autoForward, setAutoForward] = useState(false);
   const [autoConfirm, setAutoConfirm] = useState(false);
 
   useEffect(() => {
     if (settings) {
       setSyncEnabled(settings.printful_sync_enabled);
-      setAutoForward(settings.auto_forward_orders);
       setAutoConfirm(settings.auto_confirm);
     }
   }, [settings]);
@@ -50,9 +50,10 @@ export function PrintfulPodSettings({ tenantId }: Props) {
   const configured = !!status.data?.configured;
   const lastOk = status.data?.last_test_ok;
 
-  const handleToggle = (key: 'printful_sync_enabled' | 'auto_forward_orders' | 'auto_confirm', value: boolean) => {
+  // BLOG-FIX-1: de schakelaar "automatisch doorsturen" (auto_forward_orders) is weg —
+  // geen enkele backend las hem. De kolom blijft staan; doorsturen gebeurt per bestelling.
+  const handleToggle = (key: 'printful_sync_enabled' | 'auto_confirm', value: boolean) => {
     if (key === 'printful_sync_enabled') setSyncEnabled(value);
-    if (key === 'auto_forward_orders') setAutoForward(value);
     if (key === 'auto_confirm') setAutoConfirm(value);
     upsert.mutate({ [key]: value });
   };
@@ -61,48 +62,47 @@ export function PrintfulPodSettings({ tenantId }: Props) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Verbinding</CardTitle>
+          <CardTitle className="text-base">{t('admin.printful.connection_title')}</CardTitle>
           <CardDescription>
-            Maak een private token aan in het Printful Developer Portal met de scopes <strong>orders</strong>,{' '}
-            <strong>sync_products</strong> en <strong>webhooks</strong>.
+            <Trans i18nKey="admin.printful.connection_description" components={{ strong: <strong /> }} />
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {configured && (
             <div className="flex items-center gap-2 text-sm">
               {lastOk === false ? (
-                <><XCircle className="w-4 h-4 text-destructive" /> Laatste test mislukt</>
+                <><XCircle className="w-4 h-4 text-destructive" /> {t('admin.printful.last_test_failed')}</>
               ) : (
-                <><CheckCircle2 className="w-4 h-4 text-green-600" /> Verbonden
+                <><CheckCircle2 className="w-4 h-4 text-green-600" /> {t('admin.printful.connected')}
                   {status.data?.connected_store_name ? ` · ${status.data.connected_store_name}` : ''}</>
               )}
             </div>
           )}
           {configured && status.data?.webhook_registered && (
-            <p className="text-xs text-muted-foreground">Verzendupdates: actief</p>
+            <p className="text-xs text-muted-foreground">{t('admin.printful.shipping_updates_active')}</p>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="pf-token">Private token</Label>
+            <Label htmlFor="pf-token">{t('admin.printful.token_label')}</Label>
             <Input
               id="pf-token"
               type="password"
               autoComplete="off"
-              placeholder={configured ? 'Opgeslagen — vul in om te vervangen' : 'Printful private token'}
+              placeholder={configured ? t('admin.printful.token_placeholder_saved') : t('admin.printful.token_placeholder')}
               value={token}
               onChange={(e) => setToken(e.target.value)}
               disabled={!canWrite}
             />
             <p className="text-xs text-muted-foreground">
-              Het token wordt versleuteld opgeslagen en nooit meer teruggetoond.
+              {t('admin.printful.token_hint')}
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="pf-store">Store-ID (optioneel)</Label>
+            <Label htmlFor="pf-store">{t('admin.printful.store_id_label')}</Label>
             <Input
               id="pf-store"
-              placeholder="Alleen nodig bij account-level tokens"
+              placeholder={t('admin.printful.store_id_placeholder')}
               value={storeId}
               onChange={(e) => setStoreId(e.target.value)}
               disabled={!canWrite}
@@ -116,14 +116,14 @@ export function PrintfulPodSettings({ tenantId }: Props) {
               disabled={test.isPending || (!token && !configured)}
             >
               {test.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Test verbinding
+              {t('admin.printful.test_connection')}
             </Button>
             <Button
               onClick={() => save.mutate({ token, storeId: storeId || undefined })}
               disabled={!canWrite || save.isPending || token.trim().length < 10}
             >
               {save.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Opslaan
+              {t('admin.printful.save')}
             </Button>
             {configured && (
               <Button
@@ -132,7 +132,7 @@ export function PrintfulPodSettings({ tenantId }: Props) {
                 onClick={() => setConfirmDisconnect(true)}
                 disabled={!canWrite}
               >
-                Verbinding verbreken
+                {t('admin.printful.disconnect')}
               </Button>
             )}
           </div>
@@ -141,14 +141,14 @@ export function PrintfulPodSettings({ tenantId }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Instellingen</CardTitle>
-          <CardDescription>Bepaal hoe SellQo met je Printful-winkel samenwerkt.</CardDescription>
+          <CardTitle className="text-base">{t('admin.printful.settings')}</CardTitle>
+          <CardDescription>{t('admin.printful.settings_description')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <Label>Printful-koppeling actief</Label>
-              <p className="text-xs text-muted-foreground">Zet de koppeling aan of uit zonder je token te verwijderen.</p>
+              <Label>{t('admin.printful.sync_enabled_label')}</Label>
+              <p className="text-xs text-muted-foreground">{t('admin.printful.sync_enabled_hint')}</p>
             </div>
             <Switch
               checked={syncEnabled}
@@ -159,24 +159,8 @@ export function PrintfulPodSettings({ tenantId }: Props) {
 
           <div className="flex items-start justify-between gap-4">
             <div>
-              <Label>Bestellingen automatisch doorsturen</Label>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="w-3 h-3" /> Actief vanaf de order-forwarding release.
-              </p>
-            </div>
-            <Switch
-              checked={autoForward}
-              onCheckedChange={(v) => handleToggle('auto_forward_orders', v)}
-              disabled={!canWrite || !configured}
-            />
-          </div>
-
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <Label>Bestellingen direct bevestigen bij Printful</Label>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <Info className="w-3 h-3" /> Actief vanaf de order-forwarding release. Uit = order als concept aanmaken.
-              </p>
+              <Label>{t('admin.printful.auto_confirm_label')}</Label>
+              <p className="text-xs text-muted-foreground">{t('admin.printful.auto_confirm_hint')}</p>
             </div>
             <Switch
               checked={autoConfirm}
@@ -190,16 +174,13 @@ export function PrintfulPodSettings({ tenantId }: Props) {
       {configured && canWrite && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Producten importeren</CardTitle>
-            <CardDescription>
-              Neem je Printful-ontwerpen over als SellQo-producten met varianten, beelden en automatische
-              variant-koppeling. Je bekijkt eerst een voorbeeld en bepaalt zelf de prijzen.
-            </CardDescription>
+            <CardTitle className="text-base">{t('admin.printful.import_title')}</CardTitle>
+            <CardDescription>{t('admin.printful.import_description')}</CardDescription>
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => setImportOpen(true)}>
               <Download className="w-4 h-4 mr-2" />
-              Producten importeren uit Printful
+              {t('admin.printful.import_button')}
             </Button>
           </CardContent>
         </Card>
@@ -214,19 +195,16 @@ export function PrintfulPodSettings({ tenantId }: Props) {
       <AlertDialog open={confirmDisconnect} onOpenChange={setConfirmDisconnect}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Printful-verbinding verbreken?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Het opgeslagen token wordt verwijderd en de koppeling wordt uitgezet. Je variant-koppelingen blijven
-              bewaard, zodat een nieuwe verbinding direct weer werkt.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t('admin.printful.disconnect_confirm_title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('admin.printful.disconnect_confirm_description')}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleer</AlertDialogCancel>
+            <AlertDialogCancel>{t('admin.printful.cancel')}</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => { disconnect.mutate(); setToken(''); setConfirmDisconnect(false); }}
             >
-              Verbreek verbinding
+              {t('admin.printful.disconnect_confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

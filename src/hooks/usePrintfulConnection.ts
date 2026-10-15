@@ -1,6 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import i18n from 'i18next';
+import { useTranslation } from 'react-i18next';
 
 export interface PrintfulConnectionStatus {
   configured: boolean;
@@ -27,14 +29,15 @@ async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<T> 
         catch { serverMsg = txt || null; }
       }
     } catch { /* fall back on error.message */ }
-    throw new Error(serverMsg || error.message || 'Aanroep mislukt');
+    throw new Error(serverMsg || error.message || i18n.t('admin.printful.toast.call_failed'));
   }
   const payload = data as ({ success?: boolean; error?: string } & T) | null;
-  if (!payload || payload.success === false) throw new Error(payload?.error || 'Onbekende fout');
+  if (!payload || payload.success === false) throw new Error(payload?.error || i18n.t('admin.printful.toast.unknown_error'));
   return payload as T;
 }
 
 export function usePrintfulConnection(tenantId: string | undefined) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
 
   const status = useQuery({
@@ -53,8 +56,8 @@ export function usePrintfulConnection(tenantId: string | undefined) {
       }),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['printful-connection-status', tenantId] });
-      if (res.ok) toast.success(`Verbinding OK${res.store_name ? ` · ${res.store_name}` : ''}`);
-      else toast.error(res.error || 'Verbinding mislukt');
+      if (res.ok) toast.success(`${t('admin.printful.toast.connection_ok')}${res.store_name ? ` · ${res.store_name}` : ''}`);
+      else toast.error(res.error || t('admin.printful.toast.connection_failed'));
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -65,7 +68,7 @@ export function usePrintfulConnection(tenantId: string | undefined) {
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['printful-connection-status', tenantId] });
       qc.invalidateQueries({ queryKey: ['tenant_printful_settings', tenantId] });
-      toast.success(`Printful verbonden${res.store_name ? ` · ${res.store_name}` : ''}`);
+      toast.success(`${t('admin.printful.toast.connected')}${res.store_name ? ` · ${res.store_name}` : ''}`);
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -75,7 +78,7 @@ export function usePrintfulConnection(tenantId: string | undefined) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['printful-connection-status', tenantId] });
       qc.invalidateQueries({ queryKey: ['tenant_printful_settings', tenantId] });
-      toast.success('Printful-verbinding verbroken');
+      toast.success(t('admin.printful.toast.disconnected'));
     },
     onError: (err: Error) => toast.error(err.message),
   });

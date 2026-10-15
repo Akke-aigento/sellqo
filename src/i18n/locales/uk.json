@@ -172,7 +172,9 @@
       "platform_docs": "Документація",
       "kitchen": "Кухня",
       "ordering": "Замовлення",
-      "event_venues": "Зали"
+      "event_venues": "Зали",
+      "event_bundles": "Комбо-квитки",
+      "event_tokens": "Жетони"
     }
   },
   "settings": {
@@ -593,7 +595,482 @@
       "categoryDisabled": "{{channel}} вимкнено для «{{category}}»",
       "pushMovedHint": "Push-сповіщення на телефоні налаштовує кожна людина окремо.",
       "pushMovedLink": "До розділу «Мої сповіщення»",
-      "urgentEmailHint": "Термінові сповіщення (пріоритет високий або терміновий) надходять вам і електронною поштою, якщо ви нічого для них не налаштували. Явно вимкніть e-mail для такого типу, якщо цього не хочете."
+      "urgentEmailHint": "Термінові сповіщення (пріоритет високий або терміновий) надходять вам і електронною поштою, якщо ви нічого для них не налаштували. Явно вимкніть e-mail для такого типу, якщо цього не хочете.",
+      "categories": {
+        "orders": "Замовлення",
+        "invoices": "Рахунки",
+        "payments": "Платежі",
+        "customers": "Клієнти",
+        "products": "Товари та запаси",
+        "quotes": "Комерційні пропозиції",
+        "subscriptions": "Підписки",
+        "marketing": "Маркетинг",
+        "team": "Команда",
+        "system": "Система",
+        "ai_coach": "AI-коуч",
+        "messages": "Повідомлення",
+        "integrations": "SellQo Connect"
+      },
+      "types": {
+        "orders": {
+          "order_new": {
+            "label": "Нове замовлення",
+            "description": "Отримуйте сповіщення про кожне нове замовлення"
+          },
+          "order_paid": {
+            "label": "Оплату отримано",
+            "description": "Коли замовлення оплачено"
+          },
+          "order_cancelled": {
+            "label": "Замовлення скасовано",
+            "description": "Коли замовлення скасовують"
+          },
+          "order_refund_requested": {
+            "label": "Запит на повернення коштів",
+            "description": "Коли клієнт просить повернути кошти"
+          },
+          "order_shipped": {
+            "label": "Замовлення відправлено",
+            "description": "Коли замовлення відправлено"
+          },
+          "order_delivered": {
+            "label": "Замовлення доставлено",
+            "description": "Коли замовлення доставлено"
+          },
+          "order_high_value": {
+            "label": "Замовлення на велику суму",
+            "description": "Замовлення понад 500 €"
+          },
+          "marketplace_order_new": {
+            "label": "Замовлення з маркетплейсу",
+            "description": "Нове замовлення через маркетплейс"
+          },
+          "tracking_in_transit": {
+            "label": "Відправлення в дорозі",
+            "description": "Відстеження: відправлення в дорозі"
+          },
+          "tracking_out_for_delivery": {
+            "label": "Відправлення доставляється",
+            "description": "Відстеження: сьогодні відправлення прямує до клієнта"
+          },
+          "tracking_delivered": {
+            "label": "Відправлення доставлено",
+            "description": "Відстеження: відправлення доставлено"
+          },
+          "tracking_exception": {
+            "label": "Проблема з відправленням",
+            "description": "Відстеження повідомляє про проблему з відправленням"
+          },
+          "return_new_request": {
+            "label": "Нове повернення",
+            "description": "Коли клієнт оформлює повернення"
+          }
+        },
+        "invoices": {
+          "invoice_created": {
+            "label": "Рахунок створено",
+            "description": "Коли створено новий рахунок"
+          },
+          "invoice_sent": {
+            "label": "Рахунок надіслано",
+            "description": "Коли рахунок надіслано"
+          },
+          "invoice_paid": {
+            "label": "Рахунок оплачено",
+            "description": "Коли рахунок оплачено"
+          },
+          "invoice_overdue": {
+            "label": "Рахунок прострочено",
+            "description": "Коли минув термін оплати рахунку"
+          },
+          "invoice_overdue_7days": {
+            "label": "Прострочено на 7 днів",
+            "description": "Рахунок прострочено на 7 днів"
+          },
+          "invoice_overdue_30days": {
+            "label": "Прострочено на 30 днів",
+            "description": "Рахунок прострочено на 30 днів — терміново"
+          },
+          "invoice_reminder_sent": {
+            "label": "Нагадування надіслано",
+            "description": "Коли надіслано нагадування про оплату"
+          },
+          "peppol_invoice_accepted": {
+            "label": "Peppol прийнято",
+            "description": "Рахунок Peppol прийнято"
+          },
+          "peppol_invoice_rejected": {
+            "label": "Peppol відхилено",
+            "description": "Рахунок Peppol відхилено"
+          },
+          "invoice_final_reminder": {
+            "label": "Останнє нагадування",
+            "description": "Останнє нагадування про оплату рахунку"
+          },
+          "invoice_charge_exhausted": {
+            "label": "Автосписання не вдалося",
+            "description": "Спроби автоматичного списання за рахунком вичерпано"
+          },
+          "mandate_setup_stalled": {
+            "label": "Мандат не завершено",
+            "description": "Клієнт не завершив оформлення мандата на списання"
+          }
+        },
+        "payments": {
+          "payment_received": {
+            "label": "Оплату отримано",
+            "description": "Коли надходить платіж"
+          },
+          "payout_available": {
+            "label": "Виплата доступна",
+            "description": "Коли виплата готова"
+          },
+          "payout_completed": {
+            "label": "Виплату здійснено",
+            "description": "Коли виплату здійснено"
+          },
+          "payout_canceled": {
+            "label": "Виплату скасовано",
+            "description": "Коли заплановану виплату скасовано"
+          },
+          "stripe_account_issue": {
+            "label": "Проблема зі Stripe",
+            "description": "Проблема з вашим обліковим записом Stripe"
+          },
+          "chargeback_received": {
+            "label": "Отримано чарджбек",
+            "description": "Коли клієнт ініціює чарджбек"
+          },
+          "payment_duplicate": {
+            "label": "Подвійний платіж",
+            "description": "Клієнт оплатив позицію, яку вже було оплачено або скасовано"
+          },
+          "order_payment_failed": {
+            "label": "Платіж не вдався",
+            "description": "Коли оплата замовлення не вдалася"
+          },
+          "order_refunded": {
+            "label": "Кошти повернено",
+            "description": "Коли за замовлення повернено кошти"
+          }
+        },
+        "customers": {
+          "customer_new": {
+            "label": "Новий клієнт",
+            "description": "Коли реєструється новий клієнт"
+          },
+          "customer_first_order": {
+            "label": "Перше замовлення",
+            "description": "Коли клієнт робить перше замовлення"
+          },
+          "customer_vip": {
+            "label": "Досягнуто статусу VIP",
+            "description": "Коли клієнт стає VIP"
+          },
+          "customer_inactive_30days": {
+            "label": "30 днів неактивний",
+            "description": "Клієнт не був активним 30 днів"
+          },
+          "customer_inactive_90days": {
+            "label": "90 днів неактивний",
+            "description": "Клієнт не був активним 90 днів"
+          },
+          "customer_message_received": {
+            "label": "Повідомлення отримано",
+            "description": "Коли клієнт відповідає на e-mail"
+          },
+          "newsletter_signup": {
+            "label": "Підписка на розсилку",
+            "description": "Нова підписка на розсилку"
+          },
+          "newsletter_unsubscribe": {
+            "label": "Відписка від розсилки",
+            "description": "Клієнт відписується від розсилки"
+          }
+        },
+        "products": {
+          "stock_low": {
+            "label": "Мало на складі",
+            "description": "Коли запас падає нижче мінімального рівня"
+          },
+          "stock_critical": {
+            "label": "Критичний запас",
+            "description": "Критично малий запас (< 5 шт.)"
+          },
+          "stock_out": {
+            "label": "Розпродано",
+            "description": "Товар розпродано"
+          },
+          "stock_replenished": {
+            "label": "Запас поповнено",
+            "description": "Запас знову в нормі"
+          },
+          "product_bestseller": {
+            "label": "Бестселер",
+            "description": "Товар став бестселером"
+          },
+          "product_no_sales_30days": {
+            "label": "Немає продажів",
+            "description": "Товар не продавався 30 днів"
+          },
+          "product_unmapped": {
+            "label": "Товар Bol не зв'язано",
+            "description": "Замовлення Bol містить товар без зв'язку"
+          },
+          "out_of_stock": {
+            "label": "Розпродано після продажу на Bol",
+            "description": "Товар розпродано після продажу через Bol.com"
+          }
+        },
+        "quotes": {
+          "quote_new": {
+            "label": "Пропозицію створено",
+            "description": "Коли створено нову комерційну пропозицію"
+          },
+          "quote_sent": {
+            "label": "Пропозицію надіслано",
+            "description": "Коли пропозицію надіслано"
+          },
+          "quote_viewed": {
+            "label": "Пропозицію переглянуто",
+            "description": "Клієнт переглянув пропозицію"
+          },
+          "quote_accepted": {
+            "label": "Пропозицію прийнято",
+            "description": "Клієнт прийняв пропозицію"
+          },
+          "quote_rejected": {
+            "label": "Пропозицію відхилено",
+            "description": "Клієнт відхилив пропозицію"
+          },
+          "quote_expiring_soon": {
+            "label": "Пропозиція спливає",
+            "description": "Пропозиція спливає протягом 3 днів"
+          },
+          "quote_expired": {
+            "label": "Пропозиція сплила",
+            "description": "Термін дії пропозиції сплив"
+          }
+        },
+        "subscriptions": {
+          "subscription_new": {
+            "label": "Нова підписка",
+            "description": "Нову підписку розпочато"
+          },
+          "subscription_renewed": {
+            "label": "Підписку продовжено",
+            "description": "Підписку продовжено автоматично"
+          },
+          "subscription_cancelled": {
+            "label": "Підписку скасовано",
+            "description": "Клієнт скасував підписку"
+          },
+          "subscription_payment_failed": {
+            "label": "Платіж не вдався",
+            "description": "Оплата підписки не вдалася"
+          },
+          "subscription_expiring": {
+            "label": "Підписка спливає",
+            "description": "Підписка скоро спливає"
+          },
+          "subscription_paused": {
+            "label": "Підписку призупинено",
+            "description": "Підписку призупинено"
+          },
+          "billing_cycle_expired": {
+            "label": "Термін оплати минув",
+            "description": "Розрахунковий період підписки минув без оплати"
+          },
+          "subscription_state_changed": {
+            "label": "Статус підписки змінено",
+            "description": "Ваша підписка активна, у режимі читання або призупинена"
+          },
+          "subscription_reactivated": {
+            "label": "Підписка знову активна",
+            "description": "Після оплати все знову доступно"
+          }
+        },
+        "marketing": {
+          "campaign_sent": {
+            "label": "Кампанію надіслано",
+            "description": "E-mail-кампанію надіслано"
+          },
+          "campaign_completed": {
+            "label": "Кампанію завершено",
+            "description": "Кампанію повністю завершено"
+          },
+          "campaign_high_open_rate": {
+            "label": "Високий показник відкриттів",
+            "description": "Кампанія має понад 50% відкриттів"
+          },
+          "campaign_high_bounce": {
+            "label": "Попередження про відмови",
+            "description": "Багато недоставлених листів у кампанії"
+          },
+          "ab_test_winner": {
+            "label": "Переможець A/B-тесту",
+            "description": "Визначено переможця A/B-тесту"
+          },
+          "ai_credits_empty": {
+            "label": "AI-кредити вичерпано",
+            "description": "AI-кредити закінчилися"
+          }
+        },
+        "team": {
+          "team_member_invited": {
+            "label": "Запрошення надіслано",
+            "description": "Запрошення до команди надіслано"
+          },
+          "team_member_joined": {
+            "label": "Запрошення прийнято",
+            "description": "Нового учасника додано до команди"
+          },
+          "team_member_removed": {
+            "label": "Учасника видалено",
+            "description": "Учасника команди видалено"
+          },
+          "team_role_changed": {
+            "label": "Роль змінено",
+            "description": "Роль учасника команди змінено"
+          },
+          "login_new_device": {
+            "label": "Новий пристрій",
+            "description": "Вхід із нового пристрою"
+          },
+          "login_failed_attempts": {
+            "label": "Невдалі спроби входу",
+            "description": "Кілька невдалих спроб входу"
+          }
+        },
+        "system": {
+          "platform_gift": {
+            "label": "Безкоштовний подарунок",
+            "description": "Отримуйте сповіщення, коли отримуєте безкоштовні кредити, місяці або функції"
+          },
+          "platform_update": {
+            "label": "Оновлення платформи",
+            "description": "Доступне нове оновлення платформи"
+          },
+          "feature_new": {
+            "label": "Нова функція",
+            "description": "Доступна нова функція"
+          },
+          "usage_limit_80": {
+            "label": "Ліміт 80%",
+            "description": "Досягнуто 80% ліміту тарифу"
+          },
+          "usage_limit_reached": {
+            "label": "Ліміт досягнуто",
+            "description": "Ліміт тарифу досягнуто"
+          },
+          "integration_error": {
+            "label": "Помилка інтеграції",
+            "description": "Помилка інтеграції з маркетплейсом або доставкою"
+          },
+          "export_ready": {
+            "label": "Експорт готовий",
+            "description": "Експорт даних готовий до завантаження"
+          },
+          "backup_completed": {
+            "label": "Резервну копію створено",
+            "description": "Резервне копіювання бази даних завершено"
+          },
+          "ai_credits_low": {
+            "label": "Мало AI-кредитів",
+            "description": "AI-кредити майже закінчилися"
+          },
+          "trial_expiring": {
+            "label": "Пробний період завершується",
+            "description": "Ваш пробний період завершується завтра"
+          },
+          "trial_expired": {
+            "label": "Пробний період минув",
+            "description": "Ваш пробний період минув"
+          },
+          "trial_converted": {
+            "label": "Підписку розпочато",
+            "description": "Пробний період завершено, підписку розпочато"
+          },
+          "trial_conversion_failed": {
+            "label": "Не вдалося розпочати підписку",
+            "description": "Пробний період завершено, але підписку не вдалося розпочати"
+          },
+          "admin_announcement": {
+            "label": "Повідомлення від SellQo",
+            "description": "Оголошення від команди SellQo"
+          }
+        },
+        "ai_coach": {
+          "ai_suggestion": {
+            "label": "AI-пропозиція",
+            "description": "Термінова пропозиція від AI-монітора"
+          },
+          "ai_coach_suggestion": {
+            "label": "AI-коуч",
+            "description": "Термінова пропозиція від вашого AI-коуча"
+          }
+        },
+        "messages": {
+          "email_inbound": {
+            "label": "E-mail отримано",
+            "description": "Коли надходить вхідний e-mail"
+          },
+          "whatsapp_inbound": {
+            "label": "WhatsApp отримано",
+            "description": "Коли надходить повідомлення WhatsApp"
+          },
+          "facebook_inbound": {
+            "label": "Повідомлення Facebook",
+            "description": "Коли надходить повідомлення Facebook"
+          },
+          "instagram_inbound": {
+            "label": "Instagram DM",
+            "description": "Коли надходить Instagram DM"
+          },
+          "bol_inbound": {
+            "label": "Запитання з Bol.com",
+            "description": "Коли надходить запитання через Bol.com"
+          },
+          "contact_form_inbound": {
+            "label": "Контактна форма",
+            "description": "Коли відвідувач заповнює контактну форму вашого інтернет-магазину"
+          }
+        },
+        "integrations": {
+          "shopify_request_received": {
+            "label": "Запит Shopify подано",
+            "description": "Коли ви подаєте запит на підключення Shopify"
+          },
+          "shopify_request_approved": {
+            "label": "Запит Shopify схвалено",
+            "description": "Коли ваш запит Shopify схвалено"
+          },
+          "shopify_request_completed": {
+            "label": "Підключення Shopify активне",
+            "description": "Коли ваше підключення Shopify активовано"
+          },
+          "shopify_request_rejected": {
+            "label": "Запит Shopify відхилено",
+            "description": "Коли ваш запит Shopify відхилено"
+          },
+          "shopify_request_updated": {
+            "label": "Запит Shopify оновлено",
+            "description": "Коли є оновлення щодо вашого запиту Shopify"
+          },
+          "integration_connected": {
+            "label": "SellQo Connect підключено",
+            "description": "Коли підключено нову інтеграцію"
+          },
+          "integration_disconnected": {
+            "label": "SellQo Connect від'єднано",
+            "description": "Коли інтеграцію від'єднано"
+          },
+          "integration_error": {
+            "label": "Помилка SellQo Connect",
+            "description": "Коли в інтеграції виникає помилка"
+          }
+        }
+      }
     },
     "myNotifications": {
       "title": "Мої сповіщення",
@@ -763,6 +1240,33 @@
       "ossDescription": "Для продажів B2C споживачам в інших країнах ЄС за схемою OSS",
       "previewInLanguage": "Попередній перегляд мовою:",
       "defaultTexts": "Це юридично коректні стандартні тексти. Змінюйте їх лише за потреби."
+    },
+    "oss": {
+      "title": "Режим OSS (One-Stop-Shop)",
+      "tooltip": "Для B2C-продажів приватним особам в інших країнах ЄС автоматично застосовується ставка ПДВ країни призначення. Поріг становить 10 000 € на рік (сукупно для всіх країн ЄС).",
+      "description": "Режим ЄС для B2C-продажів приватним особам в інших країнах ЄС",
+      "activate": "Увімкнути режим OSS",
+      "activate_hint": "Після перевищення порогу в 10 000 € слід застосовувати ставку ПДВ країни призначення",
+      "registration_date": "Дата реєстрації в OSS",
+      "registration_date_hint": "Дата, коли ви зареєструвалися в податковій службі",
+      "identification_number": "Ідентифікаційний номер OSS",
+      "identification_number_hint": "Ваш реєстраційний номер OSS (часто збігається з номером платника ПДВ)",
+      "active_title": "Режим OSS активний",
+      "active_description": "Для B2C-продажів приватним особам в інших країнах ЄС автоматично застосовується місцева ставка ПДВ. У рахунку мовою клієнта зазначається, що застосовано режим OSS.",
+      "revenue_title": "B2C-виручка в ЄС за {{year}}",
+      "revenue_description": "Сукупна виручка від приватних осіб в інших країнах ЄС",
+      "of_threshold": "із порогу {{amount}} €",
+      "threshold_reached": "Досягнуто {{percent}}% порогу",
+      "near_title": "Ви наближаєтеся до порогу OSS",
+      "near_description": "Ви досягли 80% або більше від порогу в 10 000 €. Розгляньте реєстрацію в OSS у податковій службі.",
+      "over_title": "Поріг OSS перевищено!",
+      "over_description": "Ви перевищили поріг у 10 000 €. Ви зобов'язані зареєструватися в OSS і застосовувати ставку ПДВ країни призначення.",
+      "revenue_by_country": "Виручка за країнами:",
+      "view_rates": "Переглянути ставки ПДВ у ЄС",
+      "col_country": "Країна",
+      "col_standard": "Стандартна ставка",
+      "col_reduced": "Знижена ставка",
+      "own_country": "Власна країна"
     }
   },
   "vat": {
@@ -6006,6 +6510,131 @@
       "resend": "Надіслати квитки ще раз",
       "resent": "Квитки надіслано",
       "resend_failed": "Не вдалося надіслати"
+    },
+    "printful": {
+      "connected": "Підключено",
+      "not_connected": "Не підключено",
+      "beta": "Бета",
+      "settings": "Налаштування",
+      "card_description": "Друк на замовлення через Printful. Підключіть свій магазин Printful, імпортуйте товари та пересилайте замовлення. Оновлення доставки з відстеженням надходять автоматично.",
+      "sync": "Інтеграція",
+      "on": "Увімкнено",
+      "off": "Вимкнено",
+      "last_test": "Останній тест",
+      "not_yet": "Ще ні",
+      "shipping_updates_active": "Оновлення доставки: активні",
+      "connect": "Підключити Printful",
+      "dialog_title": "Printful — друк на замовлення",
+      "dialog_description": "Підключіть свій магазин Printful і налаштуйте параметри виконання замовлень.",
+      "no_tenant": "Магазин не вибрано.",
+      "connection_title": "Підключення",
+      "connection_description": "Створіть приватний токен у Printful Developer Portal зі scope <strong>orders</strong>, <strong>sync_products</strong> і <strong>webhooks</strong>.",
+      "last_test_failed": "Останній тест не вдався",
+      "token_label": "Приватний токен",
+      "token_placeholder_saved": "Збережено — введіть новий, щоб замінити",
+      "token_placeholder": "Приватний токен Printful",
+      "token_hint": "Токен зберігається в зашифрованому вигляді й більше ніколи не показується.",
+      "store_id_label": "ID магазину (необов'язково)",
+      "store_id_placeholder": "Потрібно лише для токенів рівня облікового запису",
+      "test_connection": "Перевірити підключення",
+      "save": "Зберегти",
+      "disconnect": "Від'єднати",
+      "settings_description": "Визначте, як SellQo працює з вашим магазином Printful.",
+      "sync_enabled_label": "Інтеграція з Printful активна",
+      "sync_enabled_hint": "Вмикайте або вимикайте інтеграцію, не видаляючи токен.",
+      "auto_confirm_label": "Одразу підтверджувати замовлення в Printful",
+      "auto_confirm_hint": "Увімкнено = переслане замовлення одразу підтверджується й іде у виробництво. Вимкнено = воно надходить до Printful як чернетка, і ви підтверджуєте його там самі.",
+      "import_title": "Імпорт товарів",
+      "import_description": "Перенесіть свої дизайни Printful у SellQo як товари з варіантами, зображеннями та автоматичним зв'язуванням варіантів. Спершу ви бачите попередній перегляд і самі встановлюєте ціни.",
+      "import_button": "Імпортувати товари з Printful",
+      "disconnect_confirm_title": "Від'єднати Printful?",
+      "disconnect_confirm_description": "Збережений токен буде видалено, а інтеграцію вимкнено. Зв'язки варіантів зберігаються, тож нове підключення одразу запрацює.",
+      "cancel": "Скасувати",
+      "disconnect_confirm": "Від'єднати",
+      "order": {
+        "not_forwarded": "Ще не переслано",
+        "draft": "Чернетка в Printful",
+        "confirmed": "Підтверджено",
+        "canceled": "Скасовано",
+        "failed": "Не вдалося",
+        "retry": "Спробувати ще раз",
+        "forward_again": "Переслати ще раз",
+        "forward": "Переслати в Printful"
+      },
+      "mapping": {
+        "title": "Зв'язування варіантів",
+        "description": "Зв'яжіть свої варіанти SellQo з sync-варіантом Printful. Переслати можна лише зв'язані варіанти.",
+        "refresh": "Оновити Printful",
+        "load_error": "Не вдалося завантажити товари Printful",
+        "search_placeholder": "Пошук за товаром, варіантом або SKU",
+        "loading_variants": "Завантаження варіантів…",
+        "no_variants": "Активних варіантів не знайдено.",
+        "linked": "Зв'язано",
+        "not_linked": "Не зв'язано",
+        "loading": "Завантаження…",
+        "choose_variant": "Виберіть варіант Printful",
+        "unlink": "Від'єднати варіант"
+      },
+      "importDialog": {
+        "description": "Виберіть, які товари Printful створити як товари SellQo. Кожен варіант Printful стає варіантом SellQo.",
+        "price_notice": "Ціни — це <strong>пропозиція</strong> від Printful, сміливо змінюйте їх тут. Імпортовані товари отримують статус <strong>неактивні та приховані</strong>, щоб ви могли перевірити їх, перш ніж самі опублікувати.",
+        "loading": "Отримання товарів Printful…",
+        "empty": "У вашому магазині Printful товарів не знайдено.",
+        "already_imported": "Уже імпортовано",
+        "variant_count": "Варіантів: {{count}}",
+        "image_count": "Зображень буде перенесено: {{count}}",
+        "update_images": "Оновити зображення",
+        "sku_in_use": "SKU уже використовується в іншому варіанті",
+        "done": "Готово. Перегляньте нові товари в розділі <link>Товари</link> й опублікуйте їх, коли все буде гаразд.",
+        "close": "Закрити",
+        "import": "Імпортувати"
+      },
+      "toast": {
+        "call_failed": "Запит не вдався",
+        "unknown_error": "Невідома помилка",
+        "connection_ok": "Підключення в порядку",
+        "connection_failed": "Не вдалося підключитися",
+        "connected": "Printful підключено",
+        "disconnected": "Printful від'єднано",
+        "preview_failed": "Не вдалося завантажити попередній перегляд",
+        "images_failed": "Не вдалося оновити зображення",
+        "images_updated": "Зображення оновлено",
+        "imported": "Імпортовано: {{count}}",
+        "skipped": "Пропущено: {{count}}",
+        "reimported": "Зображення оновлено: {{count}}",
+        "failed_count": "Не вдалося: {{count}}",
+        "import_failed": "Імпорт не вдався",
+        "variant_linked": "Варіант зв'язано",
+        "link_failed": "Не вдалося зв'язати",
+        "link_removed": "Зв'язок видалено",
+        "remove_failed": "Не вдалося видалити",
+        "forward_failed": "Не вдалося переслати",
+        "order_confirmed": "Замовлення підтверджено в Printful",
+        "order_draft": "Замовлення створено як чернетку в Printful",
+        "settings_saved": "Налаштування Printful збережено",
+        "save_failed": "Не вдалося зберегти"
+      }
+    },
+    "odooSync": {
+      "synced": "Odoo #{{id}}",
+      "synced_peppol_manual": "Odoo #{{id}} · Peppol вручну",
+      "synced_tip": "Проведено в Odoo як запис {{id}}.",
+      "synced_peppol_sent_tip": "Проведено в Odoo як запис {{id}} · Peppol надіслано.",
+      "synced_peppol_manual_tip": "Проведено в Odoo як запис {{id}}. Автоматично надіслати через Peppol не вдалося: {{note}}. Надішліть вручну в Odoo.",
+      "unknown": "невідомо",
+      "failed": "Помилка Odoo",
+      "unknown_error": "Невідома помилка",
+      "pending": "У черзі Odoo",
+      "peppol_manual": "Peppol вручну",
+      "peppol_sent": "Peppol надіслано",
+      "peppol_archive": "Архів",
+      "peppol_failed": "Помилка Peppol",
+      "peppol_send_manually": "Надіслати вручну",
+      "peppol_queued": "У черзі",
+      "attention_title": "Увага Peppol ({{count}})",
+      "attention_description": "Ці документи очікують надсилання або потребують ручної дії в Peppol/Odoo.",
+      "invoice_label": "Рахунок {{number}}",
+      "credit_note_label": "Кредит-нота {{number}}"
     }
   },
   "product_form": {
@@ -7402,5 +8031,36 @@
     "kind_refund": "Повернено",
     "kind_adjust": "Коригування",
     "powered": "Працює на SellQo"
+  },
+  "notificationsPage": {
+    "title": "Сповіщення",
+    "subtitle": "Усі сповіщення та попередження в одному місці",
+    "mark_all_read": "Позначити всі прочитаними ({{count}})",
+    "delete_read": "Видалити прочитані",
+    "stats": {
+      "total": "Усього",
+      "unread": "Непрочитані"
+    },
+    "read": "Прочитано",
+    "view": "Переглянути",
+    "mark_read": "Позначити як прочитане",
+    "delete": "Видалити",
+    "search_placeholder": "Пошук у сповіщеннях...",
+    "category": "Категорія",
+    "all_categories": "Усі категорії",
+    "priority_label": "Пріоритет",
+    "all_priorities": "Усі пріоритети",
+    "priority": {
+      "urgent": "Терміново",
+      "high": "Високий",
+      "medium": "Звичайний",
+      "low": "Низький"
+    },
+    "clear_filters": "Скинути фільтри",
+    "results": "Результатів: {{count}}",
+    "all_notifications": "Усі сповіщення",
+    "empty_title": "Сповіщень не знайдено",
+    "empty_filtered": "Спробуйте інші пошукові запити або фільтри",
+    "empty_all": "У вас усе переглянуто!"
   }
 }

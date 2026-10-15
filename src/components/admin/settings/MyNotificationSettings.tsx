@@ -16,6 +16,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { canReceiveNotificationCategory } from '@/lib/notificationResources';
 import { NOTIFICATION_CONFIG, type NotificationCategoryConfig } from '@/types/notification';
+import { notificationCategoryLabel, notificationTypeDescription, notificationTypeLabel } from '@/lib/notificationLabels';
 import { cn } from '@/lib/utils';
 import { MyDevicesSettings } from '@/components/admin/settings/MyDevicesSettings';
 
@@ -52,6 +53,7 @@ function PushCategorySection({
   const [isOpen, setIsOpen] = useState(!permitted);
   const Icon = categoryIcons[config.icon] || Bell;
   const pushLabel = t('settings.notifications.push');
+  const categoryLabel = notificationCategoryLabel(t, config.category);
 
   // PUSH-DEFAULT-1: binnen je rol telt de effectieve stand (rij of default).
   // Buiten je rol geldt de default niet — daar telt alleen wat je ooit zelf
@@ -67,7 +69,7 @@ function PushCategorySection({
       title: t('settings.notifications.saved'),
       description: t(
         checked ? 'settings.notifications.categoryEnabled' : 'settings.notifications.categoryDisabled',
-        { channel: pushLabel, category: config.label },
+        { channel: pushLabel, category: categoryLabel },
       ),
     });
   };
@@ -84,7 +86,7 @@ function PushCategorySection({
               <Icon className="h-4 w-4" />
             </div>
             <div className="min-w-0">
-              <p className="truncate font-medium">{config.label}</p>
+              <p className="truncate font-medium">{categoryLabel}</p>
               <p className="text-xs text-muted-foreground">
                 {permitted
                   ? t('settings.notifications.typesCount', { count: config.types.length })
@@ -110,11 +112,11 @@ function PushCategorySection({
           {permitted && (
             <div className="flex items-center justify-between gap-3 border-b pb-3">
               <span className="min-w-0 truncate text-sm font-medium">
-                {t('settings.notifications.allOf', { label: config.label.toLowerCase() })}
+                {t('settings.notifications.allOf', { label: categoryLabel.toLowerCase() })}
               </span>
               <ChannelSwitch
                 icon={Smartphone}
-                label={`${pushLabel} — ${config.label}`}
+                label={`${pushLabel} — ${categoryLabel}`}
                 checked={allOn}
                 onCheckedChange={toggleAll}
                 disabled={isSaving}
@@ -128,17 +130,18 @@ function PushCategorySection({
               // Buiten je rol tonen we alleen wat nog aan staat: dat is het
               // enige waar je iets mee kunt.
               if (!permitted && !checked) return null;
+              const typeLabel = notificationTypeLabel(t, config.category, typeConfig.type);
               return (
                 // Eén schakelaar past naast het label, ook op 375px; de tekst
                 // krijgt min-w-0 + truncate zodat hij hem niet wegduwt.
                 <div key={typeConfig.type} className="flex items-center justify-between gap-3 py-2">
                   <div className="min-w-0 flex-1">
-                    <Label className="block truncate text-sm font-normal">{typeConfig.label}</Label>
-                    <p className="text-xs text-muted-foreground truncate">{typeConfig.description}</p>
+                    <Label className="block truncate text-sm font-normal">{typeLabel}</Label>
+                    <p className="text-xs text-muted-foreground truncate">{notificationTypeDescription(t, config.category, typeConfig.type)}</p>
                   </div>
                   <ChannelSwitch
                     icon={Smartphone}
-                    label={`${pushLabel} — ${typeConfig.label}`}
+                    label={`${pushLabel} — ${typeLabel}`}
                     checked={checked}
                     onCheckedChange={(value) => setPush(config.category, [typeConfig.type], value)}
                     disabled={isSaving || (!permitted && !checked)}

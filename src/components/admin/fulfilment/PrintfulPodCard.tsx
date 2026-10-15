@@ -5,7 +5,8 @@ import { cn } from '@/lib/utils';
 import { usePrintfulConnection } from '@/hooks/usePrintfulConnection';
 import { useTenantPrintfulSettings } from '@/hooks/useTenantPrintfulSettings';
 import { formatDistanceToNow } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 interface Props {
   tenantId: string | undefined;
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export function PrintfulPodCard({ tenantId, onOpen }: Props) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { status } = usePrintfulConnection(tenantId);
   const { settings } = useTenantPrintfulSettings(tenantId);
 
@@ -31,46 +34,45 @@ export function PrintfulPodCard({ tenantId, onOpen }: Props) {
           <div>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-lg">Printful</h3>
-              <Badge variant="secondary" className="text-[10px]">Beta</Badge>
+              <Badge variant="secondary" className="text-[10px]">{t('admin.printful.beta')}</Badge>
             </div>
             {configured ? (
               <span className="text-sm text-green-600 flex items-center gap-1">
                 <CheckCircle className="w-4 h-4" />
-                Verbonden{storeName ? ` · ${storeName}` : ''}
+                {t('admin.printful.connected')}{storeName ? ` · ${storeName}` : ''}
               </span>
             ) : (
-              <span className="text-sm text-muted-foreground">Niet verbonden</span>
+              <span className="text-sm text-muted-foreground">{t('admin.printful.not_connected')}</span>
             )}
           </div>
         </div>
         {configured && (
-          <Button variant="ghost" size="icon" onClick={onOpen} aria-label="Instellingen">
+          <Button variant="ghost" size="icon" onClick={onOpen} aria-label={t('admin.printful.settings')}>
             <Settings className="w-5 h-5" />
           </Button>
         )}
       </div>
 
       <p className="text-sm text-muted-foreground mb-4">
-        Print-on-demand fulfilment via Printful. Koppel je Printful-winkel en map je productvarianten; het automatisch
-        doorsturen van bestellingen volgt in een volgende release.
+        {t('admin.printful.card_description')}
       </p>
 
       {configured && (
         <div className="rounded-lg p-3 mb-4 bg-rose-50">
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="text-muted-foreground">Sync</p>
-              <p className="font-semibold">{syncEnabled ? 'Aan' : 'Uit'}</p>
+              <p className="text-muted-foreground">{t('admin.printful.sync')}</p>
+              <p className="font-semibold">{syncEnabled ? t('admin.printful.on') : t('admin.printful.off')}</p>
             </div>
             <div>
-              <p className="text-muted-foreground">Laatste test</p>
+              <p className="text-muted-foreground">{t('admin.printful.last_test')}</p>
               <p className="font-semibold">
-                {lastTest ? formatDistanceToNow(new Date(lastTest), { addSuffix: true, locale: nl }) : 'Nog niet'}
+                {lastTest ? formatDistanceToNow(new Date(lastTest), { addSuffix: true, locale: dateLocale }) : t('admin.printful.not_yet')}
               </p>
             </div>
           </div>
           {status.data?.webhook_registered && (
-            <p className="text-xs text-muted-foreground mt-2">Verzendupdates: actief</p>
+            <p className="text-xs text-muted-foreground mt-2">{t('admin.printful.shipping_updates_active')}</p>
           )}
         </div>
       )}
@@ -78,12 +80,12 @@ export function PrintfulPodCard({ tenantId, onOpen }: Props) {
       <div className="flex gap-2">
         {configured ? (
           <Button variant="outline" className="flex-1" onClick={onOpen}>
-            Instellingen
+            {t('admin.printful.settings')}
           </Button>
         ) : (
           <Button className="flex-1 bg-primary hover:bg-primary/90" onClick={onOpen}>
             <Clock className="w-4 h-4 mr-2" />
-            Verbind Printful
+            {t('admin.printful.connect')}
           </Button>
         )}
       </div>

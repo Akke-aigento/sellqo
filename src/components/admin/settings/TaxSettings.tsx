@@ -18,6 +18,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useOssRevenue, OSS_THRESHOLD_AMOUNT } from '@/hooks/useOssRevenue';
 import { supabase } from '@/integrations/supabase/client';
 import { EU_VAT_RATES } from '@/lib/euVatRates';
+import { localizedCountryName } from '@/lib/shippingRegions';
 import { DEFAULT_VAT_TEXTS, type VatTextType, type SupportedLanguage } from '@/lib/vatInvoiceTexts';
 import { useTranslation } from 'react-i18next';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
@@ -504,20 +505,20 @@ const [formData, setFormData] = useState({
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2">
-                <CardTitle>OSS-regeling (One-Stop-Shop)</CardTitle>
+                <CardTitle>{t('tax.oss.title')}</CardTitle>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger>
                       <Info className="h-4 w-4 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-sm">
-                      <p>Bij B2C verkopen aan particulieren in andere EU-landen wordt automatisch het BTW-tarief van het bestemmingsland toegepast. De drempel is €10.000 per jaar (cumulatief alle EU-landen).</p>
+                      <p>{t('tax.oss.tooltip')}</p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </div>
               <CardDescription>
-                EU-regeling voor B2C verkopen aan particulieren in andere EU-landen
+                {t('tax.oss.description')}
               </CardDescription>
             </div>
           </div>
@@ -526,9 +527,9 @@ const [formData, setFormData] = useState({
           {/* OSS Toggle */}
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div className="space-y-1">
-              <p className="font-medium">OSS-regeling activeren</p>
+              <p className="font-medium">{t('tax.oss.activate')}</p>
               <p className="text-sm text-muted-foreground">
-                Bij overschrijding van de €10.000 drempel moet het BTW-tarief van het bestemmingsland worden toegepast
+                {t('tax.oss.activate_hint')}
               </p>
             </div>
             <Switch
@@ -546,7 +547,7 @@ const [formData, setFormData] = useState({
                 <div className="grid gap-2">
                   <Label htmlFor="oss_registration_date" className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    Datum OSS-registratie
+                    {t('tax.oss.registration_date')}
                   </Label>
                   <Input
                     id="oss_registration_date"
@@ -558,14 +559,14 @@ const [formData, setFormData] = useState({
                     }))}
                   />
                   <p className="text-xs text-muted-foreground">
-                    De datum waarop je je hebt geregistreerd bij de Belastingdienst
+                    {t('tax.oss.registration_date_hint')}
                   </p>
                 </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="oss_identification_number" className="flex items-center gap-2">
                     <Hash className="h-4 w-4" />
-                    OSS-identificatienummer
+                    {t('tax.oss.identification_number')}
                   </Label>
                   <Input
                     id="oss_identification_number"
@@ -577,17 +578,16 @@ const [formData, setFormData] = useState({
                     placeholder="NL000000000B01"
                   />
                   <p className="text-xs text-muted-foreground">
-                    Je OSS-registratienummer (vaak gelijk aan je BTW-nummer)
+                    {t('tax.oss.identification_number_hint')}
                   </p>
                 </div>
               </div>
 
               <Alert variant="default" className="bg-purple-50 border-purple-200 dark:bg-purple-950 dark:border-purple-800">
                 <AlertCircle className="h-4 w-4 text-purple-600" />
-                <AlertTitle className="text-purple-800 dark:text-purple-200">OSS-regeling actief</AlertTitle>
+                <AlertTitle className="text-purple-800 dark:text-purple-200">{t('tax.oss.active_title')}</AlertTitle>
                 <AlertDescription className="text-purple-700 dark:text-purple-300">
-                  Bij B2C verkopen aan particulieren in andere EU-landen wordt automatisch het lokale BTW-tarief toegepast.
-                  De factuur vermeldt "OSS-regeling toegepast".
+                  {t('tax.oss.active_description')}
                 </AlertDescription>
               </Alert>
             </>
@@ -597,9 +597,9 @@ const [formData, setFormData] = useState({
           <div className="p-4 border rounded-lg space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">B2C EU-omzet {currentYear}</p>
+                <p className="font-medium">{t('tax.oss.revenue_title', { year: currentYear })}</p>
                 <p className="text-sm text-muted-foreground">
-                  Cumulatieve omzet aan particulieren in andere EU-landen
+                  {t('tax.oss.revenue_description')}
                 </p>
               </div>
               <div className="text-right">
@@ -607,7 +607,7 @@ const [formData, setFormData] = useState({
                   €{ossLoading ? '...' : (ossRevenue?.totalRevenue || 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  van €{OSS_THRESHOLD_AMOUNT.toLocaleString('nl-NL')} drempel
+                  {t('tax.oss.of_threshold', { amount: OSS_THRESHOLD_AMOUNT.toLocaleString('nl-NL') })}
                 </p>
               </div>
             </div>
@@ -624,15 +624,15 @@ const [formData, setFormData] = useState({
             />
 
             <p className="text-sm text-muted-foreground">
-              {ossRevenue?.thresholdPercentage?.toFixed(1) || 0}% van de drempel bereikt
+              {t('tax.oss.threshold_reached', { percent: ossRevenue?.thresholdPercentage?.toFixed(1) || 0 })}
             </p>
 
             {ossRevenue?.isNearThreshold && !formData.apply_oss_rules && (
               <Alert variant="default" className="bg-amber-50 border-amber-200 dark:bg-amber-950/50 dark:border-amber-800">
                 <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertTitle className="text-amber-800 dark:text-amber-200">Je nadert de OSS-drempel</AlertTitle>
+                <AlertTitle className="text-amber-800 dark:text-amber-200">{t('tax.oss.near_title')}</AlertTitle>
                 <AlertDescription className="text-amber-700 dark:text-amber-300">
-                  Je bent op 80% of meer van de €10.000 drempel. Overweeg OSS-registratie bij de Belastingdienst.
+                  {t('tax.oss.near_description')}
                 </AlertDescription>
               </Alert>
             )}
@@ -640,9 +640,9 @@ const [formData, setFormData] = useState({
             {ossRevenue?.isOverThreshold && !formData.apply_oss_rules && (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>OSS-drempel overschreden!</AlertTitle>
+                <AlertTitle>{t('tax.oss.over_title')}</AlertTitle>
                 <AlertDescription>
-                  Je hebt de €10.000 drempel overschreden. Je bent verplicht om OSS te registreren en het BTW-tarief van het bestemmingsland toe te passen.
+                  {t('tax.oss.over_description')}
                 </AlertDescription>
               </Alert>
             )}
@@ -650,16 +650,15 @@ const [formData, setFormData] = useState({
             {/* Revenue by Country */}
             {ossRevenue && Object.keys(ossRevenue.revenueByCountry).length > 0 && (
               <div className="pt-2 border-t">
-                <p className="text-sm font-medium mb-2">Omzet per land:</p>
+                <p className="text-sm font-medium mb-2">{t('tax.oss.revenue_by_country')}</p>
                 <div className="grid gap-1 text-sm">
                   {Object.entries(ossRevenue.revenueByCountry)
                     .sort(([, a], [, b]) => b - a)
                     .map(([country, amount]) => {
-                      const countryInfo = EU_VAT_RATES.find(r => r.code === country);
                       return (
                         <div key={country} className="flex justify-between items-center py-1">
                           <span className="text-muted-foreground">
-                            {countryInfo?.name || country}
+                            {localizedCountryName(country, i18n.language)}
                           </span>
                           <span className="font-medium">
                             €{amount.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
@@ -677,7 +676,7 @@ const [formData, setFormData] = useState({
             <Collapsible open={showVatRates} onOpenChange={setShowVatRates}>
               <CollapsibleTrigger asChild>
                 <Button variant="outline" className="w-full justify-between">
-                  <span>EU BTW-tarieven bekijken</span>
+                  <span>{t('tax.oss.view_rates')}</span>
                   <span className="text-muted-foreground">{showVatRates ? '▲' : '▼'}</span>
                 </Button>
               </CollapsibleTrigger>
@@ -687,9 +686,9 @@ const [formData, setFormData] = useState({
                     <table className="w-full text-sm">
                       <thead className="bg-muted/50 sticky top-0">
                         <tr className="border-b">
-                          <th className="text-left py-2 px-3 font-medium">Land</th>
-                          <th className="text-right py-2 px-3 font-medium">Standaard tarief</th>
-                          <th className="text-right py-2 px-3 font-medium">Verlaagd tarief</th>
+                          <th className="text-left py-2 px-3 font-medium">{t('tax.oss.col_country')}</th>
+                          <th className="text-right py-2 px-3 font-medium">{t('tax.oss.col_standard')}</th>
+                          <th className="text-right py-2 px-3 font-medium">{t('tax.oss.col_reduced')}</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y">
@@ -700,9 +699,9 @@ const [formData, setFormData] = useState({
                           >
                             <td className="py-2 px-3 flex items-center gap-2">
                               <span className="font-medium">{rate.code}</span>
-                              <span className="text-muted-foreground">{rate.name}</span>
+                              <span className="text-muted-foreground">{localizedCountryName(rate.code, i18n.language)}</span>
                               {rate.code === tenantCountry && (
-                                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">Eigen land</span>
+                                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">{t('tax.oss.own_country')}</span>
                               )}
                             </td>
                             <td className="py-2 px-3 text-right font-medium">
