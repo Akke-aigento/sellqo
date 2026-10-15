@@ -2014,6 +2014,10 @@
         "shipping_health_dashboard_translated": {
           "title": "Versand, Shop Health und dein Dashboard in deiner Sprache",
           "description": "Das Fenster zum Einrichten einer Versandart, die Regionsvorlagen (EU, Benelux, Europa außerhalb der EU), Shop Health und die Widgets auf deinem Dashboard sprechen jetzt die Sprache, die du in deinem Profil wählst. Ländernamen und Datumsangaben folgen dieser Sprache ebenfalls."
+        },
+        "ticket_orders_auto_complete": {
+          "title": "Ticketbestellungen schließen sich selbst ab",
+          "description": "Eine Bestellung mit nur Tickets, Kombitickets oder Marken müssen Sie nicht mehr bearbeiten: Sobald sie bezahlt ist und die Ticket-E-Mail raus ist, steht sie automatisch auf Geliefert. Ticketbestellungen zeigen in der Liste auch klarere Status: Wartet auf Zahlung und Tickets gesendet. Bestellungen mit zusätzlich einem physischen Produkt folgen dem normalen Versandablauf."
         }
       },
       "copyLink": "Link kopieren",

@@ -1,3 +1,17 @@
+## EVENT-DONE-1 — de ticketmail ís de levering — 15 oktober 2026
+
+**Waarom.** Ticketbestellingen bleven eeuwig op "In behandeling" staan: er valt niks te picken of te verzenden, maar niemand zette ze ooit op Geleverd. Akke: "raar dat we die nog moeten verwerken".
+
+**send-ticket-confirmation `EVENT-DONE-1` (bd7b8a8, deploy via Lovable, vingerafdruk gemeten).** Na een geslaagde mail: is de bestelling betaald, staat ze op pending/processing en gaat ÉLKE regel per mail (product_type ticket, of token_amount gezet), dan status → delivered + delivered_at. Eén fysieke of onbekende regel = gewone flow blijft. Recon vooraf: status delivered zetten heeft geen klantmail-trigger (notify_on_delivered leeft alleen in poll-tracking-status, en ticketbestellingen hebben geen tracking); sync_order_fulfillment_status zet fulfillment_status netjes mee.
+
+**Migratie `20261015130000_event_done_1.sql` (md5 b3f5e8e8…, live via raw-fetch, nagekeken).** Grandfather met vaste grens (first_sent_at < 15-10 12:00 UTC): betaalde, gemailde, mail-only bestellingen → delivered met de maildatum als delivered_at. Resultaat: demo-bakkerij #1004, demo-festival #0002, fonske #0008. Cancelled/returned correct ongemoeid.
+
+**Admin (publish nodig).** OrderStatusBadge kent nu event-taal: pending → "Wacht op betaling", delivered → "Tickets verstuurd" (2 i18n-keys × 5 talen). Ticket-detectie: ticket_mail_log-ids (nieuwe hook useTicketOrderIds, één lichte query) plus order_items.event_detail_id voor onbetaalde dagtickets. Orderlijst (desktop + mobiel) en orderdetail.
+
+**E2E live (demo-festival #0003, 10 munten, overschrijving):** betaald gezet → wallet aangemaakt, mail auto, bestelling binnen 7 s op delivered met fulfillment_status delivered. Rooktest groen (met de nieuwe DISCOUNT-LIMIT-1-exportlijst), lint baseline gelijk, i18n-pariteit, CI groen.
+
+**DOCS-1:** doc_article `ticketbestellingen-automatisch-afgerond` (tenant, Bestellingen).
+
 ## SPOREN-15-10 — uitrol DISCOUNT-LIMIT-1, changelog 2026.11r, docs en nieuwsbrief — 15 oktober 2026
 
 **Root cause:** de batches van vandaag (BLOG-FIX-1, DISCOUNT-LIMIT-1, I18N-SHIP-HEALTH-1, RESTJES-1) misten nog uitrol-bewijs, spoor 2 voor de i18n-batches en de sporen 3 en 5.

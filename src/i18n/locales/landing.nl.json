@@ -2014,6 +2014,10 @@
         "shipping_health_dashboard_translated": {
           "title": "Verzending, Shop Health en je dashboard in je eigen taal",
           "description": "Het venster om een verzendmethode in te stellen, de regio-keuzes (EU, Benelux, Europa buiten de EU), Shop Health en de widgets op je dashboard spreken nu de taal die je in je profiel kiest. Landnamen en datums volgen die taal ook."
+        },
+        "ticket_orders_auto_complete": {
+          "title": "Ticketbestellingen ronden zichzelf af",
+          "description": "Een bestelling met alleen tickets, combitickets of munten hoef je niet meer te verwerken: zodra ze betaald is en de ticketmail vertrokken is, staat ze automatisch op Geleverd. In je bestellingenlijst zie je bij tickets ook duidelijkere statussen: Wacht op betaling en Tickets verstuurd. Bestellingen met ook een fysiek product volgen gewoon de normale verzendflow."
         }
       },
       "copyLink": "Kopieer link",

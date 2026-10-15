@@ -2014,6 +2014,10 @@
         "shipping_health_dashboard_translated": {
           "title": "Shipping, Shop Health and your dashboard in your own language",
           "description": "The window for setting up a shipping method, the region presets (EU, Benelux, Europe outside the EU), Shop Health and the widgets on your dashboard now use the language you choose in your profile. Country names and dates follow that language too."
+        },
+        "ticket_orders_auto_complete": {
+          "title": "Ticket orders complete themselves",
+          "description": "You no longer need to process an order that only contains tickets, combo tickets or tokens: once it's paid and the ticket email has gone out, it's automatically marked Delivered. Ticket orders also show clearer statuses in your order list: Awaiting payment and Tickets sent. Orders that also contain a physical product follow the normal shipping flow."
         }
       },
       "copyLink": "Copy link",

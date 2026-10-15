@@ -4,6 +4,17 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.11s — Ticketbestellingen ronden zichzelf af (improvement, 15-10-2026)
+
+**Voor wie:** iedereen die tickets of munten verkoopt (events-module).
+
+De ticketmail ís de levering: een betaalde bestelling met alleen tickets/combi's/munten gaat
+automatisch naar Geleverd, met de maildatum als leverdatum. Event-taal in de orderlijst
+(Wacht op betaling / Tickets verstuurd). Gemengde bestellingen (ticket + fysiek product)
+volgen de gewone flow.
+
+**i18n-keys.** `public.changelog.changes.ticket_orders_auto_complete` — 5 talen.
+
 > Teaser-kanaal: zodra de blogdrafts van 15-10 gepubliceerd zijn, linkt elk item naar zijn
 > artikel (`/blog/<slug>`). Niet versturen vóór publicatie en go van Akke.
 

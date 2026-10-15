@@ -2014,6 +2014,10 @@
         "shipping_health_dashboard_translated": {
           "title": "Expédition, Shop Health et votre tableau de bord dans votre langue",
           "description": "La fenêtre de configuration d'un mode d'expédition, les régions prédéfinies (UE, Benelux, Europe hors UE), Shop Health et les widgets de votre tableau de bord utilisent désormais la langue choisie dans votre profil. Les noms de pays et les dates suivent aussi cette langue."
+        },
+        "ticket_orders_auto_complete": {
+          "title": "Les commandes de billets se clôturent elles-mêmes",
+          "description": "Plus besoin de traiter une commande qui ne contient que des billets, billets combinés ou jetons : dès qu'elle est payée et que l'e-mail des billets est parti, elle passe automatiquement en Livrée. Les commandes de billets affichent aussi des statuts plus clairs : En attente de paiement et Billets envoyés. Les commandes contenant aussi un produit physique suivent le flux d'expédition normal."
         }
       },
       "copyLink": "Copier le lien",
