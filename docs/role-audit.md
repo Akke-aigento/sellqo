@@ -17,6 +17,8 @@
 
 **Verificatie:** deno test 36/36 (nieuw: runner gelukt, tijdelijke fout, leesmodus, reel in verwerking), toegevoegd aan CI; deno check op beide functies; tsc, build, lint, i18n-pariteit.
 
+**Live (16 okt, 00:05):** claim-functie en helpartikel via query_database (`authenticated` heeft geen execute-recht op de claim, nagetrokken; artikel md5 0692948d…, gelijk aan de migratie). social-publish-due en social-post-publish gedeployd (Lovable-agent, deploy-only, 0,7 credits). Rooktest: cron-pad na de refactor → 200 `{claimed:0,…,reminded:0}`; social-post-publish met postId zonder token → 401. Open: frontend publiceren in Lovable; de eerste echte "Nu posten" is de eindtest.
+
 **Bewust ongemoeid / Vervolg:** geen "Nu posten" voor zelf te posten items (sticker, eigen muziek): daar post je zelf in de app.
 
 ## SOCIAL-4b — Bekijken/downloaden per beeld en "Taal veranderen" (2026.11z) — 15 oktober 2026
