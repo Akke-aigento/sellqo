@@ -6794,6 +6794,16 @@
         "review": "Traduit en {{language}}. Adaptez si nécessaire.",
         "resultHint": "Voici comment la publication sera mise en ligne. Si quelque chose ne va pas, revenez en arrière.",
         "saved": "Version traduite enregistrée"
+      },
+      "postNow": {
+        "button": "Publier maintenant",
+        "title": "Publier maintenant ?",
+        "body": "Cette publication est mise en ligne immédiatement, sans attendre l'heure prévue. Vous l'approuvez ainsi également. Une fois en ligne, vous ne pouvez la retirer que dans l'app elle-même.",
+        "confirm": "Publier maintenant",
+        "posted": "En ligne",
+        "processing": "Instagram traite encore la vidéo. Elle sera en ligne dans l'heure.",
+        "retry": "Pas possible pour l'instant : {{message}}. SellQo réessaie dans l'heure.",
+        "failed": "Non publié : {{message}}"
       }
     }
   },

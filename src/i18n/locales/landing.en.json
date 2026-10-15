@@ -2046,6 +2046,10 @@
         "social_media_language": {
           "title": "Social planning: view and download every image, and change the language of a post",
           "description": "Under every post you can now view and download each image separately, and for a reel also the video. With \"Change language\" you translate the caption and the text in the images into another language, for example English; you review everything and see the result before saving."
+        },
+        "social_post_now": {
+          "title": "Social planning: post now",
+          "description": "With \"Post now\" you put a post from your Social planning live right away, without waiting for the planned time. If it does not work right away, SellQo tries again within the hour."
         }
       },
       "copyLink": "Copy link",

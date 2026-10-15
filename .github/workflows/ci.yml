@@ -132,7 +132,7 @@ jobs:
       - name: Edge functions (deno test promotiemotor, catalogusfilters en social-publicatie)
         env:
           DENO_NO_PACKAGE_JSON: "1"
-        run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts supabase/functions/_shared/catalogFilters.test.ts supabase/functions/_shared/fulfillmentSlots.test.ts supabase/functions/_shared/productAddons.test.ts supabase/functions/_shared/socialPublish.test.ts supabase/functions/_shared/socialMedia.test.ts
+        run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts supabase/functions/_shared/catalogFilters.test.ts supabase/functions/_shared/fulfillmentSlots.test.ts supabase/functions/_shared/productAddons.test.ts supabase/functions/_shared/socialPublish.test.ts supabase/functions/_shared/socialMedia.test.ts supabase/functions/_shared/socialRunner.test.ts
 
       # R10 (CATALOG-FILTERS-1b): rooktest van de echte storefront-api-functies tegen een
       # thenable nep-databank. Vangt o.a. `await` op een querybuilder, wat deno check mist.

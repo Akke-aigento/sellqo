@@ -2046,6 +2046,10 @@
         "social_media_language": {
           "title": "Social-Planung: jedes Bild ansehen und herunterladen und die Sprache eines Beitrags ändern",
           "description": "Unter jedem Beitrag können Sie jetzt jedes Bild einzeln ansehen und herunterladen, bei einem Reel auch das Video. Mit „Sprache ändern\" übersetzen Sie die Bildunterschrift und den Text in den Bildern in eine andere Sprache, zum Beispiel Englisch; Sie prüfen alles und sehen das Ergebnis vor dem Speichern."
+        },
+        "social_post_now": {
+          "title": "Social-Planung: jetzt posten",
+          "description": "Mit „Jetzt posten\" bringen Sie einen Beitrag aus Ihrer Social-Planung sofort online, ohne auf die geplante Uhrzeit zu warten. Klappt es nicht sofort, versucht SellQo es innerhalb einer Stunde erneut."
         }
       },
       "copyLink": "Link kopieren",

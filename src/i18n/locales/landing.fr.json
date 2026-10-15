@@ -2046,6 +2046,10 @@
         "social_media_language": {
           "title": "Planification sociale : voir et télécharger chaque image, et changer la langue d'une publication",
           "description": "Sous chaque publication, vous pouvez désormais voir et télécharger chaque image séparément, et pour un reel aussi la vidéo. Avec « Changer de langue », vous traduisez la légende et le texte des images dans une autre langue, par exemple l'anglais ; vous vérifiez tout et voyez le résultat avant d'enregistrer."
+        },
+        "social_post_now": {
+          "title": "Planification sociale : publier maintenant",
+          "description": "Avec « Publier maintenant », vous mettez une publication de votre planification sociale en ligne immédiatement, sans attendre l'heure prévue. Si cela ne fonctionne pas tout de suite, SellQo réessaie dans l'heure."
         }
       },
       "copyLink": "Copier le lien",

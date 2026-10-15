@@ -4,6 +4,17 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12a — Nu posten vanuit de Social planning (feature, 16-10-2026)
+
+**Voor wie:** iedereen die de Social planning gebruikt.
+
+"Nu posten" zet een post meteen online, zonder op het geplande uur te wachten. Lukt het niet meteen, dan
+probeert SellQo het binnen het uur opnieuw.
+
+**Samen versturen met** 2026.11w t/m 2026.11z.
+
+**i18n-keys.** `public.changelog.changes.social_post_now` — 5 talen.
+
 ### 2026.11z — Elk beeld bekijken en downloaden, taal van een post veranderen (improvement, 15-10-2026)
 
 **Voor wie:** iedereen die de Social planning gebruikt.

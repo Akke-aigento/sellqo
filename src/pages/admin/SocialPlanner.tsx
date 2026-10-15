@@ -41,7 +41,7 @@ function toLocalParts(iso: string | null): { date: string; time: string } {
 export default function SocialPlanner() {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
-  const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText, saveTranslation } = useSocialPlanner();
+  const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText, saveTranslation, postNow } = useSocialPlanner();
   const { currentTenant } = useTenant();
   const { connections } = useSocialConnections();
 
@@ -57,6 +57,25 @@ export default function SocialPlanner() {
   const [editingImage, setEditingImage] = useState<PlannerPost | null>(null);
   const [viewing, setViewing] = useState<PlannerPost | null>(null);
   const [translating, setTranslating] = useState<PlannerPost | null>(null);
+  const [posting, setPosting] = useState<PlannerPost | null>(null);
+
+  const confirmPostNow = async () => {
+    if (!posting) return;
+    const post = posting;
+    setPosting(null);
+    setBusyId(post.id);
+    try {
+      const outcome = await postNow.mutateAsync(post.id);
+      if (outcome.status === 'posted') toast.success(t('admin.socialPlanner.postNow.posted'));
+      else if (outcome.status === 'processing') toast.info(t('admin.socialPlanner.postNow.processing'));
+      else if (outcome.status === 'retry') toast.warning(t('admin.socialPlanner.postNow.retry', { message: outcome.error }));
+      else toast.error(t('admin.socialPlanner.postNow.failed', { message: outcome.error }));
+    } catch (err) {
+      fail(err);
+    } finally {
+      setBusyId(null);
+    }
+  };
 
   const mediaOf = (post: PlannerPost) => postMedia(post, {
     image: (n) => t('admin.socialPlanner.media.image', { n }),
@@ -239,6 +258,7 @@ export default function SocialPlanner() {
                     onEditImageText={() => setEditingImage(post)}
                     onViewMedia={() => setViewing(post)}
                     onTranslate={() => setTranslating(post)}
+                    onPostNow={() => setPosting(post)}
                     media={mediaOf(post)}
                   />
                 ))}
@@ -358,6 +378,19 @@ export default function SocialPlanner() {
           </div>
         </div>
       </ResponsiveDialog>
+
+      <AlertDialog open={!!posting} onOpenChange={(open) => !open && setPosting(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('admin.socialPlanner.postNow.title')}</AlertDialogTitle>
+            <AlertDialogDescription>{t('admin.socialPlanner.postNow.body')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPostNow}>{t('admin.socialPlanner.postNow.confirm')}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!removing} onOpenChange={(open) => !open && setRemoving(null)}>
         <AlertDialogContent>

@@ -7031,6 +7031,16 @@
         "review": "Translated to {{language}}. Adjust where needed.",
         "resultHint": "This is how the post will go live. If something is off, go back.",
         "saved": "Translated version saved"
+      },
+      "postNow": {
+        "button": "Post now",
+        "title": "Post now?",
+        "body": "This post goes live right away, without waiting for the planned time. This also approves it. Once it is live, you can only remove it in the app itself.",
+        "confirm": "Post now",
+        "posted": "Live now",
+        "processing": "Instagram is still processing the video. It will be live within the hour.",
+        "retry": "Did not work right now: {{message}}. SellQo will try again within the hour.",
+        "failed": "Not published: {{message}}"
       }
     }
   },

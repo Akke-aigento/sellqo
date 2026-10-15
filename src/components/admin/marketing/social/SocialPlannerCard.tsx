@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import {
   AlertTriangle, Check, CheckCircle2, Clock, Copy, Download, Eye, Facebook, Images,
-  Instagram, Languages, Linkedin, Loader2, Music, Pencil, RefreshCw, Trash2, Twitter, Type,
+  Instagram, Languages, Linkedin, Loader2, Music, Pencil, RefreshCw, Send, Trash2, Twitter, Type,
 } from 'lucide-react';
 import { downloadMedia, mediaFileName } from '@/lib/social/download';
 import { mediaBaseName, type MediaItem } from '@/lib/social/media';
@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { GatedButton } from '@/components/permissions/GatedButton';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { cn } from '@/lib/utils';
-import { canAutoApprove, canRegenerate, type PlannerPost, type PlannerStatus } from '@/hooks/useSocialPlanner';
+import { canAutoApprove, canPostNow, canRegenerate, type PlannerPost, type PlannerStatus } from '@/hooks/useSocialPlanner';
 
 const PLATFORM_ICON: Record<string, typeof Instagram> = {
   instagram: Instagram,
@@ -60,12 +60,13 @@ interface Props {
   onEditImageText: () => void;
   onViewMedia: () => void;
   onTranslate: () => void;
+  onPostNow: () => void;
   media: MediaItem[];
 }
 
 export function SocialPlannerCard({
   post, busy, onApprove, onEdit, onRemove, onMarkPosted, onChooseOwnMusic, onRegenerate, onEditImageText,
-  onViewMedia, onTranslate, media,
+  onViewMedia, onTranslate, onPostNow, media,
 }: Props) {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
@@ -282,6 +283,12 @@ export function SocialPlannerCard({
             <GatedButton action="write" resource="marketing" size="sm" className={cn('flex-1 min-w-[8rem]', isReel && 'basis-full')} onClick={onApprove} disabled={busy}>
               {busy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
               {isReel ? t('admin.socialPlanner.approveAuto') : t('admin.socialPlanner.approve')}
+            </GatedButton>
+          )}
+          {canPostNow(post) && (
+            <GatedButton action="write" resource="marketing" variant="outline" size="sm" className="flex-1 min-w-[8rem]" onClick={onPostNow} disabled={busy}>
+              <Send className="h-4 w-4 mr-1" />
+              {t('admin.socialPlanner.postNow.button')}
             </GatedButton>
           )}
           {canOwnMusic && (

@@ -68,6 +68,12 @@ export function canAutoApprove(post: Pick<PlannerPost, 'status' | 'media_type' |
   return post.media_type !== 'reel' || !!post.video_url;
 }
 
+/** SOCIAL-4c: "Nu posten" kan voor alles wat SellQo zelf publiceert en nog niet online staat. */
+export function canPostNow(post: Pick<PlannerPost, 'status' | 'media_type' | 'video_url'>): boolean {
+  if (!['pending_approval', 'draft', 'approved', 'scheduled', 'failed'].includes(post.status)) return false;
+  return post.media_type !== 'reel' || !!post.video_url;
+}
+
 /**
  * SOCIAL-3: "Opnieuw maken" bestaat enkel voor posts van de contentpijplijn (source
  * content_task): daar draait een taak die verzoeken oppikt. Bij eigen posts zou de knop
@@ -304,6 +310,31 @@ export function useSocialPlanner() {
     onSuccess: invalidate,
   });
 
+  /** SOCIAL-4c: meteen publiceren via social-post-publish (zelfde stappen als de cron). */
+  const postNow = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase.functions.invoke('social-post-publish', {
+        body: { tenantId, postId: id },
+      });
+      if (error) {
+        const ctx = (error as { context?: Response }).context;
+        let message = error.message;
+        try {
+          const body = ctx ? await ctx.json() : null;
+          if (body?.error) message = body.error;
+        } catch {
+          // geen JSON
+        }
+        throw new Error(message);
+      }
+      return (data?.outcome ?? { status: 'failed', error: data?.error ?? 'Onbekende fout' }) as
+        | { status: 'posted' }
+        | { status: 'processing' }
+        | { status: 'retry' | 'failed'; error: string };
+    },
+    onSettled: invalidate,
+  });
+
   /** Een post die je zelf geplaatst hebt (bv. story met sticker) afvinken. */
   const markPosted = useMutation({
     mutationFn: async (id: string) => {
@@ -317,5 +348,5 @@ export function useSocialPlanner() {
     onSuccess: invalidate,
   });
 
-  return { posts, weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText, saveTranslation };
+  return { posts, weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText, saveTranslation, postNow };
 }

@@ -6,6 +6,7 @@ import { requireBillingState } from "../_shared/billingGuard.ts";
 // (social-publish-due). Hier blijft enkel het aanvragen: meteen posten of inplannen.
 import { publishPost, resolveTarget, type SocialMediaType, type SocialPlatform } from "../_shared/socialPublish.ts";
 import { prepareInstagramImages } from "../_shared/socialMedia.ts";
+import { runClaimedPost, type ClaimedPost } from "../_shared/socialRunner.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -20,6 +21,8 @@ interface PostRequest {
   scheduledFor?: string;
   contentId?: string;
   mediaType?: SocialMediaType;
+  /** SOCIAL-4c: een bestaande post uit de Social planning nu publiceren ("Nu posten"). */
+  postId?: string;
 }
 
 const PLATFORMS: readonly SocialPlatform[] = ['facebook', 'instagram', 'twitter', 'linkedin'];
@@ -31,9 +34,36 @@ serve(async (req) => {
   }
 
   try {
-    const { tenantId, platform, text, imageUrls, scheduledFor, contentId, mediaType }: PostRequest = await req.json();
+    const { tenantId, platform, text, imageUrls, scheduledFor, contentId, mediaType, postId }: PostRequest = await req.json();
     const auth = await authenticateRequest(req, tenantId);
     requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
+
+    // SOCIAL-4c: "Nu posten" — bestaande post claimen en meteen publiceren, met exact
+    // dezelfde stappen als de uurlijkse cron (_shared/socialRunner.ts).
+    if (postId) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const admin = createClient(supabaseUrl, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+      await requireBillingState(admin, auth, tenantId, "social_channels");
+      const userId = auth.user_id && auth.user_id !== 'service_role' ? auth.user_id : null;
+      const { data: claimed, error: claimError } = await admin.rpc('social_claim_post_now', {
+        p_post_id: postId,
+        p_tenant_id: tenantId,
+        p_user_id: userId,
+      });
+      if (claimError) throw claimError;
+      const post = (claimed ?? [])[0] as ClaimedPost | undefined;
+      if (!post) {
+        return new Response(
+          JSON.stringify({ error: 'Deze post kan nu niet gepubliceerd worden (al online, bezig, of zelf te posten).' }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const outcome = await runClaimedPost(admin, post, { ownHost: new URL(supabaseUrl).host });
+      return new Response(
+        JSON.stringify({ success: outcome.status === 'posted', outcome }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (!tenantId || !platform || !text) {
       return new Response(

@@ -1,3 +1,24 @@
+## SOCIAL-4c — "Nu posten" in de Social planning (2026.12a) — 16 oktober 2026
+
+**Waarom.** Akke wil een post op elk moment meteen online kunnen zetten.
+
+**Recon:** `social-post-publish` kon enkel nieuwe posts maken (meteen of ingepland), niet een bestaande post publiceren. De publicatielogica van één post zat in `social-publish-due` (cron). Twee kopieën zouden uit elkaar lopen; dus eerst uitgetild naar een gedeelde module.
+
+**Uitgevoerd:**
+- `supabase/functions/_shared/socialRunner.ts` (nieuw): `runClaimedPost` = het volledige pad voor één geclaimde post (leesmodus, platform, target, reelvideo, beelden, publiceren, posted / terug naar vorige status / processing / failed + melding). Gedrag ongewijzigd t.o.v. de cron, behalve de link in de foutmelding (nu `/admin/marketing/social`).
+- `social-publish-due`: gebruikt `runClaimedPost` (lus van ±110 regels → 10).
+- `supabase/migrations/20261015230000_social_4c_post_now.sql`: `social_claim_post_now(post, tenant, user)` (SECURITY DEFINER, enkel service_role): atomische claim van één post (statussen pending_approval/draft/approved/scheduled/failed; reels enkel met muziekversie), registreert goedkeuring, `scheduled_for = now()` zodat een nieuwe poging binnen het uur komt.
+- `social-post-publish`: nieuwe tak `{ tenantId, postId }`: rol + leesmodus-check, claim, `runClaimedPost`, uitkomst terug.
+- Frontend: knop "Nu posten" (`canPostNow`), bevestiging (meteen online, keurt goed, enkel in de app te verwijderen), toast per uitkomst. i18n × 5; changelog `social_post_now` × 5; helpartikel; nieuwsbrief.
+
+**Security-keuzes:** de claim-functie is niet aanroepbaar door gebruikers (enkel service_role); `social-post-publish` controleert rol (tenant_admin/staff/marketing) en dat de post bij de winkel hoort (in de claim). Geen policies gewijzigd.
+
+**Gedeelde-paden-waarschuwing:** `_shared/socialRunner.ts` is nieuw en wordt gebruikt door `social-publish-due` en `social-post-publish`; beide gedeployd. De cron-functie draait inhoudelijk dezelfde stappen (tests).
+
+**Verificatie:** deno test 36/36 (nieuw: runner gelukt, tijdelijke fout, leesmodus, reel in verwerking), toegevoegd aan CI; deno check op beide functies; tsc, build, lint, i18n-pariteit.
+
+**Bewust ongemoeid / Vervolg:** geen "Nu posten" voor zelf te posten items (sticker, eigen muziek): daar post je zelf in de app.
+
 ## SOCIAL-4b — Bekijken/downloaden per beeld en "Taal veranderen" (2026.11z) — 15 oktober 2026
 
 **Waarom.** Akke: elk beeld moet apart te bekijken en te downloaden zijn, en "taal veranderen" moest bij elke post zichtbaar zijn (in SOCIAL-3b zat het enkel verstopt in "Opnieuw maken").

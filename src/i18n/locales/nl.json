@@ -7045,6 +7045,16 @@
         "review": "Vertaald naar {{language}}. Pas aan waar nodig.",
         "resultHint": "Zo gaat de post online. Klopt iets niet, ga dan terug.",
         "saved": "Vertaalde versie bewaard"
+      },
+      "postNow": {
+        "button": "Nu posten",
+        "title": "Nu posten?",
+        "body": "Deze post gaat meteen online, zonder te wachten op het geplande uur. Daarmee keur je hem ook goed. Wat online staat, haal je enkel in de app zelf weer weg.",
+        "confirm": "Nu posten",
+        "posted": "Staat online",
+        "processing": "Instagram verwerkt de video nog. Hij staat binnen het uur online.",
+        "retry": "Lukte nu niet: {{message}}. SellQo probeert het binnen het uur opnieuw.",
+        "failed": "Niet gepubliceerd: {{message}}"
       }
     }
   },

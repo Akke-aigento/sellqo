@@ -6794,6 +6794,16 @@
         "review": "Übersetzt nach {{language}}. Passen Sie bei Bedarf an.",
         "resultHint": "So geht der Beitrag online. Stimmt etwas nicht, gehen Sie zurück.",
         "saved": "Übersetzte Version gespeichert"
+      },
+      "postNow": {
+        "button": "Jetzt posten",
+        "title": "Jetzt posten?",
+        "body": "Dieser Beitrag geht sofort online, ohne auf die geplante Uhrzeit zu warten. Damit genehmigen Sie ihn auch. Was online ist, können Sie nur in der App selbst wieder entfernen.",
+        "confirm": "Jetzt posten",
+        "posted": "Ist online",
+        "processing": "Instagram verarbeitet das Video noch. Es ist innerhalb einer Stunde online.",
+        "retry": "Hat gerade nicht geklappt: {{message}}. SellQo versucht es innerhalb einer Stunde erneut.",
+        "failed": "Nicht veröffentlicht: {{message}}"
       }
     }
   },

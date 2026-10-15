@@ -2046,6 +2046,10 @@
         "social_media_language": {
           "title": "Social planning: elk beeld bekijken en downloaden, en de taal van een post veranderen",
           "description": "Onder elke post bekijk en download je nu elk beeld apart, en bij een reel ook de video. Met \"Taal veranderen\" vertaal je de caption en de tekst in de beelden naar een andere taal, bijvoorbeeld Engels; je kijkt alles na en ziet het resultaat voor je bewaart."
+        },
+        "social_post_now": {
+          "title": "Social planning: een post nu posten",
+          "description": "Met \"Nu posten\" zet je een post uit je Social planning meteen online, zonder op het geplande uur te wachten. Lukt het niet meteen, dan probeert SellQo het binnen het uur opnieuw."
         }
       },
       "copyLink": "Kopieer link",
