@@ -41,6 +41,8 @@
 3. Secrets: META_APP_ID, META_APP_SECRET, INSTAGRAM_APP_ID, INSTAGRAM_APP_SECRET, SOCIAL_PLATFORM_APP_TENANT_IDS = de vijf Nomadix-tenants.
 4. In één brand (Loveke) Instagram koppelen, één post inplannen op het volgende uur, na de run van :01 nakijken (status posted + platform_post_id).
 
+**Live gezet (15-10, 16:40-16:55):** main fast-forward naar c0f7b73. Migratie 20261015170000 en het helpartikel uitgevoerd via query_database; nagetrokken: 9 kolommen, media_type-check, partiële index, claim-functie (execute enkel service_role), cronjobs social-publish-due-hourly en social-token-refresh-daily actief, doc_article social-posts-inplannen gepubliceerd (md5 content 14ee9aa9…). De vier functies via de Lovable-agent gedeployed (0,8 credits, geen bestandswijzigingen; de agent-commit 61645f0 is enkel de geregenereerde types.ts). Rooktest via net.http_post: social-publish-due met x-cron-secret → 200 `{claimed:0}`, zonder secret → 401. Frontend: publiceren in Lovable (Akke).
+
 **Bewust ongemoeid / Vervolg:**
 - SOCIAL-2: goedkeurings-UI ("week goedkeuren" voor pending_approval), media naar SellQo-storage kopiëren, statusbadges voor de nieuwe statussen in de Contentkalender.
 - SOCIAL-3: insights (engagement_data), LinkedIn-bedrijfspagina's (Posts API + w_organization_social), App Review voor externe tenants.
