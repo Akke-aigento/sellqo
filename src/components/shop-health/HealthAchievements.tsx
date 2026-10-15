@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Trophy } from 'lucide-react';
 import type { Achievement } from '@/lib/healthScoreCalculator';
@@ -7,6 +8,7 @@ interface HealthAchievementsProps {
 }
 
 export function HealthAchievements({ achievements }: HealthAchievementsProps) {
+  const { t } = useTranslation();
   if (achievements.length === 0) {
     return null;
   }
@@ -16,7 +18,7 @@ export function HealthAchievements({ achievements }: HealthAchievementsProps) {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <Trophy className="h-5 w-5 text-amber-500" />
-          Prestaties deze week
+          {t('admin.shopHealth.achievements_title')}
         </CardTitle>
       </CardHeader>
       <CardContent>

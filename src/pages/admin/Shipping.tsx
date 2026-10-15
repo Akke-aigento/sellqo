@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Plus,
   Truck,
@@ -48,6 +49,7 @@ import { useShippingMethods } from "@/hooks/useShippingMethods";
 import type { ShippingMethod, ShippingMethodFormData } from "@/types/shipping";
 
 export default function ShippingPage() {
+  const { t, i18n } = useTranslation();
   const {
     shippingMethods,
     isLoading,
@@ -236,7 +238,7 @@ export default function ShippingPage() {
                           </Badge>
                         )}
                         <Badge variant="outline" className="text-xs">
-                          {summarizeCountries(method.countries)}
+                          {summarizeCountries(method.countries, t, i18n.language)}
                         </Badge>
                       </div>
                       {method.description && (

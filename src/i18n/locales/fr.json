@@ -1469,7 +1469,16 @@
     "standard": "Livraison standard",
     "express": "Livraison express",
     "pickup": "Retrait en magasin",
-    "vat_rate": "Taux de TVA"
+    "vat_rate": "Taux de TVA",
+    "regions": {
+      "eu": "UE (27)",
+      "benelux": "Benelux",
+      "europe_non_eu": "Europe hors UE",
+      "europe": "Toute l'Europe",
+      "worldwide": "Monde entier",
+      "all_countries": "Tous les pays",
+      "country_count": "{{count}} pays"
+    }
   },
   "archive": {
     "title": "Archives de factures",
@@ -6384,6 +6393,186 @@
       "attention_description": "Ces documents attendent d'être envoyés ou nécessitent une action manuelle dans Peppol/Odoo.",
       "invoice_label": "Facture {{number}}",
       "credit_note_label": "Note de crédit {{number}}"
+    },
+    "shippingMethodDialog": {
+      "title_edit": "Modifier la méthode d'expédition",
+      "title_new": "Nouvelle méthode d'expédition",
+      "name_placeholder": "Livraison standard",
+      "description_placeholder": "Décrivez la méthode d'expédition...",
+      "price_label": "Prix (€)",
+      "free_above_label": "Gratuit au-delà de (€)",
+      "optional": "Facultatif",
+      "free_above_hint": "Laissez vide pour ne pas offrir la livraison gratuite",
+      "days_min": "Jours min.",
+      "days_max": "Jours max.",
+      "countries_label": "Pays d'expédition",
+      "countries_hint": "Choisissez les pays auxquels cette méthode s'applique. Rien de coché = tous les pays. Au paiement, les clients ne voient que les pays pour lesquels une méthode d'expédition existe.",
+      "clear": "Effacer",
+      "country_search_placeholder": "Rechercher un pays (p. ex. Ukraine ou UA)",
+      "shipping_class_label": "Classe d'expédition",
+      "shipping_class_placeholder": "Choisissez une classe d'expédition",
+      "shipping_class_none": "Aucune (s'applique à tous les produits)",
+      "shipping_class_option": "{{name}} ({{count}} produit(s))",
+      "shipping_class_hint": "Choisissez « Aucune » si cette méthode s'applique à tous les produits. Avec une classe, cette méthode n'est disponible que si le panier contient un produit de cette classe.",
+      "link_products": "Associer des produits",
+      "active_label": "Active",
+      "active_hint": "Afficher cette méthode d'expédition aux clients",
+      "default_label": "Par défaut",
+      "default_hint": "Utiliser comme méthode d'expédition par défaut",
+      "update": "Mettre à jour",
+      "validation": {
+        "name_required": "Le nom est obligatoire",
+        "price_min": "Le prix doit être de 0 ou plus"
+      }
+    },
+    "shopHealth": {
+      "messages": {
+        "orders": {
+          "healthy": "Tous les colis sont en route ! Vos clients sont satisfaits. 📦",
+          "attention": "{{count}} commandes vous attendent - elles n'attendent que d'être expédiées !",
+          "warning": "{{count}} clients attendent leur commande. Il est temps d'agir !",
+          "critical": "{{count}} clients attendent depuis plus de 48 heures. Action immédiate requise ! 🚨"
+        },
+        "inventory": {
+          "healthy": "Le stock est au top ! Tout est prêt à expédier. ✅",
+          "attention": "{{count}} meilleure(s) vente(s) bientôt épuisée(s) - pensez à réapprovisionner !",
+          "warning": "{{count}} produits ont un stock faible. Réapprovisionnez vite !",
+          "critical": "Vos produits les plus populaires sont en rupture ! 😱"
+        },
+        "customerService": {
+          "healthy": "Vos clients se sentent écoutés - tous les messages ont reçu une réponse ! 💬",
+          "attention": "{{count}} client(s) en attente d'une réponse",
+          "warning": "{{count}} clients attendent une réponse depuis plus de 24 heures",
+          "critical": "Vos clients perdent patience - {{count}} messages sans réponse ! 📩"
+        },
+        "finance": {
+          "healthy": "Finances en ordre ! 0 € impayé. 💰",
+          "attention": "€{{amount}} de factures impayées - envoyer un rappel ?",
+          "warning": "€{{amount}} de factures en retard - action requise",
+          "critical": "Problèmes de paiement détectés ! Vérifiez votre statut Stripe. 💳"
+        },
+        "seo": {
+          "healthy": "Google vous voit ! Score SEO : {{score}}/100 🔍",
+          "attention": "{{count}} produits n'ont pas de méta-description - facile à corriger !",
+          "warning": "Votre SEO peut mieux faire - score : {{score}}/100. Des améliorations sont possibles.",
+          "critical": "Vos produits sont invisibles pour Google ! Action SEO nécessaire."
+        },
+        "compliance": {
+          "healthy": "Votre boutique est 100 % conforme et professionnelle ! ⚖️",
+          "attention": "Encore {{count}} page(s) légale(s) nécessaire(s) pour une conformité complète",
+          "warning": "{{count}} pages obligatoires manquantes - risque !",
+          "critical": "Des pages légales manquent ! Elles sont obligatoires. ⚠️"
+        }
+      },
+      "overall": {
+        "excellent_1": "Votre boutique déborde d'énergie ! 🔥",
+        "excellent_2": "Waouh, votre boutique est en pleine forme ! 🏆",
+        "excellent_3": "Vous êtes en feu ! Tout fonctionne parfaitement ! 💪",
+        "healthy_1": "Votre boutique est en bonne santé et tourne bien ! 💚",
+        "healthy_2": "Beau travail ! Votre boutique est en bonne posture.",
+        "healthy_3": "Performances solides ! Vous êtes sur la bonne voie.",
+        "attention_1": "Quelques points demandent votre attention 🟡",
+        "attention_2": "Presque parfait ! Quelques petites améliorations restent possibles.",
+        "attention_3": "Votre boutique tourne, mais elle peut encore progresser.",
+        "warning_1": "Votre boutique a besoin d'un peu d'attention 🧡",
+        "warning_2": "Certains problèmes demandent votre attention.",
+        "warning_3": "Une action est requise pour garder votre boutique en bonne santé.",
+        "critical_1": "Action immédiate requise ! 🔴",
+        "critical_2": "Votre boutique a besoin d'aide de toute urgence !",
+        "critical_3": "Problèmes critiques détectés - résolvez-les rapidement !"
+      },
+      "pulse": {
+        "morning_1": "Bonjour ! Nouveau jour, nouvelles opportunités ☀️",
+        "morning_2": "Debout ! C'est l'heure de vendre 🌅",
+        "morning_3": "Bonjour ! Votre boutique vous attend.",
+        "afternoon_1": "Bon après-midi ! Comment vont les ventes ? 🛍️",
+        "afternoon_2": "À mi-journée - restez concentré ! 💪",
+        "afternoon_3": "Point de mi-journée : vous vous en sortez bien !",
+        "evening_1": "Bonsoir ! Encore quelques dernières tâches à régler ? 🌙",
+        "evening_2": "Il est temps de faire le bilan de la journée.",
+        "evening_3": "Presque fini pour aujourd'hui - demain, une nouvelle chance !",
+        "night_1": "Encore au travail à cette heure ? Le repos compte aussi ! 😴",
+        "night_2": "Visite nocturne ! Votre boutique est ouverte 24 h/24, 7 j/7."
+      },
+      "categories": {
+        "orders": "Commandes",
+        "inventory": "Stock",
+        "customerService": "Service client",
+        "finance": "Paiements",
+        "seo": "SEO & visibilité",
+        "compliance": "Conformité"
+      },
+      "priority": {
+        "urgent": "URGENT",
+        "medium": "MOYEN",
+        "tip": "ASTUCE"
+      },
+      "items": {
+        "pending_processing": "En attente de traitement",
+        "overdue_48h": "En retard (48 h et plus)",
+        "shipped_today": "Expédiées aujourd'hui",
+        "out_of_stock": "En rupture",
+        "low_stock": "Stock faible",
+        "without_image": "Sans image",
+        "active_products": "Produits actifs",
+        "unanswered_48h": "Sans réponse (48 h et plus)",
+        "unanswered_24h": "Sans réponse (24 h et plus)",
+        "awaiting_reply": "En attente de réponse",
+        "all_answered": "Tous les messages ont une réponse",
+        "open_quotes": "Devis en attente",
+        "overdue_invoices": "Factures en retard",
+        "outstanding": "Impayé",
+        "seo_score": "Score SEO",
+        "without_meta": "Sans méta-description",
+        "without_alt": "Sans texte alternatif",
+        "setup_wizard": "Assistant de configuration",
+        "legal_pages": "Pages légales",
+        "company_info": "Coordonnées de l'entreprise"
+      },
+      "actions": {
+        "view": "Voir",
+        "process_now": "Traiter maintenant",
+        "restock": "Réapprovisionner",
+        "add": "Ajouter",
+        "reply": "Répondre",
+        "connect": "Connecter",
+        "improve": "Améliorer",
+        "analyze": "Analyser",
+        "complete": "Compléter",
+        "finish": "Terminer",
+        "create": "Créer"
+      },
+      "values": {
+        "not_connected": "Non connecté",
+        "active": "Actif ✓",
+        "not_analyzed": "Non analysé",
+        "not_completed": "Non terminé",
+        "completed": "Terminé ✓",
+        "incomplete": "Incomplet"
+      },
+      "achievements": {
+        "new_customers": "{{count}} nouveaux clients cette semaine",
+        "packages_shipped": "{{count}} colis expédiés",
+        "best_day": "Meilleur jour : {{day}}",
+        "today_revenue": "Chiffre d'affaires du jour",
+        "week_revenue": "Chiffre d'affaires de la semaine"
+      },
+      "achievements_title": "Réussites de la semaine",
+      "actions_empty_title": "Tout est sous contrôle !",
+      "actions_empty_body": "Aucune action en attente. Votre boutique tourne parfaitement ! 🎉",
+      "actions_title": "Actions à mener ({{count}})",
+      "score": "Score : {{score}}/{{max}}",
+      "today_revenue": "{{amount}} de chiffre d'affaires aujourd'hui",
+      "today_orders": "Commandes : {{count}}",
+      "today_new_customers": "Nouveaux clients : {{count}}",
+      "status": {
+        "healthy": "Sain",
+        "attention": "Attention",
+        "warning": "Avertissement",
+        "critical": "Critique"
+      },
+      "trend_title": "Tendance (7 jours)",
+      "week_total": "Total de la semaine"
     }
   },
   "billing": {

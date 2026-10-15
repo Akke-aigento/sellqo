@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,18 +13,19 @@ interface HealthActionListProps {
 }
 
 export function HealthActionList({ actionItems }: HealthActionListProps) {
+  const { t } = useTranslation();
   if (actionItems.length === 0) {
     return (
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <CheckCircle2 className="h-5 w-5 text-emerald-500" />
-            Alles onder controle!
+            {t('admin.shopHealth.actions_empty_title')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            Er zijn geen openstaande actiepunten. Je winkel draait perfect! 🎉
+            {t('admin.shopHealth.actions_empty_body')}
           </p>
         </CardContent>
       </Card>
@@ -35,7 +37,7 @@ export function HealthActionList({ actionItems }: HealthActionListProps) {
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-amber-500" />
-          Actie-items ({actionItems.length})
+          {t('admin.shopHealth.actions_title', { count: actionItems.length })}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -57,7 +59,7 @@ export function HealthActionList({ actionItems }: HealthActionListProps) {
                 variant="outline"
                 className={cn('shrink-0 text-xs', priorityConfig.className)}
               >
-                {priorityConfig.label}
+                {t(priorityConfig.labelKey)}
               </Badge>
               
               {/* Content */}

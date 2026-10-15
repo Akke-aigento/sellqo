@@ -1469,7 +1469,16 @@
     "standard": "Standardlieferung",
     "express": "Expresslieferung",
     "pickup": "Abholung im Geschäft",
-    "vat_rate": "MwSt-Satz"
+    "vat_rate": "MwSt-Satz",
+    "regions": {
+      "eu": "EU (27)",
+      "benelux": "Benelux",
+      "europe_non_eu": "Europa (ohne EU)",
+      "europe": "Ganz Europa",
+      "worldwide": "Weltweit",
+      "all_countries": "Alle Länder",
+      "country_count": "{{count}} Länder"
+    }
   },
   "archive": {
     "title": "Rechnungsarchiv",
@@ -6384,6 +6393,186 @@
       "attention_description": "Diese Dokumente warten auf den Versand oder erfordern eine manuelle Aktion in Peppol/Odoo.",
       "invoice_label": "Rechnung {{number}}",
       "credit_note_label": "Gutschrift {{number}}"
+    },
+    "shippingMethodDialog": {
+      "title_edit": "Versandart bearbeiten",
+      "title_new": "Neue Versandart",
+      "name_placeholder": "Standardversand",
+      "description_placeholder": "Beschreiben Sie die Versandart...",
+      "price_label": "Preis (€)",
+      "free_above_label": "Kostenlos ab (€)",
+      "optional": "Optional",
+      "free_above_hint": "Leer lassen für keinen kostenlosen Versand",
+      "days_min": "Min. Tage",
+      "days_max": "Max. Tage",
+      "countries_label": "Versandländer",
+      "countries_hint": "Wählen Sie, für welche Länder diese Versandart gilt. Nichts ausgewählt = alle Länder. Kunden sehen im Checkout nur Länder, für die es eine Versandart gibt.",
+      "clear": "Zurücksetzen",
+      "country_search_placeholder": "Land suchen (z. B. Ukraine oder UA)",
+      "shipping_class_label": "Versandklasse",
+      "shipping_class_placeholder": "Versandklasse wählen",
+      "shipping_class_none": "Keine (gilt für alle Produkte)",
+      "shipping_class_option": "{{name}} ({{count}} Produkt(e))",
+      "shipping_class_hint": "Wählen Sie „Keine“, wenn diese Versandart für alle Produkte gilt. Mit einer Klasse ist sie nur verfügbar, wenn ein Produkt dieser Klasse im Warenkorb liegt.",
+      "link_products": "Produkte zuordnen",
+      "active_label": "Aktiv",
+      "active_hint": "Diese Versandart Kunden anzeigen",
+      "default_label": "Standard",
+      "default_hint": "Als Standard-Versandart verwenden",
+      "update": "Aktualisieren",
+      "validation": {
+        "name_required": "Name ist erforderlich",
+        "price_min": "Der Preis muss 0 oder höher sein"
+      }
+    },
+    "shopHealth": {
+      "messages": {
+        "orders": {
+          "healthy": "Alle Pakete sind unterwegs! Ihre Kunden sind zufrieden. 📦",
+          "attention": "{{count}} Bestellungen warten auf Sie - bereit für den Versand!",
+          "warning": "{{count}} Kunden warten auf ihre Bestellung. Zeit zu handeln!",
+          "critical": "{{count}} Kunden warten seit über 48 Stunden. Sofortiges Handeln erforderlich! 🚨"
+        },
+        "inventory": {
+          "healthy": "Der Lagerbestand ist top! Alles versandbereit. ✅",
+          "attention": "{{count}} Bestseller werden knapp - Zeit nachzubestellen!",
+          "warning": "{{count}} Produkte haben einen niedrigen Lagerbestand. Bestellen Sie bald nach!",
+          "critical": "Ihre beliebtesten Produkte sind ausverkauft! 😱"
+        },
+        "customerService": {
+          "healthy": "Ihre Kunden fühlen sich gehört - alle Nachrichten beantwortet! 💬",
+          "attention": "{{count}} Kunde(n) warten auf eine Antwort",
+          "warning": "{{count}} Kunden warten seit über 24 Stunden auf eine Antwort",
+          "critical": "Kunden verlieren das Interesse - {{count}} Nachrichten unbeantwortet! 📩"
+        },
+        "finance": {
+          "healthy": "Finanzen in Ordnung! 0 € offen. 💰",
+          "attention": "€{{amount}} an offenen Rechnungen - Erinnerung senden?",
+          "warning": "€{{amount}} an überfälligen Rechnungen - Handlung erforderlich",
+          "critical": "Zahlungsprobleme erkannt! Prüfen Sie Ihren Stripe-Status. 💳"
+        },
+        "seo": {
+          "healthy": "Google sieht Sie! SEO-Score: {{score}}/100 🔍",
+          "attention": "{{count}} Produkten fehlen Meta-Beschreibungen - schnell behoben!",
+          "warning": "Ihr SEO geht besser - Score: {{score}}/100. Es gibt Verbesserungspotenzial.",
+          "critical": "Ihre Produkte sind für Google unsichtbar! SEO-Maßnahmen nötig."
+        },
+        "compliance": {
+          "healthy": "Ihr Shop ist zu 100 % konform und professionell! ⚖️",
+          "attention": "Noch {{count}} Rechtsseite(n) für vollständige Konformität nötig",
+          "warning": "{{count}} Pflichtseiten fehlen - Risiko!",
+          "critical": "Rechtsseiten fehlen! Diese sind Pflicht. ⚠️"
+        }
+      },
+      "overall": {
+        "excellent_1": "Ihr Shop sprüht vor Energie! 🔥",
+        "excellent_2": "Wow, Ihr Shop ist in Topform! 🏆",
+        "excellent_3": "Sie sind on fire! Alles läuft perfekt! 💪",
+        "healthy_1": "Ihr Shop ist gesund und läuft gut! 💚",
+        "healthy_2": "Gut gemacht! Ihr Shop steht stark da.",
+        "healthy_3": "Solide Leistung! Sie sind auf dem richtigen Weg.",
+        "attention_1": "Es gibt ein paar Punkte, die Aufmerksamkeit brauchen 🟡",
+        "attention_2": "Fast perfekt! Ein paar kleine Verbesserungen sind noch möglich.",
+        "attention_3": "Ihr Shop läuft, aber es gibt Luft nach oben.",
+        "warning_1": "Ihr Shop braucht etwas Zuwendung 🧡",
+        "warning_2": "Es gibt Probleme, die Aufmerksamkeit erfordern.",
+        "warning_3": "Handlungsbedarf, damit Ihr Shop gesund bleibt.",
+        "critical_1": "Sofortiges Handeln erforderlich! 🔴",
+        "critical_2": "Ihr Shop braucht dringend Hilfe!",
+        "critical_3": "Kritische Probleme erkannt - beheben Sie sie schnell!"
+      },
+      "pulse": {
+        "morning_1": "Guten Morgen! Neuer Tag, neue Chancen ☀️",
+        "morning_2": "Aufstehen! Zeit zu verkaufen 🌅",
+        "morning_3": "Guten Morgen! Ihr Shop wartet auf Sie.",
+        "afternoon_1": "Guten Tag! Wie läuft der Verkauf? 🛍️",
+        "afternoon_2": "Halbzeit - bleiben Sie fokussiert! 💪",
+        "afternoon_3": "Mittags-Check-in: Sie machen das gut!",
+        "evening_1": "Guten Abend! Noch die letzten Dinge erledigen? 🌙",
+        "evening_2": "Zeit, Bilanz für heute zu ziehen.",
+        "evening_3": "Fast fertig für heute - morgen gibt es eine neue Chance!",
+        "night_1": "Noch spät bei der Arbeit? Ruhe ist auch wichtig! 😴",
+        "night_2": "Nächtlicher Besuch! Ihr Shop ist rund um die Uhr geöffnet."
+      },
+      "categories": {
+        "orders": "Bestellungen",
+        "inventory": "Lagerbestand",
+        "customerService": "Kundenservice",
+        "finance": "Zahlungen",
+        "seo": "SEO & Sichtbarkeit",
+        "compliance": "Compliance"
+      },
+      "priority": {
+        "urgent": "DRINGEND",
+        "medium": "MITTEL",
+        "tip": "TIPP"
+      },
+      "items": {
+        "pending_processing": "Warten auf Bearbeitung",
+        "overdue_48h": "Überfällig (48+ Std.)",
+        "shipped_today": "Heute versendet",
+        "out_of_stock": "Ausverkauft",
+        "low_stock": "Niedriger Lagerbestand",
+        "without_image": "Ohne Bild",
+        "active_products": "Aktive Produkte",
+        "unanswered_48h": "Unbeantwortet (48+ Std.)",
+        "unanswered_24h": "Unbeantwortet (24+ Std.)",
+        "awaiting_reply": "Warten auf Antwort",
+        "all_answered": "Alle Nachrichten beantwortet",
+        "open_quotes": "Offene Angebote",
+        "overdue_invoices": "Überfällige Rechnungen",
+        "outstanding": "Offen",
+        "seo_score": "SEO-Score",
+        "without_meta": "Ohne Meta-Beschreibung",
+        "without_alt": "Ohne Alt-Text",
+        "setup_wizard": "Einrichtungsassistent",
+        "legal_pages": "Rechtsseiten",
+        "company_info": "Unternehmensdaten"
+      },
+      "actions": {
+        "view": "Ansehen",
+        "process_now": "Jetzt bearbeiten",
+        "restock": "Auffüllen",
+        "add": "Hinzufügen",
+        "reply": "Antworten",
+        "connect": "Verbinden",
+        "improve": "Verbessern",
+        "analyze": "Analysieren",
+        "complete": "Ergänzen",
+        "finish": "Abschließen",
+        "create": "Erstellen"
+      },
+      "values": {
+        "not_connected": "Nicht verbunden",
+        "active": "Aktiv ✓",
+        "not_analyzed": "Nicht analysiert",
+        "not_completed": "Nicht abgeschlossen",
+        "completed": "Abgeschlossen ✓",
+        "incomplete": "Unvollständig"
+      },
+      "achievements": {
+        "new_customers": "{{count}} neue Kunden diese Woche",
+        "packages_shipped": "{{count}} Pakete versendet",
+        "best_day": "Bester Tag: {{day}}",
+        "today_revenue": "Umsatz heute",
+        "week_revenue": "Wochenumsatz"
+      },
+      "achievements_title": "Erfolge dieser Woche",
+      "actions_empty_title": "Alles unter Kontrolle!",
+      "actions_empty_body": "Es gibt keine offenen Aufgaben. Ihr Shop läuft perfekt! 🎉",
+      "actions_title": "Aufgaben ({{count}})",
+      "score": "Score: {{score}}/{{max}}",
+      "today_revenue": "Heute {{amount}} Umsatz",
+      "today_orders": "Bestellungen: {{count}}",
+      "today_new_customers": "Neue Kunden: {{count}}",
+      "status": {
+        "healthy": "Gesund",
+        "attention": "Achtung",
+        "warning": "Warnung",
+        "critical": "Kritisch"
+      },
+      "trend_title": "Trend (7 Tage)",
+      "week_total": "Wochensumme"
     }
   },
   "billing": {
@@ -7202,11 +7391,11 @@
       "unlimitedCapacity": "Unbegrenzte Kapazität",
       "minAttendees": "Mindestteilnehmer",
       "save": "Änderungen speichern",
-      "earlyBirdNote": "Den Frühbucherpreis verwaltest du im Tab Termine des Produkts.",
+      "earlyBirdNote": "Den Frühbucherpreis verwalten Sie im Tab Termine des Produkts.",
       "confirmTitle": "Änderung bestätigen",
       "confirmContinue": "Fortfahren",
       "guards": {
-        "hidingStatus": "Dieses Event wird auf {{status}} gesetzt. Es verschwindet dann aus deinem Shop und es können keine neuen Tickets verkauft werden. Bestehende Tickets bleiben gültig.",
+        "hidingStatus": "Dieses Event wird auf {{status}} gesetzt. Es verschwindet dann aus Ihrem Shop und es können keine neuen Tickets verkauft werden. Bestehende Tickets bleiben gültig.",
         "capacityBelowSold": "Es wurden bereits {{sold}} Tickets verkauft. Eine niedrigere Kapazität stoppt neue Verkäufe; bestehende Tickets bleiben gültig."
       }
     },
@@ -7222,7 +7411,7 @@
       "duplicateDesc": "Wähle ein neues Datum und eine neue Uhrzeit. Kapazität, Ort und Ticketarten werden übernommen. Das neue Event steht auf „Geplant\".",
       "duplicateConfirm": "Duplizieren",
       "cancelTitle": "Event absagen?",
-      "cancelDesc": "Dieses Event verschwindet aus deinem Shop und es können keine neuen Tickets verkauft werden. Bestehende Tickets bleiben gültig.",
+      "cancelDesc": "Dieses Event verschwindet aus Ihrem Shop und es können keine neuen Tickets verkauft werden. Bestehende Tickets bleiben gültig.",
       "cancelConfirm": "Ja, absagen",
       "deleteTitle": "Event löschen?",
       "deleteDesc": "Damit wird das Event endgültig gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",

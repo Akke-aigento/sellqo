@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 import type { HealthStatus } from '@/config/healthMessages';
 
@@ -62,12 +63,7 @@ export function HealthStatusIndicator({ status, size = 'md', pulse = false }: He
 }
 
 export function HealthStatusBadge({ status }: { status: HealthStatus }) {
-  const labels: Record<HealthStatus, string> = {
-    healthy: 'Gezond',
-    attention: 'Aandacht',
-    warning: 'Waarschuwing',
-    critical: 'Kritiek',
-  };
+  const { t } = useTranslation();
   
   const colors: Record<HealthStatus, string> = {
     healthy: 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20',
@@ -84,7 +80,7 @@ export function HealthStatusBadge({ status }: { status: HealthStatus }) {
       )}
     >
       <HealthStatusIndicator status={status} size="sm" />
-      {labels[status]}
+      {t(`admin.shopHealth.status.${status}`)}
     </span>
   );
 }

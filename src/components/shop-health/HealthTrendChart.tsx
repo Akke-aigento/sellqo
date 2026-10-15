@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,6 +9,7 @@ interface HealthTrendChartProps {
 }
 
 export function HealthTrendChart({ trends }: HealthTrendChartProps) {
+  const { t } = useTranslation();
   const { labels, values, change } = trends;
   
   if (values.length === 0) {
@@ -25,7 +27,7 @@ export function HealthTrendChart({ trends }: HealthTrendChartProps) {
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-base flex items-center gap-2">
-            📈 Trend (7 dagen)
+            📈 {t('admin.shopHealth.trend_title')}
           </CardTitle>
           <div className={cn('flex items-center gap-1 text-sm font-medium', trendColor)}>
             <TrendIcon className="h-4 w-4" />
@@ -61,7 +63,7 @@ export function HealthTrendChart({ trends }: HealthTrendChartProps) {
         
         {/* Total for the week */}
         <div className="mt-3 pt-3 border-t flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Week totaal</span>
+          <span className="text-sm text-muted-foreground">{t('admin.shopHealth.week_total')}</span>
           <span className="text-sm font-medium">
             €{values.reduce((a, b) => a + b, 0).toFixed(2)}
           </span>

@@ -1441,7 +1441,16 @@
     "standard": "Standaard levering",
     "express": "Express levering",
     "pickup": "Afhalen in winkel",
-    "vat_rate": "BTW-tarief"
+    "vat_rate": "BTW-tarief",
+    "regions": {
+      "eu": "EU (27)",
+      "benelux": "Benelux",
+      "europe_non_eu": "Europa niet-EU",
+      "europe": "Heel Europa",
+      "worldwide": "Wereldwijd",
+      "all_countries": "Alle landen",
+      "country_count": "{{count}} landen"
+    }
   },
   "archive": {
     "title": "Factuurarchief",
@@ -6635,6 +6644,186 @@
       "attention_description": "Deze documenten wachten op verzending of vereisen een handmatige actie in Peppol/Odoo.",
       "invoice_label": "Factuur {{number}}",
       "credit_note_label": "Creditnota {{number}}"
+    },
+    "shippingMethodDialog": {
+      "title_edit": "Verzendmethode bewerken",
+      "title_new": "Nieuwe verzendmethode",
+      "name_placeholder": "Standaard verzending",
+      "description_placeholder": "Beschrijf de verzendmethode...",
+      "price_label": "Prijs (€)",
+      "free_above_label": "Gratis boven (€)",
+      "optional": "Optioneel",
+      "free_above_hint": "Laat leeg voor geen gratis verzending",
+      "days_min": "Min. dagen",
+      "days_max": "Max. dagen",
+      "countries_label": "Verzendlanden",
+      "countries_hint": "Kies naar welke landen deze methode geldt. Niets aanvinken = alle landen. Klanten zien in de checkout enkel landen waar een verzendmethode voor bestaat.",
+      "clear": "Wissen",
+      "country_search_placeholder": "Zoek land (bv. Oekraïne of UA)",
+      "shipping_class_label": "Verzendklasse",
+      "shipping_class_placeholder": "Kies een verzendklasse",
+      "shipping_class_none": "Geen (geldt voor alle producten)",
+      "shipping_class_option": "{{name}} ({{count}} product(en))",
+      "shipping_class_hint": "Kies \"Geen\" als deze methode voor alle producten geldt. Met een klasse is deze methode alleen beschikbaar wanneer er een product uit die klasse in de winkelwagen zit.",
+      "link_products": "Producten koppelen",
+      "active_label": "Actief",
+      "active_hint": "Toon deze verzendmethode aan klanten",
+      "default_label": "Standaard",
+      "default_hint": "Gebruik als standaard verzendmethode",
+      "update": "Bijwerken",
+      "validation": {
+        "name_required": "Naam is verplicht",
+        "price_min": "Prijs moet 0 of hoger zijn"
+      }
+    },
+    "shopHealth": {
+      "messages": {
+        "orders": {
+          "healthy": "Alle pakketjes zijn onderweg! Je klanten zijn blij. 📦",
+          "attention": "{{count}} bestellingen wachten op jou - ze popelen om verzonden te worden!",
+          "warning": "{{count}} klanten wachten op hun bestelling. Tijd om actie te ondernemen!",
+          "critical": "{{count}} klanten wachten al 48+ uur. Directe actie vereist! 🚨"
+        },
+        "inventory": {
+          "healthy": "Voorraad is top! Alles ready to ship. ✅",
+          "attention": "{{count}} bestseller(s) raken op - tijd om bij te bestellen!",
+          "warning": "{{count}} producten hebben lage voorraad. Bestel snel bij!",
+          "critical": "Je populairste producten zijn uitverkocht! 😱"
+        },
+        "customerService": {
+          "healthy": "Klanten voelen zich gehoord - alle berichten beantwoord! 💬",
+          "attention": "{{count}} klant(en) wachten op een antwoord",
+          "warning": "{{count}} klanten wachten al meer dan 24 uur op antwoord",
+          "critical": "Klanten verliezen interesse - {{count}} berichten onbeantwoord! 📩"
+        },
+        "finance": {
+          "healthy": "Financiën op orde! €0 openstaand. 💰",
+          "attention": "€{{amount}} aan openstaande facturen - verstuur een herinnering?",
+          "warning": "€{{amount}} aan achterstallige facturen - actie vereist",
+          "critical": "Betalingsproblemen gedetecteerd! Controleer je Stripe-status. 💳"
+        },
+        "seo": {
+          "healthy": "Google ziet je! SEO-score: {{score}}/100 🔍",
+          "attention": "{{count}} producten missen meta descriptions - snel te fixen!",
+          "warning": "Je SEO kan beter - score: {{score}}/100. Er zijn verbeterpunten.",
+          "critical": "Je producten zijn onzichtbaar voor Google! SEO-actie nodig."
+        },
+        "compliance": {
+          "healthy": "Je winkel is 100% compliant en professioneel! ⚖️",
+          "attention": "Nog {{count}} juridische pagina('s) nodig voor volledige compliance",
+          "warning": "{{count}} verplichte pagina's ontbreken - risico!",
+          "critical": "Juridische pagina's ontbreken! Dit is verplicht. ⚠️"
+        }
+      },
+      "overall": {
+        "excellent_1": "Je winkel bruist van energie! 🔥",
+        "excellent_2": "Wauw, je winkel is in topvorm! 🏆",
+        "excellent_3": "Je bent on fire! Alles loopt perfect! 💪",
+        "healthy_1": "Je winkel is gezond en draait goed! 💚",
+        "healthy_2": "Goed bezig! Je winkel staat er sterk voor.",
+        "healthy_3": "Solide prestaties! Je bent op de goede weg.",
+        "attention_1": "Er zijn een paar aandachtspunten 🟡",
+        "attention_2": "Bijna perfect! Nog een paar kleine verbeteringen mogelijk.",
+        "attention_3": "Je winkel draait, maar er is ruimte voor verbetering.",
+        "warning_1": "Je winkel heeft wat liefde nodig 🧡",
+        "warning_2": "Er zijn problemen die aandacht vragen.",
+        "warning_3": "Actie vereist om je winkel gezond te houden.",
+        "critical_1": "Directe actie vereist! 🔴",
+        "critical_2": "Je winkel heeft dringend hulp nodig!",
+        "critical_3": "Kritieke problemen gedetecteerd - los deze snel op!"
+      },
+      "pulse": {
+        "morning_1": "Goedemorgen! Nieuwe dag, nieuwe kansen ☀️",
+        "morning_2": "Rise and shine! Tijd om te verkopen 🌅",
+        "morning_3": "Goedemorgen! Je winkel wacht op je.",
+        "afternoon_1": "Goedemiddag! Hoe gaat het verkopen? 🛍️",
+        "afternoon_2": "Halverwege de dag - blijf gefocust! 💪",
+        "afternoon_3": "Middag check-in: Je doet het goed!",
+        "evening_1": "Goedeavond! Nog even de laatste zaken afhandelen? 🌙",
+        "evening_2": "Tijd om de balans op te maken voor vandaag.",
+        "evening_3": "Bijna klaar voor vandaag - morgen weer een nieuwe kans!",
+        "night_1": "Nog laat aan het werk? Rust is ook belangrijk! 😴",
+        "night_2": "Nachtelijk bezoek! Je winkel is 24/7 open."
+      },
+      "categories": {
+        "orders": "Bestellingen",
+        "inventory": "Voorraad",
+        "customerService": "Klantservice",
+        "finance": "Betalingen",
+        "seo": "SEO & Zichtbaarheid",
+        "compliance": "Compliance"
+      },
+      "priority": {
+        "urgent": "URGENT",
+        "medium": "MEDIUM",
+        "tip": "TIP"
+      },
+      "items": {
+        "pending_processing": "Wachtend op verwerking",
+        "overdue_48h": "Overdue (48+ uur)",
+        "shipped_today": "Vandaag verzonden",
+        "out_of_stock": "Uitverkocht",
+        "low_stock": "Lage voorraad",
+        "without_image": "Zonder afbeelding",
+        "active_products": "Actieve producten",
+        "unanswered_48h": "Onbeantwoord (48+ uur)",
+        "unanswered_24h": "Onbeantwoord (24+ uur)",
+        "awaiting_reply": "Wachtend op antwoord",
+        "all_answered": "Alle berichten beantwoord",
+        "open_quotes": "Openstaande offertes",
+        "overdue_invoices": "Achterstallige facturen",
+        "outstanding": "Openstaand",
+        "seo_score": "SEO-score",
+        "without_meta": "Zonder meta description",
+        "without_alt": "Zonder alt-tekst",
+        "setup_wizard": "Installatiewizard",
+        "legal_pages": "Juridische pagina's",
+        "company_info": "Bedrijfsgegevens"
+      },
+      "actions": {
+        "view": "Bekijk",
+        "process_now": "Verwerk nu",
+        "restock": "Bijvullen",
+        "add": "Toevoegen",
+        "reply": "Beantwoorden",
+        "connect": "Koppelen",
+        "improve": "Verbeteren",
+        "analyze": "Analyseer",
+        "complete": "Aanvullen",
+        "finish": "Voltooien",
+        "create": "Aanmaken"
+      },
+      "values": {
+        "not_connected": "Niet gekoppeld",
+        "active": "Actief ✓",
+        "not_analyzed": "Niet geanalyseerd",
+        "not_completed": "Niet voltooid",
+        "completed": "Voltooid ✓",
+        "incomplete": "Onvolledig"
+      },
+      "achievements": {
+        "new_customers": "{{count}} nieuwe klanten deze week",
+        "packages_shipped": "{{count}} pakketten verzonden",
+        "best_day": "Beste dag: {{day}}",
+        "today_revenue": "Omzet vandaag",
+        "week_revenue": "Weekomzet"
+      },
+      "achievements_title": "Prestaties deze week",
+      "actions_empty_title": "Alles onder controle!",
+      "actions_empty_body": "Er zijn geen openstaande actiepunten. Je winkel draait perfect! 🎉",
+      "actions_title": "Actie-items ({{count}})",
+      "score": "Score: {{score}}/{{max}}",
+      "today_revenue": "Vandaag {{amount}} omzet",
+      "today_orders": "Bestellingen: {{count}}",
+      "today_new_customers": "Nieuwe klanten: {{count}}",
+      "status": {
+        "healthy": "Gezond",
+        "attention": "Aandacht",
+        "warning": "Waarschuwing",
+        "critical": "Kritiek"
+      },
+      "trend_title": "Trend (7 dagen)",
+      "week_total": "Week totaal"
     }
   },
   "product_form": {

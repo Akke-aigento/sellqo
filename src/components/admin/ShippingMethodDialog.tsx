@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -35,7 +36,7 @@ import { useShippingClasses } from "@/hooks/useShippingClasses";
 import { ShippingClassProductsDialog } from "@/components/admin/shipping/ShippingClassProductsDialog";
 import type { ShippingMethod } from "@/types/shipping";
 import {
-  ALL_SHIPPING_COUNTRIES,
+  localizedCountryOptions,
   REGION_PRESETS,
   summarizeCountries,
 } from "@/lib/shippingRegions";
@@ -43,9 +44,9 @@ import {
 const NO_CLASS = "__none__";
 
 const formSchema = z.object({
-  name: z.string().min(1, "Naam is verplicht"),
+  name: z.string().min(1, "admin.shippingMethodDialog.validation.name_required"),
   description: z.string().optional(),
-  price: z.coerce.number().min(0, "Prijs moet 0 of hoger zijn"),
+  price: z.coerce.number().min(0, "admin.shippingMethodDialog.validation.price_min"),
   free_above: z.coerce.number().nullable().optional(),
   estimated_days_min: z.coerce.number().min(1).optional(),
   estimated_days_max: z.coerce.number().min(1).optional(),
@@ -72,6 +73,7 @@ export function ShippingMethodDialog({
   onSubmit,
   isSubmitting,
 }: ShippingMethodDialogProps) {
+  const { t, i18n } = useTranslation();
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -93,6 +95,11 @@ export function ShippingMethodDialog({
   const [countryQuery, setCountryQuery] = useState("");
   const selectedClassId = form.watch("shipping_class_id");
   const selectedClass = shippingClasses.find((c) => c.id === selectedClassId);
+  // Landnamen in de UI-taal, gesorteerd volgens die taal.
+  const countryOptions = useMemo(
+    () => localizedCountryOptions(null, i18n.language),
+    [i18n.language],
+  );
 
   useEffect(() => {
     if (method) {
@@ -134,7 +141,7 @@ export function ShippingMethodDialog({
       <DialogContent className="max-w-md max-h-[90dvh] flex flex-col overflow-hidden p-0">
         <DialogHeader className="px-6 pt-6">
           <DialogTitle>
-            {method ? "Verzendmethode bewerken" : "Nieuwe verzendmethode"}
+            {method ? t("admin.shippingMethodDialog.title_edit") : t("admin.shippingMethodDialog.title_new")}
           </DialogTitle>
         </DialogHeader>
 
@@ -149,9 +156,9 @@ export function ShippingMethodDialog({
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Naam</FormLabel>
+                  <FormLabel>{t("common.name")}</FormLabel>
                   <FormControl>
-                    <Input placeholder="Standaard verzending" {...field} />
+                    <Input placeholder={t("admin.shippingMethodDialog.name_placeholder")} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -163,10 +170,10 @@ export function ShippingMethodDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Beschrijving</FormLabel>
+                  <FormLabel>{t("common.description")}</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Beschrijf de verzendmethode..."
+                      placeholder={t("admin.shippingMethodDialog.description_placeholder")}
                       {...field}
                     />
                   </FormControl>
@@ -181,7 +188,7 @@ export function ShippingMethodDialog({
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Prijs (€)</FormLabel>
+                    <FormLabel>{t("admin.shippingMethodDialog.price_label")}</FormLabel>
                     <FormControl>
                       <Input type="number" step="0.01" min="0" {...field} />
                     </FormControl>
@@ -195,13 +202,13 @@ export function ShippingMethodDialog({
                 name="free_above"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Gratis boven (€)</FormLabel>
+                    <FormLabel>{t("admin.shippingMethodDialog.free_above_label")}</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         step="0.01"
                         min="0"
-                        placeholder="Optioneel"
+                        placeholder={t("admin.shippingMethodDialog.optional")}
                         {...field}
                         value={field.value ?? ""}
                         onChange={(e) =>
@@ -212,7 +219,7 @@ export function ShippingMethodDialog({
                       />
                     </FormControl>
                     <FormDescription>
-                      Laat leeg voor geen gratis verzending
+                      {t("admin.shippingMethodDialog.free_above_hint")}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -226,7 +233,7 @@ export function ShippingMethodDialog({
                 name="estimated_days_min"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Min. dagen</FormLabel>
+                    <FormLabel>{t("admin.shippingMethodDialog.days_min")}</FormLabel>
                     <FormControl>
                       <Input type="number" min="1" {...field} />
                     </FormControl>
@@ -240,7 +247,7 @@ export function ShippingMethodDialog({
                 name="estimated_days_max"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Max. dagen</FormLabel>
+                    <FormLabel>{t("admin.shippingMethodDialog.days_max")}</FormLabel>
                     <FormControl>
                       <Input type="number" min="1" {...field} />
                     </FormControl>
@@ -265,12 +272,10 @@ export function ShippingMethodDialog({
                   return (
                     <FormItem>
                       <FormLabel className="flex items-center gap-2">
-                        <Globe className="h-4 w-4" /> Verzendlanden
+                        <Globe className="h-4 w-4" /> {t("admin.shippingMethodDialog.countries_label")}
                       </FormLabel>
                       <FormDescription>
-                        Kies naar welke landen deze methode geldt. Niets aanvinken =
-                        alle landen. Klanten zien in de checkout enkel landen waar
-                        een verzendmethode voor bestaat.
+                        {t("admin.shippingMethodDialog.countries_hint")}
                       </FormDescription>
                       <div className="flex flex-wrap gap-2">
                         {REGION_PRESETS.map((preset) => (
@@ -285,7 +290,7 @@ export function ShippingMethodDialog({
                               ])
                             }
                           >
-                            + {preset.label}
+                            + {t(preset.labelKey)}
                           </Button>
                         ))}
                         {selected.length > 0 && (
@@ -295,20 +300,20 @@ export function ShippingMethodDialog({
                             variant="ghost"
                             onClick={() => field.onChange([])}
                           >
-                            Wissen
+                            {t("admin.shippingMethodDialog.clear")}
                           </Button>
                         )}
                       </div>
                       <Badge variant="secondary" className="w-fit">
-                        {summarizeCountries(selected)}
+                        {summarizeCountries(selected, t, i18n.language)}
                       </Badge>
                       <Input
                         value={countryQuery}
                         onChange={(e) => setCountryQuery(e.target.value)}
-                        placeholder="Zoek land (bv. Oekraïne of UA)"
+                        placeholder={t("admin.shippingMethodDialog.country_search_placeholder")}
                       />
                       <div className="max-h-44 space-y-1 overflow-y-auto overscroll-contain rounded-md border p-2">
-                        {ALL_SHIPPING_COUNTRIES.filter((c) => {
+                        {countryOptions.filter((c) => {
                           const q = countryQuery.trim().toLowerCase();
                           if (!q) return true;
                           return (
@@ -340,7 +345,7 @@ export function ShippingMethodDialog({
                 name="shipping_class_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Verzendklasse</FormLabel>
+                    <FormLabel>{t("admin.shippingMethodDialog.shipping_class_label")}</FormLabel>
                     <Select
                       value={field.value ?? NO_CLASS}
                       onValueChange={(v) =>
@@ -349,24 +354,22 @@ export function ShippingMethodDialog({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Kies een verzendklasse" />
+                          <SelectValue placeholder={t("admin.shippingMethodDialog.shipping_class_placeholder")} />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value={NO_CLASS}>
-                          Geen (geldt voor alle producten)
+                          {t("admin.shippingMethodDialog.shipping_class_none")}
                         </SelectItem>
                         {shippingClasses.map((cls) => (
                           <SelectItem key={cls.id} value={cls.id}>
-                            {cls.name} ({cls.product_count} product(en))
+                            {t("admin.shippingMethodDialog.shipping_class_option", { name: cls.name, count: cls.product_count })}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Kies "Geen" als deze methode voor alle producten geldt. Met
-                      een klasse is deze methode alleen beschikbaar wanneer er
-                      een product uit die klasse in de winkelwagen zit.
+                      {t("admin.shippingMethodDialog.shipping_class_hint")}
                     </FormDescription>
                     {selectedClassId && (
                       <Button
@@ -376,7 +379,7 @@ export function ShippingMethodDialog({
                         onClick={() => setProductsDialogOpen(true)}
                       >
                         <Package className="mr-2 h-4 w-4" />
-                        Producten koppelen
+                        {t("admin.shippingMethodDialog.link_products")}
                       </Button>
                     )}
                     <FormMessage />
@@ -390,9 +393,9 @@ export function ShippingMethodDialog({
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between">
                     <div>
-                      <FormLabel>Actief</FormLabel>
+                      <FormLabel>{t("admin.shippingMethodDialog.active_label")}</FormLabel>
                       <FormDescription>
-                        Toon deze verzendmethode aan klanten
+                        {t("admin.shippingMethodDialog.active_hint")}
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -411,9 +414,9 @@ export function ShippingMethodDialog({
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between">
                     <div>
-                      <FormLabel>Standaard</FormLabel>
+                      <FormLabel>{t("admin.shippingMethodDialog.default_label")}</FormLabel>
                       <FormDescription>
-                        Gebruik als standaard verzendmethode
+                        {t("admin.shippingMethodDialog.default_hint")}
                       </FormDescription>
                     </div>
                     <FormControl>
@@ -434,10 +437,10 @@ export function ShippingMethodDialog({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
               >
-                Annuleren
+                {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Opslaan..." : method ? "Bijwerken" : "Toevoegen"}
+                {isSubmitting ? t("common.saving") : method ? t("admin.shippingMethodDialog.update") : t("common.add")}
               </Button>
             </div>
           </form>

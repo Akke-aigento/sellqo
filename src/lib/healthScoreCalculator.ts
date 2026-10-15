@@ -1,4 +1,8 @@
-import { formatMessage, categoryMessages, type HealthStatus, type HealthCategoryId } from '@/config/healthMessages';
+import type { TFunction } from 'i18next';
+import { categoryMessages, categoryInfo, type HealthStatus, type HealthCategoryId } from '@/config/healthMessages';
+
+// I18N-SHIP-HEALTH-1 — alle labels en berichten via t(); bedragen blijven €x.toFixed(2).
+const K = 'admin.shopHealth';
 
 export interface HealthItem {
   label: string;
@@ -90,7 +94,7 @@ function getStatusFromScore(score: number, max: number): HealthStatus {
   return 'critical';
 }
 
-export function calculateOrdersHealth(data: HealthData): HealthCategory {
+export function calculateOrdersHealth(data: HealthData, t: TFunction): HealthCategory {
   const maxScore = 25;
   let score = maxScore;
   const items: HealthItem[] = [];
@@ -100,29 +104,29 @@ export function calculateOrdersHealth(data: HealthData): HealthCategory {
   if (pendingTotal > 0) {
     score -= Math.min(pendingTotal * 2, 10);
     items.push({
-      label: 'Wachtend op verwerking',
+      label: t(`${K}.items.pending_processing`),
       status: pendingTotal > 5 ? 'critical' : pendingTotal > 2 ? 'warning' : 'ok',
       value: pendingTotal,
-      action: { label: 'Bekijk', url: '/admin/orders?status=pending' },
+      action: { label: t(`${K}.actions.view`), url: '/admin/orders?status=pending' },
     });
   } else {
-    items.push({ label: 'Wachtend op verwerking', status: 'ok', value: 0 });
+    items.push({ label: t(`${K}.items.pending_processing`), status: 'ok', value: 0 });
   }
   
   // Overdue orders penalty (max -15 points)
   if (data.ordersOverdue48h > 0) {
     score -= Math.min(data.ordersOverdue48h * 5, 15);
     items.push({
-      label: 'Overdue (48+ uur)',
+      label: t(`${K}.items.overdue_48h`),
       status: 'critical',
       value: data.ordersOverdue48h,
-      action: { label: 'Verwerk nu', url: '/admin/orders?status=pending' },
+      action: { label: t(`${K}.actions.process_now`), url: '/admin/orders?status=pending' },
     });
   }
   
   // Shipped today (bonus awareness)
   if (data.shippedToday > 0) {
-    items.push({ label: 'Vandaag verzonden', status: 'ok', value: data.shippedToday });
+    items.push({ label: t(`${K}.items.shipped_today`), status: 'ok', value: data.shippedToday });
   }
   
   score = Math.max(0, score);
@@ -130,18 +134,18 @@ export function calculateOrdersHealth(data: HealthData): HealthCategory {
   
   let message: string;
   if (status === 'healthy') {
-    message = categoryMessages.orders.healthy;
+    message = t(categoryMessages.orders.healthy);
   } else if (status === 'attention') {
-    message = formatMessage(categoryMessages.orders.attention, { count: pendingTotal });
+    message = t(categoryMessages.orders.attention, { count: pendingTotal });
   } else if (status === 'warning') {
-    message = formatMessage(categoryMessages.orders.warning, { count: pendingTotal });
+    message = t(categoryMessages.orders.warning, { count: pendingTotal });
   } else {
-    message = formatMessage(categoryMessages.orders.critical, { count: data.ordersOverdue48h });
+    message = t(categoryMessages.orders.critical, { count: data.ordersOverdue48h });
   }
   
   return {
     id: 'orders',
-    name: 'Bestellingen',
+    name: t(categoryInfo.orders.nameKey),
     icon: 'ShoppingCart',
     maxScore,
     currentScore: score,
@@ -152,7 +156,7 @@ export function calculateOrdersHealth(data: HealthData): HealthCategory {
   };
 }
 
-export function calculateInventoryHealth(data: HealthData): HealthCategory {
+export function calculateInventoryHealth(data: HealthData, t: TFunction): HealthCategory {
   const maxScore = 20;
   let score = maxScore;
   const items: HealthItem[] = [];
@@ -161,10 +165,10 @@ export function calculateInventoryHealth(data: HealthData): HealthCategory {
   if (data.outOfStockCount > 0) {
     score -= Math.min(data.outOfStockCount * 3, 10);
     items.push({
-      label: 'Uitverkocht',
+      label: t(`${K}.items.out_of_stock`),
       status: 'critical',
       value: data.outOfStockCount,
-      action: { label: 'Bijvullen', url: '/admin/products?stock=out' },
+      action: { label: t(`${K}.actions.restock`), url: '/admin/products?stock=out' },
     });
   }
   
@@ -172,10 +176,10 @@ export function calculateInventoryHealth(data: HealthData): HealthCategory {
   if (data.lowStockCount > 0) {
     score -= Math.min(data.lowStockCount * 1.5, 6);
     items.push({
-      label: 'Lage voorraad',
+      label: t(`${K}.items.low_stock`),
       status: 'warning',
       value: data.lowStockCount,
-      action: { label: 'Bekijk', url: '/admin/products?stock=low' },
+      action: { label: t(`${K}.actions.view`), url: '/admin/products?stock=low' },
     });
   }
   
@@ -183,15 +187,15 @@ export function calculateInventoryHealth(data: HealthData): HealthCategory {
   if (data.productsWithoutImages > 0) {
     score -= Math.min(data.productsWithoutImages * 0.5, 4);
     items.push({
-      label: 'Zonder afbeelding',
+      label: t(`${K}.items.without_image`),
       status: 'warning',
       value: data.productsWithoutImages,
-      action: { label: 'Toevoegen', url: '/admin/products' },
+      action: { label: t(`${K}.actions.add`), url: '/admin/products' },
     });
   }
   
   // Active products info
-  items.push({ label: 'Actieve producten', status: 'ok', value: data.activeProducts });
+  items.push({ label: t(`${K}.items.active_products`), status: 'ok', value: data.activeProducts });
   
   score = Math.max(0, score);
   const status = getStatusFromScore(score, maxScore);
@@ -199,18 +203,18 @@ export function calculateInventoryHealth(data: HealthData): HealthCategory {
   const problemCount = data.outOfStockCount + data.lowStockCount;
   let message: string;
   if (status === 'healthy') {
-    message = categoryMessages.inventory.healthy;
+    message = t(categoryMessages.inventory.healthy);
   } else if (status === 'attention') {
-    message = formatMessage(categoryMessages.inventory.attention, { count: data.lowStockCount });
+    message = t(categoryMessages.inventory.attention, { count: data.lowStockCount });
   } else if (status === 'warning') {
-    message = formatMessage(categoryMessages.inventory.warning, { count: problemCount });
+    message = t(categoryMessages.inventory.warning, { count: problemCount });
   } else {
-    message = categoryMessages.inventory.critical;
+    message = t(categoryMessages.inventory.critical);
   }
   
   return {
     id: 'inventory',
-    name: 'Voorraad',
+    name: t(categoryInfo.inventory.nameKey),
     icon: 'Package',
     maxScore,
     currentScore: score,
@@ -221,7 +225,7 @@ export function calculateInventoryHealth(data: HealthData): HealthCategory {
   };
 }
 
-export function calculateCustomerServiceHealth(data: HealthData): HealthCategory {
+export function calculateCustomerServiceHealth(data: HealthData, t: TFunction): HealthCategory {
   const maxScore = 15;
   let score = maxScore;
   const items: HealthItem[] = [];
@@ -232,40 +236,40 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
     if (data.oldestUnreadHours > 48) {
       score -= 10;
       items.push({
-        label: 'Onbeantwoord (48+ uur)',
+        label: t(`${K}.items.unanswered_48h`),
         status: 'critical',
         value: data.unreadMessages,
-        action: { label: 'Beantwoorden', url: '/admin/messages' },
+        action: { label: t(`${K}.actions.reply`), url: '/admin/messages' },
       });
     } else if (data.oldestUnreadHours > 24) {
       score -= 6;
       items.push({
-        label: 'Onbeantwoord (24+ uur)',
+        label: t(`${K}.items.unanswered_24h`),
         status: 'warning',
         value: data.unreadMessages,
-        action: { label: 'Beantwoorden', url: '/admin/messages' },
+        action: { label: t(`${K}.actions.reply`), url: '/admin/messages' },
       });
     } else {
       score -= Math.min(data.unreadMessages * 2, 5);
       items.push({
-        label: 'Wachtend op antwoord',
+        label: t(`${K}.items.awaiting_reply`),
         status: 'warning',
         value: data.unreadMessages,
-        action: { label: 'Beantwoorden', url: '/admin/messages' },
+        action: { label: t(`${K}.actions.reply`), url: '/admin/messages' },
       });
     }
   } else {
-    items.push({ label: 'Alle berichten beantwoord', status: 'ok', value: '✓' });
+    items.push({ label: t(`${K}.items.all_answered`), status: 'ok', value: '✓' });
   }
   
   // Pending quotes
   if (data.pendingQuotes > 0) {
     score -= Math.min(data.pendingQuotes * 1, 3);
     items.push({
-      label: 'Openstaande offertes',
+      label: t(`${K}.items.open_quotes`),
       status: 'warning',
       value: data.pendingQuotes,
-      action: { label: 'Bekijk', url: '/admin/orders/quotes' },
+      action: { label: t(`${K}.actions.view`), url: '/admin/orders/quotes' },
     });
   }
   
@@ -274,18 +278,18 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
   
   let message: string;
   if (status === 'healthy') {
-    message = categoryMessages.customerService.healthy;
+    message = t(categoryMessages.customerService.healthy);
   } else if (status === 'attention') {
-    message = formatMessage(categoryMessages.customerService.attention, { count: data.unreadMessages });
+    message = t(categoryMessages.customerService.attention, { count: data.unreadMessages });
   } else if (status === 'warning') {
-    message = formatMessage(categoryMessages.customerService.warning, { count: data.unreadMessages });
+    message = t(categoryMessages.customerService.warning, { count: data.unreadMessages });
   } else {
-    message = formatMessage(categoryMessages.customerService.critical, { count: data.unreadMessages });
+    message = t(categoryMessages.customerService.critical, { count: data.unreadMessages });
   }
   
   return {
     id: 'customerService',
-    name: 'Klantservice',
+    name: t(categoryInfo.customerService.nameKey),
     icon: 'MessageCircle',
     maxScore,
     currentScore: score,
@@ -296,7 +300,7 @@ export function calculateCustomerServiceHealth(data: HealthData): HealthCategory
   };
 }
 
-export function calculateFinanceHealth(data: HealthData): HealthCategory {
+export function calculateFinanceHealth(data: HealthData, t: TFunction): HealthCategory {
   const maxScore = 20;
   let score = maxScore;
   const items: HealthItem[] = [];
@@ -307,24 +311,24 @@ export function calculateFinanceHealth(data: HealthData): HealthCategory {
     items.push({
       label: 'Stripe',
       status: 'critical',
-      value: 'Niet gekoppeld',
-      action: { label: 'Koppelen', url: '/admin/settings?section=payments' },
+      value: t(`${K}.values.not_connected`),
+      action: { label: t(`${K}.actions.connect`), url: '/admin/settings?section=payments' },
     });
   } else {
-    items.push({ label: 'Stripe', status: 'ok', value: 'Actief ✓' });
+    items.push({ label: 'Stripe', status: 'ok', value: t(`${K}.values.active`) });
   }
   
   // Overdue invoices penalty
   if (data.overdueInvoicesCount > 0) {
     score -= Math.min(data.overdueInvoicesCount * 2, 8);
     items.push({
-      label: 'Achterstallige facturen',
+      label: t(`${K}.items.overdue_invoices`),
       status: data.overdueInvoicesAmount > 500 ? 'critical' : 'warning',
       value: `€${data.overdueInvoicesAmount.toFixed(2)}`,
-      action: { label: 'Bekijk', url: '/admin/orders/invoices' },
+      action: { label: t(`${K}.actions.view`), url: '/admin/orders/invoices' },
     });
   } else {
-    items.push({ label: 'Openstaand', status: 'ok', value: '€0' });
+    items.push({ label: t(`${K}.items.outstanding`), status: 'ok', value: '€0' });
   }
   
   score = Math.max(0, score);
@@ -332,18 +336,18 @@ export function calculateFinanceHealth(data: HealthData): HealthCategory {
   
   let message: string;
   if (status === 'healthy') {
-    message = categoryMessages.finance.healthy;
+    message = t(categoryMessages.finance.healthy);
   } else if (!data.stripeConnected) {
-    message = categoryMessages.finance.critical;
+    message = t(categoryMessages.finance.critical);
   } else if (status === 'attention' || status === 'warning') {
-    message = formatMessage(categoryMessages.finance.attention, { amount: data.overdueInvoicesAmount.toFixed(2) });
+    message = t(categoryMessages.finance.attention, { amount: data.overdueInvoicesAmount.toFixed(2) });
   } else {
-    message = formatMessage(categoryMessages.finance.warning, { amount: data.overdueInvoicesAmount.toFixed(2) });
+    message = t(categoryMessages.finance.warning, { amount: data.overdueInvoicesAmount.toFixed(2) });
   }
   
   return {
     id: 'finance',
-    name: 'Betalingen',
+    name: t(categoryInfo.finance.nameKey),
     icon: 'CreditCard',
     maxScore,
     currentScore: score,
@@ -354,7 +358,7 @@ export function calculateFinanceHealth(data: HealthData): HealthCategory {
   };
 }
 
-export function calculateSEOHealth(data: HealthData): HealthCategory {
+export function calculateSEOHealth(data: HealthData, t: TFunction): HealthCategory {
   const maxScore = 10;
   let score = maxScore;
   const items: HealthItem[] = [];
@@ -364,18 +368,18 @@ export function calculateSEOHealth(data: HealthData): HealthCategory {
     const seoContribution = (data.seoScore / 100) * 6;
     score = Math.min(score, seoContribution + 4);
     items.push({
-      label: 'SEO Score',
+      label: t(`${K}.items.seo_score`),
       status: data.seoScore >= 70 ? 'ok' : data.seoScore >= 40 ? 'warning' : 'critical',
       value: `${data.seoScore}/100`,
-      action: { label: 'Verbeteren', url: '/admin/marketing/seo' },
+      action: { label: t(`${K}.actions.improve`), url: '/admin/marketing/seo' },
     });
   } else {
     score -= 4;
     items.push({
-      label: 'SEO Score',
+      label: t(`${K}.items.seo_score`),
       status: 'warning',
-      value: 'Niet geanalyseerd',
-      action: { label: 'Analyseer', url: '/admin/marketing/seo' },
+      value: t(`${K}.values.not_analyzed`),
+      action: { label: t(`${K}.actions.analyze`), url: '/admin/marketing/seo' },
     });
   }
   
@@ -383,10 +387,10 @@ export function calculateSEOHealth(data: HealthData): HealthCategory {
   if (data.productsWithoutMeta > 0) {
     score -= Math.min(data.productsWithoutMeta * 0.3, 2);
     items.push({
-      label: 'Zonder meta description',
+      label: t(`${K}.items.without_meta`),
       status: 'warning',
       value: data.productsWithoutMeta,
-      action: { label: 'Aanvullen', url: '/admin/products' },
+      action: { label: t(`${K}.actions.complete`), url: '/admin/products' },
     });
   }
   
@@ -394,10 +398,10 @@ export function calculateSEOHealth(data: HealthData): HealthCategory {
   if (data.productsWithoutAlt > 0) {
     score -= Math.min(data.productsWithoutAlt * 0.2, 2);
     items.push({
-      label: 'Zonder alt-tekst',
+      label: t(`${K}.items.without_alt`),
       status: 'warning',
       value: data.productsWithoutAlt,
-      action: { label: 'Toevoegen', url: '/admin/products' },
+      action: { label: t(`${K}.actions.add`), url: '/admin/products' },
     });
   }
   
@@ -406,18 +410,18 @@ export function calculateSEOHealth(data: HealthData): HealthCategory {
   
   let message: string;
   if (status === 'healthy') {
-    message = formatMessage(categoryMessages.seo.healthy, { score: data.seoScore ?? 0 });
+    message = t(categoryMessages.seo.healthy, { score: data.seoScore ?? 0 });
   } else if (status === 'attention') {
-    message = formatMessage(categoryMessages.seo.attention, { count: data.productsWithoutMeta });
+    message = t(categoryMessages.seo.attention, { count: data.productsWithoutMeta });
   } else if (status === 'warning') {
-    message = formatMessage(categoryMessages.seo.warning, { score: data.seoScore ?? 0 });
+    message = t(categoryMessages.seo.warning, { score: data.seoScore ?? 0 });
   } else {
-    message = categoryMessages.seo.critical;
+    message = t(categoryMessages.seo.critical);
   }
   
   return {
     id: 'seo',
-    name: 'SEO & Zichtbaarheid',
+    name: t(categoryInfo.seo.nameKey),
     icon: 'Search',
     maxScore,
     currentScore: score,
@@ -428,7 +432,7 @@ export function calculateSEOHealth(data: HealthData): HealthCategory {
   };
 }
 
-export function calculateComplianceHealth(data: HealthData): HealthCategory {
+export function calculateComplianceHealth(data: HealthData, t: TFunction): HealthCategory {
   const maxScore = 10;
   let score = maxScore;
   const items: HealthItem[] = [];
@@ -437,13 +441,13 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
   if (!data.onboardingCompleted) {
     score -= 3;
     items.push({
-      label: 'Setup wizard',
+      label: t(`${K}.items.setup_wizard`),
       status: 'warning',
-      value: 'Niet voltooid',
-      action: { label: 'Voltooien', url: '/admin/settings' },
+      value: t(`${K}.values.not_completed`),
+      action: { label: t(`${K}.actions.finish`), url: '/admin/settings' },
     });
   } else {
-    items.push({ label: 'Setup wizard', status: 'ok', value: 'Voltooid ✓' });
+    items.push({ label: t(`${K}.items.setup_wizard`), status: 'ok', value: t(`${K}.values.completed`) });
   }
   
   // Missing legal pages
@@ -451,23 +455,23 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
     const penalty = Math.min(data.missingLegalPages * 1.5, 5);
     score -= penalty;
     items.push({
-      label: 'Juridische pagina\'s',
+      label: t(`${K}.items.legal_pages`),
       status: data.missingLegalPages > 3 ? 'critical' : 'warning',
       value: `${7 - data.missingLegalPages}/7`,
-      action: { label: 'Aanmaken', url: '/admin/storefront?section=legal' },
+      action: { label: t(`${K}.actions.create`), url: '/admin/storefront?section=legal' },
     });
   } else {
-    items.push({ label: 'Juridische pagina\'s', status: 'ok', value: '7/7 ✓' });
+    items.push({ label: t(`${K}.items.legal_pages`), status: 'ok', value: '7/7 ✓' });
   }
   
   // Company info
   if (!data.companyInfoComplete) {
     score -= 1.5;
     items.push({
-      label: 'Bedrijfsgegevens',
+      label: t(`${K}.items.company_info`),
       status: 'warning',
-      value: 'Onvolledig',
-      action: { label: 'Aanvullen', url: '/admin/settings' },
+      value: t(`${K}.values.incomplete`),
+      action: { label: t(`${K}.actions.complete`), url: '/admin/settings' },
     });
   }
   
@@ -481,18 +485,18 @@ export function calculateComplianceHealth(data: HealthData): HealthCategory {
   
   let message: string;
   if (status === 'healthy') {
-    message = categoryMessages.compliance.healthy;
+    message = t(categoryMessages.compliance.healthy);
   } else if (status === 'attention') {
-    message = formatMessage(categoryMessages.compliance.attention, { count: data.missingLegalPages });
+    message = t(categoryMessages.compliance.attention, { count: data.missingLegalPages });
   } else if (status === 'warning') {
-    message = formatMessage(categoryMessages.compliance.warning, { count: data.missingLegalPages });
+    message = t(categoryMessages.compliance.warning, { count: data.missingLegalPages });
   } else {
-    message = categoryMessages.compliance.critical;
+    message = t(categoryMessages.compliance.critical);
   }
   
   return {
     id: 'compliance',
-    name: 'Compliance',
+    name: t(categoryInfo.compliance.nameKey),
     icon: 'Shield',
     maxScore,
     currentScore: score,
@@ -527,7 +531,7 @@ export function generateActionItems(categories: HealthCategory[]): ActionItem[] 
   }).slice(0, 5); // Limit to 5 items
 }
 
-export function generateAchievements(data: HealthData): Achievement[] {
+export function generateAchievements(data: HealthData, t: TFunction): Achievement[] {
   const achievements: Achievement[] = [];
   
   // New customers this week
@@ -535,7 +539,7 @@ export function generateAchievements(data: HealthData): Achievement[] {
     achievements.push({
       id: 'new-customers',
       emoji: '⭐',
-      title: `${data.newCustomersThisWeek} nieuwe klanten deze week`,
+      title: t(`${K}.achievements.new_customers`, { count: data.newCustomersThisWeek }),
     });
   }
   
@@ -544,7 +548,7 @@ export function generateAchievements(data: HealthData): Achievement[] {
     achievements.push({
       id: 'packages-shipped',
       emoji: '📦',
-      title: `${data.packagesShippedThisWeek} pakketten verzonden`,
+      title: t(`${K}.achievements.packages_shipped`, { count: data.packagesShippedThisWeek }),
     });
   }
   
@@ -557,7 +561,7 @@ export function generateAchievements(data: HealthData): Achievement[] {
       achievements.push({
         id: 'best-day',
         emoji: '🎯',
-        title: `Beste dag: ${bestDay.date}`,
+        title: t(`${K}.achievements.best_day`, { day: bestDay.date }),
         value: `€${bestDay.revenue.toFixed(2)}`,
       });
     }
@@ -568,7 +572,7 @@ export function generateAchievements(data: HealthData): Achievement[] {
     achievements.push({
       id: 'today-revenue',
       emoji: '💰',
-      title: 'Omzet vandaag',
+      title: t(`${K}.achievements.today_revenue`),
       value: `€${data.todayRevenue.toFixed(2)}`,
     });
   }
@@ -578,7 +582,7 @@ export function generateAchievements(data: HealthData): Achievement[] {
     achievements.push({
       id: 'week-revenue',
       emoji: '🚀',
-      title: 'Week omzet',
+      title: t(`${K}.achievements.week_revenue`),
       value: `€${data.weekRevenue.toFixed(2)}`,
     });
   }

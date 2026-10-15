@@ -1441,7 +1441,16 @@
     "standard": "Standard delivery",
     "express": "Express delivery",
     "pickup": "Store pickup",
-    "vat_rate": "VAT rate"
+    "vat_rate": "VAT rate",
+    "regions": {
+      "eu": "EU (27)",
+      "benelux": "Benelux",
+      "europe_non_eu": "Europe (non-EU)",
+      "europe": "All of Europe",
+      "worldwide": "Worldwide",
+      "all_countries": "All countries",
+      "country_count": "{{count}} countries"
+    }
   },
   "archive": {
     "title": "Invoice Archive",
@@ -6621,6 +6630,186 @@
       "attention_description": "These documents are waiting to be sent or need a manual action in Peppol/Odoo.",
       "invoice_label": "Invoice {{number}}",
       "credit_note_label": "Credit note {{number}}"
+    },
+    "shippingMethodDialog": {
+      "title_edit": "Edit shipping method",
+      "title_new": "New shipping method",
+      "name_placeholder": "Standard shipping",
+      "description_placeholder": "Describe the shipping method...",
+      "price_label": "Price (€)",
+      "free_above_label": "Free above (€)",
+      "optional": "Optional",
+      "free_above_hint": "Leave empty for no free shipping",
+      "days_min": "Min. days",
+      "days_max": "Max. days",
+      "countries_label": "Shipping countries",
+      "countries_hint": "Choose which countries this method applies to. Nothing selected = all countries. At checkout, customers only see countries that have a shipping method.",
+      "clear": "Clear",
+      "country_search_placeholder": "Search country (e.g. Ukraine or UA)",
+      "shipping_class_label": "Shipping class",
+      "shipping_class_placeholder": "Choose a shipping class",
+      "shipping_class_none": "None (applies to all products)",
+      "shipping_class_option": "{{name}} ({{count}} product(s))",
+      "shipping_class_hint": "Choose \"None\" if this method applies to all products. With a class, this method is only available when the cart contains a product from that class.",
+      "link_products": "Link products",
+      "active_label": "Active",
+      "active_hint": "Show this shipping method to customers",
+      "default_label": "Default",
+      "default_hint": "Use as default shipping method",
+      "update": "Update",
+      "validation": {
+        "name_required": "Name is required",
+        "price_min": "Price must be 0 or higher"
+      }
+    },
+    "shopHealth": {
+      "messages": {
+        "orders": {
+          "healthy": "All parcels are on their way! Your customers are happy. 📦",
+          "attention": "{{count}} orders are waiting for you - ready to be shipped!",
+          "warning": "{{count}} customers are waiting for their order. Time to take action!",
+          "critical": "{{count}} customers have been waiting 48+ hours. Immediate action required! 🚨"
+        },
+        "inventory": {
+          "healthy": "Stock looks great! Everything is ready to ship. ✅",
+          "attention": "{{count}} bestseller(s) running low - time to reorder!",
+          "warning": "{{count}} products are low on stock. Reorder soon!",
+          "critical": "Your most popular products are sold out! 😱"
+        },
+        "customerService": {
+          "healthy": "Customers feel heard - all messages answered! 💬",
+          "attention": "{{count}} customer(s) waiting for a reply",
+          "warning": "{{count}} customers have been waiting over 24 hours for a reply",
+          "critical": "Customers are losing interest - {{count}} messages unanswered! 📩"
+        },
+        "finance": {
+          "healthy": "Finances in order! €0 outstanding. 💰",
+          "attention": "€{{amount}} in outstanding invoices - send a reminder?",
+          "warning": "€{{amount}} in overdue invoices - action required",
+          "critical": "Payment problems detected! Check your Stripe status. 💳"
+        },
+        "seo": {
+          "healthy": "Google can see you! SEO score: {{score}}/100 🔍",
+          "attention": "{{count}} products are missing meta descriptions - quick to fix!",
+          "warning": "Your SEO could be better - score: {{score}}/100. There is room for improvement.",
+          "critical": "Your products are invisible to Google! SEO action needed."
+        },
+        "compliance": {
+          "healthy": "Your shop is 100% compliant and professional! ⚖️",
+          "attention": "{{count}} more legal page(s) needed for full compliance",
+          "warning": "{{count}} required pages are missing - risk!",
+          "critical": "Legal pages are missing! These are required. ⚠️"
+        }
+      },
+      "overall": {
+        "excellent_1": "Your shop is buzzing with energy! 🔥",
+        "excellent_2": "Wow, your shop is in top shape! 🏆",
+        "excellent_3": "You're on fire! Everything is running perfectly! 💪",
+        "healthy_1": "Your shop is healthy and running well! 💚",
+        "healthy_2": "Nice work! Your shop is in a strong position.",
+        "healthy_3": "Solid performance! You're on the right track.",
+        "attention_1": "There are a few points of attention 🟡",
+        "attention_2": "Almost perfect! A few small improvements are still possible.",
+        "attention_3": "Your shop is running, but there is room for improvement.",
+        "warning_1": "Your shop needs some love 🧡",
+        "warning_2": "There are issues that need attention.",
+        "warning_3": "Action required to keep your shop healthy.",
+        "critical_1": "Immediate action required! 🔴",
+        "critical_2": "Your shop urgently needs help!",
+        "critical_3": "Critical issues detected - resolve them quickly!"
+      },
+      "pulse": {
+        "morning_1": "Good morning! New day, new opportunities ☀️",
+        "morning_2": "Rise and shine! Time to sell 🌅",
+        "morning_3": "Good morning! Your shop is waiting for you.",
+        "afternoon_1": "Good afternoon! How are sales going? 🛍️",
+        "afternoon_2": "Halfway through the day - stay focused! 💪",
+        "afternoon_3": "Afternoon check-in: you're doing well!",
+        "evening_1": "Good evening! Wrapping up the last few things? 🌙",
+        "evening_2": "Time to take stock of today.",
+        "evening_3": "Almost done for today - tomorrow brings a new chance!",
+        "night_1": "Still working late? Rest matters too! 😴",
+        "night_2": "Late-night visit! Your shop is open 24/7."
+      },
+      "categories": {
+        "orders": "Orders",
+        "inventory": "Stock",
+        "customerService": "Customer service",
+        "finance": "Payments",
+        "seo": "SEO & Visibility",
+        "compliance": "Compliance"
+      },
+      "priority": {
+        "urgent": "URGENT",
+        "medium": "MEDIUM",
+        "tip": "TIP"
+      },
+      "items": {
+        "pending_processing": "Awaiting processing",
+        "overdue_48h": "Overdue (48+ hours)",
+        "shipped_today": "Shipped today",
+        "out_of_stock": "Out of stock",
+        "low_stock": "Low stock",
+        "without_image": "Without image",
+        "active_products": "Active products",
+        "unanswered_48h": "Unanswered (48+ hours)",
+        "unanswered_24h": "Unanswered (24+ hours)",
+        "awaiting_reply": "Awaiting reply",
+        "all_answered": "All messages answered",
+        "open_quotes": "Open quotes",
+        "overdue_invoices": "Overdue invoices",
+        "outstanding": "Outstanding",
+        "seo_score": "SEO score",
+        "without_meta": "Without meta description",
+        "without_alt": "Without alt text",
+        "setup_wizard": "Setup wizard",
+        "legal_pages": "Legal pages",
+        "company_info": "Company details"
+      },
+      "actions": {
+        "view": "View",
+        "process_now": "Process now",
+        "restock": "Restock",
+        "add": "Add",
+        "reply": "Reply",
+        "connect": "Connect",
+        "improve": "Improve",
+        "analyze": "Analyze",
+        "complete": "Complete",
+        "finish": "Finish",
+        "create": "Create"
+      },
+      "values": {
+        "not_connected": "Not connected",
+        "active": "Active ✓",
+        "not_analyzed": "Not analyzed",
+        "not_completed": "Not completed",
+        "completed": "Completed ✓",
+        "incomplete": "Incomplete"
+      },
+      "achievements": {
+        "new_customers": "{{count}} new customers this week",
+        "packages_shipped": "{{count}} parcels shipped",
+        "best_day": "Best day: {{day}}",
+        "today_revenue": "Revenue today",
+        "week_revenue": "Weekly revenue"
+      },
+      "achievements_title": "This week's achievements",
+      "actions_empty_title": "Everything under control!",
+      "actions_empty_body": "There are no open action items. Your shop is running perfectly! 🎉",
+      "actions_title": "Action items ({{count}})",
+      "score": "Score: {{score}}/{{max}}",
+      "today_revenue": "{{amount}} revenue today",
+      "today_orders": "Orders: {{count}}",
+      "today_new_customers": "New customers: {{count}}",
+      "status": {
+        "healthy": "Healthy",
+        "attention": "Attention",
+        "warning": "Warning",
+        "critical": "Critical"
+      },
+      "trend_title": "Trend (7 days)",
+      "week_total": "Week total"
     }
   },
   "product_form": {

@@ -2,6 +2,8 @@
 // Eén bron van waarheid voor admin-UI en storefront-checkout.
 // SHIP-GEO-3 — volledige ISO 3166-1 alpha-2 dekking (incl. Oekraïne, Servië, Kosovo, ...).
 
+import type { TFunction } from "i18next";
+
 export interface CountryOption {
   code: string;
   name: string;
@@ -280,12 +282,13 @@ export const EUROPE_NON_EU_CODES = EUROPE_NON_EU_COUNTRIES.map((c) => c.code);
 export const EUROPE_CODES = [...EU_CODES, ...EUROPE_NON_EU_CODES];
 export const ALL_COUNTRY_CODES = ALL_SHIPPING_COUNTRIES.map((c) => c.code);
 
-export const REGION_PRESETS: { key: string; label: string; codes: string[] }[] = [
-  { key: "eu", label: "EU (27)", codes: EU_CODES },
-  { key: "benelux", label: "Benelux", codes: BENELUX_CODES },
-  { key: "europe_non_eu", label: "Europa niet-EU", codes: EUROPE_NON_EU_CODES },
-  { key: "europe", label: "Heel Europa", codes: EUROPE_CODES },
-  { key: "worldwide", label: "Wereldwijd", codes: ALL_COUNTRY_CODES },
+// I18N-SHIP-HEALTH-1 — labels als i18n-key; `key` blijft de vaste preset-id.
+export const REGION_PRESETS: { key: string; labelKey: string; codes: string[] }[] = [
+  { key: "eu", labelKey: "shipping.regions.eu", codes: EU_CODES },
+  { key: "benelux", labelKey: "shipping.regions.benelux", codes: BENELUX_CODES },
+  { key: "europe_non_eu", labelKey: "shipping.regions.europe_non_eu", codes: EUROPE_NON_EU_CODES },
+  { key: "europe", labelKey: "shipping.regions.europe", codes: EUROPE_CODES },
+  { key: "worldwide", labelKey: "shipping.regions.worldwide", codes: ALL_COUNTRY_CODES },
 ];
 
 export function countryName(code: string): string {
@@ -317,15 +320,22 @@ export function localizedCountryOptions(codes: string[] | null | undefined, loca
     .sort((a, b) => a.name.localeCompare(b.name, lang));
 }
 
-/** Korte samenvatting van een landenselectie voor lijstweergaves. */
-export function summarizeCountries(codes: string[] | null | undefined): string {
-  if (!codes || codes.length === 0) return "Alle landen";
+/**
+ * Korte samenvatting van een landenselectie voor lijstweergaves.
+ * Krijgt `t` en de UI-taal mee (helper buiten een component, zie sellqo-i18n-verplicht).
+ */
+export function summarizeCountries(
+  codes: string[] | null | undefined,
+  t: TFunction,
+  locale?: string,
+): string {
+  if (!codes || codes.length === 0) return t("shipping.regions.all_countries");
   const set = new Set(codes.map((c) => c.toUpperCase()));
   for (const preset of REGION_PRESETS) {
     if (preset.codes.length === set.size && preset.codes.every((c) => set.has(c))) {
-      return preset.label;
+      return t(preset.labelKey);
     }
   }
-  if (set.size <= 3) return [...set].map(countryName).join(", ");
-  return `${set.size} landen`;
+  if (set.size <= 3) return [...set].map((c) => localizedCountryName(c, locale)).join(", ");
+  return t("shipping.regions.country_count", { count: set.size });
 }

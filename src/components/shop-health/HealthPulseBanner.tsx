@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { HealthScoreCircle } from './HealthScoreCircle';
@@ -37,16 +38,17 @@ export function HealthPulseBanner({
   dailyPulse,
   todayStats,
 }: HealthPulseBannerProps) {
+  const { t } = useTranslation();
   // Build stats line
   const statsItems: string[] = [];
   if (todayStats.revenue > 0) {
-    statsItems.push(`Vandaag ${formatCurrency(todayStats.revenue)} omzet`);
+    statsItems.push(t('admin.shopHealth.today_revenue', { amount: formatCurrency(todayStats.revenue) }));
   }
   if (todayStats.orders > 0) {
-    statsItems.push(`${todayStats.orders} bestelling${todayStats.orders > 1 ? 'en' : ''}`);
+    statsItems.push(t('admin.shopHealth.today_orders', { count: todayStats.orders }));
   }
   if (todayStats.newCustomers > 0) {
-    statsItems.push(`${todayStats.newCustomers} nieuwe klant${todayStats.newCustomers > 1 ? 'en' : ''}`);
+    statsItems.push(t('admin.shopHealth.today_new_customers', { count: todayStats.newCustomers }));
   }
   
   return (

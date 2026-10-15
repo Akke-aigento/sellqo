@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ const statusStyles = {
 };
 
 export function HealthCategoryCard({ category, compact = false }: HealthCategoryCardProps) {
+  const { t } = useTranslation();
   const Icon = iconComponents[category.icon] || Package;
   
   return (
@@ -73,13 +75,13 @@ export function HealthCategoryCard({ category, compact = false }: HealthCategory
         {/* Score and action */}
         <div className="flex items-center justify-between pt-2 border-t">
           <span className="text-xs text-muted-foreground">
-            Score: {category.currentScore}/{category.maxScore}
+            {t('admin.shopHealth.score', { score: category.currentScore, max: category.maxScore })}
           </span>
           
           {category.actionUrl && (
             <Button variant="ghost" size="sm" asChild className="h-7 text-xs">
               <Link to={category.actionUrl}>
-                Bekijk
+                {t('admin.shopHealth.actions.view')}
                 <ArrowRight className="h-3 w-3 ml-1" />
               </Link>
             </Button>

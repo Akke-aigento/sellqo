@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useOrders, useOrderStats } from './useOrders';
 import { useProducts } from './useProducts';
 import { useCustomerMessages } from './useCustomerMessages';
@@ -48,6 +49,7 @@ export interface ShopHealthData {
 }
 
 export function useShopHealth(): ShopHealthData {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const onboarding = useOnboarding();
   
@@ -179,13 +181,13 @@ export function useShopHealth(): ShopHealthData {
   
   // Calculate all health categories
   const categories = useMemo<HealthCategory[]>(() => [
-    calculateOrdersHealth(healthData),
-    calculateInventoryHealth(healthData),
-    calculateCustomerServiceHealth(healthData),
-    calculateFinanceHealth(healthData),
-    calculateSEOHealth(healthData),
-    calculateComplianceHealth(healthData),
-  ], [healthData]);
+    calculateOrdersHealth(healthData, t),
+    calculateInventoryHealth(healthData, t),
+    calculateCustomerServiceHealth(healthData, t),
+    calculateFinanceHealth(healthData, t),
+    calculateSEOHealth(healthData, t),
+    calculateComplianceHealth(healthData, t),
+  ], [healthData, t]);
   
   // Calculate overall score and status
   const overallScore = useMemo(() => calculateOverallScore(categories), [categories]);
@@ -193,7 +195,7 @@ export function useShopHealth(): ShopHealthData {
   
   // Generate action items and achievements
   const actionItems = useMemo(() => generateActionItems(categories), [categories]);
-  const achievements = useMemo(() => generateAchievements(healthData), [healthData]);
+  const achievements = useMemo(() => generateAchievements(healthData, t), [healthData, t]);
   
   // Calculate trends
   const trends = useMemo<TrendData>(() => {
@@ -213,8 +215,8 @@ export function useShopHealth(): ShopHealthData {
   return {
     overallScore,
     overallStatus,
-    emotionalMessage: getOverallMessage(overallScore),
-    dailyPulse: getDailyPulse(),
+    emotionalMessage: getOverallMessage(overallScore, t),
+    dailyPulse: getDailyPulse(t),
     categories,
     actionItems,
     achievements,
