@@ -21930,6 +21930,51 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      social_claim_post_now: {
+        Args: { p_post_id: string; p_tenant_id: string; p_user_id: string }
+        Returns: {
+          approved_at: string | null
+          approved_by: string | null
+          connection_id: string | null
+          content_id: string | null
+          created_at: string | null
+          engagement_data: Json | null
+          error_message: string | null
+          id: string
+          image_recipes: Json | null
+          image_urls: string[] | null
+          language: string | null
+          last_attempt_at: string | null
+          manual_reason: string | null
+          media_type: string
+          music_hint: Json | null
+          platform: string
+          platform_post_id: string | null
+          post_text: string
+          posted_at: string | null
+          publish_attempts: number
+          publish_claimed_from: string | null
+          publish_container_id: string | null
+          regenerate_from: string | null
+          regenerate_language: string | null
+          regenerate_note: string | null
+          regenerate_requested_at: string | null
+          reminded_at: string | null
+          scheduled_for: string | null
+          source: string | null
+          status: string | null
+          tenant_id: string
+          updated_at: string | null
+          video_silent_url: string | null
+          video_url: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "social_posts"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       spend_tokens: {
         Args: {
           p_amount: number
