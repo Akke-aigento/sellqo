@@ -10,7 +10,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { fetchMediaLibrary, filterByName, type MediaItem, type StorageLike } from '@/lib/storefrontMediaLibrary';
+import { fetchMediaLibrary, filterByName, mediaAssetsToItems, mergeLibrary, type MediaAssetRow, type MediaItem, type StorageLike } from '@/lib/storefrontMediaLibrary';
+import { registerMediaAsset, type MediaClientLike } from '@/lib/mediaRegistry';
+import { measureFile } from '@/lib/mediaLibrary';
+import { untypedTable } from '@/lib/untypedTable';
 
 interface VisualMediaPickerProps {
   value?: string;
@@ -51,11 +54,25 @@ export function VisualMediaPicker({
     setLibraryLoading(true);
     // Alle state in één keer zetten: zodra `library` wijzigt, ruimt deze effect op
     // (cancelled = true), dus een latere .finally() zou de spinner laten hangen.
-    fetchMediaLibrary(supabase as unknown as StorageLike, tenantId)
-      .then((res) => {
+    // MEDIA-1: storage-mappen + media_assets (o.a. productfoto's op een externe server).
+    // Een fout hier mag de kiezer nooit breken: dan tonen we gewoon de storage-mappen.
+    const libraryRows = (async () => {
+      try {
+        const { data, error } = await untypedTable<MediaAssetRow>('media_assets')
+          .select('file_name, file_url, file_type, file_size, created_at')
+          .eq('tenant_id', tenantId)
+          .order('created_at', { ascending: false })
+          .limit(2000);
+        return { rows: data || [], failed: !!error };
+      } catch {
+        return { rows: [] as MediaAssetRow[], failed: true };
+      }
+    })();
+    Promise.all([fetchMediaLibrary(supabase as unknown as StorageLike, tenantId), libraryRows])
+      .then(([res, lib]) => {
         if (cancelled) return;
-        setLibrary(res.items);
-        setLibraryFailed(res.failed);
+        setLibrary(mergeLibrary([res.items, mediaAssetsToItems(lib.rows)]));
+        setLibraryFailed(lib.failed ? [...res.failed, 'media_assets'] : res.failed);
         setLibraryLoading(false);
       })
       .catch((error) => {
@@ -99,6 +116,19 @@ export function VisualMediaPicker({
       const { data: { publicUrl } } = supabase.storage
         .from('tenant-assets')
         .getPublicUrl(fileName);
+
+      // MEDIA-1: ook storefront-uploads komen in de ene bibliotheek.
+      const size = await measureFile(file);
+      await registerMediaAsset(supabase as unknown as MediaClientLike, {
+        tenantId: currentTenant.id,
+        url: publicUrl,
+        folder: 'storefront',
+        fileName: file.name,
+        fileType: file.type || undefined,
+        fileSize: file.size,
+        width: size?.width ?? null,
+        height: size?.height ?? null,
+      });
 
       onSelect(publicUrl);
       setLibrary(null);

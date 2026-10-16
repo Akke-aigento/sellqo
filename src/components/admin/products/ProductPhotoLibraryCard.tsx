@@ -1,12 +1,14 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Copy, ImageIcon, Loader2, Search, Trash2, Upload } from 'lucide-react';
+import { Copy, ImageIcon, Loader2, Package, Search, Trash2, Upload } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useMediaAssets } from '@/hooks/useMediaAssets';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
+import { useProducts } from '@/hooks/useProducts';
+import { buildUsageMap, type ProductImageRef } from '@/lib/mediaLibrary';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +24,9 @@ export function ProductPhotoLibraryCard() {
   const { assets, isLoading, createAsset, deleteAsset } = useMediaAssets('products');
   const { uploadImage, uploading } = useImageUpload();
   const [search, setSearch] = useState('');
+  // MEDIA-1: sinds de ene bibliotheek staan hier ook de foto's die al op een product staan.
+  const { products } = useProducts();
+  const usage = useMemo(() => buildUsageMap(products as unknown as ProductImageRef[]), [products]);
 
   const images = useMemo(() => {
     if (!search) return assets;
@@ -35,24 +40,13 @@ export function ProductPhotoLibraryCard() {
     if (!currentTenant?.id) return;
     let uploaded = 0;
     for (const file of files) {
-      const url = await uploadImage(file, 'marketing-assets');
+      // MEDIA-1: useImageUpload zet de foto zelf in de bibliotheek.
+      const url = await uploadImage(file, 'marketing-assets', undefined, { folder: 'products' });
       if (!url) continue;
-      await createAsset.mutateAsync({
-        tenant_id: currentTenant.id,
-        file_name: file.name,
-        file_url: url,
-        file_type: file.type || 'image/jpeg',
-        file_size: file.size,
-        source: 'upload',
-        folder: 'products',
-        tags: [],
-        is_ai_generated: false,
-        is_favorite: false,
-      });
       uploaded++;
     }
     if (uploaded > 0) toast.success(t('admin.products.productPhotoLibraryCard.fotos_toegevoegd', { count: uploaded }));
-  }, [currentTenant?.id, uploadImage, createAsset, t]);
+  }, [currentTenant?.id, uploadImage, t]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -133,19 +127,27 @@ export function ProductPhotoLibraryCard() {
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
-                  <Button
-                    type="button"
-                    size="icon"
-                    variant="destructive"
-                    className="h-8 w-8"
-                    title={t('common.delete')}
-                    onClick={() => deleteAsset.mutate(asset.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  {!usage.has(asset.file_url) && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="destructive"
+                      className="h-8 w-8"
+                      title={t('common.delete')}
+                      onClick={() => deleteAsset.mutate(asset.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                   <p className="text-xs text-white truncate">{asset.title || asset.file_name}</p>
+                  {usage.has(asset.file_url) && (
+                    <p className="text-[10px] text-white/80 truncate flex items-center gap-1">
+                      <Package className="h-2.5 w-2.5 shrink-0" />
+                      {t('admin.products.productPhotoLibraryCard.in_gebruik', { name: usage.get(asset.file_url)![0].name })}
+                    </p>
+                  )}
                 </div>
               </div>
             ))}

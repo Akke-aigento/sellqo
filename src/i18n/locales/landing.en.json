@@ -2094,6 +2094,18 @@
         "token_wallet_cancel_order": {
           "title": "Tokens are voided too when you cancel an order",
           "description": "If you cancel an order or refund it in full, the order's token card is now blocked automatically, just like its tickets are voided. Tokens that are left can no longer be used at the bar; tokens already used stay used. With a partial refund the card stays usable. If it was a mistake, choose Unblock on the card under Events → Tokens."
+        },
+        "media_library_all_photos": {
+          "title": "All your photos in one media library",
+          "description": "Every photo you upload now lands in your media library automatically: on a product, a variant, a category or in the shop editor. The photos already attached to your products are in there too. Each photo shows which product it belongs to. If you imported products from Shopify, you see how many photos still live on their server and move them to your own storage in one click, so they keep working when you cancel that plan."
+        },
+        "photo_standard": {
+          "title": "Photo standard: all your product photos in the same format",
+          "description": "Under Products → Photos, set one format for your product photos, for example portrait 3:4 at 1200 × 1600 pixels. SellQo trims the empty border around the product and centres it on a fixed canvas with a fixed margin. For a new photo you see the result next to the original and choose yourself. Existing photos can be converted in bulk; the original is kept. With the photo standard off, nothing changes."
+        },
+        "photo_editor_frame": {
+          "title": "Crop, rotate and set the background for free",
+          "description": "The photo editor has a new Format & crop tab: choose the aspect ratio and background, zoom in or out, move the product and rotate the photo. It runs in your browser and uses no AI credits. The AI background stays available in the second tab."
         }
       },
       "copyLink": "Copy link",

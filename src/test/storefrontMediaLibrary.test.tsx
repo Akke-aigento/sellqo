@@ -135,8 +135,27 @@ const tree: Record<string, StorageListEntry[]> = {
   [`product-images/${TENANT}`]: [file('zomer-actie.jpg', '2026-10-30T00:00:00Z', 'image/jpeg')],
 };
 const listed: string[] = [];
+// MEDIA-1: de kiezer leest ook media_assets. Eén rij is een dubbel van een storage-bestand
+// (moet wegvallen), één staat op een externe server (moet erbij komen).
+const SHOPIFY = 'https://cdn.shopify.com/s/files/1/x/files/oude-tee.png?v=1';
+const mediaRows = [
+  { file_name: 'zomer-actie.jpg', file_url: url('product-images', `${TENANT}/zomer-actie.jpg`), file_type: 'image/jpeg', created_at: '2026-10-30T00:00:00Z' },
+  { file_name: 'oude-tee.png', file_url: SHOPIFY, file_type: 'image/png', created_at: '2026-09-01T00:00:00Z' },
+];
+const mediaQueries: string[] = [];
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
+    from: (table: string) => {
+      const q = {
+        select: () => q,
+        eq: (_c: string, v: string) => { mediaQueries.push(`${table}:${v}`); return q; },
+        order: () => q,
+        limit: () => q,
+        then: (resolve: (r: { data: unknown; error: null }) => unknown) => resolve({ data: table === 'media_assets' ? mediaRows : [], error: null }),
+        upsert: async () => ({ error: null }),
+      };
+      return q;
+    },
     storage: {
       from: (bucket: string) => ({
         list: async (path: string, opts: { limit: number; offset: number }) => {
@@ -170,8 +189,11 @@ describe('VisualMediaPicker — Mediabibliotheek', () => {
     const tiles = () => screen.getAllByRole('button', { name: /choose_named:/ });
     expect(tiles()[0]).toBe(first); // nieuwste eerst
     expect(tiles()).toHaveLength(24);
+    expect(mediaQueries).toEqual([`media_assets:${TENANT}`]);
     fireEvent.click(screen.getByRole('button', { name: 'admin.storefront.mediaPicker.load_more' }));
-    expect(tiles()).toHaveLength(31);
+    // 31 storage-bestanden + de externe Shopify-foto; de dubbele zomer-actie telt één keer.
+    expect(tiles()).toHaveLength(32);
+    expect(screen.getByRole('button', { name: 'admin.storefront.mediaPicker.choose_named:oude-tee.png' })).toBeTruthy();
 
     fireEvent.change(screen.getByLabelText('admin.storefront.mediaPicker.search_placeholder'), { target: { value: 'ZOMER' } });
     expect(tiles()).toHaveLength(1);

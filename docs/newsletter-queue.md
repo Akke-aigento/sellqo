@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12j — Al je foto's in één mediabibliotheek, een fotostandaard en gratis bijsnijden (feature + improvement, 16-10-2026)
+
+**Pas versturen na** het draaien van `20261016190000_media_1_one_library.sql` (+ natrek: unieke index, drie triggers, backfill-telling), `20261016191000_photo_std_1_tenant_media_settings.sql` en daarna `20261016192000_media_1_doc_article.sql`, plus de publish van sellqo.app (Lovable-hosted: pas live na `deploy_project`; voor de app pas na de volgende native build). Recept: `docs/prepared/MEDIA-1-deploy.md`.
+
+**Voor wie:** alle winkels met producten.
+
+**Al je productfoto's in dezelfde vorm** (oktober 2026)
+Elke foto die je oplaadt, staat nu automatisch in je mediabibliotheek, ook de foto's die al aan je producten hingen. Met de nieuwe fotostandaard leg je één vorm vast, bijvoorbeeld staand 3:4: SellQo knipt de lege rand weg en zet elk product gecentreerd op hetzelfde canvas. In de fotobewerker snij je gratis bij, draai je en kies je de achtergrond.
+Wat betekent dit voor jou? Al je producten ogen even groot in je webshop, er wordt niets meer afgesneden, en je hoeft foto's niet meer zelf op maat te maken. Foto's die nog op de server van een oude Shopify-shop staan, haal je met één klik naar je eigen opslag.
+
+**i18n-keys.** `public.changelog.changes.media_library_all_photos`, `public.changelog.changes.photo_standard` en `public.changelog.changes.photo_editor_frame` — 5 talen (nl, en, fr, de, uk; geteld tegen `SUPPORTED_LANGUAGES`).
+
 ### 2026.12i — Munten vervallen mee als je een bestelling annuleert (improvement, 16-10-2026)
 
 **Pas versturen na** het draaien van `20261016180000_event_coin_1.sql` + de md5-natrek van de functie, en daarna `20261016181000_event_coin_1_doc_article.sql` (recept: `docs/prepared/EVENT-COIN-1-deploy.md`). Geen edge-deploy en geen publish nodig: het gedrag zit volledig in de database. Bundelen met 2026.12d/2026.12b (zelfde onderwerp: annuleren van ticketbestellingen).

@@ -39,9 +39,10 @@ export interface StorageListEntry {
 }
 
 export interface MediaItem {
-  /** bucket/pad — uniek */
+  /** bucket/pad — uniek (voor bibliotheekrijen: 'library/' + url) */
   key: string;
-  bucket: MediaBucket;
+  /** 'library' = een rij uit media_assets (MEDIA-1), bv. een productfoto op een externe server. */
+  bucket: MediaBucket | 'library';
   path: string;
   name: string;
   url: string;
@@ -113,11 +114,41 @@ export function filterByName(items: MediaItem[], query: string): MediaItem[] {
   });
 }
 
-/** Lijsten samenvoegen, dubbels (zelfde bucket + pad) eruit, nieuwste eerst. */
+/**
+ * Lijsten samenvoegen, dubbels eruit, nieuwste eerst. Dubbel = zelfde URL: zo valt een
+ * bestand dat zowel in storage als in media_assets staat (MEDIA-1) maar één keer.
+ */
 export function mergeLibrary(lists: MediaItem[][]): MediaItem[] {
   const seen = new Map<string, MediaItem>();
-  for (const list of lists) for (const i of list) if (!seen.has(i.key)) seen.set(i.key, i);
+  for (const list of lists) for (const i of list) {
+    const k = i.url || i.key;
+    if (!seen.has(k)) seen.set(k, i);
+  }
   return sortNewestFirst([...seen.values()]);
+}
+
+/** Eén rij uit media_assets, zoals de storefront-kiezer hem nodig heeft. */
+export interface MediaAssetRow {
+  file_name: string;
+  file_url: string;
+  file_type?: string | null;
+  file_size?: number | null;
+  created_at?: string | null;
+}
+
+/** media_assets-rijen als MediaItem (alleen afbeeldingen). */
+export function mediaAssetsToItems(rows: MediaAssetRow[]): MediaItem[] {
+  return rows
+    .filter((r) => r.file_url && (!r.file_type || r.file_type.startsWith('image/')))
+    .map((r) => ({
+      key: `library/${r.file_url}`,
+      bucket: 'library' as const,
+      path: r.file_url,
+      name: r.file_name || r.file_url.split('?')[0].split('/').pop() || 'afbeelding',
+      url: r.file_url,
+      createdAt: r.created_at || '',
+      size: r.file_size ?? undefined,
+    }));
 }
 
 // Minimale vorm van de supabase-client die we nodig hebben (testbaar zonder echte client).

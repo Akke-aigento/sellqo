@@ -219,7 +219,10 @@ export function CategoryFormDialog({
     const file = e.target.files?.[0];
     if (!file) return;
     
-    const url = await uploadImage(file);
+    const url = await uploadImage(file, 'product-images', undefined, {
+      folder: 'categories',
+      title: form.getValues('name') || undefined,
+    });
     if (url) {
       form.setValue('image_url', url);
     }

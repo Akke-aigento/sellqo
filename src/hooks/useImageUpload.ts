@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
+import { measureFile } from '@/lib/mediaLibrary';
+import { registerMediaAsset, type MediaClientLike } from '@/lib/mediaRegistry';
 
 type BucketName = 'product-images' | 'tenant-logos' | 'invoices' | 'ai-images' | 'marketing-assets';
 
@@ -34,16 +37,31 @@ const MIME_TO_EXT: Record<string, string> = {
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20MB — modern phone photos can be 5-15MB
 
+// MEDIA-1: uploads in deze buckets komen automatisch in de mediabibliotheek (media_assets).
+// Logo's (tenant-logos, met vaste customPath) en documenten niet.
+const LIBRARY_BUCKETS: BucketName[] = ['product-images', 'marketing-assets'];
+
+export interface UploadImageOptions {
+  /** Map in de mediabibliotheek (bv. 'products', 'categories'). Standaard 'general'. */
+  folder?: string;
+  /** Titel in de bibliotheek, bv. de productnaam. */
+  title?: string;
+  /** Expliciet aan/uit; standaard aan voor product-images en marketing-assets zonder customPath. */
+  register?: boolean;
+}
+
 export function useImageUpload() {
   const { currentTenant } = useTenant();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const uploadImage = async (
     file: File, 
     bucket: BucketName = 'product-images',
-    customPath?: string
+    customPath?: string,
+    options: UploadImageOptions = {}
   ): Promise<string | null> => {
     if (!currentTenant) {
       toast({ title: 'Fout', description: 'Geen winkel geselecteerd', variant: 'destructive' });
@@ -115,6 +133,24 @@ export function useImageUpload() {
         .getPublicUrl(fileName);
 
       setProgress(100);
+
+      const shouldRegister = options.register ?? (!customPath && LIBRARY_BUCKETS.includes(bucket));
+      if (shouldRegister) {
+        const size = await measureFile(file);
+        const ok = await registerMediaAsset(supabase as unknown as MediaClientLike, {
+          tenantId: currentTenant.id,
+          url: publicUrl,
+          folder: options.folder,
+          title: options.title ?? null,
+          fileName: rawName || undefined,
+          fileType: contentType,
+          fileSize: file.size,
+          width: size?.width ?? null,
+          height: size?.height ?? null,
+        });
+        if (ok) queryClient.invalidateQueries({ queryKey: ['media-assets'] });
+      }
+
       return publicUrl;
     } catch (error) {
       console.error('Upload error:', error);

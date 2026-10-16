@@ -41,6 +41,8 @@ import { ProductEventDatesTab } from '@/components/admin/products/ProductEventDa
 import { ProductSpecificationsSection } from '@/components/admin/products/ProductSpecificationsSection';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { MediaLibraryPickerDialog } from '@/components/admin/products/MediaLibraryPickerDialog';
+import { StandardizeUploadDialog } from '@/components/admin/products/StandardizeUploadDialog';
+import { useMediaSettings } from '@/hooks/useMediaSettings';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
 import { AIUpsellHint } from '@/components/admin/ai/AIUpsellHint';
 import type { AIFieldContext } from '@/components/admin/ai/AIFieldAssistant';
@@ -185,6 +187,8 @@ export default function ProductForm() {
   const { products: allProducts, createProduct, updateProduct } = useProducts();
   const { categories, flatCategoryTree, getCategoryPath } = useCategories();
   const { uploadImage, uploading } = useImageUpload();
+  const { settings: photoStandard } = useMediaSettings();
+  const [pendingStdFiles, setPendingStdFiles] = useState<File[] | null>(null);
   const { files, uploadFile, deleteFile, isLoading: filesLoading } = useProductFiles(id);
   const { keys, addKeys, deleteKey, availableCount, assignedCount, isLoading: keysLoading } = useLicenseKeys(id);
   const { data: giftCardDesigns = [] } = useGiftCardDesigns();
@@ -433,14 +437,15 @@ export default function ProductForm() {
     }
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files) return;
+  const uploadProductFiles = async (files: File[]) => {
     const currentImages = form.getValues('images') || [];
     const beforeCount = currentImages.length;
     const attempted = files.length;
-    for (const file of Array.from(files)) {
-      const url = await uploadImage(file);
+    for (const file of files) {
+      const url = await uploadImage(file, 'product-images', undefined, {
+        folder: 'products',
+        title: form.getValues('name') || undefined,
+      });
       if (url) {
         currentImages.push(url);
         if (!form.getValues('featured_image')) {
@@ -457,7 +462,18 @@ export default function ProductForm() {
         duration: 8000,
       });
     }
+  };
+
+  // PHOTO-STD-1: staat de fotostandaard aan, dan eerst het voorbeeld (standaard/origineel).
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
     e.target.value = '';
+    if (files.length === 0) return;
+    if (photoStandard.enabled && photoStandard.apply_on_upload) {
+      setPendingStdFiles(files);
+      return;
+    }
+    await uploadProductFiles(files);
   };
 
   const handleLibrarySelect = (urls: string[]) => {
@@ -1960,6 +1976,16 @@ export default function ProductForm() {
         existingUrls={form.watch('images') || []}
         onSelect={handleLibrarySelect}
       />
+
+      {pendingStdFiles && (
+        <StandardizeUploadDialog
+          open
+          files={pendingStdFiles}
+          settings={photoStandard}
+          onCancel={() => setPendingStdFiles(null)}
+          onConfirm={(chosen) => { setPendingStdFiles(null); void uploadProductFiles(chosen); }}
+        />
+      )}
     </div>
   );
 }

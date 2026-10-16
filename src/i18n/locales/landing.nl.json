@@ -2094,6 +2094,18 @@
         "token_wallet_cancel_order": {
           "title": "Munten vervallen mee als je een bestelling annuleert",
           "description": "Annuleer je een bestelling, of betaal je ze volledig terug, dan wordt de muntenkaart van die bestelling nu automatisch geblokkeerd, net zoals de tickets vervallen. De munten die nog over zijn, kunnen niet meer gebruikt worden aan de bar; wat al gebruikt is, blijft gebruikt. Bij een gedeeltelijke terugbetaling blijft de kaart bruikbaar. Was het een vergissing, dan kies je Vrijgeven bij de kaart onder Events → Munten."
+        },
+        "media_library_all_photos": {
+          "title": "Al je foto's in één mediabibliotheek",
+          "description": "Elke foto die je oplaadt, komt nu automatisch in je mediabibliotheek: in een product, een variant, een categorie of in de webshop-editor. Ook de foto's die al aan je producten hingen, staan er nu in. Bij elke foto zie je op welk product ze staat. Heb je producten uit Shopify geïmporteerd, dan zie je hoeveel foto's nog op hun server staan en haal je ze met één klik naar je eigen opslag, zodat ze blijven werken als je dat abonnement opzegt."
+        },
+        "photo_standard": {
+          "title": "Fotostandaard: al je productfoto's in dezelfde vorm",
+          "description": "Leg onder Producten → Foto's één vorm vast voor je productfoto's, bijvoorbeeld staand 3:4 op 1200 × 1600 pixels. SellQo knipt de lege rand rond het product weg en zet het gecentreerd op een vast canvas met een vaste marge. Bij een nieuwe foto zie je het resultaat naast het origineel en kies je zelf. Bestaande foto's zet je in bulk om; het origineel blijft bewaard. Staat de fotostandaard uit, dan verandert er niets."
+        },
+        "photo_editor_frame": {
+          "title": "Gratis foto's bijsnijden, draaien en de achtergrond kiezen",
+          "description": "De fotobewerker heeft een nieuw tabblad Formaat & uitsnede: kies de verhouding en de achtergrond, zoom in of uit, verschuif het product en draai de foto. Dat gebeurt in je browser en kost geen AI-credits. De AI-achtergrond blijft beschikbaar in het tweede tabblad."
         }
       },
       "copyLink": "Kopieer link",

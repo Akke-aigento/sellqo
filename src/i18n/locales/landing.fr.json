@@ -2094,6 +2094,18 @@
         "token_wallet_cancel_order": {
           "title": "Les jetons sont aussi annulés quand vous annulez une commande",
           "description": "Si vous annulez une commande ou la remboursez entièrement, la carte de jetons de cette commande est désormais bloquée automatiquement, tout comme ses billets sont annulés. Les jetons restants ne peuvent plus être utilisés au bar ; les jetons déjà utilisés restent utilisés. En cas de remboursement partiel, la carte reste utilisable. En cas d'erreur, choisissez Débloquer sur la carte dans Events → Jetons."
+        },
+        "media_library_all_photos": {
+          "title": "Toutes vos photos dans une seule médiathèque",
+          "description": "Chaque photo que vous téléversez arrive désormais automatiquement dans votre médiathèque : sur un produit, une variante, une catégorie ou dans l'éditeur de boutique. Les photos déjà liées à vos produits y sont aussi. Chaque photo indique le produit auquel elle appartient. Si vous avez importé des produits depuis Shopify, vous voyez combien de photos sont encore sur leur serveur et vous les transférez en un clic vers votre propre stockage, pour qu'elles continuent à fonctionner si vous résiliez cet abonnement."
+        },
+        "photo_standard": {
+          "title": "Standard photo : toutes vos photos de produits au même format",
+          "description": "Sous Produits → Photos, définissez un seul format pour vos photos de produits, par exemple portrait 3:4 en 1200 × 1600 pixels. SellQo supprime le bord vide autour du produit et le centre sur un canevas fixe avec une marge fixe. Pour une nouvelle photo, vous voyez le résultat à côté de l'original et vous choisissez. Les photos existantes se convertissent en masse ; l'original est conservé. Si le standard photo est désactivé, rien ne change."
+        },
+        "photo_editor_frame": {
+          "title": "Recadrer, pivoter et choisir l'arrière-plan gratuitement",
+          "description": "L'éditeur photo a un nouvel onglet Format & recadrage : choisissez les proportions et l'arrière-plan, zoomez, déplacez le produit et pivotez la photo. Tout se fait dans votre navigateur, sans crédits IA. L'arrière-plan IA reste disponible dans le second onglet."
         }
       },
       "copyLink": "Copier le lien",

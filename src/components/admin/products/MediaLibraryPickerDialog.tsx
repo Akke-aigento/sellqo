@@ -30,7 +30,7 @@ export function MediaLibraryPickerDialog({
 }: MediaLibraryPickerDialogProps) {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
-  const { assets, isLoading, createAsset } = useMediaAssets('all');
+  const { assets, isLoading } = useMediaAssets('all');
   const { uploadImage, uploading } = useImageUpload();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<string[]>([]);
@@ -53,23 +53,12 @@ export function MediaLibraryPickerDialog({
   const onDrop = useCallback(async (files: File[]) => {
     if (!currentTenant?.id) return;
     for (const file of files) {
-      const url = await uploadImage(file, 'marketing-assets');
+      // MEDIA-1: useImageUpload zet de foto zelf in de bibliotheek.
+      const url = await uploadImage(file, 'marketing-assets', undefined, { folder: uploadFolder });
       if (!url) continue;
-      await createAsset.mutateAsync({
-        tenant_id: currentTenant.id,
-        file_name: file.name,
-        file_url: url,
-        file_type: file.type || 'image/jpeg',
-        file_size: file.size,
-        source: 'upload',
-        folder: uploadFolder,
-        tags: [],
-        is_ai_generated: false,
-        is_favorite: false,
-      });
       setSelected(prev => [...prev, url]);
     }
-  }, [currentTenant?.id, uploadImage, createAsset, uploadFolder]);
+  }, [currentTenant?.id, uploadImage, uploadFolder]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

@@ -1,11 +1,15 @@
 import { useState, useMemo } from 'react';
-import { Search, Wand2, Eraser, ImageIcon, Loader2, CheckSquare, Square, Trash2 } from 'lucide-react';
+import { Search, Wand2, Eraser, ImageIcon, Loader2, CheckSquare, Square, Trash2, Frame } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useAIImages } from '@/hooks/useAIImages';
 import { useAICredits } from '@/hooks/useAICredits';
 import { ImageEditorDialog } from './ImageEditorDialog';
 import { ProductPhotoLibraryCard } from './ProductPhotoLibraryCard';
+import { PhotoStandardCard } from './PhotoStandardCard';
+import { useMediaSettings } from '@/hooks/useMediaSettings';
+import { useStandardizePhotos, type PhotoRef } from '@/hooks/useStandardizePhotos';
+import { isOffStandard } from '@/lib/photoStandard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -52,7 +56,12 @@ export function ProductPhotosManager() {
 
   const [search, setSearch] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
-  const [photoFilter, setPhotoFilter] = useState<'all' | 'with' | 'without'>('all');
+  const [photoFilter, setPhotoFilter] = useState<'all' | 'with' | 'without' | 'off'>('all');
+  // PHOTO-STD-1: fotostandaard + gemeten afmetingen per foto (uit het geladen beeld).
+  const { settings: photoStandard } = useMediaSettings();
+  const { run: runStandardize, running: standardizing, progress: stdProgress } = useStandardizePhotos();
+  const [dims, setDims] = useState<Record<string, { w: number; h: number }>>({});
+  const isOff = (url: string) => photoStandard.enabled && !!dims[url] && isOffStandard(dims[url].w, dims[url].h, photoStandard);
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingPhoto, setEditingPhoto] = useState<PhotoItem | null>(null);
@@ -84,6 +93,7 @@ export function ProductPhotosManager() {
       if (search) {
         if (!photo.productName.toLowerCase().includes(search.toLowerCase())) return false;
       }
+      if (photoFilter === 'off' && !isOff(photo.imageUrl)) return false;
       if (categoryFilter !== 'all') {
         const product = products.find(p => p.id === photo.productId);
         const catIds = (product as any)?.product_categories?.map((pc: any) => pc.category_id) || [];
@@ -91,7 +101,7 @@ export function ProductPhotosManager() {
       }
       return true;
     });
-  }, [allPhotos, search, categoryFilter, products]);
+  }, [allPhotos, search, categoryFilter, products, photoFilter, dims, photoStandard]);
 
   // Products without photos
   const productsWithoutPhotos = useMemo(() => {
@@ -203,6 +213,30 @@ export function ProductPhotosManager() {
     }
   };
 
+  const handleBulkStandardize = async () => {
+    const selected = displayItems.filter(p => selectedPhotos.has(photoKey(p)));
+    if (selected.length === 0) return;
+    // Eén keer per foto, ook als meerdere producten hem gebruiken.
+    const byUrl = new Map<string, PhotoRef>();
+    for (const p of selected) {
+      const ref = byUrl.get(p.imageUrl) || { url: p.imageUrl, productIds: [], title: p.productName };
+      if (!ref.productIds.includes(p.productId)) ref.productIds.push(p.productId);
+      byUrl.set(p.imageUrl, ref);
+    }
+    // Ook andere producten met dezelfde foto meenemen, anders blijft daar het oude beeld.
+    for (const ref of byUrl.values()) {
+      for (const prod of products) {
+        if ((prod.images || []).includes(ref.url) && !ref.productIds.includes(prod.id)) ref.productIds.push(prod.id);
+      }
+    }
+    const res = await runStandardize([...byUrl.values()], photoStandard);
+    setSelectedPhotos(new Set());
+    if (res.done > 0) toast.success(t('admin.products.photoStandard.bulk_done', { count: res.done }));
+    if (res.failed.length > 0) toast.error(t('admin.products.photoStandard.bulk_failed', { count: res.failed.length }), {
+      description: res.failed.slice(0, 3).map(f => f.reason).join(' · '),
+    });
+  };
+
   const handleConfirmDelete = async () => {
     if (!deleteTargets || deleteTargets.length === 0) return;
     setDeleting(true);
@@ -256,6 +290,7 @@ export function ProductPhotosManager() {
 
   return (
     <div className="space-y-6">
+      <PhotoStandardCard sampleUrl={allPhotos[0]?.imageUrl} />
       <ProductPhotoLibraryCard />
       <Card>
         <CardHeader>
@@ -298,6 +333,9 @@ export function ProductPhotosManager() {
                 <SelectItem value="all">{t('admin.products.productPhotosManager.alle_foto_s')}</SelectItem>
                 <SelectItem value="with">{t('admin.products.productPhotosManager.met_foto')}</SelectItem>
                 <SelectItem value="without">{t('admin.products.productPhotosManager.zonder_foto')}</SelectItem>
+                {photoStandard.enabled && (
+                  <SelectItem value="off">{t('admin.products.photoStandard.filter_off')}</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
@@ -306,6 +344,22 @@ export function ProductPhotosManager() {
           {selectedPhotos.size > 0 && (
             <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 border">
               <Badge variant="secondary">{selectedPhotos.size} geselecteerd</Badge>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleBulkStandardize}
+                disabled={bulkProcessing || standardizing || !photoStandard.enabled}
+                title={photoStandard.enabled ? undefined : t('admin.products.photoStandard.bulk_needs_standard')}
+              >
+                {standardizing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Frame className="mr-2 h-4 w-4" />
+                )}
+                {standardizing
+                  ? t('admin.products.photoStandard.bulk_running', { done: stdProgress.done, total: stdProgress.total })
+                  : t('admin.products.photoStandard.bulk_button')}
+              </Button>
               <Button
                 size="sm"
                 variant="outline"
@@ -381,7 +435,23 @@ export function ProductPhotosManager() {
                       isSelected ? "border-primary ring-1 ring-primary" : "border-transparent hover:border-muted-foreground/30"
                     )}
                   >
-                    <img src={photo.imageUrl} alt={photo.productName} className="w-full h-full object-cover" />
+                    <img
+                      src={photo.imageUrl}
+                      alt={photo.productName}
+                      loading="lazy"
+                      className="w-full h-full object-contain bg-muted"
+                      onLoad={(e) => {
+                        const img = e.currentTarget;
+                        if (!dims[photo.imageUrl] && img.naturalWidth > 0) {
+                          setDims(d => ({ ...d, [photo.imageUrl]: { w: img.naturalWidth, h: img.naturalHeight } }));
+                        }
+                      }}
+                    />
+                    {isOff(photo.imageUrl) && (
+                      <Badge className="absolute top-2 right-2 text-[10px] px-1.5 py-0 bg-amber-500 hover:bg-amber-500 text-white">
+                        {t('admin.products.photoStandard.off_badge')}
+                      </Badge>
+                    )}
 
                     {/* Hover overlay */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-2">

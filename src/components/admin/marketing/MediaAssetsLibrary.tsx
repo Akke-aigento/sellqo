@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDropzone } from 'react-dropzone';
 import { Upload, Search, FolderOpen, Star, Image as ImageIcon, Sparkles, MoreHorizontal, Trash2, Heart, Download, Copy, Grid, List, Package, Wand2, X, Eraser, Loader2, FolderTree } from 'lucide-react';
@@ -18,6 +18,9 @@ import { useTenant } from '@/hooks/useTenant';
 import { useAIImages } from '@/hooks/useAIImages';
 import { useAICredits } from '@/hooks/useAICredits';
 import { ImageEditorDialog } from '@/components/admin/products/ImageEditorDialog';
+import { ExternalImagesBanner } from '@/components/admin/marketing/ExternalImagesBanner';
+import { buildUsageMap, type ProductImageRef } from '@/lib/mediaLibrary';
+import { recordMediaDimensions, type MediaClientLike } from '@/lib/mediaRegistry';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,6 +37,12 @@ const folderConfig = [
 
 interface VirtualAsset {
   id: string;
+  /** media_assets-id; ontbreekt bij een productfoto die (nog) niet in de bibliotheek staat. */
+  mediaId?: string;
+  width?: number | null;
+  height?: number | null;
+  /** Andere producten die dezelfde foto gebruiken (buiten productName). */
+  usedByCount?: number;
   file_name: string;
   file_url: string;
   file_type: string;
@@ -49,8 +58,9 @@ interface VirtualAsset {
   categoryName?: string;
 }
 
-function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSelect, selectionActive }: { 
+function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSelect, selectionActive, onMeasured }: { 
   asset: VirtualAsset; 
+  onMeasured?: (width: number, height: number) => void;
   onToggleFavorite?: () => void;
   onDelete?: () => void;
   onEdit?: () => void;
@@ -82,7 +92,12 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
             <img 
               src={asset.file_url} 
               alt={asset.title || asset.file_name}
+              loading="lazy"
               className="w-full h-full object-cover"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (onMeasured && !asset.width && img.naturalWidth > 0) onMeasured(img.naturalWidth, img.naturalHeight);
+              }}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -113,7 +128,7 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
                   <Wand2 className="h-4 w-4" />
                 </Button>
               )}
-              {!isProduct && onToggleFavorite && (
+              {onToggleFavorite && (
                 <Button size="icon" variant="secondary" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}>
                   <Heart className={cn('h-4 w-4', asset.is_favorite && 'fill-red-500 text-red-500')} />
                 </Button>
@@ -124,7 +139,7 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
               >
                 <Copy className="h-4 w-4" />
               </Button>
-              {!isProduct && (
+              {onDelete && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button size="icon" variant="secondary" className="h-8 w-8">
@@ -177,8 +192,14 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
       <CardContent className="p-2">
         <p className="text-xs font-medium truncate">{asset.title || asset.file_name}</p>
         {isProduct && asset.productName && (
-          <p className="text-[10px] text-muted-foreground truncate">{asset.productName}</p>
+          <p className="text-[10px] text-muted-foreground truncate">
+            {asset.productName}
+            {asset.usedByCount ? ` ${t('admin.marketing.mediaAssetsLibrary.en_meer', { count: asset.usedByCount })}` : ''}
+          </p>
         )}
+        {asset.width && asset.height ? (
+          <p className="text-[10px] text-muted-foreground tabular-nums">{asset.width} × {asset.height}</p>
+        ) : null}
         {isCategory && asset.categoryName && (
           <p className="text-[10px] text-muted-foreground truncate">{asset.categoryName}</p>
         )}
@@ -207,7 +228,7 @@ export function MediaAssetsLibrary() {
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
   
-  const { assets, isLoading, createAsset, toggleFavorite, deleteAsset } = useMediaAssets(folder);
+  const { assets, isLoading, toggleFavorite, deleteAsset } = useMediaAssets(folder);
   const { uploadImage, uploading } = useImageUpload();
   const { products: productsList, isLoading: productsLoading } = useProducts();
   const { categories } = useCategories();
@@ -216,32 +237,76 @@ export function MediaAssetsLibrary() {
 
   const creditCost = getCreditCost('image_enhancement');
 
-  // Convert product images to virtual assets
+  // MEDIA-1: media_assets is de bron. Productfoto's staan er sinds de migratie zelf in
+  // (trigger + backfill); hier koppelen we elke rij aan het product of de categorie die
+  // hem gebruikt. Foto's die nog geen rij hebben (bv. vóór de migratie live staat) tonen
+  // we als virtuele kaart, zodat de bibliotheek nooit leger oogt dan vroeger.
+  const productUsage = useMemo(() => buildUsageMap(productsList as unknown as ProductImageRef[]), [productsList]);
+  const categoryUsage = useMemo(() => {
+    const m = new Map<string, { id: string; name: string }>();
+    for (const c of categories || []) if (c.image_url) m.set(c.image_url, { id: c.id, name: c.name });
+    return m;
+  }, [categories]);
+
+  const mediaVirtualAssets = useMemo<VirtualAsset[]>(() => {
+    return assets.map(a => {
+      const usedBy = productUsage.get(a.file_url);
+      const cat = categoryUsage.get(a.file_url);
+      const base: VirtualAsset = {
+        id: a.id,
+        mediaId: a.id,
+        file_name: a.file_name,
+        file_url: a.file_url,
+        file_type: a.file_type || 'image/jpeg',
+        file_size: a.file_size,
+        width: a.width,
+        height: a.height,
+        title: a.title,
+        tags: a.tags || [],
+        is_ai_generated: a.is_ai_generated,
+        is_favorite: a.is_favorite,
+        source: 'upload',
+      };
+      if (usedBy && usedBy.length > 0) {
+        return { ...base, source: 'product', productId: usedBy[0].id, productName: usedBy[0].name, usedByCount: usedBy.length - 1 };
+      }
+      if (cat) return { ...base, source: 'category', categoryId: cat.id, categoryName: cat.name };
+      return base;
+    });
+  }, [assets, productUsage, categoryUsage]);
+
+  const knownUrls = useMemo(() => new Set(assets.map(a => a.file_url)), [assets]);
+
+  // Productfoto's zonder bibliotheekrij (vangnet).
   const productAssets = useMemo<VirtualAsset[]>(() => {
     if (folder !== 'all' && folder !== 'products') return [];
-    return productsList.flatMap(product => 
-      (product.images || []).map((url, idx) => ({
-        id: `product-${product.id}-${idx}`,
-        file_name: `${product.name}-${idx + 1}.jpg`,
+    const out: VirtualAsset[] = [];
+    for (const [url, usedBy] of productUsage) {
+      if (knownUrls.has(url)) continue;
+      out.push({
+        id: `product-${usedBy[0].id}-${url}`,
+        file_name: url.split('?')[0].split('/').pop() || usedBy[0].name,
         file_url: url,
         file_type: 'image/jpeg',
         file_size: null,
-        title: product.name,
+        title: usedBy[0].name,
         tags: [],
         is_ai_generated: false,
         is_favorite: false,
         source: 'product' as const,
-        productId: product.id,
-        productName: product.name,
-      }))
-    );
-  }, [productsList, folder]);
+        productId: usedBy[0].id,
+        productName: usedBy[0].name,
+        usedByCount: usedBy.length - 1,
+      });
+    }
+    return out;
+  }, [productUsage, knownUrls, folder]);
 
-  // Convert category images to virtual assets
+  // Categoriefoto's zonder bibliotheekrij (vangnet).
   const categoryAssets = useMemo<VirtualAsset[]>(() => {
     if (folder !== 'all' && folder !== 'categories') return [];
     return (categories || [])
-      .filter(cat => cat.image_url)
+      .filter(cat => cat.image_url && !knownUrls.has(cat.image_url))
       .map(cat => ({
         id: `category-${cat.id}`,
         file_name: `${cat.name}.jpg`,
@@ -256,29 +321,14 @@ export function MediaAssetsLibrary() {
         categoryId: cat.id,
         categoryName: cat.name,
       }));
-  }, [categories, folder]);
-
-  // Convert media assets to virtual assets
-  const mediaVirtualAssets = useMemo<VirtualAsset[]>(() => {
-    return assets.map(a => ({
-      id: a.id,
-      file_name: a.file_name,
-      file_url: a.file_url,
-      file_type: a.file_type,
-      file_size: a.file_size,
-      title: a.title,
-      tags: a.tags,
-      is_ai_generated: a.is_ai_generated,
-      is_favorite: a.is_favorite,
-      source: 'upload' as const,
-    }));
-  }, [assets]);
+  }, [categories, knownUrls, folder]);
 
   // Merge and filter
   const allAssets = useMemo(() => {
     let combined: VirtualAsset[];
     if (folder === 'products') combined = [...mediaVirtualAssets, ...productAssets];
     else if (folder === 'categories') combined = [...mediaVirtualAssets, ...categoryAssets];
+    else if (folder === 'favorites') combined = mediaVirtualAssets;
     else combined = [...mediaVirtualAssets, ...productAssets, ...categoryAssets];
     if (!search) return combined;
     const q = search.toLowerCase();
@@ -290,6 +340,17 @@ export function MediaAssetsLibrary() {
       a.tags.some(t => t.toLowerCase().includes(q))
     );
   }, [mediaVirtualAssets, productAssets, categoryAssets, folder, search]);
+
+  // Afmetingen die nog ontbreken, aanvullen zodra het beeld geladen is (één keer per rij).
+  const measuredRef = useRef(new Set<string>());
+  const handleMeasured = useCallback((mediaId: string, width: number, height: number) => {
+    if (measuredRef.current.has(mediaId)) return;
+    measuredRef.current.add(mediaId);
+    void recordMediaDimensions(supabase as unknown as MediaClientLike, mediaId, width, height);
+  }, []);
+
+  /** Uit de bibliotheek verwijderen mag alleen als de foto nergens gebruikt wordt. */
+  const isDeletable = (a: VirtualAsset) => !!a.mediaId && a.source === 'upload';
 
   const selectionActive = selectedIds.size > 0;
 
@@ -318,7 +379,7 @@ export function MediaAssetsLibrary() {
   );
 
   const handleBulkDelete = async () => {
-    const deletable = selectedAssets.filter(a => a.source === 'upload');
+    const deletable = selectedAssets.filter(isDeletable);
     if (deletable.length === 0) {
       toast.error('Geen verwijderbare assets geselecteerd');
       return;
@@ -326,7 +387,7 @@ export function MediaAssetsLibrary() {
     let success = 0;
     for (const asset of deletable) {
       try {
-        await deleteAsset.mutateAsync(asset.id);
+        await deleteAsset.mutateAsync(asset.mediaId!);
         success++;
       } catch {
         // continue
@@ -376,23 +437,12 @@ export function MediaAssetsLibrary() {
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!currentTenant?.id) return;
     for (const file of acceptedFiles) {
-      const url = await uploadImage(file, 'marketing-assets');
-      if (url) {
-        await createAsset.mutateAsync({
-          tenant_id: currentTenant.id,
-          file_name: file.name,
-          file_url: url,
-          file_type: file.type,
-          file_size: file.size,
-          source: 'upload',
-          folder: folder === 'all' || folder === 'favorites' ? 'general' : folder,
-          tags: [],
-          is_ai_generated: false,
-          is_favorite: false,
-        });
-      }
+      // MEDIA-1: useImageUpload zet de foto zelf in de bibliotheek.
+      await uploadImage(file, 'marketing-assets', undefined, {
+        folder: folder === 'all' || folder === 'favorites' ? 'general' : folder,
+      });
     }
-  }, [currentTenant?.id, folder, uploadImage, createAsset]);
+  }, [currentTenant?.id, folder, uploadImage]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -429,6 +479,9 @@ export function MediaAssetsLibrary() {
           </TabsList>
         </Tabs>
       </div>
+
+      {/* MEDIA-1: externe foto's (bv. Shopify-CDN) naar eigen opslag */}
+      <ExternalImagesBanner />
 
       {/* Folder Tabs */}
       <Tabs value={folder} onValueChange={(v) => { setFolder(v); clearSelection(); }}>
@@ -488,8 +541,9 @@ export function MediaAssetsLibrary() {
               selected={selectedIds.has(asset.id)}
               onSelect={() => toggleSelect(asset.id)}
               selectionActive={selectionActive}
-              onToggleFavorite={asset.source === 'upload' ? () => toggleFavorite.mutate({ id: asset.id, is_favorite: !asset.is_favorite }) : undefined}
-              onDelete={asset.source === 'upload' ? () => deleteAsset.mutate(asset.id) : undefined}
+              onToggleFavorite={asset.mediaId ? () => toggleFavorite.mutate({ id: asset.mediaId!, is_favorite: !asset.is_favorite }) : undefined}
+              onDelete={isDeletable(asset) ? () => deleteAsset.mutate(asset.mediaId!) : undefined}
+              onMeasured={asset.mediaId ? (w, h) => handleMeasured(asset.mediaId!, w, h) : undefined}
               onEdit={asset.file_type.startsWith('image/') ? () => handleEditProductImage(asset) : undefined}
             />
           ))}
@@ -520,7 +574,7 @@ export function MediaAssetsLibrary() {
                 <Download className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{t('admin.marketing.mediaAssetsLibrary.downloaden')}</span>
               </Button>
-              {selectedAssets.some(a => a.source === 'upload') && (
+              {selectedAssets.some(isDeletable) && (
                 <Button size="sm" variant="outline" onClick={handleBulkDelete} className="gap-1.5 text-destructive hover:text-destructive">
                   <Trash2 className="h-3.5 w-3.5" />
                   <span className="hidden sm:inline">{t('common.delete')}</span>
@@ -563,11 +617,11 @@ export function MediaAssetsLibrary() {
                   .update(update)
                   .eq('id', editingAsset.productId);
                 if (error) throw error;
-              } else if (editingAsset.source === 'upload' && editingAsset.id) {
+              } else if (editingAsset.source === 'upload' && editingAsset.mediaId) {
                 const { error } = await (supabase as any)
                   .from('media_assets')
-                  .update({ file_url: newUrl })
-                  .eq('id', editingAsset.id);
+                  .update({ file_url: newUrl, width: null, height: null })
+                  .eq('id', editingAsset.mediaId);
                 if (error) throw error;
               } else if (editingAsset.source === 'category' && editingAsset.categoryId) {
                 // De asset-id is 'category-<uuid>'; de echte id staat in categoryId.

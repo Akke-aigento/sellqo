@@ -2094,6 +2094,18 @@
         "token_wallet_cancel_order": {
           "title": "Marken verfallen mit, wenn du eine Bestellung stornierst",
           "description": "Stornierst du eine Bestellung oder erstattest sie vollständig, wird die Markenkarte dieser Bestellung jetzt automatisch gesperrt, so wie auch die Tickets verfallen. Übrige Marken können an der Bar nicht mehr verwendet werden; bereits verwendete bleiben verwendet. Bei einer Teilerstattung bleibt die Karte nutzbar. War es ein Versehen, wählst du bei der Karte unter Events → Marken einfach Entsperren."
+        },
+        "media_library_all_photos": {
+          "title": "Alle deine Fotos in einer Mediathek",
+          "description": "Jedes Foto, das du hochlädst, landet jetzt automatisch in deiner Mediathek: an einem Produkt, einer Variante, einer Kategorie oder im Shop-Editor. Auch die Fotos, die schon an deinen Produkten hängen, sind jetzt dort. Bei jedem Foto siehst du, zu welchem Produkt es gehört. Hast du Produkte aus Shopify importiert, siehst du, wie viele Fotos noch auf deren Server liegen, und holst sie mit einem Klick in deinen eigenen Speicher, damit sie weiter funktionieren, wenn du dieses Abo kündigst."
+        },
+        "photo_standard": {
+          "title": "Fotostandard: alle Produktfotos im selben Format",
+          "description": "Lege unter Produkte → Fotos ein Format für deine Produktfotos fest, zum Beispiel Hochformat 3:4 mit 1200 × 1600 Pixeln. SellQo entfernt den leeren Rand um das Produkt und setzt es zentriert auf eine feste Fläche mit festem Abstand. Bei einem neuen Foto siehst du das Ergebnis neben dem Original und entscheidest selbst. Bestehende Fotos wandelst du in einem Rutsch um; das Original bleibt erhalten. Ist der Fotostandard aus, ändert sich nichts."
+        },
+        "photo_editor_frame": {
+          "title": "Fotos kostenlos zuschneiden, drehen und den Hintergrund wählen",
+          "description": "Der Foto-Editor hat einen neuen Reiter Format & Zuschnitt: Wähle Seitenverhältnis und Hintergrund, zoome hinein oder heraus, verschiebe das Produkt und drehe das Foto. Das läuft in deinem Browser und kostet keine KI-Credits. Der KI-Hintergrund bleibt im zweiten Reiter verfügbar."
         }
       },
       "copyLink": "Link kopieren",

@@ -13,6 +13,8 @@ import { Input } from '@/components/ui/input';
 import { useAIImages } from '@/hooks/useAIImages';
 import { useAICredits } from '@/hooks/useAICredits';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FrameEditorPanel } from './FrameEditorPanel';
 import { useTranslation } from 'react-i18next';
 
 // Labels staan als i18n-key; `prompt` is een instructie aan het beeldmodel en
@@ -114,10 +116,31 @@ export function ImageEditorDialog({
             {t('admin.products.imageEditorDialog.foto_bewerken')}
           </DialogTitle>
           <DialogDescription>
-            {productName ? t('admin.products.imageEditorDialog.bewerk_achtergrond_van', { product: productName }) : 'Verwijder of wijzig de achtergrond van deze foto'}
+            {t('admin.products.photoEditor.description', { product: productName || '' })}
           </DialogDescription>
         </DialogHeader>
 
+        {/* EDITOR-2: gratis formaat/uitsnede als standaard; AI-achtergrond als extra (credits). */}
+        <Tabs defaultValue="frame" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="frame" className="gap-1.5">
+              {t('admin.products.photoEditor.tab_frame')}
+              <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">{t('admin.products.photoEditor.free')}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="ai">{t('admin.products.photoEditor.tab_ai')}</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="frame">
+            {open && (
+              <FrameEditorPanel
+                imageUrl={imageUrl}
+                productName={productName}
+                onApplied={(newUrl) => { onApply(newUrl); handleClose(false); }}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="ai">
         <div className="space-y-6">
           {/* Before / After preview */}
           <div className="grid grid-cols-2 gap-4">
@@ -231,6 +254,8 @@ export function ImageEditorDialog({
             </div>
           </div>
         </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );
