@@ -14,6 +14,9 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.12f', dateKey: 'oct_2026', changes: [
+    { id: 'homepage_sections_slideshow_logos_columns', type: 'feature' },
+  ] },
   { version: '2026.12e', dateKey: 'oct_2026', changes: [
     { id: 'admin_dead_controls_cleanup', type: 'improvement' },
   ] },

@@ -1,3 +1,56 @@
+## EDITOR-SECTIONS-1 — nieuwe homepage-secties in de Aanpassen-editor: iconen, vertalingen en beeldkiezer (2026.12f) — 16 oktober 2026
+
+**Vraag.** In de storefront-repo gingen op 16-10 nieuwe homepage-secties live: `slideshow` (Diavoorstelling), `logo_list` (Logo's en merken), `multicolumn` (Kolommen), `rich_text` (Tekstblok), `external_reviews` (Winkelreviews), plus een lite video-embed en FAQPage-data. Zie storefront-commits `f627800` (SHOP-SECTIONS-1) en `7bb056a` (SHOP-POLISH-2). De admin-editor toonde ze via het themaschema, maar zonder iconen, met Nederlandse labels in elke UI-taal en met beeldvelden (`"media": "image"`) als kale URL-tekstvelden.
+
+**Root cause.**
+- `src/components/admin/storefront/schema/SchemaForm.tsx`: geen afbeeldingstype. Een `text`-veld met `media: 'image'` viel in de `default`-tak en werd een `Input` met pattern `^https://`.
+- `src/pages/admin/StorefrontCustomize.tsx` r. 71: `SCHEMA_ICONS` kende de nieuwe types niet, dus het terugvalicoon `LayoutList`.
+- `src/i18n/locales/*.json`: geen `admin.storefront.schemaText.*`-keys voor de nieuwe schemateksten. `schemaText()` valt dan terug op het Nederlands.
+- Bij de review van de patch nog drie vondsten:
+  - **Sectielijst toonde het ruwe type.** `sectionTitle()` (r. 116) riep `sectionLabel()` aan zonder schemalabel, en schema-secties krijgen bij toevoegen `title: null` (r. 376). Een nieuwe diavoorstelling stond in de lijst dus als `slideshow`. Dat gold al voor `usp_bar`, `faq`, `contact_hours`, `menu_card` en `event_agenda`.
+  - **Twee namen voor `external_reviews`.** De sectielijst toonde "Externe reviews" (`sec_external_reviews`, via `LABELED`), het toevoegmenu "Winkelreviews" (schemalabel).
+  - **Zes schemateksten niet vertaald.** Die van de `external_reviews`-sectie (label, hint, 4 velden) ontbraken in de patch. Nagerekend met `schemaTextKey()` over alle teksten in `sellqo-storefront/src/theme/schema.json`. Wat nu nog ontbreekt, zijn alleen eigennamen en voorbeeldcodes (`G-XXXXXXXXXX`, themanamen). Die horen onvertaald.
+
+**Uitgevoerd.**
+- Patch `shop-sections/admin-patch.diff` toegepast (`git apply --check` op `84b7ab4` slaagde):
+  - `schemaTypes.ts`: `media?: 'image'`.
+  - `SchemaForm.tsx`: een `text`-veld met `media: 'image'` wordt een `VisualMediaPicker` met een knop Verwijderen. De rest van het tekstveld is uitgesplitst in `PlainText`, met identiek gedrag.
+  - `StorefrontCustomize.tsx`: iconen `GalleryHorizontalEnd`, `Award`, `Columns3`, `Type` en `Star`.
+  - 39 `schemaText`-keys × 5 talen.
+- Correcties op de patch:
+  - `SchemaForm.tsx`: de beeldkiezer krijgt een vertaalde placeholder (`admin.storefront.schema.schemaForm.kies_of_upload_afbeelding`), in plaats van de Nederlandse default van `VisualMediaPicker`. De schema-uitleg "Plak de link naar een afbeelding (https://…)" valt in de kiezertak weg, want daar plak je niets.
+  - `VisualMediaPicker` zelf is ongewijzigd, met hetzelfde patroon als in `SectionEditor` (hero, tekst+beeld) en de visual-editor-secties:
+    - `value` en `onSelect` gaan als props mee.
+    - De tenant komt uit `useTenant().currentTenant`.
+    - Uploaden gaat naar bucket `tenant-assets` (live `public = true`), pad `<tenant>/storefront/<ts>.<ext>`.
+    - Het veld krijgt de publieke URL (`https://…supabase.co/storage/v1/object/public/…`). Die voldoet aan het schema-pattern en aan `safeImg()` in de winkel, en `lib/img.ts` serveert hem verkleind.
+  - `StorefrontCustomize.tsx`: `sectionTitle()` en `SortableRow` krijgen het schemalabel mee (`schema?.sections[type]?.label`). Zonder eigen titel staat er in de sectielijst nu "Diavoorstelling", "Voordelenbalk" enz., vertaald, in plaats van het ruwe type. `LABELED` behoudt `external_reviews`, zodat de naam er ook staat als het schema niet laadt. `sec_external_reviews` heet nu in alle talen zoals het schemalabel: "Winkelreviews", "Store reviews", "Avis sur la boutique", "Shop-Bewertungen", "Відгуки про магазин". Lijst, paneeltitel en toevoegmenu zijn daarmee gelijk.
+  - Locales: 6 extra `schemaText`-keys voor `external_reviews` en 1 placeholder-key, in nl/en/fr/de/uk.
+  - `schemaTypes.ts`: de comment beloofde een "mediabibliotheek"; de kiezer kan uploaden en wissen, niet bladeren in bestaande media. Rechtgezet.
+- Editor-voorbeeld: een gekozen beeld komt meteen in het voorbeeld. `onSelect` → `onChange` → `setSections`. `sendPreview` (r. 297) hangt aan `sections`, dus een nieuwe `sellqo:preview`-postMessage gaat naar de iframe. De winkel (`src/lib/editor.tsx`) rendert de niet-opgeslagen inhoud. Dat pad is gelezen, niet live geklikt (zie Verificatie).
+- `src/test/schemaFormMedia.test.tsx` (nieuw, 4 tests):
+  - kiezer in plaats van tekstveld, zonder plak-uitleg;
+  - een gewoon tekstveld blijft een tekstveld;
+  - een bestaand beeld wordt getoond en Verwijderen maakt het veld leeg;
+  - een upload gaat naar `tenant-assets/<tenant>/storefront/…` en het veld krijgt een `https://`-URL.
+- Slottaken: changelog 2026.12f (`homepage_sections_slideshow_logos_columns`, feature) in alle 5 talen van `SUPPORTED_LANGUAGES`. Daarnaast een newsletter-item en de migratie `supabase/migrations/20261016130000_editor_sections_1_doc_article.sql` (niet gedraaid).
+
+**Security-keuzes.** Geen RLS, policies of grants geraakt. De upload gebruikt de bestaande `tenant-assets`-policies, met hetzelfde pad als hero en tekst+beeld. Een gekozen beeld is publiek leesbaar (bucket `public`), net als elk ander winkelbeeld.
+
+**Gedeelde-paden-waarschuwing.** Niets aan `storefront-api`, `storefront-customer-api`, `storefront-resolve` of de gedeelde tabellen. De beeldkiezer schrijft dezelfde sleutel (`image_url`) als het tekstveld, met een `https://`-URL. Er komt geen nieuwe sleutel bij in `content`/`settings`. Custom frontends renderen zelf en negeren onbekende sectietypes. De Aanpassen-editor is voor winkels op het SellQo-thema.
+
+**Verificatie.** Zie het rapport van de batch: tsc app, vitest volledig, i18n-parity, check-i18n-used-keys, check-notification-sources, check-dead-buttons, verify-lint-baseline, verify-edge-pins, eslint op de gewijzigde bestanden tegen HEAD en `npm run build`, met exit codes in de commit. Playwright op de editor kon niet: de admin vraagt een login. In de plaats daarvan staan de vitest-tests hierboven en is het postMessage-pad gelezen.
+
+**Bewust ongemoeid / Vervolg.**
+- `VisualMediaPicker.tsx` heeft hardcoded Nederlandse teksten ("Afbeelding Kiezen", "Sleep een afbeelding hierheen", toasts). Die bestonden al en worden overal gebruikt waar de kiezer staat. Dat wordt een eigen i18n-batch.
+- `src/pages/admin/Storefront.tsx` r. 70 en 73: de knoppen "Aanpassen" en "Thema kiezen" zijn hardcoded Nederlands (bestaand).
+- Storefront-schema (`sellqo-storefront/src/theme/schema.json`), alleen gelezen:
+  - De help-tekst bij het logo-veld van `logo_list` zegt "Leeg = een vlak in je merkkleur", maar zonder logo toont de winkel de naam.
+  - De help-teksten "Plak de link …" kloppen in de nieuwe editor niet meer. Ze tonen alleen nog in oudere editors.
+  - Rechtzetten in de storefront-repo.
+- De kiezer kan niet bladeren in eerder geüploade beelden (geen mediabibliotheek). Elke upload maakt een nieuw bestand.
+- Doc-migratie pas draaien na de storefront-deploy en de sellqo.app-publish. Daarna `md5(content)` natrekken.
+
 ## ADMIN-DEAD-1 — dode knoppen en schijnfuncties in de admin, vijfde sweep (2026.12e) — 16 oktober 2026
 
 **Vraag van Akke.** De apps (dezelfde `src/` in Capacitor) zitten vol dode knoppen, niet-werkende functies en nepdata; gestructureerd opruimen zonder dat het weken werk wordt.

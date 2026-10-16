@@ -2074,6 +2074,10 @@
         "admin_dead_controls_cleanup": {
           "title": "Weniger Schaltflächen ohne Funktion im Übersetzungs-Hub, in deinem Profil und an der Kasse",
           "description": "Im Übersetzungs-Hub gibt es keine Schalter für automatisches Übersetzen mehr: Sie wurden gespeichert, aber nichts hat sie verwendet. Du übersetzt pro Element oder als Massenübersetzung. Ein Gutschein, den du an der Kasse druckst, bekommt jetzt einen echten QR-Code mit dem Gutscheincode statt einer Fläche, die nur so aussah. Die Kamera-Schaltfläche in deinem Profil, die immer deaktiviert war, ist weg. Ein KI-Vorschlag zum Lagerbestand führt dich jetzt zu deinen Produkten mit niedrigem Bestand statt zu einer Einkaufsseite, auf der du nichts anlegen konntest."
+        },
+        "homepage_sections_slideshow_logos_columns": {
+          "title": "Vier neue Startseiten-Abschnitte, Videos, die erst nach einem Klick laden, und eine Bildauswahl",
+          "description": "Im Shop-Editor fügst du deiner Startseite jetzt vier neue Abschnitte hinzu: eine Diashow, eine Leiste mit Logos und Marken, Spalten (zwei bis vier Blöcke nebeneinander) und einen eigenen Textblock. Ein Videoabschnitt zeigt zuerst nur eine Abspieltaste: Der YouTube- oder Vimeo-Player lädt erst, wenn dein Besucher darauf klickt, und bis dahin geht keine Anfrage an YouTube oder Vimeo (außer du schaltest automatisches Abspielen ein). Mit dem Abschnitt Shop-Bewertungen zeigst du deine Bewertungen von Google, Trustpilot und anderen Plattformen mit deiner Durchschnittsbewertung; ohne Bewertungen bleibt er ausgeblendet. Die Fragen und Antworten aus deinem FAQ-Abschnitt stehen jetzt auch als strukturierte Daten auf deiner Startseite, damit Google und andere Suchmaschinen sie lesen können. Bilder für Dias, Logos und Spalten wählst du mit der Bildauswahl aus oder lädst sie hoch, statt einen Link einzufügen."
         }
       },
       "copyLink": "Link kopieren",

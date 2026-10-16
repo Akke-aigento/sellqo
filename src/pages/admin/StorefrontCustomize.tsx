@@ -10,6 +10,7 @@ import {
   ArrowLeft, ChevronRight, Eye, EyeOff, ExternalLink, GripVertical, Image, LayoutList, Loader2,
   Mail, Megaphone, MessageSquare, Monitor, Palette, PanelBottom, Play, Plus, Smartphone, Star, Grid3X3, Trash2,
   BadgeCheck, HelpCircle, Clock, Menu as MenuIcon, ShoppingBag, Activity, Pipette, UtensilsCrossed, CalendarDays,
+  GalleryHorizontalEnd, Award, Columns3, Type,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -56,7 +57,8 @@ const asObj = (v: unknown): Obj => (v && typeof v === 'object' && !Array.isArray
 // Sectietypes die volledig uit het themaschema komen (geen eigen formulier in SectionEditor).
 const PRODUCT_TYPES = ['featured_products', 'collection'];
 
-// Sectietypes die de standaardshop toont (externe reviews volgen later).
+// Sectietypes met een eigen formulier in SectionEditor. Alle andere secties (voordelen, FAQ,
+// winkelreviews, diavoorstelling, logo's, kolommen, tekstblok, …) komen uit het themaschema.
 // Labels als i18n-key (admin.storefrontCustomize.sec_<type> / hint_<type>); `type` is de enum-waarde.
 const ADDABLE: Array<{ type: HomepageSectionType; icon: typeof Image }> = [
   { type: 'hero', icon: Image },
@@ -68,9 +70,14 @@ const ADDABLE: Array<{ type: HomepageSectionType; icon: typeof Image }> = [
   { type: 'video', icon: Play },
   { type: 'announcement', icon: Megaphone },
 ];
-const SCHEMA_ICONS: Record<string, typeof Image> = { usp_bar: BadgeCheck, faq: HelpCircle, contact_hours: Clock, menu_card: UtensilsCrossed, event_agenda: CalendarDays };
+const SCHEMA_ICONS: Record<string, typeof Image> = {
+  usp_bar: BadgeCheck, faq: HelpCircle, contact_hours: Clock, menu_card: UtensilsCrossed, event_agenda: CalendarDays,
+  external_reviews: Star, slideshow: GalleryHorizontalEnd, logo_list: Award, multicolumn: Columns3, rich_text: Type,
+};
 const ICONS: Record<string, typeof Image> = { ...Object.fromEntries(ADDABLE.map((a) => [a.type, a.icon])), ...SCHEMA_ICONS };
 // Vaste sectietypes met een vertaalde naam; schema-secties gebruiken hun schemalabel (schemaText).
+// external_reviews staat ook in het schema ("Winkelreviews"); sec_external_reviews heeft dezelfde
+// vertaling, zodat sectielijst en toevoegmenu gelijk zijn, ook als het schema niet laadt.
 const LABELED = new Set<string>([...ADDABLE.map((a) => a.type), 'external_reviews']);
 const sectionLabel = (type: string, t: TFunction, schemaLabel?: string | null) =>
   LABELED.has(type) ? t(`admin.storefrontCustomize.sec_${type}`) : schemaLabel ? schemaText(t, schemaLabel) : type;
@@ -108,7 +115,8 @@ async function colorFromLogo(url: string): Promise<string | null> {
   return '#' + [best.r, best.g, best.b].map((v) => Math.round(v / best.n).toString(16).padStart(2, '0')).join('');
 }
 
-const sectionTitle = (s: HomepageSection, t: TFunction) => (s.title && s.title !== 'Hero Banner' ? s.title : sectionLabel(s.section_type, t));
+const sectionTitle = (s: HomepageSection, t: TFunction, schemaLabel?: string | null) =>
+  (s.title && s.title !== 'Hero Banner' ? s.title : sectionLabel(s.section_type, t, schemaLabel));
 const sameJson = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 const tempId = () => `nieuw-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -146,8 +154,8 @@ function shopOrigin(slug: string): string {
   return `https://${slug}.sellqo.shop`;
 }
 
-function SortableRow({ section, active, onOpen, onToggle }: {
-  section: HomepageSection; active: boolean; onOpen: () => void; onToggle: () => void;
+function SortableRow({ section, schemaLabel, active, onOpen, onToggle }: {
+  section: HomepageSection; schemaLabel?: string | null; active: boolean; onOpen: () => void; onToggle: () => void;
 }) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
@@ -155,13 +163,13 @@ function SortableRow({ section, active, onOpen, onToggle }: {
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn('group flex items-center gap-1 rounded-md pr-1', isDragging && 'z-10 bg-muted shadow', active && 'bg-muted')}>
-      <button type="button" {...attributes} {...listeners} aria-label={t('admin.storefrontCustomize.drag_section', { name: sectionTitle(section, t) })}
+      <button type="button" {...attributes} {...listeners} aria-label={t('admin.storefrontCustomize.drag_section', { name: sectionTitle(section, t, schemaLabel) })}
         className="flex h-9 w-7 cursor-grab items-center justify-center text-muted-foreground opacity-60 group-hover:opacity-100">
         <GripVertical className="h-4 w-4" />
       </button>
       <button type="button" onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-2.5 py-2 text-left text-sm">
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <span className={cn('truncate', !section.is_visible && 'text-muted-foreground')}>{sectionTitle(section, t)}</span>
+        <span className={cn('truncate', !section.is_visible && 'text-muted-foreground')}>{sectionTitle(section, t, schemaLabel)}</span>
         {!section.is_visible ? <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t('admin.products.verborgen')}</span> : null}
       </button>
       <button type="button" onClick={onToggle} aria-label={section.is_visible ? t('admin.storefrontCustomize.verbergen') : t('admin.storefrontCustomize.tonen')}
@@ -553,7 +561,7 @@ export default function StorefrontCustomizePage() {
                       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
                         <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
                           {sections.map((s) => (
-                            <SortableRow key={s.id} section={s} active={false}
+                            <SortableRow key={s.id} section={s} schemaLabel={schema?.sections[s.section_type]?.label} active={false}
                               onOpen={() => setPanel({ kind: 'section', id: s.id })} onToggle={() => toggleSection(s.id)} />
                           ))}
                         </SortableContext>

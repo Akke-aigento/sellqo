@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { schemaDefaults, type SchemaBlocks, type SchemaField } from './schemaTypes';
 import { useTranslation } from 'react-i18next';
 import { schemaText } from './schemaText';
+import { VisualMediaPicker } from '../visual-editor/VisualMediaPicker';
 
 type Values = Record<string, unknown>;
 
@@ -73,6 +74,26 @@ function Field({ f, value, onChange, idPrefix, icons }: {
           </div>
         </div>
       );
+    case 'text':
+      // SHOP-SECTIONS-1 / EDITOR-SECTIONS-1 — afbeeldingsveld uit het schema (type text + media: image):
+      // dezelfde beeldkiezer als bij hero en tekst+beeld (upload naar tenant-assets/<tenant>/storefront,
+      // publieke https-URL). De schema-uitleg ("plak de link …") hoort bij het tekstveld en valt hier weg.
+      // Oudere editors zonder deze tak tonen gewoon het tekstveld.
+      if (f.media === 'image') {
+        return (
+          <div className="space-y-1.5">
+            <Label>{schemaText(t, f.label)}</Label>
+            <VisualMediaPicker value={String(v ?? '')} onSelect={(url) => onChange(url)} aspectRatio="video"
+              placeholder={t('admin.storefront.schema.schemaForm.kies_of_upload_afbeelding')} />
+            {String(v ?? '') ? (
+              <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-xs text-muted-foreground" onClick={() => onChange('')}>
+                {t('common.delete')}
+              </Button>
+            ) : null}
+          </div>
+        );
+      }
+      return <PlainText f={f} v={v} id={id} onChange={onChange} />;
     case 'textarea':
       return (
         <div className="space-y-1.5">
@@ -81,20 +102,24 @@ function Field({ f, value, onChange, idPrefix, icons }: {
           {f.help ? <p className="text-xs text-muted-foreground">{schemaText(t, f.help)}</p> : null}
         </div>
       );
-    default: {
-      const s = String(v ?? '');
-      const bad = !!f.pattern && s !== '' && !new RegExp(f.pattern).test(s);
-      return (
-        <div className="space-y-1.5">
-          <Label htmlFor={id}>{schemaText(t, f.label)}</Label>
-          <Input id={id} value={s} placeholder={f.placeholder ? schemaText(t, f.placeholder) : undefined} aria-invalid={bad} onChange={(e) => onChange(e.target.value)}
-            className={bad ? 'border-destructive' : undefined} />
-          {bad ? <p className="text-xs text-destructive">{t('admin.storefront.schema.schemaForm.dit_ziet_er_niet_uit_als')}</p>
-            : f.help ? <p className="text-xs text-muted-foreground">{schemaText(t, f.help)}</p> : null}
-        </div>
-      );
-    }
+    default:
+      return <PlainText f={f} v={v} id={id} onChange={onChange} />;
   }
+}
+
+function PlainText({ f, v, id, onChange }: { f: SchemaField; v: unknown; id: string; onChange: (v: unknown) => void }) {
+  const { t } = useTranslation();
+  const s = String(v ?? '');
+  const bad = !!f.pattern && s !== '' && !new RegExp(f.pattern).test(s);
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{schemaText(t, f.label)}</Label>
+      <Input id={id} value={s} placeholder={f.placeholder ? schemaText(t, f.placeholder) : undefined} aria-invalid={bad} onChange={(e) => onChange(e.target.value)}
+        className={bad ? 'border-destructive' : undefined} />
+      {bad ? <p className="text-xs text-destructive">{t('admin.storefront.schema.schemaForm.dit_ziet_er_niet_uit_als')}</p>
+        : f.help ? <p className="text-xs text-muted-foreground">{schemaText(t, f.help)}</p> : null}
+    </div>
+  );
 }
 
 export function SchemaForm({ fields, values, onChange, idPrefix = 'sf', icons }: {

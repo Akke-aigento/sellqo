@@ -2074,6 +2074,10 @@
         "admin_dead_controls_cleanup": {
           "title": "Minder schijnknoppen in de vertaalhub, je profiel en de kassa",
           "description": "In de vertaalhub staan geen schakelaars meer om automatisch te vertalen: ze werden opgeslagen, maar er gebeurde niets mee. Vertalen doe je per item of in bulk. Een cadeaubon die je in de kassa afdrukt, krijgt nu een echte QR-code met de boncode, in plaats van een vlak dat er alleen op leek. In je profiel is de camera-knop weg die altijd uitgeschakeld stond. Een AI-voorstel over voorraad brengt je nu naar je producten met lage voorraad, in plaats van naar een inkooppagina waar je niets kon aanmaken."
+        },
+        "homepage_sections_slideshow_logos_columns": {
+          "title": "Vier nieuwe homepage-secties, video die pas laadt na een klik en een beeldkiezer",
+          "description": "In de webshop-editor (Aanpassen) voeg je nu vier nieuwe secties toe aan je homepage: een diavoorstelling, een strook met logo's en merken, kolommen (twee tot vier blokken naast elkaar) en een los tekstblok. Een videosectie toont eerst alleen een afspeelknop: de speler van YouTube of Vimeo laadt pas als je bezoeker erop klikt, en tot dan gaat er geen verzoek naar YouTube of Vimeo (tenzij je automatisch afspelen aanzet). Met de sectie Winkelreviews toon je je reviews van Google, Trustpilot en andere platformen, met je gemiddelde score; zonder reviews blijft ze verborgen. De vragen en antwoorden uit je FAQ-sectie staan nu ook als gestructureerde gegevens in je homepage, zodat Google en andere zoekmachines ze kunnen lezen. Afbeeldingen voor dia's, logo's en kolommen kies of upload je met de beeldkiezer, in plaats van een link te plakken."
         }
       },
       "copyLink": "Kopieer link",

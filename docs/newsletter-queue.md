@@ -4,6 +4,21 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12f — Vier nieuwe homepage-secties, video die pas laadt na een klik en een beeldkiezer (feature, 16-10-2026)
+
+**Pas versturen na** de deploy van de storefront (`f627800` SHOP-SECTIONS-1, `7bb056a` SHOP-POLISH-2) én de publish van sellqo.app met EDITOR-SECTIONS-1 (sellqo.app is Lovable-hosted: pas live na `deploy_project`; voor de app pas na de volgende native build).
+
+**Voor wie:** winkels op het SellQo-thema (Webshop → Aanpassen). Winkels met een eigen frontend zien deze secties niet.
+
+In Aanpassen voeg je nu een diavoorstelling, een strook met logo's en merken, kolommen (twee tot vier blokken naast
+elkaar) en een los tekstblok toe aan je homepage. Een videosectie toont eerst alleen een afspeelknop: de speler van
+YouTube of Vimeo laadt pas als je bezoeker erop klikt, en tot dan gaat er geen verzoek naar YouTube of Vimeo. Met de
+sectie Winkelreviews toon je je reviews van Google, Trustpilot en andere platformen, met je gemiddelde score. De
+vragen uit je FAQ-sectie staan nu ook als gestructureerde gegevens in je homepage, zodat zoekmachines ze kunnen
+lezen. Afbeeldingen kies of upload je met de beeldkiezer, in plaats van een link te plakken.
+
+**i18n-keys.** `public.changelog.changes.homepage_sections_slideshow_logos_columns` — 5 talen.
+
 ### 2026.12e — Minder schijnknoppen in de vertaalhub, je profiel en de kassa (improvement, 16-10-2026)
 
 **Pas versturen na de publish** van sellqo.app (puur frontend; voor de app pas na de volgende native build).

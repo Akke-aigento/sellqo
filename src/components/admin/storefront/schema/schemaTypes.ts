@@ -9,6 +9,8 @@ export interface SchemaField {
   min?: number; max?: number; step?: number; unit?: string;
   placeholder?: string; help?: string; pattern?: string;
   showIf?: { key: string; equals: SchemaValue };
+  /** SHOP-SECTIONS-1 — tekstveld met een afbeeldings-URL: in de editor een beeldkiezer (VisualMediaPicker: uploaden of het huidige beeld wissen). */
+  media?: 'image';
 }
 export interface SchemaBlocks { key: string; label: string; plural?: string; max?: number; default?: Record<string, unknown>[]; fields: SchemaField[] }
 export interface SchemaSection { label: string; hint?: string; fields: SchemaField[]; blocks?: SchemaBlocks }
