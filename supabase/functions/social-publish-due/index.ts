@@ -116,7 +116,14 @@ async function remindManual(admin: Admin) {
       data: { social_post_id: post.id, media_type: post.media_type },
     });
     if (insertError) {
+      // SOCIAL-SEC-1: afvinken terugdraaien, anders is de herinnering voorgoed weg
+      // (reminded_at gezet zonder melding). De volgende run binnen het venster probeert opnieuw.
       console.error("[social-publish-due] herinnering mislukt:", insertError.message);
+      const { error: undoError } = await admin
+        .from("social_posts")
+        .update({ reminded_at: null })
+        .eq("id", post.id);
+      if (undoError) console.error("[social-publish-due] reminded_at terugzetten mislukt:", undoError.message);
       continue;
     }
     reminded++;
@@ -158,7 +165,7 @@ async function refreshTokens(admin: Admin) {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   // EDGE-IMPORT-1: neveneffectvrije versiestempel om een deploy na te meten.
-  if (req.method === "GET") return json({ ok: true, version: "EDGE-IMPORT-1" });
+  if (req.method === "GET") return json({ ok: true, version: "SOCIAL-SEC-1" });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
