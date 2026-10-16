@@ -2070,6 +2070,10 @@
         "free_checkout_faster": {
           "title": "Gratis tickets afrekenen gaat sneller",
           "description": "Rekent een klant een bestelling van €0 af, bijvoorbeeld met een kortingscode van 100%, dan krijgt hij de bevestiging nu meteen in plaats van na zo'n tien seconden. De factuur, de orderbevestiging en de ticketmail worden daarna verstuurd, in dezelfde volgorde als voorheen."
+        },
+        "admin_dead_controls_cleanup": {
+          "title": "Minder schijnknoppen in de vertaalhub, je profiel en de kassa",
+          "description": "In de vertaalhub staan geen schakelaars meer om automatisch te vertalen: ze werden opgeslagen, maar er gebeurde niets mee. Vertalen doe je per item of in bulk. Een cadeaubon die je in de kassa afdrukt, krijgt nu een echte QR-code met de boncode, in plaats van een vlak dat er alleen op leek. In je profiel is de camera-knop weg die altijd uitgeschakeld stond. Een AI-voorstel over voorraad brengt je nu naar je producten met lage voorraad, in plaats van naar een inkooppagina waar je niets kon aanmaken."
         }
       },
       "copyLink": "Kopieer link",

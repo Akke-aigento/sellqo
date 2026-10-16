@@ -2070,6 +2070,10 @@
         "free_checkout_faster": {
           "title": "Kostenlose Tickets sind schneller bestellt",
           "description": "Schließt ein Kunde eine Bestellung über 0 € ab, zum Beispiel mit einem Rabattcode über 100 %, bekommt er die Bestätigung jetzt sofort statt nach etwa zehn Sekunden. Rechnung, Bestellbestätigung und Ticket-E-Mail werden danach verschickt, in derselben Reihenfolge wie bisher."
+        },
+        "admin_dead_controls_cleanup": {
+          "title": "Weniger Schaltflächen ohne Funktion im Übersetzungs-Hub, in deinem Profil und an der Kasse",
+          "description": "Im Übersetzungs-Hub gibt es keine Schalter für automatisches Übersetzen mehr: Sie wurden gespeichert, aber nichts hat sie verwendet. Du übersetzt pro Element oder als Massenübersetzung. Ein Gutschein, den du an der Kasse druckst, bekommt jetzt einen echten QR-Code mit dem Gutscheincode statt einer Fläche, die nur so aussah. Die Kamera-Schaltfläche in deinem Profil, die immer deaktiviert war, ist weg. Ein KI-Vorschlag zum Lagerbestand führt dich jetzt zu deinen Produkten mit niedrigem Bestand statt zu einer Einkaufsseite, auf der du nichts anlegen konntest."
         }
       },
       "copyLink": "Link kopieren",

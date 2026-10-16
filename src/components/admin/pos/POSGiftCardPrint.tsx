@@ -2,6 +2,7 @@ import React, { forwardRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { dateFnsLocaleFor } from '@/hooks/useDateFnsLocale';
 import { format } from 'date-fns';
+import QRCode from 'react-qr-code';
 import type { GiftCard, GiftCardDesign } from '@/types/giftCard';
 
 interface POSGiftCardPrintProps {
@@ -87,26 +88,11 @@ export const POSGiftCardPrint = forwardRef<HTMLDivElement, POSGiftCardPrintProps
           </div>
         </div>
 
-        {/* QR Code placeholder - using text representation */}
+        {/* ADMIN-DEAD-1: echte QR met de cadeauboncode. Tot 16-10-2026 stond hier een
+            gestreept vlak dat op een QR leek, maar niet scanbaar was. */}
         <div className={`text-center ${isThermal ? 'mb-3' : 'mb-4'}`}>
-          <div
-            className={`mx-auto border-2 border-black flex items-center justify-center font-mono ${
-              isThermal ? 'w-20 h-20 text-xs' : 'w-28 h-28 text-sm'
-            }`}
-            style={{ 
-              background: `repeating-linear-gradient(
-                0deg,
-                #000 0px,
-                #000 2px,
-                #fff 2px,
-                #fff 4px
-              )`,
-              backgroundSize: '100% 4px',
-            }}
-          >
-            <div className="bg-white px-1 py-0.5 text-[8px]">
-              {giftCard.code}
-            </div>
+          <div className="mx-auto inline-block bg-white p-1">
+            <QRCode value={giftCard.code} size={isThermal ? 80 : 112} level="M" />
           </div>
         </div>
 

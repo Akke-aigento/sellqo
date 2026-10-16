@@ -277,9 +277,12 @@ export function useAIActions() {
 // automatisch aangemaakt (dat deden de oude create*-functies ook niet: alleen console.log).
 function followUpFor(suggestion: AIActionSuggestion): string | null {
   switch (suggestion.suggestion_type) {
+    // ADMIN-DEAD-1: niet meer naar /admin/purchase-orders. Daar gaven "Nieuwe
+    // inkooporder" en elke rij een 404 (zie APP-CLEAN-5). De producten met lage
+    // voorraad is het scherm waar de gebruiker iets met de suggestie kan.
     case 'purchase_order':
     case 'stock_alert':
-      return '/admin/purchase-orders';
+      return '/admin/products?stock=low';
     case 'marketing_campaign':
     case 'customer_winback':
       return '/admin/marketing?new=campaign';

@@ -4986,7 +4986,9 @@
       "ververst_alleen_vertalingen_waarvan_de_brontekst": "Actualise uniquement les traductions dont le texte source a changé.",
       "voltooid_met_fouten": "Terminé avec {{count}} erreurs",
       "welke_items": "Quels éléments ?",
-      "welke_velden": "Quels champs ?"
+      "welke_velden": "Quels champs ?",
+      "instellingen_omschrijving": "Langue source et langues cibles",
+      "auto_vertalen_bestaat_niet": "La traduction automatique lors de la création ou de la modification de contenu n'existe pas encore. Vous créez vous-même les traductions : par élément, ou en une fois avec le bouton de traduction en masse en haut de cette page."
     },
     "analytics": {
       "totale_omzet": "Chiffre d'affaires total",

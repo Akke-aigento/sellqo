@@ -5510,7 +5510,9 @@
       "vertaal_meta_titels_en_beschrijvingen_automatisch": "Vertaal meta titels en beschrijvingen automatisch",
       "vertaal_e_mail_templates_en_campagnes": "Vertaal e-mail templates en campagnes automatisch",
       "credits_beschikbaar": "Je hebt {{count}} credits beschikbaar.",
-      "voltooid_met_fouten": "Voltooid met {{count}} fouten"
+      "voltooid_met_fouten": "Voltooid met {{count}} fouten",
+      "instellingen_omschrijving": "Brontaal en doeltalen",
+      "auto_vertalen_bestaat_niet": "Automatisch vertalen bij het aanmaken of wijzigen van content bestaat nog niet. Vertalingen maak je zelf aan: per item, of in één keer met de knop voor bulkvertaling bovenaan deze pagina."
     },
     "analytics": {
       "analytics": "Analytics",

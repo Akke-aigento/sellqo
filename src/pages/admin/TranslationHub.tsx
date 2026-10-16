@@ -27,7 +27,6 @@ import { CreditPurchaseDialog } from '@/components/admin/marketing/CreditPurchas
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -90,7 +89,6 @@ export default function TranslationHub() {
     jobsLoading,
     pendingEntities,
     pendingLoading,
-    saveSettings,
     ensureSettings,
     toggleLock,
     startBulkTranslation,
@@ -214,18 +212,6 @@ export default function TranslationHub() {
       toast.success('Vertaling voltooid');
     } catch {
       // Error toast (including insufficient-credits CTA) is handled by the hook's onError.
-    }
-  };
-
-  const handleSettingChange = async (key: string, value: boolean) => {
-    if (!settings) return;
-    try {
-      await saveSettings.mutateAsync({
-        ...settings,
-        [key]: value,
-      });
-    } catch (error) {
-      toast.error('Fout bij opslaan instellingen');
     }
   };
 
@@ -1006,7 +992,7 @@ export default function TranslationHub() {
                 {t('admin.translationHub.vertaalinstellingen')}
               </CardTitle>
               <CardDescription>
-                {t('admin.translationHub.configureer_automatische_vertalingen_en_gedrag')}
+                {t('admin.translationHub.instellingen_omschrijving')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -1032,7 +1018,6 @@ export default function TranslationHub() {
                         <Badge 
                           key={lang.code} 
                           variant={settings?.target_languages?.includes(lang.code) ? 'default' : 'outline'}
-                          className="cursor-pointer"
                         >
                           {lang.flag} {lang.label}
                         </Badge>
@@ -1040,64 +1025,15 @@ export default function TranslationHub() {
                     </div>
                   </div>
 
-                  <div className="space-y-4 pt-4 border-t">
+                  {/* ADMIN-DEAD-1: hier stonden vier schakelaars "… automatisch vertalen".
+                      Ze werden opgeslagen in translation_settings, maar geen functie, trigger
+                      of cron leest ze (live nagekeken op 16-10-2026). Vertalen gebeurt alleen
+                      op aanvraag. De kolommen blijven staan. */}
+                  <div className="space-y-2 pt-4 border-t">
                     <h3 className="font-medium">{t('admin.translationHub.automatische_vertalingen')}</h3>
-                    
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="auto-products">{t('admin.translationHub.producten_automatisch_vertalen')}</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {t('admin.translationHub.vertaal_nieuwe_producten_automatisch_naar_alle')}
-                        </p>
-                      </div>
-                      <Switch 
-                        id="auto-products" 
-                        checked={settings?.auto_translate_products || false}
-                        onCheckedChange={(v) => handleSettingChange('auto_translate_products', v)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="auto-categories">{t('admin.translationHub.categorieen_automatisch_vertalen')}</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {t('admin.translationHub.vertaal_nieuwe_categorieen_automatisch_naar_alle')}
-                        </p>
-                      </div>
-                      <Switch 
-                        id="auto-categories" 
-                        checked={settings?.auto_translate_categories || false}
-                        onCheckedChange={(v) => handleSettingChange('auto_translate_categories', v)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="auto-seo">{t('admin.translationHub.seo_content_automatisch_vertalen')}</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {t('admin.translationHub.vertaal_meta_titels_en_beschrijvingen_automatisch')}
-                        </p>
-                      </div>
-                      <Switch 
-                        id="auto-seo" 
-                        checked={settings?.auto_translate_seo || false}
-                        onCheckedChange={(v) => handleSettingChange('auto_translate_seo', v)}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <Label htmlFor="auto-marketing">{t('admin.translationHub.marketing_automatisch_vertalen')}</Label>
-                        <p className="text-sm text-muted-foreground">
-                          {t('admin.translationHub.vertaal_e_mail_templates_en_campagnes')}
-                        </p>
-                      </div>
-                      <Switch 
-                        id="auto-marketing" 
-                        checked={settings?.auto_translate_marketing || false}
-                        onCheckedChange={(v) => handleSettingChange('auto_translate_marketing', v)}
-                      />
-                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {t('admin.translationHub.auto_vertalen_bestaat_niet')}
+                    </p>
                   </div>
                 </>
               )}

@@ -2070,6 +2070,10 @@
         "free_checkout_faster": {
           "title": "Le paiement des billets gratuits est plus rapide",
           "description": "Lorsqu'un client finalise une commande de 0 €, par exemple avec un code de réduction de 100 %, il reçoit désormais la confirmation immédiatement au lieu d'attendre une dizaine de secondes. La facture, la confirmation de commande et l'e-mail des billets sont envoyés ensuite, dans le même ordre qu'avant."
+        },
+        "admin_dead_controls_cleanup": {
+          "title": "Moins de boutons sans effet dans le hub de traduction, votre profil et la caisse",
+          "description": "Le hub de traduction n'affiche plus d'interrupteurs pour la traduction automatique : ils étaient enregistrés, mais rien ne les utilisait. Vous traduisez par élément ou en masse. Une carte cadeau imprimée à la caisse reçoit désormais un vrai code QR avec le code de la carte, au lieu d'un cadre qui en avait seulement l'apparence. Le bouton appareil photo de votre profil, toujours désactivé, a disparu. Une suggestion IA sur le stock vous mène désormais à vos produits en stock faible, au lieu d'une page d'achats où vous ne pouviez rien créer."
         }
       },
       "copyLink": "Copier le lien",

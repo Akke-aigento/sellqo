@@ -5223,7 +5223,9 @@
       "ververst_alleen_vertalingen_waarvan_de_brontekst": "Refreshes only translations whose source text has changed.",
       "voltooid_met_fouten": "Completed with {{count}} errors",
       "welke_items": "Which items?",
-      "welke_velden": "Which fields?"
+      "welke_velden": "Which fields?",
+      "instellingen_omschrijving": "Source language and target languages",
+      "auto_vertalen_bestaat_niet": "Automatic translation when content is created or changed does not exist yet. You create translations yourself: per item, or all at once with the bulk translation button at the top of this page."
     },
     "analytics": {
       "totale_omzet": "Total revenue",

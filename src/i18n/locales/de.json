@@ -4986,7 +4986,9 @@
       "ververst_alleen_vertalingen_waarvan_de_brontekst": "Aktualisiert nur Übersetzungen, deren Quelltext sich geändert hat.",
       "voltooid_met_fouten": "Abgeschlossen mit {{count}} Fehlern",
       "welke_items": "Welche Einträge?",
-      "welke_velden": "Welche Felder?"
+      "welke_velden": "Welche Felder?",
+      "instellingen_omschrijving": "Ausgangssprache und Zielsprachen",
+      "auto_vertalen_bestaat_niet": "Eine automatische Übersetzung beim Erstellen oder Ändern von Inhalten gibt es noch nicht. Übersetzungen erstellen Sie selbst: pro Element oder auf einmal mit der Schaltfläche für die Massenübersetzung oben auf dieser Seite."
     },
     "analytics": {
       "totale_omzet": "Gesamtumsatz",

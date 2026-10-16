@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from 'next-themes';
-import { User, Lock, Camera, Globe, Palette, Mail, AlertCircle } from 'lucide-react';
+import { User, Lock, Globe, Palette, Mail, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import {
@@ -215,20 +215,10 @@ export function AccountSettings() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <Avatar className="h-20 w-20">
-                <AvatarImage src="" />
-                <AvatarFallback className="text-lg">{getInitials()}</AvatarFallback>
-              </Avatar>
-              <Button 
-                size="icon" 
-                variant="outline" 
-                className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full"
-                disabled
-              >
-                <Camera className="h-4 w-4" />
-              </Button>
-            </div>
+            {/* ADMIN-DEAD-1: de cameraknop stond altijd uit (profielfoto uploaden bestaat niet). */}
+            <Avatar className="h-20 w-20">
+              <AvatarFallback className="text-lg">{getInitials()}</AvatarFallback>
+            </Avatar>
             <div>
               <p className="font-medium">{fullName || t('common.name')}</p>
               <p className="text-sm text-muted-foreground">{user?.email}</p>

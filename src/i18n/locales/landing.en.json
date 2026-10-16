@@ -2070,6 +2070,10 @@
         "free_checkout_faster": {
           "title": "Checking out free tickets is faster",
           "description": "When a customer checks out an order of €0, for example with a 100% discount code, they now get the confirmation right away instead of after about ten seconds. The invoice, the order confirmation and the ticket email are sent afterwards, in the same order as before."
+        },
+        "admin_dead_controls_cleanup": {
+          "title": "Fewer buttons that did nothing in the translation hub, your profile and the till",
+          "description": "The translation hub no longer shows switches for automatic translation: they were saved, but nothing ever used them. You translate per item or in bulk. A gift card you print at the till now gets a real QR code with the card code, instead of a box that only looked like one. The camera button in your profile, which was always disabled, is gone. An AI suggestion about stock now takes you to your low-stock products instead of a purchasing page where you could not create anything."
         }
       },
       "copyLink": "Copy link",

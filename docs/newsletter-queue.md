@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12e — Minder schijnknoppen in de vertaalhub, je profiel en de kassa (improvement, 16-10-2026)
+
+**Pas versturen na de publish** van sellqo.app (puur frontend; voor de app pas na de volgende native build).
+
+**Voor wie:** iedereen die de vertaalhub of de kassa (cadeaubonnen) gebruikt.
+
+In de vertaalhub staan geen schakelaars meer om automatisch te vertalen: ze werden opgeslagen, maar er gebeurde
+niets mee. Vertalen doe je per item of in bulk. Een cadeaubon die je in de kassa afdrukt, krijgt nu een echte
+QR-code met de boncode. In je profiel is de camera-knop weg die altijd uitgeschakeld stond, en een AI-voorstel over
+voorraad brengt je naar je producten met lage voorraad.
+
+**i18n-keys.** `public.changelog.changes.admin_dead_controls_cleanup` — 5 talen.
+
 ### 2026.12d — Ticketbestellingen annuleren na de ticketmail, gratis tickets sneller afgerekend (improvement, 16-10-2026)
 
 **Pas versturen na de deploy** van `update-order-fulfillment-status` en `storefront-api` (EVENT-ORDER-1).

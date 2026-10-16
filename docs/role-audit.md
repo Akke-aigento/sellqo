@@ -1,3 +1,57 @@
+## ADMIN-DEAD-1 — dode knoppen en schijnfuncties in de admin, vijfde sweep (2026.12e) — 16 oktober 2026
+
+**Vraag van Akke.** De apps (dezelfde `src/` in Capacitor) zitten vol dode knoppen, niet-werkende functies en nepdata; gestructureerd opruimen zonder dat het weken werk wordt.
+
+**Recon.** Read-only, met scans die `check-dead-buttons.mjs` niet dekt: alle `/admin`-links en `navigate()`-doelen tegen `App.tsx`, alle `?section=`-parameters, tabs zonder inhoud, invoervelden zonder handler, permanent uitgeschakelde knoppen, nepdata-patronen en instellingen die door niets gelezen worden (src, edge functions, live `pg_proc` en `cron.job`). Resultaat: 22 vondsten (5 misleidend, 12 dood, 5 cosmetisch). Na APP-CLEAN-1 t/m 5 zit er geen nepdata meer in de admin, op de nep-QR van de cadeaubon na. Volledige inventaris: `docs/prepared/2026-10-16-dode-knoppen-inventaris.md`.
+
+**Root cause per fix.**
+- `TranslationHub.tsx` (r. 1043-1101): 4 schakelaars "… automatisch vertalen" schreven naar `translation_settings.auto_translate_*`. Niets leest die kolommen: geen code, geen edge function, geen DB-functie (`pg_proc.prosrc`), geen cron. Live staan ze bij beide rijen aan, dus winkeliers dachten dat vertalen vanzelf ging.
+- `POSGiftCardPrint.tsx` (r. 90-111): de gedrukte cadeaubon had een gestreept vlak dat op een QR leek, maar niet scanbaar was.
+- `useAIActions.ts` (r. 280-282): het AI-voorstel inkooporder/voorraadalarm stuurde naar `/admin/purchase-orders`. Daar geven "Nieuwe inkooporder" en elke rij een 404 (zie APP-CLEAN-5).
+- `AccountSettings.tsx` (r. 223-230): de camera-knop op de profielfoto stond altijd uit; uploaden bestaat niet.
+- `TranslationHub.tsx` (r. 1032-1039): de doeltaal-badges hadden `cursor-pointer`, maar geen klikactie.
+
+**Uitgevoerd.**
+- `src/pages/admin/TranslationHub.tsx`: de 4 schakelaars zijn weg en een eerlijke tekst staat in de plaats (`admin.translationHub.auto_vertalen_bestaat_niet`). De kaartomschrijving zegt "Brontaal en doeltalen" (`instellingen_omschrijving`), want er valt niets automatisch te configureren. `cursor-pointer` is weg van de badges. Ongebruikt geworden: `handleSettingChange`, `saveSettings`, de `Switch`-import. De kolommen blijven staan.
+- `src/components/admin/pos/POSGiftCardPrint.tsx`: een echte QR (`react-qr-code`, al in gebruik in `POSBankTransferDialog`) met `giftCard.code`. Het printpad (`usePOSPrinter`) kopieert `innerHTML`, dus de SVG komt mee.
+- `src/hooks/useAIActions.ts`: de follow-up gaat naar `/admin/products?stock=low` (filter bestaat sinds APP-CLEAN-2b).
+- `src/components/admin/settings/AccountSettings.tsx`: de cameraknop en de lege `AvatarImage` zijn weg.
+- i18n: 2 nieuwe app-keys + changelog `admin_dead_controls_cleanup` in nl/en/fr/de/uk (alle talen uit `SUPPORTED_LANGUAGES`). Geen keys verwijderd; de oude `*_automatisch_vertalen`-keys blijven staan, want `check-i18n-used-keys` eist niets.
+- Changelog 2026.12e, newsletter-wachtrij, inventaris in `docs/prepared/`.
+
+**Security-keuzes.** n.v.t.: geen RLS, policies, grants, migraties of edge functions geraakt. Alleen SELECT's via de connector.
+
+**Gedeelde-paden-waarschuwing.** Geen gedeeld pad geraakt. `translation_settings` hoort niet bij de gedeelde storefront-tabellen, en er is alleen UI weggehaald, geen schema gewijzigd. Custom frontends merken niets.
+
+**Verificatie.**
+- `npx tsc --noEmit -p tsconfig.app.json`: exit 0
+- `npx vitest run`: 705/705, exit 0
+- `i18n-parity`: volledige pariteit, exit 0
+- `check-i18n-used-keys`: exit 0
+- `check-notification-sources`: exit 0
+- `check-dead-buttons`: 2 = baseline, exit 0
+- `verify-lint-baseline`: 1479 tegen baseline 1482, exit 0. Het verschil bestond al vóór deze batch; de baseline is niet bijgewerkt.
+- eslint per gewijzigd bestand tegen HEAD: 0→0, 3→3, 1→1, 1→1
+- `npm run build`: exit 0. `public/sitemap.xml` is teruggezet en niet gestaged.
+- Geen Playwright-screenshots: de admin vereist een login.
+
+**Bewust ongemoeid / Vervolg.** Bol/marketplace (op verzoek niet aangeraakt):
+- 7 filter- en zoekvelden zonder werking op `MarketplaceDetail` (Orders, Producten, Logs);
+- "Kopiëren naar koppeling" (alleen `console.log`);
+- nep-voortgangsteksten bij een push naar bol-ads;
+- een link met `href="#"` in de connect-dialoog;
+- de WhatsApp-wizard die "verbonden" meldt zonder koppeling.
+
+Verder openstaand:
+- het 17TRACK-API-sleutelveld, dat door niets gelezen wordt (de poller raakt bol via `sync_status`, dus apart);
+- de inkooporderpagina met 404-links, nu zonder ingang in de UI;
+- vaste nullen in `useShopHealth` (`pendingQuotes`, `productsWithoutAlt`, `newCustomers`);
+- doeltalen in de vertaalhub die nergens in te stellen zijn.
+
+Alles staat met een voorstel in de inventaris. Ook de `doc_articles`-slottaak is niet gedaan: er verandert geen werking, alleen een eerlijke weergave.
+
+---
+
 ## SEC-ROLE-1 — KRITIEK: niemand kan zichzelf nog platform_admin maken — 16 oktober 2026
 
 **Root cause.** RLS-escalatie-audit (rollbacktests, rapport `docs/prepared/2026-10-16-rls-escalatie-audit.md`): policy "Tenant admins can update roles in their tenant" beperkte de rolkolom niet. `update user_roles set role='platform_admin'` op de eigen rij lukte (1 rij), waarna Mancini 24 tenants en 148 VanXcel-orders zag. Elke ingelogde gebruiker mag een eigen winkel aanmaken en wordt daar tenant_admin, dus: registreren → winkel → platform_admin. Tweede route: een `team_invitations`-rij met rol platform_admin, die `accept-team-invitation` (service_role) toekent. Derde: tenant_admin kon `user_id`/`tenant_id` van rollen omhangen. Geen sporen van misbruik: 1 platform_admin-rij (Akke), 0 uitnodigingen met platform_admin.
