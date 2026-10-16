@@ -17,9 +17,10 @@
 // Niet opgenomen: tenant-logos (logo/favicon uit Branding — eigen plek in de editor),
 // ai-images (eigen bibliotheek), documentbuckets (geen beelden).
 //
-// Afscherming: de UI vraagt enkel mappen onder het eigen tenant-id op. Voor
-// marketing-assets dwingt RLS dat ook af; voor tenant-assets en product-images NIET
-// (publieke SELECT-policy, ook anon kan listen) — zie de role-audit van EDITOR-MEDIA-1.
+// Afscherming: de UI vraagt enkel mappen onder het eigen tenant-id op, en sinds
+// SEC-STORAGE-1 (16-10-2026) dwingt RLS dat in alle drie de buckets ook af: listen kan
+// alleen in de eigen tenantmap (of als platform-admin). Publieke beeld-URL's werken
+// los van RLS, want de buckets zijn public.
 
 export type MediaBucket = 'tenant-assets' | 'product-images' | 'marketing-assets';
 

@@ -1,3 +1,15 @@
+## SEC-STORAGE-1 — winkelmappen in tenant-assets en product-images niet meer door iedereen op te sommen — 16 oktober 2026
+
+**Root cause.** SELECT-policies "Public read access for tenant assets" en "Anyone can view product images" (rol public, alleen een bucketfilter). `storage.search`/`list_objects_with_delimiter` zijn SECURITY INVOKER, dus iedereen (ook anon) kon alle mappen en bestandsnamen van alle winkels opsommen (299 objecten).
+
+**Uitgevoerd** — `supabase/migrations/20261016150000_sec_storage_1.sql` (gedraaid na Akke's go): eerst `tenant-assets_select_own_tenant` en `product-images_select_own_tenant` (authenticated, eigen tenantmap via tekstvergelijking of platform-admin, zelfde model als marketing-assets), daarna de twee publieke policies weg. Snapshot: `ops.sec_storage_1_prev_policies` (2 rijen). Commentaar in `src/lib/storefrontMediaLibrary.ts` bijgewerkt.
+
+**Security-keuzes / gedeelde paden** — publieke object- en render-URL's blijven werken (buckets `public = true`). Alle app-aanroepen (uploads met upsert, remove, list in de mediabibliotheek) zitten in de eigen tenantmap; edge functions gebruiken service_role. 0 objecten buiten een tenantmap. De storefront-repo listt niet. Custom frontends: niet per repo doorzocht (geen org-zoektoegang); ze werken via storefront-api en publieke URL's, en een anonieme list zou een lege lijst geven, geen fout.
+
+**Verificatie** — vooraf rollbacktest (recon-agent) en na het draaien: anon 0; VanXcel-admin eigen 18, andere winkels 0; Akke 299. Publieke URL's na de fix: tenant-assets 200, product-images 200, render/image 200.
+
+**Vervolg** — bij de eerstvolgende sessie in de admin: beeldkiezer openen (bibliotheek gevuld) en één upload proberen.
+
 ## EDITOR-MEDIA-1 — mediabibliotheek in de beeldkiezer, beeldkiezer en Webshop-pagina vertaald (2026.12g) — 16 oktober 2026
 
 **Vraag.** De beeldkiezer in Aanpassen (`VisualMediaPicker`) kon alleen uploaden: een beeld dat je al had, moest je opnieuw uploaden. Akke wil een tabblad "Mediabibliotheek" met eerder geüploade beelden van de winkel, plus de hardcoded NL-teksten van de kiezer en van `Storefront.tsx` naar i18n.
