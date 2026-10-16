@@ -2357,7 +2357,8 @@
           "alles": "Tout",
           "favorieten": "Favoris",
           "social": "Réseaux sociaux",
-          "ai_beelden": "Images IA"
+          "ai_beelden": "Images IA",
+          "merk": "Marque"
         },
         "achtergronden_verwijderd": "{{success}} arrière-plans sur {{total}} supprimés",
         "assets_verwijderd": "{{success}} ressources sur {{total}} supprimées",
@@ -2379,6 +2380,22 @@
           "failed": "{{count}} photos n'ont pas pu être récupérées",
           "confirm_title": "Transférer {{count}} photos vers votre stockage ?",
           "confirm_body": "Nous téléchargeons chaque photo une fois et remplaçons son adresse dans vos produits, variantes et catégories. L'image elle-même ne change pas. Gardez cette fenêtre ouverte jusqu'à la fin ; les photos qui ne peuvent pas être récupérées restent telles quelles."
+        },
+        "tags": {
+          "filter": "Filtrer par tag :",
+          "clear": "Effacer"
+        },
+        "details": {
+          "open": "Détails",
+          "title": "Titre",
+          "description": "Description",
+          "tags": "Tags",
+          "size": "Dimensions",
+          "file": "Fichier"
+        },
+        "bulk": {
+          "processed": "{{current}} sur {{total}} traités...",
+          "selected": "{{count}} sélectionné(s)"
         }
       },
       "productSelectDialog": {
@@ -6991,6 +7008,44 @@
         "processing": "Instagram traite encore la vidéo. Elle sera en ligne dans l'heure.",
         "retry": "Pas possible pour l'instant : {{message}}. SellQo réessaie dans l'heure.",
         "failed": "Non publié : {{message}}"
+      }
+    },
+    "socialContent": {
+      "action": "Créer une publication avec cette image",
+      "title": "Demander une publication",
+      "description": "Votre équipe de contenu crée une publication, une story ou un reel avec les images choisies. Elle arrive dans votre Planification sociale pour approbation ; rien n'est mis en ligne sans votre accord.",
+      "kindLabel": "Type",
+      "kind": {
+        "post": "Publication",
+        "story": "Story",
+        "reel": "Reel"
+      },
+      "languageLabel": "Langue",
+      "languageAuto": "Langue par défaut de votre canal",
+      "dateLabel": "Date souhaitée (facultatif)",
+      "dateHint": "Laisser vide = le prochain créneau libre de votre planification.",
+      "dateInvalid": "Choisissez une date à partir d'aujourd'hui, jusqu'à 90 jours à l'avance.",
+      "noteLabel": "Remarque (facultatif)",
+      "notePlaceholder": "Par exemple : sur notre voyage à Lisbonne, avec un clin d'œil",
+      "submit": "Envoyer la demande",
+      "cost": "Coût : {{count}} crédits IA",
+      "costExempt": "Votre boutique ne paie pas de crédits IA ; la demande est tout de même enregistrée dans votre consommation.",
+      "available": "Il vous reste {{count}} crédits IA.",
+      "requested": "Demande envoyée",
+      "charged": "{{count}} crédits IA débités. Vous recevrez une notification dès que la publication sera prête.",
+      "chargedNone": "Vous recevrez une notification dès que la publication sera prête.",
+      "tooMany": "Vous pouvez envoyer au maximum {{count}} images par demande ; les {{count}} premières ont été retenues.",
+      "errors": {
+        "no_access": "Vous n'avez pas l'accès nécessaire pour cette demande. Demandez à un administrateur de votre boutique.",
+        "no_pipeline": "Votre boutique n'a pas d'équipe de contenu connectée pour les publications sociales.",
+        "not_found": "Cette image ou cette publication n'existe plus dans votre boutique.",
+        "invalid_state": "Ce n'est plus possible pour cette publication : elle est déjà approuvée, planifiée ou en cours de recréation.",
+        "invalid_input": "Vérifiez votre choix : type, langue, date (jusqu'à 90 jours à l'avance) ou longueur de votre remarque.",
+        "rate_limit": "Vous avez atteint la limite. Attendez que les demandes en cours soient terminées ou réessayez demain.",
+        "insufficient_credits": "Vous n'avez pas assez de crédits IA. Rechargez vos crédits dans l'AI Content Hub.",
+        "guard_forbidden": "Cette modification n'est possible que via « Refaire ».",
+        "unknown": "Une erreur s'est produite. Veuillez réessayer.",
+        "unknown_with": "Une erreur s'est produite : {{message}}"
       }
     }
   },

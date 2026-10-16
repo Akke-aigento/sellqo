@@ -2110,6 +2110,22 @@
         "media_library_ai_social": {
           "title": "AI-beelden en social-beelden ook in je mediabibliotheek",
           "description": "Beelden die je met AI maakt of bewerkt, en de beelden van je social posts, komen nu ook automatisch in je mediabibliotheek. AI-beelden hebben hun eigen tab, social-beelden staan onder Social. Onder Producten → Foto's zie je bovenaan alleen nog je losse foto's, zoals de originelen na het standaardiseren, zodat je geen foto's meer dubbel ziet."
+        },
+        "media_library_brand_tags": {
+          "title": "Merkbeelden en tags in je mediabibliotheek",
+          "description": "Je mediabibliotheek heeft een tab Merk voor je logo, sfeerbeelden en reisfoto's. Je filtert op tags met één klik, en bij elk beeld zie je de titel, omschrijving en tags."
+        },
+        "social_content_requests": {
+          "title": "Laat een post maken vanuit je mediabibliotheek",
+          "description": "Heeft je winkel een contentteam voor social media gekoppeld, dan kies je in je mediabibliotheek één of meer beelden en vraag je er een post, story of reel mee aan. Je ziet vooraf wat het kost in AI-credits; het resultaat komt in je Social planning om goed te keuren."
+        },
+        "social_regenerate_credits": {
+          "title": "\"Opnieuw maken\" toont de kost en werkt met AI-credits",
+          "description": "Vraag je in de Social planning een nieuwe versie van een post, dan zie je vooraf hoeveel AI-credits dat kost en krijg je een duidelijke melding als je limiet bereikt is of je credits op zijn. Een goedgekeurde of ingeplande post schrap of pas je eerst aan."
+        },
+        "ai_access_checks": {
+          "title": "Toegang tot AI-functies aangescherpt",
+          "description": "Enkele AI-functies controleren nu ook je rol in de winkel, de status van je abonnement en je AI-credits, net zoals de andere AI-functies al deden."
         }
       },
       "copyLink": "Kopieer link",

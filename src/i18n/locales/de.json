@@ -2357,7 +2357,8 @@
           "alles": "Alle",
           "favorieten": "Favoriten",
           "social": "Social",
-          "ai_beelden": "KI-Bilder"
+          "ai_beelden": "KI-Bilder",
+          "merk": "Marke"
         },
         "achtergronden_verwijderd": "{{success}} von {{total}} Hintergründen entfernt",
         "assets_verwijderd": "{{success}} von {{total}} Assets gelöscht",
@@ -2379,6 +2380,22 @@
           "failed": "{{count}} Fotos konnten nicht abgerufen werden",
           "confirm_title": "{{count}} Fotos in Ihren eigenen Speicher holen?",
           "confirm_body": "Wir laden jedes Foto einmal herunter und ersetzen seine Adresse in Ihren Produkten, Varianten und Kategorien. Das Bild selbst ändert sich nicht. Lassen Sie dieses Fenster geöffnet, bis der Vorgang abgeschlossen ist; Fotos, die nicht abgerufen werden können, bleiben unverändert."
+        },
+        "tags": {
+          "filter": "Nach Tag filtern:",
+          "clear": "Zurücksetzen"
+        },
+        "details": {
+          "open": "Details",
+          "title": "Titel",
+          "description": "Beschreibung",
+          "tags": "Tags",
+          "size": "Abmessungen",
+          "file": "Datei"
+        },
+        "bulk": {
+          "processed": "{{current}} von {{total}} verarbeitet...",
+          "selected": "{{count}} ausgewählt"
         }
       },
       "productSelectDialog": {
@@ -6991,6 +7008,44 @@
         "processing": "Instagram verarbeitet das Video noch. Es ist innerhalb einer Stunde online.",
         "retry": "Hat gerade nicht geklappt: {{message}}. SellQo versucht es innerhalb einer Stunde erneut.",
         "failed": "Nicht veröffentlicht: {{message}}"
+      }
+    },
+    "socialContent": {
+      "action": "Beitrag mit diesem Bild erstellen",
+      "title": "Beitrag anfordern",
+      "description": "Ihr Content-Team erstellt einen Beitrag, eine Story oder ein Reel mit den gewählten Bildern. Er landet zur Genehmigung in Ihrer Social-Planung; ohne Ihre Genehmigung geht nichts online.",
+      "kindLabel": "Art",
+      "kind": {
+        "post": "Beitrag",
+        "story": "Story",
+        "reel": "Reel"
+      },
+      "languageLabel": "Sprache",
+      "languageAuto": "Standardsprache Ihres Kanals",
+      "dateLabel": "Gewünschtes Datum (optional)",
+      "dateHint": "Leer lassen = der nächste freie Platz in Ihrer Planung.",
+      "dateInvalid": "Wählen Sie ein Datum ab heute, bis zu 90 Tage im Voraus.",
+      "noteLabel": "Anmerkung (optional)",
+      "notePlaceholder": "Zum Beispiel: über unsere Reise nach Lissabon, mit einem Augenzwinkern",
+      "submit": "Anfrage senden",
+      "cost": "Kosten: {{count}} KI-Credits",
+      "costExempt": "Ihr Shop zahlt keine KI-Credits; die Anfrage wird trotzdem in Ihrem Verbrauch erfasst.",
+      "available": "Sie haben noch {{count}} KI-Credits.",
+      "requested": "Anfrage gesendet",
+      "charged": "{{count}} KI-Credits abgebucht. Sie erhalten eine Benachrichtigung, sobald der Beitrag bereitsteht.",
+      "chargedNone": "Sie erhalten eine Benachrichtigung, sobald der Beitrag bereitsteht.",
+      "tooMany": "Sie können höchstens {{count}} Bilder pro Anfrage senden; die ersten {{count}} wurden gewählt.",
+      "errors": {
+        "no_access": "Sie haben keinen Zugriff für diese Anfrage. Fragen Sie einen Administrator Ihres Shops.",
+        "no_pipeline": "Ihr Shop hat kein Content-Team für Social-Beiträge verbunden.",
+        "not_found": "Dieses Bild oder dieser Beitrag existiert in Ihrem Shop nicht (mehr).",
+        "invalid_state": "Das ist für diesen Beitrag nicht mehr möglich: Er ist bereits genehmigt, eingeplant oder wird bereits neu erstellt.",
+        "invalid_input": "Prüfen Sie Ihre Auswahl: Art, Sprache, Datum (bis zu 90 Tage im Voraus) oder die Länge Ihrer Anmerkung.",
+        "rate_limit": "Sie haben das Limit erreicht. Warten Sie, bis laufende Anfragen erledigt sind, oder versuchen Sie es morgen erneut.",
+        "insufficient_credits": "Sie haben nicht genug KI-Credits. Laden Sie Ihre Credits im AI Content Hub auf.",
+        "guard_forbidden": "Diese Änderung ist nur über „Neu erstellen“ möglich.",
+        "unknown": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",
+        "unknown_with": "Etwas ist schiefgelaufen: {{message}}"
       }
     }
   },

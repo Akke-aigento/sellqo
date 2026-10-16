@@ -2110,6 +2110,22 @@
         "media_library_ai_social": {
           "title": "AI images and social images in your media library too",
           "description": "Images you create or edit with AI, and the images of your social posts, now also land in your media library automatically. AI images have their own tab, social images sit under Social. Under Products → Photos, the top section now only shows your unused photos, such as the originals after standardising, so you no longer see photos twice."
+        },
+        "media_library_brand_tags": {
+          "title": "Brand images and tags in your media library",
+          "description": "Your media library has a Brand tab for your logo, mood images and travel photos. You filter by tags with one click, and every image shows its title, description and tags."
+        },
+        "social_content_requests": {
+          "title": "Request a post from your media library",
+          "description": "If your shop has a social media content team connected, pick one or more images in your media library and request a post, story or reel with them. You see the cost in AI credits up front; the result lands in your Social planning for approval."
+        },
+        "social_regenerate_credits": {
+          "title": "\"Make again\" shows the cost and uses AI credits",
+          "description": "When you request a new version of a post in Social planning, you see up front how many AI credits it costs and get a clear message when you hit the limit or run out of credits. Edit or remove an approved or scheduled post first."
+        },
+        "ai_access_checks": {
+          "title": "Access to AI features tightened",
+          "description": "A few AI features now also check your role in the shop, your subscription status and your AI credits, just like the other AI features already did."
         }
       },
       "copyLink": "Copy link",

@@ -2110,6 +2110,22 @@
         "media_library_ai_social": {
           "title": "KI-Bilder und Social-Bilder jetzt auch in deiner Mediathek",
           "description": "Bilder, die du mit KI erstellst oder bearbeitest, und die Bilder deiner Social-Posts landen jetzt ebenfalls automatisch in deiner Mediathek. KI-Bilder haben einen eigenen Tab, Social-Bilder findest du unter Social. Unter Produkte → Fotos zeigt der obere Bereich nur noch deine nicht verwendeten Fotos, etwa die Originale nach dem Standardisieren, damit du keine Fotos mehr doppelt siehst."
+        },
+        "media_library_brand_tags": {
+          "title": "Markenbilder und Tags in deiner Mediathek",
+          "description": "Deine Mediathek hat einen Tab Marke für dein Logo, Stimmungsbilder und Reisefotos. Du filterst mit einem Klick nach Tags, und bei jedem Bild siehst du Titel, Beschreibung und Tags."
+        },
+        "social_content_requests": {
+          "title": "Beitrag direkt aus deiner Mediathek anfordern",
+          "description": "Hat dein Shop ein Content-Team für Social Media verbunden, wählst du in deiner Mediathek ein oder mehrere Bilder und forderst damit einen Beitrag, eine Story oder ein Reel an. Du siehst vorab die Kosten in KI-Credits; das Ergebnis landet zur Genehmigung in deiner Social-Planung."
+        },
+        "social_regenerate_credits": {
+          "title": "„Neu erstellen“ zeigt die Kosten und nutzt KI-Credits",
+          "description": "Forderst du in der Social-Planung eine neue Version eines Beitrags an, siehst du vorab, wie viele KI-Credits das kostet, und bekommst eine klare Meldung, wenn das Limit erreicht ist oder deine Credits aufgebraucht sind. Einen genehmigten oder eingeplanten Beitrag bearbeitest oder löschst du zuerst."
+        },
+        "ai_access_checks": {
+          "title": "Zugriff auf KI-Funktionen verschärft",
+          "description": "Einige KI-Funktionen prüfen jetzt auch deine Rolle im Shop, den Status deines Abonnements und deine KI-Credits, so wie es die anderen KI-Funktionen bereits taten."
         }
       },
       "copyLink": "Link kopieren",

@@ -2601,7 +2601,8 @@
           "alles": "All",
           "favorieten": "Favourites",
           "social": "Social",
-          "ai_beelden": "AI images"
+          "ai_beelden": "AI images",
+          "merk": "Brand"
         },
         "achtergronden_verwijderd": "{{success}} of {{total}} backgrounds removed",
         "assets_verwijderd": "{{success}} of {{total}} assets deleted",
@@ -2623,6 +2624,22 @@
           "failed": "{{count}} photos could not be fetched",
           "confirm_title": "Move {{count}} photos to your own storage?",
           "confirm_body": "We download each photo once and replace its address in your products, variants and categories. The image itself does not change. Keep this window open until it finishes; photos that cannot be fetched stay exactly as they were."
+        },
+        "tags": {
+          "filter": "Filter by tag:",
+          "clear": "Clear"
+        },
+        "details": {
+          "open": "Details",
+          "title": "Title",
+          "description": "Description",
+          "tags": "Tags",
+          "size": "Dimensions",
+          "file": "File"
+        },
+        "bulk": {
+          "processed": "{{current}} of {{total}} processed...",
+          "selected": "{{count}} selected"
         }
       },
       "productSelectDialog": {
@@ -7235,6 +7252,44 @@
         "processing": "Instagram is still processing the video. It will be live within the hour.",
         "retry": "Did not work right now: {{message}}. SellQo will try again within the hour.",
         "failed": "Not published: {{message}}"
+      }
+    },
+    "socialContent": {
+      "action": "Make a post with this image",
+      "title": "Request a post",
+      "description": "Your content team makes a post, story or reel with the chosen images. It lands in your Social planning for approval; nothing goes online without your approval.",
+      "kindLabel": "Type",
+      "kind": {
+        "post": "Post",
+        "story": "Story",
+        "reel": "Reel"
+      },
+      "languageLabel": "Language",
+      "languageAuto": "Default language of your channel",
+      "dateLabel": "Preferred date (optional)",
+      "dateHint": "Leave empty = the next free slot in your planning.",
+      "dateInvalid": "Pick a date from today, up to 90 days ahead.",
+      "noteLabel": "Note (optional)",
+      "notePlaceholder": "For example: about our trip to Lisbon, with a wink",
+      "submit": "Send request",
+      "cost": "Cost: {{count}} AI credits",
+      "costExempt": "Your shop does not pay AI credits; the request is still recorded in your usage.",
+      "available": "You have {{count}} AI credits left.",
+      "requested": "Request sent",
+      "charged": "{{count}} AI credits deducted. You will get a notification as soon as the post is ready.",
+      "chargedNone": "You will get a notification as soon as the post is ready.",
+      "tooMany": "You can send at most {{count}} images per request; the first {{count}} have been chosen.",
+      "errors": {
+        "no_access": "You do not have access to request this. Ask an administrator of your shop.",
+        "no_pipeline": "Your shop has no content team connected for social posts.",
+        "not_found": "This image or post no longer exists in your shop.",
+        "invalid_state": "This is no longer possible for this post: it is already approved, scheduled or being made again.",
+        "invalid_input": "Check your choice: type, language, date (up to 90 days ahead) or the length of your note.",
+        "rate_limit": "You have reached the limit. Wait until open requests are done or try again tomorrow.",
+        "insufficient_credits": "You do not have enough AI credits. Top up your credits in the AI Content Hub.",
+        "guard_forbidden": "This change is only possible via \"Make again\".",
+        "unknown": "Something went wrong. Please try again.",
+        "unknown_with": "Something went wrong: {{message}}"
       }
     }
   },

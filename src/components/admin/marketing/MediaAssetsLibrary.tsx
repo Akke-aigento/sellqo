@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Search, FolderOpen, Star, Image as ImageIcon, Sparkles, MoreHorizontal, Trash2, Heart, Download, Copy, Grid, List, Package, Wand2, X, Eraser, Loader2, FolderTree } from 'lucide-react';
+import { Upload, Search, FolderOpen, Star, Image as ImageIcon, Sparkles, MoreHorizontal, Trash2, Heart, Download, Copy, Grid, List, Package, Wand2, X, Eraser, Loader2, FolderTree, Palette, Info, Megaphone, Tag } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,6 +22,10 @@ import { ExternalImagesBanner } from '@/components/admin/marketing/ExternalImage
 import { buildUsageMap, type ProductImageRef } from '@/lib/mediaLibrary';
 import { recordMediaDimensions, type MediaClientLike } from '@/lib/mediaRegistry';
 import { cn } from '@/lib/utils';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { SocialContentRequestDialog } from '@/components/admin/marketing/SocialContentRequestDialog';
+import { useSocialPipeline } from '@/hooks/useSocialPipeline';
+import { collectTags, matchesTags, pickRequestAssetIds, SOCIAL_CONTENT_MAX_ASSETS } from '@/lib/socialContent';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +37,8 @@ const folderConfig = [
   // MEDIA-2: 'campaigns' was overal leeg (geen enkele rij had die map); AI-beelden krijgen hun eigen tab.
   { id: 'ai', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.ai_beelden', icon: Sparkles },
   { id: 'social', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.social', icon: ImageIcon },
+  // MEDIA-3: merkmateriaal en reisbeelden (map 'brand'); mogen op een externe URL staan.
+  { id: 'brand', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.merk', icon: Palette },
   { id: 'favorites', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.favorieten', icon: Star },
 ];
 
@@ -49,6 +55,8 @@ interface VirtualAsset {
   file_type: string;
   file_size: number | null;
   title: string | null;
+  /** MEDIA-3: omschrijving uit media_assets (enkel bij bibliotheekrijen). */
+  description?: string | null;
   tags: string[];
   is_ai_generated: boolean;
   is_favorite: boolean;
@@ -59,9 +67,11 @@ interface VirtualAsset {
   categoryName?: string;
 }
 
-function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSelect, selectionActive, onMeasured }: { 
+function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSelect, selectionActive, onMeasured, onDetails, onRequestPost }: { 
   asset: VirtualAsset; 
   onMeasured?: (width: number, height: number) => void;
+  onDetails?: () => void;
+  onRequestPost?: () => void;
   onToggleFavorite?: () => void;
   onDelete?: () => void;
   onEdit?: () => void;
@@ -123,7 +133,17 @@ function AssetCard({ asset, onToggleFavorite, onDelete, onEdit, selected, onSele
 
           {/* Overlay - hide when selection is active */}
           {!selectionActive && (
-            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-wrap items-center justify-center gap-2 p-2">
+              {onDetails && (
+                <Button size="icon" variant="secondary" className="h-8 w-8" aria-label={t('admin.marketing.mediaAssetsLibrary.details.open')} onClick={(e) => { e.stopPropagation(); onDetails(); }}>
+                  <Info className="h-4 w-4" />
+                </Button>
+              )}
+              {onRequestPost && (
+                <Button size="icon" variant="secondary" className="h-8 w-8" aria-label={t('admin.socialContent.action')} onClick={(e) => { e.stopPropagation(); onRequestPost(); }}>
+                  <Megaphone className="h-4 w-4" />
+                </Button>
+              )}
               {onEdit && (
                 <Button size="icon" variant="secondary" className="h-8 w-8" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
                   <Wand2 className="h-4 w-4" />
@@ -228,6 +248,11 @@ export function MediaAssetsLibrary() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+  // MEDIA-3: tagfilter, detailweergave en contentverzoek.
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [detailAsset, setDetailAsset] = useState<VirtualAsset | null>(null);
+  const [requestAssets, setRequestAssets] = useState<VirtualAsset[]>([]);
+  const { hasPipeline } = useSocialPipeline();
   
   const { assets, isLoading, toggleFavorite, deleteAsset } = useMediaAssets(folder);
   const { uploadImage, uploading } = useImageUpload();
@@ -263,6 +288,7 @@ export function MediaAssetsLibrary() {
         width: a.width,
         height: a.height,
         title: a.title,
+        description: a.description,
         tags: a.tags || [],
         is_ai_generated: a.is_ai_generated,
         is_favorite: a.is_favorite,
@@ -325,22 +351,44 @@ export function MediaAssetsLibrary() {
   }, [categories, knownUrls, folder]);
 
   // Merge and filter
-  const allAssets = useMemo(() => {
+  const searchedAssets = useMemo(() => {
     let combined: VirtualAsset[];
     if (folder === 'products') combined = [...mediaVirtualAssets, ...productAssets];
     else if (folder === 'categories') combined = [...mediaVirtualAssets, ...categoryAssets];
-    else if (folder === 'favorites') combined = mediaVirtualAssets;
+    else if (folder === 'favorites' || folder === 'brand' || folder === 'ai' || folder === 'social') combined = mediaVirtualAssets;
     else combined = [...mediaVirtualAssets, ...productAssets, ...categoryAssets];
     if (!search) return combined;
     const q = search.toLowerCase();
     return combined.filter(a =>
       a.file_name.toLowerCase().includes(q) ||
       a.title?.toLowerCase().includes(q) ||
+      a.description?.toLowerCase().includes(q) ||
       a.productName?.toLowerCase().includes(q) ||
       a.categoryName?.toLowerCase().includes(q) ||
       a.tags.some(t => t.toLowerCase().includes(q))
     );
   }, [mediaVirtualAssets, productAssets, categoryAssets, folder, search]);
+
+  // MEDIA-3: chips uit de tags van wat er getoond wordt; meerdere chips = alle tags vereist.
+  const tagChips = useMemo(() => collectTags(searchedAssets), [searchedAssets]);
+  const allAssets = useMemo(
+    () => searchedAssets.filter(a => matchesTags(a.tags, selectedTags)),
+    [searchedAssets, selectedTags],
+  );
+  const toggleTag = (tag: string) => setSelectedTags(prev =>
+    prev.some(t => t.toLowerCase() === tag.toLowerCase()) ? prev.filter(t => t.toLowerCase() !== tag.toLowerCase()) : [...prev, tag]);
+
+  /** MEDIA-3: enkel echte bibliotheekrijen kunnen mee in een contentverzoek. */
+  const canRequestPost = (a: VirtualAsset) => hasPipeline && !!a.mediaId && a.file_type.startsWith('image/');
+  const openRequest = (list: VirtualAsset[]) => {
+    const usable = list.filter(canRequestPost);
+    if (usable.length === 0) return;
+    if (usable.length > SOCIAL_CONTENT_MAX_ASSETS) {
+      toast.info(t('admin.socialContent.tooMany', { count: SOCIAL_CONTENT_MAX_ASSETS }));
+    }
+    const ids = pickRequestAssetIds(usable.map(a => a.mediaId));
+    setRequestAssets(usable.filter(a => ids.includes(a.mediaId!)));
+  };
 
   // Afmetingen die nog ontbreken, aanvullen zodra het beeld geladen is (één keer per rij).
   const measuredRef = useRef(new Set<string>());
@@ -485,7 +533,7 @@ export function MediaAssetsLibrary() {
       <ExternalImagesBanner />
 
       {/* Folder Tabs */}
-      <Tabs value={folder} onValueChange={(v) => { setFolder(v); clearSelection(); }}>
+      <Tabs value={folder} onValueChange={(v) => { setFolder(v); clearSelection(); setSelectedTags([]); }}>
         <TabsList>
           {folderConfig.map(f => (
             <TabsTrigger key={f.id} value={f.id} className="gap-1.5">
@@ -494,6 +542,35 @@ export function MediaAssetsLibrary() {
           ))}
         </TabsList>
       </Tabs>
+
+      {/* MEDIA-3: tagfilter */}
+      {tagChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Tag className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+          <span className="text-xs text-muted-foreground mr-1">{t('admin.marketing.mediaAssetsLibrary.tags.filter')}</span>
+          {tagChips.map(({ tag, count }) => {
+            const active = selectedTags.some(s => s.toLowerCase() === tag.toLowerCase());
+            return (
+              <Button
+                key={tag}
+                type="button"
+                size="sm"
+                variant={active ? 'default' : 'outline'}
+                className="h-7 rounded-full px-2.5 text-xs"
+                aria-pressed={active}
+                onClick={() => toggleTag(tag)}
+              >
+                {tag}<span className="ml-1 opacity-60 tabular-nums">{count}</span>
+              </Button>
+            );
+          })}
+          {selectedTags.length > 0 && (
+            <Button type="button" size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => setSelectedTags([])}>
+              {t('admin.marketing.mediaAssetsLibrary.tags.clear')}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Upload Zone */}
       <div
@@ -546,6 +623,8 @@ export function MediaAssetsLibrary() {
               onDelete={isDeletable(asset) ? () => deleteAsset.mutate(asset.mediaId!) : undefined}
               onMeasured={asset.mediaId ? (w, h) => handleMeasured(asset.mediaId!, w, h) : undefined}
               onEdit={asset.file_type.startsWith('image/') ? () => handleEditProductImage(asset) : undefined}
+              onDetails={() => setDetailAsset(asset)}
+              onRequestPost={canRequestPost(asset) ? () => openRequest([asset]) : undefined}
             />
           ))}
         </div>
@@ -558,15 +637,21 @@ export function MediaAssetsLibrary() {
             <div className="flex items-center gap-3">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span className="text-sm font-medium">
-                {bulkProgress.current} van {bulkProgress.total} verwerkt...
+                {t('admin.marketing.mediaAssetsLibrary.bulk.processed', { current: bulkProgress.current, total: bulkProgress.total })}
               </span>
             </div>
           ) : (
             <>
               <span className="text-sm font-medium whitespace-nowrap">
-                {selectedIds.size} geselecteerd
+                {t('admin.marketing.mediaAssetsLibrary.bulk.selected', { count: selectedIds.size })}
               </span>
               <div className="h-6 w-px bg-border" />
+              {selectedAssets.some(canRequestPost) && (
+                <Button size="sm" variant="outline" onClick={() => openRequest(selectedAssets)} className="gap-1.5">
+                  <Megaphone className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{t('admin.socialContent.action')}</span>
+                </Button>
+              )}
               <Button size="sm" variant="outline" onClick={handleBulkRemoveBackground} className="gap-1.5">
                 <Eraser className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{t('admin.marketing.mediaAssetsLibrary.achtergrond_verwijderen')}</span>
@@ -589,6 +674,53 @@ export function MediaAssetsLibrary() {
           )}
         </div>
       )}
+
+      {/* MEDIA-3: detailweergave met titel, omschrijving en tags */}
+      <ResponsiveDialog
+        open={!!detailAsset}
+        onOpenChange={(o) => !o && setDetailAsset(null)}
+        title={detailAsset?.title || detailAsset?.file_name || ''}
+        footer={detailAsset && canRequestPost(detailAsset) ? (
+          <div className="flex w-full sm:justify-end">
+            <Button className="flex-1 sm:flex-none gap-1.5" onClick={() => { const a = detailAsset; setDetailAsset(null); openRequest([a]); }}>
+              <Megaphone className="h-4 w-4" />{t('admin.socialContent.action')}
+            </Button>
+          </div>
+        ) : undefined}
+      >
+        {detailAsset && (
+          <div className="space-y-3">
+            <img src={detailAsset.file_url} alt={detailAsset.title || detailAsset.file_name} className="w-full max-h-[50vh] object-contain rounded bg-muted" />
+            <dl className="grid grid-cols-[auto,1fr] gap-x-3 gap-y-1.5 text-sm">
+              <dt className="text-muted-foreground">{t('admin.marketing.mediaAssetsLibrary.details.title')}</dt>
+              <dd className="break-words">{detailAsset.title || '—'}</dd>
+              <dt className="text-muted-foreground">{t('admin.marketing.mediaAssetsLibrary.details.description')}</dt>
+              <dd className="break-words whitespace-pre-line">{detailAsset.description || '—'}</dd>
+              <dt className="text-muted-foreground">{t('admin.marketing.mediaAssetsLibrary.details.tags')}</dt>
+              <dd className="flex flex-wrap gap-1">
+                {detailAsset.tags.length > 0
+                  ? detailAsset.tags.map(tag => <Badge key={tag} variant="outline" className="text-xs">{tag}</Badge>)
+                  : '—'}
+              </dd>
+              {detailAsset.width && detailAsset.height ? (
+                <>
+                  <dt className="text-muted-foreground">{t('admin.marketing.mediaAssetsLibrary.details.size')}</dt>
+                  <dd className="tabular-nums">{detailAsset.width} × {detailAsset.height}</dd>
+                </>
+              ) : null}
+              <dt className="text-muted-foreground">{t('admin.marketing.mediaAssetsLibrary.details.file')}</dt>
+              <dd className="break-all text-xs">{detailAsset.file_name}</dd>
+            </dl>
+          </div>
+        )}
+      </ResponsiveDialog>
+
+      <SocialContentRequestDialog
+        assetIds={requestAssets.map(a => a.mediaId!).filter(Boolean)}
+        previews={requestAssets.map(a => ({ id: a.id, url: a.file_url, title: a.title || a.file_name }))}
+        onClose={() => setRequestAssets([])}
+        onDone={clearSelection}
+      />
 
       {/* Image Editor for product photos */}
       {editingAsset && (

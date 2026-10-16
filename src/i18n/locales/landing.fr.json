@@ -2110,6 +2110,22 @@
         "media_library_ai_social": {
           "title": "Images IA et images sociales aussi dans ta médiathèque",
           "description": "Les images que tu crées ou retouches avec l'IA, ainsi que les images de tes publications sociales, arrivent désormais aussi automatiquement dans ta médiathèque. Les images IA ont leur propre onglet, les images sociales se trouvent sous Social. Sous Produits → Photos, la partie du haut n'affiche plus que tes photos non utilisées, comme les originaux après standardisation, pour que tu ne voies plus de photos en double."
+        },
+        "media_library_brand_tags": {
+          "title": "Images de marque et tags dans ta médiathèque",
+          "description": "Ta médiathèque a un onglet Marque pour ton logo, tes images d'ambiance et tes photos de voyage. Tu filtres par tags en un clic, et chaque image affiche son titre, sa description et ses tags."
+        },
+        "social_content_requests": {
+          "title": "Demande une publication depuis ta médiathèque",
+          "description": "Si ta boutique a une équipe de contenu pour les réseaux sociaux, choisis une ou plusieurs images dans ta médiathèque et demande une publication, une story ou un reel. Tu vois le coût en crédits IA à l'avance ; le résultat arrive dans ta Planification sociale pour approbation."
+        },
+        "social_regenerate_credits": {
+          "title": "« Refaire » affiche le coût et utilise des crédits IA",
+          "description": "Quand tu demandes une nouvelle version d'une publication dans la Planification sociale, tu vois à l'avance combien de crédits IA cela coûte et tu reçois un message clair si la limite est atteinte ou si tes crédits sont épuisés. Modifie ou supprime d'abord une publication approuvée ou planifiée."
+        },
+        "ai_access_checks": {
+          "title": "Accès aux fonctions IA renforcé",
+          "description": "Quelques fonctions IA vérifient désormais aussi ton rôle dans la boutique, l'état de ton abonnement et tes crédits IA, comme le faisaient déjà les autres fonctions IA."
         }
       },
       "copyLink": "Copier le lien",

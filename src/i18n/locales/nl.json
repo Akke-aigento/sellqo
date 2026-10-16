@@ -2689,7 +2689,8 @@
           "campagnes": "Campagnes",
           "social": "Social",
           "favorieten": "Favorieten",
-          "ai_beelden": "AI-beelden"
+          "ai_beelden": "AI-beelden",
+          "merk": "Merk"
         },
         "assets_verwijderd": "{{success}} van {{total}} assets verwijderd",
         "achtergronden_verwijderd": "{{success}} van {{total}} achtergronden verwijderd",
@@ -2703,6 +2704,22 @@
           "failed": "{{count}} foto's konden niet opgehaald worden",
           "confirm_title": "{{count}} foto's naar je eigen opslag halen?",
           "confirm_body": "We downloaden elke foto één keer en vervangen het adres in je producten, varianten en categorieën. Het beeld zelf verandert niet. Laat dit venster open tot het klaar is; foto's die niet opgehaald kunnen worden, blijven gewoon staan zoals ze waren."
+        },
+        "tags": {
+          "filter": "Filter op tag:",
+          "clear": "Wissen"
+        },
+        "details": {
+          "open": "Details",
+          "title": "Titel",
+          "description": "Omschrijving",
+          "tags": "Tags",
+          "size": "Afmetingen",
+          "file": "Bestand"
+        },
+        "bulk": {
+          "processed": "{{current}} van {{total}} verwerkt...",
+          "selected": "{{count}} geselecteerd"
         }
       },
       "productSelectDialog": {
@@ -7249,6 +7266,44 @@
         "processing": "Instagram verwerkt de video nog. Hij staat binnen het uur online.",
         "retry": "Lukte nu niet: {{message}}. SellQo probeert het binnen het uur opnieuw.",
         "failed": "Niet gepubliceerd: {{message}}"
+      }
+    },
+    "socialContent": {
+      "action": "Maak een post met dit beeld",
+      "title": "Post laten maken",
+      "description": "Je contentteam maakt een post, story of reel met de gekozen beelden. Hij komt in de Social planning te staan om goed te keuren; er gaat niets online zonder jouw goedkeuring.",
+      "kindLabel": "Soort",
+      "kind": {
+        "post": "Post",
+        "story": "Story",
+        "reel": "Reel"
+      },
+      "languageLabel": "Taal",
+      "languageAuto": "Standaardtaal van je kanaal",
+      "dateLabel": "Gewenste datum (optioneel)",
+      "dateHint": "Leeg laten = de eerstvolgende vrije plek in je planning.",
+      "dateInvalid": "Kies een datum vanaf vandaag, tot 90 dagen vooruit.",
+      "noteLabel": "Opmerking (optioneel)",
+      "notePlaceholder": "Bijvoorbeeld: over onze reis naar Lissabon, met een knipoog",
+      "submit": "Verzoek versturen",
+      "cost": "Kost: {{count}} AI-credits",
+      "costExempt": "Je winkel betaalt geen AI-credits; het verzoek wordt wel bijgehouden in je verbruik.",
+      "available": "Je hebt nog {{count}} AI-credits.",
+      "requested": "Verzoek verstuurd",
+      "charged": "{{count}} AI-credits afgeboekt. Je krijgt een melding zodra de post klaarstaat.",
+      "chargedNone": "Je krijgt een melding zodra de post klaarstaat.",
+      "tooMany": "Je kunt maximaal {{count}} beelden per verzoek meesturen; de eerste {{count}} zijn gekozen.",
+      "errors": {
+        "no_access": "Je hebt geen toegang om dit te vragen. Vraag een beheerder van je winkel.",
+        "no_pipeline": "Je winkel heeft geen contentteam gekoppeld voor social posts.",
+        "not_found": "Dit beeld of deze post bestaat niet (meer) in je winkel.",
+        "invalid_state": "Dit kan niet meer voor deze post: hij is al goedgekeurd, ingepland of wordt al opnieuw gemaakt.",
+        "invalid_input": "Controleer je keuze: soort, taal, datum (tot 90 dagen vooruit) of de lengte van je opmerking.",
+        "rate_limit": "Je hebt de limiet bereikt. Wacht tot lopende verzoeken klaar zijn of probeer het morgen opnieuw.",
+        "insufficient_credits": "Je hebt niet genoeg AI-credits. Vul je credits aan in de AI Content Hub.",
+        "guard_forbidden": "Deze wijziging kan alleen via \"Opnieuw maken\".",
+        "unknown": "Er ging iets mis. Probeer het opnieuw.",
+        "unknown_with": "Er ging iets mis: {{message}}"
       }
     }
   },
