@@ -1,5 +1,5 @@
 // CSV Import Edge Function v3 - Fixed customer_type constraint
-import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { requireBillingState } from "../_shared/billingGuard.ts";
 

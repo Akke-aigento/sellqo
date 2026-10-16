@@ -15,6 +15,7 @@
     "check:notifications": "node scripts/check-notification-sources.mjs",
     "check:buttons": "node scripts/check-dead-buttons.mjs",
     "check:i18n-keys": "node scripts/check-i18n-used-keys.mjs",
+    "check:edge-pins": "node scripts/verify-edge-pins.mjs",
     "test:watch": "vitest",
     "predev": "bunx tsx scripts/generate-sitemap.ts",
     "prebuild": "bunx tsx scripts/generate-sitemap.ts"

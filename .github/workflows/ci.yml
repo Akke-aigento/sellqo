@@ -88,6 +88,13 @@ jobs:
       - name: Knoppen zonder werking
         run: node scripts/check-dead-buttons.mjs
 
+      # EDGE-PIN-1: op 15-10-2026 faalde elke edge-deploy omdat esm.sh een verse
+      # supabase-js-release (@2 → 2.118.0) nog niet volledig gebouwd had. Elke
+      # supabase-js-import onder supabase/functions heeft daarom een volledige
+      # x.y.z-versie. Andere remote imports zonder patchversie worden gemeld, niet geblokkeerd.
+      - name: Edge functions (supabase-js vast gepind)
+        run: node scripts/verify-edge-pins.mjs
+
       # 4. Capacitor-pariteit. De native manifesten (twee gradle-bestanden en de
       #    Podfile) zijn gegenereerd en worden alleen bijgewerkt als iemand
       #    `npx cap sync` draait en de uitkomst commit. Voor Android gebeurde dat

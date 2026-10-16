@@ -6,7 +6,7 @@
 //
 // Geen ticket_instances voor de order → skip (veilig bij onbedoelde aanroep).
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, AuthError, authErrorResponse, requireRole, type AuthResult } from "../_shared/auth.ts";
 import { tenantSender } from "../_shared/emailSenders.ts";
 import {
