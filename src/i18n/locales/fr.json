@@ -701,6 +701,10 @@
           "return_new_request": {
             "label": "Nouveau retour",
             "description": "Lorsqu'un client demande un retour"
+          },
+          "ticket_overbooking": {
+            "label": "Payé sans billet",
+            "description": "Un client a payé au moment où ton événement est devenu complet et n'a pas reçu de billet. Contacte-le et rembourse-le ou libère une place."
           }
         },
         "invoices": {

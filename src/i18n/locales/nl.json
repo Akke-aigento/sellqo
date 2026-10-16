@@ -673,6 +673,10 @@
           "return_new_request": {
             "label": "Nieuwe retour",
             "description": "Wanneer een klant een retour aanvraagt"
+          },
+          "ticket_overbooking": {
+            "label": "Betaald zonder ticket",
+            "description": "Een klant betaalde terwijl je event net volzet raakte en kreeg geen ticket. Neem contact op en betaal terug of maak plaats vrij."
           }
         },
         "invoices": {

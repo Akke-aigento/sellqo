@@ -673,6 +673,10 @@
           "return_new_request": {
             "label": "New return",
             "description": "When a customer requests a return"
+          },
+          "ticket_overbooking": {
+            "label": "Paid without a ticket",
+            "description": "A customer paid just as your event sold out and didn't get a ticket. Get in touch and refund them or free up a spot."
           }
         },
         "invoices": {

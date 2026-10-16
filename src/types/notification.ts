@@ -90,6 +90,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'order_shipped', defaultInApp: false, defaultEmail: false },
       { type: 'order_delivered', defaultInApp: false, defaultEmail: false },
       { type: 'order_high_value', defaultInApp: true, defaultEmail: false },
+      // FONSKE-READY-1: betaald maar event intussen volzet — klant heeft geen ticket.
+      { type: 'ticket_overbooking', defaultInApp: true, defaultEmail: true },
       { type: 'marketplace_order_new', defaultInApp: true, defaultEmail: false },
       // NOTIF-TYPES-1: poll-tracking-status (tracking_<status>) en useReturns.
       { type: 'tracking_in_transit', defaultInApp: true, defaultEmail: false },

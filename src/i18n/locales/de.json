@@ -701,6 +701,10 @@
           "return_new_request": {
             "label": "Neue Retoure",
             "description": "Wenn ein Kunde eine Retoure anfordert"
+          },
+          "ticket_overbooking": {
+            "label": "Bezahlt ohne Ticket",
+            "description": "Ein Kunde hat bezahlt, als dein Event gerade ausverkauft war, und hat kein Ticket bekommen. Melde dich bei ihm und erstatte den Betrag oder mach einen Platz frei."
           }
         },
         "invoices": {
