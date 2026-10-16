@@ -1,6 +1,13 @@
 ## EDGE-IMPORT-1 — `npm:fast-png`/`npm:jpeg-js` vindbaar voor de preview-check van de agent, zodat hij ze niet meer naar esm.sh "repareert" — 16 oktober 2026
 
-**Status:** lokaal gecommit op branch `edge-import-1` (vanaf `998b8f6`). NIET gepusht, NIETS gedeployd, geen DB-writes. Deploy-recept: `docs/prepared/EDGE-IMPORT-1-deploy.md`.
+**Status: LIVE (16-10-2026, ~10:36-10:45 UTC).** Go Akke 16-10: "Ja, push + deploy". Geen DB-writes. Deploy-recept: `docs/prepared/EDGE-IMPORT-1-deploy.md`.
+
+**Live gezet en nagemeten (16-10)**
+- **main:** `810b2a7` (batch, fast-forward op `998b8f6`; origin/main stond nog op `998b8f6`, geen rebase nodig). CI groen: run 38888315907.
+- **Nulmeting** (`net.http_get` met anon-key, ids 261139/261140/261141): `social-post-publish` 500 `{"error":"Unexpected end of JSON input"}` (GET liep in `req.json()`, geen stempel), `social-publish-due` 405 `{"error":"Method not allowed"}`, controle `bestaat-niet-ei1` 404 `NOT_FOUND`.
+- **Deploy-only** via de Lovable-agent (message `umsg_01m524n5pye6qs2yk8afrwkmcg`, 0,7 credits): controles a-d OK, `deno check supabase/functions/_shared/socialMedia.ts` exit 0 (laatste regel `Check supabase/functions/_shared/socialMedia.ts`), enkel `social-post-publish` + `social-publish-due` gedeployd.
+- **Nameting** (ids 261142/261143/261144): beide functies 200 `{"ok":true,"version":"EDGE-IMPORT-1"}`, controle 404. Live draait weer main (`npm:`-imports); de esm.sh-variant van 08:26 is weg.
+- **Agent bleef deze keer van de code af:** na de deploy `git ls-remote origin main` = `810b2a7`, `git log 810b2a7..origin/main` en `git diff 810b2a7 origin/main` leeg. Geen commit, `_shared/socialMedia.ts` ongemoeid. De fix (pakketten in `package.json` zodat de agent-check groen is) heeft dus gewerkt: geen "reparatie" naar esm.sh meer.
 
 **Root cause — agent-kant (exact).** De preview-/bouwcheck van de Lovable-agent (`/tmp/observability/build-errors.log`, gelezen via `list_messages` op 16-10 08:11 en 08:26) meldt:
 `error: Could not find a matching package for 'npm:jpeg-js@0.4.4' in the node_modules directory. Ensure you have all your JSR and npm dependencies listed in your deno.json or package.json, then run `deno install`.`
@@ -40,7 +47,7 @@ Oorzaak: in de repo-root staat `package.json`. Deno 2 schakelt dan over op node_
 **Bewust ongemoeid / Vervolg**
 - `process-email-queue` importeert `npm:@lovable.dev/email-js` zonder versie en zonder `package.json`-entry. Die kan in dezelfde agent-check dezelfde melding geven (zie SOCIAL-1c: "zelfde als bij de bestaande npm:@lovable.dev-functies"). Niet aangeraakt: het is een Lovable-platformpakket met een eigen `deno.json`.
 - `package-lock.json` en `bun.lockb` opschonen (enkel `bun.lock` houden): blijft een aparte batch.
-- **Deploy nodig:** ja, voor `social-post-publish` en `social-publish-due`, om live weer gelijk te trekken met main (nu draait de esm.sh-variant van 08:26) en om de stempel te bewijzen.
+- **Deploy:** gedaan op 16-10 (zie "Live gezet en nagemeten"); live = main.
 
 ## SUB-UNIFY-2A — opzeggen gaat in op het einde van de betaalde periode, daarna Free via een dagelijkse sweep (eerst dry-run) — 16 oktober 2026
 
