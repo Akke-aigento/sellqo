@@ -4,6 +4,20 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12d — Ticketbestellingen annuleren na de ticketmail, gratis tickets sneller afgerekend (improvement, 16-10-2026)
+
+**Pas versturen na de deploy** van `update-order-fulfillment-status` en `storefront-api` (EVENT-ORDER-1).
+
+**Voor wie:** iedereen die tickets verkoopt (events-module); het snellere gratis afrekenen geldt voor elke winkel met €0-bestellingen.
+
+Een bestelling met alleen tickets, combitickets of munten kan je nu ook na de ticketmail nog gewoon annuleren:
+kies Geannuleerd bij de orderstatus, en de tickets die nog niet gescand zijn vervallen meteen. Gratis bestellingen
+(bijvoorbeeld met een kortingscode van 100%) krijgen de bevestiging meteen in plaats van na zo'n tien seconden.
+
+**Samen versturen met** 2026.12b en 2026.12c (event-items).
+
+**i18n-keys.** `public.changelog.changes.ticket_order_cancel_delivered`, `public.changelog.changes.free_checkout_faster` — 5 talen.
+
 ### 2026.12c — De deurscanner blijft werken bij slecht bereik (improvement, 16-10-2026)
 
 **Voor wie:** iedereen die tickets scant aan de deur (events-module).

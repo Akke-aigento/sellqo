@@ -1,4 +1,7 @@
 import type { OrderStatus } from '@/types/order';
+import { EMAIL_ONLY_EXTRA_TRANSITIONS } from '../../supabase/functions/_shared/emailOnlyOrder';
+
+export { isEmailOnlyOrder } from '../../supabase/functions/_shared/emailOnlyOrder';
 
 /**
  * Mirror van de TRANSITIONS-matrix in
@@ -27,6 +30,23 @@ export const ALL_ORDER_STATUSES: OrderStatus[] = [
   'partially_returned',
 ];
 
-export function getValidNextStatuses(current: OrderStatus): OrderStatus[] {
-  return [current, ...(ORDER_STATUS_TRANSITIONS[current] ?? [])];
+export interface TransitionOptions {
+  /**
+   * EVENT-ORDER-1: alle regels zijn tickets, combitickets of munten
+   * (`isEmailOnlyOrder`). Zo'n order mag van `delivered` nog naar `cancelled`.
+   * De edge function controleert dit zelf opnieuw; dit is enkel de spiegel.
+   */
+  emailOnly?: boolean;
+}
+
+/** Toegelaten doelstatussen (zonder de huidige). */
+export function getAllowedTransitions(current: OrderStatus, opts: TransitionOptions = {}): OrderStatus[] {
+  const base = ORDER_STATUS_TRANSITIONS[current] ?? [];
+  if (!opts.emailOnly) return base;
+  const extra = (EMAIL_ONLY_EXTRA_TRANSITIONS[current] ?? []) as OrderStatus[];
+  return [...base, ...extra.filter((s) => !base.includes(s))];
+}
+
+export function getValidNextStatuses(current: OrderStatus, opts: TransitionOptions = {}): OrderStatus[] {
+  return [current, ...getAllowedTransitions(current, opts)];
 }

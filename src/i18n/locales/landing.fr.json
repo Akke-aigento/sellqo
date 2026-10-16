@@ -2062,6 +2062,14 @@
         "door_scanner_bad_network": {
           "title": "Le scanner de l'entrée fonctionne même avec un mauvais réseau",
           "description": "Le scanner de l'entrée n'attend plus indéfiniment : après 8 secondes sans réponse, il réessaie une fois, et pendant un scan vous voyez qu'il travaille. Les scans qui arrivent pendant un scan en cours attendent leur tour. Sans connexion, vous voyez un message gris « Pas de connexion » avec un bouton pour réessayer, au lieu d'un « invalide » rouge. En haut, vous voyez si votre appareil est en ligne. Si votre enregistrement est arrivé mais pas la réponse, une nouvelle tentative sur le même appareil dans les 30 secondes affiche simplement « Bienvenue » au lieu de « Déjà entré ». Un billet annulé ou remboursé l'indique désormais tel quel, au lieu de « Billet invalide »."
+        },
+        "ticket_order_cancel_delivered": {
+          "title": "Les commandes de billets peuvent encore être annulées après l'e-mail des billets",
+          "description": "Une commande qui ne contient que des billets, des billets combinés ou des jetons passe au statut Livrée dès l'envoi de l'e-mail des billets. Jusqu'ici, vous ne pouviez alors l'annuler que via une correction de statut. Désormais, vous choisissez simplement Annulée comme statut de commande : les billets qui n'ont pas encore été scannés sont annulés aussitôt et les places se libèrent. Les commandes avec un produit classique suivent le flux d'expédition comme avant."
+        },
+        "free_checkout_faster": {
+          "title": "Le paiement des billets gratuits est plus rapide",
+          "description": "Lorsqu'un client finalise une commande de 0 €, par exemple avec un code de réduction de 100 %, il reçoit désormais la confirmation immédiatement au lieu d'attendre une dizaine de secondes. La facture, la confirmation de commande et l'e-mail des billets sont envoyés ensuite, dans le même ordre qu'avant."
         }
       },
       "copyLink": "Copier le lien",

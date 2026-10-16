@@ -2062,6 +2062,14 @@
         "door_scanner_bad_network": {
           "title": "The door scanner keeps working with poor reception",
           "description": "The door scanner no longer waits endlessly: after 8 seconds without an answer it tries once more, and during a scan you can see it is busy. Scans that come in while a scan is running wait their turn. Without a connection you get a grey \"No connection\" message with a button to try again, instead of a red \"invalid\". At the top you can see whether your device is online. If your check-in did arrive but the answer did not, a new attempt on the same device within 30 seconds simply shows \"Welcome\" instead of \"Already inside\". A cancelled or refunded ticket now says exactly that, instead of \"Invalid ticket\"."
+        },
+        "ticket_order_cancel_delivered": {
+          "title": "Ticket orders can still be cancelled after the ticket email",
+          "description": "An order with only tickets, combo tickets or tokens is set to Delivered as soon as the ticket email goes out. Until now you could then only cancel it through a status correction. Now you simply pick Cancelled as the order status: tickets that have not been scanned yet are voided right away and the spots become available again. Orders with a regular product follow the shipping flow as before."
+        },
+        "free_checkout_faster": {
+          "title": "Checking out free tickets is faster",
+          "description": "When a customer checks out an order of €0, for example with a 100% discount code, they now get the confirmation right away instead of after about ten seconds. The invoice, the order confirmation and the ticket email are sent afterwards, in the same order as before."
         }
       },
       "copyLink": "Copy link",

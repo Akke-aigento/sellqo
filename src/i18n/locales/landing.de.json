@@ -2062,6 +2062,14 @@
         "door_scanner_bad_network": {
           "title": "Der Einlass-Scanner funktioniert auch bei schlechtem Empfang",
           "description": "Der Scanner am Eingang wartet nicht mehr endlos: Nach 8 Sekunden ohne Antwort versucht er es noch einmal, und während eines Scans sehen Sie, dass er arbeitet. Scans, die während eines laufenden Scans eingehen, warten auf ihre Reihe. Ohne Verbindung erhalten Sie eine graue Meldung „Keine Verbindung“ mit einer Schaltfläche zum erneuten Versuchen, statt eines roten „ungültig“. Oben sehen Sie, ob Ihr Gerät online ist. Ist Ihr Check-in angekommen, die Antwort aber nicht, zeigt ein neuer Versuch auf demselben Gerät innerhalb von 30 Sekunden einfach „Willkommen“ statt „Schon drinnen“. Ein storniertes oder erstattetes Ticket wird jetzt genau so angezeigt, statt „Ungültiges Ticket“."
+        },
+        "ticket_order_cancel_delivered": {
+          "title": "Ticketbestellungen kannst du auch nach der Ticket-E-Mail noch stornieren",
+          "description": "Eine Bestellung mit nur Tickets, Kombitickets oder Münzen steht nach der Ticket-E-Mail sofort auf Zugestellt. Bisher konntest du sie dann nur noch über eine Statuskorrektur stornieren. Jetzt wählst du einfach Storniert als Bestellstatus: Noch nicht gescannte Tickets verfallen sofort und die Plätze werden wieder frei. Bestellungen mit einem normalen Produkt folgen dem Versandablauf wie bisher."
+        },
+        "free_checkout_faster": {
+          "title": "Kostenlose Tickets sind schneller bestellt",
+          "description": "Schließt ein Kunde eine Bestellung über 0 € ab, zum Beispiel mit einem Rabattcode über 100 %, bekommt er die Bestätigung jetzt sofort statt nach etwa zehn Sekunden. Rechnung, Bestellbestätigung und Ticket-E-Mail werden danach verschickt, in derselben Reihenfolge wie bisher."
         }
       },
       "copyLink": "Link kopieren",

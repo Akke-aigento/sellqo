@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare, RotateCcw } from 'lucide-react';
-import { useOrder, useOrders } from '@/hooks/useOrders';
+import { useOrder, useOrders, useOrderEmailOnly } from '@/hooks/useOrders';
 import { useOrderInvoice } from '@/hooks/useInvoices';
 import { useTenant } from '@/hooks/useTenant';
 import { useDocumentDownload } from '@/hooks/useDocumentDownload';
@@ -36,7 +36,7 @@ import { OrderStatusCorrectionDialog } from '@/components/admin/OrderStatusCorre
 import { ActionsMenu } from '@/components/ui/actions-menu';
 import { useCan } from '@/hooks/useCan';
 import { AlertTriangle } from 'lucide-react';
-import { ORDER_STATUS_TRANSITIONS, ALL_ORDER_STATUSES, getValidNextStatuses } from '@/lib/orderTransitions';
+import { ALL_ORDER_STATUSES, getAllowedTransitions, getValidNextStatuses } from '@/lib/orderTransitions';
 import { OrderReturnTimeline } from '@/components/admin/OrderReturnTimeline';
 import { PrintfulOrderCard } from '@/components/admin/fulfilment/PrintfulOrderCard';
 import { OrderTicketsCard } from '@/components/admin/OrderTicketsCard';
@@ -67,6 +67,8 @@ export default function OrderDetailPage() {
   const { data: ticketOrderIds } = useTicketOrderIds();
   const isTicket = !!order && ((ticketOrderIds?.has(order.id) ?? false)
     || (order.order_items ?? []).some((i) => !!(i as { event_detail_id?: string | null }).event_detail_id));
+  // EVENT-ORDER-1 — alleen tickets/combitickets/munten: delivered → cancelled mag.
+  const emailOnly = useOrderEmailOnly(order);
   const { invoice, resendInvoice } = useOrderInvoice(id);
   const { updateOrderStatus, updatePaymentStatus, updateOrderNotes } = useOrders();
   const { confirmPayment } = usePaymentConfirmation();
@@ -337,14 +339,14 @@ export default function OrderDetailPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {getValidNextStatuses(order.status).map((s) => (
+                      {getValidNextStatuses(order.status, { emailOnly }).map((s) => (
                         <SelectItem key={s} value={s}>{ORDER_STATUS_LABELS[s]}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   {canCorrectStatus &&
                     ALL_ORDER_STATUSES.some(
-                      (s) => s !== order.status && !ORDER_STATUS_TRANSITIONS[order.status].includes(s),
+                      (s) => s !== order.status && !getAllowedTransitions(order.status, { emailOnly }).includes(s),
                     ) && (
                       <button
                         type="button"

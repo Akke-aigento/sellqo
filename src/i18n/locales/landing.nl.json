@@ -2062,6 +2062,14 @@
         "door_scanner_bad_network": {
           "title": "De deurscanner blijft werken bij slecht bereik",
           "description": "De scanner aan de deur wacht nooit meer eindeloos: na 8 seconden zonder antwoord probeert hij één keer opnieuw, en tijdens een scan zie je dat hij bezig is. Scans die binnenkomen terwijl er een scan loopt, wachten netjes op hun beurt. Zonder verbinding krijg je een grijze melding \"Geen verbinding\" met een knop om opnieuw te proberen, in plaats van een rode \"ongeldig\". Bovenaan zie je of je toestel online is. Kwam je check-in wel aan maar het antwoord niet, dan toont een nieuwe poging op hetzelfde toestel binnen 30 seconden gewoon \"Welkom\" in plaats van \"Al binnen\". Een geannuleerd of terugbetaald ticket krijgt voortaan die tekst, in plaats van \"Ongeldig ticket\"."
+        },
+        "ticket_order_cancel_delivered": {
+          "title": "Ticketbestellingen kan je ook na de ticketmail nog annuleren",
+          "description": "Een bestelling met alleen tickets, combitickets of munten staat na de ticketmail meteen op Afgeleverd. Tot nu kon je ze dan enkel nog via een statuscorrectie annuleren. Nu kies je gewoon Geannuleerd bij de orderstatus: de tickets die nog niet gescand zijn vervallen meteen en de plaatsen komen vrij. Bestellingen met een gewoon product volgen de verzendflow zoals voorheen."
+        },
+        "free_checkout_faster": {
+          "title": "Gratis tickets afrekenen gaat sneller",
+          "description": "Rekent een klant een bestelling van €0 af, bijvoorbeeld met een kortingscode van 100%, dan krijgt hij de bevestiging nu meteen in plaats van na zo'n tien seconden. De factuur, de orderbevestiging en de ticketmail worden daarna verstuurd, in dezelfde volgorde als voorheen."
         }
       },
       "copyLink": "Kopieer link",

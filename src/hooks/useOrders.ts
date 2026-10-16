@@ -4,6 +4,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import type { Order, OrderItem, OrderStatus, PaymentStatus, OrderFilters } from '@/types/order';
+import { EMAIL_ONLY_EXTRA_TRANSITIONS, isEmailOnlyOrder } from '../../supabase/functions/_shared/emailOnlyOrder';
 
 export function useOrders(filters?: OrderFilters) {
   const { currentTenant } = useTenant();
@@ -169,6 +170,39 @@ export function useOrder(orderId: string | undefined) {
   });
 
   return { order, isLoading, error };
+}
+
+/**
+ * EVENT-ORDER-1 — bestaat deze order enkel uit tickets, combitickets of munten?
+ * Signaal voor de statusdropdown (delivered → cancelled). Wordt alleen
+ * opgevraagd als de huidige status zo'n extra overgang kent; de edge function
+ * update-order-fulfillment-status beslist zelf opnieuw met dezelfde regel.
+ */
+export function useOrderEmailOnly(order: Pick<Order, 'id' | 'status' | 'order_items'> | null | undefined) {
+  const relevant = !!order && order.status in EMAIL_ONLY_EXTRA_TRANSITIONS;
+  const { data } = useQuery({
+    queryKey: ['order-email-only', order?.id, order?.status],
+    queryFn: async () => {
+      const lines = (order?.order_items ?? []).map((i) => ({
+        product_id: i.product_id ?? null,
+        event_detail_id: (i as { event_detail_id?: string | null }).event_detail_id ?? null,
+      }));
+      const pids = [...new Set(lines.map((l) => l.product_id).filter((id): id is string => !!id))];
+      let products: { id: string; product_type: string | null; token_amount: number | null }[] = [];
+      if (pids.length > 0) {
+        const { data: prods, error } = await supabase
+          .from('products')
+          .select('id, product_type, token_amount')
+          .in('id', pids);
+        if (error) throw error;
+        products = (prods ?? []) as typeof products;
+      }
+      return isEmailOnlyOrder(lines, products);
+    },
+    enabled: relevant,
+    staleTime: 60_000,
+  });
+  return relevant && data === true;
 }
 
 export function useOrderStats() {
