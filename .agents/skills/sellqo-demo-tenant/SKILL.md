@@ -1,6 +1,6 @@
 ---
 name: sellqo-demo-tenant
-description: Een publieke SellQo-demowinkel (voorbeeldtenant voor verkoop of testen) volledig opzetten op slug.sellqo.shop: tenant, data, thema, foto's, juridische pagina's en nachtelijke reset.
+description: "Een publieke SellQo-demowinkel (voorbeeldtenant voor verkoop of testen) volledig opzetten op slug.sellqo.shop: tenant, data, thema, foto's, juridische pagina's en nachtelijke reset."
 ---
 
 # SellQo demowinkel opzetten

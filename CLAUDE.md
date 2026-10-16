@@ -18,8 +18,8 @@ Dit bestand vat samen; de brondocumenten zijn leidend bij twijfel:
 
 Er bestaan daarnaast **workspace-skills** (Lovable-agent) en **repo-skills**
 (`.claude/skills/`, met een spiegel in `.agents/skills/`). Sinds `beb3b180`
-(10 sep 2026) leven de eerste acht op beide plekken, en de repo is de bron van
-waarheid.
+(10 sep 2026) leven ze op beide plekken; sinds 16 okt 2026 staan alle twaalf
+repo-skills ook in de workspace, en de repo is de bron van waarheid.
 
 Niets houdt die drie kopieën vanzelf gelijk, en ze lopen aantoonbaar uit elkaar:
 op 10 sep bleek de workspace-versie van `sellqo-i18n-verplicht` bijna half zo
@@ -27,10 +27,14 @@ groot als de repo-versie, zonder de codemod-motor. Daarom:
 
 - `node scripts/verify-skills-sync.mjs` vergelijkt `.claude/skills` met
   `.agents/skills` en draait in CI.
-- De workspace-kant kan een CI-runner niet bereiken. Vergelijk die met
-  `node scripts/verify-skills-sync.mjs --manifest` naast
-  `list_workspace_skills({ include_markdown: true })`, en duw bij verschil de
-  repo-inhoud met `update_workspace_skill`.
+- De workspace-kant kan een CI-runner niet bereiken. Bewaar de output van
+  `list_workspace_skills({ workspace_id })` als JSON en draai
+  `node scripts/verify-skills-sync.mjs --compare <bestand>`: die legt de grootte
+  per skill naast de repo en geeft exit 1 bij een ontbrekende of afwijkende skill.
+  Duw bij verschil de repo-inhoud met `update_workspace_skill` (of
+  `create_workspace_skill`) en lees de skill terug. De werkwijze staat bovenaan
+  het script. Let op: de workspace weigert frontmatter die geen geldige YAML is
+  (bv. een `: ` in een description zonder aanhalingstekens).
 
 | Skill | Workspace | Repo | Bron |
 |---|---|---|---|
@@ -43,6 +47,9 @@ groot als de repo-versie, zonder de codemod-motor. Daarom:
 | `sellqo-custom-frontend-runbook` | ✓ | ✓ | repo |
 | `sellqo-i18n-verplicht` | ✓ | ✓ | repo |
 | `sellqo-nieuwe-storefront` | ✓ | ✓ | repo |
+| `sellqo-claim-audit` | ✓ | ✓ | repo |
+| `sellqo-demo-tenant` | ✓ | ✓ | repo |
+| `sellqo-prospect-demo` | ✓ | ✓ | repo |
 
 `nomadix-mobiel` bestaat alleen als workspace-skill: die geldt workspace-breed
 en hoort niet in deze repo.

@@ -4,6 +4,26 @@
  *
  * Run: `node scripts/verify-skills-sync.mjs`
  *      `node scripts/verify-skills-sync.mjs --manifest`   (JSON met sha256 per skill)
+ *      `node scripts/verify-skills-sync.mjs --compare <bestand.json>`   (workspace-vergelijking)
+ *      `node scripts/verify-skills-sync.mjs --compare -`   (zelfde, JSON via stdin)
+ *
+ * Werkwijze workspace-vergelijking (`--compare`, sinds 16 okt 2026):
+ *   1. Een sessie mét Lovable-connector roept
+ *      `list_workspace_skills({ workspace_id: '8fa9AQcZxxoglV7BaRsZ' })` aan
+ *      (include_markdown is niet nodig: de output bevat per skill `sizeBytes`).
+ *   2. Bewaar die JSON-output in een bestand (bv. in de scratchpad) of plak hem via stdin.
+ *   3. `node scripts/verify-skills-sync.mjs --compare <bestand>` legt de bytegrootte
+ *      van elke workspace-SKILL.md naast die in `.claude/skills/`.
+ *   Exit 1 als een repo-skill in de workspace ontbreekt of een andere grootte heeft.
+ *   Workspace-skills die niet in de repo staan, geven alleen een melding; de
+ *   bewuste uitzondering `nomadix-mobiel` (workspace-breed) wordt stil overgeslagen.
+ *   Verschil gevonden: de repo wint, dus `update_workspace_skill` (of
+ *   `create_workspace_skill`) met de exacte inhoud van `.claude/skills/<naam>/SKILL.md`.
+ *   Let op: gelijke grootte is sterk bewijs, geen sha256. Na een push lees je de
+ *   skill dus ook terug (de connector echoot de opgeslagen inhoud).
+ *   Geaccepteerde invoer: de volledige list_workspace_skills-output
+ *   (`{ skills: [{ name, files: [{ name: 'SKILL.md', sizeBytes }] }] }`), een array
+ *   daarvan, of een platte map `{ "<naam>": <bytes> }`.
  *
  * Waarom dit bestaat: dezelfde skill leeft op drie plekken — `.claude/skills/`
  * (de bron), `.agents/skills/` (de spiegel in deze repo) en de workspace-skill
@@ -43,6 +63,11 @@ const c = {
 };
 
 const manifestMode = process.argv.includes('--manifest');
+const compareIdx = process.argv.indexOf('--compare');
+const compareArg = compareIdx === -1 ? null : process.argv[compareIdx + 1];
+
+// Bestaan bewust alleen in de workspace; horen niet in deze repo.
+const WORKSPACE_ONLY = new Set(['nomadix-mobiel']);
 
 function skillDirs(base) {
   if (!existsSync(base)) return [];
@@ -69,6 +94,67 @@ if (manifestMode) {
   const manifest = {};
   for (const name of source) manifest[name] = sha256(join(SOURCE, name, 'SKILL.md'));
   console.log(JSON.stringify(manifest, null, 2));
+  process.exit(0);
+}
+
+// --- compare-modus: workspace-groottes (list_workspace_skills) tegen de repo --
+function workspaceSizes(raw) {
+  const data = JSON.parse(raw);
+  const list = Array.isArray(data) ? data : Array.isArray(data?.skills) ? data.skills : null;
+  const sizes = {};
+  if (list) {
+    for (const s of list) {
+      const file = (s.files || []).find((f) => f.name === 'SKILL.md');
+      if (typeof s.markdown === 'string') sizes[s.name] = Buffer.byteLength(s.markdown, 'utf8');
+      else if (file && typeof file.sizeBytes === 'number') sizes[s.name] = file.sizeBytes;
+      else sizes[s.name] = null;
+    }
+    return sizes;
+  }
+  if (data && typeof data === 'object') {
+    for (const [name, v] of Object.entries(data)) sizes[name] = typeof v === 'number' ? v : null;
+    return sizes;
+  }
+  throw new Error('onbekend JSON-formaat');
+}
+
+if (compareIdx !== -1) {
+  if (!compareArg) {
+    console.error(`${c.red}--compare verwacht een bestand of '-' (stdin).${c.reset}\n`);
+    process.exit(1);
+  }
+  let ws;
+  try {
+    ws = workspaceSizes(readFileSync(compareArg === '-' ? 0 : compareArg, 'utf8'));
+  } catch (e) {
+    console.error(`${c.red}Kan de workspace-JSON niet lezen:${c.reset} ${e.message}\n`);
+    process.exit(1);
+  }
+  const diffs = [];
+  console.log('');
+  console.log(`${c.bold}Workspace-vergelijking${c.reset} ${c.dim}— ${source.length} repo-skills${c.reset}`);
+  for (const name of source) {
+    const repoSize = readFileSync(join(SOURCE, name, 'SKILL.md')).length;
+    if (!(name in ws)) {
+      diffs.push(name);
+      console.log(`  ${c.red}✗${c.reset} ${c.bold}${name}${c.reset} ontbreekt in de workspace ${c.dim}(repo ${repoSize} bytes)${c.reset}`);
+    } else if (ws[name] !== repoSize) {
+      diffs.push(name);
+      console.log(`  ${c.red}✗${c.reset} ${c.bold}${name}${c.reset} verschilt ${c.dim}(repo ${repoSize}, workspace ${ws[name]} bytes)${c.reset}`);
+    } else {
+      console.log(`  ${c.green}✓${c.reset} ${name} ${c.dim}(${repoSize} bytes)${c.reset}`);
+    }
+  }
+  for (const name of Object.keys(ws).sort()) {
+    if (source.includes(name) || WORKSPACE_ONLY.has(name)) continue;
+    console.log(`  ${c.yellow}!${c.reset} ${c.bold}${name}${c.reset} staat alleen in de workspace ${c.dim}(niet in de repo)${c.reset}`);
+  }
+  console.log('');
+  if (diffs.length > 0) {
+    console.log(`${c.red}${c.bold}${diffs.length} verschil(len).${c.reset} ${c.dim}De repo wint: update_workspace_skill / create_workspace_skill met de repo-inhoud.${c.reset}\n`);
+    process.exit(1);
+  }
+  console.log(`${c.green}${c.bold}Workspace en repo lopen gelijk (0 verschillen).${c.reset}\n`);
   process.exit(0);
 }
 
@@ -118,9 +204,8 @@ console.log(`${c.green}${c.bold}Bron en spiegel zijn identiek.${c.reset}\n`);
 console.log(
   `${c.yellow}Niet gecontroleerd:${c.reset} de workspace-kopieën aan de Lovable-kant.\n` +
   `${c.dim}Een sessie met connector doet dat zo:\n` +
-  `  1. node scripts/verify-skills-sync.mjs --manifest\n` +
-  `  2. list_workspace_skills({ workspace_id, include_markdown: true })\n` +
-  `  3. sha256 van elke workspace-SKILL.md vergelijken met het manifest\n` +
+  `  1. list_workspace_skills({ workspace_id }) en de JSON bewaren in een bestand\n` +
+  `  2. node scripts/verify-skills-sync.mjs --compare <bestand>\n` +
   `  Verschilt er een: de repo wint, dus update_workspace_skill met de repo-inhoud.${c.reset}\n`
 );
 process.exit(0);
