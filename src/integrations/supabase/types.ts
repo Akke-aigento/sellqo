@@ -15603,13 +15603,63 @@ export type Database = {
           },
         ]
       }
+      social_post_events: {
+        Row: {
+          actor: string | null
+          content_tags: Json | null
+          created_at: string
+          event: string
+          id: string
+          note: string | null
+          post_id: string
+          tenant_id: string
+        }
+        Insert: {
+          actor?: string | null
+          content_tags?: Json | null
+          created_at?: string
+          event: string
+          id?: string
+          note?: string | null
+          post_id: string
+          tenant_id: string
+        }
+        Update: {
+          actor?: string | null
+          content_tags?: Json | null
+          created_at?: string
+          event?: string
+          id?: string
+          note?: string | null
+          post_id?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_post_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_post_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_posts: {
         Row: {
           approved_at: string | null
           approved_by: string | null
           connection_id: string | null
           content_id: string | null
+          content_tags: Json | null
           created_at: string | null
+          engagement_48h: Json | null
           engagement_data: Json | null
           error_message: string | null
           id: string
@@ -15645,7 +15695,9 @@ export type Database = {
           approved_by?: string | null
           connection_id?: string | null
           content_id?: string | null
+          content_tags?: Json | null
           created_at?: string | null
+          engagement_48h?: Json | null
           engagement_data?: Json | null
           error_message?: string | null
           id?: string
@@ -15681,7 +15733,9 @@ export type Database = {
           approved_by?: string | null
           connection_id?: string | null
           content_id?: string | null
+          content_tags?: Json | null
           created_at?: string | null
+          engagement_48h?: Json | null
           engagement_data?: Json | null
           error_message?: string | null
           id?: string
@@ -21289,22 +21343,37 @@ export type Database = {
       }
       social_post_performance: {
         Row: {
+          bucket: string | null
+          caption_length: string | null
           comments: number | null
+          content_tags: Json | null
+          cta: string | null
           data_source: string | null
           engagement_rate: number | null
+          experiment: string | null
           fetched_at: string | null
           follows: number | null
+          follows_48h: number | null
+          format: string | null
+          hook: string | null
           hour: number | null
           id: string | null
+          language: string | null
           likes: number | null
           media_type: string | null
           permalink: string | null
+          pillar: string | null
           platform: string | null
           posted_at: string | null
           posted_local: string | null
           reach: number | null
+          reach_48h: number | null
           saved: number | null
+          saved_48h: number | null
+          score: number | null
+          score_48h: number | null
           shares: number | null
+          shares_48h: number | null
           source: string | null
           tenant_id: string | null
           total_interactions: number | null
@@ -21312,22 +21381,37 @@ export type Database = {
           weekday: number | null
         }
         Insert: {
+          bucket?: never
+          caption_length?: never
           comments?: never
+          content_tags?: Json | null
+          cta?: never
           data_source?: never
           engagement_rate?: never
+          experiment?: never
           fetched_at?: never
           follows?: never
+          follows_48h?: never
+          format?: never
+          hook?: never
           hour?: never
           id?: string | null
+          language?: string | null
           likes?: never
           media_type?: string | null
           permalink?: never
+          pillar?: never
           platform?: string | null
           posted_at?: string | null
           posted_local?: never
           reach?: never
+          reach_48h?: never
           saved?: never
+          saved_48h?: never
+          score?: never
+          score_48h?: never
           shares?: never
+          shares_48h?: never
           source?: string | null
           tenant_id?: string | null
           total_interactions?: never
@@ -21335,22 +21419,37 @@ export type Database = {
           weekday?: never
         }
         Update: {
+          bucket?: never
+          caption_length?: never
           comments?: never
+          content_tags?: Json | null
+          cta?: never
           data_source?: never
           engagement_rate?: never
+          experiment?: never
           fetched_at?: never
           follows?: never
+          follows_48h?: never
+          format?: never
+          hook?: never
           hour?: never
           id?: string | null
+          language?: string | null
           likes?: never
           media_type?: string | null
           permalink?: never
+          pillar?: never
           platform?: string | null
           posted_at?: string | null
           posted_local?: never
           reach?: never
+          reach_48h?: never
           saved?: never
+          saved_48h?: never
+          score?: never
+          score_48h?: never
           shares?: never
+          shares_48h?: never
           source?: string | null
           tenant_id?: string | null
           total_interactions?: never
@@ -22130,7 +22229,9 @@ export type Database = {
           approved_by: string | null
           connection_id: string | null
           content_id: string | null
+          content_tags: Json | null
           created_at: string | null
+          engagement_48h: Json | null
           engagement_data: Json | null
           error_message: string | null
           id: string
@@ -22175,7 +22276,9 @@ export type Database = {
           approved_by: string | null
           connection_id: string | null
           content_id: string | null
+          content_tags: Json | null
           created_at: string | null
+          engagement_48h: Json | null
           engagement_data: Json | null
           error_message: string | null
           id: string
@@ -22213,6 +22316,7 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      social_post_score: { Args: { m: Json }; Returns: number }
       spend_tokens: {
         Args: {
           p_amount: number
