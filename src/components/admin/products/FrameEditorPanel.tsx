@@ -16,10 +16,9 @@ import { useTenant } from '@/hooks/useTenant';
 import { useMediaSettings } from '@/hooks/useMediaSettings';
 import { uploadProcessedImage } from '@/hooks/useStandardizePhotos';
 import {
-  ASPECT_PRESETS, fetchImageBlob, renderStandardized, targetSize,
+  ASPECT_PRESETS, CHECKER_STYLE, fetchImageBlob, renderStandardized, targetSize,
   type FrameAdjust, type PhotoStandardSettings, type StandardizedImage,
 } from '@/lib/photoStandard';
-import { CHECKER_STYLE } from './PhotoStandardCard';
 
 const ROTATIONS: FrameAdjust['rotate'][] = [0, 90, 180, 270];
 

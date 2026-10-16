@@ -11,18 +11,12 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useMediaSettings } from '@/hooks/useMediaSettings';
-import { ASPECT_PRESETS, fetchImageBlob, renderStandardized, targetSize, type PhotoStandardSettings } from '@/lib/photoStandard';
+import { ASPECT_PRESETS, CHECKER_STYLE, fetchImageBlob, renderStandardized, targetSize, type PhotoStandardSettings } from '@/lib/photoStandard';
 
 const WIDTHS = [1000, 1200, 1600, 2000];
 const BG_PRESETS = ['auto', '#ffffff', '#000000', 'transparent'] as const;
 
-/** Dambord achter een transparant voorbeeld. */
-export const CHECKER_STYLE = {
-  backgroundImage:
-    'linear-gradient(45deg,#e5e7eb 25%,transparent 25%,transparent 75%,#e5e7eb 75%),linear-gradient(45deg,#e5e7eb 25%,transparent 25%,transparent 75%,#e5e7eb 75%)',
-  backgroundSize: '16px 16px',
-  backgroundPosition: '0 0, 8px 8px',
-} as const;
+
 
 export function PhotoStandardCard({ sampleUrl }: { sampleUrl?: string }) {
   const { t } = useTranslation();

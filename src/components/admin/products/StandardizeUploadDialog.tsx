@@ -9,8 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { renderStandardized, targetSize, type PhotoStandardSettings, type StandardizedImage } from '@/lib/photoStandard';
-import { CHECKER_STYLE } from './PhotoStandardCard';
+import { CHECKER_STYLE, renderStandardized, targetSize, type PhotoStandardSettings, type StandardizedImage } from '@/lib/photoStandard';
 
 interface Item {
   file: File;

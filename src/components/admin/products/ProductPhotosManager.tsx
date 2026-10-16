@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Search, Wand2, Eraser, ImageIcon, Loader2, CheckSquare, Square, Trash2, Frame } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
@@ -61,7 +61,10 @@ export function ProductPhotosManager() {
   const { settings: photoStandard } = useMediaSettings();
   const { run: runStandardize, running: standardizing, progress: stdProgress } = useStandardizePhotos();
   const [dims, setDims] = useState<Record<string, { w: number; h: number }>>({});
-  const isOff = (url: string) => photoStandard.enabled && !!dims[url] && isOffStandard(dims[url].w, dims[url].h, photoStandard);
+  const isOff = useCallback(
+    (url: string) => photoStandard.enabled && !!dims[url] && isOffStandard(dims[url].w, dims[url].h, photoStandard),
+    [photoStandard, dims],
+  );
   const [selectedPhotos, setSelectedPhotos] = useState<Set<string>>(new Set());
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingPhoto, setEditingPhoto] = useState<PhotoItem | null>(null);
@@ -101,7 +104,7 @@ export function ProductPhotosManager() {
       }
       return true;
     });
-  }, [allPhotos, search, categoryFilter, products, photoFilter, dims, photoStandard]);
+  }, [allPhotos, search, categoryFilter, products, photoFilter, isOff]);
 
   // Products without photos
   const productsWithoutPhotos = useMemo(() => {

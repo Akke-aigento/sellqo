@@ -34,6 +34,14 @@ export const DEFAULT_PHOTO_STANDARD: PhotoStandardSettings = {
   apply_on_upload: true,
 };
 
+/** Dambord achter een transparant voorbeeld (inline-stijl, gedeeld door de fotocomponenten). */
+export const CHECKER_STYLE = {
+  backgroundImage:
+    'linear-gradient(45deg,#e5e7eb 25%,transparent 25%,transparent 75%,#e5e7eb 75%),linear-gradient(45deg,#e5e7eb 25%,transparent 25%,transparent 75%,#e5e7eb 75%)',
+  backgroundSize: '16px 16px',
+  backgroundPosition: '0 0, 8px 8px',
+} as const;
+
 export const ASPECT_PRESETS: { w: number; h: number }[] = [
   { w: 3, h: 4 },
   { w: 4, h: 5 },
