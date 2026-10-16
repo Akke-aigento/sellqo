@@ -9903,6 +9903,39 @@ export type Database = {
           },
         ]
       }
+      order_number_counters: {
+        Row: {
+          last_number: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          last_number: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          last_number?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_number_counters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_number_counters_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           applied_gift_card_ids: string[] | null
@@ -21263,7 +21296,7 @@ export type Database = {
           cookie_banner_style?: string | null
           created_at?: string | null
           custom_css?: string | null
-          custom_frontend_config?: Json | null
+          custom_frontend_config?: never
           custom_frontend_url?: string | null
           exit_intent_popup?: boolean | null
           favicon_url?: string | null
@@ -21337,7 +21370,7 @@ export type Database = {
           cookie_banner_style?: string | null
           created_at?: string | null
           custom_css?: string | null
-          custom_frontend_config?: Json | null
+          custom_frontend_config?: never
           custom_frontend_url?: string | null
           exit_intent_popup?: boolean | null
           favicon_url?: string | null
