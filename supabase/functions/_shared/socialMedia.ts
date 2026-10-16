@@ -19,7 +19,8 @@
 // (gevonden in de unit test zonder --allow-ffi, 15-10).
 // Kost (gemeten zonder extra rechten, 15-10): ±180 ms CPU voor 1000x1000.
 
-import { decode as decodePng } from "npm:fast-png@6.3.0";
+// @ts-ignore: esm.sh-module zonder typeaanduiding
+import { decode as decodePng } from "https://esm.sh/fast-png@6.3.0";
 // @ts-ignore: esm.sh-module zonder typeaanduiding
 import jpeg from "https://esm.sh/jpeg-js@0.4.4";
 
