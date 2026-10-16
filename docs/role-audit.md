@@ -1,3 +1,17 @@
+## SEC-NIGHT-2 — publieke view tenant_theme_public toont geen API-sleutelgegevens meer — 16 oktober 2026
+
+**Root cause.** `tenant_theme_public` (SELECT voor `anon`, `security_invoker=false`) gaf `custom_frontend_config` integraal door, inclusief `api_key_hash`, `api_key_prefix` en `webhook_url` van custom-frontend-tenants (2 rijen live).
+
+**Uitgevoerd** — `supabase/migrations/20261016040000_sec_night_2.sql` (via de connector gedraaid): view opnieuw gedefinieerd met `custom_frontend_config - 'api_key_hash' - 'api_key_prefix' - 'webhook_url'`. Zelfde 72 kolommen, types en volgorde. Snapshot: `ops.sec_night_2_prev_view`.
+
+**Security-keuzes** — alleen de view; grants en `security_invoker=false` behouden (nagemeten).
+
+**Gedeelde-paden-waarschuwing** — eerste wet: `tenant_theme_settings` is niet aangeraakt (de 2 rijen met `api_key_hash` staan er nog). Geen lezer van de drie sleutels in `src` of `supabase/functions` (rg: 0 hits); de custom frontends lezen de view niet maar gaan via storefront-api. `usePublicStorefront` leest `custom_frontend_config` wel, maar geen van deze sleutels.
+
+**Verificatie** — `leaking = 0`, view 14 rijen = 14 gepubliceerde rijen in de tabel, anon SELECT nog `true`.
+
+**Vervolg** — `products` marketplace-kolommen en `tenant_domains.verification_token` zijn ook anon-leesbaar (nachtcheck, laag); apart bekijken.
+
 ## EVENT-ORDER-1 — ticketbestellingen annuleerbaar na levering, gratis afrekenen zonder wachten (2026.12d) — 16 oktober 2026
 
 Nog NIET live: edge-deploy (`update-order-fulfillment-status`, `storefront-api`) + admin-publish + doc-migratie wachten op Akke's go. Volgorde: (1) edge-deploy van beide functies + GET-stempels meten, (2) admin publiceren (`deploy_project`), (3) doc-migratie draaien + md5 natrekken, (4) nieuwsbrief-item vrijgeven.
