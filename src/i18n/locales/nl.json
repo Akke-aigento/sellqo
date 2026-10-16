@@ -7269,7 +7269,6 @@
       "tabs": {
         "planning": "Planning",
         "results": "Resultaten",
-        "create": "Maken",
         "channels": "Kanalen"
       },
       "metrics": {
@@ -7347,10 +7346,10 @@
         "reconnectHint": "Log bij het koppelen in met het Instagram-account van deze winkel.",
         "moreInConnect": "Facebook en andere kanalen beheer je in SellQo Connect."
       },
-      "create": {
-        "intro": "Laat AI een post, een volledige promo of een beeld maken. Wat je maakt, komt in de planning en gaat pas online als je het goedkeurt.",
-        "tools": "Losse post of beeld",
-        "menu": "Menukaart van vandaag"
+      "aiPost": {
+        "button": "Post met AI",
+        "title": "Post met AI",
+        "description": "AI schrijft een post voor je winkel. Je kiest zelf het moment; de post komt in de planning en gaat pas online als je hem goedkeurt."
       }
     },
     "aiCredits": {

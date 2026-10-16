@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Sparkles, Bot, Zap, ArrowRight, CreditCard } from 'lucide-react';
+import { Sparkles, Bot, Zap, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -97,7 +97,7 @@ export function DashboardAIWidget() {
               size="sm" 
               className="h-auto py-2 flex-col items-center gap-1"
             >
-              <Link to="/admin/marketing/social?tab=create&tool=social">
+              <Link to="/admin/marketing/social?ai=post">
                 <Zap className="h-4 w-4 text-pink-500" />
                 <span className="text-xs">{t('admin.marketing.dashboardAIWidget.social_post')}</span>
               </Link>
@@ -115,18 +115,9 @@ export function DashboardAIWidget() {
             </Button>
           </div>
 
-          {/* CTA */}
-          <Button asChild className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-            <Link to="/admin/marketing/social?tab=create">
-              <Sparkles className="mr-2 h-4 w-4" />
-              {t('admin.marketing.dashboardAIWidget.ai_hub_openen')}
-              <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
-
           {(isEmpty || isLow) && (
             <Button asChild variant="outline" size="sm" className="w-full">
-              <Link to="/admin/marketing/social?tab=create&purchase=open">
+              <Link to="/admin/marketing/social?purchase=open">
                 <CreditCard className="mr-2 h-4 w-4" />
                 {t('admin.marketing.dashboardAIWidget.credits_bijkopen')}
               </Link>

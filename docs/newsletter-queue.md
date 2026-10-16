@@ -4,16 +4,26 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12o — Eén knop voor een post met AI (improvement, 16-10-2026)
+
+**Status:** klaar voor verzending zodra MARKETING-3 live staat. Hoort bij 2026.12n.
+
+**Voor wie:** winkels die AI-tools gebruiken.
+
+**Eén knop voor een post met AI** (oktober 2026)
+De aparte tab "Maken" met promo-wizard, toolraster en menukaart is weg. Wil je een post laten schrijven, klik dan op "Post met AI" bovenaan Social. De post komt in je planning en gaat pas online als je hem goedkeurt.
+Wat betekent dit voor jou? Eén plek voor je posts, zonder extra scherm.
+
+i18n: `public.changelog.changes.social_ai_one_button`
+
 ### 2026.12n — Marketing als één geheel; AI-posts altijd via goedkeuring (improvement + bugfix, 16-10-2026)
 
-**Status:**
-- De migraties `20261016240000_marketing_1_social_channel_status.sql` en `20261016240100_marketing_2_doc_articles.sql` worden live gedraaid.
-- `social-oauth-init` wordt gedeployd en sellqo.app gepubliceerd.
+**Status:** live op 16-10 (migraties, `social-oauth-init`, sellqo.app). Tekst aangepast aan MARKETING-3 (2026.12o): de tab "Maken" bestaat niet meer. Best samen met 2026.12o versturen.
 
 **Voor wie:** alle winkels die Marketing gebruiken.
 
 **Marketing, maar overzichtelijk** (oktober 2026)
-Marketing heeft nu vaste plekken: Social, E-mail, Media, SEO en Ads. AI is geen aparte plek meer, maar een knop waar je hem nodig hebt: posts, promo's en beelden maak je in Social → Maken, e-mails met "Maak met AI" in E-mail. Een post die je met AI maakt, gaat bovendien nooit meer meteen online: hij wacht in de planning op jouw goedkeuring.
+Marketing heeft nu vaste plekken: Social, E-mail, Media, SEO en Ads. AI is geen aparte plek meer, maar een knop waar je hem nodig hebt: posts met "Post met AI" bovenaan Social, e-mails met "Maak met AI" in E-mail. Een post die je met AI maakt, gaat bovendien nooit meer meteen online: hij wacht in de planning op jouw goedkeuring.
 Wat betekent dit voor jou? Minder zoeken in het menu, en geen post die online gaat voor je hem gezien hebt.
 
 **i18n-keys.** `public.changelog.changes.marketing_one_whole` en `public.changelog.changes.social_ai_needs_approval` — 5 talen (nl, en, fr, de, uk; geteld tegen `SUPPORTED_LANGUAGES`).

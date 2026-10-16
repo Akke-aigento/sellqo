@@ -7011,7 +7011,6 @@
       "tabs": {
         "planning": "Planung",
         "results": "Ergebnisse",
-        "create": "Erstellen",
         "channels": "Kanäle"
       },
       "metrics": {
@@ -7089,10 +7088,10 @@
         "reconnectHint": "Melden Sie sich beim Verbinden mit dem Instagram-Konto dieses Shops an.",
         "moreInConnect": "Facebook und andere Kanäle verwalten Sie in SellQo Connect."
       },
-      "create": {
-        "intro": "Lassen Sie die KI einen Beitrag, eine komplette Aktion oder ein Bild erstellen. Was Sie erstellen, landet in der Planung und geht erst nach Ihrer Freigabe online.",
-        "tools": "Einzelner Beitrag oder Bild",
-        "menu": "Heutige Speisekarte"
+      "aiPost": {
+        "button": "Beitrag mit KI",
+        "title": "Beitrag mit KI",
+        "description": "Die KI schreibt einen Beitrag für Ihren Shop. Sie wählen den Zeitpunkt; der Beitrag landet in Ihrer Planung und geht erst online, wenn Sie ihn genehmigen."
       }
     },
     "aiCredits": {

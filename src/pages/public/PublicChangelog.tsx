@@ -14,6 +14,9 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.12o', dateKey: 'oct_2026', changes: [
+    { id: 'social_ai_one_button', type: 'improvement' },
+  ] },
   { version: '2026.12n', dateKey: 'oct_2026', changes: [
     { id: 'marketing_one_whole', type: 'improvement' },
     { id: 'social_ai_needs_approval', type: 'bugfix' },

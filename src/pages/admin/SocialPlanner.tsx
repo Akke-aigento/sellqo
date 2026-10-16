@@ -1,12 +1,13 @@
 // SOCIAL-2 — Social planning: alle geplande posts per week, met goedkeuren,
 // aanpassen en schrappen. Goedgekeurde posts publiceert social-publish-due elke 5 minuten.
 // SOCIAL-5: tab "Resultaten" met de cijfers per post, dagdeel, weekdag en soort.
+// MARKETING-3: geen tab "Maken" meer; één knop "Post met AI" (?ai=post opent hem).
 
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { addDays, format } from 'date-fns';
-import { CheckCheck, Link2, Loader2 } from 'lucide-react';
+import { CheckCheck, Link2, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -28,7 +29,10 @@ import { SocialImageTextEditor } from '@/components/admin/marketing/social/Socia
 import { SocialMediaViewer } from '@/components/admin/marketing/social/SocialMediaViewer';
 import { SocialTranslateDialog } from '@/components/admin/marketing/social/SocialTranslateDialog';
 import { SocialResults } from '@/components/admin/marketing/social/SocialResults';
-import { SocialCreate } from '@/components/admin/marketing/social/SocialCreate';
+import { SocialAIPostDialog } from '@/components/admin/marketing/social/SocialAIPostDialog';
+import { CreditPurchaseDialog } from '@/components/admin/marketing/CreditPurchaseDialog';
+import { useAICredits } from '@/hooks/useAICredits';
+import { useAICreditsReturn } from '@/hooks/useAICreditsReturn';
 import { SocialChannels } from '@/components/admin/marketing/social/SocialChannels';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { postMedia } from '@/lib/social/media';
@@ -52,13 +56,36 @@ export default function SocialPlanner() {
   const { currentTenant } = useTenant();
   // SOCIAL-6: ?tab=results opent meteen de resultaten (link uit de maandagmelding).
   const [searchParams, setSearchParams] = useSearchParams();
-  // MARKETING-2: de AI-tools (tab Maken) volgen dezelfde rechten als de vroegere AI Content Hub:
+  // MARKETING-3: "Post met AI" volgt dezelfde rechten als de vroegere AI Content Hub:
   // rol met ai_assistant-leesrecht, en niet verborgen voor deze winkel (hidden_pages 'ai-tools').
   const canAI = useCan('read', 'ai_assistant');
   const { isPageHidden } = useTenantPageOverrides();
-  const showCreate = canAI && !isPageHidden('ai-tools');
+  const showAI = canAI && !isPageHidden('ai-tools');
   const rawTab = searchParams.get('tab');
-  const tab = rawTab === 'results' || rawTab === 'channels' || (rawTab === 'create' && showCreate) ? rawTab : 'planning';
+  const tab = rawTab === 'results' || rawTab === 'channels' ? rawTab : 'planning';
+
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiProductIds, setAiProductIds] = useState<string[] | undefined>(undefined);
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
+  const { refetch: refetchCredits } = useAICredits();
+  const openPurchase = useCallback(() => setPurchaseOpen(true), []);
+  const onCreditsBack = useCallback(() => { void refetchCredits(); }, [refetchCredits]);
+  // Terugkeer uit de Stripe-checkout voor AI-credits (via de doorverwijzing van /admin/marketing/ai).
+  useAICreditsReturn(openPurchase, onCreditsBack);
+
+  // ?ai=post (en de oude ?tab=create&tool=social) opent de dialoog, eventueel met ?product=.
+  // Pas opruimen zodra de rechten bekend zijn, anders verdwijnt de link vóór hij kan openen.
+  useEffect(() => {
+    const wantsAI = searchParams.get('ai') === 'post' || searchParams.get('tab') === 'create';
+    if (!wantsAI || !showAI) return;
+    const product = searchParams.get('product');
+    setAiProductIds(product ? [product] : undefined);
+    setAiOpen(true);
+    const next = new URLSearchParams(searchParams);
+    ['ai', 'tool', 'product'].forEach((k) => next.delete(k));
+    if (next.get('tab') === 'create') next.delete('tab');
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, showAI]);
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<PlannerPost | null>(null);
@@ -202,12 +229,17 @@ export default function SocialPlanner() {
       <PageHeader
         title={t('admin.socialPlanner.title')}
         description={t('admin.socialPlanner.description')}
+        actions={showAI ? (
+          <Button onClick={() => { setAiProductIds(undefined); setAiOpen(true); }}>
+            <Sparkles className="h-4 w-4 mr-1" />
+            {t('admin.socialPlanner.aiPost.button')}
+          </Button>
+        ) : undefined}
       />
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); if (v === 'planning') next.delete('tab'); else next.set('tab', v); return next; }, { replace: true })} className="space-y-6">
         <TabsList scrollHint>
           <TabsTrigger value="planning">{t('admin.socialPlanner.tabs.planning')}</TabsTrigger>
-          {showCreate && <TabsTrigger value="create">{t('admin.socialPlanner.tabs.create')}</TabsTrigger>}
           <TabsTrigger value="results">{t('admin.socialPlanner.tabs.results')}</TabsTrigger>
           <TabsTrigger value="channels">{t('admin.socialPlanner.tabs.channels')}</TabsTrigger>
         </TabsList>
@@ -290,11 +322,6 @@ export default function SocialPlanner() {
         })
       )}
         </TabsContent>
-        {showCreate && (
-          <TabsContent value="create" className="mt-0">
-            <SocialCreate />
-          </TabsContent>
-        )}
         <TabsContent value="results" className="mt-0">
           <SocialResults />
         </TabsContent>
@@ -344,6 +371,16 @@ export default function SocialPlanner() {
           <p className="text-xs text-muted-foreground">{t('admin.socialPlanner.hourHint')}</p>
         </div>
       </ResponsiveDialog>
+
+      {showAI && (
+        <SocialAIPostDialog
+          open={aiOpen}
+          onOpenChange={setAiOpen}
+          productIds={aiProductIds}
+          onNeedCredits={openPurchase}
+        />
+      )}
+      <CreditPurchaseDialog open={purchaseOpen} onOpenChange={setPurchaseOpen} />
 
       <SocialMediaViewer post={viewing} items={viewing ? mediaOf(viewing) : []} onClose={() => setViewing(null)} />
 

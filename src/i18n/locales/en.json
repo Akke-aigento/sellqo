@@ -7255,7 +7255,6 @@
       "tabs": {
         "planning": "Planning",
         "results": "Results",
-        "create": "Create",
         "channels": "Channels"
       },
       "metrics": {
@@ -7333,10 +7332,10 @@
         "reconnectHint": "When connecting, sign in with this shop's Instagram account.",
         "moreInConnect": "Manage Facebook and other channels in SellQo Connect."
       },
-      "create": {
-        "intro": "Let AI create a post, a full promo or an image. What you create goes into the planning and only goes live once you approve it.",
-        "tools": "Single post or image",
-        "menu": "Today's menu"
+      "aiPost": {
+        "button": "Post with AI",
+        "title": "Post with AI",
+        "description": "AI writes a post for your shop. You pick the moment; the post goes into your planning and only goes live once you approve it."
       }
     },
     "aiCredits": {

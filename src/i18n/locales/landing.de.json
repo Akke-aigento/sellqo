@@ -2126,6 +2126,10 @@
         "social_ai_needs_approval": {
           "title": "KI-Beiträge warten immer auf Ihre Freigabe",
           "description": "Ein mit KI erstellter Beitrag geht nicht mehr sofort online, sondern landet in der Social-Planung, wo Sie ihn prüfen und freigeben. Nutzer mit der Rolle Marketing sehen jetzt auch, welche Kanäle verbunden sind, und können Instagram unter Social → Kanäle verbinden."
+        },
+        "social_ai_one_button": {
+          "title": "Ein Button für einen Beitrag mit KI",
+          "description": "Der separate Tab „Erstellen“ mit Promo-Assistent, Werkzeugraster und Tagesmenü ist entfallen. Möchten Sie einen Beitrag schreiben lassen, klicken Sie oben in Social auf „Beitrag mit KI“. Der Beitrag landet in Ihrer Planung und geht erst online, wenn Sie ihn genehmigen. Produktfotos bearbeiten Sie wie bisher mit KI beim Produkt und unter Medien."
         }
       },
       "copyLink": "Link kopieren",

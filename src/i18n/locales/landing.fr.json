@@ -2126,6 +2126,10 @@
         "social_ai_needs_approval": {
           "title": "Les publications IA attendent toujours votre approbation",
           "description": "Une publication créée avec l'IA n'est plus mise en ligne immédiatement : elle arrive dans le planning social, où vous la relisez et l'approuvez. Les utilisateurs avec le rôle marketing voient aussi quels canaux sont connectés et peuvent connecter Instagram dans Social → Canaux."
+        },
+        "social_ai_one_button": {
+          "title": "Un seul bouton pour une publication avec l’IA",
+          "description": "L’onglet séparé « Créer » avec l’assistant promo, la grille d’outils et le menu du jour a disparu. Pour faire rédiger une publication, cliquez sur « Publication avec l’IA » en haut de Social. La publication arrive dans votre planning et n’est mise en ligne qu’après votre approbation. Vous retouchez toujours vos photos produit avec l’IA sur la fiche produit et dans Médias."
         }
       },
       "copyLink": "Copier le lien",

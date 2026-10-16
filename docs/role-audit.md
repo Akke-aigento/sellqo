@@ -1,3 +1,65 @@
+## MARKETING-3 — Tab "Maken" weg, één knop "Post met AI" (2026.12o) — 16 oktober 2026
+
+Akke 22:49: "zijn die AI-tools nog wel van nut? … meer centraliseren in plaats van miljoenen schermen? Enkel dingen die gebruikt worden". Go 22:51.
+
+**Root cause (recon 16-10, live-DB)**
+MARKETING-2 verhuisde de AI-tools van de vroegere AI Content Hub naar een tab "Maken" op Social. Ze werden dus verplaatst, niet in vraag gesteld. Het gebruik ooit, over alle tenants:
+- `ai_usage_log`:
+  - `social_post`: 2 keer, 1 tenant (15-10, wijzelf);
+  - `image_generation`: 5 keer, 2 tenants, laatst 19-08.
+- `ai_credit_purchases`: 0.
+- Menukaart:
+  - `tenant_brand_dna`: 1 rij;
+  - `tenant_content_categories`: 0 rijen;
+  - `ai_generated_content`: 2 rijen in totaal.
+- Wel gebruikt, en hier niet geraakt:
+  - productveld-assistent: 54 keer;
+  - SEO-analyse: 10 keer;
+  - `nano-studio`: 193 beelden. Die functie wordt niet vanuit de admin-UI aangeroepen.
+
+**Uitgevoerd**
+- `src/pages/admin/SocialPlanner.tsx`:
+  - de tab "Maken" is weg;
+  - de knop "Post met AI" staat in de paginakop, onder dezelfde voorwaarde als voorheen: `useCan('read','ai_assistant')` en niet `isPageHidden('ai-tools')`;
+  - `?ai=post` (met `?product=`) en de oude `?tab=create` openen de dialoog. Die parameters worden pas opgeruimd zodra de rechten bekend zijn;
+  - de Stripe-terugkeer voor AI-credits (`useAICreditsReturn`) en `CreditPurchaseDialog` zitten nu hier.
+- `src/components/admin/marketing/social/SocialAIPostDialog.tsx` (nieuw): ResponsiveDialog met FeatureGate `ai_marketing`, een creditbadge en `SocialPostGenerator`.
+- `SocialPostGenerator.tsx`: optionele `onAdded`, zodat de dialoog sluit na het inplannen. De goedkeuringsflow van MARKETING-1 is ongewijzigd.
+- `src/lib/marketing/aiHubTarget.ts` en de test daarvan:
+  - `tab=social|create` → `/admin/marketing/social?ai=post`;
+  - menu, geen tab of credits-terugkeer → `/admin/marketing/social`, met de parameters behouden.
+  - `ai-business-coach` (`?tab=social&product=`) en `create-ai-credits-checkout` blijven zo werken zonder edge-wijziging.
+- `DashboardAIWidget.tsx`:
+  - de links verwijzen nu naar `?ai=post` en `?purchase=open`;
+  - de knop "AI-hub openen" is weg, want die hub bestaat niet meer.
+- Verwijderd, want ongebruikt en zonder andere importeurs (grep):
+  - `SocialCreate`, `InlinePromoWizard`, `AdvancedToolsGrid`, `AIImageGenerator`;
+  - `marketing/menu/*` (7 bestanden);
+  - `useBrandDna`, `useDailyMenu`, `types/content-menu`, `types/daily-menu`, `config/contentMenuCategories`.
+- i18n (5 talen):
+  - `admin.socialPlanner.aiPost.*` toegevoegd;
+  - `tabs.create` en `create.*` verwijderd.
+- Changelog: 2026.12o `social_ai_one_button`.
+- Migratie `20261016250000_marketing_3_doc_articles.sql`:
+  - tekst aangepast in `social-planning-goedkeuren` en `ai-functies-overzicht`;
+  - `dagelijkse-menukaart` verborgen (`is_published = false`), niet gewist.
+
+**Security-keuzes:** geen RLS, policies of grants geraakt. De zichtbaarheid van de AI-knop volgt exact de vorige regel, en `ai-tools` blijft verborgen voor Astra Sleep en Mancini Milano.
+
+**Gedeelde-paden-waarschuwing:** n.v.t. Er is geen edge-functie en geen gedeelde tabel geraakt. Het menukaart-artikel staat op `doc_articles`, dat niet gedeeld is met custom frontends.
+
+**Verificatie**
+- vitest: 58 bestanden / 767 tests geslaagd.
+- i18n-parity: volledig.
+- eslint op de gewijzigde bestanden: schoon.
+- build: ok.
+- tsc: 27 fouten, gelijk aan de baseline; geen enkele in de gewijzigde bestanden.
+
+**Bewust ongemoeid / Vervolg**
+- De tabellen `tenant_brand_dna`, `tenant_content_categories` en `ai_generated_content` blijven staan, net als de edge-functies `ai-generate-daily-menu` en `ai-generate-social` (DB-safety: de UI mag weg, de data blijft).
+- De productfoto-AI (`useAIImages` in producten en Media) blijft.
+- Losse i18n-keys van de verwijderde componenten (promo-wizard, menukaart) staan nog in de locale-bestanden. Opruimen kan in een aparte batch.
+
 ## MARKETING-1 + MARKETING-2 — Marketing als één geheel; AI-posts altijd via goedkeuring (2026.12n) — 16 oktober 2026
 
 Akke 21:41: "het voelt als iets bijgevoegd … die AI tools, zijn deze nu niet overbodig geworden? … zodoende het weer mooi als één geheel aanvoelt". Go 22:23 voor beide runs, enkel voor het marketing/social-deel van de zijbalk; de rest van de zijbalk gebeurt in een ander project. Insights-koppeling (INSIGHTS-SOCIAL-1) bewust uitgesteld.

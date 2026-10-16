@@ -2126,6 +2126,10 @@
         "social_ai_needs_approval": {
           "title": "AI posts always wait for your approval",
           "description": "A post you create with AI no longer goes live right away but lands in the Social planning, where you review and approve it. Users with the marketing role can now also see which channels are connected and connect Instagram in Social → Channels."
+        },
+        "social_ai_one_button": {
+          "title": "One button for a post with AI",
+          "description": "The separate \"Create\" tab with the promo wizard, tool grid and daily menu is gone. To have a post written, click \"Post with AI\" at the top of Social. The post goes into your planning and only goes live once you approve it. You still edit product photos with AI on the product and in Media."
         }
       },
       "copyLink": "Copy link",

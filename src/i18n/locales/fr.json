@@ -7011,7 +7011,6 @@
       "tabs": {
         "planning": "Planning",
         "results": "Résultats",
-        "create": "Créer",
         "channels": "Canaux"
       },
       "metrics": {
@@ -7089,10 +7088,10 @@
         "reconnectHint": "Lors de la connexion, connectez-vous avec le compte Instagram de cette boutique.",
         "moreInConnect": "Gérez Facebook et les autres canaux dans SellQo Connect."
       },
-      "create": {
-        "intro": "Laissez l'IA créer une publication, une promo complète ou une image. Ce que vous créez arrive dans le planning et n'est publié qu'après votre approbation.",
-        "tools": "Publication ou image seule",
-        "menu": "Menu du jour"
+      "aiPost": {
+        "button": "Publication avec l’IA",
+        "title": "Publication avec l’IA",
+        "description": "L’IA rédige une publication pour votre boutique. Vous choisissez le moment ; la publication arrive dans votre planning et n’est mise en ligne qu’après votre approbation."
       }
     },
     "aiCredits": {

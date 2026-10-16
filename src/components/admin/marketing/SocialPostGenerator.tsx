@@ -70,9 +70,11 @@ const tones = [
 interface SocialPostGeneratorProps {
   initialContentType?: ContentType;
   initialProductIds?: string[];
+  /** MARKETING-3: in de dialoog op Social sluit die na het inplannen; zonder callback de toast-link. */
+  onAdded?: () => void;
 }
 
-export function SocialPostGenerator({ initialContentType, initialProductIds }: SocialPostGeneratorProps) {
+export function SocialPostGenerator({ initialContentType, initialProductIds, onAdded }: SocialPostGeneratorProps) {
   const { t, i18n } = useTranslation();
   const [platform, setPlatform] = useState<Platform>('instagram');
   const [contentType, setContentType] = useState<ContentType>(initialContentType || 'product_highlight');
@@ -116,7 +118,14 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
     });
     if (error) throw error;
     await queryClient.invalidateQueries({ queryKey: ['social-planner'] });
-    toast.success(t('admin.marketing.socialPostGenerator.inPlanning', { moment: scheduledAt.toLocaleString(i18n.language) }), {
+    const moment = scheduledAt.toLocaleString(i18n.language);
+    if (onAdded) {
+      toast.success(t('admin.marketing.socialPostGenerator.inPlanning', { moment }));
+      setGeneratedContent(null);
+      onAdded();
+      return;
+    }
+    toast.success(t('admin.marketing.socialPostGenerator.inPlanning', { moment }), {
       action: { label: t('admin.marketing.socialPostGenerator.openPlanning'), onClick: () => navigate('/admin/marketing/social') },
     });
     setGeneratedContent(null);

@@ -10,13 +10,11 @@ export function aiHubTarget(search: string): string {
   } else if (tab === 'email') {
     path = '/admin/marketing';
     params.set('ai', 'email');
-  } else if (tab === 'library' || tab === 'calendar') {
-    path = '/admin/marketing/social';
-  } else {
-    // create, menu, social, purchase-terugkeer of geen tab: de AI-tools in Social.
-    params.set('tab', 'create');
-    if (tab === 'social') params.set('tool', 'social');
+  } else if (tab === 'social' || tab === 'create') {
+    // MARKETING-3: de AI-post zit als knop op Social; ?ai=post opent hem (met ?product= mee).
+    params.set('ai', 'post');
   }
+  // menu, purchase-terugkeer of geen tab: gewoon Social (de credits-terugkeer wordt daar afgehandeld).
   const qs = params.toString();
   return qs ? `${path}?${qs}` : path;
 }
