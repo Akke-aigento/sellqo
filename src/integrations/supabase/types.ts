@@ -15402,6 +15402,54 @@ export type Database = {
           },
         ]
       }
+      social_account_stats: {
+        Row: {
+          captured_on: string
+          created_at: string
+          followers_count: number | null
+          id: string
+          media_count: number | null
+          platform: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          captured_on: string
+          created_at?: string
+          followers_count?: number | null
+          id?: string
+          media_count?: number | null
+          platform: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          captured_on?: string
+          created_at?: string
+          followers_count?: number | null
+          id?: string
+          media_count?: number | null
+          platform?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_account_stats_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_account_stats_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       social_channel_connections: {
         Row: {
           business_id: string | null
@@ -17713,6 +17761,63 @@ export type Database = {
             foreignKeyName: "tenant_loyalty_rewards_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenant_media_settings: {
+        Row: {
+          apply_on_upload: boolean
+          aspect_h: number
+          aspect_w: number
+          auto_trim: boolean
+          background: string
+          created_at: string
+          enabled: boolean
+          margin_pct: number
+          target_width: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          apply_on_upload?: boolean
+          aspect_h?: number
+          aspect_w?: number
+          auto_trim?: boolean
+          background?: string
+          created_at?: string
+          enabled?: boolean
+          margin_pct?: number
+          target_width?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          apply_on_upload?: boolean
+          aspect_h?: number
+          aspect_w?: number
+          auto_trim?: boolean
+          background?: string
+          created_at?: string
+          enabled?: boolean
+          margin_pct?: number
+          target_width?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_media_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_media_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -21182,6 +21287,93 @@ export type Database = {
           },
         ]
       }
+      social_post_performance: {
+        Row: {
+          comments: number | null
+          data_source: string | null
+          engagement_rate: number | null
+          fetched_at: string | null
+          follows: number | null
+          hour: number | null
+          id: string | null
+          likes: number | null
+          media_type: string | null
+          permalink: string | null
+          platform: string | null
+          posted_at: string | null
+          posted_local: string | null
+          reach: number | null
+          saved: number | null
+          shares: number | null
+          source: string | null
+          tenant_id: string | null
+          total_interactions: number | null
+          views: number | null
+          weekday: number | null
+        }
+        Insert: {
+          comments?: never
+          data_source?: never
+          engagement_rate?: never
+          fetched_at?: never
+          follows?: never
+          hour?: never
+          id?: string | null
+          likes?: never
+          media_type?: string | null
+          permalink?: never
+          platform?: string | null
+          posted_at?: string | null
+          posted_local?: never
+          reach?: never
+          saved?: never
+          shares?: never
+          source?: string | null
+          tenant_id?: string | null
+          total_interactions?: never
+          views?: never
+          weekday?: never
+        }
+        Update: {
+          comments?: never
+          data_source?: never
+          engagement_rate?: never
+          fetched_at?: never
+          follows?: never
+          hour?: never
+          id?: string | null
+          likes?: never
+          media_type?: string | null
+          permalink?: never
+          platform?: string | null
+          posted_at?: string | null
+          posted_local?: never
+          reach?: never
+          saved?: never
+          shares?: never
+          source?: string | null
+          tenant_id?: string | null
+          total_interactions?: never
+          views?: never
+          weekday?: never
+        }
+        Relationships: [
+          {
+            foreignKeyName: "social_posts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "social_posts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_public_info: {
         Row: {
           id: string | null
@@ -21804,6 +21996,19 @@ export type Database = {
       }
       loyalty_reverse_for_order: {
         Args: { p_order_id: string }
+        Returns: number
+      }
+      media_file_name_from_url: { Args: { p_url: string }; Returns: string }
+      media_mime_from_url: { Args: { p_url: string }; Returns: string }
+      media_register_urls: {
+        Args: {
+          p_created?: string
+          p_folder: string
+          p_source: string
+          p_tenant: string
+          p_title: string
+          p_urls: string[]
+        }
         Returns: number
       }
       move_to_dlq: {
