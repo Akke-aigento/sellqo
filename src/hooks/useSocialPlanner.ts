@@ -10,6 +10,7 @@ import { startOfWeek, subDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
+import { callRequestSocialRegenerate } from '@/hooks/useSocialPipeline';
 
 export type PlannerStatus =
   | 'draft'
@@ -74,14 +75,20 @@ export function canPostNow(post: Pick<PlannerPost, 'status' | 'media_type' | 'vi
   return post.media_type !== 'reel' || !!post.video_url;
 }
 
+/** SOCIAL-SEC-1: statussen waarin "Opnieuw maken" kan (zelfde lijst als request_social_regenerate). */
+export const REGENERATE_FROM_STATUSES: readonly PlannerStatus[] = ['pending_approval', 'manual', 'failed', 'draft'];
+
 /**
  * SOCIAL-3: "Opnieuw maken" bestaat enkel voor posts van de contentpijplijn (source
  * content_task): daar draait een taak die verzoeken oppikt. Bij eigen posts zou de knop
  * niets doen.
+ * SOCIAL-SEC-1: en enkel als de winkel de pijplijn (nog) heeft, en niet meer voor een
+ * goedgekeurde of ingeplande post (die gaat al online; eerst aanpassen of schrappen).
  */
-export function canRegenerate(post: Pick<PlannerPost, 'status' | 'source'>): boolean {
-  return post.source === 'content_task'
-    && ['pending_approval', 'draft', 'approved', 'scheduled', 'manual', 'failed'].includes(post.status);
+export function canRegenerate(post: Pick<PlannerPost, 'status' | 'source'>, hasPipeline = true): boolean {
+  return hasPipeline
+    && post.source === 'content_task'
+    && REGENERATE_FROM_STATUSES.includes(post.status);
 }
 
 export interface PlannerWeek {
@@ -215,25 +222,19 @@ export function useSocialPlanner() {
     onSuccess: invalidate,
   });
 
-  /** SOCIAL-3: nieuwe versie vragen; de contenttaak pikt het verzoek op. */
+  /**
+   * SOCIAL-3: nieuwe versie vragen; de contenttaak pikt het verzoek op.
+   * SOCIAL-SEC-1: via de RPC request_social_regenerate (rol, pijplijn, limiet, credits); een
+   * rechtstreekse update op social_posts weigert de guard-trigger.
+   */
   const requestRegenerate = useMutation({
-    mutationFn: async (input: { post: PlannerPost; note: string; language?: string | null }) => {
-      const { error } = await supabase
-        .from('social_posts')
-        .update({
-          status: 'regenerate_requested',
-          regenerate_from: input.post.status,
-          regenerate_note: input.note.trim() || null,
-          regenerate_language: input.language ?? null,
-          regenerate_requested_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', input.post.id)
-        .eq('source', 'content_task')
-        .in('status', ['pending_approval', 'draft', 'approved', 'scheduled', 'manual', 'failed']);
-      if (error) throw error;
-    },
+    mutationFn: async (input: { post: PlannerPost; note: string; language?: string | null }) =>
+      callRequestSocialRegenerate(input.post.id, input.note, input.language ?? null),
     onSuccess: invalidate,
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['ai-credits'] });
+      queryClient.invalidateQueries({ queryKey: ['ai-usage-history'] });
+    },
   });
 
   /**

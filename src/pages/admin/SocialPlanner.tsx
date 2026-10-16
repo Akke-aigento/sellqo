@@ -28,9 +28,11 @@ import { SocialMediaViewer } from '@/components/admin/marketing/social/SocialMed
 import { SocialTranslateDialog } from '@/components/admin/marketing/social/SocialTranslateDialog';
 import { postMedia } from '@/lib/social/media';
 import { useTenant } from '@/hooks/useTenant';
-import { useSocialPlanner, type PlannerPost } from '@/hooks/useSocialPlanner';
+import { canRegenerate, useSocialPlanner, type PlannerPost } from '@/hooks/useSocialPlanner';
 import { useSocialConnections } from '@/hooks/useSocialConnections';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useSocialPipeline } from '@/hooks/useSocialPipeline';
+import { regenerateCost, socialRpcErrorCode, socialRpcErrorKey } from '@/lib/socialContent';
 
 /** ISO-tijdstip naar de waarden van <input type="date"> en <input type="time">, in lokale tijd. */
 function toLocalParts(iso: string | null): { date: string; time: string } {
@@ -44,6 +46,7 @@ export default function SocialPlanner() {
   const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText, saveTranslation, postNow } = useSocialPlanner();
   const { currentTenant } = useTenant();
   const { connections } = useSocialConnections();
+  const { hasPipeline } = useSocialPipeline();
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<PlannerPost | null>(null);
@@ -91,6 +94,14 @@ export default function SocialPlanner() {
 
   const fail = (err: unknown) =>
     toast.error(t('admin.socialPlanner.toast.error', { message: (err as Error)?.message ?? '' }));
+
+  /** SOCIAL-SEC-1: fouten van request_social_regenerate in klare taal (geen toegang, credits, limiet…). */
+  const regenerateErrorText = (err: unknown) => {
+    const code = socialRpcErrorCode(err);
+    return code === 'unknown'
+      ? t('admin.socialPlanner.toast.error', { message: (err as Error)?.message ?? '' })
+      : t(socialRpcErrorKey(code));
+  };
 
   const handleApprove = async (ids: string[], weekly = false) => {
     setBusyId(weekly ? `week:${ids.join(',')}` : ids[0]);
@@ -180,7 +191,7 @@ export default function SocialPlanner() {
       setRegenerating(null);
       setRegenNote('');
     } catch (err) {
-      fail(err);
+      toast.error(regenerateErrorText(err));
     }
   };
 
@@ -260,6 +271,7 @@ export default function SocialPlanner() {
                     onTranslate={() => setTranslating(post)}
                     onPostNow={() => setPosting(post)}
                     media={mediaOf(post)}
+                    regenerateAllowed={canRegenerate(post, hasPipeline)}
                   />
                 ))}
               </div>
@@ -315,12 +327,17 @@ export default function SocialPlanner() {
       <SocialTranslateDialog
         post={translating}
         tenantId={currentTenant?.id}
+        regenerateAllowed={!!translating && canRegenerate(translating, hasPipeline)}
         onClose={() => setTranslating(null)}
         onSave={async (r) => {
           await saveTranslation.mutateAsync({ post: r.post, language: r.language, caption: r.caption, images: r.images });
         }}
         onRegenerateInLanguage={async (post, language) => {
-          await requestRegenerate.mutateAsync({ post, note: '', language });
+          try {
+            await requestRegenerate.mutateAsync({ post, note: '', language });
+          } catch (err) {
+            throw new Error(regenerateErrorText(err));
+          }
         }}
       />
 
@@ -350,6 +367,11 @@ export default function SocialPlanner() {
       >
         <div className="space-y-3">
           <p className="text-sm text-muted-foreground">{t('admin.socialPlanner.regenerate.body')}</p>
+          {regenerating && (
+            <p className="text-sm font-medium">
+              {t('admin.socialContent.cost', { count: regenerateCost(regenerating.media_type) })}
+            </p>
+          )}
           <div className="space-y-2">
             <Label htmlFor="social-regen-language">{t('admin.socialPlanner.regenerate.languageLabel')}</Label>
             <Select value={regenLanguage} onValueChange={setRegenLanguage}>

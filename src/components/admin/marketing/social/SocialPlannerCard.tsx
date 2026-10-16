@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { GatedButton } from '@/components/permissions/GatedButton';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { cn } from '@/lib/utils';
-import { canAutoApprove, canPostNow, canRegenerate, type PlannerPost, type PlannerStatus } from '@/hooks/useSocialPlanner';
+import { canAutoApprove, canPostNow, type PlannerPost, type PlannerStatus } from '@/hooks/useSocialPlanner';
 
 const PLATFORM_ICON: Record<string, typeof Instagram> = {
   instagram: Instagram,
@@ -62,11 +62,13 @@ interface Props {
   onTranslate: () => void;
   onPostNow: () => void;
   media: MediaItem[];
+  /** SOCIAL-SEC-1: canRegenerate(post, hasPipeline), bepaald door de pagina. */
+  regenerateAllowed: boolean;
 }
 
 export function SocialPlannerCard({
   post, busy, onApprove, onEdit, onRemove, onMarkPosted, onChooseOwnMusic, onRegenerate, onEditImageText,
-  onViewMedia, onTranslate, onPostNow, media,
+  onViewMedia, onTranslate, onPostNow, media, regenerateAllowed,
 }: Props) {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
@@ -94,7 +96,7 @@ export function SocialPlannerCard({
 
   // SOCIAL-4b: taal veranderen kan zolang de post niet online staat (geen tekst = niets te vertalen).
   const canTranslate = !['posted', 'publishing', 'regenerate_requested'].includes(post.status)
-    && (!!post.post_text?.trim() || editableImageIndexes(post).length > 0 || (isReel && post.source === 'content_task'));
+    && (!!post.post_text?.trim() || editableImageIndexes(post).length > 0 || (isReel && regenerateAllowed));
   const [downloading, setDownloading] = useState(false);
   const downloadAll = async () => {
     if (media.length !== 1) {
@@ -337,7 +339,7 @@ export function SocialPlannerCard({
               {t('admin.socialPlanner.translate.button')}
             </GatedButton>
           )}
-          {canRegenerate(post) && (
+          {regenerateAllowed && (
             <GatedButton action="write" resource="marketing" variant="outline" size="sm" onClick={onRegenerate} disabled={busy}>
               <RefreshCw className="h-4 w-4 mr-1" />
               {t('admin.socialPlanner.regenerate.button')}

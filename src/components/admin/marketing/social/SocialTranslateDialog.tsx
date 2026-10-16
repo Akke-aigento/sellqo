@@ -19,6 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
 import { applySlots, parseRecipe, rasterizeRecipe, readSlots, type ImageRecipe, type RecipeSlot } from '@/lib/social/imageRecipe';
 import type { PlannerPost } from '@/hooks/useSocialPlanner';
+import { regenerateCost } from '@/lib/socialContent';
 
 interface RecipeImage {
   index: number;
@@ -40,9 +41,11 @@ interface Props {
   onSave: (result: TranslationResult) => Promise<void>;
   /** Reel van de pijplijn: vraag een nieuwe versie in deze taal. */
   onRegenerateInLanguage: (post: PlannerPost, language: string) => Promise<void>;
+  /** SOCIAL-SEC-1: mag deze post via "Opnieuw maken" (pijplijn aan, juiste status)? */
+  regenerateAllowed: boolean;
 }
 
-export function SocialTranslateDialog({ post, tenantId, onClose, onSave, onRegenerateInLanguage }: Props) {
+export function SocialTranslateDialog({ post, tenantId, onClose, onSave, onRegenerateInLanguage, regenerateAllowed }: Props) {
   const { t } = useTranslation();
   const [language, setLanguage] = useState('');
   const [step, setStep] = useState<'choose' | 'edit' | 'result'>('choose');
@@ -63,7 +66,7 @@ export function SocialTranslateDialog({ post, tenantId, onClose, onSave, onRegen
     });
   }, [post, isReel]);
   const imagesWithoutRecipe = post && !isReel ? (post.image_urls ?? []).length - recipeImages.length : 0;
-  const reelViaRegenerate = isReel && post?.source === 'content_task';
+  const reelViaRegenerate = isReel && regenerateAllowed;
   const languages = SUPPORTED_LANGUAGES.filter((l) => l.code !== post?.language);
 
   useEffect(() => {
@@ -208,7 +211,7 @@ export function SocialTranslateDialog({ post, tenantId, onClose, onSave, onRegen
           </div>
           <p className="text-sm text-muted-foreground">
             {reelViaRegenerate
-              ? t('admin.socialPlanner.translate.reelInfo')
+              ? `${t('admin.socialPlanner.translate.reelInfo')} ${t('admin.socialContent.cost', { count: regenerateCost(post.media_type) })}`
               : isReel
                 ? t('admin.socialPlanner.translate.reelCaptionOnly')
                 : t('admin.socialPlanner.translate.info')}
