@@ -1,3 +1,19 @@
+## APP-SEC-1 — Capacitor 8.5.0 → 8.5.2 (kritieke kwetsbaarheid), Android versionCode 14 — 16 oktober 2026
+
+**Root cause.** `npm audit` (nachtcheck 16-10): Capacitor android/ios 8.5.0 heeft een kritieke kwetsbaarheid (remote content via het interne proxypad), opgelost in 8.5.1.
+
+**Uitgevoerd**
+- `package.json`: `@capacitor/core`, `android`, `ios`, `cli` van `^8.5.0` naar `^8.5.2` (8.5.2 = 11-09-2026, vijf weken oud; 8.5.3 van 07-10 bewust niet als minimum).
+- `bun.lock` en `package-lock.json`: alleen die vier entries (versie, tarball-URL, sha512 uit de npm-registry). Geen volledige herinstallatie: dat zou honderden registry-URL's omzetten.
+- `android/app/build.gradle`: `versionCode 13 → 14`, `versionName 1.0.1 → 1.0.2`. Play Console (Akke, 16-10): productie draait versionCode 2; 14 ligt boven alles wat ooit geüpload kan zijn.
+- iOS: niets aangepast. Xcode Cloud nummert zelf door (laatste build 75 volgens Akke); `ci_post_clone.sh` raakt het buildnummer niet.
+
+**Verificatie** — `npm install` (zonder lock, npmjs) + `npm run build` + `npx cap sync android`: exit 0, geen extra gewijzigde bestanden in de repo. Zonder lock resolvet `^8.5.2` naar 8.5.3: elk installatiepad komt op ≥ 8.5.2 uit.
+
+**Let op** — Xcode Cloud draait `npm ci` op `package-lock.json`; die loopt sinds eerder al achter (o.a. drizzle-kit), dus het script valt terug op `npm install` en neemt de nieuwste 8.5.x. Lockfiles opschonen (alleen `bun.lock` houden) blijft een aparte batch.
+
+**Vervolg** — Akke: Android-build in Android Studio (versionCode 14) en een Xcode Cloud-build; daarna het effectieve buildnummer + de batches erin (EVENT-ADMIN-1, FONSKE-READY-1, EVENT-DOOR-2, ADMIN-DEAD-1, EDITOR-SECTIONS-1, EDITOR-MEDIA-1, EVENT-ORDER-1-frontend) hier aanvullen.
+
 ## SEC-INVITE-1 + SEC-DOMAIN-2 — live gezet en nagemeten — 16 oktober 2026
 
 **SEC-INVITE-1** — migratie `20261016160000_sec_invite_1.sql` gedraaid (trigger `tenant_domains_protect_flags`, snapshot 4 rijen); live rollbacktest: domein toevoegen met vlaggen true → `false/false`, zelf verifiëren `42501`, taal wijzigen ok. Deploy send-team-invitation, accept-team-invitation, check-domain-ssl: alle drie `{"version":"SEC-INVITE-1"}` (GET met anon-key; verify_jwt staat aan). Geen agent-commits.
