@@ -73,6 +73,14 @@ export async function replacePhotoUrl(tenantId: string, productIds: string[], fr
   }
   const { error: vErr } = await untypedTable('product_variants').update({ image_url: to }).eq('tenant_id', tenantId).eq('image_url', from);
   if (vErr) throw vErr;
+  // Ook de fotolijst van varianten (16-10: ontbrak in de eerste versie).
+  const { data: vars, error: vlErr } = await untypedTable<{ id: string; images: string[] | null }>('product_variants')
+    .select('id, images').eq('tenant_id', tenantId).contains('images', [from]);
+  if (vlErr) throw vlErr;
+  for (const v of vars || []) {
+    const { error: e } = await untypedTable('product_variants').update({ images: replaceInArray(v.images, from, to) }).eq('id', v.id);
+    if (e) throw e;
+  }
 }
 
 export function useStandardizePhotos() {

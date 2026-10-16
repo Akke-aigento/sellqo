@@ -17,6 +17,7 @@ export interface DbResult<T> {
 export interface FilterBuilder<T> extends PromiseLike<DbResult<T[]>> {
   eq(column: string, value: unknown): FilterBuilder<T>;
   in(column: string, values: unknown[]): FilterBuilder<T>;
+  contains(column: string, value: unknown[]): FilterBuilder<T>;
   is(column: string, value: null): FilterBuilder<T>;
   order(column: string, opts?: { ascending?: boolean }): FilterBuilder<T>;
   limit(n: number): FilterBuilder<T>;
