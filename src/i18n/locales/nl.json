@@ -8384,7 +8384,10 @@
       "for_date": "Dit ticket is voor {{date}}",
       "ticket_no": "Ticket {{n}}",
       "outside_window": "Geldig, maar niet nu",
-      "force_checkin": "Toch inchecken"
+      "force_checkin": "Toch inchecken",
+      "refunded": "Ticket terugbetaald",
+      "transferred": "Ticket overgedragen",
+      "recovered": "Ingecheckt (de verbinding haperde even)"
     },
     "no_link_title": "Open je scanlink",
     "no_link_text": "Scan de QR-code of open de link die je van de organisator kreeg. Daarna opent dit icoon meteen de scanner.",
@@ -8438,7 +8441,23 @@
       "window_invalid": "Vul geldige aantallen in (minuten 0–10080, uren 1–168).",
       "save_failed": "Opslaan mislukt"
     },
-    "fixed_link": "Vaste deurlink — het ticket wijst het event aan"
+    "fixed_link": "Vaste deurlink — het ticket wijst het event aan",
+    "busy": "Bezig met controleren…",
+    "busy_retry": "Trage verbinding, nog één poging…",
+    "queued": "In de wachtrij: {{count}}",
+    "stats_stale": "Teller niet actueel: geen verbinding met de server",
+    "search_failed": "Zoeken mislukt. Controleer je verbinding.",
+    "net": {
+      "online": "Online",
+      "offline": "Offline",
+      "offline_banner": "Offline: scans worden niet geregistreerd",
+      "offline_title": "Geen verbinding",
+      "timeout_title": "Verbinding te traag",
+      "network_title": "Geen verbinding",
+      "not_registered": "Deze scan is niet geregistreerd. Het ticket is niet afgekeurd.",
+      "retry": "Opnieuw proberen",
+      "recent": "Niet geregistreerd (geen verbinding)"
+    }
   },
   "bar": {
     "no_link_title": "Nog geen barlink op dit toestel",

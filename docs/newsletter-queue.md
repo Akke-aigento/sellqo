@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12c — De deurscanner blijft werken bij slecht bereik (improvement, 16-10-2026)
+
+**Voor wie:** iedereen die tickets scant aan de deur (events-module).
+
+De scanner wacht nooit meer eindeloos: na 8 seconden probeert hij één keer opnieuw, en je ziet wanneer hij bezig is.
+Zonder verbinding krijg je een grijze melding met "Opnieuw proberen" in plaats van een rode "ongeldig", en bovenaan
+zie je of je gsm online is. Geannuleerde en terugbetaalde tickets krijgen voortaan die tekst.
+
+**Samen versturen met** 2026.12b en de andere event-items.
+
+**i18n-keys.** `public.changelog.changes.door_scanner_bad_network` — 5 talen.
+
 ### 2026.12b — Geannuleerde tickets vervallen, geen dubbele bestelnummers meer (bugfix, 16-10-2026)
 
 **Voor wie:** iedereen die tickets verkoopt; het bestelnummer geldt voor alle winkels.

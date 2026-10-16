@@ -8382,7 +8382,10 @@
       "for_date": "Ce billet est pour le {{date}}",
       "ticket_no": "Billet {{n}}",
       "outside_window": "Valide, mais pas maintenant",
-      "force_checkin": "Enregistrer quand même"
+      "force_checkin": "Enregistrer quand même",
+      "refunded": "Billet remboursé",
+      "transferred": "Billet transféré",
+      "recovered": "Enregistré (la connexion a eu un raté)"
     },
     "no_link_title": "Ouvrez votre lien de scan",
     "no_link_text": "Scannez le QR code ou ouvrez le lien reçu de l'organisateur. Ensuite, cette icône ouvre directement le scanner.",
@@ -8436,7 +8439,23 @@
       "window_invalid": "Entrez des valeurs valides (minutes 0–10080, heures 1–168).",
       "save_failed": "Échec de l'enregistrement"
     },
-    "fixed_link": "Lien de porte fixe — le billet désigne l'événement"
+    "fixed_link": "Lien de porte fixe — le billet désigne l'événement",
+    "busy": "Vérification…",
+    "busy_retry": "Connexion lente, encore un essai…",
+    "queued": "En attente : {{count}}",
+    "stats_stale": "Compteur pas à jour : pas de connexion au serveur",
+    "search_failed": "La recherche a échoué. Vérifiez votre connexion.",
+    "net": {
+      "online": "En ligne",
+      "offline": "Hors ligne",
+      "offline_banner": "Hors ligne : les scans ne sont pas enregistrés",
+      "offline_title": "Pas de connexion",
+      "timeout_title": "Connexion trop lente",
+      "network_title": "Pas de connexion",
+      "not_registered": "Ce scan n'a pas été enregistré. Le billet n'a pas été refusé.",
+      "retry": "Réessayer",
+      "recent": "Non enregistré (pas de connexion)"
+    }
   },
   "bar": {
     "no_link_title": "Pas encore de lien bar sur cet appareil",

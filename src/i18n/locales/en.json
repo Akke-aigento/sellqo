@@ -8382,7 +8382,10 @@
       "for_date": "This ticket is for {{date}}",
       "ticket_no": "Ticket {{n}}",
       "outside_window": "Valid, but not now",
-      "force_checkin": "Check in anyway"
+      "force_checkin": "Check in anyway",
+      "refunded": "Ticket refunded",
+      "transferred": "Ticket transferred",
+      "recovered": "Checked in (the connection hiccuped)"
     },
     "no_link_title": "Open your scan link",
     "no_link_text": "Scan the QR code or open the link you got from the organiser. After that, this icon opens the scanner straight away.",
@@ -8436,7 +8439,23 @@
       "window_invalid": "Enter valid numbers (minutes 0–10080, hours 1–168).",
       "save_failed": "Could not save"
     },
-    "fixed_link": "Fixed door link — the ticket picks the event"
+    "fixed_link": "Fixed door link — the ticket picks the event",
+    "busy": "Checking…",
+    "busy_retry": "Slow connection, one more try…",
+    "queued": "In queue: {{count}}",
+    "stats_stale": "Counter not up to date: no connection to the server",
+    "search_failed": "Search failed. Check your connection.",
+    "net": {
+      "online": "Online",
+      "offline": "Offline",
+      "offline_banner": "Offline: scans are not being registered",
+      "offline_title": "No connection",
+      "timeout_title": "Connection too slow",
+      "network_title": "No connection",
+      "not_registered": "This scan was not registered. The ticket was not rejected.",
+      "retry": "Try again",
+      "recent": "Not registered (no connection)"
+    }
   },
   "bar": {
     "no_link_title": "No bar link on this device yet",

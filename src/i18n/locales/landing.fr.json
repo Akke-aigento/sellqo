@@ -2058,6 +2058,10 @@
         "ticket_cancel_ordernumbers": {
           "title": "Les billets annulés ne sont plus valables, et plus de numéros de commande en double",
           "description": "Si tu annules une commande ou la rembourses entièrement, les billets pas encore scannés ne sont plus valables : ils ne passent plus à l'entrée et les places se libèrent. Deux commandes passées au même moment reçoivent désormais chacune leur propre numéro, une vente de billets chargée ne bloque donc plus sur une erreur. Et si quelqu'un paie au moment où ton événement devient complet, tu reçois tout de suite une notification urgente pour aider ce client."
+        },
+        "door_scanner_bad_network": {
+          "title": "Le scanner de l'entrée fonctionne même avec un mauvais réseau",
+          "description": "Le scanner de l'entrée n'attend plus indéfiniment : après 8 secondes sans réponse, il réessaie une fois, et pendant un scan vous voyez qu'il travaille. Les scans qui arrivent pendant un scan en cours attendent leur tour. Sans connexion, vous voyez un message gris « Pas de connexion » avec un bouton pour réessayer, au lieu d'un « invalide » rouge. En haut, vous voyez si votre appareil est en ligne. Si votre enregistrement est arrivé mais pas la réponse, une nouvelle tentative sur le même appareil dans les 30 secondes affiche simplement « Bienvenue » au lieu de « Déjà entré ». Un billet annulé ou remboursé l'indique désormais tel quel, au lieu de « Billet invalide »."
         }
       },
       "copyLink": "Copier le lien",

@@ -2058,6 +2058,10 @@
         "ticket_cancel_ordernumbers": {
           "title": "Stornierte Tickets verfallen, keine doppelten Bestellnummern mehr",
           "description": "Stornierst du eine Bestellung oder erstattest sie vollständig, verfallen die noch nicht gescannten Tickets: Sie kommen am Eingang nicht mehr rein und die Plätze werden wieder frei. Zwei gleichzeitige Bestellungen bekommen jetzt immer jeweils eine eigene Bestellnummer, sodass ein voller Ticketverkauf nicht mehr an einer Fehlermeldung scheitert. Und zahlt jemand genau dann, wenn dein Event ausverkauft ist, bekommst du sofort eine dringende Benachrichtigung, damit du dem Kunden helfen kannst."
+        },
+        "door_scanner_bad_network": {
+          "title": "Der Einlass-Scanner funktioniert auch bei schlechtem Empfang",
+          "description": "Der Scanner am Eingang wartet nicht mehr endlos: Nach 8 Sekunden ohne Antwort versucht er es noch einmal, und während eines Scans sehen Sie, dass er arbeitet. Scans, die während eines laufenden Scans eingehen, warten auf ihre Reihe. Ohne Verbindung erhalten Sie eine graue Meldung „Keine Verbindung“ mit einer Schaltfläche zum erneuten Versuchen, statt eines roten „ungültig“. Oben sehen Sie, ob Ihr Gerät online ist. Ist Ihr Check-in angekommen, die Antwort aber nicht, zeigt ein neuer Versuch auf demselben Gerät innerhalb von 30 Sekunden einfach „Willkommen“ statt „Schon drinnen“. Ein storniertes oder erstattetes Ticket wird jetzt genau so angezeigt, statt „Ungültiges Ticket“."
         }
       },
       "copyLink": "Link kopieren",

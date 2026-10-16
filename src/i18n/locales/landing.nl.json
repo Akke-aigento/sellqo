@@ -2058,6 +2058,10 @@
         "ticket_cancel_ordernumbers": {
           "title": "Geannuleerde tickets vervallen, en geen dubbele bestelnummers meer",
           "description": "Annuleer je een bestelling of betaal je ze volledig terug, dan vervallen de tickets die nog niet gescand zijn: ze komen niet meer binnen aan de deur en de plaatsen komen vrij. Twee bestellingen op hetzelfde moment krijgen nu altijd elk een eigen bestelnummer, zodat een drukke ticketverkoop niet meer op een foutmelding stukloopt. En betaalt iemand terwijl je event net volzet raakt, dan krijg je meteen een dringende melding om die klant te helpen."
+        },
+        "door_scanner_bad_network": {
+          "title": "De deurscanner blijft werken bij slecht bereik",
+          "description": "De scanner aan de deur wacht nooit meer eindeloos: na 8 seconden zonder antwoord probeert hij één keer opnieuw, en tijdens een scan zie je dat hij bezig is. Scans die binnenkomen terwijl er een scan loopt, wachten netjes op hun beurt. Zonder verbinding krijg je een grijze melding \"Geen verbinding\" met een knop om opnieuw te proberen, in plaats van een rode \"ongeldig\". Bovenaan zie je of je toestel online is. Kwam je check-in wel aan maar het antwoord niet, dan toont een nieuwe poging op hetzelfde toestel binnen 30 seconden gewoon \"Welkom\" in plaats van \"Al binnen\". Een geannuleerd of terugbetaald ticket krijgt voortaan die tekst, in plaats van \"Ongeldig ticket\"."
         }
       },
       "copyLink": "Kopieer link",

@@ -7,10 +7,13 @@ import { useTranslation } from 'react-i18next';
 import { Html5Qrcode } from 'html5-qrcode';
 import {
   ArrowLeft, Camera, Check, Flashlight, FlashlightOff, Loader2, RotateCcw, Search, Smartphone,
-  TriangleAlert, Users, Volume2, VolumeX, X,
+  TriangleAlert, Users, Volume2, VolumeX, Wifi, WifiOff, X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { doorFeedback, keepScreenOn, unlockDoorAudio, type DoorTone } from '@/lib/doorFeedback';
+import {
+  DoorNetworkError, enqueueScan, invalidReasonKey, isNetworkError, recoverAlreadyInside, runWithRetry, withTimeout,
+} from '@/lib/doorScanFlow';
 import { useHideAdminBottomNav } from '@/hooks/useAdminBottomNav';
 
 export interface DoorScanResult {
@@ -38,26 +41,43 @@ export interface DoorSearchHit {
   ticket_type: string | null;
 }
 
+/** EVENT-DOOR-2 — elke oproep krijgt een AbortSignal: de scanner breekt na 8 s af
+ *  (doorScanFlow.withTimeout). Een adapter die het signaal negeert werkt nog steeds,
+ *  maar laat dan een hangende fetch op de achtergrond doorlopen. */
 export interface DoorAdapter {
-  scan: (qrToken: string) => Promise<DoorScanResult>;
+  scan: (qrToken: string, signal?: AbortSignal) => Promise<DoorScanResult>;
   /** EVENT-SCAN-2 — zelfde scan, maar het scanvenster negerend ("Toch inchecken"). */
-  forceScan?: (qrToken: string) => Promise<DoorScanResult>;
-  stats: () => Promise<{ sold: number; inside: number }>;
-  search: (q: string) => Promise<DoorSearchHit[]>;
+  forceScan?: (qrToken: string, signal?: AbortSignal) => Promise<DoorScanResult>;
+  stats: (signal?: AbortSignal) => Promise<{ sold: number; inside: number }>;
+  search: (q: string, signal?: AbortSignal) => Promise<DoorSearchHit[]>;
   /** Alleen voor de host (admin): een check-in terugdraaien. */
-  undo?: (qrToken: string) => Promise<DoorScanResult>;
+  undo?: (qrToken: string, signal?: AbortSignal) => Promise<DoorScanResult>;
 }
+
+/** Wat het scherm toont: een serverantwoord, of (EVENT-DOOR-2) een netwerkfout waarvan
+ *  de uitkomst onbekend is — die is NOOIT rood "ongeldig". */
+type Shown = DoorScanResult & { net?: DoorNetworkError['kind']; recovered?: boolean };
+type ScanMode = 'scan' | 'force';
 
 interface Recent { id: string; token: string; result: string; attendee: string | null; seq: number | null; at: number; undone?: boolean }
 
 const SCANNER_ID = 'door-scanner-video';
 const FILE_SCAN_ID = 'door-scanner-file';
 const SAME_TOKEN_COOLDOWN_MS = 4000;
+/** EVENT-DOOR-2 — na een netwerkfout mag dezelfde QR meteen opnieuw; deze korte pauze
+ *  voorkomt alleen dat de camera (12 beelden/s) een piepende lus maakt. */
+const NET_RETRY_COOLDOWN_MS = 1200;
+/** Pauze tussen het tonen van een resultaat en de volgende scan uit de wachtrij. */
+const QUEUE_GAP_MS = 900;
 const RESULT_MS = 1700;
 const SOUND_KEY = 'sellqo.door.sound';
 
 const toneOf = (r?: string): DoorTone =>
   r === 'ok' || r === 'undone' ? 'ok' : r === 'already' || r === 'reentry_blocked' || r === 'wrong_event' || r === 'outside_window' ? 'warn' : 'error';
+/** Schermtint: naast groen/oranje/rood een vierde, grijze staat voor "geen verbinding". */
+type ShownTone = DoorTone | 'net';
+const shownTone = (r: Shown): ShownTone => (r.net ? 'net' : r.success ? toneOf(r.result) : 'error');
+const isOnlineNow = () => (typeof navigator === 'undefined' ? true : navigator.onLine !== false);
 
 const hhmm = (iso?: string | null) =>
   iso ? new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
@@ -84,7 +104,7 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [torch, setTorch] = useState<{ available: boolean; on: boolean }>({ available: false, on: false });
   const [sound, setSound] = useState(() => { try { return localStorage.getItem(SOUND_KEY) !== 'off'; } catch { return true; } });
-  const [result, setResult] = useState<DoorScanResult | null>(null);
+  const [result, setResult] = useState<Shown | null>(null);
   const [stats, setStats] = useState<{ sold: number; inside: number } | null>(null);
   const [recent, setRecent] = useState<Recent[]>([]);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -92,18 +112,37 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
   const [hits, setHits] = useState<DoorSearchHit[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [hintOpen, setHintOpen] = useState(false);
+  // EVENT-DOOR-2 — netwerkstaat zichtbaar maken in plaats van stil te verbergen.
+  const [online, setOnline] = useState(isOnlineNow);
+  const [busy, setBusy] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [queued, setQueued] = useState(0);
+  const [statsError, setStatsError] = useState(false);
+  const [searchError, setSearchError] = useState(false);
+  const [searchNonce, setSearchNonce] = useState(0);
 
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const busyRef = useRef(false);
   const pausedRef = useRef(false);
-  const lastRef = useRef<{ token: string; at: number } | null>(null);
+  const lastRef = useRef<{ token: string; at: number; net?: boolean; mode?: ScanMode } | null>(null);
   const resultTimer = useRef<number | null>(null);
   const soundRef = useRef(sound);
   soundRef.current = sound;
   pausedRef.current = searchOpen;
+  // EVENT-DOOR-2 — scans die binnenkomen terwijl er een oproep loopt, en per ticket de
+  // starttijd van een poging waarvan de uitkomst onbekend bleef (antwoord verloren).
+  const queueRef = useRef<string[]>([]);
+  const currentRef = useRef<string | null>(null);
+  const unresolvedRef = useRef<Map<string, number>>(new Map());
 
   const refreshStats = useCallback(async () => {
-    try { setStats(await adapter.stats()); } catch { /* teller is bijzaak */ }
+    try {
+      setStats(await withTimeout((signal) => adapter.stats(signal)));
+      setStatsError(false);
+    } catch {
+      // Teller is bijzaak, maar een verouderde teller moet je wél zien.
+      setStatsError(true);
+    }
   }, [adapter]);
 
   useEffect(() => {
@@ -112,35 +151,109 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
     return () => window.clearInterval(id);
   }, [refreshStats]);
 
-  const showResult = useCallback((res: DoorScanResult, token: string) => {
+  // Online/offline: navigator.onLine is alleen betrouwbaar als hij "offline" zegt, dus
+  // dat is het enige wat we vooraf blokkeren; al de rest vangt de timeout op.
+  useEffect(() => {
+    const up = () => { setOnline(true); void refreshStats(); };
+    const down = () => setOnline(false);
+    window.addEventListener('online', up);
+    window.addEventListener('offline', down);
+    return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
+  }, [refreshStats]);
+
+  const showResult = useCallback((res: Shown, token: string) => {
     setResult(res);
-    doorFeedback(res.success ? toneOf(res.result) : 'error', soundRef.current);
+    doorFeedback(res.net ? 'warn' : res.success ? toneOf(res.result) : 'error', soundRef.current);
     if (resultTimer.current) window.clearTimeout(resultTimer.current);
     // EVENT-SCAN-2 — buiten het venster blijft de kaart staan: er valt te beslissen.
-    const ms = res.result === 'outside_window' ? 8000 : RESULT_MS;
+    // EVENT-DOOR-2 — een netwerkfout ook: de portier moet "opnieuw proberen" kunnen.
+    const ms = res.net ? 12000 : res.result === 'outside_window' ? 8000 : RESULT_MS;
     resultTimer.current = window.setTimeout(() => setResult(null), ms);
-    if (res.result) {
-      setRecent((prev) => [{ id: `${token}-${Date.now()}`, token, result: res.result!, attendee: res.attendee ?? null, seq: res.seq ?? null, at: Date.now() }, ...prev].slice(0, 6));
+    const recentResult = res.net ? 'net' : res.result;
+    if (recentResult) {
+      // Een echt antwoord vervangt de grijze "niet geregistreerd"-regels van hetzelfde ticket.
+      setRecent((prev) => [
+        { id: `${token}-${Date.now()}`, token, result: recentResult, attendee: res.attendee ?? null, seq: res.seq ?? null, at: Date.now() },
+        ...(res.net ? prev : prev.filter((x) => !(x.token === token && x.result === 'net'))),
+      ].slice(0, 6));
     }
     if (res.result === 'ok') void refreshStats();
   }, [refreshStats]);
 
-  const handle = useCallback(async (raw: string) => {
-    const token = raw.trim();
-    if (!token || busyRef.current || pausedRef.current) return;
-    const last = lastRef.current;
-    if (last && last.token === token && Date.now() - last.at < SAME_TOKEN_COOLDOWN_MS) return;
-    lastRef.current = { token, at: Date.now() };
+  /** Eén scan-oproep met timeout, één automatische herhaling en herstel van een
+   *  verloren antwoord. Loopt er al een oproep, dan gaat de scan in de wachtrij. */
+  const run = useCallback(async (token: string, mode: ScanMode = 'scan') => {
+    const call = mode === 'force' ? adapter.forceScan : adapter.scan;
+    if (!call) return;
+    if (busyRef.current) {
+      queueRef.current = enqueueScan(queueRef.current, token, currentRef.current);
+      setQueued(queueRef.current.length);
+      return;
+    }
     busyRef.current = true;
+    currentRef.current = token;
+    lastRef.current = { token, at: Date.now(), mode };
+    if (resultTimer.current) window.clearTimeout(resultTimer.current);
+    setResult(null);
+    setBusy(true);
+    const startedAt = Date.now();
+    let netFail = false;
     try {
-      showResult(await adapter.scan(token), token);
+      const { value, attempts } = await runWithRetry((signal) => call(token, signal), {
+        isOnline: isOnlineNow,
+        onRetry: () => setRetrying(true),
+      });
+      // Liep een eerdere poging (deze of een vorige) zonder antwoord af, dan kan de
+      // server ons al ingecheckt hebben: dat "al binnen" is dan onze eigen check-in.
+      const prior = unresolvedRef.current.get(token);
+      const since = attempts > 1 ? Math.min(prior ?? startedAt, startedAt) : prior ?? null;
+      unresolvedRef.current.delete(token);
+      if (recoverAlreadyInside(value, since, Date.now())) {
+        showResult({ ...value, result: 'ok', recovered: true }, token);
+      } else {
+        showResult(value, token);
+      }
     } catch (e) {
-      showResult({ success: false, error: e instanceof Error ? e.message : String(e) }, token);
+      if (isNetworkError(e)) {
+        netFail = true;
+        const kind = e instanceof DoorNetworkError ? e.kind : 'network';
+        // Offline = er ging niets de deur uit; anders is de uitkomst op de server onbekend.
+        if (kind !== 'offline' && !unresolvedRef.current.has(token)) unresolvedRef.current.set(token, startedAt);
+        showResult({ success: false, net: kind }, token);
+      } else {
+        showResult({ success: false, error: e instanceof Error ? e.message : String(e) }, token);
+      }
     } finally {
-      if (lastRef.current?.token === token) lastRef.current = { token, at: Date.now() };
-      window.setTimeout(() => { busyRef.current = false; }, 700);
+      lastRef.current = { token, at: Date.now(), net: netFail, mode };
+      currentRef.current = null;
+      setBusy(false);
+      setRetrying(false);
+      window.setTimeout(() => {
+        busyRef.current = false;
+        const next = queueRef.current.shift();
+        setQueued(queueRef.current.length);
+        if (next && !pausedRef.current) void runRef.current(next);
+        else if (pausedRef.current) { queueRef.current = []; setQueued(0); }
+      }, queueRef.current.length > 0 ? QUEUE_GAP_MS : 700);
     }
   }, [adapter, showResult]);
+  const runRef = useRef(run);
+  runRef.current = run;
+
+  const handle = useCallback(async (raw: string) => {
+    const token = raw.trim();
+    if (!token || pausedRef.current) return;
+    if (token === currentRef.current) return;
+    const last = lastRef.current;
+    if (last && last.token === token) {
+      // Offline: dezelfde QR voor de camera niet blijven herhalen (piepende lus); de
+      // knop "Opnieuw proberen" of terug online komen lost dat op.
+      if (last.net && !isOnlineNow()) return;
+      const cooldown = last.net ? NET_RETRY_COOLDOWN_MS : SAME_TOKEN_COOLDOWN_MS;
+      if (Date.now() - last.at < cooldown) return;
+    }
+    await runRef.current(token, 'scan');
+  }, []);
 
   const stop = useCallback(async () => {
     const s = scannerRef.current;
@@ -192,7 +305,7 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
       const decoded = await reader.scanFile(file, false);
       try { reader.clear(); } catch { /* noop */ }
       lastRef.current = null;
-      await handle(decoded);
+      await run(decoded.trim(), 'scan');
     } catch {
       showResult({ success: false, error: k('photo_no_qr') }, 'photo');
     } finally {
@@ -221,41 +334,49 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
   useEffect(() => {
     if (!searchOpen) return;
     const q = query.trim();
-    if (q.length < 2) { setHits(null); return; }
+    if (q.length < 2) { setHits(null); setSearchError(false); return; }
     setSearching(true);
+    setSearchError(false);
     const id = window.setTimeout(async () => {
-      try { setHits(await adapter.search(q)); } catch { setHits([]); } finally { setSearching(false); }
+      // EVENT-DOOR-2 — een netwerkfout is géén "niet gevonden": toon hem als fout.
+      try { setHits(await withTimeout((signal) => adapter.search(q, signal))); }
+      catch { setHits(null); setSearchError(true); }
+      finally { setSearching(false); }
     }, 300);
     return () => window.clearTimeout(id);
-  }, [query, searchOpen, adapter]);
+  }, [query, searchOpen, adapter, searchNonce]);
 
   const checkInHit = async (hit: DoorSearchHit) => {
     unlockDoorAudio();
     setSearchOpen(false);
+    pausedRef.current = false;
     setQuery('');
     setHits(null);
     lastRef.current = null;
-    busyRef.current = true;
-    try { showResult(await adapter.scan(hit.qr_token), hit.qr_token); }
-    catch (e) { showResult({ success: false, error: e instanceof Error ? e.message : String(e) }, hit.qr_token); }
-    finally { window.setTimeout(() => { busyRef.current = false; }, 700); }
+    await run(hit.qr_token, 'scan');
   };
 
   // EVENT-SCAN-2 — "Toch inchecken": zelfde token, venster genegeerd. Host beslist.
   const forceCheckin = async () => {
     const token = lastRef.current?.token;
     if (!token || !adapter.forceScan || busyRef.current) return;
-    busyRef.current = true;
-    setResult(null);
-    try { showResult(await adapter.forceScan(token), token); }
-    catch (e) { showResult({ success: false, error: e instanceof Error ? e.message : String(e) }, token); }
-    finally { window.setTimeout(() => { busyRef.current = false; }, 700); }
+    await run(token, 'force');
+  };
+
+  // EVENT-DOOR-2 — "Opnieuw proberen" na een netwerkfout: zelfde ticket, zelfde soort scan.
+  const retryLast = async () => {
+    const last = lastRef.current;
+    if (!last) return;
+    unlockDoorAudio();
+    // Nog in de korte pauze na de vorige scan? Dan via de wachtrij, nooit stil negeren.
+    await run(last.token, last.mode ?? 'scan');
   };
 
   const undo = async (r: Recent) => {
     if (!adapter.undo) return;
+    const undoFn = adapter.undo;
     try {
-      const res = await adapter.undo(r.token);
+      const res = await withTimeout((signal) => undoFn(r.token, signal));
       if (res.result === 'undone') {
         setRecent((prev) => prev.map((x) => (x.id === r.id ? { ...x, undone: true } : x)));
         void refreshStats();
@@ -264,12 +385,15 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
     } catch { doorFeedback('error', soundRef.current); }
   };
 
-  const tone = result ? (result.success ? toneOf(result.result) : 'error') : null;
+  const tone = result ? shownTone(result) : null;
   const isIos = typeof navigator !== 'undefined' && /iphone|ipad|ipod/i.test(navigator.userAgent);
   const standalone = typeof window !== 'undefined'
     && (window.matchMedia?.('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true);
 
-  const resultTitle = (r: DoorScanResult) => {
+  const resultTitle = (r: Shown) => {
+    if (r.net === 'offline') return k('net.offline_title');
+    if (r.net === 'timeout') return k('net.timeout_title');
+    if (r.net) return k('net.network_title');
     if (!r.success) return k('result.failed');
     switch (r.result) {
       case 'ok': return r.attendee ? k('result.welcome_name', { name: r.attendee }) : k('result.welcome');
@@ -279,11 +403,13 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
       case 'outside_window': return k('result.outside_window');
       case 'not_allowed_zone': return k('result.not_allowed');
       case 'zone_full': return k('result.full');
-      case 'cancelled': case 'refunded': return k('result.cancelled');
-      default: return k('result.invalid');
+      // EVENT-DOOR-2 — de server antwoordt 'invalid' met reason ticket_cancelled/refunded.
+      default: return k(invalidReasonKey(r.result, r.reason));
     }
   };
-  const resultDetail = (r: DoorScanResult) => {
+  const resultDetail = (r: Shown) => {
+    if (r.net) return k('net.not_registered');
+    if (r.recovered) return k('result.recovered');
     if (!r.success) return r.error ?? '';
     if (r.result === 'already') return [r.checked_in_at ? k('result.at', { time: hhmm(r.checked_in_at) }) : '', r.attendee ?? ''].filter(Boolean).join(' · ');
     if ((r.result === 'wrong_event' || r.result === 'outside_window') && r.expected_event?.date) {
@@ -310,12 +436,34 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
           <p className="truncate text-sm font-semibold">{title}</p>
           {subtitle && <p className="truncate text-xs text-white/60">{subtitle}</p>}
         </div>
-        <div className="flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1.5 text-sm tabular-nums" aria-label={k('counter_label')}>
-          <Users className="h-4 w-4 text-emerald-400" />
+        <span
+          role="status"
+          aria-label={online ? k('net.online') : k('net.offline')}
+          title={online ? k('net.online') : k('net.offline')}
+          className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-full', online ? 'bg-emerald-500/15 text-emerald-400' : 'bg-amber-400 text-black')}
+        >
+          {online ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+        </span>
+        <div
+          className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm tabular-nums', statsError ? 'bg-amber-400/20 text-amber-200' : 'bg-white/10')}
+          aria-label={statsError ? k('stats_stale') : k('counter_label')}
+          title={statsError ? k('stats_stale') : undefined}
+        >
+          {statsError ? <TriangleAlert className="h-4 w-4 text-amber-300" /> : <Users className="h-4 w-4 text-emerald-400" />}
           <span className="font-semibold">{stats?.inside ?? '–'}</span>
-          <span className="text-white/50">/ {stats?.sold ?? '–'}</span>
+          <span className={statsError ? 'text-amber-200/70' : 'text-white/50'}>/ {stats?.sold ?? '–'}</span>
         </div>
       </header>
+
+      {/* EVENT-DOOR-2 — offline of verouderde teller: altijd zichtbaar, nooit stil. */}
+      {!online && (
+        <div role="alert" className="mx-4 mb-2 flex items-center gap-2 rounded-xl bg-amber-400 px-3 py-2 text-sm font-semibold text-black">
+          <WifiOff className="h-4 w-4 shrink-0" />{k('net.offline_banner')}
+        </div>
+      )}
+      {online && statsError && (
+        <p className="mx-4 mb-2 text-xs text-amber-200">{k('stats_stale')}</p>
+      )}
 
       {/* Camera */}
       <div className="relative mx-4 flex-1 overflow-hidden rounded-2xl bg-black">
@@ -344,14 +492,35 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
           </div>
         )}
 
+        {/* EVENT-DOOR-2 — bezig: de portier ziet dat er iets loopt, ook op traag 4G. */}
+        {busy && !result && (
+          <div role="status" aria-live="polite" className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-[#0b1220]/95 p-6 text-center">
+            <Loader2 className="h-16 w-16 animate-spin text-white" />
+            <p className="text-2xl font-bold">{retrying ? k('busy_retry') : k('busy')}</p>
+            {queued > 0 && <p className="text-base text-white/70">{k('queued', { count: queued })}</p>}
+          </div>
+        )}
+
         {/* Resultaat: schermvullend, leesbaar van op een meter */}
         {result && (
           <button type="button" onClick={() => setResult(null)}
             className={cn('absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center',
-              tone === 'ok' && 'bg-emerald-600', tone === 'warn' && 'bg-amber-500 text-black', tone === 'error' && 'bg-red-600')}>
-            {tone === 'ok' ? <Check className="h-20 w-20" strokeWidth={3} /> : tone === 'warn' ? <TriangleAlert className="h-20 w-20" /> : <X className="h-20 w-20" strokeWidth={3} />}
+              tone === 'ok' && 'bg-emerald-600', tone === 'warn' && 'bg-amber-500 text-black', tone === 'error' && 'bg-red-600',
+              tone === 'net' && 'bg-slate-700')}>
+            {tone === 'ok' ? <Check className="h-20 w-20" strokeWidth={3} />
+              : tone === 'warn' ? <TriangleAlert className="h-20 w-20" />
+              : tone === 'net' ? <WifiOff className="h-20 w-20 text-amber-400" />
+              : <X className="h-20 w-20" strokeWidth={3} />}
             <p className="text-3xl font-extrabold leading-tight break-words">{resultTitle(result)}</p>
             {resultDetail(result) && <p className="text-lg font-medium opacity-90">{resultDetail(result)}</p>}
+            {result.net && (
+              <span
+                role="button"
+                onClick={(e) => { e.stopPropagation(); void retryLast(); }}
+                className="mt-2 rounded-xl bg-amber-400 px-6 py-3.5 text-lg font-bold text-black"
+              >{k('net.retry')}</span>
+            )}
+            {queued > 0 && <p className="text-sm opacity-80">{k('queued', { count: queued })}</p>}
             {result.result === 'outside_window' && result.can_force && adapter.forceScan && lastRef.current && (
               <span
                 role="button"
@@ -384,9 +553,12 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
       <ul className="mx-4 mt-3 max-h-36 space-y-1 overflow-y-auto pb-3">
         {recent.map((r) => (
           <li key={r.id} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-sm">
-            <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', toneOf(r.result) === 'ok' ? 'bg-emerald-400' : toneOf(r.result) === 'warn' ? 'bg-amber-400' : 'bg-red-500')} />
-            <span className="min-w-0 flex-1 truncate">{r.attendee || (r.seq ? k('ticket_no_short', { n: r.seq }) : k('unknown_ticket'))}</span>
+            <span className={cn('h-2.5 w-2.5 shrink-0 rounded-full', r.result === 'net' ? 'bg-slate-400' : toneOf(r.result) === 'ok' ? 'bg-emerald-400' : toneOf(r.result) === 'warn' ? 'bg-amber-400' : 'bg-red-500')} />
+            <span className="min-w-0 flex-1 truncate">{r.result === 'net' ? k('net.recent') : r.attendee || (r.seq ? k('ticket_no_short', { n: r.seq }) : k('unknown_ticket'))}</span>
             <span className="text-xs text-white/50">{r.undone ? k('undone') : new Date(r.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+            {r.result === 'net' && (
+              <button type="button" onClick={() => { unlockDoorAudio(); void run(r.token, 'scan'); }} aria-label={k('net.retry')} className="rounded p-1 text-amber-300 hover:bg-white/10"><RotateCcw className="h-4 w-4" /></button>
+            )}
             {adapter.undo && r.result === 'ok' && !r.undone && (
               <button type="button" onClick={() => void undo(r)} aria-label={k('undo')} className="rounded p-1 text-white/70 hover:bg-white/10"><RotateCcw className="h-4 w-4" /></button>
             )}
@@ -421,7 +593,14 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
           <div className="flex-1 overflow-y-auto px-4 pb-6">
             {searching && <Loader2 className="mx-auto mt-6 h-6 w-6 animate-spin text-white/60" />}
             {!searching && hits && hits.length === 0 && <p className="mt-6 text-center text-white/60">{k('no_results')}</p>}
-            {!searching && !hits && <p className="mt-6 text-center text-sm text-white/50">{k('search_hint')}</p>}
+            {!searching && searchError && (
+              <div role="alert" className="mt-6 flex flex-col items-center gap-3 text-center">
+                <WifiOff className="h-8 w-8 text-amber-400" />
+                <p className="font-semibold">{k('search_failed')}</p>
+                <button type="button" onClick={() => setSearchNonce((n) => n + 1)} className="rounded-lg bg-white/15 px-5 py-2.5 font-semibold">{k('net.retry')}</button>
+              </div>
+            )}
+            {!searching && !hits && !searchError && <p className="mt-6 text-center text-sm text-white/50">{k('search_hint')}</p>}
             <ul className="space-y-2">
               {(hits ?? []).map((h) => {
                 const inside = h.status === 'checked_in';

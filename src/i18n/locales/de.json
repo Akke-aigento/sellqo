@@ -8382,7 +8382,10 @@
       "for_date": "Dieses Ticket gilt für {{date}}",
       "ticket_no": "Ticket {{n}}",
       "outside_window": "Gültig, aber nicht jetzt",
-      "force_checkin": "Trotzdem einchecken"
+      "force_checkin": "Trotzdem einchecken",
+      "refunded": "Ticket erstattet",
+      "transferred": "Ticket übertragen",
+      "recovered": "Eingecheckt (die Verbindung hat kurz gehakt)"
     },
     "no_link_title": "Öffnen Sie Ihren Scan-Link",
     "no_link_text": "Scannen Sie den QR-Code oder öffnen Sie den Link vom Veranstalter. Danach öffnet dieses Symbol direkt den Scanner.",
@@ -8436,7 +8439,23 @@
       "window_invalid": "Gültige Werte eingeben (Minuten 0–10080, Stunden 1–168).",
       "save_failed": "Speichern fehlgeschlagen"
     },
-    "fixed_link": "Fester Tür-Link — das Ticket bestimmt das Event"
+    "fixed_link": "Fester Tür-Link — das Ticket bestimmt das Event",
+    "busy": "Wird geprüft…",
+    "busy_retry": "Langsame Verbindung, noch ein Versuch…",
+    "queued": "In der Warteschlange: {{count}}",
+    "stats_stale": "Zähler nicht aktuell: keine Verbindung zum Server",
+    "search_failed": "Suche fehlgeschlagen. Prüfen Sie Ihre Verbindung.",
+    "net": {
+      "online": "Online",
+      "offline": "Offline",
+      "offline_banner": "Offline: Scans werden nicht erfasst",
+      "offline_title": "Keine Verbindung",
+      "timeout_title": "Verbindung zu langsam",
+      "network_title": "Keine Verbindung",
+      "not_registered": "Dieser Scan wurde nicht erfasst. Das Ticket wurde nicht abgelehnt.",
+      "retry": "Erneut versuchen",
+      "recent": "Nicht erfasst (keine Verbindung)"
+    }
   },
   "bar": {
     "no_link_title": "Noch kein Bar-Link auf diesem Gerät",

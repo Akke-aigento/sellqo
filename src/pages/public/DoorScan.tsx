@@ -25,8 +25,9 @@ interface ScannerContext {
   auto_live?: boolean;
 }
 
-function invokeWithToken<T>(fn: string, token: string, body: Record<string, unknown>): Promise<T> {
-  return supabase.functions.invoke(fn, { body, headers: { 'x-scanner-token': token } })
+// EVENT-DOOR-2 — optioneel AbortSignal: de scanner breekt een hangende oproep af na 8 s.
+function invokeWithToken<T>(fn: string, token: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<T> {
+  return supabase.functions.invoke(fn, { body, headers: { 'x-scanner-token': token }, signal })
     .then(({ data, error }) => {
       // Een 401 komt hier als error terug; de scanner toont dan "mislukt".
       if (error) throw error;
@@ -166,11 +167,11 @@ export default function DoorScan() {
   }, [token, valid]);
 
   const adapter = useMemo<DoorAdapter>(() => ({
-    scan: (qr) => invokeWithToken<DoorScanResult>('ticket-checkin', token, { qr_token: qr, action: 'checkin' }),
-    forceScan: (qr) => invokeWithToken<DoorScanResult>('ticket-checkin', token, { qr_token: qr, action: 'checkin', force_window: true }),
-    stats: () => invokeWithToken<{ success: boolean; sold: number; inside: number }>('scanner-door', token, { action: 'stats' })
+    scan: (qr, signal) => invokeWithToken<DoorScanResult>('ticket-checkin', token, { qr_token: qr, action: 'checkin' }, signal),
+    forceScan: (qr, signal) => invokeWithToken<DoorScanResult>('ticket-checkin', token, { qr_token: qr, action: 'checkin', force_window: true }, signal),
+    stats: (signal) => invokeWithToken<{ success: boolean; sold: number; inside: number }>('scanner-door', token, { action: 'stats' }, signal)
       .then((r) => ({ sold: r.sold, inside: r.inside })),
-    search: (q) => invokeWithToken<{ success: boolean; results: DoorSearchHit[] }>('scanner-door', token, { action: 'search', q })
+    search: (q, signal) => invokeWithToken<{ success: boolean; results: DoorSearchHit[] }>('scanner-door', token, { action: 'search', q }, signal)
       .then((r) => r.results ?? []),
   }), [token]);
 

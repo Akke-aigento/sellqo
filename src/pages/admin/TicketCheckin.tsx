@@ -139,8 +139,9 @@ export default function TicketCheckin() {
   }, [wantedEventId, preselectEvent, searchParams, setSearchParams, t]);
   // EVENT-SCAN-1: zelfde schermvullende scanner als de crew-scanlink (SellQo Deur),
   // met de JWT van de ingelogde gebruiker en het bewust gekozen event.
-  const call = async <T,>(fn: string, body: Record<string, unknown>): Promise<T> => {
-    const { data, error } = await supabase.functions.invoke(fn, { body });
+  // EVENT-DOOR-2 — optioneel AbortSignal, zodat de 8 s-timeout van de scanner de fetch ook echt afbreekt.
+  const call = async <T,>(fn: string, body: Record<string, unknown>, signal?: AbortSignal): Promise<T> => {
+    const { data, error } = await supabase.functions.invoke(fn, { body, signal });
     if (error) throw error;
     return data as T;
   };
@@ -148,11 +149,11 @@ export default function TicketCheckin() {
     if (!selectedEvent) return null;
     const eventId = selectedEvent.id;
     return {
-      scan: (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, event_detail_id: eventId, action: 'checkin' }),
-      undo: isHost ? (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, event_detail_id: eventId, action: 'undo' }) : undefined,
-      stats: () => call<{ sold: number; inside: number }>('scanner-door', { action: 'stats', event_detail_id: eventId })
+      scan: (qr, signal) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, event_detail_id: eventId, action: 'checkin' }, signal),
+      undo: isHost ? (qr, signal) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, event_detail_id: eventId, action: 'undo' }, signal) : undefined,
+      stats: (signal) => call<{ sold: number; inside: number }>('scanner-door', { action: 'stats', event_detail_id: eventId }, signal)
         .then((r) => ({ sold: r.sold, inside: r.inside })),
-      search: (q) => call<{ results: DoorSearchHit[] }>('scanner-door', { action: 'search', q, event_detail_id: eventId })
+      search: (q, signal) => call<{ results: DoorSearchHit[] }>('scanner-door', { action: 'search', q, event_detail_id: eventId }, signal)
         .then((r) => r.results ?? []),
     };
      
@@ -164,12 +165,12 @@ export default function TicketCheckin() {
     if (!currentTenant) return null;
     const tenantId = currentTenant.id;
     return {
-      scan: (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, auto: true, tenant_id: tenantId, action: 'checkin' }),
-      forceScan: isHost ? (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, auto: true, tenant_id: tenantId, action: 'checkin', force_window: true }) : undefined,
-      undo: isHost ? (qr) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, auto: true, tenant_id: tenantId, action: 'undo' }) : undefined,
-      stats: () => call<{ sold: number; inside: number }>('scanner-door', { action: 'stats', auto: true, tenant_id: tenantId })
+      scan: (qr, signal) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, auto: true, tenant_id: tenantId, action: 'checkin' }, signal),
+      forceScan: isHost ? (qr, signal) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, auto: true, tenant_id: tenantId, action: 'checkin', force_window: true }, signal) : undefined,
+      undo: isHost ? (qr, signal) => call<DoorScanResult>('ticket-checkin', { qr_token: qr, auto: true, tenant_id: tenantId, action: 'undo' }, signal) : undefined,
+      stats: (signal) => call<{ sold: number; inside: number }>('scanner-door', { action: 'stats', auto: true, tenant_id: tenantId }, signal)
         .then((r) => ({ sold: r.sold, inside: r.inside })),
-      search: (q) => call<{ results: DoorSearchHit[] }>('scanner-door', { action: 'search', q, auto: true, tenant_id: tenantId })
+      search: (q, signal) => call<{ results: DoorSearchHit[] }>('scanner-door', { action: 'search', q, auto: true, tenant_id: tenantId }, signal)
         .then((r) => r.results ?? []),
     };
      
