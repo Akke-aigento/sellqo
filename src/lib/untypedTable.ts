@@ -27,6 +27,7 @@ export interface FilterBuilder<T> extends PromiseLike<DbResult<T[]>> {
 export interface TableBuilder<T> {
   select(columns: string): FilterBuilder<T>;
   update(row: Record<string, unknown>): FilterBuilder<T>;
+  delete(): FilterBuilder<T>;
   insert(row: Record<string, unknown>): PromiseLike<DbResult<null>>;
   upsert(row: Record<string, unknown>, opts?: { onConflict?: string; ignoreDuplicates?: boolean }): PromiseLike<DbResult<null>>;
 }

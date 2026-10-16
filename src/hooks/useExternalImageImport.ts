@@ -173,11 +173,13 @@ export function useExternalImageImport() {
     const index = await indexExternalImages(tenantId);
     const queue = urls.filter((u) => index.has(u));
     setProgress({ done: 0, total: queue.length });
+    const movedUrls: string[] = [];
     const worker = async () => {
       for (let url = queue.shift(); url; url = queue.shift()) {
         try {
           await moveOne(tenantId, url, index.get(url)!);
           moved++;
+          movedUrls.push(url);
         } catch (e) {
           failed.push({ url, reason: e instanceof Error ? e.message : String(e) });
         }
@@ -185,6 +187,14 @@ export function useExternalImageImport() {
       }
     };
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, urls.length) }, worker));
+    // Opruimen: werkten twee verhuizingen tegelijk op hetzelfde product, dan registreerde de
+    // product-trigger het nog niet vervangen oude adres opnieuw in de bibliotheek (16-10:
+    // 17 zulke rijen bij Mancini/VanXcel). Een verhuisde URL staat nergens meer op een
+    // product, dus de bibliotheekrij met het oude adres mag weg.
+    for (let i = 0; i < movedUrls.length; i += 50) {
+      const { error } = await untypedTable('media_assets').delete().eq('tenant_id', tenantId).in('file_url', movedUrls.slice(i, i + 50));
+      if (error) console.warn('[media] opruimen oude bibliotheekrijen mislukt', error.message);
+    }
     setRunning(false);
     queryClient.invalidateQueries({ queryKey: ['media-assets'] });
     queryClient.invalidateQueries({ queryKey: ['products'] });
