@@ -43,7 +43,20 @@ Akke 21:37: "hij leert toch ook van welke soort post en welke soort content het 
 - `social_posts` is geen gedeelde storefront-tabel. De eerste wet is niet van toepassing.
 - De trigger draait ook bij updates van `social-publish-due` en `social-post-publish`. Die schrijven gewoon door, want een fout in de trigger wordt alleen een WARNING.
 
-**Verificatie**: zie de live-notitie hieronder (Deno 8/8, vitest 9/9, i18n-pariteit, eslint 0 meldingen, tsc tegen de baseline, build).
+**Verificatie**
+- Deno `socialInsights.test.ts`: 8/8. vitest `socialResults.test.ts`: 9/9.
+- i18n-pariteit volledig (5 talen). eslint op de gewijzigde bestanden: 0 meldingen.
+- tsc: 27 fouten, gelijk aan de baseline; geen enkele in de social-bestanden. `npm run build` slaagt.
+- Live 16-10 om 22:10:
+  - Beide migraties zijn uitgevoerd via `net.http_get` op commit 5a0122a, met een md5-controle die overeenkwam.
+  - Natrek in SQL:
+    - de 2 nieuwe kolommen bestaan, de trigger staat erop en RLS staat aan op `social_post_events`;
+    - `authenticated` mag de triggerfunctie niet uitvoeren;
+    - `social_post_score` van een testpost geeft 16,00, gelijk aan vitest;
+    - de view heeft 36 kolommen;
+    - het helpartikel bevat de zin over "48 uur".
+  - Triggertest in een DO-blok dat op het einde terugdraait (update + approve + delete van een Studio Akke-post): 3 events (`approved`, `edited`, `removed`). Achteraf nagekeken: de post bestaat nog en er staan 0 events in de tabel.
+  - `social-insights-sync` is gedeployd via een Lovable-agent die enkel mocht deployen. De GET geeft `{"version":"SOCIAL-6"}`. De agent paste alleen `types.ts` aan.
 
 **Bewust ongemoeid / Vervolg**
 - **SOCIAL-6b**: verkoop koppelen aan posts. Er bestaat nog geen kolom die UTM bewaart. Een kolom `orders.utm` raakt het checkoutpad van de storefronts en de custom frontends, dus de eerste wet geldt: eigen recon en apart akkoord nodig. UTM's worden vanaf nu wel al op elke link gezet.
