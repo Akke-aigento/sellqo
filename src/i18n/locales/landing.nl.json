@@ -2090,6 +2090,10 @@
         "subscription_cancel_undo": {
           "title": "Opzegging ongedaan maken",
           "description": "Bedenk je je? Zolang je betaalde periode loopt, zie je onder Abonnement de einddatum en een knop Heractiveer abonnement. Daarmee loopt je abonnement gewoon door op hetzelfde plan, zonder extra kosten."
+        },
+        "token_wallet_cancel_order": {
+          "title": "Munten vervallen mee als je een bestelling annuleert",
+          "description": "Annuleer je een bestelling, of betaal je ze volledig terug, dan wordt de muntenkaart van die bestelling nu automatisch geblokkeerd, net zoals de tickets vervallen. De munten die nog over zijn, kunnen niet meer gebruikt worden aan de bar; wat al gebruikt is, blijft gebruikt. Bij een gedeeltelijke terugbetaling blijft de kaart bruikbaar. Was het een vergissing, dan kies je Vrijgeven bij de kaart onder Events → Munten."
         }
       },
       "copyLink": "Kopieer link",

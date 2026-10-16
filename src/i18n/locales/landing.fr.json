@@ -2090,6 +2090,10 @@
         "subscription_cancel_undo": {
           "title": "Annuler une résiliation",
           "description": "Vous changez d'avis ? Tant que votre période payée est en cours, Abonnement affiche la date de fin et un bouton Réactiver l'abonnement. Votre abonnement continue alors simplement sur le même plan, sans frais supplémentaires."
+        },
+        "token_wallet_cancel_order": {
+          "title": "Les jetons sont aussi annulés quand vous annulez une commande",
+          "description": "Si vous annulez une commande ou la remboursez entièrement, la carte de jetons de cette commande est désormais bloquée automatiquement, tout comme ses billets sont annulés. Les jetons restants ne peuvent plus être utilisés au bar ; les jetons déjà utilisés restent utilisés. En cas de remboursement partiel, la carte reste utilisable. En cas d'erreur, choisissez Débloquer sur la carte dans Events → Jetons."
         }
       },
       "copyLink": "Copier le lien",

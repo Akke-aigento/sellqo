@@ -1,3 +1,42 @@
+## EVENT-COIN-1 — munten vervallen mee bij annuleren of volledige terugbetaling (2026.12i) — 16 oktober 2026
+
+Nog NIET live: beide migraties wachten op Akke's go. Recept: `docs/prepared/EVENT-COIN-1-deploy.md` (functie-migratie → md5-natrek → artikel → md5-natrek, elk in een eigen `query_database`-aanroep; vóór vrijdag 23-10 20:00).
+
+**Root cause.** `trg_orders_cancel_tickets` (FONSKE-READY-1, `20261016020000_fonske_ready_1.sql`) zet bij `status → cancelled` of `payment_status → refunded` alleen `ticket_instances` met status `valid` op `cancelled`/`refunded`. De muntenkaart van dezelfde order (`token_wallets.order_id`, uniek per order via `idx_token_wallets_order`) bleef `active`: `spend_tokens` (FEST-1/2, `20261014160000_fest_1_2_bundles_tokens.sql:273-298`) liet de resterende munten aan de bar gewoon afboeken. Het helpartikel `tickets-in-een-bestelling` stuurde de winkel naar handmatig blokkeren. Akke's beslissing (16-10): bij annuleren of volledig terugbetalen vervallen de ongebruikte munten mee, gebruikte blijven gebruikt, `partially_refunded` verandert niets.
+
+**Recon.**
+- Muntenmodel: `token_settings` (per tenant: naam, terugbetaalregels), `token_wallets` (één kaart per order: `code`, `purchased`, `balance`, `paid_amount`, `status` ∈ `active|refund_requested|refunded|blocked`, `return_id`), `token_transactions` (grootboek: `purchase|spend|undo|adjust|refund`). De kaart ontstaat in `issue_wallet_for_order` bij `payment_status = 'paid'`.
+- "Blokkeren" in de admin (`EventTokens.tsx:305-310` → `useSetWalletBlocked`, `useFestival.ts:404-413`) is een gewone client-UPDATE `status: 'active' → 'blocked'` + `updated_at`, met guard `.eq('status', 'active')`. Saldo en transacties blijven staan; **Vrijgeven** doet het omgekeerde. Geen RPC.
+- Wat een geblokkeerde kaart doet: `spend_tokens` en `undo_token_spend` geven `{ ok:false, reason:'wallet_blocked' }`; de barscanner (`BarScan.tsx:143`) toont dan "geblokkeerd"; `token-bar` lookup geeft `status` door; de klantenpagina (`TokenWallet.tsx:83,106`, via `token-wallet`) toont `status_blocked` ("Deze kaart is geblokkeerd…") en verbergt de terugbetaalknop; `adjust_wallet` en `request_token_refund` weigeren. "Ongebruikt" = het resterende `balance`; dat blijft als getal staan maar is niet meer bruikbaar.
+- Live (16-10): 3 kaarten in heel SellQo, allemaal Zomerfest Leuven (demo); **Fonske: 0 kaarten, 0 muntproducten, 0 `token_settings`**. Geannuleerde/volledig terugbetaalde orders met een nog actieve kaart: **0** (alle tenants). Geen backfill nodig, geen beslisvraag.
+
+**Uitgevoerd.**
+- `supabase/migrations/20261016180000_event_coin_1.sql`: snapshot van de huidige definitie in `ops.event_coin_1_prev_functions` (ON CONFLICT DO NOTHING, grants voor anon/authenticated ingetrokken), daarna `CREATE OR REPLACE public.trg_orders_cancel_tickets()`: het ticketblok byte-identiek, plus een tweede blok `update token_wallets set status = 'blocked', updated_at = now() where order_id = new.id and status = 'active'`. Elk blok in een eigen `exception when others → raise warning`. Trigger en WHEN-voorwaarde ongemoeid (geen `drop trigger`). SECURITY DEFINER, `search_path = public, pg_temp`. Terugdraai-instructie in de kop.
+- `supabase/migrations/20261016181000_event_coin_1_doc_article.sql`: helpartikel `tickets-in-een-bestelling` (tenant, `/admin/orders`). De alinea "Munten vervallen bij annuleren niet vanzelf … kies Blokkeren" vervangen door het nieuwe gedrag + Vrijgeven; tag `munten` erbij. Basis = live content (md5 `e02e6a545e71d11f4d988af56ba0ce0f`, byte-exact gereconstrueerd), nieuw md5 `1823f1876e8af4e6e604466bfb918ff6`. Snapshot `snapshots.sellqo_20261016_doc_articles_ec1` in de migratie zelf; geen vaste `updated_at`.
+- Changelog 2026.12i `token_wallet_cancel_order` (improvement) in `PublicChangelog.tsx` + `landing.{nl,en,fr,de,uk}.json` (= `SUPPORTED_LANGUAGES`); de/uk met `du`/`ти` zoals de event-reeks, de-term "Marken" zoals de app (`navigation.items.event_tokens`). Nieuwsbrief-item 2026.12i. Deploy-recept `docs/prepared/EVENT-COIN-1-deploy.md`.
+
+**Security-keuzes.** Geen RLS-, policy- of grantwijziging op bestaande tabellen. De functie blijft SECURITY DEFINER met vaste `search_path` (zoals FONSKE-READY-1); ze schrijft enkel `token_wallets` van `new.id`, dus nooit kaarten van een andere order of tenant. Nieuwe tabel `ops.event_coin_1_prev_functions` zonder grants voor anon/authenticated. Geen secrets in de migraties.
+
+**Gedeelde-paden-waarschuwing.** De trigger vuurt op elke order van elke tenant bij `cancelled`/`refunded`, langs elk pad dat `orders.status`/`payment_status` schrijft (admin-dropdown, statuscorrectie, `update-order-fulfillment-status`, refundflows). Voor een order zonder muntenkaart is het extra blok een UPDATE op 0 rijen via de unieke index op `order_id`: geen gedragsverschil. Het ticketblok is ongewijzigd. Het JSON-contract van `storefront-api`, `storefront-customer-api` en `storefront-resolve` is niet geraakt (geen van de drie leest `token_wallets`, `grep`); `token-bar` en `token-wallet` krijgen een statuswaarde die al bestond en die ze al afhandelen. De muntenterugbetaling (`request_token_refund` → `returns` → `sync_wallet_from_return`) blijft intact: die kaart staat op `refund_requested` en wordt door de nieuwe UPDATE (`status = 'active'`) niet geraakt, ook niet als de terugbetaling de order op `refunded` zet. Custom frontends: geen contractwijziging (de drie storefront-functies lezen geen munten; een frontend die naar de muntenpagina van `token-wallet` linkt, krijgt daar een status die al bestond). Fonske verkoopt vandaag geen munten.
+
+**Verificatie.**
+- Rollbacktest op SellQo Speeltuin (één aanroep: `begin` + volledige migratie + `do`-blok dat eindigt met `raise exception` + `rollback`; vijf geannuleerde testorders tijdelijk op processing/paid gezet, tickets op valid, testkaarten ingevoegd):
+  1. annuleren (#9006, kaart 4/10 over) → ticket `cancelled`, kaart `blocked`, saldo 4 ongewijzigd, `updated_at` gezet;
+  2. volledig terugbetalen (#9005) → ticket `refunded`, kaart `blocked`, saldo 10;
+  3. `partially_refunded` (#0004) → ticket `valid`, kaart `active`, `updated_at` ongewijzigd;
+  4. order zonder munten (#9001) annuleren → geen fout, geen kaart (de bestaande uitgifte-trigger maakte in de transactie één ticket aan, dat mee vervalt);
+  5. extra: kaart op `refund_requested` (#0003) → blijft `refund_requested`, saldo 7.
+  `token_transactions` voor die kaarten: 0 vóór, 0 na. Snapshot-md5 in de transactie = `9f53c1e2…` (FONSKE-READY-1), nieuwe functie-md5 `9b8348ecea58baca5f2c095fbea314fb`.
+- Guardtest (aparte aanroep, ook rollback): tijdelijke check-constraint die `blocked` verbiedt → order toch `cancelled`, ticket `cancelled`, kaart blijft `active` (warning i.p.v. fout).
+- Docmigratie in rollback: md5 na = `1823f1876e8af4e6e604466bfb918ff6`, snapshot = `e02e6a54…`, 1 rij.
+- Live ongewijzigd (aparte read-only aanroep na de tests): functie-md5 `9f53c1e2699ea6b01e867b6342519345` (= vóór), geen `ops.event_coin_1_prev_functions`, geen snapshottabel, 0 testkaarten, 3 kaarten totaal, testconstraint weg, de vijf orders terug `cancelled/paid`, artikel-md5 `e02e6a54…`.
+- Repo: `node scripts/i18n-parity.mjs` exit 0 (volledige pariteit); `npx tsc --noEmit -p tsconfig.app.json` exit 0 (lege log); `npx vitest run` exit 0 (54 bestanden, 726 tests); eslint `PublicChangelog.tsx` 0 = 0 t.o.v. HEAD, `verify-lint-baseline` exit 0 (1482 → 1481); `npm run build` exit 0 (`public/sitemap.xml` teruggezet); `verify-skills-sync` exit 0.
+
+**Bewust ongemoeid / Vervolg.**
+- Geen backfill (0 gevallen). Terugzetten van een order heropent de kaart niet (zoals bij tickets); Vrijgeven blijft de manuele weg.
+- `OrderTicketsCard` toont de kaart als "x van y munten" zonder status, en **Tickets opnieuw mailen** blijft zichtbaar bij een kaart; `send-ticket-confirmation` mailt de kaart ongeacht status (r.131-134). De bar weigert hem wel. Kleine vervolgbatch na 24-10: status-badge op de orderkaart en geen resend bij een geannuleerde order.
+- Een muntenterugbetaling die afgewezen wordt (`sync_wallet_from_return` → `active`) op een order die intussen geannuleerd is, maakt de kaart weer actief. Randgeval, nu niet aangepakt.
+
 ## EDGE-IMPORT-1 — `npm:fast-png`/`npm:jpeg-js` vindbaar voor de preview-check van de agent, zodat hij ze niet meer naar esm.sh "repareert" — 16 oktober 2026
 
 **Status: LIVE (16-10-2026, ~10:36-10:45 UTC).** Go Akke 16-10: "Ja, push + deploy". Geen DB-writes. Deploy-recept: `docs/prepared/EDGE-IMPORT-1-deploy.md`.

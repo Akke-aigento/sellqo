@@ -2090,6 +2090,10 @@
         "subscription_cancel_undo": {
           "title": "Undo a cancellation",
           "description": "Changed your mind? As long as your paid period is running, Subscription shows the end date and a Reactivate subscription button. Your subscription then simply continues on the same plan, at no extra cost."
+        },
+        "token_wallet_cancel_order": {
+          "title": "Tokens are voided too when you cancel an order",
+          "description": "If you cancel an order or refund it in full, the order's token card is now blocked automatically, just like its tickets are voided. Tokens that are left can no longer be used at the bar; tokens already used stay used. With a partial refund the card stays usable. If it was a mistake, choose Unblock on the card under Events → Tokens."
         }
       },
       "copyLink": "Copy link",

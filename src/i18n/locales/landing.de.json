@@ -2090,6 +2090,10 @@
         "subscription_cancel_undo": {
           "title": "Kündigung zurücknehmen",
           "description": "Überlegst du es dir anders? Solange dein bezahlter Zeitraum läuft, zeigt Abonnement das Enddatum und einen Button Abonnement reaktivieren. Dein Abonnement läuft dann einfach im selben Plan weiter, ohne Zusatzkosten."
+        },
+        "token_wallet_cancel_order": {
+          "title": "Marken verfallen mit, wenn du eine Bestellung stornierst",
+          "description": "Stornierst du eine Bestellung oder erstattest sie vollständig, wird die Markenkarte dieser Bestellung jetzt automatisch gesperrt, so wie auch die Tickets verfallen. Übrige Marken können an der Bar nicht mehr verwendet werden; bereits verwendete bleiben verwendet. Bei einer Teilerstattung bleibt die Karte nutzbar. War es ein Versehen, wählst du bei der Karte unter Events → Marken einfach Entsperren."
         }
       },
       "copyLink": "Link kopieren",

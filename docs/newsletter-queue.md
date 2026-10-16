@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12i — Munten vervallen mee als je een bestelling annuleert (improvement, 16-10-2026)
+
+**Pas versturen na** het draaien van `20261016180000_event_coin_1.sql` + de md5-natrek van de functie, en daarna `20261016181000_event_coin_1_doc_article.sql` (recept: `docs/prepared/EVENT-COIN-1-deploy.md`). Geen edge-deploy en geen publish nodig: het gedrag zit volledig in de database. Bundelen met 2026.12d/2026.12b (zelfde onderwerp: annuleren van ticketbestellingen).
+
+**Voor wie:** winkels met de module Events die munten verkopen.
+
+**Munten vervallen mee bij annuleren** (oktober 2026)
+Annuleer je een bestelling of betaal je ze volledig terug, dan wordt de muntenkaart nu automatisch geblokkeerd, net zoals de tickets vervallen.
+Wat betekent dit voor jou? Geen munten meer die na een annulering nog aan de bar gebruikt worden, en je hoeft niets meer met de hand te blokkeren. Wat al gebruikt is, blijft gebruikt.
+
+**i18n-keys.** `public.changelog.changes.token_wallet_cancel_order` — 5 talen (nl, en, fr, de, uk; geteld tegen `SUPPORTED_LANGUAGES`).
+
 ### 2026.12h — Opzeggen gaat in op het einde van je betaalde periode, en je kunt het ongedaan maken (bugfix + feature, 16-10-2026)
 
 **Pas versturen na** de deploy van `sync-tenant-plan` en `subscription-lifecycle-sweep`, de publish van sellqo.app (Lovable-hosted: pas live na `deploy_project`; voor de app pas na de volgende native build) én nadat de sweep op de echte modus staat (anders blijft een opgezegde winkel na de einddatum op zijn betaalde plan staan; dat is in het voordeel van de winkel, maar de tekst "daarna ga je naar Free" klopt dan nog niet).
