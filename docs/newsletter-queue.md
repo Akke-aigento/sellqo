@@ -4,6 +4,17 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12k — AI-beelden en social-beelden ook in je mediabibliotheek (improvement, 16-10-2026)
+
+**Status:** live sinds 16-10-2026 (migratie `20261016200000_media_2_ai_social.sql` gedraaid en nagemeten, publish sellqo.app). Kan mee in dezelfde nieuwsbrief als 2026.12j.
+
+**Voor wie:** winkels die AI-beelden of de Social planning gebruiken.
+
+**Alles op één plek** (oktober 2026)
+Beelden die je met AI maakt of bewerkt, en de beelden van je social posts, staan nu ook in je mediabibliotheek, met een eigen tab voor AI-beelden. Onder Producten → Foto's zie je bovenaan alleen nog je losse foto's, zodat geen enkele foto dubbel staat.
+
+**i18n-keys.** `public.changelog.changes.media_library_ai_social` — 5 talen (nl, en, fr, de, uk; geteld tegen `SUPPORTED_LANGUAGES`).
+
 ### 2026.12j — Al je foto's in één mediabibliotheek, een fotostandaard en gratis bijsnijden (feature + improvement, 16-10-2026)
 
 **Pas versturen na** het draaien van `20261016190000_media_1_one_library.sql` (+ natrek: unieke index, drie triggers, backfill-telling), `20261016191000_photo_std_1_tenant_media_settings.sql` en daarna `20261016192000_media_1_doc_article.sql`, plus de publish van sellqo.app (Lovable-hosted: pas live na `deploy_project`; voor de app pas na de volgende native build). Recept: `docs/prepared/MEDIA-1-deploy.md`.

@@ -2106,6 +2106,10 @@
         "photo_editor_frame": {
           "title": "Crop, rotate and set the background for free",
           "description": "The photo editor has a new Format & crop tab: choose the aspect ratio and background, zoom in or out, move the product and rotate the photo. It runs in your browser and uses no AI credits. The AI background stays available in the second tab."
+        },
+        "media_library_ai_social": {
+          "title": "AI images and social images in your media library too",
+          "description": "Images you create or edit with AI, and the images of your social posts, now also land in your media library automatically. AI images have their own tab, social images sit under Social. Under Products → Photos, the top section now only shows your unused photos, such as the originals after standardising, so you no longer see photos twice."
         }
       },
       "copyLink": "Copy link",

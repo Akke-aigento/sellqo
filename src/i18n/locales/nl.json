@@ -2688,7 +2688,8 @@
           "categorie_n": "Categorieën",
           "campagnes": "Campagnes",
           "social": "Social",
-          "favorieten": "Favorieten"
+          "favorieten": "Favorieten",
+          "ai_beelden": "AI-beelden"
         },
         "assets_verwijderd": "{{success}} van {{total}} assets verwijderd",
         "achtergronden_verwijderd": "{{success}} van {{total}} achtergronden verwijderd",
@@ -4405,7 +4406,12 @@
         "fotobibliotheek": "Fotobibliotheek",
         "upload_foto_s_zonder_ze_meteen": "Upload foto's zonder ze meteen aan een product te koppelen. Bij het aanmaken of aanpassen van een product kies je ze via \"Kies uit bibliotheek\".",
         "fotos_toegevoegd": "{{count}} foto('s) toegevoegd aan de bibliotheek",
-        "in_gebruik": "Op {{name}}"
+        "in_gebruik": "Op {{name}}",
+        "losse_fotos": "Losse foto's",
+        "losse_fotos_uitleg": "Foto's die op geen enkel product staan, zoals een losse upload of het origineel na het standaardiseren. Bij het aanmaken of aanpassen van een product kies je ze via \"Kies uit bibliotheek\".",
+        "volledige_bibliotheek": "Volledige mediabibliotheek",
+        "toon_alle": "Toon alle {{count}}",
+        "toon_minder": "Toon minder"
       },
       "nog_geen_producten_voeg_je_eerste": "Nog geen producten. Voeg je eerste product toe!",
       "geen_producten_gevonden_met_deze_filters": "Geen producten gevonden met deze filters",

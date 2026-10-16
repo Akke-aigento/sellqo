@@ -2106,6 +2106,10 @@
         "photo_editor_frame": {
           "title": "Gratis foto's bijsnijden, draaien en de achtergrond kiezen",
           "description": "De fotobewerker heeft een nieuw tabblad Formaat & uitsnede: kies de verhouding en de achtergrond, zoom in of uit, verschuif het product en draai de foto. Dat gebeurt in je browser en kost geen AI-credits. De AI-achtergrond blijft beschikbaar in het tweede tabblad."
+        },
+        "media_library_ai_social": {
+          "title": "AI-beelden en social-beelden ook in je mediabibliotheek",
+          "description": "Beelden die je met AI maakt of bewerkt, en de beelden van je social posts, komen nu ook automatisch in je mediabibliotheek. AI-beelden hebben hun eigen tab, social-beelden staan onder Social. Onder Producten → Foto's zie je bovenaan alleen nog je losse foto's, zoals de originelen na het standaardiseren, zodat je geen foto's meer dubbel ziet."
         }
       },
       "copyLink": "Kopieer link",

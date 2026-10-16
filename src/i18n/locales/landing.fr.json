@@ -2106,6 +2106,10 @@
         "photo_editor_frame": {
           "title": "Recadrer, pivoter et choisir l'arrière-plan gratuitement",
           "description": "L'éditeur photo a un nouvel onglet Format & recadrage : choisissez les proportions et l'arrière-plan, zoomez, déplacez le produit et pivotez la photo. Tout se fait dans votre navigateur, sans crédits IA. L'arrière-plan IA reste disponible dans le second onglet."
+        },
+        "media_library_ai_social": {
+          "title": "Images IA et images sociales aussi dans ta médiathèque",
+          "description": "Les images que tu crées ou retouches avec l'IA, ainsi que les images de tes publications sociales, arrivent désormais aussi automatiquement dans ta médiathèque. Les images IA ont leur propre onglet, les images sociales se trouvent sous Social. Sous Produits → Photos, la partie du haut n'affiche plus que tes photos non utilisées, comme les originaux après standardisation, pour que tu ne voies plus de photos en double."
         }
       },
       "copyLink": "Copier le lien",

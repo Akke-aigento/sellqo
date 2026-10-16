@@ -2356,7 +2356,8 @@
           "campagnes": "Campagnes",
           "alles": "Tout",
           "favorieten": "Favoris",
-          "social": "Réseaux sociaux"
+          "social": "Réseaux sociaux",
+          "ai_beelden": "Images IA"
         },
         "achtergronden_verwijderd": "{{success}} arrière-plans sur {{total}} supprimés",
         "assets_verwijderd": "{{success}} ressources sur {{total}} supprimées",
@@ -3975,7 +3976,12 @@
         "upload_foto_s_zonder_ze_meteen": "Téléversez des photos sans les associer immédiatement à un produit. Lors de la création ou de la modification d'un produit, sélectionnez-les via « Choisir dans la bibliothèque ».",
         "url_kopieren": "Copier l'URL",
         "zoek_in_bibliotheek": "Rechercher dans la bibliothèque...",
-        "in_gebruik": "Sur {{name}}"
+        "in_gebruik": "Sur {{name}}",
+        "losse_fotos": "Photos non utilisées",
+        "losse_fotos_uitleg": "Photos qui ne figurent sur aucun produit, comme un téléversement isolé ou l'original après standardisation. Lors de la création ou de la modification d'un produit, sélectionnez-les via « Choisir dans la bibliothèque ».",
+        "volledige_bibliotheek": "Médiathèque complète",
+        "toon_alle": "Tout afficher ({{count}})",
+        "toon_minder": "Afficher moins"
       },
       "overgeslagen_variantvoorraad": "{{count}} produit(s) ignoré(s) — le stock est géré par variante.",
       "productSpecificationsSection": {

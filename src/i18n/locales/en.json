@@ -2600,7 +2600,8 @@
           "campagnes": "Campaigns",
           "alles": "All",
           "favorieten": "Favourites",
-          "social": "Social"
+          "social": "Social",
+          "ai_beelden": "AI images"
         },
         "achtergronden_verwijderd": "{{success}} of {{total}} backgrounds removed",
         "assets_verwijderd": "{{success}} of {{total}} assets deleted",
@@ -4219,7 +4220,12 @@
         "upload_foto_s_zonder_ze_meteen": "Upload photos without linking them to a product straight away. When creating or editing a product you pick them via \"Choose from library\".",
         "url_kopieren": "Copy URL",
         "zoek_in_bibliotheek": "Search the library...",
-        "in_gebruik": "On {{name}}"
+        "in_gebruik": "On {{name}}",
+        "losse_fotos": "Unused photos",
+        "losse_fotos_uitleg": "Photos that aren't on any product, such as a separate upload or the original after standardising. When creating or editing a product, pick them via \"Choose from library\".",
+        "volledige_bibliotheek": "Full media library",
+        "toon_alle": "Show all {{count}}",
+        "toon_minder": "Show less"
       },
       "overgeslagen_variantvoorraad": "{{count}} product(s) skipped — stock is managed per variant.",
       "productSpecificationsSection": {

@@ -47,6 +47,10 @@ export function useMediaAssets(folder?: string) {
       if (folder && folder !== 'all') {
         if (folder === 'favorites') {
           query = query.eq('is_favorite', true);
+        } else if (folder === 'ai') {
+          // MEDIA-2: AI-beelden staan in de map van waar ze gebruikt worden (bv. 'products');
+          // de tab toont ze allemaal via de vlag.
+          query = query.eq('is_ai_generated', true);
         } else {
           query = query.eq('folder', folder);
         }

@@ -2614,7 +2614,8 @@
           "campagnes": "Кампанії",
           "alles": "Усе",
           "favorieten": "Обране",
-          "social": "Соцмережі"
+          "social": "Соцмережі",
+          "ai_beelden": "ШІ-зображення"
         },
         "achtergronden_verwijderd": "Видалено фонів: {{success}} з {{total}}",
         "assets_verwijderd": "Видалено ресурсів: {{success}} з {{total}}",
@@ -4233,7 +4234,12 @@
         "upload_foto_s_zonder_ze_meteen": "Завантажуйте фото, не прив'язуючи їх одразу до товару. Під час створення чи редагування товару оберіть їх через «Вибрати з бібліотеки».",
         "url_kopieren": "Копіювати URL",
         "zoek_in_bibliotheek": "Пошук у бібліотеці...",
-        "in_gebruik": "На {{name}}"
+        "in_gebruik": "На {{name}}",
+        "losse_fotos": "Невикористані фото",
+        "losse_fotos_uitleg": "Фото, які не додані до жодного товару, наприклад окреме завантаження чи оригінал після стандартизації. Під час створення чи редагування товару оберіть їх через «Вибрати з бібліотеки».",
+        "volledige_bibliotheek": "Уся медіатека",
+        "toon_alle": "Показати всі {{count}}",
+        "toon_minder": "Показати менше"
       },
       "overgeslagen_variantvoorraad": "{{count}} товарів пропущено — запас керується для кожного варіанта окремо.",
       "productSpecificationsSection": {

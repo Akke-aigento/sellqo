@@ -44,7 +44,7 @@ export default function AIMarketingHub() {
     const purchaseStatus = searchParams.get('purchase');
     const creditsAdded = searchParams.get('credits');
     
-    if (tab === 'library' || tab === 'menu') {
+    if (tab === 'library' || tab === 'menu' || tab === 'assets') {
       setActiveTab(tab);
     }
     

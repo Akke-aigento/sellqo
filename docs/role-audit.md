@@ -1,3 +1,39 @@
+## MEDIA-2 — AI- en social-beelden in de ene bibliotheek, geen dubbel grid meer onder Producten → Foto's (2026.12k) — 16 oktober 2026
+
+Akke's go 15:49 ("yes go for it") op het voorstel na de Mancini-bulk: het dubbele grid weg en AI/social-beelden mee in de bibliotheek.
+
+**Root cause**
+- `ProductPhotoLibraryCard` (Producten → Foto's, bovenaan) was bedoeld voor *losse* foto's (zie de lege-staat-tekst "Nog geen losse foto's"), maar toonde sinds MEDIA-1 álle rijen uit map `products`, dus ook alles wat het fotobeheer eronder al toont. Na de bulk-standaardisering van Mancini zou elke foto er twee keer (origineel + nieuw) en nog eens in het fotobeheer staan.
+- AI-beelden (`ai_generated_images`, 198) kwamen alleen in `media_assets` als ze op een product belandden (116 via de product-trigger, en dan met `is_ai_generated = false`); 80 stonden er niet in. Social-beelden (`social_posts.image_urls`, 15) stonden er nooit in.
+- De tabs "Campagnes" en "Social" in Assets waren leeg: geen enkele `media_assets`-rij had map `campaigns` of `social`, en niets schreef die mappen (grep 16-10).
+
+**Uitgevoerd**
+- `supabase/migrations/20261016200000_media_2_ai_social.sql`: triggerfuncties `media_register_from_ai_images()` (na insert op `ai_generated_images`; map `products` als er een `source_product_id` is, anders `ai`; `is_ai_generated = true`; bestaande rij → alleen de vlag) en `media_register_from_social_posts()` (na insert of wijziging van `image_urls`; map `social`, via `media_register_urls`). Beide SECURITY DEFINER, `search_path = public`, execute ingetrokken voor public/anon/authenticated, elke fout → WARNING. Backfill met de `created_at` van de bronrij.
+- `supabase/migrations/20261016201000_media_2_doc_article.sql`: helpartikel bijgewerkt (losse foto's, AI/social, tabs).
+- `ProductPhotoLibraryCard.tsx`: toont alleen nog foto's die op geen product staan ("Losse foto's", met aantal), eerste 10 + "Toon alle", knop "Volledige mediabibliotheek" naar `/admin/marketing/ai?tab=assets` alleen als `checkFeature('ai_marketing')` (Free en Events Flex hebben die niet: voor hen blijft dit blok hun bibliotheek). Tegels `object-contain`.
+- `MediaAssetsLibrary.tsx`: tab `campaigns` → `ai` ("AI-beelden"); uploaden vanuit die tab gaat naar map `general`.
+- `useMediaAssets.ts`: map `ai` filtert op `is_ai_generated = true` (een AI-beeld op een product staat dus onder Producten én onder AI-beelden).
+- `AIMarketingHub.tsx`: `?tab=assets` opent de tab Assets (naast `library` en `menu`).
+- i18n: 6 app-keys + 2 landing-keys in 5 talen; changelog 2026.12k; nieuwsbrief-item.
+- Bijgestuurd t.o.v. het voorstel: het blok is niet geschrapt maar teruggebracht tot losse foto's, omdat Assets achter `ai_marketing` zit en Free/Events Flex anders hun bibliotheek kwijt waren.
+
+**Security-keuzes**
+- Nieuwe functies niet uitvoerbaar door `authenticated` (nagemeten: `has_function_privilege` = false). Geen policies gewijzigd; `media_assets`-RLS ongemoeid.
+
+**Gedeelde-paden-waarschuwing**
+- Geen gedeeld pad: `storefront-api`, `storefront-customer-api` en `storefront-resolve` lezen `media_assets`, `ai_generated_images` en `social_posts` niet (grep 16-10). Geen raakpunt met custom frontends.
+
+**Verificatie**
+- Droogloop (alles + trigger-proef op Speeltuin, afgesloten met `raise exception`): ai/ai 80 (+1 proef), social 14 (+2 proef), 0 AI- en 0 social-beelden buiten de bibliotheek.
+- Live gedraaid en nagemeten: triggers 2, `ai/ai` 80, `social/social` 14, `is_ai_generated` 198 = alle AI-beelden, 0 ontbrekend, proefrijen 0, `authenticated` mag de functies niet uitvoeren.
+- Helpartikel live: md5 `971884df…` = bestand.
+- `tsc` 0, lint gelijk aan baseline (1481), 46 testbestanden / 673 tests groen, i18n-pariteit volledig, gebruikte keys bestaan.
+
+**Bewust ongemoeid / Vervolg**
+- `media_assets` heeft geen gebruiksregistratie voor social posts: een social-beeld is wisbaar uit de bibliotheek (alleen de rij; het bestand en de post blijven). Geen risico, wel goed om te weten.
+- Bestaande hardcoded NL-toasts in `useMediaAssets.ts` en `ProductPhotoLibraryCard.tsx` ("Asset verwijderd", "URL gekopieerd") niet aangeraakt; kandidaat voor een i18n-sweep.
+- Map `storefront` (uploads vanuit de webshop-editor) heeft geen eigen tab; die beelden staan onder Alles.
+
 ## MEDIA-1 + PHOTO-STD-1 + EDITOR-2 — één mediabibliotheek, fotostandaard per winkel, gratis fotobewerker (2026.12j) — 16 oktober 2026
 
 **LIVE (16-10, na Akke's go "Go voor alle stappen" + "je kan zelf mergen"):**

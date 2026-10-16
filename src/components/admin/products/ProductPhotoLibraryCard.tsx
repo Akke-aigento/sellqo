@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Copy, ImageIcon, Loader2, Package, Search, Trash2, Upload } from 'lucide-react';
+import { Copy, ExternalLink, ImageIcon, Loader2, Search, Trash2, Upload } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,33 +9,45 @@ import { useMediaAssets } from '@/hooks/useMediaAssets';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
 import { useProducts } from '@/hooks/useProducts';
+import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { buildUsageMap, type ProductImageRef } from '@/lib/mediaLibrary';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 
 /**
- * Upload-and-browse card for the product photo library. Photos uploaded here
- * live in the media library (folder "products") and can be attached to any
- * product from the product form ("Kies uit bibliotheek").
+ * Losse productfoto's: foto's in de bibliotheek (map "products") die op geen enkel product
+ * staan, bv. een losse upload of het origineel na het standaardiseren. Je hangt ze aan een
+ * product via "Kies uit bibliotheek" in het productformulier.
+ *
+ * MEDIA-2 (16-10-2026): toonde sinds MEDIA-1 ook de foto's die al op een product staan, en
+ * dus dubbel met het fotobeheer eronder. Nu weer alleen de losse foto's, ingeklapt na
+ * PREVIEW stuks, met een link naar de volledige bibliotheek als de winkel die heeft.
  */
+const PREVIEW = 10;
+
 export function ProductPhotoLibraryCard() {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
-  const { assets, isLoading, createAsset, deleteAsset } = useMediaAssets('products');
+  const { assets, isLoading, deleteAsset } = useMediaAssets('products');
   const { uploadImage, uploading } = useImageUpload();
   const [search, setSearch] = useState('');
   // MEDIA-1: sinds de ene bibliotheek staan hier ook de foto's die al op een product staan.
   const { products } = useProducts();
   const usage = useMemo(() => buildUsageMap(products as unknown as ProductImageRef[]), [products]);
+  const { checkFeature } = useUsageLimits();
+  const [showAll, setShowAll] = useState(false);
+
+  const loose = useMemo(() => assets.filter(a => !usage.has(a.file_url)), [assets, usage]);
 
   const images = useMemo(() => {
-    if (!search) return assets;
+    if (!search) return loose;
     const q = search.toLowerCase();
-    return assets.filter(a =>
+    return loose.filter(a =>
       a.file_name.toLowerCase().includes(q) || a.title?.toLowerCase().includes(q)
     );
-  }, [assets, search]);
+  }, [loose, search]);
+  const visible = showAll || search ? images : images.slice(0, PREVIEW);
 
   const onDrop = useCallback(async (files: File[]) => {
     if (!currentTenant?.id) return;
@@ -57,13 +70,26 @@ export function ProductPhotoLibraryCard() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Upload className="h-5 w-5" />
-          {t('admin.products.productPhotoLibraryCard.fotobibliotheek')}
-        </CardTitle>
-        <CardDescription>
-          {t('admin.products.productPhotoLibraryCard.upload_foto_s_zonder_ze_meteen')}
-        </CardDescription>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1.5">
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              {t('admin.products.productPhotoLibraryCard.losse_fotos')}
+              {loose.length > 0 && <span className="text-sm font-normal text-muted-foreground">({loose.length})</span>}
+            </CardTitle>
+            <CardDescription>
+              {t('admin.products.productPhotoLibraryCard.losse_fotos_uitleg')}
+            </CardDescription>
+          </div>
+          {checkFeature('ai_marketing') && (
+            <Button asChild variant="outline" size="sm" className="shrink-0">
+              <Link to="/admin/marketing/ai?tab=assets">
+                <ExternalLink className="mr-2 h-4 w-4" />
+                {t('admin.products.productPhotoLibraryCard.volledige_bibliotheek')}
+              </Link>
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <div
@@ -86,7 +112,7 @@ export function ProductPhotoLibraryCard() {
           )}
         </div>
 
-        {assets.length > 0 && (
+        {loose.length > 0 && (
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -109,12 +135,12 @@ export function ProductPhotoLibraryCard() {
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-            {images.map(asset => (
+            {visible.map(asset => (
               <div key={asset.id} className="group relative aspect-square rounded-lg overflow-hidden border">
                 <img
                   src={asset.file_url}
                   alt={asset.title || asset.file_name}
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain bg-muted"
                 />
                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                   <Button
@@ -127,30 +153,32 @@ export function ProductPhotoLibraryCard() {
                   >
                     <Copy className="h-4 w-4" />
                   </Button>
-                  {!usage.has(asset.file_url) && (
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="destructive"
-                      className="h-8 w-8"
-                      title={t('common.delete')}
-                      onClick={() => deleteAsset.mutate(asset.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="destructive"
+                    className="h-8 w-8"
+                    title={t('common.delete')}
+                    onClick={() => deleteAsset.mutate(asset.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
                 <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent p-2">
                   <p className="text-xs text-white truncate">{asset.title || asset.file_name}</p>
-                  {usage.has(asset.file_url) && (
-                    <p className="text-[10px] text-white/80 truncate flex items-center gap-1">
-                      <Package className="h-2.5 w-2.5 shrink-0" />
-                      {t('admin.products.productPhotoLibraryCard.in_gebruik', { name: usage.get(asset.file_url)![0].name })}
-                    </p>
-                  )}
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {!search && images.length > PREVIEW && (
+          <div className="flex justify-center">
+            <Button type="button" variant="ghost" size="sm" onClick={() => setShowAll(v => !v)}>
+              {showAll
+                ? t('admin.products.productPhotoLibraryCard.toon_minder')
+                : t('admin.products.productPhotoLibraryCard.toon_alle', { count: images.length })}
+            </Button>
           </div>
         )}
       </CardContent>

@@ -30,7 +30,8 @@ const folderConfig = [
   { id: 'all', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.alles', icon: FolderOpen },
   { id: 'products', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.producten', icon: Package },
   { id: 'categories', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.categorie_n', icon: FolderTree },
-  { id: 'campaigns', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.campagnes', icon: Sparkles },
+  // MEDIA-2: 'campaigns' was overal leeg (geen enkele rij had die map); AI-beelden krijgen hun eigen tab.
+  { id: 'ai', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.ai_beelden', icon: Sparkles },
   { id: 'social', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.social', icon: ImageIcon },
   { id: 'favorites', labelKey: 'admin.marketing.mediaAssetsLibrary.folders.favorieten', icon: Star },
 ];
@@ -439,7 +440,7 @@ export function MediaAssetsLibrary() {
     for (const file of acceptedFiles) {
       // MEDIA-1: useImageUpload zet de foto zelf in de bibliotheek.
       await uploadImage(file, 'marketing-assets', undefined, {
-        folder: folder === 'all' || folder === 'favorites' ? 'general' : folder,
+        folder: folder === 'all' || folder === 'favorites' || folder === 'ai' ? 'general' : folder,
       });
     }
   }, [currentTenant?.id, folder, uploadImage]);

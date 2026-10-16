@@ -2106,6 +2106,10 @@
         "photo_editor_frame": {
           "title": "Fotos kostenlos zuschneiden, drehen und den Hintergrund wählen",
           "description": "Der Foto-Editor hat einen neuen Reiter Format & Zuschnitt: Wähle Seitenverhältnis und Hintergrund, zoome hinein oder heraus, verschiebe das Produkt und drehe das Foto. Das läuft in deinem Browser und kostet keine KI-Credits. Der KI-Hintergrund bleibt im zweiten Reiter verfügbar."
+        },
+        "media_library_ai_social": {
+          "title": "KI-Bilder und Social-Bilder jetzt auch in deiner Mediathek",
+          "description": "Bilder, die du mit KI erstellst oder bearbeitest, und die Bilder deiner Social-Posts landen jetzt ebenfalls automatisch in deiner Mediathek. KI-Bilder haben einen eigenen Tab, Social-Bilder findest du unter Social. Unter Produkte → Fotos zeigt der obere Bereich nur noch deine nicht verwendeten Fotos, etwa die Originale nach dem Standardisieren, damit du keine Fotos mehr doppelt siehst."
         }
       },
       "copyLink": "Link kopieren",
