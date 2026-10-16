@@ -139,13 +139,14 @@ jobs:
       - name: Edge functions (deno test promotiemotor, catalogusfilters en social-publicatie)
         env:
           DENO_NO_PACKAGE_JSON: "1"
-        run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts supabase/functions/_shared/catalogFilters.test.ts supabase/functions/_shared/fulfillmentSlots.test.ts supabase/functions/_shared/productAddons.test.ts supabase/functions/_shared/socialPublish.test.ts supabase/functions/_shared/socialMedia.test.ts supabase/functions/_shared/socialRunner.test.ts supabase/functions/_shared/inviteRoles.test.ts
+        run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts supabase/functions/_shared/catalogFilters.test.ts supabase/functions/_shared/fulfillmentSlots.test.ts supabase/functions/_shared/productAddons.test.ts supabase/functions/_shared/socialPublish.test.ts supabase/functions/_shared/socialMedia.test.ts supabase/functions/_shared/socialRunner.test.ts supabase/functions/_shared/inviteRoles.test.ts supabase/functions/_shared/planLifecycle.test.ts
 
       # SEC-DOMAIN-2: de echte storefront-resolve-handler tegen een nep-databank (netwerkloos).
-      - name: Edge functions (test storefront-resolve)
+      # SUB-UNIFY-2A: idem voor subscription-lifecycle-sweep (dry-run schrijft niets).
+      - name: Edge functions (test storefront-resolve en lifecycle-sweep)
         env:
           DENO_NO_PACKAGE_JSON: "1"
-        run: deno test --allow-env --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/resolve.test.ts
+        run: deno test --allow-env --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/resolve.test.ts scripts/promo-compare/lifecycle-sweep.test.ts
 
       # R10 (CATALOG-FILTERS-1b): rooktest van de echte storefront-api-functies tegen een
       # thenable nep-databank. Vangt o.a. `await` op een querybuilder, wat deno check mist.

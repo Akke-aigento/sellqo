@@ -454,7 +454,7 @@
         },
         {
           "q": "Puis-je changer de formule ou arrêter plus tard ?",
-          "a": "Oui, dans votre administration sous Abonnement, sans préavis. Une montée en gamme s'applique dès que la différence pour la période en cours est payée. Une baisse s'applique à la période suivante. Si vous arrêtez et passez à Free, votre abonnement payant s'arrête immédiatement."
+          "a": "Oui, dans votre administration sous Abonnement, sans préavis. Une montée en gamme s'applique dès que la différence pour la période en cours est payée. Une baisse s'applique à la période suivante. Si vous arrêtez ou choisissez Free, vous gardez votre plan jusqu'à la fin de la période déjà payée ; ensuite, vous passez à Free."
         },
         {
           "q": "Que contient la formule Restauration ?",
@@ -2082,6 +2082,14 @@
         "image_picker_media_library": {
           "title": "Médiathèque dans le sélecteur d'images",
           "description": "Dans l'éditeur de boutique, le sélecteur d'images a désormais un onglet Médiathèque. Vous y trouvez les images que vous avez déjà téléversées : dans le sélecteur lui-même, vos photos de produits, les images de catégories et d'événements et les images de votre médiathèque dans Marketing, les plus récentes en premier. Recherchez par nom de fichier et choisissez une image en un clic, sans la téléverser à nouveau. Le sélecteur d'images et la page Boutique en ligne sont désormais aussi traduits dans toutes les langues de SellQo."
+        },
+        "subscription_cancel_period_end": {
+          "title": "La résiliation prend effet à la fin de votre période payée",
+          "description": "Si vous résiliez votre abonnement ou choisissez Free sous Abonnement, vous gardez votre plan actuel jusqu'à la fin de la période déjà payée. Ensuite, vous passez à Free. Auparavant, choisir Free prenait effet immédiatement et vous perdiez le reste de votre période payée."
+        },
+        "subscription_cancel_undo": {
+          "title": "Annuler une résiliation",
+          "description": "Vous changez d'avis ? Tant que votre période payée est en cours, Abonnement affiche la date de fin et un bouton Réactiver l'abonnement. Votre abonnement continue alors simplement sur le même plan, sans frais supplémentaires."
         }
       },
       "copyLink": "Copier le lien",

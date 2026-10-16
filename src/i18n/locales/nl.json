@@ -901,6 +901,10 @@
           "subscription_reactivated": {
             "label": "Abonnement weer actief",
             "description": "Na betaling staat alles weer open"
+          },
+          "plan_ended": {
+            "label": "Abonnement afgelopen",
+            "description": "Je betaalde periode is voorbij en je winkel staat op Free"
           }
         },
         "marketing": {
@@ -1826,7 +1830,9 @@
       "confirm": "Bevestigen",
       "success_upgrade": "Je zit nu op {{plan}}.",
       "success_downgrade": "Je gaat over naar {{plan}} bij de volgende periode.",
-      "error": "Planwijziging mislukt"
+      "error": "Planwijziging mislukt",
+      "success_cancel": "Opgezegd. Je houdt je plan tot {{date}}, daarna ga je naar Free.",
+      "success_cancel_now": "Je staat nu op Free."
     },
     "usage_labels": {
       "products": "Producten",
@@ -1891,6 +1897,11 @@
       },
       "payNow": "Nu betalen",
       "toBilling": "Naar facturatie"
+    },
+    "cancellation": {
+      "banner": "Je abonnement loopt af op {{date}}. Tot dan houd je je huidige plan, daarna ga je naar Free.",
+      "resumed": "Je opzegging is ingetrokken. Je abonnement loopt gewoon door.",
+      "resume_error": "Opzegging intrekken mislukt"
     }
   },
   "admin_billing": {

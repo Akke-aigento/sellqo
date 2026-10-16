@@ -122,7 +122,19 @@ export default function BillingPage() {
     () => plans.find(p => p.id === pendingUpgrade?.target_plan_id) ?? null,
     [plans, pendingUpgrade],
   );
-  const showPendingDowngrade = !!pendingPlan && !pendingUpgrade;
+  /**
+   * SUB-UNIFY-2A — opgezegd (of Free gekozen): het huidige plan loopt tot het einde
+   * van de betaalde periode, daarna Free. Ongedaan maken kan zolang het
+   * facturatie-abonnement nog loopt: een switch naar het huidige plan trekt de
+   * opzegging in (sync-tenant-plan).
+   */
+  const pendingCancellation = !!subscription?.cancel_at_period_end && pendingPlanId === 'free';
+  const canResume =
+    pendingCancellation &&
+    billingStatus?.billing_subscription_status === 'active' &&
+    !!subscription?.current_period_end &&
+    new Date(subscription.current_period_end).getTime() > Date.now();
+  const showPendingDowngrade = !!pendingPlan && !pendingUpgrade && !pendingCancellation;
 
   /**
    * PAY-UX-1 (deel A) — the page detects payment completion itself, for every
@@ -300,6 +312,22 @@ export default function BillingPage() {
     setConfirmPlan({ plan, isUpgrade });
   };
 
+  const handleResumeSubscription = async () => {
+    if (!currentPlan) return;
+    try {
+      await syncPlan.mutateAsync({
+        planId: currentPlan.id,
+        interval: subscription?.billing_interval === 'yearly' ? 'yearly' : 'monthly',
+        action: 'switch',
+      });
+      toast.success(t('billing.cancellation.resumed'));
+    } catch (err) {
+      toast.error(t('billing.cancellation.resume_error'), {
+        description: err instanceof Error ? err.message : undefined,
+      });
+    }
+  };
+
   const handleConfirmPlanChange = async (modeOverride?: PlatformPaymentMode) => {
     if (!confirmPlan) return;
     const { plan, isUpgrade } = confirmPlan;
@@ -324,7 +352,16 @@ export default function BillingPage() {
 
       setConfirmPlan(null);
       clearResume();
-      if (res.downgrade) {
+      if (res.action === 'cancel') {
+        // SUB-UNIFY-2A: Free kiezen = opzeggen, tot het einde van de betaalde periode.
+        if (res.at_period_end && res.effective_at) {
+          toast.success(t('billing.plan_change.success_cancel', {
+            date: format(new Date(res.effective_at), 'PPP', { locale: dateLocale }),
+          }));
+        } else {
+          toast.success(t('billing.plan_change.success_cancel_now'));
+        }
+      } else if (res.downgrade) {
         toast.success(t('billing.plan_change.success_downgrade', { plan: plan.name }));
       } else if (res.awaiting_payment) {
         // Pay-first upgrade without a usable mandate: a payment request was sent.
@@ -509,14 +546,43 @@ export default function BillingPage() {
               </span>
             </div>
 
-            {subscription?.current_period_end && (
+            {subscription?.current_period_end && !pendingCancellation && (
               <p className="text-sm text-muted-foreground">
                 {t('billing.next_billing_date')}: {' '}
                 {format(new Date(subscription.current_period_end), 'PPP', { locale: dateLocale })}
               </p>
             )}
 
-            {subscription?.cancel_at_period_end && (
+            {pendingCancellation && (
+              <Alert>
+                <CalendarClock className="h-4 w-4" />
+                <AlertDescription className="space-y-3">
+                  <p>
+                    {t('billing.cancellation.banner', {
+                      date: subscription?.current_period_end
+                        ? format(new Date(subscription.current_period_end), 'PPP', { locale: dateLocale })
+                        : '',
+                    })}
+                  </p>
+                  {canResume ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={syncPlan.isPending}
+                      onClick={handleResumeSubscription}
+                    >
+                      {t('billing.reactivate')}
+                    </Button>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {t('billing.pending_downgrade_cancel', { email: SUPPORT_EMAIL })}
+                    </p>
+                  )}
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {subscription?.cancel_at_period_end && !pendingCancellation && (
               <div className="flex items-center gap-2 p-3 bg-destructive/10 rounded-lg text-destructive">
                 <AlertTriangle className="h-4 w-4" />
                 <span className="text-sm">
@@ -526,7 +592,7 @@ export default function BillingPage() {
               </div>
             )}
 
-            {billingStatus?.next_invoice_date && (
+            {billingStatus?.next_invoice_date && !pendingCancellation && (
               <p className="text-sm text-muted-foreground">
                 {t('billing.next_invoice')}:{' '}
                 {format(new Date(billingStatus.next_invoice_date), 'PPP', { locale: dateLocale })}

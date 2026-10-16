@@ -194,6 +194,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       // BILLING-ENFORCE-1: de statusmachine meldt een wissel aan de winkel zelf.
       { type: 'subscription_state_changed', defaultInApp: true, defaultEmail: false },
       { type: 'subscription_reactivated', defaultInApp: true, defaultEmail: false },
+      // SUB-UNIFY-2A: subscription-lifecycle-sweep — betaalde periode voorbij, winkel staat op Free.
+      { type: 'plan_ended', defaultInApp: true, defaultEmail: false },
     ]
   },
   {

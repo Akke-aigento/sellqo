@@ -454,7 +454,7 @@
         },
         {
           "q": "Kann ich später den Tarif wechseln oder aufhören?",
-          "a": "Ja, in Ihrer Verwaltung unter Abonnement, ohne Kündigungsfrist. Ein Upgrade gilt, sobald die Differenz für die laufende Periode bezahlt ist. Ein Downgrade gilt ab der nächsten Periode. Wenn Sie aufhören und zu Free wechseln, endet Ihr bezahltes Abo sofort."
+          "a": "Ja, in Ihrer Verwaltung unter Abonnement, ohne Kündigungsfrist. Ein Upgrade gilt, sobald die Differenz für die laufende Periode bezahlt ist. Ein Downgrade gilt ab der nächsten Periode. Wenn Sie aufhören oder Free wählen, behalten Sie Ihren Plan bis zum Ende des bereits bezahlten Zeitraums; danach wechseln Sie zu Free."
         },
         {
           "q": "Was ist im Gastronomie-Tarif enthalten?",
@@ -2082,6 +2082,14 @@
         "image_picker_media_library": {
           "title": "Mediathek in der Bildauswahl",
           "description": "Im Shop-Editor hat die Bildauswahl jetzt einen Reiter Mediathek. Dort findest du die Bilder, die du schon hochgeladen hast: in der Bildauswahl selbst, deine Produktfotos, Kategorie- und Event-Bilder und die Bilder aus deiner Mediathek unter Marketing, die neuesten zuerst. Du suchst nach Dateinamen und wählst ein Bild mit einem Klick aus, ohne es erneut hochzuladen. Die Bildauswahl und die Seite Onlineshop sind jetzt auch in alle SellQo-Sprachen übersetzt."
+        },
+        "subscription_cancel_period_end": {
+          "title": "Kündigung gilt zum Ende deines bezahlten Zeitraums",
+          "description": "Kündigst du dein Abonnement oder wählst du unter Abonnement Free, behältst du deinen aktuellen Plan bis zum Ende des Zeitraums, den du schon bezahlt hast. Danach wechselst du zu Free. Früher galt die Wahl von Free sofort und du hast den Rest deines bezahlten Zeitraums verloren."
+        },
+        "subscription_cancel_undo": {
+          "title": "Kündigung zurücknehmen",
+          "description": "Überlegst du es dir anders? Solange dein bezahlter Zeitraum läuft, zeigt Abonnement das Enddatum und einen Button Abonnement reaktivieren. Dein Abonnement läuft dann einfach im selben Plan weiter, ohne Zusatzkosten."
         }
       },
       "copyLink": "Link kopieren",

@@ -124,6 +124,10 @@ export interface SyncTenantPlanResult {
   remaining_days?: number;
   period_days?: number;
   interval_swap?: boolean;
+  /** SUB-UNIFY-2A: opzegging loopt tot het einde van de betaalde periode. */
+  at_period_end?: boolean;
+  /** SUB-UNIFY-2A: een openstaande opzegging is ingetrokken. */
+  resumed?: boolean;
 }
 
 /**

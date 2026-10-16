@@ -23,6 +23,7 @@ import { effectuatePlanSwitch } from "../_shared/planEffectuate.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
 import { loadBillingTenant } from "../_shared/billingTenant.ts";
 import { isAuthorizedCronRequest } from "../_shared/cronAuth.ts";
+import { decideCancel, decideResume, hasPendingCancellation } from "../_shared/planLifecycle.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -100,7 +101,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 Deno.serve(async (req) => {
   // Versiestempel om een deploy zonder neveneffect na te meten (geen auth, geen data).
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "PRICE-2" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SUB-UNIFY-2A" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -320,29 +321,116 @@ Deno.serve(async (req) => {
     }
 
     // ================================= CANCEL / FREE =====================
+    // SUB-UNIFY-2A: opzeggen en Free kiezen gaan in op het EINDE van de betaalde
+    // periode (keuze Akke 16-10). Tot dan blijft het huidige plan actief; het
+    // facturatie-abonnement krijgt een end_date zodat de runner geen nieuwe cyclus
+    // maakt, en subscription-lifecycle-sweep zet de winkel na de grens op Free.
+    // Geen Stripe-call, geen cyclus, geen factuur in dit pad.
     const isFreePlan = (targetPlan.slug === "free") || Number(targetPlan.monthly_price) === 0;
     if (action === "cancel" || (action !== "activate" && isFreePlan) || (action === "activate" && isFreePlan)) {
-      // Cancel billing subscription (if any), mark tenant_subscription as canceled at period end.
+      const nowISO = new Date().toISOString();
+      const currentPlan = ((currentSub as { pricing_plan?: { monthly_price?: unknown; yearly_price?: unknown } | null } | null)?.pricing_plan) ?? null;
+      const currentPlanIsPaid = !!currentPlan &&
+        (Number(currentPlan.monthly_price) > 0 || Number(currentPlan.yearly_price) > 0);
+
+      type BillingSubRow = { id: string; status: string | null; next_invoice_date: string | null };
+      let billingSub: BillingSubRow | null = null;
       if (currentSub?.billing_subscription_id) {
+        const { data: bs, error: bsErr } = await supabase
+          .from("subscriptions")
+          .select("id, status, next_invoice_date")
+          .eq("id", currentSub.billing_subscription_id)
+          .maybeSingle();
+        if (bsErr) throw bsErr;
+        billingSub = (bs as BillingSubRow | null) ?? null;
+      }
+
+      const decision = decideCancel({
+        currentPlanId: currentSub?.plan_id ?? null,
+        currentPlanIsPaid,
+        currentPeriodEnd: currentSub?.current_period_end ?? null,
+        billingSubscriptionId: billingSub?.id ?? null,
+        billingSubscriptionStatus: billingSub?.status ?? null,
+        nextInvoiceDate: billingSub?.next_invoice_date ?? null,
+      });
+
+      if (decision.mode === "at_period_end") {
+        // Een openstaande pro-rata-upgrade eerst afhandelen (betalen of annuleren).
+        const { data: openProrations, error: opErr } = await supabase
+          .from("billing_cycles")
+          .select("id")
+          .eq("subscription_id", billingSub!.id)
+          .eq("cycle_type", "proration")
+          .in("status", ["pending", "awaiting_payment", "processing", "reopened"])
+          .limit(1);
+        if (opErr) throw opErr;
+        if ((openProrations ?? []).length > 0) {
+          return jsonResponse(
+            {
+              success: false,
+              error: "Er staat nog een upgrade open. Betaal of annuleer die eerst.",
+              code: "proration_cycle_open",
+            },
+            409,
+          );
+        }
+
+        // Status blijft 'active' tot de grens; alleen de einddatum komt erop.
+        const { error: endErr } = await supabase
+          .from("subscriptions")
+          .update({ end_date: decision.billingEndDate })
+          .eq("id", billingSub!.id)
+          .eq("status", "active");
+        if (endErr) throw endErr;
+
+        const { error: pendErr } = await supabase
+          .from("tenant_subscriptions")
+          .update({
+            pending_plan_id: "free",
+            pending_interval: null,
+            pending_effective_at: decision.accessUntil,
+            cancel_at_period_end: true,
+            canceled_at: nowISO,
+          })
+          .eq("tenant_id", tenantId);
+        if (pendErr) throw pendErr;
+
+        log("Cancellation scheduled at period end", {
+          tenantId,
+          plan: currentSub?.plan_id,
+          access_until: decision.accessUntil,
+          billing_end_date: decision.billingEndDate,
+        });
+        return jsonResponse({
+          success: true,
+          action: "cancel",
+          at_period_end: true,
+          effective_at: decision.accessUntil,
+        });
+      }
+
+      // Meteen naar Free: geen betaald plan, geen lopend facturatie-abonnement of
+      // geen lopende periode — er is niets betaald om uit te dienen.
+      if (billingSub && billingSub.status === "active") {
         const { error: subUpdErr } = await supabase
           .from("subscriptions")
           .update({ status: "cancelled" })
-          .eq("id", currentSub.billing_subscription_id);
+          .eq("id", billingSub.id);
         if (subUpdErr) throw subUpdErr;
       }
-      const nowISO = new Date().toISOString();
-      const effectiveEnd = currentSub?.current_period_end || nowISO;
       const { error: tsErr } = await supabase
         .from("tenant_subscriptions")
         .upsert(
           {
             tenant_id: tenantId,
-            plan_id: isFreePlan ? "free" : currentSub?.plan_id ?? null,
+            // SUB-UNIFY-2A: altijd Free. Voorheen bleef bij action 'cancel' het
+            // betaalde plan staan (gat L1).
+            plan_id: "free",
             billing_interval: currentSub?.billing_interval ?? interval,
             status: "canceled",
             canceled_at: nowISO,
-            cancel_at_period_end: true,
-            current_period_end: effectiveEnd,
+            cancel_at_period_end: false,
+            current_period_end: nowISO,
             pending_plan_id: null,
             pending_interval: null,
             pending_effective_at: null,
@@ -351,11 +439,19 @@ Deno.serve(async (req) => {
         );
       if (tsErr) throw tsErr;
 
-      log("Cancelled", { tenantId, effectiveEnd });
+      // Gedenormaliseerd planlabel gelijk trekken (service_role: mag sinds SEC-BILL-1).
+      const { error: labelErr } = await supabase
+        .from("tenants")
+        .update({ subscription_plan: "free" })
+        .eq("id", tenantId);
+      if (labelErr) throw labelErr;
+
+      log("Cancelled immediately", { tenantId, reason: decision.reason });
       return jsonResponse({
         success: true,
         action: "cancel",
-        effective_at: effectiveEnd,
+        at_period_end: false,
+        effective_at: nowISO,
       });
     }
 
@@ -403,6 +499,9 @@ Deno.serve(async (req) => {
             start_date: todayISO,
             next_invoice_date: todayISO,
             status: "active",
+            // SUB-UNIFY-2A: een einddatum van een eerdere opzegging mag een nieuwe
+            // activatie niet stil laten overslaan door de runner.
+            end_date: null,
             name: `${(tenant as any).billing_company_name || tenant.name} — ${targetPlan.name} (${interval})`,
           })
           .eq("id", billingSubId);
@@ -463,6 +562,57 @@ Deno.serve(async (req) => {
           { success: false, error: "No active billing subscription to switch — use action=activate" },
           400,
         );
+      }
+
+      // SUB-UNIFY-2A: een openstaande opzegging (pending Free aan het einde van de
+      // periode) wordt eerst ingetrokken. Een switch naar hetzelfde plan + interval is
+      // daarna een no-op: zo maakt de knop "Heractiveer abonnement" de opzegging
+      // ongedaan. Een switch naar een ander plan gaat daarna gewoon verder.
+      if (hasPendingCancellation(currentSub)) {
+        const { data: cancelledSub, error: csubErr } = await supabase
+          .from("subscriptions")
+          .select("id, status")
+          .eq("id", currentSub.billing_subscription_id)
+          .maybeSingle();
+        if (csubErr) throw csubErr;
+        const resume = decideResume(currentSub, (cancelledSub as { status?: string | null } | null)?.status ?? null);
+        if (!resume.resume) {
+          return jsonResponse(
+            {
+              success: false,
+              error: "Je abonnement is al gestopt. Kies opnieuw een plan zodra je op Free staat.",
+              code: "cancellation_final",
+              reason: resume.reason,
+            },
+            409,
+          );
+        }
+        const { error: unEndErr } = await supabase
+          .from("subscriptions")
+          .update({ end_date: null })
+          .eq("id", currentSub.billing_subscription_id)
+          .eq("status", "active");
+        if (unEndErr) throw unEndErr;
+        const { error: unCancelErr } = await supabase
+          .from("tenant_subscriptions")
+          .update({
+            cancel_at_period_end: false,
+            canceled_at: null,
+            pending_plan_id: null,
+            pending_interval: null,
+            pending_effective_at: null,
+          })
+          .eq("tenant_id", tenantId);
+        if (unCancelErr) throw unCancelErr;
+        log("Cancellation revoked", { tenantId, plan: currentSub.plan_id });
+        currentSub.cancel_at_period_end = false;
+        currentSub.canceled_at = null;
+        currentSub.pending_plan_id = null;
+        currentSub.pending_interval = null;
+        currentSub.pending_effective_at = null;
+        if (currentSub.plan_id === planId && ((currentSub.billing_interval as Interval) || "monthly") === interval) {
+          return jsonResponse({ success: true, action: "switch", noop: true, resumed: true });
+        }
       }
 
       const currentInterval = (currentSub.billing_interval as Interval) || "monthly";

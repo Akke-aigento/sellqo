@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12h — Opzeggen gaat in op het einde van je betaalde periode, en je kunt het ongedaan maken (bugfix + feature, 16-10-2026)
+
+**Pas versturen na** de deploy van `sync-tenant-plan` en `subscription-lifecycle-sweep`, de publish van sellqo.app (Lovable-hosted: pas live na `deploy_project`; voor de app pas na de volgende native build) én nadat de sweep op de echte modus staat (anders blijft een opgezegde winkel na de einddatum op zijn betaalde plan staan; dat is in het voordeel van de winkel, maar de tekst "daarna ga je naar Free" klopt dan nog niet).
+
+**Voor wie:** alle winkels met een betaald SellQo-abonnement.
+
+**Opzeggen kost je geen betaalde dagen meer** (oktober 2026)
+Zeg je je abonnement op of kies je Free, dan houd je je plan tot het einde van de periode waarvoor je al betaalde.
+Wat betekent dit voor jou? Je verliest niets van wat je betaald hebt, en tot de einddatum kun je de opzegging met één klik ongedaan maken.
+
+**i18n-keys.** `public.changelog.changes.subscription_cancel_period_end` en `public.changelog.changes.subscription_cancel_undo` — 5 talen.
+
 ### 2026.12g — Mediabibliotheek in de beeldkiezer (feature, 16-10-2026)
 
 **Pas versturen na** de publish van sellqo.app met EDITOR-MEDIA-1 (Lovable-hosted: pas live na `deploy_project`; voor de app pas na de volgende native build). Bundelen met 2026.12f: de beeldkiezer zelf komt uit die release.

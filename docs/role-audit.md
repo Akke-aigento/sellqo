@@ -1,3 +1,98 @@
+## SUB-UNIFY-2A — opzeggen gaat in op het einde van de betaalde periode, daarna Free via een dagelijkse sweep (eerst dry-run) — 16 oktober 2026
+
+**Status:** gebouwd en lokaal geverifieerd op branch `sub-cancel-1`. NIET gepusht, NIETS gedeployd, geen migratie gedraaid. Deploy-recept: `docs/prepared/SUB-UNIFY-2A-deploy.md`. Plan: `docs/prepared/2026-10-16-billing-batchplannen.md` §3 deel A. Keuze Akke (16-10): opzeggen en Free kiezen op het EINDE van de betaalde periode; de opruiming via een dagelijkse sweep die eerst als dry-run draait.
+
+**Root cause** (plan §3.3, met de code nagelezen):
+- L1 — `sync-tenant-plan/index.ts:323-359` (oud): `action:'cancel'` zette de billing-sub meteen op `cancelled`, `tenant_subscriptions.status='canceled'` en liet `plan_id` op het betaalde plan. Niets zette het ooit op Free (`check-expired-trials` kijkt alleen naar `trial_end`, `sync-billing-state` slaat `canceled` over).
+- L2 — Free kiezen viel in dezelfde tak met `plan_id:'free'` **meteen**: de betaalde resttermijn was weg.
+- L3 — een billing-sub die rechtstreeks geannuleerd is, liet `tenant_subscriptions` op `active` + betaald plan staan. Live: SellQo Speeltuin (Pro, sub `cancelled`, periode-einde 05-09) en SellQo Sandbox (Starter, sub `cancelled`, 09-08). Beide demo.
+- Vangst uit recon: de runner-tak "pending downgrade to free" (`generate-subscription-invoices` r. ~470-496) draait op `next_invoice_date − generate_days_before` (5 dagen) **vóór** de grens en zet dan meteen `plan_id='free'`: met die tak alleen zou een opzegger 5 betaalde dagen verliezen. Daarom niet die tak gebruikt, maar de bestaande end_date-guard van dezelfde runner (r. ~419-430: `end_date < next_invoice_date` → overgeslagen), zoals `mail-billing-api` `cancelSubscription` al doet. De runner zelf is niet gewijzigd.
+
+**Uitgevoerd**
+- `supabase/functions/_shared/planLifecycle.ts` (nieuw, puur, geen imports): `decideCancel` (einde periode of meteen), `decideResume` / `hasPendingCancellation` (intrekken), `decidePlanEnding` + `buildSweepRow` (sweep). Tests: `_shared/planLifecycle.test.ts` (16 deno-tests).
+- `supabase/functions/sync-tenant-plan/index.ts`:
+  - Opzeggen/Free met lopende betaalde periode en actieve billing-sub → `subscriptions.end_date = next_invoice_date − 1` (status blijft `active`; guard `.eq('status','active')`), `tenant_subscriptions`: `pending_plan_id='free'`, `pending_effective_at=current_period_end`, `cancel_at_period_end=true`, `canceled_at=now`. Plan en status blijven. Open pro-rata-upgrade → 409 `proration_cycle_open`.
+  - Geen betaald plan / geen billing-sub / sub niet actief / periode voorbij → meteen Free (zoals vroeger), maar nu **altijd** `plan_id='free'` (L1 dicht), `cancel_at_period_end=false` en `tenants.subscription_plan='free'` (label gelijk).
+  - `switch` met een openstaande opzegging: eerst intrekken (`end_date=null`, pending/cape/canceled_at leeg); naar hetzelfde plan+interval = no-op `{resumed:true}` (dat is de knop "Heractiveer abonnement"); naar een ander plan gaat de gewone up/downgrade verder. Billing-sub al gestopt of periode voorbij → 409 `cancellation_final`.
+  - `activate` (hergebruikte billing-sub) zet `end_date=null`, anders zou de runner een heractivatie stil overslaan.
+  - GET-stempel `SUB-UNIFY-2A`.
+- `supabase/functions/subscription-lifecycle-sweep/index.ts` (nieuw): **standaard dry-run** (alleen `{"dry_run": false}` schrijft), alleen cron/service-key (`denyUnlessCron`). Echte modus per `downgrade`-rij: `tenant_subscriptions` → `plan_id='free'`, `status='canceled'`, `cancel_at_period_end=false`, pending leeg (guard op het oude `plan_id`); billing-sub `active` → `cancelled`; `tenants.subscription_plan='free'`; melding `subscriptions/plan_ended` (action_url `/admin/billing`). Geen Stripe, geen `billing_cycles`, geen facturen, geen mails. Openstaande cycli worden alleen gemeld (`open_cycles`). GET-stempel.
+- `create-notification`, `send-push-notification`: alleen een GET-stempel (herdeploy wegens `notificationDefaults`).
+- Melding `subscriptions/plan_ended`: `src/types/notification.ts`, `_shared/notificationDefaults.ts`, label/omschrijving in de 5 app-locales.
+- `src/pages/admin/Billing.tsx` + `usePlatformBillingStatus.ts` (type): bij een openstaande opzegging een melding "Je abonnement loopt af op <datum>. Tot dan houd je je huidige plan, daarna ga je naar Free." met de knop **Heractiveer abonnement** (bestaande key `billing.reactivate`, tot nu ongebruikt) zolang de billing-sub `active` is en de periode loopt; anders de bestaande support-tekst. "Volgende factuurdatum"/"Volgende factuur" en de oude opzeg- en downgrade-banners worden dan verborgen. Toasts bij opzeggen (`plan_change.success_cancel` / `success_cancel_now`). i18n in alle 5 talen.
+- `supabase/migrations/20261016170000_sub_unify_2a_lifecycle_sweep_cron.sql`: cron 06:50 UTC met body `{"source":"cron","dry_run":true}`. NIET gedraaid.
+- `supabase/migrations/20261016171000_sub_unify_2a_doc_articles.sql`: twee tenant-artikels (exacte overname + aanvulling, md5-guard). NIET gedraaid.
+- `scripts/promo-compare/lifecycle-sweep.test.ts` (nieuw): de echte sweep-handler tegen de nep-databank. `fakeSupabase.ts`: `update().select()` geeft rijen terug en de write-log bewaart de `eq`-filters (additief; smoke en resolve-test blijven groen). CI-stappen uitgebreid met beide nieuwe tests.
+- Changelog `2026.12h` (`subscription_cancel_period_end` bugfix, `subscription_cancel_undo` feature), 5 talen. FAQ `landing.faq.items[2].a` in 5 talen: "Free = meteen stoppen" → "tot het einde van de betaalde periode, daarna Free".
+
+**Geld**
+- Een opzegger verliest niet langer de betaalde resttermijn (vroeger: Free kiezen = meteen weg).
+- Geen nieuwe cyclus na een opzegging: de bestaande runner-guard `end_date < next_invoice_date` (geverifieerd in de code én in een rollbacktest: "runner zou factureren" = 0).
+- Dit pad maakt geen Stripe-call, geen `billing_cycles`, geen factuur. De sweep idem.
+- Gat dat blijft (niet gefixt, beslisvraag 3): zegt een winkel op binnen de 5 dagen nadat de runner de volgende cyclus al maakte, dan blijft die cyclus (en de herinneringen van `process-cycle-reminders`, dat geen sub-status leest) openstaan. Dat was vroeger net zo. De sweep meldt zulke cycli als `open_cycles`. Betaalt de winkel die cyclus toch, dan verschuift `current_period_end` en loopt het plan tot die nieuwe grens.
+- Zolang de sweep in dry-run staat, blijft een opgezegde winkel na de grens op zijn betaalde plan (in het voordeel van de winkel, geen omzetverlies want er wordt niet meer gefactureerd).
+
+**Hoe Sander's winkels, interne winkels en demo's uitgesloten worden** (in `decidePlanEnding`, na de stopsignaal- en periodecheck zodat de dry-run ze apart toont):
+- `slug = 'sellqo'` (facturatietenant) → `excluded:billing_tenant`;
+- `is_internal_tenant` of `billing_exempt` (Studio Akke, VanXcel, Loveke, Fonske, alle demo's met exempt) → `excluded:exempt`;
+- `billing_on_hold` = de vlag waarmee Mancini Milano, Zona Dorata en Benny Rich "gratis tot omschakeling" staan (zelfde vlag die `check-expired-trials` → `hold` gebruikt) → `excluded:on_hold`. Bovendien hebben die drie geen billing-sub en geen opzegging, dus ook na hun trial-einde (27-10) geen enkel stopsignaal (`ignore:not_ended`; getest met datum 15-11);
+- `is_demo` → `excluded:demo`; lopende `trial_end` → `excluded:trial_running`; geen `current_period_end` → `excluded:no_period_end` (handmatig bekijken);
+- Free en Events Flex (plan zonder maand-/jaarprijs) worden nooit aangeraakt. Astra (periode verstreken, sub actief, geen opzegging) valt erbuiten: dat is BILLING-ENFORCE.
+
+**De dry-run-lijst van vandaag** (live 16-10 09:39 UTC; exact dezelfde helpers als de functie via `buildSweepRow` + `decidePlanEnding`, én als losse SQL-SELECT nagerekend, beide identiek):
+
+| Winkel | Plan | Status | Billing-sub | Periode-einde | Beslissing | Signaal | Open cycli |
+|---|---|---|---|---|---|---|---|
+| SellQo Sandbox | starter | active | cancelled | 2026-08-09 | uitgesloten: demo | billing_subscription_ended | 0 |
+| SellQo Speeltuin | pro | active | cancelled | 2026-09-05 | uitgesloten: demo | billing_subscription_ended | 0 |
+
+**0 winkels zouden vandaag naar Free gaan.** De 21 andere rijen: `ignore`. Met datum 15-11-2026 (na het trial-einde van Sander's winkels): zelfde uitkomst.
+
+**Security-keuzes**
+- Alle schrijvers zijn service_role (`sync-tenant-plan`, de sweep): `tenants.subscription_plan` mag dat sinds SEC-BILL-1 (`auth.uid()` null). Nagemeten in de rollbacktest (rol `postgres`, `auth.uid()` null): label-update 1 rij.
+- Sweep: alleen cron-secret of service-key (`denyUnlessCron`); zonder → 401 zonder iets te lezen (test). GET geeft enkel de versiestempel.
+- Geen RLS, policy of grant gewijzigd. Geen nieuwe kolom.
+- De knop "Heractiveer" gaat via het bestaande `sync-tenant-plan` met dezelfde rolcheck (platform_admin of tenant_admin van die winkel).
+
+**Gedeelde-paden-waarschuwing**
+- `sync-tenant-plan` bedient tenant-admins, platform-admins en `check-expired-trials` (systeem, alleen `activate`). Elke wereld nagelopen: `activate` raakt enkel `end_date=null` erbij; de upgrade-, downgrade- en FLEX-takken blijven identiek zolang er geen openstaande opzegging is.
+- `_shared/notificationDefaults.ts`: één sleutel erbij, gelezen door `create-notification` en `send-push-notification` → beide in de deploylijst.
+- `fakeSupabase.ts` is de testharnas van smoke/resolve/compare: additief, smoke en resolve-test groen.
+- Geen storefront-pad, geen gedeelde storefront-tabel geraakt (eerste wet n.v.t.).
+
+**Verificatie** (exit codes)
+- `deno test` alle `_shared`-tests uit CI + `planLifecycle.test.ts`: 94 passed, exit 0.
+- `deno test` `resolve.test.ts` + `lifecycle-sweep.test.ts` (echte handler, nep-databank): 9 passed, exit 0. Bewijst: lege body, cron-body en `"false"`/`0` = dry-run zonder write; echte modus = precies 4 writes op 1 winkel, 0 op `billing_cycles`/`invoices`; 401 zonder sleutel.
+- `deno check` (import map: esm.sh-supabase → `npm:@supabase/supabase-js@2.57.2`, stripe → `npm:stripe@18.5.0`, rest stubs; `--minimum-dependency-age=0`) op `sync-tenant-plan`, `subscription-lifecycle-sweep`, `create-notification`, `send-push-notification`, `planLifecycle.ts`: exit 0. (Met de stripe-stub: alleen de 2 bekende `Cannot use namespace 'Stripe'`-fouten in `_shared/stripe.ts`, identiek op HEAD.)
+- Rooktest storefront-api (`scripts/promo-compare/smoke.ts`): exit 0.
+- `npx tsc --noEmit -p tsconfig.app.json`: exit 0. `npx vitest run`: 54 files / 726 tests, exit 0.
+- `node scripts/i18n-parity.mjs`: exit 0. `check-notification-sources`: exit 0. `check-dead-buttons`: exit 0 (2 bekend = baseline). `verify-edge-pins`: exit 0. `verify-lint-baseline`: exit 0 (1482 → 1481). `npm run build`: exit 0 (`public/sitemap.xml` teruggezet).
+- DB (rollback, `DO … RAISE EXCEPTION`): Speeltuin als betalende Pro-klant met periode tot 05-11 → opzeg-writes → pending free, plan pro; runner zou factureren: 0; sweep vóór grens: `scheduled`; na grens (demo-vlag uit): `downgrade`; sweep-writes 1/1/1/1 rij; tweede run: 0 kandidaten; 0 nieuwe cycli. Natrek na rollback: Speeltuin ongewijzigd, 0 `plan_ended`-meldingen, `net.http_request_queue` 0.
+- Cron-migratie in rollback: job aangemaakt met `dry_run:true` in de body, daarna 0 jobs. doc_articles-migratie in rollback: md5 `9639747f…`/`33ba2164…`, 1 rij per slug; live daarna ongewijzigd.
+- Nulmeting GET-stempels: zie het deploy-recept (ids 261083-261087).
+
+**Deploylijst** (`grep -rl`): `sync-tenant-plan`, `subscription-lifecycle-sweep` (nieuw) — importeren `_shared/planLifecycle.ts`; `create-notification`, `send-push-notification` — importeren `_shared/notificationDefaults.ts`. Daarna `deploy_project` (sellqo.app) en de volgende native build. Dan doc_articles-migratie, cron (dry-run). Echte modus = aparte go.
+
+**DOCS-1:** `abonnement-en-betaalwijze-beheren` (tenant, `/admin/billing`): spelregel + sectie "Opzeggen en heractiveren"; `abonnement-beheren`: de foute zin "Wijzigingen gaan direct in." vervangen.
+
+**Claim-audit** (`/pricing`, FAQ, onboarding): FAQ "Stop je en ga je naar Free, dan stopt je betaalde abonnement meteen" gecorrigeerd (bron: `decideCancel` + Billing-banner). Gevonden, niet gefixt:
+- "Maandelijks opzegbaar" (hero, pricing-voet, trust): klopt voor maandplannen; bij een jaarplan loopt het plan tot het einde van het jaar. Voorstel: "Opzeggen kan altijd, je plan loopt tot het einde van je betaalde periode".
+- `billing.plan_change.upgrade_body` (app): "wordt verrekend op je eerstvolgende factuur" klopt niet met pay-first (je betaalt het verschil eerst).
+- `abonnement-beheren`: de planlijst (eigen domein, visuele editor, white-label, transactievolume) is ouder dan MKT-4 en niet nagelopen.
+
+**Open beslisvragen voor Akke**
+1. **Sweep naar de echte modus: wanneer?** Aanbeveling: na één cron-dry-run zonder onverwachte `downgrade`-rij (vandaag 0 kandidaten), als aparte go.
+2. **Speeltuin en Sandbox** (demo, billing-sub geannuleerd, nog op Pro/Starter): blijven uitgesloten. Aanbeveling: zo laten; een live test van de opzeg-flow op Speeltuin vraagt een actief abonnement, en `activate` maakt meteen een echte cyclus + betaalverzoek. De flow is in een rollback op Speeltuin bewezen; de eerste echte opzegging meten we na.
+3. **Opzeggen binnen 5 dagen nadat de volgende cyclus al gemaakt is:** die openstaande cyclus automatisch annuleren in `sync-tenant-plan` (alleen `pending`/`awaiting_payment`/`reopened`, `invoice_id` null, nooit `processing`)? Aanbeveling: ja, als eigen kleine batch, na nagaan wat een betaling op een geannuleerde cyclus in de webhook doet.
+4. **"Maandelijks opzegbaar" bij jaarplannen** (zie claim-audit). Aanbeveling: tekst aanpassen.
+5. **Events Flex-tak** (betaald → Flex stopt meteen): ook naar het einde van de periode? Aanbeveling: ja, samen met 3.
+
+**Bewust ongemoeid / Vervolg**
+- L4 (platform-admin Abonnement-tab schrijft buiten de writer) en L5 (cadeaumaand schuift `next_invoice_date` niet op): niet in deze opdracht.
+- FLEX-1-tak: van een betaald plan naar Events Flex stopt de billing-sub nog meteen (betaalde resttermijn weg). Zelfde soort gat als L2; eigen beslissing.
+- Deel B (sloop oude laag) volgt na BILL-VAT-PF-1/BILL-REFUND-1.
+- Skill `sellqo-release-werkwijze` zegt changelog-type `fix`, de code (`PublicChangelog.tsx`) en `CLAUDE.md` zeggen `bugfix`: skill klopt niet meer (voorstel: `fix` → `bugfix`).
+
 ## APP-SEC-1 — Capacitor 8.5.0 → 8.5.2 (kritieke kwetsbaarheid), Android versionCode 14 — 16 oktober 2026
 
 **Root cause.** `npm audit` (nachtcheck 16-10): Capacitor android/ios 8.5.0 heeft een kritieke kwetsbaarheid (remote content via het interne proxypad), opgelost in 8.5.1.

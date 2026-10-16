@@ -85,6 +85,7 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "subscriptions/billing_cycle_expired": { category: "subscriptions", inApp: true, email: false },
   "subscriptions/subscription_state_changed": { category: "subscriptions", inApp: true, email: false },
   "subscriptions/subscription_reactivated": { category: "subscriptions", inApp: true, email: false },
+  "subscriptions/plan_ended": { category: "subscriptions", inApp: true, email: false },
   "marketing/campaign_sent": { category: "marketing", inApp: true, email: false },
   "marketing/campaign_completed": { category: "marketing", inApp: true, email: false },
   "marketing/campaign_high_open_rate": { category: "marketing", inApp: true, email: false },

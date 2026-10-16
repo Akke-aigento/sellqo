@@ -929,6 +929,10 @@
           "subscription_reactivated": {
             "label": "Abonnement de nouveau actif",
             "description": "Tout est de nouveau accessible après le paiement"
+          },
+          "plan_ended": {
+            "label": "Abonnement terminé",
+            "description": "Votre période payée est terminée et votre boutique est sur Free"
           }
         },
         "marketing": {
@@ -6993,7 +6997,9 @@
       "confirm": "Confirmer",
       "success_upgrade": "Vous êtes maintenant sur {{plan}}.",
       "success_downgrade": "Vous passerez à {{plan}} à la prochaine période.",
-      "error": "Le changement de plan a échoué"
+      "error": "Le changement de plan a échoué",
+      "success_cancel": "Résilié. Vous gardez votre plan jusqu'au {{date}}, ensuite vous passez à Free.",
+      "success_cancel_now": "Vous êtes maintenant sur Free."
     },
     "usage_labels": {
       "products": "Produits",
@@ -7066,6 +7072,11 @@
       },
       "payNow": "Payer maintenant",
       "toBilling": "Vers la facturation"
+    },
+    "cancellation": {
+      "banner": "Votre abonnement se termine le {{date}}. Vous gardez votre plan actuel jusque-là, ensuite vous passez à Free.",
+      "resumed": "Votre résiliation a été annulée. Votre abonnement continue.",
+      "resume_error": "Impossible d'annuler la résiliation"
     }
   },
   "product_form": {

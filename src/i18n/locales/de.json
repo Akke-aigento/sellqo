@@ -929,6 +929,10 @@
           "subscription_reactivated": {
             "label": "Abonnement wieder aktiv",
             "description": "Nach der Zahlung ist wieder alles freigeschaltet"
+          },
+          "plan_ended": {
+            "label": "Abonnement beendet",
+            "description": "Dein bezahlter Zeitraum ist vorbei und dein Shop ist auf Free"
           }
         },
         "marketing": {
@@ -6993,7 +6997,9 @@
       "confirm": "Bestätigen",
       "success_upgrade": "Du bist jetzt auf {{plan}}.",
       "success_downgrade": "Du wechselst zur nächsten Periode zu {{plan}}.",
-      "error": "Planwechsel fehlgeschlagen"
+      "error": "Planwechsel fehlgeschlagen",
+      "success_cancel": "Gekündigt. Du behältst deinen Plan bis zum {{date}}, danach wechselst du zu Free.",
+      "success_cancel_now": "Du bist jetzt auf Free."
     },
     "usage_labels": {
       "products": "Produkte",
@@ -7066,6 +7072,11 @@
       },
       "payNow": "Jetzt bezahlen",
       "toBilling": "Zur Abrechnung"
+    },
+    "cancellation": {
+      "banner": "Dein Abonnement endet am {{date}}. Bis dahin behältst du deinen aktuellen Plan, danach wechselst du zu Free.",
+      "resumed": "Deine Kündigung wurde zurückgenommen. Dein Abonnement läuft weiter.",
+      "resume_error": "Kündigung konnte nicht zurückgenommen werden"
     }
   },
   "product_form": {

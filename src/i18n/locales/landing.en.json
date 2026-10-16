@@ -454,7 +454,7 @@
         },
         {
           "q": "Can I switch plans or stop later?",
-          "a": "Yes, in your admin under Subscription, with no notice period. An upgrade takes effect once the difference for the current period is paid. A downgrade takes effect at the next period. If you stop and move to Free, your paid subscription ends immediately."
+          "a": "Yes, in your admin under Subscription, with no notice period. An upgrade takes effect once the difference for the current period is paid. A downgrade takes effect at the next period. If you stop or choose Free, you keep your plan until the end of the period you already paid for; after that you move to Free."
         },
         {
           "q": "What's in the Hospitality plan?",
@@ -2082,6 +2082,14 @@
         "image_picker_media_library": {
           "title": "Media library in the image picker",
           "description": "In the store editor, the image picker now has a Media library tab. It shows the images you uploaded before: in the image picker itself, your product photos, category and event images and the images from your media library under Marketing, newest first. Search by file name and pick an image with one click, without uploading it again. The image picker and the Online store page are now also translated into every SellQo language."
+        },
+        "subscription_cancel_period_end": {
+          "title": "Cancelling takes effect at the end of your paid period",
+          "description": "If you cancel your subscription or choose Free under Subscription, you keep your current plan until the end of the period you already paid for. After that you move to Free. Previously, choosing Free took effect immediately and you lost the rest of your paid period."
+        },
+        "subscription_cancel_undo": {
+          "title": "Undo a cancellation",
+          "description": "Changed your mind? As long as your paid period is running, Subscription shows the end date and a Reactivate subscription button. Your subscription then simply continues on the same plan, at no extra cost."
         }
       },
       "copyLink": "Copy link",

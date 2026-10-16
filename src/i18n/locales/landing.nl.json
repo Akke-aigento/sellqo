@@ -454,7 +454,7 @@
         },
         {
           "q": "Kan ik later van plan wisselen of stoppen?",
-          "a": "Ja, in je beheeromgeving onder Abonnement, zonder opzegtermijn. Een upgrade gaat in zodra het verschil voor de lopende periode betaald is. Een downgrade gaat in bij de volgende periode. Stop je en ga je naar Free, dan stopt je betaalde abonnement meteen."
+          "a": "Ja, in je beheeromgeving onder Abonnement, zonder opzegtermijn. Een upgrade gaat in zodra het verschil voor de lopende periode betaald is. Een downgrade gaat in bij de volgende periode. Stop je of kies je Free, dan houd je je plan tot het einde van de periode waarvoor je al betaalde; daarna ga je naar Free."
         },
         {
           "q": "Wat zit er in het Horeca-plan?",
@@ -2082,6 +2082,14 @@
         "image_picker_media_library": {
           "title": "Mediabibliotheek in de beeldkiezer",
           "description": "In de webshop-editor (Aanpassen) heeft de beeldkiezer nu een tabblad Mediabibliotheek. Daar vind je de afbeeldingen die je eerder uploadde: in de beeldkiezer zelf, je productfoto's, categorie- en eventbeelden en de afbeeldingen uit je mediabibliotheek bij Marketing, met de nieuwste bovenaan. Je zoekt op bestandsnaam en kiest een afbeelding met één klik, zonder ze opnieuw te uploaden. De beeldkiezer en de Webshop-pagina zijn nu ook vertaald in alle talen van SellQo."
+        },
+        "subscription_cancel_period_end": {
+          "title": "Opzeggen gaat in op het einde van je betaalde periode",
+          "description": "Zeg je je abonnement op of kies je Free onder Abonnement, dan houd je je huidige plan tot het einde van de periode waarvoor je al betaald hebt. Daarna ga je naar Free. Vroeger ging Free kiezen meteen in en verloor je de rest van je betaalde periode."
+        },
+        "subscription_cancel_undo": {
+          "title": "Opzegging ongedaan maken",
+          "description": "Bedenk je je? Zolang je betaalde periode loopt, zie je onder Abonnement de einddatum en een knop Heractiveer abonnement. Daarmee loopt je abonnement gewoon door op hetzelfde plan, zonder extra kosten."
         }
       },
       "copyLink": "Kopieer link",

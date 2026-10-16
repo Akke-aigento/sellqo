@@ -37,6 +37,13 @@ serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // SUB-UNIFY-2A: versiestempel om de herdeploy (nieuwe meldingsdefault plan_ended) zonder
+  // neveneffect na te meten. Geen auth, geen data.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "SUB-UNIFY-2A" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

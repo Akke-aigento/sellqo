@@ -15,11 +15,14 @@ class Query {
   private countMode = false;
   private singleMode: 'maybe' | 'one' | null = null;
   private isUpdate = false;
+  // SUB-UNIFY-2A: update(...).select(...) geeft de geraakte rijen terug (zoals PostgREST).
+  private returning = false;
   constructor(private db: FakeDb, private table: string) {}
-  select(_cols?: string, opts?: { count?: string; head?: boolean }) { if (opts?.count) this.countMode = true; if (opts?.head) this.head = true; return this; }
-  update(patch: Row) { this.isUpdate = true; this.db.writes.push({ table: this.table, patch }); return this; }
+  select(_cols?: string, opts?: { count?: string; head?: boolean }) { if (this.isUpdate) this.returning = true; if (opts?.count) this.countMode = true; if (opts?.head) this.head = true; return this; }
+  private write: Row | null = null;
+  update(patch: Row) { this.isUpdate = true; this.write = { table: this.table, patch, where: {} }; this.db.writes.push(this.write); return this; }
   insert(rows: any) { this.db.writes.push({ table: this.table, insert: rows }); return this; }
-  eq(c: string, v: any) { this.filters.push((r) => String(r[c]) === String(v)); return this; }
+  eq(c: string, v: any) { if (this.write) this.write.where[c] = v; this.filters.push((r) => String(r[c]) === String(v)); return this; }
   neq(c: string, v: any) { this.filters.push((r) => String(r[c]) !== String(v)); return this; }
   in(c: string, vs: any[]) { const s = new Set(vs.map(String)); this.filters.push((r) => s.has(String(r[c]))); return this; }
   gt(c: string, v: any) { this.filters.push((r) => r[c] != null && (typeof v === 'number' ? Number(r[c]) > v : String(r[c]) > String(v))); return this; }
@@ -60,7 +63,10 @@ class Query {
   // deno-lint-ignore no-explicit-any
   then(res: (v: any) => any, rej?: (e: any) => any) { return Promise.resolve(this.run()).then(res, rej); }
   private run() {
-    if (this.isUpdate) return { data: null, error: null };
+    if (this.isUpdate) {
+      if (!this.returning) return { data: null, error: null };
+      return { data: (this.db.tables[this.table] || []).filter((r) => this.filters.every((f) => f(r))).map((r) => structuredClone(r)), error: null };
+    }
     let rows = (this.db.tables[this.table] || []).filter((r) => this.filters.every((f) => f(r)));
     const count = rows.length;
     if (this.rangeFrom || this.lim != null) rows = rows.slice(this.rangeFrom, this.lim != null ? this.rangeFrom + this.lim : undefined);

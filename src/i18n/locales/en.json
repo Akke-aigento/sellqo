@@ -901,6 +901,10 @@
           "subscription_reactivated": {
             "label": "Subscription active again",
             "description": "Everything is open again after payment"
+          },
+          "plan_ended": {
+            "label": "Subscription ended",
+            "description": "Your paid period is over and your store is on Free"
           }
         },
         "marketing": {
@@ -1818,7 +1822,9 @@
       "confirm": "Confirm",
       "success_upgrade": "You are now on {{plan}}.",
       "success_downgrade": "You will move to {{plan}} next period.",
-      "error": "Plan change failed"
+      "error": "Plan change failed",
+      "success_cancel": "Cancelled. You keep your plan until {{date}}, after that you move to Free.",
+      "success_cancel_now": "You are now on Free."
     },
     "usage_labels": {
       "products": "Products",
@@ -1891,6 +1897,11 @@
       },
       "payNow": "Pay now",
       "toBilling": "Go to billing"
+    },
+    "cancellation": {
+      "banner": "Your subscription ends on {{date}}. You keep your current plan until then, after that you move to Free.",
+      "resumed": "Your cancellation has been withdrawn. Your subscription continues.",
+      "resume_error": "Could not withdraw the cancellation"
     }
   },
   "import": {

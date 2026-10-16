@@ -14,6 +14,10 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.12h', dateKey: 'oct_2026', changes: [
+    { id: 'subscription_cancel_period_end', type: 'bugfix' },
+    { id: 'subscription_cancel_undo', type: 'feature' },
+  ] },
   { version: '2026.12g', dateKey: 'oct_2026', changes: [
     { id: 'image_picker_media_library', type: 'feature' },
   ] },
