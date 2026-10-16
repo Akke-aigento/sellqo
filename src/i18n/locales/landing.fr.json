@@ -2110,6 +2110,10 @@
         "media_library_ai_social": {
           "title": "Images IA et images sociales aussi dans ta médiathèque",
           "description": "Les images que tu crées ou retouches avec l'IA, ainsi que les images de tes publications sociales, arrivent désormais aussi automatiquement dans ta médiathèque. Les images IA ont leur propre onglet, les images sociales se trouvent sous Social. Sous Produits → Photos, la partie du haut n'affiche plus que tes photos non utilisées, comme les originaux après standardisation, pour que tu ne voies plus de photos en double."
+        },
+        "social_results": {
+          "title": "Planification sociale : résultats par publication et par moment",
+          "description": "Sous chaque publication en ligne, vous voyez maintenant les chiffres d'Instagram : portée, j'aime, commentaires, enregistrements et partages. Le nouvel onglet Résultats montre quel moment de la journée, quel jour et quel type de publication fonctionnent le mieux, vos meilleures publications et l'évolution de vos abonnés. Les publications planifiées sont en outre mises en ligne quelques minutes après l'heure choisie."
         }
       },
       "copyLink": "Copier le lien",

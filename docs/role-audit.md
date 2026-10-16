@@ -1,3 +1,71 @@
+## SOCIAL-5 + 5a — Resultaten in de Social planning, publicatie elke 5 minuten en posttijden per merk (2026.12l) — 16 oktober 2026
+
+Akke 16-10: "moet zelflerend zijn voor elk merk … waar worden deze resultaten en analyses gebruikt/weergegeven?", "dit moet ook algemeen veranderen en gevarieerd zijn" en go 21:05 ("doorpakken").
+
+**Root cause**
+- Er werd niets gemeten. `social_posts.engagement_data` bestond, maar werd nergens gevuld (grep in `supabase/functions` op 16-10: 0 schrijvers).
+- De Instagram-koppeling vroeg enkel `instagram_business_basic` en `instagram_business_content_publish` (`social-oauth-init/index.ts`, r. 33). Zonder `instagram_business_manage_insights` geeft Instagram geen bereik, bewaard of gedeeld.
+- `social-publish-due-hourly` draaide op `1 * * * *`. Een post op 20:35 ging dus pas om 21:01 online, zodat een gekozen posttijd niet echt gehaald werd.
+- De weektaken en de brand-README's in nomadix-socials hadden vaste uren: 18:00 en 18:05 voor alles, en 19:00 voor reels.
+
+**Uitgevoerd**
+- `supabase/migrations/20261016210000_social_5a_publish_every_5min.sql`: `cron.alter_job` op `*/5 * * * *`.
+  - Het cron-commando roept de functie enkel aan als er werk is (EXISTS), dus de kost blijft ongewijzigd.
+  - De retry-backoff van 50 minuten in `social_claim_due_posts` blijft van kracht.
+- `supabase/functions/_shared/socialInsights.ts` (nieuw) bevat:
+  - metricsets per soort volgens de Meta-documentatie (okt 2026: `views` in plaats van `impressions`), met een kleinere set als terugvaloptie;
+  - herkenning van ontbrekende toestemming (code 10/200/190) en van stories met minder dan 5 weergaven;
+  - `matchMedia`: zelf in de app geplaatste posts koppelen op soort en tijdstip, binnen ±3 u, de dichtste wint en elke media hoogstens één keer;
+  - `needsRefresh`: jonge posts om de 2,5 u opnieuw meten, tot 7 dagen om de 12 u, daarna om de 72 u, en na 35 dagen niet meer.
+- `supabase/functions/social-insights-sync/index.ts` (nieuw, `verify_jwt = false`, x-cron-secret). Per actieve Instagram Login-koppeling:
+  - volgers en aantal media naar `social_account_stats`;
+  - de medialijst ophalen voor de matching;
+  - cijfers naar `social_posts.engagement_data`, en alleen naar die kolom (update met `.eq('status','posted')`).
+  - Zonder toestemming: likes en reacties uit de medialijst (`source: 'basic'`).
+- `supabase/functions/social-oauth-init/index.ts`: scope `instagram_business_manage_insights` toegevoegd.
+- `supabase/migrations/20261016220000_social_5_insights.sql` bevat drie onderdelen:
+  - de tabel `social_account_stats`, met RLS en enkel select voor leden;
+  - de view `social_post_performance` (security_invoker), met weekdag en uur in Brusselse tijd en de interactiegraad;
+  - de cronjob `social-insights-sync` op `17 */3 * * *`, die enkel loopt als er een actieve IG-koppeling is.
+- Frontend:
+  - `src/lib/social/results.ts`: dagdelen, interactiegraad, het beste vak (minstens 3 posts), top-5 en volgersgroei.
+  - `src/hooks/useSocialResults.ts`.
+  - `SocialResults.tsx`: de tab Resultaten.
+  - `SocialPlanner.tsx`: tabs Planning en Resultaten.
+  - `SocialPlannerCard.tsx`: cijfers en een link "Bekijk op Instagram" onder geposte posts.
+  - `useSocialPlanner.ts`: `engagement_data` in de select.
+  - i18n `admin.socialPlanner.{tabs,metrics,results}` in nl/en/fr/de/uk.
+- Tests: `socialInsights.test.ts` (7, Deno, opgenomen in CI) en `src/test/socialResults.test.ts` (6, vitest).
+- Slottaken:
+  - changelog 2026.12l `social_results` in 5 talen;
+  - helpartikel `20261016220100_social_5_doc_article.sql` (sectie Resultaten; "binnen enkele minuten");
+  - newsletter-wachtrij.
+- Buiten deze repo:
+  - `shared/POSTTIJDEN.md` in nomadix-socials (7c56ebe): vensters per merk, geen vaste uren, één testslot per week, de eigen data gaat voor. De README's van alle merken en de Loveke-README (cf47d01) verwijzen ernaar.
+  - De weektaken van Loveke, SellQo, Studio Akke en VanXcel lezen POSTTIJDEN en de resultaten.
+  - 27 geplande posts van SellQo, Studio Akke, VanXcel en Fonske zijn herschikt. Snapshot: `snapshots.nomadix_20261016_social_posts_times`.
+
+**Security-keuzes**
+- `social_account_stats`: RLS aan; SELECT voor leden van de winkel en voor platformbeheerders (zelfde regel als `social_posts_select_members`); geen INSERT/UPDATE/DELETE-policy, dus schrijven gebeurt enkel via de service role; anon heeft geen rechten.
+- `social_post_performance`: `security_invoker = true`, dus de RLS van `social_posts` geldt.
+- `social-insights-sync` werkt alleen met het cron-secret (`isAuthorizedCronRequest`). Tokens blijven in de functie: GET-parameter naar graph.instagram.com, nooit gelogd.
+
+**Gedeelde-paden-waarschuwing**
+- `_shared/socialInsights.ts` is nieuw en wordt enkel door `social-insights-sync` gebruikt.
+- Het importeert enkel `GRAPH_VERSION` uit `socialPublish.ts`; dat bestand is niet gewijzigd. Er hoeven dus geen andere functies opnieuw gedeployd te worden.
+- Geen storefront-pad of gedeelde storefront-tabel geraakt. De eerste wet is n.v.t.
+
+**Verificatie**
+- Deno: `socialInsights.test.ts` 7/7; `deno check` op `social-insights-sync` en `social-oauth-init`.
+- vitest `socialResults.test.ts` 6/6. i18n-pariteit: volledig (8180 keys × 5).
+- eslint op de gewijzigde bestanden: 0 meldingen. tsc en build: zie hieronder.
+
+**Bewust ongemoeid / Vervolg**
+- `online_followers` staat niet meer in de metrictabel van Meta (okt 2026) en geldt pas vanaf 100 volgers. Niet gebouwd; de beste uren komen uit de eigen posts.
+- De UI-tekst `pastDue` ("binnen het uur") klopt nog en is niet aangepast.
+- Elk account moet één keer opnieuw koppelen om de nieuwe toestemming te geven. Tot dan zijn er enkel likes en reacties (`basic`).
+- In de Meta-app moet `instagram_business_manage_insights` aan de Instagram-use-case toegevoegd zijn.
+
 ## MEDIA-2 — AI- en social-beelden in de ene bibliotheek, geen dubbel grid meer onder Producten → Foto's (2026.12k) — 16 oktober 2026
 
 Akke's go 15:49 ("yes go for it") op het voorstel na de Mancini-bulk: het dubbele grid weg en AI/social-beelden mee in de bibliotheek.

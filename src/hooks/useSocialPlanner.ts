@@ -2,7 +2,7 @@
 //
 // Alles gaat rechtstreeks via de bestaande RLS op social_posts
 // (social_posts_update_marketing / social_posts_delete_marketing: tenant_admin, staff,
-// marketing). Publiceren zelf doet de scheduler (social-publish-due), elk uur op :01.
+// marketing). Publiceren zelf doet de scheduler (social-publish-due), elke 5 minuten (SOCIAL-5a).
 
 import { useMemo } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -10,6 +10,7 @@ import { startOfWeek, subDays } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
+import type { EngagementData } from '@/lib/social/results';
 
 export type PlannerStatus =
   | 'draft'
@@ -60,6 +61,8 @@ export interface PlannerPost {
   language: string | null;
   /** SOCIAL-4: per beeld een recept (of null), parallel aan image_urls. */
   image_recipes: unknown[] | null;
+  /** SOCIAL-5: cijfers van Instagram na publicatie (social-insights-sync). */
+  engagement_data: EngagementData | null;
 }
 
 /** SOCIAL-3: een reel kan enkel automatisch als er een versie met muziek is. */
@@ -107,7 +110,7 @@ export function useSocialPlanner() {
       const since = subDays(startOfWeek(new Date(), { weekStartsOn: 1 }), 7).toISOString();
       const { data, error } = await supabase
         .from('social_posts')
-        .select('id, platform, post_text, image_urls, media_type, scheduled_for, posted_at, status, error_message, source, publish_attempts, video_url, video_silent_url, music_hint, manual_reason, regenerate_note, language, image_recipes')
+        .select('id, platform, post_text, image_urls, media_type, scheduled_for, posted_at, status, error_message, source, publish_attempts, video_url, video_silent_url, music_hint, manual_reason, regenerate_note, language, image_recipes, engagement_data')
         .eq('tenant_id', tenantId!)
         .or(`scheduled_for.gte.${since},status.in.(pending_approval,failed,manual,regenerate_requested)`)
         .order('scheduled_for', { ascending: true, nullsFirst: false })

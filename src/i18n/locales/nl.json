@@ -7249,6 +7249,59 @@
         "processing": "Instagram verwerkt de video nog. Hij staat binnen het uur online.",
         "retry": "Lukte nu niet: {{message}}. SellQo probeert het binnen het uur opnieuw.",
         "failed": "Niet gepubliceerd: {{message}}"
+      },
+      "tabs": {
+        "planning": "Planning",
+        "results": "Resultaten"
+      },
+      "metrics": {
+        "reach": "{{value}} bereik",
+        "views": "{{value}} weergaven",
+        "likes": "{{value}} likes",
+        "comments": "{{value}} reacties",
+        "saved": "{{value}} bewaard",
+        "shares": "{{value}} gedeeld",
+        "rate": "{{value}} % interactie",
+        "interactions": "{{value}} interacties",
+        "open": "Bekijk op Instagram",
+        "lowVolume": "Te weinig weergaven: Instagram geeft pas cijfers vanaf 5."
+      },
+      "results": {
+        "empty": "Er is nog niets gepost. Zodra een post online staat, verschijnen hier binnen 3 uur de eerste cijfers.",
+        "waiting": "De eerste cijfers verschijnen binnen 3 uur na publicatie.",
+        "basicOnly": "Je ziet nu enkel likes en reacties. Koppel Instagram opnieuw en geef toestemming voor statistieken, dan komen bereik, bewaard en gedeeld erbij.",
+        "reconnect": "Opnieuw koppelen",
+        "measured": "Gemeten posts",
+        "ofPosted": "van {{count}} geposte (90 dagen)",
+        "avgReach": "Gem. bereik",
+        "avgRate": "Gem. interactiegraad",
+        "avgInteractions": "Gem. interacties",
+        "followers": "Volgers",
+        "followersDelta": "{{delta}} sinds {{since}}",
+        "posts": "aantal: {{count}}",
+        "bestDaypart": "Beste moment tot nu toe: {{part}} ({{score}}, {{count}} posts).",
+        "bestWeekday": "Beste dag tot nu toe: {{day}} ({{score}}, {{count}} posts).",
+        "tooFew": "Nog te weinig posts om te vergelijken: per dagdeel of dag zijn er minstens {{min}} nodig.",
+        "rateExplain": "Interactiegraad = likes, reacties, bewaard en gedeeld, gedeeld door het aantal bereikte accounts.",
+        "interactionsExplain": "Zonder bereik vergelijken we het gemiddelde aantal likes en reacties.",
+        "byDaypart": "Per dagdeel",
+        "byWeekday": "Per weekdag",
+        "byType": "Per soort",
+        "top": "Beste posts",
+        "footnote": "Cijfers van Instagram, elke 3 uur bijgewerkt. Instagram kan tot 48 uur achterlopen en stories zijn maar 24 uur meetbaar. Posts die je zelf in de app plaatste, koppelt SellQo op tijdstip.",
+        "daypart": {
+          "morning": "Ochtend (5–11 u)",
+          "midday": "Middag (11–14 u)",
+          "afternoon": "Namiddag (14–18 u)",
+          "evening": "Avond (18–22 u)",
+          "late": "Laat (22–5 u)"
+        },
+        "type": {
+          "image": "Post",
+          "carousel": "Carrousel",
+          "reel": "Reel",
+          "story": "Story"
+        }
       }
     }
   },

@@ -7235,6 +7235,59 @@
         "processing": "Instagram is still processing the video. It will be live within the hour.",
         "retry": "Did not work right now: {{message}}. SellQo will try again within the hour.",
         "failed": "Not published: {{message}}"
+      },
+      "tabs": {
+        "planning": "Planning",
+        "results": "Results"
+      },
+      "metrics": {
+        "reach": "{{value}} reach",
+        "views": "{{value}} views",
+        "likes": "{{value}} likes",
+        "comments": "{{value}} comments",
+        "saved": "{{value}} saved",
+        "shares": "{{value}} shared",
+        "rate": "{{value}}% engagement",
+        "interactions": "{{value}} interactions",
+        "open": "View on Instagram",
+        "lowVolume": "Too few views: Instagram only shows numbers from 5 onwards."
+      },
+      "results": {
+        "empty": "Nothing has been posted yet. As soon as a post is live, the first numbers appear here within 3 hours.",
+        "waiting": "The first numbers appear within 3 hours of publishing.",
+        "basicOnly": "You only see likes and comments for now. Reconnect Instagram and allow statistics to add reach, saves and shares.",
+        "reconnect": "Reconnect",
+        "measured": "Measured posts",
+        "ofPosted": "of {{count}} posted (90 days)",
+        "avgReach": "Avg. reach",
+        "avgRate": "Avg. engagement rate",
+        "avgInteractions": "Avg. interactions",
+        "followers": "Followers",
+        "followersDelta": "{{delta}} since {{since}}",
+        "posts": "count: {{count}}",
+        "bestDaypart": "Best time so far: {{part}} ({{score}}, {{count}} posts).",
+        "bestWeekday": "Best day so far: {{day}} ({{score}}, {{count}} posts).",
+        "tooFew": "Not enough posts to compare yet: each time of day or day needs at least {{min}}.",
+        "rateExplain": "Engagement rate = likes, comments, saves and shares divided by the number of accounts reached.",
+        "interactionsExplain": "Without reach, we compare the average number of likes and comments.",
+        "byDaypart": "By time of day",
+        "byWeekday": "By weekday",
+        "byType": "By type",
+        "top": "Top posts",
+        "footnote": "Numbers from Instagram, updated every 3 hours. Instagram can lag up to 48 hours and stories can only be measured for 24 hours. Posts you published yourself in the app are matched by time.",
+        "daypart": {
+          "morning": "Morning (5–11)",
+          "midday": "Midday (11–14)",
+          "afternoon": "Afternoon (14–18)",
+          "evening": "Evening (18–22)",
+          "late": "Late (22–5)"
+        },
+        "type": {
+          "image": "Post",
+          "carousel": "Carousel",
+          "reel": "Reel",
+          "story": "Story"
+        }
       }
     }
   },

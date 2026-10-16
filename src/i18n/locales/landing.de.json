@@ -2110,6 +2110,10 @@
         "media_library_ai_social": {
           "title": "KI-Bilder und Social-Bilder jetzt auch in deiner Mediathek",
           "description": "Bilder, die du mit KI erstellst oder bearbeitest, und die Bilder deiner Social-Posts landen jetzt ebenfalls automatisch in deiner Mediathek. KI-Bilder haben einen eigenen Tab, Social-Bilder findest du unter Social. Unter Produkte → Fotos zeigt der obere Bereich nur noch deine nicht verwendeten Fotos, etwa die Originale nach dem Standardisieren, damit du keine Fotos mehr doppelt siehst."
+        },
+        "social_results": {
+          "title": "Social-Planung: Ergebnisse pro Beitrag und Zeitpunkt",
+          "description": "Unter jedem geposteten Beitrag sehen Sie jetzt die Zahlen von Instagram: Reichweite, Likes, Kommentare, Speicherungen und Teilungen. Der neue Tab Ergebnisse zeigt, welche Tageszeit, welcher Wochentag und welche Art von Beitrag am besten funktioniert, Ihre besten Beiträge und das Wachstum Ihrer Follower. Geplante Beiträge gehen außerdem wenige Minuten nach der gewählten Uhrzeit online."
         }
       },
       "copyLink": "Link kopieren",

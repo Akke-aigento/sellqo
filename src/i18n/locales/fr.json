@@ -6991,6 +6991,59 @@
         "processing": "Instagram traite encore la vidéo. Elle sera en ligne dans l'heure.",
         "retry": "Pas possible pour l'instant : {{message}}. SellQo réessaie dans l'heure.",
         "failed": "Non publié : {{message}}"
+      },
+      "tabs": {
+        "planning": "Planning",
+        "results": "Résultats"
+      },
+      "metrics": {
+        "reach": "{{value}} portée",
+        "views": "{{value}} vues",
+        "likes": "{{value}} j’aime",
+        "comments": "{{value}} commentaires",
+        "saved": "{{value}} enregistrements",
+        "shares": "{{value}} partages",
+        "rate": "{{value}} % d’interaction",
+        "interactions": "{{value}} interactions",
+        "open": "Voir sur Instagram",
+        "lowVolume": "Trop peu de vues : Instagram n’affiche des chiffres qu’à partir de 5."
+      },
+      "results": {
+        "empty": "Rien n’a encore été publié. Dès qu’une publication est en ligne, les premiers chiffres apparaissent ici dans les 3 heures.",
+        "waiting": "Les premiers chiffres apparaissent dans les 3 heures suivant la publication.",
+        "basicOnly": "Vous ne voyez pour l’instant que les j’aime et les commentaires. Reconnectez Instagram et autorisez les statistiques pour ajouter la portée, les enregistrements et les partages.",
+        "reconnect": "Reconnecter",
+        "measured": "Publications mesurées",
+        "ofPosted": "sur {{count}} publiées (90 jours)",
+        "avgReach": "Portée moy.",
+        "avgRate": "Taux d’interaction moy.",
+        "avgInteractions": "Interactions moy.",
+        "followers": "Abonnés",
+        "followersDelta": "{{delta}} depuis le {{since}}",
+        "posts": "nombre : {{count}}",
+        "bestDaypart": "Meilleur moment jusqu’ici : {{part}} ({{score}}, {{count}} publications).",
+        "bestWeekday": "Meilleur jour jusqu’ici : {{day}} ({{score}}, {{count}} publications).",
+        "tooFew": "Pas encore assez de publications pour comparer : il en faut au moins {{min}} par moment ou par jour.",
+        "rateExplain": "Taux d’interaction = j’aime, commentaires, enregistrements et partages divisés par le nombre de comptes atteints.",
+        "interactionsExplain": "Sans la portée, nous comparons le nombre moyen de j’aime et de commentaires.",
+        "byDaypart": "Par moment de la journée",
+        "byWeekday": "Par jour",
+        "byType": "Par type",
+        "top": "Meilleures publications",
+        "footnote": "Chiffres d’Instagram, mis à jour toutes les 3 heures. Instagram peut avoir jusqu’à 48 heures de retard et les stories ne sont mesurables que 24 heures. Les publications que vous avez postées vous-même dans l’app sont associées par heure.",
+        "daypart": {
+          "morning": "Matin (5–11 h)",
+          "midday": "Midi (11–14 h)",
+          "afternoon": "Après-midi (14–18 h)",
+          "evening": "Soir (18–22 h)",
+          "late": "Tard (22–5 h)"
+        },
+        "type": {
+          "image": "Publication",
+          "carousel": "Carrousel",
+          "reel": "Reel",
+          "story": "Story"
+        }
       }
     }
   },

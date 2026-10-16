@@ -7,12 +7,13 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 import {
-  AlertTriangle, Check, CheckCircle2, Clock, Copy, Download, Eye, Facebook, Images,
+  AlertTriangle, Check, CheckCircle2, Clock, Copy, Download, ExternalLink, Eye, Facebook, Images,
   Instagram, Languages, Linkedin, Loader2, Music, Pencil, RefreshCw, Send, Trash2, Twitter, Type,
 } from 'lucide-react';
 import { downloadMedia, mediaFileName } from '@/lib/social/download';
 import { mediaBaseName, type MediaItem } from '@/lib/social/media';
 import { editableImageIndexes } from '@/lib/social/imageRecipe';
+import { engagementRate } from '@/lib/social/results';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -68,7 +69,7 @@ export function SocialPlannerCard({
   post, busy, onApprove, onEdit, onRemove, onMarkPosted, onChooseOwnMusic, onRegenerate, onEditImageText,
   onViewMedia, onTranslate, onPostNow, media,
 }: Props) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = useDateFnsLocale();
   const [expanded, setExpanded] = useState(false);
 
@@ -108,6 +109,21 @@ export function SocialPlannerCard({
       setDownloading(false);
     }
   };
+
+  // SOCIAL-5: cijfers na publicatie.
+  const metrics = post.engagement_data?.metrics && Object.keys(post.engagement_data.metrics).length > 0
+    ? post.engagement_data.metrics
+    : post.engagement_data?.low_volume ? {} : null;
+  const nf = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 });
+  const rate = engagementRate(metrics ?? undefined);
+  const metricParts = metrics ? ([
+    ['reach', metrics.reach], ['views', metrics.views], ['likes', metrics.likes], ['comments', metrics.comments],
+    ['saved', metrics.saved], ['shares', metrics.shares],
+  ] as const)
+    .filter(([, v]) => typeof v === 'number')
+    .map(([k, v]) => t(`admin.socialPlanner.metrics.${k}`, { value: nf.format(v as number) }))
+    .concat(rate !== null ? [t('admin.socialPlanner.metrics.rate', { value: new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(rate) })] : [])
+    : [];
 
   const copyCaption = async () => {
     try {
@@ -197,6 +213,24 @@ export function SocialPlannerCard({
             {t(`admin.socialPlanner.status.${post.status}`)}
           </Badge>
         </div>
+
+        {post.status === 'posted' && metrics && (
+          <div className="rounded-md bg-muted/60 px-3 py-2 text-xs space-y-1">
+            {post.engagement_data?.low_volume ? (
+              <p className="text-muted-foreground">{t('admin.socialPlanner.metrics.lowVolume')}</p>
+            ) : (
+              <p className="tabular-nums flex flex-wrap gap-x-3 gap-y-0.5">
+                {metricParts.map((part) => <span key={part}>{part}</span>)}
+              </p>
+            )}
+            {post.engagement_data?.permalink && (
+              <a href={post.engagement_data.permalink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary">
+                <ExternalLink className="h-3 w-3" />
+                {t('admin.socialPlanner.metrics.open')}
+              </a>
+            )}
+          </div>
+        )}
 
         {post.post_text && (
           <div>

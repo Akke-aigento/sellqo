@@ -2110,6 +2110,10 @@
         "media_library_ai_social": {
           "title": "AI images and social images in your media library too",
           "description": "Images you create or edit with AI, and the images of your social posts, now also land in your media library automatically. AI images have their own tab, social images sit under Social. Under Products → Photos, the top section now only shows your unused photos, such as the originals after standardising, so you no longer see photos twice."
+        },
+        "social_results": {
+          "title": "Social planning: results per post and per moment",
+          "description": "Below every published post you now see the numbers from Instagram: reach, likes, comments, saves and shares. The new Results tab shows which time of day, which weekday and which type of post works best, your top posts and your follower growth. Scheduled posts now also go live within minutes of the chosen time."
         }
       },
       "copyLink": "Copy link",

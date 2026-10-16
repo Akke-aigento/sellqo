@@ -4,6 +4,21 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12l — Resultaten in de Social planning (feature, 16-10-2026)
+
+**Status:**
+- De migraties `20261016210000_social_5a_publish_every_5min.sql`, `20261016220000_social_5_insights.sql` en `20261016220100_social_5_doc_article.sql` worden live gedraaid.
+- De edge functies `social-insights-sync` (nieuw) en `social-oauth-init` worden gedeployd.
+- Voor de volledige cijfers moet een winkel Instagram één keer opnieuw koppelen.
+
+**Voor wie:** winkels die de Social planning met een gekoppeld Instagram-account gebruiken.
+
+**Zie wat werkt, en wanneer** (oktober 2026)
+Onder elke geposte post zie je nu de cijfers van Instagram: bereik, likes, reacties, bewaard en gedeeld. In de nieuwe tab Resultaten zie je welk dagdeel, welke weekdag en welk soort post het best werkt bij jouw volgers, je beste posts en de groei van je volgers. Geplande posts gaan bovendien binnen enkele minuten na het gekozen uur online.
+Wat betekent dit voor jou? Je kiest je posttijden op basis van je eigen cijfers in plaats van op gevoel. Koppel Instagram één keer opnieuw om ook bereik, bewaard en gedeeld te zien.
+
+**i18n-keys.** `public.changelog.changes.social_results` — 5 talen (nl, en, fr, de, uk; geteld tegen `SUPPORTED_LANGUAGES`).
+
 ### 2026.12k — AI-beelden en social-beelden ook in je mediabibliotheek (improvement, 16-10-2026)
 
 **Status:** live sinds 16-10-2026 (migratie `20261016200000_media_2_ai_social.sql` gedraaid en nagemeten, publish sellqo.app). Kan mee in dezelfde nieuwsbrief als 2026.12j.

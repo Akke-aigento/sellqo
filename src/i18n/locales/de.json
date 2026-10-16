@@ -6991,6 +6991,59 @@
         "processing": "Instagram verarbeitet das Video noch. Es ist innerhalb einer Stunde online.",
         "retry": "Hat gerade nicht geklappt: {{message}}. SellQo versucht es innerhalb einer Stunde erneut.",
         "failed": "Nicht veröffentlicht: {{message}}"
+      },
+      "tabs": {
+        "planning": "Planung",
+        "results": "Ergebnisse"
+      },
+      "metrics": {
+        "reach": "{{value}} Reichweite",
+        "views": "{{value}} Aufrufe",
+        "likes": "{{value}} Likes",
+        "comments": "{{value}} Kommentare",
+        "saved": "{{value}} gespeichert",
+        "shares": "{{value}} geteilt",
+        "rate": "{{value}} % Interaktion",
+        "interactions": "{{value}} Interaktionen",
+        "open": "Auf Instagram ansehen",
+        "lowVolume": "Zu wenige Aufrufe: Instagram zeigt Zahlen erst ab 5."
+      },
+      "results": {
+        "empty": "Es wurde noch nichts gepostet. Sobald ein Beitrag online ist, erscheinen hier innerhalb von 3 Stunden die ersten Zahlen.",
+        "waiting": "Die ersten Zahlen erscheinen innerhalb von 3 Stunden nach der Veröffentlichung.",
+        "basicOnly": "Sie sehen derzeit nur Likes und Kommentare. Verbinden Sie Instagram erneut und erlauben Sie Statistiken, dann kommen Reichweite, Speicherungen und Teilungen hinzu.",
+        "reconnect": "Erneut verbinden",
+        "measured": "Gemessene Beiträge",
+        "ofPosted": "von {{count}} geposteten (90 Tage)",
+        "avgReach": "Ø Reichweite",
+        "avgRate": "Ø Interaktionsrate",
+        "avgInteractions": "Ø Interaktionen",
+        "followers": "Follower",
+        "followersDelta": "{{delta}} seit {{since}}",
+        "posts": "Anzahl: {{count}}",
+        "bestDaypart": "Bester Zeitpunkt bisher: {{part}} ({{score}}, {{count}} Beiträge).",
+        "bestWeekday": "Bester Tag bisher: {{day}} ({{score}}, {{count}} Beiträge).",
+        "tooFew": "Noch zu wenige Beiträge zum Vergleichen: pro Tageszeit oder Tag sind mindestens {{min}} nötig.",
+        "rateExplain": "Interaktionsrate = Likes, Kommentare, Speicherungen und Teilungen geteilt durch die Anzahl erreichter Konten.",
+        "interactionsExplain": "Ohne Reichweite vergleichen wir die durchschnittliche Zahl an Likes und Kommentaren.",
+        "byDaypart": "Nach Tageszeit",
+        "byWeekday": "Nach Wochentag",
+        "byType": "Nach Art",
+        "top": "Beste Beiträge",
+        "footnote": "Zahlen von Instagram, alle 3 Stunden aktualisiert. Instagram kann bis zu 48 Stunden hinterherhinken, und Stories sind nur 24 Stunden messbar. Beiträge, die Sie selbst in der App gepostet haben, ordnet SellQo über die Uhrzeit zu.",
+        "daypart": {
+          "morning": "Morgen (5–11 Uhr)",
+          "midday": "Mittag (11–14 Uhr)",
+          "afternoon": "Nachmittag (14–18 Uhr)",
+          "evening": "Abend (18–22 Uhr)",
+          "late": "Spät (22–5 Uhr)"
+        },
+        "type": {
+          "image": "Beitrag",
+          "carousel": "Karussell",
+          "reel": "Reel",
+          "story": "Story"
+        }
       }
     }
   },

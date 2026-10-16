@@ -30,7 +30,8 @@ const PLATFORMS = {
   },
   instagram: {
     authUrl: 'https://www.instagram.com/oauth/authorize',
-    scopes: ['instagram_business_basic', 'instagram_business_content_publish'].join(','),
+    // SOCIAL-5: manage_insights voor de resultaten (bereik, bewaard, gedeeld) in de Social planning.
+    scopes: ['instagram_business_basic', 'instagram_business_content_publish', 'instagram_business_manage_insights'].join(','),
   },
   whatsapp: {
     authUrl: `https://www.facebook.com/${GRAPH_VERSION}/dialog/oauth`,

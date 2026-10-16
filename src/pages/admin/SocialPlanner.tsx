@@ -1,5 +1,6 @@
 // SOCIAL-2 — Social planning: alle geplande posts per week, met goedkeuren,
-// aanpassen en schrappen. Goedgekeurde posts publiceert social-publish-due elk uur op :01.
+// aanpassen en schrappen. Goedgekeurde posts publiceert social-publish-due elke 5 minuten.
+// SOCIAL-5: tab "Resultaten" met de cijfers per post, dagdeel, weekdag en soort.
 
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -26,6 +27,8 @@ import { SocialPlannerCard } from '@/components/admin/marketing/social/SocialPla
 import { SocialImageTextEditor } from '@/components/admin/marketing/social/SocialImageTextEditor';
 import { SocialMediaViewer } from '@/components/admin/marketing/social/SocialMediaViewer';
 import { SocialTranslateDialog } from '@/components/admin/marketing/social/SocialTranslateDialog';
+import { SocialResults } from '@/components/admin/marketing/social/SocialResults';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { postMedia } from '@/lib/social/media';
 import { useTenant } from '@/hooks/useTenant';
 import { useSocialPlanner, type PlannerPost } from '@/hooks/useSocialPlanner';
@@ -191,6 +194,13 @@ export default function SocialPlanner() {
         description={t('admin.socialPlanner.description')}
       />
 
+      <Tabs defaultValue="planning" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="planning">{t('admin.socialPlanner.tabs.planning')}</TabsTrigger>
+          <TabsTrigger value="results">{t('admin.socialPlanner.tabs.results')}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="planning" className="space-y-6 mt-0">
+
       {!isLoading && !hasConnection && (
         <Alert>
           <Link2 className="h-4 w-4" />
@@ -267,6 +277,11 @@ export default function SocialPlanner() {
           );
         })
       )}
+        </TabsContent>
+        <TabsContent value="results" className="mt-0">
+          <SocialResults />
+        </TabsContent>
+      </Tabs>
 
       <ResponsiveDialog
         open={!!editing}
