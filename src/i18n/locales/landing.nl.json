@@ -2078,6 +2078,10 @@
         "homepage_sections_slideshow_logos_columns": {
           "title": "Vier nieuwe homepage-secties, video die pas laadt na een klik en een beeldkiezer",
           "description": "In de webshop-editor (Aanpassen) voeg je nu vier nieuwe secties toe aan je homepage: een diavoorstelling, een strook met logo's en merken, kolommen (twee tot vier blokken naast elkaar) en een los tekstblok. Een videosectie toont eerst alleen een afspeelknop: de speler van YouTube of Vimeo laadt pas als je bezoeker erop klikt, en tot dan gaat er geen verzoek naar YouTube of Vimeo (tenzij je automatisch afspelen aanzet). Met de sectie Winkelreviews toon je je reviews van Google, Trustpilot en andere platformen, met je gemiddelde score; zonder reviews blijft ze verborgen. De vragen en antwoorden uit je FAQ-sectie staan nu ook als gestructureerde gegevens in je homepage, zodat Google en andere zoekmachines ze kunnen lezen. Afbeeldingen voor dia's, logo's en kolommen kies of upload je met de beeldkiezer, in plaats van een link te plakken."
+        },
+        "image_picker_media_library": {
+          "title": "Mediabibliotheek in de beeldkiezer",
+          "description": "In de webshop-editor (Aanpassen) heeft de beeldkiezer nu een tabblad Mediabibliotheek. Daar vind je de afbeeldingen die je eerder uploadde: in de beeldkiezer zelf, je productfoto's, categorie- en eventbeelden en de afbeeldingen uit je mediabibliotheek bij Marketing, met de nieuwste bovenaan. Je zoekt op bestandsnaam en kiest een afbeelding met één klik, zonder ze opnieuw te uploaden. De beeldkiezer en de Webshop-pagina zijn nu ook vertaald in alle talen van SellQo."
         }
       },
       "copyLink": "Kopieer link",

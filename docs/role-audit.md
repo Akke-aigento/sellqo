@@ -1,3 +1,49 @@
+## EDITOR-MEDIA-1 — mediabibliotheek in de beeldkiezer, beeldkiezer en Webshop-pagina vertaald (2026.12g) — 16 oktober 2026
+
+**Vraag.** De beeldkiezer in Aanpassen (`VisualMediaPicker`) kon alleen uploaden: een beeld dat je al had, moest je opnieuw uploaden. Akke wil een tabblad "Mediabibliotheek" met eerder geüploade beelden van de winkel, plus de hardcoded NL-teksten van de kiezer en van `Storefront.tsx` naar i18n.
+
+**Root cause.**
+- `src/components/admin/storefront/visual-editor/VisualMediaPicker.tsx` (HEAD): alleen een dropzone die naar `tenant-assets/<tenant>/storefront/<ts>.<ext>` uploadt; geen enkele `list()`. Vijf hardcoded NL-teksten (titel, dropzone, "Huidige afbeelding") en drie toasts, plus de NL-default van `placeholder`.
+- `src/pages/admin/Storefront.tsx`: geen `useTranslation`; `i18n-scan` telde 17 hardcoded strings (o.a. "Aanpassen" r. 70/154, "Thema kiezen" r. 73, de navigatie in een const-array op moduleniveau).
+
+**Recon storage (live, 16-10, `query_database`).**
+- Beelden van een winkel staan in vier mappen: `tenant-assets/<t>/storefront` (deze kiezer), `tenant-assets/<t>` (onboarding-logo, `LogoUploadStep`), `product-images/<t>` (`useImageUpload` zonder bucket: ProductForm, categorieën, events, cadeaubonnen) en `marketing-assets/<t>` (Mediabibliotheek bij Marketing en `MediaLibraryPickerDialog`). Live: `tenant-assets` 2 objecten (1 in een `storefront`-map), `product-images` 297, `marketing-assets` 147. Alleen de eigen map van de kiezer listen gaf dus een bijna altijd lege bibliotheek; daarom alle vier. `tenant-logos` (Branding-logo/favicon, eigen plek in de editor) en `ai-images` (eigen bibliotheek) bewust niet.
+- Alle drie de buckets zijn `public = true`. Publieke URL's werken dus los van RLS.
+
+**RLS-bevinding listing (`storage.objects`, SELECT).** `list()` loopt via `storage.search`/`list_objects_with_delimiter`, beide `SECURITY INVOKER` (`prosecdef = false`), dus RLS geldt.
+- `tenant-assets`: policy "Public read access for tenant assets", rol `public`, `qual = bucket_id = 'tenant-assets'` — **geen tenant-check**.
+- `product-images`: "Anyone can view product images", rol `public`, idem **geen tenant-check**.
+- `marketing-assets`: "marketing-assets_select_own_tenant", `authenticated`, `is_platform_admin(auth.uid()) OR foldername[1] IN get_user_tenant_ids(auth.uid())` — wél afgeschermd.
+- Rol-impersonatie (`begin; set_config('request.jwt.claims', …); set local role …; rollback;`), tenant-accounts, geen platform_admin:
+  - VanXcel-`tenant_admin` (`c3f57cdc-…`, enkel tenant `54f6b480-…`): eigen `tenant-assets/<vx>/storefront` → 1 (`1771184960132.webp`), eigen `product-images/<vx>/` → 17. **Andere winkel:** `storage.search('<loveke>/', 'tenant-assets')` → 1, `storage.objects` in `product-images` buiten eigen map → 280 zichtbaar. `marketing-assets` buiten eigen map → 0.
+  - Loveke-`tenant_admin` (`f4f9bb09-…`): eigen `marketing-assets/<loveke>/` → 4 entries, eigen `tenant-assets/<loveke>/` → 1. **Andere winkel:** `product-images/<mancini>/` → 122. `marketing-assets` buiten eigen map → 0.
+  - `anon`: `tenant-assets` 2, `product-images` 297 (o.a. `<mancini>/` → 122 via `storage.search`), `marketing-assets` 0.
+- Conclusie: listen van de eigen map werkt zonder policy-wijziging. De eis "niet die van een andere tenant" haalt RLS voor `tenant-assets` en `product-images` **niet**: elke ingelogde gebruiker én anon kan vandaag al elke tenantmap in die twee buckets opsommen. Dat lek bestond vóór deze batch en wordt er niet groter door (de UI vraagt alleen `<eigen tenant-id>/…` op, en `mediaLibrarySources()` weigert alles wat geen UUID is). Ik heb bewust **geen policy geschreven**.
+- **Wat nodig is (aparte batch, apart akkoord):** per bucket een SELECT-policy naar het model van `marketing-assets_select_own_tenant` (rol `authenticated`, platform_admin of `foldername[1]` in `get_user_tenant_ids`), en pas dán de twee publieke SELECT-policies weg (M1: additief vóór destructief). Publieke objectURL's blijven werken omdat de buckets `public` zijn. Vooraf de blast-radius: alles wat met anon of als andere tenant `download()`/`list()`/`createSignedUrl()` op die buckets doet (`grep` in `src/` én `supabase/functions/`; edge functions met service-role passeren RLS), plus de custom frontends die productfoto's tonen (publieke URL → geen effect, maar nalopen).
+
+**Uitgevoerd.**
+- `src/lib/storefrontMediaLibrary.ts` (nieuw): `mediaLibrarySources(tenantId)` (vier prefixen, alleen bij een geldig UUID), `isImageEntry` (mappen `id === null`, verborgen bestanden en niet-beelden eruit), `toMediaItems`, `sortNewestFirst` (op `created_at`, zonder datum achteraan), `filterByName` (hoofdletter- en accentongevoelig, alle woorden), `mergeLibrary` (ontdubbelen op bucket+pad) en `fetchMediaLibrary` (per map `list()` met `limit 1000` en paginering tot een onvolledige pagina, max. 10 pagina's). Een map die faalt komt terug in `failed` en de kiezer meldt dat (R4), in plaats van stil minder te tonen.
+- `VisualMediaPicker.tsx`: tabbladen **Uploaden** / **Mediabibliotheek**. De bibliotheek laadt pas bij het openen van het tabblad en opnieuw na een upload of tenantwissel; raster met `loading="lazy"`-thumbnails, nieuwste eerst, zoekveld op bestandsnaam, 24 per keer met **Meer laden**, klik = kiezen, het huidige beeld krijgt een vinkje. Uploadpad en -gedrag ongewijzigd. Alle teksten via `admin.storefront.mediaPicker.*`; de verwijderknop kreeg een `aria-label`.
+- `src/pages/admin/Storefront.tsx`: volledig naar `admin.storefront.page.*` (navigatie via `labelKey` in de const-array). `i18n-scan`: 17 → 4; de 4 resterende zijn scan-ruis (`> (<` rond de link en tekst tussen `<slug>` in een comment).
+- Locales `nl/en/fr/de/uk.json`: 20 `mediaPicker`-keys, 19 `page`-keys, 4 nieuwe `schemaText`-keys voor de nieuwe schemateksten uit storefront `238fe67`. De oude schemaText-keys blijven: de live schema.json gebruikt ze tot de storefront-deploy. Editor-teksten in `du`/`ти`-vorm zoals de rest van de editor, de Webshop-pagina in `Sie`/`ви` zoals `shopOpenCard` op dezelfde pagina.
+- Storefront-repo `238fe67`: label en uitleg van de drie beeldvelden (`slideshow`, `logo_list`, `multicolumn`) kloppen nu met de kiezer en met wat de sectie zonder beeld toont (merkkleurvlak / naam / alleen tekst). Zie `docs/role-audit.md` daar.
+- Changelog `2026.12g` (`image_picker_media_library`, feature) in alle talen uit `SUPPORTED_LANGUAGES`; newsletter-wachtrij-item.
+- `supabase/migrations/20261016140000_editor_media_1_doc_article.sql` (**NIET gedraaid**): `tenant/theme-aanpassen`, gebaseerd op de content van de nog niet gedraaide ES1-migratie (`0988c2f7…`), die ik opnieuw nagerekend heb als live (`83e201c6…`) + één blok. Eén alinea "Mediabibliotheek" erbij → `0b5f12524d8acde50684e16934b70898`. Vaste `updated_at`, `ON CONFLICT … DO UPDATE … WHERE md5(content) IN (live, ES1, nieuw)`, zodat een handmatig bijgewerkt artikel niet stil overschreven wordt. Syntax gecontroleerd met een `EXPLAIN` (plan, geen uitvoering).
+
+**Vangst onderweg.** De eerste versie zette de spinner uit in een `.finally()`. Zodra `library` gezet werd, ruimde de effect op (`cancelled = true`) en bleef de spinner eeuwig draaien. De componenttest ving dat; nu gaat alle state in één keer in `then`/`catch`.
+
+**Security-keuzes.** Geen policies, grants of functies gewijzigd. Lezen via de gebruikerssessie (RLS van toepassing), geen service-role, geen edge function. Prefixen komen uitsluitend uit `currentTenant.id` en worden als UUID gevalideerd. Bestaand lek in `tenant-assets`/`product-images`-listing gemeld hierboven, niet opgelost (vraagt apart akkoord).
+
+**Gedeelde-paden-waarschuwing.** Geen gedeeld pad geraakt: geen `storefront-api`/`storefront-customer-api`/`storefront-resolve`, geen gedeelde tabellen. `VisualMediaPicker` wordt ook gebruikt door hero, tekst+beeld en `SchemaForm`; de props en het uploadpad zijn ongewijzigd, de standaard-`placeholder` is nu vertaald.
+
+**Verificatie.** `npx tsc --noEmit -p tsconfig.app.json` exit 0 · `npx vitest run` exit 0 (53 bestanden, 721 tests; nieuw `src/test/storefrontMediaLibrary.test.tsx`, 12 tests: prefixen, sortering, zoeken, paginering, faalmelding, plus een componenttest van het tabblad) · `i18n-parity` 0 · `check-i18n-used-keys` 0 · `check-dead-buttons` 0 (baseline 2) · `verify-lint-baseline` 0 (1479, gelijk) · `verify-edge-pins` 0 · eslint op de gewijzigde bestanden 0 problemen (HEAD ook 0) · `npm run build` 0 (`public/sitemap.xml` teruggezet).
+
+**Bewust ongemoeid / Vervolg.**
+- RLS-listing-lek `tenant-assets` + `product-images`: aparte batch (zie hierboven).
+- Uploads uit de kiezer landen nog in `tenant-assets` en dus niet in `media_assets` (de Mediabibliotheek bij Marketing). Ze in beide te laten verschijnen is een aparte keuze.
+- Geen thumbnails via image-transformatie: de tegels laden het originele bestand (lazy). Bij grote bibliotheken eventueel `getPublicUrl(…, { transform })` als die op het project aan staat.
+- Volgorde bij uitrol: storefront-deploy, publish sellqo.app, dan ES1-doc-migratie, dan deze. Blog-concept (spoor 4) niet in deze batch.
+
 ## EDITOR-SECTIONS-1 — nieuwe homepage-secties in de Aanpassen-editor: iconen, vertalingen en beeldkiezer (2026.12f) — 16 oktober 2026
 
 **Vraag.** In de storefront-repo gingen op 16-10 nieuwe homepage-secties live: `slideshow` (Diavoorstelling), `logo_list` (Logo's en merken), `multicolumn` (Kolommen), `rich_text` (Tekstblok), `external_reviews` (Winkelreviews), plus een lite video-embed en FAQPage-data. Zie storefront-commits `f627800` (SHOP-SECTIONS-1) en `7bb056a` (SHOP-POLISH-2). De admin-editor toonde ze via het themaschema, maar zonder iconen, met Nederlandse labels in elke UI-taal en met beeldvelden (`"media": "image"`) als kale URL-tekstvelden.

@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12g — Mediabibliotheek in de beeldkiezer (feature, 16-10-2026)
+
+**Pas versturen na** de publish van sellqo.app met EDITOR-MEDIA-1 (Lovable-hosted: pas live na `deploy_project`; voor de app pas na de volgende native build). Bundelen met 2026.12f: de beeldkiezer zelf komt uit die release.
+
+**Voor wie:** winkels op het SellQo-thema (Webshop → Aanpassen).
+
+In de beeldkiezer van Aanpassen staat nu een tabblad Mediabibliotheek met de afbeeldingen die je eerder uploadde:
+in de beeldkiezer zelf, je productfoto's, categorie- en eventbeelden en je mediabibliotheek bij Marketing. Zoek op
+bestandsnaam en kies met één klik, zonder opnieuw te uploaden.
+
+**i18n-keys.** `public.changelog.changes.image_picker_media_library` — 5 talen.
+
 ### 2026.12f — Vier nieuwe homepage-secties, video die pas laadt na een klik en een beeldkiezer (feature, 16-10-2026)
 
 **Pas versturen na** de deploy van de storefront (`f627800` SHOP-SECTIONS-1, `7bb056a` SHOP-POLISH-2) én de publish van sellqo.app met EDITOR-SECTIONS-1 (sellqo.app is Lovable-hosted: pas live na `deploy_project`; voor de app pas na de volgende native build).

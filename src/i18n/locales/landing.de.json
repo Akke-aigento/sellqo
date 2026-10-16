@@ -2078,6 +2078,10 @@
         "homepage_sections_slideshow_logos_columns": {
           "title": "Vier neue Startseiten-Abschnitte, Videos, die erst nach einem Klick laden, und eine Bildauswahl",
           "description": "Im Shop-Editor fügst du deiner Startseite jetzt vier neue Abschnitte hinzu: eine Diashow, eine Leiste mit Logos und Marken, Spalten (zwei bis vier Blöcke nebeneinander) und einen eigenen Textblock. Ein Videoabschnitt zeigt zuerst nur eine Abspieltaste: Der YouTube- oder Vimeo-Player lädt erst, wenn dein Besucher darauf klickt, und bis dahin geht keine Anfrage an YouTube oder Vimeo (außer du schaltest automatisches Abspielen ein). Mit dem Abschnitt Shop-Bewertungen zeigst du deine Bewertungen von Google, Trustpilot und anderen Plattformen mit deiner Durchschnittsbewertung; ohne Bewertungen bleibt er ausgeblendet. Die Fragen und Antworten aus deinem FAQ-Abschnitt stehen jetzt auch als strukturierte Daten auf deiner Startseite, damit Google und andere Suchmaschinen sie lesen können. Bilder für Dias, Logos und Spalten wählst du mit der Bildauswahl aus oder lädst sie hoch, statt einen Link einzufügen."
+        },
+        "image_picker_media_library": {
+          "title": "Mediathek in der Bildauswahl",
+          "description": "Im Shop-Editor hat die Bildauswahl jetzt einen Reiter Mediathek. Dort findest du die Bilder, die du schon hochgeladen hast: in der Bildauswahl selbst, deine Produktfotos, Kategorie- und Event-Bilder und die Bilder aus deiner Mediathek unter Marketing, die neuesten zuerst. Du suchst nach Dateinamen und wählst ein Bild mit einem Klick aus, ohne es erneut hochzuladen. Die Bildauswahl und die Seite Onlineshop sind jetzt auch in alle SellQo-Sprachen übersetzt."
         }
       },
       "copyLink": "Link kopieren",

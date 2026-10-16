@@ -2078,6 +2078,10 @@
         "homepage_sections_slideshow_logos_columns": {
           "title": "Quatre nouvelles sections pour la page d'accueil, une vidéo chargée seulement après un clic et un sélecteur d'images",
           "description": "Dans l'éditeur de la boutique, vous pouvez désormais ajouter quatre nouvelles sections à votre page d'accueil : un diaporama, une bande de logos et de marques, des colonnes (deux à quatre blocs côte à côte) et un bloc de texte. Une section vidéo n'affiche d'abord qu'un bouton de lecture : le lecteur YouTube ou Vimeo ne se charge que lorsque votre visiteur clique dessus, et jusque-là aucune requête n'est envoyée à YouTube ou Vimeo (sauf si vous activez la lecture automatique). Avec la section Avis sur la boutique, vous affichez vos avis Google, Trustpilot et d'autres plateformes, avec votre note moyenne ; sans avis, elle reste masquée. Les questions et réponses de votre section FAQ figurent désormais aussi sous forme de données structurées sur votre page d'accueil, afin que Google et les autres moteurs de recherche puissent les lire. Vous choisissez ou téléversez les images des diapositives, logos et colonnes avec le sélecteur d'images, au lieu de coller un lien."
+        },
+        "image_picker_media_library": {
+          "title": "Médiathèque dans le sélecteur d'images",
+          "description": "Dans l'éditeur de boutique, le sélecteur d'images a désormais un onglet Médiathèque. Vous y trouvez les images que vous avez déjà téléversées : dans le sélecteur lui-même, vos photos de produits, les images de catégories et d'événements et les images de votre médiathèque dans Marketing, les plus récentes en premier. Recherchez par nom de fichier et choisissez une image en un clic, sans la téléverser à nouveau. Le sélecteur d'images et la page Boutique en ligne sont désormais aussi traduits dans toutes les langues de SellQo."
         }
       },
       "copyLink": "Copier le lien",

@@ -2078,6 +2078,10 @@
         "homepage_sections_slideshow_logos_columns": {
           "title": "Four new homepage sections, video that loads only after a click, and an image picker",
           "description": "In the webshop editor you can now add four new sections to your homepage: a slideshow, a strip of logos and brands, columns (two to four blocks side by side) and a standalone text block. A video section first shows only a play button: the YouTube or Vimeo player loads only when your visitor clicks it, and until then no request goes to YouTube or Vimeo (unless you turn on autoplay). With the Store reviews section you show your reviews from Google, Trustpilot and other platforms, with your average score; without reviews it stays hidden. The questions and answers from your FAQ section are now also included as structured data on your homepage, so Google and other search engines can read them. You choose or upload images for slides, logos and columns with the image picker instead of pasting a link."
+        },
+        "image_picker_media_library": {
+          "title": "Media library in the image picker",
+          "description": "In the store editor, the image picker now has a Media library tab. It shows the images you uploaded before: in the image picker itself, your product photos, category and event images and the images from your media library under Marketing, newest first. Search by file name and pick an image with one click, without uploading it again. The image picker and the Online store page are now also translated into every SellQo language."
         }
       },
       "copyLink": "Copy link",

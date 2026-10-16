@@ -10,23 +10,26 @@ import { StorefrontPagesManager } from '@/components/admin/storefront/Storefront
 import { LegalPagesManager } from '@/components/admin/storefront/LegalPagesManager';
 import { StorefrontFeaturesSettings } from '@/components/admin/storefront/studio/StorefrontFeaturesSettings';
 import { ShopOpenCard } from '@/components/admin/storefront/ShopOpenCard';
+import { useTranslation } from 'react-i18next';
 
 // WEBSHOP-PAGE-1 (13-10-2026): de Webshop-pagina draait rond de standaardshop op
 // <slug>.sellqo.shop en de "Aanpassen"-editor. Design en Homepage zitten in de editor;
 // de oude schermen (design-wizard, homepage-bouwer, status/publiceren, functies) gingen
 // over de oude ingebouwde winkel en staan hier niet meer. Oude links (?section=design,
 // ?section=homepage) gaan naar de editor.
+// EDITOR-MEDIA-1: labels als i18n-key (admin.storefront.page.*).
 const baseNav = [
-  { id: 'overview', label: 'Overzicht', icon: Home },
-  { id: 'pages', label: "Pagina's", icon: FileText },
-  { id: 'legal', label: 'Juridisch', icon: Scale },
+  { id: 'overview', labelKey: 'admin.storefront.page.nav_overview', icon: Home },
+  { id: 'pages', labelKey: 'admin.storefront.page.nav_pages', icon: FileText },
+  { id: 'legal', labelKey: 'admin.storefront.page.nav_legal', icon: Scale },
 ];
 // Eigen websites lezen sommige van deze instellingen via de API (bv. gastafrekenen):
 // voor die winkels blijft het scherm bereikbaar.
-const featuresNav = { id: 'features', label: 'Functies (eigen website)', icon: SlidersHorizontal };
+const featuresNav = { id: 'features', labelKey: 'admin.storefront.page.nav_features', icon: SlidersHorizontal };
 const TO_EDITOR = ['design', 'homepage'];
 
 function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: string) => void }) {
+  const { t } = useTranslation();
   const { isCustomFrontend, customFrontendUrl } = useFrontendMode();
   const shopUrl = `https://${slug}.sellqo.shop`;
   return (
@@ -35,8 +38,8 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
         <div className="flex gap-3 rounded-lg border bg-muted/40 p-4 text-sm">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
           <p className="text-muted-foreground">
-            Je hebt ook een eigen website{customFrontendUrl ? <> (<a href={customFrontendUrl} target="_blank" rel="noreferrer" className="underline">{customFrontendUrl.replace(/^https?:\/\//, '')}</a>)</> : null}.
-            Die blijft gewoon werken; deze SellQo-webshop draait ernaast op {slug}.sellqo.shop.
+            {t('admin.storefront.page.own_site')}{customFrontendUrl ? <> (<a href={customFrontendUrl} target="_blank" rel="noreferrer" className="underline">{customFrontendUrl.replace(/^https?:\/\//, '')}</a>)</> : null}.{' '}
+            {t('admin.storefront.page.own_site_rest', { domain: `${slug}.sellqo.shop` })}
           </p>
         </div>
       ) : null}
@@ -47,7 +50,7 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
           <div className="relative h-56 overflow-hidden border-b bg-muted md:h-auto md:min-h-[260px] md:border-b-0 md:border-r">
             {/* Verkleinde, niet-klikbare weergave van de echte winkel. */}
             <iframe
-              title="Voorbeeld van je winkel"
+              title={t('admin.storefront.page.preview_title')}
               src={`${shopUrl}/?editor=1`}
               tabIndex={-1}
               aria-hidden="true"
@@ -57,23 +60,23 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
           </div>
           <CardContent className="flex flex-col justify-center gap-4 p-6">
             <div className="space-y-1">
-              <p className="text-sm text-muted-foreground">Je winkel</p>
+              <p className="text-sm text-muted-foreground">{t('admin.storefront.page.your_shop')}</p>
               <a href={shopUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-lg font-semibold hover:underline">
                 {slug}.sellqo.shop <ExternalLink className="h-4 w-4" />
               </a>
               <p className="text-sm text-muted-foreground">
-                Kleuren, logo, lettertypes en je homepage pas je aan in één scherm, met je winkel ernaast.
+                {t('admin.storefront.page.customize_intro')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button asChild>
-                <Link to="/admin/storefront/aanpassen"><Wand2 className="mr-2 h-4 w-4" />Aanpassen</Link>
+                <Link to="/admin/storefront/aanpassen"><Wand2 className="mr-2 h-4 w-4" />{t('admin.storefront.page.customize')}</Link>
               </Button>
               <Button asChild variant="outline">
-                <Link to="/admin/storefront/aanpassen?panel=themes">Thema kiezen</Link>
+                <Link to="/admin/storefront/aanpassen?panel=themes">{t('admin.storefront.page.choose_theme')}</Link>
               </Button>
               <Button asChild variant="ghost">
-                <a href={shopUrl} target="_blank" rel="noreferrer">Bekijk winkel</a>
+                <a href={shopUrl} target="_blank" rel="noreferrer">{t('admin.storefront.page.view_shop')}</a>
               </Button>
             </div>
           </CardContent>
@@ -84,8 +87,8 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
 
       <div className="grid gap-3 sm:grid-cols-3">
         {[
-          { id: 'pages', icon: FileText, title: "Pagina's", text: 'Over ons, contact en andere eigen pagina’s' },
-          { id: 'legal', icon: Scale, title: 'Juridisch', text: 'Voorwaarden, privacy, retour en verzending' },
+          { id: 'pages', icon: FileText, title: t('admin.storefront.page.nav_pages'), text: t('admin.storefront.page.pages_desc') },
+          { id: 'legal', icon: Scale, title: t('admin.storefront.page.nav_legal'), text: t('admin.storefront.page.legal_desc') },
         ].map((c) => (
           <button key={c.id} type="button" onClick={() => onNavigate(c.id)}
             className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50">
@@ -100,8 +103,8 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
         <div className="flex items-start gap-3 rounded-lg border border-dashed p-4">
           <Link2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
           <span>
-            <span className="block font-medium">Eigen domein</span>
-            <span className="block text-sm text-muted-foreground">Binnenkort: je eigen domein zelf koppelen.</span>
+            <span className="block font-medium">{t('admin.storefront.page.own_domain')}</span>
+            <span className="block text-sm text-muted-foreground">{t('admin.storefront.page.own_domain_soon')}</span>
           </span>
         </div>
       </div>
@@ -110,6 +113,7 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
 }
 
 export default function StorefrontPage() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { isCustomFrontend } = useFrontendMode();
   const navItems = isCustomFrontend ? [...baseNav, featuresNav] : baseNav;
@@ -140,7 +144,7 @@ export default function StorefrontPage() {
       <div className="p-6">
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Selecteer een winkel om door te gaan</p>
+            <p className="text-muted-foreground">{t('admin.storefront.page.select_shop')}</p>
           </CardContent>
         </Card>
       </div>
@@ -166,14 +170,14 @@ export default function StorefrontPage() {
         <div>
           <h1 className="flex items-center gap-3 text-3xl font-bold">
             <Globe className="h-8 w-8 text-primary" />
-            Webshop
+            {t('admin.storefront.page.title')}
           </h1>
-          <p className="mt-1 text-muted-foreground">Je winkel op {currentTenant.slug}.sellqo.shop</p>
+          <p className="mt-1 text-muted-foreground">{t('admin.storefront.page.shop_on', { domain: `${currentTenant.slug}.sellqo.shop` })}</p>
         </div>
         <Button asChild>
           <Link to="/admin/storefront/aanpassen">
             <Wand2 className="mr-2 h-4 w-4" />
-            Aanpassen
+            {t('admin.storefront.page.customize')}
           </Link>
         </Button>
       </div>
@@ -191,7 +195,7 @@ export default function StorefrontPage() {
               )}
             >
               <item.icon className="h-3.5 w-3.5" />
-              {item.label}
+              {t(item.labelKey)}
             </button>
           ))}
         </div>
@@ -212,7 +216,7 @@ export default function StorefrontPage() {
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />
-              {item.label}
+              {t(item.labelKey)}
             </button>
           ))}
         </nav>
