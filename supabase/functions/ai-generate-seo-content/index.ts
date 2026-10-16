@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,13 +126,15 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SCHEMA-FIX-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SOCIAL-SEC-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const { tenantId, type, productIds, categoryIds, entityType = 'product' } = await req.json();
     
 
-    await authenticateRequest(req, tenantId);
+    const auth = await authenticateRequest(req, tenantId);
+    // SOCIAL-SEC-1: rollen zoals useCan 'seo' (write) en de RLS op products/categories.
+    requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
     const ids = entityType === 'category' ? categoryIds : productIds;
     
     if (!tenantId || !type || !ids || ids.length === 0) {
@@ -145,6 +148,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    await requireBillingState(supabase, auth, tenantId, "ai_assistant");
 
     // Calculate credits needed (1 per entity)
     const creditsNeeded = ids.length;

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -22,7 +23,7 @@ serve(async (req) => {
   }
   // AI-CRED-3: neveneffectvrije versiestempel om een deploy te bewijzen.
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "AI-CRED-3" }), {
+    return new Response(JSON.stringify({ ok: true, version: "SOCIAL-SEC-1" }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
@@ -38,13 +39,18 @@ serve(async (req) => {
     const { tenantId, feedbackId, userId, originalContent, editedContent, contentType }: LearnRequest = await req.json();
 
 
-    await authenticateRequest(req, tenantId);
+    const auth = await authenticateRequest(req, tenantId);
     if (!tenantId || !originalContent || !editedContent) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    // SOCIAL-SEC-1: enkel wie AI-content mag maken, leert ook bij; userId komt uit de sessie,
+    // niet uit de body (anders schrijft een gebruiker leerpatronen op naam van een ander).
+    requireRole(auth, tenantId, ['tenant_admin', 'staff', 'marketing']);
+    await requireBillingState(supabase, auth, tenantId, 'ai_assistant');
+    const learnUserId = auth.user_id === 'service_role' ? userId : auth.user_id;
 
     // Use AI to analyze the edit and extract patterns
     let patterns: Record<string, unknown> = {};
@@ -177,9 +183,9 @@ Analyze the changes and extract learning patterns.`
       }
 
       // User-level learning (if userId is provided)
-      if (userId) {
+      if (learnUserId) {
         const { error: userError } = await supabase.rpc('update_user_learning_pattern', {
-          p_user_id: userId,
+          p_user_id: learnUserId,
           p_tenant_id: tenantId,
           p_pattern_type: patternType,
           p_learned_value: { preference: value, last_example: editedContent.substring(0, 200) },
@@ -193,14 +199,14 @@ Analyze the changes and extract learning patterns.`
     }
 
     // Log the learning event
-    console.log(`Learning from feedback ${feedbackId}:`, patterns, userId ? `(user: ${userId})` : '(tenant only)');
+    console.log(`Learning from feedback ${feedbackId}:`, patterns, learnUserId ? `(user: ${learnUserId})` : '(tenant only)');
 
     return new Response(
       JSON.stringify({ 
         success: true, 
         patterns,
         patternsUpdated: significantPatterns.length,
-        userLearning: !!userId
+        userLearning: !!learnUserId
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

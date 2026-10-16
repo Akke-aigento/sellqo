@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -10,6 +11,12 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+  // SOCIAL-SEC-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "SOCIAL-SEC-1" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -27,6 +34,8 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
+    // SOCIAL-SEC-1: geen AI tijdens een betaalachterstand, zoals de andere AI-functies.
+    await requireBillingState(supabase, auth, tenant_id, "ai_assistant");
 
     // Gather all campaign data in parallel
     const [campaignRes, adGroupsRes, keywordsRes, perfRes, searchTermsRes] = await Promise.all([
@@ -117,6 +126,21 @@ REGELS:
     if (!LOVABLE_API_KEY) {
       return new Response(JSON.stringify({ error: "LOVABLE_API_KEY not configured" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // SOCIAL-SEC-1: credits vooraf, zoals ai-generate-social. Vrijgestelde winkels: 0, wel gelogd
+    // (dat beslist use_ai_credits zelf).
+    const { data: hasCredits, error: creditError } = await supabase.rpc("use_ai_credits", {
+      p_tenant_id: tenant_id,
+      p_credits: 2,
+      p_feature: "ads_campaign_analyze",
+      p_model: "google/gemini-3-flash-preview",
+      p_metadata: { campaign_id },
+    });
+    if (creditError || !hasCredits) {
+      return new Response(JSON.stringify({ error: "Onvoldoende AI-credits. Vul je credits aan in Settings." }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 

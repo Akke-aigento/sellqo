@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.90.1";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -14,6 +15,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // SOCIAL-SEC-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "SOCIAL-SEC-1" }), {
+      status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -23,6 +30,8 @@ serve(async (req) => {
     const { tenantId, context } = await req.json();
     const auth = await authenticateRequest(req, tenantId);
     requireRole(auth, tenantId, ["tenant_admin", "staff", "marketing"]);
+    // SOCIAL-SEC-1: geen AI tijdens een betaalachterstand, zoals ai-generate-social.
+    await requireBillingState(supabase, auth, tenantId, "ai_assistant");
 
     // Check credits (1 for insights)
     const { data: hasCredits } = await supabase.rpc('use_ai_credits', {

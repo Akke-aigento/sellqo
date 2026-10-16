@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,8 +27,8 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-  // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SCHEMA-FIX-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  // SOCIAL-SEC-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SOCIAL-SEC-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -65,7 +66,9 @@ serve(async (req) => {
     }: SuggestRequest = await req.json();
 
 
-    await authenticateRequest(req, tenant_id);
+    const auth = await authenticateRequest(req, tenant_id);
+    // SOCIAL-SEC-1: rollen zoals useCan 'inbox' (write) en de RLS op customer_messages.
+    requireRole(auth, tenant_id, ['tenant_admin', 'staff', 'marketing']);
     if (!tenant_id || !customer_message) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields' }),
@@ -96,6 +99,8 @@ serve(async (req) => {
         );
       }
     }
+
+    await requireBillingState(supabase, auth, tenant_id, 'ai_assistant');
 
     // Check AI credits (only if we need to generate)
     const { data: hasCredits } = await supabase.rpc('use_ai_credits', {

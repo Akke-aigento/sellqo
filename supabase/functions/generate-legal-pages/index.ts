@@ -1,5 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,9 +66,19 @@ function validateTenantFields(tenant: any, pageTypes: string[]): { canGenerate: 
   return { canGenerate, missingFieldsByPage };
 }
 
+/** SOCIAL-SEC-1: één generatie (alle gevraagde pagina's, NL + EN) is één grote AI-call. */
+const LEGAL_PAGES_CREDITS = 5;
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+  // SOCIAL-SEC-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "SOCIAL-SEC-1" }), {
+      status: 200,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -100,6 +112,13 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    // SOCIAL-SEC-1: tot nu kon elke ingelogde gebruiker voor elke tenant_id genereren (geen
+    // lidmaatschaps- of rolcheck, geen credits). Rollen = wie legal_pages mag schrijven (RLS).
+    const auth = await authenticateRequest(req, tenant_id);
+    requireRole(auth, tenant_id, ["tenant_admin", "staff"]);
+    const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+    await requireBillingState(admin, auth, tenant_id, "ai_assistant");
 
     // Fetch tenant data
     const { data: tenant, error: tenantError } = await supabase
@@ -209,6 +228,21 @@ De content moet professioneel, compleet en juridisch correct zijn.`;
         },
       },
     };
+
+    // SOCIAL-SEC-1: credits vooraf (vrijgestelde winkels: 0, wel gelogd — beslist use_ai_credits).
+    const { data: hasCredits, error: creditError } = await admin.rpc("use_ai_credits", {
+      p_tenant_id: tenant_id,
+      p_credits: LEGAL_PAGES_CREDITS,
+      p_feature: "legal_pages",
+      p_model: "google/gemini-2.5-flash",
+      p_metadata: { pages: canGenerate },
+    });
+    if (creditError || !hasCredits) {
+      return new Response(JSON.stringify({ error: "Onvoldoende AI-credits" }), {
+        status: 402,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     console.log(`Generating legal pages for tenant ${tenant_id}: ${canGenerate.join(", ")}`);
 
@@ -332,6 +366,9 @@ De content moet professioneel, compleet en juridisch correct zijn.`;
     });
 
   } catch (e) {
+    if (e instanceof AuthError) {
+      return authErrorResponse(e, corsHeaders);
+    }
     console.error("generate-legal-pages error:", e);
     return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Onbekende fout" }), {
       status: 500,
