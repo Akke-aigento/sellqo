@@ -1,3 +1,23 @@
+## SEC-NIGHT-3 — tenants konden hun eigen AI-credits ophogen — 16 oktober 2026
+
+**Root cause.** `tenant_ai_credits` had policy "Users can update their tenant AI credits" (roles public, zonder with_check) en volledige tabelgrants voor anon/authenticated. Rollbacktest als VanXcel-gebruiker: `credits_total + 100000` raakte 1 rij.
+
+**Uitgevoerd** — `supabase/migrations/20261016050000_sec_night_3.sql` (gedraaid): policy weg; INSERT/UPDATE/DELETE/TRUNCATE ingetrokken voor anon/authenticated. SELECT blijft.
+
+**Security-keuzes / gedeelde paden** — alle schrijvers zijn SECURITY DEFINER (`use_ai_credits`, `add_ai_credits`, `admin_adjust_ai_credits`, `reset_monthly_ai_credits`, `use_ai_help_credit`, `initialize_tenant_ai_credits`) of edge functions met service_role; de app leest alleen (`useAICredits`, `usePlatformAdmin`).
+
+**Verificatie** — zelfde rollbacktest na de fix: `42501`; SELECT als tenantgebruiker geeft nog 1 rij.
+
+## SEC-BILL-1 — VOORBEREID, NIET GEDRAAID: tenant_admin kan zichzelf vrijstellen van facturatie — 16 oktober 2026
+
+**Root cause.** "Tenant admins can update their own tenant" + volledige kolomrechten: rollbacktest als Mancini-admin zette `tenants.billing_exempt = true` (1 rij). Zelfde voor `is_internal_tenant`, `billing_on_hold`, `subscription_*`, `stripe_*`, `is_demo`, `domain_verified`. Daarnaast mogen alle leden van een winkel `billing_cycles` aanmaken en wijzigen (policies voor authenticated; geen app-code gebruikt ze).
+
+**Voorbereid** — `docs/prepared/20261016060000_sec_bill_1.sql` (bewust buiten `supabase/migrations`): BEFORE UPDATE-trigger die een niet-platform-admin het WIJZIGEN van die kolommen verbiedt (zelfde waarde meesturen mag), en de twee billing_cycles-policies weg. Snapshot van de policies in `ops.sec_bill_1_prev_policies`.
+
+**Getest in één rollback-transactie** — Mancini: `billing_exempt` wijzigen `42501`; volledige-rij-save `ok`; `business_modules` `ok`; billing_cycle aanmaken `42501`. Akke (platform-admin): `billing_exempt` wijzigen `ok`. Na rollback: trigger 0, policies intact, Mancini `billing_exempt=false`.
+
+**Wacht op** — Akke's go (facturatiezone). Daarna: SQL draaien via de connector, natrekken, bestand naar `supabase/migrations` verhuizen.
+
 ## SEC-NIGHT-2 — publieke view tenant_theme_public toont geen API-sleutelgegevens meer — 16 oktober 2026
 
 **Root cause.** `tenant_theme_public` (SELECT voor `anon`, `security_invoker=false`) gaf `custom_frontend_config` integraal door, inclusief `api_key_hash`, `api_key_prefix` en `webhook_url` van custom-frontend-tenants (2 rijen live).
