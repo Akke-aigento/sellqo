@@ -1,3 +1,17 @@
+## SEC-ROLE-1 — KRITIEK: niemand kan zichzelf nog platform_admin maken — 16 oktober 2026
+
+**Root cause.** RLS-escalatie-audit (rollbacktests, rapport `docs/prepared/2026-10-16-rls-escalatie-audit.md`): policy "Tenant admins can update roles in their tenant" beperkte de rolkolom niet. `update user_roles set role='platform_admin'` op de eigen rij lukte (1 rij), waarna Mancini 24 tenants en 148 VanXcel-orders zag. Elke ingelogde gebruiker mag een eigen winkel aanmaken en wordt daar tenant_admin, dus: registreren → winkel → platform_admin. Tweede route: een `team_invitations`-rij met rol platform_admin, die `accept-team-invitation` (service_role) toekent. Derde: tenant_admin kon `user_id`/`tenant_id` van rollen omhangen. Geen sporen van misbruik: 1 platform_admin-rij (Akke), 0 uitnodigingen met platform_admin.
+
+**Uitgevoerd** — `supabase/migrations/20261016070000_sec_role_1.sql` (gedraaid): trigger `user_roles_guard` (SECURITY INVOKER) + CHECK `team_invitations_no_platform_admin`.
+
+**Security-keuzes** — postgres/supabase_admin (migraties en SECURITY DEFINER-triggers) en platform-admins ongemoeid; authenticated/anon/service_role kunnen nooit platform_admin toekennen; ingelogde gebruikers mogen user_id/tenant_id van een rol niet wijzigen. Een nieuwe platform-admin kan alleen nog via de SQL-console.
+
+**Gedeelde paden** — `useTeamMembers.updateMemberRole` (alleen role), `accept-team-invitation`, `create-tenant`, `repair-tenant-access` (gewone rollen) blijven werken. Geen edge-deploy nodig: de DB blokkeert ook service_role.
+
+**Verificatie** (rollback, als Mancini-admin) — zelf platform_admin `42501`; collega naar staff `1 rij`; rol omhangen `42501`; uitnodiging platform_admin `23514`; uitnodiging staff `ok`; nieuwe winkel aanmaken `ok` met rol tenant_admin; service_role platform_admin invoegen `42501`. Eindcontrole: trigger 1, constraint 1, 0 testwinkels, 1 platform_admin, Mancini-rollen ongewijzigd.
+
+**Vervolg** — `send-team-invitation`/`accept-team-invitation`: rollen-allowlist in de code (edge-deploy). Winkel aanmaken met platformvlaggen (INSERT) en domeinvlaggen: zie de herziene SEC-BILL-1 in het auditrapport; nog niet gedraaid.
+
 ## SEC-NIGHT-3 — tenants konden hun eigen AI-credits ophogen — 16 oktober 2026
 
 **Root cause.** `tenant_ai_credits` had policy "Users can update their tenant AI credits" (roles public, zonder with_check) en volledige tabelgrants voor anon/authenticated. Rollbacktest als VanXcel-gebruiker: `credits_total + 100000` raakte 1 rij.
