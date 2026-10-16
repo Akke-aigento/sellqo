@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12l — Merkbeelden en tags in je mediabibliotheek, en een post laten maken vanuit een beeld (feature + improvement, 16-10-2026)
+
+**Pas versturen na** stap 1, 2, 4 en 5 uit `docs/prepared/MEDIA-3-SOCIAL-SEC-1-deploy.md` (schema, pijplijn-seed, publish, helpartikels). De security-regel `ai_access_checks` gaat NIET in de nieuwsbrief (generiek, tenant merkt er niets van). "Post laten maken" is enkel zichtbaar voor winkels met een gekoppeld contentteam; vermeld dat eerlijk.
+
+**Voor wie:** alle winkels met de AI Content Hub (tab Merk, tags); winkels met een contentteam voor social media (post laten maken).
+
+**Je beelden sneller terugvinden** (oktober 2026)
+Je mediabibliotheek heeft een tab Merk voor je logo, sfeerbeelden en reisfoto's, en je filtert op tags met één klik. Heeft je winkel een contentteam voor social media, dan vraag je vanuit een beeld meteen een post, story of reel aan, met de kost in AI-credits vooraf.
+Wat betekent dit voor jou? Minder zoeken, en van een mooi beeld naar een post in de Social planning zonder tussenstappen.
+
+**i18n-keys.** `public.changelog.changes.media_library_brand_tags`, `public.changelog.changes.social_content_requests`, `public.changelog.changes.social_regenerate_credits` (en `ai_access_checks`, niet voor de nieuwsbrief) — 5 talen (nl, en, fr, de, uk; geteld tegen `SUPPORTED_LANGUAGES`).
+
 ### 2026.12k — AI-beelden en social-beelden ook in je mediabibliotheek (improvement, 16-10-2026)
 
 **Status:** live sinds 16-10-2026 (migratie `20261016200000_media_2_ai_social.sql` gedraaid en nagemeten, publish sellqo.app). Kan mee in dezelfde nieuwsbrief als 2026.12j.
