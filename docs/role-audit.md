@@ -73,7 +73,14 @@ Akke 21:41: "het voelt als iets bijgevoegd … die AI tools, zijn deze nu niet o
 - vitest: volledige suite 58 bestanden / 767 tests groen, waaronder het nieuwe `aiHubTarget.test.ts` (2).
 - i18n-pariteit volledig. `npm run build` slaagt.
 - eslint tegen de baseline: geen nieuwe meldingen. De bestaande `no-explicit-any` in `Marketing.tsx` en `SEODashboard.tsx` zijn ongewijzigd.
-- tsc: zie de live-notitie. `deno check` op `social-oauth-init` ok.
+- tsc: 27 fouten, gelijk aan de baseline; geen enkele in de gewijzigde bestanden. `deno check` op `social-oauth-init` ok.
+- Live 16-10 om 22:40:
+  - Beide migraties zijn uitgevoerd via `net.http_get` op commit 01aa60e, met een md5-controle die overeenkwam.
+  - Natrek van `social_connection_status`: SECURITY DEFINER, anon heeft geen execute.
+  - Test in een DO-blok dat op het einde terugdraait: een tenant_admin van Loveke krijgt 1 rij, een onbekende gebruiker krijgt `insufficient_privilege`.
+  - De 5 helpartikels bevatten de nieuwe paden; context_path is bijgewerkt.
+  - `social-oauth-init` is gedeployd via een Lovable-agent die enkel mocht deployen. Die bevestigde commit 01aa60e en wijzigde niets.
+  - sellqo.app gepubliceerd (deploy 28c61ea1).
 
 **Bewust ongemoeid / Vervolg**
 - Het AI Actie Centrum staat niet meer in de zijbalk. Het blijft bereikbaar via de dashboardwidget en via meldingen (`/admin/marketing/ai-center`). Waar het heen gaat, hoort bij de herindeling van de rest van de zijbalk (ander project).
