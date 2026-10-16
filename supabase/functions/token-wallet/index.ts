@@ -5,7 +5,7 @@
 //   - get:            winkel, muntnaam, saldo, geschiedenis, terugbetaalvoorwaarden;
 //   - request_refund: maakt via request_token_refund een retour aan (Retouren in de admin).
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const VERSION = "FEST-2";
 const corsHeaders = {

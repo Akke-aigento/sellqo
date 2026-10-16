@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2?bundle';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2?bundle';
 import { denyUnlessCron } from '../_shared/marketplaceSyncAuth.ts';
 
 const corsHeaders = {

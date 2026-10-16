@@ -3,11 +3,11 @@
 // - Groups by (url, db, login): one authenticate per group, reused across tenants.
 // - Per-tenant try/catch: one tenant's failure never breaks the whole run.
 // - Pushes issued invoices + credit notes; account.move.name = Sellqo number.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2'
 // BUILD-GREEN-1: `ReturnType<typeof createClient>` werd met de nieuwere supabase-js een
 // client met schema `never` (elke rij `never`). Het type uit dezelfde module heeft
 // een ongetypeerd schema en past altijd op wat createClient hier teruggeeft.
-import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2'
 import { denyUnlessCron } from '../_shared/marketplaceSyncAuth.ts'
 import { decryptOdooKey } from '../_shared/odooCrypto.ts'
 import { odooRpc as sharedOdooRpc, odooAuthenticate as sharedAuth, odooVersion as sharedVersion, assertValidOdooUrl, type OdooEnv } from '../_shared/odooRpc.ts'

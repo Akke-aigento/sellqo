@@ -8,7 +8,7 @@
 //   - undo:   de laatste afschrijving terugdraaien (zelfde bar, binnen 10 minuten, één keer).
 // Geeft nooit e-mailadressen terug; enkel de voornaam van de koper.
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 const VERSION = "FEST-2";
 const corsHeaders = {

@@ -2,7 +2,7 @@
 // zodra ze verschijnen in de order list. Deze functie bestaat alleen nog
 // als wrapper voor backward compatibility met bestaande callers.
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2'
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {

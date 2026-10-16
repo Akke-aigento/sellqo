@@ -2,7 +2,7 @@
 // Implements structural validation that mirrors the official FOD XSDs.
 // See _shared/xsds/README.md for the XSD references.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
 export interface TenantInfo {
   id: string;
