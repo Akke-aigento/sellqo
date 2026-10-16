@@ -1,4 +1,4 @@
--- SEC-BILL-1 (herzien na de RLS-audit) — 16 oktober 2026 — VOORBEREID, NIET GEDRAAID (wacht op Akke's go: raakt facturatie)
+-- SEC-BILL-1 (herzien na de RLS-audit) — 16 oktober 2026 — GEDRAAID op 16-10-2026 09:40 na Akke's go
 --
 -- Gevonden in de nachtrun (rol-impersonatie, rollback):
 --  1. Policy "Tenant admins can update their own tenant" + volledige kolomrechten: een
@@ -30,7 +30,7 @@ insert into ops.sec_bill_1_prev_policies (tablename, policyname, cmd, roles, qua
 select tablename, policyname, cmd, roles::text, qual, with_check
 from pg_policies
 where schemaname = 'public' and tablename = 'billing_cycles'
-  and policyname in ('Tenant members can insert billing cycles', 'Tenant members can update billing cycles')
+  and policyname in ('Tenant members can insert billing cycles', 'Tenant members can update billing cycles', 'Tenant members can delete billing cycles')
 on conflict do nothing;
 
 -- HERZIEN: de eerste versie brak het aanmaken van winkels (create_tenant_trial_subscription

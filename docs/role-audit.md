@@ -175,7 +175,13 @@ Alles staat met een voorstel in de inventaris. Ook de `doc_articles`-slottaak is
 
 **Verificatie** — zelfde rollbacktest na de fix: `42501`; SELECT als tenantgebruiker geeft nog 1 rij.
 
-## SEC-BILL-1 — VOORBEREID, NIET GEDRAAID: tenant_admin kan zichzelf vrijstellen van facturatie — 16 oktober 2026
+## SEC-BILL-1 — GEDRAAID (16-10, 09:40, na Akke's go): tenant_admin kan zichzelf niet meer vrijstellen van facturatie — 16 oktober 2026
+
+**Live gezet** met de herziene versie (ook INSERT, `pg_trigger_depth()`, DELETE-policy mee): `supabase/migrations/20261016060000_sec_bill_1.sql`. Vooraf nagetrokken: alle edge functions die beschermde kolommen schrijven gebruiken service_role (check-connect-status, create-tenant, stripe-connect-webhook, verify-domain, cleanup-connected-accounts via supabaseAdmin, check-expired-trials, disconnect-stripe-account, cloudflare-api-connect, create-connect-account, resolve-tenant-action, sync-tenant-plan); `updateTenant` met `subscription_plan` zit alleen op de platform-adminpagina. Kolomdefault `subscription_status` = 'trial'.
+
+**Verificatie na het draaien** (rollback): Mancini `billing_exempt` wijzigen `42501`; volledige-rij-save `1 rij`; billing_cycle aanmaken `42501`; nieuwe winkel met `billing_exempt/is_internal_tenant/active` → aangemaakt met `false/false/trial`, rol tenant_admin; Akke `billing_exempt` `1 rij`; service_role plan wijzigen `1 rij`. Eindstand: trigger 1, op `billing_cycles` alleen nog de SELECT-policy, snapshot 3 policies in `ops.sec_bill_1_prev_policies`, 0 testwinkels.
+
+### Oorspronkelijke voorbereiding
 
 **Root cause.** "Tenant admins can update their own tenant" + volledige kolomrechten: rollbacktest als Mancini-admin zette `tenants.billing_exempt = true` (1 rij). Zelfde voor `is_internal_tenant`, `billing_on_hold`, `subscription_*`, `stripe_*`, `is_demo`, `domain_verified`. Daarnaast mogen alle leden van een winkel `billing_cycles` aanmaken en wijzigen (policies voor authenticated; geen app-code gebruikt ze).
 
