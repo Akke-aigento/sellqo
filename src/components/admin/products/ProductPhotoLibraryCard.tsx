@@ -9,7 +9,7 @@ import { useMediaAssets } from '@/hooks/useMediaAssets';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
 import { useProducts } from '@/hooks/useProducts';
-import { useUsageLimits } from '@/hooks/useUsageLimits';
+import { useCan } from '@/hooks/useCan';
 import { buildUsageMap, type ProductImageRef } from '@/lib/mediaLibrary';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -35,7 +35,7 @@ export function ProductPhotoLibraryCard() {
   // MEDIA-1: sinds de ene bibliotheek staan hier ook de foto's die al op een product staan.
   const { products } = useProducts();
   const usage = useMemo(() => buildUsageMap(products as unknown as ProductImageRef[]), [products]);
-  const { checkFeature } = useUsageLimits();
+  const canOpenMedia = useCan('read', 'marketing');
   const [showAll, setShowAll] = useState(false);
 
   const loose = useMemo(() => assets.filter(a => !usage.has(a.file_url)), [assets, usage]);
@@ -81,9 +81,10 @@ export function ProductPhotoLibraryCard() {
               {t('admin.products.productPhotoLibraryCard.losse_fotos_uitleg')}
             </CardDescription>
           </div>
-          {checkFeature('ai_marketing') && (
+          {/* MARKETING-2: de mediabibliotheek is een eigen plek onder Marketing (niet meer achter AI). */}
+          {canOpenMedia && (
             <Button asChild variant="outline" size="sm" className="shrink-0">
-              <Link to="/admin/marketing/ai?tab=assets">
+              <Link to="/admin/marketing/media">
                 <ExternalLink className="mr-2 h-4 w-4" />
                 {t('admin.products.productPhotoLibraryCard.volledige_bibliotheek')}
               </Link>

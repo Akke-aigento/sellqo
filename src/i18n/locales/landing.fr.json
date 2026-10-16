@@ -2118,6 +2118,14 @@
         "social_results_content": {
           "title": "Planification sociale : apprendre ce qui marche, contenu compris",
           "description": "L'onglet Résultats classe désormais vos publications selon un score où les enregistrements, les partages et les nouveaux abonnés pèsent plus qu'un j'aime, mesuré 48 heures après la publication pour comparer équitablement anciennes et nouvelles publications. Si vos publications ont des étiquettes (pilier, format, type d'accroche, longueur, appel à l'action), vous voyez aussi quel contenu fonctionne le mieux."
+        },
+        "marketing_one_whole": {
+          "title": "Le marketing en un seul ensemble",
+          "description": "Le marketing a maintenant des emplacements clairs : Social, E-mail, Médias et SEO, plus Ads. Les outils IA ne sont plus un endroit à part : vous créez publications, promos et images avec l'IA dans Social → Créer, et les e-mails avec le bouton « Créer avec l'IA » dans E-mail. Toutes vos photos sont dans Médias. Les anciens liens redirigent automatiquement."
+        },
+        "social_ai_needs_approval": {
+          "title": "Les publications IA attendent toujours votre approbation",
+          "description": "Une publication créée avec l'IA n'est plus mise en ligne immédiatement : elle arrive dans le planning social, où vous la relisez et l'approuvez. Les utilisateurs avec le rôle marketing voient aussi quels canaux sont connectés et peuvent connecter Instagram dans Social → Canaux."
         }
       },
       "copyLink": "Copier le lien",

@@ -203,7 +203,10 @@
       "event_venues": "Säle",
       "event_bundles": "Kombitickets",
       "event_tokens": "Marken",
-      "social_planner": "Social-Planung"
+      "social_planner": "Social-Planung",
+      "social": "Social",
+      "email": "E-Mail",
+      "media": "Medien"
     }
   },
   "settings": {
@@ -2808,7 +2811,11 @@
         "klik_om_te_selecteren": "Zum Auswählen klicken",
         "product_nummer": "Produkt {{number}}",
         "social_media_generator": "Social-Media-Generator",
-        "type_content": "Content-Typ"
+        "type_content": "Content-Typ",
+        "toPlanningHint": "Landet in der Social-Planung und geht erst nach Ihrer Freigabe online.",
+        "connectChannel": "{{platform}} verbinden",
+        "inPlanning": "Für {{moment}} in die Planung gesetzt. Geben Sie ihn frei, damit er veröffentlicht wird.",
+        "openPlanning": "Zur Planung"
       },
       "marketingStatsCards": {
         "groei_deze_maand": "+{{count}} diesen Monat",
@@ -3019,7 +3026,7 @@
       "maak_herbruikbare_email_templates": "Erstellen Sie wiederverwendbare E-Mail-Vorlagen",
       "maak_je_eerste_email_campagne_aan": "Erstellen Sie Ihre erste E-Mail-Kampagne",
       "maak_klantsegmenten_voor_gerichte_campagnes": "Erstellen Sie Kundensegmente für gezielte Kampagnen",
-      "marketing_command_center": "Marketing-Kommandozentrale",
+      "marketing_command_center": "E-Mail",
       "nieuw_segment": "Neues Segment",
       "nieuwe_campagne_starten": "Neue Kampagne starten",
       "campaignPerformanceChart": {
@@ -3033,7 +3040,16 @@
       "snelle_acties": "Schnellaktionen",
       "starterstemplates_genereren": "Startvorlagen generieren",
       "template_maken": "Vorlage erstellen",
-      "verzonden_geopend_en_geklikt_emails": "Gesendete, geöffnete und geklickte E-Mails"
+      "verzonden_geopend_en_geklikt_emails": "Gesendete, geöffnete und geklickte E-Mails",
+      "aiEmail": {
+        "button": "Mit KI erstellen",
+        "title": "E-Mail mit KI erstellen"
+      },
+      "tabs": {
+        "campaigns": "Alle Kampagnen ({{count}})",
+        "templates": "Vorlagen ({{count}})",
+        "segments": "Segmente ({{count}})"
+      }
     },
     "ads": {
       "bolCampaignEditForm": {
@@ -6863,7 +6879,7 @@
       }
     },
     "socialPlanner": {
-      "title": "Social-Planung",
+      "title": "Social",
       "description": "Prüfen, bearbeiten und genehmigen Sie Ihre Beiträge. Genehmigte Beiträge gehen zur geplanten Stunde automatisch online.",
       "waiting": "Warten auf Genehmigung: {{count}}",
       "week": "Woche vom {{from}} bis {{to}}",
@@ -6994,7 +7010,9 @@
       },
       "tabs": {
         "planning": "Planung",
-        "results": "Ergebnisse"
+        "results": "Ergebnisse",
+        "create": "Erstellen",
+        "channels": "Kanäle"
       },
       "metrics": {
         "reach": "{{value}} Reichweite",
@@ -7054,7 +7072,43 @@
           "caption_length": "Nach Textlänge",
           "cta": "Nach Handlungsaufforderung"
         }
+      },
+      "channels": {
+        "intro": "Die Konten, auf denen SellQo Ihre genehmigten Beiträge veröffentlicht. Läuft eine Verbindung ab oder möchten Sie auch Statistiken sehen, verbinden Sie erneut.",
+        "connected": "Instagram ist verbunden.",
+        "connectFailed": "Verbinden fehlgeschlagen: {{message}}",
+        "noAuthUrl": "Instagram hat keinen Anmeldelink zurückgegeben.",
+        "active": "Verbunden",
+        "expired": "Abgelaufen",
+        "inactive": "Nicht aktiv",
+        "validUntil": "gültig bis {{date}}",
+        "notConnected": "Noch nicht verbunden",
+        "connect": "Verbinden",
+        "reconnect": "Erneut verbinden",
+        "instagramUnavailable": "Die Instagram-Verbindung ist für diesen Shop noch nicht eingerichtet. Fragen Sie SellQo.",
+        "reconnectHint": "Melden Sie sich beim Verbinden mit dem Instagram-Konto dieses Shops an.",
+        "moreInConnect": "Facebook und andere Kanäle verwalten Sie in SellQo Connect."
+      },
+      "create": {
+        "intro": "Lassen Sie die KI einen Beitrag, eine komplette Aktion oder ein Bild erstellen. Was Sie erstellen, landet in der Planung und geht erst nach Ihrer Freigabe online.",
+        "tools": "Einzelner Beitrag oder Bild",
+        "menu": "Heutige Speisekarte"
       }
+    },
+    "aiCredits": {
+      "return": {
+        "added": "{{count}} KI-Credits hinzugefügt",
+        "addedDescription": "Ihre Credits sind jetzt verfügbar.",
+        "pending": "Ihre Zahlung wird noch verarbeitet",
+        "pendingDescription": "Die Credits erscheinen, sobald Ihre Bank die Zahlung bestätigt.",
+        "unconfirmed": "Wir konnten Ihren Kauf noch nicht bestätigen",
+        "unconfirmedDescription": "Ihre Zahlung ist sicher. Aktualisieren Sie die Seite in einer Minute.",
+        "cancelled": "Kauf abgebrochen"
+      }
+    },
+    "mediaLibrary": {
+      "title": "Medien",
+      "description": "Alle Ihre Fotos an einem Ort: von Ihren Produkten, mit KI erstellt und in Social-Beiträgen verwendet."
     }
   },
   "billing": {

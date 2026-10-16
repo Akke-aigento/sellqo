@@ -211,7 +211,7 @@ export default function SEODashboard() {
   const scoreColor = overallScore >= 80 ? 'text-green-500' : overallScore >= 50 ? 'text-yellow-500' : 'text-red-500';
 
   return (
-    <FeatureGate feature="ai_marketing">
+    <FeatureGate feature="ai_seo">
       <div className="space-y-6 max-w-6xl mx-auto">
         {/* Hero Header */}
         <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border p-6">

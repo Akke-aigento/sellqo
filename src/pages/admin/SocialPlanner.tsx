@@ -28,12 +28,16 @@ import { SocialImageTextEditor } from '@/components/admin/marketing/social/Socia
 import { SocialMediaViewer } from '@/components/admin/marketing/social/SocialMediaViewer';
 import { SocialTranslateDialog } from '@/components/admin/marketing/social/SocialTranslateDialog';
 import { SocialResults } from '@/components/admin/marketing/social/SocialResults';
+import { SocialCreate } from '@/components/admin/marketing/social/SocialCreate';
+import { SocialChannels } from '@/components/admin/marketing/social/SocialChannels';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { postMedia } from '@/lib/social/media';
 import { useTenant } from '@/hooks/useTenant';
 import { useSocialPlanner, type PlannerPost } from '@/hooks/useSocialPlanner';
-import { useSocialConnections } from '@/hooks/useSocialConnections';
+import { useSocialChannelStatus } from '@/hooks/useSocialChannelStatus';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useCan } from '@/hooks/useCan';
+import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 
 /** ISO-tijdstip naar de waarden van <input type="date"> en <input type="time">, in lokale tijd. */
 function toLocalParts(iso: string | null): { date: string; time: string } {
@@ -46,10 +50,15 @@ export default function SocialPlanner() {
   const locale = useDateFnsLocale();
   const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText, saveTranslation, postNow } = useSocialPlanner();
   const { currentTenant } = useTenant();
-  const { connections } = useSocialConnections();
   // SOCIAL-6: ?tab=results opent meteen de resultaten (link uit de maandagmelding).
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get('tab') === 'results' ? 'results' : 'planning';
+  // MARKETING-2: de AI-tools (tab Maken) volgen dezelfde rechten als de vroegere AI Content Hub:
+  // rol met ai_assistant-leesrecht, en niet verborgen voor deze winkel (hidden_pages 'ai-tools').
+  const canAI = useCan('read', 'ai_assistant');
+  const { isPageHidden } = useTenantPageOverrides();
+  const showCreate = canAI && !isPageHidden('ai-tools');
+  const rawTab = searchParams.get('tab');
+  const tab = rawTab === 'results' || rawTab === 'channels' || (rawTab === 'create' && showCreate) ? rawTab : 'planning';
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<PlannerPost | null>(null);
@@ -90,10 +99,8 @@ export default function SocialPlanner() {
     cover: t('admin.socialPlanner.media.cover'),
   });
 
-  const hasConnection = useMemo(
-    () => connections.some((c) => c.is_active && (c.platform === 'instagram' || c.platform === 'facebook')),
-    [connections],
-  );
+  // MARKETING-1: status zonder tokens, zodat ook de rol marketing de juiste melding ziet.
+  const { canPublish: hasConnection, isLoading: channelsLoading } = useSocialChannelStatus();
 
   const fail = (err: unknown) =>
     toast.error(t('admin.socialPlanner.toast.error', { message: (err as Error)?.message ?? '' }));
@@ -198,19 +205,21 @@ export default function SocialPlanner() {
       />
 
       <Tabs value={tab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); if (v === 'planning') next.delete('tab'); else next.set('tab', v); return next; }, { replace: true })} className="space-y-6">
-        <TabsList>
+        <TabsList scrollHint>
           <TabsTrigger value="planning">{t('admin.socialPlanner.tabs.planning')}</TabsTrigger>
+          {showCreate && <TabsTrigger value="create">{t('admin.socialPlanner.tabs.create')}</TabsTrigger>}
           <TabsTrigger value="results">{t('admin.socialPlanner.tabs.results')}</TabsTrigger>
+          <TabsTrigger value="channels">{t('admin.socialPlanner.tabs.channels')}</TabsTrigger>
         </TabsList>
         <TabsContent value="planning" className="space-y-6 mt-0">
 
-      {!isLoading && !hasConnection && (
+      {!isLoading && !channelsLoading && !hasConnection && (
         <Alert>
           <Link2 className="h-4 w-4" />
           <AlertDescription className="flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
             <span>{t('admin.socialPlanner.noConnection')}</span>
             <Button variant="outline" size="sm" asChild>
-              <Link to="/admin/connect?tab=channels">{t('admin.socialPlanner.toConnect')}</Link>
+              <Link to="/admin/marketing/social?tab=channels">{t('admin.socialPlanner.toConnect')}</Link>
             </Button>
           </AlertDescription>
         </Alert>
@@ -281,8 +290,16 @@ export default function SocialPlanner() {
         })
       )}
         </TabsContent>
+        {showCreate && (
+          <TabsContent value="create" className="mt-0">
+            <SocialCreate />
+          </TabsContent>
+        )}
         <TabsContent value="results" className="mt-0">
           <SocialResults />
+        </TabsContent>
+        <TabsContent value="channels" className="mt-0">
+          <SocialChannels />
         </TabsContent>
       </Tabs>
 

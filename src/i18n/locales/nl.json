@@ -175,7 +175,10 @@
       "event_venues": "Zalen",
       "event_bundles": "Combitickets",
       "event_tokens": "Munten",
-      "social_planner": "Social planning"
+      "social_planner": "Social planning",
+      "social": "Social",
+      "email": "E-mail",
+      "media": "Media"
     }
   },
   "settings": {
@@ -3162,7 +3165,11 @@
         "ingepland_voor": "Ingepland voor {{moment}}",
         "product_nummer": "Product {{number}}",
         "ai_kent_je_data": "AI kent je data: {{products}} producten, {{subscribers}} abonnees,",
-        "feestdag_over_dagen": "{{holiday}} over {{days}} dagen"
+        "feestdag_over_dagen": "{{holiday}} over {{days}} dagen",
+        "toPlanningHint": "Komt in de Social planning en gaat pas online na je goedkeuring.",
+        "connectChannel": "{{platform}} koppelen",
+        "inPlanning": "In de planning gezet voor {{moment}}. Keur hem goed om hem te laten posten.",
+        "openPlanning": "Naar planning"
       },
       "campaignDialog": {
         "triggers": {
@@ -3279,7 +3286,7 @@
       "maak_klantsegmenten_voor_gerichte_campagnes": "Maak klantsegmenten voor gerichte campagnes",
       "4_starterstemplates_aangemaakt": "4 starterstemplates aangemaakt",
       "kon_templates_niet_aanmaken": "Kon templates niet aanmaken",
-      "marketing_command_center": "Marketing Command Center",
+      "marketing_command_center": "E-mail",
       "email_campagnes_analytics_en_klant_engagement": "Email campagnes, analytics en klant engagement",
       "ai_marketing_hub": "AI Marketing Hub",
       "nieuw_segment": "Nieuw segment",
@@ -3291,7 +3298,16 @@
       "eerste_campagne_maken": "Eerste campagne maken",
       "nieuwe_template": "Nieuwe template",
       "genereert_4_templates_nieuwsbrief_welkomstmail_promotie": "Genereert 4 templates (Nieuwsbrief, Welkomstmail, Promotie, Winback) met uw logo en merkkleuren.",
-      "starterstemplates_genereren": "Starterstemplates genereren"
+      "starterstemplates_genereren": "Starterstemplates genereren",
+      "aiEmail": {
+        "button": "Maak met AI",
+        "title": "E-mail maken met AI"
+      },
+      "tabs": {
+        "campaigns": "Alle campagnes ({{count}})",
+        "templates": "Templates ({{count}})",
+        "segments": "Segmenten ({{count}})"
+      }
     },
     "ads": {
       "bolCampaignEditForm": {
@@ -7121,7 +7137,7 @@
       }
     },
     "socialPlanner": {
-      "title": "Social planning",
+      "title": "Social",
       "description": "Bekijk, pas aan en keur je posts goed. Goedgekeurde posts gaan vanzelf online op het geplande uur.",
       "waiting": "Wacht op goedkeuring: {{count}}",
       "week": "Week van {{from}} tot {{to}}",
@@ -7252,7 +7268,9 @@
       },
       "tabs": {
         "planning": "Planning",
-        "results": "Resultaten"
+        "results": "Resultaten",
+        "create": "Maken",
+        "channels": "Kanalen"
       },
       "metrics": {
         "reach": "{{value}} bereik",
@@ -7312,7 +7330,43 @@
           "caption_length": "Per lengte van de tekst",
           "cta": "Per oproep tot actie"
         }
+      },
+      "channels": {
+        "intro": "De accounts waarop SellQo je goedgekeurde posts plaatst. Verloopt een koppeling, of wil je ook statistieken zien, koppel dan opnieuw.",
+        "connected": "Instagram is gekoppeld.",
+        "connectFailed": "Koppelen lukte niet: {{message}}",
+        "noAuthUrl": "Instagram gaf geen aanmeldlink terug.",
+        "active": "Gekoppeld",
+        "expired": "Verlopen",
+        "inactive": "Niet actief",
+        "validUntil": "geldig tot {{date}}",
+        "notConnected": "Nog niet gekoppeld",
+        "connect": "Koppelen",
+        "reconnect": "Opnieuw koppelen",
+        "instagramUnavailable": "Instagram koppelen is voor deze winkel nog niet ingesteld. Vraag het aan SellQo.",
+        "reconnectHint": "Log bij het koppelen in met het Instagram-account van deze winkel.",
+        "moreInConnect": "Facebook en andere kanalen beheer je in SellQo Connect."
+      },
+      "create": {
+        "intro": "Laat AI een post, een volledige promo of een beeld maken. Wat je maakt, komt in de planning en gaat pas online als je het goedkeurt.",
+        "tools": "Losse post of beeld",
+        "menu": "Menukaart van vandaag"
       }
+    },
+    "aiCredits": {
+      "return": {
+        "added": "{{count}} AI-credits toegevoegd",
+        "addedDescription": "Je credits zijn nu beschikbaar.",
+        "pending": "Je betaling wordt nog verwerkt",
+        "pendingDescription": "De credits verschijnen zodra je bank de betaling bevestigt.",
+        "unconfirmed": "We konden je aankoop nog niet bevestigen",
+        "unconfirmedDescription": "Je betaling is veilig. Ververs de pagina over een minuutje.",
+        "cancelled": "Aankoop geannuleerd"
+      }
+    },
+    "mediaLibrary": {
+      "title": "Media",
+      "description": "Al je foto's op één plek: van je producten, gemaakt met AI en gebruikt in social posts."
     }
   },
   "product_form": {

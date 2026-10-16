@@ -4,6 +4,20 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12n — Marketing als één geheel; AI-posts altijd via goedkeuring (improvement + bugfix, 16-10-2026)
+
+**Status:**
+- De migraties `20261016240000_marketing_1_social_channel_status.sql` en `20261016240100_marketing_2_doc_articles.sql` worden live gedraaid.
+- `social-oauth-init` wordt gedeployd en sellqo.app gepubliceerd.
+
+**Voor wie:** alle winkels die Marketing gebruiken.
+
+**Marketing, maar overzichtelijk** (oktober 2026)
+Marketing heeft nu vaste plekken: Social, E-mail, Media, SEO en Ads. AI is geen aparte plek meer, maar een knop waar je hem nodig hebt: posts, promo's en beelden maak je in Social → Maken, e-mails met "Maak met AI" in E-mail. Een post die je met AI maakt, gaat bovendien nooit meer meteen online: hij wacht in de planning op jouw goedkeuring.
+Wat betekent dit voor jou? Minder zoeken in het menu, en geen post die online gaat voor je hem gezien hebt.
+
+**i18n-keys.** `public.changelog.changes.marketing_one_whole` en `public.changelog.changes.social_ai_needs_approval` — 5 talen (nl, en, fr, de, uk; geteld tegen `SUPPORTED_LANGUAGES`).
+
 ### 2026.12m — Leren wat werkt, ook qua inhoud (improvement, 16-10-2026)
 
 **Status:** migraties `20261016230000_social_6_learning.sql` en `20261016230100_social_6_doc_article.sql` live, `social-insights-sync` (SOCIAL-6) gedeployd. Kan mee met 2026.12l in dezelfde nieuwsbrief.

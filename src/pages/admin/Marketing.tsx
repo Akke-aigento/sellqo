@@ -25,6 +25,11 @@ import { useTenantBrand } from '@/hooks/useTenantBrand';
 import { useToast } from '@/hooks/use-toast';
 import { Sparkles as SparklesIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
+import { FeatureGate } from '@/components/FeatureGate';
+import { AIEmailPlanner } from '@/components/admin/marketing/AIEmailPlanner';
+import { useCan } from '@/hooks/useCan';
+import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 
 export default function MarketingPage() {
   const { t } = useTranslation();
@@ -33,14 +38,27 @@ export default function MarketingPage() {
   const [editingCampaign, setEditingCampaign] = useState<EmailCampaign | null>(null);
   // APP-CLEAN-2b: ?new=campaign (bv. vanuit AI-inzichten) opent meteen een nieuwe campagne.
   const [searchParams, setSearchParams] = useSearchParams();
+  // MARKETING-2: de AI-e-mailtool zit hier (knop "Maak met AI"); ?ai=email opent hem meteen
+  // (doorverwijzing vanuit de vroegere AI Content Hub). Zelfde rechten als die hub.
+  const canAI = useCan('read', 'ai_assistant');
+  const { isPageHidden } = useTenantPageOverrides();
+  const showAI = canAI && !isPageHidden('ai-tools');
+  const [aiEmailOpen, setAiEmailOpen] = useState(false);
   useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    let changed = false;
     if (searchParams.get('new') === 'campaign') {
       setCampaignDialogOpen(true);
-      const next = new URLSearchParams(searchParams);
       next.delete('new');
-      setSearchParams(next, { replace: true });
+      changed = true;
     }
-  }, [searchParams, setSearchParams]);
+    if (searchParams.get('ai') === 'email') {
+      if (showAI) setAiEmailOpen(true);
+      next.delete('ai');
+      changed = true;
+    }
+    if (changed) setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams, showAI]);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | '90d'>('30d');
@@ -94,12 +112,15 @@ export default function MarketingPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Link to="/admin/marketing/ai">
-            <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0">
+          {showAI && (
+            <Button
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0"
+              onClick={() => setAiEmailOpen(true)}
+            >
               <Sparkles className="mr-2 h-4 w-4" />
-              {t('admin.marketing.ai_marketing_hub')}
+              {t('admin.marketing.aiEmail.button')}
             </Button>
-          </Link>
+          )}
           <GatedButton action="write" resource="marketing" variant="outline" onClick={() => setSegmentDialogOpen(true)}>
             <Users className="mr-2 h-4 w-4" />
             {t('admin.marketing.nieuw_segment')}
@@ -236,15 +257,15 @@ export default function MarketingPage() {
         <TabsList>
           <TabsTrigger value="campaigns" className="gap-2">
             <Mail className="h-4 w-4" />
-            Alle Campagnes ({campaigns.length})
+            {t('admin.marketing.tabs.campaigns', { count: campaigns.length })}
           </TabsTrigger>
           <TabsTrigger value="templates" className="gap-2">
             <FileText className="h-4 w-4" />
-            Templates ({templates.length})
+            {t('admin.marketing.tabs.templates', { count: templates.length })}
           </TabsTrigger>
           <TabsTrigger value="segments" className="gap-2">
             <Users className="h-4 w-4" />
-            Segmenten ({segments.length})
+            {t('admin.marketing.tabs.segments', { count: segments.length })}
           </TabsTrigger>
         </TabsList>
 
@@ -406,6 +427,17 @@ export default function MarketingPage() {
         }}
         isLoading={createSegment.isPending}
       />
+
+      <ResponsiveDialog
+        open={aiEmailOpen}
+        onOpenChange={setAiEmailOpen}
+        title={t('admin.marketing.aiEmail.title')}
+        maxWidth="2xl"
+      >
+        <FeatureGate feature="ai_marketing">
+          <AIEmailPlanner />
+        </FeatureGate>
+      </ResponsiveDialog>
     </div>
   );
 }

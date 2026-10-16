@@ -2118,6 +2118,14 @@
         "social_results_content": {
           "title": "Social-Planung: lernen, was funktioniert – auch inhaltlich",
           "description": "Der Tab Ergebnisse ordnet Ihre Beiträge jetzt nach einem Score, in dem Speicherungen, Teilungen und neue Follower mehr zählen als ein Like, gemessen 48 Stunden nach der Veröffentlichung, damit ältere und neuere Beiträge fair verglichen werden. Haben Ihre Beiträge Labels (Säule, Format, Art des Einstiegs, Länge, Handlungsaufforderung), sehen Sie auch, welcher Inhalt am besten funktioniert."
+        },
+        "marketing_one_whole": {
+          "title": "Marketing als ein Ganzes",
+          "description": "Marketing hat jetzt klare Bereiche: Social, E-Mail, Medien und SEO, dazu Ads. Die KI-Werkzeuge sind kein eigener Bereich mehr: Beiträge, Aktionen und Bilder erstellen Sie mit KI unter Social → Erstellen, E-Mails mit der Schaltfläche „Mit KI erstellen\" unter E-Mail. Alle Fotos finden Sie unter Medien. Alte Links leiten automatisch weiter."
+        },
+        "social_ai_needs_approval": {
+          "title": "KI-Beiträge warten immer auf Ihre Freigabe",
+          "description": "Ein mit KI erstellter Beitrag geht nicht mehr sofort online, sondern landet in der Social-Planung, wo Sie ihn prüfen und freigeben. Nutzer mit der Rolle Marketing sehen jetzt auch, welche Kanäle verbunden sind, und können Instagram unter Social → Kanäle verbinden."
         }
       },
       "copyLink": "Link kopieren",

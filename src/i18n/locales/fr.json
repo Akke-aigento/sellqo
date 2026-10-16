@@ -203,7 +203,10 @@
       "event_venues": "Salles",
       "event_bundles": "Billets combinés",
       "event_tokens": "Jetons",
-      "social_planner": "Planning social"
+      "social_planner": "Planning social",
+      "social": "Social",
+      "email": "E-mail",
+      "media": "Médias"
     }
   },
   "settings": {
@@ -2808,7 +2811,11 @@
         "klik_om_te_selecteren": "Cliquez pour sélectionner",
         "product_nummer": "Produit {{number}}",
         "social_media_generator": "Générateur pour les réseaux sociaux",
-        "type_content": "Type de contenu"
+        "type_content": "Type de contenu",
+        "toPlanningHint": "Arrive dans le planning social et n'est publié qu'après votre approbation.",
+        "connectChannel": "Connecter {{platform}}",
+        "inPlanning": "Ajouté au planning pour le {{moment}}. Approuvez-le pour qu’il soit publié.",
+        "openPlanning": "Ouvrir le planning"
       },
       "marketingStatsCards": {
         "groei_deze_maand": "+{{count}} ce mois-ci",
@@ -3019,7 +3026,7 @@
       "maak_herbruikbare_email_templates": "Créez des modèles d'e-mail réutilisables",
       "maak_je_eerste_email_campagne_aan": "Créez votre première campagne e-mail",
       "maak_klantsegmenten_voor_gerichte_campagnes": "Créez des segments de clients pour des campagnes ciblées",
-      "marketing_command_center": "Centre de commande marketing",
+      "marketing_command_center": "E-mail",
       "nieuw_segment": "Nouveau segment",
       "nieuwe_campagne_starten": "Lancer une nouvelle campagne",
       "campaignPerformanceChart": {
@@ -3033,7 +3040,16 @@
       "snelle_acties": "Actions rapides",
       "starterstemplates_genereren": "Générer des modèles de démarrage",
       "template_maken": "Créer un modèle",
-      "verzonden_geopend_en_geklikt_emails": "E-mails envoyés, ouverts et cliqués"
+      "verzonden_geopend_en_geklikt_emails": "E-mails envoyés, ouverts et cliqués",
+      "aiEmail": {
+        "button": "Créer avec l'IA",
+        "title": "Créer un e-mail avec l'IA"
+      },
+      "tabs": {
+        "campaigns": "Toutes les campagnes ({{count}})",
+        "templates": "Modèles ({{count}})",
+        "segments": "Segments ({{count}})"
+      }
     },
     "ads": {
       "bolCampaignEditForm": {
@@ -6863,7 +6879,7 @@
       }
     },
     "socialPlanner": {
-      "title": "Planning social",
+      "title": "Social",
       "description": "Consultez, modifiez et approuvez vos publications. Les publications approuvées sont mises en ligne automatiquement à l'heure prévue.",
       "waiting": "En attente d'approbation : {{count}}",
       "week": "Semaine du {{from}} au {{to}}",
@@ -6994,7 +7010,9 @@
       },
       "tabs": {
         "planning": "Planning",
-        "results": "Résultats"
+        "results": "Résultats",
+        "create": "Créer",
+        "channels": "Canaux"
       },
       "metrics": {
         "reach": "{{value}} portée",
@@ -7054,7 +7072,43 @@
           "caption_length": "Par longueur du texte",
           "cta": "Par appel à l'action"
         }
+      },
+      "channels": {
+        "intro": "Les comptes sur lesquels SellQo publie vos publications approuvées. Si une connexion expire, ou si vous voulez aussi les statistiques, reconnectez-la.",
+        "connected": "Instagram est connecté.",
+        "connectFailed": "La connexion a échoué : {{message}}",
+        "noAuthUrl": "Instagram n'a pas renvoyé de lien de connexion.",
+        "active": "Connecté",
+        "expired": "Expiré",
+        "inactive": "Inactif",
+        "validUntil": "valable jusqu'au {{date}}",
+        "notConnected": "Pas encore connecté",
+        "connect": "Connecter",
+        "reconnect": "Reconnecter",
+        "instagramUnavailable": "La connexion Instagram n'est pas encore configurée pour cette boutique. Demandez-la à SellQo.",
+        "reconnectHint": "Lors de la connexion, connectez-vous avec le compte Instagram de cette boutique.",
+        "moreInConnect": "Gérez Facebook et les autres canaux dans SellQo Connect."
+      },
+      "create": {
+        "intro": "Laissez l'IA créer une publication, une promo complète ou une image. Ce que vous créez arrive dans le planning et n'est publié qu'après votre approbation.",
+        "tools": "Publication ou image seule",
+        "menu": "Menu du jour"
       }
+    },
+    "aiCredits": {
+      "return": {
+        "added": "{{count}} crédits IA ajoutés",
+        "addedDescription": "Vos crédits sont disponibles.",
+        "pending": "Votre paiement est en cours de traitement",
+        "pendingDescription": "Les crédits apparaissent dès que votre banque confirme le paiement.",
+        "unconfirmed": "Nous n'avons pas encore pu confirmer votre achat",
+        "unconfirmedDescription": "Votre paiement est en sécurité. Actualisez la page dans une minute.",
+        "cancelled": "Achat annulé"
+      }
+    },
+    "mediaLibrary": {
+      "title": "Médias",
+      "description": "Toutes vos photos au même endroit : celles de vos produits, créées avec l'IA et utilisées dans vos publications."
     }
   },
   "billing": {

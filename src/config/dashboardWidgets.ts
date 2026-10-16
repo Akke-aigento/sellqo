@@ -103,6 +103,7 @@ export const dashboardWidgets: DashboardWidgetDefinition[] = [
     minSize: 'sm',
     category: 'marketing',
     requiredFeature: 'ai_marketing',
+    // MARKETING-2: de AI-tools zitten in Social (tab Maken); 'ai-tools' blijft de verbergsleutel.
     pageId: 'ai-tools',
     icon: Zap,
   },

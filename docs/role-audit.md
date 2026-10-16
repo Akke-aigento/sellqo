@@ -1,3 +1,86 @@
+## MARKETING-1 + MARKETING-2 — Marketing als één geheel; AI-posts altijd via goedkeuring (2026.12n) — 16 oktober 2026
+
+Akke 21:41: "het voelt als iets bijgevoegd … die AI tools, zijn deze nu niet overbodig geworden? … zodoende het weer mooi als één geheel aanvoelt". Go 22:23 voor beide runs, enkel voor het marketing/social-deel van de zijbalk; de rest van de zijbalk gebeurt in een ander project. Insights-koppeling (INSIGHTS-SOCIAL-1) bewust uitgesteld.
+
+**Root cause (recon 16-10, Explore + live-DB)**
+- Er waren drie manieren om een social post te maken. `SocialPostGenerator.tsx` (r. 312 en 346, oud) riep `social-post-publish` aan, en die zette de post rechtstreeks op `posted`/`scheduled`. Zo werd de goedkeuring van de Social planning omzeild.
+- `social_connections` is enkel leesbaar voor tenant_admin, en `social-oauth-init` liet enkel tenant_admin toe (r. 76). Gevolg:
+  - de rol marketing zag in de Social planning altijd "geen koppeling";
+  - die rol kon zijn kanalen nergens zien of koppelen;
+  - het enige pad, `/admin/connect`, mag die rol niet openen.
+- De marketing-zijbalk had:
+  - Campagnes (enkel e-mail);
+  - AI Tools met twee subitems: AI Content Hub en AI Actie Centrum;
+  - Social planning en SEO;
+  - Ads stond in Verkoop.
+- De AI Content Hub dubbelde andere plekken: een tweede kalender, een historiek, de enige toegang tot de mediabibliotheek (tab Assets) en de AI-tools.
+- Gebruik (live):
+  - `ai_generated_content` 2 rijen;
+  - `email_campaigns` 1;
+  - `ai_action_suggestions` 1, niets mee gedaan;
+  - AI-beelden 198 (vooral via de productfotobewerker, die ongewijzigd blijft).
+- Kleinere fouten:
+  - `?tab=social` en `?tab=email` op het dashboard werden genegeerd;
+  - `CampaignDetail` en drie Bol.com-subroutes hadden geen RouteGuard;
+  - SEO en AI Actie Centrum gebruikten `FeatureGate ai_marketing` terwijl de zijbalk `ai_seo`/`ai_coach` hanteerde;
+  - de tabs van de e-mailpagina waren hardcoded Nederlands;
+  - 7 componenten werden nergens nog gebruikt.
+
+**Uitgevoerd**
+- MARKETING-1:
+  - `SocialPostGenerator.tsx`: er wordt niet meer rechtstreeks gepost. "Inplannen" voegt een rij in `social_posts` in met status `pending_approval` en `source` `ai_generator`. Een toast linkt naar de planning. De koppellink gaat naar Social → Kanalen.
+  - Migratie `20261016240000_marketing_1_social_channel_status.sql`: RPC `social_connection_status(p_tenant)` geeft de niet-geheime velden voor tenant_admin, staff en marketing. `useSocialChannelStatus` gebruikt die RPC in de planning (melding "geen koppeling"), in de generator en in de nieuwe tab Kanalen.
+  - `social-oauth-init`: rollen `['tenant_admin','marketing']`.
+  - Nieuw `SocialChannels.tsx` (tab Kanalen): status, geldigheid, Instagram (opnieuw) koppelen met terugkeer naar `?tab=channels`. Ontkoppelen en Facebook/Meta blijven in SellQo Connect.
+  - `App.tsx`: RouteGuard op `marketing/campaigns/:id` (marketing) en op `ads/bolcom/campaigns/:id`, `/keywords` en `/search-terms` (ads).
+  - `SEODashboard` naar `FeatureGate ai_seo`, `AIActionCenter` naar `ai_coach`.
+  - `Marketing.tsx`: tabs via i18n.
+- MARKETING-2:
+  - Zijbalk Marketing: **Social · E-mail · Media · SEO · Ads**. Ads is verhuisd uit Verkoop, AI Tools is weg. `MARKETING_ALLOWED_ITEMS` is bijgewerkt.
+  - Social krijgt de tabs **Planning · Maken · Resultaten · Kanalen**.
+  - Maken (`SocialCreate.tsx`) bevat promo-kit, social post, beeld, de Menukaart (enkel met `social_commerce`), AI-credits en de terugkeer uit de checkout (`useAICreditsReturn`, verhuisd uit de hub).
+  - Maken is enkel zichtbaar met leesrecht `ai_assistant` en als `hidden_pages` geen `ai-tools` bevat. Astra Sleep en Mancini Milano hebben dat verborgen, en dat blijft gerespecteerd.
+  - E-mail: knop "Maak met AI" opent `AIEmailPlanner` in een dialoog; `?ai=email` opent die meteen. Zelfde rechten en verbergregel.
+  - Media: nieuwe pagina `/admin/marketing/media` met `MediaAssetsLibrary` (RouteGuard marketing). De link vanuit Producten → Foto's gaat daarheen.
+  - `/admin/marketing/ai` → `AIHubRedirect` (`src/lib/marketing/aiHubTarget.ts`, getest). De parameters van de Stripe-checkout blijven behouden, zodat `create-ai-credits-checkout` ongewijzigd kan blijven. De links van de dashboardwidget en `NoAccess` zijn bijgewerkt.
+  - Verwijderd (ongebruikt):
+    - `AIMarketingHub.tsx`
+    - `RecentContentStrip`, `ContentHistoryList`, `ContentCalendar` + `useContentCalendar`
+    - `AIContentLibrary`, `AIInsightsCard`, `AICampaignSuggestions`, `ProductPromoWizard`
+  - `AdvancedToolsGrid`: props `only`, `title`, `initialTool`.
+- i18n in nl/en/fr/de/uk. Paginatitels: "Social" en "E-mail".
+- Slottaken:
+  - changelog 2026.12n (`marketing_one_whole`, `social_ai_needs_approval`);
+  - helpartikels `20261016240100_marketing_2_doc_articles.sql` (menukaart, mediabibliotheek, social inplannen, AI-overzicht, social planning);
+  - newsletter.
+
+**Security-keuzes**
+- `social_connection_status`:
+  - SECURITY DEFINER, `search_path = public`;
+  - de rolcheck staat in de functie (`has_tenant_role` tenant_admin/staff/marketing of platformbeheerder), anders volgt `42501`;
+  - geeft nooit `access_token` of andere geheimen terug;
+  - execute ingetrokken voor public en anon.
+- De policies op `social_connections` zijn niet gewijzigd.
+- `social-oauth-init` laat nu ook de rol marketing een OAuth-flow starten. De callback valideert de redirect-origin al (`safeRedirectBase`). Ontkoppelen blijft tenant_admin (RLS).
+- Insert in `social_posts` vanuit de generator gaat via de bestaande RLS (`social_posts_insert_marketing`).
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-pad of gedeelde storefront-tabel geraakt. De eerste wet is niet van toepassing.
+- `social-oauth-init` is het enige gewijzigde edge-bestand; geen `_shared` gewijzigd.
+- `create-ai-credits-checkout` blijft naar `/admin/marketing/ai` terugsturen; de redirect vangt dat op.
+
+**Verificatie**
+- vitest: volledige suite 58 bestanden / 767 tests groen, waaronder het nieuwe `aiHubTarget.test.ts` (2).
+- i18n-pariteit volledig. `npm run build` slaagt.
+- eslint tegen de baseline: geen nieuwe meldingen. De bestaande `no-explicit-any` in `Marketing.tsx` en `SEODashboard.tsx` zijn ongewijzigd.
+- tsc: zie de live-notitie. `deno check` op `social-oauth-init` ok.
+
+**Bewust ongemoeid / Vervolg**
+- Het AI Actie Centrum staat niet meer in de zijbalk. Het blijft bereikbaar via de dashboardwidget en via meldingen (`/admin/marketing/ai-center`). Waar het heen gaat, hoort bij de herindeling van de rest van de zijbalk (ander project).
+- In `TenantModulesTab` staat `ai-tools` niet meer in de lijst van menu-items om te verbergen. Bestaande waarden blijven werken. Een schakelaar "AI-tools" hoort bij dat andere project.
+- `SocialConnectionsManager.tsx` (instellingen) was al ongebruikt en is blijven staan.
+- INSIGHTS-SOCIAL-1 (verkoop per post via Insights): gepland, nog niet gebouwd.
+
 ## SOCIAL-6 — Leren van de inhoud: labels, score na 48 uur en een logboek van keuzes (2026.12m) — 16 oktober 2026
 
 Akke 21:37: "hij leert toch ook van welke soort post en welke soort content het goed doet?". Go om 21:51: "Maat dit is GOED, we beginnen hiermee". De herindeling van Marketing (MARKETING-1/2) volgt apart, in het Nomadix BV-project.

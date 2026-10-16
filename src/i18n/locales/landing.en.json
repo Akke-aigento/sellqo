@@ -2118,6 +2118,14 @@
         "social_results_content": {
           "title": "Social planning: learn what works, content included",
           "description": "The Results tab now ranks your posts on a score in which saves, shares and new followers weigh more than a like, measured 48 hours after publishing so older and newer posts are compared fairly. If your posts have labels (pillar, format, type of opening, length, call to action), you also see which content works best."
+        },
+        "marketing_one_whole": {
+          "title": "Marketing as one whole",
+          "description": "Marketing now has clear places: Social, Email, Media and SEO, plus Ads. The AI tools are no longer a separate place: you create posts, promos and images with AI in Social → Create, and emails with the \"Create with AI\" button in Email. All your photos are in Media. Old links redirect automatically."
+        },
+        "social_ai_needs_approval": {
+          "title": "AI posts always wait for your approval",
+          "description": "A post you create with AI no longer goes live right away but lands in the Social planning, where you review and approve it. Users with the marketing role can now also see which channels are connected and connect Instagram in Social → Channels."
         }
       },
       "copyLink": "Copy link",

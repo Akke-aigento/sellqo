@@ -175,7 +175,10 @@
       "event_venues": "Зали",
       "event_bundles": "Комбо-квитки",
       "event_tokens": "Жетони",
-      "social_planner": "Планування соцмереж"
+      "social_planner": "Планування соцмереж",
+      "social": "Соцмережі",
+      "email": "Email",
+      "media": "Медіа"
     }
   },
   "settings": {
@@ -3066,7 +3069,11 @@
         "klik_om_te_selecteren": "Натисніть, щоб вибрати",
         "product_nummer": "Товар {{number}}",
         "social_media_generator": "Генератор для соцмереж",
-        "type_content": "Тип контенту"
+        "type_content": "Тип контенту",
+        "toPlanningHint": "Потрапляє в планування соцмереж і публікується лише після вашого схвалення.",
+        "connectChannel": "Підключити {{platform}}",
+        "inPlanning": "Додано в планування на {{moment}}. Схваліть, щоб його опублікувати.",
+        "openPlanning": "До планування"
       },
       "marketingStatsCards": {
         "groei_deze_maand": "+{{count}} цього місяця",
@@ -3277,7 +3284,7 @@
       "maak_herbruikbare_email_templates": "Створюйте багаторазові шаблони листів",
       "maak_je_eerste_email_campagne_aan": "Створіть свою першу email-кампанію",
       "maak_klantsegmenten_voor_gerichte_campagnes": "Створюйте сегменти клієнтів для цільових кампаній",
-      "marketing_command_center": "Центр керування маркетингом",
+      "marketing_command_center": "Email",
       "nieuw_segment": "Новий сегмент",
       "nieuwe_campagne_starten": "Запустити нову кампанію",
       "campaignPerformanceChart": {
@@ -3291,7 +3298,16 @@
       "snelle_acties": "Швидкі дії",
       "starterstemplates_genereren": "Згенерувати стартові шаблони",
       "template_maken": "Створити шаблон",
-      "verzonden_geopend_en_geklikt_emails": "Надіслані, відкриті та натиснуті листи"
+      "verzonden_geopend_en_geklikt_emails": "Надіслані, відкриті та натиснуті листи",
+      "aiEmail": {
+        "button": "Створити зі ШІ",
+        "title": "Створити email зі ШІ"
+      },
+      "tabs": {
+        "campaigns": "Усі кампанії ({{count}})",
+        "templates": "Шаблони ({{count}})",
+        "segments": "Сегменти ({{count}})"
+      }
     },
     "ads": {
       "bolCampaignEditForm": {
@@ -7121,7 +7137,7 @@
       }
     },
     "socialPlanner": {
-      "title": "Планування соцмереж",
+      "title": "Соцмережі",
       "description": "Переглядайте, редагуйте та схвалюйте свої публікації. Схвалені публікації автоматично з'являються онлайн у запланований час.",
       "waiting": "Очікують схвалення: {{count}}",
       "week": "Тиждень з {{from}} по {{to}}",
@@ -7252,7 +7268,9 @@
       },
       "tabs": {
         "planning": "Планування",
-        "results": "Результати"
+        "results": "Результати",
+        "create": "Створити",
+        "channels": "Канали"
       },
       "metrics": {
         "reach": "охоплення: {{value}}",
@@ -7312,7 +7330,43 @@
           "caption_length": "За довжиною тексту",
           "cta": "За закликом до дії"
         }
+      },
+      "channels": {
+        "intro": "Акаунти, у яких SellQo публікує ваші схвалені дописи. Якщо підключення закінчилося або ви хочете бачити статистику, підключіть повторно.",
+        "connected": "Instagram підключено.",
+        "connectFailed": "Не вдалося підключити: {{message}}",
+        "noAuthUrl": "Instagram не повернув посилання для входу.",
+        "active": "Підключено",
+        "expired": "Закінчилося",
+        "inactive": "Неактивне",
+        "validUntil": "дійсне до {{date}}",
+        "notConnected": "Ще не підключено",
+        "connect": "Підключити",
+        "reconnect": "Підключити повторно",
+        "instagramUnavailable": "Підключення Instagram для цього магазину ще не налаштоване. Зверніться до SellQo.",
+        "reconnectHint": "Під час підключення увійдіть в Instagram-акаунт цього магазину.",
+        "moreInConnect": "Facebook та інші канали керуються в SellQo Connect."
+      },
+      "create": {
+        "intro": "Дозвольте ШІ створити допис, повну акцію або зображення. Створене потрапляє в планування й публікується лише після вашого схвалення.",
+        "tools": "Окремий допис або зображення",
+        "menu": "Меню дня"
       }
+    },
+    "aiCredits": {
+      "return": {
+        "added": "Додано ШІ-кредити: {{count}}",
+        "addedDescription": "Ваші кредити вже доступні.",
+        "pending": "Ваш платіж ще обробляється",
+        "pendingDescription": "Кредити з’являться, щойно банк підтвердить платіж.",
+        "unconfirmed": "Ми ще не змогли підтвердити вашу покупку",
+        "unconfirmedDescription": "Ваш платіж у безпеці. Оновіть сторінку за хвилину.",
+        "cancelled": "Покупку скасовано"
+      }
+    },
+    "mediaLibrary": {
+      "title": "Медіа",
+      "description": "Усі ваші фото в одному місці: фото товарів, створені ШІ та використані в дописах."
     }
   },
   "product_form": {

@@ -40,7 +40,8 @@ import MarketplacesPage from "./pages/admin/Marketplaces";
 import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
 import MarketingPage from "./pages/admin/Marketing";
 import CampaignDetailPage from "./pages/admin/CampaignDetail";
-import AIMarketingHub from "./pages/admin/AIMarketingHub";
+import { AIHubRedirect } from "./components/admin/marketing/AIHubRedirect";
+import MediaLibraryPage from "./pages/admin/MediaLibrary";
 import AIActionCenter from "./pages/admin/AIActionCenter";
 import DiscountsPage from "./pages/admin/Discounts";
 import PromotionsPage from "./pages/admin/Promotions";
@@ -281,9 +282,11 @@ const App = () => (
               <Route path="connect/conflicts" element={<RouteGuard requireRead="integrations"><SyncConflictsPage /></RouteGuard>} />
               <Route path="connect/:connectionId" element={<RouteGuard requireRead="integrations"><MarketplaceDetailPage /></RouteGuard>} />
               <Route path="marketing" element={<RouteGuard requireRead="marketing"><MarketingPage /></RouteGuard>} />
-              <Route path="marketing/ai" element={<RouteGuard requireRead="ai_assistant"><AIMarketingHub /></RouteGuard>} />
+              {/* MARKETING-2: AI Content Hub → AI-tools in Social (oude links en de credits-checkout landen hier). */}
+              <Route path="marketing/ai" element={<AIHubRedirect />} />
+              <Route path="marketing/media" element={<RouteGuard requireRead="marketing"><MediaLibraryPage /></RouteGuard>} />
               <Route path="marketing/ai-center" element={<RouteGuard requireRead="ai_coach"><AIActionCenter /></RouteGuard>} />
-              <Route path="marketing/campaigns/:id" element={<CampaignDetailPage />} />
+              <Route path="marketing/campaigns/:id" element={<RouteGuard requireRead="marketing"><CampaignDetailPage /></RouteGuard>} />
               <Route path="marketing/seo" element={<RouteGuard requireRead="seo"><SEODashboard /></RouteGuard>} />
               <Route path="marketing/social" element={<RouteGuard requireRead="marketing"><SocialPlanner /></RouteGuard>} />
               <Route path="marketing/translations" element={<RouteGuard requireRead="cms"><TranslationHub /></RouteGuard>} />
@@ -326,9 +329,9 @@ const App = () => (
               <Route path="storefront/aanpassen" element={<RouteGuard requireRead="themes"><StorefrontCustomizePage /></RouteGuard>} />
               <Route path="ads" element={<RouteGuard requireRead="ads"><AdsPage /></RouteGuard>} />
               <Route path="ads/bolcom" element={<RouteGuard requireRead="ads"><AdsBolcomPage /></RouteGuard>} />
-              <Route path="ads/bolcom/campaigns/:id" element={<AdsBolcomCampaignDetailPage />} />
-              <Route path="ads/bolcom/keywords" element={<AdsBolcomKeywordsPage />} />
-              <Route path="ads/bolcom/search-terms" element={<AdsBolcomSearchTermsPage />} />
+              <Route path="ads/bolcom/campaigns/:id" element={<RouteGuard requireRead="ads"><AdsBolcomCampaignDetailPage /></RouteGuard>} />
+              <Route path="ads/bolcom/keywords" element={<RouteGuard requireRead="ads"><AdsBolcomKeywordsPage /></RouteGuard>} />
+              <Route path="ads/bolcom/search-terms" element={<RouteGuard requireRead="ads"><AdsBolcomSearchTermsPage /></RouteGuard>} />
               <Route path="ads/ai" element={<RouteGuard requireRead="ads"><AdsAiRulesPage /></RouteGuard>} />
               <Route path="ads/products" element={<RouteGuard requireRead="ads"><AdsProductMapPage /></RouteGuard>} />
               <Route path="help" element={<HelpPage />} />

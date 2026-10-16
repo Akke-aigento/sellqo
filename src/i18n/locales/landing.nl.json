@@ -2118,6 +2118,14 @@
         "social_results_content": {
           "title": "Social planning: leren wat werkt, ook qua inhoud",
           "description": "De tab Resultaten rangschikt je posts nu op een score waarin bewaren, delen en nieuwe volgers zwaarder wegen dan een like, gemeten 48 uur na publicatie zodat oude en nieuwe posts eerlijk vergeleken worden. Hebben je posts labels (pijler, format, soort opening, lengte, oproep tot actie), dan zie je ook welke inhoud het best werkt."
+        },
+        "marketing_one_whole": {
+          "title": "Marketing als één geheel",
+          "description": "Marketing heeft nu vier duidelijke plekken: Social, E-mail, Media en SEO, plus Ads. De AI-tools zijn geen aparte plek meer: je maakt posts, promo's en beelden met AI in Social → Maken, en e-mails met de knop \"Maak met AI\" in E-mail. Al je foto's staan in Media. Oude links sturen vanzelf door."
+        },
+        "social_ai_needs_approval": {
+          "title": "AI-posts wachten altijd op je goedkeuring",
+          "description": "Een post die je met AI maakt, gaat niet meer meteen online maar komt in de Social planning, waar je hem nakijkt en goedkeurt. Ook wie de rol marketing heeft, ziet nu welke kanalen gekoppeld zijn en kan Instagram koppelen in Social → Kanalen."
         }
       },
       "copyLink": "Kopieer link",

@@ -73,7 +73,8 @@ serve(async (req) => {
     }
 
     const auth = await authenticateRequest(req, tenantId);
-    requireRole(auth, tenantId, ['tenant_admin']);
+    // MARKETING-1: ook de rol marketing koppelt de kanalen van de winkel (tab Kanalen in Social).
+    requireRole(auth, tenantId, ['tenant_admin', 'marketing']);
 
     const platformConfig = PLATFORMS[platform as keyof typeof PLATFORMS];
     if (!platformConfig) {

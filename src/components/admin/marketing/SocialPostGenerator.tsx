@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Instagram, Facebook, Linkedin, Twitter, 
   Sparkles, Copy, Check, RefreshCw, ImageIcon,
-  Loader2, ChevronDown, Wand2, Package, Send, Calendar, Link2
+  Loader2, ChevronDown, Wand2, Package, Calendar, Link2
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,8 @@ import {
 } from '@/components/ui/collapsible';
 import { useAIMarketing } from '@/hooks/useAIMarketing';
 import { useAICredits } from '@/hooks/useAICredits';
-import { useSocialConnections } from '@/hooks/useSocialConnections';
+import { useSocialChannelStatus } from '@/hooks/useSocialChannelStatus';
+import { useQueryClient } from '@tanstack/react-query';
 import { useTenant } from '@/hooks/useTenant';
 import { supabase } from '@/integrations/supabase/client';
 import { ProductSelectDialog } from './ProductSelectDialog';
@@ -84,18 +85,42 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>(initialProductIds || []);
   const [productDialogOpen, setProductDialogOpen] = useState(false);
-  const [isPublishing, setIsPublishing] = useState(false);
 
   const { generateSocialPost, context } = useAIMarketing();
   const { hasCredits, getCreditCost } = useAICredits();
-  const { getConnectionByPlatform } = useSocialConnections();
+  const { channels } = useSocialChannelStatus();
+  const queryClient = useQueryClient();
   const { currentTenant } = useTenant();
+  const navigate = useNavigate();
 
   const creditCost = getCreditCost('social_post');
   const canGenerate = hasCredits(creditCost);
   const selectedType = contentTypes.find(ct => ct.id === contentType);
   const needsProducts = selectedType?.needsProducts;
-  const platformConnection = getConnectionByPlatform(platform);
+  const hasChannel = channels.some((c) => c.platform === platform && c.is_active);
+
+  /** MARKETING-1: in de planning zetten, wachtend op goedkeuring (nooit meteen online). */
+  const addToPlanning = async (scheduledAt: Date) => {
+    if (!currentTenant?.id || !generatedContent) return;
+    const images = suggestedImages.slice(0, MAX_POST_IMAGES);
+    const { error } = await supabase.from('social_posts').insert({
+      tenant_id: currentTenant.id,
+      platform,
+      post_text: generatedContent,
+      image_urls: images.length ? images : null,
+      media_type: images.length > 1 ? 'carousel' : 'image',
+      status: 'pending_approval',
+      source: 'ai_generator',
+      scheduled_for: scheduledAt.toISOString(),
+      language: (i18n.language || 'nl').slice(0, 2),
+    });
+    if (error) throw error;
+    await queryClient.invalidateQueries({ queryKey: ['social-planner'] });
+    toast.success(t('admin.marketing.socialPostGenerator.inPlanning', { moment: scheduledAt.toLocaleString(i18n.language) }), {
+      action: { label: t('admin.marketing.socialPostGenerator.openPlanning'), onClick: () => navigate('/admin/marketing/social') },
+    });
+    setGeneratedContent(null);
+  };
 
   const handleGenerate = async () => {
     if (!canGenerate) {
@@ -299,74 +324,23 @@ export function SocialPostGenerator({ initialContentType, initialProductIds }: S
                 {generatedContent}
               </div>
 
-              {/* Publish Actions */}
-              <div className="flex flex-wrap gap-2 pt-2 border-t">
-                {platformConnection ? (
-                  <>
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        if (!currentTenant?.id) return;
-                        setIsPublishing(true);
-                        try {
-                          const { data, error } = await supabase.functions.invoke('social-post-publish', {
-                            body: {
-                              tenantId: currentTenant.id,
-                              platform,
-                              text: generatedContent,
-                              imageUrls: suggestedImages.length > 0 ? suggestedImages.slice(0, MAX_POST_IMAGES) : undefined,
-                            },
-                          });
-                          if (error) throw error;
-                          if (data.success) {
-                            toast.success(t('admin.marketing.socialPostGenerator.gepost_naar', { platform: selectedPlatform?.name ?? '' }));
-                            setGeneratedContent(null);
-                          } else {
-                            toast.error(data.error || 'Publiceren mislukt');
-                          }
-                        } catch (err: any) {
-                          toast.error(err.message || 'Publiceren mislukt');
-                        } finally {
-                          setIsPublishing(false);
-                        }
-                      }}
-                      disabled={isPublishing}
-                      className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                    >
-                      {isPublishing ? (
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4 mr-1" />
-                      )}
-                      Nu Publiceren
-                    </Button>
-                    <SchedulePublishButton
-                      onSchedule={async (scheduledAt) => {
-                        if (!currentTenant?.id) return;
-                        const { data, error } = await supabase.functions.invoke('social-post-publish', {
-                          body: {
-                            tenantId: currentTenant.id,
-                            platform,
-                            text: generatedContent,
-                            imageUrls: suggestedImages.length > 0 ? suggestedImages.slice(0, MAX_POST_IMAGES) : undefined,
-                            scheduledFor: scheduledAt.toISOString(),
-                          },
-                        });
-                        if (error) throw error;
-                        if (data.success || data.scheduled) {
-                          toast.success(t('admin.marketing.socialPostGenerator.ingepland_voor', { moment: scheduledAt.toLocaleString(i18n.language) }));
-                          setGeneratedContent(null);
-                        } else {
-                          throw new Error(data.error || 'Inplannen mislukt');
-                        }
-                      }}
-                    />
-                  </>
-                ) : (
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to="/admin/connect?tab=channels">
+              {/* MARKETING-1: nooit meer rechtstreeks posten vanuit de generator. De post gaat
+                  naar de Social planning ter goedkeuring; daar kan hij ook meteen online
+                  ("Nu posten"). */}
+              <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
+                <SchedulePublishButton
+                  onSchedule={async (scheduledAt) => {
+                    await addToPlanning(scheduledAt);
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">
+                  {t('admin.marketing.socialPostGenerator.toPlanningHint')}
+                </span>
+                {!hasChannel && (platform === 'instagram' || platform === 'facebook') && (
+                  <Button variant="link" size="sm" className="h-auto p-0" asChild>
+                    <Link to="/admin/marketing/social?tab=channels">
                       <Link2 className="h-4 w-4 mr-1" />
-                      Koppel {selectedPlatform?.name}
+                      {t('admin.marketing.socialPostGenerator.connectChannel', { platform: selectedPlatform?.name ?? '' })}
                     </Link>
                   </Button>
                 )}

@@ -81,7 +81,7 @@ export default function AIActionCenter() {
       ) || [];
 
   return (
-    <FeatureGate feature="ai_marketing">
+    <FeatureGate feature="ai_coach">
       <div className="space-y-6">
         {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

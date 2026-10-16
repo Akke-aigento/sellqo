@@ -175,7 +175,10 @@
       "event_venues": "Venues",
       "event_bundles": "Combo tickets",
       "event_tokens": "Tokens",
-      "social_planner": "Social planning"
+      "social_planner": "Social planning",
+      "social": "Social",
+      "email": "Email",
+      "media": "Media"
     }
   },
   "settings": {
@@ -3052,7 +3055,11 @@
         "klik_om_te_selecteren": "Click to select",
         "product_nummer": "Product {{number}}",
         "social_media_generator": "Social media generator",
-        "type_content": "Content type"
+        "type_content": "Content type",
+        "toPlanningHint": "Goes into the Social planning and only goes live after your approval.",
+        "connectChannel": "Connect {{platform}}",
+        "inPlanning": "Added to the planning for {{moment}}. Approve it to have it posted.",
+        "openPlanning": "Open planning"
       },
       "marketingStatsCards": {
         "groei_deze_maand": "+{{count}} this month",
@@ -3263,7 +3270,7 @@
       "maak_herbruikbare_email_templates": "Create reusable email templates",
       "maak_je_eerste_email_campagne_aan": "Create your first email campaign",
       "maak_klantsegmenten_voor_gerichte_campagnes": "Create customer segments for targeted campaigns",
-      "marketing_command_center": "Marketing command centre",
+      "marketing_command_center": "Email",
       "nieuw_segment": "New segment",
       "nieuwe_campagne_starten": "Start a new campaign",
       "campaignPerformanceChart": {
@@ -3277,7 +3284,16 @@
       "snelle_acties": "Quick actions",
       "starterstemplates_genereren": "Generate starter templates",
       "template_maken": "Create template",
-      "verzonden_geopend_en_geklikt_emails": "Sent, opened and clicked emails"
+      "verzonden_geopend_en_geklikt_emails": "Sent, opened and clicked emails",
+      "aiEmail": {
+        "button": "Create with AI",
+        "title": "Create an email with AI"
+      },
+      "tabs": {
+        "campaigns": "All campaigns ({{count}})",
+        "templates": "Templates ({{count}})",
+        "segments": "Segments ({{count}})"
+      }
     },
     "ads": {
       "bolCampaignEditForm": {
@@ -7107,7 +7123,7 @@
       }
     },
     "socialPlanner": {
-      "title": "Social planning",
+      "title": "Social",
       "description": "Review, edit and approve your posts. Approved posts go live automatically at the planned hour.",
       "waiting": "Waiting for approval: {{count}}",
       "week": "Week of {{from}} to {{to}}",
@@ -7238,7 +7254,9 @@
       },
       "tabs": {
         "planning": "Planning",
-        "results": "Results"
+        "results": "Results",
+        "create": "Create",
+        "channels": "Channels"
       },
       "metrics": {
         "reach": "{{value}} reach",
@@ -7298,7 +7316,43 @@
           "caption_length": "By caption length",
           "cta": "By call to action"
         }
+      },
+      "channels": {
+        "intro": "The accounts where SellQo publishes your approved posts. If a connection expires, or you also want statistics, reconnect.",
+        "connected": "Instagram is connected.",
+        "connectFailed": "Connecting failed: {{message}}",
+        "noAuthUrl": "Instagram did not return a sign-in link.",
+        "active": "Connected",
+        "expired": "Expired",
+        "inactive": "Not active",
+        "validUntil": "valid until {{date}}",
+        "notConnected": "Not connected yet",
+        "connect": "Connect",
+        "reconnect": "Reconnect",
+        "instagramUnavailable": "Connecting Instagram is not set up for this shop yet. Ask SellQo.",
+        "reconnectHint": "When connecting, sign in with this shop's Instagram account.",
+        "moreInConnect": "Manage Facebook and other channels in SellQo Connect."
+      },
+      "create": {
+        "intro": "Let AI create a post, a full promo or an image. What you create goes into the planning and only goes live once you approve it.",
+        "tools": "Single post or image",
+        "menu": "Today's menu"
       }
+    },
+    "aiCredits": {
+      "return": {
+        "added": "{{count}} AI credits added",
+        "addedDescription": "Your credits are available now.",
+        "pending": "Your payment is still being processed",
+        "pendingDescription": "The credits appear as soon as your bank confirms the payment.",
+        "unconfirmed": "We could not confirm your purchase yet",
+        "unconfirmedDescription": "Your payment is safe. Refresh the page in a minute.",
+        "cancelled": "Purchase cancelled"
+      }
+    },
+    "mediaLibrary": {
+      "title": "Media",
+      "description": "All your photos in one place: from your products, made with AI and used in social posts."
     }
   },
   "product_form": {

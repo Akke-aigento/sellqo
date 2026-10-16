@@ -48,9 +48,18 @@ const tools = [
   },
 ];
 
-export function AdvancedToolsGrid() {
+interface AdvancedToolsGridProps {
+  /** MARKETING-2: welke tools deze plek toont (Social: social + beelden). Standaard alle drie. */
+  only?: Exclude<ToolType, null>[];
+  /** Kop boven de tools; standaard "Geavanceerde tools". */
+  title?: string;
+  /** Opent deze tool meteen (deeplink, bv. ?tool=social). */
+  initialTool?: ToolType;
+}
+
+export function AdvancedToolsGrid({ only, title, initialTool = null }: AdvancedToolsGridProps = {}) {
   const { t } = useTranslation();
-  const [openTool, setOpenTool] = useState<ToolType>(null);
+  const [openTool, setOpenTool] = useState<ToolType>(initialTool);
   const { getCreditCost } = useAICredits();
 
   const handleToggle = (toolId: ToolType) => {
@@ -61,11 +70,11 @@ export function AdvancedToolsGrid() {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <Wand2 className="h-5 w-5 text-muted-foreground" />
-        <h3 className="text-lg font-semibold">{t('admin.marketing.advancedToolsGrid.geavanceerde_tools')}</h3>
+        <h3 className="text-lg font-semibold">{title ?? t('admin.marketing.advancedToolsGrid.geavanceerde_tools')}</h3>
       </div>
       
       <div className="grid gap-3">
-        {tools.map((tool) => {
+        {tools.filter((tool) => !only || only.includes(tool.id)).map((tool) => {
           const Icon = tool.icon;
           const isOpen = openTool === tool.id;
           

@@ -14,7 +14,8 @@ import {
   Receipt,
   Upload,
   Cable,
-  Megaphone,
+  Mail,
+  Images,
   HelpCircle,
   BookOpen,
   Percent,
@@ -34,7 +35,6 @@ import {
   Layers,
   Tags,
   TrendingUp,
-  Sparkles,
   LucideIcon,
   PackageCheck,
   MessageSquare,
@@ -97,7 +97,7 @@ export const MARKETING_ALLOWED_ITEMS = [
   'customers',
   'ads', 'ads-overview', 'ads-bolcom', 'ads-products', 'ads-amazon', 'ads-google', 'ads-meta', 'ads-ai',
   'promotions', 'promo-codes', 'promo-bundles', 'promo-bogo', 'promo-volume', 'promo-auto', 'promo-gifts', 'promo-loyalty', 'promo-groups', 'promo-giftcards',
-  'campaigns', 'ai-tools', 'ai-content', 'ai-actions', 'seo',
+  'social-planner', 'campaigns', 'media', 'seo',
   'translations',
   'reports', 'reports-overview', 'reports-analytics', 'reports-stock',
   'help',
@@ -152,21 +152,6 @@ const salesItems: NavItem[] = [
   { id: 'storefront', titleKey: 'navigation.items.storefront', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'], requireRead: 'themes' },
   { id: 'payments', titleKey: 'navigation.items.payments', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'], requireRead: 'payments' },
   {
-    id: 'ads',
-    titleKey: 'navigation.items.ads',
-    url: '/admin/ads',
-    icon: MegaphoneIcon,
-    featureKey: 'social_commerce',
-    requireRead: 'ads',
-    children: [
-      { id: 'ads-overview', titleKey: 'navigation.items.ads_overview', url: '/admin/ads', requireRead: 'ads' },
-      { id: 'ads-bolcom', titleKey: 'navigation.items.ads_bolcom', url: '/admin/ads/bolcom', requireRead: 'ads' },
-      { id: 'ads-products', titleKey: 'navigation.items.ads_products', url: '/admin/ads/products', requireRead: 'ads' },
-      // APP-CLEAN-5: Amazon/Google/Meta-ads verborgen tot ze bestaan (stonden als uitgeschakelde items in het menu).
-      { id: 'ads-ai', titleKey: 'navigation.items.ads_ai', url: '/admin/ads/ai', badge: true, requireRead: 'ads' },
-    ],
-  },
-  {
     id: 'promotions',
     titleKey: 'navigation.items.promotions',
     url: '/admin/promotions',
@@ -188,23 +173,29 @@ const salesItems: NavItem[] = [
 
 // MARKETING - Campagnes en content
 const marketingItems: NavItem[] = [
-  { id: 'campaigns', titleKey: 'navigation.items.campaigns', url: '/admin/marketing', icon: Megaphone, requireRead: 'marketing' },
+  // MARKETING-2: één geheel. AI is geen aparte plek meer maar zit in Social (tab Maken) en
+  // E-mail (knop "Maak met AI"); de AI Content Hub-route stuurt door (AIHubRedirect).
+  // SOCIAL-2: geen featureKey: ook Starter/Free-winkels posten via een koppeling.
+  { id: 'social-planner', titleKey: 'navigation.items.social', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing' },
+  { id: 'campaigns', titleKey: 'navigation.items.email', url: '/admin/marketing', icon: Mail, requireRead: 'marketing' },
+  { id: 'media', titleKey: 'navigation.items.media', url: '/admin/marketing/media', icon: Images, requireRead: 'marketing' },
+  { id: 'seo', titleKey: 'navigation.items.seo', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },
+  // MARKETING-2: Ads verhuisd uit Verkoop naar Marketing.
   {
-    id: 'ai-tools',
-    titleKey: 'navigation.items.ai_tools',
-    url: '/admin/marketing/ai',
-    icon: Sparkles,
-    featureKey: 'ai_marketing',
-    requireRead: 'ai_assistant',
+    id: 'ads',
+    titleKey: 'navigation.items.ads',
+    url: '/admin/ads',
+    icon: MegaphoneIcon,
+    featureKey: 'social_commerce',
+    requireRead: 'ads',
     children: [
-      { id: 'ai-content', titleKey: 'navigation.items.ai_content', url: '/admin/marketing/ai', featureKey: 'ai_marketing', requireRead: 'ai_assistant' },
-      { id: 'ai-actions', titleKey: 'navigation.items.ai_actions', url: '/admin/marketing/ai-center', featureKey: 'ai_coach', requireRead: 'ai_coach' },
+      { id: 'ads-overview', titleKey: 'navigation.items.ads_overview', url: '/admin/ads', requireRead: 'ads' },
+      { id: 'ads-bolcom', titleKey: 'navigation.items.ads_bolcom', url: '/admin/ads/bolcom', requireRead: 'ads' },
+      { id: 'ads-products', titleKey: 'navigation.items.ads_products', url: '/admin/ads/products', requireRead: 'ads' },
+      // APP-CLEAN-5: Amazon/Google/Meta-ads verborgen tot ze bestaan (stonden als uitgeschakelde items in het menu).
+      { id: 'ads-ai', titleKey: 'navigation.items.ads_ai', url: '/admin/ads/ai', badge: true, requireRead: 'ads' },
     ],
   },
-  // SOCIAL-2: posts goedkeuren en plannen. Geen featureKey: ook Starter/Free-winkels
-  // posten via een koppeling; plan-gating is een aparte beslissing.
-  { id: 'social-planner', titleKey: 'navigation.items.social_planner', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing' },
-  { id: 'seo', titleKey: 'navigation.items.seo', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },
 ];
 
 // BEHEER - Administratieve functies
