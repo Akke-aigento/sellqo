@@ -65,7 +65,7 @@ Bestand: `src/pages/public/PublicChangelog.tsx`. Klantentaal, geen
 technische termen (niet "sync_status", wel "duidelijke status per
 factuur"). Alles moet live en waar zijn.
 
-**Types (exact vier):** `feature` | `improvement` | `fix` | `security`.
+**Types (exact vier):** `feature` | `improvement` | `bugfix` | `security`.
 Security-entries ALTIJD generiek ("toegangscontrole op integraties
 aangescherpt"), NOOIT exploiteerbare details: geen tabelnamen, geen
 kwetsbaarheids-tijdlijn.
@@ -95,7 +95,7 @@ bestaande set — sluit aan bij de entries in hetzelfde onderwerp.
 
 **Slottaak-regel:** elke implementatieprompt voor tenant-merkbaar werk eindigt
 standaard met: "Voeg de changelog-entry toe aan PublicChangelog.tsx volgens het
-bestaande formaat, type <feature|improvement|fix|security>, met i18n-keys in
+bestaande formaat, type <feature|improvement|bugfix|security>, met i18n-keys in
 alle ondersteunde talen (parity-check groen)."
 
 ## Spoor 3 — Newsletter-wachtrij (alleen tenant-merkbaar)

@@ -39,6 +39,7 @@ Twijfel? Dan `platform`. Een gemiste tenant-doc is een onbeantwoorde vraag; een 
 - Concrete stappen en menu-paden (**Instellingen → BTW**), geen code, geen API-details, geen databasetermen
 - Vermeld bij plan-gebonden features altijd **vanaf welk abonnement** de feature beschikbaar is (Free / Starter / Pro / Enterprise) — de chatbot gebruikt dit voor upgrade-advies
 - Idempotent schrijven naar de database: `ON CONFLICT (doc_level, slug) DO UPDATE`
+- `updated_at` is geen bruikbaar ijkpunt: de trigger `update_doc_articles_updated_at` (BEFORE UPDATE, `update_updated_at_column()`) zet hem bij elke update op `now()`, dus een vaste `updated_at` in de migratie werkt niet. Idempotentie en verificatie gaan via `md5(content)` tegen de verwachte waarde. Neem vóór een update een snapshot in het schema `snapshots.` (SUB-UNIFY-2A, 16-10-2026)
 
 ## Afronding
 

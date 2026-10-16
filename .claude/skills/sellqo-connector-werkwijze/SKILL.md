@@ -71,6 +71,13 @@ letterlijk: wijzig geen bestanden, faalt iets, stop en rapporteer; (3) na elke
 agent-deploy git log origin/main vergelijken met de verwachte hash; een nieuwe
 agent-commit eerst laten reviewen door CC vóór verder werken.
 
+**Standaardstap na elke deploy-only via `send_message`** (SEC-DOMAIN-2 en
+SUB-UNIFY-2A, 16-10-2026): `git fetch && git log <verwachte hash>..origin/main`
+en `git diff <verwachte hash> origin/main` moeten leeg zijn (platformbestanden
+onder `src/integrations/` negeren). Ongevraagde agent-wijzigingen meteen
+terugdraaien met een commit en loggen in de role-audit. Na een MCP-timeout:
+niet opnieuw sturen, maar `git ls-remote origin main` en meten.
+
 ## Vier valkuilen
 1. **Write-error ≠ mislukt.** Een tool-error op send_message betekent vaak
    dat de run tóch `accepted`/`running` is. Check via `list_messages` vóór

@@ -33,6 +33,19 @@ codebase. Elke nieuwe edge function pint meteen.
 liet die specifier naar de nieuwste v2.x verlopen en legde de hele auth-laag
 plat.
 
+**`npm:`-imports in edge functions: exacte versie, en dezelfde versie in
+`package.json` + `bun.lock`.** Elke `npm:`-import krijgt een exacte versie
+(`npm:jpeg-js@0.4.4`), en die versie staat ook als devDependency in
+`package.json` en in `bun.lock`. Reden: de Lovable-agent checkt vanaf de
+repo-root; Deno 2 kiest zijn config (`package.json`/`deno.json`) vanaf de
+werkmap en zoekt `npm:` dan in `node_modules`. Ontbreekt het pakket, dan
+"repareert" de agent de import naar esm.sh en breekt CI. Een `deno.json` per
+functie helpt niet. Bekend open geval: `process-email-queue` met
+`npm:@lovable.dev/email-js` zonder versie.
+**Incident (EDGE-IMPORT-1, 16 okt 2026):** twee keer op één dag herschreef de
+agent `_shared/socialMedia.ts` naar esm.sh; CI rood, twee keer teruggedraaid.
+Zie EDGE-IMPORT-1 in `docs/role-audit.md`.
+
 ## R3 — `signOut()` altijd met `scope: 'local'`.
 Gebruik `safeLocalSignOut()`. Enkel een bewuste "log me overal uit" mag
 `global` zijn — expliciet.
