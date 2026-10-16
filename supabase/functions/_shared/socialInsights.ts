@@ -230,11 +230,14 @@ export function needsRefresh(
   postedAt: string | null,
   fetchedAt: string | null | undefined,
   now = Date.now(),
+  /** SOCIAL-6: is de 48-uursmeting er al? Zo niet en is de post 48 u oud, dan nu meten. */
+  has48h = true,
 ): boolean {
   if (!postedAt) return false;
   const age = now - new Date(postedAt).getTime();
   const H = 3600 * 1000;
   if (age < 0) return false;
+  if (!has48h && mediaType !== "story" && age >= 48 * H && age < 7 * 24 * H) return true;
   if (mediaType === "story" && age > 24 * H) return !fetchedAt; // nog één poging als het nooit lukte
   if (age > 35 * 24 * H) return false;
   if (!fetchedAt) return true;
@@ -242,6 +245,13 @@ export function needsRefresh(
   if (age < 2 * 24 * H) return since > 2.5 * H;
   if (age < 7 * 24 * H) return since > 12 * H;
   return since > 72 * H;
+}
+
+/** SOCIAL-6: is dit het moment voor de vaste 48-uursmeting (48 u tot 7 dagen na publicatie)? */
+export function due48h(mediaType: string, postedAt: string | null, has48h: boolean, now = Date.now()): boolean {
+  if (has48h || !postedAt || mediaType === "story") return false;
+  const age = now - new Date(postedAt).getTime();
+  return age >= 48 * 3600 * 1000 && age < 7 * 24 * 3600 * 1000;
 }
 
 /** Cijfers uit de medialijst als er (nog) geen toestemming voor statistieken is. */

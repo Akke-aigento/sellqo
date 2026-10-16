@@ -7043,6 +7043,16 @@
           "carousel": "Carrousel",
           "reel": "Reel",
           "story": "Story"
+        },
+        "content": "Ce qui marche côté contenu",
+        "scoreExplain": "Score = j'aime, commentaires (×2), enregistrements et partages (×3) et nouveaux abonnés (×5) pour 100 comptes atteints, mesuré 48 heures après la publication. Enregistrer, partager et s'abonner en disent plus qu'un j'aime.",
+        "scoreValue": "score {{value}}",
+        "tag": {
+          "pillar": "Par pilier",
+          "format": "Par format",
+          "hook": "Par type d'accroche",
+          "caption_length": "Par longueur du texte",
+          "cta": "Par appel à l'action"
         }
       }
     }

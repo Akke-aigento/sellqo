@@ -2114,6 +2114,10 @@
         "social_results": {
           "title": "Social planning: resultaten per post en per moment",
           "description": "Onder elke geposte post zie je nu de cijfers van Instagram: bereik, likes, reacties, bewaard en gedeeld. In de nieuwe tab Resultaten zie je welk dagdeel, welke weekdag en welk soort post het best werkt, je beste posts en de groei van je volgers. Geplande posts gaan bovendien binnen enkele minuten na het gekozen uur online."
+        },
+        "social_results_content": {
+          "title": "Social planning: leren wat werkt, ook qua inhoud",
+          "description": "De tab Resultaten rangschikt je posts nu op een score waarin bewaren, delen en nieuwe volgers zwaarder wegen dan een like, gemeten 48 uur na publicatie zodat oude en nieuwe posts eerlijk vergeleken worden. Hebben je posts labels (pijler, format, soort opening, lengte, oproep tot actie), dan zie je ook welke inhoud het best werkt."
         }
       },
       "copyLink": "Kopieer link",

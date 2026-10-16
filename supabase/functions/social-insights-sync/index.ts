@@ -5,7 +5,8 @@
 // Instagram-koppeling (Instagram Login):
 //   1. volgers en aantal posts van vandaag → social_account_stats (één rij per dag);
 //   2. de laatste 50 feed-posts en reels → zelf geplaatste posts ("Gepost") koppelen op tijdstip;
-//   3. per geposte post de cijfers → social_posts.engagement_data (alleen die kolom).
+//   3. per geposte post de cijfers → social_posts.engagement_data (en rond 48 u na publicatie
+//      één keer ook engagement_48h, SOCIAL-6). Geen andere kolommen.
 // Zonder de toestemming instagram_business_manage_insights (nog niet opnieuw gekoppeld) vallen
 // we terug op likes en reacties uit de medialijst (source "basic").
 //
@@ -15,7 +16,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { isAuthorizedCronRequest, CRON_ALLOWED_HEADERS } from "../_shared/cronAuth.ts";
 import {
-  basicMetrics, fetchMediaInsights, fetchRecentMedia, igGet, matchMedia, needsRefresh,
+  basicMetrics, due48h, fetchMediaInsights, fetchRecentMedia, igGet, matchMedia, needsRefresh,
   type EngagementData, type IgMedia, type OurMediaType,
 } from "../_shared/socialInsights.ts";
 
@@ -24,7 +25,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": CRON_ALLOWED_HEADERS,
 };
 
-const VERSION = "SOCIAL-5";
+const VERSION = "SOCIAL-6";
 const MAX_POSTS_PER_CONNECTION = 60;
 
 function json(body: unknown, status = 200): Response {
@@ -49,6 +50,7 @@ interface PostRow {
   scheduled_for: string | null;
   platform_post_id: string | null;
   engagement_data: Partial<EngagementData> | null;
+  engagement_48h: Partial<EngagementData> | null;
 }
 
 const brusselsDate = (d = new Date()) =>
@@ -82,7 +84,7 @@ async function syncConnection(admin: Admin, conn: Connection) {
   const since = new Date(Date.now() - 35 * 24 * 3600 * 1000).toISOString();
   const { data: rows, error } = await admin
     .from("social_posts")
-    .select("id, media_type, posted_at, scheduled_for, platform_post_id, engagement_data")
+    .select("id, media_type, posted_at, scheduled_for, platform_post_id, engagement_data, engagement_48h")
     .eq("tenant_id", conn.tenant_id)
     .eq("platform", "instagram")
     .eq("status", "posted")
@@ -112,7 +114,8 @@ async function syncConnection(admin: Admin, conn: Connection) {
     const mediaId = mediaIdOf(post) ?? matched?.id ?? null;
     if (!mediaId) continue;
     const isNewMatch = !!matched && !mediaIdOf(post);
-    if (!isNewMatch && !needsRefresh(post.media_type, post.posted_at, post.engagement_data?.fetched_at)) continue;
+    const has48h = !!post.engagement_48h;
+    if (!isNewMatch && !needsRefresh(post.media_type, post.posted_at, post.engagement_data?.fetched_at, Date.now(), has48h)) continue;
 
     const type = (["image", "carousel", "reel", "story"].includes(post.media_type) ? post.media_type : "image") as OurMediaType;
     const listed = mediaById.get(mediaId);
@@ -139,7 +142,10 @@ async function syncConnection(admin: Admin, conn: Connection) {
     }
     if (!data) continue;
 
-    const { error: upErr } = await admin.from("social_posts").update({ engagement_data: data }).eq("id", post.id).eq("status", "posted");
+    // SOCIAL-6: vaste meting rond 48 u, zodat posts op hetzelfde moment vergeleken worden.
+    const update: Record<string, unknown> = { engagement_data: data };
+    if (due48h(post.media_type, post.posted_at, has48h)) update.engagement_48h = data;
+    const { error: upErr } = await admin.from("social_posts").update(update).eq("id", post.id).eq("status", "posted");
     if (upErr) { summary.errors++; console.error(`[social-insights-sync] update ${post.id}: ${upErr.message}`); continue; }
     if (isNewMatch) summary.matched++;
     if (data.source === "insights" && !data.low_volume) summary.measured++;

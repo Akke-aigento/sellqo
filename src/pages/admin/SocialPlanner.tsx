@@ -3,7 +3,7 @@
 // SOCIAL-5: tab "Resultaten" met de cijfers per post, dagdeel, weekdag en soort.
 
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { addDays, format } from 'date-fns';
 import { CheckCheck, Link2, Loader2 } from 'lucide-react';
@@ -47,6 +47,9 @@ export default function SocialPlanner() {
   const { weeks, pendingCount, isLoading, approve, update, remove, markPosted, chooseOwnMusic, requestRegenerate, saveImageText, saveTranslation, postNow } = useSocialPlanner();
   const { currentTenant } = useTenant();
   const { connections } = useSocialConnections();
+  // SOCIAL-6: ?tab=results opent meteen de resultaten (link uit de maandagmelding).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') === 'results' ? 'results' : 'planning';
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<PlannerPost | null>(null);
@@ -194,7 +197,7 @@ export default function SocialPlanner() {
         description={t('admin.socialPlanner.description')}
       />
 
-      <Tabs defaultValue="planning" className="space-y-6">
+      <Tabs value={tab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); if (v === 'planning') next.delete('tab'); else next.set('tab', v); return next; }, { replace: true })} className="space-y-6">
         <TabsList>
           <TabsTrigger value="planning">{t('admin.socialPlanner.tabs.planning')}</TabsTrigger>
           <TabsTrigger value="results">{t('admin.socialPlanner.tabs.results')}</TabsTrigger>

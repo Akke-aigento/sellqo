@@ -14,7 +14,7 @@ import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { useSocialResults } from '@/hooks/useSocialResults';
 import { cn } from '@/lib/utils';
 import {
-  bestBucket, bucketScore, engagementRate, interactionsOf, MIN_POSTS_PER_BUCKET, type Bucket,
+  bestBucket, bucketScore, engagementRate, interactionsOf, metricsOf, MIN_POSTS_PER_BUCKET, scoreOf, TAG_KEYS, type Bucket,
 } from '@/lib/social/results';
 
 const WEEKDAY_DATES = ['2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-24', '2026-10-25'];
@@ -28,10 +28,12 @@ export function SocialResults() {
   const mode = summary.mode;
 
   const scoreText = (b: Bucket<string | number>) => {
-    const v = mode === 'rate' ? b.avgRate : b.avgInteractions;
+    const v = mode === 'score' ? b.avgScore : b.avgInteractions;
     if (v === null) return '—';
-    return mode === 'rate' ? `${pf.format(v)} %` : nf.format(v);
+    return mode === 'score' ? pf.format(v) : nf.format(v);
   };
+  const rateText = (b: Bucket<string | number>) => (b.avgRate === null ? '—' : `${pf.format(b.avgRate)} %`);
+  const tagLabel = (k: string | number) => String(k).replace(/[_-]+/g, ' ');
 
   if (isLoading) {
     return (
@@ -114,9 +116,9 @@ export function SocialResults() {
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">
-              {mode === 'rate' ? t('admin.socialPlanner.results.avgRate') : t('admin.socialPlanner.results.avgInteractions')}
+              {mode === 'score' ? t('admin.socialPlanner.results.avgRate') : t('admin.socialPlanner.results.avgInteractions')}
             </p>
-            <p className="text-2xl font-semibold tabular-nums">{scoreText(summary.overall)}</p>
+            <p className="text-2xl font-semibold tabular-nums">{mode === 'score' ? rateText(summary.overall) : scoreText(summary.overall)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -160,7 +162,7 @@ export function SocialResults() {
                   <p>{t('admin.socialPlanner.results.tooFew', { min: MIN_POSTS_PER_BUCKET })}</p>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {mode === 'rate' ? t('admin.socialPlanner.results.rateExplain') : t('admin.socialPlanner.results.interactionsExplain')}
+                  {mode === 'score' ? t('admin.socialPlanner.results.scoreExplain') : t('admin.socialPlanner.results.interactionsExplain')}
                 </p>
               </div>
             </CardContent>
@@ -172,12 +174,23 @@ export function SocialResults() {
             {barList(t('admin.socialPlanner.results.byType'), summary.byType, (k) => typeLabel(String(k)))}
           </div>
 
+          {TAG_KEYS.some((k) => summary.byTag[k]?.length) && (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold">{t('admin.socialPlanner.results.content')}</h3>
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {TAG_KEYS.filter((k) => summary.byTag[k]?.length).map((k) =>
+                  barList(t(`admin.socialPlanner.results.tag.${k}`), summary.byTag[k]!.slice(0, 8), tagLabel))}
+              </div>
+            </div>
+          )}
+
           <Card>
             <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">{t('admin.socialPlanner.results.top')}</CardTitle></CardHeader>
             <CardContent className="divide-y">
               {summary.top.map((p) => {
-                const m = p.engagement_data?.metrics;
+                const m = metricsOf(p);
                 const rate = engagementRate(m);
+                const score = scoreOf(m);
                 const inter = interactionsOf(m);
                 const link = p.engagement_data?.permalink;
                 return (
@@ -193,6 +206,7 @@ export function SocialResults() {
                           typeof m?.reach === 'number' ? t('admin.socialPlanner.metrics.reach', { value: nf.format(m.reach) }) : null,
                           inter !== null ? t('admin.socialPlanner.metrics.interactions', { value: nf.format(inter) }) : null,
                           rate !== null ? `${pf.format(rate)} %` : null,
+                          score !== null ? t('admin.socialPlanner.results.scoreValue', { value: pf.format(score) }) : null,
                         ].filter(Boolean).join(' · ')}
                       </p>
                     </div>

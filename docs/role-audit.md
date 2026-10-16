@@ -1,3 +1,55 @@
+## SOCIAL-6 — Leren van de inhoud: labels, score na 48 uur en een logboek van keuzes (2026.12m) — 16 oktober 2026
+
+Akke 21:37: "hij leert toch ook van welke soort post en welke soort content het goed doet?". Go om 21:51: "Maat dit is GOED, we beginnen hiermee". De herindeling van Marketing (MARKETING-1/2) volgt apart, in het Nomadix BV-project.
+
+**Root cause**
+- SOCIAL-5 leert alleen van soort en tijdstip.
+  - De weektaken noteren format, template en hook in `log.md`, maar dat log hangt niet aan de rijen in `social_posts`. Inhoud is dus niet te koppelen aan cijfers.
+  - Een oude post had meer tijd om bereik te verzamelen dan een nieuwe, dus ze waren niet eerlijk te vergelijken.
+  - Wat Akke schrapt of herschrijft werd nergens bewaard. Bij `delete` verdwijnt de rij.
+
+**Uitgevoerd**
+- `supabase/migrations/20261016230000_social_6_learning.sql`:
+  - `social_posts.content_tags` en `engagement_48h` (additief). Check: object, < 4000 tekens.
+  - `social_post_score(jsonb)`: (likes + 2·reacties + 2·antwoorden + 3·bewaard + 3·gedeeld + 5·volgers) / bereik × 100.
+  - Tabel `social_post_events` met trigger `trg_social_posts_events`, AFTER UPDATE/DELETE, alleen voor `content_task`. Events: approved, edited, rescheduled, regenerate_requested (met notitie), removed, posted, failed, image_changed, language_changed. Elke fout in de trigger wordt een WARNING en blokkeert de wijziging nooit.
+  - View `social_post_performance` met kolommen achteraan erbij: labels, `score`, `score_48h`, `reach/saved/shares/follows_48h`, `language`.
+- `_shared/socialInsights.ts`:
+  - `due48h()` (48 u tot 7 dagen, nooit voor stories).
+  - `needsRefresh(..., has48h)` dwingt de meting af.
+- `social-insights-sync`: schrijft `engagement_48h` één keer. Versie `SOCIAL-6`.
+- Frontend:
+  - `src/lib/social/results.ts`: `scoreOf`, `metricsOf` (48 u gaat voor), `byTag` per pijler, format, hook, captionlengte en cta. Rangschikking op score.
+  - `SocialResults.tsx`: blok "Wat werkt qua inhoud", score bij de topposts.
+  - `SocialPlanner.tsx`: `?tab=results` voor de maandagmelding.
+  - i18n in 5 talen.
+- Tests: `socialInsights.test.ts` 8/8 (nieuw: 48-uursmeting), `socialResults.test.ts` 9/9.
+- Slottaken: changelog 2026.12m `social_results_content` (5 talen), helpartikel `20261016230100_social_6_doc_article.sql`, newsletter.
+- Buiten deze repo:
+  - nomadix-socials a873e07: `shared/LEREN.md` met labels, score, 70/20/10, slijtage, `lessen.md` (laatste woord voor Akke) en UTM; READMEs; `lessen.md` per merk.
+  - Loveke 8309f5e: README met de sectie Leren en `content_tags` in de insert-voorbeelden; `lessen.md`.
+  - Weektaken, "Opnieuw maken" en de nieuwe maandagtaak "Social: weekoverzicht en lessen" volgen LEREN.md.
+
+**Security-keuzes**
+- `social_post_events`:
+  - RLS aan. SELECT voor leden en platformbeheerders, geen schrijf-policy: de trigger schrijft als SECURITY DEFINER met `search_path = public`.
+  - Execute op de triggerfunctie ingetrokken voor public, anon en authenticated.
+  - `actor` = `auth.uid()`; bij de service role is dat null.
+- `social_post_score`: immutable en pure SQL, geen toegang tot data.
+- View: blijft `security_invoker`.
+
+**Gedeelde-paden-waarschuwing**
+- `_shared/socialInsights.ts` wordt nog altijd enkel door `social-insights-sync` gebruikt. Alleen die functie moet opnieuw gedeployd worden.
+- `social_posts` is geen gedeelde storefront-tabel. De eerste wet is niet van toepassing.
+- De trigger draait ook bij updates van `social-publish-due` en `social-post-publish`. Die schrijven gewoon door, want een fout in de trigger wordt alleen een WARNING.
+
+**Verificatie**: zie de live-notitie hieronder (Deno 8/8, vitest 9/9, i18n-pariteit, eslint 0 meldingen, tsc tegen de baseline, build).
+
+**Bewust ongemoeid / Vervolg**
+- **SOCIAL-6b**: verkoop koppelen aan posts. Er bestaat nog geen kolom die UTM bewaart. Een kolom `orders.utm` raakt het checkoutpad van de storefronts en de custom frontends, dus de eerste wet geldt: eigen recon en apart akkoord nodig. UTM's worden vanaf nu wel al op elke link gezet.
+- Reacties lezen (vragen als ideeën voor posts) vraagt de scope `instagram_business_manage_comments`. Niet gevraagd.
+- Labels achteraf toevoegen aan bestaande posts doet de eerste run van de maandagtaak (19 okt), met `log.md` als bron.
+
 ## SOCIAL-5 + 5a — Resultaten in de Social planning, publicatie elke 5 minuten en posttijden per merk (2026.12l) — 16 oktober 2026
 
 Akke 16-10: "moet zelflerend zijn voor elk merk … waar worden deze resultaten en analyses gebruikt/weergegeven?", "dit moet ook algemeen veranderen en gevarieerd zijn" en go 21:05 ("doorpakken").

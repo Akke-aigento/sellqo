@@ -2114,6 +2114,10 @@
         "social_results": {
           "title": "Planification sociale : résultats par publication et par moment",
           "description": "Sous chaque publication en ligne, vous voyez maintenant les chiffres d'Instagram : portée, j'aime, commentaires, enregistrements et partages. Le nouvel onglet Résultats montre quel moment de la journée, quel jour et quel type de publication fonctionnent le mieux, vos meilleures publications et l'évolution de vos abonnés. Les publications planifiées sont en outre mises en ligne quelques minutes après l'heure choisie."
+        },
+        "social_results_content": {
+          "title": "Planification sociale : apprendre ce qui marche, contenu compris",
+          "description": "L'onglet Résultats classe désormais vos publications selon un score où les enregistrements, les partages et les nouveaux abonnés pèsent plus qu'un j'aime, mesuré 48 heures après la publication pour comparer équitablement anciennes et nouvelles publications. Si vos publications ont des étiquettes (pilier, format, type d'accroche, longueur, appel à l'action), vous voyez aussi quel contenu fonctionne le mieux."
         }
       },
       "copyLink": "Copier le lien",

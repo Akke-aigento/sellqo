@@ -2114,6 +2114,10 @@
         "social_results": {
           "title": "Social planning: results per post and per moment",
           "description": "Below every published post you now see the numbers from Instagram: reach, likes, comments, saves and shares. The new Results tab shows which time of day, which weekday and which type of post works best, your top posts and your follower growth. Scheduled posts now also go live within minutes of the chosen time."
+        },
+        "social_results_content": {
+          "title": "Social planning: learn what works, content included",
+          "description": "The Results tab now ranks your posts on a score in which saves, shares and new followers weigh more than a like, measured 48 hours after publishing so older and newer posts are compared fairly. If your posts have labels (pillar, format, type of opening, length, call to action), you also see which content works best."
         }
       },
       "copyLink": "Copy link",

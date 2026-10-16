@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12m — Leren wat werkt, ook qua inhoud (improvement, 16-10-2026)
+
+**Status:** migraties `20261016230000_social_6_learning.sql` en `20261016230100_social_6_doc_article.sql` live, `social-insights-sync` (SOCIAL-6) gedeployd. Kan mee met 2026.12l in dezelfde nieuwsbrief.
+
+**Voor wie:** winkels die de Social planning met een gekoppeld Instagram-account gebruiken.
+
+**Eerlijk vergelijken, slimmer rangschikken** (oktober 2026)
+De tab Resultaten rangschikt je posts nu op een score waarin bewaren, delen en nieuwe volgers zwaarder wegen dan een like, gemeten 48 uur na publicatie. Zo vergelijk je een post van gisteren eerlijk met een post van vorige maand. Hebben je posts labels (pijler, format, soort opening, lengte, oproep tot actie), dan zie je ook welke inhoud het best scoort.
+Wat betekent dit voor jou? Je ziet niet alleen wanneer je best post, maar ook wat je best post.
+
+**i18n-keys.** `public.changelog.changes.social_results_content` — 5 talen (nl, en, fr, de, uk; geteld tegen `SUPPORTED_LANGUAGES`).
+
 ### 2026.12l — Resultaten in de Social planning (feature, 16-10-2026)
 
 **Status:**

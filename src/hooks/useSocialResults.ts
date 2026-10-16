@@ -19,14 +19,16 @@ export function useSocialResults() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('social_posts')
-        .select('id, media_type, posted_at, post_text, image_urls, engagement_data')
+        .select('id, media_type, posted_at, post_text, image_urls, engagement_data, engagement_48h, content_tags')
         .eq('tenant_id', tenantId!)
         .eq('status', 'posted')
         .gte('posted_at', subDays(new Date(), 90).toISOString())
         .order('posted_at', { ascending: false })
         .limit(300);
       if (error) throw error;
-      return (data ?? []).filter((p) => !!p.posted_at) as unknown as MeasuredPost[];
+      // engagement_48h en content_tags (SOCIAL-6) staan nog niet in de gegenereerde types.
+      const rows = (data ?? []) as unknown as MeasuredPost[];
+      return rows.filter((p) => !!p.posted_at);
     },
   });
 

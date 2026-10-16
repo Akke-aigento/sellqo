@@ -7043,6 +7043,16 @@
           "carousel": "Karussell",
           "reel": "Reel",
           "story": "Story"
+        },
+        "content": "Was inhaltlich funktioniert",
+        "scoreExplain": "Score = Likes, Kommentare (×2), Speicherungen und Teilungen (×3) und neue Follower (×5) pro 100 erreichte Konten, gemessen 48 Stunden nach der Veröffentlichung. Speichern, Teilen und Folgen sagen mehr als ein Like.",
+        "scoreValue": "Score {{value}}",
+        "tag": {
+          "pillar": "Nach Säule",
+          "format": "Nach Format",
+          "hook": "Nach Art des Einstiegs",
+          "caption_length": "Nach Textlänge",
+          "cta": "Nach Handlungsaufforderung"
         }
       }
     }

@@ -1,7 +1,7 @@
 // SOCIAL-5 — unit tests voor de resultaten-module. Geen netwerk: fetch is nagebootst.
 // Run: DENO_NO_PACKAGE_JSON=1 deno test --no-lock --node-modules-dir=none supabase/functions/_shared/socialInsights.test.ts
 import {
-  fetchMediaInsights, matchMedia, needsRefresh, parseInsights, type IgMedia,
+  due48h, fetchMediaInsights, matchMedia, needsRefresh, parseInsights, type IgMedia,
 } from "./socialInsights.ts";
 
 function eq(actual: unknown, expected: unknown, msg = "") {
@@ -94,4 +94,16 @@ Deno.test("needsRefresh: jong vaak, oud zelden, story na 24 u niet meer", () => 
   eq(needsRefresh("image", old, new Date(now - 24 * H).toISOString(), now), false);
   eq(needsRefresh("story", old, new Date(now - 100 * H).toISOString(), now), false);
   eq(needsRefresh("image", new Date(T0 - 40 * 24 * H).toISOString(), null, now), false);
+});
+
+Deno.test("48-uursmeting: vanaf 48 u tot 7 dagen, één keer, niet voor stories", () => {
+  const posted = new Date(T0).toISOString();
+  eq(due48h("image", posted, false, T0 + 47 * H), false);
+  eq(due48h("image", posted, false, T0 + 50 * H), true);
+  eq(due48h("image", posted, true, T0 + 50 * H), false);
+  eq(due48h("story", posted, false, T0 + 50 * H), false);
+  eq(due48h("image", posted, false, T0 + 8 * 24 * H), false);
+  // needsRefresh dwingt de meting af, ook als de vorige meting recent was
+  eq(needsRefresh("image", posted, new Date(T0 + 49 * H).toISOString(), T0 + 50 * H, false), true);
+  eq(needsRefresh("image", posted, new Date(T0 + 49 * H).toISOString(), T0 + 50 * H, true), false);
 });

@@ -7287,6 +7287,16 @@
           "carousel": "Carousel",
           "reel": "Reel",
           "story": "Story"
+        },
+        "content": "What works in content",
+        "scoreExplain": "Score = likes, comments (×2), saves and shares (×3) and new followers (×5) per 100 accounts reached, measured 48 hours after publishing. Saves, shares and follows say more than a like.",
+        "scoreValue": "score {{value}}",
+        "tag": {
+          "pillar": "By pillar",
+          "format": "By format",
+          "hook": "By type of opening",
+          "caption_length": "By caption length",
+          "cta": "By call to action"
         }
       }
     }

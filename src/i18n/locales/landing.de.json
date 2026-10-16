@@ -2114,6 +2114,10 @@
         "social_results": {
           "title": "Social-Planung: Ergebnisse pro Beitrag und Zeitpunkt",
           "description": "Unter jedem geposteten Beitrag sehen Sie jetzt die Zahlen von Instagram: Reichweite, Likes, Kommentare, Speicherungen und Teilungen. Der neue Tab Ergebnisse zeigt, welche Tageszeit, welcher Wochentag und welche Art von Beitrag am besten funktioniert, Ihre besten Beiträge und das Wachstum Ihrer Follower. Geplante Beiträge gehen außerdem wenige Minuten nach der gewählten Uhrzeit online."
+        },
+        "social_results_content": {
+          "title": "Social-Planung: lernen, was funktioniert – auch inhaltlich",
+          "description": "Der Tab Ergebnisse ordnet Ihre Beiträge jetzt nach einem Score, in dem Speicherungen, Teilungen und neue Follower mehr zählen als ein Like, gemessen 48 Stunden nach der Veröffentlichung, damit ältere und neuere Beiträge fair verglichen werden. Haben Ihre Beiträge Labels (Säule, Format, Art des Einstiegs, Länge, Handlungsaufforderung), sehen Sie auch, welcher Inhalt am besten funktioniert."
         }
       },
       "copyLink": "Link kopieren",

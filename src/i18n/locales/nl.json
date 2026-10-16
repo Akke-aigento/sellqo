@@ -7301,6 +7301,16 @@
           "carousel": "Carrousel",
           "reel": "Reel",
           "story": "Story"
+        },
+        "content": "Wat werkt qua inhoud",
+        "scoreExplain": "Score = likes, reacties (×2), bewaard en gedeeld (×3) en nieuwe volgers (×5) per 100 bereikte accounts, gemeten 48 uur na publicatie. Bewaren, delen en volgen zeggen meer dan een like.",
+        "scoreValue": "score {{value}}",
+        "tag": {
+          "pillar": "Per pijler",
+          "format": "Per format",
+          "hook": "Per soort opening",
+          "caption_length": "Per lengte van de tekst",
+          "cta": "Per oproep tot actie"
         }
       }
     }
