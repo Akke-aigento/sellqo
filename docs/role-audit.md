@@ -1,3 +1,21 @@
+## SEC-NIGHT-1 — resolve_sync_conflict en log_admin_action alleen nog voor de eigen tenant — 16 oktober 2026
+
+**Root cause.** Nachtelijke RLS-scan: beide SECURITY DEFINER-functies hadden geen autorisatie en waren uitvoerbaar door `anon` en elke ingelogde gebruiker. `resolve_sync_conflict` sloot elk conflict van elke tenant af op basis van een ID (ook marketplace-conflicten); `log_admin_action` liet elke ingelogde gebruiker regels schrijven in `admin_actions_log` voor eender welke tenant.
+
+**Uitgevoerd** — `supabase/migrations/20261016030000_sec_night_1.sql` (via de connector gedraaid)
+- Ingelogde gebruiker: alleen eigen tenant (`get_user_tenant_ids`) of platform-admin, anders `42501`. Service-role (`auth.uid()` null) ongewijzigd.
+- `resolve_sync_conflict` op een onbekend ID: stil terug, zoals voorheen (UPDATE raakte 0 rijen).
+- EXECUTE ingetrokken voor `public`/`anon`, expliciet toegekend aan `authenticated` en `service_role`.
+- Snapshot oude definities: `ops.sec_night_1_prev_functions`.
+
+**Security-keuzes** — zie hierboven. Geen policies gewijzigd.
+
+**Gedeelde-paden-waarschuwing** — aanroepers: `useSyncConflicts` (eigen tenant), `usePlatformAdmin`/`usePlatformPromotions` (platform-admin), `remove-team-member` (eigen tenant, best effort in try/catch). De bol-API en de sync-functies zelf zijn niet geraakt; alleen wie een conflict mag afsluiten.
+
+**Verificatie** — grants nagemeten (anon `false`, authenticated/service_role `true`). Rol-impersonatie als VanXcel-tenant_admin (rollback): eigen tenant `ok`, Speeltuin `42501`, onbekend conflict `ok`.
+
+**Bewust ongemoeid / Vervolg** — `get_user_tenant_ids(_user_id)` en `is_platform_admin(_user_id)` blijven anon-uitvoerbaar (eerst nagaan welke anon-policies ze gebruiken). View `tenant_theme_public` toont `api_key_hash`/`api_key_prefix`/`webhook_url`: raakt de eerste wet, apart beslissen.
+
 ## EVENT-DOOR-2 — deurscanner bestand tegen slecht 4G, geannuleerd/terugbetaald apart (2026.12c) — 16 oktober 2026
 
 **Root cause.** Uit de nachttest (A-e2e, stap 6 en fout 4/6/9): `invokeWithToken` (`src/pages/public/DoorScan.tsx:28-35`) en `call` (`src/pages/admin/TicketCheckin.tsx:142`) riepen `supabase.functions.invoke` aan zonder timeout of AbortSignal; op slecht 4G hing één scan tientallen seconden. Tijdens zo'n oproep stond `busyRef` aan (`DoorScanner.tsx:130-134`) en vielen volgende scans stil weg, zonder bezig-indicator. Een netwerkfout gaf een rode "Scannen mislukt" met de ruwe fout, en dezelfde QR werd daarna 4 s genegeerd (`finally` zette `lastRef` opnieuw, regel 139-140). Een verloren antwoord na een geslaagde check-in gaf bij opnieuw scannen "Al binnen": een geldige gast kon als dubbel ticket geweigerd worden. Teller (`refreshStats`, r.105) en zoeken (`setHits([])`, r.227) slikten netwerkfouten ("niet gevonden"). Geannuleerde tickets komen terug als `result:'invalid', reason:'ticket_cancelled'` (`can_scan`, migratie 20260819104515 r.72), terwijl de UI alleen op `result==='cancelled'` testte: de deur toonde "Ongeldig ticket".
