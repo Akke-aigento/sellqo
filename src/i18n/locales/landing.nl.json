@@ -2054,6 +2054,10 @@
         "event_admin_tickets": {
           "title": "Elk ticket apart in de bestelling",
           "description": "In een bestelling met tickets zie je nu elk ticket apart: het event en de datum, het tickettype, de naam van de houder, het einde van de ticketcode en de status (geldig, ingecheckt met tijdstip, of geannuleerd). Zo beantwoord je een vraag van een bezoeker zonder de scanner te openen."
+        },
+        "ticket_cancel_ordernumbers": {
+          "title": "Geannuleerde tickets vervallen, en geen dubbele bestelnummers meer",
+          "description": "Annuleer je een bestelling of betaal je ze volledig terug, dan vervallen de tickets die nog niet gescand zijn: ze komen niet meer binnen aan de deur en de plaatsen komen vrij. Twee bestellingen op hetzelfde moment krijgen nu altijd elk een eigen bestelnummer, zodat een drukke ticketverkoop niet meer op een foutmelding stukloopt. En betaalt iemand terwijl je event net volzet raakt, dan krijg je meteen een dringende melding om die klant te helpen."
         }
       },
       "copyLink": "Kopieer link",

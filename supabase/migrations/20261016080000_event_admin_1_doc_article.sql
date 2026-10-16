@@ -28,6 +28,9 @@ VALUES
 <h3>Tickets opnieuw mailen</h3>
 <p>Is de bestelling betaald, dan stuur je met <strong>Tickets opnieuw mailen</strong> de ticketmail nog eens naar de koper, bijvoorbeeld als hij hem niet terugvindt. Er komen geen nieuwe tickets bij: het zijn dezelfde tickets met dezelfde QR-codes.</p>
 
+<h3>Annuleren of terugbetalen</h3>
+<p>Annuleer je een bestelling, of betaal je ze volledig terug, dan vervallen de tickets die nog niet gescand zijn automatisch. Ze komen niet meer binnen aan de deur en de plaatsen komen vrij voor nieuwe kopers. Wie al ingecheckt is, blijft ingecheckt. Bij een gedeeltelijke terugbetaling verandert er niets aan de tickets.</p>
+
 <h3>Ticketproducten en de productlijst</h3>
 <p>Met de module Events staan ticketproducten niet tussen je gewone producten onder <strong>Producten</strong>. Bovenaan die lijst zie je hoeveel eventtickets er zijn, met een link naar <strong>Events</strong>, waar je ze beheert.</p>
 

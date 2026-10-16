@@ -1,3 +1,35 @@
+## FONSKE-READY-1 — tickets vervallen bij annuleren, atomaire ordernummers, melding bij overboeking (2026.12b) — 16 oktober 2026
+
+Gevonden in de nachtelijke e2e-test van de ticketketen op SellQo Speeltuin (alleen NACHTTEST-data, achteraf geannuleerd; Fonske niet aangeraakt).
+
+**Root cause**
+1. Annuleren of volledig terugbetalen van een order raakte `ticket_instances` nergens (geen code, geen trigger). Een geannuleerd ticket scande nog `ok` en hield een plaats bezet in `get_event_signup_count`.
+2. `generate_order_number` deed `MAX+1` zonder lock. Twee gelijktijdige checkouts bij dezelfde tenant gaven 2/2 keer een 500 op `orders_tenant_id_order_number_key` (`storefront-api` createOrderFromCart). Raakt elk orderpad van elke tenant.
+3. Overboeking ná betaling (`issue_tickets_for_order_core`, verloren race) werd enkel in `admin_actions_log` gezet, die nergens getoond wordt: klant betaald, geen ticket, niemand weet het.
+
+**Uitgevoerd** — migratie `supabase/migrations/20261016020000_fonske_ready_1.sql` (via de connector gedraaid en natgetrokken)
+- Nieuwe tabel `order_number_counters` (RLS aan, geen policies, grants ingetrokken voor anon/authenticated). `generate_order_number` doet een UPSERT met rijlock; `GREATEST` met `MAX(order_number)` zodat nummers die buiten de functie om ontstaan blijven kloppen. Achter elkaar dezelfde uitkomst als voorheen.
+- Trigger `trg_orders_cancel_tickets` (AFTER UPDATE OF status, payment_status): `status → cancelled` zet geldige tickets op `cancelled`, `payment_status → refunded` op `refunded`. `checked_in` blijft, `partially_refunded` raakt niets. Seat-release-trigger vuurt mee. Terugzetten heropent tickets niet.
+- `issue_tickets_for_order_core`: identiek + `order_number` in de select + `send_notification(..., 'orders', 'ticket_overbooking', ..., 'urgent', ...)` in een eigen exception-blok.
+- Snapshot oude definities: `ops.fonske_ready_1_prev_functions`.
+- Changelog 2026.12b `ticket_cancel_ordernumbers` (bugfix) in 5 talen; helpartikel `tickets-in-een-bestelling` aangevuld met annuleergedrag.
+
+**Security-keuzes** — nieuwe tabel zonder policies, enkel via SECURITY DEFINER. `generate_order_number` behoudt zijn grants (nagemeten: anon `false`, authenticated `true`). Geen nieuwe RLS op bestaande tabellen.
+
+**Gedeelde-paden-waarschuwing** — `generate_order_number` wordt gebruikt door storefront-api, stripe-connect-webhook, create-checkout-session, create-bank-transfer-order, quotes, Shopify-import en de bol-imports (`sync-bol-orders`, `import-bol-shipments`, `import-bol-csv`). Formaat en volgorde blijven identiek; enkel gelijktijdige aanroepen krijgen nu elk een eigen nummer. Een mislukte insert na het nummer laat een gat (geen probleem: ordernummers zijn geen factuurnummers). De bol-API zelf is niet geraakt. Geen edge-function-deploy nodig.
+
+**Verificatie**
+- Functiedefinities en trigger live nagemeten (aparte call na de migratie).
+- Rollbacktest Speeltuin: twee nummers achter elkaar `#9002`, `#9003`; annuleren → ticket `cancelled`; terugbetalen → `refunded`.
+- Gelijktijdigheid: 3 parallelle `rpc/generate_order_number` via `net.http_post` → `#9002`, `#9003`, `#9004`, alle 200 (Speeltuin-teller staat daardoor op 9004).
+- Backfill niet nodig: 0 geldige tickets op geannuleerde/terugbetaalde orders (alle tenants).
+
+**Bewust ongemoeid / Vervolg**
+- Ticket-only orders springen na de ticketmail naar `delivered`, waardoor gewoon annuleren niet kan (`send-ticket-confirmation:404-420`, `orderTransitions.ts:14`); alleen via "Status corrigeren". Voorstel in nachtverslag.
+- Stripe-pad heeft geen reservering tijdens de checkout; met de melding is een verloren race nu wel zichtbaar.
+- Gratis checkout ±10 s door sequentiële factuur + 2 mails vóór de respons (`storefront-api:3939-3958`) → `EdgeRuntime.waitUntil`, vraagt edge-deploy.
+- Scanner bij slecht netwerk: geen timeout, geen offline-wachtrij (`DoorScan.tsx`, `DoorScanner.tsx`).
+
 ## EVENT-ADMIN-1 — elk ticket apart in de orderdetail, ticketfilter achter de module (2026.12b) — 16 oktober 2026
 
 **Waarom.** Twee punten van de lijst "na 24/10" uit EVENT-WIZARD-1 (laag risico, puur admin-frontend): een events-tenant mag Producten niet nodig hebben, en eventbeheer mag niet verspreid zitten.

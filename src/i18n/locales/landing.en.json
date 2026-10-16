@@ -2054,6 +2054,10 @@
         "event_admin_tickets": {
           "title": "Every ticket separately in the order",
           "description": "An order with tickets now shows every ticket separately: the event and date, the ticket type, the holder's name, the end of the ticket code and the status (valid, checked in with the time, or cancelled). That way you can answer a visitor's question without opening the scanner."
+        },
+        "ticket_cancel_ordernumbers": {
+          "title": "Cancelled tickets become void, and no more duplicate order numbers",
+          "description": "When you cancel an order or refund it in full, the tickets that haven't been scanned yet become void: they no longer get in at the door and the spots become available again. Two orders placed at the same moment now always get their own order number, so a busy ticket sale no longer runs into an error. And if someone pays just as your event sells out, you get an urgent notification right away so you can help that customer."
         }
       },
       "copyLink": "Copy link",

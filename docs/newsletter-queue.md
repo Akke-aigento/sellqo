@@ -4,6 +4,16 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12b — Geannuleerde tickets vervallen, geen dubbele bestelnummers meer (bugfix, 16-10-2026)
+
+**Voor wie:** iedereen die tickets verkoopt; het bestelnummer geldt voor alle winkels.
+
+Annuleer je een bestelling of betaal je ze volledig terug, dan vervallen de tickets die nog niet gescand zijn en
+komen de plaatsen vrij. Gelijktijdige bestellingen krijgen altijd elk een eigen nummer, en betaalt iemand net
+terwijl je event volzet raakt, dan krijg je meteen een dringende melding.
+
+**i18n-key:** `public.changelog.changes.ticket_cancel_ordernumbers`
+
 ### 2026.12b — Elk ticket apart in de bestelling (improvement, 16-10-2026)
 
 **Voor wie:** iedereen die tickets verkoopt (events-module).

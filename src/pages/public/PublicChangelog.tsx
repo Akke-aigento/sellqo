@@ -16,6 +16,7 @@ const changelogEntries: Array<{
 }> = [
   { version: '2026.12b', dateKey: 'oct_2026', changes: [
     { id: 'event_admin_tickets', type: 'improvement' },
+    { id: 'ticket_cancel_ordernumbers', type: 'bugfix' },
   ] },
   { version: '2026.12a', dateKey: 'oct_2026', changes: [
     { id: 'social_post_now', type: 'feature' },

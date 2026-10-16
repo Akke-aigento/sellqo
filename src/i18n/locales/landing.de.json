@@ -2054,6 +2054,10 @@
         "event_admin_tickets": {
           "title": "Jedes Ticket einzeln in der Bestellung",
           "description": "In einer Bestellung mit Tickets sehen Sie jetzt jedes Ticket einzeln: Event und Datum, Tickettyp, den Namen des Inhabers, das Ende des Ticketcodes und den Status (gültig, eingecheckt mit Uhrzeit oder storniert). So beantworten Sie die Frage eines Besuchers, ohne den Scanner zu öffnen."
+        },
+        "ticket_cancel_ordernumbers": {
+          "title": "Stornierte Tickets verfallen, keine doppelten Bestellnummern mehr",
+          "description": "Stornierst du eine Bestellung oder erstattest sie vollständig, verfallen die noch nicht gescannten Tickets: Sie kommen am Eingang nicht mehr rein und die Plätze werden wieder frei. Zwei gleichzeitige Bestellungen bekommen jetzt immer jeweils eine eigene Bestellnummer, sodass ein voller Ticketverkauf nicht mehr an einer Fehlermeldung scheitert. Und zahlt jemand genau dann, wenn dein Event ausverkauft ist, bekommst du sofort eine dringende Benachrichtigung, damit du dem Kunden helfen kannst."
         }
       },
       "copyLink": "Link kopieren",

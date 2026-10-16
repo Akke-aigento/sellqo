@@ -2054,6 +2054,10 @@
         "event_admin_tickets": {
           "title": "Chaque billet séparément dans la commande",
           "description": "Une commande avec des billets affiche désormais chaque billet séparément : l'événement et la date, le type de billet, le nom du titulaire, la fin du code du billet et le statut (valide, enregistré avec l'heure, ou annulé). Vous répondez ainsi à la question d'un visiteur sans ouvrir le scanner."
+        },
+        "ticket_cancel_ordernumbers": {
+          "title": "Les billets annulés ne sont plus valables, et plus de numéros de commande en double",
+          "description": "Si tu annules une commande ou la rembourses entièrement, les billets pas encore scannés ne sont plus valables : ils ne passent plus à l'entrée et les places se libèrent. Deux commandes passées au même moment reçoivent désormais chacune leur propre numéro, une vente de billets chargée ne bloque donc plus sur une erreur. Et si quelqu'un paie au moment où ton événement devient complet, tu reçois tout de suite une notification urgente pour aider ce client."
         }
       },
       "copyLink": "Copier le lien",
