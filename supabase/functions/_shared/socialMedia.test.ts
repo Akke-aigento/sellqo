@@ -1,5 +1,6 @@
 // SOCIAL-1c — unit tests voor het klaarmaken van Instagram-beelden (geen netwerk: fetch is nagebootst).
 // Run: DENO_NO_PACKAGE_JSON=1 deno test --no-lock --node-modules-dir=none supabase/functions/_shared/socialMedia.test.ts
+// EDGE-IMPORT-1: `npm:` blijft, niet naar esm.sh (zie de kop van socialMedia.ts).
 import { encode as encodePng } from "npm:fast-png@6.3.0";
 import jpeg from "npm:jpeg-js@0.4.4";
 import { prepareInstagramImages, sniffImage, toInstagramJpeg, type SocialStorageClient } from "./socialMedia.ts";

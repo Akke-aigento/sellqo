@@ -32,6 +32,12 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
+  // EDGE-IMPORT-1: neveneffectvrije versiestempel om een deploy na te meten.
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ ok: true, version: 'EDGE-IMPORT-1' }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   try {
     const { tenantId, platform, text, imageUrls, scheduledFor, contentId, mediaType, postId }: PostRequest = await req.json();

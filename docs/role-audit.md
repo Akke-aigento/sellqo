@@ -1,3 +1,47 @@
+## EDGE-IMPORT-1 — `npm:fast-png`/`npm:jpeg-js` vindbaar voor de preview-check van de agent, zodat hij ze niet meer naar esm.sh "repareert" — 16 oktober 2026
+
+**Status:** lokaal gecommit op branch `edge-import-1` (vanaf `998b8f6`). NIET gepusht, NIETS gedeployd, geen DB-writes. Deploy-recept: `docs/prepared/EDGE-IMPORT-1-deploy.md`.
+
+**Root cause — agent-kant (exact).** De preview-/bouwcheck van de Lovable-agent (`/tmp/observability/build-errors.log`, gelezen via `list_messages` op 16-10 08:11 en 08:26) meldt:
+`error: Could not find a matching package for 'npm:jpeg-js@0.4.4' in the node_modules directory. Ensure you have all your JSR and npm dependencies listed in your deno.json or package.json, then run `deno install`.`
+Oorzaak: in de repo-root staat `package.json`. Deno 2 schakelt dan over op node_modules-modus ("manual") en zoekt elke `npm:`-import in `node_modules`. `jpeg-js` en `fast-png` stonden niet in `package.json`, dus ook niet in `node_modules`. De bestaande `npm:react@18.3.1`/`npm:@types/react@18.3.1` (auth-email-hook) staan wél in `package.json` en geven die fout daarom niet. Lokaal exact nagespeeld met deno 2.9.6: `deno check supabase/functions/_shared/socialMedia.ts` vanaf de root → exit 1 met dezelfde melding; ook vanuit `supabase/functions/` (zo draaide de agent hem) en ook met een `deno.json` in de functiemap (deno zoekt zijn config vanaf de werkmap, niet vanaf het bestand). De Supabase-deploy zelf heeft er geen last van: op 15-10 liepen beide functies live met de `npm:`-imports (zie SOCIAL-1c).
+
+**Root cause — CI-kant (exact).**
+- Agent-variant 1 (`254d1e6` + `3797746`, esm.sh + `// @ts-ignore`), run 38873746292: step **Lint** rood. Lokaal nagemeten: `@typescript-eslint/ban-ts-comment` ("Use @ts-expect-error instead of @ts-ignore"), 2 nieuwe fouten → het lint-totaal steeg boven de baseline.
+- Agent-variant 2 (`3d1ef7a` + `b06bdf2`, esm.sh zonder `@ts-ignore`), run 38885004571: step **Edge functions (deno check)** rood. Het job-log zelf is vanuit de sandbox niet op te halen (blob-opslag 403), dus de foutregel is afgeleid: `jpeg-js@0.4.4` levert enkel `index.d.ts` met named exports (`export declare function encode/decode`), geen default export. Via esm.sh krijgt deno die ESM-types, en `import jpeg from "https://esm.sh/jpeg-js@0.4.4"` geeft dan TS1192 "Module has no default export" (nagespeeld met dezelfde `index.d.ts`: TS1192). Via `npm:` behandelt deno het CJS-pakket als default export, en daarom is de `npm:`-vorm groen. Bovendien bereikt de sandbox esm.sh niet, en esm.sh was op 15-10 precies de bron van de supabase-js-storing.
+- Gevolg: de agent ziet een "fout", repareert die tegen de STOP-zin in, CI wordt rood, wij draaien terug (`8830300`, `4737e61`). Zolang zijn check rood blijft, herhaalt dit zich bij elke deploy-only.
+- **Live afwijking:** om 08:26 deployde de agent `social-post-publish` en `social-publish-due` mét zijn esm.sh-variant (eigen melding in de agent-run: "De twee functies die de module gebruiken (social-post-publish, social-publish-due) zijn opnieuw gedeployd"). Main is teruggedraaid, de live functies niet. Live draait dus code die niet op main staat.
+
+**Gekozen fix — waarom deze.** Beide pakketten met exact dezelfde versie als devDependency in `package.json`. Dat is het bestaande patroon (`npm:react` werkt om die reden), verandert niets aan de edge-code of de CI-stappen (CI draait met `DENO_NO_PACKAGE_JSON=1 --node-modules-dir=none` en negeert `package.json`), en maakt de agent-check groen omdat de pakketten na zijn install in `node_modules` staan. Verworpen:
+- esm.sh toelaten: faalt in CI (TS1192 of lint op `@ts-ignore`), vraagt een netwerkbron die op 15-10 al stuk ging, en is in de sandbox niet te verifiëren.
+- `deno.json` met `"nodeModulesDir": "none"`: werkt enkel als hij in de werkmap van de check staat (root of `supabase/functions/`). Dat raakt dan alle ±120 functies en de deploy-bundler, terwijl we die laatste niet kunnen testen. Te grote blast radius.
+- jpeg-js/fast-png zelf in de repo zetten (vendoren): fast-png trekt pako 2 en iobuffer mee, dus veel code om één importregel te redden.
+
+**Uitgevoerd**
+- `package.json`: devDependencies `"fast-png": "6.3.0"` en `"jpeg-js": "0.4.4"` (exact, gelijk aan de `npm:`-specifiers).
+- `bun.lock`: gegenereerd met `bun install --lockfile-only` tegen registry.npmjs.org (bun 1.4.2). Nieuw: `fast-png@6.3.0`, `jpeg-js@0.4.4`, `iobuffer@5.4.0`, `@types/pako@2.0.4`, `pako@2.2.0` (top-level; `pdf-lib`, `@pdf-lib/*` en `jszip` houden hun eigen `pako@1.0.11` genest). Bun trok tegelijk het workspace-blok gelijk met `package.json` voor de vier `@capacitor/*`-ranges (`^8.5.0` → `^8.5.2`). Die stonden sinds APP-SEC-1 achter, en een volgende `bun install` doet dat toch. Een tweede `--lockfile-only`-run geeft geen verschil (idempotent).
+- `supabase/functions/_shared/socialMedia.ts` + `.test.ts`: enkel commentaar. De imports blijven `npm:`, met uitleg waarom en de waarschuwing dat een versiewijziging ook in `package.json`/`bun.lock` moet. Die waarschuwing staat in het bestand dat de agent "repareert".
+- `supabase/functions/social-post-publish/index.ts` en `social-publish-due/index.ts`: GET geeft `{"ok":true,"version":"EDGE-IMPORT-1"}`, vóór elke auth en zonder DB-toegang. Zonder die stempel is de deploy niet na te meten (de functies hadden er geen, zie SEC-DOMAIN-2).
+- `docs/prepared/EDGE-IMPORT-1-deploy.md`: deploy-recept.
+
+**Security-keuzes.** Geen RLS, policies, grants of secrets geraakt. De GET-stempel geeft enkel een vaste string terug: geen data, geen tenant-info, geen neveneffect. Beide functies staan al op `verify_jwt = false`. Nieuwe npm-pakketten: `jpeg-js` (BSD-3-Clause, geen dependencies) en `fast-png` (MIT). Op Edge draaiden ze al sinds 15-10. In de webbundel komen ze niet: devDependency, en `src/` importeert ze niet.
+
+**Gedeelde-paden-waarschuwing.** `storefront-*` en de gedeelde tabellen zijn niet geraakt. `package.json`/`bun.lock` zijn gedeeld met de webapp: de enige verschuiving in de dependency-boom is `pako` (top-level 1.0.11 → 2.2.0). `src/` importeert `pako` niet rechtstreeks, en `pdf-lib`/`jszip` krijgen hun 1.0.11 genest. De build is groen. `package-lock.json` (Xcode Cloud) is bewust niet bijgewerkt: die liep al achter (drizzle-*, postgres), een regeneratie gaf 1.858 regels churn, en Xcode Cloud valt daarom al terug op `npm install` (zie APP-SEC-1).
+
+**Verificatie** (deno 2.9.6, lokaal)
+- Agent-situatie, vóór de fix: `deno check --no-lock supabase/functions/_shared/socialMedia.ts` vanaf de root → **exit 1**, exacte melding zoals hierboven.
+- Agent-situatie, ná de fix: de pakketten in `node_modules` gezet zoals een install ze legt (tijdelijk, daarna verwijderd). `deno check` vanaf de root → **exit 0**, vanuit `supabase/functions/` → **exit 0**, `deno test socialMedia.test.ts` zonder `DENO_NO_PACKAGE_JSON` → **exit 0** (17/17). Dezelfde test in een losse sandbox met enkel `package.json` + `npm install`: exit 0, 17/17.
+- CI-stijl (`DENO_NO_PACKAGE_JSON=1 --node-modules-dir=none`): `deno check` op `social-post-publish` + `social-publish-due` (import map: esm.sh-supabase → `npm:@supabase/supabase-js@2.57.2`, deno.land/std → stub) → **exit 0**. `deno test socialMedia.test.ts socialRunner.test.ts` → **exit 0** (21/21).
+- `node scripts/verify-edge-pins.mjs` → **exit 0**. `node scripts/verify-lint-baseline.mjs` → **exit 0** (1481 ≤ 1482; eslint op de vier gewijzigde .ts-bestanden: 1 fout, dezelfde bestaande fout als op HEAD). `node scripts/verify-skills-sync.mjs` → exit 0. `npm run build` → **exit 0** (`public/sitemap.xml` teruggezet). `tsc` niet gedraaid: geen frontendcode geraakt.
+- Niet lokaal te bewijzen: of de Lovable-sandbox na de sync `bun install` draait. Het recept laat de agent dat controleren en anders STOPPEN.
+
+**Changelog / doc_articles / newsletter: n.v.t.** Geen tenant-zichtbaar gedrag: de social-publicatie doet na de deploy precies hetzelfde als op 15-10 (zelfde `npm:`-code, die toen live bewezen is). De GET-stempel is intern. Er valt niets te melden aan tenants of in de helpartikelen.
+
+**Bewust ongemoeid / Vervolg**
+- `process-email-queue` importeert `npm:@lovable.dev/email-js` zonder versie en zonder `package.json`-entry. Die kan in dezelfde agent-check dezelfde melding geven (zie SOCIAL-1c: "zelfde als bij de bestaande npm:@lovable.dev-functies"). Niet aangeraakt: het is een Lovable-platformpakket met een eigen `deno.json`.
+- `package-lock.json` en `bun.lockb` opschonen (enkel `bun.lock` houden): blijft een aparte batch.
+- **Deploy nodig:** ja, voor `social-post-publish` en `social-publish-due`, om live weer gelijk te trekken met main (nu draait de esm.sh-variant van 08:26) en om de stempel te bewijzen.
+
 ## SUB-UNIFY-2A — opzeggen gaat in op het einde van de betaalde periode, daarna Free via een dagelijkse sweep (eerst dry-run) — 16 oktober 2026
 
 **Status: LIVE (16-10-2026, ~10:00-10:20 UTC), sweep in DRY-RUN.** Go Akke ~10u: "Ja, push + deploy". Echte modus van de sweep = aparte go (recept stap 6).

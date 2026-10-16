@@ -18,6 +18,12 @@
 // npm-pakket laadt een native binary via FFI, en dat bestaat niet op Supabase Edge
 // (gevonden in de unit test zonder --allow-ffi, 15-10).
 // Kost (gemeten zonder extra rechten, 15-10): ±180 ms CPU voor 1000x1000.
+//
+// EDGE-IMPORT-1: deze imports blijven `npm:` met vaste versie. NIET naar esm.sh
+// omzetten: de esm.sh-variant faalt in CI (lint op @ts-ignore, deno check zonder).
+// Beide pakketten staan met exact deze versie in package.json (devDependencies),
+// zodat een `deno check` vanaf de repo-root (package.json → node_modules-modus) ze
+// vindt. Wie de versie hier wijzigt, wijzigt ze ook in package.json en bun.lock.
 
 import { decode as decodePng } from "npm:fast-png@6.3.0";
 import jpeg from "npm:jpeg-js@0.4.4";

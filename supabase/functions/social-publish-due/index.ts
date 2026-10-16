@@ -157,6 +157,8 @@ async function refreshTokens(admin: Admin) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // EDGE-IMPORT-1: neveneffectvrije versiestempel om een deploy na te meten.
+  if (req.method === "GET") return json({ ok: true, version: "EDGE-IMPORT-1" });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
