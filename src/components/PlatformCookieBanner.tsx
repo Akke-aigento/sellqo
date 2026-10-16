@@ -19,7 +19,8 @@ const CONSENT_VERSION = 1;
 
 /** Routes waar de platform-banner NIET hoort (tenant storefront + ingelogde apps). */
 // PAY-LINK-1: /betalen — de vaste betaallink toont het merk van de winkel, niet SellQo.
-const EXCLUDED_PREFIXES = ['/shop/', '/admin', '/platform', '/pos', '/checkout', '/betaling', '/betalen', '/munten/', '/bar/'];
+// EVENT-DOOR-2: /scan — de banner lag over de knoppen van de deurscanner.
+const EXCLUDED_PREFIXES = ['/shop/', '/scan', '/admin', '/platform', '/pos', '/checkout', '/betaling', '/betalen', '/munten/', '/bar/'];
 
 export function getPlatformCookieConsent(): PlatformCookieConsent | null {
   try {
