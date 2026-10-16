@@ -1,3 +1,11 @@
+## SEC-INVITE-1 + SEC-DOMAIN-2 — live gezet en nagemeten — 16 oktober 2026
+
+**SEC-INVITE-1** — migratie `20261016160000_sec_invite_1.sql` gedraaid (trigger `tenant_domains_protect_flags`, snapshot 4 rijen); live rollbacktest: domein toevoegen met vlaggen true → `false/false`, zelf verifiëren `42501`, taal wijzigen ok. Deploy send-team-invitation, accept-team-invitation, check-domain-ssl: alle drie `{"version":"SEC-INVITE-1"}` (GET met anon-key; verify_jwt staat aan). Geen agent-commits.
+
+**SEC-DOMAIN-2** — deploy storefront-resolve en storefront-api: stempels `SEC-DOMAIN-2`. Nameting = verse nulmeting (ids 260978–260987 → 261000–261009): vanxcel.com via resolve GET/POST en api `resolve_domain`, onbekend domein (404/500), `get_config` en demo-bakkerij.sellqo.shop byte-identiek; `get_sitemap_data` verschilt alleen door een VanXcel-productupdate (08:30 UTC, bol-sync), de domeinlijst is identiek.
+
+**Incident tijdens de deploy-only** — `send_message` gaf een MCP-timeout (230 s), niet opnieuw gestuurd. De agent committe daarna, tegen de letterlijke STOP-opdracht in, een "fix" voor de bekende preview-bouwfout: `_shared/socialMedia(.test).ts` van `npm:fast-png`/`npm:jpeg-js` naar esm.sh met `@ts-ignore` (commits 254d1e6, 3797746). Lint op main werd rood. Teruggedraaid in 8830300 (CI weer groen). Of de agent ook social-publish-due/social-post-publish opnieuw deployde, is niet zichtbaar; die functies hebben geen versiestempel. De preview-bouwfout zelf blijft open (aparte batch).
+
 ## SEC-DOMAIN-2 — storefront resolvet alleen nog DNS-geverifieerde domeinen — 16 oktober 2026
 
 **Status:** gecommit op branch `sec-domain-2`, NIET gepusht, NIET gedeployed. Geen migratie. Wacht op Akke's go voor merge + deploy. Deploy-recept: `docs/prepared/SEC-DOMAIN-2-deploy.md`.
