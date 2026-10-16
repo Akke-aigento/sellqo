@@ -25,6 +25,7 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "orders/order_shipped": { category: "orders", inApp: false, email: false },
   "orders/order_delivered": { category: "orders", inApp: false, email: false },
   "orders/order_high_value": { category: "orders", inApp: true, email: false },
+  "orders/ticket_overbooking": { category: "orders", inApp: true, email: false },
   "orders/marketplace_order_new": { category: "orders", inApp: true, email: false },
   "orders/tracking_in_transit": { category: "orders", inApp: true, email: false },
   "orders/tracking_out_for_delivery": { category: "orders", inApp: true, email: false },
