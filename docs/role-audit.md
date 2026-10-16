@@ -1,6 +1,17 @@
 ## MEDIA-1 + PHOTO-STD-1 + EDITOR-2 — één mediabibliotheek, fotostandaard per winkel, gratis fotobewerker (2026.12j) — 16 oktober 2026
 
-Gebouwd op branch `media-1`; NIET live. Merge naar `main`, migraties en publish pas na Akke's go (recept: `docs/prepared/MEDIA-1-deploy.md`). Aanleiding: Mancini (Sander) klaagde dat twee Trending-foto's "ingezoomd" ogen. Recon: zijn AI-foto's hebben telkens een ander formaat, en de bibliotheek zag de productfoto's niet. Akke koos (16-10) voor een oplossing in SellQo zelf in plaats van de klant formaten op te leggen.
+**LIVE (16-10, na Akke's go "Go voor alle stappen" + "je kan zelf mergen"):**
+- Merge `media-1` → `main` (`ef135ee..9b3683c`); CI op `9b3683c` groen.
+- Migratie `20261016190000` gedraaid en nagemeten: index 1, triggers 3, `authenticated` mag `media_register_urls` niet uitvoeren; bibliotheek per bron: product 450 (19 tenants), variant 36, category 13, upload 123, nano_studio 1. Mancini 160 rijen.
+- Migratie `20261016191000` gedraaid: 4 policies; RLS-proef live: vreemde gebruiker 0 rijen gezien / 0 geüpdatet.
+- Mancini-fotostandaard aangezet (3:4, 1200 px, zwart, 8%, wegknippen, voorstellen bij uploaden). Bestaande Mancini-foto's NIET in bulk omgezet.
+- Helpartikel `20261016192000` gedraaid; md5 live = bestand (`a9eeff11…`).
+- Publish sellqo.app: bundel `index-SKcClKXU.js` → `index-DXkyYoCc.js`, bevat `tenant_media_settings`.
+- Mancini-frontend (project 2c89fac8): Trending Now + Tracksuits op `object-contain`, commit `26664251`, gepubliceerd en live nagemeten.
+- Snapshot vóór de Shopify-verhuis: `snapshots.mancini_vanxcel_20261016_products_images` (79) en `..._variants_images` (176).
+- **Open:** Shopify-verhuis zelf (Assets → gele melding) kon niet vanuit de sessie (geen browser, sandbox bereikt cdn.shopify.com/storage niet). Nulmeting: Mancini 51 producten + 176 varianten, VanXcel 28 producten, 0 categorieën. Na de klik: natrek op 0 `cdn.shopify.com` in products/product_variants/categories.
+
+Oorspronkelijk gebouwd op branch `media-1` (recept: `docs/prepared/MEDIA-1-deploy.md`). Aanleiding: Mancini (Sander) klaagde dat twee Trending-foto's "ingezoomd" ogen. Recon: zijn AI-foto's hebben telkens een ander formaat, en de bibliotheek zag de productfoto's niet. Akke koos (16-10) voor een oplossing in SellQo zelf in plaats van de klant formaten op te leggen.
 
 **Root cause.**
 - `useImageUpload` (`src/hooks/useImageUpload.ts`) zette een productfoto rauw in `product-images` zonder `media_assets`-rij. De kiezers (`MediaLibraryPickerDialog`, `ProductPhotoLibraryCard`) lezen alleen `media_assets`, dus wat je in een product oplaadde, was daar onvindbaar. Live bij Mancini: 4 van 144 productfoto's in de bibliotheek. Drie bibliotheken met elk een andere bron: marketing (media_assets + virtuele productkaarten), productkiezer (media_assets), storefront-kiezer (storage-listing, EDITOR-MEDIA-1).
