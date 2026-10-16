@@ -1,3 +1,15 @@
+## BLOG-COVERS-2 — 12 oude blogcovers vervangen door nieuwe stijl — 16 oktober 2026
+
+**Root cause:** de 12 gepubliceerde posts (7 en 10 aug) hadden covers in een oudere stijl uit `marketing-assets/blog/`; de 13 covers van 15-10 (nano-studio) zijn duidelijk sterker, waardoor de blog twee stijlen door elkaar toonde.
+
+**Uitgevoerd:** snapshot `ops.blog_covers_snapshot_20261016` (alle 25 posts, oude `cover_image_url`). 12 nieuwe 16:9-covers via `nano-studio` (nano-banana-pro, 2K) met als stijlreferentie afwisselend drie covers van 15-10; job-koppeling in `ops.blog_cover_jobs_20261016`. `cover_image_url` alleen bijgewerkt als de job `completed` was én het bestand in `ai-images` bestond. Natrek: 25/25 posts op de nieuwe stijl, 0 nog in `marketing-assets`, probe op een nieuwe URL 200. Oude bestanden in `marketing-assets/blog/` bewust laten staan.
+
+**Vangst:** `nano-studio` met een array van twee `image_url`'s gaf 12× `502 imgeditor_error` (geen credits verbruikt); één referentie per call werkt.
+
+**Security-keuzes:** n.v.t. (enkel data in `blog_posts`; snapshot- en jobtabel in `ops`, rechten ingetrokken voor anon/authenticated).
+
+**Terugdraaien:** `update blog_posts b set cover_image_url = s.cover_image_url from ops.blog_covers_snapshot_20261016 s where s.id = b.id;`
+
 ## EVENT-COIN-1 — munten vervallen mee bij annuleren of volledige terugbetaling (2026.12i) — 16 oktober 2026
 
 LIVE op 16-10-2026 (~13:25) na Akke's go, uitgevoerd vanuit de hoofdsessie (de hulpagent werd door de permissielaag tegengehouden en stopte terecht). Code `32ac6a4` op main, CI-run 38892974437 groen. Functie-migratie in een eigen `query_database`-aanroep → natrek: md5 functie `9b8348ecea58baca5f2c095fbea314fb` (= verwacht), snapshot `ops.event_coin_1_prev_functions` md5 `9f53c1e2…` (= vorige definitie), trigger + WHEN-voorwaarde ongewijzigd. Daarna artikel-migratie apart → md5 content `1823f1876e8af4e6e604466bfb918ff6` (= verwacht), snapshot `snapshots.sellqo_20261016_doc_articles_ec1` md5 `e02e6a54…`. Rooktest: 0 actieve muntenkaarten op geannuleerde of volledig terugbetaalde orders. Geen edge-deploy of publish nodig.
