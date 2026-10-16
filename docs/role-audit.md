@@ -1,3 +1,57 @@
+## SEC-INVITE-1 — uitnodigingen alleen met teamrollen, domeinverificatie alleen door SellQo — 16 oktober 2026
+
+**Status:** gecommit op branch `sec-invite-1`, NIET gepusht, NIET gedeployed, migratie NIET gedraaid. Wacht op Akke's go. Deploy-recept: `docs/prepared/SEC-INVITE-1-deploy.md`.
+
+**Root cause.** Vondsten 2 en 6 uit `docs/prepared/2026-10-16-rls-escalatie-audit.md`.
+- `send-team-invitation/index.ts` r.46/121: `role` kwam ongecontroleerd uit de body en ging met service_role in `team_invitations`. Het TS-type was geen runtimecheck. `accept-team-invitation` r.88-94 zette `invitation.role` daarna met service_role in `user_roles`. De DB houdt `platform_admin` sinds SEC-ROLE-1 al tegen (CHECK + `user_roles_guard`); andere ongeldige waarden gaven een enum-fout als 400 met een technische melding.
+- `tenant_domains`: `td_insert_tenant_admin`/`td_update_tenant_admin` beperken geen kolommen. Een tenant_admin kon een vreemd domein invoegen met `dns_verified=true, ssl_active=true`, of een eigen rij zelf op geverifieerd zetten.
+- Vangst uit de recon: `check-domain-ssl` (service_role) zette `ssl_active=true` op een willekeurige `domain_id`, zonder te controleren dat die rij bij `tenant_id` hoort of dat het gecontroleerde `domain` het domein van die rij is. Elke tenant_admin kon zo via een willekeurig HTTPS-domein `ssl_active` op elke rij zetten, ook van een andere winkel. De DB-trigger dekt dat pad niet (service_role), dus meegenomen.
+
+**Recon — rollen.** Bron: `InviteTeamMemberDialog.tsx` r.31-36 en `platform/TenantTeamTab.tsx` r.32-39 bieden exact `tenant_admin, staff, accountant, warehouse, marketing, viewer` aan (`InvitationRole` in `useTeamInvitations.ts`). Enum `app_role` live: die zes + `platform_admin`. Live uitnodigingen: 10 tenant_admin, 2 viewer, 1 marketing. Uitnodiger-check bestond al in `send-team-invitation` (platform_admin of tenant_admin van die tenant, via service_role-lookup). `resend-team-invitation` zet geen rol (heractiveert alleen, `requireRole tenant_admin`), `create-invite-account`, `fetch-invitation`, `check-invite-email` en `revoke-team-invitation` geven geen rol door: ongewijzigd.
+
+**Recon — schrijvers van tenant_domains.**
+| Schrijver | Rol | Kolommen |
+|---|---|---|
+| `useTenantDomains.addDomain` | authenticated | tenant_id, domain, locale, is_canonical |
+| `useTenantDomains.updateDomain` (MultiDomainSettings r.54/58/62) | authenticated | is_canonical, is_active, locale. Het domein van een bestaande rij wordt nergens gewijzigd |
+| `useTenantDomains.removeDomain` | authenticated | DELETE |
+| `verify-domain` | service_role | dns_verified (rij gebonden aan tenant_id, DNS-controle op het domein van de rij) |
+| `check-domain-ssl` | service_role | ssl_active (zie vangst hierboven) |
+| `ensure_single_canonical_domain()` | SECURITY DEFINER-trigger | is_canonical=false op de andere rijen. Enige DB-functie die tenant_domains raakt |
+`hosting_mode` wordt door geen code geschreven. `cloudflare-api-connect` raakt `tenants`, niet `tenant_domains`.
+
+**Uitgevoerd.**
+- `supabase/functions/_shared/inviteRoles.ts` (nieuw, puur): `INVITE_ROLES`, `isInviteRole`, `INVITE_ROLE_ERROR`. Tests: `_shared/inviteRoles.test.ts` (deno, toegevoegd aan de CI-stap) en `src/test/inviteRoles.test.ts` (vitest + type-gelijkheid met `InvitationRole`, zodat tsc rood wordt als UI en allowlist uit elkaar lopen).
+- `send-team-invitation`: onbekende/verboden rol → 400 `Ongeldige rol voor een teamuitnodiging`, vóór elke DB-actie; lege e-mail/tenantId → 400; niet-beheerder → 403 (was 400 via throw). GET-stempel.
+- `accept-team-invitation`: dezelfde allowlist op `invitation.role` vóór de insert in `user_roles` → 400 `INVALID_ROLE`. GET-stempel.
+- `check-domain-ssl`: bij `domain_id` eerst de rij opzoeken met `tenant_id`; `ssl_active=true` alleen als `dns_verified=true` en het genormaliseerde domein van de rij gelijk is aan het gecontroleerde domein; anders een warn-log en niets schrijven. GET-stempel. Het legacy-pad (`tenants.ssl_status`) is ongewijzigd (vondst 7, apart).
+- `supabase/migrations/20261016160000_sec_invite_1.sql` (NIET gedraaid): trigger `tenant_domains_protect_flags` (SECURITY DEFINER, search_path vast). Ingelogde niet-platform-admin: INSERT forceert `dns_verified`/`ssl_active` op false; UPDATE die `dns_verified`, `ssl_active`, `tenant_id`, `domain` of `verification_token` wijzigt → 42501. Snapshot `ops.sec_invite_1_prev_domains`. Terugdraairecept in de kop.
+
+**Security-keuzes.** service_role (auth.uid() null: verify-domain, check-domain-ssl), migraties/SQL-console en platform-admins ongemoeid. Bewust GEEN `pg_trigger_depth()`-uitzondering zoals bij `tenants_protect_platform_columns`: de enige geneste schrijver (`ensure_single_canonical_domain`) wijzigt alleen `is_canonical` en passeert de check gewoon (getest). Zo kan een latere definer-trigger de vlaggen niet stil omzeilen. EXECUTE op de triggerfunctie ingetrokken voor public/anon/authenticated (de trigger vuurt toch, getest). Geen policies of grants gewijzigd.
+
+**Gedeelde-paden-waarschuwing.** `tenant_domains` wordt gelezen door `storefront-resolve` en `storefront-api` (eerste wet), maar die functies en hun contract zijn niet aangeraakt; de trigger verandert geen bestaande rij. Vaststelling (alleen rapport): `storefront-resolve` r.37-41 en `storefront-api` `resolveDomain` r.235-238 zoeken op `domain` + `is_active`, NIET op `dns_verified`; ook de hreflang-lijsten (r.256/319/1567, resolve r.76) filteren niet. Een tenant kan dus nog altijd een vreemd, ongekoppeld domein reserveren (als onverifieerde rij) en een verzoek met die hostname resolvet naar hem. Dichtzetten vraagt een `dns_verified`-filter in die functies: apart akkoord. Vandaag zijn alle 3 actieve rijen (VanXcel) geverifieerd; de vierde (Zona Dorata, `https://www.zonadorata.com/`, rommelwaarde) is inactief. `storefront-customer-api` r.98 en de anon-policy filteren wél op `dns_verified`.
+
+**Verificatie.**
+- Rollbacktest (migratie + tests in één `begin; … rollback;`), 16 uitkomsten:
+  - VanXcel-admin c3f57cdc (tenant_admin true, platform_admin false): vrij domein met `dns_verified/ssl_active=true` → aangemaakt met `false/false`; eigen rij `dns_verified=true` → 42501; `ssl_active=true` → 42501; domein wijzigen → 42501; `verification_token` → 42501; rij naar Mancini omhangen → 42501; `ssl_active` van vanxcel.com uitzetten → 42501.
+  - VanXcel UI-acties: taal → 1 rij; actief uit → 1 rij; vanxcel.com hoofddomein (geneste trigger zet .be/.nl op false) → 1 rij; zelfde vlagwaarden meesturen → 1 rij; verwijderen → 1 rij.
+  - Akke: insert met vlaggen true → true/true; vlaggen + domein wijzigen → 1 rij.
+  - service_role: insert + `dns_verified` + `ssl_active` → true/true.
+  - Na de rollback: trigger 0, functie 0, snapshot-tabel bestaat niet, 0 testrijen, 4 rijen totaal, vlaggen/canonical/locale identiek aan vooraf.
+- `deno check` (import map: esm.sh-supabase → npm:@supabase/supabase-js@2.57.2, server/resend → stubs) op de drie functies + helper: exit 0. `deno test inviteRoles.test.ts`: 3/3, exit 0.
+- `tsc --noEmit -p tsconfig.app.json`: exit 0. `vitest run`: 54 bestanden / 724 tests, exit 0. `i18n-parity`: exit 0. `check:edge-pins`: exit 0. `verify-lint-baseline`: exit 0 (1482 → 1479). `npm run build`: exit 0 (`public/sitemap.xml` teruggezet).
+- Nulmeting edge (16-10, met anon-key): send 401 `Invalid or expired token`, accept 401 `Ongeldige of verlopen sessie`, check-domain-ssl 500 `Unexpected end of JSON input`, controle 404 `NOT_FOUND`. Na de deploy verwacht: 3× 200 `{"ok":true,"version":"SEC-INVITE-1"}`.
+
+**Deploylijst** — `send-team-invitation`, `accept-team-invitation`, `check-domain-ssl` (grep `_shared/inviteRoles` → alleen de eerste twee; geen bestaand `_shared` gewijzigd). Geen frontend-publish.
+
+**Changelog / nieuwsbrief / blog / DOCS-1: n.v.t.** Tenants merken niets: de UI stuurt alleen toegestane rollen, zet nooit domeinvlaggen en wijzigt nooit het domein van een bestaande rij, en de SSL-knop verschijnt pas na DNS-verificatie op de eigen rij (DomainVerificationPanel r.186). Alleen misbruikpaden sluiten.
+
+**Bewust ongemoeid / Vervolg.**
+- `storefront-resolve`/`storefront-api`: `dns_verified`-filter (eerste wet, apart akkoord).
+- `resend-team-invitation`: geen allowlist nodig (zet geen rol; accept vangt het af).
+- `tenants`: `custom_domain`, `ssl_status`, `domain_verification_token`, `lifetime_*` (vondst 7) en het legacy-pad van `check-domain-ssl` → aparte batch.
+- `tenant_domains.verification_token` is anon-leesbaar voor geverifieerde rijen (SEC-NIGHT-2-vervolg), niet aangeraakt.
+
 ## SEC-STORAGE-1 — winkelmappen in tenant-assets en product-images niet meer door iedereen op te sommen — 16 oktober 2026
 
 **Root cause.** SELECT-policies "Public read access for tenant assets" en "Anyone can view product images" (rol public, alleen een bucketfilter). `storage.search`/`list_objects_with_delimiter` zijn SECURITY INVOKER, dus iedereen (ook anon) kon alle mappen en bestandsnamen van alle winkels opsommen (299 objecten).

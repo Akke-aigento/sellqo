@@ -1,5 +1,9 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { INVITE_ROLE_ERROR, isInviteRole } from "../_shared/inviteRoles.ts";
+
+// SEC-INVITE-1 — GET-versiestempel om de deploy te bewijzen (geen auth, geen bijwerking).
+const VERSION = "SEC-INVITE-1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +24,10 @@ function jsonResponse(status: number, body: Record<string, unknown>) {
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (req.method === "GET") {
+    return jsonResponse(200, { ok: true, version: VERSION });
   }
 
   try {
@@ -70,6 +78,14 @@ serve(async (req) => {
         error: "Deze uitnodiging is voor een ander e-mailadres",
         code: "EMAIL_MISMATCH",
       });
+    }
+
+    // SEC-INVITE-1 — defense in depth: de rol komt uit de DB-rij en gaat met
+    // service_role naar user_roles. Alleen de rollen uit de team-UI; platform_admin
+    // nooit (ook al houden de CHECK op team_invitations en user_roles_guard dat al tegen).
+    if (!isInviteRole(invitation.role)) {
+      console.error("[accept-team-invitation] geweigerde rol", { invitation_id: invitation.id, role: invitation.role });
+      return jsonResponse(400, { error: INVITE_ROLE_ERROR, code: "INVALID_ROLE" });
     }
 
     // Check if user already has a role in this tenant

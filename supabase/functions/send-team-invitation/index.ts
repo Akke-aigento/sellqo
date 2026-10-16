@@ -4,6 +4,10 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { renderSellqoEmail, htmlToPlainText } from "../_shared/sellqoEmail.ts";
 import { EMAIL_SENDERS } from "../_shared/emailSenders.ts";
+import { INVITE_ROLE_ERROR, isInviteRole } from "../_shared/inviteRoles.ts";
+
+// SEC-INVITE-1 — GET-versiestempel om de deploy te bewijzen (geen auth, geen bijwerking).
+const VERSION = "SEC-INVITE-1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,7 +16,7 @@ const corsHeaders = {
 
 interface InvitationRequest {
   email: string;
-  role: 'tenant_admin' | 'staff' | 'accountant' | 'warehouse' | 'viewer';
+  role: unknown;
   tenantId: string;
 }
 
@@ -30,6 +34,13 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: VERSION }), {
+      status: 200,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
   try {
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     if (!resendApiKey) {
@@ -44,6 +55,22 @@ serve(async (req) => {
     const user = { id: auth.user_id };
 
     const { email, role, tenantId }: InvitationRequest = await req.json();
+
+    // SEC-INVITE-1 — alleen de rollen die de team-UI aanbiedt; platform_admin nooit.
+    // De role komt ongecontroleerd uit de body en gaat met service_role de tabel in,
+    // dus RLS beschermt hier niets: deze check wel.
+    if (!isInviteRole(role)) {
+      return new Response(
+        JSON.stringify({ error: INVITE_ROLE_ERROR }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
+    if (typeof email !== "string" || !email.trim() || typeof tenantId !== "string" || !tenantId) {
+      return new Response(
+        JSON.stringify({ error: "E-mailadres en winkel zijn verplicht" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
+    }
 
     // Check if user is platform admin (can invite to any tenant)
     const { data: platformAdminRole } = await supabase
@@ -70,7 +97,10 @@ serve(async (req) => {
     }
 
     if (!isAuthorized) {
-      throw new Error("Not authorized to invite users to this tenant");
+      return new Response(
+        JSON.stringify({ error: "Alleen een beheerder van deze winkel kan teamleden uitnodigen" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } },
+      );
     }
 
     // Get tenant info

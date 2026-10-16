@@ -1,6 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
+// SEC-INVITE-1 — GET-versiestempel om de deploy te bewijzen (geen auth, geen bijwerking).
+const VERSION = 'SEC-INVITE-1';
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -17,6 +20,12 @@ interface SSLCheckResult {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  if (req.method === 'GET') {
+    return new Response(JSON.stringify({ ok: true, version: VERSION }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 
   try {
@@ -95,11 +104,31 @@ Deno.serve(async (req) => {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
       if (domain_id) {
-        // Multi-domain: update tenant_domains
-        await supabase
+        // Multi-domain: update tenant_domains.
+        // SEC-INVITE-1 — alleen een rij van DEZE winkel, met DNS al geverifieerd, en
+        // alleen als het gecontroleerde domein ook het domein van die rij is. Vroeger
+        // zette elke tenant_admin ssl_active=true op een willekeurige domain_id (ook van
+        // een andere winkel) door een willekeurig HTTPS-domein mee te sturen.
+        const { data: row } = await supabase
           .from('tenant_domains')
-          .update({ ssl_active: true })
-          .eq('id', domain_id);
+          .select('id, domain, dns_verified')
+          .eq('id', domain_id)
+          .eq('tenant_id', tenant_id)
+          .maybeSingle();
+        const rowDomain = row
+          ? String(row.domain).toLowerCase().replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '').trim()
+          : null;
+        if (row && row.dns_verified === true && rowDomain === cleanDomain) {
+          await supabase
+            .from('tenant_domains')
+            .update({ ssl_active: true })
+            .eq('id', domain_id)
+            .eq('tenant_id', tenant_id);
+        } else {
+          console.warn('[check-domain-ssl] ssl_active niet gezet', {
+            domain_id, tenant_id, found: !!row, dns_verified: row?.dns_verified ?? null, matches: rowDomain === cleanDomain,
+          });
+        }
       } else if (tenant_id) {
         // Legacy: update tenants
         await supabase
