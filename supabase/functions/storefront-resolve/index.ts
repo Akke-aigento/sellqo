@@ -6,9 +6,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
+// Alleen op een GET ZONDER `hostname`: die gaf vroeger 400 "hostname parameter is required".
+// GET ?hostname=… en POST werken ongewijzigd.
+const VERSION = 'SEC-DOMAIN-2';
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
+  }
+  if (req.method === 'GET' && !new URL(req.url).searchParams.has('hostname')) {
+    return new Response(JSON.stringify({ ok: true, version: VERSION }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 
   try {
@@ -33,12 +41,14 @@ serve(async (req) => {
       );
     }
 
-    // Look up domain
+    // Look up domain. SEC-DOMAIN-2: alleen DNS-geverifieerde domeinen. Een onverifieerde
+    // rij (door een tenant ingevoerd, eigendom niet bewezen) gedraagt zich als onbekend.
     const { data: domain, error } = await supabase
       .from('tenant_domains')
       .select('id, tenant_id, domain, locale, is_canonical, is_active, dns_verified, ssl_active')
       .eq('domain', hostname)
       .eq('is_active', true)
+      .eq('dns_verified', true)
       .maybeSingle();
 
     if (error) throw error;
@@ -71,12 +81,13 @@ serve(async (req) => {
       .eq('tenant_id', domain.tenant_id)
       .maybeSingle();
 
-    // Get all active domains for hreflang
+    // Get all active, DNS-verified domains for hreflang (SEC-DOMAIN-2)
     const { data: allDomains } = await supabase
       .from('tenant_domains')
       .select('domain, locale, is_canonical')
       .eq('tenant_id', domain.tenant_id)
-      .eq('is_active', true);
+      .eq('is_active', true)
+      .eq('dns_verified', true);
 
     // Build Storefront API URL
     const storefrontApiUrl = `${supabaseUrl}/functions/v1/storefront-api`;

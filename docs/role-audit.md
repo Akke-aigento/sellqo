@@ -1,3 +1,53 @@
+## SEC-DOMAIN-2 — storefront resolvet alleen nog DNS-geverifieerde domeinen — 16 oktober 2026
+
+**Status:** gecommit op branch `sec-domain-2`, NIET gepusht, NIET gedeployed. Geen migratie. Wacht op Akke's go voor merge + deploy. Deploy-recept: `docs/prepared/SEC-DOMAIN-2-deploy.md`.
+
+**Root cause.** Vervolg op SEC-INVITE-1 ("Alleen gerapporteerd"). `storefront-resolve` r.37-42 en `storefront-api` `resolveDomain` r.235-238 zochten een hostnaam op met `domain` + `is_active`, zonder `dns_verified`. Een tenant_admin kan via `useTenantDomains.addDomain` elk domein als rij invoeren (sinds SEC-INVITE-1 altijd met `dns_verified=false`). Een verzoek met die hostnaam resolvede dan toch naar hem: een vreemd domein reserveren, of andermans `<slug>.sellqo.shop` overschaduwen (een expliciete rij gaat in `resolveDomain` vóór de slug-terugval). De `sellqo-storefront` behandelt een gekoppeld eigen domein bovendien als "altijd open" (`src/lib/sellqo.server.ts` r.66-75). Ook de hreflang/alternates-lijsten (resolve r.76, api r.256 `all_domains`, r.319 `get_config`, r.1536 `get_seo`, r.1567 `get_sitemap_data`) toonden onverifieerde domeinen.
+
+**Recon — resolutiepaden** (code + live data 16-10):
+| Pad | Hoe | Via `tenant_domains`? | Geraakt door de filter? |
+|---|---|---|---|
+| Eigen domein op de SellQo-standaardshop (`sellqo-storefront`) | `api('resolve_domain', {hostname})` | ja, `resolveDomain` | **ja**: alleen nog geverifieerd |
+| `<slug>.sellqo.shop` | zelfde `resolve_domain`; zonder rij → slug-terugval (SHOP-API-1) die `dns_verified: true` invult | nee (terugval op `tenants.slug`) | nee. Een onverifieerde rij op `x.sellqo.shop` wordt nu genegeerd, de terugval vindt de echte eigenaar (rooktest) |
+| sellqo.app-paden (`/shop/:slug`, admin-preview) | `tenants.slug` client-side | nee | nee |
+| Custom frontends (VanXcel, Mancini, Loveke, Benny Rich, Astra, Zona Dorata, Fonske) | vaste `tenant_id` in `storefront-api`/`storefront-customer-api` (zie runbook; VanXcel op 10-09 geverifieerd) | nee | nee. Alleen als een frontend `storefront-resolve`/`resolve_domain` of `get_config`/`get_seo`/`get_sitemap_data` gebruikt, ziet hij de lijsten, en daar verandert niets zolang zijn domeinen geverifieerd zijn |
+| `storefront-resolve` (GET `?hostname=` / POST) | `tenant_domains` | ja | **ja**. Gaf tot RESOLVE-FIX-1 (13-10) altijd 404 "Tenant not found": geen frontend kan er vóór 13-10 op gesteund hebben |
+| Legacy `tenants.custom_domain` / `domain_verified` | — | — | wordt in geen van beide functies voor resolutie gebruikt. Enige lezers: `storefront-api` r.5068 (variabelen in de welkomstmail nieuwsbrief), `storefront-customer-api` r.75-107 (basis-URL voor mails, na een host-check) en mail-helpers. Geen terugvalpad dat de filter omzeilt |
+| Client-side `usePublicStorefrontByDomain` / `useTenantPublicDomains` (`usePublicStorefront.ts` r.477/513) | anon RLS `Public can read active domains` = `is_active AND dns_verified` | ja | al gefilterd via RLS; bovendien nergens gebruikt (dode hooks) |
+| `ShopLayout.tsx` r.253 (canonical-redirect) | `tenant_domains` met `dns_verified` | ja | filterde al |
+
+Live `tenant_domains` (16-10, 4 rijen): `vanxcel.be` (canonical), `vanxcel.com`, `vanxcel.nl`: alle drie `dns_verified/ssl_active/is_active = true`. `https://www.zonadorata.com/` (Zona Dorata): `false/false`, `is_active=false`. Legacy: alleen VanXcel heeft `custom_domain = vanxcel.com`, `domain_verified = true`. Custom-frontend-tenants live (eerste-wet-query): Astra Sleep, Benny Rich, Loveke, Mancini Milano, VanXcel, Zona Dorata.
+
+**Eerste wet (CLAUDE.md §1).** Akke gaf op 16-10 expliciet akkoord om `storefront-resolve` en `storefront-api` hiervoor aan te passen. Wat er voor custom frontends verandert: **niets voor geverifieerde domeinen.** Responsvorm, sleutels, statuscodes en foutmeldingen zijn ongewijzigd; een onverifieerd domein krijgt exact het antwoord van een onbekend domein (resolve 404 `Domain not registered`, api 500 `Domain not found`), zoals vandaag een inactief domein. `resolve_domain` geeft `dns_verified` nog steeds mee (nu altijd `true`). De enige rij die live anders zou uitvallen (Zona Dorata) is al inactief. Bewezen met de live nulmeting (md5 per respons) en de lokale tests.
+
+**Uitgevoerd.**
+- `supabase/functions/storefront-resolve/index.ts`: `.eq('dns_verified', true)` op de opzoeking en op `all_domains`. Versiestempel `SEC-DOMAIN-2`, alleen bij een GET **zonder** `hostname`-parameter (die gaf vroeger 400 `hostname parameter is required`). GET met `?hostname=` (ook leeg) en POST werken ongewijzigd.
+- `supabase/functions/storefront-api/index.ts`: `.eq('dns_verified', true)` in `resolveDomain` (opzoeking + `all_domains`), `getConfig` (`domain_mapping`, `languages`, `canonical_domain`), `getSeo` (hreflang + canonical) en `getSitemapData` (`base_url`, `domains`). GET-stempel `EVENT-ORDER-1` → `SEC-DOMAIN-2`. Geen builder teruggegeven uit een async functie (R10): alleen een extra `.eq` in bestaande ketens.
+- Tests: `scripts/promo-compare/resolve.test.ts` (nieuw) draait de echte `storefront-resolve`-handler tegen de nep-databank, via `import_map.resolve.json` + `stubs/serverCapture.ts` (bewaart de `serve`-handler) + `stubs/supabaseFake.ts`; netwerkloos. `smoke.ts` uitgebreid met `resolveDomain`, `getSeo`, `getSitemapData` (export-regel in de kop én in CI bijgewerkt). `.github/workflows/ci.yml`: nieuwe stap "Edge functions (test storefront-resolve)".
+
+**Security-keuzes.** Geen RLS, policies, grants of migraties. Beide functies blijven service_role; de filter zit in de query. `tenant_domains_protect_flags` (SEC-INVITE-1, nog niet gedraaid) zorgt dat een tenant `dns_verified` niet zelf op true kan zetten; zonder die trigger kan een tenant_admin het nog via PostgREST (`td_update_tenant_admin` beperkt geen kolommen). SEC-DOMAIN-2 is dus pas volledig dicht samen met de SEC-INVITE-1-migratie.
+
+**Gedeelde-paden-waarschuwing.** Beide functies zijn eerste-wet-paden. Alle werelden doorlopen (tabel hierboven): custom frontends met vaste `tenant_id` raken het opzoekpad niet; hun hreflang/config-lijsten veranderen alleen als ze onverifieerde actieve domeinen hebben (live: 0). Standaardshop op `*.sellqo.shop` via de slug-terugval: ongewijzigd (rooktest + live j). Geen `_shared`-bestand gewijzigd.
+
+**Verificatie.**
+- `deno check` (import map: esm.sh-supabase → `npm:@supabase/supabase-js@2.57.2`, server/stripe/resend → stubs, `--minimum-dependency-age=0`) op beide functies: exit 0.
+- Bestaande deno-tests (CI-lijst, 8 bestanden): 78/78, exit 0.
+- `resolve.test.ts`: 4/4, exit 0. Tegen de HEAD-versie van `storefront-resolve`: 3 van 4 rood (stempel, `all_domains`, onverifieerd = onbekend), dus de test vangt de regressie.
+- Rooktest `smoke.ts` (zoals CI, met de lokale import map): 22× ok, exit 0, waaronder "SEC-DOMAIN-2: resolve_domain, get_seo en get_sitemap_data alleen geverifieerd" (sleutels van `resolve_domain` identiek, onverifieerd/inactief/onbekend → `Domain not found`, onverifieerde rij op `kaping.sellqo.shop` → slug-eigenaar, hreflang/sitemap alleen geverifieerd). Tegen de HEAD-versie van `storefront-api`: rood (exit 1).
+- `check:edge-pins`: exit 0. `tsc --noEmit -p tsconfig.app.json`: exit 0. `vitest run`: 54 bestanden / 724 tests, exit 0. `verify-lint-baseline`: exit 0 (1482 → 1481). `npm run build`: exit 0 (`public/sitemap.xml` teruggezet).
+- Live nulmeting 16-10 (ids 260960–260969, md5's in het deploy-recept): stempel api `EVENT-ORDER-1`; resolve GET zonder hostname 400; `storefront-resolve` vanxcel.com GET en POST 200 md5 `4d61df2a0e1034d9aae2ca1748b10d8b`; `resolve_domain` vanxcel.com 200 md5 `880a71d72cd02bece88f3b12dc385919`; onbekend domein resolve 404 / api 500; `get_config`/`get_sitemap_data` VanXcel; `demo-bakkerij.sellqo.shop` 200.
+
+**Deploylijst** — `storefront-resolve`, `storefront-api`. Geen `_shared`-afhankelijkheden gewijzigd. Geen frontend-publish, geen migratie.
+
+**Changelog / nieuwsbrief / blog / DOCS-1: n.v.t.** Geen enkele winkel merkt iets: alle actieve domeinen zijn geverifieerd, de enige onverifieerde rij is inactief. Het admin-pad (Instellingen → Domeinen) laat een domein pas verifiëren en daarna SSL activeren; een domein dat via DNS naar SellQo wijst maar nooit geverifieerd werd, bestaat live niet. Alleen een misbruikpad sluit.
+
+**Bewust ongemoeid / Vervolg.**
+- `storefront-customer-api`: filtert al op `dns_verified` (r.98), niet aangeraakt.
+- Volgorde `all_domains` blijft ongeordend (geen `order by`); niet aangepast om byte-identiek te blijven.
+- Dode hooks `usePublicStorefrontByDomain`/`useTenantPublicDomains` in `usePublicStorefront.ts`: niet opgeruimd (los opruimwerk).
+- Legacy `tenants.custom_domain`/`domain_verified` (vondst 7 uit de RLS-audit): aparte batch.
+- SEC-INVITE-1-migratie (`tenant_domains_protect_flags`) moet gedraaid zijn om de keten te sluiten (zie Security-keuzes).
+
 ## SEC-INVITE-1 — uitnodigingen alleen met teamrollen, domeinverificatie alleen door SellQo — 16 oktober 2026
 
 **Status:** gecommit op branch `sec-invite-1`, NIET gepusht, NIET gedeployed, migratie NIET gedraaid. Wacht op Akke's go. Deploy-recept: `docs/prepared/SEC-INVITE-1-deploy.md`.

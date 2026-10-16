@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -272,6 +272,43 @@ await check('kortingscode één keer per klant (DISCOUNT-LIMIT-1)', async () => 
   const promo3 = await S.computeCartTotals(ddb, T, { discount_codes: ['WELCOME10'], customer_email: 'paid@x.be', checkout_status: 'converted' }, [{ product_id: 'p1', quantity: 2, unit_price: 25, line_total: 50 }]);
   assert(promo3.discount_amount === 5, `omgezette cart → korting blijft, kreeg ${promo3.discount_amount}`);
   assert(S.appliedCodesOnly(['WELCOME10', 'free'], [{ code: 'FREE' }]).join() === 'free', 'alleen toegepaste codes blijven');
+});
+
+// SEC-DOMAIN-2 — domeinresolutie en hreflang/sitemap tonen alleen DNS-geverifieerde domeinen.
+// Een onverifieerde rij gedraagt zich als een onbekend domein; <slug>.sellqo.shop blijft werken.
+await check('SEC-DOMAIN-2: resolve_domain, get_seo en get_sitemap_data alleen geverifieerd', async () => {
+  const V = 'tenant-vx';
+  const dom = (domain: string, extra: Record<string, unknown> = {}) => ({
+    id: `d-${domain}`, tenant_id: V, domain, locale: 'nl', is_canonical: false, is_active: true, dns_verified: true, ssl_active: true, ...extra,
+  });
+  const ddb = new FakeDb({
+    tenant_domains: [
+      dom('shop.example.be', { is_canonical: true }), dom('shop.example.nl'),
+      dom('vreemd-domein.example', { dns_verified: false, ssl_active: false }),
+      dom('kaping.sellqo.shop', { dns_verified: false }), // onverifieerde rij op andermans gratis adres
+      dom('uit.example', { is_active: false }),
+    ],
+    tenants: [{ id: V, slug: 'vx', name: 'VX' }, { id: 'tenant-kaping', slug: 'kaping', name: 'Kaping' }],
+    tenant_theme_settings: [{ tenant_id: V, use_custom_frontend: true, custom_frontend_url: null }],
+    fulfillment_settings: [],
+    products: [{ id: 'p1', tenant_id: V, name: 'P', slug: 'p', meta_title: null, meta_description: null, is_active: true, hide_from_storefront: false, updated_at: 'x' }],
+    categories: [], legal_pages: [],
+  });
+  const ok = await S.resolveDomain(ddb, { hostname: 'shop.example.nl' });
+  assert(ok.tenant_id === V && ok.dns_verified === true, `geverifieerd: ${JSON.stringify(ok)}`);
+  assert(JSON.stringify(Object.keys(ok)) === JSON.stringify(['tenant_id', 'tenant_slug', 'tenant_name', 'locale', 'is_canonical', 'dns_verified', 'ssl_active', 'use_custom_frontend', 'custom_frontend_url', 'shop_live', 'shop_ordering', 'qr_mode', 'all_domains']), 'sleutels ongewijzigd');
+  assert(ok.all_domains.map((d: any) => d.domain).join() === 'shop.example.be,shop.example.nl', `all_domains: ${JSON.stringify(ok.all_domains)}`);
+  for (const h of ['vreemd-domein.example', 'uit.example', 'bestaat-niet.example']) {
+    let msg = '';
+    try { await S.resolveDomain(ddb, { hostname: h }); } catch (e) { msg = e instanceof Error ? e.message : String(e); }
+    assert(msg === 'Domain not found', `${h} moet onbekend zijn, kreeg '${msg}'`);
+  }
+  const shop = await S.resolveDomain(ddb, { hostname: 'kaping.sellqo.shop' });
+  assert(shop.tenant_id === 'tenant-kaping', `onverifieerde rij gaat niet voor op het gratis adres: ${shop.tenant_id}`);
+  const seo = await S.getSeo(ddb, V, { type: 'product', slug: 'p' });
+  assert(seo.hreflang.map((h: any) => h.url).join() === 'https://shop.example.be/products/p,https://shop.example.nl/products/p', `hreflang: ${JSON.stringify(seo.hreflang)}`);
+  const sm = await S.getSitemapData(ddb, V);
+  assert(sm.base_url === 'https://shop.example.be' && sm.domains.length === 2, `sitemap: ${JSON.stringify(sm.domains)}`);
 });
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }

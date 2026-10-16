@@ -141,6 +141,12 @@ jobs:
           DENO_NO_PACKAGE_JSON: "1"
         run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts supabase/functions/_shared/catalogFilters.test.ts supabase/functions/_shared/fulfillmentSlots.test.ts supabase/functions/_shared/productAddons.test.ts supabase/functions/_shared/socialPublish.test.ts supabase/functions/_shared/socialMedia.test.ts supabase/functions/_shared/socialRunner.test.ts supabase/functions/_shared/inviteRoles.test.ts
 
+      # SEC-DOMAIN-2: de echte storefront-resolve-handler tegen een nep-databank (netwerkloos).
+      - name: Edge functions (test storefront-resolve)
+        env:
+          DENO_NO_PACKAGE_JSON: "1"
+        run: deno test --allow-env --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/resolve.test.ts
+
       # R10 (CATALOG-FILTERS-1b): rooktest van de echte storefront-api-functies tegen een
       # thenable nep-databank. Vangt o.a. `await` op een querybuilder, wat deno check mist.
       - name: Edge functions (rooktest storefront-api)
@@ -148,7 +154,7 @@ jobs:
           DENO_NO_PACKAGE_JSON: "1"
         run: |
           cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-          echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly };' >> supabase/functions/storefront-api/__smoke.ts
+          echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData };' >> supabase/functions/storefront-api/__smoke.ts
           deno run --allow-read --allow-env --allow-net --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
           rm supabase/functions/storefront-api/__smoke.ts
 

@@ -235,7 +235,8 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
   const { data: found, error } = await supabase
     .from('tenant_domains')
     .select('id, tenant_id, domain, locale, is_canonical, is_active, dns_verified, ssl_active')
-    .eq('domain', hostname).eq('is_active', true).maybeSingle();
+    // SEC-DOMAIN-2: alleen DNS-geverifieerde domeinen; een onverifieerde rij = onbekend domein.
+    .eq('domain', hostname).eq('is_active', true).eq('dns_verified', true).maybeSingle();
   if (error) throw error;
   let domain = found;
   // SHOP-API-1 — `<winkel>.sellqo.shop` (gratis SellQo-adres van de standaardshop):
@@ -253,7 +254,7 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
   const [{ data: tenant }, { data: themeSettings }, { data: allDomains }, { data: fsQr }] = await Promise.all([
     supabase.from('tenants').select('id, slug, name').eq('id', domain.tenant_id).single(), // RESOLVE-FIX-1
     supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url, shop_live, shop_ordering').eq('tenant_id', domain.tenant_id).maybeSingle(),
-    supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', domain.tenant_id).eq('is_active', true),
+    supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', domain.tenant_id).eq('is_active', true).eq('dns_verified', true), // SEC-DOMAIN-2
     supabase.from('fulfillment_settings').select('qr_mode').eq('tenant_id', domain.tenant_id).maybeSingle(),
   ]);
 
@@ -316,7 +317,7 @@ async function getConfig(supabase: any, tenantId: string, params: Record<string,
   ] = await Promise.all([
     supabase.from('tenants').select('*').eq('id', tenantId).single(),
     supabase.from('tenant_theme_settings').select('*').eq('tenant_id', tenantId).maybeSingle(),
-    supabase.from('tenant_domains').select('domain, locale, is_canonical, is_active').eq('tenant_id', tenantId).eq('is_active', true),
+    supabase.from('tenant_domains').select('domain, locale, is_canonical, is_active').eq('tenant_id', tenantId).eq('is_active', true).eq('dns_verified', true), // SEC-DOMAIN-2
     supabase.from('storefront_config').select('*').eq('tenant_id', tenantId).maybeSingle(),
   ]);
 
@@ -1531,10 +1532,10 @@ async function getSeo(supabase: any, tenantId: string, params: Record<string, un
   if (error) throw error;
   if (!data) throw new Error(`${entityType} not found`);
 
-  // Get hreflang domains
+  // Get hreflang domains (SEC-DOMAIN-2: alleen DNS-geverifieerd)
   const { data: domains } = await supabase
     .from('tenant_domains').select('domain, locale, is_canonical')
-    .eq('tenant_id', tenantId).eq('is_active', true);
+    .eq('tenant_id', tenantId).eq('is_active', true).eq('dns_verified', true);
 
   const tMap = locale ? await getTranslations(supabase, tenantId, entityType, [data.id], locale) : {};
   const t = tMap[data.id] || {};
@@ -1564,7 +1565,7 @@ async function getSitemapData(supabase: any, tenantId: string) {
     supabase.from('products').select('slug, updated_at').eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false),
     supabase.from('categories').select('slug, updated_at').eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false),
     supabase.from('legal_pages').select('page_type, updated_at').eq('tenant_id', tenantId).eq('is_published', true),
-    supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', tenantId).eq('is_active', true),
+    supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', tenantId).eq('is_active', true).eq('dns_verified', true), // SEC-DOMAIN-2
   ]);
 
   const canonical = (domains || []).find((d: any) => d.is_canonical);
@@ -5161,7 +5162,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'EVENT-ORDER-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SEC-DOMAIN-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
