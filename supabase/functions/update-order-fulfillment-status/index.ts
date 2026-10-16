@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import {
   AuthError,
@@ -7,6 +7,10 @@ import {
   requireRole,
 } from "../_shared/auth.ts";
 import { requireBillingState } from "../_shared/billingGuard.ts";
+import { emailOnlyAllows, isEmailOnlyOrder } from "../_shared/emailOnlyOrder.ts";
+
+// GET-versiestempel: neveneffectvrije deploy-vingerafdruk (geen auth, geen DB).
+const VERSION = "EVENT-ORDER-1";
 
 type OrderStatus =
   | "pending"
@@ -58,6 +62,10 @@ Deno.serve(async (req) => {
   }
 
   const corsHeaders = getCorsHeaders(req);
+
+  if (req.method === "GET") {
+    return json(req, { ok: true, version: VERSION }, 200);
+  }
 
   if (req.method !== "POST") {
     return json(req, { success: false, error: "Method not allowed" }, 405);
@@ -174,7 +182,36 @@ Deno.serve(async (req) => {
   // Allow no-op (same status) so bulk actions are idempotent.
   if (!correction && fromStatus !== new_status) {
     const allowed = TRANSITIONS[fromStatus] ?? [];
-    if (!allowed.includes(new_status)) {
+    let permitted = allowed.includes(new_status);
+    // EVENT-ORDER-1: een bestelling met alleen tickets/combitickets/munten staat
+    // na de ticketmail meteen op delivered. Die mag nog geannuleerd worden
+    // (de trigger trg_orders_cancel_tickets laat de tickets dan vervallen).
+    // Fysieke bestellingen houden de matrix exact zoals hij was.
+    if (!permitted && emailOnlyAllows(fromStatus, new_status)) {
+      const { data: lines, error: linesError } = await admin
+        .from("order_items")
+        .select("product_id, event_detail_id")
+        .eq("order_id", order_id);
+      if (linesError) {
+        return json(req, { success: false, error: linesError.message }, 500);
+      }
+      const pids = [...new Set((lines ?? [])
+        .map((l: { product_id: string | null }) => l.product_id)
+        .filter((id: string | null): id is string => !!id))];
+      let products: { id: string; product_type: string | null; token_amount: number | null }[] = [];
+      if (pids.length > 0) {
+        const { data: prods, error: prodError } = await admin
+          .from("products")
+          .select("id, product_type, token_amount")
+          .in("id", pids);
+        if (prodError) {
+          return json(req, { success: false, error: prodError.message }, 500);
+        }
+        products = prods ?? [];
+      }
+      permitted = isEmailOnlyOrder(lines ?? [], products);
+    }
+    if (!permitted) {
       return json(
         req,
         {
@@ -237,20 +274,32 @@ Deno.serve(async (req) => {
   }
 
   // Audit trail — best-effort, do not fail the request on log errors.
-  const { error: auditError } = await admin.from("admin_actions_log").insert({
-    admin_user_id: auth.user_id === "service_role" ? null : auth.user_id,
-    target_tenant_id: tenant_id,
-    action_type: correction ? "order_status_correction" : "order_fulfillment_status_update",
-    action_details: {
+  // EVENT-ORDER-1: admin_actions_log.admin_user_id is NOT NULL. Een service-call
+  // heeft geen gebruiker; vroeger schreef hij null en faalde de insert stil.
+  // Nu slaan we de regel over en loggen we dat zichtbaar.
+  if (auth.user_id === "service_role") {
+    console.log("[update-order-fulfillment-status] audit skipped (service_role)", {
       order_id,
       from_status: fromStatus,
       to_status: new_status,
-      fields_updated: Array.from(new Set(fieldsUpdated)),
-      ...(correction ? { is_correction: true, reason: reason!.trim() } : {}),
-    },
-  });
-  if (auditError) {
-    console.error("[update-order-fulfillment-status] audit log failed:", auditError);
+      correction,
+    });
+  } else {
+    const { error: auditError } = await admin.from("admin_actions_log").insert({
+      admin_user_id: auth.user_id,
+      target_tenant_id: tenant_id,
+      action_type: correction ? "order_status_correction" : "order_fulfillment_status_update",
+      action_details: {
+        order_id,
+        from_status: fromStatus,
+        to_status: new_status,
+        fields_updated: Array.from(new Set(fieldsUpdated)),
+        ...(correction ? { is_correction: true, reason: reason!.trim() } : {}),
+      },
+    });
+    if (auditError) {
+      console.error("[update-order-fulfillment-status] audit log failed:", auditError);
+    }
   }
 
   return json(req, { success: true, order: updatedOrder }, 200);

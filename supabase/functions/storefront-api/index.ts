@@ -3738,6 +3738,20 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
   return buildCartResponse(supabase, tenantId, cartId);
 }
 
+// EVENT-ORDER-1 — werk dat na de respons mag doorlopen. Met EdgeRuntime.waitUntil
+// houdt de runtime de worker in leven tot de belofte klaar is en geven we meteen
+// terug; zonder EdgeRuntime (lokale deno, tests) wachten we gewoon, zodat het
+// resultaat nooit verloren gaat. De belofte zelf vangt al haar fouten op.
+declare const EdgeRuntime: { waitUntil?: (p: Promise<unknown>) => void } | undefined;
+async function runAfterResponse(work: Promise<unknown>): Promise<void> {
+  const rt = typeof EdgeRuntime !== 'undefined' ? EdgeRuntime : undefined;
+  if (rt && typeof rt.waitUntil === 'function') {
+    rt.waitUntil(work.catch((e) => console.warn('[runAfterResponse] background work failed:', e)));
+    return;
+  }
+  await work;
+}
+
 async function checkoutComplete(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   const paymentMethodId = params.payment_method_id as string || params.payment_method as string;
@@ -3963,26 +3977,35 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
     };
 
-    // Factuur (best-effort) — een €0-factuur is fiscaal geldig.
-    try {
-      await fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
-        method: 'POST', headers: svcHeaders, body: JSON.stringify({ order_id: freeOrder.id }),
-      }).catch(() => {});
-    } catch {}
+    // EVENT-ORDER-1 — factuur en mails na de respons. Volgorde en inhoud zijn
+    // ongewijzigd (factuur → orderbevestiging → ticketmail, elk ge-await en
+    // best-effort), maar de klant wacht er niet meer ±10 s op: de keten loopt
+    // via EdgeRuntime.waitUntil. Zonder EdgeRuntime (lokaal/tests) wachten we
+    // zoals voorheen. De respons hieronder blijft byte-voor-byte gelijk.
+    const freeOrderId = freeOrder.id;
+    const freeAfterwork = (async () => {
+      // Factuur (best-effort) — een €0-factuur is fiscaal geldig.
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/generate-invoice`, {
+          method: 'POST', headers: svcHeaders, body: JSON.stringify({ order_id: freeOrderId }),
+        }).catch(() => {});
+      } catch {}
 
-    // Orderbevestiging (non-blocking)
-    try {
-      await fetch(`${supabaseUrl}/functions/v1/send-order-confirmation`, {
-        method: 'POST', headers: svcHeaders, body: JSON.stringify({ order_id: freeOrder.id }),
-      });
-    } catch {}
+      // Orderbevestiging (non-blocking)
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/send-order-confirmation`, {
+          method: 'POST', headers: svcHeaders, body: JSON.stringify({ order_id: freeOrderId }),
+        });
+      } catch {}
 
-    // Ticketbevestiging met QR (non-blocking; skipt zichzelf zonder tickets)
-    try {
-      await fetch(`${supabaseUrl}/functions/v1/send-ticket-confirmation`, {
-        method: 'POST', headers: svcHeaders, body: JSON.stringify({ order_id: freeOrder.id }),
-      });
-    } catch {}
+      // Ticketbevestiging met QR (non-blocking; skipt zichzelf zonder tickets)
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/send-ticket-confirmation`, {
+          method: 'POST', headers: svcHeaders, body: JSON.stringify({ order_id: freeOrderId }),
+        });
+      } catch {}
+    })();
+    await runAfterResponse(freeAfterwork);
 
     return {
       success: true,
@@ -5138,7 +5161,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'DISCOUNT-LIMIT-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'EVENT-ORDER-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
