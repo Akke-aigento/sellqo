@@ -22316,6 +22316,19 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      social_connection_status: {
+        Args: { p_tenant: string }
+        Returns: {
+          account_avatar: string
+          account_name: string
+          api_kind: string
+          id: string
+          is_active: boolean
+          platform: string
+          token_expires_at: string
+          updated_at: string
+        }[]
+      }
       social_post_score: { Args: { m: Json }; Returns: number }
       spend_tokens: {
         Args: {
