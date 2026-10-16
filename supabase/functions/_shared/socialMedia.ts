@@ -20,7 +20,8 @@
 // Kost (gemeten zonder extra rechten, 15-10): ±180 ms CPU voor 1000x1000.
 
 import { decode as decodePng } from "npm:fast-png@6.3.0";
-import jpeg from "npm:jpeg-js@0.4.4";
+// @ts-ignore: esm.sh-module zonder typeaanduiding
+import jpeg from "https://esm.sh/jpeg-js@0.4.4";
 
 export const MAX_INSTAGRAM_IMAGES = 10;
 const MAX_WIDTH = 1440;
