@@ -178,19 +178,30 @@ await check('allergenen alleen als ingevuld (ALLERGEN-1)', async () => {
   assert(r.allergens?.join() === 'gluten,milk' && r.dietary?.join() === 'vegetarian', JSON.stringify(r));
 });
 
-await check('kost per ticket alleen bij Flex en betaalde tickets (FLEX-1)', async () => {
-  const stub = (fee: number | null) => ({ from: () => { const b = { select: () => b, eq: () => b, maybeSingle: async () => ({ data: fee == null ? null : { plan_id: 'x', pricing_plans: { ticket_fee: fee } }, error: null }) }; return b; } });
+await check('kost per ticket via platform_ticket_fee_for, alleen betaalde tickets (FLEX-1 / PLANS-2)', async () => {
+  // PLANS-2: het tarief komt uit één SQL-functie (plan van het events-spoor, anders de
+  // Flex-fee van de add-on; intern/demo/vrijgesteld = 0).
+  const calls: string[] = [];
+  const stub = (fee: number | null, error: unknown = null) => ({
+    rpc: async (fn: string, args: Record<string, unknown>) => { calls.push(`${fn}:${args.p_tenant_id}`); return { data: fee, error }; },
+  });
   const items = [
     { event_detail_id: 'e1', unit_price: 20, quantity: 2 },
     { event_detail_id: 'e1', unit_price: 0, quantity: 3 },
     { event_detail_id: null, unit_price: 10, quantity: 1 },
   ];
-  const flex = await S.ticketFeeFor(stub(0.49), T, items);
-  assert(flex.tickets === 2 && flex.feeCents === 98, `flex: ${JSON.stringify(flex)}`);
-  const normal = await S.ticketFeeFor(stub(0), T, items);
-  assert(normal.feeCents === 0, 'plan zonder ticket_fee: geen kost');
-  const none = await S.ticketFeeFor(stub(0.49), T, [{ event_detail_id: null, unit_price: 10, quantity: 1 }]);
+  const flex = await S.ticketFeeFor(stub(0.69), T, items);
+  assert(flex.tickets === 2 && flex.feeCents === 138, `flex: ${JSON.stringify(flex)}`);
+  assert(calls[0] === `platform_ticket_fee_for:${T}`, `rpc-aanroep: ${calls[0]}`);
+  const vast = await S.ticketFeeFor(stub(0.29), T, items);
+  assert(vast.feeCents === 58, `vast: ${JSON.stringify(vast)}`);
+  const exempt = await S.ticketFeeFor(stub(0), T, items);
+  assert(exempt.feeCents === 0, 'vrijgesteld: geen kost');
+  const none = await S.ticketFeeFor(stub(0.69), T, [{ event_detail_id: null, unit_price: 10, quantity: 1 }]);
   assert(none.feeCents === 0 && none.tickets === 0, 'geen tickets: geen kost');
+  let threw = false;
+  try { await S.ticketFeeFor(stub(null, { message: 'boom' }), T, items); } catch { threw = true; }
+  assert(threw, 'mislukte lookup: geen verkoop zonder fee');
 });
 
 await check('early bird per tickettype (EB-TYPES-1)', async () => {
