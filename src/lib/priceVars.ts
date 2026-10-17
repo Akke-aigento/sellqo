@@ -8,12 +8,14 @@ import { eur } from '@/lib/planLines';
 /** Opstartpakket horeca: een dienst van Studio Akke, geen SellQo-plan. */
 export const SETUP_PRICE = 149;
 
-interface PlanLike { id: string; monthly_price: number | string; yearly_price?: number | string; ticket_fee?: number | string | null; min_term_months?: number | null }
+interface PlanLike { id: string; monthly_price: number | string; yearly_price?: number | string; ticket_fee?: number | string | null; min_term_months?: number | null; limit_products?: number | null; limit_orders?: number | null; overage_fee_percent?: number | string | null }
 interface AddonLike { id: string; monthly_price: number | string; ticket_fee?: number | string | null }
 
 export const PRICE_VAR_NAMES = [
   'starter_price', 'pro_price', 'enterprise_price', 'horeca_price', 'horeca_big_price',
   'flex_fee', 'vast_price', 'vast_fee', 'vast_term', 'addon_webshop_price', 'addon_horeca_price', 'setup_price',
+  // LIMITS-1: wat Free inbevat en wat je daarboven betaalt.
+  'free_products', 'free_orders', 'free_overage_pct',
 ] as const;
 export type PriceVars = Record<(typeof PRICE_VAR_NAMES)[number], string>;
 
@@ -34,6 +36,9 @@ export function buildPriceVars(plans: PlanLike[], addons: AddonLike[], lng: stri
     addon_webshop_price: money(addon('addon_webshop')?.monthly_price),
     addon_horeca_price: money(addon('addon_horeca')?.monthly_price),
     setup_price: money(SETUP_PRICE),
+    free_products: plan('free')?.limit_products != null ? String(plan('free')?.limit_products) : undefined,
+    free_orders: plan('free')?.limit_orders != null ? String(plan('free')?.limit_orders) : undefined,
+    free_overage_pct: plan('free')?.overage_fee_percent != null ? Number(plan('free')?.overage_fee_percent).toLocaleString(lng) : undefined,
   };
   return Object.fromEntries(Object.entries(out).filter(([, v]) => v !== undefined)) as Partial<PriceVars>;
 }

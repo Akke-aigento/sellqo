@@ -438,6 +438,8 @@ serve(async (req) => {
               currency: cart.currency || tenant?.currency || "EUR",
               stripe_payment_intent_id: session.payment_intent as string,
               stripe_checkout_session_id: session.id,
+              // LIMITS-1: de 2% die Stripe als applicatiefee inhield, voor het feeregister.
+              platform_order_fee_cents: Number(session.metadata?.platform_order_fee_cents) > 0 ? Number(session.metadata?.platform_order_fee_cents) : null,
               // FOOD-1 — afhalen/leveren met tijdslot (null bij gewone verzending).
               service_type: cart.service_type || null,
               requested_time: cart.requested_time || null,

@@ -2,6 +2,7 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { requireBillingState } from "../_shared/billingGuard.ts";
+import { planLimitText } from "../_shared/planLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -464,7 +465,7 @@ async function importProducts(
       console.error(`Product row ${i + 1} error:`, err);
       result.errors.push({
         row: i + 1,
-        error: err instanceof Error ? err.message : String(err),
+        error: planLimitText(err), // LIMITS-1: boven het productlimiet een nette tekst per rij
         severity: "error",
       });
       result.failed_count++;
@@ -937,7 +938,7 @@ async function importOrders(
       console.error(`Order ${orderNumber} error:`, err);
       result.errors.push({
         row: orderIndex,
-        error: err instanceof Error ? err.message : String(err),
+        error: planLimitText(err), // LIMITS-1: boven het productlimiet een nette tekst per rij
         severity: "error",
       });
       result.failed_count++;

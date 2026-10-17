@@ -14,7 +14,7 @@ import { cycleDueDates } from "../_shared/billingState.ts";
 import { computeVatTotals } from "../_shared/billingMoney.ts";
 import { loadBillingTenant } from "../_shared/billingTenant.ts";
 import {
-  type BillingLine, commitmentEnd, cycleLinesSnapshot, feeLine, pendingAppliesAt, type FeeRow, linesForPeriod, sumFees, USAGE_MIN_CENTS, usageDecision,
+  type BillingLine, commitmentEnd, cycleLinesSnapshot, FEE_TABLES, feeLines, type FeeSource, pendingAppliesAt, type FeeRow, linesForPeriod, sumFees, USAGE_MIN_CENTS, usageDecision,
 } from "../_shared/addonBilling.ts";
 import { dropAddonsForTrack, loadAddons, repriceAddonLines, setTenantModule } from "../_shared/addonLines.ts";
 
@@ -400,31 +400,34 @@ Deno.serve(async (req) => {
     const billingTenantId = (billingTenantRow?.id as string | undefined) ?? null;
     if (billingTenantId && !manualId) {
       try {
-        const { data: orphaned, error: orErr } = await supabase
-          .from("platform_ticket_fees")
-          .select("order_id, billing_cycles!inner(status)")
-          .eq("collected_via", "invoice")
-          .is("invoiced_at", null)
-          .not("billing_cycle_id", "is", null)
-          .eq("billing_cycles.status", "cancelled")
-          .limit(1000);
-        if (orErr) throw orErr;
-        // Ook fees op een vervallen cyclus van een gestopt abonnement: die cyclus wordt nooit meer betaald.
-        const { data: deadCycleFees, error: dcErr } = await supabase
-          .from("platform_ticket_fees")
-          .select("order_id, billing_cycles!inner(status, subscriptions!inner(status))")
-          .eq("collected_via", "invoice")
-          .is("invoiced_at", null)
-          .not("billing_cycle_id", "is", null)
-          .eq("billing_cycles.status", "expired")
-          .eq("billing_cycles.subscriptions.status", "cancelled")
-          .limit(1000);
-        if (dcErr) throw dcErr;
-        const ids = [...(orphaned ?? []), ...(deadCycleFees ?? [])].map((r: { order_id: string }) => r.order_id);
-        if (ids.length) {
-          const { error: relErr } = await supabase.from("platform_ticket_fees").update({ billing_cycle_id: null }).in("order_id", ids);
-          if (relErr) throw relErr;
-          log("Released ticket fees of cancelled cycles", { count: ids.length });
+        // LIMITS-1: zelfde regels voor beide feeregisters (kassatickets en orders boven het limiet).
+        for (const table of Object.values(FEE_TABLES)) {
+          const { data: orphaned, error: orErr } = await supabase
+            .from(table)
+            .select("order_id, billing_cycles!inner(status)")
+            .eq("collected_via", "invoice")
+            .is("invoiced_at", null)
+            .not("billing_cycle_id", "is", null)
+            .eq("billing_cycles.status", "cancelled")
+            .limit(1000);
+          if (orErr) throw orErr;
+          // Ook fees op een vervallen cyclus van een gestopt abonnement: die cyclus wordt nooit meer betaald.
+          const { data: deadCycleFees, error: dcErr } = await supabase
+            .from(table)
+            .select("order_id, billing_cycles!inner(status, subscriptions!inner(status))")
+            .eq("collected_via", "invoice")
+            .is("invoiced_at", null)
+            .not("billing_cycle_id", "is", null)
+            .eq("billing_cycles.status", "expired")
+            .eq("billing_cycles.subscriptions.status", "cancelled")
+            .limit(1000);
+          if (dcErr) throw dcErr;
+          const ids = [...(orphaned ?? []), ...(deadCycleFees ?? [])].map((r: { order_id: string }) => r.order_id);
+          if (ids.length) {
+            const { error: relErr } = await supabase.from(table).update({ billing_cycle_id: null }).in("order_id", ids);
+            if (relErr) throw relErr;
+            log("Released fees of cancelled cycles", { table, count: ids.length });
+          }
         }
 
         // Gestopte add-ons: na hun laatste betaalde dag regel weg en module uit (dagelijks,
@@ -450,16 +453,18 @@ Deno.serve(async (req) => {
           log("Ended add-ons removed", { count: endedLines!.length });
         }
 
-        const { data: open, error: openErr } = await supabase
-          .from("platform_ticket_fees")
-          .select("tenant_id, fee_cents")
-          .eq("collected_via", "invoice")
-          .is("billing_cycle_id", null)
-          .limit(10000);
-        if (openErr) throw openErr;
         const perTenant = new Map<string, number>();
-        for (const r of (open ?? []) as { tenant_id: string; fee_cents: number }[]) {
-          perTenant.set(r.tenant_id, (perTenant.get(r.tenant_id) ?? 0) + Number(r.fee_cents || 0));
+        for (const table of Object.values(FEE_TABLES)) {
+          const { data: open, error: openErr } = await supabase
+            .from(table)
+            .select("tenant_id, fee_cents")
+            .eq("collected_via", "invoice")
+            .is("billing_cycle_id", null)
+            .limit(10000);
+          if (openErr) throw openErr;
+          for (const r of (open ?? []) as { tenant_id: string; fee_cents: number }[]) {
+            perTenant.set(r.tenant_id, (perTenant.get(r.tenant_id) ?? 0) + Number(r.fee_cents || 0));
+          }
         }
         for (const [tid, cents] of perTenant) {
           if (cents < USAGE_MIN_CENTS) continue;
@@ -711,15 +716,25 @@ Deno.serve(async (req) => {
                 .eq("collected_via", "invoice")
                 .is("billing_cycle_id", null);
               if (feeErr) throw feeErr;
-              fees = (feeRows ?? []) as FeeRow[];
+              // LIMITS-1: 2% op orders boven het gratis limiet.
+              const { data: orderFeeRows, error: ofErr } = await supabase
+                .from("platform_order_fees")
+                .select("order_id, fee_cents")
+                .eq("tenant_id", shopTenantId)
+                .eq("collected_via", "invoice")
+                .is("billing_cycle_id", null);
+              if (ofErr) throw ofErr;
+              fees = [
+                ...((feeRows ?? []) as FeeRow[]).map((r) => ({ ...r, source: "ticket" as FeeSource })),
+                ...((orderFeeRows ?? []) as { order_id: string; fee_cents: number }[]).map((r) => ({ order_id: r.order_id, tickets: 1, fee_cents: r.fee_cents, source: "order" as FeeSource })),
+              ];
             }
           }
 
           const usage = usageDecision(payFirstLines.length, sumFees(fees).cents);
           const baseLines = payFirstLines;
           if (usage === "include") {
-            const fl = feeLine(fees);
-            if (fl) payFirstLines = [...payFirstLines, fl];
+            payFirstLines = [...payFirstLines, ...feeLines(fees)];
           }
 
           if (payFirstLines.length === 0) {
@@ -803,18 +818,24 @@ Deno.serve(async (req) => {
           // Lukt het vastpinnen niet volledig (race met een tweede run, of een fout), dan rekent
           // de cyclus alleen de fees aan die écht vastgepind zijn — vóór er geïnd wordt.
           if (usage === "include" && fees.length) {
-            const { data: pinned, error: pinErr } = await supabase
-              .from("platform_ticket_fees")
-              .update({ billing_cycle_id: cycle.id })
-              .in("order_id", fees.map((f) => f.order_id))
-              .is("billing_cycle_id", null)
-              .select("order_id");
-            if (pinErr) console.error(`[GEN-SUB-INVOICES] Pinning fees to ${cycle.id} failed: ${pinErr.message}`);
-            const pinnedIds = new Set(((pinned ?? []) as { order_id: string }[]).map((r) => r.order_id));
-            if (pinnedIds.size !== fees.length) {
-              const keptFees = fees.filter((f) => pinnedIds.has(f.order_id));
-              const fl = feeLine(keptFees);
-              const fixedLines = [...baseLines, ...(fl ? [fl] : [])];
+            // Per register vastpinnen; een order kan in beide staan (ticket én limiet), dus per bron tellen.
+            let pinnedCount = 0;
+            const pinnedKeys = new Set<string>();
+            for (const src of ["ticket", "order"] as FeeSource[]) {
+              const ids = fees.filter((f) => (f.source ?? "ticket") === src).map((f) => f.order_id);
+              if (!ids.length) continue;
+              const { data: pinned, error: pinErr } = await supabase
+                .from(FEE_TABLES[src])
+                .update({ billing_cycle_id: cycle.id })
+                .in("order_id", ids)
+                .is("billing_cycle_id", null)
+                .select("order_id");
+              if (pinErr) console.error(`[GEN-SUB-INVOICES] Pinning ${src} fees to ${cycle.id} failed: ${pinErr.message}`);
+              for (const r of (pinned ?? []) as { order_id: string }[]) { pinnedKeys.add(`${src}:${r.order_id}`); pinnedCount++; }
+            }
+            if (pinnedCount !== fees.length) {
+              const keptFees = fees.filter((f) => pinnedKeys.has(`${f.source ?? "ticket"}:${f.order_id}`));
+              const fixedLines = [...baseLines, ...feeLines(keptFees)];
               if (fixedLines.length === 0) {
                 await supabase.from("billing_cycles").update({ status: "cancelled" }).eq("id", cycle.id).is("invoice_id", null);
                 log("Cycle cancelled: fees already pinned elsewhere", { billing_cycle_id: cycle.id });
@@ -831,7 +852,7 @@ Deno.serve(async (req) => {
                 .eq("status", "pending");
               if (fixErr) throw fixErr;
               (cycle as { total: number }).total = fixed.total;
-              log("Cycle amounts corrected to pinned fees", { billing_cycle_id: cycle.id, expected: fees.length, pinned: pinnedIds.size });
+              log("Cycle amounts corrected to pinned fees", { billing_cycle_id: cycle.id, expected: fees.length, pinned: pinnedCount });
             }
           }
           log("Billing cycle created", {

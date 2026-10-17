@@ -7308,7 +7308,29 @@
       "commitment_note": "Dein Vertrag läuft 12 Monate. Bis dahin bleibt dein Tarif aktiv und wird monatlich abgerechnet."
     },
     "commitment_until": "Vertrag läuft bis {{date}}",
-    "commitment_locked": "Downgrade möglich ab {{date}}"
+    "commitment_locked": "Downgrade möglich ab {{date}}",
+    "usage_banner": {
+      "orders_near_title": "Du näherst dich deinen kostenlosen Bestellungen dieses Monats.",
+      "orders_near_body": "{{count}} von {{limit}} genutzt. Danach bleibt dein Shop offen, aber du zahlst {{pct}} % pro Bestellung. Mit einem bezahlten Tarif zahlst du nichts pro Bestellung.",
+      "orders_full_title": "Deine kostenlosen Bestellungen dieses Monats sind aufgebraucht.",
+      "orders_full_body": "Dein Shop bleibt offen: Ab jetzt zahlst du {{pct}} % pro Bestellung (bei Kartenzahlungen sofort, sonst auf deiner Monatsrechnung). Mit einem bezahlten Tarif zahlst du nichts pro Bestellung.",
+      "products_near_title": "Du näherst dich deinem Produktlimit.",
+      "products_near_body": "Du nutzt {{count}} von {{limit}} Produkten. Upgrade rechtzeitig, um weiter hinzufügen zu können.",
+      "products_full_title": "Du hast dein Produktlimit erreicht.",
+      "products_full_body": "Du hast {{count}} von {{limit}} Produkten. Neue Produkte kannst du nach einem Upgrade hinzufügen.",
+      "users_near_title": "Dein Team nähert sich dem Maximum deines Tarifs.",
+      "users_near_body": "Dein Team hat {{count}} von {{limit}} Nutzern.",
+      "users_full_title": "Dein Team hat das Maximum deines Tarifs erreicht.",
+      "users_full_body": "Dein Team hat {{count}} von {{limit}} Nutzern. Weitere Personen kannst du nach einem Upgrade einladen.",
+      "cta": "Tarife ansehen",
+      "dismiss": "Ausblenden",
+      "later": "Später"
+    },
+    "limit_error": {
+      "title": "Tariflimit erreicht",
+      "products": "Du hast das Produktlimit deines Tarifs erreicht. Upgrade, um weitere Produkte hinzuzufügen.",
+      "users": "Dein Team hat das Maximum deines Tarifs erreicht. Upgrade, um jemanden hinzuzufügen."
+    }
   },
   "product_form": {
     "title_edit": "Produkt bearbeiten",

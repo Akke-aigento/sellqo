@@ -76,7 +76,11 @@ export function tenantIsNotBilled(t: {
 // Kassa-ticketfees (platform_ticket_fees met collected_via = 'invoice')
 // ---------------------------------------------------------------------------
 
-export interface FeeRow { order_id: string; tickets: number; fee_cents: number }
+export interface FeeRow { order_id: string; tickets: number; fee_cents: number; source?: FeeSource }
+
+/** LIMITS-1: twee feeregisters op dezelfde factuur — kassatickets en orders boven het gratis limiet. */
+export type FeeSource = "ticket" | "order";
+export const FEE_TABLES: Record<FeeSource, string> = { ticket: "platform_ticket_fees", order: "platform_order_fees" };
 
 /** Minimum voor een verbruiksfactuur zonder maandabonnement (keuze Akke: €5). */
 export const USAGE_MIN_CENTS = 500;
@@ -97,6 +101,33 @@ export function feeLine(rows: FeeRow[] | null | undefined, vatRate = 21): Billin
     sort_order: 900,
     kind: null,
   };
+}
+
+/** LIMITS-1: factuurregel voor de 2% op orders boven het gratis limiet (rij = één order). */
+export function orderFeeLine(rows: FeeRow[] | null | undefined, vatRate = 21): BillingLine | null {
+  const list = rows ?? [];
+  const cents = list.reduce((a, r) => a + Number(r.fee_cents || 0), 0);
+  if (cents <= 0) return null;
+  const n = list.length;
+  return {
+    description: `Transactiekosten boven je gratis orders (${n} ${n === 1 ? "order" : "orders"})`,
+    quantity: 1,
+    unit_price: +(cents / 100).toFixed(2),
+    vat_rate: vatRate,
+    sort_order: 901,
+    kind: null,
+  };
+}
+
+/** Alle feeregels voor een cyclus: één regel per bron die iets openstaan heeft. */
+export function feeLines(rows: FeeRow[] | null | undefined, vatRate = 21): BillingLine[] {
+  const list = rows ?? [];
+  const out: BillingLine[] = [];
+  const t = feeLine(list.filter((r) => (r.source ?? "ticket") === "ticket"), vatRate);
+  if (t) out.push(t);
+  const o = orderFeeLine(list.filter((r) => r.source === "order"), vatRate);
+  if (o) out.push(o);
+  return out;
 }
 
 /**

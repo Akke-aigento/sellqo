@@ -297,87 +297,6 @@
       "footnoteStripe": "Stripe betalingen: 1,5% + €0,25 per transactie (standaard Stripe tarieven)",
       "footnoteVat": "Alle prijzen zijn exclusief btw",
       "exclVatShort": "excl. btw",
-      "plans": {
-        "free": {
-          "name": "Free",
-          "badge": "Om te starten",
-          "cta": "Start Gratis",
-          "features": [
-            "25 producten",
-            "50 bestellingen/maand",
-            "100 klanten",
-            "Handmatige facturen",
-            "Kortingscodes",
-            "Community support"
-          ],
-          "limitations": [
-            "Geen webshop",
-            "Geen AI",
-            "Geen POS",
-            "Geen SellQo Connect",
-            "SellQo watermerk"
-          ]
-        },
-        "starter": {
-          "name": "Starter",
-          "badge": "Perfect voor starters",
-          "cta": "Start Gratis",
-          "features": [
-            "250 producten",
-            "500 bestellingen/maand",
-            "1.000 klanten",
-            "3 teamleden",
-            "✨ 50 AI credits/maand",
-            "🛒 Webshop Builder",
-            "Factur-X e-facturen",
-            "Kortingscodes",
-            "Shop Health Score",
-            "Gamification & Badges",
-            "Email support",
-            "Eigen domein",
-            "🔗 SellQo Connect Lite — 1 kanaal"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "badge": "Meest gekozen",
-          "cta": "Start Gratis",
-          "features": [
-            "2.500 producten",
-            "5.000 bestellingen/maand",
-            "10.000 klanten",
-            "10 teamleden",
-            "✨ 500 AI credits/maand",
-            "🛒 Webshop Builder + Visual Editor",
-            "💳 POS Kassa inclusief",
-            "🤖 AI Business Coach",
-            "🔗 SellQo Connect — alle kanalen",
-            "Odoo-boekhoudkoppeling (incl. Peppol e-facturatie)",
-            "Multi-warehouse",
-            "Live Activity Feed",
-            "Loyaliteitsprogramma",
-            "Priority support"
-          ]
-        },
-        "enterprise": {
-          "name": "Enterprise",
-          "badge": "Voor schaalbare businesses",
-          "cta": "Neem Contact Op",
-          "features": [
-            "Onbeperkte producten",
-            "Onbeperkte bestellingen",
-            "50 teamleden",
-            "✨ 5.000 AI credits/maand",
-            "🛒 Alle premium themes",
-            "🔗 SellQo Connect — alle kanalen + custom",
-            "White-label opties",
-            "Persoonlijk aanspreekpunt",
-            "WhatsApp & telefonische support",
-            "Migratie-ondersteuning inbegrepen",
-            "Prioritaire onboarding"
-          ]
-        }
-      },
       "availableAddons": "Beschikbare add-ons",
       "meta_title": "Prijzen — SellQo voor winkels, horeca en events",
       "meta_desc": "Prijzen van SellQo voor webshops, horeca en events. Gratis starten, maandelijks opzegbaar, geen kosten per bestelling.",
@@ -446,7 +365,8 @@
       "addon_webshop": "Webshop erbij",
       "addon_horeca": "Horeca erbij",
       "addon_events": "Tickets verkopen",
-      "addon_price": "+ {{price}} per maand"
+      "addon_price": "+ {{price}} per maand",
+      "lim_orders_overage": "{{n}} bestellingen per maand inbegrepen, daarna {{pct}}% per bestelling"
     },
     "faq": {
       "heading": "Veelgestelde vragen",
@@ -1434,6 +1354,10 @@
     },
     "changelog": {
       "changes": {
+        "plan_limits": {
+          "title": "Duidelijke limieten per plan, en je webshop gaat nooit dicht",
+          "description": "Producten en teamleden hebben nu een vast maximum per plan; tickets tellen daarbij nooit mee. Op Free zijn {{free_orders}} bestellingen per maand inbegrepen. Daarna blijft je webshop gewoon open en betaal je {{free_overage_pct}}% per bestelling, tot je overstapt naar een betaald plan. Vanaf 80% van een limiet zie je een melding, op 100% krijg je ook een mail. Het klantenlimiet is geschrapt."
+        },
         "addon_billing": {
           "title": "Add-ons en kassatickets correct op je factuur",
           "description": "Een add-on (webshop of horeca) die je halverwege de maand bijneemt, wordt pro rata aangerekend en staat voortaan als aparte regel op je factuur. Stop je een add-on, dan loopt hij tot het einde van de betaalde periode. Tickets die je aan de kassa of manueel verkoopt, komen met hun ticketkost op de volgende factuur; zonder maandabonnement krijg je een verbruiksfactuur zodra er €5 openstaat. Events Vast toont nu het einde van je contract van 12 maanden."

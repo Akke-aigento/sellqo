@@ -465,8 +465,7 @@ export default function BillingPage() {
     for (const plan of sortedPlans) {
       const fits =
         (!plan.limit_products || (usage.products?.current || 0) <= plan.limit_products) &&
-        (!plan.limit_orders || (usage.orders?.current || 0) <= plan.limit_orders) &&
-        (!plan.limit_customers || (usage.customers?.current || 0) <= plan.limit_customers) &&
+        // LIMITS-1: orders boven het limiet kosten een percentage, klanten zijn onbeperkt.
         (!plan.limit_users || (usage.users?.current || 0) <= plan.limit_users);
       if (fits) return plan.id;
     }
@@ -695,7 +694,8 @@ export default function BillingPage() {
               </div>
             ) : usage ? (
               <>
-                {Object.entries(usage).map(([key, value]) => {
+                {/* LIMITS-1: klanten hebben geen limiet meer. */}
+                {Object.entries(usage).filter(([key]) => key !== 'customers').map(([key, value]) => {
                   const label = t(`billing.usage_labels.${key}`, { defaultValue: key });
                   const isNearLimit = value.percentage >= 80 && value.percentage < 100;
                   const isOverLimit = value.percentage >= 100;

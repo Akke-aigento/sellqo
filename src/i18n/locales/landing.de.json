@@ -297,87 +297,6 @@
       "footnoteStripe": "Stripe-Zahlungen: 1,5% + €0,25 pro Transaktion (Standard-Stripe-Tarife)",
       "footnoteVat": "Alle Preise zzgl. MwSt.",
       "exclVatShort": "zzgl. MwSt.",
-      "plans": {
-        "free": {
-          "name": "Free",
-          "badge": "Zum Starten",
-          "cta": "Kostenlos starten",
-          "features": [
-            "25 Produkte",
-            "50 Bestellungen/Monat",
-            "100 Kunden",
-            "Manuelle Rechnungen",
-            "Rabattcodes",
-            "Community Support"
-          ],
-          "limitations": [
-            "Kein Webshop",
-            "Keine KI",
-            "Kein POS",
-            "Kein SellQo Connect",
-            "SellQo-Wasserzeichen"
-          ]
-        },
-        "starter": {
-          "name": "Starter",
-          "badge": "Perfekt für Einsteiger",
-          "cta": "Kostenlos starten",
-          "features": [
-            "250 Produkte",
-            "500 Bestellungen/Monat",
-            "1.000 Kunden",
-            "3 Teammitglieder",
-            "✨ 50 KI-Credits/Monat",
-            "🛒 Webshop Builder",
-            "Factur-X E-Rechnungen",
-            "Rabattcodes",
-            "Shop Health Score",
-            "Gamification & Badges",
-            "E-Mail-Support",
-            "Eigene Domain",
-            "🔗 SellQo Connect Lite — 1 Kanal"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "badge": "Beliebteste Wahl",
-          "cta": "Kostenlos starten",
-          "features": [
-            "2.500 Produkte",
-            "5.000 Bestellungen/Monat",
-            "10.000 Kunden",
-            "10 Teammitglieder",
-            "✨ 500 KI-Credits/Monat",
-            "🛒 Webshop Builder + Visual Editor",
-            "💳 POS Kasse inklusive",
-            "🤖 KI Business Coach",
-            "🔗 SellQo Connect — alle Kanäle",
-            "Odoo-Buchhaltungsanbindung (inkl. Peppol-E-Rechnung)",
-            "Multi-Warehouse",
-            "Live Activity Feed",
-            "Treueprogramm",
-            "Priority Support"
-          ]
-        },
-        "enterprise": {
-          "name": "Enterprise",
-          "badge": "Für skalierende Unternehmen",
-          "cta": "Kontaktieren",
-          "features": [
-            "Unbegrenzte Produkte",
-            "Unbegrenzte Bestellungen",
-            "50 Teammitglieder",
-            "✨ 5.000 KI-Credits/Monat",
-            "🛒 Alle Premium-Themes",
-            "🔗 SellQo Connect — alle Kanäle + custom",
-            "White-Label-Optionen",
-            "Persönlicher Ansprechpartner",
-            "WhatsApp & Telefon-Support",
-            "Migrations-Unterstützung inklusive",
-            "Priority Onboarding"
-          ]
-        }
-      },
       "availableAddons": "Verfügbare Add-ons",
       "meta_title": "Preise — SellQo für Läden, Gastronomie und Events",
       "meta_desc": "SellQo-Preise für Webshops, Gastronomie und Events. Kostenlos starten, monatlich kündbar, keine Gebühren pro Bestellung.",
@@ -446,7 +365,8 @@
       "addon_webshop": "Webshop dazu",
       "addon_horeca": "Gastronomie dazu",
       "addon_events": "Tickets verkaufen",
-      "addon_price": "+ {{price}} pro Monat"
+      "addon_price": "+ {{price}} pro Monat",
+      "lim_orders_overage": "{{n}} Bestellungen pro Monat inklusive, danach {{pct}} % pro Bestellung"
     },
     "faq": {
       "heading": "Häufige Fragen",
@@ -1434,6 +1354,10 @@
     },
     "changelog": {
       "changes": {
+        "plan_limits": {
+          "title": "Klare Limits pro Tarif, und dein Shop schließt nie",
+          "description": "Produkte und Teammitglieder haben jetzt ein festes Maximum pro Tarif; Tickets zählen nie mit. Free enthält {{free_orders}} Bestellungen pro Monat. Danach bleibt dein Shop offen und du zahlst {{free_overage_pct}} % pro Bestellung, bis du zu einem bezahlten Tarif wechselst. Ab 80 % eines Limits siehst du einen Hinweis, bei 100 % bekommst du auch eine E-Mail. Das Kundenlimit wurde abgeschafft."
+        },
         "addon_billing": {
           "title": "Add-ons und Kassentickets korrekt auf deiner Rechnung",
           "description": "Ein Add-on (Webshop oder Gastronomie), das du mitten im Monat hinzufügst, wird anteilig berechnet und steht jetzt als eigene Zeile auf deiner Rechnung. Beendest du ein Add-on, läuft es bis zum Ende des bezahlten Zeitraums. An der Kasse oder manuell verkaufte Tickets kommen mit ihrer Ticketgebühr auf die nächste Rechnung; ohne Monatsabo erhältst du eine Verbrauchsrechnung, sobald 5 € offen sind. Events Vast zeigt jetzt das Ende deines 12-Monats-Vertrags."

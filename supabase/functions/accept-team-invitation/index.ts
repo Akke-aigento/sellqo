@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { INVITE_ROLE_ERROR, isInviteRole } from "../_shared/inviteRoles.ts";
+import { planLimitKind } from "../_shared/planLimit.ts";
 
 // SEC-INVITE-1 — GET-versiestempel om de deploy te bewijzen (geen auth, geen bijwerking).
 const VERSION = "SEC-INVITE-1";
@@ -110,6 +111,13 @@ serve(async (req) => {
       });
 
     if (roleError) {
+      // LIMITS-1: het team zit op het maximum van het plan; de uitnodiging blijft open.
+      if (planLimitKind(roleError)) {
+        return jsonResponse(409, {
+          error: "Dit team zit op het maximum aantal gebruikers van zijn plan. Vraag de eigenaar om te upgraden; daarna kan je de uitnodiging opnieuw aanvaarden.",
+          code: "PLAN_LIMIT_USERS",
+        });
+      }
       throw new Error("Kon rol niet toewijzen: " + roleError.message);
     }
 

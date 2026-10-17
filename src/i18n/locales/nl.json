@@ -1909,7 +1909,29 @@
       "commitment_note": "Je contract loopt 12 maanden. Tot dan blijft je plan actief en wordt het maandelijks gefactureerd."
     },
     "commitment_until": "Contract loopt tot {{date}}",
-    "commitment_locked": "Downgrade kan vanaf {{date}}"
+    "commitment_locked": "Downgrade kan vanaf {{date}}",
+    "usage_banner": {
+      "orders_near_title": "Je nadert je gratis orders van deze maand.",
+      "orders_near_body": "{{count}} van {{limit}} gebruikt. Daarna blijft je webshop open, maar betaal je {{pct}}% per order. Met een betaald plan betaal je niets per order.",
+      "orders_full_title": "Je gratis orders van deze maand zijn op.",
+      "orders_full_body": "Je webshop blijft gewoon open: vanaf nu betaal je {{pct}}% per order (bij kaartbetalingen meteen, anders op je maandfactuur). Met een betaald plan betaal je niets per order.",
+      "products_near_title": "Je nadert het maximum aantal producten.",
+      "products_near_body": "Je gebruikt {{count}} van {{limit}} producten. Upgrade op tijd om verder te kunnen toevoegen.",
+      "products_full_title": "Je hebt het maximum aantal producten bereikt.",
+      "products_full_body": "Je hebt {{count}} van {{limit}} producten. Nieuwe producten toevoegen kan na een upgrade.",
+      "users_near_title": "Je team nadert het maximum van je plan.",
+      "users_near_body": "Je team telt {{count}} van {{limit}} gebruikers.",
+      "users_full_title": "Je team zit op het maximum van je plan.",
+      "users_full_body": "Je team telt {{count}} van {{limit}} gebruikers. Iemand extra uitnodigen kan na een upgrade.",
+      "cta": "Bekijk plannen",
+      "dismiss": "Verbergen",
+      "later": "Later"
+    },
+    "limit_error": {
+      "title": "Limiet van je plan bereikt",
+      "products": "Je hebt het maximum aantal producten van je plan bereikt. Upgrade om meer producten toe te voegen.",
+      "users": "Je team zit op het maximum van je plan. Upgrade om iemand extra toe te voegen."
+    }
   },
   "admin_billing": {
     "title": "Platform Billing",

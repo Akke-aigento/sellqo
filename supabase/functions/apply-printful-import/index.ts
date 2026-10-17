@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from '../_shared/auth.ts';
 import { decryptPrintfulToken } from '../_shared/printfulCrypto.ts';
 import { collectProductImages, pickCatalogRefs, type PrintfulSyncVariantRaw } from '../_shared/printfulImport.ts';
+import { planLimitKind, planLimitText } from "../_shared/planLimit.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -368,7 +369,7 @@ Deno.serve(async (req) => {
         results.push({ sync_product_id: syncProductId, status: 'imported', product_id: productId, variant_count: variantCount });
       } catch (err) {
         console.error(`[apply-printful-import] product ${syncProductId} failed:`, errMsg(err));
-        results.push({ sync_product_id: syncProductId, status: 'failed', error: errMsg(err) });
+        results.push({ sync_product_id: syncProductId, status: 'failed', error: planLimitKind(err) ? planLimitText(err) : errMsg(err) });
       }
     }
 

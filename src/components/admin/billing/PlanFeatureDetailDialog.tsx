@@ -196,7 +196,6 @@ export function PlanFeatureDetailDialog({
           {[
             { icon: <Package className="h-4 w-4 text-blue-500" />, label: 'Producten', value: formatLimit(plan.limit_products) },
             { icon: <ShoppingCart className="h-4 w-4 text-green-500" />, label: 'Orders/mnd', value: formatLimit(plan.limit_orders) },
-            { icon: <Users className="h-4 w-4 text-purple-500" />, label: 'Klanten', value: formatLimit(plan.limit_customers) },
             { icon: <UserPlus className="h-4 w-4 text-amber-500" />, label: 'Team', value: String(plan.limit_users) },
           ].map((item) => (
             <div key={item.label} className="text-center p-2.5 rounded-xl bg-muted/40">

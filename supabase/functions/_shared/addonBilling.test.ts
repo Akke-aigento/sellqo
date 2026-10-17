@@ -1,7 +1,7 @@
 import { assertEquals } from "https://deno.land/std@0.190.0/testing/asserts.ts";
 import {
   addonIsBilled, addonPrice, applyCommitmentToCancel, commitmentBlocksSwitch, commitmentEnd, endedAddonLines,
-  feeLine, invoiceLinesFromSnapshot, linesForPeriod, pendingAppliesAt, planLines, sumFees, tenantIsNotBilled, usageDecision,
+  feeLine, feeLines, invoiceLinesFromSnapshot, linesForPeriod, pendingAppliesAt, planLines, sumFees, tenantIsNotBilled, usageDecision,
 } from "./addonBilling.ts";
 
 const plan = { id: "p", kind: "plan", unit_price: 29, quantity: 1, sort_order: 0 };
@@ -87,4 +87,19 @@ Deno.test("runner: opzegging binnen het contract niet op de eerstvolgende maandg
   assertEquals(pendingAppliesAt("2027-10-17T00:00:00Z", "2027-10-17"), true, "op het contracteinde");
   assertEquals(pendingAppliesAt("2026-11-17T00:00:00Z", "2026-11-17"), true, "gewone downgrade op de grens");
   assertEquals(pendingAppliesAt(null, "2026-11-17"), true);
+});
+
+Deno.test("LIMITS-1: ticketfees en orderfees elk een eigen factuurregel", () => {
+  const rows = [
+    { order_id: "t1", tickets: 3, fee_cents: 207, source: "ticket" as const },
+    { order_id: "o1", tickets: 1, fee_cents: 100, source: "order" as const },
+    { order_id: "o2", tickets: 1, fee_cents: 150, source: "order" as const },
+  ];
+  const lines = feeLines(rows);
+  assertEquals(lines.map((l) => [l.description, l.unit_price]), [
+    ["Ticketkosten verkoop buiten de webshop (3 tickets)", 2.07],
+    ["Transactiekosten boven je gratis orders (2 orders)", 2.5],
+  ]);
+  assertEquals(feeLines([{ order_id: "o1", tickets: 1, fee_cents: 100, source: "order" }]).length, 1);
+  assertEquals(feeLines([]).length, 0);
 });

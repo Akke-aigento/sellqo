@@ -1,4 +1,4 @@
-import { supabase } from '@/integrations/supabase/client';
+import { countUsage } from '@/lib/planUsage';
 import { useTenant } from '@/hooks/useTenant';
 import { useTenantSubscription } from './useTenantSubscription';
 import { useTenantAddons } from './useTenantAddons';
@@ -60,61 +60,15 @@ export function useUsageLimits() {
           break;
       }
     } else {
-      // Default free plan limits
-      const freeLimits = {
-        products: 25,
-        orders: 50,
-        customers: 100,
-        users: 1,
-      };
-      limit = freeLimits[limitType];
+      // LIMITS-1: geen abonnement = geen limiet, zoals de databank (enforce_plan_limit).
+      limit = null;
     }
 
     // Unlimited
     if (limit === null) return true;
 
     // Get current count
-    let count = 0;
-    
-    switch (limitType) {
-      case 'products':
-        const { count: productCount } = await supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id);
-        count = productCount || 0;
-        break;
-        
-      case 'orders':
-        // Orders per month
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-        
-        const { count: orderCount } = await supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .gte('created_at', startOfMonth.toISOString());
-        count = orderCount || 0;
-        break;
-        
-      case 'customers':
-        const { count: customerCount } = await supabase
-          .from('customers')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id);
-        count = customerCount || 0;
-        break;
-        
-      case 'users':
-        const { count: userCount } = await supabase
-          .from('user_roles')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id);
-        count = userCount || 0;
-        break;
-    }
+    const count = await countUsage(currentTenant.id, limitType); // LIMITS-1: zelfde telling als de databank
 
     return count < limit;
   };
@@ -219,42 +173,7 @@ export function useUsageLimits() {
 
     if (limit === null) return 0; // Unlimited
 
-    let count = 0;
-    
-    switch (limitType) {
-      case 'products':
-        const { count: productCount } = await supabase
-          .from('products')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id);
-        count = productCount || 0;
-        break;
-      case 'orders':
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
-        const { count: orderCount } = await supabase
-          .from('orders')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id)
-          .gte('created_at', startOfMonth.toISOString());
-        count = orderCount || 0;
-        break;
-      case 'customers':
-        const { count: customerCount } = await supabase
-          .from('customers')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id);
-        count = customerCount || 0;
-        break;
-      case 'users':
-        const { count: userCount } = await supabase
-          .from('user_roles')
-          .select('id', { count: 'exact', head: true })
-          .eq('tenant_id', currentTenant.id);
-        count = userCount || 0;
-        break;
-    }
+    const count = await countUsage(currentTenant.id, limitType); // LIMITS-1: zelfde telling als de databank
 
     return Math.min((count / limit) * 100, 100);
   };
@@ -266,6 +185,7 @@ export function useUsageLimits() {
     getUsagePercentage,
     isOverLimit,
     isTrialing,
+    isUnlimited,
     usage,
   };
 }

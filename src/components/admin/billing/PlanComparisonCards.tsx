@@ -185,8 +185,6 @@ export function PlanComparisonCards({
                 limitChanges.push({ label: 'Producten', current: currentPlan.limit_products, target: plan.limit_products, isIncrease: (plan.limit_products || Infinity) > (currentPlan.limit_products || Infinity) });
               if (plan.limit_orders !== currentPlan.limit_orders)
                 limitChanges.push({ label: 'Orders/mnd', current: currentPlan.limit_orders, target: plan.limit_orders, isIncrease: (plan.limit_orders || Infinity) > (currentPlan.limit_orders || Infinity) });
-              if (plan.limit_customers !== currentPlan.limit_customers)
-                limitChanges.push({ label: 'Klanten', current: currentPlan.limit_customers, target: plan.limit_customers, isIncrease: (plan.limit_customers || Infinity) > (currentPlan.limit_customers || Infinity) });
               if (plan.limit_users !== currentPlan.limit_users)
                 limitChanges.push({ label: 'Teamleden', current: currentPlan.limit_users, target: plan.limit_users, isIncrease: plan.limit_users > currentPlan.limit_users });
             }
@@ -273,7 +271,6 @@ export function PlanComparisonCards({
                     {[
                       { icon: <Package className="h-3.5 w-3.5" />, label: 'Producten', value: formatLimit(plan.limit_products) },
                       { icon: <ShoppingCart className="h-3.5 w-3.5" />, label: 'Orders', value: formatLimit(plan.limit_orders) },
-                      { icon: <Users className="h-3.5 w-3.5" />, label: 'Klanten', value: formatLimit(plan.limit_customers) },
                       { icon: <UserPlus className="h-3.5 w-3.5" />, label: 'Team', value: String(plan.limit_users) },
                     ].map(item => (
                       <div key={item.label} className="flex items-center gap-1.5 text-xs p-2 rounded-lg bg-muted/40">

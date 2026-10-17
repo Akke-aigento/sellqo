@@ -6,7 +6,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
-import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { slugBase, uniqueSlug } from '@/lib/eventSeries';
 
 export interface NewEventInput {
@@ -38,15 +37,13 @@ export interface NewEventResult {
 
 export function useCreateEvent() {
   const { currentTenant } = useTenant();
-  const { enforceLimit } = useUsageLimits();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: NewEventInput): Promise<NewEventResult> => {
       if (!currentTenant) throw new Error('no_tenant');
       if (input.dates.length === 0) throw new Error('no_dates');
-      const limit = await enforceLimit('products');
-      if (!limit.allowed) throw new Error('limit');
+      // LIMITS-1: tickets tellen niet mee voor het productlimiet (ze betalen per stuk).
       const tenantId = currentTenant.id;
 
       // 1. Ticketproduct met een unieke slug.

@@ -662,13 +662,14 @@ async function handleCycleCharge(
   });
 
   // BILL-ADDON-1: de kassa-ticketfees op deze cyclus zijn nu gefactureerd.
-  {
+  // LIMITS-1: ook de orderfees boven het gratis limiet.
+  for (const table of ["platform_ticket_fees", "platform_order_fees"]) {
     const { error: feeErr } = await supabase
-      .from("platform_ticket_fees")
+      .from(table)
       .update({ invoiced_at: nowISO })
       .eq("billing_cycle_id", cycle.id)
       .is("invoiced_at", null);
-    if (feeErr) log("Ticket fees invoiced_at update failed", { cycleId, error: feeErr.message });
+    if (feeErr) log("Fees invoiced_at update failed", { cycleId, table, error: feeErr.message });
   }
 
   // BILLING-ENFORCE-1: betaald is betaald — meteen herberekenen, niet pas bij de

@@ -1,3 +1,5 @@
+import i18n from 'i18next';
+import { planLimitMessage } from '@/lib/planUsage';
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -217,7 +219,7 @@ export function ShopifyManualImport() {
               success++;
             } catch (error) {
               failed++;
-              errors.push(`Product "${product.title}": ${error instanceof Error ? error.message : 'Onbekende fout'}`);
+              errors.push(`Product "${product.title}": ${planLimitMessage(error, (k) => i18n.t(k)) ?? (error instanceof Error ? error.message : 'Onbekende fout')}`);
             }
           }
           break;

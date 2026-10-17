@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -202,6 +202,20 @@ await check('kost per ticket via platform_ticket_fee_for, alleen betaalde ticket
   let threw = false;
   try { await S.ticketFeeFor(stub(null, { message: 'boom' }), T, items); } catch { threw = true; }
   assert(threw, 'mislukte lookup: geen verkoop zonder fee');
+});
+
+await check('2% boven het gratis orderlimiet (LIMITS-1)', async () => {
+  const calls: string[] = [];
+  const stub = (data: unknown, error: unknown = null) => ({
+    rpc: (fn: string, args: Record<string, unknown>) => { calls.push(`${fn}:${args.p_tenant_id}`); return Promise.resolve({ data, error }); },
+  });
+  const items = [{ event_detail_id: null, unit_price: 25, quantity: 2 }];
+  assert(await S.orderOverageFeeCents(stub(2), T, items, 5000) === 100, '2% van €50 = 100 cent');
+  assert(calls[0] === `platform_order_overage_rate:${T}`, `rpc-aanroep: ${calls[0]}`);
+  assert(await S.orderOverageFeeCents(stub(0), T, items, 5000) === 0, 'binnen het limiet: geen fee');
+  assert(await S.orderOverageFeeCents(stub(2), T, [{ event_detail_id: 'e1', unit_price: 10, quantity: 1 }], 1000) === 0, 'tickets: geen orderfee');
+  assert(await S.orderOverageFeeCents(stub(null, { message: 'boom' }), T, items, 5000) === 0, 'mislukte lookup: verkoop gaat door (cron registreert)');
+  assert(await S.orderOverageFeeCents(stub(2), T, items, 0) === 0, 'gratis order: geen fee');
 });
 
 await check('kanalen en op voor vandaag (HORECA-CHANNELS-1)', async () => {

@@ -1909,7 +1909,29 @@
       "commitment_note": "Your contract runs for 12 months. Until then your plan stays active and is billed monthly."
     },
     "commitment_until": "Contract runs until {{date}}",
-    "commitment_locked": "Downgrade possible from {{date}}"
+    "commitment_locked": "Downgrade possible from {{date}}",
+    "usage_banner": {
+      "orders_near_title": "You are close to this month's free orders.",
+      "orders_near_body": "{{count}} of {{limit}} used. After that your shop stays open, but you pay {{pct}}% per order. On a paid plan you pay nothing per order.",
+      "orders_full_title": "Your free orders for this month are used up.",
+      "orders_full_body": "Your shop stays open: from now on you pay {{pct}}% per order (straight away for card payments, otherwise on your monthly invoice). On a paid plan you pay nothing per order.",
+      "products_near_title": "You are close to your product limit.",
+      "products_near_body": "You are using {{count}} of {{limit}} products. Upgrade in time to keep adding.",
+      "products_full_title": "You have reached your product limit.",
+      "products_full_body": "You have {{count}} of {{limit}} products. You can add new products after an upgrade.",
+      "users_near_title": "Your team is close to your plan's maximum.",
+      "users_near_body": "Your team has {{count}} of {{limit}} users.",
+      "users_full_title": "Your team is at your plan's maximum.",
+      "users_full_body": "Your team has {{count}} of {{limit}} users. You can invite someone else after an upgrade.",
+      "cta": "View plans",
+      "dismiss": "Hide",
+      "later": "Later"
+    },
+    "limit_error": {
+      "title": "Plan limit reached",
+      "products": "You have reached your plan's product limit. Upgrade to add more products.",
+      "users": "Your team is at your plan's maximum. Upgrade to add someone else."
+    }
   },
   "import": {
     "title": "Import Data",

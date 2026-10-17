@@ -297,87 +297,6 @@
       "footnoteStripe": "Stripe payments: 1.5% + €0.25 per transaction (standard Stripe rates)",
       "footnoteVat": "All prices exclude VAT",
       "exclVatShort": "excl. VAT",
-      "plans": {
-        "free": {
-          "name": "Free",
-          "badge": "To get started",
-          "cta": "Start Free",
-          "features": [
-            "25 products",
-            "50 orders/month",
-            "100 customers",
-            "Manual invoicing",
-            "Discount codes",
-            "Community support"
-          ],
-          "limitations": [
-            "No webshop",
-            "No AI",
-            "No POS",
-            "No SellQo Connect",
-            "SellQo watermark"
-          ]
-        },
-        "starter": {
-          "name": "Starter",
-          "badge": "Perfect for starters",
-          "cta": "Start Free",
-          "features": [
-            "250 products",
-            "500 orders/month",
-            "1,000 customers",
-            "3 team members",
-            "✨ 50 AI credits/month",
-            "🛒 Webshop Builder",
-            "Factur-X e-invoices",
-            "Discount codes",
-            "Shop Health Score",
-            "Gamification & Badges",
-            "Email support",
-            "Custom domain",
-            "🔗 SellQo Connect Lite — 1 channel"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "badge": "Most popular",
-          "cta": "Start Free",
-          "features": [
-            "2,500 products",
-            "5,000 orders/month",
-            "10,000 customers",
-            "10 team members",
-            "✨ 500 AI credits/month",
-            "🛒 Webshop Builder + Visual Editor",
-            "💳 POS Register included",
-            "🤖 AI Business Coach",
-            "🔗 SellQo Connect — all channels",
-            "Odoo accounting integration (incl. Peppol e-invoicing)",
-            "Multi-warehouse",
-            "Live Activity Feed",
-            "Loyalty program",
-            "Priority support"
-          ]
-        },
-        "enterprise": {
-          "name": "Enterprise",
-          "badge": "For scaling businesses",
-          "cta": "Contact Us",
-          "features": [
-            "Unlimited products",
-            "Unlimited orders",
-            "50 team members",
-            "✨ 5,000 AI credits/month",
-            "🛒 All premium themes",
-            "🔗 SellQo Connect — all channels + custom",
-            "White-label options",
-            "Personal point of contact",
-            "WhatsApp & phone support",
-            "Migration support included",
-            "Priority onboarding"
-          ]
-        }
-      },
       "availableAddons": "Available add-ons",
       "meta_title": "Pricing — SellQo for shops, restaurants and events",
       "meta_desc": "SellQo pricing for webshops, restaurants and events. Start for free, cancel monthly, no fees per order.",
@@ -446,7 +365,8 @@
       "addon_webshop": "Add a webshop",
       "addon_horeca": "Add food & drink",
       "addon_events": "Sell tickets",
-      "addon_price": "+ {{price}} per month"
+      "addon_price": "+ {{price}} per month",
+      "lim_orders_overage": "{{n}} orders per month included, then {{pct}}% per order"
     },
     "faq": {
       "heading": "Frequently asked questions",
@@ -1434,6 +1354,10 @@
     },
     "changelog": {
       "changes": {
+        "plan_limits": {
+          "title": "Clear limits per plan, and your shop never closes",
+          "description": "Products and team members now have a fixed maximum per plan; tickets never count towards it. Free includes {{free_orders}} orders per month. After that your shop stays open and you pay {{free_overage_pct}}% per order until you move to a paid plan. From 80% of a limit you see a notice, at 100% you also get an email. The customer limit has been removed."
+        },
         "addon_billing": {
           "title": "Add-ons and box-office tickets correctly on your invoice",
           "description": "An add-on (webshop or horeca) added mid-month is charged pro rata and now appears as its own line on your invoice. When you stop an add-on, it runs until the end of the paid period. Tickets sold at the till or manually are added with their ticket fee to your next invoice; without a monthly plan you get a usage invoice once €5 is outstanding. Events Vast now shows the end of your 12-month contract."

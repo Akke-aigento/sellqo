@@ -134,6 +134,47 @@ serve(async (req) => {
       }
     }
 
+    // LIMITS-1: niet meer uitnodigen dan het plan toelaat (leden + openstaande uitnodigingen).
+    // Zelfde uitzonderingen als de databanktrigger: vrijgesteld, intern, demo, in afwachting, proef.
+    {
+      const { data: tFlags } = await supabase
+        .from("tenants")
+        .select("billing_exempt, is_internal_tenant, is_demo, billing_on_hold")
+        .eq("id", tenantId)
+        .maybeSingle();
+      const unlimited = !tFlags || tFlags.billing_exempt || tFlags.is_internal_tenant || tFlags.is_demo || tFlags.billing_on_hold;
+      if (!unlimited) {
+        const { data: sub } = await supabase
+          .from("tenant_subscriptions")
+          .select("status, trial_end, pricing_plans!plan_id(limit_users)")
+          .eq("tenant_id", tenantId)
+          .maybeSingle();
+        const limit = (sub as { pricing_plans?: { limit_users?: number | null } | null } | null)?.pricing_plans?.limit_users ?? null;
+        const trialRunning = sub?.status === "trialing" && (!sub?.trial_end || new Date(sub.trial_end as string).getTime() > Date.now());
+        if (limit != null && !trialRunning) {
+          // Teamgrootte uit dezelfde databankfunctie als de trigger (zonder platformbeheerders).
+          const { data: teamSize } = await supabase.rpc("platform_team_size", { p_tenant_id: tenantId });
+          const members = Number(teamSize ?? 0);
+          // Openstaande uitnodigingen: niet aanvaard, niet verlopen, niet ingetrokken of geweigerd;
+          // een nieuwe uitnodiging voor hetzelfde adres vervangt de oude (hieronder).
+          const { count: pending } = await supabase
+            .from("team_invitations")
+            .select("id", { count: "exact", head: true })
+            .eq("tenant_id", tenantId)
+            .is("accepted_at", null)
+            .gt("expires_at", new Date().toISOString())
+            .not("status", "in", "(revoked,rejected)")
+            .neq("email", email.toLowerCase());
+          if (members + (pending ?? 0) >= limit) {
+            return new Response(
+              JSON.stringify({ error: "Je team zit op het maximum van je plan (leden en openstaande uitnodigingen). Upgrade om iemand extra uit te nodigen.", code: "PLAN_LIMIT_USERS" }),
+              { status: 409, headers: { "Content-Type": "application/json", ...corsHeaders } },
+            );
+          }
+        }
+      }
+    }
+
     // Auto-replace any existing pending invitation
     await supabase
       .from("team_invitations")

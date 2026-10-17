@@ -7308,7 +7308,29 @@
       "commitment_note": "Votre contrat dure 12 mois. D'ici là, votre forfait reste actif et est facturé chaque mois."
     },
     "commitment_until": "Contrat jusqu'au {{date}}",
-    "commitment_locked": "Rétrogradation possible à partir du {{date}}"
+    "commitment_locked": "Rétrogradation possible à partir du {{date}}",
+    "usage_banner": {
+      "orders_near_title": "Vous approchez de vos commandes gratuites du mois.",
+      "orders_near_body": "{{count}} sur {{limit}} utilisées. Ensuite votre boutique reste ouverte, mais vous payez {{pct}} % par commande. Avec un forfait payant, vous ne payez rien par commande.",
+      "orders_full_title": "Vos commandes gratuites du mois sont épuisées.",
+      "orders_full_body": "Votre boutique reste ouverte : vous payez désormais {{pct}} % par commande (immédiatement pour les paiements par carte, sinon sur votre facture mensuelle). Avec un forfait payant, vous ne payez rien par commande.",
+      "products_near_title": "Vous approchez de votre limite de produits.",
+      "products_near_body": "Vous utilisez {{count}} produits sur {{limit}}. Passez à un forfait supérieur à temps pour continuer à en ajouter.",
+      "products_full_title": "Vous avez atteint votre limite de produits.",
+      "products_full_body": "Vous avez {{count}} produits sur {{limit}}. Vous pourrez en ajouter après une mise à niveau.",
+      "users_near_title": "Votre équipe approche du maximum de votre forfait.",
+      "users_near_body": "Votre équipe compte {{count}} utilisateurs sur {{limit}}.",
+      "users_full_title": "Votre équipe a atteint le maximum de votre forfait.",
+      "users_full_body": "Votre équipe compte {{count}} utilisateurs sur {{limit}}. Vous pourrez inviter quelqu'un d'autre après une mise à niveau.",
+      "cta": "Voir les forfaits",
+      "dismiss": "Masquer",
+      "later": "Plus tard"
+    },
+    "limit_error": {
+      "title": "Limite du forfait atteinte",
+      "products": "Vous avez atteint la limite de produits de votre forfait. Passez à un forfait supérieur pour en ajouter.",
+      "users": "Votre équipe a atteint le maximum de votre forfait. Passez à un forfait supérieur pour ajouter quelqu'un."
+    }
   },
   "product_form": {
     "title_edit": "Modifier le produit",

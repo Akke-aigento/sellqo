@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { requireBillingState } from "../_shared/billingGuard.ts";
+import { planLimitKind, planLimitText } from "../_shared/planLimit.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -136,6 +137,8 @@ Deno.serve(async (req) => {
     .single();
 
   if (insertError || !inserted) {
+    // LIMITS-1: productlimiet van het plan → 409 met een nette tekst.
+    if (planLimitKind(insertError)) return json(409, { error: planLimitText(insertError), code: "PLAN_LIMIT_PRODUCTS" });
     return json(500, { error: insertError?.message ?? "Insert failed" });
   }
   const newProductId: string = inserted.id;

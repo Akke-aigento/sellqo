@@ -125,14 +125,12 @@ export interface NewBundleInput {
 
 export function useCreateBundle() {
   const { currentTenant } = useTenant();
-  const { enforceLimit } = useUsageLimits();
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: NewBundleInput) => {
       if (!currentTenant) throw new Error('no_tenant');
       if (input.components.length < 2) throw new Error('too_few');
-      const limit = await enforceLimit('products');
-      if (!limit.allowed) throw new Error('limit');
+      // LIMITS-1: een ticketbundel is een ticket en telt niet mee voor het productlimiet.
       const tenantId = currentTenant.id;
       const base = slugBase(input.name);
       const { data: existing } = await db.from('products').select('slug').eq('tenant_id', tenantId).like('slug', `${base}%`);

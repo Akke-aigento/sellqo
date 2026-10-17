@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
+import i18n from 'i18next';
+import { planLimitMessage } from '@/lib/planUsage';
 import type { Product, ProductFormData, BundleItem } from '@/types/product';
 
 export function useProducts() {
@@ -52,7 +54,9 @@ export function useProducts() {
       toast({ title: 'Product aangemaakt', description: 'Het product is succesvol toegevoegd.' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      // LIMITS-1: productlimiet van het plan bereikt (databank weigert de insert).
+      const limitMsg = planLimitMessage(error, (k) => i18n.t(k));
+      toast({ title: limitMsg ? i18n.t('billing.limit_error.title') : 'Fout', description: limitMsg ?? error.message, variant: 'destructive' });
     },
   });
 

@@ -76,6 +76,8 @@ export interface PricingPlan {
   stripe_price_id_yearly: string | null;
   limit_products: number | null;
   limit_orders: number | null;
+  /** LIMITS-1: percentage per order boven limit_orders (Free: 2). */
+  overage_fee_percent?: number | null;
   limit_customers: number | null;
   limit_users: number;
   limit_storage_gb: number;

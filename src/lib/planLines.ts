@@ -27,7 +27,10 @@ export function planLines(plan: PricingPlan, t: TFunction, lng: string): { lines
   return {
     lines: [
       limit(plan.limit_products, 'lim_products_one', 'lim_products', 'lim_products_unlimited'),
-      limit(plan.limit_orders, 'lim_orders_one', 'lim_orders', 'lim_orders_unlimited'),
+      // LIMITS-1: boven het gratis orderlimiet blijft de webshop open, met een percentage per order.
+      plan.limit_orders != null && Number(plan.overage_fee_percent ?? 0) > 0
+        ? k('lim_orders_overage', { n: plan.limit_orders.toLocaleString(lng), pct: Number(plan.overage_fee_percent).toLocaleString(lng) })
+        : limit(plan.limit_orders, 'lim_orders_one', 'lim_orders', 'lim_orders_unlimited'),
       limit(plan.limit_users, 'lim_users_one', 'lim_users', 'lim_users_unlimited'),
       ...FEATURE_LINES.filter((l) => f[l.key]).map((l) => k(l.label)),
       ...(aiCredits > 0 ? [k('feat_ai', { n: aiCredits.toLocaleString(lng) })] : []),

@@ -2917,6 +2917,20 @@ async function ticketFeeFor(supabase: SupabaseLike, tenantId: string, cartItems:
   return { tickets, feeCents: Math.round(fee * 100) * tickets };
 }
 
+// LIMITS-1 — Free boven het gratis orderlimiet: 2% per order als applicatiefee (enige bron:
+// platform_order_overage_rate). Een mandje met tickets betaalt al de ticketfee en telt niet mee.
+// Faalt de lookup, dan geen fee hier: de cron registreert de order dan voor de maandfactuur.
+async function orderOverageFeeCents(supabase: SupabaseLike, tenantId: string, cartItems: DbRow[], sessionCents: number): Promise<number> {
+  if (sessionCents <= 0) return 0;
+  if (cartItems.some((i) => i.event_detail_id)) return 0;
+  const { data, error } = await (supabase as unknown as { rpc: (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }> })
+    .rpc('platform_order_overage_rate', { p_tenant_id: tenantId });
+  if (error) { console.error('[LIMITS-1] overage rate lookup failed', error); return 0; }
+  const pct = Number(data ?? 0);
+  if (!(pct > 0)) return 0;
+  return Math.round(sessionCents * pct / 100);
+}
+
 // HORECA-CHANNELS-1 — waar mag een product besteld worden, en is het op voor vandaag?
 // channels ontbreekt (oude rij) = overal. Het mandje en elke betaling controleren dit
 // server-side, zodat een oude link of een aangepaste request het niet omzeilt.
@@ -4172,10 +4186,16 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     }
 
     // FLEX-1 — kost per ticket, nooit meer dan het bedrag van de sessie zelf.
+    const sessionCents = (sessionParams.line_items as { price_data: { unit_amount: number }; quantity: number }[])
+      .reduce((sum, li) => sum + li.price_data.unit_amount * li.quantity, 0);
     if (ticketFee.feeCents > 0) {
-      const sessionCents = (sessionParams.line_items as { price_data: { unit_amount: number }; quantity: number }[])
-        .reduce((sum, li) => sum + li.price_data.unit_amount * li.quantity, 0);
       sessionParams.payment_intent_data.application_fee_amount = Math.min(ticketFee.feeCents, sessionCents);
+    }
+    // LIMITS-1 — 2% boven het gratis orderlimiet (nooit samen met de ticketfee, zie orderOverageFeeCents).
+    const orderFeeCents = ticketFee.feeCents > 0 ? 0 : Math.min(await orderOverageFeeCents(supabase, tenantId, cart.cartItems || [], sessionCents), sessionCents);
+    if (orderFeeCents > 0) {
+      sessionParams.payment_intent_data.application_fee_amount = orderFeeCents;
+      sessionParams.metadata.platform_order_fee_cents = String(orderFeeCents);
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams, { stripeAccount: tenantData.stripe_account_id });
@@ -4584,6 +4604,8 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       currency: cart.currency || tenantData?.currency || 'EUR',
       stripe_payment_intent_id: session.payment_intent as string,
       stripe_checkout_session_id: session.id,
+      // LIMITS-1: de 2% die Stripe als applicatiefee inhield (sessiemetadata), voor het feeregister.
+      platform_order_fee_cents: Number(session.metadata?.platform_order_fee_cents) > 0 ? Number(session.metadata?.platform_order_fee_cents) : null,
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
       ...vatRegimeOrderFields(vatCtx),

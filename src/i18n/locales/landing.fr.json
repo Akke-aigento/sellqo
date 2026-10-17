@@ -297,87 +297,6 @@
       "footnoteStripe": "Paiements Stripe : 1,5 % + 0,25 € par transaction (tarifs Stripe standards)",
       "footnoteVat": "Tous les prix sont hors TVA",
       "exclVatShort": "hors TVA",
-      "plans": {
-        "free": {
-          "name": "Free",
-          "badge": "Pour démarrer",
-          "cta": "Commencer gratuitement",
-          "features": [
-            "25 produits",
-            "50 commandes/mois",
-            "100 clients",
-            "Factures manuelles",
-            "Codes de réduction",
-            "Support communautaire"
-          ],
-          "limitations": [
-            "Pas de webshop",
-            "Pas d'IA",
-            "Pas de POS",
-            "Pas de SellQo Connect",
-            "Filigrane SellQo"
-          ]
-        },
-        "starter": {
-          "name": "Starter",
-          "badge": "Parfait pour démarrer",
-          "cta": "Commencer gratuitement",
-          "features": [
-            "250 produits",
-            "500 commandes/mois",
-            "1 000 clients",
-            "3 membres d'équipe",
-            "✨ 50 crédits IA/mois",
-            "🛒 Webshop Builder",
-            "E-factures Factur-X",
-            "Codes de réduction",
-            "Shop Health Score",
-            "Gamification & Badges",
-            "Support e-mail",
-            "Domaine personnalisé",
-            "🔗 SellQo Connect Lite — 1 canal"
-          ]
-        },
-        "pro": {
-          "name": "Pro",
-          "badge": "Le plus choisi",
-          "cta": "Commencer gratuitement",
-          "features": [
-            "2 500 produits",
-            "5 000 commandes/mois",
-            "10 000 clients",
-            "10 membres d'équipe",
-            "✨ 500 crédits IA/mois",
-            "🛒 Webshop Builder + Visual Editor",
-            "💳 Caisse POS incluse",
-            "🤖 Coach IA Business",
-            "🔗 SellQo Connect — tous les canaux",
-            "Intégration comptable Odoo (incl. e-facturation Peppol)",
-            "Multi-entrepôts",
-            "Live Activity Feed",
-            "Programme de fidélité",
-            "Support prioritaire"
-          ]
-        },
-        "enterprise": {
-          "name": "Enterprise",
-          "badge": "Pour entreprises en croissance",
-          "cta": "Nous contacter",
-          "features": [
-            "Produits illimités",
-            "Commandes illimitées",
-            "50 membres d'équipe",
-            "✨ 5 000 crédits IA/mois",
-            "🛒 Tous les thèmes premium",
-            "🔗 SellQo Connect — tous canaux + custom",
-            "Options white-label",
-            "Interlocuteur dédié",
-            "Support WhatsApp & téléphone",
-            "Accompagnement à la migration inclus",
-            "Onboarding prioritaire"
-          ]
-        }
-      },
       "availableAddons": "Modules complémentaires disponibles",
       "meta_title": "Tarifs — SellQo pour commerces, restauration et événements",
       "meta_desc": "Tarifs SellQo pour boutiques en ligne, horeca et événements. Démarrez gratuitement, résiliable chaque mois, aucun frais par commande.",
@@ -446,7 +365,8 @@
       "addon_webshop": "Ajouter une boutique en ligne",
       "addon_horeca": "Ajouter l’horeca",
       "addon_events": "Vendre des billets",
-      "addon_price": "+ {{price}} par mois"
+      "addon_price": "+ {{price}} par mois",
+      "lim_orders_overage": "{{n}} commandes par mois incluses, puis {{pct}} % par commande"
     },
     "faq": {
       "heading": "Questions fréquentes",
@@ -1434,6 +1354,10 @@
     },
     "changelog": {
       "changes": {
+        "plan_limits": {
+          "title": "Des limites claires par forfait, et votre boutique ne ferme jamais",
+          "description": "Les produits et les membres de l'équipe ont désormais un maximum fixe par forfait ; les billets ne comptent jamais. Le forfait Free inclut {{free_orders}} commandes par mois. Ensuite, votre boutique reste ouverte et vous payez {{free_overage_pct}} % par commande jusqu'à ce que vous passiez à un forfait payant. Dès 80 % d'une limite, vous voyez un avis ; à 100 %, vous recevez aussi un e-mail. La limite de clients a été supprimée."
+        },
         "addon_billing": {
           "title": "Modules et billets en caisse correctement sur votre facture",
           "description": "Un module (boutique en ligne ou horeca) ajouté en cours de mois est facturé au prorata et figure désormais sur une ligne distincte de votre facture. Si vous arrêtez un module, il reste actif jusqu'à la fin de la période payée. Les billets vendus en caisse ou manuellement figurent avec leurs frais sur votre prochaine facture ; sans abonnement mensuel, vous recevez une facture de consommation dès que 5 € sont dus. Events Vast affiche désormais la fin de votre contrat de 12 mois."

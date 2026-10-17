@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { countUsage } from '@/lib/planUsage';
 import type { TenantSubscription, PlatformInvoice, TenantUsageWithLimits, PricingPlanFeatures } from '@/types/billing';
 
 import { TenantContext } from '@/hooks/useTenant';
@@ -62,20 +63,18 @@ export function useTenantSubscription() {
       if (!currentTenant?.id || !subscription?.pricing_plan) return null;
 
       // Get counts
-      const [productsRes, ordersRes, crmCustomersRes, storefrontCustomersRes, usersRes, storageRes] = await Promise.all([
-        supabase.from('products').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
-        supabase.from('orders').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
+      // LIMITS-1: zelfde telling als de databank (src/lib/planUsage.ts).
+      const [products, orders, crmCustomersRes, storefrontCustomersRes, users, storageRes] = await Promise.all([
+        countUsage(currentTenant.id, 'products'),
+        countUsage(currentTenant.id, 'orders'),
         supabase.from('customers').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
         supabase.from('storefront_customers').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
-        supabase.from('user_roles').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
+        countUsage(currentTenant.id, 'users'),
         supabase.rpc('get_tenant_storage_bytes', { p_tenant_id: currentTenant.id }),
       ]);
 
       const plan = subscription.pricing_plan;
-      const products = productsRes.count || 0;
-      const orders = ordersRes.count || 0;
       const customers = (crmCustomersRes.count || 0) + (storefrontCustomersRes.count || 0);
-      const users = usersRes.count || 0;
       const storageBytes = (storageRes.data as number) || 0;
       const storageGb = Number((storageBytes / (1024 * 1024 * 1024)).toFixed(2));
 
