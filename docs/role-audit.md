@@ -1,3 +1,16 @@
+## SUB-UNIFY-2A-ECHT — opzeg-sweep van droog naar echte modus — 17 oktober 2026
+
+Vervolg op SUB-UNIFY-2A (zie verder in dit bestand). Akke's go op 17-10 ("Ja, echte modus aan") na de eerste geplande droge run.
+
+- **Root cause / aanleiding:** de dagelijkse cron `subscription-lifecycle-sweep-daily` (jobid 344, `50 6 * * *`) stond bewust op `{"dry_run":true}` tot één cron-run zonder verrassingen bewezen was.
+- **Bewijs droge run:** 17-10 06:50 UTC, cron `succeeded`, response 262240: `downgrade 0, scheduled 0, excluded 2 (SellQo Sandbox + SellQo Speeltuin, reden demo), applied 0, failed []`. `notifications` met type `plan_ended`: 0. `net.http_request_queue`: 0.
+- **Uitgevoerd:** `cron.alter_job(344, …)`: body `"dry_run":true` vervangen door `"dry_run":false` (live via `query_database`). Vastgelegd als `supabase/migrations/20261017070000_sub_unify_2a_sweep_echt.sql` (idempotent, terugdraai-instructie in commentaar).
+- **Natrek:** jobid 344 actief, schedule ongewijzigd, body bevat `"dry_run":false` en geen `"dry_run":true`, geen JWT in het command (key uit vault).
+- **Security-keuzes:** n.v.t.; de functie aanvaardt alleen cron-secret of service-key (ongewijzigd).
+- **Gedeelde paden:** geen. Uitsluitingen (demo, `is_internal_tenant`, `billing_exempt`, `billing_on_hold` = Sander's winkels, billing-tenant) zitten in de functie en blijven gelden.
+- **Geld:** de sweep doet geen Stripe-calls, maakt geen cycli of facturen en stuurt geen mails; alleen plan → free, billing-sub `active` → `cancelled` en een melding `plan_ended`. Vandaag raakt hij 0 winkels.
+- **Vervolg:** eerste echte run 18-10 06:50 UTC nalezen (geplande herinnering). Open uit SUB-UNIFY-2A: openstaande cyclus bij opzeggen binnen 5 dagen, "maandelijks opzegbaar" bij jaarplannen, Events Flex-tak.
+
 ## MARKETING-3 — Tab "Maken" weg, één knop "Post met AI" (2026.12o) — 16 oktober 2026
 
 Akke 22:49: "zijn die AI-tools nog wel van nut? … meer centraliseren in plaats van miljoenen schermen? Enkel dingen die gebruikt worden". Go 22:51.
