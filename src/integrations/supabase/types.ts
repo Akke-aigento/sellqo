@@ -9982,6 +9982,7 @@ export type Database = {
           paid_at: string | null
           payment_method: string | null
           payment_status: Database["public"]["Enums"]["payment_status"] | null
+          platform_order_fee_cents: number | null
           raw_marketplace_data: Json | null
           requested_time: string | null
           risk_level: string | null
@@ -10055,6 +10056,7 @@ export type Database = {
           paid_at?: string | null
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          platform_order_fee_cents?: number | null
           raw_marketplace_data?: Json | null
           requested_time?: string | null
           risk_level?: string | null
@@ -10128,6 +10130,7 @@ export type Database = {
           paid_at?: string | null
           payment_method?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"] | null
+          platform_order_fee_cents?: number | null
           raw_marketplace_data?: Json | null
           requested_time?: string | null
           risk_level?: string | null
@@ -10725,6 +10728,45 @@ export type Database = {
           },
         ]
       }
+      plan_usage_notices: {
+        Row: {
+          created_at: string
+          kind: string
+          period: string
+          tenant_id: string
+          threshold: number
+        }
+        Insert: {
+          created_at?: string
+          kind: string
+          period: string
+          tenant_id: string
+          threshold: number
+        }
+        Update: {
+          created_at?: string
+          kind?: string
+          period?: string
+          tenant_id?: string
+          threshold?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "plan_usage_notices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "plan_usage_notices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_addons: {
         Row: {
           active: boolean
@@ -11137,6 +11179,78 @@ export type Database = {
           },
           {
             foreignKeyName: "platform_invoices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_order_fees: {
+        Row: {
+          billing_cycle_id: string | null
+          collected_via: string
+          created_at: string
+          fee_cents: number
+          fee_percent: number
+          invoiced_at: string | null
+          order_id: string
+          order_total: number
+          tenant_id: string
+        }
+        Insert: {
+          billing_cycle_id?: string | null
+          collected_via: string
+          created_at?: string
+          fee_cents: number
+          fee_percent: number
+          invoiced_at?: string | null
+          order_id: string
+          order_total: number
+          tenant_id: string
+        }
+        Update: {
+          billing_cycle_id?: string | null
+          collected_via?: string
+          created_at?: string
+          fee_cents?: number
+          fee_percent?: number
+          invoiced_at?: string | null
+          order_id?: string
+          order_total?: number
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_order_fees_billing_cycle_id_fkey"
+            columns: ["billing_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "billing_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_order_fees_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_order_fees_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_order_fees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_order_fees_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -11934,6 +12048,7 @@ export type Database = {
           min_term_months: number
           monthly_price: number
           name: string
+          overage_fee_percent: number
           slug: string
           sort_order: number | null
           stripe_price_id_monthly: string | null
@@ -11963,6 +12078,7 @@ export type Database = {
           min_term_months?: number
           monthly_price?: number
           name: string
+          overage_fee_percent?: number
           slug: string
           sort_order?: number | null
           stripe_price_id_monthly?: string | null
@@ -11992,6 +12108,7 @@ export type Database = {
           min_term_months?: number
           monthly_price?: number
           name?: string
+          overage_fee_percent?: number
           slug?: string
           sort_order?: number | null
           stripe_price_id_monthly?: string | null
@@ -18593,6 +18710,7 @@ export type Database = {
           pending_interval: string | null
           pending_plan_id: string | null
           plan_id: string | null
+          plan_since: string | null
           status: string
           stripe_customer_id: string | null
           stripe_payment_method_id: string | null
@@ -18620,6 +18738,7 @@ export type Database = {
           pending_interval?: string | null
           pending_plan_id?: string | null
           plan_id?: string | null
+          plan_since?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
@@ -18647,6 +18766,7 @@ export type Database = {
           pending_interval?: string | null
           pending_plan_id?: string | null
           plan_id?: string | null
+          plan_since?: string | null
           status?: string
           stripe_customer_id?: string | null
           stripe_payment_method_id?: string | null
@@ -22264,6 +22384,7 @@ export type Database = {
         }
         Returns: number
       }
+      notify_plan_usage: { Args: never; Returns: number }
       perform_scan: {
         Args: {
           p_device_id?: string
@@ -22275,6 +22396,20 @@ export type Database = {
           p_zone_id: string
         }
         Returns: Json
+      }
+      platform_limits_start: { Args: never; Returns: string }
+      platform_month_paid_orders: {
+        Args: { p_at?: string; p_tenant_id: string }
+        Returns: number
+      }
+      platform_order_overage_rate: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
+      platform_team_size: { Args: { p_tenant_id: string }; Returns: number }
+      platform_tenant_unlimited: {
+        Args: { p_tenant_id: string }
+        Returns: boolean
       }
       platform_ticket_fee_for: {
         Args: { p_tenant_id: string }
@@ -22288,6 +22423,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      record_platform_order_fees: { Args: never; Returns: number }
       record_platform_ticket_fees: { Args: never; Returns: number }
       record_stock_movement: {
         Args: {
