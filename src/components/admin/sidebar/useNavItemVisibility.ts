@@ -6,7 +6,8 @@ import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { canWithRoles, type Resource } from '@/hooks/useCan';
-import { isBusinessModule, tenantModules } from '@/hooks/useBusinessModules';
+import { useTracks } from '@/hooks/useBusinessModules';
+import { tracksAllow } from '@/lib/tracks';
 import { WAREHOUSE_ALLOWED_ITEMS, type NavItem } from './sidebarConfig';
 
 /**
@@ -30,6 +31,7 @@ export function useNavItemVisibility() {
   const { isPageHidden, isFeatureGranted } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
+  const { hasTrack } = useTracks();
 
 
   // H4a — whitelist via permissie-matrix. Filter rollen per-tenant (matcht
@@ -60,13 +62,12 @@ export function useNavItemVisibility() {
       // If feature is explicitly granted by admin, show it
       if (isFeatureGranted(item.featureKey)) return false;
       // MODULES-1: sectormodule die de winkel zelf gekozen heeft (horeca, events)
-      if (isBusinessModule(item.featureKey) && tenantModules(currentTenant).includes(item.featureKey)) return false;
 
       const features = subscription?.pricing_plan?.features;
       if (!features) return true; // No subscription = hide premium features
       return features[item.featureKey as keyof typeof features] !== true;
     },
-    [isPlatformAdmin, isAdminView, isFeatureGranted, subscription, currentTenant],
+    [isPlatformAdmin, isAdminView, isFeatureGranted, subscription],
   );
 
   /** Blokkeert het abonnement dit item? Voor het slotje in de sidebar. */
@@ -124,10 +125,12 @@ export function useNavItemVisibility() {
   const isItemBlocked = useCallback(
     (item: NavItem): boolean =>
       isResourceHidden(item.requireRead) ||
+      // TRACKS-1 — buiten de sporen van de winkel (platformadmin in beheerweergave ziet alles).
+      !tracksAllow(item.tracks, hasTrack) ||
       isItemRoleHidden(item) ||
       isItemFeatureHidden(item) ||
       isItemPageOverridden(item),
-    [isResourceHidden, isItemRoleHidden, isItemFeatureHidden, isItemPageOverridden],
+    [isResourceHidden, hasTrack, isItemRoleHidden, isItemFeatureHidden, isItemPageOverridden],
   );
 
   /** `isItemBlocked` plus de persoonlijke voorkeuren. Voor de zijbalk. */

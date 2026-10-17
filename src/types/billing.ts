@@ -56,6 +56,8 @@ export interface PricingPlanFeatures {
 }
 
 export interface PricingPlan {
+  /** TRACKS-1 — spoor van het plan: webshop, horeca of events. */
+  track?: 'webshop' | 'horeca' | 'events';
   id: string;
   name: string;
   slug: string;

@@ -1,4 +1,5 @@
 import { Outlet, useLocation } from 'react-router-dom';
+import { TrackGate } from '@/components/admin/TrackGate';
 import { useEffect, useRef } from 'react';
 import { SidebarProvider, SidebarInset, useSidebar } from '@/components/ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
@@ -96,7 +97,8 @@ function AdminLayoutContent() {
           <BillingStateBanner />
           <main ref={mainRef} className="flex-1 min-w-0 min-h-0 overflow-y-auto overflow-x-hidden pb-[var(--admin-nav-offset)] md:pb-6">
             <div className={cn('p-4 lg:p-6 max-w-screen-2xl mx-auto w-full min-w-0', fillHeight && 'h-full')}>
-              <Outlet />
+              {/* TRACKS-1: pagina's buiten het pakket tonen de uitlegkaart. */}
+              <TrackGate><Outlet /></TrackGate>
             </div>
           </main>
         </SidebarInset>

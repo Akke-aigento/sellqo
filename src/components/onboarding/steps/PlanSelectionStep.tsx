@@ -10,11 +10,10 @@ import { cn } from '@/lib/utils';
 import { eur, planLines } from '@/lib/planLines';
 
 type Sector = 'retail' | 'horeca' | 'events';
-const SECTOR_PLANS: Record<Sector, { ids: string[]; recommended: string[] }> = {
-  retail: { ids: ['free', 'starter', 'pro', 'enterprise'], recommended: ['starter'] },
-  horeca: { ids: ['horeca', 'pro', 'free'], recommended: ['horeca', 'pro'] },
-  events: { ids: ['events_flex', 'starter', 'pro'], recommended: ['events_flex', 'starter'] },
-};
+// TRACKS-1 — elke sector toont alleen de plannen van zijn spoor (pricing_plans.track);
+// een tweede spoor komt er later bij als add-on, niet als een plan van een ander spoor.
+const SECTOR_TRACK: Record<Sector, 'webshop' | 'horeca' | 'events'> = { retail: 'webshop', horeca: 'horeca', events: 'events' };
+const RECOMMENDED: Record<Sector, string[]> = { retail: ['starter'], horeca: ['horeca'], events: ['events_flex'] };
 
 interface PlanSelectionStepProps {
   selectedPlanId: string;
@@ -29,9 +28,12 @@ export function PlanSelectionStep({ selectedPlanId, sector = 'retail', onSelectP
   const k = (x: string, o?: Record<string, unknown>) => t(`onboarding.plan.${x}`, o);
   const p = (x: string, o?: Record<string, unknown>) => t(`landing.pricing.${x}`, o);
   const { plans, isLoading } = usePricingPlans();
-  const cfg = SECTOR_PLANS[sector] ?? SECTOR_PLANS.retail;
-  const shown = useMemo(() => cfg.ids.map((id) => plans.find((pl) => pl.id === id)).filter((pl): pl is NonNullable<typeof pl> => !!pl), [cfg, plans]);
-  const recommended = cfg.recommended.find((id) => shown.some((pl) => pl.id === id)) ?? null;
+  const track = SECTOR_TRACK[sector] ?? 'webshop';
+  const shown = useMemo(
+    () => plans.filter((pl) => ((pl as { track?: string }).track ?? 'webshop') === track),
+    [plans, track],
+  );
+  const recommended = (RECOMMENDED[sector] ?? []).find((id) => shown.some((pl) => pl.id === id)) ?? shown[0]?.id ?? null;
 
   // Eén keer het aanbevolen plan voorselecteren als de keuze nog op de standaard staat
   // of niet bij deze sector hoort.

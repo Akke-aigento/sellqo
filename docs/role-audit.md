@@ -1,3 +1,27 @@
+## TRACKS-1 — drie sporen (webshop, horeca, events): menu én pagina's per pakket — 17 oktober 2026
+
+Eerste batch van de vaste prijsstructuur (projectdoc `claude/sellqo-prijsstructuur.md`, go van Akke 17-10).
+
+- **Model:** sporen van een winkel = `pricing_plans.track` van zijn plan + add-ons (`tenants.business_modules`) + door een platformadmin ontgrendelde modules (`tenant_feature_overrides.granted_features`). Code: `src/lib/tracks.ts`, `useTracks()` in `useBusinessModules.ts`.
+- **Migratie** `20261017120000_tracks_1.sql`, live via `query_database` (snapshots `snapshots.platform_20261017_{pricing_plans,tenants_modules,fn_tenants_protect}`):
+  - `pricing_plans.track` (check webshop/horeca/events): free/starter/pro/enterprise = webshop, horeca = horeca, events_flex = events.
+  - `tenants_business_modules_valid` laat nu ook `webshop` toe.
+  - `tenants_protect_platform_columns` beschermt ook `business_modules`: alleen platformadmin of backend kan add-ons wijzigen; bij een insert door een gewone gebruiker wordt het leeg.
+  - **Natrek:** tracks per plan juist, constraint en guard live, 0 tenants gewijzigd t.o.v. snapshot. Rol-test (tenant_admin Astra Sleep, in een DO-blok met rollback): update van `business_modules` → "Deze instelling kan alleen SellQo wijzigen".
+- **Gat gedicht:** winkels konden horeca/events zelf gratis aanzetten (Instellingen → Modules en de module-uit-kaart). Nu: status + "Bekijk de pakketten"; alleen platformadmins hebben de schakelaar.
+- **Matrix** (`tracks` op de NavItems in sidebarConfig, kind erft van parent):
+  - kern: Dashboard, Inbox, Bestellingen + Facturen, Klanten + Klantgroepen, Webshop, Betalingen, Kortingscodes, Social, E-mail, Media, SEO, Vertalingen, Rapporten + Analyse, Connect, SellQo-plan, Instellingen, Help
+  - webshop + horeca: Producten, Categorieën, Kassa, overige promoties, Inkoop, Voorraadrapport
+  - webshop: Fulfillment, Retouren, Offertes, Abonnementen, Verzending, Ads
+  - horeca: Bestellen, Keuken · events: Events + kinderen
+  - featureKey `horeca`/`events` op de menu-items vervangen door sporen; plan-features (pos, promo_*, …) blijven gelden binnen een spoor.
+- **Pagina-bewaking:** `TrackGate` rond de admin-`Outlet` leest dezelfde regels (`findTrackRule`): een route buiten het pakket toont de uitlegkaart. Producten bewaakt alleen de lijst (`trackGateExact`), omdat eventwinkels combitickets/munten via `/admin/products/:id/edit` bewerken.
+- **Onboarding:** planstap filtert op `track` van de gekozen sector (horeca → horecaplannen, events → eventsplannen); de client schrijft geen `business_modules` meer.
+- **Bestaande winkels:** ongewijzigd. Demo-horeca/-events en Fonske houden webshop + hun module als add-on of grant.
+- **Checks:** tsc 27 = baseline; eslint op de geraakte bestanden gelijk aan baseline; vitest 60 bestanden / 786 tests groen, nieuw `src/test/tracks.test.ts`; i18n-pariteit, used-keys en dead-buttons ok. Harnas per spoor: webshop 41, horeca 34, events 25 menu-items (alle plan-features aan); bewaking nagelopen op 8 routes.
+- **Niet in deze batch:** prijzen/Stripe, Horeca Big, Events Vast, Pro→Enterprise-features, betaalde add-on-checkout, ticketfee uit spoor/add-on i.p.v. hoofdplan, POS-tickets, Fonske naar Flex met vrijstelling (→ PLANS-2 / BILL-TERM-1).
+- **Live:** frontend pas na `deploy_project`; app pas met de volgende native build. De DB-wijziging is al live en raakt bestaande gedrag niet (add-ons stonden alleen bij demo's en Fonske, door een admin gezet).
+
 ## SIDEBAR-CLEAN-1 — zijbalk opgeruimd: dubbels weg, parent klikbaar (2026.12p) — 17 oktober 2026
 
 Aanleiding: Akke vond de zijbalk "enorm uitgebreid, hier en daar dubbel". Recon op main 562d965: ±38 hoofditems voor platform_admin.

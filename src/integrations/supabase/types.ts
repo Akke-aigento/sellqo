@@ -11825,6 +11825,7 @@ export type Database = {
           stripe_price_id_yearly: string | null
           stripe_product_id: string | null
           ticket_fee: number
+          track: string
           transaction_overage_fee: number | null
           updated_at: string | null
           yearly_price: number
@@ -11852,6 +11853,7 @@ export type Database = {
           stripe_price_id_yearly?: string | null
           stripe_product_id?: string | null
           ticket_fee?: number
+          track?: string
           transaction_overage_fee?: number | null
           updated_at?: string | null
           yearly_price?: number
@@ -11879,6 +11881,7 @@ export type Database = {
           stripe_price_id_yearly?: string | null
           stripe_product_id?: string | null
           ticket_fee?: number
+          track?: string
           transaction_overage_fee?: number | null
           updated_at?: string | null
           yearly_price?: number

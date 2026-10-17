@@ -39,6 +39,7 @@ import {
 
 import type { AppRole } from '@/hooks/useAuth';
 import type { Resource } from '@/hooks/useCan';
+import type { Track } from '@/lib/tracks';
 
 export interface NavItem {
   id: string;
@@ -65,6 +66,17 @@ export interface NavItem {
    * blijft bestaan voor de rol-whitelists en verbergregels.
    */
   landing?: boolean;
+  /**
+   * TRACKS-1 — sporen waarin dit item bestaat. Leeg = kern (iedereen). Een kind
+   * zonder eigen sporen erft die van zijn parent. Bewaakt menu én pagina's
+   * (TrackGate); binnen een spoor blijven featureKey en requireRead gelden.
+   */
+  tracks?: Track[];
+  /**
+   * TRACKS-1 — bewaak alleen de lijstpagina zelf, niet de subroutes. Voor
+   * Producten: eventwinkels bewerken combitickets en munten via /admin/products/:id/edit.
+   */
+  trackGateExact?: boolean;
 }
 
 export interface NavGroup {
@@ -112,15 +124,17 @@ const dailyItems: NavItem[] = [
     requireRead: 'orders',
     children: [
       { id: 'orders-all', titleKey: 'navigation.items.orders_all', url: '/admin/orders', requireRead: 'orders', landing: true },
-      { id: 'orders-fulfillment', titleKey: 'navigation.items.orders_fulfillment', url: '/admin/fulfillment', excludeRoles: ['marketing'], requireRead: 'orders' },
-      { id: 'orders-returns', titleKey: 'navigation.items.orders_returns', url: '/admin/returns', excludeRoles: ['warehouse', 'marketing'], requireRead: 'returns' },
+      { id: 'orders-fulfillment', tracks: ['webshop'], titleKey: 'navigation.items.orders_fulfillment', url: '/admin/fulfillment', excludeRoles: ['marketing'], requireRead: 'orders' },
+      { id: 'orders-returns', tracks: ['webshop'], titleKey: 'navigation.items.orders_returns', url: '/admin/returns', excludeRoles: ['warehouse', 'marketing'], requireRead: 'returns' },
       { id: 'orders-invoices', titleKey: 'navigation.items.orders_invoices', url: '/admin/orders/invoices', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
-      { id: 'orders-quotes', titleKey: 'navigation.items.orders_quotes', url: '/admin/orders/quotes', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
-      { id: 'orders-subscriptions', titleKey: 'navigation.items.orders_subscriptions', url: '/admin/orders/subscriptions', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
+      { id: 'orders-quotes', tracks: ['webshop'], titleKey: 'navigation.items.orders_quotes', url: '/admin/orders/quotes', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
+      { id: 'orders-subscriptions', tracks: ['webshop'], titleKey: 'navigation.items.orders_subscriptions', url: '/admin/orders/subscriptions', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
     ],
   },
   {
     id: 'products',
+    tracks: ['webshop', 'horeca'],
+    trackGateExact: true,
     titleKey: 'navigation.products',
     url: '/admin/products',
     icon: Package,
@@ -146,17 +160,17 @@ const dailyItems: NavItem[] = [
 
 // VERKOOP - Verkoopgerelateerde functies
 const salesItems: NavItem[] = [
-  { id: 'pos', titleKey: 'navigation.items.pos', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'], requireRead: 'pos' },
-  // HORECA-1 — horeca-module (featureKey 'horeca'): alleen voor winkels die hem hebben.
-  { id: 'ordering', titleKey: 'navigation.items.ordering', url: '/admin/bestellen', icon: UtensilsCrossed, featureKey: 'horeca', excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'orders' },
-  { id: 'kitchen', titleKey: 'navigation.items.kitchen', url: '/admin/keuken', icon: ChefHat, featureKey: 'horeca', excludeRoles: ['marketing', 'accountant'], requireRead: 'orders' },
+  { id: 'pos', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.pos', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'], requireRead: 'pos' },
+  // HORECA-1 / TRACKS-1 — horeca-spoor: alleen voor winkels die het hebben.
+  { id: 'ordering', tracks: ['horeca'], titleKey: 'navigation.items.ordering', url: '/admin/bestellen', icon: UtensilsCrossed, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'orders' },
+  { id: 'kitchen', tracks: ['horeca'], titleKey: 'navigation.items.kitchen', url: '/admin/keuken', icon: ChefHat, excludeRoles: ['marketing', 'accountant'], requireRead: 'orders' },
   {
     id: 'event-dashboard',
+    tracks: ['events'],
     titleKey: 'navigation.items.event_dashboard',
     url: '/admin/events',
     icon: CalendarDays,
-    // MODULES-1 — events-module: alleen voor winkels die tickets verkopen.
-    featureKey: 'events',
+    // TRACKS-1 — events-spoor (vroeger featureKey 'events').
     allowedRoles: ['platform_admin', 'tenant_admin', 'staff'],
     children: [
       { id: 'events-all', titleKey: 'navigation.items.events_all', url: '/admin/events', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'], landing: true },
@@ -177,13 +191,13 @@ const salesItems: NavItem[] = [
     requireRead: 'discount_codes',
     children: [
       { id: 'promo-codes', titleKey: 'navigation.items.promo_codes', url: '/admin/promotions', requireRead: 'discount_codes', landing: true },
-      { id: 'promo-bundles', titleKey: 'navigation.items.promo_bundles', url: '/admin/promotions/bundles', featureKey: 'promo_bundles', requireRead: 'discount_codes' },
-      { id: 'promo-bogo', titleKey: 'navigation.items.promo_bogo', url: '/admin/promotions/bogo', featureKey: 'promo_bogo', requireRead: 'discount_codes' },
-      { id: 'promo-volume', titleKey: 'navigation.items.promo_volume', url: '/admin/promotions/volume', featureKey: 'promo_volume', requireRead: 'volume_discounts' },
-      { id: 'promo-auto', titleKey: 'navigation.items.promo_auto', url: '/admin/promotions/auto', requireRead: 'discount_codes' },
-      { id: 'promo-gifts', titleKey: 'navigation.items.promo_gifts', url: '/admin/promotions/gifts', requireRead: 'discount_codes' },
-      { id: 'promo-loyalty', titleKey: 'navigation.items.promo_loyalty', url: '/admin/promotions/loyalty', featureKey: 'loyalty_program', requireRead: 'loyalty' },
-      { id: 'promo-giftcards', titleKey: 'navigation.items.promo_giftcards', url: '/admin/promotions/gift-cards', featureKey: 'promo_giftcards', requireRead: 'discount_codes' },
+      { id: 'promo-bundles', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_bundles', url: '/admin/promotions/bundles', featureKey: 'promo_bundles', requireRead: 'discount_codes' },
+      { id: 'promo-bogo', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_bogo', url: '/admin/promotions/bogo', featureKey: 'promo_bogo', requireRead: 'discount_codes' },
+      { id: 'promo-volume', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_volume', url: '/admin/promotions/volume', featureKey: 'promo_volume', requireRead: 'volume_discounts' },
+      { id: 'promo-auto', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_auto', url: '/admin/promotions/auto', requireRead: 'discount_codes' },
+      { id: 'promo-gifts', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_gifts', url: '/admin/promotions/gifts', requireRead: 'discount_codes' },
+      { id: 'promo-loyalty', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_loyalty', url: '/admin/promotions/loyalty', featureKey: 'loyalty_program', requireRead: 'loyalty' },
+      { id: 'promo-giftcards', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_giftcards', url: '/admin/promotions/gift-cards', featureKey: 'promo_giftcards', requireRead: 'discount_codes' },
     ],
   },
 ];
@@ -200,6 +214,7 @@ const marketingItems: NavItem[] = [
   // MARKETING-2: Ads verhuisd uit Verkoop naar Marketing.
   {
     id: 'ads',
+    tracks: ['webshop'],
     titleKey: 'navigation.items.ads',
     url: '/admin/ads',
     icon: MegaphoneIcon,
@@ -220,7 +235,7 @@ const managementItems: NavItem[] = [
   { id: 'translations', titleKey: 'navigation.items.translations', url: '/admin/marketing/translations', icon: Languages, requireRead: 'cms' },
   // SIDEBAR-CLEAN-1: één item; Documenten zit als knop op de Leveranciers-pagina.
   // Id 'purchasing' blijft (tenant_feature_overrides.hidden_pages verwijst ernaar).
-  { id: 'purchasing', titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers' },
+  { id: 'purchasing', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers' },
   {
     id: 'reports',
     titleKey: 'navigation.items.reports',
@@ -232,10 +247,10 @@ const managementItems: NavItem[] = [
     children: [
       { id: 'reports-overview', titleKey: 'navigation.items.reports_overview', url: '/admin/reports', requireRead: 'reports_financial', landing: true },
       { id: 'reports-analytics', titleKey: 'navigation.analytics', url: '/admin/analytics', requireRead: 'reports_analytics' },
-      { id: 'reports-stock', titleKey: 'navigation.items.reports_stock', url: '/admin/reports/stock', requireRead: 'products' },
+      { id: 'reports-stock', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.reports_stock', url: '/admin/reports/stock', requireRead: 'products' },
     ],
   },
-  { id: 'shipping', titleKey: 'navigation.shipping', url: '/admin/shipping', icon: Truck, excludeRoles: ['marketing'] },
+  { id: 'shipping', tracks: ['webshop'], titleKey: 'navigation.shipping', url: '/admin/shipping', icon: Truck, excludeRoles: ['marketing'] },
 ];
 
 // SYSTEEM - Instellingen en integraties
@@ -291,6 +306,36 @@ export function findNavItems(ids: string[]): NavItem[] {
     }
   }
   return ids.map((id) => byId.get(id)).filter((item): item is NavItem => !!item);
+}
+
+/**
+ * TRACKS-1 — het menu-item dat een route dekt (langste URL), met de sporen die
+ * gelden (eigen sporen, anders die van de parent). Voor TrackGate: één bron voor
+ * menu en pagina-bewaking. Platformroutes en routes buiten het menu: null.
+ */
+export function findTrackRule(pathname: string): { item: NavItem; tracks: Track[] } | null {
+  const path = pathname.replace(/\/+$/, '') || '/';
+  let best: { item: NavItem; tracks: Track[]; len: number } | null = null;
+  const consider = (item: NavItem, tracks: Track[] | undefined) => {
+    const exact = path === item.url;
+    const nested = item.url !== '/admin' && path.startsWith(item.url + '/');
+    if (!exact && !nested) return;
+    if (best && item.url.length <= best.len) return;
+    if (!exact && item.trackGateExact) {
+      best = { item, tracks: [], len: item.url.length };
+      return;
+    }
+    best = { item, tracks: tracks ?? [], len: item.url.length };
+  };
+  for (const group of sidebarGroups) {
+    for (const item of group.items) {
+      consider(item, item.tracks);
+      for (const child of item.children ?? []) consider(child, child.tracks ?? item.tracks);
+    }
+  }
+  if (!best) return null;
+  const { item, tracks } = best as { item: NavItem; tracks: Track[] };
+  return { item, tracks };
 }
 
 export function getAllMenuItems(): { id: string; titleKey: string; groupKey: string }[] {

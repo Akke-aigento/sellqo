@@ -6690,7 +6690,7 @@
     },
     "modules": {
       "title": "Modules for your business",
-      "intro": "SellQo is one core: products, orders, POS and webshop. Switch on what fits your business here. Anything switched off stays out of sight.",
+      "intro": "Your plan decides which parts you see. You add an extra part as an add-on; anything outside your plan stays hidden.",
       "horeca_title": "Hospitality",
       "horeca_desc": "For pizzerias, chip shops, kebab shops and cafés: online ordering, a QR menu at the table and a kitchen screen.",
       "horeca_p1": "Pickup and delivery with time slots, delivery zones and a minimum order",
@@ -6709,7 +6709,15 @@
       "turned_off": "{{name}} is off",
       "turn_on": "Switch on {{name}}",
       "ask_admin": "Ask your shop's administrator to switch on this module.",
-      "save_failed": "Saving failed. Please try again."
+      "save_failed": "Saving failed. Please try again.",
+      "not_in_plan": "Not in your plan",
+      "see_plans": "View plans",
+      "addon_active": "Add-on active",
+      "webshop_title": "Webshop",
+      "webshop_desc": "Sell products online: catalogue, shipping, returns, promotions and marketplaces such as bol.com.",
+      "webshop_p1": "Products with variants, stock and categories",
+      "webshop_p2": "Shipping, fulfilment and returns",
+      "webshop_p3": "Promotions, quotes, subscriptions and bol.com"
     },
     "orderTickets": {
       "title": "Tickets and tokens",

@@ -6446,7 +6446,7 @@
     },
     "modules": {
       "title": "Module für Ihr Geschäft",
-      "intro": "SellQo ist ein Kern: Produkte, Bestellungen, Kasse und Webshop. Schalten Sie hier ein, was zu Ihrem Geschäft passt. Was ausgeschaltet ist, sehen Sie nirgends.",
+      "intro": "Ihr Tarif bestimmt, welche Bereiche Sie sehen. Einen zusätzlichen Bereich buchen Sie als Add-on; was nicht in Ihrem Tarif ist, bleibt ausgeblendet.",
       "horeca_title": "Gastronomie",
       "horeca_desc": "Für Pizzerien, Imbisse, Dönerläden und Cafés: Online-Bestellung, QR-Menü am Tisch und Küchenbildschirm.",
       "horeca_p1": "Abholung und Lieferung mit Zeitfenstern, Liefergebieten und Mindestbestellwert",
@@ -6465,7 +6465,15 @@
       "turned_off": "{{name}} ist deaktiviert",
       "turn_on": "{{name}} aktivieren",
       "ask_admin": "Bitten Sie den Administrator Ihres Shops, dieses Modul zu aktivieren.",
-      "save_failed": "Speichern fehlgeschlagen. Bitte erneut versuchen."
+      "save_failed": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+      "not_in_plan": "Nicht in Ihrem Tarif",
+      "see_plans": "Tarife ansehen",
+      "addon_active": "Add-on aktiv",
+      "webshop_title": "Webshop",
+      "webshop_desc": "Verkaufen Sie Produkte online: Katalog, Versand, Retouren, Aktionen und Marktplätze wie bol.com.",
+      "webshop_p1": "Produkte mit Varianten, Lagerbestand und Kategorien",
+      "webshop_p2": "Versand, Fulfillment und Retouren",
+      "webshop_p3": "Aktionen, Angebote, Abonnements und bol.com"
     },
     "orderTickets": {
       "title": "Tickets und Marken",

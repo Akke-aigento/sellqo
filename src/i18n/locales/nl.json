@@ -6704,7 +6704,7 @@
     },
     "modules": {
       "title": "Modules voor jouw zaak",
-      "intro": "SellQo is één kern: producten, bestellingen, kassa en webshop. Zet hier aan wat bij jouw zaak past. Wat uit staat, zie je nergens.",
+      "intro": "Je pakket bepaalt welke onderdelen je ziet. Een extra onderdeel neem je als add-on; wat niet in je pakket zit, zie je nergens.",
       "horeca_title": "Horeca",
       "horeca_desc": "Voor pizzeria's, frituren, kebabzaken en cafés: online bestellen, QR-menu aan tafel en een keukenscherm.",
       "horeca_p1": "Afhalen en leveren met tijdsloten, leverzones en minimumbedrag",
@@ -6723,7 +6723,15 @@
       "turned_off": "{{name}} staat uit",
       "turn_on": "{{name}} aanzetten",
       "ask_admin": "Vraag de beheerder van je winkel om deze module aan te zetten.",
-      "save_failed": "Opslaan mislukt. Probeer het opnieuw."
+      "save_failed": "Opslaan mislukt. Probeer het opnieuw.",
+      "not_in_plan": "Niet in je pakket",
+      "see_plans": "Bekijk de pakketten",
+      "addon_active": "Add-on actief",
+      "webshop_title": "Webshop",
+      "webshop_desc": "Verkoop producten online: catalogus, verzending, retouren, promoties en marktplaatsen zoals bol.com.",
+      "webshop_p1": "Producten met varianten, voorraad en categorieën",
+      "webshop_p2": "Verzending, fulfillment en retouren",
+      "webshop_p3": "Promoties, offertes, abonnementen en bol.com"
     },
     "orderTickets": {
       "title": "Tickets en munten",

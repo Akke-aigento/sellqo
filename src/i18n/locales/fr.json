@@ -6446,7 +6446,7 @@
     },
     "modules": {
       "title": "Modules pour votre activité",
-      "intro": "SellQo, c'est un seul socle : produits, commandes, caisse et boutique en ligne. Activez ici ce qui convient à votre activité. Ce qui est désactivé n'apparaît nulle part.",
+      "intro": "Votre forfait détermine les parties que vous voyez. Vous ajoutez une partie supplémentaire en option ; ce qui n’est pas dans votre forfait reste masqué.",
       "horeca_title": "Horeca",
       "horeca_desc": "Pour pizzerias, friteries, kebabs et cafés : commande en ligne, menu QR à table et écran de cuisine.",
       "horeca_p1": "À emporter et livraison avec créneaux, zones de livraison et montant minimum",
@@ -6465,7 +6465,15 @@
       "turned_off": "{{name}} est désactivé",
       "turn_on": "Activer {{name}}",
       "ask_admin": "Demandez à l'administrateur de votre boutique d'activer ce module.",
-      "save_failed": "L'enregistrement a échoué. Réessayez."
+      "save_failed": "L'enregistrement a échoué. Réessayez.",
+      "not_in_plan": "Pas dans votre forfait",
+      "see_plans": "Voir les forfaits",
+      "addon_active": "Option active",
+      "webshop_title": "Boutique en ligne",
+      "webshop_desc": "Vendez des produits en ligne : catalogue, expédition, retours, promotions et places de marché comme bol.com.",
+      "webshop_p1": "Produits avec variantes, stock et catégories",
+      "webshop_p2": "Expédition, préparation et retours",
+      "webshop_p3": "Promotions, devis, abonnements et bol.com"
     },
     "orderTickets": {
       "title": "Billets et jetons",

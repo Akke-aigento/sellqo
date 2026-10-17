@@ -677,17 +677,8 @@ export function useOnboarding() {
           });
         }
         
-        // MODULES-1 — gekozen sector → sectormodule aanzetten (niet-kritiek).
-        const sector = state.data.sector;
-        if (!wasExisting && (sector === 'horeca' || sector === 'events')) {
-          try {
-            const { error: modErr } = await supabase.from('tenants').update({ business_modules: [sector] }).eq('id', tenant.id);
-            if (modErr) console.warn('[Onboarding] kon sectormodule niet zetten:', modErr);
-            else (tenant as { business_modules?: string[] }).business_modules = [sector];
-          } catch (modErr) {
-            console.warn('[Onboarding] kon sectormodule niet zetten:', modErr);
-          }
-        }
+        // TRACKS-1 — de sector zit in het gekozen plan (pricing_plans.track); add-ons
+        // (tenants.business_modules) zijn betalend en worden alleen door SellQo gezet.
 
         // Non-critical follow-up calls - wrapped in try/catch
         try {
