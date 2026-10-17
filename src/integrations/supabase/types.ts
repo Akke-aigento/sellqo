@@ -13001,6 +13001,7 @@ export type Database = {
           bundle_discount_value: number | null
           bundle_pricing_model: string | null
           category_id: string | null
+          channels: string[]
           compare_at_price: number | null
           cost_price: number | null
           created_at: string | null
@@ -13086,6 +13087,7 @@ export type Database = {
           sku: string | null
           slug: string
           social_channels: Json | null
+          sold_out_until: string | null
           stock: number | null
           sync_inventory: boolean | null
           tags: string[] | null
@@ -13135,6 +13137,7 @@ export type Database = {
           bundle_discount_value?: number | null
           bundle_pricing_model?: string | null
           category_id?: string | null
+          channels?: string[]
           compare_at_price?: number | null
           cost_price?: number | null
           created_at?: string | null
@@ -13220,6 +13223,7 @@ export type Database = {
           sku?: string | null
           slug: string
           social_channels?: Json | null
+          sold_out_until?: string | null
           stock?: number | null
           sync_inventory?: boolean | null
           tags?: string[] | null
@@ -13269,6 +13273,7 @@ export type Database = {
           bundle_discount_value?: number | null
           bundle_pricing_model?: string | null
           category_id?: string | null
+          channels?: string[]
           compare_at_price?: number | null
           cost_price?: number | null
           created_at?: string | null
@@ -13354,6 +13359,7 @@ export type Database = {
           sku?: string | null
           slug?: string
           social_channels?: Json | null
+          sold_out_until?: string | null
           stock?: number | null
           sync_inventory?: boolean | null
           tags?: string[] | null
@@ -22334,6 +22340,10 @@ export type Database = {
         }
         Returns: Json
       }
+      set_product_sold_out_today: {
+        Args: { p_product_id: string; p_sold_out: boolean }
+        Returns: string
+      }
       social_claim_due_posts: {
         Args: { p_limit?: number }
         Returns: {
@@ -22442,6 +22452,7 @@ export type Database = {
         }[]
       }
       social_post_score: { Args: { m: Json }; Returns: number }
+      sold_out_reset_at: { Args: { p_now?: string }; Returns: string }
       spend_tokens: {
         Args: {
           p_amount: number
