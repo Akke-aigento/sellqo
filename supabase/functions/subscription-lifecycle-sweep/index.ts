@@ -30,7 +30,7 @@ import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 import { buildSweepRow, decidePlanEnding, type SweepDecision, type SweepRow } from "../_shared/planLifecycle.ts";
 import { clearBilledModules } from "../_shared/addonLines.ts";
 
-const VERSION = "SUB-UNIFY-2A";
+const VERSION = "BILL-ADDON-1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",

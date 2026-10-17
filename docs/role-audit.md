@@ -1,3 +1,22 @@
+## BILL-ADDON-1 — live test met testwinkels — 17 oktober 2026
+
+Akke 17-10: "maak demowinkels aan om te testen en restricties te checken" → beide sporen.
+
+- **Spoor A, beperkingen (demowinkels, `is_demo` + `billing_exempt`, nooit gefactureerd):** Test Starter `8b38e04a-a30a-484f-a0cd-a86ee9be4fa3`, Test Pro `4c81195b-942e-42f1-9bd6-76cdc125b496`, Test Horeca Small `ce18e0f1-e711-4b4e-85f3-11a4b410011f`, Test Events Flex `be65e708-475e-4e35-80a3-23e3e8c7d90d`, Test Events Vast `2c655418-fbb4-46ca-bbac-d436fb46e825` (contract tot +12 maanden), Test Starter + Horeca `78dafeb7-8106-4e0c-9024-0aeeeab76dc0` (add-on horeca). Geen feature-overrides, zodat alleen plan en add-on tellen. Trigger-klantrijen in de SellQo-tenant verwijderd. Nagaan in de admin buiten de platformweergave (platformadmins zien in beheerweergave alles).
+- **Bevinding:** pakketlimieten worden alleen in de frontend afgedwongen (`enforceLimit` in ProductForm, team-uitnodiging, klanten, events). Geen enkele databanktrigger of functie controleert ze; imports, koppelingen en directe API-aanroepen gaan erlangs. `enforceLimit('orders')` wordt nergens aangeroepen: het Free-limiet van 50 orders per maand bestaat alleen op papier. Voorstel: eigen batch (LIMITS-1, server-side).
+- **Spoor B, facturatie (Test Facturatie `174effcb-7b3d-4473-9a6e-cd141131b9fb`, niet-demo, facturatieklant info@sellqo.app zonder domiciliëring → alleen betaalverzoeken):** alle scenario's via `sync-tenant-plan`/`generate-subscription-invoices` als systeemaanroep, elk bedrag natgetrokken:
+  1. Starter activeren → cyclus €29 + €6,09 = €35,09, snapshot, PR-2026-0005. ✓
+  2. Horeca-add-on aan → pro rata 31/31 d, €35,09, `target_plan_id` null, `lines[0].addon_id`; geen regel en module nog uit (wacht op betaling). ✓
+  3. Nog eens aan → 409 `proration_cycle_open`. ✓
+  4. Uit met open betaling → pro-ratacyclus geannuleerd, module uit. ✓
+  5. Betaalde add-on (gesimuleerd) uit → `end_date` 16/11, module aan tot dan; weer aan → stop ingetrokken, geen nieuwe cyclus. ✓
+  6. Runner november: Starter + Horeca + "Ticketkosten verkoop buiten de webshop (5 tickets)" = €61,45 + €12,90 = €74,35; fee vastgepind op de cyclus. ✓
+  7. Nieuwe add-on terwijl de volgende cyclus al bestaat → 409 `renewal_pending` "vanaf 17/11/2026". ✓
+  8. Vast met contract tot 17/10/2027 (gesimuleerd): naar Starter → 409 `commitment_running`; opzeggen → plan blijft tot 17/10/2027, `end_date` 16/10/2027; runner december → gewoon Vast €59,29, opzegging blijft gepland; sweep (dry-run, ook met verstreken maand) → `scheduled`/`commitment_running`. ✓
+  - Niet live te testen zonder echt geld: mandaatbetaling en de webhook die een betaalde add-on aanzet (`effectuateAddonCycle`).
+  - Opgeruimd: 4 cycli geannuleerd, abonnement gestopt, testorder en fee verwijderd, winkel terug op Free. Geen facturen aangemaakt (factuurnummering niet geraakt); PR-nummers 0005–0008 verbruikt, de betaalverzoeken gingen naar info@sellqo.app.
+- **Kleine fixes uit de test:** melding bij een open betaling noemt bij een add-on niet langer "upgrade"; de sweep heeft een eigen versiestempel `BILL-ADDON-1` (meldde nog `SUB-UNIFY-2A`, waardoor zijn deploy niet apart te bewijzen was). Deploy-only nodig: `sync-tenant-plan`, `subscription-lifecycle-sweep`.
+
 ## BILL-ADDON-1 + BILL-TERM-1 — add-ons en kassa-ticketfees op de platformfactuur, minimale looptijd Events Vast (2026.12s) — 17 oktober 2026
 
 Keuzes Akke 17-10 ("akkoord met jouw aanraden"): add-on halverwege = pro rata meteen (zoals een upgrade); add-on stoppen = einde betaalde periode; kassa-/manuele ticketfees bij Flex zonder abonnement = maandelijkse verbruiksfactuur vanaf €5, kleiner schuift door; Vast opzeggen binnen 12 maanden = loopt door tot het contracteinde, maandelijks verder gefactureerd, geen opzegvergoeding.

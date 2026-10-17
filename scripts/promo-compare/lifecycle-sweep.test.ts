@@ -69,7 +69,7 @@ const byTenant = (rows: any[]) => Object.fromEntries(rows.map((r) => [r.tenant_i
 Deno.test('GET geeft de versiestempel', async () => {
   const r = await handler(new Request('https://f/subscription-lifecycle-sweep'));
   const b = await r.json();
-  assert(r.status === 200 && b.version === 'SUB-UNIFY-2A', JSON.stringify(b));
+  assert(r.status === 200 && b.version === 'BILL-ADDON-1', JSON.stringify(b));
 });
 
 Deno.test('zonder service-key of cron-secret: 401, niets gelezen of geschreven', async () => {

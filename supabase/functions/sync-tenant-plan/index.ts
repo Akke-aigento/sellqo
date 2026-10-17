@@ -345,7 +345,7 @@ Deno.serve(async (req) => {
     // BILL-ADDON-1: gedeelde pro-rata-stappen (upgrade én add-on halverwege)
     // =====================================================================
     /** Hoogstens één open pro-rata-cyclus per abonnement. Geeft een 409-antwoord of null. */
-    async function guardOpenProration(billingSubId: string): Promise<Response | null> {
+    async function guardOpenProration(billingSubId: string, kind: "upgrade" | "addon" = "upgrade"): Promise<Response | null> {
       const { data: openProrations, error: opErr } = await supabase
         .from("billing_cycles")
         .select("id, status, created_at, payment_request_number, checkout_session_url")
@@ -373,7 +373,9 @@ Deno.serve(async (req) => {
       return jsonResponse(
         {
           success: false,
-          error: "Er staat al een upgrade open die nog niet betaald is",
+          error: kind === "addon"
+            ? "Er staat nog een betaling open (upgrade of add-on). Rond die eerst af."
+            : "Er staat al een upgrade open die nog niet betaald is",
           code: "proration_cycle_open",
           billing_cycle_id: openProration.id,
           payment_request_number: openProration.payment_request_number,
@@ -752,7 +754,7 @@ Deno.serve(async (req) => {
         return jsonResponse({ success: true, action: "addon", enabled: true, noop: true, resumed: !!existing.end_date });
       }
 
-      const guard = await guardOpenProration(subId);
+      const guard = await guardOpenProration(subId, "addon");
       if (guard) return guard;
       if (renewalFrom) return renewalPending();
 
