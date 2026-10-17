@@ -12,6 +12,8 @@ import { advanceDate, type Interval } from "./planProration.ts";
 import { resolveInvoiceFiscalFields } from "./invoiceFiscalFields.ts";
 import { refreshBillingStateForCustomer } from "./billingGuard.ts";
 import { tenantPeriodAfterSettle } from "./tenantPeriod.ts";
+import { invoiceLinesFromSnapshot } from "./addonBilling.ts";
+import { effectuateAddonCycle } from "./addonLines.ts";
 import {
   classifyPayment,
   cycleState,
@@ -371,7 +373,7 @@ async function handleCycleCharge(
   const { data: cycle, error: cErr } = await supabase
     .from("billing_cycles")
     .select(
-      "id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, status, invoice_id, due_date, grace_until, cycle_type, target_plan_id, target_interval, description, payment_request_number, stripe_payment_intent_id",
+      "id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, status, invoice_id, due_date, grace_until, cycle_type, target_plan_id, target_interval, description, payment_request_number, stripe_payment_intent_id, lines",
     )
     .eq("id", cycleId)
     .maybeSingle();
@@ -587,19 +589,44 @@ async function handleCycleCharge(
     ? String(cycle.description)
     : `${subscriptionName ?? "Abonnement"} (${nlDate(cycle.period_start)} t/m ${nlDate(cycle.period_end)})`;
 
-  const { error: lineErr } = await supabase.from("invoice_lines").insert({
-    invoice_id: invoice.id,
-    line_type: "product",
-    description,
-    quantity: 1,
-    unit_price: subtotal,
-    vat_rate: deriveVatRate(subtotal, vatAmount),
-    vat_amount: vatAmount,
-    net_amount: subtotal,
-    gross_amount: total,
-    line_total: total,
-    sort_order: 0,
-  });
+  // BILL-ADDON-1: een cyclus met een regelsnapshot (plan, add-ons, ticketkosten) krijgt een
+  // gespecificeerde factuur. De btw per regel telt exact op tot wat er geïnd werd; als de
+  // som van de snapshot niet klopt met de cyclus (oude of handmatige cyclus), één regel.
+  const snapshot = Array.isArray(cycle.lines) ? (cycle.lines as { description: string; quantity: number; unit_price: number; vat_rate: number }[]) : [];
+  const itemized = snapshot.length > 0 ? invoiceLinesFromSnapshot(snapshot, vatAmount) : [];
+  const itemizedNet = +itemized.reduce((a, r) => a + r.net, 0).toFixed(2);
+  const useItemized = itemized.length > 0 && Math.abs(itemizedNet - subtotal) < 0.005;
+  const lineRows = useItemized
+    ? itemized.map((r, i) => ({
+      invoice_id: invoice.id,
+      line_type: "product",
+      description: r.description,
+      quantity: r.quantity,
+      unit_price: r.unit_price,
+      vat_rate: r.vat_rate,
+      vat_amount: r.vat_amount,
+      net_amount: r.net,
+      gross_amount: r.gross,
+      line_total: r.gross,
+      sort_order: i,
+    }))
+    : [{
+      invoice_id: invoice.id,
+      line_type: "product",
+      description,
+      quantity: 1,
+      unit_price: subtotal,
+      vat_rate: deriveVatRate(subtotal, vatAmount),
+      vat_amount: vatAmount,
+      net_amount: subtotal,
+      gross_amount: total,
+      line_total: total,
+      sort_order: 0,
+    }];
+  if (itemized.length > 0 && !useItemized) {
+    log("Cycle line snapshot does not match subtotal — single line", { cycleId, itemizedNet, subtotal });
+  }
+  const { error: lineErr } = await supabase.from("invoice_lines").insert(lineRows);
   if (lineErr) {
     log("Failed to insert cycle invoice line", { cycleId, invoiceId: invoice.id, error: lineErr.message });
   }
@@ -633,6 +660,16 @@ async function handleCycleCharge(
     invoiceNumber: numData,
     intent: intent.id,
   });
+
+  // BILL-ADDON-1: de kassa-ticketfees op deze cyclus zijn nu gefactureerd.
+  {
+    const { error: feeErr } = await supabase
+      .from("platform_ticket_fees")
+      .update({ invoiced_at: nowISO })
+      .eq("billing_cycle_id", cycle.id)
+      .is("invoiced_at", null);
+    if (feeErr) log("Ticket fees invoiced_at update failed", { cycleId, error: feeErr.message });
+  }
 
   // BILLING-ENFORCE-1: betaald is betaald — meteen herberekenen, niet pas bij de
   // cron van morgenochtend. Geldt voor het mandaat-pad én voor een handmatige
@@ -675,6 +712,16 @@ async function handleCycleCharge(
         cycleId,
         error: e instanceof Error ? e.message : String(e),
       });
+    }
+  }
+  // BILL-ADDON-1: een betaalde add-on-pro-rata (geen plan) zet de add-on aan. Bij het
+  // mandaatpad deed sync-tenant-plan dat al; dan is dit een no-op.
+  if (cycle.cycle_type === "proration" && !cycle.target_plan_id) {
+    try {
+      const done = await effectuateAddonCycle(supabase, cycle);
+      if (done) log("Add-on activated on settlement", { cycleId });
+    } catch (e) {
+      log("ERROR: add-on activation failed", { cycleId, error: e instanceof Error ? e.message : String(e) });
     }
   }
 

@@ -1434,6 +1434,10 @@
     },
     "changelog": {
       "changes": {
+        "addon_billing": {
+          "title": "Add-ons und Kassentickets korrekt auf deiner Rechnung",
+          "description": "Ein Add-on (Webshop oder Gastronomie), das du mitten im Monat hinzufügst, wird anteilig berechnet und steht jetzt als eigene Zeile auf deiner Rechnung. Beendest du ein Add-on, läuft es bis zum Ende des bezahlten Zeitraums. An der Kasse oder manuell verkaufte Tickets kommen mit ihrer Ticketgebühr auf die nächste Rechnung; ohne Monatsabo erhältst du eine Verbrauchsrechnung, sobald 5 € offen sind. Events Vast zeigt jetzt das Ende deines 12-Monats-Vertrags."
+        },
         "discount_code_case_insensitive": {
           "title": "Rabattcodes unterscheiden nicht mehr zwischen Groß- und Kleinschreibung",
           "description": "Tippt ein Kunde \"willkommen10\", während Ihr Code \"WILLKOMMEN10\" heißt, wird er jetzt einfach akzeptiert. Groß- und Kleinschreibung sowie zusätzliche Leerzeichen spielen keine Rolle mehr. In Ihrem Webshop und auf Ihren Rechnungen erscheint der Code weiterhin so, wie Sie ihn angelegt haben."

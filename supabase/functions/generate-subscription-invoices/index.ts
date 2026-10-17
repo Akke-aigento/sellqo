@@ -12,6 +12,11 @@ import {
 import { advanceDate } from "../_shared/billingDates.ts";
 import { cycleDueDates } from "../_shared/billingState.ts";
 import { computeVatTotals } from "../_shared/billingMoney.ts";
+import { loadBillingTenant } from "../_shared/billingTenant.ts";
+import {
+  type BillingLine, commitmentEnd, cycleLinesSnapshot, feeLine, pendingAppliesAt, type FeeRow, linesForPeriod, sumFees, USAGE_MIN_CENTS, usageDecision,
+} from "../_shared/addonBilling.ts";
+import { dropAddonsForTrack, loadAddons, repriceAddonLines, setTenantModule } from "../_shared/addonLines.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -385,6 +390,100 @@ Deno.serve(async (req) => {
       );
     }
 
+    // ------------------------------------------------------------------
+    // BILL-ADDON-1: kassa-ticketfees (collected_via = 'invoice').
+    // a) fees van een geannuleerde cyclus komen weer vrij voor de volgende factuur;
+    // b) een Flex-winkel zonder facturatieabonnement met ≥ €5 openstaand krijgt er een
+    //    (sync-tenant-plan 'ensure_usage'), zodat de lus hieronder de verbruiksfactuur maakt.
+    // ------------------------------------------------------------------
+    const { data: billingTenantRow } = await loadBillingTenant(supabase, "id");
+    const billingTenantId = (billingTenantRow?.id as string | undefined) ?? null;
+    if (billingTenantId && !manualId) {
+      try {
+        const { data: orphaned, error: orErr } = await supabase
+          .from("platform_ticket_fees")
+          .select("order_id, billing_cycles!inner(status)")
+          .eq("collected_via", "invoice")
+          .is("invoiced_at", null)
+          .not("billing_cycle_id", "is", null)
+          .eq("billing_cycles.status", "cancelled")
+          .limit(1000);
+        if (orErr) throw orErr;
+        // Ook fees op een vervallen cyclus van een gestopt abonnement: die cyclus wordt nooit meer betaald.
+        const { data: deadCycleFees, error: dcErr } = await supabase
+          .from("platform_ticket_fees")
+          .select("order_id, billing_cycles!inner(status, subscriptions!inner(status))")
+          .eq("collected_via", "invoice")
+          .is("invoiced_at", null)
+          .not("billing_cycle_id", "is", null)
+          .eq("billing_cycles.status", "expired")
+          .eq("billing_cycles.subscriptions.status", "cancelled")
+          .limit(1000);
+        if (dcErr) throw dcErr;
+        const ids = [...(orphaned ?? []), ...(deadCycleFees ?? [])].map((r: { order_id: string }) => r.order_id);
+        if (ids.length) {
+          const { error: relErr } = await supabase.from("platform_ticket_fees").update({ billing_cycle_id: null }).in("order_id", ids);
+          if (relErr) throw relErr;
+          log("Released ticket fees of cancelled cycles", { count: ids.length });
+        }
+
+        // Gestopte add-ons: na hun laatste betaalde dag regel weg en module uit (dagelijks,
+        // dus niet al 5 dagen vroeger bij het aanmaken van de volgende cyclus).
+        const todayISO = today.toISOString().slice(0, 10);
+        const { data: endedLines, error: elErr } = await supabase
+          .from("subscription_lines")
+          .select("id, subscription_id, addon_id, end_date")
+          .eq("kind", "addon")
+          .lt("end_date", todayISO)
+          .limit(500);
+        if (elErr) throw elErr;
+        if ((endedLines ?? []).length) {
+          const addons = await loadAddons(supabase);
+          for (const l of endedLines as { id: string; subscription_id: string; addon_id: string }[]) {
+            const { data: lts } = await supabase
+              .from("tenant_subscriptions").select("tenant_id").eq("billing_subscription_id", l.subscription_id).maybeSingle();
+            const track = addons.get(l.addon_id)?.track;
+            if (lts?.tenant_id && track) await setTenantModule(supabase, lts.tenant_id as string, track, false);
+            const { error: delErr } = await supabase.from("subscription_lines").delete().eq("id", l.id);
+            if (delErr) throw delErr;
+          }
+          log("Ended add-ons removed", { count: endedLines!.length });
+        }
+
+        const { data: open, error: openErr } = await supabase
+          .from("platform_ticket_fees")
+          .select("tenant_id, fee_cents")
+          .eq("collected_via", "invoice")
+          .is("billing_cycle_id", null)
+          .limit(10000);
+        if (openErr) throw openErr;
+        const perTenant = new Map<string, number>();
+        for (const r of (open ?? []) as { tenant_id: string; fee_cents: number }[]) {
+          perTenant.set(r.tenant_id, (perTenant.get(r.tenant_id) ?? 0) + Number(r.fee_cents || 0));
+        }
+        for (const [tid, cents] of perTenant) {
+          if (cents < USAGE_MIN_CENTS) continue;
+          const { data: tsRow } = await supabase
+            .from("tenant_subscriptions")
+            .select("billing_subscription_id")
+            .eq("tenant_id", tid)
+            .maybeSingle();
+          if (!tsRow) continue; // geen plan-rij: niets om aan te hangen
+          if (tsRow.billing_subscription_id) {
+            const { data: bs } = await supabase.from("subscriptions").select("status").eq("id", tsRow.billing_subscription_id).maybeSingle();
+            if (bs?.status === "active") continue;
+          }
+          const { error: euErr } = await supabase.functions.invoke("sync-tenant-plan", {
+            body: { tenant_id: tid, action: "ensure_usage" },
+          });
+          if (euErr) console.error(`[GEN-SUB-INVOICES] ensure_usage failed for ${tid}: ${euErr.message}`);
+          else log("Usage subscription ensured", { tenant_id: tid, open_cents: cents });
+        }
+      } catch (feeErr) {
+        console.error(`[GEN-SUB-INVOICES] Ticket-fee pre-step failed: ${feeErr instanceof Error ? feeErr.message : String(feeErr)}`);
+      }
+    }
+
     let query = supabase
       .from("subscriptions")
       .select(`
@@ -392,7 +491,7 @@ Deno.serve(async (req) => {
         next_invoice_date, last_invoice_date, end_date, status,
         auto_send, payment_term_days, generate_days_before,
         payment_mode, billing_model, billing_anchor_day,
-        subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order )
+        subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order, kind, addon_id, end_date )
       `)
       .eq("status", "active")
       .not("next_invoice_date", "is", null);
@@ -404,7 +503,7 @@ Deno.serve(async (req) => {
           next_invoice_date, last_invoice_date, end_date, status,
           auto_send, payment_term_days, generate_days_before,
           payment_mode, billing_model, billing_anchor_day,
-          subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order )
+          subscription_lines ( id, description, quantity, unit_price, vat_rate, sort_order, kind, addon_id, end_date )
         `)
         .eq("status", "active")
         .eq("id", manualId)
@@ -456,15 +555,18 @@ Deno.serve(async (req) => {
         try {
           const { data: ts } = await supabase
             .from("tenant_subscriptions")
-            .select("id, tenant_id, plan_id, billing_interval, pending_plan_id, pending_interval")
+            .select("id, tenant_id, plan_id, billing_interval, pending_plan_id, pending_interval, pending_effective_at")
             .eq("billing_subscription_id", sub.id)
             .maybeSingle();
-          if (ts && ts.pending_plan_id) {
+          // BILL-TERM-1: een wijziging die pas later ingaat (opzegging binnen het contract
+          // van Events Vast) niet al op deze maandgrens toepassen.
+          const pendingLater = !!ts && !pendingAppliesAt(ts.pending_effective_at as string | null, periodStart);
+          if (ts && ts.pending_plan_id && !pendingLater) {
             const newPlanId = ts.pending_plan_id as string;
             const newInterval = (ts.pending_interval as string) || ts.billing_interval || sub.interval;
             const { data: newPlan } = await supabase
               .from("pricing_plans")
-              .select("id, name, slug, monthly_price, yearly_price")
+              .select("id, name, slug, monthly_price, yearly_price, min_term_months, track")
               .eq("id", newPlanId)
               .maybeSingle();
             if (newPlan) {
@@ -489,6 +591,7 @@ Deno.serve(async (req) => {
                     pending_effective_at: null,
                   })
                   .eq("id", ts.id);
+                // BILL-ADDON-1: add-ons uitzetten doet de sweep op de echte grens (dit draait tot 5 dagen vroeger).
                 log("Applied pending downgrade to free — cancelling", {
                   subscription_id: sub.id,
                   tenant_id: ts.tenant_id,
@@ -496,7 +599,7 @@ Deno.serve(async (req) => {
                 summary.skipped_no_lines++;
                 continue;
               }
-              // Rewrite line + subscription
+              // Rewrite de planregel (BILL-ADDON-1: add-onregels blijven staan en volgen het interval).
               const unit =
                 newInterval === "yearly"
                   ? Number(newPlan.yearly_price)
@@ -505,6 +608,7 @@ Deno.serve(async (req) => {
                 .from("subscription_lines")
                 .select("id")
                 .eq("subscription_id", sub.id)
+                .eq("kind", "plan")
                 .order("sort_order", { ascending: true });
               if (existingLines && existingLines.length > 0) {
                 await supabase
@@ -516,13 +620,14 @@ Deno.serve(async (req) => {
                     vat_rate: 21,
                   })
                   .eq("id", existingLines[0].id);
-                // Trim extra lines
+                // Trim extra planregels
                 for (const extra of existingLines.slice(1)) {
                   await supabase.from("subscription_lines").delete().eq("id", extra.id);
                 }
               } else {
                 await supabase.from("subscription_lines").insert({
                   subscription_id: sub.id,
+                  kind: "plan",
                   description: `${newPlan.name} (${newInterval})`,
                   quantity: 1,
                   unit_price: unit,
@@ -530,10 +635,16 @@ Deno.serve(async (req) => {
                   sort_order: 0,
                 });
               }
+              // Een add-on van het spoor van het nieuwe plan valt weg (het plan dekt het).
+              await dropAddonsForTrack(supabase, sub.id, ts.tenant_id as string, (newPlan as { track?: string | null }).track ?? null);
+              if (newInterval !== sub.interval) {
+                await repriceAddonLines(supabase, sub.id, newInterval as "monthly" | "yearly");
+              }
               await supabase
                 .from("subscriptions")
                 .update({ interval: newInterval })
                 .eq("id", sub.id);
+              const termMonths = Number((newPlan as { min_term_months?: number | null }).min_term_months ?? 0);
               await supabase
                 .from("tenant_subscriptions")
                 .update({
@@ -542,20 +653,20 @@ Deno.serve(async (req) => {
                   pending_plan_id: null,
                   pending_interval: null,
                   pending_effective_at: null,
+                  // BILL-TERM-1: een plan met minimale looptijd start zijn contract op deze grens;
+                  // zelfde plan, ander interval (Vast maandelijks → jaarlijks): het lopende contract blijft.
+                  ...(ts.plan_id === newPlanId ? {} : {
+                    commitment_end_at: termMonths > 0 ? `${commitmentEnd(periodStart, termMonths)}T00:00:00Z` : null,
+                  }),
                 })
                 .eq("id", ts.id);
               // Refresh in-memory sub so downstream code sees the new interval + lines
               sub.interval = newInterval;
-              sub.subscription_lines = [
-                {
-                  id: (existingLines && existingLines[0]?.id) || null,
-                  description: `${newPlan.name} (${newInterval})`,
-                  quantity: 1,
-                  unit_price: unit,
-                  vat_rate: 21,
-                  sort_order: 0,
-                },
-              ];
+              const { data: freshLines } = await supabase
+                .from("subscription_lines")
+                .select("id, description, quantity, unit_price, vat_rate, sort_order, kind, addon_id, end_date")
+                .eq("subscription_id", sub.id);
+              sub.subscription_lines = freshLines ?? [];
               log("Applied pending plan change", {
                 subscription_id: sub.id,
                 new_plan: newPlanId,
@@ -578,10 +689,52 @@ Deno.serve(async (req) => {
         // `subscription_invoices` is never written in this path.
         // ------------------------------------------------------------------
         if (sub.billing_model === "pay_first") {
-          const payFirstLines = (sub.subscription_lines ?? []) as any[];
+          // BILL-ADDON-1: een add-on die vóór deze periode stopte, telt niet meer mee.
+          const allLines = (sub.subscription_lines ?? []) as BillingLine[];
+          let payFirstLines = linesForPeriod(allLines, periodStart);
+          const isPlatformSub = !!billingTenantId && sub.tenant_id === billingTenantId;
+          let shopTenantId: string | null = null;
+          let fees: FeeRow[] = [];
+          if (isPlatformSub) {
+            const { data: shopTs } = await supabase
+              .from("tenant_subscriptions")
+              .select("tenant_id")
+              .eq("billing_subscription_id", sub.id)
+              .maybeSingle();
+            shopTenantId = (shopTs?.tenant_id as string | undefined) ?? null;
+
+            if (shopTenantId) {
+              const { data: feeRows, error: feeErr } = await supabase
+                .from("platform_ticket_fees")
+                .select("order_id, tickets, fee_cents")
+                .eq("tenant_id", shopTenantId)
+                .eq("collected_via", "invoice")
+                .is("billing_cycle_id", null);
+              if (feeErr) throw feeErr;
+              fees = (feeRows ?? []) as FeeRow[];
+            }
+          }
+
+          const usage = usageDecision(payFirstLines.length, sumFees(fees).cents);
+          const baseLines = payFirstLines;
+          if (usage === "include") {
+            const fl = feeLine(fees);
+            if (fl) payFirstLines = [...payFirstLines, fl];
+          }
+
           if (payFirstLines.length === 0) {
             summary.skipped_no_lines++;
-            console.warn(`[GEN-SUB-INVOICES] Subscription ${sub.id} has no lines — skipping`);
+            if (isPlatformSub) {
+              // Alleen verbruik en (nog) onder €5, of niets: maand doorschuiven, fees blijven open.
+              const { error: advErr } = await supabase
+                .from("subscriptions")
+                .update({ next_invoice_date: periodEndAdj })
+                .eq("id", sub.id);
+              if (advErr) throw advErr;
+              log("Usage below minimum — rolled over", { subscription_id: sub.id, open_cents: sumFees(fees).cents });
+            } else {
+              console.warn(`[GEN-SUB-INVOICES] Subscription ${sub.id} has no lines — skipping`);
+            }
             continue;
           }
 
@@ -615,6 +768,7 @@ Deno.serve(async (req) => {
               mode: cycleMode,
               model: "pay_first",
               status: "pending",
+              lines: cycleLinesSnapshot(payFirstLines),
             })
             .select("id, tenant_id, customer_id, total, mode, period_start, payment_request_number")
             .single();
@@ -645,6 +799,41 @@ Deno.serve(async (req) => {
           }
 
           summary.cycles_created++;
+          // BILL-ADDON-1: de fees op deze cyclus vastpinnen (nooit dubbel, nooit gemist).
+          // Lukt het vastpinnen niet volledig (race met een tweede run, of een fout), dan rekent
+          // de cyclus alleen de fees aan die écht vastgepind zijn — vóór er geïnd wordt.
+          if (usage === "include" && fees.length) {
+            const { data: pinned, error: pinErr } = await supabase
+              .from("platform_ticket_fees")
+              .update({ billing_cycle_id: cycle.id })
+              .in("order_id", fees.map((f) => f.order_id))
+              .is("billing_cycle_id", null)
+              .select("order_id");
+            if (pinErr) console.error(`[GEN-SUB-INVOICES] Pinning fees to ${cycle.id} failed: ${pinErr.message}`);
+            const pinnedIds = new Set(((pinned ?? []) as { order_id: string }[]).map((r) => r.order_id));
+            if (pinnedIds.size !== fees.length) {
+              const keptFees = fees.filter((f) => pinnedIds.has(f.order_id));
+              const fl = feeLine(keptFees);
+              const fixedLines = [...baseLines, ...(fl ? [fl] : [])];
+              if (fixedLines.length === 0) {
+                await supabase.from("billing_cycles").update({ status: "cancelled" }).eq("id", cycle.id).is("invoice_id", null);
+                log("Cycle cancelled: fees already pinned elsewhere", { billing_cycle_id: cycle.id });
+                continue;
+              }
+              const fixed = computeVatTotals(fixedLines.map((ln) => ({
+                net: Number(ln.quantity ?? 1) * Number(ln.unit_price ?? 0),
+                vatRate: Number(ln.vat_rate ?? 0),
+              })));
+              const { error: fixErr } = await supabase
+                .from("billing_cycles")
+                .update({ subtotal: fixed.subtotal, vat_amount: fixed.vatAmount, total: fixed.total, lines: cycleLinesSnapshot(fixedLines) })
+                .eq("id", cycle.id)
+                .eq("status", "pending");
+              if (fixErr) throw fixErr;
+              (cycle as { total: number }).total = fixed.total;
+              log("Cycle amounts corrected to pinned fees", { billing_cycle_id: cycle.id, expected: fees.length, pinned: pinnedIds.size });
+            }
+          }
           log("Billing cycle created", {
             billing_cycle_id: cycle.id,
             subscription_id: sub.id,

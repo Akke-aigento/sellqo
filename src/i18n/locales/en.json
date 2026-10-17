@@ -1905,8 +1905,10 @@
     "cancellation": {
       "banner": "Your subscription ends on {{date}}. You keep your current plan until then, after that you move to Free.",
       "resumed": "Your cancellation has been withdrawn. Your subscription continues.",
-      "resume_error": "Could not withdraw the cancellation"
-    }
+      "resume_error": "Could not withdraw the cancellation",
+      "commitment_note": "Your contract runs for 12 months. Until then your plan stays active and is billed monthly."
+    },
+    "commitment_until": "Contract runs until {{date}}"
   },
   "import": {
     "title": "Import Data",
@@ -6737,7 +6739,13 @@
       "webshop_desc": "Sell products online: catalogue, shipping, returns, promotions and marketplaces such as bol.com.",
       "webshop_p1": "Products with variants, stock and categories",
       "webshop_p2": "Shipping, fulfilment and returns",
-      "webshop_p3": "Promotions, quotes, subscriptions and bol.com"
+      "webshop_p3": "Promotions, quotes, subscriptions and bol.com",
+      "needs_plan": "Choose a paid plan first; an add-on comes on top of the plan.",
+      "off_at_period_end": "Stops on {{date}}, at the end of the paid period.",
+      "pro_rata_requested": "Payment request of {{amount}} (pro rata) sent. The add-on turns on once it is paid.",
+      "pro_rata_charged": "Pro rata {{amount}} charged.",
+      "renewal_pending": "The next period has already been charged. Turn the add-on on from {{date}}.",
+      "payment_open": "A payment is still open. Complete it first."
     },
     "orderTickets": {
       "title": "Tickets and tokens",

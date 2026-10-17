@@ -1434,6 +1434,10 @@
     },
     "changelog": {
       "changes": {
+        "addon_billing": {
+          "title": "Modules et billets en caisse correctement sur votre facture",
+          "description": "Un module (boutique en ligne ou horeca) ajouté en cours de mois est facturé au prorata et figure désormais sur une ligne distincte de votre facture. Si vous arrêtez un module, il reste actif jusqu'à la fin de la période payée. Les billets vendus en caisse ou manuellement figurent avec leurs frais sur votre prochaine facture ; sans abonnement mensuel, vous recevez une facture de consommation dès que 5 € sont dus. Events Vast affiche désormais la fin de votre contrat de 12 mois."
+        },
         "discount_code_case_insensitive": {
           "title": "Les codes de réduction ne sont plus sensibles à la casse",
           "description": "Si un client saisit \"bienvenue10\" alors que votre code s'appelle \"BIENVENUE10\", il est désormais accepté. Les majuscules, les minuscules et les espaces superflus ne font plus de différence. Dans votre boutique et sur vos factures, le code reste affiché tel que vous l'avez créé."

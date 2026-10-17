@@ -6493,7 +6493,13 @@
       "webshop_desc": "Vendez des produits en ligne : catalogue, expédition, retours, promotions et places de marché comme bol.com.",
       "webshop_p1": "Produits avec variantes, stock et catégories",
       "webshop_p2": "Expédition, préparation et retours",
-      "webshop_p3": "Promotions, devis, abonnements et bol.com"
+      "webshop_p3": "Promotions, devis, abonnements et bol.com",
+      "needs_plan": "Choisissez d'abord un forfait payant ; un module s'ajoute au forfait.",
+      "off_at_period_end": "Prend fin le {{date}}, à la fin de la période payée.",
+      "pro_rata_requested": "Demande de paiement de {{amount}} (prorata) envoyée. Le module s'active dès qu'elle est payée.",
+      "pro_rata_charged": "Prorata de {{amount}} facturé.",
+      "renewal_pending": "La prochaine période est déjà facturée. Activez le module à partir du {{date}}.",
+      "payment_open": "Un paiement est encore en attente. Finalisez-le d'abord."
     },
     "orderTickets": {
       "title": "Billets et jetons",
@@ -7298,8 +7304,10 @@
     "cancellation": {
       "banner": "Votre abonnement se termine le {{date}}. Vous gardez votre plan actuel jusque-là, ensuite vous passez à Free.",
       "resumed": "Votre résiliation a été annulée. Votre abonnement continue.",
-      "resume_error": "Impossible d'annuler la résiliation"
-    }
+      "resume_error": "Impossible d'annuler la résiliation",
+      "commitment_note": "Votre contrat dure 12 mois. D'ici là, votre forfait reste actif et est facturé chaque mois."
+    },
+    "commitment_until": "Contrat jusqu'au {{date}}"
   },
   "product_form": {
     "title_edit": "Modifier le produit",

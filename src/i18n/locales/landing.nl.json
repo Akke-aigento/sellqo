@@ -1434,6 +1434,10 @@
     },
     "changelog": {
       "changes": {
+        "addon_billing": {
+          "title": "Add-ons en kassatickets correct op je factuur",
+          "description": "Een add-on (webshop of horeca) die je halverwege de maand bijneemt, wordt pro rata aangerekend en staat voortaan als aparte regel op je factuur. Stop je een add-on, dan loopt hij tot het einde van de betaalde periode. Tickets die je aan de kassa of manueel verkoopt, komen met hun ticketkost op de volgende factuur; zonder maandabonnement krijg je een verbruiksfactuur zodra er €5 openstaat. Events Vast toont nu het einde van je contract van 12 maanden."
+        },
         "discount_code_case_insensitive": {
           "title": "Kortingscodes zijn niet meer hoofdlettergevoelig",
           "description": "Typt een klant \"welkom10\" terwijl je code \"WELKOM10\" heet, dan wordt hij nu gewoon geaccepteerd. Hoofdletters, kleine letters en extra spaties maken geen verschil meer. In je webshop en op je facturen blijft de code staan zoals jij hem hebt aangemaakt."

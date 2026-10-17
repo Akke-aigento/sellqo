@@ -3,6 +3,8 @@
 // accepted) and from the CYCLE-3 webhook (manual mode: on settlement of the
 // proration cycle). Idempotent — a no-op when the plan is already the target.
 
+import { dropAddonsForTrack, repriceAddonLines } from "./addonLines.ts";
+import { commitmentEnd } from "./addonBilling.ts";
 import { advanceDate, type Interval } from "./planProration.ts";
 
 type SupabaseLike = { from: (table: string) => any };
@@ -61,7 +63,7 @@ export async function effectuatePlanSwitch(
 
   const { data: plan, error: pErr } = await supabase
     .from("pricing_plans")
-    .select("id, name, slug, monthly_price, yearly_price")
+    .select("id, name, slug, monthly_price, yearly_price, min_term_months, track")
     .eq("id", targetPlanId)
     .maybeSingle();
   if (pErr) throw pErr;
@@ -69,11 +71,13 @@ export async function effectuatePlanSwitch(
 
   const unit = Number(targetInterval === "yearly" ? plan.yearly_price : plan.monthly_price);
 
-  // 1. Recurring line 0 → the new plan. Extra lines are left untouched.
+  // 1. De planregel → het nieuwe plan. BILL-ADDON-1: alleen kind='plan'; add-onregels
+  // blijven staan (en krijgen bij een intervalwissel hieronder hun nieuwe prijs).
   const { data: lines, error: lnErr } = await supabase
     .from("subscription_lines")
     .select("id, vat_rate")
     .eq("subscription_id", billingSubscriptionId)
+    .eq("kind", "plan")
     .order("sort_order", { ascending: true });
   if (lnErr) throw lnErr;
 
@@ -90,6 +94,7 @@ export async function effectuatePlanSwitch(
   } else {
     const { error: insLnErr } = await supabase.from("subscription_lines").insert({
       subscription_id: billingSubscriptionId,
+      kind: "plan",
       description: `${plan.name} (${targetInterval})`,
       quantity: 1,
       unit_price: unit,
@@ -98,6 +103,11 @@ export async function effectuatePlanSwitch(
     });
     if (insLnErr) throw insLnErr;
   }
+
+  // BILL-ADDON-1: een add-on van het spoor van het nieuwe plan valt weg (het plan dekt het).
+  await dropAddonsForTrack(supabase, billingSubscriptionId, tenantId, (plan as { track?: string | null }).track ?? null);
+  // Add-ons volgen het nieuwe interval (anders bv. €19 per jaar).
+  if (intervalSwap) await repriceAddonLines(supabase, billingSubscriptionId, targetInterval);
 
   // 2. Billing subscription: name always, interval/period only on a swap.
   const subPatch: Record<string, unknown> = {
@@ -127,6 +137,12 @@ export async function effectuatePlanSwitch(
       pending_interval: null,
       pending_effective_at: null,
       pending_billing_cycle_id: null,
+      // BILL-TERM-1: een plan met minimale looptijd (Events Vast) start zijn contract vandaag
+      // (niet op de start van de lopende periode, die ligt in het verleden).
+      // Zelfde plan, ander interval (Vast maandelijks → jaarlijks): het lopende contract blijft.
+      ...(ts?.plan_id === targetPlanId ? {} : Number((plan as { min_term_months?: number | null }).min_term_months ?? 0) > 0
+        ? { commitment_end_at: `${commitmentEnd(new Date().toISOString().slice(0, 10), Number((plan as { min_term_months?: number }).min_term_months))}T00:00:00Z` }
+        : { commitment_end_at: null }),
     })
     .eq("tenant_id", tenantId);
   if (entErr) throw entErr;

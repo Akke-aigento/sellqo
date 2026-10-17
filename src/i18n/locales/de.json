@@ -6493,7 +6493,13 @@
       "webshop_desc": "Verkaufen Sie Produkte online: Katalog, Versand, Retouren, Aktionen und Marktplätze wie bol.com.",
       "webshop_p1": "Produkte mit Varianten, Lagerbestand und Kategorien",
       "webshop_p2": "Versand, Fulfillment und Retouren",
-      "webshop_p3": "Aktionen, Angebote, Abonnements und bol.com"
+      "webshop_p3": "Aktionen, Angebote, Abonnements und bol.com",
+      "needs_plan": "Wähle zuerst einen kostenpflichtigen Tarif; ein Add-on kommt zum Tarif hinzu.",
+      "off_at_period_end": "Endet am {{date}}, zum Ende des bezahlten Zeitraums.",
+      "pro_rata_requested": "Zahlungsaufforderung über {{amount}} (anteilig) gesendet. Das Add-on wird aktiv, sobald sie bezahlt ist.",
+      "pro_rata_charged": "Anteilig {{amount}} berechnet.",
+      "renewal_pending": "Der nächste Zeitraum ist bereits berechnet. Aktiviere das Add-on ab {{date}}.",
+      "payment_open": "Es ist noch eine Zahlung offen. Schließe sie zuerst ab."
     },
     "orderTickets": {
       "title": "Tickets und Marken",
@@ -7298,8 +7304,10 @@
     "cancellation": {
       "banner": "Dein Abonnement endet am {{date}}. Bis dahin behältst du deinen aktuellen Plan, danach wechselst du zu Free.",
       "resumed": "Deine Kündigung wurde zurückgenommen. Dein Abonnement läuft weiter.",
-      "resume_error": "Kündigung konnte nicht zurückgenommen werden"
-    }
+      "resume_error": "Kündigung konnte nicht zurückgenommen werden",
+      "commitment_note": "Dein Vertrag läuft 12 Monate. Bis dahin bleibt dein Tarif aktiv und wird monatlich abgerechnet."
+    },
+    "commitment_until": "Vertrag läuft bis {{date}}"
   },
   "product_form": {
     "title_edit": "Produkt bearbeiten",

@@ -149,6 +149,8 @@ export type SweepRow = {
   trial_end?: string | null;
   cancel_at_period_end?: boolean | null;
   pending_plan_id?: string | null;
+  /** BILL-TERM-1: wanneer de opzegging ingaat (contracteinde bij Events Vast). */
+  pending_effective_at?: string | null;
   billing_subscription_id?: string | null;
   billing_subscription_status?: string | null;
 };
@@ -157,7 +159,7 @@ export type SweepTrigger = "cancelled_at_period_end" | "status_ended" | "billing
 
 export type SweepDecision =
   | { action: "ignore"; reason: "free_or_usage_plan" | "not_ended" }
-  | { action: "scheduled"; triggers: SweepTrigger[]; reason: "period_running" }
+  | { action: "scheduled"; triggers: SweepTrigger[]; reason: "period_running" | "commitment_running" }
   | {
     action: "excluded";
     triggers: SweepTrigger[];
@@ -192,6 +194,12 @@ export function decidePlanEnding(row: SweepRow, now: Date = new Date()): SweepDe
 
   const end = ts(row.current_period_end);
   if (end !== null && end > now.getTime()) return { action: "scheduled", triggers, reason: "period_running" };
+  // BILL-TERM-1: een opzegging binnen het contract gaat pas in op het contracteinde, ook al
+  // loopt de betaalde maand al af (de volgende maandcyclus is misschien nog niet betaald).
+  const pend = ts(row.pending_effective_at ?? null);
+  if (row.pending_plan_id === "free" && pend !== null && pend > now.getTime()) {
+    return { action: "scheduled", triggers, reason: "commitment_running" };
+  }
 
   if (row.slug === BILLING_TENANT_SLUG) return { action: "excluded", triggers, reason: "billing_tenant" };
   if (row.is_internal_tenant === true || row.billing_exempt === true) return { action: "excluded", triggers, reason: "exempt" };
@@ -232,6 +240,7 @@ export function buildSweepRow(
     trial_end: (s.trial_end as string) ?? null,
     cancel_at_period_end: (s.cancel_at_period_end as boolean | null) ?? null,
     pending_plan_id: (s.pending_plan_id as string) ?? null,
+    pending_effective_at: (s.pending_effective_at as string) ?? null,
     billing_subscription_id: billingId,
     // Verwijst de rij naar een abonnement dat niet (meer) bestaat: als gestopt behandelen.
     billing_subscription_status: billingId ? (billing?.status ?? "ended") : null,

@@ -28,6 +28,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 import { buildSweepRow, decidePlanEnding, type SweepDecision, type SweepRow } from "../_shared/planLifecycle.ts";
+import { clearBilledModules } from "../_shared/addonLines.ts";
 
 const VERSION = "SUB-UNIFY-2A";
 
@@ -66,9 +67,11 @@ function describe(d: SweepDecision, row: SweepRow): string {
     case "downgrade":
       return `plan ${row.plan_id} → free` +
         (row.billing_subscription_status === "active" ? ", facturatie-abonnement → cancelled" : "") +
-        ", tenants.subscription_plan → free, melding subscriptions/plan_ended";
+        ", tenants.subscription_plan → free, betaalde add-ons uit, melding subscriptions/plan_ended";
     case "scheduled":
-      return `niets: periode loopt tot ${row.current_period_end}, daarna Free`;
+      return d.reason === "commitment_running"
+        ? `niets: contract loopt tot ${row.pending_effective_at}, daarna Free`
+        : `niets: periode loopt tot ${row.current_period_end}, daarna Free`;
     case "excluded":
       return `niets: uitgesloten (${d.reason})`;
     default:
@@ -101,7 +104,7 @@ serve(async (req) => {
     const { data: subs, error: subsErr } = await supabase
       .from("tenant_subscriptions")
       .select(
-        "tenant_id, plan_id, status, current_period_end, trial_end, cancel_at_period_end, pending_plan_id, billing_subscription_id, " +
+        "tenant_id, plan_id, status, current_period_end, trial_end, cancel_at_period_end, pending_plan_id, pending_effective_at, billing_subscription_id, " +
           "tenants(name, slug, is_demo, is_internal_tenant, billing_exempt, billing_on_hold), " +
           "pricing_plan:pricing_plans!plan_id(id, slug, monthly_price, yearly_price)",
       );
@@ -177,6 +180,7 @@ serve(async (req) => {
             pending_plan_id: null,
             pending_interval: null,
             pending_effective_at: null,
+            commitment_end_at: null,
             updated_at: new Date().toISOString(),
           })
           .eq("tenant_id", tenantId)
@@ -202,6 +206,9 @@ serve(async (req) => {
         // 3. Gedenormaliseerd planlabel (service_role, mag sinds SEC-BILL-1).
         const { error: lErr } = await supabase.from("tenants").update({ subscription_plan: "free" }).eq("id", tenantId);
         if (lErr) throw lErr;
+
+        // 3b. BILL-ADDON-1: op Free geen betaalde add-ons meer (niet bij vrijgestelde/demo-winkels).
+        if (await clearBilledModules(supabase, tenantId)) report.triggers.push("addons_off");
 
         // 4. Melding aan de winkel zelf.
         const { error: nErr } = await supabase.from("notifications").insert({

@@ -1905,8 +1905,10 @@
     "cancellation": {
       "banner": "Je abonnement loopt af op {{date}}. Tot dan houd je je huidige plan, daarna ga je naar Free.",
       "resumed": "Je opzegging is ingetrokken. Je abonnement loopt gewoon door.",
-      "resume_error": "Opzegging intrekken mislukt"
-    }
+      "resume_error": "Opzegging intrekken mislukt",
+      "commitment_note": "Je contract loopt 12 maanden. Tot dan blijft je plan actief en wordt het maandelijks gefactureerd."
+    },
+    "commitment_until": "Contract loopt tot {{date}}"
   },
   "admin_billing": {
     "title": "Platform Billing",
@@ -6751,7 +6753,13 @@
       "webshop_desc": "Verkoop producten online: catalogus, verzending, retouren, promoties en marktplaatsen zoals bol.com.",
       "webshop_p1": "Producten met varianten, voorraad en categorieën",
       "webshop_p2": "Verzending, fulfillment en retouren",
-      "webshop_p3": "Promoties, offertes, abonnementen en bol.com"
+      "webshop_p3": "Promoties, offertes, abonnementen en bol.com",
+      "needs_plan": "Kies eerst een betaald plan; een add-on komt bovenop het plan.",
+      "off_at_period_end": "Stopt op {{date}}, aan het einde van de betaalde periode.",
+      "pro_rata_requested": "Betaalverzoek van {{amount}} (pro rata) verstuurd. De add-on gaat aan zodra het betaald is.",
+      "pro_rata_charged": "Pro rata {{amount}} aangerekend.",
+      "renewal_pending": "De volgende periode is al aangerekend. Zet de add-on aan vanaf {{date}}.",
+      "payment_open": "Er staat nog een betaling open. Rond die eerst af."
     },
     "orderTickets": {
       "title": "Tickets en munten",

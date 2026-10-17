@@ -138,6 +138,16 @@ export default function BillingPage() {
     !!subscription?.current_period_end &&
     new Date(subscription.current_period_end).getTime() > Date.now();
   const showPendingDowngrade = !!pendingPlan && !pendingUpgrade && !pendingCancellation;
+  // BILL-TERM-1: contracteinde (Events Vast, 12 maanden). Opzeggen binnen het contract
+  // gaat pas in op het contracteinde (pending_effective_at), niet op het einde van de maand.
+  const commitmentRaw = (subscription as { commitment_end_at?: string | null } | null)?.commitment_end_at ?? null;
+  const commitmentEnd = commitmentRaw && new Date(commitmentRaw).getTime() > Date.now() ? new Date(commitmentRaw) : null;
+  const pendingEffectiveRaw = (subscription as { pending_effective_at?: string | null } | null)?.pending_effective_at ?? null;
+  const cancellationDate = pendingEffectiveRaw
+    ? new Date(pendingEffectiveRaw)
+    : subscription?.current_period_end ? new Date(subscription.current_period_end) : null;
+  const cancellationByCommitment = !!commitmentEnd && !!pendingEffectiveRaw &&
+    Math.abs(new Date(pendingEffectiveRaw).getTime() - commitmentEnd.getTime()) < 86_400_000;
 
   /**
    * PAY-UX-1 (deel A) — the page detects payment completion itself, for every
@@ -556,17 +566,27 @@ export default function BillingPage() {
               </p>
             )}
 
+            {/* BILL-TERM-1: minimale looptijd (Events Vast) */}
+            {commitmentEnd && !pendingCancellation && (
+              <p className="text-sm text-muted-foreground">
+                {t('billing.commitment_until', { date: format(commitmentEnd, 'PPP', { locale: dateLocale }) })}
+              </p>
+            )}
+
             {pendingCancellation && (
               <Alert>
                 <CalendarClock className="h-4 w-4" />
                 <AlertDescription className="space-y-3">
                   <p>
                     {t('billing.cancellation.banner', {
-                      date: subscription?.current_period_end
-                        ? format(new Date(subscription.current_period_end), 'PPP', { locale: dateLocale })
+                      date: cancellationDate
+                        ? format(cancellationDate, 'PPP', { locale: dateLocale })
                         : '',
                     })}
                   </p>
+                  {cancellationByCommitment && (
+                    <p className="text-xs text-muted-foreground">{t('billing.cancellation.commitment_note')}</p>
+                  )}
                   {canResume ? (
                     <Button
                       size="sm"

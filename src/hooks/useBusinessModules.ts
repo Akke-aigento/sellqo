@@ -53,6 +53,15 @@ export function useTracks() {
   return { tracks, planTrack, hasTrack, ready: !isLoading || !currentTenant, bypass };
 }
 
+/** Antwoord uit een niet-2xx-antwoord van een edge function (FunctionsHttpError). */
+async function readErrorBody(error: unknown): Promise<{ code?: string; available_from?: string } | undefined> {
+  try {
+    const ctx = (error as { context?: Response } | null)?.context;
+    if (ctx && typeof ctx.json === 'function') return (await ctx.clone().json()) as { code?: string; available_from?: string };
+  } catch { /* geen json */ }
+  return undefined;
+}
+
 export function useBusinessModules() {
   const { t } = useTranslation();
   const { isPlatformAdmin } = useAuth();
@@ -64,19 +73,49 @@ export function useBusinessModules() {
   const has = useCallback((m: BusinessModule): boolean => hasTrack(m), [hasTrack]);
 
   /**
-   * Zet een add-on aan of uit. TRACKS-1: alleen platformadmins — add-ons zijn
-   * betalend en de database weigert het voor iedereen anders.
+   * Zet een add-on aan of uit. TRACKS-1: alleen platformadmins. BILL-ADDON-1: via
+   * sync-tenant-plan, zodat de add-on ook op de factuur komt (aan = pro rata meteen,
+   * uit = einde van de betaalde periode). Winkels die SellQo niet factureert: alleen de module.
    */
   const setModule = useCallback(async (m: BusinessModule, on: boolean) => {
     if (!currentTenant?.id || !isPlatformAdmin) return false;
-    const next = on ? [...new Set([...chosen, m])] : chosen.filter((x) => x !== m);
     setSaving(true);
-    const { error } = await supabase.from('tenants').update({ business_modules: next }).eq('id', currentTenant.id);
+    const { data, error } = await supabase.functions.invoke('sync-tenant-plan', {
+      body: { tenant_id: currentTenant.id, action: 'addon', addon_id: `addon_${m}`, enabled: on },
+    });
     setSaving(false);
-    if (error) { toast.error(t('admin.modules.save_failed')); return false; }
+    const res = (data ?? {}) as {
+      success?: boolean; code?: string; effective_at?: string; pro_rata_total?: number;
+      awaiting_payment?: boolean; pending?: boolean; available_from?: string;
+    };
+    if (error || !res.success) {
+      const body = res.code ? res : await readErrorBody(error);
+      const code = body?.code;
+      if (code === 'addon_needs_plan') toast.error(t('admin.modules.needs_plan'));
+      else if (code === 'renewal_pending' && body?.available_from) {
+        toast.error(t('admin.modules.renewal_pending', { date: new Date(body.available_from).toLocaleDateString() }));
+      } else if (code === 'proration_cycle_open') toast.error(t('admin.modules.payment_open'));
+      else toast.error(t('admin.modules.save_failed'));
+      return false;
+    }
+    // Manueel betalen: de add-on gaat pas aan zodra het betaalverzoek betaald is.
+    if (on && res.pending) {
+      toast.info(t('admin.modules.pro_rata_requested', {
+        amount: (res.pro_rata_total ?? 0).toLocaleString(undefined, { style: 'currency', currency: 'EUR' }),
+      }));
+      return false;
+    }
+    if (!on && res.effective_at && new Date(res.effective_at).getTime() > Date.now() + 60_000) {
+      toast.info(t('admin.modules.off_at_period_end', { date: new Date(res.effective_at).toLocaleDateString() }));
+    }
+    if (on && (res.pro_rata_total ?? 0) > 0) {
+      toast.info(t('admin.modules.pro_rata_charged', {
+        amount: (res.pro_rata_total ?? 0).toLocaleString(undefined, { style: 'currency', currency: 'EUR' }),
+      }));
+    }
     await refreshTenants();
     return true;
-  }, [currentTenant?.id, chosen, refreshTenants, t, isPlatformAdmin]);
+  }, [currentTenant?.id, refreshTenants, t, isPlatformAdmin]);
 
   return { has, chosen, setModule, saving, planTrack, tracks, canManage: isPlatformAdmin };
 }

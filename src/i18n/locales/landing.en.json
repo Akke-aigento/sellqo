@@ -1434,6 +1434,10 @@
     },
     "changelog": {
       "changes": {
+        "addon_billing": {
+          "title": "Add-ons and box-office tickets correctly on your invoice",
+          "description": "An add-on (webshop or horeca) added mid-month is charged pro rata and now appears as its own line on your invoice. When you stop an add-on, it runs until the end of the paid period. Tickets sold at the till or manually are added with their ticket fee to your next invoice; without a monthly plan you get a usage invoice once €5 is outstanding. Events Vast now shows the end of your 12-month contract."
+        },
         "discount_code_case_insensitive": {
           "title": "Discount codes are no longer case-sensitive",
           "description": "If a customer types \"welcome10\" while your code is called \"WELCOME10\", it is now simply accepted. Upper case, lower case and extra spaces no longer make a difference. In your webshop and on your invoices the code still appears exactly as you created it."

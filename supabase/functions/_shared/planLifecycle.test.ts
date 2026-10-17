@@ -159,3 +159,14 @@ Deno.test('sweep: live-situatie 16-10 — Speeltuin en Sandbox zijn demo, Sander
   // ...en mocht er toch een stopsignaal komen: on_hold sluit uit.
   eq(decidePlanEnding({ ...mancini, status: 'canceled' }, new Date('2026-11-15T00:00:00Z')), { action: 'excluded', triggers: ['status_ended'], reason: 'on_hold' });
 });
+
+Deno.test('sweep: opgezegd binnen het contract (Events Vast) → wacht tot het contracteinde', () => {
+  eq(
+    decidePlanEnding({ ...BASE, cancel_at_period_end: true, pending_plan_id: 'free', pending_effective_at: '2027-10-17T00:00:00Z' }, NOW),
+    { action: 'scheduled', triggers: ['cancelled_at_period_end'], reason: 'commitment_running' },
+  );
+  eq(
+    decidePlanEnding({ ...BASE, cancel_at_period_end: true, pending_plan_id: 'free', pending_effective_at: '2026-10-01T00:00:00Z' }, NOW),
+    { action: 'downgrade', triggers: ['cancelled_at_period_end'] },
+  );
+});
