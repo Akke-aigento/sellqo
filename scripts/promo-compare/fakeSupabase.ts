@@ -22,6 +22,8 @@ class Query {
   private write: Row | null = null;
   update(patch: Row) { this.isUpdate = true; this.write = { table: this.table, patch, where: {} }; this.db.writes.push(this.write); return this; }
   insert(rows: any) { this.db.writes.push({ table: this.table, insert: rows }); return this; }
+  // BILL-ADDON-1: delete wordt gelogd (net als update), niet uitgevoerd.
+  delete() { this.isUpdate = true; this.write = { table: this.table, delete: true, where: {} }; this.db.writes.push(this.write); return this; }
   eq(c: string, v: any) { if (this.write) this.write.where[c] = v; this.filters.push((r) => String(r[c]) === String(v)); return this; }
   neq(c: string, v: any) { this.filters.push((r) => String(r[c]) !== String(v)); return this; }
   in(c: string, vs: any[]) { const s = new Set(vs.map(String)); this.filters.push((r) => s.has(String(r[c]))); return this; }

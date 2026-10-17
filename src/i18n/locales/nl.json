@@ -1908,7 +1908,8 @@
       "resume_error": "Opzegging intrekken mislukt",
       "commitment_note": "Je contract loopt 12 maanden. Tot dan blijft je plan actief en wordt het maandelijks gefactureerd."
     },
-    "commitment_until": "Contract loopt tot {{date}}"
+    "commitment_until": "Contract loopt tot {{date}}",
+    "commitment_locked": "Downgrade kan vanaf {{date}}"
   },
   "admin_billing": {
     "title": "Platform Billing",

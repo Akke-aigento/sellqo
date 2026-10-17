@@ -1908,7 +1908,8 @@
       "resume_error": "Could not withdraw the cancellation",
       "commitment_note": "Your contract runs for 12 months. Until then your plan stays active and is billed monthly."
     },
-    "commitment_until": "Contract runs until {{date}}"
+    "commitment_until": "Contract runs until {{date}}",
+    "commitment_locked": "Downgrade possible from {{date}}"
   },
   "import": {
     "title": "Import Data",

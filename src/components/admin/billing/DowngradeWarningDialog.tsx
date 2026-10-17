@@ -32,6 +32,9 @@ const FEATURE_LABELS: Record<string, string> = {
   whiteLabel: 'White Label',
   customDomain: 'Eigen Domein',
   prioritySupport: 'Prioriteit Support',
+  // PLANS-2: Pro → Enterprise en Events Vast
+  event_seating: 'Zaalplan met vaste plaatsen',
+  multi_warehouse: 'Meerdere magazijnen',
 };
 
 interface Props {

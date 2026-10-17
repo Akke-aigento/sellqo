@@ -807,6 +807,7 @@ export default function BillingPage() {
               currentInterval={subscription?.billing_interval || 'monthly'}
               selectedInterval={selectedInterval}
               isLoading={syncPlan.isPending}
+              commitmentEnd={commitmentEnd}
               onIntervalChange={setSelectedInterval}
               onSelectPlan={handleSelectPlan}
             />

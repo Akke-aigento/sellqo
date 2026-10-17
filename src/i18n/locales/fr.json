@@ -7307,7 +7307,8 @@
       "resume_error": "Impossible d'annuler la résiliation",
       "commitment_note": "Votre contrat dure 12 mois. D'ici là, votre forfait reste actif et est facturé chaque mois."
     },
-    "commitment_until": "Contrat jusqu'au {{date}}"
+    "commitment_until": "Contrat jusqu'au {{date}}",
+    "commitment_locked": "Rétrogradation possible à partir du {{date}}"
   },
   "product_form": {
     "title_edit": "Modifier le produit",

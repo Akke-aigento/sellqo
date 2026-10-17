@@ -7307,7 +7307,8 @@
       "resume_error": "Kündigung konnte nicht zurückgenommen werden",
       "commitment_note": "Dein Vertrag läuft 12 Monate. Bis dahin bleibt dein Tarif aktiv und wird monatlich abgerechnet."
     },
-    "commitment_until": "Vertrag läuft bis {{date}}"
+    "commitment_until": "Vertrag läuft bis {{date}}",
+    "commitment_locked": "Downgrade möglich ab {{date}}"
   },
   "product_form": {
     "title_edit": "Produkt bearbeiten",

@@ -16,6 +16,8 @@ interface PlanComparisonCardsProps {
   selectedInterval: BillingInterval;
   isLoading?: boolean;
   selectionDisabled?: boolean;
+  /** BILL-TERM-1: contracteinde (Events Vast). Tot dan geen downgrade naar een betaald plan. */
+  commitmentEnd?: Date | null;
   onSelectPlan: (planId: string, isUpgrade: boolean) => void;
   onIntervalChange: (interval: BillingInterval) => void;
 }
@@ -115,6 +117,7 @@ export function PlanComparisonCards({
   selectedInterval,
   isLoading,
   selectionDisabled,
+  commitmentEnd,
   onSelectPlan,
   onIntervalChange,
 }: PlanComparisonCardsProps) {
@@ -387,6 +390,11 @@ export function PlanComparisonCards({
                     >
                       <ArrowDown className="h-4 w-4 mr-1" />
                       Downgrade
+                    </Button>
+                  ) : !isUpgrade && commitmentEnd ? (
+                    // BILL-TERM-1: binnen het contract alleen upgraden (de server weigert het ook).
+                    <Button className="w-full h-auto py-2 flex-col gap-0" variant="outline" disabled>
+                      <span className="text-xs">{t('billing.commitment_locked', { date: commitmentEnd.toLocaleDateString(i18n.language) })}</span>
                     </Button>
                   ) : isUpgrade ? (
                     <Button
