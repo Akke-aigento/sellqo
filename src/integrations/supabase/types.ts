@@ -10722,6 +10722,45 @@ export type Database = {
           },
         ]
       }
+      platform_addons: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          monthly_price: number
+          name: string
+          sort_order: number
+          ticket_fee: number
+          track: string
+          updated_at: string
+          yearly_price: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id: string
+          monthly_price?: number
+          name: string
+          sort_order?: number
+          ticket_fee?: number
+          track: string
+          updated_at?: string
+          yearly_price?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          monthly_price?: number
+          name?: string
+          sort_order?: number
+          ticket_fee?: number
+          track?: string
+          updated_at?: string
+          yearly_price?: number
+        }
+        Relationships: []
+      }
       platform_changelogs: {
         Row: {
           acknowledged_at: string | null
@@ -11167,6 +11206,68 @@ export type Database = {
           value?: Json
         }
         Relationships: []
+      }
+      platform_ticket_fees: {
+        Row: {
+          collected_via: string
+          created_at: string
+          fee_cents: number
+          fee_per_ticket: number
+          invoiced_at: string | null
+          order_id: string
+          tenant_id: string
+          tickets: number
+        }
+        Insert: {
+          collected_via: string
+          created_at?: string
+          fee_cents: number
+          fee_per_ticket: number
+          invoiced_at?: string | null
+          order_id: string
+          tenant_id: string
+          tickets: number
+        }
+        Update: {
+          collected_via?: string
+          created_at?: string
+          fee_cents?: number
+          fee_per_ticket?: number
+          invoiced_at?: string | null
+          order_id?: string
+          tenant_id?: string
+          tickets?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_ticket_fees_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ticket_fees_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders_warehouse"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ticket_fees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_ticket_fees_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pos_cash_movements: {
         Row: {
@@ -22137,6 +22238,10 @@ export type Database = {
         }
         Returns: Json
       }
+      platform_ticket_fee_for: {
+        Args: { p_tenant_id: string }
+        Returns: number
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
@@ -22145,6 +22250,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      record_platform_ticket_fees: { Args: never; Returns: number }
       record_stock_movement: {
         Args: {
           p_created_by?: string
