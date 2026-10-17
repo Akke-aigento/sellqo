@@ -3462,6 +3462,7 @@ export type Database = {
           id: string
           invoice_id: string | null
           last_reminder_at: string | null
+          lines: Json | null
           mode: Database["public"]["Enums"]["billing_payment_mode"]
           model: Database["public"]["Enums"]["billing_model"]
           payment_request_number: string | null
@@ -3494,6 +3495,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           last_reminder_at?: string | null
+          lines?: Json | null
           mode: Database["public"]["Enums"]["billing_payment_mode"]
           model?: Database["public"]["Enums"]["billing_model"]
           payment_request_number?: string | null
@@ -3526,6 +3528,7 @@ export type Database = {
           id?: string
           invoice_id?: string | null
           last_reminder_at?: string | null
+          lines?: Json | null
           mode?: Database["public"]["Enums"]["billing_payment_mode"]
           model?: Database["public"]["Enums"]["billing_model"]
           payment_request_number?: string | null
@@ -11209,6 +11212,7 @@ export type Database = {
       }
       platform_ticket_fees: {
         Row: {
+          billing_cycle_id: string | null
           collected_via: string
           created_at: string
           fee_cents: number
@@ -11219,6 +11223,7 @@ export type Database = {
           tickets: number
         }
         Insert: {
+          billing_cycle_id?: string | null
           collected_via: string
           created_at?: string
           fee_cents: number
@@ -11229,6 +11234,7 @@ export type Database = {
           tickets: number
         }
         Update: {
+          billing_cycle_id?: string | null
           collected_via?: string
           created_at?: string
           fee_cents?: number
@@ -11239,6 +11245,13 @@ export type Database = {
           tickets?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "platform_ticket_fees_billing_cycle_id_fkey"
+            columns: ["billing_cycle_id"]
+            isOneToOne: false
+            referencedRelation: "billing_cycles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "platform_ticket_fees_order_id_fkey"
             columns: ["order_id"]
@@ -16542,9 +16555,12 @@ export type Database = {
       }
       subscription_lines: {
         Row: {
+          addon_id: string | null
           created_at: string | null
           description: string
+          end_date: string | null
           id: string
+          kind: string
           quantity: number | null
           sort_order: number | null
           subscription_id: string
@@ -16553,9 +16569,12 @@ export type Database = {
           vat_rate_id: string | null
         }
         Insert: {
+          addon_id?: string | null
           created_at?: string | null
           description: string
+          end_date?: string | null
           id?: string
+          kind?: string
           quantity?: number | null
           sort_order?: number | null
           subscription_id: string
@@ -16564,9 +16583,12 @@ export type Database = {
           vat_rate_id?: string | null
         }
         Update: {
+          addon_id?: string | null
           created_at?: string | null
           description?: string
+          end_date?: string | null
           id?: string
+          kind?: string
           quantity?: number | null
           sort_order?: number | null
           subscription_id?: string
@@ -16575,6 +16597,13 @@ export type Database = {
           vat_rate_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "subscription_lines_addon_id_fkey"
+            columns: ["addon_id"]
+            isOneToOne: false
+            referencedRelation: "platform_addons"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "subscription_lines_subscription_id_fkey"
             columns: ["subscription_id"]
@@ -18552,6 +18581,7 @@ export type Database = {
           billing_subscription_id: string | null
           cancel_at_period_end: boolean | null
           canceled_at: string | null
+          commitment_end_at: string | null
           created_at: string | null
           current_period_end: string | null
           current_period_start: string | null
@@ -18578,6 +18608,7 @@ export type Database = {
           billing_subscription_id?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
+          commitment_end_at?: string | null
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
@@ -18604,6 +18635,7 @@ export type Database = {
           billing_subscription_id?: string | null
           cancel_at_period_end?: boolean | null
           canceled_at?: string | null
+          commitment_end_at?: string | null
           created_at?: string | null
           current_period_end?: string | null
           current_period_start?: string | null
