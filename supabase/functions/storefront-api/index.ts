@@ -13,7 +13,7 @@ import { computeSlots, orderingBlocked, postalCodeAllowed, type FulfillmentSetti
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "plans-2",
+  "X-SellQo-Api-Rev": "horeca-channels-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -771,7 +771,10 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     barcode: product.barcode || null,
     weight: product.weight || null,
     product_type: product.product_type || 'physical',
-    in_stock: hasVariants ? (variants || []).some((v: any) => !v.track_inventory || v.stock > 0) : (!product.track_inventory || product.stock > 0),
+    in_stock: !isSoldOutToday(product) && (hasVariants ? (variants || []).some((v: any) => !v.track_inventory || v.stock > 0) : (!product.track_inventory || product.stock > 0)),
+    // HORECA-CHANNELS-1 — additief.
+    channels: product.channels ?? null,
+    sold_out_today: isSoldOutToday(product),
     stock: product.track_inventory ? product.stock : null,
     tags: product.tags || [],
     size_guide: product.size_guide || null,
@@ -1123,10 +1126,14 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   let query = supabase
     .from('products')
-    .select('id, name, slug, description, price, compare_at_price, images, featured_image, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, bundle_pricing_model, bundle_discount_value, created_at, allergens, dietary, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
+    .select('id, name, slug, description, price, compare_at_price, images, featured_image, is_active, hide_from_storefront, track_inventory, stock, sku, category_id, tags, is_featured, product_type, bundle_pricing_model, bundle_discount_value, created_at, allergens, dietary, channels, sold_out_until, categories(id, name, slug, hide_from_storefront)', { count: 'exact' })
     .eq('tenant_id', tenantId)
     .eq('is_active', true)
     .eq('hide_from_storefront', false);
+  // HORECA-CHANNELS-1 — de QR-kaart toont wat op de kaart of aan tafel kan; de webshop
+  // (standaard) alleen wat online te bestellen is. Standaard staat elk product overal.
+  if (params?.channel === 'menu') query = query.overlaps('channels', ['menu', 'table']);
+  else query = query.contains('channels', ['online']);
 
   query = (await applyCategoryAndSearch(supabase, tenantId, query, categoryId, categorySlug, search)).q;
   if (minPrice != null) query = query.gte('price', minPrice);
@@ -1299,9 +1306,12 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
         bundle_calculated_price: bundlePrice?.calculated_price || null,
         bundle_individual_total: bundlePrice?.individual_total || null,
         bundle_savings: bundlePrice?.savings || null,
-        in_stock: hasVariants
+        in_stock: !isSoldOutToday(product) && (hasVariants
           ? pVariants.some((v: any) => !v.track_inventory || v.stock > 0)
-          : (!product.track_inventory || product.stock > 0),
+          : (!product.track_inventory || product.stock > 0)),
+        // HORECA-CHANNELS-1 — additief: waar het besteld kan worden en of het op is voor vandaag.
+        channels: product.channels ?? null,
+        sold_out_today: isSoldOutToday(product),
         stock: product.track_inventory ? product.stock : null, sku: product.sku,
         tags: product.tags || [], is_featured: product.is_featured || false,
         category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
@@ -2561,9 +2571,17 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
 
   // Verify product exists and get price
   const { data: product } = await supabase
-    .from('products').select('id, price, track_inventory, stock, is_active, category_id')
+    .from('products').select('id, price, track_inventory, stock, is_active, category_id, channels, sold_out_until')
     .eq('id', productId).eq('tenant_id', tenantId).single();
   if (!product || !product.is_active) throw new Error('Product not found or inactive');
+  // HORECA-CHANNELS-1 — op voor vandaag, of niet te bestellen op dit kanaal (tafel of online).
+  if (isSoldOutToday(product)) throw new Error(JSON.stringify({ code: 'SOLD_OUT', message: 'Dit is op voor vandaag' }));
+  const addAtTable = params.table === true || params.table === 'true';
+  if (!channelAllows(product, addAtTable ? 'table' : 'online')) {
+    throw new Error(JSON.stringify(addAtTable
+      ? { code: 'NOT_AVAILABLE_AT_TABLE', message: 'Dit kan je niet aan tafel bestellen' }
+      : { code: 'NOT_AVAILABLE_ONLINE', message: 'Dit kan je niet online bestellen' }));
+  }
 
   let unitPrice = product.price;
   let stockSource = product;
@@ -2899,6 +2917,34 @@ async function ticketFeeFor(supabase: SupabaseLike, tenantId: string, cartItems:
   return { tickets, feeCents: Math.round(fee * 100) * tickets };
 }
 
+// HORECA-CHANNELS-1 — waar mag een product besteld worden, en is het op voor vandaag?
+// channels ontbreekt (oude rij) = overal. Het mandje en elke betaling controleren dit
+// server-side, zodat een oude link of een aangepaste request het niet omzeilt.
+function isSoldOutToday(p: DbRow | null | undefined, now = Date.now()): boolean {
+  const u = p?.sold_out_until;
+  return !!u && new Date(String(u)).getTime() > now;
+}
+function channelAllows(p: DbRow | null | undefined, channel: 'online' | 'table' | 'menu'): boolean {
+  const ch = Array.isArray(p?.channels) ? (p!.channels as string[]) : null;
+  if (!ch) return true;
+  if (channel === 'menu') return ch.includes('menu') || ch.includes('table');
+  return ch.includes(channel);
+}
+function cartAvailabilityError(items: DbRow[], atTable: boolean): { code: string; message: string } | null {
+  for (const it of items) {
+    const p = it.product as DbRow | null;
+    if (!p) continue;
+    const label = `${p.name}${it.variant?.title ? ' (' + it.variant.title + ')' : ''}`;
+    if (p.sold_out_today) return { code: 'SOLD_OUT', message: `${label} is op voor vandaag` };
+    if (Array.isArray(p.channels) && !channelAllows(p, atTable ? 'table' : 'online')) {
+      return atTable
+        ? { code: 'NOT_AVAILABLE_AT_TABLE', message: `${label} kan je niet aan tafel bestellen` }
+        : { code: 'NOT_AVAILABLE_ONLINE', message: `${label} kan je niet online bestellen` };
+    }
+  }
+  return null;
+}
+
 async function getCartForCheckout(supabase: any, tenantId: string, cartId: string) {
   const { data: cart, error } = await supabase
     .from('storefront_carts').select('*')
@@ -2908,7 +2954,7 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, sku, track_inventory, stock, category_id), product_variants(price, compare_at_price)')
+    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, sku, track_inventory, stock, category_id, channels, sold_out_until), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
 
   const variantIds = (items || []).filter((i: any) => i.variant_id).map((i: any) => i.variant_id);
@@ -2931,12 +2977,15 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
     } else if (item.products) {
       in_stock = !item.products.track_inventory || (item.products.stock ?? 0) > 0;
     }
+    // HORECA-CHANNELS-1 — op voor vandaag = overal uitverkocht.
+    const soldOutToday = isSoldOutToday(item.products);
+    if (soldOutToday) in_stock = false;
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
       quantity: item.quantity, unit_price: effectivePrice,
       event_detail_id: item.event_detail_id || null,
       compare_at_price: compareAt,
-      product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, sku: variant?.sku || item.products.sku || null, current_price: item.products.price, in_stock, category_id: item.products.category_id } : null,
+      product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, sku: variant?.sku || item.products.sku || null, current_price: item.products.price, in_stock, category_id: item.products.category_id, channels: item.products.channels ?? null, sold_out_today: soldOutToday } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
       addons: Array.isArray(item.addons) && item.addons.length ? item.addons : null,
       line_total: item.quantity * effectivePrice,
@@ -3771,6 +3820,11 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
   if (cart.checkout_status === 'converted') return { success: false, error: { code: 'ORDER_ALREADY_PAID', message: 'Deze bestelling is al afgerond' } };
   if (cart.cartItems.length === 0) return { success: false, error: { code: 'CART_EMPTY', message: 'Cart is leeg' } };
+
+  // HORECA-CHANNELS-1 — vlak vóór de bestelling: niets dat op is voor vandaag, en alleen wat
+  // op dit kanaal (aan tafel of online) besteld mag worden.
+  const availability = cartAvailabilityError(cart.cartItems as DbRow[], cart.service_type === 'eat_in' || !!cart.table_label);
+  if (availability) return { success: false, error: availability };
 
   // PROMO-ENGINE-1 — korting vlak vóór de betaling opnieuw uitrekenen. Zo betaalt de
   // klant exact wat mandje en checkout tonen, ook als de cart sinds het toepassen van

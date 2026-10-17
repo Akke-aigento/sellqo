@@ -6210,7 +6210,27 @@
           "missing": "{{count}} dish(es) have no allergens set. Check that this is correct: on the chart an empty row reads as \"contains no allergens\". You can fill them in on the product.",
           "updated": "Updated on {{date}}",
           "print_footer": "● = contains this allergen. Do you have an allergy? Feel free to ask our staff."
-        }
+        },
+        "channels_title": "Where to order",
+        "channels_desc": "One menu for your webshop, QR menu and POS. Whatever is off here cannot be ordered there.",
+        "channel_online": "Order online",
+        "channel_online_desc": "Pickup and delivery through your webshop.",
+        "channel_table": "Order at the table",
+        "channel_table_desc": "Through the QR code on the table (when table ordering is on).",
+        "channel_menu": "Show on the QR menu",
+        "channel_menu_desc": "Visible on the menu, even if it cannot be ordered.",
+        "channel_pos": "POS",
+        "channel_pos_desc": "Can be sold at the till.",
+        "channels_none": "This item is switched off everywhere, so it is not for sale anywhere.",
+        "sold_out_title": "Sold out for today",
+        "sold_out_desc": "Sold out everywhere until 05:00 tomorrow morning. No need to track stock.",
+        "sold_out_until": "Sold out until {{until}}. Then it comes back automatically.",
+        "sold_out_on": "Sold out for today",
+        "sold_out_off": "Back on sale",
+        "sold_out_action": "Sold out for today",
+        "sold_out_undo": "Put back on sale",
+        "pos_sold_out": "{{name}} is sold out for today",
+        "pos_not_available": "{{name}} is not for sale at the till"
       },
       "schema": {
         "themeGallery": {

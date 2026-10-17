@@ -2145,6 +2145,10 @@
         "plans_tracks": {
           "title": "New plans for every kind of business",
           "description": "SellQo now has three clear tracks: webshop, food & drink and events. You only see what belongs to your plan, and you add a second part as an add-on (webshop {{addon_webshop_price}} or food & drink {{addon_horeca_price}} per month, tickets with a fixed fee per ticket). New are Horeca Big ({{horeca_big_price}} per month) and Events Vast ({{vast_price}} per month for {{vast_term}} months, {{vast_fee}} per ticket and a seating plan). Events Flex costs {{flex_fee}} per paid ticket. Existing shops keep everything they had."
+        },
+        "horeca_channels": {
+          "title": "Choose per dish where it can be ordered",
+          "description": "Food & drink businesses now choose per dish whether it can be ordered online, at the table via the QR code, only shown on the menu, or sold at the till. One menu, one stock. With \"Sold out for today\" a dish is sold out everywhere in one tap, and it comes back automatically at 05:00 the next morning."
         }
       },
       "copyLink": "Copy link",

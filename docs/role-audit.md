@@ -1,3 +1,23 @@
+## HORECA-CHANNELS-1 — per gerecht online / aan tafel / op de kaart / kassa, en "op voor vandaag" (2026.12r) — 17 oktober 2026
+
+Akke 17-10: horeca moet één gedeelde kaart hebben voor online bestellen, het QR-menu (bekijken of aan tafel bestellen) en de kassa; uitverkocht = overal uitverkocht; sommige gerechten alleen online, andere alleen aan tafel of alleen op de kaart.
+
+- **Migratie** `20261017140000_horeca_channels_1.sql`, live via `query_database`:
+  - `products.channels text[]` (check ⊆ online/table/menu/pos), standaard alle vier → geen enkel bestaand product verandert. Natrek: 309/309 op de standaard.
+  - `products.sold_out_until timestamptz`.
+  - `sold_out_reset_at()` = volgende 05:00 Brussel (vóór 05:00 vandaag, anders morgen); getest: 17-10 12:00 en 18-10 03:00 → 18-10 03:00 UTC.
+  - `set_product_sold_out_today(product, aan/uit)` — security invoker, dus de gewone RLS op products bepaalt wie het mag.
+- **storefront-api** (versieheader `horeca-channels-1`):
+  - `get_products`: standaard alleen `online`-producten; `channel: 'menu'` geeft wat op de kaart of aan tafel kan. Nieuwe velden `channels`, `sold_out_today`; `in_stock` false bij op-voor-vandaag. `get_product` idem.
+  - `cart_add_item`: weigert `SOLD_OUT`, en op het kanaal (`table: true` → tafel, anders online) `NOT_AVAILABLE_AT_TABLE` / `NOT_AVAILABLE_ONLINE`.
+  - **Harde controle** in `checkoutComplete` (waar elke betaalroute samenkomt): `cartAvailabilityError` op alle regels, aan tafel = `eat_in`/`table_label`. Oude links of aangepaste requests komen er niet door.
+  - Rooktest uitgebreid (kanalen, reset, mandje-fouten); `contains` toegevoegd aan de nep-DB; CI-exportlijst bijgewerkt.
+- **Admin:** `ProductChannelsCard` (horeca, in het productformulier): 4 schakelaars + "Op voor vandaag" met resettijd; aan tafel bestelbaar zet ook "op de kaart" aan. Productlijst (lijst en kaarten): snelactie "Op voor vandaag" / "Weer te koop". Kassa: op-voor-vandaag of zonder `pos` → niet toevoegen, met melding.
+- **Storefront** (repo sellqo-storefront, apart commit): QR-kaart vraagt `channel: 'menu'`; +-knop alleen als het op dit kanaal kan; "Op voor vandaag" i.p.v. "Uitverkocht"; productpagina toont uitleg i.p.v. de knop ("Dit bestel je aan tafel in de zaak", "Vraag dit aan de bediening", …); mandje stuurt `table: true` mee aan tafel.
+- **Checks:** tsc 27 = baseline; eslint geraakte bestanden gelijk aan baseline, nieuwe bestanden schoon; vitest 790 groen; deno check + rooktest storefront-api groen; i18n-pariteit ok. Storefront: tsc 0, build ok, nep-API + `vite preview` + Playwright 390×844: QR-kaart zonder/met tafel, 5 productpagina's aan tafel en 4 online, alles zoals bedoeld, 0 console-fouten.
+- **Volgorde deploy:** maakt niet uit (alles staat standaard overal aan; oude API negeert de nieuwe parameters, oude storefront kent de nieuwe velden niet).
+- **Niet in deze batch:** tijdsloten per categorie (lunchkaart), "op voor vandaag" vanuit het keukenscherm.
+
 ## PLANS-2 — vaste prijsstructuur live in data, fee per spoor, fee-register, prijzen in teksten uit de DB (2026.12q) — 17 oktober 2026
 
 Tweede batch van `claude/sellqo-prijsstructuur.md` (go Akke 17-10). Fee bij terugbetaling: blijft, behalve bij annulering door de organisator (voorstel aanvaard; dat annuleringspad komt later).

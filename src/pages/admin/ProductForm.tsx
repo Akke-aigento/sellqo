@@ -67,6 +67,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { ProductAddonsCard } from '@/components/admin/storefront/food/ProductAddonsCard';
 import { ProductAllergensCard } from '@/components/admin/storefront/food/ProductAllergensCard';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
+import { ProductChannelsCard } from '@/components/admin/storefront/food/ProductChannelsCard';
 import { useBusinessModules } from '@/hooks/useBusinessModules';
 import {
   Select,
@@ -1600,6 +1601,8 @@ export default function ProductForm() {
 
                   {/* DEMO-1 — extra's (horeca-module) */}
                   {horeca && isEditing && id ? <ProductAddonsCard productId={id} categoryIds={selectedCategoryIds} /> : null}
+                  {/* HORECA-CHANNELS-1 — online / aan tafel / op de kaart / kassa, en op voor vandaag */}
+                  {horeca && isEditing && id ? <ProductChannelsCard productId={id} /> : null}
                   {/* ALLERGEN-1 — allergenen en dieetlabels (horeca-module) */}
                   {horeca && isEditing && id ? <ProductAllergensCard productId={id} /> : null}
 

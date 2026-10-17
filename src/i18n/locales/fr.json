@@ -5966,7 +5966,27 @@
           "missing": "{{count}} plat(s) n'ont aucun allergène renseigné. Vérifiez que c'est correct : sur le tableau, une ligne vide se lit comme « ne contient aucun allergène ». Vous pouvez les renseigner sur le produit.",
           "updated": "Mis à jour le {{date}}",
           "print_footer": "● = contient cet allergène. Vous avez une allergie ? N'hésitez pas à demander à notre personnel."
-        }
+        },
+        "channels_title": "Où commander",
+        "channels_desc": "Une seule carte pour votre boutique en ligne, votre menu QR et la caisse. Ce qui est désactivé ici ne peut pas y être commandé.",
+        "channel_online": "Commander en ligne",
+        "channel_online_desc": "À emporter et livraison via votre boutique en ligne.",
+        "channel_table": "Commander à table",
+        "channel_table_desc": "Via le code QR sur la table (si la commande à table est activée).",
+        "channel_menu": "Afficher sur le menu QR",
+        "channel_menu_desc": "Visible sur la carte, même s’il ne peut pas être commandé.",
+        "channel_pos": "Caisse",
+        "channel_pos_desc": "En vente à la caisse.",
+        "channels_none": "Ce plat est désactivé partout et n’est donc en vente nulle part.",
+        "sold_out_title": "Épuisé pour aujourd’hui",
+        "sold_out_desc": "Épuisé partout jusqu’à demain matin 05:00. Pas besoin de gérer le stock.",
+        "sold_out_until": "Épuisé jusqu’à {{until}}. Ensuite, il revient automatiquement.",
+        "sold_out_on": "Épuisé pour aujourd’hui",
+        "sold_out_off": "De nouveau en vente",
+        "sold_out_action": "Épuisé pour aujourd’hui",
+        "sold_out_undo": "Remettre en vente",
+        "pos_sold_out": "{{name}} est épuisé pour aujourd’hui",
+        "pos_not_available": "{{name}} n’est pas en vente à la caisse"
       },
       "schema": {
         "themeGallery": {

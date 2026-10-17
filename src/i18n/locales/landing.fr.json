@@ -2145,6 +2145,10 @@
         "plans_tracks": {
           "title": "Nouvelles formules par type d’activité",
           "description": "SellQo propose désormais trois parcours clairs : boutique en ligne, horeca et événements. Vous ne voyez que ce qui appartient à votre formule, et vous ajoutez une deuxième partie en option (boutique {{addon_webshop_price}} ou horeca {{addon_horeca_price}} par mois, billets avec des frais fixes par billet). Nouveau : Horeca Big ({{horeca_big_price}} par mois) et Events Vast ({{vast_price}} par mois pendant {{vast_term}} mois, {{vast_fee}} par billet et un plan de salle). Events Flex coûte {{flex_fee}} par billet payé. Les boutiques existantes gardent tout ce qu’elles avaient."
+        },
+        "horeca_channels": {
+          "title": "Choisir par plat où il peut être commandé",
+          "description": "Les établissements horeca choisissent désormais par plat s’il peut être commandé en ligne, à table via le code QR, seulement affiché sur la carte ou vendu à la caisse. Une seule carte, un seul stock. Avec « Épuisé pour aujourd’hui », un plat est épuisé partout en un geste et revient automatiquement le lendemain à 05:00."
         }
       },
       "copyLink": "Copier le lien",

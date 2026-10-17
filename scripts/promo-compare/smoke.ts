@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -18,7 +18,7 @@ const product = (id: string, name: string, price: number, extra: Record<string, 
   id, tenant_id: T, name, slug: id, description: null, price, compare_at_price: null, images: [], featured_image: null,
   is_active: true, hide_from_storefront: false, track_inventory: true, stock: 5, sku: null, category_id: 'c1', tags: ['zomer'],
   is_featured: false, product_type: 'physical', bundle_pricing_model: null, bundle_discount_value: null,
-  created_at: '2026-10-01T00:00:00Z', categories: cat, ...extra,
+  created_at: '2026-10-01T00:00:00Z', categories: cat, channels: ['online', 'table', 'menu', 'pos'], sold_out_until: null, ...extra,
 });
 const variant = (pid: string, attrs: Record<string, string>, stock = 3) => ({
   id: `${pid}-${JSON.stringify(attrs)}`, product_id: pid, price: null, stock, track_inventory: true, is_active: true, attribute_values: attrs,
@@ -202,6 +202,25 @@ await check('kost per ticket via platform_ticket_fee_for, alleen betaalde ticket
   let threw = false;
   try { await S.ticketFeeFor(stub(null, { message: 'boom' }), T, items); } catch { threw = true; }
   assert(threw, 'mislukte lookup: geen verkoop zonder fee');
+});
+
+await check('kanalen en op voor vandaag (HORECA-CHANNELS-1)', async () => {
+  const future = new Date(Date.now() + 3600e3).toISOString();
+  const past = new Date(Date.now() - 3600e3).toISOString();
+  assert(S.isSoldOutToday({ sold_out_until: future }) === true, 'op tot straks: uitverkocht');
+  assert(S.isSoldOutToday({ sold_out_until: past }) === false, 'reset voorbij: weer te koop');
+  assert(S.isSoldOutToday({}) === false, 'geen datum: te koop');
+  assert(S.channelAllows({}, 'online') === true, 'oude rij zonder kanalen: overal');
+  assert(S.channelAllows({ channels: ['table', 'menu'] }, 'online') === false, 'alleen tafel: niet online');
+  assert(S.channelAllows({ channels: ['table'] }, 'menu') === true, 'aan tafel bestelbaar = ook op de kaart');
+  assert(S.channelAllows({ channels: ['online'] }, 'menu') === false, 'alleen online: niet op de QR-kaart');
+  const tableOnly = { product: { name: 'Tapbier', channels: ['table', 'menu'], sold_out_today: false } };
+  const onlineOnly = { product: { name: 'Familiebox', channels: ['online'], sold_out_today: false } };
+  const soldOut = { product: { name: 'Lasagne', channels: ['online', 'table'], sold_out_today: true } };
+  assert(S.cartAvailabilityError([tableOnly], true) === null, 'tapbier aan tafel: ok');
+  assert(S.cartAvailabilityError([tableOnly], false)?.code === 'NOT_AVAILABLE_ONLINE', 'tapbier online: geweigerd');
+  assert(S.cartAvailabilityError([onlineOnly], true)?.code === 'NOT_AVAILABLE_AT_TABLE', 'familiebox aan tafel: geweigerd');
+  assert(S.cartAvailabilityError([soldOut], false)?.code === 'SOLD_OUT', 'op voor vandaag: geweigerd');
 });
 
 await check('early bird per tickettype (EB-TYPES-1)', async () => {

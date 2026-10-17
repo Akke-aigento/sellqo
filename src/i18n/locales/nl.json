@@ -5837,7 +5837,27 @@
           "missing": "Bij {{count}} gerecht(en) staan geen allergenen. Kijk na of dat klopt: op de kaart lijkt een lege rij op \"bevat geen allergenen\". Je vult ze in bij het product.",
           "updated": "Bijgewerkt op {{date}}",
           "print_footer": "● = bevat dit allergeen. Heb je een allergie? Vraag het gerust aan ons personeel."
-        }
+        },
+        "channels_title": "Waar te bestellen",
+        "channels_desc": "Eén kaart voor je webshop, je QR-menu en de kassa. Wat hier uit staat, kan daar niet besteld worden.",
+        "channel_online": "Online bestellen",
+        "channel_online_desc": "Afhalen en leveren via je webshop.",
+        "channel_table": "Aan tafel bestellen",
+        "channel_table_desc": "Via de QR-code op tafel (als bestellen aan tafel aanstaat).",
+        "channel_menu": "Tonen op de QR-kaart",
+        "channel_menu_desc": "Zichtbaar op de kaart, ook als het niet besteld kan worden.",
+        "channel_pos": "Kassa",
+        "channel_pos_desc": "Te verkopen aan de kassa.",
+        "channels_none": "Dit gerecht staat nergens aan en is dus nergens te koop.",
+        "sold_out_title": "Op voor vandaag",
+        "sold_out_desc": "Overal uitverkocht tot morgenochtend 05:00. Je hoeft geen voorraad bij te houden.",
+        "sold_out_until": "Op tot {{until}}. Daarna komt het vanzelf terug.",
+        "sold_out_on": "Op voor vandaag",
+        "sold_out_off": "Weer te koop",
+        "sold_out_action": "Op voor vandaag",
+        "sold_out_undo": "Weer te koop zetten",
+        "pos_sold_out": "{{name}} is op voor vandaag",
+        "pos_not_available": "{{name}} is niet te koop aan de kassa"
       },
       "shopOpenCard": {
         "klanten_kunnen_afrekenen_uit_je_winkel": "Klanten kunnen afrekenen. Uit = je winkel toont je producten, zonder winkelmandje.",

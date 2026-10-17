@@ -2145,6 +2145,10 @@
         "plans_tracks": {
           "title": "Nieuwe pakketten per soort zaak",
           "description": "SellQo heeft nu drie duidelijke sporen: webshop, horeca en events. Je ziet alleen wat bij je pakket hoort, en een tweede onderdeel neem je als add-on (webshop {{addon_webshop_price}} of horeca {{addon_horeca_price}} per maand, tickets met een vaste kost per ticket). Nieuw zijn Horeca Big ({{horeca_big_price}} per maand) en Events Vast ({{vast_price}} per maand voor {{vast_term}} maanden, {{vast_fee}} per ticket en een zaalplan). Events Flex kost {{flex_fee}} per betaald ticket. Bestaande winkels behouden alles wat ze hadden."
+        },
+        "horeca_channels": {
+          "title": "Per gerecht kiezen waar het te bestellen is",
+          "description": "Horecazaken kiezen nu per gerecht of het online te bestellen is, aan tafel via de QR-code, alleen op de kaart staat of aan de kassa verkocht wordt. Eén kaart, één voorraad. Met \"Op voor vandaag\" is een gerecht met één tik overal uitverkocht, en de volgende ochtend om 05:00 komt het vanzelf terug."
         }
       },
       "copyLink": "Kopieer link",

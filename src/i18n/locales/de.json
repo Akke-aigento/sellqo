@@ -5966,7 +5966,27 @@
           "missing": "Bei {{count}} Gericht(en) sind keine Allergene angegeben. Prüfen Sie, ob das stimmt: Auf der Karte liest sich eine leere Zeile wie „enthält keine Allergene“. Sie tragen sie beim Produkt ein.",
           "updated": "Aktualisiert am {{date}}",
           "print_footer": "● = enthält dieses Allergen. Haben Sie eine Allergie? Fragen Sie gern unser Personal."
-        }
+        },
+        "channels_title": "Wo bestellbar",
+        "channels_desc": "Eine Karte für Webshop, QR-Menü und Kasse. Was hier aus ist, kann dort nicht bestellt werden.",
+        "channel_online": "Online bestellen",
+        "channel_online_desc": "Abholung und Lieferung über Ihren Webshop.",
+        "channel_table": "Am Tisch bestellen",
+        "channel_table_desc": "Über den QR-Code am Tisch (wenn Bestellen am Tisch aktiv ist).",
+        "channel_menu": "Auf der QR-Karte zeigen",
+        "channel_menu_desc": "Sichtbar auf der Karte, auch wenn es nicht bestellt werden kann.",
+        "channel_pos": "Kasse",
+        "channel_pos_desc": "An der Kasse verkäuflich.",
+        "channels_none": "Dieses Gericht ist überall aus und daher nirgends erhältlich.",
+        "sold_out_title": "Für heute ausverkauft",
+        "sold_out_desc": "Überall ausverkauft bis morgen früh 05:00. Kein Lagerbestand nötig.",
+        "sold_out_until": "Ausverkauft bis {{until}}. Danach kommt es automatisch zurück.",
+        "sold_out_on": "Für heute ausverkauft",
+        "sold_out_off": "Wieder erhältlich",
+        "sold_out_action": "Für heute ausverkauft",
+        "sold_out_undo": "Wieder verkaufen",
+        "pos_sold_out": "{{name}} ist für heute ausverkauft",
+        "pos_not_available": "{{name}} ist an der Kasse nicht erhältlich"
       },
       "schema": {
         "themeGallery": {

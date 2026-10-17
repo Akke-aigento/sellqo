@@ -53,6 +53,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import { toast } from 'sonner';
 import { usePOSTerminals, usePOSSessions, usePOSTransactions, usePOSQuickButtons, usePOSParkedCarts, usePOSCashMovements } from '@/hooks/usePOS';
 import { useProducts } from '@/hooks/useProducts';
+import { isSoldOutNow } from '@/components/admin/storefront/food/useSoldOutToday';
 import { useStripeTerminal } from '@/hooks/useStripeTerminal';
 import { usePOSOffline, OfflineTransaction } from '@/hooks/usePOSOffline';
 import { usePOSLoyalty } from '@/hooks/usePOSLoyalty';
@@ -265,10 +266,14 @@ export default function POSTerminalPage() {
   }, [resolveProductTaxRate]);
 
   const addToCart = useCallback((product: Product) => {
+    // HORECA-CHANNELS-1 — op voor vandaag of niet aan de kassa te koop: niet toevoegen.
+    const p = product as Product & { sold_out_until?: string | null; channels?: string[] | null };
+    if (isSoldOutNow(p.sold_out_until)) { toast.error(t('admin.storefront.food.pos_sold_out', { name: product.name })); return; }
+    if (Array.isArray(p.channels) && !p.channels.includes('pos')) { toast.error(t('admin.storefront.food.pos_not_available', { name: product.name })); return; }
     const groups = addonGroupsFor(product.id, product.category_id);
     if (groups.length) { setAddonFor({ product, groups }); return; }
     addLine(product, []);
-  }, [addonGroupsFor, addLine]);
+  }, [addonGroupsFor, addLine, t]);
   
   // Update quantity
   const updateQuantity = useCallback((itemId: string, delta: number) => {

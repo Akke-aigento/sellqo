@@ -2145,6 +2145,10 @@
         "plans_tracks": {
           "title": "Neue Tarife für jede Art von Betrieb",
           "description": "SellQo hat jetzt drei klare Bereiche: Webshop, Gastronomie und Events. Sie sehen nur, was zu Ihrem Tarif gehört, und buchen einen zweiten Bereich als Add-on (Webshop {{addon_webshop_price}} oder Gastronomie {{addon_horeca_price}} pro Monat, Tickets mit fester Gebühr pro Ticket). Neu sind Horeca Big ({{horeca_big_price}} pro Monat) und Events Vast ({{vast_price}} pro Monat für {{vast_term}} Monate, {{vast_fee}} pro Ticket und ein Saalplan). Events Flex kostet {{flex_fee}} pro bezahltem Ticket. Bestehende Shops behalten alles, was sie hatten."
+        },
+        "horeca_channels": {
+          "title": "Pro Gericht wählen, wo es bestellbar ist",
+          "description": "Gastronomiebetriebe wählen jetzt pro Gericht, ob es online, am Tisch über den QR-Code, nur auf der Karte oder an der Kasse erhältlich ist. Eine Karte, ein Bestand. Mit „Für heute ausverkauft“ ist ein Gericht mit einem Tipp überall ausverkauft und kommt am nächsten Morgen um 05:00 automatisch zurück."
         }
       },
       "copyLink": "Link kopieren",

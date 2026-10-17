@@ -22,12 +22,14 @@ import {
   X,
   ImageIcon,
   Copy,
+  CircleSlash,
 } from 'lucide-react';
 import { useProducts } from '@/hooks/useProducts';
 import { useCategories } from '@/hooks/useCategories';
 import { useTenant } from '@/hooks/useTenant';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { useBusinessModules } from '@/hooks/useBusinessModules';
+import { isSoldOutNow, useSoldOutToday } from '@/components/admin/storefront/food/useSoldOutToday';
 import { ProductBulkEditDialog } from '@/components/admin/products/ProductBulkEditDialog';
 import { BulkAIGenerateDialog } from '@/components/admin/products/BulkAIGenerateDialog';
 import { ProductGridView } from '@/components/admin/products/grid/ProductGridView';
@@ -162,6 +164,8 @@ export default function ProductsPage() {
   // EVENT-ADMIN-1: alleen met de module Events — zonder module is Events onbereikbaar en
   // blijven ticketproducten gewoon in de lijst staan (zoals vóór EVENT-WORKSPACE-1).
   const { has: hasModule } = useBusinessModules();
+  const horecaOn = hasModule('horeca');
+  const soldOutToday = useSoldOutToday();
   const hideTickets = hasModule('events');
   const ticketCount = useMemo(
     () => (hideTickets ? products.filter((p) => p.product_type === 'ticket').length : 0),
@@ -686,6 +690,16 @@ export default function ProductsPage() {
                         </Link>
                       </DropdownMenuItem>
                       <PermissionGate action="write" resource="products">
+                        {/* HORECA-CHANNELS-1 — op voor vandaag, overal tegelijk (webshop, tafel, kassa). */}
+                        {horecaOn ? (
+                          <DropdownMenuItem
+                            onClick={() => soldOutToday.mutate({ productId: product.id, soldOut: !isSoldOutNow((product as { sold_out_until?: string | null }).sold_out_until) })}
+                            disabled={soldOutToday.isPending}
+                          >
+                            <CircleSlash className="mr-2 h-4 w-4" />
+                            {isSoldOutNow((product as { sold_out_until?: string | null }).sold_out_until) ? t('admin.storefront.food.sold_out_undo') : t('admin.storefront.food.sold_out_action')}
+                          </DropdownMenuItem>
+                        ) : null}
                         <DropdownMenuItem
                           onClick={() => handleDuplicate(product.id)}
                           disabled={duplicateProduct.isPending}
@@ -860,6 +874,16 @@ export default function ProductsPage() {
                             </Link>
                           </DropdownMenuItem>
                         <PermissionGate action="write" resource="products">
+                          {/* HORECA-CHANNELS-1 — op voor vandaag, overal tegelijk (webshop, tafel, kassa). */}
+                          {horecaOn ? (
+                            <DropdownMenuItem
+                              onClick={() => soldOutToday.mutate({ productId: product.id, soldOut: !isSoldOutNow((product as { sold_out_until?: string | null }).sold_out_until) })}
+                              disabled={soldOutToday.isPending}
+                            >
+                              <CircleSlash className="mr-2 h-4 w-4" />
+                              {isSoldOutNow((product as { sold_out_until?: string | null }).sold_out_until) ? t('admin.storefront.food.sold_out_undo') : t('admin.storefront.food.sold_out_action')}
+                            </DropdownMenuItem>
+                          ) : null}
                           <DropdownMenuItem
                             onClick={() => handleDuplicate(product.id)}
                             disabled={duplicateProduct.isPending}

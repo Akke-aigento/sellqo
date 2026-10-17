@@ -38,6 +38,7 @@ class Query {
   }
   gte(c: string, v: any) { this.filters.push((r) => r[c] != null && Number(r[c]) >= Number(v)); return this; }
   lte(c: string, v: any) { this.filters.push((r) => r[c] != null && Number(r[c]) <= Number(v)); return this; }
+  contains(c: string, vs: any[]) { this.filters.push((r) => Array.isArray(r[c]) && vs.every((x: any) => r[c].includes(x))); return this; }
   overlaps(c: string, vs: any[]) { this.filters.push((r) => Array.isArray(r[c]) && r[c].some((x: any) => vs.includes(x))); return this; }
   not() { return this; }
   // Alleen de vorm die storefront-api gebruikt: "a.eq.X,b.in.(x,y)".
