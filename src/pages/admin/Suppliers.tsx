@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,10 +33,12 @@ import {
   Building2,
   CheckCircle,
   FileText,
+  FileBox,
   ShoppingCart,
 } from "lucide-react";
 
 export default function Suppliers() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [formDialogOpen, setFormDialogOpen] = useState(false);
@@ -91,10 +95,19 @@ export default function Suppliers() {
               Beheer je leveranciers en inkoopprijzen
             </p>
           </div>
-          <Button onClick={handleNewSupplier}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nieuwe leverancier
-          </Button>
+          {/* SIDEBAR-CLEAN-1: Documenten stond als apart submenu-item onder Inkoop. */}
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" asChild>
+              <Link to="/admin/supplier-documents">
+                <FileBox className="h-4 w-4 mr-2" />
+                {t('navigation.items.supplier_docs')}
+              </Link>
+            </Button>
+            <Button onClick={handleNewSupplier}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nieuwe leverancier
+            </Button>
+          </div>
         </div>
 
         {/* Stats */}

@@ -2130,6 +2130,10 @@
         "social_ai_one_button": {
           "title": "One button for a post with AI",
           "description": "The separate \"Create\" tab with the promo wizard, tool grid and daily menu is gone. To have a post written, click \"Post with AI\" at the top of Social. The post goes into your planning and only goes live once you approve it. You still edit product photos with AI on the product and in Media."
+        },
+        "sidebar_cleanup": {
+          "title": "A tidier sidebar",
+          "description": "The menu in your admin is shorter and more logical. Duplicate items are gone: you open Notifications from the bell at the top, and clicking Orders, Promotions, Events, Ads or Reports takes you straight to the page. The arrow next to it opens the submenu. Categories now sit under Products and Customer groups under Customers. Import is on the Connect page, supplier documents on the Suppliers page. Subscription is now called SellQo plan."
         }
       },
       "copyLink": "Copy link",

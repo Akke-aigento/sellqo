@@ -2130,6 +2130,10 @@
         "social_ai_one_button": {
           "title": "Eén knop voor een post met AI",
           "description": "De aparte tab \"Maken\" met promo-wizard, toolraster en menukaart is weg. Wil je een post laten schrijven, klik dan op \"Post met AI\" bovenaan Social. De post komt in je planning en gaat pas online als je hem goedkeurt. Productfoto's bewerk je met AI zoals voorheen bij het product en in Media."
+        },
+        "sidebar_cleanup": {
+          "title": "Een opgeruimde zijbalk",
+          "description": "Het menu in je beheer is korter en logischer. Dubbele items zijn weg: Notificaties open je via de bel bovenaan, en klik je op Bestellingen, Promoties, Events, Ads of Rapporten, dan kom je meteen op de pagina. Het pijltje ernaast klapt het submenu open. Categorieën staan nu onder Producten en Klantgroepen onder Klanten. Importeren vind je op de Connect-pagina, leveranciersdocumenten op de Leveranciers-pagina. Abonnement heet nu SellQo-plan."
         }
       },
       "copyLink": "Kopieer link",

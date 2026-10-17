@@ -2130,6 +2130,10 @@
         "social_ai_one_button": {
           "title": "Ein Button für einen Beitrag mit KI",
           "description": "Der separate Tab „Erstellen“ mit Promo-Assistent, Werkzeugraster und Tagesmenü ist entfallen. Möchten Sie einen Beitrag schreiben lassen, klicken Sie oben in Social auf „Beitrag mit KI“. Der Beitrag landet in Ihrer Planung und geht erst online, wenn Sie ihn genehmigen. Produktfotos bearbeiten Sie wie bisher mit KI beim Produkt und unter Medien."
+        },
+        "sidebar_cleanup": {
+          "title": "Eine aufgeräumte Seitenleiste",
+          "description": "Das Menü in Ihrer Verwaltung ist kürzer und logischer. Doppelte Einträge sind weg: Benachrichtigungen öffnen Sie über die Glocke oben, und ein Klick auf Bestellungen, Aktionen, Events, Ads oder Berichte führt direkt zur Seite. Der Pfeil daneben klappt das Untermenü auf. Kategorien stehen jetzt unter Produkte und Kundengruppen unter Kunden. Den Import finden Sie auf der Connect-Seite, Lieferantendokumente auf der Lieferanten-Seite. Abonnement heißt jetzt SellQo-Tarif."
         }
       },
       "copyLink": "Link kopieren",

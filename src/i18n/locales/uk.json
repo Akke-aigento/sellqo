@@ -159,7 +159,7 @@
       "notifications": "Сповіщення",
       "integrations": "SellQo Connect",
       "integrations_connect": "SellQo Connect",
-      "billing": "Підписка",
+      "billing": "Тариф SellQo",
       "help": "Довідка",
       "platform_billing": "Платіжні операції платформи",
       "platform_coupons": "Купони",
@@ -178,7 +178,8 @@
       "social_planner": "Планування соцмереж",
       "social": "Соцмережі",
       "email": "Email",
-      "media": "Медіа"
+      "media": "Медіа",
+      "platform_overview": "Огляд платформи"
     }
   },
   "settings": {

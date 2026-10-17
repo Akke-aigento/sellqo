@@ -159,7 +159,7 @@
       "notifications": "Notifications",
       "integrations": "SellQo Connect",
       "integrations_connect": "SellQo Connect",
-      "billing": "Subscription",
+      "billing": "SellQo plan",
       "help": "Help",
       "platform_billing": "Platform billing",
       "platform_coupons": "Coupons",
@@ -178,7 +178,8 @@
       "social_planner": "Social planning",
       "social": "Social",
       "email": "Email",
-      "media": "Media"
+      "media": "Media",
+      "platform_overview": "Platform overview"
     }
   },
   "settings": {

@@ -1,3 +1,25 @@
+## SIDEBAR-CLEAN-1 — zijbalk opgeruimd: dubbels weg, parent klikbaar (2026.12p) — 17 oktober 2026
+
+Aanleiding: Akke vond de zijbalk "enorm uitgebreid, hier en daar dubbel". Recon op main 562d965: ±38 hoofditems voor platform_admin.
+
+- **Dubbels weg:**
+  - `notifications` (Systeem) uit het menu: de bel in de header (NotificationCenter) linkt al naar `/admin/notifications`. Route blijft.
+  - `integrations`: het kind "SellQo Connect" herhaalde dezelfde URL. Nu één item; Importeren is een knop op de Connect-pagina.
+  - `purchasing`: na SUPPLIER-404-1 nog 2 kinderen. Nu één item; Documenten is een knop op de Leveranciers-pagina.
+  - Kinderen met de parent-URL (`orders-all`, `events-all`, `promo-codes`, `ads-overview`, `reports-overview`) zijn nu **landingskinderen** (`landing: true`): niet meer in het submenu, wel nog als id voor de rol-whitelists en verbergregels. De parent linkt naar het landingskind als de rol dat mag zien, anders naar het eerste zichtbare kind (bv. warehouse bij Rapporten).
+- **Verhuisd:** `categories` → kind van Producten; `promo-groups` (Klantgroepen) → kind van Klanten (URL ongewijzigd).
+- **Labels:** "Abonnement" → "SellQo-plan" (verwarring met klant-"Abonnementen"); platformdashboard → `navigation.items.platform_overview` "Platformoverzicht". 5 talen.
+- **Weergave (AdminSidebar):** het label van een parent navigeert, de chevron (SidebarMenuAction) klapt open. Eén actief item per route (langste menu-URL die de route dekt), zodat Klantgroepen niet ook Promoties oplicht. Het Platform-blok is inklapbaar, standaard dicht behalve op `/admin/platform/*`. Unieke iconen: Vertalingen (Languages), Platform Billing (Wallet), Documentatie (Library).
+- **Id-consumenten:** ids `purchasing`, `integrations`, `storefront` behouden (live in `tenant_feature_overrides.hidden_pages`, 2 tenants). `sidebar_preferences.hidden_items` is leeg voor iedereen → geen datamigratie. Dode ids `ads-amazon/google/meta` uit MARKETING_ALLOWED_ITEMS. `ai-tools` in dashboardWidgets bewust behouden (verbergsleutel). TenantModulesTab toont nu ook submenu-items (zonder landingskinderen); het personaliseer-menu slaat landingskinderen over.
+- **Itemtelling (harnas, alle modules aan, hoofditems bij openen / subitems):**
+  - platform_admin: 38 / 31 → 25 / 23 (Platform-blok dicht; open 36)
+  - tenant_admin: 27 / 31 → 25 / 23
+  - marketing: 14 / 16 → 14 / 13
+  - warehouse: 4 / 2 → 4 / 1
+- **Checks:** tsc 27 = baseline; eslint op de geraakte bestanden gelijk aan baseline (1 bestaande `any` in Marketplaces); vitest 58+1 bestanden groen, nieuwe `src/test/sidebarConfig.test.ts` (unieke ids, geen dubbele URL's buiten landingskinderen, whitelists bestaan, hidden_pages-ids blijven); i18n-parity, used-keys en dead-buttons ok. Harnas-screenshots voor/na per rol; actieve staat nagelopen op 5 routes.
+- **Geen** routes verwijderd, geen backend, geen edge functions, geen migratie.
+- **Live:** sellqo.app pas na `deploy_project`; de app pas met de volgende native build.
+
 ## SUB-UNIFY-2A-ECHT — opzeg-sweep van droog naar echte modus — 17 oktober 2026
 
 Vervolg op SUB-UNIFY-2A (zie verder in dit bestand). Akke's go op 17-10 ("Ja, echte modus aan") na de eerste geplande droge run.

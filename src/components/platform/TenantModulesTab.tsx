@@ -190,7 +190,8 @@ export function TenantModulesTab({ tenantId }: TenantModulesTabProps) {
               <div key={group.id} className="space-y-2">
                 <h4 className="text-sm font-semibold text-muted-foreground">{t(group.titleKey)}</h4>
                 <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-                  {group.items.map((item) => {
+                  {/* SIDEBAR-CLEAN-1: ook submenu-items (bv. Categorieën onder Producten), zonder landingskinderen. */}
+                  {group.items.flatMap((item) => [item, ...(item.children ?? []).filter((c) => !c.landing)]).map((item) => {
                     const currentHidden = (formData.hidden_pages as string[] | undefined) || [];
                     const isHidden = currentHidden.includes(item.id);
                     return (

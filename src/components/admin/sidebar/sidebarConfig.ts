@@ -4,15 +4,10 @@ import {
   Package,
   ShoppingCart,
   Users,
-  FolderTree,
   Truck,
   Settings,
-  BarChart3,
   Building2,
-  Store,
-  FileText,
   Receipt,
-  Upload,
   Cable,
   Mail,
   Images,
@@ -21,10 +16,6 @@ import {
   Percent,
   FileSpreadsheet,
   Factory,
-  ClipboardList,
-  FileBox,
-  BellRing,
-  Bot,
   Monitor,
   ChefHat,
   UtensilsCrossed,
@@ -32,11 +23,7 @@ import {
   Globe,
   Search,
   Gift,
-  Layers,
-  Tags,
-  TrendingUp,
   LucideIcon,
-  PackageCheck,
   MessageSquare,
   Megaphone as MegaphoneIcon,
   LayoutDashboard as PlatformDashboardIcon,
@@ -45,6 +32,9 @@ import {
   Activity,
   FileText as LegalIcon,
   Banknote,
+  Languages,
+  Wallet,
+  Library,
 } from 'lucide-react';
 
 import type { AppRole } from '@/hooks/useAuth';
@@ -68,6 +58,13 @@ export interface NavItem {
    * zien. Heeft voorrang op legacy allowedRoles/excludeRoles.
    */
   requireRead?: Resource;
+  /**
+   * SIDEBAR-CLEAN-1 — landingskind: de pagina van de parent zelf (bv. "Alle
+   * bestellingen"). Staat niet in het submenu; de parent linkt ernaartoe als
+   * de gebruiker hem mag zien, anders naar het eerste zichtbare kind. Het id
+   * blijft bestaan voor de rol-whitelists en verbergregels.
+   */
+  landing?: boolean;
 }
 
 export interface NavGroup {
@@ -95,7 +92,7 @@ export const MARKETING_ALLOWED_ITEMS = [
   'orders', 'orders-all',
   'products',
   'customers',
-  'ads', 'ads-overview', 'ads-bolcom', 'ads-products', 'ads-amazon', 'ads-google', 'ads-meta', 'ads-ai',
+  'ads', 'ads-overview', 'ads-bolcom', 'ads-products', 'ads-ai',
   'promotions', 'promo-codes', 'promo-bundles', 'promo-bogo', 'promo-volume', 'promo-auto', 'promo-gifts', 'promo-loyalty', 'promo-groups', 'promo-giftcards',
   'social-planner', 'campaigns', 'media', 'seo',
   'translations',
@@ -114,7 +111,7 @@ const dailyItems: NavItem[] = [
     icon: ShoppingCart,
     requireRead: 'orders',
     children: [
-      { id: 'orders-all', titleKey: 'navigation.items.orders_all', url: '/admin/orders', requireRead: 'orders' },
+      { id: 'orders-all', titleKey: 'navigation.items.orders_all', url: '/admin/orders', requireRead: 'orders', landing: true },
       { id: 'orders-fulfillment', titleKey: 'navigation.items.orders_fulfillment', url: '/admin/fulfillment', excludeRoles: ['marketing'], requireRead: 'orders' },
       { id: 'orders-returns', titleKey: 'navigation.items.orders_returns', url: '/admin/returns', excludeRoles: ['warehouse', 'marketing'], requireRead: 'returns' },
       { id: 'orders-invoices', titleKey: 'navigation.items.orders_invoices', url: '/admin/orders/invoices', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
@@ -122,8 +119,29 @@ const dailyItems: NavItem[] = [
       { id: 'orders-subscriptions', titleKey: 'navigation.items.orders_subscriptions', url: '/admin/orders/subscriptions', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
     ],
   },
-  { id: 'products', titleKey: 'navigation.products', url: '/admin/products', icon: Package, requireRead: 'products' },
-  { id: 'customers', titleKey: 'navigation.customers', url: '/admin/customers', icon: Users, excludeRoles: ['warehouse'], requireRead: 'customers' },
+  {
+    id: 'products',
+    titleKey: 'navigation.products',
+    url: '/admin/products',
+    icon: Package,
+    requireRead: 'products',
+    // SIDEBAR-CLEAN-1: Categorieën stond los in Beheer.
+    children: [
+      { id: 'categories', titleKey: 'navigation.categories', url: '/admin/categories', excludeRoles: ['marketing'], requireRead: 'products' },
+    ],
+  },
+  {
+    id: 'customers',
+    titleKey: 'navigation.customers',
+    url: '/admin/customers',
+    icon: Users,
+    excludeRoles: ['warehouse'],
+    requireRead: 'customers',
+    // SIDEBAR-CLEAN-1: Klantgroepen stond onder Promoties. URL ongewijzigd.
+    children: [
+      { id: 'promo-groups', titleKey: 'navigation.items.promo_groups', url: '/admin/promotions/customer-groups', requireRead: 'customers' },
+    ],
+  },
 ];
 
 // VERKOOP - Verkoopgerelateerde functies
@@ -141,7 +159,7 @@ const salesItems: NavItem[] = [
     featureKey: 'events',
     allowedRoles: ['platform_admin', 'tenant_admin', 'staff'],
     children: [
-      { id: 'events-all', titleKey: 'navigation.items.events_all', url: '/admin/events', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
+      { id: 'events-all', titleKey: 'navigation.items.events_all', url: '/admin/events', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'], landing: true },
       { id: 'event-venues', titleKey: 'navigation.items.event_venues', url: '/admin/events/venues', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
       // BLOG-FIX-1: stonden enkel als knop op het eventsoverzicht; zelfde gating als de zusteritems.
       { id: 'event-bundles', titleKey: 'navigation.items.event_bundles', url: '/admin/events/bundles', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
@@ -158,14 +176,13 @@ const salesItems: NavItem[] = [
     icon: Percent,
     requireRead: 'discount_codes',
     children: [
-      { id: 'promo-codes', titleKey: 'navigation.items.promo_codes', url: '/admin/promotions', requireRead: 'discount_codes' },
+      { id: 'promo-codes', titleKey: 'navigation.items.promo_codes', url: '/admin/promotions', requireRead: 'discount_codes', landing: true },
       { id: 'promo-bundles', titleKey: 'navigation.items.promo_bundles', url: '/admin/promotions/bundles', featureKey: 'promo_bundles', requireRead: 'discount_codes' },
       { id: 'promo-bogo', titleKey: 'navigation.items.promo_bogo', url: '/admin/promotions/bogo', featureKey: 'promo_bogo', requireRead: 'discount_codes' },
       { id: 'promo-volume', titleKey: 'navigation.items.promo_volume', url: '/admin/promotions/volume', featureKey: 'promo_volume', requireRead: 'volume_discounts' },
       { id: 'promo-auto', titleKey: 'navigation.items.promo_auto', url: '/admin/promotions/auto', requireRead: 'discount_codes' },
       { id: 'promo-gifts', titleKey: 'navigation.items.promo_gifts', url: '/admin/promotions/gifts', requireRead: 'discount_codes' },
       { id: 'promo-loyalty', titleKey: 'navigation.items.promo_loyalty', url: '/admin/promotions/loyalty', featureKey: 'loyalty_program', requireRead: 'loyalty' },
-      { id: 'promo-groups', titleKey: 'navigation.items.promo_groups', url: '/admin/promotions/customer-groups', requireRead: 'customers' },
       { id: 'promo-giftcards', titleKey: 'navigation.items.promo_giftcards', url: '/admin/promotions/gift-cards', featureKey: 'promo_giftcards', requireRead: 'discount_codes' },
     ],
   },
@@ -189,7 +206,7 @@ const marketingItems: NavItem[] = [
     featureKey: 'social_commerce',
     requireRead: 'ads',
     children: [
-      { id: 'ads-overview', titleKey: 'navigation.items.ads_overview', url: '/admin/ads', requireRead: 'ads' },
+      { id: 'ads-overview', titleKey: 'navigation.items.ads_overview', url: '/admin/ads', requireRead: 'ads', landing: true },
       { id: 'ads-bolcom', titleKey: 'navigation.items.ads_bolcom', url: '/admin/ads/bolcom', requireRead: 'ads' },
       { id: 'ads-products', titleKey: 'navigation.items.ads_products', url: '/admin/ads/products', requireRead: 'ads' },
       // APP-CLEAN-5: Amazon/Google/Meta-ads verborgen tot ze bestaan (stonden als uitgeschakelde items in het menu).
@@ -200,22 +217,10 @@ const marketingItems: NavItem[] = [
 
 // BEHEER - Administratieve functies
 const managementItems: NavItem[] = [
-  { id: 'categories', titleKey: 'navigation.categories', url: '/admin/categories', icon: FolderTree, excludeRoles: ['marketing'], requireRead: 'products' },
-  { id: 'translations', titleKey: 'navigation.items.translations', url: '/admin/marketing/translations', icon: Globe, requireRead: 'cms' },
-  {
-    id: 'purchasing',
-    titleKey: 'navigation.items.purchasing',
-    url: '/admin/suppliers',
-    icon: Factory,
-    excludeRoles: ['marketing'],
-    requireRead: 'suppliers',
-    children: [
-      { id: 'suppliers', titleKey: 'navigation.items.suppliers', url: '/admin/suppliers', requireRead: 'suppliers' },
-      // SUPPLIER-404-1: inkooporders verborgen — er is geen pagina om er een aan te maken of te openen
-      // (/admin/purchase-orders/new en /:id gaven 404; 0 inkooporders in gebruik). Route blijft bestaan.
-      { id: 'supplier-docs', titleKey: 'navigation.items.supplier_docs', url: '/admin/supplier-documents', requireRead: 'suppliers' },
-    ],
-  },
+  { id: 'translations', titleKey: 'navigation.items.translations', url: '/admin/marketing/translations', icon: Languages, requireRead: 'cms' },
+  // SIDEBAR-CLEAN-1: één item; Documenten zit als knop op de Leveranciers-pagina.
+  // Id 'purchasing' blijft (tenant_feature_overrides.hidden_pages verwijst ernaar).
+  { id: 'purchasing', titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers' },
   {
     id: 'reports',
     titleKey: 'navigation.items.reports',
@@ -225,7 +230,7 @@ const managementItems: NavItem[] = [
     // voorraadrapport ziet; de kinderen zijn afzonderlijk gegated.
     requireRead: 'products',
     children: [
-      { id: 'reports-overview', titleKey: 'navigation.items.reports_overview', url: '/admin/reports', requireRead: 'reports_financial' },
+      { id: 'reports-overview', titleKey: 'navigation.items.reports_overview', url: '/admin/reports', requireRead: 'reports_financial', landing: true },
       { id: 'reports-analytics', titleKey: 'navigation.analytics', url: '/admin/analytics', requireRead: 'reports_analytics' },
       { id: 'reports-stock', titleKey: 'navigation.items.reports_stock', url: '/admin/reports/stock', requireRead: 'products' },
     ],
@@ -235,20 +240,9 @@ const managementItems: NavItem[] = [
 
 // SYSTEEM - Instellingen en integraties
 const systemItems: NavItem[] = [
-  { id: 'notifications', titleKey: 'navigation.items.notifications', url: '/admin/notifications', icon: BellRing, excludeRoles: ['marketing'], requireRead: 'settings_general' },
-  {
-    id: 'integrations',
-    titleKey: 'navigation.items.integrations',
-    url: '/admin/connect',
-    icon: Cable,
-    featureKey: 'apiAccess',
-    excludeRoles: ['marketing'],
-    requireRead: 'integrations',
-    children: [
-      { id: 'integrations-connect', titleKey: 'navigation.items.integrations_connect', url: '/admin/connect', requireRead: 'integrations' },
-      { id: 'integrations-import', titleKey: 'navigation.import', url: '/admin/import', requireRead: 'integrations' },
-    ],
-  },
+  // SIDEBAR-CLEAN-1: Notificaties weg — de bel in de header linkt al naar /admin/notifications.
+  // SIDEBAR-CLEAN-1: één item (het kind herhaalde dezelfde URL); Importeren zit als knop op de Connect-pagina.
+  { id: 'integrations', titleKey: 'navigation.items.integrations', url: '/admin/connect', icon: Cable, featureKey: 'apiAccess', excludeRoles: ['marketing'], requireRead: 'integrations' },
   { id: 'billing', titleKey: 'navigation.items.billing', url: '/admin/billing', icon: Receipt, excludeRoles: ['marketing'], requireRead: 'platform_billing' },
   { id: 'settings', titleKey: 'navigation.settings', url: '/admin/settings', icon: Settings, excludeRoles: ['marketing'], requireRead: 'settings_general' },
   { id: 'help', titleKey: 'navigation.items.help', url: '/admin/help', icon: HelpCircle },
@@ -256,9 +250,9 @@ const systemItems: NavItem[] = [
 
 // PLATFORM - Platform admin only
 const platformItems: NavItem[] = [
-  { id: 'platform-dashboard', titleKey: 'navigation.dashboard', url: '/admin/platform/dashboard', icon: PlatformDashboardIcon },
+  { id: 'platform-dashboard', titleKey: 'navigation.items.platform_overview', url: '/admin/platform/dashboard', icon: PlatformDashboardIcon },
   { id: 'platform-tenants', titleKey: 'navigation.tenants', url: '/admin/platform', icon: Building2 },
-  { id: 'platform-billing', titleKey: 'navigation.items.platform_billing', url: '/admin/platform/billing', icon: Receipt },
+  { id: 'platform-billing', titleKey: 'navigation.items.platform_billing', url: '/admin/platform/billing', icon: Wallet },
   { id: 'platform-coupons', titleKey: 'navigation.items.platform_coupons', url: '/admin/platform/coupons', icon: Gift },
   { id: 'platform-feedback', titleKey: 'navigation.items.platform_feedback', url: '/admin/platform/feedback', icon: MessageCircle },
   { id: 'platform-support', titleKey: 'navigation.items.platform_support', url: '/admin/platform/support', icon: MessageSquare },
@@ -266,7 +260,7 @@ const platformItems: NavItem[] = [
   { id: 'platform-blog', titleKey: 'navigation.items.platform_blog', url: '/admin/platform/blog', icon: BookOpen },
   { id: 'platform-health', titleKey: 'navigation.items.platform_health', url: '/admin/platform/health', icon: Activity },
   { id: 'platform-legal', titleKey: 'navigation.items.platform_legal', url: '/admin/platform/legal', icon: LegalIcon },
-  { id: 'platform-docs', titleKey: 'navigation.items.platform_docs', url: '/admin/platform/docs', icon: BookOpen },
+  { id: 'platform-docs', titleKey: 'navigation.items.platform_docs', url: '/admin/platform/docs', icon: Library },
 ];
 
 export const sidebarGroups: NavGroup[] = [
@@ -307,6 +301,7 @@ export function getAllMenuItems(): { id: string; titleKey: string; groupKey: str
       items.push({ id: item.id, titleKey: item.titleKey, groupKey: group.titleKey });
       if (item.children) {
         for (const child of item.children) {
+          if (child.landing) continue;
           items.push({ id: child.id, titleKey: child.titleKey, groupKey: group.titleKey });
         }
       }

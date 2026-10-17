@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow } from 'date-fns';
 import { nl } from 'date-fns/locale';
-import { Link2, ShoppingCart, Clock, AlertCircle, Store, Share2, ArrowUp, Calculator, Package } from 'lucide-react';
+import { Link2, Upload, ShoppingCart, Clock, AlertCircle, Store, Share2, ArrowUp, Calculator, Package } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -111,11 +111,18 @@ export default function MarketplacesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">SellQo Connect</h1>
-        <p className="text-muted-foreground mt-2">
-          Verbind je verkoopkanalen en synchroniseer automatisch bestellingen en voorraad
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">SellQo Connect</h1>
+          <p className="text-muted-foreground mt-2">
+            Verbind je verkoopkanalen en synchroniseer automatisch bestellingen en voorraad
+          </p>
+        </div>
+        {/* SIDEBAR-CLEAN-1: Importeren stond als apart submenu-item onder Connect. */}
+        <Button variant="outline" onClick={() => navigate('/admin/import')} className="shrink-0">
+          <Upload className="h-4 w-4 mr-2" />
+          {t('navigation.import')}
+        </Button>
       </div>
 
       {/* Plan-dependent banner */}

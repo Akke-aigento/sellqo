@@ -2130,6 +2130,10 @@
         "social_ai_one_button": {
           "title": "Un seul bouton pour une publication avec l’IA",
           "description": "L’onglet séparé « Créer » avec l’assistant promo, la grille d’outils et le menu du jour a disparu. Pour faire rédiger une publication, cliquez sur « Publication avec l’IA » en haut de Social. La publication arrive dans votre planning et n’est mise en ligne qu’après votre approbation. Vous retouchez toujours vos photos produit avec l’IA sur la fiche produit et dans Médias."
+        },
+        "sidebar_cleanup": {
+          "title": "Une barre latérale plus claire",
+          "description": "Le menu de votre administration est plus court et plus logique. Les doublons ont disparu : vous ouvrez les notifications via la cloche en haut, et un clic sur Commandes, Promotions, Événements, Ads ou Rapports vous mène directement à la page. La flèche à côté ouvre le sous-menu. Les catégories se trouvent désormais sous Produits et les groupes de clients sous Clients. L’import se trouve sur la page Connect, les documents fournisseurs sur la page Fournisseurs. Abonnement s’appelle désormais Forfait SellQo."
         }
       },
       "copyLink": "Copier le lien",

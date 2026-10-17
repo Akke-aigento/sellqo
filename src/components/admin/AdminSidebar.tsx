@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, useLocation, Link } from 'react-router-dom';
 import { ChevronDown, ChevronRight, LogOut, Settings as SettingsIcon, Sliders, Store, Eye, EyeOff, Lock, Unlock } from 'lucide-react';
@@ -25,6 +25,7 @@ import {
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
+  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -65,17 +66,52 @@ export function AdminSidebar() {
   // dezelfde definitie gebruiken; zie de toelichting daar.
   const { shouldHideItem, isItemSubscriptionBlocked } = useNavItemVisibility();
 
-  const isActive = (path: string) => {
-    if (path === '/admin') {
-      return location.pathname === '/admin';
+  // SIDEBAR-CLEAN-1 — één actief item: de langste menu-URL die de huidige
+  // route dekt. Zo licht /admin/promotions/customer-groups enkel Klantgroepen
+  // op (onder Klanten) en niet ook Promoties, en /admin/orders/invoices enkel
+  // Facturen en niet ook Bestellingen.
+  const allUrls = useMemo(() => {
+    const urls: string[] = [];
+    for (const group of [...sidebarGroups, platformGroup]) {
+      for (const item of group.items) {
+        urls.push(item.url);
+        for (const child of item.children ?? []) urls.push(child.url);
+      }
     }
-    return location.pathname.startsWith(path);
-  };
+    return urls;
+  }, []);
 
-  const isGroupExpanded = (item: NavItem) => {
-    if (isActive(item.url)) return true;
-    return item.children?.some(child => isActive(child.url)) || false;
-  };
+  const activeUrl = useMemo(() => {
+    const path = location.pathname.replace(/\/+$/, '') || '/';
+    let best: string | null = null;
+    for (const url of allUrls) {
+      const hit = url === '/admin' ? path === '/admin' : path === url || path.startsWith(url + '/');
+      if (hit && (!best || url.length > best.length)) best = url;
+    }
+    return best;
+  }, [location.pathname, allUrls]);
+
+  const isActive = (path: string) => path === activeUrl;
+
+  // Uitklapstand per parent. Een parent gaat open zodra je op hem of een kind staat.
+  const [openItems, setOpenItems] = useState<Record<string, boolean>>({});
+  const isOnPlatform = location.pathname.startsWith('/admin/platform');
+  const [platformOpen, setPlatformOpen] = useState(isOnPlatform);
+
+  useEffect(() => {
+    if (!activeUrl) return;
+    for (const group of [...sidebarGroups, platformGroup]) {
+      for (const item of group.items) {
+        if (item.children?.some((c) => c.url === activeUrl) || (item.children && item.url === activeUrl)) {
+          setOpenItems((prev) => (prev[item.id] ? prev : { ...prev, [item.id]: true }));
+        }
+      }
+    }
+  }, [activeUrl]);
+
+  useEffect(() => {
+    if (isOnPlatform) setPlatformOpen(true);
+  }, [isOnPlatform]);
 
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
@@ -139,25 +175,45 @@ export function AdminSidebar() {
 
     const itemIsPageHidden = isPageHidden(item.id);
 
-    // Item with children (collapsible)
+    // Item met kinderen. SIDEBAR-CLEAN-1: het label navigeert (naar het
+    // landingskind of, als dat verborgen is, naar het eerste zichtbare kind);
+    // de chevron klapt het submenu open of dicht.
     if (item.children && item.children.length > 0) {
       const visibleChildren = item.children.filter(child => !shouldHideItem(child));
-      if (visibleChildren.length === 0) return null;
+      const landing = item.children.find((c) => c.landing);
+      const landingVisible = landing ? visibleChildren.includes(landing) : false;
+      const subItems = visibleChildren.filter((c) => !c.landing);
+      const href = landing ? (landingVisible ? landing.url : subItems[0]?.url) : item.url;
+      if (!href) return null;
+
+      if (subItems.length === 0) {
+        return renderLeaf(item, href);
+      }
+
+      const open = openItems[item.id] ?? false;
+      const setOpen = (value: boolean) => setOpenItems((prev) => ({ ...prev, [item.id]: value }));
+      const parentActive = isActive(href) || (landingVisible && isActive(landing!.url));
 
       return (
-        <Collapsible key={item.id} defaultOpen={isGroupExpanded(item)} className="group/collapsible">
+        <Collapsible key={item.id} open={open} onOpenChange={setOpen} className="group/collapsible">
           <SidebarMenuItem>
-            <CollapsibleTrigger asChild>
-              <SidebarMenuButton isActive={isActive(item.url)} className={cn(showAdminToggles && itemIsPageHidden && 'opacity-40')}>
-                {item.icon && <item.icon className="h-4 w-4" />}
-                <span>{t(item.titleKey)}</span>
+            <SidebarMenuButton asChild isActive={parentActive} className={cn(showAdminToggles && itemIsPageHidden && 'opacity-40')}>
+              <NavLink to={href} onClick={() => setOpen(true)} className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  {item.icon && <item.icon className="h-4 w-4" />}
+                  <span>{t(item.titleKey)}</span>
+                </span>
                 {renderPageToggle(item.id, item)}
-                <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-              </SidebarMenuButton>
+              </NavLink>
+            </SidebarMenuButton>
+            <CollapsibleTrigger asChild>
+              <SidebarMenuAction aria-label={t(item.titleKey)} className="data-[state=open]:rotate-90 transition-transform">
+                <ChevronRight className="h-4 w-4" />
+              </SidebarMenuAction>
             </CollapsibleTrigger>
             <CollapsibleContent>
               <SidebarMenuSub>
-                {visibleChildren.map((child) => (
+                {subItems.map((child) => (
                   <SidebarMenuSubItem key={child.id}>
                     {child.disabled ? (
                       <SidebarMenuSubButton className="opacity-40 pointer-events-none">
@@ -165,7 +221,7 @@ export function AdminSidebar() {
                         <span className="ml-auto text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-medium">{t('navigation.soon')}</span>
                       </SidebarMenuSubButton>
                     ) : (
-                      <SidebarMenuSubButton asChild isActive={isActive(child.url) && !item.children?.some((o) => o.url.length > child.url.length && isActive(o.url))} className={cn(showAdminToggles && isPageHidden(child.id) && 'opacity-40')}>
+                      <SidebarMenuSubButton asChild isActive={isActive(child.url)} className={cn(showAdminToggles && isPageHidden(child.id) && 'opacity-40')}>
                         <NavLink to={child.url} className="flex items-center justify-between w-full">
                           <span>{t(child.titleKey)}</span>
                           {child.badge && child.id === 'ads-ai' && <AdsAiBadge />}
@@ -182,11 +238,16 @@ export function AdminSidebar() {
       );
     }
 
+    return renderLeaf(item, item.url);
+  };
+
+  const renderLeaf = (item: NavItem, href: string) => {
+    const itemIsPageHidden = isPageHidden(item.id);
     // Regular item without children
     return (
       <SidebarMenuItem key={item.id}>
-        <SidebarMenuButton asChild isActive={isActive(item.url)} className={cn(showAdminToggles && itemIsPageHidden && 'opacity-40')}>
-          <NavLink to={item.url} className="flex items-center justify-between">
+        <SidebarMenuButton asChild isActive={isActive(href)} className={cn(showAdminToggles && itemIsPageHidden && 'opacity-40')}>
+          <NavLink to={href} className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               {item.icon && <item.icon className="h-4 w-4" />}
               <span>{t(item.titleKey)}</span>
@@ -202,14 +263,40 @@ export function AdminSidebar() {
   const renderGroup = (group: NavGroup) => {
     const visibleItems = group.items.filter(item => {
       if (shouldHideItem(item)) return false;
-      // If item has children, check if at least one child is visible
-      if (item.children) {
+      // Een parent met landingskind heeft minstens één zichtbaar kind nodig
+      // (anders is er geen pagina om naartoe te linken); zonder landingskind
+      // is de parent zelf de pagina.
+      if (item.children?.some((c) => c.landing)) {
         return item.children.some(child => !shouldHideItem(child));
       }
       return true;
     });
 
     if (visibleItems.length === 0) return null;
+
+    // SIDEBAR-CLEAN-1: het Platform-blok is inklapbaar en staat standaard dicht,
+    // behalve als je op een platformpagina zit.
+    if (group.id === 'platform') {
+      return (
+        <Collapsible key={group.id} open={platformOpen} onOpenChange={setPlatformOpen} className="group/platform">
+          <SidebarGroup>
+            <SidebarGroupLabel asChild>
+              <CollapsibleTrigger className="flex w-full items-center justify-between">
+                <span>{t(group.titleKey)}</span>
+                <ChevronRight className="h-3.5 w-3.5 transition-transform group-data-[state=open]/platform:rotate-90" />
+              </CollapsibleTrigger>
+            </SidebarGroupLabel>
+            <CollapsibleContent>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {visibleItems.map(item => renderNavItem(item))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </CollapsibleContent>
+          </SidebarGroup>
+        </Collapsible>
+      );
+    }
 
     return (
       <SidebarGroup key={group.id}>
