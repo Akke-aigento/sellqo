@@ -101,6 +101,9 @@ export default function BillingPage() {
 
   // Determine current plan
   const currentPlan = subscription?.pricing_plan || plans.find(p => p.id === 'free');
+  // TRACKS-1 / PLANS-2 — wisselen kan binnen het eigen spoor; een ander spoor erbij is een add-on.
+  const currentTrack = (currentPlan as { track?: string } | undefined)?.track ?? 'webshop';
+  const trackPlans = plans.filter((p) => ((p as { track?: string }).track ?? 'webshop') === currentTrack);
 
   const mandate = billingStatus?.mandate ?? null;
   const hasUsableMandate = !!mandate && mandate.status !== 'failed';
@@ -442,10 +445,10 @@ export default function BillingPage() {
 
   // Find the best upgrade target based on current usage overages
   const findUpgradeTarget = (): string | null => {
-    if (!usage || !plans.length) return null;
+    if (!usage || !trackPlans.length) return null;
     
     // Sort plans by monthly price ascending (cheapest first)
-    const sortedPlans = [...plans]
+    const sortedPlans = [...trackPlans]
       .filter(p => p.id !== 'free' && p.id !== currentPlan?.id)
       .sort((a, b) => (a.monthly_price || 0) - (b.monthly_price || 0));
 
@@ -771,7 +774,7 @@ export default function BillingPage() {
       </div>
 
       {/* Plan Comparison Cards */}
-      {plans.length > 0 && currentPlan && (
+      {trackPlans.length > 0 && currentPlan && (
         <Card id="plan-comparison-section">
           <CardHeader>
             <CardTitle>{t('billing.switch_plan_title')}</CardTitle>
@@ -779,7 +782,7 @@ export default function BillingPage() {
           </CardHeader>
           <CardContent>
             <PlanComparisonCards
-              plans={plans}
+              plans={trackPlans}
               currentPlanId={currentPlan.id}
               currentInterval={subscription?.billing_interval || 'monthly'}
               selectedInterval={selectedInterval}

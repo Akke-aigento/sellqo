@@ -14,6 +14,7 @@ const FEATURE_LINES: { key: string; label: string }[] = [
   { key: 'bol_com', label: 'feat_bol' },
   { key: 'odoo_sync', label: 'feat_odoo' },
   { key: 'loyalty_program', label: 'feat_loyalty' },
+  { key: 'event_seating', label: 'feat_seating' },
   { key: 'prioritySupport', label: 'feat_priority' },
 ];
 

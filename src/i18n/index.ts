@@ -1,4 +1,5 @@
 import i18n from 'i18next';
+import { PRICE_VAR_NAMES } from '@/lib/priceVars';
 import { initReactI18next } from 'react-i18next';
 
 import { LANG_CODES, DEFAULT_LANG } from './languages';
@@ -45,7 +46,13 @@ i18n
     fallbackLng: DEFAULT_LANG,
     interpolation: {
       escapeValue: false,
+      // PLANS-2 — prijzen worden door PriceVarsSync gezet uit pricing_plans/platform_addons.
+      defaultVariables: {},
     },
+    // PLANS-2 — zolang de prijzen laden geen "{{flex_fee}}" tonen; andere ontbrekende
+    // variabelen blijven zichtbaar zoals voorheen.
+    missingInterpolationHandler: (_str: string, match: RegExpExecArray) =>
+      (PRICE_VAR_NAMES as readonly string[]).includes(match[1].trim()) ? '' : match[0],
   });
 
 export default i18n;

@@ -7,6 +7,7 @@ import { useTrialStatus } from '@/hooks/useTrialStatus';
 import { useAuth } from '@/hooks/useAuth';
 import { useTenant } from '@/hooks/useTenant';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
+import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ export function TrialExpiredBlocker() {
   const { currentTenant } = useTenant();
   const { isLoading, shouldBlockAccess, planName } = useTrialStatus();
   const { plans } = usePricingPlans();
+  const { subscription } = useTenantSubscription();
 
   const [dismissed, setDismissed] = useState<boolean>(() => {
     try {
@@ -55,7 +57,12 @@ export function TrialExpiredBlocker() {
   };
 
   // Get recommended plans (exclude free)
-  const paidPlans = plans.filter(p => p.monthly_price > 0).slice(0, 3);
+  // TRACKS-1 / PLANS-2 — alleen plannen van het spoor van de winkel.
+  const track = (subscription?.pricing_plan as { track?: string } | undefined)?.track ?? 'webshop';
+  const paidPlans = plans
+    .filter(p => ((p as { track?: string }).track ?? 'webshop') === track)
+    .filter(p => p.monthly_price > 0 || Number((p as { ticket_fee?: number }).ticket_fee ?? 0) > 0)
+    .slice(0, 3);
 
   const handleUpgrade = (planId: string) => {
     navigate('/admin/billing');

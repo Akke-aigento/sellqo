@@ -253,7 +253,7 @@
         "setup_sh": "1-2 heures",
         "setup_ls": "2-4 heures",
         "setup_cu": "Semaines",
-        "mo_sq": "Dès 29 €",
+        "mo_sq": "À partir de {{starter_price}}",
         "mo_sh": "Dès 36 €",
         "mo_ls": "Dès 59 €",
         "mo_cu": "Variable",
@@ -283,7 +283,7 @@
     },
     "pricing": {
       "heading": "Des prix honnêtes, pour chaque type de commerce",
-      "subheading": "Vous pouvez toujours commencer gratuitement. Aucun frais par commande, résiliable chaque mois.",
+      "subheading": "Vous pouvez toujours commencer gratuitement. Aucun frais par commande, résiliable chaque mois (Events Vast : engagement de {{vast_term}} mois).",
       "monthly": "Mensuel",
       "yearly": "Annuel",
       "save2months": "Économisez 2 mois",
@@ -380,7 +380,7 @@
       },
       "availableAddons": "Modules complémentaires disponibles",
       "meta_title": "Tarifs — SellQo pour commerces, restauration et événements",
-      "meta_desc": "Boutique gratuite sur votrecommerce.sellqo.shop, Starter dès 29 €, Restauration 49 € par mois, Events Flex sans abonnement. Aucun frais par commande.",
+      "meta_desc": "Tarifs SellQo pour boutiques en ligne, horeca et événements. Démarrez gratuitement, résiliable chaque mois, aucun frais par commande.",
       "tabs_label": "Type de commerce",
       "tab_retail": "Commerces",
       "tab_horeca": "Restauration",
@@ -392,7 +392,7 @@
       "desc_starter": "Une boutique en ligne complète pour votre commerce.",
       "desc_pro": "Boutique, caisse et bol.com réunis.",
       "desc_enterprise": "Pour les grands catalogues et les équipes.",
-      "desc_horeca": "Site de commande, menu QR, cuisine et caisse.",
+      "desc_horeca": "Site de commande, menu QR, cuisine et caisse pour un établissement.",
       "desc_events_flex": "Rien par mois, vous payez par billet.",
       "from": "À partir de {{price}}",
       "per_ticket": "+ {{fee}} par billet vendu",
@@ -433,13 +433,20 @@
       "setup_p3": "Horaires de retrait, zones de livraison et paiements",
       "setup_p4": "Codes QR pour vos tables, prêts à imprimer",
       "setup_cta": "Demander le pack de démarrage",
-      "events_alt_title": "Vous préférez un prix fixe ?",
-      "events_alt_text": "Vous vendez beaucoup de billets toute l'année ? Avec Starter ({{price}} par mois), aucun frais par billet. Activez ensuite le module événements.",
-      "events_alt_cta": "Voir Starter",
-      "foot_trial": "Formules payantes : 14 jours gratuits, sans carte de crédit. Ensuite, votre abonnement démarre : automatiquement par domiciliation ou carte, ou via une demande de paiement. Résiliable chaque mois.",
-      "foot_payments": "Les paiements en ligne passent par votre propre compte Stripe, aux tarifs habituels de Stripe. SellQo ne prend rien par commande, sauf les frais par billet d'Events Flex.",
+      "foot_trial": "Formules payantes : 14 jours gratuits, sans carte de crédit. Ensuite, votre abonnement démarre : automatiquement par domiciliation ou carte, ou via une demande de paiement. Résiliable chaque mois, sauf Events Vast (engagement de {{vast_term}} mois).",
+      "foot_payments": "Les paiements en ligne passent par votre propre compte Stripe, aux tarifs habituels de Stripe. SellQo ne prend rien par commande, sauf les frais fixes par billet vendu.",
       "foot_qr": "Virement avec code QR : votre client paie via son appli bancaire, sans frais pour vous.",
-      "from_short": "dès"
+      "from_short": "dès",
+      "desc_horeca_big": "Pour les établissements très fréquentés : plus d’utilisateurs, plus d’IA et un support prioritaire.",
+      "desc_events_vast": "Pour vendre des billets toute l’année : des frais par billet réduits et un plan de salle.",
+      "min_term": "Engagement de {{n}} mois, payé chaque mois",
+      "feat_seating": "Plan de salle avec places numérotées",
+      "addons_title": "Vous vendez plusieurs choses ?",
+      "addons_text": "Ajoutez une deuxième partie en option. Vous gardez un seul compte, une seule carte et une seule vue d’ensemble.",
+      "addon_webshop": "Ajouter une boutique en ligne",
+      "addon_horeca": "Ajouter l’horeca",
+      "addon_events": "Vendre des billets",
+      "addon_price": "+ {{price}} par mois"
     },
     "faq": {
       "heading": "Questions fréquentes",
@@ -458,15 +465,15 @@
         },
         {
           "q": "Que contient la formule Restauration ?",
-          "a": "Un site de commande à emporter et en livraison, la commande à table par QR, un écran de cuisine, la caisse, les suppléments et les allergènes, pour 49 € par mois. Si vous voulez que nous encodions votre carte et préparions tout, il y a le pack de démarrage à 149 € une fois."
+          "a": "Horeca Small ({{horeca_price}} par mois) vous offre un site de commande pour l’emporter et la livraison, un menu QR à consulter ou pour commander à table, un écran cuisine, la caisse, les suppléments et les allergènes. Horeca Big ({{horeca_big_price}} par mois) s’adresse aux établissements très fréquentés, avec plus d’utilisateurs et un support prioritaire. Vous souhaitez que nous mettions votre carte en ligne et préparions tout ? C’est possible avec le pack de démarrage à {{setup_price}}, une seule fois."
         },
         {
-          "q": "Combien coûte Events Flex ?",
-          "a": "Rien par mois et 0,49 € par billet payant, sans pourcentage. Le montant est déduit automatiquement du paiement en ligne. Les billets gratuits ne coûtent rien. Avec Events Flex, les billets se paient en ligne."
+          "q": "Combien coûte SellQo pour les événements ?",
+          "a": "Avec Events Flex, vous ne payez rien par mois et {{flex_fee}} par billet payé, sans pourcentage. Vous vendez des billets toute l’année ? Events Vast coûte {{vast_price}} par mois (engagement de {{vast_term}} mois) et {{vast_fee}} par billet. Les frais sont déduits automatiquement du paiement en ligne ; les billets gratuits ne coûtent rien."
         },
         {
           "q": "Y a-t-il des frais en plus de l'abonnement ?",
-          "a": "SellQo ne prend rien par commande, sauf les frais par billet d'Events Flex. Si votre client paie en ligne, Stripe applique ses tarifs habituels sur votre propre compte Stripe. Un virement avec code QR ne vous coûte rien."
+          "a": "SellQo ne prend rien par commande, sauf les frais fixes par billet vendu. Si votre client paie en ligne, Stripe applique ses tarifs habituels sur votre propre compte Stripe. Un virement avec code QR ne vous coûte rien."
         },
         {
           "q": "Quels moyens de paiement puis-je proposer ?",
@@ -598,7 +605,7 @@
       },
       "events": {
         "meta_title": "SellQo Événements — vendez des billets et contrôlez l'entrée avec votre téléphone",
-        "meta_desc": "Vendez des billets pour soirées, visites et ateliers : dates, types de billets, capacité, billets QR par e-mail et contrôle à l'entrée. Events Flex : 0 € par mois, 0,49 € par billet vendu.",
+        "meta_desc": "Vendez des billets pour des fêtes, visites, concerts et ateliers : dates, types de billets, capacité, billets QR par e-mail et contrôle à l’entrée. Démarrez sans abonnement mensuel.",
         "badge": "SellQo pour les événements",
         "title1": "Vos billets.",
         "title2": "Vos visiteurs.",
@@ -611,7 +618,7 @@
         "proof_text": "Une tournée des bars à Louvain qui vend tous ses billets avec SellQo : dates, types de billets et billets QR par e-mail.",
         "demo_live": "Voir fonskecrawl.com",
         "why_title": "Les plateformes de billetterie gagnent sur chaque billet",
-        "why_text": "Souvent, vous ou votre visiteur payez un pourcentage plus un coût fixe par billet vendu, et votre liste de clients reste chez eux. Avec Events Flex, vous ne payez rien par mois et 0,49 € par billet vendu, sans pourcentage. Vous vendez sous votre propre nom et constituez votre propre public.",
+        "why_text": "Souvent, vous ou votre visiteur payez un pourcentage plus des frais fixes par billet, et votre liste de clients reste chez eux. Avec Events Flex, vous ne payez rien par mois et {{flex_fee}} par billet vendu, sans pourcentage. Vous vendez sous votre propre nom et construisez votre propre public.",
         "features_title": "De la vente jusqu'à l'entrée",
         "f_dates": "Plusieurs dates",
         "f_dates_text": "Un événement avec autant de dates que vous voulez, chacune avec son horaire, son lieu et sa capacité.",
@@ -628,7 +635,7 @@
         "f_overview": "Vue par événement",
         "f_overview_text": "Combien de billets sont vendus et combien de personnes sont déjà entrées, par date.",
         "f_pay": "Coût fixe par billet",
-        "f_pay_text": "Les visiteurs paient en ligne par Bancontact ou carte. Avec Events Flex, 0,49 € par billet payant est déduit automatiquement. Les billets gratuits ne coûtent rien.",
+        "f_pay_text": "Les visiteurs paient en ligne par Bancontact ou carte. Avec Events Flex, {{flex_fee}} par billet payé est déduit automatiquement. Les billets gratuits ne coûtent rien.",
         "s1_title": "Créez votre événement",
         "s1_text": "Dates, lieu, types de billets et prix. Prêt en quelques minutes.",
         "s2_title": "Vendez en ligne",
@@ -638,7 +645,7 @@
         "demo_title": "Voyez-le en action",
         "demo_text": "Choisissez un siège dans une salle de concert de démo, découvrez un festival avec billets journaliers et VIP, ou voyez comment The Fonske Crawl à Louvain vend ses billets avec SellQo.",
         "q1": "Combien coûte SellQo pour les événements ?",
-        "q1_a": "Avec Events Flex, vous ne payez rien par mois et 0,49 € par billet payant, déduit automatiquement du paiement en ligne ; les billets gratuits ne coûtent rien. Si vous vendez beaucoup toute l'année, Starter (prix mensuel fixe, sans frais par billet) est plus avantageux. Stripe facture en plus ses frais de paiement habituels.",
+        "q1_a": "Avec Events Flex, vous ne payez rien par mois et {{flex_fee}} par billet payé. Vous vendez beaucoup de billets toute l’année ? Events Vast est plus avantageux : {{vast_price}} par mois (engagement de {{vast_term}} mois) et {{vast_fee}} par billet, avec un plan de salle. Les frais sont déduits automatiquement du paiement en ligne ; les billets gratuits ne coûtent rien. Stripe facture en plus ses frais de paiement habituels.",
         "q2": "Puis-je proposer plusieurs dates et types de billets ?",
         "q2_a": "Oui. Chaque événement peut avoir plusieurs dates, et par date vous vendez différents types de billets, par exemple un early bird avec son prix, sa période de vente et son quota.",
         "q3": "Comment contrôler les entrées ?",
@@ -758,7 +765,7 @@
         "metric_before": "32 / 40",
         "metric_after": "34 / 40",
         "toast": "Déjà scanné ? Vous le voyez tout de suite à l'entrée",
-        "caption": "Achat du billet, QR par e-mail, scan à l'entrée. Rien par mois, 0,49 € par billet vendu.",
+        "caption": "Acheter des billets, QR par e-mail, scan à l’entrée. Rien par mois, {{flex_fee}} par billet vendu.",
         "more": "En savoir plus sur les événements"
       }
     },
@@ -2134,6 +2141,10 @@
         "sidebar_cleanup": {
           "title": "Une barre latérale plus claire",
           "description": "Le menu de votre administration est plus court et plus logique. Les doublons ont disparu : vous ouvrez les notifications via la cloche en haut, et un clic sur Commandes, Promotions, Événements, Ads ou Rapports vous mène directement à la page. La flèche à côté ouvre le sous-menu. Les catégories se trouvent désormais sous Produits et les groupes de clients sous Clients. L’import se trouve sur la page Connect, les documents fournisseurs sur la page Fournisseurs. Abonnement s’appelle désormais Forfait SellQo."
+        },
+        "plans_tracks": {
+          "title": "Nouvelles formules par type d’activité",
+          "description": "SellQo propose désormais trois parcours clairs : boutique en ligne, horeca et événements. Vous ne voyez que ce qui appartient à votre formule, et vous ajoutez une deuxième partie en option (boutique {{addon_webshop_price}} ou horeca {{addon_horeca_price}} par mois, billets avec des frais fixes par billet). Nouveau : Horeca Big ({{horeca_big_price}} par mois) et Events Vast ({{vast_price}} par mois pendant {{vast_term}} mois, {{vast_fee}} par billet et un plan de salle). Events Flex coûte {{flex_fee}} par billet payé. Les boutiques existantes gardent tout ce qu’elles avaient."
         }
       },
       "copyLink": "Copier le lien",

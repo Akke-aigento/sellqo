@@ -253,7 +253,7 @@
         "setup_sh": "1-2 hours",
         "setup_ls": "2-4 hours",
         "setup_cu": "Weeks",
-        "mo_sq": "From €29",
+        "mo_sq": "From {{starter_price}}",
         "mo_sh": "From €36",
         "mo_ls": "From €59",
         "mo_cu": "Variable",
@@ -283,7 +283,7 @@
     },
     "pricing": {
       "heading": "Fair prices, for every kind of business",
-      "subheading": "You can always start for free. No fees per order, cancel monthly.",
+      "subheading": "You can always start for free. No fees per order, cancel monthly (Events Vast runs {{vast_term}} months).",
       "monthly": "Monthly",
       "yearly": "Yearly",
       "save2months": "Save 2 months",
@@ -380,7 +380,7 @@
       },
       "availableAddons": "Available add-ons",
       "meta_title": "Pricing — SellQo for shops, restaurants and events",
-      "meta_desc": "Free webshop at yourbusiness.sellqo.shop, Starter from €29, Hospitality €49 per month, Events Flex with no monthly fee. No fees per order.",
+      "meta_desc": "SellQo pricing for webshops, restaurants and events. Start for free, cancel monthly, no fees per order.",
       "tabs_label": "Type of business",
       "tab_retail": "Shops",
       "tab_horeca": "Food & drink",
@@ -392,7 +392,7 @@
       "desc_starter": "A full webshop for your shop.",
       "desc_pro": "Webshop, POS and bol.com together.",
       "desc_enterprise": "For large catalogues and teams.",
-      "desc_horeca": "Ordering site, QR menu, kitchen and POS.",
+      "desc_horeca": "Ordering site, QR menu, kitchen and POS for one venue.",
       "desc_events_flex": "Nothing per month, you pay per ticket.",
       "from": "From {{price}}",
       "per_ticket": "+ {{fee}} per ticket sold",
@@ -433,13 +433,20 @@
       "setup_p3": "Pickup hours, delivery zones and payments",
       "setup_p4": "QR codes for your tables, ready to print",
       "setup_cta": "Request the setup package",
-      "events_alt_title": "Prefer a fixed price?",
-      "events_alt_text": "Selling lots of tickets all year round? With Starter ({{price}} per month) there is no fee per ticket. Then switch on the events module.",
-      "events_alt_cta": "See Starter",
-      "foot_trial": "Paid plans: 14 days free, no credit card. Then your subscription starts: automatically by direct debit or card, or with a payment request. Cancel monthly.",
-      "foot_payments": "Online payments run through your own Stripe account, at Stripe's usual rates. SellQo charges nothing per order, except the ticket fee on Events Flex.",
+      "foot_trial": "Paid plans: 14 days free, no credit card. Then your subscription starts: automatically by direct debit or card, or with a payment request. Cancel monthly, except Events Vast ({{vast_term}}-month term).",
+      "foot_payments": "Online payments run through your own Stripe account, at Stripe's usual rates. SellQo charges nothing per order, except the fixed fee per ticket sold.",
       "foot_qr": "Bank transfer with a QR code: your customer pays in their banking app, at no cost to you.",
-      "from_short": "from"
+      "from_short": "from",
+      "desc_horeca_big": "For busy venues: more users, more AI and priority support.",
+      "desc_events_vast": "For year-round ticket sales: a lower fee per ticket and a seating plan.",
+      "min_term": "{{n}}-month term, paid monthly",
+      "feat_seating": "Seating plan with reserved seats",
+      "addons_title": "Selling more than one thing?",
+      "addons_text": "Add a second part as an add-on. You keep one account, one menu and one overview.",
+      "addon_webshop": "Add a webshop",
+      "addon_horeca": "Add food & drink",
+      "addon_events": "Sell tickets",
+      "addon_price": "+ {{price}} per month"
     },
     "faq": {
       "heading": "Frequently asked questions",
@@ -458,15 +465,15 @@
         },
         {
           "q": "What's in the Hospitality plan?",
-          "a": "An ordering site for pickup and delivery, ordering at the table via QR, a kitchen screen, the POS, extras and allergens, for €49 per month. If you'd like us to add your menu and set everything up, there's a one-off €149 setup package."
+          "a": "Horeca Small ({{horeca_price}} per month) gives you an ordering site for pickup and delivery, a QR menu to browse or order at the table, a kitchen screen, the POS, extras and allergens. Horeca Big ({{horeca_big_price}} per month) is for busy venues, with more users and priority support. Want us to add your menu and set everything up? That is the setup package at {{setup_price}}, one-off."
         },
         {
-          "q": "What does Events Flex cost?",
-          "a": "Nothing per month and €0.49 per paid ticket, with no percentage. The fee is deducted automatically from the online payment. Free tickets cost nothing. Tickets on Events Flex are paid online."
+          "q": "What does SellQo cost for events?",
+          "a": "With Events Flex you pay nothing per month and {{flex_fee}} per paid ticket, no percentage. Selling tickets all year? Events Vast costs {{vast_price}} per month ({{vast_term}}-month term) and {{vast_fee}} per ticket. The fee is deducted automatically from the online payment; free tickets cost nothing."
         },
         {
           "q": "Are there extra costs on top of the subscription?",
-          "a": "SellQo charges nothing per order, except the ticket fee on Events Flex. If your customer pays online, Stripe charges its usual rates on your own Stripe account. A bank transfer with a QR code costs you nothing."
+          "a": "SellQo charges nothing per order, except the fixed fee per ticket sold. If your customer pays online, Stripe charges its usual rates on your own Stripe account. A bank transfer with a QR code costs you nothing."
         },
         {
           "q": "Which payment methods can I offer?",
@@ -598,7 +605,7 @@
       },
       "events": {
         "meta_title": "SellQo Events — sell tickets and check guests in with your phone",
-        "meta_desc": "Sell tickets for parties, tours and workshops: dates, ticket types, capacity, QR tickets by email and check-in at the door. Events Flex: €0 per month, €0.49 per ticket sold.",
+        "meta_desc": "Sell tickets for parties, tours, concerts and workshops: dates, ticket types, capacity, QR tickets by email and check-in at the door. Start without a monthly fee.",
         "badge": "SellQo for events",
         "title1": "Your tickets.",
         "title2": "Your guests.",
@@ -611,7 +618,7 @@
         "proof_text": "A pub crawl in Leuven that sells all its tickets with SellQo: dates, ticket types and QR tickets by email.",
         "demo_live": "Visit fonskecrawl.com",
         "why_title": "Ticketing platforms earn on every ticket",
-        "why_text": "Often you or your guest pay a percentage plus a fixed fee per ticket sold, and your customer list sits with them. With Events Flex you pay nothing per month and €0.49 per ticket sold, with no percentage. You sell under your own name and build your own audience.",
+        "why_text": "Often you or your visitor pay a percentage plus a fixed fee per ticket, and your customer list sits with them. With Events Flex you pay nothing per month and {{flex_fee}} per ticket sold, no percentage. You sell under your own name and build your own audience.",
         "features_title": "From sale to the door",
         "f_dates": "Multiple dates",
         "f_dates_text": "One event with as many dates as you like, each with its own start time, venue and capacity.",
@@ -628,7 +635,7 @@
         "f_overview": "Overview per event",
         "f_overview_text": "How many tickets have been sold and how many people are already in, per date.",
         "f_pay": "Fixed fee per ticket",
-        "f_pay_text": "Guests pay online with Bancontact or card. With Events Flex, €0.49 per paid ticket is deducted automatically. Free tickets cost nothing.",
+        "f_pay_text": "Visitors pay online with Bancontact or card. With Events Flex, {{flex_fee}} per paid ticket is deducted automatically. Free tickets cost nothing.",
         "s1_title": "Create your event",
         "s1_text": "Dates, venue, ticket types and prices. Ready in a few minutes.",
         "s2_title": "Sell online",
@@ -638,7 +645,7 @@
         "demo_title": "See it in action",
         "demo_text": "Pick a seat in a demo concert hall, look at a festival with day tickets and VIP, or see how The Fonske Crawl in Leuven sells its tickets with SellQo.",
         "q1": "What does SellQo cost for events?",
-        "q1_a": "With Events Flex you pay nothing per month and €0.49 per paid ticket. It's deducted automatically from the online payment; free tickets cost nothing. If you sell lots of tickets all year, Starter (fixed monthly price, no fee per ticket) works out cheaper. Stripe also charges its usual payment fees.",
+        "q1_a": "With Events Flex you pay nothing per month and {{flex_fee}} per paid ticket. Selling lots of tickets all year? Events Vast is cheaper: {{vast_price}} per month ({{vast_term}}-month term) and {{vast_fee}} per ticket, with a seating plan included. The fee is deducted automatically from the online payment; free tickets cost nothing. Stripe charges its usual payment fees on top.",
         "q2": "Can I offer multiple dates and ticket types?",
         "q2_a": "Yes. Each event can have multiple dates, and per date you sell different ticket types, for example an early bird with its own price, sales period and quantity.",
         "q3": "How do I check guests in?",
@@ -758,7 +765,7 @@
         "metric_before": "32 / 40",
         "metric_after": "34 / 40",
         "toast": "Already scanned? You'll see it at the door right away",
-        "caption": "Buy tickets, QR by email, scan at the door. Nothing per month, €0.49 per ticket sold.",
+        "caption": "Buy tickets, QR by email, scan at the door. Nothing per month, {{flex_fee}} per ticket sold.",
         "more": "More about events"
       }
     },
@@ -2134,6 +2141,10 @@
         "sidebar_cleanup": {
           "title": "A tidier sidebar",
           "description": "The menu in your admin is shorter and more logical. Duplicate items are gone: you open Notifications from the bell at the top, and clicking Orders, Promotions, Events, Ads or Reports takes you straight to the page. The arrow next to it opens the submenu. Categories now sit under Products and Customer groups under Customers. Import is on the Connect page, supplier documents on the Suppliers page. Subscription is now called SellQo plan."
+        },
+        "plans_tracks": {
+          "title": "New plans for every kind of business",
+          "description": "SellQo now has three clear tracks: webshop, food & drink and events. You only see what belongs to your plan, and you add a second part as an add-on (webshop {{addon_webshop_price}} or food & drink {{addon_horeca_price}} per month, tickets with a fixed fee per ticket). New are Horeca Big ({{horeca_big_price}} per month) and Events Vast ({{vast_price}} per month for {{vast_term}} months, {{vast_fee}} per ticket and a seating plan). Events Flex costs {{flex_fee}} per paid ticket. Existing shops keep everything they had."
         }
       },
       "copyLink": "Copy link",

@@ -1,4 +1,6 @@
 export interface PricingPlanFeatures {
+  /** PLANS-2 — zaalplan met vaste plaatsen (Events Vast, Enterprise). */
+  event_seating?: boolean;
   // Branding & Support
   customDomain: boolean;
   removeWatermark: boolean;
@@ -58,6 +60,8 @@ export interface PricingPlanFeatures {
 export interface PricingPlan {
   /** TRACKS-1 — spoor van het plan: webshop, horeca of events. */
   track?: 'webshop' | 'horeca' | 'events';
+  /** PLANS-2 — minimale looptijd in maanden (Events Vast: 12). */
+  min_term_months?: number;
   id: string;
   name: string;
   slug: string;

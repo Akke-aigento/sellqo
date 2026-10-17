@@ -1,3 +1,29 @@
+## PLANS-2 — vaste prijsstructuur live in data, fee per spoor, fee-register, prijzen in teksten uit de DB (2026.12q) — 17 oktober 2026
+
+Tweede batch van `claude/sellqo-prijsstructuur.md` (go Akke 17-10). Fee bij terugbetaling: blijft, behalve bij annulering door de organisator (voorstel aanvaard; dat annuleringspad komt later).
+
+- **Migratie** `20261017130000_plans_2.sql`, live via `query_database` (snapshots `snapshots.platform_20261017b_{pricing_plans,tenant_subscriptions}`):
+  - limieten: Free 25/50/1/0 · Starter 250/∞/2/50 · Pro 5000/∞/5/300 · Enterprise ∞/∞/25/1500 (producten/orders/gebruikers/AI).
+  - Pro → Enterprise: `multi_warehouse`, `multiCurrency`, `ai_ab_testing`, `advancedAnalytics`, `prioritySupport` uit in Pro (alleen interne Pro-winkels, niemand verliest iets).
+  - Horeca → "Horeca Small" (3 gebruikers); nieuw `horeca_big` €99/990 (10 gebruikers, 200 AI, voorrang support); nieuw `events_vast` €49/490, €0,29/ticket, `min_term_months` 12, zaalplan; `events_flex` €0,69/ticket, 2 gebruikers.
+  - `event_seating` (zaalplan) alleen Vast + Enterprise; menu-item Zalen krijgt featureKey `event_seating` (enkel demo Zaal De Linde gebruikt zalen, op Enterprise).
+  - `platform_addons` (webshop €19, horeca €29, events €0 + €0,69/ticket), eigen tabel zodat een add-on nooit als hoofdplan kiesbaar is. RLS: iedereen leest, platformadmin schrijft.
+  - `platform_ticket_fee_for(tenant)`: **enige bron** voor het ticketfee-tarief. Intern/demo/vrijgesteld = 0 (Fonske, VanXcel, Loveke, demo's); eventsplan = fee van het plan; elk ander plan dat tickets verkoopt = Flex-fee van de add-on (dicht het add-on-lek). Alleen service_role.
+  - `platform_ticket_fees` + `record_platform_ticket_fees()` + cron `record-platform-ticket-fees` (jobid 358, `*/15`, alleen SQL): elk betaald ticketorder vanaf 17-10 00:00 (vaste start) krijgt een rij met tarief, aantal en `collected_via` (`stripe_application_fee` / `invoice` voor kassa en handmatig / `exempt`). Kassa-tickets worden zo nooit gemist; facturatie van `invoice`-rijen komt in de add-on-facturatiebatch.
+  - sort_order Horeca Big 6, Events Vast 7 (vaste volgorde).
+  - **Natrek:** 8 plannen met juiste track/prijzen/limieten/features, 3 add-ons, fee-functie: Fonske/VanXcel/Zaal De Linde 0, Astra Sleep 0,69; register 0 rijen (nog geen betaalde tickets sinds start); cron actief.
+- **storefront-api:** `ticketFeeFor` leest het tarief via `rpc('platform_ticket_fee_for')`; faalt de lookup, dan wordt de checkout geweigerd (liever geen verkoop dan een gemiste fee). Versiestempel-header `X-SellQo-Api-Rev: plans-2` voor het deploybewijs.
+- **ads-campaign-analyze:** kost nu 1 AI-credit (`use_ai_credits`, feature `ads_campaign_analyze`).
+- **Frontend:**
+  - prijzenpagina: tabs per `track`, Horeca Big en Events Vast verschijnen vanzelf, looptijd onder de prijs, add-onsblok uit `platform_addons`; de oude "Liever Starter"-kaart (klopte niet meer) is weg.
+  - **prijzen in teksten uit de DB:** `PriceVarsSync` zet `{{starter_price}}`, `{{flex_fee}}`, `{{vast_price}}`, … als globale i18next-variabelen uit `pricing_plans`/`platform_addons`. FAQ, sectorpagina events, scène, vergelijking, voetnoten en de changelog gebruiken ze. Statische meta-teksten noemen geen bedragen meer. Test `priceVars.test.ts` faalt als er weer een vast bedrag in de marketingteksten komt.
+  - Billing en de trial-blokkade tonen alleen plannen van het eigen spoor.
+  - Teksten die Vast tegenspraken ("maandelijks opzegbaar", "ticketkost bij Events Flex", "Starter: geen kost per ticket") herschreven in 5 talen.
+- **Eerlijk bij Enterprise:** volgens MKT-4 doen multi-magazijn en white-label vandaag niets; ze staan wel als vlag aan, maar de prijzenpagina toont ze niet. Enterprise verkoopt nu op limieten, AI, gebruikers, zaalplan en voorrang bij support.
+- **Checks:** tsc 27 = baseline; eslint geraakte bestanden gelijk aan baseline (1 bestaande `no-empty`); vitest 61 bestanden / 790 tests groen; deno check storefront-api + ads-campaign-analyze ok (stub-import-map); i18n-pariteit, used-keys ok. Harnas: prijzenpagina per tab (nl/fr), FAQ toont € 0,69 / € 49 / 12 / € 0,29, geen lege `{{…}}`.
+- **Niet in deze batch:** facturatie van add-ons en `invoice`-fees, minimale looptijd afdwingen bij opzeggen (BILL-TERM-1), fee terugbetalen bij annulering door de organisator, Fonske naar Events Flex (na 24/10; vrijstelling werkt al), token-logging in `ai_usage_log`.
+- **Live:** edge functions na deploy via de Lovable-agent (bewijs: header), frontend na `deploy_project`.
+
 ## TRACKS-1 — drie sporen (webshop, horeca, events): menu én pagina's per pakket — 17 oktober 2026
 
 Eerste batch van de vaste prijsstructuur (projectdoc `claude/sellqo-prijsstructuur.md`, go van Akke 17-10).

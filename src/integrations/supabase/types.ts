@@ -11817,6 +11817,7 @@ export type Database = {
           limit_products: number | null
           limit_storage_gb: number
           limit_users: number
+          min_term_months: number
           monthly_price: number
           name: string
           slug: string
@@ -11845,6 +11846,7 @@ export type Database = {
           limit_products?: number | null
           limit_storage_gb?: number
           limit_users?: number
+          min_term_months?: number
           monthly_price?: number
           name: string
           slug: string
@@ -11873,6 +11875,7 @@ export type Database = {
           limit_products?: number | null
           limit_storage_gb?: number
           limit_users?: number
+          min_term_months?: number
           monthly_price?: number
           name?: string
           slug?: string

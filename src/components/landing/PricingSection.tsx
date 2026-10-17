@@ -1,7 +1,7 @@
-// PRICE-2 — prijzen per sector, rechtstreeks uit pricing_plans (één bron: dezelfde tabel
-// waar de facturatie mee rekent). Wat een plan bevat, volgt uit zijn limieten en
-// feature-vlaggen; er staat geen enkel bedrag of aantal hardcoded in deze component,
-// behalve het opstartpakket (een dienst van Studio Akke, geen SellQo-plan).
+// PRICE-2 / PLANS-2 — prijzen per spoor, rechtstreeks uit pricing_plans (tab = pricing_plans.track)
+// en platform_addons (één bron: dezelfde tabellen waar de facturatie mee rekent). Wat een plan
+// bevat, volgt uit zijn limieten en feature-vlaggen; er staat geen enkel bedrag of aantal
+// hardcoded in deze component, behalve het opstartpakket (Studio Akke, zie priceVars.ts).
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Minus } from 'lucide-react';
@@ -13,13 +13,13 @@ import { usePricingPlans } from '@/hooks/usePricingPlans';
 import { useAuth } from '@/hooks/useAuth';
 import type { PricingPlan } from '@/types/billing';
 import { eur, planLines } from '@/lib/planLines';
+import { SETUP_PRICE } from '@/lib/priceVars';
+import { usePlatformAddons } from '@/hooks/usePlatformAddons';
 
 export type PricingTab = 'retail' | 'horeca' | 'events';
-const TAB_PLANS: Record<PricingTab, string[]> = {
-  retail: ['free', 'starter', 'pro', 'enterprise'],
-  horeca: ['horeca'],
-  events: ['events_flex'],
-};
+// TRACKS-1 / PLANS-2 — tab = spoor; welke plannen erin staan, volgt uit pricing_plans.track.
+const TAB_TRACK: Record<PricingTab, 'webshop' | 'horeca' | 'events'> = { retail: 'webshop', horeca: 'horeca', events: 'events' };
+const planTrack = (p: PricingPlan) => p.track ?? 'webshop';
 function PlanCard({ plan, yearly, featured }: { plan: PricingPlan; yearly: boolean; featured: boolean }) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -27,6 +27,7 @@ function PlanCard({ plan, yearly, featured }: { plan: PricingPlan; yearly: boole
   const monthly = Number(plan.monthly_price);
   const yearlyPrice = Number(plan.yearly_price);
   const ticketFee = Number(plan.ticket_fee ?? 0);
+  const minTerm = Number((plan as { min_term_months?: number }).min_term_months ?? 0);
   const isEnterprise = plan.id === 'enterprise';
   const showYearly = yearly && yearlyPrice > 0;
   const { lines, note } = planLines(plan, t, i18n.language);
@@ -52,6 +53,9 @@ function PlanCard({ plan, yearly, featured }: { plan: PricingPlan; yearly: boole
         {ticketFee > 0 ? (
           <p className="mt-1 text-sm font-semibold text-foreground">{k('per_ticket', { fee: eur(ticketFee, i18n.language) })}</p>
         ) : null}
+        {minTerm > 0 ? (
+          <p className="mt-1 text-xs font-medium text-foreground">{k('min_term', { n: minTerm })}</p>
+        ) : null}
         <p className="mt-1 text-xs text-muted-foreground">
           {ticketFee > 0 ? k('free_tickets_free') : monthly > 0 ? `${k('exclVatShort')}${!yearly && yearlyPrice > 0 ? ` · ${k('yearly_short', { price: eur(yearlyPrice, i18n.language) })}` : ''}` : k('no_card')}
         </p>
@@ -74,23 +78,22 @@ function PlanCard({ plan, yearly, featured }: { plan: PricingPlan; yearly: boole
   );
 }
 
-// Opstartpakket: een dienst van Studio Akke (geen SellQo-plan), daarom niet in pricing_plans.
-const SETUP_PRICE = 149;
-
 export function PricingSection({ initialTab = 'retail', heading = true }: { initialTab?: PricingTab; heading?: boolean }) {
   const { t, i18n } = useTranslation();
   const k = (x: string, o?: Record<string, unknown>) => t(`landing.pricing.${x}`, o);
   const { plans, isLoading } = usePricingPlans();
+  const { addons } = usePlatformAddons();
   const [yearly, setYearly] = useState(false);
   const tabs = useMemo(
-    () => (Object.keys(TAB_PLANS) as PricingTab[]).filter((tab) => TAB_PLANS[tab].some((id) => plans.some((p) => p.id === id))),
+    () => (Object.keys(TAB_TRACK) as PricingTab[]).filter((tab) => plans.some((p) => planTrack(p) === TAB_TRACK[tab])),
     [plans],
   );
   const [tab, setTab] = useState<PricingTab>(initialTab);
   const active: PricingTab = tabs.includes(tab) ? tab : 'retail';
-  const shown = TAB_PLANS[active].map((id) => plans.find((p) => p.id === id)).filter((p): p is PricingPlan => !!p);
+  const shown = plans.filter((p) => planTrack(p) === TAB_TRACK[active]);
   const hasYearly = shown.some((p) => Number(p.yearly_price) > 0);
-  const starter = plans.find((p) => p.id === 'starter');
+  // Add-ons die je bij dit spoor kan nemen (niet het spoor zelf).
+  const tabAddons = addons.filter((a) => a.track !== TAB_TRACK[active]);
 
   return (
     <section id="pricing" className={cn('scroll-mt-24 bg-background', heading ? 'py-20 md:py-28' : 'pb-20 pt-2 md:pb-28')}>
@@ -127,8 +130,8 @@ export function PricingSection({ initialTab = 'retail', heading = true }: { init
         {isLoading ? (
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-[460px] rounded-2xl" />)}</div>
         ) : (
-          <div className={cn('mt-8 grid gap-6', active === 'retail' ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:max-w-4xl')}>
-            {shown.map((p) => <PlanCard key={p.id} plan={p} yearly={yearly} featured={active === 'retail' ? p.highlighted : true} />)}
+          <div className={cn('mt-8 grid gap-6', active === 'retail' ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-2 lg:grid-cols-3')}>
+            {shown.map((p) => <PlanCard key={p.id} plan={p} yearly={yearly} featured={active === 'retail' ? p.highlighted : p.id === shown[0]?.id} />)}
 
             {active === 'horeca' ? (
               <div className="flex flex-col rounded-2xl border border-dashed border-border bg-card/60 p-6 md:p-7">
@@ -147,19 +150,30 @@ export function PricingSection({ initialTab = 'retail', heading = true }: { init
               </div>
             ) : null}
 
-            {active === 'events' && starter ? (
-              <div className="flex flex-col rounded-2xl border border-dashed border-border bg-card/60 p-6 md:p-7">
-                <h3 className="text-xl font-bold text-foreground">{k('events_alt_title')}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                  {k('events_alt_text', { price: eur(Number(starter.monthly_price), i18n.language) })}
-                </p>
-                <button type="button" onClick={() => setTab('retail')} className="mt-5 self-start text-sm font-semibold text-primary underline-offset-4 hover:underline">
-                  {k('events_alt_cta')}
-                </button>
-              </div>
-            ) : null}
           </div>
         )}
+
+        {/* PLANS-2 — combineren: een tweede spoor neem je als add-on, nooit als tweede plan. */}
+        {!isLoading && tabAddons.length > 0 ? (
+          <div className="mt-8 rounded-2xl border border-dashed border-border bg-card/60 p-6 md:p-7">
+            <h3 className="text-lg font-bold text-foreground">{k('addons_title')}</h3>
+            <p className="mt-1 text-sm text-muted-foreground">{k('addons_text')}</p>
+            <ul className="mt-4 grid gap-3 md:grid-cols-2">
+              {tabAddons.map((a) => (
+                <li key={a.id} className="flex items-start gap-2 text-sm text-foreground">
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                  <span>
+                    <span className="font-semibold">{k(`addon_${a.track}`)}</span>
+                    {' · '}
+                    {a.monthly_price > 0
+                      ? k('addon_price', { price: eur(a.monthly_price, i18n.language) })
+                      : k('per_ticket', { fee: eur(a.ticket_fee, i18n.language) })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         <div className="mt-10 grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
           <p>{k('foot_trial')}</p>

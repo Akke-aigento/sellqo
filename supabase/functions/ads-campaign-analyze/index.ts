@@ -112,6 +112,20 @@ REGELS:
 - Geef een duidelijke, beknopte Nederlandse reden per suggestie
 - Baseer je ALLEEN op de daadwerkelijke data hierboven. Verzin geen keywords of waarden die niet in de data staan.`;
 
+    // PLANS-2 — ads-analyse kost 1 AI-credit, zoals elke andere AI-actie.
+    const { data: hasCredits } = await supabase.rpc("use_ai_credits", {
+      p_tenant_id: tenant_id,
+      p_credits: 1,
+      p_feature: "ads_campaign_analyze",
+      p_model: "google/gemini-3-flash-preview",
+      p_metadata: { campaign_id },
+    });
+    if (!hasCredits) {
+      return new Response(JSON.stringify({ error: "Onvoldoende AI credits" }), {
+        status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Call Lovable AI with tool calling for structured output
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {

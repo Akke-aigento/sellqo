@@ -253,7 +253,7 @@
         "setup_sh": "1-2 Stunden",
         "setup_ls": "2-4 Stunden",
         "setup_cu": "Wochen",
-        "mo_sq": "Ab €29",
+        "mo_sq": "Ab {{starter_price}}",
         "mo_sh": "Ab €36",
         "mo_ls": "Ab €59",
         "mo_cu": "Variabel",
@@ -283,7 +283,7 @@
     },
     "pricing": {
       "heading": "Faire Preise, für jede Art von Geschäft",
-      "subheading": "Kostenlos starten geht immer. Keine Gebühren pro Bestellung, monatlich kündbar.",
+      "subheading": "Kostenlos starten geht immer. Keine Gebühren pro Bestellung, monatlich kündbar (Events Vast läuft {{vast_term}} Monate).",
       "monthly": "Monatlich",
       "yearly": "Jährlich",
       "save2months": "Spare 2 Monate",
@@ -380,7 +380,7 @@
       },
       "availableAddons": "Verfügbare Add-ons",
       "meta_title": "Preise — SellQo für Läden, Gastronomie und Events",
-      "meta_desc": "Kostenloser Webshop unter ihrgeschaeft.sellqo.shop, Starter ab 29 €, Gastronomie 49 € pro Monat, Events Flex ohne Monatspreis. Keine Gebühren pro Bestellung.",
+      "meta_desc": "SellQo-Preise für Webshops, Gastronomie und Events. Kostenlos starten, monatlich kündbar, keine Gebühren pro Bestellung.",
       "tabs_label": "Art des Geschäfts",
       "tab_retail": "Läden",
       "tab_horeca": "Gastronomie",
@@ -392,7 +392,7 @@
       "desc_starter": "Ein vollwertiger Webshop für Ihr Geschäft.",
       "desc_pro": "Webshop, Kasse und bol.com zusammen.",
       "desc_enterprise": "Für große Sortimente und Teams.",
-      "desc_horeca": "Bestellseite, QR-Menü, Küche und Kasse.",
+      "desc_horeca": "Bestellseite, QR-Menü, Küche und Kasse für einen Betrieb.",
       "desc_events_flex": "Nichts pro Monat, Sie zahlen pro Ticket.",
       "from": "Ab {{price}}",
       "per_ticket": "+ {{fee}} pro verkauftem Ticket",
@@ -433,13 +433,20 @@
       "setup_p3": "Abholzeiten, Liefergebiete und Zahlungen",
       "setup_p4": "QR-Codes für Ihre Tische, druckfertig",
       "setup_cta": "Startpaket anfragen",
-      "events_alt_title": "Lieber ein Festpreis?",
-      "events_alt_text": "Verkaufen Sie das ganze Jahr viele Tickets? Mit Starter ({{price}} pro Monat) zahlen Sie keine Gebühr pro Ticket. Aktivieren Sie dann das Event-Modul.",
-      "events_alt_cta": "Starter ansehen",
-      "foot_trial": "Bezahlte Tarife: 14 Tage kostenlos, ohne Kreditkarte. Danach startet Ihr Abo: automatisch per Lastschrift oder Karte oder mit einer Zahlungsaufforderung. Monatlich kündbar.",
-      "foot_payments": "Online-Zahlungen laufen über Ihr eigenes Stripe-Konto zu den üblichen Stripe-Tarifen. SellQo berechnet nichts pro Bestellung, außer der Ticketgebühr bei Events Flex.",
+      "foot_trial": "Bezahlte Tarife: 14 Tage kostenlos, ohne Kreditkarte. Danach startet Ihr Abo: automatisch per Lastschrift oder Karte oder mit einer Zahlungsaufforderung. Monatlich kündbar, außer Events Vast ({{vast_term}} Monate Laufzeit).",
+      "foot_payments": "Online-Zahlungen laufen über Ihr eigenes Stripe-Konto zu den üblichen Stripe-Tarifen. SellQo berechnet nichts pro Bestellung, außer der festen Gebühr pro verkauftem Ticket.",
       "foot_qr": "Überweisung per QR-Code: Ihr Kunde zahlt in seiner Banking-App, ohne Kosten für Sie.",
-      "from_short": "ab"
+      "from_short": "ab",
+      "desc_horeca_big": "Für viel besuchte Betriebe: mehr Nutzer, mehr KI und bevorzugter Support.",
+      "desc_events_vast": "Für ganzjährigen Ticketverkauf: niedrigere Gebühr pro Ticket und ein Saalplan.",
+      "min_term": "{{n}} Monate Laufzeit, monatlich bezahlt",
+      "feat_seating": "Saalplan mit festen Plätzen",
+      "addons_title": "Sie verkaufen mehr als eine Sache?",
+      "addons_text": "Buchen Sie einen zweiten Bereich als Add-on. Sie behalten ein Konto, eine Karte und eine Übersicht.",
+      "addon_webshop": "Webshop dazu",
+      "addon_horeca": "Gastronomie dazu",
+      "addon_events": "Tickets verkaufen",
+      "addon_price": "+ {{price}} pro Monat"
     },
     "faq": {
       "heading": "Häufige Fragen",
@@ -458,15 +465,15 @@
         },
         {
           "q": "Was ist im Gastronomie-Tarif enthalten?",
-          "a": "Eine Bestellseite für Abholung und Lieferung, Bestellen am Tisch per QR, ein Küchenbildschirm, die Kasse, Extras und Allergene, für 49 € pro Monat. Wenn wir Ihre Karte einpflegen und alles einrichten sollen, gibt es das Startpaket für einmalig 149 €."
+          "a": "Horeca Small ({{horeca_price}} pro Monat) bietet Ihnen eine Bestellseite für Abholung und Lieferung, ein QR-Menü zum Ansehen oder Bestellen am Tisch, einen Küchenbildschirm, die Kasse, Extras und Allergene. Horeca Big ({{horeca_big_price}} pro Monat) ist für viel besuchte Betriebe, mit mehr Nutzern und bevorzugtem Support. Sollen wir Ihre Karte einpflegen und alles einrichten? Das geht mit dem Startpaket für einmalig {{setup_price}}."
         },
         {
-          "q": "Was kostet Events Flex?",
-          "a": "Nichts pro Monat und 0,49 € pro bezahltem Ticket, ohne Prozentsatz. Die Gebühr wird automatisch von der Online-Zahlung abgezogen. Kostenlose Tickets kosten nichts. Tickets mit Events Flex werden online bezahlt."
+          "q": "Was kostet SellQo für Events?",
+          "a": "Mit Events Flex zahlen Sie nichts pro Monat und {{flex_fee}} pro bezahltem Ticket, ohne Prozentsatz. Sie verkaufen das ganze Jahr Tickets? Events Vast kostet {{vast_price}} pro Monat ({{vast_term}} Monate Laufzeit) und {{vast_fee}} pro Ticket. Die Gebühr wird automatisch von der Online-Zahlung abgezogen; kostenlose Tickets kosten nichts."
         },
         {
           "q": "Gibt es Kosten zusätzlich zum Abo?",
-          "a": "SellQo berechnet nichts pro Bestellung, außer der Ticketgebühr bei Events Flex. Zahlt Ihr Kunde online, berechnet Stripe seine üblichen Tarife auf Ihrem eigenen Stripe-Konto. Eine Überweisung per QR-Code kostet Sie nichts."
+          "a": "SellQo berechnet nichts pro Bestellung, außer der festen Gebühr pro verkauftem Ticket. Zahlt Ihr Kunde online, berechnet Stripe seine üblichen Tarife auf Ihrem eigenen Stripe-Konto. Eine Überweisung per QR-Code kostet Sie nichts."
         },
         {
           "q": "Welche Zahlungsarten kann ich anbieten?",
@@ -598,7 +605,7 @@
       },
       "events": {
         "meta_title": "SellQo Events — Tickets verkaufen und mit dem Handy einlassen",
-        "meta_desc": "Verkaufen Sie Tickets für Partys, Touren und Workshops: Termine, Ticketarten, Kapazität, QR-Tickets per E-Mail und Einlass. Events Flex: 0 € pro Monat, 0,49 € pro verkauftem Ticket.",
+        "meta_desc": "Verkaufen Sie Tickets für Partys, Touren, Konzerte und Workshops: Termine, Tickettypen, Kapazität, QR-Tickets per E-Mail und Check-in am Eingang. Ohne Monatsgebühr starten.",
         "badge": "SellQo für Events",
         "title1": "Ihre Tickets.",
         "title2": "Ihre Gäste.",
@@ -611,7 +618,7 @@
         "proof_text": "Eine Kneipentour in Löwen, die alle Tickets mit SellQo verkauft: Termine, Ticketarten und QR-Tickets per E-Mail.",
         "demo_live": "fonskecrawl.com ansehen",
         "why_title": "Ticketplattformen verdienen an jedem Ticket",
-        "why_text": "Oft zahlen Sie oder Ihr Gast einen Prozentsatz plus eine feste Gebühr pro Ticket, und Ihre Kundenliste liegt bei ihnen. Mit Events Flex zahlen Sie nichts pro Monat und 0,49 € pro verkauftem Ticket, ohne Prozentsatz. Sie verkaufen unter Ihrem Namen und bauen Ihr eigenes Publikum auf.",
+        "why_text": "Oft zahlen Sie oder Ihr Besucher einen Prozentsatz plus eine feste Gebühr pro Ticket, und Ihre Kundenliste liegt beim Anbieter. Mit Events Flex zahlen Sie nichts pro Monat und {{flex_fee}} pro verkauftem Ticket, ohne Prozentsatz. Sie verkaufen unter Ihrem eigenen Namen und bauen Ihr eigenes Publikum auf.",
         "features_title": "Vom Verkauf bis zum Einlass",
         "f_dates": "Mehrere Termine",
         "f_dates_text": "Ein Event mit beliebig vielen Terminen, jeweils mit eigener Startzeit, eigenem Ort und eigener Kapazität.",
@@ -628,7 +635,7 @@
         "f_overview": "Überblick pro Event",
         "f_overview_text": "Wie viele Tickets verkauft sind und wie viele Gäste schon drin sind, pro Termin.",
         "f_pay": "Feste Gebühr pro Ticket",
-        "f_pay_text": "Gäste zahlen online mit Bancontact oder Karte. Mit Events Flex werden automatisch 0,49 € pro bezahltem Ticket einbehalten. Kostenlose Tickets kosten nichts.",
+        "f_pay_text": "Besucher zahlen online mit Bancontact oder Karte. Mit Events Flex werden automatisch {{flex_fee}} pro bezahltem Ticket abgezogen. Kostenlose Tickets kosten nichts.",
         "s1_title": "Event anlegen",
         "s1_text": "Termine, Ort, Ticketarten und Preise. In wenigen Minuten fertig.",
         "s2_title": "Online verkaufen",
@@ -638,7 +645,7 @@
         "demo_title": "In Aktion sehen",
         "demo_text": "Wählen Sie einen Platz in einem Demo-Konzertsaal, sehen Sie sich ein Festival mit Tagestickets und VIP an, oder wie The Fonske Crawl in Löwen seine Tickets mit SellQo verkauft.",
         "q1": "Was kostet SellQo für Events?",
-        "q1_a": "Mit Events Flex zahlen Sie nichts pro Monat und 0,49 € pro bezahltem Ticket. Das wird automatisch von der Online-Zahlung abgezogen; kostenlose Tickets kosten nichts. Wer das ganze Jahr viele Tickets verkauft, fährt mit Starter (fester Monatspreis, keine Ticketgebühr) günstiger. Stripe berechnet zusätzlich seine üblichen Zahlungsgebühren.",
+        "q1_a": "Mit Events Flex zahlen Sie nichts pro Monat und {{flex_fee}} pro bezahltem Ticket. Sie verkaufen das ganze Jahr viele Tickets? Dann ist Events Vast günstiger: {{vast_price}} pro Monat ({{vast_term}} Monate Laufzeit) und {{vast_fee}} pro Ticket, inklusive Saalplan. Die Gebühr wird automatisch von der Online-Zahlung abgezogen; kostenlose Tickets kosten nichts. Stripe berechnet zusätzlich seine üblichen Zahlungsgebühren.",
         "q2": "Kann ich mehrere Termine und Ticketarten anbieten?",
         "q2_a": "Ja. Jedes Event kann mehrere Termine haben, und pro Termin verkaufen Sie verschiedene Ticketarten, etwa Early Bird mit eigenem Preis, Verkaufszeitraum und Kontingent.",
         "q3": "Wie lasse ich Gäste ein?",
@@ -758,7 +765,7 @@
         "metric_before": "32 / 40",
         "metric_after": "34 / 40",
         "toast": "Schon gescannt? Das sehen Sie sofort am Einlass",
-        "caption": "Tickets kaufen, QR per E-Mail, scannen am Einlass. Nichts pro Monat, 0,49 € pro verkauftem Ticket.",
+        "caption": "Tickets kaufen, QR per E-Mail, Scan am Eingang. Nichts pro Monat, {{flex_fee}} pro verkauftem Ticket.",
         "more": "Mehr zu Events"
       }
     },
@@ -2134,6 +2141,10 @@
         "sidebar_cleanup": {
           "title": "Eine aufgeräumte Seitenleiste",
           "description": "Das Menü in Ihrer Verwaltung ist kürzer und logischer. Doppelte Einträge sind weg: Benachrichtigungen öffnen Sie über die Glocke oben, und ein Klick auf Bestellungen, Aktionen, Events, Ads oder Berichte führt direkt zur Seite. Der Pfeil daneben klappt das Untermenü auf. Kategorien stehen jetzt unter Produkte und Kundengruppen unter Kunden. Den Import finden Sie auf der Connect-Seite, Lieferantendokumente auf der Lieferanten-Seite. Abonnement heißt jetzt SellQo-Tarif."
+        },
+        "plans_tracks": {
+          "title": "Neue Tarife für jede Art von Betrieb",
+          "description": "SellQo hat jetzt drei klare Bereiche: Webshop, Gastronomie und Events. Sie sehen nur, was zu Ihrem Tarif gehört, und buchen einen zweiten Bereich als Add-on (Webshop {{addon_webshop_price}} oder Gastronomie {{addon_horeca_price}} pro Monat, Tickets mit fester Gebühr pro Ticket). Neu sind Horeca Big ({{horeca_big_price}} pro Monat) und Events Vast ({{vast_price}} pro Monat für {{vast_term}} Monate, {{vast_fee}} pro Ticket und ein Saalplan). Events Flex kostet {{flex_fee}} pro bezahltem Ticket. Bestehende Shops behalten alles, was sie hatten."
         }
       },
       "copyLink": "Link kopieren",

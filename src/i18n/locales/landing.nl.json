@@ -253,7 +253,7 @@
         "setup_sh": "1-2 uur",
         "setup_ls": "2-4 uur",
         "setup_cu": "Weken",
-        "mo_sq": "Vanaf €29",
+        "mo_sq": "Vanaf {{starter_price}}",
         "mo_sh": "Vanaf €36",
         "mo_ls": "Vanaf €59",
         "mo_cu": "Variabel",
@@ -283,7 +283,7 @@
     },
     "pricing": {
       "heading": "Eerlijke prijzen, per soort zaak",
-      "subheading": "Gratis starten kan altijd. Geen kosten per bestelling, maandelijks opzegbaar.",
+      "subheading": "Gratis starten kan altijd. Geen kosten per bestelling, maandelijks opzegbaar (Events Vast loopt {{vast_term}} maanden).",
       "monthly": "Maandelijks",
       "yearly": "Jaarlijks",
       "save2months": "Bespaar 2 maanden",
@@ -380,7 +380,7 @@
       },
       "availableAddons": "Beschikbare add-ons",
       "meta_title": "Prijzen — SellQo voor winkels, horeca en events",
-      "meta_desc": "Gratis webshop op jouwzaak.sellqo.shop, Starter vanaf €29, Horeca €49 per maand, Events Flex zonder maandprijs. Geen kosten per bestelling.",
+      "meta_desc": "Prijzen van SellQo voor webshops, horeca en events. Gratis starten, maandelijks opzegbaar, geen kosten per bestelling.",
       "tabs_label": "Soort zaak",
       "tab_retail": "Winkels",
       "tab_horeca": "Horeca",
@@ -392,7 +392,7 @@
       "desc_starter": "Een volwaardige webshop voor je winkel.",
       "desc_pro": "Webshop, kassa en bol.com samen.",
       "desc_enterprise": "Voor grote catalogi en teams.",
-      "desc_horeca": "Bestelsite, QR-menu, keuken en kassa.",
+      "desc_horeca": "Bestelsite, QR-menu, keuken en kassa voor één zaak.",
       "desc_events_flex": "Niets per maand, je betaalt per ticket.",
       "from": "Vanaf {{price}}",
       "per_ticket": "+ {{fee}} per verkocht ticket",
@@ -433,13 +433,20 @@
       "setup_p3": "Afhaaluren, leverzones en betalingen",
       "setup_p4": "QR-codes voor je tafels, klaar om te printen",
       "setup_cta": "Vraag het opstartpakket aan",
-      "events_alt_title": "Liever een vaste prijs?",
-      "events_alt_text": "Verkoop je het hele jaar door veel tickets? Met Starter ({{price}} per maand) betaal je geen kost per ticket. Zet daarna de events-module aan.",
-      "events_alt_cta": "Bekijk Starter",
-      "foot_trial": "Betaalde plannen: 14 dagen gratis, zonder kredietkaart. Daarna start je abonnement: automatisch via domiciliëring of kaart, of met een betaalverzoek. Maandelijks opzegbaar.",
-      "foot_payments": "Online betalingen lopen via je eigen Stripe-account, aan de gewone tarieven van Stripe. SellQo rekent niets per bestelling, behalve de ticketkost bij Events Flex.",
+      "foot_trial": "Betaalde plannen: 14 dagen gratis, zonder kredietkaart. Daarna start je abonnement: automatisch via domiciliëring of kaart, of met een betaalverzoek. Maandelijks opzegbaar, behalve Events Vast ({{vast_term}} maanden vast).",
+      "foot_payments": "Online betalingen lopen via je eigen Stripe-account, aan de gewone tarieven van Stripe. SellQo rekent niets per bestelling, behalve de vaste kost per verkocht ticket.",
       "foot_qr": "Overschrijving met QR-code: je klant betaalt via zijn bank-app, zonder kosten voor jou.",
-      "from_short": "vanaf"
+      "from_short": "vanaf",
+      "desc_horeca_big": "Voor drukke zaken: meer gebruikers, meer AI en voorrang bij support.",
+      "desc_events_vast": "Voor wie het hele jaar tickets verkoopt: lagere kost per ticket en een zaalplan.",
+      "min_term": "{{n}} maanden vast, maandelijks betaald",
+      "feat_seating": "Zaalplan met vaste plaatsen",
+      "addons_title": "Meer dan één ding verkopen?",
+      "addons_text": "Neem een tweede onderdeel erbij als add-on. Je houdt één account, één kaart en één overzicht.",
+      "addon_webshop": "Webshop erbij",
+      "addon_horeca": "Horeca erbij",
+      "addon_events": "Tickets verkopen",
+      "addon_price": "+ {{price}} per maand"
     },
     "faq": {
       "heading": "Veelgestelde vragen",
@@ -458,15 +465,15 @@
         },
         {
           "q": "Wat zit er in het Horeca-plan?",
-          "a": "Een bestelsite voor afhalen en leveren, bestellen aan tafel via QR, een keukenscherm, de kassa, extra's en allergenen, voor €49 per maand. Wil je dat wij je kaart erin zetten en alles klaarzetten, dan kan dat met het opstartpakket van €149 eenmalig."
+          "a": "Horeca Small ({{horeca_price}} per maand) geeft je een bestelsite voor afhalen en leveren, een QR-menu om te bekijken of aan tafel te bestellen, een keukenscherm, de kassa, extra's en allergenen. Horeca Big ({{horeca_big_price}} per maand) is voor drukke zaken, met meer gebruikers en voorrang bij support. Wil je dat wij je kaart erin zetten en alles klaarzetten, dan kan dat met het opstartpakket van {{setup_price}} eenmalig."
         },
         {
-          "q": "Wat kost Events Flex?",
-          "a": "Niets per maand en €0,49 per betaald ticket, zonder percentage. De kost wordt automatisch afgehouden bij de online betaling. Gratis tickets kosten niets. Tickets met Events Flex betaal je online."
+          "q": "Wat kost SellQo voor events?",
+          "a": "Met Events Flex betaal je niets per maand en {{flex_fee}} per betaald ticket, zonder percentage. Verkoop je het hele jaar tickets, dan kost Events Vast {{vast_price}} per maand ({{vast_term}} maanden vast) en {{vast_fee}} per ticket. De kost wordt automatisch afgehouden bij de online betaling; gratis tickets kosten niets."
         },
         {
           "q": "Zijn er extra kosten bovenop het abonnement?",
-          "a": "SellQo rekent niets per bestelling, behalve de ticketkost bij Events Flex. Betaalt je klant online, dan rekent Stripe zijn gewone tarieven op je eigen Stripe-account. Een overschrijving met QR-code kost je niets."
+          "a": "SellQo rekent niets per bestelling, behalve de vaste kost per verkocht ticket. Betaalt je klant online, dan rekent Stripe zijn gewone tarieven op je eigen Stripe-account. Een overschrijving met QR-code kost je niets."
         },
         {
           "q": "Welke betaalmethoden kan ik aanbieden?",
@@ -598,7 +605,7 @@
       },
       "events": {
         "meta_title": "SellQo Events — tickets verkopen en inchecken met je gsm",
-        "meta_desc": "Verkoop tickets voor feesten, tours en workshops: datums, tickettypes, capaciteit, QR-tickets per mail en inchecken aan de deur. Events Flex: €0 per maand, €0,49 per verkocht ticket.",
+        "meta_desc": "Verkoop tickets voor feesten, tours, concerten en workshops: datums, tickettypes, capaciteit, QR-tickets per mail en inchecken aan de deur. Zonder maandprijs te starten.",
         "badge": "SellQo voor events",
         "title1": "Jouw tickets.",
         "title2": "Jouw bezoekers.",
@@ -611,7 +618,7 @@
         "proof_text": "Een pub crawl in Leuven die al zijn tickets verkoopt met SellQo: datums, tickettypes en QR-tickets per mail.",
         "demo_live": "Bekijk fonskecrawl.com",
         "why_title": "Ticketplatformen verdienen aan elk ticket",
-        "why_text": "Vaak betaal jij of je bezoeker een percentage plus een vaste kost per verkocht ticket, en zit je klantenlijst bij hen. Met Events Flex betaal je niets per maand en €0,49 per verkocht ticket, zonder percentage. Je verkoopt onder je eigen naam en bouwt je eigen publiek op.",
+        "why_text": "Vaak betaal jij of je bezoeker een percentage plus een vaste kost per verkocht ticket, en zit je klantenlijst bij hen. Met Events Flex betaal je niets per maand en {{flex_fee}} per verkocht ticket, zonder percentage. Je verkoopt onder je eigen naam en bouwt je eigen publiek op.",
         "features_title": "Van verkoop tot aan de deur",
         "f_dates": "Meerdere datums",
         "f_dates_text": "Eén event met zoveel data als je wil, elk met een eigen starttijd, plaats en capaciteit.",
@@ -628,7 +635,7 @@
         "f_overview": "Overzicht per event",
         "f_overview_text": "Hoeveel tickets er verkocht zijn en hoeveel mensen al binnen zijn, per datum.",
         "f_pay": "Vaste kost per ticket",
-        "f_pay_text": "Bezoekers betalen online met Bancontact of kaart. Met Events Flex gaat er €0,49 per betaald ticket af, automatisch. Gratis tickets kosten niets.",
+        "f_pay_text": "Bezoekers betalen online met Bancontact of kaart. Met Events Flex gaat er {{flex_fee}} per betaald ticket af, automatisch. Gratis tickets kosten niets.",
         "s1_title": "Maak je event aan",
         "s1_text": "Datums, plaats, tickettypes en prijzen. In een paar minuten klaar.",
         "s2_title": "Verkoop online",
@@ -638,7 +645,7 @@
         "demo_title": "Zie het in actie",
         "demo_text": "Kies zelf een stoel in een demo-concertzaal, bekijk een festival met dagtickets en VIP, of zie hoe The Fonske Crawl in Leuven zijn tickets met SellQo verkoopt.",
         "q1": "Wat kost SellQo voor events?",
-        "q1_a": "Met Events Flex betaal je niets per maand en €0,49 per betaald ticket. Dat wordt automatisch afgehouden bij de online betaling; gratis tickets kosten niets. Verkoop je het hele jaar veel tickets, dan is Starter (vaste maandprijs, geen kost per ticket) voordeliger. Stripe rekent daarnaast zijn gewone betaalkosten.",
+        "q1_a": "Met Events Flex betaal je niets per maand en {{flex_fee}} per betaald ticket. Verkoop je het hele jaar veel tickets, dan is Events Vast voordeliger: {{vast_price}} per maand ({{vast_term}} maanden vast) en {{vast_fee}} per ticket, met een zaalplan erbij. De kost wordt automatisch afgehouden bij de online betaling; gratis tickets kosten niets. Stripe rekent daarnaast zijn gewone betaalkosten.",
         "q2": "Kan ik meerdere datums en tickettypes aanbieden?",
         "q2_a": "Ja. Elk event kan meerdere datums hebben, en per datum verkoop je verschillende tickettypes, bijvoorbeeld een early bird met een eigen prijs, verkoopperiode en aantal.",
         "q3": "Hoe check ik bezoekers in?",
@@ -758,7 +765,7 @@
         "metric_before": "32 / 40",
         "metric_after": "34 / 40",
         "toast": "Al gescand? Dan zie je het meteen aan de deur",
-        "caption": "Tickets kopen, QR in de mail, scannen aan de deur. Niets per maand, € 0,49 per verkocht ticket.",
+        "caption": "Tickets kopen, QR in de mail, scannen aan de deur. Niets per maand, {{flex_fee}} per verkocht ticket.",
         "more": "Meer over events"
       }
     },
@@ -2134,6 +2141,10 @@
         "sidebar_cleanup": {
           "title": "Een opgeruimde zijbalk",
           "description": "Het menu in je beheer is korter en logischer. Dubbele items zijn weg: Notificaties open je via de bel bovenaan, en klik je op Bestellingen, Promoties, Events, Ads of Rapporten, dan kom je meteen op de pagina. Het pijltje ernaast klapt het submenu open. Categorieën staan nu onder Producten en Klantgroepen onder Klanten. Importeren vind je op de Connect-pagina, leveranciersdocumenten op de Leveranciers-pagina. Abonnement heet nu SellQo-plan."
+        },
+        "plans_tracks": {
+          "title": "Nieuwe pakketten per soort zaak",
+          "description": "SellQo heeft nu drie duidelijke sporen: webshop, horeca en events. Je ziet alleen wat bij je pakket hoort, en een tweede onderdeel neem je als add-on (webshop {{addon_webshop_price}} of horeca {{addon_horeca_price}} per maand, tickets met een vaste kost per ticket). Nieuw zijn Horeca Big ({{horeca_big_price}} per maand) en Events Vast ({{vast_price}} per maand voor {{vast_term}} maanden, {{vast_fee}} per ticket en een zaalplan). Events Flex kost {{flex_fee}} per betaald ticket. Bestaande winkels behouden alles wat ze hadden."
         }
       },
       "copyLink": "Kopieer link",

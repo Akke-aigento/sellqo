@@ -59,6 +59,7 @@ const featureLabels: Record<keyof PricingPlanFeatures, string> = {
   promo_giftcards: 'Cadeaubonnen',
   horeca: 'Horeca: bestelsite, QR-menu en keukenscherm',
   events: 'Events: tickets en inchecken',
+  event_seating: 'Zaalplan met vaste plaatsen',
 };
 
 const tierConfig: Record<string, {
