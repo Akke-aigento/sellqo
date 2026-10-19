@@ -22,6 +22,20 @@
       "when": 1792436473775,
       "tag": "0002_mail_1a_marketing_engine",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792440435027,
+      "tag": "0003_mail_1a_doc_article",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792440499891,
+      "tag": "0004_mail_1b_subscribers",
+      "breakpoints": true
     }
   ]
 }
