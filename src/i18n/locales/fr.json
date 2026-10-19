@@ -207,7 +207,8 @@
       "social": "Social",
       "email": "E-mail",
       "media": "Médias",
-      "platform_overview": "Aperçu de la plateforme"
+      "platform_overview": "Aperçu de la plateforme",
+      "email_automations": "Automatisations"
     }
   },
   "settings": {
@@ -971,6 +972,10 @@
           "social_posts_ready": {
             "label": "Social : nouvelles publications prêtes",
             "description": "De nouvelles publications ou des publications refaites attendent votre approbation"
+          },
+          "automation_plan_limit": {
+            "label": "E-mails automatiques : limite atteinte",
+            "description": "Votre limite mensuelle d’e-mails marketing est atteinte ; les e-mails automatiques sont ignorés"
           }
         },
         "team": {
@@ -2544,6 +2549,16 @@
               "brand_heading_font": "Police des titres"
             },
             "label": "Marque"
+          },
+          "automation": {
+            "label": "Automatisation",
+            "vars": {
+              "order_number": "Numéro de commande",
+              "review_url": "Lien d'avis",
+              "cart_url": "Lien vers le panier",
+              "shop_url": "Lien vers la boutique",
+              "cart_items": "Produits du panier (panier uniquement)"
+            }
           }
         },
         "variabelen_invoegen": "Insérer des variables"
@@ -3201,6 +3216,102 @@
         "image_url_invalid": "Utilisez une adresse commençant par https://. Les messageries n’affichent pas d’autres images.",
         "image_alt": "Description (texte alternatif)",
         "insert": "Insérer"
+      },
+      "automations": {
+        "title": "Automatisations",
+        "subtitle": "Des séries d'e-mails fixes envoyées automatiquement : bienvenue, après achat, reconquête et panier abandonné.",
+        "status_on": "Activé",
+        "status_off": "Désactivé",
+        "step_paused": "En pause",
+        "view": "Voir",
+        "hours_unit": "heures",
+        "not_created": "Activez cette série pour la créer avec des textes par défaut. Vous pourrez ensuite modifier les textes.",
+        "counters": "Démarrées : {{runs}} · Envoyés : {{sent}}",
+        "kinds": {
+          "welcome_series": {
+            "title": "Série de bienvenue",
+            "description": "Deux e-mails pour les nouveaux abonnés, dès qu'ils ont confirmé leur inscription."
+          },
+          "post_purchase": {
+            "title": "Après achat + demande d'avis",
+            "description": "Un e-mail de remerciement après une commande, puis une demande d'avis."
+          },
+          "win_back": {
+            "title": "Reconquête",
+            "description": "Un e-mail aux clients qui n'ont plus commandé depuis un certain temps."
+          },
+          "abandoned_cart": {
+            "title": "Panier abandonné",
+            "description": "Un rappel lorsqu'une personne a laissé des produits dans son panier sans passer commande."
+          }
+        },
+        "steps": {
+          "welcome_1": "E-mail de bienvenue",
+          "welcome_2": "Deuxième e-mail de bienvenue",
+          "thanks": "E-mail de remerciement",
+          "review": "Demande d'avis",
+          "win_back": "E-mail de reconquête",
+          "cart": "Rappel de panier",
+          "unknown": "Étape"
+        },
+        "delay": {
+          "immediate": "Immédiatement",
+          "after_hours": "Après {{count}} heures",
+          "win_back": "Après {{count}} jours sans commande"
+        },
+        "settings": {
+          "win_back_days": "Envoyer après",
+          "cart_delay": "Rappel après",
+          "days": "{{count}} jours",
+          "hours": "{{count}} heures"
+        },
+        "notes": {
+          "limit": "Tous les e-mails d'automatisation comptent dans la limite mensuelle d'e-mails marketing de votre abonnement.",
+          "review": "La demande d'avis n'est envoyée que si votre boutique a un profil Google ou Trustpilot connecté.",
+          "review_none": "Aucun profil n'est connecté pour le moment.",
+          "review_link": "Gérer les profils d'avis",
+          "cart_legal": "Votre boutique reste responsable ; SellQo n'envoie ce rappel qu'aux clients inscrits ou ayant déjà acheté chez vous."
+        },
+        "toast": {
+          "activated": "Automatisation activée",
+          "deactivated": "Automatisation désactivée",
+          "toggle_failed": "Impossible de modifier l'automatisation",
+          "settings_saved": "Paramètre enregistré",
+          "settings_failed": "Impossible d'enregistrer le paramètre"
+        },
+        "step": {
+          "description": "Modifiez l'objet et le texte par langue. Les clients reçoivent l'e-mail dans leur langue ; à défaut, dans la langue par défaut de votre boutique.",
+          "active": "Étape active",
+          "delay_label": "Délai d'attente",
+          "delay_from_settings": "Le délai de cette étape se règle sur la carte de la série.",
+          "subject": "Objet",
+          "body": "Texte",
+          "preview": "Aperçu",
+          "edit_text": "Modifier le texte",
+          "empty_lang": "Pas encore de texte dans cette langue.",
+          "saved": "Étape enregistrée",
+          "save_failed": "Impossible d'enregistrer l'étape"
+        },
+        "log": {
+          "title": "Journal",
+          "subtitle": "Les 50 derniers démarrages de vos automatisations.",
+          "empty": "Rien envoyé pour le moment.",
+          "col": {
+            "date": "Date",
+            "recipient": "Destinataire",
+            "automation": "Automatisation",
+            "step": "Étape",
+            "status": "Statut"
+          },
+          "status": {
+            "scheduled": "Planifié",
+            "running": "En cours",
+            "completed": "Terminé",
+            "skipped": "Ignoré",
+            "failed": "Échec",
+            "cancelled": "Annulé"
+          }
+        }
       }
     },
     "ads": {

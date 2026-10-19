@@ -28,6 +28,13 @@ export function countCampaignRecipients(campaignId: string): Promise<CampaignRec
   );
 }
 
+/**
+ * MAIL-2a: automatiseringen hebben elk een verborgen systeemcampagne (kind = 'automation').
+ * Die horen niet in lijsten, tellingen of de detailpagina van campagnes. `kind` kan null zijn
+ * op oudere rijen, dus filter op "null of niet 'automation'" in plaats van een kale neq.
+ */
+export const NOT_AUTOMATION_CAMPAIGN = 'kind.is.null,kind.neq.automation';
+
 /** Ververs de lijst om de 10 seconden zolang er een campagne aan het verzenden is. */
 const SENDING_POLL_MS = 10_000;
 
@@ -49,6 +56,7 @@ export function useEmailCampaigns() {
           template:email_templates(id, name)
         `)
         .eq('tenant_id', currentTenant.id)
+        .or(NOT_AUTOMATION_CAMPAIGN)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -168,6 +176,7 @@ export function useEmailCampaign(id: string | undefined) {
           template:email_templates(id, name)
         `)
         .eq('id', id)
+        .or(NOT_AUTOMATION_CAMPAIGN)
         .maybeSingle();
 
       if (error) throw error;
@@ -227,7 +236,8 @@ export function useMarketingStats() {
         .from('email_campaigns')
         .select('total_sent, total_opened, total_clicked')
         .eq('tenant_id', currentTenant.id)
-        .eq('status', 'sent');
+        .eq('status', 'sent')
+        .or(NOT_AUTOMATION_CAMPAIGN);
 
       const campaignStats = campaigns || [];
       const totalCampaigns = campaignStats.length;

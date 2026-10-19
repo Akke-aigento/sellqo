@@ -211,6 +211,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       // SOCIAL-3: herinnering "zelf posten" en "nieuwe posts klaar om goed te keuren".
       { type: 'social_manual_due', defaultInApp: true, defaultEmail: false },
       { type: 'social_posts_ready', defaultInApp: true, defaultEmail: false },
+      // MAIL-2a: automatische mails overgeslagen omdat de maandlimiet op is.
+      { type: 'automation_plan_limit', defaultInApp: true, defaultEmail: false },
     ]
   },
   {

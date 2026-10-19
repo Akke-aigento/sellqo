@@ -2101,6 +2101,10 @@
         "mail_pages_fixed": {
           "title": "Unsubscribe, preferences and confirmation show a proper page again",
           "description": "When a customer clicks unsubscribe, email preferences or your newsletter confirmation link in your email, they now get a readable page with your shop's name and logo again, instead of raw code. Unsubscribing and preferences work as before; one-click unsubscribe from the mail app keeps working."
+        },
+        "email_automations": {
+          "title": "Email automations",
+          "description": "Under Marketing → Automations you can switch on four fixed email series: a welcome series as soon as a subscriber confirms their subscription, a thank-you email and later a review request after a purchase, a win-back email for customers who haven't ordered for a while, and a reminder for an abandoned cart. That reminder only goes to customers who are subscribed or have bought from you before. You edit the subject and text per language, and all automation emails count toward your monthly marketing email limit."
         }
       },
       "copyLink": "Copy link",

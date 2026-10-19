@@ -179,7 +179,8 @@
       "social": "Social",
       "email": "Email",
       "media": "Media",
-      "platform_overview": "Platform overview"
+      "platform_overview": "Platform overview",
+      "email_automations": "Automations"
     }
   },
   "settings": {
@@ -943,6 +944,10 @@
           "social_posts_ready": {
             "label": "Social: new posts ready",
             "description": "New or remade posts are waiting for your approval"
+          },
+          "automation_plan_limit": {
+            "label": "Automated emails: limit reached",
+            "description": "Your monthly marketing email limit is used up; automated emails are being skipped"
           }
         },
         "team": {
@@ -2813,6 +2818,16 @@
               "brand_heading_font": "Heading font"
             },
             "label": "Brand"
+          },
+          "automation": {
+            "label": "Automation",
+            "vars": {
+              "order_number": "Order number",
+              "review_url": "Review link",
+              "cart_url": "Cart link",
+              "shop_url": "Shop link",
+              "cart_items": "Products in cart (cart only)"
+            }
           }
         },
         "variabelen_invoegen": "Insert variables"
@@ -3470,6 +3485,102 @@
         "image_url_invalid": "Use an address starting with https://. Email clients do not show other images.",
         "image_alt": "Description (alt text)",
         "insert": "Insert"
+      },
+      "automations": {
+        "title": "Automations",
+        "subtitle": "Fixed email series that send automatically: welcome, after purchase, win-back and abandoned cart.",
+        "status_on": "On",
+        "status_off": "Off",
+        "step_paused": "Paused",
+        "view": "View",
+        "hours_unit": "hours",
+        "not_created": "Switch this series on to create it with default texts. You can edit the texts afterwards.",
+        "counters": "Started: {{runs}} · Sent: {{sent}}",
+        "kinds": {
+          "welcome_series": {
+            "title": "Welcome series",
+            "description": "Two emails for new subscribers, as soon as they have confirmed their subscription."
+          },
+          "post_purchase": {
+            "title": "After purchase + review request",
+            "description": "A thank-you email after an order and, later, a request to leave a review."
+          },
+          "win_back": {
+            "title": "Win-back",
+            "description": "An email to customers who haven't ordered for a while."
+          },
+          "abandoned_cart": {
+            "title": "Abandoned cart",
+            "description": "A reminder when someone left products in their cart without checking out."
+          }
+        },
+        "steps": {
+          "welcome_1": "Welcome email",
+          "welcome_2": "Second welcome email",
+          "thanks": "Thank-you email",
+          "review": "Review request",
+          "win_back": "Win-back email",
+          "cart": "Cart reminder",
+          "unknown": "Step"
+        },
+        "delay": {
+          "immediate": "Immediately",
+          "after_hours": "After {{count}} hours",
+          "win_back": "After {{count}} days without an order"
+        },
+        "settings": {
+          "win_back_days": "Send after",
+          "cart_delay": "Reminder after",
+          "days": "{{count}} days",
+          "hours": "{{count}} hours"
+        },
+        "notes": {
+          "limit": "All automation emails count toward the monthly marketing email limit of your plan.",
+          "review": "The review request is only sent when your shop has a connected Google or Trustpilot profile.",
+          "review_none": "No profile is connected right now.",
+          "review_link": "Manage review profiles",
+          "cart_legal": "Your shop remains responsible; SellQo only sends this reminder to customers who are subscribed or have bought from you before."
+        },
+        "toast": {
+          "activated": "Automation switched on",
+          "deactivated": "Automation switched off",
+          "toggle_failed": "Could not switch the automation",
+          "settings_saved": "Setting saved",
+          "settings_failed": "Could not save the setting"
+        },
+        "step": {
+          "description": "Edit the subject and text per language. Customers receive the email in their own language; if that is missing, in your shop's default language.",
+          "active": "Step active",
+          "delay_label": "Wait time",
+          "delay_from_settings": "The wait time of this step is set on the series card.",
+          "subject": "Subject",
+          "body": "Text",
+          "preview": "Preview",
+          "edit_text": "Edit text",
+          "empty_lang": "No text in this language yet.",
+          "saved": "Step saved",
+          "save_failed": "Could not save the step"
+        },
+        "log": {
+          "title": "Log",
+          "subtitle": "The last 50 starts of your automations.",
+          "empty": "Nothing sent yet.",
+          "col": {
+            "date": "Date",
+            "recipient": "Recipient",
+            "automation": "Automation",
+            "step": "Step",
+            "status": "Status"
+          },
+          "status": {
+            "scheduled": "Scheduled",
+            "running": "Running",
+            "completed": "Completed",
+            "skipped": "Skipped",
+            "failed": "Failed",
+            "cancelled": "Cancelled"
+          }
+        }
       }
     },
     "ads": {

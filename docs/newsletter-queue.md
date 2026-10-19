@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12x — Automatische e-mails: welkomstreeks, na aankoop, win-back en verlaten winkelwagen (feature, 19-10-2026)
+
+**Status:** klaar voor verzending zodra MAIL-2a live staat (migratie 20261019230000 + edge functions automation-scheduler, process-campaign-queue, send-campaign-batch, newsletter-confirm, render-campaign-preview + frontend) en de smoketest op SellQo Speeltuin groen is.
+
+**Voor wie:** alle winkels die e-mailmarketing gebruiken.
+
+**Automatische e-mails in Marketing → Automatiseringen** (oktober 2026)
+Zet met één schakelaar vier automatische mails aan: een welkomstreeks van twee mails voor nieuwe abonnees, een bedankmail na een betaalde bestelling met later een vraag om een review, een mail voor klanten die al een tijd niets bestelden, en een herinnering als iemand bij het afrekenen afhaakt. De teksten staan klaar in het Nederlands, Engels, Frans en Duits en je past ze aan in je huisstijl. Alles staat standaard uit.
+Wat betekent dit voor jou? Je blijft in contact met je klanten zonder elke mail zelf te versturen. De mails gaan enkel naar klanten die ingeschreven zijn op je nieuwsbrief, en de winkelwagenherinnering ook naar wie eerder bij je kocht. Ze tellen mee voor je maandelijkse aantal marketingmails.
+
+i18n: `public.changelog.changes.email_automations`
+
 ### 2026.12w — Abonnees beheren, voorbeeld in je huisstijl (feature + improvement, 19-10-2026)
 
 **Status:** klaar voor verzending zodra MAIL-1b live staat (migratie 20261019220000 + edge functions newsletter-invite en render-campaign-preview + frontend). Samen met 2026.12v versturen.

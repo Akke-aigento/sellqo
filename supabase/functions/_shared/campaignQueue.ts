@@ -24,7 +24,8 @@ import { getTenantBrand, renderTenantEmail, type TenantLocale } from "./tenantEm
 import { t } from "./tenantEmailI18n.ts";
 import { extractEmailBody, buildVariableMap, applyVariables } from "./emailContent.ts";
 import { resolveAudience } from "./campaignAudience.ts";
-import { buildUnsubscribeUrl, escapeHtml } from "./marketingToken.ts";
+import { buildUnsubscribePageUrl, buildUnsubscribeUrl, escapeHtml } from "./marketingToken.ts";
+import { htmlSafeVars, mergeAutomationVars, shortLocale } from "./automationVars.ts";
 import { loadBillingState } from "./billingGuard.ts";
 import { billingAllows } from "./billingState.ts";
 
@@ -59,6 +60,14 @@ async function loadCampaign(db: Db, campaignId: string) {
   return data;
 }
 
+/** MAIL-2a: systeemcampagnes van automations verstuur of tel je nooit als gewone campagne. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function assertRegularCampaign(campaign: Record<string, any>) {
+  if (campaign.kind === "automation") {
+    throw new CampaignQueueError("NOT_FOUND", "Dit is een automationmail; die vertrekt vanzelf.", 404);
+  }
+}
+
 function audienceInputFor(campaign: Record<string, any>, tenantLocale: string) {
   const langs = Array.isArray(campaign.available_languages) ? campaign.available_languages : [];
   return {
@@ -85,6 +94,7 @@ export async function getMarketingQuota(db: Db, tenantId: string) {
 /** Telling voor het bevestigingsvenster: ontvangers, verbruik, afzender in orde? */
 export async function countCampaign(db: Db, campaignId: string) {
   const campaign = await loadCampaign(db, campaignId);
+  assertRegularCampaign(campaign);
   const brand = await getTenantBrand(db, campaign.tenant_id);
   const recipients = await resolveAudience(db, audienceInputFor(campaign, brand.defaultLocale));
   const limit = await getMarketingQuota(db, campaign.tenant_id);
@@ -106,6 +116,7 @@ export async function enqueueCampaign(
   fromStatuses: string[] = ["draft", "scheduled", "failed"],
 ): Promise<{ queued: number; total_recipients: number }> {
   const campaign = await loadCampaign(db, campaignId);
+  assertRegularCampaign(campaign);
   if (!fromStatuses.includes(campaign.status)) {
     throw new CampaignQueueError("ALREADY_SENDING", "Deze campagne wordt al verstuurd of is al verstuurd.", 409);
   }
@@ -198,11 +209,20 @@ async function renderFor(ctx: CampaignContext, row: Record<string, any>, recipie
   const available: string[] = Array.isArray(campaign.available_languages) && campaign.available_languages.length
     ? campaign.available_languages
     : ["nl"];
+  const runVars = campaign.kind === "automation" && row.variables && typeof row.variables === "object"
+    ? (row.variables as Record<string, unknown>)
+    : null;
   let locale = ((campaign.language as string) || brand.defaultLocale) as TenantLocale;
   let subject = campaign.subject || "";
   let body = campaign.html_content || "";
   if (available.length > 1) {
-    const pref = (recipient.preferred_language as string) || "nl";
+    // MAIL-2a: bij een automation weegt de taal van de klant zwaarst, daarna de taal van de
+    // bestelling/het winkelmandje (variables.locale), dan nl.
+    // Review-fix: daarna de standaardtaal van de winkel (kort, bv. "fr-BE" → "fr"), pas dan nl.
+    const pref = shortLocale(recipient.preferred_language)
+      || (runVars ? shortLocale(runVars.locale) : null)
+      || shortLocale(brand.defaultLocale)
+      || "nl";
     const chosen = available.includes(pref) ? pref : "nl";
     locale = chosen as TenantLocale;
     const v = translations[chosen];
@@ -212,12 +232,18 @@ async function renderFor(ctx: CampaignContext, row: Record<string, any>, recipie
     }
   }
 
+  // List-Unsubscribe-header: de functie-URL (RFC 8058 one-click POST). In de tekst van de mail:
+  // de afmeldpagina op sellqo.app (MAIL-2a, Resend: links moeten bij het verzenddomein passen).
   const unsubscribeUrl = `${await buildUnsubscribeUrl(campaign.tenant_id, row.email)}&campaign=${campaign.id}`;
-  const vars = buildVariableMap(
+  const unsubscribePageUrl = await buildUnsubscribePageUrl(campaign.tenant_id, row.email, {
+    campaignId: campaign.id,
+    lang: locale,
+  });
+  const baseVars = buildVariableMap(
     { ...recipient, email: row.email },
     tenant,
     { subject },
-    unsubscribeUrl,
+    unsubscribePageUrl,
     {
       tenantName: brand.tenantName,
       logoUrl: brand.logoUrl,
@@ -227,17 +253,23 @@ async function renderFor(ctx: CampaignContext, row: Record<string, any>, recipie
     },
     locale,
   );
-  const renderedSubject = applyVariables(subject, vars);
+  // Automation: per-mail variabelen (bestelnummer, links, productlijst). Gewone campagne: ongewijzigd.
+  const vars = runVars ? mergeAutomationVars(baseVars, runVars) : baseVars;
+  // In onderwerp en preheader geen HTML-lijst.
+  const textVars = runVars ? { ...vars, cart_items: "" } : vars;
+  const renderedSubject = applyVariables(subject, textVars).replace(/[\r\n]+/g, " ").trim();
   // Klantvelden (bv. een voornaam uit het nieuwsbriefformulier) mogen geen HTML in de mail brengen.
-  const htmlVars = Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, escapeHtml(v)])) as typeof vars;
+  const htmlVars = runVars
+    ? htmlSafeVars(vars)
+    : Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, escapeHtml(v)])) as typeof vars;
   const intro = applyVariables(extractEmailBody(body), htmlVars);
   const { html, text } = renderTenantEmail({
     tenantBrand: brand,
     locale,
-    preheader: campaign.preview_text ? applyVariables(campaign.preview_text, vars) : renderedSubject,
+    preheader: campaign.preview_text ? applyVariables(campaign.preview_text, textVars) : renderedSubject,
     heading: renderedSubject,
     intro,
-    unsubscribeUrl,
+    unsubscribeUrl: unsubscribePageUrl,
     poweredByLabel: t(locale, "campaign.poweredBy"),
   });
   return {
@@ -304,7 +336,49 @@ async function sendGroup(db: Db, apiKey: string, ctx: CampaignContext | null, ro
   }
 
   // Wie zich tussen het inplannen en nu uitschreef, krijgt niets.
-  const skip = rows.filter((r) => r.customer_id && byId.get(r.customer_id)?.email_subscribed === false);
+  // MAIL-2a: een automationmail op soft opt-in (verlaten winkelwagen, eerdere koper) heeft geen
+  // email_subscribed nodig; daar beslist enkel de uitschrijflijst (email_unsubscribes).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const isSoftOptin = (r: Record<string, any>) =>
+    ctx.campaign.kind === "automation" && (r.variables as Record<string, unknown> | null)?._consent === "soft_optin";
+  let unsubscribed = new Set<string>();
+  if (ctx.campaign.kind === "automation") {
+    const { data: un } = await db
+      .from("email_unsubscribes")
+      .select("email")
+      .eq("tenant_id", ctx.campaign.tenant_id)
+      .in("email", rows.map((r) => r.email));
+    unsubscribed = new Set((un || []).map((u: { email: string }) => String(u.email).trim().toLowerCase()));
+    // Review-fix: opt-outs buiten email_unsubscribes (zelfde regel als automation_consent):
+    // klantstatus 'unsubscribed' of alle mailvoorkeuren uit. Geldt voor soft opt-in-rijen; een
+    // ingeschreven klant (email_subscribed = true) bevestigde opnieuw via double opt-in.
+    const softEmails = rows.filter(isSoftOptin).map((r) => String(r.email).trim().toLowerCase());
+    if (softEmails.length) {
+      const [{ data: optedOut, error: coErr }, { data: prefsOff, error: prErr }] = await Promise.all([
+        db.from("customers")
+          .select("email")
+          .eq("tenant_id", ctx.campaign.tenant_id)
+          .eq("email_marketing_status", "unsubscribed")
+          .in("email", softEmails),
+        db.from("email_preferences")
+          .select("email")
+          .eq("tenant_id", ctx.campaign.tenant_id)
+          .eq("newsletter", false)
+          .eq("promotions", false)
+          .eq("product_updates", false)
+          .in("email", softEmails),
+      ]);
+      // Twijfel = niet versturen: zonder antwoord gaan deze rijen terug in de wachtrij.
+      if (coErr || prErr) throw new Error(`opt-outs lezen mislukt: ${(coErr || prErr)?.message}`);
+      for (const u of [...(optedOut || []), ...(prefsOff || [])]) {
+        unsubscribed.add(String((u as { email: string }).email).trim().toLowerCase());
+      }
+    }
+  }
+  const skip = rows.filter((r) =>
+    unsubscribed.has(String(r.email).trim().toLowerCase()) ||
+    (r.customer_id && byId.get(r.customer_id)?.email_subscribed === false && !isSoftOptin(r))
+  );
   if (skip.length) {
     await db
       .from("campaign_sends")
@@ -389,7 +463,7 @@ async function sendGroup(db: Db, apiKey: string, ctx: CampaignContext | null, ro
   return { sent: okRows.length, failed: badRows.length + skip.length };
 }
 
-async function refreshCampaignTotals(db: Db, campaignId: string) {
+async function refreshCampaignTotals(db: Db, campaignId: string, kind?: string | null) {
   const countOf = async (statuses: string[]) => {
     const { count } = await db
       .from("campaign_sends")
@@ -402,7 +476,12 @@ async function refreshCampaignTotals(db: Db, campaignId: string) {
   const sent = await countOf(["sent", "delivered", "opened", "clicked", "bounced", "complained"]);
   const failed = await countOf(["failed"]);
   const patch: Record<string, unknown> = { total_sent: sent };
-  if (open === 0) {
+  // MAIL-2a: een systeemcampagne van een automation blijft altijd op 'sending' (nooit sent/failed).
+  if (kind === undefined) {
+    const { data } = await db.from("email_campaigns").select("kind").eq("id", campaignId).maybeSingle();
+    kind = data?.kind ?? null;
+  }
+  if (open === 0 && kind !== "automation") {
     const now = new Date().toISOString();
     patch.status = sent > 0 ? "sent" : "failed";
     patch.sent_at = now;
@@ -425,6 +504,7 @@ export async function processQueue(db: Db, opts: { deadlineMs?: number; maxEmail
     .from("email_campaigns")
     .select("id")
     .eq("status", "scheduled")
+    .eq("kind", "campaign")
     .lte("scheduled_at", new Date().toISOString())
     .order("scheduled_at")
     .limit(20);
@@ -510,8 +590,10 @@ export async function processQueue(db: Db, opts: { deadlineMs?: number; maxEmail
   }
 
   // 3. Campagnes afsluiten die klaar zijn (ook die deze run niet aanraakte).
-  const { data: sending } = await db.from("email_campaigns").select("id").eq("status", "sending").limit(100);
-  for (const c of sending || []) if (!touched.has(c.id)) await refreshCampaignTotals(db, c.id);
+  // Enkel gewone campagnes: systeemcampagnes staan permanent op 'sending' en hun tellers worden
+  // bijgewerkt wanneer de worker hun rijen verstuurt.
+  const { data: sending } = await db.from("email_campaigns").select("id").eq("status", "sending").eq("kind", "campaign").limit(100);
+  for (const c of sending || []) if (!touched.has(c.id)) await refreshCampaignTotals(db, c.id, "campaign");
 
   const { count: remaining } = await db
     .from("campaign_sends")

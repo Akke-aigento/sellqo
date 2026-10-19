@@ -2,7 +2,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useTranslation } from 'react-i18next';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Settings, ShoppingCart, Package, Truck, CheckCircle } from 'lucide-react';
 import { useTenant } from '@/hooks/useTenant';
@@ -13,8 +12,6 @@ import { useState, useEffect } from 'react';
 interface AutomationSettingsState {
   whatsapp_order_confirmation: boolean;
   whatsapp_shipping_updates: boolean;
-  whatsapp_abandoned_cart: boolean;
-  whatsapp_abandoned_cart_delay_hours: number;
 }
 
 export function WhatsAppAutomationSettings() {
@@ -24,8 +21,6 @@ export function WhatsAppAutomationSettings() {
   const [settings, setSettings] = useState<AutomationSettingsState>({
     whatsapp_order_confirmation: true,
     whatsapp_shipping_updates: true,
-    whatsapp_abandoned_cart: false,
-    whatsapp_abandoned_cart_delay_hours: 1,
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -34,8 +29,6 @@ export function WhatsAppAutomationSettings() {
       setSettings({
         whatsapp_order_confirmation: currentTenant.whatsapp_order_confirmation ?? true,
         whatsapp_shipping_updates: currentTenant.whatsapp_shipping_updates ?? true,
-        whatsapp_abandoned_cart: currentTenant.whatsapp_abandoned_cart ?? false,
-        whatsapp_abandoned_cart_delay_hours: currentTenant.whatsapp_abandoned_cart_delay_hours ?? 1,
       });
     }
   }, [currentTenant]);
@@ -123,60 +116,10 @@ export function WhatsAppAutomationSettings() {
           </div>
         ))}
 
-        {/* Abandoned Cart with extra settings */}
-        <div className="space-y-4 pb-4 border-b">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-muted rounded-lg">
-                <ShoppingCart className="h-4 w-4" />
-              </div>
-              <div>
-                <Label htmlFor="abandoned_cart" className="font-medium cursor-pointer">
-                  {t('settings.whatsapp.auto.abandonedTitle')}
-                </Label>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {t('settings.whatsapp.auto.abandonedBody')}
-                </p>
-              </div>
-            </div>
-            <Switch
-              id="abandoned_cart"
-              checked={settings.whatsapp_abandoned_cart}
-              onCheckedChange={(checked) => 
-                setSettings(prev => ({ ...prev, whatsapp_abandoned_cart: checked }))
-              }
-            />
-          </div>
-
-          {settings.whatsapp_abandoned_cart && (
-            <div className="ml-11 p-4 bg-muted/50 rounded-lg space-y-3">
-              <div className="flex items-center gap-3">
-                <Label htmlFor="delay_hours" className="text-sm whitespace-nowrap">
-                  {t('settings.whatsapp.auto.sendAfter')}
-                </Label>
-                <Input
-                  id="delay_hours"
-                  type="number"
-                  min={1}
-                  max={72}
-                  className="w-20"
-                  value={settings.whatsapp_abandoned_cart_delay_hours}
-                  onChange={(e) => 
-                    setSettings(prev => ({ 
-                      ...prev, 
-                      whatsapp_abandoned_cart_delay_hours: parseInt(e.target.value) || 1 
-                    }))
-                  }
-                />
-                <span className="text-sm text-muted-foreground">uur</span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {t('settings.whatsapp.auto.optInNote')}
-              </p>
-            </div>
-          )}
-        </div>
-
+        {/* MAIL-2a: de WhatsApp-herinnering voor verlaten winkelwagens had geen verzender
+            (dode schakelaar) en is verborgen. De kolommen whatsapp_abandoned_cart(_delay_hours)
+            blijven bestaan maar worden hier niet meer gelezen of geschreven. De e-mailherinnering
+            staat in Marketing > Automatiseringen. */}
         <div className="flex justify-end pt-2">
           <Button onClick={handleSave} disabled={isSaving}>
             {isSaving ? 'Opslaan...' : 'Instellingen opslaan'}

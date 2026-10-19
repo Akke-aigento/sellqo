@@ -321,8 +321,34 @@ Deno.serve(async (req) => {
         console.error("Klaviyo sync fout:", syncError);
       }
     } else {
-      // Interne provider: welkomstmail pas nu, na bevestiging.
-      await sendWelcomeEmail(supabase, tenantId, email, subscriber.first_name, config, brand, shopUrl);
+      // MAIL-2a: staat de welkomstreeks (automation) aan, dan krijgt de abonnee enkel die reeks en
+      // niet de oude losse welkomstmail. Nooit allebei. Lukt het inplannen niet (fout, of de
+      // databank weigert: geen toestemming, al eens gehad), dan ook geen oude mail: de reeks is
+      // de keuze van de winkel.
+      const { data: welcomeAuto, error: autoErr } = await supabase
+        .from("email_automations")
+        .select("id")
+        .eq("tenant_id", tenantId)
+        .eq("preset_key", "welcome_series")
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      if (autoErr) console.error("[NIEUWSBRIEF-BEVESTIG] welkomstreeks opzoeken mislukt:", autoErr.message);
+      if (welcomeAuto?.id) {
+        const { error: runErr } = await supabase.rpc("schedule_automation_run_v2", {
+          p_tenant_id: tenantId,
+          p_trigger_type: "newsletter_confirmed",
+          p_trigger_entity_id: subscriber.id,
+          p_trigger_entity_type: "newsletter_subscriber",
+          p_email: email,
+          p_customer_id: null,
+          p_metadata: { locale: language ?? null, first_name: subscriber.first_name ?? null },
+        });
+        if (runErr) console.error("[NIEUWSBRIEF-BEVESTIG] welkomstreeks inplannen mislukt:", runErr.message);
+      } else if (!autoErr) {
+        // Interne provider zonder welkomstreeks: de oude welkomstmail, pas nu na bevestiging.
+        await sendWelcomeEmail(supabase, tenantId, email, subscriber.first_name, config, brand, shopUrl);
+      }
     }
 
     return resultRedirect("ok", locale, brand, shopUrl);

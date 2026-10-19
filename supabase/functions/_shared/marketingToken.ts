@@ -76,6 +76,37 @@ export async function buildUnsubscribeUrl(tenantId: string, email: string): Prom
   return `${functionsBase()}/unsubscribe?tenant=${encodeURIComponent(tenantId)}&email=${encodeURIComponent(normEmail(email))}&s=${s}`;
 }
 
+/**
+ * MAIL-2a — afmeldlink voor in de tekst van de mail: de pagina op sellqo.app
+ * (MAIL-1c) in plaats van de functie-URL op supabase.co. Resend meldde dat
+ * links in de mail niet bij het verzenddomein passen; een link naar onze eigen
+ * app-domein oogt minder als phishing. De List-Unsubscribe-header blijft de
+ * functie-URL (RFC 8058 one-click is een POST naar die functie).
+ * Basis: PUBLIC_APP_URL (enkel een http(s)-origin), anders https://sellqo.app.
+ */
+export async function buildUnsubscribePageUrl(
+  tenantId: string,
+  email: string,
+  opts: { campaignId?: string | null; lang?: string | null } = {},
+): Promise<string> {
+  const s = await signMarketingLink(tenantId, email);
+  const qs = new URLSearchParams({ tenant: tenantId, email: normEmail(email), s });
+  if (opts.campaignId) qs.set("campaign", opts.campaignId);
+  if (opts.lang && /^[a-z]{2}$/.test(opts.lang)) qs.set("lang", opts.lang);
+  return `${appOrigin()}/mail/afmelden?${qs.toString()}`;
+}
+
+function appOrigin(): string {
+  const raw = Deno.env.get("PUBLIC_APP_URL");
+  if (raw) {
+    try {
+      const u = new URL(raw);
+      if (u.protocol === "https:" || (u.protocol === "http:" && u.hostname === "localhost")) return u.origin;
+    } catch { /* val terug op sellqo.app */ }
+  }
+  return "https://sellqo.app";
+}
+
 /** Link naar de voorkeurenpagina, met dezelfde handtekening. */
 export async function buildPreferencesUrl(tenantId: string, email: string): Promise<string> {
   const s = await signMarketingLink(tenantId, email);

@@ -2101,6 +2101,10 @@
         "mail_pages_fixed": {
           "title": "Abmelden, Einstellungen und Bestätigung zeigen wieder eine ordentliche Seite",
           "description": "Klickt ein Kunde in Ihrer E-Mail auf Abmelden, auf E-Mail-Einstellungen oder auf den Bestätigungslink Ihres Newsletters, erhält er wieder eine lesbare Seite mit dem Namen und Logo Ihres Shops statt Rohcode. Abmelden und Einstellungen funktionieren wie bisher; die Abmeldung mit einem Klick aus der Mail-App funktioniert weiterhin."
+        },
+        "email_automations": {
+          "title": "E-Mail-Automatisierungen",
+          "description": "Unter Marketing → Automatisierungen aktivieren Sie vier feste E-Mail-Serien: eine Willkommensserie, sobald ein Abonnent seine Anmeldung bestätigt, eine Dankes-E-Mail und später eine Bewertungsanfrage nach einem Kauf, eine Rückgewinnungs-E-Mail für Kunden, die seit einiger Zeit nicht bestellt haben, und eine Erinnerung bei einem verlassenen Warenkorb. Diese Erinnerung geht nur an Kunden, die angemeldet sind oder bereits bei Ihnen gekauft haben. Betreff und Text passen Sie pro Sprache an, und alle Automatisierungs-E-Mails zählen zu Ihrem monatlichen Limit für Marketing-E-Mails."
         }
       },
       "copyLink": "Link kopieren",

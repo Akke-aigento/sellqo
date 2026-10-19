@@ -1,3 +1,68 @@
+## MAIL-2a — Automations: welkomstreeks, na aankoop, reviewvraag, win-back, verlaten winkelwagen — 19 oktober 2026
+
+Vervolg op MAIL-1a/1b/1c. Go van Akke 19-10. Backend (dit deel) en frontend (Marketing → Automatiseringen, `src/`) parallel gebouwd. Changelog 2026.12x (`email_automations`) staat in het frontenddeel.
+
+**Root cause**
+- Automations bestonden enkel op papier. Live 19-10: `email_automations`, `automation_steps`, `automation_runs` en `automation_step_runs` hebben 0 rijen. `schedule_automation_run` werd nergens aangeroepen, en `cron.job` had geen job voor `automation-scheduler`.
+- `supabase/functions/automation-scheduler/index.ts` (oude versie) verstuurde zelf via resend@2 met `tenantSender`. Een Resend-fout werd als verzonden geboekt. Er was geen maandlimiet, geen toestemmingscontrole en geen huisstijl, en de mail ging niet via de wachtrij van MAIL-1a.
+- `newsletter-confirm` kende enkel één losse welkomstmail (`sendWelcomeEmail`, `tenant_newsletter_config.welcome_email_*`).
+- De RLS op `automation_runs` laat marketingrollen runs invoegen en wijzigen (policies "Marketing roles can insert/update automation runs"). Zo kon een gebruiker een mail naar een willekeurig adres inplannen zodra er een engine zou bestaan.
+- Resend meldde dat de links in marketingmails niet bij het verzenddomein passen: de afmeldlink in de tekst wees naar `…supabase.co/functions/v1/unsubscribe`.
+
+**Uitgevoerd**
+- Migratie `20261019230000_mail_2a_automations.sql`:
+  - Kolommen: `email_campaigns.kind` (`campaign`|`automation`, check) + `automation_step_id` (uniek); `campaign_sends.automation_run_id` + `variables`; `email_automations.preset_key` (uniek per winkel) + `last_scanned_at`; `automation_runs.recipient_email/customer_id/next_step_id/trigger_at/claimed_at/attempts`, uniek `(automation_id, trigger_entity_id)`.
+  - Ontwerp: elke stap heeft een verborgen systeemcampagne (`kind='automation'`, status permanent `sending`). Een automationmail is een rij in `campaign_sends`, dus de bestaande worker verstuurt hem: huisstijl, afzender, afmeldlink, retry en meetellen voor `marketing_emails_used`.
+  - Unieke sleutel: `campaign_sends_campaign_email_key` vervangen door twee partiële unieke indexen, `(campaign_id, email) where automation_run_id is null` en `(automation_run_id, campaign_id) where automation_run_id is not null`. `enqueue_campaign_sends` gebruikt de partiële index in ON CONFLICT en weigert systeemcampagnes. Volgorde: eerst de nieuwe indexen, dan de functie, pas daarna de oude sleutel weg.
+  - Guards: `guard_email_campaign_status` laat SellQo's eigen definer-functies door (`current_user` is dan de eigenaar, niet `authenticated`); gebruikers via PostgREST blijven geblokkeerd. Nieuw: `guard_email_campaign_kind` (gebruikers maken, wijzigen van soort of verwijderen geen systeemcampagne; inhoud bewerken mag), `guard_automation_runs_write` (runs schrijft enkel de server), `guard_email_automation_preset` (preset_key/trigger_type van een preset liggen vast). Check `automation_steps_delay_range` (0-400 dagen, `not valid`).
+  - Functies: `automation_consent` (uitschrijflijst wint altijd; `email_subscribed=true`; enkel `cart_abandoned` aanvaardt ook een eerdere betaalde webshopbestelling, zonder marketplace- of importbestellingen); `schedule_automation_run_v2` (actief, toestemming, max_runs, cooldown per adres, advisory lock, ontdubbeld per trigger); `claim_automation_runs` (SKIP LOCKED, reclaim na 15 min, na 5 pogingen failed); `automation_finish_step`; `enqueue_automation_send` (run/stap/campagne kloppen, uitschrijflijst, toestemming, maandlimiet onder dezelfde advisory lock als campagnes, ontdubbeld per run+stap); `automation_scan_triggers` (win-back hooguit eens per 20 u, winkelwagen elke 5 min); `automation_ensure_presets(p_tenant, p_presets)` (rol tenant_admin/staff/marketing, maakt enkel ontbrekende presets aan, uit; trigger_type ligt server-side vast per preset: `newsletter_confirmed`, `order_paid`, `customer_inactive`, `cart_abandoned`; de bestaande eigen welkomstmail wordt stap 1 met de oude placeholders omgezet).
+  - Trigger `trg_automation_order_paid` (AFTER INSERT OR UPDATE OF payment_status, enkel naar `paid`, zonder marketplace-/importbron en met adres). Faalveilig zoals `ticket_mail_on_paid`: `exception when others → raise warning`.
+  - Cron `automation-scheduler` elke minuut (terugval elk uur), enkel als er een actieve preset is. Cron `process-campaign-queue` heropgebouwd: systeemcampagnes staan altijd op `sending`, dus de voorwaarde is nu een gewone campagne die verstuurt, een geplande campagne die aan de beurt is, of een rij in de wachtrij.
+  - Helpartikel `email-automations` (categorie marketing, `/admin/marketing/automations`).
+- `_shared/automationVars.ts` (nieuw): pure helpers. `mergeAutomationVars`, `htmlSafeVars` (`cart_items` blijft enkel ruw als hij exact de vorm van `buildCartItemsHtml` heeft, anders ge-escaped), `pickReviewUrl` (Google vóór Trustpilot, enkel https), `buildCartItemsHtml`, `shortLocale`, `mapEnqueueError`, `stepDueAt`.
+- `_shared/automationEngine.ts` (nieuw): scan, claim, hercontrole per run (automation aan, stap actief, betaalstatus, afzender; bestelling nog betaald en niet geannuleerd; winkelwagen niet omgezet en geen bestelling sinds het mandje; reviewlink, anders stap overgeslagen), variabelen, enqueue, volgende stap. Bij de limiet: run `skipped` en hooguit één melding per winkel per 24 u (`send_notification`, categorie marketing). Onverwachte fout: retry 5/10/20/40 min, daarna `failed`.
+- `automation-scheduler/index.ts`: herschreven als cron-ingang (cronAuth). Start `process-campaign-queue` als er iets in de wachtrij ging.
+- `_shared/campaignQueue.ts`: `renderFor` voegt `campaign_sends.variables` samen voor `kind='automation'`. Taal: voorkeurstaal van de klant, dan de taal van de bestelling of het mandje, dan nl. Afmeldlink in de tekst = `${PUBLIC_APP_URL||https://sellqo.app}/mail/afmelden?…`; de `List-Unsubscribe`-header blijft de functie-URL. Een gewone campagne krijgt dezelfde variabelen als voorheen, enkel `{{unsubscribe_url}}` wijst nu naar de pagina. Verder: `refreshCampaignTotals` zet een systeemcampagne nooit op sent/failed; `countCampaign`/`enqueueCampaign` weigeren systeemcampagnes (dus ook send-campaign-batch en de count-modi); geplande campagnes enkel `kind='campaign'`; de worker slaat een soft-opt-in-mail niet over op `email_subscribed=false`, maar wel iedereen op de uitschrijflijst.
+- `_shared/marketingToken.ts`: `buildUnsubscribePageUrl` (+ 2 tests).
+- `newsletter-confirm`: na de atomaire flip krijgt een winkel met een actieve welkomstreeks `schedule_automation_run_v2('newsletter_confirmed', subscriber.id)` en geen oude welkomstmail. Zonder reeks blijft het gedrag zoals voorheen. Nooit allebei.
+- `render-campaign-preview`: voorbeeldwaarden voor `{{order_number}}`, `{{shop_url}}`, `{{cart_url}}`, `{{review_url}}`, `{{cart_items}}`.
+
+**Security-keuzes**
+- Alle nieuwe functies zijn `security definer` met vaste `search_path`. Enkel `automation_ensure_presets` is uitvoerbaar voor `authenticated` (met eigen `has_tenant_role`-check); de rest is service_role. De ordertrigger-functie is niet uitvoerbaar voor gebruikers.
+- Toestemming wordt drie keer afgedwongen: bij inplannen, bij enqueue (databank) en in de worker (uitschrijflijst). Een vlag die een gebruiker zelf kan zetten (preset_key, trigger_type) bepaalt de toestemmingsregel niet: die liggen vast via de guard en de RPC.
+- `automation_runs` is nu enkel nog door de server te schrijven, ondanks de bestaande RLS-policies (die zijn niet gewijzigd: M1, additief).
+- `campaign_sends.variables` komt nooit van de client (guard uit MAIL-1a). `cart_items` is HTML die enkel de engine opbouwt, met de namen ge-escaped, plus een vormcontrole bij het renderen.
+
+**Gedeelde-paden-waarschuwing**
+- `_shared/campaignQueue.ts` bedient gewone campagnes en automations. Voor `kind='campaign'` blijft `vars` gelijk (mergeAutomationVars wordt niet aangeroepen), op één bewuste wijziging na: `{{unsubscribe_url}}` en de footerlink wijzen naar sellqo.app/mail/afmelden. Die pagina bestaat sinds MAIL-1c en doet dezelfde gesigneerde uitschrijving.
+- De unieke sleutel van `campaign_sends` is vervangen. Bewezen in PGlite: een gewone campagne opnieuw starten voegt niemand dubbel toe, herstart vanuit `failed` zet enkel mislukte rijen opnieuw in de wachtrij, en een rechtstreekse dubbele insert wordt geweigerd.
+- `orders` krijgt een extra AFTER-trigger. Die is faalveilig en doet niets zonder actieve preset "na aankoop".
+- `storefront-api`, `storefront-customer-api`, `storefront-resolve` en de gedeelde theme-tabellen zijn niet aangeraakt. `storefront_carts` wordt enkel gelezen. De eerste wet is niet geraakt.
+
+**Verificatie**
+- PGlite (`pgtest2a.mjs`, na 1a en 1b): migratie 2x ok (idempotent); `automation_ensure_presets` met de echte payload uit `src/lib/marketing/automationPresets.ts` (4 presets, 6 stappen, 4 talen) en een tweede keer 0 nieuw; andere winkel → NO_ACCESS; eigen welkomstmail als stap 1 met omgezette placeholders; standaarden (welkom 0/72 u en max 1, na aankoop 24/336 u, win-back days 90 en cooldown 4320 u, winkelwagen 1 u en max 0); 6 guards blokkeren gebruikers, inhoud bewerken en aan/uit mag; ordertrigger (insert paid, pending→paid, bol.com uitgesloten) en faalveilig met een kapotte functie; dedupe per trigger, max_runs, uitgeschreven; consent (soft opt-in enkel winkelwagen); scan 1/2/3 (eenmalig, cooldown); claim zonder overlap; enqueue soft opt-in, dubbel → duplicate, intussen uitgeschreven, limiet → MAIL_PLAN_LIMIT; volgende stap +72 u; `claim_campaign_sends` neemt automationrijen mee met hun variabelen; `enqueue_campaign_sends` op een systeemcampagne geweigerd; bewijs gewone campagne zie hierboven; helpartikel 1 rij. Cron-blokken niet getest (geen pg_cron lokaal).
+- `deno check` (stubs) op automationEngine, automationVars, campaignQueue, marketingToken, automation-scheduler, newsletter-confirm, send-campaign-batch, process-campaign-queue, render-campaign-preview, send-test-email, unsubscribe: enkel "Check"-regels.
+- `deno test` automationVars.test.ts + marketingToken.test.ts: 16 passed.
+- tsc, build, vitest, lint en i18n-parity op het geheel: door de hoofdsessie.
+- **Niet gedaan:** smoketest op SellQo Speeltuin (preset aanzetten, testbestelling betalen, mandje achterlaten, welkomstreeks na bevestiging, afmeldlink in de tekst).
+
+**Review-fixes (20 oktober 2026)** — zelfde migratie aangepast (nog niet uitgerold), live kolommen nagekeken via `query_database`.
+- Opt-outs buiten `email_unsubscribes`: `automation_consent` geeft `unsubscribed` bij `customers.email_marketing_status = 'unsubscribed'` of `email_preferences` met newsletter, promotions én product_updates uit (vóór de soft opt-in; een ingeschreven klant bevestigde opnieuw). Zelfde regel in de worker (`campaignQueue.ts`) voor soft opt-in-rijen; leesfout = opnieuw in de wachtrij. `email-preferences` zet bij alles-uit ook een rij in `email_unsubscribes` (reden `preferences`, bestaande rij ongemoeid).
+- Scans: win-back slaat klanten met een run binnen de cooldown over (geen vastloper op de eerste 500); een mandje zonder toestemming krijgt een `skipped`-run en wordt niet opnieuw beoordeeld.
+- Ordertrigger: `trigger_at` = betaalmoment, hooguit 2 dagen terug en nooit in de toekomst; betaald > 14 dagen geleden → geen run. Marketplace ook herkend aan `marketplace_order_id`/`marketplace_connection_id` (trigger en soft opt-in).
+- Taal: klant → bestelling/mandje → standaardtaal winkel → nl.
+- Guard: win-back-cooldown minstens 720 u (standaard 4320 u). Eigen welkomstmail enkel overgenomen als `welcome_email_enabled`. `handle_campaign_notification` (live definitie letterlijk, enkel guard) meldt niets voor `kind = 'automation'`. `ai-marketing-context` filtert `kind = 'campaign'`. Cron `process-campaign-queue`: wachtrij-EXISTS enkel voor campagnes op `sending`.
+- Reviewvraag: hooguit één per ontvanger per winkel per 30 dagen, anders run `skipped` met reden.
+- Helpartikel: welkomstreeks na bevestigde inschrijving (dubbele opt-in); geen belofte voor single opt-in (`storefront-api` niet aangeraakt).
+- Verificatie: PGlite `pgtest2a_fix.mjs` (migratie 2x, alle oude checks + fixes 1, 2, 4, 5, 7a, 7b, 7c, en de filter van fix 8 in SQL), `deno check` op gewijzigde functies (ai-marketing-context: 23 stub-fouten, identiek aan HEAD), `deno test` 16 passed. De engine-query van fix 8 zelf is niet tegen PostgREST getest.
+
+**Bewust ongemoeid / Vervolg**
+- Er is geen herstel-link voor een winkelwagen. `{{cart_url}}` = shop-URL (`storefront-api` niet aangeraakt). Een gesigneerde herstel-link vraagt een additieve storefront-actie en een apart akkoord.
+- Oude `schedule_automation_run` en de RLS-policies op `automation_runs` blijven staan (additief). Opruimen kan in een aparte batch.
+- `automation_step_runs` wordt niet gebruikt; de historiek zit in `campaign_sends` (`automation_run_id`).
+- De reviewstap kent enkel Google en Trustpilot met een https-profiel-URL in `review_platform_connections.external_url` (live 0 koppelingen). Zonder koppeling wordt de stap overgeslagen.
+- Uitrol: eerst de migratie, dan de edge functions, dan de frontend publiceren.
+
 ## MAIL-1c — Bevestigen, afmelden en voorkeuren als pagina op sellqo.app — 19 oktober 2026
 
 Vervolg op MAIL-1a/1b. Go van Akke 19-10.

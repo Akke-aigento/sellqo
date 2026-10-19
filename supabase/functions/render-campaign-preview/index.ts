@@ -12,7 +12,8 @@ import { authenticateRequest, requireRole, AuthError, authErrorResponse, type Ap
 import { getTenantBrand, renderTenantEmail, type TenantLocale } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
 import { extractEmailBody, buildVariableMap, applyVariables } from "../_shared/emailContent.ts";
-import { escapeHtml } from "../_shared/marketingToken.ts";
+import { buildCartItemsHtml, htmlSafeVars, mergeAutomationVars } from "../_shared/automationVars.ts";
+import { resolveShopUrl } from "../_shared/mailPages.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -62,7 +63,7 @@ Deno.serve(async (req) => {
     const locale: TenantLocale = LOCALES.includes(reqLang) ? reqLang : (brand.defaultLocale as TenantLocale);
 
     const unsubscribeUrl = "#";
-    const vars = buildVariableMap(
+    const baseVars = buildVariableMap(
       { email: "jan.peeters@voorbeeld.be", first_name: "Jan", last_name: "Peeters" },
       tenant,
       { subject },
@@ -76,8 +77,20 @@ Deno.serve(async (req) => {
       },
       locale,
     );
-    const renderedSubject = applyVariables(subject, vars);
-    const htmlVars = Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, escapeHtml(v)])) as typeof vars;
+    // MAIL-2a: voorbeeldwaarden voor de automationvariabelen. Een gewone campagne gebruikt die
+    // tokens niet, dus haar voorbeeld blijft gelijk; in een automationmail zie je realistische tekst.
+    const shopUrl = await resolveShopUrl(db, tenantId, brand);
+    const vars = mergeAutomationVars(baseVars, {
+      order_number: "#1001",
+      shop_url: shopUrl,
+      cart_url: shopUrl,
+      review_url: shopUrl,
+      cart_items: buildCartItemsHtml([{ quantity: 1, product_name: "Voorbeeldproduct" }]),
+      current_year: String(new Date().getFullYear()),
+    });
+    const textVars = { ...vars, cart_items: "" };
+    const renderedSubject = applyVariables(subject, textVars);
+    const htmlVars = htmlSafeVars(vars);
     const intro = applyVariables(extractEmailBody(htmlContent), htmlVars);
     const previewText = typeof body?.preview_text === "string" && body.preview_text
       ? body.preview_text.slice(0, MAX_PREVIEW_TEXT)
@@ -85,7 +98,7 @@ Deno.serve(async (req) => {
     const { html } = renderTenantEmail({
       tenantBrand: brand,
       locale,
-      preheader: previewText ? applyVariables(previewText, vars) : renderedSubject,
+      preheader: previewText ? applyVariables(previewText, textVars) : renderedSubject,
       heading: renderedSubject,
       intro,
       unsubscribeUrl,

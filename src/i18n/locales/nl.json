@@ -179,7 +179,8 @@
       "social": "Social",
       "email": "E-mail",
       "media": "Media",
-      "platform_overview": "Platformoverzicht"
+      "platform_overview": "Platformoverzicht",
+      "email_automations": "Automatiseringen"
     }
   },
   "settings": {
@@ -943,6 +944,10 @@
           "social_posts_ready": {
             "label": "Social: nieuwe posts klaar",
             "description": "Nieuwe of opnieuw gemaakte posts wachten op je goedkeuring"
+          },
+          "automation_plan_limit": {
+            "label": "Automatische mails: limiet bereikt",
+            "description": "Je maandlimiet voor marketingmails is op; automatische mails worden overgeslagen"
           }
         },
         "team": {
@@ -2925,6 +2930,16 @@
               "unsubscribe_url": "Uitschrijflink",
               "subject": "Onderwerp"
             }
+          },
+          "automation": {
+            "label": "Automatisering",
+            "vars": {
+              "order_number": "Bestelnummer",
+              "review_url": "Reviewlink",
+              "cart_url": "Link naar winkelwagen",
+              "shop_url": "Link naar winkel",
+              "cart_items": "Producten in winkelwagen (enkel winkelwagen)"
+            }
           }
         }
       },
@@ -3484,6 +3499,102 @@
         "image_url_invalid": "Gebruik een adres dat begint met https://. Mailprogramma’s tonen geen andere afbeeldingen.",
         "image_alt": "Beschrijving (alt-tekst)",
         "insert": "Invoegen"
+      },
+      "automations": {
+        "title": "Automatiseringen",
+        "subtitle": "Vaste e-mailreeksen die vanzelf vertrekken: welkom, na aankoop, win-back en verlaten winkelwagen.",
+        "status_on": "Aan",
+        "status_off": "Uit",
+        "step_paused": "Gepauzeerd",
+        "view": "Bekijken",
+        "hours_unit": "uur",
+        "not_created": "Zet deze reeks aan om hem aan te maken met standaardteksten. Je kunt de teksten daarna aanpassen.",
+        "counters": "Gestart: {{runs}} · Verstuurd: {{sent}}",
+        "kinds": {
+          "welcome_series": {
+            "title": "Welkomstreeks",
+            "description": "Twee mails voor nieuwe abonnees, zodra ze hun inschrijving bevestigd hebben."
+          },
+          "post_purchase": {
+            "title": "Na aankoop + reviewvraag",
+            "description": "Een bedankmail na een bestelling en later een vraag om een review achter te laten."
+          },
+          "win_back": {
+            "title": "Win-back",
+            "description": "Een mail naar klanten die al een tijd niets meer bestelden."
+          },
+          "abandoned_cart": {
+            "title": "Verlaten winkelwagen",
+            "description": "Een herinnering als iemand producten in de winkelwagen liet staan zonder af te rekenen."
+          }
+        },
+        "steps": {
+          "welcome_1": "Welkomstmail",
+          "welcome_2": "Tweede welkomstmail",
+          "thanks": "Bedankmail",
+          "review": "Reviewvraag",
+          "win_back": "Win-backmail",
+          "cart": "Winkelwagenherinnering",
+          "unknown": "Stap"
+        },
+        "delay": {
+          "immediate": "Meteen",
+          "after_hours": "Na {{count}} uur",
+          "win_back": "Na {{count}} dagen zonder bestelling"
+        },
+        "settings": {
+          "win_back_days": "Versturen na",
+          "cart_delay": "Herinnering na",
+          "days": "{{count}} dagen",
+          "hours": "{{count}} uur"
+        },
+        "notes": {
+          "limit": "Alle automatiseringsmails tellen mee voor de maandelijkse limiet van marketingmails in je abonnement.",
+          "review": "De reviewvraag wordt alleen verstuurd als je winkel een gekoppeld Google- of Trustpilot-profiel heeft.",
+          "review_none": "Er is nu geen profiel gekoppeld.",
+          "review_link": "Reviewprofielen beheren",
+          "cart_legal": "Je winkel blijft verantwoordelijk; SellQo stuurt deze herinnering enkel naar klanten die ingeschreven zijn of eerder bij je kochten."
+        },
+        "toast": {
+          "activated": "Automatisering aangezet",
+          "deactivated": "Automatisering uitgezet",
+          "toggle_failed": "Aan- of uitzetten mislukt",
+          "settings_saved": "Instelling opgeslagen",
+          "settings_failed": "Instelling opslaan mislukt"
+        },
+        "step": {
+          "description": "Pas onderwerp en tekst per taal aan. Klanten krijgen de mail in hun eigen taal; ontbreekt die, dan de standaardtaal van je winkel.",
+          "active": "Stap actief",
+          "delay_label": "Wachttijd",
+          "delay_from_settings": "De wachttijd van deze stap stel je in op de kaart van de reeks.",
+          "subject": "Onderwerp",
+          "body": "Tekst",
+          "preview": "Voorbeeld",
+          "edit_text": "Tekst bewerken",
+          "empty_lang": "Nog geen tekst in deze taal.",
+          "saved": "Stap opgeslagen",
+          "save_failed": "Stap opslaan mislukt"
+        },
+        "log": {
+          "title": "Logboek",
+          "subtitle": "De laatste 50 starts van je automatiseringen.",
+          "empty": "Nog niets verstuurd.",
+          "col": {
+            "date": "Datum",
+            "recipient": "Ontvanger",
+            "automation": "Automatisering",
+            "step": "Stap",
+            "status": "Status"
+          },
+          "status": {
+            "scheduled": "Gepland",
+            "running": "Bezig",
+            "completed": "Voltooid",
+            "skipped": "Overgeslagen",
+            "failed": "Mislukt",
+            "cancelled": "Geannuleerd"
+          }
+        }
       }
     },
     "ads": {

@@ -40,6 +40,7 @@ import ImportPage from "./pages/admin/Import";
 import MarketplacesPage from "./pages/admin/Marketplaces";
 import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
 import MarketingPage from "./pages/admin/Marketing";
+import MarketingAutomationsPage from "./pages/admin/MarketingAutomations";
 import CampaignDetailPage from "./pages/admin/CampaignDetail";
 import { SocialGate } from '@/components/admin/marketing/social/SocialGate';
 import { AIHubRedirect } from "./components/admin/marketing/AIHubRedirect";
@@ -294,6 +295,7 @@ const App = () => (
               <Route path="marketing" element={<RouteGuard requireRead="marketing"><MarketingPage /></RouteGuard>} />
               {/* MARKETING-2: AI Content Hub → AI-tools in Social (oude links en de credits-checkout landen hier). */}
               <Route path="marketing/ai" element={<AIHubRedirect />} />
+              <Route path="marketing/automations" element={<RouteGuard requireRead="marketing"><MarketingAutomationsPage /></RouteGuard>} />
               <Route path="marketing/media" element={<RouteGuard requireRead="marketing"><MediaLibraryPage /></RouteGuard>} />
               <Route path="marketing/ai-center" element={<RouteGuard requireRead="ai_coach"><AIActionCenter /></RouteGuard>} />
               <Route path="marketing/campaigns/:id" element={<RouteGuard requireRead="marketing"><CampaignDetailPage /></RouteGuard>} />

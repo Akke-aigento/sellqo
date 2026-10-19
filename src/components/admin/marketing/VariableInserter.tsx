@@ -58,12 +58,29 @@ const variableGroups: VariableGroup[] = [
   },
 ];
 
+// MAIL-2a: variabelen die enkel in automatiseringsmails gevuld worden.
+const automationGroup: VariableGroup = {
+  labelKey: 'admin.marketing.variableInserter.groups.automation.label',
+  variables: [
+    { key: '{{order_number}}', labelKey: 'admin.marketing.variableInserter.groups.automation.vars.order_number' },
+    { key: '{{review_url}}', labelKey: 'admin.marketing.variableInserter.groups.automation.vars.review_url' },
+    { key: '{{cart_url}}', labelKey: 'admin.marketing.variableInserter.groups.automation.vars.cart_url' },
+    { key: '{{shop_url}}', labelKey: 'admin.marketing.variableInserter.groups.automation.vars.shop_url' },
+  ],
+};
+
 interface VariableInserterProps {
   onInsert: (variable: string) => void;
   filterKeys?: string[];
+  /** MAIL-2a: toon ook de automatiseringsvariabelen (bestelnummer, reviewlink, winkelwagenlink, winkellink). */
+  includeAutomation?: boolean;
+  /** MAIL-2a: {{cart_items}} (productlijst) heeft enkel inhoud in de winkelwagenherinnering. */
+  includeCartItems?: boolean;
 }
 
-export function VariableInserter({ onInsert, filterKeys }: VariableInserterProps) {
+const cartItemsVar = { key: '{{cart_items}}', labelKey: 'admin.marketing.variableInserter.groups.automation.vars.cart_items' };
+
+export function VariableInserter({ onInsert, filterKeys, includeAutomation, includeCartItems }: VariableInserterProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
@@ -75,7 +92,10 @@ export function VariableInserter({ onInsert, filterKeys }: VariableInserterProps
         {open ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
       </CollapsibleTrigger>
       <CollapsibleContent className="mt-2 space-y-2">
-        {variableGroups.map((group) => {
+        {(includeAutomation
+          ? [{ ...automationGroup, variables: includeCartItems ? [...automationGroup.variables, cartItemsVar] : automationGroup.variables }, ...variableGroups]
+          : variableGroups
+        ).map((group) => {
           const filteredVars = filterKeys
             ? group.variables.filter((v) => filterKeys.includes(v.key))
             : group.variables;

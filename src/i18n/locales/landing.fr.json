@@ -2101,6 +2101,10 @@
         "mail_pages_fixed": {
           "title": "Désinscription, préférences et confirmation affichent à nouveau une page correcte",
           "description": "Lorsqu'un client clique dans votre e-mail sur désinscription, sur les préférences e-mail ou sur le lien de confirmation de votre newsletter, il obtient à nouveau une page lisible avec le nom et le logo de votre boutique, au lieu de code brut. La désinscription et les préférences fonctionnent comme avant ; la désinscription en un clic depuis l'application de messagerie continue de fonctionner."
+        },
+        "email_automations": {
+          "title": "Automatisations d'e-mails",
+          "description": "Dans Marketing → Automatisations, vous activez quatre séries d'e-mails fixes : une série de bienvenue dès qu'un abonné confirme son inscription, un e-mail de remerciement puis une demande d'avis après un achat, un e-mail de reconquête pour les clients qui n'ont plus commandé depuis un certain temps, et un rappel en cas de panier abandonné. Ce rappel n'est envoyé qu'aux clients inscrits ou ayant déjà acheté chez vous. Vous modifiez l'objet et le texte par langue, et tous les e-mails d'automatisation comptent dans votre limite mensuelle d'e-mails marketing."
         }
       },
       "copyLink": "Copier le lien",

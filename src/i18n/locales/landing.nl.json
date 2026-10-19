@@ -2101,6 +2101,10 @@
         "mail_pages_fixed": {
           "title": "Afmelden, voorkeuren en bevestigen tonen weer een nette pagina",
           "description": "Klikt een klant in je mail op afmelden, op e-mailvoorkeuren of op de bevestigingslink van je nieuwsbrief, dan krijgt hij weer een leesbare pagina met de naam en het logo van je winkel, in plaats van ruwe code. Afmelden en voorkeuren werken zoals voorheen; afmelden met één klik vanuit de mailapp blijft werken."
+        },
+        "email_automations": {
+          "title": "E-mailautomatiseringen",
+          "description": "Onder Marketing → Automatiseringen zet je vier vaste e-mailreeksen aan: een welkomstreeks zodra een abonnee de inschrijving bevestigt, een bedankmail en later een reviewvraag na een aankoop, een win-backmail voor klanten die al een tijd niet bestelden, en een herinnering bij een verlaten winkelwagen. Die herinnering gaat enkel naar klanten die ingeschreven zijn of eerder bij je kochten. Je past onderwerp en tekst per taal aan, en alle automatiseringsmails tellen mee voor je maandelijkse limiet van marketingmails."
         }
       },
       "copyLink": "Kopieer link",

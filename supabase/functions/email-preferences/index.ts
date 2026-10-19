@@ -122,6 +122,18 @@ Deno.serve(async (req) => {
           .eq("tenant_id", tenantId)
           .ilike("email", ilikeExact(email));
         if (custError) console.error("[email-preferences] customers update mislukt", custError);
+
+        // MAIL-2a review-fix: ook op de uitschrijflijst, zodat die volledig is (automations,
+        // doelgroepen). Een bestaande rij (en haar reden, bv. bounce) blijft ongemoeid.
+        const { error: unsubError } = await supabase
+          .from("email_unsubscribes")
+          .upsert({
+            tenant_id: tenantId,
+            email,
+            reason: "preferences",
+            unsubscribed_at: new Date().toISOString(),
+          }, { onConflict: "tenant_id,email", ignoreDuplicates: true });
+        if (unsubError) console.error("[email-preferences] email_unsubscribes upsert mislukt", unsubError);
       }
 
       return jsonResponse({ ok: true }, 200, cors);

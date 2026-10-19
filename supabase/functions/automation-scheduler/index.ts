@@ -1,350 +1,55 @@
-import { Resend } from "https://esm.sh/resend@2.0.0";
+// MAIL-2a (19-10-2026) — de motor van de e-mailautomations.
+//
+// Aangeroepen door cron `automation-scheduler` (elke minuut, enkel als er een actieve automation
+// is; zie migratie 20261019230000). Enkel met x-cron-secret of de service-role key (cronAuth.ts).
+// Alle logica staat in _shared/automationEngine.ts.
+//
+// Vroeger verstuurde deze functie zelf met resend@2 (fouten als "verzonden" geboekt) en zonder
+// cron; er waren 0 automations. Nu zet ze automationmails in campaign_sends en start ze de
+// campagneworker process-campaign-queue, die ze verstuurt zoals elke campagne.
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { tenantSender } from "../_shared/emailSenders.ts";
 import { isAuthorizedCronRequest, CRON_ALLOWED_HEADERS } from "../_shared/cronAuth.ts";
-import { buildUnsubscribeUrl } from "../_shared/marketingToken.ts";
+import { runAutomationEngine } from "../_shared/automationEngine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": CRON_ALLOWED_HEADERS,
 };
 
-interface AutomationRun {
-  id: string;
-  automation_id: string;
-  tenant_id: string;
-  trigger_entity_id: string;
-  trigger_entity_type: string;
-  current_step: number;
-  metadata: Record<string, unknown>;
-}
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const db = createClient(supabaseUrl, serviceKey);
+
+  if (!(await isAuthorizedCronRequest(req, db))) return json({ error: "Unauthorized" }, 401);
 
   try {
-    const resendApiKey = Deno.env.get("RESEND_API_KEY");
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const body = await req.json().catch(() => ({}));
+    const result = await runAutomationEngine(db, { deadlineMs: 100_000 });
 
-    // Publiek bereikbaar: deze functie staat niet op `verify_jwt = true`, en de
-    // gedeployede default in dit project is `false` — nagetrokken op 11 sep 2026
-    // met een probe. Zonder deze guard kon iedereen hem aanroepen.
-    if (!(await isAuthorizedCronRequest(req, supabase))) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Unauthorized" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
-      );
+    // Mails in de wachtrij gezet: de worker meteen starten, niet wachten op zijn cron.
+    if (Number(result.queued ?? 0) > 0) {
+      const kick = fetch(`${supabaseUrl}/functions/v1/process-campaign-queue`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "automation" }),
+      }).catch((err) => console.error("[automation-scheduler] worker starten mislukt (cron neemt over)", err));
+      // deno-lint-ignore no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rt = (globalThis as any).EdgeRuntime;
+      if (rt?.waitUntil) rt.waitUntil(kick);
     }
 
-    // Find scheduled runs that are due
-    //
-    // De embed noemde `email` en `street`, en die kolommen bestaan niet op
-    // `tenants` — het zijn `owner_email` en `address`. PostgREST weigert de hele
-    // query met 42703 zodra één kolom in een embed onbekend is, en de throw
-    // hieronder maakte daar een HTTP 500 van. Elke run van deze functie faalde
-    // dus vóór er ook maar één automation verwerkt werd. R8.
-    const { data: dueRuns, error: runsError } = await supabase
-      .from("automation_runs")
-      .select(`
-        *,
-        automation:email_automations(*),
-        tenant:tenants(name, slug, inbound_email_prefix, owner_email, support_email, address, city, postal_code)
-      `)
-      .eq("status", "scheduled")
-      .lte("scheduled_for", new Date().toISOString())
-      .limit(50);
-
-    if (runsError) {
-      throw runsError;
-    }
-
-    if (!dueRuns?.length) {
-      return new Response(JSON.stringify({ processed: 0, message: "No runs due" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    let processed = 0;
-    let errors = 0;
-
-    for (const run of dueRuns) {
-      try {
-        // Mark as in progress
-        await supabase
-          .from("automation_runs")
-          .update({ status: "in_progress", started_at: new Date().toISOString() })
-          .eq("id", run.id);
-
-        // Get current step
-        const { data: steps } = await supabase
-          .from("automation_steps")
-          .select("*")
-          .eq("automation_id", run.automation_id)
-          .eq("is_active", true)
-          .order("step_order")
-          .range(run.current_step, run.current_step);
-
-        const currentStep = steps?.[0];
-
-        if (!currentStep) {
-          // No more steps, mark as completed
-          await supabase
-            .from("automation_runs")
-            .update({ 
-              status: "completed", 
-              completed_at: new Date().toISOString() 
-            })
-            .eq("id", run.id);
-
-          await supabase
-            .from("email_automations")
-            .update({ total_completed: run.automation.total_completed + 1 })
-            .eq("id", run.automation_id);
-
-          processed++;
-          continue;
-        }
-
-        // Get recipient info based on trigger type
-        let recipient: { email: string; name: string } | null = null;
-
-        if (run.trigger_entity_type === "subscriber") {
-          const { data: subscriber } = await supabase
-            .from("newsletter_subscribers")
-            .select("email, first_name")
-            .eq("id", run.trigger_entity_id)
-            .single();
-
-          if (subscriber) {
-            recipient = { email: subscriber.email, name: subscriber.first_name || "Klant" };
-          }
-        } else if (run.trigger_entity_type === "customer") {
-          const { data: customer } = await supabase
-            .from("customers")
-            .select("email, first_name, last_name, company_name")
-            .eq("id", run.trigger_entity_id)
-            .single();
-
-          if (customer) {
-            recipient = { 
-              email: customer.email, 
-              name: customer.first_name || customer.company_name || "Klant" 
-            };
-          }
-        } else if (run.trigger_entity_type === "order") {
-          const { data: order } = await supabase
-            .from("orders")
-            .select("customer_email, customer:customers(first_name, company_name)")
-            .eq("id", run.trigger_entity_id)
-            .single();
-
-          if (order) {
-            const customerData = order.customer as { first_name?: string; company_name?: string } | null;
-            recipient = { 
-              email: order.customer_email, 
-              name: customerData?.first_name || customerData?.company_name || "Klant"
-            };
-          }
-        }
-
-        if (!recipient) {
-          await supabase
-            .from("automation_runs")
-            .update({ 
-              status: "failed", 
-              error_message: "Recipient not found",
-              completed_at: new Date().toISOString()
-            })
-            .eq("id", run.id);
-          errors++;
-          continue;
-        }
-
-        // Check if recipient is unsubscribed
-        const { data: unsubscribe } = await supabase
-          .from("email_unsubscribes")
-          .select("id")
-          .eq("tenant_id", run.tenant_id)
-          .ilike("email", recipient.email)
-          .maybeSingle();
-
-        if (unsubscribe) {
-          await supabase
-            .from("automation_runs")
-            .update({ 
-              status: "cancelled", 
-              error_message: "Recipient unsubscribed",
-              completed_at: new Date().toISOString()
-            })
-            .eq("id", run.id);
-          continue;
-        }
-
-        // Execute step based on action type
-        if (currentStep.action_type === "send_email" && resendApiKey) {
-          // Get template if specified
-          let htmlContent = "";
-          let subject = currentStep.subject_override || "";
-
-          if (currentStep.template_id) {
-            const { data: template } = await supabase
-              .from("email_templates")
-              .select("*")
-              .eq("id", currentStep.template_id)
-              .single();
-
-            if (template) {
-              htmlContent = template.html_content;
-              subject = subject || template.subject;
-            }
-          }
-
-          if (!htmlContent) {
-            // Use automation's template
-            if (run.automation.template_id) {
-              const { data: template } = await supabase
-                .from("email_templates")
-                .select("*")
-                .eq("id", run.automation.template_id)
-                .single();
-
-              if (template) {
-                htmlContent = template.html_content;
-                subject = subject || template.subject;
-              }
-            }
-          }
-
-          if (htmlContent && subject) {
-            const tenant = run.tenant;
-            const companyAddress = tenant ? `${tenant.address || ""}, ${tenant.postal_code || ""} ${tenant.city || ""}` : "";
-
-            // MAIL-1a: ondertekende uitschrijflink (zonder handtekening doet unsubscribe niets).
-            const unsubscribeUrl = await buildUnsubscribeUrl(run.tenant_id, recipient.email);
-
-            // Replace variables
-            htmlContent = htmlContent
-              .replace(/\{\{customer_name\}\}/g, recipient.name)
-              .replace(/\{\{customer_email\}\}/g, recipient.email)
-              .replace(/\{\{company_name\}\}/g, tenant?.name || "")
-              .replace(/\{\{company_address\}\}/g, companyAddress)
-              .replace(/\{\{unsubscribe_url\}\}/g, unsubscribeUrl);
-
-            subject = subject
-              .replace(/\{\{customer_name\}\}/g, recipient.name)
-              .replace(/\{\{company_name\}\}/g, tenant?.name || "");
-
-            const resend = new Resend(resendApiKey);
-            // `owner_email` wordt nu ook daadwerkelijk geselecteerd; de oude
-            // `|| tenant.email`-tak wees naar een kolom die niet bestaat en was
-            // hoe dan ook onbereikbaar.
-            const autoSender = tenantSender(tenant);
-            await resend.emails.send({
-              from: autoSender.from,
-              reply_to: autoSender.replyTo,
-              to: [recipient.email],
-              subject,
-              html: htmlContent,
-              headers: {
-                "List-Unsubscribe": `<${unsubscribeUrl}>`,
-                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-              },
-            });
-
-            // Log step run
-            await supabase.from("automation_step_runs").insert({
-              automation_run_id: run.id,
-              step_id: currentStep.id,
-              status: "sent",
-              executed_at: new Date().toISOString(),
-              result: { email: recipient.email, subject },
-            });
-
-            // Update automation stats
-            await supabase
-              .from("email_automations")
-              .update({ total_sent: run.automation.total_sent + 1 })
-              .eq("id", run.automation_id);
-          }
-        }
-
-        // Check for next step
-        const { data: nextSteps } = await supabase
-          .from("automation_steps")
-          .select("*")
-          .eq("automation_id", run.automation_id)
-          .eq("is_active", true)
-          .gt("step_order", currentStep.step_order)
-          .order("step_order")
-          .limit(1);
-
-        const nextStep = nextSteps?.[0];
-
-        if (nextStep) {
-          // Schedule next step
-          const nextSchedule = new Date();
-          nextSchedule.setHours(nextSchedule.getHours() + (nextStep.delay_hours || 0));
-          nextSchedule.setMinutes(nextSchedule.getMinutes() + (nextStep.delay_minutes || 0));
-
-          await supabase
-            .from("automation_runs")
-            .update({ 
-              status: "scheduled",
-              current_step: run.current_step + 1,
-              scheduled_for: nextSchedule.toISOString()
-            })
-            .eq("id", run.id);
-        } else {
-          // Automation complete
-          await supabase
-            .from("automation_runs")
-            .update({ 
-              status: "completed",
-              completed_at: new Date().toISOString()
-            })
-            .eq("id", run.id);
-
-          await supabase
-            .from("email_automations")
-            .update({ total_completed: run.automation.total_completed + 1 })
-            .eq("id", run.automation_id);
-        }
-
-        processed++;
-      } catch (runError) {
-        console.error(`Error processing run ${run.id}:`, runError);
-        
-        await supabase
-          .from("automation_runs")
-          .update({ 
-            status: "failed",
-            error_message: runError instanceof Error ? runError.message : String(runError),
-            completed_at: new Date().toISOString()
-          })
-          .eq("id", run.id);
-
-        errors++;
-      }
-    }
-
-    return new Response(JSON.stringify({ 
-      processed, 
-      errors,
-      total: dueRuns.length 
-    }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.log("[automation-scheduler]", JSON.stringify({ source: body?.source ?? null, ...result }));
+    return json(result);
   } catch (error) {
-    console.error("Automation scheduler error:", error);
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : String(error) 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    console.error("[automation-scheduler]", error);
+    return json({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 });

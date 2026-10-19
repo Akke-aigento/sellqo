@@ -180,6 +180,7 @@ serve(async (req) => {
       supabase.from('email_campaigns')
         .select('id, name, total_sent, total_opened, total_clicked, status')
         .eq('tenant_id', tenantId)
+        .eq('kind', 'campaign') // MAIL-2a: geen systeemcampagnes van automations
         .order('created_at', { ascending: false })
         .limit(20),
       

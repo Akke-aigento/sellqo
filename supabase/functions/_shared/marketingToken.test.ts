@@ -1,6 +1,6 @@
 // MAIL-1a — ondertekende uitschrijf- en voorkeurenlinks.
 import { assert, assertEquals, assertFalse } from "https://deno.land/std@0.190.0/testing/asserts.ts";
-import { buildUnsubscribeUrl, escapeHtml, signMarketingLink, verifyMarketingLink } from "./marketingToken.ts";
+import { buildUnsubscribePageUrl, buildUnsubscribeUrl, escapeHtml, signMarketingLink, verifyMarketingLink } from "./marketingToken.ts";
 
 Deno.env.set("MARKETING_LINK_SECRET", "test-secret");
 Deno.env.set("SUPABASE_URL", "https://x.supabase.co");
@@ -28,4 +28,24 @@ Deno.test("uitschrijflink draagt tenant, adres en handtekening", async () => {
 
 Deno.test("escapeHtml", () => {
   assertEquals(escapeHtml(`<a href="x">'&`), "&lt;a href=&quot;x&quot;&gt;&#39;&amp;");
+});
+
+Deno.test("afmeldpagina-link (MAIL-2a): sellqo.app, geldige handtekening, campagne en taal", async () => {
+  Deno.env.delete("PUBLIC_APP_URL");
+  const url = new URL(await buildUnsubscribePageUrl(T, "Jan@Voorbeeld.be", { campaignId: "c1", lang: "fr" }));
+  assertEquals(url.origin, "https://sellqo.app");
+  assertEquals(url.pathname, "/mail/afmelden");
+  assertEquals(url.searchParams.get("email"), "jan@voorbeeld.be");
+  assertEquals(url.searchParams.get("campaign"), "c1");
+  assertEquals(url.searchParams.get("lang"), "fr");
+  assert(await verifyMarketingLink(url.searchParams.get("tenant"), url.searchParams.get("email"), url.searchParams.get("s")));
+});
+
+Deno.test("afmeldpagina-link: PUBLIC_APP_URL enkel als geldige origin", async () => {
+  Deno.env.set("PUBLIC_APP_URL", "https://staging.sellqo.app/pad?x=1");
+  assertEquals(new URL(await buildUnsubscribePageUrl(T, "a@b.be")).origin, "https://staging.sellqo.app");
+  Deno.env.set("PUBLIC_APP_URL", "javascript:alert(1)");
+  assertEquals(new URL(await buildUnsubscribePageUrl(T, "a@b.be", { lang: "x<" })).origin, "https://sellqo.app");
+  assertFalse(new URL(await buildUnsubscribePageUrl(T, "a@b.be", { lang: "x<" })).searchParams.has("lang"));
+  Deno.env.delete("PUBLIC_APP_URL");
 });
