@@ -3312,6 +3312,53 @@
             "cancelled": "Abgebrochen"
           }
         }
+      },
+      "productBlock": {
+        "title": "Produkt einfügen",
+        "explain": "Wählen Sie 1 bis {{max}} aktive Produkte. Jedes Produkt erhält ein Foto, einen Namen, einen Preis und eine Schaltfläche zur Produktseite.",
+        "no_links": "SellQo kennt keinen öffentlichen Produktlink für Ihren Shop (zum Beispiel eine eigene Website ohne eingerichteten Produktlink oder ein Shop, der noch nicht online ist). Der Block wird ohne Schaltfläche und ohne Link eingefügt.",
+        "search": "Produkt suchen",
+        "empty": "Keine aktiven Produkte, die in Ihrem Shop sichtbar sind.",
+        "layout": "Darstellung",
+        "layout_grid": "Raster",
+        "layout_list": "Liste",
+        "button_label": "Text der Schaltfläche",
+        "button_default": "Ansehen",
+        "price_note": "Der Preis in der E-Mail ist der Preis zum Zeitpunkt des Einfügens. Ändern Sie den Preis später, fügen Sie den Block erneut ein. Ein alter, durchgestrichener Preis wird nie angezeigt.",
+        "selected": "{{n}} von {{max}} ausgewählt"
+      },
+      "abTest": {
+        "title": "A/B-Test der Betreffzeile",
+        "explain": "Testen Sie eine zweite Betreffzeile mit einem Teil Ihrer Zielgruppe. Nach der Wartezeit erhält der Rest die Betreffzeile mit der höchsten Klickrate.",
+        "multi_language": "Nicht verfügbar bei einer Kampagne in mehreren Sprachen: Jede Sprache hat bereits eine eigene Betreffzeile.",
+        "subject_b": "Betreffzeile B",
+        "subject_b_placeholder": "Eine zweite Version Ihrer Betreffzeile",
+        "subject_b_required": "Füllen Sie Betreffzeile B aus oder schalten Sie den A/B-Test aus.",
+        "percent": "Testgruppe",
+        "percent_option": "{{percent}} % der Zielgruppe",
+        "wait": "Gewinner wählen nach",
+        "hours_option": "{{hours}} Std.",
+        "rule": "Die Testgruppe ({{percent}} %) erhält zur Hälfte Betreffzeile A und zur Hälfte Betreffzeile B. Nach {{hours}} Std. gewinnt die Betreffzeile mit der höchsten Klickrate (bei Gleichstand die höchste Öffnungsrate, sonst A), und der Rest erhält diese Betreffzeile. Jede Variante braucht mindestens 100 Empfänger.",
+        "confirm_title": "A/B-Test der Betreffzeile",
+        "confirm_flow": "{{perVariant}} Empfänger erhalten jetzt Betreffzeile A und {{perVariant}} Betreffzeile B. Nach {{hours}} Std. erhalten die übrigen {{remainder}} Empfänger die Betreffzeile mit der höchsten Klickrate.",
+        "confirm_limit": "Alle {{recipients}} Empfänger zählen bereits jetzt zu Ihrem Monatslimit, auch diejenigen, die auf den Gewinner warten.",
+        "too_small": "Ihre Zielgruppe ist zu klein für den A/B-Test: Mit {{percent}} % brauchen Sie mindestens {{min}} Empfänger (100 pro Variante). Die Kampagne geht mit Betreffzeile A an alle.",
+        "not_possible_multi": "Diese Kampagne ist mehrsprachig, also ohne A/B-Test: Alle erhalten die Betreffzeile ihrer Sprache.",
+        "status_held": "Wartet auf A/B-Gewinner",
+        "report_title": "A/B-Test der Betreffzeile",
+        "report_winner": "Betreffzeile {{variant}} hat gewonnen; der Rest Ihrer Zielgruppe hat diese Betreffzeile erhalten.",
+        "report_pending": "Der Gewinner wird gegen {{time}} gewählt.",
+        "col_variant": "Variante",
+        "variant_a": "Betreffzeile A",
+        "variant_b": "Betreffzeile B",
+        "variant_rest": "Rest der Zielgruppe",
+        "winner": "Gewinner",
+        "waiting": "{{n}} warten auf den Gewinner",
+        "report_rule": "Gewinner = höchste Klickrate, bei Gleichstand höchste Öffnungsrate, sonst A. Öffnungen sind ein Näherungswert: Manche E-Mail-Programme laden Bilder vorab oder blockieren sie.",
+        "skipped_title": "Ohne A/B-Test versendet",
+        "skipped_too_small": "Ihre Zielgruppe war beim Versand zu klein für den Test (mindestens 100 pro Variante). Alle erhalten Betreffzeile A.",
+        "skipped_other": "Der A/B-Test konnte für diese Kampagne nicht stattfinden. Alle erhalten die normale Betreffzeile.",
+        "report_no_difference": "Kein Unterschied, A gewählt: In der Testgruppe wurde noch nichts geöffnet oder angeklickt."
       }
     },
     "ads": {

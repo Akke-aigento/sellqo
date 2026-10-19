@@ -219,6 +219,8 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                     content={richContent}
                     onChange={handleRichContentChange}
                     placeholder={t('admin.marketing.templateDialog.schrijf_je_template_inhoud')}
+                    productBlocks
+                    emailLanguage={form.watch('language')}
                   />
                 </TabsContent>
 

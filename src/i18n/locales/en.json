@@ -3581,6 +3581,53 @@
             "cancelled": "Cancelled"
           }
         }
+      },
+      "productBlock": {
+        "title": "Insert product",
+        "explain": "Choose 1 to {{max}} active products. Each product gets a photo, name, price and a button to the product page.",
+        "no_links": "SellQo doesn't know a public product link for your shop (for example your own website without a product link set up, or a shop that isn't online yet). The block will be inserted without a button or link.",
+        "search": "Search for a product",
+        "empty": "No active products that are visible in your shop.",
+        "layout": "Layout",
+        "layout_grid": "Grid",
+        "layout_list": "List",
+        "button_label": "Button text",
+        "button_default": "View",
+        "price_note": "The price in the email is the price at the moment you insert the block. If you change the price later, insert the block again. An old, struck-through price is never shown.",
+        "selected": "{{n}} of {{max}} selected"
+      },
+      "abTest": {
+        "title": "A/B test of the subject line",
+        "explain": "Test a second subject line on part of your audience. After the waiting time, the rest gets the subject line with the highest click rate.",
+        "multi_language": "Not available for a campaign in several languages: each language already has its own subject line.",
+        "subject_b": "Subject line B",
+        "subject_b_placeholder": "A second version of your subject line",
+        "subject_b_required": "Fill in subject line B or switch off the A/B test.",
+        "percent": "Test group",
+        "percent_option": "{{percent}}% of the audience",
+        "wait": "Pick the winner after",
+        "hours_option": "{{hours}} h",
+        "rule": "The test group ({{percent}}%) gets half subject line A and half subject line B. After {{hours}} h, the subject line with the highest click rate wins (on a tie the highest open rate, otherwise A) and the rest gets that subject line. Each variant needs at least 100 recipients.",
+        "confirm_title": "A/B test of the subject line",
+        "confirm_flow": "{{perVariant}} recipients get subject line A now and {{perVariant}} get subject line B. After {{hours}} h, the remaining {{remainder}} recipients get the subject line with the highest click rate.",
+        "confirm_limit": "All {{recipients}} recipients already count toward your monthly limit now, including those waiting for the winner.",
+        "too_small": "Your audience is too small for the A/B test: with {{percent}}% you need at least {{min}} recipients (100 per variant). The campaign goes to everyone with subject line A.",
+        "not_possible_multi": "This campaign is in several languages, so there is no A/B test: everyone gets the subject line of their language.",
+        "status_held": "Waiting for A/B winner",
+        "report_title": "A/B test of the subject line",
+        "report_winner": "Subject line {{variant}} won; the rest of your audience got that subject line.",
+        "report_pending": "The winner will be picked around {{time}}.",
+        "col_variant": "Variant",
+        "variant_a": "Subject line A",
+        "variant_b": "Subject line B",
+        "variant_rest": "Rest of the audience",
+        "winner": "Winner",
+        "waiting": "{{n}} waiting for the winner",
+        "report_rule": "Winner = highest click rate, on a tie highest open rate, otherwise A. Opens are an approximation: some email apps preload or block images.",
+        "skipped_title": "Sent without A/B test",
+        "skipped_too_small": "Your audience was too small for the test when sending (at least 100 per variant). Everyone gets subject line A.",
+        "skipped_other": "The A/B test could not run for this campaign. Everyone gets the regular subject line.",
+        "report_no_difference": "No difference, A chosen: nothing in the test group was opened or clicked yet."
       }
     },
     "ads": {

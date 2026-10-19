@@ -16,23 +16,31 @@ import {
   Heading1,
   Heading2,
   ImageIcon,
+  ShoppingBag,
 } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ImageInsertDialog, LinkDialog } from './EditorInsertDialogs';
+import { ImageInsertDialog, LinkDialog, ProductInsertDialog } from './EditorInsertDialogs';
+import { ProductBlock } from './ProductBlockExtension';
+import type { ProductBlockData } from '@/lib/emailProductBlock';
 
 interface CampaignRichEditorProps {
   content: string;
   onChange: (html: string) => void;
   placeholder?: string;
+  /** MAIL-2c: knop "Product invoegen" tonen (marketingmails). Bestaande blokken blijven altijd behouden. */
+  productBlocks?: boolean;
+  /** Taal van de mail, voor prijsnotatie en knoptekst van een productblok. */
+  emailLanguage?: string | null;
 }
 
-export function CampaignRichEditor({ content, onChange, placeholder }: CampaignRichEditorProps) {
+export function CampaignRichEditor({ content, onChange, placeholder, productBlocks = false, emailLanguage }: CampaignRichEditorProps) {
   const { t } = useTranslation();
   // MAIL-1b: dialogen in plaats van window.prompt (link en afbeelding uit de mediabibliotheek).
   const [linkOpen, setLinkOpen] = useState(false);
   const [linkInitial, setLinkInitial] = useState<string | undefined>();
   const [imageOpen, setImageOpen] = useState(false);
+  const [productOpen, setProductOpen] = useState(false);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -47,6 +55,8 @@ export function CampaignRichEditor({ content, onChange, placeholder }: CampaignR
         inline: false,
         HTMLAttributes: { style: 'max-width: 100%; height: auto;' },
       }),
+      // MAIL-2c: altijd geregistreerd, zodat een bestaand productblok bij het bewerken niet wegvalt.
+      ProductBlock,
       Placeholder.configure({ placeholder: placeholder ?? t('admin.marketing.editorInsert.default_placeholder') }),
     ],
     content,
@@ -84,6 +94,11 @@ export function CampaignRichEditor({ content, onChange, placeholder }: CampaignR
   const insertImage = useCallback((img: { src: string; alt: string }) => {
     if (!editor) return;
     editor.chain().focus().setImage({ src: img.src, alt: img.alt }).run();
+  }, [editor]);
+
+  const insertProducts = useCallback((block: ProductBlockData) => {
+    if (!editor) return;
+    editor.chain().focus().insertProductBlock(block).run();
   }, [editor]);
 
   if (!editor) return null;
@@ -170,10 +185,24 @@ export function CampaignRichEditor({ content, onChange, placeholder }: CampaignR
         >
           <ImageIcon className="h-3.5 w-3.5" />
         </Button>
+        {productBlocks && (
+          <Button
+            type="button" variant="ghost" size="sm"
+            className="h-7 w-7 p-0"
+            onClick={() => setProductOpen(true)}
+            title={t('admin.marketing.productBlock.title')}
+            aria-label={t('admin.marketing.productBlock.title')}
+          >
+            <ShoppingBag className="h-3.5 w-3.5" />
+          </Button>
+        )}
       </div>
       <EditorContent editor={editor} />
       <LinkDialog open={linkOpen} onOpenChange={setLinkOpen} initialUrl={linkInitial} onSubmit={applyLink} />
       <ImageInsertDialog open={imageOpen} onOpenChange={setImageOpen} onSubmit={insertImage} />
+      {productBlocks && (
+        <ProductInsertDialog open={productOpen} onOpenChange={setProductOpen} onSubmit={insertProducts} emailLanguage={emailLanguage} />
+      )}
     </div>
   );
 }

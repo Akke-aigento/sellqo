@@ -14,6 +14,10 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.12y', dateKey: 'oct_2026', changes: [
+    { id: 'email_product_blocks', type: 'feature' },
+    { id: 'email_ab_subject', type: 'feature' },
+  ] },
   { version: '2026.12x', dateKey: 'oct_2026', changes: [
     { id: 'email_automations', type: 'feature' },
   ] },

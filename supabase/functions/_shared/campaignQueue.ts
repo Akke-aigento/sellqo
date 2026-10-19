@@ -28,8 +28,9 @@ import { buildUnsubscribePageUrl, buildUnsubscribeUrl, escapeHtml } from "./mark
 import { htmlSafeVars, mergeAutomationVars, shortLocale } from "./automationVars.ts";
 import { loadBillingState } from "./billingGuard.ts";
 import { billingAllows } from "./billingState.ts";
+import { abDecisionDue, assignVariants, pickAbWinner, planAbTest, subjectForRow, type AbPlan } from "./abTest.ts";
 
-export type QueueErrorCode = "PLAN_LIMIT" | "NO_SENDER" | "ALREADY_SENDING" | "NO_RECIPIENTS" | "NOT_FOUND";
+export type QueueErrorCode = "PLAN_LIMIT" | "NO_SENDER" | "ALREADY_SENDING" | "NO_RECIPIENTS" | "NOT_FOUND" | "AB_INVALID";
 
 export class CampaignQueueError extends Error {
   constructor(public code: QueueErrorCode, message: string, public status = 400) {
@@ -91,18 +92,44 @@ export async function getMarketingQuota(db: Db, tenantId: string) {
   return { monthly, used: usedN, remaining: monthly === null ? null : Math.max(0, monthly - usedN) };
 }
 
-/** Telling voor het bevestigingsvenster: ontvangers, verbruik, afzender in orde? */
+/** MAIL-2d: één rij per adres (zoals enqueue_campaign_sends ontdubbelt), zodat de A/B-telling klopt. */
+function uniqueByEmail<T extends { email: string }>(rows: T[]): T[] {
+  const seen = new Set<string>();
+  return rows.filter((r) => {
+    const k = String(r.email || "").trim().toLowerCase();
+    if (!k || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+}
+
+/** MAIL-2d: wat het bevestigingsvenster over de A/B-test toont. */
+function abSummary(plan: AbPlan) {
+  return {
+    requested: plan.reason !== "off",
+    enabled: plan.enabled,
+    reason: plan.reason === "off" ? null : plan.reason,
+    percent: plan.percent,
+    wait_hours: plan.waitHours,
+    per_variant: plan.perVariant,
+    remainder: plan.remainder,
+    min_audience: plan.minAudience,
+  };
+}
+
+/** Telling voor het bevestigingsvenster: ontvangers, verbruik, afzender in orde, A/B-plan. */
 export async function countCampaign(db: Db, campaignId: string) {
   const campaign = await loadCampaign(db, campaignId);
   assertRegularCampaign(campaign);
   const brand = await getTenantBrand(db, campaign.tenant_id);
-  const recipients = await resolveAudience(db, audienceInputFor(campaign, brand.defaultLocale));
+  const recipients = uniqueByEmail(await resolveAudience(db, audienceInputFor(campaign, brand.defaultLocale)));
   const limit = await getMarketingQuota(db, campaign.tenant_id);
   return {
     campaign,
     recipients: recipients.length,
     limit,
     sender_ok: tenantMarketingSender(brand.senderSource) !== null,
+    ab: abSummary(planAbTest(campaign, recipients.length)),
   };
 }
 
@@ -114,7 +141,13 @@ export async function enqueueCampaign(
   db: Db,
   campaignId: string,
   fromStatuses: string[] = ["draft", "scheduled", "failed"],
-): Promise<{ queued: number; total_recipients: number }> {
+): Promise<{
+  queued: number;
+  total_recipients: number;
+  ab?: { a: number; b: number; held: number } | null;
+  /** MAIL-2d review-fix: onderwerp B ingevuld, maar geen test (bv. doelgroep intussen te klein). */
+  ab_skipped?: string | null;
+}> {
   const campaign = await loadCampaign(db, campaignId);
   assertRegularCampaign(campaign);
   if (!fromStatuses.includes(campaign.status)) {
@@ -129,7 +162,7 @@ export async function enqueueCampaign(
     );
   }
 
-  const recipients = await resolveAudience(db, audienceInputFor(campaign, brand.defaultLocale));
+  const recipients = uniqueByEmail(await resolveAudience(db, audienceInputFor(campaign, brand.defaultLocale)));
   if (!recipients.length) {
     throw new CampaignQueueError("NO_RECIPIENTS", "Er zijn geen ingeschreven ontvangers voor deze campagne.");
   }
@@ -146,11 +179,16 @@ export async function enqueueCampaign(
   // Atomair in de databank (enqueue_campaign_sends): status, limiet, rijen en de overgang naar
   // 'sending' in één transactie, per winkel na elkaar. De quotacheck hierboven is enkel een
   // vriendelijke vroege melding; de databank beslist.
-  const rows = recipients.map((r) => ({
+  const baseRows = recipients.map((r) => ({
     email: r.email,
     customer_id: r.id,
     customer_name: [r.first_name, r.last_name].filter(Boolean).join(" ") || null,
   }));
+  // MAIL-2d: met een onderwerp B en een doelgroep die groot genoeg is, een willekeurige testgroep
+  // (A en B) en de rest op "hold". Te klein of meertalig: gewoon onderwerp A naar iedereen (het
+  // bevestigingsvenster zegt dat vooraf).
+  const abPlan = planAbTest(campaign, baseRows.length);
+  const rows = abPlan.enabled ? assignVariants(baseRows, abPlan) : baseRows;
   const { data: res, error: rpcErr } = await db.rpc("enqueue_campaign_sends", {
     p_campaign_id: campaignId,
     p_from_statuses: fromStatuses,
@@ -160,6 +198,9 @@ export async function enqueueCampaign(
     const msg = rpcErr.message || "";
     if (msg.includes("MAIL_ALREADY_SENDING")) {
       throw new CampaignQueueError("ALREADY_SENDING", "Deze campagne wordt al verstuurd of is al verstuurd.", 409);
+    }
+    if (msg.includes("MAIL_AB_TOO_SMALL") || msg.includes("MAIL_AB_INVALID")) {
+      throw new CampaignQueueError("AB_INVALID", "De A/B-test kon niet starten. Controleer onderwerp B en probeer opnieuw.", 409);
     }
     if (msg.includes("MAIL_NO_RECIPIENTS")) {
       throw new CampaignQueueError("NO_RECIPIENTS", "Er zijn geen (nieuwe) ingeschreven ontvangers voor deze campagne.");
@@ -175,8 +216,10 @@ export async function enqueueCampaign(
     }
     throw new Error(`in de wachtrij zetten mislukt: ${msg}`);
   }
-  const queued = Number((res as { queued?: number } | null)?.queued ?? 0);
-  return { queued, total_recipients: queued };
+  const out = res as { queued?: number; ab?: { a: number; b: number; held: number } | null } | null;
+  const queued = Number(out?.queued ?? 0);
+  const abSkipped = !abPlan.enabled && abPlan.reason !== "off" ? abPlan.reason : null;
+  return { queued, total_recipients: queued, ab: abPlan.enabled ? out?.ab ?? null : null, ab_skipped: abSkipped };
 }
 
 // ── Worker ───────────────────────────────────────────────────────────
@@ -213,7 +256,8 @@ async function renderFor(ctx: CampaignContext, row: Record<string, any>, recipie
     ? (row.variables as Record<string, unknown>)
     : null;
   let locale = ((campaign.language as string) || brand.defaultLocale) as TenantLocale;
-  let subject = campaign.subject || "";
+  // MAIL-2d: onderwerp B voor de B-groep, en voor de rest als B won. Zonder test: altijd A.
+  let subject = campaign.kind === "automation" ? (campaign.subject || "") : subjectForRow(campaign, row.variant);
   let body = campaign.html_content || "";
   if (available.length > 1) {
     // MAIL-2a: bij een automation weegt de taal van de klant zwaarst, daarna de taal van de
@@ -472,7 +516,8 @@ async function refreshCampaignTotals(db: Db, campaignId: string, kind?: string |
       .in("status", statuses);
     return count ?? 0;
   };
-  const open = await countOf(["queued", "sending"]);
+  // MAIL-2d: rijen die op de winnaar van een A/B-test wachten ("held") zijn nog niet klaar.
+  const open = await countOf(["queued", "sending", "held"]);
   const sent = await countOf(["sent", "delivered", "opened", "clicked", "bounced", "complained"]);
   const failed = await countOf(["failed"]);
   const patch: Record<string, unknown> = { total_sent: sent };
@@ -489,6 +534,80 @@ async function refreshCampaignTotals(db: Db, campaignId: string, kind?: string |
     patch.send_error = failed > 0 ? `${failed} van ${sent + failed} mails konden niet verstuurd worden.` : null;
   }
   await db.from("email_campaigns").update(patch).eq("id", campaignId).eq("status", "sending");
+}
+
+/**
+ * MAIL-2d: A/B-tests waarvan de wachttijd voorbij is. Per campagne: cijfers per variant
+ * (campaign_ab_stats), winnaar kiezen (klikratio → openratio → A) en de wachtende rijen vrijgeven
+ * (campaign_ab_release, één keer per campagne, ook als twee workers tegelijk lopen).
+ */
+export async function decideAbTests(db: Db, now = new Date()) {
+  const { data, error } = await db
+    .from("email_campaigns")
+    .select("id, tenant_id, ab_started_at, ab_wait_hours")
+    .eq("status", "sending")
+    .eq("kind", "campaign")
+    .is("ab_winner", null)
+    .not("ab_started_at", "is", null)
+    .limit(50);
+  if (error) throw new Error(`A/B-tests lezen mislukt: ${error.message}`);
+  const decided: { id: string; winner: string; released: number }[] = [];
+  for (const c of data || []) {
+    if (!abDecisionDue(c.ab_started_at, c.ab_wait_hours, now)) continue;
+    try {
+      // Review-fix: zelfde betaalcontrole als bij het starten van een campagne; zonder betaling geen
+      // vrijgave (de volgende run probeert opnieuw).
+      if (c.tenant_id) {
+        const state = await loadBillingState(db, c.tenant_id);
+        if (!billingAllows(state, "write", "marketing").allowed) {
+          console.warn("[campaignQueue] A/B-rest wacht op betaling", { id: c.id, state: String(state) });
+          continue;
+        }
+      }
+      const { data: stats, error: sErr } = await db.rpc("campaign_ab_stats", { p_campaign_id: c.id });
+      if (sErr) throw new Error(sErr.message);
+      const of = (v: string) => {
+        const r = (stats || []).find((x: { variant: string }) => x.variant === v);
+        return { sent: Number(r?.sent ?? 0), opened: Number(r?.opened ?? 0), clicked: Number(r?.clicked ?? 0) };
+      };
+      const winner = pickAbWinner(of("A"), of("B"));
+      const { data: rel, error: rErr } = await db.rpc("campaign_ab_release", { p_campaign_id: c.id, p_winner: winner });
+      if (rErr) throw new Error(rErr.message);
+      if (!rel?.skipped) decided.push({ id: c.id, winner, released: Number(rel?.released ?? 0) });
+    } catch (err) {
+      console.error("[campaignQueue] A/B-beslissing mislukt (volgende run opnieuw)", { id: c.id, err: String(err) });
+    }
+  }
+  return decided;
+}
+
+/**
+ * MAIL-2d review-fix: rijen zonder variant van een gestarte A/B-test vragen een winnaar. Staat die
+ * niet in de gecachte context, dan de context vers laden; nog steeds geen winnaar → de rijen terug in
+ * de wachtrij (+1 min, poging niet meegeteld) en enkel de andere rijen versturen.
+ */
+async function guardAbRemainder<T extends Record<string, unknown>>(
+  db: Db,
+  contexts: Map<string, CampaignContext | null>,
+  campaignId: string,
+  rows: T[],
+): Promise<T[]> {
+  const ctx = contexts.get(campaignId);
+  if (!ctx || !ctx.campaign.ab_started_at || ctx.campaign.ab_winner) return rows;
+  const remainder = rows.filter((r) => !r.variant);
+  if (!remainder.length) return rows;
+  const fresh = await loadContext(db, campaignId);
+  contexts.set(campaignId, fresh);
+  if (!fresh || fresh.campaign.ab_winner || !fresh.campaign.ab_started_at) return rows;
+  const retryAt = new Date(Date.now() + 60_000).toISOString();
+  for (const r of remainder) {
+    await db.from("campaign_sends")
+      .update({ status: "queued", claimed_at: null, next_attempt_at: retryAt, attempts: Math.max(0, Number(r.attempts ?? 1) - 1) })
+      .eq("id", r.id)
+      .eq("status", "sending");
+  }
+  console.error("[campaignQueue] A/B-rest zonder winnaar teruggezet", { campaignId, rows: remainder.length });
+  return rows.filter((r) => r.variant);
 }
 
 /** Eén run van de worker. Geeft `more: true` als er nog werk in de wachtrij staat. */
@@ -534,6 +653,14 @@ export async function processQueue(db: Db, opts: { deadlineMs?: number; maxEmail
     }
   }
 
+  // 1b. MAIL-2d: winnaars van A/B-tests kiezen; de rest van die campagnes komt zo in de wachtrij.
+  let ab_decided: { id: string; winner: string; released: number }[] = [];
+  try {
+    ab_decided = await decideAbTests(db);
+  } catch (err) {
+    console.error("[campaignQueue] A/B-tests overgeslagen", String(err));
+  }
+
   // 2. De wachtrij afwerken.
   const contexts = new Map<string, CampaignContext | null>();
   const touched = new Set<string>();
@@ -553,8 +680,9 @@ export async function processQueue(db: Db, opts: { deadlineMs?: number; maxEmail
       groups.get(r.campaign_id)!.push(r);
     }
     let rateLimited = false;
-    for (const [campaignId, rows] of groups) {
+    for (const [campaignId, claimedRows] of groups) {
       touched.add(campaignId);
+      let rows = claimedRows;
       if (!contexts.has(campaignId)) {
         try {
           contexts.set(campaignId, await loadContext(db, campaignId));
@@ -564,6 +692,16 @@ export async function processQueue(db: Db, opts: { deadlineMs?: number; maxEmail
           continue;
         }
       }
+      // MAIL-2d review-fix: de rest van een A/B-test (variant null) mag nooit met een verouderde
+      // context (nog geen winnaar) vertrekken, bv. als een parallelle run de winnaar net koos.
+      try {
+        rows = await guardAbRemainder(db, contexts, campaignId, rows);
+      } catch (err) {
+        console.error("[campaignQueue] A/B-context vernieuwen mislukt", campaignId, err);
+        await retryOrFail(db, rows, err instanceof Error ? err.message : String(err), 60);
+        continue;
+      }
+      if (!rows.length) continue;
       const wait = RESEND_SPACING_MS - (Date.now() - lastCall);
       if (wait > 0) await sleep(wait);
       lastCall = Date.now();
@@ -602,5 +740,5 @@ export async function processQueue(db: Db, opts: { deadlineMs?: number; maxEmail
     .eq("email_campaigns.status", "sending")
     .or(`next_attempt_at.is.null,next_attempt_at.lte.${new Date().toISOString()}`);
 
-  return { started_campaigns, sent, failed, more: (remaining ?? 0) > 0 };
+  return { started_campaigns, ab_decided, sent, failed, more: (remaining ?? 0) > 0 };
 }

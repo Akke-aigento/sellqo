@@ -1,3 +1,4 @@
+import { stripProductBlocks } from './emailProductBlock';
 /**
  * Shared helpers for email HTML body handling.
  *
@@ -49,6 +50,8 @@ export function extractEmailBody(html: string): string {
  */
 export function isComplexHtml(html: string): boolean {
   if (!html) return false;
+  // MAIL-2c: een productblok (tabel met inline stijlen) is geen eigen HTML; de visuele editor kent het.
+  html = stripProductBlocks(html);
   if (/<table[\s>]/i.test(html)) return true;
   if (/<!--\[if/i.test(html)) return true;
   const styleMatches = html.match(/style\s*=/gi);

@@ -42,7 +42,12 @@ export function redirectToApp(
 
 export const isHttpUrl = (v: unknown): v is string => typeof v === "string" && /^https?:\/\//i.test(v.trim());
 
-/** Publieke shop-URL: eigen domein, anders geverifieerd canoniek domein, anders <slug>.sellqo.shop. */
+/**
+ * Publieke shop-URL: eigen domein, anders geverifieerd canoniek domein, anders <slug>.sellqo.shop.
+ * Zie ook storefrontUrls.ts (MAIL-2c): de productlink per winkel. Bewust apart: deze functie geeft
+ * altijd een homepage-link (ook voor custom frontends via websiteUrl en ook als de winkel nog niet
+ * online staat), productUrlFor geeft enkel een link die zeker bestaat, anders null.
+ */
 // deno-lint-ignore no-explicit-any
 export async function resolveShopUrl(supabase: any, tenantId: string, brand: TenantBrand): Promise<string> {
   if (brand.websiteUrl) return brand.websiteUrl;

@@ -61,7 +61,14 @@ const campaignSchema = z.object({
   html_content: z.string().min(1, 'admin.marketing.campaignDialog.validation.content_is_verplicht'),
   available_languages: z.array(z.enum(LANG_CODES_TUPLE)).min(1).default([DEFAULT_LANG]),
   translations: z.record(translationSchema).default({}),
+  // MAIL-2d: A/B-test van het onderwerp (enkel bij één taal).
+  subject_b: z.string().optional(),
+  ab_test_percent: z.number().int().min(10).max(50).default(20),
+  ab_wait_hours: z.number().int().min(1).max(24).default(4),
 });
+
+const AB_PERCENTS = [10, 20, 30, 40, 50];
+const AB_HOURS = Array.from({ length: 24 }, (_, i) => i + 1);
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
 
@@ -192,6 +199,7 @@ export function CampaignDialog({
   const [scheduledTime, setScheduledTime] = useState('09:00');
   const [showPreview, setShowPreview] = useState(false);
   const [activeLangTab, setActiveLangTab] = useState<CampaignLang>('nl');
+  const [abOn, setAbOn] = useState(false);
 
   const form = useForm<CampaignFormData>({
     resolver: zodResolver(campaignSchema),
@@ -206,6 +214,9 @@ export function CampaignDialog({
       html_content: defaultHtmlContent,
       available_languages: ['nl'],
       translations: {},
+      subject_b: '',
+      ab_test_percent: 20,
+      ab_wait_hours: 4,
     },
   });
 
@@ -225,7 +236,11 @@ export function CampaignDialog({
           html_content: body || defaultHtmlContent,
           available_languages: (campaign.available_languages as any) || ['nl'],
           translations: (campaign.translations as any) || {},
+          subject_b: campaign.subject_b || '',
+          ab_test_percent: campaign.ab_test_percent ?? 20,
+          ab_wait_hours: campaign.ab_wait_hours ?? 4,
         });
+        setAbOn(!!campaign.subject_b);
         // Existing campaigns open in HTML mode; keep richContent in sync so a
         // toggle to visual doesn't clobber the current body.
         setRichContent(body || defaultRichContent);
@@ -249,7 +264,11 @@ export function CampaignDialog({
           html_content: body || defaultHtmlContent,
           available_languages: ['nl'],
           translations: {},
+          subject_b: '',
+          ab_test_percent: 20,
+          ab_wait_hours: 4,
         });
+        setAbOn(false);
         setEditorMode(defaultValues.html_content ? 'html' : 'visual');
         setRichContent(body || defaultRichContent);
         setSendMode('now');
@@ -265,7 +284,11 @@ export function CampaignDialog({
           html_content: defaultHtmlContent,
           available_languages: ['nl'],
           translations: {},
+          subject_b: '',
+          ab_test_percent: 20,
+          ab_wait_hours: 4,
         });
+        setAbOn(false);
         setEditorMode('visual');
         setRichContent(defaultRichContent);
         setSendMode('now');
@@ -362,6 +385,12 @@ export function CampaignDialog({
     // Presets and segments are mutually exclusive; strip empties for DB.
     const langs = (data.available_languages || ['nl']) as CampaignLang[];
     const isMulti = langs.length > 1;
+    // MAIL-2d: onderwerp B enkel bij één taal en als de test aan staat.
+    const subjectB = abOn && !isMulti ? (data.subject_b || '').trim() : '';
+    if (abOn && !isMulti && !subjectB) {
+      form.setError('subject_b', { message: 'admin.marketing.abTest.subject_b_required' });
+      return;
+    }
     // Only keep translations for selected non-NL languages, and drop empty entries.
     const cleanedTranslations: Record<string, { subject?: string; preview_text?: string; html_content?: string }> = {};
     for (const lang of langs) {
@@ -389,6 +418,9 @@ export function CampaignDialog({
       ab_variant_of: (data as any).ab_variant_of || null,
       available_languages: langs,
       translations: cleanedTranslations,
+      subject_b: subjectB || null,
+      ab_test_percent: data.ab_test_percent ?? 20,
+      ab_wait_hours: data.ab_wait_hours ?? 4,
       tenant_id: currentTenant.id,
       status,
       scheduled_at,
@@ -653,6 +685,80 @@ export function CampaignDialog({
               </>
             )}
 
+            {/* MAIL-2d: A/B-test van het onderwerp */}
+            <div className="rounded-md border p-3 space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Label htmlFor="ab-test-switch" className="font-medium">{t('admin.marketing.abTest.title')}</Label>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {isMultiLang ? t('admin.marketing.abTest.multi_language') : t('admin.marketing.abTest.explain')}
+                  </p>
+                </div>
+                <Switch
+                  id="ab-test-switch"
+                  checked={abOn && !isMultiLang}
+                  disabled={isMultiLang}
+                  onCheckedChange={setAbOn}
+                />
+              </div>
+              {abOn && !isMultiLang && (
+                <div className="space-y-3">
+                  <FormField
+                    control={form.control}
+                    name="subject_b"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('admin.marketing.abTest.subject_b')}</FormLabel>
+                        <FormControl>
+                          <Input placeholder={t('admin.marketing.abTest.subject_b_placeholder')} {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="ab_test_percent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('admin.marketing.abTest.percent')}</FormLabel>
+                          <Select value={String(field.value ?? 20)} onValueChange={(v) => field.onChange(Number(v))}>
+                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {AB_PERCENTS.map((p) => (
+                                <SelectItem key={p} value={String(p)}>{t('admin.marketing.abTest.percent_option', { percent: p })}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="ab_wait_hours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('admin.marketing.abTest.wait')}</FormLabel>
+                          <Select value={String(field.value ?? 4)} onValueChange={(v) => field.onChange(Number(v))}>
+                            <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
+                            <SelectContent>
+                              {AB_HOURS.map((h) => (
+                                <SelectItem key={h} value={String(h)}>{t('admin.marketing.abTest.hours_option', { hours: h })}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {t('admin.marketing.abTest.rule', { percent: form.watch('ab_test_percent') ?? 20, hours: form.watch('ab_wait_hours') ?? 4 })}
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Editor mode toggle + preview */}
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -719,6 +825,8 @@ export function CampaignDialog({
                   <CampaignRichEditor
                     content={richContent}
                     onChange={handleRichContentChange}
+                    productBlocks
+                    emailLanguage={activeLangTab}
                   />
                   <div className="mt-1">
                     <VariableInserter onInsert={(v) => handleRichContentChange(richContent + v)} />

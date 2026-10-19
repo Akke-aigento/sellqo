@@ -151,6 +151,8 @@ export function AutomationStepDialog({
                   key={`${step.id}-${lang}`}
                   content={current.html_content || ''}
                   onChange={(html) => setField('html_content', html)}
+                  productBlocks
+                  emailLanguage={lang}
                 />
                 <VariableInserter
                   onInsert={(v) => setField('html_content', (current.html_content || '') + v)}

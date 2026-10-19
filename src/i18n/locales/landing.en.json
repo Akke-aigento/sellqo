@@ -2105,6 +2105,14 @@
         "email_automations": {
           "title": "Email automations",
           "description": "Under Marketing → Automations you can switch on four fixed email series: a welcome series as soon as a subscriber confirms their subscription, a thank-you email and later a review request after a purchase, a win-back email for customers who haven't ordered for a while, and a reminder for an abandoned cart. That reminder only goes to customers who are subscribed or have bought from you before. You edit the subject and text per language, and all automation emails count toward your monthly marketing email limit."
+        },
+        "email_product_blocks": {
+          "title": "Products in your email",
+          "description": "In the email editor for campaigns, templates and automations, use the Insert product button to add 1 to 4 products, as a grid or a list. Each product gets a photo, name, price and a button to the product page in your shop. The price is the one at the moment you insert the block. If SellQo doesn't know a public product link for your shop, the block is inserted without a button, so your customers never get a link that leads nowhere. The product names in the abandoned cart reminder now also link to your product page, when that link is known."
+        },
+        "email_ab_subject": {
+          "title": "A/B test of the subject line",
+          "description": "Give a campaign a second subject line. When sending, a test group (20% of your audience by default) gets half subject line A and half subject line B. After a waiting time of your choice (4 hours by default), the rest gets the subject line with the highest click rate. The campaign report shows per subject line how many emails were sent, opened and clicked. Each variant needs at least 100 recipients; if your audience is smaller, SellQo tells you before sending."
         }
       },
       "copyLink": "Copy link",

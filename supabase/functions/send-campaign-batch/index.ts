@@ -4,9 +4,9 @@
 //
 // Body:
 //   { campaign_id }                                   → versturen: { queued, total_recipients }
-//   { campaign_id, mode: "count" }                    → { recipients, limit, sender_ok }
+//   { campaign_id, mode: "count" }                    → { recipients, limit, sender_ok, ab }  (ab: MAIL-2d)
 //   { mode: "segment_count", tenant_id, filter_rules, preset_key?, language? } → { recipients }
-// Fouten: { error, code } met code PLAN_LIMIT | NO_SENDER | ALREADY_SENDING | NO_RECIPIENTS | NOT_FOUND.
+// Fouten: { error, code } met code PLAN_LIMIT | NO_SENDER | ALREADY_SENDING | NO_RECIPIENTS | NOT_FOUND | AB_INVALID.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse, type AppRole } from "../_shared/auth.ts";
@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
 
     if (mode === "count") {
       const r = await countCampaign(db, campaignId);
-      return json({ recipients: r.recipients, limit: r.limit, sender_ok: r.sender_ok });
+      return json({ recipients: r.recipients, limit: r.limit, sender_ok: r.sender_ok, ab: r.ab });
     }
 
     // BILLING-ENFORCE-1: versturen kan niet terwijl er een betaling openstaat.

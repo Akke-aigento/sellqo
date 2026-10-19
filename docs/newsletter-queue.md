@@ -4,6 +4,21 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12y — Producten in je mail en A/B-test van het onderwerp (feature, 20-10-2026)
+
+**Status:** klaar voor verzending zodra MAIL-2a, 2c en 2d live staan (migraties 20261020000000 en 20261020010000 na 20261019230000, edge functions process-campaign-queue, send-campaign-batch, automation-scheduler, render-campaign-preview + frontend) en de smoketest op SellQo Speeltuin groen is.
+
+**Voor wie:** alle winkels die e-mailmarketing gebruiken.
+
+**Producten in je mail** (oktober 2026)
+Met de nieuwe knop Product invoegen zet je 1 tot 4 producten in een campagne, template of automatische mail: met foto, naam, prijs en een knop naar je productpagina, naast elkaar of onder elkaar. De prijs is die op het moment dat je het blok invoegt. Ook de herinnering bij een verlaten winkelwagen linkt de producten nu naar je winkel.
+
+**Twee onderwerpen testen** (oktober 2026)
+Geef een campagne een tweede onderwerp. Een testgroep krijgt half het ene, half het andere onderwerp; na een paar uur krijgt de rest van je lijst het onderwerp waarop het meest geklikt werd. In het rapport zie je per onderwerp hoeveel mails geopend en aangeklikt zijn.
+Wat betekent dit voor jou? Je toont je producten zonder knip- en plakwerk, en je hoeft niet meer te raden welk onderwerp het best werkt.
+
+i18n: `public.changelog.changes.email_product_blocks`, `public.changelog.changes.email_ab_subject`
+
 ### 2026.12x — Automatische e-mails: welkomstreeks, na aankoop, win-back en verlaten winkelwagen (feature, 19-10-2026)
 
 **Status:** klaar voor verzending zodra MAIL-2a live staat (migratie 20261019230000 + edge functions automation-scheduler, process-campaign-queue, send-campaign-batch, newsletter-confirm, render-campaign-preview + frontend) en de smoketest op SellQo Speeltuin groen is.

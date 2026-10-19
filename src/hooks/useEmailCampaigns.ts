@@ -11,12 +11,50 @@ export interface CampaignRecipientCount {
   recipients: number;
   limit: { monthly: number | null; used: number; remaining: number | null };
   sender_ok: boolean;
+  /** MAIL-2d: plan van de A/B-test van het onderwerp (ontbreekt bij een oudere edge function). */
+  ab?: {
+    requested: boolean;
+    enabled: boolean;
+    reason: 'automation' | 'multi_language' | 'too_small' | null;
+    percent: number;
+    wait_hours: number;
+    per_variant: number;
+    remainder: number;
+    min_audience: number;
+  };
+}
+
+/** MAIL-2d: cijfers per variant (rpc campaign_ab_stats). 'rest' = wie het winnende onderwerp kreeg. */
+export interface CampaignAbStat {
+  variant: 'A' | 'B' | 'rest';
+  recipients: number;
+  sent: number;
+  opened: number;
+  clicked: number;
+  waiting: number;
+}
+
+export function useCampaignAbStats(campaignId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['campaign-ab-stats', campaignId],
+    queryFn: async () => {
+      // De RPC staat nog niet in de gegenereerde types (MAIL-2d).
+      const rpc = supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: CampaignAbStat[] | null; error: Error | null }>;
+      const { data, error } = await rpc('campaign_ab_stats', { p_campaign_id: campaignId });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!campaignId && enabled,
+    refetchInterval: 30_000,
+  });
 }
 
 /** MAIL-1a: antwoord van send-campaign-batch bij "nu verzenden" (asynchroon). */
 export interface CampaignSendResult {
   queued: number;
   total_recipients: number;
+  /** MAIL-2d: reden waarom een gevraagde A/B-test niet doorging (bv. 'too_small'). */
+  ab_skipped?: string | null;
 }
 
 /** Aantal ontvangers, planverbruik en afzenderstatus vóór het verzenden. */
@@ -144,6 +182,14 @@ export function useEmailCampaigns() {
           count: result?.total_recipients ?? result?.queued ?? 0,
         }),
       });
+      if (result?.ab_skipped) {
+        toast({
+          title: i18n.t('admin.marketing.abTest.skipped_title'),
+          description: i18n.t(result.ab_skipped === 'too_small'
+            ? 'admin.marketing.abTest.skipped_too_small'
+            : 'admin.marketing.abTest.skipped_other'),
+        });
+      }
     },
     onError: (error: Error) => {
       toast({ title: i18n.t('admin.marketing.toast.fout_bij_verzenden'), description: error.message, variant: 'destructive' });

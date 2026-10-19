@@ -3595,6 +3595,53 @@
             "cancelled": "Geannuleerd"
           }
         }
+      },
+      "productBlock": {
+        "title": "Product invoegen",
+        "explain": "Kies 1 tot {{max}} actieve producten. Elk product krijgt een foto, naam, prijs en een knop naar de productpagina.",
+        "no_links": "SellQo kent geen publieke productlink voor je winkel (bijvoorbeeld een eigen website zonder ingestelde productlink, of een winkel die nog niet online staat). Het blok komt er zonder knop en zonder link in.",
+        "search": "Zoek een product",
+        "empty": "Geen actieve producten die in je winkel zichtbaar zijn.",
+        "layout": "Weergave",
+        "layout_grid": "Raster",
+        "layout_list": "Lijst",
+        "button_label": "Tekst op de knop",
+        "button_default": "Bekijk",
+        "price_note": "De prijs in de mail is de prijs op het moment van invoegen. Wijzig je de prijs later, voeg het blok dan opnieuw in. Een oude, doorstreepte prijs wordt nooit getoond.",
+        "selected": "{{n}} van {{max}} gekozen"
+      },
+      "abTest": {
+        "title": "A/B-test van het onderwerp",
+        "explain": "Test een tweede onderwerp op een deel van je doelgroep. Na de wachttijd krijgt de rest het onderwerp met de hoogste klikratio.",
+        "multi_language": "Niet beschikbaar bij een campagne in meerdere talen: elke taal heeft al een eigen onderwerp.",
+        "subject_b": "Onderwerp B",
+        "subject_b_placeholder": "Een tweede versie van je onderwerp",
+        "subject_b_required": "Vul onderwerp B in of zet de A/B-test uit.",
+        "percent": "Testgroep",
+        "percent_option": "{{percent}}% van de doelgroep",
+        "wait": "Winnaar kiezen na",
+        "hours_option": "{{hours}} uur",
+        "rule": "De testgroep ({{percent}}%) krijgt half onderwerp A en half onderwerp B. Na {{hours}} uur wint het onderwerp met de hoogste klikratio (bij gelijkstand de hoogste openratio, anders A) en krijgt de rest dat onderwerp. Elke variant heeft minstens 100 ontvangers nodig.",
+        "confirm_title": "A/B-test van het onderwerp",
+        "confirm_flow": "{{perVariant}} ontvangers krijgen nu onderwerp A en {{perVariant}} onderwerp B. Na {{hours}} uur krijgen de overige {{remainder}} ontvangers het onderwerp met de hoogste klikratio.",
+        "confirm_limit": "Alle {{recipients}} ontvangers tellen nu al mee voor je maandlimiet, ook wie op de winnaar wacht.",
+        "too_small": "Je doelgroep is te klein voor de A/B-test: met {{percent}}% heb je minstens {{min}} ontvangers nodig (100 per variant). De campagne gaat met onderwerp A naar iedereen.",
+        "not_possible_multi": "Deze campagne is in meerdere talen, dus zonder A/B-test: iedereen krijgt het onderwerp van zijn taal.",
+        "status_held": "Wacht op A/B-winnaar",
+        "report_title": "A/B-test van het onderwerp",
+        "report_winner": "Onderwerp {{variant}} heeft gewonnen; de rest van je doelgroep kreeg dat onderwerp.",
+        "report_pending": "De winnaar wordt gekozen rond {{time}}.",
+        "col_variant": "Variant",
+        "variant_a": "Onderwerp A",
+        "variant_b": "Onderwerp B",
+        "variant_rest": "Rest van de doelgroep",
+        "winner": "Winnaar",
+        "waiting": "{{n}} wachten op de winnaar",
+        "report_rule": "Winnaar = hoogste klikratio, bij gelijkstand hoogste openratio, anders A. Openingen zijn een benadering: sommige mailprogramma's laden afbeeldingen vooraf of blokkeren ze.",
+        "skipped_title": "Verstuurd zonder A/B-test",
+        "skipped_too_small": "Je doelgroep was bij het versturen te klein voor de test (minstens 100 per variant). Iedereen krijgt onderwerp A.",
+        "skipped_other": "De A/B-test kon voor deze campagne niet doorgaan. Iedereen krijgt het gewone onderwerp.",
+        "report_no_difference": "Geen verschil, A gekozen: in de testgroep werd nog niets geopend of aangeklikt."
       }
     },
     "ads": {

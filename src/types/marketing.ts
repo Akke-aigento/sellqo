@@ -107,6 +107,13 @@ export interface EmailCampaign {
   variant_label?: string;
   is_ab_test?: boolean;
   ab_test_winner_selected_at?: string;
+  // MAIL-2d: A/B-test van het onderwerp (ab_* zet enkel SellQo, behalve percent/wachttijd)
+  subject_b?: string | null;
+  ab_test_percent?: number;
+  ab_wait_hours?: number;
+  ab_started_at?: string | null;
+  ab_winner?: 'A' | 'B' | null;
+  ab_decided_at?: string | null;
   // Automation link
   automation_id?: string;
   // Joined relations (partial info)
@@ -122,7 +129,7 @@ export type EmailCampaignInsert = Omit<EmailCampaign,
 export type EmailCampaignUpdate = Partial<EmailCampaignInsert>;
 
 // Campaign Send Types
-export type CampaignSendStatus = 'pending' | 'queued' | 'sending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'failed' | 'unsubscribed';
+export type CampaignSendStatus = 'pending' | 'queued' | 'sending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'failed' | 'unsubscribed' | 'held';
 
 export interface CampaignSend {
   id: string;
@@ -131,6 +138,8 @@ export interface CampaignSend {
   email: string;
   customer_name?: string;
   status: CampaignSendStatus;
+  /** MAIL-2d: A of B in de testgroep, null voor de rest. */
+  variant?: 'A' | 'B' | null;
   resend_id?: string;
   sent_at?: string;
   delivered_at?: string;

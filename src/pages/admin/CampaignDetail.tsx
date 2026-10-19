@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Mail, MousePointerClick, Users, AlertCircle, CheckCircle2, Clock, XCircle, TrendingUp, ExternalLink, RefreshCw, Loader2 } from 'lucide-react';
+import { ArrowLeft, Send, Mail, MousePointerClick, Users, AlertCircle, CheckCircle2, Clock, XCircle, TrendingUp, ExternalLink, RefreshCw, Loader2, FlaskConical, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useEmailCampaign, useCampaignSends, useEmailCampaigns } from '@/hooks/useEmailCampaigns';
+import { useEmailCampaign, useCampaignSends, useEmailCampaigns, useCampaignAbStats, type CampaignAbStat } from '@/hooks/useEmailCampaigns';
+import type { EmailCampaign } from '@/types/marketing';
 import { useQueryClient } from '@tanstack/react-query';
 import { SendCampaignConfirmDialog } from '@/components/admin/marketing/SendCampaignConfirmDialog';
 import { EmailPreview } from '@/components/admin/marketing/EmailPreview';
@@ -35,7 +36,7 @@ export default function CampaignDetailPage() {
   const { sendCampaign } = useEmailCampaigns();
   const [confirmSend, setConfirmSend] = useState(false);
   const refresh = () => {
-    for (const key of ['email-campaign', 'campaign-sends', 'campaign-link-clicks', 'campaign-hourly-stats']) {
+    for (const key of ['email-campaign', 'campaign-sends', 'campaign-link-clicks', 'campaign-hourly-stats', 'campaign-ab-stats']) {
       queryClient.invalidateQueries({ queryKey: [key, id] });
     }
   };
@@ -157,6 +158,8 @@ export default function CampaignDetailPage() {
           {t('admin.campaignDetail.wordt_verzonden_hint')}
         </div>
       )}
+
+      {campaign.ab_started_at && <AbTestCard campaign={campaign} />}
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -452,6 +455,7 @@ function RecipientStatusBadge({ status }: { status: string }) {
     clicked: { label: t('admin.marketing.campaignFunnel.geklikt'), variant: 'default', icon: MousePointerClick },
     bounced: { label: t('admin.campaignDetail.bounced'), variant: 'destructive', icon: XCircle },
     unsubscribed: { label: t('admin.campaignDetail.uitgeschreven'), variant: 'secondary', icon: XCircle },
+    held: { label: t('admin.marketing.abTest.status_held'), variant: 'secondary', icon: Clock },
   };
 
   const statusConfig = config[status] || config.pending;
@@ -462,5 +466,90 @@ function RecipientStatusBadge({ status }: { status: string }) {
       <Icon className="h-3 w-3" />
       {statusConfig.label}
     </Badge>
+  );
+}
+
+/** MAIL-2d: per onderwerp verzonden, geopend, geklikt, en de winnaar (of wanneer die gekozen wordt). */
+function AbTestCard({ campaign }: { campaign: EmailCampaign }) {
+  const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
+  const { data: stats = [], isLoading } = useCampaignAbStats(campaign.id, !!campaign.ab_started_at);
+  const by = (v: CampaignAbStat['variant']) => stats.find((s) => s.variant === v);
+  // Review-fix: zonder enige opening of klik in de testgroep is de winnaar A bij gebrek aan verschil.
+  const noSignal = !isLoading && (['A', 'B'] as const).every((v) => (by(v)?.opened ?? 0) === 0 && (by(v)?.clicked ?? 0) === 0);
+  const pct = (n: number, d: number) => (d > 0 ? `${((n / d) * 100).toFixed(1)}%` : '–');
+  const decideAt = campaign.ab_started_at
+    ? new Date(new Date(campaign.ab_started_at).getTime() + (campaign.ab_wait_hours ?? 4) * 3_600_000)
+    : null;
+  const rows: { key: CampaignAbStat['variant']; label: string; subject: string }[] = [
+    { key: 'A', label: t('admin.marketing.abTest.variant_a'), subject: campaign.subject },
+    { key: 'B', label: t('admin.marketing.abTest.variant_b'), subject: campaign.subject_b || '' },
+    { key: 'rest', label: t('admin.marketing.abTest.variant_rest'), subject: campaign.ab_winner === 'B' ? (campaign.subject_b || '') : campaign.ab_winner === 'A' ? campaign.subject : '' },
+  ];
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <FlaskConical className="h-4 w-4" />{t('admin.marketing.abTest.report_title')}
+        </CardTitle>
+        <CardDescription>
+          {campaign.ab_winner
+            ? noSignal
+              ? t('admin.marketing.abTest.report_no_difference')
+              : t('admin.marketing.abTest.report_winner', { variant: campaign.ab_winner })
+            : decideAt
+              ? t('admin.marketing.abTest.report_pending', { time: format(decideAt, 'dd/MM HH:mm', { locale: dateLocale }) })
+              : null}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="overflow-x-auto px-0 sm:px-6">
+        {isLoading ? (
+          <Skeleton className="h-24 w-full" />
+        ) : (
+          <div className="min-w-[560px]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t('admin.marketing.abTest.col_variant')}</TableHead>
+                  <TableHead>{t('admin.marketing.templateDialog.onderwerp')}</TableHead>
+                  <TableHead className="text-right">{t('admin.marketing.campaignCard.status.verzonden')}</TableHead>
+                  <TableHead className="text-right">{t('admin.marketing.campaignFunnel.geopend')}</TableHead>
+                  <TableHead className="text-right">{t('admin.marketing.campaignFunnel.geklikt')}</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {rows.map((r) => {
+                  const s = by(r.key);
+                  const sent = s?.sent ?? 0;
+                  const winner = r.key !== 'rest' && campaign.ab_winner === r.key;
+                  return (
+                    <TableRow key={r.key}>
+                      <TableCell className="font-medium whitespace-nowrap">
+                        <span className="flex items-center gap-1.5">
+                          {r.label}
+                          {winner && (
+                            <Badge className="gap-1"><Trophy className="h-3 w-3" />{t('admin.marketing.abTest.winner')}</Badge>
+                          )}
+                        </span>
+                        {r.key === 'rest' && (s?.waiting ?? 0) > 0 && (
+                          <span className="block text-xs text-muted-foreground font-normal">
+                            {t('admin.marketing.abTest.waiting', { n: s?.waiting ?? 0 })}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[260px] truncate" title={r.subject}>{r.subject || '–'}</TableCell>
+                      <TableCell className="text-right tabular-nums">{sent}</TableCell>
+                      <TableCell className="text-right tabular-nums">{s?.opened ?? 0} <span className="text-muted-foreground">({pct(s?.opened ?? 0, sent)})</span></TableCell>
+                      <TableCell className="text-right tabular-nums">{s?.clicked ?? 0} <span className="text-muted-foreground">({pct(s?.clicked ?? 0, sent)})</span></TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+        <p className="mt-2 px-6 sm:px-0 text-xs text-muted-foreground">{t('admin.marketing.abTest.report_rule')}</p>
+      </CardContent>
+    </Card>
   );
 }

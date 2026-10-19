@@ -2105,6 +2105,14 @@
         "email_automations": {
           "title": "E-Mail-Automatisierungen",
           "description": "Unter Marketing → Automatisierungen aktivieren Sie vier feste E-Mail-Serien: eine Willkommensserie, sobald ein Abonnent seine Anmeldung bestätigt, eine Dankes-E-Mail und später eine Bewertungsanfrage nach einem Kauf, eine Rückgewinnungs-E-Mail für Kunden, die seit einiger Zeit nicht bestellt haben, und eine Erinnerung bei einem verlassenen Warenkorb. Diese Erinnerung geht nur an Kunden, die angemeldet sind oder bereits bei Ihnen gekauft haben. Betreff und Text passen Sie pro Sprache an, und alle Automatisierungs-E-Mails zählen zu Ihrem monatlichen Limit für Marketing-E-Mails."
+        },
+        "email_product_blocks": {
+          "title": "Produkte in Ihrer E-Mail",
+          "description": "Im E-Mail-Editor für Kampagnen, Vorlagen und Automatisierungen fügen Sie mit der Schaltfläche Produkt einfügen 1 bis 4 Produkte hinzu, als Raster oder als Liste. Jedes Produkt erhält Foto, Namen, Preis und eine Schaltfläche zur Produktseite in Ihrem Shop. Der Preis ist der zum Zeitpunkt des Einfügens. Kennt SellQo keinen öffentlichen Produktlink für Ihren Shop, wird der Block ohne Schaltfläche eingefügt, damit Ihre Kunden nie einen Link erhalten, der ins Leere führt. Auch die Produktnamen in der Erinnerung an einen verlassenen Warenkorb verlinken jetzt auf Ihre Produktseite, wenn dieser Link bekannt ist."
+        },
+        "email_ab_subject": {
+          "title": "A/B-Test der Betreffzeile",
+          "description": "Geben Sie einer Kampagne eine zweite Betreffzeile. Beim Versand erhält eine Testgruppe (standardmäßig 20 % Ihrer Zielgruppe) zur Hälfte Betreffzeile A und zur Hälfte Betreffzeile B. Nach einer Wartezeit Ihrer Wahl (standardmäßig 4 Stunden) erhält der Rest die Betreffzeile mit der höchsten Klickrate. Im Kampagnenbericht sehen Sie pro Betreffzeile, wie viele E-Mails versendet, geöffnet und angeklickt wurden. Jede Variante braucht mindestens 100 Empfänger; ist Ihre Zielgruppe kleiner, sagt SellQo Ihnen das vor dem Versand."
         }
       },
       "copyLink": "Link kopieren",

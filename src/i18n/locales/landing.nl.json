@@ -2105,6 +2105,14 @@
         "email_automations": {
           "title": "E-mailautomatiseringen",
           "description": "Onder Marketing → Automatiseringen zet je vier vaste e-mailreeksen aan: een welkomstreeks zodra een abonnee de inschrijving bevestigt, een bedankmail en later een reviewvraag na een aankoop, een win-backmail voor klanten die al een tijd niet bestelden, en een herinnering bij een verlaten winkelwagen. Die herinnering gaat enkel naar klanten die ingeschreven zijn of eerder bij je kochten. Je past onderwerp en tekst per taal aan, en alle automatiseringsmails tellen mee voor je maandelijkse limiet van marketingmails."
+        },
+        "email_product_blocks": {
+          "title": "Producten in je mail",
+          "description": "In de e-maileditor van campagnes, templates en automatiseringen voeg je met de knop Product invoegen 1 tot 4 producten toe, als raster of als lijst. Elk product krijgt foto, naam, prijs en een knop naar de productpagina in je winkel. De prijs is die op het moment van invoegen. Kent SellQo geen publieke productlink voor je winkel, dan komt het blok er zonder knop in, zodat je klanten nooit een link krijgen die nergens naartoe gaat. Ook de productnamen in de herinnering bij een verlaten winkelwagen linken nu naar je productpagina, als die link gekend is."
+        },
+        "email_ab_subject": {
+          "title": "A/B-test van de onderwerpregel",
+          "description": "Geef een campagne een tweede onderwerp. Bij het versturen gaat een testgroep (standaard 20% van je doelgroep) half met onderwerp A en half met onderwerp B. Na een wachttijd naar keuze (standaard 4 uur) krijgt de rest het onderwerp met de hoogste klikratio. In het campagnerapport zie je per onderwerp hoeveel mails verstuurd, geopend en aangeklikt zijn. Elke variant heeft minstens 100 ontvangers nodig; is je doelgroep kleiner, dan zegt SellQo dat vóór het versturen."
         }
       },
       "copyLink": "Kopieer link",

@@ -113,3 +113,16 @@ Deno.test("reviewstap herkennen", async () => {
   assert(stepNeedsReviewUrl("win_back", 1, { subject: "x", html_content: '<a href="{{ review_url }}">' }));
   assert(stepNeedsReviewUrl("welcome_series", 2, { translations: { en: { html_content: "{{review_url}}" } } }));
 });
+
+Deno.test("MAIL-2c: productnaam als link, enkel https; vorm blijft ruw toegelaten", () => {
+  const html = buildCartItemsHtml([
+    { quantity: 1, product_name: "Trui & co", product_url: "https://loveke.be/shop/trui" },
+    { quantity: 2, product_name: "Sok", product_url: "javascript:alert(1)" },
+    { quantity: 1, product_name: "Muts", product_url: 'https://x.be/"onmouseover=1' },
+  ]);
+  assertEquals(html, '<ul><li>1 × <a href="https://loveke.be/shop/trui">Trui &amp; co</a></li><li>2 × Sok</li><li>1 × Muts</li></ul>');
+  assertEquals(htmlSafeVars({ cart_items: html }).cart_items, html);
+  // Een link met een ander schema of een extra attribuut is niet de vorm van buildCartItemsHtml.
+  assertEquals(htmlSafeVars({ cart_items: '<ul><li><a href="javascript:x">a</a></li></ul>' }).cart_items.startsWith("&lt;ul&gt;"), true);
+  assertEquals(htmlSafeVars({ cart_items: '<ul><li><a href="https://x.be" onclick="y">a</a></li></ul>' }).cart_items.startsWith("&lt;ul&gt;"), true);
+});

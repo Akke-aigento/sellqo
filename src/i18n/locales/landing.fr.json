@@ -2105,6 +2105,14 @@
         "email_automations": {
           "title": "Automatisations d'e-mails",
           "description": "Dans Marketing → Automatisations, vous activez quatre séries d'e-mails fixes : une série de bienvenue dès qu'un abonné confirme son inscription, un e-mail de remerciement puis une demande d'avis après un achat, un e-mail de reconquête pour les clients qui n'ont plus commandé depuis un certain temps, et un rappel en cas de panier abandonné. Ce rappel n'est envoyé qu'aux clients inscrits ou ayant déjà acheté chez vous. Vous modifiez l'objet et le texte par langue, et tous les e-mails d'automatisation comptent dans votre limite mensuelle d'e-mails marketing."
+        },
+        "email_product_blocks": {
+          "title": "Des produits dans votre e-mail",
+          "description": "Dans l'éditeur d'e-mails des campagnes, modèles et automatisations, le bouton Insérer un produit ajoute 1 à 4 produits, en grille ou en liste. Chaque produit reçoit une photo, un nom, un prix et un bouton vers la page du produit dans votre boutique. Le prix est celui du moment de l'insertion. Si SellQo ne connaît pas de lien public vers vos produits, le bloc est inséré sans bouton, pour que vos clients ne reçoivent jamais un lien qui ne mène nulle part. Les noms de produits dans le rappel de panier abandonné renvoient désormais aussi vers la page du produit, lorsque ce lien est connu."
+        },
+        "email_ab_subject": {
+          "title": "Test A/B de l'objet",
+          "description": "Donnez à une campagne un second objet. À l'envoi, un groupe test (20 % de votre audience par défaut) reçoit pour moitié l'objet A et pour moitié l'objet B. Après un délai de votre choix (4 heures par défaut), le reste reçoit l'objet avec le meilleur taux de clic. Le rapport de campagne indique par objet combien d'e-mails ont été envoyés, ouverts et cliqués. Chaque variante nécessite au moins 100 destinataires ; si votre audience est plus petite, SellQo vous le dit avant l'envoi."
         }
       },
       "copyLink": "Copier le lien",

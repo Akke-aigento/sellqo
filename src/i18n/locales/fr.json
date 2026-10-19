@@ -3312,6 +3312,53 @@
             "cancelled": "Annulé"
           }
         }
+      },
+      "productBlock": {
+        "title": "Insérer un produit",
+        "explain": "Choisissez 1 à {{max}} produits actifs. Chaque produit reçoit une photo, un nom, un prix et un bouton vers la page du produit.",
+        "no_links": "SellQo ne connaît aucun lien public vers vos produits (par exemple un site propre sans lien produit configuré, ou une boutique pas encore en ligne). Le bloc sera inséré sans bouton ni lien.",
+        "search": "Rechercher un produit",
+        "empty": "Aucun produit actif visible dans votre boutique.",
+        "layout": "Disposition",
+        "layout_grid": "Grille",
+        "layout_list": "Liste",
+        "button_label": "Texte du bouton",
+        "button_default": "Voir",
+        "price_note": "Le prix dans l'e-mail est celui du moment de l'insertion. Si vous modifiez le prix plus tard, insérez à nouveau le bloc. Un ancien prix barré n'est jamais affiché.",
+        "selected": "{{n}} sur {{max}} sélectionné(s)"
+      },
+      "abTest": {
+        "title": "Test A/B de l'objet",
+        "explain": "Testez un second objet sur une partie de votre audience. Après le délai d'attente, le reste reçoit l'objet avec le meilleur taux de clic.",
+        "multi_language": "Non disponible pour une campagne en plusieurs langues : chaque langue a déjà son propre objet.",
+        "subject_b": "Objet B",
+        "subject_b_placeholder": "Une seconde version de votre objet",
+        "subject_b_required": "Remplissez l'objet B ou désactivez le test A/B.",
+        "percent": "Groupe test",
+        "percent_option": "{{percent}} % de l'audience",
+        "wait": "Choisir le gagnant après",
+        "hours_option": "{{hours}} h",
+        "rule": "Le groupe test ({{percent}} %) reçoit pour moitié l'objet A et pour moitié l'objet B. Après {{hours}} h, l'objet avec le meilleur taux de clic gagne (en cas d'égalité le meilleur taux d'ouverture, sinon A) et le reste reçoit cet objet. Chaque variante nécessite au moins 100 destinataires.",
+        "confirm_title": "Test A/B de l'objet",
+        "confirm_flow": "{{perVariant}} destinataires reçoivent maintenant l'objet A et {{perVariant}} l'objet B. Après {{hours}} h, les {{remainder}} destinataires restants reçoivent l'objet avec le meilleur taux de clic.",
+        "confirm_limit": "Les {{recipients}} destinataires comptent déjà dans votre limite mensuelle, y compris ceux qui attendent le gagnant.",
+        "too_small": "Votre audience est trop petite pour le test A/B : avec {{percent}} % il faut au moins {{min}} destinataires (100 par variante). La campagne part vers tout le monde avec l'objet A.",
+        "not_possible_multi": "Cette campagne est en plusieurs langues, donc sans test A/B : chacun reçoit l'objet de sa langue.",
+        "status_held": "En attente du gagnant A/B",
+        "report_title": "Test A/B de l'objet",
+        "report_winner": "L'objet {{variant}} a gagné ; le reste de votre audience a reçu cet objet.",
+        "report_pending": "Le gagnant sera choisi vers {{time}}.",
+        "col_variant": "Variante",
+        "variant_a": "Objet A",
+        "variant_b": "Objet B",
+        "variant_rest": "Reste de l'audience",
+        "winner": "Gagnant",
+        "waiting": "{{n}} en attente du gagnant",
+        "report_rule": "Gagnant = meilleur taux de clic, en cas d'égalité meilleur taux d'ouverture, sinon A. Les ouvertures sont une approximation : certains logiciels de messagerie préchargent ou bloquent les images.",
+        "skipped_title": "Envoyée sans test A/B",
+        "skipped_too_small": "Votre audience était trop petite pour le test au moment de l'envoi (au moins 100 par variante). Tout le monde reçoit l'objet A.",
+        "skipped_other": "Le test A/B n'a pas pu avoir lieu pour cette campagne. Tout le monde reçoit l'objet habituel.",
+        "report_no_difference": "Aucune différence, A choisi : rien n'a encore été ouvert ni cliqué dans le groupe test."
       }
     },
     "ads": {

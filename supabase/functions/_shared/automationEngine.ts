@@ -22,6 +22,7 @@ type Db = any;
 import { getTenantBrand } from "./tenantEmail.ts";
 import { tenantMarketingSender } from "./emailSenders.ts";
 import { resolveShopUrl } from "./mailPages.ts";
+import { loadStorefrontUrlContext, productUrlFor, type StorefrontUrlContext } from "./storefrontUrls.ts";
 import { loadBillingState } from "./billingGuard.ts";
 import { billingAllows } from "./billingState.ts";
 import {
@@ -45,6 +46,8 @@ interface TenantCtx {
   billingOk: boolean;
   billingState: string;
   reviewUrl: string | null | undefined; // undefined = nog niet opgehaald
+  /** MAIL-2c: voor productlinks in {{cart_items}}; undefined = nog niet opgehaald. */
+  storefront?: StorefrontUrlContext;
 }
 
 interface StepInfo {
@@ -95,7 +98,13 @@ async function reviewUrlFor(db: Db, ctx: TenantCtx, tenantId: string): Promise<s
   return ctx.reviewUrl;
 }
 
-async function cartLines(db: Db, cartId: string): Promise<CartLine[]> {
+/** MAIL-2c: productlinks van de winkel, één keer per run en winkel. */
+async function storefrontFor(db: Db, ctx: TenantCtx, tenantId: string): Promise<StorefrontUrlContext> {
+  if (!ctx.storefront) ctx.storefront = await loadStorefrontUrlContext(db, tenantId);
+  return ctx.storefront;
+}
+
+async function cartLines(db: Db, cartId: string, storefront: StorefrontUrlContext): Promise<CartLine[]> {
   const { data: items, error } = await db
     .from("storefront_cart_items")
     .select("product_id, variant_id, quantity")
@@ -107,10 +116,14 @@ async function cartLines(db: Db, cartId: string): Promise<CartLine[]> {
   const productIds = [...new Set(items.map((i: { product_id: string }) => i.product_id).filter(Boolean))];
   const variantIds = [...new Set(items.map((i: { variant_id: string }) => i.variant_id).filter(Boolean))];
   const names = new Map<string, string>();
+  const slugs = new Map<string, string>();
   const variants = new Map<string, string>();
   if (productIds.length) {
-    const { data } = await db.from("products").select("id, name").in("id", productIds);
-    for (const p of data || []) names.set(p.id, p.name);
+    const { data } = await db.from("products").select("id, name, slug").in("id", productIds);
+    for (const p of data || []) {
+      names.set(p.id, p.name);
+      if (p.slug) slugs.set(p.id, p.slug);
+    }
   }
   if (variantIds.length) {
     const { data } = await db.from("product_variants").select("id, title").in("id", variantIds);
@@ -120,6 +133,7 @@ async function cartLines(db: Db, cartId: string): Promise<CartLine[]> {
     quantity: i.quantity,
     product_name: names.get(i.product_id) ?? null,
     variant_title: i.variant_id ? variants.get(i.variant_id) ?? null : null,
+    product_url: productUrlFor(storefront, slugs.get(i.product_id)),
   }));
 }
 
@@ -277,7 +291,7 @@ async function processRun(db: Db, run: Record<string, any>, cache: Map<string, T
     }
     // Er bestaat (nog) geen veilige herstel-link voor een winkelwagen: de link gaat naar de winkel.
     vars.cart_url = tctx.shopUrl || "";
-    vars.cart_items = buildCartItemsHtml(await cartLines(db, cart.id));
+    vars.cart_items = buildCartItemsHtml(await cartLines(db, cart.id, await storefrontFor(db, tctx, run.tenant_id)));
     locale = locale || shortLocale(cart.locale);
     firstName = String(cart.customer_first_name || "").trim();
   }

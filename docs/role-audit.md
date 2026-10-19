@@ -1,3 +1,81 @@
+## MAIL-2d — A/B-test van de onderwerpregel — 20 oktober 2026
+
+Vervolg op MAIL-2a. Go van Akke 20-10 (samen met MAIL-2c). Changelog 2026.12y (`email_ab_subject`).
+
+**Root cause**
+- Er bestond geen werkende A/B-test. Live 20-10: `email_campaigns` heeft de oude kolommen `is_ab_test`, `variant_label`, `ab_variant_of`, `ab_test_winner_selected_at` en er is een tabel `ab_test_configs` (0 rijen, 0 campagnes met A/B). `src/hooks/useABTests.ts` schrijft daarin, maar geen enkel scherm gebruikt die hook en de verzendmotor (`_shared/campaignQueue.ts`) leest niets ervan. Geen dode knop in de UI, wel dode code.
+- `enqueue_campaign_sends` (MAIL-2a) zet alle ontvangers in één keer op `queued`; er was geen manier om een deel te laten wachten.
+
+**Uitgevoerd**
+- Migratie `20261020010000_mail_2d_ab_subject.sql` (vereist 2a): kolommen `email_campaigns.subject_b`, `ab_test_percent` (20, check 10-50), `ab_wait_hours` (4, check 1-24), `ab_started_at`, `ab_winner` (A/B), `ab_decided_at`; `campaign_sends.variant` (A/B, null = rest); check `kind = 'campaign' or subject_b is null`; partiële index op `status = 'held'`. Guard `guard_email_campaign_ab`: start/winnaar/beslismoment zet enkel SellQo, onderwerp B/percentage/wachttijd enkel in draft/scheduled/failed. `enqueue_campaign_sends` (zelfde signatuur): rijen mogen `variant` A/B/hold hebben (hold → status `held`), controle onderwerp B, geen gemengde rijen, minstens 100 per variant (`MAIL_AB_TOO_SMALL`); de limiet telt de volledige doelgroep; zet `ab_started_at` en wist een oude winnaar. Nieuw: `campaign_ab_release(campaign, winner)` (rij-lock, één keer, enkel na de wachttijd en op `sending`; zet `held` → `queued`) en `campaign_ab_stats(campaign)` (per A/B/rest: ontvangers, verzonden, geopend, geklikt, wachtend). Helpartikel `ab-test-onderwerp`.
+- `_shared/abTest.ts` (nieuw, puur): `planAbTest` (percentage, wachttijd, 100 per variant, `too_small`/`multi_language`/`automation`), `assignVariants` (Fisher-Yates), `pickAbWinner` (klikratio → openratio → A, kruisvermenigvuldiging), `abDecisionDue`, `subjectForRow`.
+- `_shared/campaignQueue.ts`: ontvangers ontdubbeld per adres; `countCampaign` geeft `ab`; `enqueueCampaign` verdeelt bij een geldig plan; `renderFor` kiest het onderwerp per rij (automation altijd A); `refreshCampaignTotals` telt `held` als open (campagne blijft `sending`); `decideAbTests` in elke worker-run (cron elke minuut) vóór het afwerken van de wachtrij.
+- `send-campaign-batch`: count-modus geeft `ab` mee; foutcode `AB_INVALID`.
+- Frontend: `CampaignDialog` (schakelaar, onderwerp B, testgroep 10-50%, wachttijd 1-24 u; uit bij meerdere talen), `SendCampaignConfirmDialog` (verloop of reden waarom niet), `CampaignDetail` (kaart per variant + winnaar of beslismoment, status "Wacht op A/B-winnaar"), `useCampaignAbStats`, types.
+
+**Security-keuzes**
+- Nieuwe functies `security definer` met vaste `search_path`. `campaign_ab_release` enkel service_role; `campaign_ab_stats` voor authenticated met `has_tenant_role` (tenant_admin/staff/marketing/viewer), service_role zonder check. `enqueue_campaign_sends`: grants ongewijzigd (service_role).
+- Een gebruiker kan via PostgREST geen winnaar of start zetten (guard) en geen onderwerp B wijzigen terwijl een campagne verstuurt. `campaign_sends` blijft enkel door de server te schrijven (guard MAIL-1a).
+
+**Gedeelde-paden-waarschuwing**
+- `enqueue_campaign_sends` en `campaignQueue.ts` bedienen alle campagnes en automations. Zonder `variant` in de rijen is het pad identiek aan 2a (PGlite: gewone campagne → 3 `queued`, `ab_started_at` null). Automations: `subjectForRow` wordt niet gebruikt, `planAbTest` geeft `automation`, de check verbiedt `subject_b`.
+- `storefront-api`, `storefront-customer-api`, `storefront-resolve` en de gedeelde theme-tabellen niet aangeraakt. Eerste wet niet geraakt.
+
+**Verificatie**
+- PGlite (`scratchpad/pgtest2d.mjs`, bovenop 1a/1b/2a): 2c en 2d elk 2x (idempotent); 6 guards (winnaar, start, percent 80, wacht 30, insert met winnaar, release door gebruiker); weigering bij 99/100, zonder onderwerp B, variant C, gemengde rijen (geen rijen achtergelaten); limiet 1100 bij 1200 ontvangers → `MAIL_PLAN_LIMIT`; split 1000 → 100 A / 100 B / 800 held, verbruik 1000; claim neemt 200, geen held; stats A 100/40/7, B 100/30/9, rest 800 wachtend; release te vroeg → `not_due`, daarna winnaar B, 800 vrijgegeven, tweede keer 0; andere winkel → NO_ACCESS; herstart vanuit failed wist de winnaar en splitst opnieuw.
+- `deno test` abTest (5), storefrontUrls (5), automationVars (11), marketingToken: 27 passed. `deno check` campaignQueue, automationEngine, automationVars, process-campaign-queue, send-campaign-batch, automation-scheduler, render-campaign-preview: enkel "Check".
+- `tsc --noEmit -p tsconfig.app.json` exit 0; `npm run build` exit 0; `vitest` 805/805; i18n-parity volledig (8617 keys × 5); check-notification-sources ok; verify-edge-pins ok. Lint: geen nieuwe `no-explicit-any` (CampaignDialog 20=20, campaignQueue 12=12, send-campaign-batch 1=1, nieuwe bestanden 0).
+- **Niet gedaan:** smoketest op SellQo Speeltuin (testgroep echt versturen, beslissing na 1 u, rapport). Cron niet lokaal getest.
+
+**Review-fixes (20 oktober 2026)**
+- Verouderde context: rijen zonder variant van een gestarte test laden de campagne opnieuw als de gecachte context nog geen winnaar heeft; nog steeds geen winnaar → terug op `queued` met +1 min (poging niet meegeteld), niet versturen (`guardAbRemainder`).
+- Guard: `subject` ligt vast voor gebruikers zolang de test loopt (gestart, nog niet beslist). Bypass blijft `current_user` (bewust niet `auth.role()`).
+- Te kleine doelgroep bij het versturen terwijl de bevestiging een test toonde: `ab_skipped` in het antwoord en een toast "Verstuurd zonder A/B-test" (5 talen).
+- Rapport: winnaar zonder één opening of klik → "Geen verschil, A gekozen".
+- `decideAbTests` geeft niets vrij zolang `billingAllows` faalt voor de winkel (volgende run opnieuw).
+- `storefrontUrls.ts` en `mailPages.resolveShopUrl` verwijzen naar elkaar. Niet samengevoegd: andere regels (homepage-link altijd, productlink nooit gegokt).
+- Hertest: PGlite (+ onderwerp geblokkeerd tijdens de test, toegelaten na beslissing, server altijd), deno check/test 27 passed, vitest 805/805, parity ok, tsc 0, build 0, lint campaignQueue 12=12 en mailPages 2=2.
+
+**Bewust ongemoeid / Vervolg**
+- Oude A/B-resten (`useABTests.ts`, `ab_test_configs`, `is_ab_test`/`variant_label`/`ab_variant_of`) niet verwijderd: geen kolom droppen, en `CampaignDialog` geeft `ab_variant_of` nog door. Opruimen van de hook is een aparte batch.
+- Enkel het onderwerp wordt getest, niet de inhoud of de preheader. Geen statistische significantietoets: bij kleine verschillen is de winnaar een benadering (helptekst zegt dat openingen een benadering zijn).
+- Meertalige campagnes testen niet (bewuste keuze: elke taal heeft eigen onderwerpen; een test over talen heen zou de groepen vermengen).
+- Vereist dat MAIL-2a eerst live staat (live 20-10 ontbreken `email_campaigns.kind` en `campaign_sends.variables` nog).
+
+## MAIL-2c — Productblokken in marketingmails — 20 oktober 2026
+
+Go van Akke 20-10. Changelog 2026.12y (`email_product_blocks`).
+
+**Root cause**
+- De e-maileditor (`CampaignRichEditor.tsx`, TipTap met StarterKit/Link/Image) had geen manier om producten in te voegen; elke tabel of opmaak buiten het schema verdwijnt bij het openen in de visuele editor, en `isComplexHtml` (`src/lib/emailContent.ts`) duwt elke mail met een `<table>` naar de HTML-modus.
+- Productlinks werden op twee plaatsen anders of niet gemaakt: `generate-product-feed` bouwt `sellqo.app/shop/<tenant>/product/<slug>`, terwijl de SellQo-winkel op `<slug>.sellqo.shop/producten/<slug>` draait (sellqo-storefront `src/routes/producten.$slug.tsx`, `Examples.tsx`, `SectorLanding.tsx`). `{{cart_items}}` (MAIL-2a) had geen links.
+- Live 20-10: Astra Sleep is custom frontend zonder `product_url_template`; Loveke, VanXcel, Mancini Milano, Benny Rich en Zona Dorata hebben er een; 11 SellQo-theme-tenants staan op `shop_live` zonder eigen domein.
+
+**Uitgevoerd**
+- `supabase/functions/_shared/storefrontUrls.ts` (nieuw, puur, ook door `src/` geïmporteerd): `productUrlFor` (template met `{slug}` en https → template; anders SellQo-theme met actief, geverifieerd, canoniek domein of `<slug>.sellqo.shop` als `shop_live`, pad `/producten/<slug>`; anders null), `loadStorefrontUrlContext` (faalt nooit; leesfout op het theme = als custom frontend behandeld → geen link).
+- `_shared/automationVars.ts`: `buildCartItemsHtml` linkt de productnaam als er een https-link is; `SAFE_CART_ITEMS` laat exact die `<a href="https://…">` toe. `_shared/automationEngine.ts`: `cartLines` leest de slug en vraagt de link op (context per winkel gecachet).
+- `src/lib/emailProductBlock.ts` (nieuw): validatie (max 4, enkel https voor foto en link, kleur #rrggbb), mailveilige tabel (raster 1/2/3/2×2 of lijst), JSON-kopie in `data-sellqo-products`, `stripProductBlocks`, `formatBlockPrice`.
+- `ProductBlockExtension.ts` (nieuw): TipTap-atom `sellqoProducts`; leest enkel het JSON-attribuut en bouwt de HTML opnieuw op als DOM-spec (tekstknopen + setAttribute, geen innerHTML).
+- `EditorInsertDialogs.tsx`: `ProductInsertDialog` (zoeken in actieve, niet-verborgen producten, 1-4 kiezen, raster/lijst, knoptekst in de mailtaal). Geen link bekend → melding, blok zonder knop en zonder link. `CampaignRichEditor` registreert de extensie altijd en toont de knop met `productBlocks` (campagnes, templates, automations; niet in de nieuwsbriefinstellingen). `isComplexHtml` negeert productblokken.
+- Prijs: vast op het moment van invoegen (beslist in de recon: er bestaat geen render-time-productmechanisme in `renderFor`/`render-campaign-preview`, en een nieuw zou per mail productqueries vragen). Helptekst en helpartikel zeggen dat. Geen doorstreepte prijs.
+- Migratie `20261020000000_mail_2c_product_blocks_doc.sql`: helpartikel `producten-in-je-mail` (ON CONFLICT, category_id Marketing).
+
+**Security-keuzes**
+- Geen schema- of RLS-wijziging. De dialoog leest `products`, `tenants`, `tenant_theme_settings`, `tenant_domains` met de bestaande lees-policies voor leden.
+- Opgeslagen HTML kan geen opmaak in de editor brengen: enkel gevalideerde JSON telt (vitest: `onerror`/`<script>` in een blok verdwijnen). In de verzonden mail blijft de body tenant-HTML zoals voorheen.
+
+**Gedeelde-paden-waarschuwing**
+- `buildCartItemsHtml`/`htmlSafeVars` worden gebruikt door de engine, de worker en het voorbeeld. Zonder link exact dezelfde uitvoer als voorheen (bestaande test ongewijzigd groen).
+- Custom frontends: hun link komt enkel uit `product_url_template`; Astra Sleep krijgt nooit een link. `storefront-api`/`-customer-api`/`-resolve` en de gedeelde theme-tabellen niet aangeraakt (enkel gelezen).
+
+**Verificatie**
+- vitest `src/lib/emailProductBlock.test.ts` (8): validatie, escaping, geen knop zonder link, geen doorstreepte prijs, rondgang door een echte TipTap-editor, vreemde HTML weg, kapotte JSON weg, `isComplexHtml`. Rest: zie MAIL-2d (tsc, build, vitest 805, parity, lint, deno).
+- **Niet gedaan:** smoketest op SellQo Speeltuin/Demo Bakkerij (blok invoegen, testmail, klik op de knop naar `<slug>.sellqo.shop/producten/…`), en weergave in Outlook/Gmail.
+
+**Bewust ongemoeid / Vervolg**
+- `generate-product-feed` gebruikt nog `sellqo.app/shop/<tenant>/product/<slug>` voor SellQo-theme-tenants; overschakelen op `storefrontUrls.ts` (en dus `/producten/`) raakt de Google-feed en is een aparte batch.
+- Een productblok in een vertaalde tab moet per taal ingevoegd worden; prijzen worden niet bijgewerkt als het product verandert.
+
 ## MAIL-2a — Automations: welkomstreeks, na aankoop, reviewvraag, win-back, verlaten winkelwagen — 19 oktober 2026
 
 Vervolg op MAIL-1a/1b/1c. Go van Akke 19-10. Backend (dit deel) en frontend (Marketing → Automatiseringen, `src/`) parallel gebouwd. Changelog 2026.12x (`email_automations`) staat in het frontenddeel.

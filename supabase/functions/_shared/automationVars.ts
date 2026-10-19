@@ -55,7 +55,8 @@ export function mergeAutomationVars(
  * Verdediging in de diepte: campaign_sends.variables schrijft enkel de server, maar een
  * ruwe HTML-variabele mag nooit op vertrouwen alleen rusten.
  */
-const SAFE_CART_ITEMS = /^<ul>(<li>[^<>]*<\/li>){1,10}<\/ul>$/;
+// MAIL-2c: een regel mag de productnaam als link hebben (enkel https, zonder aanhalingstekens).
+const SAFE_CART_ITEMS = /^<ul>(<li>[^<>]*(<a href="https:\/\/[^"<>\s]+">[^<>]*<\/a>[^<>]*)?<\/li>){1,10}<\/ul>$/;
 
 /** HTML-veilige versie van de map: alles ge-escaped behalve de vooraf opgebouwde HTML-blokken. */
 export function htmlSafeVars(vars: Record<string, string>): Record<string, string> {
@@ -95,15 +96,22 @@ export interface CartLine {
   quantity: number | null;
   product_name: string | null;
   variant_title?: string | null;
+  /** MAIL-2c: publieke productlink uit storefrontUrls.productUrlFor; null = geen link. */
+  product_url?: string | null;
 }
 
-/** Productlijst voor {{cart_items}}: max. 10 regels, namen ge-escaped. Leeg → "". */
+/**
+ * Productlijst voor {{cart_items}}: max. 10 regels, namen ge-escaped. Leeg → "".
+ * MAIL-2c: met een https-productlink wordt de naam een link; zonder link blijft het tekst.
+ */
 export function buildCartItemsHtml(lines: CartLine[] | null | undefined): string {
   const rows = (lines || []).filter((l) => (l.product_name || "").trim()).slice(0, 10);
   if (!rows.length) return "";
   const li = rows.map((l) => {
     const qty = Math.max(1, Math.floor(Number(l.quantity) || 1));
-    const name = escapeHtml(String(l.product_name).trim());
+    const rawName = escapeHtml(String(l.product_name).trim());
+    const url = (l.product_url || "").trim();
+    const name = /^https:\/\/[^"'<>\s]+$/.test(url) ? `<a href="${escapeHtml(url)}">${rawName}</a>` : rawName;
     const variant = (l.variant_title || "").trim() ? ` (${escapeHtml(String(l.variant_title).trim())})` : "";
     return `<li>${qty} × ${name}${variant}</li>`;
   });
