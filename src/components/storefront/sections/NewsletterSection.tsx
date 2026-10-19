@@ -12,12 +12,14 @@ interface NewsletterSectionProps {
 }
 
 export function NewsletterSection({ section, tenantId }: NewsletterSectionProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const content = section.content as NewsletterContent;
   const settings = section.settings;
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // MAIL-1a/1b: bij double opt-in eerst bevestigen via de mail.
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,21 +27,24 @@ export function NewsletterSection({ section, tenantId }: NewsletterSectionProps)
 
     setLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('storefront-api', {
+      const { data, error } = await supabase.functions.invoke('storefront-api', {
         body: {
           action: 'newsletter_subscribe',
           tenant_id: tenantId,
-          email: email.trim(),
-          source: 'website',
+          // MAIL-1b: storefront-api leest de velden uit `params` (r. ±5379); top-level
+          // gaf altijd "email is required".
+          params: { email: email.trim(), source: 'website', language: i18n.language },
         },
       });
 
       if (error) throw error;
+      // Antwoord: { success, data: { requires_confirmation, ... } }
+      setNeedsConfirm(data?.data?.requires_confirmation === true);
 
       setSubmitted(true);
     } catch (error: any) {
       console.error('Newsletter subscribe error:', error);
-      toast.error('Er ging iets mis. Probeer het opnieuw.');
+      toast.error(t('storefront.newsletter.error'));
     } finally {
       setLoading(false);
     }
@@ -70,8 +75,12 @@ export function NewsletterSection({ section, tenantId }: NewsletterSectionProps)
 
           {submitted ? (
             <div className="py-4">
-              <p className="text-lg font-semibold">{t('storefront.sections.newsletterSection.bedankt_voor_je_aanmelding')}</p>
-              <p className="text-sm text-muted-foreground mt-1">{t('storefront.sections.newsletterSection.je_bent_succesvol_ingeschreven_voor_onze')}</p>
+              <p className="text-lg font-semibold">
+                {needsConfirm ? t('storefront.newsletter.confirm_title') : t('storefront.sections.newsletterSection.bedankt_voor_je_aanmelding')}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {needsConfirm ? t('storefront.newsletter.confirm_body') : t('storefront.sections.newsletterSection.je_bent_succesvol_ingeschreven_voor_onze')}
+              </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="flex gap-3 max-w-md mx-auto">

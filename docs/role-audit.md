@@ -1,3 +1,107 @@
+## MAIL-1c — Bevestigen, afmelden en voorkeuren als pagina op sellqo.app — 19 oktober 2026
+
+Vervolg op MAIL-1a/1b. Go van Akke 19-10.
+
+**Root cause**
+- Productie-smoketest 19-10: Supabase serveert HTML die een edge function teruggeeft als `text/plain`. De pagina's van `newsletter-confirm` (`renderPage`), `unsubscribe` (`getUnsubscribePageHtml`, `getSuccessPageHtml`, `getLegacyAskHtml`, …) en `email-preferences` (`getPreferencesPageHtml`, `simplePage`) toonden shopklanten dus ruwe HTML-broncode in plaats van een pagina. Het zetten van `Content-Type: text/html` in de functie helpt niet: de gateway overschrijft het.
+- Daardoor was afmelden via de link in de mail voor een klant praktisch onbruikbaar (enkel RFC 8058 one-click vanuit de mailapp werkte), wat ook een AVG-risico is.
+
+**Uitgevoerd**
+- `supabase/functions/_shared/mailPages.ts` (nieuw): `appBaseUrl()` (`PUBLIC_APP_URL`, enkel http(s)-origin, anders `https://sellqo.app`), `redirectToApp()` (302, `Cache-Control: no-store`), `getShopInfo()` (naam, logo, shop-URL via `getTenantBrand`; het SellQo-standaardlogo telt niet als winkellogo), `resolveShopUrl()` (verhuisd uit newsletter-confirm, zelfde logica), `jsonResponse()`, `pickParams()`.
+- `supabase/functions/unsubscribe/index.ts`: alle HTML-builders weg. Browser-GET → 302 naar `/mail/afmelden?tenant&email&s&campaign&lang`. POST met `application/json`: `info` (→ `{valid, legacy, shop_name, logo_url, shop_url}`; shopinfo enkel bij geldige of legacy-link), `unsubscribe` (vraagt geldige handtekening), `legacy` (enkel zonder `s`, altijd `{ok:true}`). De uitschrijflogica staat nu in `performUnsubscribe()` en is letterlijk dezelfde als de oude POST (email_unsubscribes zonder bestaande datum te overschrijven, customers.email_subscribed=false, newsletter_subscribers unsubscribed + reden, email_preferences alles uit). `sendFreshUnsubscribeLink` ongewijzigd. RFC 8058 one-click (POST, form-body `List-Unsubscribe=One-Click`, parameters in de querystring) → 200 `OK` zoals voorheen; een niet-one-click formulier-POST uit een nog open oude pagina wordt uitgeschreven en daarna doorgestuurd naar `/mail/afmelden?…&done=1`.
+- `supabase/functions/email-preferences/index.ts`: HTML weg. GET → 302 naar `/mail/voorkeuren`. JSON-POST `get` (leest, maakt niets aan, standaardwaarden als er geen rij is) en `save` (zelfde upsert; alles uit → `email_subscribed=false`; nooit terug op true). Andere POST's → 415.
+- `supabase/functions/newsletter-confirm/index.ts`: bevestigingslogica ongewijzigd (atomaire flip pending→active, klant, voorkeuren, Mailchimp/Klaviyo, welkomstmail). In plaats van `renderPage` volgt een 302 naar `/mail/bevestigd?status=ok|already|invalid|unsubscribed|error&shop&url&logo&lang`. Nieuw onderscheid: een eerder uitgeschreven adres krijgt `unsubscribed` in plaats van `invalid`. `PAGE_STRINGS` en `renderPage` verwijderd (teksten zitten nu in i18n).
+- `src/pages/public/MailAction.tsx` (nieuw): `MailUnsubscribe`, `MailPreferences`, `MailConfirmed`, zelfde Shell/Card-stijl als `TenantAction.tsx`, `PageMeta noindex`, geen login nodig. Taal uit `?lang=` (enkel als `isLangCode`), anders de huidige taal. Aanroep via `fetch` met `apikey`-header (geen `functions.invoke`: die gooit bij 400 de JSON `{valid:false}` weg). `url` en `logo` uit de querystring worden enkel als link/afbeelding gebruikt als ze http(s) zijn; de winkelnaam wordt als tekst gerenderd.
+- `src/App.tsx`: routes `/mail/afmelden`, `/mail/voorkeuren`, `/mail/bevestigd` naast `/actie/:token`.
+- i18n: namespace `mailPages.*` (58 keys) in `nl/en/fr/de/uk.json`, handmatig vertaald (je/you/vous/du/ви, zoals de bestaande mailteksten). Changelog: `mail_pages_fixed` (bugfix) toegevoegd aan 2026.12w in `PublicChangelog.tsx` en de vijf `landing.*.json`.
+
+**Security-keuzes**
+- Handtekeningcontrole (`_shared/marketingToken.ts`) ongewijzigd en op elke lees- of schrijfactie: `info` geeft zonder geldige of legacy-link geen winkelgegevens terug, `unsubscribe`/`get`/`save` doen niets zonder geldige `s`.
+- De JSON-API gebruikt `getCorsHeaders` (`_shared/cors.ts`): enkel sellqo.app, www/admin.sellqo.app, Lovable-previews en localhost. Voorheen stond overal `Access-Control-Allow-Origin: *`. One-click komt van mailservers en heeft geen CORS nodig.
+- Een GET verandert niets (enkel redirect), dus link-scanners in mailboxen schrijven niemand uit. Alleen `newsletter-confirm` schrijft op GET, zoals voorheen (idempotent).
+- Redirect-doel is vast (`PUBLIC_APP_URL` of sellqo.app), geen open redirect. Enkel bekende parameters gaan mee, max. 512 tekens.
+- De e-mail en handtekening staan in de URL van de app-pagina, zoals voorheen in de functie-URL. `noindex` + `Cache-Control: no-store` op de redirect.
+- Geen RLS, policies, grants of migraties.
+
+**Gedeelde-paden-waarschuwing**
+- n.v.t. `storefront-api`, `storefront-customer-api`, `storefront-resolve` en de gedeelde tabellen zijn niet aangeraakt. De links in verstuurde mails (`buildUnsubscribeUrl`, `buildPreferencesUrl`, de bevestigingslink uit storefront-api en `_shared/newsletterConfirm.ts`) blijven naar de functie-URL wijzen; die redirect. Oude, al verstuurde mails blijven dus werken, ook voor custom-frontend-tenants.
+
+**Verificatie**
+- `deno check` (stub-importmap) op unsubscribe, email-preferences, newsletter-confirm en `_shared/mailPages.ts`: enkel "Check"-regels.
+- `deno test _shared/marketingToken.test.ts`: 4 passed.
+- `npx tsc --noEmit -p tsconfig.app.json`: exit 0.
+- `npm run build`: exit 0 (`public/sitemap.xml` teruggezet).
+- `npx vitest run`: 62 bestanden, 795 tests geslaagd.
+- `node scripts/i18n-parity.mjs`: volledige pariteit, 5 talen, 8497 keys.
+- `eslint` op `MailAction.tsx`, `App.tsx`, `PublicChangelog.tsx`: 0 fouten (baseline ook 0).
+- Niet gedaan: deploy en smoketest in productie (vraagt deploy van de drie functies + publicatie frontend).
+
+**Bewust ongemoeid / Vervolg**
+- Mail-links dragen nog geen `lang`; de afmeld- en voorkeurenpagina tonen dan de browsertaal. `newsletter-confirm` geeft `lang` wel mee. Vervolg: `&lang=` toevoegen in `buildUnsubscribeUrl`/`buildPreferencesUrl` (vraagt de taal van de ontvanger bij het opbouwen).
+- Volgorde bij uitrol: eerst de frontend publiceren (routes `/mail/*` moeten bestaan), dan de drie functies deployen. Andersom krijgen klanten tijdelijk een 404 op sellqo.app.
+- `PUBLIC_APP_URL` moet (indien gezet) naar sellqo.app wijzen; anders landt de redirect op een andere origin en blokkeert CORS de JSON-aanroep.
+- Smoketest na uitrol: afmeldlink (geldig, legacy zonder `s`, gemanipuleerde `s`), one-click via `curl -X POST -d 'List-Unsubscribe=One-Click'`, voorkeuren opslaan, bevestigingslink twee keer.
+- `doc_articles` en newsletter-queue: n.v.t., dit is een herstel van bestaand gedrag zonder nieuwe tenantfunctie; de changelog-entry volstaat.
+
+## MAIL-1b — Abonneebeheer, preview in huisstijl, templates en mediabibliotheek in e-mail — 19 oktober 2026
+
+Vervolg op MAIL-1a (zie hieronder). Go van Akke 19-10 ("doorpakken"). Plus een bugfix uit de smoke-test: de nieuwsbriefformulieren van het SellQo-theme schreven niemand in.
+
+**Root cause**
+- Geen scherm voor abonnees: wie ingeschreven was, wie nog moest bevestigen of wie uitgeschreven was, zag een winkel nergens. Exporteren, uitschrijven en AVG-verwijderen kon niet. `email_unsubscribes` heeft sinds `20260608204159` r.497-523 geen INSERT-policy voor `authenticated` (enkel service-role), en `customers` UPDATE is enkel voor tenant_admin/staff (`20260608184319` r.18-27). Een rechtstreekse write vanuit de admin kan dus niet.
+- Voorbeeld van een campagne: `CampaignDialog.tsx` en `TemplateDialog.tsx` toonden `wrapInEmailTemplate` (grijze generieke wrapper, `CampaignRichEditor.tsx` r.173). De echte mail gebruikt `renderTenantEmail` met de huisstijl (`_shared/campaignQueue.ts` `renderFor`, r.194-254). Een mobiel voorbeeld bestond niet.
+- Templatekaarten in `Marketing.tsx` (r.337-347) waren niet klikbaar. `updateTemplate` en `deleteTemplate` bestonden in `useEmailTemplates.ts`, maar niets riep ze aan. `TemplateDialog` las `template` enkel bij de eerste mount (`useState`/`defaultValues`), dus bewerken zou de verkeerde inhoud tonen. Categorielabels waren hardcoded Nederlands.
+- `CampaignRichEditor.tsx` r.64-82: link en afbeelding via `window.prompt`, zonder de mediabibliotheek.
+- **Bugfix (storefront):** `NewsletterSection.tsx`, `NewsletterPopup.tsx` en `ExitIntentPopup.tsx` stuurden `email`/`source` top-level. `storefront-api` leest `const { action, tenant_id, params = {} } = body` (r.5379) en `params.email` (r.5019). Gevolg: elke inschrijving via het SellQo-theme gaf "email is required" (500). Dat was al zo vóór MAIL-1a. De drie toasts waren hardcoded Nederlands.
+
+**Uitgevoerd**
+- Migratie `20261019220000_mail_1b_subscribers.sql`:
+  - `marketing_contacts_all` (intern, enkel service_role) voegt samen: `email_unsubscribes` → uitgeschreven/gebounced/klacht; anders `customers.email_subscribed` → ingeschreven; anders `newsletter_subscribers.pending` → wacht op bevestiging. Vergelijking op `lower(trim(email))`, zelfde regel als `campaignAudience.ts`. Na een AVG-verwijdering wordt geen naam meer getoond.
+  - `marketing_contacts` (filter, zoeken met ge-escapete ILIKE, limit/offset, `total_count`).
+  - `marketing_contact_counts`.
+  - `marketing_unsubscribe_contact`: klant `email_subscribed=false`, nieuwsbrief `unsubscribed`, uitschrijving met reden `manual`. Een bestaande bounce, klacht of `gdpr_erasure` blijft staan.
+  - `marketing_erase_contact` (enkel tenant_admin): verwijdert `newsletter_subscribers` en `email_preferences`, zet `email_subscribed=false` en `email_subscribed_at=null`, en zet één rij in `email_unsubscribes` met reden `gdpr_erasure`, zonder klant- of campagnekoppeling. De klant blijft bestaan (orders, facturen).
+  - Helpartikel `email-abonnees-beheren` (categorie Marketing, `/admin/marketing`).
+- `supabase/functions/newsletter-invite/index.ts` (nieuw): `authenticateRequest` + `requireRole(tenant_admin, staff, marketing)` + billing-guard. `consent: true` is verplicht. Het aantal adressen per aanroep is begrensd op 500, per winkel op 2.000 per 24 uur. Overgeslagen worden: al ingeschreven, op de uitschrijflijst (hoofdletterongevoelig, gepagineerd), eerder uitgeschreven, ongeldig of dubbel. Nieuwe adressen worden `pending` met source `admin_invite` via upsert met `ignoreDuplicates`; wie al wacht, krijgt de mail opnieuw met hetzelfde token. De bevestigingsmail gaat via de Resend batch-API. Ze is transactioneel en telt niet mee voor de limiet.
+- `supabase/functions/_shared/newsletterConfirm.ts` (nieuw): een **kopie** van `NEWSLETTER_CONFIRM_STRINGS` + `_sendNewsletterConfirmation` uit storefront-api. De teksten zijn nagetrokken als identiek.
+- `supabase/functions/render-campaign-preview/index.ts` (nieuw): rendert zoals `renderFor` (brand, `buildVariableMap` met voorbeeldklant, ge-escapete variabelen, `renderTenantEmail`, poweredBy). De uitschrijflink is `#`. De functie verstuurt en schrijft niets. Rollen: tenant_admin, staff, marketing, viewer.
+- `supabase/config.toml`: `verify_jwt = false` voor beide nieuwe functies (auth gebeurt in de functie, zoals bij send-campaign-batch).
+- `src/hooks/useMarketingContacts.ts` (nieuw): queries en mutaties, CSV-ophaling per 1000, `parseEmailList`.
+- `src/components/admin/marketing/SubscribersTab.tsx` (nieuw): statusfilters met aantallen, zoeken (debounce 300 ms), 50 per pagina server-side, CSV-export van de huidige filter (`lib/csvExport.ts`), "Uitschrijven" (enkel bij ingeschreven of wachtend, met schrijfrecht), "AVG-verwijderen" (enkel tenant_admin, dialoog legt uit dat orders en facturen blijven). "Uitnodigen" werkt met een textarea of CSV en een verplicht vinkje "Ik heb toestemming…". Er is geen knop om iemand rechtstreeks in te schrijven.
+- `src/components/admin/marketing/BrandedEmailPreview.tsx` (nieuw): roept `render-campaign-preview` aan met 600 ms debounce. Schakelaar desktop 600 px / mobiel 375 px. Lukt de render niet, dan valt het voorbeeld terug op de lokale wrapper, met melding.
+- `src/components/admin/marketing/EditorInsertDialogs.tsx` (nieuw): `LinkDialog` (https/http/mailto/{{variabele}}, link verwijderen; submit stopt de propagatie, zodat het omliggende campagneformulier niet mee verstuurt) en `ImageInsertDialog` (mediabibliotheek via `useMediaAssets('all')`, zoeken, alt-tekst, `incrementUsage`; terugval op een URL, enkel https).
+- `CampaignRichEditor.tsx`: `window.prompt` vervangen door de dialogen. Placeholder en knoplabels lopen via i18n.
+- `CampaignDialog.tsx`: het voorbeeld gebruikt `BrandedEmailPreview` (actieve taal, onderwerp en preheader).
+- `TemplateDialog.tsx`: velden worden opnieuw gevuld bij openen (bewerken werkt), categorieën lopen via i18n, `Select` is gecontroleerd, het voorbeeld toont de huisstijl.
+- `Marketing.tsx`: tab "Abonnees". Templatekaarten openen het bewerken (klik/Enter) en hebben een verwijderknop met bevestiging; beide enkel met `write marketing`. Taalbadge toegevoegd. Seeded starters zijn ook bewerkbaar.
+- **Bugfix storefront** (`NewsletterSection.tsx`, `NewsletterPopup.tsx`, `ExitIntentPopup.tsx`): de body is nu `{ action, tenant_id, params: { email, source, language } }`. Antwoord `{ success, data: { requires_confirmation } }` (wrapper r.5504 nagekeken). Bij bevestiging verschijnt "Bijna klaar!" met uitleg, en de popups blijven dan 6 s open in plaats van 2. Toasts gaan via `storefront.newsletter.error`.
+- i18n: 86 nieuwe keys in 5 talen (handmatig vertaald, geen `LOVABLE_API_KEY`). Changelog 2026.12w (`email_subscribers_tab` feature, `email_editor_improvements` improvement) in 5 landing-bestanden. `docs/newsletter-queue.md`.
+
+**Security-keuzes**
+- Alle nieuwe RPC's zijn `security definer` met vaste `search_path` en controleren `has_tenant_role` zelf. Lezen mag voor tenant_admin, staff, marketing, viewer en accountant (dezelfde rollen die `email_unsubscribes` al mochten lezen, plus viewer zoals `read marketing`). Uitschrijven mag voor tenant_admin, staff en marketing. AVG-verwijderen mag enkel tenant_admin. `anon` heeft geen execute; `marketing_contacts_all` is enkel voor service_role.
+- Niets kan iemand inschrijven. De enige weg naar `email_subscribed=true` blijft de bevestigingsklik (`newsletter-confirm`).
+- `newsletter-invite`: toestemmingsvlag verplicht (dat is een verklaring, geen grens). De echte grens is de double opt-in plus de limieten 500 per aanroep en 2.000 per 24 uur, die misbruik als spamkanaal afremmen.
+- `render-campaign-preview` schrijft en verstuurt niets, en ondertekent geen uitschrijflink.
+- Geen policies of grants op bestaande tabellen gewijzigd.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` is niet aangeraakt (`git diff` leeg). De bevestigingsmail staat nu op twee plekken (storefront-api en `_shared/newsletterConfirm.ts`). Pas je de tekst aan, dan op beide plekken.
+- De drie storefront-componenten horen bij het SellQo-theme. De zes custom frontends gebruiken ze niet (eigen code). De eerste wet is niet geraakt.
+- `CampaignRichEditor` wordt ook gebruikt in `NewsletterSettings.tsx` (welkomstmail): die krijgt dezelfde dialogen. Dat is gewenst en zonder contractwijziging.
+- Geen kolommen op gedeelde tabellen.
+
+**Verificatie**
+- Migratie twee keer na elkaar in PGlite (idempotent), met stubs voor `auth.uid()`, `has_tenant_role` en de tabellen. Getest: aantallen per status, lijst en paginatie, zoeken met een letterlijke `_`, toegang vanuit een andere winkel → NO_ACCESS, uitschrijven (hoofdletters/spaties, tweede keer niets), een bounce blijft bounce, AVG door marketing → NO_ACCESS, AVG door admin (inschrijving en voorkeuren weg, klant blijft, reden `gdpr_erasure`, tweede keer ok), dezelfde e-mail in een andere winkel ongemoeid, helpartikel 1 rij.
+- `deno check` (stubs) op newsletter-invite, render-campaign-preview en `_shared/newsletterConfirm.ts`: ok.
+- tsc: 0 fouten. Build: ok. vitest: 795 geslaagd. i18n-parity: volledig (8437 keys per taal). eslint op de gewijzigde bestanden: 28, gelijk aan de baseline van HEAD; de nieuwe bestanden zijn schoon.
+- **Niet gedaan:** smoke-test op SellQo Speeltuin (uitnodiging + bevestigingsklik, voorbeeld met echt logo, AVG-verwijderen, popup-inschrijving). `types.ts` is niet geregenereerd (de RPC-aanroepen gebruiken een getypte omweg tot de regeneratie).
+
+**Bewust ongemoeid / Vervolg**
+- `storefront-api` laten verhuizen naar `_shared/newsletterConfirm.ts`: in een aparte batch, met een rooktest.
+- Een template verwijderen zet `automation_steps.template_id` op null (FK `ON DELETE SET NULL`). Automations (MAIL-2) moeten daar rekening mee houden; in de dialoog staat enkel dat campagnes hun inhoud houden.
+- `window.prompt` staat nog in `storefront/RichTextEditor.tsx`, `EditableRichTextBlock.tsx`, `ProductDescriptionEditor.tsx` en `inbox/ComposeRichEditor.tsx` (buiten scope). `EditorInsertDialogs` is herbruikbaar.
+- `newsletter-confirm` kent enkel nl/en/fr/de. Een uitnodiging in het Oekraïens valt terug op de taal van de winkel.
+
 ## MAIL-1a — E-mailmarketing: volledige verzending, inplannen, toestemming, uitschrijven (2026.12v) — 19 oktober 2026
 
 Akke 19-10, 19:55: "kijk je eens A-Z na, wat werkt er wel/niet … dit moet heel snel opstaan want de tenants gaan deze snel gebruiken". Recon `claude/recon-mail-1.md` (project Nomadix Socials). Beslissingen 20:05 ("akkoord met alles"): bestaande inschrijvingen rechtzetten (enkel VanXcel ~20 echt), limieten Free 500 / Starter 2.500 / Pro + Horeca 10.000 / Enterprise 50.000 per maand, double opt-in standaard aan, apart marketingsubdomein. Go 20:12.

@@ -1,14 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles } from 'lucide-react';
+import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles, Trash2, Contact } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { MarketingStatsCards } from '@/components/admin/marketing/MarketingStatsCards';
 import { CampaignCard } from '@/components/admin/marketing/CampaignCard';
 import { CampaignDialog } from '@/components/admin/marketing/CampaignDialog';
-import type { EmailCampaign } from '@/types/marketing';
+import type { EmailCampaign, EmailTemplate } from '@/types/marketing';
 import { TemplateDialog } from '@/components/admin/marketing/TemplateDialog';
+import { SubscribersTab } from '@/components/admin/marketing/SubscribersTab';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { SegmentDialog } from '@/components/admin/marketing/SegmentDialog';
 import { SendCampaignConfirmDialog } from '@/components/admin/marketing/SendCampaignConfirmDialog';
 import { RealtimeActivityFeed } from '@/components/admin/marketing/RealtimeActivityFeed';
@@ -63,6 +68,10 @@ export default function MarketingPage() {
     if (changed) setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, showAI]);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  // MAIL-1b: templatekaarten openen de dialoog om te bewerken; verwijderen met bevestiging.
+  const [editingTemplate, setEditingTemplate] = useState<EmailTemplate | null>(null);
+  const [deletingTemplate, setDeletingTemplate] = useState<EmailTemplate | null>(null);
+  const canWriteMarketing = useCan('write', 'marketing');
   const [segmentDialogOpen, setSegmentDialogOpen] = useState(false);
   const [chartPeriod, setChartPeriod] = useState<'7d' | '30d' | '90d'>('30d');
   const [seeding, setSeeding] = useState(false);
@@ -72,7 +81,7 @@ export default function MarketingPage() {
 
   const { data: stats, isLoading: statsLoading } = useMarketingStats();
   const { campaigns, isLoading: campaignsLoading, createCampaign, deleteCampaign, sendCampaign, updateCampaign } = useEmailCampaigns();
-  const { templates, isLoading: templatesLoading, createTemplate, deleteTemplate } = useEmailTemplates();
+  const { templates, isLoading: templatesLoading, createTemplate, updateTemplate, deleteTemplate } = useEmailTemplates();
 
   const handleSeedTemplates = async () => {
     if (!currentTenant?.id) return;
@@ -270,6 +279,10 @@ export default function MarketingPage() {
             <Users className="h-4 w-4" />
             {t('admin.marketing.tabs.segments', { count: segments.length })}
           </TabsTrigger>
+          <TabsTrigger value="subscribers" className="gap-2">
+            <Contact className="h-4 w-4" />
+            {t('admin.marketing.tabs.subscribers')}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="campaigns" className="space-y-4">
@@ -335,18 +348,48 @@ export default function MarketingPage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {templates.map((template) => (
-                <Card key={template.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader>
-                    <CardTitle className="text-base">{template.name}</CardTitle>
-                    <CardDescription>{template.subject}</CardDescription>
+                <Card
+                  key={template.id}
+                  role={canWriteMarketing ? 'button' : undefined}
+                  tabIndex={canWriteMarketing ? 0 : undefined}
+                  onClick={canWriteMarketing ? () => setEditingTemplate(template) : undefined}
+                  onKeyDown={canWriteMarketing ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setEditingTemplate(template); } } : undefined}
+                  className={canWriteMarketing ? 'hover:shadow-md transition-shadow cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring' : undefined}
+                >
+                  <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+                    <div className="min-w-0">
+                      <CardTitle className="text-base">{template.name}</CardTitle>
+                      <CardDescription className="mt-1.5">{template.subject}</CardDescription>
+                    </div>
+                    {canWriteMarketing && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 shrink-0 text-muted-foreground hover:text-destructive"
+                        aria-label={t('admin.marketing.templates.delete')}
+                        title={t('admin.marketing.templates.delete')}
+                        onClick={(e) => { e.stopPropagation(); setDeletingTemplate(template); }}
+                        onKeyDown={(e) => e.stopPropagation()}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </CardHeader>
-                  <CardContent>
-                    <Badge variant="secondary">{template.category}</Badge>
+                  <CardContent className="flex items-center gap-2">
+                    <Badge variant="secondary">
+                      {t(`admin.marketing.templateDialog.category.${template.category || 'general'}`, { defaultValue: template.category || '' })}
+                    </Badge>
+                    {template.language && <Badge variant="outline">{template.language.toUpperCase()}</Badge>}
                   </CardContent>
                 </Card>
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="subscribers" className="space-y-4">
+          <SubscribersTab />
         </TabsContent>
 
         <TabsContent value="segments" className="space-y-4">
@@ -421,6 +464,46 @@ export default function MarketingPage() {
         }}
         isLoading={createTemplate.isPending}
       />
+
+      <TemplateDialog
+        open={!!editingTemplate}
+        onOpenChange={(open) => { if (!open) setEditingTemplate(null); }}
+        template={editingTemplate ?? undefined}
+        onSave={(data) => {
+          if (!editingTemplate) return;
+          const { tenant_id: _tenantId, is_default: _isDefault, ...updates } = data;
+          updateTemplate.mutate(
+            { id: editingTemplate.id, ...updates },
+            { onSuccess: () => setEditingTemplate(null) },
+          );
+        }}
+        isLoading={updateTemplate.isPending}
+      />
+
+      <AlertDialog open={!!deletingTemplate} onOpenChange={(open) => { if (!open) setDeletingTemplate(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('admin.marketing.templates.delete_title')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('admin.marketing.templates.delete_body', { name: deletingTemplate?.name ?? '' })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteTemplate.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (!deletingTemplate) return;
+                deleteTemplate.mutate(deletingTemplate.id, { onSettled: () => setDeletingTemplate(null) });
+              }}
+            >
+              {t('admin.marketing.templates.delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <SegmentDialog
         open={segmentDialogOpen}

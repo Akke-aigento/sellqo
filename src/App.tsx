@@ -73,6 +73,7 @@ import AcceptInvitation from "./pages/AcceptInvitation";
 import ResetPassword from "./pages/ResetPassword";
 import MandateActivation from "./pages/MandateActivation";
 import TenantAction, { TenantActionSuccess } from "./pages/public/TenantAction";
+import { MailUnsubscribe, MailPreferences, MailConfirmed } from "./pages/public/MailAction";
 
 import AppDeepLinkHandler from "./pages/AppDeepLinkHandler";
 import NotFound from "./pages/NotFound";
@@ -210,6 +211,11 @@ const App = () => (
             {/* TENANT-ACTION-1: publieke wrapper voor deelbare onboarding-links */}
             <Route path="/actie/:token" element={<TenantAction />} />
             <Route path="/actie/:token/gelukt" element={<TenantActionSuccess />} />
+
+            {/* MAIL-1c: afmelden, voorkeuren en nieuwsbriefbevestiging voor shopklanten */}
+            <Route path="/mail/afmelden" element={<MailUnsubscribe />} />
+            <Route path="/mail/voorkeuren" element={<MailPreferences />} />
+            <Route path="/mail/bevestigd" element={<MailConfirmed />} />
 
 
             {/* SUB-2: public mandate activation page (SEPA/card) */}

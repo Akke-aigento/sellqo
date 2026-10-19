@@ -2758,7 +2758,14 @@
         "schrijf_je_template_inhoud": "Write your template content...",
         "template_bewerken": "Edit template",
         "uw_bericht_hier": "Your message here...",
-        "visueel": "Visual"
+        "visueel": "Visual",
+        "category": {
+          "general": "General",
+          "promotional": "Promotional",
+          "transactional": "Transactional",
+          "newsletter": "Newsletter"
+        },
+        "subject_placeholder": "e.g. Welcome to {{company_name}}!"
       },
       "variableInserter": {
         "groups": {
@@ -3343,7 +3350,8 @@
       "tabs": {
         "campaigns": "All campaigns ({{count}})",
         "templates": "Templates ({{count}})",
-        "segments": "Segments ({{count}})"
+        "segments": "Segments ({{count}})",
+        "subscribers": "Subscribers"
       },
       "nieuwe_campagne": "New campaign",
       "geen_campagnes": "No campaigns",
@@ -3369,6 +3377,99 @@
         "geen_afzender": "Your shop does not have a valid sender address yet. Set up your mail prefix under Settings → Email Inbox.",
         "boven_limiet": "Your plan allows {{remaining}} more marketing emails this month. Choose a smaller audience or upgrade your plan.",
         "geen_ontvangers": "There are no subscribed recipients for this audience."
+      },
+      "subscribers": {
+        "status": {
+          "all": "All",
+          "subscribed": "Subscribed",
+          "pending": "Awaiting confirmation",
+          "unsubscribed": "Unsubscribed",
+          "bounced": "Bounced",
+          "complaint": "Complaint"
+        },
+        "source": {
+          "manual": "Unsubscribed manually",
+          "gdpr_erasure": "GDPR erasure",
+          "unsubscribe": "Via unsubscribe link",
+          "bounce": "Address does not exist",
+          "complaint": "Marked as spam",
+          "admin_invite": "Invitation",
+          "popup": "Pop-up",
+          "exit_intent": "Exit pop-up",
+          "website": "Website",
+          "checkout": "Checkout",
+          "storefront_api": "Webshop"
+        },
+        "col": {
+          "email": "Email",
+          "name": "Name",
+          "status": "Status",
+          "source": "Source",
+          "date": "Date",
+          "actions": "Actions"
+        },
+        "search_placeholder": "Search by email or name",
+        "export_csv": "Export CSV",
+        "invite": "Invite",
+        "empty": "No addresses with this status yet.",
+        "empty_search": "No addresses found for this search.",
+        "page_info": "Page {{page}} of {{pages}} ({{total}} addresses)",
+        "prev": "Previous",
+        "next": "Next",
+        "unsubscribe": "Unsubscribe",
+        "unsubscribe_title": "Unsubscribe this address?",
+        "unsubscribe_body": "{{email}} will no longer receive campaigns. The customer and their orders remain. Only the person themselves can subscribe again.",
+        "erase": "GDPR erase",
+        "erase_title": "Erase marketing data (GDPR)?",
+        "erase_body": "For {{email}}, the newsletter subscription and email preferences are deleted. The address is permanently unsubscribed and only stays on the suppression list, so it is never emailed again.",
+        "erase_keeps": "The customer record itself is not deleted: you are legally required to keep orders and invoices. To change the name or address as well, do so under Customers.",
+        "erase_irreversible": "This cannot be undone.",
+        "invite_title": "Invite people to your newsletter",
+        "invite_explain": "Each address receives an email with a button to confirm the subscription. Only after confirming will they receive your campaigns. Addresses that are already subscribed or were ever unsubscribed are skipped.",
+        "invite_placeholder": "One address per line, or separated by comma or semicolon",
+        "invite_count": "{{count}} valid addresses",
+        "invite_too_many": "At most {{max}} addresses at a time.",
+        "invite_upload_csv": "Upload CSV",
+        "invite_consent": "I have permission from these people to invite them.",
+        "invite_send": "Send invitations",
+        "invite_done": "{{count}} invitations sent",
+        "invite_done_detail": "New: {{invited}}, resent: {{resent}}, skipped: {{skipped}} (already subscribed: {{active}}, unsubscribed: {{unsubscribed}}), failed: {{failed}}.",
+        "toast": {
+          "unsubscribed": "{{email}} has been unsubscribed",
+          "erased": "Marketing data of {{email}} erased",
+          "action_failed": "That did not work",
+          "export_failed": "Export failed"
+        }
+      },
+      "templates": {
+        "delete": "Delete template",
+        "delete_title": "Delete this template?",
+        "delete_body": "\"{{name}}\" will be deleted. Campaigns already created with this template keep their own content."
+      },
+      "brandedPreview": {
+        "real_style": "Preview in your shop’s style, with sample data",
+        "fallback": "Simple preview: your shop’s style could not be loaded",
+        "desktop": "Desktop",
+        "mobile": "Mobile"
+      },
+      "editorInsert": {
+        "default_placeholder": "Write your email...",
+        "link_title": "Link",
+        "link_explain": "Add a web address or mailto link to the selected text.",
+        "link_url": "Web address",
+        "link_invalid": "Use an address starting with https://, http:// or mailto:.",
+        "link_remove": "Remove link",
+        "apply": "Apply",
+        "image_title": "Insert image",
+        "image_explain": "Pick an image from your media library or paste a web address.",
+        "tab_library": "Media library",
+        "tab_url": "Web address",
+        "no_results": "No images found.",
+        "library_empty": "Your media library has no images yet. Add them via Marketing → Media.",
+        "image_url": "Image web address",
+        "image_url_invalid": "Use an address starting with https://. Email clients do not show other images.",
+        "image_alt": "Description (alt text)",
+        "insert": "Insert"
       }
     },
     "ads": {
@@ -7827,6 +7928,11 @@
         "bedankt_voor_je_aanmelding": "✓ Thank you for signing up!",
         "je_bent_succesvol_ingeschreven_voor_onze": "You have successfully subscribed to our newsletter."
       }
+    },
+    "newsletter": {
+      "confirm_title": "Almost done!",
+      "confirm_body": "We sent you an email. Click the button in that email to confirm your subscription.",
+      "error": "Something went wrong. Please try again later."
     }
   },
   "events": {
@@ -8970,5 +9076,95 @@
     "empty_title": "No notifications found",
     "empty_filtered": "Try other search terms or filters",
     "empty_all": "You're all caught up!"
+  },
+  "mailPages": {
+    "common": {
+      "loading": "One moment...",
+      "invalid_title": "This link is invalid",
+      "invalid_body": "This link is invalid or has expired. Use the link in the most recent email, or contact the shop.",
+      "error_title": "Something went wrong",
+      "error_body": "An error occurred. Please try again later.",
+      "back_to_shop": "Back to the shop",
+      "the_shop": "the shop"
+    },
+    "unsubscribe": {
+      "meta_title": "Unsubscribe",
+      "title": "Unsubscribe from emails",
+      "question": "Do you no longer want to receive marketing emails from {{shop}}?",
+      "for_address": "You are unsubscribing this address:",
+      "reason_label": "Reason (optional)",
+      "reason_placeholder": "Choose a reason",
+      "reasons": {
+        "too_many": "I receive too many emails",
+        "not_relevant": "The content is not relevant to me",
+        "never_signed_up": "I never signed up",
+        "other": "Other reason"
+      },
+      "button": "Unsubscribe",
+      "or_manage": "Or manage your email preferences",
+      "done_title": "You have been unsubscribed",
+      "done_body": "You will no longer receive marketing emails from {{shop}}.",
+      "done_transactional": "You will still receive emails about your orders, such as confirmations and invoices.",
+      "manage_preferences": "Manage email preferences",
+      "legacy_title": "Unsubscribe",
+      "legacy_body": "This unsubscribe link comes from an older email. Click below and we'll send a new unsubscribe link to {{email}}.",
+      "legacy_button": "Send me an unsubscribe link",
+      "legacy_sent_title": "Check your inbox",
+      "legacy_sent_body": "If this address is known to the shop, you'll receive an email with an unsubscribe link within a few minutes."
+    },
+    "preferences": {
+      "meta_title": "Email preferences",
+      "title": "Email preferences",
+      "subtitle": "Choose which emails you receive from {{shop}}.",
+      "email_label": "Email:",
+      "types_heading": "Types of emails",
+      "types": {
+        "newsletter": {
+          "title": "Newsletter",
+          "description": "General updates, news and content"
+        },
+        "promotions": {
+          "title": "Offers and discounts",
+          "description": "Deals and promotions"
+        },
+        "product_updates": {
+          "title": "New products",
+          "description": "Updates about new products and collections"
+        }
+      },
+      "resubscribe_note": "Unsubscribed and want to receive emails again? Subscribe again via the shop's website.",
+      "frequency_label": "Frequency",
+      "frequency": {
+        "normal": "Normal: as scheduled",
+        "weekly": "Weekly: at most once a week",
+        "minimal": "Minimal: important updates only"
+      },
+      "save": "Save preferences",
+      "saved": "Your preferences have been saved.",
+      "unsubscribe_all": "Unsubscribe from all marketing emails"
+    },
+    "confirmed": {
+      "meta_title": "Newsletter",
+      "ok": {
+        "title": "Your subscription is confirmed",
+        "body": "Thank you! From now on you'll receive the {{shop}} newsletter."
+      },
+      "already": {
+        "title": "Your subscription was already confirmed",
+        "body": "You're already subscribed to the {{shop}} newsletter. Nothing else to do."
+      },
+      "invalid": {
+        "title": "This link is invalid",
+        "body": "This confirmation link is invalid or no longer valid. Please subscribe again via the shop."
+      },
+      "unsubscribed": {
+        "title": "You have unsubscribed",
+        "body": "You previously unsubscribed from {{shop}}. This old confirmation link does not subscribe you again. Still want the newsletter? Subscribe again via the shop."
+      },
+      "error": {
+        "title": "Something went wrong",
+        "body": "We couldn't confirm your subscription right now. Please try again later."
+      }
+    }
   }
 }

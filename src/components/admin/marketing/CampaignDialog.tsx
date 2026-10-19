@@ -26,6 +26,7 @@ import { useCustomerSegments, useSegmentMemberCount } from '@/hooks/useCustomerS
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
 import { VariableInserter } from './VariableInserter';
 import { EmailPreview } from './EmailPreview';
+import { BrandedEmailPreview } from './BrandedEmailPreview';
 import { extractEmailBody, isComplexHtml } from '@/lib/emailContent';
 import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
 import { AUDIENCE_PRESETS, getAudiencePreset } from '@/lib/audiencePresets';
@@ -408,6 +409,11 @@ export function CampaignDialog({
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zelfde patroon als de bestaande vertaalvelden hierboven
     : ((form.watch(`translations.${activeLangTab}.subject` as any) as string | undefined) || form.watch('subject') || '');
 
+  const activePreviewText = activeLangTab === 'nl'
+    ? (form.watch('preview_text') || '')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zelfde patroon als activeSubject
+    : ((form.watch(`translations.${activeLangTab}.preview_text` as any) as string | undefined) || form.watch('preview_text') || '');
+
   const previewHtml = wrapInEmailTemplate(
     applyPreviewVariables(
       editorMode === 'visual' ? richContent : activeHtml,
@@ -697,12 +703,16 @@ export function CampaignDialog({
                       {t('common.close')}
                     </Button>
                   </div>
-                  <iframe
-                    srcDoc={previewHtml}
-                    className="w-full h-[300px] bg-white"
-                    sandbox=""
-                    title={t('admin.marketing.emailPreview.email_preview')}
-                  />
+                  {/* MAIL-1b: render in de echte huisstijl (render-campaign-preview), desktop of mobiel. */}
+                  <div className="p-2">
+                    <BrandedEmailPreview
+                      subject={activeSubject}
+                      bodyHtml={testMailBody}
+                      previewText={activePreviewText}
+                      language={activeLangTab}
+                      fallbackHtml={previewHtml}
+                    />
+                  </div>
                 </div>
               ) : editorMode === 'visual' ? (
                 <div>

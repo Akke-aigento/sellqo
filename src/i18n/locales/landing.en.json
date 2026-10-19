@@ -2089,6 +2089,18 @@
         "newsletter_double_optin": {
           "title": "Newsletter sign-ups are now confirmed",
           "description": "Anyone who signs up for your newsletter first receives an email to confirm. Only then do they receive your campaigns and your welcome email. Customers who place an order are no longer subscribed automatically. This way you only send marketing to people who explicitly chose it, as European privacy rules require."
+        },
+        "email_subscribers_tab": {
+          "title": "Manage your subscribers in Marketing → Email",
+          "description": "In the new Subscribers tab you see who receives your newsletter, who still has to confirm and who has unsubscribed. You can search, filter and export the list as CSV. Invite people with a confirmation email: they only receive your campaigns after they click. You can also unsubscribe someone or erase their marketing data on request, while orders and invoices are kept."
+        },
+        "email_editor_improvements": {
+          "title": "Preview in your shop’s style and images from your media library",
+          "description": "The preview of a campaign or template now shows your email as your customers receive it, in your shop’s style, on desktop or mobile. You add images from your media library, and links through their own window. Click a template to edit it, and you can delete templates."
+        },
+        "mail_pages_fixed": {
+          "title": "Unsubscribe, preferences and confirmation show a proper page again",
+          "description": "When a customer clicks unsubscribe, email preferences or your newsletter confirmation link in your email, they now get a readable page with your shop's name and logo again, instead of raw code. Unsubscribing and preferences work as before; one-click unsubscribe from the mail app keeps working."
         }
       },
       "copyLink": "Copy link",

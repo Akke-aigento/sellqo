@@ -15,11 +15,13 @@ interface ExitIntentPopupProps {
 const SESSION_KEY = 'exit-intent-shown';
 
 export function ExitIntentPopup({ tenantSlug, tenantId, incentiveText }: ExitIntentPopupProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  // MAIL-1a/1b: bij double opt-in eerst bevestigen via de mail.
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   // APP-CLEAN-3a: "Aanmelden" sloot tot nu toe alleen de popup; het e-mailadres
   // verdween. Nu dezelfde inschrijving als NewsletterPopup (met double opt-in in de API).
@@ -28,15 +30,25 @@ export function ExitIntentPopup({ tenantSlug, tenantId, incentiveText }: ExitInt
     if (!email.trim() || !tenantId) return;
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.functions.invoke('storefront-api', {
-        body: { action: 'newsletter_subscribe', tenant_id: tenantId, email: email.trim(), source: 'exit_intent' },
+      const { data, error } = await supabase.functions.invoke('storefront-api', {
+        body: {
+          action: 'newsletter_subscribe',
+          tenant_id: tenantId,
+          // MAIL-1b: storefront-api leest de velden uit `params` (r. ±5379); top-level
+          // gaf altijd "email is required".
+          params: { email: email.trim(), source: 'exit_intent', language: i18n.language },
+        },
       });
       if (error) throw error;
+      // Antwoord: { success, data: { requires_confirmation, ... } }
+      const confirm = data?.data?.requires_confirmation === true;
+      setNeedsConfirm(confirm);
       setSubmitted(true);
-      setTimeout(() => setVisible(false), 2000);
+      // Bij bevestiging langer open, zodat de uitleg leesbaar is.
+      setTimeout(() => setVisible(false), confirm ? 6000 : 2000);
     } catch (err) {
       console.error('Newsletter signup error:', err);
-      toast.error('Er ging iets mis. Probeer het later opnieuw.');
+      toast.error(t('storefront.newsletter.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -78,8 +90,12 @@ export function ExitIntentPopup({ tenantSlug, tenantId, incentiveText }: ExitInt
 
         {submitted ? (
           <>
-            <h2 className="text-xl font-bold mb-2">{t('storefront.newsletterPopup.bedankt')}</h2>
-            <p className="text-muted-foreground">{t('storefront.newsletterPopup.je_bent_succesvol_ingeschreven')}</p>
+            <h2 className="text-xl font-bold mb-2">
+              {needsConfirm ? t('storefront.newsletter.confirm_title') : t('storefront.newsletterPopup.bedankt')}
+            </h2>
+            <p className="text-muted-foreground">
+              {needsConfirm ? t('storefront.newsletter.confirm_body') : t('storefront.newsletterPopup.je_bent_succesvol_ingeschreven')}
+            </p>
           </>
         ) : (
           <>

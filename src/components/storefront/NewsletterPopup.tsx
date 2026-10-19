@@ -15,10 +15,12 @@ interface NewsletterPopupProps {
 const STORAGE_KEY = 'newsletter-popup-shown';
 
 export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveText }: NewsletterPopupProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [email, setEmail] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  // MAIL-1a/1b: bij double opt-in eerst bevestigen via de mail.
+  const [needsConfirm, setNeedsConfirm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
@@ -44,23 +46,28 @@ export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveT
     setIsSubmitting(true);
     try {
       // Try storefront API first
-      const { error } = await supabase.functions.invoke('storefront-api', {
+      const { data, error } = await supabase.functions.invoke('storefront-api', {
         body: {
           action: 'newsletter_subscribe',
           tenant_id: tenantId,
-          email: email.trim(),
-          source: 'popup',
+          // MAIL-1b: storefront-api leest de velden uit `params` (r. ±5379); top-level
+          // gaf altijd "email is required".
+          params: { email: email.trim(), source: 'popup', language: i18n.language },
         },
       });
 
       if (error) throw error;
+      // Antwoord: { success, data: { requires_confirmation, ... } }
+      const confirm = data?.data?.requires_confirmation === true;
+      setNeedsConfirm(confirm);
 
       setSubmitted(true);
       localStorage.setItem(`${STORAGE_KEY}-${tenantSlug}`, '1');
-      setTimeout(() => setVisible(false), 2000);
+      // Bij bevestiging langer open, zodat de uitleg leesbaar is.
+      setTimeout(() => setVisible(false), confirm ? 6000 : 2000);
     } catch (err) {
       console.error('Newsletter signup error:', err);
-      toast.error('Er ging iets mis. Probeer het later opnieuw.');
+      toast.error(t('storefront.newsletter.error'));
     } finally {
       setIsSubmitting(false);
     }
@@ -84,8 +91,12 @@ export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveT
 
         {submitted ? (
           <>
-            <h2 className="text-xl font-bold mb-2">{t('storefront.newsletterPopup.bedankt')}</h2>
-            <p className="text-muted-foreground">{t('storefront.newsletterPopup.je_bent_succesvol_ingeschreven')}</p>
+            <h2 className="text-xl font-bold mb-2">
+              {needsConfirm ? t('storefront.newsletter.confirm_title') : t('storefront.newsletterPopup.bedankt')}
+            </h2>
+            <p className="text-muted-foreground">
+              {needsConfirm ? t('storefront.newsletter.confirm_body') : t('storefront.newsletterPopup.je_bent_succesvol_ingeschreven')}
+            </p>
           </>
         ) : (
           <>

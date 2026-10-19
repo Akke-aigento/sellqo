@@ -4,6 +4,21 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12w — Abonnees beheren, voorbeeld in je huisstijl (feature + improvement, 19-10-2026)
+
+**Status:** klaar voor verzending zodra MAIL-1b live staat (migratie 20261019220000 + edge functions newsletter-invite en render-campaign-preview + frontend). Samen met 2026.12v versturen.
+
+**Voor wie:** alle winkels die e-mailcampagnes gebruiken.
+
+**Je abonnees beheren in Marketing → E-mail** (oktober 2026)
+In het nieuwe tabblad Abonnees zie je wie je nieuwsbrief krijgt, wie nog moet bevestigen en wie uitgeschreven is. Je kan zoeken, filteren en de lijst als CSV exporteren. Nodig mensen uit met een bevestigingsmail: pas na hun klik krijgen ze je campagnes. Je kan ook iemand uitschrijven of zijn marketinggegevens wissen op verzoek, terwijl bestellingen en facturen bewaard blijven.
+
+**Voorbeeld in je huisstijl en afbeeldingen uit je mediabibliotheek** (oktober 2026)
+Het voorbeeld van een campagne of template toont je mail nu zoals je klanten hem krijgen, in de stijl van je winkel, op computer of op mobiel. Afbeeldingen voeg je toe vanuit je mediabibliotheek, en links via een eigen venster. Templates open je met een klik om ze te bewerken, en je kan ze verwijderen.
+Wat betekent dit voor jou? Je ziet vóór het versturen hoe je mail eruitziet, en je hebt je lijst zelf in handen.
+
+i18n: `public.changelog.changes.email_subscribers_tab`, `public.changelog.changes.email_editor_improvements`
+
 ### 2026.12v — Nieuwsbrieven bereiken al je klanten; inschrijven met bevestiging (bugfix + security, 19-10-2026)
 
 **Status:** klaar voor verzending zodra MAIL-1a live staat (migraties + edge functions + frontend).

@@ -2869,7 +2869,14 @@
         "html_email_content": "HTML email content...",
         "hallo": "Hallo",
         "template_bewerken": "Template bewerken",
-        "nieuwe_template_aanmaken": "Nieuwe template aanmaken"
+        "nieuwe_template_aanmaken": "Nieuwe template aanmaken",
+        "category": {
+          "general": "Algemeen",
+          "promotional": "Promotie",
+          "transactional": "Transactie",
+          "newsletter": "Nieuwsbrief"
+        },
+        "subject_placeholder": "bijv. Welkom bij {{company_name}}!"
       },
       "variableInserter": {
         "variabelen_invoegen": "Variabelen invoegen",
@@ -3357,7 +3364,8 @@
       "tabs": {
         "campaigns": "Alle campagnes ({{count}})",
         "templates": "Templates ({{count}})",
-        "segments": "Segmenten ({{count}})"
+        "segments": "Segmenten ({{count}})",
+        "subscribers": "Abonnees"
       },
       "nieuwe_campagne": "Nieuwe campagne",
       "geen_campagnes": "Geen campagnes",
@@ -3383,6 +3391,99 @@
         "geen_afzender": "Je winkel heeft nog geen geldig afzenderadres. Stel je mailprefix in bij Instellingen → Email Inbox.",
         "boven_limiet": "Je plan laat deze maand nog {{remaining}} marketingmails toe. Kies een kleinere doelgroep of upgrade je plan.",
         "geen_ontvangers": "Er zijn geen ingeschreven ontvangers voor deze doelgroep."
+      },
+      "subscribers": {
+        "status": {
+          "all": "Alle",
+          "subscribed": "Ingeschreven",
+          "pending": "Wacht op bevestiging",
+          "unsubscribed": "Uitgeschreven",
+          "bounced": "Gebounced",
+          "complaint": "Klacht"
+        },
+        "source": {
+          "manual": "Handmatig uitgeschreven",
+          "gdpr_erasure": "AVG-verwijdering",
+          "unsubscribe": "Via uitschrijflink",
+          "bounce": "Adres bestaat niet",
+          "complaint": "Gemarkeerd als spam",
+          "admin_invite": "Uitnodiging",
+          "popup": "Pop-up",
+          "exit_intent": "Exit-pop-up",
+          "website": "Website",
+          "checkout": "Afrekenen",
+          "storefront_api": "Webshop"
+        },
+        "col": {
+          "email": "E-mail",
+          "name": "Naam",
+          "status": "Status",
+          "source": "Bron",
+          "date": "Datum",
+          "actions": "Acties"
+        },
+        "search_placeholder": "Zoek op e-mail of naam",
+        "export_csv": "Exporteer CSV",
+        "invite": "Uitnodigen",
+        "empty": "Nog geen adressen met deze status.",
+        "empty_search": "Geen adressen gevonden voor deze zoekopdracht.",
+        "page_info": "Pagina {{page}} van {{pages}} ({{total}} adressen)",
+        "prev": "Vorige",
+        "next": "Volgende",
+        "unsubscribe": "Uitschrijven",
+        "unsubscribe_title": "Dit adres uitschrijven?",
+        "unsubscribe_body": "{{email}} krijgt geen campagnes meer. De klant en zijn bestellingen blijven bestaan. Alleen de persoon zelf kan zich opnieuw inschrijven.",
+        "erase": "AVG-verwijderen",
+        "erase_title": "Marketinggegevens verwijderen (AVG)?",
+        "erase_body": "Voor {{email}} worden de nieuwsbriefinschrijving en de e-mailvoorkeuren verwijderd. Het adres wordt definitief uitgeschreven en blijft enkel op de uitschrijflijst staan, zodat het nooit meer gemaild wordt.",
+        "erase_keeps": "De klant zelf wordt niet verwijderd: bestellingen en facturen moet je wettelijk bewaren. Wil je ook naam of adres aanpassen, doe dat dan bij Klanten.",
+        "erase_irreversible": "Dit kan je niet ongedaan maken.",
+        "invite_title": "Mensen uitnodigen voor je nieuwsbrief",
+        "invite_explain": "Elk adres krijgt een mail met een knop om de inschrijving te bevestigen. Pas na die bevestiging krijgen ze je campagnes. Adressen die al ingeschreven of ooit uitgeschreven zijn, worden overgeslagen.",
+        "invite_placeholder": "Eén adres per regel, of gescheiden door komma of puntkomma",
+        "invite_count": "{{count}} geldige adressen",
+        "invite_too_many": "Maximaal {{max}} adressen per keer.",
+        "invite_upload_csv": "CSV opladen",
+        "invite_consent": "Ik heb toestemming van deze personen om hen uit te nodigen.",
+        "invite_send": "Uitnodigingen versturen",
+        "invite_done": "{{count}} uitnodigingen verstuurd",
+        "invite_done_detail": "Nieuw: {{invited}}, opnieuw verstuurd: {{resent}}, overgeslagen: {{skipped}} (al ingeschreven: {{active}}, uitgeschreven: {{unsubscribed}}), mislukt: {{failed}}.",
+        "toast": {
+          "unsubscribed": "{{email}} is uitgeschreven",
+          "erased": "Marketinggegevens van {{email}} verwijderd",
+          "action_failed": "Dat lukte niet",
+          "export_failed": "Exporteren mislukt"
+        }
+      },
+      "templates": {
+        "delete": "Template verwijderen",
+        "delete_title": "Deze template verwijderen?",
+        "delete_body": "\"{{name}}\" wordt verwijderd. Campagnes die al met deze template gemaakt zijn, behouden hun eigen inhoud."
+      },
+      "brandedPreview": {
+        "real_style": "Voorbeeld in de huisstijl van je winkel, met voorbeeldgegevens",
+        "fallback": "Eenvoudig voorbeeld: de huisstijl kon niet geladen worden",
+        "desktop": "Computer",
+        "mobile": "Mobiel"
+      },
+      "editorInsert": {
+        "default_placeholder": "Schrijf je e-mail...",
+        "link_title": "Link",
+        "link_explain": "Zet een webadres of mailto-link op de geselecteerde tekst.",
+        "link_url": "Webadres",
+        "link_invalid": "Gebruik een adres dat begint met https://, http:// of mailto:.",
+        "link_remove": "Link verwijderen",
+        "apply": "Toepassen",
+        "image_title": "Afbeelding invoegen",
+        "image_explain": "Kies een afbeelding uit je mediabibliotheek of plak een webadres.",
+        "tab_library": "Mediabibliotheek",
+        "tab_url": "Webadres",
+        "no_results": "Geen afbeeldingen gevonden.",
+        "library_empty": "Je mediabibliotheek bevat nog geen afbeeldingen. Voeg ze toe via Marketing → Media.",
+        "image_url": "Webadres van de afbeelding",
+        "image_url_invalid": "Gebruik een adres dat begint met https://. Mailprogramma’s tonen geen andere afbeeldingen.",
+        "image_alt": "Beschrijving (alt-tekst)",
+        "insert": "Invoegen"
       }
     },
     "ads": {
@@ -7829,6 +7930,11 @@
         "je_bent_succesvol_ingeschreven_voor_onze": "Je bent succesvol ingeschreven voor onze nieuwsbrief."
       },
       "videoSection": {}
+    },
+    "newsletter": {
+      "confirm_title": "Bijna klaar!",
+      "confirm_body": "We stuurden je een mail. Klik op de knop in die mail om je inschrijving te bevestigen.",
+      "error": "Er ging iets mis. Probeer het later opnieuw."
     }
   },
   "events": {
@@ -8972,5 +9078,95 @@
     "empty_title": "Geen notificaties gevonden",
     "empty_filtered": "Probeer andere zoektermen of filters",
     "empty_all": "Je bent helemaal bij!"
+  },
+  "mailPages": {
+    "common": {
+      "loading": "Even geduld...",
+      "invalid_title": "Deze link is ongeldig",
+      "invalid_body": "Deze link is ongeldig of verlopen. Gebruik de link in de meest recente mail, of neem contact op met de winkel.",
+      "error_title": "Er ging iets mis",
+      "error_body": "Er is een fout opgetreden. Probeer het later opnieuw.",
+      "back_to_shop": "Naar de webshop",
+      "the_shop": "de webshop"
+    },
+    "unsubscribe": {
+      "meta_title": "Afmelden",
+      "title": "Afmelden voor e-mails",
+      "question": "Wil je geen marketingmails meer ontvangen van {{shop}}?",
+      "for_address": "Je meldt dit adres af:",
+      "reason_label": "Reden (optioneel)",
+      "reason_placeholder": "Kies een reden",
+      "reasons": {
+        "too_many": "Ik ontvang te veel e-mails",
+        "not_relevant": "De inhoud is niet relevant voor mij",
+        "never_signed_up": "Ik heb me nooit ingeschreven",
+        "other": "Andere reden"
+      },
+      "button": "Afmelden",
+      "or_manage": "Of beheer je e-mailvoorkeuren",
+      "done_title": "Je bent afgemeld",
+      "done_body": "Je ontvangt geen marketingmails meer van {{shop}}.",
+      "done_transactional": "Mails over je bestellingen, zoals bevestigingen en facturen, blijf je wel ontvangen.",
+      "manage_preferences": "E-mailvoorkeuren beheren",
+      "legacy_title": "Afmelden",
+      "legacy_body": "Deze afmeldlink komt uit een oudere mail. Klik hieronder, dan sturen we een nieuwe afmeldlink naar {{email}}.",
+      "legacy_button": "Stuur mij een afmeldlink",
+      "legacy_sent_title": "Kijk in je mailbox",
+      "legacy_sent_body": "Als dit adres bij de winkel bekend is, ontvang je binnen enkele minuten een mail met een link om je af te melden."
+    },
+    "preferences": {
+      "meta_title": "E-mailvoorkeuren",
+      "title": "E-mailvoorkeuren",
+      "subtitle": "Kies welke e-mails je ontvangt van {{shop}}.",
+      "email_label": "E-mail:",
+      "types_heading": "Soorten e-mails",
+      "types": {
+        "newsletter": {
+          "title": "Nieuwsbrief",
+          "description": "Algemene updates, nieuws en inhoud"
+        },
+        "promotions": {
+          "title": "Aanbiedingen en kortingen",
+          "description": "Acties en promoties"
+        },
+        "product_updates": {
+          "title": "Nieuwe producten",
+          "description": "Updates over nieuwe producten en collecties"
+        }
+      },
+      "resubscribe_note": "Ben je afgemeld en wil je opnieuw mails ontvangen? Schrijf je dan opnieuw in via de website van de winkel.",
+      "frequency_label": "Frequentie",
+      "frequency": {
+        "normal": "Normaal: zoals gepland",
+        "weekly": "Wekelijks: hoogstens één keer per week",
+        "minimal": "Minimaal: enkel belangrijke updates"
+      },
+      "save": "Voorkeuren opslaan",
+      "saved": "Je voorkeuren zijn opgeslagen.",
+      "unsubscribe_all": "Afmelden voor alle marketingmails"
+    },
+    "confirmed": {
+      "meta_title": "Nieuwsbrief",
+      "ok": {
+        "title": "Je inschrijving is bevestigd",
+        "body": "Bedankt! Je ontvangt voortaan de nieuwsbrief van {{shop}}."
+      },
+      "already": {
+        "title": "Je inschrijving was al bevestigd",
+        "body": "Je staat al op de nieuwsbrief van {{shop}}. Je hoeft niets meer te doen."
+      },
+      "invalid": {
+        "title": "Deze link is ongeldig",
+        "body": "Deze bevestigingslink is ongeldig of niet meer geldig. Schrijf je opnieuw in via de webshop."
+      },
+      "unsubscribed": {
+        "title": "Je bent afgemeld",
+        "body": "Je hebt je eerder afgemeld bij {{shop}}. Deze oude bevestigingslink schrijft je niet opnieuw in. Wil je de nieuwsbrief toch? Schrijf je opnieuw in via de webshop."
+      },
+      "error": {
+        "title": "Er ging iets mis",
+        "body": "We konden je inschrijving nu niet bevestigen. Probeer het later opnieuw."
+      }
+    }
   }
 }

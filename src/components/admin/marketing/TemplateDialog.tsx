@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -13,6 +13,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
 import { extractEmailBody } from '@/lib/emailContent';
 import { VariableInserter } from './VariableInserter';
+import { BrandedEmailPreview } from './BrandedEmailPreview';
 import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
 import type { EmailTemplate } from '@/types/marketing';
 import { LANG_CODES_TUPLE } from '@/i18n/languages';
@@ -36,12 +37,13 @@ interface TemplateDialogProps {
   isLoading?: boolean;
 }
 
-const categoryLabels = {
-  general: 'Algemeen',
-  promotional: 'Promotie',
-  transactional: 'Transactie',
-  newsletter: 'Nieuwsbrief',
-};
+// MAIL-1b: labels als i18n-key (waren hardcoded Nederlands).
+const CATEGORY_OPTIONS: { value: TemplateFormData['category']; labelKey: string }[] = [
+  { value: 'general', labelKey: 'admin.marketing.templateDialog.category.general' },
+  { value: 'promotional', labelKey: 'admin.marketing.templateDialog.category.promotional' },
+  { value: 'transactional', labelKey: 'admin.marketing.templateDialog.category.transactional' },
+  { value: 'newsletter', labelKey: 'admin.marketing.templateDialog.category.newsletter' },
+];
 
 const extractBodyFromHtml = extractEmailBody;
 
@@ -67,6 +69,25 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
         : richContent,
     },
   });
+
+  // MAIL-1b: de dialoog blijft gemount in Marketing.tsx. Bij elke opening (nieuw of
+  // bewerken) de velden opnieuw vullen, anders toont "bewerken" de vorige inhoud.
+  useEffect(() => {
+    if (!open) return;
+    const body = template?.html_content
+      ? extractBodyFromHtml(template.html_content)
+      : `<p>${t('admin.marketing.templateDialog.hallo')} {{customer_name}},</p><p>${t('admin.marketing.templateDialog.uw_bericht_hier')}</p><p>${t('admin.marketing.templateDialog.met_vriendelijke_groet')}<br>{{company_name}}</p>`;
+    setRichContent(body);
+    setEditorMode('visual');
+    form.reset({
+      name: template?.name || '',
+      subject: template?.subject || '',
+      category: (template?.category as TemplateFormData['category']) || 'general',
+      language: ((template?.language as TemplateFormData['language']) || brand?.defaultLocale || 'nl'),
+      html_content: body,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- enkel bij openen of een andere template
+  }, [open, template?.id]);
 
   const handleRichContentChange = (html: string) => {
     setRichContent(html);
@@ -128,15 +149,15 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t('admin.marketing.templateDialog.categorie')}</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {Object.entries(categoryLabels).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>{label}</SelectItem>
+                        {CATEGORY_OPTIONS.map((c) => (
+                          <SelectItem key={c.value} value={c.value}>{t(c.labelKey)}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -177,7 +198,7 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
                 <FormItem>
                   <FormLabel>{t('admin.marketing.templateDialog.onderwerp')}</FormLabel>
                   <FormControl>
-                    <Input placeholder="bijv. Welkom bij {{company_name}}!" {...field} />
+                    <Input placeholder={t('admin.marketing.templateDialog.subject_placeholder')} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -233,14 +254,13 @@ export function TemplateDialog({ open, onOpenChange, template, onSave, isLoading
             {/* Email Preview */}
             <div className="space-y-2">
               <FormLabel>{t('admin.marketing.templateDialog.voorbeeld')}</FormLabel>
-              <div className="border rounded-lg overflow-hidden bg-muted/30">
-                <iframe
-                  srcDoc={currentHtml}
-                  className="w-full h-[300px] bg-white"
-                  title={t('admin.marketing.emailPreview.email_preview')}
-                  sandbox=""
-                />
-              </div>
+              <BrandedEmailPreview
+                subject={form.watch('subject') || ''}
+                bodyHtml={editorMode === 'visual' ? richContent : (form.watch('html_content') || '')}
+                language={form.watch('language')}
+                fallbackHtml={currentHtml}
+                height={360}
+              />
             </div>
 
             <DialogFooter>

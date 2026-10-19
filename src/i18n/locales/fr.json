@@ -2489,7 +2489,14 @@
         "schrijf_je_template_inhoud": "Rédigez le contenu de votre modèle...",
         "template_bewerken": "Modifier le modèle",
         "uw_bericht_hier": "Votre message ici...",
-        "visueel": "Visuel"
+        "visueel": "Visuel",
+        "category": {
+          "general": "Général",
+          "promotional": "Promotion",
+          "transactional": "Transactionnel",
+          "newsletter": "Newsletter"
+        },
+        "subject_placeholder": "p. ex. Bienvenue chez {{company_name}} !"
       },
       "variableInserter": {
         "groups": {
@@ -3074,7 +3081,8 @@
       "tabs": {
         "campaigns": "Toutes les campagnes ({{count}})",
         "templates": "Modèles ({{count}})",
-        "segments": "Segments ({{count}})"
+        "segments": "Segments ({{count}})",
+        "subscribers": "Abonnés"
       },
       "nieuwe_campagne": "Nouvelle campagne",
       "geen_campagnes": "Aucune campagne",
@@ -3100,6 +3108,99 @@
         "geen_afzender": "Votre boutique n’a pas encore d’adresse d’expéditeur valide. Configurez votre préfixe e-mail dans Paramètres → Email Inbox.",
         "boven_limiet": "Votre forfait autorise encore {{remaining}} e-mails marketing ce mois-ci. Choisissez une audience plus restreinte ou passez à un forfait supérieur.",
         "geen_ontvangers": "Il n’y a aucun destinataire inscrit pour cette audience."
+      },
+      "subscribers": {
+        "status": {
+          "all": "Tous",
+          "subscribed": "Inscrits",
+          "pending": "En attente de confirmation",
+          "unsubscribed": "Désinscrits",
+          "bounced": "Rejetés (bounce)",
+          "complaint": "Plainte"
+        },
+        "source": {
+          "manual": "Désinscrit manuellement",
+          "gdpr_erasure": "Effacement RGPD",
+          "unsubscribe": "Via le lien de désinscription",
+          "bounce": "Adresse inexistante",
+          "complaint": "Signalé comme spam",
+          "admin_invite": "Invitation",
+          "popup": "Pop-up",
+          "exit_intent": "Pop-up de sortie",
+          "website": "Site web",
+          "checkout": "Paiement",
+          "storefront_api": "Boutique en ligne"
+        },
+        "col": {
+          "email": "E-mail",
+          "name": "Nom",
+          "status": "Statut",
+          "source": "Source",
+          "date": "Date",
+          "actions": "Actions"
+        },
+        "search_placeholder": "Rechercher par e-mail ou nom",
+        "export_csv": "Exporter en CSV",
+        "invite": "Inviter",
+        "empty": "Aucune adresse avec ce statut pour le moment.",
+        "empty_search": "Aucune adresse trouvée pour cette recherche.",
+        "page_info": "Page {{page}} sur {{pages}} ({{total}} adresses)",
+        "prev": "Précédent",
+        "next": "Suivant",
+        "unsubscribe": "Désinscrire",
+        "unsubscribe_title": "Désinscrire cette adresse ?",
+        "unsubscribe_body": "{{email}} ne recevra plus de campagnes. Le client et ses commandes sont conservés. Seule la personne elle-même peut se réinscrire.",
+        "erase": "Effacer (RGPD)",
+        "erase_title": "Effacer les données marketing (RGPD) ?",
+        "erase_body": "Pour {{email}}, l’inscription à la newsletter et les préférences e-mail sont supprimées. L’adresse est définitivement désinscrite et reste uniquement sur la liste de désinscription, afin de ne plus jamais recevoir d’e-mails.",
+        "erase_keeps": "La fiche client n’est pas supprimée : vous devez légalement conserver les commandes et les factures. Pour modifier aussi le nom ou l’adresse, faites-le dans Clients.",
+        "erase_irreversible": "Cette action est irréversible.",
+        "invite_title": "Inviter des personnes à votre newsletter",
+        "invite_explain": "Chaque adresse reçoit un e-mail avec un bouton pour confirmer l’inscription. Ce n’est qu’après confirmation qu’elle reçoit vos campagnes. Les adresses déjà inscrites ou déjà désinscrites sont ignorées.",
+        "invite_placeholder": "Une adresse par ligne, ou séparées par une virgule ou un point-virgule",
+        "invite_count": "{{count}} adresses valides",
+        "invite_too_many": "{{max}} adresses maximum à la fois.",
+        "invite_upload_csv": "Importer un CSV",
+        "invite_consent": "J’ai l’autorisation de ces personnes pour les inviter.",
+        "invite_send": "Envoyer les invitations",
+        "invite_done": "{{count}} invitations envoyées",
+        "invite_done_detail": "Nouvelles : {{invited}}, renvoyées : {{resent}}, ignorées : {{skipped}} (déjà inscrites : {{active}}, désinscrites : {{unsubscribed}}), échecs : {{failed}}.",
+        "toast": {
+          "unsubscribed": "{{email}} a été désinscrit",
+          "erased": "Données marketing de {{email}} effacées",
+          "action_failed": "Cela n’a pas fonctionné",
+          "export_failed": "L’export a échoué"
+        }
+      },
+      "templates": {
+        "delete": "Supprimer le modèle",
+        "delete_title": "Supprimer ce modèle ?",
+        "delete_body": "« {{name}} » sera supprimé. Les campagnes déjà créées avec ce modèle conservent leur propre contenu."
+      },
+      "brandedPreview": {
+        "real_style": "Aperçu dans le style de votre boutique, avec des données d’exemple",
+        "fallback": "Aperçu simple : le style de votre boutique n’a pas pu être chargé",
+        "desktop": "Ordinateur",
+        "mobile": "Mobile"
+      },
+      "editorInsert": {
+        "default_placeholder": "Rédigez votre e-mail...",
+        "link_title": "Lien",
+        "link_explain": "Ajoutez une adresse web ou un lien mailto au texte sélectionné.",
+        "link_url": "Adresse web",
+        "link_invalid": "Utilisez une adresse commençant par https://, http:// ou mailto:.",
+        "link_remove": "Supprimer le lien",
+        "apply": "Appliquer",
+        "image_title": "Insérer une image",
+        "image_explain": "Choisissez une image de votre médiathèque ou collez une adresse web.",
+        "tab_library": "Médiathèque",
+        "tab_url": "Adresse web",
+        "no_results": "Aucune image trouvée.",
+        "library_empty": "Votre médiathèque ne contient pas encore d’images. Ajoutez-en via Marketing → Médias.",
+        "image_url": "Adresse web de l’image",
+        "image_url_invalid": "Utilisez une adresse commençant par https://. Les messageries n’affichent pas d’autres images.",
+        "image_alt": "Description (texte alternatif)",
+        "insert": "Insérer"
       }
     },
     "ads": {
@@ -7827,6 +7928,11 @@
         "bedankt_voor_je_aanmelding": "✓ Merci pour votre inscription !",
         "je_bent_succesvol_ingeschreven_voor_onze": "Vous êtes inscrit avec succès à notre newsletter."
       }
+    },
+    "newsletter": {
+      "confirm_title": "Presque terminé !",
+      "confirm_body": "Nous vous avons envoyé un e-mail. Cliquez sur le bouton dans cet e-mail pour confirmer votre inscription.",
+      "error": "Une erreur s’est produite. Veuillez réessayer plus tard."
     }
   },
   "events": {
@@ -8970,5 +9076,95 @@
     "empty_title": "Aucune notification trouvée",
     "empty_filtered": "Essayez d'autres termes de recherche ou filtres",
     "empty_all": "Vous êtes à jour !"
+  },
+  "mailPages": {
+    "common": {
+      "loading": "Un instant...",
+      "invalid_title": "Ce lien n'est pas valide",
+      "invalid_body": "Ce lien n'est pas valide ou a expiré. Utilisez le lien de l'e-mail le plus récent ou contactez la boutique.",
+      "error_title": "Une erreur s'est produite",
+      "error_body": "Une erreur s'est produite. Réessayez plus tard.",
+      "back_to_shop": "Retour à la boutique",
+      "the_shop": "la boutique"
+    },
+    "unsubscribe": {
+      "meta_title": "Désinscription",
+      "title": "Se désinscrire des e-mails",
+      "question": "Vous ne souhaitez plus recevoir d'e-mails marketing de {{shop}} ?",
+      "for_address": "Vous désinscrivez cette adresse :",
+      "reason_label": "Raison (facultatif)",
+      "reason_placeholder": "Choisissez une raison",
+      "reasons": {
+        "too_many": "Je reçois trop d'e-mails",
+        "not_relevant": "Le contenu ne me concerne pas",
+        "never_signed_up": "Je ne me suis jamais inscrit",
+        "other": "Autre raison"
+      },
+      "button": "Se désinscrire",
+      "or_manage": "Ou gérez vos préférences e-mail",
+      "done_title": "Vous êtes désinscrit",
+      "done_body": "Vous ne recevrez plus d'e-mails marketing de {{shop}}.",
+      "done_transactional": "Vous continuerez à recevoir les e-mails concernant vos commandes, comme les confirmations et les factures.",
+      "manage_preferences": "Gérer les préférences e-mail",
+      "legacy_title": "Désinscription",
+      "legacy_body": "Ce lien de désinscription provient d'un ancien e-mail. Cliquez ci-dessous et nous enverrons un nouveau lien de désinscription à {{email}}.",
+      "legacy_button": "M'envoyer un lien de désinscription",
+      "legacy_sent_title": "Consultez votre boîte mail",
+      "legacy_sent_body": "Si cette adresse est connue de la boutique, vous recevrez dans quelques minutes un e-mail avec un lien de désinscription."
+    },
+    "preferences": {
+      "meta_title": "Préférences e-mail",
+      "title": "Préférences e-mail",
+      "subtitle": "Choisissez les e-mails que vous recevez de {{shop}}.",
+      "email_label": "E-mail :",
+      "types_heading": "Types d'e-mails",
+      "types": {
+        "newsletter": {
+          "title": "Newsletter",
+          "description": "Actualités, nouvelles et contenus"
+        },
+        "promotions": {
+          "title": "Offres et réductions",
+          "description": "Bons plans et promotions"
+        },
+        "product_updates": {
+          "title": "Nouveaux produits",
+          "description": "Nouveautés sur les produits et collections"
+        }
+      },
+      "resubscribe_note": "Vous êtes désinscrit et souhaitez à nouveau recevoir des e-mails ? Réinscrivez-vous via le site de la boutique.",
+      "frequency_label": "Fréquence",
+      "frequency": {
+        "normal": "Normale : comme prévu",
+        "weekly": "Hebdomadaire : au maximum une fois par semaine",
+        "minimal": "Minimale : uniquement les mises à jour importantes"
+      },
+      "save": "Enregistrer les préférences",
+      "saved": "Vos préférences ont été enregistrées.",
+      "unsubscribe_all": "Se désinscrire de tous les e-mails marketing"
+    },
+    "confirmed": {
+      "meta_title": "Newsletter",
+      "ok": {
+        "title": "Votre inscription est confirmée",
+        "body": "Merci ! Vous recevrez désormais la newsletter de {{shop}}."
+      },
+      "already": {
+        "title": "Votre inscription était déjà confirmée",
+        "body": "Vous êtes déjà inscrit à la newsletter de {{shop}}. Rien d'autre à faire."
+      },
+      "invalid": {
+        "title": "Ce lien n'est pas valide",
+        "body": "Ce lien de confirmation n'est pas ou plus valide. Inscrivez-vous à nouveau via la boutique."
+      },
+      "unsubscribed": {
+        "title": "Vous êtes désinscrit",
+        "body": "Vous vous êtes désinscrit de {{shop}} auparavant. Cet ancien lien de confirmation ne vous réinscrit pas. Vous voulez quand même la newsletter ? Réinscrivez-vous via la boutique."
+      },
+      "error": {
+        "title": "Une erreur s'est produite",
+        "body": "Nous n'avons pas pu confirmer votre inscription. Réessayez plus tard."
+      }
+    }
   }
 }

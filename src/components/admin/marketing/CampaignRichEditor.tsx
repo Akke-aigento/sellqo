@@ -17,8 +17,9 @@ import {
   Heading2,
   ImageIcon,
 } from 'lucide-react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ImageInsertDialog, LinkDialog } from './EditorInsertDialogs';
 
 interface CampaignRichEditorProps {
   content: string;
@@ -26,8 +27,12 @@ interface CampaignRichEditorProps {
   placeholder?: string;
 }
 
-export function CampaignRichEditor({ content, onChange, placeholder = 'Schrijf je email...' }: CampaignRichEditorProps) {
+export function CampaignRichEditor({ content, onChange, placeholder }: CampaignRichEditorProps) {
   const { t } = useTranslation();
+  // MAIL-1b: dialogen in plaats van window.prompt (link en afbeelding uit de mediabibliotheek).
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkInitial, setLinkInitial] = useState<string | undefined>();
+  const [imageOpen, setImageOpen] = useState(false);
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -42,7 +47,7 @@ export function CampaignRichEditor({ content, onChange, placeholder = 'Schrijf j
         inline: false,
         HTMLAttributes: { style: 'max-width: 100%; height: auto;' },
       }),
-      Placeholder.configure({ placeholder }),
+      Placeholder.configure({ placeholder: placeholder ?? t('admin.marketing.editorInsert.default_placeholder') }),
     ],
     content,
     onUpdate: ({ editor }) => {
@@ -61,25 +66,25 @@ export function CampaignRichEditor({ content, onChange, placeholder = 'Schrijf j
     }
   }, [content, editor]);
 
-  const setLink = useCallback(() => {
+  const openLink = useCallback(() => {
     if (!editor) return;
-    const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('URL', previousUrl);
-    if (url === null) return;
-    if (url === '') {
+    setLinkInitial(editor.getAttributes('link').href);
+    setLinkOpen(true);
+  }, [editor]);
+
+  const applyLink = useCallback((url: string | null) => {
+    if (!editor) return;
+    if (!url) {
       editor.chain().focus().extendMarkRange('link').unsetLink().run();
       return;
     }
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   }, [editor]);
 
-  const addImage = useCallback(() => {
+  const insertImage = useCallback((img: { src: string; alt: string }) => {
     if (!editor) return;
-    const url = window.prompt(t('admin.marketing.campaignRichEditor.afbeelding_url'));
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
-  }, [editor, t]);
+    editor.chain().focus().setImage({ src: img.src, alt: img.alt }).run();
+  }, [editor]);
 
   if (!editor) return null;
 
@@ -141,7 +146,9 @@ export function CampaignRichEditor({ content, onChange, placeholder = 'Schrijf j
         <Button
           type="button" variant="ghost" size="sm"
           className={`h-7 w-7 p-0 ${editor.isActive('link') ? 'bg-accent' : ''}`}
-          onClick={setLink}
+          onClick={openLink}
+          title={t('admin.marketing.editorInsert.link_title')}
+          aria-label={t('admin.marketing.editorInsert.link_title')}
         >
           <LinkIcon className="h-3.5 w-3.5" />
         </Button>
@@ -157,12 +164,16 @@ export function CampaignRichEditor({ content, onChange, placeholder = 'Schrijf j
         <Button
           type="button" variant="ghost" size="sm"
           className="h-7 w-7 p-0"
-          onClick={addImage}
+          onClick={() => setImageOpen(true)}
+          title={t('admin.marketing.editorInsert.image_title')}
+          aria-label={t('admin.marketing.editorInsert.image_title')}
         >
           <ImageIcon className="h-3.5 w-3.5" />
         </Button>
       </div>
       <EditorContent editor={editor} />
+      <LinkDialog open={linkOpen} onOpenChange={setLinkOpen} initialUrl={linkInitial} onSubmit={applyLink} />
+      <ImageInsertDialog open={imageOpen} onOpenChange={setImageOpen} onSubmit={insertImage} />
     </div>
   );
 }

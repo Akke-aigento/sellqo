@@ -2089,6 +2089,18 @@
         "newsletter_double_optin": {
           "title": "Newsletter-Anmeldung mit Bestätigung",
           "description": "Wer sich für Ihren Newsletter anmeldet, erhält zuerst eine E-Mail zur Bestätigung. Erst danach bekommt diese Person Ihre Kampagnen und Ihre Willkommens-E-Mail. Kunden, die bestellen, sind nicht mehr automatisch angemeldet. So senden Sie Marketing nur an Personen, die sich ausdrücklich dafür entschieden haben, wie es die europäischen Datenschutzregeln verlangen."
+        },
+        "email_subscribers_tab": {
+          "title": "Abonnenten verwalten unter Marketing → E-Mail",
+          "description": "Im neuen Tab Abonnenten sehen Sie, wer Ihren Newsletter erhält, wer noch bestätigen muss und wer sich abgemeldet hat. Sie können suchen, filtern und die Liste als CSV exportieren. Laden Sie Personen mit einer Bestätigungs-E-Mail ein: Erst nach ihrem Klick erhalten sie Ihre Kampagnen. Sie können außerdem jemanden abmelden oder auf Anfrage seine Marketingdaten löschen, während Bestellungen und Rechnungen erhalten bleiben."
+        },
+        "email_editor_improvements": {
+          "title": "Vorschau im Stil Ihres Shops und Bilder aus Ihrer Mediathek",
+          "description": "Die Vorschau einer Kampagne oder Vorlage zeigt Ihre E-Mail jetzt so, wie Ihre Kunden sie erhalten, im Stil Ihres Shops, am Computer oder auf dem Smartphone. Bilder fügen Sie aus Ihrer Mediathek ein, Links über ein eigenes Fenster. Vorlagen öffnen Sie per Klick zum Bearbeiten, und Sie können sie löschen."
+        },
+        "mail_pages_fixed": {
+          "title": "Abmelden, Einstellungen und Bestätigung zeigen wieder eine ordentliche Seite",
+          "description": "Klickt ein Kunde in Ihrer E-Mail auf Abmelden, auf E-Mail-Einstellungen oder auf den Bestätigungslink Ihres Newsletters, erhält er wieder eine lesbare Seite mit dem Namen und Logo Ihres Shops statt Rohcode. Abmelden und Einstellungen funktionieren wie bisher; die Abmeldung mit einem Klick aus der Mail-App funktioniert weiterhin."
         }
       },
       "copyLink": "Link kopieren",

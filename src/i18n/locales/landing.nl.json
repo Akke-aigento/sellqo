@@ -2089,6 +2089,18 @@
         "newsletter_double_optin": {
           "title": "Inschrijven op je nieuwsbrief met bevestiging",
           "description": "Wie zich op je nieuwsbrief inschrijft, krijgt eerst een mail om dat te bevestigen. Pas daarna krijgt die persoon je campagnes en je welkomstmail. Klanten die iets bestellen, zijn niet langer vanzelf ingeschreven. Zo stuur je enkel marketing naar wie daar uitdrukkelijk voor koos, zoals de Europese privacyregels vragen."
+        },
+        "email_subscribers_tab": {
+          "title": "Je abonnees beheren in Marketing → E-mail",
+          "description": "In het nieuwe tabblad Abonnees zie je wie je nieuwsbrief krijgt, wie nog moet bevestigen en wie uitgeschreven is. Je kan zoeken, filteren en de lijst als CSV exporteren. Nodig mensen uit met een bevestigingsmail: pas na hun klik krijgen ze je campagnes. Je kan ook iemand uitschrijven of zijn marketinggegevens wissen op verzoek, terwijl bestellingen en facturen bewaard blijven."
+        },
+        "email_editor_improvements": {
+          "title": "Voorbeeld in je huisstijl en afbeeldingen uit je mediabibliotheek",
+          "description": "Het voorbeeld van een campagne of template toont je mail nu zoals je klanten hem krijgen, in de stijl van je winkel, op computer of op mobiel. Afbeeldingen voeg je toe vanuit je mediabibliotheek, en links via een eigen venster. Templates open je met een klik om ze te bewerken, en je kan ze verwijderen."
+        },
+        "mail_pages_fixed": {
+          "title": "Afmelden, voorkeuren en bevestigen tonen weer een nette pagina",
+          "description": "Klikt een klant in je mail op afmelden, op e-mailvoorkeuren of op de bevestigingslink van je nieuwsbrief, dan krijgt hij weer een leesbare pagina met de naam en het logo van je winkel, in plaats van ruwe code. Afmelden en voorkeuren werken zoals voorheen; afmelden met één klik vanuit de mailapp blijft werken."
         }
       },
       "copyLink": "Kopieer link",

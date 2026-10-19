@@ -495,3 +495,9 @@ verify_jwt = false
 
 [functions.social-translate-post]
 verify_jwt = false
+
+[functions.newsletter-invite]
+verify_jwt = false
+
+[functions.render-campaign-preview]
+verify_jwt = false

@@ -2089,6 +2089,18 @@
         "newsletter_double_optin": {
           "title": "Inscription à la newsletter avec confirmation",
           "description": "Toute personne qui s’inscrit à votre newsletter reçoit d’abord un e-mail de confirmation. Ce n’est qu’ensuite qu’elle reçoit vos campagnes et votre e-mail de bienvenue. Les clients qui passent commande ne sont plus inscrits automatiquement. Vous n’envoyez ainsi du marketing qu’aux personnes qui l’ont explicitement choisi, comme l’exigent les règles européennes de protection de la vie privée."
+        },
+        "email_subscribers_tab": {
+          "title": "Gérez vos abonnés dans Marketing → E-mail",
+          "description": "Dans le nouvel onglet Abonnés, vous voyez qui reçoit votre newsletter, qui doit encore confirmer et qui s’est désinscrit. Vous pouvez rechercher, filtrer et exporter la liste en CSV. Invitez des personnes avec un e-mail de confirmation : elles ne reçoivent vos campagnes qu’après avoir cliqué. Vous pouvez aussi désinscrire quelqu’un ou effacer ses données marketing sur demande, tandis que les commandes et factures sont conservées."
+        },
+        "email_editor_improvements": {
+          "title": "Aperçu dans le style de votre boutique et images de votre médiathèque",
+          "description": "L’aperçu d’une campagne ou d’un modèle montre désormais votre e-mail tel que vos clients le reçoivent, dans le style de votre boutique, sur ordinateur ou sur mobile. Vous ajoutez des images depuis votre médiathèque et des liens via une fenêtre dédiée. Cliquez sur un modèle pour le modifier ; vous pouvez aussi le supprimer."
+        },
+        "mail_pages_fixed": {
+          "title": "Désinscription, préférences et confirmation affichent à nouveau une page correcte",
+          "description": "Lorsqu'un client clique dans votre e-mail sur désinscription, sur les préférences e-mail ou sur le lien de confirmation de votre newsletter, il obtient à nouveau une page lisible avec le nom et le logo de votre boutique, au lieu de code brut. La désinscription et les préférences fonctionnent comme avant ; la désinscription en un clic depuis l'application de messagerie continue de fonctionner."
         }
       },
       "copyLink": "Copier le lien",

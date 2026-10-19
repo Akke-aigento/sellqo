@@ -2,133 +2,36 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getTenantBrand, type TenantBrand } from "../_shared/tenantEmail.ts";
 import { tenantMarketingSender, tenantSender } from "../_shared/emailSenders.ts";
 import { buildUnsubscribeUrl, escapeHtml } from "../_shared/marketingToken.ts";
+import { redirectToApp, resolveShopUrl, shopLogo } from "../_shared/mailPages.ts";
 
 // MAIL-1a (19 okt 2026): double opt-in staat aan voor alle winkels.
 // storefront-api zet een inschrijving op `pending` en mailt een link naar deze
 // functie (?token=<confirmation_token>&tenant=<tenantId>). Hier wordt de
 // inschrijving pas actief, krijgt de klant `email_subscribed = true` en vertrekt
 // de welkomstmail. Idempotent: een tweede klik verstuurt niets opnieuw.
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-const HTML_HEADERS = { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" };
+//
+// MAIL-1c: geen HTML meer (Supabase serveert die als text/plain, klanten zagen de
+// broncode). Na de bevestiging volgt een 302 naar sellqo.app/mail/bevestigd met
+// status, winkelnaam, shop-URL, logo en taal; die pagina doet geen servercall.
 
 type Locale = "nl" | "en" | "fr" | "de";
-
-const PAGE_STRINGS: Record<Locale, {
-  okTitle: string; okBody: string; alreadyTitle: string; alreadyBody: string;
-  invalidTitle: string; invalidBody: string; errorTitle: string; errorBody: string; back: string;
-}> = {
-  nl: {
-    okTitle: "Je inschrijving is bevestigd",
-    okBody: "Bedankt! Je ontvangt voortaan de nieuwsbrief van {shop}.",
-    alreadyTitle: "Je inschrijving was al bevestigd",
-    alreadyBody: "Je staat al op de nieuwsbrief van {shop}. Je hoeft niets meer te doen.",
-    invalidTitle: "Deze link is ongeldig",
-    invalidBody: "Deze bevestigingslink is ongeldig of niet meer geldig. Schrijf je opnieuw in via de webshop.",
-    errorTitle: "Er ging iets mis",
-    errorBody: "We konden je inschrijving nu niet bevestigen. Probeer het later opnieuw.",
-    back: "Naar de webshop",
-  },
-  en: {
-    okTitle: "Your subscription is confirmed",
-    okBody: "Thank you! From now on you'll receive the {shop} newsletter.",
-    alreadyTitle: "Your subscription was already confirmed",
-    alreadyBody: "You're already subscribed to the {shop} newsletter. Nothing else to do.",
-    invalidTitle: "This link is invalid",
-    invalidBody: "This confirmation link is invalid or no longer valid. Please subscribe again via the shop.",
-    errorTitle: "Something went wrong",
-    errorBody: "We couldn't confirm your subscription right now. Please try again later.",
-    back: "Back to the shop",
-  },
-  fr: {
-    okTitle: "Votre inscription est confirmée",
-    okBody: "Merci ! Vous recevrez désormais la newsletter de {shop}.",
-    alreadyTitle: "Votre inscription était déjà confirmée",
-    alreadyBody: "Vous êtes déjà inscrit à la newsletter de {shop}. Rien d'autre à faire.",
-    invalidTitle: "Ce lien n'est pas valide",
-    invalidBody: "Ce lien de confirmation n'est pas ou plus valide. Inscrivez-vous à nouveau via la boutique.",
-    errorTitle: "Une erreur s'est produite",
-    errorBody: "Nous n'avons pas pu confirmer votre inscription. Réessayez plus tard.",
-    back: "Retour à la boutique",
-  },
-  de: {
-    okTitle: "Deine Anmeldung ist bestätigt",
-    okBody: "Danke! Ab jetzt erhältst du den Newsletter von {shop}.",
-    alreadyTitle: "Deine Anmeldung war bereits bestätigt",
-    alreadyBody: "Du bist bereits für den Newsletter von {shop} angemeldet. Du musst nichts mehr tun.",
-    invalidTitle: "Dieser Link ist ungültig",
-    invalidBody: "Dieser Bestätigungslink ist ungültig oder nicht mehr gültig. Melde dich im Shop erneut an.",
-    errorTitle: "Etwas ist schiefgelaufen",
-    errorBody: "Wir konnten deine Anmeldung gerade nicht bestätigen. Versuche es später erneut.",
-    back: "Zurück zum Shop",
-  },
-};
 
 const pickLocale = (v: unknown, fallback: Locale = "nl"): Locale => {
   const s = String(v || "").toLowerCase().slice(0, 2);
   return (["nl", "en", "fr", "de"] as const).includes(s as Locale) ? (s as Locale) : fallback;
 };
 
-/** Eenvoudige pagina in de huisstijl van de winkel. Alle waarden ge-escaped. */
-function renderPage(opts: {
-  locale: Locale;
-  title: string;
-  body: string;
-  brand?: TenantBrand | null;
-  shopUrl?: string;
-  backLabel?: string;
-}): string {
-  const b = opts.brand;
-  const primary = b?.primaryColor || "#1a2332";
-  const bg = b?.backgroundColor || "#f5f5f5";
-  const text = b?.textColor || "#1a2332";
-  const logo = b?.logoUrl
-    ? `<img src="${escapeHtml(b.logoUrl)}" alt="${escapeHtml(b.tenantName)}" style="max-height:56px;max-width:200px;margin:0 auto 24px;display:block;" />`
-    : "";
-  const back = opts.shopUrl && /^https?:\/\//i.test(opts.shopUrl)
-    ? `<p style="margin-top:28px;"><a href="${escapeHtml(opts.shopUrl)}" style="display:inline-block;background:${escapeHtml(primary)};color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;">${escapeHtml(opts.backLabel || "")}</a></p>`
-    : "";
-  return `<!DOCTYPE html>
-<html lang="${escapeHtml(opts.locale)}">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex">
-  <title>${escapeHtml(opts.title)}${b ? ` - ${escapeHtml(b.tenantName)}` : ""}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: ${escapeHtml(bg)}; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .container { background: #ffffff; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 480px; width: 100%; padding: 40px; text-align: center; color: ${escapeHtml(text)}; }
-    h1 { font-size: 24px; margin-bottom: 16px; }
-    p { line-height: 1.6; }
-  </style>
-</head>
-<body>
-  <div class="container">
-    ${logo}
-    <h1>${escapeHtml(opts.title)}</h1>
-    <p>${escapeHtml(opts.body)}</p>
-    ${back}
-  </div>
-</body>
-</html>`;
-}
+type ConfirmStatus = "ok" | "already" | "invalid" | "unsubscribed" | "error";
 
-/** Publieke shop-URL voor {{SHOP_URL}} / {{company_website}} en de terugknop. */
-async function resolveShopUrl(supabase: any, tenantId: string, brand: TenantBrand): Promise<string> {
-  if (brand.websiteUrl) return brand.websiteUrl;
-  try {
-    const { data } = await supabase
-      .from("tenant_domains").select("domain")
-      .eq("tenant_id", tenantId).eq("is_active", true).eq("dns_verified", true).eq("is_canonical", true)
-      .limit(1).maybeSingle();
-    if (data?.domain) return `https://${data.domain}`;
-  } catch (_e) { /* val terug op sellqo.shop */ }
-  const slug = brand.senderSource.slug;
-  return slug ? `https://${slug}.sellqo.shop` : "";
+/** 302 naar de resultaatpagina. Enkel publieke winkelgegevens in de URL. */
+function resultRedirect(status: ConfirmStatus, locale: Locale, brand: TenantBrand | null, shopUrl: string): Response {
+  return redirectToApp("/mail/bevestigd", {
+    status,
+    lang: locale,
+    shop: brand?.tenantName || null,
+    url: /^https?:\/\//i.test(shopUrl) ? shopUrl : null,
+    logo: brand ? shopLogo(brand) : null,
+  });
 }
 
 /** Escape voor ILIKE, zodat `_` en `%` in een adres geen jokers zijn. */
@@ -261,7 +164,7 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204 });
   }
 
   const token = url.searchParams.get("token");
@@ -269,10 +172,7 @@ Deno.serve(async (req) => {
   const uuidRe = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
   if (!token || !tenantId || !uuidRe.test(token) || !uuidRe.test(tenantId)) {
-    const s = PAGE_STRINGS.nl;
-    return new Response(renderPage({ locale: "nl", title: s.invalidTitle, body: s.invalidBody }), {
-      status: 400, headers: HTML_HEADERS,
-    });
+    return resultRedirect("invalid", pickLocale(url.searchParams.get("lang")), null, "");
   }
 
   let brand: TenantBrand | null = null;
@@ -298,27 +198,19 @@ Deno.serve(async (req) => {
       ? (subscriber.metadata as Record<string, unknown>).language
       : undefined;
     locale = pickLocale(subLang, brand.defaultLocale);
-    const s = PAGE_STRINGS[locale];
-    const fill = (v: string) => v.split("{shop}").join(brand!.tenantName);
 
     if (error || !subscriber) {
-      return new Response(renderPage({ locale, title: s.invalidTitle, body: s.invalidBody, brand, shopUrl, backLabel: s.back }), {
-        status: 404, headers: HTML_HEADERS,
-      });
+      return resultRedirect("invalid", locale, brand, shopUrl);
     }
 
     if (subscriber.status === "active") {
-      return new Response(renderPage({ locale, title: s.alreadyTitle, body: fill(s.alreadyBody), brand, shopUrl, backLabel: s.back }), {
-        headers: HTML_HEADERS,
-      });
+      return resultRedirect("already", locale, brand, shopUrl);
     }
 
     // Alleen een openstaande inschrijving mag bevestigd worden. Wie zich
     // uitschreef, wordt niet heringeschreven door een oude bevestigingslink.
     if (subscriber.status && subscriber.status !== "pending") {
-      return new Response(renderPage({ locale, title: s.invalidTitle, body: s.invalidBody, brand, shopUrl, backLabel: s.back }), {
-        status: 410, headers: HTML_HEADERS,
-      });
+      return resultRedirect(subscriber.status === "unsubscribed" ? "unsubscribed" : "invalid", locale, brand, shopUrl);
     }
 
     // Atomair: alleen de aanroep die de rij écht van pending naar active zet,
@@ -332,9 +224,7 @@ Deno.serve(async (req) => {
 
     if (flipErr) throw flipErr;
     if (!flipped || flipped.length === 0) {
-      return new Response(renderPage({ locale, title: s.alreadyTitle, body: fill(s.alreadyBody), brand, shopUrl, backLabel: s.back }), {
-        headers: HTML_HEADERS,
-      });
+      return resultRedirect("already", locale, brand, shopUrl);
     }
 
     const email = String(subscriber.email).trim().toLowerCase();
@@ -435,14 +325,9 @@ Deno.serve(async (req) => {
       await sendWelcomeEmail(supabase, tenantId, email, subscriber.first_name, config, brand, shopUrl);
     }
 
-    return new Response(renderPage({ locale, title: s.okTitle, body: fill(s.okBody), brand, shopUrl, backLabel: s.back }), {
-      headers: HTML_HEADERS,
-    });
+    return resultRedirect("ok", locale, brand, shopUrl);
   } catch (error) {
     console.error("[NIEUWSBRIEF-BEVESTIG] fout:", error);
-    const s = PAGE_STRINGS[locale];
-    return new Response(renderPage({ locale, title: s.errorTitle, body: s.errorBody, brand, shopUrl, backLabel: s.back }), {
-      status: 500, headers: HTML_HEADERS,
-    });
+    return resultRedirect("error", locale, brand, shopUrl);
   }
 });

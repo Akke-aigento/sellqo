@@ -2489,7 +2489,14 @@
         "schrijf_je_template_inhoud": "Schreiben Sie Ihren Vorlageninhalt...",
         "template_bewerken": "Vorlage bearbeiten",
         "uw_bericht_hier": "Ihre Nachricht hier...",
-        "visueel": "Visuell"
+        "visueel": "Visuell",
+        "category": {
+          "general": "Allgemein",
+          "promotional": "Werbung",
+          "transactional": "Transaktion",
+          "newsletter": "Newsletter"
+        },
+        "subject_placeholder": "z. B. Willkommen bei {{company_name}}!"
       },
       "variableInserter": {
         "groups": {
@@ -3074,7 +3081,8 @@
       "tabs": {
         "campaigns": "Alle Kampagnen ({{count}})",
         "templates": "Vorlagen ({{count}})",
-        "segments": "Segmente ({{count}})"
+        "segments": "Segmente ({{count}})",
+        "subscribers": "Abonnenten"
       },
       "nieuwe_campagne": "Neue Kampagne",
       "geen_campagnes": "Keine Kampagnen",
@@ -3100,6 +3108,99 @@
         "geen_afzender": "Ihr Shop hat noch keine gültige Absenderadresse. Richten Sie Ihr Mail-Präfix unter Einstellungen → Email Inbox ein.",
         "boven_limiet": "Ihr Tarif erlaubt diesen Monat noch {{remaining}} Marketing-E-Mails. Wählen Sie eine kleinere Zielgruppe oder upgraden Sie Ihren Tarif.",
         "geen_ontvangers": "Für diese Zielgruppe gibt es keine angemeldeten Empfänger."
+      },
+      "subscribers": {
+        "status": {
+          "all": "Alle",
+          "subscribed": "Angemeldet",
+          "pending": "Wartet auf Bestätigung",
+          "unsubscribed": "Abgemeldet",
+          "bounced": "Unzustellbar",
+          "complaint": "Beschwerde"
+        },
+        "source": {
+          "manual": "Manuell abgemeldet",
+          "gdpr_erasure": "DSGVO-Löschung",
+          "unsubscribe": "Über Abmeldelink",
+          "bounce": "Adresse existiert nicht",
+          "complaint": "Als Spam markiert",
+          "admin_invite": "Einladung",
+          "popup": "Pop-up",
+          "exit_intent": "Exit-Pop-up",
+          "website": "Website",
+          "checkout": "Kasse",
+          "storefront_api": "Onlineshop"
+        },
+        "col": {
+          "email": "E-Mail",
+          "name": "Name",
+          "status": "Status",
+          "source": "Quelle",
+          "date": "Datum",
+          "actions": "Aktionen"
+        },
+        "search_placeholder": "Nach E-Mail oder Name suchen",
+        "export_csv": "CSV exportieren",
+        "invite": "Einladen",
+        "empty": "Noch keine Adressen mit diesem Status.",
+        "empty_search": "Keine Adressen für diese Suche gefunden.",
+        "page_info": "Seite {{page}} von {{pages}} ({{total}} Adressen)",
+        "prev": "Zurück",
+        "next": "Weiter",
+        "unsubscribe": "Abmelden",
+        "unsubscribe_title": "Diese Adresse abmelden?",
+        "unsubscribe_body": "{{email}} erhält keine Kampagnen mehr. Der Kunde und seine Bestellungen bleiben erhalten. Nur die Person selbst kann sich erneut anmelden.",
+        "erase": "DSGVO-Löschung",
+        "erase_title": "Marketingdaten löschen (DSGVO)?",
+        "erase_body": "Für {{email}} werden die Newsletter-Anmeldung und die E-Mail-Einstellungen gelöscht. Die Adresse wird dauerhaft abgemeldet und bleibt nur auf der Sperrliste, damit sie nie wieder angeschrieben wird.",
+        "erase_keeps": "Der Kundendatensatz selbst wird nicht gelöscht: Bestellungen und Rechnungen müssen Sie gesetzlich aufbewahren. Wenn Sie auch Name oder Adresse ändern möchten, tun Sie das unter Kunden.",
+        "erase_irreversible": "Dies kann nicht rückgängig gemacht werden.",
+        "invite_title": "Personen zu Ihrem Newsletter einladen",
+        "invite_explain": "Jede Adresse erhält eine E-Mail mit einem Button zur Bestätigung der Anmeldung. Erst nach der Bestätigung erhält sie Ihre Kampagnen. Bereits angemeldete oder jemals abgemeldete Adressen werden übersprungen.",
+        "invite_placeholder": "Eine Adresse pro Zeile oder durch Komma bzw. Semikolon getrennt",
+        "invite_count": "{{count}} gültige Adressen",
+        "invite_too_many": "Höchstens {{max}} Adressen auf einmal.",
+        "invite_upload_csv": "CSV hochladen",
+        "invite_consent": "Ich habe die Erlaubnis dieser Personen, sie einzuladen.",
+        "invite_send": "Einladungen senden",
+        "invite_done": "{{count}} Einladungen gesendet",
+        "invite_done_detail": "Neu: {{invited}}, erneut gesendet: {{resent}}, übersprungen: {{skipped}} (bereits angemeldet: {{active}}, abgemeldet: {{unsubscribed}}), fehlgeschlagen: {{failed}}.",
+        "toast": {
+          "unsubscribed": "{{email}} wurde abgemeldet",
+          "erased": "Marketingdaten von {{email}} gelöscht",
+          "action_failed": "Das hat nicht funktioniert",
+          "export_failed": "Export fehlgeschlagen"
+        }
+      },
+      "templates": {
+        "delete": "Vorlage löschen",
+        "delete_title": "Diese Vorlage löschen?",
+        "delete_body": "„{{name}}“ wird gelöscht. Kampagnen, die bereits mit dieser Vorlage erstellt wurden, behalten ihren eigenen Inhalt."
+      },
+      "brandedPreview": {
+        "real_style": "Vorschau im Stil Ihres Shops, mit Beispieldaten",
+        "fallback": "Einfache Vorschau: Der Stil Ihres Shops konnte nicht geladen werden",
+        "desktop": "Desktop",
+        "mobile": "Mobil"
+      },
+      "editorInsert": {
+        "default_placeholder": "Schreiben Sie Ihre E-Mail...",
+        "link_title": "Link",
+        "link_explain": "Fügen Sie dem ausgewählten Text eine Webadresse oder einen mailto-Link hinzu.",
+        "link_url": "Webadresse",
+        "link_invalid": "Verwenden Sie eine Adresse, die mit https://, http:// oder mailto: beginnt.",
+        "link_remove": "Link entfernen",
+        "apply": "Übernehmen",
+        "image_title": "Bild einfügen",
+        "image_explain": "Wählen Sie ein Bild aus Ihrer Mediathek oder fügen Sie eine Webadresse ein.",
+        "tab_library": "Mediathek",
+        "tab_url": "Webadresse",
+        "no_results": "Keine Bilder gefunden.",
+        "library_empty": "Ihre Mediathek enthält noch keine Bilder. Fügen Sie welche über Marketing → Medien hinzu.",
+        "image_url": "Webadresse des Bildes",
+        "image_url_invalid": "Verwenden Sie eine Adresse, die mit https:// beginnt. E-Mail-Programme zeigen andere Bilder nicht an.",
+        "image_alt": "Beschreibung (Alt-Text)",
+        "insert": "Einfügen"
       }
     },
     "ads": {
@@ -7827,6 +7928,11 @@
         "bedankt_voor_je_aanmelding": "✓ Vielen Dank für Ihre Anmeldung!",
         "je_bent_succesvol_ingeschreven_voor_onze": "Sie wurden erfolgreich für unseren Newsletter angemeldet."
       }
+    },
+    "newsletter": {
+      "confirm_title": "Fast geschafft!",
+      "confirm_body": "Wir haben Ihnen eine E-Mail gesendet. Klicken Sie auf den Button in dieser E-Mail, um Ihre Anmeldung zu bestätigen.",
+      "error": "Etwas ist schiefgelaufen. Bitte versuchen Sie es später erneut."
     }
   },
   "events": {
@@ -8970,5 +9076,95 @@
     "empty_title": "Keine Benachrichtigungen gefunden",
     "empty_filtered": "Versuchen Sie andere Suchbegriffe oder Filter",
     "empty_all": "Sie sind auf dem neuesten Stand!"
+  },
+  "mailPages": {
+    "common": {
+      "loading": "Einen Moment...",
+      "invalid_title": "Dieser Link ist ungültig",
+      "invalid_body": "Dieser Link ist ungültig oder abgelaufen. Verwende den Link aus der neuesten E-Mail oder wende dich an den Shop.",
+      "error_title": "Etwas ist schiefgelaufen",
+      "error_body": "Es ist ein Fehler aufgetreten. Versuche es später erneut.",
+      "back_to_shop": "Zurück zum Shop",
+      "the_shop": "den Shop"
+    },
+    "unsubscribe": {
+      "meta_title": "Abmelden",
+      "title": "Von E-Mails abmelden",
+      "question": "Möchtest du keine Marketing-E-Mails mehr von {{shop}} erhalten?",
+      "for_address": "Du meldest diese Adresse ab:",
+      "reason_label": "Grund (optional)",
+      "reason_placeholder": "Wähle einen Grund",
+      "reasons": {
+        "too_many": "Ich erhalte zu viele E-Mails",
+        "not_relevant": "Der Inhalt ist für mich nicht relevant",
+        "never_signed_up": "Ich habe mich nie angemeldet",
+        "other": "Anderer Grund"
+      },
+      "button": "Abmelden",
+      "or_manage": "Oder verwalte deine E-Mail-Einstellungen",
+      "done_title": "Du bist abgemeldet",
+      "done_body": "Du erhältst keine Marketing-E-Mails mehr von {{shop}}.",
+      "done_transactional": "E-Mails zu deinen Bestellungen, etwa Bestätigungen und Rechnungen, erhältst du weiterhin.",
+      "manage_preferences": "E-Mail-Einstellungen verwalten",
+      "legacy_title": "Abmelden",
+      "legacy_body": "Dieser Abmeldelink stammt aus einer älteren E-Mail. Klicke unten, dann senden wir einen neuen Abmeldelink an {{email}}.",
+      "legacy_button": "Abmeldelink senden",
+      "legacy_sent_title": "Sieh in dein Postfach",
+      "legacy_sent_body": "Wenn diese Adresse dem Shop bekannt ist, erhältst du in wenigen Minuten eine E-Mail mit einem Abmeldelink."
+    },
+    "preferences": {
+      "meta_title": "E-Mail-Einstellungen",
+      "title": "E-Mail-Einstellungen",
+      "subtitle": "Wähle, welche E-Mails du von {{shop}} erhältst.",
+      "email_label": "E-Mail:",
+      "types_heading": "Arten von E-Mails",
+      "types": {
+        "newsletter": {
+          "title": "Newsletter",
+          "description": "Allgemeine Updates, Neuigkeiten und Inhalte"
+        },
+        "promotions": {
+          "title": "Angebote und Rabatte",
+          "description": "Aktionen und Promotions"
+        },
+        "product_updates": {
+          "title": "Neue Produkte",
+          "description": "Updates zu neuen Produkten und Kollektionen"
+        }
+      },
+      "resubscribe_note": "Abgemeldet und möchtest wieder E-Mails erhalten? Melde dich über die Website des Shops erneut an.",
+      "frequency_label": "Häufigkeit",
+      "frequency": {
+        "normal": "Normal: wie geplant",
+        "weekly": "Wöchentlich: höchstens einmal pro Woche",
+        "minimal": "Minimal: nur wichtige Updates"
+      },
+      "save": "Einstellungen speichern",
+      "saved": "Deine Einstellungen wurden gespeichert.",
+      "unsubscribe_all": "Von allen Marketing-E-Mails abmelden"
+    },
+    "confirmed": {
+      "meta_title": "Newsletter",
+      "ok": {
+        "title": "Deine Anmeldung ist bestätigt",
+        "body": "Danke! Ab jetzt erhältst du den Newsletter von {{shop}}."
+      },
+      "already": {
+        "title": "Deine Anmeldung war bereits bestätigt",
+        "body": "Du bist bereits für den Newsletter von {{shop}} angemeldet. Du musst nichts mehr tun."
+      },
+      "invalid": {
+        "title": "Dieser Link ist ungültig",
+        "body": "Dieser Bestätigungslink ist ungültig oder nicht mehr gültig. Melde dich im Shop erneut an."
+      },
+      "unsubscribed": {
+        "title": "Du bist abgemeldet",
+        "body": "Du hast dich früher bei {{shop}} abgemeldet. Dieser alte Bestätigungslink meldet dich nicht erneut an. Möchtest du den Newsletter trotzdem? Melde dich im Shop erneut an."
+      },
+      "error": {
+        "title": "Etwas ist schiefgelaufen",
+        "body": "Wir konnten deine Anmeldung gerade nicht bestätigen. Versuche es später erneut."
+      }
+    }
   }
 }

@@ -2,148 +2,41 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import {
   verifyMarketingLink,
   buildUnsubscribeUrl,
-  buildPreferencesUrl,
   escapeHtml,
 } from "../_shared/marketingToken.ts";
 import { tenantSender } from "../_shared/emailSenders.ts";
+import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
+import { getShopInfo, isJsonRequest, jsonResponse, pickParams, redirectToApp } from "../_shared/mailPages.ts";
 
 /**
- * MAIL-1a — uitschrijven.
+ * MAIL-1a — uitschrijven. MAIL-1c — pagina verhuisd naar sellqo.app/mail/afmelden.
  *
  * - Elke statuswijziging vraagt een geldige handtekening (`s`) over (tenant, e-mail).
- *   Zonder geldige handtekening: vriendelijke pagina, niets gewijzigd.
- * - GET toont een bevestigingspagina met een knop; POST schrijft uit.
+ * - Browser-GET (link in een mail): 302 naar /mail/afmelden met dezelfde parameters.
+ *   Deze functie rendert geen HTML meer: Supabase serveert die als text/plain.
+ * - POST met `Content-Type: application/json`: API voor die pagina, acties
+ *   `info` (toont niets geheims, verandert niets), `unsubscribe` en `legacy`.
  * - RFC 8058 one-click: mailclients POSTen naar de List-Unsubscribe-URL (tenant,
- *   email en s staan in de querystring) met body `List-Unsubscribe=One-Click`.
- *   Daarom leest POST eerst de querystring en pas daarna het formulier.
- * - Alles wat in de pagina belandt, gaat door escapeHtml (XSS).
+ *   email en s in de querystring) met body `List-Unsubscribe=One-Click` → 200 tekst.
+ * - Oude links zonder handtekening: enkel een nieuwe, ondertekende link mailen naar
+ *   dat adres. Zo kan niemand een ander uitschrijven en blijft afmelden mogelijk (AVG).
  */
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
-
-const HTML_HEADERS = { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" };
+// RFC 8058 one-click komt van mailservers (geen browser): die krijgen open CORS
+// niet nodig, maar een kale 200. De JSON-API voor de pagina op sellqo.app gebruikt
+// getCorsHeaders (enkel onze eigen origins).
+const TEXT_HEADERS = { "Content-Type": "text/plain; charset=utf-8" };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const ALLOWED_REASONS = new Set(["too_many", "not_relevant", "never_signed_up", "other"]);
 
+/** Parameters die een browser-GET meeneemt naar /mail/afmelden. */
+const FORWARD_KEYS = ["tenant", "email", "s", "campaign", "lang"] as const;
+
 /** ilike zonder wildcards: `_` en `%` in een adres mogen niet op andere adressen matchen. */
 const ilikeExact = (v: string) => v.replace(/[\\%_]/g, (c) => `\\${c}`);
-
-const PAGE_STYLE = `
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-    .container { background: white; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); max-width: 480px; width: 100%; padding: 40px; text-align: center; }
-    h1 { color: #1a1a1a; font-size: 24px; margin-bottom: 16px; }
-    p { color: #666; line-height: 1.6; margin-bottom: 24px; }
-    .email { font-weight: 600; color: #1a1a1a; word-break: break-all; }
-    .icon { font-size: 48px; margin-bottom: 20px; }
-    .btn { display: inline-block; padding: 14px 32px; border-radius: 8px; font-size: 16px; font-weight: 500; text-decoration: none; cursor: pointer; transition: all 0.2s; border: none; }
-    .btn-danger { background: #dc2626; color: white; }
-    .btn-danger:hover { background: #b91c1c; }
-    .buttons { margin-top: 32px; }
-    .reason-select { width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; margin-bottom: 16px; }
-    form { margin-top: 24px; }
-    .footer-link { margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
-    .footer-link a { color: #2563eb; text-decoration: none; font-size: 14px; }
-    .footer-link a:hover { text-decoration: underline; }
-`;
-
-const layout = (title: string, body: string) => `<!DOCTYPE html>
-<html lang="nl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex">
-  <title>${title}</title>
-  <style>${PAGE_STYLE}</style>
-</head>
-<body>
-  <div class="container">
-${body}
-  </div>
-</body>
-</html>
-`;
-
-const getUnsubscribePageHtml = (opts: {
-  tenantName: string;
-  email: string;
-  tenantId: string;
-  sig: string;
-  campaignId: string | null;
-  actionUrl: string;
-  preferencesUrl: string;
-}) => {
-  const name = escapeHtml(opts.tenantName);
-  return layout(`Uitschrijven - ${name}`, `
-    <h1>Uitschrijven van e-mails</h1>
-    <p>Wil je geen e-mails meer ontvangen van <strong>${name}</strong>?</p>
-    <p>Je schrijft je uit voor: <span class="email">${escapeHtml(opts.email)}</span></p>
-
-    <form action="${escapeHtml(opts.actionUrl)}" method="POST">
-      <input type="hidden" name="tenant" value="${escapeHtml(opts.tenantId)}">
-      <input type="hidden" name="email" value="${escapeHtml(opts.email)}">
-      <input type="hidden" name="s" value="${escapeHtml(opts.sig)}">
-      ${opts.campaignId ? `<input type="hidden" name="campaign" value="${escapeHtml(opts.campaignId)}">` : ""}
-
-      <select name="reason" class="reason-select">
-        <option value="">Selecteer een reden (optioneel)</option>
-        <option value="too_many">Ik ontvang te veel e-mails</option>
-        <option value="not_relevant">De inhoud is niet relevant voor mij</option>
-        <option value="never_signed_up">Ik heb me nooit ingeschreven</option>
-        <option value="other">Andere reden</option>
-      </select>
-
-      <div class="buttons">
-        <button type="submit" class="btn btn-danger">Uitschrijven</button>
-      </div>
-    </form>
-
-    <div class="footer-link">
-      <a href="${escapeHtml(opts.preferencesUrl)}">Of beheer je e-mailvoorkeuren</a>
-    </div>`);
-};
-
-const getSuccessPageHtml = (tenantName: string) => {
-  const name = escapeHtml(tenantName);
-  return layout(`Uitgeschreven - ${name}`, `
-    <div class="icon">&#10003;</div>
-    <h1>Je bent uitgeschreven</h1>
-    <p>Je ontvangt geen marketingmails meer van <strong>${name}</strong>.</p>
-    <p style="font-size: 14px;">Mails over je bestellingen (zoals bevestigingen en facturen) blijf je wel ontvangen.</p>
-    <div class="footer-link">
-      <p style="font-size: 14px; margin-bottom: 0;">Per ongeluk uitgeschreven? Neem contact op met ${name} om je opnieuw in te schrijven.</p>
-    </div>`);
-};
-
-const getInvalidLinkHtml = () => layout("Ongeldige link", `
-    <h1>Ongeldige link</h1>
-    <p>Deze link is ongeldig of verlopen. Gebruik de afmeldlink in de meest recente mail, of neem contact op met de winkel.</p>`);
-
-const getErrorHtml = () => layout("Er ging iets mis", `
-    <h1>Er ging iets mis</h1>
-    <p>Er is een fout opgetreden. Probeer het later opnieuw.</p>`);
-
-// Oude links (vóór MAIL-1a, zonder handtekening) staan nog in verstuurde mails. Wie zo'n link
-// gebruikt, kan zich nog altijd uitschrijven: we mailen een ondertekende link naar dat adres.
-// Zo kan niemand een ander uitschrijven, en blijft afmelden mogelijk (AVG).
-const getLegacyAskHtml = (email: string, tenantId: string, actionUrl: string) => layout("Afmelden", `
-    <h1>Afmelden</h1>
-    <p>Deze afmeldlink is van een oudere mail. Klik hieronder, dan sturen we een nieuwe afmeldlink naar <strong>${escapeHtml(email)}</strong>.</p>
-    <form method="POST" action="${escapeHtml(actionUrl)}">
-      <input type="hidden" name="tenant" value="${escapeHtml(tenantId)}">
-      <input type="hidden" name="email" value="${escapeHtml(email)}">
-      <input type="hidden" name="legacy" value="1">
-      <button type="submit" class="btn btn-danger">Stuur mij een afmeldlink</button>
-    </form>`);
-
-const getLegacySentHtml = () => layout("Kijk in je mailbox", `
-    <h1>Kijk in je mailbox</h1>
-    <p>Als dit adres bij ons bekend is, ontvang je binnen enkele minuten een mail met een link om je af te melden.</p>`);
 
 /** Leest tenant/email/s/campaign/reason: eerst uit de querystring, dan uit de body. */
 async function readParams(req: Request, url: URL) {
@@ -217,127 +110,184 @@ async function sendFreshUnsubscribeLink(supabase: any, tenantId: string, email: 
   }
 }
 
+
+/** Schrijft uit. Ongewijzigd gedrag t.o.v. de POST van MAIL-1a. */
+// deno-lint-ignore no-explicit-any
+async function performUnsubscribe(supabase: any, tenantId: string, email: string, campaignId: string | null, reason: string | null) {
+  const now = new Date().toISOString();
+
+  // Bestaat de uitschrijving al? Dan blijft de oorspronkelijke datum staan.
+  const { data: existing } = await supabase
+    .from("email_unsubscribes")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .eq("email", email)
+    .maybeSingle();
+
+  if (!existing) {
+    const { error: unsubError } = await supabase.from("email_unsubscribes").upsert({
+      tenant_id: tenantId,
+      email,
+      reason: "unsubscribe",
+      campaign_id: campaignId,
+      unsubscribed_at: now,
+    }, { onConflict: "tenant_id,email" });
+    if (unsubError) console.error("[unsubscribe] email_unsubscribes upsert mislukt", unsubError);
+  }
+
+  const { error: custError } = await supabase
+    .from("customers")
+    .update({ email_subscribed: false })
+    .eq("tenant_id", tenantId)
+    .ilike("email", ilikeExact(email));
+  if (custError) console.error("[unsubscribe] customers update mislukt", custError);
+
+  const { error: nlError } = await supabase
+    .from("newsletter_subscribers")
+    .update({
+      status: "unsubscribed",
+      unsubscribed_at: now,
+      unsubscribe_reason: reason,
+    })
+    .eq("tenant_id", tenantId)
+    .ilike("email", ilikeExact(email));
+  if (nlError) console.error("[unsubscribe] newsletter_subscribers update mislukt", nlError);
+
+  const { error: prefError } = await supabase
+    .from("email_preferences")
+    .upsert({
+      tenant_id: tenantId,
+      email,
+      newsletter: false,
+      promotions: false,
+      product_updates: false,
+      updated_at: now,
+    }, { onConflict: "tenant_id,email" });
+  if (prefError) console.error("[unsubscribe] email_preferences upsert mislukt", prefError);
+}
+
+const str = (v: unknown): string | null => (typeof v === "string" && v.length <= 512 ? v : null);
+
 Deno.serve(async (req) => {
   const url = new URL(req.url);
+  const cors = getCorsHeaders(req);
 
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return handleCorsOptions(req);
 
   if (req.method !== "GET" && req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405, headers: corsHeaders });
+    return new Response("Method not allowed", { status: 405, headers: cors });
   }
 
-  try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  // Browser-GET vanuit een mail: naar de pagina op sellqo.app. Verandert niets.
+  if (req.method === "GET") {
+    return redirectToApp("/mail/afmelden", pickParams(url, FORWARD_KEYS));
+  }
 
-    const p = await readParams(req, url);
-    const tenantValid = !!p.tenantId && UUID_RE.test(p.tenantId);
-    const valid = tenantValid && await verifyMarketingLink(p.tenantId, p.email, p.sig);
+  const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+  const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Oude link zonder handtekening: enkel een nieuwe, ondertekende link mailen.
-    const legacyEmail = (p.email || "").trim().toLowerCase();
-    if (!valid && tenantValid && !p.sig && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(legacyEmail)) {
-      const selfUrl = `${supabaseUrl}/functions/v1/unsubscribe`;
-      if (req.method === "GET") {
-        return new Response(getLegacyAskHtml(legacyEmail, p.tenantId as string, selfUrl), { headers: HTML_HEADERS });
+  // ── JSON-API voor /mail/afmelden ─────────────────────────────────────────
+  if (isJsonRequest(req)) {
+    try {
+      // deno-lint-ignore no-explicit-any
+      let b: Record<string, any> = {};
+      try {
+        const parsed = await req.json();
+        if (parsed && typeof parsed === "object") b = parsed;
+      } catch { /* lege body → ongeldig */ }
+
+      const action = str(b.action);
+      const tenantId = str(b.tenant);
+      const rawEmail = str(b.email);
+      const sig = str(b.s);
+      const tenantValid = !!tenantId && UUID_RE.test(tenantId);
+      if (!tenantValid || !rawEmail) return jsonResponse({ valid: false, legacy: false }, 400, cors);
+      const email = rawEmail.trim().toLowerCase();
+
+      if (action === "legacy") {
+        // Enkel voor oude links zonder handtekening; altijd hetzelfde antwoord,
+        // zodat het niet verraadt of het adres bij de winkel bekend is.
+        if (!sig && EMAIL_RE.test(email)) await sendFreshUnsubscribeLink(supabase, tenantId, email);
+        return jsonResponse({ ok: true }, 200, cors);
       }
-      if (p.legacy) {
-        await sendFreshUnsubscribeLink(supabase, p.tenantId as string, legacyEmail);
-        // Altijd hetzelfde antwoord: verraadt niet of het adres bekend is.
-        return new Response(getLegacySentHtml(), { headers: HTML_HEADERS });
+
+      const valid = await verifyMarketingLink(tenantId, email, sig);
+      const legacy = !valid && !sig && EMAIL_RE.test(email);
+
+      if (action === "info") {
+        // Shopinfo enkel bij een geldige of legacy-link: anders kan iedereen met een
+        // tenant-id de naam opvragen (beperkt, maar onnodig).
+        const shop = valid || legacy ? await getShopInfo(supabase, tenantId) : { shop_name: "", logo_url: null, shop_url: null };
+        return jsonResponse({ valid, legacy, ...shop }, 200, cors);
       }
+
+      if (action === "unsubscribe") {
+        if (!valid) return jsonResponse({ ok: false, error: "invalid" }, 400, cors);
+        const campaign = str(b.campaign);
+        const reason = str(b.reason);
+        await performUnsubscribe(
+          supabase,
+          tenantId,
+          email,
+          campaign && UUID_RE.test(campaign) ? campaign : null,
+          reason && ALLOWED_REASONS.has(reason) ? reason : null,
+        );
+        return jsonResponse({ ok: true }, 200, cors);
+      }
+
+      return jsonResponse({ ok: false, error: "unknown_action" }, 400, cors);
+    } catch (error) {
+      console.error("[unsubscribe] JSON-fout:", error);
+      return jsonResponse({ ok: false, error: "server" }, 500, cors);
     }
+  }
 
+  // ── RFC 8058 one-click (en oude formulier-POSTs) ─────────────────────────
+  try {
+    let body = new URLSearchParams();
+    const ct = (req.headers.get("content-type") || "").toLowerCase();
+    try {
+      if (ct.includes("multipart/form-data")) {
+        const fd = await req.formData();
+        for (const [k, v] of fd.entries()) if (typeof v === "string") body.append(k, v);
+      } else {
+        // form-urlencoded, of een client zonder content-type
+        body = new URLSearchParams(await req.text());
+      }
+    } catch (e) {
+      console.warn("[unsubscribe] body niet leesbaar", e);
+    }
+    const oneClick = (body.get("List-Unsubscribe") || "").trim() === "One-Click";
+    const pick = (k: string) => url.searchParams.get(k) || body.get(k) || null;
+    const tenantId = pick("tenant") || body.get("tenant_id");
+    const rawEmail = pick("email");
+    const sig = pick("s");
+    const campaign = pick("campaign");
+    const reason = body.get("reason");
+
+    const valid = !!tenantId && UUID_RE.test(tenantId) && await verifyMarketingLink(tenantId, rawEmail, sig);
     if (!valid) {
       // Geen statuswijziging zonder geldige handtekening.
-      return new Response(getInvalidLinkHtml(), { status: 400, headers: HTML_HEADERS });
+      return new Response("Invalid link", { status: 400, headers: TEXT_HEADERS });
     }
 
-    const tenantId = p.tenantId as string;
-    const email = (p.email as string).trim().toLowerCase();
-    const sig = p.sig as string;
+    await performUnsubscribe(
+      supabase,
+      tenantId as string,
+      (rawEmail as string).trim().toLowerCase(),
+      campaign && UUID_RE.test(campaign) ? campaign : null,
+      reason && ALLOWED_REASONS.has(reason) ? reason : null,
+    );
 
-    const { data: tenant } = await supabase
-      .from("tenants")
-      .select("name")
-      .eq("id", tenantId)
-      .maybeSingle();
-    const tenantName = tenant?.name || "onze webshop";
-
-    // GET — bevestigingspagina, verandert niets.
-    if (req.method === "GET") {
-      let actionUrl = await buildUnsubscribeUrl(tenantId, email);
-      if (p.campaignId) actionUrl += `&campaign=${encodeURIComponent(p.campaignId)}`;
-      const preferencesUrl = await buildPreferencesUrl(tenantId, email);
-      return new Response(
-        getUnsubscribePageHtml({ tenantName, email, tenantId, sig, campaignId: p.campaignId, actionUrl, preferencesUrl }),
-        { headers: HTML_HEADERS },
-      );
-    }
-
-    // POST — uitschrijven (formulier of RFC 8058 one-click).
-    const now = new Date().toISOString();
-
-    // Bestaat de uitschrijving al? Dan blijft de oorspronkelijke datum staan.
-    const { data: existing } = await supabase
-      .from("email_unsubscribes")
-      .select("id")
-      .eq("tenant_id", tenantId)
-      .eq("email", email)
-      .maybeSingle();
-
-    if (!existing) {
-      const { error: unsubError } = await supabase.from("email_unsubscribes").upsert({
-        tenant_id: tenantId,
-        email,
-        reason: "unsubscribe",
-        campaign_id: p.campaignId,
-        unsubscribed_at: now,
-      }, { onConflict: "tenant_id,email" });
-      if (unsubError) console.error("[unsubscribe] email_unsubscribes upsert mislukt", unsubError);
-    }
-
-    const { error: custError } = await supabase
-      .from("customers")
-      .update({ email_subscribed: false })
-      .eq("tenant_id", tenantId)
-      .ilike("email", ilikeExact(email));
-    if (custError) console.error("[unsubscribe] customers update mislukt", custError);
-
-    const { error: nlError } = await supabase
-      .from("newsletter_subscribers")
-      .update({
-        status: "unsubscribed",
-        unsubscribed_at: now,
-        unsubscribe_reason: p.reason,
-      })
-      .eq("tenant_id", tenantId)
-      .ilike("email", ilikeExact(email));
-    if (nlError) console.error("[unsubscribe] newsletter_subscribers update mislukt", nlError);
-
-    const { error: prefError } = await supabase
-      .from("email_preferences")
-      .upsert({
-        tenant_id: tenantId,
-        email,
-        newsletter: false,
-        promotions: false,
-        product_updates: false,
-        updated_at: now,
-      }, { onConflict: "tenant_id,email" });
-    if (prefError) console.error("[unsubscribe] email_preferences upsert mislukt", prefError);
-
-    if (p.oneClick) {
+    if (oneClick) {
       // RFC 8058: de mailclient verwacht enkel een 2xx.
-      return new Response("OK", { status: 200, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } });
+      return new Response("OK", { status: 200, headers: TEXT_HEADERS });
     }
-
-    return new Response(getSuccessPageHtml(tenantName), { headers: HTML_HEADERS });
+    // Formulier-POST uit een nog openstaande oude pagina: toon de bevestiging in de app.
+    return redirectToApp("/mail/afmelden", { tenant: tenantId, email: rawEmail, s: sig, done: "1" });
   } catch (error) {
     console.error("[unsubscribe] fout:", error);
-    return new Response(getErrorHtml(), { status: 500, headers: HTML_HEADERS });
+    return new Response("Error", { status: 500, headers: TEXT_HEADERS });
   }
 });
