@@ -22418,8 +22418,61 @@ export type Database = {
         Returns: number
       }
       mark_campaign_sends_sent: { Args: { p_rows: Json }; Returns: number }
+      marketing_contact_counts: {
+        Args: { p_tenant: string }
+        Returns: {
+          status: string
+          total: number
+        }[]
+      }
+      marketing_contacts: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_search?: string
+          p_status?: string
+          p_tenant: string
+        }
+        Returns: {
+          customer_id: string
+          email: string
+          name: string
+          source: string
+          status: string
+          status_at: string
+          total_count: number
+        }[]
+      }
+      marketing_contacts_all: {
+        Args: { p_tenant: string }
+        Returns: {
+          customer_id: string
+          email: string
+          name: string
+          source: string
+          status: string
+          status_at: string
+        }[]
+      }
       marketing_email_limit: { Args: { p_tenant_id: string }; Returns: number }
       marketing_emails_used: { Args: { p_tenant_id: string }; Returns: number }
+      marketing_erase_contact: {
+        Args: { p_email: string; p_tenant: string }
+        Returns: Json
+      }
+      marketing_prepare_invites: {
+        Args: {
+          p_attested_by: string
+          p_emails: string[]
+          p_language?: string
+          p_tenant: string
+        }
+        Returns: Json
+      }
+      marketing_unsubscribe_contact: {
+        Args: { p_email: string; p_tenant: string }
+        Returns: Json
+      }
       media_file_name_from_url: { Args: { p_url: string }; Returns: string }
       media_mime_from_url: { Args: { p_url: string }; Returns: string }
       media_register_urls: {
