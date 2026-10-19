@@ -3,6 +3,20 @@
 > Fase 2 is volledig afgesloten — zie `docs/fase2-eindrapport.md`.
 > De items hieronder zijn bewust geparkeerd voor losse opname.
 
+## SOCIAL-ENGINE-1 — socials commercieel: de motor naar SellQo (geparkeerd 19-10-2026)
+
+Beslissing Akke 19-10: gaat Social commercieel, dan draait de contentmotor in SellQo zelf en niet via Claude-taken op Akke's account. Tot dan is Social enkel op uitnodiging (SOCIAL-GATE-1, `granted_features` 'social_planner').
+
+- **Nu:** de weektaken in Claude maken de content voor de 5 eigen merken, met maatwerk per merk in de repo `nomadix-socials`. Dat blijft het testlab.
+- **Straks in SellQo:**
+  - een weekplan via een edge function en een AI-model op `tenant_brand_dna`, als gestructureerde data;
+  - vaste sjablonen in de huisstijl van de winkel;
+  - renderen in de browser (zoals "Tekst in beeld") of via Cloudflare Browser Rendering, want een edge function kan geen Playwright draaien;
+  - het bestaande leren hergebruiken (`social_post_performance`, `content_tags`, `social_post_events`, het weekoverzicht);
+  - AI-credits en limieten uit SOCIAL-SEC-1.
+- **Voorwaarden:** Meta App Review en de bedrijfsverificatie van Nomadix BV; daarnaast 4 tot 6 weken data op de eigen merken.
+- **Eerst recon, dan go.** Bron: Nomadix Socials-masterplan §2 (project "Nomadix Socials & Marketing").
+
 ## 2C1c — Anon-INSERT external_reviews via edge function
 
 - Doel: klant kan review insturen zonder login
