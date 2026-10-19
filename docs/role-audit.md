@@ -1,3 +1,62 @@
+## MAIL-1a — E-mailmarketing: volledige verzending, inplannen, toestemming, uitschrijven (2026.12v) — 19 oktober 2026
+
+Akke 19-10, 19:55: "kijk je eens A-Z na, wat werkt er wel/niet … dit moet heel snel opstaan want de tenants gaan deze snel gebruiken". Recon `claude/recon-mail-1.md` (project Nomadix Socials). Beslissingen 20:05 ("akkoord met alles"): bestaande inschrijvingen rechtzetten (enkel VanXcel ~20 echt), limieten Free 500 / Starter 2.500 / Pro + Horeca 10.000 / Enterprise 50.000 per maand, double opt-in standaard aan, apart marketingsubdomein. Go 20:12.
+
+**Root cause (recon, live-DB + code)**
+- `send-campaign-batch` r.29/180/299: `limit(batch_size=50)` zonder vervolg, daarna status `sent`. Elke campagne bereikte maximaal 50 mensen.
+- Zelfde functie r.260-292: resend@2 gooit geen fout; 429/4xx werden als `sent` geboekt, echte fouten als `bounced`. De enige campagne ooit (VanXcel 18-09) staat op 3 verzonden, 3 bounced, 0 afgeleverd, en 0 rijen in `campaign_sends` (insert-fouten werden genegeerd).
+- Geen idempotentie: dubbel klikken = dubbel versturen.
+- Niets las `scheduled_at`; geen cron voor mail (live `cron.job`: 0 mailjobs). Ingeplande campagnes vertrokken nooit.
+- `customers.email_subscribed DEFAULT true` (migr. 20260120092508:116) en de checkout zet het niet: elke koper kreeg marketing. Double opt-in bestond niet (geen bevestigingsmail; `storefront-api` zette `email_subscribed=true` vóór bevestiging).
+- `unsubscribe` en `email-preferences` zonder token: iedereen kon elk adres uit- (en weer in-)schrijven; XSS in de pagina; RFC 8058 one-click gaf 400.
+- Bounces en klachten onderdrukten niets; complaint-insert botste op UNIQUE.
+- Geen verzendlimiet per plan; zonder prefix viel de afzender terug op `info@sellqo.app`.
+- UI: segmenttellingen altijd 0 en anders dan de verzending, drie filters genegeerd, geen testmail-knop (EmailPreview ongebruikt), geen bevestiging op de campagnekaart, "automatische trigger" was een dode optie.
+
+**Uitgevoerd**
+- Data (19-10 20:10, via `query_database`, na snapshot `snapshots.platform_20261019_customers_email_subscribed`): 27 klanten `email_subscribed=false` (SellQo 12, Fonske 5, Demo Bakkerij 4, Loveke 1, vijf demo-/testwinkels elk 1). Blijven: VanXcel 19, Loveke 2 en Mancini 2 (actief in `newsletter_subscribers`). Afwijking van CLAUDE.md §5 (schrijven via migratie): gedaan op expliciete beslissing van Akke, met snapshot en terugdraai-SQL in de recon.
+- Migratie `20261019210000_mail_1a_marketing_engine.sql`: default `email_subscribed=false`; `double_optin` default true en aan voor alle winkels; `email_campaigns.send_error/send_started_at`; `campaign_sends.attempts/claimed_at/next_attempt_at`, unique `(campaign_id, email)`, indexen op `resend_id` en de wachtrij; `pricing_plans.limit_marketing_emails_monthly` (events_flex 500 en events_vast 2.500: niet expliciet beslist); functies `marketing_email_limit`, `marketing_emails_used`, `enqueue_campaign_sends` (status + limiet + rijen + overgang naar sending in één transactie, advisory lock per winkel; mislukte rijen opnieuw in de wachtrij), `claim_campaign_sends` (SKIP LOCKED, vastgelopen rijen terug of na 5 pogingen failed), `mark_campaign_sends_sent`; triggers die gebruikers enkel draft↔scheduled laten zetten en `campaign_sends` enkel door de server laten schrijven; cron `process-campaign-queue` (elke minuut, anders elk uur, enkel als er werk is).
+- Migratie `20261019210100_mail_1a_doc_article.sql`: helpartikel `emailcampagnes` herschreven (vorige inhoud in `snapshots.platform_20261019_doc_articles_emailcampagnes`).
+- `_shared/campaignAudience.ts` (nieuw): één doelgroeplogica voor tellen, verzenden en worker; filters op bestelrecentheid en engagement nu echt toegepast; uitgeschreven/gebounced nooit.
+- `_shared/campaignQueue.ts` (nieuw): enqueue via de RPC; worker met Resend batch-API (100/call, Idempotency-Key, `x-batch-validation: permissive`, fout per mail, retry/backoff, 600 ms tussen calls), geplande campagnes met betaalcontrole, HTML-escaping van klantvelden, campagne pas `sent` als de wachtrij leeg is.
+- `_shared/marketingToken.ts` (nieuw, + test): HMAC-ondertekende uitschrijf- en voorkeurenlinks; `escapeHtml`.
+- `_shared/emailSenders.ts`: `tenantMarketingSender` (domein uit secret `MARKETING_SENDER_DOMAIN`, anders `mail.sellqo.app`; zonder prefix null = weigeren).
+- `send-campaign-batch`: enkel nog in de wachtrij zetten + modes `count` en `segment_count`; start de worker meteen.
+- `process-campaign-queue` (nieuw, cronAuth): de worker, roept zichzelf opnieuw aan zolang er werk is.
+- `unsubscribe`: handtekening verplicht, one-click via querystring, escaping; oude links zonder handtekening mailen een nieuwe, ondertekende link naar dat adres (enkel als de winkel het adres kent).
+- `email-preferences`: handtekening verplicht, kan nooit meer inschrijven.
+- `process-email-webhook`: harde bounce en klacht → `email_unsubscribes` (upsert) + `email_subscribed=false`; tellers enkel bij een echte overgang; `delivered` overschrijft opened/clicked niet.
+- `send-test-email`: zelfde rendering en afzender als een echte campagne, betaalcontrole, List-Unsubscribe.
+- `storefront-api` (enkel het nieuwsbriefblok r.5026-5338): double opt-in met bevestigingsmail, welkomstmail pas na bevestiging, oude placeholders in welkomstmails ingevuld; antwoord + `requires_confirmation`.
+- `newsletter-confirm`: actief zetten (idempotent), klant inschrijven, eerdere uitschrijving (niet bounce) wissen, welkomstmail. `newsletter-subscribe`: enkel nog cron/service-role. `newsletter-test-connection`: SSRF-check. `automation-scheduler`: ondertekende link + headers.
+- Frontend: `SendCampaignConfirmDialog` (nieuw: aantal ontvangers, verbruik, blokkeert zonder afzender of boven de limiet), testmail in campagnedialoog en detail, polling tijdens versturen, statussen `failed`/`sending`, servertelling in segmenten (member_count bewaard), triggeroptie weg, hint bij inplannen, double opt-in standaard aan in de instellingen, 49 nieuwe i18n-keys in 5 talen.
+- Changelog 2026.12v (`email_campaigns_reliable`, `newsletter_double_optin`) in 5 talen; `docs/newsletter-queue.md`; `docs/email-architecture.md` sectie Marketing.
+
+**Security-keuzes**
+- Nieuwe functies `security definer` met vaste `search_path`, enkel `service_role` mag ze uitvoeren.
+- Triggers: rol `authenticated`/`anon` mag de status van een campagne enkel tussen draft en scheduled wisselen en schrijft geen `campaign_sends` meer (een instelling die gebruikers zelf kunnen zetten is geen grens: limiet en betaling worden server-side afgedwongen).
+- `process-campaign-queue` en `newsletter-subscribe`: enkel `x-cron-secret` of service-role (`cronAuth.ts`).
+- Uitschrijflinks: HMAC-SHA256 met `MARKETING_LINK_SECRET`, anders afgeleid van de service-role key (roteren van die key zonder secret maakt oude links ongeldig; de terugvalroute mailt dan een nieuwe link).
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api`: enkel `_newsletterSubscribeImpl` vervangen; diff met het origineel raakt niets erbuiten. Contract additief (`requires_confirmation`). **Gedrag verandert wel voor alle winkels, ook de zes custom frontends**: een inschrijving is pas actief na bevestiging. Hun UI-tekst ("ingeschreven!") moet nagekeken worden (Loveke, VanXcel e.a.).
+- `customers` default gewijzigd: bewuste uitzondering op "defaults niet wijzigen", beslist door Akke (juridisch).
+- `campaign_sends`, `email_campaigns`: niet gedeeld met de custom frontends.
+
+**Verificatie**
+- Migratie twee keer na elkaar gedraaid in PGlite (idempotent): limieten per plan, enqueue, tweede enqueue → ALREADY_SENDING, limiet → PLAN_LIMIT zonder statuswijziging, herstart vanuit failed, guards voor authenticated, reclaim na 5 pogingen → failed. Cron-blok niet getest (geen pg_cron lokaal).
+- `deno check` met stubs voor esm.sh op alle gewijzigde functies: ok (newsletter-test-connection: bestaande TS7006 op de stub).
+- Deno-tests `marketingToken.test.ts`: 4 geslaagd. vitest: 795 geslaagd. tsc: 0 fouten. Build: ok. Lint gewijzigde bestanden: gelijk aan baseline. i18n-parity: volledig. check-mail-addresses: ok.
+- Onafhankelijke review (aparte agent): 12 bevindingen; blokkerend/hoog allemaal verwerkt (race enqueue/worker, herstart uit failed, hangende rijen, herinschrijving uitgesloten, markeren na versturen, billing bij inplannen, limiet parallel, oude links, HTML in variabelen, webhookvolgorde).
+- **Niet gedaan:** smoke-test op SellQo Speeltuin (bevestigingsmail, campagne naar >100 adressen, inplannen, one-click in Gmail).
+
+**Bewust ongemoeid / Vervolg**
+- `MARKETING_SENDER_DOMAIN` nog niet gezet: marketing blijft op `mail.sellqo.app` tot `news.sellqo.app` in Resend en Cloudflare staat (Akke).
+- Inplannen: cron valt vermoedelijk terug op elk uur (platformguard op sub-hourly), dus tot ±1 u vertraging; in de UI vermeld.
+- MAIL-1b: abonneebeheer (lijst, import met toestemming, export, AVG-verwijderen), preview in huisstijl, templates bewerken, mediabibliotheek. MAIL-2: automations.
+- Mailchimp/Klaviyo met double opt-in: lokale status volgt de provider niet.
+- Custom frontends: tekst na inschrijven aanpassen.
+
 ## SOCIAL-GATE-1 + SOCIAL-REMIND-1 — Social enkel op uitnodiging; herinnering op het moment zelf (2026.12u) — 19 oktober 2026
 
 Akke 19-10, 19:23: "deze tool is ook ter beschikking voor onze externe tenants? Gezien we echt manueel moeten koppelen lijkt het mij niet interessant om dit nu al op de markt te brengen" en "de herinnering … op het moment dat er gepost moet worden … 1 uur op voorhand maar dan vergeet je dit weer". Go 19:35 ("klaar mee, doe maar"), na zijn werk aan plannen en prijzen.

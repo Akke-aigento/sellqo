@@ -2189,13 +2189,18 @@
           "verzonden": "Gesendet",
           "gepauzeerd": "Pausiert",
           "geannuleerd": "Storniert",
-          "verzenden": "Wird gesendet..."
+          "verzenden": "Wird gesendet...",
+          "mislukt": "Fehlgeschlagen"
         },
         "bekijk_analytics": "Analytics anzeigen",
         "click_rate": "Klickrate",
         "nu_verzenden": "Jetzt senden",
         "open_rate": "Öffnungsrate",
-        "segment": "Segment:"
+        "segment": "Segment:",
+        "verzenden_mislukt": "Versand fehlgeschlagen",
+        "verzonden_op": "Gesendet: {{date}}",
+        "gepland_op": "Geplant: {{date}}",
+        "verzonden_kort": "gesendet"
       },
       "contentCalendar": {
         "maand": "Monat",
@@ -2324,7 +2329,18 @@
         "test_verzonden_naar": "Test-E-Mail an {{email}} gesendet",
         "unsubscribe_link": "Abmeldelink",
         "verstuur_test": "Test senden",
-        "verzenden": "Wird gesendet..."
+        "verzenden": "Wird gesendet...",
+        "test_klant": "Testkunde",
+        "uw_bedrijf": "Ihr Unternehmen",
+        "vul_geldig_emailadres_in": "Geben Sie eine gültige E-Mail-Adresse ein",
+        "fout_bij_verzenden_test": "Fehler beim Senden der Test-E-Mail",
+        "onderwerp_te_lang": "Betreff zu lang (max. 60 Zeichen)",
+        "onderwerp_ontbreekt": "Betreff fehlt",
+        "ok": "OK",
+        "vermijd_hoofdletters": "Vermeiden Sie Großbuchstaben",
+        "voeg_uitschrijflink_toe": "Fügen Sie einen Abmeldelink hinzu",
+        "afbeeldingen_missen_alt": "Einigen Bildern fehlt der Alt-Text",
+        "testmail_versturen": "Test-E-Mail senden"
       },
       "inlinePromoWizard": {
         "korting_toevoegen": "Rabatt hinzufügen",
@@ -2748,7 +2764,16 @@
         "uw_bericht_hier": "Ihre Nachricht hier...",
         "vertraging": "Verzögerung:",
         "wanneer_verzenden": "Wann senden?",
-        "wat_is_een_trigger": "Was ist ein Trigger?"
+        "wat_is_een_trigger": "Was ist ein Trigger?",
+        "html_naar_visueel_bevestigen": "Dieses HTML enthält Formatierungen (Tabellen/Inline-Styles), die der visuelle Editor vereinfachen kann. Trotzdem wechseln?",
+        "onderwerp_taal": "Betreff ({{language}})",
+        "email_inhoud": "E-Mail-Inhalt",
+        "visueel": "Visuell",
+        "kies_datum": "Datum wählen",
+        "inplannen": "Planen",
+        "inplannen_hint": "Der Versand beginnt zum geplanten Zeitpunkt (spätestens innerhalb einer Stunde).",
+        "segment_met_aantal": "{{name}} ({{count}} Kunden)",
+        "ontvangers_in_doelgroep": "{{count}} angemeldete Empfänger in dieser Zielgruppe"
       },
       "campaignFunnel": {
         "afgeleverd": "Zugestellt",
@@ -3050,6 +3075,31 @@
         "campaigns": "Alle Kampagnen ({{count}})",
         "templates": "Vorlagen ({{count}})",
         "segments": "Segmente ({{count}})"
+      },
+      "nieuwe_campagne": "Neue Kampagne",
+      "geen_campagnes": "Keine Kampagnen",
+      "geen_beschrijving": "Keine Beschreibung",
+      "toast": {
+        "campagne_aangemaakt": "Kampagne erstellt",
+        "campagne_bijgewerkt": "Kampagne aktualisiert",
+        "campagne_verwijderd": "Kampagne gelöscht",
+        "segment_aangemaakt": "Segment erstellt",
+        "segment_bijgewerkt": "Segment aktualisiert",
+        "segment_verwijderd": "Segment gelöscht",
+        "fout_bij_aanmaken": "Fehler beim Erstellen",
+        "fout_bij_bijwerken": "Fehler beim Aktualisieren",
+        "fout_bij_verwijderen": "Fehler beim Löschen",
+        "fout_bij_verzenden": "Fehler beim Versenden",
+        "campagne_wordt_verstuurd": "Ihre Kampagne wird an {{count}} Empfänger gesendet",
+        "telling_mislukt": "Die Anzahl der Empfänger konnte nicht abgerufen werden"
+      },
+      "sendConfirm": {
+        "ontvangers_tellen": "Empfänger werden gezählt...",
+        "gaat_naar_ontvangers": "Diese Kampagne geht an {{count}} Empfänger.",
+        "planverbruik": "Sie haben diesen Monat {{used}} von {{monthly}} Marketing-E-Mails verwendet.",
+        "geen_afzender": "Ihr Shop hat noch keine gültige Absenderadresse. Richten Sie Ihr Mail-Präfix unter Einstellungen → Email Inbox ein.",
+        "boven_limiet": "Ihr Tarif erlaubt diesen Monat noch {{remaining}} Marketing-E-Mails. Wählen Sie eine kleinere Zielgruppe oder upgraden Sie Ihren Tarif.",
+        "geen_ontvangers": "Für diese Zielgruppe gibt es keine angemeldeten Empfänger."
       }
     },
     "ads": {
@@ -5044,7 +5094,10 @@
       "wachten": "Wartet",
       "welke_links_presteren_het_best": "Welche Links am besten abschneiden",
       "confirm_send_title": "Kampagne jetzt senden?",
-      "confirm_send_body": "Die Kampagne geht sofort an alle Empfänger. Das lässt sich nicht rückgängig machen."
+      "confirm_send_body": "Die Kampagne geht sofort an alle Empfänger. Das lässt sich nicht rückgängig machen.",
+      "aan_ontvangers": "an {{count}} Empfänger",
+      "ontvangers_tab": "Empfänger ({{count}})",
+      "wordt_verzonden_hint": "Diese Kampagne wird in Teilen versendet. Diese Seite aktualisiert sich automatisch."
     },
     "translationHub": {
       "instellingen": "Einstellungen",

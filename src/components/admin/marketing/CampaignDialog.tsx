@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import type { TFunction } from 'i18next';
 import { format } from 'date-fns';
-import { Sparkles, CalendarIcon, Clock, Code, Eye, Type, Info } from 'lucide-react';
+import { Sparkles, CalendarIcon, Clock, Code, Eye, Type } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,17 +19,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
-import { useCustomerSegments } from '@/hooks/useCustomerSegments';
+import { useCustomerSegments, useSegmentMemberCount } from '@/hooks/useCustomerSegments';
 import { CampaignRichEditor, wrapInEmailTemplate } from './CampaignRichEditor';
 import { VariableInserter } from './VariableInserter';
+import { EmailPreview } from './EmailPreview';
 import { extractEmailBody, isComplexHtml } from '@/lib/emailContent';
 import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
 import { AUDIENCE_PRESETS, getAudiencePreset } from '@/lib/audiencePresets';
-import type { EmailCampaign, AutomationTrigger } from '@/types/marketing';
+import type { EmailCampaign } from '@/types/marketing';
 import {
   SUPPORTED_LANGUAGES,
   LANG_CODES_TUPLE,
@@ -64,24 +64,9 @@ const campaignSchema = z.object({
 
 type CampaignFormData = z.infer<typeof campaignSchema>;
 
-type SendMode = 'now' | 'scheduled' | 'trigger';
-
-// Labels staan als i18n-key; de sleutel blijft de AutomationTrigger-enumwaarde.
-const triggerLabelKeys: Record<AutomationTrigger, string> = {
-  welcome: 'admin.marketing.campaignDialog.triggers.welcome.label',
-  abandoned_cart: 'admin.marketing.campaignDialog.triggers.abandoned_cart.label',
-  post_purchase: 'admin.marketing.campaignDialog.triggers.post_purchase.label',
-  birthday: 'admin.marketing.campaignDialog.triggers.birthday.label',
-  reactivation: 'admin.marketing.campaignDialog.triggers.reactivation.label',
-};
-
-const triggerDescriptionKeys: Record<AutomationTrigger, string> = {
-  welcome: 'admin.marketing.campaignDialog.triggers.welcome.description',
-  abandoned_cart: 'admin.marketing.campaignDialog.triggers.abandoned_cart.description',
-  post_purchase: 'admin.marketing.campaignDialog.triggers.post_purchase.description',
-  birthday: 'admin.marketing.campaignDialog.triggers.birthday.description',
-  reactivation: 'admin.marketing.campaignDialog.triggers.reactivation.description',
-};
+// MAIL-1a: de modus "automatische trigger" is weggehaald; die deed niets (dode
+// affordance). Automatiseringen komen in een latere batch.
+type SendMode = 'now' | 'scheduled';
 
 interface CampaignDefaultValues {
   name?: string;
@@ -156,7 +141,7 @@ function LangSubjectPreview({ lang, form }: { lang: CampaignLang; form: ReturnTy
         name={`translations.${lang}.subject` as any}
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Onderwerp ({meta?.label})</FormLabel>
+            <FormLabel>{t('admin.marketing.campaignDialog.onderwerp_taal', { language: meta?.label })}</FormLabel>
             <FormControl>
               <Input placeholder={t('admin.marketing.campaignDialog.email_onderwerp_2')} {...field} value={field.value || ''} />
             </FormControl>
@@ -204,8 +189,6 @@ export function CampaignDialog({
   const [sendMode, setSendMode] = useState<SendMode>('now');
   const [scheduledDate, setScheduledDate] = useState<Date>();
   const [scheduledTime, setScheduledTime] = useState('09:00');
-  const [selectedTrigger, setSelectedTrigger] = useState<AutomationTrigger>('welcome');
-  const [triggerDelayHours, setTriggerDelayHours] = useState(1);
   const [showPreview, setShowPreview] = useState(false);
   const [activeLangTab, setActiveLangTab] = useState<CampaignLang>('nl');
 
@@ -287,14 +270,18 @@ export function CampaignDialog({
         setSendMode('now');
         setScheduledDate(undefined);
         setScheduledTime('09:00');
-        setSelectedTrigger('welcome');
-        setTriggerDelayHours(1);
       }
     }
   }, [open, campaign, defaultValues, form, defaultRichContent, defaultHtmlContent]);
 
   const selectedSegmentId = form.watch('segment_id');
   const selectedSegment = segments.find(s => s.id === selectedSegmentId);
+  // MAIL-1a: telling door de server, met dezelfde doelgroeplogica als het verzenden.
+  const selectedPresetKey = form.watch('preset_key') || null;
+  const { data: audienceCount, isLoading: audienceCountLoading } = useSegmentMemberCount(
+    selectedSegment?.filter_rules ?? {},
+    { presetKey: selectedPresetKey, enabled: open && (!!selectedSegment || !!selectedPresetKey) },
+  );
   const availableLangs = (form.watch('available_languages') || ['nl']) as CampaignLang[];
   const isMultiLang = availableLangs.length > 1;
 
@@ -337,9 +324,7 @@ export function CampaignDialog({
       const current = form.getValues('html_content') || '';
       const body = extractEmailBody(current);
       if (isComplexHtml(body)) {
-        const ok = window.confirm(
-          'Deze HTML bevat opmaak (tabellen/inline styles) die de visuele editor kan vereenvoudigen. Overschakelen?',
-        );
+        const ok = window.confirm(t('admin.marketing.campaignDialog.html_naar_visueel_bevestigen'));
         if (!ok) return;
       }
       setRichContent(body || defaultRichContent);
@@ -415,6 +400,14 @@ export function CampaignDialog({
     : ((form.watch(`translations.${activeLangTab}.html_content` as any) as string | undefined)
         || form.watch('html_content')
         || '');
+  // MAIL-1a: de testmail krijgt de ruwe variabelen; send-test-email vult ze zelf in.
+  const testMailBody = editorMode === 'visual' ? richContent : activeHtml;
+  const testMailHtml = wrapInEmailTemplate(testMailBody);
+  const activeSubject = activeLangTab === 'nl'
+    ? (form.watch('subject') || '')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zelfde patroon als de bestaande vertaalvelden hierboven
+    : ((form.watch(`translations.${activeLangTab}.subject` as any) as string | undefined) || form.watch('subject') || '');
+
   const previewHtml = wrapInEmailTemplate(
     applyPreviewVariables(
       editorMode === 'visual' ? richContent : activeHtml,
@@ -543,14 +536,18 @@ export function CampaignDialog({
                         )}
                         {segments.map((segment) => (
                           <SelectItem key={segment.id} value={segment.id}>
-                            {segment.name} ({segment.member_count} klanten)
+                            {t('admin.marketing.campaignDialog.segment_met_aantal', { name: segment.name, count: segment.member_count ?? 0 })}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    {selectedSegment && (
+                    {(selectedSegment || form.watch('preset_key')) && (
                       <p className="text-xs text-muted-foreground">
-                        {selectedSegment.member_count} ontvangers in dit segment
+                        {audienceCountLoading
+                          ? t('admin.marketing.sendConfirm.ontvangers_tellen')
+                          : t('admin.marketing.campaignDialog.ontvangers_in_doelgroep', {
+                              count: audienceCount ?? selectedSegment?.member_count ?? 0,
+                            })}
                       </p>
                     )}
                     {form.watch('preset_key') && (
@@ -654,7 +651,7 @@ export function CampaignDialog({
             <div>
               <div className="flex items-center justify-between mb-2">
                 <FormLabel>
-                  Email Content
+                  {t('admin.marketing.campaignDialog.email_inhoud')}
                   {isMultiLang && (
                     <span className="ml-2 text-xs font-normal text-muted-foreground">
                       · {CAMPAIGN_LANGS.find((l) => l.value === activeLangTab)?.flag} {CAMPAIGN_LANGS.find((l) => l.value === activeLangTab)?.label}
@@ -672,6 +669,12 @@ export function CampaignDialog({
                     <Eye className="h-3.5 w-3.5" />
                     {t('admin.marketing.templateDialog.voorbeeld')}
                   </Button>
+                  <EmailPreview
+                    variant="button"
+                    subject={activeSubject}
+                    htmlContent={testMailHtml}
+                    disabled={!activeSubject || !testMailBody}
+                  />
                   <div className="flex items-center gap-2">
                     <Type className="h-3.5 w-3.5 text-muted-foreground" />
                     <Switch
@@ -680,7 +683,7 @@ export function CampaignDialog({
                     />
                     <Code className="h-3.5 w-3.5 text-muted-foreground" />
                     <span className="text-xs text-muted-foreground">
-                      {editorMode === 'visual' ? 'Visueel' : 'HTML'}
+                      {editorMode === 'visual' ? t('admin.marketing.campaignDialog.visueel') : 'HTML'}
                     </span>
                   </div>
                 </div>
@@ -762,23 +765,6 @@ export function CampaignDialog({
                   <RadioGroupItem value="scheduled" id="send-scheduled" />
                   <Label htmlFor="send-scheduled" className="font-normal cursor-pointer">{t('admin.marketing.campaignDialog.inplannen_op_datum_tijd')}</Label>
                 </div>
-                <div className="flex items-center gap-2">
-                  <RadioGroupItem value="trigger" id="send-trigger" />
-                  <Label htmlFor="send-trigger" className="font-normal cursor-pointer">{t('admin.marketing.campaignDialog.automatische_trigger')}</Label>
-                  <TooltipProvider delayDuration={100}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <button type="button" className="text-muted-foreground hover:text-foreground" aria-label={t('admin.marketing.campaignDialog.wat_is_een_trigger')}>
-                          <Info className="h-3.5 w-3.5" />
-                        </button>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                        <p className="mb-1"><strong>{t('admin.marketing.campaignDialog.doelgroep_2')}</strong> {t('admin.marketing.campaignDialog.bepaalt_wie_de_mail_krijgt_bij')}</p>
-                        <p><strong>{t('admin.marketing.campaignDialog.trigger')}</strong> {t('admin.marketing.campaignDialog.stuurt_de_mail_automatisch_elke_keer')}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
               </RadioGroup>
 
               {sendMode === 'scheduled' && (
@@ -794,7 +780,7 @@ export function CampaignDialog({
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {scheduledDate ? format(scheduledDate, 'dd/MM/yyyy') : 'Kies datum'}
+                        {scheduledDate ? format(scheduledDate, 'dd/MM/yyyy') : t('admin.marketing.campaignDialog.kies_datum')}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
@@ -819,37 +805,12 @@ export function CampaignDialog({
                   </div>
                 </div>
               )}
-
-              {sendMode === 'trigger' && (
-                <div className="space-y-3 pl-6">
-                  <Select value={selectedTrigger} onValueChange={(v) => setSelectedTrigger(v as AutomationTrigger)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(Object.entries(triggerLabelKeys) as [AutomationTrigger, string][]).map(([value, labelKey]) => (
-                        <SelectItem key={value} value={value}>
-                          <div className="flex flex-col">
-                            <span>{t(labelKey)}</span>
-                            <span className="text-xs text-muted-foreground">{t(triggerDescriptionKeys[value])}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <div className="flex items-center gap-2">
-                    <Label className="text-sm text-muted-foreground whitespace-nowrap">{t('admin.marketing.campaignDialog.vertraging')}</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={triggerDelayHours}
-                      onChange={(e) => setTriggerDelayHours(Number(e.target.value))}
-                      className="w-[80px]"
-                    />
-                    <span className="text-sm text-muted-foreground">{t('admin.marketing.campaignDialog.uur_na_trigger')}</span>
-                  </div>
-                </div>
+              {sendMode === 'scheduled' && (
+                <p className="pl-6 text-xs text-muted-foreground">
+                  {t('admin.marketing.campaignDialog.inplannen_hint')}
+                </p>
               )}
+
             </div>
 
             <DialogFooter>
@@ -857,10 +818,10 @@ export function CampaignDialog({
                 {t('common.cancel')}
               </Button>
               <Button type="submit" disabled={isLoading}>
-                {isLoading 
-                  ? 'Opslaan...' 
-                  : sendMode === 'scheduled' 
-                    ? 'Inplannen' 
+                {isLoading
+                  ? t('common.saving')
+                  : sendMode === 'scheduled'
+                    ? t('admin.marketing.campaignDialog.inplannen')
                     : campaign 
                       ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.marketing.campaignDialog.opslaan_als_concept')
                 }

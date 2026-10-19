@@ -25,7 +25,8 @@ export function NewsletterSettings() {
     mailchimp_audience_id: '',
     klaviyo_api_key: '',
     klaviyo_list_id: '',
-    double_optin: false,
+    // MAIL-1a: double opt-in staat standaard aan, zodat opslaan nooit stil single opt-in zet.
+    double_optin: true,
     welcome_email_enabled: true,
     welcome_email_subject: 'Welkom bij onze nieuwsbrief!',
     welcome_email_body: '',
@@ -46,7 +47,7 @@ export function NewsletterSettings() {
         mailchimp_audience_id: config.mailchimp_audience_id || '',
         klaviyo_api_key: config.klaviyo_api_key || '',
         klaviyo_list_id: config.klaviyo_list_id || '',
-        double_optin: config.double_optin || false,
+        double_optin: config.double_optin ?? true,
         welcome_email_enabled: config.welcome_email_enabled ?? true,
         welcome_email_subject: config.welcome_email_subject || 'Welkom bij onze nieuwsbrief!',
         welcome_email_body: config.welcome_email_body || '',

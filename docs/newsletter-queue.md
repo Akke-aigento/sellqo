@@ -4,6 +4,21 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12v — Nieuwsbrieven bereiken al je klanten; inschrijven met bevestiging (bugfix + security, 19-10-2026)
+
+**Status:** klaar voor verzending zodra MAIL-1a live staat (migraties + edge functions + frontend).
+
+**Voor wie:** alle winkels die e-mailcampagnes of het nieuwsbriefformulier gebruiken.
+
+**Nieuwsbrieven bereiken nu al je ingeschreven klanten** (oktober 2026)
+Een campagne ging tot nu toe naar maximaal 50 ontvangers, en een ingeplande campagne vertrok niet. Nu gaat elke campagne in de achtergrond naar al je ingeschreven klanten, ook op het geplande moment. Vóór het versturen zie je naar hoeveel mensen ze gaat, en je kan eerst een testmail naar jezelf sturen. Per plan geldt een maandelijks aantal marketingmails.
+
+**Inschrijven op je nieuwsbrief met bevestiging** (oktober 2026)
+Wie zich inschrijft, krijgt eerst een mail om te bevestigen. Klanten die bestellen, zijn niet langer vanzelf ingeschreven. Zo stuur je marketing enkel naar wie daar uitdrukkelijk voor koos.
+Wat betekent dit voor jou? Je lijst is kleiner maar echt, en je campagnes komen beter aan.
+
+i18n: `public.changelog.changes.email_campaigns_reliable`, `public.changelog.changes.newsletter_double_optin`
+
 ### 2026.12u — Herinnering om zelf te posten komt op het moment zelf (improvement, 19-10-2026)
 
 **Status:** niet in de algemene nieuwsbrief. Social is sinds SOCIAL-GATE-1 enkel voor ontgrendelde winkels (de eigen merken). Pas opnemen wanneer Social breder opengaat.

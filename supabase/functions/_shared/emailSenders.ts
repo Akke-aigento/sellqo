@@ -13,7 +13,12 @@
  * Zie docs/email-architecture.md.
  */
 
-import { resolveCustomerContactEmail, tenantMailAddress, type CustomerContactSource } from "./customerContact.ts";
+import {
+  resolveCustomerContactEmail,
+  resolveTenantMailPrefix,
+  tenantMailAddress,
+  type CustomerContactSource,
+} from "./customerContact.ts";
 
 const PLATFORM_ADDRESS = "info@sellqo.app";
 
@@ -68,4 +73,32 @@ export function tenantSender(source: TenantSenderSource | null | undefined): Sen
     return { from: `SellQo <${PLATFORM_ADDRESS}>`, replyTo };
   }
   return { from: `${sanitizeName(source?.name)} <${address}>`, replyTo };
+}
+
+// ── Marketing (nieuwsbrieven, campagnes, automations) — MAIL-1a ─────
+/**
+ * Marketingmail gaat van een eigen subdomein, zodat een slechte campagne van
+ * één winkel de orderbevestigingen van alle winkels niet meesleurt. Het domein
+ * komt uit `MARKETING_SENDER_DOMAIN` (bv. `news.sellqo.app`) zodra dat in
+ * Resend geverifieerd is; tot dan blijft het `mail.sellqo.app`.
+ *
+ * Anders dan `tenantSender` valt deze NIET terug op info@sellqo.app: zonder
+ * geldige prefix geeft hij null en weigert de aanroeper te versturen. Bulkmail
+ * vanaf het platformadres is nooit de bedoeling.
+ */
+export function marketingSenderDomain(): string {
+  // globalThis: dit bestand wordt ook door de app-typecheck en vitest geladen (src/test/emailSenders.test.ts).
+  // deno-lint-ignore no-explicit-any
+  const env = (globalThis as any).Deno?.env;
+  const raw = String(env?.get?.("MARKETING_SENDER_DOMAIN") || "").trim().toLowerCase();
+  return /^[a-z0-9.-]+\.[a-z]{2,}$/.test(raw) ? raw : "mail.sellqo.app";
+}
+
+export function tenantMarketingSender(source: TenantSenderSource | null | undefined): SenderConfig | null {
+  const prefix = resolveTenantMailPrefix(source);
+  if (!prefix) return null;
+  return {
+    from: `${sanitizeName(source?.name)} <${prefix}@${marketingSenderDomain()}>`,
+    replyTo: resolveCustomerContactEmail(source),
+  };
 }

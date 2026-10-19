@@ -2081,6 +2081,14 @@
         "social_reminder_on_time": {
           "title": "Die Erinnerung zum selbst Posten kommt jetzt genau zur geplanten Zeit",
           "description": "Wenn Sie eine Story oder ein Reel selbst auf Instagram posten müssen (zum Beispiel mit einem Sticker oder eigener Musik), kommt die Erinnerung jetzt zum geplanten Zeitpunkt statt eine Stunde vorher. Bei einer Story mit Link-Sticker steht der Link in der Erinnerung, bereit zum Kopieren."
+        },
+        "email_campaigns_reliable": {
+          "title": "Newsletter erreichen jetzt alle angemeldeten Kunden",
+          "description": "Bisher ging eine Kampagne an höchstens 50 Empfänger, und eine geplante Kampagne wurde nie versendet. Jetzt wird jede Kampagne im Hintergrund an alle angemeldeten Kunden verschickt, auch zum geplanten Zeitpunkt. Vor dem Versand sehen Sie, an wie viele Personen sie geht, und Sie können sich zuerst eine Test-E-Mail schicken. Abmelden geht mit einem Klick, und Adressen, die nicht zustellbar sind oder sich beschweren, erhalten kein Marketing mehr. Jeder Tarif enthält eine monatliche Anzahl an Marketing-E-Mails."
+        },
+        "newsletter_double_optin": {
+          "title": "Newsletter-Anmeldung mit Bestätigung",
+          "description": "Wer sich für Ihren Newsletter anmeldet, erhält zuerst eine E-Mail zur Bestätigung. Erst danach bekommt diese Person Ihre Kampagnen und Ihre Willkommens-E-Mail. Kunden, die bestellen, sind nicht mehr automatisch angemeldet. So senden Sie Marketing nur an Personen, die sich ausdrücklich dafür entschieden haben, wie es die europäischen Datenschutzregeln verlangen."
         }
       },
       "copyLink": "Link kopieren",

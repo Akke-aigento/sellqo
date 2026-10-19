@@ -44,6 +44,22 @@ tickets, klantenservicebericht, nieuwsbrieven en automations. Eén bouwer voor a
   (`_shared/contactFormForward.ts`, met test).
 - **List-Unsubscribe** alleen op nieuwsbrieven en automations, niet op het 1-op-1-klantenservicebericht.
 
+## Marketing — nieuwsbrieven, campagnes, automations (MAIL-1a, 19 okt 2026)
+
+- **From:** `<winkelnaam> <<prefix>@<MARKETING_SENDER_DOMAIN>>` via `tenantMarketingSender` (`_shared/emailSenders.ts`).
+  Het domein komt uit het secret `MARKETING_SENDER_DOMAIN` (doel: `news.sellqo.app`), anders `mail.sellqo.app`.
+  Zo raakt een slechte campagne de orderbevestigingen van alle winkels niet. **Zonder geldige prefix wordt
+  marketing geweigerd**, nooit vanaf `info@sellqo.app`.
+- **Reply-To:** zoals Stream B (`resolveCustomerContactEmail`). Inbound blijft op `mail.sellqo.app`.
+- **Versturen:** `send-campaign-batch` zet ontvangers in `campaign_sends` (status `queued`);
+  `process-campaign-queue` verstuurt via de batch-API van Resend (100 per call, Idempotency-Key). Zie
+  `_shared/campaignQueue.ts` en `_shared/campaignAudience.ts`.
+- **Uitschrijven:** links ondertekend met HMAC (`_shared/marketingToken.ts`); `List-Unsubscribe` +
+  `List-Unsubscribe-Post` (RFC 8058) op elke marketingmail. Hard bounce en klacht → `email_unsubscribes`.
+- **Toestemming:** `customers.email_subscribed` (standaard false) is de enige bron voor campagnes. Inschrijven via
+  de webshop met double opt-in (`newsletter-confirm`); `newsletter_subscribers` is het opt-in-logboek.
+- **Limiet:** `pricing_plans.limit_marketing_emails_monthly`, verbruik via `marketing_emails_used()`.
+
 ## Inbound — klantmail naar de winkel
 
 1. Een klant mailt of antwoordt naar `<prefix>@mail.sellqo.app`.

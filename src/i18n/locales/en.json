@@ -2458,13 +2458,18 @@
           "verzonden": "Sent",
           "gepauzeerd": "Paused",
           "geannuleerd": "Cancelled",
-          "verzenden": "Sending..."
+          "verzenden": "Sending...",
+          "mislukt": "Failed"
         },
         "bekijk_analytics": "View analytics",
         "click_rate": "click rate",
         "nu_verzenden": "Send now",
         "open_rate": "open rate",
-        "segment": "Segment:"
+        "segment": "Segment:",
+        "verzenden_mislukt": "Sending failed",
+        "verzonden_op": "Sent: {{date}}",
+        "gepland_op": "Scheduled: {{date}}",
+        "verzonden_kort": "sent"
       },
       "contentCalendar": {
         "maand": "Month",
@@ -2593,7 +2598,18 @@
         "test_verzonden_naar": "Test email sent to {{email}}",
         "unsubscribe_link": "Unsubscribe link",
         "verstuur_test": "Send test",
-        "verzenden": "Sending..."
+        "verzenden": "Sending...",
+        "test_klant": "Test Customer",
+        "uw_bedrijf": "Your Company",
+        "vul_geldig_emailadres_in": "Enter a valid email address",
+        "fout_bij_verzenden_test": "Error while sending test email",
+        "onderwerp_te_lang": "Subject too long (max 60 characters)",
+        "onderwerp_ontbreekt": "Subject missing",
+        "ok": "OK",
+        "vermijd_hoofdletters": "Avoid capital letters",
+        "voeg_uitschrijflink_toe": "Add an unsubscribe link",
+        "afbeeldingen_missen_alt": "Some images are missing alt text",
+        "testmail_versturen": "Send test email"
       },
       "inlinePromoWizard": {
         "korting_toevoegen": "Add discount",
@@ -3017,7 +3033,16 @@
         "uw_bericht_hier": "Your message here...",
         "vertraging": "Delay:",
         "wanneer_verzenden": "When to send?",
-        "wat_is_een_trigger": "What is a trigger?"
+        "wat_is_een_trigger": "What is a trigger?",
+        "html_naar_visueel_bevestigen": "This HTML contains formatting (tables/inline styles) that the visual editor may simplify. Switch anyway?",
+        "onderwerp_taal": "Subject ({{language}})",
+        "email_inhoud": "Email content",
+        "visueel": "Visual",
+        "kies_datum": "Pick a date",
+        "inplannen": "Schedule",
+        "inplannen_hint": "Sending starts at the scheduled time (at the latest within the hour).",
+        "segment_met_aantal": "{{name}} ({{count}} customers)",
+        "ontvangers_in_doelgroep": "{{count}} subscribed recipients in this audience"
       },
       "campaignFunnel": {
         "afgeleverd": "Delivered",
@@ -3319,6 +3344,31 @@
         "campaigns": "All campaigns ({{count}})",
         "templates": "Templates ({{count}})",
         "segments": "Segments ({{count}})"
+      },
+      "nieuwe_campagne": "New campaign",
+      "geen_campagnes": "No campaigns",
+      "geen_beschrijving": "No description",
+      "toast": {
+        "campagne_aangemaakt": "Campaign created",
+        "campagne_bijgewerkt": "Campaign updated",
+        "campagne_verwijderd": "Campaign deleted",
+        "segment_aangemaakt": "Segment created",
+        "segment_bijgewerkt": "Segment updated",
+        "segment_verwijderd": "Segment deleted",
+        "fout_bij_aanmaken": "Error while creating",
+        "fout_bij_bijwerken": "Error while updating",
+        "fout_bij_verwijderen": "Error while deleting",
+        "fout_bij_verzenden": "Error while sending",
+        "campagne_wordt_verstuurd": "Your campaign is being sent to {{count}} recipients",
+        "telling_mislukt": "Could not retrieve the number of recipients"
+      },
+      "sendConfirm": {
+        "ontvangers_tellen": "Counting recipients...",
+        "gaat_naar_ontvangers": "This campaign will go to {{count}} recipients.",
+        "planverbruik": "You have used {{used}} of {{monthly}} marketing emails this month.",
+        "geen_afzender": "Your shop does not have a valid sender address yet. Set up your mail prefix under Settings → Email Inbox.",
+        "boven_limiet": "Your plan allows {{remaining}} more marketing emails this month. Choose a smaller audience or upgrade your plan.",
+        "geen_ontvangers": "There are no subscribed recipients for this audience."
       }
     },
     "ads": {
@@ -5313,7 +5363,10 @@
       "wachten": "Waiting",
       "welke_links_presteren_het_best": "Which links perform best",
       "confirm_send_title": "Send campaign now?",
-      "confirm_send_body": "The campaign goes out to all recipients right away. This cannot be undone."
+      "confirm_send_body": "The campaign goes out to all recipients right away. This cannot be undone.",
+      "aan_ontvangers": "to {{count}} recipients",
+      "ontvangers_tab": "Recipients ({{count}})",
+      "wordt_verzonden_hint": "This campaign is being sent in batches. This page updates automatically."
     },
     "translationHub": {
       "instellingen": "Settings",

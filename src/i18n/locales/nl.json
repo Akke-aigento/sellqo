@@ -2508,8 +2508,13 @@
           "verzenden": "Verzenden...",
           "verzonden": "Verzonden",
           "gepauzeerd": "Gepauzeerd",
-          "geannuleerd": "Geannuleerd"
-        }
+          "geannuleerd": "Geannuleerd",
+          "mislukt": "Mislukt"
+        },
+        "verzenden_mislukt": "Verzenden mislukt",
+        "verzonden_op": "Verzonden: {{date}}",
+        "gepland_op": "Gepland: {{date}}",
+        "verzonden_kort": "verzonden"
       },
       "campaignPerformanceChart": {
         "nog_geen_activiteit_geregistreerd": "Nog geen activiteit geregistreerd",
@@ -2666,7 +2671,18 @@
         "alt_tekst_afbeeldingen": "Alt tekst afbeeldingen",
         "unsubscribe_link": "Unsubscribe link",
         "geen_caps_lock": "Geen CAPS LOCK",
-        "test_verzonden_naar": "Testmail verzonden naar {{email}}"
+        "test_verzonden_naar": "Testmail verzonden naar {{email}}",
+        "test_klant": "Test Klant",
+        "uw_bedrijf": "Uw Bedrijf",
+        "vul_geldig_emailadres_in": "Vul een geldig e-mailadres in",
+        "fout_bij_verzenden_test": "Fout bij verzenden van testmail",
+        "onderwerp_te_lang": "Onderwerp te lang (max 60 tekens)",
+        "onderwerp_ontbreekt": "Onderwerp ontbreekt",
+        "ok": "OK",
+        "vermijd_hoofdletters": "Vermijd hoofdletters",
+        "voeg_uitschrijflink_toe": "Voeg uitschrijflink toe",
+        "afbeeldingen_missen_alt": "Sommige afbeeldingen missen alt-tekst",
+        "testmail_versturen": "Testmail versturen"
       },
       "inlinePromoWizard": {
         "product_promoten": "Product Promoten",
@@ -3266,7 +3282,16 @@
         "alleen_nederlands_voeg_extra_talen_toe": "Alleen Nederlands. Voeg extra talen toe om per taal een variant op te maken; elke klant krijgt dan zijn eigen taalversie.",
         "deze_campagne_is_door_ai_gegenereerd": "Deze campagne is door AI gegenereerd. Pas aan waar nodig.",
         "maak_een_email_campagne_aan_om": "Maak een email campagne aan om naar je klanten te versturen.",
-        "nieuwe_campagne_aanmaken": "Nieuwe campagne aanmaken"
+        "nieuwe_campagne_aanmaken": "Nieuwe campagne aanmaken",
+        "html_naar_visueel_bevestigen": "Deze HTML bevat opmaak (tabellen/inline styles) die de visuele editor kan vereenvoudigen. Overschakelen?",
+        "onderwerp_taal": "Onderwerp ({{language}})",
+        "email_inhoud": "E-mailinhoud",
+        "visueel": "Visueel",
+        "kies_datum": "Kies datum",
+        "inplannen": "Inplannen",
+        "inplannen_hint": "Verzending start op het geplande moment (uiterlijk binnen het uur).",
+        "segment_met_aantal": "{{name}} ({{count}} klanten)",
+        "ontvangers_in_doelgroep": "{{count}} ingeschreven ontvangers in deze doelgroep"
       },
       "promptFavoritesDropdown": {
         "favorieten": "Favorieten",
@@ -3333,6 +3358,31 @@
         "campaigns": "Alle campagnes ({{count}})",
         "templates": "Templates ({{count}})",
         "segments": "Segmenten ({{count}})"
+      },
+      "nieuwe_campagne": "Nieuwe campagne",
+      "geen_campagnes": "Geen campagnes",
+      "geen_beschrijving": "Geen beschrijving",
+      "toast": {
+        "campagne_aangemaakt": "Campagne aangemaakt",
+        "campagne_bijgewerkt": "Campagne bijgewerkt",
+        "campagne_verwijderd": "Campagne verwijderd",
+        "segment_aangemaakt": "Segment aangemaakt",
+        "segment_bijgewerkt": "Segment bijgewerkt",
+        "segment_verwijderd": "Segment verwijderd",
+        "fout_bij_aanmaken": "Fout bij aanmaken",
+        "fout_bij_bijwerken": "Fout bij bijwerken",
+        "fout_bij_verwijderen": "Fout bij verwijderen",
+        "fout_bij_verzenden": "Fout bij verzenden",
+        "campagne_wordt_verstuurd": "Je campagne wordt verstuurd naar {{count}} ontvangers",
+        "telling_mislukt": "Kon het aantal ontvangers niet ophalen"
+      },
+      "sendConfirm": {
+        "ontvangers_tellen": "Ontvangers tellen...",
+        "gaat_naar_ontvangers": "Deze campagne gaat naar {{count}} ontvangers.",
+        "planverbruik": "Je gebruikte {{used}} van {{monthly}} marketingmails deze maand.",
+        "geen_afzender": "Je winkel heeft nog geen geldig afzenderadres. Stel je mailprefix in bij Instellingen → Email Inbox.",
+        "boven_limiet": "Je plan laat deze maand nog {{remaining}} marketingmails toe. Kies een kleinere doelgroep of upgrade je plan.",
+        "geen_ontvangers": "Er zijn geen ingeschreven ontvangers voor deze doelgroep."
       }
     },
     "ads": {
@@ -5600,7 +5650,10 @@
       "wachten": "Wachten",
       "versturen": "Versturen...",
       "confirm_send_title": "Campagne nu versturen?",
-      "confirm_send_body": "De campagne gaat meteen naar alle ontvangers. Dit kan je niet terugdraaien."
+      "confirm_send_body": "De campagne gaat meteen naar alle ontvangers. Dit kan je niet terugdraaien.",
+      "aan_ontvangers": "aan {{count}} ontvangers",
+      "ontvangers_tab": "Ontvangers ({{count}})",
+      "wordt_verzonden_hint": "Deze campagne wordt in delen verzonden. Deze pagina werkt zichzelf bij."
     },
     "translationHub": {
       "bulk_vertaling_starten": "Bulk vertaling starten",

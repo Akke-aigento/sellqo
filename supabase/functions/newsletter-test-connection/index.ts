@@ -49,7 +49,17 @@ serve(async (req) => {
 
 async function testMailchimp(apiKey: string, serverPrefix?: string, audienceId?: string) {
   try {
-    const server = serverPrefix || apiKey.split("-").pop();
+    const server = (serverPrefix || apiKey?.split("-").pop() || "").trim();
+
+    // MAIL-1a (SSRF): de prefix belandt in de hostnaam. Enkel echte Mailchimp-
+    // datacenters (bv. "us21") toelaten, anders kan een gebruiker deze functie
+    // naar een willekeurige host laten fetchen.
+    if (!/^[a-z]{2,4}\d{1,3}$/.test(server)) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Ongeldige Mailchimp server-prefix (verwacht bv. us21)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     // Test API key by fetching account info
     const accountResponse = await fetch(

@@ -2,7 +2,34 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import i18n from 'i18next';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import type { EmailCampaign, EmailCampaignInsert, EmailCampaignUpdate, CampaignSend, MarketingStats } from '@/types/marketing';
+
+/** MAIL-1a: antwoord van send-campaign-batch in mode 'count'. */
+export interface CampaignRecipientCount {
+  recipients: number;
+  limit: { monthly: number | null; used: number; remaining: number | null };
+  sender_ok: boolean;
+}
+
+/** MAIL-1a: antwoord van send-campaign-batch bij "nu verzenden" (asynchroon). */
+export interface CampaignSendResult {
+  queued: number;
+  total_recipients: number;
+}
+
+/** Aantal ontvangers, planverbruik en afzenderstatus vóór het verzenden. */
+export function countCampaignRecipients(campaignId: string): Promise<CampaignRecipientCount> {
+  return invokeWithErrorBody<CampaignRecipientCount>(
+    'send-campaign-batch',
+    { body: { campaign_id: campaignId, mode: 'count' } },
+    i18n.t('admin.marketing.toast.telling_mislukt'),
+  );
+}
+
+/** Ververs de lijst om de 10 seconden zolang er een campagne aan het verzenden is. */
+const SENDING_POLL_MS = 10_000;
 
 export function useEmailCampaigns() {
   const { currentTenant } = useTenant();
@@ -28,6 +55,11 @@ export function useEmailCampaigns() {
       return data as EmailCampaign[];
     },
     enabled: !!currentTenant?.id,
+    // MAIL-1a: verzenden loopt via een worker; volg de status tot hij 'sent' of 'failed' is.
+    refetchInterval: (query) =>
+      (query.state.data as EmailCampaign[] | undefined)?.some((c) => c.status === 'sending')
+        ? SENDING_POLL_MS
+        : false,
   });
 
   const createCampaign = useMutation({
@@ -43,10 +75,10 @@ export function useEmailCampaigns() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-campaigns'] });
-      toast({ title: 'Campagne aangemaakt' });
+      toast({ title: i18n.t('admin.marketing.toast.campagne_aangemaakt') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij aanmaken', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_aanmaken'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -64,10 +96,10 @@ export function useEmailCampaigns() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-campaigns'] });
-      toast({ title: 'Campagne bijgewerkt' });
+      toast({ title: i18n.t('admin.marketing.toast.campagne_bijgewerkt') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij bijwerken', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_bijwerken'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -82,28 +114,31 @@ export function useEmailCampaigns() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-campaigns'] });
-      toast({ title: 'Campagne verwijderd' });
+      toast({ title: i18n.t('admin.marketing.toast.campagne_verwijderd') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij verwijderen', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_verwijderen'), description: error.message, variant: 'destructive' });
     },
   });
 
   const sendCampaign = useMutation({
-    mutationFn: async (campaignId: string) => {
-      const response = await supabase.functions.invoke('send-campaign-batch', {
-        body: { campaign_id: campaignId },
-      });
-
-      if (response.error) throw new Error(response.error.message);
-      return response.data;
-    },
-    onSuccess: () => {
+    mutationFn: (campaignId: string) =>
+      invokeWithErrorBody<CampaignSendResult>(
+        'send-campaign-batch',
+        { body: { campaign_id: campaignId } },
+        i18n.t('admin.marketing.toast.fout_bij_verzenden'),
+      ),
+    onSuccess: (result, campaignId) => {
       queryClient.invalidateQueries({ queryKey: ['email-campaigns'] });
-      toast({ title: 'Campagne wordt verzonden...' });
+      queryClient.invalidateQueries({ queryKey: ['email-campaign', campaignId] });
+      toast({
+        title: i18n.t('admin.marketing.toast.campagne_wordt_verstuurd', {
+          count: result?.total_recipients ?? result?.queued ?? 0,
+        }),
+      });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij verzenden', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_verzenden'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -115,6 +150,7 @@ export function useEmailCampaigns() {
     updateCampaign,
     deleteCampaign,
     sendCampaign,
+    countRecipients: countCampaignRecipients,
   };
 }
 
@@ -138,6 +174,8 @@ export function useEmailCampaign(id: string | undefined) {
       return data as EmailCampaign | null;
     },
     enabled: !!id,
+    refetchInterval: (query) =>
+      (query.state.data as EmailCampaign | null | undefined)?.status === 'sending' ? SENDING_POLL_MS : false,
   });
 
   return { campaign, isLoading, error };

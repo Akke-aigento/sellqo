@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { SegmentBuilder } from './SegmentBuilder';
-import { useSegmentMemberCount } from '@/hooks/useCustomerSegments';
+import { useSegmentMemberCount, fetchSegmentCount } from '@/hooks/useCustomerSegments';
 import { useTenant } from '@/hooks/useTenant';
 import type { CustomerSegment, SegmentFilterRules } from '@/types/marketing';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,7 @@ interface SegmentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   segment?: CustomerSegment;
-  onSave: (data: { name: string; description?: string; filter_rules: SegmentFilterRules; is_dynamic: boolean; tenant_id: string }) => void;
+  onSave: (data: { name: string; description?: string; filter_rules: SegmentFilterRules; is_dynamic: boolean; tenant_id: string; member_count?: number }) => void;
   isLoading?: boolean;
 }
 
@@ -45,10 +45,25 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
     },
   });
 
-  const handleSubmit = (data: SegmentFormData) => {
+  const [counting, setCounting] = useState(false);
+
+  const handleSubmit = async (data: SegmentFormData) => {
     if (!currentTenant?.id) return;
-    
+
+    // MAIL-1a: bewaar de servertelling, zodat lijsten niet langer 0 tonen.
+    // De getoonde telling kan nog debouncen; haal daarom een verse op.
+    let member_count = memberCount;
+    setCounting(true);
+    try {
+      member_count = await fetchSegmentCount({ tenantId: currentTenant.id, filterRules });
+    } catch {
+      // Telling mislukt: opslaan mag niet blokkeren, val terug op de laatst getoonde waarde.
+    } finally {
+      setCounting(false);
+    }
+
     onSave({
+      ...(member_count !== undefined ? { member_count } : {}),
       name: data.name,
       description: data.description,
       filter_rules: filterRules,
@@ -112,8 +127,8 @@ export function SegmentDialog({ open, onOpenChange, segment, onSave, isLoading }
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {t('common.cancel')}
               </Button>
-              <Button type="submit" disabled={isLoading}>
-                {isLoading ? t('common.saving') : segment ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.adsAiRules.aanmaken')}
+              <Button type="submit" disabled={isLoading || counting}>
+                {isLoading || counting ? t('common.saving') : segment ? t('admin.marketing.campaignDialog.bijwerken') : t('admin.adsAiRules.aanmaken')}
               </Button>
             </DialogFooter>
           </form>

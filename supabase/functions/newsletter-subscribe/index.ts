@@ -1,9 +1,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { CRON_ALLOWED_HEADERS, isAuthorizedCronRequest } from "../_shared/cronAuth.ts";
 
+// MAIL-1a: deze functie staat op verify_jwt = false, maar is alleen bedoeld voor
+// storefront-api (externe providers). Die roept haar aan met
+// `Authorization: Bearer <service-role key>`. Elke andere aanroeper krijgt 401:
+// zonder die check kon iedereen adressen inschrijven en bij single opt-in
+// rechtstreeks naar Mailchimp/Klaviyo duwen.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": CRON_ALLOWED_HEADERS,
 };
 
 interface SubscribeRequest {
@@ -29,6 +35,13 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+    if (!(await isAuthorizedCronRequest(req, supabase))) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const { tenantId, email, firstName, source = "website" }: SubscribeRequest = await req.json();
 
@@ -101,6 +114,8 @@ serve(async (req) => {
       .single();
 
     const provider = config?.provider || "internal";
+    // MAIL-1a: double opt-in staat aan tenzij de winkel hem expliciet uitzette.
+    const doubleOptin = config?.double_optin !== false;
     let syncResult: SyncResult = { synced: false, provider };
 
     // Sync to external provider if configured
@@ -111,7 +126,7 @@ serve(async (req) => {
         config.mailchimp_api_key,
         config.mailchimp_server_prefix || "",
         config.mailchimp_audience_id,
-        config.double_optin
+        doubleOptin
       );
     } else if (provider === "klaviyo" && config?.klaviyo_api_key && config?.klaviyo_list_id) {
       syncResult = await syncToKlaviyo(
@@ -119,7 +134,7 @@ serve(async (req) => {
         firstName,
         config.klaviyo_api_key,
         config.klaviyo_list_id,
-        config.double_optin
+        doubleOptin
       );
     }
 
@@ -127,7 +142,7 @@ serve(async (req) => {
     const updateData: Record<string, unknown> = {
       status: syncResult.synced || provider === "internal" ? "active" : "pending",
       sync_status: syncResult.synced ? "synced" : provider === "internal" ? "synced" : "pending",
-      confirmed_at: !config?.double_optin ? new Date().toISOString() : null,
+      confirmed_at: !doubleOptin ? new Date().toISOString() : null,
     };
 
     if (syncResult.error) {
@@ -148,7 +163,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: config?.double_optin ? "Please check your email to confirm" : "Successfully subscribed",
+        message: doubleOptin ? "Please check your email to confirm" : "Successfully subscribed",
         provider: syncResult.provider,
         synced: syncResult.synced
       }),

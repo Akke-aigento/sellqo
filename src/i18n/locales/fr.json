@@ -2189,13 +2189,18 @@
           "verzonden": "Envoyé",
           "gepauzeerd": "En pause",
           "geannuleerd": "Annulé",
-          "verzenden": "Envoi..."
+          "verzenden": "Envoi...",
+          "mislukt": "Échec"
         },
         "bekijk_analytics": "Voir l'analytique",
         "click_rate": "taux de clic",
         "nu_verzenden": "Envoyer maintenant",
         "open_rate": "taux d'ouverture",
-        "segment": "Segment :"
+        "segment": "Segment :",
+        "verzenden_mislukt": "Échec de l’envoi",
+        "verzonden_op": "Envoyée : {{date}}",
+        "gepland_op": "Planifiée : {{date}}",
+        "verzonden_kort": "envoyés"
       },
       "contentCalendar": {
         "maand": "Mois",
@@ -2324,7 +2329,18 @@
         "test_verzonden_naar": "E-mail de test envoyé à {{email}}",
         "unsubscribe_link": "Lien de désabonnement",
         "verstuur_test": "Envoyer un test",
-        "verzenden": "Envoi..."
+        "verzenden": "Envoi...",
+        "test_klant": "Client test",
+        "uw_bedrijf": "Votre entreprise",
+        "vul_geldig_emailadres_in": "Saisissez une adresse e-mail valide",
+        "fout_bij_verzenden_test": "Erreur lors de l’envoi de l’e-mail de test",
+        "onderwerp_te_lang": "Objet trop long (60 caractères max.)",
+        "onderwerp_ontbreekt": "Objet manquant",
+        "ok": "OK",
+        "vermijd_hoofdletters": "Évitez les majuscules",
+        "voeg_uitschrijflink_toe": "Ajoutez un lien de désinscription",
+        "afbeeldingen_missen_alt": "Certaines images n’ont pas de texte alternatif",
+        "testmail_versturen": "Envoyer un e-mail de test"
       },
       "inlinePromoWizard": {
         "korting_toevoegen": "Ajouter remise",
@@ -2748,7 +2764,16 @@
         "uw_bericht_hier": "Votre message ici...",
         "vertraging": "Délai :",
         "wanneer_verzenden": "Quand envoyer ?",
-        "wat_is_een_trigger": "Qu'est-ce qu'un déclencheur ?"
+        "wat_is_een_trigger": "Qu'est-ce qu'un déclencheur ?",
+        "html_naar_visueel_bevestigen": "Ce HTML contient une mise en forme (tableaux/styles en ligne) que l’éditeur visuel peut simplifier. Basculer quand même ?",
+        "onderwerp_taal": "Objet ({{language}})",
+        "email_inhoud": "Contenu de l’e-mail",
+        "visueel": "Visuel",
+        "kies_datum": "Choisir une date",
+        "inplannen": "Planifier",
+        "inplannen_hint": "L’envoi commence à l’heure prévue (au plus tard dans l’heure).",
+        "segment_met_aantal": "{{name}} ({{count}} clients)",
+        "ontvangers_in_doelgroep": "{{count}} destinataires inscrits dans cette audience"
       },
       "campaignFunnel": {
         "afgeleverd": "Livré",
@@ -3050,6 +3075,31 @@
         "campaigns": "Toutes les campagnes ({{count}})",
         "templates": "Modèles ({{count}})",
         "segments": "Segments ({{count}})"
+      },
+      "nieuwe_campagne": "Nouvelle campagne",
+      "geen_campagnes": "Aucune campagne",
+      "geen_beschrijving": "Aucune description",
+      "toast": {
+        "campagne_aangemaakt": "Campagne créée",
+        "campagne_bijgewerkt": "Campagne mise à jour",
+        "campagne_verwijderd": "Campagne supprimée",
+        "segment_aangemaakt": "Segment créé",
+        "segment_bijgewerkt": "Segment mis à jour",
+        "segment_verwijderd": "Segment supprimé",
+        "fout_bij_aanmaken": "Erreur lors de la création",
+        "fout_bij_bijwerken": "Erreur lors de la mise à jour",
+        "fout_bij_verwijderen": "Erreur lors de la suppression",
+        "fout_bij_verzenden": "Erreur lors de l’envoi",
+        "campagne_wordt_verstuurd": "Votre campagne est en cours d’envoi à {{count}} destinataires",
+        "telling_mislukt": "Impossible de récupérer le nombre de destinataires"
+      },
+      "sendConfirm": {
+        "ontvangers_tellen": "Comptage des destinataires...",
+        "gaat_naar_ontvangers": "Cette campagne sera envoyée à {{count}} destinataires.",
+        "planverbruik": "Vous avez utilisé {{used}} e-mails marketing sur {{monthly}} ce mois-ci.",
+        "geen_afzender": "Votre boutique n’a pas encore d’adresse d’expéditeur valide. Configurez votre préfixe e-mail dans Paramètres → Email Inbox.",
+        "boven_limiet": "Votre forfait autorise encore {{remaining}} e-mails marketing ce mois-ci. Choisissez une audience plus restreinte ou passez à un forfait supérieur.",
+        "geen_ontvangers": "Il n’y a aucun destinataire inscrit pour cette audience."
       }
     },
     "ads": {
@@ -5044,7 +5094,10 @@
       "wachten": "En attente",
       "welke_links_presteren_het_best": "Quels liens sont les plus performants",
       "confirm_send_title": "Envoyer la campagne maintenant ?",
-      "confirm_send_body": "La campagne part immédiatement vers tous les destinataires. Cette action est irréversible."
+      "confirm_send_body": "La campagne part immédiatement vers tous les destinataires. Cette action est irréversible.",
+      "aan_ontvangers": "à {{count}} destinataires",
+      "ontvangers_tab": "Destinataires ({{count}})",
+      "wordt_verzonden_hint": "Cette campagne est envoyée par lots. Cette page se met à jour automatiquement."
     },
     "translationHub": {
       "instellingen": "Paramètres",

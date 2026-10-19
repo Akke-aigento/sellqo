@@ -1,4 +1,7 @@
+import { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import i18n from 'i18next';
+import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
@@ -28,7 +31,7 @@ export function useCustomerSegments() {
   });
 
   const createSegment = useMutation({
-    mutationFn: async (segment: Omit<CustomerSegment, 'id' | 'created_at' | 'updated_at' | 'member_count'>) => {
+    mutationFn: async (segment: Omit<CustomerSegment, 'id' | 'created_at' | 'updated_at' | 'member_count'> & { member_count?: number }) => {
       const { data, error } = await supabase
         .from('customer_segments')
         .insert({
@@ -43,15 +46,15 @@ export function useCustomerSegments() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer-segments'] });
-      toast({ title: 'Segment aangemaakt' });
+      toast({ title: i18n.t('admin.marketing.toast.segment_aangemaakt') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij aanmaken', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_aanmaken'), description: error.message, variant: 'destructive' });
     },
   });
 
   const updateSegment = useMutation({
-    mutationFn: async ({ id, ...updates }: Partial<Omit<CustomerSegment, 'id' | 'created_at' | 'updated_at' | 'member_count'>> & { id: string }) => {
+    mutationFn: async ({ id, ...updates }: Partial<Omit<CustomerSegment, 'id' | 'created_at' | 'updated_at' | 'member_count'>> & { id: string; member_count?: number }) => {
       const { data, error } = await supabase
         .from('customer_segments')
         .update({
@@ -67,10 +70,10 @@ export function useCustomerSegments() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer-segments'] });
-      toast({ title: 'Segment bijgewerkt' });
+      toast({ title: i18n.t('admin.marketing.toast.segment_bijgewerkt') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij bijwerken', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_bijwerken'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -85,10 +88,10 @@ export function useCustomerSegments() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer-segments'] });
-      toast({ title: 'Segment verwijderd' });
+      toast({ title: i18n.t('admin.marketing.toast.segment_verwijderd') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij verwijderen', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_verwijderen'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -102,70 +105,64 @@ export function useCustomerSegments() {
   };
 }
 
-// Calculate segment member count based on filter rules
-export function useSegmentMemberCount(filterRules: SegmentFilterRules) {
+/**
+ * MAIL-1a: aantal ontvangers voor een set filterregels, berekend door de server
+ * (send-campaign-batch, mode 'segment_count'). Zelfde doelgroeplogica als het echte
+ * verzenden: alleen ingeschreven klanten, zonder uitschrijvingen en bounces.
+ */
+export async function fetchSegmentCount(params: {
+  tenantId: string;
+  filterRules: SegmentFilterRules;
+  presetKey?: string | null;
+  language?: string | null;
+}): Promise<number> {
+  const data = await invokeWithErrorBody<{ recipients: number }>(
+    'send-campaign-batch',
+    {
+      body: {
+        mode: 'segment_count',
+        tenant_id: params.tenantId,
+        filter_rules: params.filterRules,
+        preset_key: params.presetKey ?? null,
+        language: params.language ?? null,
+      },
+    },
+    i18n.t('admin.marketing.toast.telling_mislukt'),
+  );
+  return data?.recipients ?? 0;
+}
+
+/** Wacht tot de gebruiker even stopt met typen, zodat niet elke toets een serveraanroep wordt. */
+function useDebounced<T>(value: T, delayMs: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delayMs);
+    return () => clearTimeout(id);
+  }, [value, delayMs]);
+  return debounced;
+}
+
+// Segment member count, server-side (zie fetchSegmentCount).
+export function useSegmentMemberCount(
+  filterRules: SegmentFilterRules,
+  options: { presetKey?: string | null; language?: string | null; enabled?: boolean } = {},
+) {
   const { currentTenant } = useTenant();
+  const debouncedRules = useDebounced(filterRules, 400);
+  const { presetKey = null, language = null, enabled = true } = options;
 
   return useQuery({
-    queryKey: ['segment-member-count', currentTenant?.id, filterRules],
+    queryKey: ['segment-member-count', currentTenant?.id, debouncedRules, presetKey, language],
     queryFn: async () => {
       if (!currentTenant?.id) return 0;
-      
-      let query = supabase
-        .from('customers')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id);
-
-      // Apply filter rules
-      if (filterRules.customer_type && filterRules.customer_type !== 'all') {
-        query = query.eq('customer_type', filterRules.customer_type);
-      }
-
-      if (filterRules.countries && filterRules.countries.length > 0) {
-        query = query.in('billing_country', filterRules.countries);
-      }
-
-      if (filterRules.min_orders !== undefined) {
-        query = query.gte('total_orders', filterRules.min_orders);
-      }
-
-      if (filterRules.max_orders !== undefined) {
-        query = query.lte('total_orders', filterRules.max_orders);
-      }
-
-      if (filterRules.min_total_spent !== undefined) {
-        query = query.gte('total_spent', filterRules.min_total_spent);
-      }
-
-      if (filterRules.max_total_spent !== undefined) {
-        query = query.lte('total_spent', filterRules.max_total_spent);
-      }
-
-      if (filterRules.email_subscribed !== undefined) {
-        query = query.eq('email_subscribed', filterRules.email_subscribed);
-      }
-
-      if (filterRules.tags && filterRules.tags.length > 0) {
-        if (filterRules.tags_match === 'all') {
-          query = query.contains('tags', filterRules.tags);
-        } else {
-          query = query.overlaps('tags', filterRules.tags);
-        }
-      }
-
-      if (filterRules.created_after) {
-        query = query.gte('created_at', filterRules.created_after);
-      }
-
-      if (filterRules.created_before) {
-        query = query.lte('created_at', filterRules.created_before);
-      }
-
-      const { count, error } = await query;
-
-      if (error) throw error;
-      return count || 0;
+      return fetchSegmentCount({
+        tenantId: currentTenant.id,
+        filterRules: debouncedRules,
+        presetKey,
+        language,
+      });
     },
-    enabled: !!currentTenant?.id,
+    enabled: !!currentTenant?.id && enabled,
+    staleTime: 30_000,
   });
 }

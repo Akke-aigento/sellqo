@@ -1,5 +1,5 @@
 import { format } from 'date-fns';
-import { MoreHorizontal, Send, Eye, Trash2, Edit, BarChart3 } from 'lucide-react';
+import { MoreHorizontal, Send, Trash2, Edit, BarChart3, Loader2, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,7 @@ const statusConfig: Record<CampaignStatus, { labelKey: string; variant: 'default
   sent: { labelKey: 'admin.marketing.campaignCard.status.verzonden', variant: 'default' },
   paused: { labelKey: 'admin.marketing.campaignCard.status.gepauzeerd', variant: 'outline' },
   cancelled: { labelKey: 'admin.marketing.campaignCard.status.geannuleerd', variant: 'destructive' },
+  failed: { labelKey: 'admin.marketing.campaignCard.status.mislukt', variant: 'destructive' },
 };
 
 export function CampaignCard({ campaign, onDelete, onSend, onEdit }: CampaignCardProps) {
@@ -61,7 +62,10 @@ export function CampaignCard({ campaign, onDelete, onSend, onEdit }: CampaignCar
           </CardDescription>
         </div>
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-          <Badge variant={status.variant}>{t(status.labelKey)}</Badge>
+          <Badge variant={status.variant} className="gap-1">
+            {campaign.status === 'sending' && <Loader2 className="h-3 w-3 animate-spin" />}
+            {t(status.labelKey)}
+          </Badge>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -109,21 +113,21 @@ export function CampaignCard({ campaign, onDelete, onSend, onEdit }: CampaignCar
             )}
             {campaign.sent_at && (
               <span className="text-muted-foreground">
-                Verzonden: {format(new Date(campaign.sent_at), 'PPp', { locale: dateLocale })}
+                {t('admin.marketing.campaignCard.verzonden_op', { date: format(new Date(campaign.sent_at), 'PPp', { locale: dateLocale }) })}
               </span>
             )}
             {campaign.scheduled_at && campaign.status === 'scheduled' && (
               <span className="text-muted-foreground">
-                Gepland: {format(new Date(campaign.scheduled_at), 'PPp', { locale: dateLocale })}
+                {t('admin.marketing.campaignCard.gepland_op', { date: format(new Date(campaign.scheduled_at), 'PPp', { locale: dateLocale }) })}
               </span>
             )}
           </div>
-          
+
           {campaign.status === 'sent' && (
             <div className="flex items-center gap-6">
               <div className="text-center">
                 <div className="text-lg font-bold text-foreground">{campaign.total_sent}</div>
-                <div className="text-xs text-muted-foreground">verzonden</div>
+                <div className="text-xs text-muted-foreground">{t('admin.marketing.campaignCard.verzonden_kort')}</div>
               </div>
               <div className="text-center">
                 <div className="text-lg font-bold text-purple-600">{openRate}%</div>
@@ -136,6 +140,12 @@ export function CampaignCard({ campaign, onDelete, onSend, onEdit }: CampaignCar
             </div>
           )}
         </div>
+        {campaign.status === 'failed' && (
+          <p className="mt-2 flex items-start gap-2 text-sm text-destructive">
+            <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+            {campaign.send_error || t('admin.marketing.campaignCard.verzenden_mislukt')}
+          </p>
+        )}
       </CardContent>
     </Card>
   );

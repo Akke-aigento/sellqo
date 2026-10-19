@@ -10,6 +10,7 @@ import { CampaignDialog } from '@/components/admin/marketing/CampaignDialog';
 import type { EmailCampaign } from '@/types/marketing';
 import { TemplateDialog } from '@/components/admin/marketing/TemplateDialog';
 import { SegmentDialog } from '@/components/admin/marketing/SegmentDialog';
+import { SendCampaignConfirmDialog } from '@/components/admin/marketing/SendCampaignConfirmDialog';
 import { RealtimeActivityFeed } from '@/components/admin/marketing/RealtimeActivityFeed';
 import { MarketingOverviewChart } from '@/components/admin/marketing/MarketingOverviewChart';
 import { useMarketingStats, useEmailCampaigns } from '@/hooks/useEmailCampaigns';
@@ -44,6 +45,8 @@ export default function MarketingPage() {
   const { isPageHidden } = useTenantPageOverrides();
   const showAI = canAI && !isPageHidden('ai-tools');
   const [aiEmailOpen, setAiEmailOpen] = useState(false);
+  // MAIL-1a: "Nu verzenden" gaat eerst langs een bevestiging met ontvangertelling.
+  const [confirmSendId, setConfirmSendId] = useState<string | null>(null);
   useEffect(() => {
     const next = new URLSearchParams(searchParams);
     let changed = false;
@@ -127,7 +130,7 @@ export default function MarketingPage() {
           </GatedButton>
           <GatedButton action="write" resource="marketing" onClick={() => setCampaignDialogOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
-            {t('admin.adsBolcom.nieuwe_campagne')}
+            {t('admin.marketing.nieuwe_campagne')}
           </GatedButton>
         </div>
       </div>
@@ -242,7 +245,7 @@ export default function MarketingPage() {
                     key={campaign.id}
                     campaign={campaign}
                     onDelete={(id) => deleteCampaign.mutate(id)}
-                    onSend={(id) => sendCampaign.mutate(id)}
+                    onSend={(id) => setConfirmSendId(id)}
                     onEdit={(c) => setEditingCampaign(c)}
                   />
                 ))}
@@ -276,11 +279,11 @@ export default function MarketingPage() {
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">{t('admin.ads.campaignsList.geen_campagnes')}</h3>
+                <h3 className="text-lg font-semibold">{t('admin.marketing.geen_campagnes')}</h3>
                 <p className="text-muted-foreground mb-4">{t('admin.marketing.maak_je_eerste_email_campagne_aan')}</p>
                 <Button onClick={() => setCampaignDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  {t('admin.adsBolcom.nieuwe_campagne')}
+                  {t('admin.marketing.nieuwe_campagne')}
                 </Button>
               </CardContent>
             </Card>
@@ -291,7 +294,7 @@ export default function MarketingPage() {
                   key={campaign.id}
                   campaign={campaign}
                   onDelete={(id) => deleteCampaign.mutate(id)}
-                  onSend={(id) => sendCampaign.mutate(id)}
+                  onSend={(id) => setConfirmSendId(id)}
                   onEdit={(c) => setEditingCampaign(c)}
                 />
               ))}
@@ -373,7 +376,7 @@ export default function MarketingPage() {
                 <Card key={segment.id} className="hover:shadow-md transition-shadow">
                   <CardHeader>
                     <CardTitle className="text-base">{segment.name}</CardTitle>
-                    <CardDescription>{segment.description || 'Geen beschrijving'}</CardDescription>
+                    <CardDescription>{segment.description || t('admin.marketing.geen_beschrijving')}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{segment.member_count}</div>
@@ -426,6 +429,13 @@ export default function MarketingPage() {
           createSegment.mutate(data as any, { onSuccess: () => setSegmentDialogOpen(false) });
         }}
         isLoading={createSegment.isPending}
+      />
+
+      <SendCampaignConfirmDialog
+        campaignId={confirmSendId}
+        onOpenChange={(open) => { if (!open) setConfirmSendId(null); }}
+        isSending={sendCampaign.isPending}
+        onConfirm={(id) => sendCampaign.mutate(id, { onSettled: () => setConfirmSendId(null) })}
       />
 
       <ResponsiveDialog

@@ -2081,6 +2081,14 @@
         "social_reminder_on_time": {
           "title": "Le rappel pour publier vous-même arrive au bon moment",
           "description": "Lorsque vous devez publier vous-même une story ou un reel sur Instagram (par exemple avec un sticker ou votre propre musique), le rappel arrive désormais au moment prévu au lieu d’une heure avant. Pour une story avec un sticker lien, le lien figure dans le rappel, prêt à être copié."
+        },
+        "email_campaigns_reliable": {
+          "title": "Vos newsletters atteignent désormais tous vos clients inscrits",
+          "description": "Jusqu’à présent, une campagne partait vers 50 destinataires au maximum, et une campagne programmée ne partait jamais. Chaque campagne est maintenant envoyée en arrière-plan à tous vos clients inscrits, y compris au moment programmé. Avant l’envoi, vous voyez à combien de personnes elle sera envoyée, et vous pouvez d’abord vous envoyer un e-mail de test. La désinscription se fait en un clic, et les adresses invalides ou qui signalent un abus ne reçoivent plus de marketing. Chaque formule comprend un nombre mensuel d’e-mails marketing."
+        },
+        "newsletter_double_optin": {
+          "title": "Inscription à la newsletter avec confirmation",
+          "description": "Toute personne qui s’inscrit à votre newsletter reçoit d’abord un e-mail de confirmation. Ce n’est qu’ensuite qu’elle reçoit vos campagnes et votre e-mail de bienvenue. Les clients qui passent commande ne sont plus inscrits automatiquement. Vous n’envoyez ainsi du marketing qu’aux personnes qui l’ont explicitement choisi, comme l’exigent les règles européennes de protection de la vie privée."
         }
       },
       "copyLink": "Copier le lien",

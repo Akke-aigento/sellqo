@@ -2081,6 +2081,14 @@
         "social_reminder_on_time": {
           "title": "Herinnering om zelf te posten komt op het moment zelf",
           "description": "Moet je een story of reel zelf posten in Instagram (bijvoorbeeld met een sticker of eigen muziek), dan krijg je de melding nu op het geplande moment in plaats van een uur vooraf. Bij een story met een link-sticker staat de link in de melding, klaar om te kopiëren."
+        },
+        "email_campaigns_reliable": {
+          "title": "Nieuwsbrieven bereiken nu al je ingeschreven klanten",
+          "description": "Een campagne ging tot nu toe naar maximaal 50 ontvangers, en een ingeplande campagne vertrok niet. Nu wordt elke campagne in de achtergrond verstuurd naar al je ingeschreven klanten, ook op het geplande moment. Vóór het versturen zie je naar hoeveel mensen ze gaat, en je kan eerst een testmail naar jezelf sturen. Uitschrijven werkt met één klik, en adressen die niet bestaan of een klacht indienen krijgen geen marketing meer. Per plan geldt een maandelijks aantal marketingmails."
+        },
+        "newsletter_double_optin": {
+          "title": "Inschrijven op je nieuwsbrief met bevestiging",
+          "description": "Wie zich op je nieuwsbrief inschrijft, krijgt eerst een mail om dat te bevestigen. Pas daarna krijgt die persoon je campagnes en je welkomstmail. Klanten die iets bestellen, zijn niet langer vanzelf ingeschreven. Zo stuur je enkel marketing naar wie daar uitdrukkelijk voor koos, zoals de Europese privacyregels vragen."
         }
       },
       "copyLink": "Kopieer link",

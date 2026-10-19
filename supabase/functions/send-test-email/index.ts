@@ -1,7 +1,12 @@
 import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { tenantSender } from "../_shared/emailSenders.ts";
+import { tenantMarketingSender } from "../_shared/emailSenders.ts";
+import { requireBillingState } from "../_shared/billingGuard.ts";
+import { buildUnsubscribeUrl, buildPreferencesUrl } from "../_shared/marketingToken.ts";
+import { getTenantBrand, renderTenantEmail, type TenantLocale } from "../_shared/tenantEmail.ts";
+import { t } from "../_shared/tenantEmailI18n.ts";
+import { extractEmailBody, buildVariableMap, applyVariables } from "../_shared/emailContent.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,13 +57,17 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Get tenant info
+    // BILLING-ENFORCE-1 / MAIL-1a: zoals send-campaign-batch — geen mail terwijl
+    // er een betaling openstaat.
+    await requireBillingState(supabase, auth, tenantId, "marketing");
+
+    // MAIL-1a: dezelfde render als een echte campagne (send-campaign-batch), zodat
+    // de testmail er exact uitziet zoals bij de klant: brand-wrapper, variabelen,
+    // ondertekende uitschrijflink en List-Unsubscribe-headers.
     // MAIL-CONTACT-1: `email`, `street` en `vat_number` bestaan niet op tenants.
-    // De select faalde daardoor altijd en deze functie meldde voor elke winkel
-    // "Tenant not found": de testmailknop heeft nooit gewerkt.
     const { data: tenant, error: tenantError } = await supabase
       .from("tenants")
-      .select("name, slug, inbound_email_prefix, support_email, address, city, postal_code, country, kvk_number, btw_number, billing_vat_number")
+      .select("name, slug, inbound_email_prefix, support_email, phone, custom_domain, iban, address, city, postal_code, country, language")
       .eq("id", tenantId)
       .maybeSingle();
 
@@ -76,59 +85,81 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Build company address
-    const companyAddress = [
-      tenant.address,
-      `${tenant.postal_code || ""} ${tenant.city || ""}`.trim(),
-      tenant.country,
-    ].filter(Boolean).join(", ");
+    const brand = await getTenantBrand(supabase, tenantId);
 
-    // Replace template variables
-    const customerName = previewData?.customer_name || "Test Klant";
-    const customerEmail = previewData?.customer_email || toEmail;
-    
-    let processedHtml = htmlContent
-      .replace(/\{\{customer_name\}\}/g, customerName)
-      .replace(/\{\{customer_email\}\}/g, customerEmail)
-      .replace(/\{\{company_name\}\}/g, tenant.name || "")
-      .replace(/\{\{company_address\}\}/g, companyAddress)
-      .replace(/\{\{kvk_number\}\}/g, tenant.kvk_number || "")
-      .replace(/\{\{vat_number\}\}/g, tenant.btw_number || tenant.billing_vat_number || "")
-      .replace(/\{\{unsubscribe_url\}\}/g, `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(customerEmail)}&tenant=${tenantId}`)
-      .replace(/\{\{preferences_url\}\}/g, `${supabaseUrl}/functions/v1/email-preferences?email=${encodeURIComponent(customerEmail)}&tenant=${tenantId}`);
-
-    const processedSubject = subject
-      .replace(/\{\{customer_name\}\}/g, customerName)
-      .replace(/\{\{company_name\}\}/g, tenant.name || "");
-
-    // Add test email banner
-    const testBanner = `
-      <div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 12px 20px; text-align: center; font-family: sans-serif; font-size: 14px; color: #92400e; margin-bottom: 20px;">
-        🧪 <strong>TEST EMAIL</strong> - Dit is een voorbeeld. Je klanten zien deze banner niet.
-      </div>
-    `;
-    
-    // Insert banner after <body> tag or at start
-    if (processedHtml.includes("<body")) {
-      processedHtml = processedHtml.replace(/(<body[^>]*>)/i, `$1${testBanner}`);
-    } else {
-      processedHtml = testBanner + processedHtml;
+    // MAIL-SENDER-1: een test gaat altijd uit als de winkel zelf. De `sender`-key
+    // van de client wordt genegeerd. MAIL-1a: marketing-afzender, zonder
+    // terugval op het platformadres.
+    void sender;
+    const resolvedSender = tenantMarketingSender(brand.senderSource);
+    if (!resolvedSender) {
+      return new Response(JSON.stringify({
+        error: "Je winkel heeft nog geen geldig mailadres (prefix). Stel dit in bij Instellingen.",
+        code: "NO_SENDER",
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Resolve sender (defaults to customerService stream)
-    // MAIL-SENDER-1: een test gaat altijd uit als de winkel zelf. De `sender`-key
-    // van de client wordt genegeerd: daarmee kon een winkel eerder testen "als
-    // SellQo" (invite, billing, …). EmailPreview stuurt hem niet mee.
-    void sender;
-    const resolvedSender = tenantSender(tenant);
+    const locale = brand.defaultLocale as TenantLocale;
+    const customerEmail = (previewData?.customer_email || toEmail).trim();
+    const previewName = (previewData?.customer_name || "").trim();
+    // De links ondertekenen het testadres zelf (toEmail), niet het preview-adres:
+    // een klik op "uitschrijven" in een testmail mag nooit een echte klant raken.
+    const [unsubscribeUrl, preferencesUrl] = await Promise.all([
+      buildUnsubscribeUrl(tenantId, toEmail),
+      buildPreferencesUrl(tenantId, toEmail),
+    ]);
+
+    const vars = buildVariableMap(
+      { email: customerEmail, first_name: previewName || "Test Klant" },
+      tenant,
+      { subject },
+      unsubscribeUrl,
+      {
+        tenantName: brand.tenantName,
+        logoUrl: brand.logoUrl,
+        primaryColor: brand.primaryColor,
+        accentColor: brand.accentColor,
+        headingFont: brand.headingFont,
+      },
+      locale,
+    );
+    // Volledige naam zoals ingevuld in de preview (buildVariableMap kent enkel voor/achternaam).
+    if (previewName) vars.customer_name = previewName;
+    // Oudere sjablonen gebruiken nog {{preferences_url}}.
+    vars.preferences_url = preferencesUrl;
+
+    const rawBody = extractEmailBody(htmlContent);
+    const bodyHtml = applyVariables(rawBody, vars);
+    const renderedSubject = applyVariables(subject, vars);
+
+    // Testbanner bovenaan de inhoud. Klanten zien hem niet.
+    const testBanner = `<div style="background: #fef3c7; border: 1px solid #f59e0b; padding: 12px 20px; text-align: center; font-family: sans-serif; font-size: 14px; color: #92400e; margin-bottom: 20px;"><strong>TESTMAIL</strong> - Dit is een voorbeeld. Je klanten zien deze banner niet.</div>`;
+
+    const { html: wrappedHtml, text: wrappedText } = renderTenantEmail({
+      tenantBrand: brand,
+      locale,
+      preheader: renderedSubject,
+      heading: renderedSubject,
+      intro: testBanner + bodyHtml,
+      unsubscribeUrl,
+      poweredByLabel: t(locale, "campaign.poweredBy"),
+    });
 
     // Send the test email
     const emailResponse = await resend.emails.send({
       from: resolvedSender.from,
       reply_to: resolvedSender.replyTo,
       to: [toEmail],
-      subject: `[TEST] ${processedSubject}`,
-      html: processedHtml,
+      subject: `[TEST] ${renderedSubject}`,
+      html: wrappedHtml,
+      text: wrappedText,
+      headers: {
+        "List-Unsubscribe": `<${unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
     });
 
     if (emailResponse.error) {

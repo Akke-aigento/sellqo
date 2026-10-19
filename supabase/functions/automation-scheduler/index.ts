@@ -2,6 +2,7 @@ import { Resend } from "https://esm.sh/resend@2.0.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { tenantSender } from "../_shared/emailSenders.ts";
 import { isAuthorizedCronRequest, CRON_ALLOWED_HEADERS } from "../_shared/cronAuth.ts";
+import { buildUnsubscribeUrl } from "../_shared/marketingToken.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -222,13 +223,16 @@ Deno.serve(async (req) => {
             const tenant = run.tenant;
             const companyAddress = tenant ? `${tenant.address || ""}, ${tenant.postal_code || ""} ${tenant.city || ""}` : "";
 
+            // MAIL-1a: ondertekende uitschrijflink (zonder handtekening doet unsubscribe niets).
+            const unsubscribeUrl = await buildUnsubscribeUrl(run.tenant_id, recipient.email);
+
             // Replace variables
             htmlContent = htmlContent
               .replace(/\{\{customer_name\}\}/g, recipient.name)
               .replace(/\{\{customer_email\}\}/g, recipient.email)
               .replace(/\{\{company_name\}\}/g, tenant?.name || "")
               .replace(/\{\{company_address\}\}/g, companyAddress)
-              .replace(/\{\{unsubscribe_url\}\}/g, `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(recipient.email)}&tenant=${run.tenant_id}`);
+              .replace(/\{\{unsubscribe_url\}\}/g, unsubscribeUrl);
 
             subject = subject
               .replace(/\{\{customer_name\}\}/g, recipient.name)
@@ -245,6 +249,10 @@ Deno.serve(async (req) => {
               to: [recipient.email],
               subject,
               html: htmlContent,
+              headers: {
+                "List-Unsubscribe": `<${unsubscribeUrl}>`,
+                "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+              },
             });
 
             // Log step run

@@ -1,322 +1,90 @@
-import { Resend } from "https://esm.sh/resend@2.0.0";
+// MAIL-1a (19-10-2026) — zet een campagne in de wachtrij; de worker
+// process-campaign-queue verstuurt. Vroeger verstuurde deze functie zelf,
+// maximaal 50 mails per campagne, zie _shared/campaignQueue.ts.
+//
+// Body:
+//   { campaign_id }                                   → versturen: { queued, total_recipients }
+//   { campaign_id, mode: "count" }                    → { recipients, limit, sender_ok }
+//   { mode: "segment_count", tenant_id, filter_rules, preset_key?, language? } → { recipients }
+// Fouten: { error, code } met code PLAN_LIMIT | NO_SENDER | ALREADY_SENDING | NO_RECIPIENTS | NOT_FOUND.
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
-import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { tenantSender } from "../_shared/emailSenders.ts";
-import { getTenantBrand, renderTenantEmail, type TenantLocale } from "../_shared/tenantEmail.ts";
-import { t } from "../_shared/tenantEmailI18n.ts";
-import { extractEmailBody, buildVariableMap, applyVariables } from "../_shared/emailContent.ts";
-import { resolvePresetRules } from "../_shared/audiencePresets.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse, type AppRole } from "../_shared/auth.ts";
 import { requireBillingState } from "../_shared/billingGuard.ts";
+import { getTenantBrand } from "../_shared/tenantEmail.ts";
+import { resolveAudience } from "../_shared/campaignAudience.ts";
+import { CampaignQueueError, countCampaign, enqueueCampaign } from "../_shared/campaignQueue.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const ROLES: AppRole[] = ["tenant_admin", "staff", "marketing"];
+
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
     const auth = await authenticateRequest(req);
-
-    const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const db = createClient(supabaseUrl, serviceKey);
 
-    const { campaign_id, batch_size = 50 } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    const mode = (body?.mode as string) || "send";
 
-    if (!campaign_id) {
-      return new Response(JSON.stringify({ error: "campaign_id is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Telling van een segment (nog niet opgeslagen regels) voor de segmentbouwer.
+    if (mode === "segment_count") {
+      const tenantId = body?.tenant_id as string;
+      if (!tenantId) return json({ error: "tenant_id is required" }, 400);
+      requireRole(auth, tenantId, ROLES);
+      const brand = await getTenantBrand(db, tenantId);
+      const recipients = await resolveAudience(db, {
+        tenantId,
+        filterRules: (body?.filter_rules as Record<string, unknown>) || null,
+        presetKey: (body?.preset_key as string) || null,
+        language: (body?.language as string) || null,
+        tenantLocale: brand.defaultLocale,
       });
+      return json({ recipients: recipients.length });
     }
 
-    // Get campaign details
-    const { data: campaign, error: campaignError } = await supabase
-      .from("email_campaigns")
-      .select("*, segment:customer_segments(*)")
-      .eq("id", campaign_id)
-      .single();
+    const campaignId = body?.campaign_id as string;
+    if (!campaignId) return json({ error: "campaign_id is required" }, 400);
 
-    if (campaignError || !campaign) {
-      return new Response(JSON.stringify({ error: "Campaign not found" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const { data: campaign } = await db.from("email_campaigns").select("tenant_id").eq("id", campaignId).maybeSingle();
+    if (!campaign) return json({ error: "Campagne niet gevonden.", code: "NOT_FOUND" }, 404);
+    requireRole(auth, campaign.tenant_id, ROLES);
+
+    if (mode === "count") {
+      const r = await countCampaign(db, campaignId);
+      return json({ recipients: r.recipients, limit: r.limit, sender_ok: r.sender_ok });
     }
 
-    requireRole(auth, campaign.tenant_id, ["tenant_admin", "staff", "marketing"]);
-    // BILLING-ENFORCE-1: schrijven kan niet terwijl er een betaling openstaat.
-    await requireBillingState(supabase, auth, campaign.tenant_id, "marketing");
+    // BILLING-ENFORCE-1: versturen kan niet terwijl er een betaling openstaat.
+    await requireBillingState(db, auth, campaign.tenant_id, "marketing");
 
-    // Get tenant info for email personalization
-    // MAIL-CONTACT-1: deze select vroeg `email` en `street` op, die niet bestaan.
-    // PostgREST weigerde de hele query, de fout werd genegeerd en elke campagne
-    // ging uit als "Sellqo" op het oude marketingadres, met het platform als Reply-To.
-    const { data: tenant, error: tenantError } = await supabase
-      .from("tenants")
-      .select("name, slug, inbound_email_prefix, support_email, phone, custom_domain, iban, address, city, postal_code, country, language")
-      .eq("id", campaign.tenant_id)
-      .single();
-    if (tenantError || !tenant) {
-      console.error("[send-campaign-batch] tenant select failed", { tenantId: campaign.tenant_id, error: tenantError });
-      throw new Error("Tenant not found");
-    }
-    const brand = await getTenantBrand(supabase, campaign.tenant_id);
-    const marketingSender = tenantSender(brand.senderSource);
-    const tenantLocale = brand.defaultLocale;
-    // Campaign language wins over tenant default for wrapper chrome + formatting.
-    const locale = (campaign.language as any) || tenantLocale;
+    const result = await enqueueCampaign(db, campaignId);
 
-    // Multi-language campaign detection. When multiple languages are offered,
-    // each recipient gets their preferred_language variant (falling back to NL).
-    const translations: Record<string, { subject?: string; preview_text?: string; html_content?: string }> =
-      (campaign.translations as any) || {};
-    const availableLanguages: string[] = Array.isArray(campaign.available_languages) && campaign.available_languages.length
-      ? (campaign.available_languages as string[])
-      : ['nl'];
-    const isMultiLang = availableLanguages.length > 1;
+    // De worker meteen starten, niet wachten op de cron.
+    const kick = fetch(`${supabaseUrl}/functions/v1/process-campaign-queue`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${serviceKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ source: "send", campaign_id: campaignId }),
+    }).catch((err) => console.error("[send-campaign-batch] worker starten mislukt (cron neemt over)", err));
+    // deno-lint-ignore no-explicit-any
+    const rt = (globalThis as any).EdgeRuntime;
+    if (rt?.waitUntil) rt.waitUntil(kick);
 
-    // Build recipient query
-    let recipientQuery = supabase
-      .from("customers")
-      .select("id, email, first_name, last_name, company_name, phone, vat_number, billing_city, billing_country, total_orders, total_spent, tags, created_at, preferred_language")
-      .eq("tenant_id", campaign.tenant_id)
-      .eq("email_subscribed", true);
-
-    // Apply preset rules first (evaluated at SEND time so relative dates are fresh).
-    const presetRules = resolvePresetRules(campaign.preset_key);
-    if (presetRules) {
-      if (presetRules.customer_type) {
-        recipientQuery = recipientQuery.eq("customer_type", presetRules.customer_type);
-      }
-      if (typeof presetRules.min_orders === "number") {
-        recipientQuery = recipientQuery.gte("total_orders", presetRules.min_orders);
-      }
-      if (typeof presetRules.max_orders === "number") {
-        recipientQuery = recipientQuery.lte("total_orders", presetRules.max_orders);
-      }
-      if (typeof presetRules.created_after === "string") {
-        recipientQuery = recipientQuery.gte("created_at", presetRules.created_after);
-      }
-      // no_order_since_days has no column; documented parity with SegmentBuilder.
-    }
-
-    // Apply segment filters if segment exists
-    if (campaign.segment?.filter_rules) {
-      const rules = campaign.segment.filter_rules as Record<string, unknown>;
-      if (rules.customer_type && rules.customer_type !== "all") {
-        recipientQuery = recipientQuery.eq("customer_type", rules.customer_type as string);
-      }
-      if (Array.isArray(rules.countries) && rules.countries.length) {
-        recipientQuery = recipientQuery.in("billing_country", rules.countries as string[]);
-      }
-      if (typeof rules.min_orders === "number") {
-        recipientQuery = recipientQuery.gte("total_orders", rules.min_orders);
-      }
-      if (typeof rules.max_orders === "number") {
-        recipientQuery = recipientQuery.lte("total_orders", rules.max_orders);
-      }
-      if (typeof rules.min_total_spent === "number") {
-        recipientQuery = recipientQuery.gte("total_spent", rules.min_total_spent);
-      }
-      if (typeof rules.max_total_spent === "number") {
-        recipientQuery = recipientQuery.lte("total_spent", rules.max_total_spent);
-      }
-      if (rules.email_subscribed === false) {
-        // Anti-spam law: never send to unsubscribed users. Ignore this rule
-        // and keep the base .eq("email_subscribed", true) guard.
-        console.warn(`Campaign ${campaign_id}: segment rule email_subscribed=false ignored (base guard enforced)`);
-      }
-      if (Array.isArray(rules.tags) && rules.tags.length) {
-        const tagsMatch = rules.tags_match === "all" ? "contains" : "overlaps";
-        if (tagsMatch === "contains") {
-          recipientQuery = recipientQuery.contains("tags", rules.tags as string[]);
-        } else {
-          recipientQuery = recipientQuery.overlaps("tags", rules.tags as string[]);
-        }
-      }
-      if (typeof rules.created_after === "string") {
-        recipientQuery = recipientQuery.gte("created_at", rules.created_after);
-      }
-      if (typeof rules.created_before === "string") {
-        recipientQuery = recipientQuery.lte("created_at", rules.created_before);
-      }
-      if (typeof rules.preferred_language === "string" && rules.preferred_language) {
-        recipientQuery = recipientQuery.eq("preferred_language", rules.preferred_language as string);
-      }
-      if (rules.last_order_days_ago !== undefined || rules.no_order_since_days !== undefined || rules.min_engagement_score !== undefined) {
-        // No column available on customers for these rules; the segment
-        // preview also skips them, so parity is maintained.
-        console.warn(`Campaign ${campaign_id}: unsupported filter fields skipped`);
-      }
-    }
-
-    // Multilingual audience: for single-language campaigns, filter recipients
-    // to the campaign language. Multi-language campaigns skip this filter and
-    // route per-recipient below.
-    if (campaign.language && !isMultiLang) {
-      if (campaign.language === tenantLocale) {
-        recipientQuery = recipientQuery.or(
-          `preferred_language.eq.${campaign.language},preferred_language.is.null`,
-        );
-      } else {
-        recipientQuery = recipientQuery.eq("preferred_language", campaign.language);
-      }
-    }
-
-    // Check for unsubscribes
-    const { data: unsubscribes } = await supabase
-      .from("email_unsubscribes")
-      .select("email")
-      .eq("tenant_id", campaign.tenant_id);
-
-    const unsubscribedEmails = new Set((unsubscribes || []).map((u) => u.email.toLowerCase()));
-
-    const { data: recipients } = await recipientQuery.limit(batch_size);
-
-    if (!recipients?.length) {
-      // Update campaign as sent if no recipients
-      await supabase
-        .from("email_campaigns")
-        .update({ status: "sent", sent_at: new Date().toISOString(), completed_at: new Date().toISOString() })
-        .eq("id", campaign_id);
-
-      return new Response(JSON.stringify({ sent: 0, message: "No recipients found" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Filter out unsubscribed
-    const validRecipients = recipients.filter(
-      (r) => !unsubscribedEmails.has(r.email.toLowerCase())
-    );
-
-    // Update campaign status to sending
-    await supabase
-      .from("email_campaigns")
-      .update({ status: "sending", total_recipients: validRecipients.length })
-      .eq("id", campaign_id);
-
-    let sentCount = 0;
-
-    for (const recipient of validRecipients) {
-      const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(recipient.email)}&tenant=${campaign.tenant_id}`;
-      // Pick per-recipient language variant.
-      let recipientLocale: TenantLocale = locale as TenantLocale; // BUILD-GREEN-1: renderTenantEmail wil TenantLocale
-      let variantSubject = campaign.subject || "";
-      let variantPreview = campaign.preview_text || "";
-      let variantBody = campaign.html_content || "";
-      if (isMultiLang) {
-        const pref = (recipient.preferred_language as string) || 'nl';
-        const chosen = availableLanguages.includes(pref) ? pref : 'nl';
-        recipientLocale = chosen as TenantLocale;
-        if (chosen !== 'nl' && translations[chosen]) {
-          const v = translations[chosen];
-          if (v.subject) variantSubject = v.subject;
-          if (v.preview_text) variantPreview = v.preview_text;
-          if (v.html_content) variantBody = v.html_content;
-        }
-      }
-
-      const vars = buildVariableMap(
-        recipient,
-        tenant,
-        { subject: variantSubject },
-        unsubscribeUrl,
-        {
-          tenantName: brand.tenantName,
-          logoUrl: brand.logoUrl,
-          primaryColor: brand.primaryColor,
-          accentColor: brand.accentColor,
-          headingFont: brand.headingFont,
-        },
-        recipientLocale,
-      );
-      const customerName = vars.customer_name;
-
-      // Backwards compat: legacy campaigns stored full HTML documents with a
-      // built-in unsubscribe footer. Extract the body so we don't double-wrap
-      // or double-render the footer.
-      const rawBody = extractEmailBody(variantBody || "");
-      const htmlContent = applyVariables(rawBody, vars);
-      const renderedSubject = applyVariables(variantSubject || "", vars);
-
-      const { html: wrappedHtml, text: wrappedText } = renderTenantEmail({
-        tenantBrand: brand,
-        locale: recipientLocale,
-        preheader: renderedSubject,
-        heading: renderedSubject,
-        intro: htmlContent,
-        unsubscribeUrl, // MANDATORY for marketing (anti-spam law)
-        poweredByLabel: t(locale, 'campaign.poweredBy'),
-      });
-
-      try {
-        const emailResponse = await resend.emails.send({
-          from: marketingSender.from,
-          reply_to: marketingSender.replyTo,
-          to: [recipient.email],
-          subject: renderedSubject,
-          html: wrappedHtml,
-          text: wrappedText,
-          headers: {
-            'List-Unsubscribe': `<${unsubscribeUrl}>`,
-            'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-          },
-        });
-
-        // Create campaign_send record
-        await supabase.from("campaign_sends").insert({
-          campaign_id,
-          customer_id: recipient.id,
-          email: recipient.email,
-          customer_name: customerName,
-          status: "sent",
-          resend_id: emailResponse.data?.id,
-          sent_at: new Date().toISOString(),
-        });
-
-        sentCount++;
-      } catch (emailError) {
-        console.error(`Failed to send to ${recipient.email}:`, emailError);
-        await supabase.from("campaign_sends").insert({
-          campaign_id,
-          customer_id: recipient.id,
-          email: recipient.email,
-          customer_name: customerName,
-          status: "bounced",
-          error_message: emailError instanceof Error ? emailError.message : String(emailError),
-        });
-      }
-    }
-
-    // Update campaign stats
-    await supabase
-      .from("email_campaigns")
-      .update({
-        status: "sent",
-        sent_at: new Date().toISOString(),
-        completed_at: new Date().toISOString(),
-        total_sent: sentCount,
-      })
-      .eq("id", campaign_id);
-
-    return new Response(JSON.stringify({ sent: sentCount, total: validRecipients.length }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return json(result);
   } catch (error) {
-    console.error("Error in send-campaign-batch:", error);
-    if (error instanceof AuthError) {
-      return authErrorResponse(error, corsHeaders);
-    }
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    if (error instanceof AuthError) return authErrorResponse(error, corsHeaders);
+    if (error instanceof CampaignQueueError) return json({ error: error.message, code: error.code }, error.status);
+    console.error("[send-campaign-batch]", error);
+    return json({ error: error instanceof Error ? error.message : String(error) }, 500);
   }
 });

@@ -2472,13 +2472,18 @@
           "verzonden": "Надіслано",
           "gepauzeerd": "Призупинено",
           "geannuleerd": "Скасовано",
-          "verzenden": "Надсилання..."
+          "verzenden": "Надсилання...",
+          "mislukt": "Не вдалося"
         },
         "bekijk_analytics": "Переглянути аналітику",
         "click_rate": "частота кліків",
         "nu_verzenden": "Надіслати зараз",
         "open_rate": "частота відкриттів",
-        "segment": "Сегмент:"
+        "segment": "Сегмент:",
+        "verzenden_mislukt": "Не вдалося надіслати",
+        "verzonden_op": "Надіслано: {{date}}",
+        "gepland_op": "Заплановано: {{date}}",
+        "verzonden_kort": "надіслано"
       },
       "contentCalendar": {
         "maand": "Місяць",
@@ -2607,7 +2612,18 @@
         "test_verzonden_naar": "Тестовий лист надіслано на {{email}}",
         "unsubscribe_link": "Посилання для відписки",
         "verstuur_test": "Надіслати тест",
-        "verzenden": "Надсилання..."
+        "verzenden": "Надсилання...",
+        "test_klant": "Тестовий клієнт",
+        "uw_bedrijf": "Ваша компанія",
+        "vul_geldig_emailadres_in": "Введіть дійсну адресу електронної пошти",
+        "fout_bij_verzenden_test": "Помилка під час надсилання тестового листа",
+        "onderwerp_te_lang": "Тема задовга (макс. 60 символів)",
+        "onderwerp_ontbreekt": "Тема відсутня",
+        "ok": "OK",
+        "vermijd_hoofdletters": "Уникайте великих літер",
+        "voeg_uitschrijflink_toe": "Додайте посилання для відписки",
+        "afbeeldingen_missen_alt": "Деяким зображенням бракує alt-тексту",
+        "testmail_versturen": "Надіслати тестовий лист"
       },
       "inlinePromoWizard": {
         "korting_toevoegen": "Додати знижку",
@@ -3031,7 +3047,16 @@
         "uw_bericht_hier": "Ваше повідомлення тут...",
         "vertraging": "Затримка:",
         "wanneer_verzenden": "Коли надіслати?",
-        "wat_is_een_trigger": "Що таке тригер?"
+        "wat_is_een_trigger": "Що таке тригер?",
+        "html_naar_visueel_bevestigen": "Цей HTML містить форматування (таблиці/вбудовані стилі), яке візуальний редактор може спростити. Перемкнути?",
+        "onderwerp_taal": "Тема ({{language}})",
+        "email_inhoud": "Вміст листа",
+        "visueel": "Візуальний",
+        "kies_datum": "Виберіть дату",
+        "inplannen": "Запланувати",
+        "inplannen_hint": "Надсилання почнеться в запланований час (не пізніше ніж протягом години).",
+        "segment_met_aantal": "{{name}} (клієнтів: {{count}})",
+        "ontvangers_in_doelgroep": "Підписаних одержувачів у цій аудиторії: {{count}}"
       },
       "campaignFunnel": {
         "afgeleverd": "Доставлено",
@@ -3333,6 +3358,31 @@
         "campaigns": "Усі кампанії ({{count}})",
         "templates": "Шаблони ({{count}})",
         "segments": "Сегменти ({{count}})"
+      },
+      "nieuwe_campagne": "Нова кампанія",
+      "geen_campagnes": "Немає кампаній",
+      "geen_beschrijving": "Немає опису",
+      "toast": {
+        "campagne_aangemaakt": "Кампанію створено",
+        "campagne_bijgewerkt": "Кампанію оновлено",
+        "campagne_verwijderd": "Кампанію видалено",
+        "segment_aangemaakt": "Сегмент створено",
+        "segment_bijgewerkt": "Сегмент оновлено",
+        "segment_verwijderd": "Сегмент видалено",
+        "fout_bij_aanmaken": "Помилка під час створення",
+        "fout_bij_bijwerken": "Помилка під час оновлення",
+        "fout_bij_verwijderen": "Помилка під час видалення",
+        "fout_bij_verzenden": "Помилка під час надсилання",
+        "campagne_wordt_verstuurd": "Вашу кампанію надсилають одержувачам: {{count}}",
+        "telling_mislukt": "Не вдалося отримати кількість одержувачів"
+      },
+      "sendConfirm": {
+        "ontvangers_tellen": "Підрахунок одержувачів...",
+        "gaat_naar_ontvangers": "Цю кампанію буде надіслано одержувачам: {{count}}.",
+        "planverbruik": "Цього місяця ви використали {{used}} з {{monthly}} маркетингових листів.",
+        "geen_afzender": "Ваш магазин ще не має дійсної адреси відправника. Налаштуйте поштовий префікс у розділі Налаштування → Email Inbox.",
+        "boven_limiet": "Ваш тариф дозволяє ще {{remaining}} маркетингових листів цього місяця. Виберіть меншу аудиторію або оновіть тариф.",
+        "geen_ontvangers": "Для цієї аудиторії немає підписаних одержувачів."
       }
     },
     "ads": {
@@ -5327,7 +5377,10 @@
       "wachten": "Очікування",
       "welke_links_presteren_het_best": "Які посилання найефективніші",
       "confirm_send_title": "Надіслати кампанію зараз?",
-      "confirm_send_body": "Кампанія одразу піде всім одержувачам. Цю дію не можна скасувати."
+      "confirm_send_body": "Кампанія одразу піде всім одержувачам. Цю дію не можна скасувати.",
+      "aan_ontvangers": "одержувачам: {{count}}",
+      "ontvangers_tab": "Одержувачі ({{count}})",
+      "wordt_verzonden_hint": "Цю кампанію надсилають частинами. Сторінка оновлюється автоматично."
     },
     "translationHub": {
       "instellingen": "Налаштування",

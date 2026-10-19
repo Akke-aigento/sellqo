@@ -54,7 +54,7 @@ export type CustomerSegmentInsert = Omit<CustomerSegment, 'id' | 'created_at' | 
 export type CustomerSegmentUpdate = Partial<CustomerSegmentInsert>;
 
 // Email Campaign Types
-export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'cancelled';
+export type CampaignStatus = 'draft' | 'scheduled' | 'sending' | 'sent' | 'paused' | 'cancelled' | 'failed';
 
 // Partial segment info for joined queries
 export interface SegmentInfo {
@@ -87,6 +87,8 @@ export interface EmailCampaign {
   /** Languages offered by this campaign. Default ['nl']. Multi-lang when length > 1. */
   available_languages?: string[] | null;
   status: CampaignStatus;
+  /** MAIL-1a: reden waarom verzenden mislukte (bv. planlimiet op het geplande moment). */
+  send_error?: string | null;
   scheduled_at?: string;
   sent_at?: string;
   completed_at?: string;
@@ -120,7 +122,7 @@ export type EmailCampaignInsert = Omit<EmailCampaign,
 export type EmailCampaignUpdate = Partial<EmailCampaignInsert>;
 
 // Campaign Send Types
-export type CampaignSendStatus = 'pending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'unsubscribed';
+export type CampaignSendStatus = 'pending' | 'queued' | 'sending' | 'sent' | 'delivered' | 'opened' | 'clicked' | 'bounced' | 'complained' | 'failed' | 'unsubscribed';
 
 export interface CampaignSend {
   id: string;

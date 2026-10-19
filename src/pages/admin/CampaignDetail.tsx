@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, Mail, MousePointerClick, Users, AlertCircle, CheckCircle2, Clock, XCircle, TrendingUp, ExternalLink, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Send, Mail, MousePointerClick, Users, AlertCircle, CheckCircle2, Clock, XCircle, TrendingUp, ExternalLink, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -10,16 +10,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEmailCampaign, useCampaignSends, useEmailCampaigns } from '@/hooks/useEmailCampaigns';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { SendCampaignConfirmDialog } from '@/components/admin/marketing/SendCampaignConfirmDialog';
+import { EmailPreview } from '@/components/admin/marketing/EmailPreview';
+import { wrapInEmailTemplate } from '@/components/admin/marketing/CampaignRichEditor';
+import { extractEmailBody } from '@/lib/emailContent';
 import { useCampaignAnalytics } from '@/hooks/useCampaignAnalytics';
 import { CampaignPerformanceChart } from '@/components/admin/marketing/CampaignPerformanceChart';
 import { CampaignFunnel } from '@/components/admin/marketing/CampaignFunnel';
@@ -80,10 +74,11 @@ export default function CampaignDetailPage() {
   const statusConfig: Record<string, { label: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }> = {
     draft: { label: t('admin.marketing.campaignCard.status.concept'), variant: 'secondary' },
     scheduled: { label: t('admin.marketing.campaignCard.status.gepland'), variant: 'outline' },
-    sending: { label: t('admin.campaignDetail.versturen'), variant: 'default' },
+    sending: { label: t('admin.marketing.campaignCard.status.verzenden'), variant: 'default' },
     sent: { label: t('admin.marketing.campaignCard.status.verzonden'), variant: 'default' },
     paused: { label: t('admin.marketing.campaignCard.status.gepauzeerd'), variant: 'secondary' },
     cancelled: { label: t('admin.marketing.aBTestingPanel.geannuleerd'), variant: 'destructive' },
+    failed: { label: t('admin.marketing.campaignCard.status.mislukt'), variant: 'destructive' },
   };
 
   const openRate = campaign.total_sent > 0 ? (campaign.total_opened / campaign.total_sent) * 100 : 0;
@@ -110,7 +105,7 @@ export default function CampaignDetailPage() {
               {campaign.subject}
               {campaign.sent_at && (
                 <span className="ml-2">
-                  • Verzonden op {format(new Date(campaign.sent_at), 'd MMMM yyyy HH:mm', { locale: dateLocale })}
+                  • {t('admin.marketing.campaignCard.verzonden_op', { date: format(new Date(campaign.sent_at), 'PPp', { locale: dateLocale }) })}
                 </span>
               )}
             </p>
@@ -127,27 +122,41 @@ export default function CampaignDetailPage() {
               {t('admin.inbox.composeDialog.verzenden')}
             </Button>
           )}
-          <AlertDialog open={confirmSend} onOpenChange={setConfirmSend}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>{t('admin.campaignDetail.confirm_send_title')}</AlertDialogTitle>
-                <AlertDialogDescription>{t('admin.campaignDetail.confirm_send_body')}</AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={() => {
-                    if (!campaign) return;
-                    sendCampaign.mutate(campaign.id, { onSuccess: refresh });
-                  }}
-                >
-                  {t('admin.inbox.composeDialog.verzenden')}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {campaign.status === 'draft' && (
+            <EmailPreview
+              variant="button"
+              subject={campaign.subject}
+              htmlContent={wrapInEmailTemplate(extractEmailBody(campaign.html_content || ''))}
+              disabled={!campaign.subject || !campaign.html_content}
+            />
+          )}
+          <SendCampaignConfirmDialog
+            campaignId={confirmSend ? campaign.id : null}
+            onOpenChange={setConfirmSend}
+            isSending={sendCampaign.isPending}
+            onConfirm={(campaignId) => sendCampaign.mutate(campaignId, {
+              onSuccess: refresh,
+              onSettled: () => setConfirmSend(false),
+            })}
+          />
         </div>
       </div>
+
+      {campaign.status === 'failed' && (
+        <div className="flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-3 text-sm text-destructive">
+          <AlertCircle className="h-4 w-4 mt-0.5 shrink-0" />
+          <div>
+            <p className="font-medium">{t('admin.marketing.campaignCard.verzenden_mislukt')}</p>
+            {campaign.send_error && <p>{campaign.send_error}</p>}
+          </div>
+        </div>
+      )}
+      {campaign.status === 'sending' && (
+        <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-3 text-sm text-muted-foreground">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          {t('admin.campaignDetail.wordt_verzonden_hint')}
+        </div>
+      )}
 
       {/* KPI Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
@@ -158,7 +167,7 @@ export default function CampaignDetailPage() {
           </CardHeader>
           <CardContent>
             <AnimatedCounter value={campaign.total_sent} className="text-3xl font-bold text-blue-700" />
-            <p className="text-xs text-muted-foreground">aan {campaign.total_recipients} ontvangers</p>
+            <p className="text-xs text-muted-foreground">{t('admin.campaignDetail.aan_ontvangers', { count: campaign.total_recipients })}</p>
           </CardContent>
         </Card>
 
@@ -223,7 +232,7 @@ export default function CampaignDetailPage() {
       <Tabs defaultValue="overview" className="space-y-4">
         <TabsList>
           <TabsTrigger value="overview">{t('admin.giftCards.overzicht')}</TabsTrigger>
-          <TabsTrigger value="recipients">Ontvangers ({sends.length})</TabsTrigger>
+          <TabsTrigger value="recipients">{t('admin.campaignDetail.ontvangers_tab', { count: sends.length })}</TabsTrigger>
           <TabsTrigger value="links">{t('admin.campaignDetail.link_clicks')}</TabsTrigger>
         </TabsList>
 

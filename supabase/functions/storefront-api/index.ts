@@ -5023,41 +5023,46 @@ async function newsletterSubscribe(supabase: any, tenantId: string, params: Reco
 // ============== CONTACT FORM ==============
 // UNIFIED-MAIL-1: submitContactForm staat in _shared/contactForm.ts.
 
-async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params: Record<string, unknown>, email: string) {
-  const firstName = (params.first_name as string) || undefined;
-  const source = (params.source as string) || 'storefront_api';
-  const rawLang = typeof params.language === 'string' ? params.language.toLowerCase().slice(0, 2) : '';
-  const language = ['nl', 'en', 'fr', 'de'].includes(rawLang) ? rawLang : undefined;
+// MAIL-1a: double opt-in. Teksten van de bevestigingsmail, per taal. Bewust hier
+// en niet in _shared/tenantEmailI18n.ts: die Strings-type vraagt elke sleutel in
+// elke taal en wordt in deze batch parallel door andere functies gebruikt.
+const NEWSLETTER_CONFIRM_STRINGS: Record<string, { subject: string; heading: string; intro: string; cta: string; note: string }> = {
+  nl: {
+    subject: 'Bevestig je inschrijving bij {shop}',
+    heading: 'Bevestig je inschrijving',
+    intro: 'Bedankt voor je interesse in de nieuwsbrief van {shop}. Klik op de knop hieronder om je inschrijving te bevestigen.',
+    cta: 'Inschrijving bevestigen',
+    note: 'Heb je je niet ingeschreven? Dan hoef je niets te doen: zonder bevestiging ontvang je geen nieuwsbrief.',
+  },
+  en: {
+    subject: 'Confirm your subscription to {shop}',
+    heading: 'Confirm your subscription',
+    intro: 'Thanks for your interest in the {shop} newsletter. Click the button below to confirm your subscription.',
+    cta: 'Confirm subscription',
+    note: "Didn't sign up? Then you don't need to do anything: without confirmation you won't receive our newsletter.",
+  },
+  fr: {
+    subject: 'Confirmez votre inscription à {shop}',
+    heading: 'Confirmez votre inscription',
+    intro: "Merci de votre intérêt pour la newsletter de {shop}. Cliquez sur le bouton ci-dessous pour confirmer votre inscription.",
+    cta: "Confirmer l'inscription",
+    note: "Vous ne vous êtes pas inscrit ? Vous n'avez rien à faire : sans confirmation, vous ne recevrez pas notre newsletter.",
+  },
+  de: {
+    subject: 'Bestätige deine Anmeldung bei {shop}',
+    heading: 'Bestätige deine Anmeldung',
+    intro: 'Danke für dein Interesse am Newsletter von {shop}. Klicke auf den Button unten, um deine Anmeldung zu bestätigen.',
+    cta: 'Anmeldung bestätigen',
+    note: 'Du hast dich nicht angemeldet? Dann musst du nichts tun: ohne Bestätigung erhältst du keinen Newsletter.',
+  },
+};
 
-  if (!email) throw new Error('email is required');
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) throw new Error('Invalid email format');
-
-  // Check if already subscribed
-  const { data: existing } = await supabase
-    .from('newsletter_subscribers')
-    .select('id, status')
-    .eq('tenant_id', tenantId)
-    .eq('email', email)
-    .maybeSingle();
-
-  if (existing?.status === 'active') {
-    return { message: 'Already subscribed', provider: 'internal', double_optin: false };
-  }
-
-  if (existing) {
-    await supabase.from('newsletter_subscribers').update({
-      status: 'pending', sync_status: 'pending', unsubscribed_at: null,
-      subscribed_at: new Date().toISOString(),
-    }).eq('id', existing.id);
-  } else {
-    const { error } = await supabase.from('newsletter_subscribers').insert({
-      tenant_id: tenantId, email, first_name: firstName || null, source, status: 'pending', sync_status: 'pending',
-    });
-    if (error) throw error;
-  }
-
-  // Upsert customer record for unified customer overview
+/**
+ * MAIL-1a: klantrecord bijwerken of aanmaken als de inschrijving definitief is
+ * (single opt-in of na bevestiging). Zelfde gedrag als vóór MAIL-1a, maar nu
+ * pas op het moment dat er echte toestemming is.
+ */
+async function _markCustomerSubscribed(supabase: any, tenantId: string, email: string, firstName: string | undefined, language: string | undefined) {
   try {
     const { data: existingCustomer } = await supabase
       .from('customers')
@@ -5075,16 +5080,13 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
       if (!currentTags.includes('subscribed')) {
         updates.tags = [...currentTags, 'subscribed'];
       }
-      // Only set preferred_language when provided AND not already set — never
-      // overwrite an existing non-null preference with a different value or null.
+      // Alleen preferred_language zetten als die nog leeg is — nooit overschrijven.
       if (language && !existingCustomer.preferred_language) {
         updates.preferred_language = language;
       }
       const { error: updateErr } = await supabase.from('customers').update(updates).eq('id', existingCustomer.id);
       if (updateErr) {
-        console.error('Customer update failed:', JSON.stringify(updateErr));
-      } else {
-        console.log('Customer updated with subscribed tag:', existingCustomer.id);
+        console.error('[NEWSLETTER] klant bijwerken mislukt:', JSON.stringify(updateErr));
       }
     } else {
       const { error: insertErr } = await supabase.from('customers').insert({
@@ -5099,24 +5101,183 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
         acquisition_source: 'webshop',
       });
       if (insertErr) {
-        console.error('Customer insert failed:', JSON.stringify(insertErr));
-      } else {
-        console.log('New prospect customer created for newsletter:', email);
+        console.error('[NEWSLETTER] prospect aanmaken mislukt:', JSON.stringify(insertErr));
       }
     }
   } catch (customerErr) {
-    console.error('Customer upsert error:', customerErr);
+    console.error('[NEWSLETTER] klant-upsert fout:', customerErr);
+  }
+}
+
+/** MAIL-1a: publieke shop-URL voor {{SHOP_URL}} / {{company_website}}. */
+async function _newsletterShopUrl(supabase: any, tenantId: string, websiteUrl: string | undefined, slug: string | null | undefined): Promise<string> {
+  if (websiteUrl) return websiteUrl;
+  try {
+    const { data } = await supabase
+      .from('tenant_domains').select('domain')
+      .eq('tenant_id', tenantId).eq('is_active', true).eq('dns_verified', true).eq('is_canonical', true)
+      .limit(1).maybeSingle();
+    if (data?.domain) return `https://${data.domain}`;
+  } catch (_e) { /* val terug */ }
+  return slug ? `https://${slug}.sellqo.shop` : '';
+}
+
+/**
+ * MAIL-1a: welkomstmail (marketing). Gebruikt bij single opt-in; bij double
+ * opt-in verstuurt newsletter-confirm dezelfde mail pas na bevestiging.
+ */
+async function _sendNewsletterWelcome(supabase: any, tenantId: string, email: string, firstName: string | undefined, config: any) {
+  if (!config?.welcome_email_enabled || !config?.welcome_email_body) return;
+  try {
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    if (!resendApiKey) {
+      console.warn('[WELKOMSTMAIL] RESEND_API_KEY ontbreekt, overgeslagen');
+      return;
+    }
+    const { getTenantBrand } = await import('../_shared/tenantEmail.ts');
+    const { tenantSender, tenantMarketingSender } = await import('../_shared/emailSenders.ts');
+    const { buildUnsubscribeUrl, escapeHtml } = await import('../_shared/marketingToken.ts');
+    const brand = await getTenantBrand(supabase, tenantId);
+    const shopUrl = await _newsletterShopUrl(supabase, tenantId, brand.websiteUrl, brand.senderSource.slug);
+    const unsubscribeUrl = await buildUnsubscribeUrl(tenantId, email);
+
+    // Waarden in de HTML-body escapen: first_name komt van de bezoeker.
+    const values: Record<string, string> = {
+      '{{customer_first_name}}': firstName || '',
+      '{{customer_name}}': firstName || '',
+      '{{first_name}}': firstName || '',
+      '{{customer_email}}': email,
+      '{{company_name}}': brand.tenantName,
+      '{{company_website}}': shopUrl,
+      '{{SHOP_URL}}': shopUrl,
+      '{{unsubscribe_url}}': unsubscribeUrl,
+      '{{AFMELD_URL}}': unsubscribeUrl,
+      '{{LOGO_URL}}': brand.logoUrl,
+      '{{JAAR}}': String(new Date().getFullYear()),
+    };
+    let body = String(config.welcome_email_body);
+    let subject = String(config.welcome_email_subject || 'Welkom bij onze nieuwsbrief!');
+    for (const [key, value] of Object.entries(values)) {
+      body = body.split(key).join(escapeHtml(value));
+      subject = subject.split(key).join(value);
+    }
+    subject = subject.replace(/[\r\n]+/g, ' ').trim();
+
+    const sender = tenantMarketingSender(brand.senderSource) ?? tenantSender(brand.senderSource);
+    const { Resend } = await import('https://esm.sh/resend@2.0.0');
+    const resend = new Resend(resendApiKey);
+    const res = await resend.emails.send({
+      from: sender.from,
+      reply_to: sender.replyTo,
+      to: [email],
+      subject,
+      html: body,
+      headers: {
+        'List-Unsubscribe': `<${unsubscribeUrl}>`,
+        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+      },
+    });
+    console.log('[WELKOMSTMAIL] verstuurd naar:', email, '| tenant:', tenantId, JSON.stringify(res?.error ?? null));
+  } catch (e) {
+    console.error('[WELKOMSTMAIL] verzendfout voor:', email, e);
+  }
+}
+
+/** MAIL-1a: bevestigingsmail (transactioneel) met de link naar newsletter-confirm. */
+async function _sendNewsletterConfirmation(supabase: any, tenantId: string, email: string, token: string, language: string | undefined) {
+  const resendApiKey = Deno.env.get('RESEND_API_KEY');
+  if (!resendApiKey) {
+    console.warn('[BEVESTIGINGSMAIL] RESEND_API_KEY ontbreekt, overgeslagen');
+    return;
+  }
+  const { getTenantBrand, renderTenantEmail } = await import('../_shared/tenantEmail.ts');
+  const { tenantSender } = await import('../_shared/emailSenders.ts');
+  const { escapeHtml } = await import('../_shared/marketingToken.ts');
+  const brand = await getTenantBrand(supabase, tenantId);
+  const locale = (language && NEWSLETTER_CONFIRM_STRINGS[language] ? language : brand.defaultLocale) as 'nl' | 'en' | 'fr' | 'de';
+  const s = NEWSLETTER_CONFIRM_STRINGS[locale] || NEWSLETTER_CONFIRM_STRINGS.nl;
+  const fill = (v: string) => v.split('{shop}').join(brand.tenantName);
+
+  const confirmUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/newsletter-confirm?token=${encodeURIComponent(token)}&tenant=${encodeURIComponent(tenantId)}`;
+  const { html, text } = renderTenantEmail({
+    tenantBrand: brand,
+    locale,
+    preheader: fill(s.heading),
+    heading: fill(s.heading),
+    intro: `<p style="margin:0;">${escapeHtml(fill(s.intro))}</p>`,
+    primaryCta: { label: s.cta, url: confirmUrl },
+    footerNote: escapeHtml(s.note),
+  });
+  const sender = tenantSender(brand.senderSource);
+  const { Resend } = await import('https://esm.sh/resend@2.0.0');
+  const resend = new Resend(resendApiKey);
+  const res = await resend.emails.send({
+    from: sender.from,
+    reply_to: sender.replyTo,
+    to: [email],
+    subject: fill(s.subject).replace(/[\r\n]+/g, ' '),
+    html,
+    text,
+  });
+  console.log('[BEVESTIGINGSMAIL] verstuurd naar:', email, '| tenant:', tenantId, JSON.stringify(res?.error ?? null));
+}
+
+async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params: Record<string, unknown>, email: string) {
+  const firstName = (params.first_name as string) || undefined;
+  const source = (params.source as string) || 'storefront_api';
+  const rawLang = typeof params.language === 'string' ? params.language.toLowerCase().slice(0, 2) : '';
+  const language = ['nl', 'en', 'fr', 'de'].includes(rawLang) ? rawLang : undefined;
+
+  if (!email) throw new Error('email is required');
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) throw new Error('Invalid email format');
+
+  // Bestaat de inschrijving al?
+  const { data: existing } = await supabase
+    .from('newsletter_subscribers')
+    .select('id, status, confirmation_token, metadata')
+    .eq('tenant_id', tenantId)
+    .eq('email', email)
+    .maybeSingle();
+
+  // Al actief: niets versturen, niets terugzetten naar pending.
+  if (existing?.status === 'active') {
+    return { message: 'Already subscribed', provider: 'internal', double_optin: false, requires_confirmation: false };
   }
 
-  // Get tenant newsletter config
+  // Taal bewaren voor de bevestigingsstap (newsletter-confirm maakt dan pas de klant aan).
+  const metadata = { ...((existing?.metadata && typeof existing.metadata === 'object') ? existing.metadata : {}), ...(language ? { language } : {}) };
+
+  let confirmationToken: string | null = existing?.confirmation_token || null;
+  if (existing) {
+    const upd: Record<string, unknown> = {
+      status: 'pending', sync_status: 'pending', unsubscribed_at: null,
+      subscribed_at: new Date().toISOString(), metadata,
+    };
+    if (firstName) upd.first_name = firstName;
+    if (!confirmationToken) {
+      confirmationToken = crypto.randomUUID();
+      upd.confirmation_token = confirmationToken;
+    }
+    await supabase.from('newsletter_subscribers').update(upd).eq('id', existing.id);
+  } else {
+    const { data: inserted, error } = await supabase.from('newsletter_subscribers').insert({
+      tenant_id: tenantId, email, first_name: firstName || null, source, status: 'pending', sync_status: 'pending', metadata,
+    }).select('confirmation_token').single();
+    if (error) throw error;
+    confirmationToken = inserted?.confirmation_token || null;
+  }
+
+  // Nieuwsbriefconfig van de winkel
   const { data: config } = await supabase
     .from('tenant_newsletter_config').select('provider, double_optin, welcome_email_enabled, welcome_email_subject, welcome_email_body, mailchimp_api_key, mailchimp_audience_id, mailchimp_server_prefix, klaviyo_api_key, klaviyo_list_id')
     .eq('tenant_id', tenantId).maybeSingle();
 
   const provider = config?.provider || 'internal';
-  const doubleOptin = config?.double_optin || false;
+  // MAIL-1a: double opt-in staat aan, tenzij de winkel hem expliciet uitzette.
+  const doubleOptin = config?.double_optin !== false;
 
-  // For external providers, invoke the dedicated newsletter-subscribe function
+  // Externe providers: de dedicated newsletter-subscribe functie (service-role auth).
   if (provider !== 'internal' && (config?.mailchimp_api_key || config?.klaviyo_api_key)) {
     try {
       const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -5127,84 +5288,52 @@ async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params:
         body: JSON.stringify({ tenantId, email, firstName, source }),
       });
       const data = await res.json();
-      return { message: data.message || 'Subscribed', provider, double_optin: doubleOptin };
+      // MAIL-1a: bij double opt-in bevestigt de klant bij de provider; lokaal geen
+      // marketingtoestemming zetten. Alleen bij single opt-in meteen de klant markeren.
+      if (res.ok && !doubleOptin) {
+        await _markCustomerSubscribed(supabase, tenantId, email, firstName, language);
+      }
+      return { message: data.message || 'Subscribed', provider, double_optin: doubleOptin, requires_confirmation: doubleOptin };
     } catch (e) {
       console.error('Newsletter sync error:', e);
     }
   }
 
-  // Internal: mark active directly
-  await supabase.from('newsletter_subscribers').update({
-    status: doubleOptin ? 'pending' : 'active',
-    sync_status: 'synced',
-    confirmed_at: doubleOptin ? null : new Date().toISOString(),
-  }).eq('tenant_id', tenantId).eq('email', email);
+  if (doubleOptin) {
+    // MAIL-1a: blijft pending tot de klant de link in de bevestigingsmail opent.
+    await supabase.from('newsletter_subscribers').update({
+      sync_status: 'synced',
+    }).eq('tenant_id', tenantId).eq('email', email);
 
-  // Send welcome email if enabled and not re-subscribing an existing active user
-  if (config?.welcome_email_enabled && config?.welcome_email_body && !doubleOptin && existing?.status !== 'active') {
-    try {
-      // Fetch tenant name and custom_domain for variable replacement
-      const { data: tenantData, error: tenantError } = await supabase
-        .from('tenants')
-        .select('name, custom_domain, slug, inbound_email_prefix, support_email')
-        .eq('id', tenantId)
-        .single();
-      if (tenantError) {
-        console.error('[WELCOME-EMAIL] Tenant lookup failed:', tenantError.message);
+    if (confirmationToken) {
+      try {
+        await _sendNewsletterConfirmation(supabase, tenantId, email, confirmationToken, language);
+      } catch (e) {
+        console.error('[BEVESTIGINGSMAIL] verzendfout voor:', email, e);
       }
-      const tenantName = tenantData?.name || '';
-      const tenantWebsite = tenantData?.custom_domain ? `https://${tenantData.custom_domain}` : '';
-
-      // Replace variables in welcome email body and subject
-      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-      const unsubscribeUrl = `${supabaseUrl}/functions/v1/unsubscribe?email=${encodeURIComponent(email)}&tenant=${tenantId}`;
-      const replacements: Record<string, string> = {
-        '{{customer_first_name}}': firstName || '',
-        '{{customer_name}}': firstName || '',
-        '{{first_name}}': firstName || '',
-        '{{customer_email}}': email,
-        '{{company_name}}': tenantName,
-        '{{company_website}}': tenantWebsite,
-        '{{unsubscribe_url}}': unsubscribeUrl,
-      };
-
-      let processedBody = config.welcome_email_body;
-      let processedSubject = config.welcome_email_subject || 'Welkom bij onze nieuwsbrief!';
-      for (const [key, value] of Object.entries(replacements)) {
-        const regex = new RegExp(key.replace(/[{}]/g, '\\$&'), 'g');
-        processedBody = processedBody.replace(regex, value);
-        processedSubject = processedSubject.replace(regex, value);
-      }
-
-      // Send welcome email directly via Resend (same pattern as campaign emails)
-      const resendApiKey = Deno.env.get('RESEND_API_KEY');
-      if (resendApiKey) {
-        console.log('[WELCOME-EMAIL] Sending to:', email, '| tenant:', tenantName);
-        const { Resend } = await import("https://esm.sh/resend@2.0.0");
-        const resend = new Resend(resendApiKey);
-        // MAIL-SENDER-1: de winkel verstuurt vanaf <prefix>@mail.sellqo.app, met
-        // haar klantcontact-e-mail als Reply-To (eerste wet: intern, geen contract).
-        const { tenantSender: _tenantSenderWc } = await import('../_shared/emailSenders.ts');
-        const _wcSender = _tenantSenderWc({ ...tenantData, name: tenantName || 'SellQo' });
-        const emailResponse = await resend.emails.send({
-          from: _wcSender.from,
-          reply_to: _wcSender.replyTo,
-          to: [email],
-          subject: processedSubject,
-          html: processedBody,
-        });
-        console.log('[WELCOME-EMAIL] Resend response for:', email, JSON.stringify(emailResponse));
-      } else {
-        console.warn('[WELCOME-EMAIL] RESEND_API_KEY not configured, skipping');
-      }
-    } catch (e) {
-      console.error('[WELCOME-EMAIL] Send error for:', email, e);
+    } else {
+      console.error('[BEVESTIGINGSMAIL] geen confirmation_token voor:', email, '| tenant:', tenantId);
     }
+
+    return {
+      message: 'Please check your email to confirm',
+      provider, double_optin: true, requires_confirmation: true,
+    };
   }
 
+  // Single opt-in (winkel zette double_optin expliciet uit): meteen actief.
+  await supabase.from('newsletter_subscribers').update({
+    status: 'active',
+    sync_status: 'synced',
+    confirmed_at: new Date().toISOString(),
+  }).eq('tenant_id', tenantId).eq('email', email);
+
+  await _markCustomerSubscribed(supabase, tenantId, email, firstName, language);
+  await _sendNewsletterWelcome(supabase, tenantId, email, firstName, config);
+
   return {
-    message: doubleOptin ? 'Please check your email to confirm' : 'Successfully subscribed',
-    provider, double_optin: doubleOptin,
+    message: 'Successfully subscribed',
+    provider, double_optin: false, requires_confirmation: false,
   };
 }
 
