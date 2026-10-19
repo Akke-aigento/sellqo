@@ -1,16 +1,14 @@
 -- MAIL-1a — helpartikel "E-mailcampagnes versturen" herschreven naar de nieuwe werking
 -- (wachtrij, inplannen, testmail, limiet per plan, double opt-in, uitschrijven).
--- Idempotent (ON CONFLICT). Terugdraaien: de vorige inhoud staat in
+-- Idempotent (UPDATE op de bestaande rij; die heeft al categorie Marketing).
+-- Eerste versie (INSERT ... ON CONFLICT zonder category_id) faalde op de NOT NULL van category_id.
+-- Terugdraaien: de vorige inhoud staat in
 -- snapshots.platform_20261019_doc_articles_emailcampagnes (gemaakt op 19-10-2026).
 
-insert into public.doc_articles (doc_level, slug, context_path, title, excerpt, content, sort_order)
-values (
-  'tenant',
-  'emailcampagnes',
-  '/admin/marketing',
-  'E-mailcampagnes versturen',
-  'Een nieuwsbrief maken, testen, inplannen en versturen naar je ingeschreven klanten.',
-  $html$
+update public.doc_articles
+   set title = 'E-mailcampagnes versturen',
+       excerpt = 'Een nieuwsbrief maken, testen, inplannen en versturen naar je ingeschreven klanten.',
+       content = $html$
 <h2>Wie krijgt je campagne?</h2>
 <p>Alleen klanten die zich <strong>zelf ingeschreven</strong> hebben op je nieuwsbrief. Wie iets bestelt, is niet vanzelf ingeschreven. Wie zich uitschrijft, een adres heeft dat niet bestaat of een klacht indient, krijgt geen marketing meer.</p>
 <p>Inschrijven via je webshop gebeurt met <strong>bevestiging</strong>: de klant krijgt eerst een mail met een knop om te bevestigen. Pas daarna krijgt die persoon je campagnes en je welkomstmail.</p>
@@ -33,11 +31,6 @@ values (
 <h2>Afzender</h2>
 <p>Je campagnes vertrekken met de naam van je winkel. Antwoorden komen in je eigen klantcontact-e-mail of in je SellQo-inbox. Heeft je winkel nog geen geldig mailadres, stel het dan in bij <strong>Instellingen → Email Inbox</strong>.</p>
 $html$,
-  1
-)
-on conflict (doc_level, slug) do update
-  set title = excluded.title,
-      excerpt = excluded.excerpt,
-      content = excluded.content,
-      context_path = excluded.context_path,
-      updated_at = now();
+       context_path = '/admin/marketing',
+       updated_at = now()
+ where doc_level = 'tenant' and slug = 'emailcampagnes';
