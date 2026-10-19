@@ -3841,8 +3841,10 @@ export type Database = {
       }
       campaign_sends: {
         Row: {
+          attempts: number
           bounced_at: string | null
           campaign_id: string
+          claimed_at: string | null
           clicked_at: string | null
           created_at: string | null
           customer_id: string | null
@@ -3855,6 +3857,7 @@ export type Database = {
           id: string
           ip_country: string | null
           link_clicks: number | null
+          next_attempt_at: string | null
           opened_at: string | null
           resend_id: string | null
           sent_at: string | null
@@ -3862,8 +3865,10 @@ export type Database = {
           user_agent: string | null
         }
         Insert: {
+          attempts?: number
           bounced_at?: string | null
           campaign_id: string
+          claimed_at?: string | null
           clicked_at?: string | null
           created_at?: string | null
           customer_id?: string | null
@@ -3876,6 +3881,7 @@ export type Database = {
           id?: string
           ip_country?: string | null
           link_clicks?: number | null
+          next_attempt_at?: string | null
           opened_at?: string | null
           resend_id?: string | null
           sent_at?: string | null
@@ -3883,8 +3889,10 @@ export type Database = {
           user_agent?: string | null
         }
         Update: {
+          attempts?: number
           bounced_at?: string | null
           campaign_id?: string
+          claimed_at?: string | null
           clicked_at?: string | null
           created_at?: string | null
           customer_id?: string | null
@@ -3897,6 +3905,7 @@ export type Database = {
           id?: string
           ip_country?: string | null
           link_clicks?: number | null
+          next_attempt_at?: string | null
           opened_at?: string | null
           resend_id?: string | null
           sent_at?: string | null
@@ -5857,6 +5866,8 @@ export type Database = {
           preview_text: string | null
           scheduled_at: string | null
           segment_id: string | null
+          send_error: string | null
+          send_started_at: string | null
           sent_at: string | null
           status: string | null
           subject: string
@@ -5890,6 +5901,8 @@ export type Database = {
           preview_text?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
+          send_error?: string | null
+          send_started_at?: string | null
           sent_at?: string | null
           status?: string | null
           subject: string
@@ -5923,6 +5936,8 @@ export type Database = {
           preview_text?: string | null
           scheduled_at?: string | null
           segment_id?: string | null
+          send_error?: string | null
+          send_started_at?: string | null
           sent_at?: string | null
           status?: string | null
           subject?: string
@@ -12041,6 +12056,7 @@ export type Database = {
           included_transactions_monthly: number | null
           limit_api_calls: number | null
           limit_customers: number | null
+          limit_marketing_emails_monthly: number | null
           limit_orders: number | null
           limit_products: number | null
           limit_storage_gb: number
@@ -12071,6 +12087,7 @@ export type Database = {
           included_transactions_monthly?: number | null
           limit_api_calls?: number | null
           limit_customers?: number | null
+          limit_marketing_emails_monthly?: number | null
           limit_orders?: number | null
           limit_products?: number | null
           limit_storage_gb?: number
@@ -12101,6 +12118,7 @@ export type Database = {
           included_transactions_monthly?: number | null
           limit_api_calls?: number | null
           limit_customers?: number | null
+          limit_marketing_emails_monthly?: number | null
           limit_orders?: number | null
           limit_products?: number | null
           limit_storage_gb?: number
@@ -22100,6 +22118,39 @@ export type Database = {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: boolean
       }
+      claim_campaign_sends: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          bounced_at: string | null
+          campaign_id: string
+          claimed_at: string | null
+          clicked_at: string | null
+          created_at: string | null
+          customer_id: string | null
+          customer_name: string | null
+          delivered_at: string | null
+          email: string
+          error_message: string | null
+          first_clicked_at: string | null
+          first_opened_at: string | null
+          id: string
+          ip_country: string | null
+          link_clicks: number | null
+          next_attempt_at: string | null
+          opened_at: string | null
+          resend_id: string | null
+          sent_at: string | null
+          status: string | null
+          user_agent: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "campaign_sends"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       complete_sync_activity: {
         Args: {
           p_activity_id: string
@@ -22151,6 +22202,10 @@ export type Database = {
       }
       downgrade_expired_trials: { Args: never; Returns: number }
       email_queue_dispatch: { Args: never; Returns: undefined }
+      enqueue_campaign_sends: {
+        Args: { p_campaign_id: string; p_from_statuses: string[]; p_rows: Json }
+        Returns: Json
+      }
       enqueue_email: {
         Args: { payload: Json; queue_name: string }
         Returns: number
@@ -22362,6 +22417,9 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: number
       }
+      mark_campaign_sends_sent: { Args: { p_rows: Json }; Returns: number }
+      marketing_email_limit: { Args: { p_tenant_id: string }; Returns: number }
+      marketing_emails_used: { Args: { p_tenant_id: string }; Returns: number }
       media_file_name_from_url: { Args: { p_url: string }; Returns: string }
       media_mime_from_url: { Args: { p_url: string }; Returns: string }
       media_register_urls: {

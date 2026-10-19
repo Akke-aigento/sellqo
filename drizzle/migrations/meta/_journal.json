@@ -15,6 +15,13 @@
       "when": 1791615328030,
       "tag": "0001_webpush_doc_article",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792436473775,
+      "tag": "0002_mail_1a_marketing_engine",
+      "breakpoints": true
     }
   ]
 }
