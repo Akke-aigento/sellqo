@@ -80,7 +80,15 @@ interface ManualPost {
   scheduled_for: string;
 }
 
-/** SOCIAL-3: één herinnering per manual-post, ±1 uur vóór het geplande moment. */
+/**
+ * SOCIAL-3: één herinnering per manual-post. SOCIAL-REMIND-1 (Akke 19-10): op het moment zelf
+ * in plaats van ±1 uur vooraf ("anders vergeet je het weer"). De cron draait elke 5 minuten, dus
+ * de melding komt hooguit 3 minuten vóór en een paar minuten na het geplande tijdstip; tot 30 min
+ * te laat (cron gemist) wordt hij nog gestuurd.
+ */
+/** Hoe ver vooruit een herinnering mag vertrekken: net onder het cron-interval van 5 minuten. */
+const REMIND_LEAD_MS = 3 * 60 * 1000;
+
 async function remindManual(admin: Admin) {
   const now = Date.now();
   const { data, error } = await admin
@@ -89,7 +97,7 @@ async function remindManual(admin: Admin) {
     .eq("status", "manual")
     .is("reminded_at", null)
     .gte("scheduled_for", new Date(now - 30 * 60 * 1000).toISOString())
-    .lte("scheduled_for", new Date(now + 65 * 60 * 1000).toISOString())
+    .lte("scheduled_for", new Date(now + REMIND_LEAD_MS).toISOString())
     .limit(50);
   if (error) throw new Error(`herinneringen lezen mislukt: ${error.message}`);
 

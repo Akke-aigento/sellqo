@@ -204,10 +204,11 @@ const salesItems: NavItem[] = [
 
 // MARKETING - Campagnes en content
 const marketingItems: NavItem[] = [
-  // MARKETING-2: één geheel. AI is geen aparte plek meer maar zit in Social (tab Maken) en
-  // E-mail (knop "Maak met AI"); de AI Content Hub-route stuurt door (AIHubRedirect).
-  // SOCIAL-2: geen featureKey: ook Starter/Free-winkels posten via een koppeling.
-  { id: 'social-planner', titleKey: 'navigation.items.social', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing' },
+  // MARKETING-2/3: één geheel. AI is geen aparte plek meer maar een knop in Social ("Post met AI")
+  // en E-mail ("Maak met AI"); de AI Content Hub-route stuurt door (AIHubRedirect).
+  // SOCIAL-GATE-1: enkel voor ontgrendelde winkels (granted_features 'social_planner', slotje in
+  // beheerweergave). Geen plan bevat deze key; zie useSocialAccess.
+  { id: 'social-planner', titleKey: 'navigation.items.social', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing', featureKey: 'social_planner' },
   { id: 'campaigns', titleKey: 'navigation.items.email', url: '/admin/marketing', icon: Mail, requireRead: 'marketing' },
   { id: 'media', titleKey: 'navigation.items.media', url: '/admin/marketing/media', icon: Images, requireRead: 'marketing' },
   { id: 'seo', titleKey: 'navigation.items.seo', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },

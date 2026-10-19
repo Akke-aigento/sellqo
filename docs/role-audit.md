@@ -1,3 +1,45 @@
+## SOCIAL-GATE-1 + SOCIAL-REMIND-1 — Social enkel op uitnodiging; herinnering op het moment zelf (2026.12u) — 19 oktober 2026
+
+Akke 19-10, 19:23: "deze tool is ook ter beschikking voor onze externe tenants? Gezien we echt manueel moeten koppelen lijkt het mij niet interessant om dit nu al op de markt te brengen" en "de herinnering … op het moment dat er gepost moet worden … 1 uur op voorhand maar dan vergeet je dit weer". Go 19:35 ("klaar mee, doe maar"), na zijn werk aan plannen en prijzen.
+
+**Root cause (recon 19-10, live-DB + code)**
+- `sidebarConfig.ts` r. 210: het item `social-planner` had geen `featureKey`. De route (`App.tsx` r. 294) controleerde enkel `requireRead="marketing"`. Gevolg: Social was zichtbaar voor alle 26 externe winkels met marketingrechten. Er waren 0 koppelingen en 0 posts buiten de eigen merken. Koppelen zou mislukken, omdat de Meta-app in Development mode staat (testerrollen). Dat is een dode knop.
+- `social-publish-due` `remindManual`: het venster van −30 tot +65 min stuurde de herinnering ±1 uur vóór het geplande moment.
+
+**Uitgevoerd**
+- `src/hooks/useSocialAccess.ts` (nieuw): toegang als `granted_features` 'social_planner' bevat, of voor een platformadmin in beheerweergave. Geen enkel plan bevat die key.
+- `src/components/admin/marketing/social/SocialGate.tsx` (nieuw): zonder toegang gaat de gebruiker naar `/admin/marketing` (E-mail). Een terugkeer uit de Stripe-checkout voor AI-credits (`/admin/marketing/ai` → Social) wordt eerst nog afgehandeld via `useAICreditsReturn` (controle plus toast).
+- `App.tsx`: de route `marketing/social` zit in `SocialGate`.
+- `sidebarConfig.ts`: `featureKey: 'social_planner'`. Het item is daardoor verborgen zonder ontgrendeling, en in beheerweergave verschijnt het bestaande slotje om per winkel te ontgrendelen.
+- `DashboardAIWidget.tsx`: de knop "Social post" verschijnt enkel met toegang. "Credits bijkopen" opent de `CreditPurchaseDialog` nu in de widget zelf, in plaats van via Social.
+- `supabase/functions/social-publish-due/index.ts`: `REMIND_LEAD_MS` = 3 min, dus de herinnering komt op het moment zelf (cron om de 5 min), en tot 30 min te laat nog.
+- `_shared/socialReminder.ts`: titels "Nu posten…" en `stickerLink()`, die de regel `Link-sticker: https://…` (LEREN.md §5) uitleest en de link in de melding zet. Test in `socialMedia.test.ts`.
+- Migratie `20261019200000_social_gate_1_grant_own_tenants.sql`: 'social_planner' ontgrendeld voor Loveke, VanXcel, Fonske, Studio Akke en SellQo. Een ontbrekende overrides-rij wordt aangemaakt met de `module_*`-kolommen op NULL, zodat het plan blijft beslissen.
+- Migratie `20261019200100_social_remind_1_doc_article.sql`: helpartikel `social-planning-goedkeuren` bijgewerkt.
+- Changelog 2026.12u `social_reminder_on_time`, in 5 talen.
+
+**Security-keuzes**
+- Geen RLS, policies of grants gewijzigd.
+- Dit is zichtbaarheid, geen beveiligingsgrens. De server-side afscherming van de social-pijplijn hoort bij SOCIAL-SEC-1 (branch), en `social_connections` blijft tenant-admin-only.
+- `granted_features` kan enkel een platformadmin zetten (`toggleGrantedFeature`).
+
+**Gedeelde-paden-waarschuwing**
+- `_shared/socialReminder.ts` heeft één aanroeper (`social-publish-due`), en die is gedeployd.
+- `tenant_feature_overrides` is niet gedeeld met de custom frontends.
+- De eerste wet is niet geraakt.
+
+**Verificatie**
+- Deno: socialMedia, socialPublish en socialRunner, 37 tests geslaagd; `deno check social-publish-due` ok.
+- vitest: 795 tests geslaagd.
+- i18n-parity: volledig.
+- eslint op de gewijzigde bestanden: schoon.
+- Migratie droog getest in een DO-blok dat terugdraait (5 tenants krijgen de key).
+- tsc: 27 fouten, gelijk aan de baseline, geen enkele in de gewijzigde bestanden. Build: ok.
+
+**Bewust ongemoeid / Vervolg**
+- Settings → Social (SellQo Connect, `social_commerce`) blijft zoals het is.
+- Een uitgebreider uitnodigingsscherm komt pas bij App Review (fase 4).
+
 ## LIMITS-1 — pakketlimieten in de databank, Free 10/20 met 2% daarboven (2026.12t) — 17 oktober 2026
 
 Akke 17-10: limieten moeten echt gelden, niet alleen op het scherm. Keuzes: Free = "probeer het live"-plan (10 producten, 20 orders/maand); boven 20 orders gaat de checkout nooit dicht, maar betaalt de winkel 2% per order (kaart: meteen als Stripe-applicatiefee; overschrijving, afhalen, kassa: maandfactuur); producten en gebruikers hard; klantlimiet geschrapt; tickets tellen nooit mee (Flex/Vast betalen per ticket); meldingen vanaf 80%, mail op 100%.

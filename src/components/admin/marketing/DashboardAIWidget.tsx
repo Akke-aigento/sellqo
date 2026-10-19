@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Sparkles, Bot, Zap, CreditCard } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FeatureGate } from '@/components/FeatureGate';
 import { useAICredits } from '@/hooks/useAICredits';
+import { useSocialAccess } from '@/hooks/useSocialAccess';
+import { CreditPurchaseDialog } from './CreditPurchaseDialog';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 
 export function DashboardAIWidget() {
   const { t } = useTranslation();
   const { credits, isLoading } = useAICredits();
+  // SOCIAL-GATE-1: de knop "Social post" enkel als Social ontgrendeld is; credits kopen gebeurt hier.
+  const { allowed: hasSocial } = useSocialAccess();
+  const [purchaseOpen, setPurchaseOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -90,7 +96,8 @@ export function DashboardAIWidget() {
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className={cn("grid gap-2", hasSocial ? "grid-cols-2" : "grid-cols-1")}>
+            {hasSocial && (
             <Button 
               asChild 
               variant="outline" 
@@ -102,6 +109,7 @@ export function DashboardAIWidget() {
                 <span className="text-xs">{t('admin.marketing.dashboardAIWidget.social_post')}</span>
               </Link>
             </Button>
+            )}
             <Button 
               asChild 
               variant="outline" 
@@ -116,15 +124,14 @@ export function DashboardAIWidget() {
           </div>
 
           {(isEmpty || isLow) && (
-            <Button asChild variant="outline" size="sm" className="w-full">
-              <Link to="/admin/marketing/social?purchase=open">
-                <CreditCard className="mr-2 h-4 w-4" />
-                {t('admin.marketing.dashboardAIWidget.credits_bijkopen')}
-              </Link>
+            <Button variant="outline" size="sm" className="w-full" onClick={() => setPurchaseOpen(true)}>
+              <CreditCard className="mr-2 h-4 w-4" />
+              {t('admin.marketing.dashboardAIWidget.credits_bijkopen')}
             </Button>
           )}
         </CardContent>
       </Card>
+      <CreditPurchaseDialog open={purchaseOpen} onOpenChange={setPurchaseOpen} />
     </FeatureGate>
   );
 }

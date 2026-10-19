@@ -205,7 +205,7 @@ Deno.test("prepare (SOCIAL-2): externe JPEG wordt ongewijzigd naar de eigen opsl
 
 // --- SOCIAL-3: video voor reels -----------------------------------------------------------
 import { isMp4, MAX_REEL_BYTES, prepareInstagramVideo } from "./socialMedia.ts";
-import { manualReminderText } from "./socialReminder.ts";
+import { manualReminderText, stickerLink } from "./socialReminder.ts";
 
 function fakeMp4(size = 64): Uint8Array<ArrayBuffer> {
   const b = new Uint8Array(new ArrayBuffer(size));
@@ -263,7 +263,16 @@ Deno.test("video: geen MP4 of te groot → blijvende fout met uitleg", async () 
 Deno.test("herinnering: tekst per soort, uur in Brussel", () => {
   const at = "2026-10-25T18:00:00Z"; // 19:00 in Brussel (wintertijd)
   const reel = manualReminderText({ media_type: "reel", manual_reason: "music", post_text: "cap", scheduled_for: at });
-  ok(reel.title.startsWith("Reel") && reel.message.includes("19:00"), JSON.stringify(reel));
+  ok(reel.title.startsWith("Nu posten") && reel.title.includes("reel") && reel.message.includes("19:00"), JSON.stringify(reel));
   const story = manualReminderText({ media_type: "story", manual_reason: "sticker", post_text: "Story: poll-sticker", scheduled_for: "2026-10-17T16:05:00Z" });
-  ok(story.title.startsWith("Story") && story.message.includes("18:05") && story.message.includes("poll-sticker"), JSON.stringify(story));
+  ok(story.title === "Nu posten: story" && story.message.includes("18:05") && story.message.includes("poll-sticker"), JSON.stringify(story));
+});
+
+Deno.test("herinnering: link-sticker uit de laatste regel, één keer in de tekst", () => {
+  const url = "https://loveke.be/shop?utm_source=instagram&utm_medium=social&utm_campaign=loveke-20261020&utm_content=story";
+  const text = `Story: link-sticker naar de shop.\n\nLink-sticker: ${url}`;
+  ok(stickerLink(text) === url, String(stickerLink(text)));
+  ok(stickerLink("Story: poll") === null, "geen link");
+  const story = manualReminderText({ media_type: "story", manual_reason: "sticker", post_text: text, scheduled_for: "2026-10-20T19:00:00Z" });
+  ok(story.message.split(url).length === 2 && story.message.includes("Link-sticker: " + url), JSON.stringify(story));
 });

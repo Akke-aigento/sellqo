@@ -2077,6 +2077,10 @@
         "horeca_channels": {
           "title": "Choisir par plat où il peut être commandé",
           "description": "Les établissements horeca choisissent désormais par plat s’il peut être commandé en ligne, à table via le code QR, seulement affiché sur la carte ou vendu à la caisse. Une seule carte, un seul stock. Avec « Épuisé pour aujourd’hui », un plat est épuisé partout en un geste et revient automatiquement le lendemain à 05:00."
+        },
+        "social_reminder_on_time": {
+          "title": "Le rappel pour publier vous-même arrive au bon moment",
+          "description": "Lorsque vous devez publier vous-même une story ou un reel sur Instagram (par exemple avec un sticker ou votre propre musique), le rappel arrive désormais au moment prévu au lieu d’une heure avant. Pour une story avec un sticker lien, le lien figure dans le rappel, prêt à être copié."
         }
       },
       "copyLink": "Copier le lien",

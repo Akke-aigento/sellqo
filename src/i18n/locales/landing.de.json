@@ -2077,6 +2077,10 @@
         "horeca_channels": {
           "title": "Pro Gericht wählen, wo es bestellbar ist",
           "description": "Gastronomiebetriebe wählen jetzt pro Gericht, ob es online, am Tisch über den QR-Code, nur auf der Karte oder an der Kasse erhältlich ist. Eine Karte, ein Bestand. Mit „Für heute ausverkauft“ ist ein Gericht mit einem Tipp überall ausverkauft und kommt am nächsten Morgen um 05:00 automatisch zurück."
+        },
+        "social_reminder_on_time": {
+          "title": "Die Erinnerung zum selbst Posten kommt jetzt genau zur geplanten Zeit",
+          "description": "Wenn Sie eine Story oder ein Reel selbst auf Instagram posten müssen (zum Beispiel mit einem Sticker oder eigener Musik), kommt die Erinnerung jetzt zum geplanten Zeitpunkt statt eine Stunde vorher. Bei einer Story mit Link-Sticker steht der Link in der Erinnerung, bereit zum Kopieren."
         }
       },
       "copyLink": "Link kopieren",

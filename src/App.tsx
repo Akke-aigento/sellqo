@@ -41,6 +41,7 @@ import MarketplacesPage from "./pages/admin/Marketplaces";
 import MarketplaceDetailPage from "./pages/admin/MarketplaceDetail";
 import MarketingPage from "./pages/admin/Marketing";
 import CampaignDetailPage from "./pages/admin/CampaignDetail";
+import { SocialGate } from '@/components/admin/marketing/social/SocialGate';
 import { AIHubRedirect } from "./components/admin/marketing/AIHubRedirect";
 import MediaLibraryPage from "./pages/admin/MediaLibrary";
 import AIActionCenter from "./pages/admin/AIActionCenter";
@@ -291,7 +292,7 @@ const App = () => (
               <Route path="marketing/ai-center" element={<RouteGuard requireRead="ai_coach"><AIActionCenter /></RouteGuard>} />
               <Route path="marketing/campaigns/:id" element={<RouteGuard requireRead="marketing"><CampaignDetailPage /></RouteGuard>} />
               <Route path="marketing/seo" element={<RouteGuard requireRead="seo"><SEODashboard /></RouteGuard>} />
-              <Route path="marketing/social" element={<RouteGuard requireRead="marketing"><SocialPlanner /></RouteGuard>} />
+              <Route path="marketing/social" element={<RouteGuard requireRead="marketing"><SocialGate><SocialPlanner /></SocialGate></RouteGuard>} />
               <Route path="marketing/translations" element={<RouteGuard requireRead="cms"><TranslationHub /></RouteGuard>} />
               <Route path="notifications" element={<RouteGuard requireRead="profile"><NotificationsPage /></RouteGuard>} />
               {/* NOTIF-DEEPLINK-1: oude paden uit meldingen en e-mails → de bestaande pagina. */}

@@ -2077,6 +2077,10 @@
         "horeca_channels": {
           "title": "Choose per dish where it can be ordered",
           "description": "Food & drink businesses now choose per dish whether it can be ordered online, at the table via the QR code, only shown on the menu, or sold at the till. One menu, one stock. With \"Sold out for today\" a dish is sold out everywhere in one tap, and it comes back automatically at 05:00 the next morning."
+        },
+        "social_reminder_on_time": {
+          "title": "Your reminder to post manually now arrives right on time",
+          "description": "When you need to post a story or reel yourself in Instagram (for example with a sticker or your own music), the reminder now arrives at the scheduled moment instead of an hour before. For a story with a link sticker, the link is in the reminder, ready to copy."
         }
       },
       "copyLink": "Copy link",

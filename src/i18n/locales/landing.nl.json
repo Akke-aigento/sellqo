@@ -2077,6 +2077,10 @@
         "horeca_channels": {
           "title": "Per gerecht kiezen waar het te bestellen is",
           "description": "Horecazaken kiezen nu per gerecht of het online te bestellen is, aan tafel via de QR-code, alleen op de kaart staat of aan de kassa verkocht wordt. Eén kaart, één voorraad. Met \"Op voor vandaag\" is een gerecht met één tik overal uitverkocht, en de volgende ochtend om 05:00 komt het vanzelf terug."
+        },
+        "social_reminder_on_time": {
+          "title": "Herinnering om zelf te posten komt op het moment zelf",
+          "description": "Moet je een story of reel zelf posten in Instagram (bijvoorbeeld met een sticker of eigen muziek), dan krijg je de melding nu op het geplande moment in plaats van een uur vooraf. Bij een story met een link-sticker staat de link in de melding, klaar om te kopiëren."
         }
       },
       "copyLink": "Kopieer link",

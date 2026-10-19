@@ -10,24 +10,34 @@ export interface ReminderPost {
 
 export const TIME_FMT = new Intl.DateTimeFormat("nl-BE", { timeZone: "Europe/Brussels", hour: "2-digit", minute: "2-digit" });
 
-/** Titel en tekst van de herinnering "zelf posten".  */
+/** De link voor de link-sticker, als de weektaak die als laatste regel meegaf (LEREN.md §5). */
+export function stickerLink(text: string | null): string | null {
+  const m = (text ?? "").match(/Link-sticker:\s*(https?:\/\/\S+)/i);
+  return m ? m[1] : null;
+}
+
+/**
+ * Titel en tekst van de herinnering "zelf posten". SOCIAL-REMIND-1: de melding komt op het
+ * moment zelf, dus "nu" in de titel; het geplande uur blijft in de tekst.
+ */
 export function manualReminderText(post: ReminderPost): { title: string; message: string } {
   const at = TIME_FMT.format(new Date(post.scheduled_for));
   if (post.media_type === "reel") {
     return {
-      title: "Reel klaar: muziek kiezen en posten",
+      title: "Nu posten: reel (muziek kiezen)",
       message: `Gepland om ${at}. Download de video in de Social planning, kies een nummer in de Instagram-app en vink hem daarna af met "Gepost".`,
     };
   }
   if (post.media_type === "story" || post.manual_reason === "sticker") {
-    const what = (post.post_text ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+    const link = stickerLink(post.post_text);
+    const what = (post.post_text ?? "").replace(/Link-sticker:\s*\S+/i, "").replace(/\s+/g, " ").trim().slice(0, 120);
     return {
-      title: "Story klaar om zelf te posten",
-      message: `Gepland om ${at}. ${what ? what + " " : ""}Het beeld staat in de Social planning; vink hem daarna af met "Gepost".`.trim(),
+      title: "Nu posten: story",
+      message: `Gepland om ${at}. ${what ? what + " " : ""}${link ? `Link-sticker: ${link} ` : ""}Het beeld staat in de Social planning; vink hem daarna af met "Gepost".`.trim(),
     };
   }
   return {
-    title: "Post klaar om zelf te posten",
+    title: "Nu posten",
     message: `Gepland om ${at}. Alles staat in de Social planning; vink hem daarna af met "Gepost".`,
   };
 }

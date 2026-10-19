@@ -4,6 +4,15 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12u — Herinnering om zelf te posten komt op het moment zelf (improvement, 19-10-2026)
+
+**Status:** niet in de algemene nieuwsbrief. Social is sinds SOCIAL-GATE-1 enkel voor ontgrendelde winkels (de eigen merken). Pas opnemen wanneer Social breder opengaat.
+
+**Herinnering op het moment zelf** (oktober 2026)
+Moet je een story of reel zelf posten, dan krijg je de melding nu op het geplande moment in plaats van een uur vooraf, met de link van de link-sticker erbij.
+
+i18n: `public.changelog.changes.social_reminder_on_time`
+
 ### 2026.12o — Eén knop voor een post met AI (improvement, 16-10-2026)
 
 **Status:** klaar voor verzending zodra MARKETING-3 live staat. Hoort bij 2026.12n.
