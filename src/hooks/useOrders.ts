@@ -33,8 +33,9 @@ export function useOrders(filters?: OrderFilters) {
         query = query.eq('payment_status', filters.payment_status);
       }
       if (filters?.marketplace_source === 'sellqo_webshop') {
-        // Eigen webshop-orders hebben geen marketplace_source (null); oudere rijen kunnen 'sellqo_webshop' dragen.
-        query = query.or('marketplace_source.is.null,marketplace_source.eq.sellqo_webshop');
+        // Zelfde definitie als resolveOrderChannel (src/lib/salesStats.ts, CHANNEL-1): null,
+        // legacy 'web', en geïmporteerde shopify_draft_order/csv_import tellen als webshop.
+        query = query.or('marketplace_source.is.null,marketplace_source.in.(sellqo_webshop,web,shopify_draft_order,csv_import)');
       } else if (filters?.marketplace_source) {
         query = query.eq('marketplace_source', filters.marketplace_source);
       }

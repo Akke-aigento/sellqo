@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -96,11 +97,15 @@ export default function SupplierDocuments() {
   };
 
   const handleOpen = async (doc: SupplierDocument) => {
+    // Web: open het venster synchroon in de klik, anders blokkeert Safari de popup na de await.
+    const pending = Capacitor.isNativePlatform() ? null : window.open('', '_blank');
     try {
       // Privé-bucket: elke keer een verse signed URL (5 min geldig).
       const url = await getSupplierDocumentSignedUrl(doc);
-      await openExternal(url);
+      if (pending) pending.location.href = url;
+      else await openExternal(url);
     } catch {
+      pending?.close();
       toast.error(t("admin.supplierDocuments.openen_mislukt"));
     }
   };

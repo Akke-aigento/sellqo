@@ -1,3 +1,4 @@
+import { sanitizeOrSearch } from '@/lib/sanitizeOrSearch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -58,7 +59,7 @@ export function useInvoices(filters?: InvoiceFilters) {
       }
 
       if (filters?.search) {
-        query = query.or(`invoice_number.ilike.%${filters.search}%`);
+        query = query.or(`invoice_number.ilike.%${sanitizeOrSearch(filters.search)}%`);
       }
 
       if (filters?.startDate) {
