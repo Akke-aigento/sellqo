@@ -3269,47 +3269,65 @@ export type Database = {
       }
       automation_runs: {
         Row: {
+          attempts: number
           automation_id: string | null
+          claimed_at: string | null
           completed_at: string | null
           created_at: string | null
           current_step: number | null
+          customer_id: string | null
           error_message: string | null
           id: string
           metadata: Json | null
+          next_step_id: string | null
+          recipient_email: string | null
           scheduled_for: string | null
           started_at: string | null
           status: string | null
           tenant_id: string
+          trigger_at: string | null
           trigger_entity_id: string | null
           trigger_entity_type: string
         }
         Insert: {
+          attempts?: number
           automation_id?: string | null
+          claimed_at?: string | null
           completed_at?: string | null
           created_at?: string | null
           current_step?: number | null
+          customer_id?: string | null
           error_message?: string | null
           id?: string
           metadata?: Json | null
+          next_step_id?: string | null
+          recipient_email?: string | null
           scheduled_for?: string | null
           started_at?: string | null
           status?: string | null
           tenant_id: string
+          trigger_at?: string | null
           trigger_entity_id?: string | null
           trigger_entity_type: string
         }
         Update: {
+          attempts?: number
           automation_id?: string | null
+          claimed_at?: string | null
           completed_at?: string | null
           created_at?: string | null
           current_step?: number | null
+          customer_id?: string | null
           error_message?: string | null
           id?: string
           metadata?: Json | null
+          next_step_id?: string | null
+          recipient_email?: string | null
           scheduled_for?: string | null
           started_at?: string | null
           status?: string | null
           tenant_id?: string
+          trigger_at?: string | null
           trigger_entity_id?: string | null
           trigger_entity_type?: string
         }
@@ -3842,6 +3860,7 @@ export type Database = {
       campaign_sends: {
         Row: {
           attempts: number
+          automation_run_id: string | null
           bounced_at: string | null
           campaign_id: string
           claimed_at: string | null
@@ -3863,9 +3882,11 @@ export type Database = {
           sent_at: string | null
           status: string | null
           user_agent: string | null
+          variables: Json | null
         }
         Insert: {
           attempts?: number
+          automation_run_id?: string | null
           bounced_at?: string | null
           campaign_id: string
           claimed_at?: string | null
@@ -3887,9 +3908,11 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           user_agent?: string | null
+          variables?: Json | null
         }
         Update: {
           attempts?: number
+          automation_run_id?: string | null
           bounced_at?: string | null
           campaign_id?: string
           claimed_at?: string | null
@@ -3911,6 +3934,7 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           user_agent?: string | null
+          variables?: Json | null
         }
         Relationships: [
           {
@@ -5758,8 +5782,10 @@ export type Database = {
           description: string | null
           id: string
           is_active: boolean | null
+          last_scanned_at: string | null
           max_runs_per_customer: number | null
           name: string
+          preset_key: string | null
           priority: number | null
           segment_id: string | null
           template_id: string | null
@@ -5780,8 +5806,10 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          last_scanned_at?: string | null
           max_runs_per_customer?: number | null
           name: string
+          preset_key?: string | null
           priority?: number | null
           segment_id?: string | null
           template_id?: string | null
@@ -5802,8 +5830,10 @@ export type Database = {
           description?: string | null
           id?: string
           is_active?: boolean | null
+          last_scanned_at?: string | null
           max_runs_per_customer?: number | null
           name?: string
+          preset_key?: string | null
           priority?: number | null
           segment_id?: string | null
           template_id?: string | null
@@ -5853,6 +5883,7 @@ export type Database = {
           ab_test_winner_selected_at: string | null
           ab_variant_of: string | null
           automation_id: string | null
+          automation_step_id: string | null
           available_languages: string[]
           completed_at: string | null
           created_at: string | null
@@ -5860,6 +5891,7 @@ export type Database = {
           html_content: string
           id: string
           is_ab_test: boolean | null
+          kind: string
           language: string | null
           name: string
           preset_key: string | null
@@ -5888,6 +5920,7 @@ export type Database = {
           ab_test_winner_selected_at?: string | null
           ab_variant_of?: string | null
           automation_id?: string | null
+          automation_step_id?: string | null
           available_languages?: string[]
           completed_at?: string | null
           created_at?: string | null
@@ -5895,6 +5928,7 @@ export type Database = {
           html_content: string
           id?: string
           is_ab_test?: boolean | null
+          kind?: string
           language?: string | null
           name: string
           preset_key?: string | null
@@ -5923,6 +5957,7 @@ export type Database = {
           ab_test_winner_selected_at?: string | null
           ab_variant_of?: string | null
           automation_id?: string | null
+          automation_step_id?: string | null
           available_languages?: string[]
           completed_at?: string | null
           created_at?: string | null
@@ -5930,6 +5965,7 @@ export type Database = {
           html_content?: string
           id?: string
           is_ab_test?: boolean | null
+          kind?: string
           language?: string | null
           name?: string
           preset_key?: string | null
@@ -5967,6 +6003,13 @@ export type Database = {
             columns: ["automation_id"]
             isOneToOne: false
             referencedRelation: "email_automations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaigns_automation_step_id_fkey"
+            columns: ["automation_step_id"]
+            isOneToOne: false
+            referencedRelation: "automation_steps"
             referencedColumns: ["id"]
           },
           {
@@ -22041,6 +22084,19 @@ export type Database = {
         Args: { p_adjustment: number; p_reason?: string; p_tenant_id: string }
         Returns: boolean
       }
+      automation_consent: {
+        Args: { p_email: string; p_tenant: string; p_trigger_type: string }
+        Returns: string
+      }
+      automation_ensure_presets: {
+        Args: { p_presets: Json; p_tenant: string }
+        Returns: number
+      }
+      automation_finish_step: {
+        Args: { p_message?: string; p_outcome: string; p_run_id: string }
+        Returns: string
+      }
+      automation_scan_triggers: { Args: never; Returns: Json }
       bulk_adjust_prices: {
         Args: {
           p_adjustment_type: string
@@ -22118,10 +22174,41 @@ export type Database = {
         Args: { p_tenant_id: string; p_user_id: string }
         Returns: boolean
       }
+      claim_automation_runs: {
+        Args: { p_limit?: number }
+        Returns: {
+          attempts: number
+          automation_id: string | null
+          claimed_at: string | null
+          completed_at: string | null
+          created_at: string | null
+          current_step: number | null
+          customer_id: string | null
+          error_message: string | null
+          id: string
+          metadata: Json | null
+          next_step_id: string | null
+          recipient_email: string | null
+          scheduled_for: string | null
+          started_at: string | null
+          status: string | null
+          tenant_id: string
+          trigger_at: string | null
+          trigger_entity_id: string | null
+          trigger_entity_type: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "automation_runs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       claim_campaign_sends: {
         Args: { p_limit?: number }
         Returns: {
           attempts: number
+          automation_run_id: string | null
           bounced_at: string | null
           campaign_id: string
           claimed_at: string | null
@@ -22143,6 +22230,7 @@ export type Database = {
           sent_at: string | null
           status: string | null
           user_agent: string | null
+          variables: Json | null
         }[]
         SetofOptions: {
           from: "*"
@@ -22202,6 +22290,17 @@ export type Database = {
       }
       downgrade_expired_trials: { Args: never; Returns: number }
       email_queue_dispatch: { Args: never; Returns: undefined }
+      enqueue_automation_send: {
+        Args: {
+          p_campaign_id: string
+          p_customer_id: string
+          p_email: string
+          p_run_id: string
+          p_step_id: string
+          p_variables?: Json
+        }
+        Returns: Json
+      }
       enqueue_campaign_sends: {
         Args: { p_campaign_id: string; p_from_statuses: string[]; p_rows: Json }
         Returns: Json
@@ -22595,6 +22694,19 @@ export type Database = {
           p_metadata?: Json
           p_trigger_entity_id: string
           p_trigger_entity_type: string
+        }
+        Returns: string
+      }
+      schedule_automation_run_v2: {
+        Args: {
+          p_customer_id?: string
+          p_email: string
+          p_metadata?: Json
+          p_tenant_id: string
+          p_trigger_at?: string
+          p_trigger_entity_id: string
+          p_trigger_entity_type: string
+          p_trigger_type: string
         }
         Returns: string
       }
