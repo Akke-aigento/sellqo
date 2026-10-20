@@ -1,9 +1,12 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { loadStorefrontUrlContext } from "../_shared/storefrontUrls.ts";
+import { feedHomeUrl, feedLinkProblem, feedLinkProblemDetail, withFeedLinks } from "./feedLinks.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Expose-Headers': 'x-feed-skipped-no-link',
   'Content-Type': 'application/xml',
 };
 
@@ -28,34 +31,12 @@ interface Product {
 interface Tenant {
   id: string;
   name: string;
-  slug: string;
   currency: string | null;
-  product_url_template: string | null;
-  use_custom_frontend: boolean;
+  /** FEED-LINK-1: homepage van de winkel (template-origin of SellQo-winkel), nooit gegokt. */
+  homeUrl: string;
 }
 
-// SELLQO-FEED-1: de productlink hangt af van waar de winkel draait. Custom frontends hebben
-// elk hun eigen pad (loveke.be/shop/<slug>, mancinimilano.com/streetwear/products/<slug>, …),
-// dus daar is tenants.product_url_template verplicht; zonder template geen feed, want Google
-// weigert of misleidt bij een verkeerde link. SellQo-theme: sellqo.app/shop/<tenant>/product/<slug>.
-function productUrl(tenant: Tenant, slug: string): string | null {
-  if (tenant.product_url_template) {
-    return tenant.product_url_template.replace('{slug}', encodeURIComponent(slug));
-  }
-  if (tenant.use_custom_frontend) return null;
-  return `https://sellqo.app/shop/${encodeURIComponent(tenant.slug)}/product/${encodeURIComponent(slug)}`;
-}
-
-function shopUrl(tenant: Tenant): string {
-  if (tenant.product_url_template) {
-    try {
-      return new URL(tenant.product_url_template.replace('{slug}', 'x')).origin;
-    } catch {
-      /* val terug */
-    }
-  }
-  return `https://sellqo.app/shop/${encodeURIComponent(tenant.slug)}`;
-}
+type FeedProduct = Product & { link: string };
 
 /** Bij een uitverkoop is price de verkoopprijs en compare_at_price de oorspronkelijke prijs. */
 function prices(p: Product): { regular: number; sale: number | null } {
@@ -92,7 +73,7 @@ serve(async (req: Request) => {
     // die niet bestaan; daardoor gaf de feed voor elke winkel "Tenant not found".
     const { data: tenantRow, error: tenantError } = await supabase
       .from('tenants')
-      .select('id, name, slug, currency, product_url_template')
+      .select('id, name, currency')
       .eq('id', tenantId)
       .single();
 
@@ -103,22 +84,21 @@ serve(async (req: Request) => {
       );
     }
 
-    const { data: theme } = await supabase
-      .from('tenant_theme_settings')
-      .select('use_custom_frontend')
-      .eq('tenant_id', tenantId)
-      .maybeSingle();
-    const tenant: Tenant = { ...tenantRow, use_custom_frontend: theme?.use_custom_frontend === true };
-
-    if (!productUrl(tenant, 'x')) {
+    // FEED-LINK-1: productlinks uit _shared/storefrontUrls.ts (zelfde regels als de mails):
+    // template van een custom frontend, anders de SellQo-winkel op /producten/<slug>
+    // (canoniek domein of <slug>.sellqo.shop als de winkel online staat). Vroeger:
+    // sellqo.app/shop/<tenant>/product/<slug>, de oude ingebouwde shop.
+    const linkCtx = await loadStorefrontUrlContext(supabase, tenantId);
+    const problem = feedLinkProblem(linkCtx);
+    const homeUrl = feedHomeUrl(linkCtx);
+    if (problem || !homeUrl) {
+      const reason = problem ?? 'shop_not_live';
       return new Response(
-        JSON.stringify({
-          error: 'Product link not configured',
-          detail: 'This shop runs on its own website. Set tenants.product_url_template (e.g. https://yourshop.com/shop/{slug}) so the feed can link to the right product pages.',
-        }),
+        JSON.stringify({ error: 'Product link not configured', reason, detail: feedLinkProblemDetail(reason) }),
         { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    const tenant: Tenant = { id: tenantRow.id, name: tenantRow.name, currency: tenantRow.currency, homeUrl };
 
     // Get products with social channels enabled for this format
     const { data: products, error: productsError } = await supabase
@@ -139,13 +119,20 @@ serve(async (req: Request) => {
 
     // Filter products by channel
     const channelKey = format.replace('_catalog', '').replace('_shopping', '_shopping');
-    const filteredProducts = (products || []).filter((p) => {
+    const filteredProducts = ((products || []) as Product[]).filter((p) => {
       // If social_channels is empty or doesn't have this channel, include all products
       if (!p.social_channels || Object.keys(p.social_channels).length === 0) {
         return true;
       }
       return p.social_channels[format] === true || p.social_channels[channelKey] === true;
     });
+
+    // FEED-LINK-1: Google, Meta en Pinterest eisen een link per product. Zonder werkende link
+    // hoort een product niet in de feed: eruit, geteld in een header en in de log.
+    const { items: feedProducts, skipped } = withFeedLinks(linkCtx, filteredProducts);
+    if (skipped > 0) {
+      console.log(`generate-product-feed: ${skipped} product(s) without a link left out (tenant ${tenantId}, ${format})`);
+    }
 
     // Generate feed based on format
     let feedContent: string;
@@ -154,20 +141,20 @@ serve(async (req: Request) => {
     switch (format) {
       case 'google_shopping':
       case 'microsoft_shopping':
-        feedContent = generateGoogleFeed(filteredProducts, tenant);
+        feedContent = generateGoogleFeed(feedProducts, tenant);
         contentType = 'application/xml';
         break;
       case 'facebook':
       case 'facebook_shop':
-        feedContent = generateFacebookCSV(filteredProducts, tenant);
+        feedContent = generateFacebookCSV(feedProducts, tenant);
         contentType = 'text/csv';
         break;
       case 'pinterest_catalog':
-        feedContent = generatePinterestRSS(filteredProducts, tenant);
+        feedContent = generatePinterestRSS(feedProducts, tenant);
         contentType = 'application/rss+xml';
         break;
       default:
-        feedContent = generateGoogleFeed(filteredProducts, tenant);
+        feedContent = generateGoogleFeed(feedProducts, tenant);
         contentType = 'application/xml';
     }
 
@@ -176,13 +163,13 @@ serve(async (req: Request) => {
       .from('social_channel_connections')
       .update({ 
         last_feed_generated_at: new Date().toISOString(),
-        products_synced: filteredProducts.length 
+        products_synced: feedProducts.length 
       })
       .eq('tenant_id', tenantId)
       .eq('channel_type', format);
 
     return new Response(feedContent, {
-      headers: { ...corsHeaders, 'Content-Type': contentType },
+      headers: { ...corsHeaders, 'Content-Type': contentType, 'X-Feed-Skipped-No-Link': String(skipped) },
     });
 
   } catch (err) {
@@ -194,8 +181,8 @@ serve(async (req: Request) => {
   }
 });
 
-function generateGoogleFeed(products: Product[], tenant: Tenant): string {
-  const baseUrl = shopUrl(tenant);
+function generateGoogleFeed(products: FeedProduct[], tenant: Tenant): string {
+  const baseUrl = tenant.homeUrl;
   const currency = tenant.currency || 'EUR';
 
   const items = products.map(product => {
@@ -205,7 +192,7 @@ function generateGoogleFeed(products: Product[], tenant: Tenant): string {
       <g:id>${escapeXml(product.id)}</g:id>
       <g:title>${escapeXml(product.name)}</g:title>
       <g:description>${escapeXml(stripHtml(product.description || product.name))}</g:description>
-      <g:link>${escapeXml(productUrl(tenant, product.slug) ?? '')}</g:link>
+      <g:link>${escapeXml(product.link)}</g:link>
       <g:image_link>${escapeXml(product.featured_image || product.images?.[0] || '')}</g:image_link>
       ${product.images?.slice(1, 10).map(img => `<g:additional_image_link>${escapeXml(img)}</g:additional_image_link>`).join('\n      ') || ''}
       <g:price>${prices(product).regular.toFixed(2)} ${currency}</g:price>
@@ -230,7 +217,7 @@ function generateGoogleFeed(products: Product[], tenant: Tenant): string {
 </rss>`;
 }
 
-function generateFacebookCSV(products: Product[], tenant: Tenant): string {
+function generateFacebookCSV(products: FeedProduct[], tenant: Tenant): string {
   const currency = tenant.currency || 'EUR';
 
   const headers = [
@@ -247,7 +234,7 @@ function generateFacebookCSV(products: Product[], tenant: Tenant): string {
       'new',
       `${prices(product).regular.toFixed(2)} ${currency}`,
       prices(product).sale !== null ? `${prices(product).sale!.toFixed(2)} ${currency}` : '',
-      csvEscape(productUrl(tenant, product.slug) ?? ''),
+      csvEscape(product.link),
       csvEscape(product.featured_image || product.images?.[0] || ''),
       csvEscape(tenant.name),
       csvEscape(product.barcode || ''),
@@ -259,14 +246,14 @@ function generateFacebookCSV(products: Product[], tenant: Tenant): string {
   return [headers, ...rows].join('\n');
 }
 
-function generatePinterestRSS(products: Product[], tenant: Tenant): string {
-  const baseUrl = shopUrl(tenant);
+function generatePinterestRSS(products: FeedProduct[], tenant: Tenant): string {
+  const baseUrl = tenant.homeUrl;
   const currency = tenant.currency || 'EUR';
 
   const items = products.map(product => `
     <item>
       <title>${escapeXml(product.name)}</title>
-      <link>${escapeXml(productUrl(tenant, product.slug) ?? '')}</link>
+      <link>${escapeXml(product.link)}</link>
       <description>${escapeXml(stripHtml(product.description || product.name))}</description>
       <g:id>${escapeXml(product.id)}</g:id>
       <g:price>${prices(product).regular.toFixed(2)} ${currency}</g:price>

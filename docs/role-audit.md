@@ -1,3 +1,36 @@
+## FEED-LINK-1 — productfeed linkt naar de echte SellQo-winkel — 20 oktober 2026
+
+Vervolg op MAIL-2c ("Bewust ongemoeid"). Go van Akke 20-10 08:20. Geen changelog, nieuwsbrief of helpartikel: zie onderaan.
+
+**Root cause**
+- `supabase/functions/generate-product-feed/index.ts` (`productUrl`, r. 41-47 vóór deze batch) gaf SellQo-theme-producten `https://sellqo.app/shop/<tenant>/product/<slug>`, en `shopUrl` (r. 49-58) als kanaallink `sellqo.app/shop/<tenant>`. Dat is de oude ingebouwde shop in de admin-app (`src/App.tsx` r. 231, client-side gerenderd). De echte SellQo-winkel draait op `<slug>.sellqo.shop` of het canonieke domein met pad `/producten/<slug>` (sellqo-storefront `src/routes/producten.$slug.tsx`; `_shared/storefrontUrls.ts` uit MAIL-2c).
+- `sellqo.app/shop/...` redirect niet op de server (SPA). Heeft de winkel een canoniek domein, dan stuurt `ShopLayout.tsx` r. 252-263 de bezoeker met JavaScript naar de **homepage** van dat domein, niet naar het product: voor Google een landingspagina die niet bij het product past. Zonder domein toont het de oude shop, ook voor winkels die niet online staan (`shop_live` false) — de feed linkte dus ook naar winkels die de echte storefront gesloten houdt. Live niet met curl nagetrokken (proxy weigert sellqo.app); vastgesteld uit de code.
+- Live 20-10: `social_channel_connections` heeft 0 rijen en geen enkel helpartikel vermeldt de feed. De feed wordt enkel rechtstreeks in Merchant Center gebruikt (VanXcel).
+
+**Uitgevoerd**
+- `generate-product-feed/feedLinks.ts` (nieuw, puur): `feedLinkProblem` (`custom_frontend_no_template` / `invalid_template` / `shop_not_live`), `feedHomeUrl` (origin van de template, anders de SellQo-winkel), `withFeedLinks` (product zonder link valt eruit en wordt geteld). Alle links via `productUrlFor`/`sellqoStorefrontBaseUrl`.
+- `generate-product-feed/index.ts`: leest de context met `loadStorefrontUrlContext`; geen productlinks → `422 {"error":"Product link not configured", reason, detail}` (zelfde foutcode als SELLQO-FEED-1, nu ook voor een SellQo-winkel die niet online staat en geen domein heeft). Producten zonder link (lege slug) eruit, aantal in header `X-Feed-Skipped-No-Link` en in de log. `products_synced` telt enkel wat in de feed staat. Tenant-select zonder `slug`/`product_url_template` (zit in de context). Implicit any op `filter((p) =>` weg.
+- Keuze: geen terugval op `sellqo.app/shop`. Een product zonder werkende link hoort niet in Shopping; Google keurt een lege of dode link toch af.
+
+**Security-keuzes**
+- n.v.t.: geen schema, RLS of grants. De functie blijft `verify_jwt=false` en leest met service-role enkel wat ze al las plus `tenant_theme_settings.shop_live` en `tenant_domains` (publieke gegevens).
+
+**Gedeelde-paden-waarschuwing**
+- `_shared/storefrontUrls.ts` is niet gewijzigd, enkel een extra lezer. `generate-product-feed` bedient drie formaten (Google/Microsoft XML, Meta-CSV, Pinterest-RSS): alle drie krijgen dezelfde link en dezelfde filtering.
+- Custom frontends: link blijft `product_url_template` (template wint ook boven een canoniek domein, zoals bij VanXcel `vanxcel.be`). Uitvoer voor VanXcel, Loveke, Mancini Milano, Benny Rich en Zona Dorata identiek (test). Astra Sleep blijft 422. `storefront-api`/`-customer-api`/`-resolve` en de gedeelde theme-tabellen niet aangeraakt. Eerste wet niet geraakt.
+
+**Verificatie**
+- `deno check generate-product-feed/index.ts` en `feedLinks.ts`: enkel "Check". `deno test` feedLinks (5) + storefrontUrls (5): 10 passed.
+- `verify-edge-pins` ok. Geen `src/` geraakt: tsc, build, vitest en i18n-parity niet nodig. Geen `any` toegevoegd.
+- Live effect (SQL 20-10, actieve niet-verborgen producten, 0 zonder slug): custom frontends ongewijzigd (VanXcel 27, Benny Rich 24, Mancini 20, Loveke 6, Zona Dorata 3); Astra Sleep 4 → blijft 422. 11 SellQo-theme-winkels online (de demo's: Pizzeria Fiamma 17, Café De Wissel 14, Bistro Mirabelle 14, Atelier Nord 12, Vinotheek Lemmens 10, Voltaro 10, Bloom & Balm 10, Maison Lune 10, Mokka 9, Zomerfest Leuven 8, Zaal De Linde 6): link wordt `<slug>.sellqo.shop/producten/<slug>`, 0 producten weg. Niet online, geen domein → feed 422 i.p.v. `sellqo.app`-links: The Fonske Crawl 1, SellQo Sandbox 6, Demo Bakkerij 3 (Speeltuin 0).
+- **Niet gedaan:** live fetch na deploy (pg_net-vingerafdruk zoals SELLQO-FEED-1) en smoketest op Speeltuin/Demo Bakkerij (beide niet online → 422 is het verwachte resultaat).
+
+**Bewust ongemoeid / Vervolg**
+- Geen changelog, nieuwsbrief of helpartikel: Google Shopping/Meta/Pinterest staan voor tenants nog op "Binnenkort" (`UnifiedChannelList.tsx` r. 342-347), 0 koppelingen, geen artikel over de feed. Bij het openzetten van het kanaal horen ze bij die batch.
+- De admin toont enkel de feed-URL (`ConnectSocialChannelDialog.tsx`), geen productlinks; niets om gelijk te trekken.
+- Tickets (`product_type = ticket`, bv. Fonske) gaan nog mee in de feed als de winkel online staat; projectregel is dat toekomstige events niet in Shopping horen. Aparte beslissing.
+- De oude shop onder `sellqo.app/shop/...` blijft bestaan (andere consumenten: mails, QR, preview); niet aangeraakt.
+
 ## MAIL-2d — A/B-test van de onderwerpregel — 20 oktober 2026
 
 Vervolg op MAIL-2a. Go van Akke 20-10 (samen met MAIL-2c). Changelog 2026.12y (`email_ab_subject`).
