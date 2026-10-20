@@ -99,6 +99,13 @@
       "when": 1792497245114,
       "tag": "0013_mail_ux_1",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1792508654462,
+      "tag": "0014_data_astra_url_vanxcel_welcome_en",
+      "breakpoints": true
     }
   ]
 }
