@@ -1,3 +1,44 @@
+## PDF-EMOJI-1 — PDF's crashen niet meer op emoji, Cyrillisch of CJK — 20 oktober 2026
+
+Go van Akke 20-10 14:06 ("alles aanpakken"), na de vondst van Lovable op 19-10. Branch `fix-ops`, niet gepusht.
+
+**Root cause**
+- Alle PDF-generatoren tekenen met de standaardfonts van pdf-lib 1.17.1 (Helvetica, -Bold, -Oblique). Die kennen enkel WinAnsi (cp1252, 218 tekens). `PDFFont.encodeText` en `widthOfTextAtSize` gooien `WinAnsi cannot encode "…"` op elk ander teken; één emoji of Cyrillische letter in een productnaam, klantnaam, adres of winkelnaam liet de hele PDF falen. Lokaal nagespeeld met pdf-lib 1.17.1: emoji (U+1F600), tab en `\n` gooien in `encodeText`.
+- Geraakte tekenpaden: `generate-invoice/index.ts` (r. 739-740, o.a. `tenant.name`, klantnaam, adressen, omschrijving), `generate-credit-note/index.ts` (r. 228-229), `generate-payment-request-pdf/index.ts` (r. 109-110), `generate-subscription-invoice-pdf/index.ts` (r. 99-100), `export-vat-pdf/index.ts` (r. 184-186) en de pakbon in de browser `src/utils/packingSlipPdf.ts` (r. 47-48). `export-vat-pdf` had een eigen `safe()`, maar die liet `\t` en `\r` door (crasht ook) en zette Cyrillisch om naar `?`.
+- Niet geraakt: `create-bol-vvb-label` (snijdt enkel een bestaande PDF bij, tekent geen tekst), `src/utils/pdfMerge.ts` (enkel samenvoegen). Er bestaan geen offerte- of ticket-PDF-generatoren (`ticket-qr` maakt een afbeelding).
+
+**Keuze: sanitiser i.p.v. Unicode-font**
+- Een Unicode-font (Noto Sans) vraagt `@pdf-lib/fontkit` (staat niet in de repo) plus een fontbestand van 300-600 kB per gewicht, dat per functie gebundeld of bij elke render opgehaald moet worden (nieuwe netwerkafhankelijkheid in het factuurpad). Emoji zou zelfs dan niet renderen (Noto Sans heeft geen kleur-emoji).
+- Gekozen: één gedeelde sanitiser die nooit gooit, ingehangen op het font zelf. Wat het font kan, blijft byte-voor-byte gelijk (é, ü, €, „”, –, …); de rest: emoji en verbinders weg (zonder dubbele spatie), Cyrillisch getranslitereerd (Oekraïens KMU 2010; Russisch als de tekst ы/э/ё/ъ zonder і/ї/є/ґ bevat), accenten buiten WinAnsi gestript (Ł→L, ș→s), vaste vervangers (→ ->, ≥ >=, № No.), onzichtbare tekens weg, smalle spaties → spatie, wat overblijft (CJK, Arabisch, Hebreeuws) → `?`. Een volgende stap naar een echt Unicode-font blijft mogelijk achter dezelfde helper.
+
+**Uitgevoerd**
+- `supabase/functions/_shared/pdfText.ts`: `WINANSI_CODEPOINTS`, `pdfSafeText(input, { charset, keepNewlines })`, `hardenPdfFont(font)` (wikkelt `encodeText` en `widthOfTextAtSize`, leest de echte tekenset via `getCharacterSet()`, idempotent). `wrapTextToWidth` saneert zelf ook. Puur TypeScript, geen Deno-API.
+- Alle zes generatoren hierboven: `hardenPdfFont(await pdfDoc.embedFont(...))` direct na elke `embedFont`. Daardoor is elke `drawText` (ook met `maxWidth`) en elke breedteberekening gedekt, ook toekomstige.
+- `export-vat-pdf`: lokale `safe()` delegeert naar `pdfSafeText` (gedrag voor `\n` gelijk).
+- `src/utils/packingSlipPdf.ts`: importeert `hardenPdfFont` uit `supabase/functions/_shared/pdfText` (zelfde patroon als `colorContrast`, `notificationRoutes`).
+- `supabase/functions/_shared/pdfText.test.ts` (nieuw, 7 tests) en opgenomen in de `deno test`-stap van `.github/workflows/ci.yml`.
+- Slottaken: changelog 2026.13e (`pdf_special_characters`, bugfix) in nl/en/fr/de/uk; newsletter-queue item 2026.13e. Geen `doc_articles`: geen artikel beschrijft tekens in PDF's (live gecontroleerd), de fix vraagt geen handeling van de tenant.
+
+**Security-keuzes**
+- n.v.t.: geen RLS, policy, grant, auth of opslagpad gewijzigd. Enkel de tekst die op de PDF komt.
+
+**Gedeelde-paden-waarschuwing**
+- Gedeeld pad = de PDF-tekenlaag, voor klantfacturen (incl. Factur-X), creditnota's, abonnementsfacturen (platform → tenant), betalingsverzoeken, btw-export en pakbon. Eén helper voor alle doc-types; geen doc-type kreeg eigen logica. Tekst die al encodeerbaar was, wijzigt niet: bestaande PDF's zonder bijzondere tekens renderen identiek. De Factur-X-XML (UTF-8) en de PDF-metadata (`setTitle`/`setAuthor`, Unicode) zijn niet geraakt. Geen storefront-api, storefront-customer-api of gedeelde tabel.
+
+**Verificatie**
+- `deno test supabase/functions/_shared/pdfText.test.ts`: 7/7 groen (emoji incl. ZWJ-familie, vlag, keycap en huidtint; Oekraïens, Russisch; CJK/Koreaans/Arabisch/Hebreeuws; smart quotes en streepjes; tab/CRLF/zero-width/zachte afbreking; losse surrogaat; echte pdf-lib-render met drie fonts, `maxWidth` en `wrapTextToWidth`; plus de controle dat een niet-geharde font wél gooit). Lokaal met import map naar `npm:pdf-lib@1.17.1` (sandbox bereikt esm.sh niet); CI gebruikt de echte esm.sh-import.
+- `deno check` van de vijf functies: zelfde 14 meldingen vóór en na (allemaal TS7006 door de `serve`-stub), dus geen nieuwe fout.
+- `verify-edge-pins`: groen. ESLint op de gewijzigde bestanden: geen nieuwe fouten (pdfText.ts/test/packingSlip 0; export-vat-pdf enkel de bestaande `no-explicit-any`).
+- `tsc --noEmit -p tsconfig.app.json`: exit 0. `npm run build`: exit 0. `i18n-parity`: volledige pariteit.
+
+**Samenhang**
+- Bestond al: `_shared/pdfText.ts` (wrap-helper, UX-POLISH-1) en een losse `safe()` in `export-vat-pdf`. Die zijn nu één plek: de sanitiser zit in hetzelfde bestand en `safe()` delegeert ernaar. Geen UI, route of helpartikel geraakt; de changelog vermeldt de fix.
+
+**Bewust ongemoeid / Vervolg**
+- Deploy (deploy-only): `generate-invoice`, `generate-credit-note`, `generate-payment-request-pdf`, `generate-subscription-invoice-pdf`, `export-vat-pdf`. Frontend publiceren voor de pakbon.
+- Smoke na deploy: factuur-PDF op SellQo Speeltuin voor een testklant met een Cyrillische naam en een emoji in de productnaam.
+- Een Unicode-font (Cyrillisch in originele letters) kan later achter `hardenPdfFont`; vraagt fontkit en een font-asset.
+
 ## OPS-MAILQUEUE-1 — Auth-mailwachtrij: geen bug, geen cron nodig — 20 oktober 2026
 
 Go van Akke 20-10 14:06 ("alles aanpakken"). Recon weerlegt de aanname; er is daarom niets gewijzigd aan code of database. Branch `fix-ops`.

@@ -3,6 +3,7 @@
  * Generates a packing slip PDF from order data using pdf-lib
  */
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { hardenPdfFont } from '../../supabase/functions/_shared/pdfText';
 
 interface PackingSlipOrder {
   order_number: string;
@@ -44,8 +45,8 @@ export async function generatePackingSlipPdf(
 ): Promise<Uint8Array> {
   const doc = await PDFDocument.create();
   const page = doc.addPage([595, 842]); // A4
-  const font = await doc.embedFont(StandardFonts.Helvetica);
-  const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
+  const font = hardenPdfFont(await doc.embedFont(StandardFonts.Helvetica));
+  const fontBold = hardenPdfFont(await doc.embedFont(StandardFonts.HelveticaBold));
 
   const black = rgb(0, 0, 0);
   const gray = rgb(0.4, 0.4, 0.4);

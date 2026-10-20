@@ -14,6 +14,9 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.13e', dateKey: 'oct_2026', changes: [
+    { id: 'pdf_special_characters', type: 'bugfix' },
+  ] },
   { version: '2026.13d', dateKey: 'oct_2026', changes: [
     { id: 'email_page_tabs', type: 'improvement' },
     { id: 'email_logo_existing', type: 'improvement' },

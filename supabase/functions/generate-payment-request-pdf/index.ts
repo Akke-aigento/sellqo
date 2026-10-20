@@ -9,6 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { payUrlFor } from "../_shared/payCheckout.ts";
+import { hardenPdfFont } from "../_shared/pdfText.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -106,8 +107,8 @@ serve(async (req) => {
     pdfDoc.setCreationDate(new Date());
     const page = pdfDoc.addPage([595, 842]);
     const { width, height } = page.getSize();
-    const helv = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const helv = hardenPdfFont(await pdfDoc.embedFont(StandardFonts.Helvetica));
+    const bold = hardenPdfFont(await pdfDoc.embedFont(StandardFonts.HelveticaBold));
     const text = rgb(0.12, 0.12, 0.12);
     const gray = rgb(0.45, 0.45, 0.45);
     const accent = rgb(0.15, 0.4, 0.85);

@@ -2139,6 +2139,10 @@
         "email_logo_existing": {
           "title": "An email version of the logo you already had",
           "description": "If you uploaded your logo before SellQo made a version for emails, that now happens automatically as soon as you open Marketing or Settings as an administrator. If that does not work, you will find the button Create an email version of your current logo next to your logo. So you do not need to upload your logo again."
+        },
+        "pdf_special_characters": {
+          "title": "PDFs now work with emoji and Cyrillic names",
+          "description": "If a product name, customer name or address contained an emoji or a character outside the Western alphabet, the PDF of your invoice, credit note, payment request, VAT export or packing slip failed. That no longer happens: emoji are left out, Cyrillic text (such as Ukrainian names) is written in Latin letters, and characters the font does not support (for example Chinese) appear as a question mark. Your shop and your emails stay unchanged."
         }
       },
       "copyLink": "Copy link",

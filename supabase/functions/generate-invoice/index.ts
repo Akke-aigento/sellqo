@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import qrcode from "https://esm.sh/qrcode-generator@1.4.4?target=deno";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { hardenPdfFont } from "../_shared/pdfText.ts";
 import {
   resolveVatRegimeSafe,
   decideVatRegime,
@@ -736,8 +737,8 @@ async function generateFacturXPDF(data: {
   const pdfDoc = await PDFDocument.create();
   
   // Embed fonts
-  const helveticaFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const helveticaFont = hardenPdfFont(await pdfDoc.embedFont(StandardFonts.Helvetica));
+  const helveticaBold = hardenPdfFont(await pdfDoc.embedFont(StandardFonts.HelveticaBold));
   
   // Set PDF metadata for Factur-X compliance
   pdfDoc.setTitle(`Invoice ${invoiceNumber}`);

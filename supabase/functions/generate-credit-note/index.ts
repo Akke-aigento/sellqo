@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
-import { wrapTextToWidth } from "../_shared/pdfText.ts";
+import { hardenPdfFont, wrapTextToWidth } from "../_shared/pdfText.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -225,8 +225,8 @@ serve(async (req) => {
     pdfDoc.setCreationDate(new Date());
     const page = pdfDoc.addPage([595, 842]); // A4
     const { width, height } = page.getSize();
-    const helv = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const bold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const helv = hardenPdfFont(await pdfDoc.embedFont(StandardFonts.Helvetica));
+    const bold = hardenPdfFont(await pdfDoc.embedFont(StandardFonts.HelveticaBold));
     const text = rgb(0.12, 0.12, 0.12);
     const gray = rgb(0.45, 0.45, 0.45);
     const accent = rgb(0.86, 0.2, 0.27); // credit = red accent

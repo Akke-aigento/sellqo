@@ -2139,6 +2139,10 @@
         "email_logo_existing": {
           "title": "Ook een mailversie van het logo dat er al stond",
           "description": "Had je je logo al geüpload voordat SellQo er een versie voor e-mails van maakte, dan gebeurt dat nu vanzelf zodra je als beheerder Marketing of Instellingen opent. Lukt dat niet, dan vind je bij je logo de knop Mailversie maken van je huidige logo. Je hoeft je logo dus niet opnieuw te uploaden."
+        },
+        "pdf_special_characters": {
+          "title": "PDF's lukken nu ook met emoji en Cyrillische namen",
+          "description": "Bevatte een productnaam, klantnaam of adres een emoji of een teken buiten het Westerse alfabet, dan mislukte de PDF van je factuur, creditnota, betalingsverzoek, btw-export of pakbon. Dat gebeurt niet meer: emoji worden weggelaten, Cyrillische tekst (zoals Oekraïense namen) wordt in Latijnse letters geschreven en tekens die het lettertype niet kent (bijvoorbeeld Chinees) verschijnen als vraagteken. In je winkel en je e-mails blijft alles ongewijzigd."
         }
       },
       "copyLink": "Kopieer link",

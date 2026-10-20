@@ -2139,6 +2139,10 @@
         "email_logo_existing": {
           "title": "Une version e-mail du logo que vous aviez déjà",
           "description": "Si vous aviez téléversé votre logo avant que SellQo n'en crée une version pour les e-mails, cela se fait désormais automatiquement dès que vous ouvrez Marketing ou Paramètres en tant qu'administrateur. Si cela ne fonctionne pas, vous trouverez près de votre logo le bouton Créer une version e-mail de votre logo actuel. Vous n'avez donc pas besoin de téléverser à nouveau votre logo."
+        },
+        "pdf_special_characters": {
+          "title": "Les PDF fonctionnent désormais avec des emoji et des noms cyrilliques",
+          "description": "Si un nom de produit, un nom de client ou une adresse contenait un emoji ou un caractère hors de l'alphabet latin, le PDF de votre facture, note de crédit, demande de paiement, export TVA ou bon de livraison échouait. Ce n'est plus le cas : les emoji sont omis, le texte cyrillique (comme les noms ukrainiens) est écrit en lettres latines et les caractères que la police ne connaît pas (par exemple le chinois) apparaissent sous forme de point d'interrogation. Votre boutique et vos e-mails restent inchangés."
         }
       },
       "copyLink": "Copier le lien",

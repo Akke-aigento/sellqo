@@ -2139,6 +2139,10 @@
         "email_logo_existing": {
           "title": "Eine E-Mail-Version des Logos, das Sie schon hatten",
           "description": "Haben Sie Ihr Logo hochgeladen, bevor SellQo eine Version für E-Mails erstellte, geschieht das jetzt automatisch, sobald Sie Marketing oder Einstellungen als Administrator öffnen. Klappt das nicht, finden Sie bei Ihrem Logo die Schaltfläche E-Mail-Version Ihres aktuellen Logos erstellen. Sie müssen Ihr Logo also nicht erneut hochladen."
+        },
+        "pdf_special_characters": {
+          "title": "PDFs funktionieren jetzt auch mit Emojis und kyrillischen Namen",
+          "description": "Enthielt ein Produktname, Kundenname oder eine Adresse ein Emoji oder ein Zeichen außerhalb des lateinischen Alphabets, schlug das PDF Ihrer Rechnung, Gutschrift, Zahlungsaufforderung, MwSt.-Export oder Ihres Lieferscheins fehl. Das passiert nicht mehr: Emojis werden weggelassen, kyrillischer Text (etwa ukrainische Namen) wird in lateinischen Buchstaben geschrieben, und Zeichen, die die Schrift nicht kennt (zum Beispiel Chinesisch), erscheinen als Fragezeichen. In Ihrem Shop und Ihren E-Mails bleibt alles unverändert."
         }
       },
       "copyLink": "Link kopieren",

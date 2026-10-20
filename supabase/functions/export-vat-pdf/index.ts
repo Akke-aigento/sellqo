@@ -16,6 +16,7 @@ import {
 } from "https://esm.sh/pdf-lib@1.17.1";
 import { getCorsHeaders, handleCorsOptions } from "../_shared/cors.ts";
 import { authenticateRequest, authErrorResponse, AuthError, requireRole } from "../_shared/auth.ts";
+import { hardenPdfFont, pdfSafeText } from "../_shared/pdfText.ts";
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 type PeriodType = 'monthly' | 'quarterly' | 'annual' | 'custom';
@@ -155,16 +156,11 @@ function fmtEur(n: number): string {
   return v.toLocaleString('nl-BE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' EUR';
 }
 
-// WinAnsi-safe sanitiser (Helvetica only supports WinAnsi glyphs).
+// PDF-EMOJI-1: gedeelde sanitiser (WinAnsi, emoji weg, Cyrillisch getranslitereerd).
+// De vorige lokale versie liet \t en \r door, die WinAnsi niet kan encoderen;
+// \n blijft staan (drawText splitst daar zelf op).
 function safe(s: string | null | undefined): string {
-  if (s === null || s === undefined) return '';
-  return String(s)
-    .replace(/[\u2013\u2014]/g, '-')
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[\u201C\u201D]/g, '"')
-    .replace(/\u2026/g, '...')
-    // strip anything outside WinAnsi printable range
-    .replace(/[^\x09\x0A\x0D\x20-\xFF]/g, '?');
+  return pdfSafeText(s);
 }
 
 // ===== PDF writer with header/footer + auto pagination =====
@@ -181,9 +177,9 @@ class Doc {
 
   async init(tenantLabel: string, generatedAt: string) {
     this.pdf = await PDFDocument.create();
-    this.reg = await this.pdf.embedFont(StandardFonts.Helvetica);
-    this.bold = await this.pdf.embedFont(StandardFonts.HelveticaBold);
-    this.ital = await this.pdf.embedFont(StandardFonts.HelveticaOblique);
+    this.reg = hardenPdfFont(await this.pdf.embedFont(StandardFonts.Helvetica));
+    this.bold = hardenPdfFont(await this.pdf.embedFont(StandardFonts.HelveticaBold));
+    this.ital = hardenPdfFont(await this.pdf.embedFont(StandardFonts.HelveticaOblique));
     this.tenantLabel = safe(tenantLabel);
     this.generatedAt = generatedAt;
   }

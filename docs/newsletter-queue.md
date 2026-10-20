@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13e — PDF's lukken nu ook met emoji en Cyrillische namen (bugfix, 20-10-2026)
+
+**Status:** klaar voor verzending zodra PDF-EMOJI-1 live staat (edge functions generate-invoice, generate-credit-note, generate-payment-request-pdf, generate-subscription-invoice-pdf, export-vat-pdf; frontend gepubliceerd voor de pakbon).
+
+**Voor wie:** alle winkels die facturen, creditnota's, betalingsverzoeken, btw-exports of pakbonnen maken; vooral winkels met klanten buiten het Westerse alfabet.
+
+**PDF's lukken nu ook met emoji en Cyrillische namen** (oktober 2026)
+Bevatte een productnaam, klantnaam of adres een emoji of een teken buiten het Westerse alfabet, dan mislukte de PDF van je factuur, creditnota, betalingsverzoek, btw-export of pakbon. Dat gebeurt niet meer: emoji worden weggelaten, Cyrillische tekst (zoals Oekraïense namen) wordt in Latijnse letters geschreven en tekens die het lettertype niet kent (bijvoorbeeld Chinees) verschijnen als vraagteken.
+Wat betekent dit voor jou? Elke factuur komt er, ook voor je klant uit Kyiv of met een emoji in de productnaam.
+
+i18n: `public.changelog.changes.pdf_special_characters`
+
 ### 2026.13d — Marketing → E-mail overzichtelijker, en een mailversie van je bestaande logo (improvement, 20-10-2026)
 
 **Status:** klaar voor verzending zodra MAIL-UX-1 live staat (edge functions automation-scheduler en ai-business-coach, migratie 20261020130000, frontend gepubliceerd). Liefst samen met of na 2026.13b (logo in je mails).
