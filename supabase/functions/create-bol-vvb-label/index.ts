@@ -403,7 +403,8 @@ const handler = async (req: Request): Promise<Response> => {
       let labelLookupError: any = null;
 
       try {
-        const result = await supabase.from("shipping_labels").select("*").eq("id", label_id).single();
+        // SEC-IDOR-1: het label moet bij deze order horen.
+        const result = await supabase.from("shipping_labels").select("*").eq("id", label_id).eq("order_id", order.id).single();
         existingLabel = result.data;
         labelLookupError = result.error;
         console.log(

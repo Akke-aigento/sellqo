@@ -68,6 +68,7 @@ serve(async (req) => {
       const { data: products } = await supabase
         .from('products')
         .select('id, name, price, description, short_description, featured_image, tags')
+        .eq('tenant_id', tenantId) // SEC-IDOR-1
         .in('id', productIds);
       selectedProducts = products || [];
     }

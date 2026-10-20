@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { tenantSender } from "../_shared/emailSenders.ts";
 import {
   getTenantBrand,
@@ -55,7 +55,7 @@ serve(async (req) => {
   if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FOOD-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
-    await authenticateRequest(req);
+    const auth = await authenticateRequest(req);
 
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     if (!resendApiKey) throw new Error('RESEND_API_KEY is not set');
@@ -88,6 +88,9 @@ serve(async (req) => {
     }
 
     const tenantId = order.tenant_id;
+    // SEC-IDOR-1: een ingelogde gebruiker mag alleen mails sturen voor orders van de eigen winkel.
+    // Service-role (webhooks, storefront-api) en platformadmins passeren requireRole.
+    requireRole(auth, tenantId, ['tenant_admin', 'staff']);
 
     // Check customer_communication_settings toggle
     const { data: commSettings } = await supabase

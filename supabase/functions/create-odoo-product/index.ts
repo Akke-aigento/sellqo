@@ -73,10 +73,13 @@ Deno.serve(async (req) => {
     return new Response(null, { headers: corsHeaders })
   }
 
+  // SEC-IDOR-1: alleen na geslaagde autorisatie mag het foutpad een product markeren.
+  let authorizedTenantId: string | null = null
   try {
     const { product_id, tenant_id, connection_id } = await req.json()
     const auth = await authenticateRequest(req, tenant_id);
     requireRole(auth, tenant_id, ['tenant_admin', 'staff']);
+    authorizedTenantId = tenant_id
 
     if (!product_id || !tenant_id || !connection_id) {
       return new Response(
@@ -183,7 +186,7 @@ Deno.serve(async (req) => {
     // Update product with error
     try {
       const { product_id } = await req.clone().json()
-      if (product_id) {
+      if (product_id && authorizedTenantId) {
         const supabaseUrl = Deno.env.get('SUPABASE_URL')!
         const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
         const supabase = createClient(supabaseUrl, supabaseKey)
@@ -192,6 +195,7 @@ Deno.serve(async (req) => {
           .from('products')
           .update({ odoo_listing_status: 'error', odoo_listing_error: errorMessage })
           .eq('id', product_id)
+          .eq('tenant_id', authorizedTenantId)
       }
     } catch (e) {
       console.error('Could not update product error status:', e)
