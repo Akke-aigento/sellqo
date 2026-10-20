@@ -1,3 +1,4 @@
+-- lovable-cron-fallback-reviewed: MAIL-2a, minuutcadans automation-scheduler + process-campaign-queue, akkoord Akke 20-10
 -- MAIL-2a — e-mailautomations: welkomstreeks, na aankoop + reviewvraag, win-back, verlaten winkelwagen.
 -- Go van Akke 19-10-2026 (beslissingen 1-4 en 6 "akkoord"). Zie docs/role-audit.md MAIL-2a.
 --
