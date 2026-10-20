@@ -4721,7 +4721,8 @@
       "vat_rate_label": "MwSt.-Satz",
       "vat_rate_shop_default": "Standardsatz des Shops ({{rate}} %)",
       "vat_rate_hint": "Der Satz, mit dem dieses Produkt auf Bestellungen und Rechnungen erscheint.",
-      "margin_hint": "Marge {{margin}} % · Gewinn {{profit}} pro Stück (ohne {{rate}} % MwSt.)"
+      "margin_hint": "Marge {{margin}} % · Gewinn {{profit}} pro Stück (ohne {{rate}} % MwSt.)",
+      "vat_rate_inactive": "(inaktiv)"
     },
     "promotions": {
       "autoDiscountFormDialog": {

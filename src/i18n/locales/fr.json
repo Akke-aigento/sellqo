@@ -4721,7 +4721,8 @@
       "vat_rate_label": "Taux de TVA",
       "vat_rate_shop_default": "Taux standard de la boutique ({{rate}} %)",
       "vat_rate_hint": "Le taux appliqué à ce produit sur les commandes et les factures.",
-      "margin_hint": "Marge {{margin}} % · bénéfice {{profit}} par unité (hors TVA {{rate}} %)"
+      "margin_hint": "Marge {{margin}} % · bénéfice {{profit}} par unité (hors TVA {{rate}} %)",
+      "vat_rate_inactive": "(inactif)"
     },
     "promotions": {
       "autoDiscountFormDialog": {

@@ -4994,7 +4994,8 @@
       "vat_rate_label": "VAT rate",
       "vat_rate_shop_default": "Shop default rate ({{rate}}%)",
       "vat_rate_hint": "The rate used for this product on orders and invoices.",
-      "margin_hint": "Margin {{margin}}% · profit {{profit}} per unit (excl. {{rate}}% VAT)"
+      "margin_hint": "Margin {{margin}}% · profit {{profit}} per unit (excl. {{rate}}% VAT)",
+      "vat_rate_inactive": "(inactive)"
     },
     "promotions": {
       "autoDiscountFormDialog": {

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -346,17 +346,39 @@ export default function ProductForm() {
 
   // PRODUCT-FORM-2 — btw-tarief per product. Zonder vat_rate_id rekent de backend
   // (_shared/vat.ts, storefront-api) met tenants.tax_percentage, met 21 als terugval.
-  const { vatRates } = useVatRates();
+  const { vatRates, isLoading: vatRatesLoading } = useVatRates();
   const tenantDefaultVatRate = Number(currentTenant?.tax_percentage) || 21;
   const selectedVatRateId = form.watch('vat_rate_id');
+  // useVatRates geeft alleen actieve tarieven. Staat het product op een tarief dat
+  // intussen inactief is, dan rekent de backend er toch mee (_shared/vat.ts filtert
+  // niet op is_active): los ophalen, zodat select en marge hetzelfde tarief tonen.
+  const missingVatRateId = selectedVatRateId && !vatRatesLoading && !vatRates.some((r) => r.id === selectedVatRateId)
+    ? selectedVatRateId : null;
+  const { data: inactiveVatRate, isLoading: inactiveVatRateLoading } = useQuery({
+    queryKey: ['vat-rate', missingVatRateId],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('vat_rates').select('*').eq('id', missingVatRateId as string).maybeSingle();
+      if (error) throw error;
+      return (data as unknown as VatRate | null) ?? null;
+    },
+    enabled: !!missingVatRateId,
+  });
+  const allKnownVatRates = useMemo(
+    () => (inactiveVatRate && !vatRates.some((r) => r.id === inactiveVatRate.id) ? [...vatRates, inactiveVatRate] : vatRates),
+    [vatRates, inactiveVatRate],
+  );
+  // Land zonder eigen tarieven: alle landen tonen, mét landcode in het label.
+  const vatRatesForOtherCountries = useMemo(() => {
+    const country = currentTenant?.country;
+    return !country || !vatRates.some((r) => r.country_code === country);
+  }, [vatRates, currentTenant?.country]);
   const vatRateOptions = useMemo(() => {
     const country = currentTenant?.country;
-    const own = country ? vatRates.filter((r) => r.country_code === country) : vatRates;
-    const list = own.length > 0 ? own : vatRates;
-    // Een tarief uit een ander land dat al op het product staat, blijft kiesbaar.
-    const current = selectedVatRateId ? vatRates.find((r) => r.id === selectedVatRateId) : undefined;
+    const list = vatRatesForOtherCountries ? vatRates : vatRates.filter((r) => r.country_code === country);
+    // Een tarief uit een ander land of een inactief tarief dat al op het product staat, blijft zichtbaar.
+    const current = selectedVatRateId ? allKnownVatRates.find((r) => r.id === selectedVatRateId) : undefined;
     return current && !list.includes(current) ? [...list, current] : list;
-  }, [vatRates, currentTenant?.country, selectedVatRateId]);
+  }, [vatRates, allKnownVatRates, currentTenant?.country, selectedVatRateId, vatRatesForOtherCountries]);
   const vatRateName = useCallback((rate: VatRate): string => {
     const lang = i18n.language;
     const name = lang === 'en' ? rate.name_en
@@ -366,10 +388,18 @@ export default function ProductForm() {
       : rate.name_en;
     return name || rate.name_nl || rate.name_en || rate.category;
   }, [i18n.language]);
+  const vatRateLabel = useCallback((rate: VatRate): string => {
+    const otherCountry = vatRatesForOtherCountries || rate.country_code !== currentTenant?.country;
+    const base = otherCountry ? `${vatRateName(rate)} · ${rate.country_code}` : vatRateName(rate);
+    const label = `${base} (${Number(rate.rate)}%)`;
+    return rate.is_active ? label : `${label} ${t('admin.productForm.vat_rate_inactive')}`;
+  }, [vatRateName, vatRatesForOtherCountries, currentTenant?.country, t]);
   const effectiveVatRate = useMemo(() => {
-    const match = selectedVatRateId ? vatRates.find((r) => r.id === selectedVatRateId) : undefined;
+    const match = selectedVatRateId ? allKnownVatRates.find((r) => r.id === selectedVatRateId) : undefined;
     return match ? Number(match.rate) : tenantDefaultVatRate;
-  }, [selectedVatRateId, vatRates, tenantDefaultVatRate]);
+  }, [selectedVatRateId, allKnownVatRates, tenantDefaultVatRate]);
+  // Marge pas tonen als het tarief vaststaat (geen flikkering met het winkeltarief).
+  const vatRateReady = !vatRatesLoading && !(missingVatRateId && inactiveVatRateLoading);
 
   // PRODUCT-FORM-2 — marge-indicatie, puur weergave. Verkoopprijs is incl. btw,
   // inkoopprijs excl. btw: marge = (netto verkoopprijs − inkoopprijs) / netto verkoopprijs.
@@ -1090,7 +1120,7 @@ export default function ProductForm() {
                                 </SelectItem>
                                 {vatRateOptions.map((rate) => (
                                   <SelectItem key={rate.id} value={rate.id}>
-                                    {vatRateName(rate)} ({Number(rate.rate)}%)
+                                    {vatRateLabel(rate)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
@@ -1102,7 +1132,7 @@ export default function ProductForm() {
                       </div>
                       {/* PRODUCT-FORM-2 — marge-indicatie (excl. btw), alleen weergave. Niet bij
                           varianten: die hebben elk een eigen verkoopprijs. */}
-                      {marginInfo && !(id && product?.product_variants?.some((v) => v.is_active)) && (
+                      {marginInfo && vatRateReady && !(id && product?.product_variants?.some((v) => v.is_active)) && (
                         <PermissionGate action="read" resource="product_costs">
                           <p className={cn('mt-4 text-sm', marginInfo.profit < 0 ? 'text-destructive' : 'text-muted-foreground')}>
                             {t('admin.productForm.margin_hint', {

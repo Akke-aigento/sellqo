@@ -5075,7 +5075,8 @@
       "vat_rate_label": "Btw-tarief",
       "vat_rate_shop_default": "Standaardtarief winkel ({{rate}}%)",
       "vat_rate_hint": "Het tarief waarmee dit product op orders en facturen komt.",
-      "margin_hint": "Marge {{margin}}% · winst {{profit}} per stuk (excl. {{rate}}% btw)"
+      "margin_hint": "Marge {{margin}}% · winst {{profit}} per stuk (excl. {{rate}}% btw)",
+      "vat_rate_inactive": "(inactief)"
     },
     "promotions": {
       "autoDiscountFormDialog": {

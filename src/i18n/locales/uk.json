@@ -5008,7 +5008,8 @@
       "vat_rate_label": "Ставка ПДВ",
       "vat_rate_shop_default": "Стандартна ставка магазину ({{rate}}%)",
       "vat_rate_hint": "Ставка, з якою цей товар потрапляє в замовлення та рахунки.",
-      "margin_hint": "Маржа {{margin}}% · прибуток {{profit}} за одиницю (без ПДВ {{rate}}%)"
+      "margin_hint": "Маржа {{margin}}% · прибуток {{profit}} за одиницю (без ПДВ {{rate}}%)",
+      "vat_rate_inactive": "(неактивна)"
     },
     "promotions": {
       "autoDiscountFormDialog": {
