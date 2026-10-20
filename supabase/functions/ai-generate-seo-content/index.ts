@@ -175,6 +175,8 @@ serve(async (req) => {
       const { data: categories, error: categoriesError } = await supabase
         .from("categories")
         .select("id, name, description")
+        // SEC-SEO-1: service-role omzeilt RLS — beperk expliciet tot de eigen winkel.
+        .eq("tenant_id", tenantId)
         .in("id", ids);
 
       if (categoriesError) throw categoriesError;
@@ -187,6 +189,7 @@ serve(async (req) => {
           const { error: updateError } = await supabase
             .from("categories")
             .update({ [updateField]: generated })
+            .eq("tenant_id", tenantId)
             .eq("id", category.id);
 
           if (!updateError) {
@@ -202,6 +205,8 @@ serve(async (req) => {
       const { data: products, error: productsError } = await supabase
         .from("products")
         .select("id, name, description, price, category_id")
+        // SEC-SEO-1: service-role omzeilt RLS — beperk expliciet tot de eigen winkel.
+        .eq("tenant_id", tenantId)
         .in("id", ids);
 
       if (productsError) throw productsError;
@@ -214,6 +219,7 @@ serve(async (req) => {
           const { error: updateError } = await supabase
             .from("products")
             .update({ [updateField]: generated })
+            .eq("tenant_id", tenantId)
             .eq("id", product.id);
 
           if (!updateError) {
