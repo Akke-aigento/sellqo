@@ -459,13 +459,34 @@
         "reinvite": "Opnieuw uitnodigen",
         "createdAt": "Aangemaakt",
         "expiresAt": "Vervalt",
-        "revoke": "Intrekken"
+        "revoke": "Intrekken",
+        "status": {
+          "pending": "In afwachting",
+          "accepted": "Geaccepteerd",
+          "expired": "Verlopen",
+          "revoked": "Ingetrokken",
+          "rejected": "Geweigerd"
+        },
+        "revoking": "Intrekken..."
       },
       "columnUser": "Gebruiker",
       "columnRole": "Rol",
       "columnPermissions": "Rechten",
       "invitationsTitle": "Uitnodigingen",
-      "inviteAction": "Uitnodigen"
+      "inviteAction": "Uitnodigen",
+      "noName": "Geen naam",
+      "noEmail": "Geen e-mail",
+      "removing": "Verwijderen...",
+      "removeBodyBefore": "Weet je zeker dat je ",
+      "removeBodyAfter": " wilt verwijderen uit het team? Deze persoon heeft dan geen toegang meer tot je winkel.",
+      "roleExplain": {
+        "tenant_admin": "Volledige toegang tot alle functies, inclusief instellingen, teamleden en betalingen.",
+        "staff": "Kan producten, orders en klanten beheren. Geen toegang tot instellingen of teamleden.",
+        "accountant": "Toegang tot facturen, creditnota's, rapporten en BTW-gegevens. Geen toegang tot producten of klanten.",
+        "warehouse": "Kan voorraad beheren, verzendingen verwerken en pakbonnen printen. Geen financiële toegang.",
+        "marketing": "Campagnes, ads, CMS en SEO. Geen toegang tot facturen of financiële instellingen. Kortingscodes beheren is een apart recht dat een beheerder per persoon inschakelt via de schakelaar in de ledenlijst hierboven.",
+        "viewer": "Alleen lezen. Kan alles bekijken maar niets wijzigen."
+      }
     },
     "payment": {
       "disconnect": {
@@ -1282,6 +1303,269 @@
       "welcome_title": "Welkomstmail",
       "welcome_path": "Marketing → E-mail → Automatiseringen → Welkomstreeks",
       "welcome_body": "Je vroegere welkomstmail staat nu hier, als eerste mail van de welkomstreeks."
+    },
+    "onboardingStatus": {
+      "title": "Setup Wizard",
+      "statusLabel": "Status: {{status}}",
+      "completed": "Voltooid",
+      "skippedAtStep": "Overgeslagen op stap {{step}} van {{total}}",
+      "stepOf": "Stap {{step}} van {{total}}",
+      "descCompleted": "Je hebt de setup wizard succesvol afgerond! Je kunt deze opnieuw doorlopen als je wilt.",
+      "descSkipped": "Je hebt de setup wizard eerder overgeslagen. Je kunt deze op elk moment hervatten of opnieuw beginnen.",
+      "descInProgress": "De setup wizard is nog niet afgerond. Je kunt deze hervatten of opnieuw beginnen.",
+      "resume": "Wizard hervatten",
+      "restart": "Opnieuw beginnen",
+      "restartTitle": "Wizard opnieuw starten?",
+      "restartBody": "Je gaat de setup wizard opnieuw doorlopen vanaf het begin. Je bestaande winkel en producten blijven behouden.",
+      "restartConfirm": "Ja, opnieuw starten"
+    },
+    "compliance": {
+      "categories": {
+        "seller": "Bedrijfsgegevens",
+        "invoice": "Facturatie",
+        "financial": "Financieel"
+      },
+      "checks": {
+        "company_name": "Bedrijfsnaam",
+        "address": "Adres",
+        "postal_code": "Postcode",
+        "city": "Stad/Gemeente",
+        "country": "Land",
+        "kvk_number": "Ondernemingsnummer (KBO/KvK)",
+        "btw_number": "BTW-nummer",
+        "iban": "IBAN bankrekeningnummer",
+        "phone": "Telefoonnummer",
+        "email": "E-mailadres",
+        "invoice_prefix": "Factuurnummer prefix",
+        "tax_percentage": "BTW-percentage",
+        "currency": "Valuta"
+      },
+      "optional": "optioneel",
+      "notFilled": "Niet ingevuld",
+      "title": "Belgische Factuur Compliance",
+      "compliant": "Compliant",
+      "missingRequired": "{{n}} vereiste velden ontbreken",
+      "description": "Controleer of alle verplichte velden voor Belgische facturen zijn ingevuld",
+      "allGood": "Alle verplichte factuurvelden zijn correct ingevuld. Je facturen voldoen aan de Belgische wettelijke eisen.",
+      "missingFields": "Er ontbreken verplichte velden. Vul deze in om compliant te zijn met Belgische facturatiewetgeving.",
+      "optionalMissing": "{{n}} optionele velden zijn niet ingevuld. Deze worden aanbevolen maar zijn niet verplicht.",
+      "requiredListTitle": "Verplichte velden voor Belgische facturen:",
+      "requiredList": {
+        "seller": "Volledige naam en adres van verkoper",
+        "companyNumber": "Ondernemingsnummer (KBO) of BTW-nummer",
+        "iban": "IBAN bankrekeningnummer",
+        "invoiceNumber": "Uniek, opeenvolgend factuurnummer",
+        "dates": "Factuurdatum en vervaldatum",
+        "vatAmount": "BTW-bedrag per tarief"
+      }
+    },
+    "transactions": {
+      "sections": {
+        "direct": {
+          "label": "Direct betalen",
+          "description": "Bancontact, iDEAL, Creditcard"
+        },
+        "later": {
+          "label": "Achteraf betalen",
+          "description": "Klarna"
+        },
+        "transfer": {
+          "label": "Overschrijving",
+          "description": "QR-code / SEPA Instant (gratis)"
+        }
+      },
+      "stripeMethods": {
+        "card": {
+          "label": "Creditcard / Apple Pay / Google Pay",
+          "description": "Standaard kaartbetalingen + wallets",
+          "region": "Internationaal"
+        },
+        "ideal": {
+          "description": "Directe bankoverschrijving"
+        },
+        "bancontact": {
+          "description": "Belgisch betaalsysteem"
+        },
+        "klarna": {
+          "description": "Achteraf betalen / gespreid"
+        }
+      },
+      "toast": {
+        "loadError": "Fout bij laden instellingen",
+        "saveNoAccess": "Opslaan mislukt: geen toegang (RLS). Neem contact op met support.",
+        "saved": "Instellingen opgeslagen",
+        "saveError": "Fout bij opslaan instellingen",
+        "minOneMethod": "Minimaal één betaalmethode vereist",
+        "minOneStripeMethod": "Minimaal één Stripe methode vereist"
+      },
+      "usage": {
+        "title": "Transactie Gebruik",
+        "description": "Deze maand verwerkte transacties",
+        "unlimited": "Onbeperkt",
+        "overLimit": "Over limiet",
+        "withinLimit": "Binnen limiet",
+        "bank": "Bank",
+        "posCash": "POS Cash",
+        "posCard": "POS Kaart",
+        "usedOf": "{{used}} van {{included}} transacties",
+        "remaining": "{{n}} resterend",
+        "overLimitAlert": "Je bent {{n}} transacties over je limiet. Extra kosten: €{{fee}}",
+        "noData": "Geen data beschikbaar"
+      },
+      "methods": {
+        "title": "Betaalmethoden",
+        "description": "Kies welke betaalmethoden beschikbaar zijn voor je klanten",
+        "stripeTitle": "Stripe (iDEAL, Creditcard, Bancontact)",
+        "stripeDescription": "Directe online betaling via Stripe",
+        "availableStripe": "Beschikbare Stripe betaalmethodes",
+        "klarnaNotice": "Klarna kost 3,5% + €0,30 per transactie. Zorg dat je deze fees doorrekent aan klanten of slik ze zelf in. Klarna is alleen beschikbaar voor orders boven €35."
+      },
+      "bankTransfer": {
+        "title": "Directe Bankoverschrijving (QR)",
+        "zeroCost": "0% kosten",
+        "description": "Klant scant QR-code met bank-app - SEPA Instant",
+        "ibanRequired": "Configureer eerst je IBAN in Bedrijfsgegevens",
+        "manualWarning": "Betalingen worden NIET automatisch gedetecteerd — je moet ze handmatig verwerken",
+        "hideQrMobile": "QR-code verbergen op mobiel",
+        "hideQrMobileHelp": "Op smartphones kan een klant de QR-code niet scannen met hetzelfde toestel. Zet dit aan om op mobiel enkel de overschrijvingsgegevens te tonen. De QR blijft zichtbaar op desktop en tablet."
+      },
+      "passthrough": {
+        "title": "Transactiekosten Doorberekenen",
+        "description": "Kies of je transactiekosten wilt doorberekenen aan je klanten",
+        "showAtCheckout": "Transactiekosten tonen bij checkout",
+        "showAtCheckoutHelp": "Wanneer ingeschakeld, kiest de klant zijn betaalmethode in jouw checkout en ziet hij de exacte transactiekosten van die methode bovenop het ordertotaal. Voorbeeld: Bancontact +€0,25, Creditcard +€1,75 op een €100 order. Wanneer uitgeschakeld, worden de kosten van je eigen marge afgehouden.",
+        "feeLabel": "Label voor transactiekosten",
+        "feeLabelPlaceholder": "Transactiekosten",
+        "feeLabelHelp": "Dit label wordt getoond in de checkout bij de transactiekosten"
+      },
+      "order": {
+        "title": "Volgorde betaalmethoden in checkout",
+        "description": "Bepaal in welke volgorde je klanten de betaalcategorieën zien tijdens het afrekenen. Sleep om de volgorde aan te passen.",
+        "tip": "Tip: De eerste zichtbare sectie wordt het meest opgevallen. Veel tenants plaatsen 'Overschrijving' bovenaan om kosten te besparen, terwijl anderen 'Direct betalen' bovenaan zetten voor snellere conversie."
+      },
+      "dialog": {
+        "title": "Belangrijk — Bankoverschrijving handmatig verifiëren",
+        "introBefore": "Bij bankoverschrijving (QR-code / SEPA Instant) wordt de betaling ",
+        "introNot": "NIET",
+        "introAfter": " automatisch gedetecteerd. Dit betekent:",
+        "point1": "De bestelling blijft op status 'Wacht op betaling' tot jij de betaling handmatig bevestigt",
+        "point2": "Jij bent zelf verantwoordelijk voor het controleren van je bankrekening",
+        "point3": "Jij moet de bestelling handmatig op 'Betaald' zetten in het admin paneel",
+        "point4": "Klant ontvangt pas een verzendbevestiging nadat jij de status hebt aangepast",
+        "point5": "Als jij de betaling vergeet te controleren, kan dit leiden tot ontevreden klanten",
+        "advice": "Bij twijfel raden we aan om alleen Stripe-betalingen aan te bieden, deze worden automatisch verwerkt.",
+        "accept": "Ik begrijp het en accepteer de verantwoordelijkheid"
+      }
+    },
+    "returnSettings": {
+      "reasons": {
+        "defect": "Defect",
+        "damaged_in_transit": "Beschadigd bij transport",
+        "wrong_product": "Verkeerd product ontvangen",
+        "wrong_size": "Verkeerde maat",
+        "not_as_described": "Niet zoals beschreven",
+        "changed_mind": "Ik ben van gedachten veranderd",
+        "late_delivery": "Te laat geleverd",
+        "duplicate_order": "Dubbele bestelling",
+        "other": "Anders"
+      },
+      "notifications": {
+        "requestReceived": "Retour aanvraag ontvangen",
+        "approved": "Retour goedgekeurd",
+        "packageReceived": "Pakket ontvangen door ons",
+        "refundProcessed": "Refund verwerkt",
+        "title": "Notificaties",
+        "description": "Email notificaties voor retours",
+        "customerHeading": "Klant ontvangt email bij:",
+        "adminHeading": "Admin ontvangt notificatie bij:",
+        "adminNewRequest": "Nieuwe retour aanvraag"
+      },
+      "title": "Retourinstellingen",
+      "subtitle": "Configureer het retourbeleid, refund logica en klant-portaal.",
+      "disabledNote": "Uitgeschakelde opties komen binnenkort: ze worden nog niet toegepast.",
+      "general": {
+        "title": "Algemeen",
+        "description": "Basisinstellingen voor retours",
+        "enabled": "Retours geactiveerd",
+        "windowDays": "Retourtermijn (dagen)",
+        "euMinimum": "EU minimum: 14 dagen",
+        "restockingFee": "Standaard restocking fee (%)"
+      },
+      "creditNotes": {
+        "title": "Credit nota's",
+        "description": "Wanneer en hoe credit nota's worden aangemaakt",
+        "policy": "Credit nota beleid",
+        "never": "Nooit",
+        "b2bOnly": "Alleen B2B",
+        "always": "Altijd (ook B2C)",
+        "prefix": "Credit nota prefix",
+        "autoEmail": "Auto-versturen credit nota per email bij refund"
+      },
+      "portal": {
+        "title": "Klant-portaal",
+        "description": "Self-service retour aanvragen",
+        "enabled": "Klanten mogen zelf retours aanvragen",
+        "auth": "Authenticatie methode",
+        "authEmailOrder": "Email + ordernummer (geen account)",
+        "authLoggedIn": "Alleen ingelogde klanten",
+        "autoApprove": "Auto-goedkeuren binnen retourtermijn",
+        "manualOutside": "Buiten retourtermijn alleen op aanvraag"
+      },
+      "comingPhase4": "Komt in fase 4",
+      "comingPhase3": "Komt in fase 3",
+      "refund": {
+        "title": "Refund logica (eigen Stripe orders)",
+        "description": "Hoe refunds worden verwerkt voor eigen checkout",
+        "method": "Refund methode",
+        "auto": "Automatisch via Stripe",
+        "manual": "Handmatig (admin bevestigt)",
+        "shippingByDefault": "Verzendkosten standaard ook terugbetalen",
+        "partial": "Gedeeltelijke refunds toestaan (per item)",
+        "requiresInspection": "Inspectie vereist voor refund",
+        "requiresInspectionHelp": "Wanneer uitgeschakeld kan een refund worden verwerkt zonder dat de inspectie is afgerond."
+      },
+      "marketplace": {
+        "title": "Marketplace refunds",
+        "info": "Voor orders binnengekomen via marketplaces zoals Bol.com of Amazon verloopt de refund via hun platform. Onze refund logica geldt alleen voor eigen Stripe checkout orders.",
+        "mode": "Refund modus",
+        "manual": "Manueel — admin gaat zelf naar marketplace dashboard",
+        "auto": "Automatisch via marketplace API",
+        "autoAccept": "Auto-accepteren binnen retourtermijn"
+      },
+      "shipping": {
+        "title": "Verzending retours",
+        "description": "Wie betaalt verzending en label generatie",
+        "paidBy": "Retourverzending betaald door",
+        "customer": "Klant betaalt",
+        "merchant": "Wij betalen",
+        "conditional": "Conditioneel (gratis bij bepaalde redenen)",
+        "freeReasons": "Gratis retour bij deze redenen",
+        "provider": "Verzendintegratie",
+        "none": "Geen integratie",
+        "other": "Andere koerier",
+        "autoLabel": "Auto-genereer retourlabel bij goedkeuring"
+      },
+      "stock": {
+        "title": "Voorraad",
+        "description": "Automatische herbevoorrading bij retours",
+        "autoRestock": "Auto-restock bij conditie 'nieuw' of 'ongeopend'",
+        "noRestockDamaged": "Auto NIET restocken bij 'beschadigd' of 'defect'",
+        "impactThreshold": "Notificatie bij voorraad-impact (%)",
+        "impactThresholdHelp": "Stuur notificatie als retour meer dan X% van voorraad betreft"
+      },
+      "reasonsSection": {
+        "title": "Retourredenen",
+        "description": "Welke redenen klanten mogen kiezen",
+        "resetDefaults": "Standaard terugzetten"
+      },
+      "reset": {
+        "title": "Alle instellingen resetten",
+        "description": "Zet alle retourinstellingen terug naar de standaardwaarden.",
+        "button": "Reset alles",
+        "confirmTitle": "Weet je het zeker?",
+        "confirmBody": "Dit zet alle retourinstellingen terug naar de standaardwaarden. Dit kan niet ongedaan worden gemaakt.",
+        "confirm": "Reset"
+      }
     }
   },
   "languages": {
@@ -1454,6 +1738,17 @@
       "sent": "Verzonden",
       "delivered": "Afgeleverd",
       "failed": "Mislukt"
+    },
+    "settings": {
+      "saved": "Peppol-ID opgeslagen.",
+      "formatHint": "Formaat: schemeID:identifier (bijv. 0208:0123456789 voor België KBO)",
+      "schemesTitle": "Peppol Scheme ID's per land:",
+      "schemes": {
+        "be": "België (KBO): 0208",
+        "nl": "Nederland (KvK): 0106",
+        "de": "Duitsland: 0204",
+        "fr": "Frankrijk (SIRET): 0009"
+      }
     }
   },
   "compliance": {
@@ -1510,7 +1805,8 @@
     "delete_title": "BTW-tarief verwijderen?",
     "delete_description": "Weet je zeker dat je dit BTW-tarief wilt verwijderen? Deze actie kan niet ongedaan worden gemaakt.",
     "active_description": "Actief tarief kan worden geselecteerd",
-    "default_description": "Automatisch toegepast bij nieuwe producten"
+    "default_description": "Automatisch toegepast bij nieuwe producten",
+    "system_badge": "Standaard"
   },
   "shipping": {
     "title": "Verzendmethodes",

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -56,17 +57,19 @@ import { CSS } from '@dnd-kit/utilities';
 
 type PaymentSectionKey = 'direct' | 'later' | 'transfer';
 
-const PAYMENT_SECTIONS: Record<PaymentSectionKey, { label: string; description: string; icon: typeof CreditCard }> = {
-  direct: { label: 'Direct betalen', description: 'Bancontact, iDEAL, Creditcard', icon: Zap },
-  later: { label: 'Achteraf betalen', description: 'Klarna', icon: Clock },
-  transfer: { label: 'Overschrijving', description: 'QR-code / SEPA Instant (gratis)', icon: QrCode },
+/** `labelKey`/`descriptionKey` zijn i18n-keys; vertaald in de component. */
+const PAYMENT_SECTIONS: Record<PaymentSectionKey, { labelKey: string; descriptionKey: string; icon: typeof CreditCard }> = {
+  direct: { labelKey: 'settings.transactions.sections.direct.label', descriptionKey: 'settings.transactions.sections.direct.description', icon: Zap },
+  later: { labelKey: 'settings.transactions.sections.later.label', descriptionKey: 'settings.transactions.sections.later.description', icon: Clock },
+  transfer: { labelKey: 'settings.transactions.sections.transfer.label', descriptionKey: 'settings.transactions.sections.transfer.description', icon: QrCode },
 };
 
-const STRIPE_PAYMENT_METHODS = [
-  { code: 'card', label: 'Creditcard / Apple Pay / Google Pay', description: 'Standaard kaartbetalingen + wallets', region: 'Internationaal', flag: '🌍', cost: '~1,5% + €0,25' },
-  { code: 'ideal', label: 'iDEAL', description: 'Directe bankoverschrijving', region: 'NL', flag: '🇳🇱', cost: '~€0,29' },
-  { code: 'bancontact', label: 'Bancontact', description: 'Belgisch betaalsysteem', region: 'BE', flag: '🇧🇪', cost: '~€0,25' },
-  { code: 'klarna', label: 'Klarna', description: 'Achteraf betalen / gespreid', region: 'EU', flag: '🇪🇺', cost: '~3,5% + €0,30' },
+/** `labelKey`, `descriptionKey` en `regionKey` zijn i18n-keys; merknamen (`label`) blijven onvertaald. */
+const STRIPE_PAYMENT_METHODS: { code: string; label?: string; labelKey?: string; descriptionKey: string; region?: string; regionKey?: string; flag: string; cost: string }[] = [
+  { code: 'card', labelKey: 'settings.transactions.stripeMethods.card.label', descriptionKey: 'settings.transactions.stripeMethods.card.description', regionKey: 'settings.transactions.stripeMethods.card.region', flag: '🌍', cost: '~1,5% + €0,25' },
+  { code: 'ideal', label: 'iDEAL', descriptionKey: 'settings.transactions.stripeMethods.ideal.description', region: 'NL', flag: '🇳🇱', cost: '~€0,29' },
+  { code: 'bancontact', label: 'Bancontact', descriptionKey: 'settings.transactions.stripeMethods.bancontact.description', region: 'BE', flag: '🇧🇪', cost: '~€0,25' },
+  { code: 'klarna', label: 'Klarna', descriptionKey: 'settings.transactions.stripeMethods.klarna.description', region: 'EU', flag: '🇪🇺', cost: '~3,5% + €0,30' },
 ];
 
 interface TenantPaymentConfig {
@@ -82,6 +85,7 @@ interface TenantPaymentConfig {
 }
 
 function SortablePaymentSection({ id, index }: { id: PaymentSectionKey; index: number }) {
+  const { t } = useTranslation();
   const section = PAYMENT_SECTIONS[id];
   const Icon = section.icon;
   const {
@@ -111,8 +115,8 @@ function SortablePaymentSection({ id, index }: { id: PaymentSectionKey; index: n
         <Icon className="h-4 w-4 text-foreground" />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium">{section.label}</div>
-        <div className="text-xs text-muted-foreground">{section.description}</div>
+        <div className="text-sm font-medium">{t(section.labelKey)}</div>
+        <div className="text-xs text-muted-foreground">{t(section.descriptionKey)}</div>
       </div>
       <Badge variant="outline" className="shrink-0 text-xs tabular-nums">
         {index + 1}
@@ -122,6 +126,7 @@ function SortablePaymentSection({ id, index }: { id: PaymentSectionKey; index: n
 }
 
 export function TransactionFeeSettings() {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const activeTenantId = currentTenant?.id;
   const { data: usageData, isLoading: usageLoading, refetch: refetchUsage } = useTransactionUsage(activeTenantId || undefined);
@@ -188,7 +193,7 @@ export function TransactionFeeSettings() {
       setInitialConfig(loaded);
     } catch (error) {
       console.error('Error loading payment config:', error);
-      toast.error('Fout bij laden instellingen');
+      toast.error(t('settings.transactions.toast.loadError'));
     } finally {
       setIsLoading(false);
     }
@@ -224,17 +229,17 @@ export function TransactionFeeSettings() {
       if (error) throw error;
       
       if (!data || data.length === 0) {
-        toast.error('Opslaan mislukt: geen toegang (RLS). Neem contact op met support.');
+        toast.error(t('settings.transactions.toast.saveNoAccess'));
         return;
       }
 
       const updatedConfig = { ...config, stripe_payment_methods: cleanedMethods.length > 0 ? cleanedMethods : ['card'] };
       setInitialConfig(updatedConfig);
-      toast.success('Instellingen opgeslagen');
+      toast.success(t('settings.transactions.toast.saved'));
       refetchUsage();
     } catch (error) {
       console.error('[TransactionFeeSettings] Error saving config:', error);
-      toast.error('Fout bij opslaan instellingen');
+      toast.error(t('settings.transactions.toast.saveError'));
     } finally {
       setIsSaving(false);
     }
@@ -245,7 +250,7 @@ export function TransactionFeeSettings() {
       const methods = prev.payment_methods_enabled;
       if (methods.includes(method)) {
         if (methods.length === 1) {
-          toast.error('Minimaal één betaalmethode vereist');
+          toast.error(t('settings.transactions.toast.minOneMethod'));
           return prev;
         }
         return { ...prev, payment_methods_enabled: methods.filter(m => m !== method) };
@@ -307,26 +312,26 @@ export function TransactionFeeSettings() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <TrendingUp className="h-5 w-5" />
-                Transactie Gebruik
+                {t('settings.transactions.usage.title')}
               </CardTitle>
               <CardDescription>
-                Deze maand verwerkte transacties
+                {t('settings.transactions.usage.description')}
               </CardDescription>
             </div>
             {isUnlimited ? (
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Infinity className="h-3 w-3" />
-                Onbeperkt
+                {t('settings.transactions.usage.unlimited')}
               </Badge>
             ) : usageData?.is_over_limit ? (
               <Badge variant="destructive" className="flex items-center gap-1">
                 <AlertTriangle className="h-3 w-3" />
-                Over limiet
+                {t('settings.transactions.usage.overLimit')}
               </Badge>
             ) : (
               <Badge variant="outline" className="flex items-center gap-1">
                 <CheckCircle className="h-3 w-3" />
-                Binnen limiet
+                {t('settings.transactions.usage.withinLimit')}
               </Badge>
             )}
           </div>
@@ -345,15 +350,15 @@ export function TransactionFeeSettings() {
                 </div>
                 <div className="text-center p-3 bg-muted/50 rounded-lg">
                   <div className="text-2xl font-bold">{usageData.usage?.bank_transfer_transactions || 0}</div>
-                  <div className="text-xs text-muted-foreground">Bank</div>
+                  <div className="text-xs text-muted-foreground">{t('settings.transactions.usage.bank')}</div>
                 </div>
                 <div className="text-center p-3 bg-muted/50 rounded-lg">
                   <div className="text-2xl font-bold">{usageData.usage?.pos_cash_transactions || 0}</div>
-                  <div className="text-xs text-muted-foreground">POS Cash</div>
+                  <div className="text-xs text-muted-foreground">{t('settings.transactions.usage.posCash')}</div>
                 </div>
                 <div className="text-center p-3 bg-muted/50 rounded-lg">
                   <div className="text-2xl font-bold">{usageData.usage?.pos_card_transactions || 0}</div>
-                  <div className="text-xs text-muted-foreground">POS Kaart</div>
+                  <div className="text-xs text-muted-foreground">{t('settings.transactions.usage.posCard')}</div>
                 </div>
               </div>
 
@@ -361,8 +366,8 @@ export function TransactionFeeSettings() {
                 <>
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span>{usageData.total_transactions} van {usageData.included_transactions} transacties</span>
-                      <span>{usageData.remaining_transactions} resterend</span>
+                      <span>{t('settings.transactions.usage.usedOf', { used: usageData.total_transactions, included: usageData.included_transactions })}</span>
+                      <span>{t('settings.transactions.usage.remaining', { n: usageData.remaining_transactions })}</span>
                     </div>
                     <Progress value={usagePercentage} className="h-2" />
                   </div>
@@ -371,8 +376,7 @@ export function TransactionFeeSettings() {
                     <Alert variant="destructive">
                       <AlertTriangle className="h-4 w-4" />
                       <AlertDescription>
-                        Je bent {usageData.total_transactions - usageData.included_transactions} transacties over je limiet. 
-                        Extra kosten: €{usageData.usage?.overage_fee_total?.toFixed(2) || '0.00'}
+                        {t('settings.transactions.usage.overLimitAlert', { n: usageData.total_transactions - usageData.included_transactions, fee: usageData.usage?.overage_fee_total?.toFixed(2) || '0.00' })}
                       </AlertDescription>
                     </Alert>
                   )}
@@ -380,7 +384,7 @@ export function TransactionFeeSettings() {
               )}
             </>
           ) : (
-            <p className="text-muted-foreground text-center">Geen data beschikbaar</p>
+            <p className="text-muted-foreground text-center">{t('settings.transactions.usage.noData')}</p>
           )}
         </CardContent>
       </Card>
@@ -388,9 +392,9 @@ export function TransactionFeeSettings() {
       {/* Payment Methods */}
       <Card>
         <CardHeader>
-          <CardTitle>Betaalmethoden</CardTitle>
+          <CardTitle>{t('settings.transactions.methods.title')}</CardTitle>
           <CardDescription>
-            Kies welke betaalmethoden beschikbaar zijn voor je klanten
+            {t('settings.transactions.methods.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -401,9 +405,9 @@ export function TransactionFeeSettings() {
                 <CreditCard className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <div className="font-medium">Stripe (iDEAL, Creditcard, Bancontact)</div>
+                <div className="font-medium">{t('settings.transactions.methods.stripeTitle')}</div>
                 <div className="text-sm text-muted-foreground">
-                  Directe online betaling via Stripe
+                  {t('settings.transactions.methods.stripeDescription')}
                 </div>
               </div>
             </div>
@@ -416,7 +420,7 @@ export function TransactionFeeSettings() {
           {/* Stripe sub-methods */}
           {config.payment_methods_enabled.includes('stripe') && (
             <div className="ml-12 space-y-2 p-4 border rounded-lg bg-muted/30">
-              <p className="text-sm font-medium mb-3">Beschikbare Stripe betaalmethodes</p>
+              <p className="text-sm font-medium mb-3">{t('settings.transactions.methods.availableStripe')}</p>
               {STRIPE_PAYMENT_METHODS.map((method) => {
                 const isChecked = config.stripe_payment_methods.includes(method.code);
                 const isKlarna = method.code === 'klarna';
@@ -432,7 +436,7 @@ export function TransactionFeeSettings() {
                             const current = prev.stripe_payment_methods;
                             if (!checked) {
                               if (current.length === 1) {
-                                toast.error('Minimaal één Stripe methode vereist');
+                                toast.error(t('settings.transactions.toast.minOneStripeMethod'));
                                 return prev;
                               }
                               return { ...prev, stripe_payment_methods: current.filter(c => c !== method.code) };
@@ -443,11 +447,11 @@ export function TransactionFeeSettings() {
                       />
                       <div className="flex-1 flex items-center justify-between">
                         <div>
-                          <span className="text-sm font-medium">{method.flag} {method.label}</span>
-                          <span className="text-xs text-muted-foreground ml-2">{method.description}</span>
+                          <span className="text-sm font-medium">{method.flag} {method.labelKey ? t(method.labelKey) : method.label}</span>
+                          <span className="text-xs text-muted-foreground ml-2">{t(method.descriptionKey)}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">{method.region}</Badge>
+                          <Badge variant="outline" className="text-xs">{method.regionKey ? t(method.regionKey) : method.region}</Badge>
                           <span className="text-xs text-muted-foreground">{method.cost}</span>
                         </div>
                       </div>
@@ -456,7 +460,7 @@ export function TransactionFeeSettings() {
                       <Alert className="ml-8 mt-1 mb-2">
                         <Info className="h-4 w-4" />
                         <AlertDescription className="text-xs">
-                          Klarna kost 3,5% + €0,30 per transactie. Zorg dat je deze fees doorrekent aan klanten of slik ze zelf in. Klarna is alleen beschikbaar voor orders boven €35.
+                          {t('settings.transactions.methods.klarnaNotice')}
                         </AlertDescription>
                       </Alert>
                     )}
@@ -474,20 +478,20 @@ export function TransactionFeeSettings() {
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-medium">Directe Bankoverschrijving (QR)</span>
-                  <Badge variant="secondary">0% kosten</Badge>
+                  <span className="font-medium">{t('settings.transactions.bankTransfer.title')}</span>
+                  <Badge variant="secondary">{t('settings.transactions.bankTransfer.zeroCost')}</Badge>
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  Klant scant QR-code met bank-app - SEPA Instant
+                  {t('settings.transactions.bankTransfer.description')}
                 </div>
                 {!canEnableBankTransfer && (
                   <div className="text-xs text-destructive mt-1">
-                    ⚠️ Configureer eerst je IBAN in Bedrijfsgegevens
+                    ⚠️ {t('settings.transactions.bankTransfer.ibanRequired')}
                   </div>
                 )}
                 {config.bank_transfer_acknowledged_manual && config.payment_methods_enabled.includes('bank_transfer') && (
                   <div className="text-xs text-amber-600 mt-1">
-                    ⚠️ Betalingen worden NIET automatisch gedetecteerd — je moet ze handmatig verwerken
+                    ⚠️ {t('settings.transactions.bankTransfer.manualWarning')}
                   </div>
                 )}
               </div>
@@ -502,9 +506,9 @@ export function TransactionFeeSettings() {
           {config.payment_methods_enabled.includes('bank_transfer') && (
             <div className="flex items-start justify-between gap-4 p-4 pl-6 border rounded-lg bg-muted/30">
               <div className="flex-1 min-w-0">
-                <div className="font-medium text-sm">QR-code verbergen op mobiel</div>
+                <div className="font-medium text-sm">{t('settings.transactions.bankTransfer.hideQrMobile')}</div>
                 <div className="text-xs text-muted-foreground mt-1 max-w-2xl">
-                  Op smartphones kan een klant de QR-code niet scannen met hetzelfde toestel. Zet dit aan om op mobiel enkel de overschrijvingsgegevens te tonen. De QR blijft zichtbaar op desktop en tablet.
+                  {t('settings.transactions.bankTransfer.hideQrMobileHelp')}
                 </div>
               </div>
               <Switch
@@ -519,17 +523,17 @@ export function TransactionFeeSettings() {
       {/* Transaction Fee Passthrough */}
       <Card>
         <CardHeader>
-          <CardTitle>Transactiekosten Doorberekenen</CardTitle>
+          <CardTitle>{t('settings.transactions.passthrough.title')}</CardTitle>
           <CardDescription>
-            Kies of je transactiekosten wilt doorberekenen aan je klanten
+            {t('settings.transactions.passthrough.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between p-4 border rounded-lg">
             <div>
-              <div className="font-medium">Transactiekosten tonen bij checkout</div>
+              <div className="font-medium">{t('settings.transactions.passthrough.showAtCheckout')}</div>
               <div className="text-sm text-muted-foreground max-w-lg">
-                Wanneer ingeschakeld, kiest de klant zijn betaalmethode in jouw checkout en ziet hij de exacte transactiekosten van die methode bovenop het ordertotaal. Voorbeeld: Bancontact +€0,25, Creditcard +€1,75 op een €100 order. Wanneer uitgeschakeld, worden de kosten van je eigen marge afgehouden.
+                {t('settings.transactions.passthrough.showAtCheckoutHelp')}
               </div>
             </div>
             <Switch
@@ -543,7 +547,7 @@ export function TransactionFeeSettings() {
 
           {config.pass_transaction_fee_to_customer && (
             <div className="space-y-2">
-              <Label htmlFor="fee-label">Label voor transactiekosten</Label>
+              <Label htmlFor="fee-label">{t('settings.transactions.passthrough.feeLabel')}</Label>
               <Input
                 id="fee-label"
                 value={config.transaction_fee_label}
@@ -551,10 +555,10 @@ export function TransactionFeeSettings() {
                   ...prev, 
                   transaction_fee_label: e.target.value 
                 }))}
-                placeholder="Transactiekosten"
+                placeholder={t('settings.transactions.passthrough.feeLabelPlaceholder')}
               />
               <p className="text-xs text-muted-foreground">
-                Dit label wordt getoond in de checkout bij de transactiekosten
+                {t('settings.transactions.passthrough.feeLabelHelp')}
               </p>
             </div>
           )}
@@ -564,9 +568,9 @@ export function TransactionFeeSettings() {
       {/* Payment Section Order */}
       <Card>
         <CardHeader>
-          <CardTitle>Volgorde betaalmethoden in checkout</CardTitle>
+          <CardTitle>{t('settings.transactions.order.title')}</CardTitle>
           <CardDescription>
-            Bepaal in welke volgorde je klanten de betaalcategorieën zien tijdens het afrekenen. Sleep om de volgorde aan te passen.
+            {t('settings.transactions.order.description')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -590,7 +594,7 @@ export function TransactionFeeSettings() {
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription className="text-xs">
-              💡 Tip: De eerste zichtbare sectie wordt het meest opgevallen. Veel tenants plaatsen 'Overschrijving' bovenaan om kosten te besparen, terwijl anderen 'Direct betalen' bovenaan zetten voor snellere conversie.
+              💡 {t('settings.transactions.order.tip')}
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -602,28 +606,28 @@ export function TransactionFeeSettings() {
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Belangrijk — Bankoverschrijving handmatig verifiëren
+              {t('settings.transactions.dialog.title')}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-left space-y-3">
               <p>
-                Bij bankoverschrijving (QR-code / SEPA Instant) wordt de betaling <strong>NIET</strong> automatisch gedetecteerd. Dit betekent:
+                {t('settings.transactions.dialog.introBefore')}<strong>{t('settings.transactions.dialog.introNot')}</strong>{t('settings.transactions.dialog.introAfter')}
               </p>
               <ul className="list-disc pl-5 space-y-1.5 text-sm">
-                <li>De bestelling blijft op status 'Wacht op betaling' tot jij de betaling handmatig bevestigt</li>
-                <li>Jij bent zelf verantwoordelijk voor het controleren van je bankrekening</li>
-                <li>Jij moet de bestelling handmatig op 'Betaald' zetten in het admin paneel</li>
-                <li>Klant ontvangt pas een verzendbevestiging nadat jij de status hebt aangepast</li>
-                <li>Als jij de betaling vergeet te controleren, kan dit leiden tot ontevreden klanten</li>
+                <li>{t('settings.transactions.dialog.point1')}</li>
+                <li>{t('settings.transactions.dialog.point2')}</li>
+                <li>{t('settings.transactions.dialog.point3')}</li>
+                <li>{t('settings.transactions.dialog.point4')}</li>
+                <li>{t('settings.transactions.dialog.point5')}</li>
               </ul>
               <p className="text-sm text-muted-foreground italic">
-                Bij twijfel raden we aan om alleen Stripe-betalingen aan te bieden, deze worden automatisch verwerkt.
+                {t('settings.transactions.dialog.advice')}
               </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
             <AlertDialogAction onClick={handleBankTransferAccepted}>
-              Ik begrijp het en accepteer de verantwoordelijkheid
+              {t('settings.transactions.dialog.accept')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

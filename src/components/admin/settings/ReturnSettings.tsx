@@ -1,4 +1,5 @@
 import { useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -13,19 +14,21 @@ import { Info, RotateCcw, Package, FileText, Users, CreditCard, Store, Truck, Bo
 import { useReturnSettings, ReturnSettings as ReturnSettingsType } from '@/hooks/useReturnSettings';
 import { Skeleton } from '@/components/ui/skeleton';
 
+/** i18n-keys per retourreden; vertaald in de component. */
 const REASON_CODE_LABELS: Record<string, string> = {
-  defect: 'Defect',
-  damaged_in_transit: 'Beschadigd bij transport',
-  wrong_product: 'Verkeerd product ontvangen',
-  wrong_size: 'Verkeerde maat',
-  not_as_described: 'Niet zoals beschreven',
-  changed_mind: 'Ik ben van gedachten veranderd',
-  late_delivery: 'Te laat geleverd',
-  duplicate_order: 'Dubbele bestelling',
-  other: 'Anders',
+  defect: 'settings.returnSettings.reasons.defect',
+  damaged_in_transit: 'settings.returnSettings.reasons.damaged_in_transit',
+  wrong_product: 'settings.returnSettings.reasons.wrong_product',
+  wrong_size: 'settings.returnSettings.reasons.wrong_size',
+  not_as_described: 'settings.returnSettings.reasons.not_as_described',
+  changed_mind: 'settings.returnSettings.reasons.changed_mind',
+  late_delivery: 'settings.returnSettings.reasons.late_delivery',
+  duplicate_order: 'settings.returnSettings.reasons.duplicate_order',
+  other: 'settings.returnSettings.reasons.other',
 };
 
 export function ReturnSettingsPage() {
+  const { t } = useTranslation();
   const { settings, isLoading, updateSettings, isSaving, resetToDefaults, DEFAULT_SETTINGS } = useReturnSettings();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -82,10 +85,10 @@ export function ReturnSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Retourinstellingen</h2>
-        <p className="text-muted-foreground">Configureer het retourbeleid, refund logica en klant-portaal.</p>
+        <h2 className="text-2xl font-bold tracking-tight">{t('settings.returnSettings.title')}</h2>
+        <p className="text-muted-foreground">{t('settings.returnSettings.subtitle')}</p>
         {/* APP-CLEAN-5: 14 opties werden opgeslagen maar door niets gebruikt; die staan uitgeschakeld. */}
-        <p className="text-xs text-muted-foreground mt-1">Uitgeschakelde opties komen binnenkort: ze worden nog niet toegepast.</p>
+        <p className="text-xs text-muted-foreground mt-1">{t('settings.returnSettings.disabledNote')}</p>
       </div>
       <Accordion type="multiple" defaultValue={['general', 'credit-notes', 'portal', 'refund', 'marketplace', 'shipping', 'stock', 'notifications', 'reasons']} className="space-y-4">
         
@@ -95,24 +98,24 @@ export function ReturnSettingsPage() {
             <div className="flex items-center gap-2">
               <Package className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <p className="font-semibold">Algemeen</p>
-                <p className="text-xs text-muted-foreground font-normal">Basisinstellingen voor retours</p>
+                <p className="font-semibold">{t('settings.returnSettings.general.title')}</p>
+                <p className="text-xs text-muted-foreground font-normal">{t('settings.returnSettings.general.description')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-4">
             <div className="flex items-center justify-between">
-              <Label>Retours geactiveerd</Label>
+              <Label>{t('settings.returnSettings.general.enabled')}</Label>
               <Switch checked={settings.returns_enabled} disabled onCheckedChange={v => handleSwitch('returns_enabled', v)} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label>Retourtermijn (dagen)</Label>
+                <Label>{t('settings.returnSettings.general.windowDays')}</Label>
                 <Input type="number" min={1} value={settings.return_window_days} disabled onChange={e => handleNumber('return_window_days', e.target.value)} />
-                <p className="text-xs text-muted-foreground">EU minimum: 14 dagen</p>
+                <p className="text-xs text-muted-foreground">{t('settings.returnSettings.general.euMinimum')}</p>
               </div>
               <div className="space-y-1.5">
-                <Label>Standaard restocking fee (%)</Label>
+                <Label>{t('settings.returnSettings.general.restockingFee')}</Label>
                 <Input type="number" min={0} max={100} value={settings.default_restocking_fee_percent} onChange={e => handleNumber('default_restocking_fee_percent', e.target.value)} />
               </div>
             </div>
@@ -125,26 +128,26 @@ export function ReturnSettingsPage() {
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <p className="font-semibold">Credit nota's</p>
-                <p className="text-xs text-muted-foreground font-normal">Wanneer en hoe credit nota's worden aangemaakt</p>
+                <p className="font-semibold">{t('settings.returnSettings.creditNotes.title')}</p>
+                <p className="text-xs text-muted-foreground font-normal">{t('settings.returnSettings.creditNotes.description')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-4">
             <div className="space-y-2">
-              <Label>Credit nota beleid</Label>
+              <Label>{t('settings.returnSettings.creditNotes.policy')}</Label>
               <RadioGroup value={settings.credit_note_policy} disabled onValueChange={v => handleRadio('credit_note_policy', v)}>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="never" id="cn-never" /><Label htmlFor="cn-never">Nooit</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="b2b_only" id="cn-b2b" /><Label htmlFor="cn-b2b">Alleen B2B</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="always" id="cn-always" /><Label htmlFor="cn-always">Altijd (ook B2C)</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="never" id="cn-never" /><Label htmlFor="cn-never">{t('settings.returnSettings.creditNotes.never')}</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="b2b_only" id="cn-b2b" /><Label htmlFor="cn-b2b">{t('settings.returnSettings.creditNotes.b2bOnly')}</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="always" id="cn-always" /><Label htmlFor="cn-always">{t('settings.returnSettings.creditNotes.always')}</Label></div>
               </RadioGroup>
             </div>
             <div className="space-y-1.5">
-              <Label>Credit nota prefix</Label>
+              <Label>{t('settings.returnSettings.creditNotes.prefix')}</Label>
               <Input value={settings.credit_note_prefix} onChange={e => handleText('credit_note_prefix', e.target.value)} className="w-32" />
             </div>
             <div className="flex items-center justify-between">
-              <Label>Auto-versturen credit nota per email bij refund</Label>
+              <Label>{t('settings.returnSettings.creditNotes.autoEmail')}</Label>
               <Switch checked={settings.credit_note_auto_email} onCheckedChange={v => handleSwitch('credit_note_auto_email', v)} />
             </div>
           </AccordionContent>
@@ -156,34 +159,34 @@ export function ReturnSettingsPage() {
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <p className="font-semibold">Klant-portaal</p>
-                <p className="text-xs text-muted-foreground font-normal">Self-service retour aanvragen</p>
+                <p className="font-semibold">{t('settings.returnSettings.portal.title')}</p>
+                <p className="text-xs text-muted-foreground font-normal">{t('settings.returnSettings.portal.description')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label>Klanten mogen zelf retours aanvragen</Label>
-                <Badge variant="outline" className="ml-2 text-xs">Komt in fase 4</Badge>
+                <Label>{t('settings.returnSettings.portal.enabled')}</Label>
+                <Badge variant="outline" className="ml-2 text-xs">{t('settings.returnSettings.comingPhase4')}</Badge>
               </div>
               <Switch checked={settings.customer_portal_enabled} disabled onCheckedChange={v => handleSwitch('customer_portal_enabled', v)} />
             </div>
             {settings.customer_portal_enabled && (
               <>
                 <div className="space-y-2">
-                  <Label>Authenticatie methode</Label>
+                  <Label>{t('settings.returnSettings.portal.auth')}</Label>
                   <RadioGroup value={settings.customer_portal_auth} disabled onValueChange={v => handleRadio('customer_portal_auth', v)}>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="email_order_lookup" id="auth-email" /><Label htmlFor="auth-email">Email + ordernummer (geen account)</Label></div>
-                    <div className="flex items-center space-x-2"><RadioGroupItem value="logged_in_only" id="auth-login" /><Label htmlFor="auth-login">Alleen ingelogde klanten</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="email_order_lookup" id="auth-email" /><Label htmlFor="auth-email">{t('settings.returnSettings.portal.authEmailOrder')}</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="logged_in_only" id="auth-login" /><Label htmlFor="auth-login">{t('settings.returnSettings.portal.authLoggedIn')}</Label></div>
                   </RadioGroup>
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label>Auto-goedkeuren binnen retourtermijn</Label>
+                  <Label>{t('settings.returnSettings.portal.autoApprove')}</Label>
                   <Switch checked={settings.auto_approve_within_window} disabled onCheckedChange={v => handleSwitch('auto_approve_within_window', v)} />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label>Buiten retourtermijn alleen op aanvraag</Label>
+                  <Label>{t('settings.returnSettings.portal.manualOutside')}</Label>
                   <Switch checked={settings.manual_approval_outside_window} disabled onCheckedChange={v => handleSwitch('manual_approval_outside_window', v)} />
                 </div>
               </>
@@ -197,35 +200,35 @@ export function ReturnSettingsPage() {
             <div className="flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <p className="font-semibold">Refund logica (eigen Stripe orders)</p>
-                <p className="text-xs text-muted-foreground font-normal">Hoe refunds worden verwerkt voor eigen checkout</p>
+                <p className="font-semibold">{t('settings.returnSettings.refund.title')}</p>
+                <p className="text-xs text-muted-foreground font-normal">{t('settings.returnSettings.refund.description')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-4">
             <div className="space-y-2">
-              <Label>Refund methode</Label>
+              <Label>{t('settings.returnSettings.refund.method')}</Label>
               <RadioGroup value={settings.default_refund_method} onValueChange={v => handleRadio('default_refund_method', v)}>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="auto_stripe" id="refund-auto" />
-                  <Label htmlFor="refund-auto">Automatisch via Stripe</Label>
+                  <Label htmlFor="refund-auto">{t('settings.returnSettings.refund.auto')}</Label>
                 </div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="manual" id="refund-manual" /><Label htmlFor="refund-manual">Handmatig (admin bevestigt)</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="manual" id="refund-manual" /><Label htmlFor="refund-manual">{t('settings.returnSettings.refund.manual')}</Label></div>
               </RadioGroup>
             </div>
             <div className="flex items-center justify-between">
-              <Label>Verzendkosten standaard ook terugbetalen</Label>
+              <Label>{t('settings.returnSettings.refund.shippingByDefault')}</Label>
               <Switch checked={settings.refund_shipping_by_default} onCheckedChange={v => handleSwitch('refund_shipping_by_default', v)} />
             </div>
             <div className="flex items-center justify-between">
-              <Label>Gedeeltelijke refunds toestaan (per item)</Label>
+              <Label>{t('settings.returnSettings.refund.partial')}</Label>
               <Switch checked={settings.allow_partial_refunds} disabled onCheckedChange={v => handleSwitch('allow_partial_refunds', v)} />
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <Label>Inspectie vereist voor refund</Label>
+                <Label>{t('settings.returnSettings.refund.requiresInspection')}</Label>
                 <p className="text-xs text-muted-foreground">
-                  Wanneer uitgeschakeld kan een refund worden verwerkt zonder dat de inspectie is afgerond.
+                  {t('settings.returnSettings.refund.requiresInspectionHelp')}
                 </p>
               </div>
               <Switch checked={settings.refund_requires_inspection} onCheckedChange={v => handleSwitch('refund_requires_inspection', v)} />
@@ -239,7 +242,7 @@ export function ReturnSettingsPage() {
             <div className="flex items-center gap-2">
               <Store className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <p className="font-semibold">Marketplace refunds</p>
+                <p className="font-semibold">{t('settings.returnSettings.marketplace.title')}</p>
                 <p className="text-xs text-muted-foreground font-normal">Bol.com, Amazon, Shopify</p>
               </div>
             </div>
@@ -248,23 +251,23 @@ export function ReturnSettingsPage() {
             <div className="flex items-start gap-2 rounded-md border p-3 bg-muted/50">
               <Info className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
               <p className="text-sm text-muted-foreground">
-                Voor orders binnengekomen via marketplaces zoals Bol.com of Amazon verloopt de refund via hun platform. Onze refund logica geldt alleen voor eigen Stripe checkout orders.
+                {t('settings.returnSettings.marketplace.info')}
               </p>
             </div>
             <div className="space-y-2">
-              <Label>Refund modus</Label>
+              <Label>{t('settings.returnSettings.marketplace.mode')}</Label>
               <RadioGroup value={settings.marketplace_refund_mode} onValueChange={v => handleRadio('marketplace_refund_mode', v)}>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="manual_redirect" id="mp-manual" /><Label htmlFor="mp-manual">Manueel — admin gaat zelf naar marketplace dashboard</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="manual_redirect" id="mp-manual" /><Label htmlFor="mp-manual">{t('settings.returnSettings.marketplace.manual')}</Label></div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="auto_via_api" id="mp-auto" disabled />
-                  <Label htmlFor="mp-auto" className="text-muted-foreground">Automatisch via marketplace API</Label>
-                  <Badge variant="outline" className="text-xs">Komt in fase 3</Badge>
+                  <Label htmlFor="mp-auto" className="text-muted-foreground">{t('settings.returnSettings.marketplace.auto')}</Label>
+                  <Badge variant="outline" className="text-xs">{t('settings.returnSettings.comingPhase3')}</Badge>
                 </div>
               </RadioGroup>
             </div>
             {settings.marketplace_refund_mode === 'auto_via_api' && (
               <div className="flex items-center justify-between">
-                <Label>Auto-accepteren binnen retourtermijn</Label>
+                <Label>{t('settings.returnSettings.marketplace.autoAccept')}</Label>
                 <Switch checked={settings.marketplace_auto_accept_within_window} disabled onCheckedChange={v => handleSwitch('marketplace_auto_accept_within_window', v)} />
               </div>
             )}
@@ -277,23 +280,23 @@ export function ReturnSettingsPage() {
             <div className="flex items-center gap-2">
               <Truck className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <p className="font-semibold">Verzending retours</p>
-                <p className="text-xs text-muted-foreground font-normal">Wie betaalt verzending en label generatie</p>
+                <p className="font-semibold">{t('settings.returnSettings.shipping.title')}</p>
+                <p className="text-xs text-muted-foreground font-normal">{t('settings.returnSettings.shipping.description')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-4">
             <div className="space-y-2">
-              <Label>Retourverzending betaald door</Label>
+              <Label>{t('settings.returnSettings.shipping.paidBy')}</Label>
               <RadioGroup value={settings.return_shipping_paid_by} disabled onValueChange={v => handleRadio('return_shipping_paid_by', v)}>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="customer" id="ship-cust" /><Label htmlFor="ship-cust">Klant betaalt</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="merchant" id="ship-merch" /><Label htmlFor="ship-merch">Wij betalen</Label></div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="conditional" id="ship-cond" /><Label htmlFor="ship-cond">Conditioneel (gratis bij bepaalde redenen)</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="customer" id="ship-cust" /><Label htmlFor="ship-cust">{t('settings.returnSettings.shipping.customer')}</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="merchant" id="ship-merch" /><Label htmlFor="ship-merch">{t('settings.returnSettings.shipping.merchant')}</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="conditional" id="ship-cond" /><Label htmlFor="ship-cond">{t('settings.returnSettings.shipping.conditional')}</Label></div>
               </RadioGroup>
             </div>
             {settings.return_shipping_paid_by === 'conditional' && (
               <div className="space-y-2">
-                <Label>Gratis retour bij deze redenen</Label>
+                <Label>{t('settings.returnSettings.shipping.freeReasons')}</Label>
                 <div className="flex flex-wrap gap-2">
                   {(settings.enabled_reason_codes || []).map(code => (
                     <Badge
@@ -301,7 +304,7 @@ export function ReturnSettingsPage() {
                       variant={(settings.conditional_free_reasons || []).includes(code) ? 'default' : 'outline'}
                       className="opacity-60"
                     >
-                      {REASON_CODE_LABELS[code] || code}
+                      {REASON_CODE_LABELS[code] ? t(REASON_CODE_LABELS[code]) : code}
                     </Badge>
                   ))}
                 </div>
@@ -309,20 +312,20 @@ export function ReturnSettingsPage() {
             )}
             <Separator />
             <div className="space-y-2">
-              <Label>Verzendintegratie</Label>
+              <Label>{t('settings.returnSettings.shipping.provider')}</Label>
               <RadioGroup value={settings.return_shipping_provider} disabled onValueChange={v => handleRadio('return_shipping_provider', v)}>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="none" id="prov-none" /><Label htmlFor="prov-none">Geen integratie</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="none" id="prov-none" /><Label htmlFor="prov-none">{t('settings.returnSettings.shipping.none')}</Label></div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="sendcloud" id="prov-sc" disabled />
                   <Label htmlFor="prov-sc" className="text-muted-foreground">Sendcloud</Label>
-                  <Badge variant="outline" className="text-xs">Komt in fase 3</Badge>
+                  <Badge variant="outline" className="text-xs">{t('settings.returnSettings.comingPhase3')}</Badge>
                 </div>
-                <div className="flex items-center space-x-2"><RadioGroupItem value="other" id="prov-other" /><Label htmlFor="prov-other">Andere koerier</Label></div>
+                <div className="flex items-center space-x-2"><RadioGroupItem value="other" id="prov-other" /><Label htmlFor="prov-other">{t('settings.returnSettings.shipping.other')}</Label></div>
               </RadioGroup>
             </div>
             <div className="flex items-center justify-between">
               <Label className={settings.return_shipping_provider === 'none' ? 'text-muted-foreground' : ''}>
-                Auto-genereer retourlabel bij goedkeuring
+                {t('settings.returnSettings.shipping.autoLabel')}
               </Label>
               <Switch
                 checked={settings.auto_generate_return_label}
@@ -339,24 +342,24 @@ export function ReturnSettingsPage() {
             <div className="flex items-center gap-2">
               <Boxes className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <p className="font-semibold">Voorraad</p>
-                <p className="text-xs text-muted-foreground font-normal">Automatische herbevoorrading bij retours</p>
+                <p className="font-semibold">{t('settings.returnSettings.stock.title')}</p>
+                <p className="text-xs text-muted-foreground font-normal">{t('settings.returnSettings.stock.description')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-4">
             <div className="flex items-center justify-between">
-              <Label>Auto-restock bij conditie 'nieuw' of 'ongeopend'</Label>
+              <Label>{t('settings.returnSettings.stock.autoRestock')}</Label>
               <Switch checked={settings.auto_restock_new_condition} onCheckedChange={v => handleSwitch('auto_restock_new_condition', v)} />
             </div>
             <div className="flex items-center justify-between">
-              <Label>Auto NIET restocken bij 'beschadigd' of 'defect'</Label>
+              <Label>{t('settings.returnSettings.stock.noRestockDamaged')}</Label>
               <Switch checked={settings.auto_no_restock_damaged} onCheckedChange={v => handleSwitch('auto_no_restock_damaged', v)} />
             </div>
             <div className="space-y-1.5">
-              <Label>Notificatie bij voorraad-impact (%)</Label>
+              <Label>{t('settings.returnSettings.stock.impactThreshold')}</Label>
               <Input type="number" min={1} max={100} value={settings.stock_impact_notification_threshold} disabled onChange={e => handleNumber('stock_impact_notification_threshold', e.target.value)} className="w-32" />
-              <p className="text-xs text-muted-foreground">Stuur notificatie als retour meer dan X% van voorraad betreft</p>
+              <p className="text-xs text-muted-foreground">{t('settings.returnSettings.stock.impactThresholdHelp')}</p>
             </div>
           </AccordionContent>
         </AccordionItem>
@@ -367,28 +370,28 @@ export function ReturnSettingsPage() {
             <div className="flex items-center gap-2">
               <Bell className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <p className="font-semibold">Notificaties</p>
-                <p className="text-xs text-muted-foreground font-normal">Email notificaties voor retours</p>
+                <p className="font-semibold">{t('settings.returnSettings.notifications.title')}</p>
+                <p className="text-xs text-muted-foreground font-normal">{t('settings.returnSettings.notifications.description')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="px-4 pb-4 space-y-3">
-            <p className="text-sm font-medium text-muted-foreground">Klant ontvangt email bij:</p>
+            <p className="text-sm font-medium text-muted-foreground">{t('settings.returnSettings.notifications.customerHeading')}</p>
             {([
-              ['notify_customer_request_received', 'Retour aanvraag ontvangen'],
-              ['notify_customer_approved', 'Retour goedgekeurd'],
-              ['notify_customer_package_received', 'Pakket ontvangen door ons'],
-              ['notify_customer_refund_processed', 'Refund verwerkt'],
-            ] as const).map(([key, label]) => (
+              ['notify_customer_request_received', 'settings.returnSettings.notifications.requestReceived'],
+              ['notify_customer_approved', 'settings.returnSettings.notifications.approved'],
+              ['notify_customer_package_received', 'settings.returnSettings.notifications.packageReceived'],
+              ['notify_customer_refund_processed', 'settings.returnSettings.notifications.refundProcessed'],
+            ] as const).map(([key, labelKey]) => (
               <div key={key} className="flex items-center justify-between">
-                <Label>{label}</Label>
+                <Label>{t(labelKey)}</Label>
                 <Switch checked={settings[key] as boolean} onCheckedChange={v => handleSwitch(key, v)} />
               </div>
             ))}
             <Separator />
-            <p className="text-sm font-medium text-muted-foreground">Admin ontvangt notificatie bij:</p>
+            <p className="text-sm font-medium text-muted-foreground">{t('settings.returnSettings.notifications.adminHeading')}</p>
             <div className="flex items-center justify-between">
-              <Label>Nieuwe retour aanvraag</Label>
+              <Label>{t('settings.returnSettings.notifications.adminNewRequest')}</Label>
               <Switch checked={settings.notify_admin_new_request} onCheckedChange={v => handleSwitch('notify_admin_new_request', v)} />
             </div>
           </AccordionContent>
@@ -400,8 +403,8 @@ export function ReturnSettingsPage() {
             <div className="flex items-center gap-2">
               <Tags className="h-5 w-5 text-primary" />
               <div className="text-left">
-                <p className="font-semibold">Retourredenen</p>
-                <p className="text-xs text-muted-foreground font-normal">Welke redenen klanten mogen kiezen</p>
+                <p className="font-semibold">{t('settings.returnSettings.reasonsSection.title')}</p>
+                <p className="text-xs text-muted-foreground font-normal">{t('settings.returnSettings.reasonsSection.description')}</p>
               </div>
             </div>
           </AccordionTrigger>
@@ -414,13 +417,13 @@ export function ReturnSettingsPage() {
                   className="cursor-pointer"
                   onClick={() => toggleReasonCode(code)}
                 >
-                  {label}
+                  {t(label)}
                 </Badge>
               ))}
             </div>
             <Button variant="outline" size="sm" onClick={() => updateSettings({ enabled_reason_codes: DEFAULT_SETTINGS.enabled_reason_codes })}>
               <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-              Standaard terugzetten
+              {t('settings.returnSettings.reasonsSection.resetDefaults')}
             </Button>
           </AccordionContent>
         </AccordionItem>
@@ -430,26 +433,26 @@ export function ReturnSettingsPage() {
       <Card>
         <CardContent className="pt-6 flex items-center justify-between">
           <div>
-            <p className="font-medium">Alle instellingen resetten</p>
-            <p className="text-sm text-muted-foreground">Zet alle retourinstellingen terug naar de standaardwaarden.</p>
+            <p className="font-medium">{t('settings.returnSettings.reset.title')}</p>
+            <p className="text-sm text-muted-foreground">{t('settings.returnSettings.reset.description')}</p>
           </div>
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="destructive" size="sm">
                 <RotateCcw className="h-3.5 w-3.5 mr-1.5" />
-                Reset alles
+                {t('settings.returnSettings.reset.button')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Weet je het zeker?</AlertDialogTitle>
+                <AlertDialogTitle>{t('settings.returnSettings.reset.confirmTitle')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Dit zet alle retourinstellingen terug naar de standaardwaarden. Dit kan niet ongedaan worden gemaakt.
+                  {t('settings.returnSettings.reset.confirmBody')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
-                <AlertDialogAction onClick={resetToDefaults}>Reset</AlertDialogAction>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                <AlertDialogAction onClick={resetToDefaults}>{t('settings.returnSettings.reset.confirm')}</AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Rocket, CheckCircle2, Play, RotateCcw } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -31,6 +32,7 @@ interface OnboardingStatusCardProps {
 const TOTAL_STEPS = 6;
 
 export function OnboardingStatusCard({ onRestart, onResume }: OnboardingStatusCardProps) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [status, setStatus] = useState<OnboardingStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,22 +70,22 @@ export function OnboardingStatusCard({ onRestart, onResume }: OnboardingStatusCa
 
   const getStatusText = () => {
     if (status.isCompleted) {
-      return 'Voltooid';
+      return t('settings.onboardingStatus.completed');
     }
     if (status.wasSkipped) {
-      return `Overgeslagen op stap ${status.currentStep} van ${TOTAL_STEPS}`;
+      return t('settings.onboardingStatus.skippedAtStep', { step: status.currentStep, total: TOTAL_STEPS });
     }
-    return `Stap ${status.currentStep} van ${TOTAL_STEPS}`;
+    return t('settings.onboardingStatus.stepOf', { step: status.currentStep, total: TOTAL_STEPS });
   };
 
   const getDescription = () => {
     if (status.isCompleted) {
-      return 'Je hebt de setup wizard succesvol afgerond! Je kunt deze opnieuw doorlopen als je wilt.';
+      return t('settings.onboardingStatus.descCompleted');
     }
     if (status.wasSkipped) {
-      return 'Je hebt de setup wizard eerder overgeslagen. Je kunt deze op elk moment hervatten of opnieuw beginnen.';
+      return t('settings.onboardingStatus.descSkipped');
     }
-    return 'De setup wizard is nog niet afgerond. Je kunt deze hervatten of opnieuw beginnen.';
+    return t('settings.onboardingStatus.descInProgress');
   };
 
   return (
@@ -98,9 +100,9 @@ export function OnboardingStatusCard({ onRestart, onResume }: OnboardingStatusCa
             )}
           </div>
           <div>
-            <CardTitle>Setup Wizard</CardTitle>
+            <CardTitle>{t('settings.onboardingStatus.title')}</CardTitle>
             <CardDescription>
-              Status: {getStatusText()}
+              {t('settings.onboardingStatus.statusLabel', { status: getStatusText() })}
             </CardDescription>
           </div>
         </div>
@@ -115,7 +117,7 @@ export function OnboardingStatusCard({ onRestart, onResume }: OnboardingStatusCa
           {!status.isCompleted && (status.wasSkipped || status.currentStep > 1) && (
             <Button onClick={onResume} variant="default">
               <Play className="h-4 w-4 mr-2" />
-              Wizard hervatten
+              {t('settings.onboardingStatus.resume')}
             </Button>
           )}
           
@@ -124,21 +126,20 @@ export function OnboardingStatusCard({ onRestart, onResume }: OnboardingStatusCa
             <AlertDialogTrigger asChild>
               <Button variant={status.isCompleted ? 'default' : 'outline'}>
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Opnieuw beginnen
+                {t('settings.onboardingStatus.restart')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Wizard opnieuw starten?</AlertDialogTitle>
+                <AlertDialogTitle>{t('settings.onboardingStatus.restartTitle')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Je gaat de setup wizard opnieuw doorlopen vanaf het begin.
-                  Je bestaande winkel en producten blijven behouden.
+                  {t('settings.onboardingStatus.restartBody')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                 <AlertDialogAction onClick={onRestart}>
-                  Ja, opnieuw starten
+                  {t('settings.onboardingStatus.restartConfirm')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

@@ -33,7 +33,7 @@ import { useCan } from '@/hooks/useCan';
 import { InviteTeamMemberDialog } from './InviteTeamMemberDialog';
 import { TenantInvitationsList } from './TenantInvitationsList';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 /** `t` komt als parameter binnen: deze helper staat buiten de component. */
 const getRoleBadge = (role: string, t: (key: string) => string) => {
@@ -66,6 +66,7 @@ const getInitials = (name: string | null, email: string | null) => {
 
 export function TeamSettings() {
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const { members, isLoading, updateMemberRole, setPermissionGrant, removeMember } = useTeamMembers();
   const { refetch: refetchInvitations } = useTeamInvitations({ statusFilter: 'all' });
   const { user } = useAuth();
@@ -167,13 +168,13 @@ export function TeamSettings() {
                           </Avatar>
                           <div>
                             <p className="font-medium">
-                              {member.full_name || 'Geen naam'}
+                              {member.full_name || t('settings.team.noName')}
                               {isCurrentUser && (
                                 <span className="text-muted-foreground ml-2">{t('settings.team.you')}</span>
                               )}
                             </p>
                             <p className="text-sm text-muted-foreground">
-                              {member.email || 'Geen e-mail'}
+                              {member.email || t('settings.team.noEmail')}
                             </p>
                           </div>
                         </div>
@@ -201,7 +202,7 @@ export function TeamSettings() {
                         )}
                       </TableCell>
                       <TableCell className="text-muted-foreground">
-                        {format(new Date(member.created_at), 'd MMM yyyy', { locale: nl })}
+                        {format(new Date(member.created_at), 'd MMM yyyy', { locale: dateLocale })}
                       </TableCell>
                       <TableCell>
                         {!isCurrentUser && !isPlatformAdmin && (
@@ -285,12 +286,12 @@ export function TeamSettings() {
         </CardHeader>
         <CardContent className="space-y-3">
           {[
-            { badge: <Badge className="bg-blue-500 hover:bg-blue-500">{t('settings.team.roles.tenant_admin.label')}</Badge>, name: 'Tenant Admin', desc: 'Volledige toegang tot alle functies, inclusief instellingen, teamleden en betalingen.' },
-            { badge: <Badge variant="secondary">{t('settings.team.roles.staff.label')}</Badge>, name: 'Staff', desc: 'Kan producten, orders en klanten beheren. Geen toegang tot instellingen of teamleden.' },
-            { badge: <Badge className="bg-green-500 hover:bg-green-500">{t('settings.team.roles.accountant.label')}</Badge>, name: 'Accountant', desc: "Toegang tot facturen, creditnota's, rapporten en BTW-gegevens. Geen toegang tot producten of klanten." },
-            { badge: <Badge className="bg-orange-500 hover:bg-orange-500">{t('settings.team.roles.warehouse.label')}</Badge>, name: 'Warehouse', desc: 'Kan voorraad beheren, verzendingen verwerken en pakbonnen printen. Geen financiële toegang.' },
-            { badge: <Badge className="bg-pink-500 hover:bg-pink-500">{t('settings.team.roles.marketing.label')}</Badge>, name: t('settings.team.roles.marketing.label'), desc: 'Campagnes, ads, CMS en SEO. Geen toegang tot facturen of financiële instellingen. Kortingscodes beheren is een apart recht dat een beheerder per persoon inschakelt via de schakelaar in de ledenlijst hierboven.' },
-            { badge: <Badge variant="outline">{t('settings.team.roles.viewer.label')}</Badge>, name: 'Viewer', desc: 'Alleen lezen. Kan alles bekijken maar niets wijzigen.' },
+            { badge: <Badge className="bg-blue-500 hover:bg-blue-500">{t('settings.team.roles.tenant_admin.label')}</Badge>, name: 'Tenant Admin', desc: t('settings.team.roleExplain.tenant_admin') },
+            { badge: <Badge variant="secondary">{t('settings.team.roles.staff.label')}</Badge>, name: 'Staff', desc: t('settings.team.roleExplain.staff') },
+            { badge: <Badge className="bg-green-500 hover:bg-green-500">{t('settings.team.roles.accountant.label')}</Badge>, name: 'Accountant', desc: t('settings.team.roleExplain.accountant') },
+            { badge: <Badge className="bg-orange-500 hover:bg-orange-500">{t('settings.team.roles.warehouse.label')}</Badge>, name: 'Warehouse', desc: t('settings.team.roleExplain.warehouse') },
+            { badge: <Badge className="bg-pink-500 hover:bg-pink-500">{t('settings.team.roles.marketing.label')}</Badge>, name: t('settings.team.roles.marketing.label'), desc: t('settings.team.roleExplain.marketing') },
+            { badge: <Badge variant="outline">{t('settings.team.roles.viewer.label')}</Badge>, name: 'Viewer', desc: t('settings.team.roleExplain.viewer') },
           ].map((r) => (
             <div key={r.name} className="grid grid-cols-[110px_1fr] items-start gap-4">
               <div className="flex justify-start pt-0.5">{r.badge}</div>
@@ -311,8 +312,7 @@ export function TeamSettings() {
             <AlertDialogDescription>
               {memberToRemove && (
                 <>
-                  Weet je zeker dat je <strong>{memberToRemove.full_name || memberToRemove.email}</strong> wilt 
-                  verwijderen uit het team? Deze persoon heeft dan geen toegang meer tot je winkel.
+                  {t('settings.team.removeBodyBefore')}<strong>{memberToRemove.full_name || memberToRemove.email}</strong>{t('settings.team.removeBodyAfter')}
                 </>
               )}
             </AlertDialogDescription>
@@ -324,7 +324,7 @@ export function TeamSettings() {
               disabled={isRemoving}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isRemoving ? 'Verwijderen...' : t('common.delete')}
+              {isRemoving ? t('settings.team.removing') : t('common.delete')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

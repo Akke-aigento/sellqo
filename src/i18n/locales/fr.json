@@ -487,13 +487,34 @@
         "reinvite": "Inviter à nouveau",
         "createdAt": "Créée",
         "expiresAt": "Expire",
-        "revoke": "Retirer"
+        "revoke": "Retirer",
+        "status": {
+          "pending": "En attente",
+          "accepted": "Acceptée",
+          "expired": "Expirée",
+          "revoked": "Révoquée",
+          "rejected": "Refusée"
+        },
+        "revoking": "Révocation..."
       },
       "columnUser": "Utilisateur",
       "columnRole": "Rôle",
       "columnPermissions": "Autorisations",
       "invitationsTitle": "Invitations",
-      "inviteAction": "Inviter"
+      "inviteAction": "Inviter",
+      "noName": "Sans nom",
+      "noEmail": "Pas d'e-mail",
+      "removing": "Suppression...",
+      "removeBodyBefore": "Voulez-vous vraiment retirer ",
+      "removeBodyAfter": " de l'équipe ? Cette personne n'aura plus accès à votre boutique.",
+      "roleExplain": {
+        "tenant_admin": "Accès complet à toutes les fonctionnalités, y compris les paramètres, les membres de l'équipe et les paiements.",
+        "staff": "Peut gérer les produits, les commandes et les clients. Aucun accès aux paramètres ni aux membres de l'équipe.",
+        "accountant": "Accès aux factures, notes de crédit, rapports et données TVA. Aucun accès aux produits ni aux clients.",
+        "warehouse": "Peut gérer le stock, traiter les expéditions et imprimer les bons de livraison. Aucun accès financier.",
+        "marketing": "Campagnes, publicités, CMS et SEO. Aucun accès aux factures ni aux paramètres financiers. La gestion des codes de réduction est un droit distinct qu'un administrateur active par personne via l'interrupteur dans la liste des membres ci-dessus.",
+        "viewer": "Lecture seule. Peut tout consulter mais ne rien modifier."
+      }
     },
     "payment": {
       "disconnect": {
@@ -1310,6 +1331,269 @@
       "welcome_title": "E-mail de bienvenue",
       "welcome_path": "Marketing → E-mail → Automatisations → Série de bienvenue",
       "welcome_body": "Votre ancien e-mail de bienvenue se trouve désormais ici, comme premier e-mail de la série de bienvenue."
+    },
+    "onboardingStatus": {
+      "title": "Assistant de configuration",
+      "statusLabel": "Statut : {{status}}",
+      "completed": "Terminé",
+      "skippedAtStep": "Ignoré à l'étape {{step}} sur {{total}}",
+      "stepOf": "Étape {{step}} sur {{total}}",
+      "descCompleted": "Vous avez terminé l'assistant de configuration avec succès ! Vous pouvez le parcourir à nouveau si vous le souhaitez.",
+      "descSkipped": "Vous avez ignoré l'assistant de configuration. Vous pouvez le reprendre ou recommencer à tout moment.",
+      "descInProgress": "L'assistant de configuration n'est pas encore terminé. Vous pouvez le reprendre ou recommencer.",
+      "resume": "Reprendre l'assistant",
+      "restart": "Recommencer",
+      "restartTitle": "Relancer l'assistant ?",
+      "restartBody": "Vous allez reparcourir l'assistant de configuration depuis le début. Votre boutique et vos produits existants sont conservés.",
+      "restartConfirm": "Oui, recommencer"
+    },
+    "compliance": {
+      "categories": {
+        "seller": "Données de l'entreprise",
+        "invoice": "Facturation",
+        "financial": "Finances"
+      },
+      "checks": {
+        "company_name": "Nom de l'entreprise",
+        "address": "Adresse",
+        "postal_code": "Code postal",
+        "city": "Ville/Commune",
+        "country": "Pays",
+        "kvk_number": "Numéro d'entreprise (BCE/KvK)",
+        "btw_number": "Numéro de TVA",
+        "iban": "Numéro de compte bancaire IBAN",
+        "phone": "Numéro de téléphone",
+        "email": "Adresse e-mail",
+        "invoice_prefix": "Préfixe du numéro de facture",
+        "tax_percentage": "Taux de TVA",
+        "currency": "Devise"
+      },
+      "optional": "facultatif",
+      "notFilled": "Non renseigné",
+      "title": "Conformité des factures belges",
+      "compliant": "Conforme",
+      "missingRequired": "Champs obligatoires manquants : {{n}}",
+      "description": "Vérifiez que tous les champs obligatoires des factures belges sont renseignés",
+      "allGood": "Tous les champs obligatoires de facturation sont correctement renseignés. Vos factures respectent les exigences légales belges.",
+      "missingFields": "Des champs obligatoires manquent. Renseignez-les pour être conforme à la législation belge sur la facturation.",
+      "optionalMissing": "Champs facultatifs non renseignés : {{n}}. Ils sont recommandés mais pas obligatoires.",
+      "requiredListTitle": "Champs obligatoires pour les factures belges :",
+      "requiredList": {
+        "seller": "Nom complet et adresse du vendeur",
+        "companyNumber": "Numéro d'entreprise (BCE) ou numéro de TVA",
+        "iban": "Numéro de compte bancaire IBAN",
+        "invoiceNumber": "Numéro de facture unique et séquentiel",
+        "dates": "Date de facture et date d'échéance",
+        "vatAmount": "Montant de TVA par taux"
+      }
+    },
+    "transactions": {
+      "sections": {
+        "direct": {
+          "label": "Payer maintenant",
+          "description": "Bancontact, iDEAL, Carte de crédit"
+        },
+        "later": {
+          "label": "Payer plus tard",
+          "description": "Klarna"
+        },
+        "transfer": {
+          "label": "Virement",
+          "description": "Code QR / SEPA Instant (gratuit)"
+        }
+      },
+      "stripeMethods": {
+        "card": {
+          "label": "Carte de crédit / Apple Pay / Google Pay",
+          "description": "Paiements par carte standard + portefeuilles",
+          "region": "International"
+        },
+        "ideal": {
+          "description": "Virement bancaire direct"
+        },
+        "bancontact": {
+          "description": "Système de paiement belge"
+        },
+        "klarna": {
+          "description": "Payer plus tard / en plusieurs fois"
+        }
+      },
+      "toast": {
+        "loadError": "Erreur lors du chargement des paramètres",
+        "saveNoAccess": "Échec de l'enregistrement : aucun accès (RLS). Veuillez contacter le support.",
+        "saved": "Paramètres enregistrés",
+        "saveError": "Erreur lors de l'enregistrement des paramètres",
+        "minOneMethod": "Au moins un mode de paiement est requis",
+        "minOneStripeMethod": "Au moins une méthode Stripe est requise"
+      },
+      "usage": {
+        "title": "Utilisation des transactions",
+        "description": "Transactions traitées ce mois-ci",
+        "unlimited": "Illimité",
+        "overLimit": "Limite dépassée",
+        "withinLimit": "Dans la limite",
+        "bank": "Banque",
+        "posCash": "POS espèces",
+        "posCard": "POS carte",
+        "usedOf": "{{used}} sur {{included}} transactions",
+        "remaining": "{{n}} restantes",
+        "overLimitAlert": "Vous avez dépassé votre limite de {{n}} transactions. Frais supplémentaires : {{fee}} €",
+        "noData": "Aucune donnée disponible"
+      },
+      "methods": {
+        "title": "Modes de paiement",
+        "description": "Choisissez les modes de paiement disponibles pour vos clients",
+        "stripeTitle": "Stripe (iDEAL, Carte de crédit, Bancontact)",
+        "stripeDescription": "Paiement en ligne immédiat via Stripe",
+        "availableStripe": "Méthodes de paiement Stripe disponibles",
+        "klarnaNotice": "Klarna coûte 3,5 % + 0,30 € par transaction. Répercutez ces frais sur vos clients ou prenez-les à votre charge. Klarna n'est disponible que pour les commandes de plus de 35 €."
+      },
+      "bankTransfer": {
+        "title": "Virement bancaire direct (QR)",
+        "zeroCost": "0 % de frais",
+        "description": "Le client scanne le code QR avec son application bancaire - SEPA Instant",
+        "ibanRequired": "Configurez d'abord votre IBAN dans Données de l'entreprise",
+        "manualWarning": "Les paiements ne sont PAS détectés automatiquement — vous devez les traiter manuellement",
+        "hideQrMobile": "Masquer le code QR sur mobile",
+        "hideQrMobileHelp": "Sur smartphone, le client ne peut pas scanner le code QR avec le même appareil. Activez cette option pour n'afficher que les coordonnées de virement sur mobile. Le code QR reste visible sur ordinateur et tablette."
+      },
+      "passthrough": {
+        "title": "Répercuter les frais de transaction",
+        "description": "Choisissez si vous souhaitez répercuter les frais de transaction sur vos clients",
+        "showAtCheckout": "Afficher les frais de transaction au paiement",
+        "showAtCheckoutHelp": "Lorsque cette option est activée, le client choisit son mode de paiement lors du paiement et voit les frais de transaction exacts de ce mode en plus du total de la commande. Exemple : Bancontact +0,25 €, Carte de crédit +1,75 € pour une commande de 100 €. Lorsqu'elle est désactivée, les frais sont déduits de votre propre marge.",
+        "feeLabel": "Libellé des frais de transaction",
+        "feeLabelPlaceholder": "Frais de transaction",
+        "feeLabelHelp": "Ce libellé est affiché lors du paiement à côté des frais de transaction"
+      },
+      "order": {
+        "title": "Ordre des modes de paiement au paiement",
+        "description": "Définissez l'ordre dans lequel vos clients voient les catégories de paiement lors du paiement. Faites glisser pour modifier l'ordre.",
+        "tip": "Astuce : la première section visible attire le plus l'attention. De nombreuses boutiques placent « Virement » en premier pour réduire les frais, tandis que d'autres placent « Payer maintenant » en premier pour une conversion plus rapide."
+      },
+      "dialog": {
+        "title": "Important — Vérifier les virements manuellement",
+        "introBefore": "Avec le virement bancaire (code QR / SEPA Instant), le paiement n'est ",
+        "introNot": "PAS",
+        "introAfter": " détecté automatiquement. Cela signifie :",
+        "point1": "La commande reste au statut « En attente de paiement » jusqu'à ce que vous confirmiez le paiement manuellement",
+        "point2": "Vous êtes vous-même responsable de la vérification de votre compte bancaire",
+        "point3": "Vous devez passer manuellement la commande au statut « Payée » dans le panneau d'administration",
+        "point4": "Le client ne reçoit une confirmation d'expédition qu'après la mise à jour du statut",
+        "point5": "Si vous oubliez de vérifier le paiement, cela peut entraîner des clients mécontents",
+        "advice": "En cas de doute, nous vous recommandons de ne proposer que des paiements Stripe, qui sont traités automatiquement.",
+        "accept": "Je comprends et j'accepte la responsabilité"
+      }
+    },
+    "returnSettings": {
+      "reasons": {
+        "defect": "Défectueux",
+        "damaged_in_transit": "Endommagé pendant le transport",
+        "wrong_product": "Mauvais produit reçu",
+        "wrong_size": "Mauvaise taille",
+        "not_as_described": "Non conforme à la description",
+        "changed_mind": "J'ai changé d'avis",
+        "late_delivery": "Livré trop tard",
+        "duplicate_order": "Commande en double",
+        "other": "Autre"
+      },
+      "notifications": {
+        "requestReceived": "Demande de retour reçue",
+        "approved": "Retour approuvé",
+        "packageReceived": "Colis reçu par nos soins",
+        "refundProcessed": "Remboursement traité",
+        "title": "Notifications",
+        "description": "Notifications e-mail pour les retours",
+        "customerHeading": "Le client reçoit un e-mail lorsque :",
+        "adminHeading": "L'administrateur reçoit une notification pour :",
+        "adminNewRequest": "Nouvelle demande de retour"
+      },
+      "title": "Paramètres de retour",
+      "subtitle": "Configurez la politique de retour, la logique de remboursement et le portail client.",
+      "disabledNote": "Les options désactivées arrivent bientôt : elles ne sont pas encore appliquées.",
+      "general": {
+        "title": "Général",
+        "description": "Paramètres de base des retours",
+        "enabled": "Retours activés",
+        "windowDays": "Délai de retour (jours)",
+        "euMinimum": "Minimum UE : 14 jours",
+        "restockingFee": "Frais de remise en stock par défaut (%)"
+      },
+      "creditNotes": {
+        "title": "Notes de crédit",
+        "description": "Quand et comment les notes de crédit sont créées",
+        "policy": "Politique des notes de crédit",
+        "never": "Jamais",
+        "b2bOnly": "B2B uniquement",
+        "always": "Toujours (y compris B2C)",
+        "prefix": "Préfixe des notes de crédit",
+        "autoEmail": "Envoyer automatiquement la note de crédit par e-mail lors d'un remboursement"
+      },
+      "portal": {
+        "title": "Portail client",
+        "description": "Demandes de retour en libre-service",
+        "enabled": "Les clients peuvent demander eux-mêmes un retour",
+        "auth": "Méthode d'authentification",
+        "authEmailOrder": "E-mail + numéro de commande (sans compte)",
+        "authLoggedIn": "Clients connectés uniquement",
+        "autoApprove": "Approbation automatique dans le délai de retour",
+        "manualOutside": "Hors délai de retour uniquement sur demande"
+      },
+      "comingPhase4": "Prévu en phase 4",
+      "comingPhase3": "Prévu en phase 3",
+      "refund": {
+        "title": "Logique de remboursement (commandes Stripe propres)",
+        "description": "Comment les remboursements sont traités pour votre propre paiement",
+        "method": "Méthode de remboursement",
+        "auto": "Automatiquement via Stripe",
+        "manual": "Manuel (l'administrateur confirme)",
+        "shippingByDefault": "Rembourser aussi les frais de livraison par défaut",
+        "partial": "Autoriser les remboursements partiels (par article)",
+        "requiresInspection": "Inspection requise avant remboursement",
+        "requiresInspectionHelp": "Lorsque cette option est désactivée, un remboursement peut être traité sans que l'inspection soit terminée."
+      },
+      "marketplace": {
+        "title": "Remboursements marketplace",
+        "info": "Pour les commandes reçues via des marketplaces comme Bol.com ou Amazon, le remboursement s'effectue via leur plateforme. Notre logique de remboursement s'applique uniquement aux commandes de votre propre paiement Stripe.",
+        "mode": "Mode de remboursement",
+        "manual": "Manuel — l'administrateur se rend lui-même sur le tableau de bord de la marketplace",
+        "auto": "Automatiquement via l'API de la marketplace",
+        "autoAccept": "Acceptation automatique dans le délai de retour"
+      },
+      "shipping": {
+        "title": "Expédition des retours",
+        "description": "Qui paie l'expédition et la génération d'étiquettes",
+        "paidBy": "Frais de retour payés par",
+        "customer": "Le client paie",
+        "merchant": "Nous payons",
+        "conditional": "Conditionnel (gratuit pour certains motifs)",
+        "freeReasons": "Retour gratuit pour ces motifs",
+        "provider": "Intégration d'expédition",
+        "none": "Aucune intégration",
+        "other": "Autre transporteur",
+        "autoLabel": "Générer automatiquement l'étiquette de retour lors de l'approbation"
+      },
+      "stock": {
+        "title": "Stock",
+        "description": "Réapprovisionnement automatique lors des retours",
+        "autoRestock": "Remise en stock automatique si l'état est « neuf » ou « non ouvert »",
+        "noRestockDamaged": "Ne PAS remettre en stock automatiquement si « endommagé » ou « défectueux »",
+        "impactThreshold": "Notification en cas d'impact sur le stock (%)",
+        "impactThresholdHelp": "Envoyer une notification si un retour concerne plus de X % du stock"
+      },
+      "reasonsSection": {
+        "title": "Motifs de retour",
+        "description": "Les motifs que les clients peuvent choisir",
+        "resetDefaults": "Rétablir les valeurs par défaut"
+      },
+      "reset": {
+        "title": "Réinitialiser tous les paramètres",
+        "description": "Rétablit tous les paramètres de retour à leurs valeurs par défaut.",
+        "button": "Tout réinitialiser",
+        "confirmTitle": "Êtes-vous sûr ?",
+        "confirmBody": "Cela rétablit tous les paramètres de retour à leurs valeurs par défaut. Cette action est irréversible.",
+        "confirm": "Réinitialiser"
+      }
     }
   },
   "languages": {
@@ -1482,6 +1766,17 @@
       "sent": "Envoyé",
       "delivered": "Livré",
       "failed": "Échoué"
+    },
+    "settings": {
+      "saved": "Identifiant Peppol enregistré.",
+      "formatHint": "Format : schemeID:identifier (p. ex. 0208:0123456789 pour la BCE belge)",
+      "schemesTitle": "Identifiants de schéma Peppol par pays :",
+      "schemes": {
+        "be": "Belgique (BCE) : 0208",
+        "nl": "Pays-Bas (KvK) : 0106",
+        "de": "Allemagne : 0204",
+        "fr": "France (SIRET) : 0009"
+      }
     }
   },
   "compliance": {
@@ -1538,7 +1833,8 @@
     "delete_title": "Supprimer le taux de TVA ?",
     "delete_description": "Êtes-vous sûr de vouloir supprimer ce taux de TVA ? Cette action ne peut pas être annulée.",
     "active_description": "Le taux actif peut être sélectionné",
-    "default_description": "Appliqué automatiquement aux nouveaux produits"
+    "default_description": "Appliqué automatiquement aux nouveaux produits",
+    "system_badge": "Par défaut"
   },
   "shipping": {
     "title": "Méthodes de livraison",

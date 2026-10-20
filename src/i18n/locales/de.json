@@ -487,13 +487,34 @@
         "reinvite": "Erneut einladen",
         "createdAt": "Erstellt",
         "expiresAt": "Läuft ab",
-        "revoke": "Zurückziehen"
+        "revoke": "Zurückziehen",
+        "status": {
+          "pending": "Ausstehend",
+          "accepted": "Angenommen",
+          "expired": "Abgelaufen",
+          "revoked": "Widerrufen",
+          "rejected": "Abgelehnt"
+        },
+        "revoking": "Wird widerrufen..."
       },
       "columnUser": "Benutzer",
       "columnRole": "Rolle",
       "columnPermissions": "Berechtigungen",
       "invitationsTitle": "Einladungen",
-      "inviteAction": "Einladen"
+      "inviteAction": "Einladen",
+      "noName": "Kein Name",
+      "noEmail": "Keine E-Mail",
+      "removing": "Wird entfernt...",
+      "removeBodyBefore": "Möchten Sie ",
+      "removeBodyAfter": " wirklich aus dem Team entfernen? Diese Person hat dann keinen Zugriff mehr auf Ihren Shop.",
+      "roleExplain": {
+        "tenant_admin": "Vollzugriff auf alle Funktionen, einschließlich Einstellungen, Teammitglieder und Zahlungen.",
+        "staff": "Kann Produkte, Bestellungen und Kunden verwalten. Kein Zugriff auf Einstellungen oder Teammitglieder.",
+        "accountant": "Zugriff auf Rechnungen, Gutschriften, Berichte und MwSt.-Daten. Kein Zugriff auf Produkte oder Kunden.",
+        "warehouse": "Kann Bestand verwalten, Sendungen bearbeiten und Lieferscheine drucken. Kein Zugriff auf Finanzen.",
+        "marketing": "Kampagnen, Anzeigen, CMS und SEO. Kein Zugriff auf Rechnungen oder Finanzeinstellungen. Rabattcodes verwalten ist ein separates Recht, das ein Administrator pro Person über den Schalter in der Mitgliederliste oben aktiviert.",
+        "viewer": "Nur lesen. Kann alles ansehen, aber nichts ändern."
+      }
     },
     "payment": {
       "disconnect": {
@@ -1310,6 +1331,269 @@
       "welcome_title": "Willkommens-E-Mail",
       "welcome_path": "Marketing → E-Mail → Automatisierungen → Willkommensserie",
       "welcome_body": "Ihre bisherige Willkommens-E-Mail finden Sie jetzt hier, als erste E-Mail der Willkommensserie."
+    },
+    "onboardingStatus": {
+      "title": "Einrichtungsassistent",
+      "statusLabel": "Status: {{status}}",
+      "completed": "Abgeschlossen",
+      "skippedAtStep": "Übersprungen bei Schritt {{step}} von {{total}}",
+      "stepOf": "Schritt {{step}} von {{total}}",
+      "descCompleted": "Sie haben den Einrichtungsassistenten erfolgreich abgeschlossen! Sie können ihn bei Bedarf erneut durchlaufen.",
+      "descSkipped": "Sie haben den Einrichtungsassistenten zuvor übersprungen. Sie können ihn jederzeit fortsetzen oder neu beginnen.",
+      "descInProgress": "Der Einrichtungsassistent ist noch nicht abgeschlossen. Sie können ihn fortsetzen oder neu beginnen.",
+      "resume": "Assistenten fortsetzen",
+      "restart": "Neu beginnen",
+      "restartTitle": "Assistenten neu starten?",
+      "restartBody": "Sie durchlaufen den Einrichtungsassistenten erneut von Anfang an. Ihr bestehender Shop und Ihre Produkte bleiben erhalten.",
+      "restartConfirm": "Ja, neu starten"
+    },
+    "compliance": {
+      "categories": {
+        "seller": "Unternehmensdaten",
+        "invoice": "Rechnungsstellung",
+        "financial": "Finanzen"
+      },
+      "checks": {
+        "company_name": "Firmenname",
+        "address": "Adresse",
+        "postal_code": "Postleitzahl",
+        "city": "Stadt/Gemeinde",
+        "country": "Land",
+        "kvk_number": "Unternehmensnummer (KBO/KvK)",
+        "btw_number": "USt-IdNr.",
+        "iban": "IBAN-Bankkontonummer",
+        "phone": "Telefonnummer",
+        "email": "E-Mail-Adresse",
+        "invoice_prefix": "Rechnungsnummer-Präfix",
+        "tax_percentage": "MwSt.-Satz",
+        "currency": "Währung"
+      },
+      "optional": "optional",
+      "notFilled": "Nicht ausgefüllt",
+      "title": "Belgische Rechnungs-Compliance",
+      "compliant": "Konform",
+      "missingRequired": "Fehlende Pflichtfelder: {{n}}",
+      "description": "Prüfen Sie, ob alle Pflichtfelder für belgische Rechnungen ausgefüllt sind",
+      "allGood": "Alle Pflichtfelder für Rechnungen sind korrekt ausgefüllt. Ihre Rechnungen erfüllen die belgischen gesetzlichen Anforderungen.",
+      "missingFields": "Es fehlen Pflichtfelder. Füllen Sie diese aus, um die belgischen Rechnungsvorschriften zu erfüllen.",
+      "optionalMissing": "Nicht ausgefüllte optionale Felder: {{n}}. Diese werden empfohlen, sind aber nicht verpflichtend.",
+      "requiredListTitle": "Pflichtfelder für belgische Rechnungen:",
+      "requiredList": {
+        "seller": "Vollständiger Name und Adresse des Verkäufers",
+        "companyNumber": "Unternehmensnummer (KBO) oder USt-IdNr.",
+        "iban": "IBAN-Bankkontonummer",
+        "invoiceNumber": "Eindeutige, fortlaufende Rechnungsnummer",
+        "dates": "Rechnungsdatum und Fälligkeitsdatum",
+        "vatAmount": "MwSt.-Betrag pro Satz"
+      }
+    },
+    "transactions": {
+      "sections": {
+        "direct": {
+          "label": "Sofort bezahlen",
+          "description": "Bancontact, iDEAL, Kreditkarte"
+        },
+        "later": {
+          "label": "Später bezahlen",
+          "description": "Klarna"
+        },
+        "transfer": {
+          "label": "Überweisung",
+          "description": "QR-Code / SEPA Instant (kostenlos)"
+        }
+      },
+      "stripeMethods": {
+        "card": {
+          "label": "Kreditkarte / Apple Pay / Google Pay",
+          "description": "Standard-Kartenzahlungen + Wallets",
+          "region": "International"
+        },
+        "ideal": {
+          "description": "Direkte Banküberweisung"
+        },
+        "bancontact": {
+          "description": "Belgisches Zahlungssystem"
+        },
+        "klarna": {
+          "description": "Später bezahlen / in Raten"
+        }
+      },
+      "toast": {
+        "loadError": "Fehler beim Laden der Einstellungen",
+        "saveNoAccess": "Speichern fehlgeschlagen: kein Zugriff (RLS). Bitte wenden Sie sich an den Support.",
+        "saved": "Einstellungen gespeichert",
+        "saveError": "Fehler beim Speichern der Einstellungen",
+        "minOneMethod": "Mindestens eine Zahlungsmethode erforderlich",
+        "minOneStripeMethod": "Mindestens eine Stripe-Methode erforderlich"
+      },
+      "usage": {
+        "title": "Transaktionsnutzung",
+        "description": "In diesem Monat verarbeitete Transaktionen",
+        "unlimited": "Unbegrenzt",
+        "overLimit": "Über dem Limit",
+        "withinLimit": "Innerhalb des Limits",
+        "bank": "Bank",
+        "posCash": "POS bar",
+        "posCard": "POS Karte",
+        "usedOf": "{{used}} von {{included}} Transaktionen",
+        "remaining": "{{n}} verbleibend",
+        "overLimitAlert": "Sie liegen {{n}} Transaktionen über Ihrem Limit. Zusatzkosten: {{fee}} €",
+        "noData": "Keine Daten verfügbar"
+      },
+      "methods": {
+        "title": "Zahlungsmethoden",
+        "description": "Wählen Sie, welche Zahlungsmethoden Ihren Kunden zur Verfügung stehen",
+        "stripeTitle": "Stripe (iDEAL, Kreditkarte, Bancontact)",
+        "stripeDescription": "Sofortige Online-Zahlung über Stripe",
+        "availableStripe": "Verfügbare Stripe-Zahlungsmethoden",
+        "klarnaNotice": "Klarna kostet 3,5 % + 0,30 € pro Transaktion. Geben Sie diese Gebühren an Ihre Kunden weiter oder tragen Sie sie selbst. Klarna ist nur für Bestellungen über 35 € verfügbar."
+      },
+      "bankTransfer": {
+        "title": "Direkte Banküberweisung (QR)",
+        "zeroCost": "0 % Gebühren",
+        "description": "Der Kunde scannt den QR-Code mit der Banking-App - SEPA Instant",
+        "ibanRequired": "Konfigurieren Sie zuerst Ihre IBAN unter Unternehmensdaten",
+        "manualWarning": "Zahlungen werden NICHT automatisch erkannt — Sie müssen sie manuell verarbeiten",
+        "hideQrMobile": "QR-Code auf Mobilgeräten ausblenden",
+        "hideQrMobileHelp": "Auf Smartphones kann der Kunde den QR-Code nicht mit demselben Gerät scannen. Aktivieren Sie dies, um auf Mobilgeräten nur die Überweisungsdaten anzuzeigen. Der QR-Code bleibt auf Desktop und Tablet sichtbar."
+      },
+      "passthrough": {
+        "title": "Transaktionsgebühren weitergeben",
+        "description": "Wählen Sie, ob Sie Transaktionsgebühren an Ihre Kunden weitergeben möchten",
+        "showAtCheckout": "Transaktionsgebühren an der Kasse anzeigen",
+        "showAtCheckoutHelp": "Wenn aktiviert, wählt der Kunde an Ihrer Kasse seine Zahlungsmethode und sieht die genauen Transaktionsgebühren dieser Methode zusätzlich zur Bestellsumme. Beispiel: Bancontact +0,25 €, Kreditkarte +1,75 € bei einer Bestellung über 100 €. Wenn deaktiviert, werden die Gebühren von Ihrer eigenen Marge abgezogen.",
+        "feeLabel": "Bezeichnung für Transaktionsgebühren",
+        "feeLabelPlaceholder": "Transaktionsgebühren",
+        "feeLabelHelp": "Diese Bezeichnung wird an der Kasse bei den Transaktionsgebühren angezeigt"
+      },
+      "order": {
+        "title": "Reihenfolge der Zahlungsmethoden an der Kasse",
+        "description": "Legen Sie fest, in welcher Reihenfolge Ihre Kunden die Zahlungskategorien beim Bezahlen sehen. Ziehen Sie, um die Reihenfolge zu ändern.",
+        "tip": "Tipp: Der erste sichtbare Abschnitt erhält die meiste Aufmerksamkeit. Viele Shops setzen „Überweisung\" nach oben, um Gebühren zu sparen, andere setzen „Sofort bezahlen\" nach oben für eine schnellere Conversion."
+      },
+      "dialog": {
+        "title": "Wichtig — Banküberweisungen manuell prüfen",
+        "introBefore": "Bei Banküberweisung (QR-Code / SEPA Instant) wird die Zahlung ",
+        "introNot": "NICHT",
+        "introAfter": " automatisch erkannt. Das bedeutet:",
+        "point1": "Die Bestellung bleibt im Status „Warten auf Zahlung\", bis Sie die Zahlung manuell bestätigen",
+        "point2": "Sie sind selbst dafür verantwortlich, Ihr Bankkonto zu prüfen",
+        "point3": "Sie müssen die Bestellung im Admin-Bereich manuell auf „Bezahlt\" setzen",
+        "point4": "Der Kunde erhält erst eine Versandbestätigung, nachdem Sie den Status angepasst haben",
+        "point5": "Wenn Sie vergessen, die Zahlung zu prüfen, kann das zu unzufriedenen Kunden führen",
+        "advice": "Im Zweifel empfehlen wir, nur Stripe-Zahlungen anzubieten, da diese automatisch verarbeitet werden.",
+        "accept": "Ich verstehe und übernehme die Verantwortung"
+      }
+    },
+    "returnSettings": {
+      "reasons": {
+        "defect": "Defekt",
+        "damaged_in_transit": "Beim Transport beschädigt",
+        "wrong_product": "Falsches Produkt erhalten",
+        "wrong_size": "Falsche Größe",
+        "not_as_described": "Nicht wie beschrieben",
+        "changed_mind": "Ich habe es mir anders überlegt",
+        "late_delivery": "Zu spät geliefert",
+        "duplicate_order": "Doppelte Bestellung",
+        "other": "Sonstiges"
+      },
+      "notifications": {
+        "requestReceived": "Rücksendeanfrage erhalten",
+        "approved": "Rücksendung genehmigt",
+        "packageReceived": "Paket bei uns eingegangen",
+        "refundProcessed": "Erstattung verarbeitet",
+        "title": "Benachrichtigungen",
+        "description": "E-Mail-Benachrichtigungen für Rücksendungen",
+        "customerHeading": "Kunde erhält eine E-Mail bei:",
+        "adminHeading": "Admin erhält eine Benachrichtigung bei:",
+        "adminNewRequest": "Neue Rücksendeanfrage"
+      },
+      "title": "Rücksendeeinstellungen",
+      "subtitle": "Konfigurieren Sie die Rückgaberichtlinie, die Erstattungslogik und das Kundenportal.",
+      "disabledNote": "Deaktivierte Optionen folgen in Kürze: Sie werden noch nicht angewendet.",
+      "general": {
+        "title": "Allgemein",
+        "description": "Grundeinstellungen für Rücksendungen",
+        "enabled": "Rücksendungen aktiviert",
+        "windowDays": "Rückgabefrist (Tage)",
+        "euMinimum": "EU-Minimum: 14 Tage",
+        "restockingFee": "Standard-Wiedereinlagerungsgebühr (%)"
+      },
+      "creditNotes": {
+        "title": "Gutschriften",
+        "description": "Wann und wie Gutschriften erstellt werden",
+        "policy": "Gutschriftenrichtlinie",
+        "never": "Nie",
+        "b2bOnly": "Nur B2B",
+        "always": "Immer (auch B2C)",
+        "prefix": "Gutschrift-Präfix",
+        "autoEmail": "Gutschrift bei Erstattung automatisch per E-Mail senden"
+      },
+      "portal": {
+        "title": "Kundenportal",
+        "description": "Self-Service-Rücksendeanfragen",
+        "enabled": "Kunden dürfen Rücksendungen selbst anfragen",
+        "auth": "Authentifizierungsmethode",
+        "authEmailOrder": "E-Mail + Bestellnummer (kein Konto)",
+        "authLoggedIn": "Nur angemeldete Kunden",
+        "autoApprove": "Innerhalb der Rückgabefrist automatisch genehmigen",
+        "manualOutside": "Außerhalb der Rückgabefrist nur auf Anfrage"
+      },
+      "comingPhase4": "Kommt in Phase 4",
+      "comingPhase3": "Kommt in Phase 3",
+      "refund": {
+        "title": "Erstattungslogik (eigene Stripe-Bestellungen)",
+        "description": "Wie Erstattungen für den eigenen Checkout verarbeitet werden",
+        "method": "Erstattungsmethode",
+        "auto": "Automatisch über Stripe",
+        "manual": "Manuell (Admin bestätigt)",
+        "shippingByDefault": "Versandkosten standardmäßig ebenfalls erstatten",
+        "partial": "Teilerstattungen erlauben (pro Artikel)",
+        "requiresInspection": "Prüfung vor Erstattung erforderlich",
+        "requiresInspectionHelp": "Wenn deaktiviert, kann eine Erstattung verarbeitet werden, ohne dass die Prüfung abgeschlossen ist."
+      },
+      "marketplace": {
+        "title": "Marktplatz-Erstattungen",
+        "info": "Bei Bestellungen über Marktplätze wie Bol.com oder Amazon erfolgt die Erstattung über deren Plattform. Unsere Erstattungslogik gilt nur für eigene Stripe-Checkout-Bestellungen.",
+        "mode": "Erstattungsmodus",
+        "manual": "Manuell — der Admin geht selbst zum Marktplatz-Dashboard",
+        "auto": "Automatisch über die Marktplatz-API",
+        "autoAccept": "Innerhalb der Rückgabefrist automatisch akzeptieren"
+      },
+      "shipping": {
+        "title": "Rückversand",
+        "description": "Wer Versand und Etikettenerstellung bezahlt",
+        "paidBy": "Rückversand bezahlt von",
+        "customer": "Kunde bezahlt",
+        "merchant": "Wir bezahlen",
+        "conditional": "Bedingt (kostenlos bei bestimmten Gründen)",
+        "freeReasons": "Kostenlose Rücksendung bei diesen Gründen",
+        "provider": "Versandintegration",
+        "none": "Keine Integration",
+        "other": "Anderer Versanddienst",
+        "autoLabel": "Rücksendeetikett bei Genehmigung automatisch erstellen"
+      },
+      "stock": {
+        "title": "Bestand",
+        "description": "Automatische Wiedereinlagerung bei Rücksendungen",
+        "autoRestock": "Automatisch wieder einlagern bei Zustand „neu\" oder „ungeöffnet\"",
+        "noRestockDamaged": "Bei „beschädigt\" oder „defekt\" automatisch NICHT wieder einlagern",
+        "impactThreshold": "Benachrichtigung bei Bestandsauswirkung (%)",
+        "impactThresholdHelp": "Benachrichtigung senden, wenn eine Rücksendung mehr als X % des Bestands betrifft"
+      },
+      "reasonsSection": {
+        "title": "Rücksendegründe",
+        "description": "Welche Gründe Kunden wählen dürfen",
+        "resetDefaults": "Standard wiederherstellen"
+      },
+      "reset": {
+        "title": "Alle Einstellungen zurücksetzen",
+        "description": "Setzt alle Rücksendeeinstellungen auf die Standardwerte zurück.",
+        "button": "Alles zurücksetzen",
+        "confirmTitle": "Sind Sie sicher?",
+        "confirmBody": "Dadurch werden alle Rücksendeeinstellungen auf die Standardwerte zurückgesetzt. Dies kann nicht rückgängig gemacht werden.",
+        "confirm": "Zurücksetzen"
+      }
     }
   },
   "languages": {
@@ -1482,6 +1766,17 @@
       "sent": "Gesendet",
       "delivered": "Zugestellt",
       "failed": "Fehlgeschlagen"
+    },
+    "settings": {
+      "saved": "Peppol-ID gespeichert.",
+      "formatHint": "Format: schemeID:identifier (z. B. 0208:0123456789 für Belgien KBO)",
+      "schemesTitle": "Peppol-Scheme-IDs pro Land:",
+      "schemes": {
+        "be": "Belgien (KBO): 0208",
+        "nl": "Niederlande (KvK): 0106",
+        "de": "Deutschland: 0204",
+        "fr": "Frankreich (SIRET): 0009"
+      }
     }
   },
   "compliance": {
@@ -1538,7 +1833,8 @@
     "delete_title": "MwSt-Satz löschen?",
     "delete_description": "Sind Sie sicher, dass Sie diesen MwSt-Satz löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
     "active_description": "Aktiver Satz kann ausgewählt werden",
-    "default_description": "Automatisch auf neue Produkte angewendet"
+    "default_description": "Automatisch auf neue Produkte angewendet",
+    "system_badge": "Standard"
   },
   "shipping": {
     "title": "Versandarten",
