@@ -57,6 +57,13 @@
       "when": 1792471874221,
       "tag": "0007_mail_2d_ab_subject",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1792479736404,
+      "tag": "0008_mail_limit_ui_usage_rpc",
+      "breakpoints": true
     }
   ]
 }
