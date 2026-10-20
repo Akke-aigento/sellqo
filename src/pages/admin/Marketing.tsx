@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { SegmentDialog } from '@/components/admin/marketing/SegmentDialog';
 import { SendCampaignConfirmDialog } from '@/components/admin/marketing/SendCampaignConfirmDialog';
+import { MarketingEmailUsageIndicator } from '@/components/admin/marketing/MarketingEmailUsageIndicator';
 import { RealtimeActivityFeed } from '@/components/admin/marketing/RealtimeActivityFeed';
 import { MarketingOverviewChart } from '@/components/admin/marketing/MarketingOverviewChart';
 import { useMarketingStats, useEmailCampaigns } from '@/hooks/useEmailCampaigns';
@@ -143,6 +144,9 @@ export default function MarketingPage() {
           </GatedButton>
         </div>
       </div>
+
+      {/* MAIL-LIMIT-UI: verbruik van marketingmails deze maand */}
+      <MarketingEmailUsageIndicator />
 
       {/* KPI Stats */}
       <MarketingStatsCards stats={stats || defaultStats} isLoading={statsLoading} />

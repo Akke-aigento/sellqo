@@ -366,7 +366,9 @@
       "addon_horeca": "Horeca erbij",
       "addon_events": "Tickets verkopen",
       "addon_price": "+ {{price}} per maand",
-      "lim_orders_overage": "{{n}} bestellingen per maand inbegrepen, daarna {{pct}}% per bestelling"
+      "lim_orders_overage": "{{n}} bestellingen per maand inbegrepen, daarna {{pct}}% per bestelling",
+      "lim_mails": "{{n}} marketingmails per maand",
+      "lim_mails_unlimited": "Onbeperkt aantal marketingmails"
     },
     "faq": {
       "heading": "Veelgestelde vragen",
@@ -2113,6 +2115,10 @@
         "email_ab_subject": {
           "title": "A/B-test van de onderwerpregel",
           "description": "Geef een campagne een tweede onderwerp. Bij het versturen gaat een testgroep (standaard 20% van je doelgroep) half met onderwerp A en half met onderwerp B. Na een wachttijd naar keuze (standaard 4 uur) krijgt de rest het onderwerp met de hoogste klikratio. In het campagnerapport zie je per onderwerp hoeveel mails verstuurd, geopend en aangeklikt zijn. Elke variant heeft minstens 100 ontvangers nodig; is je doelgroep kleiner, dan zegt SellQo dat vóór het versturen."
+        },
+        "email_limit_visible": {
+          "title": "Je limiet voor marketingmails in één oogopslag",
+          "description": "Bovenaan Marketing → E-mail zie je nu hoeveel marketingmails je deze maand al verstuurde en hoeveel je plan toelaat. Automatiseringsmails tellen mee. Ook in het overzicht van de plannen onder SellQo-plan en op de prijzenpagina staat per plan hoeveel marketingmails per maand inbegrepen zijn."
         }
       },
       "copyLink": "Kopieer link",

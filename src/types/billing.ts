@@ -82,6 +82,8 @@ export interface PricingPlan {
   limit_users: number;
   limit_storage_gb: number;
   limit_api_calls: number | null;
+  /** MAIL-1a: marketingmails per kalendermaand; null = onbeperkt. Afgedwongen in enqueue_campaign_sends. */
+  limit_marketing_emails_monthly?: number | null;
   features: PricingPlanFeatures;
   /** FLEX-1: vaste kost per betaald ticket (EUR), 0 = geen. */
   ticket_fee?: number | string | null;
@@ -161,6 +163,8 @@ export interface TenantUsageWithLimits {
   customers: UsageLimit;
   storage: UsageLimit;
   users: UsageLimit;
+  /** MAIL-LIMIT-UI: uit marketing_email_usage (limiet + verbruik deze maand). Ontbreekt als de RPC faalt. */
+  marketing_emails?: UsageLimit;
 }
 
 export interface BillingMetrics {

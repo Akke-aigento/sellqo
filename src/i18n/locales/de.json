@@ -3359,6 +3359,11 @@
         "skipped_too_small": "Ihre Zielgruppe war beim Versand zu klein für den Test (mindestens 100 pro Variante). Alle erhalten Betreffzeile A.",
         "skipped_other": "Der A/B-Test konnte für diese Kampagne nicht stattfinden. Alle erhalten die normale Betreffzeile.",
         "report_no_difference": "Kein Unterschied, A gewählt: In der Testgruppe wurde noch nichts geöffnet oder angeklickt."
+      },
+      "usage": {
+        "used_of": "{{used}} von {{monthly}} Marketing-E-Mails diesen Monat",
+        "used_unlimited": "{{used}} Marketing-E-Mails diesen Monat (unbegrenzt)",
+        "see_plans": "Tarife ansehen"
       }
     },
     "ads": {
@@ -7546,7 +7551,8 @@
       "orders": "Bestellungen",
       "customers": "Kunden",
       "storage": "Speicher (GB)",
-      "users": "Team"
+      "users": "Team",
+      "marketing_emails": "Marketing-E-Mails"
     },
     "wizard": {
       "next_payment": "Weiter: Zahlungsweise",
@@ -7642,6 +7648,9 @@
       "title": "Tariflimit erreicht",
       "products": "Du hast das Produktlimit deines Tarifs erreicht. Upgrade, um weitere Produkte hinzuzufügen.",
       "users": "Dein Team hat das Maximum deines Tarifs erreicht. Upgrade, um jemanden hinzuzufügen."
+    },
+    "plan_limits": {
+      "marketing_emails": "Marketing-E-Mails pro Monat"
     }
   },
   "product_form": {

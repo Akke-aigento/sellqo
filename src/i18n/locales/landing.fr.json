@@ -366,7 +366,9 @@
       "addon_horeca": "Ajouter l’horeca",
       "addon_events": "Vendre des billets",
       "addon_price": "+ {{price}} par mois",
-      "lim_orders_overage": "{{n}} commandes par mois incluses, puis {{pct}} % par commande"
+      "lim_orders_overage": "{{n}} commandes par mois incluses, puis {{pct}} % par commande",
+      "lim_mails": "{{n}} e-mails marketing par mois",
+      "lim_mails_unlimited": "E-mails marketing illimités"
     },
     "faq": {
       "heading": "Questions fréquentes",
@@ -2113,6 +2115,10 @@
         "email_ab_subject": {
           "title": "Test A/B de l'objet",
           "description": "Donnez à une campagne un second objet. À l'envoi, un groupe test (20 % de votre audience par défaut) reçoit pour moitié l'objet A et pour moitié l'objet B. Après un délai de votre choix (4 heures par défaut), le reste reçoit l'objet avec le meilleur taux de clic. Le rapport de campagne indique par objet combien d'e-mails ont été envoyés, ouverts et cliqués. Chaque variante nécessite au moins 100 destinataires ; si votre audience est plus petite, SellQo vous le dit avant l'envoi."
+        },
+        "email_limit_visible": {
+          "title": "Votre limite d’e-mails marketing en un coup d’œil",
+          "description": "En haut de Marketing → E-mail, vous voyez désormais combien d’e-mails marketing vous avez envoyés ce mois-ci et combien votre forfait en permet. Les e-mails d’automatisation sont comptés. L’aperçu des forfaits sous Forfait SellQo et la page des tarifs indiquent aussi combien d’e-mails marketing par mois chaque forfait comprend."
         }
       },
       "copyLink": "Copier le lien",

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { countUsage } from '@/lib/planUsage';
+import { fetchMarketingEmailUsage } from '@/hooks/useMarketingEmailUsage';
 import type { TenantSubscription, PlatformInvoice, TenantUsageWithLimits, PricingPlanFeatures } from '@/types/billing';
 
 import { TenantContext } from '@/hooks/useTenant';
@@ -64,13 +65,15 @@ export function useTenantSubscription() {
 
       // Get counts
       // LIMITS-1: zelfde telling als de databank (src/lib/planUsage.ts).
-      const [products, orders, crmCustomersRes, storefrontCustomersRes, users, storageRes] = await Promise.all([
+      const [products, orders, crmCustomersRes, storefrontCustomersRes, users, storageRes, mail] = await Promise.all([
         countUsage(currentTenant.id, 'products'),
         countUsage(currentTenant.id, 'orders'),
         supabase.from('customers').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
         supabase.from('storefront_customers').select('id', { count: 'exact', head: true }).eq('tenant_id', currentTenant.id),
         countUsage(currentTenant.id, 'users'),
         supabase.rpc('get_tenant_storage_bytes', { p_tenant_id: currentTenant.id }),
+        // MAIL-LIMIT-UI: faalt de RPC (bv. rol zonder Marketing-leesrecht), dan valt alleen deze regel weg.
+        fetchMarketingEmailUsage(currentTenant.id).catch(() => null),
       ]);
 
       const plan = subscription.pricing_plan;
@@ -107,6 +110,13 @@ export function useTenantSubscription() {
           limit: plan.limit_users,
           percentage: calcPercentage(users, plan.limit_users),
         },
+        ...(mail ? {
+          marketing_emails: {
+            current: mail.used,
+            limit: mail.monthly,
+            percentage: calcPercentage(mail.used, mail.monthly),
+          },
+        } : {}),
       };
     },
     enabled: !!currentTenant?.id && !!subscription?.pricing_plan,

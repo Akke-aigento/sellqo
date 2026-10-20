@@ -1,3 +1,42 @@
+## MAIL-LIMIT-UI — limiet marketingmails zichtbaar in plannen, prijzen en Marketing → E-mail — 20 oktober 2026
+
+Vervolg op MAIL-1a. Go van Akke 20-10 08:31 ("staat mooi op automatisaties, MAAR niet in het plan en ook niet op de marketingpagina"). Changelog 2026.12z (`email_limit_visible`).
+
+**Root cause**
+- MAIL-1a voegde `pricing_plans.limit_marketing_emails_monthly` toe (20261019210000) en dwingt hem af in `enqueue_campaign_sends` (en de automatiserings-enqueue, 20261019230000), maar geen enkel scherm las de kolom: `src/lib/planLines.ts` (landing, /pricing, /horeca, /events, onboarding) toonde producten/orders/teamleden, `PlanComparisonCards.tsx` en `PlanFeatureDetailDialog.tsx` idem. De automatiseringspagina had enkel een uitlegregel (`admin.marketing.automations.notes.limit`), zonder cijfers.
+- Verbruik was alleen zichtbaar in de verzendbevestiging (`send-campaign-batch` mode `count`). `marketing_email_limit` en `marketing_emails_used` zijn enkel `service_role` (ze nemen elke tenant-id aan), dus de admin kon ze niet rechtstreeks aanroepen.
+
+**Uitgevoerd**
+- `supabase/migrations/20261020092000_mail_limit_ui_usage_rpc.sql` (nieuw): `marketing_email_usage(p_tenant)` → `(monthly, used)`, roept dezelfde twee functies aan als de wachtrij.
+- `src/hooks/useMarketingEmailUsage.ts` (nieuw) + `src/components/admin/marketing/MarketingEmailUsageIndicator.tsx` (nieuw): "X van Y marketingmails deze maand" met balk (80% oranje, 100% rood, `usageLevel` uit `planUsage.ts`), "(onbeperkt)" bij `monthly = null`. Link "Bekijk de pakketten" naar `/admin/billing` enkel bij `useCan('read','platform_billing')` (zelfde patroon als `ModuleOffCard`); daar zit de werkende planwissel. Laden mislukt → component rendert niets.
+- `src/pages/admin/Marketing.tsx`: indicator boven de KPI-kaarten.
+- `src/hooks/useTenantSubscription.ts` + `src/types/billing.ts`: `usage.marketing_emails` (optioneel, `.catch(() => null)`), zodat de verbruikskaart op SellQo-plan een regel "Marketingmails" krijgt via de bestaande lus in `Billing.tsx`.
+- `src/components/admin/billing/PlanComparisonCards.tsx` en `PlanFeatureDetailDialog.tsx`: vierde limiet "Marketingmails per maand" uit de kolom, plus limietwijziging bij up-/downgrade.
+- `src/lib/planLines.ts`: regel `landing.pricing.lim_mails` / `lim_mails_unlimited`. Kolom afwezig (`undefined`) → geen regel, nooit "onbeperkt" zonder bron. Test in `planUsage.test.ts`.
+- `src/integrations/supabase/types.ts`: handmatig `marketing_email_usage` toegevoegd (geen typegeneratie hier).
+- i18n: `billing.plan_limits.marketing_emails`, `billing.usage_labels.marketing_emails`, `admin.marketing.usage.*` in alle `SUPPORTED_LANGUAGES`; `landing.pricing.lim_mails*` en `public.changelog.changes.email_limit_visible` in alle `landing.*.json`.
+- `supabase/migrations/20261020093000_mail_limit_ui_doc.sql`: artikel `emailcampagnes` aangevuld (waar je limiet en verbruik ziet). Het artikel noemde de limiet al, niet de plek.
+
+**Security-keuzes**
+- `marketing_email_usage`: SECURITY DEFINER, `search_path` vast, `has_tenant_role` met dezelfde rollen als `marketing_contact_counts` (tenant_admin, staff, marketing, viewer, accountant; platform_admin via `has_tenant_role`), anders `42501 NO_ACCESS`. `revoke` van public/anon, `grant` aan authenticated + service_role. Geeft enkel twee getallen van de eigen winkel. De onderliggende functies blijven service_role-only.
+
+**Gedeelde-paden-waarschuwing**
+- `planLines.ts` bedient landing, /pricing, /horeca, /events en onboarding; enkel een extra regel, bestaande regels en volgorde ongewijzigd (bestaande tests groen). `useTenantSubscription` wordt door 12 bestanden gebruikt; enkel een optionele sleutel erbij, `PlanUsageBanner` leest vaste sleutels en ziet hem niet. Geen gedeelde theme-tabellen of storefront-functies geraakt: eerste wet niet geraakt.
+
+**Claim-audit**
+- Cijfers live nagetrokken 20-10 (`query_database`): Free 500, Starter 2.500, Pro/Horeca Small/Horeca Big 10.000, Enterprise 50.000, Events Flex 500, Events Vast 2.500, gelijk aan de migratie. Afgedwongen in `enqueue_campaign_sends` en `enqueue_automation_send`. Geen hardcoded getal in copy of changelog.
+
+**Verificatie**
+- `tsc --noEmit -p tsconfig.app.json`: exit 0. `npm run build`: exit 0 (`public/sitemap.xml` teruggezet). `vitest run`: 63 bestanden, 806 tests groen. `i18n-parity`: 5 talen, 8.630 keys, volledige pariteit. `check-notification-sources`: ok. Lint per bestand tegen HEAD: geen nieuwe fouten (Marketing.tsx 5 → 5 bestaand, rest 0), geen nieuwe `any`.
+- Playwright op vite preview (pricing_plans beantwoord met snapshot van de live rijen, de sandbox bereikt Supabase niet): /pricing 4 regels (500 / 2.500 / 10.000 / 50.000), /horeca 2× 10.000, /events 500 en 2.500, ook mobiel.
+- **Niet gedaan:** migraties niet gedraaid (schrijfwerk, apart); indicator en verbruiksregel dus pas zichtbaar na 20261020092000. Tot dan rendert de indicator niets en ontbreekt de verbruiksregel stil. Geen smoketest op Speeltuin/Demo Bakkerij.
+
+**Bewust ongemoeid / Vervolg**
+- De automatiseringspagina houdt haar uitlegregel; de indicator kan er met één regel bij als Akke dat wil.
+- Bestaande hardcoded NL-labels in `PlanComparisonCards`/`PlanFeatureDetailDialog` ("Producten", "Team", "Onbeperkt", feature-namen) niet gemigreerd: aparte i18n-batch.
+- Geen platform-override voor deze limiet in `TenantModulesTab` (bestaat ook niet in de databank).
+- Blog-concept (spoor 4) niet geschreven: kleine verbetering, past beter gebundeld met MAIL-2.
+
 ## FEED-LINK-1 — productfeed linkt naar de echte SellQo-winkel — 20 oktober 2026
 
 Vervolg op MAIL-2c ("Bewust ongemoeid"). Go van Akke 20-10 08:20. Geen changelog, nieuwsbrief of helpartikel: zie onderaan.

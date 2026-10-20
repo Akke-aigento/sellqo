@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, X, Star, ArrowUp, ArrowDown, Minus, Info, Crown, Sparkles, Package, ShoppingCart, Users, UserPlus } from 'lucide-react';
+import { Check, X, Star, ArrowUp, ArrowDown, Minus, Info, Crown, Sparkles, Package, ShoppingCart, Users, UserPlus, Mail } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -187,6 +187,11 @@ export function PlanComparisonCards({
                 limitChanges.push({ label: 'Orders/mnd', current: currentPlan.limit_orders, target: plan.limit_orders, isIncrease: (plan.limit_orders || Infinity) > (currentPlan.limit_orders || Infinity) });
               if (plan.limit_users !== currentPlan.limit_users)
                 limitChanges.push({ label: 'Teamleden', current: currentPlan.limit_users, target: plan.limit_users, isIncrease: plan.limit_users > currentPlan.limit_users });
+              // MAIL-LIMIT-UI: marketingmails per maand (null = onbeperkt).
+              const mailCur = currentPlan.limit_marketing_emails_monthly ?? null;
+              const mailTgt = plan.limit_marketing_emails_monthly ?? null;
+              if (plan.limit_marketing_emails_monthly !== undefined && mailTgt !== mailCur)
+                limitChanges.push({ label: t('billing.plan_limits.marketing_emails'), current: mailCur, target: mailTgt, isIncrease: (mailTgt ?? Infinity) > (mailCur ?? Infinity) });
             }
 
             const enabledCount = plan.features ? Object.values(plan.features).filter(Boolean).length : 0;
@@ -272,6 +277,10 @@ export function PlanComparisonCards({
                       { icon: <Package className="h-3.5 w-3.5" />, label: 'Producten', value: formatLimit(plan.limit_products) },
                       { icon: <ShoppingCart className="h-3.5 w-3.5" />, label: 'Orders', value: formatLimit(plan.limit_orders) },
                       { icon: <UserPlus className="h-3.5 w-3.5" />, label: 'Team', value: String(plan.limit_users) },
+                      // MAIL-LIMIT-UI: uit pricing_plans.limit_marketing_emails_monthly (null = onbeperkt).
+                      ...(plan.limit_marketing_emails_monthly === undefined ? [] : [
+                        { icon: <Mail className="h-3.5 w-3.5" />, label: t('billing.plan_limits.marketing_emails'), value: formatLimit(plan.limit_marketing_emails_monthly) },
+                      ]),
                     ].map(item => (
                       <div key={item.label} className="flex items-center gap-1.5 text-xs p-2 rounded-lg bg-muted/40">
                         <span className="text-muted-foreground">{item.icon}</span>

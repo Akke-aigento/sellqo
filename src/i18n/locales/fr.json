@@ -3359,6 +3359,11 @@
         "skipped_too_small": "Votre audience était trop petite pour le test au moment de l'envoi (au moins 100 par variante). Tout le monde reçoit l'objet A.",
         "skipped_other": "Le test A/B n'a pas pu avoir lieu pour cette campagne. Tout le monde reçoit l'objet habituel.",
         "report_no_difference": "Aucune différence, A choisi : rien n'a encore été ouvert ni cliqué dans le groupe test."
+      },
+      "usage": {
+        "used_of": "{{used}} e-mails marketing sur {{monthly}} ce mois-ci",
+        "used_unlimited": "{{used}} e-mails marketing ce mois-ci (illimité)",
+        "see_plans": "Voir les forfaits"
       }
     },
     "ads": {
@@ -7546,7 +7551,8 @@
       "orders": "Commandes",
       "customers": "Clients",
       "storage": "Stockage (Go)",
-      "users": "Équipe"
+      "users": "Équipe",
+      "marketing_emails": "E-mails marketing"
     },
     "wizard": {
       "next_payment": "Suivant : moyen de paiement",
@@ -7642,6 +7648,9 @@
       "title": "Limite du forfait atteinte",
       "products": "Vous avez atteint la limite de produits de votre forfait. Passez à un forfait supérieur pour en ajouter.",
       "users": "Votre équipe a atteint le maximum de votre forfait. Passez à un forfait supérieur pour ajouter quelqu'un."
+    },
+    "plan_limits": {
+      "marketing_emails": "E-mails marketing par mois"
     }
   },
   "product_form": {

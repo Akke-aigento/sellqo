@@ -40,4 +40,12 @@ describe('LIMITS-1 prijzenpagina', () => {
     const { lines } = planLines({ ...base, limit_orders: null, overage_fee_percent: 0 } as PricingPlan, t, 'nl');
     expect(lines[1]).toBe('landing.pricing.lim_orders_unlimited');
   });
+  it('MAIL-LIMIT-UI: marketingmails per maand uit de kolom, null = onbeperkt, ontbrekend = geen regel', () => {
+    const withMails = planLines({ ...base, limit_orders: null, limit_marketing_emails_monthly: 2500 } as PricingPlan, t, 'nl');
+    expect(withMails.lines[3]).toBe('landing.pricing.lim_mails{"n":"2.500"}');
+    const unlimited = planLines({ ...base, limit_orders: null, limit_marketing_emails_monthly: null } as PricingPlan, t, 'nl');
+    expect(unlimited.lines[3]).toBe('landing.pricing.lim_mails_unlimited');
+    const missing = planLines({ ...base, limit_orders: null } as PricingPlan, t, 'nl');
+    expect(missing.lines.some((l) => l.includes('lim_mails'))).toBe(false);
+  });
 });

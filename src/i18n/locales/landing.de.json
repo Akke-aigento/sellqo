@@ -366,7 +366,9 @@
       "addon_horeca": "Gastronomie dazu",
       "addon_events": "Tickets verkaufen",
       "addon_price": "+ {{price}} pro Monat",
-      "lim_orders_overage": "{{n}} Bestellungen pro Monat inklusive, danach {{pct}} % pro Bestellung"
+      "lim_orders_overage": "{{n}} Bestellungen pro Monat inklusive, danach {{pct}} % pro Bestellung",
+      "lim_mails": "{{n}} Marketing-E-Mails pro Monat",
+      "lim_mails_unlimited": "Unbegrenzt viele Marketing-E-Mails"
     },
     "faq": {
       "heading": "Häufige Fragen",
@@ -2113,6 +2115,10 @@
         "email_ab_subject": {
           "title": "A/B-Test der Betreffzeile",
           "description": "Geben Sie einer Kampagne eine zweite Betreffzeile. Beim Versand erhält eine Testgruppe (standardmäßig 20 % Ihrer Zielgruppe) zur Hälfte Betreffzeile A und zur Hälfte Betreffzeile B. Nach einer Wartezeit Ihrer Wahl (standardmäßig 4 Stunden) erhält der Rest die Betreffzeile mit der höchsten Klickrate. Im Kampagnenbericht sehen Sie pro Betreffzeile, wie viele E-Mails versendet, geöffnet und angeklickt wurden. Jede Variante braucht mindestens 100 Empfänger; ist Ihre Zielgruppe kleiner, sagt SellQo Ihnen das vor dem Versand."
+        },
+        "email_limit_visible": {
+          "title": "Ihr Limit für Marketing-E-Mails auf einen Blick",
+          "description": "Oben unter Marketing → E-Mail sehen Sie jetzt, wie viele Marketing-E-Mails Sie diesen Monat versendet haben und wie viele Ihr Tarif erlaubt. Automatisierungs-E-Mails zählen mit. Auch die Tarifübersicht unter SellQo-Tarif und die Preisseite zeigen, wie viele Marketing-E-Mails pro Monat in jedem Tarif enthalten sind."
         }
       },
       "copyLink": "Link kopieren",

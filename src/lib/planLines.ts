@@ -32,6 +32,11 @@ export function planLines(plan: PricingPlan, t: TFunction, lng: string): { lines
         ? k('lim_orders_overage', { n: plan.limit_orders.toLocaleString(lng), pct: Number(plan.overage_fee_percent).toLocaleString(lng) })
         : limit(plan.limit_orders, 'lim_orders_one', 'lim_orders', 'lim_orders_unlimited'),
       limit(plan.limit_users, 'lim_users_one', 'lim_users', 'lim_users_unlimited'),
+      // MAIL-LIMIT-UI: afgedwongen in enqueue_campaign_sends (marketing_email_limit). Ontbreekt de
+      // kolom in de rij (undefined), dan geen regel: nooit "onbeperkt" beloven zonder bron.
+      ...(plan.limit_marketing_emails_monthly === undefined
+        ? []
+        : [limit(plan.limit_marketing_emails_monthly, 'lim_mails', 'lim_mails', 'lim_mails_unlimited')]),
       ...FEATURE_LINES.filter((l) => f[l.key]).map((l) => k(l.label)),
       ...(aiCredits > 0 ? [k('feat_ai', { n: aiCredits.toLocaleString(lng) })] : []),
     ],

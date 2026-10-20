@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.12z — Je limiet voor marketingmails in één oogopslag (improvement, 20-10-2026)
+
+**Status:** klaar voor verzending zodra MAIL-LIMIT-UI live staat (migraties 20261020092000 en 20261020093000 + frontend). Bundelen met 2026.12y.
+
+**Voor wie:** alle winkels die e-mailmarketing gebruiken.
+
+**Hoeveel marketingmails heb je nog?** (oktober 2026)
+Bovenaan Marketing → E-mail zie je nu hoeveel marketingmails je deze maand verstuurde en hoeveel je plan toelaat, automatiseringsmails inbegrepen. In het overzicht van de plannen en op de prijzenpagina staat per plan hoeveel marketingmails per maand inbegrepen zijn.
+Wat betekent dit voor jou? Je ziet op tijd dat je aan je limiet komt, in plaats van pas bij het versturen.
+
+i18n: `public.changelog.changes.email_limit_visible`
+
 ### 2026.12y — Producten in je mail en A/B-test van het onderwerp (feature, 20-10-2026)
 
 **Status:** klaar voor verzending zodra MAIL-2a, 2c en 2d live staan (migraties 20261020000000 en 20261020010000 na 20261019230000, edge functions process-campaign-queue, send-campaign-batch, automation-scheduler, render-campaign-preview + frontend) en de smoketest op SellQo Speeltuin groen is.

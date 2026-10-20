@@ -1848,7 +1848,8 @@
       "orders": "Bestellingen",
       "customers": "Klanten",
       "storage": "Opslag (GB)",
-      "users": "Team"
+      "users": "Team",
+      "marketing_emails": "Marketingmails"
     },
     "wizard": {
       "next_payment": "Verder: betaalwijze",
@@ -1936,6 +1937,9 @@
       "title": "Limiet van je plan bereikt",
       "products": "Je hebt het maximum aantal producten van je plan bereikt. Upgrade om meer producten toe te voegen.",
       "users": "Je team zit op het maximum van je plan. Upgrade om iemand extra toe te voegen."
+    },
+    "plan_limits": {
+      "marketing_emails": "Marketingmails per maand"
     }
   },
   "admin_billing": {
@@ -3642,6 +3646,11 @@
         "skipped_too_small": "Je doelgroep was bij het versturen te klein voor de test (minstens 100 per variant). Iedereen krijgt onderwerp A.",
         "skipped_other": "De A/B-test kon voor deze campagne niet doorgaan. Iedereen krijgt het gewone onderwerp.",
         "report_no_difference": "Geen verschil, A gekozen: in de testgroep werd nog niets geopend of aangeklikt."
+      },
+      "usage": {
+        "used_of": "{{used}} van {{monthly}} marketingmails deze maand",
+        "used_unlimited": "{{used}} marketingmails deze maand (onbeperkt)",
+        "see_plans": "Bekijk de pakketten"
       }
     },
     "ads": {

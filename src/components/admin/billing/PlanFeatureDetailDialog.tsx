@@ -1,4 +1,5 @@
-import { Check, X, Crown, Zap, Package, ShoppingCart, Users, UserPlus, Sparkles, Star, ArrowUp, ArrowDown } from 'lucide-react';
+import { Check, X, Crown, Zap, Package, ShoppingCart, Users, UserPlus, Sparkles, Star, ArrowUp, ArrowDown, Mail } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -135,6 +136,7 @@ export function PlanFeatureDetailDialog({
   currentPlanSortOrder = 0,
   isLoading,
 }: PlanFeatureDetailDialogProps) {
+  const { t } = useTranslation();
   if (!plan) return null;
 
   const isCurrent = plan.id === currentPlanId;
@@ -197,6 +199,10 @@ export function PlanFeatureDetailDialog({
             { icon: <Package className="h-4 w-4 text-blue-500" />, label: 'Producten', value: formatLimit(plan.limit_products) },
             { icon: <ShoppingCart className="h-4 w-4 text-green-500" />, label: 'Orders/mnd', value: formatLimit(plan.limit_orders) },
             { icon: <UserPlus className="h-4 w-4 text-amber-500" />, label: 'Team', value: String(plan.limit_users) },
+            // MAIL-LIMIT-UI: uit pricing_plans.limit_marketing_emails_monthly (null = onbeperkt).
+            ...(plan.limit_marketing_emails_monthly === undefined ? [] : [
+              { icon: <Mail className="h-4 w-4 text-purple-500" />, label: t('billing.plan_limits.marketing_emails'), value: formatLimit(plan.limit_marketing_emails_monthly) },
+            ]),
           ].map((item) => (
             <div key={item.label} className="text-center p-2.5 rounded-xl bg-muted/40">
               <div className="flex justify-center mb-1">{item.icon}</div>

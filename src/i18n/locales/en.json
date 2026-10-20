@@ -1840,7 +1840,8 @@
       "orders": "Orders",
       "customers": "Customers",
       "storage": "Storage (GB)",
-      "users": "Team"
+      "users": "Team",
+      "marketing_emails": "Marketing emails"
     },
     "wizard": {
       "next_payment": "Next: payment method",
@@ -1936,6 +1937,9 @@
       "title": "Plan limit reached",
       "products": "You have reached your plan's product limit. Upgrade to add more products.",
       "users": "Your team is at your plan's maximum. Upgrade to add someone else."
+    },
+    "plan_limits": {
+      "marketing_emails": "Marketing emails per month"
     }
   },
   "import": {
@@ -3628,6 +3632,11 @@
         "skipped_too_small": "Your audience was too small for the test when sending (at least 100 per variant). Everyone gets subject line A.",
         "skipped_other": "The A/B test could not run for this campaign. Everyone gets the regular subject line.",
         "report_no_difference": "No difference, A chosen: nothing in the test group was opened or clicked yet."
+      },
+      "usage": {
+        "used_of": "{{used}} of {{monthly}} marketing emails this month",
+        "used_unlimited": "{{used}} marketing emails this month (unlimited)",
+        "see_plans": "View plans"
       }
     },
     "ads": {

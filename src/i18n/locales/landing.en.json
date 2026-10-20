@@ -366,7 +366,9 @@
       "addon_horeca": "Add food & drink",
       "addon_events": "Sell tickets",
       "addon_price": "+ {{price}} per month",
-      "lim_orders_overage": "{{n}} orders per month included, then {{pct}}% per order"
+      "lim_orders_overage": "{{n}} orders per month included, then {{pct}}% per order",
+      "lim_mails": "{{n}} marketing emails per month",
+      "lim_mails_unlimited": "Unlimited marketing emails"
     },
     "faq": {
       "heading": "Frequently asked questions",
@@ -2113,6 +2115,10 @@
         "email_ab_subject": {
           "title": "A/B test of the subject line",
           "description": "Give a campaign a second subject line. When sending, a test group (20% of your audience by default) gets half subject line A and half subject line B. After a waiting time of your choice (4 hours by default), the rest gets the subject line with the highest click rate. The campaign report shows per subject line how many emails were sent, opened and clicked. Each variant needs at least 100 recipients; if your audience is smaller, SellQo tells you before sending."
+        },
+        "email_limit_visible": {
+          "title": "Your marketing email limit at a glance",
+          "description": "At the top of Marketing → Email you now see how many marketing emails you have sent this month and how many your plan allows. Automation emails count towards it. The plan overview under SellQo plan and the pricing page also show how many marketing emails per month each plan includes."
         }
       },
       "copyLink": "Copy link",
