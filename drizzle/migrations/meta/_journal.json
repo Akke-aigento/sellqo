@@ -64,6 +64,13 @@
       "when": 1792479736404,
       "tag": "0008_mail_limit_ui_usage_rpc",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792479749920,
+      "tag": "0009_mail_limit_ui_doc",
+      "breakpoints": true
     }
   ]
 }

@@ -22591,6 +22591,13 @@ export type Database = {
         }[]
       }
       marketing_email_limit: { Args: { p_tenant_id: string }; Returns: number }
+      marketing_email_usage: {
+        Args: { p_tenant: string }
+        Returns: {
+          monthly: number
+          used: number
+        }[]
+      }
       marketing_emails_used: { Args: { p_tenant_id: string }; Returns: number }
       marketing_erase_contact: {
         Args: { p_email: string; p_tenant: string }
