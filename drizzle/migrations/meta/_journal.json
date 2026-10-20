@@ -85,6 +85,13 @@
       "when": 1792493374346,
       "tag": "0011_mail_logo_email_variant",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1792493425847,
+      "tag": "0012_mail_clean_1",
+      "breakpoints": true
     }
   ]
 }
