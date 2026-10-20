@@ -71,6 +71,13 @@
       "when": 1792479749920,
       "tag": "0009_mail_limit_ui_doc",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1792479797309,
+      "tag": "0010_mail_3_cart_restore",
+      "breakpoints": true
     }
   ]
 }
