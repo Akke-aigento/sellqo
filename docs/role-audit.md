@@ -1,3 +1,37 @@
+## OPS-MAILQUEUE-1 — Auth-mailwachtrij: geen bug, geen cron nodig — 20 oktober 2026
+
+Go van Akke 20-10 14:06 ("alles aanpakken"). Recon weerlegt de aanname; er is daarom niets gewijzigd aan code of database. Branch `fix-ops`.
+
+**Aanname (fout)**
+`process-email-queue` heeft geen cron-job, en 8 auth-mails staan op `pending` (laatste 18-09), dus niemand krijgt nog auth-mails.
+
+**Root cause van de misvatting**
+- `auth-email-hook/index.ts` r. 247-269 schrijft **vóór** het enqueuen een rij `status='pending'` in `email_send_log` (audittrail voor als enqueue crasht). `process-email-queue/index.ts` schrijft bij succes een **tweede** rij `status='sent'` met dezelfde `message_id`; de pending-rij wordt nooit bijgewerkt. Een pending-rij is dus geen wachtende mail.
+- Live (query_database, 20-10): 8 × `pending` en 8 × `sent`, per `message_id` gepaard; vertraging pending → sent 1,2 tot 8,6 s. Wachtrijen `pgmq.q_auth_emails`, `q_transactional_emails` en beide DLQ's: 0 berichten.
+- De cron bestaat bewust niet permanent. Lovable's e-mailinfra werkt wake-on-enqueue: trigger `email_queue_wake_auth`/`email_queue_wake_transactional` (AFTER INSERT op de pgmq-tabellen) roept `public.email_queue_wake()` aan, die meteen `process-email-queue` aanroept en de cron `process-email-queue` ('5 seconds') inplant; `public.email_queue_dispatch()` haalt die cron weer weg zodra beide wachtrijen leeg zijn. `cron.job_run_details` toont tientallen zulke eenmalige jobs (13-20 okt, telkens 1 run, `succeeded`). Het commentaar onderaan `20260610175545_email_infra.sql` ("cron met 5-seconde-interval") beschrijft de oude opzet.
+- Waarom niets sinds 18-09: er is niets gevraagd. `auth.users`: laatste `recovery_sent_at` 18-09 13:07 (= de laatste mail), `confirmation_sent_at` overal leeg, 0 onbevestigde gebruikers op 15. Aanmelden gebeurt zonder bevestigingsmail (auto-confirm), teamuitnodigingen lopen via Resend (`send-team-invitation`), niet via deze wachtrij.
+- TTL-guard bestaat al: `process-email-queue` r. 205-221 zet berichten ouder dan `auth_email_ttl_minutes` (15) of `transactional_email_ttl_minutes` (60) in de DLQ in plaats van ze te versturen.
+
+**Uitgevoerd**
+- Niets aan code of database. Geen cron toegevoegd: een vaste cron `process-email-queue` zou door `email_queue_dispatch()` bij de eerste lege run weer worden weggehaald (zelfde jobnaam), en een andere naam zou elke minuut een edge-call doen voor een wachtrij die bijna altijd leeg is (1.440 runs/dag voor ~1 mail per maand).
+- De 8 pending-rijen niet op expired/cancelled gezet: het zijn verstuurde mails, de CHECK op `email_send_log.status` kent die waarden niet, en het zou de audittrail vervalsen.
+
+**Security-keuzes**
+- n.v.t.: niets gewijzigd. Vastgesteld: `process-email-queue` staat op `verify_jwt = true` en eist daarbovenop `role = service_role` in de JWT; de wake-functies halen de sleutel uit vault (`email_queue_service_role_key`).
+
+**Gedeelde-paden-waarschuwing**
+- n.v.t.: geen gedeeld pad geraakt.
+
+**Verificatie**
+- SQL (read-only): telling per status/template, paring pending↔sent per `message_id`, pgmq-tellingen, `cron.job`, `cron.job_run_details` voor verdwenen jobids, functiedefinities van `email_queue_wake`/`email_queue_dispatch`, triggers op `pgmq.q_*`, `auth.users`-tijdstempels.
+
+**Samenhang**
+- Bestond al: wake-on-enqueue (trigger + dispatch), TTL- en retry-guard in de worker, DLQ's. Niets verhuisd of opgeruimd. Bewust blijft staan: de pending-rijen in `email_send_log` (audittrail) en het verouderde commentaar in de migratie van 10-06 (migraties herschrijven we niet).
+
+**Bewust ongemoeid / Vervolg**
+- Wie in de toekomst "stuck mails" telt: tel `pending` zonder `sent`-rij met dezelfde `message_id`, of kijk in `pgmq.q_auth_emails`, niet naar `status='pending'` alleen.
+- Optioneel: een echte end-to-end test (wachtwoordreset op een testaccount) om te zien dat de mail aankomt; de datakant is groen, de aflevering bij Lovable Email is hier niet meetbaar.
+
 ## MAIL-UX-1 — Marketing → E-mail: tabbladen bovenaan, Automatiseringen als tabblad, i18n, mobiel, mailversie van bestaande logo's — 20 oktober 2026
 
 Go van Akke 20-10 13:02 ("automations als tab", "design op mobile en desktop", "geen dubbelingen", "doe maar die logo's"). Branch `mail-ux-1` op `origin/main` 4a46e6c, niet gepusht.
