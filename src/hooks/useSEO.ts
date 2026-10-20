@@ -151,8 +151,10 @@ export function useSEO() {
   // Generate SEO content
   const generateContentMutation = useMutation({
     mutationFn: async (params: {
-      type: 'meta_title' | 'meta_description' | 'product_description' | 'alt_text';
+      type: 'meta_title' | 'meta_description' | 'product_description' | 'category_description' | 'alt_text';
       productIds: string[];
+      categoryIds?: string[];
+      entityType?: 'product' | 'category';
     }) => {
       if (!tenantId) throw new Error('No tenant');
       
@@ -166,6 +168,8 @@ export function useSEO() {
     onSuccess: (data) => {
       toast.success(`${data.generated} items gegenereerd`);
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      // SEO-CAT-1: categorie-meta wordt nu echt geschreven; tabel verversen.
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
     },
     onError: (error: Error) => {
       toast.error('Genereren mislukt', { description: error.message });
