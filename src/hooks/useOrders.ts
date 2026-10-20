@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
+import { sanitizeOrSearch } from '@/lib/sanitizeOrSearch';
 import type { Order, OrderItem, OrderStatus, PaymentStatus, OrderFilters } from '@/types/order';
 import { EMAIL_ONLY_EXTRA_TRANSITIONS, isEmailOnlyOrder } from '../../supabase/functions/_shared/emailOnlyOrder';
 
@@ -31,8 +32,15 @@ export function useOrders(filters?: OrderFilters) {
       if (filters?.payment_status) {
         query = query.eq('payment_status', filters.payment_status);
       }
-      if (filters?.search) {
-        query = query.or(`order_number.ilike.%${filters.search}%,customer_email.ilike.%${filters.search}%,customer_name.ilike.%${filters.search}%`);
+      if (filters?.marketplace_source === 'sellqo_webshop') {
+        // Eigen webshop-orders hebben geen marketplace_source (null); oudere rijen kunnen 'sellqo_webshop' dragen.
+        query = query.or('marketplace_source.is.null,marketplace_source.eq.sellqo_webshop');
+      } else if (filters?.marketplace_source) {
+        query = query.eq('marketplace_source', filters.marketplace_source);
+      }
+      const search = sanitizeOrSearch(filters?.search);
+      if (search) {
+        query = query.or(`order_number.ilike.%${search}%,customer_email.ilike.%${search}%,customer_name.ilike.%${search}%`);
       }
       if (filters?.dateFrom) {
         query = query.gte('created_at', filters.dateFrom.toISOString());
@@ -68,8 +76,9 @@ export function useOrders(filters?: OrderFilters) {
         },
       }, 'Status update mislukt');
     },
-    onSuccess: () => {
+    onSuccess: (_data, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
       toast({ title: 'Status bijgewerkt' });
     },
     onError: (error) => {
@@ -86,8 +95,9 @@ export function useOrders(filters?: OrderFilters) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
       toast({ title: 'Betaalstatus bijgewerkt' });
     },
     onError: (error) => {
@@ -108,8 +118,9 @@ export function useOrders(filters?: OrderFilters) {
 
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
       toast({ title: 'Notities opgeslagen' });
     },
     onError: (error) => {

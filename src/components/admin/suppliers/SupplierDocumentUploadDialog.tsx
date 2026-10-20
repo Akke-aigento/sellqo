@@ -236,16 +236,16 @@ export function SupplierDocumentUploadDialog({
             <div className="space-y-2">
               <Label>Koppelen aan inkooporder</Label>
               <Select
-                value={watch("purchase_order_id") || ""}
+                value={watch("purchase_order_id") || "none"}
                 onValueChange={(value) =>
-                  setValue("purchase_order_id", value || undefined)
+                  setValue("purchase_order_id", value === "none" ? undefined : value)
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Geen koppeling" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Geen koppeling</SelectItem>
+                  <SelectItem value="none">Geen koppeling</SelectItem>
                   {filteredPurchaseOrders.map((po) => (
                     <SelectItem key={po.id} value={po.id}>
                       {po.order_number}

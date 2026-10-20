@@ -30,14 +30,14 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
         </div>
         {enabledFields.has('category_id') && (
           <Select
-            value={state.category_id || ''}
-            onValueChange={(value) => onChange({ category_id: value || null })}
+            value={state.category_id || 'none'}
+            onValueChange={(value) => onChange({ category_id: value === 'none' ? null : value })}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder={t('admin.products.bulk.bulkBasicTab.selecteer_categorie')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">{t('admin.products.bulk.bulkBasicTab.geen_categorie')}</SelectItem>
+              <SelectItem value="none">{t('admin.products.bulk.bulkBasicTab.geen_categorie')}</SelectItem>
               {categories.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id}>
                   {cat.name}
@@ -62,14 +62,14 @@ export function BulkBasicTab({ state, onChange, enabledFields, onToggleField }: 
         </div>
         {enabledFields.has('vat_rate_id') && (
           <Select
-            value={state.vat_rate_id || ''}
-            onValueChange={(value) => onChange({ vat_rate_id: value || null })}
+            value={state.vat_rate_id || 'none'}
+            onValueChange={(value) => onChange({ vat_rate_id: value === 'none' ? null : value })}
           >
             <SelectTrigger className="w-full">
               <SelectValue placeholder={t('admin.products.bulk.bulkBasicTab.selecteer_btw_tarief')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">{t('admin.products.bulk.bulkBasicTab.geen_btw_tarief')}</SelectItem>
+              <SelectItem value="none">{t('admin.products.bulk.bulkBasicTab.geen_btw_tarief')}</SelectItem>
               {vatRates.map((vat) => (
                 <SelectItem key={vat.id} value={vat.id}>
                   {vat.name_nl} ({vat.rate}%)

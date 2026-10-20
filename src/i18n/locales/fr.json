@@ -7788,6 +7788,12 @@
         "CIRCUMFERENCE_HALVED": "Printful a donné la poitrine en tour ; convertie en largeur (divisée par 2).",
         "CONVERTED_FROM_INCHES": "Printful n’a donné que des pouces ; converti en cm."
       }
+    },
+    "supplierDocuments": {
+      "openen_mislukt": "Impossible d'ouvrir le document. Veuillez réessayer."
+    },
+    "purchaseOrders": {
+      "aanmaken_nog_niet_beschikbaar": "La création de bons de commande n'est pas encore disponible dans SellQo. Les bons de commande existants apparaissent ici."
     }
   },
   "billing": {

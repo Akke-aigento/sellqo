@@ -83,14 +83,15 @@ export default function PaymentsPage() {
   const hasStripeAccount = !!currentTenant?.stripe_account_id;
   const isLoading = transactionsLoading || payoutsLoading;
 
-  // Calculate MTD stats from transactions
-  const mtdRevenue = transactionsData?.transactions
-    ?.filter(tx => tx.type === 'charge' || tx.type === 'payment')
-    .reduce((sum, tx) => sum + tx.amount, 0) || 0;
-  
-  const mtdFees = transactionsData?.transactions
-    ?.filter(tx => tx.type === 'charge' || tx.type === 'payment')
-    .reduce((sum, tx) => sum + tx.fee, 0) || 0;
+  // MTD = enkel transacties van de huidige kalendermaand (tx.created = Unix-seconden).
+  const monthStartSec = (() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000;
+  })();
+  const mtdCharges = transactionsData?.transactions
+    ?.filter(tx => (tx.type === 'charge' || tx.type === 'payment') && tx.created >= monthStartSec) ?? [];
+  const mtdRevenue = mtdCharges.reduce((sum, tx) => sum + tx.amount, 0);
+  const mtdFees = mtdCharges.reduce((sum, tx) => sum + tx.fee, 0);
 
   const handleRefresh = () => {
     refetchTransactions();

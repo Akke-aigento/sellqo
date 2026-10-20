@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MessageCircleQuestion, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AIHelpChatWindow } from './AIHelpChatWindow';
 import { useTranslation } from 'react-i18next';
+import { OPEN_AI_HELP_EVENT } from '@/lib/aiHelpEvents';
 
 export function AIHelpWidget() {
   const { t } = useTranslation();
@@ -22,6 +23,16 @@ export function AIHelpWidget() {
     setIsMinimized(false);
     localStorage.setItem('ai-help-minimized', 'false');
   };
+
+  useEffect(() => {
+    const onOpen = () => {
+      setIsOpen(true);
+      setIsMinimized(false);
+      localStorage.setItem('ai-help-minimized', 'false');
+    };
+    window.addEventListener(OPEN_AI_HELP_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_AI_HELP_EVENT, onOpen);
+  }, []);
 
   return (
     <>

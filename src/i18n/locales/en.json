@@ -8061,6 +8061,12 @@
         "CIRCUMFERENCE_HALVED": "Printful gave the chest as a circumference; converted to width (divided by 2).",
         "CONVERTED_FROM_INCHES": "Printful only gave inches; converted to cm."
       }
+    },
+    "supplierDocuments": {
+      "openen_mislukt": "Could not open the document. Please try again."
+    },
+    "purchaseOrders": {
+      "aanmaken_nog_niet_beschikbaar": "Creating purchase orders isn't available in SellQo yet. Existing purchase orders appear here."
     }
   },
   "product_form": {

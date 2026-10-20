@@ -8075,6 +8075,12 @@
         "CIRCUMFERENCE_HALVED": "Printful gaf de borst als omtrek; omgerekend naar breedte (gedeeld door 2).",
         "CONVERTED_FROM_INCHES": "Printful gaf alleen inch; omgerekend naar cm."
       }
+    },
+    "supplierDocuments": {
+      "openen_mislukt": "Document openen mislukt. Probeer het opnieuw."
+    },
+    "purchaseOrders": {
+      "aanmaken_nog_niet_beschikbaar": "Inkooporders aanmaken kan nog niet in SellQo. Bestaande inkooporders verschijnen hier."
     }
   },
   "product_form": {

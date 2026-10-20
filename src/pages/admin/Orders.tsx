@@ -157,7 +157,7 @@ export default function OrdersPage() {
               <Package className="h-12 w-12 text-muted-foreground mb-4" />
               <h3 className="font-medium text-lg">{t('admin.customerDetail.geen_bestellingen_gevonden')}</h3>
               <p className="text-muted-foreground text-sm">
-                {filters.status || filters.payment_status || filters.search
+                {filters.status || filters.payment_status || filters.search || filters.marketplace_source
                   ? t('admin.orders.probeer_andere_filters') : t('admin.orders.bestellingen_verschijnen_hier_zodra_klanten_iets')}
               </p>
             </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears } from 'date-fns';
+import { format, isSameDay, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -92,24 +92,33 @@ const presets: { key: PresetKey; labelKey: string; getRange: () => DateRange }[]
 export const GlobalDateRangePicker = ({ dateRange, onDateRangeChange }: GlobalDateRangePickerProps) => {
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
-  const [selectedPreset, setSelectedPreset] = useState<PresetKey>('this_month');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  // Label altijd afleiden uit de echte periode: de pagina kan de range ook zelf
+  // zetten (standaard dit kwartaal, snelknoppen). Een losse state toonde dan
+  // "Deze maand" bij 1 okt – 31 dec.
+  const selectedPreset: PresetKey = (() => {
+    if (!dateRange?.from || !dateRange?.to) return 'custom';
+    const match = presets.find((p) => {
+      const r = p.getRange();
+      return isSameDay(r.from, dateRange.from) && isSameDay(r.to, dateRange.to);
+    });
+    return match?.key ?? 'custom';
+  })();
+
   const handlePresetSelect = (preset: typeof presets[0]) => {
-    setSelectedPreset(preset.key);
     onDateRangeChange(preset.getRange());
   };
 
   const handleCustomDateChange = (range: { from?: Date; to?: Date } | undefined) => {
     if (range?.from && range?.to) {
-      setSelectedPreset('custom');
       onDateRangeChange({ from: range.from, to: range.to, type: 'custom' });
       setIsCalendarOpen(false);
     }
   };
 
-  const currentPresetLabel = selectedPreset === 'custom' 
-    ? 'Aangepaste periode'
+  const currentPresetLabel = selectedPreset === 'custom'
+    ? t('admin.reports.globalDateRangePicker.aangepaste_periode')
     : (() => { const pr = presets.find((x) => x.key === selectedPreset); return pr ? t(pr.labelKey) : t('admin.reports.globalDateRangePicker.selecteer_periode'); })();
 
   return (
