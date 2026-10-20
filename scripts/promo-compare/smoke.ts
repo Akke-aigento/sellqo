@@ -364,6 +364,7 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
   const RT2 = '22222222-2222-4222-8222-222222222222';
   const RUN = '33333333-3333-4333-8333-333333333333';
   const RUN_CONV = '44444444-4444-4444-8444-444444444444';
+  const RUN_ERR = '55555555-5555-4555-8555-555555555555';
   const future = Math.floor(Date.now() / 1000) + 3600;
   const prod = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
     id, tenant_id: RT, name, slug: id, price: 10, is_active: true, track_inventory: true, stock: 5, category_id: null,
@@ -381,11 +382,13 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
     automation_runs: [
       { id: RUN, tenant_id: RT, trigger_entity_id: 'old1', trigger_entity_type: 'cart', recipient_email: 'jan@voorbeeld.be' },
       { id: RUN_CONV, tenant_id: RT, trigger_entity_id: 'old2', trigger_entity_type: 'cart', recipient_email: 'piet@voorbeeld.be' },
+      { id: RUN_ERR, tenant_id: RT, trigger_entity_id: 'old3', trigger_entity_type: 'cart', recipient_email: 'els@voorbeeld.be' },
     ],
     storefront_carts: [
       { id: 'old1', tenant_id: RT, session_id: 'x', currency: 'EUR', locale: 'nl', checkout_status: 'checkout', customer_email: 'jan@voorbeeld.be',
         customer_phone: '+32 470 00 00 00', shipping_address: { street: 'Geheim 1' }, discount_codes: ['WELKOM'], created_at: '2026-10-19T10:00:00Z', expires_at: '2999-01-01T00:00:00Z' },
       { id: 'old2', tenant_id: RT, session_id: 'y', currency: 'EUR', checkout_status: 'converted', customer_email: 'piet@voorbeeld.be', created_at: '2026-10-19T10:00:00Z', expires_at: '2999-01-01T00:00:00Z' },
+      { id: 'old3', tenant_id: RT, session_id: 'z', currency: 'EUR', checkout_status: 'checkout', customer_email: 'els@voorbeeld.be', created_at: '2026-10-19T10:00:00Z', expires_at: '2999-01-01T00:00:00Z' },
     ],
     storefront_cart_items: [
       line('l1', 'pa', { variant_id: 'va', quantity: 2, product_variants: { title: 'M' } }),
@@ -393,6 +396,7 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
       line('l3', 'tk', { event_detail_id: 'ev1' }),
       line('l4', 'pa', { addons: [{ group: 'Saus', name: 'Mayo', price: 0.5 }] }),
       line('l5', 'pa', { gift_card_metadata: { recipient_email: 'x@y.be' } }),
+      line('l6', 'pa', { cart_id: 'old3' }),
     ],
     orders: [],
   }, true);
@@ -425,6 +429,47 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
   assert(rdb.tables.storefront_carts.filter((c: Row) => String(c.session_id).startsWith('restore:')).length === 1, 'één hersteld mandje');
   const oldCart = rdb.tables.storefront_carts.find((c: Row) => c.id === 'old1');
   assert(oldCart.checkout_status === 'checkout' && rdb.tables.storefront_cart_items.filter((i: Row) => i.cart_id === 'old1').length === 5, 'oud mandje ongemoeid');
+
+  // Review-fix 1: hersteld mandje al in de checkout → geen cart_id, geen klantgegevens.
+  fresh.checkout_status = 'checkout';
+  fresh.customer_email = 'jan@voorbeeld.be';
+  fresh.shipping_address = { street: 'Geheim 1' };
+  const r3: Row = await restore(RT, good);
+  assert(code(r3) === 'RESTORE_IN_CHECKOUT' && !('cart_id' in r3), `in checkout: ${JSON.stringify(r3)}`);
+  assert(!JSON.stringify(r3).includes(r1.cart_id) && !JSON.stringify(r3).includes('voorbeeld.be') && !JSON.stringify(r3).includes('Geheim'), 'checkout-antwoord lekt mandje of gegevens');
+  assert(rdb.tables.storefront_carts.filter((c: Row) => String(c.session_id).startsWith('restore:')).length === 1, 'in checkout: geen tweede mandje');
+  fresh.checkout_status = 'converted';
+  assert(code(await restore(RT, good)) === 'RESTORE_ORDERED', 'besteld via het herstelde mandje');
+
+  // Review-fix 2: limiet per run (10 per 10 min) na de handtekeningcontrole. Tot hier 5 geldige
+  // aanroepen voor RUN (winkel B met run A, r1, r2, r3, besteld); een andere run telt apart.
+  const left: string[] = [];
+  for (let i = 0; i < 6; i++) left.push(code(await restore(RT, good)));
+  assert(left.slice(0, 5).every((c) => c === 'RESTORE_ORDERED') && left[5] === 'RATE_LIMITED', `limiet per run: ${left.join()}`);
+  assert(code(await restore(RT, await signCartRestore(RT, RUN_CONV, future))) === 'RESTORE_ORDERED', 'andere run niet geremd');
+  const RT3 = '66666666-6666-4666-8666-666666666666';
+  let brake = '';
+  for (let i = 0; i < 301; i++) brake = code(await restore(RT3, 'rommel'));
+  assert(brake === 'RATE_LIMITED', `rem per winkel na 300: ${brake}`);
+
+  // Review-fix 3: storing na het aanmaken → mandje op 'expired', fout gooien (geen blijvende
+  // UNAVAILABLE), en de volgende klik begint opnieuw.
+  const errQ: Row = new Proxy({}, {
+    get: (_t, k) => k === 'then'
+      ? (res: (v: unknown) => unknown) => Promise.resolve({ data: null, error: { message: 'tijdelijke storing' } }).then(res)
+      : () => errQ,
+  });
+  const flaky = { from: (t: string) => (t === 'products' ? errQ : rdb.from(t)), rpc: () => rdb.rpc() };
+  const errTok = await signCartRestore(RT, RUN_ERR, future);
+  let thrown = '';
+  try { await S.cartRestore(flaky, RT, { token: errTok }); } catch (e) { thrown = (e as Row)?.message ?? String(e); }
+  assert(thrown === 'tijdelijke storing', `storing moet gooien, kreeg '${thrown}'`);
+  const half = rdb.tables.storefront_carts.find((c: Row) => c.session_id === `restore:${RUN_ERR}`);
+  const mark = rdb.writes.find((w: Row) => w.table === 'storefront_carts' && w.patch?.checkout_status === 'expired' && w.where?.id === half?.id);
+  assert(half && mark, `half mandje niet op expired gezet: ${JSON.stringify(mark)}`);
+  Object.assign(half, mark.patch); // de nep-databank voert updates niet uit; hier wel, zoals de echte
+  const again: Row = await restore(RT, errTok);
+  assert(code(again) === 'OK' && again.cart_id !== half.id && again.restored === 1 && again.already_restored === false, `opnieuw na storing: ${JSON.stringify(again)}`);
 });
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }

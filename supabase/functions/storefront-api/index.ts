@@ -2879,9 +2879,18 @@ async function cartRemoveDiscount(supabase: any, tenantId: string, params: Recor
 // cart_add_item. Klantgegevens, adressen, kortingscodes en verzendkeuze gaan niet mee; het oude
 // mandje blijft ongemoeid. Idempotent: session_id 'restore:<run_id>' + de unieke index op
 // (tenant, session) zolang 'shopping' → elke volgende klik (of link-scanner) geeft hetzelfde mandje.
+// Zit dat mandje al in de checkout, dan geeft de actie GEEN cart_id meer (RESTORE_IN_CHECKOUT):
+// vanaf de checkout draagt het mandje klantgegevens, en het token mag daar nooit bij.
 // Fouten zitten in de data ({ success:false, error:{ code } }), zoals bij de checkout-acties.
+// Een technische fout gooit (HTTP 500); het half gevulde mandje wordt dan op 'expired' gezet,
+// zodat de volgende klik opnieuw begint.
 
 const RESTORE_MAX_LINES = 50;
+/** Per run: link-scanners en dubbele klikken, geen brute force op één token. */
+const RESTORE_RUN_LIMIT = 10;
+/** Per winkel: rem op misbruik. De SellQo-winkel roept server-side aan (één IP), dus geen IP-limiet. */
+const RESTORE_TENANT_LIMIT = 300;
+const RESTORE_WINDOW_MS = 10 * 60 * 1000;
 
 interface RestoreSkip { name: string | null; variant: string | null; reason: string }
 
@@ -2889,9 +2898,9 @@ function restoreFail(code: string) {
   return { success: false, error: { code } };
 }
 
-/** Code uit een cart_add_item-fout ({ code, message } als JSON), anders UNAVAILABLE. */
-function restoreReason(e: unknown): string {
-  const raw = e instanceof Error ? e.message : String(e ?? '');
+/** Code uit een cart_add_item-fout ({ code, message } als JSON), anders null. */
+function restoreReason(e: unknown): string | null {
+  const raw = e instanceof Error ? e.message : '';
   const at = raw.indexOf('{');
   if (at >= 0) {
     try {
@@ -2899,7 +2908,7 @@ function restoreReason(e: unknown): string {
       if (typeof j.code === 'string' && /^[A-Z_]{3,40}$/.test(j.code)) return j.code;
     } catch { /* geen JSON */ }
   }
-  return 'UNAVAILABLE';
+  return null;
 }
 
 function restoreName(row: DbRow, key: 'products' | 'product_variants', field: string): string | null {
@@ -2909,50 +2918,61 @@ function restoreName(row: DbRow, key: 'products' | 'product_variants', field: st
 }
 
 async function cartRestore(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  if (!checkIpActionRateLimit(`cart_restore_tenant:${tenantId}`, RESTORE_TENANT_LIMIT, RESTORE_WINDOW_MS)) {
+    return restoreFail('RATE_LIMITED');
+  }
   const verdict = await verifyCartRestore(tenantId, typeof params.token === 'string' ? params.token : null);
   if (!verdict.ok) return restoreFail(verdict.code);
+  if (!checkIpActionRateLimit(`cart_restore:${verdict.runId}`, RESTORE_RUN_LIMIT, RESTORE_WINDOW_MS)) {
+    return restoreFail('RATE_LIMITED');
+  }
 
-  const { data: run } = await supabase
+  const { data: run, error: rErr } = await supabase
     .from('automation_runs').select('id, tenant_id, trigger_entity_id, trigger_entity_type, recipient_email')
     .eq('id', verdict.runId).maybeSingle();
+  if (rErr) throw rErr;
   // Andere winkel of geen winkelwagenrun: zelfde antwoord als een vervalst token.
   if (!run || run.tenant_id !== tenantId || run.trigger_entity_type !== 'cart' || !run.trigger_entity_id) {
     return restoreFail('RESTORE_INVALID');
   }
 
-  const { data: old } = await supabase
+  const { data: old, error: oErr } = await supabase
     .from('storefront_carts').select('id, created_at, expires_at, checkout_status, currency, locale')
     .eq('id', run.trigger_entity_id).eq('tenant_id', tenantId).maybeSingle();
+  if (oErr) throw oErr;
   if (!old) return restoreFail('RESTORE_EXPIRED');
   if (old.checkout_status === 'converted') return restoreFail('RESTORE_ORDERED');
   // Intussen besteld op dat adres (zelfde regel als de engine: elke status behalve geannuleerd).
-  const { count: ordered } = await supabase
+  const { count: ordered, error: cntErr } = await supabase
     .from('orders').select('id', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
     .ilike('customer_email', String(run.recipient_email || '').replace(/[\\%_]/g, (c: string) => `\\${c}`))
     .gte('created_at', old.created_at)
     .neq('status', 'cancelled');
+  if (cntErr) throw cntErr;
   if ((ordered ?? 0) > 0) return restoreFail('RESTORE_ORDERED');
   if (!old.expires_at || new Date(old.expires_at).getTime() <= Date.now()) return restoreFail('RESTORE_EXPIRED');
 
+  // Eerder herstelde mandjes van deze run (niet verlopen). Enkel 'shopping' mag terug naar de browser.
   const sessionId = `${CART_RESTORE_SESSION_PREFIX}${run.id}`;
-  const findRestored = async (statuses: string[]): Promise<string | null> => {
-    const { data } = await supabase
-      .from('storefront_carts').select('id')
+  const restoredCarts = async (): Promise<DbRow[]> => {
+    const { data, error } = await supabase
+      .from('storefront_carts').select('id, checkout_status')
       .eq('tenant_id', tenantId).eq('session_id', sessionId)
-      .in('checkout_status', statuses)
       .gt('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false }).limit(1).maybeSingle();
-    return (data?.id as string | undefined) ?? null;
+      .order('created_at', { ascending: false }).limit(10);
+    if (error) throw error;
+    return (data || []) as DbRow[];
   };
   const already = async (id: string) => {
     const cart = await cartGet(supabase, tenantId, { cart_id: id });
     return { cart_id: id, already_restored: true, restored: 0, item_count: cart?.item_count ?? 0, skipped: [] as RestoreSkip[] };
   };
-
-  // Al hersteld (ook als de klant intussen in de checkout zit): hetzelfde mandje, niets kopiëren.
-  const existing = await findRestored(['shopping', 'checkout']);
-  if (existing) return already(existing);
+  const earlier = await restoredCarts();
+  const shopping = earlier.find((c) => c.checkout_status === 'shopping');
+  if (shopping) return already(shopping.id as string);
+  if (earlier.some((c) => c.checkout_status === 'converted')) return restoreFail('RESTORE_ORDERED');
+  if (earlier.some((c) => c.checkout_status !== 'expired')) return restoreFail('RESTORE_IN_CHECKOUT');
 
   // Zelfde waarden als de kolomdefaults (checkout_status 'shopping', 30 dagen), hier expliciet.
   const insert: DbRow = {
@@ -2964,46 +2984,77 @@ async function cartRestore(supabase: SupabaseLike, tenantId: string, params: Rec
   if (cErr) {
     // 23505: een gelijktijdige klik (of scanner) maakte het mandje net; die kopieert, wij niet.
     if (cErr.code === '23505') {
-      const raced = await findRestored(['shopping']);
-      if (raced) return already(raced);
+      const raced = (await restoredCarts()).find((c) => c.checkout_status === 'shopping');
+      if (raced) return already(raced.id as string);
     }
     throw cErr;
   }
   const cartId = created.id as string;
 
-  const { data: lines, error: lErr } = await supabase
-    .from('storefront_cart_items')
-    .select('product_id, variant_id, event_detail_id, quantity, addons, gift_card_metadata, products(name), product_variants(title)')
-    .eq('cart_id', old.id).order('created_at').limit(RESTORE_MAX_LINES);
-  if (lErr) throw lErr;
+  try {
+    const { data: lines, error: lErr } = await supabase
+      .from('storefront_cart_items')
+      .select('product_id, variant_id, event_detail_id, quantity, addons, gift_card_metadata, products(name), product_variants(title)')
+      .eq('cart_id', old.id).order('created_at').limit(RESTORE_MAX_LINES);
+    if (lErr) throw lErr;
+    const rows = (lines || []) as DbRow[];
 
-  let restored = 0;
-  const skipped: RestoreSkip[] = [];
-  for (const line of (lines || []) as DbRow[]) {
-    const skip = (reason: string) => skipped.push({
-      name: restoreName(line, 'products', 'name'), variant: restoreName(line, 'product_variants', 'title'), reason,
-    });
-    // Cadeaubon: de gegevens van de ontvanger gaan nooit mee.
-    if (line.gift_card_metadata) { skip('GIFT_CARD'); continue; }
-    // Extra's: het mandje bewaart enkel { group, name, price }, cart_add_item verwacht keuze-id's.
-    if (Array.isArray(line.addons) && line.addons.length) { skip('ADDONS'); continue; }
-    try {
-      // Zaalplan-tickets weigert cart_add_item zelf met SEAT_SELECTION_REQUIRED (stoelen zijn vrijgegeven).
-      await cartAddItem(supabase, tenantId, {
-        cart_id: cartId,
-        product_id: line.product_id,
-        quantity: Math.max(1, Math.min(99, Number(line.quantity) || 1)),
-        ...(line.variant_id ? { variant_id: line.variant_id } : {}),
-        ...(line.event_detail_id ? { event_detail_id: line.event_detail_id } : {}),
-      });
-      restored++;
-    } catch (e) {
-      skip(restoreReason(e));
+    // Vooraf zelf lezen of product en variant nog actief zijn, mét foutcontrole: cart_add_item
+    // maakt van een databankfout "not found", en een tijdelijke storing mag geen blijvende
+    // "niet meer beschikbaar" worden.
+    const productIds = [...new Set(rows.map((l) => l.product_id).filter(Boolean))];
+    const variantIds = [...new Set(rows.map((l) => l.variant_id).filter(Boolean))];
+    const active = new Set<string>();
+    if (productIds.length) {
+      const { data, error } = await supabase.from('products').select('id, is_active').eq('tenant_id', tenantId).in('id', productIds);
+      if (error) throw error;
+      for (const p of (data || []) as DbRow[]) if (p.is_active) active.add(`p:${p.id}`);
     }
-  }
+    if (variantIds.length) {
+      const { data, error } = await supabase.from('product_variants').select('id, is_active').eq('tenant_id', tenantId).in('id', variantIds);
+      if (error) throw error;
+      for (const v of (data || []) as DbRow[]) if (v.is_active) active.add(`v:${v.id}`);
+    }
 
-  const cart = await cartGet(supabase, tenantId, { cart_id: cartId });
-  return { cart_id: cartId, already_restored: false, restored, item_count: cart?.item_count ?? 0, skipped };
+    let restored = 0;
+    const skipped: RestoreSkip[] = [];
+    for (const line of rows) {
+      const skip = (reason: string) => skipped.push({
+        name: restoreName(line, 'products', 'name'), variant: restoreName(line, 'product_variants', 'title'), reason,
+      });
+      // Cadeaubon: de gegevens van de ontvanger gaan nooit mee.
+      if (line.gift_card_metadata) { skip('GIFT_CARD'); continue; }
+      // Extra's: het mandje bewaart enkel { group, name, price }, cart_add_item verwacht keuze-id's.
+      if (Array.isArray(line.addons) && line.addons.length) { skip('ADDONS'); continue; }
+      if (!active.has(`p:${line.product_id}`) || (line.variant_id && !active.has(`v:${line.variant_id}`))) { skip('UNAVAILABLE'); continue; }
+      try {
+        // Zaalplan-tickets weigert cart_add_item zelf met SEAT_SELECTION_REQUIRED (stoelen zijn vrijgegeven).
+        await cartAddItem(supabase, tenantId, {
+          cart_id: cartId,
+          product_id: line.product_id,
+          quantity: Math.max(1, Math.min(99, Number(line.quantity) || 1)),
+          ...(line.variant_id ? { variant_id: line.variant_id } : {}),
+          ...(line.event_detail_id ? { event_detail_id: line.event_detail_id } : {}),
+        });
+        restored++;
+      } catch (e) {
+        // Enkel een gekende weigering ({ code }) is "niet beschikbaar"; al de rest is een storing.
+        const reason = restoreReason(e);
+        if (!reason) throw e;
+        skip(reason);
+      }
+    }
+
+    const cart = await cartGet(supabase, tenantId, { cart_id: cartId });
+    return { cart_id: cartId, already_restored: false, restored, item_count: cart?.item_count ?? 0, skipped };
+  } catch (e) {
+    // Half gevuld mandje opzij zetten (niet verwijderen): de volgende klik begint opnieuw.
+    const { error: xErr } = await supabase.from('storefront_carts')
+      .update({ checkout_status: 'expired', expires_at: new Date().toISOString() })
+      .eq('id', cartId).eq('tenant_id', tenantId);
+    if (xErr) console.error('[cart_restore] mandje opzijzetten mislukt', cartId, xErr.message);
+    throw e;
+  }
 }
 
 // ============== CHECKOUT ACTIONS (Cart-based, no early order creation) ==============
@@ -5542,14 +5593,6 @@ serve(async (req) => {
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '600' } }
         );
       }
-    }
-
-    // MAIL-3 — cart_restore: eigen bucket, ruimer dan formulieren (link-scanners + dubbele klikken).
-    if (action === 'cart_restore' && !checkIpActionRateLimit(`cart_restore:${tenant_id}:${clientIp}`, 20, 10 * 60 * 1000)) {
-      return new Response(
-        JSON.stringify({ success: false, error: { code: 'RATE_LIMITED', message: 'Te veel aanvragen. Probeer het over enkele minuten opnieuw.' } }),
-        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '600' } }
-      );
     }
 
     const userAgent = req.headers.get('user-agent') ?? '';
