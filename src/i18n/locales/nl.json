@@ -8683,7 +8683,11 @@
       "deleteBlockedHint": "Dit event heeft tickettypes of tickets — annuleer het in plaats van verwijderen."
     },
     "dashboard": {
-      "showPast": "Toon afgelopen"
+      "showPast": "Toon afgelopen",
+      "checkedIn": "{{n}} ingecheckt",
+      "minimumReached": "{{sold}}/{{min}} minimum gehaald ✓",
+      "minimumProgress": "{{sold}}/{{min}} minimum",
+      "refunded": "{{n}} terugbetaald"
     },
     "checkin": {
       "preselectCancelled": "Dit event is geannuleerd, scannen heeft geen zin."

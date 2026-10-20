@@ -35,6 +35,11 @@ const todayIso = (now: Date) => {
   return `${y}-${m}-${d}`;
 };
 
+/** Vandaag als YYYY-MM-DD in de LOKALE tijdzone van het toestel. Niet
+ *  toISOString().slice(0, 10): die geeft UTC, en tussen 00:00 en 02:00 Belgische
+ *  tijd is dat nog gisteren. */
+export const localTodayIso = (now: Date = new Date()) => todayIso(now);
+
 export function eventReadiness(
   event: ReadinessEvent,
   ticketTypes: ReadinessTicketType[],

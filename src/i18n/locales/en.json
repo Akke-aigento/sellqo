@@ -8681,7 +8681,11 @@
       "deleteBlockedHint": "This event has ticket types or tickets — cancel it instead of deleting."
     },
     "dashboard": {
-      "showPast": "Show past"
+      "showPast": "Show past",
+      "checkedIn": "{{n}} checked in",
+      "minimumReached": "{{sold}}/{{min}} minimum reached ✓",
+      "minimumProgress": "{{sold}}/{{min}} minimum",
+      "refunded": "{{n}} refunded"
     },
     "checkin": {
       "preselectCancelled": "This event has been cancelled, there is no point in scanning."

@@ -8681,7 +8681,11 @@
       "deleteBlockedHint": "Cet événement a des types de billets ou des billets — annulez-le au lieu de le supprimer."
     },
     "dashboard": {
-      "showPast": "Afficher les passés"
+      "showPast": "Afficher les passés",
+      "checkedIn": "{{n}} enregistrés",
+      "minimumReached": "{{sold}}/{{min}} minimum atteint ✓",
+      "minimumProgress": "{{sold}}/{{min}} minimum",
+      "refunded": "{{n}} remboursés"
     },
     "checkin": {
       "preselectCancelled": "Cet événement a été annulé, le scan n'a aucun intérêt."

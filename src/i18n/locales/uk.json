@@ -8681,7 +8681,11 @@
       "deleteBlockedHint": "Ця подія має типи квитків або квитки — скасуйте її замість видалення."
     },
     "dashboard": {
-      "showPast": "Показати минулі"
+      "showPast": "Показати минулі",
+      "checkedIn": "Зареєстровано: {{n}}",
+      "minimumReached": "{{sold}}/{{min}} — мінімум досягнуто ✓",
+      "minimumProgress": "{{sold}}/{{min}} — мінімум",
+      "refunded": "Повернено: {{n}}"
     },
     "checkin": {
       "preselectCancelled": "Цю подію скасовано, сканувати немає сенсу."

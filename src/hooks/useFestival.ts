@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { slugBase, uniqueSlug } from '@/lib/eventSeries';
+import { localTodayIso } from '@/lib/eventReadiness';
 import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
 
 const db = supabase as unknown as SupabaseClient;
@@ -43,7 +44,7 @@ export function useBundleOptions() {
     queryKey: ['bundle-options', currentTenant?.id],
     queryFn: async (): Promise<BundleComponentOption[]> => {
       if (!currentTenant) return [];
-      const today = new Date().toISOString().slice(0, 10);
+      const today = localTodayIso();
       const { data: evs, error } = await db.from('event_details')
         .select('id, event_date, start_time, venue_id, status, products(name)')
         .eq('tenant_id', currentTenant.id).gte('event_date', today).in('status', ['scheduled', 'confirmed'])

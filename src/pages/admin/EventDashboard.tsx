@@ -36,7 +36,8 @@ interface EventRow {
   status: string;
   location_name: string | null;
   meeting_point: string | null;
-  capacity: number;
+  /** null = onbeperkt. */
+  capacity: number | null;
   min_attendees: number;
   product_name: string;
   product_active: boolean;
@@ -51,27 +52,19 @@ interface EventStats {
   total: number;
 }
 
-const fmtDate = (d: string) =>
-  new Date(`${d}T00:00:00Z`).toLocaleDateString('nl-NL', {
+const fmtDate = (d: string, lng?: string) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString(lng, {
     weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC',
   });
 const fmtTime = (t: string | null | undefined) => (t ? String(t).slice(0, 5) : '');
 
-const statusLabel: Record<string, string> = {
-  scheduled: 'Gepland',
-  confirmed: 'Bevestigd',
-  cancelled: 'Geannuleerd',
-  completed: 'Afgerond',
-  skipped: 'Overgeslagen',
-  merged: 'Samengevoegd',
-};
-
 function EventStatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation();
   const variant =
     status === 'confirmed' ? 'default'
       : status === 'cancelled' || status === 'skipped' ? 'destructive'
       : 'secondary';
-  return <Badge variant={variant}>{statusLabel[status] ?? status}</Badge>;
+  return <Badge variant={variant}>{t(`events.status.${status}`, status)}</Badge>;
 }
 
 /** Dagen terugkijken. Uit = alleen aankomend, met marge voor events die over
@@ -82,7 +75,7 @@ const PAST_WINDOW_DAYS = { upcoming: 1, past: 180 } as const;
 export default function EventDashboard() {
   const { currentTenant } = useTenant();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [showPast, setShowPast] = useState(false);
   const [doorOpen, setDoorOpen] = useState(false);
   const eventsModule = useBusinessModules().has('events');
@@ -111,7 +104,7 @@ export default function EventDashboard() {
         status: e.status as string,
         location_name: (e.location_name as string | null) ?? null,
         meeting_point: (e.meeting_point as string | null) ?? null,
-        capacity: (e.capacity as number) ?? 0,
+        capacity: (e.capacity as number | null) ?? null,
         min_attendees: (e.min_attendees as number) ?? 0,
         product_name: ((e as { products?: { name?: string } }).products?.name) ?? 'Event',
         product_active: ((e as { products?: { is_active?: boolean } }).products?.is_active) !== false,
@@ -156,8 +149,8 @@ export default function EventDashboard() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
           <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
             <CalendarDays className="h-5 w-5" /> Events
           </h1>
@@ -165,7 +158,7 @@ export default function EventDashboard() {
             {t('events.wizard.dashboard_subtitle')}
           </p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-3 shrink-0 pt-1">
+        <div className="flex flex-wrap items-center gap-3 sm:justify-end sm:shrink-0 sm:pt-1">
           <Button size="sm" variant="outline" onClick={() => navigate('/admin/events/venues')}><Armchair className="mr-1 h-4 w-4" />{t('events.venues.title')}</Button>
           <Button size="sm" variant="outline" onClick={() => navigate('/admin/events/bundles')}><Layers className="mr-1 h-4 w-4" />{t('events.bundles.title')}</Button>
           <Button size="sm" variant="outline" onClick={() => navigate('/admin/events/tokens')}><Coins className="mr-1 h-4 w-4" />{t('events.tokens.title')}</Button>
@@ -197,7 +190,8 @@ export default function EventDashboard() {
             // status dan ook, tickettypes, zones of scanner-toegangen.
             // EVENT-WORKSPACE-1: alleen tickets blokkeren; configuratie ruimt de delete zelf op.
             const deleteBlocked = s.total > 0;
-            const pct = e.capacity > 0 ? Math.min(100, Math.round((s.sold / e.capacity) * 100)) : 0;
+            const unlimited = e.capacity == null;
+            const pct = e.capacity != null && e.capacity > 0 ? Math.min(100, Math.round((s.sold / e.capacity) * 100)) : 0;
             const minReached = e.min_attendees > 0 && s.sold >= e.min_attendees;
             return (
               <Card
@@ -227,7 +221,7 @@ export default function EventDashboard() {
                     readiness={eventReadiness(e, ticketTypesByEvent[e.id] ?? [], { productActive: e.product_active, productHidden: e.product_hidden })}
                   />
                   <p className="text-xs text-muted-foreground">
-                    {fmtDate(e.event_date)} · {fmtTime(e.start_time)}
+                    {fmtDate(e.event_date, i18n.language)} · {fmtTime(e.start_time)}
                     {e.end_time ? `–${fmtTime(e.end_time)}` : ''}
                   </p>
                   {(e.location_name || e.meeting_point) && (
@@ -240,25 +234,26 @@ export default function EventDashboard() {
                 <CardContent className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="flex items-center gap-1 text-muted-foreground">
-                      <Ticket className="h-3.5 w-3.5" /> Verkocht
+                      <Ticket className="h-3.5 w-3.5" /> {t('events.stats.sold')}
                     </span>
-                    <span className="font-medium tabular-nums">{s.sold} / {e.capacity}</span>
+                    <span className="font-medium tabular-nums">{s.sold} / {unlimited ? '\u221E' : e.capacity}</span>
                   </div>
-                  <Progress value={pct} className="h-2" />
+                  {/* Onbeperkt: geen balk (een lege balk suggereert 0 %). */}
+                  {!unlimited && <Progress value={pct} className="h-2" />}
                   <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Check className="h-3.5 w-3.5" /> {s.checked_in} ingecheckt
+                      <Check className="h-3.5 w-3.5" /> {t('events.dashboard.checkedIn', { n: s.checked_in })}
                     </span>
                     {e.min_attendees > 0 && (
                       <span className={minReached ? 'text-primary font-medium' : ''}>
                         {minReached
-                          ? `${s.sold}/${e.min_attendees} minimum gehaald ✓`
-                          : `${s.sold}/${e.min_attendees} minimum`}
+                          ? t('events.dashboard.minimumReached', { sold: s.sold, min: e.min_attendees })
+                          : t('events.dashboard.minimumProgress', { sold: s.sold, min: e.min_attendees })}
                       </span>
                     )}
                   </div>
                   {s.refunded > 0 && (
-                    <p className="text-xs text-muted-foreground">{s.refunded} terugbetaald</p>
+                    <p className="text-xs text-muted-foreground">{t('events.dashboard.refunded', { n: s.refunded })}</p>
                   )}
                 </CardContent>
               </Card>

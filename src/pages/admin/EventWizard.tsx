@@ -18,12 +18,13 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import { useCreateEvent, type NewEventResult } from '@/hooks/useCreateEvent';
 import { scannerUrl } from '@/hooks/useEventScannerAccess';
 import { weeklyDates } from '@/lib/eventSeries';
+import { localTodayIso } from '@/lib/eventReadiness';
 import { toast } from 'sonner';
 
 const STEPS = ['what', 'when', 'tickets', 'door'] as const;
 type Step = (typeof STEPS)[number];
 
-const todayIso = () => new Date().toISOString().slice(0, 10);
+const todayIso = () => localTodayIso();
 const num = (v: string) => (v.trim() === '' ? null : Number(v.replace(',', '.')));
 
 export default function EventWizard() {

@@ -8681,7 +8681,11 @@
       "deleteBlockedHint": "Dieses Event hat Ticketarten oder Tickets — sage es ab, statt es zu löschen."
     },
     "dashboard": {
-      "showPast": "Vergangene anzeigen"
+      "showPast": "Vergangene anzeigen",
+      "checkedIn": "{{n}} eingecheckt",
+      "minimumReached": "{{sold}}/{{min}} Minimum erreicht ✓",
+      "minimumProgress": "{{sold}}/{{min}} Minimum",
+      "refunded": "{{n}} erstattet"
     },
     "checkin": {
       "preselectCancelled": "Dieses Event wurde abgesagt, Scannen hat keinen Sinn."

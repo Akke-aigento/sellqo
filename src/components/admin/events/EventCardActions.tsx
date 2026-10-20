@@ -79,7 +79,7 @@ export function EventCardActions({ eventId, status, eventDate, startTime, endTim
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="-my-1.5 -mr-2 h-11 w-11 shrink-0"
             onClick={stop}
             aria-label={t('events.actions.menuLabel', 'Acties')}
           >
