@@ -1858,6 +1858,10 @@
       "worldwide": "Weltweit",
       "all_countries": "Alle Länder",
       "country_count": "{{count}} Länder"
+    },
+    "integrations": {
+      "labels_unsupported_badge": "Noch keine Labels",
+      "labels_unsupported_hint": "{{provider}} können Sie verbinden und testen, aber SellQo erstellt über {{provider}} noch keine Versandlabels und empfängt von dort noch keine Tracking-Updates. Labels und Tracking funktionieren derzeit mit Sendcloud und MyParcel."
     }
   },
   "archive": {
@@ -8096,6 +8100,14 @@
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Bestellungen bei Lieferanten können in SellQo noch nicht erstellt werden. Bestehende Bestellungen erscheinen hier."
+    },
+    "syncConflicts": {
+      "subtitle": "Hier erscheinen Unterschiede zwischen SellQo und einer verbundenen Plattform, die Sie selbst prüfen müssen.",
+      "empty_title": "Es gibt keine Synchronisationskonflikte",
+      "empty_description": "Diese Seite zeigt sie an, sobald eine Integration Konflikte meldet. Derzeit meldet keine Integration automatisch Konflikte.",
+      "resolve_sellqo": "Der Konflikt wird mit der SellQo-Version als Wahl als gelöst markiert. Die Daten werden nicht automatisch an die Plattform gesendet.",
+      "resolve_platform": "Der Konflikt wird mit der Plattform-Version als Wahl als gelöst markiert. Die Daten werden nicht automatisch in SellQo übernommen.",
+      "resolve_dismissed": "Dieser Konflikt wird ignoriert. Beide Versionen bleiben unverändert."
     }
   },
   "billing": {
@@ -9657,7 +9669,7 @@
       "name_tip": "Dieser Name erscheint auf Ihren Rechnungen, in Ihren E-Mails und oben in Ihrem Webshop.",
       "name_placeholder": "Z. B. Pizzeria Bella",
       "url_label": "Adresse Ihres Webshops",
-      "url_tip": "Hier finden Kunden Ihren Shop, sofort und kostenlos. Eine eigene Domain verbinden kommt bald.",
+      "url_tip": "Hier finden Kunden Ihren Shop, sofort und kostenlos. Eine eigene Domain können Sie später unter Einstellungen > Domain verbinden.",
       "url_placeholder": "ihr-geschaeft",
       "slug_taken": "Diese Adresse ist bereits vergeben",
       "slug_check_failed": "Konnte nicht prüfen, ob diese Adresse frei ist",

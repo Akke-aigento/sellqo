@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -35,13 +36,13 @@ type FlowState =
   | { kind: 'success'; tenantId: string; tenantName: string; role: Role }
   | { kind: 'error'; message: string; phase?: 'fetch' | 'signup' | 'accept'; context?: Record<string, any> };
 
-const roleLabels: Record<string, string> = {
-  tenant_admin: 'Admin',
-  staff: 'Medewerker',
-  accountant: 'Boekhouder',
-  warehouse: 'Magazijn',
-  viewer: 'Kijker',
-  marketing: 'Marketing',
+const ROLE_LABEL_KEYS: Record<string, string> = {
+  tenant_admin: 'settings.team.roles.tenant_admin.label',
+  staff: 'settings.team.roles.staff.label',
+  accountant: 'settings.team.roles.accountant.label',
+  warehouse: 'settings.team.roles.warehouse.label',
+  viewer: 'settings.team.roles.viewer.label',
+  marketing: 'settings.team.roles.marketing.label',
 };
 
 function Shell({ children }: { children: React.ReactNode }) {
@@ -62,6 +63,11 @@ export default function AcceptInvitation() {
   const navigate = useNavigate();
   const { user, loading: authLoading, signOut, refetchRoles } = useAuth();
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const roleLabelOf = useCallback(
+    (role: string): string => (ROLE_LABEL_KEYS[role] ? t(ROLE_LABEL_KEYS[role]) : role),
+    [t],
+  );
 
   const [state, setState] = useState<FlowState>({ kind: 'loading' });
   const [busy, setBusy] = useState(false);
@@ -298,10 +304,10 @@ export default function AcceptInvitation() {
 
   const roleLabel = useMemo(() => (s: FlowState): string | null => {
     if ('invite' in (s as any) && (s as any).invite) {
-      return roleLabels[(s as any).invite.role] ?? (s as any).invite.role;
+      return roleLabelOf((s as any).invite.role);
     }
     return null;
-  }, []);
+  }, [roleLabelOf]);
 
   if (state.kind === 'loading' || authLoading) {
     return (
@@ -439,7 +445,7 @@ export default function AcceptInvitation() {
             <CardTitle>Welkom bij {invite.tenantName}!</CardTitle>
             <CardDescription>
               Stel een wachtwoord in om de uitnodiging te accepteren als{' '}
-              <strong>{roleLabels[invite.role]}</strong>.
+              <strong>{roleLabelOf(invite.role)}</strong>.
               {invite.invitedByName ? <> Uitgenodigd door <strong>{invite.invitedByName}</strong>.</> : null}
             </CardDescription>
           </CardHeader>
@@ -493,7 +499,7 @@ export default function AcceptInvitation() {
             <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
             <CardTitle>Welkom bij {state.tenantName}!</CardTitle>
             <CardDescription>
-              Je bent nu lid als <strong>{roleLabels[state.role] ?? state.role}</strong>.
+              Je bent nu lid als <strong>{roleLabelOf(state.role)}</strong>.
               Je wordt automatisch doorgestuurd...
             </CardDescription>
           </CardHeader>

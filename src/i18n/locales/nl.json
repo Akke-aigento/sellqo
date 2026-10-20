@@ -1830,6 +1830,10 @@
       "worldwide": "Wereldwijd",
       "all_countries": "Alle landen",
       "country_count": "{{count}} landen"
+    },
+    "integrations": {
+      "labels_unsupported_badge": "Nog geen labels",
+      "labels_unsupported_hint": "{{provider}} kun je koppelen en testen, maar SellQo maakt via {{provider}} nog geen verzendlabels aan en ontvangt er nog geen trackingupdates van. Labels en tracking werken nu met Sendcloud en MyParcel."
     }
   },
   "archive": {
@@ -8383,6 +8387,14 @@
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Inkooporders aanmaken kan nog niet in SellQo. Bestaande inkooporders verschijnen hier."
+    },
+    "syncConflicts": {
+      "subtitle": "Hier verschijnen verschillen tussen SellQo en een gekoppeld platform die je zelf moet beoordelen.",
+      "empty_title": "Er zijn geen synchronisatieconflicten",
+      "empty_description": "Deze pagina toont ze zodra een koppeling conflicten meldt. Op dit moment meldt geen enkele koppeling automatisch conflicten.",
+      "resolve_sellqo": "Het conflict wordt als opgelost gemarkeerd met de SellQo-versie als keuze. De data wordt niet automatisch naar het platform gestuurd.",
+      "resolve_platform": "Het conflict wordt als opgelost gemarkeerd met de platformversie als keuze. De data wordt niet automatisch in SellQo overgenomen.",
+      "resolve_dismissed": "Dit conflict wordt genegeerd. Beide versies blijven ongewijzigd."
     }
   },
   "product_form": {
@@ -9659,7 +9671,7 @@
       "name_tip": "Deze naam staat op je facturen, in je e-mails en bovenaan je webshop.",
       "name_placeholder": "Bv. Pizzeria Bella",
       "url_label": "Adres van je webshop",
-      "url_tip": "Hier vinden klanten je winkel, meteen en gratis. Een eigen domein koppelen komt binnenkort.",
+      "url_tip": "Hier vinden klanten je winkel, meteen en gratis. Een eigen domein koppel je later bij Instellingen > Domein.",
       "url_placeholder": "jouw-zaak",
       "slug_taken": "Dit adres is al in gebruik",
       "slug_check_failed": "Kon niet nagaan of dit adres vrij is",

@@ -77,6 +77,11 @@ export interface ShippingProviderInfo {
   features: string[];
   requiresApiKey: boolean;
   requiresApiSecret: boolean;
+  /**
+   * true = koppelen en verbinding testen kan, maar create-shipping-label en
+   * shipping-webhook ondersteunen deze provider nog niet (geen labels, geen tracking).
+   */
+  labelsNotYetSupported: boolean;
 }
 
 export const SHIPPING_PROVIDERS: ShippingProviderInfo[] = [
@@ -88,6 +93,7 @@ export const SHIPPING_PROVIDERS: ShippingProviderInfo[] = [
     features: ['Label generatie', 'Track & Trace', 'Retour portaal', '80+ carriers'],
     requiresApiKey: true,
     requiresApiSecret: true,
+    labelsNotYetSupported: false,
   },
   {
     id: 'myparcel',
@@ -97,6 +103,7 @@ export const SHIPPING_PROVIDERS: ShippingProviderInfo[] = [
     features: ['Label generatie', 'Track & Trace', 'PostNL integratie', 'DHL integratie'],
     requiresApiKey: true,
     requiresApiSecret: false,
+    labelsNotYetSupported: false,
   },
   {
     id: 'shippo',
@@ -106,6 +113,7 @@ export const SHIPPING_PROVIDERS: ShippingProviderInfo[] = [
     features: ['Multi-carrier', 'Address validation', 'Rate comparison'],
     requiresApiKey: true,
     requiresApiSecret: false,
+    labelsNotYetSupported: true,
   },
   {
     id: 'easypost',
@@ -115,6 +123,7 @@ export const SHIPPING_PROVIDERS: ShippingProviderInfo[] = [
     features: ['RESTful API', 'Address verification', 'Insurance'],
     requiresApiKey: true,
     requiresApiSecret: false,
+    labelsNotYetSupported: true,
   },
   {
     id: 'manual',
@@ -124,5 +133,6 @@ export const SHIPPING_PROVIDERS: ShippingProviderInfo[] = [
     features: ['Geen kosten', 'Volledige controle', 'Alle carriers'],
     requiresApiKey: false,
     requiresApiSecret: false,
+    labelsNotYetSupported: false,
   },
 ];

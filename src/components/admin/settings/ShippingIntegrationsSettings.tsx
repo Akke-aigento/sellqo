@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Plus, Settings2, Trash2, ExternalLink, CheckCircle, XCircle, Loader2, TestTube, Power } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { Plus, Settings2, Trash2, ExternalLink, CheckCircle, XCircle, Loader2, TestTube, Power, AlertTriangle } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -31,6 +32,7 @@ import { useShippingIntegrations } from '@/hooks/useShippingIntegrations';
 import { SHIPPING_PROVIDERS, type ShippingProvider, type ShippingIntegration } from '@/types/shippingIntegration';
 
 export function ShippingIntegrationsSettings() {
+  const { t } = useTranslation();
   const {
     integrations,
     isLoading,
@@ -181,10 +183,20 @@ export function ShippingIntegrationsSettings() {
                         ) : (
                           <Badge variant="outline" className="text-xs">Inactief</Badge>
                         )}
+                        {info?.labelsNotYetSupported && (
+                          <Badge variant="outline" className="text-xs border-amber-300 text-amber-700">
+                            {t('shipping.integrations.labels_unsupported_badge')}
+                          </Badge>
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground">
                         {info?.description}
                       </div>
+                      {info?.labelsNotYetSupported && (
+                        <p className="text-xs text-amber-700 mt-1 max-w-md">
+                          {t('shipping.integrations.labels_unsupported_hint', { provider: info.name })}
+                        </p>
+                      )}
                       {info?.websiteUrl && (
                         <a
                           href={info.websiteUrl}
@@ -257,7 +269,14 @@ export function ShippingIntegrationsSettings() {
                   >
                     <Settings2 className="h-4 w-4 text-muted-foreground" />
                     <div>
-                      <div className="font-medium text-sm">{providerInfo.name}</div>
+                      <div className="font-medium text-sm flex items-center gap-2">
+                        {providerInfo.name}
+                        {providerInfo.labelsNotYetSupported && (
+                          <Badge variant="outline" className="text-[10px] border-amber-300 text-amber-700">
+                            {t('shipping.integrations.labels_unsupported_badge')}
+                          </Badge>
+                        )}
+                      </div>
                       <div className="text-xs text-muted-foreground">{providerInfo.description}</div>
                     </div>
                   </button>
@@ -290,13 +309,23 @@ export function ShippingIntegrationsSettings() {
                 <SelectContent>
                   {availableProviders.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.name}
+                      {p.labelsNotYetSupported
+                        ? `${p.name} (${t('shipping.integrations.labels_unsupported_badge')})`
+                        : p.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {providerInfo && (
                 <p className="text-sm text-muted-foreground">{providerInfo.description}</p>
+              )}
+              {providerInfo?.labelsNotYetSupported && (
+                <Alert className="border-amber-300 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    {t('shipping.integrations.labels_unsupported_hint', { provider: providerInfo.name })}
+                  </AlertDescription>
+                </Alert>
               )}
             </div>
 

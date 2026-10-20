@@ -1830,6 +1830,10 @@
       "worldwide": "Worldwide",
       "all_countries": "All countries",
       "country_count": "{{count}} countries"
+    },
+    "integrations": {
+      "labels_unsupported_badge": "No labels yet",
+      "labels_unsupported_hint": "You can connect and test {{provider}}, but SellQo does not create shipping labels through {{provider}} yet and does not receive tracking updates from it. Labels and tracking currently work with Sendcloud and MyParcel."
     }
   },
   "archive": {
@@ -8369,6 +8373,14 @@
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Creating purchase orders isn't available in SellQo yet. Existing purchase orders appear here."
+    },
+    "syncConflicts": {
+      "subtitle": "Differences between SellQo and a connected platform that you need to review yourself appear here.",
+      "empty_title": "There are no sync conflicts",
+      "empty_description": "This page shows them as soon as an integration reports conflicts. At the moment, no integration reports conflicts automatically.",
+      "resolve_sellqo": "The conflict is marked as resolved with the SellQo version as the choice. The data is not sent to the platform automatically.",
+      "resolve_platform": "The conflict is marked as resolved with the platform version as the choice. The data is not imported into SellQo automatically.",
+      "resolve_dismissed": "This conflict will be ignored. Both versions stay unchanged."
     }
   },
   "product_form": {
@@ -9657,7 +9669,7 @@
       "name_tip": "This name appears on your invoices, in your emails and at the top of your webshop.",
       "name_placeholder": "E.g. Pizzeria Bella",
       "url_label": "Your webshop address",
-      "url_tip": "This is where customers find your shop, right away and for free. Connecting your own domain is coming soon.",
+      "url_tip": "This is where customers find your shop, right away and for free. You can connect your own domain later under Settings > Domain.",
       "url_placeholder": "your-business",
       "slug_taken": "This address is already taken",
       "slug_check_failed": "Couldn't check whether this address is available",

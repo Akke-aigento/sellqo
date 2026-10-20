@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -29,27 +30,29 @@ interface Invitation {
   expires_at: string;
 }
 
-const roleOptions: { value: InvitationRole; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { value: 'tenant_admin', label: 'Admin', icon: Shield },
-  { value: 'staff', label: 'Medewerker', icon: UserCog },
-  { value: 'accountant', label: 'Boekhouder', icon: Calculator },
-  { value: 'warehouse', label: 'Magazijn', icon: Warehouse },
-  { value: 'marketing', label: 'Marketing', icon: Megaphone },
-  { value: 'viewer', label: 'Kijker', icon: Eye },
+const roleOptions: { value: InvitationRole; icon: React.ComponentType<{ className?: string }> }[] = [
+  { value: 'tenant_admin', icon: Shield },
+  { value: 'staff', icon: UserCog },
+  { value: 'accountant', icon: Calculator },
+  { value: 'warehouse', icon: Warehouse },
+  { value: 'marketing', icon: Megaphone },
+  { value: 'viewer', icon: Eye },
 ];
 
-const roleLabelMap: Record<string, string> = {
-  platform_admin: 'Platform Admin',
-  tenant_admin: 'Admin',
-  staff: 'Medewerker',
-  accountant: 'Boekhouder',
-  warehouse: 'Magazijn',
-  marketing: 'Marketing',
-  viewer: 'Kijker',
+const ROLE_LABEL_KEYS: Record<string, string> = {
+  platform_admin: 'settings.team.roles.platform_admin.label',
+  tenant_admin: 'settings.team.roles.tenant_admin.label',
+  staff: 'settings.team.roles.staff.label',
+  accountant: 'settings.team.roles.accountant.label',
+  warehouse: 'settings.team.roles.warehouse.label',
+  marketing: 'settings.team.roles.marketing.label',
+  viewer: 'settings.team.roles.viewer.label',
 };
 
 export function TenantTeamTab({ tenantId }: { tenantId: string }) {
   const { toast } = useToast();
+  const { t } = useTranslation();
+  const roleLabelOf = (role: string): string => (ROLE_LABEL_KEYS[role] ? t(ROLE_LABEL_KEYS[role]) : role);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -164,7 +167,7 @@ export function TenantTeamTab({ tenantId }: { tenantId: string }) {
                         <SelectContent>
                           {roleOptions.map(o => (
                             <SelectItem key={o.value} value={o.value}>
-                              <div className="flex items-center gap-2"><o.icon className="h-4 w-4" />{o.label}</div>
+                              <div className="flex items-center gap-2"><o.icon className="h-4 w-4" />{roleLabelOf(o.value)}</div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -198,7 +201,7 @@ export function TenantTeamTab({ tenantId }: { tenantId: string }) {
                       {m.full_name && m.email && <p className="text-xs text-muted-foreground">{m.email}</p>}
                     </div>
                   </div>
-                  <Badge variant="secondary">{roleLabelMap[m.role] || m.role}</Badge>
+                  <Badge variant="secondary">{roleLabelOf(m.role)}</Badge>
                 </div>
               ))}
             </div>
@@ -218,7 +221,7 @@ export function TenantTeamTab({ tenantId }: { tenantId: string }) {
                 <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
                     <p className="text-sm font-medium">{inv.email}</p>
-                    <p className="text-xs text-muted-foreground">Rol: {roleLabelMap[inv.role] || inv.role}</p>
+                    <p className="text-xs text-muted-foreground">Rol: {roleLabelOf(inv.role)}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Button variant="ghost" size="icon" onClick={() => cancelInvite(inv.id)} title="Annuleren">

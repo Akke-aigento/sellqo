@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { formatDistanceToNow, format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import {
@@ -61,6 +62,7 @@ const DATA_TYPE_LABELS: Record<SyncDataType, string> = {
 };
 
 export default function SyncConflictsPage() {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { conflicts, isLoading, refetch } = useSyncConflicts();
   const { resolveConflict, isResolving } = useSyncConflictActions();
@@ -174,7 +176,7 @@ export default function SyncConflictsPage() {
               Sync Conflicten
             </h1>
             <p className="text-sm text-muted-foreground">
-              Review en los data conflicten op tussen SellQo en je marketplace platformen
+              {t('admin.syncConflicts.subtitle')}
             </p>
           </div>
         </div>
@@ -266,9 +268,9 @@ export default function SyncConflictsPage() {
         <Card>
           <CardContent className="py-12 text-center">
             <CheckCircle2 className="w-12 h-12 text-green-500 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold">Geen conflicten</h3>
-            <p className="text-muted-foreground">
-              Alle data is gesynchroniseerd zonder conflicten.
+            <h3 className="text-lg font-semibold">{t('admin.syncConflicts.empty_title')}</h3>
+            <p className="text-muted-foreground max-w-lg mx-auto">
+              {t('admin.syncConflicts.empty_description')}
             </p>
           </CardContent>
         </Card>
@@ -366,15 +368,9 @@ export default function SyncConflictsPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Conflict Oplossen</AlertDialogTitle>
             <AlertDialogDescription>
-              {confirmResolve?.resolution === 'sellqo' && (
-                'De SellQo data wordt naar het platform gestuurd en overschrijft de platform data.'
-              )}
-              {confirmResolve?.resolution === 'platform' && (
-                'De platform data wordt geïmporteerd naar SellQo en overschrijft de SellQo data.'
-              )}
-              {confirmResolve?.resolution === 'dismissed' && (
-                'Dit conflict wordt genegeerd. Beide versies blijven ongewijzigd.'
-              )}
+              {confirmResolve?.resolution === 'sellqo' && t('admin.syncConflicts.resolve_sellqo')}
+              {confirmResolve?.resolution === 'platform' && t('admin.syncConflicts.resolve_platform')}
+              {confirmResolve?.resolution === 'dismissed' && t('admin.syncConflicts.resolve_dismissed')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

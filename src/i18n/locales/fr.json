@@ -1858,6 +1858,10 @@
       "worldwide": "Monde entier",
       "all_countries": "Tous les pays",
       "country_count": "{{count}} pays"
+    },
+    "integrations": {
+      "labels_unsupported_badge": "Pas encore d'étiquettes",
+      "labels_unsupported_hint": "Vous pouvez connecter et tester {{provider}}, mais SellQo ne crée pas encore d'étiquettes d'expédition via {{provider}} et n'en reçoit pas encore de mises à jour de suivi. Les étiquettes et le suivi fonctionnent actuellement avec Sendcloud et MyParcel."
     }
   },
   "archive": {
@@ -8096,6 +8100,14 @@
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "La création de bons de commande n'est pas encore disponible dans SellQo. Les bons de commande existants apparaissent ici."
+    },
+    "syncConflicts": {
+      "subtitle": "Les différences entre SellQo et une plateforme connectée que vous devez examiner vous-même apparaissent ici.",
+      "empty_title": "Il n'y a aucun conflit de synchronisation",
+      "empty_description": "Cette page les affiche dès qu'une intégration signale des conflits. Pour l'instant, aucune intégration ne signale automatiquement de conflits.",
+      "resolve_sellqo": "Le conflit est marqué comme résolu avec la version SellQo comme choix. Les données ne sont pas envoyées automatiquement à la plateforme.",
+      "resolve_platform": "Le conflit est marqué comme résolu avec la version de la plateforme comme choix. Les données ne sont pas importées automatiquement dans SellQo.",
+      "resolve_dismissed": "Ce conflit sera ignoré. Les deux versions restent inchangées."
     }
   },
   "billing": {
@@ -9657,7 +9669,7 @@
       "name_tip": "Ce nom figure sur vos factures, dans vos e-mails et en haut de votre boutique.",
       "name_placeholder": "P. ex. Pizzeria Bella",
       "url_label": "Adresse de votre boutique",
-      "url_tip": "C'est là que vos clients trouvent votre boutique, immédiatement et gratuitement. La connexion de votre propre domaine arrive bientôt.",
+      "url_tip": "C'est là que vos clients trouvent votre boutique, immédiatement et gratuitement. Vous pourrez connecter votre propre domaine plus tard dans Paramètres > Domaine.",
       "url_placeholder": "votre-activite",
       "slug_taken": "Cette adresse est déjà utilisée",
       "slug_check_failed": "Impossible de vérifier si cette adresse est libre",
