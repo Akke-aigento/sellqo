@@ -125,7 +125,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SCHEMA-FIX-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-SEO-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const { tenantId, type, productIds, categoryIds, entityType = 'product' } = await req.json();
