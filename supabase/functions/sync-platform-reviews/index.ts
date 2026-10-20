@@ -251,7 +251,7 @@ serve(async (req) => {
   }
   
   // SEC-TENANT-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-TENANT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-IDOR-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   // SEC-IDOR-1: het foutpad mag alleen een koppeling van de geautoriseerde winkel markeren.
   let authorizedTenantId: string | null = null;
   try {

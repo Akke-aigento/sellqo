@@ -52,7 +52,7 @@ function renderServiceBlock(order: ServiceOrder, locale: TenantLocale, accent: s
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // FOOD-2 — versiestempel om een deploy zonder neveneffect te verifiëren.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'FOOD-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SEC-IDOR-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const auth = await authenticateRequest(req);
