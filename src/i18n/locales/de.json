@@ -1890,7 +1890,10 @@
     "subtotal_discount": "Rabatt auf Zwischensumme",
     "line_discount": "Positionsrabatt",
     "add_discount": "Rabatt hinzufügen",
-    "remove_discount": "Rabatt entfernen"
+    "remove_discount": "Rabatt entfernen",
+    "code_form": {
+      "valid_until_before_from": "„Gültig bis“ darf nicht vor „Gültig ab“ liegen."
+    }
   },
   "reminders": {
     "settings_title": "Zahlungserinnerungen",

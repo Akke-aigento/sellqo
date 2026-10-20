@@ -30,6 +30,8 @@ import { generateRandomCode } from '@/hooks/useDiscountCodes';
 import { useCanWriteDiscountCodes } from '@/hooks/usePermissionGrants';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Lock } from 'lucide-react';
+import { isoToLocalDate } from '@/lib/discountDates';
+import { buildDiscountFormData, type DiscountFormValues } from '@/lib/discountFormData';
 
 const formSchema = z.object({
   code: z.string().min(3, 'Code moet minimaal 3 karakters zijn').max(20, 'Code mag maximaal 20 karakters zijn'),
@@ -45,7 +47,14 @@ const formSchema = z.object({
   is_active: z.boolean(),
   applies_to: z.enum(['all', 'specific_products', 'specific_categories']),
   first_order_only: z.boolean(),
-});
+  // PROMO-SAFE-1 — bestaande productscope meedragen; zonder dit wiste opslaan ze.
+  product_ids: z.array(z.string()),
+  category_ids: z.array(z.string()),
+}).refine(
+  // YYYY-MM-DD vergelijkt lexicografisch correct; dezelfde dag mag.
+  (v) => !v.valid_from || !v.valid_until || v.valid_from <= v.valid_until,
+  { message: 'discount.code_form.valid_until_before_from', path: ['valid_until'] },
+);
 
 interface DiscountCodeDialogProps {
   open: boolean;
@@ -82,6 +91,8 @@ export function DiscountCodeDialog({
       is_active: true,
       applies_to: 'all',
       first_order_only: false,
+      product_ids: [],
+      category_ids: [],
     },
   });
 
@@ -96,11 +107,13 @@ export function DiscountCodeDialog({
         maximum_discount_amount: discountCode.maximum_discount_amount,
         usage_limit: discountCode.usage_limit,
         usage_limit_per_customer: discountCode.usage_limit_per_customer,
-        valid_from: discountCode.valid_from ? discountCode.valid_from.split('T')[0] : null,
-        valid_until: discountCode.valid_until ? discountCode.valid_until.split('T')[0] : null,
+        valid_from: isoToLocalDate(discountCode.valid_from),
+        valid_until: isoToLocalDate(discountCode.valid_until),
         is_active: discountCode.is_active,
         applies_to: discountCode.applies_to as DiscountAppliesTo,
         first_order_only: discountCode.first_order_only,
+        product_ids: discountCode.product_ids ?? [],
+        category_ids: discountCode.category_ids ?? [],
       });
     } else {
       form.reset({
@@ -117,29 +130,15 @@ export function DiscountCodeDialog({
         is_active: true,
         applies_to: 'all',
         first_order_only: false,
+        product_ids: [],
+        category_ids: [],
       });
     }
   }, [discountCode, form]);
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    const formData: DiscountCodeFormData = {
-      code: values.code,
-      description: values.description || '',
-      discount_type: values.discount_type,
-      discount_value: values.discount_value,
-      minimum_order_amount: values.minimum_order_amount || null,
-      maximum_discount_amount: values.maximum_discount_amount || null,
-      usage_limit: values.usage_limit || null,
-      usage_limit_per_customer: values.usage_limit_per_customer || null,
-      valid_from: values.valid_from ? new Date(values.valid_from).toISOString() : null,
-      valid_until: values.valid_until ? new Date(values.valid_until).toISOString() : null,
-      is_active: values.is_active,
-      applies_to: values.applies_to,
-      product_ids: [],
-      category_ids: [],
-      first_order_only: values.first_order_only,
-    };
-    onSave(formData);
+    // zod garandeert alle velden; z.infer maakt ze optioneel omdat tsconfig.app niet strict is.
+    onSave(buildDiscountFormData(values as DiscountFormValues, discountCode));
   };
 
   const generateCode = () => {

@@ -1862,7 +1862,10 @@
     "subtotal_discount": "Korting op subtotaal",
     "line_discount": "Lijnkorting",
     "add_discount": "Korting toevoegen",
-    "remove_discount": "Korting verwijderen"
+    "remove_discount": "Korting verwijderen",
+    "code_form": {
+      "valid_until_before_from": "\"Geldig tot\" mag niet vóór \"Geldig van\" liggen."
+    }
   },
   "reminders": {
     "settings_title": "Betalingsherinneringen",
