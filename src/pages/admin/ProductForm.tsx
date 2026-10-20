@@ -369,11 +369,11 @@ export default function ProductForm() {
   );
   // Land zonder eigen tarieven: alle landen tonen, mét landcode in het label.
   const vatRatesForOtherCountries = useMemo(() => {
-    const country = currentTenant?.country;
+    const country = currentTenant?.country?.toUpperCase();
     return !country || !vatRates.some((r) => r.country_code === country);
   }, [vatRates, currentTenant?.country]);
   const vatRateOptions = useMemo(() => {
-    const country = currentTenant?.country;
+    const country = currentTenant?.country?.toUpperCase();
     const list = vatRatesForOtherCountries ? vatRates : vatRates.filter((r) => r.country_code === country);
     // Een tarief uit een ander land of een inactief tarief dat al op het product staat, blijft zichtbaar.
     const current = selectedVatRateId ? allKnownVatRates.find((r) => r.id === selectedVatRateId) : undefined;
@@ -389,7 +389,7 @@ export default function ProductForm() {
     return name || rate.name_nl || rate.name_en || rate.category;
   }, [i18n.language]);
   const vatRateLabel = useCallback((rate: VatRate): string => {
-    const otherCountry = vatRatesForOtherCountries || rate.country_code !== currentTenant?.country;
+    const otherCountry = vatRatesForOtherCountries || rate.country_code !== currentTenant?.country?.toUpperCase();
     const base = otherCountry ? `${vatRateName(rate)} · ${rate.country_code}` : vatRateName(rate);
     const label = `${base} (${Number(rate.rate)}%)`;
     return rate.is_active ? label : `${label} ${t('admin.productForm.vat_rate_inactive')}`;
@@ -399,7 +399,8 @@ export default function ProductForm() {
     return match ? Number(match.rate) : tenantDefaultVatRate;
   }, [selectedVatRateId, allKnownVatRates, tenantDefaultVatRate]);
   // Marge pas tonen als het tarief vaststaat (geen flikkering met het winkeltarief).
-  const vatRateReady = !vatRatesLoading && !(missingVatRateId && inactiveVatRateLoading);
+  // Losse lookup mislukt of leeg → geen marge tonen (anders rekent hij met het verkeerde tarief).
+  const vatRateReady = !vatRatesLoading && !(missingVatRateId && (inactiveVatRateLoading || !inactiveVatRate));
 
   // PRODUCT-FORM-2 — marge-indicatie, puur weergave. Verkoopprijs is incl. btw,
   // inkoopprijs excl. btw: marge = (netto verkoopprijs − inkoopprijs) / netto verkoopprijs.
