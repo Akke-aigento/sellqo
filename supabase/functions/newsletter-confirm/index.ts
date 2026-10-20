@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getTenantBrand, type TenantBrand } from "../_shared/tenantEmail.ts";
 import { tenantMarketingSender, tenantSender } from "../_shared/emailSenders.ts";
 import { buildUnsubscribeUrl, escapeHtml } from "../_shared/marketingToken.ts";
@@ -22,6 +22,15 @@ const pickLocale = (v: unknown, fallback: Locale = "nl"): Locale => {
   return (["nl", "en", "fr", "de"] as const).includes(s as Locale) ? (s as Locale) : fallback;
 };
 
+type Db = SupabaseClient;
+
+/** De velden van tenant_newsletter_config die de welkomstmail leest. */
+interface WelcomeEmailConfig {
+  welcome_email_enabled?: boolean | null;
+  welcome_email_body?: string | null;
+  welcome_email_subject?: string | null;
+}
+
 type ConfirmStatus = "ok" | "already" | "invalid" | "unsubscribed" | "error";
 
 /** 302 naar de resultaatpagina. Enkel publieke winkelgegevens in de URL. */
@@ -44,7 +53,7 @@ const escapeLike = (v: string) => v.replace(/[\\%_]/g, (c) => `\\${c}`);
  * prospect aanmaken.
  */
 async function markCustomerSubscribed(
-  supabase: any,
+  supabase: Db,
   tenantId: string,
   email: string,
   firstName: string | null,
@@ -98,11 +107,11 @@ async function markCustomerSubscribed(
 
 /** Welkomstmail (marketing). Zelfde logica als storefront-api bij single opt-in. */
 async function sendWelcomeEmail(
-  supabase: any,
+  supabase: Db,
   tenantId: string,
   email: string,
   firstName: string | null,
-  config: any,
+  config: WelcomeEmailConfig | null,
   brand: TenantBrand,
   shopUrl: string,
 ) {
