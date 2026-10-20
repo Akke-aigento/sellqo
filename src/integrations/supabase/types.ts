@@ -19353,8 +19353,6 @@ export type Database = {
           custom_domain: string | null
           default_vat_handling: string | null
           document_logo_url: string | null
-          email_logo_url: string | null
-          email_logo_source_url: string | null
           domain_verification_token: string | null
           domain_verified: boolean | null
           email_forward_address: string | null
@@ -19470,8 +19468,6 @@ export type Database = {
           custom_domain?: string | null
           default_vat_handling?: string | null
           document_logo_url?: string | null
-          email_logo_url?: string | null
-          email_logo_source_url?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean | null
           email_forward_address?: string | null
@@ -19587,8 +19583,6 @@ export type Database = {
           custom_domain?: string | null
           default_vat_handling?: string | null
           document_logo_url?: string | null
-          email_logo_url?: string | null
-          email_logo_source_url?: string | null
           domain_verification_token?: string | null
           domain_verified?: boolean | null
           email_forward_address?: string | null
