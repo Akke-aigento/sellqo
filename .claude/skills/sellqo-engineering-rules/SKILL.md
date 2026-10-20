@@ -12,7 +12,7 @@ description: Harde engineering-regels voor het sellqo-project. Altijd toepassen
 **Scope: enkel het project `sellqo`. Bij andere projecten in deze workspace:
 negeer deze skill, tenzij expliciet gevraagd.**
 
-Negen harde regels. Elke regel staat hier mét het incident dat 'm veroorzaakte —
+Harde regels. Elke regel staat hier mét het incident dat 'm veroorzaakte —
 een regel zonder litteken wordt genegeerd.
 
 ## R1 — Nooit een signed URL in de database. Sla het pad op.
@@ -301,3 +301,23 @@ CI op een niet-component-export uit een `.tsx` met componenten.
 **Incidenten (14 okt 2026):** FLEX-1 brak CI met 4 nieuwe `any` in
 `storefront-api`. MKT-3 brak CI op een geëxporteerde `SCENE_LOOP_MS` uit
 `LiveScene.tsx`, terwijl de lokale lint groen was.
+
+## R12 — Een worker-cache per run bevat nooit status die een parallelle run kan wijzigen.
+Cache per run gerust wat vastligt (template, tenantinstellingen). Maar
+statuswaarden die een andere run kan veranderen — A/B-winnaar, campagnestatus
+(`paused`, `cancelled`, `sent`) — lees je opnieuw uit de DB vlak vóór een
+onomkeerbare stap (verzenden, winnaar kiezen, status op `sent`).
+**Incident (MAIL-2d, 20 okt 2026):** `process-campaign-queue` draait elke
+minuut, dus runs overlappen. De review vond dat rijen zonder variant van een
+gestarte A/B-test verstuurd konden worden met een gecachte context zonder
+winnaar. Fix `guardAbRemainder`: campagne opnieuw laden; nog geen winnaar →
+terug op `queued` met +1 min, niet versturen.
+
+## R13 — Geen `window.prompt`/`alert`/`confirm` in de admin.
+Altijd een dialoogcomponent (`AlertDialog`/`Dialog` uit `src/components/ui/`)
+met i18n-teksten (zie sellqo-i18n-verplicht). Native dialogen zijn niet te
+vertalen, niet te stylen, blokkeren de thread en werken slecht in de
+Capacitor-app.
+**Incident (MAIL-1b/MAIL-2, okt 2026):** `CampaignRichEditor.tsx` vroeg link en
+afbeelding via `window.prompt` — onvertaald en zonder mediabibliotheek.
+Vervangen door `LinkDialog`/`ImageInsertDialog` (`EditorInsertDialogs.tsx`).

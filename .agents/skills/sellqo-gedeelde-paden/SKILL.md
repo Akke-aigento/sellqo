@@ -116,6 +116,28 @@ de vorige commit, op een verse fixture uit de live-databank. Het mandje moet
 verklaren, en Akke keurt het goed vóór de deploy. Na de deploy: GET-stempel,
 plus `cart_get` op de live carts tegen een nulmeting in `ops.*`.
 
+## G7 — Publieke productlinks alleen via `_shared/storefrontUrls.ts`
+Elke link naar een publieke product- of winkelpagina (mail, feed, social,
+PDF) komt uit `supabase/functions/_shared/storefrontUrls.ts`
+(`loadStorefrontUrlContext` → `productUrlFor` / `hasProductUrls`). Nooit een
+domein gokken of zelf in elkaar zetten: custom frontends, eigen domeinen en
+`slug.sellqo.shop` verschillen per tenant. Geen URL → geen knop of link.
+**Incident (MAIL-2c, 20 okt 2026):** `generate-product-feed` bouwt
+`sellqo.app/shop/<tenant>/product/<slug>`, terwijl de SellQo-winkel op
+`<slug>.sellqo.shop/producten/<slug>` draait; Astra Sleep heeft geen
+`product_url_template`. Elke geraden link is voor een deel van de winkels fout.
+**Regel:** `productUrlFor` geeft `null` → de knop verdwijnt, geen fallback.
+
+## G8 — Marketingmail nooit naar marketplace-orders
+Kopers via bol.com en andere marketplaces zijn geen klanten van de winkel voor
+marketing. Sluit ze uit in elke doelgroep, automation en segment op basis van
+`marketplace_source`, `import_source`, `marketplace_order_id` en
+`marketplace_connection_id`. Eén van die velden gevuld → geen marketingmail.
+**Incident (MAIL-2a, 19-20 okt 2026):** de ordertrigger en de soft opt-in
+herkenden marketplace-orders eerst enkel aan `marketplace_source`/`import_source`;
+pas de review voegde `marketplace_order_id`/`marketplace_connection_id` toe.
+Eén vergeten veld = bol-kopers krijgen een bedankmail of reviewvraag van de winkel.
+
 ## Checklist bij werk aan een gedeeld pad
 - [ ] Hoeveel werelden bedient deze functie? (doc-types, factuur-soorten,
       marketplaces, platform/tenant) — allemaal benoemd?
@@ -130,3 +152,5 @@ plus `cart_get` op de live carts tegen een nulmeting in `ops.*`.
 - [ ] Diagnose gebaseerd op live data/gedrag, niet enkel op broncode
 - [ ] Storefront-API korting/mandje/checkout geraakt? `scripts/promo-compare/`
       gedraaid, verschillen verklaard en door Akke goedgekeurd (G6)
+- [ ] Publieke links via `storefrontUrls.ts`; geen URL → geen knop (G7)
+- [ ] Marketingdoelgroep sluit marketplace-orders uit (G8)

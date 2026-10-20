@@ -78,6 +78,18 @@ onder `src/integrations/` negeren). Ongevraagde agent-wijzigingen meteen
 terugdraaien met een commit en loggen in de role-audit. Na een MCP-timeout:
 niet opnieuw sturen, maar `git ls-remote origin main` en meten.
 
+## Cron-migraties onder het uur: reviewregel bovenaan
+Lovable weigert een migratie met een `pg_cron`-schema dat vaker dan elk uur
+draait, tenzij de **eerste regel** luidt:
+```sql
+-- lovable-cron-fallback-reviewed: <reden>
+```
+Noem vóór je zo'n migratie voorstelt het aantal runs per dag (elke minuut =
+1.440/dag, elke 5 min = 288/dag) en waarom dat nodig is; Akke beslist.
+**Incident (MAIL-2, 19-20 okt 2026):** de minuutcadans van
+`automation-scheduler` en `process-campaign-queue` werd geweigerd tot de regel
+erbij stond (`20261019230000_mail_2a_automations.sql`).
+
 ## Vier valkuilen
 1. **Write-error ≠ mislukt.** Een tool-error op send_message betekent vaak
    dat de run tóch `accepted`/`running` is. Check via `list_messages` vóór

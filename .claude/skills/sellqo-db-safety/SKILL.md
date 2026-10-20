@@ -71,6 +71,26 @@ policy op rol `public` zonder `auth.role()`-check, dan geeft hij in
 werkelijkheid **anon** die rechten. Zo waren factuur-PDF's ooit
 wereld-wisbaar.
 
+### Guard-trigger en SECURITY DEFINER: test `current_user`, niet `auth.role()`
+Een guard-trigger die SECURITY DEFINER-functies moet doorlaten, test
+`current_user` (wordt binnen zo'n functie de owner, bv. `postgres`).
+`auth.role()` leest de JWT-claim en blijft daar gewoon `'authenticated'` —
+de guard blokkeert dan ook de functie die hij moest doorlaten.
+**Incident (MAIL-2, 19-20 okt 2026):** `guard_email_campaign_status` moest
+SellQo's eigen definer-functies (`enqueue_campaign_sends`, …) doorlaten en
+gebruikers via PostgREST blokkeren. Met `auth.role()` is dat onderscheid
+onmogelijk; met `current_user` wel.
+
+### Smoke-tests met veel testklanten/-orders: eerst meldingen uit
+Zet vóór een smoke-test met veel testklanten of -orders de notificaties én
+push voor de testwinkel uit. De trigger `handle_customer_notification` geeft
+per klant 1 notificatie + 1 push.
+En weet: een betaalde testorder maakt automatisch een factuur aan. Opruimen
+laat dan een gat in de factuurnummering — plan dat vooraf (of test zonder
+`paid`).
+**Incident (MAIL-2, 20 okt 2026):** 406 pushes naar de telefoon door één
+smoke-test.
+
 ## Checklist per batch
 - [ ] Recon: blast-radius bepaald (`grep` in src/ én functions/)
 - [ ] Baseline gemeten (rol-impersonatie + counts)
@@ -79,4 +99,6 @@ wereld-wisbaar.
 - [ ] Na uitvoering: natrek gedraaid, cijfers vergeleken met baseline
 - [ ] Getest met een tenant-account, niet enkel platform_admin
 - [ ] Groen vinkje verklaard: weet je wáárom het slaagt?
+- [ ] Guard-trigger met definer-uitzondering test `current_user`
+- [ ] Smoke-test met veel testdata: notificaties + push uit, factuurgat ingecalculeerd
 
