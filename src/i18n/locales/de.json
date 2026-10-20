@@ -4015,7 +4015,15 @@
         "modern_formaat": "Modernes Format",
         "optimaliseer_afbeeldingen_lt_200kb": "Bilder optimieren &lt; 200 KB",
         "optimaliseer_alt_teksten_voor_betere_seo": "Optimieren Sie Alt-Texte für besseres SEO und Barrierefreiheit",
-        "webp_avif_voor_betere_performance": "WebP/AVIF für bessere Leistung"
+        "webp_avif_voor_betere_performance": "WebP/AVIF für bessere Leistung",
+        "genereer_alt": "Alt generieren ({{count}})",
+        "met_alt_tekst": "{{count}} mit Alt-Text",
+        "ontbrekend_count": "{{count}} fehlend",
+        "compleet_pct": "{{pct}} % vollständig",
+        "filter_alle": "Alle ({{count}})",
+        "filter_ontbrekend": "Fehlend ({{count}})",
+        "filter_compleet": "Vollständig ({{count}})",
+        "selecteer_alle": "Alle auswählen ({{count}})"
       },
       "keywordResearchPanel": {
         "primair": "Primär",
@@ -7249,7 +7257,8 @@
       "terminal_aanmaken": "Terminal anlegen",
       "kassa_openen": "Kasse öffnen",
       "dag_starten": "Tag starten",
-      "geef_je_kassaterminal_een_naam_en": "Geben Sie Ihrem Kassenterminal einen Namen und optional einen Standort."
+      "geef_je_kassaterminal_een_naam_en": "Geben Sie Ihrem Kassenterminal einen Namen und optional einen Standort.",
+      "nog_open_sinds": "Noch offen seit {{date}}"
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Terminaleinstellungen",

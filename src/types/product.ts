@@ -34,6 +34,8 @@ export interface Product {
   allow_backorder: boolean;
   low_stock_threshold: number;
   images: string[];
+  /** Alt-tekst per afbeeldingsindex, parallel aan `images` (NIGHT-QF-3). */
+  image_alt_texts?: string[] | null;
   featured_image: string | null;
   category_id: string | null;
   vat_rate_id: string | null;

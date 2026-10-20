@@ -4235,7 +4235,7 @@
     "adsProductMap": {
       "product_mapping": "Product mapping",
       "product_mapping_2": "Product mapping",
-      "uit": "Out",
+      "uit": "Off",
       "opgeslagen": "Saved",
       "fout": "Error",
       "actie": "Action",
@@ -4288,7 +4288,15 @@
         "modern_formaat": "Modern format",
         "optimaliseer_afbeeldingen_lt_200kb": "Optimise images &lt; 200KB",
         "optimaliseer_alt_teksten_voor_betere_seo": "Optimise alt texts for better SEO and accessibility",
-        "webp_avif_voor_betere_performance": "WebP/AVIF for better performance"
+        "webp_avif_voor_betere_performance": "WebP/AVIF for better performance",
+        "genereer_alt": "Generate alt ({{count}})",
+        "met_alt_tekst": "{{count}} with alt text",
+        "ontbrekend_count": "{{count}} missing",
+        "compleet_pct": "{{pct}}% complete",
+        "filter_alle": "All ({{count}})",
+        "filter_ontbrekend": "Missing ({{count}})",
+        "filter_compleet": "Complete ({{count}})",
+        "selecteer_alle": "Select all ({{count}})"
       },
       "keywordResearchPanel": {
         "primair": "Primary",
@@ -7522,7 +7530,8 @@
       "terminal_aanmaken": "Create terminal",
       "kassa_openen": "Open POS",
       "dag_starten": "Start day",
-      "geef_je_kassaterminal_een_naam_en": "Give your POS terminal a name and an optional location."
+      "geef_je_kassaterminal_een_naam_en": "Give your POS terminal a name and an optional location.",
+      "nog_open_sinds": "Still open since {{date}}"
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Terminal settings",
