@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore, cartGet, getCartForCheckout, checkoutComplete, checkoutVerifyPayment };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore, cartGet, getCartForCheckout, checkoutComplete, checkoutVerifyPayment, cartUpdateItem, cartRemoveItem, cartApplyDiscount, cartRemoveDiscount };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -108,6 +108,49 @@ await check('cart_add_item verplichte groep', async () => {
   let code = '';
   try { await S.cartAddItem(db, T, { cart_id: 'cart1', product_id: 'p3' }); } catch (e) { code = JSON.parse((e as Error).message).code; }
   assert(code === 'ADDON_MIN', `code ${code}`);
+});
+// CART-TENANT-1 — cart of cartregel van een andere winkel: niet gevonden, en niets geschreven.
+await check('cart-acties weigeren een cart van een andere winkel (CART-TENANT-1)', async () => {
+  db.tables.storefront_carts.push({ id: 'cart-b', tenant_id: 'tenant-2', session_id: 'sb', currency: 'EUR', discount_codes: ['B10'], expires_at: '2999-01-01T00:00:00Z' });
+  db.tables.storefront_cart_items.push({ id: 'item-b', cart_id: 'cart-b', product_id: 'p1', variant_id: null, event_detail_id: null, quantity: 1, unit_price: 20 });
+  try {
+    db.writes.length = 0;
+    assert(await S.cartAddItem(db, T, { cart_id: 'cart-b', product_id: 'p1' }) === null, 'add_item: data null zoals cart_get');
+    assert(await S.cartApplyDiscount(db, T, { cart_id: 'cart-b', code: 'X' }) === null, 'apply_discount: data null');
+    assert(await S.cartRemoveDiscount(db, T, { cart_id: 'cart-b', code: 'B10' }) === null, 'remove_discount (code): data null');
+    assert(await S.cartRemoveDiscount(db, T, { cart_id: 'cart-b' }) === null, 'remove_discount (alles): data null');
+    assert(await S.cartAddItem(db, T, { cart_id: 'bestaat-niet', product_id: 'p1' }) === null, 'onbekende cart: data null');
+    for (const fn of [() => S.cartUpdateItem(db, T, { item_id: 'item-b', quantity: 3 }), () => S.cartRemoveItem(db, T, { item_id: 'item-b' })]) {
+      let msg = '';
+      try { await fn(); } catch (e) { msg = (e as Error).message; }
+      assert(msg === 'Cart item not found', `regel van andere winkel: ${msg}`);
+    }
+    assert(db.writes.length === 0, `geen schrijfacties verwacht: ${JSON.stringify(db.writes)}`);
+  } finally {
+    db.tables.storefront_carts = db.tables.storefront_carts.filter((c) => c.id !== 'cart-b');
+    db.tables.storefront_cart_items = db.tables.storefront_cart_items.filter((i) => i.id !== 'item-b');
+  }
+});
+await check('cart-acties op de eigen cart werken zoals voorheen (CART-TENANT-1)', async () => {
+  db.tables.storefront_cart_items.push({ id: 'item-a', cart_id: 'cart1', product_id: 'p1', variant_id: null, event_detail_id: null, quantity: 1, unit_price: 20 });
+  try {
+    db.writes.length = 0;
+    const r = await S.cartUpdateItem(db, T, { item_id: 'item-a', quantity: 2 });
+    assert(r?.id === 'cart1', `update_item geeft de cart terug: ${JSON.stringify(r)}`);
+    const upd = db.writes.find((w) => w.table === 'storefront_cart_items' && w.patch);
+    assert(upd?.patch.quantity === 2 && upd.where.id === 'item-a' && upd.where.cart_id === 'cart1', `update ${JSON.stringify(upd)}`);
+    const touch = db.writes.find((w) => w.table === 'storefront_carts' && w.patch?.updated_at);
+    assert(touch?.where.id === 'cart1' && touch.where.tenant_id === T, `touch ${JSON.stringify(touch)}`);
+    const rd = await S.cartRemoveDiscount(db, T, { cart_id: 'cart1' });
+    assert(rd?.id === 'cart1', 'remove_discount geeft de cart terug');
+    db.writes.length = 0;
+    const rr = await S.cartRemoveItem(db, T, { item_id: 'item-a' });
+    assert(rr?.id === 'cart1', 'remove_item geeft de cart terug');
+    const del = db.writes.find((w) => w.table === 'storefront_cart_items' && w.delete);
+    assert(del?.where.id === 'item-a' && del.where.cart_id === 'cart1', `delete ${JSON.stringify(del)}`);
+  } finally {
+    db.tables.storefront_cart_items = db.tables.storefront_cart_items.filter((i) => i.id !== 'item-a');
+  }
 });
 await check('get_fulfillment_slots', async () => {
   const r = await S.getFulfillmentSlots(db, T, { type: 'pickup' });
