@@ -86,6 +86,39 @@ export function productUrlFor(ctx: StorefrontUrlContext, productSlug: string | n
   return base ? httpsUrl(`${base}/producten/${encodeURIComponent(slug)}`) : null;
 }
 
+/**
+ * MAIL-LOGO-1 — de homepage van een winkel (link onder het logo in elke tenantmail, {{shop_url}}).
+ * Volgorde: eigen domein (`tenants.custom_domain`) → geverifieerd canoniek domein → bij een custom
+ * frontend de site uit `product_url_template` (de enige plek waar SellQo die site kent; een kolom
+ * `website_url` bestaat niet op tenants) → `<slug>.sellqo.shop` voor een winkel op het SellQo-theme.
+ * Een custom frontend krijgt nooit een sellqo.shop-adres: daar draait hij niet. Geen adres → null.
+ */
+export interface ShopHomeContext {
+  /** tenants.custom_domain */
+  customDomain: string | null;
+  /** tenant_domains.domain (actief, dns_verified, is_canonical) */
+  canonicalDomain: string | null;
+  /** tenants.product_url_template */
+  productUrlTemplate: string | null;
+  /** tenant_theme_settings.use_custom_frontend */
+  useCustomFrontend: boolean;
+  /** tenants.slug */
+  slug: string | null;
+}
+
+export function shopHomeUrlFor(ctx: ShopHomeContext): string | null {
+  const own = normalizeHost(ctx.customDomain) ?? normalizeHost(ctx.canonicalDomain);
+  if (own) return `https://${own}`;
+  if (ctx.useCustomFrontend) {
+    const tpl = String(ctx.productUrlTemplate ?? "").trim();
+    if (!tpl.includes("{slug}")) return null;
+    const href = httpsUrl(tpl.split("{slug}").join("x"));
+    return href ? new URL(href).origin : null;
+  }
+  const slug = String(ctx.slug ?? "").trim().toLowerCase();
+  return SHOP_SLUG.test(slug) ? `https://${slug}.sellqo.shop` : null;
+}
+
 /** Heeft deze winkel überhaupt publieke productlinks? (voor meldingen in de editor) */
 export function hasProductUrls(ctx: StorefrontUrlContext): boolean {
   return productUrlFor(ctx, "x") !== null;

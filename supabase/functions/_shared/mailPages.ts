@@ -43,23 +43,15 @@ export function redirectToApp(
 export const isHttpUrl = (v: unknown): v is string => typeof v === "string" && /^https?:\/\//i.test(v.trim());
 
 /**
- * Publieke shop-URL: eigen domein, anders geverifieerd canoniek domein, anders <slug>.sellqo.shop.
- * Zie ook storefrontUrls.ts (MAIL-2c): de productlink per winkel. Bewust apart: deze functie geeft
- * altijd een homepage-link (ook voor custom frontends via websiteUrl en ook als de winkel nog niet
- * online staat), productUrlFor geeft enkel een link die zeker bestaat, anders null.
+ * Publieke shop-URL van de winkel (homepage). MAIL-LOGO-1: één bron, `brand.shopUrl` uit
+ * getTenantBrand → `storefrontUrls.shopHomeUrlFor`: eigen domein, geverifieerd canoniek domein,
+ * de site van een custom frontend (uit product_url_template), anders <slug>.sellqo.shop — een
+ * custom frontend krijgt dat laatste nooit meer (Loveke kreeg vroeger loveke.sellqo.shop).
+ * Geen adres → "" (de callers tonen dan geen link). Signatuur ongewijzigd voor de callers.
  */
 // deno-lint-ignore no-explicit-any
-export async function resolveShopUrl(supabase: any, tenantId: string, brand: TenantBrand): Promise<string> {
-  if (brand.websiteUrl) return brand.websiteUrl;
-  try {
-    const { data } = await supabase
-      .from("tenant_domains").select("domain")
-      .eq("tenant_id", tenantId).eq("is_active", true).eq("dns_verified", true).eq("is_canonical", true)
-      .limit(1).maybeSingle();
-    if (data?.domain) return `https://${data.domain}`;
-  } catch (_e) { /* val terug op sellqo.shop */ }
-  const slug = brand.senderSource.slug;
-  return slug ? `https://${slug}.sellqo.shop` : "";
+export function resolveShopUrl(_supabase: any, _tenantId: string, brand: TenantBrand): Promise<string> {
+  return Promise.resolve(brand.shopUrl ?? "");
 }
 
 /** Logo van de winkel, of null als enkel het SellQo-standaardlogo beschikbaar is. */

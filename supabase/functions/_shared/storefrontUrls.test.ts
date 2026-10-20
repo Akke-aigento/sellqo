@@ -6,6 +6,7 @@ import {
   NO_LINK_CONTEXT,
   normalizeHost,
   productUrlFor,
+  shopHomeUrlFor,
   type StorefrontUrlContext,
   type StorefrontUrlDb,
 } from "./storefrontUrls.ts";
@@ -83,4 +84,19 @@ Deno.test("loader: leest template, theme en domein; fouten → voorzichtig", asy
 
   const gone = await loadStorefrontUrlContext(fakeDb({ tenants: { data: null } }), "t");
   assertEquals(gone, NO_LINK_CONTEXT);
+});
+
+// MAIL-LOGO-1 — homepage-link in de kop van elke tenantmail.
+const home = { customDomain: null, canonicalDomain: null, productUrlTemplate: null, useCustomFrontend: false, slug: "demo-bakkerij" };
+
+Deno.test("shopHomeUrlFor: volgorde en nooit een sellqo.shop-gok voor een custom frontend", () => {
+  assertEquals(shopHomeUrlFor({ ...home, customDomain: "https://VanXcel.com/", canonicalDomain: "vanxcel.be" }), "https://vanxcel.com");
+  assertEquals(shopHomeUrlFor({ ...home, canonicalDomain: "www.bakkerij.be" }), "https://www.bakkerij.be");
+  assertEquals(shopHomeUrlFor({ ...home, useCustomFrontend: true, productUrlTemplate: "https://www.zonadorata.com/product/{slug}" }), "https://www.zonadorata.com");
+  assertEquals(shopHomeUrlFor({ ...home, useCustomFrontend: true }), null);
+  assertEquals(shopHomeUrlFor({ ...home, useCustomFrontend: true, productUrlTemplate: "http://loveke.be/shop/{slug}" }), null);
+  assertEquals(shopHomeUrlFor({ ...home, useCustomFrontend: true, productUrlTemplate: "https://loveke.be/shop/" }), null);
+  assertEquals(shopHomeUrlFor(home), "https://demo-bakkerij.sellqo.shop");
+  assertEquals(shopHomeUrlFor({ ...home, slug: "Bad Slug!" }), null);
+  assertEquals(shopHomeUrlFor({ ...home, customDomain: "not a domain", slug: null }), null);
 });

@@ -290,7 +290,7 @@ async function renderFor(ctx: CampaignContext, row: Record<string, any>, recipie
     unsubscribePageUrl,
     {
       tenantName: brand.tenantName,
-      logoUrl: brand.logoUrl,
+      logoUrl: brand.emailLogoUrl ?? undefined,
       primaryColor: brand.primaryColor,
       accentColor: brand.accentColor,
       headingFont: brand.headingFont,

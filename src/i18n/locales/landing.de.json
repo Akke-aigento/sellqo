@@ -2123,6 +2123,10 @@
         "email_cart_restore": {
           "title": "Verlassener Warenkorb: Die Schaltfläche öffnet den Warenkorb wieder",
           "description": "Läuft Ihr Shop auf dem SellQo-Webshop, öffnet die Schaltfläche in der Erinnerung an einen verlassenen Warenkorb jetzt einen Warenkorb mit denselben Produkten statt Ihrer Startseite. Der Link ist 7 Tage gültig. Ihr Kunde sieht Preis und Bestand dieses Moments und gibt seine Daten erneut ein, sodass jemand, der die weitergeleitete E-Mail erhält, nie die Adresse oder Telefonnummer Ihres Kunden sieht. Tickets mit festem Sitzplatz, Produkte mit Extras, Geschenkgutscheine und ausverkaufte Produkte werden nicht übernommen; Ihr Kunde sieht, welche und warum. Hat er inzwischen einen anderen gefüllten Warenkorb, wählt er selbst, welchen er behält. Ein so zurückgeholter Warenkorb erhält keine zweite Erinnerung. Haben Sie einen eigenen Webshop außerhalb des SellQo-Themes, führt die Schaltfläche weiterhin zu Ihrem Shop."
+        },
+        "email_logo_header": {
+          "title": "Ihr Logo in Ihren E-Mails: scharf, zugeschnitten und mit Link zu Ihrem Shop",
+          "description": "Wenn Sie Ihr Logo hochladen, erstellt SellQo automatisch eine Version für E-Mails: Leere und weiße Ränder werden entfernt, die Größe ist auf den Kopf Ihrer E-Mails abgestimmt und die Datei bleibt klein. Beim Hochladen sehen Sie sofort, wie Ihr Logo oben in Ihren E-Mails erscheint, im hellen und im dunklen Modus, und Sie erhalten einen Hinweis, wenn es zu klein ist und unscharf wirken kann. Ohne Logo steht der Name Ihres Shops als Text da, statt des SellQo-Logos. Logo oder Name verlinken auf Ihren eigenen Shop. Ihr bisheriges Logo funktioniert weiter; die zugeschnittene Version erhalten Sie, wenn Sie es erneut hochladen."
         }
       },
       "copyLink": "Link kopieren",

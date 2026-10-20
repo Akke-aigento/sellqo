@@ -123,7 +123,7 @@ async function sendWelcomeEmail(
       "{{SHOP_URL}}": shopUrl,
       "{{unsubscribe_url}}": unsubscribeUrl,
       "{{AFMELD_URL}}": unsubscribeUrl,
-      "{{LOGO_URL}}": brand.logoUrl,
+      "{{LOGO_URL}}": brand.emailLogoUrl ?? "",
       "{{JAAR}}": String(new Date().getFullYear()),
     };
     let body = String(config.welcome_email_body);

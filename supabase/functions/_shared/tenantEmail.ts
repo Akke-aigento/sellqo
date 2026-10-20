@@ -7,7 +7,9 @@
 //
 // Edge cases handled:
 //   • Missing tenant_theme_settings row → SellQo defaults
-//   • Missing or malformed logo_url → SellQo logo fallback
+//   • Missing or malformed logo_url → logoUrl/emailLogoUrl null; de kop toont dan de
+//     winkelnaam als tekst (MAIL-LOGO-1). Nooit het SellQo-logo in de mail van een winkel;
+//     enkel de facturatietenant (slug `sellqo`, de eigen mails van SellQo) valt erop terug.
 //   • Malformed hex (e.g. 'red', '#zzz') → sanitized to default
 //   • Missing locale → falls back via getTenantLocale() to 'en'
 //
@@ -17,6 +19,8 @@
 import { resolveCustomerContactEmail } from "./customerContact.ts";
 import type { TenantSenderSource } from "./emailSenders.ts";
 import { readableTextColor } from "./colorContrast.ts";
+import { BILLING_TENANT_SLUG } from "./billingTenant.ts";
+import { shopHomeUrlFor } from "./storefrontUrls.ts";
 import {
   BRAND,
   LOGO_URL,
@@ -38,7 +42,21 @@ export const SUPPORTED_LOCALES: readonly TenantLocale[] = ["nl", "en", "fr", "de
 export interface TenantBrand {
   tenantId: string;
   tenantName: string;
-  logoUrl: string;
+  /**
+   * MAIL-LOGO-1: het eigen logo van de winkel (origineel, zoals in de storefront), of null.
+   * Vroeger viel dit terug op het SellQo-logo; dat staat nooit meer in de mail van een winkel.
+   */
+  logoUrl: string | null;
+  /**
+   * MAIL-LOGO-1: het logo voor mails — de e-mailvariant (`tenants.email_logo_url`, bijgesneden,
+   * 176 px hoog, PNG) als die bij het huidige logo hoort, anders het origineel, anders null.
+   */
+  emailLogoUrl: string | null;
+  /**
+   * MAIL-LOGO-1: de homepage van de winkel (`storefrontUrls.shopHomeUrlFor`), of null.
+   * Link onder het logo en bron van `resolveShopUrl` ({{shop_url}}).
+   */
+  shopUrl: string | null;
   primaryColor: string;
   accentColor: string;
   textColor: string;
@@ -78,9 +96,33 @@ function sanitizeColor(input: unknown, fallback: string): string {
   return HEX_RE.test(v) ? v : fallback;
 }
 
-function sanitizeUrl(input: unknown, fallback: string): string {
+function sanitizeUrl(input: unknown): string | null {
   const v = typeof input === "string" ? input.trim() : "";
-  return URL_RE.test(v) ? v : fallback;
+  return URL_RE.test(v) && !/[\s"'<>]/.test(v) ? v : null;
+}
+
+/**
+ * MAIL-LOGO-1: welk logo de mail toont. De e-mailvariant telt alleen als ze gemaakt is van het
+ * logo dat nu geldt (`email_logo_source_url`): wie later een ander logo uploadt of het logo
+ * weghaalt, krijgt nooit een verouderde variant. Puur, zodat de test hem rechtstreeks gebruikt.
+ */
+export function pickEmailLogo(opts: {
+  themeLogo?: unknown;
+  tenantLogo?: unknown;
+  emailLogo?: unknown;
+  emailLogoSource?: unknown;
+  isBillingTenant?: boolean;
+}): { logoUrl: string | null; emailLogoUrl: string | null } {
+  const raw = (typeof opts.themeLogo === "string" && opts.themeLogo.trim())
+    || (typeof opts.tenantLogo === "string" && opts.tenantLogo.trim()) || "";
+  const own = sanitizeUrl(raw);
+  if (!own) {
+    // De eigen mails van SellQo (facturatietenant) houden het SellQo-logo, zoals vroeger.
+    return opts.isBillingTenant ? { logoUrl: LOGO_URL, emailLogoUrl: LOGO_URL } : { logoUrl: null, emailLogoUrl: null };
+  }
+  const variant = sanitizeUrl(opts.emailLogo);
+  const source = typeof opts.emailLogoSource === "string" ? opts.emailLogoSource.trim() : "";
+  return { logoUrl: own, emailLogoUrl: variant && source === raw ? variant : own };
 }
 
 function sanitizeLocale(input: unknown, fallback: TenantLocale = "en"): TenantLocale {
@@ -122,12 +164,15 @@ export async function getTenantBrand(
 ): Promise<TenantBrand> {
   let tenantRow: any = null;
   let themeRow: any = null;
+  let emailLogoRow: { email_logo_url?: unknown; email_logo_source_url?: unknown } | null = null;
+  let canonicalDomain: string | null = null;
+  let themeFailed = false;
 
   try {
     const { data, error } = await supabase
       .from("tenants")
       .select(
-        "id, name, slug, inbound_email_prefix, billing_company_name, support_email, owner_email, primary_color, logo_url, custom_domain, address, city, postal_code, country, btw_number, billing_vat_number, language",
+        "id, name, slug, inbound_email_prefix, billing_company_name, support_email, owner_email, primary_color, logo_url, custom_domain, product_url_template, address, city, postal_code, country, btw_number, billing_vat_number, language",
       )
       .eq("id", tenantId)
       .maybeSingle();
@@ -144,21 +189,64 @@ export async function getTenantBrand(
     const { data, error } = await supabase
       .from("tenant_theme_settings")
       .select(
-        "logo_url, primary_color, secondary_color, accent_color, background_color, text_color, brand_color, theme_mode, heading_font, body_font",
+        "logo_url, primary_color, secondary_color, accent_color, background_color, text_color, brand_color, theme_mode, heading_font, body_font, use_custom_frontend",
       )
       .eq("tenant_id", tenantId)
       .maybeSingle();
     if (error) {
       console.error("[tenantEmail] tenant_theme_settings select failed", { tenantId, error });
+      themeFailed = true;
     }
     themeRow = data || null;
   } catch (e) {
     console.error("[tenantEmail] tenant_theme_settings select threw", { tenantId, error: String(e) });
     themeRow = null;
+    themeFailed = true;
   }
+
+  // MAIL-LOGO-1: de e-mailvariant apart lezen. Faalt deze select (migratie nog niet gedraaid),
+  // dan valt enkel de variant weg en blijft de rest van het merk intact.
+  try {
+    const { data, error } = await supabase
+      .from("tenants")
+      .select("email_logo_url, email_logo_source_url")
+      .eq("id", tenantId)
+      .maybeSingle();
+    if (error) console.warn("[tenantEmail] email_logo select failed", { tenantId, error });
+    emailLogoRow = data || null;
+  } catch (e) {
+    console.warn("[tenantEmail] email_logo select threw", { tenantId, error: String(e) });
+  }
+
+  // MAIL-LOGO-1: zelfde canonieke-domeinquery als resolveShopUrl vroeger deed.
+  try {
+    const { data } = await supabase
+      .from("tenant_domains").select("domain")
+      .eq("tenant_id", tenantId).eq("is_active", true).eq("dns_verified", true).eq("is_canonical", true)
+      .limit(1).maybeSingle();
+    canonicalDomain = typeof data?.domain === "string" ? data.domain : null;
+  } catch (_e) { /* geen canoniek domein */ }
 
   const t = tenantRow || {};
   const th = themeRow || {};
+  const isBillingTenant = t.slug === BILLING_TENANT_SLUG;
+  const logos = pickEmailLogo({
+    themeLogo: th.logo_url,
+    tenantLogo: t.logo_url,
+    emailLogo: emailLogoRow?.email_logo_url,
+    emailLogoSource: emailLogoRow?.email_logo_source_url,
+    isBillingTenant,
+  });
+  // De facturatietenant (SellQo zelf) linkt naar sellqo.app, zoals zijn mails altijd deden.
+  const shopUrl = isBillingTenant ? "https://sellqo.app" : shopHomeUrlFor({
+    customDomain: typeof t.custom_domain === "string" ? t.custom_domain : null,
+    canonicalDomain,
+    productUrlTemplate: typeof t.product_url_template === "string" ? t.product_url_template : null,
+    // Kon de themarij niet gelezen worden, dan weten we niet of de winkel een eigen frontend
+    // heeft: voorzichtig, dus geen sellqo.shop-adres. Geen rij = SellQo-theme (zoals vroeger).
+    useCustomFrontend: themeFailed || th.use_custom_frontend === true,
+    slug: typeof t.slug === "string" ? t.slug : null,
+  });
 
   // MAIL-CONTACT-1: één bron. notification_email hoort hier niet in — dat is
   // het adres voor de eigen meldingen van de winkel, en het lekte via deze keten
@@ -174,7 +262,9 @@ export async function getTenantBrand(
     tenantId,
     tenantName: (t.name && String(t.name).trim()) || "SellQo",
     legalName: (t.billing_company_name && String(t.billing_company_name).trim()) || undefined,
-    logoUrl: sanitizeUrl(th.logo_url || t.logo_url, LOGO_URL),
+    logoUrl: logos.logoUrl,
+    emailLogoUrl: logos.emailLogoUrl,
+    shopUrl,
     primaryColor: sanitizeColor(th.primary_color || t.primary_color, BRAND.primary),
     accentColor: sanitizeColor(th.accent_color, BRAND.accent),
     // MAIL-THEME-1: de tekstkleur van het storefront-thema staat hier op de
@@ -429,15 +519,7 @@ export function renderTenantEmail(opts: RenderTenantEmailOptions): { html: strin
   // Het stond rechtstreeks op de achtergrond van het thema (VanXcel #0f0f0f) en in
   // dark mode op #0f172a — een zwart logo was dan onzichtbaar. `.sq-logo` blijft
   // wit in de dark-mode-query van emailBaseLayout (sellqoEmail.ts).
-  const header = `<tr><td align="center" style="padding:0 0 24px;">
-    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"><tr>
-      <td class="sq-logo" bgcolor="#ffffff" style="background-color:#ffffff;border-radius:10px;padding:12px 20px;">
-        <a href="${esc(b.websiteUrl || "https://sellqo.app")}" target="_blank" style="text-decoration:none;">
-          <img src="${esc(b.logoUrl)}" alt="${esc(b.tenantName)}" style="height:44px;width:auto;display:block;border:0;outline:none;margin:0 auto;" />
-        </a>
-      </td>
-    </tr></table>
-  </td></tr>`;
+  const header = renderTenantEmailHeader(b);
 
   const primaryBtn = opts.primaryCta
     ? renderBrandedButton(opts.primaryCta.label, opts.primaryCta.url, b.primaryColor, pickFg(b.primaryColor))
@@ -488,6 +570,35 @@ export function renderTenantEmail(opts: RenderTenantEmailOptions): { html: strin
   });
 
   return { html, text: htmlToPlainText(html) };
+}
+
+/**
+ * MAIL-LOGO-1 — kop van elke tenantmail. Het logo (of de naam) staat op een eigen wit vlak
+ * (MAIL-SENDER-1): het stond rechtstreeks op de achtergrond van het thema (VanXcel #0f0f0f) en in
+ * dark mode op #0f172a — een zwart logo was dan onzichtbaar. `.sq-logo` blijft wit in de
+ * dark-mode-query van emailBaseLayout (sellqoEmail.ts).
+ *
+ *   • Logo: de e-mailvariant (emailLogoUrl), 44 px hoog getoond (variant is 176 px = 4x).
+ *   • Geen logo: de winkelnaam als tekst, kopfont, primaire kleur (enkel als die op wit leesbaar
+ *     is, anders de standaard tekstkleur). Nooit het SellQo-logo.
+ *   • Link: de echte homepage (shopUrl). Geen adres → geen link, nooit sellqo.app.
+ */
+export function renderTenantEmailHeader(b: TenantBrand): string {
+  const headingFont = `${b.headingFont}, -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
+  const nameColor = readableTextColor(b.primaryColor, "#ffffff", BRAND.text, 3);
+  const inner = b.emailLogoUrl
+    ? `<img src="${esc(b.emailLogoUrl)}" alt="${esc(b.tenantName)}" height="44" style="height:44px;width:auto;display:block;border:0;outline:none;margin:0 auto;" />`
+    : `<span class="sq-logo-name" style="display:block;font-family:${esc(headingFont)};font-size:22px;line-height:28px;font-weight:700;color:${nameColor};padding:8px 0;text-align:center;">${esc(b.tenantName)}</span>`;
+  const linked = b.shopUrl
+    ? `<a href="${esc(b.shopUrl)}" target="_blank" style="text-decoration:none;color:${nameColor};">${inner}</a>`
+    : inner;
+  return `<tr><td align="center" style="padding:0 0 24px;">
+    <table role="presentation" cellspacing="0" cellpadding="0" border="0" align="center"><tr>
+      <td class="sq-logo" bgcolor="#ffffff" style="background-color:#ffffff;border-radius:10px;padding:12px 20px;">
+        ${linked}
+      </td>
+    </tr></table>
+  </td></tr>`;
 }
 
 // Branded button (custom color, since emailButton uses BRAND.primary)

@@ -6,6 +6,8 @@ import { OnboardingTooltip } from '../OnboardingTooltip';
 import { OnboardingData } from '@/hooks/useOnboarding';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { createEmailLogoVariant } from '@/lib/emailLogo';
+import { saveEmailLogoVariant } from '@/hooks/useLogoUpload';
 
 interface LogoUploadStepProps {
   data: OnboardingData;
@@ -53,6 +55,15 @@ export function LogoUploadStep({
         .from('tenants')
         .update({ logo_url: publicUrl.publicUrl })
         .eq('id', tenantId);
+
+      // MAIL-LOGO-1: e-mailvariant (bijgesneden PNG, 176 px hoog). Best effort: lukt het niet,
+      // dan gebruiken de mails het origineel; de onboarding loopt gewoon door.
+      try {
+        const variant = await createEmailLogoVariant(file);
+        await saveEmailLogoVariant(tenantId, variant, publicUrl.publicUrl, 'tenant');
+      } catch (variantError) {
+        console.warn('[emailLogo] onboarding: geen e-mailvariant', variantError);
+      }
 
     } catch (error: any) {
       console.error('Upload error:', error);

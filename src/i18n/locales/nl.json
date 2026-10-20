@@ -316,7 +316,7 @@
     "business": {
       "subtitle": "Beheer je winkel- en bedrijfsinformatie",
       "requiredFieldsAlert": "Vul alle verplichte velden in om te voldoen aan de wettelijke eisen.",
-      "logoHint": "Aanbevolen: 200x200px, PNG of JPG. Dit logo verschijnt op alle e-mails naar klanten.",
+      "logoHint": "PNG, JPG, WebP of SVG. Je mails tonen dit logo als je onder Branding geen ander logo instelde.",
       "logoErrorTitle": "Fout bij opslaan logo",
       "logoSavedTitle": "Logo geüpload",
       "logoSavedBody": "Je bedrijfslogo is succesvol bijgewerkt.",
@@ -351,7 +351,8 @@
       "phone": "Telefoonnummer",
       "currency": "Valuta",
       "bankDetails": "Bankgegevens",
-      "ibanPlaceholder": "NL91 ABNA 0417 1643 00"
+      "ibanPlaceholder": "NL91 ABNA 0417 1643 00",
+      "uploadLogo": "Logo uploaden"
     },
     "branding": {
       "subtitle": "Logo, favicon en hoofdkleur — gebruikt in je webshop, e-mails en facturen",
@@ -1232,6 +1233,33 @@
         "keep": "Nee, ander toestel",
         "remove": "Ja, web-meldingen uitzetten"
       }
+    },
+    "logoUpload": {
+      "logo": "Logo",
+      "logoAlt": "Voorbeeld van je logo",
+      "noLogo": "Geen logo",
+      "removeLogo": "Logo verwijderen",
+      "uploading": "Uploaden...",
+      "uploadLogo": "Logo uploaden",
+      "logoHint": "PNG, JPG, WebP of SVG. Voor je mails maakt SellQo er automatisch een bijgesneden versie van.",
+      "favicon": "Favicon",
+      "faviconAlt": "Voorbeeld van je favicon",
+      "removeFavicon": "Favicon verwijderen",
+      "uploadFavicon": "Favicon uploaden",
+      "faviconHint": "32x32px of 64x64px, PNG of ICO"
+    },
+    "emailLogo": {
+      "unreadableTitle": "Logo niet leesbaar",
+      "unreadableBody": "{{name}} kon niet geopend worden. Het bestand is beschadigd of geen geldige afbeelding. Probeer een PNG, JPG, WebP of SVG.",
+      "variantFailedTitle": "E-mailversie niet opgeslagen",
+      "variantFailedBody": "Je logo is geüpload, maar de versie voor je mails kon niet opgeslagen worden. Je mails tonen voorlopig het originele logo. Upload het logo opnieuw om het nog eens te proberen.",
+      "previewTitle": "Zo staat je logo bovenaan je mails",
+      "previewLight": "Lichte modus",
+      "previewDark": "Donkere modus",
+      "variantInfo": "E-mailversie: {{width}} × {{height}} px, {{kb}} KB. Lege randen zijn weggeknipt.",
+      "themeLogoWins": "Je mails gebruiken het logo dat je onder Branding instelde. Dit logo verschijnt pas in je mails als je dat logo verwijdert.",
+      "blurryWarning": "Dit logo is minder dan {{height}} pixels hoog en wordt mogelijk wazig in je mails. Upload als het kan een grotere versie of een SVG.",
+      "noLogoName": "Zonder logo staat de naam van je winkel bovenaan je mails."
     }
   },
   "languages": {

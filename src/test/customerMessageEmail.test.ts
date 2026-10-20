@@ -9,6 +9,7 @@ import type { TenantBrand } from '../../supabase/functions/_shared/tenantEmail.t
 
 const brand: TenantBrand = {
   tenantId: 't1', tenantName: 'VanXcel', logoUrl: 'https://example.com/logo.png',
+  emailLogoUrl: 'https://example.com/logo.png', shopUrl: 'https://vanxcel.com',
   primaryColor: '#111111', accentColor: '#ff7733', textColor: '#1a2332', mutedColor: '#6b7280',
   backgroundColor: '#f4f6f9', cardColor: '#ffffff', borderColor: '#e4e8ee', brandColor: '#111111',
   themeMode: 'light', headingFont: 'Inter', bodyFont: 'Inter', supportEmail: 'info@vanxcel.com',

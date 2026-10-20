@@ -344,7 +344,7 @@
     "business": {
       "subtitle": "Verwalten Sie Ihre Shop- und Unternehmensdaten",
       "requiredFieldsAlert": "Füllen Sie alle Pflichtfelder aus, um die gesetzlichen Anforderungen zu erfüllen.",
-      "logoHint": "Empfohlen: 200x200 px, PNG oder JPG. Dieses Logo erscheint auf allen E-Mails an Kunden.",
+      "logoHint": "PNG, JPG, WebP oder SVG. Ihre E-Mails zeigen dieses Logo, wenn Sie unter Branding kein anderes Logo festgelegt haben.",
       "logoErrorTitle": "Fehler beim Speichern des Logos",
       "logoSavedTitle": "Logo hochgeladen",
       "logoSavedBody": "Ihr Firmenlogo wurde aktualisiert.",
@@ -379,7 +379,8 @@
       "phone": "Telefonnummer",
       "currency": "Währung",
       "bankDetails": "Bankverbindung",
-      "ibanPlaceholder": "NL91 ABNA 0417 1643 00"
+      "ibanPlaceholder": "NL91 ABNA 0417 1643 00",
+      "uploadLogo": "Logo hochladen"
     },
     "branding": {
       "subtitle": "Logo, Favicon und Hauptfarbe — verwendet in Ihrem Shop, in E-Mails und auf Rechnungen",
@@ -1260,6 +1261,33 @@
         "keep": "Nein, anderes Gerät",
         "remove": "Ja, Web-Benachrichtigungen deaktivieren"
       }
+    },
+    "logoUpload": {
+      "logo": "Logo",
+      "logoAlt": "Vorschau Ihres Logos",
+      "noLogo": "Kein Logo",
+      "removeLogo": "Logo entfernen",
+      "uploading": "Wird hochgeladen...",
+      "uploadLogo": "Logo hochladen",
+      "logoHint": "PNG, JPG, WebP oder SVG. Für Ihre E-Mails erstellt SellQo automatisch eine zugeschnittene Version.",
+      "favicon": "Favicon",
+      "faviconAlt": "Vorschau Ihres Favicons",
+      "removeFavicon": "Favicon entfernen",
+      "uploadFavicon": "Favicon hochladen",
+      "faviconHint": "32x32 px oder 64x64 px, PNG oder ICO"
+    },
+    "emailLogo": {
+      "unreadableTitle": "Logo nicht lesbar",
+      "unreadableBody": "{{name}} konnte nicht geöffnet werden. Die Datei ist beschädigt oder kein gültiges Bild. Versuchen Sie PNG, JPG, WebP oder SVG.",
+      "variantFailedTitle": "E-Mail-Version nicht gespeichert",
+      "variantFailedBody": "Ihr Logo wurde hochgeladen, aber die Version für Ihre E-Mails konnte nicht gespeichert werden. Ihre E-Mails zeigen vorerst das Originallogo. Laden Sie das Logo erneut hoch, um es noch einmal zu versuchen.",
+      "previewTitle": "So erscheint Ihr Logo oben in Ihren E-Mails",
+      "previewLight": "Heller Modus",
+      "previewDark": "Dunkler Modus",
+      "variantInfo": "E-Mail-Version: {{width}} × {{height}} px, {{kb}} KB. Leere Ränder wurden entfernt.",
+      "themeLogoWins": "Ihre E-Mails verwenden das Logo, das Sie unter Branding festgelegt haben. Dieses Logo erscheint erst in Ihren E-Mails, wenn Sie jenes Logo entfernen.",
+      "blurryWarning": "Dieses Logo ist weniger als {{height}} Pixel hoch und wirkt in Ihren E-Mails möglicherweise unscharf. Laden Sie nach Möglichkeit eine größere Version oder ein SVG hoch.",
+      "noLogoName": "Ohne Logo steht der Name Ihres Shops oben in Ihren E-Mails."
     }
   },
   "languages": {

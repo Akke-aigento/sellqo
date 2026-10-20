@@ -316,7 +316,7 @@
     "business": {
       "subtitle": "Manage your store and company information",
       "requiredFieldsAlert": "Complete all required fields to meet the legal requirements.",
-      "logoHint": "Recommended: 200x200px, PNG or JPG. This logo appears on all emails to customers.",
+      "logoHint": "PNG, JPG, WebP or SVG. Your emails show this logo if you haven't set another logo under Branding.",
       "logoErrorTitle": "Error saving logo",
       "logoSavedTitle": "Logo uploaded",
       "logoSavedBody": "Your company logo has been updated.",
@@ -351,7 +351,8 @@
       "phone": "Phone number",
       "currency": "Currency",
       "bankDetails": "Bank details",
-      "ibanPlaceholder": "NL91 ABNA 0417 1643 00"
+      "ibanPlaceholder": "NL91 ABNA 0417 1643 00",
+      "uploadLogo": "Upload logo"
     },
     "branding": {
       "subtitle": "Logo, favicon and primary colour — used in your webshop, emails and invoices",
@@ -1232,6 +1233,33 @@
         "keep": "No, another device",
         "remove": "Yes, turn off web notifications"
       }
+    },
+    "logoUpload": {
+      "logo": "Logo",
+      "logoAlt": "Preview of your logo",
+      "noLogo": "No logo",
+      "removeLogo": "Remove logo",
+      "uploading": "Uploading...",
+      "uploadLogo": "Upload logo",
+      "logoHint": "PNG, JPG, WebP or SVG. SellQo automatically makes a trimmed version for your emails.",
+      "favicon": "Favicon",
+      "faviconAlt": "Preview of your favicon",
+      "removeFavicon": "Remove favicon",
+      "uploadFavicon": "Upload favicon",
+      "faviconHint": "32x32px or 64x64px, PNG or ICO"
+    },
+    "emailLogo": {
+      "unreadableTitle": "Logo can't be read",
+      "unreadableBody": "{{name}} could not be opened. The file is damaged or not a valid image. Try a PNG, JPG, WebP or SVG.",
+      "variantFailedTitle": "Email version not saved",
+      "variantFailedBody": "Your logo was uploaded, but the version for your emails could not be saved. Your emails show the original logo for now. Upload the logo again to retry.",
+      "previewTitle": "This is how your logo appears at the top of your emails",
+      "previewLight": "Light mode",
+      "previewDark": "Dark mode",
+      "variantInfo": "Email version: {{width}} × {{height}} px, {{kb}} KB. Empty edges have been trimmed.",
+      "themeLogoWins": "Your emails use the logo you set under Branding. This logo only appears in your emails if you remove that logo.",
+      "blurryWarning": "This logo is less than {{height}} pixels high and may look blurry in your emails. If you can, upload a larger version or an SVG.",
+      "noLogoName": "Without a logo, your shop name appears at the top of your emails."
     }
   },
   "languages": {

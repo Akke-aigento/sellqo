@@ -67,6 +67,7 @@ export function BrandingSettings() {
         <CardContent className="space-y-8">
           <BrandingUploader
             logoUrl={form.logo_url}
+            primaryColor={form.primary_color}
             faviconUrl={form.favicon_url}
             onLogoChange={(url) => setForm((p) => ({ ...p, logo_url: url }))}
             onFaviconChange={(url) => setForm((p) => ({ ...p, favicon_url: url }))}

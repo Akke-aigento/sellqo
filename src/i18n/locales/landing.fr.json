@@ -2123,6 +2123,10 @@
         "email_cart_restore": {
           "title": "Panier abandonné : le bouton rouvre le panier",
           "description": "Si votre boutique tourne sur la boutique en ligne SellQo, le bouton du rappel de panier abandonné ouvre désormais un panier avec les mêmes produits, au lieu de votre page d'accueil. Le lien est valable 7 jours. Votre client voit le prix et le stock du moment et saisit à nouveau ses coordonnées : une personne qui reçoit l'e-mail transféré ne voit donc jamais l'adresse ou le numéro de téléphone de votre client. Les billets avec une place attribuée, les produits avec suppléments, les cartes cadeaux et les produits épuisés ne sont pas repris ; votre client voit lesquels et pourquoi. S'il a déjà un autre panier rempli, il choisit lui-même celui qu'il garde. Un panier récupéré de cette façon ne reçoit pas de second rappel. Si vous avez votre propre boutique en ligne en dehors du thème SellQo, le bouton continue de mener à votre boutique."
+        },
+        "email_logo_header": {
+          "title": "Votre logo dans vos e-mails : net, recadré et relié à votre boutique",
+          "description": "Quand vous téléversez votre logo, SellQo crée automatiquement une version pour les e-mails : les bords vides et blancs sont recadrés, la taille est adaptée à l'en-tête de vos e-mails et le fichier reste léger. Pendant le téléversement, vous voyez tout de suite votre logo en haut de vos e-mails, en mode clair et en mode sombre, et vous êtes averti s'il est trop petit et risque d'être flou. Sans logo, le nom de votre boutique apparaît en texte, au lieu du logo SellQo. Le logo ou le nom renvoie vers votre propre boutique. Votre logo actuel continue de fonctionner ; vous obtenez la version recadrée en le téléversant à nouveau."
         }
       },
       "copyLink": "Copier le lien",

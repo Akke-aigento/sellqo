@@ -7,6 +7,7 @@ import { DEFAULT_LANG, isLangCode, type LangCode } from '@/i18n/languages';
 export interface TenantBrandInfo {
   tenantId: string;
   tenantName: string;
+  /** MAIL-LOGO-1: logo zoals de mail het toont (e-mailvariant of origineel); '' zonder logo — nooit het SellQo-logo. */
   logoUrl: string;
   primaryColor: string;
   accentColor: string;
@@ -17,7 +18,6 @@ export interface TenantBrandInfo {
 const HEX_RE = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
 const URL_RE = /^https?:\/\//i;
 
-const FALLBACK_LOGO = 'https://sellqo.app/lovable-uploads/sellqo-logo.png';
 const FALLBACK_PRIMARY = '#0F766E';
 const FALLBACK_ACCENT = '#14B8A6';
 
@@ -45,7 +45,7 @@ export function useTenantBrand() {
       const [{ data: tenantRow }, { data: themeRow }] = await Promise.all([
         supabase
           .from('tenants')
-          .select('id, name, primary_color, logo_url, language')
+          .select('id, name, primary_color, logo_url, language, email_logo_url, email_logo_source_url')
           .eq('id', tenantId)
           .maybeSingle(),
         supabase
@@ -57,11 +57,16 @@ export function useTenantBrand() {
 
       const t: any = tenantRow || {};
       const th: any = themeRow || {};
+      // Spiegel van pickEmailLogo (tenantEmail.ts): de variant enkel als ze bij het huidige logo hoort.
+      const rawLogo = String(th.logo_url || t.logo_url || '').trim();
+      const ownLogo = url(rawLogo, '');
+      const variant = url(t.email_logo_url, '');
+      const mailLogo = ownLogo && variant && String(t.email_logo_source_url || '').trim() === rawLogo ? variant : ownLogo;
 
       return {
         tenantId,
         tenantName: (t.name && String(t.name).trim()) || 'SellQo',
-        logoUrl: url(th.logo_url || t.logo_url, FALLBACK_LOGO),
+        logoUrl: mailLogo,
         primaryColor: color(th.primary_color || t.primary_color, FALLBACK_PRIMARY),
         accentColor: color(th.accent_color || th.brand_color || th.primary_color || t.primary_color, FALLBACK_ACCENT),
         headingFont: (typeof th.heading_font === 'string' && th.heading_font) || 'Inter',

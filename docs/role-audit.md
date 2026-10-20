@@ -1,3 +1,42 @@
+## MAIL-LOGO-1 — Logo in de mailkop: e-mailvariant, winkelnaam i.p.v. SellQo-logo, link naar de echte winkel — 20 oktober 2026
+
+Go van Akke 20-10 09:35. Branch `mail-logo-1` (worktree), niet gepusht.
+
+**Root cause**
+- `_shared/tenantEmail.ts` `getTenantBrand` (r. 177 vóór deze batch): `logoUrl: sanitizeUrl(th.logo_url || t.logo_url, LOGO_URL)`. Een winkel zonder logo kreeg het SellQo-logo in elke mail aan haar klanten (transactioneel én marketing, één kop voor alle tenantmails).
+- Dezelfde kop (r. 432-440): `href = b.websiteUrl || "https://sellqo.app"`. `websiteUrl` kwam enkel uit `tenants.custom_domain`; elke winkel zonder dat veld (live 20-10: alle behalve VanXcel) linkte naar sellqo.app.
+- `_shared/mailPages.ts` `resolveShopUrl` viel voor custom frontends terug op `<slug>.sellqo.shop`, waar ze niet draaien (Loveke → loveke.sellqo.shop, Astra Sleep, Benny Rich, Mancini, Zona Dorata idem). Een kolom `website_url` bestaat niet op tenants (zie ook send-gift-card-email r. 82); de enige plek waar SellQo de site van een custom frontend kent is `product_url_template`.
+- Logo's gingen ongewijzigd de mail in: live 20-10 PNG's van 76 KB (VanXcel) tot 839 KB (Demo Bakkerij), Loveke 602 KB; SVG tonen Gmail/Outlook niet. De hints in de admin klopten niet: "Dit logo verschijnt op alle e-mails" stond bij het bedrijfslogo, terwijl het themalogo voorgaat.
+
+**Uitgevoerd**
+- `_shared/storefrontUrls.ts`: `shopHomeUrlFor` — eigen domein → geverifieerd canoniek domein → custom frontend: origin van `product_url_template` → SellQo-theme: `<slug>.sellqo.shop`; custom frontend zonder adres → null (G7).
+- `_shared/tenantEmail.ts`: `TenantBrand.logoUrl: string | null` (origineel, nooit SellQo-logo), nieuw `emailLogoUrl` (variant als `email_logo_source_url` = huidig logo, anders origineel) en `shopUrl`. `pickEmailLogo` (puur). E-mailkolommen in een aparte select: zonder migratie valt enkel de variant weg. Kop uitgelicht naar `renderTenantEmailHeader`: logo 44 px of winkelnaam (kopfont, primaire kleur als die ≥ 3:1 op wit haalt, anders #1a2332), link enkel als `shopUrl` bestaat. Facturatietenant (`slug = sellqo`): SellQo-logo en sellqo.app, zoals vroeger (platformmails ongewijzigd).
+- `_shared/mailPages.ts` `resolveShopUrl` → `brand.shopUrl ?? ""` (één bron voor kop en `{{shop_url}}`).
+- Callers (grep op `logoUrl`, `getTenantBrand`, dynamische imports): `campaignQueue.ts`, `render-campaign-preview`, `send-test-email` → `emailLogoUrl ?? undefined`; `newsletter-confirm` en `storefront-api` (welkomstmail, één regel) `{{LOGO_URL}}` → `emailLogoUrl ?? ""`; `payLink.ts` ongewijzigd (null → naam op de betaalpagina, facturatietenant houdt het logo); `src/test/customerMessageEmail.test.ts`-fixture aangevuld.
+- Admin: `src/lib/emailLogo.ts` (trim, maat, SVG-maat, canvas-pijplijn, hash), `src/hooks/useLogoUpload.ts` (variant vóór de upload; onleesbaar → weigeren; variant naar `tenant-logos/<tenant>/email-logo-<hash>.png` + `tenants.email_logo_url/_source_url`), `EmailLogoPreview.tsx` (licht/donker, maat, wazig-waarschuwing). Ingebouwd in `BrandingUploader` (Branding, Design-paneel, Storefront aanpassen; strings vertaald, aria-labels op de verwijderknoppen), `BusinessSettings`, onboarding `LogoUploadStep` (best effort). `useTenantBrand` (admin-voorbeeld) zonder SellQo-terugval. i18n in nl/en/fr/de/uk; `settings.business.logoHint` rechtgezet.
+- Migratie `20261020100000_mail_logo_email_variant.sql` (2 kolommen op tenants + alinea in helpartikel `emailcampagnes`). `types.ts` aangevuld.
+- Slottaken: changelog 2026.13b `email_logo_header` (5 talen), helpartikel, newsletter-wachtrij.
+
+**Security-keuzes**
+- Geen RLS, policy of grant gewijzigd. Schrijven: bestaande UPDATE-policy op tenants (tenant_admin of platformadmin) — dezelfde rol als `tenant_theme_settings_update_admin`. Storage: bestaande `tenant-logos_insert/update_own_tenant` (eerste map = tenant-id). `tenants_protect_platform_columns` raakt de nieuwe kolommen niet.
+- Logo-URL's met spatie, aanhalingsteken of `<>` worden geweigerd; winkelnaam en URL's ge-escaped (tests).
+
+**Gedeelde-paden-waarschuwing**
+- Niet op `tenant_theme_settings` (stroomt via `select('*')` naar de custom frontends). `storefront-api` `getConfig` mapt tenants per veld: de nieuwe kolommen lekken niet. In `storefront-api` enkel de `{{LOGO_URL}}`-regel van de welkomstmail (typefix); geen actie, parameter of antwoordsleutel gewijzigd. Wel herdeployen: de functie importeert tenantEmail.ts dynamisch.
+- Gedrag dat wijzigt voor custom frontends: hun mailkop linkt nu naar hun eigen site (Loveke → loveke.be) en `{{shop_url}}` in automations idem; Astra Sleep krijgt geen link meer i.p.v. een dode sellqo.shop-link.
+
+**Verificatie**
+- Deno: 15 nieuwe tests (`tenantEmailHeader.test.ts` 14, `storefrontUrls.test.ts` +1) groen; alle `_shared` + feed-tests 173/173. `deno check` op de 24 importerende functies: 14 fouten, identiek aan HEAD (stub-artefacten Stripe/serve), 0 nieuw.
+- `tsc` exit 0, `npm run build` exit 0, vitest 64 bestanden / 823 tests (o.a. 17 nieuwe in `src/lib/emailLogo.test.ts`), i18n-parity 5×8658, check-notification-sources 0, verify-edge-pins 0, lint per bestand zonder nieuwe fouten.
+- PGlite: migratie 2× gedraaid, zelfde uitkomst (kolommen nullable zonder default, alinea één keer).
+- Chromium (Playwright): pijplijn op een echt canvas — logo 1600×800 met witte rand → 578×176, 29 KB; WebP → 576×176; SVG enkel viewBox → 600×139; SVG zonder maat → 176×176; JPG 120×40 → niet vergroot, wazig = true; kapotte PNG en SVG → `EmailLogoError:unreadable`. Mails gerenderd met/zonder logo, licht/donker.
+
+**Bewust ongemoeid / Vervolg**
+- Geen backfill: `email_logo_url` blijft leeg voor bestaande winkels (Astra Sleep, Demo Bakkerij, Loveke, The Fonske Crawl, VanXcel); hun mails tonen het origineel tot een nieuwe upload. De sandbox bereikt Supabase Storage niet (403), afmetingen dus niet gemeten.
+- `storefront-api` `_newsletterShopUrl` (welkomstmail bij single opt-in) gebruikt nog de oude volgorde; niet aangeraakt (eerste wet).
+- Onboarding-scherm heeft nog hardcoded NL-tekst (bestaand, buiten scope).
+- De `{{tenant_logo}}`-variabele in sjablonen gebruikt nu de variant; `{{tenant_logo_url}}` is leeg zonder logo.
+
 ## MAIL-3 — Herstel-link verlaten winkelwagen — 20 oktober 2026
 
 Go van Akke 20-10 08:20 op `docs/voorstel-mail-cart-herstel.md`, alle aanbevelingen uit §5 (kopie, 7 dagen idempotent, zaalplan/extra's overslaan met reden, keuzescherm, herstelde mandjes niet opnieuw in de scan, custom frontends niets, `storefront-api` enkel een nieuwe actie). Changelog 2026.13a (`email_cart_restore`). Hoort bij MAIL-3 in sellqo-storefront (route `/winkelmandje/herstel`).

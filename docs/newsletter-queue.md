@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13b — Je logo in je mails: scherp, bijgesneden en met een link naar je webshop (improvement, 20-10-2026)
+
+**Status:** klaar voor verzending zodra MAIL-LOGO-1 live staat (migratie 20261020100000, de 23 edge functions uit de role-audit, frontend gepubliceerd) en een testmail op SellQo Speeltuin goed oogt. Liefst na de backfill van de bestaande logo's.
+
+**Voor wie:** alle winkels die mails naar klanten sturen.
+
+**Je logo bovenaan je mails** (oktober 2026)
+Upload je je logo, dan maakt SellQo er automatisch een versie voor e-mails van: lege en witte randen gaan eraf, het formaat is afgestemd op de kop van je mails en het bestand blijft licht. Je ziet bij het uploaden meteen hoe het eruitziet, in lichte en donkere modus, en je krijgt een waarschuwing als je logo te klein is. Heb je geen logo, dan staat de naam van je winkel er in tekst. Het logo of de naam linkt naar je eigen webshop.
+Wat betekent dit voor jou? Je klanten zien jouw merk bovenaan elke mail, nooit het logo van SellQo, en komen met één klik in je winkel.
+
+i18n: `public.changelog.changes.email_logo_header`
+
 ### 2026.13a — Herinnering bij een verlaten winkelwagen opent het winkelmandje opnieuw (feature, 20-10-2026)
 
 **Status:** klaar voor verzending zodra MAIL-3 live staat (migratie 20261020094000, edge functions storefront-api en automation-scheduler, deploy van sellqo-storefront) en de smoketest op SellQo Speeltuin groen is.

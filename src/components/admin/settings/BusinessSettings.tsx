@@ -10,7 +10,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
-import { useImageUpload } from '@/hooks/useImageUpload';
+import { useLogoUpload } from '@/hooks/useLogoUpload';
+import { EMAIL_LOGO_ACCEPT } from '@/lib/emailLogo';
+import { EmailLogoPreview } from '@/components/admin/settings/EmailLogoPreview';
 import { useInvoiceCompliance, validateIBAN, formatIBAN } from '@/hooks/useInvoiceCompliance';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -56,7 +58,8 @@ export function BusinessSettings() {
   const { t } = useTranslation();
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
-  const { uploadImage, uploading } = useImageUpload();
+  // MAIL-LOGO-1: uploadLogo maakt ook de e-mailvariant (tenants.email_logo_url).
+  const { uploadLogo, uploading, emailPreview } = useLogoUpload();
   const { isCompliant, errorCount } = useInvoiceCompliance();
   const [isSaving, setIsSaving] = useState(false);
   const [ibanError, setIbanError] = useState<string | null>(null);
@@ -66,7 +69,7 @@ export function BusinessSettings() {
     const file = event.target.files?.[0];
     if (!file || !currentTenant) return;
 
-    const url = await uploadImage(file, 'tenant-logos', `${currentTenant.id}/logo`);
+    const url = await uploadLogo(file, `${currentTenant.id}/logo`, 'tenant');
     
     if (url) {
       // Update tenant with new logo URL
@@ -241,7 +244,7 @@ export function BusinessSettings() {
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
+              accept={EMAIL_LOGO_ACCEPT}
               onChange={handleLogoUpload}
               className="hidden"
             />
@@ -256,10 +259,20 @@ export function BusinessSettings() {
               ) : (
                 <Upload className="h-4 w-4 mr-2" />
               )}
-              {uploading ? 'Uploaden...' : 'Logo uploaden'}
+              {uploading ? t('settings.logoUpload.uploading') : t('settings.business.uploadLogo')}
             </Button>
           </div>
         </div>
+        {emailPreview && (emailPreview.result === 'skipped_theme_logo' ? (
+          <p className="text-xs text-muted-foreground">{t('settings.emailLogo.themeLogoWins')}</p>
+        ) : (
+          <EmailLogoPreview
+            logoUrl={emailPreview.previewUrl}
+            shopName={currentTenant?.name || ''}
+            primaryColor={currentTenant?.primary_color}
+            variant={emailPreview}
+          />
+        ))}
 
         {/* Form fields */}
         <div className="grid gap-4 sm:grid-cols-2">

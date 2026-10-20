@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
       unsubscribeUrl,
       {
         tenantName: brand.tenantName,
-        logoUrl: brand.logoUrl,
+        logoUrl: brand.emailLogoUrl ?? undefined,
         primaryColor: brand.primaryColor,
         accentColor: brand.accentColor,
         headingFont: brand.headingFont,

@@ -344,7 +344,7 @@
     "business": {
       "subtitle": "Gérez les informations de votre boutique et de votre entreprise",
       "requiredFieldsAlert": "Remplissez tous les champs obligatoires pour respecter les exigences légales.",
-      "logoHint": "Recommandé : 200x200 px, PNG ou JPG. Ce logo apparaît sur tous les e-mails envoyés aux clients.",
+      "logoHint": "PNG, JPG, WebP ou SVG. Vos e-mails affichent ce logo si vous n'avez pas défini d'autre logo sous Branding.",
       "logoErrorTitle": "Erreur lors de l'enregistrement du logo",
       "logoSavedTitle": "Logo téléversé",
       "logoSavedBody": "Le logo de votre entreprise a été mis à jour.",
@@ -379,7 +379,8 @@
       "phone": "Numéro de téléphone",
       "currency": "Devise",
       "bankDetails": "Coordonnées bancaires",
-      "ibanPlaceholder": "NL91 ABNA 0417 1643 00"
+      "ibanPlaceholder": "NL91 ABNA 0417 1643 00",
+      "uploadLogo": "Téléverser le logo"
     },
     "branding": {
       "subtitle": "Logo, favicon et couleur principale — utilisés dans votre boutique, vos e-mails et vos factures",
@@ -1260,6 +1261,33 @@
         "keep": "Non, un autre appareil",
         "remove": "Oui, désactiver les notifications web"
       }
+    },
+    "logoUpload": {
+      "logo": "Logo",
+      "logoAlt": "Aperçu de votre logo",
+      "noLogo": "Aucun logo",
+      "removeLogo": "Supprimer le logo",
+      "uploading": "Téléversement...",
+      "uploadLogo": "Téléverser le logo",
+      "logoHint": "PNG, JPG, WebP ou SVG. SellQo crée automatiquement une version recadrée pour vos e-mails.",
+      "favicon": "Favicon",
+      "faviconAlt": "Aperçu de votre favicon",
+      "removeFavicon": "Supprimer le favicon",
+      "uploadFavicon": "Téléverser le favicon",
+      "faviconHint": "32x32 px ou 64x64 px, PNG ou ICO"
+    },
+    "emailLogo": {
+      "unreadableTitle": "Logo illisible",
+      "unreadableBody": "Impossible d'ouvrir {{name}}. Le fichier est endommagé ou n'est pas une image valide. Essayez un PNG, JPG, WebP ou SVG.",
+      "variantFailedTitle": "Version e-mail non enregistrée",
+      "variantFailedBody": "Votre logo a été téléversé, mais la version pour vos e-mails n'a pas pu être enregistrée. Vos e-mails affichent pour l'instant le logo d'origine. Téléversez à nouveau le logo pour réessayer.",
+      "previewTitle": "Voici votre logo en haut de vos e-mails",
+      "previewLight": "Mode clair",
+      "previewDark": "Mode sombre",
+      "variantInfo": "Version e-mail : {{width}} × {{height}} px, {{kb}} Ko. Les bords vides ont été recadrés.",
+      "themeLogoWins": "Vos e-mails utilisent le logo défini sous Branding. Ce logo n'apparaît dans vos e-mails que si vous supprimez celui-là.",
+      "blurryWarning": "Ce logo fait moins de {{height}} pixels de haut et risque d'être flou dans vos e-mails. Si possible, téléversez une version plus grande ou un SVG.",
+      "noLogoName": "Sans logo, le nom de votre boutique apparaît en haut de vos e-mails."
     }
   },
   "languages": {
