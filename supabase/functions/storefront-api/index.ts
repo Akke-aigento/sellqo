@@ -2501,6 +2501,100 @@ async function cartCreate(supabase: any, tenantId: string, params: Record<string
   return { cart_id: data.id };
 }
 
+// CART-PRICE-1 — actuele prijs per cart-regel, met dezelfde regels als cartAddItem/cartSetSeats:
+// variantprijs (anders productprijs), early bird bij tickets (per tickettype), plus de actuele
+// prijs van de gekozen extra's. De opgeslagen unit_price is de prijs bij het toevoegen; die
+// mag nooit meer bepalen wat de klant ziet of betaalt. Regels waarvan we de actuele prijs
+// niet kunnen bepalen (product weg, cadeaubon met eigen bedrag) houden de opgeslagen prijs.
+type LinePrice = { unit_price: number; addons: unknown[] | null; addons_total: number };
+async function currentCartLinePrices(supabase: SupabaseLike, tenantId: string, items: DbRow[]): Promise<Map<string, LinePrice>> {
+  const out = new Map<string, LinePrice>();
+  if (!items.length) return out;
+
+  // Tickets: events, verkochte aantallen en early bird per tickettype in één keer.
+  const evIds = [...new Set(items.filter((i) => i.event_detail_id && !i.variant_id).map((i) => String(i.event_detail_id)))];
+  const events = new Map<string, DbRow>();
+  const soldBy = new Map<string, number>();
+  const typeEb = new Map<string, number | null>();
+  if (evIds.length) {
+    const { data: evs } = await supabase.from('event_details')
+      .select('id, product_id, early_bird_price, early_bird_deadline, early_bird_quantity')
+      .eq('tenant_id', tenantId).in('id', evIds);
+    for (const e of (evs || []) as DbRow[]) events.set(String(e.id), e);
+    const { data: types } = await supabase.from('event_ticket_types')
+      .select('event_detail_id, product_id, early_bird_price').eq('tenant_id', tenantId).in('event_detail_id', evIds);
+    for (const t of (types || []) as DbRow[]) typeEb.set(`${t.event_detail_id}|${t.product_id}`, t.early_bird_price ?? null);
+    for (const id of evIds) {
+      const { data: cnt } = await supabase.rpc('get_event_signup_count', { p_event_detail_id: id });
+      soldBy.set(id, typeof cnt === 'number' ? cnt : 0);
+    }
+  }
+
+  // Extra's: actuele optieprijzen; een optie die niet meer bestaat houdt haar opgeslagen prijs.
+  const optionIds = [...new Set(items.flatMap((i) => (Array.isArray(i.addons) ? i.addons : [])
+    .map((a: DbRow) => a?.option_id).filter(Boolean).map(String)))];
+  const optionPrice = new Map<string, number>();
+  if (optionIds.length) {
+    const { data: opts } = await supabase.from('product_addon_options')
+      .select('id, price').eq('tenant_id', tenantId).eq('is_active', true).in('id', optionIds);
+    for (const o of (opts || []) as DbRow[]) optionPrice.set(String(o.id), Number(o.price) || 0);
+  }
+
+  const now = new Date();
+  for (const item of items) {
+    if (item.gift_card_metadata) continue;
+    const product = Array.isArray(item.products) ? item.products[0] : item.products;
+    if (!product || product.price == null) continue;
+    const variantRow = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
+    let base = Number(product.price);
+    if (item.variant_id) {
+      if (variantRow?.price != null) base = Number(variantRow.price);
+    } else if (item.event_detail_id) {
+      const ev = events.get(String(item.event_detail_id));
+      if (ev) {
+        const eb = ev.product_id && ev.product_id !== item.product_id ? (typeEb.get(`${ev.id}|${item.product_id}`) ?? null) : null;
+        base = resolveEventPrice(earlyBirdForType(ev as EarlyBirdEvent & { product_id?: string | null }, item.product_id, eb), Number(product.price) || 0, soldBy.get(String(ev.id)) ?? 0, now).price;
+      }
+    }
+    let addons: unknown[] | null = Array.isArray(item.addons) && item.addons.length ? item.addons : null;
+    let addonsTotal = Number(item.addons_total) || 0;
+    if (addons) {
+      addons = addons.map((a) => {
+        const row = a as DbRow;
+        const id = row?.option_id ? String(row.option_id) : null;
+        return id && optionPrice.has(id) ? { ...row, price: optionPrice.get(id) } : row;
+      });
+      addonsTotal = promoRound2(addons.reduce((s: number, a) => s + (Number((a as DbRow)?.price) || 0), 0));
+    }
+    out.set(String(item.id), { unit_price: promoRound2(base + addonsTotal), addons, addons_total: addonsTotal });
+  }
+  return out;
+}
+
+/** CART-PRICE-1 — prijs + additieve vlag voor een cart-regel (price_changed/previous_unit_price). */
+function priceLine(item: DbRow, prices: Map<string, LinePrice>) {
+  const stored = Number(item.unit_price) || 0;
+  const storedAddons = Array.isArray(item.addons) && item.addons.length ? item.addons : null;
+  const cur = prices.get(String(item.id));
+  if (!cur) return { unit_price: stored, addons: storedAddons, addons_total: Number(item.addons_total) || 0, flag: {} };
+  const changed = Math.abs(cur.unit_price - stored) >= 0.005;
+  return { unit_price: cur.unit_price, addons: cur.addons, addons_total: cur.addons_total, flag: changed ? { price_changed: true, previous_unit_price: stored } : {} };
+}
+
+/** CART-PRICE-1 — vlak vóór de betaling de actuele prijzen op de cart-regels vastleggen, zodat
+ *  checkout_verify_payment en stripe-connect-webhook (die unit_price rechtstreeks lezen) de
+ *  order aanmaken tegen exact het bedrag dat de betaling vroeg. Alleen hier geschreven, niet
+ *  bij elke cart_get: zo blijft price_changed zichtbaar tot de klant afrekent. */
+async function persistCartLinePrices(supabase: SupabaseLike, items: DbRow[]) {
+  for (const it of items) {
+    if (!it.price_changed) continue;
+    const patch: DbRow = { unit_price: it.unit_price };
+    if (Array.isArray(it.addons) && it.addons.length) { patch.addons = it.addons; patch.addons_total = it.addons_total; }
+    const { error } = await supabase.from('storefront_cart_items').update(patch).eq('id', it.id);
+    if (error) throw error;
+  }
+}
+
 async function cartGet(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   const sessionId = params.session_id as string;
@@ -2516,8 +2610,10 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, track_inventory, stock, product_type, token_amount), product_variants(price, compare_at_price)')
+    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, gift_card_metadata, products(id, name, slug, images, price, track_inventory, stock, product_type, token_amount), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
+  // CART-PRICE-1 — actuele prijs, niet de prijs van bij het toevoegen.
+  const prices = await currentCartLinePrices(supabase, tenantId, (items || []) as DbRow[]);
   const evLabels = await eventLabels(supabase, tenantId, (items || []).map((i: DbRow) => i.event_detail_id as string | null));
   const heldSeats = await cartHeldSeats(supabase, cart.id, (items || []).some((i: DbRow) => i.event_detail_id));
 
@@ -2532,8 +2628,9 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
   const cartItems = (items || []).map((item: any) => {
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
     const variantRow = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
-    // FOOD-1: unit_price bevat de extra's al; bij een variant komt de actuele variantprijs + extra's.
-    const effectivePrice = variantRow?.price != null ? Number(variantRow.price) + (Number(item.addons_total) || 0) : item.unit_price;
+    // CART-PRICE-1: actuele (variant)prijs + early bird + extra's, zelfde regels als cartAddItem.
+    const priced = priceLine(item, prices);
+    const effectivePrice = priced.unit_price;
     const compareAt = variantRow?.compare_at_price ?? null;
     return {
       id: item.id, product_id: item.product_id, variant_id: item.variant_id || null,
@@ -2541,13 +2638,15 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
       compare_at_price: compareAt,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, current_price: item.products.price, in_stock: !item.products.track_inventory || item.products.stock > 0 } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
-      ...(Array.isArray(item.addons) && item.addons.length ? { addons: item.addons } : {}),
+      ...(priced.addons ? { addons: priced.addons } : {}),
       ...(item.event_detail_id && evLabels.has(item.event_detail_id) ? { event: evLabels.get(item.event_detail_id) } : {}),
       ...(item.event_detail_id && heldSeats.has(`${item.event_detail_id}|${item.product_id}`) ? heldSeats.get(`${item.event_detail_id}|${item.product_id}`) : {}),
       // FEST-1/2 — tickets, combitickets en munten komen per mail: geen verzending nodig.
       ...(item.products && (item.products.product_type === 'ticket' || item.products.token_amount) ? { email_delivery: true } : {}),
       ...(item.products?.token_amount ? { token_amount: Number(item.products.token_amount) * item.quantity } : {}),
       line_total: item.quantity * effectivePrice,
+      // CART-PRICE-1 — additief, alleen als de prijs sinds het toevoegen veranderde.
+      ...priced.flag,
     };
   });
 
@@ -3153,8 +3252,10 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
 
   const { data: items } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, products(id, name, slug, images, price, sku, track_inventory, stock, category_id, channels, sold_out_until), product_variants(price, compare_at_price)')
+    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, addons_total, gift_card_metadata, products(id, name, slug, images, price, sku, track_inventory, stock, category_id, channels, sold_out_until), product_variants(price, compare_at_price)')
     .eq('cart_id', cart.id);
+  // CART-PRICE-1 — de betaling rekent met de actuele prijs, nooit met de prijs van bij het toevoegen.
+  const prices = await currentCartLinePrices(supabase, tenantId, (items || []) as DbRow[]);
 
   const variantIds = (items || []).filter((i: any) => i.variant_id).map((i: any) => i.variant_id);
   let variantMap: Record<string, any> = {};
@@ -3166,7 +3267,8 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
   const cartItems = (items || []).map((item: any) => {
     const variant = item.variant_id ? variantMap[item.variant_id] : null;
     const variantRow = Array.isArray(item.product_variants) ? item.product_variants[0] : item.product_variants;
-    const effectivePrice = variantRow?.price != null ? Number(variantRow.price) + (Number(item.addons_total) || 0) : item.unit_price;
+    const priced = priceLine(item, prices);
+    const effectivePrice = priced.unit_price;
     const compareAt = variantRow?.compare_at_price ?? null;
     // Variant-aware stock check: if variant_id present, variant.stock is authoritative;
     // otherwise fall back to product.stock. Respect track_inventory at the correct level.
@@ -3186,8 +3288,10 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
       compare_at_price: compareAt,
       product: item.products ? { name: item.products.name, slug: item.products.slug, image: variant?.image_url || item.products.images?.[0] || null, sku: variant?.sku || item.products.sku || null, current_price: item.products.price, in_stock, category_id: item.products.category_id, channels: item.products.channels ?? null, sold_out_today: soldOutToday } : null,
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
-      addons: Array.isArray(item.addons) && item.addons.length ? item.addons : null,
+      addons: priced.addons,
+      addons_total: priced.addons_total,
       line_total: item.quantity * effectivePrice,
+      ...priced.flag,
     };
   });
 
@@ -3309,6 +3413,8 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
     ...(item.event_detail_id && evLabels.has(item.event_detail_id) ? { event: evLabels.get(item.event_detail_id) } : {}),
     ...(item.email_delivery ? { email_delivery: true } : {}),
     ...(item.token_amount ? { token_amount: item.token_amount } : {}),
+    // CART-PRICE-1 — additief: prijs veranderde sinds het toevoegen.
+    ...(item.price_changed ? { price_changed: true, previous_unit_price: item.previous_unit_price } : {}),
   }));
 
   // B2B-2b — bij verlegging tonen we netto bedragen (btw uit de prijs gehaald).
@@ -3327,6 +3433,7 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
         ...it,
         unit_price: netFromGross(Number(it.unit_price) || 0, vat_rate),
         line_total: netFromGross(Number(it.line_total) || 0, vat_rate),
+        ...(it.price_changed ? { previous_unit_price: netFromGross(Number(it.previous_unit_price) || 0, vat_rate) } : {}),
       };
     });
     displaySubtotal = Math.round(items.reduce((s: number, i: any) => s + i.line_total, 0) * 100) / 100;
@@ -4127,6 +4234,11 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   // FOOD-1 — afhalen/leveren: leverzone, minimumbedrag en tijdslot nog eens controleren.
   const fulfillmentError = await validateCartFulfillment(supabase, tenantId, cart);
   if (fulfillmentError) return { success: false, error: fulfillmentError };
+
+  // CART-PRICE-1 — de actuele prijzen (waarmee hieronder Stripe, overschrijving, QR en de
+  // gratis tak rekenen) op de cart-regels vastleggen. checkout_verify_payment en
+  // stripe-connect-webhook maken de order uit de opgeslagen unit_price.
+  await persistCartLinePrices(supabase, cart.cartItems as DbRow[]);
 
   // Save payment method on cart
   // FOOD-2 — optionele opmerking van de klant, bewaard op de cart zodat ook de

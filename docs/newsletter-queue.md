@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13g — Mandje en betaling volgen altijd je actuele prijs (bugfix, 20-10-2026)
+
+**Status:** klaar voor verzending zodra CART-PRICE-1 live staat (edge function storefront-api).
+
+**Voor wie:** alle winkels, ook met een eigen webshop.
+
+**Je actuele prijs geldt, ook in een mandje van gisteren** (oktober 2026)
+Wijzig je een prijs terwijl een klant het product al in zijn mandje heeft, dan rekenden mandje en afrekenen tot nu toe soms nog met de oude prijs. Dat gold voor producten zonder variant, varianten zonder eigen prijs, early-birdtickets na afloop van de early bird en de prijs van extra's. Nu tonen mandje en betaling altijd de prijs die op dat moment in je winkel geldt, en betaalt de klant exact dat bedrag.
+Wat betekent dit voor jou? Een prijsverhoging of een afgelopen early bird kost je geen omzet meer, en een klant betaalt na een prijsverlaging nooit te veel. Heb je een eigen webshop, dan kan die met de velden price_changed en previous_unit_price tonen dat een prijs veranderde.
+
+i18n: `public.changelog.changes.cart_current_price`
+
 ### 2026.13e — PDF's lukken nu ook met emoji en Cyrillische namen (bugfix, 20-10-2026)
 
 **Status:** klaar voor verzending zodra PDF-EMOJI-1 live staat (edge functions generate-invoice, generate-credit-note, generate-payment-request-pdf, generate-subscription-invoice-pdf, export-vat-pdf; frontend gepubliceerd voor de pakbon).

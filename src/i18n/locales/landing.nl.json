@@ -2143,7 +2143,7 @@
         "pdf_special_characters": {
           "title": "PDF's lukken nu ook met emoji en Cyrillische namen",
           "description": "Bevatte een productnaam, klantnaam of adres een emoji of een teken buiten het Westerse alfabet, dan mislukte de PDF van je factuur, creditnota, betalingsverzoek, btw-export of pakbon. Dat gebeurt niet meer: emoji worden weggelaten, Cyrillische tekst (zoals Oekraïense namen) wordt in Latijnse letters geschreven en tekens die het lettertype niet kent (bijvoorbeeld Chinees) verschijnen als vraagteken. In je winkel en je e-mails blijft alles ongewijzigd."
-      },
+        },
         "inbox_mobile_list": {
           "title": "Inbox op je telefoon: hele lijst en gesprek in beeld",
           "description": "Op een smal scherm vielen de onderste gesprekken van je inbox buiten beeld en werd de tijd rechts afgeknipt. De lijst past nu op je scherm en scrolt tot het laatste gesprek. Een open gesprek gebruikt de volledige hoogte, met de terugpijl bovenaan, en in de browser schuift je antwoordvak mee boven het toetsenbord."
@@ -2151,6 +2151,10 @@
         "product_view_readonly": {
           "title": "Producten bekijken zonder schrijfrechten",
           "description": "Wie producten alleen mag bekijken (bijvoorbeeld de rol Lezer, Boekhouder of Magazijn), of een winkel in leesmodus, werd bij het openen van een product doorgestuurd naar een pagina zonder toegang. Je opent het product nu gewoon: alle gegevens staan er, de velden zijn uitgeschakeld en er zijn geen knoppen om op te slaan, te uploaden of te verwijderen. In de productlijst heet de menu-optie dan Bekijken."
+        },
+        "cart_current_price": {
+          "title": "Mandje en betaling volgen altijd je actuele prijs",
+          "description": "Wijzig je een prijs terwijl een klant het product al in zijn mandje heeft, dan rekenden mandje en afrekenen tot nu toe soms nog met de oude prijs. Dat gold voor producten zonder variant, voor varianten zonder eigen prijs, voor early-birdtickets na afloop van de early bird en voor de prijs van extra's. Nu tonen mandje en betaling altijd de prijs die op dat moment in je winkel geldt, en betaalt de klant exact dat bedrag. Heeft je winkel een eigen webshop, dan krijgt elke regel waarvan de prijs veranderde de extra velden price_changed en previous_unit_price, zodat je de klant kunt tonen dat de prijs is aangepast."
         }
       },
       "copyLink": "Kopieer link",

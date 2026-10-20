@@ -2143,7 +2143,7 @@
         "pdf_special_characters": {
           "title": "PDFs funktionieren jetzt auch mit Emojis und kyrillischen Namen",
           "description": "Enthielt ein Produktname, Kundenname oder eine Adresse ein Emoji oder ein Zeichen außerhalb des lateinischen Alphabets, schlug das PDF Ihrer Rechnung, Gutschrift, Zahlungsaufforderung, MwSt.-Export oder Ihres Lieferscheins fehl. Das passiert nicht mehr: Emojis werden weggelassen, kyrillischer Text (etwa ukrainische Namen) wird in lateinischen Buchstaben geschrieben, und Zeichen, die die Schrift nicht kennt (zum Beispiel Chinesisch), erscheinen als Fragezeichen. In Ihrem Shop und Ihren E-Mails bleibt alles unverändert."
-      },
+        },
         "inbox_mobile_list": {
           "title": "Posteingang auf dem Handy: ganze Liste und Gespräch im Blick",
           "description": "Auf einem schmalen Bildschirm fielen die unteren Gespräche Ihres Posteingangs aus dem Bild, und die Uhrzeit rechts wurde abgeschnitten. Die Liste passt jetzt auf Ihren Bildschirm und scrollt bis zum letzten Gespräch. Ein geöffnetes Gespräch nutzt die volle Höhe, mit dem Zurück-Pfeil oben, und im Browser rückt Ihr Antwortfeld über die Tastatur."
@@ -2151,6 +2151,10 @@
         "product_view_readonly": {
           "title": "Produkte ansehen ohne Schreibrechte",
           "description": "Wer Produkte nur ansehen darf (zum Beispiel mit der Rolle Betrachter, Buchhalter oder Lager), oder ein Shop im Lesemodus, wurde beim Öffnen eines Produkts auf eine Seite ohne Zugriff umgeleitet. Sie öffnen das Produkt jetzt einfach: Alle Daten sind da, die Felder sind deaktiviert, und es gibt keine Schaltflächen zum Speichern, Hochladen oder Löschen. In der Produktliste heißt die Menüoption dann Ansehen."
+        },
+        "cart_current_price": {
+          "title": "Warenkorb und Zahlung folgen immer Ihrem aktuellen Preis",
+          "description": "Haben Sie einen Preis geändert, während ein Kunde das Produkt schon im Warenkorb hatte, rechneten Warenkorb und Kasse bisher manchmal noch mit dem alten Preis. Das galt für Produkte ohne Variante, für Varianten ohne eigenen Preis, für Early-Bird-Tickets nach Ende des Early Birds und für den Preis von Extras. Jetzt zeigen Warenkorb und Zahlung immer den Preis, der in diesem Moment in Ihrem Shop gilt, und der Kunde zahlt genau diesen Betrag. Hat Ihr Shop ein eigenes Frontend, erhält jede Zeile, deren Preis sich geändert hat, die zusätzlichen Felder price_changed und previous_unit_price, damit Sie dem Kunden zeigen können, dass der Preis angepasst wurde."
         }
       },
       "copyLink": "Link kopieren",

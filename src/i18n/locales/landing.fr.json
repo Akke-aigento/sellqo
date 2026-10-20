@@ -2143,7 +2143,7 @@
         "pdf_special_characters": {
           "title": "Les PDF fonctionnent désormais avec des emoji et des noms cyrilliques",
           "description": "Si un nom de produit, un nom de client ou une adresse contenait un emoji ou un caractère hors de l'alphabet latin, le PDF de votre facture, note de crédit, demande de paiement, export TVA ou bon de livraison échouait. Ce n'est plus le cas : les emoji sont omis, le texte cyrillique (comme les noms ukrainiens) est écrit en lettres latines et les caractères que la police ne connaît pas (par exemple le chinois) apparaissent sous forme de point d'interrogation. Votre boutique et vos e-mails restent inchangés."
-      },
+        },
         "inbox_mobile_list": {
           "title": "Boîte de réception sur votre téléphone : toute la liste et la conversation visibles",
           "description": "Sur un écran étroit, les dernières conversations de votre boîte de réception sortaient de l'écran et l'heure à droite était coupée. La liste tient désormais sur votre écran et défile jusqu'à la dernière conversation. Une conversation ouverte utilise toute la hauteur, avec la flèche de retour en haut, et dans le navigateur votre zone de réponse remonte au-dessus du clavier."
@@ -2151,6 +2151,10 @@
         "product_view_readonly": {
           "title": "Consulter les produits sans droits d'écriture",
           "description": "Si vous pouvez seulement consulter les produits (par exemple avec le rôle Lecteur, Comptable ou Entrepôt), ou si votre boutique est en mode lecture, l'ouverture d'un produit vous renvoyait vers une page sans accès. Vous ouvrez maintenant le produit normalement : toutes les données sont là, les champs sont désactivés et il n'y a aucun bouton pour enregistrer, téléverser ou supprimer. Dans la liste des produits, l'option du menu s'appelle alors Voir."
+        },
+        "cart_current_price": {
+          "title": "Le panier et le paiement suivent toujours votre prix actuel",
+          "description": "Si vous modifiiez un prix alors qu'un client avait déjà le produit dans son panier, le panier et le paiement utilisaient parfois encore l'ancien prix. C'était le cas pour les produits sans variante, les variantes sans prix propre, les billets early bird après la fin de l'early bird et le prix des suppléments. Désormais, le panier et le paiement affichent toujours le prix en vigueur dans votre boutique à ce moment-là, et le client paie exactement ce montant. Si votre boutique dispose de sa propre vitrine, chaque ligne dont le prix a changé reçoit les champs supplémentaires price_changed et previous_unit_price, pour que vous puissiez indiquer au client que le prix a été adapté."
         }
       },
       "copyLink": "Copier le lien",

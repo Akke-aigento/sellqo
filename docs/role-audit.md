@@ -1,3 +1,53 @@
+## CART-PRICE-1 — Mandje en betaling rekenen met de actuele prijs, niet met de prijs van bij het toevoegen — 20 oktober 2026
+
+Go van Akke 20-10 14:06 ("alles aanpakken"), vervolg op de MAIL-3-recon (`docs/voorstel-mail-cart-herstel.md`). Branch `fix-cart` op `origin/main` 05b4080, niet gepusht.
+
+**Root cause**
+- `storefront-api` `cartGet` en `getCartForCheckout` namen voor een regel zonder variant `storefront_cart_items.unit_price` over: de prijs op het moment van toevoegen. Alleen een variant mét eigen prijs werd herberekend. Gevolg: een prijswijziging, een afgelopen early bird of een duurdere extra kwam nooit in een bestaand mandje.
+- Al het geld loopt via `getCartForCheckout`: `checkout_complete` (en de legacy-wrappers `checkout_place_order`/`checkout_create_session`) bouwt daaruit de Stripe-regels (`unit_amount`), en `createOrderFromCart` (overschrijving, QR, betalen bij afhalen, gratis tak) de order. De oude prijs werd dus echt aangerekend.
+- `checkout_verify_payment` en `stripe-connect-webhook` (r. 328) maken de order na een Stripe-betaling uit de opgeslagen `unit_price`, niet uit wat Stripe vroeg. Bij een variant met gewijzigde prijs rekende Stripe al de nieuwe prijs, maar kreeg de order de oude: order en betaling verschilden.
+- Variant zonder eigen prijs (`product_variants.price` null): `cartAddItem` gebruikt de productprijs, `cartGet` de opgeslagen prijs.
+- Niet geraakt: `create-checkout-session` (cartloos, valideert zelf tegen `products.price`), admin/POS (gebruiken `storefront_cart_items` niet; enkel `useDuplicateEvent` verwijdert er rijen). Klantgroepprijzen (`customer_group_product_prices`) worden in de storefront nergens gebruikt.
+
+**Live (read-only, 20-10)**
+- Actieve, niet-omgezette carts (30 dagen): 11 regels. 1 regel met afwijkende prijs: VanXcel "500W Powerstation" in een cart in `checkout`, opgeslagen €299, nu €199 (klant zou €100 te veel betalen). 8 Fonske-ticketregels aan early bird €19 (gewoon €25, early bird tot 23-10 22:00): vanaf dan zou het mandje €19 blijven aanrekenen, met de fix €25.
+- Omgezette carts (180 dagen): 15, geen enkele ouder dan 1 dag bij het afrekenen. Een prijsgeschiedenis bestaat niet, maar met mandjes van minder dan een dag is een betaling aan een verouderde prijs onwaarschijnlijk; niet hard aan te tonen.
+
+**Uitgevoerd**
+- `supabase/functions/storefront-api/index.ts`:
+  - `currentCartLinePrices` (nieuw): per regel de actuele prijs met de regels van `cartAddItem`/`cartSetSeats`: variantprijs (anders productprijs), tickets via `resolveEventPrice(earlyBirdForType(...))` met `get_event_signup_count` en de early bird per tickettype, extra's met de actuele `product_addon_options.price` (optie weg = opgeslagen prijs). Cadeaubonregels (`gift_card_metadata`) en regels zonder product houden de opgeslagen prijs.
+  - `priceLine`: prijs + additieve vlag `price_changed: true`, `previous_unit_price` (enkel als het verschil ≥ €0,005).
+  - `cartGet` en `getCartForCheckout` gebruiken die prijzen (ook `addons` met actuele prijzen, `line_total`, subtotaal, promoties). `buildCartResponse` geeft de vlag door (bij btw-verlegging `previous_unit_price` netto).
+  - `persistCartLinePrices`: `checkout_complete` legt na de poorten en vóór elke betaaltak de actuele prijzen vast op `storefront_cart_items` (`unit_price`, bij extra's ook `addons`/`addons_total`). Zo lezen verify en webhook exact wat Stripe vroeg. `cart_get` schrijft niets: de vlag blijft zichtbaar tot de klant afrekent.
+- `scripts/promo-compare/smoke.ts` + `stubs/stripeCapture.ts` + `import_map.smoke.json` + `.github/workflows/ci.yml` (exportlijst): 4 nieuwe rooktests (zie Verificatie).
+- Slottaken: changelog 2026.13g (`cart_current_price`, bugfix) in nl/en/fr/de/uk; newsletter-queue item 2026.13g. `doc_articles`: n.v.t. (geen scherm of instelling; live geen helpartikel dat iets over mandjesprijzen belooft, SQL-check).
+
+**Security-keuzes**
+- Geen RLS/policy/grant/migratie. De prijs komt uitsluitend uit de databank (service role in de functie); de client kan nog steeds geen prijs meegeven. De enige nieuwe schrijfactie is een `update` van `unit_price`/`addons`/`addons_total` op de eigen cart-regels binnen `checkout_complete`, op een cart die al tenant-gescoped geladen is.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` bedient de zes custom frontends (Astra Sleep, Benny Rich, Loveke, Mancini Milano, VanXcel, Zona Dorata; live gecontroleerd), Fonske en de SellQo-theme. JSON-contract: geen sleutel hernoemd of weggehaald; enkel `price_changed`/`previous_unit_price` erbij, en alleen op regels waarvan de prijs veranderde. `unit_price`, `line_total`, `subtotal`, `total` hebben dezelfde sleutels en betekenis (nu actueel). Loveke (`src/integrations/sellqo/hooks.ts`) leest het mandje enkel van de server en rekent zelf geen prijzen.
+- G6/promo-compare: `computeCartTotals`, `promoValidator`, `computeCartPromotions` en `_shared/promotionEngine.ts` zijn byte-identiek; de vergelijkingstest (die de items met vooraf berekende prijzen voedt) geeft daarom per constructie 0 verschillen en is niet opnieuw gedraaid. Het enige bedoelde verschil per winkel is hierboven bij Live geteld (VanXcel 1 regel, Fonske 8 regels na 23-10).
+
+**Verificatie**
+- Rooktest storefront-api (lokaal met stubs): 29/29 groen, waarvan nieuw: prijs verhoogd → €25 met `previous_unit_price` 20; verlaagd → €15; variant ongewijzigd → geen vlag; variant zonder prijs → productprijs; extra €1 → €1,50; tickets: early bird verlopen → €25, lopend → €19, ander tickettype → €22; `checkout_complete` (Stripe-stub) vraagt [2500,1500,4000,3300,1150] cent en legt precies regels A,B,D,N vast. Op HEAD falen deze 4 tests (bewijs dat ze bijten).
+- `deno check` storefront-api: zelfde 1 stub-melding als HEAD (`req` any), geen nieuwe. `deno test` CI-lijst: 116 groen. verify-edge-pins groen. vitest 66 bestanden / 837 tests groen. i18n-parity volledig. Lint: storefront-api 245 → 245, smoke.ts 2 → 2. `tsc --noEmit -p tsconfig.app.json` exit 0; `npm run build` exit 0 (sitemap teruggezet).
+
+**Bewust ongemoeid / Vervolg**
+- `checkout_verify_payment` en `stripe-connect-webhook` lezen nog steeds de opgeslagen `unit_price` (nu juist, want vastgelegd bij de betaalstart). Zij nemen `addons` niet mee in `select` (verify) — bestaand, apart op te nemen.
+- Betaalt een klant een oude, nog open Stripe-sessie nadat hij in een tweede tab opnieuw `checkout_complete` deed, dan kloppen de vastgelegde prijzen met de laatste sessie. Randgeval, bestaand.
+- Bundelproducten met `bundle_pricing_model`: `cartAddItem` rekent `products.price`, de catalogus soms een berekende bundelprijs. Niet door deze batch veranderd; aparte recon.
+- Een extra die intussen gedeactiveerd is, blijft in het mandje aan de opgeslagen prijs (`cartAddItem` zou hem weigeren). Beschikbaarheid van extra's bij afrekenen is een aparte poort.
+- Custom frontends tonen `price_changed` nog niet; optioneel per frontend.
+
+**Samenhang**
+- Bestond al: prijsherberekening enkel voor varianten met eigen prijs (FOOD-1), early-bird-logica in `cartAddItem`/`seatProductPricing`, kortingsmotor die vlak vóór betaling herrekent (PROMO-ENGINE-1).
+- Aangepast: één functie (`currentCartLinePrices`) voor mandje én betaling; geen tweede prijsberekening erbij, `cartAddItem` blijft de bron van de regels (zelfde helpers).
+- Overgezet/opgeruimd: niets verhuisd; geen data gemigreerd (bestaande carts krijgen de actuele prijs bij de volgende `cart_get`, vastgelegd bij `checkout_complete`).
+- Bewust blijven staan: `create-checkout-session` (cartloos pad), admin/POS (delen de cart niet).
+
+**Deploy:** `storefront-api` (enige functie). `stripe-connect-webhook` is niet gewijzigd.
+
 ## UI-FIX-1 — inbox op mobiel en alleen-lezen productpagina — 20 oktober 2026
 
 Go van Akke 20-10 14:06. Gevonden door de Lovable-agent op 19-10 ("inbox mobile stuck", "read-only product page bounce"). Branch `fix-ui` op `origin/main` 05b4080, niet gepusht.

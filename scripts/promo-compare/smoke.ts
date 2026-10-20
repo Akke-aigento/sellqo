@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore, cartGet, getCartForCheckout, checkoutComplete };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -471,6 +471,90 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
   const again: Row = await restore(RT, errTok);
   assert(code(again) === 'OK' && again.cart_id !== half.id && again.restored === 1 && again.already_restored === false, `opnieuw na storing: ${JSON.stringify(again)}`);
 });
+
+// CART-PRICE-1 — mandje en betaling rekenen met de actuele prijs, niet met de prijs van bij
+// het toevoegen. Nep-databank met vooraf gejoinde regels (products/product_variants).
+{
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- testharnas: ongetypeerde rijen
+  type R = Record<string, any>;
+  const PT = 'tenant-price';
+  const prod = (id: string, price: number) => ({ id, tenant_id: PT, name: id, slug: id, images: [], price, sku: null, track_inventory: false, stock: 0, category_id: null, channels: null, sold_out_until: null, product_type: 'physical', token_amount: null, is_active: true });
+  const P: Record<string, R> = { pa: prod('pa', 25), pb: prod('pb', 15), pc: prod('pc', 30), pn: prod('pn', 33), pd: prod('pd', 10), pt: prod('pt', 25), pt2: prod('pt2', 30) };
+  const line = (id: string, cart: string, pid: string, unit: number, extra: R = {}) => ({
+    id, cart_id: cart, product_id: pid, variant_id: null, event_detail_id: null, quantity: 1, unit_price: unit,
+    addons: null, addons_total: null, gift_card_metadata: null, products: P[pid], product_variants: null, ...extra,
+  });
+  const past = '2020-01-01T00:00:00Z';
+  const soon = '2999-01-01T00:00:00Z';
+  const pdb = new FakeDb({
+    tenants: [{ id: PT, tax_percentage: 21, stripe_account_id: 'acct_test', currency: 'EUR', pass_transaction_fee_to_customer: false, country: 'BE' }],
+    storefront_carts: [
+      { id: 'pc1', tenant_id: PT, session_id: 'ps1', currency: 'EUR', discount_codes: [], expires_at: soon, checkout_status: 'checkout', customer_email: 'k@example.test', shipping_method_id: null, shipping_cost: 0 },
+      { id: 'pc2', tenant_id: PT, session_id: 'ps2', currency: 'EUR', discount_codes: [], expires_at: soon, checkout_status: 'shopping' },
+    ],
+    storefront_cart_items: [
+      line('A', 'pc1', 'pa', 20),                                   // prijs verhoogd na toevoegen
+      line('B', 'pc1', 'pb', 18),                                   // prijs verlaagd
+      line('C', 'pc1', 'pc', 40, { variant_id: 'vc', product_variants: { price: 40, compare_at_price: null } }), // variant ongewijzigd
+      line('N', 'pc1', 'pn', 30, { variant_id: 'vn', product_variants: { price: null, compare_at_price: null } }), // variant zonder eigen prijs
+      line('D', 'pc1', 'pd', 11, { addons: [{ group_id: 'g', group: 'Extra', option_id: 'oa', name: 'Kaas', price: 1 }], addons_total: 1, addon_key: 'oa' }),
+      line('T1', 'pc2', 'pt', 19, { event_detail_id: 'ev1' }),     // early bird verlopen
+      line('T2', 'pc2', 'pt', 19, { event_detail_id: 'ev2' }),     // early bird loopt nog
+      line('T3', 'pc2', 'pt2', 22, { event_detail_id: 'ev2' }),    // ander tickettype, eigen early bird
+    ],
+    product_variants: [
+      { id: 'vc', product_id: 'pc', tenant_id: PT, title: 'L', image_url: null, attribute_values: {}, price: 40, stock: 5, track_inventory: false, sku: null },
+      { id: 'vn', product_id: 'pn', tenant_id: PT, title: 'M', image_url: null, attribute_values: {}, price: null, stock: 5, track_inventory: false, sku: null },
+    ],
+    product_addon_options: [{ id: 'oa', group_id: 'g', tenant_id: PT, name: 'Kaas', price: 1.5, is_active: true }],
+    event_details: [
+      { id: 'ev1', tenant_id: PT, product_id: 'pt', early_bird_price: 19, early_bird_deadline: past, early_bird_quantity: null, venue_id: null, event_date: '2999-01-01' },
+      { id: 'ev2', tenant_id: PT, product_id: 'pt', early_bird_price: 19, early_bird_deadline: soon, early_bird_quantity: null, venue_id: null, event_date: '2999-01-01' },
+    ],
+    event_ticket_types: [{ event_detail_id: 'ev2', product_id: 'pt2', tenant_id: PT, early_bird_price: 22, is_active: true }],
+    event_seats: [], ticket_bundle_items: [], shipping_methods: [], fulfillment_settings: [], orders: [], customers: [],
+    product_categories: [], categories: [], volume_discounts: [], bogo_promotions: [], product_bundles: [], automatic_discounts: [],
+    discount_stacking_rules: [], discount_codes: [], customer_groups: [], vat_rates: [], tax_rates: [],
+  });
+  const byId = (items: R[]) => Object.fromEntries(items.map((i) => [i.id, i]));
+
+  await check('cart_get: actuele prijs + price_changed (CART-PRICE-1)', async () => {
+    const c: R = await S.cartGet(pdb, PT, { cart_id: 'pc1' });
+    const it = byId(c.items);
+    assert(it.A.unit_price === 25 && it.A.price_changed === true && it.A.previous_unit_price === 20, `verhoogd: ${JSON.stringify(it.A)}`);
+    assert(it.B.unit_price === 15 && it.B.previous_unit_price === 18, `verlaagd: ${JSON.stringify(it.B)}`);
+    assert(it.C.unit_price === 40 && !('price_changed' in it.C) && !('previous_unit_price' in it.C), `variant ongewijzigd: ${JSON.stringify(it.C)}`);
+    assert(it.N.unit_price === 33 && it.N.price_changed === true, `variant zonder prijs volgt product: ${JSON.stringify(it.N)}`);
+    assert(it.D.unit_price === 11.5 && it.D.addons[0].price === 1.5 && it.D.line_total === 11.5, `extra's: ${JSON.stringify(it.D)}`);
+    assert(c.subtotal === 124.5, `subtotaal ${c.subtotal}`);
+    assert(!pdb.writes.some((w: R) => w.table === 'storefront_cart_items'), 'cart_get schrijft geen prijzen');
+  });
+  await check('cart_get: tickets volgen de early-bird-regel (CART-PRICE-1)', async () => {
+    const it = byId(((await S.cartGet(pdb, PT, { cart_id: 'pc2' })) as R).items);
+    assert(it.T1.unit_price === 25 && it.T1.previous_unit_price === 19, `early bird verlopen: ${JSON.stringify(it.T1)}`);
+    assert(it.T2.unit_price === 19 && !it.T2.price_changed, `early bird loopt: ${JSON.stringify(it.T2)}`);
+    assert(it.T3.unit_price === 22 && !it.T3.price_changed, `tickettype-early-bird: ${JSON.stringify(it.T3)}`);
+  });
+  await check('getCartForCheckout rekent met de actuele prijs (CART-PRICE-1)', async () => {
+    const c: R = await S.getCartForCheckout(pdb, PT, 'pc1');
+    const it = byId(c.cartItems);
+    assert(c.subtotal === 124.5 && it.A.unit_price === 25 && it.B.unit_price === 15 && it.N.unit_price === 33, `checkout ${c.subtotal}`);
+  });
+  await check('checkout_complete: Stripe vraagt de nieuwe prijs, regels vastgelegd (CART-PRICE-1)', async () => {
+    pdb.writes.length = 0;
+    const sessions: R[] = ((globalThis as R).__stripeSessions ||= []);
+    sessions.length = 0;
+    const r: R = await S.checkoutComplete(pdb, PT, { cart_id: 'pc1', payment_method_id: 'bancontact', success_url: 'https://s.test/ok', cancel_url: 'https://s.test/x' });
+    assert(r.payment_type === 'redirect' && sessions.length === 1, `checkout ${JSON.stringify(r)}`);
+    const amounts = sessions[0].line_items.map((li: R) => li.price_data.unit_amount);
+    assert(JSON.stringify(amounts) === JSON.stringify([2500, 1500, 4000, 3300, 1150]), `Stripe-bedragen ${amounts}`);
+    const w = pdb.writes.filter((x: R) => x.table === 'storefront_cart_items' && x.patch);
+    const ids = w.map((x: R) => x.where.id).sort().join(',');
+    assert(ids === 'A,B,D,N', `vastgelegde regels ${ids}`);
+    const wd = w.find((x: R) => x.where.id === 'D');
+    assert(wd.patch.unit_price === 11.5 && wd.patch.addons_total === 1.5 && wd.patch.addons[0].price === 1.5, `extra's vastgelegd ${JSON.stringify(wd.patch)}`);
+  });
+}
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }
 console.log('Rooktest storefront-api groen.');
