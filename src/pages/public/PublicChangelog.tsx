@@ -17,6 +17,7 @@ const changelogEntries: Array<{
   { version: '2026.13f', dateKey: 'oct_2026', changes: [
     { id: 'inbox_mobile_list', type: 'bugfix' },
     { id: 'product_view_readonly', type: 'bugfix' },
+  ] },
   { version: '2026.13e', dateKey: 'oct_2026', changes: [
     { id: 'pdf_special_characters', type: 'bugfix' },
   ] },
