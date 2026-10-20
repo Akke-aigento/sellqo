@@ -229,3 +229,27 @@ Deze twee reflexen zijn standaard, niet optioneel. Ze bestaan omdat Akke niet ze
 
 **Skill-onderhoudsreflex.** Leren we een harde les (productie-bug die een patroon blootlegt, omzeilde valkuil, veranderde regel), of blijkt een skill/doc iets te beweren dat niet meer met de code klopt: meld ter plekke "dit hoort in skill X" of "skill X klopt niet meer" met een kant-en-klaar voorstel. Niet wachten op een audit. Akke hoeft nooit zelf aan skill-onderhoud te denken. Skills updaten nooit stilzwijgend automatisch — elke wijziging gaat via een expliciete go, want een foute skill draagt door in al het volgende werk. Leeft een skill op beide plekken (workspace + repo), werk dan beide bij; de repo is de bron.
 \n
+---
+
+## 8. Samenhang: elke wijziging past in het geheel
+
+Akke mag nooit zelf moeten struikelen over een oude instelling, een dubbele knop, een verouderde helptekst of een gemengde taal (les van 20 okt 2026, mailmodule). Bij elke nieuwe functie, wijziging, verhuis of opruiming:
+
+1. **Vóór het plan, een inventaris.** Wat raakt hetzelfde onderwerp al? Kijk naar zijbalk, routes, tabs, `?section=`/`?tab=`, instellingen, helpartikels (`doc_articles`, live), i18n, changelog, publieke site, mailtemplates, hooks/functies/cron en live gebruik per tenant. Zet het in het plan als tabel: plek | doet nu | wat verandert | voorstel.
+2. **Ontwerpregels.**
+   - Eén plek per taak; een tweede plek is enkel een link.
+   - Geen dubbelingen op één scherm.
+   - Een onderdeel van een module wordt een tab, geen nieuw zijbalk-item.
+   - Tabs bovenaan, deeplinkbaar.
+   - Eén bron per getal.
+   - Eén taal per scherm.
+   - Geen dode affordances.
+   - Elk scherm werkt op 390 en 1280 px.
+3. **Verhuizen.**
+   - Volgorde: nieuwe plek → bewijzen → gebruikers en data overzetten (snapshot vooraf, nagetrokken per tenant) → oude plek slopen.
+   - Oude links redirecten.
+   - Na afloop een sweep op alle verwijzingen naar de oude plek.
+4. **Vóór "klaar", de geheel-wandeling.** Loop het hele onderwerp door als gebruiker, met screenshots op 390/1280. Controleer dat de cijfers overal gelijk zijn en dat de helptekst klopt met wat je ziet.
+5. **Melden.** Het verslag heeft altijd een sectie **Samenhang**: wat bestond er al, wat is aangepast of verhuisd, wie is overgezet, wat is opgeruimd en wat bewust bleef staan.
+
+De volledige werkwijze staat in de account-skill `samenhang-check`.
