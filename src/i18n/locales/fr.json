@@ -1886,7 +1886,10 @@
     "subtotal_discount": "Remise sur sous-total",
     "line_discount": "Remise ligne",
     "add_discount": "Ajouter remise",
-    "remove_discount": "Supprimer remise"
+    "remove_discount": "Supprimer remise",
+    "code_form": {
+      "valid_until_before_from": "« Valable jusqu'au » ne peut pas précéder « Valable à partir du »."
+    }
   },
   "reminders": {
     "settings_title": "Rappels de paiement",

@@ -30,7 +30,8 @@ import { generateRandomCode } from '@/hooks/useDiscountCodes';
 import { useCanWriteDiscountCodes } from '@/hooks/usePermissionGrants';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Lock } from 'lucide-react';
-import { isoToLocalDate, localDayEndIso, localDayStartIso } from '@/lib/discountDates';
+import { isoToLocalDate } from '@/lib/discountDates';
+import { buildDiscountFormData, type DiscountFormValues } from '@/lib/discountFormData';
 
 const formSchema = z.object({
   code: z.string().min(3, 'Code moet minimaal 3 karakters zijn').max(20, 'Code mag maximaal 20 karakters zijn'),
@@ -49,7 +50,11 @@ const formSchema = z.object({
   // PROMO-SAFE-1 — bestaande productscope meedragen; zonder dit wiste opslaan ze.
   product_ids: z.array(z.string()),
   category_ids: z.array(z.string()),
-});
+}).refine(
+  // YYYY-MM-DD vergelijkt lexicografisch correct; dezelfde dag mag.
+  (v) => !v.valid_from || !v.valid_until || v.valid_from <= v.valid_until,
+  { message: 'discount.code_form.valid_until_before_from', path: ['valid_until'] },
+);
 
 interface DiscountCodeDialogProps {
   open: boolean;
@@ -132,39 +137,8 @@ export function DiscountCodeDialog({
   }, [discountCode, form]);
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    // PROMO-SAFE-1 — een ongewijzigde datum behoudt het opgeslagen moment, zodat
-    // een bewerking van iets anders (bv. actief-schakelaar) een bestaande code
-    // niet stil verschuift. Een gekozen datum = begin/einde van de lokale dag.
-    const keepIfSameDay = (stored: string | null | undefined, day: string | null | undefined) =>
-      !!stored && !!day && isoToLocalDate(stored) === day;
-    const validFrom = !values.valid_from
-      ? null
-      : keepIfSameDay(discountCode?.valid_from, values.valid_from)
-        ? discountCode?.valid_from ?? null
-        : localDayStartIso(values.valid_from);
-    const validUntil = !values.valid_until
-      ? null
-      : keepIfSameDay(discountCode?.valid_until, values.valid_until)
-        ? discountCode?.valid_until ?? null
-        : localDayEndIso(values.valid_until);
-    const formData: DiscountCodeFormData = {
-      code: values.code,
-      description: values.description || '',
-      discount_type: values.discount_type,
-      discount_value: values.discount_value,
-      minimum_order_amount: values.minimum_order_amount || null,
-      maximum_discount_amount: values.maximum_discount_amount || null,
-      usage_limit: values.usage_limit || null,
-      usage_limit_per_customer: values.usage_limit_per_customer || null,
-      valid_from: validFrom,
-      valid_until: validUntil,
-      is_active: values.is_active,
-      applies_to: values.applies_to,
-      product_ids: values.product_ids,
-      category_ids: values.category_ids,
-      first_order_only: values.first_order_only,
-    };
-    onSave(formData);
+    // zod garandeert alle velden; z.infer maakt ze optioneel omdat tsconfig.app niet strict is.
+    onSave(buildDiscountFormData(values as DiscountFormValues, discountCode));
   };
 
   const generateCode = () => {

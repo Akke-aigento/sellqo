@@ -1858,7 +1858,10 @@
     "subtotal_discount": "Discount on subtotal",
     "line_discount": "Line discount",
     "add_discount": "Add discount",
-    "remove_discount": "Remove discount"
+    "remove_discount": "Remove discount",
+    "code_form": {
+      "valid_until_before_from": "\"Valid until\" cannot be before \"Valid from\"."
+    }
   },
   "reminders": {
     "settings_title": "Payment reminders",

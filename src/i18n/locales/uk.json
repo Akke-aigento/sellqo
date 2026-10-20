@@ -1858,7 +1858,10 @@
     "subtotal_discount": "Знижка на проміжний підсумок",
     "line_discount": "Знижка на позицію",
     "add_discount": "Додати знижку",
-    "remove_discount": "Видалити знижку"
+    "remove_discount": "Видалити знижку",
+    "code_form": {
+      "valid_until_before_from": "«Дійсний до» не може бути раніше за «Дійсний з»."
+    }
   },
   "reminders": {
     "settings_title": "Нагадування про оплату",
