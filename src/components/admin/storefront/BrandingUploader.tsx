@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useLogoUpload } from '@/hooks/useLogoUpload';
 import { useTenant } from '@/hooks/useTenant';
-import { EMAIL_LOGO_ACCEPT } from '@/lib/emailLogo';
 import { EmailLogoPreview } from '@/components/admin/settings/EmailLogoPreview';
 
 interface BrandingUploaderProps {
@@ -96,7 +95,7 @@ export function BrandingUploader({
             <input
               ref={logoInputRef}
               type="file"
-              accept={EMAIL_LOGO_ACCEPT}
+              accept="image/*"
               className="hidden"
               onChange={handleLogoSelect}
             />
@@ -116,7 +115,7 @@ export function BrandingUploader({
           </div>
         </div>
         <EmailLogoPreview
-          logoUrl={emailPreview?.previewUrl ?? logoUrl ?? currentTenant?.logo_url ?? null}
+          logoUrl={emailPreview ? emailPreview.previewUrl : (logoUrl ?? currentTenant?.logo_url ?? null)}
           shopName={currentTenant?.name || ''}
           primaryColor={primaryColor}
           variant={emailPreview}

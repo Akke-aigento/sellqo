@@ -1241,7 +1241,7 @@
       "removeLogo": "Logo verwijderen",
       "uploading": "Uploaden...",
       "uploadLogo": "Logo uploaden",
-      "logoHint": "PNG, JPG, WebP of SVG. Voor je mails maakt SellQo er automatisch een bijgesneden versie van.",
+      "logoHint": "Voor je mails maakt SellQo er automatisch een bijgesneden versie van (PNG, JPG, WebP of SVG).",
       "favicon": "Favicon",
       "faviconAlt": "Voorbeeld van je favicon",
       "removeFavicon": "Favicon verwijderen",
@@ -1249,8 +1249,6 @@
       "faviconHint": "32x32px of 64x64px, PNG of ICO"
     },
     "emailLogo": {
-      "unreadableTitle": "Logo niet leesbaar",
-      "unreadableBody": "{{name}} kon niet geopend worden. Het bestand is beschadigd of geen geldige afbeelding. Probeer een PNG, JPG, WebP of SVG.",
       "variantFailedTitle": "E-mailversie niet opgeslagen",
       "variantFailedBody": "Je logo is geüpload, maar de versie voor je mails kon niet opgeslagen worden. Je mails tonen voorlopig het originele logo. Upload het logo opnieuw om het nog eens te proberen.",
       "previewTitle": "Zo staat je logo bovenaan je mails",
@@ -1259,7 +1257,10 @@
       "variantInfo": "E-mailversie: {{width}} × {{height}} px, {{kb}} KB. Lege randen zijn weggeknipt.",
       "themeLogoWins": "Je mails gebruiken het logo dat je onder Branding instelde. Dit logo verschijnt pas in je mails als je dat logo verwijdert.",
       "blurryWarning": "Dit logo is minder dan {{height}} pixels hoog en wordt mogelijk wazig in je mails. Upload als het kan een grotere versie of een SVG.",
-      "noLogoName": "Zonder logo staat de naam van je winkel bovenaan je mails."
+      "noLogoName": "Zonder logo staat de naam van je winkel bovenaan je mails.",
+      "noVariantTitle": "Mailversie kon niet gemaakt worden",
+      "noVariantBody": "Je logo is opgeslagen voor je webshop, maar er kon geen mailversie van gemaakt worden. In je mails tonen we je winkelnaam. Upload een PNG, JPG, WebP of SVG om je logo ook in je mails te zien.",
+      "blankWarning": "Je logo is wit of leeg op een witte achtergrond; in de mail tonen we je winkelnaam."
     }
   },
   "languages": {

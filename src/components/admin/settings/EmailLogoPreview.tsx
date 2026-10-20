@@ -77,7 +77,14 @@ export function EmailLogoPreview({ logoUrl, shopName, primaryColor, variant }: E
           {t('settings.emailLogo.blurryWarning', { height: EMAIL_LOGO_MIN_SHARP_HEIGHT })}
         </p>
       )}
-      {!logoUrl && <p className="text-xs text-muted-foreground">{t('settings.emailLogo.noLogoName')}</p>}
+      {variant?.result === 'failed' ? (
+        <p className="flex items-start gap-1.5 text-xs text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+          {variant.reason === 'blank' ? t('settings.emailLogo.blankWarning') : t('settings.emailLogo.noVariantBody')}
+        </p>
+      ) : (
+        !logoUrl && <p className="text-xs text-muted-foreground">{t('settings.emailLogo.noLogoName')}</p>
+      )}
     </div>
   );
 }

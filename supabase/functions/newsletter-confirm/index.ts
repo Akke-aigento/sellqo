@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { getTenantBrand, type TenantBrand } from "../_shared/tenantEmail.ts";
 import { tenantMarketingSender, tenantSender } from "../_shared/emailSenders.ts";
 import { buildUnsubscribeUrl, escapeHtml } from "../_shared/marketingToken.ts";
+import { stripEmptyImageTokens } from "../_shared/emailContent.ts";
 import { redirectToApp, resolveShopUrl, shopLogo } from "../_shared/mailPages.ts";
 
 // MAIL-1a (19 okt 2026): double opt-in staat aan voor alle winkels.
@@ -126,7 +127,8 @@ async function sendWelcomeEmail(
       "{{LOGO_URL}}": brand.emailLogoUrl ?? "",
       "{{JAAR}}": String(new Date().getFullYear()),
     };
-    let body = String(config.welcome_email_body);
+    // MAIL-LOGO-1 review: geen <img src=""> als de winkel geen logo heeft.
+    let body = stripEmptyImageTokens(String(config.welcome_email_body), (k) => values[`{{${k}}}`]);
     let subject = String(config.welcome_email_subject || "Welkom bij onze nieuwsbrief!");
     for (const [key, value] of Object.entries(values)) {
       body = body.split(key).join(escapeHtml(value));

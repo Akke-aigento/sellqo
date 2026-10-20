@@ -182,8 +182,23 @@ export function buildVariableMap(
  * Replace every {{var}} occurrence using the map, then strip any remaining
  * unmatched {{…}} tokens so recipients never see raw placeholders.
  */
+/**
+ * MAIL-LOGO-1 review: een <img> waarvan de src enkel een variabele is die leeg uitvalt (bv.
+ * {{tenant_logo_url}} of {{LOGO_URL}} bij een winkel zonder logo) verdwijnt helemaal, in plaats
+ * van als <img src=""> (gebroken-beeldicoon) in de mail te staan.
+ * `valueOf(token)` krijgt de naam zonder accolades en geeft de waarde, of undefined als onbekend.
+ */
+export function stripEmptyImageTokens(html: string, valueOf: (token: string) => string | undefined): string {
+  if (!html) return '';
+  return html.replace(
+    /<img\b[^>]*?\bsrc\s*=\s*(["'])\s*\{\{\s*([\w.]+)\s*\}\}\s*\1[^>]*>/gi,
+    (tag, _q: string, token: string) => ((valueOf(token) ?? '').trim() === '' ? '' : tag),
+  );
+}
+
 export function applyVariables(input: string, vars: Record<string, string>): string {
   if (!input) return '';
+  input = stripEmptyImageTokens(input, (k) => (Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : ''));
   const out = input.replace(/\{\{\s*([\w.]+)\s*\}\}/g, (_m, key: string) => {
     return Object.prototype.hasOwnProperty.call(vars, key) ? vars[key] : '';
   });

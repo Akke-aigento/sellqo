@@ -61,7 +61,8 @@ export function useTenantBrand() {
       const rawLogo = String(th.logo_url || t.logo_url || '').trim();
       const ownLogo = url(rawLogo, '');
       const variant = url(t.email_logo_url, '');
-      const mailLogo = ownLogo && variant && String(t.email_logo_source_url || '').trim() === rawLogo ? variant : ownLogo;
+      const sourceMatches = !!ownLogo && String(t.email_logo_source_url || '').trim() === rawLogo;
+      const mailLogo = sourceMatches ? variant : ownLogo;
 
       return {
         tenantId,

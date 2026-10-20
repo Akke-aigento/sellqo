@@ -101,6 +101,13 @@ function sanitizeUrl(input: unknown): string | null {
   return URL_RE.test(v) && !/[\s"'<>]/.test(v) ? v : null;
 }
 
+/** "bakkerij-peeters" → "Bakkerij Peeters"; ongeldig of leeg → "". */
+export function nameFromSlug(slug: unknown): string {
+  const v = typeof slug === "string" ? slug.trim() : "";
+  if (!/^[a-z0-9][a-z0-9_-]*$/i.test(v)) return "";
+  return v.split(/[-_]+/).filter(Boolean).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+}
+
 /**
  * MAIL-LOGO-1: welk logo de mail toont. De e-mailvariant telt alleen als ze gemaakt is van het
  * logo dat nu geldt (`email_logo_source_url`): wie later een ander logo uploadt of het logo
@@ -122,7 +129,10 @@ export function pickEmailLogo(opts: {
   }
   const variant = sanitizeUrl(opts.emailLogo);
   const source = typeof opts.emailLogoSource === "string" ? opts.emailLogoSource.trim() : "";
-  return { logoUrl: own, emailLogoUrl: variant && source === raw ? variant : own };
+  if (source !== raw) return { logoUrl: own, emailLogoUrl: own };
+  // Bron hoort bij dit logo maar zonder variant: bij het uploaden bleek het onleesbaar voor mail
+  // (bv. HEIC) of wit/leeg. Dan de winkelnaam, niet een onzichtbaar of gebroken beeld.
+  return { logoUrl: own, emailLogoUrl: variant };
 }
 
 function sanitizeLocale(input: unknown, fallback: TenantLocale = "en"): TenantLocale {
@@ -260,7 +270,9 @@ export async function getTenantBrand(
 
   return {
     tenantId,
-    tenantName: (t.name && String(t.name).trim()) || "SellQo",
+    // MAIL-LOGO-1 review: nooit "SellQo" als naam van een winkel. Zonder naam de slug in
+    // leesbare vorm, anders leeg (de kop valt dan weg). SellQo zelf (facturatietenant) blijft gelijk.
+    tenantName: (t.name && String(t.name).trim()) || (isBillingTenant ? "SellQo" : nameFromSlug(t.slug)),
     legalName: (t.billing_company_name && String(t.billing_company_name).trim()) || undefined,
     logoUrl: logos.logoUrl,
     emailLogoUrl: logos.emailLogoUrl,
@@ -584,6 +596,8 @@ export function renderTenantEmail(opts: RenderTenantEmailOptions): { html: strin
  *   • Link: de echte homepage (shopUrl). Geen adres → geen link, nooit sellqo.app.
  */
 export function renderTenantEmailHeader(b: TenantBrand): string {
+  // Geen logo én geen naam (winkelrij onleesbaar): liever geen kop dan een leeg wit vlak.
+  if (!b.emailLogoUrl && !b.tenantName.trim()) return "";
   const headingFont = `${b.headingFont}, -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif`;
   const nameColor = readableTextColor(b.primaryColor, "#ffffff", BRAND.text, 3);
   const inner = b.emailLogoUrl

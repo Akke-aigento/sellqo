@@ -58,12 +58,13 @@ export function LogoUploadStep({
 
       // MAIL-LOGO-1: e-mailvariant (bijgesneden PNG, 176 px hoog). Best effort: lukt het niet,
       // dan gebruiken de mails het origineel; de onboarding loopt gewoon door.
+      let variant = null;
       try {
-        const variant = await createEmailLogoVariant(file);
-        await saveEmailLogoVariant(tenantId, variant, publicUrl.publicUrl, 'tenant');
+        variant = await createEmailLogoVariant(file);
       } catch (variantError) {
-        console.warn('[emailLogo] onboarding: geen e-mailvariant', variantError);
+        console.warn('[emailLogo] onboarding: geen e-mailvariant, de mail toont de winkelnaam', variantError);
       }
+      await saveEmailLogoVariant(tenantId, variant, publicUrl.publicUrl, 'tenant');
 
     } catch (error: any) {
       console.error('Upload error:', error);

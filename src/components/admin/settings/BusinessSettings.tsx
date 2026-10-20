@@ -11,7 +11,6 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { useLogoUpload } from '@/hooks/useLogoUpload';
-import { EMAIL_LOGO_ACCEPT } from '@/lib/emailLogo';
 import { EmailLogoPreview } from '@/components/admin/settings/EmailLogoPreview';
 import { useInvoiceCompliance, validateIBAN, formatIBAN } from '@/hooks/useInvoiceCompliance';
 import { supabase } from '@/integrations/supabase/client';
@@ -244,7 +243,7 @@ export function BusinessSettings() {
             <input
               ref={fileInputRef}
               type="file"
-              accept={EMAIL_LOGO_ACCEPT}
+              accept="image/jpeg,image/png,image/webp,image/gif"
               onChange={handleLogoUpload}
               className="hidden"
             />

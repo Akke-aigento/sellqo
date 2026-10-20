@@ -1269,7 +1269,7 @@
       "removeLogo": "Logo entfernen",
       "uploading": "Wird hochgeladen...",
       "uploadLogo": "Logo hochladen",
-      "logoHint": "PNG, JPG, WebP oder SVG. Für Ihre E-Mails erstellt SellQo automatisch eine zugeschnittene Version.",
+      "logoHint": "Für Ihre E-Mails erstellt SellQo automatisch eine zugeschnittene Version (PNG, JPG, WebP oder SVG).",
       "favicon": "Favicon",
       "faviconAlt": "Vorschau Ihres Favicons",
       "removeFavicon": "Favicon entfernen",
@@ -1277,8 +1277,6 @@
       "faviconHint": "32x32 px oder 64x64 px, PNG oder ICO"
     },
     "emailLogo": {
-      "unreadableTitle": "Logo nicht lesbar",
-      "unreadableBody": "{{name}} konnte nicht geöffnet werden. Die Datei ist beschädigt oder kein gültiges Bild. Versuchen Sie PNG, JPG, WebP oder SVG.",
       "variantFailedTitle": "E-Mail-Version nicht gespeichert",
       "variantFailedBody": "Ihr Logo wurde hochgeladen, aber die Version für Ihre E-Mails konnte nicht gespeichert werden. Ihre E-Mails zeigen vorerst das Originallogo. Laden Sie das Logo erneut hoch, um es noch einmal zu versuchen.",
       "previewTitle": "So erscheint Ihr Logo oben in Ihren E-Mails",
@@ -1287,7 +1285,10 @@
       "variantInfo": "E-Mail-Version: {{width}} × {{height}} px, {{kb}} KB. Leere Ränder wurden entfernt.",
       "themeLogoWins": "Ihre E-Mails verwenden das Logo, das Sie unter Branding festgelegt haben. Dieses Logo erscheint erst in Ihren E-Mails, wenn Sie jenes Logo entfernen.",
       "blurryWarning": "Dieses Logo ist weniger als {{height}} Pixel hoch und wirkt in Ihren E-Mails möglicherweise unscharf. Laden Sie nach Möglichkeit eine größere Version oder ein SVG hoch.",
-      "noLogoName": "Ohne Logo steht der Name Ihres Shops oben in Ihren E-Mails."
+      "noLogoName": "Ohne Logo steht der Name Ihres Shops oben in Ihren E-Mails.",
+      "noVariantTitle": "E-Mail-Version konnte nicht erstellt werden",
+      "noVariantBody": "Ihr Logo wurde für Ihren Shop gespeichert, aber daraus konnte keine E-Mail-Version erstellt werden. Ihre E-Mails zeigen den Namen Ihres Shops. Laden Sie PNG, JPG, WebP oder SVG hoch, um Ihr Logo auch in Ihren E-Mails zu sehen.",
+      "blankWarning": "Ihr Logo ist weiß oder leer auf weißem Hintergrund; Ihre E-Mails zeigen stattdessen den Namen Ihres Shops."
     }
   },
   "languages": {

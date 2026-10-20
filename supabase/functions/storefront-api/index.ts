@@ -5323,7 +5323,7 @@ async function _sendNewsletterWelcome(supabase: any, tenantId: string, email: st
     const { tenantSender, tenantMarketingSender } = await import('../_shared/emailSenders.ts');
     const { buildUnsubscribeUrl, escapeHtml } = await import('../_shared/marketingToken.ts');
     const brand = await getTenantBrand(supabase, tenantId);
-    const shopUrl = await _newsletterShopUrl(supabase, tenantId, brand.websiteUrl, brand.senderSource.slug);
+    const shopUrl = brand.shopUrl ?? ''; // MAIL-LOGO-1 review: zelfde bron als de mailkop
     const unsubscribeUrl = await buildUnsubscribeUrl(tenantId, email);
 
     // Waarden in de HTML-body escapen: first_name komt van de bezoeker.
@@ -5340,7 +5340,9 @@ async function _sendNewsletterWelcome(supabase: any, tenantId: string, email: st
       '{{LOGO_URL}}': brand.emailLogoUrl ?? '',
       '{{JAAR}}': String(new Date().getFullYear()),
     };
-    let body = String(config.welcome_email_body);
+    // MAIL-LOGO-1 review: geen <img src=""> als de winkel geen logo heeft.
+    const { stripEmptyImageTokens } = await import('../_shared/emailContent.ts');
+    let body = stripEmptyImageTokens(String(config.welcome_email_body), (k) => values[`{{${k}}}`]);
     let subject = String(config.welcome_email_subject || 'Welkom bij onze nieuwsbrief!');
     for (const [key, value] of Object.entries(values)) {
       body = body.split(key).join(escapeHtml(value));

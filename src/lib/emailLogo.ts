@@ -13,7 +13,7 @@
  *   • SVG wordt via canvas gerasterd, ook zonder width/height (viewBox of standaardmaat).
  *
  * Het origineel blijft ongewijzigd (storefront). Enkel onleesbare of kapotte bestanden worden
- * geweigerd (EmailLogoError). De pure functies bovenaan hebben geen DOM nodig (vitest).
+ * geweigerd (EmailLogoError); dan komt er geen variant en toont de mail de winkelnaam. De pure functies bovenaan hebben geen DOM nodig (vitest).
  */
 
 export const EMAIL_LOGO_HEIGHT = 176;
@@ -28,8 +28,6 @@ const MAX_WORK_SIDE = 2400;
 /** Rasterhoogte voor een SVG: ruim boven 176 px, zodat bijsnijden nog scherp eindigt. */
 const SVG_RASTER_HEIGHT = 4 * EMAIL_LOGO_HEIGHT;
 const SVG_DEFAULT = { width: 600, height: 176 };
-
-export const EMAIL_LOGO_ACCEPT = 'image/png,image/jpeg,image/webp,image/svg+xml';
 
 export interface TrimBox {
   x: number;
@@ -132,7 +130,8 @@ export function emailLogoPath(tenantId: string, hash: string): string {
 
 // ── Browser ──────────────────────────────────────────────────────────
 
-export type EmailLogoErrorCode = 'unreadable';
+/** unreadable: kapot of onbekend formaat; blank: alles wit of transparant (onzichtbaar op het witte logovlak). */
+export type EmailLogoErrorCode = 'unreadable' | 'blank';
 
 export class EmailLogoError extends Error {
   code: EmailLogoErrorCode;
@@ -262,7 +261,10 @@ export async function createEmailLogoVariant(file: File): Promise<EmailLogoVaria
   } catch (e) {
     throw new EmailLogoError('unreadable', String(e));
   }
-  const box = findTrimBox(pixels.data, ww, wh) ?? { x: 0, y: 0, width: ww, height: wh };
+  const box = findTrimBox(pixels.data, ww, wh);
+  // Wit of leeg logo: op het witte logovlak van de mail onzichtbaar. Geen variant; de mail toont
+  // dan de winkelnaam (MAIL-LOGO-1 review).
+  if (!box) throw new EmailLogoError('blank', 'logo is white or empty');
   // "Wazig" gaat over de echte bron: een SVG is vector en dus nooit wazig.
   const sourceHeight = isSvgFile(file) ? Number.POSITIVE_INFINITY : box.height / workScale;
 

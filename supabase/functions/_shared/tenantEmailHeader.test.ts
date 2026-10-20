@@ -9,6 +9,8 @@ import {
 } from "./tenantEmail.ts";
 import { LOGO_URL } from "./sellqoEmail.ts";
 import { resolveShopUrl } from "./mailPages.ts";
+import { applyVariables, stripEmptyImageTokens } from "./emailContent.ts";
+import { nameFromSlug } from "./tenantEmail.ts";
 
 // ── Nep-client: antwoord per tabel (en voor tenants per select) ─────────────
 
@@ -180,4 +182,36 @@ Deno.test("renderTenantEmail gebruikt de nieuwe kop", async () => {
   const { html } = renderTenantEmail({ tenantBrand: b, locale: "nl", heading: "Hallo" });
   assert(html.includes(renderTenantEmailHeader(b)));
   assert(!html.includes(LOGO_URL));
+});
+
+// ── Review-fixes ────────────────────────────────────────────────────────────
+
+Deno.test("pickEmailLogo: bron hoort bij dit logo maar geen variant (wit/HEIC) → winkelnaam", () => {
+  const logo = "https://x.co/logo.heic";
+  assertEquals(pickEmailLogo({ themeLogo: logo, emailLogo: null, emailLogoSource: logo }), { logoUrl: logo, emailLogoUrl: null });
+});
+
+Deno.test("lege winkelnaam: slug in leesbare vorm, nooit SellQo; niets → geen kop", async () => {
+  assertEquals(nameFromSlug("bakkerij-peeters"), "Bakkerij Peeters");
+  assertEquals(nameFromSlug("<x>"), "");
+  const b = await brandFor({ tenant: tenant({ name: "  " }), theme: {} });
+  assertEquals(b.tenantName, "Bakkerij Peeters");
+  assert(!renderTenantEmailHeader(b).includes("SellQo"));
+  const leeg = await brandFor({ tenant: null, theme: {} });
+  assertEquals(leeg.tenantName, "");
+  assertEquals(renderTenantEmailHeader(leeg), "");
+  const platform = await brandFor({ tenant: tenant({ name: "", slug: "sellqo" }), theme: null });
+  assertEquals(platform.tenantName, "SellQo");
+});
+
+Deno.test("lege logo-variabele: <img> verdwijnt i.p.v. <img src=\"\">", () => {
+  const html = `<p>a</p><img src="{{tenant_logo_url}}" alt="x" style="height:44px"><img src='{{ LOGO_URL }}'/><img src="https://x.co/a.png">`;
+  assertEquals(applyVariables(html, { tenant_logo_url: "" }), `<p>a</p><img src="https://x.co/a.png">`);
+  assertEquals(
+    applyVariables(`<img src="{{tenant_logo_url}}">`, { tenant_logo_url: "https://x.co/l.png" }),
+    `<img src="https://x.co/l.png">`,
+  );
+  const values: Record<string, string> = { "{{LOGO_URL}}": "" };
+  assertEquals(stripEmptyImageTokens(`x<img src="{{LOGO_URL}}">y`, (k) => values[`{{${k}}}`]), "xy");
+  assertEquals(stripEmptyImageTokens(`<img src="{{LOGO_URL}}">`, () => "https://x.co/l.png"), `<img src="{{LOGO_URL}}">`);
 });

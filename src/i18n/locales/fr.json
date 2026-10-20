@@ -1269,7 +1269,7 @@
       "removeLogo": "Supprimer le logo",
       "uploading": "Téléversement...",
       "uploadLogo": "Téléverser le logo",
-      "logoHint": "PNG, JPG, WebP ou SVG. SellQo crée automatiquement une version recadrée pour vos e-mails.",
+      "logoHint": "SellQo crée automatiquement une version recadrée pour vos e-mails (PNG, JPG, WebP ou SVG).",
       "favicon": "Favicon",
       "faviconAlt": "Aperçu de votre favicon",
       "removeFavicon": "Supprimer le favicon",
@@ -1277,8 +1277,6 @@
       "faviconHint": "32x32 px ou 64x64 px, PNG ou ICO"
     },
     "emailLogo": {
-      "unreadableTitle": "Logo illisible",
-      "unreadableBody": "Impossible d'ouvrir {{name}}. Le fichier est endommagé ou n'est pas une image valide. Essayez un PNG, JPG, WebP ou SVG.",
       "variantFailedTitle": "Version e-mail non enregistrée",
       "variantFailedBody": "Votre logo a été téléversé, mais la version pour vos e-mails n'a pas pu être enregistrée. Vos e-mails affichent pour l'instant le logo d'origine. Téléversez à nouveau le logo pour réessayer.",
       "previewTitle": "Voici votre logo en haut de vos e-mails",
@@ -1287,7 +1285,10 @@
       "variantInfo": "Version e-mail : {{width}} × {{height}} px, {{kb}} Ko. Les bords vides ont été recadrés.",
       "themeLogoWins": "Vos e-mails utilisent le logo défini sous Branding. Ce logo n'apparaît dans vos e-mails que si vous supprimez celui-là.",
       "blurryWarning": "Ce logo fait moins de {{height}} pixels de haut et risque d'être flou dans vos e-mails. Si possible, téléversez une version plus grande ou un SVG.",
-      "noLogoName": "Sans logo, le nom de votre boutique apparaît en haut de vos e-mails."
+      "noLogoName": "Sans logo, le nom de votre boutique apparaît en haut de vos e-mails.",
+      "noVariantTitle": "Impossible de créer la version e-mail",
+      "noVariantBody": "Votre logo est enregistré pour votre boutique, mais aucune version e-mail n'a pu en être créée. Vos e-mails affichent le nom de votre boutique. Téléversez un PNG, JPG, WebP ou SVG pour voir aussi votre logo dans vos e-mails.",
+      "blankWarning": "Votre logo est blanc ou vide sur un fond blanc ; vos e-mails affichent le nom de votre boutique."
     }
   },
   "languages": {

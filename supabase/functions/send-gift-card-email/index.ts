@@ -82,7 +82,8 @@ const handler = async (req: Request): Promise<Response> => {
     // `website_url` bestaat niet op tenants. Hij stond in de select, waardoor die
     // faalde en deze functie bij elke cadeaukaart "Tenant not found" gooide:
     // cadeaukaartmails gingen nooit uit (MAIL-CONTACT-1, 18 sep 2026).
-    const websiteUrl = brand.websiteUrl || "https://sellqo.app";
+    // MAIL-LOGO-1 review: de echte winkel (shopHomeUrlFor), anders geen knop — nooit sellqo.app.
+    const websiteUrl = brand.shopUrl;
     const recipientName = giftCard.recipient_name || "ontvanger";
     const personalMessage = giftCard.recipient_name ? giftCard.personal_message : "";
     const expiresAt = giftCard.expires_at
@@ -113,7 +114,7 @@ const handler = async (req: Request): Promise<Response> => {
       heading: t(locale, "giftCard.heading", { recipientName }),
       intro: `<p>${t(locale, "giftCard.intro", { tenantName: fromName })}</p>`,
       content,
-      primaryCta: { label: t(locale, "giftCard.cta"), url: websiteUrl },
+      primaryCta: websiteUrl ? { label: t(locale, "giftCard.cta"), url: websiteUrl } : undefined,
       poweredByLabel: t(locale, "giftCard.poweredBy"),
     });
 

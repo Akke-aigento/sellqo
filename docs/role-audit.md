@@ -31,9 +31,17 @@ Go van Akke 20-10 09:35. Branch `mail-logo-1` (worktree), niet gepusht.
 - PGlite: migratie 2× gedraaid, zelfde uitkomst (kolommen nullable zonder default, alinea één keer).
 - Chromium (Playwright): pijplijn op een echt canvas — logo 1600×800 met witte rand → 578×176, 29 KB; WebP → 576×176; SVG enkel viewBox → 600×139; SVG zonder maat → 176×176; JPG 120×40 → niet vergroot, wazig = true; kapotte PNG en SVG → `EmailLogoError:unreadable`. Mails gerenderd met/zonder logo, licht/donker.
 
+**Review-fixes (fixup, 20-10)**
+- Origineel wordt altijd geüpload (oude accept-lijsten terug); lukt de mailversie niet (onleesbaar voor de browser of wit/leeg), dan `email_logo_url = null` met `email_logo_source_url` = dit logo → de mail toont de winkelnaam, met zachte melding.
+- `findTrimBox` null (wit/leeg logo) → geen variant + waarschuwing (i18n).
+- `stripEmptyImageTokens` (emailContent.ts, ook in `applyVariables`): `<img src="{{tenant_logo_url}}">`/`{{LOGO_URL}}` met lege waarde verdwijnt (campagnes, automations, welkomstmails newsletter-confirm en storefront-api).
+- `storefront-api` welkomstmail: `{{SHOP_URL}}` = `brand.shopUrl ?? ''` (akkoord Akke); `_newsletterShopUrl` blijft staan, ongebruikt.
+- `send-gift-card-email`: knop naar `brand.shopUrl`, zonder adres geen knop (was sellqo.app).
+- Lege winkelnaam: slug in leesbare vorm, anders leeg en geen kop; enkel de facturatietenant heet nog "SellQo".
+- Herverificatie: deno 23+153 groen, deno check 14 = HEAD, vitest 823, tsc 0, build 0, parity, lint zonder nieuwe fouten; Chromium: wit logo → `EmailLogoError:blank`.
+
 **Bewust ongemoeid / Vervolg**
 - Geen backfill: `email_logo_url` blijft leeg voor bestaande winkels (Astra Sleep, Demo Bakkerij, Loveke, The Fonske Crawl, VanXcel); hun mails tonen het origineel tot een nieuwe upload. De sandbox bereikt Supabase Storage niet (403), afmetingen dus niet gemeten.
-- `storefront-api` `_newsletterShopUrl` (welkomstmail bij single opt-in) gebruikt nog de oude volgorde; niet aangeraakt (eerste wet).
 - Onboarding-scherm heeft nog hardcoded NL-tekst (bestaand, buiten scope).
 - De `{{tenant_logo}}`-variabele in sjablonen gebruikt nu de variant; `{{tenant_logo_url}}` is leeg zonder logo.
 
