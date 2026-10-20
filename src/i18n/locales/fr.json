@@ -380,7 +380,10 @@
       "currency": "Devise",
       "bankDetails": "Coordonnées bancaires",
       "ibanPlaceholder": "NL91 ABNA 0417 1643 00",
-      "uploadLogo": "Téléverser le logo"
+      "uploadLogo": "Téléverser le logo",
+      "ibanInvalid": "Format IBAN invalide",
+      "missingFieldsCount": "Il manque {{count}} champs obligatoires pour une facture belge.",
+      "saveChanges": "Enregistrer les modifications"
     },
     "branding": {
       "subtitle": "Logo, favicon et couleur principale — utilisés dans votre boutique, vos e-mails et vos factures",
@@ -2932,7 +2935,7 @@
         "open_rate": "Taux d'ouverture",
         "subscribers": "Abonnés",
         "uitschrijvingen": "Désabonnements",
-        "campaigns_count": "Campagnes : {{value}}",
+        "campaigns_count": "Campagnes envoyées : {{value}}",
         "opened_count": "Ouverts : {{value}}",
         "clicked_count": "Clics : {{value}}",
         "subscribers_hint": "Reçoivent vos campagnes",
@@ -6667,6 +6670,192 @@
         "newsletter_where": "L’inscription se fait toujours avec confirmation. Vous gérez vos abonnés et votre e-mail de bienvenue dans Marketing :",
         "newsletter_link_email": "E-mail → Abonnés",
         "newsletter_link_automations": "E-mail → Automatisations → Série de bienvenue"
+      },
+      "studio": {
+        "storefrontFeaturesSettings": {
+          "nieuwsbrief": "Newsletter",
+          "email_aanmeldingen_en_popup_configuratie": "Inscriptions par e-mail et pop-up",
+          "nieuwsbrief_inschakelen": "Activer la newsletter",
+          "popup_tonen": "Afficher la pop-up",
+          "popup_delay": "Délai : {{seconds}} s",
+          "popup_delay_hint": "Secondes avant l'apparition de la pop-up (0 = immédiatement)",
+          "incentive_tekst": "Texte d'incitation",
+          "bijv_ontvang_10_korting_op_je": "par ex. 10 % de réduction sur votre première commande !",
+          "checkout_ervaring": "Paiement",
+          "bestelproces_en_formulier_instellingen": "Processus de commande et formulaire",
+          "gastbestelling_toestaan": "Autoriser la commande sans compte",
+          "telefoonnummer_verplicht": "Numéro de téléphone obligatoire",
+          "bedrijfsveld": "Champ société",
+          "adres_autocomplete": "Saisie automatique de l'adresse",
+          "product_weergave": "Affichage des produits",
+          "zoom_varianten_en_reviews_configuratie": "Zoom, variantes et avis",
+          "afbeelding_zoom": "Zoom sur l'image",
+          "variant_weergave": "Affichage des variantes",
+          "reviews_weergave": "Affichage des avis",
+          "voorraad_indicator": "Indicateur de stock",
+          "gerelateerde_producten": "Produits associés",
+          "trust_compliance": "Confiance et conformité",
+          "cookie_banner_en_vertrouwenssignalen": "Bannière cookies et signaux de confiance",
+          "cookie_banner": "Bannière cookies",
+          "banner_stijl": "Style de la bannière",
+          "trust_badges": "Badges de confiance",
+          "veilig_betalen": "Paiement sécurisé",
+          "gratis_verzending": "Livraison gratuite",
+          "gratis_retour": "Retours gratuits",
+          "ssl_beveiligd": "Sécurisé par SSL",
+          "keurmerk": "Label de qualité",
+          "navigatie": "Navigation",
+          "menu_stijl_en_header_instellingen": "Style du menu et en-tête",
+          "navigatie_stijl": "Style de navigation",
+          "sticky_header": "En-tête fixe",
+          "zoekbalk": "Barre de recherche",
+          "mobiele_bottom_navigation": "Navigation en bas sur mobile",
+          "conversie_boosters": "Boosters de conversion",
+          "urgentie_en_social_proof_features": "Urgence et preuve sociale",
+          "voorraad_aantallen_tonen": "Afficher les quantités en stock",
+          "recente_aankopen_popup": "Pop-up des achats récents",
+          "exit_intent_popup": "Pop-up de sortie",
+          "meertalige_webshop": "Boutique multilingue",
+          "talen_worden_automatisch_bepaald_op_basis": "Les langues sont définies automatiquement selon vos domaines connectés",
+          "actieve_talen_via_domeinen": "Langues actives (via les domaines)",
+          "standaard": "Par défaut",
+          "actief": "Active",
+          "languages_auto_hint": "Les langues sont activées automatiquement lorsque vous connectez un domaine dans cette langue sous",
+          "instellingen_domeinen": "Paramètres → Domaines",
+          "domeinen_en_talen_beheren": "Gérer les domaines et les langues →",
+          "taalwisselaar_stijl": "Style du sélecteur de langue",
+          "bepaalt_hoe_bezoekers_van_taal_kunnen": "Détermine comment les visiteurs changent de langue dans votre boutique",
+          "instellingen_opslaan": "Enregistrer les paramètres",
+          "saved": "Paramètres de la boutique enregistrés",
+          "options": {
+            "company": {
+              "hidden": {
+                "label": "Masqué",
+                "description": "Ne pas afficher le champ société"
+              },
+              "optional": {
+                "label": "Facultatif",
+                "description": "Le client peut saisir un nom de société"
+              },
+              "required": {
+                "label": "Obligatoire",
+                "description": "Le nom de la société est obligatoire"
+              }
+            },
+            "zoom": {
+              "hover": {
+                "label": "Zoom au survol",
+                "description": "Zoom au passage de la souris"
+              },
+              "click": {
+                "label": "Zoom au clic",
+                "description": "Zoom en cliquant"
+              },
+              "lightbox": {
+                "label": "Plein écran",
+                "description": "Ouvrir en plein écran"
+              },
+              "none": {
+                "label": "Désactivé",
+                "description": "Pas de zoom"
+              }
+            },
+            "variant": {
+              "dropdown": {
+                "label": "Liste déroulante",
+                "description": "Choisir dans une liste"
+              },
+              "swatches": {
+                "label": "Pastilles",
+                "description": "Boutons de couleur et de taille"
+              },
+              "buttons": {
+                "label": "Boutons",
+                "description": "Boutons standard"
+              }
+            },
+            "reviews": {
+              "full": {
+                "label": "Complet",
+                "description": "Afficher les avis avec texte"
+              },
+              "stars_only": {
+                "label": "Étoiles uniquement",
+                "description": "Afficher uniquement la note"
+              },
+              "hidden": {
+                "label": "Masqué",
+                "description": "Ne pas afficher d'avis"
+              }
+            },
+            "related": {
+              "auto": {
+                "label": "Automatique",
+                "description": "Selon la catégorie et les tags"
+              },
+              "manual": {
+                "label": "Manuel",
+                "description": "Choisir vous-même les produits associés"
+              },
+              "off": {
+                "label": "Désactivé",
+                "description": "Aucun produit associé"
+              }
+            },
+            "cookie": {
+              "minimal": {
+                "label": "Minimal",
+                "description": "Petite barre en bas"
+              },
+              "detailed": {
+                "label": "Détaillé",
+                "description": "Avec catégories de cookies"
+              },
+              "popup": {
+                "label": "Pop-up",
+                "description": "Fenêtre au centre"
+              }
+            },
+            "nav": {
+              "simple": {
+                "label": "Simple",
+                "description": "Menu de navigation standard"
+              },
+              "mega_menu": {
+                "label": "Méga-menu",
+                "description": "Menu déroulant avec catégories"
+              }
+            },
+            "search": {
+              "visible": {
+                "label": "Toujours visible",
+                "description": "Toujours afficher la barre de recherche"
+              },
+              "icon": {
+                "label": "Icône seule",
+                "description": "Icône de recherche qui se déplie"
+              },
+              "hidden": {
+                "label": "Masqué",
+                "description": "Pas de barre de recherche"
+              }
+            },
+            "langSelector": {
+              "dropdown": {
+                "label": "Liste déroulante",
+                "description": "Choisir la langue dans une liste"
+              },
+              "flags": {
+                "label": "Drapeaux",
+                "description": "Icônes de drapeaux cliquables"
+              },
+              "text": {
+                "label": "Liens texte",
+                "description": "Codes de langue en liens (NL | EN | FR)"
+              }
+            }
+          }
+        }
       }
     },
     "allergens": {

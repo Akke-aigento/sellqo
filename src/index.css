@@ -79,6 +79,12 @@
 
     --radius: 0.5rem;
 
+    /* MAIL-UX-1: grafiekkleuren (recharts, hsl(var(--chart-n))) — bestonden niet, waardoor lijnen
+       en legendasymbolen onzichtbaar waren. Zelfde tinten als de KPI-tegels. */
+    --chart-1: 221 83% 53%;
+    --chart-2: 271 81% 56%;
+    --chart-3: 25 95% 53%;
+
     /* Sidebar Light */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 212 52% 24%;
@@ -138,6 +144,10 @@
     --border: 217 33% 20%;
     --input: 217 33% 20%;
     --ring: 16 100% 60%;
+
+    --chart-1: 217 91% 60%;
+    --chart-2: 270 95% 75%;
+    --chart-3: 27 96% 61%;
 
     /* Sidebar Dark */
     --sidebar-background: 222 47% 11%;

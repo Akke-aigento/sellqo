@@ -352,7 +352,10 @@
       "currency": "Valuta",
       "bankDetails": "Bankgegevens",
       "ibanPlaceholder": "NL91 ABNA 0417 1643 00",
-      "uploadLogo": "Logo uploaden"
+      "uploadLogo": "Logo uploaden",
+      "ibanInvalid": "Ongeldig IBAN-formaat",
+      "missingFieldsCount": "Er ontbreken {{count}} verplichte velden voor een Belgische factuur.",
+      "saveChanges": "Wijzigingen opslaan"
     },
     "branding": {
       "subtitle": "Logo, favicon en hoofdkleur — gebruikt in je webshop, e-mails en facturen",
@@ -2770,7 +2773,7 @@
         "subscribers": "Abonnees",
         "uitschrijvingen": "Uitschrijvingen",
         "groei_deze_maand": "+{{count}} deze maand",
-        "campaigns_count": "Campagnes: {{value}}",
+        "campaigns_count": "Verzonden campagnes: {{value}}",
         "opened_count": "Geopend: {{value}}",
         "clicked_count": "Geklikt: {{value}}",
         "subscribers_hint": "Krijgen je campagnes",
@@ -6567,6 +6570,192 @@
         "newsletter_where": "Inschrijven gebeurt altijd met bevestiging. Je abonnees en je welkomstmail beheer je in Marketing:",
         "newsletter_link_email": "E-mail → Abonnees",
         "newsletter_link_automations": "E-mail → Automatiseringen → Welkomstreeks"
+      },
+      "studio": {
+        "storefrontFeaturesSettings": {
+          "email_aanmeldingen_en_popup_configuratie": "Inschrijvingen via e-mail en de pop-up",
+          "nieuwsbrief_inschakelen": "Nieuwsbrief inschakelen",
+          "popup_tonen": "Pop-up tonen",
+          "incentive_tekst": "Lokkertekst",
+          "checkout_ervaring": "Afrekenen",
+          "bestelproces_en_formulier_instellingen": "Bestelproces en formulier",
+          "gastbestelling_toestaan": "Bestellen zonder account toestaan",
+          "telefoonnummer_verplicht": "Telefoonnummer verplicht",
+          "bedrijfsveld": "Bedrijfsveld",
+          "adres_autocomplete": "Adres automatisch aanvullen",
+          "product_weergave": "Productweergave",
+          "zoom_varianten_en_reviews_configuratie": "Zoom, varianten en reviews",
+          "afbeelding_zoom": "Inzoomen op afbeeldingen",
+          "variant_weergave": "Weergave van varianten",
+          "reviews_weergave": "Weergave van reviews",
+          "voorraad_indicator": "Voorraadindicator",
+          "gerelateerde_producten": "Gerelateerde producten",
+          "trust_compliance": "Vertrouwen en regels",
+          "cookie_banner_en_vertrouwenssignalen": "Cookiebanner en vertrouwenssignalen",
+          "cookie_banner": "Cookiebanner",
+          "banner_stijl": "Stijl van de banner",
+          "trust_badges": "Vertrouwensbadges",
+          "navigatie": "Navigatie",
+          "menu_stijl_en_header_instellingen": "Menustijl en kop",
+          "navigatie_stijl": "Stijl van de navigatie",
+          "sticky_header": "Vaste kop bij scrollen",
+          "zoekbalk": "Zoekbalk",
+          "mobiele_bottom_navigation": "Navigatiebalk onderaan op mobiel",
+          "conversie_boosters": "Meer verkopen",
+          "urgentie_en_social_proof_features": "Urgentie en sociale bewijskracht",
+          "voorraad_aantallen_tonen": "Voorraadaantallen tonen",
+          "recente_aankopen_popup": "Pop-up met recente aankopen",
+          "exit_intent_popup": "Pop-up bij vertrekken",
+          "meertalige_webshop": "Meertalige webshop",
+          "talen_worden_automatisch_bepaald_op_basis": "Talen worden automatisch bepaald op basis van je gekoppelde domeinen",
+          "actieve_talen_via_domeinen": "Actieve talen (via domeinen)",
+          "instellingen_domeinen": "Instellingen → Domeinen",
+          "taalwisselaar_stijl": "Stijl van de taalkeuze",
+          "bijv_ontvang_10_korting_op_je": "bijv. Ontvang 10% korting op je eerste bestelling!",
+          "domeinen_en_talen_beheren": "Domeinen en talen beheren →",
+          "bepaalt_hoe_bezoekers_van_taal_kunnen": "Bepaalt hoe bezoekers van taal wisselen in je webshop",
+          "keurmerk": "Keurmerk",
+          "ssl_beveiligd": "SSL-beveiligd",
+          "gratis_retour": "Gratis retour",
+          "gratis_verzending": "Gratis verzending",
+          "veilig_betalen": "Veilig betalen",
+          "instellingen_opslaan": "Instellingen opslaan",
+          "nieuwsbrief": "Nieuwsbrief",
+          "popup_delay": "Vertraging: {{seconds}} s",
+          "popup_delay_hint": "Seconden voordat de pop-up verschijnt (0 = meteen)",
+          "standaard": "Standaard",
+          "actief": "Actief",
+          "languages_auto_hint": "Talen worden automatisch geactiveerd wanneer je een domein met die taal koppelt bij",
+          "saved": "Webshopinstellingen opgeslagen",
+          "options": {
+            "company": {
+              "hidden": {
+                "label": "Verborgen",
+                "description": "Bedrijfsveld niet tonen"
+              },
+              "optional": {
+                "label": "Optioneel",
+                "description": "Klant kan een bedrijfsnaam invullen"
+              },
+              "required": {
+                "label": "Verplicht",
+                "description": "Bedrijfsnaam is verplicht"
+              }
+            },
+            "zoom": {
+              "hover": {
+                "label": "Zoom bij aanwijzen",
+                "description": "Inzoomen met de muis erover"
+              },
+              "click": {
+                "label": "Zoom bij klikken",
+                "description": "Inzoomen door te klikken"
+              },
+              "lightbox": {
+                "label": "Volledig scherm",
+                "description": "Openen op volledig scherm"
+              },
+              "none": {
+                "label": "Uit",
+                "description": "Geen zoom"
+              }
+            },
+            "variant": {
+              "dropdown": {
+                "label": "Keuzelijst",
+                "description": "Kiezen via een keuzelijst"
+              },
+              "swatches": {
+                "label": "Stalen",
+                "description": "Knoppen voor kleur en maat"
+              },
+              "buttons": {
+                "label": "Knoppen",
+                "description": "Gewone knoppen"
+              }
+            },
+            "reviews": {
+              "full": {
+                "label": "Volledig",
+                "description": "Reviews met tekst tonen"
+              },
+              "stars_only": {
+                "label": "Enkel sterren",
+                "description": "Enkel de sterrenscore tonen"
+              },
+              "hidden": {
+                "label": "Verborgen",
+                "description": "Geen reviews tonen"
+              }
+            },
+            "related": {
+              "auto": {
+                "label": "Automatisch",
+                "description": "Op basis van categorie en tags"
+              },
+              "manual": {
+                "label": "Handmatig",
+                "description": "Zelf gerelateerde producten kiezen"
+              },
+              "off": {
+                "label": "Uit",
+                "description": "Geen gerelateerde producten"
+              }
+            },
+            "cookie": {
+              "minimal": {
+                "label": "Minimaal",
+                "description": "Kleine balk onderaan"
+              },
+              "detailed": {
+                "label": "Uitgebreid",
+                "description": "Met cookiecategorieën"
+              },
+              "popup": {
+                "label": "Pop-up",
+                "description": "Venster in het midden"
+              }
+            },
+            "nav": {
+              "simple": {
+                "label": "Eenvoudig",
+                "description": "Standaard navigatiemenu"
+              },
+              "mega_menu": {
+                "label": "Megamenu",
+                "description": "Uitklapbaar menu met categorieën"
+              }
+            },
+            "search": {
+              "visible": {
+                "label": "Altijd zichtbaar",
+                "description": "Zoekbalk altijd tonen"
+              },
+              "icon": {
+                "label": "Enkel icoon",
+                "description": "Zoekicoon dat openklapt"
+              },
+              "hidden": {
+                "label": "Verborgen",
+                "description": "Geen zoekbalk tonen"
+              }
+            },
+            "langSelector": {
+              "dropdown": {
+                "label": "Keuzelijst",
+                "description": "Taal kiezen via een keuzelijst"
+              },
+              "flags": {
+                "label": "Vlaggen",
+                "description": "Klikbare vlaggetjes"
+              },
+              "text": {
+                "label": "Tekstlinks",
+                "description": "Taalcodes als links (NL | EN | FR)"
+              }
+            }
+          }
+        }
       }
     },
     "orderingHub": {

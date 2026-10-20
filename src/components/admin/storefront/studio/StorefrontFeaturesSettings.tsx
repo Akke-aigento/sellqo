@@ -58,8 +58,17 @@ import {
 import { SUPPORTED_LANGUAGES, LANGUAGE_SELECTOR_STYLES } from '@/types/legal-pages';
 import { Checkbox } from '@/components/ui/checkbox';
 
+/** Taalnaam in de UI-taal (MAIL-UX-1); zonder Intl.DisplayNames de code. */
+function languageName(uiLang: string, code: string): string {
+  try {
+    return new Intl.DisplayNames([uiLang], { type: 'language' }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 export function StorefrontFeaturesSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { themeSettings, saveThemeSettings } = useStorefront();
 
   const [formData, setFormData] = useState({
@@ -149,7 +158,7 @@ export function StorefrontFeaturesSettings() {
   const handleSave = () => {
     saveThemeSettings.mutate(formData as any, {
       onSuccess: () => {
-        toast.success('Storefront instellingen opgeslagen');
+        toast.success(t('admin.storefront.studio.storefrontFeaturesSettings.saved'));
       },
     });
   };
@@ -199,15 +208,15 @@ export function StorefrontFeaturesSettings() {
                 <Mail className="h-5 w-5 text-primary" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold">Nieuwsbrief</h3>
-                <p className="text-sm text-muted-foreground">Email aanmeldingen en popup configuratie</p>
+                <h3 className="font-semibold">{t('admin.storefront.studio.storefrontFeaturesSettings.nieuwsbrief')}</h3>
+                <p className="text-sm text-muted-foreground">{t('admin.storefront.studio.storefrontFeaturesSettings.email_aanmeldingen_en_popup_configuratie')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="newsletter_enabled">Nieuwsbrief inschakelen</Label>
+                <Label htmlFor="newsletter_enabled">{t('admin.storefront.studio.storefrontFeaturesSettings.nieuwsbrief_inschakelen')}</Label>
                 <InfoTooltip text="Activeer nieuwsbrief functionaliteit op je storefront" />
               </div>
               <Switch
@@ -229,7 +238,7 @@ export function StorefrontFeaturesSettings() {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="newsletter_popup">Popup tonen</Label>
+                    <Label htmlFor="newsletter_popup">{t('admin.storefront.studio.storefrontFeaturesSettings.popup_tonen')}</Label>
                     <InfoTooltip text="Toon een popup om bezoekers te vragen zich aan te melden" />
                   </div>
                   <Switch
@@ -243,7 +252,7 @@ export function StorefrontFeaturesSettings() {
                   <div className="space-y-4 pl-4 border-l-2 border-muted">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label>Vertraging: {formData.newsletter_popup_delay_seconds}s</Label>
+                        <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.popup_delay', { seconds: formData.newsletter_popup_delay_seconds })}</Label>
                       </div>
                       <Slider
                         value={[formData.newsletter_popup_delay_seconds]}
@@ -253,17 +262,17 @@ export function StorefrontFeaturesSettings() {
                         step={1}
                       />
                       <p className="text-xs text-muted-foreground">
-                        Seconden voordat de popup verschijnt (0 = direct)
+                        {t('admin.storefront.studio.storefrontFeaturesSettings.popup_delay_hint')}
                       </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="incentive">Incentive tekst</Label>
+                      <Label htmlFor="incentive">{t('admin.storefront.studio.storefrontFeaturesSettings.incentive_tekst')}</Label>
                       <Input
                         id="incentive"
                         value={formData.newsletter_incentive_text}
                         onChange={(e) => updateField('newsletter_incentive_text', e.target.value)}
-                        placeholder="bijv. Ontvang 10% korting op je eerste bestelling!"
+                        placeholder={t('admin.storefront.studio.storefrontFeaturesSettings.bijv_ontvang_10_korting_op_je')}
                       />
                     </div>
                   </div>
@@ -281,15 +290,15 @@ export function StorefrontFeaturesSettings() {
                 <ShoppingCart className="h-5 w-5 text-green-600" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold">Checkout Ervaring</h3>
-                <p className="text-sm text-muted-foreground">Bestelproces en formulier instellingen</p>
+                <h3 className="font-semibold">{t('admin.storefront.studio.storefrontFeaturesSettings.checkout_ervaring')}</h3>
+                <p className="text-sm text-muted-foreground">{t('admin.storefront.studio.storefrontFeaturesSettings.bestelproces_en_formulier_instellingen')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="guest_checkout">Gastbestelling toestaan</Label>
+                <Label htmlFor="guest_checkout">{t('admin.storefront.studio.storefrontFeaturesSettings.gastbestelling_toestaan')}</Label>
                 <InfoTooltip text="Laat klanten bestellen zonder account aan te maken" />
               </div>
               <Switch
@@ -301,7 +310,7 @@ export function StorefrontFeaturesSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="phone_required">Telefoonnummer verplicht</Label>
+                <Label htmlFor="phone_required">{t('admin.storefront.studio.storefrontFeaturesSettings.telefoonnummer_verplicht')}</Label>
                 <InfoTooltip text="Vereist telefoonnummer bij checkout" />
               </div>
               <Switch
@@ -312,7 +321,7 @@ export function StorefrontFeaturesSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Bedrijfsveld</Label>
+              <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.bedrijfsveld')}</Label>
               <Select
                 value={formData.checkout_company_field}
                 onValueChange={(value) => updateField('checkout_company_field', value as any)}
@@ -324,8 +333,8 @@ export function StorefrontFeaturesSettings() {
                   {COMPANY_FIELD_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                        <div className="font-medium">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.company.${option.value}.label`)}</div>
+                        <div className="text-xs text-muted-foreground">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.company.${option.value}.description`)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -335,7 +344,7 @@ export function StorefrontFeaturesSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="address_autocomplete">Adres autocomplete</Label>
+                <Label htmlFor="address_autocomplete">{t('admin.storefront.studio.storefrontFeaturesSettings.adres_autocomplete')}</Label>
                 <InfoTooltip text="Automatisch adres aanvullen via Google/PostcodeAPI" />
               </div>
               <Switch
@@ -355,14 +364,14 @@ export function StorefrontFeaturesSettings() {
                 <Package className="h-5 w-5 text-blue-600" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold">Product Weergave</h3>
-                <p className="text-sm text-muted-foreground">Zoom, varianten en reviews configuratie</p>
+                <h3 className="font-semibold">{t('admin.storefront.studio.storefrontFeaturesSettings.product_weergave')}</h3>
+                <p className="text-sm text-muted-foreground">{t('admin.storefront.studio.storefrontFeaturesSettings.zoom_varianten_en_reviews_configuratie')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-4">
             <div className="space-y-2">
-              <Label>Afbeelding zoom</Label>
+              <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.afbeelding_zoom')}</Label>
               <Select
                 value={formData.product_image_zoom}
                 onValueChange={(value) => updateField('product_image_zoom', value as any)}
@@ -374,8 +383,8 @@ export function StorefrontFeaturesSettings() {
                   {IMAGE_ZOOM_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                        <div className="font-medium">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.zoom.${option.value}.label`)}</div>
+                        <div className="text-xs text-muted-foreground">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.zoom.${option.value}.description`)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -384,7 +393,7 @@ export function StorefrontFeaturesSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Variant weergave</Label>
+              <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.variant_weergave')}</Label>
               <Select
                 value={formData.product_variant_style}
                 onValueChange={(value) => updateField('product_variant_style', value as any)}
@@ -396,8 +405,8 @@ export function StorefrontFeaturesSettings() {
                   {VARIANT_STYLE_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                        <div className="font-medium">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.variant.${option.value}.label`)}</div>
+                        <div className="text-xs text-muted-foreground">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.variant.${option.value}.description`)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -406,7 +415,7 @@ export function StorefrontFeaturesSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Reviews weergave</Label>
+              <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.reviews_weergave')}</Label>
               <Select
                 value={formData.product_reviews_display}
                 onValueChange={(value) => updateField('product_reviews_display', value as any)}
@@ -418,8 +427,8 @@ export function StorefrontFeaturesSettings() {
                   {REVIEWS_DISPLAY_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                        <div className="font-medium">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.reviews.${option.value}.label`)}</div>
+                        <div className="text-xs text-muted-foreground">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.reviews.${option.value}.description`)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -429,7 +438,7 @@ export function StorefrontFeaturesSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="stock_indicator">Voorraad indicator</Label>
+                <Label htmlFor="stock_indicator">{t('admin.storefront.studio.storefrontFeaturesSettings.voorraad_indicator')}</Label>
                 <InfoTooltip text="Toon of een product op voorraad is" />
               </div>
               <Switch
@@ -440,7 +449,7 @@ export function StorefrontFeaturesSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Gerelateerde producten</Label>
+              <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.gerelateerde_producten')}</Label>
               <Select
                 value={formData.product_related_mode}
                 onValueChange={(value) => updateField('product_related_mode', value as any)}
@@ -452,8 +461,8 @@ export function StorefrontFeaturesSettings() {
                   {RELATED_MODE_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                        <div className="font-medium">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.related.${option.value}.label`)}</div>
+                        <div className="text-xs text-muted-foreground">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.related.${option.value}.description`)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -471,15 +480,15 @@ export function StorefrontFeaturesSettings() {
                 <Shield className="h-5 w-5 text-amber-600" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold">Trust & Compliance</h3>
-                <p className="text-sm text-muted-foreground">Cookie banner en vertrouwenssignalen</p>
+                <h3 className="font-semibold">{t('admin.storefront.studio.storefrontFeaturesSettings.trust_compliance')}</h3>
+                <p className="text-sm text-muted-foreground">{t('admin.storefront.studio.storefrontFeaturesSettings.cookie_banner_en_vertrouwenssignalen')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="cookie_banner">Cookie banner</Label>
+                <Label htmlFor="cookie_banner">{t('admin.storefront.studio.storefrontFeaturesSettings.cookie_banner')}</Label>
                 <InfoTooltip text="GDPR-compliant cookie toestemming banner" />
               </div>
               <Switch
@@ -491,7 +500,7 @@ export function StorefrontFeaturesSettings() {
 
             {formData.cookie_banner_enabled && (
               <div className="space-y-2 pl-4 border-l-2 border-muted">
-                <Label>Banner stijl</Label>
+                <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.banner_stijl')}</Label>
                 <Select
                   value={formData.cookie_banner_style}
                   onValueChange={(value) => updateField('cookie_banner_style', value as any)}
@@ -503,8 +512,8 @@ export function StorefrontFeaturesSettings() {
                     {COOKIE_BANNER_STYLES.map((option) => (
                       <SelectItem key={option.value} value={option.value}>
                         <div>
-                          <div className="font-medium">{option.label}</div>
-                          <div className="text-xs text-muted-foreground">{option.description}</div>
+                          <div className="font-medium">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.cookie.${option.value}.label`)}</div>
+                          <div className="text-xs text-muted-foreground">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.cookie.${option.value}.description`)}</div>
                         </div>
                       </SelectItem>
                     ))}
@@ -516,17 +525,17 @@ export function StorefrontFeaturesSettings() {
             {/* Trust Badges */}
             <div className="space-y-3 pt-2 border-t">
               <div className="flex items-center gap-2">
-                <Label>Trust Badges</Label>
+                <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.trust_badges')}</Label>
                 <InfoTooltip text="Kies welke vertrouwenssignalen je wilt tonen in de footer en checkout" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { value: 'veilig_betalen', label: 'Veilig Betalen' },
-                  { value: 'gratis_verzending', label: 'Gratis Verzending' },
-                  { value: 'gratis_retour', label: 'Gratis Retour' },
-                  { value: 'ssl_beveiligd', label: 'SSL Beveiligd' },
+                  { value: 'veilig_betalen', label: t('admin.storefront.studio.storefrontFeaturesSettings.veilig_betalen') },
+                  { value: 'gratis_verzending', label: t('admin.storefront.studio.storefrontFeaturesSettings.gratis_verzending') },
+                  { value: 'gratis_retour', label: t('admin.storefront.studio.storefrontFeaturesSettings.gratis_retour') },
+                  { value: 'ssl_beveiligd', label: t('admin.storefront.studio.storefrontFeaturesSettings.ssl_beveiligd') },
                   { value: 'ideal', label: 'iDEAL' },
-                  { value: 'keurmerk', label: 'Keurmerk' },
+                  { value: 'keurmerk', label: t('admin.storefront.studio.storefrontFeaturesSettings.keurmerk') },
                 ].map((badge) => {
                   const isChecked = formData.trust_badges.includes(badge.value);
                   return (
@@ -562,14 +571,14 @@ export function StorefrontFeaturesSettings() {
                 <Navigation className="h-5 w-5 text-purple-600" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold">Navigatie</h3>
-                <p className="text-sm text-muted-foreground">Menu stijl en header instellingen</p>
+                <h3 className="font-semibold">{t('admin.storefront.studio.storefrontFeaturesSettings.navigatie')}</h3>
+                <p className="text-sm text-muted-foreground">{t('admin.storefront.studio.storefrontFeaturesSettings.menu_stijl_en_header_instellingen')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-4">
             <div className="space-y-2">
-              <Label>Navigatie stijl</Label>
+              <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.navigatie_stijl')}</Label>
               <Select
                 value={formData.nav_style}
                 onValueChange={(value) => updateField('nav_style', value as any)}
@@ -581,8 +590,8 @@ export function StorefrontFeaturesSettings() {
                   {NAV_STYLE_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                        <div className="font-medium">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.nav.${option.value}.label`)}</div>
+                        <div className="text-xs text-muted-foreground">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.nav.${option.value}.description`)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -592,7 +601,7 @@ export function StorefrontFeaturesSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="sticky_header">Sticky header</Label>
+                <Label htmlFor="sticky_header">{t('admin.storefront.studio.storefrontFeaturesSettings.sticky_header')}</Label>
                 <InfoTooltip text="Header blijft zichtbaar tijdens scrollen" />
               </div>
               <Switch
@@ -603,7 +612,7 @@ export function StorefrontFeaturesSettings() {
             </div>
 
             <div className="space-y-2">
-              <Label>Zoekbalk</Label>
+              <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.zoekbalk')}</Label>
               <Select
                 value={formData.search_display}
                 onValueChange={(value) => updateField('search_display', value as any)}
@@ -615,8 +624,8 @@ export function StorefrontFeaturesSettings() {
                   {SEARCH_DISPLAY_OPTIONS.map((option) => (
                     <SelectItem key={option.value} value={option.value}>
                       <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
+                        <div className="font-medium">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.search.${option.value}.label`)}</div>
+                        <div className="text-xs text-muted-foreground">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.search.${option.value}.description`)}</div>
                       </div>
                     </SelectItem>
                   ))}
@@ -626,7 +635,7 @@ export function StorefrontFeaturesSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="mobile_bottom_nav">Mobiele bottom navigation</Label>
+                <Label htmlFor="mobile_bottom_nav">{t('admin.storefront.studio.storefrontFeaturesSettings.mobiele_bottom_navigation')}</Label>
                 <InfoTooltip text="Vaste navigatie onderaan op mobiel" />
               </div>
               <Switch
@@ -646,15 +655,15 @@ export function StorefrontFeaturesSettings() {
                 <TrendingUp className="h-5 w-5 text-rose-600" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold">Conversie Boosters</h3>
-                <p className="text-sm text-muted-foreground">Urgentie en social proof features</p>
+                <h3 className="font-semibold">{t('admin.storefront.studio.storefrontFeaturesSettings.conversie_boosters')}</h3>
+                <p className="text-sm text-muted-foreground">{t('admin.storefront.studio.storefrontFeaturesSettings.urgentie_en_social_proof_features')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="stock_count">Voorraad aantallen tonen</Label>
+                <Label htmlFor="stock_count">{t('admin.storefront.studio.storefrontFeaturesSettings.voorraad_aantallen_tonen')}</Label>
                 <InfoTooltip text="Toon exact aantal op voorraad (bijv. 'Nog 3 op voorraad')" />
               </div>
               <Switch
@@ -666,7 +675,7 @@ export function StorefrontFeaturesSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="recent_purchases">Recente aankopen popup</Label>
+                <Label htmlFor="recent_purchases">{t('admin.storefront.studio.storefrontFeaturesSettings.recente_aankopen_popup')}</Label>
                 <InfoTooltip text="Toont echte aankopen uit je webshop van de laatste 7 dagen (alleen productnaam en tijdstip). Geen aankopen = geen melding." />
               </div>
               <Switch
@@ -678,7 +687,7 @@ export function StorefrontFeaturesSettings() {
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Label htmlFor="exit_intent">Exit-intent popup</Label>
+                <Label htmlFor="exit_intent">{t('admin.storefront.studio.storefrontFeaturesSettings.exit_intent_popup')}</Label>
                 <InfoTooltip text="Toon popup wanneer bezoeker pagina wil verlaten" />
               </div>
               <Switch
@@ -698,15 +707,15 @@ export function StorefrontFeaturesSettings() {
                 <Globe className="h-5 w-5 text-sky-600" />
               </div>
               <div className="text-left">
-                <h3 className="font-semibold">Meertalige Webshop</h3>
-                <p className="text-sm text-muted-foreground">Talen worden automatisch bepaald op basis van je gekoppelde domeinen</p>
+                <h3 className="font-semibold">{t('admin.storefront.studio.storefrontFeaturesSettings.meertalige_webshop')}</h3>
+                <p className="text-sm text-muted-foreground">{t('admin.storefront.studio.storefrontFeaturesSettings.talen_worden_automatisch_bepaald_op_basis')}</p>
               </div>
             </div>
           </AccordionTrigger>
           <AccordionContent className="pb-4 space-y-4">
             {/* Read-only active languages from domains */}
             <div className="space-y-3">
-              <Label>Actieve talen (via domeinen)</Label>
+              <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.actieve_talen_via_domeinen')}</Label>
               <div className="grid grid-cols-2 gap-3">
                 {SUPPORTED_LANGUAGES.map((lang) => {
                   const isActive = formData.storefront_languages.includes(lang.code);
@@ -722,30 +731,30 @@ export function StorefrontFeaturesSettings() {
                     >
                       <span className="text-xl">{lang.flag}</span>
                       <div className="flex-1">
-                        <p className="font-medium text-sm">{lang.name}</p>
+                        <p className="font-medium text-sm">{languageName(i18n.language, lang.code)}</p>
                         <p className="text-xs text-muted-foreground">{lang.code.toUpperCase()}</p>
                       </div>
                       {isDefault && (
-                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">Standaard</span>
+                        <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded">{t('admin.storefront.studio.storefrontFeaturesSettings.standaard')}</span>
                       )}
                       {isActive && !isDefault && (
-                        <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded">Actief</span>
+                        <span className="text-xs bg-green-500/10 text-green-600 px-2 py-0.5 rounded">{t('admin.storefront.studio.storefrontFeaturesSettings.actief')}</span>
                       )}
                     </div>
                   );
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Talen worden automatisch geactiveerd wanneer je een domein met die taal koppelt bij <strong>Instellingen → Domeinen</strong>.
+                {t('admin.storefront.studio.storefrontFeaturesSettings.languages_auto_hint')} <strong>{t('admin.storefront.studio.storefrontFeaturesSettings.instellingen_domeinen')}</strong>.
               </p>
               <a href="/admin/settings?section=domain" className="inline-flex items-center gap-1 text-sm text-primary hover:underline">
-                Domeinen en talen beheren →
+                {t('admin.storefront.studio.storefrontFeaturesSettings.domeinen_en_talen_beheren')}
               </a>
             </div>
 
             {/* Language selector style - the only editable setting here */}
             <div className="space-y-2">
-              <Label>Taalwisselaar stijl</Label>
+              <Label>{t('admin.storefront.studio.storefrontFeaturesSettings.taalwisselaar_stijl')}</Label>
               <Select
                 value={formData.storefront_language_selector_style}
                 onValueChange={(value) => updateField('storefront_language_selector_style', value as any)}
@@ -757,15 +766,15 @@ export function StorefrontFeaturesSettings() {
                   {LANGUAGE_SELECTOR_STYLES.map((style) => (
                     <SelectItem key={style.value} value={style.value}>
                       <div>
-                        <div className="font-medium">{style.label}</div>
-                        <div className="text-xs text-muted-foreground">{style.description}</div>
+                        <div className="font-medium">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.langSelector.${style.value}.label`)}</div>
+                        <div className="text-xs text-muted-foreground">{t(`admin.storefront.studio.storefrontFeaturesSettings.options.langSelector.${style.value}.description`)}</div>
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Bepaalt hoe bezoekers van taal kunnen wisselen in je webshop
+                {t('admin.storefront.studio.storefrontFeaturesSettings.bepaalt_hoe_bezoekers_van_taal_kunnen')}
               </p>
             </div>
           </AccordionContent>
@@ -779,7 +788,7 @@ export function StorefrontFeaturesSettings() {
           disabled={saveThemeSettings.isPending}
           size="lg"
         >
-          {saveThemeSettings.isPending ? 'Opslaan...' : 'Instellingen Opslaan'}
+          {saveThemeSettings.isPending ? t('common.saving') : t('admin.storefront.studio.storefrontFeaturesSettings.instellingen_opslaan')}
         </Button>
       </div>
     </div>

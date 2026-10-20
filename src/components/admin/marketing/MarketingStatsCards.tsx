@@ -12,8 +12,9 @@ interface MarketingStatsCardsProps {
   /**
    * MAIL-UX-1: aantallen uit marketing_contact_counts — dezelfde bron als het tabblad Abonnees en
    * dezelfde regels als de verzending (uitgeschreven, bounce of klacht telt nooit als abonnee).
+   * `null` = de telling mislukte: dan "–", nooit een valse 0.
    */
-  contacts?: Record<ContactStatus, number>;
+  contacts?: Record<ContactStatus, number> | null;
   /** De RPC toont uitschrijvingen enkel aan beheerder, medewerker en marketing; anders geen tegel. */
   canSeeUnsubscribes: boolean;
   isLoading?: boolean;
@@ -22,7 +23,8 @@ interface MarketingStatsCardsProps {
 interface StatCard {
   key: string;
   title: string;
-  value: number;
+  /** null = onbekend (telling mislukt): de tegel toont "–". */
+  value: number | null;
   description: string;
   icon: typeof Send;
   isPercentage?: boolean;
@@ -82,7 +84,7 @@ export function MarketingStatsCards({ stats, contacts, canSeeUnsubscribes, isLoa
     {
       key: 'subscribers',
       title: t(`${base}.subscribers`),
-      value: contacts?.subscribed ?? 0,
+      value: contacts === null ? null : contacts?.subscribed ?? 0,
       description: t(`${base}.subscribers_hint`),
       icon: Users,
       color: 'green',
@@ -94,7 +96,7 @@ export function MarketingStatsCards({ stats, contacts, canSeeUnsubscribes, isLoa
     ...(canSeeUnsubscribes ? [{
       key: 'unsubscribes',
       title: t(`${base}.uitschrijvingen`),
-      value: (contacts?.unsubscribed ?? 0) + (contacts?.bounced ?? 0) + (contacts?.complaint ?? 0),
+      value: contacts === null ? null : (contacts?.unsubscribed ?? 0) + (contacts?.bounced ?? 0) + (contacts?.complaint ?? 0),
       description: t(`${base}.unsubscribes_hint`),
       icon: UserMinus,
       color: 'red',
@@ -157,7 +159,9 @@ export function MarketingStatsCards({ stats, contacts, canSeeUnsubscribes, isLoa
             </CardHeader>
             <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
               <div className="flex items-center gap-2">
-                {card.isPercentage ? (
+                {card.value === null ? (
+                  <span className={cn("text-2xl font-bold tabular-nums", card.valueColor)}>–</span>
+                ) : card.isPercentage ? (
                   <span className={cn("text-2xl font-bold tabular-nums", card.valueColor)}>
                     {card.value.toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%
                   </span>

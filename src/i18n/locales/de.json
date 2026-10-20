@@ -380,7 +380,10 @@
       "currency": "Währung",
       "bankDetails": "Bankverbindung",
       "ibanPlaceholder": "NL91 ABNA 0417 1643 00",
-      "uploadLogo": "Logo hochladen"
+      "uploadLogo": "Logo hochladen",
+      "ibanInvalid": "Ungültiges IBAN-Format",
+      "missingFieldsCount": "Es fehlen {{count}} Pflichtfelder für eine belgische Rechnung.",
+      "saveChanges": "Änderungen speichern"
     },
     "branding": {
       "subtitle": "Logo, Favicon und Hauptfarbe — verwendet in Ihrem Shop, in E-Mails und auf Rechnungen",
@@ -2932,7 +2935,7 @@
         "open_rate": "Öffnungsrate",
         "subscribers": "Abonnenten",
         "uitschrijvingen": "Abmeldungen",
-        "campaigns_count": "Kampagnen: {{value}}",
+        "campaigns_count": "Gesendete Kampagnen: {{value}}",
         "opened_count": "Geöffnet: {{value}}",
         "clicked_count": "Geklickt: {{value}}",
         "subscribers_hint": "Erhalten Ihre Kampagnen",
@@ -6667,6 +6670,192 @@
         "newsletter_where": "Die Anmeldung erfolgt immer mit Bestätigung. Ihre Abonnenten und Ihre Willkommens-E-Mail verwalten Sie unter Marketing:",
         "newsletter_link_email": "E-Mail → Abonnenten",
         "newsletter_link_automations": "E-Mail → Automatisierungen → Willkommensserie"
+      },
+      "studio": {
+        "storefrontFeaturesSettings": {
+          "nieuwsbrief": "Newsletter",
+          "email_aanmeldingen_en_popup_configuratie": "E-Mail-Anmeldungen und Pop-up",
+          "nieuwsbrief_inschakelen": "Newsletter aktivieren",
+          "popup_tonen": "Pop-up anzeigen",
+          "popup_delay": "Verzögerung: {{seconds}} s",
+          "popup_delay_hint": "Sekunden, bevor das Pop-up erscheint (0 = sofort)",
+          "incentive_tekst": "Anreiztext",
+          "bijv_ontvang_10_korting_op_je": "z. B. 10 % Rabatt auf Ihre erste Bestellung!",
+          "checkout_ervaring": "Kasse",
+          "bestelproces_en_formulier_instellingen": "Bestellprozess und Formular",
+          "gastbestelling_toestaan": "Gastbestellung erlauben",
+          "telefoonnummer_verplicht": "Telefonnummer erforderlich",
+          "bedrijfsveld": "Firmenfeld",
+          "adres_autocomplete": "Adress-Autovervollständigung",
+          "product_weergave": "Produktanzeige",
+          "zoom_varianten_en_reviews_configuratie": "Zoom, Varianten und Bewertungen",
+          "afbeelding_zoom": "Bildzoom",
+          "variant_weergave": "Variantenanzeige",
+          "reviews_weergave": "Bewertungsanzeige",
+          "voorraad_indicator": "Lagerindikator",
+          "gerelateerde_producten": "Ähnliche Produkte",
+          "trust_compliance": "Vertrauen und Compliance",
+          "cookie_banner_en_vertrouwenssignalen": "Cookie-Banner und Vertrauenssignale",
+          "cookie_banner": "Cookie-Banner",
+          "banner_stijl": "Banner-Stil",
+          "trust_badges": "Vertrauenssiegel",
+          "veilig_betalen": "Sicher bezahlen",
+          "gratis_verzending": "Kostenloser Versand",
+          "gratis_retour": "Kostenlose Rücksendung",
+          "ssl_beveiligd": "SSL-gesichert",
+          "keurmerk": "Gütesiegel",
+          "navigatie": "Navigation",
+          "menu_stijl_en_header_instellingen": "Menüstil und Kopfzeile",
+          "navigatie_stijl": "Navigationsstil",
+          "sticky_header": "Fixierte Kopfzeile",
+          "zoekbalk": "Suchleiste",
+          "mobiele_bottom_navigation": "Untere Navigation auf Mobilgeräten",
+          "conversie_boosters": "Conversion-Booster",
+          "urgentie_en_social_proof_features": "Dringlichkeit und Social Proof",
+          "voorraad_aantallen_tonen": "Lagerbestand anzeigen",
+          "recente_aankopen_popup": "Pop-up mit letzten Käufen",
+          "exit_intent_popup": "Exit-Intent-Pop-up",
+          "meertalige_webshop": "Mehrsprachiger Shop",
+          "talen_worden_automatisch_bepaald_op_basis": "Sprachen werden automatisch anhand Ihrer verbundenen Domains festgelegt",
+          "actieve_talen_via_domeinen": "Aktive Sprachen (über Domains)",
+          "standaard": "Standard",
+          "actief": "Aktiv",
+          "languages_auto_hint": "Sprachen werden automatisch aktiviert, wenn Sie eine Domain in dieser Sprache verbinden unter",
+          "instellingen_domeinen": "Einstellungen → Domains",
+          "domeinen_en_talen_beheren": "Domains und Sprachen verwalten →",
+          "taalwisselaar_stijl": "Stil der Sprachauswahl",
+          "bepaalt_hoe_bezoekers_van_taal_kunnen": "Legt fest, wie Besucher in Ihrem Shop die Sprache wechseln",
+          "instellingen_opslaan": "Einstellungen speichern",
+          "saved": "Shop-Einstellungen gespeichert",
+          "options": {
+            "company": {
+              "hidden": {
+                "label": "Ausgeblendet",
+                "description": "Firmenfeld nicht anzeigen"
+              },
+              "optional": {
+                "label": "Optional",
+                "description": "Kunden können einen Firmennamen angeben"
+              },
+              "required": {
+                "label": "Erforderlich",
+                "description": "Firmenname ist erforderlich"
+              }
+            },
+            "zoom": {
+              "hover": {
+                "label": "Hover-Zoom",
+                "description": "Zoom beim Überfahren mit der Maus"
+              },
+              "click": {
+                "label": "Klick-Zoom",
+                "description": "Zoom per Klick"
+              },
+              "lightbox": {
+                "label": "Lightbox",
+                "description": "Im Vollbild öffnen"
+              },
+              "none": {
+                "label": "Aus",
+                "description": "Kein Zoom"
+              }
+            },
+            "variant": {
+              "dropdown": {
+                "label": "Dropdown",
+                "description": "Auswahl über ein Dropdown"
+              },
+              "swatches": {
+                "label": "Farbfelder",
+                "description": "Schaltflächen für Farbe und Größe"
+              },
+              "buttons": {
+                "label": "Schaltflächen",
+                "description": "Standardschaltflächen"
+              }
+            },
+            "reviews": {
+              "full": {
+                "label": "Vollständig",
+                "description": "Bewertungen mit Text anzeigen"
+              },
+              "stars_only": {
+                "label": "Nur Sterne",
+                "description": "Nur die Sternebewertung anzeigen"
+              },
+              "hidden": {
+                "label": "Ausgeblendet",
+                "description": "Keine Bewertungen anzeigen"
+              }
+            },
+            "related": {
+              "auto": {
+                "label": "Automatisch",
+                "description": "Anhand von Kategorie und Tags"
+              },
+              "manual": {
+                "label": "Manuell",
+                "description": "Ähnliche Produkte selbst auswählen"
+              },
+              "off": {
+                "label": "Aus",
+                "description": "Keine ähnlichen Produkte"
+              }
+            },
+            "cookie": {
+              "minimal": {
+                "label": "Minimal",
+                "description": "Kleine Leiste unten"
+              },
+              "detailed": {
+                "label": "Ausführlich",
+                "description": "Mit Cookie-Kategorien"
+              },
+              "popup": {
+                "label": "Pop-up",
+                "description": "Fenster in der Mitte"
+              }
+            },
+            "nav": {
+              "simple": {
+                "label": "Einfach",
+                "description": "Standard-Navigationsmenü"
+              },
+              "mega_menu": {
+                "label": "Mega-Menü",
+                "description": "Aufklappbares Menü mit Kategorien"
+              }
+            },
+            "search": {
+              "visible": {
+                "label": "Immer sichtbar",
+                "description": "Suchleiste immer anzeigen"
+              },
+              "icon": {
+                "label": "Nur Symbol",
+                "description": "Suchsymbol, das sich aufklappt"
+              },
+              "hidden": {
+                "label": "Ausgeblendet",
+                "description": "Keine Suchleiste anzeigen"
+              }
+            },
+            "langSelector": {
+              "dropdown": {
+                "label": "Dropdown",
+                "description": "Sprache über ein Dropdown wählen"
+              },
+              "flags": {
+                "label": "Flaggen",
+                "description": "Anklickbare Flaggensymbole"
+              },
+              "text": {
+                "label": "Textlinks",
+                "description": "Sprachcodes als Links (NL | EN | FR)"
+              }
+            }
+          }
+        }
       }
     },
     "allergens": {

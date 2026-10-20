@@ -40,6 +40,14 @@ Go van Akke 20-10 13:02 ("automations als tab", "design op mobile en desktop", "
 - Segmentkaarten hebben geen bewerken/verwijderen (bestaand). `navigation.items.email_automations` en de keys van de oude blokken blijven in de JSON (ongebruikt).
 - Bestaande meldingen met `/admin/marketing/automations` werken via de redirect; `canonicalAdminPath` niet aangepast (zou 3 extra functies laten deployen).
 
+**Fixups na review (20-10)**
+- Campagnedialoog: Template/Doelgroep onder elkaar op mobiel; placeholder zonder jaartal; NL consequent "e-mail".
+- Tegel "Verzonden campagnes: n" (telt enkel verzonden, het tabblad telt alle). Telling mislukt → "–" i.p.v. 0.
+- Logo-backfill: enkel een tenant_admin van de winkel zelf (niet een meekijkende platformbeheerder); poging per winkel+logo-URL 7 dagen in localStorage; logo > 5 MB (Content-Length of blob) wordt niet opgehaald.
+- Grafiek: `--chart-1..3` bestonden niet in `index.css` → lijnen, vlakken en legendasymbolen waren onzichtbaar (ook in CampaignPerformanceChart). Toegevoegd voor licht en donker. Live VanXcel heeft 0 rijen in `campaign_sends` voor zijn enige campagne (18-09, total_sent 3): daar blijft de grafiek terecht leeg.
+- Stapdialoog vs kaart: geen bug; de mock had step_order vanaf 0 (live begint die op 1). De inhoudstalen van automatiseringen zijn nl/en/fr/de (PRESET_LANGS); de dialoogteksten bestaan in uk.
+- i18n: `StorefrontFeaturesSettings.tsx` (labels, 9 optielijsten, toast, taalnamen via Intl.DisplayNames) en `BusinessSettings.tsx` (IBAN-fout, ontbrekende velden, opslaan, land- en valutanamen via Intl.DisplayNames). Lint per bestand gelijk aan HEAD.
+
 ## MAIL-CLEAN-1 — Oude nieuwsbriefroute opgeruimd: welkomstmail naar de Welkomstreeks, double opt-in vast — 20 oktober 2026
 
 Go van Akke 20-10 10:00 (incl. het weghalen van de double-opt-in-schakelaar). Branch `mail-clean-1` op `mail-logo-1` (b4e1bf2), niet gepusht.

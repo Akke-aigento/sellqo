@@ -352,7 +352,10 @@
       "currency": "Валюта",
       "bankDetails": "Банківські реквізити",
       "ibanPlaceholder": "NL91 ABNA 0417 1643 00",
-      "uploadLogo": "Завантажити логотип"
+      "uploadLogo": "Завантажити логотип",
+      "ibanInvalid": "Неправильний формат IBAN",
+      "missingFieldsCount": "Бракує обовʼязкових полів для бельгійського рахунку: {{count}}.",
+      "saveChanges": "Зберегти зміни"
     },
     "branding": {
       "subtitle": "Логотип, фавікон і основний колір — використовуються в магазині, листах і рахунках",
@@ -3219,7 +3222,7 @@
         "open_rate": "Частота відкриттів",
         "subscribers": "Підписники",
         "uitschrijvingen": "Відписки",
-        "campaigns_count": "Кампаній: {{value}}",
+        "campaigns_count": "Надісланих кампаній: {{value}}",
         "opened_count": "Відкрито: {{value}}",
         "clicked_count": "Кліків: {{value}}",
         "subscribers_hint": "Отримують ваші кампанії",
@@ -6954,6 +6957,192 @@
         "newsletter_where": "Підписка завжди з підтвердженням. Підписниками та вітальним листом ви керуєте в розділі «Маркетинг»:",
         "newsletter_link_email": "Email → Підписники",
         "newsletter_link_automations": "Email → Автоматизації → Вітальна серія"
+      },
+      "studio": {
+        "storefrontFeaturesSettings": {
+          "nieuwsbrief": "Розсилка",
+          "email_aanmeldingen_en_popup_configuratie": "Підписки email і спливне вікно",
+          "nieuwsbrief_inschakelen": "Увімкнути розсилку",
+          "popup_tonen": "Показувати спливне вікно",
+          "popup_delay": "Затримка: {{seconds}} с",
+          "popup_delay_hint": "Секунд до появи спливного вікна (0 = одразу)",
+          "incentive_tekst": "Текст-стимул",
+          "bijv_ontvang_10_korting_op_je": "напр. Отримайте 10% знижки на перше замовлення!",
+          "checkout_ervaring": "Оформлення замовлення",
+          "bestelproces_en_formulier_instellingen": "Процес замовлення та форма",
+          "gastbestelling_toestaan": "Дозволити замовлення без облікового запису",
+          "telefoonnummer_verplicht": "Номер телефону обовʼязковий",
+          "bedrijfsveld": "Поле компанії",
+          "adres_autocomplete": "Автозаповнення адреси",
+          "product_weergave": "Відображення товарів",
+          "zoom_varianten_en_reviews_configuratie": "Масштаб, варіанти та відгуки",
+          "afbeelding_zoom": "Масштабування зображень",
+          "variant_weergave": "Відображення варіантів",
+          "reviews_weergave": "Відображення відгуків",
+          "voorraad_indicator": "Індикатор наявності",
+          "gerelateerde_producten": "Повʼязані товари",
+          "trust_compliance": "Довіра та відповідність",
+          "cookie_banner_en_vertrouwenssignalen": "Банер cookie та сигнали довіри",
+          "cookie_banner": "Банер cookie",
+          "banner_stijl": "Стиль банера",
+          "trust_badges": "Значки довіри",
+          "veilig_betalen": "Безпечна оплата",
+          "gratis_verzending": "Безкоштовна доставка",
+          "gratis_retour": "Безкоштовне повернення",
+          "ssl_beveiligd": "Захищено SSL",
+          "keurmerk": "Знак якості",
+          "navigatie": "Навігація",
+          "menu_stijl_en_header_instellingen": "Стиль меню та шапка",
+          "navigatie_stijl": "Стиль навігації",
+          "sticky_header": "Закріплена шапка",
+          "zoekbalk": "Рядок пошуку",
+          "mobiele_bottom_navigation": "Нижня навігація на мобільних",
+          "conversie_boosters": "Підсилювачі конверсії",
+          "urgentie_en_social_proof_features": "Терміновість і соціальний доказ",
+          "voorraad_aantallen_tonen": "Показувати кількість на складі",
+          "recente_aankopen_popup": "Спливне вікно з останніми покупками",
+          "exit_intent_popup": "Спливне вікно при виході",
+          "meertalige_webshop": "Багатомовний магазин",
+          "talen_worden_automatisch_bepaald_op_basis": "Мови визначаються автоматично на основі підключених доменів",
+          "actieve_talen_via_domeinen": "Активні мови (через домени)",
+          "standaard": "За замовчуванням",
+          "actief": "Активна",
+          "languages_auto_hint": "Мови активуються автоматично, коли ви підключаєте домен цією мовою в розділі",
+          "instellingen_domeinen": "Налаштування → Домени",
+          "domeinen_en_talen_beheren": "Керувати доменами та мовами →",
+          "taalwisselaar_stijl": "Стиль перемикача мов",
+          "bepaalt_hoe_bezoekers_van_taal_kunnen": "Визначає, як відвідувачі змінюють мову у вашому магазині",
+          "instellingen_opslaan": "Зберегти налаштування",
+          "saved": "Налаштування магазину збережено",
+          "options": {
+            "company": {
+              "hidden": {
+                "label": "Приховано",
+                "description": "Не показувати поле компанії"
+              },
+              "optional": {
+                "label": "Необовʼязково",
+                "description": "Клієнт може вказати назву компанії"
+              },
+              "required": {
+                "label": "Обовʼязково",
+                "description": "Назва компанії обовʼязкова"
+              }
+            },
+            "zoom": {
+              "hover": {
+                "label": "Масштаб при наведенні",
+                "description": "Збільшення при наведенні миші"
+              },
+              "click": {
+                "label": "Масштаб при кліку",
+                "description": "Збільшення після кліку"
+              },
+              "lightbox": {
+                "label": "Повний екран",
+                "description": "Відкрити на весь екран"
+              },
+              "none": {
+                "label": "Вимкнено",
+                "description": "Без масштабування"
+              }
+            },
+            "variant": {
+              "dropdown": {
+                "label": "Список",
+                "description": "Вибір зі списку"
+              },
+              "swatches": {
+                "label": "Зразки",
+                "description": "Кнопки кольору й розміру"
+              },
+              "buttons": {
+                "label": "Кнопки",
+                "description": "Звичайні кнопки"
+              }
+            },
+            "reviews": {
+              "full": {
+                "label": "Повністю",
+                "description": "Показувати відгуки з текстом"
+              },
+              "stars_only": {
+                "label": "Лише зірки",
+                "description": "Показувати лише рейтинг"
+              },
+              "hidden": {
+                "label": "Приховано",
+                "description": "Не показувати відгуки"
+              }
+            },
+            "related": {
+              "auto": {
+                "label": "Автоматично",
+                "description": "За категорією та тегами"
+              },
+              "manual": {
+                "label": "Вручну",
+                "description": "Самостійно вибирати повʼязані товари"
+              },
+              "off": {
+                "label": "Вимкнено",
+                "description": "Без повʼязаних товарів"
+              }
+            },
+            "cookie": {
+              "minimal": {
+                "label": "Мінімальний",
+                "description": "Невелика смуга внизу"
+              },
+              "detailed": {
+                "label": "Детальний",
+                "description": "З категоріями cookie"
+              },
+              "popup": {
+                "label": "Спливне вікно",
+                "description": "Вікно по центру"
+              }
+            },
+            "nav": {
+              "simple": {
+                "label": "Простий",
+                "description": "Стандартне меню навігації"
+              },
+              "mega_menu": {
+                "label": "Мегаменю",
+                "description": "Розгортне меню з категоріями"
+              }
+            },
+            "search": {
+              "visible": {
+                "label": "Завжди видимий",
+                "description": "Завжди показувати рядок пошуку"
+              },
+              "icon": {
+                "label": "Лише значок",
+                "description": "Значок пошуку, що розгортається"
+              },
+              "hidden": {
+                "label": "Приховано",
+                "description": "Не показувати рядок пошуку"
+              }
+            },
+            "langSelector": {
+              "dropdown": {
+                "label": "Список",
+                "description": "Вибір мови зі списку"
+              },
+              "flags": {
+                "label": "Прапорці",
+                "description": "Клікабельні значки прапорців"
+              },
+              "text": {
+                "label": "Текстові посилання",
+                "description": "Коди мов як посилання (NL | EN | FR)"
+              }
+            }
+          }
+        }
       }
     },
     "allergens": {

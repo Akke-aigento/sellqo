@@ -18,44 +18,27 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Verhuisd uit StoreSettings (WEBSHOP-4b).
 const CURRENCIES = [
-  { code: 'EUR', name: 'Euro (€)', symbol: '€' },
-  { code: 'USD', name: 'US Dollar ($)', symbol: '$' },
-  { code: 'GBP', name: 'Brits Pond (£)', symbol: '£' },
+  { code: 'EUR', symbol: '€' },
+  { code: 'USD', symbol: '$' },
+  { code: 'GBP', symbol: '£' },
 ];
 
-// EU countries for VAT purposes
-const EU_COUNTRIES = [
-  { code: 'NL', name: 'Nederland' },
-  { code: 'BE', name: 'België' },
-  { code: 'DE', name: 'Duitsland' },
-  { code: 'FR', name: 'Frankrijk' },
-  { code: 'LU', name: 'Luxemburg' },
-  { code: 'AT', name: 'Oostenrijk' },
-  { code: 'IT', name: 'Italië' },
-  { code: 'ES', name: 'Spanje' },
-  { code: 'PT', name: 'Portugal' },
-  { code: 'IE', name: 'Ierland' },
-  { code: 'FI', name: 'Finland' },
-  { code: 'SE', name: 'Zweden' },
-  { code: 'DK', name: 'Denemarken' },
-  { code: 'PL', name: 'Polen' },
-  { code: 'CZ', name: 'Tsjechië' },
-  { code: 'SK', name: 'Slowakije' },
-  { code: 'HU', name: 'Hongarije' },
-  { code: 'RO', name: 'Roemenië' },
-  { code: 'BG', name: 'Bulgarije' },
-  { code: 'GR', name: 'Griekenland' },
-  { code: 'CY', name: 'Cyprus' },
-  { code: 'MT', name: 'Malta' },
-  { code: 'EE', name: 'Estland' },
-  { code: 'LV', name: 'Letland' },
-  { code: 'LT', name: 'Litouwen' },
-  { code: 'SI', name: 'Slovenië' },
-  { code: 'HR', name: 'Kroatië' },
+// EU countries for VAT purposes. Namen komen uit Intl.DisplayNames in de taal van de UI (MAIL-UX-1).
+const EU_COUNTRY_CODES = [
+  'NL', 'BE', 'DE', 'FR', 'LU', 'AT', 'IT', 'ES', 'PT', 'IE', 'FI', 'SE', 'DK', 'PL', 'CZ', 'SK', 'HU', 'RO', 'BG', 'GR', 'CY', 'MT', 'EE', 'LV', 'LT', 'SI', 'HR',
 ];
+
+/** Land- of valutanaam in de UI-taal; zonder Intl.DisplayNames de code zelf. */
+function displayName(lang: string, type: 'region' | 'currency', code: string): string {
+  try {
+    return new Intl.DisplayNames([lang], { type }).of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
 
 export function BusinessSettings() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
   // MAIL-LOGO-1: uploadLogo maakt ook de e-mailvariant (tenants.email_logo_url).
@@ -141,7 +124,7 @@ export function BusinessSettings() {
     // Validate IBAN when it changes
     if (field === 'iban') {
       if (value && !validateIBAN(value)) {
-        setIbanError('Ongeldig IBAN formaat');
+        setIbanError(t('settings.business.ibanInvalid'));
       } else {
         setIbanError(null);
       }
@@ -222,7 +205,7 @@ export function BusinessSettings() {
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              Er ontbreken {errorCount} verplichte velden voor Belgische factuur compliance. 
+              {t('settings.business.missingFieldsCount', { count: errorCount })}{' '}
               {t('settings.business.requiredFieldsAlert')}
             </AlertDescription>
           </Alert>
@@ -356,9 +339,9 @@ export function BusinessSettings() {
                 <SelectValue placeholder={t('settings.business.countryPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
-                {EU_COUNTRIES.map((country) => (
-                  <SelectItem key={country.code} value={country.code}>
-                    {country.name}
+                {EU_COUNTRY_CODES.map((code) => (
+                  <SelectItem key={code} value={code}>
+                    {displayName(i18n.language, 'region', code)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -382,7 +365,7 @@ export function BusinessSettings() {
               <SelectContent>
                 {CURRENCIES.map((currency) => (
                   <SelectItem key={currency.code} value={currency.code}>
-                    {currency.symbol} {currency.name}
+                    {currency.symbol} {displayName(i18n.language, 'currency', currency.code)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -458,7 +441,7 @@ export function BusinessSettings() {
 
         <Button onClick={handleSave} disabled={isSaving}>
           <Save className="h-4 w-4 mr-2" />
-          {isSaving ? 'Opslaan...' : 'Wijzigingen opslaan'}
+          {isSaving ? t('common.saving') : t('settings.business.saveChanges')}
         </Button>
       </CardContent>
     </Card>

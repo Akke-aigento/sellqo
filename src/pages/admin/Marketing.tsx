@@ -109,7 +109,7 @@ export default function MarketingPage() {
   const { segments, isLoading: segmentsLoading, createSegment } = useCustomerSegments();
   // MAIL-UX-1: abonnees en uitschrijvingen uit dezelfde bron als het tabblad Abonnees
   // (marketing_contact_counts, de regels van de verzending) — de cijfers kunnen niet meer verschillen.
-  const { data: contactCounts, isLoading: contactCountsLoading } = useMarketingContactCounts();
+  const { data: contactCounts, isLoading: contactCountsLoading, isError: contactCountsError } = useMarketingContactCounts();
   // MAIL-UX-1: ontbrekende mailversie van het logo stil op de achtergrond aanmaken (best effort).
   useEmailLogoAutoBackfill();
 
@@ -228,7 +228,7 @@ export default function MarketingPage() {
           <MarketingEmailUsageIndicator />
           <MarketingStatsCards
             stats={stats || defaultStats}
-            contacts={contactCounts}
+            contacts={contactCountsError ? null : contactCounts}
             canSeeUnsubscribes={canWriteMarketing}
             isLoading={statsLoading || contactCountsLoading}
           />

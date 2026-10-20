@@ -106,11 +106,20 @@ export async function makeAndSaveEmailLogoVariant(
   return { variant, reason, result };
 }
 
-/** Haalt een bestaand logo op als bestand. Gooit bij een netwerk- of HTTP-fout: dan wordt er niets opgeslagen. */
+/** Bovengrens voor een bestaand logo dat we ophalen om er een mailversie van te maken (MAIL-UX-1). */
+export const MAX_LOGO_FETCH_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Haalt een bestaand logo op als bestand. Gooit bij een netwerk- of HTTP-fout of een bestand
+ * groter dan 5 MB (eerst op Content-Length, dan op de echte grootte): dan wordt er niets opgeslagen.
+ */
 export async function fetchLogoFile(url: string): Promise<File> {
   const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
   if (!res.ok) throw new Error(`logo ophalen mislukt: HTTP ${res.status}`);
+  const declared = Number(res.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > MAX_LOGO_FETCH_BYTES) throw new Error(`logo te groot: ${declared} bytes`);
   const blob = await res.blob();
+  if (blob.size > MAX_LOGO_FETCH_BYTES) throw new Error(`logo te groot: ${blob.size} bytes`);
   const meta = logoFileMeta(url, res.headers.get('content-type') || blob.type);
   return new File([blob], meta.name, { type: meta.type });
 }

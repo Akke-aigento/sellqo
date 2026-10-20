@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
-import { useCan } from '@/hooks/useCan';
+import { useAuth } from '@/hooks/useAuth';
 import { emailLogoState, type EmailLogoState } from '@/lib/emailLogo';
 import { fetchLogoFile, makeAndSaveEmailLogoVariant } from '@/hooks/useLogoUpload';
 
@@ -11,11 +11,11 @@ import { fetchLogoFile, makeAndSaveEmailLogoVariant } from '@/hooks/useLogoUploa
  *
  * - useEmailLogoState: welk logo de mail nu toont en of er nog een mailversie van nodig is.
  * - useEmailLogoAutoBackfill: maakt die versie één keer stil op de achtergrond, zodra een
- *   beheerder Marketing of Instellingen opent. Best effort: een fout ziet de gebruiker niet,
- *   en per winkel en logo wordt het hooguit één keer per sessie geprobeerd.
+ *   beheerder van die winkel Marketing of Instellingen opent. Best effort: een fout ziet de
+ *   gebruiker niet, en per winkel en logo-URL hooguit één poging per 7 dagen (localStorage).
  *
- * Schrijven mag enkel voor wie tenants mag bijwerken (tenant_admin of platformbeheerder, RLS
- * "Tenant admins can update their own tenant"); dat is useCan('write', 'settings_general').
+ * De knop (EmailLogoFromCurrentButton) volgt useCan('write', 'settings_general'), zoals de RLS
+ * "Tenant admins can update their own tenant"; de stille backfill enkel een tenant_admin van de winkel.
  */
 export function useEmailLogoState() {
   const { currentTenant } = useTenant();
@@ -41,12 +41,15 @@ export function useEmailLogoState() {
   });
 }
 
+/** Een poging (gelukt of niet) per winkel en logo-URL geldt 7 dagen; daarna mag het opnieuw. */
+const RETRY_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 const attempted = new Set<string>();
 
 function alreadyTried(key: string): boolean {
   if (attempted.has(key)) return true;
   try {
-    return window.sessionStorage.getItem(key) === '1';
+    const at = Number(window.localStorage.getItem(key));
+    return Number.isFinite(at) && at > 0 && Date.now() - at < RETRY_AFTER_MS;
   } catch {
     return false;
   }
@@ -55,21 +58,25 @@ function alreadyTried(key: string): boolean {
 function markTried(key: string) {
   attempted.add(key);
   try {
-    window.sessionStorage.setItem(key, '1');
+    window.localStorage.setItem(key, String(Date.now()));
   } catch {
-    // sessionStorage niet beschikbaar: het geheugen in deze tab volstaat
+    // localStorage niet beschikbaar: het geheugen in deze tab volstaat
   }
 }
 
 export function useEmailLogoAutoBackfill() {
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
-  const canWrite = useCan('write', 'settings_general');
+  // Enkel een beheerder van déze winkel, niet een platformbeheerder die meekijkt: die zou
+  // anders bij elke winkel die hij opent stil een logo laten herschrijven.
+  const { roles } = useAuth();
+  const isOwnTenantAdmin = !!tenantId
+    && (roles ?? []).some((r) => r.role === 'tenant_admin' && r.tenant_id === tenantId);
   const { data: state } = useEmailLogoState();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (!tenantId || !canWrite || !state?.needsVariant) return;
+    if (!tenantId || !isOwnTenantAdmin || !state?.needsVariant) return;
     const key = `sellqo:email-logo-backfill:${tenantId}:${state.currentLogo}`;
     if (alreadyTried(key)) return;
     // Even wachten: de pagina zelf laadt eerst.
@@ -87,5 +94,5 @@ export function useEmailLogoAutoBackfill() {
       }
     }, 1500);
     return () => window.clearTimeout(timer);
-  }, [tenantId, canWrite, state, queryClient]);
+  }, [tenantId, isOwnTenantAdmin, state, queryClient]);
 }
