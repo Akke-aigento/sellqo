@@ -1,3 +1,35 @@
+## DATA-20OKT — Astra Sleep productlink-template, Engelse welkomstmail VanXcel, nieuwsbriefteksten custom frontends — 20 oktober 2026
+
+Go van Akke 20-10 14:06 ("alles aanpakken"). Branch `fix-data` op `origin/main` 05b4080, niet gepusht. Frontendwerk via de Lovable-agent in de vier projecten, niet gepubliceerd.
+
+**Root cause**
+- Astra Sleep (`tenants` 169cf7b9…, slug `astra-sleep`): `product_url_template` was null, als enige van de zes custom-frontend-tenants. Productlinks naar de eigen frontend ontbraken. Hun storefront heeft de route `src/routes/products.$slug.tsx`.
+- VanXcel welkomstreeks (`email_campaigns` 9893658c…, stap 1 van `welcome_series`): enkel NL (`available_languages` ['nl'], `translations` {}). Een Engelstalige klant (vanxcel.com) kreeg de NL-mail.
+- Custom frontends: na MAIL-1a geeft `newsletter_subscribe` (`storefront-api` r. ~5412-5525) bij double opt-in `requires_confirmation: true` terug, maar Loveke, VanXcel en Mancini Milano toonden nog "ingeschreven". Loveke stuurde `locale` i.p.v. `language`, VanXcel en Mancini geen taal. Zona Dorata: het formulier in `src/components/site/Footer.tsx` deed enkel `preventDefault()` (dode knop).
+
+**Uitgevoerd**
+- Migratie `supabase/migrations/20261020150000_data_astra_url_vanxcel_welcome_en.sql`: snapshots `snapshots.astra_sleep_20261020_tenants_product_url` en `snapshots.vanxcel_20261020_welcome_step`. Astra: `product_url_template = 'https://astrasleep.shop/products/{slug}'` enkel als null. VanXcel: `translations.en = {subject, preview_text: null, html_content}` en `available_languages` nl+en, dezelfde structuur als `useEmailAutomations.saveStep`; `campaignQueue.renderFor` kiest 'en' bij een Engelstalige klant. EN-body = live NL-body met 20 `replace()`'s van exacte NL-fragmenten; enkel als er nog geen 'en' is en de NL-body nog md5 `4ba371d5…` heeft (anders NOTICE, niets geschreven).
+- Lovable-agent (eigen projecten, niet gepubliceerd): Loveke `NewsletterSignup.tsx`, `integrations/sellqo/hooks.ts`, `i18n/{nl,en,fr}.json`; VanXcel `Newsletter.tsx`, `i18n/locales/{nl,en,fr,de}.json`; Mancini Milano `lib/newsletter.ts` (nieuw), `integrations/sellqo/{api,hooks}.ts`, `pages/Index.tsx`, `layout/Footer.tsx`, `classic/ClassicNewsletter.tsx`, `test/newsletter.test.ts` (nieuw); Zona Dorata `site/Footer.tsx` (via de bestaande proxy `sellqoFetch('/newsletter')`, source 'footer').
+
+**Security-keuzes**
+- n.v.t.: geen RLS, policy of grant. Enkel data in twee rijen. De frontends roepen dezelfde actie aan via hun bestaande server-side proxy; geen sleutels in clientcode (diffs nagekeken).
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` niet gewijzigd; het contract blijft (frontends sturen enkel de reeds ondersteunde param `language` mee). `tenants.product_url_template` en `email_campaigns` zitten niet in `tenant_theme_settings`.
+
+**Verificatie**
+- PGlite met een byte-exacte kopie van de live body (md5 gelijk): migratie 2x, tweede run identiek; Astra gezet, andere tenants ongemoeid; snapshots met oude waarden; NL-body ongewijzigd; placeholders NL = EN (7); tagstructuur identiek op `lang` na; geen NL-zin in de zichtbare EN-tekst; `vanxcel.be` zichtbaar enkel nog als `vanxcel.com`. Guard getest: gewijzigde body → niets geschreven.
+- Lovable: per project `get_diff` nagekeken, geen restyling, tsgo groen volgens de agent.
+
+**Samenhang**
+- Bestond al: welkomstreeks-stapdialoog (`AutomationStepDialog`, tabblad EN) leest `translations.en`, dus de EN-versie is daar zichtbaar en bewerkbaar. Productlink-templates bestonden voor de andere vijf custom frontends.
+- Aangepast: succesteksten van vier nieuwsbriefformulieren volgen nu double opt-in; Zona Dorata-knop doet nu iets.
+- Bewust ongemoeid: HTML-commentaar in de EN-mail blijft NL (onzichtbaar); `{{shop_url}}` blijft de winkel-URL van de tenant. Benny Rich en Astra Sleep hebben geen nieuwsbriefformulier.
+
+**Bewust ongemoeid / Vervolg**
+- Astra Sleep staat in `MAINTENANCE_MODE = true` (`src/lib/site-status.ts`): productlinks tonen de onderhoudspagina tot die op false staat.
+- `storefront-api` aanvaardt enkel nl/en/fr/de als `language`; Mancini en Zona sturen 'en' (sites zijn Engelstalig).
+- Migratie draaien en de vier frontends publiceren: Akke.
 ## PDF-EMOJI-1 — PDF's crashen niet meer op emoji, Cyrillisch of CJK — 20 oktober 2026
 
 Go van Akke 20-10 14:06 ("alles aanpakken"), na de vondst van Lovable op 19-10. Branch `fix-ops`, niet gepusht.
