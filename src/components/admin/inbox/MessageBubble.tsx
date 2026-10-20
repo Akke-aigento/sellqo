@@ -79,11 +79,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
     // Strip HTML but handle empty/placeholder results
     if (message.body_html) {
       const stripped = message.body_html.replace(/<[^>]*>/g, '').trim();
-      // Check for actual content (not placeholder text)
-      if (stripped && 
-          !stripped.includes('Geen inhoud') && 
-          !stripped.includes('niet beschikbaar') &&
-          stripped.length > 0) {
+      // Alleen echt lege bodies krijgen de plaatshouder.
+      if (stripped) {
         // Clean any remaining CID references from the stripped HTML
         const cleaned = cleanCidReferences(stripped);
         return cleaned || '(Geen inhoud beschikbaar)';

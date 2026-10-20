@@ -8080,6 +8080,12 @@
         "CIRCUMFERENCE_HALVED": "Printful подав груди як обхват; перераховано на ширину (поділено на 2).",
         "CONVERTED_FROM_INCHES": "Printful подав лише дюйми; перераховано в см."
       }
+    },
+    "supplierDocuments": {
+      "openen_mislukt": "Не вдалося відкрити документ. Спробуйте ще раз."
+    },
+    "purchaseOrders": {
+      "aanmaken_nog_niet_beschikbaar": "Створення замовлень постачальникам у SellQo поки недоступне. Наявні замовлення відображаються тут."
     }
   },
   "product_form": {

@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeOrSearch } from '@/lib/sanitizeOrSearch';
 import { useTenant } from './useTenant';
 import { useToast } from './use-toast';
 import { useAuth } from './useAuth';
@@ -295,13 +296,14 @@ export function useInbox() {
         }
 
         // Apply text search with OR conditions
+        const term = sanitizeOrSearch(filters.search);
         const orConditions: string[] = [];
-        if (searchIn.subject) orConditions.push(`subject.ilike.%${filters.search}%`);
-        if (searchIn.content) {
-          orConditions.push(`body_text.ilike.%${filters.search}%`);
+        if (term && searchIn.subject) orConditions.push(`subject.ilike.%${term}%`);
+        if (term && searchIn.content) {
+          orConditions.push(`body_text.ilike.%${term}%`);
         }
-        if (searchIn.sender) {
-          orConditions.push(`from_email.ilike.%${filters.search}%`);
+        if (term && searchIn.sender) {
+          orConditions.push(`from_email.ilike.%${term}%`);
         }
         if (orConditions.length > 0) {
           query = query.or(orConditions.join(','));

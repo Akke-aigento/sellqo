@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,7 +39,11 @@ import {
   useSupplierDocuments,
   useSupplierDocumentMutations,
   useSupplierDocumentStats,
+  getSupplierDocumentSignedUrl,
 } from "@/hooks/useSupplierDocuments";
+import { openExternal } from "@/lib/openExternal";
+import { toast } from "sonner";
+import { useTranslation } from "react-i18next";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { SupplierDocumentUploadDialog } from "@/components/admin/suppliers/SupplierDocumentUploadDialog";
 import { StatsCard } from "@/components/admin/StatsCard";
@@ -58,6 +63,7 @@ import {
 } from "lucide-react";
 
 export default function SupplierDocuments() {
+  const { t } = useTranslation();
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
@@ -87,6 +93,20 @@ export default function SupplierDocuments() {
       await deleteDocument.mutateAsync(documentToDelete.id);
       setDeleteDialogOpen(false);
       setDocumentToDelete(null);
+    }
+  };
+
+  const handleOpen = async (doc: SupplierDocument) => {
+    // Web: open het venster synchroon in de klik, anders blokkeert Safari de popup na de await.
+    const pending = Capacitor.isNativePlatform() ? null : window.open('', '_blank');
+    try {
+      // Privé-bucket: elke keer een verse signed URL (5 min geldig).
+      const url = await getSupplierDocumentSignedUrl(doc);
+      if (pending) pending.location.href = url;
+      else await openExternal(url);
+    } catch {
+      pending?.close();
+      toast.error(t("admin.supplierDocuments.openen_mislukt"));
     }
   };
 
@@ -271,15 +291,9 @@ export default function SupplierDocuments() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <a
-                                href={doc.file_url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                Openen
-                              </a>
+                            <DropdownMenuItem onClick={() => handleOpen(doc)}>
+                              <ExternalLink className="h-4 w-4 mr-2" />
+                              Openen
                             </DropdownMenuItem>
                             {doc.document_type === "invoice" &&
                               doc.payment_status !== "paid" && (

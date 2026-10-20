@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeOrSearch } from '@/lib/sanitizeOrSearch';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 
@@ -155,8 +156,9 @@ export function useReturns(filters?: ReturnFilters) {
       if (filters?.source) query = query.eq('source', filters.source);
       if (filters?.dateFrom) query = query.gte('created_at', filters.dateFrom);
       if (filters?.dateTo) query = query.lte('created_at', filters.dateTo);
-      if (filters?.search) {
-        query = query.or(`customer_name.ilike.%${filters.search}%,marketplace_order_id.ilike.%${filters.search}%,rma_number.ilike.%${filters.search}%`);
+      const term = sanitizeOrSearch(filters?.search);
+      if (term) {
+        query = query.or(`customer_name.ilike.%${term}%,marketplace_order_id.ilike.%${term}%,rma_number.ilike.%${term}%`);
       }
 
       const { data, error } = await query;

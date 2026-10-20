@@ -75,6 +75,35 @@ export function useSupplierDocuments(filters?: {
   });
 }
 
+/**
+ * Opslagpad van een leveranciersdocument. Oudere rijen kunnen enkel file_url
+ * hebben (een publieke URL die op de privé-bucket niet werkt): dan leiden we
+ * het pad af uit het stuk na `/supplier-documents/`.
+ */
+export function supplierDocumentStoragePath(
+  doc: Pick<SupplierDocument, "storage_path" | "file_url">
+): string | null {
+  if (doc.storage_path) return doc.storage_path;
+  const marker = "/supplier-documents/";
+  const idx = doc.file_url?.indexOf(marker) ?? -1;
+  if (idx < 0) return null;
+  const path = doc.file_url.slice(idx + marker.length).split("?")[0];
+  return path ? decodeURIComponent(path) : null;
+}
+
+/** Tijdelijke (5 min) signed URL om een document uit de privé-bucket te openen. */
+export async function getSupplierDocumentSignedUrl(
+  doc: Pick<SupplierDocument, "storage_path" | "file_url">
+): Promise<string> {
+  const path = supplierDocumentStoragePath(doc);
+  if (!path) throw new Error("No storage path");
+  const { data, error } = await supabase.storage
+    .from("supplier-documents")
+    .createSignedUrl(path, 300);
+  if (error || !data?.signedUrl) throw error ?? new Error("No signed URL");
+  return data.signedUrl;
+}
+
 export function useSupplierDocumentMutations() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
@@ -100,7 +129,8 @@ export function useSupplierDocumentMutations() {
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
+      // Bucket is privé: file_url blijft voor compatibiliteit (NOT NULL), maar
+      // openen gebeurt altijd via een signed URL op storage_path.
       const { data: urlData } = supabase.storage
         .from("supplier-documents")
         .getPublicUrl(storagePath);

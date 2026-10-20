@@ -7793,6 +7793,12 @@
         "CIRCUMFERENCE_HALVED": "Printful lieferte die Brust als Umfang; in Breite umgerechnet (geteilt durch 2).",
         "CONVERTED_FROM_INCHES": "Printful lieferte nur Zoll; in cm umgerechnet."
       }
+    },
+    "supplierDocuments": {
+      "openen_mislukt": "Dokument konnte nicht geöffnet werden. Bitte versuche es erneut."
+    },
+    "purchaseOrders": {
+      "aanmaken_nog_niet_beschikbaar": "Bestellungen bei Lieferanten können in SellQo noch nicht erstellt werden. Bestehende Bestellungen erscheinen hier."
     }
   },
   "billing": {

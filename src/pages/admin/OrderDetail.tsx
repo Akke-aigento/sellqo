@@ -28,7 +28,7 @@ import { BolActionsCard } from '@/components/admin/BolActionsCard';
 import { MarkAsPaidButton, PaymentMethodType } from '@/components/admin/MarkAsPaidButton';
 import type { OrderStatus, PaymentStatus } from '@/types/order';
 import type { ServicePointData } from '@/types/servicePoint';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { generatePackingSlipPdf } from '@/utils/packingSlipPdf';
 import { toast } from 'sonner';
 import { CreateReturnDialog } from '@/components/admin/CreateReturnDialog';
@@ -74,6 +74,10 @@ export default function OrderDetailPage() {
   const { confirmPayment } = usePaymentConfirmation();
   const { data: returnableMap } = useOrderReturnable(id);
   const [internalNotes, setInternalNotes] = useState('');
+  // Notitieveld vullen met de opgeslagen notitie zodra de order (opnieuw) binnenkomt.
+  useEffect(() => {
+    setInternalNotes(order?.internal_notes ?? '');
+  }, [order?.id, order?.internal_notes]);
   const [showMessageDialog, setShowMessageDialog] = useState(false);
   const [showReturnDialog, setShowReturnDialog] = useState(false);
   const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
@@ -593,7 +597,7 @@ export default function OrderDetailPage() {
                 <label className="text-xs font-medium text-muted-foreground">{t('admin.orderDetail.interne_notities')}</label>
                 <Textarea
                   placeholder={t('admin.orderDetail.voeg_een_interne_notitie_toe')}
-                  value={internalNotes || order.internal_notes || ''}
+                  value={internalNotes}
                   onChange={(e) => setInternalNotes(e.target.value)}
                   rows={3}
                   className="text-sm"
@@ -602,7 +606,7 @@ export default function OrderDetailPage() {
                   size="sm" 
                   className="w-full"
                   onClick={() => updateOrderNotes.mutate({ orderId: order.id, internalNotes })}
-                  disabled={updateOrderNotes.isPending}
+                  disabled={updateOrderNotes.isPending || internalNotes === (order.internal_notes ?? '')}
                 >
                   {t('common.save')}
                 </Button>

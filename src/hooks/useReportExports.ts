@@ -44,6 +44,15 @@ interface DateRange {
 }
 
 // Hook for invoice exports
+
+/** YYYY-MM-DD in lokale tijd (geen UTC-verschuiving). */
+const toLocalIsoDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 export const useInvoiceExport = () => {
   const { currentTenant } = useTenant();
   const [isExporting, setIsExporting] = useState(false);
@@ -1218,8 +1227,10 @@ export const useRevenueExport = () => {
         .select('issue_date, subtotal, tax_amount, total, status')
         .eq('tenant_id', currentTenant.id)
         .in('status', ISSUED_INVOICE_STATUSES)
-        .gte('issue_date', dateRange.from.toISOString().slice(0, 10))
-        .lte('issue_date', endInclusive.toISOString().slice(0, 10))
+        // Lokale kalenderdatum (zoals de BTW-export): toISOString() schoof
+        // Brusselse middernacht naar de vorige dag (UTC).
+        .gte('issue_date', toLocalIsoDate(dateRange.from))
+        .lte('issue_date', toLocalIsoDate(endInclusive))
         .order('issue_date');
 
       if (error) throw error;

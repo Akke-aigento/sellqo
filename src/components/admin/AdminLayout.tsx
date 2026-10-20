@@ -31,6 +31,8 @@ function AdminLayoutContent() {
   useGlobalNotificationListener();
   const location = useLocation();
   const isDashboard = location.pathname === '/admin' || location.pathname === '/admin/dashboard';
+  // Helpcenter heeft een "Vraag het de assistent"-knop: daar moet de widget ook staan.
+  const showAIHelp = isDashboard || location.pathname === '/admin/help';
   const { currentTenant } = useTenant();
   const { setOpenMobile } = useSidebar();
   const mainRef = useRef<HTMLElement>(null);
@@ -112,8 +114,8 @@ function AdminLayoutContent() {
       <TrialExpiredBlocker />
       {/* BILL-LOCK-1: popup één keer per sessie zodra de winkel in leesmodus staat. */}
       <BillingLockDialog />
-      {/* AI Help Widget - floating chat assistant, only on dashboard */}
-      {isDashboard && <AIHelpWidget />}
+      {/* AI Help Widget - floating chat assistant, op dashboard en helpcenter */}
+      {showAIHelp && <AIHelpWidget />}
       {/* Mobile bottom navigation — APP-KEYBOARD-1: weg zolang je typt, anders
           zweeft de pil boven het toetsenbord midden in beeld. */}
       {!navHidden && <AdminMobileBottomNav />}

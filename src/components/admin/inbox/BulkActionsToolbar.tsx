@@ -132,17 +132,20 @@ export function BulkActionsToolbar({
           </Button>
         )}
 
-        {/* Delete button */}
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 text-xs text-destructive hover:text-destructive"
-          onClick={onDelete}
-          disabled={isLoading}
-        >
-          <Trash2 className="h-3.5 w-3.5 mr-1" />
-          {isTrashView ? t('admin.productForm.permanent') : t('common.delete')}
-        </Button>
+        {/* Delete button — niet in de prullenbak: daar staat alles al op 'deleted'
+            en echt definitief verwijderen bestaat (nog) niet. */}
+        {!isTrashView && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 text-xs text-destructive hover:text-destructive"
+            onClick={onDelete}
+            disabled={isLoading}
+          >
+            <Trash2 className="h-3.5 w-3.5 mr-1" />
+            {t('common.delete')}
+          </Button>
+        )}
       </div>
     </div>
   );

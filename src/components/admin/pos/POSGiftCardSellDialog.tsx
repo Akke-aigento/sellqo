@@ -185,12 +185,12 @@ export function POSGiftCardSellDialog({
                 <Palette className="h-4 w-4" />
                 {t('admin.pos.pOSGiftCardSellDialog.design_optioneel')}
               </Label>
-              <Select value={designId} onValueChange={setDesignId}>
+              <Select value={designId || 'none'} onValueChange={(v) => setDesignId(v === 'none' ? '' : v)}>
                 <SelectTrigger>
                   <SelectValue placeholder={t('admin.pos.pOSGiftCardSellDialog.selecteer_een_design')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{t('admin.pos.pOSGiftCardSellDialog.geen_design')}</SelectItem>
+                  <SelectItem value="none">{t('admin.pos.pOSGiftCardSellDialog.geen_design')}</SelectItem>
                   {activeDesigns.map((design) => (
                     <SelectItem key={design.id} value={design.id}>
                       {design.name}
