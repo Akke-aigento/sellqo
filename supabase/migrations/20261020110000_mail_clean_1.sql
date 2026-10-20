@@ -109,6 +109,10 @@ update public.tenant_newsletter_config set double_optin = true where double_opti
 -- Zelfde velden als newsletter-confirm markCustomerSubscribed; als datum de echte bevestiging.
 -- Overgeslagen: uitgeschreven adressen, klanten die zich elders uitschreven (marketingstatus of
 -- alle voorkeuren uit). Geen melding "nieuwe klant" voor deze rechtzetting.
+-- Review-fix: in één DO-blok (één statement = atomair). Faalt iets, dan rolt ook de
+-- DISABLE TRIGGER terug; de trigger kan dus nooit uit blijven staan.
+do $mailclean$
+begin
 alter table public.customers disable trigger trigger_customer_notification;
 
 with todo as (
@@ -151,6 +155,8 @@ select t.tenant_id, t.email, t.first_name, 'prospect', array['subscribed'], true
 on conflict do nothing;
 
 alter table public.customers enable trigger trigger_customer_notification;
+end
+$mailclean$;
 
 -- Geen email_preferences-rij: zonder rij gelden alle voorkeuren als aan (automation_consent,
 -- voorkeurenpagina). Geen van de 7 live abonnees heeft er een.
