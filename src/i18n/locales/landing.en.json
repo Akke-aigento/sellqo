@@ -2127,6 +2127,10 @@
         "email_logo_header": {
           "title": "Your logo in your emails: sharp, trimmed and linked to your shop",
           "description": "When you upload your logo, SellQo automatically makes a version for emails: empty and white edges are trimmed, the size is tuned to the top of your emails and the file stays light. While uploading you immediately see how your logo appears at the top of your emails, in light and dark mode, and you get a warning if it is too small and may look blurry. If you have no logo, your shop name appears in text instead of the SellQo logo. The logo or name links to your own shop. Your current logo keeps working; you get the trimmed version when you upload it again."
+        },
+        "email_signup_cleanup": {
+          "title": "Your welcome email moves to the Welcome series; subscribing always requires confirmation",
+          "description": "The newsletter settings have been tidied up. If you had your own welcome email there, it is now the first email in Marketing → Automations → Welcome series, with your own subject and design. The series is switched on, so your new subscribers receive the same welcome email as before, right after confirming. Subscribing always requires confirmation (double opt-in); that switch is gone. Settings → Email sign-up shows you the way to your subscribers and your welcome email."
         }
       },
       "copyLink": "Copy link",

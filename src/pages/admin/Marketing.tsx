@@ -10,6 +10,7 @@ import { CampaignDialog } from '@/components/admin/marketing/CampaignDialog';
 import type { EmailCampaign, EmailTemplate } from '@/types/marketing';
 import { TemplateDialog } from '@/components/admin/marketing/TemplateDialog';
 import { SubscribersTab } from '@/components/admin/marketing/SubscribersTab';
+
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -37,6 +38,8 @@ import { FeatureGate } from '@/components/FeatureGate';
 import { AIEmailPlanner } from '@/components/admin/marketing/AIEmailPlanner';
 import { useCan } from '@/hooks/useCan';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
+
+const MARKETING_TABS = ['campaigns', 'templates', 'segments', 'subscribers'] as const;
 
 export default function MarketingPage() {
   const { t } = useTranslation();
@@ -269,7 +272,11 @@ export default function MarketingPage() {
       </div>
 
       {/* Full Tab Section */}
-      <Tabs defaultValue="campaigns" className="space-y-4">
+      {/* MAIL-CLEAN-1: ?tab=subscribers (bv. vanuit Instellingen → E-mailinschrijving) opent dat tabblad. */}
+      <Tabs
+        defaultValue={MARKETING_TABS.find((v) => v === searchParams.get('tab')) ?? 'campaigns'}
+        className="space-y-4"
+      >
         <TabsList>
           <TabsTrigger value="campaigns" className="gap-2">
             <Mail className="h-4 w-4" />

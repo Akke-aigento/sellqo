@@ -116,7 +116,10 @@ export function WhatsAppTemplatesTable() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(templateTypeLabels).map(([value, label]) => (
+                      {Object.entries(templateTypeLabels)
+                        // MAIL-CLEAN-1: geen WhatsApp-winkelwagenherinnering (niets verstuurt die); bestaande blijven leesbaar.
+                        .filter(([value]) => value !== 'abandoned_cart')
+                        .map(([value, label]) => (
                         <SelectItem key={value} value={value}>{label}</SelectItem>
                       ))}
                     </SelectContent>

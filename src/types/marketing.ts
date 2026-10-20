@@ -161,24 +161,6 @@ export interface EmailUnsubscribe {
   unsubscribed_at: string;
 }
 
-// Email Automation Types
-export type AutomationTrigger = 'welcome' | 'abandoned_cart' | 'post_purchase' | 'birthday' | 'reactivation';
-
-export interface EmailAutomation {
-  id: string;
-  tenant_id: string;
-  name: string;
-  trigger_type: AutomationTrigger;
-  trigger_config?: Record<string, unknown>;
-  template_id?: string;
-  delay_hours: number;
-  is_active: boolean;
-  total_sent: number;
-  total_converted: number;
-  created_at: string;
-  updated_at: string;
-}
-
 // Marketing Stats
 export interface MarketingStats {
   totalCampaigns: number;

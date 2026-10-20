@@ -306,7 +306,7 @@
       "inbound_email": "Email Inbox",
       "ai_assistant": "AI Assistent",
       "whatsapp": "WhatsApp Koppeling",
-      "newsletter": "Nieuwsbrief",
+      "newsletter": "E-mailinschrijving",
       "social": "Social Media",
       "reviews": "Reviews",
       "fulfillment_api": "Fulfillment API",
@@ -1261,6 +1261,18 @@
       "noVariantTitle": "Mailversie kon niet gemaakt worden",
       "noVariantBody": "Je logo is opgeslagen voor je webshop, maar er kon geen mailversie van gemaakt worden. In je mails tonen we je winkelnaam. Upload een PNG, JPG, WebP of SVG om je logo ook in je mails te zien.",
       "blankWarning": "Je logo is wit of leeg op een witte achtergrond; in de mail tonen we je winkelnaam."
+    },
+    "emailSignup": {
+      "title": "E-mailinschrijving",
+      "description": "Hoe klanten zich inschrijven op je nieuwsbrief, en waar je je abonnees en je welkomstmail vindt.",
+      "double_optin_title": "Inschrijven gebeurt altijd met bevestiging (double opt-in)",
+      "double_optin_body": "Wie zich inschrijft, krijgt eerst een mail met een knop om te bevestigen. Pas na die klik krijgt die persoon je campagnes en automatische mails. Dat staat voor elke winkel aan en kan je niet uitzetten.",
+      "subscribers_title": "Abonnees",
+      "subscribers_path": "Marketing → E-mail → Abonnees",
+      "subscribers_body": "Zie wie ingeschreven is, wie nog moet bevestigen, en nodig mensen uit.",
+      "welcome_title": "Welkomstmail",
+      "welcome_path": "Marketing → Automatiseringen → Welkomstreeks",
+      "welcome_body": "Je vroegere welkomstmail staat nu hier, als eerste mail van de welkomstreeks."
     }
   },
   "languages": {
@@ -3546,7 +3558,7 @@
         "kinds": {
           "welcome_series": {
             "title": "Welkomstreeks",
-            "description": "Twee mails voor nieuwe abonnees, zodra ze hun inschrijving bevestigd hebben."
+            "description": "Mails voor nieuwe abonnees, zodra ze hun inschrijving bevestigd hebben."
           },
           "post_purchase": {
             "title": "Na aankoop + reviewvraag",
@@ -3586,7 +3598,8 @@
           "review": "De reviewvraag wordt alleen verstuurd als je winkel een gekoppeld Google- of Trustpilot-profiel heeft.",
           "review_none": "Er is nu geen profiel gekoppeld.",
           "review_link": "Reviewprofielen beheren",
-          "cart_legal": "Je winkel blijft verantwoordelijk; SellQo stuurt deze herinnering enkel naar klanten die ingeschreven zijn of eerder bij je kochten."
+          "cart_legal": "Je winkel blijft verantwoordelijk; SellQo stuurt deze herinnering enkel naar klanten die ingeschreven zijn of eerder bij je kochten.",
+          "legacy_welcome": "Je vroegere welkomstmail staat nu hier. We hebben hem overgenomen uit de oude nieuwsbriefinstellingen, met je eigen onderwerp en ontwerp. Nieuwe abonnees krijgen hem meteen na hun bevestiging, zoals voorheen."
         },
         "toast": {
           "activated": "Automatisering aangezet",
@@ -3606,7 +3619,8 @@
           "edit_text": "Tekst bewerken",
           "empty_lang": "Nog geen tekst in deze taal.",
           "saved": "Stap opgeslagen",
-          "save_failed": "Stap opslaan mislukt"
+          "save_failed": "Stap opslaan mislukt",
+          "own_design": "Deze mail is een volledig eigen ontwerp met een eigen afmeldlink. Hij vertrekt precies zoals hij hier staat, zonder de standaardkop en -voettekst van je winkel. Laat de afmeldlink erin staan."
         },
         "log": {
           "title": "Logboek",
@@ -6513,6 +6527,11 @@
         "own_domain": "Eigen domein",
         "own_domain_soon": "Binnenkort: je eigen domein zelf koppelen.",
         "select_shop": "Selecteer een winkel om door te gaan"
+      },
+      "features": {
+        "newsletter_where": "Inschrijven gebeurt altijd met bevestiging. Je abonnees en je welkomstmail beheer je in Marketing:",
+        "newsletter_link_email": "E-mail → Abonnees",
+        "newsletter_link_automations": "Automatiseringen → Welkomstreeks"
       }
     },
     "orderingHub": {
@@ -8058,7 +8077,8 @@
       "wacht_even": "Wacht even!",
       "aanmelden": "Aanmelden",
       "nee_bedankt": "Nee bedankt",
-      "je_email_nl": "je@email.nl"
+      "je_email_nl": "je@email.nl",
+      "default_incentive": "Schrijf je in voor onze nieuwsbrief en ontvang exclusieve aanbiedingen!"
     },
     "megaMenu": {
       "home": "Home",
@@ -8072,7 +8092,8 @@
     "newsletterPopup": {
       "bedankt": "Bedankt!",
       "je_bent_succesvol_ingeschreven": "Je bent succesvol ingeschreven.",
-      "blijf_op_de_hoogte": "Blijf op de hoogte"
+      "blijf_op_de_hoogte": "Blijf op de hoogte",
+      "default_incentive": "Schrijf je in en ontvang als eerste onze nieuwste aanbiedingen en producten."
     },
     "productCard": {
       "uitverkocht": "Uitverkocht",

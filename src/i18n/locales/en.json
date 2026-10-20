@@ -306,7 +306,7 @@
       "inbound_email": "Email inbox",
       "ai_assistant": "AI assistant",
       "whatsapp": "WhatsApp integration",
-      "newsletter": "Newsletter",
+      "newsletter": "Email sign-up",
       "social": "Social media",
       "reviews": "Reviews",
       "fulfillment_api": "Fulfilment API",
@@ -1261,6 +1261,18 @@
       "noVariantTitle": "Email version could not be made",
       "noVariantBody": "Your logo was saved for your shop, but no email version could be made from it. Your emails show your shop name. Upload a PNG, JPG, WebP or SVG to see your logo in your emails too.",
       "blankWarning": "Your logo is white or empty on a white background; your emails show your shop name instead."
+    },
+    "emailSignup": {
+      "title": "Email sign-up",
+      "description": "How customers subscribe to your newsletter, and where to find your subscribers and your welcome email.",
+      "double_optin_title": "Subscribing always requires confirmation (double opt-in)",
+      "double_optin_body": "Anyone who subscribes first receives an email with a button to confirm. Only after that click do they receive your campaigns and automated emails. This is on for every shop and cannot be turned off.",
+      "subscribers_title": "Subscribers",
+      "subscribers_path": "Marketing → Email → Subscribers",
+      "subscribers_body": "See who is subscribed, who still needs to confirm, and invite people.",
+      "welcome_title": "Welcome email",
+      "welcome_path": "Marketing → Automations → Welcome series",
+      "welcome_body": "Your previous welcome email is now here, as the first email of the welcome series."
     }
   },
   "languages": {
@@ -3532,7 +3544,7 @@
         "kinds": {
           "welcome_series": {
             "title": "Welcome series",
-            "description": "Two emails for new subscribers, as soon as they have confirmed their subscription."
+            "description": "Emails for new subscribers, as soon as they have confirmed their subscription."
           },
           "post_purchase": {
             "title": "After purchase + review request",
@@ -3572,7 +3584,8 @@
           "review": "The review request is only sent when your shop has a connected Google or Trustpilot profile.",
           "review_none": "No profile is connected right now.",
           "review_link": "Manage review profiles",
-          "cart_legal": "Your shop remains responsible; SellQo only sends this reminder to customers who are subscribed or have bought from you before."
+          "cart_legal": "Your shop remains responsible; SellQo only sends this reminder to customers who are subscribed or have bought from you before.",
+          "legacy_welcome": "Your previous welcome email is now here. We moved it over from the old newsletter settings, with your own subject and design. New subscribers receive it right after confirming, as before."
         },
         "toast": {
           "activated": "Automation switched on",
@@ -3592,7 +3605,8 @@
           "edit_text": "Edit text",
           "empty_lang": "No text in this language yet.",
           "saved": "Step saved",
-          "save_failed": "Could not save the step"
+          "save_failed": "Could not save the step",
+          "own_design": "This email is a fully custom design with its own unsubscribe link. It is sent exactly as shown here, without your shop’s standard header and footer. Keep the unsubscribe link in place."
         },
         "log": {
           "title": "Log",
@@ -6886,6 +6900,11 @@
         "own_domain": "Own domain",
         "own_domain_soon": "Coming soon: connect your own domain yourself.",
         "select_shop": "Select a store to continue"
+      },
+      "features": {
+        "newsletter_where": "Subscribing always requires confirmation. You manage your subscribers and your welcome email in Marketing:",
+        "newsletter_link_email": "Email → Subscribers",
+        "newsletter_link_automations": "Automations → Welcome series"
       }
     },
     "allergens": {
@@ -8058,7 +8077,8 @@
       "wacht_even": "Hold on!",
       "aanmelden": "Sign up",
       "nee_bedankt": "No thanks",
-      "je_email_nl": "your@email.com"
+      "je_email_nl": "your@email.com",
+      "default_incentive": "Subscribe to our newsletter and receive exclusive offers!"
     },
     "megaMenu": {
       "home": "Home",
@@ -8072,7 +8092,8 @@
     "newsletterPopup": {
       "bedankt": "Thank you!",
       "je_bent_succesvol_ingeschreven": "You have successfully subscribed.",
-      "blijf_op_de_hoogte": "Stay informed"
+      "blijf_op_de_hoogte": "Stay informed",
+      "default_incentive": "Subscribe and be the first to hear about our latest offers and products."
     },
     "productCard": {
       "uitverkocht": "Sold out",

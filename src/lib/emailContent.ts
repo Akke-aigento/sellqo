@@ -58,3 +58,14 @@ export function isComplexHtml(html: string): boolean {
   if (styleMatches && styleMatches.length > 5) return true;
   return false;
 }
+/**
+ * MAIL-CLEAN-1: een eigen, volledig HTML-ontwerp met eigen afmeldlink (de overgenomen
+ * welkomstmail). Een automationstap met zo'n inhoud gaat ongewijzigd de deur uit, zonder
+ * SellQo-kop en -voettekst. Spiegel van supabase/functions/_shared/emailContent.ts.
+ */
+export function isStandaloneEmailDocument(html: string): boolean {
+  if (!html) return false;
+  return /<!doctype|<html[\s>]/i.test(html)
+    && /<body[\s>]/i.test(html)
+    && /\{\{\s*unsubscribe_url\s*\}\}/.test(html);
+}

@@ -13,7 +13,7 @@ import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
  * (de lokale grijze wrapper van vroeger) en zegt hij dat erbij.
  */
 export function BrandedEmailPreview({
-  subject, bodyHtml, previewText, language, fallbackHtml, height = 420,
+  subject, bodyHtml, previewText, language, fallbackHtml, height = 420, kind,
 }: {
   subject: string;
   bodyHtml: string;
@@ -21,6 +21,8 @@ export function BrandedEmailPreview({
   language?: string | null;
   fallbackHtml: string;
   height?: number;
+  /** MAIL-CLEAN-1: 'automation' → een eigen volledig ontwerp toont zoals het verstuurd wordt. */
+  kind?: 'automation';
 }) {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
@@ -42,6 +44,7 @@ export function BrandedEmailPreview({
             html_content: bodyHtml,
             preview_text: previewText || undefined,
             language: language || undefined,
+            kind: kind || undefined,
           },
         });
         if (!cancelled) { setHtml(res.html); setFailed(false); }
@@ -52,7 +55,7 @@ export function BrandedEmailPreview({
       }
     }, 600);
     return () => { cancelled = true; clearTimeout(id); };
-  }, [currentTenant?.id, subject, bodyHtml, previewText, language]);
+  }, [currentTenant?.id, subject, bodyHtml, previewText, language, kind]);
 
   const width = device === 'mobile' ? 375 : 600;
 

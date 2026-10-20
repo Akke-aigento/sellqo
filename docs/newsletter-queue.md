@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13c — Je welkomstmail verhuist naar de Welkomstreeks; inschrijven altijd met bevestiging (improvement, 20-10-2026)
+
+**Status:** klaar voor verzending zodra MAIL-CLEAN-1 live staat (eerst edge functions process-campaign-queue, send-campaign-batch, automation-scheduler, render-campaign-preview; dan migratie 20261020110000; dan frontend) en een testinschrijving op SellQo Speeltuin goed oogt.
+
+**Voor wie:** alle winkels met e-mailmarketing; vooral winkels die een eigen welkomstmail hadden.
+
+**Je welkomstmail staat nu in de Welkomstreeks** (oktober 2026)
+De instellingen voor de nieuwsbrief zijn opgeruimd. Had je daar een eigen welkomstmail, dan staat die nu als eerste mail in Marketing → Automatiseringen → Welkomstreeks, met je eigen onderwerp en ontwerp. De reeks staat aan: je nieuwe abonnees krijgen dezelfde welkomstmail als voorheen, meteen na hun bevestiging. Inschrijven gebeurt altijd met bevestiging (double opt-in). Onder Instellingen → E-mailinschrijving vind je de weg naar je abonnees en je welkomstmail.
+Wat betekent dit voor jou? Al je automatische mails staan op één plek, en je past je welkomstmail aan waar je ook de rest van je reeksen beheert.
+
+i18n: `public.changelog.changes.email_signup_cleanup`
+
 ### 2026.13b — Je logo in je mails: scherp, bijgesneden en met een link naar je webshop (improvement, 20-10-2026)
 
 **Status:** klaar voor verzending zodra MAIL-LOGO-1 live staat (migratie 20261020100000, de 23 edge functions uit de role-audit, frontend gepubliceerd) en een testmail op SellQo Speeltuin goed oogt. Liefst na de backfill van de bestaande logo's.

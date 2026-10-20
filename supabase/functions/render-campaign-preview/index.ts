@@ -5,13 +5,14 @@
 // Verstuurt niets en schrijft niets. De uitschrijflink is een dummy ("#"), zodat
 // een klik in het voorbeeld nooit iemand uitschrijft.
 //
-// Body: { tenant_id, subject, html_content, preview_text?, language? } → { html, subject }
+// Body: { tenant_id, subject, html_content, preview_text?, language?, kind? } → { html, subject }
+// kind = 'automation' (MAIL-CLEAN-1): een eigen volledig ontwerp met eigen afmeldlink ongewijzigd.
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse, type AppRole } from "../_shared/auth.ts";
 import { getTenantBrand, renderTenantEmail, type TenantLocale } from "../_shared/tenantEmail.ts";
 import { t } from "../_shared/tenantEmailI18n.ts";
-import { extractEmailBody, buildVariableMap, applyVariables } from "../_shared/emailContent.ts";
+import { extractEmailBody, buildVariableMap, applyVariables, isStandaloneEmailDocument } from "../_shared/emailContent.ts";
 import { buildCartItemsHtml, htmlSafeVars, mergeAutomationVars } from "../_shared/automationVars.ts";
 import { resolveShopUrl } from "../_shared/mailPages.ts";
 
@@ -91,6 +92,11 @@ Deno.serve(async (req) => {
     const textVars = { ...vars, cart_items: "" };
     const renderedSubject = applyVariables(subject, textVars);
     const htmlVars = htmlSafeVars(vars);
+    // MAIL-CLEAN-1: zelfde regel als de verzending (campaignQueue renderFor): een eigen volledig
+    // ontwerp met eigen afmeldlink toont een automationstap ongewijzigd.
+    if (body?.kind === "automation" && isStandaloneEmailDocument(htmlContent)) {
+      return json({ html: applyVariables(htmlContent, htmlVars), subject: renderedSubject });
+    }
     const intro = applyVariables(extractEmailBody(htmlContent), htmlVars);
     const previewText = typeof body?.preview_text === "string" && body.preview_text
       ? body.preview_text.slice(0, MAX_PREVIEW_TEXT)

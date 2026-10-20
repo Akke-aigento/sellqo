@@ -2127,6 +2127,10 @@
         "email_logo_header": {
           "title": "Ihr Logo in Ihren E-Mails: scharf, zugeschnitten und mit Link zu Ihrem Shop",
           "description": "Wenn Sie Ihr Logo hochladen, erstellt SellQo automatisch eine Version für E-Mails: Leere und weiße Ränder werden entfernt, die Größe ist auf den Kopf Ihrer E-Mails abgestimmt und die Datei bleibt klein. Beim Hochladen sehen Sie sofort, wie Ihr Logo oben in Ihren E-Mails erscheint, im hellen und im dunklen Modus, und Sie erhalten einen Hinweis, wenn es zu klein ist und unscharf wirken kann. Ohne Logo steht der Name Ihres Shops als Text da, statt des SellQo-Logos. Logo oder Name verlinken auf Ihren eigenen Shop. Ihr bisheriges Logo funktioniert weiter; die zugeschnittene Version erhalten Sie, wenn Sie es erneut hochladen."
+        },
+        "email_signup_cleanup": {
+          "title": "Ihre Willkommens-E-Mail zieht in die Willkommensserie um; Anmeldung immer mit Bestätigung",
+          "description": "Die Newsletter-Einstellungen wurden aufgeräumt. Hatten Sie dort eine eigene Willkommens-E-Mail, ist sie jetzt die erste E-Mail unter Marketing → Automatisierungen → Willkommensserie, mit Ihrem eigenen Betreff und Design. Die Serie ist eingeschaltet, Ihre neuen Abonnenten erhalten also dieselbe Willkommens-E-Mail wie bisher, direkt nach ihrer Bestätigung. Die Anmeldung erfolgt immer mit Bestätigung (Double-Opt-in); dieser Schalter ist entfallen. Unter Einstellungen → E-Mail-Anmeldung finden Sie den Weg zu Ihren Abonnenten und Ihrer Willkommens-E-Mail."
         }
       },
       "copyLink": "Link kopieren",

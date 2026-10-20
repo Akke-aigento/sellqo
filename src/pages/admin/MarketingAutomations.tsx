@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -87,9 +87,10 @@ function winBackDays(automation: EmailAutomation) {
 }
 
 function AutomationCard({
-  kind, automation, canWrite, hasReviewProfile, onEditStep,
+  kind, automation, canWrite, hasReviewProfile, onEditStep, highlighted = false,
 }: {
   kind: AutomationKind;
+  highlighted?: boolean;
   automation?: EmailAutomation;
   canWrite: boolean;
   hasReviewProfile: boolean | undefined;
@@ -133,7 +134,7 @@ function AutomationCard({
   };
 
   return (
-    <Card>
+    <Card id={`automation-${kind}`} className={highlighted ? 'ring-2 ring-primary scroll-mt-24' : 'scroll-mt-24'}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex items-start gap-3 min-w-0">
@@ -238,6 +239,12 @@ function AutomationCard({
           </p>
         )}
 
+        {kind === 'welcome_series' && automation?.trigger_config?.legacy_welcome === true && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs">{t('admin.marketing.automations.notes.legacy_welcome')}</AlertDescription>
+          </Alert>
+        )}
         {kind === 'post_purchase' && (
           <Alert>
             <Info className="h-4 w-4" />
@@ -271,6 +278,15 @@ export default function MarketingAutomationsPage() {
   const { data: runs = [], isLoading: runsLoading } = useAutomationRuns();
   const { data: hasReviewProfile } = useHasReviewProfile();
   const [editing, setEditing] = useState<AutomationStep | null>(null);
+  // ?trigger=<preset> (bv. vanuit de AI-coach of Instellingen → E-mailinschrijving): die kaart
+  // oplichten en ernaartoe scrollen. Onbekende waarde → gewoon de pagina.
+  const [searchParams] = useSearchParams();
+  const triggerParam = searchParams.get('trigger');
+  const focusKind = PRESET_KEYS.find((k) => k === triggerParam) ?? null;
+  useEffect(() => {
+    if (!focusKind || isLoading) return;
+    document.getElementById(`automation-${focusKind}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [focusKind, isLoading]);
 
   const nameById = new Map<string, AutomationKind>();
   const stepById = new Map<string, AutomationStep>();
@@ -313,6 +329,7 @@ export default function MarketingAutomationsPage() {
               canWrite={canWrite}
               hasReviewProfile={hasReviewProfile}
               onEditStep={setEditing}
+              highlighted={kind === focusKind}
             />
           ))}
         </div>

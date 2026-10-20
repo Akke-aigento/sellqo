@@ -2127,6 +2127,10 @@
         "email_logo_header": {
           "title": "Votre logo dans vos e-mails : net, recadré et relié à votre boutique",
           "description": "Quand vous téléversez votre logo, SellQo crée automatiquement une version pour les e-mails : les bords vides et blancs sont recadrés, la taille est adaptée à l'en-tête de vos e-mails et le fichier reste léger. Pendant le téléversement, vous voyez tout de suite votre logo en haut de vos e-mails, en mode clair et en mode sombre, et vous êtes averti s'il est trop petit et risque d'être flou. Sans logo, le nom de votre boutique apparaît en texte, au lieu du logo SellQo. Le logo ou le nom renvoie vers votre propre boutique. Votre logo actuel continue de fonctionner ; vous obtenez la version recadrée en le téléversant à nouveau."
+        },
+        "email_signup_cleanup": {
+          "title": "Votre e-mail de bienvenue passe dans la Série de bienvenue ; l'inscription se fait toujours avec confirmation",
+          "description": "Les paramètres de la newsletter ont été simplifiés. Si vous y aviez votre propre e-mail de bienvenue, il est désormais le premier e-mail de Marketing → Automatisations → Série de bienvenue, avec votre propre objet et votre propre design. La série est activée : vos nouveaux abonnés reçoivent donc le même e-mail de bienvenue qu'avant, juste après leur confirmation. L'inscription se fait toujours avec confirmation (double opt-in) ; ce bouton a disparu. Paramètres → Inscription par e-mail vous indique où trouver vos abonnés et votre e-mail de bienvenue."
         }
       },
       "copyLink": "Copier le lien",

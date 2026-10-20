@@ -38,6 +38,9 @@ export function mergeAutomationVars(
     if (typeof v === "string" || typeof v === "number") out[k] = String(v);
     else if (!(k in out)) out[k] = "";
   }
+  // MAIL-CLEAN-1: {{current_year}} (vroeger {{JAAR}} in de eigen welkomstmail) vulde de engine
+  // nooit; zonder deze regel stond er "© VanXcel" zonder jaartal.
+  if (!out.current_year) out.current_year = String(new Date().getFullYear());
   for (const k of FILL_KEYS) {
     const v = runVars[k];
     if ((out[k] ?? "") === "" && typeof v === "string" && v.trim()) out[k] = v.trim();

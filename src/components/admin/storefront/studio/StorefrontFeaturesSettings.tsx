@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useState, useEffect } from 'react';
 import { 
   Mail, 
@@ -58,6 +59,7 @@ import { SUPPORTED_LANGUAGES, LANGUAGE_SELECTOR_STYLES } from '@/types/legal-pag
 import { Checkbox } from '@/components/ui/checkbox';
 
 export function StorefrontFeaturesSettings() {
+  const { t } = useTranslation();
   const { themeSettings, saveThemeSettings } = useStorefront();
 
   const [formData, setFormData] = useState({
@@ -217,11 +219,12 @@ export function StorefrontFeaturesSettings() {
 
             {formData.newsletter_enabled && (
               <>
-                {/* APP-CLEAN-3b: de provider-keuze hier (theme newsletter_provider) werd door niets gelezen;
-                    inschrijvingen volgen tenant_newsletter_config.provider uit Instellingen → Nieuwsbrief. */}
+                {/* MAIL-CLEAN-1: de nieuwsbriefinstellingen zijn weg; abonnees en welkomstmail staan in Marketing. */}
                 <p className="text-sm text-muted-foreground">
-                  Welke nieuwsbriefdienst je gebruikt (intern, Mailchimp, Klaviyo) stel je in bij{' '}
-                  <Link to="/admin/settings?section=newsletter" className="underline">Instellingen → Nieuwsbrief</Link>.
+                  {t('admin.storefront.features.newsletter_where')}{' '}
+                  <Link to="/admin/marketing?tab=subscribers" className="underline">{t('admin.storefront.features.newsletter_link_email')}</Link>
+                  {' · '}
+                  <Link to="/admin/marketing/automations?trigger=welcome_series" className="underline">{t('admin.storefront.features.newsletter_link_automations')}</Link>
                 </p>
 
                 <div className="flex items-center justify-between">

@@ -22,7 +22,8 @@ type Db = any;
 import { tenantMarketingSender } from "./emailSenders.ts";
 import { getTenantBrand, renderTenantEmail, type TenantLocale } from "./tenantEmail.ts";
 import { t } from "./tenantEmailI18n.ts";
-import { extractEmailBody, buildVariableMap, applyVariables } from "./emailContent.ts";
+import { extractEmailBody, buildVariableMap, applyVariables, isStandaloneEmailDocument } from "./emailContent.ts";
+import { htmlToPlainText } from "./sellqoEmail.ts";
 import { resolveAudience } from "./campaignAudience.ts";
 import { buildUnsubscribePageUrl, buildUnsubscribeUrl, escapeHtml } from "./marketingToken.ts";
 import { htmlSafeVars, mergeAutomationVars, shortLocale } from "./automationVars.ts";
@@ -306,6 +307,23 @@ async function renderFor(ctx: CampaignContext, row: Record<string, any>, recipie
   const htmlVars = runVars
     ? htmlSafeVars(vars)
     : Object.fromEntries(Object.entries(vars).map(([k, v]) => [k, escapeHtml(v)])) as typeof vars;
+  // MAIL-CLEAN-1: een eigen volledig ontwerp met eigen afmeldlink (de overgenomen welkomstmail)
+  // gaat als automationmail ongewijzigd weg, zoals de oude welkomstmail. Gewone campagnes niet.
+  if (campaign.kind === "automation" && isStandaloneEmailDocument(body)) {
+    const html = applyVariables(body, htmlVars);
+    return {
+      from: ctx.sender.from,
+      reply_to: ctx.sender.replyTo,
+      to: [row.email],
+      subject: renderedSubject,
+      html,
+      text: htmlToPlainText(html),
+      headers: {
+        "List-Unsubscribe": `<${unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      },
+    };
+  }
   const intro = applyVariables(extractEmailBody(body), htmlVars);
   const { html, text } = renderTenantEmail({
     tenantBrand: brand,

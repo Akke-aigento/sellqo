@@ -1,3 +1,51 @@
+## MAIL-CLEAN-1 — Oude nieuwsbriefroute opgeruimd: welkomstmail naar de Welkomstreeks, double opt-in vast — 20 oktober 2026
+
+Go van Akke 20-10 10:00 (incl. het weghalen van de double-opt-in-schakelaar). Branch `mail-clean-1` op `mail-logo-1` (b4e1bf2), niet gepusht.
+
+**Root cause**
+- Twee routes voor één welkomstmail: `tenant_newsletter_config.welcome_email_*` (Instellingen → Nieuwsbrief, verstuurd door `newsletter-confirm` `sendWelcomeEmail`) naast de welkomstreeks van MAIL-2a. Live 20-10: enkel Mancini Milano en VanXcel hebben een config (intern, double opt-in aan, eigen HTML-welkomstmail van 14.826 en 10.221 tekens), 0 automations.
+- Die mails zijn volledige documenten (`<!DOCTYPE>`, `<head><style>`, eigen voettekst met afmeldlink). Door de engine (`campaignQueue.ts` `renderFor` → `extractEmailBody` + `renderTenantEmail`) zouden ze hun stijlen verliezen, een tweede kop en voettekst krijgen, en de afmeldrij-regex (`<tr…>…{{unsubscribe_url}}…</tr>`, lazy vanaf de eerste `<tr>`) knipt alles vanaf de buitenste tabel weg: een lege mail. Dat gold ook al voor `automation_ensure_presets` (MAIL-2a §11), dat dezelfde body overneemt.
+- `{{current_year}}` (vroeger `{{JAAR}}`) stond in `AUTOMATION_VAR_KEYS` maar de engine vulde hem nooit: "© VanXcel" zonder jaartal.
+- 2 bevestigde abonnees zonder ingeschreven klantrij (Demo Bakkerij, Mancini Milano): geen campagnes.
+- Dode code: `useABTests.ts`, `useWhatsAppMessages.ts` (0 importers), type `AutomationTrigger`/`EmailAutomation` in `types/marketing.ts` (0 gebruikers), WhatsApp-templatetype "Winkelwagen" (niets verstuurt hem), `ai-business-coach` r. 188 `?trigger=abandoned_cart` (werd nergens gelezen).
+
+**Uitgevoerd**
+- Migratie `20261020110000_mail_clean_1.sql`: snapshots `snapshots.platform_20261020_{tenant_newsletter_config, email_automations, newsletter_subscribers, customers_subs, doc_articles_mail_clean}`; per config met ingeschakelde welkomstmail zonder welkomstreeks: automation (`newsletter_confirmed`, aan, max 1 keer, `trigger_config.legacy_welcome`), stap 1 (meteen, actief), systeemcampagne met eigen onderwerp en body (placeholders omgezet zoals `automation_ensure_presets`), eentalig, geen stap 2; daarna `welcome_email_enabled = false` (oude route dicht, ook als de reeks later uit gaat); `double_optin = true` waar false (live 0); bevestigde abonnees → klant (`prospect`, tag `subscribed`, `email_subscribed_at = confirmed_at`, `acquisition_source = 'webshop'`), met `trigger_customer_notification` tijdelijk uit; helpartikelen.
+- `_shared/emailContent.ts` `isStandaloneEmailDocument`; `campaignQueue.ts` `renderFor`: automationmail met eigen volledig document én eigen afmeldlink → enkel variabelen invullen, geen kop/voettekst (gewone campagnes ongewijzigd); `render-campaign-preview` idem bij `kind: 'automation'`; `automationVars.ts` `mergeAutomationVars` vult `current_year`.
+- Admin: `NewsletterSettings.tsx` → sectie "E-mailinschrijving" (uitleg double opt-in + links naar Abonnees en Welkomstreeks; geen providerkeuze, testknop, tellers, schakelaar of editor; leest/schrijft `tenant_newsletter_config` niet meer). `useNewsletterConfig.ts` weg (enige schrijver van `double_optin`). `AutomationStepDialog`: eigen ontwerp/complexe HTML als HTML-bron + uitleg; voorbeeld met `kind`. `MarketingAutomations`: `?trigger=<preset>` licht de kaart op en scrolt erheen; uitleg "Je vroegere welkomstmail staat nu hier" bij `legacy_welcome`. `Marketing.tsx`: `?tab=subscribers`. `StorefrontFeaturesSettings` r. 220-224 → links naar Marketing (i18n). `NewsletterPopup`/`ExitIntentPopup`: NL-terugvaltekst → i18n (SellQo-theme, enkel `ShopLayout`; custom frontends gebruiken ze niet). `WhatsAppTemplatesTable`: "Winkelwagen" niet meer kiesbaar. i18n 5 talen.
+- Slottaken: changelog 2026.13c `email_signup_cleanup` (5 talen), helpartikelen `email-automations`, `emailcampagnes`, `teamleden-rollen`, newsletter-wachtrij.
+
+**Wat verhuist per winkel (live 20-10)**
+- Mancini Milano: welkomstreeks aan, 1 stap, onderwerp "Welkom bij onze nieuwsbrief!", eigen donker ontwerp (`{{first_name}}`→`{{customer_first_name}}`, `{{company_website}}`→`{{shop_url}}`); klant aangemaakt voor 1 bevestigde abonnee.
+- VanXcel: welkomstreeks aan, 1 stap, zelfde onderwerp, eigen ontwerp met WELCOME10 (`{{LOGO_URL}}`, `{{SHOP_URL}}`, `{{AFMELD_URL}}`, `{{JAAR}}`, `{{first_name}}` omgezet).
+- Demo Bakkerij: klant aangemaakt voor 1 bevestigde abonnee (geen config, geen welkomstmail).
+- Overige winkels: niets.
+
+**Security-keuzes**
+- Geen RLS, policy of grant gewijzigd. De nieuwe instellingensectie leest geen integratietabel meer, dus de marketingrol ziet hem (sectie: `requiredRead: 'marketing'`, route `/admin/settings` vraagt `profile`; in de zijbalk blijft Instellingen verborgen voor marketing, de links in Marketing volstaan).
+- Standalone-mail: enkel bij een eigen `{{unsubscribe_url}}`; variabelen blijven ge-escaped (`htmlSafeVars`); List-Unsubscribe-headers ongewijzigd.
+
+**Gedeelde-paden-waarschuwing**
+- `campaignQueue.ts` bedient campagnes én automations: de nieuwe tak hangt aan `kind = 'automation'` + structuur van de inhoud (G2), gewone campagnes renderen byte-gelijk. `emailContent.ts` enkel additief (ook geïmporteerd door storefront-api, newsletter-confirm, send-test-email: geen redeploy nodig).
+- `storefront-api`, `storefront-customer-api`, `storefront-resolve` en `newsletter-confirm` niet aangeraakt. Het single-opt-in-pad in storefront-api blijft staan maar is onbereikbaar (geen `double_optin = false` meer; de admin schrijft het niet meer). `tenant_newsletter_config` blijft, geen kolom geraakt behalve de twee vlaggen.
+- Mancini en VanXcel zijn custom frontends: hun frontend merkt niets (inschrijven loopt via storefront-api, ongewijzigd); hun abonnees krijgen dezelfde mail, nu via de engine.
+
+**Verificatie**
+- PGlite (`mailclean/pgtest.mjs`): migratie 2× met Mancini/VanXcel-achtige data: 2 reeksen, 1 stap, body = origineel met omgezette placeholders (zonder placeholders byte-identiek), 2e run verandert niets (md5 campagnes en artikelen), oude vlag uit, double opt-in aan, 2 klanten (Demo Bakkerij, Mancini), 0 voor uitgeschreven/pending, 0 meldingen, trigger weer aan. 21/21.
+- Deno: `emailContentStandalone.test.ts` (5) + automationVars, tenantEmailHeader, marketingToken, storefrontUrls: 45 passed. `deno check` (stubs) op emailContent, campaignQueue, automationVars, automationEngine, render-campaign-preview, process-campaign-queue, send-campaign-batch, automation-scheduler, newsletter-confirm, send-test-email: enkel "Check".
+- `tsc` exit 0, `npm run build` exit 0 (sitemap teruggezet), vitest 65 bestanden / 825 tests, i18n-parity 5×8678, check-notification-sources 0, verify-edge-pins 0, lint per bestand: geen nieuwe fouten (NewsletterSettings 3 → 0).
+- Playwright: sectie E-mailinschrijving (1280/390) en de welkomststap met eigen ontwerp.
+
+**Deploy-volgorde (belangrijk)**
+1. Edge functions `process-campaign-queue`, `send-campaign-batch`, `automation-scheduler`, `render-campaign-preview` (vóór de migratie: zonder de standalone-tak vertrekt een lege welkomstmail).
+2. Migratie `20261020110000`.
+3. Frontend publiceren.
+
+**Bewust ongemoeid / Vervolg**
+- `newsletter-confirm` `sendWelcomeEmail`, `storefront-api` single opt-in en welkomstmail, `newsletter-subscribe`, `newsletter-test-connection`, `ai-generate-ab-variant` en de Mailchimp/Klaviyo-code blijven (aparte opruimbatch). Live gebruikt geen winkel een externe provider.
+- De welkomstmail telt nu mee voor de maandlimiet marketingmails en pauzeert als het abonnement niet in orde is (zoals elke automation); de oude route deed dat niet.
+- `StorefrontFeaturesSettings` bevat verder nog hardcoded NL (bestaand).
+
 ## MAIL-LOGO-1 — Logo in de mailkop: e-mailvariant, winkelnaam i.p.v. SellQo-logo, link naar de echte winkel — 20 oktober 2026
 
 Go van Akke 20-10 09:35. Branch `mail-logo-1` (worktree), niet gepusht.

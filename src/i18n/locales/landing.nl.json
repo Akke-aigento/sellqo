@@ -2127,6 +2127,10 @@
         "email_logo_header": {
           "title": "Je logo in je mails: scherp, bijgesneden en met een link naar je webshop",
           "description": "Upload je je logo, dan maakt SellQo er automatisch een versie voor e-mails van: lege en witte randen worden weggeknipt, het formaat is afgestemd op de kop van je mails en het bestand blijft licht. Bij het uploaden zie je meteen hoe je logo bovenaan je mails staat, in lichte en in donkere modus, en je krijgt een waarschuwing als het te klein is en wazig kan worden. Heb je geen logo, dan staat de naam van je winkel er in tekst, in plaats van het SellQo-logo. Het logo of de naam linkt naar je eigen webshop. Je bestaande logo blijft werken; de bijgesneden versie krijg je wanneer je het opnieuw uploadt."
+        },
+        "email_signup_cleanup": {
+          "title": "Je welkomstmail verhuist naar de Welkomstreeks; inschrijven altijd met bevestiging",
+          "description": "De instellingen voor de nieuwsbrief zijn opgeruimd. Had je daar een eigen welkomstmail, dan staat die nu als eerste mail in Marketing → Automatiseringen → Welkomstreeks, met je eigen onderwerp en ontwerp. De reeks staat aan, dus je nieuwe abonnees krijgen dezelfde welkomstmail als voorheen, meteen na hun bevestiging. Inschrijven gebeurt altijd met bevestiging (double opt-in); die schakelaar is weg. Onder Instellingen → E-mailinschrijving vind je de weg naar je abonnees en je welkomstmail."
         }
       },
       "copyLink": "Kopieer link",

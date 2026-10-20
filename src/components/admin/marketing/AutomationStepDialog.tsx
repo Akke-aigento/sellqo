@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { isComplexHtml, isStandaloneEmailDocument } from '@/lib/emailContent';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useTenantBrand, applyPreviewVariables } from '@/hooks/useTenantBrand';
@@ -63,6 +66,13 @@ export function AutomationStepDialog({
     setContent((prev) => ({ ...prev, [lang]: { ...(prev[lang] || {}), [field]: value } }));
   const delayEditable = !DELAY_ON_CARD.has(step.step_key);
   const editable = canWrite && !!step.campaign_id;
+  // MAIL-CLEAN-1: een eigen volledig ontwerp (de overgenomen welkomstmail) of andere complexe HTML
+  // bewerk je als HTML; de visuele editor zou tabellen en stijlen wegvereenvoudigen.
+  // De modus volgt de opgeslagen inhoud, zodat hij niet omspringt terwijl je typt.
+  const html = current.html_content || '';
+  const savedHtml = step.content?.[lang]?.html_content || '';
+  const standalone = isStandaloneEmailDocument(savedHtml);
+  const htmlMode = standalone || isComplexHtml(savedHtml);
 
   const handleSave = async () => {
     try {
@@ -143,8 +153,23 @@ export function AutomationStepDialog({
                 bodyHtml={current.html_content || ''}
                 previewText={current.preview_text}
                 language={lang}
-                fallbackHtml={fallbackHtml}
+                fallbackHtml={standalone ? html : fallbackHtml}
+                kind="automation"
               />
+            ) : htmlMode ? (
+              <>
+                <Textarea
+                  aria-label={t('admin.marketing.automations.step.body')}
+                  value={html}
+                  onChange={(e) => setField('html_content', e.target.value)}
+                  className="font-mono text-xs min-h-[320px]"
+                />
+                <VariableInserter
+                  onInsert={(v) => setField('html_content', html + v)}
+                  includeAutomation
+                  includeCartItems={step.step_key === 'cart'}
+                />
+              </>
             ) : (
               <>
                 <CampaignRichEditor
@@ -162,6 +187,11 @@ export function AutomationStepDialog({
               </>
             )}
           </div>
+          {standalone && (
+            <Alert>
+              <AlertDescription className="text-xs">{t('admin.marketing.automations.step.own_design')}</AlertDescription>
+            </Alert>
+          )}
           {lang !== 'nl' && !current.subject && !current.html_content && (
             <p className="text-xs text-muted-foreground">{t('admin.marketing.automations.step.empty_lang')}</p>
           )}

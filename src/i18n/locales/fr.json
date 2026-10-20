@@ -334,7 +334,7 @@
       "inbound_email": "Boîte de réception e-mail",
       "ai_assistant": "Assistant IA",
       "whatsapp": "Intégration WhatsApp",
-      "newsletter": "Newsletter",
+      "newsletter": "Inscription par e-mail",
       "social": "Réseaux sociaux",
       "reviews": "Avis",
       "fulfillment_api": "API de préparation",
@@ -1289,6 +1289,18 @@
       "noVariantTitle": "Impossible de créer la version e-mail",
       "noVariantBody": "Votre logo est enregistré pour votre boutique, mais aucune version e-mail n'a pu en être créée. Vos e-mails affichent le nom de votre boutique. Téléversez un PNG, JPG, WebP ou SVG pour voir aussi votre logo dans vos e-mails.",
       "blankWarning": "Votre logo est blanc ou vide sur un fond blanc ; vos e-mails affichent le nom de votre boutique."
+    },
+    "emailSignup": {
+      "title": "Inscription par e-mail",
+      "description": "Comment les clients s’inscrivent à votre newsletter, et où trouver vos abonnés et votre e-mail de bienvenue.",
+      "double_optin_title": "L’inscription se fait toujours avec confirmation (double opt-in)",
+      "double_optin_body": "Toute personne qui s’inscrit reçoit d’abord un e-mail avec un bouton de confirmation. Ce n’est qu’après ce clic qu’elle reçoit vos campagnes et vos e-mails automatiques. C’est activé pour chaque boutique et ne peut pas être désactivé.",
+      "subscribers_title": "Abonnés",
+      "subscribers_path": "Marketing → E-mail → Abonnés",
+      "subscribers_body": "Voyez qui est inscrit, qui doit encore confirmer, et invitez des personnes.",
+      "welcome_title": "E-mail de bienvenue",
+      "welcome_path": "Marketing → Automatisations → Série de bienvenue",
+      "welcome_body": "Votre ancien e-mail de bienvenue se trouve désormais ici, comme premier e-mail de la série de bienvenue."
     }
   },
   "languages": {
@@ -3259,7 +3271,7 @@
         "kinds": {
           "welcome_series": {
             "title": "Série de bienvenue",
-            "description": "Deux e-mails pour les nouveaux abonnés, dès qu'ils ont confirmé leur inscription."
+            "description": "Des e-mails pour les nouveaux abonnés, dès qu’ils ont confirmé leur inscription."
           },
           "post_purchase": {
             "title": "Après achat + demande d'avis",
@@ -3299,7 +3311,8 @@
           "review": "La demande d'avis n'est envoyée que si votre boutique a un profil Google ou Trustpilot connecté.",
           "review_none": "Aucun profil n'est connecté pour le moment.",
           "review_link": "Gérer les profils d'avis",
-          "cart_legal": "Votre boutique reste responsable ; SellQo n'envoie ce rappel qu'aux clients inscrits ou ayant déjà acheté chez vous."
+          "cart_legal": "Votre boutique reste responsable ; SellQo n'envoie ce rappel qu'aux clients inscrits ou ayant déjà acheté chez vous.",
+          "legacy_welcome": "Votre ancien e-mail de bienvenue se trouve désormais ici. Nous l’avons repris des anciens paramètres de newsletter, avec votre propre objet et votre propre design. Les nouveaux abonnés le reçoivent juste après leur confirmation, comme avant."
         },
         "toast": {
           "activated": "Automatisation activée",
@@ -3319,7 +3332,8 @@
           "edit_text": "Modifier le texte",
           "empty_lang": "Pas encore de texte dans cette langue.",
           "saved": "Étape enregistrée",
-          "save_failed": "Impossible d'enregistrer l'étape"
+          "save_failed": "Impossible d'enregistrer l'étape",
+          "own_design": "Cet e-mail est un design entièrement personnalisé avec son propre lien de désinscription. Il est envoyé exactement tel qu’il apparaît ici, sans l’en-tête ni le pied de page standard de votre boutique. Conservez le lien de désinscription."
         },
         "log": {
           "title": "Journal",
@@ -6613,6 +6627,11 @@
         "own_domain": "Domaine personnalisé",
         "own_domain_soon": "Bientôt : connecter vous-même votre propre domaine.",
         "select_shop": "Sélectionnez une boutique pour continuer"
+      },
+      "features": {
+        "newsletter_where": "L’inscription se fait toujours avec confirmation. Vous gérez vos abonnés et votre e-mail de bienvenue dans Marketing :",
+        "newsletter_link_email": "E-mail → Abonnés",
+        "newsletter_link_automations": "Automatisations → Série de bienvenue"
       }
     },
     "allergens": {
@@ -8058,7 +8077,8 @@
       "wacht_even": "Attendez une minute !",
       "aanmelden": "S'inscrire",
       "nee_bedankt": "Non merci",
-      "je_email_nl": "votre@email.fr"
+      "je_email_nl": "votre@email.fr",
+      "default_incentive": "Inscrivez-vous à notre newsletter et recevez des offres exclusives !"
     },
     "megaMenu": {
       "home": "Accueil",
@@ -8072,7 +8092,8 @@
     "newsletterPopup": {
       "bedankt": "Merci !",
       "je_bent_succesvol_ingeschreven": "Vous êtes inscrit avec succès.",
-      "blijf_op_de_hoogte": "Restez informé"
+      "blijf_op_de_hoogte": "Restez informé",
+      "default_incentive": "Inscrivez-vous et découvrez en premier nos dernières offres et nouveautés."
     },
     "productCard": {
       "uitverkocht": "En rupture de stock",

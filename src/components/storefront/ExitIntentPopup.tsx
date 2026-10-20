@@ -101,7 +101,7 @@ export function ExitIntentPopup({ tenantSlug, tenantId, incentiveText }: ExitInt
           <>
             <h2 className="text-2xl font-bold mb-3">{t('storefront.exitIntentPopup.wacht_even')}</h2>
             <p className="text-muted-foreground mb-6">
-              {incentiveText || 'Schrijf je in voor onze nieuwsbrief en ontvang exclusieve aanbiedingen!'}
+              {incentiveText || t('storefront.exitIntentPopup.default_incentive')}
             </p>
 
             <form onSubmit={handleSubmit} className="flex gap-2 max-w-sm mx-auto">

@@ -102,7 +102,7 @@ export function NewsletterPopup({ tenantSlug, tenantId, delaySeconds, incentiveT
           <>
             <h2 className="text-xl font-bold mb-2">{t('storefront.newsletterPopup.blijf_op_de_hoogte')}</h2>
             <p className="text-muted-foreground mb-4">
-              {incentiveText || 'Schrijf je in en ontvang als eerste onze nieuwste aanbiedingen en producten.'}
+              {incentiveText || t('storefront.newsletterPopup.default_incentive')}
             </p>
 
             <form onSubmit={handleSubmit} className="flex gap-2 max-w-sm mx-auto">

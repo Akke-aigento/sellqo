@@ -196,6 +196,22 @@ export function stripEmptyImageTokens(html: string, valueOf: (token: string) => 
   );
 }
 
+/**
+ * MAIL-CLEAN-1: een eigen, volledig HTML-ontwerp met een eigen afmeldlink. Zo zagen de oude
+ * welkomstmails uit Instellingen → Nieuwsbrief eruit (Mancini, VanXcel): een compleet document
+ * met <head>-stijlen en een eigen voettekst met {{unsubscribe_url}}. Zo'n mail gaat als
+ * automationmail ongewijzigd de deur uit (enkel variabelen ingevuld), zoals de oude route deed.
+ * Door extractEmailBody + renderTenantEmail zou hij zijn stijlen verliezen, een tweede kop en
+ * voettekst krijgen, en de afmeldrij-regex zou alles vanaf de eerste <tr> wegknippen.
+ * Zonder eigen afmeldlink: géén standalone (de SellQo-voettekst met afmeldlink is dan nodig).
+ */
+export function isStandaloneEmailDocument(html: string): boolean {
+  if (!html) return false;
+  return /<!doctype|<html[\s>]/i.test(html)
+    && /<body[\s>]/i.test(html)
+    && /\{\{\s*unsubscribe_url\s*\}\}/.test(html);
+}
+
 export function applyVariables(input: string, vars: Record<string, string>): string {
   if (!input) return '';
   input = stripEmptyImageTokens(input, (k) => (Object.prototype.hasOwnProperty.call(vars, k) ? vars[k] : ''));
