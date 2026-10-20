@@ -4837,7 +4837,8 @@
         "reset": "Reset",
         "apply": "Apply",
         "apply_hint": "Your edit becomes a new photo. The original stays in your media library."
-      }
+      },
+      "bekijken": "View"
     },
     "productForm": {
       "vertalingen": "Translations",
@@ -4988,7 +4989,8 @@
       "product_nummer": "Product {{number}}",
       "sla_het_product_eerst_op_om_2": "Save the product first to manage dates",
       "vast_bedrag_euro": "Fixed amount (&euro;)",
-      "notFound": "This product no longer exists."
+      "notFound": "This product no longer exists.",
+      "product_bekijken": "View product"
     },
     "promotions": {
       "autoDiscountFormDialog": {

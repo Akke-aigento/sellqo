@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { ConversationDragOverlay } from '@/components/admin/inbox/ConversationDragOverlay';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useHideAdminBottomNav } from '@/hooks/useAdminBottomNav';
+import { useKeyboardInset } from '@/hooks/useKeyboardInset';
 import type { Conversation } from '@/hooks/useInbox';
 import { useTranslation } from 'react-i18next';
 
@@ -215,7 +216,12 @@ export default function MessagesPage() {
   const showDetail = !isSinglePanel || mobileView === 'detail';
   // APP-KEYBOARD-2 (keuze Akke 29-09): in een open gesprek op mobiel geen
   // navigatiepil — terug via de pijl bovenaan, de onderrand is voor de antwoordbox.
-  useHideAdminBottomNav(isSinglePanel && mobileView === 'detail');
+  const inSinglePanelDetail = isSinglePanel && mobileView === 'detail';
+  useHideAdminBottomNav(inSinglePanelDetail);
+  // UI-FIX-1 — in de browser (niet native) legt het toetsenbord zich óver de
+  // pagina: de shell is h-dvh en krimpt niet mee, dus de antwoordbox verdween
+  // eronder. `inset` is native altijd 0 (de WebView krimpt daar zelf).
+  const keyboard = useKeyboardInset();
 
   const conversationIds = useMemo(() => conversations.map(c => c.id), [conversations]);
 
@@ -340,8 +346,14 @@ export default function MessagesPage() {
     // laatste klasse bestond niet: Tailwind kan een klassenaam met een variabele
     // erin niet genereren, dus het paneel had geen hoogte en de antwoordbox
     // stond niet onderaan maar onder het laatste bericht — onder de pil.
-    <div className="h-full min-h-0 flex flex-col">
-      <div className={`shrink-0 ${isSinglePanel ? 'px-0 pt-0.5 pb-0' : 'p-6 pb-0'}`}>
+    <div
+      className="h-full min-h-0 flex flex-col"
+      style={inSinglePanelDetail && keyboard.inset > 0 ? { paddingBottom: keyboard.inset } : undefined}
+    >
+      {/* UI-FIX-1: in een open gesprek op mobiel geen paginakop. Het gesprek heeft
+          zijn eigen kop met terugpijl, en de kop at op 390 px ruim 100 px van de
+          berichten — met het toetsenbord open bleef er bijna niets over. */}
+      <div className={`shrink-0 ${isSinglePanel ? 'px-0 pt-0.5 pb-0' : 'p-6 pb-0'} ${inSinglePanelDetail ? 'hidden' : ''}`}>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className={`${isSinglePanel ? 'text-lg' : 'text-2xl'} font-bold tracking-tight flex items-center gap-2`}>
@@ -365,7 +377,7 @@ export default function MessagesPage() {
 
       <div className={`flex-1 min-h-0 ${isSinglePanel ? '' : 'p-6'}`}>
         {isSinglePanel ? (
-          <div className="h-full flex overflow-hidden border-t">
+          <div className={`h-full flex overflow-hidden ${inSinglePanelDetail ? '' : 'border-t'}`}>
             {innerContent}
           </div>
         ) : (

@@ -206,7 +206,7 @@ export function ConversationDetail({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className={`${isMobile ? 'p-3' : 'p-4'} border-b flex items-center gap-3`}>
+      <div className={`${isMobile ? 'p-3' : 'p-4'} shrink-0 border-b flex items-center gap-3`}>
         {onBack && (
           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onBack}>
             <ArrowLeft className="h-4 w-4" />
@@ -279,7 +279,9 @@ export function ConversationDetail({
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1 min-h-0 p-4" ref={scrollRef}>
+      {/* UI-FIX-1: `!block` — zie ConversationList; een lange link in een mail
+          maakte het gesprek anders breder dan het scherm. */}
+      <ScrollArea className="flex-1 min-h-0 p-4 [&>[data-radix-scroll-area-viewport]>div]:!block" ref={scrollRef}>
         <div className="space-y-6">
           {sortedDates.map((date) => (
             <div key={date}>

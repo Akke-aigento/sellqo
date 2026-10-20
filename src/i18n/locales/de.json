@@ -4564,7 +4564,8 @@
         "reset": "Zurücksetzen",
         "apply": "Übernehmen",
         "apply_hint": "Ihre Bearbeitung wird ein neues Foto. Das Original bleibt in Ihrer Mediathek."
-      }
+      },
+      "bekijken": "Ansehen"
     },
     "productForm": {
       "vertalingen": "Übersetzungen",
@@ -4715,7 +4716,8 @@
       "product_nummer": "Produkt {{number}}",
       "sla_het_product_eerst_op_om_2": "Speichern Sie zuerst das Produkt, um Termine zu verwalten",
       "vast_bedrag_euro": "Fester Betrag (&euro;)",
-      "notFound": "Dieses Produkt existiert nicht mehr."
+      "notFound": "Dieses Produkt existiert nicht mehr.",
+      "product_bekijken": "Produkt ansehen"
     },
     "promotions": {
       "autoDiscountFormDialog": {

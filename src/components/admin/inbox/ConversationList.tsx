@@ -43,9 +43,13 @@ export function ConversationList({
   const { t } = useTranslation();
   const showCheckboxes = selectedIds.size > 0;
 
+  // UI-FIX-1 — deze lijst staat onder InboxFilters in een flex-kolom. Met `h-full`
+  // nam hij de hoogte van de héle kolom en schoof hij met de hoogte van de filters
+  // onder de rand: de onderste gesprekken waren nooit te bereiken (op mobiel
+  // ~150px, onder de navigatiepil). `flex-1 min-h-0` neemt wat overblijft.
   if (isLoading) {
     return (
-      <div className="p-4 space-y-4">
+      <div className="flex-1 min-h-0 p-4 space-y-4">
         {[...Array(5)].map((_, i) => (
           <div key={i} className="flex gap-3">
             <Skeleton className="h-10 w-10 rounded-full" />
@@ -61,7 +65,7 @@ export function ConversationList({
 
   if (conversations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-6">
+      <div className="flex-1 min-h-0 flex flex-col items-center justify-center text-center p-6">
         <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-4">
           <MessageSquare className="h-6 w-6 text-muted-foreground" />
         </div>
@@ -74,7 +78,7 @@ export function ConversationList({
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex-1 min-h-0 flex flex-col">
       {/* Bulk actions toolbar */}
       <BulkActionsToolbar
         selectedCount={selectedIds.size}
@@ -89,8 +93,11 @@ export function ConversationList({
         isLoading={isBulkLoading}
       />
 
-      {/* Conversation list */}
-      <ScrollArea className="flex-1">
+      {/* Conversation list. De Radix-viewport zet zijn inhoud in een
+          `display: table`-div, die meegroeit met de breedste regel: `truncate`
+          kapte dan niets af en de lijst werd breder dan het scherm (op 390 px
+          viel de tijd rechts weg). `!block` houdt hem op de breedte van de lijst. */}
+      <ScrollArea className="flex-1 min-h-0 [&>[data-radix-scroll-area-viewport]>div]:!block">
         {conversations.map((conversation) => (
           <SelectableConversationItem
             key={conversation.id}

@@ -137,7 +137,7 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         )}
 
         {/* Message body */}
-        <p className="text-sm whitespace-pre-wrap break-words">{getBodyContent()}</p>
+        <p className="text-sm whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{getBodyContent()}</p>
 
         {/* Attachments */}
         {(hasAttachments || attachmentCount > 0) && (

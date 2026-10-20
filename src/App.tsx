@@ -256,7 +256,10 @@ const App = () => (
                   INSERT-policy op products laat marketing niet toe, dus zonder
                   deze rolcheck krijgt marketing een formulier dat bij opslaan faalt. */}
               <Route path="products/new" element={<RouteGuard requireWrite="products" requireRole={['tenant_admin', 'staff']}><ProductForm /></RouteGuard>} />
-              <Route path="products/:id/edit" element={<RouteGuard requireWrite="products"><ProductForm /></RouteGuard>} />
+              {/* UI-FIX-1 — leesrecht volstaat: zonder schrijfrecht toont ProductForm
+                  het product alleen-lezen. Met requireWrite belandden viewer,
+                  accountant, warehouse en elke winkel in leesmodus op /no-access. */}
+              <Route path="products/:id/edit" element={<RouteGuard requireRead="products"><ProductForm /></RouteGuard>} />
               <Route path="orders" element={<RouteGuard requireRead="orders"><OrdersPage /></RouteGuard>} />
               <Route path="orders/:id" element={<RouteGuard requireRead="orders"><OrderDetailPage /></RouteGuard>} />
               <Route path="returns" element={<RouteGuard requireRead="returns"><ReturnsPage /></RouteGuard>} />

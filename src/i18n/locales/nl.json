@@ -4918,7 +4918,8 @@
         "reset": "Herstellen",
         "apply": "Toepassen",
         "apply_hint": "Je bewerking wordt een nieuwe foto. Het origineel blijft in je mediabibliotheek staan."
-      }
+      },
+      "bekijken": "Bekijken"
     },
     "productForm": {
       "vertalingen": "Vertalingen",
@@ -5069,7 +5070,8 @@
         "slug_is_verplicht": "Slug is verplicht",
         "naam_mag_maximaal_200_tekens_zijn": "Naam mag maximaal 200 tekens zijn"
       },
-      "notFound": "Dit product bestaat niet meer."
+      "notFound": "Dit product bestaat niet meer.",
+      "product_bekijken": "Product bekijken"
     },
     "promotions": {
       "autoDiscountFormDialog": {

@@ -57,6 +57,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { PermissionGate } from '@/components/PermissionGate';
+import { useCan } from '@/hooks/useCan';
 import { GatedButton } from '@/components/permissions/GatedButton';
 import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import {
@@ -84,6 +85,7 @@ import { useTranslation } from 'react-i18next';
 
 export default function ProductsPage() {
   const { t } = useTranslation();
+  const canWriteProducts = useCan('write', 'products');
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const { isOverLimit, isTrialing } = useUsageLimits();
@@ -685,8 +687,8 @@ export default function ProductsPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild>
                         <Link to={`/admin/products/${product.id}/edit`}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          {t('common.edit')}
+                          {canWriteProducts ? <Pencil className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                          {canWriteProducts ? t('common.edit') : t('admin.products.bekijken')}
                         </Link>
                       </DropdownMenuItem>
                       <PermissionGate action="write" resource="products">
@@ -869,8 +871,8 @@ export default function ProductsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link to={`/admin/products/${product.id}/edit`}>
-                              <Pencil className="mr-2 h-4 w-4" />
-                              {t('common.edit')}
+                              {canWriteProducts ? <Pencil className="mr-2 h-4 w-4" /> : <Eye className="mr-2 h-4 w-4" />}
+                              {canWriteProducts ? t('common.edit') : t('admin.products.bekijken')}
                             </Link>
                           </DropdownMenuItem>
                         <PermissionGate action="write" resource="products">

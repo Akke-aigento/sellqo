@@ -1,3 +1,59 @@
+## UI-FIX-1 — inbox op mobiel en alleen-lezen productpagina — 20 oktober 2026
+
+Go van Akke 20-10 14:06. Gevonden door de Lovable-agent op 19-10 ("inbox mobile stuck", "read-only product page bounce"). Branch `fix-ui` op `origin/main` 05b4080, niet gepusht.
+
+**Root cause**
+- *Inbox (`/admin/messages`) op mobiel.* Het scherm wisselde al tussen lijst en gesprek met een terugpijl (APP-KEYBOARD-2); twee fouten zaten in de lijst zelf:
+  1. `src/components/admin/inbox/ConversationList.tsx:77` — de lijst had `h-full` terwijl hij onder `InboxFilters` in een flex-kolom staat (`Messages.tsx:269`). Hij nam dus de hoogte van de hele kolom en stak met de hoogte van de filters (~150 px) onder de rand, die `overflow-hidden` afknipt. Gemeten op 390×844: scrollgebied tot y=877, het scherm stopt op 844 en de pil ligt erover. Het laatste gesprek was niet te bereiken. Op 1280 hetzelfde (tot y=964 bij 900 hoog).
+  2. `ConversationList.tsx:93` — Radix `ScrollArea` zet zijn inhoud in een `display: table`-div die meegroeit met de breedste regel. `truncate` kapte daardoor niets af: de lijst werd 437 px breed op 390 px en de tijd rechts viel weg.
+  Daarnaast: in een open gesprek op mobiel at de paginakop ("Gesprekken" + Nieuw) ruim 100 px van de berichten, en in de browser (niet native) legt het toetsenbord zich over de h-dvh-shell, waardoor de antwoordbox eronder verdween. Native krimpt de WebView zelf (`capacitor.config.ts` `resize: 'native'`).
+- *Productpagina alleen-lezen.* `src/App.tsx:259` bewaakte `products/:id/edit` met `requireWrite="products"`. Volgens `PERMISSION_MATRIX` (`src/hooks/useCan.ts:124`) lezen viewer, accountant en warehouse producten maar schrijven ze niet; `RouteGuard` stuurde hen naar `/no-access`. Ook een `tenant_admin` van een winkel in leesmodus (BILLING-ENFORCE-1: `useCan('write')` is dan false) kwam daar. Er bestond geen leesbare productpagina. Al bekend: Vervolg van NOTIF-DEEPLINK-1 ("`/admin/products/:id/edit` vereist schrijfrecht ... Een leesbare productpagina bestaat niet"). Niet in `docs/fase2-backlog.md`.
+
+**Uitgevoerd**
+- `src/components/admin/inbox/ConversationList.tsx` — `flex-1 min-h-0` in plaats van `h-full` (lijst, laad- en lege staat); `ScrollArea` met `[&>[data-radix-scroll-area-viewport]>div]:!block`.
+- `src/components/admin/inbox/ConversationDetail.tsx` — dezelfde `!block` op het berichtenvenster, `shrink-0` op de kop.
+- `src/components/admin/inbox/MessageBubble.tsx` — `[overflow-wrap:anywhere]`: een lange link breekt af in plaats van het gesprek te verbreden.
+- `src/pages/admin/Messages.tsx` — in een open gesprek op mobiel geen paginakop (het gesprek heeft zijn eigen kop met terugpijl); `paddingBottom` = toetsenbordhoogte uit `useKeyboardInset` (native altijd 0). Desktop ongewijzigd.
+- `src/App.tsx` — `products/:id/edit` vraagt `requireRead="products"`. `products/new` blijft `requireWrite` + rol.
+- `src/pages/admin/ProductForm.tsx` — `readOnly = isEditing && !useCan('write','products')`: titel "Product bekijken" met `ReadOnlyBadge`, geen Annuleren/Opslaan, geen tabbladen (Vertalingen, Marketplaces en Advertenties zijn beheerschermen met eigen opslaan), het tabblad Product in een `<fieldset disabled>` (zet ook de knoppen van varianten, addons enz. uit), upload-vlakken, mediabibliotheek, afbeeldingsacties, tag- en categorie-verwijderen en de link naar de Vertaal-hub weg, `FloatingSaveBar` nooit, `onSubmit` doet niets.
+- `src/pages/admin/Products.tsx` — het menu-item heet "Bekijken" (oog-icoon) als je niet mag schrijven.
+- i18n: `admin.productForm.product_bekijken`, `admin.products.bekijken` in nl/en/fr/de/uk.
+- Changelog `2026.13f` (bugfix): `inbox_mobile_list`, `product_view_readonly` in `PublicChangelog.tsx` en `landing.{nl,en,fr,de,uk}.json`. 13e staat op `origin/main`, 13f in `fix-cart`; bij het mergen 13g bovenaan houden.
+
+**Security-keuzes**
+Geen RLS, policy of grant geraakt. De route laat nu de rollen toe die `PERMISSION_MATRIX.products.read` al noemt (alle tenantrollen); de pagina deed voor hen dezelfde SELECT als de productlijst, die ze al mochten openen. Live `pg_policies` niet opnieuw nagetrokken. Schrijven blijft dicht in de database; de UI is enkel eerlijk gemaakt. `readOnly` volgt `useCan`, dus ook de leesmodus bij een openstaande betaling.
+
+**Gedeelde-paden-waarschuwing**
+n.v.t. — alleen admin-UI. Geen storefront-code, edge function of gedeelde tabel.
+
+**Verificatie**
+- Harness (vite met gemockte Supabase, echte `AdminLayout`), Playwright:
+  - 390 lijst: scrollWidth 390, rechterrand 390 (was 437), lijst eindigt op 740 boven de pil (was 877), laatste gesprek (Wout Hermans) bereikbaar.
+  - 390 gesprek: berichten 469 px hoog (was 386), antwoordbox in beeld, scrollWidth 390.
+  - 1280: lijst binnen de kaart (eindigt op 827, was 964), verder ongewijzigd.
+  - Product als viewer: blijft op `/admin/products/p1/edit` (was `/no-access`), 0 bewerkbare velden, geen Opslaan/Verwijder. Als tenant_admin: 21 velden, Opslaan aanwezig.
+- `tsc --noEmit -p tsconfig.app.json` exit 0; `npm run build` exit 0 (sitemap teruggezet); `vitest run` 66 bestanden / 837 tests groen; `i18n-parity` volledige pariteit; `check-dead-buttons` geen nieuwe.
+- Lint per bestand vóór/na gelijk (ProductForm 17, Products 14, MessageBubble 1 bestaande fouten; geen nieuwe `any`).
+
+**Samenhang**
+
+| Plek | Doet nu | Wat verandert | Voorstel |
+|---|---|---|---|
+| `/admin/messages` mobiel | lijst ↔ gesprek, terugpijl (APP-KEYBOARD-2) | lijst past en scrolt, gesprek op volle hoogte | klaar |
+| `/admin/messages` desktop | drie panelen | enkel de lijsthoogte (laatste gesprek was ook hier onbereikbaar) | klaar |
+| `/admin/products/:id/edit` | enige productpagina (NOTIF-DEEPLINK-1) | leesmodus zonder schrijfrecht, zelfde URL | geen tweede pagina |
+| `/admin/products/:id`, `?id=` | redirect naar `/edit` | nu ook bruikbaar voor leesrollen | — |
+| Productlijst, menu | "Bewerken" voor iedereen | "Bekijken" zonder schrijfrecht | — |
+| `/admin/orders/:id`, `/admin/customers/:customerId` | `requireRead` | niets: niet dezelfde bug | — |
+| `doc_articles`, nieuwsbrief | — | niet aangeraakt (opdracht: role-audit + changelog) | nieuwsbrief-item bij volgende verzending |
+
+Wat bleef staan: de vervolgnoot in NOTIF-DEEPLINK-1 is hiermee opgelost.
+
+**Bewust ongemoeid / Vervolg**
+- Leesmodus toont alleen het tabblad Product. Vertalingen en marketplaces alleen-lezen tonen vraagt eigen werk in `EntityTranslationTabs` en `ProductMarketplaceTab`.
+- Bestaande hardcoded teksten in `ProductForm.tsx` (`Bewerk ${name}`, "Voeg een nieuw product toe…", `adminManagedHint`) en `ReadOnlyBadge.tsx` ("Alleen-lezen") zijn niet door i18n gehaald.
+- `OrderDetail`/`CustomerDetail` openen voor leesrollen, maar tonen schrijfknoppen niet overal via `useCan`; niet onderzocht.
+- Toetsenbordgedrag in mobiele Safari kon in de harness niet echt getest worden; native is ongewijzigd.
 ## DATA-20OKT — Astra Sleep productlink-template, Engelse welkomstmail VanXcel, nieuwsbriefteksten custom frontends — 20 oktober 2026
 
 Go van Akke 20-10 14:06 ("alles aanpakken"). Branch `fix-data` op `origin/main` 05b4080, niet gepusht. Frontendwerk via de Lovable-agent in de vier projecten, niet gepubliceerd.

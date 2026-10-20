@@ -4851,7 +4851,8 @@
         "reset": "Скинути",
         "apply": "Застосувати",
         "apply_hint": "Ваше редагування стає новим фото. Оригінал залишається у вашій медіатеці."
-      }
+      },
+      "bekijken": "Переглянути"
     },
     "productForm": {
       "vertalingen": "Переклади",
@@ -5002,7 +5003,8 @@
       "product_nummer": "Товар {{number}}",
       "sla_het_product_eerst_op_om_2": "Спершу збережіть товар, щоб керувати датами",
       "vast_bedrag_euro": "Фіксована сума (&euro;)",
-      "notFound": "Цей товар більше не існує."
+      "notFound": "Цей товар більше не існує.",
+      "product_bekijken": "Перегляд товару"
     },
     "promotions": {
       "autoDiscountFormDialog": {

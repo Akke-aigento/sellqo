@@ -61,6 +61,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
+import { useCan } from '@/hooks/useCan';
+import { ReadOnlyBadge } from '@/components/permissions/ReadOnlyBadge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -160,6 +162,12 @@ export default function ProductForm() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEditing = !!id;
+  // UI-FIX-1 — de route vraagt nu leesrecht (was schrijfrecht: viewer, accountant,
+  // warehouse en elke winkel in leesmodus kwamen op /no-access). Zonder
+  // schrijfrecht toont dezelfde pagina het product alleen-lezen: velden uit,
+  // geen opslaan, uploaden of verwijderen. `products/new` blijft schrijfrecht vragen.
+  const canWriteProducts = useCan('write', 'products');
+  const readOnly = isEditing && !canWriteProducts;
   
   const { currentTenant } = useTenant();
   // PROD-TRIGGER-1 — commerciële velden zijn voor rollen die uitsluitend
@@ -559,6 +567,7 @@ export default function ProductForm() {
   };
 
    const onSubmit = async (data: FormValues) => {
+    if (readOnly) return;
     // Enforce usage limit for new products
     if (!isEditing) {
       const result = await enforceLimit('products');
@@ -671,13 +680,17 @@ export default function ProductForm() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
-          <h1 className="text-2xl font-bold tracking-tight">
-            {isEditing ? t('admin.productForm.product_bewerken') : t('admin.products.nieuw_product')}
+          <h1 className="text-2xl font-bold tracking-tight flex flex-wrap items-center gap-2">
+            {readOnly
+              ? t('admin.productForm.product_bekijken')
+              : isEditing ? t('admin.productForm.product_bewerken') : t('admin.products.nieuw_product')}
+            <ReadOnlyBadge resource="products" />
           </h1>
           <p className="text-muted-foreground">
-            {isEditing ? `Bewerk ${product?.name}` : 'Voeg een nieuw product toe aan je catalogus'}
+            {readOnly ? product?.name : isEditing ? `Bewerk ${product?.name}` : 'Voeg een nieuw product toe aan je catalogus'}
           </p>
         </div>
+        {!readOnly && (
         <div className="flex gap-2 flex-wrap w-full sm:w-auto">
           <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => navigate('/admin/products')}>
             {t('common.cancel')}
@@ -696,20 +709,28 @@ export default function ProductForm() {
             )}
           </Button>
         </div>
+        )}
       </div>
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Tabs defaultValue="product" className="space-y-6">
+            {/* Alleen-lezen: enkel het tabblad Product. Vertalingen, marketplaces en
+                advertenties zijn beheerschermen met eigen opslaan-acties. */}
+            {!readOnly && (
             <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-4">
               <TabsTrigger value="product" className="shrink-0">{t('admin.stockReport.colName')}</TabsTrigger>
               <TabsTrigger value="translations" className="shrink-0" disabled={!isEditing}>{t('admin.productForm.vertalingen')}</TabsTrigger>
               <TabsTrigger value="marketplaces" className="shrink-0">{t('admin.productForm.marketplaces')}</TabsTrigger>
               <TabsTrigger value="ads" className="shrink-0" disabled={!isEditing}>{t('admin.products.productAdsSection.advertenties')}</TabsTrigger>
             </TabsList>
+            )}
 
             {/* Product Tab - One-page 2-column layout */}
             <TabsContent value="product" className="space-y-6">
+              {/* `disabled` op een fieldset zet elk veld en elke knop erin uit, ook
+                  die van de kaarten met eigen opslaan (varianten, addons, ...). */}
+              <fieldset disabled={readOnly} className="min-w-0">
               <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
                 {/* Left Column */}
                 <div className="space-y-6 min-w-0">
@@ -895,8 +916,8 @@ export default function ProductForm() {
                             </CollapsibleTrigger>
                             {!descOpen && field.value && field.value !== '<p></p>' && (
                               <div
-                                onClick={() => setDescOpen(true)}
-                                className="relative mt-2 cursor-pointer rounded-md border border-input p-3"
+                                onClick={readOnly ? undefined : () => setDescOpen(true)}
+                                className={cn('relative mt-2 rounded-md border border-input p-3', !readOnly && 'cursor-pointer')}
                               >
                                 <div
                                   className="prose prose-sm max-w-none max-h-[12rem] overflow-hidden text-muted-foreground"
@@ -1105,7 +1126,7 @@ export default function ProductForm() {
                                 <CardDescription>{t('admin.productForm.upload_de_bestanden_die_klanten_kunnen')}</CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-4">
-                                <div className="flex items-center justify-center w-full">
+                                <div className={cn('flex items-center justify-center w-full', readOnly && 'hidden')}>
                                   <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                                       {uploadingDigital ? (
@@ -1164,7 +1185,7 @@ export default function ProductForm() {
                                     <p className="text-sm text-muted-foreground">{t('common.total')}</p>
                                   </div>
                                 </div>
-                                <div className="space-y-2">
+                                <div className={cn('space-y-2', readOnly && 'hidden')}>
                                   <Label>{t('admin.productForm.licentiecodes_toevoegen')}</Label>
                                   <Textarea value={licenseInput} onChange={(e) => setLicenseInput(e.target.value)} placeholder={t('admin.productForm.voer_licentiecodes_in_een_per_regel')} rows={4} />
                                   <Button type="button" onClick={handleAddLicenseKeys} disabled={!licenseInput.trim() || addKeys.isPending}>
@@ -1640,11 +1661,11 @@ export default function ProductForm() {
                   <Card>
                     <CardHeader>
                       <CardTitle>{t('admin.marketing.promoKitResult.afbeeldingen')}</CardTitle>
-                      <CardDescription>{t('admin.productForm.upload_afbeeldingen_of_kies_uit_je')}</CardDescription>
+                      {!readOnly && <CardDescription>{t('admin.productForm.upload_afbeeldingen_of_kies_uit_je')}</CardDescription>}
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        <div className="flex items-center justify-center w-full">
+                        <div className={cn('flex items-center justify-center w-full', readOnly && 'hidden')}>
                           <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                               {uploading ? (
@@ -1663,7 +1684,7 @@ export default function ProductForm() {
                         <Button
                           type="button"
                           variant="outline"
-                          className="w-full"
+                          className={cn('w-full', readOnly && 'hidden')}
                           onClick={() => setLibraryPickerOpen(true)}
                         >
                           <Library className="mr-2 h-4 w-4" />
@@ -1677,7 +1698,7 @@ export default function ProductForm() {
                                 form.watch('featured_image') === url ? "border-primary" : "border-transparent"
                               )}>
                                 <img src={url} alt={t('admin.productForm.product_nummer', { number: index + 1 })} className="w-full h-full object-cover" />
-                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                                <div className={cn('absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2', readOnly && 'hidden')}>
                                   <Button type="button" size="icon" variant="secondary" onClick={() => setFeaturedImage(url)} title={t('admin.productForm.maak_hoofdafbeelding')}>
                                     <Star className={cn("h-4 w-4", form.watch('featured_image') === url && "fill-amber-500 text-amber-500")} />
                                   </Button>
@@ -1764,7 +1785,7 @@ export default function ProductForm() {
                                 <Badge key={catId} variant={index === 0 ? 'default' : 'secondary'} className="gap-1">
                                   {categoryPath}
                                   {index === 0 && <span className="text-xs opacity-70">{t('admin.productForm.primair')}</span>}
-                                  <button type="button" onClick={() => setSelectedCategoryIds(prev => prev.filter(id => id !== catId))} className="hover:text-destructive">
+                                  <button type="button" onClick={() => setSelectedCategoryIds(prev => prev.filter(id => id !== catId))} className={cn('hover:text-destructive', readOnly && 'hidden')}>
                                     <X className="h-3 w-3" />
                                   </button>
                                 </Badge>
@@ -1775,7 +1796,7 @@ export default function ProductForm() {
                       </div>
                       <div className="space-y-2">
                         <Label>{t('admin.marketing.segmentBuilder.tags')}</Label>
-                        <div className="flex gap-2">
+                        <div className={cn('flex gap-2', readOnly && 'hidden')}>
                           <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder={t('admin.productForm.voeg_tag_toe')} onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addTag(); } }} />
                           <Button type="button" variant="secondary" onClick={addTag}>{t('common.add')}</Button>
                         </div>
@@ -1783,7 +1804,7 @@ export default function ProductForm() {
                           {form.watch('tags').map((tag) => (
                             <span key={tag} className="inline-flex items-center gap-1 rounded-full bg-secondary px-3 py-1 text-sm">
                               {tag}
-                              <button type="button" onClick={() => removeTag(tag)} className="hover:text-destructive"><X className="h-3 w-3" /></button>
+                              {!readOnly && <button type="button" onClick={() => removeTag(tag)} className="hover:text-destructive"><X className="h-3 w-3" /></button>}
                             </span>
                           ))}
                         </div>
@@ -1887,7 +1908,7 @@ export default function ProductForm() {
                           <Languages className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">{t('admin.productForm.vertalingen_2')}</span>
                     </div>
-                    <Link to="/admin/marketing/translations">
+                    <Link to="/admin/marketing/translations" className={readOnly ? 'hidden' : undefined}>
                       <Button type="button" variant="outline" size="sm"><ExternalLink className="h-3 w-3 mr-1" />{t('admin.productForm.vertaal_hub')}</Button>
                     </Link>
                   </div>
@@ -1896,6 +1917,7 @@ export default function ProductForm() {
 
                 </div>
               </div>
+              </fieldset>
             </TabsContent>
 
             {/* Translations Tab */}
@@ -1948,7 +1970,7 @@ export default function ProductForm() {
       </Form>
 
       <FloatingSaveBar
-        isDirty={form.formState.isDirty}
+        isDirty={!readOnly && form.formState.isDirty}
         isSaving={isSubmitting}
         onSave={form.handleSubmit(onSubmit)}
         onCancel={() => form.reset()}

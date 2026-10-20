@@ -2143,6 +2143,14 @@
         "pdf_special_characters": {
           "title": "PDFs now work with emoji and Cyrillic names",
           "description": "If a product name, customer name or address contained an emoji or a character outside the Western alphabet, the PDF of your invoice, credit note, payment request, VAT export or packing slip failed. That no longer happens: emoji are left out, Cyrillic text (such as Ukrainian names) is written in Latin letters, and characters the font does not support (for example Chinese) appear as a question mark. Your shop and your emails stay unchanged."
+      },
+        "inbox_mobile_list": {
+          "title": "Inbox on your phone: the full list and conversation in view",
+          "description": "On a narrow screen the bottom conversations of your inbox fell out of view and the time on the right was cut off. The list now fits your screen and scrolls to the last conversation. An open conversation uses the full height, with the back arrow at the top, and in the browser your reply box moves up above the keyboard."
+        },
+        "product_view_readonly": {
+          "title": "View products without write access",
+          "description": "If you may only view products (for example the Viewer, Accountant or Warehouse role), or your shop is in read-only mode, opening a product sent you to a no-access page. You now simply open the product: all its data is there, the fields are disabled and there are no buttons to save, upload or delete. In the product list the menu option is then called View."
         }
       },
       "copyLink": "Copy link",
