@@ -3883,6 +3883,7 @@ export type Database = {
           status: string | null
           user_agent: string | null
           variables: Json | null
+          variant: string | null
         }
         Insert: {
           attempts?: number
@@ -3909,6 +3910,7 @@ export type Database = {
           status?: string | null
           user_agent?: string | null
           variables?: Json | null
+          variant?: string | null
         }
         Update: {
           attempts?: number
@@ -3935,6 +3937,7 @@ export type Database = {
           status?: string | null
           user_agent?: string | null
           variables?: Json | null
+          variant?: string | null
         }
         Relationships: [
           {
@@ -5880,8 +5883,13 @@ export type Database = {
       }
       email_campaigns: {
         Row: {
+          ab_decided_at: string | null
+          ab_started_at: string | null
+          ab_test_percent: number
           ab_test_winner_selected_at: string | null
           ab_variant_of: string | null
+          ab_wait_hours: number
+          ab_winner: string | null
           automation_id: string | null
           automation_step_id: string | null
           available_languages: string[]
@@ -5903,6 +5911,7 @@ export type Database = {
           sent_at: string | null
           status: string | null
           subject: string
+          subject_b: string | null
           template_id: string | null
           tenant_id: string
           total_bounced: number | null
@@ -5917,8 +5926,13 @@ export type Database = {
           variant_label: string | null
         }
         Insert: {
+          ab_decided_at?: string | null
+          ab_started_at?: string | null
+          ab_test_percent?: number
           ab_test_winner_selected_at?: string | null
           ab_variant_of?: string | null
+          ab_wait_hours?: number
+          ab_winner?: string | null
           automation_id?: string | null
           automation_step_id?: string | null
           available_languages?: string[]
@@ -5940,6 +5954,7 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           subject: string
+          subject_b?: string | null
           template_id?: string | null
           tenant_id: string
           total_bounced?: number | null
@@ -5954,8 +5969,13 @@ export type Database = {
           variant_label?: string | null
         }
         Update: {
+          ab_decided_at?: string | null
+          ab_started_at?: string | null
+          ab_test_percent?: number
           ab_test_winner_selected_at?: string | null
           ab_variant_of?: string | null
+          ab_wait_hours?: number
+          ab_winner?: string | null
           automation_id?: string | null
           automation_step_id?: string | null
           available_languages?: string[]
@@ -5977,6 +5997,7 @@ export type Database = {
           sent_at?: string | null
           status?: string | null
           subject?: string
+          subject_b?: string | null
           template_id?: string | null
           tenant_id?: string
           total_bounced?: number | null
@@ -22136,6 +22157,21 @@ export type Database = {
         Args: { p_session_id: string }
         Returns: number
       }
+      campaign_ab_release: {
+        Args: { p_campaign_id: string; p_winner: string }
+        Returns: Json
+      }
+      campaign_ab_stats: {
+        Args: { p_campaign_id: string }
+        Returns: {
+          clicked: number
+          opened: number
+          recipients: number
+          sent: number
+          variant: string
+          waiting: number
+        }[]
+      }
       can_create_first_tenant: {
         Args: { _owner_email: string; _user_id: string }
         Returns: boolean
@@ -22231,6 +22267,7 @@ export type Database = {
           status: string | null
           user_agent: string | null
           variables: Json | null
+          variant: string | null
         }[]
         SetofOptions: {
           from: "*"
