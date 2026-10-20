@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore, cartGet, getCartForCheckout, checkoutComplete };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore, cartGet, getCartForCheckout, checkoutComplete, checkoutVerifyPayment };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -489,7 +489,8 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
   const pdb = new FakeDb({
     tenants: [{ id: PT, tax_percentage: 21, stripe_account_id: 'acct_test', currency: 'EUR', pass_transaction_fee_to_customer: false, country: 'BE' }],
     storefront_carts: [
-      { id: 'pc1', tenant_id: PT, session_id: 'ps1', currency: 'EUR', discount_codes: [], expires_at: soon, checkout_status: 'checkout', customer_email: 'k@example.test', shipping_method_id: null, shipping_cost: 0 },
+      // Verzending: €4,95, gratis vanaf €100. Opgeslagen kost is nog €4,95 (van toen het subtotaal lager lag).
+      { id: 'pc1', tenant_id: PT, session_id: 'ps1', currency: 'EUR', discount_codes: [], expires_at: soon, checkout_status: 'checkout', customer_email: 'k@example.test', shipping_method_id: 'smx', shipping_cost: 4.95 },
       { id: 'pc2', tenant_id: PT, session_id: 'ps2', currency: 'EUR', discount_codes: [], expires_at: soon, checkout_status: 'shopping' },
     ],
     storefront_cart_items: [
@@ -506,13 +507,18 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
       { id: 'vc', product_id: 'pc', tenant_id: PT, title: 'L', image_url: null, attribute_values: {}, price: 40, stock: 5, track_inventory: false, sku: null },
       { id: 'vn', product_id: 'pn', tenant_id: PT, title: 'M', image_url: null, attribute_values: {}, price: null, stock: 5, track_inventory: false, sku: null },
     ],
-    product_addon_options: [{ id: 'oa', group_id: 'g', tenant_id: PT, name: 'Kaas', price: 1.5, is_active: true }],
+    product_addon_options: [
+      { id: 'oa', group_id: 'g', tenant_id: PT, name: 'Kaas', price: 1.5, is_active: true },
+      { id: 'ob', group_id: 'g', tenant_id: PT, name: 'Ham', price: 2, is_active: false },
+    ],
+    product_addon_groups: [{ id: 'g', tenant_id: PT, name: 'Extra', is_active: true }],
     event_details: [
       { id: 'ev1', tenant_id: PT, product_id: 'pt', early_bird_price: 19, early_bird_deadline: past, early_bird_quantity: null, venue_id: null, event_date: '2999-01-01' },
       { id: 'ev2', tenant_id: PT, product_id: 'pt', early_bird_price: 19, early_bird_deadline: soon, early_bird_quantity: null, venue_id: null, event_date: '2999-01-01' },
     ],
     event_ticket_types: [{ event_detail_id: 'ev2', product_id: 'pt2', tenant_id: PT, early_bird_price: 22, is_active: true }],
-    event_seats: [], ticket_bundle_items: [], shipping_methods: [], fulfillment_settings: [], orders: [], customers: [],
+    event_seats: [], ticket_bundle_items: [], fulfillment_settings: [], orders: [], customers: [],
+    shipping_methods: [{ id: 'smx', tenant_id: PT, name: 'Post', price: 4.95, free_above: 100, is_active: true }],
     product_categories: [], categories: [], volume_discounts: [], bogo_promotions: [], product_bundles: [], automatic_discounts: [],
     discount_stacking_rules: [], discount_codes: [], customer_groups: [], vat_rates: [], tax_rates: [],
   });
@@ -544,8 +550,15 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
     pdb.writes.length = 0;
     const sessions: R[] = ((globalThis as R).__stripeSessions ||= []);
     sessions.length = 0;
+    const before = Math.floor(Date.now() / 1000);
     const r: R = await S.checkoutComplete(pdb, PT, { cart_id: 'pc1', payment_method_id: 'bancontact', success_url: 'https://s.test/ok', cancel_url: 'https://s.test/x' });
     assert(r.payment_type === 'redirect' && sessions.length === 1, `checkout ${JSON.stringify(r)}`);
+    // Sessie vervalt na 31 min: binnen Stripes grens (30 min - 24 u), vóór de stoelen (35 min).
+    const exp = Number(sessions[0].expires_at) - before;
+    assert(exp >= 30 * 60 && exp <= 35 * 60, `expires_at ${exp}s`);
+    // Gratis verzending vanaf €100 op het actuele subtotaal (€124,50): geen verzendregel, kost 0 vastgelegd.
+    const ship = pdb.writes.find((x: R) => x.table === 'storefront_carts' && x.patch && 'shipping_cost' in x.patch);
+    assert(ship && ship.patch.shipping_cost === 0, `verzendkost ${JSON.stringify(ship?.patch)}`);
     const amounts = sessions[0].line_items.map((li: R) => li.price_data.unit_amount);
     assert(JSON.stringify(amounts) === JSON.stringify([2500, 1500, 4000, 3300, 1150]), `Stripe-bedragen ${amounts}`);
     const w = pdb.writes.filter((x: R) => x.table === 'storefront_cart_items' && x.patch);
@@ -553,6 +566,49 @@ await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async (
     assert(ids === 'A,B,D,N', `vastgelegde regels ${ids}`);
     const wd = w.find((x: R) => x.where.id === 'D');
     assert(wd.patch.unit_price === 11.5 && wd.patch.addons_total === 1.5 && wd.patch.addons[0].price === 1.5, `extra's vastgelegd ${JSON.stringify(wd.patch)}`);
+  });
+  await check('checkout_complete: uitgeschakelde extra → ADDON_INVALID (CART-PRICE-1)', async () => {
+    pdb.tables.storefront_carts.push({ id: 'pc3', tenant_id: PT, session_id: 'ps3', currency: 'EUR', discount_codes: [], expires_at: soon, checkout_status: 'checkout', customer_email: 'k@example.test' });
+    pdb.tables.storefront_cart_items.push(line('X', 'pc3', 'pd', 12, { addons: [{ group_id: 'g', group: 'Extra', option_id: 'ob', name: 'Ham', price: 2 }], addons_total: 2, addon_key: 'ob' }));
+    const r: R = await S.checkoutComplete(pdb, PT, { cart_id: 'pc3', payment_method_id: 'bancontact', success_url: 'https://s.test/ok', cancel_url: 'https://s.test/x' });
+    assert(r.success === false && r.error?.code === 'ADDON_INVALID' && r.error?.item_id === 'X', `extra weg: ${JSON.stringify(r)}`);
+  });
+
+  // checkout_verify_payment: order na Stripe, met extra's, en een interne notitie als het bedrag afwijkt.
+  const vdb = new FakeDb({
+    tenants: [{ id: PT, tax_percentage: 21, stripe_account_id: 'acct_test', currency: 'EUR', name: 'Test' }],
+    storefront_carts: [
+      { id: 'vc1', tenant_id: PT, checkout_status: 'checkout', stripe_session_id: 'cs_1', customer_email: null, shipping_cost: 0, discount_amount: 0, payment_method: 'bancontact', currency: 'EUR', discount_codes: [] },
+    ],
+    storefront_cart_items: [line('V1', 'vc1', 'pd', 11.5, { addons: [{ group_id: 'g', group: 'Extra', option_id: 'oa', name: 'Kaas', price: 1.5 }], addons_total: 1.5 })],
+    product_variants: [], orders: [], order_items: [], customers: [],
+  }, true);
+  const verify = async (amountTotal: number, meta: R = {}) => {
+    vdb.tables.orders.length = 0; vdb.tables.order_items.length = 0;
+    vdb.tables.storefront_carts[0].checkout_status = 'checkout';
+    (globalThis as R).__stripeRetrieve = { id: 'cs_1', payment_status: 'paid', payment_intent: 'pi_1', amount_total: amountTotal, metadata: { cart_id: 'vc1', ...meta } };
+    const r: R = await S.checkoutVerifyPayment(vdb, PT, { cart_id: 'vc1' });
+    return { r, order: vdb.tables.orders[0], items: vdb.tables.order_items };
+  };
+  await check('checkout_verify_payment: bedrag klopt → geen notitie, extra\'s op de orderregel (CART-PRICE-1)', async () => {
+    const { r, order, items } = await verify(1150);
+    assert(r.status === 'completed' && order && !order.internal_notes, `order ${JSON.stringify(order)}`);
+    assert(items[0]?.addons?.[0]?.name === 'Kaas', `extra's ${JSON.stringify(items[0])}`);
+    const fee = await verify(1175, { transaction_fee_cents: '25' });
+    assert(!fee.order.internal_notes, 'doorgerekende transactiekost telt mee');
+  });
+  await check('checkout_verify_payment: bedrag wijkt af → order toch aangemaakt, met notitie (CART-PRICE-1)', async () => {
+    const { r, order } = await verify(1000);
+    assert(r.status === 'completed' && order, `order moet er komen: ${JSON.stringify(r)}`);
+    assert(typeof order.internal_notes === 'string' && order.internal_notes.includes('10,00') && order.internal_notes.includes('11,50'), `notitie ${order.internal_notes}`);
+    delete (globalThis as R).__stripeRetrieve;
+  });
+  await check('stripeAmountMismatch: speling bij korting (CART-PRICE-1)', async () => {
+    const { stripeAmountMismatch, discountRoundingToleranceCents } = await import('../../supabase/functions/_shared/stripeAmountCheck.ts');
+    assert(stripeAmountMismatch({ amount_total: 999, metadata: {} }, 10, discountRoundingToleranceCents(1, [3])) === null, 'afronding binnen speling');
+    assert(stripeAmountMismatch({ amount_total: 900, metadata: {} }, 10, discountRoundingToleranceCents(1, [3]))?.diff_cents === -100, 'groot verschil');
+    assert(stripeAmountMismatch({ amount_total: 999, metadata: {} }, 10, 0)?.diff_cents === -1, 'zonder korting geen speling');
+    assert(stripeAmountMismatch({ amount_total: null }, 10) === null, 'geen bedrag = geen oordeel');
   });
 }
 

@@ -22,6 +22,14 @@ Go van Akke 20-10 14:06 ("alles aanpakken"), vervolg op de MAIL-3-recon (`docs/v
 - `scripts/promo-compare/smoke.ts` + `stubs/stripeCapture.ts` + `import_map.smoke.json` + `.github/workflows/ci.yml` (exportlijst): 4 nieuwe rooktests (zie Verificatie).
 - Slottaken: changelog 2026.13g (`cart_current_price`, bugfix) in nl/en/fr/de/uk; newsletter-queue item 2026.13g. `doc_articles`: n.v.t. (geen scherm of instelling; live geen helpartikel dat iets over mandjesprijzen belooft, SQL-check).
 
+**Fixup na review (20-10)**
+- Stripe-sessie `expires_at` = nu + 31 min (`STRIPE_SESSION_MINUTES`). Stripe aanvaardt 30 min tot 24 u; 31 i.p.v. 30 als marge voor klok en netwerk. Blijft onder de stoelen-vasthoudtijd bij afrekenen (`SEAT_CHECKOUT_MINUTES` = 35), dus de betaalpagina sluit vóór de stoelen vrijkomen.
+- `_shared/stripeAmountCheck.ts` (nieuw): `checkout_verify_payment` en `stripe-connect-webhook` vergelijken `session.amount_total` met ordertotaal + doorgerekende transactiekost (nieuwe sessiemetadata `transaction_fee_cents`; oudere sessies: 0). Speling enkel bij korting (Stripe verdeelt die per eenheid afgerond). Bij verschil: order wordt gewoon aangemaakt, `orders.internal_notes` krijgt "Let op: Stripe inde € X, het ordertotaal … is € Y. Verschil € Z.", plus een log. Geen melding: er bestaat geen passend type (`payment_duplicate` betekent iets anders); geen nieuwe kolom.
+- `checkout_verify_payment`: `addons` in de select en op de orderregels (de webhook deed dat al).
+- `checkout_complete`: een extra die weg of uitgeschakeld is (optie of groep) → `ADDON_INVALID` met `item_id` (zelfde foutvorm als `cart_add_item`), vóór er iets betaald wordt.
+- `cartShippingCost` (nieuw): één verzendberekening voor `buildCartResponse` én `checkout_complete` (free_above op het actuele subtotaal, gratis verzending uit de motor). `checkout_complete` legt de kost vast op de cart als die afwijkt, zodat Stripe en order = wat getoond werd.
+- Fonske-frontend (`src/components/TicketPurchase.tsx`, apart Lovable-project 377b3ca5, niet in `sellqo-storefront`): toont `event.currentPrice` uit een cache van 30 s en rekent zelf het totaal. Niets gewijzigd; instructie voor Akke in het verslag.
+
 **Security-keuzes**
 - Geen RLS/policy/grant/migratie. De prijs komt uitsluitend uit de databank (service role in de functie); de client kan nog steeds geen prijs meegeven. De enige nieuwe schrijfactie is een `update` van `unit_price`/`addons`/`addons_total` op de eigen cart-regels binnen `checkout_complete`, op een cart die al tenant-gescoped geladen is.
 
@@ -30,6 +38,7 @@ Go van Akke 20-10 14:06 ("alles aanpakken"), vervolg op de MAIL-3-recon (`docs/v
 - G6/promo-compare: `computeCartTotals`, `promoValidator`, `computeCartPromotions` en `_shared/promotionEngine.ts` zijn byte-identiek; de vergelijkingstest (die de items met vooraf berekende prijzen voedt) geeft daarom per constructie 0 verschillen en is niet opnieuw gedraaid. Het enige bedoelde verschil per winkel is hierboven bij Live geteld (VanXcel 1 regel, Fonske 8 regels na 23-10).
 
 **Verificatie**
+- Fixup: rooktest 34 gevallen groen, nieuw: `expires_at` 30-35 min, gratis verzending boven drempel (geen verzendregel, kost 0 vastgelegd), `ADDON_INVALID`, verify met extra's, verify met juist bedrag (ook met doorgerekende transactiekost) zonder notitie, afwijkend bedrag → order + notitie, speling bij korting. Lint storefront-api 245 → 245, webhook 10 → 10; `deno check` geen nieuwe meldingen.
 - Rooktest storefront-api (lokaal met stubs): 29/29 groen, waarvan nieuw: prijs verhoogd → €25 met `previous_unit_price` 20; verlaagd → €15; variant ongewijzigd → geen vlag; variant zonder prijs → productprijs; extra €1 → €1,50; tickets: early bird verlopen → €25, lopend → €19, ander tickettype → €22; `checkout_complete` (Stripe-stub) vraagt [2500,1500,4000,3300,1150] cent en legt precies regels A,B,D,N vast. Op HEAD falen deze 4 tests (bewijs dat ze bijten).
 - `deno check` storefront-api: zelfde 1 stub-melding als HEAD (`req` any), geen nieuwe. `deno test` CI-lijst: 116 groen. verify-edge-pins groen. vitest 66 bestanden / 837 tests groen. i18n-parity volledig. Lint: storefront-api 245 → 245, smoke.ts 2 → 2. `tsc --noEmit -p tsconfig.app.json` exit 0; `npm run build` exit 0 (sitemap teruggezet).
 
@@ -39,6 +48,10 @@ Go van Akke 20-10 14:06 ("alles aanpakken"), vervolg op de MAIL-3-recon (`docs/v
 - Bundelproducten met `bundle_pricing_model`: `cartAddItem` rekent `products.price`, de catalogus soms een berekende bundelprijs. Niet door deze batch veranderd; aparte recon.
 - Een extra die intussen gedeactiveerd is, blijft in het mandje aan de opgeslagen prijs (`cartAddItem` zou hem weigeren). Beschikbaarheid van extra's bij afrekenen is een aparte poort.
 - Custom frontends tonen `price_changed` nog niet; optioneel per frontend.
+- Transactiekost zit niet in `orders.total` (Stripe int ze wel als aparte regel): bestaand, bewust niet in deze batch. De bedragcontrole houdt er rekening mee via `transaction_fee_cents`.
+- `stripe-connect-webhook` rekent geen btw-verlegging (verify wel): bij een B2B-verlegde Stripe-order via de webhook zal de nieuwe controle een verschil melden. Terecht signaal; fix apart.
+- Zonder gekozen verzendmethode toont `buildCartResponse` een verzendpreview (enige methode) in het totaal, maar `checkout_complete` rekent de opgeslagen kost. Bestaand; apart op te nemen.
+- `getShippingMethods` met regel `sum` (gecombineerde verzendklassen) wordt in de mandjesweergave niet gevolgd; live gebruikt geen enkele winkel `sum`.
 
 **Samenhang**
 - Bestond al: prijsherberekening enkel voor varianten met eigen prijs (FOOD-1), early-bird-logica in `cartAddItem`/`seatProductPricing`, kortingsmotor die vlak vóór betaling herrekent (PROMO-ENGINE-1).
@@ -46,7 +59,7 @@ Go van Akke 20-10 14:06 ("alles aanpakken"), vervolg op de MAIL-3-recon (`docs/v
 - Overgezet/opgeruimd: niets verhuisd; geen data gemigreerd (bestaande carts krijgen de actuele prijs bij de volgende `cart_get`, vastgelegd bij `checkout_complete`).
 - Bewust blijven staan: `create-checkout-session` (cartloos pad), admin/POS (delen de cart niet).
 
-**Deploy:** `storefront-api` (enige functie). `stripe-connect-webhook` is niet gewijzigd.
+**Deploy:** `storefront-api` en `stripe-connect-webhook` (beide importeren `_shared/stripeAmountCheck.ts`).
 
 ## UI-FIX-1 — inbox op mobiel en alleen-lezen productpagina — 20 oktober 2026
 

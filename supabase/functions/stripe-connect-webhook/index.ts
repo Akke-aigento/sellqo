@@ -4,6 +4,7 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from "../_shared/vat.ts";
 import { handleSubscriptionChargeWebhook } from "../_shared/subscriptionCharge.ts";
 import { notifyPayout, type PayoutClient } from "../_shared/payoutNotification.ts";
+import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -369,6 +370,11 @@ serve(async (req) => {
           const discountAmount = Number(cart.discount_amount) || 0;
           const total = subtotal - discountAmount + shippingCost;
 
+          // CART-PRICE-1 — wat Stripe inde naast het ordertotaal. Een verschil houdt de order
+          // niet tegen (het geld is binnen); interne notitie op de order + log.
+          const amountMismatch = stripeAmountMismatch(session, total, discountRoundingToleranceCents(discountAmount, processedItems.map((i: { quantity?: number }) => Number(i.quantity) || 0)));
+          if (amountMismatch) logStep("[CART-PRICE-1] Stripe-bedrag wijkt af van de order", { cartId, sessionId: session.id, ...amountMismatch });
+
           const vatMap = await resolveLineVatBatch(
             supabaseClient,
             processedItems.map((i: any) => i.product_id),
@@ -440,6 +446,7 @@ serve(async (req) => {
               stripe_checkout_session_id: session.id,
               // LIMITS-1: de 2% die Stripe als applicatiefee inhield, voor het feeregister.
               platform_order_fee_cents: Number(session.metadata?.platform_order_fee_cents) > 0 ? Number(session.metadata?.platform_order_fee_cents) : null,
+              ...(amountMismatch ? { internal_notes: amountMismatchNote(amountMismatch) } : {}),
               // FOOD-1 — afhalen/leveren met tijdslot (null bij gewone verzending).
               service_type: cart.service_type || null,
               requested_time: cart.requested_time || null,

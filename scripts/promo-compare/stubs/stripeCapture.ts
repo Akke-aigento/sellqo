@@ -11,7 +11,8 @@ class Stripe {
         sessions.push(params);
         return Promise.resolve({ id: `cs_test_${sessions.length}`, url: `https://stripe.test/${sessions.length}` });
       },
-      retrieve: () => Promise.resolve({ payment_status: 'unpaid' }),
+      // De test zet globalThis.__stripeRetrieve op de sessie die verify moet terugkrijgen.
+      retrieve: (id: string) => Promise.resolve((globalThis as any).__stripeRetrieve ?? { id, payment_status: 'unpaid' }),
     },
   };
   constructor(_key?: string, _opts?: unknown) {}

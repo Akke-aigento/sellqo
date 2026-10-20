@@ -11,6 +11,7 @@ import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, t
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
 import { computeSlots, orderingBlocked, postalCodeAllowed, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
 import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
+import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
@@ -2255,6 +2256,7 @@ async function loadBundle(supabase: SupabaseLike, tenantId: string, productId: s
 // (hold_event_seats, release_cart_seats, trigger assign_event_seat_to_ticket).
 const SEAT_HOLD_MINUTES = 15;
 const SEAT_CHECKOUT_MINUTES = 35;
+const STRIPE_SESSION_MINUTES = 31;
 
 type SeatStatusRow = { status: string; hold_cart_id: string | null; hold_expires_at: string | null; order_id: string | null; ticket_instance_id: string | null; product_id: string | null };
 
@@ -2506,7 +2508,7 @@ async function cartCreate(supabase: any, tenantId: string, params: Record<string
 // prijs van de gekozen extra's. De opgeslagen unit_price is de prijs bij het toevoegen; die
 // mag nooit meer bepalen wat de klant ziet of betaalt. Regels waarvan we de actuele prijs
 // niet kunnen bepalen (product weg, cadeaubon met eigen bedrag) houden de opgeslagen prijs.
-type LinePrice = { unit_price: number; addons: unknown[] | null; addons_total: number };
+type LinePrice = { unit_price: number; addons: unknown[] | null; addons_total: number; addons_invalid: boolean };
 async function currentCartLinePrices(supabase: SupabaseLike, tenantId: string, items: DbRow[]): Promise<Map<string, LinePrice>> {
   const out = new Map<string, LinePrice>();
   if (!items.length) return out;
@@ -2530,14 +2532,25 @@ async function currentCartLinePrices(supabase: SupabaseLike, tenantId: string, i
     }
   }
 
-  // Extra's: actuele optieprijzen; een optie die niet meer bestaat houdt haar opgeslagen prijs.
+  // Extra's: actuele optieprijzen. Een optie die weg of uitgeschakeld is (of waarvan de groep
+  // uitstaat) houdt haar opgeslagen prijs en maakt de regel ongeldig: checkout_complete weigert
+  // dan met ADDON_INVALID, zodat de klant zijn mandje aanpast.
   const optionIds = [...new Set(items.flatMap((i) => (Array.isArray(i.addons) ? i.addons : [])
     .map((a: DbRow) => a?.option_id).filter(Boolean).map(String)))];
   const optionPrice = new Map<string, number>();
   if (optionIds.length) {
-    const { data: opts } = await supabase.from('product_addon_options')
-      .select('id, price').eq('tenant_id', tenantId).eq('is_active', true).in('id', optionIds);
-    for (const o of (opts || []) as DbRow[]) optionPrice.set(String(o.id), Number(o.price) || 0);
+    const { data: opts, error: optErr } = await supabase.from('product_addon_options')
+      .select('id, price, group_id').eq('tenant_id', tenantId).eq('is_active', true).in('id', optionIds);
+    if (optErr) throw optErr;
+    const groupIds = [...new Set(((opts || []) as DbRow[]).map((o) => String(o.group_id)))];
+    const activeGroups = new Set<string>();
+    if (groupIds.length) {
+      const { data: groups, error: grpErr } = await supabase.from('product_addon_groups')
+        .select('id').eq('tenant_id', tenantId).eq('is_active', true).in('id', groupIds);
+      if (grpErr) throw grpErr;
+      for (const g of (groups || []) as DbRow[]) activeGroups.add(String(g.id));
+    }
+    for (const o of (opts || []) as DbRow[]) if (activeGroups.has(String(o.group_id))) optionPrice.set(String(o.id), Number(o.price) || 0);
   }
 
   const now = new Date();
@@ -2558,7 +2571,9 @@ async function currentCartLinePrices(supabase: SupabaseLike, tenantId: string, i
     }
     let addons: unknown[] | null = Array.isArray(item.addons) && item.addons.length ? item.addons : null;
     let addonsTotal = Number(item.addons_total) || 0;
+    let addonsInvalid = false;
     if (addons) {
+      addonsInvalid = addons.some((a) => (a as DbRow)?.option_id && !optionPrice.has(String((a as DbRow).option_id)));
       addons = addons.map((a) => {
         const row = a as DbRow;
         const id = row?.option_id ? String(row.option_id) : null;
@@ -2566,7 +2581,7 @@ async function currentCartLinePrices(supabase: SupabaseLike, tenantId: string, i
       });
       addonsTotal = promoRound2(addons.reduce((s: number, a) => s + (Number((a as DbRow)?.price) || 0), 0));
     }
-    out.set(String(item.id), { unit_price: promoRound2(base + addonsTotal), addons, addons_total: addonsTotal });
+    out.set(String(item.id), { unit_price: promoRound2(base + addonsTotal), addons, addons_total: addonsTotal, addons_invalid: addonsInvalid });
   }
   return out;
 }
@@ -2576,9 +2591,9 @@ function priceLine(item: DbRow, prices: Map<string, LinePrice>) {
   const stored = Number(item.unit_price) || 0;
   const storedAddons = Array.isArray(item.addons) && item.addons.length ? item.addons : null;
   const cur = prices.get(String(item.id));
-  if (!cur) return { unit_price: stored, addons: storedAddons, addons_total: Number(item.addons_total) || 0, flag: {} };
+  if (!cur) return { unit_price: stored, addons: storedAddons, addons_total: Number(item.addons_total) || 0, addons_invalid: false, flag: {} };
   const changed = Math.abs(cur.unit_price - stored) >= 0.005;
-  return { unit_price: cur.unit_price, addons: cur.addons, addons_total: cur.addons_total, flag: changed ? { price_changed: true, previous_unit_price: stored } : {} };
+  return { unit_price: cur.unit_price, addons: cur.addons, addons_total: cur.addons_total, addons_invalid: cur.addons_invalid, flag: changed ? { price_changed: true, previous_unit_price: stored } : {} };
 }
 
 /** CART-PRICE-1 — vlak vóór de betaling de actuele prijzen op de cart-regels vastleggen, zodat
@@ -3290,6 +3305,7 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
       variant: variant ? { title: variant.title, attribute_values: variant.attribute_values, image_url: variant.image_url } : null,
       addons: priced.addons,
       addons_total: priced.addons_total,
+      ...(priced.addons_invalid ? { addons_invalid: true } : {}),
       line_total: item.quantity * effectivePrice,
       ...priced.flag,
     };
@@ -3297,6 +3313,23 @@ async function getCartForCheckout(supabase: any, tenantId: string, cartId: strin
 
   const subtotal = cartItems.reduce((s: number, i: any) => s + i.line_total, 0);
   return { ...cart, cartItems, subtotal };
+}
+
+// CART-PRICE-1 — verzendkost van de gekozen methode op het actuele subtotaal (free_above) en
+// met gratis verzending uit de kortingsmotor. Eén bron voor het mandje (buildCartResponse) en
+// de betaling (checkout_complete). Zonder gekozen methode: de opgeslagen kost, zoals voorheen.
+async function cartShippingCost(supabase: SupabaseLike, tenantId: string, cart: DbRow, subtotal: number, freeShipping: boolean): Promise<{ cost: number; method: { id: string; name: string } | null }> {
+  let cost = Number(cart.shipping_cost) || 0;
+  let method: { id: string; name: string } | null = null;
+  if (cart.shipping_method_id) {
+    const { data: sm } = await supabase.from('shipping_methods').select('id, name, price, free_above').eq('id', cart.shipping_method_id).eq('tenant_id', tenantId).maybeSingle();
+    if (sm) {
+      method = { id: sm.id, name: sm.name };
+      cost = (freeShipping || (sm.free_above && subtotal >= sm.free_above)) ? 0 : Number(sm.price) || 0;
+    }
+  }
+  if (freeShipping) cost = 0;
+  return { cost, method };
 }
 
 // ============== BUILD CART RESPONSE (Single Source of Truth) ==============
@@ -3327,18 +3360,12 @@ async function buildCartResponse(supabase: any, tenantId: string, cartId: string
   const hasFreeShipping = promo.free_shipping;
   const appliedDiscounts = codesFirst(promo.applied_discounts);
 
-  // Shipping
-  let shippingCost = Number(cart.shipping_cost) || 0;
-  let shippingMethod: { id: string; name: string } | null = null;
+  // Shipping — CART-PRICE-1: één berekening, ook gebruikt door checkout_complete.
+  const ship = await cartShippingCost(supabase, tenantId, cart, subtotal, hasFreeShipping);
+  let shippingCost = ship.cost;
+  const shippingMethod: { id: string; name: string } | null = ship.method;
   let shippingDisplayState: 'not_calculated' | 'free' | 'charged' = 'not_calculated';
-  if (cart.shipping_method_id) {
-    const { data: sm } = await supabase.from('shipping_methods').select('id, name, price, free_above').eq('id', cart.shipping_method_id).eq('tenant_id', tenantId).maybeSingle();
-    if (sm) {
-      shippingMethod = { id: sm.id, name: sm.name };
-      shippingCost = (hasFreeShipping || (sm.free_above && subtotal >= sm.free_above)) ? 0 : sm.price;
-      shippingDisplayState = shippingCost === 0 ? 'free' : 'charged';
-    }
-  }
+  if (shippingMethod) shippingDisplayState = shippingCost === 0 ? 'free' : 'charged';
   if (hasFreeShipping) {
     shippingCost = 0;
     if (shippingMethod) shippingDisplayState = 'free';
@@ -4132,6 +4159,12 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   const availability = cartAvailabilityError(cart.cartItems as DbRow[], cart.service_type === 'eat_in' || !!cart.table_label);
   if (availability) return { success: false, error: availability };
 
+  // CART-PRICE-1 — een extra die intussen weg of uitgeschakeld is: de klant past zijn mandje aan.
+  const badAddon = (cart.cartItems as DbRow[]).find((i) => i.addons_invalid);
+  if (badAddon) {
+    return { success: false, error: { code: 'ADDON_INVALID', message: `Een extra bij ${badAddon.product?.name || 'een product'} is niet meer beschikbaar. Pas je winkelmandje aan.`, item_id: badAddon.id } };
+  }
+
   // PROMO-ENGINE-1 — korting vlak vóór de betaling opnieuw uitrekenen. Zo betaalt de
   // klant exact wat mandje en checkout tonen, ook als de cart sinds het toepassen van
   // een code veranderde of de code alleen via cart_apply_discount werd toegepast.
@@ -4149,6 +4182,16 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
     if (pruneErr) throw pruneErr;
     console.log('[DISCOUNT-LIMIT-1] codes zonder effect van de cart gehaald:', cartCodes.filter((c) => !keptCodes.includes(c)));
     cart.discount_codes = keptCodes;
+  }
+
+  // CART-PRICE-1 — verzendkost zoals het mandje hem toont (free_above op het actuele subtotaal,
+  // gratis verzending uit de motor), en vastgelegd voor verify en webhook.
+  const finalShip = await cartShippingCost(supabase, tenantId, cart, Number(cart.subtotal) || 0, !!finalPromo.free_shipping);
+  if (Math.abs(finalShip.cost - (Number(cart.shipping_cost) || 0)) > 0.004) {
+    const { error: shipErr } = await supabase.from('storefront_carts').update({ shipping_cost: finalShip.cost, updated_at: new Date().toISOString() })
+      .eq('id', cartId).eq('tenant_id', tenantId);
+    if (shipErr) throw shipErr;
+    cart.shipping_cost = finalShip.cost;
   }
 
   // ── FASE 3a — capaciteitspoort vóór betaling (geen geld wisselt van hand) ──
@@ -4454,7 +4497,11 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       cancel_url: cancelUrl,
       // HORECA-1: aan tafel kan e-mail ontbreken; dan vraagt Stripe hem zelf.
       customer_email: cart.customer_email || undefined,
-      metadata: { cart_id: cartId, tenant_id: tenantId, ...(ticketFee.feeCents > 0 ? { platform_ticket_fee_cents: String(ticketFee.feeCents), platform_ticket_count: String(ticketFee.tickets) } : {}) },
+      metadata: { cart_id: cartId, tenant_id: tenantId, ...(ticketFee.feeCents > 0 ? { platform_ticket_fee_cents: String(ticketFee.feeCents), platform_ticket_count: String(ticketFee.tickets) } : {}), ...(tenantData.pass_transaction_fee_to_customer && feeCents > 0 ? { transaction_fee_cents: String(feeCents) } : {}) },
+      // CART-PRICE-1 — een open betaalpagina rekent niet dagen later nog een oude prijs aan.
+      // Stripe aanvaardt 30 min tot 24 u; 31 min laat marge voor de klok, en blijft onder de
+      // stoelen-vasthoudtijd bij afrekenen (SEAT_CHECKOUT_MINUTES = 35).
+      expires_at: Math.floor(Date.now() / 1000) + STRIPE_SESSION_MINUTES * 60,
       payment_intent_data: {
         application_fee_amount: 0,
       },
@@ -4779,7 +4826,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
   // Get cart items
   const { data: cartItems } = await supabase
     .from('storefront_cart_items')
-    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, products(id, name, sku, images, category_id)')
+    .select('id, product_id, variant_id, event_detail_id, quantity, unit_price, addons, products(id, name, sku, images, category_id)')
     .eq('cart_id', cartId);
 
   // Get variant info
@@ -4798,6 +4845,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       quantity: item.quantity, unit_price: item.unit_price,
       product: item.products ? { name: item.products.name, sku: variant?.sku || item.products.sku || null, image: variant?.image_url || item.products.images?.[0] || null } : null,
       variant: variant ? { title: variant.title } : null,
+      addons: Array.isArray(item.addons) && item.addons.length ? item.addons : null,
       line_total: item.quantity * item.unit_price,
     };
   });
@@ -4849,6 +4897,11 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
     : grossSubtotal;
   const shippingCost = reverseCharge ? netFromGross(grossShipping, tenantDefaultRate) : grossShipping;
   const total = Math.round((subtotal - discountAmount + shippingCost) * 100) / 100;
+
+  // CART-PRICE-1 — wat Stripe inde naast het ordertotaal. Een verschil houdt de order niet
+  // tegen (het geld is binnen); de order krijgt een interne notitie en we loggen het.
+  const amountMismatch = stripeAmountMismatch(session, total, discountRoundingToleranceCents(discountAmount, processedItems.map((i: DbRow) => Number(i.quantity) || 0)));
+  if (amountMismatch) console.error('[CART-PRICE-1] Stripe-bedrag wijkt af van de order', { cartId, sessionId: session.id, ...amountMismatch });
 
   // Find or create customer
   let customerId: string | null = null;
@@ -4903,6 +4956,7 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       stripe_checkout_session_id: session.id,
       // LIMITS-1: de 2% die Stripe als applicatiefee inhield (sessiemetadata), voor het feeregister.
       platform_order_fee_cents: Number(session.metadata?.platform_order_fee_cents) > 0 ? Number(session.metadata?.platform_order_fee_cents) : null,
+      ...(amountMismatch ? { internal_notes: amountMismatchNote(amountMismatch) } : {}),
       locale: cart.locale || null,
       ...b2bOrderFields(cart).orderFields,
       ...vatRegimeOrderFields(vatCtx),
