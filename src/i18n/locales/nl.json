@@ -37,7 +37,8 @@
     },
     "error": "Fout",
     "done": "Klaar",
-    "comingSoon": "binnenkort"
+    "comingSoon": "binnenkort",
+    "saveNoPermission": "Je hebt geen rechten om dit op te slaan. Vraag een beheerder van deze winkel om het aan te passen."
   },
   "auth": {
     "login": "Inloggen",
@@ -5428,7 +5429,7 @@
       "cadeaukaarten": "Cadeaukaarten",
       "beheer_digitale_cadeaukaarten_voor_je_webshop": "Beheer digitale cadeaukaarten voor je webshop",
       "nieuwe_cadeaukaart": "Nieuwe cadeaukaart",
-      "totaal_uitgegeven": "Totaal uitgegeven",
+      "totaal_uitgegeven": "Totale waarde uitgegeven kaarten",
       "openstaand_saldo": "Openstaand saldo",
       "ingewisseld": "Ingewisseld",
       "actieve_kaarten": "Actieve kaarten",
@@ -6570,7 +6571,7 @@
         "pages_desc": "Over ons, contact en andere eigen pagina’s",
         "legal_desc": "Voorwaarden, privacy, retour en verzending",
         "own_domain": "Eigen domein",
-        "own_domain_soon": "Binnenkort: je eigen domein zelf koppelen.",
+        "own_domain_desc": "Koppel je eigen domeinnaam aan je webshop.",
         "select_shop": "Selecteer een winkel om door te gaan"
       },
       "features": {

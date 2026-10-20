@@ -42,6 +42,7 @@ import type { ThemePreset } from '@/components/admin/storefront/schema/schemaTyp
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { schemaText } from '@/components/admin/storefront/schema/schemaText';
+import { assertRowsWritten, isNoRowsWrittenError } from '@/lib/supabaseWriteGuard';
 
 // Thema-velden die de standaardshop echt gebruikt. Andere instellingen staan hier
 // bewust niet: een knop die niets doet, is erger dan geen knop.
@@ -435,15 +436,18 @@ export default function StorefrontCustomizePage() {
         // De standaardshop leest primary_color; merkkleur en primaire kleur blijven gelijk.
         if ('brand_color' in payload && theme.brand_color) payload.primary_color = theme.brand_color;
         const { data: existing } = await supabase.from('tenant_theme_settings').select('id').eq('tenant_id', currentTenant.id).maybeSingle();
-        const { error } = existing
-          ? await supabase.from('tenant_theme_settings').update(payload as never).eq('tenant_id', currentTenant.id)
-          : await supabase.from('tenant_theme_settings').insert({ ...payload, tenant_id: currentTenant.id } as never);
+        // HONEST-SAVE-1: RLS laat enkel admins schrijven; zonder .select() kreeg staff "Opgeslagen".
+        const { data: written, error } = existing
+          ? await supabase.from('tenant_theme_settings').update(payload as never).eq('tenant_id', currentTenant.id).select('id')
+          : await supabase.from('tenant_theme_settings').insert({ ...payload, tenant_id: currentTenant.id } as never).select('id');
         if (error) throw error;
+        assertRowsWritten(written);
       }
       if (sectionsDirty) {
         for (const id of deleted) {
-          const { error } = await supabase.from('homepage_sections').delete().eq('id', id).eq('tenant_id', currentTenant.id);
+          const { data: removed, error } = await supabase.from('homepage_sections').delete().eq('id', id).eq('tenant_id', currentTenant.id).select('id');
           if (error) throw error;
+          assertRowsWritten(removed);
         }
         const before = new Map(serverSections.map((s, i) => [s.id, { ...s, sort_order: i }]));
         for (const [i, s] of sections.entries()) {
@@ -460,9 +464,10 @@ export default function StorefrontCustomizePage() {
             const changed = !prev || prev.sort_order !== i || prev.is_visible !== s.is_visible || prev.title !== s.title
               || prev.subtitle !== s.subtitle || !sameJson(prev.content, s.content) || !sameJson(prev.settings, s.settings);
             if (!changed) continue;
-            const { error } = await supabase.from('homepage_sections')
-              .update({ ...row, updated_at: new Date().toISOString() }).eq('id', s.id).eq('tenant_id', currentTenant.id);
+            const { data: updated, error } = await supabase.from('homepage_sections')
+              .update({ ...row, updated_at: new Date().toISOString() }).eq('id', s.id).eq('tenant_id', currentTenant.id).select('id');
             if (error) throw error;
+            assertRowsWritten(updated);
           }
         }
       }
@@ -478,7 +483,7 @@ export default function StorefrontCustomizePage() {
       toast.success(t('admin.storefrontCustomize.saved'));
     } catch (err) {
       console.error('EDITOR-1 opslaan', err);
-      toast.error(t('admin.storefrontCustomize.save_failed'));
+      toast.error(isNoRowsWrittenError(err) ? err.message : t('admin.storefrontCustomize.save_failed'));
     } finally {
       setSaving(false);
     }

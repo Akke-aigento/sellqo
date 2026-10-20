@@ -46,11 +46,15 @@ import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useTenant } from '@/hooks/useTenant';
+import { formatCurrency } from '@/lib/utils';
 
 export default function GiftCards() {
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const isMobile = useIsMobile();
+  const { currentTenant } = useTenant();
+  const tenantCurrency = currentTenant?.currency || 'EUR';
   const { data: giftCards = [], isLoading } = useGiftCards();
   const { data: stats } = useGiftCardStats();
   const updateGiftCard = useUpdateGiftCard();
@@ -155,7 +159,7 @@ export default function GiftCards() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold">
-              €{stats?.total_issued_amount.toFixed(2) || '0.00'}
+              {formatCurrency(stats?.total_issued_amount ?? 0, tenantCurrency)}
             </p>
             <p className="text-sm text-muted-foreground">
               {stats?.total_issued || 0} kaarten
@@ -172,7 +176,7 @@ export default function GiftCards() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-primary">
-              €{stats?.outstanding_balance.toFixed(2) || '0.00'}
+              {formatCurrency(stats?.outstanding_balance ?? 0, tenantCurrency)}
             </p>
             <p className="text-sm text-muted-foreground">{t('admin.giftCards.nog_in_te_wisselen')}</p>
           </CardContent>
@@ -187,7 +191,7 @@ export default function GiftCards() {
           </CardHeader>
           <CardContent>
             <p className="text-2xl font-bold text-green-600">
-              €{stats?.total_redeemed_amount.toFixed(2) || '0.00'}
+              {formatCurrency(stats?.total_redeemed_amount ?? 0, tenantCurrency)}
             </p>
             <p className="text-sm text-muted-foreground">
               {stats?.depleted_count || 0} volledig opgebruikt
@@ -293,10 +297,10 @@ export default function GiftCards() {
                         </p>
                         <p className="mt-1 text-sm">
                           <span className="font-medium">
-                            €{Number(card.current_balance).toFixed(2)}
+                            {formatCurrency(Number(card.current_balance), card.currency || tenantCurrency)}
                           </span>{' '}
                           <span className="text-xs text-muted-foreground">
-                            / €{Number(card.initial_balance).toFixed(2)}
+                            / {formatCurrency(Number(card.initial_balance), card.currency || tenantCurrency)}
                           </span>
                         </p>
                         <p className="truncate text-xs text-muted-foreground">
@@ -339,10 +343,10 @@ export default function GiftCards() {
                       )}
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-right">
-                      €{Number(card.initial_balance).toFixed(2)}
+                      {formatCurrency(Number(card.initial_balance), card.currency || tenantCurrency)}
                     </TableCell>
                     <TableCell className="text-right font-medium">
-                      €{Number(card.current_balance).toFixed(2)}
+                      {formatCurrency(Number(card.current_balance), card.currency || tenantCurrency)}
                     </TableCell>
                     <TableCell>
                       <Badge

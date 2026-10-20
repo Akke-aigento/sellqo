@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import { assertRowsWritten } from '@/lib/supabaseWriteGuard';
 import { useLogoUpload } from '@/hooks/useLogoUpload';
 import { EmailLogoPreview } from '@/components/admin/settings/EmailLogoPreview';
 import { EmailLogoFromCurrentButton } from '@/components/admin/settings/EmailLogoFromCurrentButton';
@@ -56,15 +57,16 @@ export function BusinessSettings() {
     
     if (url) {
       // Update tenant with new logo URL
-      const { error } = await supabase
+      const { data: written, error } = await supabase
         .from('tenants')
         .update({ logo_url: url })
-        .eq('id', currentTenant.id);
+        .eq('id', currentTenant.id)
+        .select('id');
 
-      if (error) {
+      if (error || !written || written.length === 0) {
         toast({
           title: t('settings.business.logoErrorTitle'),
-          description: error.message,
+          description: error ? error.message : t('common.saveNoPermission'),
           variant: 'destructive',
         });
       } else {
@@ -147,7 +149,7 @@ export function BusinessSettings() {
     setIsSaving(true);
 
     try {
-      const { error } = await supabase
+      const { data: written, error } = await supabase
         .from('tenants')
         .update({
           name: formData.name,
@@ -163,9 +165,11 @@ export function BusinessSettings() {
           bic: formData.bic.toUpperCase() || null,
           currency: formData.currency,
         })
-        .eq('id', currentTenant.id);
+        .eq('id', currentTenant.id)
+        .select('id');
 
       if (error) throw error;
+      assertRowsWritten(written);
 
       await refreshTenants();
       

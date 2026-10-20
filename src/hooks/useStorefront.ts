@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import type { Json } from '@/integrations/supabase/types';
+import { assertRowsWritten, isNoRowsWrittenError } from '@/lib/supabaseWriteGuard';
 import type { 
   Theme, 
   TenantThemeSettings, 
@@ -182,11 +183,13 @@ export function useStorefront() {
         .maybeSingle();
 
       if (existing) {
-        const { error } = await supabase
+        const { data: written, error } = await supabase
           .from('tenant_theme_settings')
           .update(payload as any)
-          .eq('tenant_id', currentTenant.id);
+          .eq('tenant_id', currentTenant.id)
+          .select('id');
         if (error) throw error;
+        assertRowsWritten(written);
       } else {
         const { error } = await supabase
           .from('tenant_theme_settings')
@@ -200,7 +203,7 @@ export function useStorefront() {
     },
     onError: (error) => {
       console.error('Save settings error:', error);
-      toast.error('Fout bij opslaan instellingen');
+      toast.error(isNoRowsWrittenError(error) ? error.message : 'Fout bij opslaan instellingen');
     },
   });
 
@@ -209,22 +212,24 @@ export function useStorefront() {
     mutationFn: async () => {
       if (!currentTenant?.id) throw new Error('No tenant selected');
 
-      const { error } = await supabase
+      const { data: written, error } = await supabase
         .from('tenant_theme_settings')
         .update({
           is_published: true,
           published_at: new Date().toISOString(),
         })
-        .eq('tenant_id', currentTenant.id);
+        .eq('tenant_id', currentTenant.id)
+        .select('id');
 
       if (error) throw error;
+      assertRowsWritten(written);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant-theme-settings', currentTenant?.id] });
       toast.success('Webshop gepubliceerd!');
     },
-    onError: () => {
-      toast.error('Fout bij publiceren');
+    onError: (error) => {
+      toast.error(isNoRowsWrittenError(error) ? error.message : 'Fout bij publiceren');
     },
   });
 

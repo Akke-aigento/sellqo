@@ -65,7 +65,8 @@
     },
     "error": "Erreur",
     "done": "Terminé",
-    "comingSoon": "bientôt"
+    "comingSoon": "bientôt",
+    "saveNoPermission": "Vous n'avez pas les droits pour enregistrer ceci. Demandez à un administrateur de cette boutique de le modifier."
   },
   "auth": {
     "login": "Connexion",
@@ -4996,7 +4997,7 @@
       "opgebruikt": "Épuisé",
       "pas_je_filters_aan": "Ajustez vos filtres",
       "saldo": "Solde",
-      "totaal_uitgegeven": "Total dépensé",
+      "totaal_uitgegeven": "Valeur totale émise",
       "zoek_op_code_email_of_naam": "Rechercher par code, e-mail ou nom..."
     },
     "inbox": {
@@ -6670,7 +6671,7 @@
         "pages_desc": "À propos, contact et autres pages personnalisées",
         "legal_desc": "Conditions, confidentialité, retours et livraison",
         "own_domain": "Domaine personnalisé",
-        "own_domain_soon": "Bientôt : connecter vous-même votre propre domaine.",
+        "own_domain_desc": "Associez votre propre nom de domaine à votre boutique en ligne.",
         "select_shop": "Sélectionnez une boutique pour continuer"
       },
       "features": {

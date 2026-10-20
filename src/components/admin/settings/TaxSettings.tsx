@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Checkbox } from '@/components/ui/checkbox';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import { assertRowsWritten } from '@/lib/supabaseWriteGuard';
 import { useOssRevenue, OSS_THRESHOLD_AMOUNT } from '@/hooks/useOssRevenue';
 import { supabase } from '@/integrations/supabase/client';
 import { EU_VAT_RATES } from '@/lib/euVatRates';
@@ -74,7 +75,7 @@ const [formData, setFormData] = useState({
     setIsSaving(true);
 
     try {
-      const { error } = await supabase
+      const { data: written, error } = await supabase
         .from('tenants')
         .update({
           tax_percentage: formData.tax_percentage,
@@ -89,9 +90,11 @@ const [formData, setFormData] = useState({
           simplified_vat_mode: formData.simplified_vat_mode,
           simplified_vat_acknowledged_at: formData.simplified_vat_mode ? new Date().toISOString() : null,
         })
-        .eq('id', currentTenant.id);
+        .eq('id', currentTenant.id)
+        .select('id');
 
       if (error) throw error;
+      assertRowsWritten(written);
 
       await refreshTenants();
       
