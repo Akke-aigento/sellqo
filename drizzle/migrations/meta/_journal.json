@@ -92,6 +92,13 @@
       "when": 1792493425847,
       "tag": "0012_mail_clean_1",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1792497245114,
+      "tag": "0013_mail_ux_1",
+      "breakpoints": true
     }
   ]
 }
