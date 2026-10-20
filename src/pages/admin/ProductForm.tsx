@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { useNavigate, useParams, Link, Navigate } from 'react-router-dom';
+import { useNavigate, useParams, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -97,6 +97,7 @@ import { productTypeInfo, digitalDeliveryTypeInfo } from '@/types/product';
 import { TRANSLATION_LANGUAGES, type TranslationLanguage } from '@/types/translation';
 import { EntityTranslationTabs } from '@/components/admin/translations/EntityTranslationTabs';
 import { ProductAdsSection } from '@/components/admin/products/ProductAdsSection';
+import { ProductSizeChartTab } from '@/components/admin/products/ProductSizeChartTab';
 import { ImageEditorDialog } from '@/components/admin/products/ImageEditorDialog';
 import { useTranslation } from 'react-i18next';
 
@@ -168,6 +169,8 @@ export default function ProductForm() {
   // geen opslaan, uploaden of verwijderen. `products/new` blijft schrijfrecht vragen.
   const canWriteProducts = useCan('write', 'products');
   const readOnly = isEditing && !canWriteProducts;
+  // SIZECHART-1 — tabs deeplinkbaar via ?tab=; de tab Maattabel bestaat alleen bij een maatgids.
+  const [searchParams, setSearchParams] = useSearchParams();
   
   const { currentTenant } = useTenant();
   // PROD-TRIGGER-1 — commerciële velden zijn voor rollen die uitsluitend
@@ -186,6 +189,13 @@ export default function ProductForm() {
   const adminManagedHint = 'Wordt door een beheerder beheerd.';
   const { enforceLimit } = useUsageLimits();
   const { data: product, isLoading: productLoading, isFetched: productFetched } = useProduct(id);
+  const hasSizeGuide = isEditing && !!product?.size_guide;
+  const activeTab = (() => {
+    const requested = searchParams.get('tab');
+    if (readOnly || !requested) return 'product';
+    if (requested === 'sizechart') return hasSizeGuide ? 'sizechart' : 'product';
+    return ['translations', 'marketplaces', 'ads'].includes(requested) ? requested : 'product';
+  })();
   // NOTIF-DEEPLINK-1 — een melding of oude link naar een verwijderd product
   // toonde hier een leeg formulier ("Bewerk undefined") dat bij opslaan een
   // onbestaand id bijwerkte. Nu: melden en terug naar de lijst.
@@ -714,15 +724,26 @@ export default function ProductForm() {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Tabs defaultValue="product" className="space-y-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={(v) => {
+              const next = new URLSearchParams(searchParams);
+              if (v === 'product') next.delete('tab'); else next.set('tab', v);
+              setSearchParams(next, { replace: true });
+            }}
+            className="space-y-6"
+          >
             {/* Alleen-lezen: enkel het tabblad Product. Vertalingen, marketplaces en
                 advertenties zijn beheerschermen met eigen opslaan-acties. */}
             {!readOnly && (
-            <TabsList className="flex w-full overflow-x-auto sm:grid sm:grid-cols-4">
+            <TabsList className={cn('flex w-full overflow-x-auto sm:grid', hasSizeGuide ? 'sm:grid-cols-5' : 'sm:grid-cols-4')}>
               <TabsTrigger value="product" className="shrink-0">{t('admin.stockReport.colName')}</TabsTrigger>
               <TabsTrigger value="translations" className="shrink-0" disabled={!isEditing}>{t('admin.productForm.vertalingen')}</TabsTrigger>
               <TabsTrigger value="marketplaces" className="shrink-0">{t('admin.productForm.marketplaces')}</TabsTrigger>
               <TabsTrigger value="ads" className="shrink-0" disabled={!isEditing}>{t('admin.products.productAdsSection.advertenties')}</TabsTrigger>
+              {hasSizeGuide && (
+                <TabsTrigger value="sizechart" className="shrink-0">{t('admin.sizeChart.tab')}</TabsTrigger>
+              )}
             </TabsList>
             )}
 
@@ -1948,6 +1969,13 @@ export default function ProductForm() {
                 </Card>
               )}
             </TabsContent>
+
+            {/* Maattabel Tab (SIZECHART-1) */}
+            {hasSizeGuide && id && currentTenant && (
+              <TabsContent value="sizechart">
+                <ProductSizeChartTab productId={id} tenantId={currentTenant.id} sizeGuide={product?.size_guide} />
+              </TabsContent>
+            )}
 
             {/* Advertenties Tab */}
             <TabsContent value="ads">

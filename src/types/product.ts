@@ -38,6 +38,8 @@ export interface Product {
   category_id: string | null;
   vat_rate_id: string | null;
   tags: string[];
+  /** Ruwe Printful-maatgids (LOVEKE-POD-2-SIZEGUIDE); omgerekend via _shared/sizeChart.ts (SIZECHART-1). */
+  size_guide?: unknown;
   meta_title: string | null;
   meta_description: string | null;
   is_active: boolean;

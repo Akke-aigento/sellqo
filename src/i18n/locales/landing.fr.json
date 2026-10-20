@@ -2155,6 +2155,10 @@
         "cart_current_price": {
           "title": "Le panier et le paiement suivent toujours votre prix actuel",
           "description": "Si vous modifiiez un prix alors qu'un client avait déjà le produit dans son panier, le panier et le paiement utilisaient parfois encore l'ancien prix. C'était le cas pour les produits sans variante, les variantes sans prix propre, les billets early bird après la fin de l'early bird et le prix des suppléments. Désormais, le panier et le paiement affichent toujours le prix en vigueur dans votre boutique à ce moment-là, et le client paie exactement ce montant. Si votre boutique dispose de sa propre vitrine, chaque ligne dont le prix a changé reçoit les champs supplémentaires price_changed et previous_unit_price, pour que vous puissiez indiquer au client que le prix a été adapté."
+        },
+        "size_chart_standard": {
+          "title": "Des tableaux des tailles clairs et contrôlés pour les produits Printful",
+          "description": "Jusqu'ici, le guide des tailles fourni par Printful était transmis tel quel : avec des décimales issues de la conversion en pouces, des mesures du corps qui répétaient celles du vêtement, et sans indiquer où mesurer. SellQo convertit désormais chaque guide en un tableau fixe en cm entiers : largeur (d'aisselle à aisselle), longueur (de l'épaule à l'ourlet), manche et le tour de poitrine prévu pour chaque taille. À chaque import, SellQo contrôle les chiffres : les tableaux en cm et en pouces concordent-ils, chaque taille est-elle plus grande que la précédente, une valeur ressemble-t-elle à des pouces ou à un tour au lieu d'une largeur ? En cas de problème, vous le voyez dans le produit, dans le nouvel onglet Tableau des tailles, et votre boutique n'affiche pas de tableau erroné pour ce produit. Si vous avez votre propre boutique en ligne, le tableau contrôlé se trouve dans le nouveau champ size_chart."
         }
       },
       "copyLink": "Copier le lien",

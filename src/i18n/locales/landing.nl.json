@@ -2155,6 +2155,10 @@
         "cart_current_price": {
           "title": "Mandje en betaling volgen altijd je actuele prijs",
           "description": "Wijzig je een prijs terwijl een klant het product al in zijn mandje heeft, dan rekenden mandje en afrekenen tot nu toe soms nog met de oude prijs. Dat gold voor producten zonder variant, voor varianten zonder eigen prijs, voor early-birdtickets na afloop van de early bird en voor de prijs van extra's. Nu tonen mandje en betaling altijd de prijs die op dat moment in je winkel geldt, en betaalt de klant exact dat bedrag. Heeft je winkel een eigen webshop, dan krijgt elke regel waarvan de prijs veranderde de extra velden price_changed en previous_unit_price, zodat je de klant kunt tonen dat de prijs is aangepast."
+        },
+        "size_chart_standard": {
+          "title": "Duidelijke, gecontroleerde maattabellen voor Printful-producten",
+          "description": "De maatgids die Printful meelevert, werd tot nu toe ruw doorgegeven: met kommagetallen uit de inch-omrekening, lichaamsmaten die de maten van het kledingstuk herhaalden en zonder uitleg waar je meet. Nu rekent SellQo elke maatgids om naar één vaste tabel in hele cm: breedte (van oksel tot oksel), lengte (van schouder tot zoom), mouw en de borstomtrek waarvoor de maat bedoeld is. Bij elke import controleert SellQo de cijfers: kloppen de cm- en inch-tabel, wordt elke maat groter dan de vorige, lijkt een waarde in inch of een omtrek in plaats van een breedte? Klopt er iets niet, dan zie je dat in het product onder de nieuwe tab Maattabel en toont je winkel voor dat product geen foute tabel. Heb je een eigen webshop, dan staat de gecontroleerde tabel in het nieuwe veld size_chart."
         }
       },
       "copyLink": "Kopieer link",

@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13h — Duidelijke, gecontroleerde maattabellen voor Printful-producten (feature, 20-10-2026)
+
+**Status:** klaar voor verzending zodra SIZECHART-1 live staat (edge functions storefront-api en apply-printful-import, frontend gepubliceerd, migratie `20261020223000_sizechart_1_docs.sql` toegepast).
+
+**Voor wie:** winkels die producten uit Printful importeren, ook met een eigen webshop.
+
+**Maattabellen die je klant meteen snapt** (oktober 2026)
+De maatgids van Printful kwam tot nu toe ruw in je winkel: kommagetallen uit inch, lichaamsmaten die de kledingmaten herhaalden en geen uitleg waar je meet. Nu zet SellQo elke maatgids om naar één vaste tabel in hele cm: breedte van oksel tot oksel, lengte van schouder tot zoom, mouw en de borstomtrek waarvoor de maat bedoeld is. Bij elke import controleert SellQo de cijfers, en een tabel met foute data komt niet online.
+Wat betekent dit voor jou? Minder twijfel over de maat bij je klanten, minder retours, en je ziet in het product onder de tab Maattabel meteen of er iets nagekeken moet worden.
+
+i18n: `public.changelog.changes.size_chart_standard`
+
 ### 2026.13g — Mandje en betaling volgen altijd je actuele prijs (bugfix, 20-10-2026)
 
 **Status:** klaar voor verzending zodra CART-PRICE-1 live staat (edge function storefront-api).

@@ -12,6 +12,7 @@ import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type 
 import { computeSlots, orderingBlocked, postalCodeAllowed, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
 import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
 import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
+import { buildSizeChart, publicSizeChart, sellSizesFromVariants } from "../_shared/sizeChart.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
@@ -780,6 +781,9 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
     stock: product.track_inventory ? product.stock : null,
     tags: product.tags || [],
     size_guide: product.size_guide || null,
+    // SIZECHART-1 — additief: de gecontroleerde standaard-maattabel (null zonder maatgids;
+    // bij status 'blocked' zonder rijen, zodat foute data nooit online komt).
+    size_chart: product.size_guide ? publicSizeChart(buildSizeChart(product.size_guide, { sellSizes: sellSizesFromVariants(variants) })) : null,
     category: product.categories ? { id: product.categories.id, name: product.categories.name, slug: product.categories.slug } : null,
     has_variants: hasVariants,
     is_variant_product: isVariantProduct,

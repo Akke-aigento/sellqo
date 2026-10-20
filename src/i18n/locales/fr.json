@@ -7218,7 +7218,8 @@
         "order_confirmed": "Commande confirmée chez Printful",
         "order_draft": "Commande créée en brouillon chez Printful",
         "settings_saved": "Paramètres Printful enregistrés",
-        "save_failed": "L'enregistrement a échoué"
+        "save_failed": "L'enregistrement a échoué",
+        "size_chart_attention": "Vérifiez le tableau des tailles de {{count}} produit(s) : ouvrez le produit, onglet Tableau des tailles"
       }
     },
     "odooSync": {
@@ -7734,6 +7735,59 @@
     "mediaLibrary": {
       "title": "Médias",
       "description": "Toutes vos photos au même endroit : celles de vos produits, créées avec l'IA et utilisées dans vos publications."
+    },
+    "sizeChart": {
+      "tab": "Tableau des tailles",
+      "title": "Tableau des tailles tel que le client le voit",
+      "status": {
+        "ok": "En ordre",
+        "warning": "À vérifier",
+        "blocked": "Pas en ligne"
+      },
+      "statusHelp": {
+        "ok": "Tous les contrôles sont réussis. Ce tableau est celui de votre boutique.",
+        "warning": "Le tableau est en ligne, mais un point attire l’attention. Vérifiez les points ci-dessous.",
+        "blocked": "Les données ne sont pas correctes. Votre boutique n’affiche pas de tableau pour ce produit, seulement un renvoi vers le contact."
+      },
+      "fitLabel": "Coupe : {{fit}}",
+      "fit": {
+        "aansluitend": "ajustée",
+        "normaal": "normale",
+        "ruim": "ample",
+        "zeer_ruim": "très ample"
+      },
+      "col": {
+        "size": "Taille",
+        "width": "Largeur",
+        "length": "Longueur",
+        "sleeve": "Manche",
+        "chest": "Tour de poitrine"
+      },
+      "noRows": "Aucune taille exploitable.",
+      "measureHelp": "Largeur : à plat, d’aisselle à aisselle. Longueur : du point le plus haut de l’épaule jusqu’à l’ourlet. Tour de poitrine : la mesure du corps pour laquelle la taille est prévue. La coupe est calculée à partir de la différence entre le vêtement et le corps.",
+      "checksTitle": "Contrôles",
+      "checksHelp": "À chaque import, le guide des tailles de Printful est converti et contrôlé.",
+      "allChecksPassed": "Aucun problème trouvé.",
+      "refreshHelp": "Modifié dans Printful ? Importez à nouveau le produit via l’import Printful pour récupérer et contrôler le guide des tailles.",
+      "check": {
+        "NO_SIZE_GUIDE": "Il n’y a pas de guide des tailles.",
+        "MISSING_GARMENT_MEASURES": "Printful ne fournit que des mesures du corps, pas du vêtement.",
+        "MISSING_WIDTH_OR_LENGTH": "La largeur ou la longueur manque pour une ou plusieurs tailles.",
+        "VALUE_NOT_NUMERIC": "Taille {{size}} : {{measure}} n’est pas un nombre (« {{detail}} »).",
+        "VALUE_OUT_OF_RANGE": "Taille {{size}} : {{measure}} de {{detail}} cm est invraisemblable.",
+        "LOOKS_LIKE_INCHES": "{{measure}} est fourni en cm mais semble être en pouces.",
+        "WIDTH_LOOKS_LIKE_CIRCUMFERENCE": "La largeur semble être un tour (mesuré tout autour) au lieu d’aisselle à aisselle.",
+        "NOT_INCREASING": "Taille {{size}} : {{measure}} est plus petit que pour la taille précédente.",
+        "LARGE_STEP": "Taille {{size}} : {{measure}} fait un saut de {{detail}} cm par rapport à la taille précédente.",
+        "UNIT_TABLES_DISAGREE": "Les tableaux en cm et en pouces de Printful se contredisent (taille {{size}}, {{measure}} : {{detail}}).",
+        "RANGE_SWAPPED": "Taille {{size}} : minimum et maximum étaient inversés et ont été corrigés.",
+        "GARMENT_SMALLER_THAN_BODY": "Taille {{size}} : le vêtement est plus petit que le tour de poitrine prévu.",
+        "SIZE_MISSING": "Vous vendez la taille {{size}}, mais elle ne figure pas dans le guide des tailles.",
+        "SIZE_NOT_SOLD": "La taille {{size}} figure dans le guide mais n’est pas vendue et est masquée.",
+        "UNKNOWN_MEASUREMENT": "La mesure « {{measure}} » n’est pas affichée (pas de colonne standard).",
+        "CIRCUMFERENCE_HALVED": "Printful a donné la poitrine en tour ; convertie en largeur (divisée par 2).",
+        "CONVERTED_FROM_INCHES": "Printful n’a donné que des pouces ; converti en cm."
+      }
     }
   },
   "billing": {

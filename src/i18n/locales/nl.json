@@ -7505,7 +7505,8 @@
         "order_confirmed": "Bestelling bevestigd bij Printful",
         "order_draft": "Bestelling als concept aangemaakt bij Printful",
         "settings_saved": "Printful-instellingen opgeslagen",
-        "save_failed": "Opslaan mislukt"
+        "save_failed": "Opslaan mislukt",
+        "size_chart_attention": "Maattabel nakijken bij {{count}} product(en): open het product, tab Maattabel"
       }
     },
     "odooSync": {
@@ -8021,6 +8022,59 @@
     "mediaLibrary": {
       "title": "Media",
       "description": "Al je foto's op één plek: van je producten, gemaakt met AI en gebruikt in social posts."
+    },
+    "sizeChart": {
+      "tab": "Maattabel",
+      "title": "Maattabel zoals de klant hem ziet",
+      "status": {
+        "ok": "In orde",
+        "warning": "Nakijken",
+        "blocked": "Niet online"
+      },
+      "statusHelp": {
+        "ok": "Alle controles zijn geslaagd. Deze tabel staat zo in je winkel.",
+        "warning": "De tabel staat online, maar iets is opvallend. Kijk de punten hieronder na.",
+        "blocked": "De data klopt niet. Je winkel toont geen maattabel voor dit product, maar een verwijzing naar contact."
+      },
+      "fitLabel": "Pasvorm: {{fit}}",
+      "fit": {
+        "aansluitend": "aansluitend",
+        "normaal": "normaal",
+        "ruim": "ruim",
+        "zeer_ruim": "zeer ruim"
+      },
+      "col": {
+        "size": "Maat",
+        "width": "Breedte",
+        "length": "Lengte",
+        "sleeve": "Mouw",
+        "chest": "Past bij borstomtrek"
+      },
+      "noRows": "Er zijn geen bruikbare maten.",
+      "measureHelp": "Breedte: plat gelegd, van oksel tot oksel. Lengte: van het hoogste punt van de schouder tot de onderzoom. Borstomtrek: de lichaamsmaat waarvoor de maat bedoeld is. De pasvorm is berekend uit het verschil tussen kledingstuk en lichaam.",
+      "checksTitle": "Controles",
+      "checksHelp": "Bij elke import wordt de maatgids van Printful omgerekend en gecontroleerd.",
+      "allChecksPassed": "Geen problemen gevonden.",
+      "refreshHelp": "Aangepast in Printful? Importeer het product opnieuw via Printful-import, dan wordt de maatgids opnieuw opgehaald en gecontroleerd.",
+      "check": {
+        "NO_SIZE_GUIDE": "Er is geen maatgids.",
+        "MISSING_GARMENT_MEASURES": "Printful geeft alleen lichaamsmaten, geen maten van het kledingstuk.",
+        "MISSING_WIDTH_OR_LENGTH": "Breedte of lengte ontbreekt voor één of meer maten.",
+        "VALUE_NOT_NUMERIC": "Maat {{size}}: {{measure}} is geen getal (\"{{detail}}\").",
+        "VALUE_OUT_OF_RANGE": "Maat {{size}}: {{measure}} van {{detail}} cm is onwaarschijnlijk.",
+        "LOOKS_LIKE_INCHES": "{{measure}} staat als cm aangeleverd maar lijkt in inch.",
+        "WIDTH_LOOKS_LIKE_CIRCUMFERENCE": "De breedte lijkt een omtrek (rondom gemeten) in plaats van oksel tot oksel.",
+        "NOT_INCREASING": "Maat {{size}}: {{measure}} is kleiner dan bij de maat ervoor.",
+        "LARGE_STEP": "Maat {{size}}: {{measure}} springt {{detail}} cm ten opzichte van de maat ervoor.",
+        "UNIT_TABLES_DISAGREE": "De cm- en inch-tabel van Printful spreken elkaar tegen (maat {{size}}, {{measure}}: {{detail}}).",
+        "RANGE_SWAPPED": "Maat {{size}}: minimum en maximum stonden omgekeerd en zijn rechtgezet.",
+        "GARMENT_SMALLER_THAN_BODY": "Maat {{size}}: het kledingstuk is kleiner dan de borstomtrek waarvoor het bedoeld is.",
+        "SIZE_MISSING": "Je verkoopt maat {{size}}, maar die staat niet in de maatgids.",
+        "SIZE_NOT_SOLD": "Maat {{size}} staat in de maatgids maar wordt niet verkocht en is verborgen.",
+        "UNKNOWN_MEASUREMENT": "Meting \"{{measure}}\" wordt niet getoond (geen standaardkolom).",
+        "CIRCUMFERENCE_HALVED": "Printful gaf de borst als omtrek; omgerekend naar breedte (gedeeld door 2).",
+        "CONVERTED_FROM_INCHES": "Printful gaf alleen inch; omgerekend naar cm."
+      }
     }
   },
   "product_form": {

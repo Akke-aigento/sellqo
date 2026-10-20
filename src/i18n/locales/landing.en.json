@@ -2155,6 +2155,10 @@
         "cart_current_price": {
           "title": "Cart and payment always follow your current price",
           "description": "If you changed a price while a customer already had the product in their cart, the cart and checkout sometimes still used the old price. That applied to products without a variant, to variants without their own price, to early bird tickets after the early bird ended and to the price of extras. Now the cart and payment always show the price that applies in your shop at that moment, and the customer pays exactly that amount. If your shop has its own storefront, every line whose price changed gets the extra fields price_changed and previous_unit_price, so you can show the customer that the price was updated."
+        },
+        "size_chart_standard": {
+          "title": "Clear, checked size charts for Printful products",
+          "description": "Until now, the size guide that comes with Printful was passed on as-is: with decimals from the inch conversion, body measurements that repeated the garment measurements, and no explanation of where to measure. SellQo now converts every size guide into one fixed table in whole cm: width (armpit to armpit), length (shoulder to hem), sleeve and the chest size each size is meant for. On every import, SellQo checks the numbers: do the cm and inch tables match, does every size grow from the previous one, does a value look like inches or a circumference instead of a width? If something is wrong, you see it in the product under the new Size chart tab, and your store does not show an incorrect chart for that product. If you have your own webshop, the checked chart is in the new size_chart field."
         }
       },
       "copyLink": "Copy link",

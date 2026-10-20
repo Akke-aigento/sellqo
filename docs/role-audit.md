@@ -1,3 +1,48 @@
+## SIZECHART-1 — Standaard-maattabel met factchecks voor Printful-maatgidsen — 20 oktober 2026
+
+Go van Akke 20-10 22:35 ("Yes doe maar") op het plan van 22:27. Aanleiding: Akke bestelde bijna een veel te grote Loveke-tee; de ruwe Printful-maatgids was voor klanten onleesbaar. Op `origin/main` e810f31, niet gecommit. Ook `src/types/product.ts` (additief veld).
+
+**Root cause**
+- `apply-printful-import` (r. 97-123) slaat de ruwe `result` van `GET /products/{id}/sizes` op in `products.size_guide`; `storefront-api` `getProduct()` gaf die ongewijzigd door (`size_guide`, r. 782). Geen enkele controle, en nergens zichtbaar in de admin.
+- De ruwe data is per product anders: inch-breuken (`26 3/4`, `16 ¼`), bereiken met spaties (`" 91.4"`), `Chest` als omtrek of als breedte, lichaamstabellen die kledingmaten herhalen, variant-sleutel `Maat` of `Variant`. Een frontend die dit zelf moet ontcijferen, toont onvermijdelijk verwarrende tabellen.
+
+**Live (read-only, 20-10)**
+- Enkel Loveke heeft maatgidsen: 6 producten (5 actief + `loveke-classic-hoodie-kids` inactief), 8 verschillende Printful-labels.
+- Alle 6 door de nieuwe module gehaald (als testfixtures): status `ok`. Tee: L = 71 cm breed × 77 cm lang, pasvorm berekend "ruim"; kloppend met de Printful-listing elders.
+
+**Uitgevoerd**
+- `supabase/functions/_shared/sizeChart.ts` (nieuw, puur): `buildSizeChart(guide, { sellSizes })` → vaste kolommen Breedte (oksel–oksel) / Lengte (schouder–zoom) / Mouw / Past bij borstomtrek, hele cm, maten in natuurlijke volgorde, alleen verkochte maten. Factchecks met niveau info/warning/blocked: geen kledingmaten, breedte of lengte ontbreekt, niet-numeriek, buiten plausibel bereik (volwassen vs. kindermaten), cm-tabel die inch lijkt, breedte die een omtrek lijkt, niet stijgend, grote sprong, cm- en inch-tabel spreken elkaar tegen, min/max omgekeerd, kledingstuk kleiner dan het lichaam, verkochte maat ontbreekt, onbekend label. Afgeleide pasvorm uit kledingomtrek − lichaamsomtrek. `publicSizeChart()` maakt de rijen leeg bij `blocked`.
+- `supabase/functions/_shared/sizeChart.test.ts` (nieuw): 21 Deno-tests, waarvan 6 met de echte Loveke-data; toegevoegd aan de deno-teststap in `.github/workflows/ci.yml`.
+- `storefront-api` `getProduct()`: één additief veld `size_chart` naast `size_guide` (null zonder maatgids).
+- `apply-printful-import`: per resultaat `size_chart_status`, in de respons `size_chart_attention`; waarschuwing in de log. Geen wijziging aan wat er opgeslagen wordt.
+- `src/components/admin/products/ProductSizeChartTab.tsx` (nieuw) + `ProductForm.tsx`: tab **Maattabel** (alleen bij een maatgids) met tabel, status, pasvorm en controles. Tabs zijn nu deeplinkbaar via `?tab=` (translations, marketplaces, ads, sizechart).
+- `usePrintfulImport.ts`: aparte waarschuwing na een import met maattabellen om na te kijken.
+- i18n: `admin.sizeChart.*` en `admin.printful.toast.size_chart_attention` in nl/en/fr/de/uk; changelog `2026.13h` `size_chart_standard` in alle talen.
+- `supabase/migrations/20261020223000_sizechart_1_docs.sql`: helpartikel `maattabel-printful` (`/admin/products`) en één zin in `printful-print-on-demand-koppelen`. Alleen `doc_articles`.
+
+**Security-keuzes**
+- Geen nieuwe kolom, policy, grant of RLS. `size_chart` wordt bij elke request uit de bestaande publieke `size_guide` berekend; het bevat niets wat `size_guide` niet al prijsgaf (bij `blocked` enkel de check-codes).
+- De admin-tab leest `product_variants.attribute_values` via de gewone tenant-gescopete client.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` is gedeeld met de zes custom frontends. Strikt additief: een nieuwe sleutel `size_chart`; `size_guide` en alle andere sleutels byte-voor-byte gelijk. Frontends die het veld niet kennen, merken niets.
+- Bewust geen nieuwe DB-kolom: één bron (`size_guide`) en een deterministische functie, dus geen backfill en geen verouderde kopie.
+- Live drift gemeld door Akke: een functie `can_scan` is live aangepast zonder migratiebestand in de repo. Deze batch raakt `can_scan` niet en bevat geen migratie die functies herdefinieert.
+
+**Verificatie**
+- `deno test` sizeChart: 21/21 groen. `deno check` op `storefront-api` en `apply-printful-import`: groen (esm.sh via import map naar npm: omdat esm.sh hier geblokkeerd is).
+- `node scripts/i18n-parity.mjs`: volledige pariteit, 5 talen.
+- ESLint op de drie gewijzigde frontendbestanden: 17 fouten, gelijk aan de HEAD-baseline (allemaal bestaande `no-explicit-any`).
+- `tsc --noEmit -p tsconfig.app.json`: 27 fouten, alle in bestanden buiten deze batch (o.a. `useQuotes`, `PlatformBlog`; deps geïnstalleerd zonder lockfile omdat `npm ci` faalt op een lockfile die niet in sync is met package.json). 0 fouten in de gewijzigde bestanden; `Product`-type kreeg `size_guide?: unknown` (additief).
+- `npm run build`: groen (sitemap-blogfetch faalt offline, bestaand gedrag).
+- Migratie: kolommen en `UNIQUE (doc_level, slug)` live nagetrokken; niet uitgevoerd (schrijfwerk via deploy).
+
+**Bewust ongemoeid / Vervolg**
+- `products.size_guide` en de opslaglogica van de import: ongewijzigd.
+- Loveke-frontend (LOVEKE-SIZEGUIDE-3) rekent nu nog zelf om met dezelfde regels; na deploy overschakelen op `size_chart` zodat er één bron is. Fonske gebruikt `size_chart` vanaf de start.
+- Geen knop "opnieuw ophalen" in de tab: opnieuw ophalen loopt via de bestaande Printful-import met reimport (geen dode affordance).
+- Afrondingsverschil cm/inch van Printful zelf (tanktop: 0,6 cm) valt binnen de tolerantie (1,5 cm of 3 %).
+
 ## CART-PRICE-1 — Mandje en betaling rekenen met de actuele prijs, niet met de prijs van bij het toevoegen — 20 oktober 2026
 
 Go van Akke 20-10 14:06 ("alles aanpakken"), vervolg op de MAIL-3-recon (`docs/voorstel-mail-cart-herstel.md`). Branch `fix-cart` op `origin/main` 05b4080, niet gepusht.

@@ -2155,6 +2155,10 @@
         "cart_current_price": {
           "title": "Warenkorb und Zahlung folgen immer Ihrem aktuellen Preis",
           "description": "Haben Sie einen Preis geändert, während ein Kunde das Produkt schon im Warenkorb hatte, rechneten Warenkorb und Kasse bisher manchmal noch mit dem alten Preis. Das galt für Produkte ohne Variante, für Varianten ohne eigenen Preis, für Early-Bird-Tickets nach Ende des Early Birds und für den Preis von Extras. Jetzt zeigen Warenkorb und Zahlung immer den Preis, der in diesem Moment in Ihrem Shop gilt, und der Kunde zahlt genau diesen Betrag. Hat Ihr Shop ein eigenes Frontend, erhält jede Zeile, deren Preis sich geändert hat, die zusätzlichen Felder price_changed und previous_unit_price, damit Sie dem Kunden zeigen können, dass der Preis angepasst wurde."
+        },
+        "size_chart_standard": {
+          "title": "Klare, geprüfte Größentabellen für Printful-Produkte",
+          "description": "Bisher wurde die Größentabelle von Printful unverändert weitergegeben: mit Nachkommastellen aus der Zoll-Umrechnung, Körpermaßen, die die Maße des Kleidungsstücks wiederholten, und ohne Hinweis, wo gemessen wird. Jetzt rechnet SellQo jede Größentabelle in eine feste Tabelle in ganzen cm um: Breite (von Achsel zu Achsel), Länge (von der Schulter bis zum Saum), Ärmel und der Brustumfang, für den jede Größe gedacht ist. Bei jedem Import prüft SellQo die Zahlen: Stimmen die cm- und Zoll-Tabelle überein, wird jede Größe größer als die vorherige, sieht ein Wert nach Zoll oder nach einem Umfang statt einer Breite aus? Stimmt etwas nicht, sehen Sie das im Produkt im neuen Reiter Größentabelle, und Ihr Shop zeigt für dieses Produkt keine falsche Tabelle. Haben Sie einen eigenen Webshop, steht die geprüfte Tabelle im neuen Feld size_chart."
         }
       },
       "copyLink": "Link kopieren",

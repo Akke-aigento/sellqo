@@ -7218,7 +7218,8 @@
         "order_confirmed": "Bestellung bei Printful bestätigt",
         "order_draft": "Bestellung als Entwurf bei Printful angelegt",
         "settings_saved": "Printful-Einstellungen gespeichert",
-        "save_failed": "Speichern fehlgeschlagen"
+        "save_failed": "Speichern fehlgeschlagen",
+        "size_chart_attention": "Größentabelle prüfen bei {{count}} Produkt(en): Produkt öffnen, Reiter Größentabelle"
       }
     },
     "odooSync": {
@@ -7734,6 +7735,59 @@
     "mediaLibrary": {
       "title": "Medien",
       "description": "Alle Ihre Fotos an einem Ort: von Ihren Produkten, mit KI erstellt und in Social-Beiträgen verwendet."
+    },
+    "sizeChart": {
+      "tab": "Größentabelle",
+      "title": "Größentabelle, wie Ihre Kunden sie sehen",
+      "status": {
+        "ok": "In Ordnung",
+        "warning": "Prüfen",
+        "blocked": "Nicht online"
+      },
+      "statusHelp": {
+        "ok": "Alle Prüfungen bestanden. So steht die Tabelle in Ihrem Shop.",
+        "warning": "Die Tabelle ist online, aber etwas fällt auf. Prüfen Sie die Punkte unten.",
+        "blocked": "Die Daten stimmen nicht. Ihr Shop zeigt für dieses Produkt keine Größentabelle, sondern einen Hinweis auf den Kontakt."
+      },
+      "fitLabel": "Passform: {{fit}}",
+      "fit": {
+        "aansluitend": "eng anliegend",
+        "normaal": "normal",
+        "ruim": "weit",
+        "zeer_ruim": "sehr weit"
+      },
+      "col": {
+        "size": "Größe",
+        "width": "Breite",
+        "length": "Länge",
+        "sleeve": "Ärmel",
+        "chest": "Passt bei Brustumfang"
+      },
+      "noRows": "Es gibt keine verwendbaren Größen.",
+      "measureHelp": "Breite: flach hingelegt, von Achsel zu Achsel. Länge: vom höchsten Punkt der Schulter bis zum Saum. Brustumfang: das Körpermaß, für das die Größe gedacht ist. Die Passform wird aus dem Unterschied zwischen Kleidungsstück und Körper berechnet.",
+      "checksTitle": "Prüfungen",
+      "checksHelp": "Bei jedem Import wird die Größentabelle von Printful umgerechnet und geprüft.",
+      "allChecksPassed": "Keine Probleme gefunden.",
+      "refreshHelp": "In Printful geändert? Importieren Sie das Produkt erneut über den Printful-Import, dann wird die Größentabelle neu abgerufen und geprüft.",
+      "check": {
+        "NO_SIZE_GUIDE": "Es gibt keine Größentabelle.",
+        "MISSING_GARMENT_MEASURES": "Printful liefert nur Körpermaße, keine Maße des Kleidungsstücks.",
+        "MISSING_WIDTH_OR_LENGTH": "Breite oder Länge fehlt bei einer oder mehreren Größen.",
+        "VALUE_NOT_NUMERIC": "Größe {{size}}: {{measure}} ist keine Zahl („{{detail}}“).",
+        "VALUE_OUT_OF_RANGE": "Größe {{size}}: {{measure}} von {{detail}} cm ist unwahrscheinlich.",
+        "LOOKS_LIKE_INCHES": "{{measure}} ist als cm geliefert, sieht aber nach Zoll aus.",
+        "WIDTH_LOOKS_LIKE_CIRCUMFERENCE": "Die Breite sieht nach einem Umfang aus (rundherum gemessen) statt von Achsel zu Achsel.",
+        "NOT_INCREASING": "Größe {{size}}: {{measure}} ist kleiner als bei der vorherigen Größe.",
+        "LARGE_STEP": "Größe {{size}}: {{measure}} springt um {{detail}} cm gegenüber der vorherigen Größe.",
+        "UNIT_TABLES_DISAGREE": "Die cm- und Zoll-Tabellen von Printful widersprechen sich (Größe {{size}}, {{measure}}: {{detail}}).",
+        "RANGE_SWAPPED": "Größe {{size}}: Minimum und Maximum waren vertauscht und wurden korrigiert.",
+        "GARMENT_SMALLER_THAN_BODY": "Größe {{size}}: Das Kleidungsstück ist kleiner als der Brustumfang, für den es gedacht ist.",
+        "SIZE_MISSING": "Sie verkaufen Größe {{size}}, aber sie steht nicht in der Größentabelle.",
+        "SIZE_NOT_SOLD": "Größe {{size}} steht in der Größentabelle, wird aber nicht verkauft und ist ausgeblendet.",
+        "UNKNOWN_MEASUREMENT": "Maß „{{measure}}“ wird nicht angezeigt (keine Standardspalte).",
+        "CIRCUMFERENCE_HALVED": "Printful lieferte die Brust als Umfang; in Breite umgerechnet (geteilt durch 2).",
+        "CONVERTED_FROM_INCHES": "Printful lieferte nur Zoll; in cm umgerechnet."
+      }
     }
   },
   "billing": {

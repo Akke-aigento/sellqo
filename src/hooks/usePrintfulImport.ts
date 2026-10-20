@@ -33,6 +33,8 @@ export interface PrintfulImportResult {
   variant_count?: number;
   image_count?: number;
   error?: string;
+  /** SIZECHART-1 — factcheck van de maatgids (null = geen maatgids). */
+  size_chart_status?: 'ok' | 'warning' | 'blocked' | null;
 }
 
 // Mirrors usePrintfulConnection's invoke(): functions.invoke hides the readable
@@ -89,7 +91,7 @@ export function usePrintfulImportApply(tenantId: string | undefined) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (vars: ApplyPayloadProduct[] | { products: ApplyPayloadProduct[]; reimport?: boolean }) =>
-      invoke<{ results: PrintfulImportResult[]; imported: number; skipped: number; reimported?: number; failed: number }>(
+      invoke<{ results: PrintfulImportResult[]; imported: number; skipped: number; reimported?: number; failed: number; size_chart_attention?: number }>(
         'apply-printful-import',
         Array.isArray(vars)
           ? { tenantId, products: vars }
@@ -99,6 +101,10 @@ export function usePrintfulImportApply(tenantId: string | undefined) {
       qc.invalidateQueries({ queryKey: ['products'] });
       qc.invalidateQueries({ queryKey: ['printful-variant-mappings', tenantId] });
       qc.invalidateQueries({ queryKey: ['printful-tenant-variants', tenantId] });
+      // SIZECHART-1 — maattabellen die nagekeken moeten worden: aparte, blijvende melding.
+      if (res.size_chart_attention) {
+        toast.warning(t('admin.printful.toast.size_chart_attention', { count: res.size_chart_attention }), { duration: 10000 });
+      }
       if (res.reimported && !res.imported && !res.skipped) {
         if (res.failed) toast.error(t('admin.printful.toast.images_failed'));
         else toast.success(t('admin.printful.toast.images_updated'));

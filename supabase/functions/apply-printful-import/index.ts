@@ -5,6 +5,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from '../_shared/auth.ts';
 import { decryptPrintfulToken } from '../_shared/printfulCrypto.ts';
 import { collectProductImages, pickCatalogRefs, type PrintfulSyncVariantRaw } from '../_shared/printfulImport.ts';
+import { buildSizeChart, sellSizesFromVariants, type SizeChartStatus } from '../_shared/sizeChart.ts';
 import { planLimitKind, planLimitText } from "../_shared/planLimit.ts";
 
 const corsHeaders = {
@@ -97,6 +98,24 @@ Deno.serve(async (req) => {
     // LOVEKE-POD-2-SIZEGUIDE — one size guide per catalog product, cached per
     // request. Strictly non-fatal: any failure leaves size_guide null.
     const sizeGuideCache = new Map<number, unknown>();
+
+    // SIZECHART-1 — factcheck van de maatgids per product. Puur informatief voor de
+    // admin: de winkel rekent zelf om (storefront-api) en toont nooit een geblokkeerde tabel.
+    const sellSizesOf = (vs: Array<{ attribute_values?: unknown }>) => sellSizesFromVariants(vs);
+    function sizeChartStatus(guide: unknown, sellSizes: string[]): SizeChartStatus | null {
+      if (!guide) return null;
+      try {
+        const chart = buildSizeChart(guide, { sellSizes });
+        if (chart.status !== 'ok') {
+          const issues = chart.checks.filter((c) => c.level !== 'info').map((c) => c.code).join(',');
+          console.warn(`[apply-printful-import] maattabel ${chart.status}: ${issues}`);
+        }
+        return chart.status;
+      } catch (err) {
+        console.warn('[apply-printful-import] maattabel-check faalde:', errMsg(err));
+        return 'blocked';
+      }
+    }
 
     async function fetchSizeGuide(catalogProductId: number): Promise<unknown | null> {
       if (!pfHeaders) return null;
@@ -271,6 +290,7 @@ Deno.serve(async (req) => {
             status: 'reimported_images',
             product_id: dup.id,
             image_count: images.length,
+            size_chart_status: sizeChartStatus(sizeGuide, sellSizesOf(variants)),
           });
           continue;
         }
@@ -366,7 +386,7 @@ Deno.serve(async (req) => {
           if (mapErr) console.warn('[apply-printful-import] mapping upsert failed:', mapErr.message);
         }
 
-        results.push({ sync_product_id: syncProductId, status: 'imported', product_id: productId, variant_count: variantCount });
+        results.push({ sync_product_id: syncProductId, status: 'imported', product_id: productId, variant_count: variantCount, size_chart_status: sizeChartStatus(sizeGuide, sellSizesOf(variants)) });
       } catch (err) {
         console.error(`[apply-printful-import] product ${syncProductId} failed:`, errMsg(err));
         results.push({ sync_product_id: syncProductId, status: 'failed', error: planLimitKind(err) ? planLimitText(err) : errMsg(err) });
@@ -380,6 +400,8 @@ Deno.serve(async (req) => {
       skipped: results.filter((r) => r.status === 'skipped_duplicate').length,
       reimported: results.filter((r) => r.status === 'reimported_images').length,
       failed: results.filter((r) => r.status === 'failed').length,
+      // SIZECHART-1 — additief: aantal producten waarvan de maattabel nagekeken moet worden.
+      size_chart_attention: results.filter((r) => r.size_chart_status === 'warning' || r.size_chart_status === 'blocked').length,
     });
   } catch (err) {
     if (err instanceof AuthError) return authErrorResponse(err, corsHeaders);

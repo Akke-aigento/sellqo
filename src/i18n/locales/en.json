@@ -7491,7 +7491,8 @@
         "order_confirmed": "Order confirmed at Printful",
         "order_draft": "Order created as a draft at Printful",
         "settings_saved": "Printful settings saved",
-        "save_failed": "Saving failed"
+        "save_failed": "Saving failed",
+        "size_chart_attention": "Check the size chart of {{count}} product(s): open the product, Size chart tab"
       }
     },
     "odooSync": {
@@ -8007,6 +8008,59 @@
     "mediaLibrary": {
       "title": "Media",
       "description": "All your photos in one place: from your products, made with AI and used in social posts."
+    },
+    "sizeChart": {
+      "tab": "Size chart",
+      "title": "Size chart as your customer sees it",
+      "status": {
+        "ok": "All good",
+        "warning": "Check",
+        "blocked": "Not online"
+      },
+      "statusHelp": {
+        "ok": "All checks passed. This is the chart in your store.",
+        "warning": "The chart is online, but something stands out. Check the points below.",
+        "blocked": "The data is not correct. Your store shows no size chart for this product, only a pointer to contact you."
+      },
+      "fitLabel": "Fit: {{fit}}",
+      "fit": {
+        "aansluitend": "close-fitting",
+        "normaal": "regular",
+        "ruim": "loose",
+        "zeer_ruim": "very loose"
+      },
+      "col": {
+        "size": "Size",
+        "width": "Width",
+        "length": "Length",
+        "sleeve": "Sleeve",
+        "chest": "Fits chest"
+      },
+      "noRows": "There are no usable sizes.",
+      "measureHelp": "Width: laid flat, armpit to armpit. Length: from the highest point of the shoulder to the hem. Chest: the body measurement the size is meant for. The fit is calculated from the difference between garment and body.",
+      "checksTitle": "Checks",
+      "checksHelp": "On every import, the Printful size guide is converted and checked.",
+      "allChecksPassed": "No problems found.",
+      "refreshHelp": "Changed in Printful? Import the product again via Printful import to fetch and check the size guide again.",
+      "check": {
+        "NO_SIZE_GUIDE": "There is no size guide.",
+        "MISSING_GARMENT_MEASURES": "Printful only provides body measurements, not garment measurements.",
+        "MISSING_WIDTH_OR_LENGTH": "Width or length is missing for one or more sizes.",
+        "VALUE_NOT_NUMERIC": "Size {{size}}: {{measure}} is not a number (\"{{detail}}\").",
+        "VALUE_OUT_OF_RANGE": "Size {{size}}: {{measure}} of {{detail}} cm is implausible.",
+        "LOOKS_LIKE_INCHES": "{{measure}} is supplied as cm but looks like inches.",
+        "WIDTH_LOOKS_LIKE_CIRCUMFERENCE": "The width looks like a circumference (measured all round) instead of armpit to armpit.",
+        "NOT_INCREASING": "Size {{size}}: {{measure}} is smaller than in the previous size.",
+        "LARGE_STEP": "Size {{size}}: {{measure}} jumps {{detail}} cm from the previous size.",
+        "UNIT_TABLES_DISAGREE": "Printful's cm and inch tables disagree (size {{size}}, {{measure}}: {{detail}}).",
+        "RANGE_SWAPPED": "Size {{size}}: minimum and maximum were swapped and have been corrected.",
+        "GARMENT_SMALLER_THAN_BODY": "Size {{size}}: the garment is smaller than the chest it is meant for.",
+        "SIZE_MISSING": "You sell size {{size}}, but it is not in the size guide.",
+        "SIZE_NOT_SOLD": "Size {{size}} is in the size guide but is not sold and is hidden.",
+        "UNKNOWN_MEASUREMENT": "Measurement \"{{measure}}\" is not shown (no standard column).",
+        "CIRCUMFERENCE_HALVED": "Printful gave the chest as a circumference; converted to width (divided by 2).",
+        "CONVERTED_FROM_INCHES": "Printful only gave inches; converted to cm."
+      }
     }
   },
   "product_form": {
