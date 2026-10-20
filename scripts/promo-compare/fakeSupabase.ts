@@ -21,7 +21,18 @@ class Query {
   select(_cols?: string, opts?: { count?: string; head?: boolean }) { if (this.isUpdate) this.returning = true; if (opts?.count) this.countMode = true; if (opts?.head) this.head = true; return this; }
   private write: Row | null = null;
   update(patch: Row) { this.isUpdate = true; this.write = { table: this.table, patch, where: {} }; this.db.writes.push(this.write); return this; }
-  insert(rows: any) { this.db.writes.push({ table: this.table, insert: rows }); return this; }
+  // MAIL-3: met `persistInserts` komen ingevoegde rijen echt in de tabel (met een id), en geeft
+  // insert(...).select().single() de nieuwe rij terug. Zonder die optie: enkel gelogd, zoals altijd.
+  private inserted: Row[] | null = null;
+  insert(rows: any) {
+    this.db.writes.push({ table: this.table, insert: rows });
+    if (this.db.persistInserts) {
+      const list = (Array.isArray(rows) ? rows : [rows]).map((r: Row) => ({ id: crypto.randomUUID(), created_at: new Date().toISOString(), ...r }));
+      (this.db.tables[this.table] ||= []).push(...list);
+      this.inserted = list;
+    }
+    return this;
+  }
   // BILL-ADDON-1: delete wordt gelogd (net als update), niet uitgevoerd.
   delete() { this.isUpdate = true; this.write = { table: this.table, delete: true, where: {} }; this.db.writes.push(this.write); return this; }
   eq(c: string, v: any) { if (this.write) this.write.where[c] = v; this.filters.push((r) => String(r[c]) === String(v)); return this; }
@@ -66,6 +77,10 @@ class Query {
   // deno-lint-ignore no-explicit-any
   then(res: (v: any) => any, rej?: (e: any) => any) { return Promise.resolve(this.run()).then(res, rej); }
   private run() {
+    if (this.inserted) {
+      const rows = this.inserted.map((r) => structuredClone(r));
+      return { data: this.singleMode ? rows[0] ?? null : rows, error: null };
+    }
     if (this.isUpdate) {
       if (!this.returning) return { data: null, error: null };
       return { data: (this.db.tables[this.table] || []).filter((r) => this.filters.every((f) => f(r))).map((r) => structuredClone(r)), error: null };
@@ -81,7 +96,7 @@ class Query {
 
 export class FakeDb {
   writes: Row[] = [];
-  constructor(public tables: Record<string, Row[]>) {}
+  constructor(public tables: Record<string, Row[]>, public persistInserts = false) {}
   from(t: string) { return new Query(this, t); }
   rpc() { return Promise.resolve({ data: null, error: null }); }
 }

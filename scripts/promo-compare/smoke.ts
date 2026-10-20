@@ -5,7 +5,7 @@
 //
 // Run (vanuit de repo-root, met netwerk voor de echte imports):
 //   cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError };' >> supabase/functions/storefront-api/__smoke.ts
+//   echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore };' >> supabase/functions/storefront-api/__smoke.ts
 //   deno run --allow-read --allow-env --allow-net --no-lock --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
 //   rm supabase/functions/storefront-api/__smoke.ts
 import { FakeDb } from './fakeSupabase.ts';
@@ -353,6 +353,78 @@ await check('SEC-DOMAIN-2: resolve_domain, get_seo en get_sitemap_data alleen ge
   assert(seo.hreflang.map((h: any) => h.url).join() === 'https://shop.example.be/products/p,https://shop.example.nl/products/p', `hreflang: ${JSON.stringify(seo.hreflang)}`);
   const sm = await S.getSitemapData(ddb, V);
   assert(sm.base_url === 'https://shop.example.be' && sm.domains.length === 2, `sitemap: ${JSON.stringify(sm.domains)}`);
+});
+
+await check('cart_restore: herstel-link verlaten winkelmandje (MAIL-3)', async () => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- testharnas: ongetypeerde databankrijen
+  type Row = Record<string, any>;
+  Deno.env.set('MARKETING_LINK_SECRET', 'smoke-secret');
+  const { signCartRestore } = await import('../../supabase/functions/_shared/cartRestoreToken.ts');
+  const RT = '11111111-1111-4111-8111-111111111111';
+  const RT2 = '22222222-2222-4222-8222-222222222222';
+  const RUN = '33333333-3333-4333-8333-333333333333';
+  const RUN_CONV = '44444444-4444-4444-8444-444444444444';
+  const future = Math.floor(Date.now() / 1000) + 3600;
+  const prod = (id: string, name: string, extra: Record<string, unknown> = {}) => ({
+    id, tenant_id: RT, name, slug: id, price: 10, is_active: true, track_inventory: true, stock: 5, category_id: null,
+    channels: null, sold_out_until: null, images: [], product_type: 'physical', token_amount: null, ...extra,
+  });
+  const line = (id: string, product_id: string, extra: Record<string, unknown> = {}) => ({
+    id, cart_id: 'old1', product_id, variant_id: null, event_detail_id: null, quantity: 1, unit_price: 10, addons: null,
+    addons_total: 0, gift_card_metadata: null, created_at: `2026-10-19T10:00:0${id.slice(-1)}Z`, products: { name: id }, product_variants: null, ...extra,
+  });
+  const rdb = new FakeDb({
+    tenants: [{ id: RT, tax_percentage: 21 }, { id: RT2, tax_percentage: 21 }],
+    products: [prod('pa', 'Tee'), prod('pb', 'Uitverkocht', { stock: 0 }), prod('tk', 'Zaalticket', { product_type: 'ticket' })],
+    product_variants: [{ id: 'va', product_id: 'pa', tenant_id: RT, title: 'M', price: 12, stock: 4, track_inventory: true, is_active: true }],
+    event_details: [{ id: 'ev1', product_id: 'tk', tenant_id: RT, status: 'scheduled', venue_id: 'zaal1' }],
+    automation_runs: [
+      { id: RUN, tenant_id: RT, trigger_entity_id: 'old1', trigger_entity_type: 'cart', recipient_email: 'jan@voorbeeld.be' },
+      { id: RUN_CONV, tenant_id: RT, trigger_entity_id: 'old2', trigger_entity_type: 'cart', recipient_email: 'piet@voorbeeld.be' },
+    ],
+    storefront_carts: [
+      { id: 'old1', tenant_id: RT, session_id: 'x', currency: 'EUR', locale: 'nl', checkout_status: 'checkout', customer_email: 'jan@voorbeeld.be',
+        customer_phone: '+32 470 00 00 00', shipping_address: { street: 'Geheim 1' }, discount_codes: ['WELKOM'], created_at: '2026-10-19T10:00:00Z', expires_at: '2999-01-01T00:00:00Z' },
+      { id: 'old2', tenant_id: RT, session_id: 'y', currency: 'EUR', checkout_status: 'converted', customer_email: 'piet@voorbeeld.be', created_at: '2026-10-19T10:00:00Z', expires_at: '2999-01-01T00:00:00Z' },
+    ],
+    storefront_cart_items: [
+      line('l1', 'pa', { variant_id: 'va', quantity: 2, product_variants: { title: 'M' } }),
+      line('l2', 'pb'),
+      line('l3', 'tk', { event_detail_id: 'ev1' }),
+      line('l4', 'pa', { addons: [{ group: 'Saus', name: 'Mayo', price: 0.5 }] }),
+      line('l5', 'pa', { gift_card_metadata: { recipient_email: 'x@y.be' } }),
+    ],
+    orders: [],
+  }, true);
+  const restore = (tenant: string, token: string) => S.cartRestore(rdb, tenant, { token });
+  const code = (r: Row) => r?.success === false ? r.error.code : 'OK';
+
+  const good = await signCartRestore(RT, RUN, future);
+  const forged = good.slice(0, -1) + (good.endsWith('A') ? 'B' : 'A');
+  assert(code(await restore(RT, forged)) === 'RESTORE_INVALID', 'vervalst token moet RESTORE_INVALID geven');
+  assert(code(await restore(RT, `v1.${RUN}.${future + 60}.${good.split('.')[3]}`)) === 'RESTORE_INVALID', 'opgerekte vervaldatum moet RESTORE_INVALID geven');
+  assert(code(await restore(RT, await signCartRestore(RT, RUN, Math.floor(Date.now() / 1000) - 5))) === 'RESTORE_EXPIRED', 'verlopen token');
+  assert(code(await restore(RT2, good)) === 'RESTORE_INVALID', 'token van winkel A bij winkel B');
+  assert(code(await restore(RT2, await signCartRestore(RT2, RUN, future))) === 'RESTORE_INVALID', 'geldig token van winkel B voor een run van winkel A');
+  assert(code(await restore(RT, await signCartRestore(RT, RUN_CONV, future))) === 'RESTORE_ORDERED', 'besteld mandje');
+  assert(!rdb.tables.storefront_carts.some((c: Row) => String(c.session_id).startsWith('restore:')), 'na een weigering geen nieuw mandje');
+
+  const r1: Row = await restore(RT, good);
+  assert(code(r1) === 'OK' && r1.restored === 1 && r1.already_restored === false, `eerste herstel: ${JSON.stringify(r1)}`);
+  const reasons = r1.skipped.map((s: Row) => s.reason).sort().join();
+  assert(reasons === 'ADDONS,GIFT_CARD,INSUFFICIENT_STOCK,SEAT_SELECTION_REQUIRED', `redenen: ${reasons}`);
+  assert(!JSON.stringify(r1).includes('old1') && !JSON.stringify(r1).includes('voorbeeld.be'), 'antwoord lekt oud cart_id of e-mail');
+  const fresh = rdb.tables.storefront_carts.find((c: Row) => c.id === r1.cart_id);
+  assert(fresh && fresh.session_id === `restore:${RUN}` && !fresh.customer_email && !fresh.shipping_address && !fresh.discount_codes && fresh.locale === 'nl', `nieuw mandje: ${JSON.stringify(fresh)}`);
+  const newLines = rdb.tables.storefront_cart_items.filter((i: Row) => i.cart_id === r1.cart_id);
+  assert(newLines.length === 1 && newLines[0].quantity === 2 && newLines[0].variant_id === 'va' && Number(newLines[0].unit_price) === 12, `regels: ${JSON.stringify(newLines)}`);
+
+  const r2: Row = await restore(RT, good);
+  assert(r2.cart_id === r1.cart_id && r2.already_restored === true && r2.restored === 0, `tweede klik: ${JSON.stringify(r2)}`);
+  assert(rdb.tables.storefront_cart_items.filter((i: Row) => i.cart_id === r1.cart_id).length === 1, 'tweede klik kopieert niet opnieuw');
+  assert(rdb.tables.storefront_carts.filter((c: Row) => String(c.session_id).startsWith('restore:')).length === 1, 'één hersteld mandje');
+  const oldCart = rdb.tables.storefront_carts.find((c: Row) => c.id === 'old1');
+  assert(oldCart.checkout_status === 'checkout' && rdb.tables.storefront_cart_items.filter((i: Row) => i.cart_id === 'old1').length === 5, 'oud mandje ongemoeid');
 });
 
 if (failures > 0) { console.error(`${failures} rooktest(en) gefaald`); Deno.exit(1); }

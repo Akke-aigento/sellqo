@@ -23,6 +23,7 @@ import { getTenantBrand } from "./tenantEmail.ts";
 import { tenantMarketingSender } from "./emailSenders.ts";
 import { resolveShopUrl } from "./mailPages.ts";
 import { loadStorefrontUrlContext, productUrlFor, type StorefrontUrlContext } from "./storefrontUrls.ts";
+import { cartUrlForReminder } from "./cartRestoreToken.ts";
 import { loadBillingState } from "./billingGuard.ts";
 import { billingAllows } from "./billingState.ts";
 import {
@@ -268,7 +269,7 @@ async function processRun(db: Db, run: Record<string, any>, cache: Map<string, T
   if (run.trigger_entity_type === "cart" && run.trigger_entity_id) {
     const { data: cart, error } = await db
       .from("storefront_carts")
-      .select("id, tenant_id, created_at, customer_first_name, locale, checkout_status")
+      .select("id, tenant_id, created_at, expires_at, customer_first_name, locale, checkout_status")
       .eq("id", run.trigger_entity_id)
       .maybeSingle();
     if (error) throw new Error(`winkelwagen lezen mislukt: ${error.message}`);
@@ -289,9 +290,18 @@ async function processRun(db: Db, run: Record<string, any>, cache: Map<string, T
       await finish(db, run.id, "cancelled", "Intussen besteld.");
       return "cancelled";
     }
-    // Er bestaat (nog) geen veilige herstel-link voor een winkelwagen: de link gaat naar de winkel.
-    vars.cart_url = tctx.shopUrl || "";
-    vars.cart_items = buildCartItemsHtml(await cartLines(db, cart.id, await storefrontFor(db, tctx, run.tenant_id)));
+    const storefront = await storefrontFor(db, tctx, run.tenant_id);
+    // MAIL-3: SellQo-winkel → ondertekende herstel-link (nieuw mandje met de producten, nooit het
+    // oude cart_id). Custom frontend of geen online winkel → de winkel zelf, zoals voorheen.
+    try {
+      vars.cart_url = await cartUrlForReminder({
+        storefront, shopUrl: tctx.shopUrl, tenantId: run.tenant_id, runId: run.id, cartExpiresAt: cart.expires_at,
+      });
+    } catch (err) {
+      console.error("[automationEngine] herstel-link maken mislukt, link naar de winkel", run.id, err instanceof Error ? err.message : err);
+      vars.cart_url = tctx.shopUrl || "";
+    }
+    vars.cart_items = buildCartItemsHtml(await cartLines(db, cart.id, storefront));
     locale = locale || shortLocale(cart.locale);
     firstName = String(cart.customer_first_name || "").trim();
   }

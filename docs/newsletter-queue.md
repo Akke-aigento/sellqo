@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13a — Herinnering bij een verlaten winkelwagen opent het winkelmandje opnieuw (feature, 20-10-2026)
+
+**Status:** klaar voor verzending zodra MAIL-3 live staat (migratie 20261020094000, edge functions storefront-api en automation-scheduler, deploy van sellqo-storefront) en de smoketest op SellQo Speeltuin groen is.
+
+**Voor wie:** winkels op de SellQo-webshop die de herinnering bij een verlaten winkelwagen gebruiken. Winkels met een eigen webshop buiten het SellQo-thema merken niets.
+
+**De knop opent het winkelmandje opnieuw** (oktober 2026)
+De knop in de herinnering bij een verlaten winkelwagen opent nu een winkelmandje met dezelfde producten, in plaats van je homepage. De link werkt 7 dagen. Je klant ziet de prijs en voorraad van dat moment en vult zijn gegevens opnieuw in. Tickets met een vaste plaats, producten met extra's, cadeaubonnen en uitverkochte producten komen niet mee; je klant ziet welke en waarom.
+Wat betekent dit voor jou? Je klant rondt zijn bestelling af zonder alles opnieuw te zoeken, en wie de mail doorgestuurd krijgt, ziet nooit het adres of telefoonnummer van je klant.
+
+i18n: `public.changelog.changes.email_cart_restore`
+
 ### 2026.12z — Je limiet voor marketingmails in één oogopslag (improvement, 20-10-2026)
 
 **Status:** klaar voor verzending zodra MAIL-LIMIT-UI live staat (migraties 20261020092000 en 20261020093000 + frontend). Bundelen met 2026.12y.

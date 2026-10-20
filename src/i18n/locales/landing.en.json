@@ -2119,6 +2119,10 @@
         "email_limit_visible": {
           "title": "Your marketing email limit at a glance",
           "description": "At the top of Marketing → Email you now see how many marketing emails you have sent this month and how many your plan allows. Automation emails count towards it. The plan overview under SellQo plan and the pricing page also show how many marketing emails per month each plan includes."
+        },
+        "email_cart_restore": {
+          "title": "Abandoned cart: the button reopens the cart",
+          "description": "If your shop runs on the SellQo webshop, the button in the abandoned cart reminder now opens a cart with the same products instead of your homepage. The link works for 7 days. Your customer sees the price and stock of that moment and enters their details again, so someone who receives a forwarded email never sees your customer's address or phone number. Tickets with an assigned seat, products with extras, gift cards and sold-out products are not carried over; your customer sees which ones and why. If they already have another filled cart, they choose which one to keep. A cart that came back this way does not get a second reminder. If you have your own webshop outside the SellQo theme, the button keeps going to your shop."
         }
       },
       "copyLink": "Copy link",

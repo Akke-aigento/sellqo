@@ -10,6 +10,7 @@ import { computeCartPromotions, round2 as promoRound2, type PromotionResult } fr
 import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, type DbRow, type SupabaseLike } from "../_shared/catalogFilters.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
 import { computeSlots, orderingBlocked, postalCodeAllowed, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
+import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
@@ -2872,6 +2873,139 @@ async function cartRemoveDiscount(supabase: any, tenantId: string, params: Recor
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
 
+// ============== MAIL-3: herstel-link verlaten winkelmandje ==============
+// Nieuwe, losse actie. Uit een ondertekend token (automation-run, nooit het cart_id) maakt ze een
+// NIEUW mandje met enkel de producten van het verlaten mandje, via dezelfde validaties als
+// cart_add_item. Klantgegevens, adressen, kortingscodes en verzendkeuze gaan niet mee; het oude
+// mandje blijft ongemoeid. Idempotent: session_id 'restore:<run_id>' + de unieke index op
+// (tenant, session) zolang 'shopping' → elke volgende klik (of link-scanner) geeft hetzelfde mandje.
+// Fouten zitten in de data ({ success:false, error:{ code } }), zoals bij de checkout-acties.
+
+const RESTORE_MAX_LINES = 50;
+
+interface RestoreSkip { name: string | null; variant: string | null; reason: string }
+
+function restoreFail(code: string) {
+  return { success: false, error: { code } };
+}
+
+/** Code uit een cart_add_item-fout ({ code, message } als JSON), anders UNAVAILABLE. */
+function restoreReason(e: unknown): string {
+  const raw = e instanceof Error ? e.message : String(e ?? '');
+  const at = raw.indexOf('{');
+  if (at >= 0) {
+    try {
+      const j = JSON.parse(raw.slice(at)) as { code?: unknown };
+      if (typeof j.code === 'string' && /^[A-Z_]{3,40}$/.test(j.code)) return j.code;
+    } catch { /* geen JSON */ }
+  }
+  return 'UNAVAILABLE';
+}
+
+function restoreName(row: DbRow, key: 'products' | 'product_variants', field: string): string | null {
+  const v = Array.isArray(row[key]) ? row[key][0] : row[key];
+  const s = typeof v?.[field] === 'string' ? v[field].trim() : '';
+  return s || null;
+}
+
+async function cartRestore(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const verdict = await verifyCartRestore(tenantId, typeof params.token === 'string' ? params.token : null);
+  if (!verdict.ok) return restoreFail(verdict.code);
+
+  const { data: run } = await supabase
+    .from('automation_runs').select('id, tenant_id, trigger_entity_id, trigger_entity_type, recipient_email')
+    .eq('id', verdict.runId).maybeSingle();
+  // Andere winkel of geen winkelwagenrun: zelfde antwoord als een vervalst token.
+  if (!run || run.tenant_id !== tenantId || run.trigger_entity_type !== 'cart' || !run.trigger_entity_id) {
+    return restoreFail('RESTORE_INVALID');
+  }
+
+  const { data: old } = await supabase
+    .from('storefront_carts').select('id, created_at, expires_at, checkout_status, currency, locale')
+    .eq('id', run.trigger_entity_id).eq('tenant_id', tenantId).maybeSingle();
+  if (!old) return restoreFail('RESTORE_EXPIRED');
+  if (old.checkout_status === 'converted') return restoreFail('RESTORE_ORDERED');
+  // Intussen besteld op dat adres (zelfde regel als de engine: elke status behalve geannuleerd).
+  const { count: ordered } = await supabase
+    .from('orders').select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .ilike('customer_email', String(run.recipient_email || '').replace(/[\\%_]/g, (c: string) => `\\${c}`))
+    .gte('created_at', old.created_at)
+    .neq('status', 'cancelled');
+  if ((ordered ?? 0) > 0) return restoreFail('RESTORE_ORDERED');
+  if (!old.expires_at || new Date(old.expires_at).getTime() <= Date.now()) return restoreFail('RESTORE_EXPIRED');
+
+  const sessionId = `${CART_RESTORE_SESSION_PREFIX}${run.id}`;
+  const findRestored = async (statuses: string[]): Promise<string | null> => {
+    const { data } = await supabase
+      .from('storefront_carts').select('id')
+      .eq('tenant_id', tenantId).eq('session_id', sessionId)
+      .in('checkout_status', statuses)
+      .gt('expires_at', new Date().toISOString())
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    return (data?.id as string | undefined) ?? null;
+  };
+  const already = async (id: string) => {
+    const cart = await cartGet(supabase, tenantId, { cart_id: id });
+    return { cart_id: id, already_restored: true, restored: 0, item_count: cart?.item_count ?? 0, skipped: [] as RestoreSkip[] };
+  };
+
+  // Al hersteld (ook als de klant intussen in de checkout zit): hetzelfde mandje, niets kopiëren.
+  const existing = await findRestored(['shopping', 'checkout']);
+  if (existing) return already(existing);
+
+  // Zelfde waarden als de kolomdefaults (checkout_status 'shopping', 30 dagen), hier expliciet.
+  const insert: DbRow = {
+    tenant_id: tenantId, session_id: sessionId, currency: old.currency || 'EUR', checkout_status: 'shopping',
+    expires_at: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString(),
+  };
+  if (old.locale) insert.locale = old.locale;
+  const { data: created, error: cErr } = await supabase.from('storefront_carts').insert(insert).select('id').single();
+  if (cErr) {
+    // 23505: een gelijktijdige klik (of scanner) maakte het mandje net; die kopieert, wij niet.
+    if (cErr.code === '23505') {
+      const raced = await findRestored(['shopping']);
+      if (raced) return already(raced);
+    }
+    throw cErr;
+  }
+  const cartId = created.id as string;
+
+  const { data: lines, error: lErr } = await supabase
+    .from('storefront_cart_items')
+    .select('product_id, variant_id, event_detail_id, quantity, addons, gift_card_metadata, products(name), product_variants(title)')
+    .eq('cart_id', old.id).order('created_at').limit(RESTORE_MAX_LINES);
+  if (lErr) throw lErr;
+
+  let restored = 0;
+  const skipped: RestoreSkip[] = [];
+  for (const line of (lines || []) as DbRow[]) {
+    const skip = (reason: string) => skipped.push({
+      name: restoreName(line, 'products', 'name'), variant: restoreName(line, 'product_variants', 'title'), reason,
+    });
+    // Cadeaubon: de gegevens van de ontvanger gaan nooit mee.
+    if (line.gift_card_metadata) { skip('GIFT_CARD'); continue; }
+    // Extra's: het mandje bewaart enkel { group, name, price }, cart_add_item verwacht keuze-id's.
+    if (Array.isArray(line.addons) && line.addons.length) { skip('ADDONS'); continue; }
+    try {
+      // Zaalplan-tickets weigert cart_add_item zelf met SEAT_SELECTION_REQUIRED (stoelen zijn vrijgegeven).
+      await cartAddItem(supabase, tenantId, {
+        cart_id: cartId,
+        product_id: line.product_id,
+        quantity: Math.max(1, Math.min(99, Number(line.quantity) || 1)),
+        ...(line.variant_id ? { variant_id: line.variant_id } : {}),
+        ...(line.event_detail_id ? { event_detail_id: line.event_detail_id } : {}),
+      });
+      restored++;
+    } catch (e) {
+      skip(restoreReason(e));
+    }
+  }
+
+  const cart = await cartGet(supabase, tenantId, { cart_id: cartId });
+  return { cart_id: cartId, already_restored: false, restored, item_count: cart?.item_count ?? 0, skipped };
+}
+
 // ============== CHECKOUT ACTIONS (Cart-based, no early order creation) ==============
 
 function deriveCartCheckoutStatus(cart: any): string {
@@ -5371,7 +5505,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'SEC-DOMAIN-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'MAIL-3' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -5408,6 +5542,14 @@ serve(async (req) => {
           { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '600' } }
         );
       }
+    }
+
+    // MAIL-3 — cart_restore: eigen bucket, ruimer dan formulieren (link-scanners + dubbele klikken).
+    if (action === 'cart_restore' && !checkIpActionRateLimit(`cart_restore:${tenant_id}:${clientIp}`, 20, 10 * 60 * 1000)) {
+      return new Response(
+        JSON.stringify({ success: false, error: { code: 'RATE_LIMITED', message: 'Te veel aanvragen. Probeer het over enkele minuten opnieuw.' } }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '600' } }
+      );
     }
 
     const userAgent = req.headers.get('user-agent') ?? '';
@@ -5465,6 +5607,8 @@ serve(async (req) => {
       case 'cart_set_seats': result = await cartSetSeats(supabase, tenant_id, params); break;
       case 'cart_apply_discount': result = await cartApplyDiscount(supabase, tenant_id, params); break;
       case 'cart_remove_discount': result = await cartRemoveDiscount(supabase, tenant_id, params); break;
+      // MAIL-3 — herstel-link uit de winkelwagenherinnering (nieuwe actie, niets bestaands gewijzigd)
+      case 'cart_restore': result = await cartRestore(supabase, tenant_id, params); break;
       // Checkout actions (new stateful flow)
       case 'checkout_start': result = await checkoutStart(supabase, tenant_id, params); break;
       case 'checkout_customer': result = await checkoutCustomer(supabase, tenant_id, params); break;

@@ -2119,6 +2119,10 @@
         "email_limit_visible": {
           "title": "Ihr Limit für Marketing-E-Mails auf einen Blick",
           "description": "Oben unter Marketing → E-Mail sehen Sie jetzt, wie viele Marketing-E-Mails Sie diesen Monat versendet haben und wie viele Ihr Tarif erlaubt. Automatisierungs-E-Mails zählen mit. Auch die Tarifübersicht unter SellQo-Tarif und die Preisseite zeigen, wie viele Marketing-E-Mails pro Monat in jedem Tarif enthalten sind."
+        },
+        "email_cart_restore": {
+          "title": "Verlassener Warenkorb: Die Schaltfläche öffnet den Warenkorb wieder",
+          "description": "Läuft Ihr Shop auf dem SellQo-Webshop, öffnet die Schaltfläche in der Erinnerung an einen verlassenen Warenkorb jetzt einen Warenkorb mit denselben Produkten statt Ihrer Startseite. Der Link ist 7 Tage gültig. Ihr Kunde sieht Preis und Bestand dieses Moments und gibt seine Daten erneut ein, sodass jemand, der die weitergeleitete E-Mail erhält, nie die Adresse oder Telefonnummer Ihres Kunden sieht. Tickets mit festem Sitzplatz, Produkte mit Extras, Geschenkgutscheine und ausverkaufte Produkte werden nicht übernommen; Ihr Kunde sieht, welche und warum. Hat er inzwischen einen anderen gefüllten Warenkorb, wählt er selbst, welchen er behält. Ein so zurückgeholter Warenkorb erhält keine zweite Erinnerung. Haben Sie einen eigenen Webshop außerhalb des SellQo-Themes, führt die Schaltfläche weiterhin zu Ihrem Shop."
         }
       },
       "copyLink": "Link kopieren",

@@ -1,3 +1,44 @@
+## MAIL-3 — Herstel-link verlaten winkelwagen — 20 oktober 2026
+
+Go van Akke 20-10 08:20 op `docs/voorstel-mail-cart-herstel.md`, alle aanbevelingen uit §5 (kopie, 7 dagen idempotent, zaalplan/extra's overslaan met reden, keuzescherm, herstelde mandjes niet opnieuw in de scan, custom frontends niets, `storefront-api` enkel een nieuwe actie). Changelog 2026.13a (`email_cart_restore`). Hoort bij MAIL-3 in sellqo-storefront (route `/winkelmandje/herstel`).
+
+**Root cause**
+- `_shared/automationEngine.ts` (r. 292-293 vóór deze batch): `vars.cart_url = tctx.shopUrl`. De knop "Naar je winkelwagen" in de herinnering ging naar de homepage, want er bestond geen veilige herstel-link.
+- Het `cart_id` zelf is de sleutel tot de checkout: `checkout_start` (`buildCartResponse`, klantblok) geeft e-mail, naam, telefoon, btw en adressen terug aan wie het id kent. Het oude mandje heropenen via de mail zou die gegevens weggeven aan wie de mail doorgestuurd krijgt.
+- Recon-correctie: het voorstel (§1.2) zei dat `automation_scan_triggers` live nog niet bestond. Op 20-10 bestaat ze wél; `md5(prosrc)` live = de definitie in `20261019230000` §9 (36b2440899ae727f484503be7341b706). Het voorstel zei ook "geen migratie"; door beslissing 5 komt er toch één (alleen de scanfunctie en het helpartikel).
+
+**Uitgevoerd**
+- `supabase/functions/_shared/cartRestoreToken.ts` (nieuw): token `v1.<run_id>.<exp>.<sig>`, HMAC-SHA256 over `cart-restore:v1:<tenant>:<run>:<exp>` (eigen prefix, dus een uitschrijfhandtekening telt nooit), 32 tekens base64url, vergelijking in constante tijd. Sleutel `MARKETING_LINK_SECRET`, anders afgeleid van de service-role key (zelfde als `marketingToken.ts`). `exp` = min(nu + 7 dagen, `storefront_carts.expires_at`). `cartUrlForReminder`: `sellqoStorefrontBaseUrl` (storefrontUrls.ts) gezet → `<base>/winkelmandje/herstel?t=<token>`, anders exact `shopUrl`.
+- `_shared/automationEngine.ts`: leest ook `expires_at` van het mandje en zet `cart_url` via `cartUrlForReminder`. Faalt het signeren, dan `console.error` en de winkel-URL (de mail vertrekt toch, met de link van vóór MAIL-3). `cart_items` ongewijzigd. `automationVars.ts` niet gewijzigd (de sleutel `cart_url` bestond al).
+- `supabase/functions/storefront-api/index.ts`, strikt additief: import, functie `cartRestore` (+ `restoreReason`, `restoreName`), `case 'cart_restore'`, eigen IP-limiet (20 per 10 min per winkel + IP), GET-stempel `MAIL-3`. Stappen: token → run (zelfde winkel, `trigger_entity_type = 'cart'`; anders `RESTORE_INVALID`, ook voor een geldig token van een andere winkel) → oud mandje (weg/verlopen → `RESTORE_EXPIRED`; `converted` of intussen besteld op dat adres, zelfde query als de engine → `RESTORE_ORDERED`) → bestaand hersteld mandje (`session_id = 'restore:<run_id>'`, status shopping of checkout) → dat teruggeven zonder te kopiëren. Anders nieuw mandje (tenant, session_id, munt, taal; geen klantvelden, codes of verzending); bij 23505 (gelijktijdige klik) het andere mandje teruggeven zonder te kopiëren. Per oude regel (max 50) `cartAddItem` met product, variant, aantal, eventdatum: cadeaubon (`gift_card_metadata`) → `GIFT_CARD`, extra's → `ADDONS`, de rest beslist `cartAddItem` (zaalplan `SEAT_SELECTION_REQUIRED`, uitverkocht, inactief, kanaal, datum, tickettype). Antwoord `{ cart_id, already_restored, restored, item_count, skipped: [{ name, variant, reason }] }`; fouten in de data (`{ success:false, error:{ code } }`), zoals de checkout-acties.
+- Migratie `20261020094000_mail_3_cart_restore.sql`: `automation_scan_triggers` = live definitie + `and sc.session_id not like 'restore:%'`; helpartikel `email-automations` bijgewerkt (ON CONFLICT): `{{cart_url}}` in de variabelen, nieuwe sectie "De knop naar het winkelmandje". Geen cron, geen kolom.
+- Tests: `_shared/cartRestoreToken.test.ts` (10: geldig, vervalst op vier manieren, andere winkel, verlopen, vervalst-verlopen blijft INVALID, uitschrijfhandtekening, andere sleutel, 7 dagen/mandje, link voor SellQo-winkel en eigen domein, custom frontend en niet-online winkel = exact `shopUrl`). `scripts/promo-compare/smoke.ts`: rooktest `cart_restore` tegen de nep-databank; `fakeSupabase.ts` kreeg een opt-in `persistInserts` (standaard uit, andere tests ongewijzigd). `.github/workflows/ci.yml`: `cartRestore` in de exportlijst van de rooktest.
+- Slottaken: changelog 2026.13a (5 talen uit `SUPPORTED_LANGUAGES`), helpartikel (migratie), newsletter-wachtrij.
+
+**Security-keuzes**
+- Geen RLS, policy of grant gewijzigd. `CREATE OR REPLACE` behoudt de grants van de scanfunctie (enkel service_role, nagetrokken live).
+- Het token verwijst naar `automation_runs.id`; anon kan die tabel niet lezen en geen enkele publieke actie neemt een run-id. Het antwoord van `cart_restore` bevat geen e-mail, adres of oud `cart_id` (rooktest controleert dat).
+- Vervalst, opgerekt, van een andere winkel of onbekend: altijd `RESTORE_INVALID`, zonder uitleg. Enkel een echt verlopen token geeft `RESTORE_EXPIRED`.
+- Niet eenmalig maar idempotent: link-scanners (Outlook Safe Links, Gmail) mogen niets verbruiken. Een scanner maakt hooguit het herstelde mandje aan.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` bedient de zes custom frontends (live 20-10: Astra Sleep, Benny Rich, Loveke, Mancini Milano, VanXcel, Zona Dorata) en de SellQo-winkel. Geen bestaande actie, parameter of antwoordsleutel gewijzigd (`git diff`: enkel de GET-stempel als verwijderde regel). `cartCreate` en `cartAddItem` ongewijzigd en enkel aangeroepen. De rooktest van alle bestaande acties blijft groen.
+- `storefront_carts` krijgt enkel extra rijen via het bestaande insert-pad; geen frontend leest `session_id` met een vormaanname (zelf gekozen willekeurige waarden). Live 0 mandjes met `restore:` vóór deze batch.
+- De zes custom frontends: `sellqoStorefrontBaseUrl` geeft `null` bij `use_custom_frontend = true`, dus `cart_url` blijft byte-gelijk `tctx.shopUrl` (test). Natrek na live: `campaign_sends.variables->>'cart_url'` per winkel.
+- `automationEngine.ts` gaat enkel live via `automation-scheduler`; `cartRestoreToken.ts` via `automation-scheduler` en `storefront-api` (import-grep).
+
+**Verificatie**
+- `deno test` cartRestoreToken, marketingToken, storefrontUrls, automationVars: 32 passed. Rooktest storefront-api (25 bestaande + `cart_restore`): groen. promo-compare resolve/lifecycle/addon-lines (raakt `fakeSupabase.ts`): 17 passed. `deno check` storefront-api, automation-scheduler, cartRestoreToken: enkel de bestaande stub-fout op `serve(async (req)` (ook op HEAD, artefact van de lokale stub).
+- PGlite (`scratchpad/pgtest_mail3.mjs`, bovenop 1a/1b/2a): migratie 2x (idempotent), helpartikel 1 rij met de nieuwe sectie; scan met drie mandjes op `checkout`: `gewoon-1` en `restorex` krijgen een run, `restore:<uuid>` niet.
+- `tsc --noEmit -p tsconfig.app.json` exit 0; `npm run build` exit 0; `vitest` 805/805; i18n-parity volledig; check-notification-sources ok; verify-edge-pins ok. Lint: geen nieuwe fouten (storefront-api 245=245, smoke.ts 2=2, nieuwe bestanden en automationEngine/fakeSupabase/PublicChangelog 0).
+- **Niet gedaan:** smoketest op SellQo Speeltuin / Demo Bakkerij met een echte herinnering (mail → link → mandje → afrekenen) en de natrek op een custom-frontend-tenant.
+
+**Bewust ongemoeid / Vervolg**
+- Custom frontends: niets (beslissing 6). Opt-in later via `tenants.cart_restore_url_template` (voorstel §2.6), aparte batch.
+- Uitverkocht bij een hoger aantal dan de voorraad: de regel wordt overgeslagen, niet verlaagd tot de voorraad.
+- Bij een tweede klik toont de API geen overgeslagen regels meer (`skipped: []`, `already_restored: true`); de eerste klik (of het keuzescherm) toonde ze al.
+- Uitrolvolgorde: migratie, dan `storefront-api` en de sellqo-storefront-deploy, en pas daarna `automation-scheduler` (die zet de nieuwe links in de mails).
+
 ## MAIL-LIMIT-UI — limiet marketingmails zichtbaar in plannen, prijzen en Marketing → E-mail — 20 oktober 2026
 
 Vervolg op MAIL-1a. Go van Akke 20-10 08:31 ("staat mooi op automatisaties, MAAR niet in het plan en ook niet op de marketingpagina"). Changelog 2026.12z (`email_limit_visible`).

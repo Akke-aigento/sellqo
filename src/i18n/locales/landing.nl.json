@@ -2119,6 +2119,10 @@
         "email_limit_visible": {
           "title": "Je limiet voor marketingmails in één oogopslag",
           "description": "Bovenaan Marketing → E-mail zie je nu hoeveel marketingmails je deze maand al verstuurde en hoeveel je plan toelaat. Automatiseringsmails tellen mee. Ook in het overzicht van de plannen onder SellQo-plan en op de prijzenpagina staat per plan hoeveel marketingmails per maand inbegrepen zijn."
+        },
+        "email_cart_restore": {
+          "title": "Verlaten winkelwagen: de knop opent het winkelmandje opnieuw",
+          "description": "Draait je winkel op de SellQo-webshop, dan opent de knop in de herinnering bij een verlaten winkelwagen nu een winkelmandje met dezelfde producten, in plaats van je homepage. De link werkt 7 dagen. Je klant ziet de prijs en de voorraad van dat moment en vult zijn gegevens opnieuw in, zodat iemand die de mail doorgestuurd krijgt nooit het adres of telefoonnummer van je klant ziet. Tickets met een vaste plaats in de zaal, producten met extra's, cadeaubonnen en uitverkochte producten komen niet mee; je klant ziet welke en waarom. Had hij intussen al een ander gevuld winkelmandje, dan kiest hij zelf welk hij houdt. Een winkelmandje dat zo terugkwam, krijgt geen tweede herinnering. Heb je een eigen webshop buiten het SellQo-thema, dan blijft de knop naar je winkel gaan."
         }
       },
       "copyLink": "Kopieer link",
