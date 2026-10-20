@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { calculateStripeFee, getAvailablePaymentMethods } from "../_shared/stripe-fees.ts";
 import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross, netFromGross } from "../_shared/vat.ts";
 import { decideVatRegime, isZeroRatedRegime, rateForRegime, type VatRegimeCode } from "../_shared/regimeResolver.ts";
@@ -5436,7 +5436,7 @@ const NEWSLETTER_CONFIRM_STRINGS: Record<string, { subject: string; heading: str
  * (single opt-in of na bevestiging). Zelfde gedrag als vóór MAIL-1a, maar nu
  * pas op het moment dat er echte toestemming is.
  */
-async function _markCustomerSubscribed(supabase: any, tenantId: string, email: string, firstName: string | undefined, language: string | undefined) {
+async function _markCustomerSubscribed(supabase: SupabaseClient, tenantId: string, email: string, firstName: string | undefined, language: string | undefined) {
   try {
     const { data: existingCustomer } = await supabase
       .from('customers')
@@ -5484,7 +5484,7 @@ async function _markCustomerSubscribed(supabase: any, tenantId: string, email: s
 }
 
 /** MAIL-1a: publieke shop-URL voor {{SHOP_URL}} / {{company_website}}. */
-async function _newsletterShopUrl(supabase: any, tenantId: string, websiteUrl: string | undefined, slug: string | null | undefined): Promise<string> {
+async function _newsletterShopUrl(supabase: SupabaseClient, tenantId: string, websiteUrl: string | undefined, slug: string | null | undefined): Promise<string> {
   if (websiteUrl) return websiteUrl;
   try {
     const { data } = await supabase
@@ -5500,7 +5500,14 @@ async function _newsletterShopUrl(supabase: any, tenantId: string, websiteUrl: s
  * MAIL-1a: welkomstmail (marketing). Gebruikt bij single opt-in; bij double
  * opt-in verstuurt newsletter-confirm dezelfde mail pas na bevestiging.
  */
-async function _sendNewsletterWelcome(supabase: any, tenantId: string, email: string, firstName: string | undefined, config: any) {
+/** De velden van tenant_newsletter_config die de welkomstmail leest. */
+interface NewsletterWelcomeConfig {
+  welcome_email_enabled?: boolean | null;
+  welcome_email_body?: string | null;
+  welcome_email_subject?: string | null;
+}
+
+async function _sendNewsletterWelcome(supabase: SupabaseClient, tenantId: string, email: string, firstName: string | undefined, config: NewsletterWelcomeConfig | null) {
   if (!config?.welcome_email_enabled || !config?.welcome_email_body) return;
   try {
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -5560,7 +5567,7 @@ async function _sendNewsletterWelcome(supabase: any, tenantId: string, email: st
 }
 
 /** MAIL-1a: bevestigingsmail (transactioneel) met de link naar newsletter-confirm. */
-async function _sendNewsletterConfirmation(supabase: any, tenantId: string, email: string, token: string, language: string | undefined) {
+async function _sendNewsletterConfirmation(supabase: SupabaseClient, tenantId: string, email: string, token: string, language: string | undefined) {
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
   if (!resendApiKey) {
     console.warn('[BEVESTIGINGSMAIL] RESEND_API_KEY ontbreekt, overgeslagen');
@@ -5598,7 +5605,7 @@ async function _sendNewsletterConfirmation(supabase: any, tenantId: string, emai
   console.log('[BEVESTIGINGSMAIL] verstuurd naar:', email, '| tenant:', tenantId, JSON.stringify(res?.error ?? null));
 }
 
-async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params: Record<string, unknown>, email: string) {
+async function _newsletterSubscribeImpl(supabase: SupabaseClient, tenantId: string, params: Record<string, unknown>, email: string) {
   const firstName = (params.first_name as string) || undefined;
   const source = (params.source as string) || 'storefront_api';
   const rawLang = typeof params.language === 'string' ? params.language.toLowerCase().slice(0, 2) : '';

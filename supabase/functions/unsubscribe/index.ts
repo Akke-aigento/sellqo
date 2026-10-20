@@ -1,4 +1,4 @@
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import {
   verifyMarketingLink,
   buildUnsubscribeUrl,
@@ -71,9 +71,10 @@ async function readParams(req: Request, url: URL) {
   };
 }
 
+type Db = SupabaseClient;
+
 /** Stuurt een ondertekende afmeldlink, enkel naar een adres dat de winkel kent. */
-// deno-lint-ignore no-explicit-any
-async function sendFreshUnsubscribeLink(supabase: any, tenantId: string, email: string) {
+async function sendFreshUnsubscribeLink(supabase: Db, tenantId: string, email: string) {
   try {
     const escaped = ilikeExact(email);
     const [{ data: cust }, { data: sub }] = await Promise.all([
@@ -112,8 +113,7 @@ async function sendFreshUnsubscribeLink(supabase: any, tenantId: string, email: 
 
 
 /** Schrijft uit. Ongewijzigd gedrag t.o.v. de POST van MAIL-1a. */
-// deno-lint-ignore no-explicit-any
-async function performUnsubscribe(supabase: any, tenantId: string, email: string, campaignId: string | null, reason: string | null) {
+async function performUnsubscribe(supabase: Db, tenantId: string, email: string, campaignId: string | null, reason: string | null) {
   const now = new Date().toISOString();
 
   // Bestaat de uitschrijving al? Dan blijft de oorspronkelijke datum staan.
@@ -190,8 +190,7 @@ Deno.serve(async (req) => {
   // ── JSON-API voor /mail/afmelden ─────────────────────────────────────────
   if (isJsonRequest(req)) {
     try {
-      // deno-lint-ignore no-explicit-any
-      let b: Record<string, any> = {};
+      let b: Record<string, unknown> = {};
       try {
         const parsed = await req.json();
         if (parsed && typeof parsed === "object") b = parsed;
