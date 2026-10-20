@@ -4717,7 +4717,11 @@
       "sla_het_product_eerst_op_om_2": "Speichern Sie zuerst das Produkt, um Termine zu verwalten",
       "vast_bedrag_euro": "Fester Betrag (&euro;)",
       "notFound": "Dieses Produkt existiert nicht mehr.",
-      "product_bekijken": "Produkt ansehen"
+      "product_bekijken": "Produkt ansehen",
+      "vat_rate_label": "MwSt.-Satz",
+      "vat_rate_shop_default": "Standardsatz des Shops ({{rate}} %)",
+      "vat_rate_hint": "Der Satz, mit dem dieses Produkt auf Bestellungen und Rechnungen erscheint.",
+      "margin_hint": "Marge {{margin}} % · Gewinn {{profit}} pro Stück (ohne {{rate}} % MwSt.)"
     },
     "promotions": {
       "autoDiscountFormDialog": {

@@ -5004,7 +5004,11 @@
       "sla_het_product_eerst_op_om_2": "Спершу збережіть товар, щоб керувати датами",
       "vast_bedrag_euro": "Фіксована сума (&euro;)",
       "notFound": "Цей товар більше не існує.",
-      "product_bekijken": "Перегляд товару"
+      "product_bekijken": "Перегляд товару",
+      "vat_rate_label": "Ставка ПДВ",
+      "vat_rate_shop_default": "Стандартна ставка магазину ({{rate}}%)",
+      "vat_rate_hint": "Ставка, з якою цей товар потрапляє в замовлення та рахунки.",
+      "margin_hint": "Маржа {{margin}}% · прибуток {{profit}} за одиницю (без ПДВ {{rate}}%)"
     },
     "promotions": {
       "autoDiscountFormDialog": {

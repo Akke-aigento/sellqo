@@ -196,7 +196,7 @@ export function ProductSocialChannels({ product, onRefresh }: ProductSocialChann
             </CardDescription>
           </div>
           {enabledCount > 0 && (
-            <Button
+            <Button type="button"
               variant="outline"
               size="sm"
               onClick={syncAllChannels}
@@ -276,7 +276,7 @@ export function ProductSocialChannels({ product, onRefresh }: ProductSocialChann
                 </div>
 
                 {isEnabled && (
-                  <Button
+                  <Button type="button"
                     variant="ghost"
                     size="sm"
                     onClick={() => syncChannel(connection.channel_type, connection.id)}

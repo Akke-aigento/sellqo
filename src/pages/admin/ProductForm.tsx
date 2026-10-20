@@ -53,6 +53,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUsageLimits } from '@/hooks/useUsageLimits';
 import { useSEOKeywords } from '@/hooks/useSEOKeywords';
 import { useGiftCardDesigns } from '@/hooks/useGiftCardDesigns';
+import { useVatRates } from '@/hooks/useVatRates';
+import type { VatRate } from '@/types/vatRate';
 import { Button } from '@/components/ui/button';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -109,6 +111,8 @@ const productSchema = z.object({
   price: z.coerce.number().min(0, 'admin.productForm.validation.prijs_moet_0_of_hoger_zijn'),
   compare_at_price: z.coerce.number().min(0).nullable().optional(),
   cost_price: z.coerce.number().min(0).nullable().optional(),
+  // PRODUCT-FORM-2 — null = standaardtarief van de winkel (tenants.tax_percentage), zoals _shared/vat.ts.
+  vat_rate_id: z.string().nullable().optional(),
   sku: z.string().max(100).optional().default(''),
   barcode: z.string().max(100).optional().default(''),
   stock: z.coerce.number().int().min(0, 'admin.productForm.validation.voorraad_moet_0_of_hoger_zijn').default(0),
@@ -145,6 +149,9 @@ const productSchema = z.object({
 
 type FormValues = z.infer<typeof productSchema>;
 
+/** PRODUCT-FORM-2 — Select-waarde voor "geen vat_rate_id" (Radix Select aanvaardt geen lege string). */
+const VAT_DEFAULT_OPTION = '__shop_default__';
+
 const productTypeIcons: Record<ProductType, React.ReactNode> = {
   physical: <Package className="h-6 w-6" />,
   digital: <Download className="h-6 w-6" />,
@@ -156,7 +163,7 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
 };
 
 export default function ProductForm() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
   const horeca = useHorecaModule();
   const eventsModule = useBusinessModules().has('events');
@@ -251,6 +258,7 @@ export default function ProductForm() {
       price: 0,
       compare_at_price: null,
       cost_price: null,
+      vat_rate_id: null,
       sku: '',
       barcode: '',
       stock: 0,
@@ -292,6 +300,7 @@ export default function ProductForm() {
       price: product.price,
       compare_at_price: product.compare_at_price,
       cost_price: product.cost_price,
+      vat_rate_id: product.vat_rate_id ?? null,
       sku: product.sku || '',
       barcode: product.barcode || '',
       stock: product.stock,
@@ -334,6 +343,49 @@ export default function ProductForm() {
   const isBundle = productType === 'bundle';
   const isTicket = productType === 'ticket';
   const bundlePricingModel = form.watch('bundle_pricing_model');
+
+  // PRODUCT-FORM-2 — btw-tarief per product. Zonder vat_rate_id rekent de backend
+  // (_shared/vat.ts, storefront-api) met tenants.tax_percentage, met 21 als terugval.
+  const { vatRates } = useVatRates();
+  const tenantDefaultVatRate = Number(currentTenant?.tax_percentage) || 21;
+  const selectedVatRateId = form.watch('vat_rate_id');
+  const vatRateOptions = useMemo(() => {
+    const country = currentTenant?.country;
+    const own = country ? vatRates.filter((r) => r.country_code === country) : vatRates;
+    const list = own.length > 0 ? own : vatRates;
+    // Een tarief uit een ander land dat al op het product staat, blijft kiesbaar.
+    const current = selectedVatRateId ? vatRates.find((r) => r.id === selectedVatRateId) : undefined;
+    return current && !list.includes(current) ? [...list, current] : list;
+  }, [vatRates, currentTenant?.country, selectedVatRateId]);
+  const vatRateName = useCallback((rate: VatRate): string => {
+    const lang = i18n.language;
+    const name = lang === 'en' ? rate.name_en
+      : lang === 'fr' ? rate.name_fr
+      : lang === 'de' ? rate.name_de
+      : lang === 'nl' ? rate.name_nl
+      : rate.name_en;
+    return name || rate.name_nl || rate.name_en || rate.category;
+  }, [i18n.language]);
+  const effectiveVatRate = useMemo(() => {
+    const match = selectedVatRateId ? vatRates.find((r) => r.id === selectedVatRateId) : undefined;
+    return match ? Number(match.rate) : tenantDefaultVatRate;
+  }, [selectedVatRateId, vatRates, tenantDefaultVatRate]);
+
+  // PRODUCT-FORM-2 — marge-indicatie, puur weergave. Verkoopprijs is incl. btw,
+  // inkoopprijs excl. btw: marge = (netto verkoopprijs − inkoopprijs) / netto verkoopprijs.
+  const watchedPrice = form.watch('price');
+  const watchedCost = form.watch('cost_price');
+  const marginInfo = useMemo(() => {
+    const gross = Number(watchedPrice);
+    const cost = watchedCost === null || watchedCost === undefined || (watchedCost as unknown) === '' ? NaN : Number(watchedCost);
+    if (!Number.isFinite(gross) || gross <= 0 || !Number.isFinite(cost) || cost <= 0) return null;
+    const net = gross / (1 + effectiveVatRate / 100);
+    const profit = net - cost;
+    return { profit, margin: (profit / net) * 100 };
+  }, [watchedPrice, watchedCost, effectiveVatRate]);
+  const formatMoney = useCallback((amount: number) =>
+    new Intl.NumberFormat(i18n.language, { style: 'currency', currency: currentTenant?.currency || 'EUR' }).format(amount),
+  [i18n.language, currentTenant?.currency]);
 
   // Initialize bundle items from loaded data
   useEffect(() => {
@@ -1020,7 +1072,47 @@ export default function ProductForm() {
                             </FormItem>
                           )} />
                         </PermissionGate>
+                        {/* PRODUCT-FORM-2 — btw-tarief per product; leeg = standaardtarief van de winkel. */}
+                        <FormField control={form.control} name="vat_rate_id" render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{t('admin.productForm.vat_rate_label')}</FormLabel>
+                            <Select
+                              value={field.value || VAT_DEFAULT_OPTION}
+                              onValueChange={(v) => field.onChange(v === VAT_DEFAULT_OPTION ? null : v)}
+                              disabled={!canEditCommercial}
+                            >
+                              <FormControl>
+                                <SelectTrigger><SelectValue /></SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value={VAT_DEFAULT_OPTION}>
+                                  {t('admin.productForm.vat_rate_shop_default', { rate: tenantDefaultVatRate })}
+                                </SelectItem>
+                                {vatRateOptions.map((rate) => (
+                                  <SelectItem key={rate.id} value={rate.id}>
+                                    {vatRateName(rate)} ({Number(rate.rate)}%)
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                            <FormDescription>{canEditCommercial ? t('admin.productForm.vat_rate_hint') : adminManagedHint}</FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )} />
                       </div>
+                      {/* PRODUCT-FORM-2 — marge-indicatie (excl. btw), alleen weergave. Niet bij
+                          varianten: die hebben elk een eigen verkoopprijs. */}
+                      {marginInfo && !(id && product?.product_variants?.some((v) => v.is_active)) && (
+                        <PermissionGate action="read" resource="product_costs">
+                          <p className={cn('mt-4 text-sm', marginInfo.profit < 0 ? 'text-destructive' : 'text-muted-foreground')}>
+                            {t('admin.productForm.margin_hint', {
+                              margin: new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 1 }).format(marginInfo.margin),
+                              profit: formatMoney(marginInfo.profit),
+                              rate: effectiveVatRate,
+                            })}
+                          </p>
+                        </PermissionGate>
+                      )}
                     </CardContent>
                   </Card>
                   )}

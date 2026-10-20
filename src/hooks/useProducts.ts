@@ -72,8 +72,10 @@ export function useProducts() {
       if (error) throw error;
       return product;
     },
-    onSuccess: () => {
+    onSuccess: (_product, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['products', currentTenant?.id] });
+      // PRODUCT-FORM-2 — ook de detailquery (useProduct), anders toont heropenen binnen staleTime oude data.
+      queryClient.invalidateQueries({ queryKey: ['product', id] });
       toast({ title: 'Product bijgewerkt', description: 'De wijzigingen zijn opgeslagen.' });
     },
     onError: (error: Error) => {

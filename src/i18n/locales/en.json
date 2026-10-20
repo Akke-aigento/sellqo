@@ -4990,7 +4990,11 @@
       "sla_het_product_eerst_op_om_2": "Save the product first to manage dates",
       "vast_bedrag_euro": "Fixed amount (&euro;)",
       "notFound": "This product no longer exists.",
-      "product_bekijken": "View product"
+      "product_bekijken": "View product",
+      "vat_rate_label": "VAT rate",
+      "vat_rate_shop_default": "Shop default rate ({{rate}}%)",
+      "vat_rate_hint": "The rate used for this product on orders and invoices.",
+      "margin_hint": "Margin {{margin}}% · profit {{profit}} per unit (excl. {{rate}}% VAT)"
     },
     "promotions": {
       "autoDiscountFormDialog": {

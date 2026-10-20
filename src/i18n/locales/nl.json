@@ -5071,7 +5071,11 @@
         "naam_mag_maximaal_200_tekens_zijn": "Naam mag maximaal 200 tekens zijn"
       },
       "notFound": "Dit product bestaat niet meer.",
-      "product_bekijken": "Product bekijken"
+      "product_bekijken": "Product bekijken",
+      "vat_rate_label": "Btw-tarief",
+      "vat_rate_shop_default": "Standaardtarief winkel ({{rate}}%)",
+      "vat_rate_hint": "Het tarief waarmee dit product op orders en facturen komt.",
+      "margin_hint": "Marge {{margin}}% · winst {{profit}} per stuk (excl. {{rate}}% btw)"
     },
     "promotions": {
       "autoDiscountFormDialog": {
