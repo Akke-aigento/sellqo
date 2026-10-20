@@ -276,15 +276,15 @@ const App = () => (
               <Route path="orders/subscriptions" element={<SubscriptionsPage />} />
               <Route path="orders/discounts" element={<RouteGuard requireRead="discount_codes"><DiscountsPage /></RouteGuard>} />
               <Route path="promotions" element={<RouteGuard requireRead="discount_codes"><PromotionsPage /></RouteGuard>} />
-              <Route path="promotions/bundles" element={<BundlesPage />} />
-              <Route path="promotions/volume" element={<VolumeDiscountsPage />} />
-              <Route path="promotions/auto" element={<AutoDiscountsPage />} />
-              <Route path="promotions/gifts" element={<GiftPromotionsPage />} />
-              <Route path="promotions/customer-groups" element={<CustomerGroupsPage />} />
-              <Route path="promotions/bogo" element={<BogoPromotionsPage />} />
-              <Route path="promotions/loyalty" element={<LoyaltyProgramsPage />} />
-              <Route path="promotions/gift-cards" element={<GiftCardsPage />} />
-              <Route path="promotions/stacking" element={<StackingRulesPage />} />
+              <Route path="promotions/bundles" element={<RouteGuard requireRead="discount_codes"><BundlesPage /></RouteGuard>} />
+              <Route path="promotions/volume" element={<RouteGuard requireRead="volume_discounts"><VolumeDiscountsPage /></RouteGuard>} />
+              <Route path="promotions/auto" element={<RouteGuard requireRead="discount_codes"><AutoDiscountsPage /></RouteGuard>} />
+              <Route path="promotions/gifts" element={<RouteGuard requireRead="discount_codes"><GiftPromotionsPage /></RouteGuard>} />
+              <Route path="promotions/customer-groups" element={<RouteGuard requireRead="customers"><CustomerGroupsPage /></RouteGuard>} />
+              <Route path="promotions/bogo" element={<RouteGuard requireRead="discount_codes"><BogoPromotionsPage /></RouteGuard>} />
+              <Route path="promotions/loyalty" element={<RouteGuard requireRead="loyalty"><LoyaltyProgramsPage /></RouteGuard>} />
+              <Route path="promotions/gift-cards" element={<RouteGuard requireRead="discount_codes"><GiftCardsPage /></RouteGuard>} />
+              <Route path="promotions/stacking" element={<RouteGuard requireRead="discount_codes"><StackingRulesPage /></RouteGuard>} />
               <Route path="customers" element={<RouteGuard requireRead="customers"><CustomersPage /></RouteGuard>} />
               <Route path="customers/:customerId" element={<RouteGuard requireRead="customers"><CustomerDetailPage /></RouteGuard>} />
               <Route path="categories" element={<CategoriesPage />} />

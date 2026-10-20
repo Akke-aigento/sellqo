@@ -63,15 +63,15 @@ _Gegenereerd: 2026-06-09T06:44:51.177Z_
 | `products/:id/edit` | requireWrite="products" | ✅ |
 | `products/new` | requireWrite="products" | ✅ |
 | `promotions` | requireRead="discount_codes" | ✅ |
-| `promotions/auto` | (geen) | OK — bewust ongated |
-| `promotions/bogo` | (geen) | OK — bewust ongated |
-| `promotions/bundles` | (geen) | OK — bewust ongated |
-| `promotions/customer-groups` | (geen) | OK — bewust ongated |
-| `promotions/gift-cards` | (geen) | OK — bewust ongated |
-| `promotions/gifts` | (geen) | OK — bewust ongated |
-| `promotions/loyalty` | (geen) | OK — bewust ongated |
-| `promotions/stacking` | (geen) | OK — bewust ongated |
-| `promotions/volume` | (geen) | OK — bewust ongated |
+| `promotions/auto` | requireRead="discount_codes" | ✅ |
+| `promotions/bogo` | requireRead="discount_codes" | ✅ |
+| `promotions/bundles` | requireRead="discount_codes" | ✅ |
+| `promotions/customer-groups` | requireRead="customers" | ✅ |
+| `promotions/gift-cards` | requireRead="discount_codes" | ✅ |
+| `promotions/gifts` | requireRead="discount_codes" | ✅ |
+| `promotions/loyalty` | requireRead="loyalty" | ✅ |
+| `promotions/stacking` | requireRead="discount_codes" | ✅ |
+| `promotions/volume` | requireRead="volume_discounts" | ✅ |
 | `purchase-orders` | requireRead="suppliers" | ✅ |
 | `reports` | requireRead="reports" | ✅ |
 | `returns` | requireRead="returns" | ✅ |
@@ -85,6 +85,6 @@ _Gegenereerd: 2026-06-09T06:44:51.177Z_
 ## Samenvatting
 
 - **Totaal admin-routes:** 77
-- **Met RouteGuard:** 37
-- **Zonder guard (bewust open):** 39
+- **Met RouteGuard:** 46
+- **Zonder guard (bewust open):** 30
 - **Zonder guard — ⚠️ controle nodig:** 1
