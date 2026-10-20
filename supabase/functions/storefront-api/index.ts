@@ -2696,8 +2696,9 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
   const variantId = params.variant_id as string | undefined;
   const quantity = Math.max(1, Number(params.quantity) || 1);
   if (!cartId || !productId) throw new Error('cart_id and product_id are required');
-  // CART-TENANT-1 — onbekende of andermans cart: zelfde antwoord als cart_get (data: null).
-  if (!(await ownedCart(supabase, tenantId, cartId))) return null;
+  // CART-TENANT-1 — onbekende of andermans cart: een fout, net als vroeger de FK-fout bij een
+  // verdwenen cart (frontends herstellen daarop met een nieuwe cart). Lekt niets: zelfde fout voor beide.
+  if (!(await ownedCart(supabase, tenantId, cartId))) throw new Error('Cart not found');
   const eventDetailId = (params.event_detail_id as string | undefined) || undefined;
 
   // Verify product exists and get price
@@ -5746,7 +5747,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'MAIL-3' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'CART-TENANT-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

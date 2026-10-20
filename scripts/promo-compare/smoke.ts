@@ -115,11 +115,14 @@ await check('cart-acties weigeren een cart van een andere winkel (CART-TENANT-1)
   db.tables.storefront_cart_items.push({ id: 'item-b', cart_id: 'cart-b', product_id: 'p1', variant_id: null, event_detail_id: null, quantity: 1, unit_price: 20 });
   try {
     db.writes.length = 0;
-    assert(await S.cartAddItem(db, T, { cart_id: 'cart-b', product_id: 'p1' }) === null, 'add_item: data null zoals cart_get');
+    for (const cid of ['cart-b', 'bestaat-niet']) {
+      let addMsg = '';
+      try { await S.cartAddItem(db, T, { cart_id: cid, product_id: 'p1' }); } catch (e) { addMsg = (e as Error).message; }
+      assert(addMsg === 'Cart not found', `add_item ${cid}: ${addMsg}`);
+    }
     assert(await S.cartApplyDiscount(db, T, { cart_id: 'cart-b', code: 'X' }) === null, 'apply_discount: data null');
     assert(await S.cartRemoveDiscount(db, T, { cart_id: 'cart-b', code: 'B10' }) === null, 'remove_discount (code): data null');
     assert(await S.cartRemoveDiscount(db, T, { cart_id: 'cart-b' }) === null, 'remove_discount (alles): data null');
-    assert(await S.cartAddItem(db, T, { cart_id: 'bestaat-niet', product_id: 'p1' }) === null, 'onbekende cart: data null');
     for (const fn of [() => S.cartUpdateItem(db, T, { item_id: 'item-b', quantity: 3 }), () => S.cartRemoveItem(db, T, { item_id: 'item-b' })]) {
       let msg = '';
       try { await fn(); } catch (e) { msg = (e as Error).message; }
