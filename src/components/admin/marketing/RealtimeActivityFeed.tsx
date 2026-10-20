@@ -26,8 +26,21 @@ export function RealtimeActivityFeed() {
   useEffect(() => {
     if (!currentTenant?.id) return;
 
+    // MAIL-UX-1: enkel activiteit van deze winkel. campaign_sends heeft geen tenant_id; RLS alleen
+    // is niet genoeg (een platformbeheerder of iemand met meerdere winkels zag alles door elkaar).
+    let tenantCampaignIds = new Set<string>();
+
     // Fetch initial recent activity
     const fetchRecentActivity = async () => {
+      const { data: campaigns } = await supabase
+        .from('email_campaigns')
+        .select('id')
+        .eq('tenant_id', currentTenant.id);
+      tenantCampaignIds = new Set((campaigns ?? []).map((c: { id: string }) => c.id));
+      if (tenantCampaignIds.size === 0) {
+        setActivities([]);
+        return;
+      }
       const { data } = await supabase
         .from('campaign_sends')
         .select(`
@@ -39,6 +52,7 @@ export function RealtimeActivityFeed() {
           delivered_at,
           campaign:email_campaigns(name)
         `)
+        .in('campaign_id', Array.from(tenantCampaignIds))
         .not('opened_at', 'is', null)
         .order('opened_at', { ascending: false })
         .limit(10);
@@ -70,6 +84,7 @@ export function RealtimeActivityFeed() {
         (payload) => {
           const newData = payload.new as any;
           const oldData = payload.old as any;
+          if (!newData?.campaign_id || !tenantCampaignIds.has(newData.campaign_id)) return;
 
           // Determine what changed
           let activityType: 'opened' | 'clicked' | 'delivered' | null = null;
