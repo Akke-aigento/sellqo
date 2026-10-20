@@ -126,6 +126,8 @@ const handler = async (req: Request): Promise<Response> => {
         .from("shipping_integrations")
         .select("*")
         .eq("id", integration_id)
+        // SEC-IDOR-1: alleen een koppeling van de winkel van deze order.
+        .eq("tenant_id", order.tenant_id)
         .single();
       if (error) throw error;
       integration = data;

@@ -62,6 +62,7 @@ serve(async (req) => {
         .from('customer_segments')
         .select('name, description, member_count')
         .eq('id', segmentId)
+        .eq('tenant_id', tenantId) // SEC-IDOR-1
         .single();
       segmentInfo = data;
     }
@@ -72,6 +73,7 @@ serve(async (req) => {
       const { data: products } = await supabase
         .from('products')
         .select('id, name, price, description, short_description, featured_image')
+        .eq('tenant_id', tenantId) // SEC-IDOR-1
         .in('id', productIds);
       selectedProducts = products || [];
     }
