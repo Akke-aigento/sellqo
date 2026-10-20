@@ -97,7 +97,7 @@ export function AutomationStepDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90dvh] grid-cols-1 overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t(`admin.marketing.automations.steps.${step.step_key}`)}</DialogTitle>
           <DialogDescription>{t('admin.marketing.automations.step.description')}</DialogDescription>
@@ -197,7 +197,8 @@ export function AutomationStepDialog({
           )}
         </div>
 
-        <DialogFooter>
+        {/* MAIL-UX-1: knoppen blijven onderaan zichtbaar, ook op een smal scherm. */}
+        <DialogFooter className="sticky -bottom-6 z-10 -mx-6 -mb-6 gap-2 border-t bg-background px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           {canWrite && (
             <Button onClick={handleSave} disabled={saveStep.isPending}>

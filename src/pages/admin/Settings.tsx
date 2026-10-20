@@ -61,6 +61,7 @@ import { ReviewsHub } from '@/components/admin/storefront/ReviewsHub';
 import { useAuth } from '@/hooks/useAuth';
 import { useCan, type Resource } from '@/hooks/useCan';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
+import { useEmailLogoAutoBackfill } from '@/hooks/useEmailLogoBackfill';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { Wrench, Blocks } from 'lucide-react';
 import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
@@ -172,6 +173,8 @@ const settingsGroups: SettingsGroup[] = [
 
 export default function SettingsPage() {
   const { t } = useTranslation();
+  // MAIL-UX-1: ontbrekende mailversie van het logo stil op de achtergrond aanmaken (best effort).
+  useEmailLogoAutoBackfill();
   const [searchParams, setSearchParams] = useSearchParams();
   const initialSection = searchParams.get('section') || 'profile';
   const [activeSection, setActiveSection] = useState(initialSection);

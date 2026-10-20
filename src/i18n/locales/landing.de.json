@@ -2106,7 +2106,7 @@
         },
         "email_automations": {
           "title": "E-Mail-Automatisierungen",
-          "description": "Unter Marketing → Automatisierungen aktivieren Sie vier feste E-Mail-Serien: eine Willkommensserie, sobald ein Abonnent seine Anmeldung bestätigt, eine Dankes-E-Mail und später eine Bewertungsanfrage nach einem Kauf, eine Rückgewinnungs-E-Mail für Kunden, die seit einiger Zeit nicht bestellt haben, und eine Erinnerung bei einem verlassenen Warenkorb. Diese Erinnerung geht nur an Kunden, die angemeldet sind oder bereits bei Ihnen gekauft haben. Betreff und Text passen Sie pro Sprache an, und alle Automatisierungs-E-Mails zählen zu Ihrem monatlichen Limit für Marketing-E-Mails."
+          "description": "Unter Marketing → E-Mail → Automatisierungen aktivieren Sie vier feste E-Mail-Serien: eine Willkommensserie, sobald ein Abonnent seine Anmeldung bestätigt, eine Dankes-E-Mail und später eine Bewertungsanfrage nach einem Kauf, eine Rückgewinnungs-E-Mail für Kunden, die seit einiger Zeit nicht bestellt haben, und eine Erinnerung bei einem verlassenen Warenkorb. Diese Erinnerung geht nur an Kunden, die angemeldet sind oder bereits bei Ihnen gekauft haben. Betreff und Text passen Sie pro Sprache an, und alle Automatisierungs-E-Mails zählen zu Ihrem monatlichen Limit für Marketing-E-Mails."
         },
         "email_product_blocks": {
           "title": "Produkte in Ihrer E-Mail",
@@ -2130,7 +2130,15 @@
         },
         "email_signup_cleanup": {
           "title": "Ihre Willkommens-E-Mail zieht in die Willkommensserie um; Anmeldung immer mit Bestätigung",
-          "description": "Die Newsletter-Einstellungen wurden aufgeräumt. Hatten Sie dort eine eigene Willkommens-E-Mail, ist sie jetzt die erste E-Mail unter Marketing → Automatisierungen → Willkommensserie, mit Ihrem eigenen Betreff und Design. Die Serie ist eingeschaltet, Ihre neuen Abonnenten erhalten also dieselbe Willkommens-E-Mail wie bisher, direkt nach ihrer Bestätigung. Die Anmeldung erfolgt immer mit Bestätigung (Double-Opt-in); dieser Schalter ist entfallen. Unter Einstellungen → E-Mail-Anmeldung finden Sie den Weg zu Ihren Abonnenten und Ihrer Willkommens-E-Mail."
+          "description": "Die Newsletter-Einstellungen wurden aufgeräumt. Hatten Sie dort eine eigene Willkommens-E-Mail, ist sie jetzt die erste E-Mail unter Marketing → E-Mail → Automatisierungen → Willkommensserie, mit Ihrem eigenen Betreff und Design. Die Serie ist eingeschaltet, Ihre neuen Abonnenten erhalten also dieselbe Willkommens-E-Mail wie bisher, direkt nach ihrer Bestätigung. Die Anmeldung erfolgt immer mit Bestätigung (Double-Opt-in); dieser Schalter ist entfallen. Unter Einstellungen → E-Mail-Anmeldung finden Sie den Weg zu Ihren Abonnenten und Ihrer Willkommens-E-Mail."
+        },
+        "email_page_tabs": {
+          "title": "Marketing → E-Mail ist übersichtlicher, auch auf dem Smartphone",
+          "description": "Die Registerkarten stehen jetzt oben: Übersicht, Kampagnen, Automatisierungen, Vorlagen, Segmente und Abonnenten. Automatisierungen ist kein eigener Menüpunkt mehr, sondern eine Registerkarte von E-Mail; alte Links führen weiterhin an die richtige Stelle. Die doppelten Blöcke mit Schnellaktionen und letzten Kampagnen sind entfallen. Haben Sie noch keine Kampagnen, öffnet die Seite direkt bei Kampagnen. Die Kacheln und das Diagramm der Übersicht folgen Ihrer Sprache, und die Zahl der Abonnenten stammt aus derselben Zählung wie die Registerkarte Abonnenten, sodass beide immer dieselbe Zahl zeigen. Auf einem schmalen Bildschirm lassen sich die Registerkarten seitlich verschieben, und die Schaltflächen der Kampagnenfenster bleiben sichtbar."
+        },
+        "email_logo_existing": {
+          "title": "Eine E-Mail-Version des Logos, das Sie schon hatten",
+          "description": "Haben Sie Ihr Logo hochgeladen, bevor SellQo eine Version für E-Mails erstellte, geschieht das jetzt automatisch, sobald Sie Marketing oder Einstellungen als Administrator öffnen. Klappt das nicht, finden Sie bei Ihrem Logo die Schaltfläche E-Mail-Version Ihres aktuellen Logos erstellen. Sie müssen Ihr Logo also nicht erneut hochladen."
         }
       },
       "copyLink": "Link kopieren",

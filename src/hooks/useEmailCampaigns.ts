@@ -271,9 +271,6 @@ export function useMarketingStats() {
           totalClicked: 0,
           avgOpenRate: 0,
           avgClickRate: 0,
-          subscriberCount: 0,
-          subscriberGrowth: 0,
-          unsubscribeCount: 0,
         };
       }
 
@@ -291,18 +288,8 @@ export function useMarketingStats() {
       const totalOpened = campaignStats.reduce((sum, c) => sum + (c.total_opened || 0), 0);
       const totalClicked = campaignStats.reduce((sum, c) => sum + (c.total_clicked || 0), 0);
 
-      // Fetch subscriber count
-      const { count: subscriberCount } = await supabase
-        .from('customers')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id)
-        .eq('email_subscribed', true);
-
-      // Fetch unsubscribe count
-      const { count: unsubscribeCount } = await supabase
-        .from('email_unsubscribes')
-        .select('id', { count: 'exact', head: true })
-        .eq('tenant_id', currentTenant.id);
+      // MAIL-UX-1: abonnees en uitschrijvingen komen niet meer hier vandaan maar uit
+      // marketing_contact_counts (useMarketingContactCounts), dezelfde bron als het tabblad Abonnees.
 
       return {
         totalCampaigns,
@@ -311,9 +298,6 @@ export function useMarketingStats() {
         totalClicked,
         avgOpenRate: totalSent > 0 ? (totalOpened / totalSent) * 100 : 0,
         avgClickRate: totalSent > 0 ? (totalClicked / totalSent) * 100 : 0,
-        subscriberCount: subscriberCount || 0,
-        subscriberGrowth: 0, // Would need historical data to calculate
-        unsubscribeCount: unsubscribeCount || 0,
       };
     },
     enabled: !!currentTenant?.id,

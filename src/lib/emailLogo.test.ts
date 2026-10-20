@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   compressionHeights,
   emailLogoPath,
+  emailLogoState,
+  logoFileMeta,
   fnvHex,
   emailLogoSize,
   findTrimBox,
@@ -114,5 +116,40 @@ describe('fnvHex (terugval zonder crypto.subtle)', () => {
     expect(a).toMatch(/^[0-9a-f]{16}$/);
     expect(fnvHex(new Uint8Array([1, 2, 3]))).toBe(a);
     expect(fnvHex(new Uint8Array([3, 2, 1]))).not.toBe(a);
+  });
+});
+
+describe('MAIL-UX-1 emailLogoState', () => {
+  const T = 'https://x.supabase.co/storage/v1/object/public/tenant-logos/logo/1.png';
+  const B = 'https://x.supabase.co/storage/v1/object/public/tenant-logos/t/logo.png';
+
+  it('themalogo gaat voor; zonder bron is een mailversie nodig', () => {
+    expect(emailLogoState({ themeLogo: T, tenantLogo: B, emailLogoSource: null })).toEqual({ currentLogo: T, target: 'theme', needsVariant: true });
+  });
+
+  it('zonder themalogo het bedrijfslogo', () => {
+    expect(emailLogoState({ themeLogo: '  ', tenantLogo: B })).toEqual({ currentLogo: B, target: 'tenant', needsVariant: true });
+  });
+
+  it('niet opnieuw als de bron al bij dit logo hoort (ook als de variant leeg bleef)', () => {
+    expect(emailLogoState({ themeLogo: T, emailLogoSource: T }).needsVariant).toBe(false);
+  });
+
+  it('wel opnieuw als de bron bij een vorig logo hoort', () => {
+    expect(emailLogoState({ themeLogo: T, emailLogoSource: B }).needsVariant).toBe(true);
+  });
+
+  it('geen logo of geen http(s)-URL: niets te doen', () => {
+    expect(emailLogoState({}).needsVariant).toBe(false);
+    expect(emailLogoState({ tenantLogo: 'data:image/png;base64,AAA' }).needsVariant).toBe(false);
+  });
+});
+
+describe('MAIL-UX-1 logoFileMeta', () => {
+  it('neemt het type uit de response', () => {
+    expect(logoFileMeta('https://x/a/logo.png', 'image/png; charset=binary')).toEqual({ name: 'logo.png', type: 'image/png' });
+  });
+  it('valt terug op de extensie (SVG blijft herkenbaar voor createEmailLogoVariant)', () => {
+    expect(logoFileMeta('https://x/a/merk%20logo.svg', 'application/octet-stream')).toEqual({ name: 'merk logo.svg', type: 'image/svg+xml' });
   });
 });

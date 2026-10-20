@@ -80,7 +80,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
 
   const handleGenerate = async () => {
     if (!canGenerate) {
-      toast.error('Onvoldoende AI credits');
+      toast.error(t('admin.marketing.aiEmailPlanner.insufficient_credits'));
       return;
     }
 
@@ -112,10 +112,10 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
   const handleSaveCampaign = async (data: any) => {
     try {
       await createCampaign.mutateAsync(data);
-      toast.success('Campagne opgeslagen als concept!');
+      toast.success(t('admin.marketing.aiEmailPlanner.saved_as_draft'));
       setCampaignDialogOpen(false);
     } catch (error) {
-      toast.error('Fout bij opslaan campagne');
+      toast.error(t('admin.marketing.aiEmailPlanner.save_failed'));
     }
   };
 
@@ -177,7 +177,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
                 <SelectItem value="all">{t('admin.marketing.aIEmailPlanner.alle_abonnees')}</SelectItem>
                 {segments.map((seg) => (
                   <SelectItem key={seg.id} value={seg.id}>
-                    {seg.name} ({seg.member_count} klanten)
+                    {t('admin.marketing.aiEmailPlanner.segment_option', { name: seg.name, count: seg.member_count })}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -196,7 +196,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
                 <Package className="h-4 w-4 mr-2" />
                 {selectedProductIds.length > 0 
                   ? t('admin.marketing.aiEmailPlanner.producten_geselecteerd', { count: selectedProductIds.length })
-                  : 'Kies producten om te promoten'
+                  : t('admin.marketing.aiEmailPlanner.choose_products')
                 }
               </Button>
               {selectedProductIds.length > 0 && (
@@ -270,7 +270,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Genereer Email Content ({creditCost} credits)
+                {t('admin.marketing.aiEmailPlanner.generate_button', { count: creditCost })}
               </>
             )}
           </Button>
@@ -280,7 +280,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
             <div className="space-y-4 p-4 rounded-lg border bg-muted/30">
               <div className="flex items-center gap-2">
                 {selectedType?.icon && <selectedType.icon className="h-5 w-5" />}
-                <span className="font-medium">{selectedType ? t(selectedType.nameKey) : ''} Email</span>
+                <span className="font-medium">{t('admin.marketing.aiEmailPlanner.generated_title', { type: selectedType ? t(selectedType.nameKey) : '' })}</span>
                 <Badge variant="secondary" className="flex items-center gap-1">
                   <Sparkles className="h-3 w-3" />
                   {t('admin.marketing.aIEmailPlanner.ai_gegenereerd')}
@@ -386,7 +386,7 @@ export function AIEmailPlanner({ initialCampaignType, initialProductIds }: AIEma
                         {selectedSubject === i && <Check className="h-4 w-4 text-primary" />}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {subject.length} karakters
+                        {t('admin.marketing.aiEmailPlanner.characters', { count: subject.length })}
                       </p>
                     </div>
                   ))}

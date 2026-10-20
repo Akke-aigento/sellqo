@@ -2106,7 +2106,7 @@
         },
         "email_automations": {
           "title": "Email automations",
-          "description": "Under Marketing → Automations you can switch on four fixed email series: a welcome series as soon as a subscriber confirms their subscription, a thank-you email and later a review request after a purchase, a win-back email for customers who haven't ordered for a while, and a reminder for an abandoned cart. That reminder only goes to customers who are subscribed or have bought from you before. You edit the subject and text per language, and all automation emails count toward your monthly marketing email limit."
+          "description": "Under Marketing → Email → Automations you can switch on four fixed email series: a welcome series as soon as a subscriber confirms their subscription, a thank-you email and later a review request after a purchase, a win-back email for customers who haven't ordered for a while, and a reminder for an abandoned cart. That reminder only goes to customers who are subscribed or have bought from you before. You edit the subject and text per language, and all automation emails count toward your monthly marketing email limit."
         },
         "email_product_blocks": {
           "title": "Products in your email",
@@ -2130,7 +2130,15 @@
         },
         "email_signup_cleanup": {
           "title": "Your welcome email moves to the Welcome series; subscribing always requires confirmation",
-          "description": "The newsletter settings have been tidied up. If you had your own welcome email there, it is now the first email in Marketing → Automations → Welcome series, with your own subject and design. The series is switched on, so your new subscribers receive the same welcome email as before, right after confirming. Subscribing always requires confirmation (double opt-in); that switch is gone. Settings → Email sign-up shows you the way to your subscribers and your welcome email."
+          "description": "The newsletter settings have been tidied up. If you had your own welcome email there, it is now the first email in Marketing → Email → Automations → Welcome series, with your own subject and design. The series is switched on, so your new subscribers receive the same welcome email as before, right after confirming. Subscribing always requires confirmation (double opt-in); that switch is gone. Settings → Email sign-up shows you the way to your subscribers and your welcome email."
+        },
+        "email_page_tabs": {
+          "title": "Marketing → Email is clearer, also on your phone",
+          "description": "The tabs are now at the top: Overview, Campaigns, Automations, Templates, Segments and Subscribers. Automations is no longer a separate menu item but a tab of Email; old links still end up in the right place. The duplicate blocks with quick actions and recent campaigns are gone. If you have no campaigns yet, the page opens on Campaigns. The tiles and the chart of the overview follow your language, and the subscriber count comes from the same count as the Subscribers tab, so both always show the same number. On a narrow screen the tabs scroll sideways and the buttons of the campaign windows stay visible."
+        },
+        "email_logo_existing": {
+          "title": "An email version of the logo you already had",
+          "description": "If you uploaded your logo before SellQo made a version for emails, that now happens automatically as soon as you open Marketing or Settings as an administrator. If that does not work, you will find the button Create an email version of your current logo next to your logo. So you do not need to upload your logo again."
         }
       },
       "copyLink": "Copy link",

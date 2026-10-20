@@ -185,7 +185,7 @@ function generateQuickActions(type: string, data: Record<string, unknown>): Quic
         label: 'Abandoned cart email',
         icon: 'ShoppingCart',
         action_type: 'navigate',
-        action_url: '/admin/marketing/automations?trigger=abandoned_cart',
+        action_url: '/admin/marketing?tab=automations&trigger=abandoned_cart',
         variant: 'primary',
       });
       break;

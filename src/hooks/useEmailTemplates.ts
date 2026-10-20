@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import i18n from 'i18next';
 import type { EmailTemplate } from '@/types/marketing';
 import type { Json } from '@/integrations/supabase/types';
 
@@ -43,10 +44,10 @@ export function useEmailTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
-      toast({ title: 'Template aangemaakt' });
+      toast({ title: i18n.t('admin.marketing.toast.template_aangemaakt') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij aanmaken', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_aanmaken'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -67,10 +68,10 @@ export function useEmailTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
-      toast({ title: 'Template bijgewerkt' });
+      toast({ title: i18n.t('admin.marketing.toast.template_bijgewerkt') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij bijwerken', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_bijwerken'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -85,10 +86,10 @@ export function useEmailTemplates() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['email-templates'] });
-      toast({ title: 'Template verwijderd' });
+      toast({ title: i18n.t('admin.marketing.toast.template_verwijderd') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij verwijderen', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.marketing.toast.fout_bij_verwijderen'), description: error.message, variant: 'destructive' });
     },
   });
 

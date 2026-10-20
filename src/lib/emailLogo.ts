@@ -128,6 +128,55 @@ export function emailLogoPath(tenantId: string, hash: string): string {
   return `${tenantId}/email-logo-${hash}.png`;
 }
 
+/**
+ * MAIL-UX-1 — welk logo de mail nu toont en of er nog een mailversie van gemaakt moet worden.
+ * Spiegel van pickEmailLogo (supabase/functions/_shared/tenantEmail.ts): het themalogo gaat voor,
+ * anders het bedrijfslogo. Een mailversie is nodig zolang email_logo_source_url niet gelijk is aan
+ * dat logo. Is de bron gelijk maar de variant leeg, dan bleek het logo bij een eerdere poging
+ * onbruikbaar voor mail (onleesbaar, wit of leeg): niet opnieuw proberen.
+ */
+export interface EmailLogoState {
+  /** Het logo waarvan de mailversie gemaakt wordt; '' zonder logo. */
+  currentLogo: string;
+  /** Waar dat logo vandaan komt (zelfde betekenis als LogoTarget in useLogoUpload). */
+  target: 'theme' | 'tenant';
+  needsVariant: boolean;
+}
+
+export function emailLogoState(input: {
+  themeLogo?: unknown;
+  tenantLogo?: unknown;
+  emailLogoSource?: unknown;
+}): EmailLogoState {
+  const theme = typeof input.themeLogo === 'string' ? input.themeLogo.trim() : '';
+  const tenant = typeof input.tenantLogo === 'string' ? input.tenantLogo.trim() : '';
+  const currentLogo = theme || tenant;
+  const source = typeof input.emailLogoSource === 'string' ? input.emailLogoSource.trim() : '';
+  return {
+    currentLogo,
+    target: theme ? 'theme' : 'tenant',
+    needsVariant: /^https?:\/\//i.test(currentLogo) && source !== currentLogo,
+  };
+}
+
+/** Bestandsnaam voor een opgehaald logo; het type komt uit de response, anders uit de extensie. */
+export function logoFileMeta(url: string, contentType: string | null | undefined): { name: string; type: string } {
+  let name = 'logo';
+  try {
+    const last = new URL(url).pathname.split('/').filter(Boolean).pop();
+    if (last) name = decodeURIComponent(last);
+  } catch {
+    // ongeldige URL: standaardnaam
+  }
+  const ct = (contentType || '').split(';')[0].trim().toLowerCase();
+  if (ct.startsWith('image/')) return { name, type: ct };
+  const ext = /\.([a-z0-9]+)$/i.exec(name)?.[1]?.toLowerCase();
+  const byExt: Record<string, string> = {
+    svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif',
+  };
+  return { name, type: (ext && byExt[ext]) || ct || 'application/octet-stream' };
+}
+
 // ── Browser ──────────────────────────────────────────────────────────
 
 /** unreadable: kapot of onbekend formaat; blank: alles wit of transparant (onzichtbaar op het witte logovlak). */

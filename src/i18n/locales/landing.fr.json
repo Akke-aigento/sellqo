@@ -2106,7 +2106,7 @@
         },
         "email_automations": {
           "title": "Automatisations d'e-mails",
-          "description": "Dans Marketing → Automatisations, vous activez quatre séries d'e-mails fixes : une série de bienvenue dès qu'un abonné confirme son inscription, un e-mail de remerciement puis une demande d'avis après un achat, un e-mail de reconquête pour les clients qui n'ont plus commandé depuis un certain temps, et un rappel en cas de panier abandonné. Ce rappel n'est envoyé qu'aux clients inscrits ou ayant déjà acheté chez vous. Vous modifiez l'objet et le texte par langue, et tous les e-mails d'automatisation comptent dans votre limite mensuelle d'e-mails marketing."
+          "description": "Dans Marketing → E-mail → Automatisations, vous activez quatre séries d'e-mails fixes : une série de bienvenue dès qu'un abonné confirme son inscription, un e-mail de remerciement puis une demande d'avis après un achat, un e-mail de reconquête pour les clients qui n'ont plus commandé depuis un certain temps, et un rappel en cas de panier abandonné. Ce rappel n'est envoyé qu'aux clients inscrits ou ayant déjà acheté chez vous. Vous modifiez l'objet et le texte par langue, et tous les e-mails d'automatisation comptent dans votre limite mensuelle d'e-mails marketing."
         },
         "email_product_blocks": {
           "title": "Des produits dans votre e-mail",
@@ -2130,7 +2130,15 @@
         },
         "email_signup_cleanup": {
           "title": "Votre e-mail de bienvenue passe dans la Série de bienvenue ; l'inscription se fait toujours avec confirmation",
-          "description": "Les paramètres de la newsletter ont été simplifiés. Si vous y aviez votre propre e-mail de bienvenue, il est désormais le premier e-mail de Marketing → Automatisations → Série de bienvenue, avec votre propre objet et votre propre design. La série est activée : vos nouveaux abonnés reçoivent donc le même e-mail de bienvenue qu'avant, juste après leur confirmation. L'inscription se fait toujours avec confirmation (double opt-in) ; ce bouton a disparu. Paramètres → Inscription par e-mail vous indique où trouver vos abonnés et votre e-mail de bienvenue."
+          "description": "Les paramètres de la newsletter ont été simplifiés. Si vous y aviez votre propre e-mail de bienvenue, il est désormais le premier e-mail de Marketing → E-mail → Automatisations → Série de bienvenue, avec votre propre objet et votre propre design. La série est activée : vos nouveaux abonnés reçoivent donc le même e-mail de bienvenue qu'avant, juste après leur confirmation. L'inscription se fait toujours avec confirmation (double opt-in) ; ce bouton a disparu. Paramètres → Inscription par e-mail vous indique où trouver vos abonnés et votre e-mail de bienvenue."
+        },
+        "email_page_tabs": {
+          "title": "Marketing → E-mail est plus clair, aussi sur votre téléphone",
+          "description": "Les onglets sont désormais en haut : Aperçu, Campagnes, Automatisations, Modèles, Segments et Abonnés. Automatisations n'est plus une entrée de menu séparée mais un onglet d'E-mail ; les anciens liens mènent toujours au bon endroit. Les blocs en double avec les actions rapides et les campagnes récentes ont disparu. Si vous n'avez pas encore de campagne, la page s'ouvre sur Campagnes. Les tuiles et le graphique de l'aperçu suivent votre langue, et le nombre d'abonnés provient du même comptage que l'onglet Abonnés : les deux affichent toujours le même nombre. Sur un écran étroit, les onglets défilent latéralement et les boutons des fenêtres de campagne restent visibles."
+        },
+        "email_logo_existing": {
+          "title": "Une version e-mail du logo que vous aviez déjà",
+          "description": "Si vous aviez téléversé votre logo avant que SellQo n'en crée une version pour les e-mails, cela se fait désormais automatiquement dès que vous ouvrez Marketing ou Paramètres en tant qu'administrateur. Si cela ne fonctionne pas, vous trouverez près de votre logo le bouton Créer une version e-mail de votre logo actuel. Vous n'avez donc pas besoin de téléverser à nouveau votre logo."
         }
       },
       "copyLink": "Copier le lien",

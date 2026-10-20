@@ -35,7 +35,6 @@ import {
   Languages,
   Wallet,
   Library,
-  Workflow,
 } from 'lucide-react';
 
 import type { AppRole } from '@/hooks/useAuth';
@@ -107,7 +106,7 @@ export const MARKETING_ALLOWED_ITEMS = [
   'customers',
   'ads', 'ads-overview', 'ads-bolcom', 'ads-products', 'ads-ai',
   'promotions', 'promo-codes', 'promo-bundles', 'promo-bogo', 'promo-volume', 'promo-auto', 'promo-gifts', 'promo-loyalty', 'promo-groups', 'promo-giftcards',
-  'social-planner', 'campaigns', 'automations', 'media', 'seo',
+  'social-planner', 'campaigns', 'media', 'seo',
   'translations',
   'reports', 'reports-overview', 'reports-analytics', 'reports-stock',
   'help',
@@ -211,8 +210,7 @@ const marketingItems: NavItem[] = [
   // beheerweergave). Geen plan bevat deze key; zie useSocialAccess.
   { id: 'social-planner', titleKey: 'navigation.items.social', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing', featureKey: 'social_planner' },
   { id: 'campaigns', titleKey: 'navigation.items.email', url: '/admin/marketing', icon: Mail, requireRead: 'marketing' },
-  // MAIL-2a: vaste e-mailreeksen (welkom, na aankoop, win-back, verlaten winkelwagen).
-  { id: 'automations', titleKey: 'navigation.items.email_automations', url: '/admin/marketing/automations', icon: Workflow, requireRead: 'marketing' },
+  // MAIL-UX-1: Automatiseringen (MAIL-2a) is een tabblad van E-mail (?tab=automations), geen eigen item meer.
   { id: 'media', titleKey: 'navigation.items.media', url: '/admin/marketing/media', icon: Images, requireRead: 'marketing' },
   { id: 'seo', titleKey: 'navigation.items.seo', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },
   // MARKETING-2: Ads verhuisd uit Verkoop naar Marketing.

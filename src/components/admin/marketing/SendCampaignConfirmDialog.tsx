@@ -27,7 +27,7 @@ interface SendCampaignConfirmDialogProps {
  * verzenden als er geen geldige afzender is of de planlimiet niet volstaat.
  */
 export function SendCampaignConfirmDialog({ campaignId, onOpenChange, onConfirm, isSending }: SendCampaignConfirmDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const open = !!campaignId;
 
   const { data, isLoading, error } = useQuery({
@@ -66,7 +66,7 @@ export function SendCampaignConfirmDialog({ campaignId, onOpenChange, onConfirm,
                   </p>
                   {limit?.monthly != null && (
                     <p>
-                      {t('admin.marketing.sendConfirm.planverbruik', { used: limit.used, monthly: limit.monthly })}
+                      {t('admin.marketing.sendConfirm.planverbruik', { used: limit.used.toLocaleString(i18n.language), monthly: limit.monthly.toLocaleString(i18n.language) })}
                     </p>
                   )}
                   {noSender && (

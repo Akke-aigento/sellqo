@@ -1260,7 +1260,12 @@
       "noLogoName": "Without a logo, your shop name appears at the top of your emails.",
       "noVariantTitle": "Email version could not be made",
       "noVariantBody": "Your logo was saved for your shop, but no email version could be made from it. Your emails show your shop name. Upload a PNG, JPG, WebP or SVG to see your logo in your emails too.",
-      "blankWarning": "Your logo is white or empty on a white background; your emails show your shop name instead."
+      "blankWarning": "Your logo is white or empty on a white background; your emails show your shop name instead.",
+      "fromCurrentHint": "Your logo does not have an email version yet. It trims empty borders and has the right size for the header of your emails.",
+      "fromCurrentButton": "Create an email version of your current logo",
+      "fromCurrentSaved": "Email version of your logo saved",
+      "fromCurrentFetchFailedTitle": "Could not load the logo",
+      "fromCurrentFetchFailedBody": "Nothing was changed. Try again later, or upload your logo again."
     },
     "emailSignup": {
       "title": "Email sign-up",
@@ -1271,7 +1276,7 @@
       "subscribers_path": "Marketing → Email → Subscribers",
       "subscribers_body": "See who is subscribed, who still needs to confirm, and invite people.",
       "welcome_title": "Welcome email",
-      "welcome_path": "Marketing → Automations → Welcome series",
+      "welcome_path": "Marketing → Email → Automations → Welcome series",
       "welcome_body": "Your previous welcome email is now here, as the first email of the welcome series."
     }
   },
@@ -2724,7 +2729,9 @@
         "geen_producten_gevonden": "No products found",
         "lage_voorraad": "Low stock",
         "producten_selecteren": "Select products",
-        "wis_alles": "Clear all"
+        "wis_alles": "Clear all",
+        "description": "Choose up to {{max}} products for your AI content",
+        "selected_of": "{{count}} of {{max}} selected"
       },
       "promoKitResult": {
         "afbeeldingen": "Images",
@@ -2750,7 +2757,12 @@
         "live": "Live",
         "live_activiteit": "Live activity",
         "nog_geen_activiteit": "No activity yet",
-        "realtime_email_interacties": "Real-time email interactions"
+        "realtime_email_interacties": "Real-time email interactions",
+        "action": {
+          "opened": "opened",
+          "clicked": "clicked a link in",
+          "delivered": "received"
+        }
       },
       "segmentBuilder": {
         "klanttype": "Customer type",
@@ -2918,7 +2930,15 @@
           }
         },
         "producten_geselecteerd": "{{count}} product(s) selected",
-        "campagne": "Campaign"
+        "campagne": "Campaign",
+        "insufficient_credits": "Not enough AI credits",
+        "saved_as_draft": "Campaign saved as draft",
+        "save_failed": "Could not save the campaign",
+        "segment_option": "{{name}} ({{count}} customers)",
+        "choose_products": "Choose products to promote",
+        "generate_button": "Generate email ({{count}} credits)",
+        "generated_title": "Email: {{type}}",
+        "characters": "{{count}} characters"
       },
       "aiImageGenerator": {
         "styles": {
@@ -3184,7 +3204,12 @@
         "click_rate": "Click rate",
         "open_rate": "Open rate",
         "subscribers": "Subscribers",
-        "uitschrijvingen": "Unsubscribes"
+        "uitschrijvingen": "Unsubscribes",
+        "campaigns_count": "Campaigns: {{value}}",
+        "opened_count": "Opened: {{value}}",
+        "clicked_count": "Clicked: {{value}}",
+        "subscribers_hint": "Receive your campaigns",
+        "unsubscribes_hint": "Unsubscribed, bounced or complaint"
       },
       "productPromoWizard": {
         "10_credits": "+10 credits",
@@ -3364,7 +3389,7 @@
       },
       "concept_campagnes": "Draft campaigns",
       "eerste_campagne_maken": "Create your first campaign",
-      "email_campagnes_analytics_en_klant_engagement": "Email campaigns, analytics and customer engagement",
+      "email_campagnes_analytics_en_klant_engagement": "Campaigns, automated emails and your subscribers",
       "promptFavoritesDropdown": {
         "favorieten": "Favourites",
         "klik_om_prompt_te_laden": "Click to load the prompt"
@@ -3408,10 +3433,12 @@
         "title": "Create an email with AI"
       },
       "tabs": {
-        "campaigns": "All campaigns ({{count}})",
+        "campaigns": "Campaigns ({{count}})",
         "templates": "Templates ({{count}})",
         "segments": "Segments ({{count}})",
-        "subscribers": "Subscribers"
+        "subscribers": "Subscribers",
+        "overview": "Overview",
+        "automations": "Automations"
       },
       "nieuwe_campagne": "New campaign",
       "geen_campagnes": "No campaigns",
@@ -3428,7 +3455,10 @@
         "fout_bij_verwijderen": "Error while deleting",
         "fout_bij_verzenden": "Error while sending",
         "campagne_wordt_verstuurd": "Your campaign is being sent to {{count}} recipients",
-        "telling_mislukt": "Could not retrieve the number of recipients"
+        "telling_mislukt": "Could not retrieve the number of recipients",
+        "template_aangemaakt": "Template created",
+        "template_bijgewerkt": "Template updated",
+        "template_verwijderd": "Template deleted"
       },
       "sendConfirm": {
         "ontvangers_tellen": "Counting recipients...",
@@ -3680,6 +3710,11 @@
         "used_of": "{{used}} of {{monthly}} marketing emails this month",
         "used_unlimited": "{{used}} marketing emails this month (unlimited)",
         "see_plans": "View plans"
+      },
+      "chart": {
+        "sent": "Sent",
+        "opened": "Opened",
+        "clicked": "Clicked"
       }
     },
     "ads": {
@@ -6904,7 +6939,7 @@
       "features": {
         "newsletter_where": "Subscribing always requires confirmation. You manage your subscribers and your welcome email in Marketing:",
         "newsletter_link_email": "Email → Subscribers",
-        "newsletter_link_automations": "Automations → Welcome series"
+        "newsletter_link_automations": "Email → Automations → Welcome series"
       }
     },
     "allergens": {

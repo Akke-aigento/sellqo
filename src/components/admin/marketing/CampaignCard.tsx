@@ -34,26 +34,23 @@ const statusConfig: Record<CampaignStatus, { labelKey: string; variant: 'default
 };
 
 export function CampaignCard({ campaign, onDelete, onSend, onEdit }: CampaignCardProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const navigate = useNavigate();
   const status = statusConfig[campaign.status as CampaignStatus] || statusConfig.draft;
 
-  const openRate = campaign.total_sent > 0 
-    ? ((campaign.total_opened / campaign.total_sent) * 100).toFixed(1)
-    : '0';
-  
-  const clickRate = campaign.total_sent > 0 
-    ? ((campaign.total_clicked / campaign.total_sent) * 100).toFixed(1)
-    : '0';
+  const pct = (part: number) => (campaign.total_sent > 0 ? (part / campaign.total_sent) * 100 : 0)
+    .toLocaleString(i18n.language, { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const openRate = pct(campaign.total_opened);
+  const clickRate = pct(campaign.total_clicked);
 
   return (
     <Card 
       className="transition-all hover:shadow-md cursor-pointer group"
       onClick={() => navigate(`/admin/marketing/campaigns/${campaign.id}`)}
     >
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-        <div className="space-y-1">
+      <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0 pb-2">
+        <div className="min-w-0 space-y-1">
           <CardTitle className="text-base font-semibold group-hover:text-primary transition-colors">
             {campaign.name}
           </CardTitle>
@@ -61,7 +58,7 @@ export function CampaignCard({ campaign, onDelete, onSend, onEdit }: CampaignCar
             {campaign.subject}
           </CardDescription>
         </div>
-        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <Badge variant={status.variant} className="gap-1">
             {campaign.status === 'sending' && <Loader2 className="h-3 w-3 animate-spin" />}
             {t(status.labelKey)}
@@ -104,8 +101,9 @@ export function CampaignCard({ campaign, onDelete, onSend, onEdit }: CampaignCar
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-4">
+        {/* MAIL-UX-1: op mobiel onder elkaar (datum boven, cijfers eronder), vanaf sm naast elkaar. */}
+        <div className="flex flex-col gap-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
             {campaign.segment && (
               <span className="text-muted-foreground">
                 {t('admin.marketing.campaignCard.segment')} <span className="font-medium text-foreground">{campaign.segment.name}</span>
@@ -126,7 +124,7 @@ export function CampaignCard({ campaign, onDelete, onSend, onEdit }: CampaignCar
           {campaign.status === 'sent' && (
             <div className="flex items-center gap-6">
               <div className="text-center">
-                <div className="text-lg font-bold text-foreground">{campaign.total_sent}</div>
+                <div className="text-lg font-bold text-foreground">{campaign.total_sent.toLocaleString(i18n.language)}</div>
                 <div className="text-xs text-muted-foreground">{t('admin.marketing.campaignCard.verzonden_kort')}</div>
               </div>
               <div className="text-center">

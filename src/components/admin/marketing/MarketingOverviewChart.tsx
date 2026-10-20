@@ -5,12 +5,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { subDays, format } from 'date-fns';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useTranslation } from 'react-i18next';
 
 interface OverviewChartProps {
   period?: '7d' | '30d' | '90d';
 }
 
 export function MarketingOverviewChart({ period = '30d' }: OverviewChartProps) {
+  const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const { currentTenant } = useTenant();
 
@@ -69,7 +71,7 @@ export function MarketingOverviewChart({ period = '30d' }: OverviewChartProps) {
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart
           data={chartData}
-          margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+          margin={{ top: 10, right: 8, left: -16, bottom: 0 }}
         >
           <defs>
             <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
@@ -112,13 +114,13 @@ export function MarketingOverviewChart({ period = '30d' }: OverviewChartProps) {
             verticalAlign="top"
             height={36}
             formatter={(value) => (
-              <span className="text-sm text-muted-foreground capitalize">{value}</span>
+              <span className="text-sm text-muted-foreground">{value}</span>
             )}
           />
           <Area
             type="monotone"
             dataKey="sent"
-            name="Verzonden"
+            name={t('admin.marketing.chart.sent')}
             stroke="hsl(var(--chart-1))"
             strokeWidth={2}
             fillOpacity={1}
@@ -127,7 +129,7 @@ export function MarketingOverviewChart({ period = '30d' }: OverviewChartProps) {
           <Area
             type="monotone"
             dataKey="opened"
-            name="Geopend"
+            name={t('admin.marketing.chart.opened')}
             stroke="hsl(var(--chart-2))"
             strokeWidth={2}
             fillOpacity={1}
@@ -136,7 +138,7 @@ export function MarketingOverviewChart({ period = '30d' }: OverviewChartProps) {
           <Area
             type="monotone"
             dataKey="clicked"
-            name="Geklikt"
+            name={t('admin.marketing.chart.clicked')}
             stroke="hsl(var(--chart-3))"
             strokeWidth={2}
             fillOpacity={1}

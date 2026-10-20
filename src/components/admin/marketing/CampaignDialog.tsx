@@ -466,7 +466,8 @@ export function CampaignDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      {/* MAIL-UX-1: grid-cols-1 = minmax(0,1fr): de inhoud mag de dialoog op 390 px niet breder maken; knoppen blijven onderaan zichtbaar. */}
+      <DialogContent className="max-w-4xl max-h-[90dvh] grid-cols-1 overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {campaign ? t('admin.adsBolcomCampaignDetail.campagne_bewerken') : t('admin.marketing.campaignDialog.nieuwe_campagne_aanmaken')}
@@ -761,7 +762,7 @@ export function CampaignDialog({
 
             {/* Editor mode toggle + preview */}
             <div>
-              <div className="flex items-center justify-between mb-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                 <FormLabel>
                   {t('admin.marketing.campaignDialog.email_inhoud')}
                   {isMultiLang && (
@@ -770,7 +771,7 @@ export function CampaignDialog({
                     </span>
                   )}
                 </FormLabel>
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <Button
                     type="button"
                     variant="ghost"
@@ -931,7 +932,7 @@ export function CampaignDialog({
 
             </div>
 
-            <DialogFooter>
+            <DialogFooter className="sticky -bottom-6 z-10 -mx-6 -mb-6 gap-2 border-t bg-background px-6 py-4">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 {t('common.cancel')}
               </Button>

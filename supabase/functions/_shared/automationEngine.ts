@@ -180,7 +180,7 @@ async function notifyPlanLimit(db: Db, tenantId: string, limit: number, used: nu
     p_title: "Automatische mails gepauzeerd: limiet bereikt",
     p_message: `Je plan laat deze maand ${limit} marketingmails toe en die zijn op (${used} gebruikt). Automatische mails worden overgeslagen tot volgende maand of tot je je plan verhoogt.`,
     p_priority: "high",
-    p_action_url: "/admin/marketing/automations",
+    p_action_url: "/admin/marketing?tab=automations",
     p_metadata: { limit, used },
   });
   if (error) console.error("[automationEngine] melding limiet mislukt", tenantId, error.message);

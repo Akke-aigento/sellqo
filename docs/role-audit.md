@@ -1,3 +1,45 @@
+## MAIL-UX-1 — Marketing → E-mail: tabbladen bovenaan, Automatiseringen als tabblad, i18n, mobiel, mailversie van bestaande logo's — 20 oktober 2026
+
+Go van Akke 20-10 13:02 ("automations als tab", "design op mobile en desktop", "geen dubbelingen", "doe maar die logo's"). Branch `mail-ux-1` op `origin/main` 4a46e6c, niet gepusht.
+
+**Root cause**
+- `src/pages/admin/Marketing.tsx`: de tabbladen (Campagnes/Templates/Segmenten/Abonnees) stonden onder de KPI-tegels, de grafiek, "Snelle acties" en "Recente campagnes". Die twee blokken dupliceerden de knoppen in de kop en de campagnelijst eronder.
+- Automatiseringen was een eigen zijbalkitem en pagina (`/admin/marketing/automations`, `sidebarConfig.ts` id `automations`) naast E-mail.
+- i18n: `MarketingStatsCards.tsx` had hardcoded NL-sublabels (`${n} campagnes`, `geopend`, `clicks`, `actieve ontvangers`, `totaal`, getallen in `nl-NL`), `MarketingOverviewChart.tsx` de legenda `Verzonden/Geopend/Geklikt`, `RealtimeActivityFeed.tsx` `opende/klikte op een link in/ontving`, `AIEmailPlanner.tsx` 3 toasts + 5 teksten, `ProductSelectDialog.tsx` 2 teksten, `useEmailTemplates.ts` 6 toasts; NL-waarden "Open Rate"/"Subscribers"/"open rate" waren Engels; `CampaignCard` toonde `47.4%` met punt.
+- Abonnees-tegel 18 vs 19 (VanXcel): de drie definities zijn live gelijk voor álle tenants (SQL: `customers.email_subscribed` = `marketing_contacts_all` status subscribed = audience-regels van `_shared/campaignAudience.ts`; VanXcel 19/19/19, 0 uitschrijvingen, geen dubbele adressen). De 18 kwam uit `AnimatedCounter.tsx`: ease-out met `Math.floor` haalt 18/19 vanaf 62 % van de animatie, en een tabblad op de achtergrond krijgt geen `requestAnimationFrame` meer, dus de teller bleef op een tussenstand staan. Daarnaast telde de tegel rechtstreeks `customers` en `email_unsubscribes` (rijen, inclusief dubbele adressen) in plaats van de bron van het tabblad Abonnees.
+- Mobiel 390 px: `CampaignDialog` werd 518 px breed (grid-item met min-content van de editorbalk), de knoppen stonden pas na ~700 px scrollen.
+- Logo's van vóór MAIL-LOGO-1 kregen nooit een mailversie (geen backfill). Live: Astra Sleep, Demo Bakkerij, Loveke, VanXcel (themalogo) en The Fonske Crawl (bedrijfslogo) hebben een logo zonder variant.
+
+**Uitgevoerd**
+- `src/lib/marketing/marketingTabs.ts` (nieuw): whitelist `overview|campaigns|automations|templates|segments|subscribers`, standaardtab, query-behoud, doel van de oude route.
+- `src/pages/admin/Marketing.tsx`: tabbladen direct onder de kop, gestuurd door `?tab=` (replace, andere parameters blijven; `?trigger=` enkel bij Automatiseringen); actieve tab schuift op mobiel in beeld. Overzicht = verbruik + tegels + grafiek + live activiteit. "Snelle acties" en "Recente campagnes" weg. Kop: Nieuwe campagne + Maak met AI; op Templates enkel Nieuwe template, op Segmenten enkel Nieuw segment (geen dubbele knoppen meer in de tabbladen). Standaard: Overzicht als er campagnes zijn, anders Campagnes (lege staat verwijst naar de knop).
+- `src/components/admin/marketing/AutomationsTab.tsx` (verhuisd uit `pages/admin/MarketingAutomations.tsx`, zonder eigen PageHeader); `src/pages/admin/MarketingAutomations.tsx` is nu een `<Navigate>` naar `/admin/marketing?tab=automations` met behoud van de query; `App.tsx` route zonder RouteGuard (het doel bewaakt).
+- `sidebarConfig.ts`: item `automations` en `MARKETING_ALLOWED_ITEMS`-entry weg.
+- Links: `NewsletterSettings.tsx`, `StorefrontFeaturesSettings.tsx` → `?tab=automations&trigger=welcome_series`; `CampaignDetail.tsx` terug → `?tab=campaigns`; `ai-business-coach` action_url en `_shared/automationEngine.ts` p_action_url → nieuwe URL (bestaande meldingen gaan via de redirect).
+- Tellingen: `MarketingStatsCards.tsx` haalt abonnees en uitschrijvingen (unsubscribed+bounced+complaint, per adres) uit `useMarketingContactCounts` (RPC `marketing_contact_counts`, dezelfde query-key als het tabblad Abonnees); uitschrijvingstegel enkel voor wie de RPC die aantallen geeft (write marketing). `useMarketingStats` en `MarketingStats` zonder de losse customer-/unsubscribe-tellingen. `AnimatedCounter.tsx`: verborgen tabblad of reduced motion → meteen de echte waarde; bij verbergen tijdens de animatie ook.
+- i18n: alle bovenstaande strings via `t()`, getallen in `i18n.language`; nieuwe keys in nl/en/fr/de/uk; NL-waarden rechtgezet; menupaden "Marketing → E-mail → Automatiseringen" in UI en de changelog-entries `email_automations`/`email_signup_cleanup`.
+- Mobiel: tegels 2 kolommen (oneven laatste over de volle breedte), `CampaignCard` stapelt datum/cijfers, `CampaignDialog`/`AutomationStepDialog` `grid-cols-1` + sticky footer, editorbalk wrapt, `SendCampaignConfirmDialog` getallen opgemaakt.
+- Logo's: `src/lib/emailLogo.ts` `emailLogoState` + `logoFileMeta` (puur); `useLogoUpload.ts` `makeAndSaveEmailLogoVariant` (één codepad voor upload en bestaand logo), `fetchLogoFile`, `createFromCurrentLogo`; `src/hooks/useEmailLogoBackfill.ts` (`useEmailLogoState`, `useEmailLogoAutoBackfill`: 1,5 s na openen, één poging per sessie per winkel+logo, stil); `EmailLogoFromCurrentButton.tsx` in Branding (themalogo) en Bedrijfsgegevens (bedrijfslogo), enkel zichtbaar met recht, logo en ontbrekende variant van precies dat logo. Auto-backfill in `Marketing.tsx` en `Settings.tsx`.
+- Migratie `20261020130000_mail_ux_1.sql`: snapshot `snapshots.platform_20261020_doc_articles_mail_ux`; `email-automations` context_path → `/admin/marketing` + menupad; `emailcampagnes` menupad, teller op Overzicht, sectie "Wat vind je waar?", zin over de mailversie van een bestaand logo.
+- Slottaken: changelog 2026.13d (`email_page_tabs`, `email_logo_existing`) in 5 talen; newsletter-queue item 2026.13d + paden in twee openstaande items.
+
+**Security-keuzes**
+- Geen RLS/policy/grant gewijzigd. De tegels lezen via de bestaande SECURITY DEFINER-RPC met rolcontrole. De logo-backfill schrijft met de rechten van de ingelogde gebruiker (UPDATE tenants: tenant_admin/platformbeheerder; storage tenant-logos: eigen tenantmap) en draait enkel als `useCan('write','settings_general')`. Het ophalen van het logo is een anonieme `fetch` van een publieke URL zonder credentials.
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-api/storefront-customer-api/gedeelde tabel geraakt; geen kolom op `tenant_theme_settings`. `_shared/automationEngine.ts` enkel een tekst (action_url) → deploy `automation-scheduler` (enige importeur). `ai-business-coach` enkel een tekst.
+
+**Verificatie**
+- `tsc --noEmit -p tsconfig.app.json` exit 0; `npm run build` exit 0 (sitemap teruggezet); vitest 66 bestanden / 837 tests groen (nieuw: `marketingTabs.test.ts`, 7 tests in `emailLogo.test.ts`); i18n-parity groen; check-i18n-used-keys groen; check-notification-sources ok; verify-edge-pins ok; lint op de 34 gewijzigde .ts/.tsx-bestanden tegen HEAD: 48 → 47 (0 nieuwe `any`; de repo-brede baseline staat op HEAD al op +8, na deze batch +7); `deno check` automation-scheduler ok, ai-business-coach dezelfde 3 bestaande TS7006 als HEAD.
+- PGlite: migratie 2× gedraaid, tweede run verandert niets, ander artikel ongemoeid, snapshot met oude waarden. Live read-only: alle vier de ankerteksten bestaan in de huidige artikelen.
+- Playwright 390/1280 (gemockte Supabase): elk tabblad, de redirect van `/admin/marketing/automations?trigger=abandoned_cart`, Campagne-, Stap-, Verzend- en Productdialoog: `scrollWidth == viewport` overal, dialoog-scrollWidth == clientWidth, sticky knoppen onderaan zichtbaar.
+
+**Bewust ongemoeid / Vervolg**
+- `marketing_contacts_all` (RPC) en `_shared/campaignAudience.ts` verschillen in één regel: de verzending slaat adressen zonder `@` over. Live 0 zulke ingeschreven adressen; gelijktrekken vraagt een functiewijziging, niet gedaan.
+- Ongebruikte componenten `EmailBlockItem/Properties/Palette.tsx` (0 importers, hardcoded NL) niet vertaald; kandidaat om te verwijderen.
+- Segmentkaarten hebben geen bewerken/verwijderen (bestaand). `navigation.items.email_automations` en de keys van de oude blokken blijven in de JSON (ongebruikt).
+- Bestaande meldingen met `/admin/marketing/automations` werken via de redirect; `canonicalAdminPath` niet aangepast (zou 3 extra functies laten deployen).
+
 ## MAIL-CLEAN-1 — Oude nieuwsbriefroute opgeruimd: welkomstmail naar de Welkomstreeks, double opt-in vast — 20 oktober 2026
 
 Go van Akke 20-10 10:00 (incl. het weghalen van de double-opt-in-schakelaar). Branch `mail-clean-1` op `mail-logo-1` (b4e1bf2), niet gepusht.

@@ -20,6 +20,22 @@ export function AnimatedCounter({
   const startValueRef = useRef(0);
 
   useEffect(() => {
+    // MAIL-UX-1: een tabblad op de achtergrond krijgt geen animatieframes. De teller bleef dan op
+    // een tussenstand staan (live: 18 i.p.v. 19 abonnees, ease-out met Math.floor). Zonder
+    // zichtbare pagina of met "minder beweging" meteen de echte waarde; bij terugkeer ook.
+    const reduceMotion = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    if (typeof document === 'undefined' || document.hidden || reduceMotion) {
+      setDisplayValue(value);
+      return;
+    }
+    const finish = () => {
+      if (!document.hidden) return;
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      setDisplayValue(value);
+    };
+    document.addEventListener('visibilitychange', finish);
+
     startValueRef.current = displayValue;
     startTimeRef.current = null;
 
@@ -50,10 +66,13 @@ export function AnimatedCounter({
     rafRef.current = requestAnimationFrame(animate);
 
     return () => {
+      document.removeEventListener('visibilitychange', finish);
       if (rafRef.current) {
         cancelAnimationFrame(rafRef.current);
       }
     };
+    // displayValue is bewust geen afhankelijkheid: het is het startpunt, geen trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, duration]);
 
   return (

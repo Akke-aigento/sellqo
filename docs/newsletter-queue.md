@@ -4,6 +4,19 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13d — Marketing → E-mail overzichtelijker, en een mailversie van je bestaande logo (improvement, 20-10-2026)
+
+**Status:** klaar voor verzending zodra MAIL-UX-1 live staat (edge functions automation-scheduler en ai-business-coach, migratie 20261020130000, frontend gepubliceerd). Liefst samen met of na 2026.13b (logo in je mails).
+
+**Voor wie:** alle winkels die e-mailmarketing gebruiken.
+
+**E-mail met tabbladen bovenaan** (oktober 2026)
+In Marketing → E-mail staan de tabbladen nu meteen bovenaan: Overzicht, Campagnes, Automatiseringen, Templates, Segmenten en Abonnees. Automatiseringen is geen apart menu-item meer maar een tabblad van E-mail; oude links komen vanzelf op de juiste plek uit. De dubbele blokken met snelle acties en recente campagnes zijn weg, en het aantal abonnees op het overzicht is altijd gelijk aan dat op het tabblad Abonnees. Op je gsm schuiven de tabbladen opzij en blijven de knoppen van de campagnevensters in beeld.
+Had je je logo al geüpload voordat SellQo er een versie voor e-mails van maakte? Dan gebeurt dat nu vanzelf zodra je als beheerder Marketing of Instellingen opent. Lukt het niet, dan staat bij je logo de knop "Mailversie maken van je huidige logo".
+Wat betekent dit voor jou? Minder zoeken en scrollen, en je logo staat ook in je mails zonder dat je het opnieuw moet uploaden.
+
+i18n: `public.changelog.changes.email_page_tabs`, `public.changelog.changes.email_logo_existing`
+
 ### 2026.13c — Je welkomstmail verhuist naar de Welkomstreeks; inschrijven altijd met bevestiging (improvement, 20-10-2026)
 
 **Status:** klaar voor verzending zodra MAIL-CLEAN-1 live staat (eerst edge functions process-campaign-queue, send-campaign-batch, automation-scheduler, render-campaign-preview; dan migratie 20261020110000; dan frontend) en een testinschrijving op SellQo Speeltuin goed oogt.
@@ -11,7 +24,7 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 **Voor wie:** alle winkels met e-mailmarketing; vooral winkels die een eigen welkomstmail hadden.
 
 **Je welkomstmail staat nu in de Welkomstreeks** (oktober 2026)
-De instellingen voor de nieuwsbrief zijn opgeruimd. Had je daar een eigen welkomstmail, dan staat die nu als eerste mail in Marketing → Automatiseringen → Welkomstreeks, met je eigen onderwerp en ontwerp. De reeks staat aan: je nieuwe abonnees krijgen dezelfde welkomstmail als voorheen, meteen na hun bevestiging. Inschrijven gebeurt altijd met bevestiging (double opt-in). Onder Instellingen → E-mailinschrijving vind je de weg naar je abonnees en je welkomstmail.
+De instellingen voor de nieuwsbrief zijn opgeruimd. Had je daar een eigen welkomstmail, dan staat die nu als eerste mail in Marketing → E-mail → Automatiseringen → Welkomstreeks, met je eigen onderwerp en ontwerp. De reeks staat aan: je nieuwe abonnees krijgen dezelfde welkomstmail als voorheen, meteen na hun bevestiging. Inschrijven gebeurt altijd met bevestiging (double opt-in). Onder Instellingen → E-mailinschrijving vind je de weg naar je abonnees en je welkomstmail.
 Wat betekent dit voor jou? Al je automatische mails staan op één plek, en je past je welkomstmail aan waar je ook de rest van je reeksen beheert.
 
 i18n: `public.changelog.changes.email_signup_cleanup`
@@ -73,7 +86,7 @@ i18n: `public.changelog.changes.email_product_blocks`, `public.changelog.changes
 
 **Voor wie:** alle winkels die e-mailmarketing gebruiken.
 
-**Automatische e-mails in Marketing → Automatiseringen** (oktober 2026)
+**Automatische e-mails in Marketing → E-mail → Automatiseringen** (oktober 2026)
 Zet met één schakelaar vier automatische mails aan: een welkomstreeks van twee mails voor nieuwe abonnees, een bedankmail na een betaalde bestelling met later een vraag om een review, een mail voor klanten die al een tijd niets bestelden, en een herinnering als iemand bij het afrekenen afhaakt. De teksten staan klaar in het Nederlands, Engels, Frans en Duits en je past ze aan in je huisstijl. Alles staat standaard uit.
 Wat betekent dit voor jou? Je blijft in contact met je klanten zonder elke mail zelf te versturen. De mails gaan enkel naar klanten die ingeschreven zijn op je nieuwsbrief, en de winkelwagenherinnering ook naar wie eerder bij je kocht. Ze tellen mee voor je maandelijkse aantal marketingmails.
 

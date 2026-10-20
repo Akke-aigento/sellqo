@@ -48,7 +48,7 @@ export function NewsletterSettings() {
             </div>
           </Link>
           <Link
-            to="/admin/marketing/automations?trigger=welcome_series"
+            to="/admin/marketing?tab=automations&trigger=welcome_series"
             className="group flex items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/50"
           >
             <MailCheck className="h-5 w-5 shrink-0 text-muted-foreground mt-0.5" />

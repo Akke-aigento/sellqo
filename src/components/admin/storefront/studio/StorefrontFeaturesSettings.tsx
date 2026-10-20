@@ -224,7 +224,7 @@ export function StorefrontFeaturesSettings() {
                   {t('admin.storefront.features.newsletter_where')}{' '}
                   <Link to="/admin/marketing?tab=subscribers" className="underline">{t('admin.storefront.features.newsletter_link_email')}</Link>
                   {' · '}
-                  <Link to="/admin/marketing/automations?trigger=welcome_series" className="underline">{t('admin.storefront.features.newsletter_link_automations')}</Link>
+                  <Link to="/admin/marketing?tab=automations&trigger=welcome_series" className="underline">{t('admin.storefront.features.newsletter_link_automations')}</Link>
                 </p>
 
                 <div className="flex items-center justify-between">

@@ -124,11 +124,9 @@ export function RealtimeActivityFeed() {
   const getActivityLabel = (type: string) => {
     switch (type) {
       case 'opened':
-        return 'opende';
       case 'clicked':
-        return 'klikte op een link in';
       case 'delivered':
-        return 'ontving';
+        return t(`admin.marketing.realtimeActivityFeed.action.${type}`);
       default:
         return type;
     }

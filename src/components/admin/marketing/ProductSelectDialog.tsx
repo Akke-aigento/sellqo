@@ -92,7 +92,7 @@ export function ProductSelectDialog({
             {t('admin.marketing.productSelectDialog.producten_selecteren')}
           </DialogTitle>
           <DialogDescription>
-            Kies tot {maxSelect} producten om te gebruiken in je AI content
+            {t('admin.marketing.productSelectDialog.description', { max: maxSelect })}
           </DialogDescription>
         </DialogHeader>
 
@@ -218,7 +218,7 @@ export function ProductSelectDialog({
         {/* Footer */}
         <div className="flex items-center justify-between pt-4 border-t">
           <p className="text-sm text-muted-foreground">
-            {localSelected.length} van {maxSelect} geselecteerd
+            {t('admin.marketing.productSelectDialog.selected_of', { count: localSelected.length, max: maxSelect })}
           </p>
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => handleOpenChange(false)}>

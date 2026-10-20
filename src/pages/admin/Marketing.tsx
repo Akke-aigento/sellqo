@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { Plus, Mail, Users, FileText, Megaphone, TrendingUp, Zap, Bot, Sparkles, Trash2, Contact } from 'lucide-react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Plus, Mail, Users, FileText, Megaphone, Sparkles, Trash2, Contact, LayoutDashboard, Workflow, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +19,7 @@ import { SegmentDialog } from '@/components/admin/marketing/SegmentDialog';
 import { SendCampaignConfirmDialog } from '@/components/admin/marketing/SendCampaignConfirmDialog';
 import { MarketingEmailUsageIndicator } from '@/components/admin/marketing/MarketingEmailUsageIndicator';
 import { RealtimeActivityFeed } from '@/components/admin/marketing/RealtimeActivityFeed';
+import { AutomationsTab } from '@/components/admin/marketing/AutomationsTab';
 import { MarketingOverviewChart } from '@/components/admin/marketing/MarketingOverviewChart';
 import { useMarketingStats, useEmailCampaigns } from '@/hooks/useEmailCampaigns';
 import { useEmailTemplates } from '@/hooks/useEmailTemplates';
@@ -31,15 +32,17 @@ import { buildSeedTemplates } from '@/lib/seedEmailTemplates';
 import { useTenant } from '@/hooks/useTenant';
 import { useTenantBrand } from '@/hooks/useTenantBrand';
 import { useToast } from '@/hooks/use-toast';
-import { Sparkles as SparklesIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ResponsiveDialog } from '@/components/ui/responsive-dialog';
 import { FeatureGate } from '@/components/FeatureGate';
 import { AIEmailPlanner } from '@/components/admin/marketing/AIEmailPlanner';
 import { useCan } from '@/hooks/useCan';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
-
-const MARKETING_TABS = ['campaigns', 'templates', 'segments', 'subscribers'] as const;
+import { useMarketingContactCounts } from '@/hooks/useMarketingContacts';
+import { useEmailLogoAutoBackfill } from '@/hooks/useEmailLogoBackfill';
+import {
+  defaultMarketingTab, marketingTabSearch, parseMarketingTab, type MarketingTab,
+} from '@/lib/marketing/marketingTabs';
 
 export default function MarketingPage() {
   const { t } = useTranslation();
@@ -103,21 +106,52 @@ export default function MarketingPage() {
       setSeeding(false);
     }
   };
-  const { segments, isLoading: segmentsLoading, createSegment, deleteSegment } = useCustomerSegments();
+  const { segments, isLoading: segmentsLoading, createSegment } = useCustomerSegments();
+  // MAIL-UX-1: abonnees en uitschrijvingen uit dezelfde bron als het tabblad Abonnees
+  // (marketing_contact_counts, de regels van de verzending) — de cijfers kunnen niet meer verschillen.
+  const { data: contactCounts, isLoading: contactCountsLoading } = useMarketingContactCounts();
+  // MAIL-UX-1: ontbrekende mailversie van het logo stil op de achtergrond aanmaken (best effort).
+  useEmailLogoAutoBackfill();
 
   const defaultStats = {
-    totalCampaigns: 0, totalSent: 0, totalOpened: 0, totalClicked: 0,
-    avgOpenRate: 0, avgClickRate: 0, subscriberCount: 0, subscriberGrowth: 0, unsubscribeCount: 0,
+    totalCampaigns: 0, totalSent: 0, totalOpened: 0, totalClicked: 0, avgOpenRate: 0, avgClickRate: 0,
   };
 
-  const recentCampaigns = campaigns.slice(0, 5);
-  const draftCampaigns = campaigns.filter(c => c.status === 'draft');
+  // MAIL-UX-1: tabbladen bovenaan, in de URL (?tab=). Zonder ?tab= beslist het aantal campagnes
+  // (zie defaultMarketingTab); zolang de campagnes laden, is er nog geen keuze.
+  const tabParam = parseMarketingTab(searchParams.get('tab'));
+  const activeTab: MarketingTab | null = tabParam ?? (campaignsLoading ? null : defaultMarketingTab(campaigns.length));
+  // Op mobiel scrolt de tabrij horizontaal: het actieve tabblad (bv. via ?tab=automations) in beeld
+  // schuiven, zonder de pagina zelf verticaal te verplaatsen.
+  const tabListRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const list = tabListRef.current;
+    const active = list?.querySelector<HTMLElement>('[role="tab"][data-state="active"]');
+    if (!list || !active || list.scrollWidth <= list.clientWidth) return;
+    const left = active.getBoundingClientRect().left - list.getBoundingClientRect().left + list.scrollLeft;
+    list.scrollLeft = left - (list.clientWidth - active.offsetWidth) / 2;
+  }, [activeTab]);
+  const selectTab = (value: string) => {
+    const tab = parseMarketingTab(value);
+    if (tab) setSearchParams(marketingTabSearch(searchParams, tab), { replace: true });
+  };
+
+  const emptyState = (Icon: typeof Mail, title: string, body: string, action?: ReactNode) => (
+    <Card>
+      <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+        <Icon className="h-12 w-12 text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold">{title}</h3>
+        <p className="text-muted-foreground mb-4">{body}</p>
+        {action}
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2 flex-wrap">
             <Megaphone className="h-6 w-6" />
             {t('admin.marketing.marketing_command_center')}
@@ -127,160 +161,49 @@ export default function MarketingPage() {
             {t('admin.marketing.email_campagnes_analytics_en_klant_engagement')}
           </p>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          {showAI && (
-            <Button
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white border-0"
-              onClick={() => setAiEmailOpen(true)}
-            >
-              <Sparkles className="mr-2 h-4 w-4" />
-              {t('admin.marketing.aiEmail.button')}
-            </Button>
+        {/* MAIL-UX-1: één primaire actie per tabblad. Templates en Segmenten maken hun eigen item;
+            elders Nieuwe campagne met Maak met AI ernaast. */}
+        <div className="flex flex-wrap items-center gap-2">
+          {activeTab === 'templates' ? (
+            <GatedButton action="write" resource="marketing" onClick={() => setTemplateDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t('admin.marketing.nieuwe_template')}
+            </GatedButton>
+          ) : activeTab === 'segments' ? (
+            <GatedButton action="write" resource="marketing" onClick={() => setSegmentDialogOpen(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t('admin.marketing.nieuw_segment')}
+            </GatedButton>
+          ) : (
+            <>
+              {showAI && (
+                <Button variant="outline" onClick={() => setAiEmailOpen(true)}>
+                  <Sparkles className="mr-2 h-4 w-4 text-purple-600" />
+                  {t('admin.marketing.aiEmail.button')}
+                </Button>
+              )}
+              <GatedButton action="write" resource="marketing" onClick={() => setCampaignDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                {t('admin.marketing.nieuwe_campagne')}
+              </GatedButton>
+            </>
           )}
-          <GatedButton action="write" resource="marketing" variant="outline" onClick={() => setSegmentDialogOpen(true)}>
-            <Users className="mr-2 h-4 w-4" />
-            {t('admin.marketing.nieuw_segment')}
-          </GatedButton>
-          <GatedButton action="write" resource="marketing" onClick={() => setCampaignDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            {t('admin.marketing.nieuwe_campagne')}
-          </GatedButton>
         </div>
       </div>
 
-      {/* MAIL-LIMIT-UI: verbruik van marketingmails deze maand */}
-      <MarketingEmailUsageIndicator />
-
-      {/* KPI Stats */}
-      <MarketingStatsCards stats={stats || defaultStats} isLoading={statsLoading} />
-
-      {/* Main Dashboard Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Chart - takes 2 columns */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <div>
-              <CardTitle className="text-base">{t('admin.marketing.performance_over_tijd')}</CardTitle>
-              <CardDescription>{t('admin.marketing.verzonden_geopend_en_geklikt_emails')}</CardDescription>
-            </div>
-            <Select value={chartPeriod} onValueChange={(v) => setChartPeriod(v as '7d' | '30d' | '90d')}>
-              <SelectTrigger className="w-24">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7d">{t('admin.marketing.7_dagen')}</SelectItem>
-                <SelectItem value="30d">{t('admin.marketing.30_dagen')}</SelectItem>
-                <SelectItem value="90d">{t('admin.marketing.90_dagen')}</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardHeader>
-          <CardContent>
-            <MarketingOverviewChart period={chartPeriod} />
-          </CardContent>
-        </Card>
-
-        {/* Realtime Activity Feed */}
-        <RealtimeActivityFeed />
-      </div>
-
-      {/* Quick Actions + Recent Campaigns */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              {t('admin.marketing.snelle_acties')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => setCampaignDialogOpen(true)}
-            >
-              <Mail className="mr-2 h-4 w-4" />
-              {t('admin.marketing.nieuwe_campagne_starten')}
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => setTemplateDialogOpen(true)}
-            >
-              <FileText className="mr-2 h-4 w-4" />
-              {t('admin.marketing.template_maken')}
-            </Button>
-            <Button 
-              variant="outline" 
-              className="w-full justify-start"
-              onClick={() => setSegmentDialogOpen(true)}
-            >
-              <Users className="mr-2 h-4 w-4" />
-              {t('admin.marketing.segment_aanmaken')}
-            </Button>
-            
-            {draftCampaigns.length > 0 && (
-              <div className="pt-4 border-t">
-                <p className="text-sm text-muted-foreground mb-2">{t('admin.marketing.concept_campagnes')}</p>
-                {draftCampaigns.slice(0, 3).map(c => (
-                  <Badge key={c.id} variant="secondary" className="mr-1 mb-1">
-                    {c.name}
-                  </Badge>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Top Campaigns */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="text-base flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                {t('admin.marketing.recente_campagnes')}
-              </CardTitle>
-              <CardDescription>{t('admin.marketing.je_laatste_email_campagnes')}</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {campaignsLoading ? (
-              <div className="text-center py-4 text-muted-foreground">{t('common.loading')}</div>
-            ) : recentCampaigns.length === 0 ? (
-              <div className="text-center py-8">
-                <Mail className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">{t('admin.marketing.nog_geen_campagnes')}</p>
-                <Button size="sm" className="mt-2" onClick={() => setCampaignDialogOpen(true)}>
-                  {t('admin.marketing.eerste_campagne_maken')}
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {recentCampaigns.map((campaign) => (
-                  <CampaignCard
-                    key={campaign.id}
-                    campaign={campaign}
-                    onDelete={(id) => deleteCampaign.mutate(id)}
-                    onSend={(id) => setConfirmSendId(id)}
-                    onEdit={(c) => setEditingCampaign(c)}
-                  />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Full Tab Section */}
-      {/* MAIL-CLEAN-1: ?tab=subscribers (bv. vanuit Instellingen → E-mailinschrijving) opent dat tabblad. */}
-      <Tabs
-        defaultValue={MARKETING_TABS.find((v) => v === searchParams.get('tab')) ?? 'campaigns'}
-        className="space-y-4"
-      >
-        <TabsList>
+      <Tabs value={activeTab ?? ''} onValueChange={selectTab} className="space-y-4">
+        <TabsList ref={tabListRef} scrollHint className="w-full sm:w-auto">
+          <TabsTrigger value="overview" className="gap-2">
+            <LayoutDashboard className="h-4 w-4" />
+            {t('admin.marketing.tabs.overview')}
+          </TabsTrigger>
           <TabsTrigger value="campaigns" className="gap-2">
             <Mail className="h-4 w-4" />
             {t('admin.marketing.tabs.campaigns', { count: campaigns.length })}
+          </TabsTrigger>
+          <TabsTrigger value="automations" className="gap-2">
+            <Workflow className="h-4 w-4" />
+            {t('admin.marketing.tabs.automations')}
           </TabsTrigger>
           <TabsTrigger value="templates" className="gap-2">
             <FileText className="h-4 w-4" />
@@ -296,21 +219,50 @@ export default function MarketingPage() {
           </TabsTrigger>
         </TabsList>
 
+        {activeTab === null && (
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        )}
+
+        <TabsContent value="overview" className="space-y-6">
+          {/* MAIL-LIMIT-UI: verbruik van marketingmails deze maand */}
+          <MarketingEmailUsageIndicator />
+          <MarketingStatsCards
+            stats={stats || defaultStats}
+            contacts={contactCounts}
+            canSeeUnsubscribes={canWriteMarketing}
+            isLoading={statsLoading || contactCountsLoading}
+          />
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="lg:col-span-2 min-w-0">
+              <CardHeader className="flex flex-row items-start justify-between gap-2 pb-2">
+                <div className="min-w-0">
+                  <CardTitle className="text-base">{t('admin.marketing.performance_over_tijd')}</CardTitle>
+                  <CardDescription>{t('admin.marketing.verzonden_geopend_en_geklikt_emails')}</CardDescription>
+                </div>
+                <Select value={chartPeriod} onValueChange={(v) => setChartPeriod(v as '7d' | '30d' | '90d')}>
+                  <SelectTrigger className="w-28 shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7d">{t('admin.marketing.7_dagen')}</SelectItem>
+                    <SelectItem value="30d">{t('admin.marketing.30_dagen')}</SelectItem>
+                    <SelectItem value="90d">{t('admin.marketing.90_dagen')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </CardHeader>
+              <CardContent className="px-2 sm:px-6">
+                <MarketingOverviewChart period={chartPeriod} />
+              </CardContent>
+            </Card>
+            <RealtimeActivityFeed />
+          </div>
+        </TabsContent>
+
         <TabsContent value="campaigns" className="space-y-4">
           {campaignsLoading ? (
             <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
           ) : campaigns.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Mail className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">{t('admin.marketing.geen_campagnes')}</h3>
-                <p className="text-muted-foreground mb-4">{t('admin.marketing.maak_je_eerste_email_campagne_aan')}</p>
-                <Button onClick={() => setCampaignDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t('admin.marketing.nieuwe_campagne')}
-                </Button>
-              </CardContent>
-            </Card>
+            emptyState(Mail, t('admin.marketing.geen_campagnes'), t('admin.marketing.maak_je_eerste_email_campagne_aan'))
           ) : (
             <div className="space-y-4">
               {campaigns.map((campaign) => (
@@ -326,36 +278,30 @@ export default function MarketingPage() {
           )}
         </TabsContent>
 
+        <TabsContent value="automations" className="space-y-4">
+          <AutomationsTab />
+        </TabsContent>
+
         <TabsContent value="templates" className="space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => setTemplateDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t('admin.marketing.nieuwe_template')}
-            </Button>
-          </div>
           {templatesLoading ? (
             <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
           ) : templates.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <FileText className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">{t('admin.marketing.geen_templates')}</h3>
-                <p className="text-muted-foreground mb-4">{t('admin.marketing.maak_herbruikbare_email_templates')}</p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button onClick={() => setTemplateDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    {t('admin.marketing.nieuwe_template')}
-                  </Button>
+            emptyState(
+              FileText,
+              t('admin.marketing.geen_templates'),
+              t('admin.marketing.maak_herbruikbare_email_templates'),
+              canWriteMarketing ? (
+                <>
                   <Button variant="outline" onClick={handleSeedTemplates} disabled={seeding || !currentTenant?.id}>
-                    <SparklesIcon className="mr-2 h-4 w-4" />
+                    <Sparkles className="mr-2 h-4 w-4" />
                     {seeding ? t('admin.marketing.creditPurchaseDialog.bezig') : t('admin.marketing.starterstemplates_genereren')}
                   </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mt-3 max-w-md text-center">
-                  {t('admin.marketing.genereert_4_templates_nieuwsbrief_welkomstmail_promotie')}
-                </p>
-              </CardContent>
-            </Card>
+                  <p className="text-xs text-muted-foreground mt-3 max-w-md text-center">
+                    {t('admin.marketing.genereert_4_templates_nieuwsbrief_welkomstmail_promotie')}
+                  </p>
+                </>
+              ) : undefined,
+            )
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {templates.map((template) => (
@@ -399,31 +345,11 @@ export default function MarketingPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="subscribers" className="space-y-4">
-          <SubscribersTab />
-        </TabsContent>
-
         <TabsContent value="segments" className="space-y-4">
-          <div className="flex justify-end">
-            <Button onClick={() => setSegmentDialogOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              {t('admin.marketing.nieuw_segment')}
-            </Button>
-          </div>
           {segmentsLoading ? (
             <div className="text-center py-8 text-muted-foreground">{t('common.loading')}</div>
           ) : segments.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-semibold">{t('admin.marketing.geen_segmenten')}</h3>
-                <p className="text-muted-foreground mb-4">{t('admin.marketing.maak_klantsegmenten_voor_gerichte_campagnes')}</p>
-                <Button onClick={() => setSegmentDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t('admin.marketing.nieuw_segment')}
-                </Button>
-              </CardContent>
-            </Card>
+            emptyState(Users, t('admin.marketing.geen_segmenten'), t('admin.marketing.maak_klantsegmenten_voor_gerichte_campagnes'))
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {segments.map((segment) => (
@@ -440,6 +366,10 @@ export default function MarketingPage() {
               ))}
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="subscribers" className="space-y-4">
+          <SubscribersTab />
         </TabsContent>
       </Tabs>
 

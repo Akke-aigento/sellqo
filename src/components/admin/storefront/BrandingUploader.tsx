@@ -7,6 +7,7 @@ import { useImageUpload } from '@/hooks/useImageUpload';
 import { useLogoUpload } from '@/hooks/useLogoUpload';
 import { useTenant } from '@/hooks/useTenant';
 import { EmailLogoPreview } from '@/components/admin/settings/EmailLogoPreview';
+import { EmailLogoFromCurrentButton } from '@/components/admin/settings/EmailLogoFromCurrentButton';
 
 interface BrandingUploaderProps {
   logoUrl: string | null;
@@ -27,7 +28,9 @@ export function BrandingUploader({
   const { t } = useTranslation();
   const { uploadImage, uploading } = useImageUpload();
   // MAIL-LOGO-1: het logo krijgt bij elke upload een e-mailvariant (tenants.email_logo_url).
-  const { uploadLogo, uploading: logoUploading, emailPreview, clearEmailPreview } = useLogoUpload();
+  const {
+    uploadLogo, uploading: logoUploading, emailPreview, clearEmailPreview, createFromCurrentLogo, creatingFromCurrent,
+  } = useLogoUpload();
   const { currentTenant } = useTenant();
   const [uploadingType, setUploadingType] = useState<'logo' | 'favicon' | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -120,6 +123,15 @@ export function BrandingUploader({
           primaryColor={primaryColor}
           variant={emailPreview}
         />
+        {/* MAIL-UX-1: logo van vóór MAIL-LOGO-1 zonder mailversie → hier alsnog maken. */}
+        {!emailPreview && (
+          <EmailLogoFromCurrentButton
+            target="theme"
+            shownLogoUrl={logoUrl}
+            onCreate={createFromCurrentLogo}
+            busy={creatingFromCurrent}
+          />
+        )}
       </div>
 
       {/* Favicon Upload */}

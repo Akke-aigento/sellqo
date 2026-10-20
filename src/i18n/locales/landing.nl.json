@@ -2106,7 +2106,7 @@
         },
         "email_automations": {
           "title": "E-mailautomatiseringen",
-          "description": "Onder Marketing → Automatiseringen zet je vier vaste e-mailreeksen aan: een welkomstreeks zodra een abonnee de inschrijving bevestigt, een bedankmail en later een reviewvraag na een aankoop, een win-backmail voor klanten die al een tijd niet bestelden, en een herinnering bij een verlaten winkelwagen. Die herinnering gaat enkel naar klanten die ingeschreven zijn of eerder bij je kochten. Je past onderwerp en tekst per taal aan, en alle automatiseringsmails tellen mee voor je maandelijkse limiet van marketingmails."
+          "description": "Onder Marketing → E-mail → Automatiseringen zet je vier vaste e-mailreeksen aan: een welkomstreeks zodra een abonnee de inschrijving bevestigt, een bedankmail en later een reviewvraag na een aankoop, een win-backmail voor klanten die al een tijd niet bestelden, en een herinnering bij een verlaten winkelwagen. Die herinnering gaat enkel naar klanten die ingeschreven zijn of eerder bij je kochten. Je past onderwerp en tekst per taal aan, en alle automatiseringsmails tellen mee voor je maandelijkse limiet van marketingmails."
         },
         "email_product_blocks": {
           "title": "Producten in je mail",
@@ -2130,7 +2130,15 @@
         },
         "email_signup_cleanup": {
           "title": "Je welkomstmail verhuist naar de Welkomstreeks; inschrijven altijd met bevestiging",
-          "description": "De instellingen voor de nieuwsbrief zijn opgeruimd. Had je daar een eigen welkomstmail, dan staat die nu als eerste mail in Marketing → Automatiseringen → Welkomstreeks, met je eigen onderwerp en ontwerp. De reeks staat aan, dus je nieuwe abonnees krijgen dezelfde welkomstmail als voorheen, meteen na hun bevestiging. Inschrijven gebeurt altijd met bevestiging (double opt-in); die schakelaar is weg. Onder Instellingen → E-mailinschrijving vind je de weg naar je abonnees en je welkomstmail."
+          "description": "De instellingen voor de nieuwsbrief zijn opgeruimd. Had je daar een eigen welkomstmail, dan staat die nu als eerste mail in Marketing → E-mail → Automatiseringen → Welkomstreeks, met je eigen onderwerp en ontwerp. De reeks staat aan, dus je nieuwe abonnees krijgen dezelfde welkomstmail als voorheen, meteen na hun bevestiging. Inschrijven gebeurt altijd met bevestiging (double opt-in); die schakelaar is weg. Onder Instellingen → E-mailinschrijving vind je de weg naar je abonnees en je welkomstmail."
+        },
+        "email_page_tabs": {
+          "title": "Marketing → E-mail is overzichtelijker, ook op je gsm",
+          "description": "De tabbladen staan nu bovenaan: Overzicht, Campagnes, Automatiseringen, Templates, Segmenten en Abonnees. Automatiseringen is geen apart menu-item meer maar een tabblad van E-mail; oude links komen vanzelf op de juiste plek uit. De dubbele blokken met snelle acties en recente campagnes zijn weg. Heb je nog geen campagnes, dan open je meteen op Campagnes. De tegels en de grafiek van het overzicht volgen je taal, en het aantal abonnees komt uit dezelfde telling als het tabblad Abonnees, dus beide tonen altijd hetzelfde aantal. Op een smal scherm schuiven de tabbladen opzij en blijven de knoppen van de campagnevensters zichtbaar."
+        },
+        "email_logo_existing": {
+          "title": "Ook een mailversie van het logo dat er al stond",
+          "description": "Had je je logo al geüpload voordat SellQo er een versie voor e-mails van maakte, dan gebeurt dat nu vanzelf zodra je als beheerder Marketing of Instellingen opent. Lukt dat niet, dan vind je bij je logo de knop Mailversie maken van je huidige logo. Je hoeft je logo dus niet opnieuw te uploaden."
         }
       },
       "copyLink": "Kopieer link",

@@ -65,7 +65,7 @@ export default function CampaignDetailPage() {
       <div className="flex flex-col items-center justify-center py-12">
         <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
         <h2 className="text-lg font-semibold">{t('admin.adsBolcomCampaignDetail.campagne_niet_gevonden')}</h2>
-        <Button variant="link" onClick={() => navigate('/admin/marketing')}>
+        <Button variant="link" onClick={() => navigate('/admin/marketing?tab=campaigns')}>
           {t('admin.campaignDetail.terug_naar_marketing')}
         </Button>
       </div>
@@ -92,7 +92,7 @@ export default function CampaignDetailPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate('/admin/marketing')}>
+          <Button variant="ghost" size="icon" onClick={() => navigate('/admin/marketing?tab=campaigns')}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>

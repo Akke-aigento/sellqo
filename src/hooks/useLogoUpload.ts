@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
@@ -8,6 +9,8 @@ import {
   createEmailLogoVariant,
   emailLogoPath,
   EmailLogoError,
+  logoFileMeta,
+  type EmailLogoState,
   type EmailLogoVariant,
 } from '@/lib/emailLogo';
 
@@ -74,6 +77,44 @@ export async function saveEmailLogoVariant(
   }
 }
 
+export interface EmailVariantOutcome {
+  variant: EmailLogoVariant | null;
+  reason: 'unreadable' | 'blank' | null;
+  result: EmailVariantResult;
+}
+
+/**
+ * Eén codepad voor upload én "mailversie van je huidige logo" (MAIL-UX-1): variant maken van het
+ * bestand en opslaan bij `sourceUrl`. Een onbruikbaar bestand slaat de bron op zonder variant
+ * (de mail toont dan de winkelnaam en er wordt niet opnieuw geprobeerd).
+ */
+export async function makeAndSaveEmailLogoVariant(
+  tenantId: string,
+  file: File,
+  sourceUrl: string,
+  target: LogoTarget,
+): Promise<EmailVariantOutcome> {
+  let variant: EmailLogoVariant | null = null;
+  let reason: EmailVariantOutcome['reason'] = null;
+  try {
+    variant = await createEmailLogoVariant(file);
+  } catch (e) {
+    reason = e instanceof EmailLogoError && e.code === 'blank' ? 'blank' : 'unreadable';
+    console.warn('[emailLogo] geen mailversie', e);
+  }
+  const result = await saveEmailLogoVariant(tenantId, variant, sourceUrl, target);
+  return { variant, reason, result };
+}
+
+/** Haalt een bestaand logo op als bestand. Gooit bij een netwerk- of HTTP-fout: dan wordt er niets opgeslagen. */
+export async function fetchLogoFile(url: string): Promise<File> {
+  const res = await fetch(url, { mode: 'cors', credentials: 'omit' });
+  if (!res.ok) throw new Error(`logo ophalen mislukt: HTTP ${res.status}`);
+  const blob = await res.blob();
+  const meta = logoFileMeta(url, res.headers.get('content-type') || blob.type);
+  return new File([blob], meta.name, { type: meta.type });
+}
+
 export interface EmailLogoPreviewState {
   /** Object-URL van de zojuist gemaakte variant, of null als er geen variant is. */
   previewUrl: string | null;
@@ -93,28 +134,18 @@ export interface EmailLogoPreviewState {
 export function useLogoUpload() {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { currentTenant } = useTenant();
   const { uploadImage, uploading } = useImageUpload();
   const [emailPreview, setEmailPreview] = useState<EmailLogoPreviewState | null>(null);
+  const [creatingFromCurrent, setCreatingFromCurrent] = useState(false);
 
   useEffect(() => () => {
     if (emailPreview?.previewUrl) URL.revokeObjectURL(emailPreview.previewUrl);
   }, [emailPreview]);
 
-  const uploadLogo = async (file: File, path: string, target: LogoTarget): Promise<string | null> => {
-    if (!currentTenant) return null;
-    const url = await uploadImage(file, 'tenant-logos', path);
-    if (!url) return null;
-
-    let variant: EmailLogoVariant | null = null;
-    let reason: EmailLogoPreviewState['reason'] = null;
-    try {
-      variant = await createEmailLogoVariant(file);
-    } catch (e) {
-      reason = e instanceof EmailLogoError && e.code === 'blank' ? 'blank' : 'unreadable';
-      console.warn('[emailLogo] geen mailversie', e);
-    }
-    const result = await saveEmailLogoVariant(currentTenant.id, variant, url, target);
+  const finishVariant = async (tenantId: string, file: File, url: string, target: LogoTarget) => {
+    const { variant, reason, result } = await makeAndSaveEmailLogoVariant(tenantId, file, url, target);
     if (result === 'failed') {
       toast({
         title: t('settings.emailLogo.noVariantTitle'),
@@ -135,8 +166,49 @@ export function useLogoUpload() {
       reason,
       result,
     });
+    queryClient.invalidateQueries({ queryKey: ['email-logo-state', tenantId] });
+    queryClient.invalidateQueries({ queryKey: ['tenant-brand', tenantId] });
+    return result;
+  };
+
+  const uploadLogo = async (file: File, path: string, target: LogoTarget): Promise<string | null> => {
+    if (!currentTenant) return null;
+    const url = await uploadImage(file, 'tenant-logos', path);
+    if (!url) return null;
+    await finishVariant(currentTenant.id, file, url, target);
     return url;
   };
 
-  return { uploadLogo, uploading, emailPreview, clearEmailPreview: () => setEmailPreview(null) };
+  /** MAIL-UX-1: mailversie van het logo dat er al staat (geüpload vóór MAIL-LOGO-1). */
+  const createFromCurrentLogo = async (state: EmailLogoState) => {
+    if (!currentTenant || !state.needsVariant) return;
+    setCreatingFromCurrent(true);
+    try {
+      let file: File;
+      try {
+        file = await fetchLogoFile(state.currentLogo);
+      } catch (e) {
+        console.warn('[emailLogo] huidig logo ophalen mislukt', e);
+        toast({
+          title: t('settings.emailLogo.fromCurrentFetchFailedTitle'),
+          description: t('settings.emailLogo.fromCurrentFetchFailedBody'),
+          variant: 'destructive',
+        });
+        return;
+      }
+      const result = await finishVariant(currentTenant.id, file, state.currentLogo, state.target);
+      if (result === 'saved') toast({ title: t('settings.emailLogo.fromCurrentSaved') });
+    } finally {
+      setCreatingFromCurrent(false);
+    }
+  };
+
+  return {
+    uploadLogo,
+    uploading,
+    emailPreview,
+    clearEmailPreview: () => setEmailPreview(null),
+    createFromCurrentLogo,
+    creatingFromCurrent,
+  };
 }

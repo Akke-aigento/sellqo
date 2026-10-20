@@ -12,6 +12,7 @@ import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
 import { useLogoUpload } from '@/hooks/useLogoUpload';
 import { EmailLogoPreview } from '@/components/admin/settings/EmailLogoPreview';
+import { EmailLogoFromCurrentButton } from '@/components/admin/settings/EmailLogoFromCurrentButton';
 import { useInvoiceCompliance, validateIBAN, formatIBAN } from '@/hooks/useInvoiceCompliance';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -58,7 +59,7 @@ export function BusinessSettings() {
   const { currentTenant, refreshTenants } = useTenant();
   const { toast } = useToast();
   // MAIL-LOGO-1: uploadLogo maakt ook de e-mailvariant (tenants.email_logo_url).
-  const { uploadLogo, uploading, emailPreview } = useLogoUpload();
+  const { uploadLogo, uploading, emailPreview, createFromCurrentLogo, creatingFromCurrent } = useLogoUpload();
   const { isCompliant, errorCount } = useInvoiceCompliance();
   const [isSaving, setIsSaving] = useState(false);
   const [ibanError, setIbanError] = useState<string | null>(null);
@@ -272,6 +273,15 @@ export function BusinessSettings() {
             variant={emailPreview}
           />
         ))}
+        {/* MAIL-UX-1: enkel als het bedrijfslogo het mail-logo is (geen themalogo) en er nog geen mailversie is. */}
+        {!emailPreview && (
+          <EmailLogoFromCurrentButton
+            target="tenant"
+            shownLogoUrl={currentTenant?.logo_url ?? null}
+            onCreate={createFromCurrentLogo}
+            busy={creatingFromCurrent}
+          />
+        )}
 
         {/* Form fields */}
         <div className="grid gap-4 sm:grid-cols-2">

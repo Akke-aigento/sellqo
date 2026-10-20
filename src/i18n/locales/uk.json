@@ -1260,7 +1260,12 @@
       "noLogoName": "Без логотипа вгорі ваших листів буде назва магазину.",
       "noVariantTitle": "Не вдалося створити версію для листів",
       "noVariantBody": "Логотип збережено для магазину, але з нього не вдалося створити версію для листів. У листах буде назва вашого магазину. Завантажте PNG, JPG, WebP або SVG, щоб логотип з’явився і в листах.",
-      "blankWarning": "Ваш логотип білий або порожній на білому тлі; у листах буде назва вашого магазину."
+      "blankWarning": "Ваш логотип білий або порожній на білому тлі; у листах буде назва вашого магазину.",
+      "fromCurrentHint": "Ваш логотип ще не має версії для листів. Вона обрізає порожні краї та має правильний розмір для заголовка ваших листів.",
+      "fromCurrentButton": "Створити версію поточного логотипа для листів",
+      "fromCurrentSaved": "Версію логотипа для листів збережено",
+      "fromCurrentFetchFailedTitle": "Не вдалося завантажити логотип",
+      "fromCurrentFetchFailedBody": "Нічого не змінено. Спробуйте пізніше або завантажте логотип ще раз."
     },
     "emailSignup": {
       "title": "Підписка на email",
@@ -1271,7 +1276,7 @@
       "subscribers_path": "Маркетинг → Email → Підписники",
       "subscribers_body": "Перегляньте, хто підписаний, хто ще має підтвердити, і запросіть людей.",
       "welcome_title": "Вітальний лист",
-      "welcome_path": "Маркетинг → Автоматизації → Вітальна серія",
+      "welcome_path": "Маркетинг → Email → Автоматизації → Вітальна серія",
       "welcome_body": "Ваш попередній вітальний лист тепер тут — як перший лист вітальної серії."
     }
   },
@@ -2738,7 +2743,9 @@
         "geen_producten_gevonden": "Товарів не знайдено",
         "lage_voorraad": "Низький запас",
         "producten_selecteren": "Вибрати товари",
-        "wis_alles": "Очистити все"
+        "wis_alles": "Очистити все",
+        "description": "Виберіть до {{max}} товарів для вмісту ШІ",
+        "selected_of": "Вибрано {{count}} з {{max}}"
       },
       "promoKitResult": {
         "afbeeldingen": "Зображення",
@@ -2764,7 +2771,12 @@
         "live": "Наживо",
         "live_activiteit": "Активність наживо",
         "nog_geen_activiteit": "Ще немає активності",
-        "realtime_email_interacties": "Взаємодії з листами в реальному часі"
+        "realtime_email_interacties": "Взаємодії з листами в реальному часі",
+        "action": {
+          "opened": "відкрив(-ла)",
+          "clicked": "натиснув(-ла) посилання в",
+          "delivered": "отримав(-ла)"
+        }
       },
       "segmentBuilder": {
         "klanttype": "Тип клієнта",
@@ -2932,7 +2944,15 @@
           }
         },
         "producten_geselecteerd": "Вибрано товарів: {{count}}",
-        "campagne": "Кампанія"
+        "campagne": "Кампанія",
+        "insufficient_credits": "Недостатньо кредитів ШІ",
+        "saved_as_draft": "Кампанію збережено як чернетку",
+        "save_failed": "Не вдалося зберегти кампанію",
+        "segment_option": "{{name}} (клієнтів: {{count}})",
+        "choose_products": "Виберіть товари для просування",
+        "generate_button": "Створити лист (кредитів: {{count}})",
+        "generated_title": "Лист: {{type}}",
+        "characters": "Символів: {{count}}"
       },
       "aiImageGenerator": {
         "styles": {
@@ -3198,7 +3218,12 @@
         "click_rate": "Частота кліків",
         "open_rate": "Частота відкриттів",
         "subscribers": "Підписники",
-        "uitschrijvingen": "Відписки"
+        "uitschrijvingen": "Відписки",
+        "campaigns_count": "Кампаній: {{value}}",
+        "opened_count": "Відкрито: {{value}}",
+        "clicked_count": "Кліків: {{value}}",
+        "subscribers_hint": "Отримують ваші кампанії",
+        "unsubscribes_hint": "Відписки, недоставлені або скарги"
       },
       "productPromoWizard": {
         "10_credits": "+10 кредитів",
@@ -3378,7 +3403,7 @@
       },
       "concept_campagnes": "Чернетки кампаній",
       "eerste_campagne_maken": "Створити першу кампанію",
-      "email_campagnes_analytics_en_klant_engagement": "Email-кампанії, аналітика та залученість клієнтів",
+      "email_campagnes_analytics_en_klant_engagement": "Кампанії, автоматичні листи та ваші підписники",
       "promptFavoritesDropdown": {
         "favorieten": "Обране",
         "klik_om_prompt_te_laden": "Натисніть, щоб завантажити запит"
@@ -3422,10 +3447,12 @@
         "title": "Створити email зі ШІ"
       },
       "tabs": {
-        "campaigns": "Усі кампанії ({{count}})",
+        "campaigns": "Кампанії ({{count}})",
         "templates": "Шаблони ({{count}})",
         "segments": "Сегменти ({{count}})",
-        "subscribers": "Підписники"
+        "subscribers": "Підписники",
+        "overview": "Огляд",
+        "automations": "Автоматизації"
       },
       "nieuwe_campagne": "Нова кампанія",
       "geen_campagnes": "Немає кампаній",
@@ -3442,7 +3469,10 @@
         "fout_bij_verwijderen": "Помилка під час видалення",
         "fout_bij_verzenden": "Помилка під час надсилання",
         "campagne_wordt_verstuurd": "Вашу кампанію надсилають одержувачам: {{count}}",
-        "telling_mislukt": "Не вдалося отримати кількість одержувачів"
+        "telling_mislukt": "Не вдалося отримати кількість одержувачів",
+        "template_aangemaakt": "Шаблон створено",
+        "template_bijgewerkt": "Шаблон оновлено",
+        "template_verwijderd": "Шаблон видалено"
       },
       "sendConfirm": {
         "ontvangers_tellen": "Підрахунок одержувачів...",
@@ -3694,6 +3724,11 @@
         "used_of": "{{used}} з {{monthly}} маркетингових листів цього місяця",
         "used_unlimited": "{{used}} маркетингових листів цього місяця (без обмежень)",
         "see_plans": "Переглянути тарифи"
+      },
+      "chart": {
+        "sent": "Надіслано",
+        "opened": "Відкрито",
+        "clicked": "Кліки"
       }
     },
     "ads": {
@@ -6918,7 +6953,7 @@
       "features": {
         "newsletter_where": "Підписка завжди з підтвердженням. Підписниками та вітальним листом ви керуєте в розділі «Маркетинг»:",
         "newsletter_link_email": "Email → Підписники",
-        "newsletter_link_automations": "Автоматизації → Вітальна серія"
+        "newsletter_link_automations": "Email → Автоматизації → Вітальна серія"
       }
     },
     "allergens": {

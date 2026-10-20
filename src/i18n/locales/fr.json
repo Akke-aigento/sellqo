@@ -1288,7 +1288,12 @@
       "noLogoName": "Sans logo, le nom de votre boutique apparaît en haut de vos e-mails.",
       "noVariantTitle": "Impossible de créer la version e-mail",
       "noVariantBody": "Votre logo est enregistré pour votre boutique, mais aucune version e-mail n'a pu en être créée. Vos e-mails affichent le nom de votre boutique. Téléversez un PNG, JPG, WebP ou SVG pour voir aussi votre logo dans vos e-mails.",
-      "blankWarning": "Votre logo est blanc ou vide sur un fond blanc ; vos e-mails affichent le nom de votre boutique."
+      "blankWarning": "Votre logo est blanc ou vide sur un fond blanc ; vos e-mails affichent le nom de votre boutique.",
+      "fromCurrentHint": "Votre logo n'a pas encore de version pour vos e-mails. Elle supprime les bords vides et a la bonne taille pour l'en-tête de vos e-mails.",
+      "fromCurrentButton": "Créer une version e-mail de votre logo actuel",
+      "fromCurrentSaved": "Version e-mail de votre logo enregistrée",
+      "fromCurrentFetchFailedTitle": "Impossible de charger le logo",
+      "fromCurrentFetchFailedBody": "Rien n'a été modifié. Réessayez plus tard ou téléversez à nouveau votre logo."
     },
     "emailSignup": {
       "title": "Inscription par e-mail",
@@ -1299,7 +1304,7 @@
       "subscribers_path": "Marketing → E-mail → Abonnés",
       "subscribers_body": "Voyez qui est inscrit, qui doit encore confirmer, et invitez des personnes.",
       "welcome_title": "E-mail de bienvenue",
-      "welcome_path": "Marketing → Automatisations → Série de bienvenue",
+      "welcome_path": "Marketing → E-mail → Automatisations → Série de bienvenue",
       "welcome_body": "Votre ancien e-mail de bienvenue se trouve désormais ici, comme premier e-mail de la série de bienvenue."
     }
   },
@@ -2451,7 +2456,9 @@
         "geen_producten_gevonden": "Aucun produit trouvé",
         "lage_voorraad": "Stock faible",
         "producten_selecteren": "Sélectionner des produits",
-        "wis_alles": "Tout effacer"
+        "wis_alles": "Tout effacer",
+        "description": "Choisissez jusqu'à {{max}} produits pour votre contenu IA",
+        "selected_of": "{{count}} sur {{max}} sélectionnés"
       },
       "promoKitResult": {
         "afbeeldingen": "Images",
@@ -2477,7 +2484,12 @@
         "live": "En direct",
         "live_activiteit": "Activité en direct",
         "nog_geen_activiteit": "Aucune activité pour l'instant",
-        "realtime_email_interacties": "Interactions e-mail en temps réel"
+        "realtime_email_interacties": "Interactions e-mail en temps réel",
+        "action": {
+          "opened": "a ouvert",
+          "clicked": "a cliqué sur un lien dans",
+          "delivered": "a reçu"
+        }
       },
       "segmentBuilder": {
         "klanttype": "Type de client",
@@ -2645,7 +2657,15 @@
           }
         },
         "producten_geselecteerd": "{{count}} produit(s) sélectionné(s)",
-        "campagne": "Campagne"
+        "campagne": "Campagne",
+        "insufficient_credits": "Crédits IA insuffisants",
+        "saved_as_draft": "Campagne enregistrée comme brouillon",
+        "save_failed": "Impossible d'enregistrer la campagne",
+        "segment_option": "{{name}} ({{count}} clients)",
+        "choose_products": "Choisissez des produits à promouvoir",
+        "generate_button": "Générer l'e-mail ({{count}} crédits)",
+        "generated_title": "E-mail : {{type}}",
+        "characters": "{{count}} caractères"
       },
       "aiImageGenerator": {
         "styles": {
@@ -2911,7 +2931,12 @@
         "click_rate": "Taux de clic",
         "open_rate": "Taux d'ouverture",
         "subscribers": "Abonnés",
-        "uitschrijvingen": "Désabonnements"
+        "uitschrijvingen": "Désabonnements",
+        "campaigns_count": "Campagnes : {{value}}",
+        "opened_count": "Ouverts : {{value}}",
+        "clicked_count": "Clics : {{value}}",
+        "subscribers_hint": "Reçoivent vos campagnes",
+        "unsubscribes_hint": "Désinscrits, rebonds ou plaintes"
       },
       "productPromoWizard": {
         "10_credits": "+10 crédits",
@@ -3091,7 +3116,7 @@
       },
       "concept_campagnes": "Campagnes brouillon",
       "eerste_campagne_maken": "Créer votre première campagne",
-      "email_campagnes_analytics_en_klant_engagement": "Campagnes e-mail, analytique et engagement client",
+      "email_campagnes_analytics_en_klant_engagement": "Campagnes, e-mails automatiques et vos abonnés",
       "promptFavoritesDropdown": {
         "favorieten": "Favoris",
         "klik_om_prompt_te_laden": "Cliquez pour charger l'invite"
@@ -3135,10 +3160,12 @@
         "title": "Créer un e-mail avec l'IA"
       },
       "tabs": {
-        "campaigns": "Toutes les campagnes ({{count}})",
+        "campaigns": "Campagnes ({{count}})",
         "templates": "Modèles ({{count}})",
         "segments": "Segments ({{count}})",
-        "subscribers": "Abonnés"
+        "subscribers": "Abonnés",
+        "overview": "Aperçu",
+        "automations": "Automatisations"
       },
       "nieuwe_campagne": "Nouvelle campagne",
       "geen_campagnes": "Aucune campagne",
@@ -3155,7 +3182,10 @@
         "fout_bij_verwijderen": "Erreur lors de la suppression",
         "fout_bij_verzenden": "Erreur lors de l’envoi",
         "campagne_wordt_verstuurd": "Votre campagne est en cours d’envoi à {{count}} destinataires",
-        "telling_mislukt": "Impossible de récupérer le nombre de destinataires"
+        "telling_mislukt": "Impossible de récupérer le nombre de destinataires",
+        "template_aangemaakt": "Modèle créé",
+        "template_bijgewerkt": "Modèle mis à jour",
+        "template_verwijderd": "Modèle supprimé"
       },
       "sendConfirm": {
         "ontvangers_tellen": "Comptage des destinataires...",
@@ -3407,6 +3437,11 @@
         "used_of": "{{used}} e-mails marketing sur {{monthly}} ce mois-ci",
         "used_unlimited": "{{used}} e-mails marketing ce mois-ci (illimité)",
         "see_plans": "Voir les forfaits"
+      },
+      "chart": {
+        "sent": "Envoyés",
+        "opened": "Ouverts",
+        "clicked": "Cliqués"
       }
     },
     "ads": {
@@ -6631,7 +6666,7 @@
       "features": {
         "newsletter_where": "L’inscription se fait toujours avec confirmation. Vous gérez vos abonnés et votre e-mail de bienvenue dans Marketing :",
         "newsletter_link_email": "E-mail → Abonnés",
-        "newsletter_link_automations": "Automatisations → Série de bienvenue"
+        "newsletter_link_automations": "E-mail → Automatisations → Série de bienvenue"
       }
     },
     "allergens": {

@@ -169,7 +169,4 @@ export interface MarketingStats {
   totalClicked: number;
   avgOpenRate: number;
   avgClickRate: number;
-  subscriberCount: number;
-  subscriberGrowth: number;
-  unsubscribeCount: number;
 }

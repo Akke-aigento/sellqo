@@ -1260,7 +1260,12 @@
       "noLogoName": "Zonder logo staat de naam van je winkel bovenaan je mails.",
       "noVariantTitle": "Mailversie kon niet gemaakt worden",
       "noVariantBody": "Je logo is opgeslagen voor je webshop, maar er kon geen mailversie van gemaakt worden. In je mails tonen we je winkelnaam. Upload een PNG, JPG, WebP of SVG om je logo ook in je mails te zien.",
-      "blankWarning": "Je logo is wit of leeg op een witte achtergrond; in de mail tonen we je winkelnaam."
+      "blankWarning": "Je logo is wit of leeg op een witte achtergrond; in de mail tonen we je winkelnaam.",
+      "fromCurrentHint": "Je logo heeft nog geen versie voor je mails. Die knipt lege randen weg en heeft het juiste formaat voor de kop van je mails.",
+      "fromCurrentButton": "Mailversie maken van je huidige logo",
+      "fromCurrentSaved": "Mailversie van je logo opgeslagen",
+      "fromCurrentFetchFailedTitle": "Logo kon niet geladen worden",
+      "fromCurrentFetchFailedBody": "Er is niets gewijzigd. Probeer het later opnieuw, of upload je logo opnieuw."
     },
     "emailSignup": {
       "title": "E-mailinschrijving",
@@ -1271,7 +1276,7 @@
       "subscribers_path": "Marketing → E-mail → Abonnees",
       "subscribers_body": "Zie wie ingeschreven is, wie nog moet bevestigen, en nodig mensen uit.",
       "welcome_title": "Welkomstmail",
-      "welcome_path": "Marketing → Automatiseringen → Welkomstreeks",
+      "welcome_path": "Marketing → E-mail → Automatiseringen → Welkomstreeks",
       "welcome_body": "Je vroegere welkomstmail staat nu hier, als eerste mail van de welkomstreeks."
     }
   },
@@ -2547,8 +2552,8 @@
         "ai_inzichten_van_vandaag": "AI Inzichten van Vandaag"
       },
       "campaignCard": {
-        "open_rate": "open rate",
-        "click_rate": "click rate",
+        "open_rate": "openratio",
+        "click_rate": "klikratio",
         "bekijk_analytics": "Bekijk analytics",
         "nu_verzenden": "Nu verzenden",
         "segment": "Segment:",
@@ -2760,11 +2765,16 @@
         "meer_opties": "Meer opties"
       },
       "marketingStatsCards": {
-        "open_rate": "Open Rate",
-        "click_rate": "Click Rate",
-        "subscribers": "Subscribers",
+        "open_rate": "Openratio",
+        "click_rate": "Klikratio",
+        "subscribers": "Abonnees",
         "uitschrijvingen": "Uitschrijvingen",
-        "groei_deze_maand": "+{{count}} deze maand"
+        "groei_deze_maand": "+{{count}} deze maand",
+        "campaigns_count": "Campagnes: {{value}}",
+        "opened_count": "Geopend: {{value}}",
+        "clicked_count": "Geklikt: {{value}}",
+        "subscribers_hint": "Krijgen je campagnes",
+        "unsubscribes_hint": "Uitgeschreven, bounce of klacht"
       },
       "mediaAssetsLibrary": {
         "drop_de_bestanden_hier": "Drop de bestanden hier...",
@@ -2804,7 +2814,9 @@
         "geen_producten_gevonden": "Geen producten gevonden",
         "producten_selecteren": "Producten Selecteren",
         "wis_alles": "Wis alles",
-        "lage_voorraad": "Lage voorraad"
+        "lage_voorraad": "Lage voorraad",
+        "description": "Kies tot {{max}} producten voor je AI-inhoud",
+        "selected_of": "{{count}} van {{max}} gekozen"
       },
       "promoKitResult": {
         "je_marketing_kit_is_klaar": "Je Marketing Kit is klaar!",
@@ -2833,11 +2845,16 @@
         "geef_deze_prompt_een_naam": "Geef deze prompt een naam..."
       },
       "realtimeActivityFeed": {
-        "live_activiteit": "Live Activiteit",
-        "realtime_email_interacties": "Realtime email interacties",
+        "live_activiteit": "Live activiteit",
+        "realtime_email_interacties": "Opens en kliks zodra ze binnenkomen",
         "nog_geen_activiteit": "Nog geen activiteit",
         "live": "Live",
-        "verbinden": "Verbinden..."
+        "verbinden": "Verbinden...",
+        "action": {
+          "opened": "opende",
+          "clicked": "klikte op een link in",
+          "delivered": "ontving"
+        }
       },
       "recentContentStrip": {
         "start_met_de_product_promo_wizard": "Start met de Product Promo Wizard hierboven",
@@ -3029,7 +3046,15 @@
           }
         },
         "campagne": "Campagne",
-        "producten_geselecteerd": "{{count}} product(en) geselecteerd"
+        "producten_geselecteerd": "{{count}} product(en) geselecteerd",
+        "insufficient_credits": "Onvoldoende AI-credits",
+        "saved_as_draft": "Campagne opgeslagen als concept",
+        "save_failed": "Campagne opslaan mislukt",
+        "segment_option": "{{name}} ({{count}} klanten)",
+        "choose_products": "Kies producten om te promoten",
+        "generate_button": "E-mail genereren ({{count}} credits)",
+        "generated_title": "E-mail: {{type}}",
+        "characters": "{{count}} tekens"
       },
       "aIEmailPlanner": {
         "type_campagne": "Type Campagne",
@@ -3389,15 +3414,15 @@
         "nieuwe_producten": "{{count}} nieuw(e) product(en) wachten om gepromoot te worden.",
         "actief_segment": "Je segment \"{{segment}}\" is zeer actief. Geschikt voor een exclusieve aanbieding."
       },
-      "performance_over_tijd": "Performance Over Tijd",
-      "verzonden_geopend_en_geklikt_emails": "Verzonden, geopend en geklikt emails",
+      "performance_over_tijd": "Prestaties over tijd",
+      "verzonden_geopend_en_geklikt_emails": "Verzonden, geopende en aangeklikte e-mails",
       "7_dagen": "7 dagen",
       "30_dagen": "30 dagen",
       "90_dagen": "90 dagen",
       "concept_campagnes": "Concept campagnes",
       "je_laatste_email_campagnes": "Je laatste email campagnes",
       "nog_geen_campagnes": "Nog geen campagnes",
-      "maak_je_eerste_email_campagne_aan": "Maak je eerste email campagne aan",
+      "maak_je_eerste_email_campagne_aan": "Maak je eerste e-mailcampagne aan met de knop hierboven.",
       "geen_templates": "Geen templates",
       "maak_herbruikbare_email_templates": "Maak herbruikbare email templates",
       "geen_segmenten": "Geen segmenten",
@@ -3405,7 +3430,7 @@
       "4_starterstemplates_aangemaakt": "4 starterstemplates aangemaakt",
       "kon_templates_niet_aanmaken": "Kon templates niet aanmaken",
       "marketing_command_center": "E-mail",
-      "email_campagnes_analytics_en_klant_engagement": "Email campagnes, analytics en klant engagement",
+      "email_campagnes_analytics_en_klant_engagement": "Campagnes, automatische mails en je abonnees",
       "ai_marketing_hub": "AI Marketing Hub",
       "nieuw_segment": "Nieuw segment",
       "snelle_acties": "Snelle Acties",
@@ -3422,10 +3447,12 @@
         "title": "E-mail maken met AI"
       },
       "tabs": {
-        "campaigns": "Alle campagnes ({{count}})",
+        "campaigns": "Campagnes ({{count}})",
         "templates": "Templates ({{count}})",
         "segments": "Segmenten ({{count}})",
-        "subscribers": "Abonnees"
+        "subscribers": "Abonnees",
+        "overview": "Overzicht",
+        "automations": "Automatiseringen"
       },
       "nieuwe_campagne": "Nieuwe campagne",
       "geen_campagnes": "Geen campagnes",
@@ -3442,7 +3469,10 @@
         "fout_bij_verwijderen": "Fout bij verwijderen",
         "fout_bij_verzenden": "Fout bij verzenden",
         "campagne_wordt_verstuurd": "Je campagne wordt verstuurd naar {{count}} ontvangers",
-        "telling_mislukt": "Kon het aantal ontvangers niet ophalen"
+        "telling_mislukt": "Kon het aantal ontvangers niet ophalen",
+        "template_aangemaakt": "Template aangemaakt",
+        "template_bijgewerkt": "Template bijgewerkt",
+        "template_verwijderd": "Template verwijderd"
       },
       "sendConfirm": {
         "ontvangers_tellen": "Ontvangers tellen...",
@@ -3694,6 +3724,11 @@
         "used_of": "{{used}} van {{monthly}} marketingmails deze maand",
         "used_unlimited": "{{used}} marketingmails deze maand (onbeperkt)",
         "see_plans": "Bekijk de pakketten"
+      },
+      "chart": {
+        "sent": "Verzonden",
+        "opened": "Geopend",
+        "clicked": "Geklikt"
       }
     },
     "ads": {
@@ -6531,7 +6566,7 @@
       "features": {
         "newsletter_where": "Inschrijven gebeurt altijd met bevestiging. Je abonnees en je welkomstmail beheer je in Marketing:",
         "newsletter_link_email": "E-mail → Abonnees",
-        "newsletter_link_automations": "Automatiseringen → Welkomstreeks"
+        "newsletter_link_automations": "E-mail → Automatiseringen → Welkomstreeks"
       }
     },
     "orderingHub": {
