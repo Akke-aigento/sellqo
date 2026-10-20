@@ -26,8 +26,9 @@ interface CategoryWithSEO {
   name: string;
   slug?: string | null;
   description?: string | null;
-  meta_title?: string | null;
-  meta_description?: string | null;
+  // SEO-CAT-1: NL is de basistaal; categories heeft geen meta_title/meta_description.
+  meta_title_nl?: string | null;
+  meta_description_nl?: string | null;
   image_url?: string | null;
   seo_score: SEOScore | null;
 }
@@ -177,8 +178,8 @@ export function SEOCategoryTable({
                   filteredCategories.map((category) => {
                     const score = category.seo_score?.overall_score ?? null;
                     const issues = category.seo_score?.issues?.length ?? 0;
-                    const hasMeta = !!category.meta_title;
-                    const hasDesc = !!category.meta_description;
+                    const hasMeta = !!category.meta_title_nl;
+                    const hasDesc = !!category.meta_description_nl;
                     const hasImage = !!category.image_url;
                     const needsOptimization = score === null || score < 70;
 

@@ -11,6 +11,33 @@ interface TenantInfo {
   name: string;
 }
 
+type EntityType = 'product' | 'category';
+
+// SEO-CAT-1: generator-type → bestaande kolom per entiteit. categories heeft geen
+// meta_title/meta_description (wel meta_*_{nl,en,fr,de}); de prompts zijn Nederlands,
+// dus categorie-meta gaat naar de _nl-kolommen. products heeft geen alt_text-kolom:
+// alt-tekst gaat naar image_alt_texts[0]. Combinaties die hier niet staan → 400 vóór credits.
+const FIELD_MAP: Record<EntityType, Record<string, string>> = {
+  category: {
+    meta_title: "meta_title_nl",
+    meta_description: "meta_description_nl",
+    category_description: "description",
+  },
+  product: {
+    meta_title: "meta_title",
+    meta_description: "meta_description",
+    product_description: "description",
+    alt_text: "image_alt_texts",
+  },
+};
+
+function badRequest(error: string): Response {
+  return new Response(
+    JSON.stringify({ error }),
+    { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 async function generateContent(
   type: string,
   entity: { id: string; name: string; description?: string | null; price?: number },
@@ -125,7 +152,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-SEO-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEO-CAT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const { tenantId, type, productIds, categoryIds, entityType = 'product' } = await req.json();
@@ -135,9 +162,19 @@ serve(async (req) => {
     const ids = entityType === 'category' ? categoryIds : productIds;
     
     if (!tenantId || !type || !ids || ids.length === 0) {
-      return new Response(
-        JSON.stringify({ error: "tenantId, type, and entity IDs are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      return badRequest("tenantId, type, and entity IDs are required");
+    }
+
+    // SEO-CAT-1: onbekende entiteit of type/entiteit-combinatie zonder kolom → 400
+    // vóór use_ai_credits, zodat de winkel niet betaalt voor een update die nooit kan landen.
+    if (entityType !== "product" && entityType !== "category") {
+      return badRequest(`Onbekend entityType '${String(entityType)}' (verwacht: product of category)`);
+    }
+    const fieldMap = FIELD_MAP[entityType as EntityType];
+    const updateField = typeof type === "string" && Object.hasOwn(fieldMap, type) ? fieldMap[type] : null;
+    if (!updateField) {
+      return badRequest(
+        `Type '${String(type)}' wordt niet ondersteund voor ${entityType} (toegestaan: ${Object.keys(fieldMap).join(", ")})`
       );
     }
 
@@ -184,15 +221,15 @@ serve(async (req) => {
       for (const category of categories || []) {
         const generated = await generateContent(type, category, tenant, lovableApiKey, 'category');
         if (generated) {
-          const updateField = type === 'category_description' ? 'description' : type;
-          
           const { error: updateError } = await supabase
             .from("categories")
             .update({ [updateField]: generated })
             .eq("tenant_id", tenantId)
             .eq("id", category.id);
 
-          if (!updateError) {
+          if (updateError) {
+            console.error(`SEO-CAT-1: update categories.${updateField} faalde voor ${category.id}:`, updateError);
+          } else {
             results.push({
               entity_id: category.id,
               generated,
@@ -204,7 +241,7 @@ serve(async (req) => {
     } else {
       const { data: products, error: productsError } = await supabase
         .from("products")
-        .select("id, name, description, price, category_id")
+        .select("id, name, description, price, category_id, image_alt_texts")
         // SEC-SEO-1: service-role omzeilt RLS — beperk expliciet tot de eigen winkel.
         .eq("tenant_id", tenantId)
         .in("id", ids);
@@ -214,15 +251,24 @@ serve(async (req) => {
       for (const product of products || []) {
         const generated = await generateContent(type, product, tenant, lovableApiKey, 'product');
         if (generated) {
-          const updateField = type === "product_description" ? "description" : type;
-          
+          // SEO-CAT-1: alt-tekst = hoofdafbeelding = index 0; de rest van het array blijft staan.
+          let value: string | string[] = generated;
+          if (updateField === "image_alt_texts") {
+            const existing: unknown = product.image_alt_texts;
+            value = Array.isArray(existing) && existing.length > 0
+              ? [generated, ...(existing as string[]).slice(1)]
+              : [generated];
+          }
+
           const { error: updateError } = await supabase
             .from("products")
-            .update({ [updateField]: generated })
+            .update({ [updateField]: value })
             .eq("tenant_id", tenantId)
             .eq("id", product.id);
 
-          if (!updateError) {
+          if (updateError) {
+            console.error(`SEO-CAT-1: update products.${updateField} faalde voor ${product.id}:`, updateError);
+          } else {
             results.push({
               entity_id: product.id,
               generated,

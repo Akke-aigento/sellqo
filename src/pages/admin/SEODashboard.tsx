@@ -203,7 +203,7 @@ export default function SEODashboard() {
   };
 
   const handleGenerateCategoryContent = (type: string, categoryIds: string[]) => {
-    generateContent({ type: type as any, productIds: [], categoryIds, entityType: 'category' } as any);
+    generateContent({ type: type as 'meta_title' | 'meta_description' | 'category_description', productIds: [], categoryIds, entityType: 'category' });
   };
 
   const previousScore = history && history.length > 1 ? history[1]?.overall_score : null;
@@ -311,17 +311,23 @@ export default function SEODashboard() {
               suggestions={(tenantScore?.suggestions || []).filter((sg: { action?: string }) => sg?.action !== 'generate_faq')}
               onAction={(action, entityId) => {
                 const productIds = entityId ? [entityId] : [];
+                // SEO-CAT-1: de analyzer zet ook categorie-issues in de quick wins; die id's
+                // niet als product versturen (anders credits voor een product dat niet bestaat).
+                const categoryId = entityId && categories?.some((c) => c.id === entityId) ? entityId : null;
                 switch (action) {
                   case 'generate_meta_title':
                   case 'generate_meta':
-                    generateContent({ type: 'meta_title', productIds });
+                    if (categoryId) handleGenerateCategoryContent('meta_title', [categoryId]);
+                    else generateContent({ type: 'meta_title', productIds });
                     break;
                   case 'generate_meta_description':
-                    generateContent({ type: 'meta_description', productIds });
+                    if (categoryId) handleGenerateCategoryContent('meta_description', [categoryId]);
+                    else generateContent({ type: 'meta_description', productIds });
                     break;
                   case 'generate_description':
                   case 'improve_content':
-                    generateContent({ type: 'product_description', productIds });
+                    if (categoryId) handleGenerateCategoryContent('category_description', [categoryId]);
+                    else generateContent({ type: 'product_description', productIds });
                     break;
                   case 'optimize_categories':
                     toast.info('Ga naar Categorie SEO hieronder om te optimaliseren');
