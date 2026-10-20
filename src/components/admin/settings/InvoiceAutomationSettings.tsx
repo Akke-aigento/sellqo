@@ -4,6 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
+import { assertRowsWritten } from '@/lib/supabaseWriteGuard';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { FileText, Mail, Loader2, Info, ShoppingCart, Globe, Store } from 'lucide-react';
@@ -64,7 +65,7 @@ export function InvoiceAutomationSettings() {
 
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      const { data: written, error } = await supabase
         .from('tenants')
         .update({
           auto_generate_invoice: autoGenerate,
@@ -72,9 +73,11 @@ export function InvoiceAutomationSettings() {
           invoice_cc_email: ccEmail || null,
           invoice_bcc_email: bccEmail || null,
         })
-        .eq('id', activeTenantId);
+        .eq('id', activeTenantId)
+        .select('id');
 
       if (error) throw error;
+      assertRowsWritten(written);
 
       toast({
         title: 'Instellingen opgeslagen',

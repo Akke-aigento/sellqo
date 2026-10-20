@@ -37,7 +37,8 @@
     },
     "error": "Error",
     "done": "Done",
-    "comingSoon": "coming soon"
+    "comingSoon": "coming soon",
+    "saveNoPermission": "You don't have permission to save this. Ask an admin of this shop to change it."
   },
   "auth": {
     "login": "Log in",
@@ -5269,7 +5270,7 @@
       "overzicht": "Overview",
       "pas_je_filters_aan": "Adjust your filters",
       "saldo": "Balance",
-      "totaal_uitgegeven": "Total spent",
+      "totaal_uitgegeven": "Total value issued",
       "zoek_op_code_email_of_naam": "Search by code, email or name..."
     },
     "inbox": {
@@ -6943,7 +6944,7 @@
         "pages_desc": "About us, contact and other pages of your own",
         "legal_desc": "Terms, privacy, returns and shipping",
         "own_domain": "Own domain",
-        "own_domain_soon": "Coming soon: connect your own domain yourself.",
+        "own_domain_desc": "Connect your own domain name to your webshop.",
         "select_shop": "Select a store to continue"
       },
       "features": {
