@@ -3962,7 +3962,7 @@
     "adsProductMap": {
       "product_mapping": "Mappage des produits",
       "product_mapping_2": "Mappage des produits",
-      "uit": "Sortie",
+      "uit": "Désactivé",
       "opgeslagen": "Enregistré",
       "fout": "Erreur",
       "actie": "Action",
@@ -4015,7 +4015,15 @@
         "modern_formaat": "Format moderne",
         "optimaliseer_afbeeldingen_lt_200kb": "Optimisez les images &lt; 200 Ko",
         "optimaliseer_alt_teksten_voor_betere_seo": "Optimisez les textes alternatifs pour un meilleur SEO et une meilleure accessibilité",
-        "webp_avif_voor_betere_performance": "WebP/AVIF pour de meilleures performances"
+        "webp_avif_voor_betere_performance": "WebP/AVIF pour de meilleures performances",
+        "genereer_alt": "Générer l'alt ({{count}})",
+        "met_alt_tekst": "{{count}} avec texte alt",
+        "ontbrekend_count": "{{count}} manquant(s)",
+        "compleet_pct": "{{pct}} % complet",
+        "filter_alle": "Tous ({{count}})",
+        "filter_ontbrekend": "Manquants ({{count}})",
+        "filter_compleet": "Complets ({{count}})",
+        "selecteer_alle": "Tout sélectionner ({{count}})"
       },
       "keywordResearchPanel": {
         "secundair": "Secondaire",
@@ -7249,7 +7257,8 @@
       "terminal_aanmaken": "Créer le terminal",
       "kassa_openen": "Ouvrir la caisse",
       "dag_starten": "Commencer la journée",
-      "geef_je_kassaterminal_een_naam_en": "Donnez un nom à votre terminal de caisse et un emplacement facultatif."
+      "geef_je_kassaterminal_een_naam_en": "Donnez un nom à votre terminal de caisse et un emplacement facultatif.",
+      "nog_open_sinds": "Toujours ouverte depuis le {{date}}"
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Paramètres du terminal",

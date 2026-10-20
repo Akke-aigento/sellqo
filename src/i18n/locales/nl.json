@@ -4403,7 +4403,15 @@
         "webp_avif_voor_betere_performance": "WebP/AVIF voor betere performance",
         "zoek_op_productnaam": "Zoek op productnaam...",
         "afbeelding_alt_teksten": "Afbeelding Alt-Teksten",
-        "optimaliseer_alt_teksten_voor_betere_seo": "Optimaliseer alt-teksten voor betere SEO en toegankelijkheid"
+        "optimaliseer_alt_teksten_voor_betere_seo": "Optimaliseer alt-teksten voor betere SEO en toegankelijkheid",
+        "genereer_alt": "Genereer alt ({{count}})",
+        "met_alt_tekst": "{{count}} met alt-tekst",
+        "ontbrekend_count": "{{count}} ontbrekend",
+        "compleet_pct": "{{pct}}% compleet",
+        "filter_alle": "Alle ({{count}})",
+        "filter_ontbrekend": "Ontbrekend ({{count}})",
+        "filter_compleet": "Compleet ({{count}})",
+        "selecteer_alle": "Selecteer alle ({{count}})"
       },
       "keywordResearchPanel": {
         "nieuw_keyword_toevoegen": "Nieuw Keyword Toevoegen",
@@ -7536,7 +7544,8 @@
       "terminal_aanmaken": "Terminal Aanmaken",
       "kassa_openen": "Kassa Openen",
       "dag_starten": "Dag Starten",
-      "geef_je_kassaterminal_een_naam_en": "Geef je kassaterminal een naam en optionele locatie."
+      "geef_je_kassaterminal_een_naam_en": "Geef je kassaterminal een naam en optionele locatie.",
+      "nog_open_sinds": "Nog open sinds {{date}}"
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Terminal Instellingen",

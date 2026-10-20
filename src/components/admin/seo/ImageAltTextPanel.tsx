@@ -31,6 +31,8 @@ interface ImageAltTextPanelProps {
     id: string;
     name: string;
     images: string[];
+    /** Parallel aan `images`: index i = alt-tekst van afbeelding i. */
+    image_alt_texts?: string[] | null;
   }>;
   isLoading?: boolean;
   onGenerateAltText: (productIds: string[]) => void;
@@ -55,7 +57,8 @@ export function ImageAltTextPanel({
       productId: product.id,
       productName: product.name,
       imageUrl,
-      altText: null, // Would come from product metadata in real implementation
+      // NIGHT-QF-3: stond hardcoded op null, waardoor alles "ontbreekt" toonde.
+      altText: product.image_alt_texts?.[index]?.trim() || null,
       index,
     }))
   );
@@ -132,7 +135,7 @@ export function ImageAltTextPanel({
             </CardDescription>
           </div>
           {selectedIds.size > 0 && (
-            <Button onClick={handleGenerateSelected} disabled={isGenerating}>
+            <Button type="button" onClick={handleGenerateSelected} disabled={isGenerating}>
               {isGenerating ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -141,7 +144,7 @@ export function ImageAltTextPanel({
               ) : (
                 <>
                   <Wand2 className="h-4 w-4 mr-2" />
-                  Genereer Alt ({selectedIds.size})
+                  {t('admin.seo.imageAltTextPanel.genereer_alt', { count: selectedIds.size })}
                 </>
               )}
             </Button>
@@ -153,15 +156,15 @@ export function ImageAltTextPanel({
         <div className="flex items-center gap-4 p-4 rounded-lg bg-muted/50">
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-green-500" />
-            <span className="text-sm">{imagesWithAlt} met alt-tekst</span>
+            <span className="text-sm">{t('admin.seo.imageAltTextPanel.met_alt_tekst', { count: imagesWithAlt })}</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-yellow-500" />
-            <span className="text-sm">{imagesMissing} ontbrekend</span>
+            <span className="text-sm">{t('admin.seo.imageAltTextPanel.ontbrekend_count', { count: imagesMissing })}</span>
           </div>
           <div className="ml-auto">
             <Badge variant={imagesMissing === 0 ? 'default' : 'secondary'}>
-              {Math.round((imagesWithAlt / Math.max(totalImages, 1)) * 100)}% compleet
+              {t('admin.seo.imageAltTextPanel.compleet_pct', { pct: Math.round((imagesWithAlt / Math.max(totalImages, 1)) * 100) })}
             </Badge>
           </div>
         </div>
@@ -179,25 +182,28 @@ export function ImageAltTextPanel({
           </div>
           <div className="flex gap-2">
             <Button
+              type="button"
               variant={filter === 'all' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('all')}
             >
-              Alle ({totalImages})
+              {t('admin.seo.imageAltTextPanel.filter_alle', { count: totalImages })}
             </Button>
             <Button
+              type="button"
               variant={filter === 'missing' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('missing')}
             >
-              Ontbrekend ({imagesMissing})
+              {t('admin.seo.imageAltTextPanel.filter_ontbrekend', { count: imagesMissing })}
             </Button>
             <Button
+              type="button"
               variant={filter === 'complete' ? 'default' : 'outline'}
               size="sm"
               onClick={() => setFilter('complete')}
             >
-              Compleet ({imagesWithAlt})
+              {t('admin.seo.imageAltTextPanel.filter_compleet', { count: imagesWithAlt })}
             </Button>
           </div>
         </div>
@@ -210,7 +216,7 @@ export function ImageAltTextPanel({
               onCheckedChange={toggleSelectAll}
             />
             <span className="text-sm text-muted-foreground">
-              Selecteer alle ({filteredImages.length})
+              {t('admin.seo.imageAltTextPanel.selecteer_alle', { count: filteredImages.length })}
             </span>
           </div>
         )}

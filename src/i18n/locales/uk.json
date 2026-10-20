@@ -4249,7 +4249,7 @@
     "adsProductMap": {
       "product_mapping": "Зіставлення товарів",
       "product_mapping_2": "Зіставлення товарів",
-      "uit": "Вихід",
+      "uit": "Вимкнено",
       "opgeslagen": "Збережено",
       "fout": "Помилка",
       "actie": "Дія",
@@ -4302,7 +4302,15 @@
         "modern_formaat": "Сучасний формат",
         "optimaliseer_afbeeldingen_lt_200kb": "Оптимізуйте зображення &lt; 200 КБ",
         "optimaliseer_alt_teksten_voor_betere_seo": "Оптимізуйте alt-тексти для кращого SEO та доступності",
-        "webp_avif_voor_betere_performance": "WebP/AVIF для кращої продуктивності"
+        "webp_avif_voor_betere_performance": "WebP/AVIF для кращої продуктивності",
+        "genereer_alt": "Згенерувати alt ({{count}})",
+        "met_alt_tekst": "З alt-текстом: {{count}}",
+        "ontbrekend_count": "Бракує: {{count}}",
+        "compleet_pct": "Заповнено {{pct}}%",
+        "filter_alle": "Усі ({{count}})",
+        "filter_ontbrekend": "Бракує ({{count}})",
+        "filter_compleet": "Заповнені ({{count}})",
+        "selecteer_alle": "Вибрати всі ({{count}})"
       },
       "keywordResearchPanel": {
         "secundair": "Додатковий",
@@ -7536,7 +7544,8 @@
       "terminal_aanmaken": "Створити термінал",
       "kassa_openen": "Відкрити касу",
       "dag_starten": "Почати день",
-      "geef_je_kassaterminal_een_naam_en": "Дайте касовому терміналу назву та за бажанням розташування."
+      "geef_je_kassaterminal_een_naam_en": "Дайте касовому терміналу назву та за бажанням розташування.",
+      "nog_open_sinds": "Досі відкрита з {{date}}"
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Налаштування термінала",
