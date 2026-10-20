@@ -78,6 +78,13 @@
       "when": 1792479797309,
       "tag": "0010_mail_3_cart_restore",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1792493374346,
+      "tag": "0011_mail_logo_email_variant",
+      "breakpoints": true
     }
   ]
 }
