@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mail, MoreHorizontal, RefreshCw, X } from 'lucide-react';
 import { format } from 'date-fns';
-import { nl } from 'date-fns/locale';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,27 +19,37 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useTeamInvitations, InvitationStatus, TeamInvitation } from '@/hooks/useTeamInvitations';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 
 type FilterValue = InvitationStatus | 'all';
 
-const STATUS_LABELS: Record<InvitationStatus, string> = {
-  pending: 'In afwachting',
-  accepted: 'Geaccepteerd',
-  expired: 'Verlopen',
-  revoked: 'Ingetrokken',
-  rejected: 'Geweigerd',
+/** i18n-keys; vertaald in de component. */
+const STATUS_LABEL_KEYS: Record<InvitationStatus, string> = {
+  pending: 'settings.team.invitations.status.pending',
+  accepted: 'settings.team.invitations.status.accepted',
+  expired: 'settings.team.invitations.status.expired',
+  revoked: 'settings.team.invitations.status.revoked',
+  rejected: 'settings.team.invitations.status.rejected',
 };
 
-const ROLE_LABELS: Record<string, string> = {
-  tenant_admin: 'Admin',
-  staff: 'Medewerker',
-  accountant: 'Boekhouder',
-  warehouse: 'Magazijn',
-  marketing: 'Marketing',
-  viewer: 'Kijker',
+const ROLE_LABEL_KEYS: Record<string, string> = {
+  tenant_admin: 'settings.team.roles.tenant_admin.label',
+  staff: 'settings.team.roles.staff.label',
+  accountant: 'settings.team.roles.accountant.label',
+  warehouse: 'settings.team.roles.warehouse.label',
+  marketing: 'settings.team.roles.marketing.label',
+  viewer: 'settings.team.roles.viewer.label',
 };
 
 function StatusBadge({ status }: { status: InvitationStatus }) {
+  const { t } = useTranslation();
+  const STATUS_LABELS: Record<InvitationStatus, string> = {
+    pending: t(STATUS_LABEL_KEYS.pending),
+    accepted: t(STATUS_LABEL_KEYS.accepted),
+    expired: t(STATUS_LABEL_KEYS.expired),
+    revoked: t(STATUS_LABEL_KEYS.revoked),
+    rejected: t(STATUS_LABEL_KEYS.rejected),
+  };
   switch (status) {
     case 'pending':
       return <Badge className="bg-yellow-500/15 text-yellow-700 border border-yellow-500/40">{STATUS_LABELS[status]}</Badge>;
@@ -57,6 +66,7 @@ function StatusBadge({ status }: { status: InvitationStatus }) {
 
 export function TenantInvitationsList() {
   const { t } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const [filter, setFilter] = useState<FilterValue>('all');
   const { invitations, isLoading, revokeInvitation, resendInvitation } =
     useTeamInvitations({ statusFilter: 'all' });
@@ -108,11 +118,11 @@ export function TenantInvitationsList() {
         </div>
         <Tabs value={filter} onValueChange={(v) => setFilter(v as FilterValue)} className="mt-3">
           <TabsList className="flex flex-wrap h-auto">
-            <TabsTrigger value="all">Alle ({counts.all})</TabsTrigger>
-            <TabsTrigger value="pending">In afwachting ({counts.pending})</TabsTrigger>
-            <TabsTrigger value="accepted">Geaccepteerd ({counts.accepted})</TabsTrigger>
-            <TabsTrigger value="expired">Verlopen ({counts.expired})</TabsTrigger>
-            <TabsTrigger value="revoked">Ingetrokken ({counts.revoked})</TabsTrigger>
+            <TabsTrigger value="all">{t('common.all')} ({counts.all})</TabsTrigger>
+            <TabsTrigger value="pending">{t(STATUS_LABEL_KEYS.pending)} ({counts.pending})</TabsTrigger>
+            <TabsTrigger value="accepted">{t(STATUS_LABEL_KEYS.accepted)} ({counts.accepted})</TabsTrigger>
+            <TabsTrigger value="expired">{t(STATUS_LABEL_KEYS.expired)} ({counts.expired})</TabsTrigger>
+            <TabsTrigger value="revoked">{t(STATUS_LABEL_KEYS.revoked)} ({counts.revoked})</TabsTrigger>
           </TabsList>
         </Tabs>
       </CardHeader>
@@ -142,13 +152,13 @@ export function TenantInvitationsList() {
                 {visible.map((inv: TeamInvitation) => (
                   <TableRow key={inv.id}>
                     <TableCell className="font-medium">{inv.email}</TableCell>
-                    <TableCell>{ROLE_LABELS[inv.role] ?? inv.role}</TableCell>
+                    <TableCell>{ROLE_LABEL_KEYS[inv.role] ? t(ROLE_LABEL_KEYS[inv.role]) : inv.role}</TableCell>
                     <TableCell><StatusBadge status={inv.status} /></TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground text-xs">
-                      {format(new Date(inv.created_at), 'd MMM yyyy', { locale: nl })}
+                      {format(new Date(inv.created_at), 'd MMM yyyy', { locale: dateLocale })}
                     </TableCell>
                     <TableCell className="hidden md:table-cell text-muted-foreground text-xs">
-                      {format(new Date(inv.expires_at), 'd MMM yyyy', { locale: nl })}
+                      {format(new Date(inv.expires_at), 'd MMM yyyy', { locale: dateLocale })}
                     </TableCell>
                     <TableCell>
                       <RowActions
@@ -181,7 +191,7 @@ export function TenantInvitationsList() {
               disabled={busy}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {busy ? 'Intrekken...' : t('settings.team.invitations.revoke')}
+              {busy ? t('settings.team.invitations.revoking') : t('settings.team.invitations.revoke')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

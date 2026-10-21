@@ -49,8 +49,7 @@ export const isHttpUrl = (v: unknown): v is string => typeof v === "string" && /
  * custom frontend krijgt dat laatste nooit meer (Loveke kreeg vroeger loveke.sellqo.shop).
  * Geen adres → "" (de callers tonen dan geen link). Signatuur ongewijzigd voor de callers.
  */
-// deno-lint-ignore no-explicit-any
-export function resolveShopUrl(_supabase: any, _tenantId: string, brand: TenantBrand): Promise<string> {
+export function resolveShopUrl(_supabase: unknown, _tenantId: string, brand: TenantBrand): Promise<string> {
   return Promise.resolve(brand.shopUrl ?? "");
 }
 
@@ -65,8 +64,7 @@ export interface ShopInfo {
 }
 
 /** Naam, logo en webshop-URL voor de kop van een mailpagina. Faalt nooit. */
-// deno-lint-ignore no-explicit-any
-export async function getShopInfo(supabase: any, tenantId: string): Promise<ShopInfo> {
+export async function getShopInfo(supabase: Parameters<typeof getTenantBrand>[0], tenantId: string): Promise<ShopInfo> {
   try {
     const brand = await getTenantBrand(supabase, tenantId);
     const shopUrl = await resolveShopUrl(supabase, tenantId, brand);

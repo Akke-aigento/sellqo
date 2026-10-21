@@ -251,7 +251,9 @@ serve(async (req) => {
   }
   
   // SEC-TENANT-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-TENANT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-IDOR-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  // SEC-IDOR-1: het foutpad mag alleen een koppeling van de geautoriseerde winkel markeren.
+  let authorizedTenantId: string | null = null;
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -260,6 +262,7 @@ serve(async (req) => {
     const { tenant_id, platform, connection_id }: SyncRequest = await req.json();
     const auth = await authenticateRequest(req, tenant_id);
     requireRole(auth, tenant_id, ['tenant_admin', 'staff', 'marketing']);
+    authorizedTenantId = tenant_id;
     
     // Get connection details
     const { data: connection, error: connError } = await supabase
@@ -382,14 +385,15 @@ serve(async (req) => {
       const supabase = createClient(supabaseUrl, supabaseKey);
       const body = await req.clone().json();
       
-      if (body.connection_id) {
+      if (body.connection_id && authorizedTenantId) {
         await supabase
           .from('review_platform_connections')
           .update({
             sync_status: 'failed',
             sync_error: errorMessage,
           })
-          .eq('id', body.connection_id);
+          .eq('id', body.connection_id)
+          .eq('tenant_id', authorizedTenantId);
       }
     } catch (e) {
       console.error('Failed to update error status:', e);

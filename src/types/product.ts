@@ -34,6 +34,8 @@ export interface Product {
   allow_backorder: boolean;
   low_stock_threshold: number;
   images: string[];
+  /** Alt-tekst per afbeeldingsindex, parallel aan `images` (NIGHT-QF-3). */
+  image_alt_texts?: string[] | null;
   featured_image: string | null;
   category_id: string | null;
   vat_rate_id: string | null;
@@ -190,6 +192,9 @@ export interface Category {
   sort_order: number;
   is_active: boolean;
   hide_from_storefront: boolean;
+  // SEO-CAT-1: categories heeft enkel per-taal meta-kolommen (geen meta_title/meta_description).
+  meta_title_nl?: string | null;
+  meta_description_nl?: string | null;
   created_at: string;
   updated_at: string;
   parent?: Category;

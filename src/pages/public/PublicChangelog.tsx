@@ -14,6 +14,18 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.13i', dateKey: 'oct_2026', changes: [
+    { id: 'events_door_honest', type: 'improvement' },
+    { id: 'product_vat_margin', type: 'feature' },
+    { id: 'discount_dates_scope', type: 'bugfix' },
+    { id: 'exports_all_rows', type: 'bugfix' },
+    { id: 'save_no_permission', type: 'bugfix' },
+    { id: 'settings_translated', type: 'improvement' },
+    { id: 'seo_generator_fixed', type: 'bugfix' },
+    { id: 'shipping_providers_clear', type: 'improvement' },
+    { id: 'admin_small_fixes', type: 'bugfix' },
+    { id: 'access_hardening', type: 'security' },
+  ] },
   { version: '2026.13h', dateKey: 'oct_2026', changes: [
     { id: 'size_chart_standard', type: 'feature' },
   ] },

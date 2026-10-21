@@ -428,7 +428,7 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
       <header className="flex items-center gap-3 px-4 py-3">
         {onBack ? (
           <button type="button" onClick={() => { void stop(); onBack(); }} aria-label={backLabel ?? k('back')}
-            className="-ml-2 rounded-full p-2 text-white/80 hover:bg-white/10"><ArrowLeft className="h-5 w-5" /></button>
+            className="-ml-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white/80 hover:bg-white/10"><ArrowLeft className="h-5 w-5" /></button>
         ) : logoUrl ? (
           <img src={logoUrl} alt="" className="h-8 w-8 rounded-md bg-white object-contain p-0.5" />
         ) : null}
@@ -557,10 +557,10 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
             <span className="min-w-0 flex-1 truncate">{r.result === 'net' ? k('net.recent') : r.attendee || (r.seq ? k('ticket_no_short', { n: r.seq }) : k('unknown_ticket'))}</span>
             <span className="text-xs text-white/50">{r.undone ? k('undone') : new Date(r.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             {r.result === 'net' && (
-              <button type="button" onClick={() => { unlockDoorAudio(); void run(r.token, 'scan'); }} aria-label={k('net.retry')} className="rounded p-1 text-amber-300 hover:bg-white/10"><RotateCcw className="h-4 w-4" /></button>
+              <button type="button" onClick={() => { unlockDoorAudio(); void run(r.token, 'scan'); }} aria-label={k('net.retry')} className="-my-3 -mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded text-amber-300 hover:bg-white/10"><RotateCcw className="h-4 w-4" /></button>
             )}
             {adapter.undo && r.result === 'ok' && !r.undone && (
-              <button type="button" onClick={() => void undo(r)} aria-label={k('undo')} className="rounded p-1 text-white/70 hover:bg-white/10"><RotateCcw className="h-4 w-4" /></button>
+              <button type="button" onClick={() => void undo(r)} aria-label={k('undo')} className="-my-3 -mr-2 flex h-11 w-11 shrink-0 items-center justify-center rounded text-white/70 hover:bg-white/10"><RotateCcw className="h-4 w-4" /></button>
             )}
           </li>
         ))}
@@ -586,7 +586,7 @@ export function DoorScanner({ title, subtitle, logoUrl, adapter, onBack, backLab
       {searchOpen && (
         <div className="absolute inset-0 z-10 flex flex-col bg-[#0b1220]" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
           <div className="flex items-center gap-2 px-4 py-3">
-            <button type="button" onClick={() => { setSearchOpen(false); setQuery(''); setHits(null); }} aria-label={k('close')} className="-ml-2 rounded-full p-2 hover:bg-white/10"><X className="h-5 w-5" /></button>
+            <button type="button" onClick={() => { setSearchOpen(false); setQuery(''); setHits(null); }} aria-label={k('close')} className="-ml-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-white/10"><X className="h-5 w-5" /></button>
             <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder={k('search_placeholder')}
               className="h-12 flex-1 rounded-xl bg-white/10 px-4 text-base outline-none placeholder:text-white/40 focus:ring-2 focus:ring-emerald-400" />
           </div>

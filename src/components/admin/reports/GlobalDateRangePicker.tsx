@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { format, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, subMonths, subQuarters, subYears } from 'date-fns';
+import { format, isSameDay } from 'date-fns';
 import { Calendar as CalendarIcon, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -18,98 +18,60 @@ import {
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import {
+  getReportPresetRange,
+  REPORT_PRESET_KEYS,
+  type ReportDateRange,
+  type ReportPresetKey,
+} from '@/lib/reportDateRanges';
 
-export interface DateRange {
-  from: Date;
-  to: Date;
-  type?: 'monthly' | 'quarterly' | 'annual' | 'custom';
-}
+export type DateRange = ReportDateRange;
 
 interface GlobalDateRangePickerProps {
   dateRange: DateRange;
   onDateRangeChange: (range: DateRange) => void;
 }
 
-type PresetKey = 'this_month' | 'last_month' | 'this_quarter' | 'last_quarter' | 'this_year' | 'last_year' | 'custom';
+type PresetKey = ReportPresetKey | 'custom';
 
-const presets: { key: PresetKey; labelKey: string; getRange: () => DateRange }[] = [
-  {
-    key: 'this_month',
-    labelKey: 'admin.reports.globalDateRangePicker.presets.this_month',
-    getRange: () => ({
-      from: startOfMonth(new Date()),
-      to: endOfMonth(new Date()),
-      type: 'monthly',
-    }),
-  },
-  {
-    key: 'last_month',
-    labelKey: 'admin.reports.globalDateRangePicker.presets.last_month',
-    getRange: () => ({
-      from: startOfMonth(subMonths(new Date(), 1)),
-      to: endOfMonth(subMonths(new Date(), 1)),
-      type: 'monthly',
-    }),
-  },
-  {
-    key: 'this_quarter',
-    labelKey: 'admin.reports.globalDateRangePicker.presets.this_quarter',
-    getRange: () => ({
-      from: startOfQuarter(new Date()),
-      to: endOfQuarter(new Date()),
-      type: 'quarterly',
-    }),
-  },
-  {
-    key: 'last_quarter',
-    labelKey: 'admin.reports.globalDateRangePicker.presets.last_quarter',
-    getRange: () => ({
-      from: startOfQuarter(subQuarters(new Date(), 1)),
-      to: endOfQuarter(subQuarters(new Date(), 1)),
-      type: 'quarterly',
-    }),
-  },
-  {
-    key: 'this_year',
-    labelKey: 'admin.reports.globalDateRangePicker.presets.this_year',
-    getRange: () => ({
-      from: startOfYear(new Date()),
-      to: endOfYear(new Date()),
-      type: 'annual',
-    }),
-  },
-  {
-    key: 'last_year',
-    labelKey: 'admin.reports.globalDateRangePicker.presets.last_year',
-    getRange: () => ({
-      from: startOfYear(subYears(new Date(), 1)),
-      to: endOfYear(subYears(new Date(), 1)),
-      type: 'annual',
-    }),
-  },
-];
+// NIGHT-QF-3: berekening zit in src/lib/reportDateRanges.ts (met unit tests).
+const presets: { key: ReportPresetKey; labelKey: string; getRange: () => DateRange }[] =
+  REPORT_PRESET_KEYS.map((key) => ({
+    key,
+    labelKey: `admin.reports.globalDateRangePicker.presets.${key}`,
+    getRange: () => getReportPresetRange(key),
+  }));
 
 export const GlobalDateRangePicker = ({ dateRange, onDateRangeChange }: GlobalDateRangePickerProps) => {
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
-  const [selectedPreset, setSelectedPreset] = useState<PresetKey>('this_month');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
+  // Label altijd afleiden uit de echte periode: de pagina kan de range ook zelf
+  // zetten (standaard dit kwartaal, snelknoppen). Een losse state toonde dan
+  // "Deze maand" bij 1 okt – 31 dec.
+  const selectedPreset: PresetKey = (() => {
+    if (!dateRange?.from || !dateRange?.to) return 'custom';
+    const match = presets.find((p) => {
+      const r = p.getRange();
+      return isSameDay(r.from, dateRange.from) && isSameDay(r.to, dateRange.to);
+    });
+    return match?.key ?? 'custom';
+  })();
+
   const handlePresetSelect = (preset: typeof presets[0]) => {
-    setSelectedPreset(preset.key);
     onDateRangeChange(preset.getRange());
   };
 
   const handleCustomDateChange = (range: { from?: Date; to?: Date } | undefined) => {
     if (range?.from && range?.to) {
-      setSelectedPreset('custom');
       onDateRangeChange({ from: range.from, to: range.to, type: 'custom' });
       setIsCalendarOpen(false);
     }
   };
 
-  const currentPresetLabel = selectedPreset === 'custom' 
-    ? 'Aangepaste periode'
+  const currentPresetLabel = selectedPreset === 'custom'
+    ? t('admin.reports.globalDateRangePicker.aangepaste_periode')
     : (() => { const pr = presets.find((x) => x.key === selectedPreset); return pr ? t(pr.labelKey) : t('admin.reports.globalDateRangePicker.selecteer_periode'); })();
 
   return (

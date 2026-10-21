@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { toast } from 'sonner';
+import { assertRowsWritten } from '@/lib/supabaseWriteGuard';
 
 export interface ReturnSettings {
   tenant_id: string;
@@ -96,10 +97,13 @@ export function useReturnSettings() {
   const mutation = useMutation({
     mutationFn: async (updates: Partial<ReturnSettings>) => {
       if (!tenantId) throw new Error('No tenant');
-      const { error } = await supabase
+      // HONEST-SAVE-1: zonder .select() gaf een door RLS geweigerde upsert "Opgeslagen".
+      const { data: written, error } = await supabase
         .from('tenant_return_settings')
-        .upsert({ tenant_id: tenantId, ...updates } as any, { onConflict: 'tenant_id' });
+        .upsert({ tenant_id: tenantId, ...updates } as any, { onConflict: 'tenant_id' })
+        .select('tenant_id');
       if (error) throw error;
+      assertRowsWritten(written);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['return-settings', tenantId] });

@@ -202,7 +202,7 @@ export function VatRatesSettings() {
                     {getLocalizedName(rate)}
                     {!rate.tenant_id && (
                       <Badge variant="outline" className="ml-2 text-xs">
-                        Standaard
+                        {t("vat_rates.system_badge")}
                       </Badge>
                     )}
                   </TableCell>

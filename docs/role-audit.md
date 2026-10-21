@@ -1,3 +1,136 @@
+## Nachtrun 20→21 oktober 2026 — events, productformulier, IDOR-sweep, eerlijke UI, exports, promoties (release 2026.13i)
+
+Onbewaakte nachtrun op branch `night-final` (basis `origin/main` 5a6a6ad, SIZECHART-1 deployed). Alles lokaal gecommit, als back-up naar `night-final` gepusht, **niet op main, niets gedeployed**. Bronnen: commitberichten `origin/main..night-final` + het nachtbevindingenlog. Eindchecks op `night-final`: tsc 27 (gelijk aan main), i18n-parity + alle check/verify-scripts exit 0, vitest 71 files / 874 tests groen (gemeten bij RELEASE-PREP), vite build ok, deno check op alle te deployen functies groen, `scripts/promo-compare/smoke.ts` groen, lint 1457 (baseline verlaagd). Eindreview (fresh eyes): OK om naar main, geen 🔴/🟠.
+
+### EVENT-HOTFIX (703a06e)
+**Root cause**
+- `can_scan` liet bij eventstatus `confirmed` niemand binnen (`event_not_active`); heringang "1x per dag" rekende per UTC-dag.
+- "Afronden" zette een event zonder bevestiging op `completed`, waarna de deur niemand meer binnenlaat; de annuleertekst beloofde "bestaande tickets blijven geldig".
+
+**Uitgevoerd**
+- `supabase/migrations/20261020194500_event_hotfix_can_scan.sql`: `can_scan` laat binnen bij `scheduled` én `confirmed`; heringang per lokale eventnacht in de tijdzone van het event, dag wisselt om 06:00. **Functie was al live** (20-10 ~21:40); dit bestand trekt de repo gelijk (de live-drift die bij SIZECHART-1 gemeld werd). Snapshot vorige definitie: `snapshots.functions_20261020_event_hotfix`.
+- `EventCardActions.tsx`: bevestigingsdialoog bij Afronden; eerlijke annuleertekst (tickets niet meer binnen, geen automatische terugbetaling). i18n 5 talen.
+
+**Security-keuzes** — `can_scan` blijft `SECURITY DEFINER` met `search_path public`; enkel de status- en dagvoorwaarde gewijzigd.
+**Backlog** — Vóór merge/deploy checken dat de migratie de live-definitie niet terugdraait (live = deze definitie).
+
+### EVENT-POLISH-1 (4b79573)
+**Root cause** — binnen-teller en presence-badge telden elke `in`-scan, ook geweigerde (`already_inside` e.d.); eventdashboard-header liep op 390px buiten beeld (live gezien bij Fonske 24/10); capaciteit null gaf een lege balk; "vandaag" in UTC.
+**Uitgevoerd** — `EventDetail` telt enkel `ok`/`manual_override`/`undo` (zelfde semantiek als `ticket_is_inside`/`zone_occupancy`); `EventDashboard` header wrapt onder `sm`, capaciteit null → "x / ∞"; 44px-tikdoelen in `DoorScanner` + `EventCardActions`; `localTodayIso()` in `eventReadiness` gebruikt door `EventWizard`, `EventDetail`, `useFestival`, `useEventWorkspace`; datums volgen `i18n.language`, statuslabels via `t()`.
+**Security-keuzes** — n.v.t.
+
+### PRODUCT-FORM-2 fase 1 (f7f2e3b, c61aafc, e9699dc)
+**Root cause** — geen btw-tarief kiesbaar in het productformulier (live: géén enkel actief product heeft `vat_rate_id`); niet-submitknoppen (sync, publiceren, voorraadstappers) verstuurden het hele formulier.
+**Uitgevoerd**
+- `ProductForm`: btw-select (`vat_rate_id`, leeg = winkelstandaard `tenants.tax_percentage`, zoals `_shared/vat.ts`; bestaande null blijft null), tarieven via `useVatRates` gefilterd op winkelland. Marge-hint (marge % + winst per stuk excl. btw) achter `product_costs`-leesrecht, niet bij varianten.
+- Review ronde 1: inactief tarief los opgehaald en getoond als "(inactief)", landcode in fallbacklabel, marge pas na laden. Ronde 2: marge verborgen als die losse opzoeking faalt, landvergelijking hoofdletterongevoelig.
+- `type="button"` in `ProductMarketplaceTab`, `ProductSocialChannels`, `ProductVariantsTab`; `useProducts.updateProduct` invalideert `['product', id]`.
+**Security-keuzes** — marge enkel met `product_costs`-leesrecht.
+**Vangst uit recon** — horecablokken waren al gegated (`useHorecaModule`); ik zag ze door de platform-admin-bypass. Ongewijzigd.
+**Backlog** — fallback bij `tax_percentage=0` verschilt per pad (cart `||0`, POS `??0`, bol `??21`, checkout `||EU||21`); BE 12% heet "Parking" in de seed.
+
+### SEC-SEO-1 (2f332ca, df05f4c) → opgevolgd door SEO-CAT-1
+**Root cause** — `ai-generate-seo-content` draait met service-role (geen RLS) en las/schreef producten/categorieën met enkel `.in('id', ids)`. `authenticateRequest` checkt lidmaatschap van `tenantId`, niet of de ID's bij die winkel horen: winkel A kon SEO-velden/beschrijvingen van winkel B overschrijven.
+**Uitgevoerd** — `.eq('tenant_id', tenantId)` op select én update.
+**Security-keuzes** — service-role-pad blijft; tenant-scoping nu expliciet op elke read/write met de geauthenticeerde `tenantId`.
+
+### SEC-IDOR-1 (104309d, 0e32153, b19f121)
+**Root cause** — IDOR-sweep 20-10 (254 functies gescand, ~110 nagelezen): service-role-functies vertrouwden ID's uit de request zonder tenant-filter.
+**Uitgevoerd**
+- `create-shipping-label`: `integration_id` enkel van de winkel van de order.
+- `create-manual-invoice`: `customer_id` enkel van de eigen winkel.
+- `create-bol-vvb-label`: retry-label moet bij de order horen.
+- `ai-generate-email` / `ai-generate-social`: segment- en productcontext enkel van de eigen winkel.
+- `send-order-confirmation`: ingelogde gebruikers enkel voor orders van de eigen winkel (`requireRole`; service-role-aanroepen passeren).
+- `create-odoo-product` / `sync-platform-reviews`: foutpad markeert enkel rijen van de geautoriseerde winkel.
+- GET-versiestempel `SEC-IDOR-1` op 7 functies; `create-bol-vvb-label` **bewust zonder stempel** (bol-vangrail).
+**Security-keuzes** — alle paden blijven service-role (nodig voor cross-tabel-reads); scoping via `.eq('tenant_id', …)` op de tenant uit `authenticateRequest`/de order, nooit uit de body. Interne service-role-aanroepen van `send-order-confirmation` blijven ongemoeid.
+**Backlog (🟡, niet gefixt)** — `create-ebay-listing`/`create-odoo-product` updates zonder tenant (read wel gefilterd), `ai-generate-ab-variant` update, `verify-domain` update, `send-ticket-confirmation` `auto:true` open eindpunt.
+
+### CART-TENANT-1 (e724b17, 328f48a)
+**Root cause** — `storefront-api` cart-acties gebruikten de cart-ID uit de request zonder te checken dat de cart bij de winkel van de request hoort (IDOR over winkels heen).
+**Uitgevoerd** — helper `ownedCart()` (één lookup op `id` + `tenant_id`). `cart_add_item` (na review: fout "Cart not found", zelfde voor onbekend en vreemd), `cart_apply_discount`/`cart_remove_discount` (→ `data: null`, zoals `cart_get`), `cart_update_item`/`cart_remove_item` (→ "Cart item not found"). Alle `storefront_carts`-updates ook op `tenant_id`, item-updates ook op `cart_id`. `calculate_promotions`: klantgroepen enkel voor klanten van deze winkel (`customers!inner` + `customers.tenant_id`). `smoke.ts`: twee rooktests. Stempel `CART-TENANT-1`.
+**Security-keuzes** — zelfde antwoord voor onbekend en vreemd → geen bestaans-lek; geen writes bij weigering.
+**Gedeelde-paden** — `storefront-api` is gedeeld met de custom frontends. Fonske-frontend (fonske-crawl-hq eeffd1c) nagetrokken: verse cart per checkout + `checkout_apply_discount`; `checkout_*` ongewijzigd → Fonske 24/10 niet geraakt.
+**Bewust gelaten** — `cart_add_item` op vreemde/verdwenen cart → 500 "Cart not found"; apply/remove_discount op onbekende cart → `{success:true,data:null}` (afspraak null-cart = verlopen).
+
+### NIGHT-QF-1 (7353f48, 0268ba2)
+**Root cause** — reeks live gevonden admin-fouten: bronfilter orders werkte niet; orderdetail ververste niet; leveranciersdocumenten "Openen" altijd 400 (privé-bucket + `getPublicUrl`); `SelectItem value=""` crasht; Stripe Omzet (MTD) = som van alle transacties; periodelabel rapporten fout; assistent-knop op /admin/help deed niets; komma/haakjes braken `.or()`-zoekopdrachten.
+**Uitgevoerd** — bronfilter (webshop via `resolveOrderChannel`), `['order', id]`-invalidatie, interne notities, `sanitizeOrSearch` (orders, klanten, storefront-klanten, fulfilment, retouren, inbox), fulfilment start op "Te verzenden", inbox-inhoud niet verborgen + nep-"permanent verwijderen" weg, leveranciersdocumenten via signed URL (ook Safari/app), `value="none"`, inkooporders zonder dode links + eerlijke lege staat, helpwidget via event, periodelabel + omzetexport lokale datum, MTD enkel huidige maand.
+**Security-keuzes** — signed URL i.p.v. publieke URL op privé-bucket (bucket blijft privé); zoekfilters veilig ge-escaped in `.or()`.
+**Backlog** — inkooporders aanmaken bestaat niet (alleen-lezen lijst).
+
+### LINT-1 (930c020, 4dfab4e)
+**Root cause** — CI Lint rood sinds ±19-20 okt (+20 `no-explicit-any`, o.a. `_shared/campaignQueue.ts`, `storefront-api`, `newsletter-confirm`, `unsubscribe`, `mailPages`).
+**Uitgevoerd** — echte types (type-only) in die bestanden; lint 1487 → 1462, na alle merges 1457 → baseline verlaagd naar 1457. Geen versoepeling van regels.
+**Security-keuzes** — n.v.t.
+**Vervolg** — CI Lint wordt groen zodra `night-final` op main staat.
+
+### HONEST-SAVE-1 (c00d0f5)
+**Root cause** — RLS-weigering (0 rijen) gaf toch "Opgeslagen": theme-editor (staff; RLS laat enkel admin toe), Tax-, Bedrijfs-, Facturatie-automatisering-, Retour-/creditnota-instellingen. Cadeaukaarten in US-notatie, "Total spent" fout gelabeld; kaart "Binnenkort eigen domein" klopte niet meer.
+**Uitgevoerd** — `src/lib/supabaseWriteGuard.ts` (`assertRowsWritten()` na `.select('id')`, fout `common.saveNoPermission`) op theme-editor (`StorefrontCustomize`, `useStorefront` save/publish, `ShopOpenCard`, homepage-secties) en de genoemde instellingen; cadeaukaarten via `formatCurrency`; eigen-domeinkaart → Instellingen > Domein.
+**Security-keuzes** — geen RLS gewijzigd; de UI meldt nu eerlijk wat RLS al weigerde.
+**Backlog** — creditnota-prefix schrijft `tenant_return_settings`, nummering leest `tenants.credit_note_prefix` → instelling werkt nooit. Gastbestelling/cookiebanner/nav_style-toggles schrijven naar `tenant_theme_settings`, API leest `storefront_config`.
+
+### I18N-SETTINGS-1 (55c5c1f)
+**Root cause** — instellingen-subpagina's nooit door i18n-extractie (live: NL in EN-UI bij VanXcel).
+**Uitgevoerd** — 220 keys × 5 locales: profiel-wizard (`OnboardingStatusCard`), transacties, compliance, retour, team (incl. datums, `TenantInvitationsList`), btw-badge, Peppol (dubbele kop weg).
+**Security-keuzes** — n.v.t.
+**Backlog** — Peppol-scherm suggereert dat SellQo verstuurt (loopt via Odoo).
+
+### SEO-CAT-1 (2adb54e)
+**Root cause** — categorie-SEO schreef naar `meta_title`/`meta_description` (bestaan niet; live enkel `meta_title_{nl,en,fr,de}`), product-alt naar `alt_text` (bestaat niet) — credits vooraf afgeschreven; categorie-quick-wins gingen als `productIds`.
+**Uitgevoerd** — `ai-generate-seo-content` schrijft naar `meta_*_nl` en `image_alt_texts[0]`, 400 vóór credits bij onbestaande combinatie, updatefouten gelogd; frontend `SEOCategoryTable`, `useSEO`, `SEODashboard`, `CategoryFormDialog`. Stempel `SEO-CAT-1` (vervangt SEC-SEO-1).
+**Security-keuzes** — tenant-scoping uit SEC-SEO-1 behouden.
+**Backlog** — credits nog vooraf voor alle ids (ook mislukte); translation-config `category meta_title` mogelijk dezelfde fout.
+
+### EXPORT-ALL-1 (43e0f2a)
+**Root cause** — 22 exportqueries + voorraadrapport kapten stil af op 1000 rijen (o.a. facturen voor de boekhouder); productexport-btw las `(p as any).vat_rate` → altijd 21%.
+**Uitgevoerd** — `useReportExports` via `fetchAllRows` met deterministische volgorde (`.order('id')`); btw uit `vat_rates(rate)` via `vat_rate_id`, terugval `tenants.tax_percentage || 21`; `useStockReport` gepagineerd, koppeltabel tenant-gescoped; vitest voor paginering.
+**Security-keuzes** — koppeltabel in voorraadrapport nu expliciet tenant-gescoped.
+**Backlog** — `useReports.ts` dode code met zelfde probleem; SubscribersTab/MarketplaceDetail niet nagekeken.
+
+### HONEST-2 (e9dcb3d)
+**Root cause** — Shippo/EasyPost koppelbaar maar `create-shipping-label`/`shipping-webhook` kennen enkel sendcloud/myparcel; sync-conflictenpagina altijd leeg (`create_sync_conflict` heeft geen aanroeper) en belooft sync; onboarding-tip "binnenkort eigen domein"; rolnamen hardcoded ("Kijker").
+**Uitgevoerd** — vlag `labelsNotYetSupported` op `SHIPPING_PROVIDERS` + badge/uitleg; eerlijke lege staat + resolve-dialoog zonder datasync-belofte; `url_tip`; rolnamen via `settings.team.roles.*.label` in `AcceptInvitation` + `TenantTeamTab`. i18n 5 talen.
+**Security-keuzes** — n.v.t.
+**Backlog** — `ConflictStrategySelector` "Handmatig beoordelen" belooft een niet-bestaande review (marketplace/bol-flow, niet aangeraakt).
+
+### PROMO-SAFE-1 (61bcac7) + 1b (242881d, e61eb3b)
+**Root cause** — `DiscountCodeDialog` stuurde altijd `product_ids`/`category_ids` `[]` → een bewerkte gescopete code gaf korting op de hele kar (geldlek). "Geldig tot" = middernacht UTC (eindigt 01/02u BE). 9 promotie-subroutes zonder RouteGuard.
+**Uitgevoerd** — scope ingeladen en teruggestuurd; `src/lib/discountDates.ts` (begin/einde lokale dag Brussel, 7 tests incl. DST); 9 subroutes guard zoals de sidebar (`App.tsx`, `verify-route-coverage.mjs`); 1b: geldig-tot niet vóór geldig-vanaf, `buildDiscountFormData` als pure functie + 7 tests; `docs/h4e-route-coverage.md` geregenereerd.
+**Security-keuzes** — routeguards op promotie-subroutes gelijkgetrokken met de sidebarrechten.
+**Vangst uit recon (live 01:50)** — geen enkele code met `applies_to<>'all'` → geen schade; 0 codes met `valid_until` op 00:00Z, 3 met `valid_from` op 00:00Z (starten 1-2u te laat, onschuldig). Fonske FONSKE/WHADUP tot 23:59 BE, ok.
+**Backlog** — `calculate_promotions` negeert categoriescope (enkel weergave; `promotionEngine` correct). BOGO/bundels/cadeaus/loyalty-niveau/stapelregels instelbaar maar doen niets; cadeaukaarten niet inwisselbaar in webshop/kassa.
+
+### NIGHT-QF-3 (3afb118)
+**Uitgevoerd** — `ImageAltTextPanel` toont `products.image_alt_texts[index]` (was hardcoded null); POS-overzicht datum + tijd als de sessie niet van vandaag is, open > 24u = "Nog open sinds <datum>" (live: sessie 23 maart nog actief); `admin.adsProductMap.uit` → Off/Désactivé/Вимкнено; rapportpresets in `src/lib/reportDateRanges.ts` + 11 tests.
+**Security-keuzes** — n.v.t.
+
+### REVIEW-FIX-1 (2a2f39d)
+**Uitgevoerd** — 🟡's uit de eindreview: webshopfilter ook op `sales_channel` null/webshop (`useOrders`), verdwenen sectie verwijderen geen fout (`StorefrontCustomize`), promotiekaarten volume/loyalty/klantgroepen volgen leesrecht (`Promotions.tsx`; accountant kwam op /no-access).
+**Bewust gelaten** — staff die thema + secties tegelijk bewerkt krijgt "geen rechten" en niets wordt opgeslagen (eerlijk; vroeger thema stil overgeslagen).
+
+### Open bevindingen (niet in deze release)
+- Bankreconciliatie platformbetalingen: tenant-update 0 rijen = vals "matched". Overschrijvingsorders krijgen nooit OGM (live 6 orders, 0 met OGM).
+- Ads: spend/omzet dubbel geteld, "Toepassen" doet niets. Klantcommunicatie: 10 van 12 schakelaars lezen niks.
+- Open rate 0%: `campaign_sends` leeg voor alle tenants → Akke checkt in Resend open-tracking + webhook `email.opened`.
+- VanXcel `billing_exempt=true` toont toch "Enterprise €165,83/mnd".
+
+### Vervolg (in deze volgorde, na go van Akke)
+1. Merge `night-final` → main, `gh run list --limit 1` tot CI groen (Lint hoort nu groen te worden).
+2. Nulmeting 00:35 ligt vast (storefront-api MAIL-3, ai-generate-seo-content SCHEMA-FIX-1, send-order-confirmation FOOD-2, sync-platform-reviews SEC-TENANT-1, ai-generate-email/-social/create-manual-invoice/create-odoo-product 500 "Unexpected end of JSON input", create-shipping-label 401).
+3. Deploy-only via Lovable-agent (met STOP-clausule), daarna vingerafdruk via `net.http_get` + `net._http_response`:
+   - `storefront-api` → `CART-TENANT-1`
+   - `ai-generate-seo-content` → `SEO-CAT-1`
+   - `send-order-confirmation`, `sync-platform-reviews`, `ai-generate-email`, `ai-generate-social`, `create-manual-invoice`, `create-odoo-product`, `create-shipping-label` → `SEC-IDOR-1`
+   - `create-bol-vvb-label`: géén stempel (bol-vangrail) → beslissing Akke: meedeployen zonder vingerafdruk (enkel bron-grep) of uit de batch halen.
+   - Na de deploy `git log origin/main` vs verwachte hash; nieuwe migraties scannen op JWT's.
+4. Migratie `20261020194500_event_hotfix_can_scan.sql`: live-definitie natrekken (al live, mag niet dubbel/anders draaien).
+5. `deploy_project` sellqo.app; verifiëren via index → nieuwe `/assets/index-*.js` → string uit 2026.13i in de bundel.
+6. Nieuwe app-build (iOS + Android): hoogste buildnummer in App Store Connect en Play Console checken, beide op max + 1, nummer hier vastleggen en bump committen.
+7. Blogartikel voor 2026.13i (spoor 4) en Akke's go op NL vóór publicatie.
+
 ## SIZECHART-1 — Standaard-maattabel met factchecks voor Printful-maatgidsen — 20 oktober 2026
 
 Go van Akke 20-10 22:35 ("Yes doe maar") op het plan van 22:27. Aanleiding: Akke bestelde bijna een veel te grote Loveke-tee; de ruwe Printful-maatgids was voor klanten onleesbaar. Op `origin/main` e810f31, niet gecommit. Ook `src/types/product.ts` (additief veld).

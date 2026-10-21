@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Network, Save, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -42,7 +42,7 @@ export function PeppolSettings() {
       
       toast({
         title: t('toast.saved'),
-        description: 'Peppol-ID opgeslagen.',
+        description: t('peppol.settings.saved'),
       });
     } catch (error: any) {
       toast({
@@ -65,9 +65,6 @@ export function PeppolSettings() {
           </div>
           <div>
             <CardTitle>{t('peppol.title')}</CardTitle>
-            <CardDescription>
-              {t('peppol.mandatory_notice')}
-            </CardDescription>
           </div>
         </div>
       </CardHeader>
@@ -89,18 +86,18 @@ export function PeppolSettings() {
               placeholder={t('peppol.peppol_id_placeholder')}
             />
             <p className="text-xs text-muted-foreground">
-              Formaat: schemeID:identifier (bijv. 0208:0123456789 voor België KBO)
+              {t('peppol.settings.formatHint')}
             </p>
           </div>
         </div>
 
         <div className="pt-4 border-t">
-          <h4 className="font-medium mb-2">Peppol Scheme ID's per land:</h4>
+          <h4 className="font-medium mb-2">{t('peppol.settings.schemesTitle')}</h4>
           <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-            <div>• België (KBO): 0208</div>
-            <div>• Nederland (KvK): 0106</div>
-            <div>• Duitsland: 0204</div>
-            <div>• Frankrijk (SIRET): 0009</div>
+            <div>• {t('peppol.settings.schemes.be')}</div>
+            <div>• {t('peppol.settings.schemes.nl')}</div>
+            <div>• {t('peppol.settings.schemes.de')}</div>
+            <div>• {t('peppol.settings.schemes.fr')}</div>
           </div>
         </div>
 

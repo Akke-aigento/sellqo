@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeOrSearch } from '@/lib/sanitizeOrSearch';
 import { useTenant } from '@/hooks/useTenant';
 
 export interface StorefrontCustomer {
@@ -32,8 +33,9 @@ export function useStorefrontCustomers(search?: string) {
         .eq('tenant_id', currentTenant.id)
         .order('created_at', { ascending: false });
 
-      if (search) {
-        query = query.or(`email.ilike.%${search}%,first_name.ilike.%${search}%,last_name.ilike.%${search}%`);
+      const term = sanitizeOrSearch(search);
+      if (term) {
+        query = query.or(`email.ilike.%${term}%,first_name.ilike.%${term}%,last_name.ilike.%${term}%`);
       }
 
       const { data, error } = await query;

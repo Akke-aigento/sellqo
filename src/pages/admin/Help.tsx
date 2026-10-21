@@ -7,6 +7,7 @@ import { DocArticleViewer } from '@/components/admin/docs/DocArticleViewer';
 import { Loader2, BookOpen, MessageCircleQuestion } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
+import { openAIHelp } from '@/lib/aiHelpEvents';
 
 export default function Help() {
   const { t } = useTranslation();
@@ -72,11 +73,7 @@ export default function Help() {
         </div>
         <Button
           variant="outline"
-          onClick={() => {
-            // Find and click the floating AI widget button
-            const btn = document.querySelector<HTMLButtonElement>('[title="SellQo Assistent"]');
-            if (btn) btn.click();
-          }}
+          onClick={openAIHelp}
         >
           <MessageCircleQuestion className="h-4 w-4 mr-2" />
           {t('admin.help.vraag_het_de_assistent')}

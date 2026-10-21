@@ -94,13 +94,8 @@ export function ConversationActions({
           </DropdownMenuItem>
         )}
 
-        {/* Permanent delete for trash items */}
-        {isDeleted && (
-          <DropdownMenuItem onClick={onDelete} className="text-destructive focus:text-destructive">
-            <Trash2 className="h-4 w-4 mr-2" />
-            {t('admin.inbox.conversationActions.permanent_verwijderen')}
-          </DropdownMenuItem>
-        )}
+        {/* Geen "permanent verwijderen" in de prullenbak: verwijderen zet enkel
+            message_status='deleted', wat hier al zo is. Herstellen blijft beschikbaar. */}
       </DropdownMenuContent>
     </DropdownMenu>
   );

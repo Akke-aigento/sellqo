@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { startOfQuarter, endOfQuarter, startOfYear, endOfYear, subQuarters, subYears } from 'date-fns';
+import { useTranslation } from 'react-i18next';
+import { getReportPresetRange, type ReportPresetKey } from '@/lib/reportDateRanges';
 import {
   TrendingUp,
   CreditCard,
@@ -30,18 +31,13 @@ import {
   useRevenueExport,
 } from '@/hooks/useReportExports';
 
-type QuickPreset = { label: string; getRange: () => DateRange };
-
-const quickPresets: QuickPreset[] = [
-  { label: 'Dit kwartaal', getRange: () => ({ from: startOfQuarter(new Date()), to: endOfQuarter(new Date()), type: 'quarterly' }) },
-  { label: 'Vorig kwartaal', getRange: () => ({ from: startOfQuarter(subQuarters(new Date(), 1)), to: endOfQuarter(subQuarters(new Date(), 1)), type: 'quarterly' }) },
-  { label: 'Dit jaar', getRange: () => ({ from: startOfYear(new Date()), to: endOfYear(new Date()), type: 'annual' }) },
-  { label: 'Vorig jaar', getRange: () => ({ from: startOfYear(subYears(new Date(), 1)), to: endOfYear(subYears(new Date(), 1)), type: 'annual' }) },
-];
+// NIGHT-QF-3: zelfde berekening als de picker (src/lib/reportDateRanges.ts).
+const QUICK_PRESETS: ReportPresetKey[] = ['this_quarter', 'last_quarter', 'this_year', 'last_year'];
 
 const Reports = () => {
+  const { t } = useTranslation();
   const { currentTenant } = useTenant();
-  const [dateRange, setDateRange] = useState<DateRange>(() => quickPresets[0].getRange());
+  const [dateRange, setDateRange] = useState<DateRange>(() => getReportPresetRange(QUICK_PRESETS[0]));
 
   const { exportAgingReport, isExporting: isExportingAging } = useAgingExport();
   const { exportVatReport, exportIcListing, exportQBundle, exportIntervatBundle, isExporting: isExportingVat, isBundling } = useVatExport();
@@ -159,14 +155,15 @@ const Reports = () => {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex flex-wrap gap-2">
-            {quickPresets.map((p) => (
+            {QUICK_PRESETS.map((key) => (
               <Button
-                key={p.label}
+                key={key}
+                type="button"
                 size="sm"
                 variant="secondary"
-                onClick={() => setDateRange(p.getRange())}
+                onClick={() => setDateRange(getReportPresetRange(key))}
               >
-                {p.label}
+                {t(`admin.reports.globalDateRangePicker.presets.${key}`)}
               </Button>
             ))}
           </div>

@@ -155,7 +155,7 @@ jobs:
           DENO_NO_PACKAGE_JSON: "1"
         run: |
           cp supabase/functions/storefront-api/index.ts supabase/functions/storefront-api/__smoke.ts
-          echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore, cartGet, getCartForCheckout, checkoutComplete, checkoutVerifyPayment };' >> supabase/functions/storefront-api/__smoke.ts
+          echo 'export { getProducts, getProductFilters, computeCartTotals, cartAddItem, cartUpdateItem, cartRemoveItem, cartApplyDiscount, cartRemoveDiscount, getFulfillmentSlots, validateCartFulfillment, payOnPickupMethod, checkoutTable, fulfillmentAvailability, foodInfo, ticketFeeFor, orderOverageFeeCents, resolveEventPrice, earlyBirdForType, seatPublicStatus, validateDiscountCode, appliedCodesOnly, resolveDomain, getSeo, getSitemapData, isSoldOutToday, channelAllows, cartAvailabilityError, cartRestore, cartGet, getCartForCheckout, checkoutComplete, checkoutVerifyPayment };' >> supabase/functions/storefront-api/__smoke.ts
           deno run --allow-read --allow-env --allow-net --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.smoke.json scripts/promo-compare/smoke.ts
           rm supabase/functions/storefront-api/__smoke.ts
 

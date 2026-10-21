@@ -1019,7 +1019,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen')}</span>
-                  <Button 
+                  <Button type="button" 
                     size="sm" 
                     onClick={handleSaveSettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -1049,7 +1049,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <Clock className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{t('admin.marketplace.productMarketplaceTab.je_aanbieding_wordt_verwerkt_door_bol')}</span>
-                  <Button 
+                  <Button type="button" 
                     size="sm" 
                     variant="outline"
                     onClick={handleCheckStatus}
@@ -1077,7 +1077,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                       {t('admin.marketplace.productMarketplaceTab.voorraadsync_werkt_pas_na_koppeling_met')}
                     </p>
                   </div>
-                  <Button 
+                  <Button type="button" 
                     size="sm" 
                     variant="outline"
                     onClick={handleLookupOfferId}
@@ -1218,7 +1218,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                     {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_2')}
                   </p>
                 </div>
-                <Button
+                <Button type="button"
                   variant="outline"
                   onClick={handleOptimizeBol}
                   disabled={isOptimizing}
@@ -1280,7 +1280,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div className="flex gap-2">
                 {/* Save button */}
                 {hasUnsavedChanges && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSaveSettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -1296,7 +1296,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Sync button for listed products */}
                 {isListed && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSyncBol}
                     disabled={updateBolOffer.isPending}
@@ -1312,7 +1312,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Publish button for non-listed products */}
                 {!isListed && !isPending && (
-                  <Button
+                  <Button type="button"
                     onClick={handlePublishToBol}
                     disabled={!eanValidation.isValid || createBolOffer.isPending}
                   >
@@ -1327,7 +1327,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
                 {/* Check status button for pending */}
                 {isPending && (
-                  <Button
+                  <Button type="button"
                     onClick={handleCheckStatus}
                     disabled={isCheckingStatus}
                   >
@@ -1400,7 +1400,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_2')}</span>
-                  <Button 
+                  <Button type="button" 
                     size="sm" 
                     onClick={handleSaveAmazonSettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -1430,7 +1430,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <Clock className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{t('admin.marketplace.productMarketplaceTab.je_aanbieding_wordt_verwerkt_door_amazon')}</span>
-                  <Button 
+                  <Button type="button" 
                     size="sm" 
                     variant="outline"
                     onClick={handleCheckAmazonStatus}
@@ -1532,7 +1532,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                     {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_3')}
                   </p>
                 </div>
-                <Button
+                <Button type="button"
                   variant="outline"
                   onClick={handleOptimizeAmazon}
                   disabled={isOptimizing}
@@ -1613,7 +1613,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div className="flex gap-2">
                 {/* Save button */}
                 {hasAmazonUnsavedChanges && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSaveAmazonSettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -1629,7 +1629,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Sync button for listed products */}
                 {isAmazonListed && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSyncAmazon}
                     disabled={updateAmazonOffer.isPending}
@@ -1645,7 +1645,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Publish button for non-listed products */}
                 {!isAmazonListed && !isAmazonPending && (
-                  <Button
+                  <Button type="button"
                     onClick={handlePublishToAmazon}
                     disabled={createAmazonOffer.isPending}
                   >
@@ -1660,7 +1660,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
                 {/* Check status button for pending */}
                 {isAmazonPending && (
-                  <Button
+                  <Button type="button"
                     onClick={handleCheckAmazonStatus}
                     disabled={isCheckingAmazonStatus}
                   >
@@ -1733,7 +1733,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_3')}</span>
-                  <Button 
+                  <Button type="button" 
                     size="sm" 
                     onClick={handleSaveShopifySettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -1776,7 +1776,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                     {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_4')}
                   </p>
                 </div>
-                <Button
+                <Button type="button"
                   variant="outline"
                   onClick={handleOptimizeShopify}
                   disabled={isOptimizing}
@@ -1840,7 +1840,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div className="flex gap-2">
                 {/* Save button */}
                 {hasShopifyUnsavedChanges && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSaveShopifySettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -1856,7 +1856,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Sync button for listed products */}
                 {isShopifyListed && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSyncShopify}
                     disabled={isSyncingShopify}
@@ -1872,7 +1872,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Publish button for non-listed products */}
                 {!isShopifyListed && !isShopifyPending && (
-                  <Button
+                  <Button type="button"
                     onClick={handlePublishToShopify}
                     disabled={isPublishingShopify}
                   >
@@ -1945,7 +1945,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_4')}</span>
-                  <Button 
+                  <Button type="button" 
                     size="sm" 
                     onClick={handleSaveWooCommerceSettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -1988,7 +1988,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                     {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_5')}
                   </p>
                 </div>
-                <Button
+                <Button type="button"
                   variant="outline"
                   onClick={handleOptimizeWooCommerce}
                   disabled={isOptimizing}
@@ -2052,7 +2052,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div className="flex gap-2">
                 {/* Save button */}
                 {hasWooCommerceUnsavedChanges && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSaveWooCommerceSettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -2068,7 +2068,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Sync button for listed products */}
                 {isWooCommerceListed && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSyncWooCommerce}
                     disabled={isSyncingWooCommerce}
@@ -2084,7 +2084,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Publish button for non-listed products */}
                 {!isWooCommerceListed && !isWooCommercePending && (
-                  <Button
+                  <Button type="button"
                     onClick={handlePublishToWooCommerce}
                     disabled={isPublishingWooCommerce}
                   >
@@ -2150,7 +2150,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_5')}</span>
-                  <Button 
+                  <Button type="button" 
                     size="sm" 
                     onClick={handleSaveOdooSettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -2193,7 +2193,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                     {t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor_6')}
                   </p>
                 </div>
-                <Button
+                <Button type="button"
                   variant="outline"
                   onClick={handleOptimizeOdoo}
                   disabled={isOptimizing}
@@ -2257,7 +2257,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               <div className="flex gap-2">
                 {/* Save button */}
                 {hasOdooUnsavedChanges && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSaveOdooSettings}
                     disabled={saveMarketplaceSettings.isPending}
@@ -2273,7 +2273,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Sync button for listed products */}
                 {isOdooListed && (
-                  <Button
+                  <Button type="button"
                     variant="outline"
                     onClick={handleSyncOdoo}
                     disabled={isSyncingOdoo}
@@ -2289,7 +2289,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 
                 {/* Publish button for non-listed products */}
                 {!isOdooListed && !isOdooPending && (
-                  <Button
+                  <Button type="button"
                     onClick={handlePublishToOdoo}
                     disabled={isPublishingOdoo}
                   >
@@ -2361,7 +2361,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{t('admin.marketplace.productMarketplaceTab.je_hebt_onopgeslagen_wijzigingen_6')}</span>
-                  <Button size="sm" onClick={handleSaveEbaySettings} disabled={saveMarketplaceSettings.isPending}>
+                  <Button type="button" size="sm" onClick={handleSaveEbaySettings} disabled={saveMarketplaceSettings.isPending}>
                     {saveMarketplaceSettings.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
                     Opslaan
                   </Button>
@@ -2381,7 +2381,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                 <Clock className="h-4 w-4" />
                 <AlertDescription className="flex items-center justify-between">
                   <span>{t('admin.marketplace.productMarketplaceTab.je_product_wordt_verwerkt_door_ebay')}</span>
-                  <Button size="sm" variant="outline" onClick={handleCheckEbayStatus} disabled={isCheckingEbayStatus}>
+                  <Button type="button" size="sm" variant="outline" onClick={handleCheckEbayStatus} disabled={isCheckingEbayStatus}>
                     {isCheckingEbayStatus ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-1" />}
                     Status controleren
                   </Button>
@@ -2409,7 +2409,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
                   <h4 className="font-medium">{t('admin.marketplace.productMarketplaceTab.ai_content_optimalisatie_6')}</h4>
                   <p className="text-sm text-muted-foreground">{t('admin.marketplace.productMarketplaceTab.laat_ai_je_productcontent_optimaliseren_voor')}</p>
                 </div>
-                <Button variant="outline" onClick={handleOptimizeEbay} disabled={isOptimizing}>
+                <Button type="button" variant="outline" onClick={handleOptimizeEbay} disabled={isOptimizing}>
                   {isOptimizing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
                   Optimaliseer
                 </Button>
@@ -2435,13 +2435,13 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
               </div>
               <div className="flex gap-2">
                 {hasEbayUnsavedChanges && (
-                  <Button variant="outline" onClick={handleSaveEbaySettings} disabled={saveMarketplaceSettings.isPending}>
+                  <Button type="button" variant="outline" onClick={handleSaveEbaySettings} disabled={saveMarketplaceSettings.isPending}>
                     {saveMarketplaceSettings.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                     Opslaan
                   </Button>
                 )}
                 {!isEbayListed && !isEbayPending && (
-                  <Button onClick={handlePublishToEbay} disabled={isPublishingEbay || createEbayOffer.isPending}>
+                  <Button type="button" onClick={handlePublishToEbay} disabled={isPublishingEbay || createEbayOffer.isPending}>
                     {isPublishingEbay || createEbayOffer.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <ExternalLink className="h-4 w-4 mr-2" />}
                     Publiceer naar eBay
                   </Button>

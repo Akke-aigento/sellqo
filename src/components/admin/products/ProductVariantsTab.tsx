@@ -50,7 +50,7 @@ function InlineStockStepper({ stock, onUpdate }: { stock: number; onUpdate: (val
 
   return (
     <div className="inline-flex items-center gap-0.5">
-      <Button
+      <Button type="button"
         variant="outline"
         size="icon"
         className="h-6 w-6"
@@ -58,13 +58,13 @@ function InlineStockStepper({ stock, onUpdate }: { stock: number; onUpdate: (val
       >
         <Minus className="h-3 w-3" />
       </Button>
-      <button
+      <button type="button"
         className="min-w-[2rem] text-center text-sm font-mono hover:underline cursor-pointer bg-transparent border-none"
         onClick={e => { e.stopPropagation(); setInputVal(stock.toString()); setIsEditing(true); }}
       >
         {stock}
       </button>
-      <Button
+      <Button type="button"
         variant="outline"
         size="icon"
         className="h-6 w-6"
@@ -534,7 +534,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         <div>
                           <span className="text-xs text-muted-foreground block">{t('admin.stockReport.colStock')}</span>
                           {trackInventory ? (
-                            <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
+                            <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button type="button" variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">{t('admin.products.productVariantsTab.niet_bijgehouden')}</span>
                           )}
@@ -678,7 +678,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                             editingVariantId === variant.id ? (
                               <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
                             ) : (
-                              <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
+                              <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button type="button" variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
                             )
                           ) : (
                             <span className="text-xs text-muted-foreground italic">—</span>

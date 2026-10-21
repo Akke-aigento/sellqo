@@ -20,7 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { EventReadinessBadge } from '@/components/admin/events/EventReadinessBadge';
-import { eventReadiness } from '@/lib/eventReadiness';
+import { eventReadiness, localTodayIso } from '@/lib/eventReadiness';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -100,24 +100,32 @@ interface ScanRow {
   note: string | null;
 }
 
-const fmtDate = (d: string) =>
-  new Date(`${d}T00:00:00Z`).toLocaleDateString('nl-NL', {
+// Datums volgen de UI-taal (i18n.language), niet een vaste 'nl-NL'.
+const fmtDate = (d: string, lng?: string) =>
+  new Date(`${d}T00:00:00Z`).toLocaleDateString(lng, {
     weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC',
   });
 const fmtTime = (t: string | null | undefined) => (t ? String(t).slice(0, 5) : '');
-const fmtStamp = (iso: string | null | undefined) =>
-  iso ? new Date(iso).toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit' }) : '';
-const fmtFull = (iso: string | null | undefined) =>
+const fmtStamp = (iso: string | null | undefined, lng?: string) =>
+  iso ? new Date(iso).toLocaleTimeString(lng, { hour: '2-digit', minute: '2-digit' }) : '';
+const fmtFullWith = (iso: string | null | undefined, lng?: string) =>
   iso
-    ? new Date(iso).toLocaleString('nl-NL', {
+    ? new Date(iso).toLocaleString(lng, {
         day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
       })
-    : '—';
+    : '\u2014';
+
+/** Scanresultaten die de aanwezigheid bepalen — identiek aan ticket_is_inside /
+ *  zone_occupancy in de DB: 'undo' telt mee (die rij draagt direction='out'),
+ *  geweigerde scans (already_inside, invalid, …) niet. */
+const PRESENCE_RESULTS = new Set(['ok', 'manual_override', 'undo']);
 
 export default function EventDetail() {
   const { eventId } = useParams<{ eventId: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lng = i18n.language;
+  const fmtFull = (iso: string | null | undefined) => fmtFullWith(iso, lng);
   const { currentTenant } = useTenant();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -300,7 +308,7 @@ export default function EventDetail() {
     },
     enabled: !!currentTenant && !!event?.product_id,
   });
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = localTodayIso();
   const hasOtherUpcoming = siblingDates.some((d) => d.id !== eventId && d.event_date >= todayIso && (d.status === 'scheduled' || d.status === 'confirmed'));
 
   const zoneName = useMemo(() => {
@@ -315,11 +323,12 @@ export default function EventDetail() {
     return m;
   }, [scanners]);
 
-  // Laatste scan per ticket → presence-status (binnen/buiten/niet gescand).
+  // Laatste geldige scan per ticket → presence-status (binnen/buiten/niet gescand).
   const lastScan = useMemo(() => {
     const m: Record<string, ScanRow> = {};
-    // `scans` is nieuwste-eerst; eerste hit per ticket is dus de laatste scan.
+    // `scans` is nieuwste-eerst; eerste geldige hit per ticket is dus de laatste scan.
     for (const s of scans) {
+      if (!PRESENCE_RESULTS.has(s.result)) continue;
       if (!m[s.ticket_instance_id]) m[s.ticket_instance_id] = s;
     }
     return m;
@@ -402,9 +411,9 @@ export default function EventDetail() {
     const s = lastScan[ticketId];
     if (!s) return <Badge variant="secondary">{t('events.presence.never')}</Badge>;
     if (s.direction === 'in') {
-      return <Badge variant="default">{t('events.presence.inside')} · {fmtStamp(s.scanned_at)}</Badge>;
+      return <Badge variant="default">{t('events.presence.inside')} · {fmtStamp(s.scanned_at, lng)}</Badge>;
     }
-    return <Badge variant="outline">{t('events.presence.outside')} · {fmtStamp(s.scanned_at)}</Badge>;
+    return <Badge variant="outline">{t('events.presence.outside')} · {fmtStamp(s.scanned_at, lng)}</Badge>;
   };
 
   // ---- Tickettype-acties (4b) ----
@@ -577,7 +586,7 @@ export default function EventDetail() {
           <p className="text-sm text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1">
             <span className="flex items-center gap-1">
               <CalendarDays className="h-3.5 w-3.5" />
-              {fmtDate(event.event_date)} · {fmtTime(event.start_time)}
+              {fmtDate(event.event_date, lng)} · {fmtTime(event.start_time)}
               {event.end_time ? `–${fmtTime(event.end_time)}` : ''}
             </span>
             {(event.location_name || event.meeting_point) && (
@@ -599,7 +608,7 @@ export default function EventDetail() {
               onChange={(e) => navigate(`/admin/events/${e.target.value}`)}
             >
               {siblingDates.map((d) => (
-                <option key={d.id} value={d.id}>{fmtDate(d.event_date)} · {fmtTime(d.start_time)}</option>
+                <option key={d.id} value={d.id}>{fmtDate(d.event_date, lng)} · {fmtTime(d.start_time)}</option>
               ))}
             </select>
           )}

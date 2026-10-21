@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -18,12 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { usePurchaseOrders, usePurchaseOrderStats } from "@/hooks/usePurchaseOrders";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { PurchaseOrderStatusBadge } from "@/components/admin/suppliers/PurchaseOrderStatusBadge";
@@ -32,10 +25,7 @@ import type { PurchaseOrderStatus } from "@/types/supplier";
 import { format } from "date-fns";
 import { nl } from "date-fns/locale";
 import {
-  Plus,
   Search,
-  Eye,
-  MoreVertical,
   FileText,
   Clock,
   Truck,
@@ -44,6 +34,7 @@ import {
 } from "lucide-react";
 
 export default function PurchaseOrders() {
+  const { t } = useTranslation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
@@ -70,12 +61,6 @@ export default function PurchaseOrders() {
               Beheer je bestellingen bij leveranciers
             </p>
           </div>
-          <Button asChild>
-            <Link to="/admin/purchase-orders/new">
-              <Plus className="h-4 w-4 mr-2" />
-              Nieuwe inkooporder
-            </Link>
-          </Button>
         </div>
 
         {/* Stats */}
@@ -162,13 +147,12 @@ export default function PurchaseOrders() {
                   <TableHead className="hidden sm:table-cell">Orderdatum</TableHead>
                   <TableHead className="hidden sm:table-cell">Verwachte levering</TableHead>
                   <TableHead className="text-right">Totaal</TableHead>
-                  <TableHead className="w-10"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {isLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={6} className="text-center py-8">
                       Laden...
                     </TableCell>
                   </TableRow>
@@ -176,20 +160,10 @@ export default function PurchaseOrders() {
                   orders.map((order) => (
                     <TableRow key={order.id}>
                       <TableCell>
-                        <Link
-                          to={`/admin/purchase-orders/${order.id}`}
-                          className="font-medium hover:text-primary"
-                        >
-                          {order.order_number}
-                        </Link>
+                        <span className="font-medium">{order.order_number}</span>
                       </TableCell>
                       <TableCell className="max-w-[180px] truncate">
-                        <Link
-                          to={`/admin/suppliers/${order.supplier_id}`}
-                          className="hover:text-primary"
-                        >
-                          {order.supplier?.name}
-                        </Link>
+                        {order.supplier?.name}
                       </TableCell>
                       <TableCell>
                         <PurchaseOrderStatusBadge status={order.status} />
@@ -213,28 +187,11 @@ export default function PurchaseOrders() {
                           minimumFractionDigits: 2,
                         })}
                       </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link to={`/admin/purchase-orders/${order.id}`}>
-                                <Eye className="h-4 w-4 mr-2" />
-                                Bekijken
-                              </Link>
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
+                    <TableCell colSpan={6} className="text-center py-12">
                       <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-semibold text-lg mb-1">
                         Geen inkooporders gevonden
@@ -242,16 +199,8 @@ export default function PurchaseOrders() {
                       <p className="text-muted-foreground mb-4">
                         {search || statusFilter !== "all" || supplierFilter !== "all"
                           ? "Probeer andere filters"
-                          : "Maak je eerste inkooporder aan"}
+                          : t("admin.purchaseOrders.aanmaken_nog_niet_beschikbaar")}
                       </p>
-                      {!search && statusFilter === "all" && supplierFilter === "all" && (
-                        <Button asChild>
-                          <Link to="/admin/purchase-orders/new">
-                            <Plus className="h-4 w-4 mr-2" />
-                            Eerste inkooporder
-                          </Link>
-                        </Button>
-                      )}
                     </TableCell>
                   </TableRow>
                 )}

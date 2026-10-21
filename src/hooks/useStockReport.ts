@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { fetchAllRows } from '@/lib/salesStats';
 
 export interface StockReportRow {
   key: string;
@@ -58,25 +59,36 @@ export function useStockReport(date: Date) {
       const reconstruction = !isToday(date);
       const cutoff = brusselsEndOfDayISO(date);
 
-      const [productsRes, variantsRes, junctionRes] = await Promise.all([
-        supabase
-          .from('products')
-          .select('id, name, sku, price, cost_price, stock, track_inventory, category_id')
-          .eq('tenant_id', tenantId),
-        supabase
-          .from('product_variants')
-          .select('id, product_id, sku, title, price, cost_price, stock, track_inventory, is_active')
-          .eq('tenant_id', tenantId),
-        supabase
-          .from('product_categories')
-          .select('product_id, category_id'),
+      // Volledige lijsten: PostgREST kapt anders stil af op 1000 rijen.
+      const [products, variants, junction] = await Promise.all([
+        fetchAllRows((from, to) =>
+          supabase
+            .from('products')
+            .select('id, name, sku, price, cost_price, stock, track_inventory, category_id')
+            .eq('tenant_id', tenantId)
+            .order('id')
+            .range(from, to),
+        ),
+        fetchAllRows((from, to) =>
+          supabase
+            .from('product_variants')
+            .select('id, product_id, sku, title, price, cost_price, stock, track_inventory, is_active')
+            .eq('tenant_id', tenantId)
+            .order('id')
+            .range(from, to),
+        ),
+        // Fout op de koppeltabel werd vroeger genegeerd (alleen primaire categorie): zo houden.
+        // Tenant-scope via products!inner: zonder filter pagineerde dit door alle
+        // koppelrijen die RLS toelaat (resultaat identiek, categoryMap kent enkel deze tenant).
+        fetchAllRows((from, to) =>
+          supabase
+            .from('product_categories')
+            .select('product_id, category_id, products!inner(tenant_id)')
+            .eq('products.tenant_id', tenantId)
+            .order('id')
+            .range(from, to),
+        ).catch(() => []),
       ]);
-
-      if (productsRes.error) throw productsRes.error;
-      if (variantsRes.error) throw variantsRes.error;
-
-      const products = productsRes.data ?? [];
-      const variants = variantsRes.data ?? [];
 
       const categoryMap = new Map<string, Set<string>>();
       for (const p of products) {
@@ -84,7 +96,7 @@ export function useStockReport(date: Date) {
         if (p.category_id) set.add(p.category_id);
         categoryMap.set(p.id, set);
       }
-      for (const j of junctionRes.data ?? []) {
+      for (const j of junction) {
         const set = categoryMap.get(j.product_id);
         if (set && j.category_id) set.add(j.category_id);
       }
@@ -96,23 +108,28 @@ export function useStockReport(date: Date) {
       let usedPoApproximation = false;
 
       if (reconstruction) {
-        const [itemsRes, poRes] = await Promise.all([
-          supabase
-            .from('order_items')
-            .select('product_id, variant_id, quantity, orders!inner(tenant_id, status, created_at)')
-            .eq('orders.tenant_id', tenantId)
-            .gt('orders.created_at', cutoff)
-            .neq('orders.status', 'cancelled'),
-          supabase
-            .from('purchase_order_items')
-            .select('product_id, quantity_received, purchase_orders!inner(tenant_id, status, received_at, updated_at)')
-            .eq('purchase_orders.tenant_id', tenantId),
+        const [items, poLines] = await Promise.all([
+          fetchAllRows((from, to) =>
+            supabase
+              .from('order_items')
+              .select('product_id, variant_id, quantity, orders!inner(tenant_id, status, created_at)')
+              .eq('orders.tenant_id', tenantId)
+              .gt('orders.created_at', cutoff)
+              .neq('orders.status', 'cancelled')
+              .order('id')
+              .range(from, to),
+          ),
+          fetchAllRows((from, to) =>
+            supabase
+              .from('purchase_order_items')
+              .select('product_id, quantity_received, purchase_orders!inner(tenant_id, status, received_at, updated_at)')
+              .eq('purchase_orders.tenant_id', tenantId)
+              .order('id')
+              .range(from, to),
+          ),
         ]);
 
-        if (itemsRes.error) throw itemsRes.error;
-        if (poRes.error) throw poRes.error;
-
-        for (const it of (itemsRes.data ?? []) as any[]) {
+        for (const it of items as any[]) {
           const qty = Number(it.quantity) || 0;
           if (it.variant_id) {
             soldVariant.set(it.variant_id, (soldVariant.get(it.variant_id) ?? 0) + qty);
@@ -121,7 +138,7 @@ export function useStockReport(date: Date) {
           }
         }
 
-        for (const line of (poRes.data ?? []) as any[]) {
+        for (const line of poLines as any[]) {
           const po = line.purchase_orders;
           if (!po || !line.product_id) continue;
           const qty = Number(line.quantity_received) || 0;

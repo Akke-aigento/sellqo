@@ -2159,6 +2159,46 @@
         "size_chart_standard": {
           "title": "Klare, geprüfte Größentabellen für Printful-Produkte",
           "description": "Bisher wurde die Größentabelle von Printful unverändert weitergegeben: mit Nachkommastellen aus der Zoll-Umrechnung, Körpermaßen, die die Maße des Kleidungsstücks wiederholten, und ohne Hinweis, wo gemessen wird. Jetzt rechnet SellQo jede Größentabelle in eine feste Tabelle in ganzen cm um: Breite (von Achsel zu Achsel), Länge (von der Schulter bis zum Saum), Ärmel und der Brustumfang, für den jede Größe gedacht ist. Bei jedem Import prüft SellQo die Zahlen: Stimmen die cm- und Zoll-Tabelle überein, wird jede Größe größer als die vorherige, sieht ein Wert nach Zoll oder nach einem Umfang statt einer Breite aus? Stimmt etwas nicht, sehen Sie das im Produkt im neuen Reiter Größentabelle, und Ihr Shop zeigt für dieses Produkt keine falsche Tabelle. Haben Sie einen eigenen Webshop, steht die geprüfte Tabelle im neuen Feld size_chart."
+        },
+        "events_door_honest": {
+          "title": "Einlassscanner und Events: ehrlicher Zähler und sichereres Abschließen",
+          "description": "Der Zähler Drinnen zählt nur noch Personen, die wirklich eingelassen wurden: Ein abgelehnter Scan setzt niemanden mehr auf drinnen. Ein Event mit dem Status Bestätigt lässt an der Tür wieder ein, und „einmal pro Tag wieder hinein“ zählt jetzt pro Eventnacht statt pro Kalendertag, sodass ein Abend, der über Mitternacht hinausgeht, ein Tag bleibt. Das Abschließen eines Events fragt zuerst nach einer Bestätigung, weil Tickets danach nicht mehr eingelassen werden, und beim Absagen liest du klar, dass bestehende Tickets nicht mehr eingelassen und nicht automatisch erstattet werden. Auf dem Handy passen die Schaltflächen oben in der Eventübersicht jetzt auf den Bildschirm, die Scanner-Schaltflächen sind größer, ein Event ohne Maximum zeigt „x / ∞“ und Datumsangaben folgen deiner eigenen Zeitzone und Sprache."
+        },
+        "product_vat_margin": {
+          "title": "Mehrwertsteuersatz und Marge im Produktformular",
+          "description": "In der Preiskarte eines Produkts wählst du den Mehrwertsteuersatz jetzt selbst. Lässt du ihn leer, gilt wie bisher der Standardsatz deines Shops. Gibst du einen Einkaufs- und einen Verkaufspreis ein, siehst du sofort deine Marge und deinen Gewinn pro Stück ohne Mehrwertsteuer (nur für Personen, die Einkaufspreise sehen dürfen). Schaltflächen im Formular, etwa Synchronisieren oder die Lagerbestandsknöpfe, speichern das Produkt nicht mehr versehentlich."
+        },
+        "discount_dates_scope": {
+          "title": "Rabattcodes: gültig bis Tagesende und Produktauswahl bleibt erhalten",
+          "description": "Ein Rabattcode, der bis zu einem bestimmten Datum gilt, funktioniert jetzt bis 23:59 Uhr an diesem Tag, statt ein oder zwei Stunden früher zu enden, und ein Startdatum beginnt um Mitternacht Ortszeit. Das Enddatum kann nicht mehr vor dem Startdatum liegen. Hast du einen Code bearbeitet, der nur für bestimmte Produkte oder Kategorien galt, ging diese Auswahl beim Speichern verloren und der Rabatt galt für den ganzen Warenkorb. Deine Auswahl bleibt jetzt erhalten."
+        },
+        "exports_all_rows": {
+          "title": "Exporte enthalten alle Zeilen und die richtige Mehrwertsteuer",
+          "description": "Bei großen Shops brachen Exporte und der Lagerbericht stillschweigend nach 1.000 Zeilen ab, etwa bei einer Rechnungsliste für deine Buchhaltung. Jetzt bekommst du immer alles. Im Produktexport und im Export niedriger Lagerbestände steht der Mehrwertsteuersatz des Produkts oder der Standardsatz deines Shops statt immer 21 %."
+        },
+        "save_no_permission": {
+          "title": "Ehrliche Meldung, wenn du nicht speichern darfst",
+          "description": "Hatte deine Rolle keine Berechtigung, zum Beispiel das Theme deines Webshops oder deine Mehrwertsteuer-, Unternehmens-, Rechnungs- oder Retoureneinstellungen zu ändern, sahst du trotzdem „Gespeichert“, obwohl nichts gespeichert wurde. Jetzt bekommst du eine klare Meldung, dass du keine Berechtigung hast, dies zu speichern."
+        },
+        "settings_translated": {
+          "title": "Einstellungen vollständig in deiner Sprache",
+          "description": "Wenn du auf Englisch, Französisch, Deutsch oder Ukrainisch arbeitest, waren mehrere Einstellungsseiten noch teilweise auf Niederländisch: dein Profil, Transaktionen und Gebühren, Compliance, Retouren, Team, Mehrwertsteuersätze und Peppol. Sie sind jetzt übersetzt, auch die Rollennamen beim Einladen von Teammitgliedern und die Datumsangaben in deiner Teamübersicht."
+        },
+        "seo_generator_fixed": {
+          "title": "SEO-Generator für Kategorien und Alt-Texte funktioniert",
+          "description": "Wenn du SEO-Texte für eine Kategorie oder Alt-Texte für Produktfotos generieren ließest, wurde das Ergebnis nicht gespeichert. Jetzt landen sie an der richtigen Stelle und du siehst die Alt-Texte deiner Fotos auch wirklich in der SEO-Übersicht. Wählst du eine Kombination, die es nicht gibt, etwa einen Alt-Text für eine Kategorie, bekommst du eine Meldung, bevor Credits verbraucht werden."
+        },
+        "shipping_providers_clear": {
+          "title": "Klar, welche Versandpartner Etiketten erstellen",
+          "description": "Versandetiketten und Sendungsverfolgung laufen über Sendcloud und MyParcel. Shippo und EasyPost konntest du bereits verbinden, aber SellQo erstellt damit noch keine Etiketten: Das siehst du jetzt an einem Badge und einer Erklärung, bevor du verbindest. Die Seite mit Synchronisationskonflikten zeigt ehrlich, dass es nichts zu bearbeiten gibt, ohne eine Synchronisation zu versprechen."
+        },
+        "admin_small_fixes": {
+          "title": "Kleine Verbesserungen in deiner Verwaltung",
+          "description": "Der Filter für Bestellungen aus deinem Webshop funktioniert, und eine Bestellung aktualisiert sich direkt nach einer Status- oder Zahlungsänderung. Lieferantendokumente öffnen sich wieder, auch auf dem iPhone und in der App. Geschenkkarten zeigen Beträge in deinem eigenen Format. In Berichten stimmt die Zeitraumbezeichnung, der Stripe-Umsatz dieses Monats zählt nur diesen Monat, und eine Kassensitzung von einem anderen Tag zeigt ihr Datum."
+        },
+        "access_hardening": {
+          "title": "Sicherheit verschärft",
+          "description": "Wir haben die Zugriffskontrolle für Warenkörbe und eine Reihe zugrunde liegender Funktionen verschärft. Du musst nichts tun."
         }
       },
       "copyLink": "Link kopieren",

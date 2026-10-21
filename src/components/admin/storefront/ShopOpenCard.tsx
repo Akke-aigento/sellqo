@@ -52,9 +52,11 @@ export function ShopOpenCard() {
       ...(patch.shop_live === true ? { shop_live_at: new Date().toISOString() } : {}),
       ...(patch.shop_live === false ? { shop_ordering: false } : {}),
     };
-    const { error } = await supabase.from('tenant_theme_settings').upsert(row, { onConflict: 'tenant_id' });
+    // HONEST-SAVE-1: zonder .select() meldde een door RLS geweigerde upsert "online".
+    const { data: written, error } = await supabase.from('tenant_theme_settings').upsert(row, { onConflict: 'tenant_id' }).select('id');
     setSaving(false);
     if (error) { toast.error(t('admin.storefront.food.save_failed_reason', { reason: error.message })); return; }
+    if (!written || written.length === 0) { toast.error(t('common.saveNoPermission')); return; }
     toast.success(patch.shop_live === true ? t('admin.storefront.shopOpenCard.je_winkel_staat_online') : patch.shop_live === false ? t('admin.storefront.shopOpenCard.je_winkel_staat_offline') : patch.shop_ordering ? t('admin.storefront.shopOpenCard.online_bestellen_staat_aan') : t('admin.storefront.shopOpenCard.online_bestellen_staat_uit'));
     await qc.invalidateQueries({ queryKey: ['shop-open', tenantId] });
   };

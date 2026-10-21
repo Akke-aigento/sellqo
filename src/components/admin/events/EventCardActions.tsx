@@ -55,6 +55,7 @@ export function EventCardActions({ eventId, status, eventDate, startTime, endTim
 
   const [dupOpen, setDupOpen] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
+  const [completeOpen, setCompleteOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [dupDate, setDupDate] = useState(eventDate);
   const [dupStart, setDupStart] = useState(startTime?.slice(0, 5) ?? '');
@@ -78,7 +79,7 @@ export function EventCardActions({ eventId, status, eventDate, startTime, endTim
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8 shrink-0"
+            className="-my-1.5 -mr-2 h-11 w-11 shrink-0"
             onClick={stop}
             aria-label={t('events.actions.menuLabel', 'Acties')}
           >
@@ -100,7 +101,7 @@ export function EventCardActions({ eventId, status, eventDate, startTime, endTim
 
           {canComplete && (
             <DropdownMenuItem
-              onClick={() => updateStatus.mutate({ id: eventId, status: 'completed' })}
+              onClick={() => setCompleteOpen(true)}
               disabled={updateStatus.isPending}
             >
               <CheckCircle2 className="h-4 w-4 mr-2" /> {t('events.actions.complete', 'Afronden')}
@@ -195,6 +196,26 @@ export function EventCardActions({ eventId, status, eventDate, startTime, endTim
               onClick={() => { setCancelOpen(false); updateStatus.mutate({ id: eventId, status: 'cancelled' }); }}
             >
               {t('events.actions.cancelConfirm', 'Ja, annuleren')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Afronden-confirm (EVENT-HOTFIX): afronden stopt meteen elke binnenkomst aan de deur. */}
+      <AlertDialog open={completeOpen} onOpenChange={setCompleteOpen}>
+        <AlertDialogContent onClick={stop}>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('events.actions.completeTitle', 'Event afronden?')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('events.actions.completeDesc', 'Na afronden worden tickets voor dit event niet meer binnengelaten aan de deur. Doe dit pas als het event voorbij is.')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('common.back', 'Terug')}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => { setCompleteOpen(false); updateStatus.mutate({ id: eventId, status: 'completed' }); }}
+            >
+              {t('events.actions.completeConfirm', 'Ja, afronden')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

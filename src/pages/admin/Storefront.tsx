@@ -100,13 +100,16 @@ function ShopOverview({ slug, onNavigate }: { slug: string; onNavigate: (s: stri
             <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
           </button>
         ))}
-        <div className="flex items-start gap-3 rounded-lg border border-dashed p-4">
+        {/* HONEST-SAVE-1: eigen domeinen koppelen bestaat al (Instellingen → Domein). */}
+        <Link to="/admin/settings?section=domain"
+          className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left transition-colors hover:bg-muted/50">
           <Link2 className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
-          <span>
+          <span className="min-w-0 flex-1">
             <span className="block font-medium">{t('admin.storefront.page.own_domain')}</span>
-            <span className="block text-sm text-muted-foreground">{t('admin.storefront.page.own_domain_soon')}</span>
+            <span className="block text-sm text-muted-foreground">{t('admin.storefront.page.own_domain_desc')}</span>
           </span>
-        </div>
+          <ChevronRight className="mt-0.5 h-4 w-4 text-muted-foreground" />
+        </Link>
       </div>
     </div>
   );

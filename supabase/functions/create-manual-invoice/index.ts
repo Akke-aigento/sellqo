@@ -524,6 +524,8 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // SEC-IDOR-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-IDOR-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     logStep("Starting manual invoice creation");
@@ -579,6 +581,8 @@ serve(async (req) => {
         .from("customers")
         .select("*")
         .eq("id", customer_id)
+        // SEC-IDOR-1: alleen klanten van de eigen winkel.
+        .eq("tenant_id", tenant_id)
         .single();
       customer = customerData;
     }

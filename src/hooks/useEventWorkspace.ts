@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { slugBase, uniqueSlug } from '@/lib/eventSeries';
+import { localTodayIso } from '@/lib/eventReadiness';
 import type { ReentryPolicy } from '@/hooks/useEventTicketTypes';
 
 export interface EventProduct {
@@ -142,7 +143,7 @@ export function useSaveTicketType(eventId: string | undefined, mainProductId: st
 
       let eventIds = [eventId];
       if (input.apply_to_other_dates) {
-        const today = new Date().toISOString().slice(0, 10);
+        const today = localTodayIso();
         const { data: others } = await supabase.from('event_details').select('id')
           .eq('tenant_id', tenantId).eq('product_id', mainProductId)
           .gte('event_date', today).in('status', ['scheduled', 'confirmed']);

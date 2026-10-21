@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { sanitizeOrSearch } from '@/lib/sanitizeOrSearch';
 import { useTenant } from '@/hooks/useTenant';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -64,15 +65,14 @@ interface FulfillmentOrder {
 
 export default function Fulfillment() {
   const { currentTenant } = useTenant();
-  const { isWarehouse, hasFinancialAccess } = useAuth();
+  const { isWarehouse } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const navigate = useNavigate();
 
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>(
-    hasFinancialAccess && !isWarehouse ? 'all' : 'unfulfilled'
-  );
+  // Wachtrij start altijd op "Te verzenden"; de keuze van de gebruiker blijft daarna staan.
+  const [statusFilter, setStatusFilter] = useState<string>('unfulfilled');
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [trackingDialogOpen, setTrackingDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -116,8 +116,9 @@ export default function Fulfillment() {
       }
 
       // Search
-      if (search) {
-        query = query.or(`order_number.ilike.%${search}%,customer_name.ilike.%${search}%`);
+      const term = sanitizeOrSearch(search);
+      if (term) {
+        query = query.or(`order_number.ilike.%${term}%,customer_name.ilike.%${term}%`);
       }
 
       const { data, error } = await query;

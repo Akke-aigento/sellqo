@@ -34,9 +34,12 @@ import { Label } from '@/components/ui/label';
 import { usePOSTerminals, usePOSSessions } from '@/hooks/usePOS';
 import type { POSTerminal } from '@/types/pos';
 import { useTranslation } from 'react-i18next';
+import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { formatSessionOpenedAt, isStaleOpenSession } from '@/lib/posSessionTime';
 
 export default function POSPage() {
   const { t, i18n } = useTranslation();
+  const dateLocale = useDateFnsLocale();
   const navigate = useNavigate();
   const { terminals, isLoading, createTerminal, deleteTerminal } = usePOSTerminals();
   const { sessions } = usePOSSessions();
@@ -69,6 +72,14 @@ export default function POSPage() {
     }
     if (terminal.status === 'inactive') {
       return <Badge variant="outline" className="bg-muted text-muted-foreground">{t('admin.products.inactief')}</Badge>;
+    }
+    if (activeSession && isStaleOpenSession(activeSession)) {
+      // NIGHT-QF-3: een sessie van dagen geleden is geen "Actief" van vandaag.
+      return (
+        <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300">
+          {t('admin.pOS.nog_open_sinds', { date: formatSessionOpenedAt(activeSession.opened_at, dateLocale) })}
+        </Badge>
+      );
     }
     if (activeSession) {
       return <Badge className="bg-green-500 hover:bg-green-600">{t('admin.marketing.aBTestingPanel.actief')}</Badge>;
@@ -169,10 +180,7 @@ export default function POSPage() {
                     {activeSession && (
                       <span className="text-xs text-muted-foreground flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {new Date(activeSession.opened_at).toLocaleTimeString(i18n.language, {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatSessionOpenedAt(activeSession.opened_at, dateLocale)}
                       </span>
                     )}
                   </div>
@@ -230,7 +238,9 @@ export default function POSPage() {
                   className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
                 >
                   <div className="flex items-center gap-3">
-                    {session.status === 'open' ? (
+                    {isStaleOpenSession(session) ? (
+                      <AlertCircle className="h-5 w-5 text-amber-500" />
+                    ) : session.status === 'open' ? (
                       <CheckCircle2 className="h-5 w-5 text-green-500" />
                     ) : session.cash_difference && session.cash_difference !== 0 ? (
                       <AlertCircle className="h-5 w-5 text-orange-500" />
@@ -251,9 +261,15 @@ export default function POSPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <Badge variant={session.status === 'open' ? 'default' : 'secondary'}>
-                      {session.status === 'open' ? t('admin.marketing.aBTestingPanel.actief') : t('admin.storefront.food.fulfillmentSettings.gesloten')}
-                    </Badge>
+                    {isStaleOpenSession(session) ? (
+                      <Badge variant="outline" className="bg-amber-50 text-amber-800 border-amber-300">
+                        {t('admin.pOS.nog_open_sinds', { date: formatSessionOpenedAt(session.opened_at, dateLocale) })}
+                      </Badge>
+                    ) : (
+                      <Badge variant={session.status === 'open' ? 'default' : 'secondary'}>
+                        {session.status === 'open' ? t('admin.marketing.aBTestingPanel.actief') : t('admin.storefront.food.fulfillmentSettings.gesloten')}
+                      </Badge>
+                    )}
                     {session.status === 'closed' && session.cash_difference !== null && (
                       <p className={`text-sm mt-1 ${
                         session.cash_difference === 0 

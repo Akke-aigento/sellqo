@@ -32,6 +32,8 @@ const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // SEC-IDOR-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-IDOR-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const auth = await authenticateRequest(req);
@@ -126,6 +128,8 @@ const handler = async (req: Request): Promise<Response> => {
         .from("shipping_integrations")
         .select("*")
         .eq("id", integration_id)
+        // SEC-IDOR-1: alleen een koppeling van de winkel van deze order.
+        .eq("tenant_id", order.tenant_id)
         .single();
       if (error) throw error;
       integration = data;

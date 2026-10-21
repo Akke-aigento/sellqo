@@ -19,6 +19,8 @@ import {
   OPEN_INVOICE_STATUSES,
 } from '@/lib/invoiceStatuses';
 import { invokeWithErrorBody } from '@/lib/invokeWithErrorBody';
+// PostgREST kapt elke select af op 1000 rijen: exports pagineren via fetchAllRows.
+import { fetchAllRows } from '@/lib/salesStats';
 
 const SIGNED_URL_CHUNK = 200;
 async function fetchSignedInvoiceFiles(
@@ -44,6 +46,15 @@ interface DateRange {
 }
 
 // Hook for invoice exports
+
+/** YYYY-MM-DD in lokale tijd (geen UTC-verschuiving). */
+const toLocalIsoDate = (d: Date) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+};
+
 export const useInvoiceExport = () => {
   const { currentTenant } = useTenant();
   const [isExporting, setIsExporting] = useState(false);
@@ -53,19 +64,21 @@ export const useInvoiceExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          orders!inner(customer_name, customer_email),
-          customers(first_name, last_name, company_name, email)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .gte('issue_date', dateRange.from.toISOString())
-        .lte('issue_date', dateRange.to.toISOString())
-        .order('issue_date', { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('invoices')
+          .select(`
+            *,
+            orders!inner(customer_name, customer_email),
+            customers(first_name, last_name, company_name, email)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .gte('issue_date', dateRange.from.toISOString())
+          .lte('issue_date', dateRange.to.toISOString())
+          .order('issue_date', { ascending: false })
+          .order('id')
+          .range(from, to),
+      );
 
       const exportData = data.map(inv => ({
         ...inv,
@@ -104,15 +117,18 @@ export const useBulkPdfDownload = () => {
     setIsDownloading(true);
 
     try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select('id, invoice_number, pdf_path')
-        .eq('tenant_id', currentTenant.id)
-        .gte('issue_date', dateRange.from.toISOString())
-        .lte('issue_date', dateRange.to.toISOString())
-        .not('pdf_path', 'is', null);
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('invoices')
+          .select('id, invoice_number, pdf_path')
+          .eq('tenant_id', currentTenant.id)
+          .gte('issue_date', dateRange.from.toISOString())
+          .lte('issue_date', dateRange.to.toISOString())
+          .not('pdf_path', 'is', null)
+          .order('issue_date')
+          .order('id')
+          .range(from, to),
+      );
 
       if (!data || data.length === 0) {
         toast.info('Geen facturen gevonden met PDF');
@@ -148,15 +164,18 @@ export const useBulkPdfDownload = () => {
     setIsDownloading(true);
 
     try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select('id, invoice_number, ubl_path')
-        .eq('tenant_id', currentTenant.id)
-        .gte('issue_date', dateRange.from.toISOString())
-        .lte('issue_date', dateRange.to.toISOString())
-        .not('ubl_path', 'is', null);
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('invoices')
+          .select('id, invoice_number, ubl_path')
+          .eq('tenant_id', currentTenant.id)
+          .gte('issue_date', dateRange.from.toISOString())
+          .lte('issue_date', dateRange.to.toISOString())
+          .not('ubl_path', 'is', null)
+          .order('issue_date')
+          .order('id')
+          .range(from, to),
+      );
 
       if (!data || data.length === 0) {
         toast.info('Geen facturen gevonden met UBL');
@@ -200,15 +219,17 @@ export const useOrderExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', dateRange.from.toISOString())
-        .lte('created_at', dateRange.to.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('orders')
+          .select('*')
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString())
+          .order('created_at', { ascending: false })
+          .order('id')
+          .range(from, to),
+      );
 
       const filename = generateFilename('bestellingen', dateRange.from, dateRange.to);
 
@@ -240,21 +261,22 @@ export const useCustomerExport = () => {
     setIsExporting(true);
 
     try {
-      let query = supabase
-        .from('customers')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .order('created_at', { ascending: false });
+      const data = await fetchAllRows((from, to) => {
+        let query = supabase
+          .from('customers')
+          .select('*')
+          .eq('tenant_id', currentTenant.id)
+          .order('created_at', { ascending: false })
+          .order('id');
 
-      if (customerType === 'b2b') {
-        query = query.eq('customer_type', 'business');
-      } else if (customerType === 'b2c') {
-        query = query.eq('customer_type', 'individual');
-      }
+        if (customerType === 'b2b') {
+          query = query.eq('customer_type', 'business');
+        } else if (customerType === 'b2c') {
+          query = query.eq('customer_type', 'individual');
+        }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
+        return query.range(from, to);
+      });
 
       const typeLabel = customerType === 'b2b' ? '_b2b' : customerType === 'b2c' ? '_b2c' : '';
       const filename = generateFilename(`klanten${typeLabel}`);
@@ -279,19 +301,22 @@ export const useCustomerExport = () => {
     setIsExporting(true);
 
     try {
-      const { data: invoices, error } = await supabase
-        .from('invoices')
-        .select(`
-          total,
-          customer_id,
-          customers(id, first_name, last_name, company_name, email, customer_type, vat_number)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .in('status', ISSUED_INVOICE_STATUSES)
-        .gte('issue_date', dateRange.from.toISOString())
-        .lte('issue_date', dateRange.to.toISOString());
-
-      if (error) throw error;
+      const invoices = await fetchAllRows((from, to) =>
+        supabase
+          .from('invoices')
+          .select(`
+            total,
+            customer_id,
+            customers(id, first_name, last_name, company_name, email, customer_type, vat_number)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .in('status', ISSUED_INVOICE_STATUSES)
+          .gte('issue_date', dateRange.from.toISOString())
+          .lte('issue_date', dateRange.to.toISOString())
+          .order('issue_date')
+          .order('id')
+          .range(from, to),
+      );
 
       // Aggregate by customer
       const customerTotals = new Map<string, { customer: any; total: number; orderCount: number }>();
@@ -358,6 +383,15 @@ export const useCustomerExport = () => {
   return { exportCustomers, exportTopCustomers, isExporting };
 };
 
+// products heeft geen vat_rate-kolom, wel vat_rate_id → vat_rates.rate.
+// vat_rate_id null = winkelstandaard (tenants.tax_percentage, anders 21).
+function productVatRate(
+  p: { vat_rates?: { rate: number } | null },
+  tenantTaxPercentage: number | null | undefined,
+): number {
+  return p.vat_rates?.rate ?? (tenantTaxPercentage || 21);
+}
+
 // Hook for product exports
 export const useProductExport = () => {
   const { currentTenant } = useTenant();
@@ -368,21 +402,24 @@ export const useProductExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          categories(name)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .order('name');
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('products')
+          .select(`
+            *,
+            categories(name),
+            vat_rates(rate)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .order('name')
+          .order('id')
+          .range(from, to),
+      );
 
       const exportData = data.map(p => ({
         ...p,
         category_name: p.categories?.name || '',
-        vat_rate: (p as any).vat_rate || 21,
+        vat_rate: productVatRate(p, currentTenant.tax_percentage),
       }));
 
       const filename = generateFilename('producten');
@@ -407,17 +444,20 @@ export const useProductExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          categories(name)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .eq('track_inventory', true)
-        .order('stock', { ascending: true });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('products')
+          .select(`
+            *,
+            categories(name),
+            vat_rates(rate)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .eq('track_inventory', true)
+          .order('stock', { ascending: true })
+          .order('id')
+          .range(from, to),
+      );
 
       // Filter products where stock is below threshold
       const lowStockProducts = data.filter(p => 
@@ -427,7 +467,7 @@ export const useProductExport = () => {
       ).map(p => ({
         ...p,
         category_name: p.categories?.name || '',
-        vat_rate: (p as any).vat_rate || 21,
+        vat_rate: productVatRate(p, currentTenant.tax_percentage),
       }));
 
       const filename = generateFilename('lage_voorraad');
@@ -460,19 +500,21 @@ export const useCreditNoteExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('credit_notes')
-        .select(`
-          *,
-          invoices(invoice_number),
-          customers(first_name, last_name, company_name, email)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .gte('issue_date', dateRange.from.toISOString())
-        .lte('issue_date', dateRange.to.toISOString())
-        .order('issue_date', { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('credit_notes')
+          .select(`
+            *,
+            invoices(invoice_number),
+            customers(first_name, last_name, company_name, email)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .gte('issue_date', dateRange.from.toISOString())
+          .lte('issue_date', dateRange.to.toISOString())
+          .order('issue_date', { ascending: false })
+          .order('id')
+          .range(from, to),
+      );
 
       const exportData = data.map(cn => ({
         ...cn,
@@ -510,22 +552,23 @@ export const useSubscriptionExport = () => {
     setIsExporting(true);
 
     try {
-      let query = supabase
-        .from('subscriptions')
-        .select(`
-          *,
-          customers(first_name, last_name, company_name, email)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .order('created_at', { ascending: false });
+      const data = await fetchAllRows((from, to) => {
+        let query = supabase
+          .from('subscriptions')
+          .select(`
+            *,
+            customers(first_name, last_name, company_name, email)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .order('created_at', { ascending: false })
+          .order('id');
 
-      if (status) {
-        query = query.eq('status', status);
-      }
+        if (status) {
+          query = query.eq('status', status);
+        }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
+        return query.range(from, to);
+      });
 
       const exportData = data.map(sub => ({
         ...sub,
@@ -564,17 +607,20 @@ export const useAgingExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select(`
-          *,
-          customers(first_name, last_name, company_name, email, phone),
-          orders(customer_name, customer_email)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .in('status', OPEN_INVOICE_STATUSES);
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('invoices')
+          .select(`
+            *,
+            customers(first_name, last_name, company_name, email, phone),
+            orders(customer_name, customer_email)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .in('status', OPEN_INVOICE_STATUSES)
+          .order('created_at')
+          .order('id')
+          .range(from, to),
+      );
 
       const now = new Date();
       const EM = '—';
@@ -1213,16 +1259,20 @@ export const useRevenueExport = () => {
       // invoices so revenue is recognised on issue. End-date is end-of-day inclusive.
       const endInclusive = new Date(dateRange.to);
       endInclusive.setHours(23, 59, 59, 999);
-      const { data: invoices, error } = await supabase
-        .from('invoices')
-        .select('issue_date, subtotal, tax_amount, total, status')
-        .eq('tenant_id', currentTenant.id)
-        .in('status', ISSUED_INVOICE_STATUSES)
-        .gte('issue_date', dateRange.from.toISOString().slice(0, 10))
-        .lte('issue_date', endInclusive.toISOString().slice(0, 10))
-        .order('issue_date');
-
-      if (error) throw error;
+      const invoices = await fetchAllRows((from, to) =>
+        supabase
+          .from('invoices')
+          .select('issue_date, subtotal, tax_amount, total, status')
+          .eq('tenant_id', currentTenant.id)
+          .in('status', ISSUED_INVOICE_STATUSES)
+          // Lokale kalenderdatum (zoals de BTW-export): toISOString() schoof
+          // Brusselse middernacht naar de vorige dag (UTC).
+          .gte('issue_date', toLocalIsoDate(dateRange.from))
+          .lte('issue_date', toLocalIsoDate(endInclusive))
+          .order('issue_date')
+          .order('id')
+          .range(from, to),
+      );
 
       // Group by period
       const periodTotals = new Map<string, { revenue: number; vat: number; count: number }>();
@@ -1305,19 +1355,20 @@ export const useSupplierExport = () => {
     setIsExporting(true);
 
     try {
-      let query = supabase
-        .from('suppliers')
-        .select('*')
-        .eq('tenant_id', currentTenant.id)
-        .order('name');
+      const data = await fetchAllRows((from, to) => {
+        let query = supabase
+          .from('suppliers')
+          .select('*')
+          .eq('tenant_id', currentTenant.id)
+          .order('name')
+          .order('id');
 
-      if (onlyActive) {
-        query = query.eq('is_active', true);
-      }
+        if (onlyActive) {
+          query = query.eq('is_active', true);
+        }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
+        return query.range(from, to);
+      });
 
       const filename = generateFilename(onlyActive ? 'leveranciers_actief' : 'leveranciers');
 
@@ -1349,18 +1400,20 @@ export const usePurchaseOrderExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('purchase_orders')
-        .select(`
-          *,
-          suppliers(name)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .gte('order_date', dateRange.from.toISOString())
-        .lte('order_date', dateRange.to.toISOString())
-        .order('order_date', { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('purchase_orders')
+          .select(`
+            *,
+            suppliers(name)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .gte('order_date', dateRange.from.toISOString())
+          .lte('order_date', dateRange.to.toISOString())
+          .order('order_date', { ascending: false })
+          .order('id')
+          .range(from, to),
+      );
 
       const exportData = (data || []).map(po => ({
         ...po,
@@ -1397,18 +1450,20 @@ export const useSupplierDocumentExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('supplier_documents')
-        .select(`
-          *,
-          suppliers(name)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .gte('document_date', dateRange.from.toISOString())
-        .lte('document_date', dateRange.to.toISOString())
-        .order('document_date', { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('supplier_documents')
+          .select(`
+            *,
+            suppliers(name)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .gte('document_date', dateRange.from.toISOString())
+          .lte('document_date', dateRange.to.toISOString())
+          .order('document_date', { ascending: false })
+          .order('id')
+          .range(from, to),
+      );
 
       const exportData = (data || []).map(doc => ({
         ...doc,
@@ -1437,18 +1492,20 @@ export const useSupplierDocumentExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('supplier_documents')
-        .select(`
-          *,
-          suppliers(name, email, phone)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .eq('document_type', 'invoice')
-        .in('payment_status', ['pending', 'partial'])
-        .order('due_date', { ascending: true });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('supplier_documents')
+          .select(`
+            *,
+            suppliers(name, email, phone)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .eq('document_type', 'invoice')
+          .in('payment_status', ['pending', 'partial'])
+          .order('due_date', { ascending: true })
+          .order('id')
+          .range(from, to),
+      );
 
       const now = new Date();
       const agingData = data.map(doc => {
@@ -1516,19 +1573,22 @@ export const useTopSuppliersExport = () => {
     setIsExporting(true);
 
     try {
-      const { data: purchaseOrders, error } = await supabase
-        .from('purchase_orders')
-        .select(`
-          total,
-          supplier_id,
-          suppliers(id, name, email, contact_person)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .in('status', ['received', 'partially_received'] as const)
-        .gte('order_date', dateRange.from.toISOString())
-        .lte('order_date', dateRange.to.toISOString());
-
-      if (error) throw error;
+      const purchaseOrders = await fetchAllRows((from, to) =>
+        supabase
+          .from('purchase_orders')
+          .select(`
+            total,
+            supplier_id,
+            suppliers(id, name, email, contact_person)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .in('status', ['received', 'partially_received'] as const)
+          .gte('order_date', dateRange.from.toISOString())
+          .lte('order_date', dateRange.to.toISOString())
+          .order('order_date')
+          .order('id')
+          .range(from, to),
+      );
 
       // Aggregate by supplier
       const supplierTotals = new Map<string, { supplier: any; total: number; orderCount: number }>();
@@ -1604,15 +1664,18 @@ export const useBulkSupplierDocumentDownload = () => {
     setIsDownloading(true);
 
     try {
-      const { data, error } = await supabase
-        .from('supplier_documents')
-        .select('document_number, file_url, suppliers(name)')
-        .eq('tenant_id', currentTenant.id)
-        .gte('document_date', dateRange.from.toISOString())
-        .lte('document_date', dateRange.to.toISOString())
-        .not('file_url', 'is', null);
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('supplier_documents')
+          .select('document_number, file_url, suppliers(name)')
+          .eq('tenant_id', currentTenant.id)
+          .gte('document_date', dateRange.from.toISOString())
+          .lte('document_date', dateRange.to.toISOString())
+          .not('file_url', 'is', null)
+          .order('document_date')
+          .order('id')
+          .range(from, to),
+      );
 
       if (!data || data.length === 0) {
         toast.info('Geen documenten gevonden met bestanden');
@@ -1654,18 +1717,20 @@ export const usePOSSessionExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('pos_sessions')
-        .select(`
-          *,
-          pos_terminals(name, location_name)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .gte('opened_at', dateRange.from.toISOString())
-        .lte('opened_at', dateRange.to.toISOString())
-        .order('opened_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('pos_sessions')
+          .select(`
+            *,
+            pos_terminals(name, location_name)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .gte('opened_at', dateRange.from.toISOString())
+          .lte('opened_at', dateRange.to.toISOString())
+          .order('opened_at', { ascending: false })
+          .order('id')
+          .range(from, to),
+      );
 
       const exportData = data.map(session => ({
         terminal_name: session.pos_terminals?.name || '',
@@ -1723,18 +1788,20 @@ export const usePOSTransactionExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('pos_transactions')
-        .select(`
-          *,
-          pos_terminals(name)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', dateRange.from.toISOString())
-        .lte('created_at', dateRange.to.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('pos_transactions')
+          .select(`
+            *,
+            pos_terminals(name)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString())
+          .order('created_at', { ascending: false })
+          .order('id')
+          .range(from, to),
+      );
 
       const exportData = data.map(tx => {
         const payments = tx.payments as Array<{ method: string; amount: number }> | null;
@@ -1796,20 +1863,23 @@ export const usePOSTransactionExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('pos_transactions')
-        .select(`
-          created_at,
-          total,
-          payments,
-          status
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .eq('status', 'completed')
-        .gte('created_at', dateRange.from.toISOString())
-        .lte('created_at', dateRange.to.toISOString());
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('pos_transactions')
+          .select(`
+            created_at,
+            total,
+            payments,
+            status
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .eq('status', 'completed')
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString())
+          .order('created_at')
+          .order('id')
+          .range(from, to),
+      );
 
       // Group by date
       const dailyData = new Map<string, { 
@@ -1884,19 +1954,21 @@ export const usePOSCashMovementExport = () => {
     setIsExporting(true);
 
     try {
-      const { data, error } = await supabase
-        .from('pos_cash_movements')
-        .select(`
-          *,
-          pos_terminals(name),
-          pos_sessions(opened_at)
-        `)
-        .eq('tenant_id', currentTenant.id)
-        .gte('created_at', dateRange.from.toISOString())
-        .lte('created_at', dateRange.to.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
+      const data = await fetchAllRows((from, to) =>
+        supabase
+          .from('pos_cash_movements')
+          .select(`
+            *,
+            pos_terminals(name),
+            pos_sessions(opened_at)
+          `)
+          .eq('tenant_id', currentTenant.id)
+          .gte('created_at', dateRange.from.toISOString())
+          .lte('created_at', dateRange.to.toISOString())
+          .order('created_at', { ascending: false })
+          .order('id')
+          .range(from, to),
+      );
 
       const exportData = data.map(movement => ({
         terminal_name: movement.pos_terminals?.name || '',

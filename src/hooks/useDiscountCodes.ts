@@ -1,3 +1,4 @@
+import { sanitizeOrSearch } from '@/lib/sanitizeOrSearch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
@@ -24,7 +25,7 @@ export function useDiscountCodes(filters?: DiscountCodeFilters) {
         .order('created_at', { ascending: false });
 
       if (filters?.search) {
-        query = query.or(`code.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+        query = query.or(`code.ilike.%${sanitizeOrSearch(filters.search)}%,description.ilike.%${sanitizeOrSearch(filters.search)}%`);
       }
 
       if (filters?.status === 'active') {

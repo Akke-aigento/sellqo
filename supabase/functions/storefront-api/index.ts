@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { calculateStripeFee, getAvailablePaymentMethods } from "../_shared/stripe-fees.ts";
 import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross, netFromGross } from "../_shared/vat.ts";
 import { decideVatRegime, isZeroRatedRegime, rateForRegime, type VatRegimeCode } from "../_shared/regimeResolver.ts";
@@ -1806,7 +1806,8 @@ async function calculatePromotions(supabase: any, tenantId: string, params: Reco
     supabase.from('gift_promotions').select('*, gift_product:products!gift_promotions_gift_product_id_fkey(id, name, price, image_url:featured_image)').eq('tenant_id', tenantId).eq('is_active', true),
     supabase.from('discount_stacking_rules').select('*').eq('tenant_id', tenantId).eq('is_active', true),
     discount_code ? supabase.from('discount_codes').select('*').eq('tenant_id', tenantId).eq('code', discount_code).eq('is_active', true).maybeSingle() : { data: null },
-    customer_id ? supabase.from('customer_group_members').select('customer_groups(*)').eq('customer_id', customer_id) : { data: [] },
+    // CART-TENANT-1 — alleen klanten van deze winkel (inner join op customers).
+    customer_id ? supabase.from('customer_group_members').select('customer_groups(*), customers!inner(tenant_id)').eq('customer_id', customer_id).eq('customers.tenant_id', tenantId) : { data: [] },
   ]);
 
   const allDiscounts: AppliedDiscount[] = [];
@@ -2680,12 +2681,24 @@ async function cartGet(supabase: any, tenantId: string, params: Record<string, u
   };
 }
 
+/** CART-TENANT-1 — hoort deze cart bij deze winkel? Eén lookup per verzoek, vóór elke mutatie.
+ *  Geen vervaldatum-filter: het gedrag voor eigen (ook verlopen) carts blijft zoals het was. */
+async function ownedCart(supabase: SupabaseLike, tenantId: string, cartId: string, cols = 'id'): Promise<DbRow | null> {
+  if (!cartId) return null;
+  const { data, error } = await supabase.from('storefront_carts').select(cols).eq('id', cartId).eq('tenant_id', tenantId).maybeSingle();
+  if (error) throw error;
+  return data ?? null;
+}
+
 async function cartAddItem(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   const productId = params.product_id as string;
   const variantId = params.variant_id as string | undefined;
   const quantity = Math.max(1, Number(params.quantity) || 1);
   if (!cartId || !productId) throw new Error('cart_id and product_id are required');
+  // CART-TENANT-1 — onbekende of andermans cart: een fout, net als vroeger de FK-fout bij een
+  // verdwenen cart (frontends herstellen daarop met een nieuwe cart). Lekt niets: zelfde fout voor beide.
+  if (!(await ownedCart(supabase, tenantId, cartId))) throw new Error('Cart not found');
   const eventDetailId = (params.event_detail_id as string | undefined) || undefined;
 
   // Verify product exists and get price
@@ -2885,7 +2898,7 @@ async function cartAddItem(supabase: any, tenantId: string, params: Record<strin
     if (error) throw error;
   }
 
-  await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId);
+  await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', cartId).eq('tenant_id', tenantId);
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
 
@@ -2896,7 +2909,8 @@ async function cartUpdateItem(supabase: any, tenantId: string, params: Record<st
   if (quantity < 1) throw new Error('quantity must be at least 1');
 
   const { data: item } = await supabase.from('storefront_cart_items').select('id, cart_id, product_id, variant_id, event_detail_id').eq('id', itemId).single();
-  if (!item) throw new Error('Cart item not found');
+  // CART-TENANT-1 — regel van een cart van een andere winkel = niet gevonden.
+  if (!item || !(await ownedCart(supabase, tenantId, item.cart_id))) throw new Error('Cart item not found');
   if (item.event_detail_id && await seatedVenueId(supabase, tenantId, item.event_detail_id)) {
     throw new Error(JSON.stringify({ code: 'SEAT_SELECTION_REQUIRED', message: 'Pas je plaatsen aan in het zaalplan' }));
   }
@@ -2921,9 +2935,9 @@ async function cartUpdateItem(supabase: any, tenantId: string, params: Record<st
     throw new Error(msg);
   }
 
-  const { error } = await supabase.from('storefront_cart_items').update({ quantity }).eq('id', itemId);
+  const { error } = await supabase.from('storefront_cart_items').update({ quantity }).eq('id', itemId).eq('cart_id', item.cart_id);
   if (error) throw error;
-  await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', item.cart_id);
+  await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', item.cart_id).eq('tenant_id', tenantId);
   return cartGet(supabase, tenantId, { cart_id: item.cart_id });
 }
 
@@ -2932,16 +2946,17 @@ async function cartRemoveItem(supabase: any, tenantId: string, params: Record<st
   if (!itemId) throw new Error('item_id is required');
 
   const { data: item } = await supabase.from('storefront_cart_items').select('cart_id, product_id, event_detail_id').eq('id', itemId).single();
-  if (!item) throw new Error('Cart item not found');
+  // CART-TENANT-1 — regel van een cart van een andere winkel = niet gevonden.
+  if (!item || !(await ownedCart(supabase, tenantId, item.cart_id))) throw new Error('Cart item not found');
 
-  const { error } = await supabase.from('storefront_cart_items').delete().eq('id', itemId);
+  const { error } = await supabase.from('storefront_cart_items').delete().eq('id', itemId).eq('cart_id', item.cart_id);
   if (error) throw error;
   // ZAAL-2 — vastgehouden stoelen van deze regel vrijgeven (no-op zonder zaalplan).
   if (item.event_detail_id) {
     const { error: relErr } = await supabase.rpc('release_cart_seats', { p_cart_id: item.cart_id, p_event_detail_id: item.event_detail_id, p_product_id: item.product_id });
     if (relErr) console.warn('release_cart_seats failed:', relErr.message);
   }
-  await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', item.cart_id);
+  await supabase.from('storefront_carts').update({ updated_at: new Date().toISOString() }).eq('id', item.cart_id).eq('tenant_id', tenantId);
   return cartGet(supabase, tenantId, { cart_id: item.cart_id });
 }
 
@@ -2951,7 +2966,9 @@ async function cartApplyDiscount(supabase: any, tenantId: string, params: Record
   if (!cartId || !code) throw new Error('cart_id and code are required');
 
   // Get current cart to check existing codes
-  const { data: cart } = await supabase.from('storefront_carts').select('discount_codes, customer_email').eq('id', cartId).single();
+  // CART-TENANT-1 — zelfde lookup als voorheen, nu binnen deze winkel; onbekend = data: null zoals cart_get.
+  const cart = await ownedCart(supabase, tenantId, cartId, 'discount_codes, customer_email');
+  if (!cart) return null;
   const currentCodes: string[] = cart?.discount_codes || [];
 
   // Validate code — DISCOUNT-LIMIT-1: met het e-mailadres als de klant het al opgaf,
@@ -2966,7 +2983,7 @@ async function cartApplyDiscount(supabase: any, tenantId: string, params: Record
   }
 
   const updatedCodes = [...currentCodes, canonical];
-  const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
+  const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
   return cartGet(supabase, tenantId, { cart_id: cartId });
 }
@@ -2975,17 +2992,19 @@ async function cartRemoveDiscount(supabase: any, tenantId: string, params: Recor
   const cartId = params.cart_id as string;
   const code = normalizeDiscountCode(params.code ?? params.discount_code);
   if (!cartId) throw new Error('cart_id is required');
+  // CART-TENANT-1 — één lookup binnen deze winkel; onbekend = data: null zoals cart_get.
+  const cart = await ownedCart(supabase, tenantId, cartId, 'discount_codes');
+  if (!cart) return null;
 
   if (code) {
     // Remove specific code from array
-    const { data: cart } = await supabase.from('storefront_carts').select('discount_codes').eq('id', cartId).single();
     const currentCodes: string[] = cart?.discount_codes || [];
     const updatedCodes = currentCodes.filter((c: string) => normalizeDiscountCode(c) !== code);
-    const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId);
+    const { error } = await supabase.from('storefront_carts').update({ discount_codes: updatedCodes, updated_at: new Date().toISOString() }).eq('id', cartId).eq('tenant_id', tenantId);
     if (error) throw error;
   } else {
     // Remove all codes
-    const { error } = await supabase.from('storefront_carts').update({ discount_codes: [], updated_at: new Date().toISOString() }).eq('id', cartId);
+    const { error } = await supabase.from('storefront_carts').update({ discount_codes: [], updated_at: new Date().toISOString() }).eq('id', cartId).eq('tenant_id', tenantId);
     if (error) throw error;
   }
   return cartGet(supabase, tenantId, { cart_id: cartId });
@@ -5417,7 +5436,7 @@ const NEWSLETTER_CONFIRM_STRINGS: Record<string, { subject: string; heading: str
  * (single opt-in of na bevestiging). Zelfde gedrag als vóór MAIL-1a, maar nu
  * pas op het moment dat er echte toestemming is.
  */
-async function _markCustomerSubscribed(supabase: any, tenantId: string, email: string, firstName: string | undefined, language: string | undefined) {
+async function _markCustomerSubscribed(supabase: SupabaseClient, tenantId: string, email: string, firstName: string | undefined, language: string | undefined) {
   try {
     const { data: existingCustomer } = await supabase
       .from('customers')
@@ -5465,7 +5484,7 @@ async function _markCustomerSubscribed(supabase: any, tenantId: string, email: s
 }
 
 /** MAIL-1a: publieke shop-URL voor {{SHOP_URL}} / {{company_website}}. */
-async function _newsletterShopUrl(supabase: any, tenantId: string, websiteUrl: string | undefined, slug: string | null | undefined): Promise<string> {
+async function _newsletterShopUrl(supabase: SupabaseClient, tenantId: string, websiteUrl: string | undefined, slug: string | null | undefined): Promise<string> {
   if (websiteUrl) return websiteUrl;
   try {
     const { data } = await supabase
@@ -5481,7 +5500,14 @@ async function _newsletterShopUrl(supabase: any, tenantId: string, websiteUrl: s
  * MAIL-1a: welkomstmail (marketing). Gebruikt bij single opt-in; bij double
  * opt-in verstuurt newsletter-confirm dezelfde mail pas na bevestiging.
  */
-async function _sendNewsletterWelcome(supabase: any, tenantId: string, email: string, firstName: string | undefined, config: any) {
+/** De velden van tenant_newsletter_config die de welkomstmail leest. */
+interface NewsletterWelcomeConfig {
+  welcome_email_enabled?: boolean | null;
+  welcome_email_body?: string | null;
+  welcome_email_subject?: string | null;
+}
+
+async function _sendNewsletterWelcome(supabase: SupabaseClient, tenantId: string, email: string, firstName: string | undefined, config: NewsletterWelcomeConfig | null) {
   if (!config?.welcome_email_enabled || !config?.welcome_email_body) return;
   try {
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
@@ -5541,7 +5567,7 @@ async function _sendNewsletterWelcome(supabase: any, tenantId: string, email: st
 }
 
 /** MAIL-1a: bevestigingsmail (transactioneel) met de link naar newsletter-confirm. */
-async function _sendNewsletterConfirmation(supabase: any, tenantId: string, email: string, token: string, language: string | undefined) {
+async function _sendNewsletterConfirmation(supabase: SupabaseClient, tenantId: string, email: string, token: string, language: string | undefined) {
   const resendApiKey = Deno.env.get('RESEND_API_KEY');
   if (!resendApiKey) {
     console.warn('[BEVESTIGINGSMAIL] RESEND_API_KEY ontbreekt, overgeslagen');
@@ -5579,7 +5605,7 @@ async function _sendNewsletterConfirmation(supabase: any, tenantId: string, emai
   console.log('[BEVESTIGINGSMAIL] verstuurd naar:', email, '| tenant:', tenantId, JSON.stringify(res?.error ?? null));
 }
 
-async function _newsletterSubscribeImpl(supabase: any, tenantId: string, params: Record<string, unknown>, email: string) {
+async function _newsletterSubscribeImpl(supabase: SupabaseClient, tenantId: string, params: Record<string, unknown>, email: string) {
   const firstName = (params.first_name as string) || undefined;
   const source = (params.source as string) || 'storefront_api';
   const rawLang = typeof params.language === 'string' ? params.language.toLowerCase().slice(0, 2) : '';
@@ -5728,7 +5754,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'MAIL-3' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'CART-TENANT-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

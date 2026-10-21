@@ -22,14 +22,14 @@ type Db = any;
 import { tenantMarketingSender } from "./emailSenders.ts";
 import { getTenantBrand, renderTenantEmail, type TenantLocale } from "./tenantEmail.ts";
 import { t } from "./tenantEmailI18n.ts";
-import { extractEmailBody, buildVariableMap, applyVariables, isStandaloneEmailDocument } from "./emailContent.ts";
+import { extractEmailBody, buildVariableMap, applyVariables, isStandaloneEmailDocument, type VarRecipient, type VarTenant } from "./emailContent.ts";
 import { htmlToPlainText } from "./sellqoEmail.ts";
 import { resolveAudience } from "./campaignAudience.ts";
 import { buildUnsubscribePageUrl, buildUnsubscribeUrl, escapeHtml } from "./marketingToken.ts";
 import { htmlSafeVars, mergeAutomationVars, shortLocale } from "./automationVars.ts";
 import { loadBillingState } from "./billingGuard.ts";
 import { billingAllows } from "./billingState.ts";
-import { abDecisionDue, assignVariants, pickAbWinner, planAbTest, subjectForRow, type AbPlan } from "./abTest.ts";
+import { abDecisionDue, assignVariants, pickAbWinner, planAbTest, subjectForRow, type AbCampaign, type AbPlan } from "./abTest.ts";
 
 export type QueueErrorCode = "PLAN_LIMIT" | "NO_SENDER" | "ALREADY_SENDING" | "NO_RECIPIENTS" | "NOT_FOUND" | "AB_INVALID";
 
@@ -37,6 +37,48 @@ export class CampaignQueueError extends Error {
   constructor(public code: QueueErrorCode, message: string, public status = 400) {
     super(message);
   }
+}
+
+/** Kolommen van email_campaigns (met segment) die hier gelezen worden. Andere kolommen: unknown. */
+interface CampaignRow extends AbCampaign {
+  id: string;
+  tenant_id: string;
+  status?: string | null;
+  subject?: string | null;
+  preview_text?: string | null;
+  html_content?: string | null;
+  language?: string | null;
+  preset_key?: string | null;
+  translations?: unknown;
+  segment?: { filter_rules?: unknown } | null;
+  ab_started_at?: string | null;
+  ab_winner?: string | null;
+  [key: string]: unknown;
+}
+
+/** De tenants-kolommen die loadContext ophaalt. */
+interface CampaignTenant extends VarTenant {
+  language?: string | null;
+}
+
+/** Een rij van campaign_sends zoals claim_campaign_sends ze teruggeeft. */
+interface SendRow {
+  id: string;
+  campaign_id: string;
+  email: string;
+  customer_id?: string | null;
+  attempts?: number | null;
+  variant?: string | null;
+  variables?: unknown;
+  [key: string]: unknown;
+}
+
+/** Klantvelden voor de variabelen en de opt-in-controle (leeg object als er geen klant is). */
+interface CustomerRow extends Partial<VarRecipient> {
+  id?: string;
+  preferred_language?: string | null;
+  email_subscribed?: boolean | null;
+  [key: string]: unknown;
 }
 
 const RESEND_BATCH_URL = "https://api.resend.com/emails/batch";
@@ -63,14 +105,13 @@ async function loadCampaign(db: Db, campaignId: string) {
 }
 
 /** MAIL-2a: systeemcampagnes van automations verstuur of tel je nooit als gewone campagne. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function assertRegularCampaign(campaign: Record<string, any>) {
+function assertRegularCampaign(campaign: CampaignRow) {
   if (campaign.kind === "automation") {
     throw new CampaignQueueError("NOT_FOUND", "Dit is een automationmail; die vertrekt vanzelf.", 404);
   }
 }
 
-function audienceInputFor(campaign: Record<string, any>, tenantLocale: string) {
+function audienceInputFor(campaign: CampaignRow, tenantLocale: string) {
   const langs = Array.isArray(campaign.available_languages) ? campaign.available_languages : [];
   return {
     tenantId: campaign.tenant_id as string,
@@ -226,8 +267,8 @@ export async function enqueueCampaign(
 // ── Worker ───────────────────────────────────────────────────────────
 
 interface CampaignContext {
-  campaign: Record<string, any>;
-  tenant: Record<string, any>;
+  campaign: CampaignRow;
+  tenant: CampaignTenant;
   brand: Awaited<ReturnType<typeof getTenantBrand>>;
   sender: { from: string; replyTo?: string };
 }
@@ -246,10 +287,10 @@ async function loadContext(db: Db, campaignId: string): Promise<CampaignContext 
   return { campaign, tenant, brand, sender };
 }
 
-async function renderFor(ctx: CampaignContext, row: Record<string, any>, recipient: Record<string, any>) {
+async function renderFor(ctx: CampaignContext, row: SendRow, recipient: CustomerRow) {
   const { campaign, tenant, brand } = ctx;
   const translations: Record<string, { subject?: string; preview_text?: string; html_content?: string }> =
-    (campaign.translations as any) || {};
+    (campaign.translations as Record<string, { subject?: string; preview_text?: string; html_content?: string }> | null | undefined) || {};
   const available: string[] = Array.isArray(campaign.available_languages) && campaign.available_languages.length
     ? campaign.available_languages
     : ["nl"];
@@ -355,7 +396,7 @@ async function idempotencyKey(campaignId: string, ids: string[]): Promise<string
 }
 
 /** Rijen terug in de wachtrij met backoff, of definitief mislukt na MAX_ATTEMPTS. */
-async function retryOrFail(db: Db, rows: Record<string, any>[], message: string, delaySeconds: number) {
+async function retryOrFail(db: Db, rows: Pick<SendRow, "id" | "attempts">[], message: string, delaySeconds: number) {
   const retry = rows.filter((r) => (r.attempts ?? 1) < MAX_ATTEMPTS).map((r) => r.id);
   const fail = rows.filter((r) => (r.attempts ?? 1) >= MAX_ATTEMPTS).map((r) => r.id);
   if (retry.length) {
@@ -377,7 +418,7 @@ async function retryOrFail(db: Db, rows: Record<string, any>[], message: string,
   }
 }
 
-async function sendGroup(db: Db, apiKey: string, ctx: CampaignContext | null, rows: Record<string, any>[]) {
+async function sendGroup(db: Db, apiKey: string, ctx: CampaignContext | null, rows: SendRow[]) {
   if (!ctx) {
     await db
       .from("campaign_sends")
@@ -388,7 +429,8 @@ async function sendGroup(db: Db, apiKey: string, ctx: CampaignContext | null, ro
 
   // Klantgegevens voor de variabelen ({{first_name}} e.a.).
   const customerIds = rows.map((r) => r.customer_id).filter(Boolean);
-  const byId = new Map<string, Record<string, any>>();
+  // Sleutel mag null/undefined zijn: rijen zonder klant vinden dan gewoon niets.
+  const byId = new Map<string | null | undefined, CustomerRow>();
   if (customerIds.length) {
     const { data } = await db
       .from("customers")
@@ -400,8 +442,7 @@ async function sendGroup(db: Db, apiKey: string, ctx: CampaignContext | null, ro
   // Wie zich tussen het inplannen en nu uitschreef, krijgt niets.
   // MAIL-2a: een automationmail op soft opt-in (verlaten winkelwagen, eerdere koper) heeft geen
   // email_subscribed nodig; daar beslist enkel de uitschrijflijst (email_unsubscribes).
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const isSoftOptin = (r: Record<string, any>) =>
+  const isSoftOptin = (r: SendRow) =>
     ctx.campaign.kind === "automation" && (r.variables as Record<string, unknown> | null)?._consent === "soft_optin";
   let unsubscribed = new Set<string>();
   if (ctx.campaign.kind === "automation") {
@@ -482,7 +523,7 @@ async function sendGroup(db: Db, apiKey: string, ctx: CampaignContext | null, ro
 
   // In de permissieve modus komen de id's terug voor de geldige mails, in volgorde.
   const okRows: { id: string; resend_id: string }[] = [];
-  const badRows: Record<string, any>[] = [];
+  const badRows: Array<SendRow & { _msg?: string }> = [];
   let d = 0;
   live.forEach((row, i) => {
     if (errorIdx.has(i)) {
@@ -692,7 +733,7 @@ export async function processQueue(db: Db, opts: { deadlineMs?: number; maxEmail
     if (!claimed?.length) break;
     processed += claimed.length;
 
-    const groups = new Map<string, Record<string, any>[]>();
+    const groups = new Map<string, SendRow[]>();
     for (const r of claimed) {
       if (!groups.has(r.campaign_id)) groups.set(r.campaign_id, []);
       groups.get(r.campaign_id)!.push(r);
