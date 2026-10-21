@@ -2159,6 +2159,46 @@
         "size_chart_standard": {
           "title": "Duidelijke, gecontroleerde maattabellen voor Printful-producten",
           "description": "De maatgids die Printful meelevert, werd tot nu toe ruw doorgegeven: met kommagetallen uit de inch-omrekening, lichaamsmaten die de maten van het kledingstuk herhaalden en zonder uitleg waar je meet. Nu rekent SellQo elke maatgids om naar één vaste tabel in hele cm: breedte (van oksel tot oksel), lengte (van schouder tot zoom), mouw en de borstomtrek waarvoor de maat bedoeld is. Bij elke import controleert SellQo de cijfers: kloppen de cm- en inch-tabel, wordt elke maat groter dan de vorige, lijkt een waarde in inch of een omtrek in plaats van een breedte? Klopt er iets niet, dan zie je dat in het product onder de nieuwe tab Maattabel en toont je winkel voor dat product geen foute tabel. Heb je een eigen webshop, dan staat de gecontroleerde tabel in het nieuwe veld size_chart."
+        },
+        "events_door_honest": {
+          "title": "Deurscanner en events: eerlijke teller en veiliger afronden",
+          "description": "De teller Binnen telt alleen nog mensen die echt binnengelaten zijn: een geweigerde scan zet niemand meer op binnen. Een event met de status Bevestigd laat aan de deur weer gewoon binnen, en 'één keer per dag opnieuw binnen' telt nu per eventnacht in plaats van per kalenderdag, zodat een avond die na middernacht doorloopt één dag blijft. Afronden vraagt eerst een bevestiging, omdat tickets daarna niet meer binnen mogen, en bij annuleren lees je eerlijk dat bestaande tickets niet meer binnen mogen en niet vanzelf terugbetaald worden. Op je telefoon passen de knoppen bovenaan het eventoverzicht nu in beeld, de knoppen van de scanner zijn groter, een event zonder maximum toont 'x / ∞' en datums volgen je eigen tijdzone en taal."
+        },
+        "product_vat_margin": {
+          "title": "Btw-tarief en marge in het productformulier",
+          "description": "In de prijskaart van een product kies je nu zelf het btw-tarief. Laat je het leeg, dan geldt het standaardtarief van je winkel, zoals voorheen. Vul je een inkoopprijs en een verkoopprijs in, dan zie je meteen je marge en je winst per stuk, exclusief btw (alleen voor wie de inkoopprijzen mag zien). Knoppen binnen het formulier, zoals synchroniseren of de voorraadknoppen, slaan het product ook niet meer per ongeluk op."
+        },
+        "discount_dates_scope": {
+          "title": "Kortingscodes: geldig tot het einde van de dag en productkeuze blijft bewaard",
+          "description": "Een kortingscode die geldig is tot een bepaalde datum, werkt nu tot 23:59 die dag in plaats van een of twee uur vroeger te stoppen, en een startdatum begint om middernacht bij ons. De einddatum kan niet meer vóór de startdatum liggen. Bewerkte je een code die maar voor bepaalde producten of categorieën gold, dan ging die keuze bij het opslaan verloren en gold de korting voor het hele mandje. Je keuze blijft nu bewaard."
+        },
+        "exports_all_rows": {
+          "title": "Exports bevatten al je rijen en de juiste btw",
+          "description": "Bij grote winkels stopten exports en het voorraadrapport stil na 1.000 rijen, bijvoorbeeld bij een lijst facturen voor je boekhouder. Nu krijg je altijd alles. In de productexport en de export van lage voorraad staat het btw-tarief van het product, of het standaardtarief van je winkel, in plaats van altijd 21%."
+        },
+        "save_no_permission": {
+          "title": "Eerlijke melding als je niet mag opslaan",
+          "description": "Had je rol geen rechten om bijvoorbeeld het thema van je webshop, je btw-, bedrijfs-, facturatie- of retourinstellingen aan te passen, dan zag je toch 'Opgeslagen' terwijl er niets bewaard werd. Nu krijg je een duidelijke melding dat je geen rechten hebt om dit op te slaan."
+        },
+        "settings_translated": {
+          "title": "Instellingen volledig in jouw taal",
+          "description": "Werk je in het Engels, Frans, Duits of Oekraïens, dan stonden verschillende instellingenpagina's nog deels in het Nederlands: je profiel, transacties en kosten, compliance, retouren, team, btw-tarieven en Peppol. Die zijn nu vertaald, ook de rolnamen bij het uitnodigen van teamleden en de datums in je teamoverzicht."
+        },
+        "seo_generator_fixed": {
+          "title": "SEO-generator voor categorieën en alt-teksten werkt",
+          "description": "Liet je SEO-teksten voor een categorie of alt-teksten voor productfoto's genereren, dan werd het resultaat niet bewaard. Nu komen ze op de juiste plek terecht en zie je de alt-teksten van je foto's ook echt in het SEO-overzicht. Lukt een generatie niet omdat het product of de categorie niet bestaat, dan worden er geen credits meer aangerekend."
+        },
+        "shipping_providers_clear": {
+          "title": "Duidelijk welke verzendpartners labels maken",
+          "description": "Verzendlabels en tracking werken via Sendcloud en MyParcel. Shippo en EasyPost kon je al koppelen, maar daar maakt SellQo nog geen labels mee: dat zie je nu met een badge en een uitleg voor je koppelt. De pagina met synchronisatieconflicten toont eerlijk dat er niets te behandelen is, zonder te beloven dat er iets wordt gesynchroniseerd."
+        },
+        "admin_small_fixes": {
+          "title": "Kleine verbeteringen in je beheer",
+          "description": "Het filter op bestellingen uit je webshop werkt, en een bestelling ververst meteen na een status- of betaalwijziging. Leveranciersdocumenten openen weer, ook op iPhone en in de app. Cadeaukaarten tonen bedragen in je eigen notatie. Bij rapporten klopt het periodelabel, Stripe-omzet deze maand telt alleen deze maand en een kassasessie van een andere dag toont de datum erbij."
+        },
+        "access_hardening": {
+          "title": "Beveiliging aangescherpt",
+          "description": "We hebben de toegangscontrole op winkelmandjes en een aantal achterliggende functies aangescherpt. Je hoeft zelf niets te doen."
         }
       },
       "copyLink": "Kopieer link",

@@ -2159,6 +2159,46 @@
         "size_chart_standard": {
           "title": "Des tableaux des tailles clairs et contrôlés pour les produits Printful",
           "description": "Jusqu'ici, le guide des tailles fourni par Printful était transmis tel quel : avec des décimales issues de la conversion en pouces, des mesures du corps qui répétaient celles du vêtement, et sans indiquer où mesurer. SellQo convertit désormais chaque guide en un tableau fixe en cm entiers : largeur (d'aisselle à aisselle), longueur (de l'épaule à l'ourlet), manche et le tour de poitrine prévu pour chaque taille. À chaque import, SellQo contrôle les chiffres : les tableaux en cm et en pouces concordent-ils, chaque taille est-elle plus grande que la précédente, une valeur ressemble-t-elle à des pouces ou à un tour au lieu d'une largeur ? En cas de problème, vous le voyez dans le produit, dans le nouvel onglet Tableau des tailles, et votre boutique n'affiche pas de tableau erroné pour ce produit. Si vous avez votre propre boutique en ligne, le tableau contrôlé se trouve dans le nouveau champ size_chart."
+        },
+        "events_door_honest": {
+          "title": "Scanner de porte et événements : compteur honnête et clôture plus sûre",
+          "description": "Le compteur À l'intérieur ne compte plus que les personnes réellement admises : un scan refusé ne marque plus personne comme présent. Un événement au statut Confirmé laisse à nouveau entrer à la porte, et « réentrée une fois par jour » se compte désormais par soirée d'événement plutôt que par jour calendaire, de sorte qu'une soirée qui se prolonge après minuit reste une seule journée. Clôturer un événement demande d'abord une confirmation, car les billets ne peuvent plus entrer ensuite, et lors d'une annulation vous lisez clairement que les billets existants ne seront plus admis et ne sont pas remboursés automatiquement. Sur votre téléphone, les boutons en haut de l'aperçu de l'événement tiennent désormais à l'écran, les boutons du scanner sont plus grands, un événement sans maximum affiche « x / ∞ » et les dates suivent votre fuseau horaire et votre langue."
+        },
+        "product_vat_margin": {
+          "title": "Taux de TVA et marge dans le formulaire produit",
+          "description": "Dans la carte de prix d'un produit, vous choisissez désormais vous-même le taux de TVA. Si vous le laissez vide, le taux standard de votre boutique s'applique, comme avant. Indiquez un prix d'achat et un prix de vente et vous voyez immédiatement votre marge et votre bénéfice par pièce, hors TVA (uniquement pour les personnes autorisées à voir les prix d'achat). Les boutons du formulaire, comme la synchronisation ou les boutons de stock, n'enregistrent plus le produit par accident."
+        },
+        "discount_dates_scope": {
+          "title": "Codes de réduction : valables jusqu'à la fin de la journée et sélection de produits conservée",
+          "description": "Un code de réduction valable jusqu'à une date donnée fonctionne désormais jusqu'à 23:59 ce jour-là au lieu de s'arrêter une ou deux heures plus tôt, et une date de début commence à minuit heure locale. La date de fin ne peut plus précéder la date de début. Si vous modifiiez un code limité à certains produits ou catégories, cette sélection était perdue à l'enregistrement et la réduction s'appliquait à tout le panier. Votre sélection est maintenant conservée."
+        },
+        "exports_all_rows": {
+          "title": "Les exports contiennent toutes vos lignes et la bonne TVA",
+          "description": "Pour les grandes boutiques, les exports et le rapport de stock s'arrêtaient sans prévenir à 1 000 lignes, par exemple pour une liste de factures destinée à votre comptable. Vous obtenez désormais toujours tout. L'export des produits et l'export des stocks faibles indiquent le taux de TVA du produit, ou le taux standard de votre boutique, au lieu de toujours 21 %."
+        },
+        "save_no_permission": {
+          "title": "Message honnête quand vous ne pouvez pas enregistrer",
+          "description": "Si votre rôle n'avait pas le droit de modifier, par exemple, le thème de votre boutique en ligne ou vos paramètres de TVA, d'entreprise, de facturation ou de retours, vous voyiez quand même « Enregistré » alors que rien n'était sauvegardé. Vous recevez maintenant un message clair indiquant que vous n'avez pas le droit d'enregistrer cela."
+        },
+        "settings_translated": {
+          "title": "Paramètres entièrement dans votre langue",
+          "description": "Si vous travaillez en anglais, français, allemand ou ukrainien, plusieurs pages de paramètres étaient encore en partie en néerlandais : votre profil, transactions et frais, conformité, retours, équipe, taux de TVA et Peppol. Elles sont maintenant traduites, y compris les noms de rôles lors de l'invitation de membres et les dates dans l'aperçu de votre équipe."
+        },
+        "seo_generator_fixed": {
+          "title": "Le générateur SEO pour les catégories et les textes alternatifs fonctionne",
+          "description": "Lorsque vous génériez des textes SEO pour une catégorie ou des textes alternatifs pour des photos de produits, le résultat n'était pas enregistré. Ils arrivent maintenant au bon endroit et vous voyez réellement les textes alternatifs de vos photos dans l'aperçu SEO. Si une génération échoue parce que le produit ou la catégorie n'existe pas, aucun crédit n'est plus facturé."
+        },
+        "shipping_providers_clear": {
+          "title": "Clair quels partenaires d'expédition créent des étiquettes",
+          "description": "Les étiquettes d'expédition et le suivi fonctionnent via Sendcloud et MyParcel. Vous pouviez déjà connecter Shippo et EasyPost, mais SellQo ne crée pas encore d'étiquettes avec eux : vous le voyez maintenant grâce à un badge et une explication avant de connecter. La page des conflits de synchronisation indique honnêtement qu'il n'y a rien à traiter, sans promettre qu'une synchronisation a lieu."
+        },
+        "admin_small_fixes": {
+          "title": "Petites améliorations dans votre administration",
+          "description": "Le filtre des commandes de votre boutique en ligne fonctionne, et une commande se met à jour juste après un changement de statut ou de paiement. Les documents fournisseurs s'ouvrent à nouveau, aussi sur iPhone et dans l'application. Les cartes cadeaux affichent les montants dans votre propre format. Dans les rapports, le libellé de période est correct, le chiffre d'affaires Stripe de ce mois ne compte que ce mois-ci, et une session de caisse d'un autre jour affiche sa date."
+        },
+        "access_hardening": {
+          "title": "Sécurité renforcée",
+          "description": "Nous avons renforcé le contrôle d'accès aux paniers et à un certain nombre de fonctions sous-jacentes. Vous n'avez rien à faire."
         }
       },
       "copyLink": "Copier le lien",

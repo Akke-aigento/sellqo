@@ -2159,6 +2159,46 @@
         "size_chart_standard": {
           "title": "Clear, checked size charts for Printful products",
           "description": "Until now, the size guide that comes with Printful was passed on as-is: with decimals from the inch conversion, body measurements that repeated the garment measurements, and no explanation of where to measure. SellQo now converts every size guide into one fixed table in whole cm: width (armpit to armpit), length (shoulder to hem), sleeve and the chest size each size is meant for. On every import, SellQo checks the numbers: do the cm and inch tables match, does every size grow from the previous one, does a value look like inches or a circumference instead of a width? If something is wrong, you see it in the product under the new Size chart tab, and your store does not show an incorrect chart for that product. If you have your own webshop, the checked chart is in the new size_chart field."
+        },
+        "events_door_honest": {
+          "title": "Door scanner and events: honest count and safer completion",
+          "description": "The Inside counter now only counts people who were actually let in: a rejected scan no longer marks anyone as inside. An event with the status Confirmed lets people in at the door again, and 're-entry once per day' now counts per event night instead of per calendar day, so an evening that runs past midnight stays one day. Completing an event now asks for confirmation first, because tickets can no longer get in afterwards, and when cancelling you read plainly that existing tickets will no longer get in and are not refunded automatically. On your phone the buttons at the top of the event overview now fit on screen, the scanner buttons are larger, an event without a maximum shows 'x / ∞' and dates follow your own time zone and language."
+        },
+        "product_vat_margin": {
+          "title": "VAT rate and margin in the product form",
+          "description": "In a product's pricing card you can now choose the VAT rate yourself. Leave it empty and your shop's standard rate applies, as before. Fill in a cost price and a selling price and you immediately see your margin and profit per item, excluding VAT (only for people allowed to see cost prices). Buttons inside the form, such as sync or the stock buttons, no longer save the product by accident."
+        },
+        "discount_dates_scope": {
+          "title": "Discount codes: valid until the end of the day and product selection is kept",
+          "description": "A discount code valid until a certain date now works until 23:59 that day instead of stopping an hour or two early, and a start date begins at local midnight. The end date can no longer be before the start date. If you edited a code that only applied to certain products or categories, that selection was lost on saving and the discount applied to the whole cart. Your selection is now kept."
+        },
+        "exports_all_rows": {
+          "title": "Exports include all your rows and the right VAT",
+          "description": "For large shops, exports and the stock report silently stopped at 1,000 rows, for example a list of invoices for your accountant. Now you always get everything. The product export and the low-stock export show the product's VAT rate, or your shop's standard rate, instead of always 21%."
+        },
+        "save_no_permission": {
+          "title": "Honest message when you can't save",
+          "description": "If your role had no permission to change, for example, your webshop theme or your VAT, company, invoicing or returns settings, you still saw 'Saved' while nothing was stored. Now you get a clear message that you don't have permission to save this."
+        },
+        "settings_translated": {
+          "title": "Settings fully in your language",
+          "description": "If you work in English, French, German or Ukrainian, several settings pages were still partly in Dutch: your profile, transactions and fees, compliance, returns, team, VAT rates and Peppol. They are now translated, including the role names when inviting team members and the dates in your team overview."
+        },
+        "seo_generator_fixed": {
+          "title": "SEO generator for categories and alt texts works",
+          "description": "When you generated SEO texts for a category or alt texts for product photos, the result was not saved. Now they land in the right place and you actually see your photos' alt texts in the SEO overview. If a generation fails because the product or category doesn't exist, no credits are charged anymore."
+        },
+        "shipping_providers_clear": {
+          "title": "Clear which shipping partners create labels",
+          "description": "Shipping labels and tracking work through Sendcloud and MyParcel. You could already connect Shippo and EasyPost, but SellQo doesn't create labels with them yet: you now see that with a badge and an explanation before you connect. The sync conflicts page honestly shows there is nothing to handle, without promising that anything gets synchronised."
+        },
+        "admin_small_fixes": {
+          "title": "Small improvements in your admin",
+          "description": "The filter for orders from your webshop works, and an order refreshes right after a status or payment change. Supplier documents open again, also on iPhone and in the app. Gift cards show amounts in your own format. In reports the period label is correct, Stripe revenue this month only counts this month, and a POS session from another day shows its date."
+        },
+        "access_hardening": {
+          "title": "Security tightened",
+          "description": "We have tightened access control on shopping carts and a number of underlying functions. You don't need to do anything."
         }
       },
       "copyLink": "Copy link",
