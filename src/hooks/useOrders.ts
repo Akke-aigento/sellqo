@@ -36,6 +36,8 @@ export function useOrders(filters?: OrderFilters) {
         // Zelfde definitie als resolveOrderChannel (src/lib/salesStats.ts, CHANNEL-1): null,
         // legacy 'web', en geïmporteerde shopify_draft_order/csv_import tellen als webshop.
         query = query.or('marketplace_source.is.null,marketplace_source.in.(sellqo_webshop,web,shopify_draft_order,csv_import)');
+        // resolveOrderChannel kijkt ook naar sales_channel: alles behalve null/'webshop' is een ander kanaal (bv. pos).
+        query = query.or('sales_channel.is.null,sales_channel.eq.webshop');
       } else if (filters?.marketplace_source) {
         query = query.eq('marketplace_source', filters.marketplace_source);
       }

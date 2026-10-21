@@ -445,9 +445,9 @@ export default function StorefrontCustomizePage() {
       }
       if (sectionsDirty) {
         for (const id of deleted) {
-          const { data: removed, error } = await supabase.from('homepage_sections').delete().eq('id', id).eq('tenant_id', currentTenant.id).select('id');
+          // 0 rijen = sectie was al weg; geen fout.
+          const { error } = await supabase.from('homepage_sections').delete().eq('id', id).eq('tenant_id', currentTenant.id);
           if (error) throw error;
-          assertRowsWritten(removed);
         }
         const before = new Map(serverSections.map((s, i) => [s.id, { ...s, sort_order: i }]));
         for (const [i, s] of sections.entries()) {

@@ -29,6 +29,7 @@ import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { useAuth } from '@/hooks/useAuth';
 import { useTranslation } from 'react-i18next';
+import { useCan } from '@/hooks/useCan';
 
 interface PromotionModule {
   id: string;
@@ -147,6 +148,17 @@ export default function Promotions() {
   const { roles } = useAuth();
   const isPlatformAdmin = roles?.some((r: any) => r.role === 'platform_admin') || false;
 
+  // PROMO-SAFE-1: zelfde leesrecht als de route-guards (App.tsx) — geen kaart die op /no-access uitkomt.
+  const canReadVolume = useCan('read', 'volume_discounts');
+  const canReadLoyalty = useCan('read', 'loyalty');
+  const canReadCustomers = useCan('read', 'customers');
+  const canOpenModule = (module: PromotionModule): boolean =>
+    module.id === 'volume' ? canReadVolume
+      : module.id === 'loyalty' ? canReadLoyalty
+      : module.id === 'customer-groups' ? canReadCustomers
+      : true;
+  const visibleModules = promotionModules.filter(canOpenModule);
+
   const isModuleLocked = (module: PromotionModule): boolean => {
     if (!module.featureKey) return false;
     if (isPlatformAdmin && isAdminView) return false;
@@ -182,7 +194,7 @@ export default function Promotions() {
   };
 
   // Only count accessible modules in totals
-  const totalActive = promotionModules
+  const totalActive = visibleModules
     .filter(m => !isModuleLocked(m))
     .reduce((sum, m) => {
       const counts = getCounts(m.id);
@@ -231,7 +243,7 @@ export default function Promotions() {
 
       {/* Modules Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {promotionModules.map((module) => {
+        {visibleModules.map((module) => {
           const counts = getCounts(module.id);
           const locked = isModuleLocked(module);
           return (
