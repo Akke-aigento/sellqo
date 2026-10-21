@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
-import { loadStorefrontUrlContext } from "../_shared/storefrontUrls.ts";
+import { loadStorefrontUrlContext, type StorefrontUrlDb } from "../_shared/storefrontUrls.ts";
 import { feedHomeUrl, feedLinkProblem, feedLinkProblemDetail, withFeedLinks } from "./feedLinks.ts";
 
 const corsHeaders = {
@@ -88,7 +88,8 @@ serve(async (req: Request) => {
     // template van een custom frontend, anders de SellQo-winkel op /producten/<slug>
     // (canoniek domein of <slug>.sellqo.shop als de winkel online staat). Vroeger:
     // sellqo.app/shop/<tenant>/product/<slug>, de oude ingebouwde shop.
-    const linkCtx = await loadStorefrontUrlContext(supabase, tenantId);
+    // De echte client is structureel te diep voor tsc tegen het smalle loader-type (TS2589); de loader gebruikt enkel from().select().eq().limit().maybeSingle().
+    const linkCtx = await loadStorefrontUrlContext(supabase as unknown as StorefrontUrlDb, tenantId);
     const problem = feedLinkProblem(linkCtx);
     const homeUrl = feedHomeUrl(linkCtx);
     if (problem || !homeUrl) {
