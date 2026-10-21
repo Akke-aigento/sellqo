@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { format } from 'date-fns';
 import { useQuery } from '@tanstack/react-query';
 import { SlidersHorizontal } from 'lucide-react';
@@ -70,11 +70,7 @@ export function CockpitHeader({ pills, onCustomize }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3 md:gap-4">
           {currentTenant?.logo_url ? (
-            <img
-              src={currentTenant.logo_url}
-              alt=""
-              className="h-11 w-11 shrink-0 rounded-xl bg-white object-contain p-1 shadow-sm md:h-14 md:w-14"
-            />
+            <ShopLogo key={currentTenant.logo_url} src={currentTenant.logo_url} />
           ) : (
             <div
               aria-hidden="true"
@@ -101,6 +97,52 @@ export function CockpitHeader({ pills, onCustomize }: Props) {
         </div>
       </div>
     </header>
+  );
+}
+
+/**
+ * Winkellogo op een achtergrond die erbij past: een wit logo (vaak voor donkere sites) zou op
+ * wit onzichtbaar zijn. We meten de gemiddelde helderheid van de zichtbare pixels; lukt dat niet
+ * (CORS), dan blijft het wit.
+ */
+function ShopLogo({ src }: { src: string }) {
+  const [dark, setDark] = useState(false);
+  // Weigert de host CORS, dan laadt een crossOrigin-afbeelding niet: opnieuw zonder, dan maar wit.
+  const [noCors, setNoCors] = useState(false);
+  const measure = (img: HTMLImageElement) => {
+    try {
+      const size = 24;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, size, size);
+      const px = ctx.getImageData(0, 0, size, size).data;
+      let sum = 0;
+      let n = 0;
+      for (let i = 0; i < px.length; i += 4) {
+        if (px[i + 3] < 64) continue;
+        sum += 0.2126 * px[i] + 0.7152 * px[i + 1] + 0.0722 * px[i + 2];
+        n += 1;
+      }
+      setDark(n > 0 && sum / n > 215);
+    } catch {
+      // Geen toegang tot de pixels: witte achtergrond houden.
+    }
+  };
+  return (
+    <img
+      src={src}
+      alt=""
+      crossOrigin={noCors ? undefined : 'anonymous'}
+      onLoad={(e) => !noCors && measure(e.currentTarget)}
+      onError={() => !noCors && setNoCors(true)}
+      className={cn(
+        'h-11 w-11 shrink-0 rounded-xl object-contain p-1.5 shadow-sm md:h-14 md:w-14',
+        dark ? 'bg-[#1D3A5C]' : 'bg-white',
+      )}
+    />
   );
 }
 

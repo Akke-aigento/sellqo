@@ -163,7 +163,15 @@ export function useCockpitTopProducts(since: Date, enabled: boolean, limit = 5) 
             .range(from, to),
         ),
       ]);
-      return rankTopProducts(orders, pos).slice(0, limit);
+      const top = rankTopProducts(orders, pos).slice(0, limit);
+      // Orderregels van marktplaatsen (bol) hebben vaak geen foto: val terug op de productfoto.
+      const missing = top.filter((p) => !p.image && p.productId).map((p) => p.productId!);
+      if (missing.length) {
+        const { data } = await supabase.from('products').select('id, featured_image, images').in('id', missing);
+        const byId = new Map((data ?? []).map((r) => [r.id, r.featured_image || r.images?.[0] || null]));
+        for (const p of top) if (!p.image && p.productId) p.image = byId.get(p.productId) ?? null;
+      }
+      return top;
     },
   });
 }
