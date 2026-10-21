@@ -30,3 +30,23 @@ export const CHANNEL_COLORS = [
   'bg-[hsl(var(--chart-2))]',
   'bg-[hsl(var(--chart-3))]',
 ];
+
+/**
+ * DASH-2b — kanaalkleuren als vaste waarden (bg voor de legende, stroke voor de donut), ook in
+ * dark mode onderscheidbaar: daar is --primary oranje en zou kanaal 1 en 2 gelijk kleuren.
+ */
+export const CHANNEL_SWATCHES = [
+  { bg: 'bg-[#1D3A5C] dark:bg-[#8FB3D9]', stroke: 'stroke-[#1D3A5C] dark:stroke-[#8FB3D9]' },
+  { bg: 'bg-[#FF6B33]', stroke: 'stroke-[#FF6B33]' },
+  { bg: 'bg-[#A9B6C6] dark:bg-[#64748B]', stroke: 'stroke-[#A9B6C6] dark:stroke-[#64748B]' },
+  { bg: 'bg-[#2563EB]', stroke: 'stroke-[#2563EB]' },
+  { bg: 'bg-[#9333EA]', stroke: 'stroke-[#9333EA]' },
+  { bg: 'bg-[#0D9488]', stroke: 'stroke-[#0D9488]' },
+];
+
+/** De donkerblauwe hero-achtergrond, in beide thema's donker met witte tekst. */
+export const HERO_SURFACE = 'bg-[#1D3A5C] text-white dark:bg-[#13283F] shadow-lg shadow-[#1D3A5C]/15';
+
+/** "14:30" uit minuten sinds middernacht. */
+export const minuteLabel = (m: number) =>
+  `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;

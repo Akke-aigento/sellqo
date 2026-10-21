@@ -10,7 +10,7 @@ import { buildBoard, notifiesCustomer, type KitchenCard, type KitchenStatus, typ
 
 const WINDOW_MS = 3 * 24 * 3600_000;
 
-export function useKitchenBoard(nowMs: number) {
+export function useKitchenBoard(nowMs: number, enabled = true) {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
@@ -19,7 +19,7 @@ export function useKitchenBoard(nowMs: number) {
 
   const query = useQuery({
     queryKey: key,
-    enabled: !!tenantId,
+    enabled: enabled && !!tenantId,
     refetchInterval: 10_000,
     refetchIntervalInBackground: true,
     queryFn: async () => {

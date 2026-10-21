@@ -14,6 +14,9 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.13j', dateKey: 'oct_2026', changes: [
+    { id: 'cockpit_dashboard', type: 'feature' },
+  ]},
   { version: '2026.13i', dateKey: 'oct_2026', changes: [
     { id: 'events_door_honest', type: 'improvement' },
     { id: 'product_vat_margin', type: 'feature' },

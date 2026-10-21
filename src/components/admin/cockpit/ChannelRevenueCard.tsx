@@ -6,7 +6,7 @@ import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { useTenant } from '@/hooks/useTenant';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { CockpitRevenue } from '@/lib/cockpitRevenue';
-import { CHANNEL_COLORS, channelLabel } from './cockpitFormat';
+import { CHANNEL_SWATCHES, channelLabel } from './cockpitFormat';
 import { CockpitNoAccess } from './CockpitNoAccess';
 
 interface Props {
@@ -16,7 +16,10 @@ interface Props {
   isError: boolean;
 }
 
-/** Omzet maand-tot-nu per kanaal, vergeleken met dezelfde dagen vorige maand. */
+const R = 40;
+const C = 2 * Math.PI * R;
+
+/** Omzet maand-tot-nu per kanaal als donut, vergeleken met dezelfde dagen vorige maand. */
 export function ChannelRevenueCard({ canRead, data, isLoading, isError }: Props) {
   const { t } = useTranslation();
   const locale = useDateFnsLocale();
@@ -24,91 +27,103 @@ export function ChannelRevenueCard({ canRead, data, isLoading, isError }: Props)
   const currency = currentTenant?.currency || 'EUR';
   const now = data?.periods.now ?? new Date();
 
-  const title = t('admin.cockpit.revenue.month_to_date', { month: format(now, 'LLLL', { locale }) });
+  const title = t('admin.cockpit.revenue.channel_mix', { month: format(now, 'LLLL', { locale }) });
 
   let body: React.ReactNode;
   if (!canRead) {
     body = <CockpitNoAccess />;
   } else if (isLoading) {
     body = (
-      <div className="space-y-3">
-        <Skeleton className="h-9 w-32" />
-        <Skeleton className="h-2.5 w-full" />
-        <Skeleton className="h-16 w-full" />
+      <div className="flex items-center gap-5">
+        <Skeleton className="h-32 w-32 rounded-full" />
+        <div className="flex-1 space-y-3">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+        </div>
       </div>
     );
   } else if (isError || !data) {
     body = <p className="text-sm text-muted-foreground">{t('admin.cockpit.load_failed')}</p>;
   } else {
     const { monthChannels, monthTotal, changePct, periods } = data;
-    // Vergelijkingsperiode als "1–20 sep": einde is exclusief, dus de dag ervóór tonen
-    // als de grens op middernacht valt (hele vorige maand).
     const end = periods.prevCompareEnd;
     const lastDay = end.getTime() === periods.monthStart.getTime() ? subDays(end, 1) : end;
     const compareLabel = t('admin.cockpit.revenue.compared_to', {
       range: `1–${format(lastDay, 'd MMM', { locale })}`,
     });
+    let offset = 0;
+    const arcs = monthTotal > 0
+      ? monthChannels.map((c, i) => {
+          const len = (c.revenue / monthTotal) * C;
+          const arc = { key: c.channel, len, offset, swatch: CHANNEL_SWATCHES[i % CHANNEL_SWATCHES.length] };
+          offset += len;
+          return arc;
+        })
+      : [];
+
     body = (
       <div className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <span className="text-3xl font-bold tracking-tight">{formatCurrency(monthTotal, currency)}</span>
+        <p className="text-xs text-muted-foreground">
           {changePct === null ? (
-            <span className="text-sm text-muted-foreground">{t('admin.cockpit.revenue.no_comparison')}</span>
+            t('admin.cockpit.revenue.no_comparison')
           ) : (
-            <span
-              className={cn(
-                'text-sm font-semibold',
-                changePct >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400',
-              )}
-            >
-              {changePct > 0 ? '+' : ''}
-              {changePct}%
-            </span>
+            <>
+              <span className={cn('font-semibold', changePct >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400')}>
+                {changePct > 0 ? '+' : ''}
+                {changePct}%
+              </span>{' '}
+              {compareLabel}
+            </>
           )}
-          <span className="text-xs text-muted-foreground">{compareLabel}</span>
-        </div>
-
+        </p>
         {monthChannels.length === 0 ? (
           <p className="text-sm text-muted-foreground">{t('admin.cockpit.revenue.no_sales_yet')}</p>
         ) : (
-          <>
-            {monthTotal > 0 && (
-              <div className="flex h-2.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
-                {monthChannels.map((c, i) => (
-                  <div
-                    key={c.channel}
-                    className={CHANNEL_COLORS[i % CHANNEL_COLORS.length]}
-                    style={{ width: `${(c.revenue / monthTotal) * 100}%` }}
-                  />
-                ))}
-              </div>
-            )}
-            <ul className="flex flex-col gap-2.5">
+          <div className="flex items-center gap-5">
+            <svg width="128" height="128" viewBox="0 0 100 100" className="shrink-0" role="img" aria-label={title}>
+              <circle cx="50" cy="50" r={R} fill="none" strokeWidth="16" className="stroke-muted" />
+              {arcs.map((a) => (
+                <circle
+                  key={a.key}
+                  cx="50"
+                  cy="50"
+                  r={R}
+                  fill="none"
+                  strokeWidth="16"
+                  className={a.swatch.stroke}
+                  strokeDasharray={`${a.len} ${C}`}
+                  strokeDashoffset={-a.offset}
+                  transform="rotate(-90 50 50)"
+                />
+              ))}
+              <text x="50" y="47" textAnchor="middle" className="fill-muted-foreground text-[10px]">
+                {t('admin.cockpit.revenue.total')}
+              </text>
+              <text x="50" y="61" textAnchor="middle" className="fill-foreground text-[11px] font-extrabold">
+                {formatCurrency(monthTotal, currency)}
+              </text>
+            </svg>
+            <ul className="flex min-w-0 flex-1 flex-col gap-3">
               {monthChannels.map((c, i) => (
-                <li key={c.channel} className="flex items-center justify-between gap-3 text-sm">
-                  <span className="flex min-w-0 items-center gap-2">
-                    <span
-                      className={cn('h-2.5 w-2.5 shrink-0 rounded-sm', CHANNEL_COLORS[i % CHANNEL_COLORS.length])}
-                      aria-hidden="true"
-                    />
-                    <span className="truncate">{channelLabel(t, c.channel)}</span>
-                  </span>
-                  <span className="font-semibold tabular-nums">{formatCurrency(c.revenue, currency)}</span>
+                <li key={c.channel} className="flex items-center gap-2.5 text-sm">
+                  <span className={cn('h-3 w-3 shrink-0 rounded', CHANNEL_SWATCHES[i % CHANNEL_SWATCHES.length].bg)} aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate">{channelLabel(t, c.channel)}</span>
+                  <span className="font-bold tabular-nums">{formatCurrency(c.revenue, currency)}</span>
                 </li>
               ))}
             </ul>
-          </>
+          </div>
         )}
       </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-lg first-letter:uppercase">{title}</CardTitle>
+    <Card className="flex flex-col rounded-2xl">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base first-letter:uppercase">{title}</CardTitle>
       </CardHeader>
-      <CardContent>{body}</CardContent>
+      <CardContent className="flex-1">{body}</CardContent>
     </Card>
   );
 }

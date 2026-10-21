@@ -2199,6 +2199,10 @@
         "access_hardening": {
           "title": "Beveiliging aangescherpt",
           "description": "We hebben de toegangscontrole op winkelmandjes en een aantal achterliggende functies aangescherpt. Je hoeft zelf niets te doen."
+        },
+        "cockpit_dashboard": {
+          "title": "Een nieuw dashboard: je cockpit",
+          "description": "Je dashboard toont nu wat er vandaag gebeurt: je omzet per uur naast dezelfde dag vorige week, een maanddoel voor de hele winkel, reeksen en records, wat er te doen is en wat er net binnenkwam. Verkoop je tickets, dan staat je volgende event bovenaan met de knop Tickets scannen. Heb je een horecazaak, dan zie je de keuken, de verwachte spits en zet je een gerecht met één tik op uitverkocht. Je kiest zelf welke kaarten je ziet en in welke volgorde."
         }
       },
       "copyLink": "Kopieer link",

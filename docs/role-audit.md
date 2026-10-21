@@ -1,3 +1,35 @@
+## DASH-2a + DASH-2b — cockpit-dashboard (per spoor, maanddoel, live-feed, horeca) — 21 oktober 2026
+
+DASH-2a (084c5eed, 8cd10bf9, PR #13) en de fix DASH-2a-FIX (f8e5c8b) kregen geen eigen entry; ze staan hier samen met DASH-2b. Ontwerp goedgekeurd door Akke op de mockup "SellQo Cockpit 2.0" (Design-canvas, 21-10).
+
+**Root cause**
+- DASH-2a verving het oude health-score-dashboard door een correcte maar kale cockpit (begroeting, brief, één omzetkaart). Akke: "kaal en saai".
+- De knop Tickets scannen verscheen bij elke winkel voor een platformadmin: `TicketScanButton` gebruikte `hasTrack('events')`, en `hasTrack` geeft altijd true bij `isPlatformAdmin && isAdminView` (`src/hooks/useBusinessModules.ts`, `bypass`). Gefixt in DASH-2a-FIX door op `tracks.includes('events')` te toetsen.
+
+**Uitgevoerd (DASH-2b)**
+- Migratie `20261021100000_dash_2b_cockpit_settings.sql`: nieuwe tabel `tenant_cockpit_settings` (maanddoel per winkel). Live gedraaid via query_database en nagetrokken (tabel, RLS aan, 3 policies).
+- `src/lib/cockpitInsights.ts` (puur, getest): vandaag per uur tegenover dezelfde weekdag vorige week tot hetzelfde tijdstip, reeks, records per weekdag (pas vanaf 3 eerdere dagen), drukte per kwartier tegenover het gemiddelde van de laatste 4 dezelfde weekdagen, maanddoel per resterende dag.
+- `useCockpitRevenue` haalt 12 maanden orders + kassa op (één bron voor omzet, records en drukte), ververst elke minuut.
+- Nieuwe hooks: `useCockpitFeed` (orders, kassa, klanten, reviews, check-ins; elke bron los gegate, geen realtime), `useCockpitTracks` (volgend event, kassasessie, "op voor vandaag", maanddoel), en in `useCockpitSignals` nieuwe klanten, open offertes, ongelezen berichten (zelfde definitie als de inbox-badge, zonder extra realtime-kanaal) en toppers (orders + kassa).
+- Kaarten in `src/components/admin/cockpit/`: TodayHeroCard, GoalCard (+ RecordsList), TodoCard, ChannelRevenueCard (nu donut), LiveFeedCard, TopProductsCard, EventHeroCard (scanknop zit erin), HorecaCards (keuken nu, tegels, drukte, op voor vandaag, leveringen), CockpitHeader (logo, dagdeelband), CockpitCustomizeDialog. `TodayRevenueTiles` verwijderd (zit in de hero).
+- `cockpitLayout.ts`: kaarten per spoor; volgorde en verborgen kaarten per gebruiker in `dashboard_preferences` met `layout_type = 'cockpit'` (rijen van het oude dashboard worden genegeerd).
+- `useKitchenBoard(nowMs, enabled)`: optionele gating, zodat niet-horecawinkels geen keukenquery doen.
+- i18n nl/en/fr/de/uk; changelog 2026.13j (`cockpit_dashboard`); nieuwsbriefitem; helpartikel `cockpit-dashboard` (docs/sql/dash-2b-doc-article.sql, context_path `/admin/dashboard`).
+
+**Security-keuzes**
+- `tenant_cockpit_settings`: lezen voor leden van de winkel en platformadmins (`get_user_tenant_ids`, `is_platform_admin`), aanmaken/wijzigen enkel `tenant_admin` via `has_tenant_role` (platformadmin-bypass zit in die functie). Geen delete-policy. Geen gevoelige data.
+- Kaarten zonder leesrecht worden verborgen (omzet = `reports_financial`, keuken/toppers = `orders`, menu = `products`); "op voor vandaag" schrijft enkel met `write products` en via de bestaande RPC `set_product_sold_out_today` (security invoker, RLS beslist).
+
+**Gedeelde-paden-waarschuwing** — geen gedeelde tabel of storefront-contract geraakt. `useKitchenBoard` kreeg een optionele tweede parameter met default `true`: het keukenscherm gedraagt zich identiek.
+
+**Verificatie** — `tsc` 0 fouten (met supabase-js 2.90.1 uit de lockfile), 921 tests groen (22 nieuw), i18n-pariteit en used-keys groen, `vite build` ok, lint tegen baseline: +1 (react-refresh) opgelost. Live-verificatie en screenshots 390/1280 volgen na de publish.
+
+**Bewust ongemoeid / Vervolg**
+- `DashboardGrid` en de oude widgets blijven staan tot fase 4 (opruimen).
+- Mobiele actiebalk personaliseerbaar maken (wens van 20-10) is niet in deze batch.
+- "Open tot"-label op basis van openingsuren niet gebouwd; enkel "Kassa open sinds".
+- Ochtendbrief heet ook 's middags zo; titel per dagdeel kan later.
+
 ## Nachtrun 20→21 oktober 2026 — events, productformulier, IDOR-sweep, eerlijke UI, exports, promoties (release 2026.13i)
 
 Onbewaakte nachtrun op branch `night-final` (basis `origin/main` 5a6a6ad, SIZECHART-1 deployed). Alles lokaal gecommit, als back-up naar `night-final` gepusht, **niet op main, niets gedeployed**. Bronnen: commitberichten `origin/main..night-final` + het nachtbevindingenlog. Eindchecks op `night-final`: tsc 27 (gelijk aan main), i18n-parity + alle check/verify-scripts exit 0, vitest 71 files / 874 tests groen (gemeten bij RELEASE-PREP), vite build ok, deno check op alle te deployen functies groen, `scripts/promo-compare/smoke.ts` groen, lint 1457 (baseline verlaagd). Eindreview (fresh eyes): OK om naar main, geen 🔴/🟠.

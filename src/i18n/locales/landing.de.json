@@ -2199,6 +2199,10 @@
         "access_hardening": {
           "title": "Sicherheit verschärft",
           "description": "Wir haben die Zugriffskontrolle für Warenkörbe und eine Reihe zugrunde liegender Funktionen verschärft. Du musst nichts tun."
+        },
+        "cockpit_dashboard": {
+          "title": "Ein neues Dashboard: dein Cockpit",
+          "description": "Dein Dashboard zeigt jetzt, was heute passiert: deinen Umsatz pro Stunde neben demselben Tag letzte Woche, ein Monatsziel für den ganzen Shop, Serien und Rekorde, was zu erledigen ist und was gerade eingegangen ist. Verkaufst du Tickets, steht dein nächstes Event ganz oben mit dem Button Tickets scannen. Hast du einen Gastronomiebetrieb, siehst du die Küche und den erwarteten Andrang und markierst ein Gericht mit einem Tipp als ausverkauft. Du wählst selbst, welche Karten du siehst und in welcher Reihenfolge."
         }
       },
       "copyLink": "Link kopieren",

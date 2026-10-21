@@ -58,7 +58,7 @@ export function cockpitPeriods(now: Date): CockpitPeriods {
 }
 
 /** Eén verkoopregel, los van de bron: een omzet-order of een kassaticket zonder order. */
-interface Sale {
+export interface Sale {
   at: number;
   channel: string;
   amount: number;

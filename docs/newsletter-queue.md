@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13j — Een nieuw dashboard: je cockpit (feature, 21-10-2026)
+
+**Status:** klaar voor verzending zodra DASH-2b live staat (frontend gepubliceerd, tabel `tenant_cockpit_settings` live sinds 21-10).
+
+**Voor wie:** alle winkels; extra kaarten voor events en horeca.
+
+**Je dashboard toont nu wat er vandaag gebeurt** (oktober 2026)
+Bij het openen van SellQo zie je meteen je omzet van vandaag, per uur naast dezelfde dag vorige week. Je zet een maanddoel voor de hele winkel en ziet je reeksen en records. Daaronder staat wat er te doen is, je kanaalmix, wat er net binnenkwam en je toppers van de week. Verkoop je tickets, dan staat je volgende event bovenaan met de knop Tickets scannen. Heb je een horecazaak, dan zie je de keuken, de verwachte spits en zet je een gerecht met één tik op uitverkocht.
+Wat betekent dit voor jou? Eén blik en je weet hoe je dag loopt en wat er nog moet gebeuren. Via Cockpit aanpassen kies je zelf welke kaarten je ziet en in welke volgorde.
+
+i18n: `public.changelog.changes.cockpit_dashboard`
+
 ### 2026.13h — Duidelijke, gecontroleerde maattabellen voor Printful-producten (feature, 20-10-2026)
 
 **Status:** klaar voor verzending zodra SIZECHART-1 live staat (edge functions storefront-api en apply-printful-import, frontend gepubliceerd, migratie `20261020223000_sizechart_1_docs.sql` toegepast).

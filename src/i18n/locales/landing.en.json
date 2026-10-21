@@ -2199,6 +2199,10 @@
         "access_hardening": {
           "title": "Security tightened",
           "description": "We have tightened access control on shopping carts and a number of underlying functions. You don't need to do anything."
+        },
+        "cockpit_dashboard": {
+          "title": "A new dashboard: your cockpit",
+          "description": "Your dashboard now shows what is happening today: revenue per hour next to the same day last week, a monthly goal for the whole shop, streaks and records, what needs doing and what just came in. If you sell tickets, your next event sits at the top with the Scan tickets button. If you run a restaurant or takeaway, you see the kitchen and the expected rush, and you mark a dish as sold out with one tap. You choose which cards you see and in what order."
         }
       },
       "copyLink": "Copy link",

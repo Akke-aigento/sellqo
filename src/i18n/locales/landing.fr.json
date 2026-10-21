@@ -2199,6 +2199,10 @@
         "access_hardening": {
           "title": "Sécurité renforcée",
           "description": "Nous avons renforcé le contrôle d'accès aux paniers et à un certain nombre de fonctions sous-jacentes. Vous n'avez rien à faire."
+        },
+        "cockpit_dashboard": {
+          "title": "Un nouveau tableau de bord : votre cockpit",
+          "description": "Votre tableau de bord montre désormais ce qui se passe aujourd'hui : le chiffre d'affaires par heure à côté du même jour la semaine dernière, un objectif mensuel pour toute la boutique, des séries et des records, ce qu'il reste à faire et ce qui vient d'arriver. Si vous vendez des billets, votre prochain événement apparaît en haut avec le bouton Scanner les billets. Si vous tenez un établissement horeca, vous voyez la cuisine et le pic d'affluence attendu, et vous marquez un plat comme épuisé d'un seul geste. Vous choisissez quelles cartes vous voyez et dans quel ordre."
         }
       },
       "copyLink": "Copier le lien",
