@@ -8393,6 +8393,65 @@
       "resolve_sellqo": "The conflict is marked as resolved with the SellQo version as the choice. The data is not sent to the platform automatically.",
       "resolve_platform": "The conflict is marked as resolved with the platform version as the choice. The data is not imported into SellQo automatically.",
       "resolve_dismissed": "This conflict will be ignored. Both versions stay unchanged."
+    },
+    "cockpit": {
+      "header": {
+        "greeting_morning": "Good morning",
+        "greeting_afternoon": "Good afternoon",
+        "greeting_evening": "Good evening",
+        "greeting_name": "{{greeting}}, {{name}}"
+      },
+      "no_access": "Your role doesn't give access to these figures.",
+      "load_failed": "The figures couldn't be loaded. Please try again shortly.",
+      "channels": {
+        "webshop": "Webshop",
+        "pos": "Till",
+        "bol_com": "bol",
+        "amazon": "Amazon",
+        "shopify": "Shopify",
+        "woocommerce": "WooCommerce",
+        "ebay": "eBay"
+      },
+      "revenue": {
+        "month_to_date": "{{month}} to date",
+        "compared_to": "vs {{range}}",
+        "no_comparison": "no revenue last month to compare with",
+        "no_sales_yet": "No sales yet this month."
+      },
+      "today": {
+        "revenue": "Revenue today",
+        "orders": "Orders today"
+      },
+      "brief": {
+        "title": "Your morning brief",
+        "and": "and",
+        "all_quiet": "Nothing urgent today.",
+        "channel_count": "{{count}} via {{channel}}",
+        "yesterday_none": "No orders came in yesterday.",
+        "shipping_none": "No orders are waiting to be shipped.",
+        "stock_out": "{{name}} is out of stock.",
+        "yesterday_single_one": "Yesterday 1 order via {{channel}} ({{amount}}).",
+        "yesterday_single_few": "Yesterday {{count}} orders via {{channel}} ({{amount}}).",
+        "yesterday_single_many": "Yesterday {{count}} orders via {{channel}} ({{amount}}).",
+        "yesterday_single_other": "Yesterday {{count}} orders via {{channel}} ({{amount}}).",
+        "yesterday_channels_one": "Yesterday 1 order ({{amount}}): {{channels}}.",
+        "yesterday_channels_few": "Yesterday {{count}} orders ({{amount}}): {{channels}}.",
+        "yesterday_channels_many": "Yesterday {{count}} orders ({{amount}}): {{channels}}.",
+        "yesterday_channels_other": "Yesterday {{count}} orders ({{amount}}): {{channels}}.",
+        "shipping_waiting_one": "One order has been waiting {{age}} to be shipped.",
+        "shipping_waiting_few": "{{count}} orders are waiting to be shipped, the oldest for {{age}}.",
+        "shipping_waiting_many": "{{count}} orders are waiting to be shipped, the oldest for {{age}}.",
+        "shipping_waiting_other": "{{count}} orders are waiting to be shipped, the oldest for {{age}}.",
+        "stock_low_one": "{{name}} has 1 item left in stock.",
+        "stock_low_few": "{{name}} has {{count}} items left in stock.",
+        "stock_low_many": "{{name}} has {{count}} items left in stock.",
+        "stock_low_other": "{{name}} has {{count}} items left in stock.",
+        "stock_more_one": "1 other product is below its minimum stock.",
+        "stock_more_few": "{{count}} other products are below their minimum stock.",
+        "stock_more_many": "{{count}} other products are below their minimum stock.",
+        "stock_more_other": "{{count}} other products are below their minimum stock."
+      },
+      "scan_tickets": "Scan tickets"
     }
   },
   "product_form": {

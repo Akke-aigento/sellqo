@@ -8407,6 +8407,65 @@
       "resolve_sellqo": "Het conflict wordt als opgelost gemarkeerd met de SellQo-versie als keuze. De data wordt niet automatisch naar het platform gestuurd.",
       "resolve_platform": "Het conflict wordt als opgelost gemarkeerd met de platformversie als keuze. De data wordt niet automatisch in SellQo overgenomen.",
       "resolve_dismissed": "Dit conflict wordt genegeerd. Beide versies blijven ongewijzigd."
+    },
+    "cockpit": {
+      "header": {
+        "greeting_morning": "Goeiemorgen",
+        "greeting_afternoon": "Goeiemiddag",
+        "greeting_evening": "Goeienavond",
+        "greeting_name": "{{greeting}}, {{name}}"
+      },
+      "no_access": "Met je rol kun je deze cijfers niet zien.",
+      "load_failed": "De cijfers konden niet geladen worden. Probeer het straks opnieuw.",
+      "channels": {
+        "webshop": "Webshop",
+        "pos": "Kassa",
+        "bol_com": "bol",
+        "amazon": "Amazon",
+        "shopify": "Shopify",
+        "woocommerce": "WooCommerce",
+        "ebay": "eBay"
+      },
+      "revenue": {
+        "month_to_date": "{{month}} tot nu",
+        "compared_to": "t.o.v. {{range}}",
+        "no_comparison": "geen omzet vorige maand om mee te vergelijken",
+        "no_sales_yet": "Nog geen verkopen deze maand."
+      },
+      "today": {
+        "revenue": "Omzet vandaag",
+        "orders": "Bestellingen vandaag"
+      },
+      "brief": {
+        "title": "Je ochtendbrief",
+        "and": "en",
+        "all_quiet": "Niets dringends vandaag.",
+        "channel_count": "{{count}} via {{channel}}",
+        "yesterday_none": "Gisteren kwamen er geen bestellingen binnen.",
+        "shipping_none": "Er wacht geen enkele bestelling op verzending.",
+        "stock_out": "{{name}} is uitverkocht.",
+        "yesterday_single_one": "Gisteren 1 bestelling via {{channel}} ({{amount}}).",
+        "yesterday_single_few": "Gisteren {{count}} bestellingen via {{channel}} ({{amount}}).",
+        "yesterday_single_many": "Gisteren {{count}} bestellingen via {{channel}} ({{amount}}).",
+        "yesterday_single_other": "Gisteren {{count}} bestellingen via {{channel}} ({{amount}}).",
+        "yesterday_channels_one": "Gisteren 1 bestelling ({{amount}}): {{channels}}.",
+        "yesterday_channels_few": "Gisteren {{count}} bestellingen ({{amount}}): {{channels}}.",
+        "yesterday_channels_many": "Gisteren {{count}} bestellingen ({{amount}}): {{channels}}.",
+        "yesterday_channels_other": "Gisteren {{count}} bestellingen ({{amount}}): {{channels}}.",
+        "shipping_waiting_one": "Eén bestelling wacht al {{age}} op verzending.",
+        "shipping_waiting_few": "{{count}} bestellingen wachten op verzending, de oudste al {{age}}.",
+        "shipping_waiting_many": "{{count}} bestellingen wachten op verzending, de oudste al {{age}}.",
+        "shipping_waiting_other": "{{count}} bestellingen wachten op verzending, de oudste al {{age}}.",
+        "stock_low_one": "{{name}} is nog 1 stuk op voorraad.",
+        "stock_low_few": "{{name}} is nog {{count}} stuks op voorraad.",
+        "stock_low_many": "{{name}} is nog {{count}} stuks op voorraad.",
+        "stock_low_other": "{{name}} is nog {{count}} stuks op voorraad.",
+        "stock_more_one": "Nog 1 ander product zit onder zijn minimumvoorraad.",
+        "stock_more_few": "Nog {{count}} andere producten zitten onder hun minimumvoorraad.",
+        "stock_more_many": "Nog {{count}} andere producten zitten onder hun minimumvoorraad.",
+        "stock_more_other": "Nog {{count}} andere producten zitten onder hun minimumvoorraad."
+      },
+      "scan_tickets": "Tickets scannen"
     }
   },
   "product_form": {

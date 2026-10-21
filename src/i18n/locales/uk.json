@@ -8407,6 +8407,65 @@
       "resolve_sellqo": "Конфлікт буде позначено як вирішений із вибором версії SellQo. Дані не надсилаються на платформу автоматично.",
       "resolve_platform": "Конфлікт буде позначено як вирішений із вибором версії платформи. Дані не імпортуються в SellQo автоматично.",
       "resolve_dismissed": "Цей конфлікт буде проігноровано. Обидві версії залишаться без змін."
+    },
+    "cockpit": {
+      "header": {
+        "greeting_morning": "Доброго ранку",
+        "greeting_afternoon": "Добрий день",
+        "greeting_evening": "Добрий вечір",
+        "greeting_name": "{{greeting}}, {{name}}"
+      },
+      "no_access": "Ваша роль не дає доступу до цих показників.",
+      "load_failed": "Не вдалося завантажити показники. Спробуйте трохи згодом.",
+      "channels": {
+        "webshop": "Інтернет-магазин",
+        "pos": "Каса",
+        "bol_com": "bol",
+        "amazon": "Amazon",
+        "shopify": "Shopify",
+        "woocommerce": "WooCommerce",
+        "ebay": "eBay"
+      },
+      "revenue": {
+        "month_to_date": "{{month}} до сьогодні",
+        "compared_to": "порівняно з {{range}}",
+        "no_comparison": "немає виручки минулого місяця для порівняння",
+        "no_sales_yet": "Цього місяця ще немає продажів."
+      },
+      "today": {
+        "revenue": "Виручка сьогодні",
+        "orders": "Замовлення сьогодні"
+      },
+      "brief": {
+        "title": "Ваш ранковий огляд",
+        "and": "і",
+        "all_quiet": "Сьогодні нічого термінового.",
+        "channel_count": "{{count}} через {{channel}}",
+        "yesterday_none": "Учора не надійшло жодного замовлення.",
+        "shipping_none": "Жодне замовлення не чекає на відправлення.",
+        "stock_out": "{{name}} закінчився на складі.",
+        "yesterday_single_one": "Учора {{count}} замовлення через {{channel}} ({{amount}}).",
+        "yesterday_single_few": "Учора {{count}} замовлення через {{channel}} ({{amount}}).",
+        "yesterday_single_many": "Учора {{count}} замовлень через {{channel}} ({{amount}}).",
+        "yesterday_single_other": "Учора {{count}} замовлення через {{channel}} ({{amount}}).",
+        "yesterday_channels_one": "Учора {{count}} замовлення ({{amount}}): {{channels}}.",
+        "yesterday_channels_few": "Учора {{count}} замовлення ({{amount}}): {{channels}}.",
+        "yesterday_channels_many": "Учора {{count}} замовлень ({{amount}}): {{channels}}.",
+        "yesterday_channels_other": "Учора {{count}} замовлення ({{amount}}): {{channels}}.",
+        "shipping_waiting_one": "{{count}} замовлення чекає на відправлення вже {{age}}.",
+        "shipping_waiting_few": "{{count}} замовлення чекають на відправлення, найстаріше — вже {{age}}.",
+        "shipping_waiting_many": "{{count}} замовлень чекають на відправлення, найстаріше — вже {{age}}.",
+        "shipping_waiting_other": "{{count}} замовлення чекають на відправлення, найстаріше — вже {{age}}.",
+        "stock_low_one": "{{name}}: на складі залишилася {{count}} одиниця.",
+        "stock_low_few": "{{name}}: на складі залишилося {{count}} одиниці.",
+        "stock_low_many": "{{name}}: на складі залишилося {{count}} одиниць.",
+        "stock_low_other": "{{name}}: на складі залишилося {{count}} одиниці.",
+        "stock_more_one": "Ще {{count}} товар нижче мінімального запасу.",
+        "stock_more_few": "Ще {{count}} товари нижче мінімального запасу.",
+        "stock_more_many": "Ще {{count}} товарів нижче мінімального запасу.",
+        "stock_more_other": "Ще {{count}} товару нижче мінімального запасу."
+      },
+      "scan_tickets": "Сканувати квитки"
     }
   },
   "product_form": {
