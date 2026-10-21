@@ -8120,6 +8120,64 @@
       "resolve_sellqo": "Der Konflikt wird mit der SellQo-Version als Wahl als gelöst markiert. Die Daten werden nicht automatisch an die Plattform gesendet.",
       "resolve_platform": "Der Konflikt wird mit der Plattform-Version als Wahl als gelöst markiert. Die Daten werden nicht automatisch in SellQo übernommen.",
       "resolve_dismissed": "Dieser Konflikt wird ignoriert. Beide Versionen bleiben unverändert."
+    },
+    "cockpit": {
+      "header": {
+        "greeting_morning": "Guten Morgen",
+        "greeting_afternoon": "Guten Tag",
+        "greeting_evening": "Guten Abend",
+        "greeting_name": "{{greeting}}, {{name}}"
+      },
+      "no_access": "Mit deiner Rolle kannst du diese Zahlen nicht sehen.",
+      "load_failed": "Die Zahlen konnten nicht geladen werden. Versuche es gleich noch einmal.",
+      "channels": {
+        "webshop": "Webshop",
+        "pos": "Kasse",
+        "bol_com": "bol",
+        "amazon": "Amazon",
+        "shopify": "Shopify",
+        "woocommerce": "WooCommerce",
+        "ebay": "eBay"
+      },
+      "revenue": {
+        "month_to_date": "{{month}} bis heute",
+        "compared_to": "ggü. {{range}}",
+        "no_comparison": "kein Umsatz im Vormonat zum Vergleich",
+        "no_sales_yet": "Noch keine Verkäufe in diesem Monat."
+      },
+      "today": {
+        "revenue": "Umsatz heute",
+        "orders": "Bestellungen heute"
+      },
+      "brief": {
+        "title": "Dein Morgenbriefing",
+        "and": "und",
+        "all_quiet": "Heute nichts Dringendes.",
+        "channel_count": "{{count}} über {{channel}}",
+        "yesterday_none": "Gestern sind keine Bestellungen eingegangen.",
+        "shipping_none": "Keine Bestellung wartet auf den Versand.",
+        "stock_out": "{{name}} ist ausverkauft.",
+        "yesterday_single_one": "Gestern 1 Bestellung über {{channel}} ({{amount}}).",
+        "yesterday_single_few": "Gestern {{count}} Bestellungen über {{channel}} ({{amount}}).",
+        "yesterday_single_many": "Gestern {{count}} Bestellungen über {{channel}} ({{amount}}).",
+        "yesterday_single_other": "Gestern {{count}} Bestellungen über {{channel}} ({{amount}}).",
+        "yesterday_channels_one": "Gestern 1 Bestellung ({{amount}}): {{channels}}.",
+        "yesterday_channels_few": "Gestern {{count}} Bestellungen ({{amount}}): {{channels}}.",
+        "yesterday_channels_many": "Gestern {{count}} Bestellungen ({{amount}}): {{channels}}.",
+        "yesterday_channels_other": "Gestern {{count}} Bestellungen ({{amount}}): {{channels}}.",
+        "shipping_waiting_one": "Eine Bestellung wartet seit {{age}} auf den Versand.",
+        "shipping_waiting_few": "{{count}} Bestellungen warten auf den Versand, die älteste seit {{age}}.",
+        "shipping_waiting_many": "{{count}} Bestellungen warten auf den Versand, die älteste seit {{age}}.",
+        "shipping_waiting_other": "{{count}} Bestellungen warten auf den Versand, die älteste seit {{age}}.",
+        "stock_low_one": "Von {{name}} ist nur noch 1 Stück auf Lager.",
+        "stock_low_few": "Von {{name}} sind nur noch {{count}} Stück auf Lager.",
+        "stock_low_many": "Von {{name}} sind nur noch {{count}} Stück auf Lager.",
+        "stock_low_other": "Von {{name}} sind nur noch {{count}} Stück auf Lager.",
+        "stock_more_one": "1 weiteres Produkt liegt unter seinem Mindestbestand.",
+        "stock_more_few": "{{count}} weitere Produkte liegen unter ihrem Mindestbestand.",
+        "stock_more_many": "{{count}} weitere Produkte liegen unter ihrem Mindestbestand.",
+        "stock_more_other": "{{count}} weitere Produkte liegen unter ihrem Mindestbestand."
+      }
     }
   },
   "billing": {

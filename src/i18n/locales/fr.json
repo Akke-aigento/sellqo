@@ -8120,6 +8120,64 @@
       "resolve_sellqo": "Le conflit est marqué comme résolu avec la version SellQo comme choix. Les données ne sont pas envoyées automatiquement à la plateforme.",
       "resolve_platform": "Le conflit est marqué comme résolu avec la version de la plateforme comme choix. Les données ne sont pas importées automatiquement dans SellQo.",
       "resolve_dismissed": "Ce conflit sera ignoré. Les deux versions restent inchangées."
+    },
+    "cockpit": {
+      "header": {
+        "greeting_morning": "Bonjour",
+        "greeting_afternoon": "Bon après-midi",
+        "greeting_evening": "Bonsoir",
+        "greeting_name": "{{greeting}}, {{name}}"
+      },
+      "no_access": "Votre rôle ne donne pas accès à ces chiffres.",
+      "load_failed": "Impossible de charger les chiffres. Réessayez dans un instant.",
+      "channels": {
+        "webshop": "Boutique en ligne",
+        "pos": "Caisse",
+        "bol_com": "bol",
+        "amazon": "Amazon",
+        "shopify": "Shopify",
+        "woocommerce": "WooCommerce",
+        "ebay": "eBay"
+      },
+      "revenue": {
+        "month_to_date": "{{month}} à ce jour",
+        "compared_to": "par rapport au {{range}}",
+        "no_comparison": "pas de chiffre d’affaires le mois dernier pour comparer",
+        "no_sales_yet": "Aucune vente ce mois-ci pour l’instant."
+      },
+      "today": {
+        "revenue": "Chiffre d'affaires du jour",
+        "orders": "Commandes du jour"
+      },
+      "brief": {
+        "title": "Votre brief du matin",
+        "and": "et",
+        "all_quiet": "Rien d'urgent aujourd'hui.",
+        "channel_count": "{{count}} via {{channel}}",
+        "yesterday_none": "Aucune commande n'est arrivée hier.",
+        "shipping_none": "Aucune commande n'attend d'être expédiée.",
+        "stock_out": "{{name}} est en rupture de stock.",
+        "yesterday_single_one": "Hier, 1 commande via {{channel}} ({{amount}}).",
+        "yesterday_single_few": "Hier, {{count}} commandes via {{channel}} ({{amount}}).",
+        "yesterday_single_many": "Hier, {{count}} commandes via {{channel}} ({{amount}}).",
+        "yesterday_single_other": "Hier, {{count}} commandes via {{channel}} ({{amount}}).",
+        "yesterday_channels_one": "Hier, 1 commande ({{amount}}) : {{channels}}.",
+        "yesterday_channels_few": "Hier, {{count}} commandes ({{amount}}) : {{channels}}.",
+        "yesterday_channels_many": "Hier, {{count}} commandes ({{amount}}) : {{channels}}.",
+        "yesterday_channels_other": "Hier, {{count}} commandes ({{amount}}) : {{channels}}.",
+        "shipping_waiting_one": "Une commande attend d'être expédiée depuis {{age}}.",
+        "shipping_waiting_few": "{{count}} commandes attendent d'être expédiées, la plus ancienne depuis {{age}}.",
+        "shipping_waiting_many": "{{count}} commandes attendent d'être expédiées, la plus ancienne depuis {{age}}.",
+        "shipping_waiting_other": "{{count}} commandes attendent d'être expédiées, la plus ancienne depuis {{age}}.",
+        "stock_low_one": "Il ne reste qu’un exemplaire de {{name}} en stock.",
+        "stock_low_few": "Il ne reste que {{count}} exemplaires de {{name}} en stock.",
+        "stock_low_many": "Il ne reste que {{count}} exemplaires de {{name}} en stock.",
+        "stock_low_other": "Il ne reste que {{count}} exemplaires de {{name}} en stock.",
+        "stock_more_one": "1 autre produit est sous son stock minimum.",
+        "stock_more_few": "{{count}} autres produits sont sous leur stock minimum.",
+        "stock_more_many": "{{count}} autres produits sont sous leur stock minimum.",
+        "stock_more_other": "{{count}} autres produits sont sous leur stock minimum."
+      }
     }
   },
   "billing": {
