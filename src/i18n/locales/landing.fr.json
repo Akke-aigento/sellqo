@@ -2186,7 +2186,7 @@
         },
         "seo_generator_fixed": {
           "title": "Le générateur SEO pour les catégories et les textes alternatifs fonctionne",
-          "description": "Lorsque vous génériez des textes SEO pour une catégorie ou des textes alternatifs pour des photos de produits, le résultat n'était pas enregistré. Ils arrivent maintenant au bon endroit et vous voyez réellement les textes alternatifs de vos photos dans l'aperçu SEO. Si une génération échoue parce que le produit ou la catégorie n'existe pas, aucun crédit n'est plus facturé."
+          "description": "Lorsque vous génériez des textes SEO pour une catégorie ou des textes alternatifs pour des photos de produits, le résultat n'était pas enregistré. Ils arrivent maintenant au bon endroit et vous voyez réellement les textes alternatifs de vos photos dans l'aperçu SEO. Si vous choisissez une combinaison qui n'existe pas, comme un texte alternatif pour une catégorie, vous recevez un message avant que des crédits ne soient utilisés."
         },
         "shipping_providers_clear": {
           "title": "Clair quels partenaires d'expédition créent des étiquettes",

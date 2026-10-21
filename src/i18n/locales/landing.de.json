@@ -2186,7 +2186,7 @@
         },
         "seo_generator_fixed": {
           "title": "SEO-Generator für Kategorien und Alt-Texte funktioniert",
-          "description": "Wenn du SEO-Texte für eine Kategorie oder Alt-Texte für Produktfotos generieren ließest, wurde das Ergebnis nicht gespeichert. Jetzt landen sie an der richtigen Stelle und du siehst die Alt-Texte deiner Fotos auch wirklich in der SEO-Übersicht. Schlägt eine Generierung fehl, weil das Produkt oder die Kategorie nicht existiert, werden keine Credits mehr berechnet."
+          "description": "Wenn du SEO-Texte für eine Kategorie oder Alt-Texte für Produktfotos generieren ließest, wurde das Ergebnis nicht gespeichert. Jetzt landen sie an der richtigen Stelle und du siehst die Alt-Texte deiner Fotos auch wirklich in der SEO-Übersicht. Wählst du eine Kombination, die es nicht gibt, etwa einen Alt-Text für eine Kategorie, bekommst du eine Meldung, bevor Credits verbraucht werden."
         },
         "shipping_providers_clear": {
           "title": "Klar, welche Versandpartner Etiketten erstellen",

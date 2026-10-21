@@ -2186,7 +2186,7 @@
         },
         "seo_generator_fixed": {
           "title": "SEO generator for categories and alt texts works",
-          "description": "When you generated SEO texts for a category or alt texts for product photos, the result was not saved. Now they land in the right place and you actually see your photos' alt texts in the SEO overview. If a generation fails because the product or category doesn't exist, no credits are charged anymore."
+          "description": "When you generated SEO texts for a category or alt texts for product photos, the result was not saved. Now they land in the right place and you actually see your photos' alt texts in the SEO overview. If you pick a combination that doesn't exist, such as an alt text for a category, you get a message before any credits are used."
         },
         "shipping_providers_clear": {
           "title": "Clear which shipping partners create labels",

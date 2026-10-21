@@ -2186,7 +2186,7 @@
         },
         "seo_generator_fixed": {
           "title": "SEO-generator voor categorieën en alt-teksten werkt",
-          "description": "Liet je SEO-teksten voor een categorie of alt-teksten voor productfoto's genereren, dan werd het resultaat niet bewaard. Nu komen ze op de juiste plek terecht en zie je de alt-teksten van je foto's ook echt in het SEO-overzicht. Lukt een generatie niet omdat het product of de categorie niet bestaat, dan worden er geen credits meer aangerekend."
+          "description": "Liet je SEO-teksten voor een categorie of alt-teksten voor productfoto's genereren, dan werd het resultaat niet bewaard. Nu komen ze op de juiste plek terecht en zie je de alt-teksten van je foto's ook echt in het SEO-overzicht. Kies je een combinatie die niet bestaat, zoals een alt-tekst voor een categorie, dan krijg je een melding voordat er credits afgaan."
         },
         "shipping_providers_clear": {
           "title": "Duidelijk welke verzendpartners labels maken",
