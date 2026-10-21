@@ -14,11 +14,14 @@ import { findNavItems } from '@/components/admin/sidebar/sidebarConfig';
  */
 export function TicketScanButton() {
   const { t } = useTranslation();
-  const { hasTrack, ready } = useTracks();
+  // Bewust `tracks` en niet `hasTrack`: hasTrack is altijd true voor een platformadmin in
+  // beheerweergave, waardoor de knop dan bij elke winkel verscheen. Alleen het echte
+  // events-spoor van de winkel telt (events-pakket, events-add-on of ontgrendeling).
+  const { tracks, ready } = useTracks();
   const { isItemBlocked } = useNavItemVisibility();
   const item = findNavItems(['ticket-checkin'])[0];
 
-  if (!ready || !item || !hasTrack('events') || isItemBlocked(item)) return null;
+  if (!ready || !item || !tracks.includes('events') || isItemBlocked(item)) return null;
 
   return (
     <Button asChild size="lg" className="h-14 w-full gap-3 text-base font-semibold md:w-auto md:self-start md:px-8">
