@@ -8450,7 +8450,8 @@
         "stock_more_few": "{{count}} other products are below their minimum stock.",
         "stock_more_many": "{{count}} other products are below their minimum stock.",
         "stock_more_other": "{{count}} other products are below their minimum stock."
-      }
+      },
+      "scan_tickets": "Scan tickets"
     }
   },
   "product_form": {

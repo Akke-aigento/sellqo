@@ -10,6 +10,7 @@ import { CockpitHeader } from '@/components/admin/cockpit/CockpitHeader';
 import { MorningBrief } from '@/components/admin/cockpit/MorningBrief';
 import { ChannelRevenueCard } from '@/components/admin/cockpit/ChannelRevenueCard';
 import { TodayRevenueTiles } from '@/components/admin/cockpit/TodayRevenueTiles';
+import { TicketScanButton } from '@/components/admin/cockpit/TicketScanButton';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -80,6 +81,9 @@ export default function AdminDashboard() {
       {currentTenant && (
         <>
           <CockpitHeader />
+
+          {/* Events-spoor: altijd de scanknop bovenaan, de rest van de cockpit eronder. */}
+          <TicketScanButton />
 
           {/* Mobiel: de twee getallen voor onderweg. Snelknoppen zitten in AdminMobileBottomNav. */}
           <div className="md:hidden">

@@ -8464,7 +8464,8 @@
         "stock_more_few": "Nog {{count}} andere producten zitten onder hun minimumvoorraad.",
         "stock_more_many": "Nog {{count}} andere producten zitten onder hun minimumvoorraad.",
         "stock_more_other": "Nog {{count}} andere producten zitten onder hun minimumvoorraad."
-      }
+      },
+      "scan_tickets": "Tickets scannen"
     }
   },
   "product_form": {

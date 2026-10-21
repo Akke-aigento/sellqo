@@ -145,7 +145,7 @@ describe('DASH-2a maandvergelijking', () => {
     expect(r.yesterdayChannels).toEqual([{ channel: 'webshop', revenue: 50, count: 1 }]);
   });
 
-  it('vandaag: omzet incl. kassa, bestellingen zonder kassatickets en zonder geannuleerde', () => {
+  it('vandaag: omzet en bestellingen tellen hetzelfde (betaald, niet geannuleerd, plus kassa)', () => {
     const now = new Date(2026, 9, 20, 15, 0);
     const r = aggregateCockpitRevenue(
       [
@@ -154,10 +154,14 @@ describe('DASH-2a maandvergelijking', () => {
         order({ created_at: iso(2026, 9, 20, 11), total: 60, status: 'cancelled' }),
         order({ created_at: iso(2026, 9, 19, 23, 59), total: 70 }),
       ],
-      [pos({ created_at: iso(2026, 9, 20, 12), total: 4.3 })],
+      [
+        pos({ created_at: iso(2026, 9, 20, 12), total: 4.3 }),
+        pos({ created_at: iso(2026, 9, 20, 13), total: 9, order_id: 'o-1' }),
+      ],
       now,
     );
     expect(r.todayRevenue).toBe(44.3);
+    // bol-order (betaald) + kassaticket; onbetaald, geannuleerd en gisteren tellen niet.
     expect(r.todayOrders).toBe(2);
   });
 

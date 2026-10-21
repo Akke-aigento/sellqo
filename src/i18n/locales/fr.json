@@ -8177,7 +8177,8 @@
         "stock_more_few": "{{count}} autres produits sont sous leur stock minimum.",
         "stock_more_many": "{{count}} autres produits sont sous leur stock minimum.",
         "stock_more_other": "{{count}} autres produits sont sous leur stock minimum."
-      }
+      },
+      "scan_tickets": "Scanner les billets"
     }
   },
   "billing": {

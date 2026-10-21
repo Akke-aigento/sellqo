@@ -2,7 +2,7 @@
 // periodes en de kanaalverdeling getest kunnen worden. Kanaal komt UITSLUITEND uit
 // resolveOrderChannel (src/lib/salesStats.ts); omzet uitsluitend uit isRevenueOrder.
 import { addDays, getDate, getDaysInMonth, startOfDay, startOfMonth, subMonths } from 'date-fns';
-import { isCountableOrder, isRevenueOrder, resolveOrderChannel, type ChannelLike, type OrderLike } from '@/lib/salesStats';
+import { isRevenueOrder, resolveOrderChannel, type ChannelLike, type OrderLike } from '@/lib/salesStats';
 
 /** Kanaalsleutel voor kassaverkopen die niet aan een order hangen. */
 export const POS_CHANNEL = 'pos';
@@ -118,7 +118,7 @@ export interface CockpitRevenue {
   prevTotal: number;
   changePct: number | null;
   todayRevenue: number;
-  /** Bestellingen vandaag (isCountableOrder, alle kanalen) — kassatickets zijn geen bestellingen. */
+  /** Bestellingen vandaag: zelfde definitie als todayRevenue (isRevenueOrder + kassa zonder order_id). */
   todayOrders: number;
   yesterdayChannels: ChannelTotal[];
   periods: CockpitPeriods;
@@ -137,10 +137,8 @@ export function aggregateCockpitRevenue(
   const monthTotal = sumRevenue(monthChannels);
   const prevTotal = sumRevenue(totalsByChannel(sales, periods.prevMonthStart, periods.prevCompareEnd));
   const todayRevenue = sumRevenue(totalsByChannel(sales, periods.todayStart, end));
-  const todayStartMs = periods.todayStart.getTime();
-  const todayOrders = orders.filter(
-    (o) => o.created_at && isCountableOrder(o) && new Date(o.created_at).getTime() >= todayStartMs,
-  ).length;
+  // Zelfde definitie als de omzettegel: betaalde, niet-geannuleerde orders plus kassatickets.
+  const todayOrders = totalsByChannel(sales, periods.todayStart, end).reduce((n, r) => n + r.count, 0);
   return {
     monthChannels,
     monthTotal,
