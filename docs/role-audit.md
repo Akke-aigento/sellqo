@@ -24,6 +24,14 @@ DASH-2a (084c5eed, 8cd10bf9, PR #13) en de fix DASH-2a-FIX (f8e5c8b) kregen geen
 
 **Verificatie** — `tsc` 0 fouten (met supabase-js 2.90.1 uit de lockfile), 921 tests groen (22 nieuw), i18n-pariteit en used-keys groen, `vite build` ok, lint tegen baseline: +1 (react-refresh) opgelost. Live-verificatie en screenshots 390/1280 volgen na de publish.
 
+**Review-ronde (aparte review-agent op de diff, verwerkt in de vervolgcommit)**
+- Eventcijfers: een gescand ticket krijgt `status = 'checked_in'` (`perform_scan`), dus verkocht = `valid` + `checked_in`, ingecheckt = `checked_in`. Voordien daalde "verkocht" bij elke scan.
+- Aanpassen-dialoog wiste lopende wijzigingen bij elke herrender (nieuwe `tracks`-array): layout-memo op een stabiele sleutel en de dialoog neemt de layout enkel over bij het openen. Kaarten zonder leesrecht staan niet meer in de dialoog.
+- DB-belasting: het recente deel (vanaf de 1e van vorige maand) ververst elke minuut, de geschiedenis van 12 maanden maar om het half uur.
+- Grafiek begint vroeg op de dag bij het huidige uur; rush-uurlabels staan op hun kwartierstaaf; kanaalkleur hangt aan het kanaal; tikvlakken 44 px; horeca-labels "Verkopen vandaag" en "Keukenbonnen per soort" (twee verschillende tellingen, nu ook zo benoemd).
+- Migratie `20261021110000_dash_2b_cockpit_settings_audit.sql`: `updated_by` standaard `auth.uid()` en niet vrij in te vullen. Live gedraaid en nagetrokken.
+- Niet overgenomen: "terugbetaalde orders ontbreken in de feed". `isRevenueOrder` telt enkel `paid`, dus feed en omzet gebruiken dezelfde definitie.
+
 **Bewust ongemoeid / Vervolg**
 - `DashboardGrid` en de oude widgets blijven staan tot fase 4 (opruimen).
 - Mobiele actiebalk personaliseerbaar maken (wens van 20-10) is niet in deze batch.

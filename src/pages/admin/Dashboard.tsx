@@ -107,7 +107,9 @@ export default function AdminDashboard() {
   const canOpenKitchen = !!kitchenItem && !isItemBlocked(kitchenItem);
 
   const prefs = useDashboardPreferences();
-  const layout = useMemo(() => resolveLayout(tracks, prefs.preferences), [tracks, prefs.preferences]);
+  // useTracks geeft elke render een nieuwe array: de sleutel houdt de layout stabiel.
+  const tracksKey = tracks.join(',');
+  const layout = useMemo(() => resolveLayout(tracksKey ? (tracksKey.split(',') as typeof tracks) : [], prefs.preferences), [tracksKey, prefs.preferences]);
   const [customizing, setCustomizing] = useState(false);
 
   if (tenantLoading) {
@@ -189,6 +191,8 @@ export default function AdminDashboard() {
   };
 
   const visible = layout.order.filter((c) => !layout.hidden.has(c.id) && permitted(c.id));
+  // In "aanpassen" enkel kaarten die deze gebruiker kan zien: een schakelaar zonder effect is een dode knop.
+  const customizable = { order: layout.order.filter((c) => permitted(c.id)), hidden: layout.hidden };
 
   const renderCard = (id: CockpitCardId) => {
     switch (id) {
@@ -287,7 +291,7 @@ export default function AdminDashboard() {
           <CockpitCustomizeDialog
             open={customizing}
             onOpenChange={setCustomizing}
-            layout={layout}
+            layout={customizable}
             onSave={saveLayout}
             onReset={resetLayout}
             saving={prefs.isUpdating}

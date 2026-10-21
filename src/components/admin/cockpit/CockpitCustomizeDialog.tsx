@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ArrowDown, ArrowUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -21,11 +21,15 @@ export function CockpitCustomizeDialog({ open, onOpenChange, layout, onSave, onR
   const [order, setOrder] = useState<CockpitCardId[]>([]);
   const [hidden, setHidden] = useState<Set<CockpitCardId>>(new Set());
 
+  // Alleen bij het openen overnemen: het dashboard rendert elke 30 s opnieuw (klok, polls),
+  // en dat mag lopende wijzigingen in de dialoog niet wissen.
+  const wasOpen = useRef(false);
   useEffect(() => {
-    if (open) {
+    if (open && !wasOpen.current) {
       setOrder(layout.order.map((c) => c.id));
       setHidden(new Set(layout.hidden));
     }
+    wasOpen.current = open;
   }, [open, layout]);
 
   const toggle = (id: CockpitCardId, visible: boolean) =>

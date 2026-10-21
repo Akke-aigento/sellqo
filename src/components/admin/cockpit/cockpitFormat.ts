@@ -44,6 +44,10 @@ export const CHANNEL_SWATCHES = [
   { bg: 'bg-[#0D9488]', stroke: 'stroke-[#0D9488]' },
 ];
 
+/** Vaste kleur per kanaal, zodat een kanaal zijn kleur houdt als de volgorde wisselt. */
+const CHANNEL_SWATCH_INDEX: Record<string, number> = { webshop: 0, pos: 1, bol_com: 2, amazon: 3, shopify: 4, woocommerce: 5, ebay: 5 };
+export const channelSwatch = (channel: string) => CHANNEL_SWATCHES[CHANNEL_SWATCH_INDEX[channel] ?? 5];
+
 /** De donkerblauwe hero-achtergrond, in beide thema's donker met witte tekst. */
 export const HERO_SURFACE = 'bg-[#1D3A5C] text-white dark:bg-[#13283F] shadow-lg shadow-[#1D3A5C]/15';
 

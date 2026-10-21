@@ -28,6 +28,12 @@ describe('DASH-2b vandaag per uur', () => {
     expect(r.todayCount).toBe(2);
   });
 
+  it('vroeg op de dag begint de grafiek bij het huidige uur', () => {
+    const r = hourlyCompare([], new Date(2026, 9, 21, 6, 40));
+    expect(r.startHour).toBe(6);
+    expect(r.nowHour).toBeGreaterThanOrEqual(r.startHour);
+  });
+
   it('geen vergelijking als er vorige week niets was', () => {
     const r = hourlyCompare([sale(2026, 9, 21, 9)], now);
     expect(r.changePct).toBeNull();

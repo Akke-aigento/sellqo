@@ -274,10 +274,16 @@ export function RushCard({ data, isLoading }: { data: CockpitRevenueData | undef
                 );
               })}
             </div>
-            <div className="flex justify-between text-xs text-muted-foreground">
-              {ticks.map((b) => (
-                <span key={b.minute}>{minuteLabel(b.minute)}</span>
-              ))}
+            {/* Labels op de positie van hun kwartierstaaf, zodat ze ook kloppen als de reeks niet op het uur begint. */}
+            <div className="relative h-4 text-xs text-muted-foreground" aria-hidden="true">
+              {ticks.map((b) => {
+                const i = rush.buckets.indexOf(b);
+                return (
+                  <span key={b.minute} className="absolute -translate-x-1/2 whitespace-nowrap" style={{ left: `${((i + 0.5) / rush.buckets.length) * 100}%` }}>
+                    {minuteLabel(b.minute)}
+                  </span>
+                );
+              })}
             </div>
             <div className="flex flex-wrap gap-4 pt-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-2">
@@ -339,7 +345,7 @@ export function SoldOutCard({ items, isLoading, canWrite }: { items: MenuItemSta
                     aria-pressed={item.soldOut}
                     disabled={soldOut.isPending}
                     onClick={() => toggle(item)}
-                    className={cn('h-9 rounded-full', item.soldOut && 'border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-200')}
+                    className={cn('h-11 rounded-full px-4', item.soldOut && 'border-orange-300 bg-orange-50 text-orange-900 hover:bg-orange-100 dark:border-orange-900 dark:bg-orange-950 dark:text-orange-200')}
                   >
                     {item.soldOut ? t('admin.cockpit.menu.back_on') : t('admin.cockpit.menu.mark_out')}
                   </Button>

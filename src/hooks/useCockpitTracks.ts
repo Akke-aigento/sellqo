@@ -45,15 +45,16 @@ export function useCockpitNextEvent(enabled: boolean) {
       if (error) throw error;
       if (!ev) return null;
 
-      const base = () =>
-        supabase.from('ticket_instances').select('id', { count: 'exact', head: true }).eq('event_detail_id', ev.id).eq('status', 'valid');
+      // Een gescand ticket krijgt status 'checked_in' (perform_scan): verkocht = valid + checked_in.
+      const count = () =>
+        supabase.from('ticket_instances').select('id', { count: 'exact', head: true }).eq('event_detail_id', ev.id);
       const weekAgo = subDays(new Date(), 7).toISOString();
       const [sold, lastWeek, checkedIn] = await Promise.all([
-        base(),
-        base().gte('created_at', weekAgo),
-        base().not('checked_in_at', 'is', null),
+        count().in('status', ['valid', 'checked_in']),
+        count().in('status', ['valid', 'checked_in']).gte('created_at', weekAgo),
+        count().eq('status', 'checked_in'),
       ]);
-      if (sold.error) throw sold.error;
+      for (const r of [sold, lastWeek, checkedIn]) if (r.error) throw r.error;
 
       const product = ev.products as { name?: string | null } | null;
       return {

@@ -8337,12 +8337,12 @@
       },
       "horeca": {
         "vs_last_week": "{{pct}} par rapport à la semaine dernière",
-        "tickets": "Tickets aujourd'hui",
+        "tickets": "Ventes aujourd'hui",
         "average": "en moyenne {{amount}}",
         "throughput": "Délai de traitement",
         "throughput_sub": "du ticket à la fin, aujourd'hui",
-        "how": "Comment ils commandent aujourd'hui",
-        "how_empty": "Pas encore de ticket aujourd'hui.",
+        "how": "Tickets cuisine par type",
+        "how_empty": "Pas encore de ticket cuisine aujourd'hui.",
         "pickup": "à emporter",
         "delivery": "livraison",
         "eat_in": "sur place"

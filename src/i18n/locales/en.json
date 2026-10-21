@@ -8610,12 +8610,12 @@
       },
       "horeca": {
         "vs_last_week": "{{pct}} vs last week",
-        "tickets": "Receipts today",
+        "tickets": "Sales today",
         "average": "average {{amount}}",
         "throughput": "Turnaround",
         "throughput_sub": "from ticket to done, today",
-        "how": "How they order today",
-        "how_empty": "No receipts yet today.",
+        "how": "Kitchen tickets by type",
+        "how_empty": "No kitchen tickets yet today.",
         "pickup": "pickup",
         "delivery": "delivery",
         "eat_in": "eat in"

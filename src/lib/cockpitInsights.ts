@@ -23,7 +23,7 @@ export interface HourlyCompare {
   /** Eerste en laatste uur van de grafiek (inclusief). */
   startHour: number;
   endHour: number;
-  /** Cumulatieve omzet aan het EINDE van elk uur startHour..endHour; vandaag enkel t.e.m. nu. */
+  /** Cumulatieve omzet vóór h:00 voor elk uur h = startHour..endHour; vandaag enkel t.e.m. het huidige uur. */
   today: number[];
   lastWeek: number[];
   /** Positie van "nu" in uren (bv. 14.5 = 14:30). */
@@ -47,7 +47,7 @@ export function hourlyCompare(sales: Sale[], now: Date): HourlyCompare {
 
   const hours = [...today, ...lastWeek].map((s) => new Date(s.at).getHours());
   const nowHour = now.getHours() + now.getMinutes() / 60;
-  const startHour = Math.min(8, ...hours);
+  const startHour = Math.min(8, Math.floor(nowHour), ...hours);
   const endHour = Math.max(20, Math.ceil(nowHour), ...hours.map((h) => h + 1));
 
   const cumulative = (list: Sale[], until: number) => {

@@ -8624,12 +8624,12 @@
       },
       "horeca": {
         "vs_last_week": "{{pct}} tegenover vorige week",
-        "tickets": "Bonnen vandaag",
+        "tickets": "Verkopen vandaag",
         "average": "gemiddeld {{amount}}",
         "throughput": "Doorlooptijd",
         "throughput_sub": "van bon tot afgewerkt, vandaag",
-        "how": "Zo bestellen ze vandaag",
-        "how_empty": "Nog geen bonnen vandaag.",
+        "how": "Keukenbonnen per soort",
+        "how_empty": "Nog geen keukenbonnen vandaag.",
         "pickup": "afhaal",
         "delivery": "levering",
         "eat_in": "ter plaatse"

@@ -8337,12 +8337,12 @@
       },
       "horeca": {
         "vs_last_week": "{{pct}} im Vergleich zur Vorwoche",
-        "tickets": "Bons heute",
+        "tickets": "Verkäufe heute",
         "average": "im Schnitt {{amount}}",
         "throughput": "Durchlaufzeit",
         "throughput_sub": "vom Bon bis fertig, heute",
-        "how": "So bestellen sie heute",
-        "how_empty": "Heute noch keine Bons.",
+        "how": "Küchenbons nach Art",
+        "how_empty": "Heute noch keine Küchenbons.",
         "pickup": "Abholung",
         "delivery": "Lieferung",
         "eat_in": "vor Ort"

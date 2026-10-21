@@ -149,7 +149,7 @@ function GoalEditor({
   return (
     <Popover open={open} onOpenChange={(o) => { setOpen(o); if (o) setValue(goal ? String(goal) : ''); }}>
       <PopoverTrigger asChild>
-        <Button variant={subtle ? 'ghost' : 'default'} size="sm" className={subtle ? 'h-9 text-muted-foreground' : 'h-10'}>
+        <Button variant={subtle ? 'ghost' : 'default'} size="sm" className={subtle ? 'h-11 text-muted-foreground' : 'h-11'}>
           {trigger}
         </Button>
       </PopoverTrigger>

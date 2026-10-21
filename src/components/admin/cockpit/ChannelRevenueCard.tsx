@@ -6,7 +6,7 @@ import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { useTenant } from '@/hooks/useTenant';
 import { cn, formatCurrency } from '@/lib/utils';
 import type { CockpitRevenue } from '@/lib/cockpitRevenue';
-import { CHANNEL_SWATCHES, channelLabel } from './cockpitFormat';
+import { channelLabel, channelSwatch } from './cockpitFormat';
 import { CockpitNoAccess } from './CockpitNoAccess';
 
 interface Props {
@@ -53,9 +53,9 @@ export function ChannelRevenueCard({ canRead, data, isLoading, isError }: Props)
     });
     let offset = 0;
     const arcs = monthTotal > 0
-      ? monthChannels.map((c, i) => {
+      ? monthChannels.map((c) => {
           const len = (c.revenue / monthTotal) * C;
-          const arc = { key: c.channel, len, offset, swatch: CHANNEL_SWATCHES[i % CHANNEL_SWATCHES.length] };
+          const arc = { key: c.channel, len, offset, swatch: channelSwatch(c.channel) };
           offset += len;
           return arc;
         })
@@ -104,9 +104,9 @@ export function ChannelRevenueCard({ canRead, data, isLoading, isError }: Props)
               </text>
             </svg>
             <ul className="flex min-w-0 flex-1 flex-col gap-3">
-              {monthChannels.map((c, i) => (
+              {monthChannels.map((c) => (
                 <li key={c.channel} className="flex items-center gap-2.5 text-sm">
-                  <span className={cn('h-3 w-3 shrink-0 rounded', CHANNEL_SWATCHES[i % CHANNEL_SWATCHES.length].bg)} aria-hidden="true" />
+                  <span className={cn('h-3 w-3 shrink-0 rounded', channelSwatch(c.channel).bg)} aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate">{channelLabel(t, c.channel)}</span>
                   <span className="font-bold tabular-nums">{formatCurrency(c.revenue, currency)}</span>
                 </li>
