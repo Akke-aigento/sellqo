@@ -36,6 +36,7 @@ import { useTranslation } from 'react-i18next';
 import { eventReadiness } from '@/lib/eventReadiness';
 import { useEventTicketTypesByEvent } from '@/hooks/useEventReadiness';
 import { EventReadinessBadge } from '@/components/admin/events/EventReadinessBadge';
+import { normalizeWhatsappGroupLink } from '@/lib/whatsappGroupLink';
 
 /** Handmatig kiesbare statussen. skipped/merged worden enkel via acties gezet. */
 const STATUS_OPTIONS: { value: EventStatus; labelKey: string }[] = [
@@ -143,6 +144,7 @@ interface FormState {
   status: EventStatus;
   meeting_point: string;
   location_name: string;
+  whatsapp_url: string;
   early_bird_price: string;
   early_bird_deadline_date: Date | undefined;
   early_bird_deadline_time: string;
@@ -158,6 +160,7 @@ const emptyForm = (): FormState => ({
   status: 'scheduled',
   meeting_point: '',
   location_name: '',
+  whatsapp_url: '',
   early_bird_price: '',
   early_bird_deadline_date: undefined,
   early_bird_deadline_time: '23:59',
@@ -224,6 +227,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
             min_attendees: String(template.min_attendees ?? 0),
             location_name: template.location_name || '',
             meeting_point: template.meeting_point || '',
+            whatsapp_url: template.whatsapp_url || '',
           }
         : {}),
     });
@@ -245,6 +249,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       status: (STATUS_OPTIONS.find((s) => s.value === row.status)?.value ?? 'scheduled') as EventStatus,
       meeting_point: row.meeting_point || '',
       location_name: row.location_name || '',
+      whatsapp_url: row.whatsapp_url || '',
       early_bird_price: row.early_bird_price === null || row.early_bird_price === undefined ? '' : String(row.early_bird_price),
       early_bird_deadline_date: parts ? toDate(parts.dateStr) : undefined,
       early_bird_deadline_time: parts ? parts.timeStr : '23:59',
@@ -280,11 +285,16 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       ? 'Early-bird prijs is niet lager dan de reguliere prijs.'
       : null;
 
+  // EVENT-REMINDER-2: in bewerkmodus wordt de link op de eventpagina beheerd.
+  const waLink = normalizeWhatsappGroupLink(form.whatsapp_url);
+  const waInvalid = !editing && !waLink.ok;
+
   const canSave =
     (!!editing || (!!form.event_date && form.capacity !== '' && Number(form.capacity) > 0)) &&
     !ebPriceError &&
     !ebQtyError &&
-    !ebDeadlineError;
+    !ebDeadlineError &&
+    !waInvalid;
 
   const handleSubmit = async () => {
     if (!form.event_date) return;
@@ -304,6 +314,7 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
       status: form.status,
       meeting_point: form.meeting_point.trim() || null,
       location_name: form.location_name.trim() || null,
+      whatsapp_url: waLink.ok ? waLink.value : null,
       ...ebPayload,
     };
     if (editing) {
@@ -370,6 +381,8 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
         min_attendees: Number(bulkMin || 0),
         location_name: bulkLocation.trim() || null,
         meeting_point: bulkMeeting.trim() || null,
+        // EVENT-REMINDER-2: zelfde groep als de laatste datum (de hint bij het veld zegt dat).
+        whatsapp_url: template?.whatsapp_url ?? null,
         status: 'scheduled' as EventStatus,
       })),
     );
@@ -733,6 +746,26 @@ export function ProductEventDatesTab({ productId, regularPrice = 0 }: { productI
               />
               {!editing && !form.meeting_point.trim() && !form.location_name.trim() && (
                 <p className="text-xs text-amber-700 dark:text-amber-400">{t('events.readiness.meeting_point_warning')}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date-whatsapp-url">{t('events.settings.whatsappUrl')}</Label>
+              <Input
+                id="date-whatsapp-url"
+                type="url"
+                inputMode="url"
+                disabled={!!editing}
+                value={form.whatsapp_url}
+                onChange={(e) => setForm((f) => ({ ...f, whatsapp_url: e.target.value }))}
+                onBlur={() => { if (waLink.ok) setForm((f) => ({ ...f, whatsapp_url: waLink.value ?? '' })); }}
+                placeholder="https://chat.whatsapp.com/…"
+                aria-invalid={waInvalid}
+              />
+              {waInvalid ? (
+                <p className="text-xs text-destructive">{t('events.settings.whatsappUrlInvalid')}</p>
+              ) : (
+                <p className="text-xs text-muted-foreground">{t('events.settings.whatsappUrlHint')}</p>
               )}
             </div>
 

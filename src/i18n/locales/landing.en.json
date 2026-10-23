@@ -2203,6 +2203,10 @@
         "cockpit_dashboard": {
           "title": "A new dashboard: your cockpit",
           "description": "Your dashboard now shows what is happening today: revenue per hour next to the same day last week, a monthly goal for the whole shop, streaks and records, what needs doing and what just came in. If you sell tickets, your next event sits at the top with the Scan tickets button. If you run a restaurant or takeaway, you see the kitchen and the expected rush, and you mark a dish as sold out with one tap. You choose which cards you see and in what order."
+        },
+        "event_reminder_whatsapp": {
+          "title": "Reminder email on the day of your event, with your WhatsApp group",
+          "description": "Add your WhatsApp group link to an event date. On the day itself, every ticket holder gets a reminder email at 10 am with the start time, the meeting point and a button to join the group, so latecomers can find you. New dates copy the link automatically; leave the field empty and no reminder is sent."
         }
       },
       "copyLink": "Copy link",

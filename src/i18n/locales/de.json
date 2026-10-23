@@ -9244,7 +9244,10 @@
       "guards": {
         "hidingStatus": "Dieses Event wird auf {{status}} gesetzt. Es verschwindet dann aus Ihrem Shop und es können keine neuen Tickets verkauft werden. Bestehende Tickets bleiben gültig.",
         "capacityBelowSold": "Es wurden bereits {{sold}} Tickets verkauft. Eine niedrigere Kapazität stoppt neue Verkäufe; bestehende Tickets bleiben gültig."
-      }
+      },
+      "whatsappUrl": "WhatsApp-Gruppenlink",
+      "whatsappUrlHint": "Am Tag des Events erhalten Ticketinhaber eine Erinnerungs-E-Mail mit einem Button zu dieser Gruppe. Neue Termine übernehmen den Link. Leer = keine Erinnerungs-E-Mail.",
+      "whatsappUrlInvalid": "Füge einen Einladungslink zu einer WhatsApp-Gruppe ein (chat.whatsapp.com/…)."
     },
     "actions": {
       "menuLabel": "Aktionen",

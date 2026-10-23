@@ -9246,7 +9246,10 @@
       "guards": {
         "hidingStatus": "Dit event wordt op {{status}} gezet. Het verdwijnt dan uit je webshop en er kunnen geen nieuwe tickets verkocht worden. Bestaande tickets blijven geldig.",
         "capacityBelowSold": "Er zijn al {{sold}} tickets verkocht. Een lagere capaciteit stopt nieuwe verkoop; bestaande tickets blijven geldig."
-      }
+      },
+      "whatsappUrl": "WhatsApp-groeplink",
+      "whatsappUrlHint": "Op de dag van het event krijgen tickethouders een herinneringsmail met een knop naar deze groep. Nieuwe datums nemen de link over. Leeg = geen herinneringsmail.",
+      "whatsappUrlInvalid": "Plak een uitnodigingslink van een WhatsApp-groep (chat.whatsapp.com/…)."
     },
     "actions": {
       "menuLabel": "Acties",

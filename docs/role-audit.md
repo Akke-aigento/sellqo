@@ -1,3 +1,22 @@
+## EVENT-REMINDER-2 — WhatsApp-groeplink instelbaar in de admin — 23 oktober 2026
+
+**Root cause** — Na EVENT-REMINDER-1 kon `event_details.whatsapp_url` alleen via SQL gezet worden; een nieuwe datum kreeg zo stil geen herinneringsmail.
+
+**Uitgevoerd**
+- `src/lib/whatsappGroupLink.ts` (+ test): normaliseert naar `https://chat.whatsapp.com/<code>`, haalt trackingparameters en de WhatsApp-deeltekst weg, weigert al de rest. Leeg = null.
+- `EventCoreSettingsCard` (eventpagina): veld WhatsApp-groeplink met hint en foutmelding; opslaan geblokkeerd bij een ongeldige link. `EventDetail.tsx` selecteert de kolom.
+- `ProductEventDatesTab`: veld bij een nieuwe datum (bij bewerken uitgeschakeld, zoals de andere kernvelden: die beheer je op de eventpagina); nieuwe en bulk-datums nemen de link van de laatste datum over.
+- `useDuplicateEvent`: kopie neemt de link mee. `useEventDetails`: types.
+- i18n `events.settings.whatsappUrl*` in nl/en/fr/de/uk; changelog 2026.13k (`event_reminder_whatsapp`); helpartikel `event-herinnering-whatsapp` (docs/sql/event-reminder-2-doc-article.sql, live gedraaid, context_path `/admin/events`); nieuwsbriefitem.
+
+**Security-keuzes** — geen nieuwe policies: `event_details` wordt geschreven via de bestaande update-paden (RLS ongewijzigd). De link komt enkel in de mail als knop-href en wordt daar ge-escaped; de normalisatie laat alleen chat.whatsapp.com-links door.
+
+**Gedeelde-paden-waarschuwing** — geen gedeelde tabel of storefront-contract geraakt.
+
+**Samenhang** — één plek per taak: de link hoort bij de datum, net als het verzamelpunt, en staat naast dat veld. Bewerken van een bestaande datum gebeurt op de eventpagina (zelfde regel als locatie/verzamelpunt). De EventWizard vraagt de link (nog) niet: de eerste datum krijg je via de eventpagina; nieuwe datums nemen hem daarna over.
+
+**Verificatie** — zie commit: tsc, vitest, lint-baseline, i18n-pariteit/used-keys, build; na de publish de bundel nagekeken.
+
 ## EVENT-REMINDER-1 — herinneringsmail op de dag van het event, met WhatsApp-groeplink — 23 oktober 2026
 
 **Root cause** — SellQo had geen herinnering vóór een event (enige herinneringscron: `process-cycle-reminders-daily`, abonnementen). Akke wil dat Fonske-deelnemers op de dag zelf een mail krijgen met de link naar de WhatsApp-groep van de crawl (te laat, verdwaald). Eerste crawl: 24 okt 2026, 21:00.

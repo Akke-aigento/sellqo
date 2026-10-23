@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useUpdateEventDate, type EventStatus } from '@/hooks/useEventDetails';
 import { FloatingSaveBar } from '@/components/admin/FloatingSaveBar';
+import { normalizeWhatsappGroupLink } from '@/lib/whatsappGroupLink';
 
 const STATUSES: EventStatus[] = ['scheduled', 'confirmed', 'cancelled', 'completed', 'skipped', 'merged'];
 const HIDING_STATUSES = new Set<EventStatus>(['cancelled', 'skipped', 'merged']);
@@ -33,6 +34,7 @@ export interface EventCoreValues {
   status: string;
   location_name: string | null;
   meeting_point: string | null;
+  whatsapp_url: string | null;
   capacity: number | null;
   min_attendees: number;
   early_bird_price: number | null;
@@ -47,6 +49,7 @@ interface FormState {
   end_time: string;
   location_name: string;
   meeting_point: string;
+  whatsapp_url: string;
   capacity: string;
   unlimited: boolean;
   min_attendees: string;
@@ -63,6 +66,7 @@ const toForm = (e: EventCoreValues): FormState => ({
   end_time: (e.end_time ?? '').slice(0, 5),
   location_name: e.location_name ?? '',
   meeting_point: e.meeting_point ?? '',
+  whatsapp_url: e.whatsapp_url ?? '',
   capacity: e.capacity == null ? '' : String(e.capacity),
   unlimited: e.capacity == null,
   min_attendees: String(e.min_attendees ?? 0),
@@ -99,6 +103,9 @@ export function EventCoreSettingsCard({
   const ebInvalid = form.eb_on && (ebPrice === null || !Number.isFinite(ebPrice) || ebPrice < 0
     || (ebQty !== null && (!Number.isInteger(ebQty) || ebQty < 1)) || (form.eb_quantity.trim() === '' && form.eb_deadline === ''));
 
+  const waLink = normalizeWhatsappGroupLink(form.whatsapp_url);
+  const waInvalid = !waLink.ok;
+
   const hidesEvent = HIDING_STATUSES.has(form.status) && !HIDING_STATUSES.has(event.status as EventStatus);
   const lowersCapacity = capacityNum !== null && sold > 0 && capacityNum < sold;
   const needsConfirm = hidesEvent || lowersCapacity;
@@ -113,6 +120,7 @@ export function EventCoreSettingsCard({
         end_time: form.end_time.trim() === '' ? null : form.end_time,
         location_name: form.location_name.trim() || null,
         meeting_point: form.meeting_point.trim() || null,
+        whatsapp_url: waLink.ok ? waLink.value : null,
         capacity: capacityNum,
         min_attendees: Number(form.min_attendees || 0),
         early_bird_price: form.eb_on ? ebPrice : null,
@@ -168,6 +176,24 @@ export function EventCoreSettingsCard({
             <Label>{t('events.settings.meetingPoint')}</Label>
             <Input value={form.meeting_point} onChange={(e) => set('meeting_point', e.target.value)} />
           </div>
+          <div className="space-y-1.5 min-w-0 sm:col-span-2">
+            <Label htmlFor="event-whatsapp-url">{t('events.settings.whatsappUrl')}</Label>
+            <Input
+              id="event-whatsapp-url"
+              type="url"
+              inputMode="url"
+              value={form.whatsapp_url}
+              onChange={(e) => set('whatsapp_url', e.target.value)}
+              onBlur={() => { if (waLink.ok) set('whatsapp_url', waLink.value ?? ''); }}
+              placeholder="https://chat.whatsapp.com/…"
+              aria-invalid={waInvalid}
+            />
+            {waInvalid ? (
+              <p className="text-xs text-destructive">{t('events.settings.whatsappUrlInvalid')}</p>
+            ) : (
+              <p className="text-xs text-muted-foreground">{t('events.settings.whatsappUrlHint')}</p>
+            )}
+          </div>
           <div className="space-y-1.5 min-w-0">
             <Label>{t('events.settings.capacity')}</Label>
             <Input
@@ -222,7 +248,7 @@ export function EventCoreSettingsCard({
         </div>
 
         <div className="flex justify-end">
-          <Button onClick={handleSaveClick} disabled={!isDirty || update.isPending || capacityInvalid || dateInvalid || ebInvalid}>
+          <Button onClick={handleSaveClick} disabled={!isDirty || update.isPending || capacityInvalid || dateInvalid || ebInvalid || waInvalid}>
             {update.isPending ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
             {t('events.settings.save')}
           </Button>
@@ -261,7 +287,7 @@ export function EventCoreSettingsCard({
         isDirty={isDirty}
         isSaving={update.isPending}
         onSave={() => {
-          if (capacityInvalid || dateInvalid || ebInvalid) return;
+          if (capacityInvalid || dateInvalid || ebInvalid || waInvalid) return;
           handleSaveClick();
         }}
         onCancel={resetForm}

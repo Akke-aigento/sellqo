@@ -55,6 +55,7 @@ interface EventRow {
   status: string;
   location_name: string | null;
   meeting_point: string | null;
+  whatsapp_url: string | null;
   capacity: number | null;
   min_attendees: number;
   product_name: string;
@@ -155,7 +156,7 @@ export default function EventDetail() {
       if (!currentTenant || !eventId) return null;
       const { data, error } = await supabase
         .from('event_details')
-        .select('id, product_id, event_date, start_time, end_time, status, location_name, meeting_point, capacity, min_attendees, early_bird_price, early_bird_deadline, early_bird_quantity, products(name, is_active)')
+        .select('id, product_id, event_date, start_time, end_time, status, location_name, meeting_point, whatsapp_url, capacity, min_attendees, early_bird_price, early_bird_deadline, early_bird_quantity, products(name, is_active)')
         .eq('id', eventId)
         .eq('tenant_id', currentTenant.id)
         .maybeSingle();
@@ -170,6 +171,7 @@ export default function EventDetail() {
         status: data.status as string,
         location_name: (data.location_name as string | null) ?? null,
         meeting_point: (data.meeting_point as string | null) ?? null,
+        whatsapp_url: (data.whatsapp_url as string | null) ?? null,
         capacity: (data.capacity as number | null) ?? null,
         min_attendees: (data.min_attendees as number) ?? 0,
         product_name: ((data as { products?: { name?: string } }).products?.name) ?? 'Event',

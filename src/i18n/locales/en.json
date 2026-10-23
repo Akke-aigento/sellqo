@@ -9244,7 +9244,10 @@
       "guards": {
         "hidingStatus": "This event will be set to {{status}}. It then disappears from your shop and no new tickets can be sold. Existing tickets stay valid.",
         "capacityBelowSold": "{{sold}} tickets have already been sold. A lower capacity stops new sales; existing tickets stay valid."
-      }
+      },
+      "whatsappUrl": "WhatsApp group link",
+      "whatsappUrlHint": "On the day of the event, ticket holders get a reminder email with a button to this group. New dates copy the link. Empty = no reminder email.",
+      "whatsappUrlInvalid": "Paste an invite link to a WhatsApp group (chat.whatsapp.com/…)."
     },
     "actions": {
       "menuLabel": "Actions",

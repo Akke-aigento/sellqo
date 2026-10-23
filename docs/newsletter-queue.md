@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13k — Herinneringsmail op de dag van je event, met je WhatsApp-groep (feature, 23-10-2026)
+
+**Status:** klaar voor verzending (functie, cron en adminveld live sinds 23-10).
+
+**Voor wie:** winkels die tickets verkopen.
+
+**Je deelnemers krijgen een herinnering op de dag zelf** (oktober 2026)
+Vul bij een eventdatum de link van je WhatsApp-groep in. Om 10 uur 's ochtends krijgt elke tickethouder een mail met het startuur, het verzamelpunt en een knop om de groep te joinen.
+Wat betekent dit voor jou? Minder "waar zijn jullie?"-telefoontjes: laatkomers vinden je via de groep. Nieuwe datums nemen de link vanzelf over.
+
+i18n: `public.changelog.changes.event_reminder_whatsapp`
+
 ### 2026.13j — Een nieuw dashboard: je cockpit (feature, 21-10-2026)
 
 **Status:** klaar voor verzending zodra DASH-2b live staat (frontend gepubliceerd, tabel `tenant_cockpit_settings` live sinds 21-10).

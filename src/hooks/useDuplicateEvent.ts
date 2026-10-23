@@ -1,6 +1,6 @@
 // EVENT-SYSTEEM — dupliceer een bestaande event-datum naar een nieuwe datum/tijd.
 //
-// Kopieert de event_details-kernvelden (capaciteit, locatie, meeting_point, min_attendees,
+// Kopieert de event_details-kernvelden (capaciteit, locatie, meeting_point, whatsapp_url, min_attendees,
 // early-bird) én alle event_ticket_types van het origineel naar een nieuw event op een
 // andere datum. Het nieuwe event krijgt status 'scheduled' (verkoopklaar). De bronwaarden
 // worden VERS uit de DB gelezen (niet uit een dashboard-row), zodat capacity=NULL
@@ -79,7 +79,7 @@ export function useDuplicateEvent() {
       // 1. Bron-event vers ophalen (tenant-scoped) — echte waarden, incl. capacity NULL.
       const { data: source, error: srcErr } = await supabase
         .from('event_details')
-        .select('product_id, capacity, capacity_mode, min_attendees, location_name, meeting_point, timezone, early_bird_price, early_bird_deadline, early_bird_quantity')
+        .select('product_id, capacity, capacity_mode, min_attendees, location_name, meeting_point, whatsapp_url, timezone, early_bird_price, early_bird_deadline, early_bird_quantity')
         .eq('id', sourceEventId)
         .eq('tenant_id', currentTenant.id)
         .single();
@@ -105,6 +105,7 @@ export function useDuplicateEvent() {
           min_attendees: source.min_attendees ?? 0,
           location_name: source.location_name,
           meeting_point: source.meeting_point,
+          whatsapp_url: source.whatsapp_url,
           timezone: source.timezone,
           early_bird_price: source.early_bird_price,
           early_bird_deadline: source.early_bird_deadline,

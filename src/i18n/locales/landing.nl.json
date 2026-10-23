@@ -2203,6 +2203,10 @@
         "cockpit_dashboard": {
           "title": "Een nieuw dashboard: je cockpit",
           "description": "Je dashboard toont nu wat er vandaag gebeurt: je omzet per uur naast dezelfde dag vorige week, een maanddoel voor de hele winkel, reeksen en records, wat er te doen is en wat er net binnenkwam. Verkoop je tickets, dan staat je volgende event bovenaan met de knop Tickets scannen. Heb je een horecazaak, dan zie je de keuken, de verwachte spits en zet je een gerecht met één tik op uitverkocht. Je kiest zelf welke kaarten je ziet en in welke volgorde."
+        },
+        "event_reminder_whatsapp": {
+          "title": "Herinneringsmail op de dag van je event, met je WhatsApp-groep",
+          "description": "Vul bij een eventdatum de link van je WhatsApp-groep in. Op de dag zelf krijgt elke tickethouder om 10 uur een herinneringsmail met het startuur, het verzamelpunt en een knop om de groep te joinen. Zo vinden laatkomers je terug. Nieuwe datums nemen de link automatisch over; laat je het veld leeg, dan gaat er geen herinnering uit."
         }
       },
       "copyLink": "Kopieer link",
