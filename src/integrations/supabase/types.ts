@@ -6442,12 +6442,14 @@ export type Database = {
           merged_into_event_id: string | null
           min_attendees: number
           product_id: string
+          reminder_sent_at: string | null
           start_time: string
           status: string
           tenant_id: string
           timezone: string
           updated_at: string
           venue_id: string | null
+          whatsapp_url: string | null
         }
         Insert: {
           capacity?: number | null
@@ -6465,12 +6467,14 @@ export type Database = {
           merged_into_event_id?: string | null
           min_attendees?: number
           product_id: string
+          reminder_sent_at?: string | null
           start_time?: string
           status?: string
           tenant_id: string
           timezone?: string
           updated_at?: string
           venue_id?: string | null
+          whatsapp_url?: string | null
         }
         Update: {
           capacity?: number | null
@@ -6488,12 +6492,14 @@ export type Database = {
           merged_into_event_id?: string | null
           min_attendees?: number
           product_id?: string
+          reminder_sent_at?: string | null
           start_time?: string
           status?: string
           tenant_id?: string
           timezone?: string
           updated_at?: string
           venue_id?: string | null
+          whatsapp_url?: string | null
         }
         Relationships: [
           {
@@ -17923,6 +17929,13 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "tenant_cockpit_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "tenant_cockpit_settings_tenant_id_fkey"
             columns: ["tenant_id"]
