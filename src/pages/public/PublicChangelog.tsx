@@ -17,6 +17,9 @@ const changelogEntries: Array<{
   { version: '2026.13n', dateKey: 'oct_2026', changes: [
     { id: 'kassa_staff_pin', type: 'feature' },
   ]},
+  { version: '2026.13m', dateKey: 'oct_2026', changes: [
+    { id: 'floor_plan_tables', type: 'feature' },
+  ]},
   { version: '2026.13l', dateKey: 'oct_2026', changes: [
     { id: 'horeca_table_order_clean', type: 'bugfix' },
     { id: 'kitchen_screen_responsive', type: 'improvement' },

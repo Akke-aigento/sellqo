@@ -5478,6 +5478,136 @@ export type Database = {
           },
         ]
       }
+      dining_areas: {
+        Row: {
+          created_at: string
+          grid_h: number
+          grid_w: number
+          id: string
+          is_active: boolean
+          name: string
+          sort: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          grid_h?: number
+          grid_w?: number
+          id?: string
+          is_active?: boolean
+          name: string
+          sort?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          grid_h?: number
+          grid_w?: number
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dining_areas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dining_areas_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dining_tables: {
+        Row: {
+          area_id: string
+          created_at: string
+          h: number
+          id: string
+          is_active: boolean
+          kind: string
+          label: string
+          qr_token: string
+          rotation: number
+          seats: number
+          shape: string
+          tenant_id: string
+          updated_at: string
+          w: number
+          x: number
+          y: number
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          h?: number
+          id?: string
+          is_active?: boolean
+          kind?: string
+          label: string
+          qr_token?: string
+          rotation?: number
+          seats?: number
+          shape?: string
+          tenant_id: string
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          h?: number
+          id?: string
+          is_active?: boolean
+          kind?: string
+          label?: string
+          qr_token?: string
+          rotation?: number
+          seats?: number
+          shape?: string
+          tenant_id?: string
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dining_tables_area_fk"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "dining_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dining_tables_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "dining_tables_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       discount_code_usage: {
         Row: {
           created_at: string
@@ -7167,6 +7297,73 @@ export type Database = {
           },
           {
             foreignKeyName: "fulfillment_api_keys_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      floor_markers: {
+        Row: {
+          area_id: string
+          created_at: string
+          h: number
+          id: string
+          kind: string
+          label: string | null
+          rotation: number
+          tenant_id: string
+          updated_at: string
+          w: number
+          x: number
+          y: number
+        }
+        Insert: {
+          area_id: string
+          created_at?: string
+          h?: number
+          id?: string
+          kind: string
+          label?: string | null
+          rotation?: number
+          tenant_id: string
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+        }
+        Update: {
+          area_id?: string
+          created_at?: string
+          h?: number
+          id?: string
+          kind?: string
+          label?: string | null
+          rotation?: number
+          tenant_id?: string
+          updated_at?: string
+          w?: number
+          x?: number
+          y?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "floor_markers_area_fk"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "dining_areas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "floor_markers_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "floor_markers_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -10084,6 +10281,7 @@ export type Database = {
           stripe_payment_intent_id: string | null
           subtotal: number
           sync_status: string | null
+          dining_table_id: string | null
           table_label: string | null
           tax_amount: number | null
           tenant_id: string
@@ -10158,6 +10356,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           subtotal?: number
           sync_status?: string | null
+          dining_table_id?: string | null
           table_label?: string | null
           tax_amount?: number | null
           tenant_id: string
@@ -10232,6 +10431,7 @@ export type Database = {
           stripe_payment_intent_id?: string | null
           subtotal?: number
           sync_status?: string | null
+          dining_table_id?: string | null
           table_label?: string | null
           tax_amount?: number | null
           tenant_id?: string
@@ -16350,6 +16550,7 @@ export type Database = {
           shipping_cost: number | null
           shipping_method_id: string | null
           stripe_session_id: string | null
+          dining_table_id: string | null
           table_label: string | null
           tenant_id: string
           updated_at: string
@@ -16386,6 +16587,7 @@ export type Database = {
           shipping_cost?: number | null
           shipping_method_id?: string | null
           stripe_session_id?: string | null
+          dining_table_id?: string | null
           table_label?: string | null
           tenant_id: string
           updated_at?: string
@@ -16422,6 +16624,7 @@ export type Database = {
           shipping_cost?: number | null
           shipping_method_id?: string | null
           stripe_session_id?: string | null
+          dining_table_id?: string | null
           table_label?: string | null
           tenant_id?: string
           updated_at?: string
@@ -22760,6 +22963,10 @@ export type Database = {
           p_product_id?: string
         }
         Returns: number
+      }
+      renew_dining_table_token: {
+        Args: { _table_id: string }
+        Returns: string
       }
       repair_orphaned_user_roles: { Args: never; Returns: Json }
       request_token_refund: {

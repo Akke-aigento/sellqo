@@ -195,6 +195,24 @@ await check('bestellen aan tafel (HORECA-1)', async () => {
   db.tables.fulfillment_settings[0].qr_pay_counter = true;
 });
 
+await check('tafel uit het zaalplan via QR-token (ZAAL-H1)', async () => {
+  const token = 'a1b2c3d4e5f6a1b2c3d4e5f6';
+  db.tables.dining_areas = [{ id: 'da1', tenant_id: T, name: 'Terras', is_active: true }];
+  db.tables.dining_tables = [{ id: 'dt1', tenant_id: T, area_id: 'da1', label: 'Ter-1', is_active: true, qr_token: token }];
+  const r = await S.checkoutTable(db, T, { cart_id: 'cart1', table: '4' });
+  assert(r?.error?.code === 'TABLE_TOKEN_REQUIRED', `vrij nummer bij zaalplan geweigerd: ${JSON.stringify(r?.error)}`);
+  const bad = await S.checkoutTable(db, T, { cart_id: 'cart1', table_token: 'f'.repeat(24) });
+  assert(bad?.error?.code === 'TABLE_NOT_FOUND', `onbekende token: ${JSON.stringify(bad?.error)}`);
+  db.tables.fulfillment_settings[0].qr_mode = 'order';
+  await S.checkoutTable(db, T, { cart_id: 'cart1', table_token: token });
+  // FakeDb logt updates in db.writes (de tabel zelf verandert niet).
+  const w = [...db.writes].reverse().find((x) => x.table === 'storefront_carts' && x.patch?.service_type === 'eat_in');
+  assert(w?.patch?.table_label === 'Ter-1' && w?.patch?.dining_table_id === 'dt1', `mandje aan Ter-1: ${JSON.stringify(w?.patch)}`);
+  db.tables.fulfillment_settings[0].qr_mode = 'view';
+  db.tables.dining_tables = [];
+  db.tables.dining_areas = [];
+});
+
 await check('leverzone gaat voor minimumbedrag (DEMO-1)', async () => {
   const m = { fulfillment_type: 'local_delivery', min_order_amount: 15, postal_codes: ['3000'] };
   assert(S.fulfillmentAvailability(m, { postal_code: '2000', subtotal: 5 }).unavailable_reason === 'delivery_zone', 'buiten zone en te weinig: zone eerst');

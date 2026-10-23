@@ -8,6 +8,7 @@ import { submitContactForm, isContactFormAlias, normalizeContactAlias } from "..
 import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { computeCartPromotions, round2 as promoRound2, type PromotionResult } from "../_shared/promotionEngine.ts";
 import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, type DbRow, type SupabaseLike } from "../_shared/catalogFilters.ts";
+import { resolveTableInput, tenantHasFloorPlan } from "../_shared/diningTables.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
 import { computeSlots, orderingBlocked, postalCodeAllowed, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
 import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
@@ -937,14 +938,20 @@ async function checkoutService(supabase: SupabaseLike, tenantId: string, params:
 async function checkoutTable(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   if (!cartId) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'cart_id is required' } };
-  const table = String(params.table ?? '').trim().slice(0, 12);
-  if (!/^[\w-]{1,12}$/.test(table)) return { success: false, error: { code: 'VALIDATION_ERROR', message: 'Ongeldig tafelnummer' } };
+  // ZAAL-H1 — additief: naast het vrije `table` ook `table_token` (QR uit het zaalplan).
+  // Een zaak mét zaalplan aanvaardt enkel nog een geldige token; zonder zaalplan blijft
+  // het vrije nummer werken zoals voorheen (zelfde validatie, zelfde foutcode).
+  const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.table_token });
+  if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
   const fs = await loadFulfillmentSettings(supabase, tenantId);
   if (fs?.qr_mode !== 'order') return { success: false, error: { code: 'TABLE_ORDERING_OFF', message: 'Bestellen aan tafel staat uit in deze zaak' } };
   const c = (params.customer || {}) as Record<string, unknown>;
   const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
   const { error } = await supabase.from('storefront_carts').update({
-    service_type: 'eat_in', table_label: table, requested_time: null,
+    service_type: 'eat_in', table_label: resolved.table.label, requested_time: null,
+    // Enkel meesturen als er een zaalplan-tafel is: zo blijft het oude pad ook werken
+    // vóór de migratie van ZAAL-H1 (kolom bestaat dan nog niet).
+    ...(resolved.table.table_id ? { dining_table_id: resolved.table.table_id } : {}),
     shipping_method_id: null, shipping_cost: 0,
     customer_first_name: str(c.first_name, 100), customer_last_name: str(c.last_name, 100),
     customer_phone: str(c.phone, 40), customer_email: str(c.email, 254),
@@ -952,6 +959,14 @@ async function checkoutTable(supabase: SupabaseLike, tenantId: string, params: R
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
   return buildCartResponse(supabase, tenantId, cartId);
+}
+
+// ZAAL-H1 — nieuwe actie: QR-token (of vrij tafelnummer) → tafel, voor de storefront.
+// Geeft nooit de token of andere tafels terug; enkel label en ruimte van deze ene tafel.
+async function resolveTable(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.token ?? params.table_token });
+  if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
+  return resolved.table;
 }
 
 // Controle vlak vóór de bestelling: leverzone, minimumbedrag en tijdslot. Geeft null als
@@ -3830,6 +3845,8 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
       requested_time: cart.requested_time || null,
       ...(cart.customer_note ? { notes: cart.customer_note } : {}),
       ...(cart.table_label ? { table_label: cart.table_label } : {}),
+      // ZAAL-H1 — welke tafel uit het zaalplan (enkel gezet na checkout_table met token).
+      ...(cart.dining_table_id ? { dining_table_id: cart.dining_table_id } : {}),
     })
     .select('id, order_number, total, currency').single();
   if (orderError) throw orderError;
@@ -3915,6 +3932,8 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     // geen tafelbestelling meer. checkout_table zet het daarna opnieuw (TableCheckout
     // roept eerst checkout_start, dan checkout_table). Zonder tafel was dit al null.
     table_label: null,
+    // ZAAL-H1 — idem voor de zaalplan-tafel (enkel als het mandje er een had).
+    ...(cart.dining_table_id ? { dining_table_id: null } : {}),
     updated_at: new Date().toISOString(),
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (resetError) {
@@ -4149,6 +4168,8 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
     // HORECA-0 — een verzend-, afhaal- of leveringsmethode kiezen = niet (meer) aan tafel.
     // Zo kan een order nooit tegelijk "levering" en "Tafel 4" zijn.
     table_label: null,
+    // ZAAL-H1 — idem voor de zaalplan-tafel (enkel als het mandje er een had).
+    ...(cart.dining_table_id ? { dining_table_id: null } : {}),
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
 
@@ -4301,6 +4322,8 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   if (cart.service_type === 'eat_in') {
     const fsT = await loadFulfillmentSettings(supabase, tenantId);
     if (fsT?.qr_mode !== 'order' || !cart.table_label) return { success: false, error: { code: 'TABLE_ORDERING_OFF', message: 'Bestellen aan tafel staat uit in deze zaak' } };
+    // ZAAL-H1 — zaak met zaalplan: enkel een tafel die via een geldige QR-token gekozen is.
+    if (!cart.dining_table_id && await tenantHasFloorPlan(supabase, tenantId)) return { success: false, error: { code: 'TABLE_TOKEN_REQUIRED', message: 'Scan de QR-code op je tafel opnieuw' } };
     if (paymentMethodId !== 'pay_on_pickup' && !fsT.qr_pay_online) return { success: false, error: { code: 'PAYMENT_METHOD_NOT_AVAILABLE', message: 'Online betalen kan niet aan tafel; betaal aan de toog' } };
   }
 
@@ -4995,6 +5018,8 @@ async function checkoutVerifyPayment(supabase: any, tenantId: string, params: Re
       requested_time: cart.requested_time || null,
       ...(cart.customer_note ? { notes: cart.customer_note } : {}),
       ...(cart.table_label ? { table_label: cart.table_label } : {}),
+      // ZAAL-H1 — welke tafel uit het zaalplan (enkel gezet na checkout_table met token).
+      ...(cart.dining_table_id ? { dining_table_id: cart.dining_table_id } : {}),
     })
     .select('id, order_number').single();
 
@@ -5865,6 +5890,8 @@ serve(async (req) => {
       case 'checkout_shipping': result = await checkoutShipping(supabase, tenant_id, params); break;
       case 'checkout_service': result = await checkoutService(supabase, tenant_id, params); break;
       case 'checkout_table': result = await checkoutTable(supabase, tenant_id, params); break;
+      // ZAAL-H1 — nieuwe actie (additief): QR-token → tafel.
+      case 'resolve_table': result = await resolveTable(supabase, tenant_id, params); break;
       case 'get_fulfillment_slots': result = await getFulfillmentSlots(supabase, tenant_id, params); break;
       case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
       case 'checkout_select_payment_method': result = await checkoutSelectPaymentMethod(supabase, tenant_id, params); break;

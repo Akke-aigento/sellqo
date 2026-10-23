@@ -2227,6 +2227,10 @@
         "kassa_staff_pin": {
           "title": "Till staff with their own PIN, and the till app",
           "description": "Under Till › Staff you add your staff with a role, a number and a PIN of 4 to 6 digits. On the till (SellQo Till, also at /kassa in your browser) everyone picks their name and taps their code; after two minutes without a tap the till locks itself. Five wrong attempts block the PIN for five minutes. Staff clock in and out on the till. If you want a registered till (GKS) later, enter each staff member's national register number: it is stored encrypted and never appears on a receipt or screen."
+        },
+        "floor_plan_tables": {
+          "title": "Floor plan with its own QR code per table",
+          "description": "Under Ordering → Floor plan you draw your venue: areas such as Inside and Terrace, tables with a name, shape and number of seats, bar stools, the bar and the doors. Templates place a row of bar stools or a terrace in one go. Every table gets its own QR code, printed as a sticker sheet (12 per A4). Once you have a floor plan, guests can only order through their table's code; typing a table number no longer works. If a sticker gets lost, create a new code with one click and the old one stops working."
         }
       },
       "copyLink": "Copy link",

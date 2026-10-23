@@ -2227,6 +2227,10 @@
         "kassa_staff_pin": {
           "title": "Personnel de caisse avec son propre code PIN, et l’app caisse",
           "description": "Sous Caisse › Personnel, vous ajoutez votre personnel avec un rôle, un numéro et un code PIN de 4 à 6 chiffres. Sur la caisse (SellQo Caisse, aussi via /kassa dans votre navigateur), chacun choisit son nom et tape son code ; après deux minutes sans action, la caisse se verrouille d’elle-même. Cinq essais erronés bloquent le code PIN pendant cinq minutes. Le personnel pointe son arrivée et son départ sur la caisse. Si vous voulez plus tard une caisse enregistreuse (SCE), indiquez le numéro de registre national de chaque membre : il est conservé chiffré et n’apparaît jamais sur un ticket ni à l’écran."
+        },
+        "floor_plan_tables": {
+          "title": "Plan de salle avec un code QR par table",
+          "description": "Sous Commandes → Plan de salle, vous dessinez votre établissement : espaces comme Intérieur et Terrasse, tables avec nom, forme et nombre de places, tabourets, comptoir et portes. Les modèles placent d'un coup une rangée de tabourets ou une terrasse. Chaque table reçoit son propre code QR, imprimé en planche d'autocollants (12 par A4). Dès que vous avez un plan de salle, un client ne peut commander qu'avec le code de sa table ; taper un numéro de table ne fonctionne plus. Un autocollant perdu ? Créez un nouveau code en un clic et l'ancien ne fonctionne plus."
         }
       },
       "copyLink": "Copier le lien",

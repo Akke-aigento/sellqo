@@ -2227,6 +2227,10 @@
         "kassa_staff_pin": {
           "title": "Kassenpersonal mit eigener PIN und die Kassen-App",
           "description": "Unter Kasse › Personal fügst du dein Personal mit Rolle, Nummer und einer PIN aus 4 bis 6 Ziffern hinzu. An der Kasse (SellQo Kasse, auch über /kassa im Browser) wählt jede Person ihren Namen und tippt ihren Code; nach zwei Minuten ohne Eingabe sperrt sich die Kasse von selbst. Fünf Fehlversuche sperren die PIN für fünf Minuten. Das Personal stempelt an der Kasse ein und aus. Willst du später eine registrierte Kasse (GKS), trage pro Person die Nationalregisternummer ein: Sie wird verschlüsselt gespeichert und erscheint nie auf einem Beleg oder Bildschirm."
+        },
+        "floor_plan_tables": {
+          "title": "Raumplan mit eigenem QR-Code pro Tisch",
+          "description": "Unter Bestellungen → Raumplan zeichnest du deinen Betrieb nach: Bereiche wie Innen und Terrasse, Tische mit Name, Form und Anzahl Plätze, Barhocker, die Theke und die Türen. Vorlagen setzen eine Reihe Barhocker oder eine Terrasse in einem Schritt. Jeder Tisch bekommt einen eigenen QR-Code, den du als Aufkleberbogen (12 pro A4) druckst. Sobald du einen Raumplan hast, können Gäste nur noch über den Code ihres Tisches bestellen; eine Tischnummer eintippen funktioniert nicht mehr. Geht ein Aufkleber verloren, erstellst du mit einem Klick einen neuen Code und der alte funktioniert nicht mehr."
         }
       },
       "copyLink": "Link kopieren",
