@@ -2207,6 +2207,22 @@
         "event_reminder_whatsapp": {
           "title": "E-mail de rappel le jour de votre événement, avec votre groupe WhatsApp",
           "description": "Ajoutez le lien de votre groupe WhatsApp à une date d'événement. Le jour même, chaque détenteur de billet reçoit à 10 h un e-mail de rappel avec l'heure de début, le point de rendez-vous et un bouton pour rejoindre le groupe, pour que les retardataires vous retrouvent. Les nouvelles dates reprennent le lien automatiquement ; si le champ reste vide, aucun rappel n'est envoyé."
+        },
+        "horeca_table_order_clean": {
+          "title": "La commande à table reste à table",
+          "description": "Les clients qui commandent à table via le code QR ne voient plus de livraison, de frais d’envoi ni de seuil de livraison gratuite : la commande va à la table. Un panier de table est séparé du panier habituel de la boutique en ligne et expire après 3 heures. Avec « Je ne suis plus à table », le client revient à la carte en ligne habituelle, et une commande en ligne n’emporte plus jamais de numéro de table. Les plats que vous vendez uniquement à table affichent en ligne « Ceci ne peut pas être commandé en ligne. »"
+        },
+        "kitchen_screen_responsive": {
+          "title": "L’écran cuisine fonctionne sur tablette et téléphone",
+          "description": "L’écran cuisine occupe désormais tout l’écran, aussi dans l’app, sans la barre de menu du bas. L’en-tête est plus compact, les boutons d’impression automatique, de son et de pause n’affichent que leur icône sur un téléphone, et les trois colonnes n’apparaissent que sur un écran large. Sur tablette et téléphone, vous passez d’une colonne à l’autre avec des onglets."
+        },
+        "no_white_screen": {
+          "title": "Plus d’écran blanc en cas d’erreur",
+          "description": "Si quelque chose tourne mal dans l’admin ou l’app, vous voyez un écran de récupération avec « Réessayer » et « Recharger la page » au lieu d’un écran blanc. Après une nouvelle version de SellQo, un écran ouvert se recharge une fois de lui-même s’il manque un élément. L’erreur nous parvient automatiquement, afin que nous puissions la corriger avant que vous deviez nous appeler."
+        },
+        "pos_offline_queue_safe": {
+          "title": "Caisse : plus aucune vente perdue en cas de mauvaise connexion",
+          "description": "Si le wifi tombe pendant l’encaissement d’une vente en espèces, la caisse conserve la vente et la transmet dès que la connexion revient. Une vente qui ne passe pas immédiatement est réessayée jusqu’à ce qu’elle arrive, même après un redémarrage de la caisse, et n’est jamais comptabilisée deux fois. Le bouton « En attente » indique combien de ventes sont encore en route et combien sont réessayées."
         }
       },
       "copyLink": "Copier le lien",

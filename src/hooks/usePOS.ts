@@ -286,7 +286,11 @@ export function usePOSTransactions(sessionId?: string) {
       cardLast4,
       cartDiscount,
       kitchen,
+      clientId,
     }: {
+      /** HORECA-0: vaste id vanuit de kassa. Valt de verbinding weg tijdens het insturen,
+       *  dan gaat dezelfde id de offline-wachtrij in en kan de verkoop nooit dubbel landen. */
+      clientId?: string;
       terminalId: string;
       sessionId: string | null;
       items: POSCartItem[];
@@ -319,6 +323,7 @@ export function usePOSTransactions(sessionId?: string) {
       const { data, error } = await supabase
         .from('pos_transactions')
         .insert([{
+          ...(clientId ? { id: clientId } : {}),
           tenant_id: currentTenant.id,
           terminal_id: terminalId,
           session_id: sessionId,

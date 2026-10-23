@@ -2207,6 +2207,22 @@
         "event_reminder_whatsapp": {
           "title": "Herinneringsmail op de dag van je event, met je WhatsApp-groep",
           "description": "Vul bij een eventdatum de link van je WhatsApp-groep in. Op de dag zelf krijgt elke tickethouder om 10 uur een herinneringsmail met het startuur, het verzamelpunt en een knop om de groep te joinen. Zo vinden laatkomers je terug. Nieuwe datums nemen de link automatisch over; laat je het veld leeg, dan gaat er geen herinnering uit."
+        },
+        "horeca_table_order_clean": {
+          "title": "Bestellen aan tafel blijft aan tafel",
+          "description": "Wie via de QR-code aan tafel bestelt, ziet geen levering, verzendkosten of drempel voor gratis verzending meer: de bestelling gaat naar de tafel. Een tafelmandje staat los van het gewone webshopmandje en vervalt na 3 uur. Met „Ik zit niet meer aan tafel” keert de gast terug naar de gewone online kaart, en een online bestelling neemt nooit meer een tafelnummer mee. Gerechten die je enkel aan tafel verkoopt, tonen online „Dit kan je niet online bestellen.”"
+        },
+        "kitchen_screen_responsive": {
+          "title": "Keukenscherm werkt op tablet en gsm",
+          "description": "Het keukenscherm vult nu het hele scherm, ook in de app, zonder de onderste menubalk. De kop is compacter, de knoppen voor automatisch printen, geluid en pauze tonen op een gsm enkel hun icoon, en de drie kolommen verschijnen pas op een breed scherm. Op tablet en gsm wissel je tussen de kolommen met tabbladen."
+        },
+        "no_white_screen": {
+          "title": "Geen wit scherm meer bij een fout",
+          "description": "Loopt er in de admin of de app iets mis, dan zie je een herstelscherm met „Opnieuw proberen” en „Pagina herladen” in plaats van een wit scherm. Na een nieuwe versie van SellQo laadt een openstaand scherm zichzelf één keer opnieuw als een onderdeel ontbreekt. De fout komt automatisch bij ons binnen, zodat we hem kunnen oplossen voor je ons moet bellen."
+        },
+        "pos_offline_queue_safe": {
+          "title": "Kassa: geen verkoop meer kwijt bij een slechte verbinding",
+          "description": "Valt de wifi weg terwijl je een contante verkoop afrekent, dan bewaart de kassa de verkoop en stuurt ze hem door zodra de verbinding terug is. Een verkoop die niet meteen doorgaat, wordt opnieuw geprobeerd tot hij binnen is, ook na het herstarten van de kassa, en wordt nooit dubbel geboekt. De knop „Wachtend” toont hoeveel verkopen nog onderweg zijn en hoeveel opnieuw geprobeerd worden."
         }
       },
       "copyLink": "Kopieer link",

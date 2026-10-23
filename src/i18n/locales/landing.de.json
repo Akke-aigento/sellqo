@@ -2207,6 +2207,22 @@
         "event_reminder_whatsapp": {
           "title": "Erinnerungs-E-Mail am Tag deines Events, mit deiner WhatsApp-Gruppe",
           "description": "Trage bei einem Eventtermin den Link deiner WhatsApp-Gruppe ein. Am Tag selbst bekommt jeder Ticketinhaber um 10 Uhr eine Erinnerungs-E-Mail mit Startzeit, Treffpunkt und einem Button zum Beitreten der Gruppe, damit Nachzügler dich finden. Neue Termine übernehmen den Link automatisch; bleibt das Feld leer, wird keine Erinnerung verschickt."
+        },
+        "horeca_table_order_clean": {
+          "title": "Bestellen am Tisch bleibt am Tisch",
+          "description": "Wer per QR-Code am Tisch bestellt, sieht keine Lieferung, Versandkosten oder Schwelle für kostenlosen Versand mehr: Die Bestellung geht an den Tisch. Ein Tischwarenkorb ist vom normalen Webshop-Warenkorb getrennt und läuft nach 3 Stunden ab. Mit „Ich sitze nicht mehr am Tisch“ kehrt der Gast zur normalen Online-Karte zurück, und eine Online-Bestellung trägt nie mehr eine Tischnummer. Gerichte, die du nur am Tisch verkaufst, zeigen online „Das kann man nicht online bestellen.“"
+        },
+        "kitchen_screen_responsive": {
+          "title": "Küchenbildschirm funktioniert auf Tablet und Handy",
+          "description": "Der Küchenbildschirm füllt jetzt den ganzen Bildschirm, auch in der App, ohne die untere Menüleiste. Die Kopfzeile ist kompakter, die Knöpfe für automatisches Drucken, Ton und Pause zeigen auf dem Handy nur ihr Symbol, und die drei Spalten erscheinen erst auf einem breiten Bildschirm. Auf Tablet und Handy wechselst du mit Tabs zwischen den Spalten."
+        },
+        "no_white_screen": {
+          "title": "Kein weißer Bildschirm mehr bei einem Fehler",
+          "description": "Läuft im Admin oder in der App etwas schief, siehst du einen Wiederherstellungsbildschirm mit „Erneut versuchen“ und „Seite neu laden“ statt eines weißen Bildschirms. Nach einer neuen SellQo-Version lädt sich ein offener Bildschirm einmal selbst neu, wenn ein Teil fehlt. Der Fehler kommt automatisch bei uns an, damit wir ihn beheben können, bevor du uns anrufen musst."
+        },
+        "pos_offline_queue_safe": {
+          "title": "Kasse: kein Verkauf geht mehr bei schlechter Verbindung verloren",
+          "description": "Fällt das WLAN aus, während du einen Barverkauf abrechnest, behält die Kasse den Verkauf und schickt ihn weiter, sobald die Verbindung zurück ist. Ein Verkauf, der nicht sofort durchgeht, wird erneut versucht, bis er ankommt, auch nach einem Neustart der Kasse, und wird nie doppelt gebucht. Der Knopf „Wartend“ zeigt, wie viele Verkäufe noch unterwegs sind und wie viele erneut versucht werden."
         }
       },
       "copyLink": "Link kopieren",

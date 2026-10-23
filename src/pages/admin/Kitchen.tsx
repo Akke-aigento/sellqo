@@ -13,6 +13,7 @@ import { useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
 import { KitchenPauseControl } from '@/components/admin/kitchen/KitchenPauseControl';
 import { minutesLeft, NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
 import { useTranslation } from 'react-i18next';
+import { useHideAdminBottomNav } from '@/hooks/useAdminBottomNav';
 
 const COLUMNS: { status: KitchenStatus; titleKey: string }[] = [
   { status: 'new', titleKey: 'admin.kitchen.col_new' },
@@ -111,7 +112,8 @@ function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh }: {
 
       {card.note ? <p className="rounded-md bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-950 dark:bg-amber-900/40 dark:text-amber-100">“{card.note}”</p> : null}
 
-      <footer className="mt-auto flex items-center gap-2">
+      {/* HORECA-0 — op een smalle kolom mag de actieknop naar een eigen regel. */}
+      <footer className="mt-auto flex flex-wrap items-center gap-2">
         {card.notified ? <span className="text-xs font-semibold text-muted-foreground">{t('admin.kitchen.mailed')}</span> : null}
         <span className={cn('mr-auto text-xs font-bold', card.paid ? 'text-emerald-700 dark:text-emerald-400' : 'text-amber-700 dark:text-amber-400')}>
           {card.paid ? t('admin.kitchen.paid') : card.total != null ? t('admin.kitchen.to_pay_amount', { amount: euro(card.total) }) : t('admin.kitchen.to_pay')}
@@ -121,7 +123,7 @@ function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh }: {
           <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onBack} disabled={busy} aria-label={t('admin.kitchen.move_back')}><Undo2 className="h-4 w-4" /></Button>
         ) : null}
         {NEXT_STATUS[card.status] ? (
-          <Button className={cn('h-11 min-w-28 text-base font-bold', card.status === 'preparing' && 'bg-emerald-600 hover:bg-emerald-700')} onClick={onAdvance} disabled={busy}>
+          <Button className={cn('h-11 min-w-28 flex-1 sm:flex-none text-base font-bold', card.status === 'preparing' && 'bg-emerald-600 hover:bg-emerald-700')} onClick={onAdvance} disabled={busy}>
             {t(actionKey(card))}
           </Button>
         ) : null}
@@ -152,6 +154,9 @@ export default function KitchenPage() {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
   const { cards, isLoading, error, setStatus } = useKitchenBoard(now);
+  // HORECA-0 — het keukenscherm ligt over de admin heen: de navigatiepil van de
+  // admin (ook z-50, later in de DOM) mag er niet over zweven.
+  useHideAdminBottomNav(true);
   const [sound, setSound] = useState(() => { try { return localStorage.getItem(SOUND_KEY) === '1'; } catch { return false; } });
   const [autoPrint, setAutoPrint] = useState(() => { try { return localStorage.getItem(PRINT_KEY) === '1'; } catch { return false; } });
   const { currentTenant } = useTenant();
@@ -200,21 +205,22 @@ export default function KitchenPage() {
   const move = (card: KitchenCard, status: KitchenStatus | null) => { if (status) setStatus.mutate({ card, status }); };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-muted/40">
-      <header className="flex flex-wrap items-center gap-3 border-b bg-background px-4 py-3">
+    // HORECA-0 — notch en statusbalk (app) en de home-balk onderaan respecteren.
+    <div className="fixed inset-0 z-50 flex flex-col bg-muted/40" style={{ paddingTop: 'var(--safe-top)', paddingBottom: 'var(--safe-bottom)' }}>
+      <header className="flex items-center gap-2 sm:gap-3 border-b bg-background px-3 sm:px-4 py-3">
         <Button asChild variant="ghost" size="icon" aria-label={t('admin.kitchen.back_to_admin')}><Link to="/admin"><ArrowLeft className="h-5 w-5" /></Link></Button>
-        <h1 className="text-xl font-bold">{t('admin.kitchen.title')}</h1>
-        <span className="text-2xl font-bold tabular-nums">{hhmm(now, i18n.language)}</span>
-        <span className="hidden text-sm text-muted-foreground sm:inline">
+        <h1 className="text-lg sm:text-xl font-bold truncate">{t('admin.kitchen.title')}</h1>
+        <span className="text-xl sm:text-2xl font-bold tabular-nums">{hhmm(now, i18n.language)}</span>
+        <span className="hidden text-sm text-muted-foreground xl:inline">
           {t('admin.kitchen.summary', { new: byStatus.new.length, preparing: byStatus.preparing.length, ready: byStatus.ready.length, nextHour })}
         </span>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
           <KitchenPauseControl now={now} />
-          <Button variant={autoPrint ? 'secondary' : 'outline'} size="sm" onClick={toggleAutoPrint} title={t('admin.kitchen.auto_print_hint')}>
-            <Printer className="mr-1.5 h-4 w-4" />{autoPrint ? t('admin.kitchen.auto_print_aan') : t('admin.kitchen.auto_print_uit')}
+          <Button variant={autoPrint ? 'secondary' : 'outline'} size="sm" onClick={toggleAutoPrint} title={t('admin.kitchen.auto_print_hint')} aria-label={autoPrint ? t('admin.kitchen.auto_print_aan') : t('admin.kitchen.auto_print_uit')}>
+            <Printer className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{autoPrint ? t('admin.kitchen.auto_print_aan') : t('admin.kitchen.auto_print_uit')}</span>
           </Button>
-          <Button variant={sound ? 'secondary' : 'outline'} size="sm" onClick={toggleSound}>
-            {sound ? <Bell className="mr-1.5 h-4 w-4" /> : <BellOff className="mr-1.5 h-4 w-4" />}{sound ? t('admin.kitchen.geluid_aan') : t('admin.kitchen.geluid_uit')}
+          <Button variant={sound ? 'secondary' : 'outline'} size="sm" onClick={toggleSound} aria-label={sound ? t('admin.kitchen.geluid_aan') : t('admin.kitchen.geluid_uit')}>
+            {sound ? <Bell className="h-4 w-4 sm:mr-1.5" /> : <BellOff className="h-4 w-4 sm:mr-1.5" />}<span className="hidden sm:inline">{sound ? t('admin.kitchen.geluid_aan') : t('admin.kitchen.geluid_uit')}</span>
           </Button>
           <Button variant="outline" size="icon" className="hidden sm:inline-flex" aria-label={t('admin.kitchen.fullscreen')}
             onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => undefined)}>
@@ -223,8 +229,8 @@ export default function KitchenPage() {
         </div>
       </header>
 
-      {/* Gsm: tabbladen per kolom */}
-      <div className="flex gap-1 border-b bg-background px-2 py-2 md:hidden">
+      {/* Gsm en tablet staand: tabbladen per kolom (HORECA-0: drie kolommen pas vanaf 1024 px). */}
+      <div className="flex gap-1 border-b bg-background px-2 py-2 lg:hidden">
         {COLUMNS.map((c) => (
           <button key={c.status} type="button" onClick={() => setTab(c.status)}
             className={cn('flex-1 rounded-md px-2 py-2 text-sm font-semibold', tab === c.status ? 'bg-primary text-primary-foreground' : 'text-muted-foreground')}>
@@ -235,10 +241,10 @@ export default function KitchenPage() {
 
       {error ? <p className="m-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{t('admin.kitchen.load_error')}</p> : null}
 
-      <main className="grid min-h-0 flex-1 gap-4 overflow-hidden p-4 md:grid-cols-3">
+      <main className="grid min-h-0 flex-1 gap-4 overflow-hidden p-3 sm:p-4 lg:grid-cols-3">
         {COLUMNS.map((col) => (
-          <section key={col.status} className={cn('min-h-0 flex-col gap-3', tab === col.status ? 'flex' : 'hidden md:flex')}>
-            <h2 className="hidden items-center justify-between text-sm font-bold uppercase tracking-wide text-muted-foreground md:flex">
+          <section key={col.status} className={cn('min-h-0 flex-col gap-3', tab === col.status ? 'flex' : 'hidden lg:flex')}>
+            <h2 className="hidden items-center justify-between text-sm font-bold uppercase tracking-wide text-muted-foreground lg:flex">
               {t(col.titleKey)}<span className="rounded-full bg-background px-2 py-0.5">{byStatus[col.status].length}</span>
             </h2>
             <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pb-6">

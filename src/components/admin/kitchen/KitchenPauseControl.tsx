@@ -54,7 +54,10 @@ export function KitchenPauseControl({ now }: { now: number }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" disabled={set.isPending}><PauseCircle className="mr-1.5 h-4 w-4" />{t('admin.kitchen.pause_online')}</Button>
+        <Button variant="outline" size="sm" disabled={set.isPending} title={t('admin.kitchen.pause_online')} aria-label={t('admin.kitchen.pause_online')}>
+          {/* HORECA-0 — op gsm enkel het icoon, zodat de kopbalk op één regel past. */}
+          <PauseCircle className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{t('admin.kitchen.pause_online')}</span>
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">{t('admin.kitchen.pause_hint')}</DropdownMenuLabel>

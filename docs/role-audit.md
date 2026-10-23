@@ -1,3 +1,43 @@
+## HORECA-0 — tafel blijft tafel, keukenscherm op elk toestel, nooit een wit scherm, veilige offline-kassa — 23 oktober 2026
+
+Eerste batch van de horeca-/kassareeks (ontwerp: projectdoc `claude/horeca-tafelkassa-ontwerp.md` §6–7, recon `claude/horeca-recon-2026-10-23.md`). Branch `horeca-0` in **sellqo** en **sellqo-storefront**; niets gemerged, gedeployed of live gedraaid.
+
+**Root cause**
+- Tafel en online liepen door elkaar. In de storefront deelden het tafel- en het webshopmandje één cookie (`sq_cart`), dus een gast die van tafel vertrok, nam zijn tafelmandje mee naar de webshop (en omgekeerd). `TableCheckout.tsx` bood "Niet aan tafel? Afhalen of laten leveren" aan, het mandje en de productpagina toonden verzendkosten en de drempel voor gratis verzending aan tafel. In `storefront-api` zetten `checkout_start` en `checkout_shipping` `table_label` niet terug op null, zodat een online checkout na een tafelbezoek het tafelnummer kon meenemen. Online stond bij tafel-only gerechten een tafeltekst. Live nagetrokken: 0 orders met zowel tafel als levering.
+- Keukenscherm: zat in `AdminLayout` met de onderste menubalk erover, zonder safe-area, en de drie kolommen verschenen al vanaf `md` (tablet staand = onleesbaar smal); de kop liep over op een gsm.
+- Er stond nergens een ErrorBoundary: één renderfout = wit scherm, ook in de app. Een JS-stuk dat na een deploy niet meer bestaat (`Failed to fetch dynamically imported module`) gaf hetzelfde.
+- Offline-wachtrij kassa (`usePOSOffline.ts`): enkel `pending` werd opgepakt, dus een `failed` verkoop werd nooit opnieuw geprobeerd; een poging die halverwege afbrak bleef eeuwig op `syncing`; geen idempotentiesleutel (`POSTerminal.tsx` insert zonder offline-id) → dubbele verkoop bij een verloren antwoord; viel de wifi weg terwijl `navigator.onLine` nog true gaf, dan ging een contante verkoop verloren met enkel een foutmelding.
+
+**Uitgevoerd — sellqo**
+- `supabase/functions/storefront-api/index.ts`: `table_label: null` in de reset van `checkoutStart` en in `checkoutShipping` (de tafel-checkout zet hem daarna zelf terug).
+- `src/pages/admin/Kitchen.tsx` + `KitchenPauseControl.tsx`: `useHideAdminBottomNav(true)`, safe-area-padding, compacte kop, iconknoppen onder `sm` (met aria-label), tabs tot `lg`, kolommen vanaf `lg`, kaartvoet `flex-wrap`.
+- Nieuw `src/lib/clientErrors.ts`: kruimelspoor (laatste 50 routes/tikken), `reportClientError` naar `client_errors` (gooit nooit), chunk-fout één keer herladen (sessionStorage, 60 s), globale handlers (`vite:preloadError`, `unhandledrejection`).
+- Nieuw `src/components/AppErrorBoundary.tsx`: `RootErrorBoundary` rond de app (`main.tsx`) en `AppErrorBoundary` rond de routes (`App.tsx`, reset bij routewissel). Herstelscherm met "Opnieuw proberen" en "Pagina herladen", i18n `errorBoundary.*`.
+- Migratie `20261023200000_horeca_0_client_errors.sql`: tabel `client_errors`.
+- `src/hooks/usePOSOffline.ts`: `pending`, `failed` (na backoff 5 s → max 5 min, nooit opgegeven) en vastgelopen `syncing` (> 60 s) worden opgepakt; ref-lock tegen dubbele sync; `failedCount`; `clientId` doorgeefbaar. Pure helpers `isDueForSync`/`retryDelayMs` + test.
+- `src/hooks/usePOS.ts` `createTransaction`: optionele `clientId` = rij-id.
+- `src/pages/admin/POSTerminal.tsx`: offline-sync insert met `id = offline-id`, bij 23505 de bestaande rij ophalen (= gelukt). Contante verkoop online krijgt een `clientId`; bij een netwerkfout (`src/lib/posNetwork.ts`, getest: DB-fouten met code tellen niet) gaat dezelfde id in de offline-wachtrij. Teller "Wachtend: n (opnieuw: m)" via i18n (was hardcoded NL); handmatig tikken = backoff overslaan.
+- Changelog 2026.13l (4 items, 5 talen), helpartikel `docs/sql/horeca-0-doc-article.sql` (nog niet gedraaid), nieuwsbriefitem.
+
+**Uitgevoerd — sellqo-storefront** (commit `144d3d0` op `horeca-0`)
+- `src/lib/cart.ts`: aparte cookie `sq_cart_table` (3 u) voor het tafelmandje; `cartCookie(shop)` kiest op basis van de tafelvlag; `leaveTable` wist beide tafelcookies.
+- `TableCheckout.tsx`: knop "Niet aan tafel? Afhalen of laten leveren" weg. `/menu`: knop "Ik zit niet meer aan tafel". `channels.ts`: online "Dit kan je niet online bestellen.". Aan tafel geen `FreeShippingProgress` en geen leveringsinfo (`CartUI`, `winkelmandje`, productpagina); tekst "Je bestelling gaat naar je tafel.".
+
+**Security-keuzes**
+- `client_errors`: RLS aan; `revoke all` van anon/authenticated; insert enkel als jezelf (`user_id = auth.uid()`) en voor een eigen tenant of zonder tenant; lezen enkel platformadmin; geen update/delete-grant. Lokaal getest op PG16 met Supabase-prelude: migratie 2× (idempotent), anon geweigerd, vreemde tenant geweigerd, imitatie van een andere user geweigerd, update geweigerd, admin ziet alles.
+- `pos_transactions.id` wordt nu door de kassa meegegeven (UUID v4 uit `crypto.randomUUID`). De bestaande insert-policy (tenant-check) blijft de poort; een botsende id kan enkel de eigen verkoop van hetzelfde toestel zijn.
+
+**Gedeelde-paden-waarschuwing** — `storefront-api` geraakt, enkel twee extra `table_label: null` in updates op de eigen `storefront_carts`-rij. Het JSON-contract blijft identiek. Voor een frontend die geen tafel-checkout gebruikt, verandert er niets (table_label was daar al null); een frontend die wél `checkout_table` aanroept, zet het label zelf opnieuw na `checkout_start`/`checkout_shipping`, zoals de SellQo-storefront doet. Geen gedeelde tabel gewijzigd.
+
+**Verificatie** — tsc 0 fouten; lint-baseline groen; i18n-parity + used-keys groen; alle CI-checkscripts groen; vitest (incl. 7 nieuwe tests); build; `deno check` storefront-api (import map met stubs). Storefront: tsc 0, build groen.
+
+**Samenhang** — één foutvanger voor admin én app (geen aparte per scherm); de bestaande "wachtend"-knop in de kassa is behouden en uitgebreid i.p.v. een tweede teller. Het tafelmandje heeft één eigen plek (cookie) i.p.v. een vlag op het webshopmandje. Helpartikel nieuw (er bestond geen keuken- of tafelartikel; `pos-gebruiken` bleef ongemoeid).
+
+**Bewust ongemoeid / Vervolg**
+- Nog geen watchtower-melding op `client_errors` (LIVE-1, toestelhartslag).
+- Kaartbetaling offline blijft onmogelijk (bewust: Stripe moet online).
+- De kassa-afrekening blijft een client-side insert tot TAFEL-2 (`horeca_pay`).
+
 ## EVENT-REMINDER-2 — WhatsApp-groeplink instelbaar in de admin — 23 oktober 2026
 
 **Root cause** — Na EVENT-REMINDER-1 kon `event_details.whatsapp_url` alleen via SQL gezet worden; een nieuwe datum kreeg zo stil geen herinneringsmail.

@@ -6516,6 +6516,10 @@
         "beheer_je_pinautomaten_voor_kaartbetalingen": "Verwalten Sie Ihre Kartenterminals für Kartenzahlungen",
         "reader_toevoegen": "Lesegerät hinzufügen",
         "voer_de_registratiecode_in_die_op": "Geben Sie den Registrierungscode vom Bildschirm des Lesegeräts ein"
+      },
+      "offlineQueue": {
+        "pending": "Wartend: {{n}}",
+        "failed": "(erneut: {{n}})"
       }
     },
     "storefront": {
@@ -10262,5 +10266,11 @@
         "body": "Wir konnten deine Anmeldung gerade nicht bestätigen. Versuche es später erneut."
       }
     }
+  },
+  "errorBoundary": {
+    "title": "Etwas ist schiefgelaufen",
+    "body": "Dieser Bildschirm konnte nicht geladen werden. Wir wurden benachrichtigt. Versuche es erneut; deine Daten sind nicht verloren.",
+    "retry": "Erneut versuchen",
+    "reload": "Neu laden"
   }
 }

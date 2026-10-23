@@ -7400,6 +7400,10 @@
         "counted": "Geteld",
         "difference": "Verschil",
         "file_name": "dagafsluiting"
+      },
+      "offlineQueue": {
+        "pending": "Wachtend: {{n}}",
+        "failed": "(opnieuw: {{n}})"
       }
     },
     "kitchen": {
@@ -10264,5 +10268,11 @@
         "body": "We konden je inschrijving nu niet bevestigen. Probeer het later opnieuw."
       }
     }
+  },
+  "errorBoundary": {
+    "title": "Er liep iets mis",
+    "body": "Dit scherm kon niet geladen worden. We zijn op de hoogte gebracht. Probeer het opnieuw; je gegevens zijn niet verloren.",
+    "retry": "Opnieuw proberen",
+    "reload": "Opnieuw laden"
   }
 }

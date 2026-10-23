@@ -1,6 +1,7 @@
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AppErrorBoundary } from "@/components/AppErrorBoundary";
 import { PriceVarsSync } from "@/components/PriceVarsSync";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -184,6 +185,8 @@ const App = () => (
         <BrowserRouter>
           <ScrollToTop />
           <DeepLinkListener />
+          {/* HORECA-0 — foutvanger: herstelscherm i.p.v. wit scherm, reset bij navigatie. */}
+          <AppErrorBoundary>
           <Routes>
             {/* Public landing page */}
             <Route path="/" element={<NativeLandingRedirect />} />
@@ -458,6 +461,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </AppErrorBoundary>
           <PlatformCookieBanner />
         </BrowserRouter>
           </SimulatedRoleProvider>

@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13l — Horeca: bestellen aan tafel zonder verwarring, keukenscherm op elk toestel (bugfix/verbetering, 23-10-2026)
+
+**Status:** wacht op go + deploy (HORECA-0, branch `horeca-0` in sellqo en sellqo-storefront).
+
+**Voor wie:** horecazaken (keuken, QR aan tafel, kassa).
+
+**Bestellen aan tafel blijft aan tafel** (oktober 2026)
+Gasten die via de QR-code aan tafel bestellen, zien geen levering of verzendkosten meer, en een online bestelling neemt nooit meer een tafelnummer mee. Het keukenscherm werkt nu ook op tablet en gsm, de kassa verliest geen contante verkoop meer als de wifi even wegvalt, en een fout geeft een herstelscherm in plaats van een wit scherm.
+Wat betekent dit voor jou? Geen verwarde gasten, een keuken die op elk toestel meekan, en een kassa die je in de rush niet in de steek laat.
+
+i18n: `public.changelog.changes.horeca_table_order_clean`, `kitchen_screen_responsive`, `no_white_screen`, `pos_offline_queue_safe`
+
 ### 2026.13k — Herinneringsmail op de dag van je event, met je WhatsApp-groep (feature, 23-10-2026)
 
 **Status:** klaar voor verzending (functie, cron en adminveld live sinds 23-10).

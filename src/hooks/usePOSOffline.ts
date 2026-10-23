@@ -26,6 +26,31 @@ export interface OfflineTransaction {
   syncStatus: 'pending' | 'syncing' | 'synced' | 'failed';
   syncAttempts: number;
   syncError?: string;
+  /** HORECA-0: wanneer de huidige poging startte (vastgelopen 'syncing' herkennen). */
+  syncStartedAt?: string;
+  /** HORECA-0: vroegste moment voor een nieuwe poging na een mislukking (backoff). */
+  nextRetryAt?: string;
+}
+
+// HORECA-0: een verkoop in de wachtrij wordt nooit opgegeven. Vroeger werd een transactie
+// na 5 mislukte pogingen definitief overgeslagen ('failed' werd nooit meer opgepakt) en bleef
+// een poging die halverwege afbrak (app dicht, crash) eeuwig op 'syncing' staan: geld dat
+// stil verdween uit de omzet. Nu: backoff tot max. 5 minuten, en 'syncing' ouder dan 60 s
+// gaat terug naar de wachtrij. Dubbel insturen is veilig: de offline-id is de rij-id.
+export const STALE_SYNCING_MS = 60_000;
+export function retryDelayMs(attempts: number): number {
+  return Math.min(5 * 60_000, 5_000 * 2 ** Math.max(0, attempts - 1));
+}
+
+/** Moet deze transactie nu (opnieuw) verstuurd worden? Puur, voor tests. */
+export function isDueForSync(txn: OfflineTransaction, now: number): boolean {
+  if (txn.syncStatus === 'pending') return true;
+  if (txn.syncStatus === 'failed') return !txn.nextRetryAt || Date.parse(txn.nextRetryAt) <= now;
+  if (txn.syncStatus === 'syncing') {
+    const started = txn.syncStartedAt ? Date.parse(txn.syncStartedAt) : 0;
+    return now - started > STALE_SYNCING_MS;
+  }
+  return false;
 }
 
 // Open IndexedDB connection
@@ -50,17 +75,20 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
-// Get all pending transactions
-async function getPendingTransactions(): Promise<OfflineTransaction[]> {
+// Alle nog niet verstuurde transacties (pending, failed én syncing), oudste eerst.
+async function getUnsyncedTransactions(): Promise<OfflineTransaction[]> {
   const db = await openDB();
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORE_NAME, 'readonly');
     const store = transaction.objectStore(STORE_NAME);
-    const index = store.index('syncStatus');
-    const request = index.getAll(IDBKeyRange.only('pending'));
+    const request = store.getAll();
     
     request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => resolve(
+      (request.result as OfflineTransaction[])
+        .filter((t) => t.syncStatus !== 'synced')
+        .sort((a, b) => a.createdOfflineAt.localeCompare(b.createdOfflineAt)),
+    );
   });
 }
 
@@ -113,6 +141,8 @@ async function updateTransactionStatus(
       
       txn.syncStatus = status;
       txn.syncAttempts = (txn.syncAttempts || 0) + (status === 'syncing' ? 1 : 0);
+      if (status === 'syncing') txn.syncStartedAt = new Date().toISOString();
+      if (status === 'failed') txn.nextRetryAt = new Date(Date.now() + retryDelayMs(txn.syncAttempts)).toISOString();
       if (error) txn.syncError = error;
       
       const putRequest = store.put(txn);
@@ -135,18 +165,13 @@ async function deleteTransaction(id: string): Promise<void> {
   });
 }
 
-// Count pending transactions
-async function countPending(): Promise<number> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORE_NAME, 'readonly');
-    const store = transaction.objectStore(STORE_NAME);
-    const index = store.index('syncStatus');
-    const request = index.count(IDBKeyRange.only('pending'));
-    
-    request.onerror = () => reject(request.error);
-    request.onsuccess = () => resolve(request.result);
-  });
+// Tel wat nog niet verstuurd is; 'failed' apart zodat de kassa het rood kan tonen.
+async function countUnsynced(): Promise<{ pending: number; failed: number }> {
+  const all = await getUnsyncedTransactions();
+  return {
+    pending: all.length,
+    failed: all.filter((t) => t.syncStatus === 'failed').length,
+  };
 }
 
 export interface UsePOSOfflineOptions {
@@ -162,7 +187,9 @@ export function usePOSOffline(options: UsePOSOfflineOptions) {
   
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [pendingCount, setPendingCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
+  const syncingRef = useRef(false);
   const syncIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Monitor online status
@@ -182,8 +209,9 @@ export function usePOSOffline(options: UsePOSOfflineOptions) {
   // Update pending count
   const refreshPendingCount = useCallback(async () => {
     try {
-      const count = await countPending();
-      setPendingCount(count);
+      const { pending, failed } = await countUnsynced();
+      setPendingCount(pending);
+      setFailedCount(failed);
     } catch (error) {
       console.error('Failed to count pending transactions:', error);
     }
@@ -197,6 +225,8 @@ export function usePOSOffline(options: UsePOSOfflineOptions) {
     cashReceived?: number;
     cashChange?: number;
     customerId?: string;
+    /** HORECA-0: id die online al geprobeerd werd (zie createTransaction.clientId). */
+    clientId?: string;
     /** APP-CLEAN-3c: zelfde invoer als online (calculatePosTotals). */
     cartDiscount?: PosCartDiscount | null;
     vatHandling?: string | null;
@@ -214,7 +244,7 @@ export function usePOSOffline(options: UsePOSOfflineOptions) {
     const total = totals.total;
 
     const offlineTxn: OfflineTransaction = {
-      id: crypto.randomUUID(),
+      id: data.clientId ?? crypto.randomUUID(),
       terminalId,
       sessionId: data.sessionId,
       tenantId,
@@ -267,24 +297,23 @@ export function usePOSOffline(options: UsePOSOfflineOptions) {
     }
   }, [onSyncTransaction]);
 
-  // Sync all pending transactions
-  const syncAll = useCallback(async (): Promise<{ synced: number; failed: number }> => {
-    if (isSyncing || !isOnline) return { synced: 0, failed: 0 };
-
+  // Sync all unsynced transactions that are due (pending, failed past backoff, stale syncing)
+  const syncAll = useCallback(async (opts?: { force?: boolean }): Promise<{ synced: number; failed: number }> => {
+    // Ref i.p.v. state: twee timers in dezelfde tick mogen niet allebei starten.
+    if (syncingRef.current || !isOnline) return { synced: 0, failed: 0 };
+    syncingRef.current = true;
     setIsSyncing(true);
     let synced = 0;
     let failed = 0;
 
     try {
-      const pending = await getPendingTransactions();
+      const now = Date.now();
+      const due = (await getUnsyncedTransactions()).filter((t) =>
+        // Handmatig "nu versturen" slaat de backoff over, maar nooit een poging die nog loopt.
+        opts?.force ? t.syncStatus !== 'syncing' || isDueForSync(t, now) : isDueForSync(t, now),
+      );
       
-      for (const txn of pending) {
-        // Skip transactions with too many failed attempts
-        if (txn.syncAttempts >= 5) {
-          failed++;
-          continue;
-        }
-        
+      for (const txn of due) {
         const success = await syncTransaction(txn);
         if (success) {
           synced++;
@@ -292,16 +321,16 @@ export function usePOSOffline(options: UsePOSOfflineOptions) {
           failed++;
         }
       }
-      
-      await refreshPendingCount();
     } catch (error) {
       console.error('Failed to sync transactions:', error);
     } finally {
+      await refreshPendingCount();
+      syncingRef.current = false;
       setIsSyncing(false);
     }
 
     return { synced, failed };
-  }, [isSyncing, isOnline, syncTransaction, refreshPendingCount]);
+  }, [isOnline, syncTransaction, refreshPendingCount]);
 
   // Get all offline transactions for current terminal
   const getOfflineTransactions = useCallback(async (): Promise<OfflineTransaction[]> => {
@@ -329,11 +358,11 @@ export function usePOSOffline(options: UsePOSOfflineOptions) {
     refreshPendingCount();
 
     syncIntervalRef.current = setInterval(() => {
-      refreshPendingCount();
+      void refreshPendingCount();
       if (isOnline && pendingCount > 0) {
-        syncAll();
+        void syncAll();
       }
-    }, 30000);
+    }, 15000);
 
     return () => {
       if (syncIntervalRef.current) {
@@ -345,6 +374,7 @@ export function usePOSOffline(options: UsePOSOfflineOptions) {
   return {
     isOnline,
     pendingCount,
+    failedCount,
     isSyncing,
     saveForOffline,
     syncAll,

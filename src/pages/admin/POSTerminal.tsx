@@ -88,6 +88,7 @@ import type { Customer } from '@/types/order';
 import { formatCurrency } from '@/lib/utils';
 import { useBarcodeScanner } from '@/hooks/useBarcodeScanner';
 import { supabase } from '@/integrations/supabase/client';
+import { isPosNetworkError as isNetworkError } from '@/lib/posNetwork';
 import { useTranslation } from 'react-i18next';
 
 export default function POSTerminalPage() {
@@ -115,6 +116,9 @@ export default function POSTerminalPage() {
       const { data, error } = await supabase
         .from('pos_transactions')
         .insert([{
+          // HORECA-0: de offline-id is de rij-id. Een tweede poging na een half gelukte
+          // eerste (antwoord verloren) botst op de primaire sleutel i.p.v. dubbel te boeken.
+          id: offlineTxn.id,
           tenant_id: offlineTxn.tenantId,
           terminal_id: offlineTxn.terminalId,
           session_id: offlineTxn.sessionId,
@@ -133,7 +137,16 @@ export default function POSTerminalPage() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        if ((error as { code?: string }).code === '23505') {
+          // Stond er al: vorige poging is wel aangekomen. Ophalen en als gelukt beschouwen.
+          const { data: existing, error: readErr } = await supabase
+            .from('pos_transactions').select('*').eq('id', offlineTxn.id).maybeSingle();
+          if (readErr) throw readErr;
+          if (existing) return existing as unknown as POSTransaction;
+        }
+        throw error;
+      }
       return data as unknown as POSTransaction;
     } catch (error) {
       console.error('Failed to sync offline transaction:', error);
@@ -145,6 +158,7 @@ export default function POSTerminalPage() {
   const { 
     isOnline, 
     pendingCount, 
+    failedCount,
     isSyncing, 
     saveForOffline, 
     syncAll 
@@ -400,8 +414,10 @@ export default function POSTerminalPage() {
     }
     
     // Online: proceed with normal transaction
+    const clientId = crypto.randomUUID();
     try {
       const transaction = await createTransaction.mutateAsync({
+        clientId,
         terminalId,
         sessionId: activeSession?.id || null,
         items: cart,
@@ -436,6 +452,33 @@ export default function POSTerminalPage() {
         setShowReceiptDialog(true);
       }
     } catch (error) {
+      // HORECA-0: wifi weg terwijl de kassa denkt dat ze online is (navigator.onLine liegt
+      // vaak). Het cash is ontvangen, dus de verkoop mag niet verloren gaan: zelfde id in
+      // de offline-wachtrij. Kwam de eerste poging toch aan, dan ontdubbelt de sync.
+      if (isNetworkError(error)) {
+        const offlineTxn = await saveForOffline({
+          clientId,
+          items: cart,
+          cartDiscount,
+          vatHandling: currentTenant?.default_vat_handling || 'inclusive',
+          payments,
+          sessionId: activeSession?.id || null,
+          cashReceived: cashReceivedAmount,
+          cashChange: cashChangeAmount,
+          customerId: selectedCustomer?.id,
+        }).catch(() => null);
+        if (offlineTxn) {
+          toast.success(t('admin.pos.msg.offline_saved', { change: formatCurrency(cashChangeAmount) }), {
+            description: t('admin.pOSTerminal.wordt_gesynchroniseerd_wanneer_online'),
+          });
+          clearCart();
+          setSelectedCustomer(null);
+          setCartDiscount(null);
+          setShowPaymentDialog(false);
+          setCashReceived('');
+          return;
+        }
+      }
       toast.error(t('admin.pos.msg.payment_failed'));
     }
   };
@@ -1036,7 +1079,7 @@ export default function POSTerminalPage() {
               variant={isOnline ? 'outline' : 'secondary'}
               size="sm"
               className="shrink-0"
-              onClick={() => isOnline && syncAll()}
+              onClick={() => isOnline && syncAll({ force: true })}
               disabled={isSyncing || !isOnline}
             >
               {isSyncing ? (
@@ -1044,7 +1087,10 @@ export default function POSTerminalPage() {
               ) : (
                 <RefreshCw className="mr-2 h-4 w-4" />
               )}
-              {pendingCount} wachtend
+              {t('admin.pos.offlineQueue.pending', { n: pendingCount })}
+              {failedCount > 0 && (
+                <span className="ml-1 text-destructive">{t('admin.pos.offlineQueue.failed', { n: failedCount })}</span>
+              )}
             </Button>
           )}
           
@@ -1158,11 +1204,14 @@ export default function POSTerminalPage() {
             <DropdownMenuContent align="end">
               {pendingCount > 0 && (
                 <DropdownMenuItem
-                  onClick={() => isOnline && syncAll()}
+                  onClick={() => isOnline && syncAll({ force: true })}
                   disabled={isSyncing || !isOnline}
                 >
                   <RefreshCw className="mr-2 h-4 w-4" />
-                  {pendingCount} wachtend
+                  {t('admin.pos.offlineQueue.pending', { n: pendingCount })}
+                  {failedCount > 0 && (
+                    <span className="ml-1 text-destructive">{t('admin.pos.offlineQueue.failed', { n: failedCount })}</span>
+                  )}
                 </DropdownMenuItem>
               )}
               {activeSession && (

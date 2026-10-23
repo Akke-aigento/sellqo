@@ -6789,6 +6789,10 @@
         "beheer_je_pinautomaten_voor_kaartbetalingen": "Manage your card terminals for card payments",
         "reader_toevoegen": "Add reader",
         "voer_de_registratiecode_in_die_op": "Enter the registration code shown on the reader's screen"
+      },
+      "offlineQueue": {
+        "pending": "Waiting: {{n}}",
+        "failed": "(retrying: {{n}})"
       }
     },
     "storefront": {
@@ -10262,5 +10266,11 @@
         "body": "We couldn't confirm your subscription right now. Please try again later."
       }
     }
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "This screen could not be loaded. We have been notified. Please try again; your data has not been lost.",
+    "retry": "Try again",
+    "reload": "Reload"
   }
 }

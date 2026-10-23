@@ -2207,6 +2207,22 @@
         "event_reminder_whatsapp": {
           "title": "Reminder email on the day of your event, with your WhatsApp group",
           "description": "Add your WhatsApp group link to an event date. On the day itself, every ticket holder gets a reminder email at 10 am with the start time, the meeting point and a button to join the group, so latecomers can find you. New dates copy the link automatically; leave the field empty and no reminder is sent."
+        },
+        "horeca_table_order_clean": {
+          "title": "Ordering at the table stays at the table",
+          "description": "Guests who order at the table via the QR code no longer see delivery, shipping costs or a free-shipping threshold: the order goes to the table. A table basket is separate from the regular web shop basket and expires after 3 hours. With “I'm no longer at the table” guests return to the regular online menu, and an online order never carries a table number again. Dishes you only sell at the table show “This can't be ordered online.” online."
+        },
+        "kitchen_screen_responsive": {
+          "title": "Kitchen screen works on tablet and phone",
+          "description": "The kitchen screen now fills the whole screen, also in the app, without the bottom menu bar. The header is more compact, the auto-print, sound and pause buttons show only their icon on a phone, and the three columns only appear on a wide screen. On tablet and phone you switch between columns with tabs."
+        },
+        "no_white_screen": {
+          "title": "No more white screen on an error",
+          "description": "If something goes wrong in the admin or the app, you see a recovery screen with “Try again” and “Reload page” instead of a white screen. After a new SellQo version, an open screen reloads itself once if a part is missing. The error reaches us automatically, so we can fix it before you have to call us."
+        },
+        "pos_offline_queue_safe": {
+          "title": "Till: no more lost sales on a bad connection",
+          "description": "If the wifi drops while you ring up a cash sale, the till keeps the sale and sends it on as soon as the connection is back. A sale that doesn't go through right away is retried until it arrives, also after restarting the till, and is never booked twice. The “Waiting” button shows how many sales are still on their way and how many are being retried."
         }
       },
       "copyLink": "Copy link",

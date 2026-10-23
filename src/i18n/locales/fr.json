@@ -6516,6 +6516,10 @@
         "beheer_je_pinautomaten_voor_kaartbetalingen": "Gérez vos terminaux de paiement par carte",
         "reader_toevoegen": "Ajouter un lecteur",
         "voer_de_registratiecode_in_die_op": "Saisissez le code d’enregistrement affiché sur l’écran du lecteur"
+      },
+      "offlineQueue": {
+        "pending": "En attente : {{n}}",
+        "failed": "(nouvel essai : {{n}})"
       }
     },
     "storefront": {
@@ -10262,5 +10266,11 @@
         "body": "Nous n'avons pas pu confirmer votre inscription. Réessayez plus tard."
       }
     }
+  },
+  "errorBoundary": {
+    "title": "Un problème est survenu",
+    "body": "Cet écran n’a pas pu être chargé. Nous avons été prévenus. Réessayez ; vos données ne sont pas perdues.",
+    "retry": "Réessayer",
+    "reload": "Recharger"
   }
 }

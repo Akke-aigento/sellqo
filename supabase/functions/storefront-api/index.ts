@@ -3911,6 +3911,10 @@ async function checkoutStart(supabase: any, tenantId: string, params: Record<str
     // FOOD-1 — afhalen/leveren hangt aan de verzendmethode: mee resetten.
     service_type: null,
     requested_time: null,
+    // HORECA-0 — ook het tafelnummer: een mandje dat via de gewone checkout gaat, is
+    // geen tafelbestelling meer. checkout_table zet het daarna opnieuw (TableCheckout
+    // roept eerst checkout_start, dan checkout_table). Zonder tafel was dit al null.
+    table_label: null,
     updated_at: new Date().toISOString(),
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (resetError) {
@@ -4142,6 +4146,9 @@ async function checkoutShipping(supabase: any, tenantId: string, params: Record<
     updated_at: new Date().toISOString(),
     // FOOD-1 — alleen bij een wissel van soort het tijdstip wissen; gewone verzending blijft null.
     ...(serviceType !== (cart.service_type || null) ? { service_type: serviceType, requested_time: null } : {}),
+    // HORECA-0 — een verzend-, afhaal- of leveringsmethode kiezen = niet (meer) aan tafel.
+    // Zo kan een order nooit tegelijk "levering" en "Tafel 4" zijn.
+    table_label: null,
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
 
