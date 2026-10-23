@@ -415,6 +415,7 @@ declare
   v_ids uuid[];
   v_lid uuid;
   v_table uuid;
+  v_root uuid;
 begin
   if v_staff is not null and not exists (select 1 from public.pos_cashiers s where s.id = v_staff and s.tenant_id = p_tenant_id and s.is_active) then
     raise exception 'onbekende medewerker' using errcode = '22023';
@@ -438,6 +439,12 @@ begin
   end if;
 
   -- Alle andere commando's werken op een open rekening van deze zaak.
+  -- Vaste lock-volgorde: eerst de hoofdrekening, dan het deel (anders deadlock tussen
+  -- "splitsen vanuit een deel" en "samenvoegen naar dat deel").
+  select x.split_of into v_root from public.dining_checks x where x.id = (cmd ->> 'check_id')::uuid and x.tenant_id = p_tenant_id;
+  if v_root is not null then
+    perform 1 from public.dining_checks r where r.id = v_root and r.tenant_id = p_tenant_id for update;
+  end if;
   select * into c from public.dining_checks where id = (cmd ->> 'check_id')::uuid and tenant_id = p_tenant_id for update;
   if c.id is null then raise exception 'rekening niet gevonden' using errcode = 'P0002'; end if;
   -- TAFEL-2: een lijn die nog onderweg was toen de rekening afgerekend werd, volgt de
@@ -446,8 +453,12 @@ begin
     exit when c.status = 'open' or c.carried_to is null or v_kind <> 'add_line';
     select * into c from public.dining_checks where id = c.carried_to and tenant_id = p_tenant_id for update;
   end loop;
+  if c.id is null then raise exception 'rekening niet gevonden' using errcode = 'P0002'; end if;
   if c.status <> 'open' then raise exception 'rekening is al afgesloten' using errcode = '55000'; end if;
-  if c.paying_until is not null and c.paying_until > now() then
+  -- In betaling (claim): ontwerp-lijnen mogen nog (aantikken, aantal, opmerking, weghalen):
+  -- die raken het getekende totaal niet en schuiven bij het afrekenen door naar een nieuwe
+  -- rekening. Al de rest (versturen, annuleren van verstuurde lijnen, korting, verhuizen) wacht.
+  if c.paying_until is not null and c.paying_until > now() and v_kind not in ('add_line', 'change_qty', 'set_note', 'void_line') then
     raise exception 'deze rekening wordt net afgerekend' using errcode = '55000';
   end if;
 
@@ -542,6 +553,9 @@ begin
                    and exists (select 1 from public.check_lines y where y.check_id = c.id and y.state = 'draft'
                                and y.corrects_line_id = l.corrects_line_id and y.neg_reason = 'PRICE_CHANGE')));
     elsif l.state = 'sent' and l.qty > 0 then
+      if c.paying_until is not null and c.paying_until > now() then
+        raise exception 'deze rekening wordt net afgerekend' using errcode = '55000';
+      end if;
       v_qty := coalesce((cmd ->> 'qty')::integer, public.horeca_open_qty(l.id));
       if v_qty < 1 or v_qty > public.horeca_open_qty(l.id) then
         raise exception 'zoveel staat er niet meer open op deze lijn' using errcode = '22023';

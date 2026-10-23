@@ -14,9 +14,10 @@
 --   3. horeca_pay        — boeken en sluiten; enkel met de claim van deze betaling.
 --   Mislukt het tekenen: horeca_pay_release. Zo kan een rekening nooit twee keer getekend worden.
 --
--- Fiscaal (GKS): heeft de zaak minstens één kassa op 'simulator' of 'fdm', dan is elke betaling
--- fiscaal (ook via een andere kassa): het ondertekende signSale-event moet in fiscal_events
--- staan, voor deze rekening (cost_center_reference = het onderste niveau van de costCenter) en
+-- Fiscaal (GKS): heeft de zaak minstens één kassa met een echte zwarte doos ('fdm'), dan is elke
+-- betaling fiscaal (ook via een andere kassa) en telt een simulator-handtekening niet. Een kassa
+-- op 'simulator' (test/demo) vraagt zelf een event, maar maakt de zaak niet fiscaal. Het
+-- ondertekende signSale-event moet in fiscal_events staan, voor deze rekening (cost_center_reference = het onderste niveau van de costCenter) en
 -- voor exact dit bedrag. Een meegegeven event wordt altijd gecontroleerd.
 --
 -- Contant afronden (PAY-02/03): de server rekent de afronding zelf na (som contant → 5 cent,
@@ -98,7 +99,7 @@ $$;
 
 revoke all on function public.horeca_round5(bigint) from public, anon;
 
--- Is deze zaak een geregistreerde kassa (GKS)? Minstens één kassa op simulator of fdm.
+-- Is deze zaak een geregistreerde kassa (GKS)? Minstens één kassa met een echte FDM.
 create or replace function public.horeca_tenant_fiscal(p_tenant_id uuid)
 returns boolean
 language sql
@@ -107,7 +108,7 @@ security definer
 set search_path to ''
 as $$
   select exists (select 1 from public.pos_terminals t where t.tenant_id = p_tenant_id
-                 and coalesce(t.settings -> 'fiscal' ->> 'mode', 'off') in ('simulator', 'fdm'));
+                 and coalesce(t.settings -> 'fiscal' ->> 'mode', 'off') = 'fdm');
 $$;
 revoke all on function public.horeca_tenant_fiscal(uuid) from public, anon, authenticated;
 
@@ -148,6 +149,14 @@ begin
   if c.status <> 'open' then raise exception 'rekening is al afgesloten' using errcode = '55000'; end if;
   if c.paying_until is not null and c.paying_until > now() and c.paying_payment_id is distinct from v_pay then
     raise exception 'deze rekening wordt al afgerekend' using errcode = '55000';
+  end if;
+  -- Er is al een ondertekende verkoop voor deze rekening die nog niet geboekt is (claim
+  -- verlopen, toestel offline of weigering): nooit een tweede keer laten tekenen.
+  -- (Dezelfde betaling mag haar eigen claim verlengen of terugnemen: zij tekende.)
+  if c.paying_payment_id is distinct from v_pay and exists (select 1 from public.fiscal_events f where f.tenant_id = p_tenant_id and f.mutation = 'signSale' and not f.is_training
+             and f.cost_center_reference = c.cost_center_reference
+             and not exists (select 1 from public.check_payments cp where cp.fiscal_event_id = f.id)) then
+    raise exception 'voor deze rekening bestaat al een ondertekende verkoop die nog niet geboekt is' using errcode = '55000';
   end if;
   select array_agg(x::uuid) into v_ids from jsonb_array_elements_text(coalesce(p -> 'line_ids', '[]'::jsonb)) x;
   if coalesce(array_length(v_ids, 1), 0) = 0
@@ -322,6 +331,10 @@ begin
         and f.cost_center_reference = c.cost_center_reference and f.transaction_total_cents = v_total) then
       raise exception 'ondertekening hoort niet bij deze rekening' using errcode = '22023';
     end if;
+    -- Een zaak met een echte zwarte doos aanvaardt geen simulator-handtekening.
+    if public.horeca_tenant_fiscal(p_tenant_id) and exists (select 1 from public.fiscal_events f where f.id = v_event and f.fdm_id like 'SIM%') then
+      raise exception 'simulator-handtekening in een zaak met een echte zwarte doos' using errcode = '22023';
+    end if;
   end if;
 
   -- Verkoop voor shiftrapport, transactieoverzicht en voorraad (trigger op status completed).
@@ -355,9 +368,16 @@ begin
   select s.id into v_session from public.pos_sessions s
     where s.tenant_id = p_tenant_id and s.terminal_id = v_terminal and s.status = 'open' order by s.opened_at desc limit 1;
   if v_session is null then
+    -- Live: unique_open_pos_session_per_terminal (terminal_id) where status = 'open'. Twee
+    -- gelijktijdige eerste betalingen: de tweede neemt de shift van de eerste.
     insert into public.pos_sessions (tenant_id, terminal_id, opened_by, opening_cash, status, notes)
     values (p_tenant_id, v_terminal, auth.uid(), 0, 'open', 'Automatisch geopend door SellQo Kassa (eerste betaling)')
+    on conflict (terminal_id) where status = 'open' do nothing
     returning id into v_session;
+    if v_session is null then
+      select s.id into v_session from public.pos_sessions s
+        where s.tenant_id = p_tenant_id and s.terminal_id = v_terminal and s.status = 'open' order by s.opened_at desc limit 1;
+    end if;
   end if;
 
   -- Geld zoals het binnenkwam: contant inclusief afronding (wat er in de lade zit).

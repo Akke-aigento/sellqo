@@ -94,10 +94,11 @@ export function consolidatedSpecs(c: Check): LineSpec[] {
 export function costCenterOf(c: Pick<Check, 'id' | 'table_id' | 'name' | 'reference' | 'split_of' | 'parent_reference'>, tableLabel: string | null): CostCenterInput {
   // TAFEL-2: deelrekening van een tafel = TABLE (reference van de hoofdrekening) › CHAIR
   // (eigen reference), zoals UC4119bis. Max. 2 niveaus (TBL-01).
-  // Het CHAIR-id is de eigen reference (uniek, ligt vast vóór de server het deel aanmaakt);
+  // Het CHAIR-id = begin van de eigen reference (vast vóór de server het deel aanmaakt, kort
+  // genoeg voor het ticket);
   // het volgnummer "deel 2" is enkel weergave.
   if (c.table_id && c.split_of && c.parent_reference) {
-    return costCenter('TABLE', tableLabel || c.table_id, c.parent_reference, { id: c.reference, type: 'CHAIR', reference: c.reference });
+    return costCenter('TABLE', tableLabel || c.table_id, c.parent_reference, { id: c.reference.slice(0, 8), type: 'CHAIR', reference: c.reference });
   }
   if (c.table_id) return costCenter('TABLE', tableLabel || c.table_id, c.reference);
   return costCenter('CUSTOMER', (c.name || c.id).slice(0, 40), c.reference);

@@ -2239,6 +2239,10 @@
         "table_payment": {
           "title": "Afrekenen op SellQo Kassa",
           "description": "Op SellQo Kassa reken je een tafel of een rekening op naam nu ook af. Kies contant of kaart voor het hele bedrag, deel gelijk in 2 tot 6 delen met elk een eigen betaalmiddel, of combineer zelf contant, kaart, maaltijdcheques en bonnen. Contant wordt afgerond op 5 cent en de kassa toont het wisselgeld; een fooi boek je apart, buiten je omzet. Wil één klant apart betalen, kies dan 'Apart afrekenen': wat hij nam gaat naar een eigen deel van de rekening, de rest blijft op de tafel. Het totaal komt altijd uit de verstuurde bestellingen, nooit uit het toestel, en elke betaling staat meteen in je kassaverkopen en voorraad. Op een geregistreerde kassa wordt de verkoop eerst ondertekend en krijg je het btw-kasticket om af te drukken."
+        },
+        "kassa_device_status": {
+          "title": "Zie of je kassatoestellen nog meedraaien",
+          "description": "Onder Kassa › Kassa's zie je per kassa wanneer elk SellQo Kassa-toestel zich het laatst meldde en of er nog handelingen op dat toestel wachten om doorgestuurd te worden. Een toestel dat langer dan vijf minuten niets van zich liet horen, of waar nog iets wacht, kleurt oranje."
         }
       },
       "copyLink": "Kopieer link",

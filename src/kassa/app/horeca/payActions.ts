@@ -39,8 +39,14 @@ export interface PayPayload {
   fiscal_event_id: string | null;
 }
 
-/** Op het toestel bewaarde betaling: 'pending' = nog door te sturen; 'rejected' = getekend maar geweigerd. */
-export interface PendingPay { payload: PayPayload; status: 'pending' | 'rejected'; error?: string; at: string }
+/**
+ * Op het toestel bewaarde betaling:
+ * - 'unsigned': de zwarte doos antwoordde niet; misschien tekende ze wel. Het bericht (sale)
+ *   wordt identiek opnieuw gestuurd tot er een antwoord is. Claim blijft, rekening vergrendeld.
+ * - 'pending': getekend, nog naar de server te sturen.
+ * - 'rejected': getekend maar door de server geweigerd; blijft tot SellQo het rechtzet.
+ */
+export interface PendingPay { payload: PayPayload; status: 'unsigned' | 'pending' | 'rejected'; sale?: SaleInput; error?: string; at: string }
 
 export type PayFailure = 'offline' | 'no_insz' | 'fiscal_not_configured' | 'fdm_not_available' | 'fdm_rejected' | 'fdm_unreachable'
   | 'server' | 'changed' | 'plan' | 'nothing' | 'pending_elsewhere' | 'nothing_sent' | 'being_paid' | 'signed_rejected';
@@ -75,8 +81,25 @@ function drop(tenantId: string, id: string) {
   writeAll(tenantId, readAll(tenantId).filter((x) => x.payload.id !== id));
 }
 
-/** Betalingen die nog naar de server moeten (zonder de geweigerde). */
-export const readPendingPays = (tenantId: string): PayPayload[] => readAll(tenantId).filter((x) => x.status === 'pending').map((x) => x.payload);
+/** Betalingen die nog moeten (tekenen of naar de server), zonder de geweigerde. */
+export const readPendingPays = (tenantId: string): PayPayload[] => readAll(tenantId).filter((x) => x.status !== 'rejected').map((x) => x.payload);
+
+// Eén betaling-id per rekening zolang ze niet afgerond is: een nieuwe poging na een verloren
+// antwoord is dan dezelfde betaling (idempotent op de server; dezelfde claim).
+const payIdKey = (tenantId: string, checkId: string) => `sq_kassa_payid|${tenantId}|${checkId}`;
+function paymentIdFor(tenantId: string, checkId: string): string {
+  try {
+    const k = payIdKey(tenantId, checkId);
+    const v = localStorage.getItem(k);
+    if (v) return v;
+    const id = crypto.randomUUID();
+    localStorage.setItem(k, id);
+    return id;
+  } catch { return crypto.randomUUID(); }
+}
+function forgetPaymentId(tenantId: string, checkId: string) {
+  try { localStorage.removeItem(payIdKey(tenantId, checkId)); } catch { /* niets */ }
+}
 /** Getekende betalingen die de server weigerde: blijven staan tot SellQo ze rechtzet. */
 export const readRejectedPays = (tenantId: string): PendingPay[] => readAll(tenantId).filter((x) => x.status === 'rejected');
 
@@ -130,15 +153,36 @@ export function retryPendingPays(ctx: Pick<ActionCtx, 'runtime'>): Promise<Retry
   if (retrying) return retrying;
   retrying = (async () => {
     const out: RetryResult = { done: 0, rejected: [] };
-    for (const p of readPendingPays(ctx.runtime.device.tenantId)) {
+    const tenantId = ctx.runtime.device.tenantId;
+    for (const row of readAll(tenantId).filter((x) => x.status !== 'rejected')) {
+      let p = row.payload;
       if (inFlight.has(p.id)) continue;
+      // Claim verlengen zolang het toestel ermee bezig is (zelfde betaling = toegestaan).
+      await rpc('horeca_pay_begin', { p_tenant_id: tenantId, p_device_id: ctx.runtime.device.deviceUuid,
+        p: { check_id: p.check_id, payment_id: p.id, line_ids: p.line_ids, expected_total_cents: p.expected_total_cents } });
+      if (row.status === 'unsigned' && row.sale) {
+        // Zelfde bericht, zelfde bytes (ID-11): de FDM tekent het of geeft het eerdere antwoord.
+        let out2;
+        try { out2 = await ctx.runtime.sign('signSale', row.sale, {}); } catch { continue; }
+        if (out2.kind === 'unreachable') continue;
+        if (out2.kind === 'rejected') {
+          // Aantoonbaar niet getekend: claim vrijgeven, betaling vergeten.
+          await rpc('horeca_pay_release', { p_tenant_id: tenantId, p_check_id: p.check_id, p_payment_id: p.id });
+          drop(tenantId, p.id);
+          forgetPaymentId(tenantId, p.check_id);
+          continue;
+        }
+        p = { ...p, fiscal_event_id: out2.eventId ?? null };
+        upsert(tenantId, { payload: p, status: 'pending', at: new Date().toISOString() });
+      }
       const r = await submit(ctx, p);
       if (r.error && !isDefinitiveRejection(r.error)) return out; // nog offline: later opnieuw
       if (r.error) {
         await markRejected(ctx, p, r.error.message ?? 'error');
         out.rejected.push({ payment: p, error: r.error.message ?? 'error' });
       } else {
-        drop(ctx.runtime.device.tenantId, p.id);
+        drop(tenantId, p.id);
+        forgetPaymentId(tenantId, p.check_id);
         out.done += 1;
       }
     }
@@ -178,15 +222,21 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
       throw e;
     }
     const lineIds = c.lines.filter((l) => l.state === 'sent').map((l) => l.id);
-    const paymentId = crypto.randomUUID();
+    const paymentId = paymentIdFor(tenantId, c.id);
 
     // Claim vóór het tekenen.
     const claim = await rpc<{ ok: boolean; fiscal: boolean }>('horeca_pay_begin', {
       p_tenant_id: tenantId, p_device_id: ctx.runtime.device.deviceUuid,
       p: { check_id: c.id, payment_id: paymentId, line_ids: lineIds, expected_total_cents: total },
     });
-    if (claim.error) return isDefinitiveRejection(claim.error) ? { ok: false, reason: failFromCode(claim.error), detail: claim.error.message } : { ok: false, reason: 'offline' };
     const release = () => rpc('horeca_pay_release', { p_tenant_id: tenantId, p_check_id: c.id, p_payment_id: paymentId });
+    if (claim.error) {
+      if (isDefinitiveRejection(claim.error)) return { ok: false, reason: failFromCode(claim.error), detail: claim.error.message };
+      // Antwoord kwijt: misschien staat de claim er wel. Best effort vrijgeven (zelfde id
+      // bij een nieuwe poging verlengt ze anders gewoon).
+      void release();
+      return { ok: false, reason: 'offline' };
+    }
     // Een GKS-zaak boekt nooit zonder handtekening, ook niet via een kassa op 'off'.
     if (claim.data?.fiscal && !ctx.runtime.isFiscal) { await release(); return { ok: false, reason: 'fiscal_not_configured' }; }
 
@@ -219,7 +269,17 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
         throw e;
       }
       if (out.kind === 'rejected') return fail({ ok: false, reason: 'fdm_rejected', detail: JSON.stringify(out.errors ?? '').slice(0, 200) });
-      if (out.kind !== 'signed') return fail({ ok: false, reason: 'fdm_unreachable' });
+      if (out.kind !== 'signed') {
+        // Geen antwoord ≠ niet getekend. Claim houden, bericht bewaren en identiek opnieuw
+        // sturen (retryPendingPays); de rekening blijft vergrendeld op dit toestel.
+        upsert(tenantId, {
+          payload: { id: paymentId, check_id: c.id, terminal_id: ctx.runtime.device.terminalRowId, staff_id: ctx.staffId,
+            expected_total_cents: total, line_ids: lineIds, tenders: normalizedTenders(plan), rounding_cents: plan.rounding,
+            tip_cents: plan.tip, tip_method: plan.tipMethod, fiscal_event_id: null },
+          status: 'unsigned', sale: data, at: new Date().toISOString(),
+        });
+        return { ok: false, reason: 'fdm_unreachable' };
+      }
       eventId = out.eventId ?? null;
       signed = { name: 'signSale', isTraining: false, data, result: out.result as SignResult };
     }
@@ -244,9 +304,11 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
         return { ok: false, reason: 'signed_rejected', detail: r.error.message };
       }
       await release();
+      forgetPaymentId(tenantId, c.id);
       return { ok: false, reason: failFromCode(r.error), detail: r.error.message };
     }
     drop(tenantId, payload.id);
+    forgetPaymentId(tenantId, c.id);
     await ctx.store.refresh();
     return { ok: true, pending: false, receiptNumber: r.data?.receipt_number ?? null, plan, signed };
   } catch (e) {

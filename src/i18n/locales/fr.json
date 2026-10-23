@@ -10639,7 +10639,7 @@
         "fiscal_not_configured": "Cette caisse n’est pas encore configurée comme caisse enregistreuse.",
         "fdm_not_available": "La boîte noire n’est pas encore connectée.",
         "fdm_rejected": "La boîte noire a refusé. Rien n’a été encaissé.",
-        "fdm_unreachable": "La boîte noire est injoignable. Rien n’a été encaissé ; réessayez.",
+        "fdm_unreachable": "La boîte noire ne répond pas. La caisse renvoie automatiquement la même vente ; d’ici là, l’addition reste verrouillée. Ne l’encaissez pas une seconde fois.",
         "server": "Échec : {{detail}}",
         "changed": "Un collègue vient de modifier cette addition. Vérifiez-la et encaissez à nouveau.",
         "nothing": "Cette addition est vide.",

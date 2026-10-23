@@ -10639,7 +10639,7 @@
         "fiscal_not_configured": "This till is not yet set up as a registered till.",
         "fdm_not_available": "The fiscal data module is not connected yet.",
         "fdm_rejected": "The fiscal data module refused. Nothing was paid.",
-        "fdm_unreachable": "The fiscal data module cannot be reached. Nothing was paid; try again.",
+        "fdm_unreachable": "The fiscal data module isn’t answering. The till resends the same sale automatically; until then this check stays locked. Don’t pay it again.",
         "server": "Not done: {{detail}}",
         "changed": "A colleague just changed this check. Check it and pay again.",
         "nothing": "There is nothing on this check.",

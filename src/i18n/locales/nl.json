@@ -10641,7 +10641,7 @@
         "fiscal_not_configured": "Deze kassa is nog niet als geregistreerde kassa ingesteld.",
         "fdm_not_available": "De zwarte doos is nog niet gekoppeld.",
         "fdm_rejected": "De zwarte doos weigerde. Er is niets betaald.",
-        "fdm_unreachable": "De zwarte doos is niet bereikbaar. Er is niets betaald; probeer opnieuw.",
+        "fdm_unreachable": "De zwarte doos antwoordt niet. De kassa stuurt dezelfde verkoop vanzelf opnieuw; tot dan blijft deze rekening vergrendeld. Niet opnieuw afrekenen.",
         "server": "Niet gelukt: {{detail}}",
         "changed": "Een collega wijzigde deze rekening net. Kijk ze na en reken opnieuw af.",
         "nothing": "Er staat niets op deze rekening.",

@@ -112,17 +112,8 @@ set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000
 
 -- ── Fiscale kassa: zonder, met verkeerd en met juist N-event ──
 reset role;
--- Vanaf nu is zaak A een geregistreerde kassa (één kassa op simulator).
-insert into public.pos_terminals (id, tenant_id, name, settings) values ('5e000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','Zaal (GKS)','{"fiscal":{"mode":"simulator"}}');
-insert into public.fiscal_events (id, tenant_id, mutation, pos_id, terminal_id, device_id, pos_fiscal_ticket_no, pos_date_time, pos_sw_version, booking_date, booking_period_id,
-  fdm_id, fdm_date_time, event_label, event_operation, event_counter, total_counter, transaction_total_cents, cost_center_reference, request_body, response_body, request_sha256)
-values
- ('6e000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','signSale','CPOS0031234567','T1','d',1,'x','v','2026-10-24','dffcd829-a0e5-41ca-a0ae-9eb887f95637',
-  'SIM01000001','x','N','SALE',1,1, :sub2_total + 5, 'c0000000-0000-0000-0000-000000000012','{}','{}', repeat('a',64)),
- ('6e000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','signSale','CPOS0031234567','T1','d',2,'x','v','2026-10-24','dffcd829-a0e5-41ca-a0ae-9eb887f95637',
-  'SIM01000001','x','N','SALE',2,2, :sub2_total, 'c0000000-0000-0000-0000-000000000012','{}','{}', repeat('b',64)),
- ('6e000000-0000-0000-0000-000000000003','11111111-1111-1111-1111-111111111111','signOrder','CPOS0031234567','T1','d',1,'x','v','2026-10-24','dffcd829-a0e5-41ca-a0ae-9eb887f95637',
-  'SIM01000001','x','P','ORDER',1,3, :sub2_total, 'c0000000-0000-0000-0000-000000000012','{}','{}', repeat('c',64));
+-- Vanaf nu is zaak A een geregistreerde kassa (één kassa met een echte FDM).
+insert into public.pos_terminals (id, tenant_id, name, settings) values ('5e000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','Zaal (GKS)','{"fiscal":{"mode":"fdm"}}');
 set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
 -- Claim vóór het tekenen (horeca_pay_begin): verkeerde lijnenset = gewijzigd; juiste = in betaling.
 create or replace function pg_temp.try_begin(p jsonb) returns text language plpgsql as $$
@@ -130,8 +121,36 @@ begin perform public.horeca_pay_begin('11111111-1111-1111-1111-111111111111', 'd
 exception when others then return sqlstate; end $$;
 select pg_temp.try_begin(jsonb_build_object('check_id','c0000000-0000-0000-0000-000000000012','payment_id','40000000-0000-0000-0000-000000000004','expected_total_cents', :sub2_total + 1)) = '40001' as ok_begin_checks_total;
 select pg_temp.try_begin(jsonb_build_object('check_id','c0000000-0000-0000-0000-000000000012','payment_id','40000000-0000-0000-0000-000000000004','expected_total_cents', :sub2_total)) = 'ok' as ok_begin_claims;
-select (pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000011","kind":"add_line","check_id":"c0000000-0000-0000-0000-000000000012","line_id":"a0000000-0000-0000-0000-000000000039","product_id":"eeeeeeee-0000-0000-0000-000000000001","qty":1}]') -> 'results' -> 0 ->> 'ok') = 'false' as ok_claim_blocks_changes;
+select (pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000011","kind":"rename_check","check_id":"c0000000-0000-0000-0000-000000000012","name":"y"}]') -> 'results' -> 0 ->> 'ok') = 'false' as ok_claim_blocks_changes;
 select pg_temp.try_begin(jsonb_build_object('check_id','c0000000-0000-0000-0000-000000000012','payment_id','40000000-0000-0000-0000-000000000005','expected_total_cents', :sub2_total)) = '55000' as ok_second_device_cannot_claim;
+-- Het toestel tekent (events komen in de cloud).
+reset role;
+insert into public.fiscal_events (id, tenant_id, mutation, pos_id, terminal_id, device_id, pos_fiscal_ticket_no, pos_date_time, pos_sw_version, booking_date, booking_period_id,
+  fdm_id, fdm_date_time, event_label, event_operation, event_counter, total_counter, transaction_total_cents, cost_center_reference, request_body, response_body, request_sha256)
+values
+ ('6e000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','signSale','CPOS0031234567','T1','d',1,'x','v','2026-10-24','dffcd829-a0e5-41ca-a0ae-9eb887f95637',
+  'SIM01000001','x','N','SALE',1,1, :sub2_total + 5, 'c0000000-0000-0000-0000-000000000012','{}','{}', repeat('a',64)),
+ ('6e000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','signSale','CPOS0031234567','T1','d',2,'x','v','2026-10-24','dffcd829-a0e5-41ca-a0ae-9eb887f95637',
+  'FOD01000001','x','N','SALE',2,2, :sub2_total, 'c0000000-0000-0000-0000-000000000012','{}','{}', repeat('b',64)),
+ ('6e000000-0000-0000-0000-000000000003','11111111-1111-1111-1111-111111111111','signOrder','CPOS0031234567','T1','d',1,'x','v','2026-10-24','dffcd829-a0e5-41ca-a0ae-9eb887f95637',
+  'SIM01000001','x','P','ORDER',1,3, :sub2_total, 'c0000000-0000-0000-0000-000000000012','{}','{}', repeat('c',64));
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
+-- Een simulator-handtekening telt niet in een zaak met een echte zwarte doos.
+reset role;
+insert into public.fiscal_events (id, tenant_id, mutation, pos_id, terminal_id, device_id, pos_fiscal_ticket_no, pos_date_time, pos_sw_version, booking_date, booking_period_id,
+  fdm_id, fdm_date_time, event_label, event_operation, event_counter, total_counter, transaction_total_cents, cost_center_reference, request_body, response_body, request_sha256)
+values ('6e000000-0000-0000-0000-000000000004','11111111-1111-1111-1111-111111111111','signSale','CPOS0031234567','T1','d',3,'x','v','2026-10-24','dffcd829-a0e5-41ca-a0ae-9eb887f95637',
+  'SIM01000001','x','N','SALE',3,4, :sub2_total, 'c0000000-0000-0000-0000-000000000012','{}','{}', repeat('d',64));
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
+select pg_temp.try_pay(jsonb_build_object('id','40000000-0000-0000-0000-000000000004','check_id','c0000000-0000-0000-0000-000000000012','terminal_id','5e000000-0000-0000-0000-000000000002','staff_id','99999999-0000-0000-0000-000000000001',
+  'fiscal_event_id','6e000000-0000-0000-0000-000000000004',
+  'expected_total_cents', :sub2_total, 'tenders', jsonb_build_array(jsonb_build_object('method','card','amount_cents', :sub2_total)))) = '22023' as ok_sim_event_refused_in_fdm_tenant;
+-- Getekend maar nog niet geboekt en de claim verloopt: een andere betaling mag niet opnieuw tekenen.
+reset role; update public.dining_checks set paying_until = now() - interval '1 minute' where id = 'c0000000-0000-0000-0000-000000000012';
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
+select pg_temp.try_begin(jsonb_build_object('check_id','c0000000-0000-0000-0000-000000000012','payment_id','40000000-0000-0000-0000-000000000005','expected_total_cents', :sub2_total)) = '55000' as ok_no_second_signing;
+-- Ontwerp-lijnen mogen tijdens de claim (ze schuiven door bij het afrekenen); verstuurde wijzigen niet.
+select pg_temp.try_begin(jsonb_build_object('check_id','c0000000-0000-0000-0000-000000000012','payment_id','40000000-0000-0000-0000-000000000004','expected_total_cents', :sub2_total)) = 'ok' as ok_same_payment_reclaims;
 -- GKS-zaak: ook via een niet-fiscale kassa nooit zonder event
 select pg_temp.try_pay(jsonb_build_object('id','40000000-0000-0000-0000-000000000004','check_id','c0000000-0000-0000-0000-000000000012','terminal_id','5e000000-0000-0000-0000-000000000001','staff_id','99999999-0000-0000-0000-000000000001',
   'expected_total_cents', :sub2_total, 'tenders', jsonb_build_array(jsonb_build_object('method','card','amount_cents', :sub2_total)))) = '22023' as ok_gks_tenant_requires_event_everywhere;

@@ -159,6 +159,10 @@ export class HorecaStore {
           if (r.ok) {
             if (r.check) this.serverChecks.set(r.check.id, r.check);
             if (r.target) this.serverChecks.set(r.target.id, r.target);
+          } else if (cmd && r.code === '40P01') {
+            // Deadlock met een ander toestel: niets bleef staan, gewoon opnieuw proberen
+            // (zelfde id = idempotent).
+            done.delete(cmd.id);
           } else if (cmd) {
             this.rejections.push({ command: cmd, error: r.error ?? 'error' });
           }

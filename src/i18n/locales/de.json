@@ -10639,7 +10639,7 @@
         "fiscal_not_configured": "Diese Kasse ist noch nicht als registrierte Kasse eingerichtet.",
         "fdm_not_available": "Die Blackbox ist noch nicht verbunden.",
         "fdm_rejected": "Die Blackbox hat abgelehnt. Nichts wurde kassiert.",
-        "fdm_unreachable": "Die Blackbox ist nicht erreichbar. Nichts wurde kassiert; erneut versuchen.",
+        "fdm_unreachable": "Die Blackbox antwortet nicht. Die Kasse sendet denselben Verkauf automatisch erneut; bis dahin bleibt diese Rechnung gesperrt. Nicht erneut kassieren.",
         "server": "Nicht ausgeführt: {{detail}}",
         "changed": "Jemand hat diese Rechnung gerade geändert. Bitte prüfen und erneut kassieren.",
         "nothing": "Auf dieser Rechnung steht nichts.",

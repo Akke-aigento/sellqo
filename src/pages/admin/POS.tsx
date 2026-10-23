@@ -33,6 +33,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KassaStaffTab } from '@/components/admin/pos/KassaStaffTab';
+import { KassaDevicesStatus } from '@/components/admin/pos/KassaDevicesStatus';
+import { useKassaDevices } from '@/hooks/useKassaDevices';
 import { usePOSTerminals, usePOSSessions } from '@/hooks/usePOS';
 import type { POSTerminal } from '@/types/pos';
 import { useTranslation } from 'react-i18next';
@@ -53,6 +55,8 @@ export default function POSPage() {
   };
   const { terminals, isLoading, createTerminal, deleteTerminal } = usePOSTerminals();
   const { sessions } = usePOSSessions();
+  // LIVE-1 — hartslag van SellQo Kassa-toestellen per kassa.
+  const { data: kassaDevices = [] } = useKassaDevices();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newTerminalName, setNewTerminalName] = useState('');
   const [newTerminalLocation, setNewTerminalLocation] = useState('');
@@ -213,6 +217,8 @@ export default function POSPage() {
                       </span>
                     )}
                   </div>
+
+                  <KassaDevicesStatus devices={kassaDevices.filter((d) => d.terminal_id === terminal.id)} />
 
                   {/* Capabilities */}
                   <div className="flex gap-2">

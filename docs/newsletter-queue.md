@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13p — Afrekenen op SellQo Kassa (feature, 24-10-2026)
+
+**Status:** wacht op go + deploy (TAFEL-2, branch `tafel-2`; na TAFEL-1).
+
+**Voor wie:** horecazaken (horeca-module).
+
+**Afrekenen zoals je gewend bent, ook per persoon** (oktober 2026)
+Reken een tafel af met contant, kaart, maaltijdcheques of een mix, deel gelijk in 2 tot 6, of laat één klant apart betalen: wat hij nam gaat naar een eigen deel van de rekening, de rest blijft staan. Contant wordt op 5 cent afgerond met het wisselgeld erbij, fooi boek je apart.
+Wat betekent dit voor jou? Het bedrag komt altijd uit wat er besteld is, nooit uit het toestel, en twee obers kunnen nooit dezelfde tafel tegelijk afrekenen. Elke betaling staat meteen in je kassaverkopen, shift en voorraad.
+
+i18n: `public.changelog.changes.table_payment`
+
 ### 2026.13o — Tafels en rekeningen op SellQo Kassa (feature, 23-10-2026)
 
 **Status:** wacht op go + deploy (TAFEL-1, branch `tafel-1`; na KASSA-0, PERSONEEL-1 en ZAAL-H1).

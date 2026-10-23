@@ -1,3 +1,63 @@
+## LIVE-1 — toestelhartslag, stresstest, livegangsdraaiboek, startzaalplan — 24 oktober 2026
+
+Branch `tafel-2` (bovenop TAFEL-2); niets live. Ontwerp §6.7 en §8.
+
+**Root cause / aanleiding** — Bij De Fiere Margriet werd een vastgelopen toestel pas opgemerkt als de klant belde, en werd er nooit vooraf onder last getest. De releasepoorten van het ontwerp (§8) vragen een stresstest en zicht op elk toestel.
+
+**Uitgevoerd**
+- Migratie `20261024150000_live_1_kassa_heartbeat.sql`: `kassa_devices` (per toestel: versie, fiscale modus, wachtrij, ondertekende events en betalingen die nog op het toestel wachten, laatste sync, online), `kassa_heartbeat()` (security definer, tenant_admin/staff, terminal moet van de zaak zijn, waarden begrensd), zet ook `pos_terminals.last_seen_at`.
+- Kassa-app: `heartbeat.ts` + `useKassaBackground.ts` — hartslag elke minuut en het doorsturen van wachtende betalingen, ook op het PIN-scherm.
+- Admin: Kassa › Kassa's toont per kassa de SellQo Kassa-toestellen ("… gezien", wachtend, versie; oranje na 5 min stilte of bij iets wachtends) — `KassaDevicesStatus`, `useKassaDevices`.
+- `scripts/gks/stress/horeca-stress.mjs`: D toestellen × T tafels, gebundelde commando's, rondes, annuleren, apart afrekenen, claim + afrekenen, 5 % herhaalde aanroepen; daarna invarianten in SQL (0 verloren/dubbele lijnen, betaling = lijnen = transactie, één betaling per rekening, geen negatief open aantal, één keukenbon per ronde/post, voorraad = verkocht, geen hangende claim op een gesloten rekening) en p50/p95/p99. `run.sh` kreeg `SETUP_ONLY=1`.
+- `docs/horeca-livegang.md`: poort GKS, releasepoorten met status, voorbereiding, dag 1, controles na elke shift (incl. reconciliatie N-events zonder betaling en hangende claims), terugval.
+- `docs/sql/live-1-zaalplan-eerste-horecaklant.sql`: startzaalplan naar de Lightspeed-foto (Binnen: Blauw 1–5, Salon, Club, Rond; Bar: B1–B9 + toog; Terras: Ter-1–3), idempotent, lokaal 2× gedraaid tegen het ZAAL-H1-schema.
+- Lightspeed-kaart: geen nieuwe code — de bestaande import (`/admin/import`, CSV met kolomtoewijzing) dekt het; een vaste mapping volgt als we de echte K-series-export hebben.
+- Changelog 2026.13q (`kassa_device_status`).
+
+**Security-keuzes** — `kassa_devices`: lezen = lid van de zaak (RLS), schrijven enkel via `kassa_heartbeat`. Getest: vreemde zaak/terminal geweigerd, anon geweigerd, rechtstreeks schrijven geweigerd, waarden begrensd.
+
+**Gedeelde-paden-waarschuwing** — `pos_terminals.last_seen_at` wordt nu gezet (kolom bestond, was ongebruikt). Geen storefront-pad.
+
+**Verificatie** — `run.sh`: 5 suites groen (incl. hartslag). Stresstest lokaal (PG16): 6 toestellen × 25 tafels × 180 s: 1.989 aanroepen, 3.492 lijnen, 330 betalingen, alle invarianten gehouden, p95 95 ms; met claimflow 90 s: 221 betalingen, invarianten gehouden, p95 61 ms.
+
+**Bewust ongemoeid / Vervolg** — Stresstest van 4 u met echte toestellen en crashtest in de zaak (releasepoort, vóór de livegang). Watchtower-alarm op `kassa_devices` (stil tijdens openingsuren) nog te koppelen. Toestel ↔ kassa-binding op de server.
+
+## TAFEL-2 — afrekenen op SellQo Kassa: server-side, gesplitste betaling, apart afrekenen, afronding, fooi — 24 oktober 2026
+
+Branch `tafel-2` (op `tafel-1`, met `print-1` erin gemerged); niets live. Geld-batch: review-agent in twee rondes. Eisenmatrix PAY-01..06, EVT-05 (afsluiten met één N), TBL-04/05 (UC4119bis), FDM-04, INV-01.
+
+**Root cause / aanleiding** — De klassieke kassa (`usePOS.ts:309-342`) rekent het totaal in de browser en schrijft de verkoop rechtstreeks weg: precies het patroon waarop De Fiere Margriet "afrekenen op € 0,00" kreeg. Tafelrekeningen (TAFEL-1) konden nog niet afgerekend worden.
+
+**Uitgevoerd**
+- Migratie `20261024140000_tafel_2_pay.sql`:
+  - `check_payments` (append-only, ook geen truncate; één betaling per rekening, één per fiscaal event);
+  - `horeca_pay_begin` (claim: rekening "in betaling", legt lijnen en totaal vast; 10 min), `horeca_pay_release`;
+  - `horeca_pay`: totaal uit de verstuurde lijnen (`horeca_line_total`), exacte lijnenset, betaalmiddelen sluiten exact, contant afronden over de som contant (`horeca_round5`, max ±0,02), fooi apart (contant = kasbeweging "Fooi"), fiscaal event verplicht voor een GKS-zaak (`horeca_tenant_fiscal`, elke kassa) en altijd gecontroleerd (label N, geen training, bedrag, onderste costCenter-reference), `pos_transactions` (items, btw zoals de FDM per tarief, betalingen zoals ontvangen) met voorraad via de bestaande trigger, open shift (of automatisch geopend), verbruik `record_transaction`; ontwerp-lijnen van een collega → nieuwe rekening (`carried_to`), een late `add_line` volgt mee.
+- Migratie TAFEL-1 (niet live, in place aangepast): deelrekeningen (`split_of`, `split_no` door de server, unieke index per hoofdrekening), claimvelden, `move_check` weigert met open delen, leesbare melding bij twee toestellen die dezelfde tafel openen.
+- Kassa-app: `pay.ts` (betaalplan, afronding, fooi, fiscale betaallijnen in de volgorde van PAY-03), `payActions.ts` (claim → tekenen → write-ahead → boeken; wachtende en geweigerde betalingen op het toestel; enkel businesscodes zijn definitief), `PayDialog`/`SplitDialog`, knop Afrekenen en "Apart afrekenen", vergrendeling bij een betaling op dit of een ander toestel; runtime: uitgaande wachtrij voor ondertekende events (single-flight), event hangt aan het onderste costCenter-niveau.
+- Kassa-versie `sellqo-kassa-0.4.0`; changelog 2026.13p (`table_payment`); helpartikel `docs/sql/tafel-2-doc-article.sql` (nog niet gedraaid); nieuwsbrief.
+
+**Security-keuzes** — Alle schrijfpaden security definer met `search_path ''`, rol tenant_admin/staff, elke rij op de tenant gefilterd; `check_payments` enkel leesbaar (RLS), nooit wijzigbaar; `horeca_line_total`/`horeca_tenant_fiscal` niet aanroepbaar door authenticated/anon. Prijzen en totalen nooit van het toestel.
+
+**Gedeelde-paden-waarschuwing** — `pos_transactions`, `pos_sessions`, `pos_cash_movements` krijgen rijen in dezelfde vorm als de klassieke kassa (shiftrapport en verwacht contant blijven werken; contant inclusief afronding). Geen schema-wijziging op die tabellen. Geen storefront-pad. INV-01: kassaverkopen maken geen order en geen factuur (grep: geen factuurpad vanuit POS).
+
+**Review** — Aparte agent, twee rondes.
+- Ronde 1: 2 blokkerend (event-reference van een deelrekening; getekend-maar-geweigerd = dubbel tekenen mogelijk), 7 belangrijk, 7 klein → claim vóór tekenen, write-ahead, outbox single-flight, bladreference, GKS per zaak, shift + contante fooi, `move_check` met open delen geweigerd, unieke deelnummers, truncate-guard.
+- Ronde 2: 1 blokkerend (geen FDM-antwoord gaf de claim vrij terwijl de FDM misschien tekende), 4 belangrijk, 2 klein → bij geen antwoord: claim houden, bericht bewaren als `unsigned` en identiek opnieuw sturen (FDM weigert = aantoonbaar niet getekend → vrijgeven); `horeca_pay_begin` weigert een nieuwe claim zolang er voor de rekening een getekende maar ongeboekte N bestaat (enkel dezelfde betaling mag terugnemen); enkel kassa's op `fdm` maken een zaak fiscaal en daar telt geen simulator-handtekening; shift openen met `on conflict` (live unieke index); vaste lock-volgorde hoofdrekening → deel en automatisch opnieuw bij 40P01; ontwerp-lijnen mogen tijdens de claim (schuiven door); betaling-id per rekening bewaard zodat een nieuwe poging na een verloren antwoord dezelfde betaling is; lege `carried_to` afgevangen. Vitest `payActions.test.ts` dekt die paden.
+
+**Verificatie** — `run.sh` (PG16, migraties 2×): fiscal, personeel, tafel, pay (o.a. claim, geen tweede tekening bij een ongeboekte N, simulator-handtekening geweigerd in een FDM-zaak, carry-over en late lijn, fooi in de lade, idempotent, rechten), hartslag: groen. Volledige verificatie: tsc 0, lint 1457 → 1456, vitest groen, build + build:kassa groen, CI-checks groen. Vitest: UC201/UC292/UC4103bis/UC4119/UC4119bis-betaallijnen, deelrekening TABLE › CHAIR door de simulator getekend, afrekenvenster. Stresstest met claimflow: invarianten gehouden.
+
+**Samenhang**
+
+| Plek | Doet nu | Wat verandert |
+|---|---|---|
+| SellQo Kassa › rekening | bestellen, versturen, voorrekening | + Afrekenen, Apart afrekenen |
+| Klassieke kassa `/admin/pos/:terminalId` | directe verkoop, client-side | ongemoeid (zelfde serverpad = TAFEL-3) |
+| Shiftrapport / verwacht contant | `pos_transactions` per shift | tafelbetalingen tellen mee (shift desnoods automatisch geopend) |
+| Transactiegeschiedenis | `pos_transactions` | tafelbetalingen staan erbij (zelfde vorm) |
+
+**Bewust ongemoeid / Vervolg (TAFEL-3)** — Klassieke kassa op hetzelfde serverpad; X/Z-rapporten en kas in/uit als fiscale events (open vraag: de gebruikersrapporten bevatten het INSZ van alle medewerkers, het toestel kent enkel dat van wie aangemeld is); QR/webshop-orders van een GKS-zaak ondertekenen in een kassa-inbox; refund/terugname van een getekende maar geweigerde betaling; toestel ↔ kassa-binding op de server; btw-afronding bij een negatief tarieftotaal (K6); `items` zonder product en bonnummer-race in `pos_transactions` (bestaand).
+
 ## TAFEL-1 — tafels en rekeningen op SellQo Kassa: rondes, keuken-/barbonnen per post, annuleren, korting, verplaatsen, samenvoegen, voorrekening — 23 oktober 2026
 
 Branch `tafel-1` (op `personeel-1`, met `zaal-h1` erin gemerged); niets gemerged naar main, gedeployed of live gedraaid. Eisenmatrix TBL-01..07, EVT-03 (P/ORDER), EVT-04 (P/PRE_BILL), EVT-07 (COST_CENTER_CHANGE), FDM-04 (eerst tekenen, dan doorvoeren). Kassa-versie `sellqo-kassa-0.3.0`.
