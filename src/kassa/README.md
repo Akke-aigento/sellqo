@@ -27,6 +27,7 @@ Bron van waarheid voor de eisen: projectdoc `claude/gks-eisenmatrix.md` (eis-ID'
 | `fiscal/simulator/` | FDM-simulator (GEEN echte handtekeningen), QR-codering, mini-GraphQL |
 | `fiscal/testSetup.ts` | Verplichte testopstelling van de FOD (FPS Finances Experience) |
 | `fiscal/__tests__/uc/` | De ±190 officiële use cases als tests (fixtures uit `scripts/gks/extract-uc-fixtures.mjs`) |
+| `print/` | Kastickets en afdrukken (PRT-01..09, EVT-12): ticketmodel, tekst/ESC/POS/HTML, printwachtrij — zie `print/README.md` |
 | `app/` | Ingang van het tweede app-target `app.sellqo.kassa` (`npm run build:kassa` → `dist-kassa`) |
 
 Capacitor-config van het kassa-target: `apps/kassa/capacitor.config.ts`. Native projecten

@@ -74,6 +74,45 @@ Branch `personeel-1` (op `kassa-0`); niets gemerged, gedeployed of live gedraaid
 - Geen UI voor de fiscale kassa-instellingen (`settings.fiscal`): komt met FDM-1/CERT-1, met auditspoor op elke wijziging.
 - De vier oude cashier-functies worden niet verwijderd (geen destructieve wijziging); kandidaat voor opruiming na de livegang.
 - In niet-fiscale modus is in/uitklokken enkel een auditregel; een urenoverzicht volgt later.
+## PRINT-1 — kastickets en printen voor SellQo Kassa (GKS 2.0): ticketmodel, tekst/ESC/POS/HTML, printwachtrij, Star CloudPRNT — 23 oktober 2026
+
+Derde batch van de kassareeks. Branch `print-1` (op `kassa-0`, `8faa7f4`); niets gemerged, gepusht, gedeployed of live gedraaid. Fiscale release: `KASSA_SW_VERSION` → `sellqo-kassa-0.2.0`. Niet zichtbaar voor tenants (geen admin-UI): geen changelog/helpartikel/nieuwsbrief.
+
+**Root cause / aanleiding** — De fiscale kern (KASSA-0) kon events laten ondertekenen, maar niets afdrukken. Een gecertificeerde kassa moet elk N- en I-event afdrukken (papier, digitaal of beide) met alle vermeldingen van MB art. 20 a–r, en elke andere afdruk volgens pos_detail §8.1 markeren. Er bestond geen ticketlaag, geen printwachtrij en geen printerkoppeling.
+
+**Uitgevoerd**
+- `src/kassa/print/` (pure TypeScript, geen React/DB):
+  - `types.ts` (`TicketDoc`, `SignedEvent`, `TicketContext`, `PrintRefusedError` met eis-ID), `format.ts` (Belgische notatie via `money.ts`), `i18n.ts` (eigen ticketwoordenboek NL/FR/DE/EN; NL/EN letterlijk uit de FOD-voorbeelden).
+  - `ticketModel.ts`: `buildKasticket` (N, met REFUND-variant), `buildRefundTicket`, `buildVoorrekening` (P/PRE_BILL), `buildBestelbon` (P/ORDER), `buildTrainingTicket` (T), `buildCopyTicket` (C, EVT-12), `buildKitchenTicket` (keuken/bar, zonder bedragen), `buildReport` (X/Z omzet en gebruikers), `buildTicketFor` (dispatcher). Consolidatie en groeperen per departement als optie (PRT-07).
+  - `layout.ts` (vaste breedte 32/42/48), `text.ts`, `escpos.ts` (PC858 via `ESC t 19`, vet, dubbele hoogte, QR via `GS ( k` model 2 / ECC M, snijden), `html.ts` (inline stijl, QR als SVG + link), `qr.ts` (qr.js via de diepe import die react-qr-code ook gebruikt; `qrjs.d.ts`), `queue.ts` (`buildPrintJob`, dedupe per event en printer, QR-regel per protocol), `index.ts`, `README.md` (eis → code → test).
+  - `__tests__/print.test.ts` (35 tests) en `__tests__/preview.test.ts` (schrijft voorbeeldafdrukken weg als `PRINT_PREVIEW_DIR` gezet is).
+- Migratie `20261024120000_print_1_printers.sql`: `printers`, `print_jobs`, `printers_touch()`, `print_jobs_guard()`. Lokale tests `scripts/gks/sql/test_print_jobs.sql` + `run_print.sh` (faalt nu ook op een `ok_*`-controle die false geeft).
+- Edge function `supabase/functions/cloudprnt/index.ts` (Star CloudPRNT: POST-poll, GET job, DELETE/GET-delete bevestiging) met de protocollogica in `supabase/functions/_shared/cloudprnt.ts` + `cloudprnt.test.ts` (9 tests). `supabase/config.toml`: `[functions.cloudprnt] verify_jwt = false`. CI: `cloudprnt.test.ts` toegevoegd aan de deno-tests.
+- `src/kassa/version.ts` 0.2.0; `src/kassa/README.md` verwijst naar `print/`.
+
+**Security-keuzes**
+- `printers`: RLS aan; `revoke all` van anon/authenticated/service_role, dan kolomrechten. Leden van de zaak lezen alles behalve `token_hash`; enkel `tenant_admin` maakt aan en wijzigt (ook `token_hash` schrijven, nooit lezen). Geen delete (printer uitzetten met `is_active`; `print_jobs.printer_id` is `on delete restrict`). service_role: select/insert/update.
+- `print_jobs`: lezen voor leden; insert als jezelf (`created_by = auth.uid()`) door `tenant_admin`/`staff`; update enkel van status-kolommen. Guard-trigger (ook voor service_role en eigenaar): job start als `queued`, printer moet bij dezelfde zaak horen, inhoud (payload, sleutel, printer, zaak) onveranderlijk, `printed` is eindstatus (herafdruk = copy-event, FAQ Q503), enkel toegelaten statusovergangen. `dedupe_key` uniek per zaak. Geen delete.
+- `cloudprnt`: geen Supabase-JWT (printer), wel een geheim printer-token per printer (Basic-wachtwoord, Bearer of `?key=`), vergeleken als SHA-256 met `token_hash`; onbekend/uitgezet/ander protocol = 401 zonder detail. Werkt met service_role, geeft `token_hash` nooit terug. `?health` = versiestempel zonder neveneffect.
+- INSZ: komt nooit op een afdruk. De renderer drukt naam + intern nummer af, weigert een label dat het INSZ bevat, en het gebruikersrapport gebruikt een personeelslijst (anders "Gebruiker n"). Getest over alle soorten, alle drie de weergaven en alle breedtes.
+- Lokaal getest (PG16 + Supabase-nabootsing, migratie 2×): token_hash onleesbaar (ook via `select *`), staff beheert geen printers, vreemde printer/zaak geweigerd, dubbele job geweigerd, payload wijzigen geweigerd, printed → queued geweigerd (ook service_role), delete geweigerd, anon niets, viewer leest maar maakt niets aan.
+
+**Gedeelde-paden-waarschuwing** — geen gedeelde tabel, storefront-contract of bestaande edge function geraakt. `supabase/config.toml` en `.github/workflows/ci.yml` krijgen elk één toevoeging. `src/kassa/fiscal/` is niet gewijzigd.
+
+**Verificatie**
+- `npx vitest run src/kassa`: 188 groen + 1 overgeslagen (preview zonder `PRINT_PREVIEW_DIR`) = 153 bestaand + 35 nieuw.
+- `scripts/gks/sql/run_print.sh`: alle SQL-tests groen. `deno test supabase/functions/_shared/cloudprnt.test.ts`: 9/9. `deno check` cloudprnt met de stub-import map: groen; ook tegen de echte types (`npm:@supabase/supabase-js@2.57.2`): groen.
+- tsc, lint-baseline (1457 → 1456), i18n-parity, used-keys, alle `check-*`/`verify-*` uit de CI, `npm run build`, `npm run build:kassa`: zie het rapport bij de commit.
+- Inhoud vergeleken met de FOD-voorbeeldtickets van 24-09-2026 (btw-kasticket, kopie, refund, voorrekening, barticket, Z-omzetrapport): zelfde velden en volgorde, getest met `inOrder` op de echte uitvoer.
+
+**Samenhang** — één ticketmodel voor papier, digitaal en mail (geen aparte HTML-template naast de bon). De bestaande kassa (`usePOS.ts`, `POSTerminal.tsx`) en eventuele bestaande bonprints zijn bewust ongemoeid; de kassa-app gebruikt deze laag pas in TAFEL-2. Eén bron voor btw-cijfers op het ticket: `vatCalc` van de FDM.
+
+**Bewust ongemoeid / Vervolg**
+- Open punten voor de FOD/hardware: (1) FR/DE-titels niet in de aangeleverde bronnen; (2) "25×25 versie 2 ECC M" past niet voor een url van 38 tekens in byte-modus (wij: ECC M, versie 3); (3) PC858-nummer `ESC t 19` per printermerk testen; (4) kopie van een kasticket draagt "btw-KASTICKET" + "KOPIE" zoals het FOD-voorbeeld (spanning met Q507); (5) het voorbeeld-gebruikersrapport in de certificatiehandleiding toont het INSZ, wij niet.
+- Star CloudPRNT krijgt enkel `text/plain` (geen QR): kastickets gaan niet naar een Star-printer (`buildPrintJob` weigert met PRT-03) tot er een StarPRNT-encoder is die op hardware getest is. Text/plain-codering (UTF-8 vs. codepage, `X-Star-Accept-Codepages`) op een echte printer testen.
+- Epson Server Direct Print (ePOS-XML rond `payload_escpos`) en de lokale ESC/POS-LAN-verzending vanuit het toestel: vervolgbatch (app/hardware).
+- Kopie van F/S/I-events en de factuurafdruk (I): nog niet; `buildCopyTicket` weigert die expliciet.
+- Admin-UI voor printers (token aanmaken, testafdruk): vervolgbatch; de migratie is nog niet live gedraaid.
 
 ## KASSA-0 — fiscale kern SellQo Kassa (GKS 2.0): schema, builders, simulator, logboek, officiële use cases — 23 oktober 2026
 
