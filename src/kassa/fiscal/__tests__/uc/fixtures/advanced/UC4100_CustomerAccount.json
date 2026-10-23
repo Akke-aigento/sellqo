@@ -1,0 +1,160 @@
+{
+ "set": "advanced",
+ "uc": "UC4100_CustomerAccount",
+ "scenario": "INPUT MONEY CUSTOMER ACCOUNT + SALE PAYMENT CUST ACCOUNT-DS\r\n\r\n1/ INPUT 500E ON CUSTOMER ACCOUNT\r\n\r\n2/ SALE of 1 crème brûlée 10 EUR B WITH PAYMENT METHOD: CUSTOMER ACCOUNT\r\n\r\n",
+ "steps": [
+  {
+   "step": "UC4100_1_MoneyIn",
+   "query": "mutation UC4100_1_CustomerAccount_MoneyIn($data: MoneyInOutInput!, $training: Boolean! = false) {\r\n  signMoneyInOut(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "FR",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 54900,
+     "posDateTime": "2024-05-02T15:20:05.000+02:00",
+     "posSwVersion": "1.8.3",
+     "terminalId": "POS-2-REC",
+     "deviceId": "80:1A:A6:75:66:FC",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-05-02",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "amount": 500,
+       "inputMethod": "MANUAL",
+       "amountType": "MONEY_IN_OUT",
+       "drawer": {
+        "id": "D1",
+        "name": "Drawer1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signMoneyInOut": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 54900,
+      "posDateTime": "2024-05-02T15:20:05.000+02:00",
+      "terminalId": "POS-2-REC",
+      "deviceId": "80:1A:A6:75:66:FC",
+      "eventOperation": "MONEY_IN_OUT",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-05-02T13:20:12.000Z",
+       "eventLabel": "F",
+       "eventCounter": 7,
+       "totalCounter": 61
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4100_2_Sale",
+   "query": "mutation UC4100_2_CustomerAccount_Sale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 58900,
+     "posDateTime": "2024-05-02T15:22:05.000+02:00",
+     "posSwVersion": "1.8.3",
+     "terminalId": "POS-2-REC",
+     "deviceId": "80:1A:A6:75:66:FC",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-05-02",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189731",
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "25008",
+         "productName": "crème brûlée",
+         "departmentId": "25",
+         "departmentName": "Desserts",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 10,
+         "vats": [
+          {
+           "label": "B",
+           "price": 10
+          }
+         ]
+        },
+        "lineTotal": 10
+       }
+      ],
+      "transactionTotal": 10
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CUSTOMER",
+       "type": "CUSTOMER_CREDIT",
+       "inputMethod": "MANUAL",
+       "amount": 10,
+       "amountType": "PAYMENT"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 58900,
+      "posDateTime": "2024-05-02T15:22:05.000+02:00",
+      "terminalId": "POS-2-REC",
+      "deviceId": "80:1A:A6:75:66:FC",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 8.93,
+        "vatAmount": 1.07,
+        "totalAmount": 10,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-05-02T13:22:08.000Z",
+       "eventLabel": "N",
+       "eventCounter": 15,
+       "totalCounter": 62
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

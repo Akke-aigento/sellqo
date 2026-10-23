@@ -1,0 +1,653 @@
+{
+ "set": "advanced",
+ "uc": "UC241_TableSplitToExisting",
+ "scenario": "\r\n1.\tOrder of 1 Burger of the Chef, 1 Dish of the day (18 EUR) and 2 Dry Martini's on table 1 \r\n\r\n2.\tOrder of 1 Dish of the day and 1 Perrier on table 2 \r\n\r\n3.\tTable split: 1 Dish of the day and 1 Dry Martini are moved from table 1 to table 2 \r\n\r\n4.\tFinalise order on table1: cash payment, tip EUR\r\n\r\n5.\tFinalise order on table2: payment with VISA card \r\n",
+ "steps": [
+  {
+   "step": "UC241_1_OrderT1",
+   "query": "mutation UC241_1_TableSplitToExisting_OrderT1($data: OrderInput!, $training: Boolean! = false) {\r\n  signOrder(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6000,
+     "posDateTime": "2024-09-03T12:00:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "1",
+      "type": "TABLE",
+      "reference": "20240903_001"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the Chef",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": 28
+          }
+         ]
+        },
+        "lineTotal": 28
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22010",
+         "productName": "Dish of the day",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 18,
+         "vats": [
+          {
+           "label": "B",
+           "price": 18
+          }
+         ]
+        },
+        "lineTotal": 18
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 24
+          }
+         ]
+        },
+        "lineTotal": 24
+       }
+      ],
+      "transactionTotal": 70
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signOrder": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6000,
+      "posDateTime": "2024-09-03T12:00:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "ORDER",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:00:08.000Z",
+       "eventLabel": "P",
+       "eventCounter": 35,
+       "totalCounter": 85
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC241_2_OrderT2",
+   "query": "mutation UC241_2_TableSplitToExisting_OrderT2($data: OrderInput!, $training: Boolean! = false) {\r\n  signOrder(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6001,
+     "posDateTime": "2024-09-03T12:05:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "2",
+      "type": "TABLE",
+      "reference": "20240903_002"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22010",
+         "productName": "Dish of the day",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 18,
+         "vats": [
+          {
+           "label": "B",
+           "price": 18
+          }
+         ]
+        },
+        "lineTotal": 18
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "12007",
+         "productName": "Perrier",
+         "departmentId": "12",
+         "departmentName": "Soft Drinks",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 2.5,
+         "vats": [
+          {
+           "label": "A",
+           "price": 2.5
+          }
+         ]
+        },
+        "lineTotal": 2.5
+       }
+      ],
+      "transactionTotal": 20.5
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signOrder": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6001,
+      "posDateTime": "2024-09-03T12:05:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "ORDER",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:05:05.000Z",
+       "eventLabel": "P",
+       "eventCounter": 36,
+       "totalCounter": 86
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC241_3_TableSplit",
+   "query": "mutation UC241_3_TableSplitToExisting_CostCenterChange($data: CostCenterChangeInput!, $training: Boolean! = false) {\r\n  signCostCenterChange(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6002,
+     "posDateTime": "2024-09-03T12:10:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "transfer": {
+      "from": [
+       {
+        "costCenter": {
+         "id": "1",
+         "type": "TABLE",
+         "reference": "20240903_001"
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "22010",
+            "productName": "Dish of the day",
+            "departmentId": "22",
+            "departmentName": "Main Dishes",
+            "quantity": -1,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 18,
+            "vats": [
+             {
+              "label": "B",
+              "price": -18
+             }
+            ]
+           },
+           "lineTotal": -18
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "10006",
+            "productName": "Dry Martini",
+            "departmentId": "10",
+            "departmentName": "Aperitifs",
+            "quantity": -1,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 12,
+            "vats": [
+             {
+              "label": "A",
+              "price": -12
+             }
+            ]
+           },
+           "lineTotal": -12
+          }
+         ],
+         "transactionTotal": -30
+        }
+       }
+      ],
+      "to": [
+       {
+        "costCenter": {
+         "id": "2",
+         "type": "TABLE",
+         "reference": "20240903_002"
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "22010",
+            "productName": "Dish of the day",
+            "departmentId": "22",
+            "departmentName": "Main Dishes",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 18,
+            "vats": [
+             {
+              "label": "B",
+              "price": 18
+             }
+            ]
+           },
+           "lineTotal": 18
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "10006",
+            "productName": "Dry Martini",
+            "departmentId": "10",
+            "departmentName": "Aperitifs",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 12,
+            "vats": [
+             {
+              "label": "A",
+              "price": 12
+             }
+            ]
+           },
+           "lineTotal": 12
+          }
+         ],
+         "transactionTotal": 30
+        }
+       }
+      ]
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signCostCenterChange": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6002,
+      "posDateTime": "2024-09-03T12:10:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "COST_CENTER_CHANGE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:10:06.000Z",
+       "eventLabel": "P",
+       "eventCounter": 37,
+       "totalCounter": 87
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC241_4_SaleT1",
+   "query": "mutation UC241_4_TableSplitToExisting_signSale_T1($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6003,
+     "posDateTime": "2024-09-03T12:15:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "1",
+      "type": "TABLE",
+      "reference": "20240903_001"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the Chef",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": 28
+          }
+         ]
+        },
+        "lineTotal": 28
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 12
+          }
+         ]
+        },
+        "lineTotal": 12
+       }
+      ],
+      "transactionTotal": 40
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 40,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "1",
+        "name": "Drawer 1"
+       }
+      },
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 5,
+       "amountType": "TIP",
+       "drawer": {
+        "id": "1",
+        "name": "Drawer 1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6003,
+      "posDateTime": "2024-09-03T12:15:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 25,
+        "vatAmount": 3,
+        "totalAmount": 28,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 9.92,
+        "vatAmount": 2.08,
+        "totalAmount": 12,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:15:06.000Z",
+       "eventLabel": "N",
+       "eventCounter": 33,
+       "totalCounter": 89
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC241_5_SaleT2",
+   "query": "mutation UC241_5_TableSplitToExisting_signSale_T2($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6004,
+     "posDateTime": "2024-09-03T12:20:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "2",
+      "type": "TABLE",
+      "reference": "20240903_002"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22010",
+         "productName": "Dish of the day",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 18,
+         "vats": [
+          {
+           "label": "B",
+           "price": 36
+          }
+         ]
+        },
+        "lineTotal": 36
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "12007",
+         "productName": "Perrier",
+         "departmentId": "12",
+         "departmentName": "Soft Drinks",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 2.5,
+         "vats": [
+          {
+           "label": "A",
+           "price": 2.5
+          }
+         ]
+        },
+        "lineTotal": 2.5
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 12
+          }
+         ]
+        },
+        "lineTotal": 12
+       }
+      ],
+      "transactionTotal": 50.5
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "VISA",
+       "type": "CARD_CREDIT",
+       "inputMethod": "MANUAL",
+       "provider": "VISA",
+       "amount": 50.5,
+       "amountType": "PAYMENT"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6004,
+      "posDateTime": "2024-09-03T12:20:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 32.14,
+        "vatAmount": 3.86,
+        "totalAmount": 36,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 11.98,
+        "vatAmount": 2.52,
+        "totalAmount": 14.5,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:20:09.000Z",
+       "eventLabel": "N",
+       "eventCounter": 34,
+       "totalCounter": 90
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

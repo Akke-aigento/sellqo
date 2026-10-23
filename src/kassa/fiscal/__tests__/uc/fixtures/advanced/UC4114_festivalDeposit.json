@@ -1,0 +1,223 @@
+{
+ "set": "advanced",
+ "uc": "UC4114_festivalDeposit",
+ "scenario": "Sale 5 Coca-Cola (with 5 bottle deposits). Payment by card.\r\n\r\nRefund on card 10 bottle deposits.",
+ "steps": [
+  {
+   "step": "UC4114_1_Sale",
+   "query": "mutation UC4114_1_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6000,
+     "posDateTime": "2024-09-03T12:25:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "terminalId": "TER-1-BAR",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "DIGITAL",
+     "employeeId": "75061189702",
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "12009",
+         "productName": "Coca-Cola",
+         "departmentId": "12",
+         "departmentName": "Soft Drinks",
+         "quantity": 5,
+         "quantityType": "PIECE",
+         "unitPrice": 3.04,
+         "vats": [
+          {
+           "label": "C",
+           "price": 15.2
+          }
+         ]
+        },
+        "lineTotal": 15.2
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "90001",
+         "productName": "Bottle S",
+         "departmentId": "90",
+         "departmentName": "Bottle Deposits",
+         "quantity": 5,
+         "quantityType": "PIECE",
+         "unitPrice": 0.01,
+         "vats": [
+          {
+           "label": "X",
+           "price": 0.05
+          }
+         ]
+        },
+        "lineTotal": 0.05
+       }
+      ],
+      "transactionTotal": 15.25
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CARD",
+       "type": "CARD_DEBIT",
+       "inputMethod": "AUTOMATIC",
+       "provider": "VISA",
+       "amount": 15.25,
+       "amountType": "PAYMENT"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6000,
+      "posDateTime": "2024-09-03T12:25:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "vatCalc": [
+       {
+        "label": "C",
+        "rate": 6,
+        "taxableAmount": 14.34,
+        "vatAmount": 0.86,
+        "totalAmount": 15.2,
+        "outOfScope": false
+       },
+       {
+        "label": "X",
+        "rate": 0,
+        "taxableAmount": 0.05,
+        "vatAmount": 0,
+        "totalAmount": 0.05,
+        "outOfScope": true
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:25:11.000Z",
+       "eventLabel": "N",
+       "eventCounter": 64,
+       "totalCounter": 150
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4114_2_RefundDeposit",
+   "query": "mutation UC4114_2_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6020,
+     "posDateTime": "2024-09-03T12:40:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "terminalId": "TER-1-BAR",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "DIGITAL",
+     "employeeId": "75061189702",
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "90001",
+         "productName": "Bottle S",
+         "departmentId": "90",
+         "departmentName": "Bottle Deposits",
+         "quantity": -10,
+         "negQuantityReason": "REFUND",
+         "quantityType": "PIECE",
+         "unitPrice": 0.01,
+         "vats": [
+          {
+           "label": "X",
+           "price": -0.1
+          }
+         ]
+        },
+        "lineTotal": -0.1
+       }
+      ],
+      "transactionTotal": -0.1
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CARD",
+       "type": "CARD_DEBIT",
+       "inputMethod": "AUTOMATIC",
+       "provider": "VISA",
+       "amount": -0.1,
+       "amountType": "PAYMENT"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6020,
+      "posDateTime": "2024-09-03T12:40:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "vatCalc": [
+       {
+        "label": "X",
+        "rate": 0,
+        "taxableAmount": -0.1,
+        "vatAmount": 0,
+        "totalAmount": -0.1,
+        "outOfScope": true
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:40:05.000Z",
+       "eventLabel": "N",
+       "eventCounter": 65,
+       "totalCounter": 151
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

@@ -1,0 +1,879 @@
+{
+ "set": "advanced",
+ "uc": "UC243_TableSplit_Discount",
+ "scenario": "OPERATION 1: Order of 1 Carpaccio Beef, 1 Burger of the Chef and 2 Dry Martini with a 10% discount on table 1\r\n\r\nOPERATION 2: Table split: 1 Burger of the Chef and 1 Dry Martini are moved to (empty) table 2\r\n\r\nOPERATION 3: Prebill for table 1 (1 Carpaccio Beef & 1 Dry Martini)\r\n\r\nOPERATION 4: Prebill for table 2 (1 Burger of the Chef & 1 Dry Martini)\r\n\r\nOPERATION 5: Finalise order on table1: cash payment 28.8 EUR, tip 3 EUR CASH\r\n\r\nOPERATION 6: Finalise order on table2: payment with VISA card 36 EUR\r\n",
+ "steps": [
+  {
+   "step": "UC243_1_OrderT1",
+   "query": "mutation UC243_1_TableSplit_Discount_OrderT1($data: OrderInput!, $training: Boolean! = false) {\r\n  signOrder(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6000,
+     "posDateTime": "2024-09-03T12:25:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "1",
+      "type": "TABLE",
+      "reference": "20240903_001"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "20001",
+         "productName": "Carpaccio beef",
+         "departmentId": "20",
+         "departmentName": "Starters",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 20,
+         "vats": [
+          {
+           "label": "B",
+           "price": 20,
+           "priceChanges": [
+            {
+             "id": "1",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -2
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 18
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the chef",
+         "departmentId": "22",
+         "departmentName": "Main dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": 28,
+           "priceChanges": [
+            {
+             "id": "2",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -2.8
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 25.2
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 24,
+           "priceChanges": [
+            {
+             "id": "3",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -2.4
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 21.6
+       }
+      ],
+      "transactionTotal": 64.8
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signOrder": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6000,
+      "posDateTime": "2024-09-03T12:25:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "ORDER",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:25:10.000Z",
+       "eventLabel": "P",
+       "eventCounter": 40,
+       "totalCounter": 95
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC243_2_CostCenterChange",
+   "query": "mutation UC243_2_TableSplit_Discount_CostCenterChange($data: CostCenterChangeInput!, $training: Boolean! = false) {\r\n  signCostCenterChange(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6001,
+     "posDateTime": "2024-09-03T12:30:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "transfer": {
+      "from": [
+       {
+        "costCenter": {
+         "id": "1",
+         "type": "TABLE",
+         "reference": "20240903_001"
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "10006",
+            "productName": "Dry Martini",
+            "departmentId": "20",
+            "departmentName": "Starters",
+            "quantity": -1,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 12,
+            "vats": [
+             {
+              "label": "B",
+              "price": -12,
+              "priceChanges": [
+               {
+                "id": "1",
+                "groupingId": 1,
+                "name": "10%KORTING",
+                "scope": "LINE",
+                "type": "PUBLIC",
+                "amount": 1.2
+               }
+              ]
+             }
+            ]
+           },
+           "lineTotal": -10.8
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "22001",
+            "productName": "Burger of the chef",
+            "departmentId": "22",
+            "departmentName": "Main dishes",
+            "quantity": -1,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 28,
+            "vats": [
+             {
+              "label": "B",
+              "price": -28,
+              "priceChanges": [
+               {
+                "id": "1",
+                "groupingId": 1,
+                "name": "10%KORTING",
+                "scope": "LINE",
+                "type": "PUBLIC",
+                "amount": 2.8
+               }
+              ]
+             }
+            ]
+           },
+           "lineTotal": -25.2
+          }
+         ],
+         "transactionTotal": -36
+        }
+       }
+      ],
+      "to": [
+       {
+        "costCenter": {
+         "id": "2",
+         "type": "TABLE",
+         "reference": "T20240903_002"
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "10006",
+            "productName": "Dry Martini",
+            "departmentId": "20",
+            "departmentName": "Starters",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 12,
+            "vats": [
+             {
+              "label": "B",
+              "price": 12,
+              "priceChanges": [
+               {
+                "id": "1",
+                "groupingId": 1,
+                "name": "10%KORTING",
+                "scope": "LINE",
+                "type": "PUBLIC",
+                "amount": -1.2
+               }
+              ]
+             }
+            ]
+           },
+           "lineTotal": 10.8
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "22001",
+            "productName": "Burger of the chef",
+            "departmentId": "22",
+            "departmentName": "Main dishes",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 28,
+            "vats": [
+             {
+              "label": "B",
+              "price": 28,
+              "priceChanges": [
+               {
+                "id": "2",
+                "groupingId": 1,
+                "name": "10%KORTING",
+                "scope": "LINE",
+                "type": "PUBLIC",
+                "amount": -2.8
+               }
+              ]
+             }
+            ]
+           },
+           "lineTotal": 25.2
+          }
+         ],
+         "transactionTotal": 36
+        }
+       }
+      ]
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signCostCenterChange": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6001,
+      "posDateTime": "2024-09-03T12:30:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "COST_CENTER_CHANGE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:30:09.000Z",
+       "eventLabel": "P",
+       "eventCounter": 41,
+       "totalCounter": 96
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC243_3_prebillT1",
+   "query": "mutation UC243_3_TableSplit_Discount_PrebillT1($data: PreBillInput!, $training: Boolean! = false) {\r\n  signPreBill(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6002,
+     "posDateTime": "2024-09-03T12:31:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "1",
+      "type": "TABLE",
+      "reference": "20240903_001"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "20001",
+         "productName": "Carpaccio beef",
+         "departmentId": "20",
+         "departmentName": "Starters",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 20,
+         "vats": [
+          {
+           "label": "B",
+           "price": 20,
+           "priceChanges": [
+            {
+             "id": "1",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -2
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 18
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 12,
+           "priceChanges": [
+            {
+             "id": "3",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -1.2
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 10.8
+       }
+      ],
+      "transactionTotal": 28.8
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signOrder": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6002,
+      "posDateTime": "2024-09-03T12:31:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "PRE_BILL",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:31:09.000Z",
+       "eventLabel": "P",
+       "eventCounter": 42,
+       "totalCounter": 97
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC243_4_prebillT2",
+   "query": "mutation UC243_4_TableSplit_Discount_PrebillT2($data: PreBillInput!, $training: Boolean! = false) {\r\n  signPreBill(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6003,
+     "posDateTime": "2024-09-03T12:32:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "2",
+      "type": "TABLE",
+      "reference": "20240903_002"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the chef",
+         "departmentId": "22",
+         "departmentName": "Main dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": 28,
+           "priceChanges": [
+            {
+             "id": "2",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -2.8
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 25.2
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 12,
+           "priceChanges": [
+            {
+             "id": "3",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -1.2
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 10.8
+       }
+      ],
+      "transactionTotal": 36
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signOrder": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6003,
+      "posDateTime": "2024-09-03T12:32:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "PRE_BILL",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:32:12.000Z",
+       "eventLabel": "P",
+       "eventCounter": 43,
+       "totalCounter": 98
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC243_5_saleT1",
+   "query": "mutation UC243_5_TableSplit_Discount_saleT1($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6004,
+     "posDateTime": "2024-09-03T12:35:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "1",
+      "type": "TABLE",
+      "reference": "20240903_001"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "20001",
+         "productName": "Carpaccio beef",
+         "departmentId": "20",
+         "departmentName": "Starters",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 20,
+         "vats": [
+          {
+           "label": "B",
+           "price": 20,
+           "priceChanges": [
+            {
+             "id": "1",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -2
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 18
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 12,
+           "priceChanges": [
+            {
+             "id": "2",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -1.2
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 10.8
+       }
+      ],
+      "transactionTotal": 28.8
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 28.8,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "1",
+        "name": "Drawer 1"
+       }
+      },
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 3,
+       "amountType": "TIP",
+       "drawer": {
+        "id": "1",
+        "name": "Drawer 1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6004,
+      "posDateTime": "2024-09-03T12:35:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 16.07,
+        "vatAmount": 1.93,
+        "totalAmount": 18,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 8.93,
+        "vatAmount": 1.87,
+        "totalAmount": 10.8,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:35:06.000Z",
+       "eventLabel": "N",
+       "eventCounter": 37,
+       "totalCounter": 99
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC243_6_saleT2",
+   "query": "mutation UC243_6_TableSplit_Discount_saleT1($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6005,
+     "posDateTime": "2024-09-03T12:40:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "2",
+      "type": "TABLE",
+      "reference": "20240903_002"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the chef",
+         "departmentId": "22",
+         "departmentName": "Main dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": 28,
+           "priceChanges": [
+            {
+             "id": "1",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -2.8
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 25.2
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 12,
+           "priceChanges": [
+            {
+             "id": "1",
+             "groupingId": 1,
+             "name": "10%KORTING",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -1.2
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 10.8
+       }
+      ],
+      "transactionTotal": 36
+     },
+     "financials": [
+      {
+       "id": "2",
+       "name": "VISA",
+       "type": "CARD_CREDIT",
+       "inputMethod": "AUTOMATIC",
+       "provider": "VISA",
+       "amount": 36,
+       "amountType": "PAYMENT"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6005,
+      "posDateTime": "2024-09-03T12:40:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 22.5,
+        "vatAmount": 2.7,
+        "totalAmount": 25.2,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 8.93,
+        "vatAmount": 1.87,
+        "totalAmount": 10.8,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:40:04.000Z",
+       "eventLabel": "N",
+       "eventCounter": 38,
+       "totalCounter": 100
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

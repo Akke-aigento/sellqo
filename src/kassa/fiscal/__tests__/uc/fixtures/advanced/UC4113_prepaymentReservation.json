@@ -1,0 +1,536 @@
+{
+ "set": "advanced",
+ "uc": "UC4113_prepaymentReservation",
+ "scenario": "Reastaurant Reservation for 4 persons. To pay in advance (sale): prepayment van 100€ pp. 400€ payed in cash.\r\n\r\nOrder 4 menu (200€pp) en 4 wine package (75€pp)\r\n\r\nOrder: prepayment is deducted\r\n\r\nPrebill\r\n\r\nSale payment cash",
+ "steps": [
+  {
+   "step": "UC4113_1_PrepaymentSale",
+   "query": "mutation UC4113_1_SignSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6050,
+     "posDateTime": "2024-03-05T16:05:23.000+01:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "a1b2c3d4",
+     "terminalId": "TER-4-HH",
+     "bookingPeriodId": "aac2b90a-2fba-4fef-a787-5489bfa3f7b9",
+     "bookingDate": "2024-03-05",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "8010",
+         "productName": "PREPAYMENT",
+         "departmentId": "800",
+         "departmentName": "PREPAYMENT",
+         "quantity": 4,
+         "quantityType": "PIECE",
+         "unitPrice": 100,
+         "vats": [
+          {
+           "label": "A",
+           "price": 400
+          }
+         ]
+        },
+        "lineTotal": 400
+       }
+      ],
+      "transactionTotal": 400
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 400,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "D1",
+        "name": "Drawer1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6050,
+      "posDateTime": "2024-03-05T16:05:23.000+01:00",
+      "terminalId": "TER-4-HH",
+      "deviceId": "a1b2c3d4",
+      "vatCalc": [
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 330.58,
+        "vatAmount": 69.42,
+        "totalAmount": 400,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-03-05T15:05:29.000Z",
+       "eventLabel": "N",
+       "eventCounter": 28,
+       "totalCounter": 94
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4113_2_Order",
+   "query": "mutation UC4113_2_PrepaymentReservation($data: OrderInput!, $training: Boolean! = false) {\r\n  signOrder(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6120,
+     "posDateTime": "2024-03-12T12:32:23.000+01:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "a1b2c3d4",
+     "terminalId": "TER-4-HH",
+     "bookingPeriodId": "12174187-a3c0-4936-b3fc-d4c750a5e9f8",
+     "bookingDate": "2024-03-12",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "1",
+      "type": "TABLE",
+      "reference": "212"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "30100",
+         "productName": "MENU",
+         "departmentId": "30",
+         "departmentName": "Menus",
+         "quantity": 4,
+         "quantityType": "PIECE",
+         "unitPrice": 200,
+         "vats": [
+          {
+           "label": "B",
+           "price": 800
+          }
+         ]
+        },
+        "lineTotal": 800
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "30101",
+         "productName": "WINE MENU",
+         "departmentId": "30",
+         "departmentName": "Menus",
+         "quantity": 4,
+         "quantityType": "PIECE",
+         "unitPrice": 75,
+         "vats": [
+          {
+           "label": "A",
+           "price": 300
+          }
+         ]
+        },
+        "lineTotal": 300
+       }
+      ],
+      "transactionTotal": 1100
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signOrder": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6120,
+      "posDateTime": "2024-03-12T12:32:23.000+01:00",
+      "terminalId": "TER-4-HH",
+      "deviceId": "a1b2c3d4",
+      "eventOperation": "ORDER",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-03-12T11:32:26.000Z",
+       "eventLabel": "P",
+       "eventCounter": 45,
+       "totalCounter": 95
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4113_3_Order2",
+   "query": "mutation UC4113_3_signOrder($data: OrderInput!, $training: Boolean! = false) {\r\n  signOrder(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6050,
+     "posDateTime": "2024-03-12T16:05:23.000+01:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "a1b2c3d4",
+     "terminalId": "TER-4-HH",
+     "bookingPeriodId": "12174187-a3c0-4936-b3fc-d4c750a5e9f8",
+     "bookingDate": "2024-03-12",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "1",
+      "type": "TABLE",
+      "reference": "212"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "8010",
+         "productName": "PREPAYMENT",
+         "departmentId": "800",
+         "departmentName": "PREPAYMENT",
+         "quantity": -4,
+         "negQuantityReason": "REFUND",
+         "quantityType": "PIECE",
+         "unitPrice": 100,
+         "vats": [
+          {
+           "label": "A",
+           "price": -400
+          }
+         ]
+        },
+        "lineTotal": -400
+       }
+      ],
+      "transactionTotal": -400
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signOrder": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6050,
+      "posDateTime": "2024-03-12T16:05:23.000+01:00",
+      "terminalId": "TER-4-HH",
+      "deviceId": "a1b2c3d4",
+      "eventOperation": "ORDER",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-03-12T15:05:30.000Z",
+       "eventLabel": "P",
+       "eventCounter": 46,
+       "totalCounter": 96
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4113_4_Prebill",
+   "query": "mutation UC4113_4_signPreBill($data: PreBillInput!, $training: Boolean! = false) {\r\n  signPreBill(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6130,
+     "posDateTime": "2024-03-12T13:00:23.000+01:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "a1b2c3d4",
+     "terminalId": "TER-4-HH",
+     "bookingPeriodId": "12174187-a3c0-4936-b3fc-d4c750a5e9f8",
+     "bookingDate": "2024-03-12",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "1",
+      "type": "TABLE",
+      "reference": "212"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "30100",
+         "productName": "MENU",
+         "departmentId": "30",
+         "departmentName": "Menus",
+         "quantity": 4,
+         "quantityType": "PIECE",
+         "unitPrice": 200,
+         "vats": [
+          {
+           "label": "B",
+           "price": 800
+          }
+         ]
+        },
+        "lineTotal": 800
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "30101",
+         "productName": "WINE MENU",
+         "departmentId": "30",
+         "departmentName": "Menus",
+         "quantity": 4,
+         "quantityType": "PIECE",
+         "unitPrice": 75,
+         "vats": [
+          {
+           "label": "A",
+           "price": 300
+          }
+         ]
+        },
+        "lineTotal": 300
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "8010",
+         "productName": "DEPOSIT",
+         "departmentId": "800",
+         "departmentName": "DEPOSIT",
+         "quantity": -4,
+         "negQuantityReason": "REFUND",
+         "quantityType": "PIECE",
+         "unitPrice": 100,
+         "vats": [
+          {
+           "label": "A",
+           "price": -400
+          }
+         ]
+        },
+        "lineTotal": -400
+       }
+      ],
+      "transactionTotal": 700
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signPreBill": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6130,
+      "posDateTime": "2024-03-12T13:00:23.000+01:00",
+      "terminalId": "TER-4-HH",
+      "deviceId": "a1b2c3d4",
+      "eventOperation": "PRE_BILL",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-03-12T12:00:30.000Z",
+       "eventLabel": "P",
+       "eventCounter": 47,
+       "totalCounter": 97
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4113_5_Sale",
+   "query": "mutation UC4113_5_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6132,
+     "posDateTime": "2024-03-12T13:05:23.000+01:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "a1b2c3d4",
+     "terminalId": "TER-4-HH",
+     "bookingPeriodId": "12174187-a3c0-4936-b3fc-d4c750a5e9f8",
+     "bookingDate": "2024-03-12",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "1",
+      "type": "TABLE",
+      "reference": "212"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "30100",
+         "productName": "MENU",
+         "departmentId": "30",
+         "departmentName": "Menus",
+         "quantity": 4,
+         "quantityType": "PIECE",
+         "unitPrice": 200,
+         "vats": [
+          {
+           "label": "B",
+           "price": 800
+          }
+         ]
+        },
+        "lineTotal": 800
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "30101",
+         "productName": "WINE MENU",
+         "departmentId": "30",
+         "departmentName": "Menus",
+         "quantity": 4,
+         "quantityType": "PIECE",
+         "unitPrice": 75,
+         "vats": [
+          {
+           "label": "A",
+           "price": 300
+          }
+         ]
+        },
+        "lineTotal": 300
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "8010",
+         "productName": "DEPOSIT",
+         "departmentId": "800",
+         "departmentName": "DEPOSIT",
+         "quantity": -4,
+         "negQuantityReason": "REFUND",
+         "quantityType": "PIECE",
+         "unitPrice": 100,
+         "vats": [
+          {
+           "label": "A",
+           "price": -400
+          }
+         ]
+        },
+        "lineTotal": -400
+       }
+      ],
+      "transactionTotal": 700
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 700,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "D1",
+        "name": "Drawer1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6132,
+      "posDateTime": "2024-03-12T13:05:23.000+01:00",
+      "terminalId": "TER-4-HH",
+      "deviceId": "a1b2c3d4",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 714.29,
+        "vatAmount": 85.71,
+        "totalAmount": 800,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": -82.64,
+        "vatAmount": -17.36,
+        "totalAmount": -100,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-03-12T12:05:25.000Z",
+       "eventLabel": "N",
+       "eventCounter": 29,
+       "totalCounter": 98
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

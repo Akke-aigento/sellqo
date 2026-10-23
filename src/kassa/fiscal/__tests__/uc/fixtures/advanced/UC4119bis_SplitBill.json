@@ -1,0 +1,932 @@
+{
+ "set": "advanced",
+ "uc": "UC4119bis_SplitBill",
+ "scenario": "Order: 2 carpaccio,1 burger of the chef, 2 glasses of wine, 3 Coca-Cola\r\n\r\nSplit bill: (3 VAT tickets!): \r\nticket 1:  (1 carpaccio,1 glass of wine,1 Coca-Cola) payment in cash\r\nticket 2:  (1 carpaccio,1 glass of wine,1 Coca-Cola ) payment with creditcard\r\nticket 3: (1 burger of the chef,  1 Coca-Cola ) payment with Pluxee\r\n",
+ "steps": [
+  {
+   "step": "UC4119bis_1_Order",
+   "query": "mutation UC4119bis_1_signOrder($data: OrderInput!, $training: Boolean! = false) {\r\n  signOrder(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 3567,
+     "posDateTime": "2024-08-29T13:57:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-08-29",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "T1",
+      "type": "TABLE",
+      "reference": "O158"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "20001",
+         "productName": "Carpaccio Beef",
+         "departmentId": "20",
+         "departmentName": "Starters",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 20,
+         "vats": [
+          {
+           "label": "B",
+           "price": 40
+          }
+         ]
+        },
+        "lineTotal": 40
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the CHEF",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": 28
+          }
+         ]
+        },
+        "lineTotal": 28
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "15003",
+         "productName": "Wine (glass)",
+         "departmentId": "15",
+         "departmentName": "Wines",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 8,
+         "vats": [
+          {
+           "label": "A",
+           "price": 16
+          }
+         ]
+        },
+        "lineTotal": 16
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "12009",
+         "productName": "Coca Cola",
+         "departmentId": "12",
+         "departmentName": "Soft Drinks",
+         "quantity": 3,
+         "quantityType": "PIECE",
+         "unitPrice": 3.04,
+         "vats": [
+          {
+           "label": "A",
+           "price": 9.12
+          }
+         ]
+        },
+        "lineTotal": 9.12
+       }
+      ],
+      "transactionTotal": 93.12
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signOrder": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 3567,
+      "posDateTime": "2024-08-29T13:57:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "ORDER",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-08-29T11:57:12.000Z",
+       "eventLabel": "P",
+       "eventCounter": 31,
+       "totalCounter": 67
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4119bis_2_Costcenterchange",
+   "query": "mutation UC4119bis_2_signCostCenterChange($data: CostCenterChangeInput!, $training: Boolean! = false) {\r\n  signCostCenterChange(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 3568,
+     "posDateTime": "2024-08-29T14:07:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-08-29",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "transfer": {
+      "from": [
+       {
+        "costCenter": {
+         "id": "T1",
+         "type": "TABLE",
+         "reference": "O158"
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "20001",
+            "productName": "Carpaccio Beef",
+            "departmentId": "20",
+            "departmentName": "Starters",
+            "quantity": -2,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 20,
+            "vats": [
+             {
+              "label": "B",
+              "price": -40
+             }
+            ]
+           },
+           "lineTotal": -40
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "22001",
+            "productName": "Burger of the CHEF",
+            "departmentId": "22",
+            "departmentName": "Main Dishes",
+            "quantity": -1,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 28,
+            "vats": [
+             {
+              "label": "B",
+              "price": -28
+             }
+            ]
+           },
+           "lineTotal": -28
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "15003",
+            "productName": "Wine (glass)",
+            "departmentId": "15",
+            "departmentName": "Wines",
+            "quantity": -2,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 8,
+            "vats": [
+             {
+              "label": "A",
+              "price": -16
+             }
+            ]
+           },
+           "lineTotal": -16
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "12009",
+            "productName": "Coca Cola",
+            "departmentId": "12",
+            "departmentName": "Soft Drinks",
+            "quantity": -3,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 3.04,
+            "vats": [
+             {
+              "label": "A",
+              "price": -9.12
+             }
+            ]
+           },
+           "lineTotal": -9.12
+          }
+         ],
+         "transactionTotal": -93.12
+        }
+       }
+      ],
+      "to": [
+       {
+        "costCenter": {
+         "id": "T1",
+         "type": "TABLE",
+         "reference": "O158",
+         "costCenter": {
+          "id": "C1",
+          "type": "CHAIR",
+          "reference": "C1_1"
+         }
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "20001",
+            "productName": "Carpaccio Beef",
+            "departmentId": "20",
+            "departmentName": "Starters",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 20,
+            "vats": [
+             {
+              "label": "B",
+              "price": 20
+             }
+            ]
+           },
+           "lineTotal": 20
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "15003",
+            "productName": "Wine (glass)",
+            "departmentId": "15",
+            "departmentName": "Wines",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 8,
+            "vats": [
+             {
+              "label": "A",
+              "price": 8
+             }
+            ]
+           },
+           "lineTotal": 8
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "12009",
+            "productName": "Coca Cola",
+            "departmentId": "12",
+            "departmentName": "Soft Drinks",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 3.04,
+            "vats": [
+             {
+              "label": "A",
+              "price": 3.04
+             }
+            ]
+           },
+           "lineTotal": 3.04
+          }
+         ],
+         "transactionTotal": 31.04
+        }
+       },
+       {
+        "costCenter": {
+         "id": "T1",
+         "type": "TABLE",
+         "reference": "O158",
+         "costCenter": {
+          "id": "C2",
+          "type": "CHAIR",
+          "reference": "C2_1"
+         }
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "20001",
+            "productName": "Carpaccio Beef",
+            "departmentId": "20",
+            "departmentName": "Starters",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 20,
+            "vats": [
+             {
+              "label": "B",
+              "price": 20
+             }
+            ]
+           },
+           "lineTotal": 20
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "15003",
+            "productName": "Wine (glass)",
+            "departmentId": "15",
+            "departmentName": "Wines",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 8,
+            "vats": [
+             {
+              "label": "A",
+              "price": 8
+             }
+            ]
+           },
+           "lineTotal": 8
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "12009",
+            "productName": "Coca Cola",
+            "departmentId": "12",
+            "departmentName": "Soft Drinks",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 3.04,
+            "vats": [
+             {
+              "label": "A",
+              "price": 3.04
+             }
+            ]
+           },
+           "lineTotal": 3.04
+          }
+         ],
+         "transactionTotal": 31.04
+        }
+       },
+       {
+        "costCenter": {
+         "id": "T1",
+         "type": "TABLE",
+         "reference": "O158",
+         "costCenter": {
+          "id": "C3",
+          "type": "CHAIR",
+          "reference": "C3_1"
+         }
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "22001",
+            "productName": "Burger of the CHEF",
+            "departmentId": "22",
+            "departmentName": "Main Dishes",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 28,
+            "vats": [
+             {
+              "label": "B",
+              "price": 28
+             }
+            ]
+           },
+           "lineTotal": 28
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "12009",
+            "productName": "Coca Cola",
+            "departmentId": "12",
+            "departmentName": "Soft Drinks",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 3.04,
+            "vats": [
+             {
+              "label": "A",
+              "price": 3.04
+             }
+            ]
+           },
+           "lineTotal": 3.04
+          }
+         ],
+         "transactionTotal": 31.04
+        }
+       }
+      ]
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signCostCenterChange": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 3568,
+      "posDateTime": "2024-08-29T14:07:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "COST_CENTER_CHANGE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-08-29T12:07:06.000Z",
+       "eventLabel": "P",
+       "eventCounter": 32,
+       "totalCounter": 68
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": null,
+      "informations": null
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4119bis_3_Sale",
+   "query": "mutation UC4119bis_3_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 3569,
+     "posDateTime": "2024-08-29T14:20:00.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+     "terminalId": "TER-2-DIN",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-08-29",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "T1",
+      "type": "TABLE",
+      "reference": "O158",
+      "costCenter": {
+       "id": "C1",
+       "type": "CHAIR",
+       "reference": "C1_1"
+      }
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "20001",
+         "productName": "Carpaccio Beef",
+         "departmentId": "20",
+         "departmentName": "Starters",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 20,
+         "vats": [
+          {
+           "label": "B",
+           "price": 20
+          }
+         ]
+        },
+        "lineTotal": 20
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "15003",
+         "productName": "Wine (glass)",
+         "departmentId": "15",
+         "departmentName": "Wines",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 8,
+         "vats": [
+          {
+           "label": "A",
+           "price": 8
+          }
+         ]
+        },
+        "lineTotal": 8
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "12009",
+         "productName": "Coca Cola",
+         "departmentId": "12",
+         "departmentName": "Soft Drinks",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 3.04,
+         "vats": [
+          {
+           "label": "A",
+           "price": 3.04
+          }
+         ]
+        },
+        "lineTotal": 3.04
+       }
+      ],
+      "transactionTotal": 31.04
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 31.04,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "D1",
+        "name": "Drawer1"
+       }
+      },
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 0.01,
+       "amountType": "ROUNDING",
+       "drawer": {
+        "id": "D1",
+        "name": "Drawer1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 3569,
+      "posDateTime": "2024-08-29T14:20:00.000+02:00",
+      "terminalId": "TER-2-DIN",
+      "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 17.86,
+        "vatAmount": 2.14,
+        "totalAmount": 20,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 9.12,
+        "vatAmount": 1.92,
+        "totalAmount": 11.04,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-08-29T12:20:00.000Z",
+       "eventLabel": "N",
+       "eventCounter": 20,
+       "totalCounter": 69
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4119bis_4_Sale2",
+   "query": "mutation UC4119bis_4_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 3570,
+     "posDateTime": "2024-08-29T14:24:00.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+     "terminalId": "TER-2-DIN",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-08-29",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "T1",
+      "type": "TABLE",
+      "reference": "O158",
+      "costCenter": {
+       "id": "C2",
+       "type": "CHAIR",
+       "reference": "C2_1"
+      }
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "20001",
+         "productName": "Carpaccio Beef",
+         "departmentId": "20",
+         "departmentName": "Starters",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 20,
+         "vats": [
+          {
+           "label": "B",
+           "price": 20
+          }
+         ]
+        },
+        "lineTotal": 20
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "15003",
+         "productName": "Wine (glass)",
+         "departmentId": "15",
+         "departmentName": "Wines",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 8,
+         "vats": [
+          {
+           "label": "A",
+           "price": 8
+          }
+         ]
+        },
+        "lineTotal": 8
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "12009",
+         "productName": "Coca Cola",
+         "departmentId": "12",
+         "departmentName": "Soft Drinks",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 3.04,
+         "vats": [
+          {
+           "label": "A",
+           "price": 3.04
+          }
+         ]
+        },
+        "lineTotal": 3.04
+       }
+      ],
+      "transactionTotal": 31.04
+     },
+     "financials": [
+      {
+       "id": "3",
+       "name": "Credit Card",
+       "type": "CARD_CREDIT",
+       "inputMethod": "AUTOMATIC",
+       "amount": 31.04,
+       "amountType": "PAYMENT",
+       "provider": "Visa"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 3570,
+      "posDateTime": "2024-08-29T14:24:00.000+02:00",
+      "terminalId": "TER-2-DIN",
+      "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 17.86,
+        "vatAmount": 2.14,
+        "totalAmount": 20,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 9.12,
+        "vatAmount": 1.92,
+        "totalAmount": 11.04,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-08-29T12:24:02.000Z",
+       "eventLabel": "N",
+       "eventCounter": 21,
+       "totalCounter": 70
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4119bis_5_Sale3",
+   "query": "mutation UC4119bis_5_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 3571,
+     "posDateTime": "2024-08-29T14:28:00.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+     "terminalId": "TER-2-DIN",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-08-29",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "T1",
+      "type": "TABLE",
+      "reference": "O158",
+      "costCenter": {
+       "id": "C3",
+       "type": "CHAIR",
+       "reference": "C3_1"
+      }
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the CHEF",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": 28
+          }
+         ]
+        },
+        "lineTotal": 28
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "12009",
+         "productName": "Coca Cola",
+         "departmentId": "12",
+         "departmentName": "Soft Drinks",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 3.04,
+         "vats": [
+          {
+           "label": "A",
+           "price": 3.04
+          }
+         ]
+        },
+        "lineTotal": 3.04
+       }
+      ],
+      "transactionTotal": 31.04
+     },
+     "financials": [
+      {
+       "id": "4",
+       "name": "Meal Check",
+       "type": "CHEQUE_MEAL",
+       "inputMethod": "MANUAL",
+       "amount": 31.04,
+       "amountType": "PAYMENT",
+       "provider": "PLUXEE"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 3571,
+      "posDateTime": "2024-08-29T14:28:00.000+02:00",
+      "terminalId": "TER-2-DIN",
+      "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 25,
+        "vatAmount": 3,
+        "totalAmount": 28,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 2.51,
+        "vatAmount": 0.53,
+        "totalAmount": 3.04,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-08-29T12:28:07.000Z",
+       "eventLabel": "N",
+       "eventCounter": 22,
+       "totalCounter": 71
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

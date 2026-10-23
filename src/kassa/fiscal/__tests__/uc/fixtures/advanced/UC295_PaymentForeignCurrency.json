@@ -1,0 +1,159 @@
+{
+ "set": "advanced",
+ "uc": "UC295_PaymentForeignCurrency",
+ "scenario": "\r\nSALE (2 Carpaccio, unit price 20 EUR, B and 2 bottle S, unit price 0.01, X), \r\npayment in USD: CASH 50USD (= 44 EUR)\r\n\r\n\r\n\r\n",
+ "steps": [
+  {
+   "step": "UC295_PaymentForeignCurrency",
+   "query": "mutation UC295_PaymentForeignCurrency($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 54910,
+     "posDateTime": "2024-05-02T14:56:13.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "a1b2c3d4",
+     "terminalId": "TER-4-HH",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-05-02",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "20001",
+         "productName": "Carpaccio Beef",
+         "departmentId": "20",
+         "departmentName": "Starters",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 20,
+         "vats": [
+          {
+           "label": "B",
+           "price": 40
+          }
+         ]
+        },
+        "lineTotal": 40
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "90001",
+         "productName": "Bottle S",
+         "departmentId": "90",
+         "departmentName": "Bottle Deposits",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 0.01,
+         "vats": [
+          {
+           "label": "X",
+           "price": 0.02
+          }
+         ]
+        },
+        "lineTotal": 0.02
+       }
+      ],
+      "transactionTotal": 40.02
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "Contant",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 44,
+       "amountType": "PAYMENT",
+       "foreignCurrency": {
+        "amount": 50,
+        "iso": "USD"
+       },
+       "drawer": {
+        "id": "1",
+        "name": "Drawer 1"
+       }
+      },
+      {
+       "id": "1",
+       "name": "Contant",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": -3.98,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "1",
+        "name": "Drawer 1"
+       }
+      },
+      {
+       "id": "1",
+       "name": "Contant",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": -0.02,
+       "amountType": "ROUNDING",
+       "drawer": {
+        "id": "1",
+        "name": "Drawer 1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 54910,
+      "posDateTime": "2024-05-02T14:56:13.000+02:00",
+      "terminalId": "TER-4-HH",
+      "deviceId": "a1b2c3d4",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 35.71,
+        "vatAmount": 4.29,
+        "totalAmount": 40,
+        "outOfScope": false
+       },
+       {
+        "label": "X",
+        "rate": 0,
+        "taxableAmount": 0.02,
+        "vatAmount": 0,
+        "totalAmount": 0.02,
+        "outOfScope": true
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-05-02T12:56:13.000Z",
+       "eventLabel": "N",
+       "eventCounter": 50,
+       "totalCounter": 119
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": "\r\nSALE (2 Carpaccio, unit price 20 EUR, B and 2 bottle S, unit price 0.01, X), \r\npayment in USD: CASH 50USD (= 44 EUR)\r\n\r\n\r\n\r\n"
+  }
+ ]
+}

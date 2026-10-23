@@ -1,3 +1,37 @@
+## KASSA-0 — fiscale kern SellQo Kassa (GKS 2.0): schema, builders, simulator, logboek, officiële use cases — 23 oktober 2026
+
+Tweede batch van de kassareeks (beslissing 23-10: volledige kassa, certificatie GKS 2.0). Branch `kassa-0` (op `horeca-0`); niets gemerged, gedeployed of live gedraaid. Niet zichtbaar voor tenants: geen UI in de admin, geen changelog/helpartikel/nieuwsbrief.
+
+**Root cause / aanleiding** — SellQo had geen fiscale laag. Een gecertificeerde kassa moet elk event door een zwarte doos (FDM) laten ondertekenen en de ±190 officiële use cases van de FOD foutloos halen. Zonder test-FDM moeten we daarvoor een eigen simulator hebben en een testharnas dat de officiële berichten exact nabouwt.
+
+**Uitgevoerd**
+- `src/kassa/fiscal/`: types en schema-validator uit het officiële GraphQL-schema (POS v2.2 §2.3), geld in centen/tienduizendsten (`money.ts`), btw zoals de FDM (`vat.ts`), contant afronden (`rounding.ts`), identificatie + mod-97 (btw-nr, vestigingsnr, INSZ) + Brusselse tijd + bedrijfsdag met afkappunt (`identity.ts`), event-builders voor alle 15 mutaties met de regels uit de eisenmatrix (`builders.ts`), GraphQL-documenten met verplichte `footer` (`documents.ts`), `FiscalGateway` (simulator + HTTP) en `FiscalSender` (bewaren vóór verzenden, byte-identiek opnieuw bij time-out) (`gateway.ts`), X/Z-rapporten uit het logboek (`reports.ts`), testopstelling FPS Finances Experience (`testSetup.ts`).
+- `src/kassa/fiscal/simulator/`: FDM-simulator (schema, allowlist, tellers + overloop, btw, shortSignature = SHA-1, QR via de officiële codering, idempotentie op de 5 sleutelvelden, buffer, instelbare fouten, training), mini-GraphQL (aliassen, fragmenten, `__typename`, projectie), QR-encoder/-decoder. Nep-handtekening, gemarkeerd in de footer.
+- `scripts/gks/extract-uc-fixtures.mjs` + `src/kassa/fiscal/__tests__/uc/fixtures/` (82 use cases: BasicSet 1.8, AdvancedSet 1.6, Reports NL, Reports ENG 1.3); harnas A/B/C/D; `known.ts` met de afwijkingen in de officiële data; `docs/gks/uc-coverage.md` (gegenereerd).
+- `scripts/gks/fdm-simulator-server.ts`: simulator op `POST /graphql` (getest met de officiële M110-query: btw, label en velden gelijk, tweede verzending idempotent).
+- Migratie `20261024100000_kassa_0_fiscal_events.sql`: `fiscal_events`, `fiscal_audit_log`, `fiscal_append_only()`, `tenant_has_business_module()`. Lokale testset `scripts/gks/sql/`.
+- Tweede app-target: `src/kassa/app/` (skelet), `vite.kassa.config.ts` (`npm run build:kassa` → `dist-kassa`), `apps/kassa/capacitor.config.ts` (`app.sellqo.kassa`), `src/kassa/version.ts`. `src/kassa/README.md` + CLAUDE.md §9 (wijzigen in `src/kassa/` = fiscale release). `.gitignore`: `dist-kassa`, `docs/gks/source/`.
+
+**Uitkomst officiële use cases** — A schema 192/192 · B herbouw 181/181 · C simulator 181/181 · D rapporten 3/11 exact en 11/11 op gedocumenteerde afwijkingen in de officiële data na. Die afwijkingen: (1) de ENG-rapportenset (2024) telt rapport-events mee in posDevices/FDM-tellers en laat één P-ticket weg; de NL-set (2025) en FAQ Q502/Q504 niet; (2) NL Report4 geeft één gebruiker als laatste tijdstip dat van zijn eigen X-rapport, terwijl hetzelfde rapport R-events elders uitsluit; (3) de NL-map bevat een kopie van de ENG-M184. Wij volgen NL + FAQ; vragen 12–13 voor de Q&A met de FOD.
+
+**Security-keuzes**
+- `fiscal_events`: append-only via trigger (update/delete/truncate geweigerd, ook voor de eigenaar en service_role) en geen update/delete-grants. Insert enkel als jezelf (`created_by = auth.uid()`), als `tenant_admin` of `staff` van een zaak met horeca-spoor (`has_tenant_role` + `tenant_has_business_module`). Lezen: leden van de zaak, maar zonder `request_body`/`response_body` (kolomrechten): daar zit het INSZ van de medewerker in. Unieke sleutels op de 5 sleutelvelden en op de FDM-teller.
+- `fiscal_audit_log`: append-only; lid schrijft als zichzelf, enkel `tenant_admin` leest.
+- `tenant_has_business_module`: security definer, vaste search_path, leest één kolom van één tenant; execute niet voor anon.
+- Lokaal getest (PG16 + Supabase-nabootsing, migratie 2×): imitatie, vreemde tenant, viewer, zaak zonder horeca, anon, update/delete/truncate door authenticated, service_role en eigenaar: allemaal geweigerd; berichtinhoud niet leesbaar.
+
+**Gedeelde-paden-waarschuwing** — geen gedeelde tabel of storefront-contract geraakt; enkel nieuwe tabellen en een nieuwe functie. De admin-build blijft `vite.config.ts` → `dist`; het kassa-target heeft een eigen config en uitvoermap.
+
+**Verificatie** — `npx vitest run src/kassa`: 153 tests groen (85 use-case-tests, 68 eigen); volledige vitest, tsc, lint-baseline, i18n-pariteit/used-keys, CI-checks en build: zie commit. Kassa-target bouwt (`npm run build:kassa`).
+
+**Samenhang** — de bestaande kassa (`usePOS.ts`, `POSTerminal.tsx`) is bewust ongemoeid: de fiscale kern staat er los naast en neemt de afrekening pas over in TAFEL-2 (`horeca_pay`). Eén plek voor de kern (`src/kassa/`), één bron voor rapportcijfers (het fiscale logboek).
+
+**Bewust ongemoeid / Vervolg**
+- Geen echte FDM (FDM-1: LanGateway met TLS/mTLS, test-FDM BMC/Checkbox), geen App Store/Play (native projecten van het kassa-target).
+- `fiscal_events` wordt nog door niemand gevuld: TAFEL-1/2 schrijven de ondertekende events weg. Een export voor de controleur (CERT-1) leest dan request/response server-side.
+- Factuur (I) en klantrekening: gebouwd en getest als bericht, in de kassa pas actief na beslissing (eisenmatrix §13).
+- Q&A met de FOD: vragen 7–13 (posId certificatie, robotuser automatische Z, training-ticket, deviceId iOS/Android, REFUND vs CORRECTION, R-events in rapporten, P-totaal ENG vs NL).
+
 ## HORECA-0 — tafel blijft tafel, keukenscherm op elk toestel, nooit een wit scherm, veilige offline-kassa — 23 oktober 2026
 
 Eerste batch van de horeca-/kassareeks (ontwerp: projectdoc `claude/horeca-tafelkassa-ontwerp.md` §6–7, recon `claude/horeca-recon-2026-10-23.md`). Branch `horeca-0` in **sellqo** en **sellqo-storefront**; niets gemerged, gedeployed of live gedraaid.

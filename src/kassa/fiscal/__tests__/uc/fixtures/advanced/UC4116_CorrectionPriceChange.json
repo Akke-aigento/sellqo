@@ -1,0 +1,261 @@
+{
+ "set": "advanced",
+ "uc": "UC4116_CorrectionPriceChange",
+ "scenario": "SALE: 2 dry Martini (12€) with 50% discount, payment cash\r\n\r\nSALE: correction of price change: 5% not 50 % discount, payment cash",
+ "steps": [
+  {
+   "step": "UC4116_1",
+   "query": "mutation UC4116_1_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 1003,
+     "posDateTime": "2024-07-29T13:57:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-07-29",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "T1",
+      "type": "TABLE",
+      "reference": "O158"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 24,
+           "priceChanges": [
+            {
+             "groupingId": 1,
+             "id": "K3",
+             "name": "Discount50P",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -12
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 12
+       }
+      ],
+      "transactionTotal": 12
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 12,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "D1",
+        "name": "Drawer1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 1003,
+      "posDateTime": "2024-07-29T13:57:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "vatCalc": [
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 9.92,
+        "vatAmount": 2.08,
+        "totalAmount": 12,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-07-29T11:57:09.000Z",
+       "eventLabel": "N",
+       "eventCounter": 30,
+       "totalCounter": 99
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4116_2",
+   "query": "mutation UC4116_2_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 1023,
+     "posDateTime": "2024-07-29T14:40:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-07-29",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "costCenter": {
+      "id": "T1",
+      "type": "TABLE",
+      "reference": "O159"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": -2,
+         "negQuantityReason": "CORRECTION",
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": -24,
+           "priceChanges": [
+            {
+             "groupingId": 3,
+             "id": "K3",
+             "name": "Discount50P",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": 12
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": -12
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 24,
+           "priceChanges": [
+            {
+             "groupingId": 1,
+             "id": "K1",
+             "name": "Discount5P",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -1.2
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 22.8
+       }
+      ],
+      "transactionTotal": 10.8
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 10.8,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "D1",
+        "name": "Drawer1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 1023,
+      "posDateTime": "2024-07-29T14:40:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "vatCalc": [
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 8.93,
+        "vatAmount": 1.87,
+        "totalAmount": 10.8,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-07-29T12:40:12.000Z",
+       "eventLabel": "N",
+       "eventCounter": 31,
+       "totalCounter": 100
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

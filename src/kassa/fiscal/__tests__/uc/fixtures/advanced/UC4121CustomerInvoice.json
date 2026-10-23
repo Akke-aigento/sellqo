@@ -1,0 +1,328 @@
+{
+ "set": "advanced",
+ "uc": "UC4121CustomerInvoice",
+ "scenario": "Sale of 2 carpaccio (unit price 20EUR) and 1 bottle of Chardonnay (unit price 40EUR ), payment type CUSTOMER CREDIT\r\nSale of 2  dry Martini (unit price 12EUR), payment type CUSTOMER CREDIT\r\nSale of 2 dame blanche (unit price 11,52EUR), payment type CUSTOMER CREDIT\r\nEnd of the month: invoice with reference to tickets",
+ "steps": [
+  {
+   "step": "UC4121_1_Sale1",
+   "query": "mutation UC4121_1_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 1000,
+     "posDateTime": "2024-07-09T13:00:00.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+     "terminalId": "TER-2-DIN",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-07-29",
+     "ticketMedium": "PAPER",
+     "employeeId": "84022899837",
+     "costCenter": {
+      "id": "C1",
+      "type": "CUSTOMER",
+      "reference": "JANSSENS"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "20001",
+         "productName": "Carpaccio",
+         "departmentId": "20",
+         "departmentName": "Starters",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 20,
+         "vats": [
+          {
+           "label": "B",
+           "price": 40
+          }
+         ]
+        },
+        "lineTotal": 40
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "15002",
+         "productName": "Chardonnay White",
+         "departmentId": "15",
+         "departmentName": "Wines",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 40,
+         "vats": [
+          {
+           "label": "A",
+           "price": 40
+          }
+         ]
+        },
+        "lineTotal": 40
+       }
+      ],
+      "transactionTotal": 80
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CUSTOMER",
+       "type": "CUSTOMER_CREDIT",
+       "inputMethod": "MANUAL",
+       "amount": 80,
+       "amountType": "PAYMENT"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 1000,
+      "posDateTime": "2024-07-09T13:00:00.000+02:00",
+      "terminalId": "TER-2-DIN",
+      "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 35.71,
+        "vatAmount": 4.29,
+        "totalAmount": 40,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 33.06,
+        "vatAmount": 6.94,
+        "totalAmount": 40,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-07-09T11:00:03.000Z",
+       "eventLabel": "N",
+       "eventCounter": 22,
+       "totalCounter": 67
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4121_2_Sale2",
+   "query": "mutation UC4121_2_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 1100,
+     "posDateTime": "2024-07-15T13:00:00.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+     "terminalId": "TER-2-DIN",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-07-29",
+     "ticketMedium": "PAPER",
+     "employeeId": "84022899837",
+     "costCenter": {
+      "id": "C1",
+      "type": "CUSTOMER",
+      "reference": "JANSSENS"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 24
+          }
+         ]
+        },
+        "lineTotal": 24
+       }
+      ],
+      "transactionTotal": 24
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CUSTOMER",
+       "type": "CUSTOMER_CREDIT",
+       "inputMethod": "MANUAL",
+       "amount": 24,
+       "amountType": "PAYMENT"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 1100,
+      "posDateTime": "2024-07-15T13:00:00.000+02:00",
+      "terminalId": "TER-2-DIN",
+      "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+      "vatCalc": [
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 19.83,
+        "vatAmount": 4.17,
+        "totalAmount": 24,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-07-15T11:00:06.000Z",
+       "eventLabel": "N",
+       "eventCounter": 23,
+       "totalCounter": 68
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  },
+  {
+   "step": "UC4121_3_Sale3",
+   "query": "mutation UC4121_2_signSale($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 1100,
+     "posDateTime": "2024-07-15T13:00:06.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+     "terminalId": "TER-2-DIN",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-07-29",
+     "ticketMedium": "PAPER",
+     "employeeId": "84022899837",
+     "costCenter": {
+      "id": "C1",
+      "type": "CUSTOMER",
+      "reference": "JANSSENS"
+     },
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "25003",
+         "productName": "Dame Blanche",
+         "departmentId": "25",
+         "departmentName": "Desserts",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 11.52,
+         "vats": [
+          {
+           "label": "B",
+           "price": 23.04
+          }
+         ]
+        },
+        "lineTotal": 23.04
+       }
+      ],
+      "transactionTotal": 23.04
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CUSTOMER",
+       "type": "CUSTOMER_CREDIT",
+       "inputMethod": "MANUAL",
+       "amount": 23.04,
+       "amountType": "PAYMENT"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 1100,
+      "posDateTime": "2024-07-15T13:00:06.000+02:00",
+      "terminalId": "TER-2-DIN",
+      "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 20.57,
+        "vatAmount": 2.47,
+        "totalAmount": 23.04,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-07-15T11:01:06.000Z",
+       "eventLabel": "N",
+       "eventCounter": 24,
+       "totalCounter": 69
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

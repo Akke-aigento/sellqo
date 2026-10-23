@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
+dist-kassa
 dist-ssr
 *.local
 
@@ -46,3 +47,6 @@ Claude outputs/
 # rooktest/vergelijkingstest-kopieën (scripts/promo-compare)
 supabase/functions/storefront-api/__smoke.ts
 supabase/functions/storefront-api/__cmp_*.ts
+
+# KASSA-0: officiële GKS-bronnen (zips/PDF) niet in git; enkel de afgeleide testfixtures
+docs/gks/source/

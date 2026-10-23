@@ -1,0 +1,30 @@
+{
+ "set": "basic",
+ "uc": "Q100_Status",
+ "scenario": null,
+ "steps": [
+  {
+   "step": "Q100_Status",
+   "query": "query Q100_Status {\r\n  status(language: EN) {\r\n    __typename\r\n    initialized\r\n    device {\r\n      bufferCapacityUsed\r\n      fdmDateTime\r\n      fdmId\r\n      fdmSwVersion\r\n    }\r\n    errors {\r\n      ...messageFields\r\n    }\r\n    warnings {\r\n      ...messageFields\r\n    }\r\n    informations {\r\n      ...messageFields\r\n    }\r\n    __typename\r\n  }\r\n} \r\nfragment messageFields on MessageItem {\r\n  message\r\n  locations {\r\n    line\r\n    column\r\n    __typename\r\n  }\r\n  extensions {\r\n    category\r\n    code\r\n    data {\r\n      name\r\n      value\r\n      __typename\r\n    }\r\n    showPos\r\n    __typename\r\n  }\r\n  __typename\r\n}",
+   "variables": {},
+   "response": {
+    "data": {
+     "status": {
+      "__typename": "FdmStatus",
+      "initialized": true,
+      "device": {
+       "bufferCapacityUsed": 10.02,
+       "fdmDateTime": "2025-08-10T10:00:39.000Z",
+       "fdmId": "FOD01000001",
+       "fdmSwVersion": "1.2.0"
+      },
+      "errors": [],
+      "warnings": [],
+      "informations": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

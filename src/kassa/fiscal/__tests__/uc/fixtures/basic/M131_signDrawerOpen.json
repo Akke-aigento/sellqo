@@ -1,0 +1,57 @@
+{
+ "set": "basic",
+ "uc": "M131_signDrawerOpen",
+ "scenario": "Drawer 1 is opened without any action",
+ "steps": [
+  {
+   "step": "M131_signDrawerOpen",
+   "query": "mutation M131_signDrawerOpen($data: DrawerOpenInput!, $training: Boolean! = false) {\r\n  signDrawerOpen(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 1007,
+     "posDateTime": "2024-07-29T15:12:04.000+02:00",
+     "posSwVersion": "1.8.3",
+     "terminalId": "TER-1-BAR",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-07-29",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "drawer": {
+      "id": "1",
+      "name": "Drawer 1"
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signDrawerOpen": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 1007,
+      "posDateTime": "2024-07-29T15:12:04.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "DRAWER_OPEN",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-07-29T13:12:05.000Z",
+       "eventLabel": "F",
+       "eventCounter": 7,
+       "totalCounter": 57
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": [],
+      "informations": []
+     }
+    }
+   },
+   "scenario": "Drawer 1 is opened without any action"
+  }
+ ]
+}

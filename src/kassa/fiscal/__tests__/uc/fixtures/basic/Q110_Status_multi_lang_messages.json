@@ -1,0 +1,46 @@
+{
+ "set": "basic",
+ "uc": "Q110_Status_multi_lang_messages",
+ "scenario": null,
+ "steps": [
+  {
+   "step": "Q110_Status_multi_lang_messages",
+   "query": "# Request FDM status with multi language messages\r\nquery Q110_Status_multi_lang_messages {\r\n  status(language: EN) {\r\n    __typename\r\n    initialized\r\n    device {\r\n      __typename\r\n      bufferCapacityUsed\r\n      fdmDateTime\r\n      fdmId\r\n      fdmSwVersion\r\n    }\r\n    ...messages\r\n  }\r\n  messagesFR: status(language: FR) {\r\n    ...messages\r\n  }\r\n  messagesNL: status(language: NL) {\r\n    ...messages\r\n  }\r\n  messagesDE: status(language: DE) {\r\n    ...messages\r\n  }\r\n}\r\n\r\nfragment messageFields on MessageItem {\r\n  __typename\r\n  message\r\n  locations {\r\n    line\r\n    column\r\n  }\r\n  extensions {\r\n    __typename\r\n    category\r\n    code\r\n    data {\r\n      __typename\r\n      name\r\n      value\r\n    }\r\n    showPos\r\n  }\r\n}\r\nfragment messages on FdmStatus {\r\n  errors {\r\n    ...messageFields\r\n  }\r\n  warnings {\r\n    ...messageFields\r\n  }\r\n  informations {\r\n    ...messageFields\r\n  }\r\n}",
+   "variables": {},
+   "response": {
+    "data": {
+     "status": {
+      "__typename": "FdmStatus",
+      "initialized": true,
+      "device": {
+       "__typename": "Device",
+       "bufferCapacityUsed": 10.02,
+       "fdmDateTime": "2025-08-10T10:00:39.000Z",
+       "fdmId": "FOD01000001",
+       "fdmSwVersion": "1.2.0"
+      },
+      "errors": [],
+      "warnings": [],
+      "informations": []
+     },
+     "messagesFR": {
+      "errors": [],
+      "warnings": [],
+      "informations": []
+     },
+     "messagesNL": {
+      "errors": [],
+      "warnings": [],
+      "informations": []
+     },
+     "messagesDE": {
+      "errors": [],
+      "warnings": [],
+      "informations": []
+     }
+    }
+   },
+   "scenario": null
+  }
+ ]
+}

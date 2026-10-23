@@ -10272,5 +10272,14 @@
     "body": "Cet écran n’a pas pu être chargé. Nous avons été prévenus. Réessayez ; vos données ne sont pas perdues.",
     "retry": "Réessayer",
     "reload": "Recharger"
+  },
+  "kassa": {
+    "skeleton": {
+      "title": "SellQo Caisse",
+      "version": "Version {{version}}",
+      "testButton": "Tester avec le simulateur FDM",
+      "signed": "Signé par le simulateur : {{label}} n° {{counter}}",
+      "notSigned": "Non signé ({{reason}})"
+    }
   }
 }

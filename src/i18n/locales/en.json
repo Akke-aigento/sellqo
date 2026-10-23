@@ -10272,5 +10272,14 @@
     "body": "This screen could not be loaded. We have been notified. Please try again; your data has not been lost.",
     "retry": "Try again",
     "reload": "Reload"
+  },
+  "kassa": {
+    "skeleton": {
+      "title": "SellQo Till",
+      "version": "Version {{version}}",
+      "testButton": "Test with the FDM simulator",
+      "signed": "Signed by the simulator: {{label}} no. {{counter}}",
+      "notSigned": "Not signed ({{reason}})"
+    }
   }
 }

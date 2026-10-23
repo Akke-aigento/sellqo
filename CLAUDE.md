@@ -253,3 +253,9 @@ Akke mag nooit zelf moeten struikelen over een oude instelling, een dubbele knop
 5. **Melden.** Het verslag heeft altijd een sectie **Samenhang**: wat bestond er al, wat is aangepast of verhuisd, wie is overgezet, wat is opgeruimd en wat bewust bleef staan.
 
 De volledige werkwijze staat in de account-skill `samenhang-check`.
+
+---
+
+## 9. SellQo Kassa (GKS 2.0) — fiscale kern
+
+**Wijzigen in `src/kassa/` = fiscale release.** SellQo Kassa wordt gecertificeerd als geregistreerd kassasysteem; elke wijziging aan de kassa-kern moet bij de FOD gemeld worden. Lees eerst `src/kassa/README.md` en de eisenmatrix (projectdoc `claude/gks-eisenmatrix.md`). Nooit "even snel" iets in `src/kassa/` meenemen in een andere batch; `npx vitest run src/kassa` (incl. de officiële use cases) moet groen zijn, en `KASSA_SW_VERSION` gaat omhoog. `fiscal_events` en `fiscal_audit_log` zijn append-only: geen update, delete of truncate, ook niet in een migratie.

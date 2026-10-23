@@ -10272,5 +10272,14 @@
     "body": "Dieser Bildschirm konnte nicht geladen werden. Wir wurden benachrichtigt. Versuche es erneut; deine Daten sind nicht verloren.",
     "retry": "Erneut versuchen",
     "reload": "Neu laden"
+  },
+  "kassa": {
+    "skeleton": {
+      "title": "SellQo Kasse",
+      "version": "Version {{version}}",
+      "testButton": "Mit dem FDM-Simulator testen",
+      "signed": "Vom Simulator signiert: {{label}} Nr. {{counter}}",
+      "notSigned": "Nicht signiert ({{reason}})"
+    }
   }
 }

@@ -10274,5 +10274,14 @@
     "body": "Dit scherm kon niet geladen worden. We zijn op de hoogte gebracht. Probeer het opnieuw; je gegevens zijn niet verloren.",
     "retry": "Opnieuw proberen",
     "reload": "Opnieuw laden"
+  },
+  "kassa": {
+    "skeleton": {
+      "title": "SellQo Kassa",
+      "version": "Versie {{version}}",
+      "testButton": "Test met de FDM-simulator",
+      "signed": "Ondertekend door de simulator: {{label}} nr. {{counter}}",
+      "notSigned": "Niet ondertekend ({{reason}})"
+    }
   }
 }

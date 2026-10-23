@@ -1,0 +1,148 @@
+{
+ "set": "advanced",
+ "uc": "UC223_signSale_EventPriceChange",
+ "scenario": "Direct Sale of\r\n    2 Carpaccio Beef (unitprice 20 EUR, VAT-code B)\r\n    1 Dry Martini (unitprice 12 EUR, VAT-code A)\r\nwith ticketdiscount of 50%Payment: EFT - VISA(Credit)",
+ "steps": [
+  {
+   "step": "UC223_signSale_EventPriceChange",
+   "query": "mutation UC223_signSale_EventPriceChange($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 5000,
+     "posDateTime": "2024-09-02T09:20:23.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+     "terminalId": "TER-2-DIN",
+     "bookingPeriodId": "defcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-02",
+     "ticketMedium": "PAPER",
+     "employeeId": "84022899837",
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "20001",
+         "productName": "Carpaccio Beef",
+         "departmentId": "20",
+         "departmentName": "Starters",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 20,
+         "vats": [
+          {
+           "label": "B",
+           "price": 40,
+           "priceChanges": [
+            {
+             "id": "10",
+             "name": "Discount50P",
+             "scope": "EVENT",
+             "type": "PUBLIC",
+             "amount": -20,
+             "groupingId": 1
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 20
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 12,
+           "priceChanges": [
+            {
+             "id": "10",
+             "name": "Discount50P",
+             "scope": "EVENT",
+             "type": "PUBLIC",
+             "amount": -6,
+             "groupingId": 1
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 6
+       }
+      ],
+      "transactionTotal": 26
+     },
+     "financials": [
+      {
+       "id": "15",
+       "name": "BANCONTACT",
+       "type": "CARD_DEBIT",
+       "inputMethod": "AUTOMATIC",
+       "provider": "VISA",
+       "amount": 26,
+       "amountType": "PAYMENT"
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 5000,
+      "posDateTime": "2024-09-02T09:20:23.000+02:00",
+      "terminalId": "TER-2-DIN",
+      "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 17.86,
+        "vatAmount": 2.14,
+        "totalAmount": 20,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 4.96,
+        "vatAmount": 1.04,
+        "totalAmount": 6,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-02T07:20:31.000Z",
+       "eventLabel": "N",
+       "eventCounter": 15,
+       "totalCounter": 59
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": [],
+      "footer": []
+     }
+    }
+   },
+   "scenario": "Direct Sale of\r\n    2 Carpaccio Beef (unitprice 20 EUR, VAT-code B)\r\n    1 Dry Martini (unitprice 12 EUR, VAT-code A)\r\nwith ticketdiscount of 50%Payment: EFT - VISA(Credit)"
+  }
+ ]
+}

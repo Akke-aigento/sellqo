@@ -1,0 +1,180 @@
+{
+ "set": "advanced",
+ "uc": "UC221A_signSale_LinePriceChange",
+ "scenario": "!!! PROMO on \" of Burger of the Chef\" (unit price 28.00 EUR, VAT-code B): if you order 2 pcs, there is a 50% discount on the second one\r\n\r\nDIRECT SALE of 2 Burger of the Chef and 1 Dry Martini (unit price 12.00 EUR, VAT-code A)\r\nPayment Cash\r\n\r\nversion A:\r\n- productline 2 Burger of the Chef\r\n- productline -1 Burger of the Chef (negQuantityReason: PRICECHANGE)\r\n- productline 1 Burger of the Chef with line PRICECHANGE\r\n- productline 1 Dry Martini\r\n\r\nversion B:\r\n- productline 1 Burger of the Chef\r\n- productline 1 Burger of the Chef with line PRICECHANGE\r\n- productline 1 Dry Martini\r\n\r\n",
+ "steps": [
+  {
+   "step": "UC221A_signSale_LinePriceChange",
+   "query": "mutation UC221A_signSale_LinePriceChange($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 901,
+     "posDateTime": "2024-08-30T14:36:23.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+     "terminalId": "TER-2-DIN",
+     "bookingPeriodId": "abccd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-08-30",
+     "ticketMedium": "PAPER",
+     "employeeId": "84022899837",
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the Chef",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": 2,
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": 56
+          }
+         ]
+        },
+        "lineTotal": 56
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the Chef",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": -1,
+         "negQuantityReason": "PRICE_CHANGE",
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": -28
+          }
+         ]
+        },
+        "lineTotal": -28
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "22001",
+         "productName": "Burger of the Chef",
+         "departmentId": "22",
+         "departmentName": "Main Dishes",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 28,
+         "vats": [
+          {
+           "label": "B",
+           "price": 28,
+           "priceChanges": [
+            {
+             "id": "K1",
+             "groupingId": 1,
+             "name": "Discount50P",
+             "scope": "LINE",
+             "type": "PUBLIC",
+             "amount": -14
+            }
+           ]
+          }
+         ]
+        },
+        "lineTotal": 14
+       },
+       {
+        "lineType": "SINGLE_PRODUCT",
+        "mainProduct": {
+         "productId": "10006",
+         "productName": "Dry Martini",
+         "departmentId": "10",
+         "departmentName": "Aperitifs",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 12,
+         "vats": [
+          {
+           "label": "A",
+           "price": 12
+          }
+         ]
+        },
+        "lineTotal": 12
+       }
+      ],
+      "transactionTotal": 54
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 54,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "1",
+        "name": "Drawer 1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 901,
+      "posDateTime": "2024-08-30T14:36:23.000+02:00",
+      "terminalId": "TER-2-DIN",
+      "deviceId": "1631678d-7a85-4ac3-b296-bb4565e873fe",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 37.5,
+        "vatAmount": 4.5,
+        "totalAmount": 42,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 9.92,
+        "vatAmount": 2.08,
+        "totalAmount": 12,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-08-30T12:36:28.000Z",
+       "eventLabel": "N",
+       "eventCounter": 22,
+       "totalCounter": 68
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": "!!! PROMO on \" of Burger of the Chef\" (unit price 28.00 EUR, VAT-code B): if you order 2 pcs, there is a 50% discount on the second one\r\n\r\nDIRECT SALE of 2 Burger of the Chef and 1 Dry Martini (unit price 12.00 EUR, VAT-code A)\r\nPayment Cash\r\n\r\nversion A:\r\n- productline 2 Burger of the Chef\r\n- productline -1 Burger of the Chef (negQuantityReason: PRICECHANGE)\r\n- productline 1 Burger of the Chef with line PRICECHANGE\r\n- productline 1 Dry Martini\r\n\r\nversion B:\r\n- productline 1 Burger of the Chef\r\n- productline 1 Burger of the Chef with line PRICECHANGE\r\n- productline 1 Dry Martini\r\n\r\n"
+  }
+ ]
+}

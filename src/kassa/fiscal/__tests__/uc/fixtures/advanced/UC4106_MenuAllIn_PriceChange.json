@@ -1,0 +1,208 @@
+{
+ "set": "advanced",
+ "uc": "UC4106_MenuAllIn_PriceChange",
+ "scenario": "Direct Sale: 1 Business menu all-in, price change 20%\r\nPayment (46,40EUR) Cash",
+ "steps": [
+  {
+   "step": "UC4106_MenuAllIn_PriceChange",
+   "query": "mutation UC4106_MenuAllIn_PriceChange($data: SaleInput!, $training: Boolean! = false) {\r\n  signSale(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    shortSignature\r\n    verificationUrl\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    vatCalc {\r\n      label\r\n      rate\r\n      taxableAmount\r\n      vatAmount\r\n      totalAmount\r\n      outOfScope\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    footer\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 6000,
+     "posDateTime": "2024-09-03T12:25:03.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "D003123456",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-09-03",
+     "ticketMedium": "PAPER",
+     "employeeId": "75061189702",
+     "transaction": {
+      "transactionLines": [
+       {
+        "lineType": "COMPOSITE_PRODUCT",
+        "mainProduct": {
+         "productId": "30010",
+         "productName": "Business menu all-in",
+         "departmentId": "30",
+         "departmentName": "Menus",
+         "quantity": 1,
+         "quantityType": "PIECE",
+         "unitPrice": 58,
+         "vats": []
+        },
+        "subProducts": [
+         {
+          "productId": "20001",
+          "productName": "Carpaccio beef",
+          "departmentId": "20",
+          "departmentName": "Starters",
+          "quantity": 1,
+          "quantityType": "PIECE",
+          "unitPrice": 20,
+          "vats": [
+           {
+            "label": "B",
+            "price": 20,
+            "priceChanges": [
+             {
+              "groupingId": 1,
+              "id": "5",
+              "name": "MenuDiscount",
+              "scope": "LINE",
+              "type": "INTERNAL",
+              "amount": -4
+             },
+             {
+              "groupingId": 2,
+              "id": "2",
+              "name": "Discount20P",
+              "scope": "EVENT",
+              "type": "PUBLIC",
+              "amount": -3.2
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "productId": "22001",
+          "productName": "Burger of the chef",
+          "departmentId": "22",
+          "departmentName": "Main Dishes",
+          "quantity": 1,
+          "quantityType": "PIECE",
+          "unitPrice": 28,
+          "vats": [
+           {
+            "label": "B",
+            "price": 28,
+            "priceChanges": [
+             {
+              "groupingId": 1,
+              "id": "5",
+              "name": "MenuDiscount",
+              "scope": "LINE",
+              "type": "INTERNAL",
+              "amount": -4
+             },
+             {
+              "groupingId": 2,
+              "id": "2",
+              "name": "Discount20P",
+              "scope": "EVENT",
+              "type": "PUBLIC",
+              "amount": -4.8
+             }
+            ]
+           }
+          ]
+         },
+         {
+          "productId": "15023",
+          "productName": "Matching wines",
+          "departmentId": "15",
+          "departmentName": "Wines",
+          "quantity": 1,
+          "quantityType": "PIECE",
+          "unitPrice": 24,
+          "vats": [
+           {
+            "label": "A",
+            "price": 24,
+            "priceChanges": [
+             {
+              "groupingId": 1,
+              "id": "5",
+              "name": "MenuDiscount",
+              "scope": "LINE",
+              "type": "INTERNAL",
+              "amount": -6
+             },
+             {
+              "groupingId": 2,
+              "id": "2",
+              "name": "Discount20P",
+              "scope": "EVENT",
+              "type": "PUBLIC",
+              "amount": -3.6
+             }
+            ]
+           }
+          ]
+         }
+        ],
+        "lineTotal": 46.4
+       }
+      ],
+      "transactionTotal": 46.4
+     },
+     "financials": [
+      {
+       "id": "1",
+       "name": "CONTANT",
+       "type": "CASH",
+       "inputMethod": "MANUAL",
+       "amount": 46.4,
+       "amountType": "PAYMENT",
+       "drawer": {
+        "id": "D1",
+        "name": "Drawer1"
+       }
+      }
+     ]
+    }
+   },
+   "response": {
+    "data": {
+     "signSale": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 6000,
+      "posDateTime": "2024-09-03T12:25:03.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "D003123456",
+      "vatCalc": [
+       {
+        "label": "B",
+        "rate": 12,
+        "taxableAmount": 28.57,
+        "vatAmount": 3.43,
+        "totalAmount": 32,
+        "outOfScope": false
+       },
+       {
+        "label": "A",
+        "rate": 21,
+        "taxableAmount": 11.9,
+        "vatAmount": 2.5,
+        "totalAmount": 14.4,
+        "outOfScope": false
+       }
+      ],
+      "eventOperation": "SALE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-09-03T10:25:10.000Z",
+       "eventLabel": "N",
+       "eventCounter": 60,
+       "totalCounter": 145
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "shortSignature": "ca39a3ee5e6b4b0d3255bfef95601890afd80709",
+      "verificationUrl": "https://gs2.be/",
+      "warnings": [],
+      "informations": null,
+      "footer": []
+     }
+    }
+   },
+   "scenario": "Direct Sale: 1 Business menu all-in, price change 20%\r\nPayment (46,40EUR) Cash"
+  }
+ ]
+}

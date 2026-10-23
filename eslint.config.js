@@ -15,6 +15,8 @@ export default tseslint.config(
     // verschilt, bewaakt niets.
     ignores: [
       "dist",
+      "dist-kassa",
+      ".claude/worktrees",
       "android/app/build",
       "android/app/src/main/assets/public",
       "ios/App/App/public",

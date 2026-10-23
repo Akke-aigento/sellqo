@@ -1,0 +1,53 @@
+{
+ "set": "basic",
+ "uc": "M140_signWorkIn",
+ "scenario": "Registration of \"Work In\" of employee (employeeId 80113078968)",
+ "steps": [
+  {
+   "step": "M140_signWorkIn",
+   "query": "mutation M140_signWorkIn($data: WorkInOutInput!, $training: Boolean! = false) {\r\n  signWorkIn(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234568",
+     "posFiscalTicketNo": 1010,
+     "posDateTime": "2024-07-29T15:50:39.000+02:00",
+     "posSwVersion": "1.8.3",
+     "terminalId": "POS-2-REC",
+     "deviceId": "80:1A:A6:75:66:FC",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-07-29",
+     "ticketMedium": "NONE",
+     "employeeId": "80113078968"
+    }
+   },
+   "response": {
+    "data": {
+     "signWorkIn": {
+      "posId": "CPOS0031234568",
+      "posFiscalTicketNo": 1010,
+      "posDateTime": "2024-07-29T15:50:39.000+02:00",
+      "terminalId": "POS-2-REC",
+      "deviceId": "80:1A:A6:75:66:FC",
+      "eventOperation": "WORK_IN",
+      "fdmRef": {
+       "fdmId": "FOD01000002",
+       "fdmDateTime": "2024-07-29T13:50:39.000Z",
+       "eventLabel": "S",
+       "eventCounter": 7,
+       "totalCounter": 30
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": [],
+      "informations": []
+     }
+    }
+   },
+   "scenario": "Registration of \"Work In\" of employee (employeeId 80113078968)"
+  }
+ ]
+}

@@ -1,0 +1,161 @@
+{
+ "set": "basic",
+ "uc": "M122_signCostCenterChange",
+ "scenario": "Order on T1 (BAR):\r\n    1 Burger of the Chef (unit price 28 EUR, VAT code B)\r\n    1 Dry Martini(unit price 12 EUR, VAT code A)    \r\nis moved to T5 (Dining Room)",
+ "steps": [
+  {
+   "step": "M122_signCostCenterChange",
+   "query": "mutation M122_signCostCenterChange($data: CostCenterChangeInput!, $training: Boolean! = false) {\r\n  signCostCenterChange(data: $data, isTraining: $training) {\r\n    posId\r\n    posFiscalTicketNo\r\n    posDateTime\r\n    terminalId\r\n    deviceId\r\n    fdmSwVersion\r\n    eventOperation\r\n    digitalSignature\r\n    bufferCapacityUsed\r\n    fdmRef {\r\n      fdmId\r\n      fdmDateTime\r\n      eventLabel\r\n      eventCounter\r\n      totalCounter\r\n    }\r\n    warnings {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n    informations {\r\n      message\r\n      locations {\r\n        line\r\n        column\r\n      }\r\n      extensions {\r\n        category\r\n        code\r\n        data {\r\n          name\r\n          value\r\n        }\r\n        showPos\r\n      }\r\n    }\r\n  }\r\n}\r\n",
+   "variables": {
+    "data": {
+     "language": "NL",
+     "vatNo": "BE0000000097",
+     "estNo": "2000000042",
+     "posId": "CPOS0031234567",
+     "posFiscalTicketNo": 1004,
+     "posDateTime": "2024-07-29T14:21:23.000+02:00",
+     "posSwVersion": "1.8.3",
+     "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+     "terminalId": "TER-1-BAR",
+     "bookingPeriodId": "dffcd829-a0e5-41ca-a0ae-9eb887f95637",
+     "bookingDate": "2024-07-29",
+     "ticketMedium": "NONE",
+     "employeeId": "75061189702",
+     "transfer": {
+      "from": [
+       {
+        "costCenter": {
+         "id": "T1",
+         "type": "TABLE",
+         "reference": "O158"
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "22001",
+            "productName": "Burger of the Chef",
+            "departmentId": "22",
+            "departmentName": "Main Dishes",
+            "quantity": -1,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 28,
+            "vats": [
+             {
+              "label": "B",
+              "price": -28
+             }
+            ]
+           },
+           "lineTotal": -28
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "10006",
+            "productName": "Dry Martini",
+            "departmentId": "10",
+            "departmentName": "Aperitifs",
+            "quantity": -1,
+            "negQuantityReason": "COST_CENTER_CHANGE",
+            "quantityType": "PIECE",
+            "unitPrice": 12,
+            "vats": [
+             {
+              "label": "A",
+              "price": -12
+             }
+            ]
+           },
+           "lineTotal": -12
+          }
+         ],
+         "transactionTotal": -40
+        }
+       }
+      ],
+      "to": [
+       {
+        "costCenter": {
+         "id": "T5",
+         "type": "TABLE",
+         "reference": "O158"
+        },
+        "transaction": {
+         "transactionLines": [
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "22001",
+            "productName": "Burger of the Chef",
+            "departmentId": "22",
+            "departmentName": "Main Dishes",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 28,
+            "vats": [
+             {
+              "label": "B",
+              "price": 28
+             }
+            ]
+           },
+           "lineTotal": 28
+          },
+          {
+           "lineType": "SINGLE_PRODUCT",
+           "mainProduct": {
+            "productId": "10006",
+            "productName": "Dry Martini",
+            "departmentId": "10",
+            "departmentName": "Aperitifs",
+            "quantity": 1,
+            "quantityType": "PIECE",
+            "unitPrice": 12,
+            "vats": [
+             {
+              "label": "A",
+              "price": 12
+             }
+            ]
+           },
+           "lineTotal": 12
+          }
+         ],
+         "transactionTotal": 40
+        }
+       }
+      ]
+     }
+    }
+   },
+   "response": {
+    "data": {
+     "signCostCenterChange": {
+      "posId": "CPOS0031234567",
+      "posFiscalTicketNo": 1004,
+      "posDateTime": "2024-07-29T14:21:23.000+02:00",
+      "terminalId": "TER-1-BAR",
+      "deviceId": "b54a614f-39cc-4a7b-bd9f-aa6b693d769c",
+      "eventOperation": "COST_CENTER_CHANGE",
+      "fdmRef": {
+       "fdmId": "FOD01000001",
+       "fdmDateTime": "2024-07-29T12:21:25.000Z",
+       "eventLabel": "P",
+       "eventCounter": 23,
+       "totalCounter": 54
+      },
+      "fdmSwVersion": "1.2.0",
+      "bufferCapacityUsed": 0.25,
+      "digitalSignature": "c7uwqjLZ+Wk+R8swA/KHilWp4qCPK4u1L6TGxuCOJbf7bY32Ra2G8NiI+TO9lFGNFTfU1UA/8HGiccVzMQrUcA==",
+      "warnings": [],
+      "informations": []
+     }
+    }
+   },
+   "scenario": "Order on T1 (BAR):\r\n    1 Burger of the Chef (unit price 28 EUR, VAT code B)\r\n    1 Dry Martini(unit price 12 EUR, VAT code A)    \r\nis moved to T5 (Dining Room)"
+  }
+ ]
+}
