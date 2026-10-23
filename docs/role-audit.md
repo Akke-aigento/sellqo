@@ -1,3 +1,24 @@
+## EVENT-REMINDER-1 — herinneringsmail op de dag van het event, met WhatsApp-groeplink — 23 oktober 2026
+
+**Root cause** — SellQo had geen herinnering vóór een event (enige herinneringscron: `process-cycle-reminders-daily`, abonnementen). Akke wil dat Fonske-deelnemers op de dag zelf een mail krijgen met de link naar de WhatsApp-groep van de crawl (te laat, verdwaald). Eerste crawl: 24 okt 2026, 21:00.
+
+**Uitgevoerd**
+- `event_details.whatsapp_url` (text) en `event_details.reminder_sent_at` (timestamptz), live gedraaid via query_database op 23-10 en nagetrokken; `supabase/migrations/20261023180000_event_reminder_1.sql` (idempotent) houdt de repo gelijk.
+- Groeplink gezet op het Fonske-event van 24-10 (`7ae8364e-…`).
+- Nieuwe functie `supabase/functions/send-event-reminder`: events met `event_date` = vandaag, `status = 'scheduled'`, een `whatsapp_url` en nog geen reminder → één mail per uniek e-mailadres van tickets met status `valid`/`checked_in`. Tenant-branding en afzender zoals `send-ticket-confirmation`; taal via `resolveEmailLocale` (nl/en/fr/de, teksten inline). Respecteert de toggle `ticket_delivery` in `customer_communication_settings`.
+- Dubbel versturen: per event eerst een claim (`reminder_sent_at` van null naar nu); geen rij = overslaan. Gaat er geen enkele mail uit, dan wordt de claim vrijgegeven.
+
+**Security-keuzes** — POST alleen voor cron/andere functies via `denyUnlessCron` (zelfde als `process-cycle-reminders`); geen config.toml-entry, dus gateway-JWT-verificatie blijft aan. GET is een neveneffectvrije healthcheck (`version: EVENT-REMINDER-1`). Geen RLS of grants geraakt.
+
+**Gedeelde-paden-waarschuwing** — `event_details` krijgt twee kolommen (strikt additief). `get_public_events`/storefront-api geven de nieuwe kolommen niet mee; geen contractwijziging.
+
+**Verificatie** — `deno check` groen met echte supabase-js 2.57.2-types (import map, stubs voor server/resend). Deploy + vingerafdruk (GET) + cron volgen na de push.
+
+**Vervolg / bewust ongemoeid**
+- Geen admin-veld voor `whatsapp_url`: nu enkel via SQL. Hoort in EVENT-FLOW (veld in de eventdatum-editor), met changelog, helpartikel en nieuwsbrief.
+- De checklist (ID, 18+, eet vooraf) is Fonske-gericht en geldt nu voor elke event-tenant met een groeplink. Bij een tweede event-tenant: tekst per event instelbaar maken.
+- Cron draait 08:00 UTC: 10:00 in de zomer, 09:00 na 25-10.
+
 ## DASH-2a + DASH-2b — cockpit-dashboard (per spoor, maanddoel, live-feed, horeca) — 21 oktober 2026
 
 DASH-2a (084c5eed, 8cd10bf9, PR #13) en de fix DASH-2a-FIX (f8e5c8b) kregen geen eigen entry; ze staan hier samen met DASH-2b. Ontwerp goedgekeurd door Akke op de mockup "SellQo Cockpit 2.0" (Design-canvas, 21-10).
