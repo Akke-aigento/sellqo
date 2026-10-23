@@ -13,6 +13,8 @@ export interface FloorPlanViewProps {
   markers: FloorMarker[];
   /** Optionele status per tafel-id (kleur + voorleestekst). */
   status?: Record<string, TableStatus | undefined>;
+  /** TAFEL-1: extra regel per tafel (bedrag · minuten). */
+  badges?: Record<string, string | undefined>;
   onTableClick?: (table: FloorTable) => void;
   /** Welke ruimte eerst open staat (standaard de eerste). */
   initialAreaId?: string;
@@ -20,7 +22,7 @@ export interface FloorPlanViewProps {
   className?: string;
 }
 
-export function FloorPlanView({ areas, tables, markers, status, onTableClick, initialAreaId, maxHeight, className }: FloorPlanViewProps) {
+export function FloorPlanView({ areas, tables, markers, status, badges, onTableClick, initialAreaId, maxHeight, className }: FloorPlanViewProps) {
   const { t } = useTranslation();
   const sorted = useMemo(() => [...areas].filter((a) => a.is_active).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)), [areas]);
   const [picked, setPicked] = useState<string | undefined>(initialAreaId);
@@ -48,6 +50,7 @@ export function FloorPlanView({ areas, tables, markers, status, onTableClick, in
         tables={inArea(tables).filter((x) => x.is_active)}
         markers={inArea(markers)}
         status={status}
+        badges={badges}
         onTableClick={onTableClick}
         maxHeight={maxHeight}
       />

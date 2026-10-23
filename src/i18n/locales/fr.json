@@ -6184,7 +6184,8 @@
       "tab_floor": "Plan de salle",
       "floor_plan": "Plan de salle",
       "floor_summary": "{{tables}} tables dans {{areas}} espace(s)",
-      "floor_none": "Pas encore configuré"
+      "floor_none": "Pas encore configuré",
+      "tab_stations": "Postes"
     },
     "kitchen": {
       "col_new": "Nouveau",
@@ -6246,7 +6247,11 @@
       "pause_today": "Reste de la journée",
       "paused_until": "En pause jusqu’à {{time}} · reprendre",
       "paused_toast": "Commandes en ligne suspendues jusqu’à {{time}}",
-      "resumed_toast": "Les commandes en ligne sont à nouveau ouvertes"
+      "resumed_toast": "Les commandes en ligne sont à nouveau ouvertes",
+      "source_table": "Table",
+      "cancelled_item": "Annuler",
+      "station": "Poste",
+      "all_stations": "Tous les postes"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -8528,6 +8533,32 @@
       "error_no_rights": "Vous n'avez pas le droit de modifier le plan de salle. Demandez à un administrateur de l'établissement.",
       "error_invalid": "Cette valeur n'est pas autorisée : vérifiez le nom, la taille et la position.",
       "error_save": "Échec de l'enregistrement : {{reason}}"
+    },
+    "prepStations": {
+      "title": "Postes de préparation",
+      "intro": "Cuisine, bar, desserts… Chaque tournée de SellQo Kassa crée un bon par poste. Sans postes, tout arrive sur un seul bon.",
+      "none": "Pas encore de postes. Tout apparaît sur un seul bon à l’écran cuisine.",
+      "defaultHint": "Le poste par défaut reçoit tout ce qui n’est pas envoyé ailleurs, y compris les commandes webshop et téléphone.",
+      "isDefault": "Par défaut",
+      "makeDefault": "Par défaut",
+      "remove": "Supprimer {{name}}",
+      "namePlaceholder": "Nom du poste (p. ex. Bar)",
+      "kind": "Type de poste",
+      "kinds": {
+        "kitchen": "Cuisine",
+        "bar": "Bar",
+        "other": "Autre"
+      },
+      "add": "Ajouter",
+      "routingTitle": "Quoi va où",
+      "routingIntro": "Choisissez un poste par catégorie. Rien de choisi = {{name}} (par défaut).",
+      "routingIntroNoDefault": "Choisissez un poste par catégorie. Sans poste par défaut, le reste arrive sur un bon sans poste, visible sur chaque écran cuisine.",
+      "routingNeedsStations": "Ajoutez d’abord un poste.",
+      "noCategories": "Vous n’avez pas encore de catégories.",
+      "routeFor": "Poste pour {{name}}",
+      "defaultOption": "{{name}} (par défaut)",
+      "noStation": "Aucun poste",
+      "error": "Échec : {{detail}}"
     }
   },
   "billing": {
@@ -10422,7 +10453,10 @@
   },
   "kassa": {
     "common": {
-      "loading": "Chargement…"
+      "loading": "Chargement…",
+      "cancel": "Annuler",
+      "save": "Enregistrer",
+      "close": "Fermer"
     },
     "signIn": {
       "title": "Connecter la caisse",
@@ -10469,12 +10503,88 @@
         "error": "Une erreur s’est produite. Réessayez."
       },
       "noInsz": "Sans numéro de registre national, vous ne pouvez rien enregistrer sur cette caisse enregistreuse.",
-      "changeTerminal": "Choisir une autre caisse"
+      "changeTerminal": "Choisir une autre caisse",
+      "live": "En direct",
+      "offline": "Hors ligne · {{n}} actions en attente"
     },
     "fiscalMode": {
       "off": "mode non fiscal",
       "simulator": "mode test (simulateur)",
       "fdm": "caisse enregistreuse"
+    },
+    "tables": {
+      "namePlaceholder": "Nom (p. ex. Jan)",
+      "open": "Ouvrir",
+      "onName": "Au nom",
+      "viewPlan": "Plan de salle",
+      "viewList": "Liste",
+      "noPlan": "Pas encore de plan de salle. Dessinez vos tables dans SellQo sous Commandes › Plan de salle ; les additions au nom fonctionnent déjà.",
+      "free": "libre"
+    },
+    "checks": {
+      "rejected": "Échec : {{error}}",
+      "gone": "Cette addition a été clôturée ou déplacée.",
+      "backToTables": "Retour aux tables",
+      "table": "Table {{label}}",
+      "billRequestedBadge": "Addition demandée",
+      "more": "Plus",
+      "moveCheck": "Déplacer ou fusionner l’addition",
+      "deleteCheck": "Supprimer l’addition vide",
+      "tabLines": "Addition ({{n}})",
+      "tabMenu": "Carte",
+      "empty": "Rien commandé pour l’instant. Touchez un produit.",
+      "total": "Total",
+      "search": "Rechercher",
+      "allCategories": "Tout",
+      "soldOut": "Épuisé",
+      "bill": "Addition",
+      "send": "Envoyer ({{n}})",
+      "sent": "Envoyé en cuisine et au bar",
+      "billRequested": "Addition provisoire faite",
+      "moved": "Déplacé",
+      "lineLocked": "Cette ligne a déjà été entièrement annulée, déplacée ou corrigée.",
+      "less": "Un de moins",
+      "more1": "Un de plus",
+      "note": "Remarque",
+      "notePlaceholder": "Remarque pour la cuisine",
+      "discount": "Réduction",
+      "discountName": "Réduction {{n}} %",
+      "onTheHouse": "Offert par la maison",
+      "moveLine": "Déplacer",
+      "remove": "Retirer",
+      "cancelLine": "Annuler",
+      "howMany": "Combien ?",
+      "why": "Pourquoi ?",
+      "voidReason": {
+        "mistake": "Erreur de saisie",
+        "customer": "Le client a changé d’avis",
+        "broken": "Cassé ou renversé",
+        "other": "Autre raison"
+      },
+      "reason": {
+        "CORRECTION": "Annulé",
+        "PRICE_CHANGE": "Changement de prix",
+        "COST_CENTER_CHANGE": "Déplacé",
+        "REFUND": "Remboursé",
+        "PRODUCT_SUBSTITUTION": "Remplacé",
+        "OTHER": "Autre"
+      },
+      "required": "obligatoire",
+      "add": "Ajouter",
+      "moveCheckTitle": "Déplacer l’addition vers…",
+      "moveLineTitle": "Déplacer la ligne vers…",
+      "merge": "fusionner",
+      "error": {
+        "nothing": "Il n’y a rien à envoyer.",
+        "offline": "Pas de connexion. Votre commande est conservée ; réessayez sous peu.",
+        "no_insz": "Votre numéro de registre national manque ; sans lui, rien ne peut être envoyé sur une caisse enregistreuse.",
+        "fiscal_not_configured": "Cette caisse n’est pas encore configurée comme caisse enregistreuse.",
+        "fdm_not_available": "La boîte noire n’est pas encore connectée.",
+        "fdm_rejected": "La boîte noire a refusé. Rien n’a été envoyé.",
+        "fdm_unreachable": "La boîte noire est injoignable. Rien n’a été envoyé ; réessayez.",
+        "server": "Échec : {{detail}}",
+        "changed": "Un collègue vient de modifier cette addition. Vérifiez et réessayez."
+      }
     }
   }
 }

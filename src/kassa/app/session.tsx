@@ -57,6 +57,8 @@ export function KassaSessionProvider({ children, idleMs = DEFAULT_IDLE_MS }: { c
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
+// Hook hoort bij de provider (zelfde patroon als useAuth/useTenant).
+// eslint-disable-next-line react-refresh/only-export-components
 export function useKassaSession(): KassaSessionValue {
   const v = useContext(Ctx);
   if (!v) throw new Error('useKassaSession buiten KassaSessionProvider');

@@ -3,7 +3,7 @@
 // het samenvoegen en sorteren los te testen is.
 
 export type KitchenStatus = 'new' | 'preparing' | 'ready' | 'done' | 'cancelled';
-export type KitchenSource = 'webshop' | 'pos' | 'phone';
+export type KitchenSource = 'webshop' | 'pos' | 'phone' | 'table';
 export type ServiceKind = 'pickup' | 'local_delivery' | 'eat_in';
 
 export interface KitchenItem { quantity: number; name: string; detail: string | null; addons: string[] }
@@ -29,6 +29,8 @@ export interface KitchenCard {
   statusAt: string;
   /** FOOD-3: klant al gemaild (klaar/onderweg). */
   notified: boolean;
+  /** TAFEL-1: bereidingspost (keuken, bar, …) van een tafelronde; null = geen post. */
+  stationId: string | null;
 }
 
 export interface OrderRow {
@@ -43,6 +45,8 @@ export interface TicketRow {
   id: string; source: string; order_id: string | null; service_type: string | null; requested_time: string | null;
   customer_label: string | null; customer_phone: string | null; note: string | null; items: unknown; total: number | null;
   paid: boolean; status: string; status_at: string; created_at: string; notified_at?: string | null;
+  /** TAFEL-1: ronde van een tafelrekening (één bon per station). */
+  table_label?: string | null; station_id?: string | null; round_id?: string | null;
 }
 
 const asService = (s: string | null | undefined): ServiceKind | null =>
@@ -104,29 +108,33 @@ export function cardFromOrder(o: OrderRow, ticket: TicketRow | undefined): Kitch
     status: asStatus(ticket?.status),
     statusAt: ticket?.status_at || o.created_at,
     notified: !!ticket?.notified_at,
+    stationId: null,
   };
 }
 
 export function cardFromTicket(t: TicketRow): KitchenCard {
   const items = Array.isArray(t.items) ? (t.items as Record<string, unknown>[]) : [];
+  const source: KitchenSource = t.source === 'phone' ? 'phone' : t.source === 'table' ? 'table' : 'pos';
   return {
     key: `t:${t.id}`,
-    source: t.source === 'phone' ? 'phone' : 'pos',
+    source,
     orderId: null,
     ticketId: t.id,
-    label: t.source === 'phone' ? 'phone' : 'pos',
-    table: null,
+    label: source,
+    // TAFEL-1: een ronde van een tafel; customer_label is dan de tafel of de naam van de rekening.
+    table: source === 'table' ? t.table_label || null : null,
     service: asService(t.service_type),
     requestedTime: t.requested_time,
     createdAt: t.created_at,
-    customer: t.customer_label,
+    customer: source === 'table' && t.table_label && t.customer_label === t.table_label ? null : t.customer_label,
     phone: t.customer_phone,
     address: null,
     note: t.note,
     items: items.map((i) => ({
       quantity: Number(i.quantity) || 1,
       name: String(i.name ?? ''),
-      detail: i.variant ? String(i.variant) : null,
+      // TAFEL-1: opmerking per lijn ("zonder ui") en annuleringen (negatief aantal) uit een ronde.
+      detail: i.variant ? String(i.variant) : i.note ? String(i.note) : null,
       addons: addonNames(i.addons),
     })),
     total: t.total != null ? Number(t.total) : null,
@@ -134,6 +142,7 @@ export function cardFromTicket(t: TicketRow): KitchenCard {
     status: asStatus(t.status),
     statusAt: t.status_at,
     notified: !!t.notified_at,
+    stationId: t.station_id ?? null,
   };
 }
 
@@ -173,3 +182,12 @@ export function notifiesCustomer(card: KitchenCard, status: KitchenStatus): bool
 
 /** Minuten tot het afhaal-/levermoment (negatief = te laat). */
 export const minutesLeft = (c: KitchenCard, nowMs: number) => Math.round((dueAt(c) - nowMs) / 60_000);
+
+/**
+ * TAFEL-1 — bonnen voor één bereidingspost. `null` = alles. Bonnen zonder post (webshop,
+ * oude kassa, telefoon) horen bij de standaardpost; zonder standaardpost zie je ze overal.
+ */
+export function cardsForStation(cards: KitchenCard[], stationId: string | null, defaultStationId: string | null): KitchenCard[] {
+  if (!stationId) return cards;
+  return cards.filter((c) => c.stationId === stationId || (!c.stationId && (!defaultStationId || stationId === defaultStationId)));
+}

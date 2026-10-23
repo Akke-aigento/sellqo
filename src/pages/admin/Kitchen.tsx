@@ -11,9 +11,10 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
 import { KitchenPauseControl } from '@/components/admin/kitchen/KitchenPauseControl';
-import { minutesLeft, NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
+import { cardsForStation, minutesLeft, NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
 import { useTranslation } from 'react-i18next';
 import { useHideAdminBottomNav } from '@/hooks/useAdminBottomNav';
+import { usePrepStations } from '@/hooks/usePrepStations';
 
 const COLUMNS: { status: KitchenStatus; titleKey: string }[] = [
   { status: 'new', titleKey: 'admin.kitchen.col_new' },
@@ -27,6 +28,7 @@ const SERVICE = {
 } as const;
 const SOUND_KEY = 'sq_kitchen_sound';
 const PRINT_KEY = 'sq_kitchen_autoprint';
+const STATION_KEY = 'sq_kitchen_station';
 
 const hhmm = (iso: string | number, lang: string) => new Date(iso).toLocaleTimeString(lang, { hour: '2-digit', minute: '2-digit' });
 const euro = (n: number) => new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
@@ -40,7 +42,8 @@ function actionKey(c: KitchenCard): string {
 
 /** Herkomst van een bon: "Webshop #1043", "Kassa" of "Telefoon". */
 const sourceName = (c: KitchenCard, t: TFunction) =>
-  c.source === 'webshop' ? t('admin.kitchen.webshop_label', { label: c.label }) : t(c.source === 'phone' ? 'admin.kitchen.source_phone' : 'admin.kitchen.source_pos');
+  c.source === 'webshop' ? t('admin.kitchen.webshop_label', { label: c.label })
+    : t(c.source === 'phone' ? 'admin.kitchen.source_phone' : c.source === 'table' ? 'admin.kitchen.source_table' : 'admin.kitchen.source_pos');
 /** Tafel en/of klantnaam. */
 const whoName = (c: KitchenCard, t: TFunction) =>
   [c.table ? t('admin.kitchen.table', { table: c.table }) : null, c.customer].filter(Boolean).join(' · ');
@@ -102,8 +105,10 @@ function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh }: {
 
       <ul className="space-y-1.5">
         {card.items.map((it, i) => (
-          <li key={i} className="leading-tight">
-            <span className="text-lg font-bold">{it.quantity}×</span> <span className="text-lg font-semibold">{it.name}</span>
+          <li key={i} className={cn('leading-tight', it.quantity < 0 && 'text-destructive')}>
+            {/* TAFEL-1: een annulering uit een tafelronde komt als negatief aantal binnen. */}
+            {it.quantity < 0 ? <span className="mr-1 rounded bg-destructive px-1.5 py-0.5 text-xs font-bold uppercase text-destructive-foreground">{t('admin.kitchen.cancelled_item')}</span> : null}
+            <span className="text-lg font-bold">{Math.abs(it.quantity)}×</span> <span className={cn('text-lg font-semibold', it.quantity < 0 && 'line-through')}>{it.name}</span>
             {it.detail ? <span className="block pl-7 text-sm text-muted-foreground">{it.detail}</span> : null}
             {it.addons.length ? <span className="block pl-7 text-sm font-semibold text-primary">+ {it.addons.join(', + ')}</span> : null}
           </li>
@@ -153,7 +158,17 @@ export default function KitchenPage() {
   const { t, i18n } = useTranslation();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
-  const { cards, isLoading, error, setStatus } = useKitchenBoard(now);
+  const { cards: allCards, isLoading, error, setStatus } = useKitchenBoard(now);
+  // TAFEL-1 — dit scherm toont één post (bar, keuken, …) of alles; per toestel onthouden.
+  const { data: prep } = usePrepStations();
+  const [station, setStation] = useState<string | null>(() => { try { return localStorage.getItem(STATION_KEY) || null; } catch { return null; } });
+  const stations = useMemo(() => prep?.stations ?? [], [prep]);
+  const activeStation = station && stations.some((s) => s.id === station) ? station : null;
+  const cards = useMemo(() => cardsForStation(allCards, activeStation, stations.find((s) => s.is_default)?.id ?? null), [allCards, activeStation, stations]);
+  const chooseStation = (id: string) => {
+    setStation(id || null);
+    try { if (id) localStorage.setItem(STATION_KEY, id); else localStorage.removeItem(STATION_KEY); } catch { /* privémodus */ }
+  };
   // HORECA-0 — het keukenscherm ligt over de admin heen: de navigatiepil van de
   // admin (ook z-50, later in de DOM) mag er niet over zweven.
   useHideAdminBottomNav(true);
@@ -215,6 +230,13 @@ export default function KitchenPage() {
           {t('admin.kitchen.summary', { new: byStatus.new.length, preparing: byStatus.preparing.length, ready: byStatus.ready.length, nextHour })}
         </span>
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+          {stations.length > 0 ? (
+            <select value={activeStation ?? ''} onChange={(e) => chooseStation(e.target.value)} aria-label={t('admin.kitchen.station')}
+              className="h-9 max-w-[9rem] rounded-md border bg-background px-2 text-sm">
+              <option value="">{t('admin.kitchen.all_stations')}</option>
+              {stations.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+            </select>
+          ) : null}
           <KitchenPauseControl now={now} />
           <Button variant={autoPrint ? 'secondary' : 'outline'} size="sm" onClick={toggleAutoPrint} title={t('admin.kitchen.auto_print_hint')} aria-label={autoPrint ? t('admin.kitchen.auto_print_aan') : t('admin.kitchen.auto_print_uit')}>
             <Printer className="h-4 w-4 sm:mr-1.5" /><span className="hidden sm:inline">{autoPrint ? t('admin.kitchen.auto_print_aan') : t('admin.kitchen.auto_print_uit')}</span>

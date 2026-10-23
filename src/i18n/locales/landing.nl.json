@@ -2231,6 +2231,10 @@
         "floor_plan_tables": {
           "title": "Zaalplan met een eigen QR-code per tafel",
           "description": "Onder Bestellen → Zaalplan teken je je zaak na: ruimtes zoals Binnen en Terras, tafels met naam, vorm en aantal stoelen, barkrukken, de toog en de deuren. Sjablonen zetten in één keer een rij barkrukken of een terras neer. Elke tafel krijgt een eigen QR-code die je als stickervel (12 per A4) afdrukt. Heb je een zaalplan, dan kan een gast enkel nog bestellen via de code van zijn tafel; een tafelnummer intypen werkt niet meer. Raakt een sticker zoek, dan maak je met één klik een nieuwe code en werkt de oude niet meer."
+        },
+        "table_checks": {
+          "title": "Tafels en rekeningen op SellQo Kassa",
+          "description": "Op SellQo Kassa zie je je zaalplan live: vrije tafels, bezette tafels met bedrag en minuten sinds de laatste bestelling, en tafels waar de rekening gevraagd is. Tik een tafel aan of open een rekening op naam, tik producten met hun extra's aan en verstuur de ronde: keuken en bar krijgen elk hun eigen bon, zonder bedragen. Je kan lijnen annuleren met een reden, korting of 'van het huis' geven, lijnen of hele rekeningen naar een andere tafel verplaatsen of samenvoegen, en een voorlopige rekening maken. Meerdere toestellen werken tegelijk op dezelfde rekeningen; valt het internet even weg, dan blijven je handelingen bewaard en gaan ze vanzelf door zodra de verbinding terug is. Afrekenen volgt in een volgende versie."
         }
       },
       "copyLink": "Kopieer link",

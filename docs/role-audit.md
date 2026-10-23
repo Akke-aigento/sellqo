@@ -1,3 +1,44 @@
+## TAFEL-1 — tafels en rekeningen op SellQo Kassa: rondes, keuken-/barbonnen per post, annuleren, korting, verplaatsen, samenvoegen, voorrekening — 23 oktober 2026
+
+Branch `tafel-1` (op `personeel-1`, met `zaal-h1` erin gemerged); niets gemerged naar main, gedeployed of live gedraaid. Eisenmatrix TBL-01..07, EVT-03 (P/ORDER), EVT-04 (P/PRE_BILL), EVT-07 (COST_CENTER_CHANGE), FDM-04 (eerst tekenen, dan doorvoeren). Kassa-versie `sellqo-kassa-0.3.0`.
+
+**Root cause / aanleiding** — De bestaande kassa (`usePOS.ts`) kent enkel een directe verkoop als client-side insert: geen rekening die openblijft, geen rondes, geen keukenbon per tafel, niets wat de GKS-regels voor P-events (bestelling, voorrekening, verplaatsen) kan dragen. Voor de eerste horecaklant (vandaag Lightspeed) is dat de kern van de dienst.
+
+**Uitgevoerd**
+- Migratie `20261024130000_tafel_1_checks.sql`:
+  - tabellen `prep_stations`, `prep_station_routes`, `dining_checks` (id = client-UUID = fiscale costCenter-referentie; één open rekening per tafel), `check_rounds`, `check_lines` (verstuurde lijnen append-only via guard-trigger; correcties = negatieve lijnen met `neg_reason`/`corrects_line_id`), `horeca_commands` (idempotentie), `horeca_state` (versie voor de poll);
+  - `kitchen_tickets` + `round_id`, `station_id`, `check_id`, `table_label`, bron `'table'` (additief);
+  - `horeca_apply(p_tenant_id, p_device_id, p_commands)`: één ingang voor alle bedieningsacties (max. 50 per call, subtransactie per commando, idempotent op commando-id). Prijzen, btw-label, extra's en post rekent de server, nooit de client. Commando's: open_check, add_line, change_qty, set_note, void_line, discount_line, send_round, request_bill, rename_check, move_check, move_lines, void_check;
+  - `horeca_snapshot` voor de poll; routering product › categorie › standaardpost, enkel naar actieve posten.
+- Kassa-app `src/kassa/app/horeca/`: `HorecaStore` (optimistisch, wachtrij in localStorage, flush 300 ms met backoff, poll 2 s alleen zichtbaar), `actions.ts` (ronde/voorrekening/verplaatsen: eerst FDM-handtekening, dan pas het commando; bij netwerkverlies ná de handtekening gaat hetzelfde idempotente commando in de wachtrij), `fiscalLines.ts` (lijnen → FDM-lijnen, consolidatie, transfer met gespiegelde lijnen), `useCatalog.ts` (kanaal `pos`, btw-label, extra's).
+- Schermen: `TablesScreen` (live zaalplan of lijst, rekeningen op naam), `CheckScreen` (rekening + kaart, lijnacties, extra's, verplaatsen/samenvoegen), `KassaHome` (live/offline-teller, klokken, wisselen).
+- Admin: **Bestellen › Posten** (`?tab=posten`, `PrepStationsManager` + `usePrepStations`): posten, standaardpost, categorie → post. Keukenscherm: keuze "Alle posten / Bar / Keuken" per toestel (`sq_kitchen_station`), tafelbonnen met tafel en annuleringen (`cardsForStation`).
+- Zaalplan: `FloorCanvas`/`FloorPlanView` krijgen `badges` (bedrag + minuten per tafel).
+- i18n nl/en/fr/de/uk, changelog 2026.13o (`table_checks`), helpartikel `docs/sql/tafel-1-doc-article.sql` (nog niet gedraaid), nieuwsbriefitem.
+
+**Security-keuzes**
+- Nieuwe tabellen: lezen = lid van de zaak (of platform-admin); `dining_checks`/`check_rounds`/`check_lines`/`horeca_*` zijn voor `authenticated` alleen leesbaar, schrijven enkel via `horeca_apply` (security definer, controleert `has_tenant_role` tenant_admin/staff en tenant van elke rij). Posten en routes: schrijven enkel tenant_admin (RLS).
+- Prijzen/btw komen uit `products`/`vat_rates`/`product_addon_options` op de server: een gemanipuleerde client kan geen eigen prijs zetten.
+- Verstuurde lijnen zijn onwijzigbaar (trigger); alles wat al naar de keuken of de FDM ging, wordt gecorrigeerd met nieuwe lijnen, nooit overschreven (GKS: correcties = nieuwe events).
+- Geen bedragen op keukenbonnen. Geen INSZ in tabellen of commando's (enkel in het FDM-bericht, zoals PERSONEEL-1).
+
+**Gedeelde-paden-waarschuwing** — `kitchen_tickets` krijgt 4 nullable kolommen en een ruimere source-check (`'table'` erbij): bestaande rijen en de webshop/oude-kassa-paden blijven identiek (geen default, geen hernoeming). Het keukenscherm toont zonder posten exact hetzelfde als vroeger (`cardsForStation(null)` = alles). Geen storefront-contract geraakt; `dining_checks` is los van `storefront_carts`/`orders`.
+
+**Verificatie** — lokale PG16 (Supabase-nabootsing, migraties 2×): `scripts/gks/sql/run.sh` groen (fiscal, personeel, tafel; het script faalt nu op elke `f`). Vitest kassa + keuken groen (incl. 10 horeca-tests, 5 post-filtertests). Volledige verificatie: zie commit.
+
+**Samenhang**
+
+| Plek | Doet nu | Wat verandert |
+|---|---|---|
+| `/kassa` (SellQo Kassa) | PIN + klokken | tafels, rekeningen, rondes, voorrekening |
+| Oude kassa `/admin/pos/:terminalId` | directe verkoop | ongemoeid; afrekenen via hetzelfde serverpad volgt in TAFEL-2 |
+| Bestellen › Zaalplan | tafels tekenen, QR | ongewijzigd; het plan is ook het tafeloverzicht van de kassa (één bron) |
+| Bestellen › Posten | bestond niet | nieuw tabblad; enige plek voor posten en routering |
+| `/admin/keuken` | webshop + kassa + telefoon | + tafelrondes, annuleringen, filter per post |
+| QR-bestellen aan tafel | order in de keuken | ongewijzigd; komt in TAFEL-2 in de kassa-inbox |
+
+**Bewust ongemoeid / Vervolg** — Afrekenen, splitsen, fooi, X/Z (TAFEL-2). Afdrukken van voorrekening/bonnen via `src/kassa/print` (PRINT-1, aparte branch). Gangen (`course`) zitten in het model maar nog niet in de UI.
+
 ## PERSONEEL-1 — kassapersoneel met PIN, rol, INSZ en in/uitklokken; kassa-app met PIN-scherm — 23 oktober 2026
 
 Branch `personeel-1` (op `kassa-0`); niets gemerged, gedeployed of live gedraaid. Eisenmatrix USR-01, -02, -03, -05, -06.

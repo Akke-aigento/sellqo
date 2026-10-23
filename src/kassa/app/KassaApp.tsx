@@ -20,7 +20,7 @@ function Spinner() {
 
 function Device() {
   const { t } = useTranslation();
-  const { tenants, loading } = useTenant();
+  const { tenants, loading, currentTenant, setCurrentTenant } = useTenant();
   const { staff } = useKassaSession();
   const [device, setDevice] = useState<DeviceConfig | null>(() => loadDevice());
   const [terminal, setTerminal] = useState<{ name: string; settings: unknown } | null>(null);
@@ -28,6 +28,12 @@ function Device() {
 
   // Een opgeslagen toestel van een zaak waar deze account niet (meer) bij hoort: opnieuw kiezen.
   const valid = device && !loading && tenants.some((x) => x.id === device.tenantId);
+  // Het zaalplan en de kaart lezen de "huidige zaak": die moet de zaak van dit toestel zijn.
+  useEffect(() => {
+    if (!valid || !device || currentTenant?.id === device.tenantId) return;
+    const tnt = tenants.find((x) => x.id === device.tenantId);
+    if (tnt) setCurrentTenant(tnt);
+  }, [valid, device, currentTenant, tenants, setCurrentTenant]);
   useEffect(() => {
     if (!device || !valid) return;
     let alive = true;
@@ -51,7 +57,7 @@ function Device() {
       </>
     );
   }
-  if (!runtime || !terminal) return <Spinner />;
+  if (!runtime || !terminal || currentTenant?.id !== device.tenantId) return <Spinner />;
   if (!staff) return <div className="min-h-screen py-6" style={{ paddingTop: 'max(1.5rem, var(--safe-top))' }}><PinLock tenantId={device.tenantId} deviceUuid={device.deviceUuid} /></div>;
   return <KassaHome runtime={runtime} terminalName={terminal.name} onForgetDevice={reset} />;
 }

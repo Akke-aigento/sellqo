@@ -49,7 +49,7 @@ export function FloorPlanEditor() {
   const area = areas.find((a) => a.id === areaId) ?? areas[0] ?? null;
   const tables = useMemo(() => (data?.tables ?? []).filter((x) => x.area_id === area?.id), [data, area]);
   const markers = useMemo(() => (data?.markers ?? []).filter((x) => x.area_id === area?.id), [data, area]);
-  const allTables = data?.tables ?? [];
+  const allTables = useMemo(() => data?.tables ?? [], [data]);
   const overlap = useMemo(() => overlappingIds([...tables, ...markers.filter((x) => x.kind !== 'text')]), [tables, markers]);
   const dupLabels = useMemo(() => duplicateLabels(allTables.map((x) => x.label)), [allTables]);
   const warnIds = useMemo(() => new Set([...overlap, ...tables.filter((x) => dupLabels.has(x.label.toLowerCase())).map((x) => x.id)]), [overlap, tables, dupLabels]);

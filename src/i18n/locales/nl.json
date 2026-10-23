@@ -7132,7 +7132,8 @@
       "tab_floor": "Zaalplan",
       "floor_plan": "Zaalplan",
       "floor_summary": "{{tables}} tafels in {{areas}} ruimte(s)",
-      "floor_none": "Nog niet ingesteld"
+      "floor_none": "Nog niet ingesteld",
+      "tab_stations": "Posten"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -7472,7 +7473,11 @@
       "pause_today": "Rest van vandaag",
       "paused_until": "Gepauzeerd tot {{time}} · hervatten",
       "paused_toast": "Online bestellingen gepauzeerd tot {{time}}",
-      "resumed_toast": "Online bestellingen staan weer open"
+      "resumed_toast": "Online bestellingen staan weer open",
+      "source_table": "Tafel",
+      "cancelled_item": "Annuleer",
+      "station": "Post",
+      "all_stations": "Alle posten"
     },
     "allergens": {
       "gluten": "Gluten (granen)",
@@ -8815,6 +8820,32 @@
       "error_no_rights": "Je hebt geen rechten om het zaalplan aan te passen. Vraag het aan een beheerder van de zaak.",
       "error_invalid": "Deze waarde kan niet: controleer naam, maat en positie.",
       "error_save": "Bewaren mislukt: {{reason}}"
+    },
+    "prepStations": {
+      "title": "Bereidingsposten",
+      "intro": "Keuken, bar, dessert… Elke ronde van SellQo Kassa maakt per post een eigen bon. Zonder posten komt alles op één bon.",
+      "none": "Nog geen posten. Alles komt op één bon op het keukenscherm.",
+      "defaultHint": "De standaardpost krijgt alles wat nergens anders naartoe gaat, ook webshop- en telefoonbestellingen.",
+      "isDefault": "Standaard",
+      "makeDefault": "Maak standaard",
+      "remove": "{{name}} verwijderen",
+      "namePlaceholder": "Naam van de post (bv. Bar)",
+      "kind": "Soort post",
+      "kinds": {
+        "kitchen": "Keuken",
+        "bar": "Bar",
+        "other": "Andere"
+      },
+      "add": "Toevoegen",
+      "routingTitle": "Wat gaat waarheen",
+      "routingIntro": "Kies per categorie de post. Niets gekozen = {{name}} (standaard).",
+      "routingIntroNoDefault": "Kies per categorie de post. Zonder standaardpost komt de rest op een bon zonder post, zichtbaar op elk keukenscherm.",
+      "routingNeedsStations": "Voeg eerst een post toe.",
+      "noCategories": "Je hebt nog geen categorieën.",
+      "routeFor": "Post voor {{name}}",
+      "defaultOption": "{{name}} (standaard)",
+      "noStation": "Geen post",
+      "error": "Niet gelukt: {{detail}}"
     }
   },
   "product_form": {
@@ -10424,7 +10455,10 @@
   },
   "kassa": {
     "common": {
-      "loading": "Laden…"
+      "loading": "Laden…",
+      "cancel": "Annuleren",
+      "save": "Opslaan",
+      "close": "Sluiten"
     },
     "signIn": {
       "title": "Kassa aanmelden",
@@ -10471,12 +10505,88 @@
         "error": "Er liep iets mis. Probeer opnieuw."
       },
       "noInsz": "Zonder rijksregisternummer kan je op deze geregistreerde kassa niets registreren.",
-      "changeTerminal": "Andere kassa kiezen"
+      "changeTerminal": "Andere kassa kiezen",
+      "live": "Live",
+      "offline": "Offline · {{n}} wachtende acties"
     },
     "fiscalMode": {
       "off": "niet-fiscale modus",
       "simulator": "testmodus (simulator)",
       "fdm": "geregistreerde kassa"
+    },
+    "tables": {
+      "namePlaceholder": "Naam (bv. Jan)",
+      "open": "Openen",
+      "onName": "Op naam",
+      "viewPlan": "Zaalplan",
+      "viewList": "Lijst",
+      "noPlan": "Nog geen zaalplan. Teken je tafels in SellQo onder Bestellen › Zaalplan; rekeningen op naam werken al.",
+      "free": "vrij"
+    },
+    "checks": {
+      "rejected": "Niet gelukt: {{error}}",
+      "gone": "Deze rekening is afgesloten of verplaatst.",
+      "backToTables": "Terug naar de tafels",
+      "table": "Tafel {{label}}",
+      "billRequestedBadge": "Rekening gevraagd",
+      "more": "Meer",
+      "moveCheck": "Rekening verplaatsen of samenvoegen",
+      "deleteCheck": "Lege rekening schrappen",
+      "tabLines": "Rekening ({{n}})",
+      "tabMenu": "Kaart",
+      "empty": "Nog niets besteld. Tik een product aan.",
+      "total": "Totaal",
+      "search": "Zoeken",
+      "allCategories": "Alles",
+      "soldOut": "Op",
+      "bill": "Rekening",
+      "send": "Verstuur ({{n}})",
+      "sent": "Verstuurd naar keuken en bar",
+      "billRequested": "Voorlopige rekening gemaakt",
+      "moved": "Verplaatst",
+      "lineLocked": "Deze lijn is al volledig geannuleerd, verplaatst of gecorrigeerd.",
+      "less": "Eén minder",
+      "more1": "Eén meer",
+      "note": "Opmerking",
+      "notePlaceholder": "Opmerking voor de keuken",
+      "discount": "Korting",
+      "discountName": "Korting {{n}} %",
+      "onTheHouse": "Van het huis",
+      "moveLine": "Verplaatsen",
+      "remove": "Weghalen",
+      "cancelLine": "Annuleren",
+      "howMany": "Hoeveel?",
+      "why": "Waarom?",
+      "voidReason": {
+        "mistake": "Fout getikt",
+        "customer": "Klant wil niet meer",
+        "broken": "Kapot of gemorst",
+        "other": "Andere reden"
+      },
+      "reason": {
+        "CORRECTION": "Geannuleerd",
+        "PRICE_CHANGE": "Prijswijziging",
+        "COST_CENTER_CHANGE": "Verplaatst",
+        "REFUND": "Terugbetaald",
+        "PRODUCT_SUBSTITUTION": "Vervangen",
+        "OTHER": "Andere"
+      },
+      "required": "verplicht",
+      "add": "Toevoegen",
+      "moveCheckTitle": "Rekening naar…",
+      "moveLineTitle": "Lijn naar…",
+      "merge": "samenvoegen",
+      "error": {
+        "nothing": "Er is niets om te versturen.",
+        "offline": "Geen verbinding. Je bestelling blijft staan; probeer zo opnieuw.",
+        "no_insz": "Je rijksregisternummer ontbreekt; zonder kan je op een geregistreerde kassa niets versturen.",
+        "fiscal_not_configured": "Deze kassa is nog niet als geregistreerde kassa ingesteld.",
+        "fdm_not_available": "De zwarte doos is nog niet gekoppeld.",
+        "fdm_rejected": "De zwarte doos weigerde. Er is niets verstuurd.",
+        "fdm_unreachable": "De zwarte doos is niet bereikbaar. Er is niets verstuurd; probeer opnieuw.",
+        "server": "Niet gelukt: {{detail}}",
+        "changed": "Een collega wijzigde deze rekening net. Kijk ze na en probeer opnieuw."
+      }
     }
   }
 }

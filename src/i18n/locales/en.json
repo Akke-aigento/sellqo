@@ -6457,7 +6457,8 @@
       "tab_floor": "Floor plan",
       "floor_plan": "Floor plan",
       "floor_summary": "{{tables}} tables in {{areas}} area(s)",
-      "floor_none": "Not set up yet"
+      "floor_none": "Not set up yet",
+      "tab_stations": "Stations"
     },
     "kitchen": {
       "col_new": "New",
@@ -6519,7 +6520,11 @@
       "pause_today": "Rest of today",
       "paused_until": "Paused until {{time}} · resume",
       "paused_toast": "Online orders paused until {{time}}",
-      "resumed_toast": "Online orders are open again"
+      "resumed_toast": "Online orders are open again",
+      "source_table": "Table",
+      "cancelled_item": "Cancel",
+      "station": "Station",
+      "all_stations": "All stations"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -8801,6 +8806,32 @@
       "error_no_rights": "You do not have permission to change the floor plan. Ask an administrator of the venue.",
       "error_invalid": "This value is not allowed: check name, size and position.",
       "error_save": "Saving failed: {{reason}}"
+    },
+    "prepStations": {
+      "title": "Preparation stations",
+      "intro": "Kitchen, bar, desserts… Each round from SellQo Kassa makes its own ticket per station. Without stations everything goes on one ticket.",
+      "none": "No stations yet. Everything appears on one ticket on the kitchen screen.",
+      "defaultHint": "The default station gets everything not routed elsewhere, including webshop and phone orders.",
+      "isDefault": "Default",
+      "makeDefault": "Make default",
+      "remove": "Remove {{name}}",
+      "namePlaceholder": "Station name (e.g. Bar)",
+      "kind": "Station type",
+      "kinds": {
+        "kitchen": "Kitchen",
+        "bar": "Bar",
+        "other": "Other"
+      },
+      "add": "Add",
+      "routingTitle": "What goes where",
+      "routingIntro": "Choose a station per category. Nothing chosen = {{name}} (default).",
+      "routingIntroNoDefault": "Choose a station per category. Without a default station the rest goes on a ticket without station, visible on every kitchen screen.",
+      "routingNeedsStations": "Add a station first.",
+      "noCategories": "You have no categories yet.",
+      "routeFor": "Station for {{name}}",
+      "defaultOption": "{{name}} (default)",
+      "noStation": "No station",
+      "error": "Not done: {{detail}}"
     }
   },
   "product_form": {
@@ -10422,7 +10453,10 @@
   },
   "kassa": {
     "common": {
-      "loading": "Loading…"
+      "loading": "Loading…",
+      "cancel": "Cancel",
+      "save": "Save",
+      "close": "Close"
     },
     "signIn": {
       "title": "Sign in the till",
@@ -10469,12 +10503,88 @@
         "error": "Something went wrong. Please try again."
       },
       "noInsz": "Without a national register number you cannot register anything on this registered till.",
-      "changeTerminal": "Choose another till"
+      "changeTerminal": "Choose another till",
+      "live": "Live",
+      "offline": "Offline · {{n}} pending actions"
     },
     "fiscalMode": {
       "off": "non-fiscal mode",
       "simulator": "test mode (simulator)",
       "fdm": "registered till"
+    },
+    "tables": {
+      "namePlaceholder": "Name (e.g. Jan)",
+      "open": "Open",
+      "onName": "On name",
+      "viewPlan": "Floor plan",
+      "viewList": "List",
+      "noPlan": "No floor plan yet. Draw your tables in SellQo under Ordering › Floor plan; checks on a name already work.",
+      "free": "free"
+    },
+    "checks": {
+      "rejected": "Not done: {{error}}",
+      "gone": "This check was closed or moved.",
+      "backToTables": "Back to tables",
+      "table": "Table {{label}}",
+      "billRequestedBadge": "Bill requested",
+      "more": "More",
+      "moveCheck": "Move or merge check",
+      "deleteCheck": "Delete empty check",
+      "tabLines": "Check ({{n}})",
+      "tabMenu": "Menu",
+      "empty": "Nothing ordered yet. Tap a product.",
+      "total": "Total",
+      "search": "Search",
+      "allCategories": "All",
+      "soldOut": "Sold out",
+      "bill": "Bill",
+      "send": "Send ({{n}})",
+      "sent": "Sent to kitchen and bar",
+      "billRequested": "Provisional bill made",
+      "moved": "Moved",
+      "lineLocked": "This line was already fully cancelled, moved or corrected.",
+      "less": "One less",
+      "more1": "One more",
+      "note": "Note",
+      "notePlaceholder": "Note for the kitchen",
+      "discount": "Discount",
+      "discountName": "Discount {{n}}%",
+      "onTheHouse": "On the house",
+      "moveLine": "Move",
+      "remove": "Remove",
+      "cancelLine": "Cancel item",
+      "howMany": "How many?",
+      "why": "Why?",
+      "voidReason": {
+        "mistake": "Wrong tap",
+        "customer": "Customer changed mind",
+        "broken": "Broken or spilled",
+        "other": "Other reason"
+      },
+      "reason": {
+        "CORRECTION": "Cancelled",
+        "PRICE_CHANGE": "Price change",
+        "COST_CENTER_CHANGE": "Moved",
+        "REFUND": "Refunded",
+        "PRODUCT_SUBSTITUTION": "Substituted",
+        "OTHER": "Other"
+      },
+      "required": "required",
+      "add": "Add",
+      "moveCheckTitle": "Move check to…",
+      "moveLineTitle": "Move item to…",
+      "merge": "merge",
+      "error": {
+        "nothing": "There is nothing to send.",
+        "offline": "No connection. Your order is kept; try again shortly.",
+        "no_insz": "Your national register number is missing; without it you cannot send anything on a registered till.",
+        "fiscal_not_configured": "This till is not yet set up as a registered till.",
+        "fdm_not_available": "The fiscal data module is not connected yet.",
+        "fdm_rejected": "The fiscal data module refused. Nothing was sent.",
+        "fdm_unreachable": "The fiscal data module cannot be reached. Nothing was sent; try again.",
+        "server": "Not done: {{detail}}",
+        "changed": "A colleague just changed this check. Check it and try again."
+      }
     }
   }
 }

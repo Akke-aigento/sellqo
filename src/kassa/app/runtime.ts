@@ -148,15 +148,17 @@ export class KassaRuntime {
    * Onderteken en schrijf weg. Gooit bij 'off' (de aanroeper kiest dan het niet-fiscale pad)
    * en bij 'fdm' (nog niet beschikbaar). Bij 'unreachable' blijft het bericht bewaard.
    */
-  async sign(name: MutationName, data: AnyFiscalInput, opts: { staffId?: string; isTraining?: boolean } = {}): Promise<SignOutcome> {
+  async sign(name: MutationName, data: AnyFiscalInput, opts: { staffId?: string; isTraining?: boolean } = {}): Promise<SignOutcome & { eventId?: string }> {
     if (this.fiscal.mode === 'off') throw new FiscalUnavailableError('fiscal_off');
     if (!this.sender) throw new FiscalUnavailableError('fdm_not_available');
     const out = await this.sender.sign(name, data, opts.isTraining ?? false);
     if (out.kind === 'signed') {
+      const eventId = crypto.randomUUID();
       const r = out.result;
       const tx = (data as { transaction?: { transactionTotal: number } }).transaction;
       const cc = (data as { costCenter?: { reference: string } }).costCenter;
       const { error } = await supabase.from('fiscal_events' as never).insert({
+        id: eventId,
         tenant_id: this.device.tenantId,
         mutation: name,
         is_training: opts.isTraining ?? false,
@@ -186,6 +188,7 @@ export class KassaRuntime {
       // Ondertekend is ondertekend: de FDM heeft het. Een mislukte kopie naar de cloud
       // mag de kassa niet stilleggen; ze komt in het auditspoor en wordt later opnieuw gestuurd.
       if (error && error.code !== '23505') await this.audit('fiscal_store_failed', { code: error.code ?? null, mutation: name });
+      return { ...out, eventId: error ? undefined : eventId };
     }
     return out;
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildBoard, cardFromOrder, notifiesCustomer, orderBelongsInKitchen, type OrderRow, type TicketRow } from './kitchenModel';
+import { buildBoard, cardFromOrder, cardFromTicket, cardsForStation, notifiesCustomer, orderBelongsInKitchen, type OrderRow, type TicketRow } from './kitchenModel';
 
 const NOW = Date.parse('2026-10-13T16:00:00Z');
 const order = (over: Partial<OrderRow> = {}): OrderRow => ({
@@ -75,4 +75,18 @@ describe('bestellen aan tafel (HORECA-1)', () => {
     expect(c.service).toBe('eat_in');
     expect(cardFromOrder({ ...o, customer_name: 'Sofie' }, undefined).customer).toBe('Sofie');
   });
+});
+
+describe('bereidingsposten (TAFEL-1)', () => {
+  const tk = (id: string, station: string | null): TicketRow => ({
+    id, source: station ? 'table' : 'pos', order_id: null, service_type: 'eat_in', requested_time: null, customer_label: '4', customer_phone: null,
+    note: null, items: [{ name: 'Pils', quantity: 2 }], total: null, paid: false, status: 'new', status_at: '2026-10-24T10:00:00Z',
+    created_at: '2026-10-24T10:00:00Z', table_label: '4', station_id: station,
+  });
+  const cards = [cardFromTicket(tk('a', 'bar')), cardFromTicket(tk('b', 'keuken')), cardFromTicket(tk('c', null))];
+  it('zonder keuze: alles', () => expect(cardsForStation(cards, null, 'keuken')).toHaveLength(3));
+  it('bar ziet enkel de bar', () => expect(cardsForStation(cards, 'bar', 'keuken').map((c) => c.ticketId)).toEqual(['a']));
+  it('standaardpost krijgt ook bonnen zonder post', () => expect(cardsForStation(cards, 'keuken', 'keuken').map((c) => c.ticketId)).toEqual(['b', 'c']));
+  it('zonder standaardpost: bonnen zonder post overal', () => expect(cardsForStation(cards, 'bar', null).map((c) => c.ticketId)).toEqual(['a', 'c']));
+  it('tafelbon draagt tafel en post', () => { expect(cards[0].table).toBe('4'); expect(cards[0].stationId).toBe('bar'); expect(cards[0].customer).toBeNull(); });
 });

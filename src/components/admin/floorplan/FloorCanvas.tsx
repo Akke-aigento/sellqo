@@ -13,6 +13,8 @@ export interface FloorCanvasProps {
   tables: FloorTable[];
   markers: FloorMarker[];
   status?: Record<string, TableStatus | undefined>;
+  /** TAFEL-1: korte extra regel per tafel (bedrag, minuten sinds laatste ronde). */
+  badges?: Record<string, string | undefined>;
   selectedId?: string | null;
   /** Ids met een waarschuwing (overlap, dubbel label): rode rand. */
   warnIds?: Set<string>;
@@ -45,7 +47,7 @@ const MARKER_CLASS: Record<FloorMarker['kind'], string> = {
 interface Drag { kind: 'table' | 'marker'; id: string; startX: number; startY: number; px: number; py: number; moved: boolean }
 
 export function FloorCanvas(props: FloorCanvasProps) {
-  const { area, tables, markers, status, selectedId, warnIds, onTableClick, onMarkerClick, onMove, onBackgroundClick, maxHeight, className } = props;
+  const { area, tables, markers, status, badges, selectedId, warnIds, onTableClick, onMarkerClick, onMove, onBackgroundClick, maxHeight, className } = props;
   const { t } = useTranslation();
   const [wrapRef, width] = useElementWidth<HTMLDivElement>();
   const cell = fitCell(area, width || 640, maxHeight);
@@ -147,7 +149,10 @@ export function FloorCanvas(props: FloorCanvasProps) {
               onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } onTableClick?.(tb); }}
             >
               {/* Label blijft rechtop, ook als de tafel gedraaid is. */}
-              <span className="pointer-events-none truncate px-0.5" style={{ transform: normRotation(tb.rotation) ? `rotate(${-normRotation(tb.rotation)}deg)` : undefined }}>{tb.label}</span>
+              <span className="pointer-events-none flex min-w-0 flex-col items-center px-0.5 leading-tight" style={{ transform: normRotation(tb.rotation) ? `rotate(${-normRotation(tb.rotation)}deg)` : undefined }}>
+                <span className="max-w-full truncate">{tb.label}</span>
+                {badges?.[tb.id] ? <span className="max-w-full truncate text-[0.7em] font-normal">{badges[tb.id]}</span> : null}
+              </span>
             </Tag>
           );
         })}

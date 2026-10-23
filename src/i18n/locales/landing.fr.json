@@ -2231,6 +2231,10 @@
         "floor_plan_tables": {
           "title": "Plan de salle avec un code QR par table",
           "description": "Sous Commandes → Plan de salle, vous dessinez votre établissement : espaces comme Intérieur et Terrasse, tables avec nom, forme et nombre de places, tabourets, comptoir et portes. Les modèles placent d'un coup une rangée de tabourets ou une terrasse. Chaque table reçoit son propre code QR, imprimé en planche d'autocollants (12 par A4). Dès que vous avez un plan de salle, un client ne peut commander qu'avec le code de sa table ; taper un numéro de table ne fonctionne plus. Un autocollant perdu ? Créez un nouveau code en un clic et l'ancien ne fonctionne plus."
+        },
+        "table_checks": {
+          "title": "Tables et additions sur SellQo Kassa",
+          "description": "SellQo Kassa affiche votre plan de salle en direct : tables libres, tables occupées avec le montant et les minutes depuis la dernière commande, et tables qui ont demandé l'addition. Touchez une table ou ouvrez une addition au nom d'un client, touchez les produits et leurs suppléments, puis envoyez la tournée : la cuisine et le bar reçoivent chacun leur propre bon, sans montants. Vous pouvez annuler des lignes avec un motif, accorder une réduction ou offrir un article, déplacer des lignes ou des additions entières vers une autre table ou les fusionner, et faire une addition provisoire. Plusieurs appareils travaillent en même temps sur les mêmes additions ; si internet coupe un instant, vos actions sont conservées et passent dès que la connexion revient. L'encaissement suit dans une prochaine version."
         }
       },
       "copyLink": "Copier le lien",

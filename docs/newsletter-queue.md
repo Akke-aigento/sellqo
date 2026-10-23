@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13o — Tafels en rekeningen op SellQo Kassa (feature, 23-10-2026)
+
+**Status:** wacht op go + deploy (TAFEL-1, branch `tafel-1`; na KASSA-0, PERSONEEL-1 en ZAAL-H1).
+
+**Voor wie:** horecazaken (horeca-module).
+
+**Je zaal live op de kassa** (oktober 2026)
+Op SellQo Kassa zie je je zaalplan: vrije tafels, bezette tafels met bedrag en minuten sinds de laatste bestelling, en tafels die de rekening vroegen. Je bestelt per tafel of op naam, stuurt de ronde door, en keuken en bar krijgen elk hun eigen bon. Annuleren, korting, verplaatsen en samenvoegen zitten erin; onder Bestellen › Posten kies je wat naar de bar en wat naar de keuken gaat.
+Wat betekent dit voor jou? Al je obers werken op dezelfde rekeningen, ook als het internet even hapert. Afrekenen volgt in de volgende versie.
+
+i18n: `public.changelog.changes.table_checks`
+
 ### 2026.13n — Kassapersoneel met eigen pincode en de kassa-app (feature, 23-10-2026)
 
 **Status:** wacht op go + deploy (PERSONEEL-1, branch `personeel-1`).

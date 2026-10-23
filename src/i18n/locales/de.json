@@ -6184,7 +6184,8 @@
       "tab_floor": "Raumplan",
       "floor_plan": "Raumplan",
       "floor_summary": "{{tables}} Tische in {{areas}} Bereich(en)",
-      "floor_none": "Noch nicht eingerichtet"
+      "floor_none": "Noch nicht eingerichtet",
+      "tab_stations": "Stationen"
     },
     "kitchen": {
       "col_new": "Neu",
@@ -6246,7 +6247,11 @@
       "pause_today": "Rest des Tages",
       "paused_until": "Pausiert bis {{time}} · fortsetzen",
       "paused_toast": "Online-Bestellungen pausiert bis {{time}}",
-      "resumed_toast": "Online-Bestellungen sind wieder möglich"
+      "resumed_toast": "Online-Bestellungen sind wieder möglich",
+      "source_table": "Tisch",
+      "cancelled_item": "Storno",
+      "station": "Station",
+      "all_stations": "Alle Stationen"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -8528,6 +8533,32 @@
       "error_no_rights": "Sie haben keine Berechtigung, den Raumplan zu ändern. Fragen Sie einen Administrator des Betriebs.",
       "error_invalid": "Dieser Wert ist nicht zulässig: Prüfen Sie Name, Größe und Position.",
       "error_save": "Speichern fehlgeschlagen: {{reason}}"
+    },
+    "prepStations": {
+      "title": "Zubereitungsstationen",
+      "intro": "Küche, Bar, Dessert… Jede Runde aus SellQo Kassa erzeugt pro Station einen eigenen Bon. Ohne Stationen kommt alles auf einen Bon.",
+      "none": "Noch keine Stationen. Alles erscheint auf einem Bon im Küchenbildschirm.",
+      "defaultHint": "Die Standardstation bekommt alles, was nirgendwo sonst hingeht, auch Webshop- und Telefonbestellungen.",
+      "isDefault": "Standard",
+      "makeDefault": "Als Standard",
+      "remove": "{{name}} entfernen",
+      "namePlaceholder": "Name der Station (z. B. Bar)",
+      "kind": "Art der Station",
+      "kinds": {
+        "kitchen": "Küche",
+        "bar": "Bar",
+        "other": "Andere"
+      },
+      "add": "Hinzufügen",
+      "routingTitle": "Was geht wohin",
+      "routingIntro": "Wähle pro Kategorie die Station. Nichts gewählt = {{name}} (Standard).",
+      "routingIntroNoDefault": "Wähle pro Kategorie die Station. Ohne Standardstation kommt der Rest auf einen Bon ohne Station, sichtbar auf jedem Küchenbildschirm.",
+      "routingNeedsStations": "Füge zuerst eine Station hinzu.",
+      "noCategories": "Du hast noch keine Kategorien.",
+      "routeFor": "Station für {{name}}",
+      "defaultOption": "{{name}} (Standard)",
+      "noStation": "Keine Station",
+      "error": "Nicht ausgeführt: {{detail}}"
     }
   },
   "billing": {
@@ -10422,7 +10453,10 @@
   },
   "kassa": {
     "common": {
-      "loading": "Wird geladen…"
+      "loading": "Wird geladen…",
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "close": "Schließen"
     },
     "signIn": {
       "title": "Kasse anmelden",
@@ -10469,12 +10503,88 @@
         "error": "Etwas ist schiefgelaufen. Bitte erneut versuchen."
       },
       "noInsz": "Ohne Nationalregisternummer kannst du an dieser registrierten Kasse nichts erfassen.",
-      "changeTerminal": "Andere Kasse wählen"
+      "changeTerminal": "Andere Kasse wählen",
+      "live": "Live",
+      "offline": "Offline · {{n}} wartende Aktionen"
     },
     "fiscalMode": {
       "off": "nicht-fiskalischer Modus",
       "simulator": "Testmodus (Simulator)",
       "fdm": "registrierte Kasse"
+    },
+    "tables": {
+      "namePlaceholder": "Name (z. B. Jan)",
+      "open": "Öffnen",
+      "onName": "Auf Namen",
+      "viewPlan": "Raumplan",
+      "viewList": "Liste",
+      "noPlan": "Noch kein Raumplan. Zeichne deine Tische in SellQo unter Bestellen › Raumplan; Rechnungen auf Namen funktionieren schon.",
+      "free": "frei"
+    },
+    "checks": {
+      "rejected": "Nicht ausgeführt: {{error}}",
+      "gone": "Diese Rechnung wurde abgeschlossen oder verschoben.",
+      "backToTables": "Zurück zu den Tischen",
+      "table": "Tisch {{label}}",
+      "billRequestedBadge": "Rechnung verlangt",
+      "more": "Mehr",
+      "moveCheck": "Rechnung verschieben oder zusammenlegen",
+      "deleteCheck": "Leere Rechnung löschen",
+      "tabLines": "Rechnung ({{n}})",
+      "tabMenu": "Karte",
+      "empty": "Noch nichts bestellt. Tippe ein Produkt an.",
+      "total": "Summe",
+      "search": "Suchen",
+      "allCategories": "Alle",
+      "soldOut": "Aus",
+      "bill": "Rechnung",
+      "send": "Senden ({{n}})",
+      "sent": "An Küche und Bar gesendet",
+      "billRequested": "Vorläufige Rechnung erstellt",
+      "moved": "Verschoben",
+      "lineLocked": "Diese Zeile wurde bereits vollständig storniert, verschoben oder korrigiert.",
+      "less": "Eins weniger",
+      "more1": "Eins mehr",
+      "note": "Notiz",
+      "notePlaceholder": "Notiz für die Küche",
+      "discount": "Rabatt",
+      "discountName": "Rabatt {{n}} %",
+      "onTheHouse": "Aufs Haus",
+      "moveLine": "Verschieben",
+      "remove": "Entfernen",
+      "cancelLine": "Stornieren",
+      "howMany": "Wie viele?",
+      "why": "Warum?",
+      "voidReason": {
+        "mistake": "Falsch getippt",
+        "customer": "Gast will nicht mehr",
+        "broken": "Kaputt oder verschüttet",
+        "other": "Anderer Grund"
+      },
+      "reason": {
+        "CORRECTION": "Storniert",
+        "PRICE_CHANGE": "Preisänderung",
+        "COST_CENTER_CHANGE": "Verschoben",
+        "REFUND": "Erstattet",
+        "PRODUCT_SUBSTITUTION": "Ersetzt",
+        "OTHER": "Andere"
+      },
+      "required": "Pflicht",
+      "add": "Hinzufügen",
+      "moveCheckTitle": "Rechnung nach…",
+      "moveLineTitle": "Zeile nach…",
+      "merge": "zusammenlegen",
+      "error": {
+        "nothing": "Es gibt nichts zu senden.",
+        "offline": "Keine Verbindung. Deine Bestellung bleibt erhalten; gleich erneut versuchen.",
+        "no_insz": "Deine Nationalregisternummer fehlt; ohne sie kannst du an einer registrierten Kasse nichts senden.",
+        "fiscal_not_configured": "Diese Kasse ist noch nicht als registrierte Kasse eingerichtet.",
+        "fdm_not_available": "Die Blackbox ist noch nicht verbunden.",
+        "fdm_rejected": "Die Blackbox hat abgelehnt. Nichts wurde gesendet.",
+        "fdm_unreachable": "Die Blackbox ist nicht erreichbar. Nichts wurde gesendet; erneut versuchen.",
+        "server": "Nicht ausgeführt: {{detail}}",
+        "changed": "Eine Kollegin oder ein Kollege hat diese Rechnung gerade geändert. Prüfen und erneut versuchen."
+      }
     }
   }
 }
