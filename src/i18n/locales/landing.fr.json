@@ -2223,6 +2223,10 @@
         "pos_offline_queue_safe": {
           "title": "Caisse : plus aucune vente perdue en cas de mauvaise connexion",
           "description": "Si le wifi tombe pendant l’encaissement d’une vente en espèces, la caisse conserve la vente et la transmet dès que la connexion revient. Une vente qui ne passe pas immédiatement est réessayée jusqu’à ce qu’elle arrive, même après un redémarrage de la caisse, et n’est jamais comptabilisée deux fois. Le bouton « En attente » indique combien de ventes sont encore en route et combien sont réessayées."
+        },
+        "floor_plan_tables": {
+          "title": "Plan de salle avec un code QR par table",
+          "description": "Sous Commandes → Plan de salle, vous dessinez votre établissement : espaces comme Intérieur et Terrasse, tables avec nom, forme et nombre de places, tabourets, comptoir et portes. Les modèles placent d'un coup une rangée de tabourets ou une terrasse. Chaque table reçoit son propre code QR, imprimé en planche d'autocollants (12 par A4). Dès que vous avez un plan de salle, un client ne peut commander qu'avec le code de sa table ; taper un numéro de table ne fonctionne plus. Un autocollant perdu ? Créez un nouveau code en un clic et l'ancien ne fonctionne plus."
         }
       },
       "copyLink": "Copier le lien",

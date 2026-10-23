@@ -2223,6 +2223,10 @@
         "pos_offline_queue_safe": {
           "title": "Kassa: geen verkoop meer kwijt bij een slechte verbinding",
           "description": "Valt de wifi weg terwijl je een contante verkoop afrekent, dan bewaart de kassa de verkoop en stuurt ze hem door zodra de verbinding terug is. Een verkoop die niet meteen doorgaat, wordt opnieuw geprobeerd tot hij binnen is, ook na het herstarten van de kassa, en wordt nooit dubbel geboekt. De knop „Wachtend” toont hoeveel verkopen nog onderweg zijn en hoeveel opnieuw geprobeerd worden."
+        },
+        "floor_plan_tables": {
+          "title": "Zaalplan met een eigen QR-code per tafel",
+          "description": "Onder Bestellen → Zaalplan teken je je zaak na: ruimtes zoals Binnen en Terras, tafels met naam, vorm en aantal stoelen, barkrukken, de toog en de deuren. Sjablonen zetten in één keer een rij barkrukken of een terras neer. Elke tafel krijgt een eigen QR-code die je als stickervel (12 per A4) afdrukt. Heb je een zaalplan, dan kan een gast enkel nog bestellen via de code van zijn tafel; een tafelnummer intypen werkt niet meer. Raakt een sticker zoek, dan maak je met één klik een nieuwe code en werkt de oude niet meer."
         }
       },
       "copyLink": "Kopieer link",

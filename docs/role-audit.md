@@ -1,3 +1,76 @@
+## ZAAL-H1 — zaalplan voor horeca: ruimtes, tafels, decor en een geheime QR-code per tafel — 23 oktober 2026
+
+Branch `zaal-h1` in **sellqo** (op `horeca-0`) en **sellqo-storefront** (op `horeca-0`). Niets gemerged, gepusht, gedeployed of live gedraaid. Aanleiding: een nieuwe horecaklant (nu op Lightspeed) met ruimte "Belgaleiro" (Blauw 1–5, Salon/Club, Rond tafel, barkrukken B1–B9) en terras Ter-1..Ter-3 moet op dag 1 een zaalplan hebben.
+
+**Root cause / gat**
+- Er bestond geen tafelbegrip: een tafel was enkel vrije tekst `?tafel=<label>` (`MenuQrManager.tsx` "Tafelkaartjes" maakte `…/menu?tafel=N`). De storefront zette dat label 3 u in een cookie, vanaf eender waar: wie de link kent of een nummer typt, bestelt "aan tafel 4" van thuis uit (`checkout_table` in `storefront-api` valideerde enkel `^[\w-]{1,12}$`).
+- Geen ruimtes, vormen, stoelen of decor; geen stabiel tafel-id voor de latere rekening per tafel (TAFEL-1) en het fiscale costCenter TABLE (GKS 2.0).
+- Recon-correctie op de opdracht: `qr_mode` staat op `fulfillment_settings`, niet op `tenant_theme_settings` (live nagetrokken). `kitchen_tickets` heeft live geen `table_label`; de keuken leest `orders.table_label`.
+
+**Uitgevoerd — sellqo**
+- Migratie `supabase/migrations/20261024090000_zaal_h1_floor.sql`: tabellen `dining_areas` (+ `is_active`, soft delete), `dining_tables` (label, kind, shape, seats, x/y/w/h/rotation in rastereenheden, `qr_token` = `encode(extensions.gen_random_bytes(12),'hex')`, uniek), `floor_markers`; samengestelde FK `(area_id, tenant_id) → dining_areas(id, tenant_id)` zodat een tafel nooit in een ruimte van een andere winkel hangt; unieke index `(tenant_id, area_id, lower(label)) where is_active`; `updated_at`-triggers; functie `renew_dining_table_token(uuid)`; additief `storefront_carts.dining_table_id` en `orders.dining_table_id` (+ partiële index). Terugdraai-instructie in de kop.
+- `src/integrations/supabase/types.ts`: de drie tabellen, `dining_table_id` op orders/carts en de rpc met de hand toegevoegd (de volgende Lovable-regeneratie zet hetzelfde).
+- Pure logica `src/lib/floorplan/` (raster-snap, draaien, binnen de ruimte houden, overlap, vrije plek, schalen, labels B1..B9/Ter-1.., sjablonen rij barkrukken/terras/rij tafels, QR-link, stickerraster, foutmeldingen) + 26 vitest-tests.
+- `src/hooks/useFloorPlan.ts` (react-query, optimistisch bijwerken, terugzetten bij fout), `src/hooks/useElementWidth.ts`.
+- `src/components/admin/floorplan/`: `FloorCanvas` (gedeeld raster), `FloorPlanView` (alleen-lezen; props areas/tables/markers/status/onTableClick, voor TAFEL-1), `FloorPlanEditor` (desktop: slepen met snap, pijltjestoetsen, eigenschappenpaneel; gsm < 768 px: lijst per ruimte + venster), `FloorItemPanel`, `FloorDialogs` (ruimte, sjablonen). AlertDialog bij tafel/ruimte verwijderen en token vernieuwen.
+- `src/utils/floorQrPdf.ts`: echte PDF via pdf-lib (al dependency) + qr.js (motor onder react-qr-code, al in bun.lock; types in `src/types/qrjs.d.ts`): A4, 12 per blad, QR als vectorpad + label + ruimte + zaaknaam. Geen nieuwe dependency.
+- `src/pages/admin/OrderingHub.tsx`: tab **Zaalplan** (`/admin/bestellen?tab=zaal`) + regel "Zaalplan" op de overzichtskaart (zelfde bron als de tab).
+- `src/components/admin/storefront/food/MenuQrManager.tsx`: met een zaalplan maakt "Tafelkaartjes" geen `?tafel=N`-kaartjes meer (die werken dan niet) maar verwijst naar de tab Zaalplan. Poster en losse stickers (algemene menulink) ongewijzigd.
+- `supabase/functions/_shared/diningTables.ts` (+ deno test, toegevoegd aan de CI-stap met `_shared`-tests): token → tafel, en "vrij nummer enkel zonder zaalplan".
+- `supabase/functions/storefront-api/index.ts` (additief): nieuwe actie `resolve_table` (`{token}` of `{table}` → `{table_id, label, area}`); `checkout_table` aanvaardt naast `table` ook `table_token`; een zaak mét actieve tafels weigert een vrij nummer (`TABLE_TOKEN_REQUIRED`); `checkout_complete` eist bij zo'n zaak een `dining_table_id` op het mandje; `dining_table_id` mee naar de order (2 insertpaden) en gewist in de resets van `checkout_start`/`checkout_shipping` — telkens enkel als het mandje er een heeft.
+- `supabase/functions/stripe-connect-webhook/index.ts`: `dining_table_id` mee naar de order (enkel indien aanwezig op het mandje).
+- `scripts/promo-compare/smoke.ts`: check "tafel uit het zaalplan via QR-token".
+- i18n `admin.floorPlan.*`, `admin.orderingHub.tab_floor/floor_*`, `admin.storefront.food.qr_tables_from_floor_plan/qr_open_floor_plan` (alle talen uit `SUPPORTED_LANGUAGES`). Changelog 2026.13m `floor_plan_tables`. Helpartikel `docs/sql/zaal-h1-doc-article.sql` (niet gedraaid). Nieuwsbriefitem.
+
+**Uitgevoerd — sellqo-storefront**
+- `src/lib/sellqo.server.ts`: `TABLE_TOKEN_COOKIE` (`sq_table_t`), `validTableToken`, `validTableLabel` (namen tot 16 tekens met spatie en `/`); de tafelvlag leest het label met die validator.
+- `src/lib/shop.ts` `loadShell`: `?t=<token>` → `resolve_table` → cookies label + token (3 u); `?tafel=` gaat ook langs `resolve_table` (bij een zaak met zaalplan geweigerd → geen tafel); een ongeldige of vernieuwde code wist de tafelcookies. Bestaat `resolve_table` nog niet (API niet gedeployed), dan blijft `?tafel=` werken zoals voorheen.
+- `src/lib/cart.ts`: `checkout_table` krijgt `table_token` als die er is, anders `table`; `leaveTable` wist ook de tokencookie.
+- `src/routes/__root.tsx`: `search.t` doorgeven, shell-cache overslaan bij een scan.
+
+**Security-keuzes**
+- anon: `revoke all` op de drie tabellen, geen policy. De token is geheim en verlaat de databank enkel via de admin (leden van de winkel) en het PDF-bestand. De storefront krijgt nooit een token of tafellijst, enkel label + ruimte van de gescande tafel via `storefront-api` (service role).
+- authenticated: SELECT voor elk lid van de winkel (`get_user_tenant_ids`) — kassa, keuken en bediening hebben het plan nodig. INSERT/UPDATE enkel `tenant_admin`/`staff` (`has_tenant_role`), platformadmin overal (`is_platform_admin`), zelfde predicaat als ZAAL-1. Kolomrechten: `qr_token`, `id` en `tenant_id` niet te wijzigen; `qr_token` niet te kiezen bij insert. Geen DELETE op tafels/ruimtes (fiscaal stabiele id's, soft delete); DELETE enkel op `floor_markers`.
+- `renew_dining_table_token`: SECURITY DEFINER, `search_path = ''`, eigen rolcontrole (zelfde predicaat), `revoke` van public/anon.
+- Lokaal getest (PG16 + Supabase-prelude): migratie 2× (idempotent), token-default 24 hex en uniek, anon geweigerd (lezen + rpc), eigen tenant lezen/insert/update, dubbel label geweigerd, label hergebruikt na soft delete (nieuw id), hard delete geweigerd (tafel + ruimte), `qr_token` niet zelf te zetten (update én insert), `tenant_id` niet te wijzigen, token vernieuwen, decor insert/delete; vreemde tenant: insert geweigerd, update raakt 0 rijen, tafel aan vreemde ruimte geweigerd (FK), rpc geweigerd; viewer leest maar schrijft niet; platformadmin ziet alles.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api`: één nieuwe actie en één nieuwe optionele parameter; geen bestaande actie of veld van vorm veranderd. Voor een zaak zonder actieve tafels (de zes custom frontends en alle niet-horecawinkels) volgt `checkout_table` exact het oude pad (zelfde regex, zelfde foutcodes, zelfde volgorde VALIDATION_ERROR → TABLE_ORDERING_OFF). Extra kost: één `count`-query in `checkout_table`/`resolve_table`, en enkel in het `eat_in`-pad van `checkout_complete`. De `dining_table_id`-spreads vuren enkel als het mandje er een heeft, dus ook vóór de migratie breekt geen checkout.
+- `stripe-connect-webhook`: idem, enkel een spread als het mandje een tafel-id heeft.
+- Gedeelde tabellen `storefront_carts`/`orders`: enkel `add column if not exists` (nullable, geen default). `tenant_theme_settings` niet geraakt.
+- Deploy-volgorde: migratie → `storefront-api` + `stripe-connect-webhook` (`_shared/diningTables.ts` wordt enkel door storefront-api geïmporteerd) → standaardshop.
+
+**Samenhang**
+
+| plek | doet nu | wat verandert | voorstel |
+|---|---|---|---|
+| Bestellen → QR-menu in de zaak (`?tab=qr`) | QR-stand, poster, tafelkaartjes `?tafel=N`, stickers | met zaalplan: tafelkaartjes verwijzen naar het zaalplan | gedaan; zonder zaalplan ongewijzigd |
+| Bestellen → Zaalplan (`?tab=zaal`) | — | nieuw, enige plek voor tafels + QR per tafel | gedaan |
+| Bestellen → Overzicht, QR-kaart | stand, afrekenen, menulink | regel "Zaalplan: n tafels in m ruimte(s)", link naar de tab | gedaan, zelfde query als de tab |
+| Events → Zalen (ZAAL-1/2) | stoelplan voor tickets | niets; ander begrip | bewust los; helpartikel legt het verschil uit (live bestaat `zaalplan-stoelkeuze`) |
+| Kassa (`/admin/pos`, `usePOS.ts`, `POSTerminal.tsx`, `src/kassa/`) | kassa, personeel (PERSONEEL-1) | niets | bewust ongemoeid; TAFEL-1 hergebruikt `FloorPlanView` voor het live plan |
+| Keuken (`orders.table_label`) | toont het tafellabel | label komt nu uit het zaalplan | geen wijziging nodig |
+| Demo-link `demo-pizzeria …/menu?tafel=4` in de Bestellen-kop | werkt | blijft werken zolang de demowinkel geen zaalplan heeft | laten |
+| Live gebruik | geen enkele tenant heeft tafels (tabellen bestaan nog niet); zaken met `qr_mode='order'` blijven op `?tafel=` tot ze een zaalplan maken | — | niemand over te zetten |
+
+Plaats van het beheer: de coördinator stelde een derde tab op `/admin/pos` voor; gekozen voor Bestellen omdat QR-stand, menukaart-QR en tafelstickers daar al samen staan (één plek per taak) en `POS.tsx` in PERSONEEL-1 in beweging is. Het live plan aan de kassa (TAFEL-1) is het aparte `FloorPlanView`.
+
+**Verificatie**
+- `npx tsc --noEmit -p tsconfig.app.json`: exit 0. `npm run build`: groen. `verify-lint-baseline`: gelijk aan baseline (1457). `i18n-parity`, `check-i18n-used-keys`, `check-dead-buttons`, `check-mail-addresses`, `check-customer-messages-writes`, `check-notification-sources`, `verify-edge-pins`, `verify-capacitor-sync`, `verify-skills-sync`: exit 0.
+- vitest: 81 bestanden / 972 tests groen; nieuw: `src/lib/floorplan/floorplan.test.ts` (26), `src/utils/floorQrPdf.test.ts` (3), `src/test/floorPlanView.test.tsx` (5, jsdom, echte nl-teksten), `src/test/floorPlanEditor.test.tsx` (4, desktop + gsm).
+- QR-PDF: 13 stickers → 2 A4-bladen; gerasterd met pdftoppm en alle 13 QR's met OpenCV uitgelezen = de juiste `…/menu?t=<token>`-links.
+- `deno check` storefront-api + stripe-connect-webhook (stubs-import-map): groen. `deno test _shared/diningTables.test.ts`: 4/4. Rooktest storefront-api (lokaal met stubs voor supabase-js/resend, esm.sh is hier onbereikbaar): groen, incl. de nieuwe ZAAL-H1-check.
+- Storefront: `npx tsc --noEmit` 0, `npm run build` groen.
+- Geen screenshots op 390/1280 (vraagt login); vervangen door de jsdom-tests van de editor (desktop/gsm) en `FloorPlanView`.
+
+**Bewust ongemoeid / Vervolg**
+- Geen rekeningen of bestellingen per tafel, geen live status (TAFEL-1). `FloorPlanView` en `orders.dining_table_id` liggen klaar.
+- Na de go: migratie draaien en natrekken (`information_schema`, `pg_policies`, `column_privileges`), deploy `storefront-api` + `stripe-connect-webhook` met vingerafdruk (`resolve_table` met een verzonnen token → `TABLE_NOT_FOUND` i.p.v. `Unknown action`), daarna de standaardshop; helpartikel-SQL draaien; types.ts laten regenereren.
+- Een label is uniek per ruimte (zoals gevraagd); de keuken ziet enkel het label. De editor waarschuwt bij dubbele namen over ruimtes heen. Eventueel later "ruimte · label" op de keukenbon.
+- Tafellabels zijn ASCII (letters/cijfers/spatie/`-/._`), max. 16 tekens (check in de migratie).
+- Oude `?tafel=`-kaartjes van een zaak die later een zaalplan maakt, werken daarna niet meer (zo bedoeld); het helpartikel en de QR-tab zeggen dat.
+- De editor bewaart elke bewerking meteen; geen ongedaan maken.
+
 ## HORECA-0 — tafel blijft tafel, keukenscherm op elk toestel, nooit een wit scherm, veilige offline-kassa — 23 oktober 2026
 
 Eerste batch van de horeca-/kassareeks (ontwerp: projectdoc `claude/horeca-tafelkassa-ontwerp.md` §6–7, recon `claude/horeca-recon-2026-10-23.md`). Branch `horeca-0` in **sellqo** en **sellqo-storefront**; niets gemerged, gedeployed of live gedraaid.

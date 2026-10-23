@@ -2223,6 +2223,10 @@
         "pos_offline_queue_safe": {
           "title": "Kasse: kein Verkauf geht mehr bei schlechter Verbindung verloren",
           "description": "Fällt das WLAN aus, während du einen Barverkauf abrechnest, behält die Kasse den Verkauf und schickt ihn weiter, sobald die Verbindung zurück ist. Ein Verkauf, der nicht sofort durchgeht, wird erneut versucht, bis er ankommt, auch nach einem Neustart der Kasse, und wird nie doppelt gebucht. Der Knopf „Wartend“ zeigt, wie viele Verkäufe noch unterwegs sind und wie viele erneut versucht werden."
+        },
+        "floor_plan_tables": {
+          "title": "Raumplan mit eigenem QR-Code pro Tisch",
+          "description": "Unter Bestellungen → Raumplan zeichnest du deinen Betrieb nach: Bereiche wie Innen und Terrasse, Tische mit Name, Form und Anzahl Plätze, Barhocker, die Theke und die Türen. Vorlagen setzen eine Reihe Barhocker oder eine Terrasse in einem Schritt. Jeder Tisch bekommt einen eigenen QR-Code, den du als Aufkleberbogen (12 pro A4) druckst. Sobald du einen Raumplan hast, können Gäste nur noch über den Code ihres Tisches bestellen; eine Tischnummer eintippen funktioniert nicht mehr. Geht ein Aufkleber verloren, erstellst du mit einem Klick einen neuen Code und der alte funktioniert nicht mehr."
         }
       },
       "copyLink": "Link kopieren",

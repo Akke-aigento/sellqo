@@ -1,6 +1,7 @@
 // HORECA-1 — "Bestellen": één plek voor de twee manieren waarop klanten bestellen.
 //   1. Webshop — thuis bestellen: afhalen of laten leveren (<winkel>.sellqo.shop)
-//   2. QR-menu — in de zaak: menukaart bekijken of bestellen aan tafel (/menu?tafel=N)
+//   2. QR-menu — in de zaak: menukaart bekijken of bestellen aan tafel (/menu?t=<token> per
+//      tafel uit het zaalplan, ZAAL-H1; zonder zaalplan nog /menu?tafel=N)
 // Producten, extra's en keuken zijn gedeeld. Alleen met de horeca-module.
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -18,6 +19,8 @@ import { AllergenChart } from '@/components/admin/storefront/food/AllergenChart'
 import { MenuQrManager } from '@/components/admin/storefront/food/MenuQrManager';
 import { QrModeSettings } from '@/components/admin/storefront/food/QrModeSettings';
 import { QR_MODES, type QrMode } from '@/components/admin/storefront/food/qrModes';
+import { FloorPlanEditor } from '@/components/admin/floorplan/FloorPlanEditor';
+import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { useTranslation } from 'react-i18next';
 import { ModuleOffCard } from '@/components/admin/ModuleOffCard';
 
@@ -25,6 +28,8 @@ const TABS = [
   { id: 'overview', labelKey: 'admin.orderingHub.tab_overview' },
   { id: 'webshop', labelKey: 'admin.orderingHub.tab_webshop' },
   { id: 'qr', labelKey: 'admin.orderingHub.tab_qr' },
+  // ZAAL-H1 — tafels, ruimtes en QR-stickers per tafel.
+  { id: 'zaal', labelKey: 'admin.orderingHub.tab_floor' },
   { id: 'extras', labelKey: 'admin.orderingHub.tab_extras' },
   { id: 'allergens', labelKey: 'admin.orderingHub.tab_allergens' },
 ] as const;
@@ -39,6 +44,8 @@ function Overview({ go }: { go: (t: Tab) => void }) {
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const slug = currentTenant?.slug || '';
+  // ZAAL-H1 — zelfde bron als de tab Zaalplan (één bron per getal).
+  const { data: floor } = useFloorPlan();
   const { data } = useQuery({
     queryKey: ['ordering-hub', tenantId],
     enabled: !!tenantId,
@@ -106,6 +113,8 @@ function Overview({ go }: { go: (t: Tab) => void }) {
               ) : null}
               <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.orderingHub.menukaart')}</span>
                 <a href={`https://${slug}.sellqo.shop/menu`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">{slug}.sellqo.shop/menu<ExternalLink className="h-3 w-3" /></a></li>
+              <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.orderingHub.floor_plan')}</span>
+                <button type="button" onClick={() => go('zaal')} className="hover:underline">{floor && floor.tables.length > 0 ? t('admin.orderingHub.floor_summary', { tables: floor.tables.length, areas: floor.areas.length }) : t('admin.orderingHub.floor_none')}</button></li>
             </ul>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" onClick={() => go('qr')}>{t('admin.orderingHub.qr_menu_instellen_en_afdrukken')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
@@ -167,7 +176,8 @@ export default function OrderingHubPage() {
       <div className="max-w-5xl">
         {tab === 'overview' ? <Overview go={go} /> : null}
         {tab === 'webshop' ? <FulfillmentSettings /> : null}
-        {tab === 'qr' ? <div className="space-y-6"><QrModeSettings /><MenuQrManager /></div> : null}
+        {tab === 'qr' ? <div className="space-y-6"><QrModeSettings /><MenuQrManager onOpenFloorPlan={() => go('zaal')} /></div> : null}
+        {tab === 'zaal' ? <FloorPlanEditor /> : null}
         {tab === 'extras' ? <AddonGroupsManager /> : null}
         {tab === 'allergens' ? <AllergenChart /> : null}
       </div>

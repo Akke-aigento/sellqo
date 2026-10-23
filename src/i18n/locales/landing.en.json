@@ -2223,6 +2223,10 @@
         "pos_offline_queue_safe": {
           "title": "Till: no more lost sales on a bad connection",
           "description": "If the wifi drops while you ring up a cash sale, the till keeps the sale and sends it on as soon as the connection is back. A sale that doesn't go through right away is retried until it arrives, also after restarting the till, and is never booked twice. The “Waiting” button shows how many sales are still on their way and how many are being retried."
+        },
+        "floor_plan_tables": {
+          "title": "Floor plan with its own QR code per table",
+          "description": "Under Ordering → Floor plan you draw your venue: areas such as Inside and Terrace, tables with a name, shape and number of seats, bar stools, the bar and the doors. Templates place a row of bar stools or a terrace in one go. Every table gets its own QR code, printed as a sticker sheet (12 per A4). Once you have a floor plan, guests can only order through their table's code; typing a table number no longer works. If a sticker gets lost, create a new code with one click and the old one stops working."
         }
       },
       "copyLink": "Copy link",

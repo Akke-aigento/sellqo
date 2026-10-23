@@ -1,6 +1,9 @@
 // FOOD-3 — QR-codes voor de menukaart (https://<winkel>.sellqo.shop/menu): een A4-poster,
 // tafelkaartjes (4 per A4, elk met eigen tafelnummer) en stickers (12 per A4). Afdrukken
 // gaat via de browser ("Opslaan als PDF" kan ook); de QR is een SVG, dus altijd scherp.
+// ZAAL-H1 — heeft de zaak een zaalplan, dan maakt deze pagina géén tafelkaartjes met een
+// vrij nummer (?tafel=N) meer: die werken dan niet. De QR per tafel (?t=<token>) komt uit
+// de tab Zaalplan (één plek per taak); hier staat enkel een verwijzing.
 import { useMemo, useState } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import QRCode from 'react-qr-code';
@@ -13,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
+import { useHasFloorPlan } from '@/hooks/useFloorPlan';
 import { useTranslation } from 'react-i18next';
 
 type Layout = 'poster' | 'tables' | 'stickers';
@@ -51,8 +55,9 @@ function Sheet({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function MenuQrManager() {
+export function MenuQrManager({ onOpenFloorPlan }: { onOpenFloorPlan?: () => void } = {}) {
   const { t } = useTranslation();
+  const { hasFloorPlan } = useHasFloorPlan();
   const { currentTenant } = useTenant();
   const { themeSettings } = useStorefront();
   const slug = currentTenant?.slug || '';
@@ -71,7 +76,9 @@ export function MenuQrManager() {
     const a = Math.max(1, Math.min(from, to)); const b = Math.min(200, Math.max(from, to));
     return Array.from({ length: b - a + 1 }, (_, i) => a + i);
   }, [from, to]);
+  const tablesFromFloorPlan = layout === 'tables' && hasFloorPlan;
   const sheets = useMemo<React.ReactNode[]>(() => {
+    if (layout === 'tables' && hasFloorPlan) return [];
     if (layout === 'poster') {
       return [(
         <Sheet key="p">
@@ -118,7 +125,7 @@ export function MenuQrManager() {
         </div>
       </Sheet>
     )];
-  }, [layout, tables, base, heading, sub, accent, logo, storeName, t]);
+  }, [layout, hasFloorPlan, tables, base, heading, sub, accent, logo, storeName, t]);
 
   return (
     <div className="space-y-6">
@@ -148,17 +155,24 @@ export function MenuQrManager() {
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5"><Label htmlFor="qr-h">{t('admin.storefront.food.qr_heading')}</Label><Input id="qr-h" value={heading} maxLength={40} onChange={(e) => setHeading(e.target.value)} /></div>
             <div className="space-y-1.5"><Label htmlFor="qr-s">{t('admin.storefront.food.qr_sub')}</Label><Input id="qr-s" value={sub} maxLength={60} onChange={(e) => setSub(e.target.value)} /></div>
-            {layout === 'tables' ? (
+            {layout === 'tables' && !hasFloorPlan ? (
               <div className="grid grid-cols-2 gap-2 sm:col-span-2 sm:max-w-sm">
                 <div className="space-y-1.5"><Label htmlFor="qr-from">{t('admin.storefront.food.qr_from_table')}</Label><Input id="qr-from" inputMode="numeric" value={from} onChange={(e) => setFrom(parseInt(e.target.value, 10) || 1)} /></div>
                 <div className="space-y-1.5"><Label htmlFor="qr-to">{t('admin.storefront.food.qr_to_table')}</Label><Input id="qr-to" inputMode="numeric" value={to} onChange={(e) => setTo(parseInt(e.target.value, 10) || 1)} /></div>
               </div>
             ) : null}
           </div>
+          {tablesFromFloorPlan ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border bg-muted/40 p-3 text-sm">
+              <span className="flex-1">{t('admin.storefront.food.qr_tables_from_floor_plan')}</span>
+              {onOpenFloorPlan ? <Button type="button" size="sm" onClick={onOpenFloorPlan}>{t('admin.storefront.food.qr_open_floor_plan')}</Button> : null}
+            </div>
+          ) : (
           <div className="flex flex-wrap items-center gap-3">
             <Button onClick={() => printSheets(sheets, { title: t('admin.storefront.food.qr_print_title'), blocked: t('admin.storefront.food.qr_popup_blocked') })}><Printer className="mr-2 h-4 w-4" />{t('admin.storefront.food.menuQrManager.afdrukken_of_opslaan_als_pdf')}</Button>
             <span className="text-sm text-muted-foreground">{t('admin.storefront.food.qr_print_hint', { count: sheets.length })}</span>
           </div>
+          )}
         </CardContent>
       </Card>
 

@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13m — Zaalplan met een eigen QR-code per tafel (feature, 23-10-2026)
+
+**Status:** wacht op go + deploy (ZAAL-H1, branch `zaal-h1` in sellqo en sellqo-storefront; migratie, storefront-api, stripe-connect-webhook en de standaardshop moeten live staan).
+
+**Voor wie:** horecazaken (horeca-module).
+
+**Je zaak op het scherm, elke tafel een eigen QR-code** (oktober 2026)
+Onder Bestellen → Zaalplan teken je je ruimtes en tafels na, met naam, vorm en stoelen; een rij barkrukken of een terras zet je er met een sjabloon in één keer bij. Per tafel druk je een QR-sticker af (12 per A4).
+Wat betekent dit voor jou? Bestellingen komen gegarandeerd van de tafel waar de sticker hangt: een tafelnummer intypen van thuis uit werkt niet meer, en een verloren sticker vervang je met één klik.
+
+i18n: `public.changelog.changes.floor_plan_tables`
+
 ### 2026.13l — Horeca: bestellen aan tafel zonder verwarring, keukenscherm op elk toestel (bugfix/verbetering, 23-10-2026)
 
 **Status:** wacht op go + deploy (HORECA-0, branch `horeca-0` in sellqo en sellqo-storefront).

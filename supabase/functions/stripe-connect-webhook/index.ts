@@ -452,6 +452,8 @@ serve(async (req) => {
               requested_time: cart.requested_time || null,
               ...(cart.customer_note ? { notes: cart.customer_note } : {}),
               ...(cart.table_label ? { table_label: cart.table_label } : {}),
+              // ZAAL-H1 — welke tafel uit het zaalplan (enkel gezet na checkout_table met token).
+              ...(cart.dining_table_id ? { dining_table_id: cart.dining_table_id } : {}),
             })
             .select("id, order_number, total").single();
 
