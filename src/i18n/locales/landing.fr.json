@@ -2223,6 +2223,10 @@
         "pos_offline_queue_safe": {
           "title": "Caisse : plus aucune vente perdue en cas de mauvaise connexion",
           "description": "Si le wifi tombe pendant l’encaissement d’une vente en espèces, la caisse conserve la vente et la transmet dès que la connexion revient. Une vente qui ne passe pas immédiatement est réessayée jusqu’à ce qu’elle arrive, même après un redémarrage de la caisse, et n’est jamais comptabilisée deux fois. Le bouton « En attente » indique combien de ventes sont encore en route et combien sont réessayées."
+        },
+        "kassa_staff_pin": {
+          "title": "Personnel de caisse avec son propre code PIN, et l’app caisse",
+          "description": "Sous Caisse › Personnel, vous ajoutez votre personnel avec un rôle, un numéro et un code PIN de 4 à 6 chiffres. Sur la caisse (SellQo Caisse, aussi via /kassa dans votre navigateur), chacun choisit son nom et tape son code ; après deux minutes sans action, la caisse se verrouille d’elle-même. Cinq essais erronés bloquent le code PIN pendant cinq minutes. Le personnel pointe son arrivée et son départ sur la caisse. Si vous voulez plus tard une caisse enregistreuse (SCE), indiquez le numéro de registre national de chaque membre : il est conservé chiffré et n’apparaît jamais sur un ticket ni à l’écran."
         }
       },
       "copyLink": "Copier le lien",

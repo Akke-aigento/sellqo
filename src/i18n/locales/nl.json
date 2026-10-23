@@ -7549,7 +7549,12 @@
       "kassa_openen": "Kassa Openen",
       "dag_starten": "Dag Starten",
       "geef_je_kassaterminal_een_naam_en": "Geef je kassaterminal een naam en optionele locatie.",
-      "nog_open_sinds": "Nog open sinds {{date}}"
+      "nog_open_sinds": "Nog open sinds {{date}}",
+      "tabs": {
+        "terminals": "Kassa's",
+        "staff": "Personeel"
+      },
+      "openKassaApp": "Kassa-app openen"
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Terminal Instellingen",
@@ -8668,6 +8673,47 @@
         "status_preparing": "In bereiding",
         "status_ready": "Klaar voor vertrek"
       }
+    },
+    "kassaStaff": {
+      "intro": "Wie aan de kassa werkt, meldt zich aan met een eigen pincode. Voor een geregistreerde kassa (GKS) heeft elke medewerker ook een rijksregisternummer nodig; dat komt nooit op een ticket.",
+      "add": "Medewerker toevoegen",
+      "loadError": "Personeel kon niet geladen worden.",
+      "emptyTitle": "Nog geen kassapersoneel",
+      "emptyBody": "Voeg je medewerkers toe met een pincode. Ze kiezen hun naam op de kassa en tikken hun code.",
+      "inactive": "Inactief",
+      "locked": "Geblokkeerd",
+      "inszOk": "Rijksregisternr. ok",
+      "inszMissing": "Rijksregisternr. ontbreekt",
+      "addTitle": "Nieuwe medewerker",
+      "editTitle": "Medewerker bewerken",
+      "dialogIntro": "Pincode en rijksregisternummer kan je hier zetten, maar nooit meer bekijken.",
+      "name": "Naam op de kassa",
+      "number": "Nummer",
+      "numberAuto": "auto",
+      "role": "Rol",
+      "roles": {
+        "owner": "Eigenaar",
+        "manager": "Verantwoordelijke",
+        "waiter": "Ober",
+        "bartender": "Barman",
+        "kitchen": "Keuken",
+        "technician": "Technicus"
+      },
+      "color": "Kleur",
+      "pin": "Pincode (4 tot 6 cijfers)",
+      "newPin": "Nieuwe pincode",
+      "pinKeep": "Leeg laten = niet wijzigen",
+      "pinRule": "Een pincode heeft 4 tot 6 cijfers.",
+      "insz": "Rijksregisternummer",
+      "inszSetOn": "Ingesteld op {{date}}",
+      "inszHelp": "Verplicht voor een geregistreerde kassa. Wordt versleuteld bewaard en enkel naar de zwarte doos gestuurd.",
+      "inszInvalid": "Dit rijksregisternummer klopt niet (controlecijfer).",
+      "inszClear": "Rijksregisternummer wissen",
+      "canUsePos": "Mag de kassa gebruiken",
+      "active": "Actief",
+      "saved": "Medewerker opgeslagen",
+      "saveError": "Opslaan mislukt. Probeer opnieuw.",
+      "numberTaken": "Dit nummer is al in gebruik."
     }
   },
   "product_form": {
@@ -10276,12 +10322,60 @@
     "reload": "Opnieuw laden"
   },
   "kassa": {
-    "skeleton": {
-      "title": "SellQo Kassa",
-      "version": "Versie {{version}}",
-      "testButton": "Test met de FDM-simulator",
-      "signed": "Ondertekend door de simulator: {{label}} nr. {{counter}}",
-      "notSigned": "Niet ondertekend ({{reason}})"
+    "common": {
+      "loading": "Laden…"
+    },
+    "signIn": {
+      "title": "Kassa aanmelden",
+      "intro": "Meld dit toestel één keer aan met je SellQo-account. Je personeel werkt daarna met een pincode.",
+      "email": "E-mailadres",
+      "password": "Wachtwoord",
+      "submit": "Aanmelden",
+      "error": "Aanmelden lukte niet. Controleer je e-mailadres en wachtwoord."
+    },
+    "setup": {
+      "title": "Welke kassa is dit?",
+      "intro": "Kies de kassa die op dit toestel draait. Dat onthoudt het toestel.",
+      "business": "Zaak",
+      "loadError": "De kassa's konden niet geladen worden.",
+      "noTerminals": "Er is nog geen kassa. Maak er een aan in SellQo onder Kassa.",
+      "noBusiness": "Dit account hoort bij geen enkele zaak.",
+      "terminalGone": "De gekozen kassa bestaat niet meer. Kies opnieuw."
+    },
+    "pin": {
+      "whoAreYou": "Wie ben je?",
+      "notMe": "Niet {{name}}? Kies opnieuw",
+      "enter": "Pincode",
+      "erase": "Wissen",
+      "ok": "OK",
+      "error": "Aanmelden lukte niet. Probeer opnieuw.",
+      "wrong": "Verkeerde pincode. Nog {{n}} pogingen.",
+      "locked": "Te veel foute pogingen. Wacht 5 minuten of vraag een verantwoordelijke een nieuwe pincode.",
+      "inactive": "Je mag de kassa niet (meer) gebruiken. Vraag het een verantwoordelijke.",
+      "loadError": "Het personeel kon niet geladen worden. Controleer de verbinding.",
+      "noStaff": "Er is nog geen kassapersoneel. Voeg medewerkers toe in SellQo onder Kassa › Personeel."
+    },
+    "home": {
+      "switchUser": "Wissel",
+      "clockIn": "Inklokken",
+      "clockOut": "Uitklokken",
+      "clockedIn": "Ingeklokt.",
+      "clockedOut": "Uitgeklokt.",
+      "clockError": {
+        "no_insz": "Je rijksregisternummer ontbreekt. Een verantwoordelijke kan het invullen onder Kassa › Personeel.",
+        "fiscal_not_configured": "Deze kassa is nog niet als geregistreerde kassa ingesteld.",
+        "fdm_not_available": "De zwarte doos is nog niet gekoppeld.",
+        "rejected": "De zwarte doos weigerde. Probeer opnieuw of vraag een verantwoordelijke.",
+        "unreachable": "De zwarte doos is niet bereikbaar. Je in- of uitklokken wordt bewaard en straks verstuurd.",
+        "error": "Er liep iets mis. Probeer opnieuw."
+      },
+      "noInsz": "Zonder rijksregisternummer kan je op deze geregistreerde kassa niets registreren.",
+      "changeTerminal": "Andere kassa kiezen"
+    },
+    "fiscalMode": {
+      "off": "niet-fiscale modus",
+      "simulator": "testmodus (simulator)",
+      "fdm": "geregistreerde kassa"
     }
   }
 }

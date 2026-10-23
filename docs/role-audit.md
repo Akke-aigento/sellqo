@@ -1,3 +1,39 @@
+## PERSONEEL-1 — kassapersoneel met PIN, rol, INSZ en in/uitklokken; kassa-app met PIN-scherm — 23 oktober 2026
+
+Branch `personeel-1` (op `kassa-0`); niets gemerged, gedeployed of live gedraaid. Eisenmatrix USR-01, -02, -03, -05, -06.
+
+**Root cause / aanleiding** — Een geregistreerde kassa laat geen enkele handeling toe zonder aangemelde gebruiker en vraagt per gebruiker het INSZ in elk FDM-bericht. SellQo had een tabel `pos_cashiers` (0 rijen live, nergens gebruikt) met vier functies (`create_pos_cashier`, `update_cashier_pin`, `verify_cashier_pin`, `hash_cashier_pin`) zonder tenantcontrole; die zijn enkel uitvoerbaar door service_role (proacl nagetrokken), dus niet misbruikbaar, maar ook niet bruikbaar voor de kassa.
+
+**Uitgevoerd**
+- Migratie `20261024110000_personeel_1_kassa_staff.sql`: `pos_cashiers` + `role`, `employee_no` (uniek per zaak), `can_use_pos`, `insz_encrypted`, `insz_set_at`, `failed_pin_attempts`, `locked_until`, `last_login_at`. Vault-sleutel `kassa_insz_key` (door de migratie zelf aangemaakt, dus nooit in de repo). Functies `kassa_staff_save`, `kassa_staff_set_insz`, `kassa_staff_login`, `kassa_valid_insz`, `kassa_insz_key`.
+- Admin: `/admin/pos` krijgt tabs **Kassa's** | **Personeel** (`?tab=personeel`) en de knop "Kassa-app openen". `KassaStaffTab` + `useKassaStaff`: toevoegen/bewerken, kleur, rol, nummer, PIN zetten, INSZ zetten/wissen (mod-97 in de browser én in SQL), badges INSZ ok/ontbreekt en geblokkeerd.
+- Kassa-app (`src/kassa/app/`, ook op het web onder `/kassa`): aanmelden toestel → kassa kiezen (onthouden per toestel, met stabiele toestel-UUID) → PIN-scherm (naam kiezen, PIN-pad) → startscherm met in/uitklokken, "Wissel" en automatisch vergrendelen na 2 minuten. `runtime.ts`: fiscale modus per kassa (`pos_terminals.settings.fiscal`: off/simulator/fdm), bookingPeriodId per zaak en dag (deterministisch, UUID-v5-vorm), posFiscalTicketNo per terminal en label, ondertekende events naar `fiscal_events`. `attendance.ts`: S-event WORK_IN/OUT (fiscaal) of auditspoor (niet-fiscaal).
+- Kassa-versie `sellqo-kassa-0.1.1`. i18n (nl/en/fr/de/uk), changelog 2026.13n (`kassa_staff_pin`), helpartikel `docs/sql/personeel-1-doc-article.sql` (nog niet gedraaid), nieuwsbriefitem. Lokale SQL-tests uitgebreid (`scripts/gks/sql/`).
+
+**Security-keuzes**
+- `pos_cashiers` wordt strenger: `authenticated` leest enkel kolommen zonder geheimen (geen `pin_hash`, `insz_encrypted`, `failed_pin_attempts`) en schrijft niet meer rechtstreeks; anon verliest alle rechten. Schrijven enkel via de security-definer-functies met eigen controle (`has_tenant_role` tenant_admin voor beheer; tenant_admin/staff voor login).
+- PIN: bcrypt (`crypt`/`gen_salt('bf')`), 4–6 cijfers, 5 fouten = 5 minuten blokkade, elke fout in `fiscal_audit_log` (`pin_failed`).
+- INSZ: `pgp_sym_encrypt` (AES-256) met de Vault-sleutel; ontsleuteld enkel in `kassa_staff_login` voor het aangemelde toestel (het moet als employeeId in elk FDM-bericht). In de app enkel in het geheugen van de sessie, gewist bij vergrendelen; nooit op een scherm, ticket of in een kolom (`fiscal_events` bewaart `staff_id`; het INSZ zit enkel in de bewaarde berichtbytes, die `authenticated` niet kan lezen).
+- Lokaal getest (PG16 + Supabase/Vault-nabootsing, migraties 2×): beheer door staff geweigerd, vreemde tenant geweigerd (lezen én login), anon geweigerd, pin_hash/insz niet leesbaar, rechtstreeks schrijven geweigerd, ongeldig INSZ en te korte PIN geweigerd, blokkade na 5 fouten (ook met juiste PIN), INSZ versleuteld (niet in klare tekst in de bytes).
+
+**Gedeelde-paden-waarschuwing** — geen storefront-contract of gedeelde webshoptabel geraakt. `pos_cashiers` was ongebruikt (grep: enkel types.ts).
+
+**Verificatie** — `npx vitest run src/kassa`: 162 groen (8 runtime/klokken, 1 sessie/vergrendelen, rest KASSA-0). Volledige verificatie: zie commit.
+
+**Samenhang**
+
+| Plek | Doet nu | Wat verandert |
+|---|---|---|
+| `/admin/pos` | lijst kassa's + sessies | tabs Kassa's / Personeel, knop naar de kassa-app |
+| Instellingen › Team | SellQo-gebruikers met login | ongewijzigd: kassapersoneel is bewust apart (PIN, geen login) |
+| `pos_cashiers` + 4 oude functies | ongebruikt | tabel uitgebreid; oude functies blijven (service_role), de nieuwe `kassa_staff_*` zijn de enige weg |
+| Oude kassa `/admin/pos/:terminalId` | verkoop zonder PIN | ongemoeid; de nieuwe kassa-app neemt het over in TAFEL-1/2 |
+
+**Bewust ongemoeid / Vervolg**
+- Geen UI voor de fiscale kassa-instellingen (`settings.fiscal`): komt met FDM-1/CERT-1, met auditspoor op elke wijziging.
+- De vier oude cashier-functies worden niet verwijderd (geen destructieve wijziging); kandidaat voor opruiming na de livegang.
+- In niet-fiscale modus is in/uitklokken enkel een auditregel; een urenoverzicht volgt later.
+
 ## KASSA-0 — fiscale kern SellQo Kassa (GKS 2.0): schema, builders, simulator, logboek, officiële use cases — 23 oktober 2026
 
 Tweede batch van de kassareeks (beslissing 23-10: volledige kassa, certificatie GKS 2.0). Branch `kassa-0` (op `horeca-0`); niets gemerged, gedeployed of live gedraaid. Niet zichtbaar voor tenants: geen UI in de admin, geen changelog/helpartikel/nieuwsbrief.

@@ -118,6 +118,7 @@ import EventBundlesPage from "./pages/admin/EventBundles";
 import EventTokensPage from "./pages/admin/EventTokens";
 import VenueDesignerPage from "./pages/admin/VenueDesigner";
 import DoorScanPage, { DoorScanHome } from "./pages/public/DoorScan";
+import { KassaApp } from "./kassa/app/KassaApp";
 import BarScanPage, { BarScanHome } from "./pages/public/BarScan";
 import TokenWalletPage from "./pages/public/TokenWallet";
 import { EventsModuleGate } from "./components/admin/events/EventsModuleGate";
@@ -197,6 +198,8 @@ const App = () => (
             <Route path="/events" element={<EventsPage />} />
             <Route path="/voorbeelden" element={<ExamplesPage />} />
             {/* EVENT-SCAN-1: SellQo Deur, de scanner voor de deurploeg (scanlink, geen account). */}
+            {/* PERSONEEL-1 — SellQo Kassa op het web (zelfde schermen als de app app.sellqo.kassa). */}
+            <Route path="/kassa/*" element={<KassaApp />} />
             <Route path="/scan" element={<DoorScanHome />} />
             <Route path="/scan/:token" element={<DoorScanPage />} />
             <Route path="/bar" element={<BarScanHome />} />

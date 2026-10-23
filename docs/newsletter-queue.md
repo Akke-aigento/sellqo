@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13n — Kassapersoneel met eigen pincode en de kassa-app (feature, 23-10-2026)
+
+**Status:** wacht op go + deploy (PERSONEEL-1, branch `personeel-1`).
+
+**Voor wie:** zaken met een kassa, vooral horeca.
+
+**Je personeel meldt zich aan met een pincode** (oktober 2026)
+Voeg je medewerkers toe onder Kassa › Personeel, met een rol en een pincode. Op SellQo Kassa (ook via /kassa in je browser) kiest iedereen zijn naam en tikt zijn code; de kassa vergrendelt vanzelf na twee minuten. Medewerkers klokken er ook in en uit.
+Wat betekent dit voor jou? Je ziet wie wat aanslaat, zonder dat iedereen een eigen account nodig heeft, en je kassa staat klaar voor een geregistreerde kassa (GKS).
+
+i18n: `public.changelog.changes.kassa_staff_pin`
+
 ### 2026.13l — Horeca: bestellen aan tafel zonder verwarring, keukenscherm op elk toestel (bugfix/verbetering, 23-10-2026)
 
 **Status:** wacht op go + deploy (HORECA-0, branch `horeca-0` in sellqo en sellqo-storefront).

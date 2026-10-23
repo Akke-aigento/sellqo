@@ -2223,6 +2223,10 @@
         "pos_offline_queue_safe": {
           "title": "Kassa: geen verkoop meer kwijt bij een slechte verbinding",
           "description": "Valt de wifi weg terwijl je een contante verkoop afrekent, dan bewaart de kassa de verkoop en stuurt ze hem door zodra de verbinding terug is. Een verkoop die niet meteen doorgaat, wordt opnieuw geprobeerd tot hij binnen is, ook na het herstarten van de kassa, en wordt nooit dubbel geboekt. De knop „Wachtend” toont hoeveel verkopen nog onderweg zijn en hoeveel opnieuw geprobeerd worden."
+        },
+        "kassa_staff_pin": {
+          "title": "Kassapersoneel met eigen pincode en de kassa-app",
+          "description": "Onder Kassa › Personeel voeg je je medewerkers toe met een rol, een nummer en een pincode van 4 tot 6 cijfers. Op de kassa (SellQo Kassa, ook via /kassa in je browser) kiest iedereen zijn naam en tikt zijn code; na twee minuten zonder tikken vergrendelt de kassa vanzelf. Vijf foute pogingen blokkeren de pincode vijf minuten. Medewerkers klokken op de kassa in en uit. Wil je later een geregistreerde kassa (GKS), vul dan per medewerker het rijksregisternummer in: het wordt versleuteld bewaard en komt nooit op een ticket of scherm."
         }
       },
       "copyLink": "Kopieer link",

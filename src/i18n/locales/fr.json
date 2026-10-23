@@ -7262,7 +7262,12 @@
       "kassa_openen": "Ouvrir la caisse",
       "dag_starten": "Commencer la journée",
       "geef_je_kassaterminal_een_naam_en": "Donnez un nom à votre terminal de caisse et un emplacement facultatif.",
-      "nog_open_sinds": "Toujours ouverte depuis le {{date}}"
+      "nog_open_sinds": "Toujours ouverte depuis le {{date}}",
+      "tabs": {
+        "terminals": "Caisses",
+        "staff": "Personnel"
+      },
+      "openKassaApp": "Ouvrir l’app caisse"
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Paramètres du terminal",
@@ -8381,6 +8386,47 @@
         "status_preparing": "En préparation",
         "status_ready": "Prêt à partir"
       }
+    },
+    "kassaStaff": {
+      "intro": "Chaque personne qui travaille à la caisse se connecte avec son propre code PIN. Pour une caisse enregistreuse (SCE), chaque membre du personnel a aussi besoin d’un numéro de registre national ; il n’apparaît jamais sur un ticket.",
+      "add": "Ajouter un membre",
+      "loadError": "Le personnel n’a pas pu être chargé.",
+      "emptyTitle": "Pas encore de personnel de caisse",
+      "emptyBody": "Ajoutez votre personnel avec un code PIN. Chacun choisit son nom sur la caisse et tape son code.",
+      "inactive": "Inactif",
+      "locked": "Bloqué",
+      "inszOk": "N° national ok",
+      "inszMissing": "N° national manquant",
+      "addTitle": "Nouveau membre du personnel",
+      "editTitle": "Modifier le membre du personnel",
+      "dialogIntro": "Vous pouvez définir ici le code PIN et le numéro de registre national, mais jamais les revoir.",
+      "name": "Nom sur la caisse",
+      "number": "Numéro",
+      "numberAuto": "auto",
+      "role": "Rôle",
+      "roles": {
+        "owner": "Propriétaire",
+        "manager": "Responsable",
+        "waiter": "Serveur",
+        "bartender": "Barman",
+        "kitchen": "Cuisine",
+        "technician": "Technicien"
+      },
+      "color": "Couleur",
+      "pin": "Code PIN (4 à 6 chiffres)",
+      "newPin": "Nouveau code PIN",
+      "pinKeep": "Laisser vide = inchangé",
+      "pinRule": "Un code PIN compte 4 à 6 chiffres.",
+      "insz": "Numéro de registre national",
+      "inszSetOn": "Défini le {{date}}",
+      "inszHelp": "Obligatoire pour une caisse enregistreuse. Conservé chiffré et envoyé uniquement à la boîte noire.",
+      "inszInvalid": "Ce numéro de registre national n’est pas valide (chiffres de contrôle).",
+      "inszClear": "Supprimer le numéro de registre national",
+      "canUsePos": "Peut utiliser la caisse",
+      "active": "Actif",
+      "saved": "Membre du personnel enregistré",
+      "saveError": "L’enregistrement a échoué. Réessayez.",
+      "numberTaken": "Ce numéro est déjà utilisé."
     }
   },
   "billing": {
@@ -10274,12 +10320,60 @@
     "reload": "Recharger"
   },
   "kassa": {
-    "skeleton": {
-      "title": "SellQo Caisse",
-      "version": "Version {{version}}",
-      "testButton": "Tester avec le simulateur FDM",
-      "signed": "Signé par le simulateur : {{label}} n° {{counter}}",
-      "notSigned": "Non signé ({{reason}})"
+    "common": {
+      "loading": "Chargement…"
+    },
+    "signIn": {
+      "title": "Connecter la caisse",
+      "intro": "Connectez cet appareil une seule fois avec votre compte SellQo. Votre personnel travaille ensuite avec un code PIN.",
+      "email": "Adresse e-mail",
+      "password": "Mot de passe",
+      "submit": "Se connecter",
+      "error": "La connexion a échoué. Vérifiez votre adresse e-mail et votre mot de passe."
+    },
+    "setup": {
+      "title": "Quelle caisse est-ce ?",
+      "intro": "Choisissez la caisse qui tourne sur cet appareil. L’appareil s’en souvient.",
+      "business": "Établissement",
+      "loadError": "Les caisses n’ont pas pu être chargées.",
+      "noTerminals": "Il n’y a pas encore de caisse. Créez-en une dans SellQo sous Caisse.",
+      "noBusiness": "Ce compte n’appartient à aucun établissement.",
+      "terminalGone": "La caisse choisie n’existe plus. Choisissez à nouveau."
+    },
+    "pin": {
+      "whoAreYou": "Qui êtes-vous ?",
+      "notMe": "Pas {{name}} ? Choisissez à nouveau",
+      "enter": "Code PIN",
+      "erase": "Effacer",
+      "ok": "OK",
+      "error": "La connexion a échoué. Réessayez.",
+      "wrong": "Code PIN erroné. Encore {{n}} essais.",
+      "locked": "Trop d’essais erronés. Attendez 5 minutes ou demandez un nouveau code PIN à un responsable.",
+      "inactive": "Vous ne pouvez (plus) utiliser la caisse. Demandez à un responsable.",
+      "loadError": "Le personnel n’a pas pu être chargé. Vérifiez la connexion.",
+      "noStaff": "Il n’y a pas encore de personnel de caisse. Ajoutez-le dans SellQo sous Caisse › Personnel."
+    },
+    "home": {
+      "switchUser": "Changer",
+      "clockIn": "Pointer l’arrivée",
+      "clockOut": "Pointer le départ",
+      "clockedIn": "Arrivée pointée.",
+      "clockedOut": "Départ pointé.",
+      "clockError": {
+        "no_insz": "Votre numéro de registre national manque. Un responsable peut l’ajouter sous Caisse › Personnel.",
+        "fiscal_not_configured": "Cette caisse n’est pas encore configurée comme caisse enregistreuse.",
+        "fdm_not_available": "La boîte noire n’est pas encore connectée.",
+        "rejected": "La boîte noire a refusé. Réessayez ou demandez à un responsable.",
+        "unreachable": "La boîte noire est injoignable. Votre pointage est conservé et envoyé plus tard.",
+        "error": "Une erreur s’est produite. Réessayez."
+      },
+      "noInsz": "Sans numéro de registre national, vous ne pouvez rien enregistrer sur cette caisse enregistreuse.",
+      "changeTerminal": "Choisir une autre caisse"
+    },
+    "fiscalMode": {
+      "off": "mode non fiscal",
+      "simulator": "mode test (simulateur)",
+      "fdm": "caisse enregistreuse"
     }
   }
 }

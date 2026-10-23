@@ -2223,6 +2223,10 @@
         "pos_offline_queue_safe": {
           "title": "Kasse: kein Verkauf geht mehr bei schlechter Verbindung verloren",
           "description": "Fällt das WLAN aus, während du einen Barverkauf abrechnest, behält die Kasse den Verkauf und schickt ihn weiter, sobald die Verbindung zurück ist. Ein Verkauf, der nicht sofort durchgeht, wird erneut versucht, bis er ankommt, auch nach einem Neustart der Kasse, und wird nie doppelt gebucht. Der Knopf „Wartend“ zeigt, wie viele Verkäufe noch unterwegs sind und wie viele erneut versucht werden."
+        },
+        "kassa_staff_pin": {
+          "title": "Kassenpersonal mit eigener PIN und die Kassen-App",
+          "description": "Unter Kasse › Personal fügst du dein Personal mit Rolle, Nummer und einer PIN aus 4 bis 6 Ziffern hinzu. An der Kasse (SellQo Kasse, auch über /kassa im Browser) wählt jede Person ihren Namen und tippt ihren Code; nach zwei Minuten ohne Eingabe sperrt sich die Kasse von selbst. Fünf Fehlversuche sperren die PIN für fünf Minuten. Das Personal stempelt an der Kasse ein und aus. Willst du später eine registrierte Kasse (GKS), trage pro Person die Nationalregisternummer ein: Sie wird verschlüsselt gespeichert und erscheint nie auf einem Beleg oder Bildschirm."
         }
       },
       "copyLink": "Link kopieren",

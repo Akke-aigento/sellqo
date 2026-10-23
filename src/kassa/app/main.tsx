@@ -1,17 +1,23 @@
-// KASSA-0 — ingang van het tweede app-target "SellQo Kassa" (app.sellqo.kassa).
-// Skelet: bewijst dat het target bouwt en de fiscale kern laadt. De echte schermen komen
-// in TAFEL-1/TAFEL-2. Zelfde i18n, stijl en foutvanger als de admin.
+// KASSA-0/PERSONEEL-1 — ingang van het tweede app-target "SellQo Kassa" (app.sellqo.kassa).
+// Zelfde i18n, stijl, foutvanger en Supabase-sessie als de admin; de schermen zitten in KassaApp.
 import { createRoot } from 'react-dom/client';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@/index.css';
 import '@/i18n';
 import { installGlobalErrorHandlers } from '@/lib/clientErrors';
 import { RootErrorBoundary } from '@/components/AppErrorBoundary';
-import { KassaHome } from './KassaHome';
+import { AuthProvider } from '@/hooks/useAuth';
+import { KassaApp } from './KassaApp';
 
 installGlobalErrorHandlers();
+const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 30_000 } } });
 
 createRoot(document.getElementById('root')!).render(
   <RootErrorBoundary>
-    <KassaHome />
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <KassaApp />
+      </AuthProvider>
+    </QueryClientProvider>
   </RootErrorBoundary>,
 );

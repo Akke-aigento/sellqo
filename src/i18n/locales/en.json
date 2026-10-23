@@ -7535,7 +7535,12 @@
       "kassa_openen": "Open POS",
       "dag_starten": "Start day",
       "geef_je_kassaterminal_een_naam_en": "Give your POS terminal a name and an optional location.",
-      "nog_open_sinds": "Still open since {{date}}"
+      "nog_open_sinds": "Still open since {{date}}",
+      "tabs": {
+        "terminals": "Tills",
+        "staff": "Staff"
+      },
+      "openKassaApp": "Open till app"
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Terminal settings",
@@ -8654,6 +8659,47 @@
         "status_preparing": "Being prepared",
         "status_ready": "Ready to go"
       }
+    },
+    "kassaStaff": {
+      "intro": "Everyone who works at the till signs in with their own PIN. For a registered till (GKS) each staff member also needs a national register number; it never appears on a receipt.",
+      "add": "Add staff member",
+      "loadError": "Staff could not be loaded.",
+      "emptyTitle": "No till staff yet",
+      "emptyBody": "Add your staff with a PIN. They pick their name on the till and tap their code.",
+      "inactive": "Inactive",
+      "locked": "Locked",
+      "inszOk": "National no. set",
+      "inszMissing": "National no. missing",
+      "addTitle": "New staff member",
+      "editTitle": "Edit staff member",
+      "dialogIntro": "You can set the PIN and national register number here, but never view them again.",
+      "name": "Name on the till",
+      "number": "Number",
+      "numberAuto": "auto",
+      "role": "Role",
+      "roles": {
+        "owner": "Owner",
+        "manager": "Manager",
+        "waiter": "Waiter",
+        "bartender": "Bartender",
+        "kitchen": "Kitchen",
+        "technician": "Technician"
+      },
+      "color": "Colour",
+      "pin": "PIN (4 to 6 digits)",
+      "newPin": "New PIN",
+      "pinKeep": "Leave empty to keep",
+      "pinRule": "A PIN has 4 to 6 digits.",
+      "insz": "National register number",
+      "inszSetOn": "Set on {{date}}",
+      "inszHelp": "Required for a registered till. Stored encrypted and only sent to the fiscal data module.",
+      "inszInvalid": "This national register number is not valid (check digits).",
+      "inszClear": "Remove national register number",
+      "canUsePos": "May use the till",
+      "active": "Active",
+      "saved": "Staff member saved",
+      "saveError": "Saving failed. Please try again.",
+      "numberTaken": "This number is already in use."
     }
   },
   "product_form": {
@@ -10274,12 +10320,60 @@
     "reload": "Reload"
   },
   "kassa": {
-    "skeleton": {
-      "title": "SellQo Till",
-      "version": "Version {{version}}",
-      "testButton": "Test with the FDM simulator",
-      "signed": "Signed by the simulator: {{label}} no. {{counter}}",
-      "notSigned": "Not signed ({{reason}})"
+    "common": {
+      "loading": "Loading…"
+    },
+    "signIn": {
+      "title": "Sign in the till",
+      "intro": "Sign this device in once with your SellQo account. Your staff then work with a PIN.",
+      "email": "Email address",
+      "password": "Password",
+      "submit": "Sign in",
+      "error": "Sign-in failed. Check your email address and password."
+    },
+    "setup": {
+      "title": "Which till is this?",
+      "intro": "Choose the till that runs on this device. The device remembers it.",
+      "business": "Business",
+      "loadError": "The tills could not be loaded.",
+      "noTerminals": "There is no till yet. Create one in SellQo under Till.",
+      "noBusiness": "This account does not belong to any business.",
+      "terminalGone": "The chosen till no longer exists. Choose again."
+    },
+    "pin": {
+      "whoAreYou": "Who are you?",
+      "notMe": "Not {{name}}? Choose again",
+      "enter": "PIN",
+      "erase": "Erase",
+      "ok": "OK",
+      "error": "Sign-in failed. Please try again.",
+      "wrong": "Wrong PIN. {{n}} attempts left.",
+      "locked": "Too many wrong attempts. Wait 5 minutes or ask a manager for a new PIN.",
+      "inactive": "You may not use the till (anymore). Ask a manager.",
+      "loadError": "Staff could not be loaded. Check the connection.",
+      "noStaff": "There is no till staff yet. Add staff in SellQo under Till › Staff."
+    },
+    "home": {
+      "switchUser": "Switch",
+      "clockIn": "Clock in",
+      "clockOut": "Clock out",
+      "clockedIn": "Clocked in.",
+      "clockedOut": "Clocked out.",
+      "clockError": {
+        "no_insz": "Your national register number is missing. A manager can add it under Till › Staff.",
+        "fiscal_not_configured": "This till is not yet set up as a registered till.",
+        "fdm_not_available": "The fiscal data module is not connected yet.",
+        "rejected": "The fiscal data module refused. Try again or ask a manager.",
+        "unreachable": "The fiscal data module cannot be reached. Your clock-in or clock-out is kept and sent shortly.",
+        "error": "Something went wrong. Please try again."
+      },
+      "noInsz": "Without a national register number you cannot register anything on this registered till.",
+      "changeTerminal": "Choose another till"
+    },
+    "fiscalMode": {
+      "off": "non-fiscal mode",
+      "simulator": "test mode (simulator)",
+      "fdm": "registered till"
     }
   }
 }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Monitor, 
   Plus, 
@@ -31,6 +31,8 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { KassaStaffTab } from '@/components/admin/pos/KassaStaffTab';
 import { usePOSTerminals, usePOSSessions } from '@/hooks/usePOS';
 import type { POSTerminal } from '@/types/pos';
 import { useTranslation } from 'react-i18next';
@@ -41,6 +43,14 @@ export default function POSPage() {
   const { t, i18n } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const navigate = useNavigate();
+  // PERSONEEL-1 — tabs bovenaan, deeplinkbaar (?tab=terminals|personeel).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get('tab') === 'personeel' ? 'personeel' : 'terminals';
+  const setTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === 'terminals') next.delete('tab'); else next.set('tab', v);
+    setSearchParams(next, { replace: true });
+  };
   const { terminals, isLoading, createTerminal, deleteTerminal } = usePOSTerminals();
   const { sessions } = usePOSSessions();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -109,12 +119,31 @@ export default function POSPage() {
             {t('admin.pOS.beheer_je_kassaterminals_en_start_een')}
           </p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          {t('admin.pOS.nieuwe_terminal')}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" asChild>
+            <Link to="/kassa">
+              <Monitor className="mr-2 h-4 w-4" />
+              {t('admin.pOS.openKassaApp')}
+            </Link>
+          </Button>
+          {tab === 'terminals' && (
+            <Button onClick={() => setShowCreateDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              {t('admin.pOS.nieuwe_terminal')}
+            </Button>
+          )}
+        </div>
       </div>
 
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          <TabsTrigger value="terminals">{t('admin.pOS.tabs.terminals')}</TabsTrigger>
+          <TabsTrigger value="personeel">{t('admin.pOS.tabs.staff')}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="personeel" className="mt-4">
+          <KassaStaffTab />
+        </TabsContent>
+        <TabsContent value="terminals" className="mt-4 space-y-6">
       {/* Terminals Grid */}
       {terminals.length === 0 ? (
         <Card className="border-dashed">
@@ -293,6 +322,9 @@ export default function POSPage() {
           </CardContent>
         </Card>
       )}
+
+        </TabsContent>
+      </Tabs>
 
       {/* Create Terminal Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>

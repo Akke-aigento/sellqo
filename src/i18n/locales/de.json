@@ -7262,7 +7262,12 @@
       "kassa_openen": "Kasse öffnen",
       "dag_starten": "Tag starten",
       "geef_je_kassaterminal_een_naam_en": "Geben Sie Ihrem Kassenterminal einen Namen und optional einen Standort.",
-      "nog_open_sinds": "Noch offen seit {{date}}"
+      "nog_open_sinds": "Noch offen seit {{date}}",
+      "tabs": {
+        "terminals": "Kassen",
+        "staff": "Personal"
+      },
+      "openKassaApp": "Kassen-App öffnen"
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Terminaleinstellungen",
@@ -8381,6 +8386,47 @@
         "status_preparing": "In Zubereitung",
         "status_ready": "Bereit zur Abfahrt"
       }
+    },
+    "kassaStaff": {
+      "intro": "Wer an der Kasse arbeitet, meldet sich mit einer eigenen PIN an. Für eine registrierte Kasse (GKS) braucht jede Person außerdem eine Nationalregisternummer; sie erscheint nie auf einem Beleg.",
+      "add": "Person hinzufügen",
+      "loadError": "Das Personal konnte nicht geladen werden.",
+      "emptyTitle": "Noch kein Kassenpersonal",
+      "emptyBody": "Füge dein Personal mit einer PIN hinzu. Alle wählen an der Kasse ihren Namen und tippen ihren Code.",
+      "inactive": "Inaktiv",
+      "locked": "Gesperrt",
+      "inszOk": "Nationalnr. ok",
+      "inszMissing": "Nationalnr. fehlt",
+      "addTitle": "Neue Person",
+      "editTitle": "Person bearbeiten",
+      "dialogIntro": "PIN und Nationalregisternummer kannst du hier setzen, aber nie wieder ansehen.",
+      "name": "Name an der Kasse",
+      "number": "Nummer",
+      "numberAuto": "auto",
+      "role": "Rolle",
+      "roles": {
+        "owner": "Inhaber",
+        "manager": "Verantwortliche Person",
+        "waiter": "Service",
+        "bartender": "Barkeeper",
+        "kitchen": "Küche",
+        "technician": "Techniker"
+      },
+      "color": "Farbe",
+      "pin": "PIN (4 bis 6 Ziffern)",
+      "newPin": "Neue PIN",
+      "pinKeep": "Leer lassen = unverändert",
+      "pinRule": "Eine PIN hat 4 bis 6 Ziffern.",
+      "insz": "Nationalregisternummer",
+      "inszSetOn": "Gesetzt am {{date}}",
+      "inszHelp": "Pflicht für eine registrierte Kasse. Wird verschlüsselt gespeichert und nur an die Blackbox gesendet.",
+      "inszInvalid": "Diese Nationalregisternummer ist ungültig (Prüfziffer).",
+      "inszClear": "Nationalregisternummer löschen",
+      "canUsePos": "Darf die Kasse benutzen",
+      "active": "Aktiv",
+      "saved": "Person gespeichert",
+      "saveError": "Speichern fehlgeschlagen. Bitte erneut versuchen.",
+      "numberTaken": "Diese Nummer ist bereits vergeben."
     }
   },
   "billing": {
@@ -10274,12 +10320,60 @@
     "reload": "Neu laden"
   },
   "kassa": {
-    "skeleton": {
-      "title": "SellQo Kasse",
-      "version": "Version {{version}}",
-      "testButton": "Mit dem FDM-Simulator testen",
-      "signed": "Vom Simulator signiert: {{label}} Nr. {{counter}}",
-      "notSigned": "Nicht signiert ({{reason}})"
+    "common": {
+      "loading": "Wird geladen…"
+    },
+    "signIn": {
+      "title": "Kasse anmelden",
+      "intro": "Melde dieses Gerät einmal mit deinem SellQo-Konto an. Dein Personal arbeitet danach mit einer PIN.",
+      "email": "E-Mail-Adresse",
+      "password": "Passwort",
+      "submit": "Anmelden",
+      "error": "Anmeldung fehlgeschlagen. Prüfe E-Mail-Adresse und Passwort."
+    },
+    "setup": {
+      "title": "Welche Kasse ist das?",
+      "intro": "Wähle die Kasse, die auf diesem Gerät läuft. Das Gerät merkt sich das.",
+      "business": "Betrieb",
+      "loadError": "Die Kassen konnten nicht geladen werden.",
+      "noTerminals": "Es gibt noch keine Kasse. Lege eine in SellQo unter Kasse an.",
+      "noBusiness": "Dieses Konto gehört zu keinem Betrieb.",
+      "terminalGone": "Die gewählte Kasse existiert nicht mehr. Bitte neu wählen."
+    },
+    "pin": {
+      "whoAreYou": "Wer bist du?",
+      "notMe": "Nicht {{name}}? Neu wählen",
+      "enter": "PIN",
+      "erase": "Löschen",
+      "ok": "OK",
+      "error": "Anmeldung fehlgeschlagen. Bitte erneut versuchen.",
+      "wrong": "Falsche PIN. Noch {{n}} Versuche.",
+      "locked": "Zu viele Fehlversuche. Warte 5 Minuten oder bitte eine verantwortliche Person um eine neue PIN.",
+      "inactive": "Du darfst die Kasse (nicht mehr) benutzen. Frag eine verantwortliche Person.",
+      "loadError": "Das Personal konnte nicht geladen werden. Prüfe die Verbindung.",
+      "noStaff": "Es gibt noch kein Kassenpersonal. Füge es in SellQo unter Kasse › Personal hinzu."
+    },
+    "home": {
+      "switchUser": "Wechseln",
+      "clockIn": "Einstempeln",
+      "clockOut": "Ausstempeln",
+      "clockedIn": "Eingestempelt.",
+      "clockedOut": "Ausgestempelt.",
+      "clockError": {
+        "no_insz": "Deine Nationalregisternummer fehlt. Eine verantwortliche Person kann sie unter Kasse › Personal eintragen.",
+        "fiscal_not_configured": "Diese Kasse ist noch nicht als registrierte Kasse eingerichtet.",
+        "fdm_not_available": "Die Blackbox ist noch nicht verbunden.",
+        "rejected": "Die Blackbox hat abgelehnt. Erneut versuchen oder eine verantwortliche Person fragen.",
+        "unreachable": "Die Blackbox ist nicht erreichbar. Dein Stempeln wird gespeichert und gleich gesendet.",
+        "error": "Etwas ist schiefgelaufen. Bitte erneut versuchen."
+      },
+      "noInsz": "Ohne Nationalregisternummer kannst du an dieser registrierten Kasse nichts erfassen.",
+      "changeTerminal": "Andere Kasse wählen"
+    },
+    "fiscalMode": {
+      "off": "nicht-fiskalischer Modus",
+      "simulator": "Testmodus (Simulator)",
+      "fdm": "registrierte Kasse"
     }
   }
 }
