@@ -77,9 +77,15 @@ create table if not exists public.dining_checks (
   next_seq integer not null default 1,
   version integer not null default 1,
   updated_at timestamptz not null default now(),
-  constraint dining_checks_place check (table_id is not null or name is not null)
+  -- TAFEL-2: apart afrekenen. Een deelrekening hangt aan de hoofdrekening van dezelfde tafel
+  -- (fiscaal TABLE › CHAIR, UC4119bis); split_no = volgnummer van het deel.
+  split_of uuid references public.dining_checks(id) on delete restrict,
+  split_no integer check (split_no is null or split_no between 1 and 99),
+  constraint dining_checks_place check (table_id is not null or name is not null),
+  constraint dining_checks_split check ((split_of is null) = (split_no is null))
 );
-create unique index if not exists dining_checks_open_table_uq on public.dining_checks (tenant_id, table_id) where status = 'open' and table_id is not null;
+-- Eén hoofdrekening per tafel; deelrekeningen (split_of) staan naast die van hun hoofdrekening.
+create unique index if not exists dining_checks_open_table_uq on public.dining_checks (tenant_id, table_id) where status = 'open' and table_id is not null and split_of is null;
 create unique index if not exists dining_checks_reference_uq on public.dining_checks (tenant_id, cost_center_reference) where status = 'open';
 create index if not exists dining_checks_tenant_open on public.dining_checks (tenant_id) where status = 'open';
 
@@ -270,6 +276,9 @@ as $$
   select jsonb_build_object(
     'id', c.id, 'table_id', c.table_id, 'name', c.name, 'status', c.status, 'guests', c.guests,
     'opened_at', c.opened_at, 'bill_requested_at', c.bill_requested_at, 'reference', c.cost_center_reference,
+    'split_of', c.split_of, 'split_no', c.split_no,
+    'parent_reference', (select pc.cost_center_reference from public.dining_checks pc where pc.id = c.split_of),
+    'next_split_no', (select coalesce(max(sx.split_no), 0) + 1 from public.dining_checks sx where sx.split_of = coalesce(c.split_of, c.id)),
     'version', c.version, 'next_grouping_id', c.next_grouping_id,
     'lines', coalesce((select jsonb_agg(jsonb_build_object(
         'id', l.id, 'seq', l.seq, 'product_id', l.product_id, 'variant_id', l.variant_id, 'name', l.name,
@@ -406,7 +415,7 @@ begin
     if v_table is not null and not exists (select 1 from public.dining_tables t where t.id = v_table and t.tenant_id = p_tenant_id and t.is_active) then
       raise exception 'onbekende tafel' using errcode = '22023';
     end if;
-    if v_table is not null and exists (select 1 from public.dining_checks x where x.tenant_id = p_tenant_id and x.table_id = v_table and x.status = 'open') then
+    if v_table is not null and exists (select 1 from public.dining_checks x where x.tenant_id = p_tenant_id and x.table_id = v_table and x.status = 'open' and x.split_of is null) then
       raise exception 'die tafel heeft al een open rekening' using errcode = '55000';
     end if;
     if v_table is null and coalesce(btrim(cmd ->> 'name'), '') = '' then
@@ -626,14 +635,18 @@ begin
       if not exists (select 1 from public.dining_tables t where t.id = v_table and t.tenant_id = p_tenant_id and t.is_active) then
         raise exception 'onbekende tafel' using errcode = '22023';
       end if;
-      if exists (select 1 from public.dining_checks x where x.tenant_id = p_tenant_id and x.table_id = v_table and x.status = 'open') then
+      if exists (select 1 from public.dining_checks x where x.tenant_id = p_tenant_id and x.table_id = v_table and x.status = 'open' and x.split_of is null) then
         raise exception 'die tafel is bezet: kies samenvoegen' using errcode = '55000';
       end if;
     elsif coalesce(btrim(cmd ->> 'to_name'), '') = '' then
       raise exception 'kies een tafel of een naam' using errcode = '22023';
     end if;
+    if c.split_of is not null then raise exception 'een deelrekening verplaats je niet: reken ze af of voeg ze samen' using errcode = '55000'; end if;
     update public.dining_checks set table_id = v_table, name = case when v_table is null then btrim(cmd ->> 'to_name') else name end,
       version = version + 1, updated_at = now() where id = c.id;
+    -- Deelrekeningen verhuizen mee met hun hoofdrekening.
+    update public.dining_checks set table_id = v_table, name = coalesce(name, btrim(cmd ->> 'to_name')),
+      version = version + 1, updated_at = now() where split_of = c.id and status = 'open';
 
   elsif v_kind = 'move_lines' then
     -- Lijnen (of de hele rekening) naar een andere rekening: splitsen of samenvoegen (TBL-03..05).
@@ -641,9 +654,20 @@ begin
     -- Ontwerp-lijnen verhuizen gewoon; verstuurde lijnen worden fiscaal verplaatst: negatieve
     -- COST_CENTER_CHANGE-lijn hier, positieve kopie (met dezelfde korting) daar.
     select * into tgt from public.dining_checks where id = (cmd ->> 'to_check_id')::uuid and tenant_id = p_tenant_id for update;
-    if tgt.id is null then
+    if tgt.id is null and coalesce((cmd ->> 'split')::boolean, false) then
+      -- TAFEL-2: apart afrekenen = deelrekening van dezelfde tafel/naam. Een deel van een deel
+      -- hangt aan de hoofdrekening (max. 2 niveaus costCenter, TBL-01).
+      insert into public.dining_checks (id, tenant_id, table_id, name, opened_by, cost_center_reference, split_of, split_no)
+      values ((cmd ->> 'to_check_id')::uuid, p_tenant_id, c.table_id,
+              coalesce(nullif(btrim(cmd ->> 'to_name'), ''), c.name), v_staff, cmd ->> 'to_check_id',
+              coalesce(c.split_of, c.id),
+              -- Het toestel kiest het nummer (het staat al in het ondertekende bericht als CHAIR-id).
+              coalesce(nullif(cmd ->> 'split_no', '')::integer,
+                       (select coalesce(max(x.split_no), 0) + 1 from public.dining_checks x where x.split_of = coalesce(c.split_of, c.id))))
+      returning * into tgt;
+    elsif tgt.id is null then
       v_table := nullif(cmd ->> 'to_table_id', '')::uuid;
-      if v_table is not null and exists (select 1 from public.dining_checks x where x.tenant_id = p_tenant_id and x.table_id = v_table and x.status = 'open') then
+      if v_table is not null and exists (select 1 from public.dining_checks x where x.tenant_id = p_tenant_id and x.table_id = v_table and x.status = 'open' and x.split_of is null) then
         raise exception 'die tafel is bezet: kies de rekening van die tafel' using errcode = '55000';
       end if;
       insert into public.dining_checks (id, tenant_id, table_id, name, opened_by, cost_center_reference)

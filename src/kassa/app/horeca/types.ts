@@ -46,6 +46,13 @@ export interface Check {
   reference: string;
   version: number;
   next_grouping_id: number;
+  /** TAFEL-2: deelrekening (apart afrekenen) van deze hoofdrekening; null = hoofdrekening. */
+  split_of?: string | null;
+  split_no?: number | null;
+  /** Reference van de hoofdrekening (fiscaal TABLE › CHAIR). */
+  parent_reference?: string | null;
+  /** Volgend vrij deelnummer voor deze tafel. */
+  next_split_no?: number;
   lines: CheckLine[];
 }
 

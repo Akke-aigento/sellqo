@@ -1,10 +1,10 @@
 // TAFEL-1 — één rekening: lijnen links, kaart rechts (op een gsm als tabbladen).
 // Tik op een product = +1 (meteen zichtbaar). Tik op een lijn = aantal, opmerking, annuleren
-// met reden, korting/van het huis, verplaatsen. Onderaan: Verstuur (ronde naar keuken/bar)
-// en Rekening (voorrekening). Afrekenen komt in TAFEL-2.
+// met reden, korting/van het huis, verplaatsen. Onderaan: Rekening (voorrekening), Verstuur
+// (ronde naar keuken/bar) en Afrekenen (TAFEL-2). Apart afrekenen = deelrekening.
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Loader2, MoreHorizontal, Search, Send, Receipt } from 'lucide-react';
+import { ArrowLeft, Loader2, MoreHorizontal, Search, Send, Receipt, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -15,13 +15,15 @@ import { roundLines } from '../horeca/fiscalLines';
 import { discountLine, moveCheck, moveLines, requestBill, sendRound, type ActionCtx, type ActionOutcome } from '../horeca/actions';
 import { useCatalog, type CatalogProduct } from '../horeca/useCatalog';
 import { formatEuro } from '../horeca/format';
+import { hasPendingPay } from '../horeca/payActions';
+import { PayDialog, SplitDialog } from './PayDialog';
 
-interface Props { ctx: ActionCtx; checkId: string; onBack: () => void }
+interface Props { ctx: ActionCtx; checkId: string; onBack: () => void; onOpen?: (checkId: string, opts?: { pay?: boolean }) => void; initialPay?: boolean }
 
 const VOID_REASONS = ['mistake', 'customer', 'broken', 'other'] as const;
 const DISCOUNTS = [10, 20, 50] as const;
 
-export function CheckScreen({ ctx, checkId, onBack }: Props) {
+export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }: Props) {
   const { t, i18n } = useTranslation();
   const { store } = ctx;
   const check = store.check(checkId);
@@ -30,7 +32,9 @@ export function CheckScreen({ ctx, checkId, onBack }: Props) {
   const [tab, setTab] = useState<'lines' | 'menu'>('menu');
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState('');
-  const [busy, setBusy] = useState<null | 'send' | 'bill' | 'move' | 'discount'>(null);
+  const [busy, setBusy] = useState<null | 'send' | 'bill' | 'move' | 'discount' | 'split'>(null);
+  const [paying, setPaying] = useState(initialPay);
+  const [splitting, setSplitting] = useState(false);
   const [lineSheet, setLineSheet] = useState<CheckLine | null>(null);
   const [addonFor, setAddonFor] = useState<CatalogProduct | null>(null);
   const [moving, setMoving] = useState<null | { lines: CheckLine[] | 'all' }>(null);
@@ -51,7 +55,10 @@ export function CheckScreen({ ctx, checkId, onBack }: Props) {
     );
   }
 
-  const title = check.table_id ? t('kassa.checks.table', { label: ctx.tableLabel(check.table_id) ?? '?' }) : check.name;
+  const baseTitle = check.table_id ? t('kassa.checks.table', { label: ctx.tableLabel(check.table_id) ?? '?' }) : check.name;
+  const title = check.split_no ? t('kassa.pay.partTitle', { title: baseTitle, n: check.split_no }) : baseTitle;
+  // Een betaling die na de handtekening nog naar de server moet: rekening vergrendeld.
+  const locked = hasPendingPay(store.tenantId, check.id);
   const visible = check.lines.filter((l) => l.state !== 'void');
   const drafts = roundLines(check).length + check.lines.filter((l) => l.pending && l.state === 'draft').length;
   const sentAny = check.lines.some((l) => l.state === 'sent');
@@ -79,6 +86,32 @@ export function CheckScreen({ ctx, checkId, onBack }: Props) {
     const o = await sendRound(ctx, check.id);
     setBusy(null);
     if (report(o, t('kassa.checks.sent'))) onBack();
+  };
+  const openSplit = async () => {
+    // Apart afrekenen werkt op verstuurde lijnen: eerst de open ronde versturen.
+    if (roundLines(check).length) {
+      setBusy('send');
+      const o = await sendRound(ctx, check.id);
+      setBusy(null);
+      if (!report(o)) return;
+    }
+    setSplitting(true);
+  };
+  const doSplit = async (moves: { lineId: string; qty: number }[]) => {
+    const fresh = store.check(check.id);
+    if (!fresh) return;
+    setBusy('split');
+    const to = crypto.randomUUID();
+    const o = await moveLines(ctx, {
+      fromCheckId: check.id,
+      to: { checkId: to, existing: false, split: true },
+      moves: moves.map((m) => ({ line: fresh.lines.find((l) => l.id === m.lineId)!, qty: m.qty })).filter((m) => m.line),
+    });
+    setBusy(null);
+    if (!report(o)) return;
+    setSplitting(false);
+    // Meteen naar het nieuwe deel en afrekenen.
+    onOpen?.(to, { pay: true });
   };
   const doBill = async () => {
     setBusy('bill');
@@ -154,7 +187,8 @@ export function CheckScreen({ ctx, checkId, onBack }: Props) {
             <button type="button" aria-label={t('kassa.checks.more')} className="flex h-11 w-11 items-center justify-center rounded-md border"><MoreHorizontal className="h-5 w-5" /></button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setMoving({ lines: 'all' })}>{t('kassa.checks.moveCheck')}</DropdownMenuItem>
+            <DropdownMenuItem disabled={locked || !sentAny && !drafts} onClick={() => void openSplit()}>{t('kassa.pay.split')}</DropdownMenuItem>
+            <DropdownMenuItem disabled={locked || !!check.split_of} onClick={() => setMoving({ lines: 'all' })}>{t('kassa.checks.moveCheck')}</DropdownMenuItem>
             {!sentAny && (
               <DropdownMenuItem onClick={async () => {
                 const r = await store.applyNow({ id: crypto.randomUUID(), kind: 'void_check', check_id: check.id, staff_id: ctx.staffId }).catch(() => null);
@@ -179,16 +213,28 @@ export function CheckScreen({ ctx, checkId, onBack }: Props) {
         <div className={cn('min-h-0 flex-1 flex-col lg:flex', tab === 'menu' ? 'flex' : 'hidden')}>{menuPanel}</div>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 border-t p-2" style={{ paddingBottom: 'max(0.5rem, var(--safe-bottom))' }}>
-        <button type="button" onClick={doBill} disabled={!!busy || !sentAny && !drafts}
+      {locked ? <p role="alert" className="border-t bg-amber-100 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">{t('kassa.pay.lockedPending')}</p> : null}
+      <div className="grid grid-cols-3 gap-2 border-t p-2" style={{ paddingBottom: 'max(0.5rem, var(--safe-bottom))' }}>
+        <button type="button" onClick={doBill} disabled={locked || !!busy || !sentAny && !drafts}
           className="flex h-14 items-center justify-center gap-2 rounded-lg border text-base font-semibold disabled:opacity-40">
           {busy === 'bill' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Receipt className="h-5 w-5" />} {t('kassa.checks.bill')}
         </button>
-        <button type="button" onClick={doSend} disabled={!!busy || drafts === 0}
-          className="flex h-14 items-center justify-center gap-2 rounded-lg bg-primary text-base font-semibold text-primary-foreground disabled:opacity-40">
+        <button type="button" onClick={doSend} disabled={locked || !!busy || drafts === 0}
+          className="flex h-14 items-center justify-center gap-2 rounded-lg border-2 border-primary text-base font-semibold text-primary disabled:opacity-40">
           {busy === 'send' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />} {t('kassa.checks.send', { n: drafts })}
         </button>
+        <button type="button" onClick={() => setPaying(true)} disabled={locked || !!busy || (!sentAny && !drafts)}
+          className="flex h-14 items-center justify-center gap-2 rounded-lg bg-primary text-base font-semibold text-primary-foreground disabled:opacity-40">
+          <Wallet className="h-5 w-5" /> {t('kassa.pay.button')}
+        </button>
       </div>
+
+      {paying && (
+        <PayDialog ctx={ctx} check={check} onClose={() => setPaying(false)} onPaid={() => { setPaying(false); onBack(); }} />
+      )}
+      {splitting && (
+        <SplitDialog check={store.check(check.id) ?? check} busy={busy === 'split'} onClose={() => setSplitting(false)} onConfirm={doSplit} />
+      )}
 
       {lineSheet && (
         <LineDialog line={check.lines.find((l) => l.id === lineSheet.id) ?? lineSheet} busy={busy === 'discount'} onClose={() => setLineSheet(null)}
@@ -369,8 +415,8 @@ function MoveDialog(p: {
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState('');
-  const byTable = new Map(p.checks.filter((c) => c.table_id).map((c) => [c.table_id as string, c]));
-  const others = p.checks.filter((c) => c.id !== p.check.id && !c.table_id);
+  const byTable = new Map(p.checks.filter((c) => c.table_id && !c.split_of).map((c) => [c.table_id as string, c]));
+  const others = p.checks.filter((c) => c.id !== p.check.id && (!c.table_id || c.split_of));
   return (
     <Dialog open onOpenChange={(o) => !o && p.onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
@@ -391,7 +437,11 @@ function MoveDialog(p: {
             </div>
             {others.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {others.map((c) => <button key={c.id} type="button" onClick={() => p.onPick({ kind: 'existing', checkId: c.id })} className="h-11 rounded-full border px-4 text-sm font-semibold">{c.name}</button>)}
+                {others.map((c) => (
+                  <button key={c.id} type="button" onClick={() => p.onPick({ kind: 'existing', checkId: c.id })} className="h-11 rounded-full border px-4 text-sm font-semibold">
+                    {c.split_no ? t('kassa.pay.partTitle', { title: c.table_id ? p.tableLabel(c.table_id) ?? '?' : c.name, n: c.split_no }) : c.name}
+                  </button>
+                ))}
               </div>
             )}
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); if (name.trim()) p.onPick({ kind: 'name', name: name.trim() }); }}>

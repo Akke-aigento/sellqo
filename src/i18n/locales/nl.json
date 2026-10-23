@@ -10587,6 +10587,63 @@
         "server": "Niet gelukt: {{detail}}",
         "changed": "Een collega wijzigde deze rekening net. Kijk ze na en probeer opnieuw."
       }
+    },
+    "pay": {
+      "button": "Afrekenen",
+      "title": "Afrekenen · {{amount}}",
+      "split": "Apart afrekenen",
+      "splitTitle": "Apart afrekenen",
+      "splitIntro": "Kies wat deze klant neemt. Dat gaat naar een apart deel van de rekening, met een eigen kasticket; de rest blijft op de tafel.",
+      "splitConfirm": "Apart afrekenen · {{amount}}",
+      "ofAvailable": "{{n}} open",
+      "partTitle": "{{title}} · deel {{n}}",
+      "method": {
+        "cash": "Contant",
+        "card": "Kaart",
+        "cheque_meal": "Maaltijdcheque",
+        "voucher": "Bon",
+        "other": "Andere"
+      },
+      "methodLabel": "Betaalmiddel",
+      "amount": "Bedrag",
+      "removeTender": "Betaalmiddel weghalen",
+      "addTender": "Betaalmiddel",
+      "splitEqual": "Gelijk delen door",
+      "balanced": "Klopt",
+      "remaining": "Nog {{amount}}",
+      "tooMuch": "{{amount}} te veel",
+      "cashDue": "Te ontvangen contant",
+      "roundingNote": "Afgerond op 5 cent ({{amount}})",
+      "given": "Gegeven",
+      "change": "Wisselgeld",
+      "tip": "Fooi",
+      "tipMethod": "Fooi betaald met",
+      "confirm": "Betaald · {{amount}}",
+      "paidTitle": "Betaald",
+      "pendingTitle": "Betaald, wacht op verbinding",
+      "pendingText": "De verkoop is geregistreerd, maar SellQo is even niet bereikbaar. Deze kassa stuurt de betaling vanzelf door; laat dit toestel aan staan. De rekening blijft tot dan vergrendeld.",
+      "receiptNo": "Bonnummer",
+      "ticket": "Kasticket",
+      "print": "Kasticket afdrukken",
+      "done": "Klaar",
+      "ticketError": "Kasticket kon niet opgemaakt worden: {{detail}}",
+      "lockedPending": "Deze rekening is betaald; de betaling wacht nog op verbinding.",
+      "pendingDone": "{{n}} wachtende betaling(en) doorgestuurd",
+      "pendingRejected": "Een geregistreerde betaling werd geweigerd: {{error}}. Neem contact op met SellQo.",
+      "error": {
+        "plan": "De betaalmiddelen sluiten niet op het totaal.",
+        "offline": "Geen verbinding. Afrekenen kan pas als de kassa online is.",
+        "no_insz": "Je rijksregisternummer ontbreekt; zonder kan je op een geregistreerde kassa niet afrekenen.",
+        "fiscal_not_configured": "Deze kassa is nog niet als geregistreerde kassa ingesteld.",
+        "fdm_not_available": "De zwarte doos is nog niet gekoppeld.",
+        "fdm_rejected": "De zwarte doos weigerde. Er is niets betaald.",
+        "fdm_unreachable": "De zwarte doos is niet bereikbaar. Er is niets betaald; probeer opnieuw.",
+        "server": "Niet gelukt: {{detail}}",
+        "changed": "Een collega wijzigde deze rekening net. Kijk ze na en reken opnieuw af.",
+        "nothing": "Er staat niets op deze rekening.",
+        "nothing_sent": "Er staat niets op deze rekening.",
+        "pending_elsewhere": "Deze rekening is al betaald; de betaling wacht nog op verbinding."
+      }
     }
   }
 }

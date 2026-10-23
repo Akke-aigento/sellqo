@@ -157,7 +157,7 @@ export class KassaRuntime {
       const r = out.result;
       const tx = (data as { transaction?: { transactionTotal: number } }).transaction;
       const cc = (data as { costCenter?: { reference: string } }).costCenter;
-      const { error } = await supabase.from('fiscal_events' as never).insert({
+      const row = {
         id: eventId,
         tenant_id: this.device.tenantId,
         mutation: name,
@@ -184,13 +184,46 @@ export class KassaRuntime {
         request_body: out.requestBody,
         response_body: out.responseBody,
         request_sha256: await sha256Hex(out.requestBody),
-      } as never);
-      // Ondertekend is ondertekend: de FDM heeft het. Een mislukte kopie naar de cloud
-      // mag de kassa niet stilleggen; ze komt in het auditspoor en wordt later opnieuw gestuurd.
-      if (error && error.code !== '23505') await this.audit('fiscal_store_failed', { code: error.code ?? null, mutation: name });
-      return { ...out, eventId: error ? undefined : eventId };
+      };
+      // Ondertekend is ondertekend: de FDM heeft het. Een mislukte kopie naar de cloud mag de
+      // kassa niet stilleggen. TAFEL-2: het event gaat dan in een uitgaande wachtrij op het
+      // toestel en wordt opnieuw gestuurd vóór elke betaling of ronde die ernaar verwijst
+      // (flushOutbox). Het event-id ligt vast, dus de server kan er later naar verwijzen.
+      const { error } = await supabase.from('fiscal_events' as never).insert(row as never);
+      if (error && error.code !== '23505') {
+        this.pushOutbox(row);
+        try { await this.audit('fiscal_store_failed', { code: error.code ?? null, mutation: name, event_id: eventId }); } catch { /* offline */ }
+      }
+      return { ...out, eventId };
     }
     return out;
+  }
+
+  private outboxKey() { return `sq_kassa_fiscal_outbox|${this.device.tenantId}`; }
+
+  private readOutbox(): Record<string, unknown>[] {
+    try { return JSON.parse(safeGet(this.outboxKey()) ?? '[]') as Record<string, unknown>[]; } catch { return []; }
+  }
+
+  private pushOutbox(row: Record<string, unknown>) {
+    const rows = this.readOutbox().filter((r) => r.id !== row.id);
+    rows.push(row);
+    safeSet(this.outboxKey(), JSON.stringify(rows));
+  }
+
+  get outboxCount() { return this.readOutbox().length; }
+
+  /** Ondertekende events die nog niet in de cloud staan, opnieuw wegschrijven. true = leeg. */
+  async flushOutbox(): Promise<boolean> {
+    const rows = this.readOutbox();
+    if (!rows.length) return true;
+    const left: Record<string, unknown>[] = [];
+    for (const row of rows) {
+      const { error } = await supabase.from('fiscal_events' as never).insert(row as never);
+      if (error && error.code !== '23505') left.push(row);
+    }
+    safeSet(this.outboxKey(), JSON.stringify(left));
+    return left.length === 0;
   }
 
   async audit(action: string, details: Record<string, unknown> = {}) {

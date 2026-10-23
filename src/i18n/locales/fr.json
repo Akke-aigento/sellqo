@@ -10585,6 +10585,63 @@
         "server": "Échec : {{detail}}",
         "changed": "Un collègue vient de modifier cette addition. Vérifiez et réessayez."
       }
+    },
+    "pay": {
+      "button": "Encaisser",
+      "title": "Encaissement · {{amount}}",
+      "split": "Payer séparément",
+      "splitTitle": "Payer séparément",
+      "splitIntro": "Choisissez ce que prend ce client. Cela va dans une partie séparée de l’addition, avec son propre ticket ; le reste reste sur la table.",
+      "splitConfirm": "Payer séparément · {{amount}}",
+      "ofAvailable": "{{n}} ouvert(s)",
+      "partTitle": "{{title}} · partie {{n}}",
+      "method": {
+        "cash": "Espèces",
+        "card": "Carte",
+        "cheque_meal": "Chèque-repas",
+        "voucher": "Bon",
+        "other": "Autre"
+      },
+      "methodLabel": "Moyen de paiement",
+      "amount": "Montant",
+      "removeTender": "Retirer le moyen de paiement",
+      "addTender": "Moyen de paiement",
+      "splitEqual": "Partager en parts égales :",
+      "balanced": "Équilibré",
+      "remaining": "Reste {{amount}}",
+      "tooMuch": "{{amount}} de trop",
+      "cashDue": "Espèces à recevoir",
+      "roundingNote": "Arrondi à 5 centimes ({{amount}})",
+      "given": "Reçu",
+      "change": "Monnaie à rendre",
+      "tip": "Pourboire",
+      "tipMethod": "Pourboire payé par",
+      "confirm": "Payé · {{amount}}",
+      "paidTitle": "Payé",
+      "pendingTitle": "Payé, en attente de connexion",
+      "pendingText": "La vente est enregistrée, mais SellQo est momentanément injoignable. Cette caisse transmettra le paiement automatiquement ; laissez cet appareil allumé. D’ici là, l’addition reste verrouillée.",
+      "receiptNo": "Numéro de ticket",
+      "ticket": "Ticket de caisse",
+      "print": "Imprimer le ticket",
+      "done": "Terminé",
+      "ticketError": "Le ticket n’a pas pu être créé : {{detail}}",
+      "lockedPending": "Cette addition est payée ; le paiement attend encore la connexion.",
+      "pendingDone": "{{n}} paiement(s) en attente transmis",
+      "pendingRejected": "Un paiement enregistré a été refusé : {{error}}. Contactez SellQo.",
+      "error": {
+        "plan": "Les moyens de paiement ne correspondent pas au total.",
+        "offline": "Pas de connexion. L’encaissement n’est possible qu’en ligne.",
+        "no_insz": "Votre numéro de registre national manque ; sans lui, impossible d’encaisser sur une caisse enregistreuse.",
+        "fiscal_not_configured": "Cette caisse n’est pas encore configurée comme caisse enregistreuse.",
+        "fdm_not_available": "La boîte noire n’est pas encore connectée.",
+        "fdm_rejected": "La boîte noire a refusé. Rien n’a été encaissé.",
+        "fdm_unreachable": "La boîte noire est injoignable. Rien n’a été encaissé ; réessayez.",
+        "server": "Échec : {{detail}}",
+        "changed": "Un collègue vient de modifier cette addition. Vérifiez-la et encaissez à nouveau.",
+        "nothing": "Cette addition est vide.",
+        "nothing_sent": "Cette addition est vide.",
+        "pending_elsewhere": "Cette addition est déjà payée ; le paiement attend la connexion."
+      }
     }
   }
 }

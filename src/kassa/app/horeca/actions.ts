@@ -19,6 +19,8 @@ export interface ActionCtx {
   store: HorecaStore;
   runtime: KassaRuntime;
   staffId: string;
+  /** Naam zoals op het kasticket (nooit het INSZ). */
+  staffName: string;
   employeeId: string | null;
   tableLabel: (tableId: string | null) => string | null;
 }
@@ -115,7 +117,10 @@ export async function requestBill(ctx: ActionCtx, checkId: string): Promise<Acti
 export interface MoveRequest {
   fromCheckId: string;
   /** Bestaande rekening (samenvoegen) of nieuwe (id + tafel of naam). */
-  to: { checkId: string; existing: true; tableId?: undefined; name?: undefined } | { checkId: string; existing: false; tableId: string | null; name: string | null };
+  to: { checkId: string; existing: true; tableId?: undefined; name?: undefined; split?: undefined }
+    | { checkId: string; existing: false; tableId: string | null; name: string | null; split?: undefined }
+    /** TAFEL-2: apart afrekenen = nieuwe deelrekening van dezelfde tafel of naam. */
+    | { checkId: string; existing: false; split: true; tableId?: undefined; name?: undefined };
   moves: { line: CheckLine; qty: number }[];
 }
 
@@ -127,8 +132,17 @@ export async function moveLines(ctx: ActionCtx, req: MoveRequest): Promise<Actio
     const from = ctx.store.check(req.fromCheckId);
     if (!from) return { ok: false, reason: 'server', detail: 'check_missing' };
     const sentMoves = req.moves.filter((m) => m.line.state === 'sent');
-    let target: Pick<Check, 'id' | 'table_id' | 'name' | 'reference'>;
-    if (req.to.existing) {
+    let target: Pick<Check, 'id' | 'table_id' | 'name' | 'reference' | 'split_of' | 'split_no' | 'parent_reference'>;
+    let splitNo: number | null = null;
+    if (req.to.split) {
+      // Deel van een deel hangt aan de hoofdrekening (max. 2 niveaus, TBL-01).
+      splitNo = from.next_split_no ?? 1;
+      target = {
+        id: req.to.checkId, table_id: from.table_id, name: from.name, reference: req.to.checkId,
+        split_of: from.split_of ?? from.id, split_no: splitNo,
+        parent_reference: from.split_of ? (from.parent_reference ?? from.reference) : from.reference,
+      };
+    } else if (req.to.existing) {
       const t = ctx.store.check(req.to.checkId);
       if (!t) return { ok: false, reason: 'server', detail: 'target_missing' };
       target = t;
@@ -149,7 +163,7 @@ export async function moveLines(ctx: ActionCtx, req: MoveRequest): Promise<Actio
     }
     return commitSigned(ctx, {
       id: crypto.randomUUID(), kind: 'move_lines', check_id: from.id, to_check_id: req.to.checkId,
-      ...(req.to.existing ? {} : { to_table_id: req.to.tableId, to_name: req.to.name }),
+      ...(req.to.split ? { split: true, split_no: splitNo } : req.to.existing ? {} : { to_table_id: req.to.tableId, to_name: req.to.name }),
       moves: req.moves.map((m) => ({ line_id: m.line.id, qty: m.qty, from_line_id: crypto.randomUUID(), to_line_id: crypto.randomUUID() })),
       fiscal_event_id: eventId, staff_id: ctx.staffId,
     }, eventId);

@@ -10585,6 +10585,63 @@
         "server": "Nicht ausgeführt: {{detail}}",
         "changed": "Eine Kollegin oder ein Kollege hat diese Rechnung gerade geändert. Prüfen und erneut versuchen."
       }
+    },
+    "pay": {
+      "button": "Kassieren",
+      "title": "Kassieren · {{amount}}",
+      "split": "Getrennt kassieren",
+      "splitTitle": "Getrennt kassieren",
+      "splitIntro": "Wähle, was dieser Gast nimmt. Das kommt auf einen eigenen Teil der Rechnung mit eigenem Kassenbon; der Rest bleibt am Tisch.",
+      "splitConfirm": "Getrennt kassieren · {{amount}}",
+      "ofAvailable": "{{n}} offen",
+      "partTitle": "{{title}} · Teil {{n}}",
+      "method": {
+        "cash": "Bar",
+        "card": "Karte",
+        "cheque_meal": "Essensgutschein",
+        "voucher": "Gutschein",
+        "other": "Andere"
+      },
+      "methodLabel": "Zahlungsmittel",
+      "amount": "Betrag",
+      "removeTender": "Zahlungsmittel entfernen",
+      "addTender": "Zahlungsmittel",
+      "splitEqual": "Gleich teilen durch",
+      "balanced": "Passt",
+      "remaining": "Noch {{amount}}",
+      "tooMuch": "{{amount}} zu viel",
+      "cashDue": "Bar zu erhalten",
+      "roundingNote": "Auf 5 Cent gerundet ({{amount}})",
+      "given": "Gegeben",
+      "change": "Wechselgeld",
+      "tip": "Trinkgeld",
+      "tipMethod": "Trinkgeld bezahlt mit",
+      "confirm": "Bezahlt · {{amount}}",
+      "paidTitle": "Bezahlt",
+      "pendingTitle": "Bezahlt, wartet auf Verbindung",
+      "pendingText": "Der Verkauf ist registriert, aber SellQo ist kurz nicht erreichbar. Diese Kasse sendet die Zahlung automatisch weiter; lass dieses Gerät eingeschaltet. Bis dahin bleibt die Rechnung gesperrt.",
+      "receiptNo": "Bonnummer",
+      "ticket": "Kassenbon",
+      "print": "Kassenbon drucken",
+      "done": "Fertig",
+      "ticketError": "Kassenbon konnte nicht erstellt werden: {{detail}}",
+      "lockedPending": "Diese Rechnung ist bezahlt; die Zahlung wartet noch auf eine Verbindung.",
+      "pendingDone": "{{n}} wartende Zahlung(en) übermittelt",
+      "pendingRejected": "Eine registrierte Zahlung wurde abgelehnt: {{error}}. Bitte SellQo kontaktieren.",
+      "error": {
+        "plan": "Die Zahlungsmittel ergeben nicht die Summe.",
+        "offline": "Keine Verbindung. Kassieren geht erst, wenn die Kasse online ist.",
+        "no_insz": "Deine Nationalregisternummer fehlt; ohne sie kannst du an einer registrierten Kasse nicht kassieren.",
+        "fiscal_not_configured": "Diese Kasse ist noch nicht als registrierte Kasse eingerichtet.",
+        "fdm_not_available": "Die Blackbox ist noch nicht verbunden.",
+        "fdm_rejected": "Die Blackbox hat abgelehnt. Nichts wurde kassiert.",
+        "fdm_unreachable": "Die Blackbox ist nicht erreichbar. Nichts wurde kassiert; erneut versuchen.",
+        "server": "Nicht ausgeführt: {{detail}}",
+        "changed": "Jemand hat diese Rechnung gerade geändert. Bitte prüfen und erneut kassieren.",
+        "nothing": "Auf dieser Rechnung steht nichts.",
+        "nothing_sent": "Auf dieser Rechnung steht nichts.",
+        "pending_elsewhere": "Diese Rechnung ist schon bezahlt; die Zahlung wartet auf eine Verbindung."
+      }
     }
   }
 }

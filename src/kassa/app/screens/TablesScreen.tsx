@@ -11,21 +11,31 @@ import { checkTotalCents, type Check } from '../horeca/types';
 import type { HorecaStore } from '../horeca/store';
 import { formatEuro, minutesSince } from '../horeca/format';
 
-interface Props { store: HorecaStore; staffId: string; onOpen: (checkId: string) => void }
+interface Props { store: HorecaStore; staffId: string; tableLabel: (id: string | null) => string | null; onOpen: (checkId: string) => void }
 
 function lastActivity(c: Check): string {
   return c.lines.reduce((m, l) => (l.created_at > m ? l.created_at : m), c.opened_at);
 }
 
-export function TablesScreen({ store, staffId, onOpen }: Props) {
+export function TablesScreen({ store, staffId, tableLabel, onOpen }: Props) {
   const { t, i18n } = useTranslation();
   const { data: plan, isLoading } = useFloorPlan();
   const [mode, setMode] = useState<'plan' | 'list'>(() => (typeof window !== 'undefined' && window.innerWidth < 640 ? 'list' : 'plan'));
   const [naming, setNaming] = useState(false);
   const [name, setName] = useState('');
   const checks = store.checks;
-  const byTable = useMemo(() => new Map(checks.filter((c) => c.table_id).map((c) => [c.table_id as string, c])), [checks]);
-  const named = checks.filter((c) => !c.table_id);
+  // Hoofdrekening per tafel; deelrekeningen (apart afrekenen) staan als chip bovenaan. Is de
+  // hoofdrekening al betaald maar een deel nog niet, dan blijft de tafel bezet via dat deel.
+  const byTable = useMemo(() => {
+    const m = new Map<string, Check>();
+    for (const c of checks) if (c.table_id && !c.split_of) m.set(c.table_id, c);
+    for (const c of checks) if (c.table_id && c.split_of && !m.has(c.table_id)) m.set(c.table_id, c);
+    return m;
+  }, [checks]);
+  const named = checks.filter((c) => !c.table_id || (c.split_of && byTable.get(c.table_id)?.id !== c.id));
+  const chipLabel = (c: Check) => (c.split_no
+    ? t('kassa.pay.partTitle', { title: c.table_id ? tableLabel(c.table_id) ?? '?' : c.name, n: c.split_no })
+    : c.name);
 
   const status: Record<string, TableStatus> = {};
   const badges: Record<string, string> = {};
@@ -59,7 +69,7 @@ export function TablesScreen({ store, staffId, onOpen }: Props) {
         {named.map((c) => (
           <button key={c.id} type="button" onClick={() => onOpen(c.id)}
             className={cn('flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold', c.bill_requested_at ? 'border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-100' : 'border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100')}>
-            {c.name}
+            {chipLabel(c)}
             <span className="font-normal">{formatEuro(checkTotalCents(c), i18n.language)}</span>
           </button>
         ))}

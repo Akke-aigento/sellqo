@@ -10585,6 +10585,63 @@
         "server": "Not done: {{detail}}",
         "changed": "A colleague just changed this check. Check it and try again."
       }
+    },
+    "pay": {
+      "button": "Pay",
+      "title": "Payment · {{amount}}",
+      "split": "Pay separately",
+      "splitTitle": "Pay separately",
+      "splitIntro": "Choose what this guest takes. It goes to a separate part of the check with its own receipt; the rest stays on the table.",
+      "splitConfirm": "Pay separately · {{amount}}",
+      "ofAvailable": "{{n}} open",
+      "partTitle": "{{title}} · part {{n}}",
+      "method": {
+        "cash": "Cash",
+        "card": "Card",
+        "cheque_meal": "Meal voucher",
+        "voucher": "Voucher",
+        "other": "Other"
+      },
+      "methodLabel": "Payment method",
+      "amount": "Amount",
+      "removeTender": "Remove payment method",
+      "addTender": "Payment method",
+      "splitEqual": "Split equally by",
+      "balanced": "Balanced",
+      "remaining": "{{amount}} left",
+      "tooMuch": "{{amount}} too much",
+      "cashDue": "Cash to receive",
+      "roundingNote": "Rounded to 5 cents ({{amount}})",
+      "given": "Given",
+      "change": "Change",
+      "tip": "Tip",
+      "tipMethod": "Tip paid by",
+      "confirm": "Paid · {{amount}}",
+      "paidTitle": "Paid",
+      "pendingTitle": "Paid, waiting for connection",
+      "pendingText": "The sale is registered, but SellQo cannot be reached for a moment. This till sends the payment on automatically; keep this device on. Until then the check stays locked.",
+      "receiptNo": "Receipt number",
+      "ticket": "Receipt",
+      "print": "Print receipt",
+      "done": "Done",
+      "ticketError": "Receipt could not be made: {{detail}}",
+      "lockedPending": "This check is paid; the payment is still waiting for a connection.",
+      "pendingDone": "{{n}} pending payment(s) sent",
+      "pendingRejected": "A registered payment was refused: {{error}}. Please contact SellQo.",
+      "error": {
+        "plan": "The payment methods don’t add up to the total.",
+        "offline": "No connection. Payment is only possible when the till is online.",
+        "no_insz": "Your national register number is missing; without it you cannot take payment on a registered till.",
+        "fiscal_not_configured": "This till is not yet set up as a registered till.",
+        "fdm_not_available": "The fiscal data module is not connected yet.",
+        "fdm_rejected": "The fiscal data module refused. Nothing was paid.",
+        "fdm_unreachable": "The fiscal data module cannot be reached. Nothing was paid; try again.",
+        "server": "Not done: {{detail}}",
+        "changed": "A colleague just changed this check. Check it and pay again.",
+        "nothing": "There is nothing on this check.",
+        "nothing_sent": "There is nothing on this check.",
+        "pending_elsewhere": "This check is already paid; the payment is waiting for a connection."
+      }
     }
   }
 }

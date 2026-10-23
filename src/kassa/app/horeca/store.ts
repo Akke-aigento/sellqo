@@ -64,6 +64,12 @@ export class HorecaStore {
   online = true;
   lastSyncAt: number | null = null;
   rejections: Rejection[] = [];
+  /**
+   * TAFEL-2: wordt vóór elk versturen aangeroepen (de runtime schrijft daar ondertekende events
+   * weg die nog op het toestel wachten). false = nog niet gelukt: niets versturen, want de
+   * server weigert een commando dat naar een onbekend event verwijst.
+   */
+  beforeFlush: (() => Promise<boolean>) | null = null;
 
   constructor(readonly tenantId: string, readonly deviceId: string, private readonly transport: Transport = supabaseTransport, private readonly flushDelayMs = 300) {
     try {
@@ -143,6 +149,7 @@ export class HorecaStore {
     this.flushing = (async () => {
       const batch = this.queue.slice(0, 50);
       try {
+        if (this.beforeFlush && !(await this.beforeFlush())) throw new Error('outbox');
         const res = await this.transport.apply(this.tenantId, this.deviceId, batch);
         this.failures = 0;
         this.online = true;
@@ -183,6 +190,7 @@ export class HorecaStore {
   async applyNow(cmd: Command): Promise<CommandResult> {
     await this.flush();
     if (this.queue.length) throw new Error('offline');
+    if (this.beforeFlush && !(await this.beforeFlush())) throw new Error('offline');
     const res = await this.transport.apply(this.tenantId, this.deviceId, [cmd]);
     const r = res.results[0];
     if (r?.ok) {

@@ -91,7 +91,12 @@ export function consolidatedSpecs(c: Check): LineSpec[] {
 }
 
 /** costCenter van een rekening (TBL-01/02): tafel = TABLE, op naam = CUSTOMER; reference = sessie. */
-export function costCenterOf(c: Pick<Check, 'id' | 'table_id' | 'name' | 'reference'>, tableLabel: string | null): CostCenterInput {
+export function costCenterOf(c: Pick<Check, 'id' | 'table_id' | 'name' | 'reference' | 'split_of' | 'split_no' | 'parent_reference'>, tableLabel: string | null): CostCenterInput {
+  // TAFEL-2: deelrekening van een tafel = TABLE (reference van de hoofdrekening) › CHAIR
+  // (eigen reference), zoals UC4119bis. Max. 2 niveaus (TBL-01).
+  if (c.table_id && c.split_of && c.split_no && c.parent_reference) {
+    return costCenter('TABLE', tableLabel || c.table_id, c.parent_reference, { id: String(c.split_no), type: 'CHAIR', reference: c.reference });
+  }
   if (c.table_id) return costCenter('TABLE', tableLabel || c.table_id, c.reference);
   return costCenter('CUSTOMER', (c.name || c.id).slice(0, 40), c.reference);
 }
