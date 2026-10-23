@@ -8,10 +8,9 @@ import { buildSale } from '../../fiscal/builders';
 import { FdmSimulator } from '../../fiscal/simulator/fdmSimulator';
 import { validateMutation } from '../../fiscal/schema';
 import { TEST_POS, testMeta } from '../../fiscal/testSetup';
-import { consolidatedSpecs, costCenterOf } from '../horeca/fiscalLines';
-import { changeDue, equalSplit, normalizedTenders, paymentSpecs, planPayment, PaymentPlanError } from '../horeca/pay';
-import { payableTotal } from '../horeca/payActions';
-import { parseEuroInput } from '../screens/PayDialog';
+import { consolidatedSpecs, costCenterOf, eventCostCenterReference } from '../horeca/fiscalLines';
+import { changeDue, equalSplit, normalizedTenders, parseEuroInput, paymentSpecs, planPayment, PaymentPlanError } from '../horeca/pay';
+import { isDefinitiveRejection, payableTotal } from '../horeca/payActions';
 import type { Check, CheckLine } from '../horeca/types';
 
 const FIX = path.resolve(__dirname, '../../fiscal/__tests__/uc/fixtures/advanced');
@@ -103,7 +102,10 @@ describe('afrekenen van een (deel)rekening', () => {
         line({ product_id: '12009', name: 'Coca Cola', department_id: '12', department_name: 'Soft Drinks', vat_label: 'A', vat_rate: 21, unit_price_cents: 304 }),
       ],
     };
-    expect(costCenterOf(sub, 'T1')).toEqual({ id: 'T1', type: 'TABLE', reference: 'O158', costCenter: { id: '1', type: 'CHAIR', reference: 'C1_1' } });
+    expect(costCenterOf(sub, 'T1')).toEqual({ id: 'T1', type: 'TABLE', reference: 'O158', costCenter: { id: 'C1_1', type: 'CHAIR', reference: 'C1_1' } });
+    // Het event hangt aan het deel (onderste niveau), zoals horeca_pay het controleert (review B1).
+    expect(eventCostCenterReference(costCenterOf(sub, 'T1'))).toBe('C1_1');
+    expect(eventCostCenterReference(costCenterOf({ ...sub, split_of: null, parent_reference: null, reference: 'O158' }, 'T1'))).toBe('O158');
     const total = payableTotal(sub);
     expect(total).toBe(3104);
     const plan = planPayment(total, [{ method: 'cash', amount_cents: total }]);
@@ -118,6 +120,11 @@ describe('afrekenen van een (deel)rekening', () => {
     const r = await new FdmSimulator({ fdmId: 'SIM01000001' }).sign('signSale', msg, false);
     expect(r.errors ?? []).toEqual([]);
     expect(r.result?.vatCalc?.map((v) => v.label).sort()).toEqual(['A', 'B']);
+  });
+
+  it('enkel businessfouten zijn een definitieve weigering (review I4)', () => {
+    for (const code of ['40001', '55000', '22023', '42501', 'P0002']) expect(isDefinitiveRejection({ code })).toBe(true);
+    for (const e of [{ code: 'PGRST301' }, { code: '57014' }, { message: 'Failed to fetch' }, { code: '500' }]) expect(isDefinitiveRejection(e)).toBe(false);
   });
 
   it('totaal = enkel verstuurde lijnen, met correcties en korting', () => {

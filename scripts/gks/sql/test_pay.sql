@@ -3,7 +3,6 @@
 -- databank: rekening c…003 op tafel B2 is open met verstuurde lijnen.
 insert into public.pos_terminals (id, tenant_id, name, settings) values
  ('5e000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','Toog','{}'),
- ('5e000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','Zaal (GKS)','{"fiscal":{"mode":"simulator"}}'),
  ('5e000000-0000-0000-0000-000000000003','33333333-3333-3333-3333-333333333333','Vreemd','{}');
 insert into public.pos_sessions (id, tenant_id, terminal_id, opened_by) values ('5f000000-0000-0000-0000-000000000001','11111111-1111-1111-1111-111111111111','5e000000-0000-0000-0000-000000000001','aaaaaaaa-0000-0000-0000-000000000001');
 
@@ -113,6 +112,8 @@ set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000
 
 -- ── Fiscale kassa: zonder, met verkeerd en met juist N-event ──
 reset role;
+-- Vanaf nu is zaak A een geregistreerde kassa (één kassa op simulator).
+insert into public.pos_terminals (id, tenant_id, name, settings) values ('5e000000-0000-0000-0000-000000000002','11111111-1111-1111-1111-111111111111','Zaal (GKS)','{"fiscal":{"mode":"simulator"}}');
 insert into public.fiscal_events (id, tenant_id, mutation, pos_id, terminal_id, device_id, pos_fiscal_ticket_no, pos_date_time, pos_sw_version, booking_date, booking_period_id,
   fdm_id, fdm_date_time, event_label, event_operation, event_counter, total_counter, transaction_total_cents, cost_center_reference, request_body, response_body, request_sha256)
 values
@@ -123,6 +124,21 @@ values
  ('6e000000-0000-0000-0000-000000000003','11111111-1111-1111-1111-111111111111','signOrder','CPOS0031234567','T1','d',1,'x','v','2026-10-24','dffcd829-a0e5-41ca-a0ae-9eb887f95637',
   'SIM01000001','x','P','ORDER',1,3, :sub2_total, 'c0000000-0000-0000-0000-000000000012','{}','{}', repeat('c',64));
 set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
+-- Claim vóór het tekenen (horeca_pay_begin): verkeerde lijnenset = gewijzigd; juiste = in betaling.
+create or replace function pg_temp.try_begin(p jsonb) returns text language plpgsql as $$
+begin perform public.horeca_pay_begin('11111111-1111-1111-1111-111111111111', 'dev', pg_temp.with_lines(p)); return 'ok';
+exception when others then return sqlstate; end $$;
+select pg_temp.try_begin(jsonb_build_object('check_id','c0000000-0000-0000-0000-000000000012','payment_id','40000000-0000-0000-0000-000000000004','expected_total_cents', :sub2_total + 1)) = '40001' as ok_begin_checks_total;
+select pg_temp.try_begin(jsonb_build_object('check_id','c0000000-0000-0000-0000-000000000012','payment_id','40000000-0000-0000-0000-000000000004','expected_total_cents', :sub2_total)) = 'ok' as ok_begin_claims;
+select (pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000011","kind":"add_line","check_id":"c0000000-0000-0000-0000-000000000012","line_id":"a0000000-0000-0000-0000-000000000039","product_id":"eeeeeeee-0000-0000-0000-000000000001","qty":1}]') -> 'results' -> 0 ->> 'ok') = 'false' as ok_claim_blocks_changes;
+select pg_temp.try_begin(jsonb_build_object('check_id','c0000000-0000-0000-0000-000000000012','payment_id','40000000-0000-0000-0000-000000000005','expected_total_cents', :sub2_total)) = '55000' as ok_second_device_cannot_claim;
+-- GKS-zaak: ook via een niet-fiscale kassa nooit zonder event
+select pg_temp.try_pay(jsonb_build_object('id','40000000-0000-0000-0000-000000000004','check_id','c0000000-0000-0000-0000-000000000012','terminal_id','5e000000-0000-0000-0000-000000000001','staff_id','99999999-0000-0000-0000-000000000001',
+  'expected_total_cents', :sub2_total, 'tenders', jsonb_build_array(jsonb_build_object('method','card','amount_cents', :sub2_total)))) = '22023' as ok_gks_tenant_requires_event_everywhere;
+-- een andere betaling op een geclaimde rekening = afblijven
+select pg_temp.try_pay(jsonb_build_object('id','40000000-0000-0000-0000-000000000005','check_id','c0000000-0000-0000-0000-000000000012','terminal_id','5e000000-0000-0000-0000-000000000002','staff_id','99999999-0000-0000-0000-000000000001',
+  'fiscal_event_id','6e000000-0000-0000-0000-000000000002',
+  'expected_total_cents', :sub2_total, 'tenders', jsonb_build_array(jsonb_build_object('method','card','amount_cents', :sub2_total)))) = '55000' as ok_claim_blocks_other_payment;
 select pg_temp.try_pay(jsonb_build_object('id','40000000-0000-0000-0000-000000000004','check_id','c0000000-0000-0000-0000-000000000012','terminal_id','5e000000-0000-0000-0000-000000000002','staff_id','99999999-0000-0000-0000-000000000001',
   'expected_total_cents', :sub2_total, 'tenders', jsonb_build_array(jsonb_build_object('method','card','amount_cents', :sub2_total)))) = '22023' as ok_fiscal_requires_event;
 select pg_temp.try_pay(jsonb_build_object('id','40000000-0000-0000-0000-000000000004','check_id','c0000000-0000-0000-0000-000000000012','terminal_id','5e000000-0000-0000-0000-000000000002','staff_id','99999999-0000-0000-0000-000000000001',
@@ -132,16 +148,32 @@ select pg_temp.try_pay(jsonb_build_object('id','40000000-0000-0000-0000-00000000
   'fiscal_event_id','6e000000-0000-0000-0000-000000000003',
   'expected_total_cents', :sub2_total, 'tenders', jsonb_build_array(jsonb_build_object('method','card','amount_cents', :sub2_total)))) = '22023' as ok_event_must_be_sale;
 select (pg_temp.pay(jsonb_build_object('id','40000000-0000-0000-0000-000000000004','check_id','c0000000-0000-0000-0000-000000000012','terminal_id','5e000000-0000-0000-0000-000000000002','staff_id','99999999-0000-0000-0000-000000000001',
-  'fiscal_event_id','6e000000-0000-0000-0000-000000000002',
+  'fiscal_event_id','6e000000-0000-0000-0000-000000000002', 'tip_cents', 150, 'tip_method', 'cash',
   'expected_total_cents', :sub2_total, 'tenders', jsonb_build_array(jsonb_build_object('method','card','amount_cents', :sub2_total)))) ->> 'ok')::boolean as ok_fiscal_paid;
 reset role;
-select fiscal_event_id = '6e000000-0000-0000-0000-000000000002' and session_id is null as ok_fiscal_link
+select fiscal_event_id = '6e000000-0000-0000-0000-000000000002' and session_id is not null as ok_fiscal_link_and_auto_shift
   from public.check_payments p join public.pos_transactions t on t.id = p.pos_transaction_id where p.id = '40000000-0000-0000-0000-000000000004';
 -- de nog niet verstuurde cola staat op een nieuwe open rekening op dezelfde tafel (deel 2)
 select count(*) = 1 as ok_draft_carried_over from public.dining_checks d join public.check_lines l on l.check_id = d.id
   where d.status = 'open' and d.split_of = 'c0000000-0000-0000-0000-000000000003' and d.split_no = 2 and d.id <> 'c0000000-0000-0000-0000-000000000012'
     and l.state = 'draft' and l.product_id = 'eeeeeeee-0000-0000-0000-000000000001' and l.qty = 1;
 select state = 'void' and void_reason = 'carried_over' as ok_original_draft_voided from public.check_lines where id = 'a0000000-0000-0000-0000-000000000035';
+select paying_until is null and carried_to is not null as ok_claim_cleared_and_carried from public.dining_checks where id = 'c0000000-0000-0000-0000-000000000012';
+select (select count(*) from public.pos_cash_movements where movement_type = 'in' and amount = 1.50 and reason = 'Fooi') = 1 as ok_cash_tip_in_drawer;
+-- een add_line die nog onderweg was naar de betaalde rekening, landt op de doorgeschoven rekening
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
+select pg_temp.ok(pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000012","kind":"add_line","check_id":"c0000000-0000-0000-0000-000000000012","line_id":"a0000000-0000-0000-0000-000000000040","product_id":"eeeeeeee-0000-0000-0000-000000000001","qty":1}]')) as ok_late_line_follows;
+reset role;
+select l.check_id = d.carried_to as ok_late_line_on_carried from public.check_lines l, public.dining_checks d where l.id = 'a0000000-0000-0000-0000-000000000040' and d.id = 'c0000000-0000-0000-0000-000000000012';
+-- claim vrijgeven: enkel de eigen betaling
+select pg_temp.total('c0000000-0000-0000-0000-000000000003') as main_total \gset
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
+select pg_temp.try_begin(jsonb_build_object('check_id','c0000000-0000-0000-0000-000000000003','payment_id','40000000-0000-0000-0000-000000000006','expected_total_cents', :main_total)) = 'ok' as ok_claim_main;
+select true as ok_release_other_noop from (select public.horeca_pay_release('11111111-1111-1111-1111-111111111111', 'c0000000-0000-0000-0000-000000000003', '40000000-0000-0000-0000-000000000099')) x;
+select (pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000013","kind":"rename_check","check_id":"c0000000-0000-0000-0000-000000000003","name":"x"}]') -> 'results' -> 0 ->> 'ok') = 'false' as ok_still_claimed;
+select true as ok_release from (select public.horeca_pay_release('11111111-1111-1111-1111-111111111111', 'c0000000-0000-0000-0000-000000000003', '40000000-0000-0000-0000-000000000006')) x;
+select pg_temp.ok(pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000014","kind":"rename_check","check_id":"c0000000-0000-0000-0000-000000000003","name":"x"}]')) as ok_released_editable;
+reset role;
 
 -- ── Rechten ──
 set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
@@ -152,6 +184,7 @@ select count(*) = 2 as ok_staff_reads_payments from public.check_payments;
 reset role;
 do $$ begin update public.check_payments set tip_cents = 0, tip_method = null; raise exception 'FOUT: owner update'; exception when insufficient_privilege then null; end $$;
 do $$ begin delete from public.check_payments; raise exception 'FOUT: owner delete'; exception when insufficient_privilege then null; end $$;
+do $$ begin truncate public.check_payments; raise exception 'FOUT: owner truncate'; exception when insufficient_privilege then null; end $$;
 set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000003';
 do $$ begin perform public.horeca_pay('11111111-1111-1111-1111-111111111111', 'x', '{"id":"40000000-0000-0000-0000-000000000009"}'); raise exception 'FOUT: viewer betaalt'; exception when insufficient_privilege then null; end $$;
 set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000005';
@@ -167,8 +200,7 @@ set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000
 select pg_temp.ok(pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000009","kind":"add_line","check_id":"c0000000-0000-0000-0000-000000000003","line_id":"a0000000-0000-0000-0000-000000000038","product_id":"eeeeeeee-0000-0000-0000-000000000001","qty":2},
  {"id":"30000000-0000-0000-0000-000000000010","kind":"send_round","check_id":"c0000000-0000-0000-0000-000000000003","round_id":"b0000000-0000-0000-0000-000000000009"}]')) as ok_more_on_main;
 select pg_temp.ok(pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000006","kind":"move_lines","split":true,"check_id":"c0000000-0000-0000-0000-000000000003","to_check_id":"c0000000-0000-0000-0000-000000000013","moves":[{"line_id":"a0000000-0000-0000-0000-000000000012","qty":1,"from_line_id":"a0000000-0000-0000-0000-000000000036","to_line_id":"a0000000-0000-0000-0000-000000000037"}]}]')) as ok_split_sub3;
-select pg_temp.ok(pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000007","kind":"move_check","check_id":"c0000000-0000-0000-0000-000000000003","to_table_id":"77777777-0000-0000-0000-000000000001"}]')) as ok_move_main;
-select table_id = '77777777-0000-0000-0000-000000000001' as ok_sub_followed from public.dining_checks where id = 'c0000000-0000-0000-0000-000000000013';
+select (pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000007","kind":"move_check","check_id":"c0000000-0000-0000-0000-000000000003","to_table_id":"77777777-0000-0000-0000-000000000001"}]') -> 'results' -> 0 ->> 'ok') = 'false' as ok_main_with_open_parts_not_movable;
 select (pg_temp.apply('[{"id":"30000000-0000-0000-0000-000000000008","kind":"move_check","check_id":"c0000000-0000-0000-0000-000000000013","to_table_id":"77777777-0000-0000-0000-000000000002"}]') -> 'results' -> 0 ->> 'ok') = 'false' as ok_sub_not_movable;
 reset role;
 \echo 'TAFEL-2: alle tests geslaagd'

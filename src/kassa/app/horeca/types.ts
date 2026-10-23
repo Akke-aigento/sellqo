@@ -51,8 +51,8 @@ export interface Check {
   split_no?: number | null;
   /** Reference van de hoofdrekening (fiscaal TABLE › CHAIR). */
   parent_reference?: string | null;
-  /** Volgend vrij deelnummer voor deze tafel. */
-  next_split_no?: number;
+  /** Een toestel rekent deze rekening nu af (claim): niets wijzigen. */
+  paying?: boolean;
   lines: CheckLine[];
 }
 

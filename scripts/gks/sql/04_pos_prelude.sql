@@ -1,7 +1,8 @@
 -- TAFEL-2 — pos_terminals/pos_sessions/pos_transactions zoals live (kolommen, defaults, de
 -- triggers voor bonnummer en voorraad), plus decrement_stock/record_transaction als logboek.
-create table if not exists public.pos_terminals (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, name text not null default 'Kassa', settings jsonb default '{}'::jsonb);
-create table if not exists public.pos_sessions (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, terminal_id uuid not null, opened_by uuid not null, opened_at timestamptz not null default now(), status text not null default 'open');
+create table if not exists public.pos_terminals (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, name text not null default 'Kassa', settings jsonb default '{}'::jsonb, last_seen_at timestamptz);
+create table if not exists public.pos_sessions (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, terminal_id uuid not null, opened_by uuid not null, opened_at timestamptz not null default now(), opening_cash numeric not null default 0, notes text, status text not null default 'open');
+create table if not exists public.pos_cash_movements (id uuid primary key, tenant_id uuid not null, session_id uuid not null, terminal_id uuid not null, user_id uuid not null, movement_type text not null check (movement_type in ('in','out','adjustment')), amount numeric not null, reason text not null, notes text, created_at timestamptz not null default now());
 create table if not exists public.pos_transactions (
   id uuid primary key default gen_random_uuid(), tenant_id uuid not null, order_id uuid, session_id uuid, terminal_id uuid not null, cashier_id uuid not null,
   customer_id uuid, payments jsonb not null default '[]'::jsonb, cash_received numeric, cash_change numeric, stripe_payment_intent_id text, stripe_reader_id text,

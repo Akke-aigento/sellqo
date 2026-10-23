@@ -1,7 +1,6 @@
 // PERSONEEL-1/TAFEL-1 — de kassa na de PIN: kopbalk (wie, verbinding, in/uitklokken, wissel),
 // daaronder de tafels of de geopende rekening.
-import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Clock, Loader2, LogOut, Users, Wifi, WifiOff } from 'lucide-react';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
@@ -11,7 +10,6 @@ import { useKassaSession } from '../session';
 import type { KassaRuntime } from '../runtime';
 import { useHoreca } from '../horeca/useHoreca';
 import type { ActionCtx } from '../horeca/actions';
-import { readPendingPays, retryPendingPays } from '../horeca/payActions';
 import { TablesScreen } from './TablesScreen';
 import { CheckScreen } from './CheckScreen';
 
@@ -19,8 +17,6 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
   const { t } = useTranslation();
   const { staff, employeeId, lock } = useKassaSession();
   const store = useHoreca(runtime.device.tenantId, runtime.device.deviceUuid);
-  // Ondertekende events die nog op het toestel wachten, gaan altijd eerst naar de cloud.
-  store.beforeFlush = () => runtime.flushOutbox();
   const { data: plan } = useFloorPlan();
   const [openCheck, setOpenCheck] = useState<string | null>(null);
   const [autoPay, setAutoPay] = useState(false);
@@ -32,21 +28,6 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
   const ctx: ActionCtx | null = useMemo(() => (staff ? {
     store, runtime, staffId: staff.id, staffName: staff.display_name, employeeId, tableLabel: (id: string | null) => (id ? labels.get(id) ?? null : null),
   } : null), [store, runtime, staff, employeeId, labels]);
-  // TAFEL-2: betalingen die na de handtekening nog naar de server moeten (verbinding was weg).
-  useEffect(() => {
-    let alive = true;
-    const tick = async () => {
-      if (!readPendingPays(runtime.device.tenantId).length) return;
-      const r = await retryPendingPays({ runtime });
-      if (!alive) return;
-      if (r.done) { toast.success(t('kassa.pay.pendingDone', { n: r.done })); void store.refresh(); }
-      for (const x of r.rejected) toast.error(t('kassa.pay.pendingRejected', { error: x.error }), { duration: 30_000 });
-    };
-    void tick();
-    const id = setInterval(() => { void tick(); }, 10_000);
-    return () => { alive = false; clearInterval(id); };
-  }, [runtime, store, t]);
-
   if (!staff || !ctx) return null;
 
   const toggleClock = async () => {

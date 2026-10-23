@@ -7,9 +7,17 @@
 -- ook bij gesplitste betaling (UC4119: meerdere betaalmiddelen op één ticket). Apart
 -- afrekenen per persoon gebeurt via een deelrekening (TAFEL-1 move_lines split, UC4119bis).
 --
--- Fiscaal (GKS): staat de kassa op 'simulator' of 'fdm', dan moet het ondertekende
--- signSale-event al in fiscal_events staan, voor deze rekening (cost_center_reference) en
--- voor exact dit bedrag. Eerst tekenen, dan pas doorvoeren (FDM-04).
+-- Volgorde (FDM-04: eerst tekenen, dan doorvoeren):
+--   1. horeca_pay_begin  — rekening "in betaling" zetten (claim): niemand kan ze nog wijzigen,
+--                          verplaatsen of tegelijk afrekenen; lijnen en totaal worden vastgelegd.
+--   2. signSale op het toestel (FDM).
+--   3. horeca_pay        — boeken en sluiten; enkel met de claim van deze betaling.
+--   Mislukt het tekenen: horeca_pay_release. Zo kan een rekening nooit twee keer getekend worden.
+--
+-- Fiscaal (GKS): heeft de zaak minstens één kassa op 'simulator' of 'fdm', dan is elke betaling
+-- fiscaal (ook via een andere kassa): het ondertekende signSale-event moet in fiscal_events
+-- staan, voor deze rekening (cost_center_reference = het onderste niveau van de costCenter) en
+-- voor exact dit bedrag. Een meegegeven event wordt altijd gecontroleerd.
 --
 -- Contant afronden (PAY-02/03): de server rekent de afronding zelf na (som contant → 5 cent,
 -- max ±0,02) en weigert een afwijkend voorstel van het toestel.
@@ -17,6 +25,10 @@
 --
 -- Handmatig terugdraaien (niet live gedraaid; nog geen data):
 --   drop function if exists public.horeca_pay(uuid, text, jsonb);
+--   drop function if exists public.horeca_pay_begin(uuid, text, jsonb);
+--   drop function if exists public.horeca_pay_release(uuid, uuid, uuid);
+--   drop function if exists public.horeca_tenant_fiscal(uuid);
+--   drop function if exists public.horeca_line_total(public.check_lines);
 --   drop function if exists public.horeca_round5(bigint);
 --   drop table if exists public.check_payments;
 
@@ -57,6 +69,9 @@ $$;
 drop trigger if exists check_payments_guard on public.check_payments;
 create trigger check_payments_guard before update or delete on public.check_payments
   for each row execute function public.check_payments_guard();
+drop trigger if exists check_payments_no_truncate on public.check_payments;
+create trigger check_payments_no_truncate before truncate on public.check_payments
+  for each statement execute function public.check_payments_guard();
 
 revoke all on public.check_payments from public, anon, authenticated;
 grant all on public.check_payments to service_role;
@@ -81,6 +96,21 @@ as $$
   end;
 $$;
 
+revoke all on function public.horeca_round5(bigint) from public, anon;
+
+-- Is deze zaak een geregistreerde kassa (GKS)? Minstens één kassa op simulator of fdm.
+create or replace function public.horeca_tenant_fiscal(p_tenant_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path to ''
+as $$
+  select exists (select 1 from public.pos_terminals t where t.tenant_id = p_tenant_id
+                 and coalesce(t.settings -> 'fiscal' ->> 'mode', 'off') in ('simulator', 'fdm'));
+$$;
+revoke all on function public.horeca_tenant_fiscal(uuid) from public, anon, authenticated;
+
 -- Bedrag van één lijn in centen: aantal × (prijs + supplementen) + prijswijzigingen.
 -- Zelfde formule als lineTotalCents() in de kassa-app.
 create or replace function public.horeca_line_total(l public.check_lines)
@@ -92,6 +122,70 @@ as $$
   select l.qty::bigint * (l.unit_price_cents + coalesce((select sum((a ->> 'price_cents')::bigint) from jsonb_array_elements(l.addons) a), 0))
        + coalesce((select sum((p ->> 'amount_cents')::bigint) from jsonb_array_elements(l.price_changes) p), 0);
 $$;
+
+-- ── Afrekenen: claim ──────────────────────────────────────────────────────────────────────
+-- p = {check_id, payment_id, line_ids, expected_total_cents}. Vóór het tekenen. Controleert
+-- dat de rekening nog exact zo is als het toestel ze gaat tekenen en zet ze 10 minuten "in
+-- betaling" voor deze betaling. Dezelfde betaling opnieuw = de claim verlengen.
+create or replace function public.horeca_pay_begin(p_tenant_id uuid, p_device_id text, p jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  c public.dining_checks%rowtype;
+  v_pay uuid := (p ->> 'payment_id')::uuid;
+  v_ids uuid[];
+  v_total bigint;
+begin
+  if not public.has_tenant_role(p_tenant_id, array['tenant_admin', 'staff']::public.app_role[]) then
+    raise exception 'geen toegang' using errcode = '42501';
+  end if;
+  if v_pay is null then raise exception 'betaling zonder id' using errcode = '22023'; end if;
+  select * into c from public.dining_checks where id = (p ->> 'check_id')::uuid and tenant_id = p_tenant_id for update;
+  if c.id is null then raise exception 'rekening niet gevonden' using errcode = 'P0002'; end if;
+  if c.status <> 'open' then raise exception 'rekening is al afgesloten' using errcode = '55000'; end if;
+  if c.paying_until is not null and c.paying_until > now() and c.paying_payment_id is distinct from v_pay then
+    raise exception 'deze rekening wordt al afgerekend' using errcode = '55000';
+  end if;
+  select array_agg(x::uuid) into v_ids from jsonb_array_elements_text(coalesce(p -> 'line_ids', '[]'::jsonb)) x;
+  if coalesce(array_length(v_ids, 1), 0) = 0
+     or exists (select 1 from public.check_lines x where x.check_id = c.id and x.state = 'sent' and not (x.id = any(v_ids)))
+     or (select count(*) from public.check_lines x where x.check_id = c.id and x.state = 'sent' and x.id = any(v_ids)) <> (select count(distinct u) from unnest(v_ids) u) then
+    raise exception 'de rekening is intussen gewijzigd' using errcode = '40001';
+  end if;
+  select coalesce(sum(public.horeca_line_total(x)), 0) into v_total from public.check_lines x where x.check_id = c.id and x.state = 'sent';
+  if (p ->> 'expected_total_cents')::bigint is distinct from v_total then
+    raise exception 'de rekening is intussen gewijzigd' using errcode = '40001';
+  end if;
+  update public.dining_checks set paying_payment_id = v_pay, paying_until = now() + interval '10 minutes', version = version + 1, updated_at = now()
+    where id = c.id;
+  perform public.horeca_bump(p_tenant_id);
+  return jsonb_build_object('ok', true, 'paying_until', now() + interval '10 minutes', 'fiscal', public.horeca_tenant_fiscal(p_tenant_id));
+end;
+$$;
+revoke all on function public.horeca_pay_begin(uuid, text, jsonb) from public, anon;
+grant execute on function public.horeca_pay_begin(uuid, text, jsonb) to authenticated;
+
+-- Claim vrijgeven (tekenen mislukt of geannuleerd). Enkel de eigen betaling.
+create or replace function public.horeca_pay_release(p_tenant_id uuid, p_check_id uuid, p_payment_id uuid)
+returns void
+language plpgsql
+security definer
+set search_path to ''
+as $$
+begin
+  if not public.has_tenant_role(p_tenant_id, array['tenant_admin', 'staff']::public.app_role[]) then
+    raise exception 'geen toegang' using errcode = '42501';
+  end if;
+  update public.dining_checks set paying_payment_id = null, paying_until = null, version = version + 1, updated_at = now()
+    where id = p_check_id and tenant_id = p_tenant_id and paying_payment_id = p_payment_id and status = 'open';
+  if found then perform public.horeca_bump(p_tenant_id); end if;
+end;
+$$;
+revoke all on function public.horeca_pay_release(uuid, uuid, uuid) from public, anon;
+grant execute on function public.horeca_pay_release(uuid, uuid, uuid) to authenticated;
 
 -- ── Afrekenen ─────────────────────────────────────────────────────────────────────────────
 -- p_payment = {
@@ -146,6 +240,7 @@ begin
   select * into prior from public.check_payments where id = v_id;
   if prior.id is not null then
     if prior.tenant_id <> p_tenant_id then raise exception 'geen toegang' using errcode = '42501'; end if;
+    if prior.check_id is distinct from (p_payment ->> 'check_id')::uuid then raise exception 'betaling hoort bij een andere rekening' using errcode = '22023'; end if;
     return jsonb_build_object('ok', true, 'duplicate', true, 'payment_id', prior.id, 'pos_transaction_id', prior.pos_transaction_id,
       'receipt_number', (select x.receipt_number from public.pos_transactions x where x.id = prior.pos_transaction_id),
       'total_cents', prior.total_cents);
@@ -160,7 +255,18 @@ begin
 
   select * into c from public.dining_checks where id = (p_payment ->> 'check_id')::uuid and tenant_id = p_tenant_id for update;
   if c.id is null then raise exception 'rekening niet gevonden' using errcode = 'P0002'; end if;
+  -- Gelijktijdige herhaling van dezelfde betaling (antwoord verloren): na de lock opnieuw kijken.
+  select * into prior from public.check_payments where id = v_id;
+  if prior.id is not null then
+    return jsonb_build_object('ok', true, 'duplicate', true, 'payment_id', prior.id, 'pos_transaction_id', prior.pos_transaction_id,
+      'receipt_number', (select x.receipt_number from public.pos_transactions x where x.id = prior.pos_transaction_id),
+      'total_cents', prior.total_cents);
+  end if;
   if c.status <> 'open' then raise exception 'rekening is al afgesloten' using errcode = '55000'; end if;
+  -- Claim: een rekening in betaling door een andere betaling = afblijven.
+  if c.paying_until is not null and c.paying_until > now() and c.paying_payment_id is distinct from v_id then
+    raise exception 'deze rekening wordt al afgerekend' using errcode = '55000';
+  end if;
   -- Precies de lijnen die het toestel ondertekende (anders zegt de FDM iets anders dan de rekening).
   select array_agg(x::uuid) into v_ids from jsonb_array_elements_text(coalesce(p_payment -> 'line_ids', '[]'::jsonb)) x;
   if coalesce(array_length(v_ids, 1), 0) = 0
@@ -207,16 +313,15 @@ begin
     raise exception 'fooi: bedrag en betaalwijze horen samen' using errcode = '22023';
   end if;
 
-  -- Fiscaal: het ondertekende N-event moet bij deze rekening en dit bedrag horen.
-  if v_mode in ('simulator', 'fdm') then
+  -- Fiscaal: een GKS-zaak boekt nooit zonder ondertekend N-event (welke kassa ook betaalt), en
+  -- een meegegeven event moet altijd bij deze rekening en dit bedrag horen.
+  if v_mode in ('simulator', 'fdm') or public.horeca_tenant_fiscal(p_tenant_id) or v_event is not null then
     if v_event is null then raise exception 'ondertekening ontbreekt' using errcode = '22023'; end if;
     if not exists (select 1 from public.fiscal_events f where f.id = v_event and f.tenant_id = p_tenant_id
         and f.mutation = 'signSale' and not f.is_training and f.event_label = 'N'
         and f.cost_center_reference = c.cost_center_reference and f.transaction_total_cents = v_total) then
       raise exception 'ondertekening hoort niet bij deze rekening' using errcode = '22023';
     end if;
-  elsif v_event is not null then
-    raise exception 'deze kassa ondertekent niet' using errcode = '22023';
   end if;
 
   -- Verkoop voor shiftrapport, transactieoverzicht en voorraad (trigger op status completed).
@@ -244,8 +349,16 @@ begin
   select coalesce(-sum(coalesce((select sum((p ->> 'amount_cents')::bigint) from jsonb_array_elements(x.price_changes) p), 0)), 0)
     into v_discount from public.check_lines x where x.check_id = c.id and x.state = 'sent';
 
+  -- Shift: elke tafelbetaling hoort bij een open kassashift van deze kassa (kasafsluiting,
+  -- verwacht contant). Staat er geen open, dan opent de eerste betaling er een (beginkas 0;
+  -- de telling bij het afsluiten corrigeert).
   select s.id into v_session from public.pos_sessions s
     where s.tenant_id = p_tenant_id and s.terminal_id = v_terminal and s.status = 'open' order by s.opened_at desc limit 1;
+  if v_session is null then
+    insert into public.pos_sessions (tenant_id, terminal_id, opened_by, opening_cash, status, notes)
+    values (p_tenant_id, v_terminal, auth.uid(), 0, 'open', 'Automatisch geopend door SellQo Kassa (eerste betaling)')
+    returning id into v_session;
+  end if;
 
   -- Geld zoals het binnenkwam: contant inclusief afronding (wat er in de lade zit).
   select coalesce(jsonb_agg(jsonb_build_object(
@@ -255,7 +368,7 @@ begin
       'reference', x ->> 'method')), '[]'::jsonb)
     into t
   from jsonb_array_elements(v_tenders) with ordinality z(x, ord);
-  v_primary := coalesce((select x ->> 'method' from jsonb_array_elements(v_tenders) x order by (x ->> 'amount_cents')::bigint desc limit 1), 'cash');
+  v_primary := coalesce((select x ->> 'method' from jsonb_array_elements(v_tenders) x order by (x ->> 'amount_cents')::bigint desc, x ->> 'method' limit 1), 'cash');
 
   insert into public.pos_transactions (id, tenant_id, terminal_id, session_id, cashier_id, pos_cashier_id, items, payments,
     cash_received, subtotal, discount_total, tax_total, total, status)
@@ -269,7 +382,14 @@ begin
   values (v_id, p_tenant_id, c.id, v_id, v_terminal, v_staff, left(p_device_id, 200), v_event,
     v_total, v_tenders, v_round, v_tip, v_tip_method);
 
-  update public.dining_checks set status = 'closed', closed_at = now(), version = version + 1, updated_at = now() where id = c.id;
+  -- Contante fooi zit in de lade: als kasbeweging boeken, zodat de verwachte kas klopt.
+  if v_tip > 0 and v_tip_method = 'cash' then
+    insert into public.pos_cash_movements (id, tenant_id, session_id, terminal_id, user_id, movement_type, amount, reason, notes)
+    values (gen_random_uuid(), p_tenant_id, v_session, v_terminal, auth.uid(), 'in', round(v_tip / 100.0, 2), 'Fooi', 'Rekening ' || c.cost_center_reference);
+  end if;
+
+  update public.dining_checks set status = 'closed', closed_at = now(), paying_payment_id = null, paying_until = null,
+    version = version + 1, updated_at = now() where id = c.id;
 
   -- Ontwerp-lijnen van een collega → nieuwe open rekening op dezelfde plek.
   if exists (select 1 from public.check_lines x where x.check_id = c.id and x.state = 'draft') then
@@ -285,6 +405,7 @@ begin
     update public.dining_checks set next_seq = coalesce((select max(seq) from public.check_lines where check_id = v_new), 0) + 1 where id = v_new;
     update public.check_lines set state = 'void', void_reason = 'carried_over', voided_by = v_staff, voided_at = now()
       where check_id = c.id and state = 'draft';
+    update public.dining_checks set carried_to = v_new where id = c.id;
   end if;
   perform public.horeca_bump(p_tenant_id);
 

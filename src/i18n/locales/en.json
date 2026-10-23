@@ -6802,6 +6802,10 @@
       "offlineQueue": {
         "pending": "Waiting: {{n}}",
         "failed": "(retrying: {{n}})"
+      },
+      "kassaDevice": {
+        "seen": "SellQo Kassa seen {{when}}",
+        "waiting": "{{n}} waiting on the device"
       }
     },
     "storefront": {
@@ -10640,8 +10644,12 @@
         "changed": "A colleague just changed this check. Check it and pay again.",
         "nothing": "There is nothing on this check.",
         "nothing_sent": "There is nothing on this check.",
-        "pending_elsewhere": "This check is already paid; the payment is waiting for a connection."
-      }
+        "pending_elsewhere": "This check is already paid; the payment is waiting for a connection.",
+        "being_paid": "This check is already being paid on another device.",
+        "signed_rejected": "The sale is registered, but SellQo refused the payment ({{detail}}). The check stays locked; please contact SellQo."
+      },
+      "lockedRejected": "This sale is registered but not booked. Don’t change anything and notify SellQo.",
+      "lockedPaying": "This check is being paid on another device right now."
     }
   }
 }

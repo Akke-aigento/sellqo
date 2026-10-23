@@ -81,11 +81,19 @@ create table if not exists public.dining_checks (
   -- (fiscaal TABLE › CHAIR, UC4119bis); split_no = volgnummer van het deel.
   split_of uuid references public.dining_checks(id) on delete restrict,
   split_no integer check (split_no is null or split_no between 1 and 99),
+  -- TAFEL-2: afrekenen. Een rekening "in betaling" (horeca_pay_begin) weigert elke wijziging tot
+  -- de betaling binnen is, vrijgegeven wordt of paying_until verstrijkt.
+  paying_payment_id uuid,
+  paying_until timestamptz,
+  -- TAFEL-2: na afrekenen met nog niet verstuurde lijnen van een collega: de nieuwe rekening
+  -- waar die naartoe gingen (een add_line die nog onderweg was, volgt mee).
+  carried_to uuid,
   constraint dining_checks_place check (table_id is not null or name is not null),
   constraint dining_checks_split check ((split_of is null) = (split_no is null))
 );
 -- Eén hoofdrekening per tafel; deelrekeningen (split_of) staan naast die van hun hoofdrekening.
 create unique index if not exists dining_checks_open_table_uq on public.dining_checks (tenant_id, table_id) where status = 'open' and table_id is not null and split_of is null;
+create unique index if not exists dining_checks_open_split_uq on public.dining_checks (split_of, split_no) where status = 'open' and split_of is not null;
 create unique index if not exists dining_checks_reference_uq on public.dining_checks (tenant_id, cost_center_reference) where status = 'open';
 create index if not exists dining_checks_tenant_open on public.dining_checks (tenant_id) where status = 'open';
 
@@ -278,7 +286,7 @@ as $$
     'opened_at', c.opened_at, 'bill_requested_at', c.bill_requested_at, 'reference', c.cost_center_reference,
     'split_of', c.split_of, 'split_no', c.split_no,
     'parent_reference', (select pc.cost_center_reference from public.dining_checks pc where pc.id = c.split_of),
-    'next_split_no', (select coalesce(max(sx.split_no), 0) + 1 from public.dining_checks sx where sx.split_of = coalesce(c.split_of, c.id)),
+    'paying', c.paying_until is not null and c.paying_until > now(),
     'version', c.version, 'next_grouping_id', c.next_grouping_id,
     'lines', coalesce((select jsonb_agg(jsonb_build_object(
         'id', l.id, 'seq', l.seq, 'product_id', l.product_id, 'variant_id', l.variant_id, 'name', l.name,
@@ -357,7 +365,9 @@ begin
     exception when others then
       -- Geweigerd: niets van dit commando blijft staan. Het resultaat wordt NIET bewaard, zodat
       -- een herhaling na een herstelbare fout (bv. rekening net vrijgegeven) opnieuw kan.
-      res := jsonb_build_object('id', v_id, 'ok', false, 'error', sqlerrm, 'code', sqlstate);
+      res := jsonb_build_object('id', v_id, 'ok', false, 'code', sqlstate,
+        -- Twee toestellen openen tegelijk dezelfde tafel: leesbare melding i.p.v. de indexnaam.
+        'error', case when sqlstate = '23505' and sqlerrm like '%dining_checks_open_table_uq%' then 'die tafel heeft al een open rekening' else sqlerrm end);
     end;
     results := results || jsonb_build_array(res);
   end loop;
@@ -430,7 +440,16 @@ begin
   -- Alle andere commando's werken op een open rekening van deze zaak.
   select * into c from public.dining_checks where id = (cmd ->> 'check_id')::uuid and tenant_id = p_tenant_id for update;
   if c.id is null then raise exception 'rekening niet gevonden' using errcode = 'P0002'; end if;
+  -- TAFEL-2: een lijn die nog onderweg was toen de rekening afgerekend werd, volgt de
+  -- ontwerp-lijnen naar de nieuwe rekening (carried_to), in plaats van verloren te gaan.
+  for i in 1..5 loop
+    exit when c.status = 'open' or c.carried_to is null or v_kind <> 'add_line';
+    select * into c from public.dining_checks where id = c.carried_to and tenant_id = p_tenant_id for update;
+  end loop;
   if c.status <> 'open' then raise exception 'rekening is al afgesloten' using errcode = '55000'; end if;
+  if c.paying_until is not null and c.paying_until > now() then
+    raise exception 'deze rekening wordt net afgerekend' using errcode = '55000';
+  end if;
 
   if v_kind = 'add_line' then
     v_qty := (cmd ->> 'qty')::integer;
@@ -642,11 +661,13 @@ begin
       raise exception 'kies een tafel of een naam' using errcode = '22023';
     end if;
     if c.split_of is not null then raise exception 'een deelrekening verplaats je niet: reken ze af of voeg ze samen' using errcode = '55000'; end if;
+    -- Met open delen eerst die afrekenen of samenvoegen: anders verandert hun fiscale plaats
+    -- (TABLE › CHAIR) zonder ondertekende verplaatsing.
+    if exists (select 1 from public.dining_checks x where x.split_of = c.id and x.status = 'open') then
+      raise exception 'er staan nog delen van deze rekening open: reken die eerst af of voeg ze samen' using errcode = '55000';
+    end if;
     update public.dining_checks set table_id = v_table, name = case when v_table is null then btrim(cmd ->> 'to_name') else name end,
       version = version + 1, updated_at = now() where id = c.id;
-    -- Deelrekeningen verhuizen mee met hun hoofdrekening.
-    update public.dining_checks set table_id = v_table, name = coalesce(name, btrim(cmd ->> 'to_name')),
-      version = version + 1, updated_at = now() where split_of = c.id and status = 'open';
 
   elsif v_kind = 'move_lines' then
     -- Lijnen (of de hele rekening) naar een andere rekening: splitsen of samenvoegen (TBL-03..05).
@@ -655,15 +676,19 @@ begin
     -- COST_CENTER_CHANGE-lijn hier, positieve kopie (met dezelfde korting) daar.
     select * into tgt from public.dining_checks where id = (cmd ->> 'to_check_id')::uuid and tenant_id = p_tenant_id for update;
     if tgt.id is null and coalesce((cmd ->> 'split')::boolean, false) then
+      if c.split_of is not null then
+        perform 1 from public.dining_checks r where r.id = c.split_of for update;
+      end if;
       -- TAFEL-2: apart afrekenen = deelrekening van dezelfde tafel/naam. Een deel van een deel
       -- hangt aan de hoofdrekening (max. 2 niveaus costCenter, TBL-01).
       insert into public.dining_checks (id, tenant_id, table_id, name, opened_by, cost_center_reference, split_of, split_no)
       values ((cmd ->> 'to_check_id')::uuid, p_tenant_id, c.table_id,
               coalesce(nullif(btrim(cmd ->> 'to_name'), ''), c.name), v_staff, cmd ->> 'to_check_id',
               coalesce(c.split_of, c.id),
-              -- Het toestel kiest het nummer (het staat al in het ondertekende bericht als CHAIR-id).
-              coalesce(nullif(cmd ->> 'split_no', '')::integer,
-                       (select coalesce(max(x.split_no), 0) + 1 from public.dining_checks x where x.split_of = coalesce(c.split_of, c.id))))
+              -- Volgnummer enkel voor de weergave ("deel 2"); het fiscale CHAIR-id is de eigen
+              -- reference. De hoofdrekening is vergrendeld, dus twee toestellen krijgen nooit
+              -- hetzelfde nummer.
+              (select coalesce(max(x.split_no), 0) + 1 from public.dining_checks x where x.split_of = coalesce(c.split_of, c.id) and x.status = 'open'))
       returning * into tgt;
     elsif tgt.id is null then
       v_table := nullif(cmd ->> 'to_table_id', '')::uuid;
@@ -675,6 +700,7 @@ begin
       returning * into tgt;
     end if;
     if tgt.status <> 'open' or tgt.id = c.id then raise exception 'doelrekening ongeldig' using errcode = '22023'; end if;
+    if tgt.paying_until is not null and tgt.paying_until > now() then raise exception 'die rekening wordt net afgerekend' using errcode = '55000'; end if;
     for v_pc in select * from jsonb_array_elements(cmd -> 'moves') loop
       select * into l from public.check_lines where id = (v_pc ->> 'line_id')::uuid and check_id = c.id for update;
       if l.id is null or l.qty < 0 or l.state = 'void' then raise exception 'lijn niet verplaatsbaar' using errcode = '22023'; end if;

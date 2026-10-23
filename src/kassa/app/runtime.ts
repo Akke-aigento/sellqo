@@ -10,7 +10,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { bookingDateFor, nextTicketNo, posDateTime, type EventMeta, type PosContext } from '../fiscal/identity';
 import { FdmSimulator } from '../fiscal/simulator/fdmSimulator';
 import { FiscalSender, MemoryPendingStore, SimulatorGateway, type SignOutcome } from '../fiscal/gateway';
-import { MUTATIONS, type AnyFiscalInput, type MutationName, type TicketMedium } from '../fiscal/types';
+import { MUTATIONS, type AnyFiscalInput, type CostCenterInput, type MutationName, type TicketMedium } from '../fiscal/types';
+import { eventCostCenterReference } from './horeca/fiscalLines';
 import { KASSA_SW_VERSION } from '../version';
 
 export type FiscalMode = 'off' | 'simulator' | 'fdm';
@@ -156,7 +157,7 @@ export class KassaRuntime {
       const eventId = crypto.randomUUID();
       const r = out.result;
       const tx = (data as { transaction?: { transactionTotal: number } }).transaction;
-      const cc = (data as { costCenter?: { reference: string } }).costCenter;
+      const cc = (data as { costCenter?: CostCenterInput }).costCenter;
       const row = {
         id: eventId,
         tenant_id: this.device.tenantId,
@@ -180,7 +181,7 @@ export class KassaRuntime {
         short_signature: r.shortSignature ?? null,
         verification_url: r.verificationUrl ?? null,
         transaction_total_cents: tx ? Math.round(tx.transactionTotal * 100) : null,
-        cost_center_reference: cc?.reference ?? null,
+        cost_center_reference: eventCostCenterReference(cc),
         request_body: out.requestBody,
         response_body: out.responseBody,
         request_sha256: await sha256Hex(out.requestBody),
@@ -213,17 +214,28 @@ export class KassaRuntime {
 
   get outboxCount() { return this.readOutbox().length; }
 
-  /** Ondertekende events die nog niet in de cloud staan, opnieuw wegschrijven. true = leeg. */
-  async flushOutbox(): Promise<boolean> {
-    const rows = this.readOutbox();
-    if (!rows.length) return true;
-    const left: Record<string, unknown>[] = [];
-    for (const row of rows) {
-      const { error } = await supabase.from('fiscal_events' as never).insert(row as never);
-      if (error && error.code !== '23505') left.push(row);
-    }
-    safeSet(this.outboxKey(), JSON.stringify(left));
-    return left.length === 0;
+  private flushing: Promise<boolean> | null = null;
+
+  /**
+   * Ondertekende events die nog niet in de cloud staan, opnieuw wegschrijven. true = leeg.
+   * Eén tegelijk; na de inserts opnieuw lezen en enkel de gelukte id's weghalen, zodat een
+   * event dat intussen bijkwam nooit overschreven wordt.
+   */
+  flushOutbox(): Promise<boolean> {
+    if (this.flushing) return this.flushing;
+    this.flushing = (async () => {
+      const rows = this.readOutbox();
+      if (!rows.length) return true;
+      const done = new Set<unknown>();
+      for (const row of rows) {
+        const { error } = await supabase.from('fiscal_events' as never).insert(row as never);
+        if (!error || error.code === '23505') done.add(row.id);
+      }
+      const left = this.readOutbox().filter((r) => !done.has(r.id));
+      safeSet(this.outboxKey(), JSON.stringify(left));
+      return left.length === 0;
+    })().finally(() => { this.flushing = null; });
+    return this.flushing;
   }
 
   async audit(action: string, details: Record<string, unknown> = {}) {

@@ -2235,6 +2235,10 @@
         "table_checks": {
           "title": "Tables et additions sur SellQo Kassa",
           "description": "SellQo Kassa affiche votre plan de salle en direct : tables libres, tables occupées avec le montant et les minutes depuis la dernière commande, et tables qui ont demandé l'addition. Touchez une table ou ouvrez une addition au nom d'un client, touchez les produits et leurs suppléments, puis envoyez la tournée : la cuisine et le bar reçoivent chacun leur propre bon, sans montants. Vous pouvez annuler des lignes avec un motif, accorder une réduction ou offrir un article, déplacer des lignes ou des additions entières vers une autre table ou les fusionner, et faire une addition provisoire. Plusieurs appareils travaillent en même temps sur les mêmes additions ; si internet coupe un instant, vos actions sont conservées et passent dès que la connexion revient. L'encaissement suit dans une prochaine version."
+        },
+        "table_payment": {
+          "title": "Encaisser sur SellQo Kassa",
+          "description": "Sur SellQo Kassa, vous pouvez désormais encaisser une table ou une addition au nom d’un client. Choisissez espèces ou carte pour le montant total, partagez en 2 à 6 parts égales avec chacune son moyen de paiement, ou combinez vous-même espèces, carte, chèques-repas et bons. Les espèces sont arrondies à 5 centimes et la caisse affiche la monnaie à rendre ; un pourboire est enregistré à part, hors chiffre d’affaires. Si un client veut payer séparément, choisissez « Payer séparément » : ce qu’il a pris passe dans une partie séparée de l’addition, le reste reste sur la table. Le total provient toujours des commandes envoyées, jamais de l’appareil, et chaque paiement apparaît immédiatement dans vos ventes de caisse et votre stock. Sur une caisse enregistreuse, la vente est d’abord signée et vous obtenez le ticket de caisse TVA à imprimer."
         }
       },
       "copyLink": "Copier le lien",

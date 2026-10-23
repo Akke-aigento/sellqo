@@ -6529,6 +6529,10 @@
       "offlineQueue": {
         "pending": "En attente : {{n}}",
         "failed": "(nouvel essai : {{n}})"
+      },
+      "kassaDevice": {
+        "seen": "SellQo Kassa vue {{when}}",
+        "waiting": "{{n}} en attente sur l’appareil"
       }
     },
     "storefront": {
@@ -10640,8 +10644,12 @@
         "changed": "Un collègue vient de modifier cette addition. Vérifiez-la et encaissez à nouveau.",
         "nothing": "Cette addition est vide.",
         "nothing_sent": "Cette addition est vide.",
-        "pending_elsewhere": "Cette addition est déjà payée ; le paiement attend la connexion."
-      }
+        "pending_elsewhere": "Cette addition est déjà payée ; le paiement attend la connexion.",
+        "being_paid": "Cette addition est déjà en cours d’encaissement sur un autre appareil.",
+        "signed_rejected": "La vente est enregistrée, mais SellQo a refusé le paiement ({{detail}}). L’addition reste verrouillée ; contactez SellQo."
+      },
+      "lockedRejected": "Cette vente est enregistrée mais non comptabilisée. Ne modifiez rien et prévenez SellQo.",
+      "lockedPaying": "Cette addition est en cours d’encaissement sur un autre appareil."
     }
   }
 }

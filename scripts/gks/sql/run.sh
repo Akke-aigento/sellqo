@@ -5,6 +5,7 @@
 # tenants, user_roles, has_tenant_role, Vault, pos_cashiers, zaalplan/producten/keuken zoals
 # live), draait elke migratie TWEE keer (idempotent) en dan de tests. Faalt bij elke
 # 'FOUT: …' (een weigering die toch lukte) en bij elke controle die 'f' geeft.
+# SETUP_ONLY=1: enkel de databank opzetten (voor de stresstest, scripts/gks/stress/).
 set -euo pipefail
 cd "$(dirname "$0")"
 DB=${DB:-sellqo_kassa_test}
@@ -16,12 +17,14 @@ done
 for M in ../../../supabase/migrations/20261024100000_kassa_0_fiscal_events.sql \
          ../../../supabase/migrations/20261024110000_personeel_1_kassa_staff.sql \
          ../../../supabase/migrations/20261024130000_tafel_1_checks.sql \
-         ../../../supabase/migrations/20261024140000_tafel_2_pay.sql; do
+         ../../../supabase/migrations/20261024140000_tafel_2_pay.sql \
+         ../../../supabase/migrations/20261024150000_live_1_kassa_heartbeat.sql; do
   $P -d $DB -f $M >/dev/null 2>&1
   $P -d $DB -f $M >/dev/null 2>&1   # twee keer: idempotent
 done
+if [ "${SETUP_ONLY:-}" = "1" ]; then echo "databank $DB klaar"; exit 0; fi
 fail=0
-for T in test_fiscal_events.sql test_personeel.sql test_tafel.sql test_pay.sql; do
+for T in test_fiscal_events.sql test_personeel.sql test_tafel.sql test_pay.sql test_heartbeat.sql; do
   out=$($P -d $DB -f $T 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in $T"; exit 1; }
   if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in $T"; fail=1; fi
   echo "$out" | tail -1

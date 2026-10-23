@@ -6529,6 +6529,10 @@
       "offlineQueue": {
         "pending": "Wartend: {{n}}",
         "failed": "(erneut: {{n}})"
+      },
+      "kassaDevice": {
+        "seen": "SellQo Kassa {{when}} gesehen",
+        "waiting": "{{n}} wartend auf dem Gerät"
       }
     },
     "storefront": {
@@ -10640,8 +10644,12 @@
         "changed": "Jemand hat diese Rechnung gerade geändert. Bitte prüfen und erneut kassieren.",
         "nothing": "Auf dieser Rechnung steht nichts.",
         "nothing_sent": "Auf dieser Rechnung steht nichts.",
-        "pending_elsewhere": "Diese Rechnung ist schon bezahlt; die Zahlung wartet auf eine Verbindung."
-      }
+        "pending_elsewhere": "Diese Rechnung ist schon bezahlt; die Zahlung wartet auf eine Verbindung.",
+        "being_paid": "Diese Rechnung wird schon auf einem anderen Gerät kassiert.",
+        "signed_rejected": "Der Verkauf ist registriert, aber SellQo hat die Zahlung abgelehnt ({{detail}}). Die Rechnung bleibt gesperrt; bitte SellQo kontaktieren."
+      },
+      "lockedRejected": "Dieser Verkauf ist registriert, aber nicht gebucht. Nichts mehr ändern und SellQo informieren.",
+      "lockedPaying": "Diese Rechnung wird gerade auf einem anderen Gerät kassiert."
     }
   }
 }

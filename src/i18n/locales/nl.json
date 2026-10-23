@@ -7411,6 +7411,10 @@
       "offlineQueue": {
         "pending": "Wachtend: {{n}}",
         "failed": "(opnieuw: {{n}})"
+      },
+      "kassaDevice": {
+        "seen": "SellQo Kassa {{when}} gezien",
+        "waiting": "{{n}} wachtend op het toestel"
       }
     },
     "kitchen": {
@@ -10642,8 +10646,12 @@
         "changed": "Een collega wijzigde deze rekening net. Kijk ze na en reken opnieuw af.",
         "nothing": "Er staat niets op deze rekening.",
         "nothing_sent": "Er staat niets op deze rekening.",
-        "pending_elsewhere": "Deze rekening is al betaald; de betaling wacht nog op verbinding."
-      }
+        "pending_elsewhere": "Deze rekening is al betaald; de betaling wacht nog op verbinding.",
+        "being_paid": "Deze rekening wordt al afgerekend op een ander toestel.",
+        "signed_rejected": "De verkoop is geregistreerd, maar SellQo weigerde de betaling ({{detail}}). De rekening blijft vergrendeld; neem contact op met SellQo."
+      },
+      "lockedRejected": "Deze verkoop is geregistreerd maar niet geboekt. Niets meer aan doen en SellQo verwittigen.",
+      "lockedPaying": "Deze rekening wordt nu afgerekend op een ander toestel."
     }
   }
 }

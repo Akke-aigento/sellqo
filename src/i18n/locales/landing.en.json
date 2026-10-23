@@ -2235,6 +2235,10 @@
         "table_checks": {
           "title": "Tables and checks on SellQo Kassa",
           "description": "SellQo Kassa shows your floor plan live: free tables, occupied tables with the amount and minutes since the last order, and tables that asked for the bill. Tap a table or open a check on a name, tap products with their extras and send the round: kitchen and bar each get their own ticket, without amounts. You can cancel items with a reason, give a discount or put something on the house, move items or whole checks to another table or merge them, and print a provisional bill. Several devices work on the same checks at once; if the internet drops for a moment, your actions are kept and go through as soon as the connection is back. Payment follows in a next version."
+        },
+        "table_payment": {
+          "title": "Payment on SellQo Kassa",
+          "description": "On SellQo Kassa you can now settle a table or a check on a name. Choose cash or card for the full amount, split equally into 2 to 6 parts each with its own payment method, or combine cash, card, meal vouchers and vouchers yourself. Cash is rounded to 5 cents and the till shows the change; a tip is recorded separately, outside your turnover. If one guest wants to pay separately, choose 'Pay separately': what they had goes to a separate part of the check and the rest stays on the table. The total always comes from the orders that were sent, never from the device, and every payment shows up straight away in your till sales and stock. On a registered till the sale is signed first and you get the VAT receipt to print."
         }
       },
       "copyLink": "Copy link",

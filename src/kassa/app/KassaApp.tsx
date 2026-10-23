@@ -12,6 +12,7 @@ import { SignIn } from './screens/SignIn';
 import { DeviceSetup } from './screens/DeviceSetup';
 import { PinLock } from './screens/PinLock';
 import { KassaHome } from './screens/KassaHome';
+import { useKassaBackground } from './useKassaBackground';
 
 function Spinner() {
   const { t } = useTranslation();
@@ -46,6 +47,8 @@ function Device() {
   }, [device, valid]);
 
   const runtime = useMemo(() => (device && terminal ? new KassaRuntime(device, fiscalSettingsOf(terminal.settings), 'NL') : null), [device, terminal]);
+  // Ondertekende events/betalingen doorsturen en hartslag, ook op het PIN-scherm.
+  useKassaBackground(runtime && currentTenant?.id === device?.tenantId ? runtime : null);
   const reset = () => { forgetDevice(); setDevice(null); setTerminal(null); setTerminalError(false); };
 
   if (loading) return <Spinner />;

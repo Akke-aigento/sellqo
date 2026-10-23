@@ -133,13 +133,12 @@ export async function moveLines(ctx: ActionCtx, req: MoveRequest): Promise<Actio
     if (!from) return { ok: false, reason: 'server', detail: 'check_missing' };
     const sentMoves = req.moves.filter((m) => m.line.state === 'sent');
     let target: Pick<Check, 'id' | 'table_id' | 'name' | 'reference' | 'split_of' | 'split_no' | 'parent_reference'>;
-    let splitNo: number | null = null;
     if (req.to.split) {
-      // Deel van een deel hangt aan de hoofdrekening (max. 2 niveaus, TBL-01).
-      splitNo = from.next_split_no ?? 1;
+      // Deel van een deel hangt aan de hoofdrekening (max. 2 niveaus, TBL-01). Het volgnummer
+      // kent de server toe; fiscaal telt enkel de reference.
       target = {
         id: req.to.checkId, table_id: from.table_id, name: from.name, reference: req.to.checkId,
-        split_of: from.split_of ?? from.id, split_no: splitNo,
+        split_of: from.split_of ?? from.id, split_no: null,
         parent_reference: from.split_of ? (from.parent_reference ?? from.reference) : from.reference,
       };
     } else if (req.to.existing) {
@@ -163,7 +162,7 @@ export async function moveLines(ctx: ActionCtx, req: MoveRequest): Promise<Actio
     }
     return commitSigned(ctx, {
       id: crypto.randomUUID(), kind: 'move_lines', check_id: from.id, to_check_id: req.to.checkId,
-      ...(req.to.split ? { split: true, split_no: splitNo } : req.to.existing ? {} : { to_table_id: req.to.tableId, to_name: req.to.name }),
+      ...(req.to.split ? { split: true } : req.to.existing ? {} : { to_table_id: req.to.tableId, to_name: req.to.name }),
       moves: req.moves.map((m) => ({ line_id: m.line.id, qty: m.qty, from_line_id: crypto.randomUUID(), to_line_id: crypto.randomUUID() })),
       fiscal_event_id: eventId, staff_id: ctx.staffId,
     }, eventId);

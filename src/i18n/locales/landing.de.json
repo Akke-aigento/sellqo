@@ -2235,6 +2235,10 @@
         "table_checks": {
           "title": "Tische und Rechnungen in SellQo Kassa",
           "description": "SellQo Kassa zeigt deinen Raumplan live: freie Tische, besetzte Tische mit Betrag und Minuten seit der letzten Bestellung und Tische, die die Rechnung verlangt haben. Tippe einen Tisch an oder öffne eine Rechnung auf einen Namen, tippe Produkte mit ihren Extras an und sende die Runde: Küche und Bar bekommen jeweils ihren eigenen Bon, ohne Beträge. Du kannst Positionen mit Grund stornieren, Rabatt geben oder etwas aufs Haus setzen, Positionen oder ganze Rechnungen an einen anderen Tisch verschieben oder zusammenlegen und eine vorläufige Rechnung erstellen. Mehrere Geräte arbeiten gleichzeitig an denselben Rechnungen; fällt das Internet kurz aus, bleiben deine Aktionen erhalten und werden ausgeführt, sobald die Verbindung zurück ist. Das Kassieren folgt in einer nächsten Version."
+        },
+        "table_payment": {
+          "title": "Kassieren in SellQo Kassa",
+          "description": "In SellQo Kassa kassierst du jetzt auch einen Tisch oder eine Rechnung auf einen Namen ab. Wähle bar oder Karte für den ganzen Betrag, teile gleich in 2 bis 6 Teile mit jeweils eigenem Zahlungsmittel, oder kombiniere selbst bar, Karte, Essensgutscheine und Gutscheine. Bar wird auf 5 Cent gerundet und die Kasse zeigt das Wechselgeld; Trinkgeld buchst du separat, außerhalb deines Umsatzes. Möchte ein Gast getrennt zahlen, wähle „Getrennt kassieren“: Was er hatte, kommt auf einen eigenen Teil der Rechnung, der Rest bleibt am Tisch. Die Summe kommt immer aus den gesendeten Bestellungen, nie vom Gerät, und jede Zahlung steht sofort in deinen Kassenverkäufen und im Bestand. An einer registrierten Kasse wird der Verkauf zuerst signiert und du bekommst den MwSt.-Kassenbon zum Drucken."
         }
       },
       "copyLink": "Link kopieren",

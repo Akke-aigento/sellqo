@@ -4,7 +4,7 @@
 // eigen betaalmiddel (één btw-kasticket, UC4119). Vrij: betaalmiddelen en bedragen zelf.
 // Contant toont het afgeronde bedrag (5 cent) en het wisselgeld; fooi staat apart.
 // Na afloop: bonnummer, wisselgeld en (geregistreerde kassa) het kasticket om af te drukken.
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Banknote, CreditCard, Loader2, Minus, Plus, Printer, Trash2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -12,17 +12,11 @@ import { useTenant } from '@/hooks/useTenant';
 import { cn } from '@/lib/utils';
 import { buildKasticket, renderHtml } from '../../print';
 import type { ActionCtx } from '../horeca/actions';
-import { changeDue, equalSplit, planPayment, TENDER_METHODS, type PaymentPlan, type Tender, type TenderMethod, type TipMethod } from '../horeca/pay';
+import { changeDue, equalSplit, parseEuroInput, planPayment, TENDER_METHODS, type PaymentPlan, type Tender, type TenderMethod, type TipMethod } from '../horeca/pay';
 import { payableTotal, payCheck, type PayOutcome } from '../horeca/payActions';
 import { lineTotalCents, type Check } from '../horeca/types';
 import { formatEuro } from '../horeca/format';
 
-/** "12,50" / "12.5" / "12" → centen; ongeldig = null. */
-export function parseEuroInput(s: string): number | null {
-  const v = s.trim().replace(/\s|€/g, '').replace(',', '.');
-  if (!/^\d{1,6}(\.\d{0,2})?$/.test(v)) return null;
-  return Math.round(Number(v) * 100);
-}
 const toInput = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
 
 interface Row { method: TenderMethod; amount: string }
@@ -41,6 +35,14 @@ export function PayDialog({ ctx, check, onClose, onPaid }: { ctx: ActionCtx; che
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Extract<PayOutcome, { ok: true }> | null>(null);
   const frame = useRef<HTMLIFrameElement>(null);
+  // Wijzigt het totaal terwijl het venster open is (collega tikte iets aan), dan volgt één
+  // enkel betaalmiddel mee; bij meerdere toont de kassa wat er nog openstaat.
+  const lastTotal = useRef(total);
+  useEffect(() => {
+    if (lastTotal.current === total) return;
+    lastTotal.current = total;
+    setRows((xs) => (xs.length === 1 ? [{ ...xs[0], amount: toInput(total) }] : xs));
+  }, [total]);
 
   const tenders: Tender[] | null = useMemo(() => {
     const out: Tender[] = [];

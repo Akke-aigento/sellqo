@@ -118,3 +118,10 @@ export function normalizedTenders(plan: PaymentPlan): Tender[] {
   }
   return out;
 }
+
+/** "12,50" / "12.5" / "12" → centen; ongeldig = null. */
+export function parseEuroInput(s: string): number | null {
+  const v = s.trim().replace(/\s|€/g, '').replace(',', '.');
+  if (!/^\d{1,6}(\.\d{0,2})?$/.test(v)) return null;
+  return Math.round(Number(v) * 100);
+}

@@ -15,7 +15,7 @@ import { roundLines } from '../horeca/fiscalLines';
 import { discountLine, moveCheck, moveLines, requestBill, sendRound, type ActionCtx, type ActionOutcome } from '../horeca/actions';
 import { useCatalog, type CatalogProduct } from '../horeca/useCatalog';
 import { formatEuro } from '../horeca/format';
-import { hasPendingPay } from '../horeca/payActions';
+import { hasPendingPay, isRejectedPay } from '../horeca/payActions';
 import { PayDialog, SplitDialog } from './PayDialog';
 
 interface Props { ctx: ActionCtx; checkId: string; onBack: () => void; onOpen?: (checkId: string, opts?: { pay?: boolean }) => void; initialPay?: boolean }
@@ -57,8 +57,11 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }
 
   const baseTitle = check.table_id ? t('kassa.checks.table', { label: ctx.tableLabel(check.table_id) ?? '?' }) : check.name;
   const title = check.split_no ? t('kassa.pay.partTitle', { title: baseTitle, n: check.split_no }) : baseTitle;
-  // Een betaling die na de handtekening nog naar de server moet: rekening vergrendeld.
-  const locked = hasPendingPay(store.tenantId, check.id);
+  // Vergrendeld: een getekende betaling op dit toestel (wachtend of geweigerd), of een ander
+  // toestel rekent deze rekening nu af (claim op de server).
+  const rejected = isRejectedPay(store.tenantId, check.id);
+  const pendingHere = hasPendingPay(store.tenantId, check.id);
+  const locked = pendingHere || !!check.paying;
   const visible = check.lines.filter((l) => l.state !== 'void');
   const drafts = roundLines(check).length + check.lines.filter((l) => l.pending && l.state === 'draft').length;
   const sentAny = check.lines.some((l) => l.state === 'sent');
@@ -213,7 +216,11 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }
         <div className={cn('min-h-0 flex-1 flex-col lg:flex', tab === 'menu' ? 'flex' : 'hidden')}>{menuPanel}</div>
       </div>
 
-      {locked ? <p role="alert" className="border-t bg-amber-100 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">{t('kassa.pay.lockedPending')}</p> : null}
+      {locked ? (
+        <p role="alert" className={cn('border-t px-3 py-2 text-sm', rejected ? 'bg-destructive/10 text-destructive' : 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100')}>
+          {t(rejected ? 'kassa.pay.lockedRejected' : pendingHere ? 'kassa.pay.lockedPending' : 'kassa.pay.lockedPaying')}
+        </p>
+      ) : null}
       <div className="grid grid-cols-3 gap-2 border-t p-2" style={{ paddingBottom: 'max(0.5rem, var(--safe-bottom))' }}>
         <button type="button" onClick={doBill} disabled={locked || !!busy || !sentAny && !drafts}
           className="flex h-14 items-center justify-center gap-2 rounded-lg border text-base font-semibold disabled:opacity-40">

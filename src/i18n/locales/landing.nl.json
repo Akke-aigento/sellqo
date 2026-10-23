@@ -2235,6 +2235,10 @@
         "table_checks": {
           "title": "Tafels en rekeningen op SellQo Kassa",
           "description": "Op SellQo Kassa zie je je zaalplan live: vrije tafels, bezette tafels met bedrag en minuten sinds de laatste bestelling, en tafels waar de rekening gevraagd is. Tik een tafel aan of open een rekening op naam, tik producten met hun extra's aan en verstuur de ronde: keuken en bar krijgen elk hun eigen bon, zonder bedragen. Je kan lijnen annuleren met een reden, korting of 'van het huis' geven, lijnen of hele rekeningen naar een andere tafel verplaatsen of samenvoegen, en een voorlopige rekening maken. Meerdere toestellen werken tegelijk op dezelfde rekeningen; valt het internet even weg, dan blijven je handelingen bewaard en gaan ze vanzelf door zodra de verbinding terug is. Afrekenen volgt in een volgende versie."
+        },
+        "table_payment": {
+          "title": "Afrekenen op SellQo Kassa",
+          "description": "Op SellQo Kassa reken je een tafel of een rekening op naam nu ook af. Kies contant of kaart voor het hele bedrag, deel gelijk in 2 tot 6 delen met elk een eigen betaalmiddel, of combineer zelf contant, kaart, maaltijdcheques en bonnen. Contant wordt afgerond op 5 cent en de kassa toont het wisselgeld; een fooi boek je apart, buiten je omzet. Wil één klant apart betalen, kies dan 'Apart afrekenen': wat hij nam gaat naar een eigen deel van de rekening, de rest blijft op de tafel. Het totaal komt altijd uit de verstuurde bestellingen, nooit uit het toestel, en elke betaling staat meteen in je kassaverkopen en voorraad. Op een geregistreerde kassa wordt de verkoop eerst ondertekend en krijg je het btw-kasticket om af te drukken."
         }
       },
       "copyLink": "Kopieer link",
