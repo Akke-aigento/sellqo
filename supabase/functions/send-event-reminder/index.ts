@@ -378,8 +378,8 @@ serve(async (req) => {
             eventSent++;
             log("Sent", { email: r.email });
           }
-        } catch (e: any) {
-          log("Email exception", { email: r.email, error: e?.message });
+        } catch (e: unknown) {
+          log("Email exception", { email: r.email, error: e instanceof Error ? e.message : String(e) });
         }
       }
 
@@ -402,10 +402,11 @@ serve(async (req) => {
       JSON.stringify({ ok: true, sent: totalSent }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error: any) {
-    log("Error", { message: error?.message ?? String(error) });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    log("Error", { message });
     return new Response(
-      JSON.stringify({ error: error?.message ?? String(error) }),
+      JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
