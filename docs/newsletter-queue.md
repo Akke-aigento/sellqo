@@ -6,7 +6,7 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ### 2026.13t — Op of nieuwe prijs, rechtstreeks op SellQo Kassa (improvement, 24-10-2026)
 
-**Status:** gebouwd (KASSA-0.6, kassa 0.6.0), wacht op go en livegang.
+**Status:** klaar voor verzending (KASSA-0.6, live sinds 24-10-2026).
 
 **Voor wie:** zaken die SellQo Kassa gebruiken.
 
@@ -18,7 +18,7 @@ i18n: `public.changelog.changes.kassa_product_quick_edit`
 
 ### 2026.13s — Je kaart in een paar minuten: de nieuwe tab Kaart (feature, 24-10-2026)
 
-**Status:** gebouwd (KAART-1 + KAART-2), wacht op go en livegang.
+**Status:** klaar voor verzending (KAART-1 + KAART-2, live sinds 24-10-2026).
 
 **Voor wie:** horecazaken (horeca-module): cafés, bars, frituren, restaurants.
 

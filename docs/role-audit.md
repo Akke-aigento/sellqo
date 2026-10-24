@@ -1,6 +1,31 @@
 ## KAART-1/2 + KASSA-0.6 — de horeca-Kaart (snel producten, startkaart, plakken, foto) en product aanpassen op de kassa — 24 oktober 2026
 
-Branch `kaart-1`, op vraag van Akke (24-10, 15:47: "lets go", aparte maten als aparte producten, foto-import met credits, startkaart, kassa-bewerking). Drie commits: KAART-1, KAART-2, KASSA-0.6 (fiscale release, `sellqo-kassa-0.6.0`). **Nog niet gemerged, niet gepusht, niets live**: migraties, deploy van `ai-kaart-photo`, publish en helpartikels wachten op een aparte go.
+Branch `kaart-1`, op vraag van Akke (24-10, 15:47: "lets go", aparte maten als aparte producten, foto-import met credits, startkaart, kassa-bewerking). Commits `ec4c42c` (KAART-1/2) en `539ade3` (KASSA-0.6, fiscale release `sellqo-kassa-0.6.0`).
+
+**Livegang (go Akke 24-10, 16:36):**
+- Fast-forward naar `main` en gepusht.
+- Beide migraties live via `query_database`: het bestand byte-identiek van GitHub op `539ade3` opgehaald, md5 gecontroleerd in dezelfde transactie (`605bccee…`, `728de955…`).
+  - De 5 functies zijn md5-gelijk aan de lokaal geteste versie.
+  - Alle 5 zijn `security definer` met een vast `search_path`.
+  - `anon` kan ze niet uitvoeren, `authenticated` wel.
+  - De 2 kolommen staan op `categories`.
+- `ai-kaart-photo` gedeployed via de Lovable-agent.
+  - Nulmeting: 404. Na de deploy: GET `{"ok":true,"version":"KAART-2"}`.
+- **De agent negeerde de deploy-only-regel** en wijzigde `src/hooks/useReportExports.ts` (`4aaa2df`). De wijziging klopt wel en is een echte bugfix:
+  - Sinds TAFEL-3 (live 24-10, 13:46) heeft `products` twee FK's naar `vat_rates` (`products_vat_rate_id_fkey`, `products_takeaway_vat_rate_fk`).
+  - De embed `vat_rates(rate)` in de product-export en de export "lage voorraad" werd daardoor dubbelzinnig (PostgREST PGRST201), dus beide exports faalden sinds 13:46.
+  - Nu staat er `vat_rates!products_vat_rate_id_fkey(rate)`. Er zijn geen andere ongekwalificeerde embeds in `src/` of de functies.
+  - De regeneratie van `types.ts` in dezelfde commit is platformwerk.
+- CI van `539ade3` en `4aaa2df` rood op "Gebruikte vertaalkeys" (`admin.kaart.badPrice` ontbrak; `check-i18n-used-keys.mjs` stond niet in mijn lokale checks). Gefixt in `333afab`; CI groen.
+- Helpartikels `horeca-kaart` en `kassa-product-aanpassen` live, op dezelfde manier opgehaald en md5-gecontroleerd (`fd611d24…`).
+- Rooktest op Café De Wissel (als platform-admin, alles in één transactie die met een exception terugrolde):
+  - categorie aangemaakt met 21/6;
+  - 2 × "Smoke cola" → slugs `smoke-cola` en `smoke-cola-2`, btw gestempeld;
+  - bulk +€0,10 → 2,90;
+  - foute PIN → `wrong_pin`, juiste PIN → op;
+  - 2 audit-regels.
+  - Nadien 0 rijen over.
+- Publish sellqo.app: bundel `index-C4R_SLYi.js` bevat `kaart_add_products`, `tab_menu`, `horeca_menu_editor`, `kassa_product_quick_edit` en `sellqo-kassa-0.6.0`.
 
 **Aanleiding** — Producten aanmaken voor horeca ging via `ProductForm.tsx` (2196 lijnen, 16 kaarten voor verzending, digitale bestanden, cadeaubonnen, SEO …). Fiere (Lovable `12129848-…`) toont dat een café wil: een lijst per categorie, inline prijs/voorraad, bulkbalk, duplicaatwaarschuwing (`CreateBeerModal.tsx`, `SortableProductRow.tsx`, `BulkActionBar.tsx`). In de database heeft `products` maar drie verplichte velden (`name`, `slug`, `price`; live nagetrokken). Posten routeren al per categorie (`prep_station_routes`), extra's ook (`product_addon_groups.category_ids`).
 
@@ -85,12 +110,8 @@ Branch `kaart-1`, op vraag van Akke (24-10, 15:47: "lets go", aparte maten als a
 - Andere kassatoestellen zien een prijs of "op" binnen 5 minuten (catalogus-interval). Een uitverkocht product wordt intussen door de server geweigerd.
 - `vat_rates` van een andere zaak koppelen via de API kan (FK-only), maar heeft geen effect: de server negeert vreemde tarieven.
 - HEIC: op iOS levert de camera jpeg. Een HEIC-bestand vanop een desktop geeft een duidelijke fout.
-- **Livegang (aparte go):**
-  - migraties `20261024180000` en `20261024190000` via `query_database`, dan natrekken;
-  - deploy `ai-kaart-photo` via de Lovable-agent, met vingerafdruk via GET `version: KAART-2`;
-  - `deploy_project` en een bundelcheck;
-  - de helpartikels;
-  - smoke op Café De Wissel (rollback).
+- De native kassa-app (TestFlight/Play) draait gebundelde code: kassa 0.6.0 staat live op het web; de app-build volgt in de app-batch.
+- De foto-import is nog niet live getest met een echte foto (dat kost credits); eerste echte test bij Belgaleiro of op de demozaak.
 
 ## TAFEL-3 — SellQo Kassa als enige kassa: toogverkoop, kas in/uit en tellingen, X/Z-rapporten — 24 oktober 2026
 
