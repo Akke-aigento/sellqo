@@ -9,7 +9,7 @@ Op vraag van Akke (24-10, 17:33: "moet volledige overlay worden … denk als een
 - Categorieën waren niet te ordenen vanuit de Kaart.
 
 **Uitgevoerd**
-- `supabase/migrations/20261024200000_kaart_3_menu_order.sql`:
+- `supabase/migrations/20261024210000_kaart_3_menu_order.sql`:
   - `products.menu_position` (nullable int) en een index `(tenant_id, category_id, menu_position)`;
   - `kaart_fill_positions` (intern): legt de huidige volgorde (op naam) van producten zonder positie vast, per categorie;
   - `kaart_reorder` (producten of categorieën);

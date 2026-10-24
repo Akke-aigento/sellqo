@@ -22,7 +22,7 @@ for M in ../../../supabase/migrations/20261024100000_kassa_0_fiscal_events.sql \
          ../../../supabase/migrations/20261024160000_tafel_3_counter_cash_reports.sql \
          ../../../supabase/migrations/20261024180000_kaart_1_horeca_kaart.sql \
          ../../../supabase/migrations/20261024190000_kassa_0_6_product_quick_edit.sql \
-         ../../../supabase/migrations/20261024200000_kaart_3_menu_order.sql; do
+         ../../../supabase/migrations/20261024210000_kaart_3_menu_order.sql; do
   $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
   $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }   # twee keer: idempotent
 done
