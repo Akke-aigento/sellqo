@@ -39,6 +39,8 @@ export interface PayPayload {
   fiscal_event_id: string | null;
   /** TAFEL-3, enkel aan de toog: keukenbonnen maken (standaard ja). */
   kitchen?: boolean;
+  /** TAFEL-3 (review M2), enkel aan de toog: btw-label per lijn zoals getekend; de server controleert het. */
+  line_vats?: Record<string, string>;
 }
 
 /**
@@ -168,7 +170,7 @@ export function retryPendingPays(ctx: Pick<ActionCtx, 'runtime'>): Promise<Retry
       if (inFlight.has(p.id)) continue;
       // Claim verlengen zolang het toestel ermee bezig is (zelfde betaling = toegestaan).
       await rpc('horeca_pay_begin', { p_tenant_id: tenantId, p_device_id: ctx.runtime.device.deviceUuid,
-        p: { check_id: p.check_id, payment_id: p.id, line_ids: p.line_ids, expected_total_cents: p.expected_total_cents } });
+        p: { check_id: p.check_id, payment_id: p.id, line_ids: p.line_ids, expected_total_cents: p.expected_total_cents, line_vats: p.line_vats } });
       if (row.status === 'unsigned' && row.sale) {
         // Zelfde bericht, zelfde bytes (ID-11): de FDM tekent het of geeft het eerdere antwoord.
         let out2;
@@ -238,12 +240,13 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
     // Toog: geen costCenter in het bericht (directe verkoop, UC M110); het event hangt aan de rekening.
     const reference = counter ? c.reference : undefined;
     const kitchen = counter ? opts.kitchen ?? true : undefined;
+    const lineVats = counter ? Object.fromEntries(payableLines(c).map((l) => [l.id, l.vat_label])) : undefined;
     const paymentId = paymentIdFor(tenantId, c.id);
 
     // Claim vóór het tekenen.
     const claim = await rpc<{ ok: boolean; fiscal: boolean }>('horeca_pay_begin', {
       p_tenant_id: tenantId, p_device_id: ctx.runtime.device.deviceUuid,
-      p: { check_id: c.id, payment_id: paymentId, line_ids: lineIds, expected_total_cents: total },
+      p: { check_id: c.id, payment_id: paymentId, line_ids: lineIds, expected_total_cents: total, line_vats: lineVats },
     });
     const release = () => rpc('horeca_pay_release', { p_tenant_id: tenantId, p_check_id: c.id, p_payment_id: paymentId });
     if (claim.error) {
@@ -276,24 +279,31 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
       }
       // Wat de FDM tekent, moet exact het bedrag zijn dat de server rekent.
       if (Math.round(data.transaction.transactionTotal * 100) !== total) return fail({ ok: false, reason: 'server', detail: 'total_mismatch' });
+      // Review M5: het bericht staat op het toestel vóór het naar de FDM gaat. Valt de app weg
+      // terwijl de FDM tekent, dan stuurt de achtergrond hetzelfde bericht opnieuw (ID-11).
+      const unsigned: PendingPay = {
+        payload: { id: paymentId, check_id: c.id, terminal_id: ctx.runtime.device.terminalRowId, staff_id: ctx.staffId,
+          expected_total_cents: total, line_ids: lineIds, tenders: normalizedTenders(plan), rounding_cents: plan.rounding,
+          tip_cents: plan.tip, tip_method: plan.tipMethod, fiscal_event_id: null, kitchen, line_vats: lineVats },
+        status: 'unsigned', sale: data, reference, at: new Date().toISOString(),
+      };
+      upsert(tenantId, unsigned);
+      inFlight.add(paymentId);
       let out;
       try {
         out = await ctx.runtime.sign('signSale', data, { staffId: ctx.staffId, reference });
       } catch (e) {
+        drop(tenantId, paymentId);
         if (e instanceof FiscalUnavailableError) return fail({ ok: false, reason: e.message as 'fdm_not_available' });
         await release();
         throw e;
+      } finally {
+        inFlight.delete(paymentId);
       }
-      if (out.kind === 'rejected') return fail({ ok: false, reason: 'fdm_rejected', detail: JSON.stringify(out.errors ?? '').slice(0, 200) });
+      if (out.kind === 'rejected') { drop(tenantId, paymentId); return fail({ ok: false, reason: 'fdm_rejected', detail: JSON.stringify(out.errors ?? '').slice(0, 200) }); }
       if (out.kind !== 'signed') {
-        // Geen antwoord ≠ niet getekend. Claim houden, bericht bewaren en identiek opnieuw
-        // sturen (retryPendingPays); de rekening blijft vergrendeld op dit toestel.
-        upsert(tenantId, {
-          payload: { id: paymentId, check_id: c.id, terminal_id: ctx.runtime.device.terminalRowId, staff_id: ctx.staffId,
-            expected_total_cents: total, line_ids: lineIds, tenders: normalizedTenders(plan), rounding_cents: plan.rounding,
-            tip_cents: plan.tip, tip_method: plan.tipMethod, fiscal_event_id: null, kitchen },
-          status: 'unsigned', sale: data, reference, at: new Date().toISOString(),
-        });
+        // Geen antwoord ≠ niet getekend. Claim houden, bericht bewaard (hierboven) en identiek
+        // opnieuw sturen (retryPendingPays); de rekening blijft vergrendeld op dit toestel.
         return { ok: false, reason: 'fdm_unreachable' };
       }
       eventId = out.eventId ?? null;
@@ -303,7 +313,7 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
     const payload: PayPayload = {
       id: paymentId, check_id: c.id, terminal_id: ctx.runtime.device.terminalRowId, staff_id: ctx.staffId,
       expected_total_cents: total, line_ids: lineIds, tenders: normalizedTenders(plan), rounding_cents: plan.rounding,
-      tip_cents: plan.tip, tip_method: plan.tipMethod, fiscal_event_id: eventId, kitchen,
+      tip_cents: plan.tip, tip_method: plan.tipMethod, fiscal_event_id: eventId, kitchen, line_vats: lineVats,
     };
     // Write-ahead: getekend = bewaard, vóór het netwerk (app dicht, batterij leeg, herladen).
     if (signed) upsert(tenantId, { payload, status: 'pending', at: new Date().toISOString() });

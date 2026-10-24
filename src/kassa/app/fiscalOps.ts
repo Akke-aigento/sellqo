@@ -48,7 +48,25 @@ function readAll(tenantId: string): FiscalOp[] {
 function writeAll(tenantId: string, ops: FiscalOp[]) {
   try { localStorage.setItem(key(tenantId), JSON.stringify(ops)); } catch { /* privémodus */ }
 }
-function upsert(tenantId: string, op: FiscalOp) { writeAll(tenantId, [...readAll(tenantId).filter((x) => x.id !== op.id), op]); }
+/**
+ * Review M6b: een gebruikersrapport bevat de werknemersnummers van iedereen. Zolang het niet
+ * getekend is, moet het bericht bewaard blijven (identiek opnieuw sturen, ID-11); zodra het
+ * getekend is of geweigerd, houden we enkel de event-id bij en verdwijnt de inhoud van het toestel.
+ */
+function storable(op: FiscalOp): FiscalOp {
+  return {
+    ...op,
+    // Ook de andere getekende berichten: na het tekenen is de inhoud niet meer nodig (enkel de
+    // event-id gaat naar de server), en ze dragen het werknemersnummer van wie tekende.
+    signs: op.signs.map((s) => ((s.eventId || op.status === 'rejected')
+      ? { ...s, data: null as unknown as AnyFiscalInput, result: null }
+      : s)),
+  };
+}
+function upsert(tenantId: string, op: FiscalOp) { writeAll(tenantId, [...readAll(tenantId).filter((x) => x.id !== op.id), storable(op)]); }
+
+// Review M4: één handeling tegelijk (voorgrond en achtergrond tekenen nooit hetzelfde tegelijk).
+const inFlight = new Set<string>();
 function drop(tenantId: string, id: string) { writeAll(tenantId, readAll(tenantId).filter((x) => x.id !== id)); }
 
 /** Handelingen die nog moeten (tekenen of naar de server), zonder de geweigerde. */
@@ -93,7 +111,7 @@ async function signAll(runtime: KassaRuntime, op: FiscalOp): Promise<'signed' | 
   return 'signed';
 }
 
-const signedEvents = (op: FiscalOp): SignedEvent[] => op.signs.filter((s) => s.result).map((s) => ({ name: s.name, isTraining: false, data: s.data, result: s.result ?? null }));
+const signedEvents = (op: FiscalOp): SignedEvent[] => op.signs.filter((s) => s.result && s.data).map((s) => ({ name: s.name, isTraining: false, data: s.data, result: s.result ?? null }));
 
 /**
  * Voer een handeling uit. `op.signs` leeg = niet-fiscaal. Bij een weigering van de zwarte doos
@@ -101,8 +119,20 @@ const signedEvents = (op: FiscalOp): SignedEvent[] => op.signs.filter((s) => s.r
  */
 export async function runFiscalOp<T>(runtime: KassaRuntime, op: FiscalOp, opts: { onRejected?: () => Promise<void> } = {}): Promise<FiscalOpOutcome<T>> {
   const tenantId = runtime.device.tenantId;
-  if (readAll(tenantId).some((x) => x.id === op.id && x.status !== 'unsigned')) return { ok: false, reason: 'pending_elsewhere' };
+  if (inFlight.has(op.id) || readAll(tenantId).some((x) => x.id === op.id && x.status !== 'unsigned')) return { ok: false, reason: 'pending_elsewhere' };
+  inFlight.add(op.id);
+  try {
+    return await runOnce<T>(runtime, op, opts);
+  } finally {
+    inFlight.delete(op.id);
+  }
+}
+
+async function runOnce<T>(runtime: KassaRuntime, op: FiscalOp, opts: { onRejected?: () => Promise<void> }): Promise<FiscalOpOutcome<T>> {
+  const tenantId = runtime.device.tenantId;
   if (op.signs.length) {
+    // Review M5: bewaard vóór het eerste bericht naar de FDM vertrekt.
+    upsert(tenantId, { ...op, status: 'unsigned' });
     let r;
     try { r = await signAll(runtime, op); } catch (e) {
       if (e instanceof FiscalUnavailableError) return { ok: false, reason: e.message as FiscalOpFailure };
@@ -150,6 +180,12 @@ export function retryFiscalOps(runtime: KassaRuntime) {
     const out = { done: 0, rejected: [] as { op: FiscalOp; error: string }[] };
     const tenantId = runtime.device.tenantId;
     for (const op of readPendingOps(tenantId)) {
+      if (inFlight.has(op.id)) continue;
+      // Een ongetekend bericht zonder inhoud kan niet identiek opnieuw (zou niet mogen voorkomen,
+      // zie storable): niet raden, als geweigerd laten staan voor SellQo.
+      if (op.signs.some((s) => !s.eventId && !s.data)) { upsert(tenantId, { ...op, status: 'rejected', error: 'bericht niet meer op het toestel' }); continue; }
+      inFlight.add(op.id);
+      try {
       if (op.status === 'unsigned') {
         let r;
         try { r = await signAll(runtime, op); } catch { continue; }
@@ -169,6 +205,9 @@ export function retryFiscalOps(runtime: KassaRuntime) {
       } else {
         drop(tenantId, op.id);
         out.done += 1;
+      }
+      } finally {
+        inFlight.delete(op.id);
       }
     }
     return out;

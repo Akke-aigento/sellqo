@@ -38,7 +38,13 @@ export interface ReportResult {
   id: string; kind: ReportKind; report_no: number | null; booking_date: string; period_start: string; period_end: string; data: ReportData;
 }
 
-interface Begin { report_no?: number | null; booking_date: string; period_start: string; period_end: string; fiscal: boolean }
+interface Begin {
+  id: string; report_no?: number | null; booking_date: string; period_start: string; period_end: string; fiscal: boolean;
+  /** Een onafgewerkte Z met al een ondertekend rapport: die eerst afwerken (andere id). */
+  resume?: boolean;
+  /** Al ondertekende rapportsoorten voor deze id. */
+  signed?: string[];
+}
 
 interface RpcError { code?: string; message?: string }
 async function rpc<T>(name: string, args: Record<string, unknown>): Promise<{ data: T | null; error: RpcError | null }> {
@@ -74,11 +80,12 @@ export type ReportOutcome = FiscalOpOutcome<ReportResult> | { ok: false; reason:
 /** Maak een X (tussenstand) of Z (afsluiting) voor een bedrijfsdag (standaard vandaag). */
 export async function makeReport(runtime: KassaRuntime, who: ReportWho, kind: ReportKind, opts: { bookingDate?: string } = {}): Promise<ReportOutcome> {
   const tenantId = runtime.device.tenantId;
-  const id = crypto.randomUUID();
   const auto = !!who.auto;
+  // Review M7: eerst eigen ondertekende events in de cloud zetten, anders mist het rapport ze.
+  if (runtime.isFiscal && !(await runtime.flushOutbox())) return { ok: false, reason: 'offline', detail: 'outbox' };
   const begin = await rpc<Begin>('kassa_report_begin', {
     p_tenant_id: tenantId, p_device_id: runtime.device.deviceUuid,
-    p: { id, kind, booking_date: opts.bookingDate ?? null, staff_id: who.staffId, auto },
+    p: { id: crypto.randomUUID(), kind, booking_date: opts.bookingDate ?? null, staff_id: who.staffId, auto },
   });
   if (begin.error || !begin.data) {
     if (begin.error?.code === '55000') return { ok: false, reason: 'closed', detail: begin.error.message };
@@ -86,15 +93,18 @@ export async function makeReport(runtime: KassaRuntime, who: ReportWho, kind: Re
     return { ok: false, reason: begin.error?.code ? 'server' : 'offline', detail: begin.error?.message };
   }
   const b = begin.data;
-  const release = async () => { if (kind === 'Z') await rpc('kassa_report_release', { p_tenant_id: tenantId, p_report_id: id }); };
+  // Bij resume werkt dit toestel een eerder begonnen Z af: die id, dat nummer en die periode.
+  const id = b.id;
+  const already = new Set(b.signed ?? []);
+  const release = async () => { await rpc('kassa_report_release', { p_tenant_id: tenantId, p_report_id: id }); };
   const payload = { id, kind, booking_date: b.booking_date, terminal_id: runtime.device.terminalRowId, staff_id: who.staffId, auto };
 
-  let signs: { name: MutationName; data: AnyFiscalInput }[] = [];
+  const signs: { name: MutationName; data: AnyFiscalInput }[] = [];
   if (b.fiscal && !runtime.isFiscal) { await release(); return { ok: false, reason: 'fiscal_not_configured' }; }
   if (runtime.isFiscal) {
     const employeeId = auto ? ROBOT_EMPLOYEE_ID : who.employeeId;
     if (!employeeId) { await release(); return { ok: false, reason: 'no_insz' }; }
-    const src = await rpc<{ mutation: string; is_training: boolean; request_body: unknown; response_body: unknown }[]>('kassa_report_source', { p_tenant_id: tenantId, p_report_id: id });
+    const src = await rpc<{ mutation: string; is_training: boolean; request_body: unknown; response_body: unknown }[]>('kassa_report_source', { p_tenant_id: tenantId, p_report_id: id, p_device_id: runtime.device.deviceUuid });
     if (src.error) { await release(); return { ok: false, reason: src.error.code ? 'server' : 'offline', detail: src.error.message }; }
     const events = eventsFromSource(src.data ?? []);
     const z = kind === 'Z' && b.report_no ? { reportNo: b.report_no, reportBookingDate: b.booking_date } : null;
@@ -102,19 +112,18 @@ export async function makeReport(runtime: KassaRuntime, who: ReportWho, kind: Re
       const ctx = runtime.posContext();
       const tName: MutationName = kind === 'Z' ? 'signReportTurnoverZ' : 'signReportTurnoverX';
       const uName: MutationName = kind === 'Z' ? 'signReportUserZ' : 'signReportUserX';
-      signs = [
-        { name: tName, data: buildReportTurnover(ctx, await runtime.meta(tName, employeeId, 'PAPER'), events, z) },
-        { name: uName, data: buildReportUser(ctx, await runtime.meta(uName, employeeId, 'PAPER'), events, z) },
-      ];
+      // Enkel wat nog niet ondertekend is (resume na een afgebroken Z).
+      if (!already.has(tName)) signs.push({ name: tName, data: buildReportTurnover(ctx, await runtime.meta(tName, employeeId, 'PAPER'), events, z) });
+      if (!already.has(uName)) signs.push({ name: uName, data: buildReportUser(ctx, await runtime.meta(uName, employeeId, 'PAPER'), events, z) });
     } catch (e) {
-      await release();
+      if (!already.size) await release();
       if (e instanceof FiscalUnavailableError) return { ok: false, reason: e.message as 'fiscal_not_configured' };
       throw e;
     }
   }
   return runFiscalOp<ReportResult>(runtime, {
     id, rpc: 'kassa_report_finish', eventField: 'fiscal_event_ids', signs, staffId: who.staffId, status: 'unsigned', at: new Date().toISOString(), payload,
-  }, { onRejected: release });
+  }, { onRejected: already.size ? undefined : release });
 }
 
 let autoRunning = false;

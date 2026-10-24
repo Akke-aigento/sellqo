@@ -25,13 +25,13 @@
 --   de vier vervangen functies terugzetten uit 20261024130000_tafel_1_checks.sql en
 --   20261024140000_tafel_2_pay.sql;
 --   drop function if exists public.kassa_report_begin(uuid, text, jsonb), public.kassa_report_finish(uuid, text, jsonb),
---     public.kassa_report_release(uuid, uuid), public.kassa_report_due(uuid), public.kassa_report_source(uuid, uuid),
+--     public.kassa_report_release(uuid, uuid), public.kassa_report_due(uuid), public.kassa_report_source(uuid, uuid, text), public.kassa_report_signed(uuid, uuid),
 --     public.kassa_report_data(uuid, timestamptz, timestamptz), public.kassa_cash_move(uuid, text, jsonb),
 --     public.kassa_shift(uuid, text, jsonb), public.kassa_open_session(uuid, uuid, numeric, text),
 --     public.kassa_cutoff_hour(uuid), public.kassa_business_day(uuid, timestamptz), public.kassa_day_start(uuid, date),
 --     public.kassa_product_vat_rate(uuid, uuid, boolean), public.kassa_counter_guard(uuid, jsonb),
 --     public.kassa_counter_after(uuid, jsonb, jsonb), public.kassa_fiscal_ref_ok(uuid, uuid, text[], text);
---   drop table if exists public.kassa_reports, public.kassa_report_numbers;
+--   drop table if exists public.kassa_reports, public.kassa_report_runs;
 --   alter table public.dining_checks drop column if exists kind, drop column if exists service;
 --   alter table public.products drop column if exists takeaway_vat_rate_id;
 --   alter table public.pos_cash_movements drop column if exists pos_cashier_id, drop column if exists fiscal_event_id, drop column if exists kind;
@@ -125,9 +125,9 @@ security definer
 set search_path to ''
 as $$
   select coalesce(
-    (select vr.rate from public.products pr join public.vat_rates vr on vr.id = pr.takeaway_vat_rate_id
+    (select vr.rate from public.products pr join public.vat_rates vr on vr.id = pr.takeaway_vat_rate_id and (vr.tenant_id = p_tenant_id or vr.tenant_id is null)
       where p_takeaway and pr.id = p_product_id and pr.tenant_id = p_tenant_id),
-    (select vr.rate from public.products pr join public.vat_rates vr on vr.id = pr.vat_rate_id
+    (select vr.rate from public.products pr join public.vat_rates vr on vr.id = pr.vat_rate_id and (vr.tenant_id = p_tenant_id or vr.tenant_id is null)
       where pr.id = p_product_id and pr.tenant_id = p_tenant_id),
     (select vr.rate from public.vat_rates vr where vr.tenant_id = p_tenant_id and vr.is_default and vr.is_active limit 1),
     21);
@@ -200,6 +200,9 @@ begin
   if v_kind not in ('add_line', 'change_qty', 'set_note', 'void_line', 'discount_line', 'rename_check', 'void_check', 'set_service') then
     raise exception 'dat kan niet bij een toogverkoop' using errcode = '55000';
   end if;
+  -- Review M1: vergrendelen en opnieuw lezen, zodat een claim (horeca_pay_begin) die net
+  -- binnenkwam niet gemist wordt. Een toog heeft geen deelrekeningen, dus geen lock-volgorde.
+  select * into c from public.dining_checks where id = c.id for update;
   if c.paying_until is not null and c.paying_until > now() then
     raise exception 'deze verkoop wordt net afgerekend' using errcode = '55000';
   end if;
@@ -209,7 +212,6 @@ begin
     if coalesce(cmd ->> 'service', '') not in ('eat_in', 'takeaway') then
       raise exception 'kies ter plaatse of meenemen' using errcode = '22023';
     end if;
-    perform 1 from public.dining_checks where id = c.id for update;
     update public.dining_checks set service = cmd ->> 'service', version = version + 1, updated_at = now() where id = c.id;
     -- Het tarief van de nog open lijnen volgt (enkel ontwerp-lijnen bestaan aan de toog).
     for l in select x.id, x.product_id from public.check_lines x where x.check_id = c.id and x.state = 'draft' and x.product_id is not null for update loop
@@ -355,6 +357,9 @@ as $$
 declare
   v_session uuid;
 begin
+  -- Review m5: zelfde slot als kassa_shift (sluiten), zodat een betaling nooit aan een shift
+  -- hangt die net gesloten wordt na het berekenen van de verwachte kas.
+  perform pg_advisory_xact_lock(hashtext('kassa_session|' || p_terminal_id::text));
   select s.id into v_session from public.pos_sessions s
     where s.tenant_id = p_tenant_id and s.terminal_id = p_terminal_id and s.status = 'open' order by s.opened_at desc limit 1;
   if v_session is null then
@@ -411,6 +416,12 @@ begin
   end if;
   select coalesce(sum(public.horeca_line_total(x)), 0) into v_total from public.check_lines x where x.check_id = c.id and x.state = v_state;
   if (p ->> 'expected_total_cents')::bigint is distinct from v_total then
+    raise exception 'de rekening is intussen gewijzigd' using errcode = '40001';
+  end if;
+  -- Review M2: aan de toog kan "ter plaatse/meenemen" het btw-label wijzigen zonder het totaal.
+  -- Het toestel geeft mee welk label het per lijn tekent; dat moet nog kloppen.
+  if c.kind = 'counter' and exists (select 1 from public.check_lines x where x.check_id = c.id and x.state = v_state
+       and x.vat_label is distinct from (p -> 'line_vats' ->> x.id::text)) then
     raise exception 'de rekening is intussen gewijzigd' using errcode = '40001';
   end if;
   update public.dining_checks set paying_payment_id = v_pay, paying_until = now() + interval '10 minutes', version = version + 1, updated_at = now()
@@ -507,6 +518,12 @@ begin
   select coalesce(sum(public.horeca_line_total(x)), 0) into v_total from public.check_lines x where x.check_id = c.id and x.state = v_state;
   if v_total < 0 then raise exception 'negatief totaal: dat is een terugbetaling' using errcode = '22023'; end if;
   if (p_payment ->> 'expected_total_cents')::bigint is distinct from v_total then
+    raise exception 'de rekening is intussen gewijzigd' using errcode = '40001';
+  end if;
+  -- Review M2: aan de toog kan "ter plaatse/meenemen" het btw-label wijzigen zonder het totaal.
+  -- Het toestel geeft mee welk label het per lijn tekent; dat moet nog kloppen.
+  if c.kind = 'counter' and exists (select 1 from public.check_lines x where x.check_id = c.id and x.state = v_state
+       and x.vat_label is distinct from (p_payment -> 'line_vats' ->> x.id::text)) then
     raise exception 'de rekening is intussen gewijzigd' using errcode = '40001';
   end if;
 
@@ -607,12 +624,14 @@ begin
 
   -- Toog: keukenbonnen per post (nooit bedragen, PRT-05), niet voor bar-posten.
   if c.kind = 'counter' and coalesce((p_payment ->> 'kitchen')::boolean, true) then
-    insert into public.kitchen_tickets (tenant_id, source, service_type, customer_label, check_id, round_id, station_id, items, paid, status, pos_transaction_id)
+    -- Review B1: live is pos_transaction_id uniek (één bon per kassaverkoop, FOOD-2). Een toogverkoop
+    -- kan meerdere posten hebben: koppelen via check_id/round_id, zoals de tafelrondes.
+    insert into public.kitchen_tickets (tenant_id, source, service_type, customer_label, check_id, round_id, station_id, items, paid, status)
     select p_tenant_id, 'pos', case when c.service = 'takeaway' then 'pickup' else 'eat_in' end, c.name, c.id, v_round_id, x.station_id,
       jsonb_agg(jsonb_build_object('name', x.name, 'quantity', x.qty, 'note', x.note, 'course', x.course,
         'addons', (select coalesce(jsonb_agg(jsonb_build_object('name', a ->> 'name')), '[]'::jsonb) from jsonb_array_elements(x.addons) a))
         order by x.course nulls first, x.seq),
-      true, 'new', v_id
+      true, 'new'
     from public.check_lines x
     left join public.prep_stations s on s.id = x.station_id
     where x.check_id = c.id and x.round_id = v_round_id and x.qty > 0 and coalesce(s.kind, 'kitchen') <> 'bar'
@@ -756,6 +775,7 @@ begin
     end if;
   end if;
 
+  perform pg_advisory_xact_lock(hashtext('kassa_session|' || v_terminal::text));
   select * into s from public.pos_sessions x where x.tenant_id = p_tenant_id and x.terminal_id = v_terminal and x.status = 'open'
     order by x.opened_at desc limit 1 for update;
 
@@ -790,16 +810,24 @@ revoke all on function public.kassa_shift(uuid, text, jsonb) from public, anon;
 grant execute on function public.kassa_shift(uuid, text, jsonb) to authenticated;
 
 -- ── Rapporten ─────────────────────────────────────────────────────────────────────────────
-create table if not exists public.kassa_report_numbers (
+-- Een rapport in aanmaak (review M3/M6): Z = gereserveerd nummer + periode; X = enkel periode.
+-- Klaar = er bestaat een kassa_reports-rij met dezelfde id. Een onafgewerkte Z zonder
+-- ondertekend rapport wordt door de volgende Z overgenomen (zelfde nummer), zodat een crash
+-- of een geweigerde handtekening nooit een gat in de nummering laat.
+create table if not exists public.kassa_report_runs (
+  id uuid primary key,
   tenant_id uuid not null references public.tenants(id) on delete restrict,
-  report_no integer not null check (report_no > 0),
-  report_id uuid not null unique,
+  kind text not null check (kind in ('X', 'Z')),
+  report_no integer check (report_no is null or report_no > 0),
   booking_date date not null,
   period_start timestamptz not null,
   period_end timestamptz not null,
+  device_id text,
   reserved_at timestamptz not null default now(),
-  primary key (tenant_id, report_no)
+  constraint kassa_report_runs_no check ((kind = 'Z') = (report_no is not null))
 );
+create unique index if not exists kassa_report_runs_no_uq on public.kassa_report_runs (tenant_id, report_no) where report_no is not null;
+create index if not exists kassa_report_runs_tenant on public.kassa_report_runs (tenant_id, reserved_at desc);
 
 create table if not exists public.kassa_reports (
   id uuid primary key,
@@ -839,11 +867,11 @@ drop trigger if exists kassa_reports_no_truncate on public.kassa_reports;
 create trigger kassa_reports_no_truncate before truncate on public.kassa_reports
   for each statement execute function public.kassa_reports_guard();
 
-revoke all on public.kassa_reports, public.kassa_report_numbers from public, anon, authenticated;
-grant all on public.kassa_reports, public.kassa_report_numbers to service_role;
+revoke all on public.kassa_reports, public.kassa_report_runs from public, anon, authenticated;
+grant all on public.kassa_reports, public.kassa_report_runs to service_role;
 grant select on public.kassa_reports to authenticated;
 alter table public.kassa_reports enable row level security;
-alter table public.kassa_report_numbers enable row level security;
+alter table public.kassa_report_runs enable row level security;
 drop policy if exists kassa_reports_select on public.kassa_reports;
 create policy kassa_reports_select on public.kassa_reports for select to authenticated
   using (public.is_platform_admin(auth.uid()) or tenant_id in (select public.get_user_tenant_ids(auth.uid())));
@@ -938,9 +966,28 @@ as $$
 $$;
 revoke all on function public.kassa_report_data(uuid, timestamptz, timestamptz) from public, anon, authenticated;
 
--- Reserveren vóór het tekenen. p = {id, kind: X|Z, booking_date, staff_id, auto}
--- Z: doorlopend nummer per zaak; dekt de bedrijfsdag of het stuk sinds de vorige Z van die dag.
--- Antwoord: {report_no?, booking_date, period_start, period_end, fiscal}
+-- Ondertekende rapport-events die aan een rapport-id hangen (meest recente per soort).
+create or replace function public.kassa_report_signed(p_tenant_id uuid, p_report_id uuid)
+returns jsonb
+language sql
+stable
+security definer
+set search_path to ''
+as $$
+  select coalesce(jsonb_agg(jsonb_build_object('mutation', q.mutation, 'id', q.id)), '[]'::jsonb)
+  from (select distinct on (f.mutation) f.mutation, f.id from public.fiscal_events f
+        where f.tenant_id = p_tenant_id and f.cost_center_reference = p_report_id::text and f.mutation like 'signReport%' and not f.is_training
+          and not (public.horeca_tenant_fiscal(p_tenant_id) and f.fdm_id like 'SIM%')
+        order by f.mutation, f.created_at desc) q;
+$$;
+revoke all on function public.kassa_report_signed(uuid, uuid) from public, anon, authenticated;
+
+-- Beginnen vóór het tekenen. p = {id, kind: X|Z, booking_date, staff_id, auto}
+-- Antwoord: {id, report_no?, booking_date, period_start, period_end, fiscal, resume, signed: [mutatie]}
+-- Z: doorlopend nummer per zaak; dekt de bedrijfsdag of het stuk sinds de vorige afgewerkte Z
+-- van die dag. Staat er een onafgewerkte Z met al een ondertekend rapport, dan krijg je die
+-- terug om af te werken (resume, andere id). Staat er een onafgewerkte Z zonder handtekening
+-- die ouder is dan 2 minuten, dan neem je ze over (zelfde nummer); jonger = 'bezig'.
 create or replace function public.kassa_report_begin(p_tenant_id uuid, p_device_id text, p jsonb)
 returns jsonb
 language plpgsql
@@ -958,7 +1005,8 @@ declare
   v_end timestamptz;
   v_role text;
   v_no integer;
-  r public.kassa_report_numbers%rowtype;
+  r public.kassa_report_runs%rowtype;
+  v_signed jsonb;
 begin
   if not public.has_tenant_role(p_tenant_id, array['tenant_admin', 'staff']::public.app_role[]) then
     raise exception 'geen toegang' using errcode = '42501';
@@ -972,39 +1020,84 @@ begin
   elsif not (v_auto and v_kind = 'Z') then
     raise exception 'onbekende medewerker' using errcode = '22023';
   end if;
-  -- Een Z afsluiten: eigenaar of verantwoordelijke (of automatisch).
   if v_kind = 'Z' and v_staff is not null and v_role not in ('owner', 'manager') then
     raise exception 'een Z-rapport mag enkel de eigenaar of een verantwoordelijke maken' using errcode = '42501';
   end if;
+  -- Review M8: een automatische Z enkel voor een voorbije bedrijfsdag.
+  if v_auto and v_day >= v_today then raise exception 'automatisch enkel voor een voorbije dag' using errcode = '22023'; end if;
+
+  -- Idempotent: dezelfde id opnieuw.
+  select * into r from public.kassa_report_runs x where x.id = v_id;
+  if r.id is not null then
+    if r.tenant_id <> p_tenant_id then raise exception 'geen toegang' using errcode = '42501'; end if;
+    return jsonb_build_object('id', r.id, 'report_no', r.report_no, 'booking_date', r.booking_date, 'period_start', r.period_start,
+      'period_end', r.period_end, 'fiscal', public.horeca_tenant_fiscal(p_tenant_id), 'resume', false,
+      'signed', (select coalesce(jsonb_agg(e ->> 'mutation'), '[]'::jsonb) from jsonb_array_elements(public.kassa_report_signed(p_tenant_id, r.id)) e));
+  end if;
 
   v_start := public.kassa_day_start(p_tenant_id, v_day);
-  v_end := least(public.kassa_day_start(p_tenant_id, v_day + 1), now());
+  -- 2 seconden marge: een betaling die nu nog loopt, valt zeker in het volgende rapport.
+  v_end := least(public.kassa_day_start(p_tenant_id, v_day + 1), now() - interval '2 seconds');
 
   if v_kind = 'X' then
-    return jsonb_build_object('booking_date', v_day, 'period_start', v_start, 'period_end', v_end, 'fiscal', public.horeca_tenant_fiscal(p_tenant_id));
+    insert into public.kassa_report_runs (id, tenant_id, kind, booking_date, period_start, period_end, device_id)
+    values (v_id, p_tenant_id, 'X', v_day, v_start, v_end, left(p_device_id, 200));
+    return jsonb_build_object('id', v_id, 'booking_date', v_day, 'period_start', v_start, 'period_end', v_end,
+      'fiscal', public.horeca_tenant_fiscal(p_tenant_id), 'resume', false, 'signed', '[]'::jsonb);
   end if;
 
   perform pg_advisory_xact_lock(hashtext('kassa_report|' || p_tenant_id::text));
-  select * into r from public.kassa_report_numbers x where x.report_id = v_id;
-  if r.report_id is not null then
-    if r.tenant_id <> p_tenant_id then raise exception 'geen toegang' using errcode = '42501'; end if;
-    return jsonb_build_object('report_no', r.report_no, 'booking_date', r.booking_date, 'period_start', r.period_start,
-      'period_end', r.period_end, 'fiscal', public.horeca_tenant_fiscal(p_tenant_id));
+  -- Review M7: een ander toestel met nog niet doorgestuurde handelingen = eerst laten synchroniseren.
+  if exists (select 1 from public.kassa_devices d where d.tenant_id = p_tenant_id and d.device_id is distinct from p_device_id
+             and d.last_seen_at > now() - interval '1 hour' and (d.outbox_count > 0 or d.pending_pays > 0)) then
+    raise exception 'een ander kassatoestel heeft nog handelingen die niet doorgestuurd zijn' using errcode = '55000';
   end if;
-  v_start := greatest(v_start, coalesce((select max(x.period_end) from public.kassa_report_numbers x where x.tenant_id = p_tenant_id and x.booking_date = v_day), v_start));
+  -- Onafgewerkte Z van deze zaak (er is er hoogstens één).
+  select x.* into r from public.kassa_report_runs x
+    where x.tenant_id = p_tenant_id and x.kind = 'Z' and not exists (select 1 from public.kassa_reports k where k.id = x.id)
+    order by x.report_no desc limit 1;
+  if r.id is not null then
+    v_signed := public.kassa_report_signed(p_tenant_id, r.id);
+    if jsonb_array_length(v_signed) > 0 then
+      return jsonb_build_object('id', r.id, 'report_no', r.report_no, 'booking_date', r.booking_date, 'period_start', r.period_start,
+        'period_end', r.period_end, 'fiscal', public.horeca_tenant_fiscal(p_tenant_id), 'resume', true,
+        'signed', (select coalesce(jsonb_agg(e ->> 'mutation'), '[]'::jsonb) from jsonb_array_elements(v_signed) e));
+    end if;
+    if r.reserved_at > now() - interval '2 minutes' then
+      raise exception 'er wordt net een Z-rapport gemaakt' using errcode = '55000';
+    end if;
+  end if;
+
+  v_start := greatest(v_start, coalesce((select max(k.period_end) from public.kassa_reports k
+                                          where k.tenant_id = p_tenant_id and k.kind = 'Z' and k.booking_date = v_day), v_start));
   if v_start >= v_end then raise exception 'deze bedrijfsdag is al afgesloten' using errcode = '55000'; end if;
-  select coalesce(max(x.report_no), 0) + 1 into v_no from public.kassa_report_numbers x where x.tenant_id = p_tenant_id;
-  insert into public.kassa_report_numbers (tenant_id, report_no, report_id, booking_date, period_start, period_end)
-  values (p_tenant_id, v_no, v_id, v_day, v_start, v_end);
-  return jsonb_build_object('report_no', v_no, 'booking_date', v_day, 'period_start', v_start, 'period_end', v_end,
-    'fiscal', public.horeca_tenant_fiscal(p_tenant_id));
+  -- Een tweede Z voor dezelfde dag enkel als er sinds de vorige iets gebeurde.
+  if exists (select 1 from public.kassa_reports k where k.tenant_id = p_tenant_id and k.kind = 'Z' and k.booking_date = v_day)
+     and not exists (select 1 from public.pos_transactions t where t.tenant_id = p_tenant_id and t.created_at >= v_start and t.created_at < v_end)
+     and not exists (select 1 from public.pos_cash_movements m where m.tenant_id = p_tenant_id and m.created_at >= v_start and m.created_at < v_end)
+     and not exists (select 1 from public.fiscal_events f where f.tenant_id = p_tenant_id and f.created_at >= v_start and f.created_at < v_end and f.mutation not like 'signReport%') then
+    raise exception 'deze bedrijfsdag is al afgesloten' using errcode = '55000';
+  end if;
+
+  if r.id is not null then
+    -- Overnemen: zelfde nummer, nieuwe id, dag en periode.
+    v_no := r.report_no;
+    update public.kassa_report_runs set id = v_id, booking_date = v_day, period_start = v_start, period_end = v_end,
+      device_id = left(p_device_id, 200), reserved_at = now() where id = r.id;
+  else
+    select coalesce(max(x.report_no), 0) + 1 into v_no from public.kassa_report_runs x where x.tenant_id = p_tenant_id and x.report_no is not null;
+    insert into public.kassa_report_runs (id, tenant_id, kind, report_no, booking_date, period_start, period_end, device_id)
+    values (v_id, p_tenant_id, 'Z', v_no, v_day, v_start, v_end, left(p_device_id, 200));
+  end if;
+  return jsonb_build_object('id', v_id, 'report_no', v_no, 'booking_date', v_day, 'period_start', v_start, 'period_end', v_end,
+    'fiscal', public.horeca_tenant_fiscal(p_tenant_id), 'resume', false, 'signed', '[]'::jsonb);
 end;
 $$;
 revoke all on function public.kassa_report_begin(uuid, text, jsonb) from public, anon;
 grant execute on function public.kassa_report_begin(uuid, text, jsonb) to authenticated;
 
--- Reservering vrijgeven als het tekenen aantoonbaar mislukte: enkel het laatste nummer en
--- enkel zonder rapport (zo blijft de nummering doorlopend).
+-- Vrijgeven als het tekenen aantoonbaar mislukte: enkel zonder rapport en zonder handtekening;
+-- een Z enkel als het het laatste nummer is (anders neemt de volgende Z ze over).
 create or replace function public.kassa_report_release(p_tenant_id uuid, p_report_id uuid)
 returns void
 language plpgsql
@@ -1016,17 +1109,18 @@ begin
     raise exception 'geen toegang' using errcode = '42501';
   end if;
   perform pg_advisory_xact_lock(hashtext('kassa_report|' || p_tenant_id::text));
-  delete from public.kassa_report_numbers n
-    where n.tenant_id = p_tenant_id and n.report_id = p_report_id
+  delete from public.kassa_report_runs n
+    where n.tenant_id = p_tenant_id and n.id = p_report_id
       and not exists (select 1 from public.kassa_reports k where k.id = p_report_id)
-      and n.report_no = (select max(x.report_no) from public.kassa_report_numbers x where x.tenant_id = p_tenant_id);
+      and jsonb_array_length(public.kassa_report_signed(p_tenant_id, p_report_id)) = 0
+      and (n.kind = 'X' or n.report_no = (select max(x.report_no) from public.kassa_report_runs x where x.tenant_id = p_tenant_id));
 end;
 $$;
 revoke all on function public.kassa_report_release(uuid, uuid) from public, anon;
 grant execute on function public.kassa_report_release(uuid, uuid) to authenticated;
 
--- Afronden en bewaren. p = {id, kind, booking_date, terminal_id, staff_id, auto, fiscal_event_ids: [uuid]}
--- GKS: X = signReportTurnoverX + signReportUserX, Z = de Z-versies, met cost_center_reference = id.
+-- Afwerken en bewaren. p = {id, kind, terminal_id, staff_id, auto}
+-- GKS: de server zoekt zelf de ondertekende rapporten die aan deze id hangen (omzet + gebruikers).
 create or replace function public.kassa_report_finish(p_tenant_id uuid, p_device_id text, p jsonb)
 returns jsonb
 language plpgsql
@@ -1035,21 +1129,15 @@ set search_path to ''
 as $$
 declare
   v_id uuid := (p ->> 'id')::uuid;
-  v_kind text := p ->> 'kind';
   v_staff uuid := nullif(p ->> 'staff_id', '')::uuid;
   v_terminal uuid := nullif(p ->> 'terminal_id', '')::uuid;
   v_auto boolean := coalesce((p ->> 'auto')::boolean, false);
   v_events uuid[];
   v_mode text := 'off';
-  v_day date;
-  v_start timestamptz;
-  v_end timestamptz;
-  v_no integer;
   v_data jsonb;
   k public.kassa_reports%rowtype;
-  r public.kassa_report_numbers%rowtype;
+  r public.kassa_report_runs%rowtype;
   v_need text[];
-  e uuid;
 begin
   if not public.has_tenant_role(p_tenant_id, array['tenant_admin', 'staff']::public.app_role[]) then
     raise exception 'geen toegang' using errcode = '42501';
@@ -1060,7 +1148,10 @@ begin
     return jsonb_build_object('ok', true, 'duplicate', true, 'id', k.id, 'kind', k.kind, 'report_no', k.report_no,
       'booking_date', k.booking_date, 'period_start', k.period_start, 'period_end', k.period_end, 'data', k.data);
   end if;
-  if v_kind not in ('X', 'Z') then raise exception 'X of Z' using errcode = '22023'; end if;
+  select * into r from public.kassa_report_runs x where x.id = v_id and x.tenant_id = p_tenant_id;
+  if r.id is null then raise exception 'eerst het rapport beginnen' using errcode = '55000'; end if;
+  -- Review m3: soort moet overeenkomen met de reservering.
+  if p ? 'kind' and p ->> 'kind' is distinct from r.kind then raise exception 'soort rapport klopt niet' using errcode = '22023'; end if;
   if v_staff is not null and not exists (select 1 from public.pos_cashiers x where x.id = v_staff and x.tenant_id = p_tenant_id) then
     raise exception 'onbekende medewerker' using errcode = '22023';
   end if;
@@ -1069,44 +1160,27 @@ begin
     if v_mode is null then raise exception 'onbekende kassa' using errcode = '22023'; end if;
   end if;
 
-  if v_kind = 'Z' then
-    select * into r from public.kassa_report_numbers x where x.report_id = v_id and x.tenant_id = p_tenant_id;
-    if r.report_id is null then raise exception 'eerst een nummer reserveren' using errcode = '55000'; end if;
-    v_no := r.report_no; v_day := r.booking_date; v_start := r.period_start; v_end := r.period_end;
-  else
-    v_day := coalesce(nullif(p ->> 'booking_date', '')::date, public.kassa_business_day(p_tenant_id, now()));
-    v_start := public.kassa_day_start(p_tenant_id, v_day);
-    v_end := least(public.kassa_day_start(p_tenant_id, v_day + 1), now());
-  end if;
-
-  select coalesce(array_agg(x::uuid), '{}') into v_events from jsonb_array_elements_text(coalesce(p -> 'fiscal_event_ids', '[]'::jsonb)) x;
+  v_need := case when r.kind = 'Z' then array['signReportTurnoverZ', 'signReportUserZ'] else array['signReportTurnoverX', 'signReportUserX'] end;
+  select coalesce(array_agg((e ->> 'id')::uuid), '{}') into v_events
+    from jsonb_array_elements(public.kassa_report_signed(p_tenant_id, v_id)) e where e ->> 'mutation' = any(v_need);
   if v_mode in ('simulator', 'fdm') or public.horeca_tenant_fiscal(p_tenant_id) or cardinality(v_events) > 0 then
-    v_need := case when v_kind = 'Z' then array['signReportTurnoverZ', 'signReportUserZ'] else array['signReportTurnoverX', 'signReportUserX'] end;
-    if cardinality(v_events) <> 2 then raise exception 'twee ondertekende rapporten verwacht' using errcode = '22023'; end if;
-    foreach e in array v_events loop
-      if not public.kassa_fiscal_ref_ok(p_tenant_id, e, v_need, v_id::text) then
-        raise exception 'ondertekening hoort niet bij dit rapport' using errcode = '22023';
-      end if;
-    end loop;
-    if (select count(distinct f.mutation) from public.fiscal_events f where f.id = any(v_events)) <> 2 then
-      raise exception 'omzet- en gebruikersrapport verwacht' using errcode = '22023';
-    end if;
+    if cardinality(v_events) <> 2 then raise exception 'omzet- en gebruikersrapport moeten allebei ondertekend zijn' using errcode = '22023'; end if;
   end if;
 
-  v_data := public.kassa_report_data(p_tenant_id, v_start, v_end);
+  v_data := public.kassa_report_data(p_tenant_id, r.period_start, r.period_end);
   insert into public.kassa_reports (id, tenant_id, kind, report_no, booking_date, period_start, period_end, cutoff_hour, data,
     fiscal_event_ids, terminal_id, staff_id, auto)
-  values (v_id, p_tenant_id, v_kind, v_no, v_day, v_start, v_end, public.kassa_cutoff_hour(p_tenant_id), v_data,
+  values (v_id, p_tenant_id, r.kind, r.report_no, r.booking_date, r.period_start, r.period_end, public.kassa_cutoff_hour(p_tenant_id), v_data,
     v_events, v_terminal, v_staff, v_auto);
-  return jsonb_build_object('ok', true, 'id', v_id, 'kind', v_kind, 'report_no', v_no, 'booking_date', v_day,
-    'period_start', v_start, 'period_end', v_end, 'data', v_data);
+  return jsonb_build_object('ok', true, 'id', v_id, 'kind', r.kind, 'report_no', r.report_no, 'booking_date', r.booking_date,
+    'period_start', r.period_start, 'period_end', r.period_end, 'data', v_data);
 end;
 $$;
 revoke all on function public.kassa_report_finish(uuid, text, jsonb) from public, anon;
 grant execute on function public.kassa_report_finish(uuid, text, jsonb) to authenticated;
 
 -- Bedrijfsdagen (max. 31 dagen terug, vóór vandaag) met verkopen of kasbewegingen na de laatste
--- Z van die dag (RPT-03: ontbrekende Z aanvullen).
+-- afgewerkte Z van die dag (RPT-03: ontbrekende Z aanvullen).
 create or replace function public.kassa_report_due(p_tenant_id uuid)
 returns jsonb
 language plpgsql
@@ -1130,8 +1204,8 @@ begin
         union all
         select m.created_at from public.pos_cash_movements m where m.tenant_id = p_tenant_id and m.created_at > now() - interval '32 days'
       ) a
-      where a.at >= coalesce((select max(n.period_end) from public.kassa_report_numbers n
-                              where n.tenant_id = p_tenant_id and n.booking_date = public.kassa_business_day(p_tenant_id, a.at)), '-infinity'::timestamptz)
+      where a.at >= coalesce((select max(k.period_end) from public.kassa_reports k
+                              where k.tenant_id = p_tenant_id and k.kind = 'Z' and k.booking_date = public.kassa_business_day(p_tenant_id, a.at)), '-infinity'::timestamptz)
     ) q
     where d < v_today and d >= v_today - 31
   ), '[]'::jsonb);
@@ -1140,43 +1214,39 @@ $$;
 revoke all on function public.kassa_report_due(uuid) from public, anon;
 grant execute on function public.kassa_report_due(uuid) to authenticated;
 
--- Ondertekende events van de periode van een gereserveerde Z (of een X voor vandaag), voor de
--- officiële rapporten op een toestel met zwarte doos. Bevat werknemersnummers: enkel voor het
--- toestel dat het rapport tekent; de kassa-app bewaart ze niet.
-create or replace function public.kassa_report_source(p_tenant_id uuid, p_report_id uuid)
+-- Ondertekende events van de periode van een rapport in aanmaak, voor de officiële rapporten op
+-- een toestel met zwarte doos (review M6a). Enkel voor een onafgewerkt rapport van deze zaak (een
+-- X hoogstens 30 minuten na het beginnen), en elke opvraging staat in fiscal_audit_log. Bevat
+-- werknemersnummers: de kassa-app bewaart ze niet na het tekenen en drukt ze nooit af.
+create or replace function public.kassa_report_source(p_tenant_id uuid, p_report_id uuid, p_device_id text)
 returns jsonb
 language plpgsql
-stable
 security definer
 set search_path to ''
 as $$
 declare
-  r public.kassa_report_numbers%rowtype;
-  v_day date;
-  v_start timestamptz;
-  v_end timestamptz;
+  r public.kassa_report_runs%rowtype;
 begin
   if not public.has_tenant_role(p_tenant_id, array['tenant_admin', 'staff']::public.app_role[]) then
     raise exception 'geen toegang' using errcode = '42501';
   end if;
-  select * into r from public.kassa_report_numbers x where x.report_id = p_report_id and x.tenant_id = p_tenant_id;
-  if r.report_id is not null then
-    v_day := r.booking_date; v_start := r.period_start; v_end := r.period_end;
-  else
-    v_day := public.kassa_business_day(p_tenant_id, now());
-    v_start := public.kassa_day_start(p_tenant_id, v_day);
-    v_end := now();
-  end if;
+  select * into r from public.kassa_report_runs x where x.id = p_report_id and x.tenant_id = p_tenant_id
+    and not exists (select 1 from public.kassa_reports k where k.id = x.id)
+    and (x.kind = 'Z' or x.reserved_at > now() - interval '30 minutes');
+  if r.id is null then raise exception 'geen rapport in aanmaak' using errcode = '55000'; end if;
+  insert into public.fiscal_audit_log (tenant_id, device_id, action, details)
+  values (p_tenant_id, left(p_device_id, 200), 'report_source_read', jsonb_build_object('report_id', r.id, 'kind', r.kind, 'report_no', r.report_no));
+  -- Review m1: één criterium (het tijdstip van het event), los van de afkapuur per toestel.
   return coalesce((
     select jsonb_agg(jsonb_build_object('mutation', f.mutation, 'is_training', f.is_training,
       'request_body', f.request_body, 'response_body', f.response_body) order by f.total_counter, f.created_at)
     from public.fiscal_events f
-    where f.tenant_id = p_tenant_id and f.booking_date = v_day
+    where f.tenant_id = p_tenant_id
       and f.pos_date_time ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'
-      and (case when f.pos_date_time ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}' then f.pos_date_time::timestamptz end) >= v_start
-      and (case when f.pos_date_time ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}' then f.pos_date_time::timestamptz end) < v_end
+      and (case when f.pos_date_time ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}' then f.pos_date_time::timestamptz end) >= r.period_start
+      and (case when f.pos_date_time ~ '^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}' then f.pos_date_time::timestamptz end) < r.period_end
   ), '[]'::jsonb);
 end;
 $$;
-revoke all on function public.kassa_report_source(uuid, uuid) from public, anon;
-grant execute on function public.kassa_report_source(uuid, uuid) to authenticated;
+revoke all on function public.kassa_report_source(uuid, uuid, text) from public, anon;
+grant execute on function public.kassa_report_source(uuid, uuid, text) to authenticated;

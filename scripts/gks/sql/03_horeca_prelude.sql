@@ -11,3 +11,7 @@ create table if not exists public.kitchen_tickets (
   status text not null default 'new', status_at timestamptz not null default now(), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
 alter table public.kitchen_tickets add constraint kitchen_tickets_source_check check (source in ('webshop', 'pos', 'phone'));
 alter table public.kitchen_tickets add constraint kitchen_tickets_service_type_check check (service_type is null or service_type in ('pickup', 'local_delivery', 'eat_in'));
+-- TAFEL-3 (review): unieke indexen van kitchen_tickets zoals live (pg_indexes, 24-10-2026).
+create unique index if not exists idx_kitchen_tickets_order on public.kitchen_tickets (order_id) where order_id is not null;
+create unique index if not exists idx_kitchen_tickets_pos on public.kitchen_tickets (pos_transaction_id) where pos_transaction_id is not null;
+create unique index if not exists idx_kitchen_tickets_parked on public.kitchen_tickets (parked_cart_id) where parked_cart_id is not null;

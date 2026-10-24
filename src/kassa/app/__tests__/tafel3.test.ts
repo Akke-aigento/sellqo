@@ -8,7 +8,13 @@ let rpcImpl: (name: string, args: Record<string, unknown>) => { data: unknown; e
 vi.mock('@/integrations/supabase/client', () => ({
   supabase: {
     from: (table: string) => ({ insert: async (row: Record<string, unknown>) => { inserts.push({ table, row }); return { error: null }; } }),
-    rpc: async (name: string, args: Record<string, unknown>) => { calls.push({ name, args }); return rpcImpl(name, args); },
+    rpc: async (name: string, args: Record<string, unknown>) => {
+      calls.push({ name, args });
+      const r = rpcImpl(name, args);
+      // De server geeft bij begin de rapport-id terug (bij resume een andere).
+      if (name === 'kassa_report_begin' && r.data && typeof r.data === 'object' && !('id' in (r.data as object))) (r.data as Record<string, unknown>).id = (args.p as { id: string }).id;
+      return r;
+    },
   },
 }));
 
@@ -54,7 +60,9 @@ describe('toogverkoop (EVT-04: directe verkoop = N zonder P)', () => {
     const begin = calls[0].args.p as { line_ids: string[]; expected_total_cents: number };
     expect(begin.line_ids).toEqual(['l1', 'l2']);
     expect(begin.expected_total_cents).toBe(1120);
-    const pay = calls[1].args.p_payment as { kitchen: boolean; fiscal_event_id: string | null };
+    expect((calls[0].args.p as { line_vats: Record<string, string> }).line_vats).toEqual({ l1: 'C', l2: 'A' });
+    const pay = calls[1].args.p_payment as { kitchen: boolean; fiscal_event_id: string | null; line_vats: Record<string, string> };
+    expect(pay.line_vats).toEqual({ l1: 'C', l2: 'A' });
     expect(pay.kitchen).toBe(true);
     expect(pay.fiscal_event_id).toBeNull();
     expect(calls.some((c) => c.name === 'horeca_apply')).toBe(false); // geen send_round
@@ -180,6 +188,33 @@ describe('rapporten (RPT-01..03)', () => {
     const finish = calls.find((c) => c.name === 'kassa_report_finish')!.args.p as { id: string; fiscal_event_ids: string[] };
     expect(finish.fiscal_event_ids).toEqual(ev.map((x) => x.row.id));
     expect(ev.every((x) => x.row.cost_center_reference === finish.id)).toBe(true);
+  });
+
+  it('resume: een afgebroken Z wordt afgewerkt met enkel het ontbrekende rapport, op dezelfde id', async () => {
+    const runtime = new KassaRuntime(device, fiscalSim);
+    rpcImpl = (n) => (n === 'kassa_report_begin' ? { data: { id: 'oud-z', report_no: 9, booking_date: '2026-10-23', period_start: 'a', period_end: 'b', fiscal: true, resume: true, signed: ['signReportTurnoverZ'] }, error: null }
+      : n === 'kassa_report_source' ? { data: [], error: null }
+      : { data: { id: 'oud-z', kind: 'Z', report_no: 9, data: {} }, error: null });
+    const o = await makeReport(runtime, { staffId: 'staff-1', employeeId: INSZ }, 'Z');
+    expect(o.ok).toBe(true);
+    const ev = inserts.filter((x) => x.table === 'fiscal_events');
+    expect(ev.map((x) => x.row.mutation)).toEqual(['signReportUserZ']);
+    expect(ev[0].row.cost_center_reference).toBe('oud-z');
+    expect((calls.find((c) => c.name === 'kassa_report_finish')!.args.p as { id: string }).id).toBe('oud-z');
+  });
+
+  it('INSZ van het gebruikersrapport blijft niet op het toestel na het tekenen (review M6b)', async () => {
+    const runtime = new KassaRuntime(device, fiscalSim);
+    rpcImpl = (n) => (n === 'kassa_report_begin' ? { data: { report_no: 3, booking_date: '2026-10-24', period_start: 'a', period_end: 'b', fiscal: true }, error: null }
+      : n === 'kassa_report_source' ? { data: [], error: null }
+      : { data: null, error: { message: 'Failed to fetch' } });
+    const o = await makeReport(runtime, { staffId: 'staff-1', employeeId: INSZ }, 'Z');
+    expect(o.ok && o.pending).toBe(true);
+    const stored = localStorage.getItem(`sq_kassa_fop|${device.tenantId}`)!;
+    expect(stored).not.toContain(INSZ);
+    expect(JSON.parse(stored)[0].signs.every((s: { eventId: string | null }) => !!s.eventId)).toBe(true);
+    rpcImpl = () => ({ data: { ok: true }, error: null });
+    expect((await retryFiscalOps(runtime)).done).toBe(1);
   });
 
   it('zaak met zwarte doos op een kassa zonder: nummer vrijgeven', async () => {
