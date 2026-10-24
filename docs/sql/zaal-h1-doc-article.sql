@@ -1,4 +1,4 @@
--- ZAAL-H1 — helpartikel "Zaalplan en QR-code per tafel". Nog NIET live gedraaid:
+-- ZAAL-H1 — helpartikel "Zaalplan en QR-code per tafel". Live gedraaid op 24-10-2026 (go Akke);
 -- draaien via query_database na de go op ZAAL-H1 (ná de migratie en de deploys).
 -- Let op: live bestaat al 'zaalplan-stoelkeuze' (stoelplan voor events, /admin/events/venues); daarom een
 -- andere titel en een zin die het verschil uitlegt. Idempotent via (doc_level, slug). Categorie = die van "Kassa (POS) gebruiken" (zoals HORECA-0).

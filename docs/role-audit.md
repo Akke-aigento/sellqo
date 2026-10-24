@@ -1,3 +1,34 @@
+## LIVEGANG horeca-reeks — HORECA-0 t/m LIVE-1 live gezet — 24 oktober 2026
+
+Go van Akke ("doorpakken, akkoord") op de go-lijst in projectdoc `claude/kassa-bouwstatus.md`. Buiten scope en dus niet gedaan: FDM-1 (zwarte doos), App Store en Play Store.
+
+**Uitgevoerd**
+- `main` gepusht met de hele reeks (tot `6cc93a3`), daarna `ed64ea1` (zie hieronder).
+- Acht migraties live gedraaid via `query_database`, in volgorde: `20261023200000_horeca_0_client_errors`, `20261024090000_zaal_h1_floor`, `20261024100000_kassa_0_fiscal_events`, `20261024110000_personeel_1_kassa_staff` (Vault-sleutel `kassa_insz_key` aangemaakt), `20261024120000_print_1_printers`, `20261024130000_tafel_1_checks`, `20261024140000_tafel_2_pay`, `20261024150000_live_1_kassa_heartbeat`. Niet geregistreerd in `supabase_migrations.schema_migrations` (zoals de vorige direct gedraaide migraties).
+- Edge functions `storefront-api`, `stripe-connect-webhook` en `cloudprnt` gedeployed via de Lovable-agent (deploy-only, met STOP-regel).
+- Lovable-build meldde TS2345 in `src/kassa/fiscal/simulator/fdmSimulator.ts:81` (nieuwere TS-lib: `Uint8Array` is geen `BufferSource` meer). De agent herstelde niets, zoals gevraagd. Fix in `ed64ea1`: enkel een type-cast, geen gedragswijziging; `KASSA_SW_VERSION` 0.4.0 → 0.4.1. Fiscaal: geen inhoudelijke wijziging aan de kassa-kern, wel een versieverhoging zodat repo en dossier dezelfde versie tonen.
+- Storefront (`sellqo-storefront`): `main` fast-forward naar `zaal-h1` (`144d3d0` HORECA-0, `821b1fe` ZAAL-H1); auto-deploy via GitHub Actions.
+- Vijf helpartikels live (`docs/sql/{horeca-0,zaal-h1,personeel-1,tafel-1,tafel-2}-doc-article.sql`), categorie `a0000001-…006` (Webshop, live nagetrokken). TAFEL-1-artikel vóór het draaien bijgewerkt: "Afrekenen komt in een volgende versie" verwees naar iets dat nu live staat en verwijst nu naar het afrekenartikel.
+- sellqo.app gepubliceerd (`deploy_project`).
+
+**Security-keuzes** — zoals per batch beschreven. Live nagetrokken: `pos_cashiers.pin_hash`/`insz_encrypted` en `fiscal_events.request_body`/`response_body` niet leesbaar voor authenticated/anon; `horeca_apply_one`, `horeca_bump`, `horeca_open_qty`, `horeca_check_json`, `kassa_insz_key`, `horeca_tenant_fiscal` niet uitvoerbaar door authenticated/anon; `horeca_pay` niet door anon. Geen sleutels in migraties (scan op `eyJ`: geen treffers).
+
+**Gedeelde-paden-waarschuwing** — `storefront-api` kreeg enkel een nieuwe actie (`resolve_table`) en een extra optioneel veld; bestaande acties onveranderd. Natrek: VanXcel `get_products` geeft 200 met dezelfde vorm als voorheen. Gedeelde tabellen: `kitchen_tickets` en `orders`/`storefront_carts` alleen additief (nieuwe kolommen, `source`-check uitgebreid met `table`); de 3 bestaande keukenbonnen intact.
+
+**Verificatie**
+- Nulmeting vóór de migraties: geen van de nieuwe tabellen bestond, `kitchen_tickets_source_check` = (webshop, pos, phone), 3 keukenbonnen, 0 kassamedewerkers.
+- Na de migraties: 17 tabellen en 18 functies aanwezig, kolommen en checks zoals verwacht.
+- Rooktest (teruggedraaid, nadien 0 restrijen) op Café De Wissel als platform-admin: ronde 10,40 → 1 keukenbon, claim, afrekenen → kasticket `20261024-0001`, `pos_transactions` 10,40, shift automatisch geopend, rekening gesloten, hartslag geschreven.
+- Gedragsvingerafdruk na de deploy: `storefront-api` `resolve_table` met een nep-token → `TABLE_NOT_FOUND` (vóór de deploy: `Unknown action`); `cloudprnt?health` → `{"version":"PRINT-1"}` (vóór de deploy: 404).
+- `npx vitest run src/kassa`: 229 groen, 1 overgeslagen. tsc met nieuwere lib: 0 fouten in `src/kassa`.
+- Helpartikels: md5 van `content` live = md5 van het bestand, voor alle vijf.
+- CI op `main` en storefront-deploy: zie het verslag aan Akke.
+
+**Bewust ongemoeid / Vervolg**
+- FDM-1 (zwarte doos), App Store en Play Store: later, apart.
+- Geen tenant heeft een terminal op `fdm`, dus nergens fiscaal actief. GKS-plichtige zaken mogen SellQo nog niet als registrerende kassa gebruiken.
+- Open: TAFEL-3, vragen aan de FOD, test-FDM, Lightspeed-export van de klant, Play-account, beslissing prijsgarantie (PRIJSGARANTIE-1).
+
 ## LIVE-1 — toestelhartslag, stresstest, livegangsdraaiboek, startzaalplan — 24 oktober 2026
 
 Branch `tafel-2` (bovenop TAFEL-2); niets live. Ontwerp §6.7 en §8.

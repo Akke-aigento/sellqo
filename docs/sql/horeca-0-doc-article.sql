@@ -1,4 +1,4 @@
--- HORECA-0 — helpartikel "Keukenscherm en bestellen aan tafel". Nog NIET live gedraaid:
+-- HORECA-0 — helpartikel "Keukenscherm en bestellen aan tafel". Live gedraaid op 24-10-2026 (go Akke);
 -- draaien via query_database na de go op HORECA-0 (samen met de deploy).
 -- Idempotent via (doc_level, slug). Categorie = die van "Kassa (POS) gebruiken".
 insert into public.doc_articles (category_id, doc_level, title, slug, excerpt, content, tags, context_path, sort_order, is_published)

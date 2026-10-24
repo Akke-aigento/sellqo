@@ -1,4 +1,4 @@
--- TAFEL-1 — helpartikel "Tafels en rekeningen op de kassa". Nog NIET live gedraaid:
+-- TAFEL-1 — helpartikel "Tafels en rekeningen op de kassa". Live gedraaid op 24-10-2026 (go Akke);
 -- draaien via query_database na de go op TAFEL-1. Idempotent via (doc_level, slug).
 insert into public.doc_articles (category_id, doc_level, title, slug, excerpt, content, tags, context_path, sort_order, is_published)
 values (
@@ -38,7 +38,7 @@ values (
 <p>Alle toestellen van je zaak zien dezelfde rekeningen; wijzigingen verschijnen binnen een paar seconden. Valt het internet weg, dan kan je verder bestellen: bovenaan staat hoeveel handelingen nog wachten, en die gaan vanzelf door zodra de verbinding terug is. Versturen naar de keuken wacht wel op de verbinding.</p>
 
 <h2>Geregistreerde kassa (GKS)</h2>
-<p>Staat je kassa als geregistreerde kassa ingesteld, dan wordt elke ronde, elke annulering, elke verplaatsing van verstuurde lijnen en elke voorlopige rekening eerst ondertekend. Lukt dat niet, dan gebeurt er niets en zie je waarom. Afrekenen komt in een volgende versie.</p>
+<p>Staat je kassa als geregistreerde kassa ingesteld, dan wordt elke ronde, elke annulering, elke verplaatsing van verstuurde lijnen en elke voorlopige rekening eerst ondertekend. Lukt dat niet, dan gebeurt er niets en zie je waarom. Hoe afrekenen werkt, lees je in <strong>Afrekenen op SellQo Kassa</strong>.</p>
 $html$,
   array['kassa','horeca','tafels','rekeningen'],
   '/kassa',

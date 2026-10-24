@@ -1,4 +1,4 @@
--- TAFEL-2 — helpartikel "Afrekenen op de kassa". Nog NIET live gedraaid:
+-- TAFEL-2 — helpartikel "Afrekenen op de kassa". Live gedraaid op 24-10-2026 (go Akke);
 -- draaien via query_database na de go op TAFEL-2. Idempotent via (doc_level, slug).
 insert into public.doc_articles (category_id, doc_level, title, slug, excerpt, content, tags, context_path, sort_order, is_published)
 values (
