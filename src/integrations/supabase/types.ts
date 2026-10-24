@@ -21295,6 +21295,7 @@ export type Database = {
           order_item_id: string
           product_id: string | null
           qr_token: string
+          reminder_sent_at: string | null
           seat_label: string | null
           seq: number | null
           status: string
@@ -21313,6 +21314,7 @@ export type Database = {
           order_item_id: string
           product_id?: string | null
           qr_token: string
+          reminder_sent_at?: string | null
           seat_label?: string | null
           seq?: number | null
           status?: string
@@ -21331,6 +21333,7 @@ export type Database = {
           order_item_id?: string
           product_id?: string | null
           qr_token?: string
+          reminder_sent_at?: string | null
           seat_label?: string | null
           seq?: number | null
           status?: string
