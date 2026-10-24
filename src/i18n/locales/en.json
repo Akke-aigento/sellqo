@@ -9014,7 +9014,8 @@
         "allSettings": "All settings (webshop, SEO …)",
         "close": "Done",
         "extras": "Extras and allergens",
-        "allergenCount": "allergens: {{count}}"
+        "allergenCount": "allergens: {{count}}",
+        "allergens": "Allergens"
       }
     }
   },

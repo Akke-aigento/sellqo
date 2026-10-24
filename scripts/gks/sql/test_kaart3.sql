@@ -64,4 +64,32 @@ set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-0000000000f2';
 select pg_temp.try(format($$select public.kaart_duplicate_product('33333333-3333-3333-3333-333333333333', %L, 'X', '1')$$, :'pils')) = '42501';
 reset role;
 select coalesce(menu_position, -99) = :b2pos from public.products where id = 'eeeeeeee-0000-0000-0000-0000000000b2';
+-- Review: een categorie met enkel producten zonder positie (zoals alle live producten).
+reset role;
+insert into public.categories (id, tenant_id, name, slug) values ('dddddddd-0000-0000-0000-0000000000f7','33333333-3333-3333-3333-333333333333','Oud','oud');
+insert into public.products (tenant_id, name, slug, price, category_id) values
+ ('33333333-3333-3333-3333-333333333333','Cola','cola-oud',2,'dddddddd-0000-0000-0000-0000000000f7'),
+ ('33333333-3333-3333-3333-333333333333','Appelsap','appelsap-oud',2,'dddddddd-0000-0000-0000-0000000000f7'),
+ ('33333333-3333-3333-3333-333333333333','Bitter Lemon','bitter-oud',2,'dddddddd-0000-0000-0000-0000000000f7');
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-0000000000f1';
+-- Nieuw product: achteraan, de rest blijft op naam staan.
+select public.kaart_add_products('33333333-3333-3333-3333-333333333333', '[{"name":"Aardbeiensap","price":"3","category_id":"dddddddd-0000-0000-0000-0000000000f7"}]') is not null;
+select string_agg(name, ',' order by menu_position) = 'Appelsap,Bitter Lemon,Cola,Aardbeiensap' from public.products where category_id = 'dddddddd-0000-0000-0000-0000000000f7';
+-- Dupliceren van Bitter Lemon: kopie net eronder, niets springt.
+select public.kaart_duplicate_product('33333333-3333-3333-3333-333333333333', (select id from public.products where slug = 'bitter-oud'), 'Bitter Lemon groot', '3') is not null;
+select string_agg(name, ',' order by menu_position) = 'Appelsap,Bitter Lemon,Bitter Lemon groot,Cola,Aardbeiensap' from public.products where category_id = 'dddddddd-0000-0000-0000-0000000000f7';
+-- Verplaatsen naar Van het vat: achteraan daar.
+select public.kaart_bulk_update('33333333-3333-3333-3333-333333333333', array[(select id from public.products where slug = 'cola-oud')], jsonb_build_object('category_id', :'vat')) >= 1;
+select name = 'Cola' from public.products where category_id = :'vat' order by menu_position desc limit 1;
+-- Guard: marketing mag de afhaal-btw niet wijzigen, staff wel.
+reset role;
+drop trigger if exists trg_guard_product_commercial_fields on public.products;
+create trigger trg_guard_product_commercial_fields before update on public.products for each row execute function public.guard_product_commercial_fields();
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-0000000000f2';
+select pg_temp.try(format($$update public.products set takeaway_vat_rate_id = 'cccccccc-0000-0000-0000-0000000f0006' where id = %L$$, :'pils')) = '42501';
+select pg_temp.try(format($$update public.products set name = 'Pils klein' where id = %L$$, :'pils')) = 'ok';
+set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-0000000000f1';
+select pg_temp.try(format($$update public.products set takeaway_vat_rate_id = 'cccccccc-0000-0000-0000-0000000f0006' where id = %L$$, :'pils')) = 'ok';
+reset role;
+drop trigger trg_guard_product_commercial_fields on public.products;
 \echo KAART-3: alle tests geslaagd

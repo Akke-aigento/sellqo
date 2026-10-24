@@ -9028,7 +9028,8 @@
         "allSettings": "Усі налаштування (вебмагазин, SEO …)",
         "close": "Готово",
         "extras": "Доповнення та алергени",
-        "allergenCount": "алергенів: {{count}}"
+        "allergenCount": "алергенів: {{count}}",
+        "allergens": "Алергени"
       }
     }
   },

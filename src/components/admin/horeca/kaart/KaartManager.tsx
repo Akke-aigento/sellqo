@@ -6,7 +6,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, ChevronRight, CircleSlash, ClipboardPaste, FolderPlus, GripVertical, ImageIcon, Loader2, Plus, Search, Settings2, Sparkles, X } from 'lucide-react';
-import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { toast } from 'sonner';
@@ -35,6 +35,7 @@ export function KaartManager() {
   // guard_product_commercial_fields). Marketing mag naam, kanalen en zichtbaarheid aanpassen.
   const roles = useScopedRoles();
   const canFull = canEdit && !!roles?.some((r) => r === 'platform_admin' || r === 'tenant_admin' || r === 'staff');
+  const canAddons = canEdit && !!roles?.some((r) => r === 'platform_admin' || r === 'tenant_admin');
   const { data, isLoading } = useKaart();
   const m = useKaartMutations();
   const vat = useKaartVat();
@@ -48,8 +49,8 @@ export function KaartManager() {
   const qc = useQueryClient();
   const { currentTenant } = useTenant();
   const sensors = useSensors(
+    // Enkel de greep sleept (touch-none), dus één pointer-sensor volstaat voor muis en touch.
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 180, tolerance: 6 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
 
@@ -74,15 +75,17 @@ export function KaartManager() {
 
   // Slepen: meteen tonen (optimistisch), dan bewaren. Bij een fout ververst de lijst vanzelf.
   type KaartData = { categories: KaartCategory[]; products: KaartProduct[] };
-  const reorderProducts = (catId: string | null, ev: DragEndEvent) => {
+  // inCat = precies de producten van die sectie (ook "zonder categorie").
+  const reorderProducts = (inCat: KaartProduct[], ev: DragEndEvent) => {
     const { active, over } = ev;
     if (!over || active.id === over.id) return;
-    const inCat = products.filter((p) => (p.category_id ?? null) === catId);
     const from = inCat.findIndex((p) => p.id === active.id);
     const to = inCat.findIndex((p) => p.id === over.id);
     if (from < 0 || to < 0) return;
     const ordered = arrayMove(inCat, from, to);
     const pos = new Map(ordered.map((p, i) => [p.id, i]));
+    // Lopende verversing stoppen, anders springt een tweede sleepactie even terug.
+    void qc.cancelQueries({ queryKey: kaartKey(currentTenant?.id) });
     qc.setQueryData<KaartData>(kaartKey(currentTenant?.id), (d) => d && ({
       ...d, products: d.products.map((p) => (pos.has(p.id) ? { ...p, menu_position: pos.get(p.id)! } : p)).sort((a, b) =>
         (a.menu_position ?? 1e9) - (b.menu_position ?? 1e9) || a.name.localeCompare(b.name, 'nl')),
@@ -96,6 +99,7 @@ export function KaartManager() {
     const to = categories.findIndex((c) => c.id === over.id);
     if (from < 0 || to < 0) return;
     const ordered = arrayMove(categories, from, to);
+    void qc.cancelQueries({ queryKey: kaartKey(currentTenant?.id) });
     qc.setQueryData<KaartData>(kaartKey(currentTenant?.id), (d) => d && ({ ...d, categories: ordered.map((c, i) => ({ ...c, sort_order: i })) }));
     m.reorder.mutate({ kind: 'categories', ids: ordered.map((c) => c.id) }, { onError: fail });
   };
@@ -162,7 +166,7 @@ export function KaartManager() {
               </div>
             );
             const body = open ? (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(ev) => reorderProducts(cat?.id ?? null, ev)}>
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(ev) => reorderProducts(items, ev)}>
                 <SortableContext items={ids} strategy={verticalListSortingStrategy}>
                   <div className="divide-y">
                     {items.map((p) => (
@@ -194,7 +198,7 @@ export function KaartManager() {
       ) : null}
 
       {openId ? (
-        <KaartProductSheet product={products.find((p) => p.id === openId) ?? null} categories={categories} canEdit={canEdit} canFull={canFull}
+        <KaartProductSheet product={products.find((p) => p.id === openId) ?? null} categories={categories} canEdit={canEdit} canFull={canFull} canAddons={canAddons}
           onClose={() => setOpenId(null)} onOpen={setOpenId} onError={fail} />
       ) : null}
 

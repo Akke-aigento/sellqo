@@ -11,7 +11,13 @@
 -- een vaste kolomlijst of select('*'), een extra getal verandert geen bestaand contract),
 -- twee nieuwe functies en kaart_add_products opnieuw gedefinieerd (zelfde signatuur).
 --
+-- Ook: kaart_fill_positions (intern), kaart_bulk_update opnieuw (verplaatsen = achteraan) en
+-- guard_product_commercial_fields met takeaway_vat_rate_id erbij.
+--
 -- Handmatig terugdraaien:
+--   drop function if exists public.kaart_fill_positions(uuid, uuid);
+--   kaart_bulk_update: de versie uit 20261024180000 opnieuw draaien;
+--   guard_product_commercial_fields: de regel met takeaway_vat_rate_id weghalen;
 --   drop function if exists public.kaart_reorder(uuid, text, uuid[]);
 --   drop function if exists public.kaart_duplicate_product(uuid, uuid, text, text);
 --   kaart_add_products: de versie uit 20261024180000 opnieuw draaien.
@@ -20,6 +26,29 @@
 alter table public.products add column if not exists menu_position integer;
 comment on column public.products.menu_position is 'KAART-3: volgorde binnen de categorie op de Kaart en de kassa; null = achteraan, op naam.';
 create index if not exists products_tenant_menu_position on public.products (tenant_id, category_id, menu_position);
+
+-- ── Posities vastzetten (intern) ────────────────────────────────────────────────────────
+-- Producten van vóór KAART-3 hebben geen positie (null = achteraan, op naam). Vóór we iets
+-- toevoegen, dupliceren of verplaatsen, zetten we die volgorde in die ene categorie vast:
+-- na de bestaande posities, op naam. Zo verandert er niets aan wat de uitbater ziet, en komt
+-- een nieuw product echt achteraan. Enkel aanroepbaar vanuit de kaart_*-functies.
+create or replace function public.kaart_fill_positions(p_tenant_id uuid, p_category_id uuid)
+returns void
+language sql
+security definer
+set search_path to ''
+as $$
+  with base as (
+    select coalesce(max(pr.menu_position), -1) as m from public.products pr
+      where pr.tenant_id = p_tenant_id and pr.category_id is not distinct from p_category_id
+  ), todo as (
+    select pr.id, row_number() over (order by pr.name, pr.id) as rn from public.products pr
+      where pr.tenant_id = p_tenant_id and pr.category_id is not distinct from p_category_id and pr.menu_position is null
+  )
+  update public.products pr set menu_position = base.m + todo.rn
+    from todo, base where pr.id = todo.id;
+$$;
+revoke all on function public.kaart_fill_positions(uuid, uuid) from public, anon, authenticated;
 
 -- ── Volgorde zetten ─────────────────────────────────────────────────────────────────────
 -- p_kind 'products': p_ids in de gewenste volgorde (één categorie tegelijk, zoals de Kaart
@@ -102,18 +131,14 @@ begin
     v_slug := v_base || '-' || v_n;
   end loop;
 
-  -- Net onder het origineel: wat erna komt, schuift één plaats op.
-  if src.menu_position is null then
-    select coalesce(max(pr.menu_position), -1) + 1 into v_pos from public.products pr
-      where pr.tenant_id = p_tenant_id and pr.category_id is not distinct from src.category_id;
-    update public.products set menu_position = v_pos where id = src.id;
-    v_pos := v_pos + 1;
-  else
-    v_pos := src.menu_position + 1;
-    update public.products pr set menu_position = pr.menu_position + 1
-      where pr.tenant_id = p_tenant_id and pr.category_id is not distinct from src.category_id
-        and pr.menu_position >= v_pos and pr.id <> src.id;
-  end if;
+  -- Net onder het origineel: eerst de volgorde van die categorie vastzetten, dan wat erna
+  -- komt één plaats opschuiven.
+  perform public.kaart_fill_positions(p_tenant_id, src.category_id);
+  select pr.menu_position into v_pos from public.products pr where pr.id = src.id;
+  v_pos := v_pos + 1;
+  update public.products pr set menu_position = pr.menu_position + 1
+    where pr.tenant_id = p_tenant_id and pr.category_id is not distinct from src.category_id
+      and pr.menu_position >= v_pos and pr.id <> src.id;
 
   insert into public.products (tenant_id, name, slug, price, category_id, vat_rate_id, takeaway_vat_rate_id,
       is_active, track_inventory, requires_shipping, channels, allergens, dietary, description, short_description,
@@ -192,7 +217,9 @@ begin
       v_slug := v_base || '-' || v_n;
     end loop;
     -- Zoals de bestaande horecaproducten: geen voorraad, geen verzending.
-    -- KAART-3: achteraan in de eigen categorie (volgorde van de Kaart = volgorde op de kassa).
+    -- KAART-3: achteraan in de eigen categorie (volgorde van de Kaart = volgorde op de kassa);
+    -- producten zonder positie krijgen eerst hun huidige plaats (op naam).
+    perform public.kaart_fill_positions(p_tenant_id, v_cat);
     insert into public.products (tenant_id, name, slug, price, category_id, vat_rate_id, takeaway_vat_rate_id, is_active, track_inventory, requires_shipping, menu_position)
       values (p_tenant_id, v_name, v_slug, v_price, v_cat, v_vat, v_take, true, false, false,
         (select coalesce(max(pr.menu_position), -1) + 1 from public.products pr where pr.tenant_id = p_tenant_id and pr.category_id is not distinct from v_cat))
@@ -209,3 +236,156 @@ end;
 $$;
 revoke all on function public.kaart_add_products(uuid, jsonb) from public, anon;
 grant execute on function public.kaart_add_products(uuid, jsonb) to authenticated;
+
+-- ── Bulk: verplaatsen zet het product achteraan in de nieuwe categorie ─────────────────
+create or replace function public.kaart_bulk_update(p_tenant_id uuid, p_ids uuid[], p jsonb)
+returns int
+language plpgsql
+security definer
+set search_path to ''
+as $$
+declare
+  v_ids uuid[];
+  v_mode text;
+  v_value numeric;
+  v_cat uuid;
+  v_count int := 0;
+  v_rows int;
+begin
+  if not public.has_tenant_role(p_tenant_id, array['tenant_admin', 'staff']::public.app_role[]) then
+    raise exception 'geen toegang' using errcode = '42501';
+  end if;
+  if p_ids is null or cardinality(p_ids) < 1 or cardinality(p_ids) > 500 then
+    raise exception 'selectie: 1 tot 500 producten' using errcode = '22023';
+  end if;
+  if jsonb_typeof(coalesce(p, 'null'::jsonb)) <> 'object' then
+    raise exception 'geen wijziging' using errcode = '22023';
+  end if;
+  -- Enkel producten van deze zaak; de rest wordt stil genegeerd.
+  select array_agg(pr.id) into v_ids from public.products pr where pr.id = any(p_ids) and pr.tenant_id = p_tenant_id;
+  if v_ids is null then return 0; end if;
+
+  if p ? 'price' then
+    v_mode := p -> 'price' ->> 'mode';
+    if coalesce(p -> 'price' ->> 'value', '') !~ '^-?[0-9]{1,5}(\.[0-9]{1,4})?$' then
+      raise exception 'ongeldige prijswijziging' using errcode = '22023';
+    end if;
+    v_value := (p -> 'price' ->> 'value')::numeric;
+    if v_mode = 'set' then
+      if v_value < 0 then raise exception 'prijs mag niet negatief zijn' using errcode = '22023'; end if;
+      update public.products set price = round(v_value, 2) where id = any(v_ids) and price is distinct from round(v_value, 2);
+    elsif v_mode = 'add' then
+      -- Nooit stil op € 0 zetten: dan liever niets wijzigen en het zeggen.
+      if exists (select 1 from public.products where id = any(v_ids) and price + v_value < 0) then
+        raise exception 'een of meer producten zouden onder € 0 gaan' using errcode = '22023';
+      end if;
+      update public.products set price = round(price + v_value, 2) where id = any(v_ids) and v_value <> 0;
+    elsif v_mode = 'percent' then
+      if v_value <= -100 or v_value > 1000 then raise exception 'percentage tussen -99 en 1000' using errcode = '22023'; end if;
+      update public.products set price = round(price * (1 + v_value / 100), 2) where id = any(v_ids) and v_value <> 0;
+    else
+      raise exception 'onbekende prijswijziging' using errcode = '22023';
+    end if;
+    get diagnostics v_rows = row_count; v_count := greatest(v_count, v_rows);
+  end if;
+
+  if p ? 'is_active' then
+    if jsonb_typeof(p -> 'is_active') <> 'boolean' then raise exception 'is_active: waar of onwaar' using errcode = '22023'; end if;
+    update public.products set is_active = (p ->> 'is_active')::boolean where id = any(v_ids) and is_active is distinct from (p ->> 'is_active')::boolean;
+    get diagnostics v_rows = row_count; v_count := greatest(v_count, v_rows);
+  end if;
+
+  if p ? 'category_id' then
+    if coalesce(p ->> 'category_id', '') !~ '^[0-9a-f-]{36}$' then raise exception 'ongeldige categorie' using errcode = '22023'; end if;
+    select c.id into v_cat from public.categories c where c.id = (p ->> 'category_id')::uuid and c.tenant_id = p_tenant_id;
+    if v_cat is null then raise exception 'onbekende categorie' using errcode = '22023'; end if;
+    -- KAART-3: een verplaatst product komt achteraan in zijn nieuwe categorie.
+    perform public.kaart_fill_positions(p_tenant_id, v_cat);
+    with moved as (
+      select pr.id, row_number() over (order by pr.menu_position nulls last, pr.name) as rn
+        from public.products pr where pr.id = any(v_ids) and pr.category_id is distinct from v_cat
+    ), base as (
+      select coalesce(max(x.menu_position), -1) as m from public.products x where x.tenant_id = p_tenant_id and x.category_id = v_cat
+    )
+    update public.products pr set category_id = v_cat, menu_position = base.m + moved.rn
+      from moved, base where pr.id = moved.id;
+    get diagnostics v_rows = row_count; v_count := greatest(v_count, v_rows);
+    -- Koppeltabel: de oude primaire categorie eruit, de nieuwe als primaire erin.
+    delete from public.product_categories pc where pc.product_id = any(v_ids) and (pc.is_primary or pc.category_id = v_cat);
+    insert into public.product_categories (product_id, category_id, is_primary, sort_order)
+      select x, v_cat, true, 0 from unnest(v_ids) x
+      on conflict (product_id, category_id) do update set is_primary = true;
+  end if;
+
+  if coalesce((p ->> 'apply_category_vat')::boolean, false) then
+    -- Enkel waar de categorie een standaard heeft; een lege standaard wist niets.
+    update public.products pr set
+        vat_rate_id = coalesce(c.default_vat_rate_id, pr.vat_rate_id),
+        takeaway_vat_rate_id = coalesce(c.default_takeaway_vat_rate_id, pr.takeaway_vat_rate_id)
+      from public.categories c
+      where pr.id = any(v_ids) and c.id = pr.category_id and c.tenant_id = p_tenant_id
+        and (pr.vat_rate_id is distinct from coalesce(c.default_vat_rate_id, pr.vat_rate_id)
+          or pr.takeaway_vat_rate_id is distinct from coalesce(c.default_takeaway_vat_rate_id, pr.takeaway_vat_rate_id));
+    get diagnostics v_rows = row_count; v_count := greatest(v_count, v_rows);
+  end if;
+
+  return v_count;
+end;
+$$;
+revoke all on function public.kaart_bulk_update(uuid, uuid[], jsonb) from public, anon;
+grant execute on function public.kaart_bulk_update(uuid, uuid[], jsonb) to authenticated;
+
+-- ── Guard: ook de afhaal-btw is een commercieel veld ────────────────────────────────────
+-- Zelfde functie als live (md5 6295917d… op 24-10 nagetrokken), met takeaway_vat_rate_id
+-- erbij: marketing/warehouse mochten die tot nu via de API wijzigen, en horeca_apply rekent
+-- ermee. De trigger trg_guard_product_commercial_fields blijft dezelfde.
+create or replace function public.guard_product_commercial_fields()
+ returns trigger
+ language plpgsql
+ security definer
+ set search_path to 'public'
+as $function$
+DECLARE
+  v_beperkt boolean;
+BEGIN
+  -- Server-to-server (edge functions, cron, imports) heeft geen auth.uid():
+  -- die paden blijven ongemoeid, net als in de SEC-0b-conventie.
+  IF auth.uid() IS NULL OR public.is_platform_admin(auth.uid()) THEN
+    RETURN NEW;
+  END IF;
+
+  -- Ruim-naar-smal: wie tenant_admin of staff is, mag alles.
+  IF public.has_tenant_role(NEW.tenant_id, ARRAY['tenant_admin'::app_role, 'staff'::app_role]) THEN
+    RETURN NEW;
+  END IF;
+
+  v_beperkt := public.has_tenant_role(NEW.tenant_id, ARRAY['marketing'::app_role, 'warehouse'::app_role]);
+  IF NOT v_beperkt THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.price IS DISTINCT FROM OLD.price
+     OR NEW.compare_at_price IS DISTINCT FROM OLD.compare_at_price
+     OR NEW.cost_price IS DISTINCT FROM OLD.cost_price
+     OR NEW.vat_rate_id IS DISTINCT FROM OLD.vat_rate_id
+     OR NEW.takeaway_vat_rate_id IS DISTINCT FROM OLD.takeaway_vat_rate_id THEN
+    RAISE EXCEPTION 'Prijsvelden mogen niet met deze rol gewijzigd worden'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF NEW.sku IS DISTINCT FROM OLD.sku
+     OR NEW.barcode IS DISTINCT FROM OLD.barcode THEN
+    RAISE EXCEPTION 'Artikelnummer en barcode mogen niet met deze rol gewijzigd worden'
+      USING ERRCODE = '42501';
+  END IF;
+
+  IF (NEW.stock IS DISTINCT FROM OLD.stock
+      OR NEW.low_stock_threshold IS DISTINCT FROM OLD.low_stock_threshold)
+     AND NOT public.has_tenant_role(NEW.tenant_id, ARRAY['warehouse'::app_role]) THEN
+    RAISE EXCEPTION 'Voorraad mag niet met deze rol gewijzigd worden'
+      USING ERRCODE = '42501';
+  END IF;
+
+  RETURN NEW;
+END;
+$function$;

@@ -1,3 +1,80 @@
+## KAART-3 + KASSA-0.6.1 — productpaneel op de Kaart, volgorde slepen, maat toevoegen; de kassa volgt de Kaart — 24 oktober 2026
+
+Op vraag van Akke (24-10, 17:33: "moet volledige overlay worden … denk als een barman … niet denken maar doen"; go 19:34: "kassa etc moet 100% zijn"). Branch `kaart-3`.
+
+**Aanleiding**
+- Het potloodje op de Kaart stuurde je naar `ProductForm.tsx` (2.200 lijnen, webshopvelden).
+- De kassa sorteerde alfabetisch: `useCatalog` deed `.order('name')` en `products` had geen volgordekolom.
+- Een nieuwe maat ("Pils 33cl") betekende alles opnieuw intikken.
+- Categorieën waren niet te ordenen vanuit de Kaart.
+
+**Uitgevoerd**
+- `supabase/migrations/20261024200000_kaart_3_menu_order.sql`:
+  - `products.menu_position` (nullable int) en een index `(tenant_id, category_id, menu_position)`;
+  - `kaart_fill_positions` (intern): legt de huidige volgorde (op naam) van producten zonder positie vast, per categorie;
+  - `kaart_reorder` (producten of categorieën);
+  - `kaart_duplicate_product`: kopie net onder het origineel, met categorie, btw, kanalen, allergenen, foto, beschrijving, eigen extra's en eigen post;
+  - `kaart_add_products` en `kaart_bulk_update` opnieuw: een nieuw of verplaatst product komt achteraan in zijn categorie;
+  - `guard_product_commercial_fields` + `takeaway_vat_rate_id`.
+- `KaartProductSheet.tsx` (nieuw): alles van één product in een paneel. Alles wordt meteen bewaard, ook bij sluiten.
+  - Bovenaan: naam, prijs met −/+0,10, op, zichtbaar.
+  - Daaronder: categorie, foto (camera of galerij), waar te koop, korte beschrijving.
+  - Ingeklapt: extra's en allergenen, plus "Meer" met de btw per product.
+  - "Maat of kopie toevoegen".
+  - Eén link "Alle instellingen". Een grote sluitknop, en geen autofocus (geen toetsenbord bij het openen).
+- `KaartManager.tsx`:
+  - sleepgreep per product en per categorie (@dnd-kit, optimistisch);
+  - tik op de naam = paneel;
+  - de rij is vereenvoudigd: kanalen enkel nog in het paneel, op een gsm één lijn per product.
+- `useKaart.ts`: optimistische product-update, `reorder`, `duplicate`.
+- KASSA-0.6.1:
+  - `src/kassa/app/horeca/useCatalog.ts`: `sortCatalog` (categorievolgorde, dan `menu_position`, dan naam), categorieën op `sort_order` en dan naam;
+  - `version.ts` → `sellqo-kassa-0.6.1`;
+  - test in `kassa06.test.ts`.
+- i18n `admin.kaart.sheet.*`, `dragProduct`/`dragCategory`/`openProduct` in nl/en/fr/de/uk.
+- Changelog `2026.13u` (`horeca_menu_panel`) en nieuwsbrief.
+- `docs/sql/kaart-3-doc-article.sql`: helpartikel "De Kaart" bijgewerkt.
+
+**Security-keuzes**
+- `kaart_reorder` en `kaart_duplicate_product` zijn `security definer`:
+  - `has_tenant_role(tenant_admin, staff)` vooraan;
+  - tenant-begrensd (vreemde id's worden genegeerd);
+  - `search_path ''`;
+  - geen execute voor anon.
+- `kaart_fill_positions` kan niemand rechtstreeks aanroepen (revoked voor public, anon en authenticated).
+- De guard sluit een bestaand gat: marketing/warehouse konden via de API de afhaal-btw wijzigen, waarmee `horeca_apply` rekent.
+- In het paneel ziet marketing geen prijs, btw, categorie, slepen of maat toevoegen. Extra's ziet enkel de beheerder, want de RLS op `product_addon_groups` laat enkel tenant_admin toe.
+
+**Gedeelde-paden-waarschuwing**
+- `menu_position` is een extra nullable kolom op `products`. Geen enkele storefront-functie leest `products` met `select('*')`, en geen andere code gebruikt de kolom.
+- Categorieën slepen schrijft `categories.sort_order`. Dat is dezelfde volgorde als in de webshop en het QR-menu, en dat is gewenst (vermeld in het helpartikel).
+- Geen nieuwe FK, dus geen risico op dubbelzinnige embeds (les TAFEL-3).
+
+**Verificatie**
+- `scripts/gks/sql/run.sh`: alle suites groen, migraties twee keer gedraaid. `test_kaart3.sql` dekt:
+  - volgorde;
+  - dupliceren (koppelingen, post, positie, product zonder positie);
+  - categorieën slepen;
+  - een categorie met enkel null-posities (nieuw product achteraan, dupliceren zonder sprong, verplaatsen naar achteraan);
+  - de guard (marketing geweigerd, staff mag);
+  - weigeringen.
+- Vitest: 280 groen, 1 overgeslagen. `tsc`, `build`, `build:kassa`, lint, `check-i18n-used-keys` en `i18n-parity`: groen.
+- Preview met nepdata op 390 en 1280 px (geen horizontale scroll):
+  - slepen van Kriek naar boven stuurt `kaart_reorder` met de juiste volgorde;
+  - het paneel opent, +0,10 werkt, en het formulier "maat toevoegen" werkt.
+- Review-agent:
+  - ronde 1: 0 blokkerend, 6 middel, 9 klein. Alles verwerkt, o.a. de null-posities (een nieuw product zou live bovenaan springen), snel tikken op ±0,10, bewaren bij sluiten, dode allergenen/extra's-knoppen en het guard-gat voor de afhaal-btw.
+  - ronde 2: zie onder.
+
+**Samenhang**
+- Het potloodje naar `ProductForm` is weg. Het paneel heeft één link "Alle instellingen" als tweede plek.
+- `ProductAllergensCard` en `ProductAddonsCard` worden hergebruikt in het paneel. Het blijven dezelfde componenten als in het productformulier: één logica.
+- Kanalen staan niet langer in de rij én in het paneel, enkel nog in het paneel.
+
+**Bewust ongemoeid / Vervolg**
+- De webshop en het QR-menu sorteren producten binnen een categorie nog niet op `menu_position` (storefront-api, gedeeld pad). Dat is een aparte batch als Akke het wil.
+- "Foto weg" haalt de foto ook uit `images` (dus ook uit de webshop-galerij). Dat is bewust: één foto per horecaproduct.
+
 ## KAART-1/2 + KASSA-0.6 — de horeca-Kaart (snel producten, startkaart, plakken, foto) en product aanpassen op de kassa — 24 oktober 2026
 
 Branch `kaart-1`, op vraag van Akke (24-10, 15:47: "lets go", aparte maten als aparte producten, foto-import met credits, startkaart, kassa-bewerking). Commits `ec4c42c` (KAART-1/2) en `539ade3` (KASSA-0.6, fiscale release `sellqo-kassa-0.6.0`).

@@ -130,7 +130,17 @@ export function useKaartMutations() {
     onSettled: refresh,
   });
 
+  // Optimistisch: de Kaart (en ±0,10 in het paneel) rekent meteen verder met de nieuwe waarde,
+  // ook als je snel na elkaar tikt. Bij een fout zet onError de oude lijst terug.
   const updateProduct = useMutation({
+    onMutate: async ({ id, patch }: { id: string; patch: Partial<KaartProduct> }) => {
+      const key = kaartKey(tenantId);
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData<{ categories: KaartCategory[]; products: KaartProduct[] }>(key);
+      if (prev) qc.setQueryData(key, { ...prev, products: prev.products.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
+      return { prev };
+    },
+    onError: (_e, _v, c) => { if (c?.prev) qc.setQueryData(kaartKey(tenantId), c.prev); },
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<KaartProduct, 'name' | 'price' | 'is_active' | 'channels' | 'short_description' | 'featured_image' | 'images' | 'vat_rate_id' | 'takeaway_vat_rate_id'>> }) => {
       const { error } = await supabase.from('products').update(patch as never).eq('id', id).eq('tenant_id', tenantId!);
       if (error) throw error;

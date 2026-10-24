@@ -8741,7 +8741,8 @@
         "allSettings": "Tous les réglages (boutique, SEO …)",
         "close": "Terminé",
         "extras": "Suppléments et allergènes",
-        "allergenCount": "allergènes : {{count}}"
+        "allergenCount": "allergènes : {{count}}",
+        "allergens": "Allergènes"
       }
     }
   },

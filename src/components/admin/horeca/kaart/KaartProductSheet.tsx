@@ -29,6 +29,8 @@ interface Props {
   canEdit: boolean;
   /** Prijs, btw, categorie en maat toevoegen: enkel beheerder of medewerker. */
   canFull: boolean;
+  /** Extra's koppelen: enkel de beheerder (RLS op product_addon_groups). */
+  canAddons: boolean;
   onClose: () => void;
   /** Na "Maat toevoegen": het nieuwe product openen. */
   onOpen: (id: string) => void;
@@ -37,7 +39,7 @@ interface Props {
 
 const cents = (n: number) => Math.round(n * 100);
 
-export function KaartProductSheet({ product, categories, canEdit, canFull, onClose, onOpen, onError }: Props) {
+export function KaartProductSheet({ product, categories, canEdit, canFull, canAddons, onClose, onOpen, onError }: Props) {
   const { t, i18n } = useTranslation();
   const m = useKaartMutations();
   const vat = useKaartVat();
@@ -71,6 +73,21 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, onClo
 
   if (!product) return null;
   const p = product;
+  // Sluiten (kruisje, Escape, naast het paneel tikken) bewaart eerst wat nog getypt staat:
+  // daar komt geen blur meer.
+  const close = () => {
+    const v = name.trim().slice(0, 150);
+    const patch: Parameters<typeof m.updateProduct.mutate>[0]['patch'] = {};
+    if (canEdit && v && v !== p.name) patch.name = v;
+    const d = desc.trim();
+    if (canEdit && d !== (p.short_description ?? '')) patch.short_description = d || null;
+    const n = priceFromInput(price);
+    if (canFull && n !== null && Number(n) !== p.price) patch.price = Number(n);
+    if (Object.keys(patch).length) m.updateProduct.mutate({ id: p.id, patch }, { onError });
+    // Allergenen bewaart hun eigen kaart; de teller in de Kaart ververst hier.
+    void qc.invalidateQueries({ queryKey: ['kaart'] });
+    onClose();
+  };
   const out = isSoldOutNow(p.sold_out_until);
   const channels = p.channels ?? [...CHANNELS];
   const save = (patch: Parameters<typeof m.updateProduct.mutate>[0]['patch']) => m.updateProduct.mutate({ id: p.id, patch }, { onError });
@@ -108,7 +125,13 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, onClo
     const n = priceFromInput(size.price);
     if (!size.name.trim() || n === null) { toast.error(t('admin.kaart.badPrice')); return; }
     m.duplicate.mutate({ id: p.id, name: size.name.trim(), price: n }, {
-      onSuccess: (r) => { toast.success(t('admin.kaart.sheet.sizeAdded', { name: size.name.trim() })); setSize(null); onOpen(r.id); },
+      // Eerst de lijst ophalen, dan het nieuwe product openen (anders knippert het paneel).
+      onSuccess: async (r) => {
+        toast.success(t('admin.kaart.sheet.sizeAdded', { name: size.name.trim() }));
+        setSize(null);
+        await qc.refetchQueries({ queryKey: ['kaart'] });
+        onOpen(r.id);
+      },
       onError,
     });
   };
@@ -117,7 +140,7 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, onClo
     .sort((a, b) => Number(b.rate) - Number(a.rate));
 
   return (
-    <Sheet open onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Sheet open onOpenChange={(o) => { if (!o) close(); }}>
       {/* Eigen, grote sluitknop (de standaard is te klein voor een toogvinger en zat achter de kop). */}
       <SheetContent side="right" onOpenAutoFocus={(e) => e.preventDefault()} className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-lg [&>button.absolute]:hidden">
         <SheetHeader className="sticky top-0 z-10 space-y-3 border-b bg-background p-4 text-left">
@@ -127,7 +150,7 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, onClo
             <Input value={name} disabled={!canEdit} maxLength={150} aria-label={t('admin.kaart.col.name')} onChange={(e) => setName(e.target.value)}
               onBlur={commitName} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
               className="h-12 min-w-0 flex-1 text-xl font-semibold" />
-            <Button type="button" variant="ghost" size="icon" className="h-12 w-12 shrink-0" onClick={onClose} aria-label={t('admin.kaart.sheet.close')}>
+            <Button type="button" variant="ghost" size="icon" className="h-12 w-12 shrink-0" onClick={close} aria-label={t('admin.kaart.sheet.close')}>
               <X className="h-6 w-6" />
             </Button>
           </div>
@@ -191,7 +214,7 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, onClo
                   </Button>
                 ) : null}
               </div>
-              <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden"
+              <input ref={fileRef} type="file" accept="image/*" className="hidden"
                 onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) void onPhoto(f); }} />
             </div>
           </section>
@@ -218,19 +241,20 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, onClo
               onBlur={() => { const v = desc.trim(); if (v !== (p.short_description ?? '')) save({ short_description: v || null }); }} />
           </section>
 
-          {/* Extra's en allergenen: zelden nodig aan de toog, dus ingeklapt. */}
-          <section className="rounded-lg border">
-            <button type="button" onClick={() => setExtras((v) => !v)} aria-expanded={extras} className="flex min-h-11 w-full items-center justify-between px-3 text-left text-sm font-semibold">
-              <span>{t('admin.kaart.sheet.extras')}{(p.allergens?.length ?? 0) > 0 ? <span className="ml-2 font-normal text-muted-foreground">{t('admin.kaart.sheet.allergenCount', { count: p.allergens!.length })}</span> : null}</span>
+          {/* Extra's en allergenen: zelden nodig aan de toog, dus ingeklapt. Enkel voor wie mag
+              bewerken; extra's koppelen enkel de beheerder (RLS op product_addon_groups). */}
+          {canEdit ? <section className="rounded-lg border">
+            <button type="button" onClick={() => { if (extras) void qc.invalidateQueries({ queryKey: ['kaart'] }); setExtras((v) => !v); }} aria-expanded={extras} className="flex min-h-11 w-full items-center justify-between px-3 text-left text-sm font-semibold">
+              <span>{t(canAddons ? 'admin.kaart.sheet.extras' : 'admin.kaart.sheet.allergens')}{(p.allergens?.length ?? 0) > 0 ? <span className="ml-2 font-normal text-muted-foreground">{t('admin.kaart.sheet.allergenCount', { count: p.allergens!.length })}</span> : null}</span>
               <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', extras && 'rotate-180')} />
             </button>
             {extras ? (
               <div className="space-y-4 border-t p-3">
-                <ProductAddonsCard productId={p.id} categoryIds={p.category_id ? [p.category_id] : []} />
+                {canAddons ? <ProductAddonsCard productId={p.id} categoryIds={p.category_id ? [p.category_id] : []} /> : null}
                 <ProductAllergensCard productId={p.id} />
               </div>
             ) : null}
-          </section>
+          </section> : null}
 
           {canFull ? (
             <section className="space-y-3 rounded-lg border p-3">

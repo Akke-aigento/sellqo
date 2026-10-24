@@ -39,7 +39,7 @@ values (
 </ul>
 
 <h2>De volgorde kies je zelf</h2>
-<p>Sleep een product aan het greepje links (de zes puntjes) naar boven of beneden binnen zijn categorie. Categorieën sleep je aan het greepje in hun kop. Dit is ook de volgorde op SellQo Kassa: zet je meest getapte dranken bovenaan.</p>
+<p>Sleep een product aan het greepje links (de zes puntjes) naar boven of beneden binnen zijn categorie. Categorieën sleep je aan het greepje in hun kop. Dit is ook de volgorde op SellQo Kassa: zet je meest getapte dranken bovenaan. De volgorde van de categorieën geldt ook voor je webshop en QR-menu.</p>
 
 <h2>Btw per categorie</h2>
 <p>Klik op het tandwiel naast een categorie en kies de btw <em>ter plaatse</em> en <em>bij meenemen</em>. Nieuwe producten in die categorie nemen die tarieven over. Bestaande producten veranderen pas als je op <strong>Toepassen op de producten in deze categorie</strong> klikt. Laat de tarieven nakijken door je boekhouder.</p>

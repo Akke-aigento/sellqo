@@ -9028,7 +9028,8 @@
         "allSettings": "Alle instellingen (webshop, SEO …)",
         "close": "Klaar",
         "extras": "Extra's en allergenen",
-        "allergenCount": "allergenen: {{count}}"
+        "allergenCount": "allergenen: {{count}}",
+        "allergens": "Allergenen"
       }
     }
   },

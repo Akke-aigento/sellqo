@@ -27,3 +27,9 @@ alter table public.products add column if not exists images text[] default '{}';
 alter table public.products add column if not exists featured_image text;
 alter table public.products add column if not exists product_type text default 'physical';
 alter table public.products add column if not exists hide_from_storefront boolean default false;
+-- KAART-3 — kolommen die guard_product_commercial_fields leest (zoals live).
+alter table public.products add column if not exists compare_at_price numeric;
+alter table public.products add column if not exists cost_price numeric;
+alter table public.products add column if not exists sku text;
+alter table public.products add column if not exists barcode text;
+alter table public.products add column if not exists low_stock_threshold int;

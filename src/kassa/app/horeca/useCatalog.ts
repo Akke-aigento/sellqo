@@ -51,7 +51,7 @@ export function useCatalog(tenantId: string | null) {
     queryFn: async (): Promise<Catalog> => {
       const [prod, cats, rates, groups, options, pcats] = await Promise.all([
         supabase.from('products').select('id, name, price, category_id, vat_rate_id, takeaway_vat_rate_id, channels, sold_out_until, menu_position').eq('tenant_id', tenantId!).eq('is_active', true).order('name'),
-        supabase.from('categories').select('id, name, sort_order').eq('tenant_id', tenantId!).eq('is_active', true).order('sort_order'),
+        supabase.from('categories').select('id, name, sort_order').eq('tenant_id', tenantId!).eq('is_active', true).order('sort_order').order('name'),
         // KASSA-0.6: de tarieven staan live globaal (tenant_id null); zoals de server
         // (kassa_product_vat_rate) ook die van de zaak zelf, en ook inactieve (een product op
         // een oud tarief blijft dat tarief hebben).
