@@ -6,7 +6,7 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ### 2026.13u — Je kaart nog sneller: alles in één paneel, en de volgorde kies je zelf (improvement, 24-10-2026)
 
-**Status:** gebouwd (KAART-3 + kassa 0.6.1), wacht op livegang.
+**Status:** klaar voor verzending (live 24-10-2026, KAART-3 + kassa 0.6.1).
 
 **Voor wie:** horecazaken (horeca-module).
 

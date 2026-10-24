@@ -71,6 +71,23 @@ Op vraag van Akke (24-10, 17:33: "moet volledige overlay worden … denk als een
     - `kaart_fill_positions` laat producten zonder categorie (webshop) met rust;
     - `kaart_reorder` en de verplaatsing nemen dezelfde advisory lock.
 
+**Livegang (24-10-2026)**
+- Commit `8d91124` op main. CI groen. Lovable stond op `8d91124` vóór de publish.
+- De migratie is hernoemd van `20261024200000` naar `20261024210000`, want EVENT-REMINDER-2 (Lovable-commit) had die timestamp al.
+- Gedraaid via GitHub raw op de commit, met een md5-guard (`f1b8f56bebe6bdc50a149814e7bb05cd`).
+- Natrek live:
+  - kolom `menu_position`, index en trigger zijn aanwezig;
+  - de 6 functies zijn md5-gelijk aan de lokale versie (prosrc);
+  - er is geen enkel product geraakt.
+- Smoke-test op Café De Wissel als platform_admin, teruggedraaid via een exception:
+  - een nieuw product komt achteraan;
+  - een maat komt net onder het origineel;
+  - herschikken werkt;
+  - achteraf: 0 testproducten en 0 producten met een positie.
+- Helpartikel `horeca-kaart` bijgewerkt via een md5-guard (`4218c3b1…`). `updated_at` staat op 18:05 UTC.
+- sellqo.app gepubliceerd (`deploy_project`). De bundel `index-0iYzHFAN.js` bevat `kaart_reorder`, `kaart_duplicate_product`, `menu_position`, `horeca_menu_panel` en `sellqo-kassa-0.6.1`.
+- De native kassa-app krijgt 0.6.1 pas met de volgende app-build. Tot dan volgt de webkassa de Kaart-volgorde, de gebundelde app nog niet.
+
 **Samenhang**
 - Het potloodje naar `ProductForm` is weg. Het paneel heeft één link "Alle instellingen" als tweede plek.
 - `ProductAllergensCard` en `ProductAddonsCard` worden hergebruikt in het paneel. Het blijven dezelfde componenten als in het productformulier: één logica.
