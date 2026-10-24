@@ -10,6 +10,8 @@ export interface CatalogProduct {
   name: string;
   price_cents: number;
   vat_label: CheckLine['vat_label'];
+  /** KASSA-0.6: label bij meenemen aan de toog (takeaway_vat_rate_id, anders = vat_label). */
+  vat_label_takeaway: CheckLine['vat_label'];
   category_id: string | null;
   sold_out: boolean;
   addonGroups: CatalogAddonGroup[];
@@ -18,7 +20,7 @@ export interface Catalog { products: CatalogProduct[]; categories: { id: string;
 
 const LABEL: Record<number, CheckLine['vat_label']> = { 21: 'A', 12: 'B', 6: 'C', 0: 'D' };
 
-interface ProductRow { id: string; name: string; price: number; category_id: string | null; vat_rate_id: string | null; channels: string[] | null; sold_out_until: string | null }
+interface ProductRow { id: string; name: string; price: number; category_id: string | null; vat_rate_id: string | null; takeaway_vat_rate_id: string | null; channels: string[] | null; sold_out_until: string | null }
 
 /** Zelfde logica als de server (horeca_apply) en storefront: product of een van zijn categorieën. */
 export function groupsFor(p: { id: string; category_id: string | null }, extraCats: string[], groups: { id: string; name: string; min_select: number | null; max_select: number | null; category_ids: string[] | null; product_ids: string[] | null; sort_order: number }[], options: { id: string; group_id: string; name: string; price: number | null; sort_order: number }[]): CatalogAddonGroup[] {
@@ -41,16 +43,20 @@ export function useCatalog(tenantId: string | null) {
     refetchInterval: 5 * 60_000,
     queryFn: async (): Promise<Catalog> => {
       const [prod, cats, rates, groups, options, pcats] = await Promise.all([
-        supabase.from('products').select('id, name, price, category_id, vat_rate_id, channels, sold_out_until').eq('tenant_id', tenantId!).eq('is_active', true).order('name'),
+        supabase.from('products').select('id, name, price, category_id, vat_rate_id, takeaway_vat_rate_id, channels, sold_out_until').eq('tenant_id', tenantId!).eq('is_active', true).order('name'),
         supabase.from('categories').select('id, name, sort_order').eq('tenant_id', tenantId!).eq('is_active', true).order('sort_order'),
-        supabase.from('vat_rates').select('id, rate, is_default').eq('tenant_id', tenantId!).eq('is_active', true),
+        // KASSA-0.6: de tarieven staan live globaal (tenant_id null); zoals de server
+        // (kassa_product_vat_rate) ook die van de zaak zelf, en ook inactieve (een product op
+        // een oud tarief blijft dat tarief hebben).
+        supabase.from('vat_rates').select('id, rate, is_default, is_active, tenant_id').or(`tenant_id.is.null,tenant_id.eq.${tenantId}`),
         supabase.from('product_addon_groups').select('id, name, min_select, max_select, category_ids, product_ids, sort_order').eq('tenant_id', tenantId!).eq('is_active', true),
         supabase.from('product_addon_options').select('id, group_id, name, price, sort_order').eq('tenant_id', tenantId!).eq('is_active', true),
         supabase.from('product_categories').select('product_id, category_id'),
       ]);
       for (const r of [prod, cats, rates, groups, options]) if (r.error) throw r.error;
       const rateById = new Map((rates.data ?? []).map((r) => [r.id, Number(r.rate)]));
-      const defaultRate = Number((rates.data ?? []).find((r) => r.is_default)?.rate ?? 21);
+      // Zelfde terugval als de server: standaard van de zaak zelf, anders 21 %.
+      const defaultRate = Number((rates.data ?? []).find((r) => r.tenant_id === tenantId && r.is_default && r.is_active !== false)?.rate ?? 21);
       const extra = new Map<string, string[]>();
       for (const pc of (pcats.data ?? []) as { product_id: string; category_id: string }[]) extra.set(pc.product_id, [...(extra.get(pc.product_id) ?? []), pc.category_id]);
       const now = Date.now();
@@ -59,8 +65,9 @@ export function useCatalog(tenantId: string | null) {
         .filter((p) => !p.channels || p.channels.length === 0 || p.channels.includes('pos'))
         .map((p) => {
           const rate = p.vat_rate_id ? rateById.get(p.vat_rate_id) ?? defaultRate : defaultRate;
+          const away = p.takeaway_vat_rate_id ? rateById.get(p.takeaway_vat_rate_id) ?? rate : rate;
           return {
-            id: p.id, name: p.name, price_cents: Math.round(Number(p.price) * 100), vat_label: LABEL[rate] ?? 'A', category_id: p.category_id,
+            id: p.id, name: p.name, price_cents: Math.round(Number(p.price) * 100), vat_label: LABEL[rate] ?? 'A', vat_label_takeaway: LABEL[away] ?? 'A', category_id: p.category_id,
             sold_out: !!p.sold_out_until && new Date(p.sold_out_until).getTime() > now,
             addonGroups: groupsFor(p, extra.get(p.id) ?? [], (groups.data ?? []) as never, (options.data ?? []) as never),
           };

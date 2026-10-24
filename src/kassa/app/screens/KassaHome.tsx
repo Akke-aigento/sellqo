@@ -35,7 +35,7 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
 
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((x) => [x.id, x.label])), [plan]);
   const ctx: ActionCtx | null = useMemo(() => (staff ? {
-    store, runtime, staffId: staff.id, staffName: staff.display_name, employeeId, tableLabel: (id: string | null) => (id ? labels.get(id) ?? null : null),
+    store, runtime, staffId: staff.id, staffName: staff.display_name, staffRole: staff.role, employeeId, tableLabel: (id: string | null) => (id ? labels.get(id) ?? null : null),
   } : null), [store, runtime, staff, employeeId, labels]);
   if (!staff || !ctx) return null;
 

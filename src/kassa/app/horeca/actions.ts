@@ -23,6 +23,8 @@ export interface ActionCtx {
   staffName: string;
   employeeId: string | null;
   tableLabel: (tableId: string | null) => string | null;
+  /** KASSA-0.6: rol van de medewerker met de PIN (owner/manager mogen producten aanpassen). */
+  staffRole?: string;
 }
 
 async function signOrFail(ctx: ActionCtx, fn: () => Promise<{ kind: string; eventId?: string; errors?: unknown }>): Promise<{ eventId: string | null } | ActionOutcome> {

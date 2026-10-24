@@ -18,6 +18,8 @@ import { useCatalog, type CatalogProduct } from '../horeca/useCatalog';
 import { formatEuro } from '../horeca/format';
 import { hasPendingPay, isRejectedPay } from '../horeca/payActions';
 import { PayDialog, SplitDialog } from './PayDialog';
+import { ProductQuickEdit } from './ProductQuickEdit';
+import { useLongPress } from '../useLongPress';
 
 interface Props {
   ctx: ActionCtx; checkId: string; onBack: () => void; onOpen?: (checkId: string, opts?: { pay?: boolean }) => void; initialPay?: boolean;
@@ -44,6 +46,9 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   const [addonFor, setAddonFor] = useState<CatalogProduct | null>(null);
   const [moving, setMoving] = useState<null | { lines: CheckLine[] | 'all' }>(null);
   const [kitchen, setKitchen] = useState(kitchenOn);
+  // KASSA-0.6: lang drukken op een product = op/terug of prijs, goedgekeurd met de PIN van
+  // een eigenaar of verantwoordelijke (de server controleert).
+  const [editing, setEditing] = useState<CatalogProduct | null>(null);
   const euro = (c: number) => formatEuro(c, i18n.language);
 
   const products = useMemo(() => {
@@ -92,7 +97,8 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
 
   const addProduct = (p: CatalogProduct, addonIds: string[] = []) => {
     const addons = p.addonGroups.flatMap((g) => g.options).filter((o) => addonIds.includes(o.id)).map((o) => ({ option_id: o.id, name: o.name, price_cents: o.price_cents }));
-    store.hint(p.id, { name: p.name, unit_price_cents: p.price_cents, vat_label: p.vat_label, addons });
+    // KASSA-0.6: aan de toog bij meenemen het meeneemtarief, zoals de server (kassa_product_vat_rate).
+    store.hint(p.id, { name: p.name, unit_price_cents: p.price_cents, vat_label: counter && service === 'takeaway' ? p.vat_label_takeaway : p.vat_label, addons });
     store.enqueue({ id: crypto.randomUUID(), kind: 'add_line', check_id: check.id, line_id: crypto.randomUUID(), product_id: p.id, qty: 1, addon_ids: addonIds, staff_id: ctx.staffId });
   };
 
@@ -185,11 +191,8 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
       )}
       <div className="grid flex-1 auto-rows-min grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 xl:grid-cols-4">
         {!catalog ? <Loader2 className="h-5 w-5 animate-spin" aria-label={t('kassa.common.loading')} /> : products.map((p) => (
-          <button key={p.id} type="button" disabled={p.sold_out} onClick={() => tapProduct(p)}
-            className="flex min-h-20 flex-col justify-between rounded-lg border bg-card p-2.5 text-left active:scale-[0.98] disabled:opacity-40">
-            <span className="line-clamp-2 text-sm font-semibold">{p.name}</span>
-            <span className="text-sm tabular-nums text-muted-foreground">{p.sold_out ? t('kassa.checks.soldOut') : euro(p.price_cents)}</span>
-          </button>
+          <ProductTile key={p.id} p={p} onTap={() => tapProduct(p)} onLong={() => setEditing(p)}
+            label={p.sold_out ? t('kassa.checks.soldOut') : euro(p.price_cents)} editHint={t('kassa.productEdit.hint')} />
         ))}
       </div>
     </div>
@@ -303,6 +306,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
         />
       )}
 
+      {editing ? <ProductQuickEdit ctx={ctx} product={catalog?.products.find((x) => x.id === editing.id) ?? editing} onClose={() => setEditing(null)} /> : null}
       {addonFor && (
         <AddonDialog product={addonFor} onClose={() => setAddonFor(null)} onConfirm={(ids) => { addProduct(addonFor, ids); setAddonFor(null); }} />
       )}
@@ -502,5 +506,19 @@ function MoveDialog(p: {
         <DialogFooter><button type="button" onClick={p.onClose} className="h-11 rounded-md border px-4">{t('kassa.common.cancel')}</button></DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** KASSA-0.6 — producttegel: tikken = +1; lang drukken = op/terug of prijs aanpassen. */
+function ProductTile({ p, onTap, onLong, label, editHint }: { p: CatalogProduct; onTap: () => void; onLong: () => void; label: string; editHint: string }) {
+  const lp = useLongPress(onLong, true);
+  // Een uitverkocht product blijft aanraakbaar (lang drukken om het terug te zetten).
+  return (
+    <button type="button" aria-disabled={p.sold_out || undefined} title={editHint}
+      onClick={() => { if (lp.consumeClick()) return; if (p.sold_out) { toast.info(`${p.name}: ${label}`); return; } onTap(); }} {...lp.handlers}
+      className={cn('flex min-h-20 select-none flex-col justify-between rounded-lg border bg-card p-2.5 text-left [-webkit-touch-callout:none] active:scale-[0.98] disabled:opacity-40', p.sold_out && 'opacity-40')}>
+      <span className="line-clamp-2 text-sm font-semibold">{p.name}</span>
+      <span className="text-sm tabular-nums text-muted-foreground">{label}</span>
+    </button>
   );
 }
