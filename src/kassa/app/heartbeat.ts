@@ -16,10 +16,10 @@ export function heartbeatInfo(runtime: KassaRuntime, store: Pick<HorecaStore, 'p
     fiscal_mode: runtime.fiscal.mode,
     queue_count: store.pendingCount,
     outbox_count: runtime.outboxCount,
-    // Wachtend én geweigerd: beide vragen aandacht (geweigerd = getekend maar niet geboekt).
-    // TAFEL-3: kas-, telling- en rapporthandelingen tellen mee.
-    pending_pays: readPendingPays(runtime.device.tenantId).length + readRejectedPays(runtime.device.tenantId).length
-      + readPendingOps(runtime.device.tenantId).length + readRejectedOps(runtime.device.tenantId).length,
+    // TAFEL-3: wachtend (moet nog door; blokkeert een Z op een ander toestel) en geweigerd
+    // (getekend maar niet geboekt; wacht op SellQo) apart. Kas-, telling- en rapporthandelingen tellen mee.
+    pending_pays: readPendingPays(runtime.device.tenantId).length + readPendingOps(runtime.device.tenantId).length,
+    rejected_count: readRejectedPays(runtime.device.tenantId).length + readRejectedOps(runtime.device.tenantId).length,
     last_sync_at: store.lastSyncAt ? new Date(store.lastSyncAt).toISOString() : null,
     online: store.online,
     user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 300) : null,

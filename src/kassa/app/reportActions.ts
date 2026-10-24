@@ -14,7 +14,7 @@ import { ROBOT_EMPLOYEE_ID } from '../fiscal/identity';
 import type { AnyFiscalInput, MutationName, SignResult } from '../fiscal/types';
 import type { SignedEvent } from '../fiscal/reports';
 import { FiscalUnavailableError, type KassaRuntime } from './runtime';
-import { runFiscalOp, type FiscalOpOutcome } from './fiscalOps';
+import { readPendingOps, retryFiscalOps, runFiscalOp, type FiscalOpOutcome } from './fiscalOps';
 
 export type ReportKind = 'X' | 'Z';
 
@@ -83,6 +83,12 @@ export async function makeReport(runtime: KassaRuntime, who: ReportWho, kind: Re
   const auto = !!who.auto;
   // Review M7: eerst eigen ondertekende events in de cloud zetten, anders mist het rapport ze.
   if (runtime.isFiscal && !(await runtime.flushOutbox())) return { ok: false, reason: 'offline', detail: 'outbox' };
+  // Review ronde 2 (N3): een rapport dat dit toestel nog bewaart (ongetekend of niet doorgestuurd)
+  // gaat eerst identiek door; nooit een nieuw bericht voor dezelfde Z bouwen.
+  if (readPendingOps(tenantId).some((o) => o.rpc === 'kassa_report_finish')) {
+    await retryFiscalOps(runtime);
+    if (readPendingOps(tenantId).some((o) => o.rpc === 'kassa_report_finish')) return { ok: false, reason: 'pending_elsewhere' };
+  }
   const begin = await rpc<Begin>('kassa_report_begin', {
     p_tenant_id: tenantId, p_device_id: runtime.device.deviceUuid,
     p: { id: crypto.randomUUID(), kind, booking_date: opts.bookingDate ?? null, staff_id: who.staffId, auto },

@@ -200,6 +200,8 @@ export class KassaRuntime {
         // terug). Dan is de id van die rij de echte, niet de nieuwe.
         const existing = await this.existingEventId(row);
         if (existing) return { ...out, eventId: existing };
+        // Niet terug te vinden (offline?): via de wachtrij opnieuw proberen.
+        this.pushOutbox(row);
       } else if (error) {
         this.pushOutbox(row);
         try { await this.audit('fiscal_store_failed', { code: error.code ?? null, mutation: name, event_id: eventId }); } catch { /* offline */ }
@@ -210,13 +212,20 @@ export class KassaRuntime {
   }
 
   /** Id van een al bewaard event met dezelfde sleutel (fiscal_events_key_uq). */
-  private async existingEventId(row: { pos_id: string; pos_date_time: string; terminal_id: string; event_label: string; pos_fiscal_ticket_no: number }): Promise<string | null> {
+  private async existingEventId(row: { pos_id: string; pos_date_time: string; terminal_id: string; event_label: string; pos_fiscal_ticket_no: number;
+    fdm_id: string; total_counter: number; fdm_date_time: string }): Promise<string | null> {
     try {
-      const { data } = await supabase.from('fiscal_events' as never).select('id')
+      const byKey = await supabase.from('fiscal_events' as never).select('id')
         .eq('tenant_id' as never, this.device.tenantId as never).eq('pos_id' as never, row.pos_id as never)
         .eq('pos_date_time' as never, row.pos_date_time as never).eq('terminal_id' as never, row.terminal_id as never)
         .eq('event_label' as never, row.event_label as never).eq('pos_fiscal_ticket_no' as never, row.pos_fiscal_ticket_no as never).maybeSingle();
-      return (data as { id?: string } | null)?.id ?? null;
+      const a = (byKey.data as { id?: string } | null)?.id;
+      if (a) return a;
+      // Of op de FDM-teller (fiscal_events_fdm_counter_uq).
+      const byFdm = await supabase.from('fiscal_events' as never).select('id')
+        .eq('tenant_id' as never, this.device.tenantId as never).eq('fdm_id' as never, row.fdm_id as never)
+        .eq('total_counter' as never, row.total_counter as never).eq('fdm_date_time' as never, row.fdm_date_time as never).maybeSingle();
+      return (byFdm.data as { id?: string } | null)?.id ?? null;
     } catch { return null; }
   }
 

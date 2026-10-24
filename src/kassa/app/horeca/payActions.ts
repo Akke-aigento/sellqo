@@ -293,9 +293,9 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
       try {
         out = await ctx.runtime.sign('signSale', data, { staffId: ctx.staffId, reference });
       } catch (e) {
-        drop(tenantId, paymentId);
-        if (e instanceof FiscalUnavailableError) return fail({ ok: false, reason: e.message as 'fdm_not_available' });
-        await release();
+        if (e instanceof FiscalUnavailableError) { drop(tenantId, paymentId); return fail({ ok: false, reason: e.message as 'fdm_not_available' }); }
+        // Review ronde 2 (n2): onbekende fout = misschien wel getekend. Bewaard laten (claim
+        // houden); de achtergrond stuurt hetzelfde bericht opnieuw.
         throw e;
       } finally {
         inFlight.delete(paymentId);

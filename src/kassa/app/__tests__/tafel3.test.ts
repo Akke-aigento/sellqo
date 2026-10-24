@@ -217,6 +217,25 @@ describe('rapporten (RPT-01..03)', () => {
     expect((await retryFiscalOps(runtime)).done).toBe(1);
   });
 
+  it('een rapport dat nog op het toestel wacht, gaat eerst identiek door; geen nieuwe Z (review N3)', async () => {
+    const runtime = new KassaRuntime(device, fiscalSim);
+    rpcImpl = (n) => (n === 'kassa_report_begin' ? { data: { report_no: 5, booking_date: '2026-10-24', period_start: 'a', period_end: 'b', fiscal: true }, error: null }
+      : n === 'kassa_report_source' ? { data: [], error: null }
+      : { data: null, error: { message: 'Failed to fetch' } });
+    expect((await makeReport(runtime, { staffId: 'staff-1', employeeId: INSZ }, 'Z')).pending).toBe(true);
+    calls.length = 0;
+    const o = await makeReport(runtime, { staffId: 'staff-1', employeeId: INSZ }, 'Z');
+    expect(o.reason).toBe('pending_elsewhere');
+    expect(calls.some((c) => c.name === 'kassa_report_begin')).toBe(false);
+  });
+
+  it('zwarte doos niet beschikbaar: handeling niet in de wachtrij laten hangen (review N5)', async () => {
+    const runtime = new KassaRuntime(device, { ...fiscalSim, mode: 'fdm' as const });
+    const ctx = { runtime, staffId: 'staff-1', employeeId: INSZ } as unknown as ActionCtx;
+    expect((await cashMove(ctx, 'in', 500, 'x')).reason).toBe('fdm_not_available');
+    expect(readPendingOps(device.tenantId)).toEqual([]);
+  });
+
   it('zaak met zwarte doos op een kassa zonder: nummer vrijgeven', async () => {
     const runtime = new KassaRuntime(device, { mode: 'off' });
     rpcImpl = (n) => (n === 'kassa_report_begin' ? { data: { report_no: 2, booking_date: '2026-10-24', period_start: 'a', period_end: 'b', fiscal: true }, error: null } : { data: null, error: null });

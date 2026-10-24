@@ -35,6 +35,7 @@
 --   alter table public.dining_checks drop column if exists kind, drop column if exists service;
 --   alter table public.products drop column if exists takeaway_vat_rate_id;
 --   alter table public.pos_cash_movements drop column if exists pos_cashier_id, drop column if exists fiscal_event_id, drop column if exists kind;
+--   kassa_heartbeat terugzetten uit 20261024150000_live_1_kassa_heartbeat.sql; alter table public.kassa_devices drop column if exists rejected_count;
 --   alter table public.pos_sessions drop column if exists opening_fiscal_event_id, drop column if exists closing_fiscal_event_id,
 --     drop column if exists closed_by_cashier;
 
@@ -1050,6 +1051,7 @@ begin
   -- Review M7: een ander toestel met nog niet doorgestuurde handelingen = eerst laten synchroniseren.
   if exists (select 1 from public.kassa_devices d where d.tenant_id = p_tenant_id and d.device_id is distinct from p_device_id
              and d.last_seen_at > now() - interval '1 hour' and (d.outbox_count > 0 or d.pending_pays > 0)) then
+    -- (pending_pays = enkel wat nog moet; geweigerde handelingen staan apart in rejected_count)
     raise exception 'een ander kassatoestel heeft nog handelingen die niet doorgestuurd zijn' using errcode = '55000';
   end if;
   -- Onafgewerkte Z van deze zaak (er is er hoogstens één).
@@ -1058,6 +1060,14 @@ begin
     order by x.report_no desc limit 1;
   if r.id is not null then
     v_signed := public.kassa_report_signed(p_tenant_id, r.id);
+    -- Review ronde 2 (N1/N2): in een zaak met tekenende kassa's kan een ander toestel nog een
+    -- ongetekend bericht voor deze Z bewaren en identiek opnieuw sturen. Afwerken of overnemen
+    -- mag dan enkel het toestel dat de Z begon; zonder zwarte doos is overnemen veilig.
+    if r.device_id is distinct from left(p_device_id, 200)
+       and (public.horeca_tenant_fiscal(p_tenant_id) or exists (select 1 from public.pos_terminals t where t.tenant_id = p_tenant_id
+            and coalesce(t.settings -> 'fiscal' ->> 'mode', 'off') <> 'off')) then
+      raise exception 'een ander kassatoestel is een Z-rapport aan het maken; werk het daar af' using errcode = '55000';
+    end if;
     if jsonb_array_length(v_signed) > 0 then
       return jsonb_build_object('id', r.id, 'report_no', r.report_no, 'booking_date', r.booking_date, 'period_start', r.period_start,
         'period_end', r.period_end, 'fiscal', public.horeca_tenant_fiscal(p_tenant_id), 'resume', true,
@@ -1250,3 +1260,48 @@ end;
 $$;
 revoke all on function public.kassa_report_source(uuid, uuid, text) from public, anon;
 grant execute on function public.kassa_report_source(uuid, uuid, text) to authenticated;
+
+-- ── Hartslag: geweigerde handelingen apart (review ronde 2, N4) ──────────────────────────
+-- pending_pays = wat nog doorgestuurd moet worden (blokkeert een Z op een ander toestel);
+-- rejected_count = getekend maar geweigerd, wacht op SellQo (enkel een waarschuwing).
+alter table public.kassa_devices add column if not exists rejected_count integer not null default 0;
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'kassa_devices_rejected_chk') then
+    alter table public.kassa_devices add constraint kassa_devices_rejected_chk check (rejected_count between 0 and 100000);
+  end if;
+end $$;
+
+create or replace function public.kassa_heartbeat(p_tenant_id uuid, p_terminal_id uuid, p_device_id text, p_info jsonb)
+returns void
+language plpgsql
+security definer
+set search_path to ''
+as $$
+begin
+  if not public.has_tenant_role(p_tenant_id, array['tenant_admin', 'staff']::public.app_role[]) then
+    raise exception 'geen toegang' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.pos_terminals t where t.id = p_terminal_id and t.tenant_id = p_tenant_id) then
+    raise exception 'onbekende kassa' using errcode = '22023';
+  end if;
+  insert into public.kassa_devices as d (tenant_id, device_id, terminal_id, sw_version, fiscal_mode, queue_count, outbox_count, pending_pays,
+    rejected_count, last_sync_at, online, user_agent, last_seen_at)
+  values (p_tenant_id, left(p_device_id, 200), p_terminal_id, left(p_info ->> 'sw_version', 36),
+    case when p_info ->> 'fiscal_mode' in ('off', 'simulator', 'fdm') then p_info ->> 'fiscal_mode' end,
+    least(greatest(coalesce((p_info ->> 'queue_count')::integer, 0), 0), 100000),
+    least(greatest(coalesce((p_info ->> 'outbox_count')::integer, 0), 0), 100000),
+    least(greatest(coalesce((p_info ->> 'pending_pays')::integer, 0), 0), 100000),
+    least(greatest(coalesce((p_info ->> 'rejected_count')::integer, 0), 0), 100000),
+    nullif(p_info ->> 'last_sync_at', '')::timestamptz, coalesce((p_info ->> 'online')::boolean, true),
+    left(p_info ->> 'user_agent', 300), now())
+  on conflict (tenant_id, device_id) do update set
+    terminal_id = excluded.terminal_id, sw_version = excluded.sw_version, fiscal_mode = excluded.fiscal_mode,
+    queue_count = excluded.queue_count, outbox_count = excluded.outbox_count, pending_pays = excluded.pending_pays,
+    rejected_count = excluded.rejected_count,
+    last_sync_at = excluded.last_sync_at, online = excluded.online, user_agent = excluded.user_agent, last_seen_at = now();
+  update public.pos_terminals set last_seen_at = now() where id = p_terminal_id;
+end;
+$$;
+revoke all on function public.kassa_heartbeat(uuid, uuid, text, jsonb) from public, anon;
+grant execute on function public.kassa_heartbeat(uuid, uuid, text, jsonb) to authenticated;

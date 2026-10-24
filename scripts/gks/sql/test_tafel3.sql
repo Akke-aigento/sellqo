@@ -237,10 +237,15 @@ values
 set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000001';
 select r ->> 'resume' = 'true' and r ->> 'id' = '9a000000-0000-0000-0000-000000000003' and r -> 'signed' = '["signReportTurnoverZ"]'::jsonb as ok_fiscal_z_resume
   from (select public.kassa_report_begin('11111111-1111-1111-1111-111111111111', 'dev', '{"id":"9a000000-0000-0000-0000-000000000004","kind":"Z","staff_id":"99999999-0000-0000-0000-000000000001"}') r) q;
--- een getekende Z wordt nooit vrijgegeven
+-- Review ronde 2 (N1/N2): een ander toestel mag die Z niet afwerken of overnemen
+select pg_temp.try($q$select public.kassa_report_begin('11111111-1111-1111-1111-111111111111', 'dev-2', '{"id":"9a000000-0000-0000-0000-000000000005","kind":"Z","staff_id":"99999999-0000-0000-0000-000000000001"}')$q$) = '55000' as ok_fiscal_z_other_device_blocked;
+-- Review ronde 2 (N4): hartslag houdt geweigerde handelingen apart; enkel wachtende blokkeren een Z
+select public.kassa_heartbeat('11111111-1111-1111-1111-111111111111', '5e000000-0000-0000-0000-000000000001', 'dev-3', '{"pending_pays":0,"rejected_count":2}')::text = '' as ok_heartbeat_rejected;
+
 select public.kassa_report_release('11111111-1111-1111-1111-111111111111', '9a000000-0000-0000-0000-000000000003')::text = '' as ok_release_signed_called;
 reset role;
 select count(*) = 1 as ok_signed_run_kept from public.kassa_report_runs where id = '9a000000-0000-0000-0000-000000000003';
+select rejected_count = 2 and pending_pays = 0 as ok_rejected_stored from public.kassa_devices where device_id = 'dev-3';
 -- anon nergens
 set role anon;
 do $$ begin perform public.kassa_cash_move('22222222-2222-2222-2222-222222222222', 'x', '{}'); raise exception 'FOUT: anon kas'; exception when insufficient_privilege then null; end $$;

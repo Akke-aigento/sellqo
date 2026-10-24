@@ -135,7 +135,11 @@ async function runOnce<T>(runtime: KassaRuntime, op: FiscalOp, opts: { onRejecte
     upsert(tenantId, { ...op, status: 'unsigned' });
     let r;
     try { r = await signAll(runtime, op); } catch (e) {
-      if (e instanceof FiscalUnavailableError) return { ok: false, reason: e.message as FiscalOpFailure };
+      if (e instanceof FiscalUnavailableError) {
+        // Review ronde 2 (N5): niets kon vertrekken; zonder handtekening de handeling vergeten.
+        if (!op.signs.some((s) => s.eventId)) { drop(tenantId, op.id); await opts.onRejected?.(); }
+        return { ok: false, reason: e.message as FiscalOpFailure };
+      }
       throw e;
     }
     if (r === 'unreachable') {
@@ -188,7 +192,10 @@ export function retryFiscalOps(runtime: KassaRuntime) {
       try {
       if (op.status === 'unsigned') {
         let r;
-        try { r = await signAll(runtime, op); } catch { continue; }
+        try { r = await signAll(runtime, op); } catch (e) {
+          if (e instanceof FiscalUnavailableError && !op.signs.some((s) => s.eventId)) drop(tenantId, op.id);
+          continue;
+        }
         if (r === 'unreachable') continue;
         if (typeof r === 'object') {
           if (op.signs.some((s) => s.eventId)) { upsert(tenantId, { ...op, status: 'rejected', error: r.rejected }); out.rejected.push({ op, error: r.rejected }); }
