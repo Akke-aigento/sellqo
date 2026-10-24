@@ -5034,7 +5034,10 @@
       "vat_rate_shop_default": "Standardsatz des Shops ({{rate}} %)",
       "vat_rate_hint": "Der Satz, mit dem dieses Produkt auf Bestellungen und Rechnungen erscheint.",
       "margin_hint": "Marge {{margin}} % · Gewinn {{profit}} pro Stück (ohne {{rate}} % MwSt.)",
-      "vat_rate_inactive": "(inaktiv)"
+      "vat_rate_inactive": "(inaktiv)",
+      "takeaway_vat_label": "MwSt. zum Mitnehmen",
+      "takeaway_vat_same": "Wie oben",
+      "takeaway_vat_hint": "Nur für SellQo Kassa: Dieser Satz gilt, wenn du an der Theke „zum Mitnehmen“ wählst, zum Beispiel 6 % für ein Essen zum Mitnehmen."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -10509,7 +10512,14 @@
       "noInsz": "Ohne Nationalregisternummer kannst du an dieser registrierten Kasse nichts erfassen.",
       "changeTerminal": "Andere Kasse wählen",
       "live": "Live",
-      "offline": "Offline · {{n}} wartende Aktionen"
+      "offline": "Offline · {{n}} wartende Aktionen",
+      "tabs": "Bereiche der Kasse",
+      "tab": {
+        "tables": "Tische",
+        "counter": "Theke",
+        "cash": "Kasse",
+        "reports": "Berichte"
+      }
     },
     "fiscalMode": {
       "off": "nicht-fiskalischer Modus",
@@ -10650,6 +10660,121 @@
       },
       "lockedRejected": "Dieser Verkauf ist registriert, aber nicht gebucht. Nichts mehr ändern und SellQo informieren.",
       "lockedPaying": "Diese Rechnung wird gerade auf einem anderen Gerät kassiert."
+    },
+    "counter": {
+      "name": "Theke",
+      "serviceLabel": "Vor Ort oder zum Mitnehmen",
+      "service": {
+        "eat_in": "Vor Ort",
+        "takeaway": "Zum Mitnehmen"
+      },
+      "kitchenOn": "Küchenbon",
+      "kitchenOff": "Kein Küchenbon"
+    },
+    "cash": {
+      "in": "Einlage",
+      "out": "Entnahme",
+      "openShift": "Schicht öffnen (Anfangszählung)",
+      "closeShift": "Schicht schließen (Endzählung)",
+      "title": {
+        "in": "Geld in die Schublade",
+        "out": "Geld aus der Schublade",
+        "open": "Anfangszählung",
+        "close": "Endzählung"
+      },
+      "countHint": "Zähl das Geld in der Schublade und gib die Summe ein.",
+      "amount": "Betrag",
+      "reasonPlaceholder": "Grund",
+      "reason": {
+        "change": "Wechselgeld",
+        "purchase": "Einkauf",
+        "bank": "Zur Bank",
+        "other": "Andere"
+      },
+      "confirm": "Bestätigen",
+      "shiftOpenSince": "Schicht offen seit {{time}} · Anfangsbestand {{amount}}",
+      "noShift": "Auf dieser Kasse läuft keine Schicht. Der erste Verkauf öffnet automatisch eine, mit Anfangsbestand 0 €.",
+      "doneIn": "{{amount}} als Einlage gebucht.",
+      "doneOut": "{{amount}} als Entnahme gebucht.",
+      "shiftOpened": "Schicht geöffnet.",
+      "shiftClosed": "Schicht geschlossen.",
+      "pending": "Auf diesem Gerät gespeichert. Es wird gesendet, sobald eine Verbindung besteht.",
+      "opening": "Anfangsbestand",
+      "expected": "Soll in der Schublade",
+      "counted": "Gezählt",
+      "difference": "Differenz",
+      "pendingDone": "{{n}} Kassen- oder Berichtsvorgang/-vorgänge nachträglich gesendet.",
+      "pendingRejected": "SellQo hat einen signierten Kassen- oder Berichtsvorgang abgelehnt: {{error}}. Wende dich an SellQo.",
+      "error": {
+        "offline": "Keine Verbindung. Versuch es noch einmal.",
+        "no_insz": "Deine Nationalregisternummer fehlt. Eine verantwortliche Person kann sie unter Kasse › Personal eintragen.",
+        "fiscal_not_configured": "Dieser Betrieb nutzt eine Blackbox, aber diese Kasse ist nicht als registrierte Kasse eingerichtet.",
+        "fdm_not_available": "Die Blackbox ist noch nicht verbunden.",
+        "fdm_rejected": "Die Blackbox hat abgelehnt. Es wurde nichts gebucht.",
+        "fdm_unreachable": "Die Blackbox antwortet nicht. Der Vorgang ist gespeichert und wird automatisch erneut gesendet; nicht noch einmal eingeben.",
+        "server": "Fehlgeschlagen: {{detail}}",
+        "pending_elsewhere": "Dieser Vorgang wartet noch auf das Senden.",
+        "signed_rejected": "Signiert, aber SellQo hat abgelehnt ({{detail}}). Wende dich an SellQo."
+      }
+    },
+    "reports": {
+      "x": "X-Bericht",
+      "xHint": "Zwischenstand von heute",
+      "z": "Z-Bericht",
+      "zHint": "Tag abschließen",
+      "zNo": "Z-Bericht Nr. {{n}}",
+      "zRoleOnly": "Einen Z-Bericht erstellen nur der Inhaber oder eine verantwortliche Person. Einen vergessenen Z-Bericht erstellt die Kasse am nächsten Tag selbst.",
+      "recent": "Letzte Berichte",
+      "none": "Noch keine Berichte.",
+      "zConfirmTitle": "Tag abschließen?",
+      "zConfirmText": "Der Z-Bericht schließt die bisherigen Verkäufe ab und erhält eine fortlaufende Nummer. Was du danach verkaufst, kommt in den nächsten Z-Bericht.",
+      "zConfirm": "Z-Bericht erstellen",
+      "pending": "Der Bericht ist auf diesem Gerät gespeichert und wird gesendet, sobald eine Verbindung besteht.",
+      "autoZDone": "{{n}} vergessene(r) Z-Bericht(e) erstellt.",
+      "periodLine": "Geschäftstag {{day}} · {{from}} – {{to}}",
+      "printedAt": "Gedruckt am {{at}}",
+      "totalLine": "{{amount}} aus {{n}} Verkäufen",
+      "openChecksWarning": "Es sind noch {{n}} Rechnungen offen. Sie kommen in den Z-Bericht des Tages, an dem sie bezahlt werden.",
+      "preview": "Vorschau des Berichts",
+      "print": "Drucken oder PDF",
+      "s": {
+        "sales": "Verkäufe",
+        "vats": "MwSt. pro Satz",
+        "payments": "Zahlungsarten",
+        "tips": "Trinkgeld",
+        "cash": "Einlagen/Entnahmen",
+        "staff": "Pro Mitarbeiter",
+        "shifts": "Kassenzählungen",
+        "other": "Sonstiges"
+      },
+      "r": {
+        "count": "Anzahl Verkäufe",
+        "total": "Gesamt (inkl. MwSt.)",
+        "net": "Bemessungsgrundlage (ohne MwSt.)",
+        "netShort": "Grundlage",
+        "vat": "MwSt.",
+        "discounts": "Rabatte",
+        "rounding": "Bargeldrundung",
+        "cashIn": "Einlage",
+        "cashOut": "Entnahme",
+        "voided": "Stornierte Verkäufe",
+        "corrections": "Stornierte Positionen",
+        "drawerOpens": "Schublade ohne Verkauf geöffnet",
+        "openChecks": "Offene Rechnungen"
+      },
+      "error": {
+        "offline": "Keine Verbindung. Versuch es noch einmal.",
+        "closed": "Dieser Geschäftstag ist bereits mit einem Z-Bericht abgeschlossen.",
+        "not_allowed": "Einen Z-Bericht erstellen nur der Inhaber oder eine verantwortliche Person.",
+        "no_insz": "Deine Nationalregisternummer fehlt. Eine verantwortliche Person kann sie unter Kasse › Personal eintragen.",
+        "fiscal_not_configured": "Dieser Betrieb nutzt eine Blackbox. Erstell den Bericht an einer registrierten Kasse.",
+        "fdm_not_available": "Die Blackbox ist noch nicht verbunden.",
+        "fdm_rejected": "Die Blackbox hat abgelehnt. Es wurde kein Bericht erstellt.",
+        "fdm_unreachable": "Die Blackbox antwortet nicht. Der Bericht ist gespeichert und wird automatisch erneut gesendet.",
+        "server": "Fehlgeschlagen: {{detail}}",
+        "pending_elsewhere": "Dieser Bericht wartet noch auf das Senden.",
+        "signed_rejected": "Signiert, aber SellQo hat den Bericht abgelehnt ({{detail}}). Wende dich an SellQo."
+      }
     }
   }
 }

@@ -21,7 +21,7 @@ import type { SignedEvent } from '../../print/types';
 import { sendRound, type ActionCtx } from './actions';
 import { consolidatedSpecs, costCenterOf, roundLines } from './fiscalLines';
 import { normalizedTenders, paymentSpecs, planPayment, PaymentPlanError, type PaymentPlan, type Tender, type TipMethod } from './pay';
-import { lineTotalCents, type Check } from './types';
+import { isCounter, lineTotalCents, payableLines, type Check } from './types';
 import { FiscalUnavailableError } from '../runtime';
 
 export interface PayPayload {
@@ -37,6 +37,8 @@ export interface PayPayload {
   tip_cents: number;
   tip_method: TipMethod | null;
   fiscal_event_id: string | null;
+  /** TAFEL-3, enkel aan de toog: keukenbonnen maken (standaard ja). */
+  kitchen?: boolean;
 }
 
 /**
@@ -46,7 +48,11 @@ export interface PayPayload {
  * - 'pending': getekend, nog naar de server te sturen.
  * - 'rejected': getekend maar door de server geweigerd; blijft tot SellQo het rechtzet.
  */
-export interface PendingPay { payload: PayPayload; status: 'unsigned' | 'pending' | 'rejected'; sale?: SaleInput; error?: string; at: string }
+export interface PendingPay {
+  payload: PayPayload; status: 'unsigned' | 'pending' | 'rejected'; sale?: SaleInput; error?: string; at: string;
+  /** TAFEL-3: reference van het event als het bericht geen costCenter heeft (toog). */
+  reference?: string;
+}
 
 export type PayFailure = 'offline' | 'no_insz' | 'fiscal_not_configured' | 'fdm_not_available' | 'fdm_rejected' | 'fdm_unreachable'
   | 'server' | 'changed' | 'plan' | 'nothing' | 'pending_elsewhere' | 'nothing_sent' | 'being_paid' | 'signed_rejected';
@@ -55,9 +61,12 @@ export type PayOutcome =
   | { ok: true; pending: boolean; receiptNumber: string | null; plan: PaymentPlan; signed: SignedEvent | null; reason?: undefined; detail?: undefined }
   | { ok: false; reason: PayFailure; detail?: string; pending?: undefined; receiptNumber?: undefined; plan?: undefined; signed?: undefined };
 
-/** Totaal dat de server rekent: alle verstuurde lijnen (na versturen zijn er geen ontwerpen). */
-export function payableTotal(c: Pick<Check, 'lines'>): number {
-  return c.lines.filter((l) => l.state === 'sent').reduce((s, l) => s + lineTotalCents(l), 0);
+/**
+ * Totaal dat de server rekent: aan tafel alle verstuurde lijnen (na versturen zijn er geen
+ * ontwerpen), aan de toog de ontwerp-lijnen (TAFEL-3).
+ */
+export function payableTotal(c: Pick<Check, 'lines' | 'kind'>): number {
+  return payableLines(c).reduce((s, l) => s + lineTotalCents(l), 0);
 }
 
 // ---------------------------------------------------------------- wachtende betalingen
@@ -163,7 +172,7 @@ export function retryPendingPays(ctx: Pick<ActionCtx, 'runtime'>): Promise<Retry
       if (row.status === 'unsigned' && row.sale) {
         // Zelfde bericht, zelfde bytes (ID-11): de FDM tekent het of geeft het eerdere antwoord.
         let out2;
-        try { out2 = await ctx.runtime.sign('signSale', row.sale, {}); } catch { continue; }
+        try { out2 = await ctx.runtime.sign('signSale', row.sale, { reference: row.reference }); } catch { continue; }
         if (out2.kind === 'unreachable') continue;
         if (out2.kind === 'rejected') {
           // Aantoonbaar niet getekend: claim vrijgeven, betaling vergeten.
@@ -195,7 +204,8 @@ export function retryPendingPays(ctx: Pick<ActionCtx, 'runtime'>): Promise<Retry
 
 const failFromCode = (e: RpcError): PayFailure => (e.code === '40001' ? 'changed' : e.code === '55000' ? 'being_paid' : 'server');
 
-export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[], tip = 0, tipMethod: TipMethod | null = null): Promise<PayOutcome> {
+export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[], tip = 0, tipMethod: TipMethod | null = null,
+  opts: { kitchen?: boolean } = {}): Promise<PayOutcome> {
   const tenantId = ctx.runtime.device.tenantId;
   if (hasPendingPay(tenantId, checkId)) return { ok: false, reason: 'pending_elsewhere' };
   try {
@@ -203,15 +213,18 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
     if (ctx.store.pendingCount) return { ok: false, reason: 'offline' };
     const c0 = ctx.store.check(checkId);
     if (!c0) return { ok: false, reason: 'server', detail: 'check_missing' };
-    if (roundLines(c0).length) {
+    // Toog (TAFEL-3): geen ronde vooraf; de ontwerp-lijnen worden rechtstreeks afgerekend.
+    const counter = isCounter(c0);
+    if (!counter && roundLines(c0).length) {
       const sent = await sendRound(ctx, checkId);
       if (!sent.ok) return { ok: false, reason: sent.reason === 'nothing' ? 'nothing' : sent.reason, detail: sent.detail };
       await ctx.store.refresh();
     }
     const c = ctx.store.check(checkId);
     if (!c) return { ok: false, reason: 'server', detail: 'check_missing' };
-    if (c.lines.some((l) => l.pending || l.state === 'draft')) return { ok: false, reason: 'offline' };
-    if (!c.lines.some((l) => l.state === 'sent')) return { ok: false, reason: 'nothing_sent' };
+    if (c.lines.some((l) => l.pending)) return { ok: false, reason: 'offline' };
+    if (!counter && c.lines.some((l) => l.state === 'draft')) return { ok: false, reason: 'offline' };
+    if (!payableLines(c).length) return { ok: false, reason: counter ? 'nothing' : 'nothing_sent' };
 
     const total = payableTotal(c);
     let plan: PaymentPlan;
@@ -221,7 +234,10 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
       if (e instanceof PaymentPlanError) return { ok: false, reason: 'plan', detail: e.code };
       throw e;
     }
-    const lineIds = c.lines.filter((l) => l.state === 'sent').map((l) => l.id);
+    const lineIds = payableLines(c).map((l) => l.id);
+    // Toog: geen costCenter in het bericht (directe verkoop, UC M110); het event hangt aan de rekening.
+    const reference = counter ? c.reference : undefined;
+    const kitchen = counter ? opts.kitchen ?? true : undefined;
     const paymentId = paymentIdFor(tenantId, c.id);
 
     // Claim vóór het tekenen.
@@ -251,7 +267,7 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
         data = buildSale(ctx.runtime.posContext(), await ctx.runtime.meta('signSale', ctx.employeeId, 'PAPER'), {
           lines: consolidatedSpecs(c),
           payments: paymentSpecs(plan),
-          costCenter: costCenterOf(c, ctx.tableLabel(c.table_id)),
+          costCenter: counter ? null : costCenterOf(c, ctx.tableLabel(c.table_id)),
         });
       } catch (e) {
         if (e instanceof FiscalUnavailableError) return fail({ ok: false, reason: e.message as 'fiscal_not_configured' });
@@ -262,7 +278,7 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
       if (Math.round(data.transaction.transactionTotal * 100) !== total) return fail({ ok: false, reason: 'server', detail: 'total_mismatch' });
       let out;
       try {
-        out = await ctx.runtime.sign('signSale', data, { staffId: ctx.staffId });
+        out = await ctx.runtime.sign('signSale', data, { staffId: ctx.staffId, reference });
       } catch (e) {
         if (e instanceof FiscalUnavailableError) return fail({ ok: false, reason: e.message as 'fdm_not_available' });
         await release();
@@ -275,8 +291,8 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
         upsert(tenantId, {
           payload: { id: paymentId, check_id: c.id, terminal_id: ctx.runtime.device.terminalRowId, staff_id: ctx.staffId,
             expected_total_cents: total, line_ids: lineIds, tenders: normalizedTenders(plan), rounding_cents: plan.rounding,
-            tip_cents: plan.tip, tip_method: plan.tipMethod, fiscal_event_id: null },
-          status: 'unsigned', sale: data, at: new Date().toISOString(),
+            tip_cents: plan.tip, tip_method: plan.tipMethod, fiscal_event_id: null, kitchen },
+          status: 'unsigned', sale: data, reference, at: new Date().toISOString(),
         });
         return { ok: false, reason: 'fdm_unreachable' };
       }
@@ -287,7 +303,7 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
     const payload: PayPayload = {
       id: paymentId, check_id: c.id, terminal_id: ctx.runtime.device.terminalRowId, staff_id: ctx.staffId,
       expected_total_cents: total, line_ids: lineIds, tenders: normalizedTenders(plan), rounding_cents: plan.rounding,
-      tip_cents: plan.tip, tip_method: plan.tipMethod, fiscal_event_id: eventId,
+      tip_cents: plan.tip, tip_method: plan.tipMethod, fiscal_event_id: eventId, kitchen,
     };
     // Write-ahead: getekend = bewaard, vóór het netwerk (app dicht, batterij leeg, herladen).
     if (signed) upsert(tenantId, { payload, status: 'pending', at: new Date().toISOString() });

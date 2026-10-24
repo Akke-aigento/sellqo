@@ -5307,7 +5307,10 @@
       "vat_rate_shop_default": "Shop default rate ({{rate}}%)",
       "vat_rate_hint": "The rate used for this product on orders and invoices.",
       "margin_hint": "Margin {{margin}}% · profit {{profit}} per unit (excl. {{rate}}% VAT)",
-      "vat_rate_inactive": "(inactive)"
+      "vat_rate_inactive": "(inactive)",
+      "takeaway_vat_label": "VAT for take away",
+      "takeaway_vat_same": "Same as above",
+      "takeaway_vat_hint": "Only for SellQo Kassa: this rate applies when you choose \"take away\" at the counter, for example 6% for a takeaway meal."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -10509,7 +10512,14 @@
       "noInsz": "Without a national register number you cannot register anything on this registered till.",
       "changeTerminal": "Choose another till",
       "live": "Live",
-      "offline": "Offline · {{n}} pending actions"
+      "offline": "Offline · {{n}} pending actions",
+      "tabs": "Till sections",
+      "tab": {
+        "tables": "Tables",
+        "counter": "Counter",
+        "cash": "Cash",
+        "reports": "Reports"
+      }
     },
     "fiscalMode": {
       "off": "non-fiscal mode",
@@ -10650,6 +10660,121 @@
       },
       "lockedRejected": "This sale is registered but not booked. Don’t change anything and notify SellQo.",
       "lockedPaying": "This check is being paid on another device right now."
+    },
+    "counter": {
+      "name": "Counter",
+      "serviceLabel": "Eat in or take away",
+      "service": {
+        "eat_in": "Eat in",
+        "takeaway": "Take away"
+      },
+      "kitchenOn": "Kitchen ticket",
+      "kitchenOff": "No kitchen ticket"
+    },
+    "cash": {
+      "in": "Cash in",
+      "out": "Cash out",
+      "openShift": "Open shift (opening count)",
+      "closeShift": "Close shift (closing count)",
+      "title": {
+        "in": "Money into the drawer",
+        "out": "Money out of the drawer",
+        "open": "Opening count",
+        "close": "Closing count"
+      },
+      "countHint": "Count the money in the drawer and enter the total.",
+      "amount": "Amount",
+      "reasonPlaceholder": "Reason",
+      "reason": {
+        "change": "Change float",
+        "purchase": "Purchase",
+        "bank": "To the bank",
+        "other": "Other"
+      },
+      "confirm": "Confirm",
+      "shiftOpenSince": "Shift open since {{time}} · opening float {{amount}}",
+      "noShift": "No shift is running on this till. The first sale opens one automatically, with an opening float of € 0.",
+      "doneIn": "{{amount}} recorded into the drawer.",
+      "doneOut": "{{amount}} recorded out of the drawer.",
+      "shiftOpened": "Shift opened.",
+      "shiftClosed": "Shift closed.",
+      "pending": "Saved on this device. It is sent as soon as there is a connection.",
+      "opening": "Opening float",
+      "expected": "Expected in the drawer",
+      "counted": "Counted",
+      "difference": "Difference",
+      "pendingDone": "{{n}} cash or report action(s) sent after all.",
+      "pendingRejected": "SellQo refused a signed cash or report action: {{error}}. Please contact SellQo.",
+      "error": {
+        "offline": "No connection. Try again.",
+        "no_insz": "Your national register number is missing. A manager can fill it in under Till › Staff.",
+        "fiscal_not_configured": "This business uses a black box, but this till is not set up as a registered till.",
+        "fdm_not_available": "The black box is not connected yet.",
+        "fdm_rejected": "The black box refused. Nothing was recorded.",
+        "fdm_unreachable": "The black box is not answering. The action is saved and will be resent automatically; do not enter it again.",
+        "server": "Failed: {{detail}}",
+        "pending_elsewhere": "This action is still waiting to be sent.",
+        "signed_rejected": "Signed, but SellQo refused it ({{detail}}). Please contact SellQo."
+      }
+    },
+    "reports": {
+      "x": "X report",
+      "xHint": "Today's running totals",
+      "z": "Z report",
+      "zHint": "Close the day",
+      "zNo": "Z report no. {{n}}",
+      "zRoleOnly": "Only the owner or a manager can make a Z report. If a Z report is forgotten, the till makes it itself the next day.",
+      "recent": "Latest reports",
+      "none": "No reports yet.",
+      "zConfirmTitle": "Close the day?",
+      "zConfirmText": "The Z report closes the sales so far and gets a sequence number. Anything you sell afterwards goes into the next Z report.",
+      "zConfirm": "Make Z report",
+      "pending": "The report is saved on this device and is sent as soon as there is a connection.",
+      "autoZDone": "{{n}} forgotten Z report(s) created.",
+      "periodLine": "Business day {{day}} · {{from}} – {{to}}",
+      "printedAt": "Printed on {{at}}",
+      "totalLine": "{{amount}} across {{n}} sales",
+      "openChecksWarning": "{{n}} checks are still open. They go into the Z report of the day they are paid.",
+      "preview": "Report preview",
+      "print": "Print or PDF",
+      "s": {
+        "sales": "Sales",
+        "vats": "VAT per rate",
+        "payments": "Payment methods",
+        "tips": "Tips",
+        "cash": "Cash in/out",
+        "staff": "Per staff member",
+        "shifts": "Cash counts",
+        "other": "Other"
+      },
+      "r": {
+        "count": "Number of sales",
+        "total": "Total (incl. VAT)",
+        "net": "Taxable amount (excl. VAT)",
+        "netShort": "taxable",
+        "vat": "VAT",
+        "discounts": "Discounts",
+        "rounding": "Cash rounding",
+        "cashIn": "Cash in",
+        "cashOut": "Cash out",
+        "voided": "Voided sales",
+        "corrections": "Cancelled lines",
+        "drawerOpens": "Drawer opened without a sale",
+        "openChecks": "Open checks"
+      },
+      "error": {
+        "offline": "No connection. Try again.",
+        "closed": "This business day has already been closed with a Z report.",
+        "not_allowed": "Only the owner or a manager can make a Z report.",
+        "no_insz": "Your national register number is missing. A manager can fill it in under Till › Staff.",
+        "fiscal_not_configured": "This business uses a black box. Make the report on a registered till.",
+        "fdm_not_available": "The black box is not connected yet.",
+        "fdm_rejected": "The black box refused. No report was made.",
+        "fdm_unreachable": "The black box is not answering. The report is saved and will be resent automatically.",
+        "server": "Failed: {{detail}}",
+        "pending_elsewhere": "This report is still waiting to be sent.",
+        "signed_rejected": "Signed, but SellQo refused the report ({{detail}}). Please contact SellQo."
+      }
     }
   }
 }

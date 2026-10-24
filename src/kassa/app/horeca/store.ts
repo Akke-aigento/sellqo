@@ -15,7 +15,9 @@ import type { Check, CheckLine, Snapshot } from './types';
 
 export type CommandKind =
   | 'open_check' | 'add_line' | 'change_qty' | 'set_note' | 'void_line' | 'discount_line'
-  | 'send_round' | 'request_bill' | 'rename_check' | 'move_check' | 'move_lines' | 'void_check';
+  | 'send_round' | 'request_bill' | 'rename_check' | 'move_check' | 'move_lines' | 'void_check'
+  /** TAFEL-3: toog — ter plaatse of meenemen. */
+  | 'set_service';
 
 export interface Command { id: string; kind: CommandKind; check_id: string; staff_id?: string | null; [k: string]: unknown }
 export interface CommandResult { id: string; ok: boolean; error?: string; code?: string; duplicate?: boolean; check?: Check; target?: Check }
@@ -221,6 +223,9 @@ export function applyOptimistic(m: Map<string, Check>, cmd: Command, hints: Map<
       id: cmd.check_id, table_id: (cmd.table_id as string) ?? null, name: (cmd.name as string) ?? null, status: 'open',
       guests: (cmd.guests as number) ?? null, opened_at: new Date().toISOString(), bill_requested_at: null,
       reference: cmd.check_id, version: 0, next_grouping_id: 1, lines: [],
+      // TAFEL-3: toogverkoop meteen als toog tonen (de server zet kind/service).
+      kind: cmd.check_kind === 'counter' ? 'counter' : 'table',
+      service: cmd.check_kind === 'counter' ? ((cmd.service as 'eat_in' | 'takeaway') ?? 'eat_in') : null,
     });
     return;
   }
@@ -256,6 +261,8 @@ export function applyOptimistic(m: Map<string, Check>, cmd: Command, hints: Map<
   } else if (cmd.kind === 'set_note') {
     const l = c.lines.find((x) => x.id === cmd.line_id);
     if (l && l.state === 'draft') { l.note = (cmd.note as string) || null; l.pending = true; }
+  } else if (cmd.kind === 'set_service') {
+    c.service = (cmd.service as 'eat_in' | 'takeaway') ?? c.service ?? null;
   } else if (cmd.kind === 'rename_check') {
     c.name = (cmd.name as string) || null;
   }

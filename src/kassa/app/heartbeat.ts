@@ -6,6 +6,7 @@ import { KASSA_SW_VERSION } from '../version';
 import type { KassaRuntime } from './runtime';
 import type { HorecaStore } from './horeca/store';
 import { readPendingPays, readRejectedPays } from './horeca/payActions';
+import { readPendingOps, readRejectedOps } from './fiscalOps';
 
 export const HEARTBEAT_MS = 60_000;
 
@@ -16,7 +17,9 @@ export function heartbeatInfo(runtime: KassaRuntime, store: Pick<HorecaStore, 'p
     queue_count: store.pendingCount,
     outbox_count: runtime.outboxCount,
     // Wachtend én geweigerd: beide vragen aandacht (geweigerd = getekend maar niet geboekt).
-    pending_pays: readPendingPays(runtime.device.tenantId).length + readRejectedPays(runtime.device.tenantId).length,
+    // TAFEL-3: kas-, telling- en rapporthandelingen tellen mee.
+    pending_pays: readPendingPays(runtime.device.tenantId).length + readRejectedPays(runtime.device.tenantId).length
+      + readPendingOps(runtime.device.tenantId).length + readRejectedOps(runtime.device.tenantId).length,
     last_sync_at: store.lastSyncAt ? new Date(store.lastSyncAt).toISOString() : null,
     online: store.online,
     user_agent: typeof navigator !== 'undefined' ? navigator.userAgent.slice(0, 300) : null,

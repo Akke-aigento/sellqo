@@ -5034,7 +5034,10 @@
       "vat_rate_shop_default": "Taux standard de la boutique ({{rate}} %)",
       "vat_rate_hint": "Le taux appliqué à ce produit sur les commandes et les factures.",
       "margin_hint": "Marge {{margin}} % · bénéfice {{profit}} par unité (hors TVA {{rate}} %)",
-      "vat_rate_inactive": "(inactif)"
+      "vat_rate_inactive": "(inactif)",
+      "takeaway_vat_label": "TVA à emporter",
+      "takeaway_vat_same": "Identique à ci-dessus",
+      "takeaway_vat_hint": "Uniquement pour SellQo Kassa : ce taux s’applique quand vous choisissez « à emporter » au comptoir, par exemple 6 % pour un repas à emporter."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -10509,7 +10512,14 @@
       "noInsz": "Sans numéro de registre national, vous ne pouvez rien enregistrer sur cette caisse enregistreuse.",
       "changeTerminal": "Choisir une autre caisse",
       "live": "En direct",
-      "offline": "Hors ligne · {{n}} actions en attente"
+      "offline": "Hors ligne · {{n}} actions en attente",
+      "tabs": "Sections de la caisse",
+      "tab": {
+        "tables": "Tables",
+        "counter": "Comptoir",
+        "cash": "Caisse",
+        "reports": "Rapports"
+      }
     },
     "fiscalMode": {
       "off": "mode non fiscal",
@@ -10650,6 +10660,121 @@
       },
       "lockedRejected": "Cette vente est enregistrée mais non comptabilisée. Ne modifiez rien et prévenez SellQo.",
       "lockedPaying": "Cette addition est en cours d’encaissement sur un autre appareil."
+    },
+    "counter": {
+      "name": "Comptoir",
+      "serviceLabel": "Sur place ou à emporter",
+      "service": {
+        "eat_in": "Sur place",
+        "takeaway": "À emporter"
+      },
+      "kitchenOn": "Bon cuisine",
+      "kitchenOff": "Pas de bon cuisine"
+    },
+    "cash": {
+      "in": "Entrée de caisse",
+      "out": "Sortie de caisse",
+      "openShift": "Ouvrir le service (comptage d’ouverture)",
+      "closeShift": "Clôturer le service (comptage de fin)",
+      "title": {
+        "in": "Argent dans le tiroir",
+        "out": "Argent hors du tiroir",
+        "open": "Comptage d’ouverture",
+        "close": "Comptage de fin"
+      },
+      "countHint": "Comptez l’argent du tiroir et saisissez le total.",
+      "amount": "Montant",
+      "reasonPlaceholder": "Motif",
+      "reason": {
+        "change": "Fonds de caisse",
+        "purchase": "Achat",
+        "bank": "Vers la banque",
+        "other": "Autre"
+      },
+      "confirm": "Confirmer",
+      "shiftOpenSince": "Service ouvert depuis {{time}} · fonds de caisse {{amount}}",
+      "noShift": "Aucun service n’est ouvert sur cette caisse. La première vente en ouvre un automatiquement, avec un fonds de caisse de 0 €.",
+      "doneIn": "{{amount}} enregistré dans le tiroir.",
+      "doneOut": "{{amount}} enregistré hors du tiroir.",
+      "shiftOpened": "Service ouvert.",
+      "shiftClosed": "Service clôturé.",
+      "pending": "Enregistré sur cet appareil. Envoyé dès qu’il y a une connexion.",
+      "opening": "Fonds de caisse",
+      "expected": "Attendu dans le tiroir",
+      "counted": "Compté",
+      "difference": "Écart",
+      "pendingDone": "{{n}} opération(s) de caisse ou de rapport envoyée(s) finalement.",
+      "pendingRejected": "SellQo a refusé une opération de caisse ou de rapport signée : {{error}}. Contactez SellQo.",
+      "error": {
+        "offline": "Pas de connexion. Réessayez.",
+        "no_insz": "Votre numéro de registre national manque. Un responsable peut le compléter sous Caisse › Personnel.",
+        "fiscal_not_configured": "Cet établissement utilise une boîte noire, mais cette caisse n’est pas configurée comme caisse enregistreuse.",
+        "fdm_not_available": "La boîte noire n’est pas encore connectée.",
+        "fdm_rejected": "La boîte noire a refusé. Rien n’a été enregistré.",
+        "fdm_unreachable": "La boîte noire ne répond pas. L’opération est enregistrée et sera renvoyée automatiquement ; ne la saisissez pas à nouveau.",
+        "server": "Échec : {{detail}}",
+        "pending_elsewhere": "Cette opération attend encore d’être envoyée.",
+        "signed_rejected": "Signé, mais SellQo l’a refusé ({{detail}}). Contactez SellQo."
+      }
+    },
+    "reports": {
+      "x": "Rapport X",
+      "xHint": "Situation du jour",
+      "z": "Rapport Z",
+      "zHint": "Clôturer la journée",
+      "zNo": "Rapport Z n° {{n}}",
+      "zRoleOnly": "Seul le propriétaire ou un responsable peut faire un rapport Z. Un rapport Z oublié est créé par la caisse le lendemain.",
+      "recent": "Derniers rapports",
+      "none": "Pas encore de rapports.",
+      "zConfirmTitle": "Clôturer la journée ?",
+      "zConfirmText": "Le rapport Z clôture les ventes jusqu’à maintenant et reçoit un numéro d’ordre. Ce que vous vendez ensuite va dans le rapport Z suivant.",
+      "zConfirm": "Faire le rapport Z",
+      "pending": "Le rapport est enregistré sur cet appareil et sera envoyé dès qu’il y a une connexion.",
+      "autoZDone": "{{n}} rapport(s) Z oublié(s) créé(s).",
+      "periodLine": "Journée d’exploitation {{day}} · {{from}} – {{to}}",
+      "printedAt": "Imprimé le {{at}}",
+      "totalLine": "{{amount}} sur {{n}} ventes",
+      "openChecksWarning": "Il reste {{n}} additions ouvertes. Elles iront dans le rapport Z du jour où elles seront payées.",
+      "preview": "Aperçu du rapport",
+      "print": "Imprimer ou PDF",
+      "s": {
+        "sales": "Ventes",
+        "vats": "TVA par taux",
+        "payments": "Moyens de paiement",
+        "tips": "Pourboires",
+        "cash": "Entrées/sorties de caisse",
+        "staff": "Par membre du personnel",
+        "shifts": "Comptages de caisse",
+        "other": "Divers"
+      },
+      "r": {
+        "count": "Nombre de ventes",
+        "total": "Total (TVA comprise)",
+        "net": "Base (hors TVA)",
+        "netShort": "base",
+        "vat": "TVA",
+        "discounts": "Remises",
+        "rounding": "Arrondi espèces",
+        "cashIn": "Entrée de caisse",
+        "cashOut": "Sortie de caisse",
+        "voided": "Ventes annulées",
+        "corrections": "Lignes annulées",
+        "drawerOpens": "Tiroir ouvert sans vente",
+        "openChecks": "Additions ouvertes"
+      },
+      "error": {
+        "offline": "Pas de connexion. Réessayez.",
+        "closed": "Cette journée d’exploitation est déjà clôturée par un rapport Z.",
+        "not_allowed": "Seul le propriétaire ou un responsable peut faire un rapport Z.",
+        "no_insz": "Votre numéro de registre national manque. Un responsable peut le compléter sous Caisse › Personnel.",
+        "fiscal_not_configured": "Cet établissement utilise une boîte noire. Faites le rapport sur une caisse enregistreuse.",
+        "fdm_not_available": "La boîte noire n’est pas encore connectée.",
+        "fdm_rejected": "La boîte noire a refusé. Aucun rapport n’a été créé.",
+        "fdm_unreachable": "La boîte noire ne répond pas. Le rapport est enregistré et sera renvoyé automatiquement.",
+        "server": "Échec : {{detail}}",
+        "pending_elsewhere": "Ce rapport attend encore d’être envoyé.",
+        "signed_rejected": "Signé, mais SellQo a refusé le rapport ({{detail}}). Contactez SellQo."
+      }
     }
   }
 }

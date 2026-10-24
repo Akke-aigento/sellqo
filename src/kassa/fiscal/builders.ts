@@ -11,9 +11,10 @@ import type {
   FdmReferenceInput, ForeignCurrencyInput, InputMethod, InvoiceInput, MoneyInOutInput, MoneyInOutLineInput,
   MoneyInOutLineType, NegQuantityReason, OrderInput, PaymentCorrectionInput, PaymentLineInput,
   PaymentLineType, PaymentType, PreBillInput, PriceChangeInput, PriceChangeScope, PriceChangeType,
-  ProductInput, QuantityType, SaleInput, TransactionInput, TransactionLineInput, TransferItemInput,
-  VatInput, VatLabel, WorkInOutInput,
+  ProductInput, QuantityType, ReportTurnoverXInput, ReportTurnoverZInput, ReportUserXInput, ReportUserZInput,
+  SaleInput, TransactionInput, TransactionLineInput, TransferItemInput, VatInput, VatLabel, WorkInOutInput,
 } from './types';
+import { turnoverReportParts, userReportParts, type SignedEvent } from './reports';
 
 export class FiscalBuildError extends Error {
   constructor(public readonly rule: string, message: string) {
@@ -380,4 +381,31 @@ export function buildInvoice(ctx: PosContext, meta: EventMeta, s: {
   const out: InvoiceInput = { ...identification(ctx, meta), invoiceNo: s.invoiceNo, customerVatNo: s.customerVatNo, fdmRefs: s.fdmRefs };
   if (s.costCenter) out.costCenter = s.costCenter;
   return out;
+}
+
+// ---------------------------------------------------------------- rapporten (TAFEL-3)
+
+/** Gegevens die enkel een Z heeft (RPT-02): doorlopend nummer en de afgesloten bedrijfsdag. */
+export interface ZSpec { reportNo: number; reportBookingDate: string }
+
+function checkZ(z: ZSpec | null | undefined) {
+  if (!z) return;
+  if (!Number.isSafeInteger(z.reportNo) || z.reportNo < 1) throw new FiscalBuildError('RPT-02', 'reportNo moet een positief geheel getal zijn');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(z.reportBookingDate)) throw new FiscalBuildError('RPT-02', 'reportBookingDate moet JJJJ-MM-DD zijn');
+}
+
+/** Omzetrapport X of Z uit het fiscale logboek van de periode (RPT-04, RPT-07). */
+export function buildReportTurnover(ctx: PosContext, meta: EventMeta, events: SignedEvent[], z?: ZSpec | null): ReportTurnoverXInput | ReportTurnoverZInput {
+  checkZ(z);
+  const parts = turnoverReportParts(events);
+  const x: ReportTurnoverXInput = { ...identification(ctx, meta), posDevices: parts.posDevices, fdmDevices: parts.fdmDevices, turnover: parts.turnover };
+  return z ? { ...x, reportNo: z.reportNo, reportBookingDate: z.reportBookingDate } : x;
+}
+
+/** Gebruikersrapport X of Z (RPT-06). Bevat werknemersnummers: nooit afdrukken of bewaren buiten fiscal_events. */
+export function buildReportUser(ctx: PosContext, meta: EventMeta, events: SignedEvent[], z?: ZSpec | null): ReportUserXInput | ReportUserZInput {
+  checkZ(z);
+  const parts = userReportParts(events);
+  const x: ReportUserXInput = { ...identification(ctx, meta), posDevices: parts.posDevices, fdmDevices: parts.fdmDevices, users: parts.users };
+  return z ? { ...x, reportNo: z.reportNo, reportBookingDate: z.reportBookingDate } : x;
 }

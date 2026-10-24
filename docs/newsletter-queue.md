@@ -4,9 +4,33 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13r — Toogverkoop, kas en X/Z-rapporten op SellQo Kassa (feature, 24-10-2026)
+
+**Status:** wacht op go + deploy (TAFEL-3, branch `tafel-3`; migratie `20261024160000_tafel_3_counter_cash_reports.sql`, frontend publiceren).
+
+**Voor wie:** horecazaken (horeca-module), vooral frituren, snackbars en cafés die aan de toog verkopen.
+
+**Verkopen aan de toog, je kas en je dagafsluiting** (oktober 2026)
+SellQo Kassa heeft nu vier tabbladen: Tafels, Toog, Kas en Rapporten. Aan de toog tik je producten aan, kies je ter plaatse of meenemen en reken je meteen af; bij meenemen geldt het btw-tarief dat je bij het product invult (bv. 6 % voor een afhaalmaaltijd). Onder Kas boek je geld in of uit de lade en tel je je kas bij het openen en sluiten van een shift. Onder Rapporten maak je een X-rapport (tussenstand) of een Z-rapport (dag afsluiten, doorlopend genummerd).
+Wat betekent dit voor jou? Je hele dag staat op één kassa: tafels, toog, kas en afsluiting. Vergeet je een dag af te sluiten, dan maakt de kassa het Z-rapport de volgende dag zelf.
+
+i18n: `public.changelog.changes.kassa_counter_reports`
+
+### 2026.13q — Zie of je kassatoestellen nog meedraaien (improvement, 24-10-2026)
+
+**Status:** klaar voor verzending (LIVE-1, live sinds 24-10-2026).
+
+**Voor wie:** zaken die SellQo Kassa gebruiken.
+
+**Elk kassatoestel in het oog** (oktober 2026)
+Onder Kassa › Kassa's zie je per kassa wanneer elk SellQo Kassa-toestel zich het laatst meldde en of er nog iets op dat toestel wacht om doorgestuurd te worden. Een toestel dat langer dan vijf minuten stil is, of waar nog iets wacht, kleurt oranje.
+Wat betekent dit voor jou? Je ziet een vastgelopen toestel voor het een probleem wordt.
+
+i18n: `public.changelog.changes.kassa_device_status`
+
 ### 2026.13p — Afrekenen op SellQo Kassa (feature, 24-10-2026)
 
-**Status:** wacht op go + deploy (TAFEL-2, branch `tafel-2`; na TAFEL-1).
+**Status:** klaar voor verzending (live sinds 24-10-2026, zie role-audit "LIVEGANG horeca-reeks").
 
 **Voor wie:** horecazaken (horeca-module).
 
@@ -18,19 +42,19 @@ i18n: `public.changelog.changes.table_payment`
 
 ### 2026.13o — Tafels en rekeningen op SellQo Kassa (feature, 23-10-2026)
 
-**Status:** wacht op go + deploy (TAFEL-1, branch `tafel-1`; na KASSA-0, PERSONEEL-1 en ZAAL-H1).
+**Status:** klaar voor verzending (live sinds 24-10-2026, zie role-audit "LIVEGANG horeca-reeks").
 
 **Voor wie:** horecazaken (horeca-module).
 
 **Je zaal live op de kassa** (oktober 2026)
 Op SellQo Kassa zie je je zaalplan: vrije tafels, bezette tafels met bedrag en minuten sinds de laatste bestelling, en tafels die de rekening vroegen. Je bestelt per tafel of op naam, stuurt de ronde door, en keuken en bar krijgen elk hun eigen bon. Annuleren, korting, verplaatsen en samenvoegen zitten erin; onder Bestellen › Posten kies je wat naar de bar en wat naar de keuken gaat.
-Wat betekent dit voor jou? Al je obers werken op dezelfde rekeningen, ook als het internet even hapert. Afrekenen volgt in de volgende versie.
+Wat betekent dit voor jou? Al je obers werken op dezelfde rekeningen, ook als het internet even hapert.
 
 i18n: `public.changelog.changes.table_checks`
 
 ### 2026.13n — Kassapersoneel met eigen pincode en de kassa-app (feature, 23-10-2026)
 
-**Status:** wacht op go + deploy (PERSONEEL-1, branch `personeel-1`).
+**Status:** klaar voor verzending (live sinds 24-10-2026, zie role-audit "LIVEGANG horeca-reeks").
 
 **Voor wie:** zaken met een kassa, vooral horeca.
 
@@ -42,7 +66,7 @@ i18n: `public.changelog.changes.kassa_staff_pin`
 
 ### 2026.13m — Zaalplan met een eigen QR-code per tafel (feature, 23-10-2026)
 
-**Status:** wacht op go + deploy (ZAAL-H1, branch `zaal-h1` in sellqo en sellqo-storefront; migratie, storefront-api, stripe-connect-webhook en de standaardshop moeten live staan).
+**Status:** klaar voor verzending (live sinds 24-10-2026, zie role-audit "LIVEGANG horeca-reeks").
 
 **Voor wie:** horecazaken (horeca-module).
 
@@ -54,7 +78,7 @@ i18n: `public.changelog.changes.floor_plan_tables`
 
 ### 2026.13l — Horeca: bestellen aan tafel zonder verwarring, keukenscherm op elk toestel (bugfix/verbetering, 23-10-2026)
 
-**Status:** wacht op go + deploy (HORECA-0, branch `horeca-0` in sellqo en sellqo-storefront).
+**Status:** klaar voor verzending (live sinds 24-10-2026, zie role-audit "LIVEGANG horeca-reeks").
 
 **Voor wie:** horecazaken (keuken, QR aan tafel, kassa).
 

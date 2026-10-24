@@ -14,19 +14,20 @@ import { buildKasticket, renderHtml } from '../../print';
 import type { ActionCtx } from '../horeca/actions';
 import { changeDue, equalSplit, parseEuroInput, planPayment, TENDER_METHODS, type PaymentPlan, type Tender, type TenderMethod, type TipMethod } from '../horeca/pay';
 import { payableTotal, payCheck, type PayOutcome } from '../horeca/payActions';
-import { lineTotalCents, type Check } from '../horeca/types';
+import { isCounter, lineTotalCents, type Check } from '../horeca/types';
 import { formatEuro } from '../horeca/format';
 
 const toInput = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
 
 interface Row { method: TenderMethod; amount: string }
 
-export function PayDialog({ ctx, check, onClose, onPaid }: { ctx: ActionCtx; check: Check; onClose: () => void; onPaid: () => void }) {
+export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: ActionCtx; check: Check; onClose: () => void; onPaid: () => void; kitchen?: boolean }) {
   const { t, i18n } = useTranslation();
   const { currentTenant } = useTenant();
   const euro = (c: number) => formatEuro(c, i18n.language);
   // Wat nog niet verstuurd is, gaat bij afrekenen eerst mee; het totaal telt het dus al mee.
-  const total = useMemo(() => payableTotal(check) + check.lines.filter((l) => l.state === 'draft').reduce((s, l) => s + lineTotalCents(l), 0), [check]);
+  // Aan de toog (TAFEL-3) zijn de ontwerp-lijnen zelf wat afgerekend wordt.
+  const total = useMemo(() => payableTotal(check) + (isCounter(check) ? 0 : check.lines.filter((l) => l.state === 'draft').reduce((s, l) => s + lineTotalCents(l), 0)), [check]);
   const [rows, setRows] = useState<Row[]>([{ method: 'card', amount: toInput(total) }]);
   const [tip, setTip] = useState('');
   const [tipMethod, setTipMethod] = useState<TipMethod>('card');
@@ -70,7 +71,7 @@ export function PayDialog({ ctx, check, onClose, onPaid }: { ctx: ActionCtx; che
     if (!plan || !tenders) return;
     setBusy(true);
     setError(null);
-    const o = await payCheck(ctx, check.id, tenders, plan.tip, plan.tipMethod);
+    const o = await payCheck(ctx, check.id, tenders, plan.tip, plan.tipMethod, { kitchen });
     setBusy(false);
     if (!o.ok) {
       setError(o.reason === 'plan' ? t('kassa.pay.error.plan') : t(`kassa.pay.error.${o.reason}`, { detail: o.detail ?? '' }));

@@ -5388,7 +5388,10 @@
       "vat_rate_shop_default": "Standaardtarief winkel ({{rate}}%)",
       "vat_rate_hint": "Het tarief waarmee dit product op orders en facturen komt.",
       "margin_hint": "Marge {{margin}}% · winst {{profit}} per stuk (excl. {{rate}}% btw)",
-      "vat_rate_inactive": "(inactief)"
+      "vat_rate_inactive": "(inactief)",
+      "takeaway_vat_label": "Btw bij meenemen",
+      "takeaway_vat_same": "Zelfde als hierboven",
+      "takeaway_vat_hint": "Enkel voor SellQo Kassa: dit tarief geldt als je aan de toog \"meenemen\" kiest, bijvoorbeeld 6 % voor een afhaalmaaltijd."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -10511,7 +10514,14 @@
       "noInsz": "Zonder rijksregisternummer kan je op deze geregistreerde kassa niets registreren.",
       "changeTerminal": "Andere kassa kiezen",
       "live": "Live",
-      "offline": "Offline · {{n}} wachtende acties"
+      "offline": "Offline · {{n}} wachtende acties",
+      "tabs": "Onderdelen van de kassa",
+      "tab": {
+        "tables": "Tafels",
+        "counter": "Toog",
+        "cash": "Kas",
+        "reports": "Rapporten"
+      }
     },
     "fiscalMode": {
       "off": "niet-fiscale modus",
@@ -10652,6 +10662,121 @@
       },
       "lockedRejected": "Deze verkoop is geregistreerd maar niet geboekt. Niets meer aan doen en SellQo verwittigen.",
       "lockedPaying": "Deze rekening wordt nu afgerekend op een ander toestel."
+    },
+    "counter": {
+      "name": "Toog",
+      "serviceLabel": "Ter plaatse of meenemen",
+      "service": {
+        "eat_in": "Ter plaatse",
+        "takeaway": "Meenemen"
+      },
+      "kitchenOn": "Keukenbon",
+      "kitchenOff": "Geen keukenbon"
+    },
+    "cash": {
+      "in": "Kas in",
+      "out": "Kas uit",
+      "openShift": "Shift openen (begintelling)",
+      "closeShift": "Shift sluiten (eindtelling)",
+      "title": {
+        "in": "Geld in de lade",
+        "out": "Geld uit de lade",
+        "open": "Begintelling",
+        "close": "Eindtelling"
+      },
+      "countHint": "Tel het geld in de lade en vul het totaal in.",
+      "amount": "Bedrag",
+      "reasonPlaceholder": "Reden",
+      "reason": {
+        "change": "Wisselgeld",
+        "purchase": "Aankoop",
+        "bank": "Naar de bank",
+        "other": "Andere"
+      },
+      "confirm": "Bevestigen",
+      "shiftOpenSince": "Shift open sinds {{time}} · beginkas {{amount}}",
+      "noShift": "Er loopt geen shift op deze kassa. De eerste verkoop opent er automatisch een, met beginkas € 0.",
+      "doneIn": "{{amount}} in de lade geboekt.",
+      "doneOut": "{{amount}} uit de lade geboekt.",
+      "shiftOpened": "Shift geopend.",
+      "shiftClosed": "Shift gesloten.",
+      "pending": "Bewaard op dit toestel. Het wordt verstuurd zodra er verbinding is.",
+      "opening": "Beginkas",
+      "expected": "Verwacht in de lade",
+      "counted": "Geteld",
+      "difference": "Verschil",
+      "pendingDone": "{{n}} kas- of rapporthandeling(en) alsnog verstuurd.",
+      "pendingRejected": "SellQo weigerde een ondertekende kas- of rapporthandeling: {{error}}. Neem contact op met SellQo.",
+      "error": {
+        "offline": "Geen verbinding. Probeer opnieuw.",
+        "no_insz": "Je rijksregisternummer ontbreekt. Een verantwoordelijke kan het invullen onder Kassa › Personeel.",
+        "fiscal_not_configured": "Deze zaak gebruikt een zwarte doos, maar deze kassa is niet als geregistreerde kassa ingesteld.",
+        "fdm_not_available": "De zwarte doos is nog niet gekoppeld.",
+        "fdm_rejected": "De zwarte doos weigerde. Er is niets geboekt.",
+        "fdm_unreachable": "De zwarte doos antwoordt niet. De handeling is bewaard en wordt vanzelf opnieuw gestuurd; niet opnieuw ingeven.",
+        "server": "Niet gelukt: {{detail}}",
+        "pending_elsewhere": "Deze handeling wacht nog op verzending.",
+        "signed_rejected": "Ondertekend, maar SellQo weigerde het ({{detail}}). Neem contact op met SellQo."
+      }
+    },
+    "reports": {
+      "x": "X-rapport",
+      "xHint": "Tussenstand van vandaag",
+      "z": "Z-rapport",
+      "zHint": "Dag afsluiten",
+      "zNo": "Z-rapport nr. {{n}}",
+      "zRoleOnly": "Een Z-rapport maakt enkel de eigenaar of een verantwoordelijke. Een vergeten Z-rapport maakt de kassa de volgende dag zelf.",
+      "recent": "Laatste rapporten",
+      "none": "Nog geen rapporten.",
+      "zConfirmTitle": "Dag afsluiten?",
+      "zConfirmText": "Het Z-rapport sluit de verkopen tot nu af en krijgt een volgnummer. Wat je daarna nog verkoopt, komt in het volgende Z-rapport.",
+      "zConfirm": "Z-rapport maken",
+      "pending": "Het rapport is bewaard op dit toestel en wordt verstuurd zodra er verbinding is.",
+      "autoZDone": "{{n}} vergeten Z-rapport(en) aangemaakt.",
+      "periodLine": "Bedrijfsdag {{day}} · {{from}} – {{to}}",
+      "printedAt": "Afgedrukt op {{at}}",
+      "totalLine": "{{amount}} over {{n}} verkopen",
+      "openChecksWarning": "Er staan nog {{n}} open rekeningen. Ze komen in het Z-rapport van de dag waarop ze afgerekend worden.",
+      "preview": "Voorbeeld van het rapport",
+      "print": "Afdrukken of PDF",
+      "s": {
+        "sales": "Verkopen",
+        "vats": "Btw per tarief",
+        "payments": "Betaalmiddelen",
+        "tips": "Fooien",
+        "cash": "Kas in/uit",
+        "staff": "Per medewerker",
+        "shifts": "Kastellingen",
+        "other": "Overige"
+      },
+      "r": {
+        "count": "Aantal verkopen",
+        "total": "Totaal (incl. btw)",
+        "net": "Maatstaf (excl. btw)",
+        "netShort": "maatstaf",
+        "vat": "Btw",
+        "discounts": "Kortingen",
+        "rounding": "Afronding contant",
+        "cashIn": "Kas in",
+        "cashOut": "Kas uit",
+        "voided": "Geannuleerde verkopen",
+        "corrections": "Geannuleerde lijnen",
+        "drawerOpens": "Lade geopend zonder verkoop",
+        "openChecks": "Open rekeningen"
+      },
+      "error": {
+        "offline": "Geen verbinding. Probeer opnieuw.",
+        "closed": "Deze bedrijfsdag is al afgesloten met een Z-rapport.",
+        "not_allowed": "Een Z-rapport maakt enkel de eigenaar of een verantwoordelijke.",
+        "no_insz": "Je rijksregisternummer ontbreekt. Een verantwoordelijke kan het invullen onder Kassa › Personeel.",
+        "fiscal_not_configured": "Deze zaak gebruikt een zwarte doos. Maak het rapport op een geregistreerde kassa.",
+        "fdm_not_available": "De zwarte doos is nog niet gekoppeld.",
+        "fdm_rejected": "De zwarte doos weigerde. Er is geen rapport gemaakt.",
+        "fdm_unreachable": "De zwarte doos antwoordt niet. Het rapport is bewaard en wordt vanzelf opnieuw gestuurd.",
+        "server": "Niet gelukt: {{detail}}",
+        "pending_elsewhere": "Dit rapport wacht nog op verzending.",
+        "signed_rejected": "Ondertekend, maar SellQo weigerde het rapport ({{detail}}). Neem contact op met SellQo."
+      }
     }
   }
 }

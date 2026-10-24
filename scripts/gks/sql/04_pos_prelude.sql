@@ -1,7 +1,9 @@
 -- TAFEL-2 — pos_terminals/pos_sessions/pos_transactions zoals live (kolommen, defaults, de
 -- triggers voor bonnummer en voorraad), plus decrement_stock/record_transaction als logboek.
 create table if not exists public.pos_terminals (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, name text not null default 'Kassa', settings jsonb default '{}'::jsonb, last_seen_at timestamptz);
-create table if not exists public.pos_sessions (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, terminal_id uuid not null, opened_by uuid not null, opened_at timestamptz not null default now(), opening_cash numeric not null default 0, notes text, status text not null default 'open');
+create table if not exists public.pos_sessions (id uuid primary key default gen_random_uuid(), tenant_id uuid not null, terminal_id uuid not null, opened_by uuid not null, opened_at timestamptz not null default now(), opening_cash numeric not null default 0, notes text, status text not null default 'open',
+  closed_by uuid, closed_at timestamptz, closing_cash numeric, expected_cash numeric, cash_difference numeric, created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
+  check (status in ('open', 'closed', 'reconciled')));
 create unique index if not exists unique_open_pos_session_per_terminal on public.pos_sessions (terminal_id) where status = 'open';
 create table if not exists public.pos_cash_movements (id uuid primary key, tenant_id uuid not null, session_id uuid not null, terminal_id uuid not null, user_id uuid not null, movement_type text not null check (movement_type in ('in','out','adjustment')), amount numeric not null, reason text not null, notes text, created_at timestamptz not null default now());
 create table if not exists public.pos_transactions (
@@ -33,3 +35,20 @@ begin
   return new;
 end $$;
 create trigger pos_transaction_stock_trigger after insert or update on public.pos_transactions for each row execute function public.handle_pos_transaction_stock();
+
+-- TAFEL-3 — verwachte kas zoals live (calculate_session_expected_cash).
+create or replace function public.calculate_session_expected_cash(p_session_id uuid) returns numeric language plpgsql security definer set search_path to 'public' as $$
+declare v_opening_cash numeric; v_cash_sales numeric; v_cash_movements numeric;
+begin
+  if auth.uid() is not null and not public.is_platform_admin(auth.uid()) then
+    if not exists (select 1 from public.pos_sessions s where s.id = p_session_id and s.tenant_id in (select public.get_user_tenant_ids(auth.uid()))) then
+      raise exception 'Geen toegang tot deze tenant' using errcode = '42501';
+    end if;
+  end if;
+  select opening_cash into v_opening_cash from public.pos_sessions where id = p_session_id;
+  select coalesce(sum((select coalesce(sum((p->>'amount')::numeric), 0) from jsonb_array_elements(payments) as p where p->>'method' = 'cash')), 0) - coalesce(sum(cash_change), 0)
+    into v_cash_sales from public.pos_transactions where session_id = p_session_id and status = 'completed';
+  select coalesce(sum(case when movement_type = 'in' then amount when movement_type = 'out' then -amount else 0 end), 0)
+    into v_cash_movements from public.pos_cash_movements where session_id = p_session_id;
+  return v_opening_cash + v_cash_sales + v_cash_movements;
+end $$;

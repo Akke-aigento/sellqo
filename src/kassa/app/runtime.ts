@@ -35,6 +35,8 @@ export interface TerminalFiscalSettings {
 }
 
 const DEVICE_KEY = 'sq_kassa_device';
+/** TAFEL-3: afkapuur van de bedrijfsdag (Z), standaard 06:00 — zelfde als public.kassa_cutoff_hour. */
+export const DEFAULT_CUTOFF_HOUR = 6;
 
 function safeGet(key: string): string | null {
   try { return localStorage.getItem(key); } catch { return null; }
@@ -69,7 +71,7 @@ export function forgetDevice() {
 export function fiscalSettingsOf(settings: unknown): TerminalFiscalSettings {
   const f = (settings as { fiscal?: Partial<TerminalFiscalSettings> } | null)?.fiscal ?? {};
   const mode: FiscalMode = f.mode === 'simulator' || f.mode === 'fdm' ? f.mode : 'off';
-  return { mode, vatNo: f.vatNo, estNo: f.estNo, posId: f.posId, terminalId: f.terminalId, fdmUrl: f.fdmUrl, cutoffHour: f.cutoffHour ?? 5 };
+  return { mode, vatNo: f.vatNo, estNo: f.estNo, posId: f.posId, terminalId: f.terminalId, fdmUrl: f.fdmUrl, cutoffHour: f.cutoffHour ?? DEFAULT_CUTOFF_HOUR };
 }
 
 /**
@@ -133,7 +135,7 @@ export class KassaRuntime {
   async meta(name: MutationName, employeeId: string, ticketMedium: TicketMedium, isTraining = false): Promise<EventMeta> {
     const ctx = this.posContext();
     const now = new Date();
-    const bookingDate = bookingDateFor(now, this.fiscal.cutoffHour ?? 5);
+    const bookingDate = bookingDateFor(now, this.fiscal.cutoffHour ?? DEFAULT_CUTOFF_HOUR);
     const label = isTraining ? 'T' : MUTATIONS[name].label;
     return {
       posFiscalTicketNo: takeTicketNo(ctx.posId, ctx.terminalId, label),
@@ -148,8 +150,10 @@ export class KassaRuntime {
   /**
    * Onderteken en schrijf weg. Gooit bij 'off' (de aanroeper kiest dan het niet-fiscale pad)
    * en bij 'fdm' (nog niet beschikbaar). Bij 'unreachable' blijft het bericht bewaard.
+   * `reference` (TAFEL-3): waaraan het event hangt (fiscal_events.cost_center_reference) als het
+   * bericht zelf geen costCenter heeft: toogverkoop (de rekening), kas in/uit, telling, rapport.
    */
-  async sign(name: MutationName, data: AnyFiscalInput, opts: { staffId?: string; isTraining?: boolean } = {}): Promise<SignOutcome & { eventId?: string }> {
+  async sign(name: MutationName, data: AnyFiscalInput, opts: { staffId?: string; isTraining?: boolean; reference?: string } = {}): Promise<SignOutcome & { eventId?: string }> {
     if (this.fiscal.mode === 'off') throw new FiscalUnavailableError('fiscal_off');
     if (!this.sender) throw new FiscalUnavailableError('fdm_not_available');
     const out = await this.sender.sign(name, data, opts.isTraining ?? false);
@@ -181,7 +185,7 @@ export class KassaRuntime {
         short_signature: r.shortSignature ?? null,
         verification_url: r.verificationUrl ?? null,
         transaction_total_cents: tx ? Math.round(tx.transactionTotal * 100) : null,
-        cost_center_reference: eventCostCenterReference(cc),
+        cost_center_reference: eventCostCenterReference(cc) ?? opts.reference ?? null,
         request_body: out.requestBody,
         response_body: out.responseBody,
         request_sha256: await sha256Hex(out.requestBody),

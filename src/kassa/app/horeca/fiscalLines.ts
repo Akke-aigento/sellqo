@@ -11,7 +11,7 @@
 import { divRoundHalfUp, milli4 } from '../../fiscal/money';
 import { costCenter, mirrorForTransfer, type LineSpec, type ProductSpec } from '../../fiscal/builders';
 import type { CostCenterInput, NegQuantityReason } from '../../fiscal/types';
-import type { Check, CheckLine } from './types';
+import { payableLines, type Check, type CheckLine } from './types';
 
 export const SUPPLEMENT_DEPARTMENT = { id: 'SUPP', name: 'Supplementen' } as const;
 
@@ -69,7 +69,8 @@ export function roundSpecs(c: Check): LineSpec[] {
  * Lijnen met dezelfde korting tellen samen; elke korting houdt haar groupingId.
  */
 export function consolidatedLines(c: Check): CheckLine[] {
-  const live = c.lines.filter((l) => l.state === 'sent');
+  // Tafel: de verstuurde lijnen; toog (TAFEL-3): de ontwerp-lijnen die afgerekend worden.
+  const live = payableLines(c);
   const groups = new Map<string, CheckLine>();
   for (const l of [...live].sort((a, b) => a.seq - b.seq)) {
     // Negatieve lijnen kortingen we naar hun "doellijn": zelfde product/prijs/supplementen.

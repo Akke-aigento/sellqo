@@ -1,3 +1,45 @@
+## TAFEL-3 — SellQo Kassa als enige kassa: toogverkoop, kas in/uit en tellingen, X/Z-rapporten — 24 oktober 2026
+
+Branch `tafel-3` (op `main` na de livegang); niets live. Go van Akke op 24-10: één kassa (de klassieke `/admin/pos` wordt in TAFEL-4 uitgefaseerd), afkapuur Z 06:00. Fiscale release `KASSA_SW_VERSION` 0.5.0. Geld-batch: review-agent op de diff. Eisenmatrix EVT-04 (directe verkoop = N zonder P), TX-01 (btw ter plaatse/meenemen), PAY-09 (kas in/uit, telling), RPT-01..RPT-09.
+
+**Root cause / aanleiding** — Recon (live DB, 24-10): de klassieke kassa heeft in heel SellQo 1 verkoop ooit (VanXcel, maart, geannuleerd), 0 kasbewegingen, 0 geparkeerde mandjes; alleen de demozaak Bistro Mirabelle heeft sessies. Ombouwen van `POSTerminal.tsx` (1.744 regels, rekent in de browser, `usePOS.ts:309-342`) zou twee kassa's laten bestaan. SellQo Kassa miste nog: verkopen zonder tafel, kas in/uit (verplicht zodra een zaak cash aanvaardt, PAY-09) en X/Z-rapporten (RPT-01). Daarnaast rekende de kassa één btw-tarief per product: een afhaalmaaltijd (6 %) en ter plaatse (12 %) waren niet te onderscheiden.
+
+**Uitgevoerd**
+- Migratie `20261024160000_tafel_3_counter_cash_reports.sql`:
+  - additieve kolommen: `products.takeaway_vat_rate_id` (FK vat_rates, on delete set null), `dining_checks.kind` ('table'|'counter') en `.service` ('eat_in'|'takeaway'), `pos_cash_movements.pos_cashier_id/fiscal_event_id/kind`, `pos_sessions.opening_/closing_fiscal_event_id`, `closed_by_cashier`, `opening_/closing_request_id` (uniek);
+  - toog: `kassa_counter_guard` en `kassa_counter_after` rond `horeca_apply_one` (toog kent enkel aantikken, aantal, opmerking, weghalen, korting, naam, schrappen, ter plaatse/meenemen; niets tijdens het afrekenen; niets naar een toog verplaatsen; meenemen = afhaaltarief, ook bij omschakelen);
+  - `horeca_apply`, `horeca_check_json`, `horeca_pay_begin`, `horeca_pay` vervangen: voor tafels functioneel identiek, voor de toog = de ontwerp-lijnen afrekenen, in één ronde zonder P-event "versturen", keukenbonnen per post (niet voor bar-posten, uit te zetten met `kitchen=false`, service eat_in/pickup, betaald, gekoppeld aan de transactie);
+  - `kassa_cash_move`, `kassa_shift` (open/close met telling, verwachte kas via de bestaande `calculate_session_expected_cash`), `kassa_open_session`;
+  - rapporten: `kassa_report_numbers` (reservering, doorlopend per zaak, advisory lock), `kassa_reports` (append-only), `kassa_report_begin/finish/release/due/source`, `kassa_report_data` (cijfers uit pos_transactions, check_payments en check_lines; btw per ticket en tarief zoals de FDM), bedrijfsdag `kassa_cutoff_hour/business_day/day_start` (standaard 06:00 Brussel).
+- Kassa-app (`src/kassa/app/`): `fiscalOps.ts` (tekenen → write-ahead → server, identiek opnieuw bij geen antwoord, nooit opnieuw tekenen), `cashActions.ts` (MONEY_IN_OUT, DRAWER_DECLARATION), `reportActions.ts` (X/Z, officiële rapporten uit `kassa_report_source`, automatische Z met robotgebruiker 00000000029), `payActions.ts` (toogpad: geen ronde, geen costCenter, event aan de rekening via `reference`), `runtime.ts` (`reference`-optie, afkapuur 6), schermen `KassaHome` (tabbladen Tafels · Toog · Kas · Rapporten), `CheckScreen` (toogmodus), `CashScreen`, `ReportsScreen`, `reportHtml.ts` (afdrukken/PDF), `useKassaBackground` (wachtende handelingen + auto-Z elk kwartier), `heartbeat` (wachtende kas-/rapporthandelingen tellen mee).
+- `src/kassa/fiscal/builders.ts`: `buildReportTurnover` en `buildReportUser` (Z-nummer en -datum gecontroleerd).
+- Admin: productformulier krijgt "Btw bij meenemen" (enkel horeca).
+- i18n: alle nieuwe teksten in nl/en/fr/de/uk; changelog 2026.13r (`kassa_counter_reports`); nieuwsbrief-items 2026.13q en 2026.13r, statussen 13l–13p op "live"; helpartikel `docs/sql/tafel-3-doc-article.sql` (nog niet gedraaid).
+
+**Security-keuzes** — Alle nieuwe functies security definer met `has_tenant_role(tenant_admin, staff)`; anon heeft niets. `kassa_report_data`, `kassa_open_session`, de bedrijfsdag- en btw-hulpfuncties zijn niet rechtstreeks uitvoerbaar. `kassa_reports`: lezen voor leden van de zaak, schrijven enkel via `kassa_report_finish`, update/delete/truncate geblokkeerd. `kassa_report_numbers`: geen client-toegang. Een Z mag enkel een medewerker met rol owner/manager maken (of automatisch zonder medewerker). In een zaak met een echte zwarte doos wordt een simulator-handtekening geweigerd (`kassa_fiscal_ref_ok`). `kassa_report_source` geeft ondertekende berichten (met werknemersnummers) terug aan het toestel dat het officiële rapport tekent; de app bewaart ze niet en drukt ze nooit af (print: lege `staffDirectory`). Bestaand en bewust ongemoeid: `pos_sessions`/`pos_cash_movements` laten staff nog rechtstreeks schrijven (de klassieke kassa heeft dat nodig); dicht in TAFEL-4.
+
+**Gedeelde-paden-waarschuwing** — `products` krijgt één nullable kolom (een id, niets gevoeligs); custom frontends en `storefront-api` merken niets (geen gewijzigde of verwijderde sleutels). `horeca_pay`/`horeca_pay_begin`/`horeca_apply` worden vervangen: het tafelpad is regel voor regel overgenomen (enige wijziging: de shiftlogica zit nu in `kassa_open_session`, met dezelfde `on conflict`, en contante fooi krijgt `kind = 'tip'`); alle TAFEL-1/TAFEL-2-tests en de stresstest draaien ongewijzigd groen. Geen edge function geraakt.
+
+**Verificatie**
+- `scripts/gks/sql/run.sh`: 6 suites groen, elke migratie twee keer (idempotent), nieuw `test_tafel3.sql` (toog, btw meenemen/ter plaatse, claim-slot, keukenbonnen, kas, shift met verwachte kas −8,30 en verschil +8,30, X/Z met nummering, vrijgeven, auto-Z voor een vergeten dag, append-only, fiscale weigeringen, tenant-isolatie, anon).
+- Stresstest tafels (4 toestellen × 25 tafels × 60 s) op de vervangen functies: 756 aanroepen, 131 betalingen, alle invarianten gehouden, p95 31 ms.
+- `npx vitest run src/kassa`: 246 groen (17 nieuw in `tafel3.test.ts`: toog niet-fiscaal en fiscaal, kas en telling, netwerkfout na tekenen, geweigerd, rapporten niet-fiscaal en fiscaal met Z-nummer, release, closed, auto-Z robot).
+- `tsc` (app) 0 fouten, ook met de nieuwere lib van de Lovable-build; `npm run build` en `npm run build:kassa` groen; lint: ProductForm 17 = baseline 17, kassa-bestanden 0; i18n-pariteit volledig.
+- Schermen op 390 en 1280 px nagekeken met een lokale proefopstelling (nagebootste server): tafels, toog met ter plaatse/meenemen, afrekenen, kas uit, rapporten (eigenaar en ober), X-rapport.
+
+**Samenhang**
+- Bestond al: klassieke kassa `/admin/pos` (ongebruikt), shiftlogica en verwachte kas (`pos_sessions`, `calculate_session_expected_cash`), kasbewegingen (`pos_cash_movements`), fiscale rapportkern (`fiscal/reports.ts`, getest tegen de officiële sets), printmodel voor rapporten (`print/buildReport`).
+- Hergebruikt in plaats van dubbel: dezelfde shift- en kastabellen, dezelfde verwachte-kasformule, hetzelfde afrekenpad voor tafel en toog, dezelfde rapportkern.
+- Nieuw: tabbladen in SellQo Kassa; "Btw bij meenemen" in het productformulier (enkel horeca).
+- Bewust blijven staan tot TAFEL-4: de klassieke kassa (eerst de winkelfuncties overzetten, dan doorsturen naar `/kassa` en opruimen), RLS op `pos_sessions`/`pos_cash_movements`.
+- Geen knop "lade openen": SellQo Kassa stuurt nog geen kassalade aan, dus dat zou een dode knop zijn. Het rapport telt wel ondertekende `signDrawerOpen`-events.
+
+**Bewust ongemoeid / Vervolg**
+- TAFEL-4: kassa-inbox voor QR- en webshoporders van een GKS-zaak (FAQ Q203), winkelfuncties (barcode, klant, cadeaubon, kaartterminal), klassieke kassa uitfaseren, RLS dicht.
+- Lade aansturen + `signDrawerOpen` (met FDM-1/app-batch).
+- Stresstest met toogverkopen erbij, en de rapportcijfers tegen een echte drukke dag naleggen (RPT-08: interne cijfers = fiscale Z) zodra er een FDM is.
+- Q&A FOD: robotgebruiker voor de automatische Z (00000000029 vs 00000000097 in het voorbeeld).
+
 ## LIVEGANG horeca-reeks — HORECA-0 t/m LIVE-1 live gezet — 24 oktober 2026
 
 Go van Akke ("doorpakken, akkoord") op de go-lijst in projectdoc `claude/kassa-bouwstatus.md`. Buiten scope en dus niet gedaan: FDM-1 (zwarte doos), App Store en Play Store.

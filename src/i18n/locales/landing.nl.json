@@ -2243,6 +2243,10 @@
         "kassa_device_status": {
           "title": "Zie of je kassatoestellen nog meedraaien",
           "description": "Onder Kassa › Kassa's zie je per kassa wanneer elk SellQo Kassa-toestel zich het laatst meldde en of er nog handelingen op dat toestel wachten om doorgestuurd te worden. Een toestel dat langer dan vijf minuten niets van zich liet horen, of waar nog iets wacht, kleurt oranje."
+        },
+        "kassa_counter_reports": {
+          "title": "Toogverkoop, kas en X/Z-rapporten op SellQo Kassa",
+          "description": "Onder het tabblad Toog verkoop je zonder tafel: producten aantikken, kiezen tussen ter plaatse of meenemen, en meteen afrekenen. Bij meenemen geldt het btw-tarief dat je bij het product invult onder 'Btw bij meenemen', bijvoorbeeld 6 % voor een afhaalmaaltijd. Een keukenbon gaat alleen naar je keuken als je dat aanzet. Onder Kas boek je geld in of uit de lade met een reden en open of sluit je een shift met een telling; de kassa toont wat er verwacht werd en het verschil. Onder Rapporten maak je een X-rapport (tussenstand) of een Z-rapport (dag afsluiten, doorlopend genummerd). Een Z-rapport mag alleen de eigenaar of een verantwoordelijke maken. Vergeet je een dag af te sluiten, dan maakt de kassa het Z-rapport de volgende dag zelf."
         }
       },
       "copyLink": "Kopieer link",

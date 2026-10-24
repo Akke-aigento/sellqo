@@ -1,8 +1,8 @@
-// PERSONEEL-1/TAFEL-1 — de kassa na de PIN: kopbalk (wie, verbinding, in/uitklokken, wissel),
-// daaronder de tafels of de geopende rekening.
+// PERSONEEL-1/TAFEL-1/TAFEL-3 — de kassa na de PIN: kopbalk (wie, verbinding, in/uitklokken,
+// wissel), tabbladen Tafels · Toog · Kas · Rapporten, en de geopende rekening of toogverkoop.
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, Loader2, LogOut, Users, Wifi, WifiOff } from 'lucide-react';
+import { Banknote, Clock, FileBarChart, LayoutGrid, Loader2, LogOut, ShoppingBag, Users, Wifi, WifiOff } from 'lucide-react';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { cn } from '@/lib/utils';
 import { clock, isClockedIn } from '../attendance';
@@ -12,6 +12,14 @@ import { useHoreca } from '../horeca/useHoreca';
 import type { ActionCtx } from '../horeca/actions';
 import { TablesScreen } from './TablesScreen';
 import { CheckScreen } from './CheckScreen';
+import { CashScreen } from './CashScreen';
+import { ReportsScreen } from './ReportsScreen';
+import { lastService } from '../horeca/counter';
+
+type Tab = 'tables' | 'counter' | 'cash' | 'reports';
+const TABS: { id: Tab; icon: typeof LayoutGrid }[] = [
+  { id: 'tables', icon: LayoutGrid }, { id: 'counter', icon: ShoppingBag }, { id: 'cash', icon: Banknote }, { id: 'reports', icon: FileBarChart },
+];
 
 export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: KassaRuntime; terminalName: string; onForgetDevice: () => void }) {
   const { t } = useTranslation();
@@ -19,6 +27,7 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
   const store = useHoreca(runtime.device.tenantId, runtime.device.deviceUuid);
   const { data: plan } = useFloorPlan();
   const [openCheck, setOpenCheck] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>('tables');
   const [autoPay, setAutoPay] = useState(false);
   const [clockedIn, setClockedIn] = useState(() => (staff ? isClockedIn(runtime.device.tenantId, staff.id) : false));
   const [clockBusy, setClockBusy] = useState(false);
@@ -29,6 +38,20 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
     store, runtime, staffId: staff.id, staffName: staff.display_name, employeeId, tableLabel: (id: string | null) => (id ? labels.get(id) ?? null : null),
   } : null), [store, runtime, staff, employeeId, labels]);
   if (!staff || !ctx) return null;
+
+  // Toog: een nieuwe verkoop openen (geen tafel). Na afrekenen meteen de volgende klant.
+  const newCounterSale = () => {
+    const id = crypto.randomUUID();
+    store.enqueue({ id: crypto.randomUUID(), kind: 'open_check', check_kind: 'counter', service: lastService(), check_id: id, name: t('kassa.counter.name'), staff_id: staff.id });
+    setAutoPay(false);
+    setOpenCheck(id);
+  };
+  const pickTab = (x: Tab) => {
+    setOpenCheck(null);
+    setAutoPay(false);
+    if (x === 'counter') { setTab('counter'); newCounterSale(); return; }
+    setTab(x);
+  };
 
   const toggleClock = async () => {
     setClockBusy(true);
@@ -69,9 +92,25 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
       {message && <p role="status" className="border-b bg-muted px-3 py-1.5 text-sm">{message}</p>}
       {runtime.isFiscal && !employeeId && <p role="alert" className="border-b bg-destructive/10 px-3 py-1.5 text-sm text-destructive">{t('kassa.home.noInsz')}</p>}
 
+      <nav className="flex border-b" role="tablist" aria-label={t('kassa.home.tabs')}>
+        {TABS.map(({ id, icon: Icon }) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id && (id === 'counter' || !openCheck)} onClick={() => pickTab(id)}
+            className={cn('flex h-12 flex-1 items-center justify-center gap-1.5 text-sm font-semibold', tab === id ? 'border-b-2 border-primary text-foreground' : 'text-muted-foreground')}>
+            <Icon className="h-4 w-4" aria-hidden /><span className="hidden sm:inline">{t(`kassa.home.tab.${id}`)}</span>
+            <span className="sr-only sm:hidden">{t(`kassa.home.tab.${id}`)}</span>
+          </button>
+        ))}
+      </nav>
+
       {openCheck ? (
-        <CheckScreen key={openCheck} ctx={ctx} checkId={openCheck} initialPay={autoPay} onBack={() => { setOpenCheck(null); setAutoPay(false); }}
+        <CheckScreen key={openCheck} ctx={ctx} checkId={openCheck} initialPay={autoPay}
+          onBack={() => { setOpenCheck(null); setAutoPay(false); if (tab === 'counter') setTab('tables'); }}
+          onPaid={(counter) => { setOpenCheck(null); setAutoPay(false); if (counter) newCounterSale(); }}
           onOpen={(id, o) => { setAutoPay(!!o?.pay); setOpenCheck(id); }} />
+      ) : tab === 'cash' ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto"><CashScreen ctx={ctx} /></div>
+      ) : tab === 'reports' ? (
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto"><ReportsScreen ctx={ctx} staffRole={staff.role} /></div>
       ) : (
         <>
           <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">

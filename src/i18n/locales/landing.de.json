@@ -2243,6 +2243,10 @@
         "kassa_device_status": {
           "title": "Sieh, ob deine Kassengeräte noch mitlaufen",
           "description": "Unter Kasse › Kassen siehst du pro Kasse, wann sich jedes SellQo Kassa-Gerät zuletzt gemeldet hat und ob auf dem Gerät noch Aktionen auf das Senden warten. Ein Gerät, das sich länger als fünf Minuten nicht gemeldet hat oder bei dem noch etwas wartet, wird orange."
+        },
+        "kassa_counter_reports": {
+          "title": "Thekenverkauf, Kasse und X/Z-Berichte in SellQo Kassa",
+          "description": "Im Reiter Theke verkaufst du ohne Tisch: Produkte antippen, vor Ort oder zum Mitnehmen wählen und sofort kassieren. Beim Mitnehmen gilt der MwSt.-Satz, den du beim Produkt unter „MwSt. zum Mitnehmen“ einträgst, zum Beispiel 6 % für ein Essen zum Mitnehmen. Ein Küchenbon geht nur in deine Küche, wenn du ihn einschaltest. Unter Kasse buchst du Geld in oder aus der Schublade mit Grund und öffnest oder schließt eine Schicht mit Zählung; die Kasse zeigt das Soll und die Differenz. Unter Berichte erstellst du einen X-Bericht (Zwischenstand) oder einen Z-Bericht (Tag abschließen, fortlaufend nummeriert). Einen Z-Bericht dürfen nur der Inhaber oder eine verantwortliche Person erstellen. Vergisst du, einen Tag abzuschließen, erstellt die Kasse den Z-Bericht am nächsten Tag selbst."
         }
       },
       "copyLink": "Link kopieren",

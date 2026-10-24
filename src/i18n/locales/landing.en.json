@@ -2243,6 +2243,10 @@
         "kassa_device_status": {
           "title": "See whether your till devices are still connected",
           "description": "Under Till › Tills you see, per till, when each SellQo Kassa device last checked in and whether actions are still waiting on that device to be sent. A device that hasn’t checked in for more than five minutes, or that still has something waiting, turns orange."
+        },
+        "kassa_counter_reports": {
+          "title": "Counter sales, cash and X/Z reports on SellQo Kassa",
+          "description": "Under the Counter tab you sell without a table: tap products, choose eat in or take away, and pay straight away. For take away, the VAT rate you set on the product under 'VAT for take away' applies, for example 6% for a takeaway meal. A kitchen ticket only goes to your kitchen if you switch it on. Under Cash you record money into or out of the drawer with a reason, and open or close a shift with a count; the till shows what was expected and the difference. Under Reports you make an X report (running totals) or a Z report (close the day, numbered in sequence). Only the owner or a manager can make a Z report. If you forget to close a day, the till makes the Z report itself the next day."
         }
       },
       "copyLink": "Copy link",

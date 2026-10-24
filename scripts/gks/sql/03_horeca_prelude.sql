@@ -10,3 +10,4 @@ create table if not exists public.kitchen_tickets (
   service_type text, requested_time timestamptz, customer_label text, customer_phone text, note text, items jsonb, total numeric, paid boolean not null default false,
   status text not null default 'new', status_at timestamptz not null default now(), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
 alter table public.kitchen_tickets add constraint kitchen_tickets_source_check check (source in ('webshop', 'pos', 'phone'));
+alter table public.kitchen_tickets add constraint kitchen_tickets_service_type_check check (service_type is null or service_type in ('pickup', 'local_delivery', 'eat_in'));

@@ -4,13 +4,14 @@
 // (ronde naar keuken/bar) en Afrekenen (TAFEL-2). Apart afrekenen = deelrekening.
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Loader2, MoreHorizontal, Search, Send, Receipt, Wallet } from 'lucide-react';
+import { ArrowLeft, ChefHat, Loader2, MoreHorizontal, Search, Send, Receipt, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { cn } from '@/lib/utils';
-import { checkTotalCents, lineTotalCents, type Check, type CheckLine } from '../horeca/types';
+import { checkTotalCents, isCounter, lineTotalCents, type Check, type CheckLine } from '../horeca/types';
+import { kitchenOn, rememberKitchen, rememberService, type CounterService } from '../horeca/counter';
 import { roundLines } from '../horeca/fiscalLines';
 import { discountLine, moveCheck, moveLines, requestBill, sendRound, type ActionCtx, type ActionOutcome } from '../horeca/actions';
 import { useCatalog, type CatalogProduct } from '../horeca/useCatalog';
@@ -18,12 +19,16 @@ import { formatEuro } from '../horeca/format';
 import { hasPendingPay, isRejectedPay } from '../horeca/payActions';
 import { PayDialog, SplitDialog } from './PayDialog';
 
-interface Props { ctx: ActionCtx; checkId: string; onBack: () => void; onOpen?: (checkId: string, opts?: { pay?: boolean }) => void; initialPay?: boolean }
+interface Props {
+  ctx: ActionCtx; checkId: string; onBack: () => void; onOpen?: (checkId: string, opts?: { pay?: boolean }) => void; initialPay?: boolean;
+  /** Na afrekenen. TAFEL-3: aan de toog opent de kassa meteen de volgende verkoop. */
+  onPaid?: (counter: boolean) => void;
+}
 
 const VOID_REASONS = ['mistake', 'customer', 'broken', 'other'] as const;
 const DISCOUNTS = [10, 20, 50] as const;
 
-export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }: Props) {
+export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay = false }: Props) {
   const { t, i18n } = useTranslation();
   const { store } = ctx;
   const check = store.check(checkId);
@@ -38,6 +43,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }
   const [lineSheet, setLineSheet] = useState<CheckLine | null>(null);
   const [addonFor, setAddonFor] = useState<CatalogProduct | null>(null);
   const [moving, setMoving] = useState<null | { lines: CheckLine[] | 'all' }>(null);
+  const [kitchen, setKitchen] = useState(kitchenOn);
   const euro = (c: number) => formatEuro(c, i18n.language);
 
   const products = useMemo(() => {
@@ -65,6 +71,18 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }
   const visible = check.lines.filter((l) => l.state !== 'void');
   const drafts = roundLines(check).length + check.lines.filter((l) => l.pending && l.state === 'draft').length;
   const sentAny = check.lines.some((l) => l.state === 'sent');
+  // TAFEL-3: toogverkoop — geen ronde, geen voorrekening, niet verplaatsen; meteen afrekenen.
+  const counter = isCounter(check);
+  const service: CounterService = check.service === 'takeaway' ? 'takeaway' : 'eat_in';
+  const setService = (s: CounterService) => {
+    rememberService(s);
+    if (s !== service) store.enqueue({ id: crypto.randomUUID(), kind: 'set_service', check_id: check.id, service: s, staff_id: ctx.staffId });
+  };
+  // Een lege toogverkoop laten we niet open staan als je terug gaat.
+  const back = () => {
+    if (counter && !visible.length && !locked) store.enqueue({ id: crypto.randomUUID(), kind: 'void_check', check_id: check.id, staff_id: ctx.staffId });
+    onBack();
+  };
 
   const report = (o: ActionOutcome, okMsg?: string) => {
     if (o.ok) { if (okMsg) toast.success(okMsg); return true; }
@@ -180,19 +198,29 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b px-2 py-2">
-        <button type="button" onClick={onBack} aria-label={t('kassa.checks.backToTables')} className="flex h-11 w-11 items-center justify-center rounded-md border"><ArrowLeft className="h-5 w-5" /></button>
+        <button type="button" onClick={back} aria-label={t('kassa.checks.backToTables')} className="flex h-11 w-11 items-center justify-center rounded-md border"><ArrowLeft className="h-5 w-5" /></button>
         <div className="min-w-0 flex-1">
           <p className="truncate text-lg font-bold">{title}</p>
           {check.bill_requested_at ? <p className="text-xs text-blue-700 dark:text-blue-300">{t('kassa.checks.billRequestedBadge')}</p> : null}
         </div>
+        {counter && (
+          <div className="flex rounded-md border" role="group" aria-label={t('kassa.counter.serviceLabel')}>
+            {(['eat_in', 'takeaway'] as const).map((s) => (
+              <button key={s} type="button" aria-pressed={service === s} disabled={locked} onClick={() => setService(s)}
+                className={cn('h-11 px-3 text-sm font-semibold disabled:opacity-40', service === s ? 'bg-primary text-primary-foreground' : '')}>
+                {t(`kassa.counter.service.${s}`)}
+              </button>
+            ))}
+          </div>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button type="button" aria-label={t('kassa.checks.more')} className="flex h-11 w-11 items-center justify-center rounded-md border"><MoreHorizontal className="h-5 w-5" /></button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem disabled={locked || !sentAny && !drafts} onClick={() => void openSplit()}>{t('kassa.pay.split')}</DropdownMenuItem>
-            <DropdownMenuItem disabled={locked || !!check.split_of} onClick={() => setMoving({ lines: 'all' })}>{t('kassa.checks.moveCheck')}</DropdownMenuItem>
-            {!sentAny && (
+            {!counter && <DropdownMenuItem disabled={locked || !sentAny && !drafts} onClick={() => void openSplit()}>{t('kassa.pay.split')}</DropdownMenuItem>}
+            {!counter && <DropdownMenuItem disabled={locked || !!check.split_of} onClick={() => setMoving({ lines: 'all' })}>{t('kassa.checks.moveCheck')}</DropdownMenuItem>}
+            {!sentAny && !locked && (
               <DropdownMenuItem onClick={async () => {
                 const r = await store.applyNow({ id: crypto.randomUUID(), kind: 'void_check', check_id: check.id, staff_id: ctx.staffId }).catch(() => null);
                 if (r?.ok) onBack(); else toast.error(t('kassa.checks.error.server', { detail: r?.error ?? '' }));
@@ -221,6 +249,18 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }
           {t(rejected ? 'kassa.pay.lockedRejected' : pendingHere ? 'kassa.pay.lockedPending' : 'kassa.pay.lockedPaying')}
         </p>
       ) : null}
+      {counter ? (
+        <div className="grid grid-cols-3 gap-2 border-t p-2" style={{ paddingBottom: 'max(0.5rem, var(--safe-bottom))' }}>
+          <button type="button" aria-pressed={kitchen} onClick={() => { rememberKitchen(!kitchen); setKitchen(!kitchen); }}
+            className={cn('flex h-14 items-center justify-center gap-2 rounded-lg border text-base font-semibold', kitchen ? 'border-primary text-primary' : 'text-muted-foreground')}>
+            <ChefHat className="h-5 w-5" /> <span className="truncate">{t(kitchen ? 'kassa.counter.kitchenOn' : 'kassa.counter.kitchenOff')}</span>
+          </button>
+          <button type="button" onClick={() => setPaying(true)} disabled={locked || !!busy || !visible.length}
+            className="col-span-2 flex h-14 items-center justify-center gap-2 rounded-lg bg-primary text-base font-semibold text-primary-foreground disabled:opacity-40">
+            <Wallet className="h-5 w-5" /> {t('kassa.pay.button')} · {euro(checkTotalCents(check))}
+          </button>
+        </div>
+      ) : (
       <div className="grid grid-cols-3 gap-2 border-t p-2" style={{ paddingBottom: 'max(0.5rem, var(--safe-bottom))' }}>
         <button type="button" onClick={doBill} disabled={locked || !!busy || !sentAny && !drafts}
           className="flex h-14 items-center justify-center gap-2 rounded-lg border text-base font-semibold disabled:opacity-40">
@@ -235,16 +275,18 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }
           <Wallet className="h-5 w-5" /> {t('kassa.pay.button')}
         </button>
       </div>
+      )}
 
       {paying && (
-        <PayDialog ctx={ctx} check={check} onClose={() => setPaying(false)} onPaid={() => { setPaying(false); onBack(); }} />
+        <PayDialog ctx={ctx} check={check} kitchen={counter ? kitchen : undefined} onClose={() => setPaying(false)}
+          onPaid={() => { setPaying(false); if (onPaid) onPaid(counter); else onBack(); }} />
       )}
       {splitting && (
         <SplitDialog check={store.check(check.id) ?? check} busy={busy === 'split'} onClose={() => setSplitting(false)} onConfirm={doSplit} />
       )}
 
       {lineSheet && (
-        <LineDialog line={check.lines.find((l) => l.id === lineSheet.id) ?? lineSheet} busy={busy === 'discount'} onClose={() => setLineSheet(null)}
+        <LineDialog line={check.lines.find((l) => l.id === lineSheet.id) ?? lineSheet} busy={busy === 'discount'} canMove={!counter} onClose={() => setLineSheet(null)}
           onQty={(qty) => store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: lineSheet.id, qty, staff_id: ctx.staffId })}
           onNote={(note) => store.enqueue({ id: crypto.randomUUID(), kind: 'set_note', check_id: check.id, line_id: lineSheet.id, note, staff_id: ctx.staffId })}
           onVoid={(reason, qty) => {
@@ -294,7 +336,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, initialPay = false }
 }
 
 function LineDialog(p: {
-  line: CheckLine; busy: boolean; onClose: () => void; onQty: (q: number) => void; onNote: (n: string) => void;
+  line: CheckLine; busy: boolean; canMove: boolean; onClose: () => void; onQty: (q: number) => void; onNote: (n: string) => void;
   onVoid: (reason: string, qty: number) => void; onDiscount: (d: { percent?: number; name: string }) => void; onMove: () => void;
 }) {
   const { t } = useTranslation();
@@ -335,8 +377,8 @@ function LineDialog(p: {
               </div>
             </div>
             {!askReason ? (
-              <div className="grid grid-cols-2 gap-2">
-                <button type="button" onClick={p.onMove} className="h-11 rounded-md border text-sm font-semibold">{t('kassa.checks.moveLine')}</button>
+              <div className={cn('grid gap-2', p.canMove ? 'grid-cols-2' : 'grid-cols-1')}>
+                {p.canMove && <button type="button" onClick={p.onMove} className="h-11 rounded-md border text-sm font-semibold">{t('kassa.checks.moveLine')}</button>}
                 <button type="button" onClick={() => (editable ? p.onVoid('mistake', l.qty) : setAskReason(true))} className="h-11 rounded-md border border-destructive text-sm font-semibold text-destructive">
                   {editable ? t('kassa.checks.remove') : t('kassa.checks.cancelLine')}
                 </button>

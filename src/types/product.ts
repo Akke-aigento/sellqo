@@ -39,6 +39,8 @@ export interface Product {
   featured_image: string | null;
   category_id: string | null;
   vat_rate_id: string | null;
+  /** TAFEL-3: btw bij meenemen aan de toog (horeca); leeg = vat_rate_id. */
+  takeaway_vat_rate_id?: string | null;
   tags: string[];
   /** Ruwe Printful-maatgids (LOVEKE-POD-2-SIZEGUIDE); omgerekend via _shared/sizeChart.ts (SIZECHART-1). */
   size_guide?: unknown;
@@ -219,6 +221,8 @@ export interface ProductFormData {
   featured_image: string;
   category_id: string;
   vat_rate_id: string | null;
+  /** TAFEL-3: btw bij meenemen aan de toog (horeca); leeg = vat_rate_id. */
+  takeaway_vat_rate_id?: string | null;
   tags: string[];
   meta_title: string;
   meta_description: string;

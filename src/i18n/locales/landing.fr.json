@@ -2243,6 +2243,10 @@
         "kassa_device_status": {
           "title": "Voyez si vos appareils de caisse suivent encore",
           "description": "Sous Caisse › Caisses, vous voyez pour chaque caisse quand chaque appareil SellQo Kassa s’est signalé pour la dernière fois et si des actions attendent encore d’être envoyées depuis cet appareil. Un appareil silencieux depuis plus de cinq minutes, ou qui a encore quelque chose en attente, passe en orange."
+        },
+        "kassa_counter_reports": {
+          "title": "Vente au comptoir, caisse et rapports X/Z dans SellQo Kassa",
+          "description": "Dans l’onglet Comptoir, vous vendez sans table : touchez les produits, choisissez sur place ou à emporter, et encaissez aussitôt. À emporter, c’est le taux de TVA indiqué sur le produit sous « TVA à emporter » qui s’applique, par exemple 6 % pour un repas à emporter. Un bon cuisine ne part en cuisine que si vous l’activez. Dans Caisse, vous enregistrez de l’argent entrant ou sortant du tiroir avec un motif, et vous ouvrez ou clôturez un service avec un comptage ; la caisse montre ce qui était attendu et l’écart. Dans Rapports, vous faites un rapport X (situation en cours) ou un rapport Z (clôture de la journée, numéroté à la suite). Seul le propriétaire ou un responsable peut faire un rapport Z. Si vous oubliez de clôturer une journée, la caisse crée elle-même le rapport Z le lendemain."
         }
       },
       "copyLink": "Copier le lien",

@@ -53,6 +53,10 @@ export interface Check {
   parent_reference?: string | null;
   /** Een toestel rekent deze rekening nu af (claim): niets wijzigen. */
   paying?: boolean;
+  /** TAFEL-3: 'counter' = verkoop aan de toog (directe verkoop, geen ronde naar de FDM). */
+  kind?: 'table' | 'counter';
+  /** TAFEL-3: enkel aan de toog — bepaalt het btw-tarief (meenemen = afhaaltarief). */
+  service?: 'eat_in' | 'takeaway' | null;
   lines: CheckLine[];
 }
 
@@ -67,4 +71,16 @@ export function lineTotalCents(l: Pick<CheckLine, 'qty' | 'unit_price_cents' | '
 /** Totaal van een rekening: alle niet-geschrapte lijnen (ontwerp inbegrepen). */
 export function checkTotalCents(c: Pick<Check, 'lines'>): number {
   return c.lines.filter((l) => l.state !== 'void').reduce((s, l) => s + lineTotalCents(l), 0);
+}
+
+/** TAFEL-3: verkoop aan de toog? */
+export const isCounter = (c: Pick<Check, 'kind'>) => c.kind === 'counter';
+
+/**
+ * Wat er afgerekend wordt: aan tafel de verstuurde lijnen, aan de toog de ontwerp-lijnen
+ * (daar gaat niets vooraf naar keuken of FDM). Lokale lijnen die de server nog niet kent, tellen niet.
+ */
+export function payableLines(c: Pick<Check, 'lines' | 'kind'>): CheckLine[] {
+  const state: LineState = isCounter(c) ? 'draft' : 'sent';
+  return c.lines.filter((l) => l.state === state && !l.pending);
 }

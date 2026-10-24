@@ -113,6 +113,8 @@ const productSchema = z.object({
   cost_price: z.coerce.number().min(0).nullable().optional(),
   // PRODUCT-FORM-2 — null = standaardtarief van de winkel (tenants.tax_percentage), zoals _shared/vat.ts.
   vat_rate_id: z.string().nullable().optional(),
+  // TAFEL-3: btw bij meenemen aan de toog (enkel horeca). Leeg = het gewone tarief.
+  takeaway_vat_rate_id: z.string().nullable().optional(),
   sku: z.string().max(100).optional().default(''),
   barcode: z.string().max(100).optional().default(''),
   stock: z.coerce.number().int().min(0, 'admin.productForm.validation.voorraad_moet_0_of_hoger_zijn').default(0),
@@ -259,6 +261,7 @@ export default function ProductForm() {
       compare_at_price: null,
       cost_price: null,
       vat_rate_id: null,
+      takeaway_vat_rate_id: null,
       sku: '',
       barcode: '',
       stock: 0,
@@ -301,6 +304,7 @@ export default function ProductForm() {
       compare_at_price: product.compare_at_price,
       cost_price: product.cost_price,
       vat_rate_id: product.vat_rate_id ?? null,
+      takeaway_vat_rate_id: product.takeaway_vat_rate_id ?? null,
       sku: product.sku || '',
       barcode: product.barcode || '',
       stock: product.stock,
@@ -1130,6 +1134,31 @@ export default function ProductForm() {
                             <FormMessage />
                           </FormItem>
                         )} />
+                        {/* TAFEL-3 — btw bij meenemen aan de toog van SellQo Kassa (bv. 6 % voor een afhaalmaaltijd). */}
+                        {horeca && (
+                          <FormField control={form.control} name="takeaway_vat_rate_id" render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>{t('admin.productForm.takeaway_vat_label')}</FormLabel>
+                              <Select
+                                value={field.value || VAT_DEFAULT_OPTION}
+                                onValueChange={(v) => field.onChange(v === VAT_DEFAULT_OPTION ? null : v)}
+                                disabled={!canEditCommercial}
+                              >
+                                <FormControl>
+                                  <SelectTrigger><SelectValue /></SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value={VAT_DEFAULT_OPTION}>{t('admin.productForm.takeaway_vat_same')}</SelectItem>
+                                  {vatRateOptions.map((rate) => (
+                                    <SelectItem key={rate.id} value={rate.id}>{vatRateLabel(rate)}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>{canEditCommercial ? t('admin.productForm.takeaway_vat_hint') : adminManagedHint}</FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )} />
+                        )}
                       </div>
                       {/* PRODUCT-FORM-2 — marge-indicatie (excl. btw), alleen weergave. Niet bij
                           varianten: die hebben elk een eigen verkoopprijs. */}

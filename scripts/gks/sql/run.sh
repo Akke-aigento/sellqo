@@ -18,13 +18,14 @@ for M in ../../../supabase/migrations/20261024100000_kassa_0_fiscal_events.sql \
          ../../../supabase/migrations/20261024110000_personeel_1_kassa_staff.sql \
          ../../../supabase/migrations/20261024130000_tafel_1_checks.sql \
          ../../../supabase/migrations/20261024140000_tafel_2_pay.sql \
-         ../../../supabase/migrations/20261024150000_live_1_kassa_heartbeat.sql; do
-  $P -d $DB -f $M >/dev/null 2>&1
-  $P -d $DB -f $M >/dev/null 2>&1   # twee keer: idempotent
+         ../../../supabase/migrations/20261024150000_live_1_kassa_heartbeat.sql \
+         ../../../supabase/migrations/20261024160000_tafel_3_counter_cash_reports.sql; do
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }   # twee keer: idempotent
 done
 if [ "${SETUP_ONLY:-}" = "1" ]; then echo "databank $DB klaar"; exit 0; fi
 fail=0
-for T in test_fiscal_events.sql test_personeel.sql test_tafel.sql test_pay.sql test_heartbeat.sql; do
+for T in test_fiscal_events.sql test_personeel.sql test_tafel.sql test_pay.sql test_heartbeat.sql test_tafel3.sql; do
   out=$($P -d $DB -f $T 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in $T"; exit 1; }
   if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in $T"; fail=1; fi
   echo "$out" | tail -1
