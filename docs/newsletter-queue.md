@@ -6,7 +6,7 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ### 2026.13r — Toogverkoop, kas en X/Z-rapporten op SellQo Kassa (feature, 24-10-2026)
 
-**Status:** wacht op go + deploy (TAFEL-3, branch `tafel-3`; migratie `20261024160000_tafel_3_counter_cash_reports.sql`, frontend publiceren).
+**Status:** klaar voor verzending (TAFEL-3, live sinds 24-10-2026).
 
 **Voor wie:** horecazaken (horeca-module), vooral frituren, snackbars en cafés die aan de toog verkopen.
 

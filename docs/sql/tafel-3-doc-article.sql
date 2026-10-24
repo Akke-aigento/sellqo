@@ -1,4 +1,4 @@
--- TAFEL-3 — helpartikel "Toog, kas en rapporten op SellQo Kassa". Nog NIET live gedraaid:
+-- TAFEL-3 — helpartikel "Toog, kas en rapporten op SellQo Kassa". Live gedraaid op 24-10-2026 (go Akke);
 -- draaien via query_database na de go op TAFEL-3. Idempotent via (doc_level, slug).
 -- Categorie a0000001-…006 (Webshop), zoals de andere kassa-artikels (live nagetrokken 24-10).
 insert into public.doc_articles (category_id, doc_level, title, slug, excerpt, content, tags, context_path, sort_order, is_published)
