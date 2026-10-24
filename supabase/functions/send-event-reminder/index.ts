@@ -1,14 +1,18 @@
 // EVENT-REMINDER-1 — dag-van herinneringsmail aan tickethouders.
+// EVENT-REMINDER-2 — inhaalmail voor laatkomers.
 //
-// Aangeroepen door cron (08:00 UTC = 10:00 Brussel) via net.http_post.
-// Zoekt events met event_date = vandaag, status = 'scheduled',
-// reminder_sent_at IS NULL, en een whatsapp_url.
-// Stuurt alle geldige tickethouders een herinneringsmail met event-info
-// + WhatsApp-groeplink.
+// Aangeroepen door cron elke 10 minuten (08:00–22:50 UTC) via net.http_post.
+// Zoekt events met event_date = vandaag (in de tijdzone van het event),
+// status = 'scheduled' en een whatsapp_url, tot 2 uur na de start.
+// Stuurt elke geldige tickethouder die de mail nog niet kreeg een
+// herinneringsmail met event-info + WhatsApp-groeplink. De eerste run
+// (10:00 Brussel) stuurt dus de grote batch; latere runs enkel wie na die
+// batch een ticket kocht.
 //
-// Dubbel versturen: per event eerst een claim (reminder_sent_at zetten waar
-// die nog null is). Geen rij terug = een andere aanroep is bezig of klaar.
-// Gaat geen enkele mail de deur uit, dan wordt de claim weer vrijgegeven.
+// Dubbel versturen: per ticket een claim (ticket_instances.reminder_sent_at
+// zetten waar die nog null is). Mislukt de mail, dan wordt de claim weer
+// vrijgegeven zodat de volgende run het opnieuw probeert.
+// event_details.reminder_sent_at = tijdstip van de eerste verzending.
 //
 // Auth: alleen cron of andere functies (denyUnlessCron, zoals
 // process-cycle-reminders). GET is een neveneffectvrije healthcheck.
@@ -146,6 +150,33 @@ function formatTime(t: string | null): string {
   return t ? String(t).slice(0, 5) : "";
 }
 
+// Datum (JJJJ-MM-DD) en minuten sinds middernacht in een tijdzone.
+function localNow(timeZone: string): { date: string; minutes: number } {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(new Date());
+  const get = (t: string) => parts.find((p) => p.type === t)?.value ?? "00";
+  return {
+    date: `${get("year")}-${get("month")}-${get("day")}`,
+    minutes: Number(get("hour")) * 60 + Number(get("minute")),
+  };
+}
+
+function toMinutes(t: string | null): number | null {
+  if (!t) return null;
+  const [h, m] = String(t).split(":").map(Number);
+  return Number.isFinite(h) ? h * 60 + (m || 0) : null;
+}
+
+// Hoe lang na de start laatkomers nog een mail krijgen.
+const LATE_WINDOW_MINUTES = 120;
+
 serve(async (req) => {
   if (req.method === "OPTIONS")
     return new Response(null, { headers: corsHeaders });
@@ -153,7 +184,7 @@ serve(async (req) => {
   // Healthcheck (GET) — gedragsvingerafdruk na deploy.
   if (req.method === "GET")
     return new Response(
-      JSON.stringify({ ok: true, version: "EVENT-REMINDER-1" }),
+      JSON.stringify({ ok: true, version: "EVENT-REMINDER-2" }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
@@ -170,22 +201,33 @@ serve(async (req) => {
     const denied = await denyUnlessCron(req, supabase, corsHeaders);
     if (denied) return denied;
 
-    // Vandaag in UTC (cron draait 08:00 UTC = 10:00 Brussel).
-    const today = new Date().toISOString().slice(0, 10);
+    // Kandidaten: gisteren t/m morgen in UTC; per event wordt daarna
+    // "vandaag" in de eigen tijdzone gecontroleerd.
+    const now = Date.now();
+    const day = 24 * 60 * 60 * 1000;
+    const from = new Date(now - day).toISOString().slice(0, 10);
+    const to = new Date(now + day).toISOString().slice(0, 10);
 
-    // Events vandaag die nog geen reminder gehad hebben.
-    const { data: events, error: evErr } = await supabase
+    const { data: candidates, error: evErr } = await supabase
       .from("event_details")
       .select(
-        "id, event_date, start_time, end_time, meeting_point, location_name, whatsapp_url, tenant_id, product_id"
+        "id, event_date, start_time, end_time, meeting_point, location_name, whatsapp_url, tenant_id, product_id, timezone, reminder_sent_at"
       )
-      .eq("event_date", today)
+      .gte("event_date", from)
+      .lte("event_date", to)
       .eq("status", "scheduled")
-      .is("reminder_sent_at", null)
       .not("whatsapp_url", "is", null);
 
     if (evErr) throw new Error(`Event lookup failed: ${evErr.message}`);
-    if (!events || events.length === 0) {
+
+    const events = (candidates || []).filter((ev) => {
+      const local = localNow(ev.timezone || "Europe/Brussels");
+      if (local.date !== ev.event_date) return false;
+      const start = toMinutes(ev.start_time);
+      return start === null || local.minutes <= start + LATE_WINDOW_MINUTES;
+    });
+
+    if (events.length === 0) {
       log("No events today needing reminders");
       return new Response(
         JSON.stringify({ ok: true, events: 0 }),
@@ -226,7 +268,7 @@ serve(async (req) => {
       // Geldige tickets voor dit event.
       const { data: tickets, error: tkErr } = await supabase
         .from("ticket_instances")
-        .select("id, attendee_name, attendee_email, order_id")
+        .select("id, attendee_name, attendee_email, order_id, reminder_sent_at")
         .eq("event_detail_id", ev.id)
         .in("status", ["valid", "checked_in"]);
 
@@ -234,32 +276,27 @@ serve(async (req) => {
         log("Ticket lookup failed", { eventId: ev.id, error: tkErr.message });
         continue;
       }
-      if (!tickets || tickets.length === 0) {
-        log("No valid tickets", { eventId: ev.id });
+
+      // Wie de mail al kreeg (via een ander ticket), krijgt hem niet opnieuw.
+      const alreadyMailed = new Set(
+        (tickets || [])
+          .filter((tk) => tk.reminder_sent_at)
+          .map((tk) => (tk.attendee_email || "").toLowerCase().trim())
+      );
+      const pending = (tickets || []).filter((tk) => !tk.reminder_sent_at);
+      if (pending.length === 0) {
+        log("Nothing pending", { eventId: ev.id });
         continue;
       }
 
-      // Dedup op e-mail (meerdere tickets, één mail per persoon).
-      const seen = new Set<string>();
-      const recipients: { email: string; name: string; orderId: string }[] = [];
-      for (const tk of tickets) {
-        const email = (tk.attendee_email || "").toLowerCase().trim();
-        if (!email || seen.has(email)) continue;
-        seen.add(email);
-        recipients.push({
-          email,
-          name: tk.attendee_name || "",
-          orderId: tk.order_id,
-        });
-      }
-
-      // Claim: alleen wie reminder_sent_at van null naar nu zet, verstuurt.
+      // Claim: alleen tickets die we zelf van null naar nu zetten.
+      const claimedAt = new Date().toISOString();
       const { data: claimed, error: claimErr } = await supabase
-        .from("event_details")
-        .update({ reminder_sent_at: new Date().toISOString() })
-        .eq("id", ev.id)
+        .from("ticket_instances")
+        .update({ reminder_sent_at: claimedAt })
+        .in("id", pending.map((tk) => tk.id))
         .is("reminder_sent_at", null)
-        .select("id");
+        .select("id, attendee_name, attendee_email, order_id");
       if (claimErr) {
         log("Claim failed", { eventId: ev.id, error: claimErr.message });
         continue;
@@ -269,7 +306,34 @@ serve(async (req) => {
         continue;
       }
 
+      // Dedup op e-mail (meerdere tickets, één mail per persoon).
+      const recipients: {
+        email: string;
+        name: string;
+        orderId: string;
+        ticketIds: string[];
+      }[] = [];
+      const byEmail = new Map<string, (typeof recipients)[number]>();
+      for (const tk of claimed) {
+        const email = (tk.attendee_email || "").toLowerCase().trim();
+        if (!email || alreadyMailed.has(email)) continue;
+        const existing = byEmail.get(email);
+        if (existing) {
+          existing.ticketIds.push(tk.id);
+          continue;
+        }
+        const r = {
+          email,
+          name: tk.attendee_name || "",
+          orderId: tk.order_id,
+          ticketIds: [tk.id],
+        };
+        byEmail.set(email, r);
+        recipients.push(r);
+      }
+
       let eventSent = 0;
+      const failedTicketIds: string[] = [];
 
       log("Sending reminders", {
         eventId: ev.id,
@@ -373,6 +437,7 @@ serve(async (req) => {
           });
           if (emailErr) {
             log("Email failed", { email: r.email, error: emailErr.message });
+            failedTicketIds.push(...r.ticketIds);
           } else {
             totalSent++;
             eventSent++;
@@ -380,20 +445,31 @@ serve(async (req) => {
           }
         } catch (e: unknown) {
           log("Email exception", { email: r.email, error: e instanceof Error ? e.message : String(e) });
+          failedTicketIds.push(...r.ticketIds);
         }
       }
 
-      // Niets vertrokken: claim vrijgeven zodat een nieuwe aanroep het opnieuw kan proberen.
-      if (eventSent === 0) {
+      // Mislukt: claim vrijgeven zodat de volgende run het opnieuw probeert.
+      if (failedTicketIds.length > 0) {
         const { error: releaseErr } = await supabase
-          .from("event_details")
+          .from("ticket_instances")
           .update({ reminder_sent_at: null })
-          .eq("id", ev.id);
+          .in("id", failedTicketIds)
+          .eq("reminder_sent_at", claimedAt);
         if (releaseErr) {
           log("Failed to release claim", { eventId: ev.id, error: releaseErr.message });
         } else {
-          log("No mail sent — claim released", { eventId: ev.id });
+          log("Claim released", { eventId: ev.id, tickets: failedTicketIds.length });
         }
+      }
+
+      // Eerste verzending van dit event vastleggen.
+      if (eventSent > 0 && !ev.reminder_sent_at) {
+        await supabase
+          .from("event_details")
+          .update({ reminder_sent_at: claimedAt })
+          .eq("id", ev.id)
+          .is("reminder_sent_at", null);
       }
     }
 
