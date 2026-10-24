@@ -78,7 +78,7 @@ export function canonicalJson(v: unknown): string {
 }
 
 async function digest(algo: 'SHA-1' | 'SHA-512', bytes: Uint8Array): Promise<Uint8Array> {
-  return new Uint8Array(await globalThis.crypto.subtle.digest(algo, bytes));
+  return new Uint8Array(await globalThis.crypto.subtle.digest(algo, bytes as BufferSource));
 }
 function toBase64(b: Uint8Array): string {
   let s = '';
