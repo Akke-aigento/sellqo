@@ -5150,7 +5150,9 @@
         "apply": "Apply",
         "apply_hint": "Your edit becomes a new photo. The original stays in your media library."
       },
-      "bekijken": "View"
+      "bekijken": "View",
+      "kaart_hint": "Hospitality business? On the Menu you create and edit products faster: name, price, done.",
+      "to_kaart": "Go to the Menu"
     },
     "productForm": {
       "vertalingen": "Translations",
@@ -6461,7 +6463,10 @@
       "floor_plan": "Floor plan",
       "floor_summary": "{{tables}} tables in {{areas}} area(s)",
       "floor_none": "Not set up yet",
-      "tab_stations": "Stations"
+      "tab_stations": "Stations",
+      "tab_menu": "Menu",
+      "menu_count": "On the menu: {{count}}",
+      "menu_empty": "Nothing yet: start with the starter menu"
     },
     "kitchen": {
       "col_new": "New",
@@ -8839,6 +8844,150 @@
       "defaultOption": "{{name}} (default)",
       "noStation": "No station",
       "error": "Not done: {{detail}}"
+    },
+    "kaart": {
+      "search": "Search the menu",
+      "paste": "Paste a list",
+      "summary": "Products: {{count}} · on the menu: {{active}}",
+      "sharedNote": "the same products as in your till, QR menu and webshop",
+      "empty": {
+        "title": "Your menu is still empty",
+        "body": "Start with the starter menu, paste a list, or type a name and a price below."
+      },
+      "noCategory": "No category",
+      "hiddenCategory": "hidden",
+      "selectAll": "Select everything in {{name}}",
+      "select": "Select {{name}}",
+      "hide": "Take {{name}} off the menu",
+      "show": "Put {{name}} on the menu",
+      "col": {
+        "name": "Name",
+        "price": "Price",
+        "category": "Category"
+      },
+      "soldOut": "Sold out",
+      "markSoldOut": "Sold out today",
+      "channels": "Where it is sold",
+      "channel": {
+        "online": "Webshop (pickup and delivery)",
+        "table": "Order at the table (QR)",
+        "menu": "Visible on the QR menu",
+        "pos": "Till"
+      },
+      "channelShort": {
+        "online": "Web",
+        "table": "Table",
+        "menu": "Menu",
+        "pos": "Till"
+      },
+      "oneChannel": "Keep at least one place on, or take the product off the menu.",
+      "openFull": "All settings for {{name}}",
+      "quickAdd": "Add product",
+      "quickAddPlaceholder": "Name, e.g. Duvel 4.50",
+      "add": "Add",
+      "newCategory": "Add category",
+      "newCategoryPlaceholder": "New category, e.g. Hot drinks",
+      "categoryAdded": "Category {{name}} is ready",
+      "categorySettings": "Settings for {{name}}",
+      "categoryName": "Category name",
+      "vatHere": "VAT eat in",
+      "vatAway": "VAT takeaway",
+      "vatShopDefault": "Your shop default",
+      "vatSameAsHere": "Same as eat in",
+      "vatHint": "New products in this category get this VAT. Existing products only change when you click apply below. Have your accountant check the rates.",
+      "vatApply": "Apply to the {{count}} products in this category",
+      "vatApplied": "VAT updated: {{count}} products",
+      "vatNone": "VAT: default",
+      "vatShort": "VAT {{here}}% · takeaway {{away}}%",
+      "vatKind": {
+        "alcohol": "Alcoholic drinks (21% / 21%)",
+        "soft": "Non-alcoholic drinks (21% / 6%)",
+        "food": "Food (12% / 6%)"
+      },
+      "bulk": {
+        "selected": "Selected: {{count}}",
+        "price": "Change price",
+        "mode": {
+          "add": "± €",
+          "percent": "± %",
+          "set": "Fixed price"
+        },
+        "hint": {
+          "add": "E.g. 0.10 to add 10 cents, -0.20 to take 20 cents off.",
+          "percent": "E.g. 5 for 5% more, -10 for 10% less. Rounded to the cent.",
+          "set": "All selected products get this price."
+        },
+        "value": "Value",
+        "apply": "Apply to {{count}} products",
+        "move": "Move to category…",
+        "show": "On the menu",
+        "hide": "Off the menu",
+        "backIn": "Back in stock",
+        "clear": "Clear selection",
+        "done": "Updated: {{count}} products"
+      },
+      "import": {
+        "title": "Paste a list",
+        "intro": "One product per line, with the price after it. A heading such as \"Beers:\" sets the category for the lines below. Columns from Excel work too.",
+        "placeholder": "Beers:\nDuvel 4.50\nWestmalle Tripel 5.20\n\nSoft drinks:\nCola 2.80",
+        "defaultCategory": "Category for lines without a heading",
+        "defaultCategoryHint": "Pick an existing category or type a new name.",
+        "toPreview": "Show preview",
+        "previewIntro": "Check and adjust where needed. Nothing is created until you click Add. Items already on your menu are unticked.",
+        "newCategories": "New categories: which VAT?",
+        "include": "Add {{name}}",
+        "exists": "already on your menu",
+        "repeat": "already higher in the list",
+        "back": "Back",
+        "add": "Add ({{count}})",
+        "fixPrices": "Fill in prices first ({{count}})",
+        "nothing": "There is nothing to add.",
+        "done": "Added to your menu: {{count}} products",
+        "partial": "Already added: {{count}} products"
+      },
+      "starter": {
+        "button": "Starter menu",
+        "title": "Starter menu for your café",
+        "intro": "Tick what you serve. In the next step you fill in the prices.",
+        "more": "Show more ({{count}})",
+        "less": "Show less",
+        "vatNote": "VAT according to Belgian hospitality rules: eat in / takeaway. Have your accountant check this; you can change it per category later.",
+        "cat": {
+          "tap": "On tap",
+          "beer": "Beers",
+          "nonalc_beer": "Alcohol-free beers",
+          "soft": "Soft drinks",
+          "hot": "Hot drinks",
+          "wine": "Wine and bubbles",
+          "spirits": "Spirits and cocktails",
+          "snacks": "Snacks"
+        }
+      },
+      "photo": {
+        "previewTitle": "Found on your photo",
+        "button": "Photo of your menu",
+        "title": "Let us read your menu",
+        "intro": "The AI reads names, prices and headings from your photo. You then see everything in a preview; nothing is created until you click Add. Take the photo straight on, in good light.",
+        "cost": "Costs {{credits}} AI credits, only if reading succeeds. You have {{available}} now.",
+        "costFree": "This is free for your business.",
+        "buy": "Buy credits",
+        "read": "Read menu",
+        "reading": "Reading…",
+        "found": "Found: {{count}} products. Check them.",
+        "error": {
+          "no_credits": "Not enough AI credits for this photo.",
+          "empty": "No products found on the photo. Nothing was charged.",
+          "bad_image": "That photo could not be opened. Try a jpeg or png.",
+          "rate_limited": "Too busy right now. Try again in a minute.",
+          "billing": "Your shop is read-only until the payment is settled.",
+          "ai_failed": "The photo could not be read. Nothing was charged."
+        }
+      },
+      "error": {
+        "not_allowed": "Your role cannot change the menu.",
+        "plan_limit": "You have reached the product limit of your plan.",
+        "generic": "That did not work. Try again."
+      }
     }
   },
   "product_form": {
@@ -10775,6 +10924,30 @@
         "pending_elsewhere": "This report is still waiting to be sent.",
         "signed_rejected": "Signed, but SellQo refused the report ({{detail}}). Please contact SellQo."
       }
+    },
+    "productEdit": {
+      "hint": "Long-press to edit",
+      "intro": "The owner or a manager approves with their PIN. Applies right away to the till, QR menu and webshop; open bills keep their price.",
+      "soldOut": "Sold out today",
+      "backIn": "Back in stock",
+      "price": "Price",
+      "priceHint": "New price for everything you ring up from now on.",
+      "savePrice": "Save price",
+      "priceSaved": "{{name}} now costs {{price}}",
+      "soldOutOn": "{{name}} is sold out until tomorrow morning",
+      "soldOutOff": "{{name}} is back in stock",
+      "error": {
+        "not_allowed": "Only the owner or a manager can do this.",
+        "invalid": "That price is not valid.",
+        "offline": "No connection. Try again.",
+        "server": "That did not work. Try again.",
+        "wrong_pin": "Wrong PIN.",
+        "locked": "Too many wrong attempts: this PIN is locked for 5 minutes."
+      },
+      "approver": "Approved by",
+      "pickApprover": "Pick who approves",
+      "pin": "PIN",
+      "noApprovers": "There is no owner or manager with a PIN yet. Set one up under Staff."
     }
   }
 }

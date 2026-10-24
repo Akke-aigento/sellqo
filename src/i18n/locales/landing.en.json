@@ -2247,6 +2247,14 @@
         "kassa_counter_reports": {
           "title": "Counter sales, cash and X/Z reports on SellQo Kassa",
           "description": "Under the Counter tab you sell without a table: tap products, choose eat in or take away, and pay straight away. For take away, the VAT rate you set on the product under 'VAT for take away' applies, for example 6% for a takeaway meal. A kitchen ticket only goes to your kitchen if you switch it on. Under Cash you record money into or out of the drawer with a reason, and open or close a shift with a count; the till shows what was expected and the difference. Under Reports you make an X report (running totals) or a Z report (close the day, numbered in sequence). Only the owner or a manager can make a Z report. If you forget to close a day, the till makes the Z report itself the next day."
+        },
+        "horeca_menu_editor": {
+          "title": "Your menu in a few minutes: the new Menu tab",
+          "description": "Under Ordering › Menu you see all your products per category on one screen. Type a name and a price, press Enter and it is on the menu. You change the name, price, sold out today and where it is sold (webshop, table, QR menu, till) right in the row. Set the VAT once per category, for eat in and takeaway; new products take it over. With the starter menu you tick the classics of a café, with Paste a list you bring over a whole list from Excel or an email in one go, and with Photo of your menu the AI reads names, prices and headings from a photo of your menu or chalkboard (5 AI credits per photo, only if reading succeeds). You always see a preview first; products already on your menu are not created twice. They are the same products as in your till, QR menu and webshop."
+        },
+        "kassa_product_quick_edit": {
+          "title": "Sold out or a new price, straight from SellQo Kassa",
+          "description": "Long-press a product on SellQo Kassa to mark it sold out for today, put it back on sale or change its price. Only the owner or a manager can do this, and every change is stored with who made it and on which device. It applies right away to your till, QR menu and webshop; bills that are already open keep their price. The menu on the till now also shows the correct VAT rate per product."
         }
       },
       "copyLink": "Copy link",

@@ -2247,6 +2247,14 @@
         "kassa_counter_reports": {
           "title": "Thekenverkauf, Kasse und X/Z-Berichte in SellQo Kassa",
           "description": "Im Reiter Theke verkaufst du ohne Tisch: Produkte antippen, vor Ort oder zum Mitnehmen wählen und sofort kassieren. Beim Mitnehmen gilt der MwSt.-Satz, den du beim Produkt unter „MwSt. zum Mitnehmen“ einträgst, zum Beispiel 6 % für ein Essen zum Mitnehmen. Ein Küchenbon geht nur in deine Küche, wenn du ihn einschaltest. Unter Kasse buchst du Geld in oder aus der Schublade mit Grund und öffnest oder schließt eine Schicht mit Zählung; die Kasse zeigt das Soll und die Differenz. Unter Berichte erstellst du einen X-Bericht (Zwischenstand) oder einen Z-Bericht (Tag abschließen, fortlaufend nummeriert). Einen Z-Bericht dürfen nur der Inhaber oder eine verantwortliche Person erstellen. Vergisst du, einen Tag abzuschließen, erstellt die Kasse den Z-Bericht am nächsten Tag selbst."
+        },
+        "horeca_menu_editor": {
+          "title": "Deine Karte in wenigen Minuten: der neue Reiter Karte",
+          "description": "Unter Bestellen › Karte siehst du alle Produkte pro Kategorie auf einem Bildschirm. Du tippst einen Namen und einen Preis, drückst Enter und es steht auf der Karte. Name, Preis, heute aus und wo es verkauft wird (Webshop, Tisch, QR-Menü, Kasse) änderst du direkt in der Zeile. Die MwSt. stellst du einmal pro Kategorie ein, vor Ort und zum Mitnehmen; neue Produkte übernehmen sie. Mit der Startkarte hakst du die Klassiker eines Cafés an, mit Liste einfügen übernimmst du eine ganze Liste aus Excel oder einer E-Mail auf einmal, und mit Foto deiner Karte liest die KI Namen, Preise und Überschriften von einem Foto deiner Speisekarte oder Kreidetafel (5 KI-Credits pro Foto, nur wenn das Lesen klappt). Du siehst immer zuerst eine Vorschau; Produkte, die schon auf deiner Karte stehen, werden nicht doppelt angelegt. Es sind dieselben Produkte wie in deiner Kasse, im QR-Menü und im Webshop."
+        },
+        "kassa_product_quick_edit": {
+          "title": "Ausverkauft oder neuer Preis, direkt in SellQo Kassa",
+          "description": "Drück in SellQo Kassa lange auf ein Produkt, um es für heute als aus zu markieren, wieder in den Verkauf zu nehmen oder den Preis zu ändern. Das darf nur der Inhaber oder eine verantwortliche Person, und jede Änderung wird mit Person und Gerät gespeichert. Sie gilt sofort für deine Kasse, das QR-Menü und den Webshop; bereits offene Rechnungen behalten ihren Preis. Die Karte auf der Kasse zeigt jetzt auch den richtigen MwSt.-Satz pro Produkt."
         }
       },
       "copyLink": "Link kopieren",

@@ -5,7 +5,7 @@
 // Producten, extra's en keuken zijn gedeeld. Alleen met de horeca-module.
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Bike, ChefHat, ExternalLink, Globe, Pizza, QrCode, UtensilsCrossed } from 'lucide-react';
+import { ArrowRight, Bike, BookOpen, ChefHat, ExternalLink, Globe, Pizza, QrCode, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
@@ -24,9 +24,12 @@ import { PrepStationsManager } from '@/components/admin/horeca/PrepStationsManag
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { useTranslation } from 'react-i18next';
 import { ModuleOffCard } from '@/components/admin/ModuleOffCard';
+import { KaartManager } from '@/components/admin/horeca/kaart/KaartManager';
 
 const TABS = [
   { id: 'overview', labelKey: 'admin.orderingHub.tab_overview' },
+  // KAART-1 — de kaart: producten snel aanmaken en bewerken (zelfde producten als overal).
+  { id: 'kaart', labelKey: 'admin.orderingHub.tab_menu' },
   { id: 'webshop', labelKey: 'admin.orderingHub.tab_webshop' },
   { id: 'qr', labelKey: 'admin.orderingHub.tab_qr' },
   // ZAAL-H1 — tafels, ruimtes en QR-stickers per tafel.
@@ -53,11 +56,13 @@ function Overview({ go }: { go: (t: Tab) => void }) {
     queryKey: ['ordering-hub', tenantId],
     enabled: !!tenantId,
     queryFn: async () => {
-      const [ts, fs, methods, groups] = await Promise.all([
+      const [ts, fs, methods, groups, menu] = await Promise.all([
         supabase.from('tenant_theme_settings').select('shop_live, shop_ordering').eq('tenant_id', tenantId!).maybeSingle(),
         supabase.from('fulfillment_settings').select('slots_enabled, pay_on_pickup, notify_ready, qr_mode, qr_pay_counter, qr_pay_online').eq('tenant_id', tenantId!).maybeSingle(),
         supabase.from('shipping_methods').select('fulfillment_type').eq('tenant_id', tenantId!).eq('is_active', true).in('fulfillment_type', ['pickup', 'local_delivery']),
         supabase.from('product_addon_groups').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId!).eq('is_active', true),
+        // Zelfde telling als de tab Kaart (actieve producten, zonder tickets/cadeaubonnen).
+        supabase.from('products').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId!).eq('is_active', true).in('product_type', ['physical', 'service', 'digital'] as never),
       ]);
       const m = methods.data || [];
       return {
@@ -66,6 +71,7 @@ function Overview({ go }: { go: (t: Tab) => void }) {
         slots: !!fs.data?.slots_enabled, payOnPickup: !!fs.data?.pay_on_pickup, notify: fs.data?.notify_ready !== false,
         qrMode: ((fs.data?.qr_mode as QrMode) || 'view'), qrCounter: fs.data?.qr_pay_counter !== false, qrOnline: !!fs.data?.qr_pay_online,
         groups: groups.count ?? 0,
+        menu: menu.count ?? 0,
       };
     },
   });
@@ -128,7 +134,11 @@ function Overview({ go }: { go: (t: Tab) => void }) {
 
       <div>
         <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">{t('admin.orderingHub.voor_beide')}</h2>
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <button type="button" onClick={() => go('kaart')} className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left hover:bg-muted/50">
+            <BookOpen className="mt-0.5 h-5 w-5 text-muted-foreground" />
+            <span><span className="block font-medium">{t('admin.orderingHub.tab_menu')}</span><span className="block text-sm text-muted-foreground">{data.menu ? t('admin.orderingHub.menu_count', { count: data.menu }) : t('admin.orderingHub.menu_empty')}</span></span>
+          </button>
           <button type="button" onClick={() => go('extras')} className="flex items-start gap-3 rounded-lg border bg-card p-4 text-left hover:bg-muted/50">
             <Pizza className="mt-0.5 h-5 w-5 text-muted-foreground" />
             <span><span className="block font-medium">{t('admin.storefront.food.addonGroupsManager.extra_s')}</span><span className="block text-sm text-muted-foreground">{data.groups ? t('admin.orderingHub.groups_count', { count: data.groups }) : t('admin.orderingHub.groups_empty')}</span></span>
@@ -178,6 +188,7 @@ export default function OrderingHubPage() {
       </div>
       <div className="max-w-5xl">
         {tab === 'overview' ? <Overview go={go} /> : null}
+        {tab === 'kaart' ? <KaartManager /> : null}
         {tab === 'webshop' ? <FulfillmentSettings /> : null}
         {tab === 'qr' ? <div className="space-y-6"><QrModeSettings /><MenuQrManager onOpenFloorPlan={() => go('zaal')} /></div> : null}
         {tab === 'zaal' ? <FloorPlanEditor /> : null}

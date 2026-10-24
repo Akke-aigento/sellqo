@@ -4877,7 +4877,9 @@
         "apply": "Appliquer",
         "apply_hint": "Votre modification devient une nouvelle photo. L'original reste dans votre médiathèque."
       },
-      "bekijken": "Voir"
+      "bekijken": "Voir",
+      "kaart_hint": "Établissement horeca ? Sur la Carte, tu crées et modifies tes produits plus vite : nom, prix, c’est fait.",
+      "to_kaart": "Vers la Carte"
     },
     "productForm": {
       "vertalingen": "Traductions",
@@ -6188,7 +6190,10 @@
       "floor_plan": "Plan de salle",
       "floor_summary": "{{tables}} tables dans {{areas}} espace(s)",
       "floor_none": "Pas encore configuré",
-      "tab_stations": "Postes"
+      "tab_stations": "Postes",
+      "tab_menu": "Carte",
+      "menu_count": "Sur la carte : {{count}}",
+      "menu_empty": "Rien encore : commence par la carte de départ"
     },
     "kitchen": {
       "col_new": "Nouveau",
@@ -8566,6 +8571,150 @@
       "defaultOption": "{{name}} (par défaut)",
       "noStation": "Aucun poste",
       "error": "Échec : {{detail}}"
+    },
+    "kaart": {
+      "search": "Rechercher dans la carte",
+      "paste": "Coller une liste",
+      "summary": "Produits : {{count}} · sur la carte : {{active}}",
+      "sharedNote": "les mêmes produits que dans ta caisse, ton menu QR et ta boutique",
+      "empty": {
+        "title": "Ta carte est encore vide",
+        "body": "Commence avec la carte de départ, colle une liste ou tape un nom et un prix ci-dessous."
+      },
+      "noCategory": "Sans catégorie",
+      "hiddenCategory": "masquée",
+      "selectAll": "Tout sélectionner dans {{name}}",
+      "select": "Sélectionner {{name}}",
+      "hide": "Retirer {{name}} de la carte",
+      "show": "Mettre {{name}} sur la carte",
+      "col": {
+        "name": "Nom",
+        "price": "Prix",
+        "category": "Catégorie"
+      },
+      "soldOut": "Épuisé",
+      "markSoldOut": "Épuisé aujourd’hui",
+      "channels": "Où il est vendu",
+      "channel": {
+        "online": "Boutique (retrait et livraison)",
+        "table": "Commander à table (QR)",
+        "menu": "Visible sur le menu QR",
+        "pos": "Caisse"
+      },
+      "channelShort": {
+        "online": "Web",
+        "table": "Table",
+        "menu": "Menu",
+        "pos": "Caisse"
+      },
+      "oneChannel": "Garde au moins un endroit actif, ou retire le produit de la carte.",
+      "openFull": "Tous les réglages de {{name}}",
+      "quickAdd": "Ajouter un produit",
+      "quickAddPlaceholder": "Nom, p. ex. Duvel 4,50",
+      "add": "Ajouter",
+      "newCategory": "Ajouter une catégorie",
+      "newCategoryPlaceholder": "Nouvelle catégorie, p. ex. Boissons chaudes",
+      "categoryAdded": "La catégorie {{name}} est prête",
+      "categorySettings": "Réglages de {{name}}",
+      "categoryName": "Nom de la catégorie",
+      "vatHere": "TVA sur place",
+      "vatAway": "TVA à emporter",
+      "vatShopDefault": "Par défaut de ton commerce",
+      "vatSameAsHere": "Comme sur place",
+      "vatHint": "Les nouveaux produits de cette catégorie reçoivent cette TVA. Les produits existants ne changent que si tu cliques sur appliquer ci-dessous. Fais vérifier les taux par ton comptable.",
+      "vatApply": "Appliquer aux {{count}} produits de cette catégorie",
+      "vatApplied": "TVA mise à jour : {{count}} produits",
+      "vatNone": "TVA : par défaut",
+      "vatShort": "TVA {{here}} % · à emporter {{away}} %",
+      "vatKind": {
+        "alcohol": "Boissons alcoolisées (21 % / 21 %)",
+        "soft": "Boissons sans alcool (21 % / 6 %)",
+        "food": "Nourriture (12 % / 6 %)"
+      },
+      "bulk": {
+        "selected": "Sélectionnés : {{count}}",
+        "price": "Modifier le prix",
+        "mode": {
+          "add": "± €",
+          "percent": "± %",
+          "set": "Prix fixe"
+        },
+        "hint": {
+          "add": "P. ex. 0,10 pour ajouter 10 centimes, -0,20 pour en retirer 20.",
+          "percent": "P. ex. 5 pour 5 % plus cher, -10 pour 10 % moins cher. Arrondi au centime.",
+          "set": "Tous les produits sélectionnés reçoivent ce prix."
+        },
+        "value": "Valeur",
+        "apply": "Appliquer à {{count}} produits",
+        "move": "Déplacer vers…",
+        "show": "Sur la carte",
+        "hide": "Retirer de la carte",
+        "backIn": "De nouveau disponible",
+        "clear": "Effacer la sélection",
+        "done": "Modifiés : {{count}} produits"
+      },
+      "import": {
+        "title": "Coller une liste",
+        "intro": "Un produit par ligne, avec le prix après. Un titre comme « Bières : » fixe la catégorie des lignes suivantes. Les colonnes d’Excel fonctionnent aussi.",
+        "placeholder": "Bières :\nDuvel 4,50\nWestmalle Tripel 5,20\n\nSofts :\nCola 2,80",
+        "defaultCategory": "Catégorie pour les lignes sans titre",
+        "defaultCategoryHint": "Choisis une catégorie existante ou tape un nouveau nom.",
+        "toPreview": "Voir l’aperçu",
+        "previewIntro": "Vérifie et ajuste si besoin. Rien n’est créé avant que tu cliques sur Ajouter. Ce qui est déjà sur ta carte est décoché.",
+        "newCategories": "Nouvelles catégories : quelle TVA ?",
+        "include": "Ajouter {{name}}",
+        "exists": "déjà sur ta carte",
+        "repeat": "déjà plus haut dans la liste",
+        "back": "Retour",
+        "add": "Ajouter ({{count}})",
+        "fixPrices": "Complète les prix ({{count}})",
+        "nothing": "Il n’y a rien à ajouter.",
+        "done": "Ajoutés à ta carte : {{count}} produits",
+        "partial": "Déjà ajoutés : {{count}} produits"
+      },
+      "starter": {
+        "button": "Carte de départ",
+        "title": "Carte de départ pour ton café",
+        "intro": "Coche ce que tu sers. À l’étape suivante, tu remplis les prix.",
+        "more": "Afficher plus ({{count}})",
+        "less": "Afficher moins",
+        "vatNote": "TVA selon les règles belges de l’horeca : sur place / à emporter. Fais-la vérifier par ton comptable ; tu peux la modifier par catégorie plus tard.",
+        "cat": {
+          "tap": "À la pression",
+          "beer": "Bières",
+          "nonalc_beer": "Bières sans alcool",
+          "soft": "Softs",
+          "hot": "Boissons chaudes",
+          "wine": "Vins et bulles",
+          "spirits": "Alcools forts et cocktails",
+          "snacks": "Snacks"
+        }
+      },
+      "photo": {
+        "previewTitle": "Trouvé sur ta photo",
+        "button": "Photo de ta carte",
+        "title": "Faire lire ta carte",
+        "intro": "L’IA lit les noms, les prix et les titres sur ta photo. Tu vois ensuite tout dans un aperçu ; rien n’est créé avant que tu cliques sur Ajouter. Prends la photo bien de face, avec une bonne lumière.",
+        "cost": "Coûte {{credits}} crédits IA, uniquement si la lecture réussit. Tu en as {{available}}.",
+        "costFree": "C’est gratuit pour ton commerce.",
+        "buy": "Acheter des crédits",
+        "read": "Lire la carte",
+        "reading": "Lecture en cours…",
+        "found": "Trouvés : {{count}} produits. Vérifie-les.",
+        "error": {
+          "no_credits": "Pas assez de crédits IA pour cette photo.",
+          "empty": "Aucun produit trouvé sur la photo. Rien n’a été facturé.",
+          "bad_image": "Impossible d’ouvrir cette photo. Essaie un jpeg ou un png.",
+          "rate_limited": "Trop chargé pour l’instant. Réessaie dans une minute.",
+          "billing": "Ta boutique est en lecture seule jusqu’au paiement.",
+          "ai_failed": "La photo n’a pas pu être lue. Rien n’a été facturé."
+        }
+      },
+      "error": {
+        "not_allowed": "Ton rôle ne peut pas modifier la carte.",
+        "plan_limit": "Tu as atteint le nombre maximum de produits de ton forfait.",
+        "generic": "Cela n’a pas marché. Réessaie."
+      }
     }
   },
   "billing": {
@@ -10775,6 +10924,30 @@
         "pending_elsewhere": "Ce rapport attend encore d’être envoyé.",
         "signed_rejected": "Signé, mais SellQo a refusé le rapport ({{detail}}). Contactez SellQo."
       }
+    },
+    "productEdit": {
+      "hint": "Appui long pour modifier",
+      "intro": "Le propriétaire ou un responsable approuve avec son code PIN. S’applique tout de suite à la caisse, au menu QR et à la boutique ; les additions ouvertes gardent leur prix.",
+      "soldOut": "Épuisé aujourd’hui",
+      "backIn": "De nouveau disponible",
+      "price": "Prix",
+      "priceHint": "Nouveau prix pour tout ce que tu encaisses à partir de maintenant.",
+      "savePrice": "Enregistrer le prix",
+      "priceSaved": "{{name}} coûte maintenant {{price}}",
+      "soldOutOn": "{{name}} est épuisé jusqu’à demain matin",
+      "soldOutOff": "{{name}} est de nouveau disponible",
+      "error": {
+        "not_allowed": "Seul le propriétaire ou un responsable peut faire cela.",
+        "invalid": "Ce prix n’est pas valable.",
+        "offline": "Pas de connexion. Réessaie.",
+        "server": "Cela n’a pas marché. Réessaie.",
+        "wrong_pin": "Code PIN incorrect.",
+        "locked": "Trop d’essais erronés : ce code PIN est bloqué 5 minutes."
+      },
+      "approver": "Approuvé par",
+      "pickApprover": "Choisissez qui approuve",
+      "pin": "Code PIN",
+      "noApprovers": "Il n’y a pas encore de propriétaire ou de responsable avec un code PIN. Configurez-le sous Personnel."
     }
   }
 }

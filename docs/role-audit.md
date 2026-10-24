@@ -1,3 +1,97 @@
+## KAART-1/2 + KASSA-0.6 — de horeca-Kaart (snel producten, startkaart, plakken, foto) en product aanpassen op de kassa — 24 oktober 2026
+
+Branch `kaart-1`, op vraag van Akke (24-10, 15:47: "lets go", aparte maten als aparte producten, foto-import met credits, startkaart, kassa-bewerking). Drie commits: KAART-1, KAART-2, KASSA-0.6 (fiscale release, `sellqo-kassa-0.6.0`). **Nog niet gemerged, niet gepusht, niets live**: migraties, deploy van `ai-kaart-photo`, publish en helpartikels wachten op een aparte go.
+
+**Aanleiding** — Producten aanmaken voor horeca ging via `ProductForm.tsx` (2196 lijnen, 16 kaarten voor verzending, digitale bestanden, cadeaubonnen, SEO …). Fiere (Lovable `12129848-…`) toont dat een café wil: een lijst per categorie, inline prijs/voorraad, bulkbalk, duplicaatwaarschuwing (`CreateBeerModal.tsx`, `SortableProductRow.tsx`, `BulkActionBar.tsx`). In de database heeft `products` maar drie verplichte velden (`name`, `slug`, `price`; live nagetrokken). Posten routeren al per categorie (`prep_station_routes`), extra's ook (`product_addon_groups.category_ids`).
+
+**Gevonden tijdens de recon** — `vat_rates` staat live volledig globaal (`tenant_id` null, 0 van 31 zaken met eigen tarieven), maar `src/kassa/app/horeca/useCatalog.ts` zocht `.eq('tenant_id', …)`: elk product kreeg op de kaart van de kassa label A (21 %). Het kasticket was wel juist: de server rekent het tarief (`kassa_product_vat_rate`, accepteert globaal) en `horeca_pay_begin` controleert de labels vóór het tekenen; afrekenen gebeurt pas zonder wachtende lijnen. Gevolg was enkel een fout getoond label tijdens het aantikken en onnodige 40001's aan de toog. Opgelost in KASSA-0.6.
+
+**Uitgevoerd**
+- `supabase/migrations/20261024180000_kaart_1_horeca_kaart.sql`:
+  - `categories.default_vat_rate_id`, `default_takeaway_vat_rate_id` (nullable, FK `vat_rates` on delete set null);
+  - `kaart_slug(text)` (geen `unaccent` live: `translate`);
+  - `kaart_ensure_category` (op naam, hoofdletterongevoelig, heractiveert verborgen, lock per zaak);
+  - `kaart_add_products` (max. 300, slug uniek per zaak, standaard-btw van de categorie gestempeld op het product, `track_inventory`/`requires_shipping` false zoals de bestaande horecaproducten, primaire `product_categories`-rij);
+  - `kaart_bulk_update` (prijs set/add/percent, weigert onder € 0; zichtbaar; verplaatsen incl. koppeltabel; btw van de categorie overnemen).
+- `src/components/admin/horeca/kaart/`:
+  - `KaartManager` (tab, inline naam/prijs/op/kanalen, tandwiel per categorie met btw, snel toevoegen "Duvel 4,50", bulkbalk);
+  - `KaartImportDialog` (plakken, startkaart en foto in één voorbeeld met dubbels en btw-soort per nieuwe categorie);
+  - `parseKaart`, `starterKaart` (8 groepen, ±150 Belgische bieren en dranken, btw-soort alcohol 21/21, soft 21/6, eten 12/6), `useKaart`, `KaartPhotoButton`.
+- `src/pages/admin/OrderingHub.tsx`: tab `kaart` (`?tab=kaart`) en kaart "Kaart" in het overzicht.
+- `src/pages/admin/Products.tsx`: enkel een link naar de Kaart (horeca).
+- KAART-2:
+  - `supabase/functions/ai-kaart-photo/index.ts` + `_shared/kaartPhoto.ts`: 5 credits per foto, betalen na succes zoals de andere AI-functies (saldo → AI → `use_ai_credits`, geen resultaat als afboeken faalt; mislukt of leeg = gratis), `requireRole` tenant_admin/staff + `requireBillingState`, GET-versiestempel `KAART-2`;
+  - `config.toml`: `verify_jwt = false`.
+- KASSA-0.6:
+  - `supabase/migrations/20261024190000_kassa_0_6_product_quick_edit.sql` (`kassa_product_quick_edit`: goedkeurder owner/manager met PIN, crypt + lockout zoals `kassa_staff_login`, audit `kassa_product_edit`/`pin_failed`);
+  - `src/kassa/app/horeca/productActions.ts`, `screens/ProductQuickEdit.tsx`, `useLongPress.ts`;
+  - `CheckScreen.tsx` (producttegel met lang drukken; meeneemlabel aan de toog);
+  - `useCatalog.ts` (tarieven globaal + van de zaak, ook inactieve, terugval zoals de server; `takeaway_vat_rate_id`);
+  - `actions.ts` (`staffRole`), `KassaHome.tsx`;
+  - `version.ts` → `sellqo-kassa-0.6.0`.
+- i18n: `admin.kaart.*`, `admin.orderingHub.tab_menu/menu_count/menu_empty`, `admin.products.kaart_hint/to_kaart`, `kassa.productEdit.*` in nl/en/fr/de/uk.
+- Changelog `2026.13s` (`horeca_menu_editor`) en `2026.13t` (`kassa_product_quick_edit`).
+- Nieuwsbrief 13s/13t.
+- `docs/sql/kaart-1-doc-articles.sql` (2 artikels, nog niet gedraaid).
+
+**Security-keuzes**
+- Alle nieuwe functies zijn `security definer` met `has_tenant_role(tenant_admin, staff)` vooraan, elke query begrensd op `p_tenant_id`, en een vast `search_path`. Grants: `public`/`anon` ingetrokken, enkel `authenticated`.
+- Marketing (dat via RLS producten mag bijwerken) krijgt in de Kaart enkel naam, kanalen, zichtbaarheid en "op"; aanmaken, bulk, prijs en btw zijn verborgen, zoals de RPC's en `guard_product_commercial_fields`.
+- Kassa:
+  - de goedkeurder is een `pos_cashiers` owner/manager van dezelfde zaak en moet zijn PIN geven;
+  - een foute PIN wijzigt niets, telt mee voor de lockout (5 keer = 5 minuten) en komt in `fiscal_audit_log` (append-only, enkel INSERT).
+- Foto: alleen een verkleinde jpeg/png/webp-data-URL tot ±6 MB. Het model maakt niets aan; de gebruiker bevestigt elke rij.
+
+**Gedeelde-paden-waarschuwing**
+- `categories` is geen eerste-wet-tabel, maar `storefront-api` leest categorieën. De twee nieuwe kolommen zijn nullable, bevatten enkel een id van een (globaal) btw-tarief, en zijn niet gevoelig.
+- Geen wijziging aan `storefront-api`, `storefront-customer-api` of `storefront-resolve`, en geen bestaande kolom hernoemd of van default veranderd.
+- Producten via de Kaart zijn gewone `products`-rijen: webshop, QR-menu en kassa lezen ze zoals voorheen.
+
+**Verificatie**
+- Lokale PG16:
+  - `scripts/gks/sql/run.sh`: alle suites groen, elke migratie twee keer;
+  - nieuw `05_kaart_prelude.sql` (kolommen en unieke indexen zoals live), `test_kaart.sql` (rollen, slugs, standaarden, weigeringen zonder halve aanmaak, bulk, andere zaak) en `test_kassa06.sql` (ober geweigerd, foute PIN, lockout, audit, andere zaak).
+- Vitest: `npx vitest run src/kassa src/components/admin/horeca` → 279 groen, 1 overgeslagen.
+- `tsc -p tsconfig.app.json`: exit 0. `npm run build` en `npm run build:kassa`: groen.
+- Lint: bestaande bestanden 14/0 vóór en na (baseline), nieuwe bestanden 0 fouten.
+- `i18n-parity`: volledig.
+- `deno check` van `ai-kaart-photo` tegen de echte supabase-js 2.57.2-types: groen.
+- Preview met nepdata (Playwright, 390 en 1280 px, geen horizontale scroll): Kaart, startkaart, voorbeeld, kassadialoog. Doorgeklikt: snel toevoegen ("Rochefort 10 6,20" → naam + prijs), bulk +€0,10, plakken met kopje (nieuwe categorie "Warme dranken" → 21/6), dubbel uitgevinkt.
+- Review-agent:
+  - ronde 1: 0 blokkerend, 7 middel, 10 klein. Alles verwerkt, o.a. de PIN-goedkeuring (eerst vertrouwde de server het `staff_id` van het toestel), Escape die toch bewaarde, de woordgrenzen in de btw-gok ("Shots" ≠ hot), het meeneemlabel en bulk onder € 0.
+  - ronde 2 (op de fixes): 0 blokkerend; PIN-logica bevestigd (zonder PIN gaat niets door, een foute PIN wijzigt niets, gedeelde lockout met aanmelden, `FOR UPDATE` op de goedkeurder). Nog verwerkt:
+    - btw-gok met Unicode-woordgrenzen ("Thé", "Безалкогольні напої", "Cafés", "Mocktails" en "Waterzooi" werden fout geraden);
+    - een melding bij tikken op een uitverkocht product;
+    - `can_use_pos` voor de goedkeurder;
+    - tests met een echte goedkeurder van een andere zaak, een inactieve goedkeurder en een goedkeurder zonder kassatoegang.
+
+**Samenhang**
+
+| Plek | Doet nu | Wat verandert | Voorstel |
+|---|---|---|---|
+| `/admin/products` + `ProductForm` | alle producten, alle velden | niets | blijft de volledige plek; horeca krijgt een link naar de Kaart |
+| `/admin/bestellen?tab=kaart` | – | nieuw: de snelle plek voor horeca | tab in de horeca-module, geen zijbalk-item |
+| Overzicht Bestellen | 3 tegels | + tegel Kaart (telling = zelfde filter als de tab) | één bron per getal |
+| `ProductChannelsCard` / `useSoldOutToday` | kanalen en "op" per product | hergebruikt in de Kaart | één logica |
+| Tab Posten | route per categorie | ongewijzigd | btw per categorie zit in de Kaart, posten blijven daar |
+| Kassa | kaart enkel aantikken | lang drukken: op/prijs met PIN-goedkeuring | bulk blijft in de admin |
+| Helpartikels | `producten-toevoegen` (algemeen) | 2 nieuwe artikels (Kaart, kassa) | `producten-toevoegen` bewust ongemoeid |
+
+**Bewust ongemoeid / Vervolg**
+- **Bestaand, niet in deze batch:**
+  - de toestel-user van de kassa is `staff` en kan via RLS rechtstreeks `products` bijwerken (en `horeca_pay` vertrouwt `staff_id` uit de client). Dat vraagt een eigen kassa-auth-batch.
+  - "Op voor vandaag" reset om 05:00 (`sold_out_reset_at`), de bedrijfsdag van de kassa om 06:00.
+  - Het overzicht van Bestellen linkt nog naar `/admin/pos` (uitfasering in TAFEL-4).
+- Andere kassatoestellen zien een prijs of "op" binnen 5 minuten (catalogus-interval). Een uitverkocht product wordt intussen door de server geweigerd.
+- `vat_rates` van een andere zaak koppelen via de API kan (FK-only), maar heeft geen effect: de server negeert vreemde tarieven.
+- HEIC: op iOS levert de camera jpeg. Een HEIC-bestand vanop een desktop geeft een duidelijke fout.
+- **Livegang (aparte go):**
+  - migraties `20261024180000` en `20261024190000` via `query_database`, dan natrekken;
+  - deploy `ai-kaart-photo` via de Lovable-agent, met vingerafdruk via GET `version: KAART-2`;
+  - `deploy_project` en een bundelcheck;
+  - de helpartikels;
+  - smoke op Café De Wissel (rollback).
+
 ## TAFEL-3 — SellQo Kassa als enige kassa: toogverkoop, kas in/uit en tellingen, X/Z-rapporten — 24 oktober 2026
 
 Branch `tafel-3`, na de go van Akke (24-10, 13:46) fast-forward naar `main` (`a80e645`) en live gezet: migratie via `query_database` (bestand byte-identiek opgehaald van GitHub op de commit, md5 `88f29813…` gecontroleerd in dezelfde transactie), alle 22 functiedefinities md5-gelijk aan de lokaal geteste, grants nagetrokken, rooktest op Café De Wissel (toog meenemen, afrekenen kaart € 22,40 → bon 20261024-0001, 1 keukenbon, kas in € 50, shift sluiten verwacht = geteld, X, Z nr. 1) teruggedraaid en schoon nagekeken; helpartikel live (md5 = bestand); CI groen; sellqo.app gepubliceerd (zie Verificatie). Go van Akke op 24-10: één kassa (de klassieke `/admin/pos` wordt in TAFEL-4 uitgefaseerd), afkapuur Z 06:00. Fiscale release `KASSA_SW_VERSION` 0.5.0. Geld-batch: review-agent op de diff. Eisenmatrix EVT-04 (directe verkoop = N zonder P), TX-01 (btw ter plaatse/meenemen), PAY-09 (kas in/uit, telling), RPT-01..RPT-09.

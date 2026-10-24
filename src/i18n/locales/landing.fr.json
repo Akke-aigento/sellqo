@@ -2247,6 +2247,14 @@
         "kassa_counter_reports": {
           "title": "Vente au comptoir, caisse et rapports X/Z dans SellQo Kassa",
           "description": "Dans l’onglet Comptoir, vous vendez sans table : touchez les produits, choisissez sur place ou à emporter, et encaissez aussitôt. À emporter, c’est le taux de TVA indiqué sur le produit sous « TVA à emporter » qui s’applique, par exemple 6 % pour un repas à emporter. Un bon cuisine ne part en cuisine que si vous l’activez. Dans Caisse, vous enregistrez de l’argent entrant ou sortant du tiroir avec un motif, et vous ouvrez ou clôturez un service avec un comptage ; la caisse montre ce qui était attendu et l’écart. Dans Rapports, vous faites un rapport X (situation en cours) ou un rapport Z (clôture de la journée, numéroté à la suite). Seul le propriétaire ou un responsable peut faire un rapport Z. Si vous oubliez de clôturer une journée, la caisse crée elle-même le rapport Z le lendemain."
+        },
+        "horeca_menu_editor": {
+          "title": "Votre carte en quelques minutes : le nouvel onglet Carte",
+          "description": "Sous Commander › Carte, tous vos produits sont réunis par catégorie sur un seul écran. Vous tapez un nom et un prix, vous appuyez sur Entrée et c’est sur la carte. Vous modifiez le nom, le prix, l’épuisé du jour et les canaux de vente (boutique, table, menu QR, caisse) directement dans la ligne. Vous réglez la TVA une fois par catégorie, sur place et à emporter ; les nouveaux produits la reprennent. Avec la carte de départ, vous cochez les classiques d’un café ; avec Coller une liste, vous reprenez d’un coup toute une liste venant d’Excel ou d’un e-mail ; et avec Photo de votre carte, l’IA lit les noms, les prix et les titres sur une photo de votre carte ou de votre ardoise (5 crédits IA par photo, uniquement si la lecture réussit). Vous voyez toujours d’abord un aperçu ; les produits déjà sur votre carte ne sont pas créés deux fois. Ce sont les mêmes produits que dans votre caisse, votre menu QR et votre boutique."
+        },
+        "kassa_product_quick_edit": {
+          "title": "Épuisé ou nouveau prix, directement sur SellQo Kassa",
+          "description": "Appuyez longuement sur un produit dans SellQo Kassa pour le marquer épuisé pour aujourd’hui, le remettre en vente ou modifier son prix. Seuls le propriétaire ou un responsable peuvent le faire, et chaque modification est enregistrée avec son auteur et l’appareil utilisé. Elle s’applique tout de suite à votre caisse, votre menu QR et votre boutique ; les additions déjà ouvertes gardent leur prix. La carte de la caisse affiche aussi désormais le bon taux de TVA par produit."
         }
       },
       "copyLink": "Copier le lien",

@@ -5231,7 +5231,9 @@
         "apply": "Toepassen",
         "apply_hint": "Je bewerking wordt een nieuwe foto. Het origineel blijft in je mediabibliotheek staan."
       },
-      "bekijken": "Bekijken"
+      "bekijken": "Bekijken",
+      "kaart_hint": "Horecazaak? Op de Kaart maak en bewerk je producten sneller: naam, prijs, klaar.",
+      "to_kaart": "Naar de Kaart"
     },
     "productForm": {
       "vertalingen": "Vertalingen",
@@ -7136,7 +7138,10 @@
       "floor_plan": "Zaalplan",
       "floor_summary": "{{tables}} tafels in {{areas}} ruimte(s)",
       "floor_none": "Nog niet ingesteld",
-      "tab_stations": "Posten"
+      "tab_stations": "Posten",
+      "tab_menu": "Kaart",
+      "menu_count": "Op de kaart: {{count}}",
+      "menu_empty": "Nog niets: begin met de startkaart"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -8853,6 +8858,150 @@
       "defaultOption": "{{name}} (standaard)",
       "noStation": "Geen post",
       "error": "Niet gelukt: {{detail}}"
+    },
+    "kaart": {
+      "search": "Zoek op de kaart",
+      "paste": "Lijst plakken",
+      "summary": "Producten: {{count}} · op de kaart: {{active}}",
+      "sharedNote": "dezelfde producten als in je kassa, QR-menu en webshop",
+      "empty": {
+        "title": "Je kaart is nog leeg",
+        "body": "Begin met de startkaart, plak een lijst, of typ hieronder een naam en een prijs."
+      },
+      "noCategory": "Zonder categorie",
+      "hiddenCategory": "verborgen",
+      "selectAll": "Alles in {{name}} selecteren",
+      "select": "{{name}} selecteren",
+      "hide": "{{name}} van de kaart halen",
+      "show": "{{name}} op de kaart zetten",
+      "col": {
+        "name": "Naam",
+        "price": "Prijs",
+        "category": "Categorie"
+      },
+      "soldOut": "Op",
+      "markSoldOut": "Op voor vandaag",
+      "channels": "Waar te koop",
+      "channel": {
+        "online": "Webshop (afhalen en leveren)",
+        "table": "Bestellen aan tafel (QR)",
+        "menu": "Zichtbaar op het QR-menu",
+        "pos": "Kassa"
+      },
+      "channelShort": {
+        "online": "Web",
+        "table": "Tafel",
+        "menu": "Menu",
+        "pos": "Kassa"
+      },
+      "oneChannel": "Laat minstens één plek aan staan, of haal het product van de kaart.",
+      "openFull": "Alle instellingen van {{name}}",
+      "quickAdd": "Product toevoegen",
+      "quickAddPlaceholder": "Naam, bv. Duvel 4,50",
+      "add": "Toevoegen",
+      "newCategory": "Categorie toevoegen",
+      "newCategoryPlaceholder": "Nieuwe categorie, bv. Warme dranken",
+      "categoryAdded": "Categorie {{name}} staat klaar",
+      "categorySettings": "Instellingen van {{name}}",
+      "categoryName": "Naam van de categorie",
+      "vatHere": "Btw ter plaatse",
+      "vatAway": "Btw bij meenemen",
+      "vatShopDefault": "Standaard van je zaak",
+      "vatSameAsHere": "Zelfde als ter plaatse",
+      "vatHint": "Nieuwe producten in deze categorie krijgen deze btw. Bestaande producten veranderen pas als je hieronder op toepassen klikt. Laat de tarieven nakijken door je boekhouder.",
+      "vatApply": "Toepassen op de {{count}} producten in deze categorie",
+      "vatApplied": "Btw aangepast: {{count}} producten",
+      "vatNone": "btw: standaard",
+      "vatShort": "btw {{here}} % · meenemen {{away}} %",
+      "vatKind": {
+        "alcohol": "Dranken met alcohol (21 % / 21 %)",
+        "soft": "Dranken zonder alcohol (21 % / 6 %)",
+        "food": "Eten (12 % / 6 %)"
+      },
+      "bulk": {
+        "selected": "Geselecteerd: {{count}}",
+        "price": "Prijs aanpassen",
+        "mode": {
+          "add": "± €",
+          "percent": "± %",
+          "set": "Vaste prijs"
+        },
+        "hint": {
+          "add": "Bv. 0,10 voor 10 cent erbij, -0,20 voor 20 cent eraf.",
+          "percent": "Bv. 5 voor 5 % duurder, -10 voor 10 % goedkoper. Afgerond op de cent.",
+          "set": "Alle geselecteerde producten krijgen deze prijs."
+        },
+        "value": "Waarde",
+        "apply": "Toepassen op {{count}} producten",
+        "move": "Naar categorie…",
+        "show": "Op de kaart",
+        "hide": "Van de kaart",
+        "backIn": "Terug te koop",
+        "clear": "Selectie wissen",
+        "done": "Aangepast: {{count}} producten"
+      },
+      "import": {
+        "title": "Lijst plakken",
+        "intro": "Eén product per lijn, met de prijs erachter. Een kopje zoals \"Bieren:\" zet de categorie voor de lijnen eronder. Kolommen uit Excel werken ook.",
+        "placeholder": "Bieren:\nDuvel 4,50\nWestmalle Tripel 5,20\n\nFrisdrank:\nCola 2,80",
+        "defaultCategory": "Categorie voor lijnen zonder kopje",
+        "defaultCategoryHint": "Kies een bestaande categorie of typ een nieuwe naam.",
+        "toPreview": "Voorbeeld bekijken",
+        "previewIntro": "Kijk na en pas aan waar nodig. Er wordt pas iets aangemaakt als je op Toevoegen klikt. Wat al op je kaart staat, is uitgevinkt.",
+        "newCategories": "Nieuwe categorieën: welke btw?",
+        "include": "{{name}} toevoegen",
+        "exists": "staat al op je kaart",
+        "repeat": "staat al hoger in de lijst",
+        "back": "Terug",
+        "add": "Toevoegen ({{count}})",
+        "fixPrices": "Vul nog prijzen in ({{count}})",
+        "nothing": "Er staat niets in om toe te voegen.",
+        "done": "Op je kaart gezet: {{count}} producten",
+        "partial": "Wel al toegevoegd: {{count}} producten"
+      },
+      "starter": {
+        "button": "Startkaart",
+        "title": "Startkaart voor je café",
+        "intro": "Vink aan wat je schenkt. In de volgende stap vul je de prijzen in.",
+        "more": "Meer tonen ({{count}})",
+        "less": "Minder tonen",
+        "vatNote": "Btw volgens de Belgische horecaregels: ter plaatse / bij meenemen. Laat dit nakijken door je boekhouder; je past het later per categorie aan.",
+        "cat": {
+          "tap": "Van het vat",
+          "beer": "Bieren",
+          "nonalc_beer": "Alcoholvrije bieren",
+          "soft": "Frisdranken",
+          "hot": "Warme dranken",
+          "wine": "Wijn en bubbels",
+          "spirits": "Sterke drank en cocktails",
+          "snacks": "Snacks"
+        }
+      },
+      "photo": {
+        "previewTitle": "Gevonden op je foto",
+        "button": "Foto van je kaart",
+        "title": "Je kaart laten lezen",
+        "intro": "De AI leest namen, prijzen en kopjes van je foto. Daarna zie je alles in een voorbeeld; er wordt pas iets aangemaakt als jij op Toevoegen klikt. Neem de foto recht van voor, met goed licht.",
+        "cost": "Kost {{credits}} AI-credits, enkel als het lezen lukt. Je hebt er nu {{available}}.",
+        "costFree": "Voor jouw zaak is dit gratis.",
+        "buy": "Credits kopen",
+        "read": "Kaart lezen",
+        "reading": "Bezig met lezen…",
+        "found": "Gevonden: {{count}} producten. Kijk ze na.",
+        "error": {
+          "no_credits": "Niet genoeg AI-credits voor deze foto.",
+          "empty": "Geen producten gevonden op de foto. Er werd niets aangerekend.",
+          "bad_image": "Die foto kon niet geopend worden. Probeer een jpeg of png.",
+          "rate_limited": "Even te druk. Probeer het over een minuut opnieuw.",
+          "billing": "Je winkel staat in leesmodus tot de betaling in orde is.",
+          "ai_failed": "De foto kon niet gelezen worden. Er werd niets aangerekend."
+        }
+      },
+      "error": {
+        "not_allowed": "Je rol mag de kaart niet aanpassen.",
+        "plan_limit": "Je zit aan het maximum aantal producten van je pakket.",
+        "generic": "Dat lukte niet. Probeer opnieuw."
+      }
     }
   },
   "product_form": {
@@ -10777,6 +10926,30 @@
         "pending_elsewhere": "Dit rapport wacht nog op verzending.",
         "signed_rejected": "Ondertekend, maar SellQo weigerde het rapport ({{detail}}). Neem contact op met SellQo."
       }
+    },
+    "productEdit": {
+      "hint": "Lang drukken om aan te passen",
+      "intro": "Een eigenaar of verantwoordelijke keurt goed met zijn PIN. Geldt meteen voor de kassa, het QR-menu en de webshop; open rekeningen houden hun prijs.",
+      "soldOut": "Op voor vandaag",
+      "backIn": "Terug te koop",
+      "price": "Prijs",
+      "priceHint": "Nieuwe prijs voor alles wat je vanaf nu aanslaat.",
+      "savePrice": "Prijs bewaren",
+      "priceSaved": "{{name}} kost nu {{price}}",
+      "soldOutOn": "{{name}} is op tot morgenvroeg",
+      "soldOutOff": "{{name}} is terug te koop",
+      "error": {
+        "not_allowed": "Enkel de eigenaar of een verantwoordelijke mag dit.",
+        "invalid": "Die prijs klopt niet.",
+        "offline": "Geen verbinding. Probeer opnieuw.",
+        "server": "Dat lukte niet. Probeer opnieuw.",
+        "wrong_pin": "Verkeerde PIN.",
+        "locked": "Te veel foute pogingen: deze PIN is 5 minuten geblokkeerd."
+      },
+      "approver": "Goedkeuren door",
+      "pickApprover": "Kies wie goedkeurt",
+      "pin": "PIN",
+      "noApprovers": "Er is nog geen eigenaar of verantwoordelijke met een PIN. Stel dat in onder Personeel."
     }
   }
 }

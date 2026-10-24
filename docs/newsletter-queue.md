@@ -4,6 +4,30 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13t — Op of nieuwe prijs, rechtstreeks op SellQo Kassa (improvement, 24-10-2026)
+
+**Status:** gebouwd (KASSA-0.6, kassa 0.6.0), wacht op go en livegang.
+
+**Voor wie:** zaken die SellQo Kassa gebruiken.
+
+**Op of nieuwe prijs, rechtstreeks op de kassa** (oktober 2026)
+Druk lang op een product op SellQo Kassa om het op te zetten voor vandaag, terug te koop te zetten of de prijs aan te passen. Dat mag enkel de eigenaar of een verantwoordelijke, en elke wijziging wordt bewaard met wie ze deed en op welk toestel.
+Wat betekent dit voor jou? Midden in de drukte hoef je niet naar de computer: het geldt meteen voor je kassa, QR-menu en webshop, en open rekeningen houden hun prijs.
+
+i18n: `public.changelog.changes.kassa_product_quick_edit`
+
+### 2026.13s — Je kaart in een paar minuten: de nieuwe tab Kaart (feature, 24-10-2026)
+
+**Status:** gebouwd (KAART-1 + KAART-2), wacht op go en livegang.
+
+**Voor wie:** horecazaken (horeca-module): cafés, bars, frituren, restaurants.
+
+**Je kaart in een paar minuten** (oktober 2026)
+Onder Bestellen › Kaart staan al je producten per categorie op één scherm. Typ een naam en een prijs, druk op Enter en het staat op de kaart; prijs, op voor vandaag en waar het te koop is pas je aan in de lijn zelf. De btw stel je één keer per categorie in. Heb je al een kaart? Vink de klassiekers aan in de startkaart, plak een lijst uit Excel, of neem een foto van je menukaart en laat de AI hem lezen (5 AI-credits per foto, enkel als het lukt).
+Wat betekent dit voor jou? Van overstap naar eerste verkoop in minuten in plaats van een avond producten intikken. Je ziet altijd eerst een voorbeeld, en wat al op je kaart staat, wordt niet dubbel aangemaakt.
+
+i18n: `public.changelog.changes.horeca_menu_editor`
+
 ### 2026.13r — Toogverkoop, kas en X/Z-rapporten op SellQo Kassa (feature, 24-10-2026)
 
 **Status:** klaar voor verzending (TAFEL-3, live sinds 24-10-2026).

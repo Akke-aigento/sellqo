@@ -14,6 +14,12 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.13t', dateKey: 'oct_2026', changes: [
+    { id: 'kassa_product_quick_edit', type: 'improvement' },
+  ]},
+  { version: '2026.13s', dateKey: 'oct_2026', changes: [
+    { id: 'horeca_menu_editor', type: 'feature' },
+  ]},
   { version: '2026.13r', dateKey: 'oct_2026', changes: [
     { id: 'kassa_counter_reports', type: 'feature' },
   ]},

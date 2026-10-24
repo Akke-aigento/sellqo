@@ -339,6 +339,10 @@ verify_jwt = false
 [functions.ai-product-field-assistant]
 verify_jwt = false
 
+# KAART-2 — eigen auth (authenticateRequest + requireRole), zoals de andere AI-functies.
+[functions.ai-kaart-photo]
+verify_jwt = false
+
 [functions.warmup-vat-cache]
 verify_jwt = false
 

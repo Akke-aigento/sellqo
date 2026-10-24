@@ -452,6 +452,13 @@ export default function ProductsPage() {
           <span className="shrink-0 font-medium text-primary">{t('admin.products.to_events')} →</span>
         </Link>
       )}
+      {/* KAART-1 — horeca: de snelle plek voor de kaart (zelfde producten). Hier enkel een link. */}
+      {horecaOn && (
+        <Link to="/admin/bestellen?tab=kaart" className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3 text-sm hover:bg-muted">
+          <span>{t('admin.products.kaart_hint')}</span>
+          <span className="shrink-0 font-medium text-primary">{t('admin.products.to_kaart')} →</span>
+        </Link>
+      )}
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>

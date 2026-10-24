@@ -2247,6 +2247,14 @@
         "kassa_counter_reports": {
           "title": "Toogverkoop, kas en X/Z-rapporten op SellQo Kassa",
           "description": "Onder het tabblad Toog verkoop je zonder tafel: producten aantikken, kiezen tussen ter plaatse of meenemen, en meteen afrekenen. Bij meenemen geldt het btw-tarief dat je bij het product invult onder 'Btw bij meenemen', bijvoorbeeld 6 % voor een afhaalmaaltijd. Een keukenbon gaat alleen naar je keuken als je dat aanzet. Onder Kas boek je geld in of uit de lade met een reden en open of sluit je een shift met een telling; de kassa toont wat er verwacht werd en het verschil. Onder Rapporten maak je een X-rapport (tussenstand) of een Z-rapport (dag afsluiten, doorlopend genummerd). Een Z-rapport mag alleen de eigenaar of een verantwoordelijke maken. Vergeet je een dag af te sluiten, dan maakt de kassa het Z-rapport de volgende dag zelf."
+        },
+        "horeca_menu_editor": {
+          "title": "Je kaart in een paar minuten: de nieuwe tab Kaart",
+          "description": "Onder Bestellen › Kaart staan al je producten per categorie op één scherm. Je typt een naam en een prijs, drukt op Enter en het staat op de kaart. Naam, prijs, op voor vandaag en waar het te koop is (webshop, tafel, QR-menu, kassa) pas je aan in de lijn zelf. Per categorie stel je één keer de btw in, ter plaatse en bij meenemen; nieuwe producten nemen die over. Met de startkaart vink je de klassiekers van een café aan, met Lijst plakken zet je een hele lijst uit Excel of een mail in één keer over, en met Foto van je kaart leest de AI namen, prijzen en kopjes van een foto van je menukaart of krijtbord (5 AI-credits per foto, enkel als het lezen lukt). Je ziet altijd eerst een voorbeeld; producten die al op je kaart staan, worden niet dubbel aangemaakt. Het zijn dezelfde producten als in je kassa, QR-menu en webshop."
+        },
+        "kassa_product_quick_edit": {
+          "title": "Op of nieuwe prijs, rechtstreeks op SellQo Kassa",
+          "description": "Druk lang op een product op SellQo Kassa om het op te zetten voor vandaag, terug te koop te zetten of de prijs aan te passen. Dat mag enkel de eigenaar of een verantwoordelijke, en elke wijziging wordt bewaard met wie ze deed en op welk toestel. Het geldt meteen voor je kassa, QR-menu en webshop; rekeningen die al open staan, houden hun prijs. De kaart op de kassa toont nu ook het juiste btw-tarief per product."
         }
       },
       "copyLink": "Kopieer link",
