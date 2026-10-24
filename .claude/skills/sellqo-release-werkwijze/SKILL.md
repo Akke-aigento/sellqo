@@ -83,6 +83,13 @@ onafgewerkte entry die de changelog voor die bezoekers breekt en de CI-parity
 rood maakt. Tel de bestanden na tegen `SUPPORTED_LANGUAGES`, niet tegen een
 onthouden getal.
 
+**Twee i18n-checks, beide vóór de push:** `node scripts/i18n-parity.mjs`
+(elke taal dezelfde keys) én `node scripts/check-i18n-used-keys.mjs` (elke
+`t('…')`-key in de code bestaat in nl.json). De tweede vangt een key die je in
+code gebruikt maar in geen enkele taal toevoegde: parity ziet die niet, de CI
+wel (stap "Gebruikte vertaalkeys"). **Incident (KAART-1, 24 okt 2026):**
+`admin.kaart.badPrice` ontbrak; parity groen, CI rood na de push.
+
 **Verificatieplicht:** vóór het schrijven altijd de actuele structuur van
 `PublicChangelog.tsx` en de i18n-bestanden lezen — key-namespace, taalcodes en
 veldnamen komen uit de code, niet uit dit document of het geheugen. Bij mismatch

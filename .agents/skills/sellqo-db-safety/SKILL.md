@@ -91,6 +91,19 @@ laat dan een gat in de factuurnummering — plan dat vooraf (of test zonder
 **Incident (MAIL-2, 20 okt 2026):** 406 pushes naar de telefoon door één
 smoke-test.
 
+### Een tweede FK naar dezelfde tabel breekt bestaande embeds
+Voeg je een foreign key toe naar een tabel waar `products` (of een andere
+tabel) al een FK naar heeft, dan weet PostgREST niet meer welke koppeling
+`vat_rates(rate)` bedoelt: de query faalt met **PGRST201** ("more than one
+relationship"). `tsc` en de build merken het pas na de regeneratie van
+`types.ts`; de app breekt meteen na de migratie.
+Vóór de migratie: `rg -n "<doeltabel>\s*\(" src supabase/functions` en
+`rg -n "<doeltabel>!" ...`. Elke embed zonder `!` krijgt de FK-naam erbij:
+`vat_rates!products_vat_rate_id_fkey(rate)`, in dezelfde batch als de migratie.
+**Incident (TAFEL-3, 24 okt 2026):** `products.takeaway_vat_rate_id` (tweede FK
+naar `vat_rates`) brak de product-export en de export "lage voorraad" van
+13:46 tot de fix in `4aaa2df` (KAART-livegang, zelfde dag).
+
 ## Checklist per batch
 - [ ] Recon: blast-radius bepaald (`grep` in src/ én functions/)
 - [ ] Baseline gemeten (rol-impersonatie + counts)
@@ -101,4 +114,5 @@ smoke-test.
 - [ ] Groen vinkje verklaard: weet je wáárom het slaagt?
 - [ ] Guard-trigger met definer-uitzondering test `current_user`
 - [ ] Smoke-test met veel testdata: notificaties + push uit, factuurgat ingecalculeerd
+- [ ] Nieuwe FK: bestaande embeds naar die tabel gegrept en waar nodig `!fk_naam` gezet
 
