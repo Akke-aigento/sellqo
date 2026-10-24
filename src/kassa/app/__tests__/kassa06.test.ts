@@ -57,3 +57,19 @@ describe('quickEditProduct', () => {
     expect(await quickEditProduct(ctx('owner'), 'p1', ok, { price: '1' })).toMatchObject({ ok: false, reason: 'offline' });
   });
 });
+
+describe('sortCatalog (0.6.1)', () => {
+  it('categorievolgorde, dan positie, dan naam; zonder positie achteraan', async () => {
+    const { sortCatalog } = await import('../horeca/useCatalog');
+    const cats = new Map([['bier', 0], ['fris', 1]]);
+    const rows = [
+      { name: 'Cola', category_id: 'fris', menu_position: 0 },
+      { name: 'Westmalle', category_id: 'bier', menu_position: null },
+      { name: 'Duvel', category_id: 'bier', menu_position: null },
+      { name: 'Pils', category_id: 'bier', menu_position: 0 },
+      { name: 'Losse', category_id: null, menu_position: 0 },
+      { name: 'Tripel', category_id: 'bier', menu_position: 1 },
+    ];
+    expect(rows.slice().sort((a, b) => sortCatalog(a, b, cats)).map((r) => r.name)).toEqual(['Pils', 'Tripel', 'Duvel', 'Westmalle', 'Cola', 'Losse']);
+  });
+});

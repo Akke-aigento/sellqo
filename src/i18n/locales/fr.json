@@ -8715,7 +8715,34 @@
         "plan_limit": "Tu as atteint le nombre maximum de produits de ton forfait.",
         "generic": "Cela n’a pas marché. Réessaie."
       },
-      "badPrice": "Ce prix n’est pas valable. Utilisez p. ex. 4,50."
+      "badPrice": "Ce prix n’est pas valable. Utilisez p. ex. 4,50.",
+      "dragProduct": "Déplacer {{name}}",
+      "dragCategory": "Déplacer la catégorie {{name}}",
+      "openProduct": "Ouvrir {{name}}",
+      "sheet": {
+        "intro": "Tout sur ce produit. Les modifications sont enregistrées tout de suite.",
+        "minus": "10 centimes de moins",
+        "plus": "10 centimes de plus",
+        "onMenu": "Sur la carte",
+        "offMenu": "Pas sur la carte",
+        "categoryHint": "Une autre catégorie applique aussi sa TVA.",
+        "photo": "Photo",
+        "photoAdd": "Prendre ou choisir une photo",
+        "photoReplace": "Autre photo",
+        "photoRemove": "Retirer la photo",
+        "description": "Courte description (menu QR et boutique)",
+        "descriptionPlaceholder": "P. ex. Blonde, 8,5 %, de Breendonk",
+        "addSize": "Ajouter une taille ou une copie",
+        "sizeTitle": "Nouvelle taille ou copie",
+        "sizeHint": "Arrive juste sous ce produit, avec la même catégorie, TVA, photo, suppléments et allergènes.",
+        "sizeAdded": "{{name}} est sur la carte",
+        "more": "Plus : TVA de ce produit",
+        "vatHint": "Vide = valeur par défaut. En général, la TVA se règle par catégorie (roue dentée).",
+        "allSettings": "Tous les réglages (boutique, SEO …)",
+        "close": "Terminé",
+        "extras": "Suppléments et allergènes",
+        "allergenCount": "allergènes : {{count}}"
+      }
     }
   },
   "billing": {

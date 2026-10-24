@@ -2255,6 +2255,10 @@
         "kassa_product_quick_edit": {
           "title": "Ausverkauft oder neuer Preis, direkt in SellQo Kassa",
           "description": "Drück in SellQo Kassa lange auf ein Produkt, um es für heute als aus zu markieren, wieder in den Verkauf zu nehmen oder den Preis zu ändern. Das darf nur der Inhaber oder eine verantwortliche Person, und jede Änderung wird mit Person und Gerät gespeichert. Sie gilt sofort für deine Kasse, das QR-Menü und den Webshop; bereits offene Rechnungen behalten ihren Preis. Die Karte auf der Kasse zeigt jetzt auch den richtigen MwSt.-Satz pro Produkt."
+        },
+        "horeca_menu_panel": {
+          "title": "Deine Karte noch schneller: alles zu einem Produkt in einem Panel, und die Reihenfolge bestimmst du",
+          "description": "Tippe unter Bestellen › Karte auf ein Produkt und alles steht in einem Panel neben deiner Karte: Preis mit Knöpfen für 10 Cent mehr oder weniger, heute aus, sichtbar oder nicht, Kategorie, ein Foto (direkt mit der Kamera von Handy oder Tablet), wo es verkauft wird, eine Kurzbeschreibung, Extras und Allergene. Alles wird sofort gespeichert. Mit „Größe oder Kopie hinzufügen“ legst du z. B. Pils 33cl neben Pils 25cl in einem Schritt an, mit derselben Kategorie, MwSt., Foto und Extras. Und du ziehst Produkte und Kategorien in die gewünschte Reihenfolge: so stehen sie auch in SellQo Kassa, mit deinen meistgezapften Getränken oben."
         }
       },
       "copyLink": "Link kopieren",

@@ -27,7 +27,17 @@ export interface KaartProduct {
   sold_out_until: string | null;
   vat_rate_id: string | null;
   takeaway_vat_rate_id: string | null;
+  /** KAART-3: volgorde binnen de categorie (Kaart en kassa); null = achteraan, op naam. */
+  menu_position: number | null;
+  short_description: string | null;
+  allergens: string[] | null;
+  featured_image: string | null;
+  images: string[] | null;
 }
+
+/** Volgorde zoals op de kassa: positie, dan naam (zonder positie achteraan). */
+export const byMenuOrder = (a: Pick<KaartProduct, 'menu_position' | 'name'>, b: Pick<KaartProduct, 'menu_position' | 'name'>) =>
+  (a.menu_position ?? Number.MAX_SAFE_INTEGER) - (b.menu_position ?? Number.MAX_SAFE_INTEGER) || a.name.localeCompare(b.name, 'nl');
 
 export interface KaartItemInput { name: string; price: string; category_id: string | null }
 
@@ -56,14 +66,14 @@ export function useKaart() {
       const [cats, prods] = await Promise.all([
         supabase.from('categories').select('id, name, sort_order, is_active, default_vat_rate_id, default_takeaway_vat_rate_id')
           .eq('tenant_id', tenantId!).order('sort_order').order('name'),
-        supabase.from('products').select('id, name, price, category_id, is_active, channels, sold_out_until, vat_rate_id, takeaway_vat_rate_id')
+        supabase.from('products').select('id, name, price, category_id, is_active, channels, sold_out_until, vat_rate_id, takeaway_vat_rate_id, menu_position, short_description, allergens, featured_image, images')
           .eq('tenant_id', tenantId!).in('product_type', KAART_TYPES as never).order('name').limit(2000),
       ]);
       if (cats.error) throw cats.error;
       if (prods.error) throw prods.error;
       return {
         categories: (cats.data ?? []) as unknown as KaartCategory[],
-        products: ((prods.data ?? []) as unknown as KaartProduct[]).map((p) => ({ ...p, price: Number(p.price) })),
+        products: ((prods.data ?? []) as unknown as KaartProduct[]).map((p) => ({ ...p, price: Number(p.price) })).sort(byMenuOrder),
       };
     },
   });
@@ -121,7 +131,7 @@ export function useKaartMutations() {
   });
 
   const updateProduct = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<KaartProduct, 'name' | 'price' | 'is_active' | 'channels'>> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<KaartProduct, 'name' | 'price' | 'is_active' | 'channels' | 'short_description' | 'featured_image' | 'images' | 'vat_rate_id' | 'takeaway_vat_rate_id'>> }) => {
       const { error } = await supabase.from('products').update(patch as never).eq('id', id).eq('tenant_id', tenantId!);
       if (error) throw error;
     },
@@ -171,7 +181,27 @@ export function useKaartMutations() {
     onSettled: refresh,
   });
 
-  return { add, createCategory, updateProduct, updateCategory, bulk, importLines };
+  // KAART-3 — volgorde (slepen) van producten binnen een categorie, of van categorieën.
+  const reorder = useMutation({
+    mutationFn: async ({ kind, ids }: { kind: 'products' | 'categories'; ids: string[] }) => {
+      const { data, error } = await rpc('kaart_reorder', { p_tenant_id: tenantId, p_kind: kind, p_ids: ids });
+      if (error) throw error;
+      return Number(data ?? 0);
+    },
+    onSettled: refresh,
+  });
+
+  // KAART-3 — kopie of nieuwe maat, net onder het origineel.
+  const duplicate = useMutation({
+    mutationFn: async ({ id, name, price }: { id: string; name: string; price: string }) => {
+      const { data, error } = await rpc('kaart_duplicate_product', { p_tenant_id: tenantId, p_product_id: id, p_name: name, p_price: price });
+      if (error) throw error;
+      return data as { id: string; slug: string };
+    },
+    onSettled: refresh,
+  });
+
+  return { add, createCategory, updateProduct, updateCategory, bulk, importLines, reorder, duplicate };
 }
 
 /** Foutcode van Postgres → leesbare reden voor een toast. */

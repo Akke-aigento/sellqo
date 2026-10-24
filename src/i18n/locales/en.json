@@ -8988,7 +8988,34 @@
         "plan_limit": "You have reached the product limit of your plan.",
         "generic": "That did not work. Try again."
       },
-      "badPrice": "That price is not valid. Use e.g. 4.50."
+      "badPrice": "That price is not valid. Use e.g. 4.50.",
+      "dragProduct": "Drag {{name}}",
+      "dragCategory": "Drag category {{name}}",
+      "openProduct": "Open {{name}}",
+      "sheet": {
+        "intro": "Everything about this product. Changes are saved right away.",
+        "minus": "10 cents cheaper",
+        "plus": "10 cents more",
+        "onMenu": "On the menu",
+        "offMenu": "Not on the menu",
+        "categoryHint": "Another category also brings its VAT.",
+        "photo": "Photo",
+        "photoAdd": "Take or choose a photo",
+        "photoReplace": "Other photo",
+        "photoRemove": "Remove photo",
+        "description": "Short description (QR menu and webshop)",
+        "descriptionPlaceholder": "E.g. Blonde, 8.5%, from Breendonk",
+        "addSize": "Add a size or copy",
+        "sizeTitle": "New size or copy",
+        "sizeHint": "Goes right below this product, with the same category, VAT, photo, extras and allergens.",
+        "sizeAdded": "{{name}} is on the menu",
+        "more": "More: VAT of this product",
+        "vatHint": "Empty = your shop default. Usually you set VAT per category (gear icon).",
+        "allSettings": "All settings (webshop, SEO …)",
+        "close": "Done",
+        "extras": "Extras and allergens",
+        "allergenCount": "allergens: {{count}}"
+      }
     }
   },
   "product_form": {

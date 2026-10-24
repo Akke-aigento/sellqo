@@ -20,7 +20,7 @@ export interface Catalog { products: CatalogProduct[]; categories: { id: string;
 
 const LABEL: Record<number, CheckLine['vat_label']> = { 21: 'A', 12: 'B', 6: 'C', 0: 'D' };
 
-interface ProductRow { id: string; name: string; price: number; category_id: string | null; vat_rate_id: string | null; takeaway_vat_rate_id: string | null; channels: string[] | null; sold_out_until: string | null }
+interface ProductRow { id: string; name: string; price: number; category_id: string | null; vat_rate_id: string | null; takeaway_vat_rate_id: string | null; menu_position: number | null; channels: string[] | null; sold_out_until: string | null }
 
 /** Zelfde logica als de server (horeca_apply) en storefront: product of een van zijn categorieën. */
 export function groupsFor(p: { id: string; category_id: string | null }, extraCats: string[], groups: { id: string; name: string; min_select: number | null; max_select: number | null; category_ids: string[] | null; product_ids: string[] | null; sort_order: number }[], options: { id: string; group_id: string; name: string; price: number | null; sort_order: number }[]): CatalogAddonGroup[] {
@@ -35,6 +35,13 @@ export function groupsFor(p: { id: string; category_id: string | null }, extraCa
     .filter((g) => g.options.length > 0);
 }
 
+/** Volgorde op de kassa: categorievolgorde, dan menu_position (leeg = achteraan), dan naam. */
+export function sortCatalog(a: { name: string; category_id: string | null; menu_position: number | null }, b: { name: string; category_id: string | null; menu_position: number | null }, catOrder: Map<string, number>): number {
+  const ca = a.category_id != null ? catOrder.get(a.category_id) ?? 1e9 : 1e9;
+  const cb = b.category_id != null ? catOrder.get(b.category_id) ?? 1e9 : 1e9;
+  return ca - cb || (a.menu_position ?? 1e9) - (b.menu_position ?? 1e9) || a.name.localeCompare(b.name, 'nl');
+}
+
 export function useCatalog(tenantId: string | null) {
   return useQuery({
     queryKey: ['kassa-catalog', tenantId],
@@ -43,7 +50,7 @@ export function useCatalog(tenantId: string | null) {
     refetchInterval: 5 * 60_000,
     queryFn: async (): Promise<Catalog> => {
       const [prod, cats, rates, groups, options, pcats] = await Promise.all([
-        supabase.from('products').select('id, name, price, category_id, vat_rate_id, takeaway_vat_rate_id, channels, sold_out_until').eq('tenant_id', tenantId!).eq('is_active', true).order('name'),
+        supabase.from('products').select('id, name, price, category_id, vat_rate_id, takeaway_vat_rate_id, channels, sold_out_until, menu_position').eq('tenant_id', tenantId!).eq('is_active', true).order('name'),
         supabase.from('categories').select('id, name, sort_order').eq('tenant_id', tenantId!).eq('is_active', true).order('sort_order'),
         // KASSA-0.6: de tarieven staan live globaal (tenant_id null); zoals de server
         // (kassa_product_vat_rate) ook die van de zaak zelf, en ook inactieve (een product op
@@ -60,7 +67,10 @@ export function useCatalog(tenantId: string | null) {
       const extra = new Map<string, string[]>();
       for (const pc of (pcats.data ?? []) as { product_id: string; category_id: string }[]) extra.set(pc.product_id, [...(extra.get(pc.product_id) ?? []), pc.category_id]);
       const now = Date.now();
-      const products = ((prod.data ?? []) as unknown as ProductRow[])
+      // KASSA-0.6.1: volgorde zoals op de Kaart: categorie, dan positie, dan naam.
+      const catOrder = new Map(((cats.data ?? []) as { id: string }[]).map((c, i) => [c.id, i]));
+      const rows = ((prod.data ?? []) as unknown as ProductRow[]).slice().sort((a, b) => sortCatalog(a, b, catOrder));
+      const products = rows
         // Kanaal 'pos' (HORECA-CHANNELS-1); zonder kanaalinstelling = overal.
         .filter((p) => !p.channels || p.channels.length === 0 || p.channels.includes('pos'))
         .map((p) => {

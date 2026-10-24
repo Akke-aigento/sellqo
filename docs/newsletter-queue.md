@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13u — Je kaart nog sneller: alles in één paneel, en de volgorde kies je zelf (improvement, 24-10-2026)
+
+**Status:** gebouwd (KAART-3 + kassa 0.6.1), wacht op livegang.
+
+**Voor wie:** horecazaken (horeca-module).
+
+**Alles van een product in één tik** (oktober 2026)
+Tik op een product op de Kaart en alles staat in één paneel: prijs ±10 cent, op, foto met je camera, extra's en allergenen. Met "Maat of kopie toevoegen" zet je Pils 33cl in één keer naast Pils 25cl. En je sleept je kaart in de volgorde die je wil: zo staat ze ook op de kassa.
+Wat betekent dit voor jou? Je meest getapte dranken bovenaan op de kassa, en geen gezoek meer in formulieren.
+
+i18n: `public.changelog.changes.horeca_menu_panel`
+
 ### 2026.13t — Op of nieuwe prijs, rechtstreeks op SellQo Kassa (improvement, 24-10-2026)
 
 **Status:** klaar voor verzending (KASSA-0.6, live sinds 24-10-2026).

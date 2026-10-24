@@ -9002,7 +9002,34 @@
         "plan_limit": "Je zit aan het maximum aantal producten van je pakket.",
         "generic": "Dat lukte niet. Probeer opnieuw."
       },
-      "badPrice": "Die prijs klopt niet. Gebruik bv. 4,50."
+      "badPrice": "Die prijs klopt niet. Gebruik bv. 4,50.",
+      "dragProduct": "{{name}} verslepen",
+      "dragCategory": "Categorie {{name}} verslepen",
+      "openProduct": "{{name}} openen",
+      "sheet": {
+        "intro": "Alles van dit product. Wijzigingen worden meteen bewaard.",
+        "minus": "10 cent goedkoper",
+        "plus": "10 cent duurder",
+        "onMenu": "Op de kaart",
+        "offMenu": "Niet op de kaart",
+        "categoryHint": "Een andere categorie neemt ook haar btw over.",
+        "photo": "Foto",
+        "photoAdd": "Foto nemen of kiezen",
+        "photoReplace": "Andere foto",
+        "photoRemove": "Foto weg",
+        "description": "Korte beschrijving (QR-menu en webshop)",
+        "descriptionPlaceholder": "Bv. Blond, 8,5 %, uit Breendonk",
+        "addSize": "Maat of kopie toevoegen",
+        "sizeTitle": "Nieuwe maat of kopie",
+        "sizeHint": "Komt net onder dit product, met dezelfde categorie, btw, foto, extra's en allergenen.",
+        "sizeAdded": "{{name}} staat op de kaart",
+        "more": "Meer: btw van dit product",
+        "vatHint": "Leeg = de standaard van je zaak. Meestal stel je de btw per categorie in (tandwiel).",
+        "allSettings": "Alle instellingen (webshop, SEO …)",
+        "close": "Klaar",
+        "extras": "Extra's en allergenen",
+        "allergenCount": "allergenen: {{count}}"
+      }
     }
   },
   "product_form": {

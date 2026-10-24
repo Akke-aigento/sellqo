@@ -8715,7 +8715,34 @@
         "plan_limit": "Du hast die Produktgrenze deines Pakets erreicht.",
         "generic": "Das hat nicht geklappt. Versuch es noch einmal."
       },
-      "badPrice": "Dieser Preis ist ungültig. Nutze z. B. 4,50."
+      "badPrice": "Dieser Preis ist ungültig. Nutze z. B. 4,50.",
+      "dragProduct": "{{name}} verschieben",
+      "dragCategory": "Kategorie {{name}} verschieben",
+      "openProduct": "{{name}} öffnen",
+      "sheet": {
+        "intro": "Alles zu diesem Produkt. Änderungen werden sofort gespeichert.",
+        "minus": "10 Cent günstiger",
+        "plus": "10 Cent teurer",
+        "onMenu": "Auf der Karte",
+        "offMenu": "Nicht auf der Karte",
+        "categoryHint": "Eine andere Kategorie übernimmt auch ihre MwSt.",
+        "photo": "Foto",
+        "photoAdd": "Foto aufnehmen oder wählen",
+        "photoReplace": "Anderes Foto",
+        "photoRemove": "Foto entfernen",
+        "description": "Kurzbeschreibung (QR-Menü und Webshop)",
+        "descriptionPlaceholder": "Z. B. Blond, 8,5 %, aus Breendonk",
+        "addSize": "Größe oder Kopie hinzufügen",
+        "sizeTitle": "Neue Größe oder Kopie",
+        "sizeHint": "Kommt direkt unter dieses Produkt, mit derselben Kategorie, MwSt., Foto, Extras und Allergenen.",
+        "sizeAdded": "{{name}} steht auf der Karte",
+        "more": "Mehr: MwSt. dieses Produkts",
+        "vatHint": "Leer = Standard deines Geschäfts. Meist stellst du die MwSt. pro Kategorie ein (Zahnrad).",
+        "allSettings": "Alle Einstellungen (Webshop, SEO …)",
+        "close": "Fertig",
+        "extras": "Extras und Allergene",
+        "allergenCount": "Allergene: {{count}}"
+      }
     }
   },
   "billing": {

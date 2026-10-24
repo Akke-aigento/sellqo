@@ -2255,6 +2255,10 @@
         "kassa_product_quick_edit": {
           "title": "Op of nieuwe prijs, rechtstreeks op SellQo Kassa",
           "description": "Druk lang op een product op SellQo Kassa om het op te zetten voor vandaag, terug te koop te zetten of de prijs aan te passen. Dat mag enkel de eigenaar of een verantwoordelijke, en elke wijziging wordt bewaard met wie ze deed en op welk toestel. Het geldt meteen voor je kassa, QR-menu en webshop; rekeningen die al open staan, houden hun prijs. De kaart op de kassa toont nu ook het juiste btw-tarief per product."
+        },
+        "horeca_menu_panel": {
+          "title": "Je kaart nog sneller: alles van een product in één paneel, en de volgorde kies je zelf",
+          "description": "Tik op Bestellen › Kaart op een product en alles staat in één paneel naast je kaart: prijs met knoppen voor 10 cent meer of minder, op voor vandaag, zichtbaar of niet, categorie, een foto (meteen met de camera van je gsm of tablet), waar het te koop is, een korte beschrijving, extra's en allergenen. Alles wordt meteen bewaard. Met \"Maat of kopie toevoegen\" maak je in één keer bv. Pils 33cl naast Pils 25cl, met dezelfde categorie, btw, foto en extra's. En je sleept producten en categorieën in de volgorde die je wil: zo staan ze ook op SellQo Kassa, met je meest getapte dranken bovenaan."
         }
       },
       "copyLink": "Kopieer link",

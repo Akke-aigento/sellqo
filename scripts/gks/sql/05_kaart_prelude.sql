@@ -18,3 +18,12 @@ create or replace function public.sold_out_reset_at(p_now timestamp with time zo
       + case when (p_now at time zone 'Europe/Brussels')::time < time '05:00' then interval '5 hours' else interval '1 day 5 hours' end)
     at time zone 'Europe/Brussels')
 $$;
+-- KAART-3 — productvelden die kaart_duplicate_product kopieert (zoals live).
+alter table public.products add column if not exists allergens text[] not null default '{}';
+alter table public.products add column if not exists dietary text[] not null default '{}';
+alter table public.products add column if not exists description text;
+alter table public.products add column if not exists short_description text;
+alter table public.products add column if not exists images text[] default '{}';
+alter table public.products add column if not exists featured_image text;
+alter table public.products add column if not exists product_type text default 'physical';
+alter table public.products add column if not exists hide_from_storefront boolean default false;

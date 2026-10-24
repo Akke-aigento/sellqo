@@ -2255,6 +2255,10 @@
         "kassa_product_quick_edit": {
           "title": "Sold out or a new price, straight from SellQo Kassa",
           "description": "Long-press a product on SellQo Kassa to mark it sold out for today, put it back on sale or change its price. Only the owner or a manager can do this, and every change is stored with who made it and on which device. It applies right away to your till, QR menu and webshop; bills that are already open keep their price. The menu on the till now also shows the correct VAT rate per product."
+        },
+        "horeca_menu_panel": {
+          "title": "Your menu even faster: everything about a product in one panel, and you choose the order",
+          "description": "Under Ordering › Menu, tap a product and everything is in one panel next to your menu: price with buttons for 10 cents more or less, sold out today, visible or not, category, a photo (straight from your phone or tablet camera), where it is sold, a short description, extras and allergens. Everything is saved right away. With \"Add a size or copy\" you create e.g. Pils 33cl next to Pils 25cl in one go, with the same category, VAT, photo and extras. And you drag products and categories into the order you want: that is also how they appear on SellQo Kassa, with your most-poured drinks at the top."
         }
       },
       "copyLink": "Copy link",

@@ -2255,6 +2255,10 @@
         "kassa_product_quick_edit": {
           "title": "Épuisé ou nouveau prix, directement sur SellQo Kassa",
           "description": "Appuyez longuement sur un produit dans SellQo Kassa pour le marquer épuisé pour aujourd’hui, le remettre en vente ou modifier son prix. Seuls le propriétaire ou un responsable peuvent le faire, et chaque modification est enregistrée avec son auteur et l’appareil utilisé. Elle s’applique tout de suite à votre caisse, votre menu QR et votre boutique ; les additions déjà ouvertes gardent leur prix. La carte de la caisse affiche aussi désormais le bon taux de TVA par produit."
+        },
+        "horeca_menu_panel": {
+          "title": "Votre carte encore plus rapide : tout un produit dans un seul panneau, et l’ordre que vous choisissez",
+          "description": "Sous Commander › Carte, touchez un produit et tout se trouve dans un panneau à côté de votre carte : le prix avec des boutons pour 10 centimes de plus ou de moins, épuisé aujourd’hui, visible ou non, la catégorie, une photo (directement avec l’appareil photo de votre téléphone ou tablette), les canaux de vente, une courte description, les suppléments et les allergènes. Tout est enregistré immédiatement. Avec « Ajouter une taille ou une copie », vous créez en une fois p. ex. Pils 33cl à côté de Pils 25cl, avec la même catégorie, TVA, photo et suppléments. Et vous faites glisser produits et catégories dans l’ordre voulu : c’est aussi l’ordre sur SellQo Kassa, avec vos boissons les plus servies en haut."
         }
       },
       "copyLink": "Copier le lien",
