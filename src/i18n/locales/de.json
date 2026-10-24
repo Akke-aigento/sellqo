@@ -8714,7 +8714,8 @@
         "not_allowed": "Deine Rolle darf die Karte nicht ändern.",
         "plan_limit": "Du hast die Produktgrenze deines Pakets erreicht.",
         "generic": "Das hat nicht geklappt. Versuch es noch einmal."
-      }
+      },
+      "badPrice": "Dieser Preis ist ungültig. Nutze z. B. 4,50."
     }
   },
   "billing": {

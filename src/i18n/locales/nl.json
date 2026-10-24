@@ -9001,7 +9001,8 @@
         "not_allowed": "Je rol mag de kaart niet aanpassen.",
         "plan_limit": "Je zit aan het maximum aantal producten van je pakket.",
         "generic": "Dat lukte niet. Probeer opnieuw."
-      }
+      },
+      "badPrice": "Die prijs klopt niet. Gebruik bv. 4,50."
     }
   },
   "product_form": {

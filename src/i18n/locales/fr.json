@@ -8714,7 +8714,8 @@
         "not_allowed": "Ton rôle ne peut pas modifier la carte.",
         "plan_limit": "Tu as atteint le nombre maximum de produits de ton forfait.",
         "generic": "Cela n’a pas marché. Réessaie."
-      }
+      },
+      "badPrice": "Ce prix n’est pas valable. Utilisez p. ex. 4,50."
     }
   },
   "billing": {
