@@ -32,6 +32,8 @@ create index if not exists products_tenant_menu_position on public.products (ten
 -- toevoegen, dupliceren of verplaatsen, zetten we die volgorde in die ene categorie vast:
 -- na de bestaande posities, op naam. Zo verandert er niets aan wat de uitbater ziet, en komt
 -- een nieuw product echt achteraan. Enkel aanroepbaar vanuit de kaart_*-functies.
+-- Producten zonder categorie laten we met rust: dat zijn vaak webshopproducten, en een
+-- extra update zou hun updated_at (en marketplace-syncs) raken.
 create or replace function public.kaart_fill_positions(p_tenant_id uuid, p_category_id uuid)
 returns void
 language sql
@@ -43,7 +45,7 @@ as $$
       where pr.tenant_id = p_tenant_id and pr.category_id is not distinct from p_category_id
   ), todo as (
     select pr.id, row_number() over (order by pr.name, pr.id) as rn from public.products pr
-      where pr.tenant_id = p_tenant_id and pr.category_id is not distinct from p_category_id and pr.menu_position is null
+      where p_category_id is not null and pr.tenant_id = p_tenant_id and pr.category_id = p_category_id and pr.menu_position is null
   )
   update public.products pr set menu_position = base.m + todo.rn
     from todo, base where pr.id = todo.id;
@@ -72,6 +74,8 @@ begin
   if cardinality(p_ids) <> (select count(distinct x) from unnest(p_ids) x) then
     raise exception 'volgorde: dubbele id''s' using errcode = '22023';
   end if;
+  -- Zelfde lock als toevoegen/dupliceren: geen twee gelijke posities door gelijktijdig werk.
+  perform pg_advisory_xact_lock(hashtextextended('kaart_products|' || p_tenant_id::text, 0));
   if p_kind = 'products' then
     update public.products pr set menu_position = o.pos - 1
       from unnest(p_ids) with ordinality as o(id, pos)
@@ -300,6 +304,7 @@ begin
     select c.id into v_cat from public.categories c where c.id = (p ->> 'category_id')::uuid and c.tenant_id = p_tenant_id;
     if v_cat is null then raise exception 'onbekende categorie' using errcode = '22023'; end if;
     -- KAART-3: een verplaatst product komt achteraan in zijn nieuwe categorie.
+    perform pg_advisory_xact_lock(hashtextextended('kaart_products|' || p_tenant_id::text, 0));
     perform public.kaart_fill_positions(p_tenant_id, v_cat);
     with moved as (
       select pr.id, row_number() over (order by pr.menu_position nulls last, pr.name) as rn

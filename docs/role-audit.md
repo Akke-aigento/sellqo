@@ -64,7 +64,12 @@ Op vraag van Akke (24-10, 17:33: "moet volledige overlay worden … denk als een
   - het paneel opent, +0,10 werkt, en het formulier "maat toevoegen" werkt.
 - Review-agent:
   - ronde 1: 0 blokkerend, 6 middel, 9 klein. Alles verwerkt, o.a. de null-posities (een nieuw product zou live bovenaan springen), snel tikken op ±0,10, bewaren bij sluiten, dode allergenen/extra's-knoppen en het guard-gat voor de afhaal-btw.
-  - ronde 2: zie onder.
+  - ronde 2: 0 blokkerend, 0 middel. Bevestigd: de verplaatsings-SQL, guard = live + 1 veld (md5 6295917d), optimistisch en de guard botsen niet, dubbel bewaren bij sluiten is idempotent. De 5 kleine punten ook verwerkt:
+    - ±0,10 loopt serieel (react-query `scope`) en telt vanaf de laatst gevraagde prijs: 5 snelle tikken = +0,50, getest;
+    - een fout zet enkel dat product terug;
+    - het paneel gaat enkel naar de nieuwe maat als die er al is;
+    - `kaart_fill_positions` laat producten zonder categorie (webshop) met rust;
+    - `kaart_reorder` en de verplaatsing nemen dezelfde advisory lock.
 
 **Samenhang**
 - Het potloodje naar `ProductForm` is weg. Het paneel heeft één link "Alle instellingen" als tweede plek.

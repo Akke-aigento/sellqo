@@ -67,8 +67,14 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
   }, [pid]); // eslint-disable-line react-hooks/exhaustive-deps
   // Prijs wel volgen als hij elders wijzigt (±0,10, bulk) en het veld niet gefocust is.
   const priceFocused = useRef(false);
+  // Snel na elkaar ±0,10: tel verder vanaf de laatst gevraagde prijs, niet vanaf wat de server
+  // al teruggaf. De updates lopen na elkaar (scope in useKaartMutations).
+  const target = useRef<number | null>(null);
+  useEffect(() => { target.current = null; }, [pid]);
   useEffect(() => {
-    if (product && !priceFocused.current) setPrice(priceToInput(product.price, i18n.language));
+    if (!product) return;
+    if (target.current !== null && Math.round(product.price * 100) === target.current) target.current = null;
+    if (!priceFocused.current && target.current === null) setPrice(priceToInput(product.price, i18n.language));
   }, [product?.price]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!product) return null;
@@ -97,14 +103,16 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
     if (v && v !== p.name) save({ name: v }); else setName(p.name);
   };
   const commitPrice = (raw = price) => {
+    target.current = null;
     const n = priceFromInput(raw);
     if (n === null) { toast.error(t('admin.kaart.badPrice')); setPrice(priceToInput(p.price, i18n.language)); return; }
     if (Number(n) !== p.price) save({ price: Number(n) });
   };
   const nudge = (delta: number) => {
-    const next = Math.max(0, cents(p.price) + delta) / 100;
-    setPrice(priceToInput(next, i18n.language));
-    save({ price: next });
+    const nextCents = Math.max(0, (target.current ?? cents(p.price)) + delta);
+    target.current = nextCents;
+    setPrice(priceToInput(nextCents / 100, i18n.language));
+    save({ price: nextCents / 100 });
   };
   const setChannel = (c: string, on: boolean) => {
     const next = on ? [...new Set([...channels, c])] : channels.filter((x) => x !== c);
@@ -130,7 +138,9 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
         toast.success(t('admin.kaart.sheet.sizeAdded', { name: size.name.trim() }));
         setSize(null);
         await qc.refetchQueries({ queryKey: ['kaart'] });
-        onOpen(r.id);
+        // Enkel openen als het nieuwe product er al is (anders blijft het huidige open).
+        const found = qc.getQueriesData<{ products: KaartProduct[] }>({ queryKey: ['kaart'] }).some(([, d]) => d?.products.some((x) => x.id === r.id));
+        if (found) onOpen(r.id);
       },
       onError,
     });
@@ -155,7 +165,7 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
             </Button>
           </div>
           <div className="flex items-center gap-2">
-            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" disabled={!canFull || m.updateProduct.isPending} onClick={() => nudge(-10)} aria-label={t('admin.kaart.sheet.minus')}>
+            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" disabled={!canFull} onClick={() => nudge(-10)} aria-label={t('admin.kaart.sheet.minus')}>
               <Minus className="h-5 w-5" />
             </Button>
             <div className="relative flex-1">
@@ -165,7 +175,7 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
                 onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                 className="h-12 pl-7 text-right text-xl font-semibold tabular-nums" />
             </div>
-            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" disabled={!canFull || m.updateProduct.isPending} onClick={() => nudge(10)} aria-label={t('admin.kaart.sheet.plus')}>
+            <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" disabled={!canFull} onClick={() => nudge(10)} aria-label={t('admin.kaart.sheet.plus')}>
               <Plus className="h-5 w-5" />
             </Button>
           </div>

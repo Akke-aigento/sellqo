@@ -133,6 +133,8 @@ export function useKaartMutations() {
   // Optimistisch: de Kaart (en ±0,10 in het paneel) rekent meteen verder met de nieuwe waarde,
   // ook als je snel na elkaar tikt. Bij een fout zet onError de oude lijst terug.
   const updateProduct = useMutation({
+    // Na elkaar uitvoeren (snel tikken op ±0,10): geen twee updates door elkaar.
+    scope: { id: 'kaart-product-update' },
     onMutate: async ({ id, patch }: { id: string; patch: Partial<KaartProduct> }) => {
       const key = kaartKey(tenantId);
       await qc.cancelQueries({ queryKey: key });
@@ -140,7 +142,14 @@ export function useKaartMutations() {
       if (prev) qc.setQueryData(key, { ...prev, products: prev.products.map((p) => (p.id === id ? { ...p, ...patch } : p)) });
       return { prev };
     },
-    onError: (_e, _v, c) => { if (c?.prev) qc.setQueryData(kaartKey(tenantId), c.prev); },
+    // Bij een fout: enkel dit product terug zoals het was (andere, latere wijzigingen blijven).
+    onError: (_e, v, c) => {
+      const old = c?.prev?.products.find((x) => x.id === v.id);
+      if (!old) return;
+      qc.setQueryData<{ categories: KaartCategory[]; products: KaartProduct[] }>(kaartKey(tenantId), (d) => d && ({
+        ...d, products: d.products.map((x) => (x.id === v.id ? { ...x, ...Object.fromEntries(Object.keys(v.patch).map((k) => [k, old[k as keyof KaartProduct]])) } : x)),
+      }));
+    },
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<KaartProduct, 'name' | 'price' | 'is_active' | 'channels' | 'short_description' | 'featured_image' | 'images' | 'vat_rate_id' | 'takeaway_vat_rate_id'>> }) => {
       const { error } = await supabase.from('products').update(patch as never).eq('id', id).eq('tenant_id', tenantId!);
       if (error) throw error;
