@@ -408,7 +408,7 @@ export const useProductExport = () => {
           .select(`
             *,
             categories(name),
-            vat_rates(rate)
+            vat_rates!products_vat_rate_id_fkey(rate)
           `)
           .eq('tenant_id', currentTenant.id)
           .order('name')
@@ -450,7 +450,7 @@ export const useProductExport = () => {
           .select(`
             *,
             categories(name),
-            vat_rates(rate)
+            vat_rates!products_vat_rate_id_fkey(rate)
           `)
           .eq('tenant_id', currentTenant.id)
           .eq('track_inventory', true)

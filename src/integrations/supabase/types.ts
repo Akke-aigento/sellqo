@@ -3959,6 +3959,8 @@ export type Database = {
       categories: {
         Row: {
           created_at: string | null
+          default_takeaway_vat_rate_id: string | null
+          default_vat_rate_id: string | null
           description: string | null
           hide_from_storefront: boolean | null
           id: string
@@ -3981,6 +3983,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          default_takeaway_vat_rate_id?: string | null
+          default_vat_rate_id?: string | null
           description?: string | null
           hide_from_storefront?: boolean | null
           id?: string
@@ -4003,6 +4007,8 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          default_takeaway_vat_rate_id?: string | null
+          default_vat_rate_id?: string | null
           description?: string | null
           hide_from_storefront?: boolean | null
           id?: string
@@ -4024,6 +4030,20 @@ export type Database = {
           updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "categories_default_takeaway_vat_rate_id_fkey"
+            columns: ["default_takeaway_vat_rate_id"]
+            isOneToOne: false
+            referencedRelation: "vat_rates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_default_vat_rate_id_fkey"
+            columns: ["default_vat_rate_id"]
+            isOneToOne: false
+            referencedRelation: "vat_rates"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "categories_parent_id_fkey"
             columns: ["parent_id"]
@@ -5854,6 +5874,7 @@ export type Database = {
           cost_center_reference: string
           guests: number | null
           id: string
+          kind: string
           name: string | null
           next_grouping_id: number
           next_seq: number
@@ -5861,6 +5882,7 @@ export type Database = {
           opened_by: string | null
           paying_payment_id: string | null
           paying_until: string | null
+          service: string | null
           split_no: number | null
           split_of: string | null
           status: string
@@ -5876,6 +5898,7 @@ export type Database = {
           cost_center_reference: string
           guests?: number | null
           id: string
+          kind?: string
           name?: string | null
           next_grouping_id?: number
           next_seq?: number
@@ -5883,6 +5906,7 @@ export type Database = {
           opened_by?: string | null
           paying_payment_id?: string | null
           paying_until?: string | null
+          service?: string | null
           split_no?: number | null
           split_of?: string | null
           status?: string
@@ -5898,6 +5922,7 @@ export type Database = {
           cost_center_reference?: string
           guests?: number | null
           id?: string
+          kind?: string
           name?: string | null
           next_grouping_id?: number
           next_seq?: number
@@ -5905,6 +5930,7 @@ export type Database = {
           opened_by?: string | null
           paying_payment_id?: string | null
           paying_until?: string | null
+          service?: string | null
           split_no?: number | null
           split_of?: string | null
           status?: string
@@ -9362,6 +9388,7 @@ export type Database = {
           outbox_count: number
           pending_pays: number
           queue_count: number
+          rejected_count: number
           sw_version: string | null
           tenant_id: string
           terminal_id: string
@@ -9377,6 +9404,7 @@ export type Database = {
           outbox_count?: number
           pending_pays?: number
           queue_count?: number
+          rejected_count?: number
           sw_version?: string | null
           tenant_id: string
           terminal_id: string
@@ -9392,6 +9420,7 @@ export type Database = {
           outbox_count?: number
           pending_pays?: number
           queue_count?: number
+          rejected_count?: number
           sw_version?: string | null
           tenant_id?: string
           terminal_id?: string
@@ -9407,6 +9436,126 @@ export type Database = {
           },
           {
             foreignKeyName: "kassa_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kassa_report_runs: {
+        Row: {
+          booking_date: string
+          device_id: string | null
+          id: string
+          kind: string
+          period_end: string
+          period_start: string
+          report_no: number | null
+          reserved_at: string
+          tenant_id: string
+        }
+        Insert: {
+          booking_date: string
+          device_id?: string | null
+          id: string
+          kind: string
+          period_end: string
+          period_start: string
+          report_no?: number | null
+          reserved_at?: string
+          tenant_id: string
+        }
+        Update: {
+          booking_date?: string
+          device_id?: string | null
+          id?: string
+          kind?: string
+          period_end?: string
+          period_start?: string
+          report_no?: number | null
+          reserved_at?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kassa_report_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_report_runs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      kassa_reports: {
+        Row: {
+          auto: boolean
+          booking_date: string
+          created_at: string
+          created_by: string | null
+          cutoff_hour: number
+          data: Json
+          fiscal_event_ids: string[]
+          id: string
+          kind: string
+          period_end: string
+          period_start: string
+          report_no: number | null
+          staff_id: string | null
+          tenant_id: string
+          terminal_id: string | null
+        }
+        Insert: {
+          auto?: boolean
+          booking_date: string
+          created_at?: string
+          created_by?: string | null
+          cutoff_hour: number
+          data: Json
+          fiscal_event_ids?: string[]
+          id: string
+          kind: string
+          period_end: string
+          period_start: string
+          report_no?: number | null
+          staff_id?: string | null
+          tenant_id: string
+          terminal_id?: string | null
+        }
+        Update: {
+          auto?: boolean
+          booking_date?: string
+          created_at?: string
+          created_by?: string | null
+          cutoff_hour?: number
+          data?: Json
+          fiscal_event_ids?: string[]
+          id?: string
+          kind?: string
+          period_end?: string
+          period_start?: string
+          report_no?: number | null
+          staff_id?: string | null
+          tenant_id?: string
+          terminal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kassa_reports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kassa_reports_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -12413,9 +12562,12 @@ export type Database = {
         Row: {
           amount: number
           created_at: string
+          fiscal_event_id: string | null
           id: string
+          kind: string | null
           movement_type: string
           notes: string | null
+          pos_cashier_id: string | null
           reason: string
           session_id: string
           tenant_id: string
@@ -12425,9 +12577,12 @@ export type Database = {
         Insert: {
           amount: number
           created_at?: string
+          fiscal_event_id?: string | null
           id?: string
+          kind?: string | null
           movement_type: string
           notes?: string | null
+          pos_cashier_id?: string | null
           reason: string
           session_id: string
           tenant_id: string
@@ -12437,9 +12592,12 @@ export type Database = {
         Update: {
           amount?: number
           created_at?: string
+          fiscal_event_id?: string | null
           id?: string
+          kind?: string | null
           movement_type?: string
           notes?: string | null
+          pos_cashier_id?: string | null
           reason?: string
           session_id?: string
           tenant_id?: string
@@ -12773,7 +12931,10 @@ export type Database = {
           cash_difference: number | null
           closed_at: string | null
           closed_by: string | null
+          closed_by_cashier: string | null
           closing_cash: number | null
+          closing_fiscal_event_id: string | null
+          closing_request_id: string | null
           created_at: string
           expected_cash: number | null
           id: string
@@ -12781,6 +12942,8 @@ export type Database = {
           opened_at: string
           opened_by: string
           opening_cash: number
+          opening_fiscal_event_id: string | null
+          opening_request_id: string | null
           status: string
           tenant_id: string
           terminal_id: string
@@ -12790,7 +12953,10 @@ export type Database = {
           cash_difference?: number | null
           closed_at?: string | null
           closed_by?: string | null
+          closed_by_cashier?: string | null
           closing_cash?: number | null
+          closing_fiscal_event_id?: string | null
+          closing_request_id?: string | null
           created_at?: string
           expected_cash?: number | null
           id?: string
@@ -12798,6 +12964,8 @@ export type Database = {
           opened_at?: string
           opened_by: string
           opening_cash?: number
+          opening_fiscal_event_id?: string | null
+          opening_request_id?: string | null
           status?: string
           tenant_id: string
           terminal_id: string
@@ -12807,7 +12975,10 @@ export type Database = {
           cash_difference?: number | null
           closed_at?: string | null
           closed_by?: string | null
+          closed_by_cashier?: string | null
           closing_cash?: number | null
+          closing_fiscal_event_id?: string | null
+          closing_request_id?: string | null
           created_at?: string
           expected_cash?: number | null
           id?: string
@@ -12815,6 +12986,8 @@ export type Database = {
           opened_at?: string
           opened_by?: string
           opening_cash?: number
+          opening_fiscal_event_id?: string | null
+          opening_request_id?: string | null
           status?: string
           tenant_id?: string
           terminal_id?: string
@@ -14497,6 +14670,7 @@ export type Database = {
           stock: number | null
           sync_inventory: boolean | null
           tags: string[] | null
+          takeaway_vat_rate_id: string | null
           tenant_id: string
           token_amount: number | null
           track_inventory: boolean | null
@@ -14633,6 +14807,7 @@ export type Database = {
           stock?: number | null
           sync_inventory?: boolean | null
           tags?: string[] | null
+          takeaway_vat_rate_id?: string | null
           tenant_id: string
           token_amount?: number | null
           track_inventory?: boolean | null
@@ -14769,6 +14944,7 @@ export type Database = {
           stock?: number | null
           sync_inventory?: boolean | null
           tags?: string[] | null
+          takeaway_vat_rate_id?: string | null
           tenant_id?: string
           token_amount?: number | null
           track_inventory?: boolean | null
@@ -14807,6 +14983,13 @@ export type Database = {
             columns: ["parent_product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_takeaway_vat_rate_fk"
+            columns: ["takeaway_vat_rate_id"]
+            isOneToOne: false
+            referencedRelation: "vat_rates"
             referencedColumns: ["id"]
           },
           {
@@ -23809,6 +23992,54 @@ export type Database = {
         Args: { p_order_id: string }
         Returns: undefined
       }
+      kaart_add_products: {
+        Args: { p_items: Json; p_tenant_id: string }
+        Returns: Json
+      }
+      kaart_bulk_update: {
+        Args: { p: Json; p_ids: string[]; p_tenant_id: string }
+        Returns: number
+      }
+      kaart_ensure_category: {
+        Args: {
+          p_name: string
+          p_takeaway_vat_rate_id?: string
+          p_tenant_id: string
+          p_vat_rate_id?: string
+        }
+        Returns: string
+      }
+      kaart_slug: { Args: { p_name: string }; Returns: string }
+      kassa_business_day: {
+        Args: { p_at: string; p_tenant_id: string }
+        Returns: string
+      }
+      kassa_cash_move: {
+        Args: { p: Json; p_device_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_counter_after: {
+        Args: { cmd: Json; p_tenant_id: string; res: Json }
+        Returns: Json
+      }
+      kassa_counter_guard: {
+        Args: { cmd: Json; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_cutoff_hour: { Args: { p_tenant_id: string }; Returns: number }
+      kassa_day_start: {
+        Args: { p_day: string; p_tenant_id: string }
+        Returns: string
+      }
+      kassa_fiscal_ref_ok: {
+        Args: {
+          p_event: string
+          p_mutations: string[]
+          p_reference: string
+          p_tenant_id: string
+        }
+        Returns: boolean
+      }
       kassa_heartbeat: {
         Args: {
           p_device_id: string
@@ -23819,6 +24050,52 @@ export type Database = {
         Returns: undefined
       }
       kassa_insz_key: { Args: never; Returns: string }
+      kassa_open_session: {
+        Args: {
+          p_note: string
+          p_opening: number
+          p_tenant_id: string
+          p_terminal_id: string
+        }
+        Returns: string
+      }
+      kassa_product_quick_edit: {
+        Args: { p: Json; p_device_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_product_vat_rate: {
+        Args: { p_product_id: string; p_takeaway: boolean; p_tenant_id: string }
+        Returns: number
+      }
+      kassa_report_begin: {
+        Args: { p: Json; p_device_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_report_data: {
+        Args: { p_from: string; p_tenant_id: string; p_to: string }
+        Returns: Json
+      }
+      kassa_report_due: { Args: { p_tenant_id: string }; Returns: Json }
+      kassa_report_finish: {
+        Args: { p: Json; p_device_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_report_release: {
+        Args: { p_report_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      kassa_report_signed: {
+        Args: { p_report_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_report_source: {
+        Args: { p_device_id: string; p_report_id: string; p_tenant_id: string }
+        Returns: Json
+      }
+      kassa_shift: {
+        Args: { p: Json; p_device_id: string; p_tenant_id: string }
+        Returns: Json
+      }
       kassa_staff_login: {
         Args: { p_cashier_id: string; p_device_id?: string; p_pin: string }
         Returns: Json
