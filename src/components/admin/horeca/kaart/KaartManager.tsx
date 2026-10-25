@@ -311,7 +311,8 @@ function ProductRow({ p, canEdit, canPrice, canDrag, selected, onSelect, onOpen,
       <button type="button" onClick={onOpen} aria-label={t('admin.kaart.openProduct', { name: p.name })}
         className={cn('flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-1 text-left hover:bg-muted/60', !p.is_active && 'text-muted-foreground')}>
         {p.featured_image ? <img src={p.featured_image} alt="" className="h-8 w-8 shrink-0 rounded object-cover" /> : <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden />}
-        <span className="truncate font-medium">{p.name}</span>
+        {/* KAART-4: op een gsm mag de naam over twee regels ("Tripel va…" zegt een barman niets). */}
+        <span className="line-clamp-2 break-words font-medium leading-tight sm:line-clamp-1">{p.name}</span>
         <ChevronRight className="ml-auto hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" aria-hidden />
       </button>
       <InlineText value={priceToInput(p.price, i18n.language)} disabled={!canPrice} onInvalid={() => toast.error(t('admin.kaart.badPrice'))} label={t('admin.kaart.col.price')} inputMode="decimal" className="w-[4.5rem] shrink-0 text-right tabular-nums sm:w-24"

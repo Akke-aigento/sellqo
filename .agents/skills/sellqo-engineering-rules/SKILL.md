@@ -321,3 +321,19 @@ Capacitor-app.
 **Incident (MAIL-1b/MAIL-2, okt 2026):** `CampaignRichEditor.tsx` vroeg link en
 afbeelding via `window.prompt` — onvertaald en zonder mediabibliotheek.
 Vervangen door `LinkDialog`/`ImageInsertDialog` (`EditorInsertDialogs.tsx`).
+
+## R14 — Koppel een methode nooit los van de Supabase-client. En een preview met mocks bewijst geen dataflow.
+`const rpc = supabase.rpc` (ook met een `as`-cast) verliest `this`: elke aanroep
+faalt live met "Cannot read properties of undefined (reading 'rest')". tsc, build
+en tests met een nep-client merken het niet, want een mock heeft geen `this`.
+**Regel:**
+- gebruik `supabase.rpc.bind(supabase) as unknown as …` of roep rechtstreeks aan
+  (`(supabase.rpc as …)(…)` behoudt `this` wel);
+- `src/test/unboundSupabase.test.ts` weigert losgekoppelde client-methodes in `src/`;
+- elke nieuwe schrijfactie in de admin klik je vóór "klaar" één keer echt door
+  op sellqo.app in een testzaak (Café De Wissel), niet enkel in een preview met mocks.
+**Incident (KAART-1 t/m KAART-3, 24–25 okt 2026):** `useKaart.ts` koppelde
+`supabase.rpc` los. Snel toevoegen, plakken, startkaart, foto-import, slepen en
+maat toevoegen op de horeca-Kaart faalden een dag lang live. SQL-tests en een
+Playwright-preview met nepdata waren groen. De geheel-wandeling op sellqo.app
+ving het (KAART-FIX-1). Dezelfde fout zat in de A/B-statistieken van campagnes.

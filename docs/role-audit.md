@@ -1,12 +1,13 @@
 ## KAART-4 — Bestellen opent op de Kaart, kanalen zichtbaar aan/uit, kassa-melding in het Engels — 25 oktober 2026
 
 **Root cause** (gevonden in de geheel-wandeling van 25-10 op sellqo.app, Café De Wissel)
-- `KaartProductSheet.tsx`, kanaalknoppen: "aan" was `bg-primary/10` en "uit" de gewone rand. Op het scherm waren ze niet van elkaar te onderscheiden: alle vier stonden aan, maar zagen er uit uit.
+- `KaartProductSheet.tsx`, kanaalknoppen: "aan" was `bg-primary/10` en "uit" de gewone rand. Op het scherm waren ze niet van elkaar te onderscheiden: alle vier stonden aan, maar zagen eruit alsof ze uit stonden.
 - `OrderingHub.tsx`: Bestellen opende op het Overzicht. De Kaart stond als tweede van negen tabs, terwijl een barman hier vooral voor de kaart komt.
 - `en.json` `kassa.setup.noTerminals`: verwees naar "Till", maar het menu-item heet "Point of sale (POS)". Nl/fr/de/uk waren al consistent ("Kassa"/"Caisse"/"Kasse"/"Каса" ↔ "… (POS)").
 
 **Uitgevoerd**
 - `KaartProductSheet.tsx`: kanaal aan = gevuld (`bg-primary`) met een vinkje, uit = stippelrand, grijs, met een lege cirkel. `aria-pressed` bleef.
+- `KaartManager.tsx`: op een gsm loopt de productnaam over twee regels in plaats van af te kappen. Gezien op 454 px: "Tripel va…" en "Donker a…".
 - `OrderingHub.tsx`: de Kaart staat eerst en is de standaardtab (`DEFAULT_TAB`), het Overzicht staat als tweede.
   - `?tab=overview` en alle andere deeplinks blijven werken.
   - De Bestellen-hub bestaat enkel met de horeca-module. Andere winkels merken dus niets.
@@ -21,7 +22,14 @@
 
 **Gedeelde-paden-waarschuwing** — n.v.t., geen gedeelde paden geraakt.
 
-**Verificatie** — `tsc` exit 0, `build` en lint groen, vitest 1258 groen, `check-i18n-used-keys` en `i18n-parity` groen. Live: zie hieronder.
+**Verificatie**
+- `tsc` exit 0, `build` en lint groen, vitest 1258 groen, `check-i18n-used-keys` en `i18n-parity` groen.
+- Live op sellqo.app (`ec40f4f`, gepubliceerd, Café De Wissel, 454 px breed):
+  - `/admin/bestellen` opent op de Kaart;
+  - de kanalen tonen aan (gevuld, vinkje) en uit (stippel, lege cirkel). Kassa aan/uit gezet en teruggezet bij de Pils.
+- Helpartikel bijgewerkt via een md5-guard (`0cafdc3d…`), `updated_at` 19:09 UTC. Alle drie de zinnen zijn aanwezig.
+- De namen over twee regels gingen live met een tweede commit.
+- Skill `sellqo-engineering-rules` R14 staat in de repo, in `.agents` en in de workspace (20720 bytes, gelijk).
 
 **Samenhang**
 - Elke link naar `/admin/bestellen` (zijbalk, modules) landt nu op de Kaart.
