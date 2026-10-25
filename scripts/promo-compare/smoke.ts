@@ -76,6 +76,10 @@ await check('get_products best_selling', async () => {
   const r = await S.getProducts(db, T, { sort_by: 'best_selling', per_page: 2 });
   assert(r.products.length === 2 && r.pagination.total_count === 3, 'paginering na sortering');
 });
+await check('get_products sort_by menu (KAART-5)', async () => {
+  const r = await S.getProducts(db, T, { sort_by: 'menu', channel: 'menu' });
+  assert(Array.isArray(r.products), 'sort_by menu geeft een lijst');
+});
 await check('get_products ids (SHOP-API-3)', async () => {
   const r = await S.getProducts(db, T, { ids: ['p3', 'p1'] });
   assert(r.products.map((x: { id: string }) => x.id).join(',') === 'p3,p1', `volgorde ${r.products.map((x: { id: string }) => x.id)}`);

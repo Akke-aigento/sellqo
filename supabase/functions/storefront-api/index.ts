@@ -1170,6 +1170,10 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
     case 'name_asc': query = query.order('name', { ascending: true }); break;
     case 'name_desc': query = query.order('name', { ascending: false }); break;
     case 'featured': query = query.order('is_featured', { ascending: false }).order('created_at', { ascending: false }); break;
+    // KAART-5 — de volgorde van de horeca-Kaart (products.menu_position), dan op naam.
+    // Additief: enkel wie sort_by 'menu' meestuurt (QR-menu en menukaart van de SellQo-shop).
+    // Zonder positie achteraan. Custom frontends sturen deze waarde niet en merken niets.
+    case 'menu': query = query.order('menu_position', { ascending: true, nullsFirst: false }).order('name', { ascending: true }); break;
     case 'newest': default: query = query.order('created_at', { ascending: false }); break;
   }
 
