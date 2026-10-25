@@ -10656,7 +10656,7 @@
       "intro": "Choose the till that runs on this device. The device remembers it.",
       "business": "Business",
       "loadError": "The tills could not be loaded.",
-      "noTerminals": "There is no till yet. Create one in SellQo under Till.",
+      "noTerminals": "There is no till yet. Create one in SellQo under Point of sale (POS).",
       "noBusiness": "This account does not belong to any business.",
       "terminalGone": "The chosen till no longer exists. Choose again."
     },

@@ -2259,6 +2259,14 @@
         "horeca_menu_panel": {
           "title": "Your menu even faster: everything about a product in one panel, and you choose the order",
           "description": "Under Ordering › Menu, tap a product and everything is in one panel next to your menu: price with buttons for 10 cents more or less, sold out today, visible or not, category, a photo (straight from your phone or tablet camera), where it is sold, a short description, extras and allergens. Everything is saved right away. With \"Add a size or copy\" you create e.g. Pils 33cl next to Pils 25cl in one go, with the same category, VAT, photo and extras. And you drag products and categories into the order you want: that is also how they appear on SellQo Kassa, with your most-poured drinks at the top."
+        },
+        "horeca_menu_add_fix": {
+          "title": "Menu: adding, pasting and dragging products works again",
+          "description": "Since 24 October, quick add, pasting a list, the starter menu, photo import, dragging and \"Add a size or copy\" under Ordering › Menu showed an error. This is fixed: everything works again. Prices, on/off and \"sold out today\" were not affected."
+        },
+        "horeca_menu_first": {
+          "title": "Ordering opens straight on your menu, and you see at a glance where a product is sold",
+          "description": "Ordering now opens straight on the Menu tab, because that is what you come for most. The overview of your webshop and QR menu is in the next tab. In the product panel, \"Where it is sold\" clearly shows what is on (filled, with a check mark) and what is off."
         }
       },
       "copyLink": "Copy link",

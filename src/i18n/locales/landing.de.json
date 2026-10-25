@@ -2259,6 +2259,14 @@
         "horeca_menu_panel": {
           "title": "Deine Karte noch schneller: alles zu einem Produkt in einem Panel, und die Reihenfolge bestimmst du",
           "description": "Tippe unter Bestellen › Karte auf ein Produkt und alles steht in einem Panel neben deiner Karte: Preis mit Knöpfen für 10 Cent mehr oder weniger, heute aus, sichtbar oder nicht, Kategorie, ein Foto (direkt mit der Kamera von Handy oder Tablet), wo es verkauft wird, eine Kurzbeschreibung, Extras und Allergene. Alles wird sofort gespeichert. Mit „Größe oder Kopie hinzufügen“ legst du z. B. Pils 33cl neben Pils 25cl in einem Schritt an, mit derselben Kategorie, MwSt., Foto und Extras. Und du ziehst Produkte und Kategorien in die gewünschte Reihenfolge: so stehen sie auch in SellQo Kassa, mit deinen meistgezapften Getränken oben."
+        },
+        "horeca_menu_add_fix": {
+          "title": "Karte: Produkte hinzufügen, einfügen und ziehen funktioniert wieder",
+          "description": "Seit dem 24. Oktober zeigten Schnell hinzufügen, eine Liste einfügen, die Startkarte, der Foto-Import, das Ziehen und „Größe oder Kopie hinzufügen“ unter Bestellen › Karte einen Fehler. Das ist behoben: alles funktioniert wieder. Preise, an/aus und „heute aus“ waren nicht betroffen."
+        },
+        "horeca_menu_first": {
+          "title": "Bestellen öffnet direkt deine Karte, und du siehst auf einen Blick, wo ein Produkt verkauft wird",
+          "description": "Bestellen öffnet jetzt direkt den Tab Karte, denn dafür kommst du am häufigsten. Die Übersicht über deinen Webshop und dein QR-Menü steht im Tab daneben. Im Produktpanel zeigt „Wo es verkauft wird“ klar, was an ist (gefüllt, mit Häkchen) und was aus ist."
         }
       },
       "copyLink": "Link kopieren",

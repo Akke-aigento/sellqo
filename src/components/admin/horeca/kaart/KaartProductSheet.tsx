@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { Camera, ChevronDown, CircleSlash, ExternalLink, ImageOff, Loader2, Minus, Plus, X } from 'lucide-react';
+import { Camera, Check, ChevronDown, CircleSlash, ExternalLink, ImageOff, Loader2, Minus, Plus, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
@@ -233,10 +233,13 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
             <h3 className="text-sm font-semibold">{t('admin.kaart.channels')}</h3>
             <div className="grid grid-cols-2 gap-2">
               {CHANNELS.map((c) => {
+                // KAART-4: aan = gevuld met vinkje, uit = lege cirkel en grijs. Zo zie je in één oogopslag wat aan staat.
                 const on = channels.includes(c);
                 return (
                   <button key={c} type="button" disabled={!canEdit} aria-pressed={on} onClick={() => setChannel(c, !on)}
-                    className={cn('min-h-11 rounded-md border px-3 text-left text-sm', on ? 'border-primary/60 bg-primary/10 font-medium' : 'text-muted-foreground')}>
+                    className={cn('flex min-h-11 items-center gap-2 rounded-md border px-3 text-left text-sm',
+                      on ? 'border-primary bg-primary font-medium text-primary-foreground' : 'border-dashed bg-background text-muted-foreground')}>
+                    {on ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : <span className="h-4 w-4 shrink-0 rounded-full border-2 border-muted-foreground/40" aria-hidden />}
                     {t(`admin.kaart.channel.${c}`)}
                   </button>
                 );

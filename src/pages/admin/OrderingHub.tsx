@@ -26,10 +26,13 @@ import { useTranslation } from 'react-i18next';
 import { ModuleOffCard } from '@/components/admin/ModuleOffCard';
 import { KaartManager } from '@/components/admin/horeca/kaart/KaartManager';
 
+// KAART-4 — de Kaart staat vooraan en is de standaardtab: dat is wat een barman hier het vaakst
+// komt doen. Het overzicht (webshop- en QR-status) blijft bereikbaar via ?tab=overview.
+const DEFAULT_TAB = 'kaart';
 const TABS = [
-  { id: 'overview', labelKey: 'admin.orderingHub.tab_overview' },
   // KAART-1 — de kaart: producten snel aanmaken en bewerken (zelfde producten als overal).
   { id: 'kaart', labelKey: 'admin.orderingHub.tab_menu' },
+  { id: 'overview', labelKey: 'admin.orderingHub.tab_overview' },
   { id: 'webshop', labelKey: 'admin.orderingHub.tab_webshop' },
   { id: 'qr', labelKey: 'admin.orderingHub.tab_qr' },
   // ZAAL-H1 — tafels, ruimtes en QR-stickers per tafel.
@@ -162,8 +165,8 @@ export default function OrderingHubPage() {
   const horeca = useHorecaModule();
   const [params, setParams] = useSearchParams();
   const raw = params.get('tab');
-  const tab: Tab = TABS.some((tb) => tb.id === raw) ? (raw as Tab) : 'overview';
-  const go = (t: Tab) => setParams((p) => { const n = new URLSearchParams(p); if (t === 'overview') n.delete('tab'); else n.set('tab', t); return n; }, { replace: true });
+  const tab: Tab = TABS.some((tb) => tb.id === raw) ? (raw as Tab) : DEFAULT_TAB;
+  const go = (t: Tab) => setParams((p) => { const n = new URLSearchParams(p); if (t === DEFAULT_TAB) n.delete('tab'); else n.set('tab', t); return n; }, { replace: true });
 
   if (!horeca) return <ModuleOffCard module="horeca" />;
 

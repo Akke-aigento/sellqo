@@ -2259,6 +2259,14 @@
         "horeca_menu_panel": {
           "title": "Je kaart nog sneller: alles van een product in één paneel, en de volgorde kies je zelf",
           "description": "Tik op Bestellen › Kaart op een product en alles staat in één paneel naast je kaart: prijs met knoppen voor 10 cent meer of minder, op voor vandaag, zichtbaar of niet, categorie, een foto (meteen met de camera van je gsm of tablet), waar het te koop is, een korte beschrijving, extra's en allergenen. Alles wordt meteen bewaard. Met \"Maat of kopie toevoegen\" maak je in één keer bv. Pils 33cl naast Pils 25cl, met dezelfde categorie, btw, foto en extra's. En je sleept producten en categorieën in de volgorde die je wil: zo staan ze ook op SellQo Kassa, met je meest getapte dranken bovenaan."
+        },
+        "horeca_menu_add_fix": {
+          "title": "Kaart: producten toevoegen, plakken en slepen werkt weer",
+          "description": "Sinds 24 oktober gaven snel toevoegen, een lijst plakken, de startkaart, de foto-import, slepen en \"Maat of kopie toevoegen\" op Bestellen › Kaart een foutmelding. Dat is opgelost: alles werkt weer. Prijzen, aan/uit en \"op voor vandaag\" waren niet getroffen."
+        },
+        "horeca_menu_first": {
+          "title": "Bestellen opent meteen op je kaart, en je ziet in één oogopslag waar een product te koop is",
+          "description": "Bestellen opent nu meteen op de tab Kaart, want daar kom je het vaakst voor. Het overzicht van je webshop en QR-menu staat in de tab ernaast. In het productpaneel zie je bij \"Waar te koop\" duidelijk wat aan staat (gevuld, met een vinkje) en wat uit staat."
         }
       },
       "copyLink": "Kopieer link",

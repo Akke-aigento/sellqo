@@ -4,6 +4,16 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13v — Kaart: toevoegen en slepen werkt weer, Bestellen opent op je kaart (bugfix + improvement, 25-10-2026)
+
+**Status:** klaar voor verzending (live 25-10-2026, KAART-FIX-1 + KAART-4).
+
+**Voor wie:** horecazaken (horeca-module).
+
+**Tekst:** Sinds 24 oktober gaven snel toevoegen, een lijst plakken, de startkaart, de foto-import, slepen en "Maat of kopie toevoegen" op Bestellen › Kaart een foutmelding. Dat is opgelost: alles werkt weer. Bestellen opent nu ook meteen op je kaart, en in het productpaneel zie je bij "Waar te koop" duidelijk wat aan staat.
+
+**i18n:** `public.changelog.changes.horeca_menu_add_fix` en `public.changelog.changes.horeca_menu_first`
+
 ### 2026.13u — Je kaart nog sneller: alles in één paneel, en de volgorde kies je zelf (improvement, 24-10-2026)
 
 **Status:** klaar voor verzending (live 24-10-2026, KAART-3 + kassa 0.6.1).

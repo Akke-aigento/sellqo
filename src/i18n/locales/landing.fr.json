@@ -2259,6 +2259,14 @@
         "horeca_menu_panel": {
           "title": "Votre carte encore plus rapide : tout un produit dans un seul panneau, et l’ordre que vous choisissez",
           "description": "Sous Commander › Carte, touchez un produit et tout se trouve dans un panneau à côté de votre carte : le prix avec des boutons pour 10 centimes de plus ou de moins, épuisé aujourd’hui, visible ou non, la catégorie, une photo (directement avec l’appareil photo de votre téléphone ou tablette), les canaux de vente, une courte description, les suppléments et les allergènes. Tout est enregistré immédiatement. Avec « Ajouter une taille ou une copie », vous créez en une fois p. ex. Pils 33cl à côté de Pils 25cl, avec la même catégorie, TVA, photo et suppléments. Et vous faites glisser produits et catégories dans l’ordre voulu : c’est aussi l’ordre sur SellQo Kassa, avec vos boissons les plus servies en haut."
+        },
+        "horeca_menu_add_fix": {
+          "title": "Carte : ajouter, coller et faire glisser des produits fonctionne à nouveau",
+          "description": "Depuis le 24 octobre, l’ajout rapide, le collage d’une liste, la carte de départ, l’import par photo, le glisser-déposer et « Ajouter une taille ou une copie » sous Commander › Carte affichaient une erreur. C’est corrigé : tout fonctionne à nouveau. Les prix, l’activation et « épuisé aujourd’hui » n’étaient pas concernés."
+        },
+        "horeca_menu_first": {
+          "title": "Commander s’ouvre directement sur votre carte, et vous voyez d’un coup d’œil où un produit est vendu",
+          "description": "Commander s’ouvre désormais directement sur l’onglet Carte, car c’est ce que vous venez faire le plus souvent. L’aperçu de votre boutique en ligne et de votre menu QR se trouve dans l’onglet suivant. Dans le panneau produit, « Où il est vendu » montre clairement ce qui est activé (rempli, avec une coche) et ce qui ne l’est pas."
         }
       },
       "copyLink": "Copier le lien",

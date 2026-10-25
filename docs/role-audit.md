@@ -1,3 +1,37 @@
+## KAART-4 — Bestellen opent op de Kaart, kanalen zichtbaar aan/uit, kassa-melding in het Engels — 25 oktober 2026
+
+**Root cause** (gevonden in de geheel-wandeling van 25-10 op sellqo.app, Café De Wissel)
+- `KaartProductSheet.tsx`, kanaalknoppen: "aan" was `bg-primary/10` en "uit" de gewone rand. Op het scherm waren ze niet van elkaar te onderscheiden: alle vier stonden aan, maar zagen er uit uit.
+- `OrderingHub.tsx`: Bestellen opende op het Overzicht. De Kaart stond als tweede van negen tabs, terwijl een barman hier vooral voor de kaart komt.
+- `en.json` `kassa.setup.noTerminals`: verwees naar "Till", maar het menu-item heet "Point of sale (POS)". Nl/fr/de/uk waren al consistent ("Kassa"/"Caisse"/"Kasse"/"Каса" ↔ "… (POS)").
+
+**Uitgevoerd**
+- `KaartProductSheet.tsx`: kanaal aan = gevuld (`bg-primary`) met een vinkje, uit = stippelrand, grijs, met een lege cirkel. `aria-pressed` bleef.
+- `OrderingHub.tsx`: de Kaart staat eerst en is de standaardtab (`DEFAULT_TAB`), het Overzicht staat als tweede.
+  - `?tab=overview` en alle andere deeplinks blijven werken.
+  - De Bestellen-hub bestaat enkel met de horeca-module. Andere winkels merken dus niets.
+- `en.json`: "Create one in SellQo under Point of sale (POS)." Dat is enkel een tekst; `src/kassa/` is niet aangeraakt, dus geen fiscale release.
+- Changelog `2026.13v` in de 5 talen:
+  - `horeca_menu_add_fix` (bugfix, voor KAART-FIX-1);
+  - `horeca_menu_first` (improvement).
+- Helpartikel `horeca-kaart`: `docs/sql/kaart-4-doc-article.sql`, idempotente replace op drie zinnen. De foto-zin klopt nu weer: sinds de review van KAART-3 kies je zelf tussen camera en foto's.
+- Nieuwsbrief: item 13v.
+
+**Security-keuzes** — n.v.t., enkel UI en tekst.
+
+**Gedeelde-paden-waarschuwing** — n.v.t., geen gedeelde paden geraakt.
+
+**Verificatie** — `tsc` exit 0, `build` en lint groen, vitest 1258 groen, `check-i18n-used-keys` en `i18n-parity` groen. Live: zie hieronder.
+
+**Samenhang**
+- Elke link naar `/admin/bestellen` (zijbalk, modules) landt nu op de Kaart.
+- De knop "Kaart" in het Overzicht werkt nog.
+
+**Bewust ongemoeid / Vervolg**
+- Volgorde binnen een categorie op het QR-menu en de webshop (`storefront-api`, gedeeld pad): wacht op Akke.
+- Fiere-functies die SellQo nog niet heeft: "uitgelicht", snelfilters, sneltikken op de kassa.
+- Twee testproducten op Café De Wissel ("Testbier Claude", "… 75cl") staan van de kaart. Verwijderen gebeurt enkel na een go van Akke.
+
 ## KAART-FIX-1 — snel toevoegen, slepen en maat toevoegen faalden live ("reading 'rest'") — 25 oktober 2026
 
 **Root cause**
