@@ -1,3 +1,41 @@
+## ODOO-API-2026 — Odoo-sync: `company_type` niet meer blind meesturen (Odoo saas~19.3) — 25 oktober 2026
+
+Voorstel uit Watchtower (go van Akke, 25-10). Branch `odoo-api-2026`. **Niet gedeployed** — Akke deployt.
+
+**Root cause**
+- Meting 25-10 07:55 (Watchtower): `odoo_invoice_sync_log` = 308 `failed` / 0 `synced` sinds 24-10 15:17 UTC, allemaal The Fonske Crawl, fout `Invalid field 'company_type' in 'res.partner'`.
+- `tenant_odoo_credentials` meldt voor nomadix-bv nu `saas~19.3+e` (was `19.0+e`). Odoo verwijderde `res.partner.company_type` (https://mergebot.odoo.com/odoo/odoo/pull/211043).
+- SellQo stuurde dat veld hard mee bij elke partner-create/write:
+  - `supabase/functions/sync-odoo-invoices/index.ts` (oud r.159 `ensureChannelPartner`, r.236 `ensureDummyPartner`, r.271 `findOrCreatePartner`);
+  - `supabase/functions/sync-odoo-customers/index.ts` (oud r.190, push-richting).
+- Elke tenant op een 19.3-database faalt zodra er een nieuwe partner nodig is.
+
+**Uitgevoerd**
+- `supabase/functions/_shared/odooPartnerType.ts` (nieuw): één `fields_get(['company_type','is_company'])` op `res.partner` per tenant-run (gememoiseerd), dan:
+  - `company_type` bestaat → zoals voorheen (`company`/`person`), dus 19.0-databanken gedragen zich identiek;
+  - anders `is_company` bestaat en is niet alleen-lezen → `is_company: true` enkel voor bedrijven, veld weggelaten voor personen (default false; in 19.3 afgeleid uit het btw-nummer);
+  - anders, of `fields_get` faalt → geen van beide velden (Odoo-default = persoon).
+- `sync-odoo-invoices/index.ts`: `SyncCtx.partnerTypeMode`, de drie partner-creates gebruiken `partnerTypeFields(...)`.
+- `sync-odoo-customers/index.ts`: idem voor create én write in de push-lus.
+- `supabase/functions/_shared/odooPartnerType.test.ts` (4 tests) en toegevoegd aan de `deno test`-stap in `.github/workflows/ci.yml`.
+
+**Security-keuzes**
+- n.v.t.: geen RLS, policies, grants of secrets geraakt. Eén extra lees-RPC (`fields_get`) op de Odoo van de tenant, met dezelfde credentials.
+
+**Gedeelde-paden-waarschuwing**
+- Nieuw `_shared`-bestand, enkel geïmporteerd door `sync-odoo-invoices` en `sync-odoo-customers` (`grep -rl "_shared/odooPartnerType.ts" supabase/functions`). Geen storefront-pad, geen custom-frontend-contract geraakt.
+- Tenants op Odoo 19.0 (VanXcel e.a.) krijgen exact dezelfde payload als voorheen.
+
+**Verificatie**
+- `deno check` op beide functies tegen de echte supabase-js 2.57.2-types (import map naar `npm:`): groen.
+- `deno test supabase/functions/_shared/odooPartnerType.test.ts`: 4/4 groen (19.0, 19.3, alleen-lezen/fout, één `fields_get`).
+- Na de deploy (door Akke): de mislukte Fonske-documenten opnieuw laten syncen en in `odoo_invoice_sync_log` nakijken: nieuwe rijen `synced`, geen nieuwe `failed` met `company_type`.
+
+**Bewust ongemoeid / Vervolg**
+- Niet gedeployed. Deploy-only via de Lovable-agent: `sync-odoo-invoices` en `sync-odoo-customers` (geen andere functie importeert het nieuwe bestand).
+- De rest van het Watchtower-pakket `odoo-api-2026` (API enkel op Custom-plan, `/jsonrpc` verdwijnt) zit niet in deze batch.
+- Geen changelog/doc_articles: herstel van bestaand gedrag, geen nieuwe of gewijzigde functie voor de tenant.
+
 ## KAART-3 + KASSA-0.6.1 — productpaneel op de Kaart, volgorde slepen, maat toevoegen; de kassa volgt de Kaart — 24 oktober 2026
 
 Op vraag van Akke (24-10, 17:33: "moet volledige overlay worden … denk als een barman … niet denken maar doen"; go 19:34: "kassa etc moet 100% zijn"). Branch `kaart-3`.
