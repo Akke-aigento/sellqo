@@ -1,3 +1,41 @@
+## KAART-5 — QR-menu en menukaart volgen de Kaart-volgorde (storefront-api sort_by 'menu') — 25 oktober 2026
+
+**Status: code klaar, deploy geblokkeerd.** De Lovable-workspace heeft geen credits meer (25-10, 20:5x), dus `storefront-api` kon niet uitgerold worden.
+
+**Root cause** — `get_products` kende geen sortering op `products.menu_position`. Het QR-menu en de homepage-sectie "menukaart" van de SellQo-shop (`sellqo-storefront`, `src/lib/shop.ts`) vroegen `featured` (eerst uitgelicht, dan nieuwste). De volgorde die een zaak op de Kaart sleept, kwam daardoor niet op het QR-menu, wel op de kassa.
+
+**Uitgevoerd**
+- `supabase/functions/storefront-api/index.ts`, `getProducts`: nieuwe `case 'menu'`. Die sorteert op `menu_position` (zonder positie achteraan) en dan op `name`. Commit `7dca0e8`.
+- `scripts/promo-compare/smoke.ts`: een rooktest-geval voor `sort_by: 'menu'`.
+- `sellqo-storefront`, commit `92aea0c`, lokaal en nog niet gepusht: `loadMenu` en de sectie `menu_card` vragen `sort_by: 'menu'`.
+
+**Security-keuzes** — n.v.t. Geen nieuwe kolom in de response, enkel een sortering.
+
+**Gedeelde-paden-waarschuwing** — `storefront-api` is een gedeeld pad (eerste wet). De wijziging is strikt additief:
+- enkel wie `sort_by: 'menu'` meestuurt, krijgt de nieuwe volgorde;
+- een onbekende waarde viel en valt nog altijd terug op `newest`;
+- geen enkele custom frontend stuurt `menu`;
+- het JSON-contract is ongewijzigd: zelfde velden en zelfde paginering.
+
+**Verificatie**
+- `deno check` (stubs) groen, de rooktest `storefront-api` groen (incl. het nieuwe geval), CI groen op `7dca0e8`.
+- Nulmeting vóór de deploy, opgeslagen in `snapshots.kaart5_probe` (fase `voor`):
+
+  | Meting | Producten | md5 van de id-volgorde |
+  |---|---|---|
+  | Café De Wissel `tap`, `sort_by menu` | "Wit bier, Tripel van 't vat, Pils" (de `newest`-terugval) | `68f15089…` |
+  | VanXcel, standaard | 27 | `85c5f2a5…` |
+  | Mancini, `featured` | 20 | `ecff5a44…` |
+
+- Testdata: bij Café De Wissel is "Wit bier" bovenaan gesleept, positie 0.
+
+**Na de deploy nog te doen**
+1. Dezelfde drie metingen opnieuw (fase `na`):
+   - De Wissel moet "Wit bier, Pils, Tripel van 't vat" geven;
+   - VanXcel en Mancini moeten een identieke md5 geven.
+2. Pas daarna `sellqo-storefront` pushen. Cloudflare deployt automatisch; daarna `/menu` van Café De Wissel live nameten.
+3. Changelog, nieuwsbrief en helpartikel: één zin "het QR-menu volgt je Kaart".
+
 ## KAART-4 — Bestellen opent op de Kaart, kanalen zichtbaar aan/uit, kassa-melding in het Engels — 25 oktober 2026
 
 **Root cause** (gevonden in de geheel-wandeling van 25-10 op sellqo.app, Café De Wissel)
