@@ -52,7 +52,8 @@ export type BulkChange =
 const KAART_TYPES = ['physical', 'service', 'digital'];
 
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
-const rpc = supabase.rpc as unknown as Rpc;
+// bind: zonder supabase als `this` faalt elke aanroep live ("reading 'rest'").
+const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
 
 export const kaartKey = (tenantId: string | undefined) => ['kaart', tenantId];
 

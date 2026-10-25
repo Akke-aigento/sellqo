@@ -39,7 +39,7 @@ export function useCampaignAbStats(campaignId: string | undefined, enabled: bool
     queryKey: ['campaign-ab-stats', campaignId],
     queryFn: async () => {
       // De RPC staat nog niet in de gegenereerde types (MAIL-2d).
-      const rpc = supabase.rpc as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: CampaignAbStat[] | null; error: Error | null }>;
+      const rpc = supabase.rpc.bind(supabase) as unknown as (fn: string, args: Record<string, unknown>) => Promise<{ data: CampaignAbStat[] | null; error: Error | null }>;
       const { data, error } = await rpc('campaign_ab_stats', { p_campaign_id: campaignId });
       if (error) throw error;
       return data || [];

@@ -1,3 +1,28 @@
+## KAART-FIX-1 — snel toevoegen, slepen en maat toevoegen faalden live ("reading 'rest'") — 25 oktober 2026
+
+**Root cause**
+- `src/components/admin/horeca/kaart/useKaart.ts:55` zette `supabase.rpc` los in een variabele (`const rpc = supabase.rpc as …`). Zonder `supabase` als `this` faalt elke aanroep met "Cannot read properties of undefined (reading 'rest')".
+- Getroffen sinds KAART-1 (24-10): alles op de Kaart dat via de `kaart_*`-functies gaat. Dat zijn snel toevoegen, plakken, startkaart, foto-import, categorie aanmaken, bulk, slepen en maat toevoegen.
+- Niet getroffen: naam en prijs in de rij, aan/uit en "op voor vandaag". Die lopen via `.from()` of een rechtstreekse `rpc`-aanroep.
+- Zelfde fout in `src/hooks/useEmailCampaigns.ts:42` (A/B-statistieken van campagnes).
+- Waarom niet eerder gezien:
+  - de SQL-tests roepen de functies rechtstreeks aan;
+  - de voorvertoning gebruikte een mock zonder `this`.
+  - Gevonden bij de geheel-wandeling op sellqo.app (Café De Wissel).
+
+**Uitgevoerd**
+- Beide aanroepen gebruiken nu `supabase.rpc.bind(supabase)`.
+- Nieuwe test `src/test/unboundSupabase.test.ts` weigert losgekoppelde client-methodes in `src/`. Hij faalt op de oude code en slaagt op de fix.
+
+**Security-keuzes** — n.v.t., geen wijziging aan rechten of RLS.
+
+**Gedeelde-paden-waarschuwing** — n.v.t., enkel admin-frontend.
+
+**Verificatie** — `tsc` exit 0, lint schoon, vitest groen. Live na de publish: zie hieronder.
+
+**Vervolg**
+- Les voor `sellqo-engineering-rules`: een preview met mocks bewijst de dataflow niet; elke nieuwe schrijfactie één keer echt live doorklikken op een testzaak.
+
 ## KAART-3 + KASSA-0.6.1 — productpaneel op de Kaart, volgorde slepen, maat toevoegen; de kassa volgt de Kaart — 24 oktober 2026
 
 Op vraag van Akke (24-10, 17:33: "moet volledige overlay worden … denk als een barman … niet denken maar doen"; go 19:34: "kassa etc moet 100% zijn"). Branch `kaart-3`.
