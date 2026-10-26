@@ -2267,6 +2267,10 @@
         "horeca_menu_first": {
           "title": "Bestellen öffnet direkt deine Karte, und du siehst auf einen Blick, wo ein Produkt verkauft wird",
           "description": "Bestellen öffnet jetzt direkt den Tab Karte, denn dafür kommst du am häufigsten. Die Übersicht über deinen Webshop und dein QR-Menü steht im Tab daneben. Im Produktpanel zeigt „Wo es verkauft wird“ klar, was an ist (gefüllt, mit Häkchen) und was aus ist."
+        },
+        "order_tickets_status_resend": {
+          "title": "Status der Markenkarte in der Bestellung, und keine Ticket-E-Mail mehr nach einer Stornierung",
+          "description": "Im Block Tickets und Marken einer Bestellung siehst du jetzt neben dem Guthaben auch den Status der Markenkarte: Aktiv, Gesperrt, Erstattung beantragt oder Erstattet. Ist die Bestellung storniert oder vollständig erstattet, verschwindet die Schaltfläche Tickets erneut mailen: Diese Tickets gelten nicht mehr. Bei einer Teilerstattung kannst du sie weiterhin erneut mailen."
         }
       },
       "copyLink": "Link kopieren",

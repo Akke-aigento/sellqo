@@ -2267,6 +2267,10 @@
         "horeca_menu_first": {
           "title": "Bestellen opent meteen op je kaart, en je ziet in één oogopslag waar een product te koop is",
           "description": "Bestellen opent nu meteen op de tab Kaart, want daar kom je het vaakst voor. Het overzicht van je webshop en QR-menu staat in de tab ernaast. In het productpaneel zie je bij \"Waar te koop\" duidelijk wat aan staat (gevuld, met een vinkje) en wat uit staat."
+        },
+        "order_tickets_status_resend": {
+          "title": "Status van de muntenkaart op de bestelling, en geen ticketmail meer na annuleren",
+          "description": "In het blok Tickets en munten van een bestelling zie je nu naast het saldo ook de status van de muntenkaart: Actief, Geblokkeerd, Terugbetaling gevraagd of Terugbetaald. Is de bestelling geannuleerd of volledig terugbetaald, dan staat de knop Tickets opnieuw mailen er niet meer: die tickets gelden niet meer. Bij een gedeeltelijke terugbetaling kan je ze nog wel opnieuw mailen."
         }
       },
       "copyLink": "Kopieer link",

@@ -45,3 +45,17 @@ export function sortOrderTickets<T extends OrderTicketRow>(rows: T[]): T[] {
     return (a.seq ?? 0) - (b.seq ?? 0);
   });
 }
+
+// EVENT-409-1 — status van de muntenkaart op de orderdetail. Zelfde labels
+// (events.tokens.status_*) en kleuren als Events → Munten → Kaarten.
+export const WALLET_STATUSES = ['active', 'refund_requested', 'refunded', 'blocked'] as const;
+export type WalletStatus = (typeof WALLET_STATUSES)[number];
+
+export const WALLET_STATUS_VARIANT: Record<WalletStatus, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+  active: 'default', refund_requested: 'outline', refunded: 'secondary', blocked: 'destructive',
+};
+
+/** i18n-sleutel (volledig pad) voor een kaartstatus, of null bij een onbekende status. */
+export function walletStatusKey(status: string | null | undefined): string | null {
+  return (WALLET_STATUSES as readonly string[]).includes(status ?? '') ? `events.tokens.status_${status}` : null;
+}

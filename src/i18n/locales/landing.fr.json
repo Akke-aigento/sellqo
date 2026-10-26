@@ -2267,6 +2267,10 @@
         "horeca_menu_first": {
           "title": "Commander s’ouvre directement sur votre carte, et vous voyez d’un coup d’œil où un produit est vendu",
           "description": "Commander s’ouvre désormais directement sur l’onglet Carte, car c’est ce que vous venez faire le plus souvent. L’aperçu de votre boutique en ligne et de votre menu QR se trouve dans l’onglet suivant. Dans le panneau produit, « Où il est vendu » montre clairement ce qui est activé (rempli, avec une coche) et ce qui ne l’est pas."
+        },
+        "order_tickets_status_resend": {
+          "title": "Statut de la carte de jetons sur la commande, et plus d'e-mail de billets après une annulation",
+          "description": "Dans le bloc Billets et jetons d'une commande, vous voyez maintenant le statut de la carte de jetons à côté du solde : Active, Bloquée, Remboursement demandé ou Remboursée. Si la commande est annulée ou entièrement remboursée, le bouton Renvoyer les billets disparaît : ces billets ne sont plus valables. En cas de remboursement partiel, vous pouvez toujours les renvoyer."
         }
       },
       "copyLink": "Copier le lien",

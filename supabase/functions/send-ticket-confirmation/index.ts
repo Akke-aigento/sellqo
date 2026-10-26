@@ -68,7 +68,7 @@ function formatTime(start: string | null, end: string | null): string {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "EVENT-DONE-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "EVENT-409-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     // TICKET-MAIL-1 — drie soorten aanroepen:
@@ -109,6 +109,16 @@ serve(async (req) => {
 
     if (orderError || !order) throw new Error(`Order not found: ${orderError?.message}`);
     if (mode === "user") requireRole(auth!, order.tenant_id, ["tenant_admin", "staff"]);
+    // EVENT-409-1 — "Tickets opnieuw mailen" (enkel de admin-knop, mode user) weigert een
+    // geannuleerde of volledig terugbetaalde bestelling: die tickets gelden niet meer.
+    // partially_refunded mag wel. Het betaalpad (service/auto) blijft ongewijzigd.
+    // Spiegel van de UI-regel in src/lib/ticketResend.ts.
+    if (mode === "user" && (order.status === "cancelled" || order.payment_status === "refunded")) {
+      log("Resend refused — order closed", { order_id, status: order.status, payment_status: order.payment_status });
+      return new Response(JSON.stringify({ success: false, error: "ORDER_CLOSED" }), {
+        status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     if (mode === "auto" && order.payment_status !== "paid") {
       return new Response(JSON.stringify({ skipped: true, reason: "not paid" }), {
         status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" },

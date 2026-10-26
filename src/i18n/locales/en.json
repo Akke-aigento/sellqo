@@ -7729,6 +7729,7 @@
       "resend": "Email tickets again",
       "resent": "Tickets have been emailed",
       "resend_failed": "Could not send the email",
+      "resend_closed": "This order has been cancelled or fully refunded: the tickets are no longer sent.",
       "type_standard": "Standard ticket",
       "seat": "seat {{seat}}",
       "code_masked_hint": "Ticket code, partly hidden: anyone with the full code gets in.",

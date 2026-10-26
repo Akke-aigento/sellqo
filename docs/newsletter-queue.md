@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13w — Muntenkaart-status op de bestelling, geen ticketmail na annuleren (improvement, 26-10-2026)
+
+**Status:** NIET verzenden vóór de livegang (code klaar op branch `event-409-1`, wacht op deploy van `send-ticket-confirmation` + publish van de admin, EVENT-409-1).
+
+**Voor wie:** winkels met de module Events (ook Events Flex).
+
+**Je ziet meteen of een muntenkaart nog werkt** (oktober 2026)
+Op een bestelling staat bij de muntenkaart nu ook de status: Actief, Geblokkeerd, Terugbetaling gevraagd of Terugbetaald. En is een bestelling geannuleerd of volledig terugbetaald, dan kan je de tickets niet meer opnieuw mailen: die gelden toch niet meer.
+Wat betekent dit voor jou? Geen verwarring aan de bar of de deur over een kaart of ticket van een geannuleerde bestelling.
+
+i18n: `public.changelog.changes.order_tickets_status_resend`
+
 ### 2026.13v — Kaart: toevoegen en slepen werkt weer, Bestellen opent op je kaart (bugfix + improvement, 25-10-2026)
 
 **Status:** klaar voor verzending (live 25-10-2026, KAART-FIX-1 + KAART-4).

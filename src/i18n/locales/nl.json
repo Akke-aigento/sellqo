@@ -7743,6 +7743,7 @@
       "resend": "Tickets opnieuw mailen",
       "resent": "Tickets zijn gemaild",
       "resend_failed": "Mailen lukte niet",
+      "resend_closed": "Deze bestelling is geannuleerd of volledig terugbetaald: de tickets worden niet meer gemaild.",
       "type_standard": "Standaardticket",
       "seat": "plaats {{seat}}",
       "code_masked_hint": "Ticketcode, deels verborgen: wie de volledige code heeft, komt binnen.",

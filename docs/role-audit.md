@@ -1,3 +1,64 @@
+## EVENT-409-1 — "volzet" als HTTP 409, muntenkaart-status op de bestelling, geen ticketmail na annuleren (2026.13w) — 26 oktober 2026
+
+**Status: code klaar op branch `event-409-1` (lokaal gecommit), niet gepusht, niets gedeployed, geen migratie gedraaid.** Deploys zijn geblokkeerd door Lovable-credits (KAART-5). Recept: `docs/prepared/EVENT-409-1-deploy.md`. Go van Akke op 26-10 voor recon + bouwen; livegang apart.
+
+**Root cause**
+- **A.** `cartAddItem` gooit bij een volzet tickettype of event `new Error(JSON.stringify({ code: 'TICKET_TYPE_FULL' | 'EVENT_FULL', message, spots_left }))` (`storefront-api/index.ts` r.2836, r.2846, en voor een combiticket r.2861). De vangst van de handler (r.5928-5935) gaf elke fout behalve `DiscountCodeError` **HTTP 500** met body `{ success:false, error:<die JSON als string> }`. Een verwachte weigering zag eruit als een serverstoring. `checkoutComplete` (r.4294-4303) gooit niet maar geeft `{ success:false, error:{ code, message, event_detail_id } }` terug als data, dus **HTTP 200** met `{ success:true, data:{ success:false, … } }`.
+- **B.** `OrderTicketsCard` toonde de muntenkaart als "x van y munten" zonder status (vervolgpunt uit EVENT-COIN-1); een geblokkeerde kaart leek bruikbaar.
+- **C.** De knop **Tickets opnieuw mailen** hing enkel aan `paid` (`payment_status` paid of partially_refunded, `OrderDetail.tsx:386`). Een geannuleerde maar betaalde bestelling hield de knop, en `send-ticket-confirmation` mailde vervallen tickets (en de geblokkeerde kaart) gewoon opnieuw. Een volledig terugbetaalde bestelling had de knop al niet, maar de server weigerde ook dat niet.
+
+**Recon A — wat de frontends met de fout doen** (code gelezen op 26-10; tenants met `use_custom_frontend` uit de SQL van CLAUDE.md §1: Astra Sleep, Benny Rich, Loveke, Mancini Milano, VanXcel, Zona Dorata. Geen van de zes heeft een ticketproduct, `event_details`, `event_ticket_types` of `ticket_bundle_items`: 0/0/0/0, live geteld. Zij kunnen `EVENT_FULL`/`TICKET_TYPE_FULL` dus niet krijgen.)
+
+| Frontend | Hoe de fout binnenkomt | cart_add_item 500 → 409 | Veilig? |
+|---|---|---|---|
+| **Fonske** (`fonske-crawl-hq`, Lovable 377b3ca5, `src/lib/sellqo.server.ts` `call()`) — staat níet op `use_custom_frontend`, wel een eigen frontend | `res.status === 400` alleen voor `invalid_discount_code`; verder `!res.ok` → `Error("SellQo request failed (<status>)")` → toast in `TicketPurchase.tsx` (`handleCheckoutError`) | toast "SellQo request failed (500)" wordt "(409)"; zelfde generieke fout, geen code-pad op 500 | ja |
+| **sellqo-storefront** (`src/lib/sellqo.server.ts` `api()` + `src/lib/cart.ts` `friendlyError`) | `!res.ok \|\| !body.success` → `Error("storefront-api cart_add_item: <body.error>")` → `friendlyError` parset de JSON → "Dit evenement is volzet" | identiek (status wordt nergens gelezen) | ja |
+| Loveke (repo `loveke`, `src/integrations/sellqo/client.ts` + proxy `sellqo-proxy`) | proxy geeft de status door; client `!res.ok` → `Error(error.message \|\| error.error)` | identiek | ja (en geen tickets) |
+| Benny Rich (`src/lib/sellqo.functions.ts`) | `!res.ok` → `Error(json.error)`; enkel 401/403 krijgen een eigen pad (klant-API) | identiek | ja (geen tickets) |
+| Zona Dorata (Lovable 19045cee, `src/lib/sellqo.functions.ts`) | zelfde patroon als Benny Rich | identiek | ja (geen tickets) |
+| VanXcel (Lovable 80408260, `src/integrations/sellqo/client.ts`) | `!response.ok` → `SellQoError(body, status)` | status-veld 500 → 409; bereikbaar alleen bij een ticketproduct, dat VanXcel niet heeft | ja |
+| Mancini (Lovable 2c89fac8, `src/integrations/sellqo/client.ts`) | `!res.ok` → `SellQoError(message, { status })` | idem | ja |
+| Astra Sleep (Lovable 1953cd3a, `src/lib/storefrontApi.ts` `call()`) | leest de status niet; `!body.success` → `StorefrontApiError` | identiek | ja |
+
+Geen enkele frontend rekent op status 400 of 500 voor deze codes. **Maar `checkout_complete` wél op 200:** Fonske (`assertOk`) en sellqo-storefront (`unwrap`) tonen "Dit evenement is volzet" enkel omdat de status 200 is en ze dan `data.error.message` lezen. Met 409 zouden ze vallen op `!res.ok` en een generieke fout tonen ("SellQo request failed (409)" / "HTTP 409"). Dat pad is daarom **niet** aangepast (zie Bewust ongemoeid).
+
+**Uitgevoerd**
+- **A.** Nieuw `supabase/functions/_shared/storefrontErrorStatus.ts`: `statusForStorefrontError(msg)` geeft 409 als de boodschap een JSON-object is met `code` `EVENT_FULL` of `TICKET_TYPE_FULL`, anders 500. `storefront-api/index.ts`: de vangst gebruikt die status; body ongewijzigd. GET-stempel `CART-TENANT-1` → `EVENT-409-1`. Tests: `_shared/storefrontErrorStatus.test.ts` (eenheid) en `scripts/promo-compare/event409.test.ts` (de echte handler tegen een nep-databank: tickettype volzet en event volzet → 409 met byte-gelijke body; `EVENT_DATE_UNAVAILABLE` en "Cart not found" → 500 met dezelfde body; GET-stempel). Beide in CI (`ci.yml`). Mutatieproef: met de status terug op 500 falen 2 van de 5 handler-tests.
+- **B.** `src/lib/orderTickets.ts`: `WALLET_STATUSES`, `WALLET_STATUS_VARIANT`, `walletStatusKey()` (bestaande sleutels `events.tokens.status_*` uit Events → Munten; geen nieuwe vertalingen). `OrderTicketsCard`: badge naast "Muntenkaart: x van y". `EventTokens.tsx` gebruikt dezelfde kleurentabel (één bron).
+- **C.** `src/lib/ticketResend.ts`: `ticketOrderClosed` (status `cancelled` of `payment_status` `refunded`) en `canResendTickets`. `OrderTicketsCard` krijgt `status` + `paymentStatus` (i.p.v. `paid`) van `OrderDetail`; de knop verschijnt enkel bij `canResendTickets`; bij een gesloten bestelling zonder ticketmail verdwijnt ook de zin "de tickets gaan per mail zodra de bestelling betaald is". Een weigering van de server (`ORDER_CLOSED`) geeft een eigen toast (`admin.orderTickets.resend_closed`, 5 talen) en ververst de bestelling. `send-ticket-confirmation`: in mode `user` (de admin-knop) na `requireRole` → `409 { success:false, error:"ORDER_CLOSED" }` (vorm van `authErrorResponse`); GET-stempel `EVENT-DONE-1` → `EVENT-409-1`. Test `scripts/promo-compare/ticketResend.test.ts` (echte handler): admin + cancelled/paid of delivered/refunded → 409; admin + partially_refunded of paid → door de poort; service-role + cancelled → door de poort (betaalpad ongewijzigd). Vitest `src/lib/ticketResend.test.ts`, inclusief een check dat elke kaartstatus en `resend_closed` in elke taal van `SUPPORTED_LANGUAGES` vertaald is (dynamische sleutels ziet `check-i18n-used-keys` niet).
+- Slottaken: changelog **2026.13w** `order_tickets_status_resend` (improvement) in `PublicChangelog.tsx` + `landing.{nl,en,fr,de,uk}.json` (de `du`, uk `ти`, zoals de event-reeks); nieuwsbrief-item 2026.13w (met "niet verzenden vóór de livegang"); helpartikel-migratie `supabase/migrations/20261026120000_event_409_1_doc_article.sql` (NIET gedraaid); deploy-recept.
+
+**Security-keuzes** — Geen RLS-, policy- of grantwijziging. De weigering in `send-ticket-confirmation` komt ná `authenticateRequest` + `requireRole`: een vreemde gebruiker krijgt nog altijd eerst 401/403 en leert niets over de status van andermans bestelling. De snapshot-tabel `snapshots.sellqo_20261026_doc_articles_e409` krijgt `revoke all` voor anon/authenticated. Geen secrets in de migratie.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` (eerste wet): enkel de HTTP-status verandert, enkel voor fouten waarvan de boodschap een JSON-object is met code `EVENT_FULL`/`TICKET_TYPE_FULL`. Body, sleutels en alle andere statussen zijn byte-gelijk (handler-test vergelijkt de ruwe tekst). `cart_restore` vangt de fout van `cartAddItem` zelf op en bereikt de handler niet; `checkout_complete`, `checkout_place_order` en `checkout_create_session` zijn niet geraakt. Frontend-recon per tenant: zie de tabel hierboven. Fonske verkoopt vandaag niets (0 komende events, gemeten 26-10).
+- `send-ticket-confirmation` heeft vier aanroepers: `stripe-connect-webhook` (2×, service-role), `storefront-api` (gratis checkout + bankoverschrijving, service-role), de trigger `trg_ticket_mail_on_paid` (anon + `auto`) en de admin-knop (gebruikerstoken). De poort geldt enkel voor mode `user`; de drie betaalpaden zijn ongewijzigd (getest voor service-role).
+- `doc_articles`: replace met md5-guard op één rij; geen gedeelde storefront-tabel.
+
+**Verificatie** (exit codes)
+- `npx tsc --noEmit -p tsconfig.app.json` → 0 (lege log).
+- `npx vitest run` → 0 (97 bestanden, 1266 tests; 1 overgeslagen zoals voorheen). Eerst faalden 5 bestanden op een ontbrekend `qr.js` in de lokale `node_modules` (losstaand van deze batch, alleen lokaal aangevuld, `package.json`/`bun.lock` ongemoeid).
+- `node scripts/i18n-parity.mjs` → 0 (volledige pariteit, 5 talen = `SUPPORTED_LANGUAGES`); `check-i18n-used-keys` → 0.
+- `deno check` (import map: supabase-js → `npm:@supabase/supabase-js@2.57.2`, rest naar `scripts/promo-compare/stubs`) op `storefront-api`, `send-ticket-confirmation`, `_shared/storefrontErrorStatus.ts` → 0.
+- `deno test` op de 16 `_shared`-tests van CI → 0 (160 passed; `deno.land/std` en `esm.sh/pdf-lib` lokaal omgeleid, de sandbox bereikt ze niet); de `promo-compare`-set van CI incl. de twee nieuwe → 0 (26 passed).
+- Rooktest `storefront-api` (`smoke.ts`, 37 ok) → 0.
+- Helpartikel: rollbacktest op de live rij (migratie twee keer na elkaar, dan `raise exception`): md5 na `c1e89b3fb41a764b4af084c709319ae2`, snapshot `1823f187…`, 1 rij. Live daarna ongewijzigd (md5 `1823f187…`, `updated_at` 16-10, geen snapshot-tabel).
+- `verify-lint-baseline` → 0 (1457 → 1456; de gewijzigde bestanden hebben exact evenveel fouten als op HEAD: OrderDetail 7, send-ticket-confirmation 10, storefront-api 239, de rest 0). `check-dead-buttons` → 0 (baseline 2). `verify-edge-pins` → 0. `verify-skills-sync` → 0. `npm run build` → 0, `public/sitemap.xml` teruggezet.
+- Niet gedaan: de geheel-wandeling op sellqo.app (vraagt een publish, die geblokkeerd is). Hoort bij de livegang (recept stap 4).
+
+**Samenhang**
+- Statuslabels en -kleuren van de muntenkaart komen nu uit één bron (`orderTickets.ts`), gebruikt door Events → Munten en de orderdetail; de teksten zijn de bestaande `events.tokens.status_*`.
+- De resend-regel bestaat op twee plekken (UI `ticketResend.ts`, server `send-ticket-confirmation`), met een verwijzing in beide en een test aan elke kant.
+- Het helpartikel `tickets-in-een-bestelling` vertelt beide (migratie klaar). De zin "Is de bestelling betaald, dan stuur je met Tickets opnieuw mailen…" klopt nog; de uitzondering staat er nu direct onder.
+
+**Bewust ongemoeid / Vervolg**
+- **`checkout_complete` blijft HTTP 200** bij `EVENT_FULL`/`TICKET_TYPE_FULL`. Fonske en sellqo-storefront tonen de echte melding enkel dankzij die 200. 409 daar vraagt eerst een aanpassing in beide frontends (409 lezen als `data.error`), en is een aparte beslissing van Akke.
+- Combiticket-volzet in `cart_add_item` (r.2861) gebruikt dezelfde code `TICKET_TYPE_FULL` en krijgt dus ook 409; `EVENT_DATE_UNAVAILABLE` (zelfde plek) blijft 500.
+- Randgeval betaalpad: een bestelling die geannuleerd wordt vóór de betaling binnenkomt, krijgt bij betaling nog altijd de ticketmail (service/auto-pad ongemoeid, zoals gevraagd).
+- De oude app-build (Capacitor) toont de knop nog bij een geannuleerde bestelling tot de nieuwe native build; de server weigert dan, de oude app toont "Mailen lukte niet".
+- Fonske staat niet op `use_custom_frontend` maar draait wel een eigen frontend; voor de eerste wet telt de DB-vlag. Voorstel: Fonske in de skill/CLAUDE.md-lijst noemen als "eigen frontend zonder vlag", of de vlag zetten (aparte beslissing).
+- De `storefront-api`-deploy neemt KAART-5 mee (zie het recept).
+
 ## KAART-5 — QR-menu en menukaart volgen de Kaart-volgorde (storefront-api sort_by 'menu') — 25 oktober 2026
 
 **Status: code klaar, deploy geblokkeerd.** De Lovable-workspace heeft geen credits meer (25-10, 20:5x), dus `storefront-api` kon niet uitgerold worden.

@@ -27,6 +27,7 @@ import {
   type TokenScanner, type TokenSettings, type WalletRow,
 } from '@/hooks/useFestival';
 import { formatCurrency } from '@/lib/utils';
+import { WALLET_STATUS_VARIANT } from '@/lib/orderTickets';
 
 export default function EventTokens() {
   const { t } = useTranslation();
@@ -265,9 +266,8 @@ function Bars() {
   );
 }
 
-const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  active: 'default', refund_requested: 'outline', refunded: 'secondary', blocked: 'destructive',
-};
+// EVENT-409-1: één bron voor de kaartkleuren, gedeeld met de orderdetail (OrderTicketsCard).
+const STATUS_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = WALLET_STATUS_VARIANT;
 
 function Wallets({ plural }: { plural: string }) {
   const { t } = useTranslation();

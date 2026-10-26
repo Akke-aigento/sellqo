@@ -14,6 +14,7 @@ import { computeSlots, orderingBlocked, postalCodeAllowed, type FulfillmentSetti
 import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
 import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
 import { buildSizeChart, publicSizeChart, sellSizesFromVariants } from "../_shared/sizeChart.ts";
+import { statusForStorefrontError } from "../_shared/storefrontErrorStatus.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
@@ -5790,7 +5791,7 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'CART-TENANT-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'EVENT-409-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -5932,6 +5933,8 @@ serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'invalid_discount_code', message: error.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
     const errMsg = error instanceof Error ? error.message : (typeof error === 'object' && error !== null && 'message' in error) ? (error as any).message : String(error);
-    return new Response(JSON.stringify({ success: false, error: errMsg }), { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    // EVENT-409-1 — "event/tickettype volzet" is een verwachte weigering, geen storing: 409.
+    // Body ongewijzigd; alle andere fouten blijven 500.
+    return new Response(JSON.stringify({ success: false, error: errMsg }), { status: statusForStorefrontError(errMsg), headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
   }
 });

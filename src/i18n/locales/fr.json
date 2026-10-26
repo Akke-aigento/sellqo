@@ -7456,6 +7456,7 @@
       "resend": "Renvoyer les billets",
       "resent": "Les billets ont été envoyés",
       "resend_failed": "L'envoi a échoué",
+      "resend_closed": "Cette commande a été annulée ou entièrement remboursée : les billets ne sont plus envoyés.",
       "type_standard": "Billet standard",
       "seat": "place {{seat}}",
       "code_masked_hint": "Code du billet, partiellement masqué : quiconque possède le code complet peut entrer.",

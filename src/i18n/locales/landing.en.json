@@ -2267,6 +2267,10 @@
         "horeca_menu_first": {
           "title": "Ordering opens straight on your menu, and you see at a glance where a product is sold",
           "description": "Ordering now opens straight on the Menu tab, because that is what you come for most. The overview of your webshop and QR menu is in the next tab. In the product panel, \"Where it is sold\" clearly shows what is on (filled, with a check mark) and what is off."
+        },
+        "order_tickets_status_resend": {
+          "title": "Token card status on the order, and no ticket email after cancelling",
+          "description": "In the Tickets and tokens block of an order you now see the token card's status next to its balance: Active, Blocked, Refund requested or Refunded. If the order is cancelled or fully refunded, the Email tickets again button is gone: those tickets are no longer valid. With a partial refund you can still email them again."
         }
       },
       "copyLink": "Copy link",

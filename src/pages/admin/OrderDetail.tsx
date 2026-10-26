@@ -383,7 +383,7 @@ export default function OrderDetailPage() {
           </Card>
 
           {currentTenant?.id && id && (
-            <OrderTicketsCard orderId={id} tenantId={currentTenant.id} paid={order.payment_status === 'paid' || order.payment_status === 'partially_refunded'} />
+            <OrderTicketsCard orderId={id} tenantId={currentTenant.id} status={order.status} paymentStatus={order.payment_status} />
           )}
 
           {/* Card 2: Klant & Adressen */}

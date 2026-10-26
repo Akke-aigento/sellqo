@@ -7456,6 +7456,7 @@
       "resend": "Tickets erneut mailen",
       "resent": "Tickets wurden gesendet",
       "resend_failed": "Senden fehlgeschlagen",
+      "resend_closed": "Diese Bestellung wurde storniert oder vollständig erstattet: Die Tickets werden nicht mehr gesendet.",
       "type_standard": "Standardticket",
       "seat": "Platz {{seat}}",
       "code_masked_hint": "Ticketcode, teilweise verborgen: Wer den vollständigen Code hat, kommt hinein.",
