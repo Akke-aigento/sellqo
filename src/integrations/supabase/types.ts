@@ -18622,6 +18622,60 @@ export type Database = {
           },
         ]
       }
+      supplier_invoice_imports: {
+        Row: {
+          created_at: string
+          external_id: string
+          id: string
+          invoice_date: string | null
+          invoice_type: string | null
+          odoo_move_id: number | null
+          payable_amount: number | null
+          source: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          external_id: string
+          id?: string
+          invoice_date?: string | null
+          invoice_type?: string | null
+          odoo_move_id?: number | null
+          payable_amount?: number | null
+          source: string
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          external_id?: string
+          id?: string
+          invoice_date?: string | null
+          invoice_type?: string | null
+          odoo_move_id?: number | null
+          payable_amount?: number | null
+          source?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_invoice_imports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_invoice_imports_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           bic: string | null
