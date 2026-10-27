@@ -68,6 +68,18 @@ export interface UblInvoiceInput {
   taxAmount: number;
   /** Authoritative document-level grand total. */
   total: number;
+  /**
+   * INVOICE-INTEGRITY-1: kortingen op documentniveau, per btw-tarief (bedrag netto, positief).
+   * Een korting als regel met negatieve prijs is in Peppol verboden (BR-27). `subtotal` is
+   * dan het bedrag NA korting (TaxExclusiveAmount); LineExtensionAmount = subtotal + kortingen.
+   */
+  allowances?: { vatRate: number; amount: number; reason: string }[];
+  /**
+   * INVOICE-INTEGRITY-1: btw per tarief zoals op de factuur (Σ vat_amount van de regels).
+   * Zonder: herberekend als belastbaar × tarief. Bij inclusieve prijzen kan dat een cent
+   * afwijken van het btw-totaal van de factuur (BR-CO-14). Met: TaxSubtotal = factuur.
+   */
+  taxByRate?: { vatRate: number; tax: number }[];
   /** Payable rounding adjustment (default 0). */
   payableRounding?: number;
   /** Supplier IBAN for credit transfer (PaymentMeans code 30). */
@@ -92,6 +104,12 @@ function xmlEscape(v: unknown): string {
 function fmt2(n: number): string {
   const safe = Math.round((Number(n) + Number.EPSILON) * 100) / 100;
   return safe.toFixed(2);
+}
+
+/** Eenheidsprijs met tot 4 decimalen (BIS laat dat toe), minstens 2. */
+function fmtPrice(n: number): string {
+  const r = Math.round((Number(n) || 0) * 10000) / 10000;
+  return r.toFixed(4).replace(/0{1,2}$/, '');
 }
 
 function fmtQty(n: number): string {
@@ -133,12 +151,23 @@ function aggregateTaxSubtotals(input: UblInvoiceInput): TaxSubtotal[] {
     cur.taxable += Number(l.lineTotal ?? 0);
     byRate.set(r, cur);
   }
+  for (const a of input.allowances ?? []) {
+    const r = Number(a.vatRate ?? 0);
+    const cur = byRate.get(r) ?? { taxable: 0 };
+    cur.taxable -= Number(a.amount ?? 0);
+    byRate.set(r, cur);
+  }
   const out: TaxSubtotal[] = [];
   for (const [rate, { taxable }] of byRate.entries()) {
     const taxableR = Math.round((taxable + Number.EPSILON) * 100) / 100;
     // For zero-rated / exempt / reverse-charge categories we never compute tax.
     const isZeroish = category.id !== 'S';
-    const tax = isZeroish ? 0 : Math.round((taxableR * rate / 100 + Number.EPSILON) * 100) / 100;
+    const given = input.taxByRate?.find((t) => Number(t.vatRate) === rate);
+    const tax = isZeroish
+      ? 0
+      : given !== undefined
+        ? Math.round(Number(given.tax) * 100) / 100
+        : Math.round((taxableR * rate / 100 + Number.EPSILON) * 100) / 100;
     out.push({ rate, taxable: taxableR, tax, category });
   }
   return out.sort((a, b) => b.rate - a.rate);
@@ -239,9 +268,31 @@ function taxTotalXml(input: UblInvoiceInput, indent: string): string {
   return lines.join('\n');
 }
 
+function allowanceTotal(input: UblInvoiceInput): number {
+  return Math.round((input.allowances ?? []).reduce((s, a) => s + Number(a.amount || 0), 0) * 100) / 100;
+}
+
+function allowancesXml(input: UblInvoiceInput, indent: string): string {
+  const category = taxCategoryFor(input.vatRegime);
+  return (input.allowances ?? []).filter((a) => Number(a.amount) > 0).map((a) => [
+    `${indent}<cac:AllowanceCharge>`,
+    `${indent}  <cbc:ChargeIndicator>false</cbc:ChargeIndicator>`,
+    `${indent}  <cbc:AllowanceChargeReasonCode>95</cbc:AllowanceChargeReasonCode>`,
+    `${indent}  <cbc:AllowanceChargeReason>${xmlEscape(a.reason || 'Discount')}</cbc:AllowanceChargeReason>`,
+    `${indent}  <cbc:Amount currencyID="${input.currency}">${fmt2(a.amount)}</cbc:Amount>`,
+    `${indent}  <cac:TaxCategory>`,
+    `${indent}    <cbc:ID>${category.id}</cbc:ID>`,
+    `${indent}    <cbc:Percent>${fmt2(a.vatRate ?? 0)}</cbc:Percent>`,
+    `${indent}    <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>`,
+    `${indent}  </cac:TaxCategory>`,
+    `${indent}</cac:AllowanceCharge>`,
+  ].join('\n')).join('\n');
+}
+
 function monetaryTotalXml(input: UblInvoiceInput, indent: string, tagName: 'LegalMonetaryTotal'): string {
-  const lineExt = Math.round((Number(input.subtotal) + Number.EPSILON) * 100) / 100;
-  const taxExcl = lineExt;
+  const allowances = allowanceTotal(input);
+  const taxExcl = Math.round((Number(input.subtotal) + Number.EPSILON) * 100) / 100;
+  const lineExt = Math.round((taxExcl + allowances) * 100) / 100;
   const taxIncl = Math.round((Number(input.total) + Number.EPSILON) * 100) / 100;
   const payable = taxIncl;
   const rounding = Math.round((Number(input.payableRounding ?? 0) + Number.EPSILON) * 100) / 100;
@@ -250,6 +301,7 @@ function monetaryTotalXml(input: UblInvoiceInput, indent: string, tagName: 'Lega
     `${indent}  <cbc:LineExtensionAmount currencyID="${input.currency}">${fmt2(lineExt)}</cbc:LineExtensionAmount>`,
     `${indent}  <cbc:TaxExclusiveAmount currencyID="${input.currency}">${fmt2(taxExcl)}</cbc:TaxExclusiveAmount>`,
     `${indent}  <cbc:TaxInclusiveAmount currencyID="${input.currency}">${fmt2(taxIncl)}</cbc:TaxInclusiveAmount>`,
+    ...(allowances > 0 ? [`${indent}  <cbc:AllowanceTotalAmount currencyID="${input.currency}">${fmt2(allowances)}</cbc:AllowanceTotalAmount>`] : []),
     `${indent}  <cbc:PayableRoundingAmount currencyID="${input.currency}">${fmt2(rounding)}</cbc:PayableRoundingAmount>`,
     `${indent}  <cbc:PayableAmount currencyID="${input.currency}">${fmt2(payable)}</cbc:PayableAmount>`,
     `${indent}</cac:${tagName}>`,
@@ -278,7 +330,7 @@ function linesXml(input: UblInvoiceInput, indent: string): string {
     out.push(`${indent}    </cac:ClassifiedTaxCategory>`);
     out.push(`${indent}  </cac:Item>`);
     out.push(`${indent}  <cac:Price>`);
-    out.push(`${indent}    <cbc:PriceAmount currencyID="${input.currency}">${fmt2(l.unitPrice)}</cbc:PriceAmount>`);
+    out.push(`${indent}    <cbc:PriceAmount currencyID="${input.currency}">${fmtPrice(l.unitPrice)}</cbc:PriceAmount>`);
     out.push(`${indent}    <cbc:BaseQuantity unitCode="${unit}">1</cbc:BaseQuantity>`);
     out.push(`${indent}  </cac:Price>`);
     out.push(`${indent}</cac:${tag}>`);
@@ -351,6 +403,8 @@ export function buildPeppolUbl(input: UblInvoiceInput): string {
   const pm = paymentMeansXml(input, '  ');
   if (pm) parts.push(pm);
 
+  const ac = allowancesXml(input, '  ');
+  if (ac) parts.push(ac);
   parts.push(taxTotalXml(input, '  '));
   parts.push(monetaryTotalXml(input, '  ', 'LegalMonetaryTotal'));
   parts.push(linesXml(input, '  '));

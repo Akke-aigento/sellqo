@@ -786,6 +786,10 @@
           "mandate_setup_stalled": {
             "label": "Mandat non finalisé",
             "description": "Le client n'a pas finalisé le mandat de prélèvement"
+          },
+          "invoice_blocked": {
+            "label": "Facture non créée",
+            "description": "SellQo n'a pas pu créer une facture correcte pour une commande (les montants ne correspondent pas)"
           }
         },
         "payments": {

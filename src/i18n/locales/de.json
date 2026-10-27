@@ -786,6 +786,10 @@
           "mandate_setup_stalled": {
             "label": "Mandat nicht abgeschlossen",
             "description": "Der Kunde hat das Lastschriftmandat nicht abgeschlossen"
+          },
+          "invoice_blocked": {
+            "label": "Rechnung nicht erstellt",
+            "description": "SellQo konnte für eine Bestellung keine korrekte Rechnung erstellen (Beträge stimmen nicht)"
           }
         },
         "payments": {

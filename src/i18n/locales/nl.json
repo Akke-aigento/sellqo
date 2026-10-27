@@ -758,6 +758,10 @@
           "mandate_setup_stalled": {
             "label": "Machtiging niet afgerond",
             "description": "Klant heeft de incassomachtiging niet afgerond"
+          },
+          "invoice_blocked": {
+            "label": "Factuur niet aangemaakt",
+            "description": "SellQo kon voor een order geen kloppende factuur maken (bedragen kloppen niet)"
           }
         },
         "payments": {

@@ -107,6 +107,21 @@ export function rateForRegime(regime: VatRegimeCode, destCountry?: string): numb
   }
 }
 
+/**
+ * INVOICE-INTEGRITY-1: binnenlands regime dat bij een btw-tarief hoort (0/6/12/21), of null.
+ * Een orderregel draagt zijn eigen tarief (order_items.vat_rate). Zonder productcategorie gaf
+ * de resolver binnenlands altijd 21%, waardoor een product aan 6% met 21% gefactureerd werd.
+ */
+export function domesticRegimeForRate(rate: number): VatRegimeCode | null {
+  switch (Number(rate)) {
+    case 21: return 'domestic_standard';
+    case 12: return 'domestic_reduced_12';
+    case 6: return 'domestic_reduced_6';
+    case 0: return 'domestic_zero';
+    default: return null;
+  }
+}
+
 /** Regimes waarbij er géén btw wordt aangerekend: bedragen worden netto. */
 export const ZERO_RATED_REGIMES = new Set<VatRegimeCode>([
   'ic_supply_goods', 'ic_supply_services', 'ic_supply_triangulation',

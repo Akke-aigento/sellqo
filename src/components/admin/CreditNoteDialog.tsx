@@ -26,7 +26,8 @@ import {
 } from '@/components/ui/table';
 import { useTenant } from '@/hooks/useTenant';
 import { useCreditNotes } from '@/hooks/useCreditNotes';
-import { CreditNoteType, CreditNoteLine } from '@/types/creditNote';
+import { CreditNoteType } from '@/types/creditNote';
+import { buildCreditLines, creditTotals, isDiscountLine, lineGrossCents } from '@/lib/creditNoteLines';
 
 interface InvoiceLine {
   id: string;
@@ -37,6 +38,8 @@ interface InvoiceLine {
   vat_amount: number;
   line_total: number;
   line_type: 'product' | 'shipping' | 'discount';
+  net_amount?: number | null;
+  gross_amount?: number | null;
 }
 
 interface CreditNoteDialogProps {
@@ -100,6 +103,9 @@ export function CreditNoteDialog({
   };
 
   const toggleLine = (lineId: string) => {
+    // INVOICE-INTEGRITY-1: een kortingsregel gaat naar rato mee, je kiest hem niet zelf.
+    const target = invoiceLines.find((l) => l.id === lineId);
+    if (target && isDiscountLine(target)) return;
     const newSelected = new Set(selectedLines);
     if (newSelected.has(lineId)) {
       newSelected.delete(lineId);
@@ -109,38 +115,20 @@ export function CreditNoteDialog({
     setSelectedLines(newSelected);
   };
 
-  // Gross (VAT-inclusive) per line. Reconstructing from unit_price*qty + vat_amount
-  // is authoritative because invoice_lines.line_total is stored inconsistently in
-  // the DB (sometimes net, sometimes gross); unit_price + vat_amount is always the
-  // exact per-line contribution to invoice.total.
-  const lineGross = (line: InvoiceLine) =>
-    Number(line.unit_price || 0) * Number(line.quantity || 0) + Number(line.vat_amount || 0);
+  // INVOICE-INTEGRITY-1: bruto per regel = netto (net_amount, anders prijs × aantal) + btw.
+  // line_total is in de databank soms netto, soms bruto en dus geen bron.
+  const lineGross = (line: InvoiceLine) => lineGrossCents(line) / 100;
 
-  const getSelectedTotal = () => {
-    return invoiceLines
-      .filter((line) => selectedLines.has(line.id))
-      .reduce((sum, line) => sum + lineGross(line), 0);
-  };
+  // De regels die écht op de creditnota komen, inclusief het kortingsaandeel.
+  const creditLines = buildCreditLines(invoiceLines, selectedLines, type);
+  const getSelectedTotal = () => creditTotals(creditLines).total;
 
   const handleSubmit = async () => {
     if (!reason.trim()) return;
 
-    const linesToCredit = invoiceLines.filter((line) =>
-      selectedLines.has(line.id)
-    );
-
-    const creditNoteLines: Omit<CreditNoteLine, 'id' | 'credit_note_id' | 'created_at'>[] =
-      linesToCredit.map((line) => ({
-        original_invoice_line_id: line.id,
-        description: line.description,
-        quantity: line.quantity,
-        unit_price: line.unit_price,
-        vat_rate: line.vat_rate,
-        vat_amount: line.vat_amount,
-        // Store NET on credit_note_lines so that subtotal + tax_amount = total.
-        line_total: Number(line.unit_price || 0) * Number(line.quantity || 0),
-        line_type: line.line_type,
-      }));
+    // Netto op credit_note_lines (subtotaal + btw = totaal), korting naar rato inbegrepen.
+    const creditNoteLines = creditLines;
+    if (creditNoteLines.length === 0) return;
 
     await createCreditNote.mutateAsync({
       original_invoice_id: invoiceId,
@@ -237,14 +225,16 @@ export function CreditNoteDialog({
                     {invoiceLines.map((line) => (
                       <TableRow
                         key={line.id}
-                        className="cursor-pointer"
+                        className={isDiscountLine(line) ? 'text-muted-foreground' : 'cursor-pointer'}
                         onClick={() => toggleLine(line.id)}
                       >
                         <TableCell>
-                          <Checkbox
-                            checked={selectedLines.has(line.id)}
-                            onCheckedChange={() => toggleLine(line.id)}
-                          />
+                          {isDiscountLine(line) ? null : (
+                            <Checkbox
+                              checked={selectedLines.has(line.id)}
+                              onCheckedChange={() => toggleLine(line.id)}
+                            />
+                          )}
                         </TableCell>
                         <TableCell>{line.description}</TableCell>
                         <TableCell className="text-right">{line.quantity}x</TableCell>
@@ -298,6 +288,7 @@ export function CreditNoteDialog({
             disabled={
               !reason.trim() ||
               selectedLines.size === 0 ||
+              creditLines.length === 0 ||
               createCreditNote.isPending
             }
           >

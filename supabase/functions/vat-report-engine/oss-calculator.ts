@@ -17,7 +17,9 @@ export function buildOssByCountry(
     for (const line of lines) {
       const rate = Number(line.vat_rate || 0);
       const key = `${country}::${rate}`;
-      const base = Number(line.line_total || 0) - Number(line.vat_amount || 0);
+      // INVOICE-INTEGRITY-1: netto = net_amount, anders line_total (netto bij orderfacturen).
+      // Tot 27-10 werd de btw van line_total afgetrokken: OSS-basis van orderfacturen te laag.
+      const base = line.net_amount !== null && line.net_amount !== undefined ? Number(line.net_amount) : Number(line.line_total || 0);
       const vat = Number(line.vat_amount || 0);
       const cur = map.get(key) || { country, rate, base: 0, vat: 0, invoiceIds: new Set<string>() };
       cur.base += base;

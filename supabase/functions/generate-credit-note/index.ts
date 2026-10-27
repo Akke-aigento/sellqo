@@ -134,6 +134,8 @@ async function tryEmbedLogo(pdfDoc: any, admin: any, tenant: any): Promise<any |
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  // Versie-vingerafdruk na een deploy (doet niets).
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "INVOICE-INTEGRITY-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const body = await req.json().catch(() => ({}));
@@ -350,9 +352,12 @@ serve(async (req) => {
       );
       const qty = Number(ln.quantity || 1);
       const rate = Number(ln.vat_rate || 0);
-      const unit = Math.abs(Number(ln.unit_price || 0));
-      const total = Math.abs(Number(ln.line_total || 0));
-      const vat = Math.abs(Number(ln.vat_amount || 0));
+      // INVOICE-INTEGRITY-1: een kortingsregel blijft negatief (Math.abs maakte er een
+      // extra creditbedrag van op de pdf).
+      const sign = ln.line_type === "discount" ? -1 : 1;
+      const unit = sign * Math.abs(Number(ln.unit_price || 0));
+      const total = sign * Math.abs(Number(ln.line_total || 0));
+      const vat = sign * Math.abs(Number(ln.vat_amount || 0));
       const grp = vatGroups.get(rate) || { taxable: 0, vat: 0 };
       grp.taxable += total; grp.vat += vat;
       vatGroups.set(rate, grp);

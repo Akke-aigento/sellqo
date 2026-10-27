@@ -34,7 +34,7 @@ export function NewCreditNoteDialog({ onSuccess }: { onSuccess?: () => void }) {
     try {
       const { data, error } = await supabase
         .from('invoice_lines')
-        .select('id, description, quantity, unit_price, vat_rate, vat_amount, line_total, line_type')
+        .select('id, description, quantity, unit_price, vat_rate, vat_amount, line_total, line_type, net_amount, gross_amount')
         .eq('invoice_id', id)
         .order('sort_order', { ascending: true });
       if (error) throw error;

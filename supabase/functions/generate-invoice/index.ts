@@ -4,10 +4,12 @@ import { PDFDocument, rgb, StandardFonts } from "https://esm.sh/pdf-lib@1.17.1";
 import qrcode from "https://esm.sh/qrcode-generator@1.4.4?target=deno";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { hardenPdfFont } from "../_shared/pdfText.ts";
+import { buildInvoiceLines, type BuildItem } from "../_shared/invoiceBuild.ts";
 import {
   resolveVatRegimeSafe,
   decideVatRegime,
   rateForRegime,
+  domesticRegimeForRate,
   REGIME_TO_BOX,
   REGIME_TO_GL,
   type SalesChannel,
@@ -311,6 +313,8 @@ function generateCIIXml(data: {
   total: number;
   shippingCost: number;
   discountAmount: number;
+  discountsByRate?: DiscountByRate[];
+  shippingByRate?: DiscountByRate[];
   discountCode: string | null;
   vatCalculation: VatCalculation;
   taxBreakdown: TaxBreakdownLine[];
@@ -320,7 +324,7 @@ function generateCIIXml(data: {
   const { 
     invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
     orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost, 
-    discountAmount, discountCode,
+    discountAmount, discountsByRate, shippingByRate, discountCode,
     vatCalculation, taxBreakdown, ogmReference, isB2B 
   } = data;
   
@@ -348,7 +352,7 @@ function generateCIIXml(data: {
       </ram:SpecifiedTradeProduct>
       <ram:SpecifiedLineTradeAgreement>
         <ram:NetPriceProductTradePrice>
-          <ram:ChargeAmount>${Number(item.unit_price).toFixed(2)}</ram:ChargeAmount>
+          <ram:ChargeAmount>${fmtPrice(item.unit_price)}</ram:ChargeAmount>
         </ram:NetPriceProductTradePrice>
       </ram:SpecifiedLineTradeAgreement>
       <ram:SpecifiedLineTradeDelivery>
@@ -465,12 +469,28 @@ function generateCIIXml(data: {
         </ram:PayeeSpecifiedCreditorFinancialInstitution>` : ''}
       </ram:SpecifiedTradeSettlementPaymentMeans>` : ''}
 ${taxBreakdownXml}
-${discountAmount > 0 ? `
+${shippingCharges(shippingCost, shippingByRate, vatCalculation).map((d) => `
+      <ram:SpecifiedTradeAllowanceCharge>
+        <ram:ChargeIndicator><udt:Indicator>true</udt:Indicator></ram:ChargeIndicator>
+        <ram:ActualAmount>${d.amount.toFixed(2)}</ram:ActualAmount>
+        <ram:Reason>Verzendkosten</ram:Reason>
+        <ram:CategoryTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>${getVatCategoryCode(d.vatCategory)}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${d.vatRate}</ram:RateApplicablePercent>
+        </ram:CategoryTradeTax>
+      </ram:SpecifiedTradeAllowanceCharge>`).join('')}
+${discountAllowances(discountAmount, discountsByRate, vatCalculation).map((d) => `
       <ram:SpecifiedTradeAllowanceCharge>
         <ram:ChargeIndicator><udt:Indicator>false</udt:Indicator></ram:ChargeIndicator>
-        <ram:ActualAmount>${discountAmount.toFixed(2)}</ram:ActualAmount>
+        <ram:ActualAmount>${d.amount.toFixed(2)}</ram:ActualAmount>
         <ram:Reason>${discountCode ? escapeXml('Korting: ' + discountCode) : 'Korting'}</ram:Reason>
-      </ram:SpecifiedTradeAllowanceCharge>` : ''}
+        <ram:CategoryTradeTax>
+          <ram:TypeCode>VAT</ram:TypeCode>
+          <ram:CategoryCode>${getVatCategoryCode(d.vatCategory)}</ram:CategoryCode>
+          <ram:RateApplicablePercent>${d.vatRate}</ram:RateApplicablePercent>
+        </ram:CategoryTradeTax>
+      </ram:SpecifiedTradeAllowanceCharge>`).join('')}
       <ram:SpecifiedTradeSettlementHeaderMonetarySummation>
         <ram:LineTotalAmount>${subtotal.toFixed(2)}</ram:LineTotalAmount>
         ${shippingCost > 0 ? `<ram:ChargeTotalAmount>${shippingCost.toFixed(2)}</ram:ChargeTotalAmount>` : ''}
@@ -501,6 +521,8 @@ function generateUBL(data: {
   total: number;
   shippingCost: number;
   discountAmount: number;
+  discountsByRate?: DiscountByRate[];
+  shippingByRate?: DiscountByRate[];
   discountCode: string | null;
   vatCalculation: VatCalculation;
   taxBreakdown: TaxBreakdownLine[];
@@ -508,7 +530,7 @@ function generateUBL(data: {
   const { 
     invoiceNumber, issueDate, dueDate, currency, tenant, customer, order, 
     orderItems, invoiceLines, subtotal, taxAmount, total, shippingCost,
-    discountAmount, discountCode,
+    discountAmount, discountsByRate, shippingByRate, discountCode,
     vatCalculation, taxBreakdown 
   } = data;
   
@@ -537,7 +559,7 @@ function generateUBL(data: {
         </cac:ClassifiedTaxCategory>
       </cac:Item>
       <cac:Price>
-        <cbc:PriceAmount currencyID="${currency}">${Number(item.unit_price).toFixed(2)}</cbc:PriceAmount>
+        <cbc:PriceAmount currencyID="${currency}">${fmtPrice(item.unit_price)}</cbc:PriceAmount>
       </cac:Price>
     </cac:InvoiceLine>`;
   }).join('\n');
@@ -575,20 +597,22 @@ function generateUBL(data: {
       </cac:TaxSubtotal>`).join('\n');
 
   // Shipping as AllowanceCharge (charge)
-  const shippingCharge = shippingCost > 0 ? `
+  // INVOICE-INTEGRITY-1: verzending per tarief, met het eigen tarief van de verzendregel
+  // (voorheen het tarief van het eerste product: bij een product aan 6% fout, BR-S-08).
+  const shippingCharge = shippingCharges(shippingCost, shippingByRate, vatCalculation).map((d) => `
   <cac:AllowanceCharge>
     <cbc:ChargeIndicator>true</cbc:ChargeIndicator>
     <cbc:AllowanceChargeReasonCode>FC</cbc:AllowanceChargeReasonCode>
     <cbc:AllowanceChargeReason>Shipping costs</cbc:AllowanceChargeReason>
-    <cbc:Amount currencyID="${currency}">${shippingCost.toFixed(2)}</cbc:Amount>
+    <cbc:Amount currencyID="${currency}">${d.amount.toFixed(2)}</cbc:Amount>
     <cac:TaxCategory>
-      <cbc:ID>S</cbc:ID>
-      <cbc:Percent>${vatCalculation.vatRate}</cbc:Percent>
+      <cbc:ID>${getVatCategoryCode(d.vatCategory)}</cbc:ID>
+      <cbc:Percent>${d.vatRate}</cbc:Percent>
       <cac:TaxScheme>
         <cbc:ID>VAT</cbc:ID>
       </cac:TaxScheme>
     </cac:TaxCategory>
-  </cac:AllowanceCharge>` : '';
+  </cac:AllowanceCharge>`).join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
@@ -669,20 +693,20 @@ function generateUBL(data: {
     </cac:PayeeFinancialAccount>
   </cac:PaymentMeans>` : ''}
 ${shippingCharge}
-${discountAmount > 0 ? `
+${discountAllowances(discountAmount, discountsByRate, vatCalculation).map((d) => `
   <cac:AllowanceCharge>
     <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
     <cbc:AllowanceChargeReasonCode>95</cbc:AllowanceChargeReasonCode>
     <cbc:AllowanceChargeReason>${discountCode ? escapeXml('Discount: ' + discountCode) : 'Discount'}</cbc:AllowanceChargeReason>
-    <cbc:Amount currencyID="${currency}">${discountAmount.toFixed(2)}</cbc:Amount>
+    <cbc:Amount currencyID="${currency}">${d.amount.toFixed(2)}</cbc:Amount>
     <cac:TaxCategory>
-      <cbc:ID>S</cbc:ID>
-      <cbc:Percent>${vatCalculation.vatRate}</cbc:Percent>
+      <cbc:ID>${getVatCategoryCode(d.vatCategory)}</cbc:ID>
+      <cbc:Percent>${d.vatRate}</cbc:Percent>
       <cac:TaxScheme>
         <cbc:ID>VAT</cbc:ID>
       </cac:TaxScheme>
     </cac:TaxCategory>
-  </cac:AllowanceCharge>` : ''}
+  </cac:AllowanceCharge>`).join('')}
   <cac:TaxTotal>
     <cbc:TaxAmount currencyID="${currency}">${taxAmount.toFixed(2)}</cbc:TaxAmount>
 ${taxSubtotals}
@@ -701,6 +725,95 @@ ${invoiceLinesXml}
 </Invoice>`;
 }
 
+/**
+ * INVOICE-INTEGRITY-1: een order waarvoor geen kloppende factuur te maken is (betaald méér
+ * dan de orderregels, korting groter dan de order). Eén melding per order aan de winkel.
+ */
+type NotifyClient = {
+  from: (table: string) => {
+    insert: (row: Record<string, unknown>) => PromiseLike<{ error: { code?: string; message: string } | null }>;
+  };
+};
+async function notifyInvoiceBlocked(
+  client: NotifyClient,
+  order: { id: string; tenant_id: string; order_number?: string | null },
+  reason: string,
+): Promise<void> {
+  try {
+    const { error } = await client.from("notifications").insert({
+      tenant_id: order.tenant_id,
+      category: "invoices",
+      type: "invoice_blocked",
+      priority: "high",
+      title: `Factuur niet aangemaakt: order ${order.order_number ?? ''}`.trim(),
+      message: `Voor order ${order.order_number ?? order.id} kon SellQo geen kloppende factuur maken: ${reason}. Kijk de order na (regels, korting, betaald bedrag) en maak de factuur daarna opnieuw aan.`,
+      action_url: `/admin/orders/${order.id}`,
+      data: { order_id: order.id, reason, dedupe_key: `invoice_blocked:${order.id}` },
+    });
+    // 23505: deze order is al gemeld (unieke dedupe-index).
+    if (error && (error as { code?: string }).code !== "23505") console.error("[GENERATE-INVOICE] notify blocked failed", error.message);
+  } catch (e) {
+    console.error("[GENERATE-INVOICE] notify blocked failed", e instanceof Error ? e.message : String(e));
+  }
+}
+
+type DiscountByRate = { vatRate: number; vatCategory: string; amount: number };
+
+/**
+ * INVOICE-INTEGRITY-1: één korting (AllowanceCharge) per btw-tarief, met dat tarief erbij.
+ * Zonder uitsplitsing (oude aanroepen): één korting op het hoofdtarief, zoals voorheen.
+ */
+function discountAllowances(total: number, byRate: DiscountByRate[] | undefined, vat: VatCalculation): DiscountByRate[] {
+  if (byRate && byRate.length > 0) return byRate.filter((d) => d.amount > 0);
+  return total > 0 ? [{ vatRate: vat.vatRate, vatCategory: vat.taxCategoryCode || 'S', amount: total }] : [];
+}
+
+/** Verzendkosten per tarief; zonder uitsplitsing één bedrag op het hoofdtarief (oud gedrag). */
+function shippingCharges(total: number, byRate: DiscountByRate[] | undefined, vat: VatCalculation): DiscountByRate[] {
+  if (byRate && byRate.length > 0) return byRate.filter((d) => d.amount > 0);
+  return total > 0 ? [{ vatRate: vat.vatRate, vatCategory: vat.taxCategoryCode || 'S', amount: total }] : [];
+}
+
+/** Eenheidsprijs met tot 4 decimalen (EN16931 laat dat toe), minstens 2. */
+function fmtPrice(x: unknown): string {
+  const n = Math.round((Number(x) || 0) * 10000) / 10000;
+  const s = n.toFixed(4).replace(/0{1,2}$/, '');
+  return s;
+}
+
+/**
+ * INVOICE-INTEGRITY-1: totaalregels voor pdf/CII/UBL uit opgeslagen of nieuwe factuurregels.
+ * Productregels gaan in de tabel; verzending en korting worden totaalregels (een negatieve
+ * prijs op een regel is in Peppol niet toegelaten). Netto = net_amount, anders line_total.
+ */
+function documentPartsFromLines(lines: Array<Record<string, unknown>>) {
+  const c = (x: unknown) => Math.round((Number(x) || 0) * 100);
+  const net = (l: Record<string, unknown>) => (l.net_amount !== null && l.net_amount !== undefined ? l.net_amount : l.line_total);
+  const kind = (l: Record<string, unknown>) => String(l.line_type || 'product');
+  const products = lines.filter((l) => kind(l) === 'product');
+  const sum = (ls: Array<Record<string, unknown>>) => ls.reduce((a, l) => a + c(net(l)), 0) / 100;
+  const discounts = lines.filter((l) => kind(l) === 'discount');
+  const breakdown = new Map<string, TaxBreakdownLine>();
+  for (const l of lines) {
+    const rate = Number(l.vat_rate) || 0;
+    const cat = String(l.vat_category || 'S');
+    const key = `${rate}-${cat}`;
+    const ex = breakdown.get(key) || { vatRate: rate, vatCategory: cat, taxableAmount: 0, vatAmount: 0 };
+    ex.taxableAmount = (c(ex.taxableAmount) + c(net(l))) / 100;
+    ex.vatAmount = (c(ex.vatAmount) + c(l.vat_amount)) / 100;
+    breakdown.set(key, ex);
+  }
+  return {
+    productLines: products.map((l) => ({ ...l, line_total: Number(net(l)) || 0, product_name: l.description })),
+    subtotal: sum(products),
+    shipping: sum(lines.filter((l) => kind(l) === 'shipping')),
+    discount: -sum(discounts),
+    discountsByRate: discounts.map((l) => ({ vatRate: Number(l.vat_rate) || 0, vatCategory: String(l.vat_category || 'S'), amount: -(Number(net(l)) || 0) })),
+    shippingByRate: lines.filter((l) => kind(l) === 'shipping').map((l) => ({ vatRate: Number(l.vat_rate) || 0, vatCategory: String(l.vat_category || 'S'), amount: Number(net(l)) || 0 })),
+    breakdown: Array.from(breakdown.values()).sort((a, b) => b.vatRate - a.vatRate),
+  };
+}
+
 // Generate true Factur-X PDF with embedded CII XML using pdf-lib
 async function generateFacturXPDF(data: {
   invoiceNumber: string;
@@ -717,6 +830,8 @@ async function generateFacturXPDF(data: {
   total: number;
   shippingCost: number;
   discountAmount: number;
+  discountsByRate?: DiscountByRate[];
+  shippingByRate?: DiscountByRate[];
   discountCode: string | null;
   vatCalculation: VatCalculation;
   taxBreakdown: TaxBreakdownLine[];
@@ -1164,6 +1279,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // Versie-vingerafdruk na een deploy (doet niets, geen auth nodig).
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "INVOICE-INTEGRITY-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   try {
     logStep("Starting invoice generation");
@@ -1227,20 +1346,39 @@ serve(async (req) => {
         };
       }
 
-      // Tax breakdown straight from the stored invoice_lines (same aggregation as definitiveLines).
-      const regenMap = new Map<string, TaxBreakdownLine>();
+      // INVOICE-INTEGRITY-1: kloppen de opgeslagen regels met de kop (facturen vanaf 27-10),
+      // dan dezelfde opsplitsing als bij het aanmaken. Oudere facturen waarvan de korting enkel
+      // in het totaal zat (of zonder regels) krijgen exact de vroegere weergave.
+      const regenParts = documentPartsFromLines(lines);
+      const centsOfRegen = (x: unknown) => Math.round((Number(x) || 0) * 100);
+      const regenNetCents = lines.reduce((a: number, l: Record<string, unknown>) =>
+        a + centsOfRegen(l.net_amount !== null && l.net_amount !== undefined ? l.net_amount : l.line_total), 0);
+      const regenBalanced = lines.length > 0 && regenNetCents === centsOfRegen(inv.subtotal);
+      const legacyMap = new Map<string, TaxBreakdownLine>();
       for (const l of lines) {
         const rate = Number(l.vat_rate) || 0;
         const cat = l.vat_category || 'S';
         const key = `${rate}-${cat}`;
-        const ex = regenMap.get(key) || { vatRate: rate, vatCategory: cat, taxableAmount: 0, vatAmount: 0 };
+        const ex = legacyMap.get(key) || { vatRate: rate, vatCategory: cat, taxableAmount: 0, vatAmount: 0 };
         ex.taxableAmount += Number(l.line_total) || 0;
         ex.vatAmount += Number(l.vat_amount) || 0;
-        regenMap.set(key, ex);
+        legacyMap.set(key, ex);
       }
-      const regenBreakdown: TaxBreakdownLine[] = regenMap.size > 0
-        ? Array.from(regenMap.values()).sort((a, b) => b.vatRate - a.vatRate)
-        : [{ vatRate: 0, vatCategory: 'S', taxableAmount: Number(inv.subtotal) || 0, vatAmount: Number(inv.tax_amount) || 0 }];
+      const regenBreakdown: TaxBreakdownLine[] = regenBalanced
+        ? regenParts.breakdown
+        : legacyMap.size > 0
+          ? Array.from(legacyMap.values()).sort((a, b) => b.vatRate - a.vatRate)
+          : [{ vatRate: 0, vatCategory: 'S', taxableAmount: Number(inv.subtotal) || 0, vatAmount: Number(inv.tax_amount) || 0 }];
+      const legacyRows = lines.map((l: Record<string, unknown>) => ({
+        description: l.description,
+        product_name: l.description,
+        quantity: l.quantity,
+        unit_price: Number(l.unit_price) || 0,
+        total_price: Number(l.line_total) || 0,
+        line_total: Number(l.line_total) || 0,
+        vat_rate: Number(l.vat_rate) || 0,
+        vat_category: l.vat_category,
+      }));
 
       // VAT mention text derived from the stored regime — never recalculated.
       const regenLang = getCustomerLanguage(regenCustomer, regenTenant);
@@ -1283,24 +1421,17 @@ serve(async (req) => {
         tenant: regenTenant,
         customer: regenCustomer,
         order: regenOrder || {},
-        // Stored lines are the single source of truth (shipping line included as a row).
-        orderItems: lines.map((l) => ({
-          description: l.description,
-          product_name: l.description,
-          quantity: l.quantity,
-          unit_price: Number(l.unit_price) || 0,
-          total_price: Number(l.line_total) || 0,
-          line_total: Number(l.line_total) || 0,
-          vat_rate: Number(l.vat_rate) || 0,
-          vat_category: l.vat_category,
-        })),
-        invoiceLines: [],
-        subtotal: Number(inv.subtotal) || 0,
+        // Opgeslagen regels zijn de bron: producten in de tabel, verzending/korting als totaal.
+        orderItems: regenBalanced ? regenParts.productLines : legacyRows,
+        invoiceLines: regenBalanced ? regenParts.productLines : [],
+        subtotal: regenBalanced ? regenParts.subtotal : Number(inv.subtotal) || 0,
         taxAmount: Number(inv.tax_amount) || 0,
         total: Number(inv.total) || 0,
-        shippingCost: 0,
-        discountAmount: 0,
-        discountCode: null,
+        shippingCost: regenBalanced ? regenParts.shipping : 0,
+        discountAmount: regenBalanced ? regenParts.discount : 0,
+        discountsByRate: regenBalanced ? regenParts.discountsByRate : [],
+        shippingByRate: regenBalanced ? regenParts.shippingByRate : [],
+        discountCode: regenBalanced ? (regenOrder?.discount_code || null) : null,
         vatCalculation: regenVatCalculation,
         taxBreakdown: regenBreakdown,
         ogmReference: inv.ogm_reference || '',
@@ -1370,26 +1501,19 @@ serve(async (req) => {
     // 'credited'; 'cancelled' is het dichtstbijzijnde bestaande equivalent).
     // Zonder force_new is het gedrag byte-voor-byte ongewijzigd.
     if (force_new === true) {
-      const { data: staleInvoices } = await supabaseClient
-        .from("invoices")
-        .select("id, invoice_number")
-        .eq("order_id", order_id);
-
-      if (staleInvoices && staleInvoices.length > 0) {
-        await supabaseClient
-          .from("invoices")
-          .update({ status: "cancelled" })
-          .eq("order_id", order_id);
-        logStep("force_new — existing invoices marked cancelled", {
-          invoices: staleInvoices.map((i: { invoice_number: string }) => i.invoice_number),
-        });
-      }
+      // INVOICE-INTEGRITY-1: annuleren gebeurt in create_invoice_with_lines, in dezelfde
+      // transactie als de nieuwe factuur (en enkel als die klopt).
+      logStep("force_new — existing invoices will be cancelled with the new insert");
     } else {
+      // INVOICE-INTEGRITY-1: .single() gaf null bij twee facturen en maakte dan een derde.
       const { data: existingInvoice } = await supabaseClient
         .from("invoices")
         .select("id")
         .eq("order_id", order_id)
-        .single();
+        .neq("status", "cancelled")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
       if (existingInvoice) {
         logStep("Invoice already exists", { invoice_id: existingInvoice.id });
@@ -1470,73 +1594,8 @@ serve(async (req) => {
       customerCountry,
     });
     
-    // Now recalculate amounts based on vat_handling
-    let subtotalExcl: number;
-    let calculatedTaxAmount: number;
-    let finalTotal: number;
-    
-    if (vatHandling === 'inclusive') {
-      // Prices are INCLUSIVE of VAT - back-calculate to get net amounts
-      // The order total already includes VAT, so we need to extract it
-      // Discount is also VAT-inclusive, so subtract before back-calculation
-      finalTotal = orderSubtotal + shippingCost - discountAmount;
-      
-      // If VAT rate is 0 (reverse charge, export, etc.), no tax extraction needed
-      if (vatCalculation.vatRate === 0) {
-        subtotalExcl = finalTotal;
-        calculatedTaxAmount = 0;
-      } else {
-        // Back-calculate: netAmount = grossAmount / (1 + vatRate/100)
-        subtotalExcl = finalTotal / (1 + vatCalculation.vatRate / 100);
-        calculatedTaxAmount = finalTotal - subtotalExcl;
-      }
-      
-      logStep("Inclusive VAT calculation", { 
-        finalTotal, 
-        subtotalExcl: subtotalExcl.toFixed(2), 
-        calculatedTaxAmount: calculatedTaxAmount.toFixed(2),
-        vatRate: vatCalculation.vatRate,
-        discountAmount
-      });
-    } else {
-      // Prices are EXCLUSIVE of VAT - add tax on top (original behavior)
-      // Discount is on the net amount, subtract before adding VAT
-      const netBeforeDiscount = orderSubtotal + shippingCost;
-      subtotalExcl = netBeforeDiscount - discountAmount;
-      
-      // Recalculate VAT on discounted amount
-      if (vatCalculation.vatRate === 0) {
-        calculatedTaxAmount = 0;
-      } else {
-        calculatedTaxAmount = subtotalExcl * (vatCalculation.vatRate / 100);
-      }
-      finalTotal = subtotalExcl + calculatedTaxAmount;
-      
-      logStep("Exclusive VAT calculation", { 
-        subtotalExcl, 
-        calculatedTaxAmount, 
-        finalTotal,
-        discountAmount
-      });
-    }
-
-    // Baseline display values (used as-is only when there is no resolver outcome).
-    const adjustedOrderItems = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
-      ? (orderItems || []).map(item => ({
-          ...item,
-          unit_price: Number(item.unit_price) / (1 + vatCalculation.vatRate / 100),
-          total_price: Number(item.total_price) / (1 + vatCalculation.vatRate / 100),
-        }))
-      : orderItems || [];
-
-    // For the PDF display: show pre-discount product subtotal, then discount line
-    const productSubtotalForDisplay = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
-      ? (orderSubtotal + shippingCost) / (1 + vatCalculation.vatRate / 100) - (shippingCost / (1 + vatCalculation.vatRate / 100))
-      : orderSubtotal;
-
-    const discountAmountNet = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
-      ? discountAmount / (1 + vatCalculation.vatRate / 100)
-      : discountAmount;
+    // INVOICE-INTEGRITY-1: alle BEDRAGEN komen uit buildInvoiceLines (verderop), na de
+    // regime-resolutie. calculateVat hierboven levert enkel nog metadata (categorie, btw-tekst).
 
     // NOTE (PDF-SOT-1): the provisional calculateVat() result above is kept ONLY for
     // metadata (taxCategoryCode + vatText for the "BTW-vermelding" on the PDF) and for the
@@ -1628,7 +1687,7 @@ serve(async (req) => {
       }
       const guestRate = rateForRegime(regime as never, guestCountry);
       resolvedRegime = { vat_regime: regime, reporting_country: guestCountry };
-      perLineRegime = regimeLines.map((_l, idx) => ({
+      perLineRegime = regimeLines.map((_l: unknown, idx: number) => ({
         line_index: idx,
         vat_regime: regime,
         vat_box_code: regime === 'oss_b2c_eu' ? '' : ((REGIME_TO_BOX as Record<string, string>)[regime] || ''),
@@ -1636,6 +1695,33 @@ serve(async (req) => {
         gl_account_code: (REGIME_TO_GL as Record<string, string>)[regime] || '700000',
       }));
       logStep("VAT regime resolved (guest)", { regime, country: guestCountry, warnings });
+    }
+
+    // INVOICE-INTEGRITY-1 — binnenlands volgt elke regel zijn eigen tarief (6/12/21/0) met het
+    // bijhorende roostervak en grootboek. Zowel de resolver (zonder productcategorie) als het
+    // gastpad gaven binnenlands élke regel 21%: Zomerfest Leuven (items 6%) werd aan 21%
+    // gefactureerd. Niet-binnenlandse regimes (IC, export, OSS) blijven zoals beslist.
+    {
+      const lineOrigRates: number[] = (orderItems || []).map((it: { vat_rate?: number | null }) =>
+        it.vat_rate === null || it.vat_rate === undefined ? Number(taxPercent) : Number(it.vat_rate));
+      if (shippingCost > 0) lineOrigRates.push(Number(taxPercent));
+      perLineRegime = perLineRegime.map((pl, idx) => {
+        // Niet bij een expliciet gekozen regime, en niet bij een 0%-regel: een item aan 0% is
+        // vaak een checkout die btw verlegde (prijzen netto); dat mag niet stil binnenlands 0% worden.
+        if (override_regime) return pl;
+        if (!String(pl.vat_regime || '').startsWith('domestic_')) return pl;
+        const own = lineOrigRates[idx];
+        if (own === 0) return pl;
+        const reg = own === undefined ? null : domesticRegimeForRate(own);
+        if (!reg) return pl;
+        return {
+          ...pl,
+          vat_regime: reg,
+          vat_rate: own,
+          vat_box_code: (REGIME_TO_BOX as Record<string, string>)[reg] || pl.vat_box_code,
+          gl_account_code: (REGIME_TO_GL as Record<string, string>)[reg] || pl.gl_account_code,
+        };
+      });
     }
 
     // BILL-VAT-VERIFY-2 — override_regime slaat de VIES-validatie in
@@ -1657,201 +1743,68 @@ serve(async (req) => {
       }
     }
 
-    // ---- Re-derive authoritative tax_amount from resolver per-line rates ----
-    // The resolver is the source of truth for the FISCAL rate (handles overrides, IC, export).
-    // The ORIGINAL rate at which the gross prices were computed lives on order_items.vat_rate
-    // and is the only correct divisor for gross -> net conversion. Confusing the two silently
-    // left VAT inside the taxable base for 0%-regimes (reverse charge / export).
-    // Display values for PDF/CII/UBL (net where applicable).
-    let displayOrderItems: any[] = adjustedOrderItems;
-    let displayShipping = vatHandling === 'inclusive' && vatCalculation.vatRate > 0
-      ? shippingCost / (1 + vatCalculation.vatRate / 100)
-      : shippingCost;
-    let displayDiscount = discountAmountNet;
-    let displaySubtotal = productSubtotalForDisplay;
-
-    if (perLineRegime.length > 0) {
-      const resolverRate = perLineRegime[0].vat_rate;
-      vatCalculation.vatRate = resolverRate;
-
-      // Original rates of the order lines (fallback: tenant default). Shipping has no own
-      // stored rate, so the tenant default rate is used as its original rate.
-      const origRates: number[] = (orderItems || []).map((it: { vat_rate?: number | null }) =>
-        it.vat_rate === null || it.vat_rate === undefined ? Number(taxPercent) : Number(it.vat_rate)
-      );
-      if (shippingCost > 0) origRates.push(Number(taxPercent));
-      const uniformOrigRate = origRates.length > 0 && origRates.every(r => r === origRates[0])
-        ? origRates[0]
-        : null;
-
-      if (vatHandling === 'inclusive') {
-        finalTotal = orderSubtotal + shippingCost - discountAmount;
-        if (uniformOrigRate !== null && uniformOrigRate === resolverRate) {
-          // Domestic case: original rate == fiscal rate -> keep the historical arithmetic
-          // byte-for-byte identical.
-          if (resolverRate === 0) {
-            subtotalExcl = finalTotal;
-            calculatedTaxAmount = 0;
-          } else {
-            subtotalExcl = finalTotal / (1 + resolverRate / 100);
-            calculatedTaxAmount = finalTotal - subtotalExcl;
-          }
-        } else {
-          // Regime differs from the original rate: strip VAT with the ORIGINAL rate,
-          // then apply the FISCAL rate on the net base.
-          let netProducts = 0;
-          (orderItems || []).forEach((it: { total_price?: number | null }, i: number) => {
-            const r = origRates[i] ?? Number(taxPercent);
-            const gross = Number(it.total_price) || 0;
-            netProducts += r > 0 ? gross / (1 + r / 100) : gross;
-          });
-          const shipOrig = Number(taxPercent);
-          const netShipping = shippingCost > 0 && shipOrig > 0
-            ? shippingCost / (1 + shipOrig / 100)
-            : shippingCost;
-          const grossBase = orderSubtotal + shippingCost;
-          const netBase = netProducts + netShipping;
-          const netDiscount = discountAmount > 0 && grossBase > 0
-            ? discountAmount * (netBase / grossBase)
-            : discountAmount;
-          subtotalExcl = netBase - netDiscount;
-          calculatedTaxAmount = resolverRate === 0 ? 0 : subtotalExcl * (resolverRate / 100);
-          finalTotal = subtotalExcl + calculatedTaxAmount;
-
-          // Keep PDF/UBL display consistent with the net base derived above.
-          displayOrderItems = (orderItems || []).map((it: Record<string, unknown>, i: number) => {
-            const r = origRates[i] ?? Number(taxPercent);
-            const div = r > 0 ? 1 + r / 100 : 1;
-            return {
-              ...it,
-              unit_price: (Number(it.unit_price) || 0) / div,
-              total_price: (Number(it.total_price) || 0) / div,
-              vat_rate: resolverRate,
-            };
-          });
-          displayShipping = netShipping;
-          displayDiscount = netDiscount;
-        }
-      } else {
-        subtotalExcl = orderSubtotal + shippingCost - discountAmount;
-        calculatedTaxAmount = resolverRate === 0 ? 0 : subtotalExcl * (resolverRate / 100);
-        finalTotal = subtotalExcl + calculatedTaxAmount;
-      }
-      // Keep PDF/UBL display consistent with resolver outcome.
-      vatCalculation.vatAmount = calculatedTaxAmount;
-      if (vatHandling === 'inclusive' && uniformOrigRate !== null && uniformOrigRate === resolverRate) {
-        displaySubtotal = resolverRate > 0
-          ? (orderSubtotal + shippingCost) / (1 + resolverRate / 100) - (shippingCost / (1 + resolverRate / 100))
-          : orderSubtotal;
-      } else if (vatHandling === 'inclusive') {
-        displaySubtotal = subtotalExcl + displayDiscount - displayShipping;
-      } else {
-        displaySubtotal = orderSubtotal;
-      }
-      logStep("Totals re-derived from resolver", { resolverRate, uniformOrigRate, subtotalExcl, calculatedTaxAmount, finalTotal });
-    }
-
-    // ---- Single source of truth: definitive invoice lines ----
-    // Built ONCE here, used for (a) the PDF/CII/UBL tax breakdown and (b) the
-    // invoice_lines INSERT further down. No recalculation anywhere else.
-    type DefinitiveLine = {
-      description: string;
-      quantity: number;
-      unit_price: number;
-      line_total: number;
-      vat_rate: number;
-      vat_category: string;
-      vat_amount: number;
-      line_type: string;
-      product_id: string | null;
-      sort_order: number;
-      vat_box_code?: string;
-      gl_account_code?: string;
-    };
-
-    const definitiveLines: DefinitiveLine[] = (orderItems || []).map((item, index) => {
-      const originalUnitPrice = Number(item.unit_price) || 0;
-      const originalLineTotal = Number(item.total_price) || 0;
-
+    // ---- INVOICE-INTEGRITY-1: de definitieve regels, één keer, op de cent ----
+    // buildInvoiceLines (_shared/invoiceBuild.ts, getest) maakt product-, verzend- en
+    // kortingsregels waarvan de som het factuurtotaal IS. De korting komt als negatieve
+    // regel per btw-tarief; tot 27-10 zat ze enkel in het totaal (Fonske: €0-facturen met
+    // regels van €19). Dezelfde regels voeden pdf, CII, UBL en de databank.
+    const resolverRateFallback = perLineRegime[0]?.vat_rate ?? vatCalculation.vatRate;
+    const buildItems: BuildItem[] = (orderItems || []).map((item: Record<string, unknown>, index: number) => {
       const lineRegime = perLineRegime[index];
-      // Resolver rate is the FISCAL rate shown on the invoice; the ORIGINAL rate on the
-      // order_item is what the gross price was computed with and is the only valid divisor.
-      const lineRate = lineRegime?.vat_rate ?? vatCalculation.vatRate;
-      const lineOrigRate = item.vat_rate === null || item.vat_rate === undefined
-        ? Number(taxPercent)
-        : Number(item.vat_rate);
-      const lineDivisor = vatHandling === 'inclusive' && lineOrigRate > 0 ? (1 + lineOrigRate / 100) : 1;
-      const netUnitPrice = originalUnitPrice / lineDivisor;
-      const netLineTotal = originalLineTotal / lineDivisor;
-      const lineVatAmount = vatHandling === 'inclusive' && lineOrigRate === lineRate
-        ? originalLineTotal - netLineTotal
-        : netLineTotal * (lineRate / 100);
-
+      const origRate = item.vat_rate === null || item.vat_rate === undefined ? Number(taxPercent) : Number(item.vat_rate);
       return {
-        description: item.product_name,
-        quantity: item.quantity,
-        unit_price: netUnitPrice,
-        line_total: netLineTotal,
-        vat_rate: lineRate,
-        vat_category: vatCalculation.taxCategoryCode,
-        vat_amount: lineVatAmount,
-        line_type: 'product',
-        product_id: item.product_id ?? null,
-        sort_order: index,
-        ...(lineRegime?.vat_box_code ? { vat_box_code: lineRegime.vat_box_code } : {}),
-        ...(lineRegime?.gl_account_code ? { gl_account_code: lineRegime.gl_account_code } : {}),
+        description: String(item.product_name ?? ''),
+        quantity: Number(item.quantity) || 1,
+        lineTotal: Number(item.total_price) || 0,
+        origRate,
+        fiscalRate: lineRegime?.vat_rate ?? resolverRateFallback,
+        productId: (item.product_id as string | null) ?? null,
+        lineType: 'product' as const,
+        ...(lineRegime?.vat_box_code ? { vatBoxCode: lineRegime.vat_box_code } : {}),
+        ...(lineRegime?.gl_account_code ? { glAccountCode: lineRegime.gl_account_code } : {}),
       };
     });
-
     if (shippingCost > 0) {
       const shipRegime = perLineRegime[(orderItems || []).length];
-      const shipRate = shipRegime?.vat_rate ?? vatCalculation.vatRate;
-      // Shipping has no stored original rate -> tenant default rate is its original rate.
-      const shipOrigRate = Number(taxPercent);
-      const shipDivisor = vatHandling === 'inclusive' && shipOrigRate > 0 ? (1 + shipOrigRate / 100) : 1;
-      const netShippingCost = shippingCost / shipDivisor;
-      const shippingVatAmount = vatHandling === 'inclusive' && shipOrigRate === shipRate
-        ? shippingCost - netShippingCost
-        : netShippingCost * (shipRate / 100);
-      definitiveLines.push({
+      buildItems.push({
         description: 'Verzendkosten',
         quantity: 1,
-        unit_price: netShippingCost,
-        line_total: netShippingCost,
-        vat_rate: shipRate,
-        vat_category: vatCalculation.taxCategoryCode,
-        vat_amount: shippingVatAmount,
-        line_type: 'shipping',
-        product_id: null,
-        sort_order: (orderItems || []).length,
-        ...(shipRegime?.vat_box_code ? { vat_box_code: shipRegime.vat_box_code } : {}),
-        ...(shipRegime?.gl_account_code ? { gl_account_code: shipRegime.gl_account_code } : {}),
+        lineTotal: shippingCost,
+        // Verzending heeft geen eigen tarief op de order: het tenanttarief is het oorspronkelijke,
+        // behalve als de checkout netto rekende (btw verlegd: alle items aan 0%).
+        origRate: buildItems.length > 0 && buildItems.every((b) => b.origRate === 0) ? 0 : Number(taxPercent),
+        fiscalRate: shipRegime?.vat_rate ?? resolverRateFallback,
+        productId: null,
+        lineType: 'shipping',
+        ...(shipRegime?.vat_box_code ? { vatBoxCode: shipRegime.vat_box_code } : {}),
+        ...(shipRegime?.gl_account_code ? { glAccountCode: shipRegime.gl_account_code } : {}),
       });
     }
-
-    // Tax breakdown for PDF/CII/UBL — built from the definitive lines, so it uses the
-    // RESOLVER rate per line (not order_items.vat_rate) and the already-computed vat_amount.
-    const breakdownMap = new Map<string, TaxBreakdownLine>();
-    for (const line of definitiveLines) {
-      const key = `${line.vat_rate}-${line.vat_category}`;
-      const existing = breakdownMap.get(key) || {
-        vatRate: line.vat_rate,
-        vatCategory: line.vat_category,
-        taxableAmount: 0,
-        vatAmount: 0,
-      };
-      existing.taxableAmount += line.line_total;
-      existing.vatAmount += line.vat_amount;
-      breakdownMap.set(key, existing);
+    const built = buildInvoiceLines({
+      vatHandling: vatHandling === 'exclusive' ? 'exclusive' : 'inclusive',
+      items: buildItems,
+      paidTotal: Number(order.total) || 0,
+      declaredDiscount: discountAmount,
+      discountCode,
+      vatCategory: vatCalculation.taxCategoryCode,
+    });
+    if (!built.ok) {
+      // Geen stille factuur die niet klopt: de verkoper krijgt een melding, de order blijft staan.
+      logStep("Invoice blocked by integrity check", { reason: built.reason });
+      await notifyInvoiceBlocked(supabaseClient, order, built.reason);
+      return new Response(JSON.stringify({ success: false, code: 'INVOICE_INTEGRITY', error: built.reason }), {
+        status: 422,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
-    const taxBreakdown: TaxBreakdownLine[] = breakdownMap.size > 0
-      ? Array.from(breakdownMap.values()).sort((a, b) => b.vatRate - a.vatRate)
-      : [{
-          vatRate: vatCalculation.vatRate,
-          vatCategory: vatCalculation.taxCategoryCode,
-          taxableAmount: subtotalExcl,
-          vatAmount: calculatedTaxAmount,
-        }];
+    if (built.warnings.length || built.notes.length) {
+      logStep("Invoice build notes", { warnings: built.warnings, notes: built.notes });
+    }
+    vatCalculation.vatRate = resolverRateFallback;
+    vatCalculation.vatAmount = built.tax;
+
+    // Documenten: productregels in de tabel, verzending en korting als totaalregels.
+    const parts = documentPartsFromLines(built.lines as unknown as Array<Record<string, unknown>>);
 
     const invoiceData = {
       invoiceNumber,
@@ -1861,109 +1814,64 @@ serve(async (req) => {
       tenant,
       customer,
       order,
-      orderItems: displayOrderItems,
-      invoiceLines: [], // PDF item table renders orderItems; shipping/discount are total lines
-      subtotal: displaySubtotal, // Product subtotal (net, before discount)
-      taxAmount: calculatedTaxAmount,
-      total: finalTotal,
-      shippingCost: displayShipping,
-      discountAmount: displayDiscount,
+      orderItems: parts.productLines,
+      invoiceLines: parts.productLines,
+      subtotal: parts.subtotal, // Productsubtotaal (netto, vóór korting)
+      taxAmount: built.tax,
+      total: built.total,
+      shippingCost: parts.shipping,
+      discountAmount: parts.discount,
+      discountsByRate: parts.discountsByRate,
+      shippingByRate: parts.shippingByRate,
       discountCode,
       vatCalculation: {
         ...vatCalculation,
-        vatAmount: calculatedTaxAmount,
+        vatAmount: built.tax,
       },
-      taxBreakdown,
+      taxBreakdown: parts.breakdown,
       ogmReference,
       isB2B,
     };
 
-    let pdfUrl = null;
-    let ublUrl = null;
-
-    // Generate true Factur-X PDF with embedded CII XML (now AFTER the re-derive block)
+    // INVOICE-INTEGRITY-1: documenten eerst in het geheugen; pas uploaden NA een geslaagde
+    // insert. Voorheen werd vooraf ge-upsert naar <nummer>.pdf: twee orders die tegelijk
+    // hetzelfde (MAX+1-)nummer kregen, overschreven elkaars pdf.
     logStep("Generating Factur-X PDF with embedded XML");
     const { pdfBytes, ciiXml } = await generateFacturXPDF(invoiceData);
+    const fileBase = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}`;
+    const pdfPath = `${fileBase}.pdf`;
+    const ciiPath = `${fileBase}_factur-x.xml`;
+    const ublPath = `${fileBase}.xml`;
+    logStep("Generating UBL XML for Peppol");
+    const ublXml = generateUBL(invoiceData);
+    const publicUrl = (path: string) => supabaseClient.storage.from("invoices").getPublicUrl(path).data.publicUrl as string;
+    const pdfUrl = publicUrl(pdfPath);
+    const ublUrl = publicUrl(ublPath);
 
-    const pdfPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.pdf`;
-
-    const { error: uploadError } = await supabaseClient.storage
-      .from("invoices")
-      .upload(pdfPath, pdfBytes, {
-        contentType: 'application/pdf',
-        upsert: true,
-      });
-
-    if (!uploadError) {
-      const { data: { publicUrl } } = supabaseClient.storage
-        .from("invoices")
-        .getPublicUrl(pdfPath);
-      pdfUrl = publicUrl;
-      logStep("Factur-X PDF uploaded", { pdfUrl });
-    } else {
-      logStep("PDF upload error", { error: uploadError.message });
-    }
-
-    // Also save standalone CII XML for reference/debugging
-    const ciiPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}_factur-x.xml`;
-
-    await supabaseClient.storage
-      .from("invoices")
-      .upload(ciiPath, new Blob([ciiXml], { type: 'application/xml' }), {
-        contentType: 'application/xml',
-        upsert: true,
-      });
-    logStep("CII XML uploaded as reference file");
-
-    // Generate UBL XML for Peppol (always for B2B, or if explicitly requested)
     const isBelgianB2B = isB2B && (customerCountry === 'BE' || tenant.country === 'BE');
     const peppolRequired = isBelgianB2B && new Date() >= new Date('2026-01-01');
-
-    let ublPath: string | null = null;
-    // Always generate UBL for Odoo / Peppol compatibility — attached to every invoice email
-    if (true) {
-      logStep("Generating UBL XML for Peppol");
-      const ublXml = generateUBL(invoiceData);
-
-      ublPath = `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml`;
-
-      const { error: ublUploadError } = await supabaseClient.storage
-        .from("invoices")
-        .upload(ublPath, new Blob([ublXml], { type: 'application/xml' }), {
-          contentType: 'application/xml',
-          upsert: true,
-        });
-
-      if (!ublUploadError) {
-        const { data: { publicUrl } } = supabaseClient.storage
-          .from("invoices")
-          .getPublicUrl(ublPath);
-        ublUrl = publicUrl;
-        logStep("UBL XML uploaded", { ublUrl });
-      }
-    }
 
     // Determine Peppol status (canonical vocabulary)
     const peppolStatus = peppolRequired ? 'pending' : 'not_applicable';
 
 
 
-    // Create invoice record - use recalculated values
-    const { data: invoice, error: invoiceError } = await supabaseClient
-      .from("invoices")
-      .insert({
+    // INVOICE-INTEGRITY-1: factuur en regels in één transactie via create_invoice_with_lines.
+    // De databank weigert als regels en totaal niet kloppen, en de unieke index weigert een
+    // tweede niet-geannuleerde factuur voor dezelfde order (gelijktijdige aanroep).
+    const invoiceRow = {
         tenant_id: order.tenant_id,
         order_id: order.id,
         customer_id: order.customer_id,
         invoice_number: invoiceNumber,
         status: order.payment_status === 'paid' ? 'paid' : 'draft',
-        subtotal: subtotalExcl, // Net subtotal (without VAT)
-        tax_amount: calculatedTaxAmount,
-        total: finalTotal,
+        subtotal: built.subtotal,
+        tax_amount: built.tax,
+        total: built.total,
         pdf_url: pdfUrl,
         ubl_url: ublUrl,
         pdf_path: pdfPath,
-        ubl_path: ublUrl ? ublPath : null,
+        ubl_path: ublPath,
         ogm_reference: ogmReference,
         paid_at: new Date().toISOString(),
         is_b2b: isB2B,
@@ -1972,34 +1880,67 @@ serve(async (req) => {
         reporting_country: resolvedRegime.reporting_country,
         ...(resolvedRegime.vat_number_validated_at ? { vat_number_validated_at: resolvedRegime.vat_number_validated_at } : {}),
         ...(resolvedRegime.vat_number_validated_value ? { vat_number_validated_value: resolvedRegime.vat_number_validated_value } : {}),
-        ...(override_regime ? { metadata: { vat_regime_override: { regime: override_regime, applied_by: auth.user_id, applied_at: new Date().toISOString() } } } : {}),
-      })
-      .select()
-      .single();
+        metadata: {
+          ...(override_regime ? { vat_regime_override: { regime: override_regime, applied_by: auth.user_id, applied_at: new Date().toISOString() } } : {}),
+          ...(built.warnings.length || built.notes.length ? { invoice_build: { warnings: built.warnings, notes: built.notes } } : {}),
+        },
+    };
+    const lineRows = built.lines.map((l) => ({ ...l }));
+    // force_new: de oude factuur wordt in DEZELFDE transactie geannuleerd, pas als de nieuwe
+    // klopt (voorheen eerst geannuleerd, dan eventueel geweigerd: order zonder factuur).
+    const { data: newInvoiceId, error: invoiceError } = await supabaseClient
+      .rpc("create_invoice_with_lines", {
+        p_invoice: invoiceRow,
+        p_lines: lineRows,
+        p_cancel_existing_for_order: force_new === true,
+      });
 
     if (invoiceError) {
+      if ((invoiceError as { code?: string }).code === "23505" && !force_new) {
+        // Een gelijktijdige aanroep maakte de factuur net aan: die teruggeven.
+        const { data: winner } = await supabaseClient
+          .from("invoices").select("id").eq("order_id", order_id).neq("status", "cancelled").limit(1).maybeSingle();
+        if (winner) {
+          logStep("Invoice created concurrently — returning existing", { invoice_id: winner.id });
+          return new Response(JSON.stringify({ success: true, invoice_id: winner.id, message: "Invoice already exists" }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+      }
       throw new Error(`Failed to create invoice: ${invoiceError.message}`);
     }
+    const { data: invoice, error: invoiceReadError } = await supabaseClient
+      .from("invoices").select("*").eq("id", newInvoiceId).single();
+    if (invoiceReadError || !invoice) throw new Error(`Invoice created but not readable: ${invoiceReadError?.message}`);
+    logStep("Invoice and lines created", { invoice_id: invoice.id, lines: lineRows.length, total: built.total });
 
-    // Create invoice lines — SAME array that fed the PDF/CII/UBL (no recalculation).
-    if (definitiveLines.length > 0) {
-      const invoiceLines = definitiveLines.map((line) => ({ invoice_id: invoice.id, ...line }));
-
-      const { error: linesError } = await supabaseClient
-        .from("invoice_lines")
-        .insert(invoiceLines);
-
-      if (linesError) {
-        logStep("Invoice lines insert error", { error: linesError.message });
+    // Nu pas de documenten. Mislukt een upload, dan staat de link leeg (de factuur zelf klopt;
+    // regenerate_pdf_only maakt de documenten opnieuw uit de opgeslagen regels).
+    const uploads: Array<[string, Uint8Array | Blob, string, "pdf_url" | "ubl_url" | null]> = [
+      [pdfPath, pdfBytes, 'application/pdf', "pdf_url"],
+      [ciiPath, new Blob([ciiXml], { type: 'application/xml' }), 'application/xml', null],
+      [ublPath, new Blob([ublXml], { type: 'application/xml' }), 'application/xml', "ubl_url"],
+    ];
+    const uploaded = { pdf_url: true, ubl_url: true, cii: true };
+    for (const [path, body, contentType, column] of uploads) {
+      const { error: upErr } = await supabaseClient.storage.from("invoices").upload(path, body, { contentType, upsert: true });
+      if (upErr) {
+        if (column) uploaded[column] = false; else uploaded.cii = false;
+        logStep("Document upload failed", { path, error: upErr.message });
+        if (column) {
+          await supabaseClient.from("invoices")
+            .update(column === "pdf_url" ? { pdf_url: null, pdf_path: null } : { ubl_url: null, ubl_path: null })
+            .eq("id", invoice.id);
+        }
       }
-
-      logStep("Invoice lines created", { count: invoiceLines.length, vatHandling });
     }
 
 
     // Archive the invoice for 7-year retention (Belgian legal requirement)
     logStep("Archiving invoice for 7-year retention");
-    try {
+    // INVOICE-INTEGRITY-1: enkel archiveren wat echt in de opslag staat.
+    if (!uploaded.pdf_url) logStep("Archive skipped: PDF upload failed", { invoice_id: invoice.id });
+    else try {
       const pdfBuffer = new Uint8Array(pdfBytes);
       const encoder = new TextEncoder();
       
@@ -2021,8 +1962,8 @@ serve(async (req) => {
           document_type: 'invoice',
           document_number: invoiceNumber,
           pdf_storage_key: pdfPath,
-          ubl_storage_key: ublUrl ? `${order.tenant_id}/${invoiceNumber.replace(/[^a-zA-Z0-9-]/g, '_')}.xml` : null,
-          cii_storage_key: ciiPath,
+          ubl_storage_key: uploaded.ubl_url ? ublPath : null,
+          cii_storage_key: uploaded.cii ? ciiPath : null,
           sha256_hash: sha256Hash,
           file_size_bytes: pdfBuffer.length,
           expires_at: expiresAt.toISOString(),
@@ -2047,7 +1988,7 @@ serve(async (req) => {
       isB2B,
       peppolStatus,
       hasFacturX: true,
-      taxBreakdown: taxBreakdown.length
+      taxBreakdown: parts.breakdown.length
     });
 
     // Auto-send email if requested
@@ -2082,8 +2023,8 @@ serve(async (req) => {
       success: true, 
       invoice_id: invoice.id,
       invoice_number: invoiceNumber,
-      pdf_url: pdfUrl,
-      ubl_url: ublUrl,
+      pdf_url: uploaded.pdf_url ? pdfUrl : null,
+      ubl_url: uploaded.ubl_url ? ublUrl : null,
       ogm_reference: ogmReference,
       has_facturx: true,
       email_sent: auto_send_email || false,

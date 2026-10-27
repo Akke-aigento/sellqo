@@ -44,6 +44,7 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "invoices/invoice_final_reminder": { category: "invoices", inApp: true, email: false },
   "invoices/invoice_charge_exhausted": { category: "invoices", inApp: true, email: false },
   "invoices/mandate_setup_stalled": { category: "invoices", inApp: true, email: false },
+  "invoices/invoice_blocked": { category: "invoices", inApp: true, email: false }, // INVOICE-INTEGRITY-1, high → mailt toch (planEmail)
   "payments/payment_received": { category: "payments", inApp: true, email: false },
   "payments/payout_available": { category: "payments", inApp: true, email: false },
   "payments/payout_completed": { category: "payments", inApp: true, email: false },
@@ -53,7 +54,7 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "payments/order_payment_failed": { category: "payments", inApp: true, email: false },
   "payments/order_refunded": { category: "payments", inApp: true, email: false },
   "payments/payment_duplicate": { category: "payments", inApp: true, email: false }, // prioriteit high → mailt toch (planEmail)
-  "payments/payment_unprocessed": { category: "payments", inApp: true, email: true }, // BILLING-SAFE-1
+  "payments/payment_unprocessed": { category: "payments", inApp: true, email: false }, // BILLING-SAFE-1, urgent → mailt toch (planEmail)
   "customers/customer_new": { category: "customers", inApp: true, email: false },
   "customers/customer_first_order": { category: "customers", inApp: true, email: false },
   "customers/customer_vip": { category: "customers", inApp: true, email: false },

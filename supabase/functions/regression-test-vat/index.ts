@@ -35,6 +35,8 @@ function round2(n: number): number { return Math.round(n * 100) / 100; }
 serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsOptions(req);
   const cors = getCorsHeaders(req);
+  // Versie-vingerafdruk na een deploy (doet niets).
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'INVOICE-INTEGRITY-1' }), { headers: { ...cors, 'Content-Type': 'application/json' } });
 
   let raw: unknown;
   try { raw = await req.json(); } catch { return badRequest('Invalid JSON body', cors); }
@@ -66,12 +68,13 @@ serve(async (req) => {
     if (invIds.length > 0) {
       const { data: lines, error: lnErr } = await admin
         .from('invoice_lines')
-        .select('invoice_id, vat_rate, vat_amount, line_total')
+        .select('invoice_id, vat_rate, vat_amount, line_total, net_amount')
         .in('invoice_id', invIds);
       if (lnErr) throw new Error(`invoice_lines query failed: ${lnErr.message}`);
-      for (const l of (lines ?? []) as Array<{ vat_rate: number; vat_amount: number; line_total: number }>) {
+      for (const l of (lines ?? []) as Array<{ vat_rate: number; vat_amount: number; line_total: number; net_amount: number | null }>) {
         const rate = Number(l.vat_rate ?? 0);
-        const base = Number(l.line_total ?? 0) - Number(l.vat_amount ?? 0);
+        // INVOICE-INTEGRITY-1: zelfde netto als vat-report-engine (net_amount, anders line_total).
+        const base = l.net_amount !== null && l.net_amount !== undefined ? Number(l.net_amount) : Number(l.line_total ?? 0);
         const cur = rawByRate.get(rate) ?? { base: 0, vat: 0 };
         cur.base += base;
         cur.vat += Number(l.vat_amount ?? 0);

@@ -185,6 +185,8 @@ export interface DbInvoiceLine {
   vat_rate: number;
   vat_amount: number;
   line_total: number;
+  /** Netto van de regel (subscriptie- en, sinds INVOICE-INTEGRITY-1, orderfacturen). */
+  net_amount?: number | null;
   vat_box_code: string | null;
   gl_account_code: string | null;
   sort_order: number | null;

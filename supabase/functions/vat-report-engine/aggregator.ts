@@ -164,7 +164,11 @@ export function aggregate(input: AggregateInput): VatReportPayload {
     } else {
       for (const line of lines) {
         const rate = Number(line.vat_rate || 0);
-        const base = Number(line.line_total || 0) - Number(line.vat_amount || 0);
+        // INVOICE-INTEGRITY-1: line_total is NETTO bij orderfacturen en BRUTO bij
+        // abonnementsfacturen; net_amount is altijd netto waar hij gevuld is. Tot 27-10
+        // trok deze stap de btw van élke line_total af, dus de basis per tarief van elke
+        // orderfactuur stond te laag (de aangiftevakken gebruiken de kop en klopten wel).
+        const base = lineNetAmount(line);
         const vat = Number(line.vat_amount || 0);
         const brKey = `${rate}::${regime}`;
         const br = byRateMap.get(brKey) || { rate, regime, base_amount: 0, vat_amount: 0, invoice_count: 0, invoiceIds: new Set<string>() };
@@ -374,4 +378,9 @@ export function aggregate(input: AggregateInput): VatReportPayload {
   };
 
   return payload;
+}
+
+/** Netto van een factuurregel: net_amount als die er is, anders line_total (netto bij orderfacturen). */
+export function lineNetAmount(line: { net_amount?: number | null; line_total: number | null }): number {
+  return line.net_amount !== null && line.net_amount !== undefined ? Number(line.net_amount) : Number(line.line_total || 0);
 }

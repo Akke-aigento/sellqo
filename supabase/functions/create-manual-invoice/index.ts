@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
 import { resolveVatRegimeSafe, type VatRegimeCode } from "../_shared/regimeResolver.ts";
+import { buildInvoiceLines } from "../_shared/invoiceBuild.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -525,7 +526,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   // SEC-IDOR-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "SEC-IDOR-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "INVOICE-INTEGRITY-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     logStep("Starting manual invoice creation");
@@ -653,22 +654,32 @@ serve(async (req) => {
       };
     }
 
-    // Authoritative tax computation: resolver per-line rate × line amount.
-    // Falls back to the legacy calculation only if the resolver produced no lines.
-    const calculatedTaxAmount = perLineRegime.length > 0
-      ? (items as InvoiceItem[]).reduce((sum, it, idx) => {
-          const rate = perLineRegime[idx]?.vat_rate ?? 0;
-          return sum + (Number(it.total_price) || 0) * (rate / 100);
-        }, 0)
-      : vatCalculation.vatAmount;
-
-    // Keep downstream PDF/UBL rate consistent with the resolver outcome.
-    if (perLineRegime.length > 0) {
-      vatCalculation.vatRate = perLineRegime[0].vat_rate;
-      vatCalculation.vatAmount = calculatedTaxAmount;
-    }
-
-    const total = subtotal + calculatedTaxAmount;
+    // INVOICE-INTEGRITY-1: regels en totalen uit buildInvoiceLines (netto-prijzen, btw per
+    // tarief op de cent). Tot 27-10 maakte deze functie GEEN invoice_lines: de Odoo-sync
+    // faalde ("Invoice has no lines") en een creditnota crediteerde geen btw.
+    const fallbackRate = perLineRegime[0]?.vat_rate ?? vatCalculation.vatRate;
+    const built = buildInvoiceLines({
+      vatHandling: 'exclusive',
+      items: (items as InvoiceItem[]).map((it, idx) => {
+        const rate = perLineRegime[idx]?.vat_rate ?? fallbackRate;
+        return {
+          description: String(it.description ?? ''),
+          quantity: Number(it.quantity) || 1,
+          lineTotal: Number(it.total_price) || 0,
+          origRate: rate,
+          fiscalRate: rate,
+          lineType: 'product' as const,
+          ...(perLineRegime[idx]?.vat_box_code ? { vatBoxCode: perLineRegime[idx].vat_box_code } : {}),
+          ...(perLineRegime[idx]?.gl_account_code ? { glAccountCode: perLineRegime[idx].gl_account_code } : {}),
+        };
+      }),
+      vatCategory: vatCalculation.taxCategoryCode,
+    });
+    if (!built.ok) throw new Error(`Factuur klopt niet: ${built.reason}`);
+    vatCalculation.vatRate = fallbackRate;
+    vatCalculation.vatAmount = built.tax;
+    const calculatedTaxAmount = built.tax;
+    const total = built.total;
 
     const invoiceData = {
       invoiceNumber,
@@ -678,8 +689,8 @@ serve(async (req) => {
       tenant,
       customer,
       items,
-      subtotal,
-      taxAmount: vatCalculation.vatAmount,
+      subtotal: built.subtotal,
+      taxAmount: built.tax,
       total,
       notes,
       vatCalculation,
@@ -738,16 +749,14 @@ serve(async (req) => {
 
     logStep("Creating invoice record");
 
-    // Create invoice record
-    const { data: invoice, error: invoiceError } = await supabaseClient
-      .from("invoices")
-      .insert({
+    // INVOICE-INTEGRITY-1: factuur + regels in één transactie, gecontroleerd door de databank.
+    const invoiceRow = {
         tenant_id: tenant_id,
         customer_id: customer_id || null,
         order_id: null,
         invoice_number: invoiceNumber,
         status: 'draft',
-        subtotal: subtotal,
+        subtotal: built.subtotal,
         tax_amount: calculatedTaxAmount,
         total: total,
         pdf_url: pdfUrl,
@@ -759,13 +768,13 @@ serve(async (req) => {
         ...(resolvedRegime.vat_number_validated_at ? { vat_number_validated_at: resolvedRegime.vat_number_validated_at } : {}),
         ...(resolvedRegime.vat_number_validated_value ? { vat_number_validated_value: resolvedRegime.vat_number_validated_value } : {}),
         ...(Object.keys(invoiceMetadata).length > 0 ? { metadata: invoiceMetadata } : {}),
-      })
-      .select()
-      .single();
-
+    };
+    const { data: newInvoiceId, error: invoiceError } = await supabaseClient
+      .rpc("create_invoice_with_lines", { p_invoice: invoiceRow, p_lines: built.lines });
     if (invoiceError) {
       throw new Error(`Failed to create invoice: ${invoiceError.message}`);
     }
+    const invoice = { id: newInvoiceId as string };
 
     logStep("Invoice created successfully", { invoice_id: invoice.id, vatType: vatCalculation.vatType });
 

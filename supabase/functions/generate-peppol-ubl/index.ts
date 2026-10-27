@@ -58,6 +58,8 @@ function ymd(d: string | Date | null): string | null {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return handleCorsOptions(req);
   const cors = getCorsHeaders(req);
+  // Versie-vingerafdruk na een deploy (doet niets).
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "INVOICE-INTEGRITY-1" }), { headers: { ...cors, "Content-Type": "application/json" } });
 
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ success: false, error: "Method not allowed" }),
@@ -234,21 +236,45 @@ Deno.serve(async (req) => {
   // Document lines (from invoice_lines or credit_note_lines).
   const linesTable = documentType === "credit_note" ? "credit_note_lines" : "invoice_lines";
   const linesFk = documentType === "credit_note" ? "credit_note_id" : "invoice_id";
+  // INVOICE-INTEGRITY-1: invoice_lines heeft net_amount (line_total is daar soms bruto),
+  // credit_note_lines niet (line_total is daar netto).
   const { data: rawLines, error: linesErr } = await sb.from(linesTable)
-    .select("description, quantity, unit_price, vat_rate, line_total, line_type")
+    .select(documentType === "credit_note"
+      ? "description, quantity, unit_price, vat_rate, line_total, line_type, vat_amount"
+      : "description, quantity, unit_price, vat_rate, line_total, line_type, net_amount, vat_amount")
     .eq(linesFk, invoiceId);
   if (linesErr || !rawLines || rawLines.length === 0) {
     return new Response(JSON.stringify({ success: false, error: "document has no lines" }),
       { status: 500, headers: { ...cors, "Content-Type": "application/json" } });
   }
 
-  const lines: UblLine[] = rawLines.map((l, i) => ({
+  type RawLine = {
+    description: string | null; quantity: number | null; unit_price: number | null; vat_rate: number | null;
+    line_total: number | null; line_type: string | null; net_amount?: number | null; vat_amount?: number | null;
+  };
+  const rows = rawLines as unknown as RawLine[];
+  const netOf = (l: RawLine) => Number(l.net_amount !== null && l.net_amount !== undefined ? l.net_amount : (l.line_total ?? 0));
+  // Kortingsregels worden kortingen op documentniveau (een negatieve prijs is in Peppol verboden).
+  const productRows = rows.filter((l) => l.line_type !== "discount");
+  // Btw per tarief zoals op de factuur zelf (Σ vat_amount), niet herberekend.
+  const taxByRateMap = new Map<number, number>();
+  for (const l of rows) {
+    const r = Number(l.vat_rate ?? 0);
+    taxByRateMap.set(r, Math.round(((taxByRateMap.get(r) ?? 0) + Number((l as { vat_amount?: number | null }).vat_amount ?? 0)) * 100) / 100);
+  }
+  const taxByRate = Array.from(taxByRateMap.entries()).map(([vatRate, tax]) => ({ vatRate, tax: Math.abs(tax) }));
+  const allowances = rows.filter((l) => l.line_type === "discount").map((l) => ({
+    vatRate: Number(l.vat_rate ?? 0),
+    amount: Math.abs(netOf(l)),
+    reason: String(l.description ?? "Discount"),
+  }));
+  const lines: UblLine[] = productRows.map((l, i) => ({
     id: i + 1,
     description: String(l.description ?? "Item"),
     quantity: Number(l.quantity ?? 1),
     unitCode: "C62",
-    unitPrice: Number(l.unit_price ?? 0),
-    lineTotal: Number(l.line_total ?? 0),
+    unitPrice: Math.round((netOf(l) / (Number(l.quantity) || 1)) * 10000) / 10000,
+    lineTotal: netOf(l),
     vatRate: Number(l.vat_rate ?? 0),
   }));
 
@@ -294,6 +320,8 @@ Deno.serve(async (req) => {
     customer,
     vatRegime: regime,
     lines,
+    allowances,
+    taxByRate,
     subtotal: Number(invoice.subtotal ?? 0),
     taxAmount: Number(invoice.tax_amount ?? 0),
     total: Number(invoice.total ?? 0),

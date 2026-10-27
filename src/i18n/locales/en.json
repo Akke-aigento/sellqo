@@ -758,6 +758,10 @@
           "mandate_setup_stalled": {
             "label": "Mandate not completed",
             "description": "Customer has not completed the direct debit mandate"
+          },
+          "invoice_blocked": {
+            "label": "Invoice not created",
+            "description": "SellQo could not create a correct invoice for an order (amounts do not match)"
           }
         },
         "payments": {

@@ -56,6 +56,8 @@ function parseBody(raw: unknown): { ok: true; data: VatReportRequest } | { ok: f
 serve(async (req) => {
   if (req.method === 'OPTIONS') return handleCorsOptions(req);
   const cors = getCorsHeaders(req);
+  // Versie-vingerafdruk na een deploy (doet niets).
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'INVOICE-INTEGRITY-1' }), { headers: { ...cors, 'Content-Type': 'application/json' } });
 
   const startedAt = Date.now();
 
@@ -182,7 +184,7 @@ serve(async (req) => {
       ? Promise.resolve({ data: [] as DbInvoiceLine[], error: null })
       : supabase
           .from('invoice_lines')
-          .select('id, invoice_id, line_type, description, quantity, unit_price, vat_rate, vat_amount, line_total, vat_box_code, gl_account_code, sort_order')
+          .select('id, invoice_id, line_type, description, quantity, unit_price, vat_rate, vat_amount, line_total, net_amount, vat_box_code, gl_account_code, sort_order')
           .in('invoice_id', invIds);
     const cnLinesP = cnIds.length === 0
       ? Promise.resolve({ data: [] as DbCreditNoteLine[], error: null })

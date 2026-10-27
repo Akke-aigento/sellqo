@@ -74,9 +74,13 @@ export function useCreditNotes(filters?: CreditNoteFilters) {
       const creditNoteNumber = numberData as string;
 
       // Calculate totals
-      const subtotal = data.lines.reduce((sum, line) => sum + line.line_total, 0);
-      const taxAmount = data.lines.reduce((sum, line) => sum + (line.vat_amount || 0), 0);
-      const total = subtotal + taxAmount;
+      // INVOICE-INTEGRITY-1: in centen optellen, nooit losse floats in de kop.
+      const toCents = (x: number) => Math.round(Number((Number(x || 0) * 100).toFixed(6)));
+      const netCents = data.lines.reduce((sum, line) => sum + toCents(line.line_total), 0);
+      const vatCents = data.lines.reduce((sum, line) => sum + toCents(line.vat_amount || 0), 0);
+      const subtotal = netCents / 100;
+      const taxAmount = vatCents / 100;
+      const total = (netCents + vatCents) / 100;
 
       // Generate OGM
       const ogmReference = generateOGM(creditNoteNumber);

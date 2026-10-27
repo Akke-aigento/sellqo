@@ -118,6 +118,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'invoice_final_reminder', defaultInApp: true, defaultEmail: false },
       { type: 'invoice_charge_exhausted', defaultInApp: true, defaultEmail: false },
       { type: 'mandate_setup_stalled', defaultInApp: true, defaultEmail: false },
+      // INVOICE-INTEGRITY-1: geen kloppende factuur mogelijk voor een order.
+      { type: 'invoice_blocked', defaultInApp: true, defaultEmail: false },
     ]
   },
   {
@@ -133,7 +135,7 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       // PAY-LINK-1: betaling op een post die al betaald of geannuleerd was — nooit automatisch terugbetaald.
       { type: 'payment_duplicate', defaultInApp: true, defaultEmail: false },
       // BILLING-SAFE-1: betaling binnen maar niet afgeboekt (Stripe probeert opnieuw).
-      { type: 'payment_unprocessed', defaultInApp: true, defaultEmail: true },
+      { type: 'payment_unprocessed', defaultInApp: true, defaultEmail: false },
       // NOTIF-TYPES-1: handle_payment_notification stuurt deze met categorie payments.
       { type: 'order_payment_failed', defaultInApp: true, defaultEmail: false },
       { type: 'order_refunded', defaultInApp: true, defaultEmail: false },

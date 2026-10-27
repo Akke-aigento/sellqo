@@ -1,3 +1,81 @@
+## INVOICE-INTEGRITY-1 — factuur = som van de regels = betaald bedrag, korting als regel, databank weigert wat niet klopt — 27 oktober 2026
+
+Tweede batch uit het structureel plan (verslag "SellQo betalingen en Odoo"), op Akke's "pakken we door tot waterdichte structuur" (27-10).
+
+**Aanleiding**
+- `generate-invoice` zette een kortingscode enkel in `invoices.total`; de regels bleven op volle prijs. Odoo boekt de regels: de 15 Fonske-facturen van €0 kwamen als €309 omzet en €53,66 btw binnen.
+- Live gemeten 27-10: 50 actieve facturen waarvan de regels niet optellen tot het totaal (Fonske 15, VanXcel 8 betaald, Speeltuin 6, Zomerfest 2 drafts), 1 factuur zonder regels, 1 dubbele factuur voor één order (INV-2026-0008/0009, Fonske #0009).
+- Recon (aparte agent) vond meer, allemaal hier opgelost:
+  - **Twee betekenissen van `line_total`:** `invoice_lines.line_total` is netto bij orderfacturen en bruto bij abonnementsfacturen.
+  - **Btw-overzicht en OSS:** het btw-overzicht per tarief en de OSS-berekening trokken de btw van élke `line_total` af. Daardoor stond de basis van orderfacturen te laag.
+  - **Manuele facturen:** `create-manual-invoice` schreef geen regels, dus Odoo faalde.
+  - **Creditnota's:** een volledige creditnota van een kortingsorder werd door de guard gewist.
+  - **Peppol-UBL:** de builder herrekende de btw per tarief en kon een cent naast het totaal uitkomen. Prijzen gingen met 2 decimalen de deur uit.
+  - **Btw-tarieven:** binnenlands werd elke regel 21%, ook een product aan 6% (Zomerfest Leuven: 3 facturen, items aan 6%).
+  - **Documenten:** pdf/UBL werden vóór de insert ge-upsert. Twee orders met hetzelfde (MAX+1-)nummer overschreven zo elkaars pdf.
+
+**Uitgevoerd**
+- `_shared/invoiceBuild.ts` (nieuw, puur, 21 tests incl. fuzz van 20.000 orders):
+  - **Bron:** het betaalde bedrag is de waarheid. De korting = items + verzending − betaald, als negatieve regel (`line_type 'discount'`) per btw-tarief.
+  - **Verdeling van de korting:** eerst over de producten, enkel het surplus over de verzending.
+  - **Btw:** per tarief half-up op het tariefbruto (kassa-regel), alles op de cent, subtotaal + btw = totaal = Σ regels.
+  - **Bruto blijft:** bij een inclusieve prijs met btw blijft het bruto (ook OSS). Enkel bij een fiscaal 0%-regime op een bruto prijs wordt naar netto omgerekend.
+  - **Weigeren:** betaald > orderregels, of een item zonder btw waarop de factuur btw zou zetten.
+- `create_invoice_with_lines` (SQL, migratie `20261027140000`):
+  - factuur + regels in één transactie, met weigering bij een onbekende kolom, een bedrag niet op de cent, netto + btw ≠ bruto, of kop ≠ Σ regels;
+  - `p_cancel_existing_for_order` annuleert de oude factuur in dezelfde transactie;
+  - enkel `service_role`.
+- Databank:
+  - unieke index `invoices_order_active_uniq`: één niet-geannuleerde factuur per order, met INV-2026-0009 vast uitgezonderd;
+  - `unit_price` naar `numeric(14,4)` op `invoice_lines` en `credit_note_lines`.
+- `generate-invoice`:
+  - **Aanmaken:** builder + RPC. Bij weigering 422 en melding `invoices/invoice_blocked` (high).
+  - **Documenten:**
+    - pdf, CII en UBL komen uit dezelfde regels: korting en verzending per tarief als toeslag/korting, prijzen tot 4 decimalen;
+    - upload pas na een geslaagde insert;
+    - het archief bevat enkel wat echt in de opslag staat.
+  - **Bestaande factuur:** de check met `.single()` maakte bij 2 facturen een derde; nu `maybeSingle` op niet-geannuleerd. Bij 23505 komt de bestaande factuur terug.
+  - **Btw-tarief per regel:** binnenlands houdt elke regel zijn eigen tarief (6/12/21) met het juiste roostervak en grootboek (`domesticRegimeForRate`), niet bij een override of een 0%-item.
+  - **Verzending:** wordt bij btw verlegd niet meer twee keer naar netto omgerekend.
+  - **`regenerate_pdf_only`:** gebruikt de nieuwe opsplitsing enkel als de regels met de kop kloppen, anders exact de oude weergave.
+- `create-manual-invoice`: builder + RPC (manuele facturen hebben nu regels).
+- `vat-report-engine` (aggregator + OSS) en `regression-test-vat`: netto = `net_amount`, anders `line_total`.
+- `_shared/peppol/ubl-builder` + `generate-peppol-ubl`:
+  - kortingen als AllowanceCharge per tarief;
+  - btw per tarief uit de regels (`taxByRate`);
+  - prijzen tot 4 decimalen;
+  - `net_amount` waar aanwezig.
+- Creditnota's:
+  - `src/lib/creditNoteLines.ts` (nieuw, vitest): volledig = alle regels incl. korting; gedeeltelijk = gekozen regels + kortingsaandeel per tarief;
+  - `CreditNoteDialog` gebruikt deze module; kortingsregels zijn niet los kiesbaar;
+  - `useCreditNotes` telt in centen;
+  - de pdf van `generate-credit-note` houdt kortingsregels negatief.
+- Meldingstypes `invoices/invoice_blocked` en (rechtzetting BILLING-SAFE-1) `payments/payment_unprocessed` op `email: false`. High/urgent mailen toch (`planEmail`). De pariteitstest brak sinds BILLING-SAFE-1; CI draaide vitest niet. Er is nu een gerichte vitest-stap in CI.
+- Tests in CI:
+  - `invoiceBuild.test.ts` (16) en `peppol/ubl-builder.test.ts` (5);
+  - `scripts/promo-compare/generateInvoice.test.ts` (6) draait de échte handler met een nep-databank en rekent pdf/CII/UBL na (Σ btw per tarief = btw-totaal, geen negatieve prijs, verzending op het eigen tarief);
+  - de gedeelde nep-databank staat in `statefulDb.ts`.
+- Versiestempel `INVOICE-INTEGRITY-1` op GET van generate-invoice, create-manual-invoice, generate-peppol-ubl, generate-credit-note, vat-report-engine en regression-test-vat.
+
+**Review (verplicht, geldbatch)**
+- Ronde 1, door een aparte agent:
+  - **HIGH:** Odoo-centverschillen; Peppol-btw per tarief en 2-decimaalprijzen; verzending op het verkeerde tarief in UBL; nummer-race overschrijft pdf.
+  - **MEDIUM:** force_new annuleerde vóór de controle; korting ook over verzending; tariefwijziging bij override/0%; legacy-regen veranderde; OSS en verzending bij btw verlegd.
+  - **LOW:** waaronder positieve btw op een kortingsregel.
+  - Alles verwerkt behalve de Odoo-boeking zelf (ODOO-GUARD-1).
+- Ronde 2: geen nieuwe blocker of HIGH. OSS-groepering per fiscaal tarief, eerlijk archief en eerlijke links bij een mislukte upload, en een DROP van de 2-argumentenoverload zijn verwerkt.
+- Mutatietests: elke fix uitgeschakeld geeft een rode test.
+
+**Bekende beperkingen (bewust)**
+- **Odoo:** de sync boekt `price_unit × quantity` met btw exclusief. Een centverschil met de SellQo-factuur blijft mogelijk; ODOO-GUARD-1 lost dat op (exact netto, terugleescontrole, pas boeken bij gelijkheid).
+- **0%-producten:** een product aan 0% binnenlands (bestaat live niet) wordt geweigerd met een melding tot er een mapping naar `domestic_zero`/vrijstelling is. `orders.vat_regime` staat bij alle 186 orders leeg en is dus geen bron.
+- **OSS-verlaagde tarieven** (bv. boek naar NL aan 9%) blijven op het standaardtarief van de bestemming. Dat bestond al.
+- **Bestaande facturen** blijven ongewijzigd. De rechtzetting (Fonske 15, INV-0008/0009, Zomerfest, VanXcel) gebeurt via SellQo-correctiefuncties, met akkoord van Pieter/Kevin.
+- **Voor de boekhouder:** VanXcel heeft 78 OSS-facturen (basis €4.634,91). Het OSS-overzicht van SellQo zette de basis per land te laag. Pieter moet nagaan of dat overzicht ooit voor een aangifte gebruikt is.
+
+**Gedeelde-paden-waarschuwing**
+- `_shared/regimeResolver.ts` krijgt alleen een nieuwe export. Storefront-api, beide Stripe-webhooks, resolve-vat-regime en backfill-vat-regimes importeren hem, maar hun gedrag verandert niet. Ze worden niet opnieuw gedeployd.
+
 ## BILLING-SAFE-1 — mislukte afschrijving meteen opvolgen, melding bij elke betaling, afboeking die niet meer stil faalt — 27 oktober 2026
 
 Op vraag van Akke (27-10: "begin hier mee en dan pakken we door tot waterdichte structuur"), na de analyse van de eerste betalende tenant (Astra Sleep / Özay). Eerste batch uit het structureel plan in het verslag (Claude Docs "SellQo betalingen en Odoo").
