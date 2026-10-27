@@ -1,3 +1,27 @@
+## INKOOP-1 + INKOOP-2 — één facturenadres en bol-facturen automatisch als concept in Odoo — 27 oktober 2026
+
+Akke 27-10: "kies welk mail adres het beste is en configureer het direct allemaal". Scope Odoo: enkel conceptfacturen in het aankoopdagboek (eerder akkoord).
+
+**INKOOP-1: het facturenadres**
+- Gekozen: `aankoopdagboek@nomadix-bv.odoo.com`, het bestaande alias van het aankoopdagboek AK1 (journal 17). Recon: alias_contact = everyone, maakt `in_invoice` in AK1, OCR staat op `auto_send`. Werd al gebruikt (6 mails, o.a. Lovable-bonnetjes 17-10). Niet hernoemd, zodat niets breekt.
+- Peppol komt apart binnen (41 aankoopfacturen: KBC, Finobi, 123inkt, GS1, PartsPoint, UPS, Microsoft). Die zijn uitgesloten van het doorsturen, om dubbels te vermijden.
+- Outlook-regel (a.aigento@outlook.com → omleiden naar het alias, op onderwerp + bijlage): **niet aangemaakt.** De veiligheidscontrole weigert een doorstuurregel door Claude. Akke maakt hem zelf (stappen in de chat van 27-10). Bij de poging ontstonden 3 lege Outlook-concepten.
+- Leveranciersverdeling (342 aankoopfacturen): Lovable 60, bol 46, sendcloud 37, Shopify 21, OpenAI 19, Finobi 24, KBC 14, Anthropic 12, Coolblue 12, Resend 11, Cloudflare 7, … Sendcloud is niet aan SellQo gekoppeld en loopt dus via mail.
+
+**INKOOP-2: bol.com via de API**
+- Nieuwe functie `import-supplier-invoices` (dagelijks 06:20 UTC, cron `import-supplier-invoices-daily`) + `_shared/supplierInvoices.ts` + tabel `supplier_invoice_imports` (enkel leesbaar voor platformbeheerders).
+- Haalt de bol-facturen van de laatste 62 dagen op (VanXcel-koppeling, vensters van 31 dagen) en uploadt elke nieuwe PDF in AK1 via `account.journal.create_document_from_attachment`, net als de knop Uploaden. Daarna: Referentie = bol-factuurnummer.
+- Geen bedragen: bol's ALL_IN_ONE verrekent omzet met kosten en Pieter boekt die anders (bol −35,77 → Odoo 20,13). OCR en Pieter doen de regels, zoals bij de manuele upload.
+- Nooit dubbel: overslaan als de tabel de factuur kent, als Odoo een aankoopfactuur/-creditnota met die Referentie heeft (zo zitten de 46 oude er al), of als er een bijlage `bol-<nr>.pdf` op een boeking staat.
+- Live proef zonder neveneffect (27-10): bol-token ok (scope retailer), de facturenlijst van de laatste 31 dagen geeft 4 facturen, alle 4 al in Odoo.
+- Tests: `scripts/promo-compare/supplierInvoices.test.ts` (6, in CI); deno check, lint ok.
+- Review in twee rondes. Ronde 1 vond geen blokkers, wel drie randgevallen, die gefixt zijn:
+  - een factuur begint enkel als er nog ≥60 s budget over is, en de body wordt binnen de time-out gelezen;
+  - bij een time-out of een gesplitste PDF wordt het concept teruggevonden via de bijlagenaam;
+  - een 23505 bij "created" wordt gemeld in plaats van genegeerd.
+  Ronde 2: in orde.
+- Odoo-check: een manuele upload bewaart de bestandsnaam en koppelt de bijlage aan de boeking (res_model account.move), dus het vangnet op `bol-<nr>.pdf` werkt.
+
 ## BILLING-LOCK-2 + PAYMENT-ALERT-1 — webshop dicht enkel bij opschorting, meteen open en gemeld na betaling — 27 oktober 2026
 
 Aanleiding: Astra Sleep bleef 6 dagen dicht na betaling, omdat de winkel offline stond via een schakelaar in de code van de eigen frontend. Keuzes van Akke (27-10): dicht enkel bij "opgeschort", statusmachine aan, alle klantenwinkels aansluiten (Astra, Benny Rich, Mancini, Zona Dorata; niet VanXcel/Loveke).
