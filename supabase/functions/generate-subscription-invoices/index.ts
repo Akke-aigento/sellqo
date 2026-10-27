@@ -265,6 +265,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // Versie-vingerafdruk na een deploy (doet niets, geen auth nodig).
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "BILLING-SAFE-1" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,

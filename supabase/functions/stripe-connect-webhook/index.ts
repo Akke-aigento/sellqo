@@ -61,7 +61,7 @@ serve(async (req) => {
   }
   // FOOD-1 — versiestempel om een deploy zonder neveneffect te verifiëren.
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "DISCOUNT-LIMIT-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, version: "BILLING-SAFE-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {
