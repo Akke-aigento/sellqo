@@ -18508,13 +18508,6 @@ export type Database = {
       }
       supplier_documents: {
         Row: {
-          source: string
-          external_id: string | null
-          odoo_move_id: number | null
-          odoo_status: string | null
-          odoo_error: string | null
-          odoo_synced_at: string | null
-          odoo_attempts: number
           amount: number | null
           created_at: string
           currency: string | null
@@ -18522,6 +18515,7 @@ export type Database = {
           document_number: string | null
           document_type: Database["public"]["Enums"]["supplier_document_type"]
           due_date: string | null
+          external_id: string | null
           extracted_data: Json | null
           file_name: string
           file_size: number | null
@@ -18529,12 +18523,18 @@ export type Database = {
           id: string
           mime_type: string | null
           notes: string | null
+          odoo_attempts: number
+          odoo_error: string | null
+          odoo_move_id: number | null
+          odoo_status: string | null
+          odoo_synced_at: string | null
           paid_amount: number | null
           paid_at: string | null
           payment_status:
             | Database["public"]["Enums"]["supplier_payment_status"]
             | null
           purchase_order_id: string | null
+          source: string
           storage_path: string | null
           supplier_id: string | null
           tax_amount: number | null
@@ -18543,13 +18543,6 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          source?: string
-          external_id?: string | null
-          odoo_move_id?: number | null
-          odoo_status?: string | null
-          odoo_error?: string | null
-          odoo_synced_at?: string | null
-          odoo_attempts?: number
           amount?: number | null
           created_at?: string
           currency?: string | null
@@ -18557,6 +18550,7 @@ export type Database = {
           document_number?: string | null
           document_type: Database["public"]["Enums"]["supplier_document_type"]
           due_date?: string | null
+          external_id?: string | null
           extracted_data?: Json | null
           file_name: string
           file_size?: number | null
@@ -18564,12 +18558,18 @@ export type Database = {
           id?: string
           mime_type?: string | null
           notes?: string | null
+          odoo_attempts?: number
+          odoo_error?: string | null
+          odoo_move_id?: number | null
+          odoo_status?: string | null
+          odoo_synced_at?: string | null
           paid_amount?: number | null
           paid_at?: string | null
           payment_status?:
             | Database["public"]["Enums"]["supplier_payment_status"]
             | null
           purchase_order_id?: string | null
+          source?: string
           storage_path?: string | null
           supplier_id?: string | null
           tax_amount?: number | null
@@ -18578,13 +18578,6 @@ export type Database = {
           updated_at?: string
         }
         Update: {
-          source?: string
-          external_id?: string | null
-          odoo_move_id?: number | null
-          odoo_status?: string | null
-          odoo_error?: string | null
-          odoo_synced_at?: string | null
-          odoo_attempts?: number
           amount?: number | null
           created_at?: string
           currency?: string | null
@@ -18592,6 +18585,7 @@ export type Database = {
           document_number?: string | null
           document_type?: Database["public"]["Enums"]["supplier_document_type"]
           due_date?: string | null
+          external_id?: string | null
           extracted_data?: Json | null
           file_name?: string
           file_size?: number | null
@@ -18599,12 +18593,18 @@ export type Database = {
           id?: string
           mime_type?: string | null
           notes?: string | null
+          odoo_attempts?: number
+          odoo_error?: string | null
+          odoo_move_id?: number | null
+          odoo_status?: string | null
+          odoo_synced_at?: string | null
           paid_amount?: number | null
           paid_at?: string | null
           payment_status?:
             | Database["public"]["Enums"]["supplier_payment_status"]
             | null
           purchase_order_id?: string | null
+          source?: string
           storage_path?: string | null
           supplier_id?: string | null
           tax_amount?: number | null
@@ -18699,7 +18699,6 @@ export type Database = {
       }
       suppliers: {
         Row: {
-          odoo_partner_id: number | null
           bic: string | null
           chamber_of_commerce: string | null
           city: string | null
@@ -18712,6 +18711,7 @@ export type Database = {
           is_active: boolean | null
           name: string
           notes: string | null
+          odoo_partner_id: number | null
           payment_terms_days: number | null
           phone: string | null
           postal_code: string | null
@@ -18724,7 +18724,6 @@ export type Database = {
           website: string | null
         }
         Insert: {
-          odoo_partner_id?: number | null
           bic?: string | null
           chamber_of_commerce?: string | null
           city?: string | null
@@ -18737,6 +18736,7 @@ export type Database = {
           is_active?: boolean | null
           name: string
           notes?: string | null
+          odoo_partner_id?: number | null
           payment_terms_days?: number | null
           phone?: string | null
           postal_code?: string | null
@@ -18749,7 +18749,6 @@ export type Database = {
           website?: string | null
         }
         Update: {
-          odoo_partner_id?: number | null
           bic?: string | null
           chamber_of_commerce?: string | null
           city?: string | null
@@ -18762,6 +18761,7 @@ export type Database = {
           is_active?: boolean | null
           name?: string
           notes?: string | null
+          odoo_partner_id?: number | null
           payment_terms_days?: number | null
           phone?: string | null
           postal_code?: string | null
@@ -20159,7 +20159,6 @@ export type Database = {
       }
       tenant_odoo_settings: {
         Row: {
-          push_supplier_documents: boolean
           aggregate_b2c_customers: boolean
           aggregate_per_channel: boolean
           b2c_dummy_partner_name: string
@@ -20172,11 +20171,11 @@ export type Database = {
           odoo_journal_name: string | null
           odoo_sync_enabled: boolean
           peppol_send_enabled: boolean
+          push_supplier_documents: boolean
           tenant_id: string
           updated_at: string
         }
         Insert: {
-          push_supplier_documents?: boolean
           aggregate_b2c_customers?: boolean
           aggregate_per_channel?: boolean
           b2c_dummy_partner_name?: string
@@ -20189,11 +20188,11 @@ export type Database = {
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
           peppol_send_enabled?: boolean
+          push_supplier_documents?: boolean
           tenant_id: string
           updated_at?: string
         }
         Update: {
-          push_supplier_documents?: boolean
           aggregate_b2c_customers?: boolean
           aggregate_per_channel?: boolean
           b2c_dummy_partner_name?: string
@@ -20206,6 +20205,7 @@ export type Database = {
           odoo_journal_name?: string | null
           odoo_sync_enabled?: boolean
           peppol_send_enabled?: boolean
+          push_supplier_documents?: boolean
           tenant_id?: string
           updated_at?: string
         }
