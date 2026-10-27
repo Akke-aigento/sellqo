@@ -11,6 +11,7 @@ import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2
 import { denyUnlessCron } from '../_shared/marketplaceSyncAuth.ts'
 import { decryptOdooKey } from '../_shared/odooCrypto.ts'
 import { createPartnerTypeResolver, partnerTypeFields, type PartnerTypeMode } from '../_shared/odooPartnerType.ts'
+import { amountsMatch, describeAmounts, planOdooLines, type Amounts, type SourceLine } from '../_shared/odooBooking.ts'
 import { odooRpc as sharedOdooRpc, odooAuthenticate as sharedAuth, odooVersion as sharedVersion, assertValidOdooUrl, type OdooEnv } from '../_shared/odooRpc.ts'
 
 const corsHeaders = {
@@ -180,32 +181,61 @@ function taxNameMatchesCountry(name: string | undefined, country: string): boole
   return new RegExp(`(^|[^A-Z])${country.toUpperCase()}([^A-Z]|$)`).test(name.toUpperCase())
 }
 
-async function resolveTax(ctx: SyncCtx, rate: number, opts?: { oss?: boolean; country?: string | null }): Promise<number> {
+/**
+ * ODOO-GUARD-1: welke 0%-code (exacte naam in Odoo nomadix-bv, gelezen 27-10) bij welk regime:
+ * IC goederen "0% EU M" (rooster 46), driehoeksverkeer "0% EU T", IC diensten "0% EU S" (44),
+ * export "0% EX" (47), anders binnenlands "0%". Tot 27-10 kreeg elke 0%-regel de eerste
+ * 0%-code, dus het verkeerde roostervak. Exacte namen: een naamfragment kon een verkeerde code
+ * raken; nu geeft een hernoemde code een duidelijke fout in plaats van een stille.
+ */
+function zeroTaxToken(regime: string | null): string {
+  const r = String(regime || '')
+  if (r === 'ic_supply_triangulation') return '0% EU T'
+  if (r === 'ic_supply_goods' || r.startsWith('intracom_goods')) return '0% EU M'
+  if (r === 'ic_supply_services' || r.startsWith('intracom_services')) return '0% EU S'
+  if (r.startsWith('export')) return '0% EX'
+  return '0%'
+}
+
+async function resolveTax(ctx: SyncCtx, rate: number, opts?: { oss?: boolean; country?: string | null; included?: boolean; zeroToken?: string | null }): Promise<number> {
   const roundedRate = Math.round(rate * 100) / 100
   const country = opts?.country ? String(opts.country).toUpperCase() : ''
+  // ODOO-GUARD-1: prijs-inclusieve of exclusieve variant. Bestaande codes hebben
+  // price_include_override leeg (= bedrijfsinstelling, exclusief).
+  const included = opts?.included === true
+  const inclDomain = included
+    ? [['price_include_override', '=', 'tax_included']]
+    : ['|', ['price_include_override', '=', false], ['price_include_override', '=', 'tax_excluded']]
+  const missing = (what: string) => new Error(
+    included
+      ? `Prijs-inclusieve btw-code ${what} ontbreekt in Odoo (verkoop, "Inbegrepen in prijs"). Maak ze aan als kopie van de gewone code.`
+      : `No Odoo sales tax found for ${what} (type_tax_use=sale)`,
+  )
 
-  // Non-OSS (domestic / IC / export): unchanged behaviour — first matching rate.
+  // Non-OSS (domestic / IC / export): first matching rate.
   if (!opts?.oss || !country) {
-    const key = String(roundedRate)
+    const zero = Number(rate) === 0 && opts?.zeroToken ? opts.zeroToken : null
+    const key = `${included ? 'incl' : 'excl'}:${roundedRate}:${zero ?? ''}`
     const cached = ctx.taxCache.get(key)
     if (cached) return cached
+    const zeroDomain = zero ? [['name', '=', zero]] : []
     const ids = await execKw(ctx.env, ctx.uid, 'account.tax', 'search',
-      [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale']]],
-      { limit: 1 }) as number[]
-    if (!ids.length) throw new Error(`No Odoo sales tax found for rate ${rate}% (type_tax_use=sale)`)
+      [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale'], ['name', 'not ilike', 'OSS'], ['name', 'not ilike', ' BTW'], ...zeroDomain, ...inclDomain]],
+      { limit: 1, order: 'sequence, id' }) as number[]
+    if (!ids.length) throw missing(zero ? `0% (${zero})` : `${rate}%`)
     ctx.taxCache.set(key, ids[0])
     return ids[0]
   }
 
   // OSS: must land on the destination-country specific tax. Never silently fall
   // back to the domestic tax — that is exactly the misposting we're fixing.
-  const key = `oss:${country}:${roundedRate}`
+  const key = `oss:${included ? 'incl' : 'excl'}:${country}:${roundedRate}`
   const cached = ctx.taxCache.get(key)
   if (cached) return cached
 
   const fields = { fields: ['id', 'name', 'tax_group_id'], limit: 50 }
   let rows = await execKw(ctx.env, ctx.uid, 'account.tax', 'search_read',
-    [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale'], ['name', 'ilike', 'OSS']]],
+    [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale'], ['name', 'ilike', 'OSS'], ...inclDomain]],
     fields) as OdooTaxRow[]
   let match = (rows || []).find(r => taxNameMatchesCountry(r.name, country))
 
@@ -213,7 +243,7 @@ async function resolveTax(ctx: SyncCtx, rate: number, opts?: { oss?: boolean; co
     // Fallback: rate-only search, then match on tax group starting with "OSS"
     // plus the country ISO in the tax name.
     rows = await execKw(ctx.env, ctx.uid, 'account.tax', 'search_read',
-      [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale']]],
+      [[['amount', '=', Number(rate)], ['type_tax_use', '=', 'sale'], ...inclDomain]],
       fields) as OdooTaxRow[]
     match = (rows || []).find(r => {
       const group = Array.isArray(r.tax_group_id) ? String(r.tax_group_id[1] || '') : ''
@@ -221,7 +251,7 @@ async function resolveTax(ctx: SyncCtx, rate: number, opts?: { oss?: boolean; co
     })
   }
 
-  if (!match) throw new Error(`No Odoo OSS tax for ${country} ${rate}%`)
+  if (!match) throw missing(`OSS ${country} ${rate}%`)
   ctx.taxCache.set(key, match.id)
   return match.id
 }
@@ -303,32 +333,74 @@ async function tryPeppolSend(ctx: SyncCtx, moveId: number): Promise<{ status: 's
   }
 }
 
-interface SellqoLine {
-  description: string
-  quantity: number
-  unit_price: number
-  vat_rate: number
-  vat_box_code?: string
-  gl_account_code?: string
-}
+type SellqoLine = SourceLine
 
 interface RegimeCtx { vat_regime: string | null; reporting_country: string | null }
 
-async function buildOdooLines(ctx: SyncCtx, lines: SellqoLine[], regimeCtx: RegimeCtx): Promise<unknown[]> {
+// ODOO-GUARD-1: één Odoo-regel per SellQo-regel, hoeveelheid 1, bruto met prijs-inclusieve
+// btw (of netto aan 0%). Zie _shared/odooBooking.ts.
+async function buildOdooLines(ctx: SyncCtx, lines: SellqoLine[], regimeCtx: RegimeCtx, lineTotalIsNet: boolean): Promise<unknown[]> {
   const isOss = regimeCtx.vat_regime === 'oss_b2c_eu'
   const out: unknown[] = []
-  for (const l of lines) {
-    const taxId = isOss
-      ? await resolveTax(ctx, Number(l.vat_rate) || 0, { oss: true, country: regimeCtx.reporting_country })
-      : await resolveTax(ctx, Number(l.vat_rate) || 0)
+  for (const p of planOdooLines(lines, { lineTotalIsNet })) {
+    const taxId = isOss && p.rate > 0
+      ? await resolveTax(ctx, p.rate, { oss: true, country: regimeCtx.reporting_country, included: p.included })
+      : await resolveTax(ctx, p.rate, { included: p.included, zeroToken: p.rate === 0 ? zeroTaxToken(regimeCtx.vat_regime) : null })
     out.push([0, 0, {
-      name: l.description || 'Item',
-      quantity: Number(l.quantity) || 0,
-      price_unit: Number(l.unit_price) || 0,
+      name: p.name,
+      quantity: 1,
+      price_unit: p.price_unit,
       tax_ids: [[6, 0, [taxId]]],
     }])
   }
   return out
+}
+
+/**
+ * ODOO-GUARD-1: maak (of hergebruik) de Odoo-boeking als concept, lees Odoo's totalen terug
+ * en boek ze pas definitief als ze tot op de cent gelijk zijn aan SellQo. Hergebruik: een
+ * boeking met hetzelfde nummer in hetzelfde dagboek (vorige poging liep na de create vast)
+ * wordt niet dubbel aangemaakt. Bij een verschil blijft het concept staan en volgt een fout
+ * (= sync-log 'failed' + melding).
+ */
+async function bookMove(ctx: SyncCtx, args: {
+  name: string
+  moveType: 'out_invoice' | 'out_refund'
+  moveData: Record<string, unknown>
+  expected: Amounts
+  documentId: string
+}): Promise<number> {
+  const existing = await execKw(ctx.env, ctx.uid, 'account.move', 'search',
+    [[['name', '=', args.name], ['journal_id', '=', ctx.journalId], ['move_type', '=', args.moveType], ['state', '!=', 'cancel']]],
+    { limit: 1 }) as number[]
+  const moveId = existing.length
+    ? existing[0]
+    : await execKw(ctx.env, ctx.uid, 'account.move', 'create', [args.moveData]) as number
+  const [mv] = await execKw(ctx.env, ctx.uid, 'account.move', 'read',
+    [[moveId], ['state', 'amount_untaxed', 'amount_tax', 'amount_total']]) as Array<{ state: string; amount_untaxed: number; amount_tax: number; amount_total: number }>
+  const odoo: Amounts = { untaxed: mv.amount_untaxed, tax: mv.amount_tax, total: mv.amount_total }
+  if (!amountsMatch(odoo, args.expected)) {
+    const msg = `ODOO_MISMATCH: Odoo ${describeAmounts(odoo)} ≠ SellQo ${describeAmounts(args.expected)} (boeking ${args.name}, Odoo-id ${moveId}, ${mv.state === 'draft' ? 'concept, niet geboekt' : mv.state})`
+    await notifyMismatch(ctx, args.documentId, args.name, msg)
+    throw new Error(msg)
+  }
+  if (mv.state === 'draft' && ctx.autoPost) {
+    await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
+  }
+  return moveId
+}
+
+async function notifyMismatch(ctx: SyncCtx, documentId: string, number: string, message: string): Promise<void> {
+  const { error } = await ctx.supabase.from('notifications').insert({
+    tenant_id: ctx.tenantId,
+    category: 'integrations',
+    type: 'integration_error',
+    priority: 'high',
+    title: `Odoo-boeking ${number} wijkt af`,
+    message: `${message}. Niets definitief geboekt; kijk het concept in Odoo na.`,
+    data: { document_id: documentId, number, dedupe_key: `odoo_mismatch:${documentId}` },
+  })
+  if (error && (error as { code?: string }).code !== '23505') console.error('notify mismatch failed', errMsg(error))
 }
 
 async function loadCustomer(ctx: SyncCtx, customerId: string | null) {
@@ -344,14 +416,14 @@ async function loadCustomer(ctx: SyncCtx, customerId: string | null) {
 async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
   const { data: inv, error } = await ctx.supabase
     .from('invoices')
-    .select('id, tenant_id, invoice_number, issue_date, customer_id, is_b2b, order_id, reporting_country, vat_regime')
+    .select('id, tenant_id, invoice_number, issue_date, customer_id, is_b2b, order_id, reporting_country, vat_regime, subtotal, tax_amount, total')
     .eq('id', invoiceId)
     .single()
   if (error || !inv) throw new Error(`Invoice not found: ${errMsg(error)}`)
 
   const { data: lines, error: linesErr } = await ctx.supabase
     .from('invoice_lines')
-    .select('description, quantity, unit_price, vat_rate, line_type, vat_box_code, gl_account_code')
+    .select('description, quantity, unit_price, vat_rate, line_type, vat_amount, net_amount, gross_amount, line_total')
     .eq('invoice_id', inv.id)
     .order('sort_order', { ascending: true })
   if (linesErr) throw new Error(`Invoice lines: ${errMsg(linesErr)}`)
@@ -389,7 +461,7 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Pr
   const moveLines = await buildOdooLines(ctx, lines as SellqoLine[], {
     vat_regime: (inv as { vat_regime?: string | null }).vat_regime ?? null,
     reporting_country: (inv as { reporting_country?: string | null }).reporting_country ?? null,
-  })
+  }, false)
   const moveData: Record<string, unknown> = {
     move_type: 'out_invoice',
     partner_id: partnerId,
@@ -401,10 +473,13 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Pr
   if (audit) moveData.narration = audit
   if (displayName) moveData.ref = displayName
 
-  const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
-  if (ctx.autoPost) {
-    await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
-  }
+  const moveId = await bookMove(ctx, {
+    name: inv.invoice_number,
+    moveType: 'out_invoice',
+    moveData,
+    expected: { untaxed: Number(inv.subtotal), tax: Number(inv.tax_amount), total: Number(inv.total) },
+    documentId: inv.id,
+  })
 
   let peppol: { status: string; note?: string } = { status: 'skipped' }
   if (!ctx.autoPost) {
@@ -423,7 +498,7 @@ async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Pr
 async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
   const { data: cn, error } = await ctx.supabase
     .from('credit_notes')
-    .select('id, tenant_id, credit_note_number, issue_date, customer_id, reason, original_invoice_id')
+    .select('id, tenant_id, credit_note_number, issue_date, customer_id, reason, original_invoice_id, subtotal, tax_amount, total')
     .eq('id', cnId)
     .single()
   if (error || !cn) throw new Error(`Credit note not found: ${errMsg(error)}`)
@@ -447,7 +522,7 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
 
   const { data: lines, error: linesErr } = await ctx.supabase
     .from('credit_note_lines')
-    .select('description, quantity, unit_price, vat_rate, line_type')
+    .select('description, quantity, unit_price, vat_rate, line_type, vat_amount, line_total')
     .eq('credit_note_id', cn.id)
   if (linesErr) throw new Error(`CN lines: ${errMsg(linesErr)}`)
   if (!lines || !lines.length) throw new Error('Credit note has no lines')
@@ -480,7 +555,30 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
     partnerId = p.partnerId
   }
 
-  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[], regimeCtx)
+  const moveLines = await buildOdooLines(ctx, lines as SellqoLine[], regimeCtx, true)
+
+  // ODOO-GUARD-1: de creditnota verwijst naar de Odoo-boeking van haar factuur.
+  let reversedEntryId: number | null = null
+  let originalNumber: string | null = null
+  if (cn.original_invoice_id) {
+    const { data: origLog } = await ctx.supabase
+      .from('odoo_invoice_sync_log')
+      .select('odoo_move_id')
+      .eq('invoice_id', cn.original_invoice_id)
+      .eq('sync_status', 'synced')
+      .not('odoo_move_id', 'is', null)
+      .order('synced_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    const n = Number(origLog?.odoo_move_id)
+    if (Number.isFinite(n) && n > 0) {
+      // Bestaat de originele boeking nog? (Een verwijderd concept zou de create laten falen.)
+      const still = await execKw(ctx.env, ctx.uid, 'account.move', 'search', [[['id', '=', n]]], { limit: 1 }) as number[]
+      if (still.length) reversedEntryId = n
+    }
+    const { data: origInv } = await ctx.supabase.from('invoices').select('invoice_number').eq('id', cn.original_invoice_id).maybeSingle()
+    originalNumber = origInv?.invoice_number ?? null
+  }
   const moveData: Record<string, unknown> = {
     move_type: 'out_refund',
     partner_id: partnerId,
@@ -491,11 +589,16 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
   }
   if (audit) moveData.narration = audit
   if (displayName) moveData.ref = displayName
+  if (originalNumber) moveData.ref = `${displayName ? `${displayName} — ` : ''}creditnota voor ${originalNumber}`
+  if (reversedEntryId) moveData.reversed_entry_id = reversedEntryId
 
-  const moveId = await execKw(ctx.env, ctx.uid, 'account.move', 'create', [moveData]) as number
-  if (ctx.autoPost) {
-    await execKw(ctx.env, ctx.uid, 'account.move', 'action_post', [[moveId]])
-  }
+  const moveId = await bookMove(ctx, {
+    name: cn.credit_note_number,
+    moveType: 'out_refund',
+    moveData,
+    expected: { untaxed: Number(cn.subtotal), tax: Number(cn.tax_amount), total: Number(cn.total) },
+    documentId: cn.id,
+  })
 
   let peppol: { status: string; note?: string } = { status: 'skipped' }
   if (!ctx.autoPost) {
@@ -506,6 +609,69 @@ async function syncCreditNote(ctx: SyncCtx, cnId: string, channel: string): Prom
     peppol = await tryPeppolSend(ctx, moveId)
   }
   return { moveId, peppol }
+}
+
+/** Hoeveel documenten per tenant per run (de cron draait elk uur). */
+const MAX_PER_RUN = 100
+
+async function pagedIds(supabase: SupabaseClient, table: 'invoices' | 'credit_notes', tenantId: string, statuses: string[]): Promise<string[]> {
+  const out: string[] = []
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from(table)
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .in('status', statuses)
+      .order('created_at', { ascending: true })
+      .range(from, from + 999)
+    if (error) throw new Error(`${table} laden: ${errMsg(error)}`)
+    out.push(...(data || []).map((r: { id: string }) => r.id))
+    if (!data || data.length < 1000) return out
+  }
+}
+
+/**
+ * ODOO-GUARD-1: nooit geprobeerde documenten eerst, daarna die ooit faalden. Anders kunnen 100
+ * documenten met een blijvend verschil elke nieuwe factuur tegenhouden.
+ */
+function neverTriedFirst(ids: string[], failedBefore: Set<string>): string[] {
+  return [...ids.filter((id) => !failedBefore.has(id)), ...ids.filter((id) => failedBefore.has(id))]
+}
+
+async function failedSet(supabase: SupabaseClient, tenantId: string, documentType: string, column: 'invoice_id' | 'credit_note_id'): Promise<Set<string>> {
+  const out = new Set<string>()
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from('odoo_invoice_sync_log')
+      .select(column)
+      .eq('tenant_id', tenantId)
+      .eq('document_type', documentType)
+      .eq('sync_status', 'failed')
+      .gte('created_at', new Date(Date.now() - 30 * 86400_000).toISOString())
+      .order('created_at', { ascending: true })
+      .range(from, from + 999)
+    if (error) throw new Error(`sync-log laden: ${errMsg(error)}`)
+    for (const r of (data || []) as Array<Record<string, string | null>>) if (r[column]) out.add(r[column] as string)
+    if (!data || data.length < 1000) return out
+  }
+}
+
+/** Alle reeds gesyncte documenten (gepagineerd: PostgREST geeft standaard max. 1000 rijen). */
+async function syncedSet(supabase: SupabaseClient, tenantId: string, documentType: string, column: 'invoice_id' | 'credit_note_id'): Promise<Set<string>> {
+  const out = new Set<string>()
+  for (let from = 0; ; from += 1000) {
+    const { data, error } = await supabase
+      .from('odoo_invoice_sync_log')
+      .select(column)
+      .eq('tenant_id', tenantId)
+      .eq('document_type', documentType)
+      .eq('sync_status', 'synced')
+      .order('created_at', { ascending: true })
+      .range(from, from + 999)
+    if (error) throw new Error(`sync-log laden: ${errMsg(error)}`)
+    for (const r of (data || []) as Array<Record<string, string | null>>) if (r[column]) out.add(r[column] as string)
+    if (!data || data.length < 1000) return out
+  }
 }
 
 async function syncTenant(supabase: SupabaseClient, env: OdooEnv, uid: number, versionMajor: number, tenantId: string, opts: { invoiceIds?: string[]; creditNoteIds?: string[] } = {}) {
@@ -556,20 +722,13 @@ async function syncTenant(supabase: SupabaseClient, env: OdooEnv, uid: number, v
   // Invoices to sync
   let invIds: string[] = opts.invoiceIds ?? []
   if (!invIds.length) {
-    const { data: syncedRows } = await supabase
-      .from('odoo_invoice_sync_log')
-      .select('invoice_id')
-      .eq('tenant_id', tenantId)
-      .eq('document_type', 'invoice')
-      .eq('sync_status', 'synced')
-    const done = new Set((syncedRows || []).map((r: any) => r.invoice_id).filter(Boolean))
-    const { data: candidates } = await supabase
-      .from('invoices')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .in('status', ISSUED_STATUSES as unknown as string[])
-      .limit(200)
-    invIds = (candidates || []).map((r: any) => r.id).filter((id: string) => !done.has(id))
+    const done = await syncedSet(supabase, tenantId, 'invoice', 'invoice_id')
+    // ODOO-GUARD-1: alle uitgereikte facturen doorlopen (oudste eerst), niet de eerste 200
+    // zonder volgorde: zodra die allemaal gesynct waren, werd niets nieuws meer opgepikt.
+    const failedBefore = await failedSet(supabase, tenantId, 'invoice', 'invoice_id')
+    invIds = neverTriedFirst((await pagedIds(supabase, 'invoices', tenantId, ISSUED_STATUSES as unknown as string[]))
+      .filter((id: string) => !done.has(id)), failedBefore)
+      .slice(0, MAX_PER_RUN)
   }
 
   // Batch-resolve channels for these invoices (single order query).
@@ -612,20 +771,11 @@ async function syncTenant(supabase: SupabaseClient, env: OdooEnv, uid: number, v
   // Credit notes to sync
   let cnIds: string[] = opts.creditNoteIds ?? []
   if (!cnIds.length) {
-    const { data: syncedRows } = await supabase
-      .from('odoo_invoice_sync_log')
-      .select('credit_note_id')
-      .eq('tenant_id', tenantId)
-      .eq('document_type', 'credit_note')
-      .eq('sync_status', 'synced')
-    const done = new Set((syncedRows || []).map((r: any) => r.credit_note_id).filter(Boolean))
-    const { data: candidates } = await supabase
-      .from('credit_notes')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .in('status', ISSUED_CN_STATUSES as unknown as string[])
-      .limit(200)
-    cnIds = (candidates || []).map((r: any) => r.id).filter((id: string) => !done.has(id))
+    const done = await syncedSet(supabase, tenantId, 'credit_note', 'credit_note_id')
+    const failedBefore = await failedSet(supabase, tenantId, 'credit_note', 'credit_note_id')
+    cnIds = neverTriedFirst((await pagedIds(supabase, 'credit_notes', tenantId, ISSUED_CN_STATUSES as unknown as string[]))
+      .filter((id: string) => !done.has(id)), failedBefore)
+      .slice(0, MAX_PER_RUN)
   }
 
   // Batch-resolve channels for these credit notes via their original invoices.
@@ -691,7 +841,7 @@ Deno.serve(async (req) => {
         .select('tenant_id')
         .eq('odoo_sync_enabled', true)
       if (eErr) throw new Error(`List enabled tenants: ${errMsg(eErr)}`)
-      tenantIds = (enabled || []).map(r => r.tenant_id as string)
+      tenantIds = (enabled || []).map((r: { tenant_id: string }) => r.tenant_id as string)
     }
 
     if (!tenantIds.length) {

@@ -43,6 +43,8 @@ class Q {
   }
   neq(c: string, v: any) { this.filters.push((r) => String(r[c]) !== String(v)); return this; }
   in(c: string, vs: any[]) { const s = new Set(vs.map(String)); this.filters.push((r) => s.has(String(r[c]))); return this; }
+  gte(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] >= v); return this; }
+  lte(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] <= v); return this; }
   is(c: string, v: any) { this.filters.push((r) => (v === null ? r[c] == null : r[c] === v)); return this; }
   not(c: string, op: string, v: any) {
     if (op === "in") {
@@ -54,7 +56,10 @@ class Q {
     return this;
   }
   contains(c: string, v: any) { this.filters.push((r) => matchesContains(r[c], v)); return this; }
-  order() { return this; }
+  private sorts: { col: string; asc: boolean }[] = [];
+  private rangeFrom = 0;
+  order(col?: string, o?: { ascending?: boolean }) { if (col) this.sorts.push({ col, asc: o?.ascending !== false }); return this; }
+  range(from: number, to: number) { this.rangeFrom = from; this.lim = to - from + 1; return this; }
   limit(n: number) { this.lim = n; return this; }
   maybeSingle() { this.singleMode = "maybe"; return this; }
   single() { this.singleMode = "one"; return this; }
@@ -90,7 +95,15 @@ class Q {
       return { data: this.returning ? hit.map((r) => structuredClone(r)) : null, error: null };
     }
     if (this.head) return { data: null, error: null, count: hit.length };
-    const sliced = this.lim != null ? hit.slice(0, this.lim) : hit;
+    const sorted = [...hit].sort((a, b) => {
+      for (const s of this.sorts) {
+        const x = a[s.col], y = b[s.col];
+        if (x === y) continue;
+        return (x > y ? 1 : -1) * (s.asc ? 1 : -1);
+      }
+      return 0;
+    });
+    const sliced = this.lim != null ? sorted.slice(this.rangeFrom, this.rangeFrom + this.lim) : sorted.slice(this.rangeFrom);
     const out = sliced.map((r) => structuredClone(r));
     if (this.singleMode) return { data: out[0] ?? null, error: null };
     return { data: out, error: null, count: this.counting ? hit.length : null };

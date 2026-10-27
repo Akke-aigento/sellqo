@@ -24,10 +24,12 @@ function invariants(r: BuildResult, paid?: number) {
     eq(l.line_total, l.net_amount, "line_total is netto");
     for (const v of [l.net_amount, l.vat_amount, l.gross_amount]) eq(Math.abs(c(v) - v * 100) < 1e-6, true, "op de cent");
   }
-  // Btw per tarief zoals de kassa: half-up op het tarieftotaal.
+  // Btw per regel (zoals Odoo met prijs-inclusieve btw, round_per_line); per tarief = som.
+  for (const l of r.lines) {
+    eq(c(l.vat_amount), c(r2((l.gross_amount * l.vat_rate) / (100 + l.vat_rate))), `btw per regel ${l.description}`);
+  }
   for (const b of r.breakdown) {
-    const gross = r.lines.filter((l) => l.vat_rate === b.vatRate).reduce((a, l) => a + c(l.gross_amount), 0) / 100;
-    eq(c(b.vatAmount), c(r2((gross * b.vatRate) / (100 + b.vatRate))), `btw ${b.vatRate}% per tarief`);
+    eq(c(b.vatAmount), r.lines.filter((l) => l.vat_rate === b.vatRate).reduce((a, l) => a + c(l.vat_amount), 0), `btw ${b.vatRate}% = som regels`);
   }
   if (paid !== undefined) eq(c(r.total), c(paid), "totaal = betaald");
   for (const l of r.lines.filter((x) => x.line_type === "discount")) {

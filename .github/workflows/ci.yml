@@ -145,17 +145,18 @@ jobs:
       - name: Edge functions (deno test promotiemotor, catalogusfilters en social-publicatie)
         env:
           DENO_NO_PACKAGE_JSON: "1"
-        run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts supabase/functions/_shared/catalogFilters.test.ts supabase/functions/_shared/fulfillmentSlots.test.ts supabase/functions/_shared/productAddons.test.ts supabase/functions/_shared/socialPublish.test.ts supabase/functions/_shared/socialMedia.test.ts supabase/functions/_shared/socialRunner.test.ts supabase/functions/_shared/socialInsights.test.ts supabase/functions/_shared/inviteRoles.test.ts supabase/functions/_shared/planLifecycle.test.ts supabase/functions/_shared/addonBilling.test.ts supabase/functions/_shared/pdfText.test.ts supabase/functions/_shared/sizeChart.test.ts supabase/functions/_shared/diningTables.test.ts supabase/functions/_shared/cloudprnt.test.ts supabase/functions/_shared/storefrontErrorStatus.test.ts supabase/functions/_shared/odooPartnerType.test.ts supabase/functions/_shared/watchtowerHealth.test.ts supabase/functions/_shared/billingAlerts.test.ts supabase/functions/_shared/invoiceBuild.test.ts supabase/functions/_shared/peppol/ubl-builder.test.ts
+        run: deno test --no-lock --node-modules-dir=none supabase/functions/_shared/promotionEngine.test.ts supabase/functions/_shared/catalogFilters.test.ts supabase/functions/_shared/fulfillmentSlots.test.ts supabase/functions/_shared/productAddons.test.ts supabase/functions/_shared/socialPublish.test.ts supabase/functions/_shared/socialMedia.test.ts supabase/functions/_shared/socialRunner.test.ts supabase/functions/_shared/socialInsights.test.ts supabase/functions/_shared/inviteRoles.test.ts supabase/functions/_shared/planLifecycle.test.ts supabase/functions/_shared/addonBilling.test.ts supabase/functions/_shared/pdfText.test.ts supabase/functions/_shared/sizeChart.test.ts supabase/functions/_shared/diningTables.test.ts supabase/functions/_shared/cloudprnt.test.ts supabase/functions/_shared/storefrontErrorStatus.test.ts supabase/functions/_shared/odooPartnerType.test.ts supabase/functions/_shared/watchtowerHealth.test.ts supabase/functions/_shared/billingAlerts.test.ts supabase/functions/_shared/invoiceBuild.test.ts supabase/functions/_shared/peppol/ubl-builder.test.ts supabase/functions/_shared/odooBooking.test.ts
 
       # SEC-DOMAIN-2: de echte storefront-resolve-handler tegen een nep-databank (netwerkloos).
       # SUB-UNIFY-2A: idem voor subscription-lifecycle-sweep (dry-run schrijft niets).
       # EVENT-409-1: storefront-api (409 bij volzet) en send-ticket-confirmation (ORDER_CLOSED).
       # BILLING-SAFE-1: webhook-afboeking en mislukte afschrijving (claim, herpoging, bundel).
       # INVOICE-INTEGRITY-1: echte generate-invoice-handler (korting als regel, pdf/CII/UBL kloppen).
+      # ODOO-GUARD-1: echte sync-odoo-invoices tegen een nagebootste Odoo (exact, concept bij verschil).
       - name: Edge functions (test storefront-resolve en lifecycle-sweep)
         env:
           DENO_NO_PACKAGE_JSON: "1"
-        run: deno test --allow-env --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/resolve.test.ts scripts/promo-compare/lifecycle-sweep.test.ts scripts/promo-compare/addon-lines.test.ts scripts/promo-compare/event409.test.ts scripts/promo-compare/ticketResend.test.ts scripts/promo-compare/billingSafe.test.ts scripts/promo-compare/generateInvoice.test.ts
+        run: deno test --allow-env --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/resolve.test.ts scripts/promo-compare/lifecycle-sweep.test.ts scripts/promo-compare/addon-lines.test.ts scripts/promo-compare/event409.test.ts scripts/promo-compare/ticketResend.test.ts scripts/promo-compare/billingSafe.test.ts scripts/promo-compare/generateInvoice.test.ts scripts/promo-compare/odooSync.test.ts
 
       # R10 (CATALOG-FILTERS-1b): rooktest van de echte storefront-api-functies tegen een
       # thenable nep-databank. Vangt o.a. `await` op een querybuilder, wat deno check mist.

@@ -35,9 +35,14 @@ export interface CreditLineDraft {
 const cents = (x: number) => Math.round(Number((Math.abs(x) * 100).toFixed(6))) * (x < 0 ? -1 : 1);
 const eur = (c: number) => c / 100 || 0;
 
-/** Netto van een factuurregel in centen: net_amount, anders hoeveelheid × eenheidsprijs. */
+/**
+ * Netto van een factuurregel in centen: net_amount; anders line_total (bij elke regel zonder
+ * net_amount is line_total netto — live nagekeken 27-10); pas daarna prijs × aantal (de
+ * eenheidsprijs van oude facturen stond los op 2 decimalen afgerond).
+ */
 export function lineNetCents(l: SourceInvoiceLine): number {
   if (l.net_amount !== null && l.net_amount !== undefined) return cents(Number(l.net_amount));
+  if (l.line_total !== null && l.line_total !== undefined) return cents(Number(l.line_total));
   return cents(Number(l.unit_price || 0) * Number(l.quantity || 0));
 }
 
@@ -92,10 +97,10 @@ export function buildCreditLines(
     if (baseGross <= 0 || chosenGross <= 0) continue;
     const discs = lines.filter((l) => isDiscountLine(l) && ofRate(l));
     const discGross = discs.reduce((a, l) => a + lineGrossCents(l), 0);
-    const discVat = discs.reduce((a, l) => a + lineVatCents(l), 0);
     const share = Math.min(1, chosenGross / baseGross);
     const gross = Math.round(discGross * share);
-    const vat = Math.round(discVat * share);
+    // Btw per regel zoals op de factuur (half weg van nul op bruto × t / (100 + t)).
+    const vat = cents((gross / 100) * rate / (100 + rate));
     const net = gross - vat;
     if (gross === 0) continue;
     out.push({

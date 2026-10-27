@@ -12,10 +12,10 @@
 //      een subtotaal dat al na korting is). Een verschil met discount_amount → waarschuwing.
 //   3. De korting komt als negatieve regel per btw-tarief (line_type 'discount'), verdeeld
 //      naar rato van het bedrag per tarief. Zo blijft de btw per tarief juist.
-//   4. Btw per tarief zoals de FDM/kassa: btw = half-up(bruto × t / (100 + t)) op het totaal
-//      van dat tarief (inclusief), of half-up(netto × t / 100) (exclusief). De regels tellen
-//      exact op tot dat tariefbedrag; een afrondingsrest van centen gaat naar de kortingsregel
-//      of, zonder korting, naar de grootste regel van dat tarief.
+//   4. Btw PER REGEL, half weg van nul: half-up(bruto × t / (100 + t)) bij inclusieve prijzen,
+//      half-up(netto × t / 100) bij exclusieve; netto = bruto − btw. De btw per tarief is de som
+//      van de regels. Zo boekt Odoo (btw per regel, prijs-inclusieve btw-codes) exact hetzelfde.
+//      (De kassa/FDM rekent per tarieftotaal; dat is een ander document, zie src/kassa.)
 //   5. Betaalde de klant méér dan de items (verkeerde of ontbrekende orderregels), dan komt
 //      er GEEN factuur: `refuse` met de reden. Dat moet een mens bekijken.
 //   6. Wijkt het fiscale tarief af van het tarief waarmee de prijs berekend werd (btw
@@ -191,74 +191,51 @@ export function buildInvoiceLines(input: BuildInput): BuildResult | BuildRefusal
   const lineGross: number[] = new Array(items.length).fill(0);
   const discLines: { g: Group; net: number; vat: number; gross: number }[] = [];
 
+  // ODOO-GUARD-1 (27-10): btw PER REGEL, half weg van nul. Odoo (nomadix-bv) rondt btw per
+  // regel af (round_per_line); met prijs-inclusieve btw-codes en per regel het bruto boekt
+  // Odoo dan exact dezelfde btw. De btw per tarief is de som van de regels.
+  const halfUp = (c: number) => cents(c / 100);
   groups.forEach((g, gi) => {
     // Inclusieve prijs met btw: het bruto blijft wat de klant betaalde, de btw zit erin aan
-    // het fiscale tarief (ook bij OSS: de bestemmingsbtw zit in hetzelfde bruto). Enkel bij
-    // een fiscaal 0%-regime op een bruto prijs (export, btw verlegd) wordt naar netto
-    // omgerekend met het oorspronkelijke tarief.
+    // het fiscale tarief (ook bij OSS). Enkel bij een fiscaal 0%-regime op een bruto prijs
+    // (export, btw verlegd) wordt naar netto omgerekend met het oorspronkelijke tarief.
     if (input.vatHandling === "inclusive" && (g.fiscal > 0 || g.orig === 0)) {
       if (g.orig !== g.fiscal) notes.push(`btw ${g.fiscal}% berekend op het betaalde bruto (prijs met ${g.orig}%)`);
-      const grossGroup = groupBase[gi] - groupDisc[gi];
-      const vatGroup = cents((grossGroup / 100) * g.fiscal / (100 + g.fiscal));
-      let vatSum = 0;
+      const vatOfGross = (grossC: number) => halfUp((grossC * g.fiscal) / (100 + g.fiscal));
       for (const i of g.idx) {
-        const v = cents((itemCents[i] / 100) * g.fiscal / (100 + g.fiscal));
+        const v = vatOfGross(itemCents[i]);
         lineVat[i] = v;
         lineGross[i] = itemCents[i];
         lineNet[i] = itemCents[i] - v;
-        vatSum += v;
       }
-      settle(g, groupDisc[gi], vatGroup - vatSum, false);
+      if (groupDisc[gi] > 0) {
+        const gross = -groupDisc[gi];
+        const vat = vatOfGross(gross);
+        discLines.push({ g, net: gross - vat, vat, gross });
+      }
     } else {
-      // Naar netto (met het oorspronkelijke tarief bij inclusive), dan het fiscale tarief.
       if (input.vatHandling === "inclusive") {
         notes.push(`prijs met ${g.orig}% omgerekend naar netto voor fiscaal ${g.fiscal}%: totaal wijkt bewust af van het betaalde bedrag`);
       }
-      const toNet = (c: number) => (input.vatHandling === "inclusive" && g.orig > 0 ? cents((c / 100) / (1 + g.orig / 100)) : c);
+      const toNet = (c: number) => (input.vatHandling === "inclusive" && g.orig > 0 ? halfUp((c * 100) / (100 + g.orig)) : c);
+      const vatOfNet = (netC: number) => halfUp((netC * g.fiscal) / 100);
       const netItems = g.idx.map((i) => toNet(itemCents[i]));
       const netBase = netItems.reduce((a, b) => a + b, 0);
-      // De korting in netto: zelfde verhouding als in de prijsruimte.
-      const netDisc = groupBase[gi] > 0 ? Math.round((groupDisc[gi] * netBase) / groupBase[gi]) : 0;
-      const netGroup = netBase - netDisc;
-      const vatGroup = cents((netGroup / 100) * g.fiscal / 100);
-      let vatSum = 0;
       g.idx.forEach((i, k) => {
-        const v = cents((netItems[k] / 100) * g.fiscal / 100);
+        const v = vatOfNet(netItems[k]);
         lineNet[i] = netItems[k];
         lineVat[i] = v;
         lineGross[i] = netItems[k] + v;
-        vatSum += v;
       });
-      settle(g, netDisc, vatGroup - vatSum, true);
+      // De korting in netto: zelfde verhouding als in de prijsruimte.
+      const netDisc = groupBase[gi] > 0 ? Math.round((groupDisc[gi] * netBase) / groupBase[gi]) : 0;
+      if (netDisc > 0) {
+        const net = -netDisc;
+        const vat = vatOfNet(net);
+        discLines.push({ g, net, vat, gross: net + vat });
+      }
     }
   });
-
-  /**
-   * Kortingsregel (of afrondingsrest) van een groep. `disc` is het kortingsbedrag in de
-   * ruimte van de groep (bruto bij inclusive-zelfde-tarief, anders netto); `vatRest` is
-   * wat de regels samen nog moeten bijdragen om op het btw-bedrag van de groep te komen.
-   */
-  function settle(g: Group, disc: number, vatRest: number, discIsNet: boolean) {
-    let rest = vatRest;
-    if (disc > 0) {
-      // De kortingsregel krijgt nooit positieve btw of positief netto: de btw ligt tussen
-      // −korting en 0. Wat overblijft (enkel bij centen-afrondingen) gaat naar de grootste regel.
-      const vat = discIsNet ? Math.min(0, rest) : Math.min(0, Math.max(-disc, rest));
-      rest -= vat;
-      const gross = discIsNet ? -disc + vat : -disc;
-      const net = discIsNet ? -disc : gross - vat;
-      discLines.push({ g, net, vat, gross });
-    }
-    if (rest !== 0) {
-      const prods = g.idx.filter((i) => !isShip(i));
-      const pool = prods.length ? prods : g.idx;
-      const target = pool.reduce((best, i) => (itemCents[i] > itemCents[best] ? i : best), pool[0]);
-      lineVat[target] += rest;
-      if (discIsNet) lineGross[target] += rest;
-      else lineNet[target] -= rest;
-      if (Math.abs(rest) > g.idx.length) warnings.push(`afrondingsrest ${rest} cent op tarief ${g.fiscal}%`);
-    }
-  }
 
   items.forEach((it, i) => {
     const net = lineNet[i] / 100;

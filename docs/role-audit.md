@@ -1,3 +1,65 @@
+## ODOO-GUARD-1 — Odoo boekt exact de SellQo-factuur, of niets (concept + melding) — 27 oktober 2026
+
+Derde batch uit het structureel plan. Akke 27-10: "Akkoord met je keuzen… doe wat het meest logische is, dit MOET goed staan". Daarmee besliste hij over de btw-afronding en de prijs-inclusieve codes.
+
+**Aanleiding**
+- **Odoo-instellingen** (nomadix-bv, live gelezen 27-10):
+  - btw-afronding per regel (`round_per_line`);
+  - productprijs op 2 decimalen;
+  - geen prijs-inclusieve verkoopbtw.
+- **Hoe de sync boekte:** eenheidsprijs × aantal, met btw bovenop. Een netto-eenheidsprijs uit een inclusieve prijs (19,95/1,21 = 16,4876) werd 16,49, dus 7 × 16,49 = 115,43 tegen 115,41 op de factuur. Ook met 4 decimalen week de btw in 15–35% van de facturen een cent af.
+- **Gebreken van de sync:**
+  - elke boeking ging meteen definitief, zonder controle;
+  - na een time-out tussen create en log volgde een dubbele boeking;
+  - `limit(200)` zonder volgorde: zodra die 200 gesynct waren, werd niets nieuws meer opgepikt (VanXcel zat op 145);
+  - creditnota's zonder verwijzing naar hun factuur;
+  - elke 0%-regel kreeg de eerste 0%-code (verkeerd roostervak voor IC en export).
+
+**Uitgevoerd**
+- `_shared/invoiceBuild.ts`:
+  - btw **per regel**, half weg van nul (inclusief: bruto × t/(100+t); exclusief: netto × t/100), ook op de kortingsregel;
+  - de btw per tarief is de som van de regels;
+  - totaal = betaald blijft gegarandeerd.
+  - Vervangt de per-tarief-afronding van INVOICE-INTEGRITY-1. Daarmee zijn sinds 11:30 geen facturen gemaakt; live nagekeken.
+- `_shared/odooBooking.ts` (nieuw, puur):
+  - elke SellQo-regel = één Odoo-regel met hoeveelheid 1 en het aantal in de naam;
+  - btw > 0: prijs = bruto, met een prijs-inclusieve code;
+  - 0%: netto, met een exclusieve code;
+  - `amountsMatch` vergelijkt de bedragen tot op de cent;
+  - netto = `net_amount` → `line_total` → prijs × aantal.
+- `sync-odoo-invoices`:
+  - `bookMove` zoekt eerst een boeking met hetzelfde nummer in hetzelfde dagboek en hergebruikt die. Anders maakt hij een concept aan.
+  - Daarna leest hij `amount_untaxed`/`amount_tax`/`amount_total` terug. Enkel bij gelijkheid met de SellQo-kop volgt `action_post`.
+  - Bij een verschil: het concept blijft staan, de sync-log krijgt `failed` (ODOO_MISMATCH) en er gaat een melding `integrations/integration_error` (high, één per document) naar de tenant.
+  - `resolveTax` kiest tussen de prijs-inclusieve en de exclusieve variant. Bij 0% kiest hij de code per regime: IC goederen → "0% EU M", driehoeksverkeer → "0% EU T", IC diensten → "0% EU S", export → "0% EX", anders "0%" (exacte namen). Ontbreekt een code, dan volgt een duidelijke fout en wordt niets aangemaakt.
+  - Een creditnota krijgt `reversed_entry_id` (enkel als die boeking nog bestaat) en een `ref` "creditnota voor <nummer>".
+  - Kandidaten: alle uitgereikte documenten, gepagineerd en oudste eerst. Nooit geprobeerde documenten gaan vóór eerder mislukte. Maximum 100 per run.
+- `src/lib/creditNoteLines.ts`: het kortingsaandeel krijgt btw per regel; netto = `net_amount` → `line_total` → prijs × aantal.
+- Tests in CI:
+  - `odooBooking.test.ts`, met 20.000 orders: een gesimuleerde Odoo (inclusieve codes, `round_per_line`, prijs op 2 decimalen) boekt exact het SellQo-bedrag;
+  - `scripts/promo-compare/odooSync.test.ts` (10): de échte handler tegen een nep-Odoo.
+
+**Review (verplicht, geldbatch)**
+- Ronde 1: geen blocker. De aanname over Odoo 18+ houdt: inclusieve btw = half-up van prijs × t/(100+t) per regel, en terugbetalingen staan positief. Verwerkt:
+  - **M1:** oude creditnotaregels;
+  - **M2:** vastgelopen documenten blokkeren nieuwe;
+  - **M3:** een verwijderde originele boeking;
+  - **M4:** de 0%-code per regime.
+- Ronde 2: klaar om te committen. Op advies van de review zoekt de 0%-code nu op de exacte naam in plaats van een naamfragment. De namen zijn live gelezen ("0%", "0% EU M", "0% EU T", "0% EU S", "0% EX"). Een hernoemde code geeft dan een duidelijke fout in plaats van een stille verkeerde keuze.
+
+**Vereist vóór de deploy**
+Vier prijs-inclusieve kopieën in Odoo, gemaakt met "Dupliceren", zodat roostervakken en rekeningen meekomen:
+- `21% incl.`
+- `12% incl.`
+- `6% incl.`
+- `21.0% NL BTW incl.`
+
+Het aanmaken vanuit deze sessie werd door de veiligheidscontrole geweigerd; dat doet Akke. Zonder deze codes boekt de nieuwe sync niets.
+
+**Bekende beperkingen**
+- **Halve centen:** alleen bij een exacte halve cent (12%: bruto = 14 × een oneven aantal centen, bv. €12,46; 20%: €9,99) kan Odoo anders afronden. Dan blijft het een concept met een melding, nooit een foute definitieve boeking. Eén keer nameten in Odoo na de deploy.
+- **Opruimen:** een concept met een verschil wordt nooit verwijderd of overschreven door de sync. Dat beslist de boekhouder.
+
 ## INVOICE-INTEGRITY-1 — factuur = som van de regels = betaald bedrag, korting als regel, databank weigert wat niet klopt — 27 oktober 2026
 
 Tweede batch uit het structureel plan (verslag "SellQo betalingen en Odoo"), op Akke's "pakken we door tot waterdichte structuur" (27-10).
