@@ -26,6 +26,9 @@ Akke 27-10: "kies welk mail adres het beste is en configureer het direct allemaa
   - Oorzaak 2: via de API ontbrak de context `default_move_type: in_invoice` die de knop Uploaden meegeeft.
   - Rechtgezet: 1602/1603 op `in_invoice` gezet. **INKOOP-2b:** `raw`, de context, een controle dat de PDF > 0 bytes is, de OCR starten als die niet vanzelf begint, en een herstelpad `repairInvoiceIds` dat de PDF opnieuw in het lege concept zet.
   - Les: na een eerste schrijfactie in Odoo altijd het resultaat teruglezen (bijlagegrootte, type).
+- **Na INKOOP-2b (live, stempel INKOOP-2b):** `repairInvoiceIds` zette de PDF's in 1602/1603 (16 405 en 16 258 bytes). OCR klaar: bol, 15-09-2026, € 10,83 en € 0,23, `waiting_validation`, net als de manuele uploads. Cron `import-supplier-invoices-daily` live (jobid 411, `20 6 * * *`). Agent-commits 5fdd3f4a/fb9d1b99 bevatten enkel `types.ts` (platform). CI groen.
+- **Nog te bewijzen:** het volledige uploadpad met de nieuwe context, bij de eerstvolgende bol-factuur (±1 november). Een controle staat gepland op 2-11.
+- Twee testbijlagen zonder koppeling (`sellqo-probe.txt`, `sellqo-probe3.txt`, ids 3030/3031) blijven in Odoo staan. Onschuldig, niet verwijderd.
 - Odoo-check: een manuele upload bewaart de bestandsnaam en koppelt de bijlage aan de boeking (res_model account.move), dus het vangnet op `bol-<nr>.pdf` werkt.
 
 ## BILLING-LOCK-2 + PAYMENT-ALERT-1 — webshop dicht enkel bij opschorting, meteen open en gemeld na betaling — 27 oktober 2026
