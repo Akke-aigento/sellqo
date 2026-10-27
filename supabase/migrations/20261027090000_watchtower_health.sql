@@ -50,14 +50,25 @@ AS $$
     --    stuck_tenants = tenants die in de laatste 4 u in >= 3 verschillende uren
     --    enkel 'failed' hadden en geen enkele 'synced' (Fonske 24-27 okt: 1288 fouten).
     'odoo_sync', jsonb_build_object(
+      -- Enkel fouten van documenten die nadien niet alsnog 'synced' werden.
       'failed_2h', (
-        SELECT count(*) FROM public.odoo_invoice_sync_log
-        WHERE created_at > now() - interval '2 hours' AND sync_status = 'failed'
+        SELECT count(DISTINCT coalesce(f.invoice_id, f.credit_note_id)) FROM public.odoo_invoice_sync_log f
+        WHERE f.created_at > now() - interval '2 hours' AND f.sync_status = 'failed'
+          AND NOT EXISTS (
+            SELECT 1 FROM public.odoo_invoice_sync_log s
+            WHERE s.sync_status = 'synced' AND s.created_at > f.created_at
+              AND coalesce(s.invoice_id, s.credit_note_id) = coalesce(f.invoice_id, f.credit_note_id)
+          )
       ),
       'last_error', (
-        SELECT left(error_message, 200) FROM public.odoo_invoice_sync_log
-        WHERE created_at > now() - interval '2 hours' AND sync_status = 'failed'
-        ORDER BY created_at DESC LIMIT 1
+        SELECT left(f.error_message, 200) FROM public.odoo_invoice_sync_log f
+        WHERE f.created_at > now() - interval '2 hours' AND f.sync_status = 'failed'
+          AND NOT EXISTS (
+            SELECT 1 FROM public.odoo_invoice_sync_log s
+            WHERE s.sync_status = 'synced' AND s.created_at > f.created_at
+              AND coalesce(s.invoice_id, s.credit_note_id) = coalesce(f.invoice_id, f.credit_note_id)
+          )
+        ORDER BY f.created_at DESC LIMIT 1
       ),
       'stuck_tenants', coalesce((
         SELECT jsonb_agg(jsonb_build_object('tenant', coalesce(t.name, x.tenant_id::text), 'failed_hours', x.failed_hours, 'last_error', x.last_error) ORDER BY x.failed_hours DESC)

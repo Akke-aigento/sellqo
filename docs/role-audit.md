@@ -18,6 +18,9 @@ Op vraag van Akke (27-10, go op het voorstel na ODOO-API-2026). Aanleiding: de F
 **Verificatie**
 - `deno test` 5/5, `deno check` tegen supabase-js 2.57.2-types groen.
 - Snapshot live 27-10 09:04: Fonske correct als `stuck_tenants` (4 uur enkel fouten), vóór de cron die de ODOO-API-2026-fix voor het eerst gebruikt.
+- Endpoint gedeployd 27-10 via de Lovable-agent (deploy-only, agent-commits enkel `types.ts`). Vingerafdruk: nulmeting 404, daarna 200 met `version: watchtower-health-2`, 401 zonder token. Eigen testaanroepen (404/401) uit `net._http_response` verwijderd zodat `cron_http` niet vals op warn springt.
+- Bijgestuurd 27-10 09:25: `failed_2h`/`last_error` tellen enkel nog documenten die nadien niet alsnog `synced` werden (anders bleef de Odoo-check 2 u op warn na een herstelde sync). Gemeten vóór/na: warn → ok.
+- Gekoppeld in Watchtower: `watch_targets` "Sellqo platform" kreeg `health_url`, `health_token` en `checks.health = true`.
 
 **Bewust ongemoeid / Vervolg**
 - Branch `watchtower-health-1` is hierdoor vervangen.
@@ -220,6 +223,8 @@ Voorstel uit Watchtower (go van Akke, 25-10). Branch `odoo-api-2026`. **Niet ged
 - `deno check` op beide functies tegen de echte supabase-js 2.57.2-types (import map naar `npm:`): groen.
 - `deno test supabase/functions/_shared/odooPartnerType.test.ts`: 4/4 groen (19.0, 19.3, alleen-lezen/fout, één `fields_get`).
 - Na de deploy (door Akke): de mislukte Fonske-documenten opnieuw laten syncen en in `odoo_invoice_sync_log` nakijken: nieuwe rijen `synced`, geen nieuwe `failed` met `company_type`.
+- **Gedeployd 27-10** (merge `f1392cf3`, CI groen; deploy-only `sync-odoo-invoices` + `sync-odoo-customers` via de Lovable-agent). Bewijs: cron 27-10 08:17 UTC boekte alle 20 Fonske-facturen (`synced`, Odoo-moves 1566–1585), 0 nieuwe `failed`. Akke koos bewust om ook de 18 facturen van €0 te laten boeken (doorlopende nummering).
+- Let op: SellQo, VanXcel en Fonske delen Odoo-db `nomadix-bv`, die op saas~19.3 staat; `connected_version` van VanXcel/SellQo toont nog 19.0 tot hun verbinding opnieuw getest wordt. De fix dekt alle drie.
 
 **Bewust ongemoeid / Vervolg**
 - Niet gedeployed. Deploy-only via de Lovable-agent: `sync-odoo-invoices` en `sync-odoo-customers` (geen andere functie importeert het nieuwe bestand).
