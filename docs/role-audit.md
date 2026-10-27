@@ -1,3 +1,63 @@
+## PAYOUT-LINK-1 — bij welke Stripe-uitbetaling hoort een factuur, zichtbaar in Odoo — 27 oktober 2026
+
+Akke 27-10: "dan zou ik het eerder op die manier doen … dit is echt al goud" (voor Pieter). Expliciete scope in Odoo: enkel een notitie en het veld Referentie op de SellQo-boekingen. Geen boekingen, geen betalingen, de OGM (payment_reference) blijft onaangeroerd.
+
+**Aanleiding** (live gelezen in Odoo, alleen lezen)
+- Pieter boekt elke Stripe-uitbetaling op de KBC tegen 582100 "Stripe" (bol tegen 582000).
+- Geen enkele factuur wordt tegen 582100 betaald. Daardoor staan SellQo, Fonske en Shopify/VanXcel op "Niet betaald" en staat 582100 op −€213,32.
+- Welke facturen in een uitbetaling zaten, moest hij zelf uitzoeken.
+
+**Uitgevoerd**
+- **Edge function `link-stripe-payouts`** (cron `link-stripe-payouts-daily`, 06:40 UTC):
+  - Per tenant met Odoo-sync: de betaalde Stripe-uitbetalingen van het eigen account (SellQo via het platformaccount, VanXcel en Fonske via Connect).
+  - Per uitbetaling de transacties, gekoppeld aan de SellQo-factuur via order, betaalverzoek, bundel, factuur-metadata, betaalmetadata of checkout-sessie.
+  - Een terugbetaling gaat enkel naar de creditnota. Volgorde: refund-ID op de creditnota, dan op de originele factuur, dan een exact bedrag op een factuur van dezelfde betaling.
+- **In Odoo per boeking:**
+  - **Logboeknotitie** (Notes): uitbetaling, bankdatum, uitbetaald bedrag, betaling, Stripe-kosten, platformfee apart, netto, bundel, en de andere facturen in dezelfde uitbetaling.
+  - **Referentie:** "Stripe po_…" toegevoegd aan de bestaande tekst, nooit overschreven. Enkel als de Odoo-sync de Peppol-status als `sent` of `skipped` vastlegde (bij uitgeschakelde auto-Peppol enkel `sent`).
+  - **Herhaling:** één notitie per uitbetaling per boeking. Vóór het plaatsen wordt gecontroleerd of ze er al staat.
+- **Tabellen `stripe_payouts` en `stripe_payout_items`:** RLS aan, lezen voor platformbeheer en de tenant_admin of boekhouder van de eigen winkel, schrijven enkel via de service role.
+- **Overgeslagen en geteld:** handmatige uitbetalingen en auto-debits. Een uitbetaling met een ongekoppelde betaling ("gaps") wordt nog 7 dagen herbekeken, een die op Odoo wacht ("partial") 14 dagen.
+- **Tijdsbudget:** 100 s per run, 30 s per Odoo-aanroep, 20 s per Stripe-aanroep.
+- **Tests:** `scripts/promo-compare/payoutLink.test.ts` (16), in CI. De nep-databank dwingt de volgorde uitbetaling → regels af.
+
+**Review (aparte agent, twee rondes + live proefrun)**
+- **Ronde 1, twee HIGH-punten:**
+  - FK zonder transactie: geen enkele uitbetaling zou verwerkt worden.
+  - Peppol-veiligheid gelezen uit `invoices.peppol_status`, dat NULL blijft.
+- **Ronde 1, zes MEDIUM-punten:**
+  - `read` op een verwijderde boeking;
+  - terugbetaling vastgezet op de factuur;
+  - dagelijks herwerk zonder tijdsbudget;
+  - handmatige uitbetalingen;
+  - platformfee in de Stripe-kosten;
+  - een tweede interne tenant.
+- **Ronde 2:**
+  - 'skipped' bij uitgeschakelde auto-Peppol;
+  - deadline binnen een grote uitbetaling;
+  - partial-cap;
+  - een transactie pas afgewerkt als al haar boekingen gelukt zijn.
+- **Proefrun op live data (PAYOUT-LINK-1b):**
+  - Bancontact-refund-ID's staan op de factuur, niet op de creditnota;
+  - bundeltekst;
+  - auto-debit overslaan.
+- Alles verwerkt.
+
+**Live nagekeken (27-10)**
+- Vingerafdruk 404 → `PAYOUT-LINK-1` → `PAYOUT-LINK-1b`. Agent-commits: enkel `src/integrations/supabase/types.ts`.
+- Proefrun (120 dagen): bedragen gelijk aan de KBC-lijnen:
+  - VanXcel 02-09 €134,93 (INV-2026-0162) en 19-08 €26,41 (INV-2026-0157);
+  - SellQo 17-08 €8,63 en 10-08 €1,72.
+- Echte run: 16 notities en 16 Referenties, 0 fouten.
+- In Odoo nagelezen: INV-2026-0162 en SQ-2026-0001 hebben één notitie (type Notes), en hun Referentie "Webshop verkopen (stripe)" / "Abonnementen" is aangevuld met "· Stripe po_…".
+- Tweede run: 0 notities, 0 Referenties (idempotent).
+- Twee oude testbetalingen uit juli (−€6,05 en €0,60) blijven terecht ongekoppeld.
+- Fonske: nog geen betaalde uitbetaling in 120 dagen.
+
+**Gevonden, eigen batch**
+- `sync-odoo-invoices` zet `manual_action` met `.neq('peppol_status','sent')`. Bij een NULL-status gebeurt dat dus nooit (bestaand defect).
+- Wat niet koppelbaar is, blijft zichtbaar als "gaps" in `stripe_payouts.unlinked`: AI-credits (enkel `platform_invoices`), offertebetalingen (destination charges zonder opgeslagen betaling) en POS.
+
 ## PLATFORM-FIGURES-1 — de geldcijfers van het platformbeheer uit de echte facturatie — 27 oktober 2026
 
 Akke 27-10: "Alle financiële gegevens van tenants in dashboard en in tenantscherm zelf kloppen niet … kijk al deze gegevens na, deze moeten correct staan."
