@@ -285,7 +285,7 @@ Deno.test("Peppol-status onbekend (NULL) in het sync-log: geen Referentie", asyn
 Deno.test("terugbetaling zonder creditnota: niet op de originele factuur, later wel bij de creditnota", async () => {
   const db = baseDb();
   const s = new FakeStripe();
-  s.payouts = [payout("po_r", -1400)];
+  s.payouts = [payout("po_r", 1000)];
   s.txns.po_r = [txn("txn_r", "refund", -1400, 0, { payment_intent: "pi_A", refund_id: "re_9" })];
   const o = new FakeOdoo().add(501, "INV-1").add(990, "CN-9");
   const r = await run(db, s, o);
@@ -362,4 +362,38 @@ Deno.test("Peppol-autoverzending uit: 'skipped' telt niet als afgehandeld", asyn
   const o = new FakeOdoo().add(501, "INV-1");
   const r = await linkTenantPayouts({ db, stripe: s, odoo: o, tenantId: T, stripeAccount: "acct_vx", sinceUnix: 0, maxPayouts: 50, dryRun: false, peppolAutoSend: false, nowMs: () => NOW_MS });
   eq([r.notes_posted, r.refs_written], [1, 0], "enkel notitie");
+});
+
+Deno.test("Bancontact-terugbetaling: refund-ID op de factuur → haar creditnota; bundelnotitie; auto-debit overgeslagen", async () => {
+  const db = baseDb({
+    invoices: [
+      { id: "i3", tenant_id: T, invoice_number: "INV-3", status: "paid", metadata: { stripe_payment_intent_id: "pi_3", stripe_refund_id: "pyr_3" } },
+      { id: "i4", tenant_id: T, invoice_number: "SQ-11", status: "paid" },
+      { id: "i5", tenant_id: T, invoice_number: "SQ-01", status: "paid" },
+      { id: "i6", tenant_id: T, invoice_number: "INV-6", status: "paid", metadata: { stripe_payment_intent_id: "pi_6" } },
+    ],
+    credit_notes: [
+      { id: "cn3", tenant_id: T, credit_note_number: "CN-3", status: "sent", stripe_refund_id: null, original_invoice_id: "i3", total: 6.05 },
+      { id: "cn6", tenant_id: T, credit_note_number: "CN-6", status: "sent", stripe_refund_id: null, original_invoice_id: "i6", total: 2.5 },
+    ],
+    payment_bundles: [{ tenant_id: T, payment_intent_id: "pi_B", items: [{ type: "invoice", id: "i4" }, { type: "invoice", id: "i5" }] }],
+    odoo_invoice_sync_log: [
+      { tenant_id: T, credit_note_id: "cn3", sync_status: "synced", odoo_move_id: "803", peppol_status: "skipped", synced_at: "x" },
+      { tenant_id: T, credit_note_id: "cn6", sync_status: "synced", odoo_move_id: "806", peppol_status: "skipped", synced_at: "x" },
+      { tenant_id: T, invoice_id: "i4", sync_status: "synced", odoo_move_id: "704", peppol_status: "sent", synced_at: "x" },
+      { tenant_id: T, invoice_id: "i5", sync_status: "synced", odoo_move_id: "705", peppol_status: "sent", synced_at: "x" },
+    ],
+  });
+  const s = new FakeStripe();
+  s.payouts = [payout("po_debit", -1245), payout("po_mix", 8000)];
+  s.txns.po_mix = [
+    txn("txn_r3", "payment_refund", -605, 0, { payment_intent: "pi_3", refund_id: "pyr_3" }),
+    txn("txn_r6", "payment_refund", -250, 0, { payment_intent: "pi_6", refund_id: "pyr_6" }), // via bedrag
+    txn("txn_b", "charge", 9559, 293, { payment_intent: "pi_B" }),
+  ];
+  const o = new FakeOdoo().add(803, "CN-3").add(806, "CN-6").add(704, "SQ-11").add(705, "SQ-01");
+  const r = await run(db, s, o);
+  eq([r.payouts_skipped_debit, r.txns_linked, r.txns_unlinked, r.errors.length], [1, 3, 0, 0], "alles gekoppeld");
+  ok(o.notes.find((n) => n.id === 704)!.body.includes("één gezamenlijke betaling voor SQ-11 en SQ-01"), "bundelnotitie");
+  eq(o.notes.map((n) => n.id).sort(), [704, 705, 803, 806], "vier boekingen");
 });

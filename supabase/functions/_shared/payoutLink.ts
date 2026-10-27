@@ -20,8 +20,8 @@
 // terugbetaald in het Stripe-dashboard) blijft de transactie ongekoppeld, zodat ze later
 // alsnog bij de creditnota komt in plaats van vast te zitten op de originele factuur.
 //
-// Handmatige uitbetalingen: Stripe geeft hun transacties niet per uitbetaling; ze worden
-// overgeslagen en geteld.
+// Handmatige uitbetalingen en auto-debits (negatieve uitbetaling): Stripe geeft hun
+// transacties niet per uitbetaling; ze worden overgeslagen en geteld.
 //
 // Idempotent: per (uitbetaling, Odoo-boeking) één notitie; vóór het plaatsen wordt
 // gecontroleerd of er al een notitie met het uitbetalingsnummer staat.
@@ -31,7 +31,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Stripe- en databankrijen zijn ongetypeerd */
 
-export const PAYOUT_LINK_VERSION = "PAYOUT-LINK-1";
+export const PAYOUT_LINK_VERSION = "PAYOUT-LINK-1b";
 
 export interface PayoutLite {
   id: string;
@@ -173,6 +173,8 @@ export function buildNote(args: {
   txnCount: number;
   txns: TxnLite[]; // de transacties van déze boeking
   otherNumbers: string[]; // andere documenten in dezelfde uitbetaling
+  /** Per transactie: alle documenten die ze samen betaalde (bundel), als het er meer dan één zijn. */
+  sharedBy?: Record<string, string[]>;
 }): string {
   const { payout, txnCount, txns, otherNumbers } = args;
   const parts: string[] = [];
@@ -185,9 +187,11 @@ export function buildNote(args: {
     const fees = t.app_fee
       ? `Stripe-kosten ${eur(t.stripe_fee)}, SellQo-platformfee ${eur(t.app_fee)}`
       : `Stripe-kosten ${eur(t.fee)}`;
+    const shared = args.sharedBy?.[t.id];
     parts.push(
       `${kind} ${eur(t.amount)}, ${fees}, netto ${eur(t.net)}` +
-        (t.payment_intent ? ` (${t.payment_intent})` : "") + ".",
+        (t.payment_intent ? ` (${t.payment_intent})` : "") +
+        (shared && shared.length > 1 ? `; één gezamenlijke betaling voor ${shared.join(" en ")}` : "") + ".",
     );
   }
   if (otherNumbers.length) {
@@ -235,14 +239,42 @@ export async function resolveDocs(
   const add = (list: DocRef[]) => list.forEach((d) => found.set(`${d.type}:${d.id}`, d));
 
   if (t.refund_id || t.amount < 0) {
-    // Terugbetaling: enkel de creditnota, nooit terugvallen op de originele factuur.
-    if (!t.refund_id) return [];
-    const cns = await rows(
-      db.from("credit_notes").select("id, credit_note_number, status").eq("tenant_id", tenantId).eq("stripe_refund_id", t.refund_id),
-    );
-    return cns.filter((c) => c.status !== "cancelled" && c.status !== "draft").map((c) => ({
-      type: "credit_note" as const, id: c.id, number: c.credit_note_number ?? null,
-    }));
+    // Terugbetaling: enkel de creditnota, nooit de originele factuur zelf.
+    const live = (c: any) => c.status !== "cancelled" && c.status !== "draft";
+    const asDoc = (c: any): DocRef => ({ type: "credit_note", id: c.id, number: c.credit_note_number ?? null });
+    if (t.refund_id) {
+      // 1. De creditnota draagt de refund-ID.
+      const direct = (await rows(
+        db.from("credit_notes").select("id, credit_note_number, status").eq("tenant_id", tenantId).eq("stripe_refund_id", t.refund_id),
+      )).filter(live);
+      if (direct.length) return direct.map(asDoc);
+      // 2. refund-invoice zet de refund-ID op de originele factuur (metadata.stripe_refund_id).
+      const refundedInv = await rows(
+        db.from("invoices").select("id").eq("tenant_id", tenantId).eq("metadata->>stripe_refund_id", t.refund_id),
+      );
+      if (refundedInv.length) {
+        const cns = (await rows(
+          db.from("credit_notes").select("id, credit_note_number, status, total").eq("tenant_id", tenantId)
+            .in("original_invoice_id", refundedInv.map((i) => i.id)),
+        )).filter(live);
+        const exact = cns.filter((c) => Math.round(Number(c.total) * 100) === -t.amount);
+        if (exact.length === 1) return exact.map(asDoc);
+        if (cns.length === 1) return cns.map(asDoc);
+      }
+    }
+    // 3. De factuur van dezelfde betaling heeft precies één creditnota van dit bedrag.
+    if (t.payment_intent) {
+      const invoices = await resolveDocs(db, stripe, tenantId, { ...t, refund_id: null, amount: Math.abs(t.amount) });
+      const ids = invoices.filter((d) => d.type === "invoice").map((d) => d.id);
+      if (ids.length) {
+        const cns = (await rows(
+          db.from("credit_notes").select("id, credit_note_number, status, total").eq("tenant_id", tenantId)
+            .in("original_invoice_id", ids),
+        )).filter(live).filter((c) => Math.round(Number(c.total) * 100) === -t.amount);
+        if (cns.length === 1) return cns.map(asDoc);
+      }
+    }
+    return [];
   }
 
   const pi = t.payment_intent;
@@ -370,6 +402,7 @@ export interface LinkResult {
   payouts_seen: number;
   payouts_skipped_done: number;
   payouts_skipped_manual: number;
+  payouts_skipped_debit: number;
   payouts_skipped_gaps_old: number;
   payouts_processed: number;
   truncated: boolean;
@@ -404,7 +437,7 @@ export async function linkTenantPayouts(args: {
   const now = args.now ?? (() => new Date().toISOString());
   const nowMs = args.nowMs ?? (() => Date.now());
   const res: LinkResult = {
-    payouts_seen: 0, payouts_skipped_done: 0, payouts_skipped_manual: 0, payouts_skipped_gaps_old: 0,
+    payouts_seen: 0, payouts_skipped_done: 0, payouts_skipped_manual: 0, payouts_skipped_debit: 0, payouts_skipped_gaps_old: 0,
     payouts_processed: 0, truncated: false, txns: 0, txns_linked: 0, txns_unlinked: 0, notes_posted: 0,
     refs_written: 0, refs_skipped_peppol: 0, waiting_for_odoo: 0, errors: [],
   };
@@ -432,6 +465,9 @@ export async function linkTenantPayouts(args: {
     if (st === "gaps" && payout.arrival_date < gapsCutoff) { res.payouts_skipped_gaps_old++; continue; }
     if (st === "partial" && payout.arrival_date < partialCutoff) { res.payouts_skipped_gaps_old++; continue; }
     if (!payout.automatic) { res.payouts_skipped_manual++; continue; }
+    // Negatief = Stripe haalde geld van de bank (auto-debit): geen facturen, Stripe geeft er
+    // ook geen transactielijst voor.
+    if (payout.amount <= 0) { res.payouts_skipped_debit++; continue; }
     if (overTime()) { res.truncated = true; break; }
     try {
       const txns = await stripe.listPayoutTxns(payout.id);
@@ -454,6 +490,8 @@ export async function linkTenantPayouts(args: {
       if (cut) { res.truncated = true; break; }
 
       const allNumbers = [...new Set(items.flatMap((i) => i.docs.map((d) => d.number).filter((n): n is string => !!n)))];
+      const sharedBy: Record<string, string[]> = {};
+      for (const it of items) if (it.docs.length > 1) sharedBy[it.txn.id] = it.docs.map((d) => d.number ?? d.id);
       const gross = docTxns.reduce((a, t) => a + t.amount, 0);
       const fee = txns.reduce((a, t) => a + t.fee, 0);
       const unlinked = items.filter((i) => !i.docs.length).map((i) => ({
@@ -519,6 +557,7 @@ export async function linkTenantPayouts(args: {
         const note = buildNote({
           payout, txnCount: docTxns.length, txns: e.txns,
           otherNumbers: allNumbers.filter((n) => !ownNumbers.has(n)),
+          sharedBy,
         });
         const newRef = e.refOk ? mergeRef(mv.ref, payout.id) : null;
         if (!e.refOk && !String(mv.ref || "").includes(payout.id)) res.refs_skipped_peppol++;
