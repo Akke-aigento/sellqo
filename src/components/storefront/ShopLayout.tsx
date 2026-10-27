@@ -136,6 +136,8 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [redirecting, setRedirecting] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
+  // BILLING-LOCK-2: dicht wegens opschorting (of offline) volgens SellQo. Fail-open.
+  const [shopClosed, setShopClosed] = useState(false);
   
   const cartCount = getCartCount();
   const wishlistCount = getWishlistCount();
@@ -149,6 +151,19 @@ export function ShopLayout({ children }: ShopLayoutProps) {
       .eq('id', tenant.id)
       .maybeSingle()
       .then(({ data }) => setIsDemo(data?.is_demo === true));
+  }, [tenant?.id]);
+
+  // BILLING-LOCK-2: dezelfde status die eigen frontends opvragen (get_shop_status).
+  useEffect(() => {
+    if (!tenant?.id) return;
+    let cancelled = false;
+    supabase.functions
+      .invoke('storefront-api', { body: { action: 'get_shop_status', tenant_id: tenant.id } })
+      .then(({ data, error }) => {
+        if (!cancelled && !error && data?.success === true && data?.data?.open === false) setShopClosed(true);
+      })
+      .catch(() => { /* fail-open */ });
+    return () => { cancelled = true; };
   }, [tenant?.id]);
 
   // Storefront activity tracking
@@ -341,7 +356,8 @@ export function ShopLayout({ children }: ShopLayoutProps) {
   // waarde 'offline' schermt af, zodat een lege of onbekende status altijd
   // een gewoon zichtbare winkel oplevert. Raakt uitsluitend de ingebouwde
   // SellQo-winkel — custom frontends lopen via storefront-api en niet hierlangs.
-  if (themeSettings?.storefront_status === 'offline') {
+  // BILLING-LOCK-2: ook dicht als SellQo de winkel opschortte (get_shop_status).
+  if (themeSettings?.storefront_status === 'offline' || shopClosed) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center">
         {(ts?.logo_url || tenant.logo_url) && (

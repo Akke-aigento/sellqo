@@ -22,7 +22,7 @@ const OPTIONS: Array<{
     value: 'offline',
     icon: EyeOff,
     title: 'Offline',
-    description: 'Bezoekers zien een "binnenkort open"-pagina. Handig terwijl je inricht.',
+    description: 'Bezoekers zien een "even gesloten"-pagina en bestellen kan niet. Handig terwijl je inricht of bij onderhoud.',
   },
 ];
 
@@ -119,8 +119,8 @@ export function StatusSection() {
         <div className="flex items-start gap-2 rounded-md bg-muted/50 p-3 text-xs text-muted-foreground">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
-            Dit geldt alleen voor de ingebouwde SellQo-winkel. Draai je een eigen
-            frontend, dan bepaalt die zelf wat bezoekers te zien krijgen.
+            Dit geldt voor de ingebouwde SellQo-winkel én voor een eigen frontend
+            die op SellQo is aangesloten: die vraagt de status bij SellQo op.
           </span>
         </div>
       </CardContent>

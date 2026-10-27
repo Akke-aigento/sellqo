@@ -15,6 +15,7 @@ import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartR
 import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
 import { buildSizeChart, publicSizeChart, sellSizesFromVariants } from "../_shared/sizeChart.ts";
 import { statusForStorefrontError } from "../_shared/storefrontErrorStatus.ts";
+import { cachedShopStatus } from "../_shared/shopStatus.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
@@ -5788,10 +5789,15 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 // ============== MAIN HANDLER ==============
 
 
+/** BILLING-LOCK-2 — acties die een bestelling of betaling starten. */
+const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
+  'checkout_complete', 'checkout_place_order', 'checkout_create_session',
+]);
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'EVENT-409-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'BILLING-LOCK-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -5833,10 +5839,24 @@ serve(async (req) => {
     const userAgent = req.headers.get('user-agent') ?? '';
 
 
+    // BILLING-LOCK-2 — een dichte winkel (onderhoud of opgeschort) neemt geen nieuwe
+    // bestellingen aan, ook niet wie de frontend omzeilt. Fail-open: bij twijfel open.
+    if (CLOSED_SHOP_BLOCKED_ACTIONS.has(action)) {
+      const status = await cachedShopStatus(supabase, tenant_id);
+      if (!status.open) {
+        return new Response(
+          JSON.stringify({ success: false, error: { code: 'SHOP_CLOSED', message: 'Deze winkel is tijdelijk gesloten.' } }),
+          { status: 423, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     let result: unknown;
     let cacheControl: string | null = null;
 
     switch (action) {
+      // BILLING-LOCK-2 — elke frontend vraagt dit op bij het laden: { open }.
+      case 'get_shop_status': result = { open: (await cachedShopStatus(supabase, tenant_id)).open }; cacheControl = 'public, max-age=30'; break;
       case 'get_tenant': result = await getTenant(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_config': result = await getConfig(supabase, tenant_id, params); cacheControl = 'public, max-age=300'; break;
       case 'get_products': result = await getProducts(supabase, tenant_id, params); cacheControl = 'public, max-age=60'; break;

@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { StorefrontApiKeysManager } from './StorefrontApiKeysManager';
+import { StatusSection } from './studio/StatusSection';
 import { useTenant } from '@/hooks/useTenant';
 import { useStorefront } from '@/hooks/useStorefront';
 import { useTenantDomains } from '@/hooks/useTenantDomains';
@@ -78,6 +79,9 @@ export function StorefrontSettings() {
 
   return (
     <div className="space-y-6">
+      {/* BILLING-LOCK-2: online/offline, ook voor een eigen frontend (get_shop_status). */}
+      <StatusSection />
+
       {/* Domain Summary */}
       <Card>
         <CardHeader>

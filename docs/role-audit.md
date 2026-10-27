@@ -1,3 +1,21 @@
+## BILLING-LOCK-2 + PAYMENT-ALERT-1 — webshop dicht enkel bij opschorting, meteen open en gemeld na betaling — 27 oktober 2026
+
+Aanleiding: Astra Sleep bleef 6 dagen dicht na betaling, omdat de winkel offline stond via een schakelaar in de code van de eigen frontend. Keuzes van Akke (27-10): dicht enkel bij "opgeschort", statusmachine aan, alle klantenwinkels aansluiten (Astra, Benny Rich, Mancini, Zona Dorata; niet VanXcel/Loveke).
+
+- **Eén bron voor "is de winkel open"** (`_shared/shopStatus.ts`, storefront-api `get_shop_status` → `{ open }`, 30 s cache):
+  - dicht als `tenant_theme_settings.storefront_status = 'offline'` (bestaande vlag, nu ook voor eigen frontends; de ongebruikte StatusSection staat nu bovenaan Instellingen → Webshop);
+  - dicht als de opgeslagen toestand `suspended` is én de live berekening dat nog zegt (dus nooit vóór de melding van de cron, en meteen open na betaling);
+  - nooit dicht door facturatie voor demo, intern, vrijgesteld of `billing_on_hold`; fail-open, fouten niet gecachet; de reden gaat niet naar buiten.
+- **Bestellen geweigerd bij een dichte winkel:** storefront-api `checkout_complete`, `checkout_place_order`, `checkout_create_session` → 423 `{code:'SHOP_CLOSED'}`; ook de oude publieke `create-checkout-session` en `create-bank-transfer-order`.
+- **Ingebouwde winkel** (`ShopLayout.tsx`) en de **standaardshop** (sellqo-storefront, "Even gesloten") vragen dezelfde status op.
+- **Na betaling** (`_shared/billingReopen.ts`, gebruikt in `subscriptionCharge.ts` op beide betaalpaden): toestand meteen herberekend (voorwaardelijke update) en bij achterstallig/leesmodus/opgeschort → actief een melding aan de winkel (hoog, ook per mail) en aan SellQo ("Winkel heropend: X"). Gededupliceerd per uur.
+- **Statusmachine aan:** cron `sync-billing-state-daily` om 07:45 UTC. Slaat nu ook `billing_on_hold` over, schrijft voorwaardelijk (geen dubbele wissel als een webhook voorging) en meldt SellQo bij opgeschort/leesmodus/heropening.
+- **Niet gedaan:** de meldingsbel over winkels heen (SellQo-meldingen komen via push en mail). Bewust: de hook draait op elk scherm.
+- **Live vooraf:** geen winkel op `offline`, geen abonnement buiten active/trialing, geen bestaande cron voor sync-billing-state.
+- **Review:** twee rondes. Ronde 1 vond o.a. sluiten op de live berekening zonder melding (nu: opgeslagen én live), de oude checkoutfuncties zonder guard, de foutvorm van 423 en een dubbele melding bij cron + webhook. Ronde 2: alles in orde.
+- **Tests:** `scripts/promo-compare/billingLock.test.ts` (12, in CI); deno check van de 7 functies; tsc 27 (baseline); lint beter dan de baseline.
+- **Deploy:** storefront-api, sync-billing-state, platform-stripe-webhook, stripe-connect-webhook, generate-subscription-invoices, create-checkout-session, create-bank-transfer-order.
+
 ## CORRECTIE-1 — eenmalige rechtzetting SellQo ↔ Odoo — 27 oktober 2026
 
 Akke 27-10: "eenmalige rechtzetting … daar is het nu wel tijd voor". Keuzes van Akke:

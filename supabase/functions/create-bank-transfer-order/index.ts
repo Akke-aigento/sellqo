@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { cachedShopStatus } from "../_shared/shopStatus.ts";
 import { verifiedCustomerId } from "../_shared/checkoutCustomer.ts";
 import { resolveServerShippingCost } from "../_shared/serverShipping.ts";
 import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from "../_shared/vat.ts";
@@ -142,6 +143,8 @@ serve(async (req) => {
     } = body;
 
     if (!tenant_id) throw new Error("tenant_id is required");
+    // BILLING-LOCK-2: een dichte winkel (offline of opgeschort) neemt geen bestellingen aan.
+    if (!(await cachedShopStatus(supabaseClient, tenant_id)).open) throw new Error("Deze winkel is tijdelijk gesloten.");
     if (!items || items.length === 0) throw new Error("items are required");
     if (!customer_email) throw new Error("customer_email is required");
 

@@ -10,7 +10,7 @@ import type Stripe from "https://esm.sh/stripe@18.5.0";
 import { effectuatePlanSwitch } from "./planEffectuate.ts";
 import { advanceDate, type Interval } from "./planProration.ts";
 import { resolveInvoiceFiscalFields } from "./invoiceFiscalFields.ts";
-import { refreshBillingStateForCustomer } from "./billingGuard.ts";
+import { announceReopen, refreshStateForCustomer } from "./billingReopen.ts";
 import { tenantPeriodAfterSettle } from "./tenantPeriod.ts";
 import { invoiceLinesFromSnapshot } from "./addonBilling.ts";
 import { effectuateAddonCycle } from "./addonLines.ts";
@@ -431,7 +431,8 @@ async function handleInvoiceCharge(
     if (updErr) throw new Error(`factuur op betaald zetten: ${updErr.message}`);
     log("Invoice marked paid", { invoiceId, intent: intent.id });
     // BILLING-ENFORCE-1: een betaalde domeinfactuur kan de leesmodus opheffen.
-    await refreshBillingStateForCustomer(supabase, invoice.customer_id ?? null);
+    // PAYMENT-ALERT-1: en meteen melden dat de winkel weer open is.
+    await announceReopen(supabase, await refreshStateForCustomer(supabase, invoice.customer_id ?? null));
 
     // BILLING-SAFE-1: melding aan de verkoper (in een bundel meldt de bundel zelf).
     if (!bundleId) {
@@ -878,7 +879,8 @@ async function handleCycleCharge(
   // BILLING-ENFORCE-1: betaald is betaald — meteen herberekenen, niet pas bij de
   // cron van morgenochtend. Geldt voor het mandaat-pad én voor een handmatige
   // betaling via de betaallink; beide komen hier langs.
-  await refreshBillingStateForCustomer(supabase, cycle.customer_id);
+  // PAYMENT-ALERT-1: en meteen melden dat de winkel weer open is.
+  await announceReopen(supabase, await refreshStateForCustomer(supabase, cycle.customer_id));
 
   // BILL-FIX-1: de tenant volgt de betaalde periode (alleen recurring, alleen vooruit).
   try {
