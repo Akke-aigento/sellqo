@@ -6,7 +6,7 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ### 2026.13w — Muntenkaart-status op de bestelling, geen ticketmail na annuleren (improvement, 26-10-2026)
 
-**Status:** NIET verzenden vóór de livegang (code klaar op branch `event-409-1`, wacht op deploy van `send-ticket-confirmation` + publish van de admin, EVENT-409-1).
+**Status:** klaar voor verzending (EVENT-409-1 live sinds 27-10-2026: send-ticket-confirmation, storefront-api, admin en helpartikel; de native app volgt met de volgende build).
 
 **Voor wie:** winkels met de module Events (ook Events Flex).
 

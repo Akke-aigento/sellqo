@@ -14,7 +14,14 @@ Aanleiding: Astra Sleep bleef 6 dagen dicht na betaling, omdat de winkel offline
 - **Live vooraf:** geen winkel op `offline`, geen abonnement buiten active/trialing, geen bestaande cron voor sync-billing-state.
 - **Review:** twee rondes. Ronde 1 vond o.a. sluiten op de live berekening zonder melding (nu: opgeslagen én live), de oude checkoutfuncties zonder guard, de foutvorm van 423 en een dubbele melding bij cron + webhook. Ronde 2: alles in orde.
 - **Tests:** `scripts/promo-compare/billingLock.test.ts` (12, in CI); deno check van de 7 functies; tsc 27 (baseline); lint beter dan de baseline.
-- **Deploy:** storefront-api, sync-billing-state, platform-stripe-webhook, stripe-connect-webhook, generate-subscription-invoices, create-checkout-session, create-bank-transfer-order.
+- **Deploy (27-10, bewezen met versiestempels BILLING-LOCK-2):** sync-billing-state, platform-stripe-webhook, stripe-connect-webhook, generate-subscription-invoices, create-checkout-session, create-bank-transfer-order; daarna storefront-api samen met send-ticket-confirmation (EVENT-409-1). Geen agent-commits (main bleef 0c70f14b). CI groen (na een aangepaste stempeltest in event409.test.ts).
+- **Proefrun statusmachine (nieuwe code, dry run):** 2 winkels bekeken (Astra, Test Facturatie; de 3 "gratis tot omschakeling" overgeslagen), 0 wijzigingen. Cron `sync-billing-state-daily` live: jobid 409, `45 7 * * *`.
+- **get_shop_status live:** Astra, Mancini en een onbekende tenant → `{open:true}`.
+- **Admin gepubliceerd:** bundel `index-DLc4YFTx.js` bevat get_shop_status, ORDER_CLOSED en order_tickets_status_resend.
+- **Standaardshop (sellqo-storefront 66be993):** "Even gesloten" bij `open:false`; Cloudflare-deploy groen.
+- **Meegenomen op Akke's go (27-10: "alles mee live"):**
+  - **KAART-5:** storefront-api `sort_by 'menu'`. Nameting in `snapshots.kaart5_probe`: De Wissel "Wit bier, Pils, Tripel van 't vat" (fase `na`); VanXcel en Mancini identiek aan de nulmeting `voor2` (VanXcel heeft nu 24 producten i.p.v. 27, dus nieuwe nulmeting vlak vóór de deploy). De storefront-commit 92aea0c was nooit gepusht; opnieuw gemaakt als sellqo-storefront e7060dc (menukaart en QR-menu vragen `sort_by 'menu'`). Live /menu van demo-bar toont de Kaart-volgorde.
+  - **EVENT-409-1:** send-ticket-confirmation (EVENT-DONE-1 → EVENT-409-1), storefront-api, admin; helpartikel `tickets-in-een-bestelling` md5 1823f187… → c1e89b3f… (snapshot `snapshots.sellqo_20261026_doc_articles_e409`). Nieuwsbrief 2026.13w op "klaar voor verzending". **Nog te doen:** native build (de oude app toont de knop nog bij een geannuleerde bestelling; de server weigert).
 
 ## CORRECTIE-1 — eenmalige rechtzetting SellQo ↔ Odoo — 27 oktober 2026
 
