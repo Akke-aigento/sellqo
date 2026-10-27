@@ -1,3 +1,28 @@
+## WATCHTOWER-HEALTH-2 — SellQo-health-endpoint voor Watchtower, met alarm op vastgelopen Odoo-sync — 27 oktober 2026
+
+Op vraag van Akke (27-10, go op het voorstel na ODOO-API-2026). Aanleiding: de Fonske-Odoo-sync faalde van 24 tot 27 okt 1288 keer zonder dat iemand een melding kreeg. Watchtower had wel een label `odoo_sync`, maar het SellQo-health-endpoint (branch `watchtower-health-1`, 10-10) werd nooit gedeployd.
+
+**Uitgevoerd**
+- `supabase/migrations/20261027090000_watchtower_health.sql`: read-only `watchtower_health_snapshot()` (SECURITY DEFINER, enkel service_role). Overgenomen van WATCHTOWER-HEALTH-1, met een nieuwe Odoo-meting: `odoo_sync.failed_2h`, `last_error` en `stuck_tenants` (tenants met in de laatste 4 u in >= 3 verschillende uren enkel `failed` en geen `synced`). Live gezet via de connector (md5 `4e96cbc4…`), rechten nagetrokken: anon/authenticated geen execute, service_role wel.
+- `supabase/functions/_shared/watchtowerHealth.ts`: pure beoordeling. Odoo: `stuck_tenants` → `fail` (Watchtower: actie-incident + push na 2 metingen), losse fouten in 2 u → `warn`. De andere checks zijn ongewijzigd t.o.v. WATCHTOWER-HEALTH-1.
+- `supabase/functions/watchtower-health/index.ts`: GET met `x-health-token` (internal_config `watchtower_health_token`, niet in de repo), supabase-js vastgepind op 2.57.2, `Deno.serve`, antwoord bevat `version: 'watchtower-health-2'` als vingerafdruk.
+- `supabase/config.toml`: `verify_jwt = false` (eigen token-check).
+- `_shared/watchtowerHealth.test.ts` (5 tests) toegevoegd aan de `deno test`-stap in CI.
+
+**Security-keuzes**
+- Read-only, schrijft niets. Token in `internal_config` (RLS zonder policies) en in Watchtower `watch_targets.health_token`, nergens in git. Tijdsgelijke vergelijking.
+
+**Gedeelde-paden-waarschuwing**
+- Nieuw `_shared`-bestand, enkel geïmporteerd door `watchtower-health`. Geen storefront-pad of tenant-flow geraakt.
+
+**Verificatie**
+- `deno test` 5/5, `deno check` tegen supabase-js 2.57.2-types groen.
+- Snapshot live 27-10 09:04: Fonske correct als `stuck_tenants` (4 uur enkel fouten), vóór de cron die de ODOO-API-2026-fix voor het eerst gebruikt.
+
+**Bewust ongemoeid / Vervolg**
+- Branch `watchtower-health-1` is hierdoor vervangen.
+- Geen changelog/doc_articles: intern, niet tenant-zichtbaar.
+
 ## EVENT-409-1 — "volzet" als HTTP 409, muntenkaart-status op de bestelling, geen ticketmail na annuleren (2026.13w) — 26 oktober 2026
 
 **Status: code klaar op branch `event-409-1` (lokaal gecommit), niet gepusht, niets gedeployed, geen migratie gedraaid.** Deploys zijn geblokkeerd door Lovable-credits (KAART-5). Recept: `docs/prepared/EVENT-409-1-deploy.md`. Go van Akke op 26-10 voor recon + bouwen; livegang apart.

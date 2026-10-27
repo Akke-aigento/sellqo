@@ -508,3 +508,6 @@ verify_jwt = false
 
 [functions.cloudprnt]
 verify_jwt = false
+
+[functions.watchtower-health]
+verify_jwt = false
