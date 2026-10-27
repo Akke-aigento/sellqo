@@ -14632,6 +14632,7 @@ export type Database = {
           marketplace_lock_shopify: boolean | null
           marketplace_lock_woocommerce: boolean | null
           marketplace_mappings: Json | null
+          menu_position: number | null
           meta_description: string | null
           meta_title: string | null
           name: string
@@ -14769,6 +14770,7 @@ export type Database = {
           marketplace_lock_shopify?: boolean | null
           marketplace_lock_woocommerce?: boolean | null
           marketplace_mappings?: Json | null
+          menu_position?: number | null
           meta_description?: string | null
           meta_title?: string | null
           name: string
@@ -14906,6 +14908,7 @@ export type Database = {
           marketplace_lock_shopify?: boolean | null
           marketplace_lock_woocommerce?: boolean | null
           marketplace_mappings?: Json | null
+          menu_position?: number | null
           meta_description?: string | null
           meta_title?: string | null
           name?: string
@@ -24003,6 +24006,15 @@ export type Database = {
         Args: { p: Json; p_ids: string[]; p_tenant_id: string }
         Returns: number
       }
+      kaart_duplicate_product: {
+        Args: {
+          p_name: string
+          p_price: string
+          p_product_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       kaart_ensure_category: {
         Args: {
           p_name: string
@@ -24011,6 +24023,14 @@ export type Database = {
           p_vat_rate_id?: string
         }
         Returns: string
+      }
+      kaart_fill_positions: {
+        Args: { p_category_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      kaart_reorder: {
+        Args: { p_ids: string[]; p_kind: string; p_tenant_id: string }
+        Returns: number
       }
       kaart_slug: { Args: { p_name: string }; Returns: string }
       kassa_business_day: {
