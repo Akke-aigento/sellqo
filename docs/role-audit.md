@@ -55,6 +55,23 @@ Op vraag van Akke (27-10: "begin hier mee en dan pakken we door tot waterdichte 
   - droog getest in een zelf-afbrekende transactie (pay-first-updates slagen, renewed enkel bij invoice_first, index blokkeert een dubbele melding); daarna nagekeken dat niets bleef staan.
 - Live nagetrokken: geen triggers op `invoice_lines`, geen FK's naar `notifications`.
 
+**Uitrol (27-10)**
+- Commits `dacf3b9a` (batch) en `49c4754e` (versiestempel als vingerafdruk). CI groen op beide.
+- Migratie live via de connector, in een eigen aanroep, vóór de functies (de code gebruikt de nieuwe kolommen). Nagetrokken:
+  - beide kolommen bestaan;
+  - functie bevat `IS DISTINCT FROM 'pay_first'` (md5 `8f782f30…`);
+  - index `notifications_dedupe_key_uniq` bestaat.
+- Deploy-only via de Lovable-agent (0,5 credits): platform-stripe-webhook, stripe-connect-webhook, generate-subscription-invoices, create-notification en send-push-notification (de laatste twee importeren `notificationDefaults.ts`). Agent-commits `c273c279`/`f6b7593f`: enkel `src/integrations/supabase/types.ts` (de nieuwe kolommen), dus platformwerk.
+- Vingerafdruk via `net.http_get` (GET, zonder neveneffect):
+
+  | Functie | Nulmeting | Na deploy |
+  |---|---|---|
+  | platform-stripe-webhook | `AI-CRED-1` | `BILLING-SAFE-1` |
+  | stripe-connect-webhook | `DISCOUNT-LIMIT-1` | `BILLING-SAFE-1` |
+  | generate-subscription-invoices | 401 | 200 `BILLING-SAFE-1` |
+
+  create-notification en send-push-notification hebben geen versiestempel. Hun enige wijziging is de default voor het nieuwe type, en urgent mailt sowieso.
+
 **Bewust ongemoeid / Vervolg (WEBHOOK-HARDEN-1)**
 - **Prorata-afschrijving** (`sync-tenant-plan`) heeft geen `charge_kind`. Een synchrone weigering daar stuurt al zelf een verzoek, maar een SEPA-prorata die dagen later faalt, blijft stil.
 - **Leesmodus-datum:** de volgorde runner/webhook bij `grace_until` kan in de melding een verkeerde datum geven.
