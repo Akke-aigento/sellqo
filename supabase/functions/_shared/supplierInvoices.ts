@@ -13,7 +13,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- structurele clients */
 
-export const INKOOP_VERSION = "INKOOP-2";
+export const INKOOP_VERSION = "INKOOP-2b";
 
 export interface BolInvoiceItem {
   invoiceId: string;

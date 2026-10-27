@@ -82,7 +82,7 @@ async function bolApi(credentials: { clientId?: string; clientSecret?: string })
   };
 }
 
-async function odooApi(env: OdooEnv): Promise<OdooPurchaseApi> {
+async function odooApi(env: OdooEnv): Promise<OdooPurchaseApi & { repairPdf(invoiceId: string, pdfBase64: string): Promise<number> }> {
   const uid = await withTimeout(odooAuthenticate(env));
   const kw = (model: string, method: string, args: unknown[], kwargs: Record<string, unknown> = {}) =>
     withTimeout(odooExecKw(env, uid, model, method, args, kwargs));
@@ -93,6 +93,17 @@ async function odooApi(env: OdooEnv): Promise<OdooPurchaseApi> {
     const att = await kw("ir.attachment", "search_read", [[["name", "=", fileName], ["res_model", "=", "account.move"]]], { fields: ["res_id"], order: "res_id", limit: 1 }) as Array<{ res_id: number }>;
     return att?.[0]?.res_id || null;
   };
+  /** Concept = aankoopfactuur, en de OCR is gevraagd (best effort: Pieter kan ook zelf). */
+  const ensureBillAndOcr = async (moveId: number) => {
+    const [m] = await kw("account.move", "read", [[moveId]], { fields: ["move_type", "state", "extract_state"] }) as Array<{ move_type: string; state: string; extract_state: string }>;
+    if (!m || m.state !== "draft") return;
+    if (m.move_type === "entry") await kw("account.move", "write", [[moveId], { move_type: "in_invoice" }]);
+    if (!m.extract_state || ["no_extract_requested", "error_status"].includes(m.extract_state)) {
+      try { await kw("account.move", "action_manual_send_for_digitization", [[moveId]]); } catch (e) {
+        console.warn(`OCR voor ${moveId} niet gestart: ${errMsg(e)}`);
+      }
+    }
+  };
   return {
     async findByRef(ref) {
       const byRef = await kw("account.move", "search", [[["ref", "=", ref], ["move_type", "in", ["in_invoice", "in_refund"]]]], { limit: 1 }) as number[];
@@ -101,10 +112,18 @@ async function odooApi(env: OdooEnv): Promise<OdooPurchaseApi> {
       return await byAttachment(`bol-${ref}.pdf`);
     },
     async uploadPdf(fileName, pdfBase64) {
-      const attId = await kw("ir.attachment", "create", [{ name: fileName, datas: pdfBase64, mimetype: "application/pdf" }]) as number;
+      // saas~19.x: het binaire veld heet `raw` (base64 over JSON-RPC); `datas` bestaat niet
+      // meer en werd stil genegeerd (lege bijlage, 27-10).
+      const attId = await kw("ir.attachment", "create", [{ name: fileName, raw: pdfBase64, mimetype: "application/pdf" }]) as number;
+      const [{ file_size: size } = { file_size: 0 }] = await kw("ir.attachment", "read", [[attId]], { fields: ["file_size"] }) as Array<{ file_size: number }>;
+      if (!size) throw new Error(`Odoo bewaarde de PDF niet (${fileName}, 0 bytes)`);
       let moveId: number | null = null;
       try {
-        moveId = moveIdFromAction(await kw("account.journal", "create_document_from_attachment", [[journal.id], [attId]]));
+        // Dezelfde context als de knop Uploaden in het aankoopdagboek: anders wordt het een
+        // gewone boeking (move_type entry) zonder OCR.
+        moveId = moveIdFromAction(await kw("account.journal", "create_document_from_attachment", [[journal.id], [attId]], {
+          context: { default_move_type: "in_invoice", default_journal_id: journal.id },
+        }));
       } catch (e) {
         // Een time-out breekt de aanroep in Odoo niet af: kijk of het concept er toch is.
         moveId = await byAttachment(fileName).catch(() => null);
@@ -112,7 +131,18 @@ async function odooApi(env: OdooEnv): Promise<OdooPurchaseApi> {
       }
       if (!moveId) moveId = await byAttachment(fileName);
       if (!moveId) throw new Error(`Odoo gaf geen concept terug voor ${fileName}`);
+      await ensureBillAndOcr(moveId);
       return moveId;
+    },
+    async repairPdf(invoiceId, pdfBase64) {
+      const fileName = `bol-${invoiceId}.pdf`;
+      const att = await kw("ir.attachment", "search_read", [[["name", "=", fileName], ["res_model", "=", "account.move"]]], { fields: ["id", "res_id", "file_size"], order: "id", limit: 1 }) as Array<{ id: number; res_id: number; file_size: number }>;
+      if (!att.length) throw new Error(`geen bijlage ${fileName}`);
+      const [{ state } = { state: "" }] = await kw("account.move", "read", [[att[0].res_id]], { fields: ["state"] }) as Array<{ state: string }>;
+      if (state !== "draft") throw new Error(`${fileName}: boeking ${att[0].res_id} is geen concept meer`);
+      if (!att[0].file_size) await kw("ir.attachment", "write", [[att[0].id], { raw: pdfBase64 }]);
+      await ensureBillAndOcr(att[0].res_id);
+      return att[0].res_id;
     },
     async setRef(moveId, ref) {
       await kw("account.move", "write", [[moveId], { ref }]);
@@ -129,7 +159,10 @@ Deno.serve(async (req) => {
   if (denied) return denied;
 
   try {
-    const body = (await req.json().catch(() => ({}))) as { days?: number; dryRun?: boolean };
+    const body = (await req.json().catch(() => ({}))) as { days?: number; dryRun?: boolean; repairInvoiceIds?: string[] };
+    // Herstel: de PDF van deze bol-facturen opnieuw ophalen en in hun (lege) concept zetten.
+    const repairIds = (Array.isArray(body.repairInvoiceIds) ? body.repairInvoiceIds : [])
+      .map(String).filter((x) => /^\d{6,20}$/.test(x)).slice(0, 20);
     const days = Math.min(Math.max(Number(body.days) || 62, 1), 366);
     const dryRun = body.dryRun === true;
     const deadline = Date.now() + 100_000;
@@ -157,9 +190,18 @@ Deno.serve(async (req) => {
           url: assertValidOdooUrl(cred.odoo_url), db: cred.odoo_db, login: cred.odoo_login,
           apiKey: await decryptOdooKey(cred.api_key_ciphertext),
         };
+        const bol = await bolApi(c.credentials as { clientId?: string; clientSecret?: string });
+        const odoo = await odooApi(env);
+        if (repairIds.length) {
+          const repaired: Record<string, unknown> = {};
+          for (const id of repairIds) {
+            try { repaired[id] = dryRun ? "dry" : await odoo.repairPdf(id, await bol.downloadPdf(id)); } catch (e) { repaired[id] = { error: errMsg(e) }; }
+          }
+          results[label] = { repaired };
+          continue;
+        }
         results[label] = await importBolInvoices({
-          db: supabase, bol: await bolApi(c.credentials as { clientId?: string; clientSecret?: string }),
-          odoo: await odooApi(env), tenantId: c.tenant_id, today, days, dryRun, deadline,
+          db: supabase, bol, odoo, tenantId: c.tenant_id, today, days, dryRun, deadline,
         });
       } catch (e) {
         results[label] = { error: errMsg(e) };

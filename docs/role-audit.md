@@ -20,6 +20,12 @@ Akke 27-10: "kies welk mail adres het beste is en configureer het direct allemaa
   - bij een time-out of een gesplitste PDF wordt het concept teruggevonden via de bijlagenaam;
   - een 23505 bij "created" wordt gemeld in plaats van genegeerd.
   Ronde 2: in orde.
+- **Eerste live run (INKOOP-2), fout van mij:**
+  - Over 120 dagen: 16 bol-facturen, waarvan 14 al in Odoo en 2 nooit geüpload (3916348598492, 3916348532406). Die twee werden concepten 1602/1603, maar de bijlage was leeg en het type was `entry`.
+  - Oorzaak 1: saas~19.3 kent het veld `datas` niet meer, het heet `raw`, en Odoo negeert een onbekend veld stil.
+  - Oorzaak 2: via de API ontbrak de context `default_move_type: in_invoice` die de knop Uploaden meegeeft.
+  - Rechtgezet: 1602/1603 op `in_invoice` gezet. **INKOOP-2b:** `raw`, de context, een controle dat de PDF > 0 bytes is, de OCR starten als die niet vanzelf begint, en een herstelpad `repairInvoiceIds` dat de PDF opnieuw in het lege concept zet.
+  - Les: na een eerste schrijfactie in Odoo altijd het resultaat teruglezen (bijlagegrootte, type).
 - Odoo-check: een manuele upload bewaart de bestandsnaam en koppelt de bijlage aan de boeking (res_model account.move), dus het vangnet op `bol-<nr>.pdf` werkt.
 
 ## BILLING-LOCK-2 + PAYMENT-ALERT-1 — webshop dicht enkel bij opschorting, meteen open en gemeld na betaling — 27 oktober 2026
