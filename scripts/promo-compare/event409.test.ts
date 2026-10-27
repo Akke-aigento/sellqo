@@ -48,10 +48,10 @@ const add = (event_detail_id = 'ev-open') => post({ cart_id: 'cart-ev', product_
 // De body zoals de vangst hem altijd al opbouwde: { success:false, error: <JSON-string> }.
 const body = (err: Record<string, unknown>) => JSON.stringify({ success: false, error: JSON.stringify(err) });
 
-Deno.test('GET geeft de versiestempel EVENT-409-1', async () => {
+Deno.test('GET geeft de versiestempel (BILLING-LOCK-2)', async () => {
   const r = await handler(new Request('https://f/storefront-api'));
   const j = await r.json();
-  assert(r.status === 200 && j.version === 'EVENT-409-1', JSON.stringify(j));
+  assert(r.status === 200 && j.version === 'BILLING-LOCK-2', JSON.stringify(j));
 });
 
 Deno.test('tickettype volzet → 409, body byte-gelijk', async () => {
