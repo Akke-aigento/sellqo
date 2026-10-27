@@ -24653,6 +24653,7 @@ export type Database = {
         Args: { p_cashier_id: string; p_pin: string }
         Returns: boolean
       }
+      watchtower_health_snapshot: { Args: never; Returns: Json }
       zone_occupancy: { Args: { p_zone_id: string }; Returns: number }
     }
     Enums: {
