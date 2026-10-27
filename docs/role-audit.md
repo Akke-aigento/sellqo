@@ -66,6 +66,32 @@ Tweede batch uit het structureel plan (verslag "SellQo betalingen en Odoo"), op 
 - Ronde 2: geen nieuwe blocker of HIGH. OSS-groepering per fiscaal tarief, eerlijk archief en eerlijke links bij een mislukte upload, en een DROP van de 2-argumentenoverload zijn verwerkt.
 - Mutatietests: elke fix uitgeschakeld geeft een rode test.
 
+**Uitrol (27-10)**
+- Commit `d24efaeb`, CI groen (inclusief de nieuwe vitest-stap).
+- Migratie live via de connector, in een eigen aanroep. Nagetrokken:
+  - `unit_price` staat op (14,4) op beide tabellen;
+  - alleen `create_invoice_with_lines(jsonb,jsonb,boolean)` bestaat;
+  - `authenticated` heeft geen execute-recht, `service_role` wel;
+  - de index bestaat.
+  Vooraf droog getest in een zelf-afbrekende transactie (correct, dubbel, mismatch, kolom, centen, geen regels); alles teruggedraaid.
+- Deploy-only via de Lovable-agent (0,5 credits): generate-invoice, create-manual-invoice, generate-peppol-ubl, generate-credit-note, vat-report-engine, regression-test-vat, create-notification, send-push-notification. Agent-commits `71019af0`/`f6d274d9`: enkel `types.ts`.
+- Vingerafdruk (GET):
+
+  | Functie | Nulmeting | Na deploy |
+  |---|---|---|
+  | generate-invoice | 401 | 200 `INVOICE-INTEGRITY-1` |
+  | create-manual-invoice | `SEC-IDOR-1` | 200 `INVOICE-INTEGRITY-1` |
+  | generate-peppol-ubl | 405 | 200 `INVOICE-INTEGRITY-1` |
+  | generate-credit-note | 400 | 200 `INVOICE-INTEGRITY-1` |
+  | vat-report-engine | 400 | 200 `INVOICE-INTEGRITY-1` |
+  | regression-test-vat | 400 | 200 `INVOICE-INTEGRITY-1` |
+
+- Frontend (creditnotadialoog, meldingstypes): `deploy_project`.
+  - De eerste publish kwam na ruim 10 minuten niet door (bundel bleef `index-CcOE3MoB.js`).
+  - Na een tweede publish staat `index-C39RUkAV.js` op sellqo.app en sellqo.lovable.app.
+  - Die bundel bevat `invoice_blocked` en `payment_unprocessed`; de vorige niet. Daarmee is ook BILLING-SAFE-1 nu pas frontend-live.
+  - De native app krijgt dit pas bij de volgende build.
+
 **Bekende beperkingen (bewust)**
 - **Odoo:** de sync boekt `price_unit × quantity` met btw exclusief. Een centverschil met de SellQo-factuur blijft mogelijk; ODOO-GUARD-1 lost dat op (exact netto, terugleescontrole, pas boeken bij gelijkheid).
 - **0%-producten:** een product aan 0% binnenlands (bestaat live niet) wordt geweigerd met een melding tot er een mapping naar `domestic_zero`/vrijstelling is. `orders.vat_regime` staat bij alle 186 orders leeg en is dus geen bron.
