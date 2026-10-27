@@ -23733,6 +23733,14 @@ export type Database = {
         Args: { _return_id: string }
         Returns: string
       }
+      create_invoice_with_lines: {
+        Args: {
+          p_cancel_existing_for_order?: boolean
+          p_invoice: Json
+          p_lines: Json
+        }
+        Returns: string
+      }
       create_pos_cashier: {
         Args: {
           p_avatar_color?: string
