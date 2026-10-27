@@ -1281,7 +1281,7 @@ serve(async (req) => {
   }
   // Versie-vingerafdruk na een deploy (doet niets, geen auth nodig).
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "INVOICE-INTEGRITY-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, version: "ODOO-GUARD-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {

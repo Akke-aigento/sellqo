@@ -820,6 +820,8 @@ async function syncTenant(supabase: SupabaseClient, env: OdooEnv, uid: number, v
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
+  // Versie-vingerafdruk na een deploy (doet niets, geen auth nodig).
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'ODOO-GUARD-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   try {
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {}

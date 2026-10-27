@@ -526,7 +526,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
   // SEC-IDOR-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "INVOICE-INTEGRITY-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "ODOO-GUARD-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     logStep("Starting manual invoice creation");
