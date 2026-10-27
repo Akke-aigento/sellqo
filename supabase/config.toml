@@ -511,3 +511,6 @@ verify_jwt = false
 
 [functions.watchtower-health]
 verify_jwt = false
+
+[functions.link-stripe-payouts]
+verify_jwt = false
