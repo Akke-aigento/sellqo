@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2'
 import { authenticateRequest, requireRole, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { createPartnerTypeResolver, partnerTypeFields } from "../_shared/odooPartnerType.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -131,6 +132,10 @@ Deno.serve(async (req) => {
 
       const aggregateB2C = odooSettings?.aggregate_b2c_customers === true
 
+      // ODOO-API-2026: company_type bestaat niet meer vanaf Odoo saas~19.3.
+      const partnerTypeMode = createPartnerTypeResolver((fields) =>
+        odooCallMethod(credentials, odooAuth.sessionId, 'res.partner', 'fields_get', [fields], { attributes: ['type', 'readonly'] }))
+
       // Push SellQo customers to Odoo as res.partner
       let customersQuery = supabase
         .from('customers')
@@ -187,7 +192,7 @@ Deno.serve(async (req) => {
             zip: customer.billing_address?.postal_code || false,
             vat: customer.vat_number || false,
             customer_rank: 1,
-            company_type: customer.company_name ? 'company' : 'person',
+            ...partnerTypeFields(await partnerTypeMode(), !!customer.company_name),
           }
 
           if (partnerId) {

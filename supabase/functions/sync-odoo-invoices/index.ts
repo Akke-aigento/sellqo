@@ -10,6 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2'
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2'
 import { denyUnlessCron } from '../_shared/marketplaceSyncAuth.ts'
 import { decryptOdooKey } from '../_shared/odooCrypto.ts'
+import { createPartnerTypeResolver, partnerTypeFields, type PartnerTypeMode } from '../_shared/odooPartnerType.ts'
 import { odooRpc as sharedOdooRpc, odooAuthenticate as sharedAuth, odooVersion as sharedVersion, assertValidOdooUrl, type OdooEnv } from '../_shared/odooRpc.ts'
 
 const corsHeaders = {
@@ -49,6 +50,8 @@ interface SyncCtx {
   channelAliases: Record<string, string>
   channelPartnerIds: Record<string, number>
   autoPost: boolean
+  // ODOO-API-2026: company_type bestaat niet meer vanaf Odoo saas~19.3.
+  partnerTypeMode: () => Promise<PartnerTypeMode>
 }
 
 // Known marketplace slugs on orders.marketplace_source that we treat as
@@ -156,7 +159,7 @@ async function ensureChannelPartner(ctx: SyncCtx, channel: string, displayName: 
   else {
     id = await execKw(ctx.env, ctx.uid, 'res.partner', 'create', [{
       name,
-      company_type: 'person',
+      ...partnerTypeFields(await ctx.partnerTypeMode(), false),
       customer_rank: 1,
       comment: 'SellQo aggregated B2C consumer sales — individual customers anonymized in accounting',
     }]) as number
@@ -233,7 +236,7 @@ async function ensureDummyPartner(ctx: SyncCtx): Promise<number> {
   else {
     id = await execKw(ctx.env, ctx.uid, 'res.partner', 'create', [{
       name: ctx.dummyPartnerName,
-      company_type: 'person',
+      ...partnerTypeFields(await ctx.partnerTypeMode(), false),
       customer_rank: 1,
       comment: 'SellQo aggregated B2C consumer sales — individual customers anonymized in accounting',
     }]) as number
@@ -268,7 +271,7 @@ async function findOrCreatePartner(ctx: SyncCtx, opts: {
   }
   const partnerId = await execKw(ctx.env, ctx.uid, 'res.partner', 'create', [{
     name: opts.companyName || opts.name,
-    company_type: opts.companyName ? 'company' : 'person',
+    ...partnerTypeFields(await ctx.partnerTypeMode(), !!opts.companyName),
     email: opts.email || false,
     phone: opts.phone || false,
     vat: opts.vatNumber || false,
@@ -544,6 +547,8 @@ async function syncTenant(supabase: SupabaseClient, env: OdooEnv, uid: number, v
     channelAliases: (settings.channel_aliases && typeof settings.channel_aliases === 'object') ? settings.channel_aliases as Record<string, string> : {},
     channelPartnerIds: (settings.channel_partner_ids && typeof settings.channel_partner_ids === 'object') ? settings.channel_partner_ids as Record<string, number> : {},
     autoPost: settings.odoo_auto_post !== false,
+    partnerTypeMode: createPartnerTypeResolver((fields) =>
+      execKw(env, uid, 'res.partner', 'fields_get', [fields], { attributes: ['type', 'readonly'] })),
   }
 
   const results = { invoices: { synced: 0, failed: 0, peppolManual: 0 }, creditNotes: { synced: 0, failed: 0, peppolManual: 0 }, errors: [] as string[] }
