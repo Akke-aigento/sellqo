@@ -6,6 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
+import {
+  useTenantBillingFigures,
+  BILLING_CATEGORY_LABEL,
+  SUBSCRIPTION_STATUS_LABEL,
+} from '@/hooks/usePlatformBillingOverview';
 import { TenantOverviewTab } from '@/components/platform/TenantOverviewTab';
 import { TenantSubscriptionTab } from '@/components/platform/TenantSubscriptionTab';
 import { TenantCreditsTab } from '@/components/platform/TenantCreditsTab';
@@ -21,6 +26,8 @@ export default function TenantDetail() {
   const navigate = useNavigate();
   const { useTenantDetail } = usePlatformAdmin();
   const { data: tenant, isLoading } = useTenantDetail(tenantId || '');
+  // PLATFORM-FIGURES-1: status uit tenant_subscriptions (tenants.subscription_status is dood).
+  const { figures } = useTenantBillingFigures(tenantId);
 
   // TENANT-TABS-1: lazy mount, daarna keep-alive.
   // Radix unmount inactieve TabsContent, dus elke tab-switch remountte de
@@ -76,9 +83,22 @@ export default function TenantDetail() {
             <h1 className="text-2xl font-bold">{tenant.name}</h1>
             <p className="text-sm text-muted-foreground">{tenant.slug}</p>
           </div>
-          <Badge variant={tenant.subscription_status === 'active' ? 'default' : 'secondary'}>
-            {tenant.subscription_status || 'Geen'}
-          </Badge>
+          {figures && (
+            <>
+              <Badge
+                variant={
+                  ['past_due', 'restricted', 'suspended', 'unpaid'].includes(figures.status ?? '')
+                    ? 'destructive'
+                    : figures.status === 'active' ? 'default' : 'secondary'
+                }
+              >
+                {(figures.status && SUBSCRIPTION_STATUS_LABEL[figures.status]) || figures.status || 'Geen abonnement'}
+              </Badge>
+              {figures.category !== 'client' && (
+                <Badge variant="outline">{BILLING_CATEGORY_LABEL[figures.category]}</Badge>
+              )}
+            </>
+          )}
         </div>
       </div>
 

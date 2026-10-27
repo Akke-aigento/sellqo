@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Building2, Users, Package, ShoppingCart, Calendar, Euro, Mail, CreditCard, Unlink, Loader2, Copy } from 'lucide-react';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
+import { useTenantBillingFigures, SUBSCRIPTION_STATUS_LABEL } from '@/hooks/usePlatformBillingOverview';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -21,6 +22,9 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
   const { data: tenant, isLoading: tenantLoading } = useTenantDetail(tenantId);
   const { data: credits, isLoading: creditsLoading } = useTenantCredits(tenantId);
   const { data: owner, isLoading: ownerLoading } = useTenantOwner(tenantId);
+  // PLATFORM-FIGURES-1: winkelcijfers live uit de orders (de tellers tenants.lifetime_*
+  // trokken terugbetalingen nooit af en dreven af: VanXcel €12.896 i.p.v. €12.621).
+  const { figures } = useTenantBillingFigures(tenantId);
 
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false);
@@ -93,40 +97,40 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lifetime Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Omzet webshop</CardTitle>
             <Euro className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(tenantData?.lifetime_revenue)}
+              {figures ? formatCurrency(figures.shop_revenue_gross) : '-'}
             </div>
-            <p className="text-xs text-muted-foreground">Totale omzet</p>
+            <p className="text-xs text-muted-foreground">Betaalde orders van de winkel, incl. btw, min terugbetalingen (niet wat SellQo ontvangt)</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lifetime Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">Betaalde orders</CardTitle>
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {tenantData?.lifetime_order_count || 0}
+              {figures ? figures.shop_orders : '-'}
             </div>
-            <p className="text-xs text-muted-foreground">Totaal bestellingen</p>
+            <p className="text-xs text-muted-foreground">Betaald of gedeeltelijk terugbetaald</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Lifetime Customers</CardTitle>
+            <CardTitle className="text-sm font-medium">Klanten</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {tenantData?.lifetime_customer_count || 0}
+              {figures ? figures.shop_customers : '-'}
             </div>
-            <p className="text-xs text-muted-foreground">Totaal klanten</p>
+            <p className="text-xs text-muted-foreground">Klanten in de winkel</p>
           </CardContent>
         </Card>
 
@@ -230,7 +234,7 @@ export function TenantOverviewTab({ tenantId }: TenantOverviewTabProps) {
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Status</p>
-              <p className="text-lg">{tenantData?.subscription_status || 'Onbekend'}</p>
+              <p className="text-lg">{(figures?.status && SUBSCRIPTION_STATUS_LABEL[figures.status]) || figures?.status || 'Geen abonnement'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Laatst bijgewerkt</p>

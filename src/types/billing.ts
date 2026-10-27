@@ -168,10 +168,17 @@ export interface TenantUsageWithLimits {
 }
 
 export interface BillingMetrics {
+  /** PLATFORM-FIGURES-1: lopende abonnementsregels per maand, excl. btw, enkel klanten. */
   mrr: number;
   arr: number;
+  /** Klanten (geen demo/eigen/on hold) met een lopend betalend abonnement. */
   payingCustomers: number;
-  churnRate: number;
+  /** Ontvangen van klanten, incl. btw, min creditnota's. */
+  paidGross: number;
+  paidGrossThisMonth: number;
+  /** Openstaand bij klanten, incl. btw. */
+  openGross: number;
+  openCount: number;
   byPlan: {
     planId: string;
     planName: string;

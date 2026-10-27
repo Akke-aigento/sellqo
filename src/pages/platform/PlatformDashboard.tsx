@@ -34,7 +34,7 @@ export default function PlatformDashboard() {
   const { getStats: getFeedbackStats } = usePlatformFeedback();
   const { useTenantStats } = usePlatformAdmin();
   const { data: tenantStats, isLoading: tenantStatsLoading } = useTenantStats();
-  const { metrics, isLoading: metricsLoading } = usePlatformBilling();
+  const { metrics, metricsLoading } = usePlatformBilling();
 
   const ticketStats = getTicketStats();
   const changelogStats = getChangelogStats();
@@ -42,6 +42,9 @@ export default function PlatformDashboard() {
   const feedbackStats = getFeedbackStats();
   const overallStatus = getOverallStatus();
   const activeIncidents = getActiveIncidents();
+
+  const eur = (n: number | undefined) =>
+    new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(n || 0);
 
   const statusLabel = {
     healthy: 'Operationeel',
@@ -103,7 +106,7 @@ export default function PlatformDashboard() {
             </div>
             <div className="text-center p-4 bg-blue-50 rounded-lg">
               <p className="text-3xl font-bold text-blue-700">{tenantStatsLoading ? '-' : tenantStats?.internal || 0}</p>
-              <p className="text-sm text-muted-foreground">Intern</p>
+              <p className="text-sm text-muted-foreground">Eigen winkels</p>
             </div>
           </div>
           <Button variant="link" className="p-0 h-auto mt-4" asChild>
@@ -124,25 +127,25 @@ export default function PlatformDashboard() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="text-center p-4 bg-emerald-50 rounded-lg">
               <p className="text-3xl font-bold text-emerald-700">
-                {metricsLoading ? '-' : `€${Math.round(metrics?.mrr || 0).toLocaleString()}`}
+                {metricsLoading ? '-' : eur(metrics?.mrr)}
               </p>
-              <p className="text-sm text-muted-foreground">MRR</p>
+              <p className="text-sm text-muted-foreground">MRR (excl. btw)</p>
             </div>
             <div className="text-center p-4 bg-emerald-50 rounded-lg">
               <p className="text-3xl font-bold text-emerald-700">
-                {metricsLoading ? '-' : `€${Math.round(metrics?.arr || 0).toLocaleString()}`}
+                {metricsLoading ? '-' : eur(metrics?.paidGrossThisMonth)}
               </p>
-              <p className="text-sm text-muted-foreground">ARR</p>
+              <p className="text-sm text-muted-foreground">Ontvangen deze maand (incl. btw)</p>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
               <p className="text-3xl font-bold">{metricsLoading ? '-' : metrics?.payingCustomers || 0}</p>
               <p className="text-sm text-muted-foreground">Betalende Klanten</p>
             </div>
             <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <p className="text-3xl font-bold">
-                {metricsLoading ? '-' : `${(metrics?.churnRate || 0).toFixed(1)}%`}
+              <p className={`text-3xl font-bold ${(metrics?.openGross || 0) > 0 ? 'text-destructive' : ''}`}>
+                {metricsLoading ? '-' : eur(metrics?.openGross)}
               </p>
-              <p className="text-sm text-muted-foreground">Churn Rate</p>
+              <p className="text-sm text-muted-foreground">Openstaand (incl. btw)</p>
             </div>
           </div>
           <Button variant="link" className="p-0 h-auto mt-4" asChild>

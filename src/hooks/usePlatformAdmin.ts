@@ -91,21 +91,26 @@ export function usePlatformAdmin() {
     return useQuery({
       queryKey: ['platform-tenant-stats'],
       queryFn: async () => {
+        // PLATFORM-FIGURES-1: de status staat in tenant_subscriptions.status;
+        // tenants.subscription_status wordt niet meer bijgewerkt (zie BILLING-ENFORCE-1).
         const { data, error } = await supabase
           .from('tenants')
-          .select('id, subscription_status, is_internal_tenant, billing_exempt, is_demo');
+          .select('id, is_internal_tenant, billing_exempt, is_demo, billing_on_hold, tenant_subscriptions(status)');
         
         if (error) throw error;
         
-        // Exclude demo and internal tenants from main counts
-        // BILLING-EXEMPT-1: SellQo zelf en vrijgestelde winkels tellen niet mee.
+        const statusOf = (t: { tenant_subscriptions?: { status: string | null }[] | { status: string | null } | null }) => {
+          const ts = Array.isArray(t.tenant_subscriptions) ? t.tenant_subscriptions[0] : t.tenant_subscriptions;
+          return ts?.status ?? null;
+        };
+        // Demo en eigen winkels (SellQo zelf + vrijgesteld) tellen niet mee in de hoofdtellers.
         const realTenants = data?.filter(t => !t.is_demo && !isBillingExempt(t)) || [];
         
         const stats: TenantStats = {
           total: realTenants.length,
-          active: realTenants.filter(t => t.subscription_status === 'active').length,
-          trialing: realTenants.filter(t => t.subscription_status === 'trialing').length,
-          internal: data?.filter(t => isBillingExempt(t)).length || 0,
+          active: realTenants.filter(t => statusOf(t) === 'active').length,
+          trialing: realTenants.filter(t => statusOf(t) === 'trialing').length,
+          internal: data?.filter(t => !t.is_demo && isBillingExempt(t)).length || 0,
           demo: data?.filter(t => t.is_demo).length || 0,
         };
         

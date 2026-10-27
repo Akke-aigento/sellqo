@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Gift, Calendar, CreditCard, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
 import { usePlatformBilling } from '@/hooks/usePlatformBilling';
+import { useTenantBillingFigures, SUBSCRIPTION_STATUS_LABEL } from '@/hooks/usePlatformBillingOverview';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
@@ -23,6 +24,7 @@ export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) 
   const { giftMonth } = usePlatformBilling();
   const { data: subscription, isLoading } = useTenantSubscription(tenantId);
   const { data: pricingPlans, isLoading: plansLoading } = usePricingPlans();
+  const { figures } = useTenantBillingFigures(tenantId);
 
   const [selectedPlanId, setSelectedPlanId] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
@@ -53,7 +55,9 @@ export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) 
     return <Skeleton className="h-64 w-full" />;
   }
 
-  const plan = subscription?.pricing_plans as { name?: string; monthly_price?: number } | null;
+  const plan = subscription?.pricing_plans as { name?: string; monthly_price?: number; yearly_price?: number } | null;
+  const eur = (n: number | undefined) =>
+    new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(Number(n) || 0);
   const currentPlanId = subscription?.plan_id || '';
   const currentStatus = subscription?.status || '';
   const currentInterval = subscription?.billing_interval || 'monthly';
@@ -106,7 +110,7 @@ export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) 
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Status</span>
                 <Badge variant={getStatusColor(subscription.status)}>
-                  {subscription.status}
+                  {SUBSCRIPTION_STATUS_LABEL[subscription.status] || subscription.status}
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
@@ -114,8 +118,21 @@ export function TenantSubscriptionTab({ tenantId }: TenantSubscriptionTabProps) 
                 <span>{subscription.billing_interval === 'yearly' ? 'Jaarlijks' : 'Maandelijks'}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Prijs</span>
-                <span>€{plan?.monthly_price || 0}/maand</span>
+                <span className="text-muted-foreground">Lijstprijs plan</span>
+                <span>
+                  {subscription.billing_interval === 'yearly'
+                    ? `${eur(plan?.yearly_price)}/jaar`
+                    : `${eur(plan?.monthly_price)}/maand`}{' '}
+                  <span className="text-xs text-muted-foreground">excl. btw</span>
+                </span>
+              </div>
+              {/* PLATFORM-FIGURES-1: wat er echt aangerekend wordt (lopende abonnementsregels). */}
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Aangerekend</span>
+                <span className="font-semibold">
+                  {figures ? `${eur(figures.mrr_net)}/maand` : '—'}{' '}
+                  <span className="text-xs font-normal text-muted-foreground">excl. btw</span>
+                </span>
               </div>
               {subscription.current_period_end && (
                 <div className="flex items-center justify-between">

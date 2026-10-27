@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Download, ExternalLink } from 'lucide-react';
 import { usePlatformAdmin } from '@/hooks/usePlatformAdmin';
+import { useTenantBillingFigures } from '@/hooks/usePlatformBillingOverview';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { format } from 'date-fns';
@@ -23,10 +24,17 @@ interface TenantInvoicesTabProps {
 export function TenantInvoicesTab({ tenantId }: TenantInvoicesTabProps) {
   const { useTenantInvoices } = usePlatformAdmin();
   const { data: invoices, isLoading } = useTenantInvoices(tenantId);
+  // PLATFORM-FIGURES-1: de echte SellQo-facturen en creditnota's van deze tenant.
+  const { figures, documents, isLoading: figuresLoading, error: figuresError } = useTenantBillingFigures(tenantId);
 
-  if (isLoading) {
+  if (isLoading || figuresLoading) {
     return <Skeleton className="h-64 w-full" />;
   }
+
+  const eur = (n: number) => new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(n || 0);
+  const docLabel: Record<string, string> = {
+    paid: 'Betaald', sent: 'Open', unpaid: 'Onbetaald', processing: 'In verwerking', cancelled: 'Geannuleerd', draft: 'Concept',
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -46,15 +54,101 @@ export function TenantInvoicesTab({ tenantId }: TenantInvoicesTabProps) {
   };
 
   return (
+    <div className="space-y-6">
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          Platform Facturen — historisch (Stripe)
+          Betalingen aan SellQo
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {figuresError ? (
+          <p className="text-sm text-destructive">Cijfers konden niet geladen worden: {(figuresError as Error).message}</p>
+        ) : figures && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <p className="text-xs text-muted-foreground">Betaald (incl. btw)</p>
+              <p className="text-xl font-bold">{eur(figures.paid_gross)}</p>
+              <p className="text-xs text-muted-foreground">{eur(figures.paid_net)} excl. btw · {figures.paid_invoices} factuur/facturen</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Openstaand (incl. btw)</p>
+              <p className={`text-xl font-bold ${figures.open_gross > 0 ? 'text-destructive' : ''}`}>{eur(figures.open_gross)}</p>
+              {figures.open_due_date && (
+                <p className="text-xs text-muted-foreground">
+                  vervalt {format(new Date(figures.open_due_date), 'dd MMM yyyy', { locale: nl })}
+                </p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Abonnement per maand (excl. btw)</p>
+              <p className="text-xl font-bold">{eur(figures.mrr_net)}</p>
+              {figures.category !== 'client' && (
+                <p className="text-xs text-muted-foreground">telt niet mee in de platformcijfers</p>
+              )}
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Laatste betaling</p>
+              <p className="text-xl font-bold">
+                {figures.last_paid_at ? format(new Date(figures.last_paid_at), 'dd MMM yyyy', { locale: nl }) : '—'}
+              </p>
+              {figures.credited_gross > 0 && (
+                <p className="text-xs text-muted-foreground">gecrediteerd: {eur(figures.credited_gross)}</p>
+              )}
+            </div>
+          </div>
+        )}
+
+        {documents.length > 0 ? (
+          <div className="w-full overflow-x-auto">
+          <Table className="min-w-[640px]">
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nummer</TableHead>
+                <TableHead>Datum</TableHead>
+                <TableHead className="text-right">Excl. btw</TableHead>
+                <TableHead className="text-right">Incl. btw</TableHead>
+                <TableHead>Status</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {documents.map((doc) => (
+                <TableRow key={`${doc.kind}-${doc.id}`}>
+                  <TableCell className="font-mono">{doc.number || '—'}</TableCell>
+                  <TableCell>{format(new Date(doc.doc_date), 'dd MMM yyyy', { locale: nl })}</TableCell>
+                  <TableCell className="text-right tabular-nums">{eur(doc.subtotal)}</TableCell>
+                  <TableCell className="text-right tabular-nums font-semibold">{eur(doc.total)}</TableCell>
+                  <TableCell>
+                    {doc.kind === 'credit_note'
+                      ? <Badge variant="outline">Creditnota</Badge>
+                      : doc.status === 'paid'
+                        ? <Badge className="bg-green-100 text-green-800">Betaald</Badge>
+                        : <Badge variant={doc.status === 'cancelled' ? 'outline' : 'secondary'}>{docLabel[doc.status] || doc.status}</Badge>}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          </div>
+        ) : (
+          <p className="text-muted-foreground text-sm py-4 text-center">
+            Nog geen SellQo-facturen voor deze tenant
+          </p>
+        )}
+      </CardContent>
+    </Card>
+
+    {invoices && invoices.length > 0 && (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Historisch archief (oude Stripe Billing, bankbetalingen, AI-credits)
         </CardTitle>
       </CardHeader>
       <CardContent>
-        {invoices && invoices.length > 0 ? (
+        {(
           <div className="w-full overflow-x-auto">
           <Table className="min-w-[640px]">
             <TableHeader>
@@ -78,7 +172,7 @@ export function TenantInvoicesTab({ tenantId }: TenantInvoicesTabProps) {
                       : format(new Date(invoice.created_at), 'dd MMM yyyy', { locale: nl })}
                   </TableCell>
                   <TableCell className="font-semibold">
-                    €{(invoice.amount / 100).toFixed(2)}
+                    {eur(Number(invoice.amount))}
                   </TableCell>
                   <TableCell>{getStatusBadge(invoice.status)}</TableCell>
                   <TableCell>
@@ -124,12 +218,10 @@ export function TenantInvoicesTab({ tenantId }: TenantInvoicesTabProps) {
             </TableBody>
           </Table>
           </div>
-        ) : (
-          <p className="text-muted-foreground text-sm py-8 text-center">
-            Geen facturen gevonden voor deze tenant
-          </p>
         )}
       </CardContent>
     </Card>
+    )}
+    </div>
   );
 }

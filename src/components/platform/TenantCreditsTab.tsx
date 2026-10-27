@@ -200,7 +200,8 @@ export function TenantCreditsTab({ tenantId }: TenantCreditsTabProps) {
                       {format(new Date(purchase.created_at!), 'dd MMM yyyy HH:mm', { locale: nl })}
                     </TableCell>
                     <TableCell className="font-semibold">+{purchase.credits_amount}</TableCell>
-                    <TableCell>€{(purchase.price_paid / 100).toFixed(2)}</TableCell>
+                    {/* PLATFORM-FIGURES-1: price_paid staat in euro (numeric), niet in centen. */}
+                    <TableCell>€{Number(purchase.price_paid).toFixed(2).replace('.', ',')}</TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex items-center px-2 py-1 rounded-full text-xs ${

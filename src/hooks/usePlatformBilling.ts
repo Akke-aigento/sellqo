@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import type { TenantSubscription, PlatformInvoice, BillingMetrics, PricingPlanFeatures } from '@/types/billing';
+import type { PlatformInvoice, BillingMetrics, PricingPlanFeatures } from '@/types/billing';
+import { usePlatformBillingOverview } from '@/hooks/usePlatformBillingOverview';
 
 // Hook for platform admins to manage all tenant subscriptions
 export function usePlatformBilling() {
@@ -35,76 +36,43 @@ export function usePlatformBilling() {
     enabled: isPlatformAdmin,
   });
 
-  const { data: metrics } = useQuery({
-    queryKey: ['platform-billing-metrics'],
-    queryFn: async (): Promise<BillingMetrics> => {
-      // Get all active subscriptions with plans
-      const { data: subs, error } = await supabase
-        .from('tenant_subscriptions')
-        .select(`
-          *,
-          pricing_plans!plan_id (*)
-        `)
-        .in('status', ['active', 'trialing']);
+  // PLATFORM-FIGURES-1: cijfers uit platform_billing_overview() — wat er écht aangerekend,
+  // betaald en openstaat. Tot 27-10 stond hier de lijstprijs van elk plan van elke tenant
+  // (ook demo, intern en trial): MRR €3.253,50 bij één betalende klant.
+  const overview = usePlatformBillingOverview();
 
+  const { data: plans } = useQuery({
+    queryKey: ['platform-pricing-plan-names'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('pricing_plans').select('id, name');
       if (error) throw error;
-
-      let mrr = 0;
-      const byPlanMap = new Map<string, { planId: string; planName: string; count: number; mrr: number }>();
-
-      for (const sub of subs || []) {
-        const plan = sub.pricing_plans;
-        if (!plan) continue;
-
-        const monthlyAmount = sub.billing_interval === 'yearly' 
-          ? Number(plan.yearly_price) / 12 
-          : Number(plan.monthly_price);
-        
-        mrr += monthlyAmount;
-
-        const existing = byPlanMap.get(plan.id) || { 
-          planId: plan.id, 
-          planName: plan.name, 
-          count: 0, 
-          mrr: 0 
-        };
-        existing.count += 1;
-        existing.mrr += monthlyAmount;
-        byPlanMap.set(plan.id, existing);
-      }
-
-      // Get canceled count for churn (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const { count: canceledCount } = await supabase
-        .from('tenant_subscriptions')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'canceled')
-        .gte('canceled_at', thirtyDaysAgo.toISOString());
-
-      const payingCustomers = (subs || []).filter(s => 
-        s.pricing_plans && Number(s.pricing_plans.monthly_price) > 0
-      ).length;
-
-      const totalActiveStart = payingCustomers + (canceledCount || 0);
-      const churnRate = totalActiveStart > 0 ? ((canceledCount || 0) / totalActiveStart) * 100 : 0;
-
-      return {
-        mrr,
-        arr: mrr * 12,
-        payingCustomers,
-        churnRate,
-        byPlan: Array.from(byPlanMap.values()).sort((a, b) => b.mrr - a.mrr),
-      };
+      return new Map((data || []).map((p) => [p.id as string, p.name as string]));
     },
     enabled: isPlatformAdmin,
+    staleTime: 10 * 60_000,
   });
 
-  // HISTORISCH (Stripe Billing-archief + bevestigde bankbetalingen).
-  // Actuele abonnementsfacturatie loopt via de native billing-engine.
-  // Zie docs/stripe-billing-deprecated.md
-  const { data: allInvoices } = useQuery({
+  const metrics: BillingMetrics | undefined = overview.data
+    ? {
+        mrr: overview.data.totals.mrr_net,
+        arr: overview.data.totals.mrr_net * 12,
+        payingCustomers: overview.data.totals.paying_customers,
+        paidGross: overview.data.totals.paid_gross,
+        paidGrossThisMonth: overview.data.totals.paid_gross_this_month,
+        openGross: overview.data.totals.open_gross,
+        openCount: overview.data.totals.open_count,
+        byPlan: overview.data.by_plan.map((p) => ({
+          planId: p.plan_id ?? '-',
+          planName: (p.plan_id && plans?.get(p.plan_id)) || p.plan_id || '-',
+          count: p.count,
+          mrr: p.mrr_net,
+        })),
+      }
+    : undefined;
+
+  // HISTORISCH archief (oude Stripe Billing + bevestigde bankbetalingen + AI-credits).
+  // `amount` staat in euro (NUMERIC), nooit delen door 100.
+  const { data: legacyInvoices } = useQuery({
     queryKey: ['platform-all-invoices'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -114,7 +82,7 @@ export function usePlatformBilling() {
           tenants (id, name)
         `)
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (error) throw error;
       return data as (PlatformInvoice & { tenants: { id: string; name: string } })[];
@@ -122,24 +90,16 @@ export function usePlatformBilling() {
     enabled: isPlatformAdmin,
   });
 
-  const { data: atRiskTenants } = useQuery({
-    queryKey: ['platform-at-risk-tenants'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tenant_subscriptions')
-        .select(`
-          *,
-          pricing_plans!plan_id (*),
-          tenants (id, name, owner_email)
-        `)
-        .eq('status', 'past_due')
-        .order('updated_at', { ascending: true });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: isPlatformAdmin,
-  });
+  // Risico: gefactureerde tenants met een achterstallige status (past_due, restricted,
+  // suspended) of een openstaand bedrag voorbij de vervaldatum.
+  // Een open verzoek dat nog niet vervallen is (of een SEPA-betaling in verwerking) is geen risico.
+  const today = new Date().toISOString().slice(0, 10);
+  const atRiskTenants = (overview.data?.tenants ?? []).filter(
+    (t) =>
+      t.category === 'client' &&
+      (['past_due', 'restricted', 'suspended', 'unpaid'].includes(t.status ?? '') ||
+        (t.open_gross > 0 && (t.open_expired || (!!t.open_due_date && t.open_due_date < today)))),
+  );
 
   const giftMonth = useMutation({
     mutationFn: async ({ tenantId, months }: { tenantId: string; months: number }) => {
@@ -162,8 +122,13 @@ export function usePlatformBilling() {
   return {
     subscriptions: subscriptions ?? [],
     metrics,
-    allInvoices: allInvoices ?? [],
-    atRiskTenants: atRiskTenants ?? [],
+    metricsLoading: overview.isLoading,
+    metricsError: overview.error as Error | null,
+    documents: overview.data?.documents ?? [],
+    tenantFigures: overview.data?.tenants ?? [],
+    totals: overview.data?.totals,
+    legacyInvoices: legacyInvoices ?? [],
+    atRiskTenants,
     isLoading,
     giftMonth,
   };

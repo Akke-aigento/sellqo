@@ -22,12 +22,11 @@ import {
   CreditCard, 
   AlertTriangle,
   Gift,
-  Mail,
   ExternalLink,
   Search,
-  Percent
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { SUBSCRIPTION_STATUS_LABEL } from '@/hooks/usePlatformBillingOverview';
 import { nl, enUS } from 'date-fns/locale';
 
 export default function PlatformBilling() {
@@ -37,7 +36,10 @@ export default function PlatformBilling() {
   const { 
     subscriptions, 
     metrics, 
-    allInvoices, 
+    metricsError,
+    documents,
+    totals,
+    legacyInvoices, 
     atRiskTenants,
     isLoading,
     giftMonth 
@@ -63,22 +65,20 @@ export default function PlatformBilling() {
     sub.tenants?.owner_email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const daysSince = (date: string | null) =>
+    date ? Math.floor((Date.now() - new Date(`${date.slice(0, 10)}T00:00:00`).getTime()) / 86_400_000) : null;
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
       active: 'default',
       trialing: 'secondary',
       past_due: 'destructive',
+      restricted: 'destructive',
+      suspended: 'destructive',
       canceled: 'outline',
       unpaid: 'destructive',
     };
-    const labels: Record<string, string> = {
-      active: 'Actief',
-      trialing: 'Trial',
-      past_due: 'Achterstallig',
-      canceled: 'Geannuleerd',
-      unpaid: 'Onbetaald',
-    };
-    return <Badge variant={variants[status] || 'outline'}>{labels[status] || status}</Badge>;
+    return <Badge variant={variants[status] || 'outline'}>{SUBSCRIPTION_STATUS_LABEL[status] || status}</Badge>;
   };
 
   const handleGiftMonth = () => {
@@ -103,7 +103,8 @@ export default function PlatformBilling() {
         <div>
           <h1 className="text-3xl font-bold">{t('admin_billing.title')}</h1>
           <p className="text-muted-foreground">
-            Overzicht van alle tenant abonnementen en platform revenue
+            Wat klanten echt aan SellQo betalen. Demo-, test- en eigen winkels en winkels met
+            facturatie on hold tellen niet mee.
           </p>
         </div>
       </div>
@@ -120,22 +121,22 @@ export default function PlatformBilling() {
               {formatCurrency(metrics?.mrr || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {t('admin_billing.mrr')}
+              Lopende abonnementen per maand, excl. btw
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ARR</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Ontvangen</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {formatCurrency(metrics?.arr || 0)}
+              {formatCurrency(metrics?.paidGross || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {t('admin_billing.arr')}
+              Totaal incl. btw · deze maand {formatCurrency(metrics?.paidGrossThisMonth || 0)}
             </p>
           </CardContent>
         </Card>
@@ -150,26 +151,34 @@ export default function PlatformBilling() {
               {metrics?.payingCustomers || 0}
             </div>
             <p className="text-xs text-muted-foreground">
-              {t('admin_billing.paying_customers')}
+              Klanten met een lopend betalend abonnement
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Churn Rate</CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Openstaand</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {(metrics?.churnRate || 0).toFixed(1)}%
+            <div className={`text-2xl font-bold ${(metrics?.openGross || 0) > 0 ? 'text-destructive' : ''}`}>
+              {formatCurrency(metrics?.openGross || 0)}
             </div>
             <p className="text-xs text-muted-foreground">
-              Laatste 30 dagen
+              Incl. btw · {metrics?.openCount || 0} klant(en)
             </p>
           </CardContent>
         </Card>
       </div>
+
+      {metricsError && (
+        <Card className="border-destructive">
+          <CardContent className="p-4 text-sm text-destructive">
+            Cijfers konden niet geladen worden: {metricsError.message}
+          </CardContent>
+        </Card>
+      )}
 
       {/* At Risk Tenants */}
       {atRiskTenants.length > 0 && (
@@ -180,7 +189,7 @@ export default function PlatformBilling() {
               {t('admin_billing.at_risk')} ({atRiskTenants.length})
             </CardTitle>
             <CardDescription>
-              Tenants met achterstallige betalingen
+              Klanten met een vervallen openstaand bedrag of een achterstallige status
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -189,46 +198,28 @@ export default function PlatformBilling() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Tenant</TableHead>
-                  <TableHead>Plan</TableHead>
-                  <TableHead>Bedrag</TableHead>
-                  <TableHead>Dagen achterstallig</TableHead>
-                  <TableHead>Acties</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Openstaand</TableHead>
+                  <TableHead>Vervaldatum</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {atRiskTenants.map((tenant) => {
-                  const daysOverdue = tenant.current_period_end 
-                    ? Math.floor((Date.now() - new Date(tenant.current_period_end).getTime()) / (1000 * 60 * 60 * 24))
-                    : 0;
-                  
+                  const overdue = daysSince(tenant.open_due_date);
                   return (
-                    <TableRow key={tenant.id}>
+                    <TableRow key={tenant.tenant_id}>
+                      <TableCell className="font-medium">{tenant.name}</TableCell>
+                      <TableCell>{getStatusBadge(tenant.status ?? '')}</TableCell>
+                      <TableCell>{formatCurrency(tenant.open_gross)}</TableCell>
                       <TableCell>
-                        <div>
-                          <div className="font-medium">{tenant.tenants?.name}</div>
-                          <div className="text-sm text-muted-foreground">{tenant.tenants?.owner_email}</div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{tenant.pricing_plans?.name}</TableCell>
-                      <TableCell>
-                        {formatCurrency(
-                          tenant.billing_interval === 'yearly' 
-                            ? Number(tenant.pricing_plans?.yearly_price || 0) / 12
-                            : Number(tenant.pricing_plans?.monthly_price || 0)
-                        )}/mnd
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant="destructive">{daysOverdue} dagen</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => window.open(`mailto:${tenant.tenants?.owner_email}`)}
-                        >
-                          <Mail className="h-4 w-4 mr-1" />
-                          Contact
-                        </Button>
+                        {tenant.open_due_date ? (
+                          <div className="flex items-center gap-2">
+                            {format(new Date(tenant.open_due_date), 'dd/MM/yyyy')}
+                            {overdue !== null && overdue > 0 && (
+                              <Badge variant="destructive">{overdue} dagen te laat</Badge>
+                            )}
+                          </div>
+                        ) : '—'}
                       </TableCell>
                     </TableRow>
                   );
@@ -251,13 +242,16 @@ export default function PlatformBilling() {
               <div key={planData.planId} className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="font-medium">{planData.planName}</div>
-                  <Badge variant="secondary">{planData.count} tenants</Badge>
+                  <Badge variant="secondary">{planData.count} klant(en)</Badge>
                 </div>
                 <div className="font-semibold">
-                  {formatCurrency(planData.mrr)}/mnd
+                  {formatCurrency(planData.mrr)}/mnd excl. btw
                 </div>
               </div>
             ))}
+            {metrics && metrics.byPlan.length === 0 && (
+              <p className="text-sm text-muted-foreground">Nog geen betalende klanten.</p>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -349,14 +343,57 @@ export default function PlatformBilling() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="invoices">
+        <TabsContent value="invoices" className="space-y-4">
           <Card>
             <div className="p-4 border-b">
-              <p className="text-sm font-medium">Historisch (Stripe)</p>
+              <p className="text-sm font-medium">SellQo-facturen en creditnota's</p>
               <p className="text-xs text-muted-foreground">
-                Archief uit de oude Stripe Billing-periode en handmatig bevestigde
-                bankbetalingen. Actuele abonnementsfacturen staan in de native
-                billing-engine op de abonnementspagina van de tenant.
+                Ontvangen van klanten: {formatCurrency(totals?.paid_gross || 0)} · eigen/demo/test-winkels:{' '}
+                {formatCurrency(totals?.paid_gross_other || 0)} · niet aan een winkel gekoppeld:{' '}
+                {formatCurrency(totals?.paid_gross_unassigned || 0)} · totaal:{' '}
+                {formatCurrency(totals?.paid_gross_all || 0)} (incl. btw, min creditnota's)
+              </p>
+            </div>
+            <div className="w-full overflow-x-auto">
+            <Table className="min-w-[640px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Datum</TableHead>
+                  <TableHead>Nummer</TableHead>
+                  <TableHead>Winkel</TableHead>
+                  <TableHead className="text-right">Excl. btw</TableHead>
+                  <TableHead className="text-right">Incl. btw</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {documents.map((doc) => (
+                  <TableRow key={`${doc.kind}-${doc.id}`}>
+                    <TableCell>{format(new Date(doc.doc_date), 'dd/MM/yyyy')}</TableCell>
+                    <TableCell>{doc.number || '—'}</TableCell>
+                    <TableCell>
+                      {doc.tenant_name || <span className="text-muted-foreground">{doc.customer_name || '—'} (niet gekoppeld)</span>}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(doc.subtotal)}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatCurrency(doc.total)}</TableCell>
+                    <TableCell>
+                      <Badge variant={doc.kind === 'credit_note' ? 'outline' : doc.status === 'paid' ? 'default' : doc.status === 'cancelled' ? 'outline' : 'destructive'}>
+                        {doc.kind === 'credit_note' ? 'Creditnota' : ({ paid: 'Betaald', sent: 'Open', unpaid: 'Onbetaald', processing: 'In verwerking', cancelled: 'Geannuleerd', draft: 'Concept' } as Record<string, string>)[doc.status] || doc.status}
+                      </Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+            </div>
+          </Card>
+
+          {legacyInvoices.length > 0 && (
+          <Card>
+            <div className="p-4 border-b">
+              <p className="text-sm font-medium">Historisch archief</p>
+              <p className="text-xs text-muted-foreground">
+                Oude Stripe Billing-periode, handmatig bevestigde bankbetalingen en AI-credits.
               </p>
             </div>
             <div className="w-full overflow-x-auto">
@@ -372,14 +409,14 @@ export default function PlatformBilling() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {allInvoices.slice(0, 50).map((invoice) => (
+                {legacyInvoices.map((invoice) => (
                   <TableRow key={invoice.id}>
                     <TableCell>
                       {invoice.invoice_date && format(new Date(invoice.invoice_date), 'dd/MM/yyyy')}
                     </TableCell>
                     <TableCell>{invoice.tenants?.name}</TableCell>
                     <TableCell>{invoice.invoice_number}</TableCell>
-                    <TableCell>{formatCurrency(invoice.amount)}</TableCell>
+                    <TableCell>{formatCurrency(Number(invoice.amount))}</TableCell>
                     <TableCell>
                       <Badge variant={invoice.status === 'paid' ? 'default' : 'destructive'}>
                         {invoice.status === 'paid' ? 'Betaald' : invoice.status}
@@ -409,6 +446,7 @@ export default function PlatformBilling() {
             </Table>
             </div>
           </Card>
+          )}
         </TabsContent>
       </Tabs>
 

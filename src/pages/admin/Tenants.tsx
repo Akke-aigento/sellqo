@@ -36,15 +36,22 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { format } from 'date-fns';
 import { nl } from 'date-fns/locale';
 import { isBillingExempt } from '../../../supabase/functions/_shared/billingExempt';
+import { usePlatformBillingOverview } from '@/hooks/usePlatformBillingOverview';
 
 function getStatusBadge(status: string | null) {
   switch (status) {
     case 'active':
       return <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Actief</Badge>;
     case 'trial':
+    case 'trialing':
       return <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Trial</Badge>;
+    case 'past_due':
+      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Achterstallig</Badge>;
+    case 'restricted':
+      return <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">Beperkt</Badge>;
     case 'suspended':
-      return <Badge className="bg-yellow-100 text-yellow-800 hover:bg-yellow-100">Opgeschort</Badge>;
+      return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Geblokkeerd</Badge>;
+    case 'canceled':
     case 'cancelled':
       return <Badge className="bg-red-100 text-red-800 hover:bg-red-100">Geannuleerd</Badge>;
     default:
@@ -66,6 +73,11 @@ function getPlanBadge(plan: string | null) {
 }
 
 export default function TenantsPage() {
+  // PLATFORM-FIGURES-1: abonnementsstatus uit tenant_subscriptions (via het overzicht);
+  // tenants.subscription_status wordt sinds BILLING-ENFORCE-1 niet meer bijgewerkt.
+  const { data: billingOverview } = usePlatformBillingOverview();
+  const statusOf = (tenantId: string) =>
+    billingOverview?.tenants.find((t) => t.tenant_id === tenantId)?.status ?? null;
   const navigate = useNavigate();
   const { tenants, isLoading, createTenant, updateTenant, deleteTenant } = useTenants();
   const isMobile = useIsMobile();
@@ -282,7 +294,7 @@ export default function TenantsPage() {
                         (tenant.is_demo ? (
                           <Badge variant="secondary">N/A</Badge>
                         ) : (
-                          getStatusBadge(tenant.subscription_status)
+                          getStatusBadge(statusOf(tenant.id))
                         ))}
                       <span className="text-xs text-muted-foreground">
                         {tenant.created_at
@@ -382,7 +394,7 @@ export default function TenantsPage() {
                     {isBillingExempt(tenant) ? null : tenant.is_demo ? (
                       <Badge variant="secondary">N/A</Badge>
                     ) : (
-                      getStatusBadge(tenant.subscription_status)
+                      getStatusBadge(statusOf(tenant.id))
                     )}
                   </TableCell>
                   <TableCell>

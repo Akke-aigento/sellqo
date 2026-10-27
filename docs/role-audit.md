@@ -1,3 +1,50 @@
+## PLATFORM-FIGURES-1 — de geldcijfers van het platformbeheer uit de echte facturatie — 27 oktober 2026
+
+Akke 27-10: "Alle financiële gegevens van tenants in dashboard en in tenantscherm zelf kloppen niet … kijk al deze gegevens na, deze moeten correct staan."
+
+**Aanleiding** (recon door een aparte agent, live nagemeten)
+- **MRR, ARR, "Betalende klanten":** de lijstprijs van het plan van élke tenant met status active/trialing, ook demo, eigen winkels, trials en on hold. Dashboard: MRR €3.253,50 en 27 betalende klanten. Werkelijk: €29/maand en 1 klant (Astra Sleep).
+- **Factuurlijsten:** enkel het oude archief `platform_invoices`. De echte SellQo-facturen (SQ-…), creditnota's en open betaalverzoeken ontbraken.
+- **Te lage bedragen:** tenantscherm platformfacturen en AI-credits gedeeld door 100, terwijl de kolommen al euro zijn. Zo stonden ze 100× te laag.
+- **Dode statuskolom:** status-badges en tellers lazen `tenants.subscription_status`, die sinds BILLING-ENFORCE-1 niet meer bijgewerkt wordt.
+- **"Lifetime revenue":** de omzet van de winkel zelf, uit tellers die terugbetalingen nooit aftrokken. VanXcel stond op €12.896 tegen €12.621 live.
+- **Risicoklanten:** enkel `past_due`, getoond aan lijstprijs. `restricted`/`suspended` ontbraken.
+
+**Uitgevoerd**
+- **Nieuwe RPC `platform_billing_overview(p_tenant_id uuid default null)`** (migratie 20261027160000), SECURITY DEFINER, enkel voor platformbeheerders.
+  - Rekent per tenant: MRR uit de lopende abonnementsregels, betaald min creditnota's, openstaand (betaalverzoeken + onbetaalde facturen), webshopomzet live uit de orders.
+  - Geeft totalen voor de klanten (geen demo/eigen/on hold), los daarvan eigen/demo en niet-gekoppelde facturen, en de documentenlijst.
+  - Regels staan in de kop van de migratie.
+- **Frontend:**
+  - Dashboard: MRR, ontvangen deze maand, betalende klanten, openstaand.
+  - Facturatiepagina: MRR, ontvangen, betalende klanten, openstaand, risicolijst met openstaand bedrag en vervaldatum, per plan, en echte facturen en creditnota's. Het archief staat apart, in euro.
+  - Tenantscherm: status uit `tenant_subscriptions`, betaald, openstaand, aangerekend per maand, documenten, webshopomzet live.
+  - Tenantlijst: status uit `tenant_subscriptions`.
+  - AI-credits: niet meer /100.
+- **Tests:** `src/lib/platformBillingOverview.test.ts`, toegevoegd aan de Vitest-stap in CI.
+
+**Review (aparte agent):** niets blokkerends. Verwerkt:
+- vervallen verzoeken van stopgezette abonnementen tellen niet als open;
+- per tenant geen documentlimiet (eigen RPC-aanroep);
+- `quantity` NULL telt als 1;
+- koppeling klant → tenant met voorrang (billing_customer_id, linked_tenant_id, external_id `tenant:<id>`), betaalverzoeken via hun abonnement;
+- deze maand min creditnota's;
+- fees enkel `collected_via = 'invoice'`;
+- creditnota's zonder status tellen mee;
+- risicolijst enkel bij vervallen bedrag of achterstallige status.
+
+**Live nagekeken (27-10)**
+- Functie aanwezig, `anon` geen execute.
+- Als platformbeheerder: MRR €29, betaald door klanten €130,68 incl. (€108 excl.), deze maand €130,68, openstaand €0, 1 betalende klant.
+- Eigen/demo €4,84, niet gekoppeld €13,31, totaal €148,83. Dat totaal is gelijk aan de betaalde SellQo-facturen min de creditnota's.
+- Als willekeurige gebruiker: 42501 forbidden.
+
+**Bekend, niet in deze batch**
+- SQ-2026-0001 (juli, €60,50) heeft `paid_at` 21-10. Daardoor telt hij in "deze maand".
+- Een gedeeltelijke terugbetaling zonder creditnota (Zomerfest #0001, demo) wordt niet afgetrokken: er is geen bron voor het bedrag.
+- Het bewerkformulier in het tenantscherm schrijft enkel `tenant_subscriptions`, niet het native abonnement. Dat volgt in een eigen batch.
+- De badges/mijlpalen voor tenants (gamification) gebruiken nog `tenants.lifetime_*`.
+
 ## ODOO-GUARD-1 — Odoo boekt exact de SellQo-factuur, of niets (concept + melding) — 27 oktober 2026
 
 Derde batch uit het structureel plan. Akke 27-10: "Akkoord met je keuzen… doe wat het meest logische is, dit MOET goed staan". Daarmee besliste hij over de btw-afronding en de prijs-inclusieve codes.
