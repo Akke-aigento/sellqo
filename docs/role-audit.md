@@ -66,6 +66,22 @@ Ronde 2: in orde.
 - dode knoppen, edge-pins, mailadressen en meldingsbronnen ok.
 - De link "Openen in Odoo" leidt live naar `/odoo/bills/<id>` (gecontroleerd op 1602).
 
+**Uitrol (27-10, avond):**
+- Migratie live gedraaid en nagetrokken (kolommen, 3 CHECKs, trigger, kolomrechten). Daarna CI groen op 7b322bfe.
+- Deploy `import-supplier-invoices` (stempel INKOOP-3) en `handle-inbound-email` (stempel INKOOP-4), bewezen met GET.
+- Agent-commits 5ebb7b25/48f55f40: enkel `types.ts`.
+- Admin gepubliceerd: bundel `index-Bc_PVA0a.js` bevat het facturenadres en `push_supplier_documents`.
+- **Archief:** 338/338 Odoo-aankoopfacturen in SellQo, elk met één eigen document, in porties van 50 tot 100.
+  - SellQo: 214 documenten (38 leveranciers, 4 zonder PDF in Odoo).
+  - VanXcel: 124 documenten (16 leveranciers, 1 zonder PDF), met de bol-concepten 1602/1603.
+  - Verdeling: VanXcel = bol, Sendcloud, Shopify, ECU Worldwide, Autodoc, Techniekwebshop, Winparts, PartsPoint, Proforto, FedEx, HBM Machines, Dongguan, Ningbo, Runfeng, Anhui, Dutch Trade Point. De rest SellQo, ook de twijfelgevallen Coolblue, Media Markt, Toytraders, KommaGo en Avanta (in afwachting van Akke).
+- `push_supplier_documents` aan voor SellQo en VanXcel.
+- **Dagelijkse run live:** bol 8 bekend, 0 nieuw (geen dubbels). Terugsync: 14 + 33 open documenten bijgewerkt, 0 ontbrekend. De cron van 06:20 roept deze versie aan.
+- **Nog niet live bewezen:**
+  - het doorsturen van een nieuw document naar Odoo: gebeurt bij de eerste upload of mail;
+  - plus-adressen via Resend: wacht op een testmail van Akke.
+  Controle gepland op 2-11.
+
 ## INKOOP-1 + INKOOP-2 — één facturenadres en bol-facturen automatisch als concept in Odoo — 27 oktober 2026
 
 Akke 27-10: "kies welk mail adres het beste is en configureer het direct allemaal". Scope Odoo: enkel conceptfacturen in het aankoopdagboek (eerder akkoord).
