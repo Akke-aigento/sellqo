@@ -789,6 +789,10 @@
             "label": "Duplicate payment",
             "description": "A customer paid an item that was already paid or cancelled"
           },
+          "payment_unprocessed": {
+            "label": "Payment not processed",
+            "description": "A payment came in but could not be settled; Stripe will retry"
+          },
           "order_payment_failed": {
             "label": "Payment failed",
             "description": "When a payment for an order fails"

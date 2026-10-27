@@ -817,6 +817,10 @@
             "label": "Paiement en double",
             "description": "Un client a payé un élément déjà payé ou annulé"
           },
+          "payment_unprocessed": {
+            "label": "Paiement non traité",
+            "description": "Un paiement est arrivé mais n'a pas pu être lettré ; Stripe va réessayer"
+          },
           "order_payment_failed": {
             "label": "Paiement échoué",
             "description": "Lorsque le paiement d'une commande échoue"

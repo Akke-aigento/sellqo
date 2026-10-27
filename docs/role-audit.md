@@ -1,3 +1,67 @@
+## BILLING-SAFE-1 — mislukte afschrijving meteen opvolgen, melding bij elke betaling, afboeking die niet meer stil faalt — 27 oktober 2026
+
+Op vraag van Akke (27-10: "begin hier mee en dan pakken we door tot waterdichte structuur"), na de analyse van de eerste betalende tenant (Astra Sleep / Özay). Eerste batch uit het structureel plan in het verslag (Claude Docs "SellQo betalingen en Odoo").
+
+**Aanleiding**
+- Özay betaalde op 21-10 (€95,59) en 27-10 (€35,09). Geen enkele melding "betaling ontvangen" bestond: de types `payment_received` en `subscription_payment_failed` stonden in de config maar werden nergens verstuurd.
+- Een geweigerde mandaatafschrijving zette de cyclus stil op `awaiting_payment`: geen betaalverzoek aan de klant (pas op de vervaldatum, zonder PR-nummer dus zonder pdf) en geen melding aan de verkoper.
+- Fouten in de webhook-afboeking werden gelogd en ingeslikt. Een bundel ging altijd op `paid`, ook als een post faalde, en de idempotentie blokkeerde daarna elke herpoging. Een herpoging na een fout kon een tweede factuur maken.
+- "Abonnement verlengd" ging bij pay-first af zodra de runner de datum opschoof, vóór (en los van) de betaling.
+
+**Uitgevoerd**
+- Nieuw `_shared/billingAlerts.ts`:
+  - pure teksten (`paymentReceivedText`, `chargeFailedText`, `chargeUnclearText`, `unprocessedPaymentText`, `declineReason`, `isPaymentDecline`);
+  - `notifyOnce` (dedupe via `data.dedupe_key`, plus unieke index);
+  - `handleCycleChargeFailure`: claim op `billing_cycles.charge_failed_at`, PR-nummer, `dispatch-payment-request`, en melding `subscriptions/subscription_payment_failed` (high). Dat gebeurt exact één keer per cyclus, ook als runner én webhook het melden;
+  - `notifyChargeUnclear`;
+  - `clearUnprocessedAlert`.
+- `_shared/subscriptionCharge.ts`:
+  - **Fouten:** verwerkingsfouten gooien nu, waarop de webhook 500 geeft en Stripe opnieuw probeert. Een betaling die na een uur nog niet verwerkt is, geeft het alarm `payments/payment_unprocessed` (urgent). Het alarm wordt gewist zodra de betaling alsnog verwerkt is, niet bij een gedropt event.
+  - **Bundel:** gaat pas op `paid` als alle posten verwerkt zijn.
+  - **Cyclusfactuur:**
+    - draagt `metadata.billing_cycle_id` en `metadata.payment_intent_id`, en een herpoging hergebruikt die factuur;
+    - de regels krijgen vaste id's (SHA-256 van factuur + volgorde) via `upsert … ignoreDuplicates`, dus nooit dubbele regels;
+    - de race-tak herleest de cyclus: hangt dezelfde factuur er al aan, dan volgt er geen melding. Een echt tweede factuur geeft `payment_duplicate`.
+  - **Mandaat geweigerd:** een mislukte mandaatbetaling (`charge_kind = mandate`) leidt tot `handleCycleChargeFailure`. Een mislukte poging via de betaallink niet.
+  - **Melding bij betaling:** elke geslaagde betaling geeft één `payments/payment_received` (high, mailt), met de bedragen, posten, het nieuwe factuurnummer, of de factuurmail vertrok, en de abonnementsstatus.
+- `generate-subscription-invoices`:
+  - **Metadata:** de PaymentIntent krijgt `charge_kind: "mandate"`.
+  - **Weigering:** een echte weigering (`StripeCardError` of `requires_payment_method`) leidt tot een betaalverzoek en een melding. Een time-out of andere fout (uitkomst onbekend) geeft enkel een melding "afschrijving onzeker", zonder verzoek aan de klant, want dat zou dubbele inning kunnen geven.
+  - **Guard op cyclusupdates:** `awaiting_payment` en `processing` zetten een al afgeboekte cyclus nooit meer terug. Het guard-filter is `invoice_id is null`, status niet settled/cancelled.
+- Migratie `20261027110000_billing_safe_1.sql`:
+  - `billing_cycles.charge_failed_at` en `charge_failure_reason` (additief);
+  - `handle_subscription_notification()`: "verlengd" niet meer bij `billing_model = 'pay_first'`. Het is een enum, dus `IS DISTINCT FROM`; `COALESCE(…,'')` breekt elke update, zie review;
+  - unieke partiële index `notifications_dedupe_key_uniq`.
+- Type `payments/payment_unprocessed` geregistreerd in `src/types/notification.ts`, `_shared/notificationDefaults.ts` en de 5 locales.
+- Tests:
+  - `_shared/billingAlerts.test.ts` (9);
+  - `scripts/promo-compare/billingSafe.test.ts` (10). Die draait de échte webhookhandler tegen een nep-databank die updates en inserts uitvoert, met barrières voor gelijktijdige levering. Beide staan in CI.
+
+**Review (verplicht, geldbatch)**
+- Ronde 1, door een aparte agent:
+  - 1 blocker: `COALESCE(enum,'')` breekt elke UPDATE op subscriptions. Nagespeeld op Postgres 16.
+  - 2 hoog: de runner stuurde ook bij een time-out een betaalverzoek (risico op dubbele inning); het hergebruik van de weesfactuur was niet atomair (dubbele regels, vals alarm).
+  - Middel: het alarm bleef staan; ruis.
+  - Alles verwerkt.
+- Ronde 2: geen nieuwe blocker. De concurrency-test bewees de upsert niet, het alarm mailde bij elke hik, en het alarm werd ook gewist bij een gedropt event. Alle drie verwerkt.
+- Mutatietest: elke fix uitgeschakeld geeft een rode test.
+
+**Verificatie vooraf**
+- `deno check` van de 3 functies tegen de echte types van supabase-js 2.57.2 en stripe 18.5.0: groen.
+- Lint gelijk aan de baseline; `check-notification-sources` ok; i18n-pariteit ok.
+- Pre-flight live:
+  - functie-md5 `9858bdb6…`, kolommen nog afwezig, 0 open cycli;
+  - snapshot in `snapshots.platform_20261027_billing_safe_1`;
+  - droog getest in een zelf-afbrekende transactie (pay-first-updates slagen, renewed enkel bij invoice_first, index blokkeert een dubbele melding); daarna nagekeken dat niets bleef staan.
+- Live nagetrokken: geen triggers op `invoice_lines`, geen FK's naar `notifications`.
+
+**Bewust ongemoeid / Vervolg (WEBHOOK-HARDEN-1)**
+- **Prorata-afschrijving** (`sync-tenant-plan`) heeft geen `charge_kind`. Een synchrone weigering daar stuurt al zelf een verzoek, maar een SEPA-prorata die dagen later faalt, blijft stil.
+- **Leesmodus-datum:** de volgorde runner/webhook bij `grace_until` kan in de melding een verkeerde datum geven.
+- **Bundelbetaling** die terwijl een retry loopt opnieuw via de link betaald wordt, geeft een correcte duplicate-anomalie, maar wel dubbel geld.
+- **Factuurroute:** `invoice_paid` (trigger, medium) en `payment_received` (high) staan naast elkaar. Bewust: status versus geld.
+- **Push** voor deze types volgt de tenantinstellingen (SellQo-tenant: push uit). Dat is Akke's keuze in Instellingen → Meldingen.
+
 ## WATCHTOWER-HEALTH-2 — SellQo-health-endpoint voor Watchtower, met alarm op vastgelopen Odoo-sync — 27 oktober 2026
 
 Op vraag van Akke (27-10, go op het voorstel na ODOO-API-2026). Aanleiding: de Fonske-Odoo-sync faalde van 24 tot 27 okt 1288 keer zonder dat iemand een melding kreeg. Watchtower had wel een label `odoo_sync`, maar het SellQo-health-endpoint (branch `watchtower-health-1`, 10-10) werd nooit gedeployd.

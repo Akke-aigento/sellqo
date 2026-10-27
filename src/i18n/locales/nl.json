@@ -789,6 +789,10 @@
             "label": "Dubbele betaling",
             "description": "Een klant betaalde een post die al betaald of geannuleerd was"
           },
+          "payment_unprocessed": {
+            "label": "Betaling niet verwerkt",
+            "description": "Een betaling kwam binnen maar kon niet afgeboekt worden; Stripe probeert opnieuw"
+          },
           "order_payment_failed": {
             "label": "Betaling mislukt",
             "description": "Wanneer een betaling van een bestelling faalt"

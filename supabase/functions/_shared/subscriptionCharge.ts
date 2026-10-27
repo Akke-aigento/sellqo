@@ -22,6 +22,16 @@ import {
   settleBundleItems,
   type BundleItem,
 } from "./payLink.ts";
+import {
+  customerDisplayName,
+  customerSubscriptionStatus,
+  declineReason,
+  clearUnprocessedAlert,
+  handleCycleChargeFailure,
+  notifyOnce,
+  paymentReceivedText,
+  unprocessedPaymentText,
+} from "./billingAlerts.ts";
 
 type SupabaseLike = {
   from: (table: string) => any;
@@ -35,6 +45,22 @@ const log = (step: string, details?: unknown) => {
 };
 
 const toISODate = (d: Date) => d.toISOString().slice(0, 10);
+
+/** true = afgehandeld (ook idempotent/anomalie); "dropped" = post bestaat niet (meer). */
+type Outcome = true | "dropped";
+
+/** Een alarm "niet verwerkt" pas na een uur: een hik die Stripe zelf binnen het uur herstelt, mailt niemand. */
+const UNPROCESSED_ALERT_AFTER_S = 3600;
+
+/** Deterministische UUID (SHA-256 van de sleutel, versie-4-vorm). Zelfde sleutel → zelfde id. */
+export async function stableUuid(key: string): Promise<string> {
+  const hash = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(key)));
+  const b = hash.slice(0, 16);
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+  return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
+}
 
 /**
  * UPGRADE-PF-1: turn a settled proration cycle into the live plan.
@@ -145,14 +171,73 @@ export async function handleSubscriptionChargeWebhook(
 
   const intent = event.data.object as Stripe.PaymentIntent;
 
-  if (route === "bundle") {
-    return await handleBundleCharge(supabase, event, intent, String(intent.metadata?.payment_bundle_id));
+  // BILLING-SAFE-1: een fout bij het verwerken wordt niet meer ingeslikt. De handler
+  // gooit, de webhook antwoordt 500 en Stripe probeert opnieuw (de afboeking is
+  // idempotent). Daarnaast één melding aan de verkoper, want een betaalde klant die
+  // niet als betaald staat, kan in leesmodus vallen.
+  try {
+    let handled: Outcome;
+    if (route === "bundle") {
+      handled = await handleBundleCharge(supabase, event, intent, String(intent.metadata?.payment_bundle_id));
+    } else if (route === "cycle") {
+      // CYCLE-3: pay-first cycles take precedence — checked before invoice_id.
+      handled = await handleCycleCharge(supabase, event, intent, String(intent.metadata?.billing_cycle_id));
+    } else {
+      handled = await handleInvoiceCharge(supabase, event, intent, String(intent.metadata?.invoice_id));
+    }
+    // Alsnog verwerkt: een alarm "niet verwerkt" van een eerdere poging klopt niet meer.
+    // Niet bij een gedropt event (post verdwenen): dan blijft het alarm staan.
+    if (handled === true && event.type === "payment_intent.succeeded") await clearUnprocessedAlert(supabase, intent.id);
+    if (handled === "dropped") log("Event dropped — post not found", { route, intent: intent.id });
+    return true;
+  } catch (e) {
+    const step = e instanceof Error ? e.message : String(e);
+    log("ERROR: charge not processed — Stripe will retry", { route, intent: intent.id, step });
+    // Pas na een uur alarm: de eerste herpogingen van Stripe vallen daarbinnen.
+    const ageS = Math.floor(Date.now() / 1000) - Number((event as { created?: number }).created ?? 0);
+    if (event.type === "payment_intent.succeeded" && ageS >= UNPROCESSED_ALERT_AFTER_S) {
+      await notifyUnprocessedPayment(supabase, route, intent, step);
+    }
+    throw e;
   }
-  // CYCLE-3: pay-first cycles take precedence — checked before invoice_id.
-  if (route === "cycle") {
-    return await handleCycleCharge(supabase, event, intent, String(intent.metadata?.billing_cycle_id));
+}
+
+/** Zoekt bij een onverwerkte betaling de verkoper en de klant op, en meldt het één keer. */
+async function notifyUnprocessedPayment(
+  supabase: SupabaseLike,
+  route: string,
+  intent: Stripe.PaymentIntent,
+  step: string,
+): Promise<void> {
+  try {
+    const meta = (intent.metadata ?? {}) as Record<string, string>;
+    const table = route === "bundle" ? "payment_bundles" : route === "cycle" ? "billing_cycles" : "invoices";
+    const id = route === "bundle" ? meta.payment_bundle_id : route === "cycle" ? meta.billing_cycle_id : meta.invoice_id;
+    const { data: row } = id
+      ? await supabase.from(table).select("tenant_id, customer_id").eq("id", id).maybeSingle()
+      : { data: null };
+    const tenantId = (row?.tenant_id as string | undefined) ?? meta.tenant_id;
+    if (!tenantId) return;
+    const customerName = await customerDisplayName(supabase, row?.customer_id ?? null);
+    const text = unprocessedPaymentText({
+      customerName,
+      amount: Number(intent.amount_received ?? intent.amount ?? 0) / 100,
+      intentId: intent.id,
+      step,
+    });
+    await notifyOnce(supabase, {
+      tenantId,
+      category: "payments",
+      type: "payment_unprocessed",
+      priority: "urgent",
+      title: text.title,
+      message: text.message,
+      dedupeKey: `unprocessed:${intent.id}`,
+      data: { payment_intent_id: intent.id, route },
+    });
+  } catch (e) {
+    log("Unprocessed-payment notification failed", { intent: intent.id, error: e instanceof Error ? e.message : String(e) });
   }
-  return await handleInvoiceCharge(supabase, event, intent, String(intent.metadata?.invoice_id));
 }
 
 // ---------------------------------------------------------------------------
@@ -163,15 +248,17 @@ async function handleBundleCharge(
   event: Stripe.Event,
   intent: Stripe.PaymentIntent,
   bundleId: string,
-): Promise<boolean> {
+): Promise<Outcome> {
   const { data: bundle, error } = await supabase
     .from("payment_bundles")
-    .select("id, tenant_id, items, status, payment_intent_id")
+    .select("id, tenant_id, customer_id, items, status, payment_intent_id")
     .eq("id", bundleId)
     .maybeSingle();
-  if (error || !bundle) {
-    log("Bundle not found — dropping event", { bundleId, error: error?.message });
-    return true;
+  // BILLING-SAFE-1: een leesfout is tijdelijk → opnieuw laten proberen.
+  if (error) throw new Error(`bundle laden: ${error.message}`);
+  if (!bundle) {
+    log("Bundle not found — dropping event", { bundleId });
+    return "dropped";
   }
   // Een mislukte bundelbetaling raakt geen enkele post: die blijven open en betaalbaar.
   if (event.type === "payment_intent.payment_failed") {
@@ -183,20 +270,61 @@ async function handleBundleCharge(
     return true;
   }
 
-  const results = await settleBundleItems((bundle.items ?? []) as BundleItem[], async (item) => {
+  const items = (bundle.items ?? []) as BundleItem[];
+  const results = await settleBundleItems(items, async (item) => {
     if (item.type === "cycle") await handleCycleCharge(supabase, event, intent, item.id, bundleId);
     else await handleInvoiceCharge(supabase, event, intent, item.id, bundleId);
   });
+  const summary = results.map((r) => ({ type: r.item.type, id: r.item.id, ok: r.ok, error: r.error }));
 
-  await supabase
+  // BILLING-SAFE-1: tot 27-10 ging de bundel altijd op 'paid', ook als een post
+  // faalde — en blokkeerde de idempotentie daarna elke herpoging. Nu: pas 'paid'
+  // als alle posten verwerkt zijn; anders gooien zodat Stripe opnieuw probeert
+  // (reeds afgeboekte posten herkennen dezelfde betaling als 'retry').
+  const failed = results.filter((r) => !r.ok);
+  if (failed.length > 0) {
+    log("Bundle partially settled — retry", { bundleId, intent: intent.id, results: summary });
+    throw new Error(`bundel: ${failed.length} van ${results.length} posten niet verwerkt (${failed[0].error ?? "onbekend"})`);
+  }
+
+  const { error: paidErr } = await supabase
     .from("payment_bundles")
     .update({ status: "paid", payment_intent_id: intent.id, paid_at: new Date().toISOString() })
     .eq("id", bundleId);
-  log("Bundle settled", {
-    bundleId,
-    intent: intent.id,
-    results: results.map((r) => ({ type: r.item.type, id: r.item.id, ok: r.ok, error: r.error })),
-  });
+  if (paidErr) throw new Error(`bundel op betaald zetten: ${paidErr.message}`);
+  log("Bundle settled", { bundleId, intent: intent.id, results: summary });
+
+  // Eén melding voor de hele bundel (de posten zelf melden niets in een bundel).
+  try {
+    const cycleIds = items.filter((i) => i.type === "cycle").map((i) => i.id);
+    const { data: cycles } = cycleIds.length
+      ? await supabase.from("billing_cycles").select("invoice_id").in("id", cycleIds)
+      : { data: [] };
+    const invoiceIds = (cycles ?? []).map((c: { invoice_id: string | null }) => c.invoice_id).filter(Boolean);
+    const { data: newInvoices } = invoiceIds.length
+      ? await supabase.from("invoices").select("invoice_number").in("id", invoiceIds)
+      : { data: [] };
+    const customerId = (bundle.customer_id as string | null) ?? null;
+    const text = paymentReceivedText({
+      customerName: await customerDisplayName(supabase, customerId),
+      amount: Number(intent.amount_received ?? intent.amount ?? 0) / 100,
+      paidFor: items.map((i) => i.number ?? null),
+      newInvoiceNumbers: (newInvoices ?? []).map((i: { invoice_number: string }) => i.invoice_number),
+      subscriptionStatus: await customerSubscriptionStatus(supabase, customerId),
+    });
+    await notifyOnce(supabase, {
+      tenantId: bundle.tenant_id,
+      category: "payments",
+      type: "payment_received",
+      priority: "high",
+      title: text.title,
+      message: text.message,
+      dedupeKey: `paid:${intent.id}`,
+      data: { payment_intent_id: intent.id, payment_bundle_id: bundleId },
+    });
+  } catch (e) {
+    log("Bundle payment notification failed", { bundleId, error: e instanceof Error ? e.message : String(e) });
+  }
   return true;
 }
 
@@ -260,21 +388,19 @@ async function handleInvoiceCharge(
   intent: Stripe.PaymentIntent,
   invoiceId: string,
   bundleId?: string,
-): Promise<boolean> {
+): Promise<Outcome> {
   // Fetch current invoice state — used for idempotency.
   const { data: invoice, error: fetchErr } = await supabase
     .from("invoices")
-    .select("id, tenant_id, invoice_number, status, charge_attempts, paid_at, metadata")
+    .select("id, tenant_id, customer_id, invoice_number, status, charge_attempts, paid_at, metadata")
     .eq("id", invoiceId)
     .maybeSingle();
 
-  if (fetchErr) {
-    log("Failed to load invoice", { invoiceId, error: fetchErr.message });
-    return true;
-  }
+  // BILLING-SAFE-1: een leesfout is tijdelijk → gooien, Stripe probeert opnieuw.
+  if (fetchErr) throw new Error(`factuur laden: ${fetchErr.message}`);
   if (!invoice) {
     log("Invoice not found — dropping event", { invoiceId });
-    return true;
+    return "dropped";
   }
 
   if (event.type === "payment_intent.succeeded") {
@@ -301,17 +427,31 @@ async function handleInvoiceCharge(
         metadata: { ...metadata, paid_payment_intent_id: intent.id },
       })
       .eq("id", invoiceId);
-    if (updErr) {
-      log("Failed to mark invoice paid", { invoiceId, error: updErr.message });
-    } else {
-      log("Invoice marked paid", { invoiceId, intent: intent.id });
-      // BILLING-ENFORCE-1: een betaalde domeinfactuur kan de leesmodus opheffen.
-      const { data: paidInvoice } = await supabase
-        .from("invoices")
-        .select("customer_id")
-        .eq("id", invoiceId)
-        .maybeSingle();
-      await refreshBillingStateForCustomer(supabase, paidInvoice?.customer_id ?? null);
+    // BILLING-SAFE-1: niet op betaald gezet = gooien, Stripe probeert opnieuw.
+    if (updErr) throw new Error(`factuur op betaald zetten: ${updErr.message}`);
+    log("Invoice marked paid", { invoiceId, intent: intent.id });
+    // BILLING-ENFORCE-1: een betaalde domeinfactuur kan de leesmodus opheffen.
+    await refreshBillingStateForCustomer(supabase, invoice.customer_id ?? null);
+
+    // BILLING-SAFE-1: melding aan de verkoper (in een bundel meldt de bundel zelf).
+    if (!bundleId) {
+      const text = paymentReceivedText({
+        customerName: await customerDisplayName(supabase, invoice.customer_id ?? null),
+        amount: Number(intent.amount_received ?? intent.amount ?? 0) / 100,
+        paidFor: [invoice.invoice_number],
+        newInvoiceNumbers: [],
+        subscriptionStatus: await customerSubscriptionStatus(supabase, invoice.customer_id ?? null),
+      });
+      await notifyOnce(supabase, {
+        tenantId: invoice.tenant_id,
+        category: "payments",
+        type: "payment_received",
+        priority: "high",
+        title: text.title,
+        message: text.message,
+        dedupeKey: `paid:${intent.id}`,
+        data: { payment_intent_id: intent.id, invoice_id: invoiceId },
+      });
     }
     return true;
   }
@@ -369,7 +509,7 @@ async function handleCycleCharge(
   intent: Stripe.PaymentIntent,
   cycleId: string,
   bundleId?: string,
-): Promise<boolean> {
+): Promise<Outcome> {
   const { data: cycle, error: cErr } = await supabase
     .from("billing_cycles")
     .select(
@@ -378,13 +518,11 @@ async function handleCycleCharge(
     .eq("id", cycleId)
     .maybeSingle();
 
-  if (cErr) {
-    log("Failed to load billing cycle", { cycleId, error: cErr.message });
-    return true;
-  }
+  // BILLING-SAFE-1: een leesfout is tijdelijk → gooien, Stripe probeert opnieuw.
+  if (cErr) throw new Error(`cyclus laden: ${cErr.message}`);
   if (!cycle) {
     log("Billing cycle not found — dropping event", { cycleId });
-    return true;
+    return "dropped";
   }
 
   if (event.type === "payment_intent.payment_failed") {
@@ -416,7 +554,8 @@ async function handleCycleCharge(
       .neq("status", "cancelled")
       .is("invoice_id", null);
     if (updErr) {
-      log("Failed to mark cycle awaiting_payment", { cycleId, error: updErr.message });
+      // BILLING-SAFE-1: gooien, Stripe probeert opnieuw.
+      throw new Error(`cyclus op wacht-op-betaling zetten: ${updErr.message}`);
     } else {
       log("Cycle marked awaiting_payment", {
         cycleId,
@@ -426,6 +565,18 @@ async function handleCycleCharge(
     }
 
     await flagMandateIfDetached(supabase, intent);
+
+    // BILLING-SAFE-1: een mislukte automatische afschrijving (mandaat, door de
+    // runner gestart) krijgt meteen een betaalverzoek aan de klant en een melding
+    // aan de verkoper. Een mislukte poging van de klant zelf via de betaallink niet:
+    // die zit op dat moment op de betaalpagina. Eén keer per cyclus (claim).
+    if (!bundleId && (intent.metadata as Record<string, string> | null)?.charge_kind === "mandate") {
+      await handleCycleChargeFailure(supabase, {
+        cycleId: cycle.id,
+        reason: declineReason(lastError?.code, lastError?.decline_code, lastError?.message),
+        intentId: intent.id,
+      });
+    }
     return true;
   }
 
@@ -534,42 +685,59 @@ async function handleCycleCharge(
     }
   }
 
-  // Invoice number from the existing tenant sequence.
-  // Staat bewust ná de fiscale resolutie: generate_invoice_number is MAX(...)+1,
-  // dus die lezing en de insert horen zo dicht mogelijk op elkaar.
-  const { data: numData, error: numErr } = await supabase.rpc(
-    "generate_invoice_number",
-    { _tenant_id: cycle.tenant_id },
-  );
-  if (numErr) {
-    log("Failed to generate invoice number", { cycleId, error: numErr.message });
-    return true;
-  }
-
   const nowISO = new Date().toISOString();
 
-  const { data: invoice, error: invErr } = await supabase
+  // BILLING-SAFE-1: een vorige poging (Stripe-retry na een fout verderop) kan de
+  // factuur al gemaakt hebben. Die hergebruiken we, zodat een herpoging nooit een
+  // tweede factuur voor dezelfde betaling maakt. Herkenning via metadata die we
+  // vanaf nu bij elke cyclusfactuur meegeven.
+  const { data: orphanRows, error: orphanErr } = await supabase
     .from("invoices")
-    .insert({
-      tenant_id: cycle.tenant_id,
-      customer_id: cycle.customer_id,
-      subscription_id: cycle.subscription_id,
-      invoice_number: numData as string,
-      status: "paid",
-      paid_at: nowISO,
-      issue_date: todayISO,
-      due_date: todayISO,
-      subtotal,
-      tax_amount: vatAmount,
-      total,
-      ...fiscalFields,
-      ...(fiscalMetadata ? { metadata: fiscalMetadata } : {}),
-    })
-    .select("id")
-    .single();
-  if (invErr || !invoice) {
-    log("Failed to create cycle invoice", { cycleId, error: invErr?.message });
-    return true;
+    .select("id, invoice_number")
+    .eq("tenant_id", cycle.tenant_id)
+    .contains("metadata", { billing_cycle_id: cycle.id, payment_intent_id: intent.id })
+    .limit(1);
+  if (orphanErr) throw new Error(`eerdere factuur zoeken: ${orphanErr.message}`);
+  const orphan = Array.isArray(orphanRows) ? orphanRows[0] : null;
+
+  let invoice: { id: string };
+  let invoiceNumber: string;
+  if (orphan) {
+    invoice = { id: orphan.id };
+    invoiceNumber = orphan.invoice_number;
+    log("Reusing invoice from an earlier attempt", { cycleId, invoiceId: orphan.id });
+  } else {
+    // Invoice number from the existing tenant sequence.
+    // Staat bewust ná de fiscale resolutie: generate_invoice_number is MAX(...)+1,
+    // dus die lezing en de insert horen zo dicht mogelijk op elkaar.
+    const { data: numData, error: numErr } = await supabase.rpc(
+      "generate_invoice_number",
+      { _tenant_id: cycle.tenant_id },
+    );
+    if (numErr) throw new Error(`factuurnummer: ${numErr.message}`);
+
+    const { data: inserted, error: invErr } = await supabase
+      .from("invoices")
+      .insert({
+        tenant_id: cycle.tenant_id,
+        customer_id: cycle.customer_id,
+        subscription_id: cycle.subscription_id,
+        invoice_number: numData as string,
+        status: "paid",
+        paid_at: nowISO,
+        issue_date: todayISO,
+        due_date: todayISO,
+        subtotal,
+        tax_amount: vatAmount,
+        total,
+        ...fiscalFields,
+        metadata: { ...(fiscalMetadata ?? {}), billing_cycle_id: cycle.id, payment_intent_id: intent.id },
+      })
+      .select("id")
+      .single();
+    if (invErr || !inserted) throw new Error(`factuur aanmaken: ${invErr?.message ?? "geen rij"}`);
+    invoice = inserted;
+    invoiceNumber = numData as string;
   }
 
   // Single line: amounts come from the cycle (source of truth for what was
@@ -626,9 +794,23 @@ async function handleCycleCharge(
   if (itemized.length > 0 && !useItemized) {
     log("Cycle line snapshot does not match subtotal — single line", { cycleId, itemizedNet, subtotal });
   }
-  const { error: lineErr } = await supabase.from("invoice_lines").insert(lineRows);
-  if (lineErr) {
-    log("Failed to insert cycle invoice line", { cycleId, invoiceId: invoice.id, error: lineErr.message });
+  // BILLING-SAFE-1: regels enkel als de (hergebruikte) factuur er nog geen heeft;
+  // een fout hier is niet meer stil, want een factuur zonder regels is ongeldig.
+  const { count: existingLines, error: countErr } = await supabase
+    .from("invoice_lines")
+    .select("id", { count: "exact", head: true })
+    .eq("invoice_id", invoice.id);
+  if (countErr) throw new Error(`factuurregels tellen: ${countErr.message}`);
+  if (!existingLines) {
+    // Vaste regel-id's (afgeleid van factuur + volgorde): twee gelijktijdige pogingen
+    // op dezelfde factuur kunnen zo nooit dubbele regels maken.
+    const rowsWithIds = await Promise.all(
+      lineRows.map(async (r) => ({ ...r, id: await stableUuid(`${invoice.id}:line:${r.sort_order}`) })),
+    );
+    const { error: lineErr } = await supabase
+      .from("invoice_lines")
+      .upsert(rowsWithIds, { onConflict: "id", ignoreDuplicates: true });
+    if (lineErr) throw new Error(`factuurregels: ${lineErr.message}`);
   }
 
   const { data: settled, error: setErr } = await supabase
@@ -641,15 +823,36 @@ async function handleCycleCharge(
     .eq("id", cycle.id)
     .is("invoice_id", null)
     .select("id");
-  if (setErr) {
-    log("Failed to settle cycle", { cycleId, invoiceId: invoice.id, error: setErr.message });
-    return true;
-  }
+  if (setErr) throw new Error(`cyclus afboeken: ${setErr.message}`);
   if (!settled || settled.length === 0) {
+    // BILLING-SAFE-1: een gelijktijdige levering van dezelfde betaling heeft dezelfde
+    // (hergebruikte) factuur al gekoppeld — dan is er niets dubbel.
+    const { data: now, error: nowErr } = await supabase
+      .from("billing_cycles")
+      .select("invoice_id")
+      .eq("id", cycle.id)
+      .maybeSingle();
+    if (nowErr) throw new Error(`cyclus herlezen: ${nowErr.message}`);
+    if (now?.invoice_id === invoice.id) {
+      log("Cycle settled by a concurrent delivery of the same payment", { cycleId, invoiceId: invoice.id });
+      return true;
+    }
     // A concurrent webhook won the race and already linked an invoice.
     log("Cycle already linked by concurrent event — invoice left in place", {
       cycleId,
       invoiceId: invoice.id,
+    });
+    // BILLING-SAFE-1: dan bestaat er een tweede factuur voor dezelfde cyclus. Niet
+    // stil laten staan: de verkoper moet ze crediteren.
+    await notifyOnce(supabase, {
+      tenantId: cycle.tenant_id,
+      category: "payments",
+      type: "payment_duplicate",
+      priority: "high",
+      title: `Dubbele factuur ${invoiceNumber}`,
+      message: `Bij het verwerken van een betaling (Stripe ${intent.id}) ontstond factuur ${invoiceNumber} naast de factuur die al aan deze cyclus hing. Crediteer ${invoiceNumber}.`,
+      dedupeKey: `race_invoice:${invoice.id}`,
+      data: { billing_cycle_id: cycle.id, invoice_id: invoice.id, payment_intent_id: intent.id },
     });
     return true;
   }
@@ -657,7 +860,7 @@ async function handleCycleCharge(
   log(wasReopened ? "Cycle reopened and settled" : "Cycle settled", {
     cycleId,
     invoiceId: invoice.id,
-    invoiceNumber: numData,
+    invoiceNumber,
     intent: intent.id,
   });
 
@@ -746,6 +949,7 @@ async function handleCycleCharge(
   }
 
   // Mail — pay-first always mails: the invoice is the proof of payment.
+  let mailed = false;
   try {
     if (supabase.functions?.invoke) {
       const { error: mailErr } = await supabase.functions.invoke("send-invoice-email", {
@@ -762,11 +966,38 @@ async function handleCycleCharge(
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
     }
+    mailed = true;
   } catch (mailErr) {
     log("Invoice email failed", {
       invoiceId: invoice.id,
       error: mailErr instanceof Error ? mailErr.message : String(mailErr),
     });
+  }
+
+  // BILLING-SAFE-1: melding aan de verkoper (in een bundel meldt de bundel zelf).
+  if (!bundleId) {
+    try {
+      const text = paymentReceivedText({
+        customerName: await customerDisplayName(supabase, cycle.customer_id),
+        amount: Number(intent.amount_received ?? intent.amount ?? 0) / 100,
+        paidFor: [cycle.payment_request_number ?? description],
+        newInvoiceNumbers: [invoiceNumber],
+        mailed,
+        subscriptionStatus: await customerSubscriptionStatus(supabase, cycle.customer_id),
+      });
+      await notifyOnce(supabase, {
+        tenantId: cycle.tenant_id,
+        category: "payments",
+        type: "payment_received",
+        priority: "high",
+        title: text.title,
+        message: text.message,
+        dedupeKey: `paid:${intent.id}`,
+        data: { payment_intent_id: intent.id, billing_cycle_id: cycle.id, invoice_id: invoice.id },
+      });
+    } catch (e) {
+      log("Payment notification failed", { cycleId, error: e instanceof Error ? e.message : String(e) });
+    }
   }
 
   return true;

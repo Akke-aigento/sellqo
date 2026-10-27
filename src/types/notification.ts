@@ -132,6 +132,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'chargeback_received', defaultInApp: true, defaultEmail: false },
       // PAY-LINK-1: betaling op een post die al betaald of geannuleerd was — nooit automatisch terugbetaald.
       { type: 'payment_duplicate', defaultInApp: true, defaultEmail: false },
+      // BILLING-SAFE-1: betaling binnen maar niet afgeboekt (Stripe probeert opnieuw).
+      { type: 'payment_unprocessed', defaultInApp: true, defaultEmail: true },
       // NOTIF-TYPES-1: handle_payment_notification stuurt deze met categorie payments.
       { type: 'order_payment_failed', defaultInApp: true, defaultEmail: false },
       { type: 'order_refunded', defaultInApp: true, defaultEmail: false },

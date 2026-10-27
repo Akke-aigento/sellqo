@@ -817,6 +817,10 @@
             "label": "Doppelte Zahlung",
             "description": "Ein Kunde hat einen bereits bezahlten oder stornierten Posten bezahlt"
           },
+          "payment_unprocessed": {
+            "label": "Zahlung nicht verarbeitet",
+            "description": "Eine Zahlung ist eingegangen, konnte aber nicht verbucht werden; Stripe versucht es erneut"
+          },
           "order_payment_failed": {
             "label": "Zahlung fehlgeschlagen",
             "description": "Wenn die Zahlung einer Bestellung fehlschlägt"

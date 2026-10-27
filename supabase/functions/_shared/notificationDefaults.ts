@@ -53,6 +53,7 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "payments/order_payment_failed": { category: "payments", inApp: true, email: false },
   "payments/order_refunded": { category: "payments", inApp: true, email: false },
   "payments/payment_duplicate": { category: "payments", inApp: true, email: false }, // prioriteit high → mailt toch (planEmail)
+  "payments/payment_unprocessed": { category: "payments", inApp: true, email: true }, // BILLING-SAFE-1
   "customers/customer_new": { category: "customers", inApp: true, email: false },
   "customers/customer_first_order": { category: "customers", inApp: true, email: false },
   "customers/customer_vip": { category: "customers", inApp: true, email: false },

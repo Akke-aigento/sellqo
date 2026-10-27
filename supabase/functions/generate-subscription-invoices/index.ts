@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { isAuthorizedCronRequest } from "../_shared/cronAuth.ts";
 import { AuthError, authenticateRequest, requireRole } from "../_shared/auth.ts";
 import { getStripeContext } from "../_shared/stripe.ts";
+import { declineReason, handleCycleChargeFailure, isPaymentDecline, notifyChargeUnclear } from "../_shared/billingAlerts.ts";
 import {
   resolveInvoiceFiscalFields,
   isDomesticFamilyRegime,
@@ -75,8 +76,10 @@ async function handlePendingCycle(
     today: toISODate(new Date()),
   });
 
-  const toAwaitingPayment = async (extra: Record<string, unknown> = {}) => {
-    await supabase
+  // BILLING-SAFE-1: nooit een cyclus terugzetten die de webhook intussen al
+  // afboekte, en de uitkomst teruggeven: zonder wacht-op-betaling geen betaalverzoek.
+  const toAwaitingPayment = async (extra: Record<string, unknown> = {}): Promise<boolean> => {
+    const { error } = await supabase
       .from("billing_cycles")
       .update({
         status: "awaiting_payment",
@@ -84,8 +87,15 @@ async function handlePendingCycle(
         grace_until: graceUntil,
         ...extra,
       })
-      .eq("id", cycle.id);
+      .eq("id", cycle.id)
+      .is("invoice_id", null)
+      .not("status", "in", "(settled,cancelled)");
+    if (error) {
+      log("WARNING: awaiting_payment update failed", { billing_cycle_id: cycle.id, error: error.message });
+      return false;
+    }
     summary.cycles_awaiting_payment++;
+    return true;
   };
 
   // CYCLE-2: best-effort payment request (link + PDF + mail). Never allowed to
@@ -176,6 +186,9 @@ async function handlePendingCycle(
         metadata: {
           billing_cycle_id: cycle.id,
           tenant_id: cycle.tenant_id,
+          // BILLING-SAFE-1: zo weet de webhook dat een mislukking een automatische
+          // afschrijving was (betaalverzoek + melding), geen poging via de betaallink.
+          charge_kind: "mandate",
         },
       },
       { ...ctx.requestOptions, idempotencyKey: `cycle:${cycle.id}` },
@@ -191,7 +204,10 @@ async function handlePendingCycle(
           due_date: dueDate,
           grace_until: graceUntil,
         })
-        .eq("id", cycle.id);
+        .eq("id", cycle.id)
+        // BILLING-SAFE-1: een snelle webhook kan al afgeboekt hebben.
+        .is("invoice_id", null)
+        .not("status", "in", "(settled,cancelled)");
       summary.cycles_processing++;
       log("Cycle charge accepted", {
         billing_cycle_id: cycle.id,
@@ -202,13 +218,46 @@ async function handlePendingCycle(
     }
 
     summary.charge_failed++;
-    await toAwaitingPayment({ stripe_payment_intent_id: intent.id });
+    const parked = await toAwaitingPayment({ stripe_payment_intent_id: intent.id });
     log("Cycle charge not confirmed", { billing_cycle_id: cycle.id, status: intent.status });
+    // BILLING-SAFE-1: tot 27-10 bleef de cyclus hier stil wachten, zonder
+    // betaalverzoek aan de klant en zonder melding. Nu meteen beide (één keer).
+    const le = intent.last_payment_error;
+    if (parked) await handleCycleChargeFailure(supabase, {
+      cycleId: cycle.id,
+      reason: declineReason(le?.code, le?.decline_code, le?.message) ?? `status ${intent.status}`,
+      intentId: intent.id,
+    });
   } catch (chargeErr) {
     const msg = chargeErr instanceof Error ? chargeErr.message : String(chargeErr);
     console.error(`[GEN-SUB-INVOICES] Cycle charge failed for ${cycle.id}: ${msg}`);
     summary.charge_failed++;
-    await toAwaitingPayment();
+    // BILLING-SAFE-1: enkel een échte weigering (StripeCardError, of een intent die
+    // op een nieuwe betaalmethode wacht) krijgt een betaalverzoek. Bij een time-out,
+    // netwerk- of databankfout is de uitkomst onbekend: de afschrijving kan bij Stripe
+    // gelukt zijn (de webhook boekt dan af). Een betaalverzoek zou dan tot dubbele
+    // betaling leiden — daarom alleen een melding aan de verkoper.
+    const se = chargeErr as {
+      code?: string;
+      decline_code?: string;
+      raw?: { payment_intent?: { id?: string } };
+    };
+    const intentId = se?.raw?.payment_intent?.id ?? null;
+    const declined = isPaymentDecline(chargeErr);
+    const parked = await toAwaitingPayment(intentId ? { stripe_payment_intent_id: intentId } : {});
+    if (declined) {
+      // Niet geparkeerd: de webhook payment_intent.payment_failed (charge_kind mandate)
+      // zet de cyclus op wacht en stuurt dan zelf het verzoek.
+      if (parked) {
+        await handleCycleChargeFailure(supabase, {
+          cycleId: cycle.id,
+          reason: declineReason(se?.code, se?.decline_code, msg),
+          intentId,
+        });
+      }
+    } else {
+      await notifyChargeUnclear(supabase, { cycleId: cycle.id, error: msg });
+    }
   }
 }
 
