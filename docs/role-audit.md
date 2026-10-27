@@ -47,14 +47,21 @@ Derde batch uit het structureel plan. Akke 27-10: "Akkoord met je keuzen… doe 
   - **M4:** de 0%-code per regime.
 - Ronde 2: klaar om te committen. Op advies van de review zoekt de 0%-code nu op de exacte naam in plaats van een naamfragment. De namen zijn live gelezen ("0%", "0% EU M", "0% EU T", "0% EU S", "0% EX"). Een hernoemde code geeft dan een duidelijke fout in plaats van een stille verkeerde keuze.
 
-**Vereist vóór de deploy**
-Vier prijs-inclusieve kopieën in Odoo, gemaakt met "Dupliceren", zodat roostervakken en rekeningen meekomen:
-- `21% incl.`
-- `12% incl.`
-- `6% incl.`
-- `21.0% NL BTW incl.`
+**Odoo-btw-codes (enige Odoo-wijziging, met expliciete toestemming van Akke 27-10: "Dit is je enige scope, dus niets anders in Odoo mag je aanpassen buiten dit")**
+Vier prijs-inclusieve kopieën via `account.tax.copy`, zodat roostervakken, rekeningen, groep, land en scope meekomen. Daarna nagekeken: identiek aan het origineel, enkel `price_include_override = tax_included` en de naam verschillen.
+- 141 `21% incl.` (kopie van 3)
+- 142 `12% incl.` (kopie van 6)
+- 143 `6% incl.` (kopie van 8)
+- 144 `21.0% NL BTW incl.` (kopie van 120)
 
-Het aanmaken vanuit deze sessie werd door de veiligheidscontrole geweigerd; dat doet Akke. Zonder deze codes boekt de nieuwe sync niets.
+Verder niets in Odoo aangepast.
+
+**Uitrol**
+- Commits 86b90124 (batch) en 23d09913 (GET-versiestempel), CI groen.
+- Edge functions `sync-odoo-invoices`, `generate-invoice`, `create-manual-invoice` gedeployed via de Lovable-agent (deploy-only, 0,4 credits, geen agent-commits: origin/main = 23d09913).
+- Vingerafdruk: nulmeting INVOICE-INTEGRITY-1 / INVOICE-INTEGRITY-1 / 401 → na de deploy `{"ok":true,"version":"ODOO-GUARD-1"}` op alle drie (net._http_response 286702–286704).
+- Frontend (`creditNoteLines`) gepubliceerd met deploy_project.
+- Nog open: de eerste echte boeking natrekken zodra een nieuwe factuur synct (concept → teruglezen → geboekt).
 
 **Bekende beperkingen**
 - **Halve centen:** alleen bij een exacte halve cent (12%: bruto = 14 × een oneven aantal centen, bv. €12,46; 20%: €9,99) kan Odoo anders afronden. Dan blijft het een concept met een melding, nooit een foute definitieve boeking. Eén keer nameten in Odoo na de deploy.
