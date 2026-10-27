@@ -41,7 +41,8 @@ class Q {
     this.filters.push((r) => String(key ? r[col]?.[key] : r[col]) === String(v));
     return this;
   }
-  neq(c: string, v: any) { this.filters.push((r) => String(r[c]) !== String(v)); return this; }
+  // Zoals SQL: NULL <> x is geen match.
+  neq(c: string, v: any) { this.filters.push((r) => r[c] != null && String(r[c]) !== String(v)); return this; }
   in(c: string, vs: any[]) { const s = new Set(vs.map(String)); this.filters.push((r) => s.has(String(r[c]))); return this; }
   gte(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] >= v); return this; }
   lte(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] <= v); return this; }
@@ -53,6 +54,19 @@ class Q {
     } else if (op === "is" && v === null) {
       this.filters.push((r) => r[c] != null);
     } else throw new Error(`not(${op}) niet ondersteund`);
+    return this;
+  }
+  // Enkel de vorm "kol.is.null,kol.neq.waarde" (en "kol.eq.waarde"), zoals de code ze gebruikt.
+  or(expr: string) {
+    const parts = expr.split(",").map((p) => {
+      const [col, op, ...rest] = p.split(".");
+      const val = rest.join(".");
+      if (op === "is" && val === "null") return (r: Row) => r[col] == null;
+      if (op === "neq") return (r: Row) => r[col] != null && String(r[col]) !== val;
+      if (op === "eq") return (r: Row) => String(r[col]) === val;
+      throw new Error(`or(${p}) niet ondersteund`);
+    });
+    this.filters.push((r) => parts.some((f) => f(r)));
     return this;
   }
   contains(c: string, v: any) { this.filters.push((r) => matchesContains(r[c], v)); return this; }

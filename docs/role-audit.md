@@ -1,3 +1,45 @@
+## CORRECTIE-1 — eenmalige rechtzetting SellQo ↔ Odoo — 27 oktober 2026
+
+Akke 27-10: "eenmalige rechtzetting … daar is het nu wel tijd voor". Keuzes van Akke:
+- **Fonske:** enkel creditnota's.
+- **INV-2026-0127 (VanXcel):** laten zoals het is (in Odoo bewust geannuleerd).
+- **Centverschillen:** documenteren en laten staan.
+
+**Volledige vergelijking.** Elk door SellQo naar Odoo gestuurd document naast Odoo gelegd (Odoo alleen gelezen, 27-10).
+
+| Dagboek | Documenten | Resultaat |
+|---|---|---|
+| SellQo (44) | 26 | Alle 26 exact. |
+| Fonske (45) | 20 | 15 facturen van €0 (kortingscode 100%) met regels op volle prijs, in Odoo geboekt op €19/€25 = **€309 valse omzet, €53,66 btw**. Daarbij de dubbele INV-0008/0009 voor order #0009. INV-0015: Odoo €37,99 tegen SellQo €38,00. |
+| VanXcel (39) | 153 | 84 historische Shopify-CSV-imports staan terecht niet in Odoo (wettelijke factuur = Shopify VX…). Van de 69 andere: 63 exact. INV-0127 (€35,95) staat in Odoo op geannuleerd. Centverschillen: INV-0111 (btw 3,10 tegen 3,11), INV-0128 (39,91 tegen 39,90), INV-0160 + CN-0005 (163,62 tegen 163,60), INV-0162 (Odoo 135,22 = Peppol en Stripe; SellQo 135,21). |
+
+**Uitgevoerd** (snapshots: `snapshots.fonske_20261027_correctie_1_*`, `snapshots.platform_20261027_correctie_1_sync_log`, `snapshots.vanxcel_20261027_correctie_1_*`)
+- **Fonske:** 15 creditnota's (CN-2026-0001 t/m 0015).
+  - Type full, status `processed`, uitgiftedatum 27-10, niet naar klanten gemaild, `auto_generated`.
+  - De regels zijn een kopie van de factuurregels, dus exact de Odoo-boeking. De factuur kreeg `metadata.correctie_1`.
+  - Via sync-odoo-invoices geboekt: 15/15 door de terugleescontrole.
+  - In Odoo nagekeken: 15 creditnota's, elk gekoppeld aan zijn factuur (die nu "reversed" staat). Netto Fonske-omzet in Odoo **€52,06 + €10,93 btw = €62,99** (INV-0015 + INV-0016), tegen €63,00 in SellQo (het gedocumenteerde centje).
+- **VanXcel INV-0162:** SellQo-record gelijkgezet met het verstuurde document (Peppol, Stripe): regel 7 × €16,49 = €115,43, totaal €135,22.
+- **Sync-log:** 44 ontbrekende Odoo-boekingsnummers aangevuld (oude sync bewaarde ze niet, 14-07), zodat de uitbetalingsnotities (PAYOUT-LINK-1) ook deze facturen vinden.
+- **84 historische imports:** gemarkeerd met `metadata.historical_import` (source `shopify_csv`).
+- **Code (`sync-odoo-invoices`, versie CORRECTIE-1):**
+  - Historische imports worden nooit kandidaat, ook als het log gewist zou worden.
+  - "Peppol handmatig versturen" wordt nu ook gezet bij een lege Peppol-status (`.neq` sloeg NULL over).
+  - Test toegevoegd (odooSync 11/11).
+
+**Review (aparte agent):** niets blokkerend. Verwerkt:
+- de historische-importcontrole ook in `syncInvoice`, zodat ook expliciete `invoiceIds` geweigerd worden;
+- een tiebreaker `.order('id')` in de paginering;
+- de nep-`neq` gedraagt zich nu zoals SQL bij NULL.
+
+Live: 0 creditnota's op historische imports. Tests: 70/70 in de harnas-suite.
+
+**Gedocumenteerd, niet gewijzigd**
+- **Centverschillen** (samen 6 cent): Fonske INV-0015, VanXcel INV-0111, -0128, -0160 + CN-0005. Rechtzetten zou per stuk een creditnota en een nieuwe factuur kosten.
+- **INV-0127:** Odoo-annulering blijft (keuze Akke).
+- **Lijnen van 7 historische imports** tellen niet op tot het totaal (CSV miste regels). Ze leven enkel in SellQo. Het btw-overzicht van SellQo telt ze mee zoals voorheen.
+- **Halve cent (€12,46 aan 12%):** niet live gemeten, want dat vraagt een echte factuur. De terugleescontrole van ODOO-GUARD-1 houdt een afwijking als concept tegen.
+
 ## PAYOUT-LINK-1 — bij welke Stripe-uitbetaling hoort een factuur, zichtbaar in Odoo — 27 oktober 2026
 
 Akke 27-10: "dan zou ik het eerder op die manier doen … dit is echt al goud" (voor Pieter). Expliciete scope in Odoo: enkel een notitie en het veld Referentie op de SellQo-boekingen. Geen boekingen, geen betalingen, de OGM (payment_reference) blijft onaangeroerd.

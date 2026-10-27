@@ -267,3 +267,20 @@ Deno.test("nooit geprobeerde factuur gaat vóór eerder mislukte", async () => {
   await run();
   eq(odoo.moves.map((m) => m.name).includes("INV-2026-0042"), true, "nieuwe factuur toch geboekt");
 });
+
+Deno.test("CORRECTIE-1: historische import (elders uitgereikt) wordt nooit doorgestuurd", async () => {
+  const db = await setup();
+  db.tables.invoices[0].metadata = { historical_import: { source: "shopify_csv" } };
+  odoo = new FakeOdoo().withIncluded();
+  await run();
+  eq([odoo.moves.length, db.tables.odoo_invoice_sync_log.length], [0, 0], "niets geboekt, niets gelogd");
+});
+
+Deno.test("CORRECTIE-1: ook met expliciete invoiceIds geen historische import", async () => {
+  const db = await setup();
+  db.tables.invoices[0].metadata = { historical_import: { source: "shopify_csv" } };
+  odoo = new FakeOdoo().withIncluded();
+  await run({ tenantId: TENANT, invoiceIds: ["inv1"] });
+  eq(odoo.moves.length, 0, "niets geboekt");
+  eq(db.tables.odoo_invoice_sync_log[0]?.sync_status, "failed", "gelogd als geweigerd");
+});

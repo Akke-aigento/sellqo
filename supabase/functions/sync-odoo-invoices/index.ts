@@ -416,10 +416,14 @@ async function loadCustomer(ctx: SyncCtx, customerId: string | null) {
 async function syncInvoice(ctx: SyncCtx, invoiceId: string, channel: string): Promise<{ moveId: number; peppol: { status: string; note?: string } }> {
   const { data: inv, error } = await ctx.supabase
     .from('invoices')
-    .select('id, tenant_id, invoice_number, issue_date, customer_id, is_b2b, order_id, reporting_country, vat_regime, subtotal, tax_amount, total')
+    .select('id, tenant_id, invoice_number, issue_date, customer_id, is_b2b, order_id, reporting_country, vat_regime, subtotal, tax_amount, total, metadata')
     .eq('id', invoiceId)
     .single()
   if (error || !inv) throw new Error(`Invoice not found: ${errMsg(error)}`)
+  // CORRECTIE-1: ook bij een expliciete invoiceIds-aanroep nooit een historische import boeken.
+  if ((inv.metadata as Record<string, unknown> | null)?.historical_import) {
+    throw new Error('Historische import (elders als factuur uitgereikt, staat al in Odoo): wordt nooit doorgestuurd')
+  }
 
   const { data: lines, error: linesErr } = await ctx.supabase
     .from('invoice_lines')
@@ -616,16 +620,21 @@ const MAX_PER_RUN = 100
 
 async function pagedIds(supabase: SupabaseClient, table: 'invoices' | 'credit_notes', tenantId: string, statuses: string[]): Promise<string[]> {
   const out: string[] = []
+  const cols: string = table === 'invoices' ? 'id, metadata' : 'id'
   for (let from = 0; ; from += 1000) {
     const { data, error } = await supabase
       .from(table)
-      .select('id')
+      // CORRECTIE-1: historische imports (metadata.historical_import) zijn elders als
+      // wettelijke factuur uitgereikt (Shopify, VX…) en staan zo al in Odoo: nooit doorsturen.
+      .select(cols)
       .eq('tenant_id', tenantId)
       .in('status', statuses)
       .order('created_at', { ascending: true })
+      .order('id', { ascending: true }) // tiebreaker: bulkimports delen created_at
       .range(from, from + 999)
     if (error) throw new Error(`${table} laden: ${errMsg(error)}`)
-    out.push(...(data || []).map((r: { id: string }) => r.id))
+    const rows = (data || []) as unknown as { id: string; metadata?: Record<string, unknown> | null }[]
+    out.push(...rows.filter((r) => !r.metadata?.historical_import).map((r) => r.id))
     if (!data || data.length < 1000) return out
   }
 }
@@ -752,7 +761,8 @@ async function syncTenant(supabase: SupabaseClient, env: OdooEnv, uid: number, v
         await supabase.from('invoices')
           .update({ peppol_status: 'manual_action' })
           .eq('id', id)
-          .neq('peppol_status', 'sent')
+          // CORRECTIE-1: `.neq` alleen sloeg NULL over (NULL <> 'sent' is NULL in SQL).
+          .or('peppol_status.is.null,peppol_status.neq.sent')
       }
       results.invoices.synced++
       if (peppol.status === 'manual') results.invoices.peppolManual++
@@ -799,7 +809,8 @@ async function syncTenant(supabase: SupabaseClient, env: OdooEnv, uid: number, v
         await supabase.from('credit_notes')
           .update({ peppol_status: 'manual_action' })
           .eq('id', id)
-          .neq('peppol_status', 'sent')
+          // CORRECTIE-1: `.neq` alleen sloeg NULL over (NULL <> 'sent' is NULL in SQL).
+          .or('peppol_status.is.null,peppol_status.neq.sent')
       }
       results.creditNotes.synced++
       if (peppol.status === 'manual') results.creditNotes.peppolManual++
@@ -821,7 +832,7 @@ async function syncTenant(supabase: SupabaseClient, env: OdooEnv, uid: number, v
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
   // Versie-vingerafdruk na een deploy (doet niets, geen auth nodig).
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'ODOO-GUARD-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'CORRECTIE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   try {
     const body = req.method === 'POST' ? await req.json().catch(() => ({})) : {}
