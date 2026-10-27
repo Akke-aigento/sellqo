@@ -106,6 +106,9 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
     icon: 'FileText',
     types: [
       { type: 'invoice_created', defaultInApp: false, defaultEmail: false },
+      // INKOOP-6: facturen-inbox (inkoop).
+      { type: 'supplier_invoice_received', defaultInApp: true, defaultEmail: false },
+      { type: 'supplier_invoice_review', defaultInApp: true, defaultEmail: false },
       { type: 'invoice_sent', defaultInApp: false, defaultEmail: false },
       { type: 'invoice_paid', defaultInApp: true, defaultEmail: false },
       { type: 'invoice_overdue', defaultInApp: true, defaultEmail: false },
@@ -287,6 +290,8 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'integration_connected', defaultInApp: true, defaultEmail: false },
       { type: 'integration_disconnected', defaultInApp: true, defaultEmail: false },
       { type: 'integration_error', defaultInApp: true, defaultEmail: false },
+      // INKOOP-6
+      { type: 'supplier_invoice_odoo_error', defaultInApp: true, defaultEmail: false },
     ]
   },
 ];

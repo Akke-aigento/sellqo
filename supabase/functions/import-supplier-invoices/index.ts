@@ -165,8 +165,9 @@ interface DocRow {
   paid_at: string | null;
   odoo_attempts: number;
   extracted_data: Record<string, unknown> | null;
+  review_status: string | null;
 }
-const DOC_COLS = "id, tenant_id, source, document_type, document_number, external_id, file_name, storage_path, mime_type, supplier_id, odoo_move_id, odoo_status, payment_status, paid_at, odoo_attempts, extracted_data";
+const DOC_COLS = "id, tenant_id, source, document_type, document_number, external_id, file_name, storage_path, mime_type, supplier_id, odoo_move_id, odoo_status, payment_status, paid_at, odoo_attempts, extracted_data, review_status";
 
 /** Claim: enkel wie de rij van "vrij" naar "pending" zet, mag uploaden. */
 async function claim(supabase: SupabaseClient, doc: DocRow): Promise<boolean> {
@@ -185,6 +186,8 @@ async function claim(supabase: SupabaseClient, doc: DocRow): Promise<boolean> {
 async function pushOne(supabase: SupabaseClient, odoo: Odoo, doc: DocRow, dryRun: boolean): Promise<string> {
   if (!["invoice", "credit_note"].includes(doc.document_type)) return "skip:type";
   if (doc.odoo_move_id) return "skip:linked";
+  // INKOOP-6: mail van een afzender die nog niet goedgekeurd is (of geweigerd) nooit naar Odoo.
+  if (doc.review_status) return `skip:review-${doc.review_status}`;
   if (doc.odoo_attempts >= MAX_PUSH_ATTEMPTS) return "skip:attempts";
   if (!doc.storage_path) return "skip:no-file";
   // Enkel bestanden van de eigen winkel (ook afgedwongen met een CHECK in de databank).
@@ -220,15 +223,35 @@ async function pushOne(supabase: SupabaseClient, odoo: Odoo, doc: DocRow, dryRun
     // Gekoppeld aan een boeking die al bij een ander document hoort = dubbel binnengekomen:
     // niet eindeloos opnieuw proberen.
     const duplicate = /23505|duplicate key/i.test(errMsg(e));
+    const attempts = duplicate ? MAX_PUSH_ATTEMPTS : doc.odoo_attempts + 1;
     await supabase.from("supplier_documents").update({
       odoo_status: "error",
       odoo_error: (duplicate ? "Dubbel: deze factuur staat al bij een ander document. " : "") + errMsg(e).slice(0, 450),
       odoo_synced_at: new Date().toISOString(),
-      // De claim zette al attempts + 1; zonder claim (bestaande boeking) tellen we hier.
-      odoo_attempts: duplicate ? MAX_PUSH_ATTEMPTS : doc.odoo_attempts + 1,
+      // De claim zette al attempts + 1; zelfde waarde, ook zonder claim (bestaande boeking).
+      odoo_attempts: attempts,
     }).eq("id", doc.id);
+    // Laatste poging mislukt: de winkel moet het weten (één keer per document).
+    if (attempts >= MAX_PUSH_ATTEMPTS) await notifyPushFailed(supabase, doc, errMsg(e), duplicate);
     throw e;
   }
+}
+
+async function notifyPushFailed(supabase: SupabaseClient, doc: DocRow, message: string, duplicate: boolean): Promise<void> {
+  const { error } = await supabase.from("notifications").insert({
+    tenant_id: doc.tenant_id,
+    category: "integrations",
+    type: "supplier_invoice_odoo_error",
+    priority: "high",
+    title: duplicate ? `Inkoopfactuur staat al in Odoo (${doc.file_name})` : `Inkoopfactuur niet naar Odoo (${doc.file_name})`,
+    message: duplicate
+      ? "Deze factuur hoort bij een boeking die al aan een ander document gekoppeld is. Kijk na of het een dubbel is."
+      : `Na ${MAX_PUSH_ATTEMPTS} pogingen lukte het doorsturen niet: ${message.slice(0, 200)}. Upload ze manueel in Odoo of probeer later opnieuw.`,
+    // Eén keer per document per dag (na een reset of verplaatsing mag hij opnieuw melden).
+    data: { document_id: doc.id, dedupe_key: `supplier_odoo_error:${doc.id}:${new Date().toISOString().slice(0, 10)}` },
+    action_url: "/admin/supplier-documents",
+  });
+  if (error && (error as { code?: string }).code !== "23505") console.error("melding Odoo-fout:", error.message);
 }
 
 async function pullTenant(supabase: SupabaseClient, odoo: Odoo, tenantId: string, today: string, deadline: number, dryRun: boolean) {
@@ -506,6 +529,7 @@ Deno.serve(async (req) => {
           const { data: pending, error } = await supabase.from("supplier_documents").select(DOC_COLS)
             .eq("tenant_id", tenantId).is("odoo_move_id", null).in("document_type", ["invoice", "credit_note"])
             .neq("source", "odoo_archive").lt("odoo_attempts", MAX_PUSH_ATTEMPTS).not("storage_path", "is", null)
+            .is("review_status", null)
             .order("odoo_attempts").order("created_at").limit(50);
           if (error) throw new Error(`te versturen: ${error.message}`);
           const pushed: Record<string, string> = {};

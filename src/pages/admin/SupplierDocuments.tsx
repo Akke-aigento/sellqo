@@ -1,5 +1,6 @@
 import { Capacitor } from "@capacitor/core";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,8 @@ import { invoiceInboxAddress } from "@/lib/invoiceInbox";
 import { SupplierDocumentUploadDialog } from "@/components/admin/suppliers/SupplierDocumentUploadDialog";
 import { MoveSupplierDocumentDialog } from "@/components/admin/suppliers/MoveSupplierDocumentDialog";
 import { useMoveTargets } from "@/hooks/useMoveTargets";
+import { SupplierDocumentSettingsDialog } from "@/components/admin/suppliers/SupplierDocumentSettingsDialog";
+import { useCanManageInbox, useInboxReview, useSupplierInbox, type InboxDecision } from "@/hooks/useSupplierInbox";
 import { StatsCard } from "@/components/admin/StatsCard";
 import type { SupplierDocument, SupplierDocumentType, SupplierPaymentStatus } from "@/types/supplier";
 import { documentTypeInfo, paymentStatusInfo } from "@/types/supplier";
@@ -68,6 +71,13 @@ import {
   Copy,
   Inbox,
   ArrowRightLeft,
+  ArrowLeft,
+  Settings,
+  ShieldCheck,
+  ShieldX,
+  ShieldAlert,
+  Check,
+  X,
 } from "lucide-react";
 
 export default function SupplierDocuments() {
@@ -93,6 +103,16 @@ export default function SupplierDocuments() {
   // INKOOP-5: naar een andere winkel verplaatsen (enkel als je er meer dan één beheert).
   const [documentToMove, setDocumentToMove] = useState<SupplierDocument | null>(null);
   const moveTargets = useMoveTargets();
+  // INKOOP-6: instellingen + mail van onbekende afzenders controleren.
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [reviewOnly, setReviewOnly] = useState(false);
+  const { pendingCount } = useSupplierInbox(currentTenant?.id);
+  const review = useInboxReview();
+  const canManageInbox = useCanManageInbox(currentTenant?.id);
+  const decide = (doc: SupplierDocument, decision: InboxDecision) =>
+    review.mutate({ documentId: doc.id, decision }, {
+      onSuccess: ({ count }) => toast.success(t(`admin.supplierDocuments.review_done_${decision}`, { count })),
+    });
 
   const { data: documents, isLoading } = useSupplierDocuments({
     documentType:
@@ -100,6 +120,7 @@ export default function SupplierDocuments() {
     paymentStatus:
       statusFilter === "all" ? undefined : (statusFilter as SupplierPaymentStatus),
     supplierId: supplierFilter === "all" ? undefined : supplierFilter,
+    reviewPending: reviewOnly || undefined,
   });
 
   const { data: stats } = useSupplierDocumentStats();
@@ -141,6 +162,12 @@ export default function SupplierDocuments() {
     <>
       <div className="space-y-6">
         {/* Header */}
+        <Button variant="ghost" size="sm" className="-ml-2 -mb-4" asChild>
+          <Link to="/admin/suppliers">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {t("admin.supplierDocuments.back_to_suppliers")}
+          </Link>
+        </Button>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Leveranciersdocumenten</h1>
@@ -148,11 +175,33 @@ export default function SupplierDocuments() {
               Facturen, offertes en andere documenten van leveranciers
             </p>
           </div>
-          <Button onClick={() => setUploadDialogOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
-            Document uploaden
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" onClick={() => setSettingsOpen(true)}>
+              <Settings className="h-4 w-4 mr-2" />
+              {t("admin.supplierDocuments.settings_button")}
+            </Button>
+            <Button onClick={() => setUploadDialogOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Document uploaden
+            </Button>
+          </div>
         </div>
+
+        {/* INKOOP-6: mail van onbekende afzenders wacht op goedkeuring */}
+        {(pendingCount.data ?? 0) > 0 && (
+          <Card className="border-amber-500/60">
+            <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <ShieldAlert className="h-8 w-8 text-amber-600 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{t("admin.supplierDocuments.review_banner", { count: pendingCount.data })}</p>
+                <p className="text-xs text-muted-foreground">{t("admin.supplierDocuments.review_banner_desc")}</p>
+              </div>
+              <Button variant={reviewOnly ? "default" : "outline"} size="sm" onClick={() => setReviewOnly((v) => !v)}>
+                {reviewOnly ? t("admin.supplierDocuments.review_show_all") : t("admin.supplierDocuments.review_show")}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* INKOOP-4: facturenadres van deze winkel */}
         {inboxAddress && (
@@ -289,6 +338,7 @@ export default function SupplierDocuments() {
                               {doc.source && doc.source !== "upload" && (
                                 <> · {t(`admin.supplierDocuments.source.${doc.source}`)}</>
                               )}
+                              {doc.sender_email && <> · {doc.sender_email}</>}
                             </p>
                           </div>
                         </div>
@@ -327,6 +377,16 @@ export default function SupplierDocuments() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
+                          {doc.review_status && (
+                            <Badge variant={doc.review_status === "pending" ? "secondary" : "destructive"}>
+                              {t(`admin.supplierDocuments.review_${doc.review_status}`)}
+                            </Badge>
+                          )}
+                          {doc.review_status === "pending" && doc.sender_authenticated === false && (
+                            <Badge variant="destructive" title={t("admin.supplierDocuments.unverified_help")}>
+                              {t("admin.supplierDocuments.unverified")}
+                            </Badge>
+                          )}
                           {doc.document_type === "invoice" && (
                             <Badge className={paymentStatusInfo[doc.payment_status].color}>
                               {paymentStatusInfo[doc.payment_status].label}
@@ -354,6 +414,32 @@ export default function SupplierDocuments() {
                               <ExternalLink className="h-4 w-4 mr-2" />
                               Openen
                             </DropdownMenuItem>
+                            {doc.review_status === "pending" && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem disabled={review.isPending} onClick={() => decide(doc, "approve")}>
+                                  <Check className="h-4 w-4 mr-2" />
+                                  {t("admin.supplierDocuments.review_approve")}
+                                </DropdownMenuItem>
+                                {doc.sender_email && canManageInbox && doc.sender_authenticated === true && (
+                                  <DropdownMenuItem disabled={review.isPending} onClick={() => decide(doc, "approve_sender")}>
+                                    <ShieldCheck className="h-4 w-4 mr-2" />
+                                    {t("admin.supplierDocuments.review_approve_sender")}
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem disabled={review.isPending} onClick={() => decide(doc, "reject")}>
+                                  <X className="h-4 w-4 mr-2" />
+                                  {t("admin.supplierDocuments.review_reject")}
+                                </DropdownMenuItem>
+                                {doc.sender_email && canManageInbox && (
+                                  <DropdownMenuItem disabled={review.isPending} className="text-destructive" onClick={() => decide(doc, "block_sender")}>
+                                    <ShieldX className="h-4 w-4 mr-2" />
+                                    {t("admin.supplierDocuments.review_block_sender")}
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuSeparator />
+                              </>
+                            )}
                             {typeof doc.extracted_data?.odoo_url === "string" &&
                               doc.extracted_data.odoo_url.startsWith("https://") && (
                               <DropdownMenuItem onClick={() => void openExternal(doc.extracted_data.odoo_url as string)}>
@@ -412,6 +498,13 @@ export default function SupplierDocuments() {
           </CardContent>
         </Card>
       </div>
+
+      <SupplierDocumentSettingsDialog
+        open={settingsOpen}
+        onOpenChange={setSettingsOpen}
+        tenantId={currentTenant?.id}
+        inboxAddress={inboxAddress}
+      />
 
       {/* Upload Dialog */}
       <SupplierDocumentUploadDialog

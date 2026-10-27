@@ -63,6 +63,10 @@ const TYPE_ROUTES: Readonly<Record<string, string>> = {
   trial_expiring: "/admin/billing",
   trial_expired: "/admin/billing",
   trial_converted: "/admin/billing",
+  // INKOOP-6: facturen-inbox
+  supplier_invoice_received: "/admin/supplier-documents",
+  supplier_invoice_review: "/admin/supplier-documents",
+  supplier_invoice_odoo_error: "/admin/supplier-documents",
   // SOCIAL-3
   social_manual_due: "/admin/marketing/social",
   social_posts_ready: "/admin/marketing/social",

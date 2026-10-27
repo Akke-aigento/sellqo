@@ -33,6 +33,8 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "orders/tracking_exception": { category: "orders", inApp: true, email: false },
   "orders/return_new_request": { category: "orders", inApp: true, email: false },
   "invoices/invoice_created": { category: "invoices", inApp: false, email: false },
+  "invoices/supplier_invoice_received": { category: "invoices", inApp: true, email: false },
+  "invoices/supplier_invoice_review": { category: "invoices", inApp: true, email: false },
   "invoices/invoice_sent": { category: "invoices", inApp: false, email: false },
   "invoices/invoice_paid": { category: "invoices", inApp: true, email: false },
   "invoices/invoice_overdue": { category: "invoices", inApp: true, email: false },
@@ -133,6 +135,7 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "integrations/integration_connected": { category: "integrations", inApp: true, email: false },
   "integrations/integration_disconnected": { category: "integrations", inApp: true, email: false },
   "integrations/integration_error": { category: "integrations", inApp: true, email: false },
+  "integrations/supplier_invoice_odoo_error": { category: "integrations", inApp: true, email: false },
 };
 
 /** Push staat voor elk type standaard aan — ook voor een type dat hier (nog) niet staat. */

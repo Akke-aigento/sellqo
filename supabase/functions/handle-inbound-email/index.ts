@@ -1,7 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { rejectUnlessSvix } from "../_shared/webhookAuth.ts";
 import { extractInboundAddress, extractInboundPrefix, INVOICE_INBOX_TAG } from "../_shared/inboundAddress.ts";
-import { ingestInvoiceEmail } from "../_shared/supplierInboxEmail.ts";
+import { dmarcPassed, ingestInvoiceEmail } from "../_shared/supplierInboxEmail.ts";
 import { findExistingInbound, isUniqueViolation } from "../_shared/inboundDedup.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
@@ -58,6 +58,8 @@ interface ResendRetrievedEmail {
   text?: string;
   html?: string;
   headers?: Record<string, string>;
+  /** Uitslag van de ontvangende server (niet te vervalsen); null bij oude mails. */
+  authentication?: { spf?: string; dkim?: string; dmarc?: string } | null;
   message_id?: string;
   attachments?: Array<{
     id: string;
@@ -328,7 +330,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   // Versiestempel voor deploy-verificatie (neveneffectvrij).
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "INKOOP-4b" }), {
+    return new Response(JSON.stringify({ ok: true, version: "INKOOP-6" }), {
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }
@@ -406,8 +408,13 @@ const handler = async (req: Request): Promise<Response> => {
           status: 404, headers: { "Content-Type": "application/json", ...corsHeaders },
         });
       }
+      // INKOOP-6: SPF/DKIM/DMARC van Resend. Lukt het ophalen niet, dan geldt de mail als
+      // niet bewezen (= controleren), nooit als vertrouwd.
+      const full = await fetchEmailContent(payload.email_id, resendApiKey);
+      const authenticated = dmarcPassed(full?.authentication);
       const result = await ingestInvoiceEmail({
         supabase, tenantId: tenant.id, emailId: payload.email_id, from: payload.from ?? "", subject: payload.subject ?? "",
+        authenticated,
         listAttachments: async () => {
           const r = await fetch(`https://api.resend.com/emails/receiving/${payload.email_id}/attachments`, {
             headers: { Authorization: `Bearer ${resendApiKey}` },
@@ -421,7 +428,7 @@ const handler = async (req: Request): Promise<Response> => {
           return new Uint8Array(await r.arrayBuffer());
         },
       });
-      console.log("Invoice email processed", { tenant: tenant.name, ...result });
+      console.log("Invoice email processed", { tenant: tenant.name, auth: full?.authentication ?? null, ...result });
       // Eén mislukte bijlage = 500, zodat Resend opnieuw probeert. Dubbels kunnen niet: wat al
       // binnen is, heeft een uniek extern id (email:<id>:<bijlage>).
       const failed = result.errors.length > 0;

@@ -70,12 +70,17 @@ export function AdminSidebar() {
   // route dekt. Zo licht /admin/promotions/customer-groups enkel Klantgroepen
   // op (onder Klanten) en niet ook Promoties, en /admin/orders/invoices enkel
   // Facturen en niet ook Bestellingen.
+  // INKOOP-6: `match` is de route, `url` het item dat oplicht (activeAlso).
   const allUrls = useMemo(() => {
-    const urls: string[] = [];
+    const urls: { match: string; url: string }[] = [];
+    const add = (item: { url: string; activeAlso?: string[] }) => {
+      urls.push({ match: item.url, url: item.url });
+      for (const m of item.activeAlso ?? []) urls.push({ match: m, url: item.url });
+    };
     for (const group of [...sidebarGroups, platformGroup]) {
       for (const item of group.items) {
-        urls.push(item.url);
-        for (const child of item.children ?? []) urls.push(child.url);
+        add(item);
+        for (const child of item.children ?? []) add(child);
       }
     }
     return urls;
@@ -83,12 +88,12 @@ export function AdminSidebar() {
 
   const activeUrl = useMemo(() => {
     const path = location.pathname.replace(/\/+$/, '') || '/';
-    let best: string | null = null;
-    for (const url of allUrls) {
-      const hit = url === '/admin' ? path === '/admin' : path === url || path.startsWith(url + '/');
-      if (hit && (!best || url.length > best.length)) best = url;
+    let best: { match: string; url: string } | null = null;
+    for (const u of allUrls) {
+      const hit = u.match === '/admin' ? path === '/admin' : path === u.match || path.startsWith(u.match + '/');
+      if (hit && (!best || u.match.length > best.match.length)) best = u;
     }
-    return best;
+    return best?.url ?? null;
   }, [location.pathname, allUrls]);
 
   const isActive = (path: string) => path === activeUrl;

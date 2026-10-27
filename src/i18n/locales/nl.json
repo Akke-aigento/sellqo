@@ -762,6 +762,14 @@
           "invoice_blocked": {
             "label": "Factuur niet aangemaakt",
             "description": "SellQo kon voor een order geen kloppende factuur maken (bedragen kloppen niet)"
+          },
+          "supplier_invoice_received": {
+            "label": "Inkoopfactuur ontvangen",
+            "description": "Wanneer er een factuur binnenkomt op het facturenadres"
+          },
+          "supplier_invoice_review": {
+            "label": "Inkoopfactuur te controleren",
+            "description": "Mail van een afzender die je nog niet vertrouwt"
           }
         },
         "payments": {
@@ -1136,6 +1144,10 @@
           "integration_error": {
             "label": "SellQo Connect fout",
             "description": "Wanneer er een fout optreedt bij een integratie"
+          },
+          "supplier_invoice_odoo_error": {
+            "label": "Inkoopfactuur niet naar Odoo",
+            "description": "Wanneer doorsturen naar Odoo blijft mislukken"
           }
         }
       }
@@ -8468,7 +8480,51 @@
       "move_desc": "Het document, het bestand en de leverancier verhuizen mee. Staat de factuur al in Odoo, dan kan het enkel naar een winkel met dezelfde Odoo.",
       "move_pick": "Kies een winkel",
       "move_button": "Verplaatsen",
-      "move_done": "Verplaatst naar {{shop}}"
+      "move_done": "Verplaatst naar {{shop}}",
+      "back_to_suppliers": "Leveranciers",
+      "settings_button": "Instellingen",
+      "settings_title": "Instellingen facturen-inbox",
+      "settings_desc": "Hoe inkoopfacturen binnenkomen en waar ze naartoe gaan.",
+      "settings_no_inbox": "Deze winkel heeft nog geen mailadres voor inkomende mail.",
+      "settings_approval": "Afzenders controleren",
+      "settings_approval_desc": "Mail van een afzender die je nog niet vertrouwt, wacht op jouw goedkeuring en gaat tot dan niet naar Odoo. Het facturenadres is te raden: laat dit aan. Een vertrouwde afzender moet ook de mailcontrole (DMARC) halen; vervalste mail blijft wachten.",
+      "settings_senders": "Afzenders",
+      "settings_senders_empty": "Nog geen afzenders. Keur een factuur goed met \"Afzender altijd vertrouwen\" om er een toe te voegen.",
+      "sender_approved": "Vertrouwd",
+      "sender_blocked": "Geblokkeerd",
+      "sender_remove": "Uit de lijst halen",
+      "settings_push": "Meteen als concept naar Odoo",
+      "settings_push_desc": "Nieuwe facturen gaan als concept naar het aankoopdagboek; Odoo leest ze uit.",
+      "settings_push_no_odoo": "Koppel eerst Odoo bij Boekhouding.",
+      "settings_notify": "Meldingen",
+      "settings_notify_desc": "Je krijgt een melding bij een nieuwe factuur, bij een factuur die je moet controleren en als doorsturen naar Odoo mislukt. Aan- of uitzetten en per mail kies je bij Meldingen (Facturen en Koppelingen).",
+      "settings_notify_link": "Meldingen instellen",
+      "settings_sources": "Bronnen",
+      "settings_src_email_on": "Alles wat naar het facturenadres gemaild wordt.",
+      "settings_src_upload": "Manueel opgeladen in SellQo.",
+      "settings_src_archive": "Eenmalig overgenomen uit Odoo.",
+      "settings_bol_on": "Elke ochtend opgehaald via de bol-koppeling.",
+      "settings_bol_off": "Geen actieve bol-koppeling.",
+      "settings_src_last": "laatste {{date}}",
+      "settings_src_never": "nog niets",
+      "settings_more": "Alle Odoo-instellingen",
+      "review_banner_one": "{{count}} factuur wacht op goedkeuring",
+      "review_banner_other": "{{count}} facturen wachten op goedkeuring",
+      "review_banner_desc": "Ze komen van een afzender die je nog niet vertrouwt en gaan pas naar Odoo als je ze goedkeurt.",
+      "review_show": "Toon ze",
+      "review_show_all": "Toon alles",
+      "review_pending": "Te controleren",
+      "review_rejected": "Geweigerd",
+      "review_approve": "Goedkeuren",
+      "review_approve_sender": "Afzender altijd vertrouwen",
+      "review_reject": "Weigeren",
+      "review_block_sender": "Afzender blokkeren",
+      "review_done_approve": "Goedgekeurd",
+      "review_done_approve_sender": "Afzender vertrouwd, {{count}} goedgekeurd",
+      "review_done_reject": "Geweigerd",
+      "review_done_block_sender": "Afzender geblokkeerd, {{count}} geweigerd",
+      "unverified": "Afzender niet bewezen",
+      "unverified_help": "De mailcontrole (DMARC) slaagde niet: deze mail kan vervalst zijn. Keur ze enkel goed als je zeker bent."
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Inkooporders aanmaken kan nog niet in SellQo. Bestaande inkooporders verschijnen hier."

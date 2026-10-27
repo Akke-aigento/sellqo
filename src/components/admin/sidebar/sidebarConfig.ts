@@ -77,6 +77,11 @@ export interface NavItem {
    * Producten: eventwinkels bewerken combitickets en munten via /admin/products/:id/edit.
    */
   trackGateExact?: boolean;
+  /**
+   * INKOOP-6 — routes buiten het menu die bij dit item horen (licht op, zelfde sporen),
+   * bv. Leveranciersdocumenten onder Inkoop.
+   */
+  activeAlso?: string[];
 }
 
 export interface NavGroup {
@@ -237,7 +242,7 @@ const managementItems: NavItem[] = [
   { id: 'translations', titleKey: 'navigation.items.translations', url: '/admin/marketing/translations', icon: Languages, requireRead: 'cms' },
   // SIDEBAR-CLEAN-1: één item; Documenten zit als knop op de Leveranciers-pagina.
   // Id 'purchasing' blijft (tenant_feature_overrides.hidden_pages verwijst ernaar).
-  { id: 'purchasing', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers' },
+  { id: 'purchasing', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers', activeAlso: ['/admin/supplier-documents'] },
   {
     id: 'reports',
     titleKey: 'navigation.items.reports',
@@ -319,7 +324,8 @@ export function findTrackRule(pathname: string): { item: NavItem; tracks: Track[
   const path = pathname.replace(/\/+$/, '') || '/';
   let best: { item: NavItem; tracks: Track[]; len: number } | null = null;
   const consider = (item: NavItem, tracks: Track[] | undefined) => {
-    const exact = path === item.url;
+    const also = (item.activeAlso ?? []).some((u) => path === u || path.startsWith(u + '/'));
+    const exact = path === item.url || also;
     const nested = item.url !== '/admin' && path.startsWith(item.url + '/');
     if (!exact && !nested) return;
     if (best && item.url.length <= best.len) return;

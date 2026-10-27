@@ -139,6 +139,10 @@ export interface SupplierDocument {
   odoo_status: SupplierDocumentOdooStatus | null;
   odoo_error: string | null;
   odoo_synced_at: string | null;
+  /** INKOOP-6: afzender van een binnengekomen mail; pending = wacht op goedkeuring. */
+  sender_email: string | null;
+  sender_authenticated: boolean | null;
+  review_status: "pending" | "rejected" | null;
   created_at: string;
   updated_at: string;
   supplier?: Supplier | null;

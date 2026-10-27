@@ -762,6 +762,14 @@
           "invoice_blocked": {
             "label": "Invoice not created",
             "description": "SellQo could not create a correct invoice for an order (amounts do not match)"
+          },
+          "supplier_invoice_received": {
+            "label": "Purchase invoice received",
+            "description": "When an invoice arrives at the invoice address"
+          },
+          "supplier_invoice_review": {
+            "label": "Purchase invoice to review",
+            "description": "Mail from a sender you don't trust yet"
           }
         },
         "payments": {
@@ -1136,6 +1144,10 @@
           "integration_error": {
             "label": "SellQo Connect error",
             "description": "When an error occurs in an integration"
+          },
+          "supplier_invoice_odoo_error": {
+            "label": "Purchase invoice not sent to Odoo",
+            "description": "When sending to Odoo keeps failing"
           }
         }
       }
@@ -8454,7 +8466,51 @@
       "move_desc": "The document, its file and the supplier move along. If the invoice is already in Odoo, it can only move to a shop with the same Odoo.",
       "move_pick": "Choose a shop",
       "move_button": "Move",
-      "move_done": "Moved to {{shop}}"
+      "move_done": "Moved to {{shop}}",
+      "back_to_suppliers": "Suppliers",
+      "settings_button": "Settings",
+      "settings_title": "Invoice inbox settings",
+      "settings_desc": "How purchase invoices come in and where they go.",
+      "settings_no_inbox": "This shop has no address for incoming mail yet.",
+      "settings_approval": "Check senders",
+      "settings_approval_desc": "Mail from a sender you don't trust yet waits for your approval and isn't sent to Odoo until then. The invoice address can be guessed: keep this on. A trusted sender must also pass the mail check (DMARC); forged mail keeps waiting.",
+      "settings_senders": "Senders",
+      "settings_senders_empty": "No senders yet. Approve an invoice with \"Always trust sender\" to add one.",
+      "sender_approved": "Trusted",
+      "sender_blocked": "Blocked",
+      "sender_remove": "Remove from list",
+      "settings_push": "Send to Odoo as draft right away",
+      "settings_push_desc": "New invoices go to the purchase journal as a draft; Odoo reads them.",
+      "settings_push_no_odoo": "Connect Odoo under Accounting first.",
+      "settings_notify": "Notifications",
+      "settings_notify_desc": "You get a notification for a new invoice, for an invoice you need to check, and when sending to Odoo fails. Turn them on or off and choose email under Notifications (Invoices and Integrations).",
+      "settings_notify_link": "Notification settings",
+      "settings_sources": "Sources",
+      "settings_src_email_on": "Everything emailed to the invoice address.",
+      "settings_src_upload": "Uploaded manually in SellQo.",
+      "settings_src_archive": "Imported once from Odoo.",
+      "settings_bol_on": "Fetched every morning via the bol connection.",
+      "settings_bol_off": "No active bol connection.",
+      "settings_src_last": "last {{date}}",
+      "settings_src_never": "nothing yet",
+      "settings_more": "All Odoo settings",
+      "review_banner_one": "{{count}} invoice is waiting for approval",
+      "review_banner_other": "{{count}} invoices are waiting for approval",
+      "review_banner_desc": "They come from a sender you don't trust yet and only go to Odoo once you approve them.",
+      "review_show": "Show them",
+      "review_show_all": "Show all",
+      "review_pending": "To review",
+      "review_rejected": "Rejected",
+      "review_approve": "Approve",
+      "review_approve_sender": "Always trust sender",
+      "review_reject": "Reject",
+      "review_block_sender": "Block sender",
+      "review_done_approve": "Approved",
+      "review_done_approve_sender": "Sender trusted, {{count}} approved",
+      "review_done_reject": "Rejected",
+      "review_done_block_sender": "Sender blocked, {{count}} rejected",
+      "unverified": "Sender not verified",
+      "unverified_help": "The mail check (DMARC) didn't pass: this mail may be forged. Only approve it if you're sure."
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Creating purchase orders isn't available in SellQo yet. Existing purchase orders appear here."

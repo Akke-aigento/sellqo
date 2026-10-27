@@ -1,3 +1,67 @@
+## INKOOP-6 — instellingen facturen-inbox, afzenders controleren, terugknop — 28 oktober 2026
+
+**Akke 27-10 (23u59):**
+- bug: "als je op docs klikt kan je niet terug naar leveranciers";
+- "zijn er ook geen instellingen om aan te passen betreffende deze pagina";
+- keuze: alle vier (afzenders controleren, Odoo-schakelaar, meldingen, bronnen-overzicht).
+
+**Gevonden gat:** het facturenadres `<winkel>+facturen@mail.sellqo.app` is te raden. Wie het raadde, kon een pdf als concept in de Odoo van een winkel zetten.
+
+**Afzenders controleren:**
+- Mail van een afzender die de winkel nog niet vertrouwt, komt binnen als `review_status = pending` en gaat niet naar Odoo. Standaard staat dit aan (ook zonder instellingsrij).
+- "Vertrouwd" telt enkel als DMARC slaagt. Dat is de `authentication`-uitslag van de ontvangende server van Resend (GET /emails/receiving/<id>), en de afzender kan die niet vervalsen. Lukt het ophalen niet, dan moet de mail gecontroleerd worden.
+- `sender_authenticated` wordt per document bewaard. "Afzender altijd vertrouwen" keurt enkel bewezen mails van die afzender mee goed. Een vervalste mail blijft wachten en krijgt de badge "Afzender niet bewezen".
+- RPC `supplier_inbox_review`:
+  - per document: approve en reject, voor beheerder, medewerker en boekhouder;
+  - afzender vertrouwen of blokkeren: enkel de beheerder of het platformbeheer.
+- `supplier_inbox_sender_remove`: enkel de beheerder.
+- Goedkeuren zet de status leeg. De trigger vuurt nu ook bij `UPDATE OF review_status` (pending → leeg) en stuurt het document dan naar Odoo.
+- Verdere vangrails:
+  - `pushOne` slaat elk document met een review_status over;
+  - de dagelijkse run filtert `review_status IS NULL`;
+  - clients hebben geen grant op de nieuwe kolommen.
+
+**Meldingen** (bestaand voorkeurensysteem, e-mail standaard uit; "high" mailt wel):
+- `invoices/supplier_invoice_received`;
+- `invoices/supplier_invoice_review` (high);
+- `integrations/supplier_invoice_odoo_error` (high, na de laatste mislukte poging, één per document per dag).
+
+Routes gaan naar `/admin/supplier-documents`. Dubbels zijn uitgesloten via `dedupe_key`.
+
+**Admin:**
+- terugknop naar Leveranciers;
+- "Inkoop" licht op in de zijbalk (`activeAlso`);
+- een knop Instellingen met: het facturenadres, afzenders controleren met de afzenderlijst, "naar Odoo", een link naar Meldingen, en de bronnen (aantal en laatste datum per bron);
+- een banner "N facturen wachten op goedkeuring" met een filter;
+- per document: Goedkeuren / Afzender altijd vertrouwen / Weigeren / Afzender blokkeren.
+
+Alles is vertaald in 5 talen.
+
+**Live (28-10):**
+- vooraf snapshots `snapshots.sellqo_20261028_supplier_documents_inkoop6` (340 rijen) en `snapshots.sellqo_20261028_push_trigger_fn`;
+- migratie gedraaid via query_database en nagetrokken: kolommen, tabellen, RPC's, trigger en policies staan er, de client-grants op de nieuwe kolommen zijn 0, en de afzender van de 2 bestaande mail-documenten is ingevuld;
+- Akke's doorstuuradressen staan voor SellQo en VanXcel als vertrouwd in de databank. Ze staan bewust niet in de migratie: de repo is publiek.
+
+**Review:** twee rondes door een aparte agent.
+- Ronde 1:
+  - de From-regel was te vervalsen (opgelost met DMARC);
+  - medewerkers konden een afzender blijvend vertrouwen;
+  - platformbeheer werd geweigerd;
+  - de opvulling van bestaande afzenders kon de CHECK breken;
+  - de Odoo-foutmelding kwam maar één keer ooit.
+- Ronde 2: "afzender vertrouwen" keurde ook wachtende vervalste mails goed (opgelost met `sender_authenticated`).
+
+**Na de deploy meten:** zet Resend `authentication` echt mee? Lees de log "Invoice email processed" (`auth:`) bij de eerste echte factuurmail. Is het veld leeg, dan blijft alles "te controleren".
+
+**Checks:**
+- deno-tests 12/12;
+- deno check;
+- tsc 27 (baseline);
+- lint 0 op de gewijzigde bestanden;
+- vitest-meldingen 153/153;
+- i18n-pariteit;
+- check:notifications, buttons, i18n-keys, edge-pins en mail.
+
 ## INKOOP-5 — verplaatsen naar een andere winkel, ontvangstbewijzen niet dubbel — 27 oktober 2026
 
 **Akke 27-10:**

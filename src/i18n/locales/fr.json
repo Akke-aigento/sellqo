@@ -790,6 +790,14 @@
           "invoice_blocked": {
             "label": "Facture non créée",
             "description": "SellQo n'a pas pu créer une facture correcte pour une commande (les montants ne correspondent pas)"
+          },
+          "supplier_invoice_received": {
+            "label": "Facture d'achat reçue",
+            "description": "Lorsqu'une facture arrive à l'adresse de factures"
+          },
+          "supplier_invoice_review": {
+            "label": "Facture d'achat à vérifier",
+            "description": "E-mail d'un expéditeur que vous n'avez pas encore approuvé"
           }
         },
         "payments": {
@@ -1164,6 +1172,10 @@
           "integration_error": {
             "label": "Erreur SellQo Connect",
             "description": "Lorsqu'une erreur se produit dans une intégration"
+          },
+          "supplier_invoice_odoo_error": {
+            "label": "Facture d'achat non envoyée à Odoo",
+            "description": "Lorsque l'envoi vers Odoo échoue à répétition"
           }
         }
       }
@@ -8181,7 +8193,51 @@
       "move_desc": "Le document, son fichier et le fournisseur sont déplacés aussi. Si la facture est déjà dans Odoo, elle ne peut aller que vers une boutique avec le même Odoo.",
       "move_pick": "Choisir une boutique",
       "move_button": "Déplacer",
-      "move_done": "Déplacé vers {{shop}}"
+      "move_done": "Déplacé vers {{shop}}",
+      "back_to_suppliers": "Fournisseurs",
+      "settings_button": "Paramètres",
+      "settings_title": "Paramètres de la boîte à factures",
+      "settings_desc": "Comment les factures d'achat arrivent et où elles vont.",
+      "settings_no_inbox": "Cette boutique n'a pas encore d'adresse pour le courrier entrant.",
+      "settings_approval": "Vérifier les expéditeurs",
+      "settings_approval_desc": "Un e-mail d'un expéditeur pas encore approuvé attend votre validation et n'est pas envoyé à Odoo d'ici là. L'adresse de factures peut être devinée : laissez ceci activé. Un expéditeur approuvé doit aussi réussir le contrôle (DMARC) ; un e-mail falsifié reste en attente.",
+      "settings_senders": "Expéditeurs",
+      "settings_senders_empty": "Pas encore d'expéditeurs. Approuvez une facture avec « Toujours faire confiance » pour en ajouter un.",
+      "sender_approved": "Approuvé",
+      "sender_blocked": "Bloqué",
+      "sender_remove": "Retirer de la liste",
+      "settings_push": "Envoyer directement à Odoo en brouillon",
+      "settings_push_desc": "Les nouvelles factures vont en brouillon dans le journal d'achats ; Odoo les lit.",
+      "settings_push_no_odoo": "Connectez d'abord Odoo dans Comptabilité.",
+      "settings_notify": "Notifications",
+      "settings_notify_desc": "Vous recevez une notification pour une nouvelle facture, pour une facture à vérifier et quand l'envoi vers Odoo échoue. Activez-les ou choisissez l'e-mail dans Notifications (Factures et Intégrations).",
+      "settings_notify_link": "Paramètres des notifications",
+      "settings_sources": "Sources",
+      "settings_src_email_on": "Tout ce qui est envoyé à l'adresse de factures.",
+      "settings_src_upload": "Téléversé manuellement dans SellQo.",
+      "settings_src_archive": "Importé une fois depuis Odoo.",
+      "settings_bol_on": "Récupéré chaque matin via la connexion bol.",
+      "settings_bol_off": "Aucune connexion bol active.",
+      "settings_src_last": "dernier {{date}}",
+      "settings_src_never": "rien encore",
+      "settings_more": "Tous les paramètres Odoo",
+      "review_banner_one": "{{count}} facture attend une validation",
+      "review_banner_other": "{{count}} factures attendent une validation",
+      "review_banner_desc": "Elles viennent d'un expéditeur pas encore approuvé et ne vont à Odoo qu'après votre validation.",
+      "review_show": "Les afficher",
+      "review_show_all": "Tout afficher",
+      "review_pending": "À vérifier",
+      "review_rejected": "Refusée",
+      "review_approve": "Approuver",
+      "review_approve_sender": "Toujours faire confiance à l'expéditeur",
+      "review_reject": "Refuser",
+      "review_block_sender": "Bloquer l'expéditeur",
+      "review_done_approve": "Approuvée",
+      "review_done_approve_sender": "Expéditeur approuvé, {{count}} approuvée(s)",
+      "review_done_reject": "Refusée",
+      "review_done_block_sender": "Expéditeur bloqué, {{count}} refusée(s)",
+      "unverified": "Expéditeur non vérifié",
+      "unverified_help": "Le contrôle (DMARC) a échoué : cet e-mail peut être falsifié. N'approuvez que si vous êtes sûr."
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "La création de bons de commande n'est pas encore disponible dans SellQo. Les bons de commande existants apparaissent ici."

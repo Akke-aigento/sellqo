@@ -11,7 +11,7 @@ import {
   type OdooBill,
 } from "../../supabase/functions/_shared/supplierInbox.ts";
 import { extractInboundAddress, extractInboundPrefix, invoiceInboxAddress } from "../../supabase/functions/_shared/inboundAddress.ts";
-import { ingestInvoiceEmail, invoiceMime, isDuplicateReceipt } from "../../supabase/functions/_shared/supplierInboxEmail.ts";
+import { dmarcPassed, ingestInvoiceEmail, invoiceMime, isDuplicateReceipt, senderAddress, senderVerdict } from "../../supabase/functions/_shared/supplierInboxEmail.ts";
 import { StatefulDb } from "./statefulDb.ts";
 
 function eq(actual: unknown, expected: unknown, msg: string) {
@@ -80,7 +80,7 @@ function storageFake() {
 }
 
 Deno.test("e-mail → leveranciersdocumenten, herhaling geeft geen dubbels", async () => {
-  const db = new StatefulDb({ supplier_documents: [] });
+  const db = new StatefulDb({ supplier_documents: [], supplier_inbox_settings: [], supplier_inbox_senders: [], notifications: [] });
   const st = storageFake();
   const client: any = { from: (t: string) => db.from(t), storage: st.storage };
   // Unieke index (tenant_id, external_id) zoals in de databank.
@@ -98,7 +98,7 @@ Deno.test("e-mail → leveranciersdocumenten, herhaling geeft geen dubbels", asy
     return q;
   };
   const opts = {
-    supabase: client, tenantId: T, emailId: "em1", from: "Lovable <billing@lovable.dev>", subject: "Your receipt",
+    supabase: client, tenantId: T, emailId: "em1", from: "Lovable <billing@lovable.dev>", subject: "Your receipt", authenticated: true,
     listAttachments: async () => [
       { id: "a1", filename: "Receipt-2901.pdf", size: 40_000, content_type: "application/pdf", download_url: "u1" },
       { id: "a2", filename: "logo.png", size: 3_000, content_type: "image/png", download_url: "u2" },
@@ -110,8 +110,43 @@ Deno.test("e-mail → leveranciersdocumenten, herhaling geeft geen dubbels", asy
   const doc = db.tables.supplier_documents[0];
   eq([doc.source, doc.external_id, doc.supplier_id, doc.document_type, doc.storage_path],
     ["email", "email:em1:a1", null, "invoice", `${T}/inbox/em1/a1-Receipt-2901.pdf`], "document");
+  // INKOOP-6: onbekende afzender + geen instelling = standaard controleren.
+  eq([r.verdict, doc.sender_email, doc.review_status], ["review", "billing@lovable.dev", "pending"], "te controleren");
+  eq([db.tables.notifications.length, db.tables.notifications[0].type], [1, "supplier_invoice_review"], "één melding");
   const r2 = await ingestInvoiceEmail(opts);
-  eq([r2.stored, db.tables.supplier_documents.length], [1, 1], "herhaling: geen tweede rij");
+  eq([r2.stored, r2.fresh, db.tables.supplier_documents.length], [1, 0, 1], "herhaling: geen tweede rij");
+  eq(db.tables.notifications.length, 1, "herhaling: geen tweede melding");
+});
+
+Deno.test("afzender: adres uit de From-regel en het oordeel", () => {
+  eq(senderAddress("Akke Mercken <A.Aigento@Outlook.com>"), "a.aigento@outlook.com", "naam + adres");
+  eq(senderAddress("billing@lovable.dev"), "billing@lovable.dev", "enkel adres");
+  eq(senderAddress("Onbekend"), null, "geen adres");
+  eq(senderVerdict({ requireApproval: true, sender: "x@y.be", status: null, authenticated: true }), "review", "onbekend → controleren");
+  eq(senderVerdict({ requireApproval: true, sender: "x@y.be", status: "approved", authenticated: true }), "trusted", "vertrouwd + DMARC");
+  eq(senderVerdict({ requireApproval: true, sender: "x@y.be", status: "approved", authenticated: false }), "review", "vertrouwd maar vervalst/onbewezen → controleren");
+  eq(senderVerdict({ requireApproval: false, sender: null, status: null, authenticated: false }), "trusted", "controle uit");
+  eq(senderVerdict({ requireApproval: false, sender: "x@y.be", status: "blocked", authenticated: true }), "blocked", "geblokkeerd, ook met controle uit");
+  eq([dmarcPassed({ dmarc: "pass" }), dmarcPassed({ dmarc: "fail" }), dmarcPassed(null), dmarcPassed({ dmarc: "unknown" })], [true, false, false, false], "dmarc");
+});
+
+Deno.test("e-mail: vertrouwde afzender gaat door, geblokkeerde komt niet binnen", async () => {
+  const mk = (status: "approved" | "blocked") => new StatefulDb({
+    supplier_documents: [], notifications: [], supplier_inbox_settings: [],
+    supplier_inbox_senders: [{ id: "s", tenant_id: T, email: "a.aigento@outlook.com", status }],
+  });
+  const att = async () => [{ id: "a1", filename: "Invoice-1.pdf", size: 40_000, content_type: "application/pdf", download_url: "u" }];
+  const run = (db: StatefulDb) => ingestInvoiceEmail({
+    supabase: { from: (t: string) => db.from(t), storage: storageFake().storage } as any, tenantId: T, emailId: "em2",
+    from: "Akke <a.aigento@outlook.com>", subject: "Fwd: invoice", authenticated: true, listAttachments: att, download: async () => new Uint8Array([1]),
+  });
+  const ok = mk("approved");
+  const r = await run(ok);
+  eq([r.verdict, ok.tables.supplier_documents[0].review_status, ok.tables.notifications[0].type],
+    ["trusted", null, "supplier_invoice_received"], "vertrouwd");
+  const bad = mk("blocked");
+  const r2 = await run(bad);
+  eq([r2.verdict, r2.stored, bad.tables.supplier_documents.length, bad.tables.notifications.length], ["blocked", 0, 0, 0], "geblokkeerd");
 });
 
 Deno.test("leverancier: op Odoo-partner, dan naam (koppelt), dan nieuw", async () => {

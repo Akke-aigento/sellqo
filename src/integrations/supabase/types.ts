@@ -18534,6 +18534,9 @@ export type Database = {
             | Database["public"]["Enums"]["supplier_payment_status"]
             | null
           purchase_order_id: string | null
+          review_status: string | null
+          sender_authenticated: boolean | null
+          sender_email: string | null
           source: string
           storage_path: string | null
           supplier_id: string | null
@@ -18569,6 +18572,9 @@ export type Database = {
             | Database["public"]["Enums"]["supplier_payment_status"]
             | null
           purchase_order_id?: string | null
+          review_status?: string | null
+          sender_authenticated?: boolean | null
+          sender_email?: string | null
           source?: string
           storage_path?: string | null
           supplier_id?: string | null
@@ -18604,6 +18610,9 @@ export type Database = {
             | Database["public"]["Enums"]["supplier_payment_status"]
             | null
           purchase_order_id?: string | null
+          review_status?: string | null
+          sender_authenticated?: boolean | null
+          sender_email?: string | null
           source?: string
           storage_path?: string | null
           supplier_id?: string | null
@@ -18638,6 +18647,67 @@ export type Database = {
             foreignKeyName: "supplier_documents_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_inbox_senders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          id: string
+          status: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          id?: string
+          status: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          id?: string
+          status?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_inbox_senders_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_inbox_settings: {
+        Row: {
+          require_sender_approval: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          require_sender_approval?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          require_sender_approval?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_inbox_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -24786,6 +24856,14 @@ export type Database = {
           product_name: string
           purchased_at: string
         }[]
+      }
+      supplier_inbox_review: {
+        Args: { p_decision: string; p_document_id: string }
+        Returns: number
+      }
+      supplier_inbox_sender_remove: {
+        Args: { p_sender_id: string }
+        Returns: undefined
       }
       sync_cron_service_role_key: {
         Args: { new_value: string }

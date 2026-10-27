@@ -790,6 +790,14 @@
           "invoice_blocked": {
             "label": "Rechnung nicht erstellt",
             "description": "SellQo konnte für eine Bestellung keine korrekte Rechnung erstellen (Beträge stimmen nicht)"
+          },
+          "supplier_invoice_received": {
+            "label": "Einkaufsrechnung erhalten",
+            "description": "Wenn eine Rechnung an der Rechnungsadresse eingeht"
+          },
+          "supplier_invoice_review": {
+            "label": "Einkaufsrechnung prüfen",
+            "description": "E-Mail von einem Absender, dem du noch nicht vertraust"
           }
         },
         "payments": {
@@ -1164,6 +1172,10 @@
           "integration_error": {
             "label": "SellQo-Connect-Fehler",
             "description": "Wenn bei einer Integration ein Fehler auftritt"
+          },
+          "supplier_invoice_odoo_error": {
+            "label": "Einkaufsrechnung nicht an Odoo",
+            "description": "Wenn das Senden an Odoo wiederholt fehlschlägt"
           }
         }
       }
@@ -8181,7 +8193,51 @@
       "move_desc": "Dokument, Datei und Lieferant ziehen mit um. Ist die Rechnung bereits in Odoo, geht das nur in einen Shop mit demselben Odoo.",
       "move_pick": "Shop wählen",
       "move_button": "Verschieben",
-      "move_done": "Verschoben nach {{shop}}"
+      "move_done": "Verschoben nach {{shop}}",
+      "back_to_suppliers": "Lieferanten",
+      "settings_button": "Einstellungen",
+      "settings_title": "Einstellungen Rechnungseingang",
+      "settings_desc": "Wie Einkaufsrechnungen ankommen und wohin sie gehen.",
+      "settings_no_inbox": "Dieser Shop hat noch keine Adresse für eingehende E-Mails.",
+      "settings_approval": "Absender prüfen",
+      "settings_approval_desc": "E-Mails von einem Absender, dem du noch nicht vertraust, warten auf deine Freigabe und gehen bis dahin nicht an Odoo. Die Rechnungsadresse ist erratbar: lass das eingeschaltet. Ein vertrauter Absender muss auch die Mailprüfung (DMARC) bestehen; gefälschte Mails warten weiter.",
+      "settings_senders": "Absender",
+      "settings_senders_empty": "Noch keine Absender. Gib eine Rechnung mit „Absender immer vertrauen“ frei, um einen hinzuzufügen.",
+      "sender_approved": "Vertraut",
+      "sender_blocked": "Blockiert",
+      "sender_remove": "Aus der Liste entfernen",
+      "settings_push": "Sofort als Entwurf an Odoo",
+      "settings_push_desc": "Neue Rechnungen gehen als Entwurf ins Einkaufsjournal; Odoo liest sie aus.",
+      "settings_push_no_odoo": "Verbinde zuerst Odoo unter Buchhaltung.",
+      "settings_notify": "Benachrichtigungen",
+      "settings_notify_desc": "Du bekommst eine Benachrichtigung bei einer neuen Rechnung, bei einer zu prüfenden Rechnung und wenn das Senden an Odoo fehlschlägt. Ein- und ausschalten und E-Mail wählen unter Benachrichtigungen (Rechnungen und Integrationen).",
+      "settings_notify_link": "Benachrichtigungen einstellen",
+      "settings_sources": "Quellen",
+      "settings_src_email_on": "Alles, was an die Rechnungsadresse gemailt wird.",
+      "settings_src_upload": "Manuell in SellQo hochgeladen.",
+      "settings_src_archive": "Einmalig aus Odoo übernommen.",
+      "settings_bol_on": "Jeden Morgen über die bol-Verbindung abgerufen.",
+      "settings_bol_off": "Keine aktive bol-Verbindung.",
+      "settings_src_last": "zuletzt {{date}}",
+      "settings_src_never": "noch nichts",
+      "settings_more": "Alle Odoo-Einstellungen",
+      "review_banner_one": "{{count}} Rechnung wartet auf Freigabe",
+      "review_banner_other": "{{count}} Rechnungen warten auf Freigabe",
+      "review_banner_desc": "Sie kommen von einem Absender, dem du noch nicht vertraust, und gehen erst nach deiner Freigabe an Odoo.",
+      "review_show": "Anzeigen",
+      "review_show_all": "Alle anzeigen",
+      "review_pending": "Zu prüfen",
+      "review_rejected": "Abgelehnt",
+      "review_approve": "Freigeben",
+      "review_approve_sender": "Absender immer vertrauen",
+      "review_reject": "Ablehnen",
+      "review_block_sender": "Absender blockieren",
+      "review_done_approve": "Freigegeben",
+      "review_done_approve_sender": "Absender vertraut, {{count}} freigegeben",
+      "review_done_reject": "Abgelehnt",
+      "review_done_block_sender": "Absender blockiert, {{count}} abgelehnt",
+      "unverified": "Absender nicht bestätigt",
+      "unverified_help": "Die Mailprüfung (DMARC) ist fehlgeschlagen: diese Mail kann gefälscht sein. Nur freigeben, wenn du sicher bist."
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Bestellungen bei Lieferanten können in SellQo noch nicht erstellt werden. Bestehende Bestellungen erscheinen hier."

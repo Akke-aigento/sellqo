@@ -16,6 +16,8 @@ export function useSupplierDocuments(filters?: {
   paymentStatus?: SupplierPaymentStatus | SupplierPaymentStatus[];
   dateFrom?: string;
   dateTo?: string;
+  /** INKOOP-6: enkel wat wacht op goedkeuring van de afzender. */
+  reviewPending?: boolean;
 }) {
   const { currentTenant } = useTenant();
 
@@ -64,6 +66,10 @@ export function useSupplierDocuments(filters?: {
 
       if (filters?.dateTo) {
         query = query.lte("document_date", filters.dateTo);
+      }
+
+      if (filters?.reviewPending) {
+        query = query.eq("review_status", "pending");
       }
 
       const { data, error } = await query;
