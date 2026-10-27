@@ -3468,6 +3468,8 @@ export type Database = {
       }
       billing_cycles: {
         Row: {
+          charge_failed_at: string | null
+          charge_failure_reason: string | null
           checkout_session_created_at: string | null
           checkout_session_id: string | null
           checkout_session_url: string | null
@@ -3501,6 +3503,8 @@ export type Database = {
           vat_amount: number
         }
         Insert: {
+          charge_failed_at?: string | null
+          charge_failure_reason?: string | null
           checkout_session_created_at?: string | null
           checkout_session_id?: string | null
           checkout_session_url?: string | null
@@ -3534,6 +3538,8 @@ export type Database = {
           vat_amount?: number
         }
         Update: {
+          charge_failed_at?: string | null
+          charge_failure_reason?: string | null
           checkout_session_created_at?: string | null
           checkout_session_id?: string | null
           checkout_session_url?: string | null
