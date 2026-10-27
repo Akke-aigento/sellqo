@@ -18106,6 +18106,162 @@ export type Database = {
           },
         ]
       }
+      stripe_payout_items: {
+        Row: {
+          amount_cents: number
+          app_fee_cents: number
+          balance_txn_id: string
+          created_at: string
+          document_id: string | null
+          document_number: string | null
+          document_type: string | null
+          documents: Json
+          error: string | null
+          fee_cents: number
+          id: string
+          net_cents: number
+          odoo_move_id: string | null
+          odoo_noted_at: string | null
+          payment_intent_id: string | null
+          payout_id: string
+          refund_id: string | null
+          tenant_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          app_fee_cents?: number
+          balance_txn_id: string
+          created_at?: string
+          document_id?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          documents?: Json
+          error?: string | null
+          fee_cents?: number
+          id?: string
+          net_cents: number
+          odoo_move_id?: string | null
+          odoo_noted_at?: string | null
+          payment_intent_id?: string | null
+          payout_id: string
+          refund_id?: string | null
+          tenant_id: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          app_fee_cents?: number
+          balance_txn_id?: string
+          created_at?: string
+          document_id?: string | null
+          document_number?: string | null
+          document_type?: string | null
+          documents?: Json
+          error?: string | null
+          fee_cents?: number
+          id?: string
+          net_cents?: number
+          odoo_move_id?: string | null
+          odoo_noted_at?: string | null
+          payment_intent_id?: string | null
+          payout_id?: string
+          refund_id?: string | null
+          tenant_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_payout_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stripe_payout_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stripe_payouts: {
+        Row: {
+          amount_cents: number
+          arrival_date: string
+          created_at: string
+          currency: string
+          fee_cents: number
+          gross_cents: number
+          id: string
+          linked_count: number
+          odoo_status: string
+          payout_id: string
+          status: string
+          stripe_account: string
+          tenant_id: string
+          txn_count: number
+          unlinked: Json
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          arrival_date: string
+          created_at?: string
+          currency?: string
+          fee_cents?: number
+          gross_cents?: number
+          id?: string
+          linked_count?: number
+          odoo_status?: string
+          payout_id: string
+          status: string
+          stripe_account: string
+          tenant_id: string
+          txn_count?: number
+          unlinked?: Json
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          arrival_date?: string
+          created_at?: string
+          currency?: string
+          fee_cents?: number
+          gross_cents?: number
+          id?: string
+          linked_count?: number
+          odoo_status?: string
+          payout_id?: string
+          status?: string
+          stripe_account?: string
+          tenant_id?: string
+          txn_count?: number
+          unlinked?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stripe_payouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stripe_payouts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscription_invoices: {
         Row: {
           generated_at: string | null
@@ -24273,6 +24429,10 @@ export type Database = {
           p_ticket_id: string
           p_zone_id: string
         }
+        Returns: Json
+      }
+      platform_billing_overview: {
+        Args: { p_tenant_id?: string }
         Returns: Json
       }
       platform_limits_start: { Args: never; Returns: string }
