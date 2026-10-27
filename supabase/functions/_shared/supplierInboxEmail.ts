@@ -18,6 +18,17 @@ export function invoiceMime(name: string, contentType: string | null | undefined
   return ALLOWED_MIME.has(ct) ? ct : "application/pdf";
 }
 
+/**
+ * Stripe-mails (Anthropic, Lovable, OpenAI, …) sturen een factuur én een ontvangstbewijs van
+ * dezelfde betaling. Zit er een factuur bij, dan is een ontvangstbewijs geen tweede uitgave:
+ * bewaren als "overig", niet naar Odoo (27-10: Anthropic VSMSHUYQ-0017 kwam twee keer binnen).
+ */
+export function isDuplicateReceipt(name: string, allNames: string[]): boolean {
+  const isReceipt = (n: string) => /^(receipt|ontvangstbewijs|quittung|re[çc]u)[-_ ]/i.test(n);
+  const isInvoice = (n: string) => /^(invoice|factuur|rechnung|facture)[-_ ]/i.test(n);
+  return isReceipt(name) && allNames.some(isInvoice);
+}
+
 export interface InboundAttachment {
   id: string;
   filename: string;
@@ -55,6 +66,7 @@ export async function ingestInvoiceEmail(opts: {
   const invoices = all.filter(isInvoiceAttachment).slice(0, MAX_FILES);
   res.skipped = all.length - invoices.length;
 
+  const names = invoices.map((a) => a.filename ?? "");
   for (const a of invoices) {
     try {
       const bytes = await opts.download(a.download_url);
@@ -66,7 +78,7 @@ export async function ingestInvoiceEmail(opts: {
       if (upErr) throw new Error(`opslaan: ${upErr.message}`);
       const { error: insErr } = await supabase.from("supplier_documents").insert({
         tenant_id: tenantId, supplier_id: null, source: "email", external_id: `email:${emailId}:${a.id}`,
-        document_type: "invoice", file_name: name, file_url: path, file_size: bytes.length, mime_type: mime,
+        document_type: isDuplicateReceipt(a.filename ?? "", names) ? "other" : "invoice", file_name: name, file_url: path, file_size: bytes.length, mime_type: mime,
         storage_path: path, currency: "EUR",
         notes: `Van ${opts.from.slice(0, 200)} — ${opts.subject.slice(0, 200)}`,
         extracted_data: { email: { from: opts.from.slice(0, 300), subject: opts.subject.slice(0, 300), email_id: emailId } },

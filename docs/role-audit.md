@@ -1,3 +1,35 @@
+## INKOOP-5 — verplaatsen naar een andere winkel, ontvangstbewijzen niet dubbel — 27 oktober 2026
+
+**Akke 27-10:**
+- "facturen mogen allemaal in sellqo": de twijfelgevallen blijven bij SellQo;
+- "knop om om te zetten naar andere tenant, zoals mancini met zijn 3 webshops".
+
+**Live test INKOOP-4.** Akke stuurde een Anthropic-mail door naar `sellqo+facturen@mail.sellqo.app`. Het plus-adres werkt via Resend. Beide bijlagen werden een document en een Odoo-concept (1604/1605). De OCR kwam terug: Anthropic, VSMSHUYQ-0017, 22-10-2026, € 90, leverancier automatisch aangemaakt.
+
+**Probleem:** factuur én ontvangstbewijs van dezelfde betaling gaven twee concepten.
+- In SellQo is het ontvangstbewijs (ddbc572f) rechtgezet naar overig / geannuleerd.
+- Concept 1604 in Odoo annuleren mocht Claude niet (externe schrijfactie). **Akke annuleert 1604 zelf.**
+
+**Code:**
+- **`isDuplicateReceipt`** (`_shared/supplierInboxEmail.ts`): zitten in één mail een `Invoice-…` en een `Receipt-…`, dan wordt het ontvangstbewijs `other` en gaat het niet naar Odoo. Komt er enkel een ontvangstbewijs, dan blijft dat een factuur.
+- **Nieuwe functie `move-supplier-document` (INKOOP-5):**
+  - de gebruiker moet beheerder of medewerker zijn van beide winkels, met een eigen rol (ook een platformbeheerder), plus de billing-guard op beide;
+  - een factuur die al in Odoo staat, verhuist enkel naar een winkel met dezelfde Odoo (url + db);
+  - geen dubbel in de doelwinkel;
+  - het bestand verhuist mee (`storage.move`) en de leverancier wordt gezocht of aangemaakt, met het Odoo-partner-id enkel bij dezelfde Odoo;
+  - de update is voorwaardelijk (bij 0 rijen gaat het bestand terug en volgt een 409); de push-status wordt gereset als de factuur nog niet in Odoo stond;
+  - stuurt de doelwinkel door, dan volgt meteen een push.
+- **Admin:** menu-item "Verplaats naar andere winkel", enkel zichtbaar als je meer dan één winkel beheert; `useMoveTargets`. Vertaald in 5 talen.
+- **`import-supplier-invoices` (INKOOP-3b):** de Odoo-koppeling na een push schrijft enkel als de rij nog bij dezelfde winkel hoort.
+
+**Review:** 4 kleine punten, allemaal gefixt:
+- een race met een push die net startte;
+- een update die 0 rijen raakte maar toch slaagde;
+- het Odoo-partner-id dat naar een andere Odoo meeging;
+- de push-teller die bleef staan.
+
+**Checks:** tests 10/10, deno check, tsc 27, lint 0 op de gewijzigde bestanden, i18n-pariteit, dode knoppen en edge-pins.
+
 ## INKOOP-3 + INKOOP-4 — SellQo is de facturen-inbox van elke winkel, Odoo de bestemming — 27 oktober 2026
 
 Akke 27-10: "alles via SellQo laten lopen en doorzwieren naar Odoo, dat dit de standaard wordt en tenants deze functie ook kunnen gebruiken". Zijn keuzes:

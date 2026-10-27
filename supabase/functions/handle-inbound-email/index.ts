@@ -328,7 +328,7 @@ const handler = async (req: Request): Promise<Response> => {
 
   // Versiestempel voor deploy-verificatie (neveneffectvrij).
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "INKOOP-4" }), {
+    return new Response(JSON.stringify({ ok: true, version: "INKOOP-4b" }), {
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   }

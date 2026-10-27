@@ -8448,7 +8448,13 @@
         "posted": "Posted in Odoo",
         "cancel": "Cancelled in Odoo",
         "error": "Odoo error"
-      }
+      },
+      "move_menu": "Move to another shop",
+      "move_title": "Move to another shop",
+      "move_desc": "The document, its file and the supplier move along. If the invoice is already in Odoo, it can only move to a shop with the same Odoo.",
+      "move_pick": "Choose a shop",
+      "move_button": "Move",
+      "move_done": "Moved to {{shop}}"
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Creating purchase orders isn't available in SellQo yet. Existing purchase orders appear here."

@@ -11,7 +11,7 @@ import {
   type OdooBill,
 } from "../../supabase/functions/_shared/supplierInbox.ts";
 import { extractInboundAddress, extractInboundPrefix, invoiceInboxAddress } from "../../supabase/functions/_shared/inboundAddress.ts";
-import { ingestInvoiceEmail, invoiceMime } from "../../supabase/functions/_shared/supplierInboxEmail.ts";
+import { ingestInvoiceEmail, invoiceMime, isDuplicateReceipt } from "../../supabase/functions/_shared/supplierInboxEmail.ts";
 import { StatefulDb } from "./statefulDb.ts";
 
 function eq(actual: unknown, expected: unknown, msg: string) {
@@ -129,4 +129,12 @@ Deno.test("type van een mailbijlage: wat de bucket aanvaardt", () => {
   eq(invoiceMime("scan.JPG", "image/jpg"), "image/jpeg", "jpg");
   eq(invoiceMime("factuur", "image/jpg"), "image/jpeg", "zonder extensie, jpg rechtgezet");
   eq(invoiceMime("factuur", "application/octet-stream"), "application/pdf", "onbekend = pdf");
+});
+
+Deno.test("Stripe-mail: factuur + ontvangstbewijs = één uitgave", () => {
+  const names = ["Invoice-VSMSHUYQ-0017.pdf", "Receipt-2672-0718-7096.pdf"];
+  eq(isDuplicateReceipt(names[1], names), true, "ontvangstbewijs naast factuur");
+  eq(isDuplicateReceipt(names[0], names), false, "de factuur zelf");
+  eq(isDuplicateReceipt("Receipt-1.pdf", ["Receipt-1.pdf"]), false, "enkel een ontvangstbewijs: wel boeken");
+  eq(isDuplicateReceipt("receipts-overview.pdf", names), false, "geen echte receipt-naam");
 });

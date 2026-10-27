@@ -210,7 +210,7 @@ async function pushOne(supabase: SupabaseClient, odoo: Odoo, doc: DocRow, dryRun
     const { error: uErr } = await supabase.from("supplier_documents").update({
       odoo_move_id: moveId, odoo_status: "draft", odoo_error: null, odoo_synced_at: new Date().toISOString(),
       extracted_data: { ...(doc.extracted_data ?? {}), odoo_url: odooMoveUrl(odoo.url, moveId) },
-    }).eq("id", doc.id);
+    }).eq("id", doc.id).eq("tenant_id", doc.tenant_id);
     if (uErr) {
       // 23505: een ander document is al aan deze boeking gekoppeld (dubbel binnengekomen).
       throw new Error(`koppelen ${doc.id} → ${moveId}: ${uErr.message}`);

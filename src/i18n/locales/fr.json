@@ -8175,7 +8175,13 @@
         "posted": "Comptabilisée dans Odoo",
         "cancel": "Annulée dans Odoo",
         "error": "Erreur Odoo"
-      }
+      },
+      "move_menu": "Déplacer vers une autre boutique",
+      "move_title": "Vers une autre boutique",
+      "move_desc": "Le document, son fichier et le fournisseur sont déplacés aussi. Si la facture est déjà dans Odoo, elle ne peut aller que vers une boutique avec le même Odoo.",
+      "move_pick": "Choisir une boutique",
+      "move_button": "Déplacer",
+      "move_done": "Déplacé vers {{shop}}"
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "La création de bons de commande n'est pas encore disponible dans SellQo. Les bons de commande existants apparaissent ici."

@@ -8175,7 +8175,13 @@
         "posted": "In Odoo gebucht",
         "cancel": "In Odoo storniert",
         "error": "Odoo-Fehler"
-      }
+      },
+      "move_menu": "In anderen Shop verschieben",
+      "move_title": "In einen anderen Shop",
+      "move_desc": "Dokument, Datei und Lieferant ziehen mit um. Ist die Rechnung bereits in Odoo, geht das nur in einen Shop mit demselben Odoo.",
+      "move_pick": "Shop wählen",
+      "move_button": "Verschieben",
+      "move_done": "Verschoben nach {{shop}}"
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Bestellungen bei Lieferanten können in SellQo noch nicht erstellt werden. Bestehende Bestellungen erscheinen hier."

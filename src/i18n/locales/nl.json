@@ -8462,7 +8462,13 @@
         "posted": "Geboekt in Odoo",
         "cancel": "Geannuleerd in Odoo",
         "error": "Odoo-fout"
-      }
+      },
+      "move_menu": "Verplaats naar andere winkel",
+      "move_title": "Naar een andere winkel",
+      "move_desc": "Het document, het bestand en de leverancier verhuizen mee. Staat de factuur al in Odoo, dan kan het enkel naar een winkel met dezelfde Odoo.",
+      "move_pick": "Kies een winkel",
+      "move_button": "Verplaatsen",
+      "move_done": "Verplaatst naar {{shop}}"
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Inkooporders aanmaken kan nog niet in SellQo. Bestaande inkooporders verschijnen hier."

@@ -517,3 +517,6 @@ verify_jwt = false
 
 [functions.import-supplier-invoices]
 verify_jwt = false
+
+[functions.move-supplier-document]
+verify_jwt = false

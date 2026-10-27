@@ -49,6 +49,8 @@ import { useTenant } from "@/hooks/useTenant";
 import { useTenantOdooSettings } from "@/hooks/useTenantOdooSettings";
 import { invoiceInboxAddress } from "@/lib/invoiceInbox";
 import { SupplierDocumentUploadDialog } from "@/components/admin/suppliers/SupplierDocumentUploadDialog";
+import { MoveSupplierDocumentDialog } from "@/components/admin/suppliers/MoveSupplierDocumentDialog";
+import { useMoveTargets } from "@/hooks/useMoveTargets";
 import { StatsCard } from "@/components/admin/StatsCard";
 import type { SupplierDocument, SupplierDocumentType, SupplierPaymentStatus } from "@/types/supplier";
 import { documentTypeInfo, paymentStatusInfo } from "@/types/supplier";
@@ -65,6 +67,7 @@ import {
   CheckCircle,
   Copy,
   Inbox,
+  ArrowRightLeft,
 } from "lucide-react";
 
 export default function SupplierDocuments() {
@@ -87,6 +90,9 @@ export default function SupplierDocuments() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<SupplierDocument | null>(null);
+  // INKOOP-5: naar een andere winkel verplaatsen (enkel als je er meer dan één beheert).
+  const [documentToMove, setDocumentToMove] = useState<SupplierDocument | null>(null);
+  const moveTargets = useMoveTargets();
 
   const { data: documents, isLoading } = useSupplierDocuments({
     documentType:
@@ -364,6 +370,12 @@ export default function SupplierDocuments() {
                                   Markeer als betaald
                                 </DropdownMenuItem>
                               )}
+                            {moveTargets.length > 0 && (
+                              <DropdownMenuItem onClick={() => setDocumentToMove(doc)}>
+                                <ArrowRightLeft className="h-4 w-4 mr-2" />
+                                {t("admin.supplierDocuments.move_menu")}
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => handleDelete(doc)}
@@ -405,6 +417,11 @@ export default function SupplierDocuments() {
       <SupplierDocumentUploadDialog
         open={uploadDialogOpen}
         onOpenChange={setUploadDialogOpen}
+      />
+
+      <MoveSupplierDocumentDialog
+        document={documentToMove}
+        onOpenChange={(open) => { if (!open) setDocumentToMove(null); }}
       />
 
       {/* Delete Confirmation */}

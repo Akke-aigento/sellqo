@@ -16,7 +16,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- structurele clients en Odoo-records */
 
-export const INBOX_VERSION = "INKOOP-3";
+export const INBOX_VERSION = "INKOOP-3b";
 
 /** Een claim die langer dan dit "pending" staat, mag opnieuw (de vorige run stierf). */
 export const CLAIM_STALE_MS = 15 * 60 * 1000;
