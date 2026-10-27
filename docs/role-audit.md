@@ -19,6 +19,12 @@ Aanleiding: Astra Sleep bleef 6 dagen dicht na betaling, omdat de winkel offline
 - **get_shop_status live:** Astra, Mancini en een onbekende tenant → `{open:true}`.
 - **Admin gepubliceerd:** bundel `index-DLc4YFTx.js` bevat get_shop_status, ORDER_CLOSED en order_tickets_status_resend.
 - **Standaardshop (sellqo-storefront 66be993):** "Even gesloten" bij `open:false`; Cloudflare-deploy groen.
+- **Klantenfrontends (Lovable-agent per project, daarna gepubliceerd en live gemeten):**
+  - Astra Sleep (1953cd3a, commit 8b32b6b): `MAINTENANCE_MODE` en `src/lib/site-status.ts` weg; de root-loader vraagt `get_shop_status` (server, 3 s timeout, 30 s cache, fail-open), MaintenancePage + noindex bij `open:false`; 423 SHOP_CLOSED toont de melding. Live astrasleep.shop: normale winkel, geen noindex.
+  - Mancini Milano (2c89fac8, 3d9fb75): ShopStatusGate rond de routes (via sellqo-proxy, geen allowlist), "Temporarily closed"-scherm, checkoutmeldingen. Live bundel index-DTds863J.js bevat get_shop_status.
+  - Zona Dorata (19045cee, bfef61e): server function + root-loader, ShopClosed-scherm. Live zona-dorata.lovable.app open. **Let op:** www.zonadorata.com (custom_frontend_url) toont een onbeschikbare Shopify-winkel (402 "Store unavailable"); de Lovable-site staat niet op dat domein. Los van deze batch.
+  - Benny Rich (2abe3881, 4b4cf66): root-loader + ShopClosed-scherm, checkoutmeldingen, tests. Live bennyrich.lovable.app open.
+  - Credits: 0,5 + 1,8 + 2,9 + 2,5 + 2,9 (+ deploy storefront-api).
 - **Meegenomen op Akke's go (27-10: "alles mee live"):**
   - **KAART-5:** storefront-api `sort_by 'menu'`. Nameting in `snapshots.kaart5_probe`: De Wissel "Wit bier, Pils, Tripel van 't vat" (fase `na`); VanXcel en Mancini identiek aan de nulmeting `voor2` (VanXcel heeft nu 24 producten i.p.v. 27, dus nieuwe nulmeting vlak vóór de deploy). De storefront-commit 92aea0c was nooit gepusht; opnieuw gemaakt als sellqo-storefront e7060dc (menukaart en QR-menu vragen `sort_by 'menu'`). Live /menu van demo-bar toont de Kaart-volgorde.
   - **EVENT-409-1:** send-ticket-confirmation (EVENT-DONE-1 → EVENT-409-1), storefront-api, admin; helpartikel `tickets-in-een-bestelling` md5 1823f187… → c1e89b3f… (snapshot `snapshots.sellqo_20261026_doc_articles_e409`). Nieuwsbrief 2026.13w op "klaar voor verzending". **Nog te doen:** native build (de oude app toont de knop nog bij een geannuleerde bestelling; de server weigert).
