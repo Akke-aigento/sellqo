@@ -267,7 +267,7 @@ Deno.serve(async (req) => {
   }
   // Versie-vingerafdruk na een deploy (doet niets, geen auth nodig).
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "BILLING-SAFE-1" }), {
+    return new Response(JSON.stringify({ ok: true, version: "BILLING-LOCK-2" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

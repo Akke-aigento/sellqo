@@ -286,7 +286,7 @@ serve(async (req) => {
   }
   // SEC-SHIP-1: versiestempel voor deploy-verificatie (neveneffectvrij).
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "SEC-SHIP-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true, version: "BILLING-LOCK-2" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
 
   try {

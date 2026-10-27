@@ -48,6 +48,10 @@ interface Row {
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+  // Versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "BILLING-LOCK-2" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   try {
     const supabase = createClient(
