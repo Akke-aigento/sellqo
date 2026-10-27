@@ -69,7 +69,7 @@ export function useSupplierDocuments(filters?: {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as SupplierDocument[];
+      return data as unknown as SupplierDocument[];
     },
     enabled: !!currentTenant?.id,
   });
@@ -104,6 +104,11 @@ export async function getSupplierDocumentSignedUrl(
   return data.signedUrl;
 }
 
+/** Leeg veld of NaN (valueAsNumber) → null. */
+function num(v: number | undefined): number | null {
+  return typeof v === "number" && Number.isFinite(v) ? v : null;
+}
+
 export function useSupplierDocumentMutations() {
   const { currentTenant } = useTenant();
   const queryClient = useQueryClient();
@@ -121,7 +126,8 @@ export function useSupplierDocumentMutations() {
       // Upload file to storage
       const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const storagePath = `${currentTenant.id}/${data.supplier_id}/${fileName}`;
+      // INKOOP-3: zonder leverancier komt het in de inbox ("te verwerken").
+      const storagePath = `${currentTenant.id}/${data.supplier_id || "inbox"}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from("supplier-documents")
@@ -140,20 +146,20 @@ export function useSupplierDocumentMutations() {
         .from("supplier_documents")
         .insert({
           tenant_id: currentTenant.id,
-          supplier_id: data.supplier_id,
+          supplier_id: data.supplier_id || null,
           purchase_order_id: data.purchase_order_id,
           document_type: data.document_type,
-          document_number: data.document_number,
-          document_date: data.document_date,
+          document_number: data.document_number || null,
           file_name: file.name,
           file_url: urlData.publicUrl,
           file_size: file.size,
           mime_type: file.type,
           storage_path: storagePath,
-          amount: data.amount,
-          tax_amount: data.tax_amount,
-          total_amount: data.total_amount,
-          due_date: data.due_date,
+          amount: num(data.amount),
+          tax_amount: num(data.tax_amount),
+          total_amount: num(data.total_amount),
+          due_date: data.due_date || null,
+          document_date: data.document_date || null,
           notes: data.notes,
         })
         .select()

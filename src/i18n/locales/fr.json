@@ -8149,7 +8149,33 @@
       }
     },
     "supplierDocuments": {
-      "openen_mislukt": "Impossible d'ouvrir le document. Veuillez réessayer."
+      "openen_mislukt": "Impossible d'ouvrir le document. Veuillez réessayer.",
+      "supplier_optional": "Fournisseur (facultatif)",
+      "supplier_later": "Plus tard / via Odoo",
+      "multi_hint": "{{count}} fichiers : chacun devient une facture distincte. Numéro, date et montants sont complétés par Odoo (OCR) ou par vous plus tard.",
+      "upload_count": "Téléverser {{count}} fichiers",
+      "inbox_title": "Votre adresse de factures",
+      "inbox_desc": "Envoyez ou transférez les factures fournisseurs à cette adresse : chaque PDF apparaît ci-dessous.",
+      "inbox_odoo": "Elles partent aussi directement dans Odoo en brouillon.",
+      "inbox_copy": "Copier",
+      "inbox_copied": "Adresse de factures copiée",
+      "to_process": "À traiter",
+      "open_in_odoo": "Ouvrir dans Odoo",
+      "odoo_push_label": "Factures d'achat vers Odoo",
+      "odoo_push_help": "Les factures reçues dans SellQo (téléversement, adresse de factures, bol) partent directement en brouillon dans votre journal d'achats. Odoo les lit ; SellQo affiche ensuite ce que votre comptable en a fait.",
+      "source": {
+        "upload": "téléversée",
+        "email": "par e-mail",
+        "bol": "via bol",
+        "odoo_archive": "depuis Odoo"
+      },
+      "odoo": {
+        "pending": "Envoi vers Odoo…",
+        "draft": "Brouillon dans Odoo",
+        "posted": "Comptabilisée dans Odoo",
+        "cancel": "Annulée dans Odoo",
+        "error": "Erreur Odoo"
+      }
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "La création de bons de commande n'est pas encore disponible dans SellQo. Les bons de commande existants apparaissent ici."

@@ -8436,7 +8436,33 @@
       }
     },
     "supplierDocuments": {
-      "openen_mislukt": "Document openen mislukt. Probeer het opnieuw."
+      "openen_mislukt": "Document openen mislukt. Probeer het opnieuw.",
+      "supplier_optional": "Leverancier (optioneel)",
+      "supplier_later": "Later / via Odoo",
+      "multi_hint": "{{count}} bestanden: elk wordt een aparte factuur. Nummer, datum en bedragen vult Odoo (OCR) of jij later in.",
+      "upload_count": "{{count}} bestanden uploaden",
+      "inbox_title": "Je facturenadres",
+      "inbox_desc": "Stuur facturen van leveranciers naar dit adres (of stuur ze door): elke PDF komt hieronder binnen.",
+      "inbox_odoo": "Ze gaan ook meteen als concept naar Odoo.",
+      "inbox_copy": "Kopiëren",
+      "inbox_copied": "Facturenadres gekopieerd",
+      "to_process": "Te verwerken",
+      "open_in_odoo": "Openen in Odoo",
+      "odoo_push_label": "Inkoopfacturen naar Odoo",
+      "odoo_push_help": "Facturen die in SellQo binnenkomen (upload, facturenadres, bol) gaan meteen als concept naar je aankoopdagboek. Odoo leest ze uit; SellQo toont daarna wat je boekhouder ermee deed.",
+      "source": {
+        "upload": "geüpload",
+        "email": "via e-mail",
+        "bol": "via bol",
+        "odoo_archive": "uit Odoo"
+      },
+      "odoo": {
+        "pending": "Naar Odoo…",
+        "draft": "Concept in Odoo",
+        "posted": "Geboekt in Odoo",
+        "cancel": "Geannuleerd in Odoo",
+        "error": "Odoo-fout"
+      }
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Inkooporders aanmaken kan nog niet in SellQo. Bestaande inkooporders verschijnen hier."

@@ -46,6 +46,12 @@ class Q {
   in(c: string, vs: any[]) { const s = new Set(vs.map(String)); this.filters.push((r) => s.has(String(r[c]))); return this; }
   gte(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] >= v); return this; }
   lte(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] <= v); return this; }
+  // Zoals SQL ILIKE: hoofdletterongevoelig, % = willekeurig.
+  ilike(c: string, v: string) {
+    const re = new RegExp(`^${String(v).replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*")}$`, "i");
+    this.filters.push((r) => r[c] != null && re.test(String(r[c])));
+    return this;
+  }
   is(c: string, v: any) { this.filters.push((r) => (v === null ? r[c] == null : r[c] === v)); return this; }
   not(c: string, op: string, v: any) {
     if (op === "in") {

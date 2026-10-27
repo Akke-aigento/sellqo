@@ -8149,7 +8149,33 @@
       }
     },
     "supplierDocuments": {
-      "openen_mislukt": "Dokument konnte nicht geöffnet werden. Bitte versuche es erneut."
+      "openen_mislukt": "Dokument konnte nicht geöffnet werden. Bitte versuche es erneut.",
+      "supplier_optional": "Lieferant (optional)",
+      "supplier_later": "Später / über Odoo",
+      "multi_hint": "{{count}} Dateien: Jede wird eine eigene Rechnung. Nummer, Datum und Beträge ergänzt Odoo (OCR) oder du später.",
+      "upload_count": "{{count}} Dateien hochladen",
+      "inbox_title": "Deine Rechnungsadresse",
+      "inbox_desc": "Sende oder leite Lieferantenrechnungen an diese Adresse weiter: Jedes PDF erscheint unten.",
+      "inbox_odoo": "Sie gehen außerdem sofort als Entwurf an Odoo.",
+      "inbox_copy": "Kopieren",
+      "inbox_copied": "Rechnungsadresse kopiert",
+      "to_process": "Zu bearbeiten",
+      "open_in_odoo": "In Odoo öffnen",
+      "odoo_push_label": "Eingangsrechnungen an Odoo",
+      "odoo_push_help": "Rechnungen, die in SellQo eingehen (Upload, Rechnungsadresse, bol), gehen sofort als Entwurf in dein Einkaufsjournal. Odoo liest sie aus; SellQo zeigt danach, was deine Buchhaltung damit gemacht hat.",
+      "source": {
+        "upload": "hochgeladen",
+        "email": "per E-Mail",
+        "bol": "über bol",
+        "odoo_archive": "aus Odoo"
+      },
+      "odoo": {
+        "pending": "Wird an Odoo gesendet…",
+        "draft": "Entwurf in Odoo",
+        "posted": "In Odoo gebucht",
+        "cancel": "In Odoo storniert",
+        "error": "Odoo-Fehler"
+      }
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Bestellungen bei Lieferanten können in SellQo noch nicht erstellt werden. Bestehende Bestellungen erscheinen hier."

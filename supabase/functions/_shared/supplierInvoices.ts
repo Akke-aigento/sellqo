@@ -1,4 +1,7 @@
-// INKOOP-2 — leveranciersfacturen die enkel via een API bestaan, als concept in het
+// INKOOP-2 — bol.com-facturen via de Retailer API (lijst, vensters, Odoo-actieantwoord).
+// Sinds INKOOP-3 schrijft import-supplier-invoices ze eerst in SellQo (supplier_documents)
+// en stuurt ze daarna naar Odoo: zie _shared/supplierInbox.ts. Oorspronkelijk:
+// leveranciersfacturen die enkel via een API bestaan, als concept in het
 // aankoopdagboek van Odoo (nomadix-bv). Eerste bron: bol.com (VanXcel-koppeling).
 //
 // Werkwijze = exact wat Akke tot nu manueel deed: de PDF uploaden in het aankoopdagboek
@@ -70,97 +73,4 @@ export function moveIdFromAction(action: any): number | null {
     }
   }
   return null;
-}
-
-export interface OdooPurchaseApi {
-  /** Bestaat er al een aankoopfactuur of -creditnota met deze Referentie? → move-id of null. */
-  findByRef(ref: string): Promise<number | null>;
-  /** PDF uploaden in het aankoopdagboek (zoals de knop Uploaden) → move-id. */
-  uploadPdf(fileName: string, pdfBase64: string): Promise<number>;
-  /** Referentie zetten op het nieuwe concept (zodat een volgende run het herkent). */
-  setRef(moveId: number, ref: string): Promise<void>;
-}
-
-export interface BolApi {
-  listInvoices(start: string, end: string): Promise<BolInvoiceItem[]>;
-  downloadPdf(invoiceId: string): Promise<string>; // base64
-}
-
-export interface ImportDb {
-  // deno-lint-ignore no-explicit-any
-  from(table: string): any;
-}
-
-export interface ImportResult {
-  scanned: number;
-  created: Array<{ invoiceId: string; moveId: number }>;
-  alreadyInOdoo: string[];
-  known: number;
-  skippedNoPdf: string[];
-  errors: Array<{ invoiceId: string; error: string }>;
-}
-
-export async function importBolInvoices(opts: {
-  db: ImportDb; bol: BolApi; odoo: OdooPurchaseApi; tenantId: string; today: string; days: number;
-  dryRun: boolean; deadline: number;
-}): Promise<ImportResult> {
-  const { db, bol, odoo, tenantId, dryRun } = opts;
-  const res: ImportResult = { scanned: 0, created: [], alreadyInOdoo: [], known: 0, skippedNoPdf: [], errors: [] };
-
-  const items: BolInvoiceItem[] = [];
-  for (const w of dateWindows(opts.today, opts.days)) items.push(...await bol.listInvoices(w.start, w.end));
-  const unique = [...new Map(items.map((i) => [i.invoiceId, i])).values()];
-  res.scanned = unique.length;
-  if (!unique.length) return res;
-
-  const { data: knownRows, error: kErr } = await db
-    .from("supplier_invoice_imports")
-    .select("external_id")
-    .eq("source", "bol")
-    .in("external_id", unique.map((i) => i.invoiceId));
-  if (kErr) throw new Error(`supplier_invoice_imports: ${kErr.message}`);
-  const known = new Set((knownRows ?? []).map((r: { external_id: string }) => r.external_id));
-
-  for (const inv of unique) {
-    if (known.has(inv.invoiceId)) { res.known++; continue; }
-    // Eén factuur kan tot ±60 s duren (PDF + Odoo-aanroepen): enkel beginnen als dat nog past.
-    if (opts.deadline - Date.now() < 60_000) break;
-    try {
-      const existing = await odoo.findByRef(inv.invoiceId);
-      if (existing) {
-        res.alreadyInOdoo.push(inv.invoiceId);
-        if (!dryRun) await record(db, tenantId, inv, existing, "exists");
-        continue;
-      }
-      if (!inv.hasPdf) { res.skippedNoPdf.push(inv.invoiceId); continue; }
-      if (dryRun) { res.created.push({ invoiceId: inv.invoiceId, moveId: 0 }); continue; }
-      const pdf = await bol.downloadPdf(inv.invoiceId);
-      const moveId = await odoo.uploadPdf(`bol-${inv.invoiceId}.pdf`, pdf);
-      // Eerst vastleggen, dan de Referentie: faalt setRef, dan maakt de volgende run geen tweede concept.
-      await record(db, tenantId, inv, moveId, "created");
-      await odoo.setRef(moveId, inv.invoiceId);
-      res.created.push({ invoiceId: inv.invoiceId, moveId });
-    } catch (e) {
-      res.errors.push({ invoiceId: inv.invoiceId, error: e instanceof Error ? e.message : String(e) });
-    }
-  }
-  return res;
-}
-
-async function record(db: ImportDb, tenantId: string, inv: BolInvoiceItem, moveId: number, status: "created" | "exists") {
-  const { error } = await db.from("supplier_invoice_imports").insert({
-    tenant_id: tenantId,
-    source: "bol",
-    external_id: inv.invoiceId,
-    invoice_date: inv.issueDate || null,
-    invoice_type: inv.invoiceType,
-    payable_amount: inv.payable,
-    odoo_move_id: moveId,
-    status,
-  });
-  if (!error) return;
-  // 23505 = al vastgelegd. Voor "exists" onschuldig; voor "created" betekent het dat een
-  // gelijktijdige run dezelfde factuur ook uploadde: melden, met het tweede concept erbij.
-  if ((error as { code?: string }).code === "23505" && status === "exists") return;
-  throw new Error(`vastleggen ${inv.invoiceId} (Odoo-concept ${moveId}): ${error.message}`);
 }

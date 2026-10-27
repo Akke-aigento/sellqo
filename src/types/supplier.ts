@@ -104,10 +104,16 @@ export interface PurchaseOrderItem {
   };
 }
 
+/** INKOOP-3 — waar een document vandaan kwam. */
+export type SupplierDocumentSource = 'upload' | 'email' | 'bol' | 'odoo_archive';
+/** INKOOP-3 — stand in Odoo (null = niet naar Odoo). */
+export type SupplierDocumentOdooStatus = 'pending' | 'draft' | 'posted' | 'cancel' | 'error';
+
 export interface SupplierDocument {
   id: string;
   tenant_id: string;
-  supplier_id: string;
+  /** null = binnengekomen, nog niet aan een leverancier gekoppeld ("te verwerken"). */
+  supplier_id: string | null;
   purchase_order_id: string | null;
   document_type: SupplierDocumentType;
   document_number: string | null;
@@ -127,9 +133,15 @@ export interface SupplierDocument {
   paid_amount: number;
   extracted_data: Record<string, unknown>;
   notes: string | null;
+  source: SupplierDocumentSource;
+  external_id: string | null;
+  odoo_move_id: number | null;
+  odoo_status: SupplierDocumentOdooStatus | null;
+  odoo_error: string | null;
+  odoo_synced_at: string | null;
   created_at: string;
   updated_at: string;
-  supplier?: Supplier;
+  supplier?: Supplier | null;
   purchase_order?: PurchaseOrder;
 }
 
@@ -189,7 +201,8 @@ export interface PurchaseOrderItemFormData {
 }
 
 export interface SupplierDocumentFormData {
-  supplier_id: string;
+  /** Leeg = "te verwerken"; Odoo (OCR) of de gebruiker vult de leverancier later in. */
+  supplier_id?: string;
   purchase_order_id?: string;
   document_type: SupplierDocumentType;
   document_number?: string;

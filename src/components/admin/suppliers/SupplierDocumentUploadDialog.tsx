@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import {
   Dialog,
@@ -40,7 +41,10 @@ export function SupplierDocumentUploadDialog({
   const { uploadDocument } = useSupplierDocumentMutations();
   const { data: suppliers } = useSuppliers({ isActive: true });
   const { data: purchaseOrders } = usePurchaseOrders();
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const { t } = useTranslation();
+  // INKOOP-3: meerdere bestanden tegelijk; elk wordt een eigen document.
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const multiple = selectedFiles.length > 1;
   const [dragActive, setDragActive] = useState(false);
 
   const {
@@ -83,24 +87,30 @@ export function SupplierDocumentUploadDialog({
     e.stopPropagation();
     setDragActive(false);
 
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setSelectedFile(e.dataTransfer.files[0]);
+    if (e.dataTransfer.files?.length) {
+      setSelectedFiles(Array.from(e.dataTransfer.files).slice(0, 20));
     }
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
+    if (e.target.files?.length) {
+      setSelectedFiles(Array.from(e.target.files).slice(0, 20));
     }
   };
 
   const onSubmit = async (data: SupplierDocumentFormData) => {
-    if (!selectedFile) return;
+    if (!selectedFiles.length) return;
 
     try {
-      await uploadDocument.mutateAsync({ file: selectedFile, data });
+      // Bij meerdere bestanden enkel leverancier en type; de rest vult Odoo (OCR) of jij later in.
+      const shared: SupplierDocumentFormData = multiple
+        ? { supplier_id: data.supplier_id, document_type: data.document_type }
+        : data;
+      for (const file of selectedFiles) {
+        await uploadDocument.mutateAsync({ file, data: shared });
+      }
       reset();
-      setSelectedFile(null);
+      setSelectedFiles([]);
       onOpenChange(false);
     } catch (error) {
       // Error handled by mutation
@@ -131,23 +141,27 @@ export function SupplierDocumentUploadDialog({
             onDragOver={handleDrag}
             onDrop={handleDrop}
           >
-            {selectedFile ? (
-              <div className="flex items-center justify-center gap-3">
-                <File className="h-8 w-8 text-primary" />
-                <div className="text-left">
-                  <p className="font-medium">{selectedFile.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setSelectedFile(null)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
+            {selectedFiles.length ? (
+              <div className="space-y-2">
+                {selectedFiles.map((file, i) => (
+                  <div key={`${file.name}-${i}`} className="flex items-center justify-center gap-3">
+                    <File className="h-6 w-6 text-primary shrink-0" />
+                    <div className="text-left min-w-0">
+                      <p className="font-medium truncate">{file.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setSelectedFiles((f) => f.filter((_, j) => j !== i))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
               </div>
             ) : (
               <>
@@ -162,6 +176,7 @@ export function SupplierDocumentUploadDialog({
                   <input
                     type="file"
                     className="hidden"
+                    multiple
                     accept=".pdf,.jpg,.jpeg,.png,.webp,.xlsx,.xls"
                     onChange={handleFileChange}
                   />
@@ -172,15 +187,16 @@ export function SupplierDocumentUploadDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label>Leverancier *</Label>
+              <Label>{t("admin.supplierDocuments.supplier_optional")}</Label>
               <Select
-                value={selectedSupplierId}
-                onValueChange={(value) => setValue("supplier_id", value)}
+                value={selectedSupplierId || "none"}
+                onValueChange={(value) => setValue("supplier_id", value === "none" ? "" : value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecteer..." />
+                  <SelectValue placeholder={t("admin.supplierDocuments.supplier_later")} />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">{t("admin.supplierDocuments.supplier_later")}</SelectItem>
                   {suppliers?.map((supplier) => (
                     <SelectItem key={supplier.id} value={supplier.id}>
                       {supplier.name}
@@ -212,6 +228,11 @@ export function SupplierDocumentUploadDialog({
             </div>
           </div>
 
+          {multiple && (
+            <p className="text-sm text-muted-foreground">{t("admin.supplierDocuments.multi_hint", { count: selectedFiles.length })}</p>
+          )}
+
+          {!multiple && (<>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="document_number">Documentnummer</Label>
@@ -309,6 +330,7 @@ export function SupplierDocumentUploadDialog({
               rows={2}
             />
           </div>
+          </>)}
 
           <div className="flex justify-end gap-2 pt-4 border-t">
             <Button
@@ -320,9 +342,9 @@ export function SupplierDocumentUploadDialog({
             </Button>
             <Button
               type="submit"
-              disabled={!selectedFile || !selectedSupplierId || uploadDocument.isPending}
+              disabled={!selectedFiles.length || uploadDocument.isPending}
             >
-              Uploaden
+              {multiple ? t("admin.supplierDocuments.upload_count", { count: selectedFiles.length }) : "Uploaden"}
             </Button>
           </div>
         </form>

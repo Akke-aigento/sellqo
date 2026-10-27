@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { rejectUnlessSvix } from "../_shared/webhookAuth.ts";
-import { extractInboundPrefix } from "../_shared/inboundAddress.ts";
+import { extractInboundAddress, extractInboundPrefix, INVOICE_INBOX_TAG } from "../_shared/inboundAddress.ts";
+import { ingestInvoiceEmail } from "../_shared/supplierInboxEmail.ts";
 import { findExistingInbound, isUniqueViolation } from "../_shared/inboundDedup.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 
@@ -325,6 +326,13 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Versiestempel voor deploy-verificatie (neveneffectvrij).
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "INKOOP-4" }), {
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
+  }
+
   if (req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
@@ -382,6 +390,44 @@ const handler = async (req: Request): Promise<Response> => {
     if (existingId) {
       console.log("Duplicate inbound email ignored", { email_id: payload.email_id, message_id: existingId });
       return duplicateResponse(existingId);
+    }
+
+    // INKOOP-4: <winkel>+facturen@mail.sellqo.app → inkoopfacturen, niet de klantberichten.
+    const invoiceTo = (payload.to ?? []).map((t) => extractInboundAddress(t)).find((a) => a?.tag === INVOICE_INBOX_TAG);
+    if (invoiceTo) {
+      const { data: tenant } = await supabase
+        .from("tenants")
+        .select("id, name")
+        .eq("inbound_email_prefix", invoiceTo.prefix)
+        .maybeSingle();
+      if (!tenant) {
+        console.error("No tenant found for invoice inbox", { prefix: invoiceTo.prefix });
+        return new Response(JSON.stringify({ error: "Tenant not found", prefix: invoiceTo.prefix }), {
+          status: 404, headers: { "Content-Type": "application/json", ...corsHeaders },
+        });
+      }
+      const result = await ingestInvoiceEmail({
+        supabase, tenantId: tenant.id, emailId: payload.email_id, from: payload.from ?? "", subject: payload.subject ?? "",
+        listAttachments: async () => {
+          const r = await fetch(`https://api.resend.com/emails/receiving/${payload.email_id}/attachments`, {
+            headers: { Authorization: `Bearer ${resendApiKey}` },
+          });
+          if (!r.ok) throw new Error(`Resend-bijlagen: HTTP ${r.status}`);
+          return ((await r.json()).data ?? []) as ResendAttachment[];
+        },
+        download: async (url) => {
+          const r = await fetch(url);
+          if (!r.ok) throw new Error(`download: HTTP ${r.status}`);
+          return new Uint8Array(await r.arrayBuffer());
+        },
+      });
+      console.log("Invoice email processed", { tenant: tenant.name, ...result });
+      // Eén mislukte bijlage = 500, zodat Resend opnieuw probeert. Dubbels kunnen niet: wat al
+      // binnen is, heeft een uniek extern id (email:<id>:<bijlage>).
+      const failed = result.errors.length > 0;
+      return new Response(JSON.stringify({ invoice_inbox: true, ...result }), {
+        status: failed ? 500 : 200, headers: { "Content-Type": "application/json", ...corsHeaders },
+      });
     }
 
     // Debug: Log what Resend sends in the webhook payload

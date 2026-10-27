@@ -1,3 +1,71 @@
+## INKOOP-3 + INKOOP-4 — SellQo is de facturen-inbox van elke winkel, Odoo de bestemming — 27 oktober 2026
+
+Akke 27-10: "alles via SellQo laten lopen en doorzwieren naar Odoo, dat dit de standaard wordt en tenants deze functie ook kunnen gebruiken". Zijn keuzes:
+- adres: `winkel+facturen@mail.sellqo.app`;
+- facturen gaan meteen als concept naar Odoo;
+- eigen facturen per merk verdeeld;
+- de 338 bestaande Odoo-aankoopfacturen als archief in SellQo.
+
+**Fundament:** de bestaande, ongebruikte module Leveranciers / Leveranciersdocumenten (0 documenten, 0 leveranciers live). Uitgebreid in plaats van een nieuwe module.
+
+**Databank (`20261027200000_inkoop_3.sql`, live gedraaid en nagetrokken):**
+- `supplier_documents`:
+  - `supplier_id` is optioneel ("te verwerken");
+  - nieuwe kolommen `source` (upload/email/bol/odoo_archive), `external_id`, `odoo_move_id`, `odoo_status`, `odoo_error`, `odoo_synced_at`, `odoo_attempts`;
+  - uniek op (tenant, external_id) en op (tenant, odoo_move_id);
+  - CHECK: `storage_path` begint met de eigen tenant-id;
+  - clients krijgen enkel kolomrechten: geen Odoo-kolommen, geen bron, geen extern id, geen extracted_data.
+- `suppliers.odoo_partner_id` en `tenant_odoo_settings.push_supplier_documents`.
+- Trigger `trg_supplier_document_push`: na een nieuwe factuur of creditnota roept pg_net `import-supplier-invoices` aan met mode push. Een fout in die aanroep laat de upload nooit falen.
+- Tabellen waren leeg: geen snapshot nodig.
+
+**Functie `import-supplier-invoices` (versie INKOOP-3), drie modes:**
+- **daily:**
+  1. bol ophalen naar SellQo;
+  2. openstaande documenten als concept naar Odoo sturen;
+  3. de Odoo-stand terughalen: leverancier (zoeken of aanmaken via de Odoo-partner), nummer, datum, bedragen, geboekt/betaald/vervallen.
+- **push:** één document meteen naar Odoo (zo roept de trigger hem aan).
+- **archive:** eenmalig, Odoo-aankoopfacturen met PDF naar SellQo, per merk op leveranciersnaam.
+
+**Nooit dubbel in Odoo:**
+- een claim in de databank (pending, na 15 min verlopen);
+- een vaste bijlagenaam `sq-<document-id>.<ext>`;
+- bol-facturen ook op Referentie;
+- de INKOOP-2-uploads worden gekoppeld in plaats van opnieuw geüpload;
+- het archief slaat boekingen over waarvan de Referentie al als bol-document bestaat;
+- een document dat al aan een andere boeking hangt, telt als dubbel: maximaal aantal pogingen, geen eindeloze herhaling.
+
+SellQo zet nooit bedragen in Odoo en boekt nooit.
+
+**INKOOP-4 (`handle-inbound-email`, versie INKOOP-4):**
+- Mail aan `<prefix>+facturen@mail.sellqo.app` wordt per PDF of grote afbeelding een leveranciersdocument (bron email). Hij komt niet in de klantberichten.
+- Webhook-herhalingen geven geen dubbels (extern id `email:<id>:<bijlage>`).
+- Het bestandstype komt uit de extensie, want de bucket weigert `octet-stream`.
+- Gewone winkelmail blijft ongewijzigd.
+
+**Admin:**
+- Leveranciersdocumenten toont het facturenadres (met kopieerknop), "Te verwerken", de bron, een Odoo-badge en "Openen in Odoo" (enkel voor https-links).
+- Upload van meerdere bestanden tegelijk, leverancier optioneel.
+- Nieuwe schakelaar "Inkoopfacturen naar Odoo" in de Odoo-instellingen.
+- Vertaald in 5 talen.
+
+**Review in twee rondes.** Ronde 1 vond vijf bugs:
+1. Een winkel kon via een pad naar een bestand van een andere winkel dat bestand naar zijn eigen Odoo laten sturen. Gefixt met de CHECK en een controle in de push.
+2. Vanaf 500 afgewerkte documenten werden nieuwe niet meer teruggesynchroniseerd. De filter staat nu in SQL.
+3. Een PDF die als `octet-stream` binnenkwam, mislukte altijd.
+4. Bol-facturen die INKOOP-2 al had geüpload, konden een tweede concept krijgen.
+5. Dubbele documenten werden eindeloos opnieuw geprobeerd.
+
+Ronde 2: in orde.
+
+**Tests en controles:**
+- tests: `scripts/promo-compare/supplierInbox.test.ts` (9, in CI), plus `ilike` in de nep-databank;
+- deno check en tsc ok (tsc 27 = baseline);
+- lint beter dan de baseline;
+- i18n-pariteit en gebruikte keys ok;
+- dode knoppen, edge-pins, mailadressen en meldingsbronnen ok.
+- De link "Openen in Odoo" leidt live naar `/odoo/bills/<id>` (gecontroleerd op 1602).
+
 ## INKOOP-1 + INKOOP-2 — één facturenadres en bol-facturen automatisch als concept in Odoo — 27 oktober 2026
 
 Akke 27-10: "kies welk mail adres het beste is en configureer het direct allemaal". Scope Odoo: enkel conceptfacturen in het aankoopdagboek (eerder akkoord).

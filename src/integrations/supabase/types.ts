@@ -18508,6 +18508,13 @@ export type Database = {
       }
       supplier_documents: {
         Row: {
+          source: string
+          external_id: string | null
+          odoo_move_id: number | null
+          odoo_status: string | null
+          odoo_error: string | null
+          odoo_synced_at: string | null
+          odoo_attempts: number
           amount: number | null
           created_at: string
           currency: string | null
@@ -18529,13 +18536,20 @@ export type Database = {
             | null
           purchase_order_id: string | null
           storage_path: string | null
-          supplier_id: string
+          supplier_id: string | null
           tax_amount: number | null
           tenant_id: string
           total_amount: number | null
           updated_at: string
         }
         Insert: {
+          source?: string
+          external_id?: string | null
+          odoo_move_id?: number | null
+          odoo_status?: string | null
+          odoo_error?: string | null
+          odoo_synced_at?: string | null
+          odoo_attempts?: number
           amount?: number | null
           created_at?: string
           currency?: string | null
@@ -18557,13 +18571,20 @@ export type Database = {
             | null
           purchase_order_id?: string | null
           storage_path?: string | null
-          supplier_id: string
+          supplier_id?: string | null
           tax_amount?: number | null
           tenant_id: string
           total_amount?: number | null
           updated_at?: string
         }
         Update: {
+          source?: string
+          external_id?: string | null
+          odoo_move_id?: number | null
+          odoo_status?: string | null
+          odoo_error?: string | null
+          odoo_synced_at?: string | null
+          odoo_attempts?: number
           amount?: number | null
           created_at?: string
           currency?: string | null
@@ -18585,7 +18606,7 @@ export type Database = {
             | null
           purchase_order_id?: string | null
           storage_path?: string | null
-          supplier_id?: string
+          supplier_id?: string | null
           tax_amount?: number | null
           tenant_id?: string
           total_amount?: number | null
@@ -18678,6 +18699,7 @@ export type Database = {
       }
       suppliers: {
         Row: {
+          odoo_partner_id: number | null
           bic: string | null
           chamber_of_commerce: string | null
           city: string | null
@@ -18702,6 +18724,7 @@ export type Database = {
           website: string | null
         }
         Insert: {
+          odoo_partner_id?: number | null
           bic?: string | null
           chamber_of_commerce?: string | null
           city?: string | null
@@ -18726,6 +18749,7 @@ export type Database = {
           website?: string | null
         }
         Update: {
+          odoo_partner_id?: number | null
           bic?: string | null
           chamber_of_commerce?: string | null
           city?: string | null
@@ -20135,6 +20159,7 @@ export type Database = {
       }
       tenant_odoo_settings: {
         Row: {
+          push_supplier_documents: boolean
           aggregate_b2c_customers: boolean
           aggregate_per_channel: boolean
           b2c_dummy_partner_name: string
@@ -20151,6 +20176,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          push_supplier_documents?: boolean
           aggregate_b2c_customers?: boolean
           aggregate_per_channel?: boolean
           b2c_dummy_partner_name?: string
@@ -20167,6 +20193,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          push_supplier_documents?: boolean
           aggregate_b2c_customers?: boolean
           aggregate_per_channel?: boolean
           b2c_dummy_partner_name?: string

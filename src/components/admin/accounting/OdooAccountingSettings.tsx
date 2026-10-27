@@ -41,6 +41,8 @@ export function OdooAccountingSettings({ tenantId }: Props) {
   const [journalId, setJournalId] = useState<string>('');
   const [peppolSendEnabled, setPeppolSendEnabled] = useState(true);
   const [autoPost, setAutoPost] = useState(true);
+  // INKOOP-3: inkoopfacturen uit SellQo meteen als concept naar Odoo.
+  const [pushSupplierDocs, setPushSupplierDocs] = useState(false);
 
   const [url, setUrl] = useState('');
   const [db, setDb] = useState('');
@@ -118,6 +120,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       setJournalId(settings.odoo_journal_id || '');
       setPeppolSendEnabled(settings.peppol_send_enabled ?? true);
       setAutoPost(settings.odoo_auto_post ?? true);
+      setPushSupplierDocs(settings.push_supplier_documents ?? false);
     }
   }, [settings]);
 
@@ -141,6 +144,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
     journalId: settings?.odoo_journal_id || '',
     peppolSendEnabled: settings?.peppol_send_enabled ?? true,
     autoPost: settings?.odoo_auto_post ?? true,
+    pushSupplierDocs: settings?.push_supplier_documents ?? false,
   };
   const dirty =
     !isLoading &&
@@ -149,7 +153,8 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       syncEnabled !== baseline.syncEnabled ||
       journalId !== baseline.journalId ||
       peppolSendEnabled !== baseline.peppolSendEnabled ||
-      autoPost !== baseline.autoPost);
+      autoPost !== baseline.autoPost ||
+      pushSupplierDocs !== baseline.pushSupplierDocs);
 
   const handleSave = () => {
     const j = journals.data?.find(x => String(x.id) === journalId);
@@ -161,6 +166,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       odoo_journal_name: j?.name ?? null,
       peppol_send_enabled: peppolSendEnabled,
       odoo_auto_post: autoPost,
+      push_supplier_documents: pushSupplierDocs,
     });
   };
 
@@ -370,6 +376,19 @@ export function OdooAccountingSettings({ tenantId }: Props) {
               checked={peppolSendEnabled && autoPost}
               disabled={!canWrite || isLoading || !syncEnabled || !autoPost}
               onCheckedChange={setPeppolSendEnabled}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4 pt-4 border-t">
+            <div>
+              <Label htmlFor="push-supplier-docs">{t('admin.supplierDocuments.odoo_push_label')}</Label>
+              <p className="text-xs text-muted-foreground mt-1">{t('admin.supplierDocuments.odoo_push_help')}</p>
+            </div>
+            <Switch
+              id="push-supplier-docs"
+              checked={pushSupplierDocs}
+              disabled={!canWrite || isLoading || !configured}
+              onCheckedChange={setPushSupplierDocs}
             />
           </div>
 

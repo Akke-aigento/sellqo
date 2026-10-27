@@ -45,6 +45,9 @@ import { openExternal } from "@/lib/openExternal";
 import { toast } from "sonner";
 import { useTranslation } from "react-i18next";
 import { useSuppliers } from "@/hooks/useSuppliers";
+import { useTenant } from "@/hooks/useTenant";
+import { useTenantOdooSettings } from "@/hooks/useTenantOdooSettings";
+import { invoiceInboxAddress } from "@/lib/invoiceInbox";
 import { SupplierDocumentUploadDialog } from "@/components/admin/suppliers/SupplierDocumentUploadDialog";
 import { StatsCard } from "@/components/admin/StatsCard";
 import type { SupplierDocument, SupplierDocumentType, SupplierPaymentStatus } from "@/types/supplier";
@@ -60,10 +63,24 @@ import {
   CreditCard,
   AlertTriangle,
   CheckCircle,
+  Copy,
+  Inbox,
 } from "lucide-react";
 
 export default function SupplierDocuments() {
   const { t } = useTranslation();
+  const { currentTenant } = useTenant();
+  const { settings: odooSettings } = useTenantOdooSettings(currentTenant?.id);
+  const inboxAddress = currentTenant?.inbound_email_prefix ? invoiceInboxAddress(currentTenant.inbound_email_prefix) : null;
+  const copyInbox = async () => {
+    if (!inboxAddress) return;
+    try {
+      await navigator.clipboard.writeText(inboxAddress);
+      toast.success(t("admin.supplierDocuments.inbox_copied"));
+    } catch {
+      toast.error(inboxAddress);
+    }
+  };
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
@@ -130,6 +147,27 @@ export default function SupplierDocuments() {
             Document uploaden
           </Button>
         </div>
+
+        {/* INKOOP-4: facturenadres van deze winkel */}
+        {inboxAddress && (
+          <Card>
+            <CardContent className="pt-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <Inbox className="h-8 w-8 text-primary shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{t("admin.supplierDocuments.inbox_title")}</p>
+                <p className="font-mono text-sm break-all">{inboxAddress}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {t("admin.supplierDocuments.inbox_desc")}
+                  {odooSettings?.push_supplier_documents ? ` ${t("admin.supplierDocuments.inbox_odoo")}` : ""}
+                </p>
+              </div>
+              <Button variant="outline" size="sm" onClick={copyInbox}>
+                <Copy className="h-4 w-4 mr-2" />
+                {t("admin.supplierDocuments.inbox_copy")}
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats */}
         <div className="grid gap-4 md:grid-cols-4">
@@ -242,6 +280,9 @@ export default function SupplierDocuments() {
                             <p className="font-medium">{doc.document_number || doc.file_name}</p>
                             <p className="text-xs text-muted-foreground">
                               {doc.file_name}
+                              {doc.source && doc.source !== "upload" && (
+                                <> · {t(`admin.supplierDocuments.source.${doc.source}`)}</>
+                              )}
                             </p>
                           </div>
                         </div>
@@ -253,7 +294,9 @@ export default function SupplierDocuments() {
                       </TableCell>
                       <TableCell>
                         {/* SUPPLIER-404-1: geen leveranciersdetailpagina. */}
-                        {doc.supplier?.name}
+                        {doc.supplier?.name ?? (
+                          <Badge variant="secondary">{t("admin.supplierDocuments.to_process")}</Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         {doc.document_date
@@ -277,11 +320,21 @@ export default function SupplierDocuments() {
                           : "-"}
                       </TableCell>
                       <TableCell>
-                        {doc.document_type === "invoice" && (
-                          <Badge className={paymentStatusInfo[doc.payment_status].color}>
-                            {paymentStatusInfo[doc.payment_status].label}
-                          </Badge>
-                        )}
+                        <div className="flex flex-wrap gap-1">
+                          {doc.document_type === "invoice" && (
+                            <Badge className={paymentStatusInfo[doc.payment_status].color}>
+                              {paymentStatusInfo[doc.payment_status].label}
+                            </Badge>
+                          )}
+                          {doc.odoo_status && (
+                            <Badge
+                              variant={doc.odoo_status === "error" ? "destructive" : "outline"}
+                              title={doc.odoo_error ?? undefined}
+                            >
+                              {t(`admin.supplierDocuments.odoo.${doc.odoo_status}`)}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -295,6 +348,13 @@ export default function SupplierDocuments() {
                               <ExternalLink className="h-4 w-4 mr-2" />
                               Openen
                             </DropdownMenuItem>
+                            {typeof doc.extracted_data?.odoo_url === "string" &&
+                              doc.extracted_data.odoo_url.startsWith("https://") && (
+                              <DropdownMenuItem onClick={() => void openExternal(doc.extracted_data.odoo_url as string)}>
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                {t("admin.supplierDocuments.open_in_odoo")}
+                              </DropdownMenuItem>
+                            )}
                             {doc.document_type === "invoice" &&
                               doc.payment_status !== "paid" && (
                                 <DropdownMenuItem

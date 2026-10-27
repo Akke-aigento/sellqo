@@ -8422,7 +8422,33 @@
       }
     },
     "supplierDocuments": {
-      "openen_mislukt": "Could not open the document. Please try again."
+      "openen_mislukt": "Could not open the document. Please try again.",
+      "supplier_optional": "Supplier (optional)",
+      "supplier_later": "Later / via Odoo",
+      "multi_hint": "{{count}} files: each becomes a separate invoice. Number, date and amounts are filled in by Odoo (OCR) or by you later.",
+      "upload_count": "Upload {{count}} files",
+      "inbox_title": "Your invoice address",
+      "inbox_desc": "Send or forward supplier invoices to this address: every PDF shows up below.",
+      "inbox_odoo": "They also go straight to Odoo as a draft.",
+      "inbox_copy": "Copy",
+      "inbox_copied": "Invoice address copied",
+      "to_process": "To process",
+      "open_in_odoo": "Open in Odoo",
+      "odoo_push_label": "Purchase invoices to Odoo",
+      "odoo_push_help": "Invoices that arrive in SellQo (upload, invoice address, bol) go straight to your purchase journal as a draft. Odoo reads them; SellQo then shows what your accountant did with them.",
+      "source": {
+        "upload": "uploaded",
+        "email": "by email",
+        "bol": "via bol",
+        "odoo_archive": "from Odoo"
+      },
+      "odoo": {
+        "pending": "Sending to Odoo…",
+        "draft": "Draft in Odoo",
+        "posted": "Posted in Odoo",
+        "cancel": "Cancelled in Odoo",
+        "error": "Odoo error"
+      }
     },
     "purchaseOrders": {
       "aanmaken_nog_niet_beschikbaar": "Creating purchase orders isn't available in SellQo yet. Existing purchase orders appear here."
