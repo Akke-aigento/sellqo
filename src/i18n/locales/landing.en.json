@@ -2303,6 +2303,10 @@
         "horeca_printers_receipts": {
           "title": "Receipt printers and email receipts",
           "description": "In POS › Receipts & printers you connect a Star receipt printer (CloudPRNT). The printer fetches its own tickets, so no tablet or PC has to stay on. Choose a printer per station: rounds from the POS, QR orders and web shop orders come straight out of it. You can also print a payment receipt after every payment at the POS, and email the receipt after an online payment via the table QR. If a customer wants their receipt by email, tap Email receipt after payment. The POS never asks on its own."
+        },
+        "horeca_walkthrough": {
+          "title": "Your hospitality day: switch faster, everything in one overview",
+          "description": "On your phone, the bar at the bottom now holds the four places you switch between all day: Today, POS (opens SellQo Kassa), Kitchen and Menu. Settings › Hospitality shows all your hospitality settings with their current state. Without stations, choose a printer for all kitchen tickets in Receipts & printers. Also: the kitchen screen is no longer see-through, the pause button for online orders only appears when your web shop takes orders, deleting a POS terminal now asks for confirmation, and pages no longer briefly flash \"not in your plan\" while loading."
         }
       },
       "copyLink": "Copy link",

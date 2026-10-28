@@ -2303,6 +2303,10 @@
         "horeca_printers_receipts": {
           "title": "Bondrucker und Zahlungsbeleg per Mail",
           "description": "Unter Kasse › Belege & Drucker verbindest du einen Star-Bondrucker (CloudPRNT). Der Drucker holt seine Bons selbst ab, kein Tablet oder PC muss eingeschaltet bleiben. Pro Station wählst du einen Drucker: Runden der Kasse, QR-Bestellungen und Webshop-Bestellungen kommen sofort heraus. Du kannst außerdem nach jeder Zahlung an der Kasse einen Zahlungsbeleg drucken und ihn nach einer Online-Zahlung über den QR am Tisch mailen. Möchte ein Kunde seinen Beleg per Mail, tippst du nach dem Bezahlen auf Beleg mailen. Die Kasse fragt nie von selbst danach."
+        },
+        "horeca_walkthrough": {
+          "title": "Dein Gastro-Tag: schneller wechseln, alles in einer Übersicht",
+          "description": "Auf dem Handy enthält die Leiste unten jetzt die vier Orte, zwischen denen du den ganzen Tag wechselst: Heute, Kasse (öffnet SellQo Kassa), Küche und Karte. Unter Einstellungen › Gastronomie siehst du alle Gastro-Einstellungen mit ihrem aktuellen Stand. Ohne Stationen wählst du unter Belege & Drucker einen Drucker für alle Küchenbons. Außerdem: Der Küchenbildschirm ist nicht mehr durchsichtig, die Pausetaste für Online-Bestellungen erscheint nur, wenn dein Webshop Bestellungen annimmt, das Löschen einer Kasse fragt nach einer Bestätigung, und Seiten zeigen beim Laden nicht mehr kurz „nicht in deinem Paket“."
         }
       },
       "copyLink": "Link kopieren",

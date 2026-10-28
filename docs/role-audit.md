@@ -1,3 +1,74 @@
+## WANDELING — horeca-wandeling: onderbalk, Instellingen › Horeca, laadflitsen, keuken, kassa, POS-naamgeving, PRINT-2b — 29 oktober 2026
+
+Nachtrun (Akke sliep). Live doorlopen op de testwinkel (Test Horeca Small, tenantweergave, EN, 1280 px) via Claude in Chrome; 390 px enkel lokaal (harnas), want het venster van Akkes Chrome liet zich niet verkleinen. Branch `night-wandeling`, niets op main, niets gepubliceerd of gedeployed. Bevindingen per scherm: zie het verslag (Docs).
+
+**Root cause / aanleiding**
+- Akke (28-10): "de shortcutbalk onderaan zou ook wat anders moeten om gemakkelijk te kunnen schakelen doorheen je dag".
+- Laadflits: `useTracks().ready` was `true` zolang `currentTenant` null was (`useBusinessModules.ts`). Bij elke paginalading toonde Bestellen eerst "Horeca — Niet in je pakket — Zet Horeca aan" en de zijbalk het webshopmenu.
+- Keukenscherm: `fixed inset-0 bg-muted/40` was halfdoorzichtig, waardoor de zijbalk van het beheer erdoor schemerde.
+- Pauzeknop op het keukenscherm: de pauze geldt enkel voor de webshop, maar de knop stond er ook zonder webshop. Dat is een dode knop.
+- Kassa verwijderen: één tik in het menu deed een harde delete op `pos_terminals`, zonder bevestiging.
+- `usePOS.ts`: 19 toasts in hardgecodeerd Nederlands.
+- Kassa-instellingen per terminal: hardware, bonnen (auto-print, voettekst) en afrekenen gelden enkel voor de klassieke kassa. Voor een horecazaak was dat een tweede plek voor printers, naast Bon & printers.
+- Dashboard: "Omzet vandaag" stond twee keer op hetzelfde scherm.
+- PRINT-2-gat: een zaak zonder posten (of zonder standaardpost) kon geen enkele keukenbon laten afdrukken.
+- EN: "Till/till" naast "POS" door elkaar (70 adminteksten, 20 in de publieke changelog, 2 in de pushmeldingen).
+
+**Uitgevoerd** (branch `night-wandeling`)
+- **Onderbalk** (`AdminMobileBottomNav.tsx`). Horeca-only: Vandaag, Kassa (opent `/kassa`, rechten van het menu-item Kassa), Keuken, Kaart. Horeca met webshop of events: Dashboard, Bestellingen, Keuken, Kaart. Korte labels `navigation.bottom.*`.
+- **Instellingen › Horeca** (`HorecaSettingsHub.tsx`): de stand van QR-menu, zaal, posten, kassa's, personeel, betalen, bon & printers en meldingen. Het zijn enkel links naar de vaste plek. Bestellen › Overzicht linkt ernaartoe.
+- **Laadflitsen:** `ready` wacht op de winkel (`currentTenant ? !isLoading : !tenantLoading`), zodat een `refreshTenants` geen pagina laat wegspringen. `ModuleGateLoading` staat in OrderingHub, EventsModuleGate en EventDashboard. De zijbalk toont tijdens het laden enkel kernitems.
+- **Keuken:**
+  - dekkende achtergrond;
+  - `KitchenPauseControl` verborgen zonder webshop-bestellen (behalve om een lopende pauze op te heffen);
+  - de knop heet nu "Afdrukken hier aan/uit", met een uitleg die naar Bon & printers wijst.
+- **Kassa:**
+  - bevestigingsvenster vóór verwijderen;
+  - `admin.posToasts.*` in 5 talen;
+  - POSTerminalSettings en de kassakaart verbergen de klassieke kassa-onderdelen voor horeca-only, met links naar Betalen en Bon & printers;
+  - lege staat met de volgorde "eerst kassa, dan kassa-app";
+  - typfout "verkoopddag" rechtgezet.
+- **Dashboard:** HorecaTiles toont omzet en verkopen enkel als de omzetkaart verborgen is.
+- **EN "POS":** `en.json` (70), `landing.en.json` (20), `_shared/horecaPush.ts` (2). Stempel `horeca-device-push` naar MELDING-1c.
+- **PRINT-2b:**
+  - migratie `20261029010000_print_2b.sql`: `ticket_printer_id`, guard op beide kolommen, triggerregel, snapshot in `ops.print_2b_prev_functions`;
+  - `horeca-print` met `fallbackPrinter` (stempel PRINT-2b);
+  - rij "Bonnen zonder post" in Bon & printers;
+  - helpartikel (`20261029011000_print_2b_docs.sql`).
+- **Paper trail:**
+  - helpartikel horeca-werkplek (`20261029020000_wandeling_docs.sql`);
+  - changelog 2026.14e `horeca_walkthrough` (5 talen);
+  - nieuwsbrief.
+
+**Security-keuzes**
+- `ticket_printer_id`: zelfde guard als de andere printerkolommen (printer van dezelfde zaak, ook voor service_role). Gelezen via de bestaande RLS van `horeca_pay_settings`.
+- Instellingen › Horeca leest enkel tabellen waar leden al leesrecht op hebben. `requiredRead: settings_general`.
+
+**Gedeelde-paden-waarschuwing**
+- `useTracks` en `useNavItemVisibility` worden door elke winkel gebruikt. Het enige verschil voor niet-horecawinkels: tijdens het laden zien ze enkel kernitems in de zijbalk, zonder flits van items die daarna verdwijnen. Na het laden is het gedrag gelijk.
+- `usePOS.ts` (klassieke kassa van webshopwinkels): enkel de teksten.
+
+**Verificatie**
+- Live in een transactie met rollback (PRINT-2b): zonder `ticket_printer_id` geen printaanroep, mét één; een printer van een andere zaak wordt geweigerd.
+- Deno-tests:
+  - `horecaPrint` (8, met de nieuwe "zaak zonder posten");
+  - `horecaDevicePush` (5);
+  - `_shared/horecaPush` (7).
+- `deno check` van `horeca-print` en `horeca-device-push`.
+- vitest: kassa, keuken en cockpit 302 groen.
+- `ci:local`: alles groen, behalve de drie bekende lokale esm.sh-stappen.
+- i18n-pariteit ok.
+- tsc en build: zie het verslag.
+- Visueel: harnas op 390 en 1280, in nl, fr (donker) en en, voor Instellingen › Horeca en de onderbalk (horeca-only en gemengd). Geen overloop, geen consolefouten.
+
+**Bewust ongemoeid / Vervolg**
+- Kassa-app (`src/kassa`): geen wijziging vannacht (fiscale release). Voorstellen:
+  - een link "Kassa aanmaken" op het scherm "Welke kassa is dit?";
+  - een snelkoppeling van de kassa-app naar Keuken en Beheer.
+- De Kaart-stijl doortrekken naar de kassakaarten en Overzicht: niet gebouwd, want zonder kassa in de testwinkel kon ik het resultaat niet live beoordelen.
+- Twee testwinkels heten "Test Horeca Small" (test-horeca-small en test-horeca). Een hernoeming laat ik aan Akke.
+- Op 390 px heb ik het niet live gemeten in het echte beheer.
+
 ## PRINT-2 — bonprinters, printer per post, betaalbewijs afdrukken en mailen, kassa 0.11.0 — 28 oktober 2026
 
 **Root cause / aanleiding:**

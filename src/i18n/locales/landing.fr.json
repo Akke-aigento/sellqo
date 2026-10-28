@@ -2303,6 +2303,10 @@
         "horeca_printers_receipts": {
           "title": "Imprimantes à tickets et preuve de paiement par e-mail",
           "description": "Dans Caisse › Tickets & imprimantes, vous connectez une imprimante à tickets Star (CloudPRNT). L'imprimante récupère elle-même ses tickets : aucune tablette ni PC ne doit rester allumé. Choisissez une imprimante par poste : les tournées de la caisse, les commandes QR et les commandes en ligne en sortent immédiatement. Vous pouvez aussi imprimer une preuve de paiement après chaque paiement à la caisse, et l'envoyer par e-mail après un paiement en ligne via le QR de la table. Si un client veut son ticket par e-mail, touchez Envoyer le ticket après le paiement. La caisse ne le demande jamais d'elle-même."
+        },
+        "horeca_walkthrough": {
+          "title": "Votre journée horeca : passer plus vite d'un écran à l'autre, tout dans un aperçu",
+          "description": "Sur votre téléphone, la barre du bas contient désormais les quatre endroits entre lesquels vous passez toute la journée : Aujourd'hui, Caisse (ouvre SellQo Kassa), Cuisine et Carte. Réglages › Horeca affiche tous vos réglages horeca avec leur état actuel. Sans postes, choisissez une imprimante pour tous les tickets de cuisine dans Tickets & imprimantes. Aussi : l'écran de cuisine n'est plus transparent, le bouton de pause des commandes en ligne n'apparaît que si votre boutique prend des commandes, supprimer une caisse demande une confirmation, et les pages n'affichent plus brièvement « pas dans votre formule » au chargement."
         }
       },
       "copyLink": "Copier le lien",

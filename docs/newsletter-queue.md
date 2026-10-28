@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14e — Je horecadag: sneller schakelen en alles op één overzicht (improvement, 29-10-2026)
+
+**Status:** wacht op merge van branch night-wandeling naar main, publish van de admin, migraties PRINT-2b + docs en deploy van horeca-print en horeca-device-push (WANDELING).
+
+**Voor wie:** horecazaken.
+
+**Schakelen zonder zoeken** (oktober 2026)
+Onderaan op je gsm staan nu de vier plekken waar je de hele dag tussen wisselt: Vandaag, Kassa, Keuken en Kaart. In Instellingen › Horeca zie je al je horeca-instellingen met hun stand, en zonder posten kies je één printer voor alle keukenbonnen.
+Wat betekent dit voor jou? Minder tikken in de rush, en nooit meer zoeken waar iets ingesteld staat.
+
+i18n: `public.changelog.changes.horeca_walkthrough`
+
 ### 2026.14d — Bonprinters en betaalbewijs per mail (feature, 28-10-2026)
 
 **Status:** wacht op migratie, deploy van horeca-print en horeca-receipt-mail, publish van de admin en het helpartikel (PRINT-2). Een test met een echte Star-printer staat nog open.
