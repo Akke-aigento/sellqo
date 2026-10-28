@@ -55,8 +55,15 @@
 - Deno: `horecaPush.test.ts` (6) en `horecaDevicePush.test.ts` (5, echte handler), `deno check` van beide functies tegen de echte supabase-types.
 - Vitest: `signals.test.tsx` (4: nulmeting, enkel nieuw en één keer, achterlopende klok van een keukentoestel, niets overslaan bij een fout); kassa en meldingstests groen.
 - tsc gelijk aan de baseline (27), lint onder de baseline, i18n-pariteit en used keys ok; `npm run build` en de Kassa-build groen.
-- Migratie offline geparsed (31 statements, plpgsql-bodies ok).
-- Live: nog niet gedraaid.
+- Migratie offline geparsed (34 statements, plpgsql-bodies ok).
+- CI groen op `11f61ed`.
+- **Live (28-10, ±19:25–19:35):**
+  - Migratie `20261028180000` gedraaid via `query_database` na Akke's expliciete go: bestand van GitHub op `11f61ed`, md5 `b6048278…` gelijk aan lokaal, dan uitgevoerd (een eerste poging zonder go werd door de permissiecontrole tegengehouden, er draaide toen niets).
+  - Nagetrokken: `device_tokens.install_id`, tabel met RLS (enkel SELECT voor authenticated), 4 triggers (`table_requests`, `kitchen_tickets`, `check_online_payments`, `orders`), RPC-rechten (beheer: authenticated; targets/notify/trigger: enkel service_role), `horeca_notify_targets` met `kind`, de `coalesce`-fix.
+  - Deploy via de Lovable-agent (deploy-only, 0,5 credits): nulmeting `send-push-notification` = `SUB-UNIFY-2A`, `horeca-device-push` = 404; na de deploy beide `MELDING-1`, en POST zonder geheim → 401. Agent-commits: enkel `types.ts` (platform).
+  - Publish admin (Akke, ±19:30) bewezen: bundel `index-4xJEm59G.js` bevat `sellqo-kassa-0.10.0`, `horeca_device_alerts`, `horeca_notify_devices_list` en `kassa.webmanifest`.
+  - Helpartikel `20261028181000` gedraaid (md5 `925ccf17…`): `meldingen-per-toestel` staat erin, gepubliceerd, /admin/pos.
+  - Nog open: een echte gewone persoonlijke push na de deploy aflezen in `net._http_response` (er kwam er nog geen langs), en een echte horeca-melding op een ingeschreven toestel.
 
 **Bewust ongemoeid / Vervolg:**
 - Een toestel met push én een open scherm hoort een melding mogelijk twee keer (belletje in beeld en de systeemmelding): een browser moet elke push tonen.
