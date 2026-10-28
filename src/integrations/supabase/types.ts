@@ -8652,10 +8652,14 @@ export type Database = {
       horeca_pay_settings: {
         Row: {
           kassa_tip: boolean
+          mail_button: boolean
+          mail_online: boolean
           methods: string[]
           online_pay: boolean
           online_split: boolean
           online_tip: boolean
+          receipt_print: boolean
+          receipt_printer_id: string | null
           tenant_id: string
           terminal: string
           updated_at: string
@@ -8663,10 +8667,14 @@ export type Database = {
         }
         Insert: {
           kassa_tip?: boolean
+          mail_button?: boolean
+          mail_online?: boolean
           methods?: string[]
           online_pay?: boolean
           online_split?: boolean
           online_tip?: boolean
+          receipt_print?: boolean
+          receipt_printer_id?: string | null
           tenant_id: string
           terminal?: string
           updated_at?: string
@@ -8674,16 +8682,27 @@ export type Database = {
         }
         Update: {
           kassa_tip?: boolean
+          mail_button?: boolean
+          mail_online?: boolean
           methods?: string[]
           online_pay?: boolean
           online_split?: boolean
           online_tip?: boolean
+          receipt_print?: boolean
+          receipt_printer_id?: string | null
           tenant_id?: string
           terminal?: string
           updated_at?: string
           updated_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "horeca_pay_settings_receipt_printer_id_fkey"
+            columns: ["receipt_printer_id"]
+            isOneToOne: false
+            referencedRelation: "printers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "horeca_pay_settings_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -8695,6 +8714,54 @@ export type Database = {
             foreignKeyName: "horeca_pay_settings_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      horeca_receipt_mails: {
+        Row: {
+          created_at: string
+          email_sha256: string
+          id: string
+          payment_id: string
+          resend_id: string | null
+          sent_by: string | null
+          source: string
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          email_sha256: string
+          id?: string
+          payment_id: string
+          resend_id?: string | null
+          sent_by?: string | null
+          source: string
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          email_sha256?: string
+          id?: string
+          payment_id?: string
+          resend_id?: string | null
+          sent_by?: string | null
+          source?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horeca_receipt_mails_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horeca_receipt_mails_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -13522,6 +13589,7 @@ export type Database = {
           is_default: boolean
           kind: string
           name: string
+          printer_id: string | null
           sort: number
           tenant_id: string
           updated_at: string
@@ -13533,6 +13601,7 @@ export type Database = {
           is_default?: boolean
           kind?: string
           name: string
+          printer_id?: string | null
           sort?: number
           tenant_id: string
           updated_at?: string
@@ -13544,11 +13613,19 @@ export type Database = {
           is_default?: boolean
           kind?: string
           name?: string
+          printer_id?: string | null
           sort?: number
           tenant_id?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "prep_stations_printer_id_fkey"
+            columns: ["printer_id"]
+            isOneToOne: false
+            referencedRelation: "printers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prep_stations_tenant_id_fkey"
             columns: ["tenant_id"]
@@ -13740,6 +13817,7 @@ export type Database = {
           id: string
           is_active: boolean
           kind: string
+          lang: string
           last_seen_at: string | null
           last_status: string | null
           name: string
@@ -13755,6 +13833,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           kind: string
+          lang?: string
           last_seen_at?: string | null
           last_status?: string | null
           name: string
@@ -13770,6 +13849,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           kind?: string
+          lang?: string
           last_seen_at?: string | null
           last_status?: string | null
           name?: string
@@ -24615,6 +24695,14 @@ export type Database = {
       horeca_pay_release: {
         Args: { p_check_id: string; p_payment_id: string; p_tenant_id: string }
         Returns: undefined
+      }
+      horeca_print_call: {
+        Args: { p_body: Json; p_fn: string }
+        Returns: undefined
+      }
+      horeca_receipt_data: {
+        Args: { p_id: string; p_source: string }
+        Returns: Json
       }
       horeca_round5: { Args: { p_cents: number }; Returns: number }
       horeca_snapshot: { Args: { p_tenant_id: string }; Returns: Json }
