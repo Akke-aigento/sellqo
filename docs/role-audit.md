@@ -47,9 +47,27 @@
 - deno: `tableRequest.test.ts` + `event409` + `resolve`: 15 groen; `deno check` storefront-api ok.
 - tsc gelijk aan de baseline; lint onder de baseline; i18n-pariteit, used keys en dode knoppen ok.
 - `sellqo-storefront`: `tsc` en `vite build` groen.
-- Live: nog niet gedraaid (wacht op go).
+- **Live (28-10, ±11:10):**
+  - Migratie `20261028120000` gedraaid via `query_database`; de drie functies zijn md5-gelijk aan het bestand, grants (plaatsen enkel service_role), RLS en de kolommen zijn nagetrokken.
+  - `storefront-api` gedeployed via de Lovable-agent (deploy-only; MCP-timeout, deploy liep door). Live stempel `QR-REKENING-1`; `resolve_domain` geeft `qr_flow`. De agent committe enkel `types.ts` (platform).
+  - CI: de eerste run brak op de rooktest (`smoke.ts` controleert de sleutels van `resolve_domain`; `qr_flow` is additief). Verwachting bijgewerkt, CI groen op `dd82a8d`.
+  - **Stresstest** op `test-horeca-small` (tafels S1/S2, testproducten, 40 mandjes):
+    - 5× dezelfde aanvraag tegelijk via de live API → precies 1 aanvraag, 4× "duplicate", geen enkele fout;
+    - 9 mandjes tegelijk op één tafel → eerst 8 door (rem 6/min werd onder echte gelijktijdigheid overschreden), na een slot per tafel (`pg_advisory_xact_lock`, live gezet, md5 gelijk) precies 6 door en 3 geremd;
+    - bevestigen door twee toestellen → lijnen één keer, het tweede toestel krijgt geen lijnen om te versturen; 3 aanvragen van één tafel → één rekening;
+    - bedragen: aanvraag = rekening (1650 cent per aanvraag); 15 mandjes afgesloten = precies de geplaatste aanvragen; iets dat op is → `SOLD_OUT`; weigeren bewaart de sleutel `soldOut`, de statusactie geeft die terug.
+  - Publish admin (Akke, ±11:25) bewezen: de live bundel bevat `sellqo-kassa-0.8.0`, `horeca_table_request_accept` en `horeca_qr_tab`.
+  - Helpartikels (`20261028121000`) gedraaid: `qr-tafelrekening` nieuw, `keukenscherm-en-tafelbestelling` en `kassa-tafels-rekeningen` bijgewerkt; snapshot `snapshots.sellqo_20261028_doc_articles_qrrek1` (2 rijen).
+  - **Wandeling** (Chrome, testwinkel tijdelijk online): menu → mandje toont "Bestelling doorgeven" → doorgeven zonder betaling → mandje leeg → status "Doorgegeven"; na bevestigen schuift de pagina vanzelf naar "Bevestigd en op je tafelrekening gezet". Instellingen-UI (keuze tafelrekening/apart, automatisch bevestigen) bekeken zonder op te slaan.
+  - Niet getest: de kassa-inbox op een echt toestel (de testwinkel heeft geen gekoppeld toestel); 390 px (het Chrome-venster liet zich niet smaller zetten).
+  - Opgeruimd: aanvragen, mandjes, categorie en instellingen weg; testproducten, tafels S1/S2 en de testmedewerker op inactief; de twee testrekeningen via `void_check` op void (lijnen kunnen bewust niet verwijderd worden). Winkel terug offline.
 
 **Bewust ongemoeid / Vervolg:**
+- Gevonden tijdens de wandeling (voorstel QR-REKENING-1b):
+  - in het mandje aan tafel staan nog een kortingscodeveld en "Verzending". Een kortingscode verlaagt het getoonde totaal, maar de tafelaanvraag en de rekening rekenen zonder korting;
+  - op de productpagina aan tafel staat "Verzendkosten worden berekend bij het afrekenen";
+  - in de QR-instellingen beschrijft "Bestellen aan tafel" nog "de keuken krijgt het meteen", en de GKS-tip over "aan de toog" staat er ook bij de tafelrekening;
+  - het QR-menu is pas zichtbaar als de winkel online staat (Webshop › Winkel openen). Voor een horeca-zaak zonder webshop is dat een vreemde plek; een verwijzing in de QR-instellingen ontbreekt.
 - Geen `horeca_commands`-rij per bevestiging (audit van commando's), en een rekening die de bediening onder een andere naam opende, wordt niet herkend als die van de tafel (enkel zonder zaalplan). Extra's worden pas bij bevestigen nagekeken.
 - Afrekenen online van de tafelrekening, ook gesplitst: REKENING-ONLINE-1.
 
