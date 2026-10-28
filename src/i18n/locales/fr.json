@@ -7413,7 +7413,9 @@
       "vereis_klantgegevens_bij_elke_verkoop": "Exiger les coordonnées du client à chaque vente",
       "wordt_toegepast_op_producten_zonder_btw": "Appliqué aux produits sans réglage de TVA",
       "vat_6": "6 % (taux réduit BE)",
-      "vat_12": "12 % (taux intermédiaire BE)"
+      "vat_12": "12 % (taux intermédiaire BE)",
+      "horeca_title": "Paiements et tickets",
+      "horeca_desc": "Pour SellQo Kassa, vous réglez les moyens de paiement, le pourboire, les imprimantes et les tickets pour tout l'établissement, pas par caisse."
     },
     "storefrontCustomize": {
       "sec_hero": "Grande bannière",

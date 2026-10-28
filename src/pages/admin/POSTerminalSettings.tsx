@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useTracks } from '@/hooks/useBusinessModules';
 import { 
   ArrowLeft, 
   Monitor, 
@@ -48,6 +49,8 @@ export default function POSTerminalSettingsPage() {
   const { terminalId } = useParams<{ terminalId: string }>();
   const navigate = useNavigate();
   const { terminals, updateTerminal, deleteTerminal, isLoading } = usePOSTerminals();
+  const { hasTrack } = useTracks();
+  const classicPos = hasTrack('webshop');
   
   const terminal = terminals.find(t => t.id === terminalId);
   
@@ -253,6 +256,10 @@ export default function POSTerminalSettingsPage() {
           </CardContent>
         </Card>
         
+        {/* WANDELING: hardware, bonnen en afrekenen hieronder gelden enkel voor de klassieke kassa (winkel).
+            SellQo Kassa (horeca) regelt dat op één plek: Kassa › Betalen en Kassa › Bon & printers. */}
+        {classicPos ? (
+          <>
         {/* Capabilities */}
         <Card>
           <CardHeader>
@@ -387,6 +394,19 @@ export default function POSTerminalSettingsPage() {
             </div>
           </CardContent>
         </Card>
+          </>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t('admin.pOSTerminalSettings.horeca_title')}</CardTitle>
+              <CardDescription>{t('admin.pOSTerminalSettings.horeca_desc')}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-2">
+              <Button asChild variant="outline"><Link to="/admin/pos?tab=betalen">{t('admin.pOS.tabs.pay')}</Link></Button>
+              <Button asChild variant="outline"><Link to="/admin/pos?tab=printers">{t('admin.pOS.tabs.printers')}</Link></Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
       <FloatingSaveBar
         isDirty={

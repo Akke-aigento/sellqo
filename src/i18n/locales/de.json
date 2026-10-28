@@ -7413,7 +7413,9 @@
       "vereis_klantgegevens_bij_elke_verkoop": "Kundendaten bei jedem Verkauf verlangen",
       "wordt_toegepast_op_producten_zonder_btw": "Wird auf Produkte ohne MwSt.-Einstellung angewendet",
       "vat_6": "6 % (ermäßigter Satz BE)",
-      "vat_12": "12 % (Zwischensatz BE)"
+      "vat_12": "12 % (Zwischensatz BE)",
+      "horeca_title": "Bezahlen und Belege",
+      "horeca_desc": "Für SellQo Kassa stellst du Zahlungsarten, Trinkgeld, Drucker und Belege für den ganzen Betrieb ein, nicht pro Kasse."
     },
     "storefrontCustomize": {
       "sec_hero": "Großes Banner",

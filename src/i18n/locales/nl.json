@@ -7700,7 +7700,9 @@
       "vereis_klantgegevens_bij_elke_verkoop": "Vereis klantgegevens bij elke verkoop",
       "wordt_toegepast_op_producten_zonder_btw": "Wordt toegepast op producten zonder BTW-instelling",
       "vat_6": "6% (verlaagd tarief BE)",
-      "vat_12": "12% (tussentarief BE)"
+      "vat_12": "12% (tussentarief BE)",
+      "horeca_title": "Betalen en bonnen",
+      "horeca_desc": "Voor SellQo Kassa stel je betaalwijzen, fooi, printers en de bon in voor de hele zaak, niet per kassa."
     },
     "storefrontCustomize": {
       "titel_optioneel": "Titel (optioneel)",

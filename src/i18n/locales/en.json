@@ -7686,7 +7686,9 @@
       "vereis_klantgegevens_bij_elke_verkoop": "Require customer details for every sale",
       "wordt_toegepast_op_producten_zonder_btw": "Applied to products without a VAT setting",
       "vat_6": "6% (reduced rate BE)",
-      "vat_12": "12% (intermediate rate BE)"
+      "vat_12": "12% (intermediate rate BE)",
+      "horeca_title": "Payments and receipts",
+      "horeca_desc": "For SellQo Kassa you set payment methods, tips, printers and receipts for the whole venue, not per terminal."
     },
     "storefrontCustomize": {
       "sec_hero": "Large banner",

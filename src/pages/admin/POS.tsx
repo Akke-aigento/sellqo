@@ -248,8 +248,8 @@ export default function POSPage() {
 
                   <KassaDevicesStatus devices={kassaDevices.filter((d) => d.terminal_id === terminal.id)} />
 
-                  {/* Capabilities */}
-                  <div className="flex gap-2">
+                  {/* Capabilities (klassieke kassa; SellQo Kassa regelt printers in Bon & printers) */}
+                  {classicPos ? <div className="flex gap-2">
                     {terminal.capabilities.scanner && (
                       <Badge variant="secondary" className="text-xs">{t('admin.pOS.scanner')}</Badge>
                     )}
@@ -259,7 +259,7 @@ export default function POSPage() {
                     {terminal.capabilities.cash_drawer && (
                       <Badge variant="secondary" className="text-xs">{t('admin.pOS.kassalade')}</Badge>
                     )}
-                  </div>
+                  </div> : null}
 
                   {/* Action Button */}
                   <Button 
