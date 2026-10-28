@@ -1,3 +1,4 @@
+import { useRouteAllowed } from '@/hooks/useRouteAllowed';
 import { Link } from 'react-router-dom';
 import { Package } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -17,13 +18,14 @@ interface Props {
 
 /** DASH-2b — best verkochte producten, als fototegels of als lijst met balkjes. */
 export function TopProductsCard({ title, products, isLoading, compact }: Props) {
+  const routeAllowed = useRouteAllowed();
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const currency = currentTenant?.currency || 'EUR';
   const list = products ?? [];
   const max = Math.max(1, ...list.map((p) => p.quantity));
 
-  const link = (p: TopProduct) => (p.productId ? `/admin/products/${p.productId}/edit` : '/admin/products');
+  const link = (p: TopProduct) => (p.productId ? `/admin/products/${p.productId}/edit` : routeAllowed('/admin/products') ? '/admin/products' : '/admin/bestellen');
 
   let body: React.ReactNode;
   if (isLoading && !products) {
@@ -92,7 +94,7 @@ export function TopProductsCard({ title, products, isLoading, compact }: Props) 
     <Card className="flex flex-col rounded-2xl">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
         <CardTitle className="text-base">{title}</CardTitle>
-        {!compact && (
+        {!compact && routeAllowed('/admin/products') && (
           <Link to="/admin/products" className="text-sm font-semibold text-muted-foreground hover:text-foreground">
             {t('admin.cockpit.top.all_products')}
           </Link>

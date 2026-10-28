@@ -165,7 +165,7 @@ export default function AdminDashboard() {
       ? [{ key: 'quotes', count: quotes.data, label: t('admin.cockpit.todo.quotes'), href: '/admin/orders/quotes', tone: 'normal' as const }]
       : []),
     ...(canProducts && stock.data
-      ? [{ key: 'stock', count: lowStock, label: t('admin.cockpit.todo.low_stock'), href: '/admin/products?stock=low', tone: 'soft' as const }]
+      ? [{ key: 'stock', count: lowStock, label: t('admin.cockpit.todo.low_stock'), href: routeAllowed('/admin/products') ? '/admin/products?stock=low' : '/admin/bestellen', tone: 'soft' as const }]
       : []),
   ];
   const todoLoading = shipping.isLoading || unread.isLoading || quotes.isLoading || stock.isLoading;

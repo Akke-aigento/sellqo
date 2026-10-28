@@ -167,6 +167,8 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
 
 export default function ProductForm() {
   const routeAllowed = useRouteAllowed();
+  // WERKPLEK-1: horeca-only heeft geen productlijst; terug gaat naar de Kaart.
+  const productsHome = routeAllowed('/admin/products') ? '/admin/products' : '/admin/bestellen';
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const horeca = useHorecaModule();
@@ -740,7 +742,7 @@ export default function ProductForm() {
       }
     }
 
-    navigate('/admin/products');
+    navigate(productsHome);
   };
 
   const isSubmitting = createProduct.isPending || updateProduct.isPending;
@@ -760,7 +762,7 @@ export default function ProductForm() {
     );
   }
 
-  if (productMissing) return <Navigate to="/admin/products" replace />;
+  if (productMissing) return <Navigate to={productsHome} replace />;
 
   if (isEditing && productLoading) {
     return (
@@ -775,7 +777,7 @@ export default function ProductForm() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-        <Button variant="ghost" size="icon" onClick={() => navigate('/admin/products')}>
+        <Button variant="ghost" size="icon" onClick={() => navigate(productsHome)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div className="flex-1">
@@ -791,7 +793,7 @@ export default function ProductForm() {
         </div>
         {!readOnly && (
         <div className="flex gap-2 flex-wrap w-full sm:w-auto">
-          <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => navigate('/admin/products')}>
+          <Button variant="outline" className="flex-1 sm:flex-none" onClick={() => navigate(productsHome)}>
             {t('common.cancel')}
           </Button>
           <Button className="flex-1 sm:flex-none" onClick={form.handleSubmit(onSubmit)} disabled={isSubmitting}>

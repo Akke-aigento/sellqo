@@ -44,10 +44,10 @@ describe('findTrackRule', () => {
     expect(tracksFor('/admin/shipping')).toEqual(['webshop']);
   });
   it('laat kinderen het spoor van de parent erven', () => {
-    expect(tracksFor('/admin/categories')).toEqual(['webshop', 'horeca']);
+    expect(tracksFor('/admin/categories')).toEqual(['webshop']);
   });
   it('bewaakt Producten alleen op de lijst (eventwinkels bewerken combitickets/munten)', () => {
-    expect(tracksFor('/admin/products')).toEqual(['webshop', 'horeca']);
+    expect(tracksFor('/admin/products')).toEqual(['webshop']);
     expect(tracksFor('/admin/products/abc/edit')).toEqual([]);
   });
   it('raakt platformroutes niet', () => {
@@ -69,7 +69,7 @@ describe('werkplek per spoor', () => {
 
   it('horeca-only: geen webshop-, marketing- of klantenpagina’s', () => {
     expect(visibleTop((t) => t === 'horeca')).toEqual([
-      'dashboard', 'orders', 'products', 'pos', 'ordering', 'kitchen', 'storefront', 'payments',
+      'dashboard', 'orders', 'pos', 'ordering', 'kitchen', 'storefront', 'payments',
       'purchasing', 'reports', 'billing', 'settings', 'help',
     ]);
   });

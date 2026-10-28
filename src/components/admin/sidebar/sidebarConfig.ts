@@ -138,7 +138,9 @@ const dailyItems: NavItem[] = [
   },
   {
     id: 'products',
-    tracks: ['webshop', 'horeca'],
+    // WERKPLEK-1 (Akke 28-10): horeca beheert producten enkel op de Kaart (Bestellen); het
+    // productformulier blijft bereikbaar via de Kaart (trackGateExact bewaakt alleen de lijst).
+    tracks: ['webshop'],
     trackGateExact: true,
     titleKey: 'navigation.products',
     url: '/admin/products',
