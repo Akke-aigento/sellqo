@@ -17,7 +17,7 @@ Nachtrun (Akke sliep). Live doorlopen op de testwinkel (Test Horeca Small, tenan
 **Uitgevoerd** (branch `night-wandeling`)
 - **Onderbalk** (`AdminMobileBottomNav.tsx`). Horeca-only: Vandaag, Kassa (opent `/kassa`, rechten van het menu-item Kassa), Keuken, Kaart. Horeca met webshop of events: Dashboard, Bestellingen, Keuken, Kaart. Korte labels `navigation.bottom.*`.
 - **Instellingen › Horeca** (`HorecaSettingsHub.tsx`): de stand van QR-menu, zaal, posten, kassa's, personeel, betalen, bon & printers en meldingen. Het zijn enkel links naar de vaste plek. Bestellen › Overzicht linkt ernaartoe.
-- **Laadflitsen:** `ready` wacht op de winkel (`currentTenant ? !isLoading : !tenantLoading`), zodat een `refreshTenants` geen pagina laat wegspringen. `ModuleGateLoading` staat in OrderingHub, EventsModuleGate en EventDashboard. De zijbalk toont tijdens het laden enkel kernitems.
+- **Laadflitsen:** `ready` wacht op de winkel (`currentTenant ? !isLoading : !tenantLoading`), zodat een `refreshTenants` geen pagina laat wegspringen. `ModuleGateLoading` staat in OrderingHub, EventsModuleGate, EventDashboard en de kassa-instellingen. Tijdens het laden gebruikt `hasTrack` de sporen van de vorige keer op dit toestel (`localStorage sq_last_tracks`), zodat het menu meteen klopt. Zonder cache blijft het oude gedrag: webshop als standaard.
 - **Keuken:**
   - dekkende achtergrond;
   - `KitchenPauseControl` verborgen zonder webshop-bestellen (behalve om een lopende pauze op te heffen);
@@ -45,7 +45,7 @@ Nachtrun (Akke sliep). Live doorlopen op de testwinkel (Test Horeca Small, tenan
 - Instellingen › Horeca leest enkel tabellen waar leden al leesrecht op hebben. `requiredRead: settings_general`.
 
 **Gedeelde-paden-waarschuwing**
-- `useTracks` en `useNavItemVisibility` worden door elke winkel gebruikt. Het enige verschil voor niet-horecawinkels: tijdens het laden zien ze enkel kernitems in de zijbalk, zonder flits van items die daarna verdwijnen. Na het laden is het gedrag gelijk.
+- `useTracks` wordt door elke winkel gebruikt. Tijdens het laden geldt de cache van de vorige keer, zonder cache het oude gedrag. Na het laden is het gedrag identiek. `useNavItemVisibility` is niet gewijzigd.
 - `usePOS.ts` (klassieke kassa van webshopwinkels): enkel de teksten.
 
 **Verificatie**
@@ -59,6 +59,14 @@ Nachtrun (Akke sliep). Live doorlopen op de testwinkel (Test Horeca Small, tenan
 - `ci:local`: alles groen, behalve de drie bekende lokale esm.sh-stappen.
 - i18n-pariteit ok.
 - tsc en build: zie het verslag.
+- Review-agent op de branch: geen blokkers. Verwerkt:
+  - geen springend kernmenu meer (cache in plaats van een filter);
+  - de pauzeknop blijft bij een webshop-spoor of een fout;
+  - de kassa-instellingen wachten op de sporen;
+  - de releasevolgorde van PRINT-2b staat in de migratiekop: functie → migratie → publish;
+  - meervoud voor betaalwijzen;
+  - de link "Alle horeca-instellingen" enkel met `settings_general`;
+  - een test "post zonder printer gaat niet naar de fallback".
 - Visueel: harnas op 390 en 1280, in nl, fr (donker) en en, voor Instellingen › Horeca en de onderbalk (horeca-only en gemengd). Geen overloop, geen consolefouten.
 
 **Bewust ongemoeid / Vervolg**
