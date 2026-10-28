@@ -48,11 +48,28 @@
 - tsc gelijk aan de baseline (27); lint onder de baseline; i18n-pariteit, used keys en dode knoppen ok.
 - Storefront: tsc en build groen.
 - Migratie: offline geparsed; elke patch-vervanging read-only nagekeken (precies één keer, md5 klopt).
-- Live: nog niet gedraaid (wacht op go).
+- **Live (28-10, ±12:45–13:30):**
+  - Migratie `20261028140000` gedraaid via `query_database`: het bestand werd op commit `710de04` via `net.http_get` uit GitHub gehaald, de md5 vergeleken met lokaal (`07dcfda5…`) en pas dan uitgevoerd, zodat geen enkel byte overgetypt werd. Nagetrokken: snapshot (4 functies), kolommen, tabel met RLS, tip-constraint met `online`, de vier patches met hun marker, de nieuwe functies enkel uitvoerbaar door service_role (`horeca_line_part_cents` is een pure rekenfunctie zonder tabeltoegang).
+  - **Functionele test** op `test-horeca-small`, in één transactie die zichzelf terugdraaide (nep-Stripe-account, testtoestel, rekeningen; achteraf nagekeken: niets blijven staan):
+    - gelijk delen 1 van 3 op 3750 → 1250 + fooi 100; dezelfde start nogmaals = duplicate, met andere k = geweigerd;
+    - tijdens de vasthouding: kassa-afrekenen, splitsen en "mijn items" geweigerd; een tweede deel mag;
+    - fout bedrag → `refund_needed` (AMOUNT_MISMATCH); juist bedrag → voorschot 1250, rekening blijft open, tweede keer = duplicate; `horeca_check_json` toont het voorschot;
+    - terugstorten en de melding: elk één keer (`changed` false bij herhaling);
+    - na het voorschot: splitsen geweigerd; pizza annuleren mag (1350 ≥ 1250), daarna duvel annuleren geweigerd;
+    - kassa zonder `online` geweigerd; met `online` 1250 + cash 100 → afgesloten; fooi verschijnt in het rapport als `online` 100; kassa "Online (QR)" één keer aangemaakt;
+    - mijn items: pizza 1 van 2 → 1200, dezelfde pizza nog eens 2× = `CHECK_LINES_TAKEN`, alles betalen = bezet; afronden → afgesplitst deel van 1200 gesloten, rest 2100; daarna alles online → tafel gesloten;
+    - te laat (vasthouding voorbij, kassa rekende al af) → `CHECK_CLOSED`, terugstorten; kassa claimt net → `CHECK_BUSY`, terugstorten.
+  - CI: de eerste run brak op "Meldingsbronnen". De twee nieuwe meldingstypes stonden niet in `NOTIFICATION_CONFIG`/`notificationDefaults` (nu wel, in 5 talen, `0576bd4`). Hun standaard (in-app aan, e-mail uit) is gelijk aan de terugval voor onbekende types, dus `create-notification`, `send-push-notification` en `generate-subscription-invoices` gedragen zich niet anders en zijn niet opnieuw gedeployed. De run op `0576bd4` faalde daarna op `deno check` door een esm.sh-time-out; dezelfde functiecode slaagde op `3692e4b`. Main groen.
+  - Deploy via de Lovable-agent (deploy-only): `stripe-connect-webhook` lukte meteen, `storefront-api` pas bij de tweede poging (eerste: esm.sh-time-out bij bundelen, de agent stopte zoals gevraagd). Live stempels: beide `REKENING-ONLINE-1`, header `rekening-online-1`; `table_check_get` antwoordt `TABLE_NOT_FOUND` op een onbekende QR. Agent-commits: enkel `types.ts` (platform).
+  - Storefront `f11fca6` gedeployed (GH "Build en deploy" groen); `demo-pizzeria.sellqo.shop/rekening` geeft 200 met titel "Je rekening".
+  - Publish admin (Akke, ±13:50) bewezen: de live bundel (`index-DiOdPCLD.js`) bevat `sellqo-kassa-0.9.0`, `horeca_check_online_pay` en `online_split`.
+  - Helpartikels (`20261028141000`) gedraaid, ook vanuit de GitHub-bytes met md5-check (`e4bdfc45…`): `qr-online-betalen` nieuw (/admin/pos), `kassa-afrekenen` en `qr-tafelrekening` bijgewerkt; snapshot `snapshots.sellqo_20261028_doc_articles_ro1`.
+  - Stripe-webhook-events (`checkout.session.expired`, `async_payment_*`): niet kunnen nakijken, de Stripe-dashboard laadde niet in de Chrome-tab ("We couldn't load the Dashboard", 3 pogingen). Open bij Akke.
 
 **Bewust ongemoeid / Vervolg:**
 - Vasthouding 10 min tegenover een Stripe-sessie van 31 min (bewust: een verlaten betaalpagina blokkeert de kassa niet). Blijft er één randgeval: de losse kaartterminal wordt al aangeslagen vóór de kassa bevestigt, net terwijl een gast online afrondt. Dan moet de bediening dat zelf rechtzetten.
-- Lukt een terugstorting eerst niet en later wel, dan volgt geen tweede melding.
+- Lukt een terugstorting eerst niet en later wel, dan volgt nog één melding "teruggestort" die de eerdere "mislukt" rechtzet (ronde 2).
+- Een echte betaling met Stripe is nog niet getest: de testwinkel heeft geen gekoppeld Stripe-account. Eerste echte test bij een zaak met Stripe, klein bedrag.
 - Webhook-events `checkout.session.expired` en `async_payment_*` moeten op het Connect-endpoint aanstaan (Stripe-dashboard).
 - De sessie van de kassa "Online (QR)" blijft open (rapporten gebruiken enkel gesloten shifts).
 - Geen nieuwe feature-sleutel: gating via het horecaspoor, zoals BETAAL-1 (plan, 28-10).

@@ -337,3 +337,33 @@ en tests met een nep-client merken het niet, want een mock heeft geen `this`.
 maat toevoegen op de horeca-Kaart faalden een dag lang live. SQL-tests en een
 Playwright-preview met nepdata waren groen. De geheel-wandeling op sellqo.app
 ving het (KAART-FIX-1). Dezelfde fout zat in de A/B-statistieken van campagnes.
+
+## R15 — Stripe-terugstortingen idempotent, en Checkout-sessies die meteen moeten afrekenen kennen uitgestelde betalingen.
+Een webhook en een terugkerende gast kunnen tegelijk dezelfde betaling verwerken.
+Zonder idempotency-key wordt dan twee keer teruggestort of twee keer gealarmeerd.
+En met `automatic_payment_methods`/dynamische betaalmethodes kan een sessie
+`complete` zijn terwijl `payment_status` nog `unpaid` is (Bancontact, SEPA…):
+het geld komt pas later via `checkout.session.async_payment_succeeded`.
+**Regel:**
+- `stripe.refunds.create(…, { stripeAccount, idempotencyKey: '<domein>_refund_<id>' })`;
+  de status in de DB idempotent zetten (tweede keer = `changed: false`) en een
+  melding enkel versturen als `changed` waar is;
+- een Checkout-sessie die synchroon iets moet afsluiten (rekening, ticket, voorraad)
+  behandelt `checkout.session.async_payment_succeeded` / `_failed` en
+  `checkout.session.expired`, óf zet vaste `payment_method_types` die meteen
+  afrekenen. Die events moeten op het (Connect-)endpoint in Stripe aanstaan;
+- een bedrag dat binnenkomt wordt altijd vergeleken met wat de DB verwacht
+  (`amount_total` ≠ verwacht → terugstorten, nooit afsluiten).
+**Incident (REKENING-ONLINE-1, review 28 okt 2026):** de eerste versie van de
+online tafelbetaling kon dubbel terugstorten en dubbel alarmeren (webhook +
+statuspoll), en een Bancontact-betaling bleef eeuwig "pending" omdat enkel
+`checkout.session.completed` werd afgehandeld. Beide vond de review, niet de tests.
+
+## R16 — Draai `npm run ci:local` vóór elke push naar main.
+`scripts/ci-local.mjs` leest de stappen uit `.github/workflows/ci.yml` en draait
+ze lokaal (node-checks, vitest, deno als die er is; `--full` voegt tsc en build
+toe). Losse checks uit het hoofd draaien mist er altijd één.
+**Incident (REKENING-ONLINE-1, 28 okt 2026):** de push brak op "Meldingsbronnen":
+twee nieuwe meldingstypes stonden niet in `NOTIFICATION_CONFIG` en
+`notificationDefaults.ts`. Lokaal waren tsc, lint, i18n en de tests groen, maar
+die ene node-check was niet gedraaid.
