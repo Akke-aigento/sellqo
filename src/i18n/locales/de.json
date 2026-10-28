@@ -6165,7 +6165,7 @@
       "qr_view": "Nur ansehen",
       "qr_view_text": "Digitale Speisekarte, bestellt wird beim Personal",
       "qr_order": "Am Tisch bestellen",
-      "qr_order_text": "Gäste bestellen per QR-Code; die Küche erhält die Bestellung sofort, mit Tischnummer",
+      "qr_order_text": "Gäste bestellen selbst per QR-Code, mit der Tischnummer",
       "tab_overview": "Übersicht",
       "tab_webshop": "Webshop: Abholung & Lieferung",
       "tab_qr": "QR-Menü vor Ort",
@@ -8892,7 +8892,11 @@
       "auto_title": "Automatisch bestätigen",
       "auto_desc": "Eine geöffnete Kasse setzt neue Bestellungen sofort auf die Rechnung, ohne dass jemand auf Bestätigen tippt. Nur für Tische aus Ihrem Raumplan (jeweils mit eigenem QR-Code).",
       "auto_warning": "Achtung: Niemand prüft die Bestellung vorher. Ist etwas ausverkauft oder geht etwas schief, muss das Personal das nachträglich auf der Rechnung korrigieren. Schalten Sie das nur ein, wenn Sie Ihren Bestand gut pflegen (Produkte auf der Karte als \"Ausverkauft\" markieren).",
-      "pay_on_check": "Tischbestellungen kommen auf die Tischrechnung: Der Gast bezahlt am Ende an der Kasse (bar, Überweisung, …). Einstellbar unter Bestellen › QR-Menü."
+      "pay_on_check": "Tischbestellungen kommen auf die Tischrechnung: Der Gast bezahlt am Ende an der Kasse (bar, Überweisung, …). Einstellbar unter Bestellen › QR-Menü.",
+      "offline_title": "Ihr QR-Menü ist für Gäste noch nicht sichtbar",
+      "offline_desc": "Ihr Betrieb ist noch offline. Schalten Sie ihn unter Onlineshop › Shop öffnen online; Bestellungen für zu Hause bleiben dabei aus.",
+      "offline_link": "Zu „Shop öffnen“",
+      "check_short": "Auf die Tischrechnung, am Ende"
     }
   },
   "billing": {

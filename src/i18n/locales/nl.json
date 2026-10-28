@@ -7136,7 +7136,7 @@
       "qr_view": "Alleen bekijken",
       "qr_view_text": "Digitale menukaart, bestellen doe je bij de bediening",
       "qr_order": "Bestellen aan tafel",
-      "qr_order_text": "Klanten bestellen via de QR-code; de keuken krijgt het meteen, met tafelnummer",
+      "qr_order_text": "Klanten bestellen zelf via de QR-code, met het tafelnummer erbij",
       "tab_overview": "Overzicht",
       "tab_webshop": "Webshop: afhalen & leveren",
       "tab_qr": "QR-menu in de zaak",
@@ -9179,7 +9179,11 @@
       "auto_title": "Automatisch bevestigen",
       "auto_desc": "Een kassa die openstaat zet nieuwe bestellingen meteen op de rekening, zonder dat iemand op Bevestigen tikt. Enkel voor tafels uit je zaalplan (met een eigen QR-code per tafel).",
       "auto_warning": "Let op: niemand kijkt de bestelling eerst na. Is iets op of gaat er iets mis, dan moet de bediening dat achteraf rechtzetten op de rekening. Zet dit enkel aan als je je voorraad goed opvolgt (zet producten op \"Op\" op de Kaart).",
-      "pay_on_check": "Bestellingen aan tafel komen op de tafelrekening: de gast betaalt op het einde, aan de kassa (contant, overschrijving, …). Instellen bij Bestellen › QR-menu."
+      "pay_on_check": "Bestellingen aan tafel komen op de tafelrekening: de gast betaalt op het einde, aan de kassa (contant, overschrijving, …). Instellen bij Bestellen › QR-menu.",
+      "offline_title": "Je QR-menu is nog niet zichtbaar voor gasten",
+      "offline_desc": "Je zaak staat nog offline. Zet ze online onder Webshop › Winkel openen; online bestellen voor thuis blijft daarbij uit.",
+      "offline_link": "Naar Winkel openen",
+      "check_short": "Op de tafelrekening, op het einde"
     }
   },
   "product_form": {

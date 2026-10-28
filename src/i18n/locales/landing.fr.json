@@ -2283,6 +2283,10 @@
         "horeca_qr_tab": {
           "title": "Commander à table via le QR, sur l'addition de la table",
           "description": "Sous Commandes › Menu QR, vous choisissez désormais si une commande passée avec le code QR sur la table est payée tout de suite ou ajoutée à l'addition de la table. Avec l'addition, le client transmet sa commande sans payer. SellQo Kassa affiche un bouton orange avec le nombre de commandes en attente ; d'un seul geste, vous ajoutez tout ce qu'une table a commandé à l'addition et l'envoyez en cuisine et au bar. Si vous refusez, le client voit la raison. La table paie tout ensemble à la fin. La confirmation automatique est possible, mais désactivée par défaut."
+        },
+        "horeca_qr_menu_visible": {
+          "title": "Les réglages QR indiquent si votre menu est visible",
+          "description": "Sous Commandes › Menu QR, vous voyez désormais tout de suite si votre menu QR n'est pas encore visible pour les clients parce que votre établissement est hors ligne, avec un lien pour le mettre en ligne. À table, le code de réduction et la ligne de livraison disparaissent du panier : pour une commande sur l'addition de la table, le prix de la carte s'applique."
         }
       },
       "copyLink": "Copier le lien",

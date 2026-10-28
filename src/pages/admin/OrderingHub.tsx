@@ -61,7 +61,7 @@ function Overview({ go }: { go: (t: Tab) => void }) {
     queryFn: async () => {
       const [ts, fs, methods, groups, menu] = await Promise.all([
         supabase.from('tenant_theme_settings').select('shop_live, shop_ordering').eq('tenant_id', tenantId!).maybeSingle(),
-        supabase.from('fulfillment_settings').select('slots_enabled, pay_on_pickup, notify_ready, qr_mode, qr_pay_counter, qr_pay_online').eq('tenant_id', tenantId!).maybeSingle(),
+        supabase.from('fulfillment_settings').select('slots_enabled, pay_on_pickup, notify_ready, qr_mode, qr_pay_counter, qr_pay_online, qr_flow').eq('tenant_id', tenantId!).maybeSingle(),
         supabase.from('shipping_methods').select('fulfillment_type').eq('tenant_id', tenantId!).eq('is_active', true).in('fulfillment_type', ['pickup', 'local_delivery']),
         supabase.from('product_addon_groups').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId!).eq('is_active', true),
         // Zelfde telling als de tab Kaart (actieve producten, zonder tickets/cadeaubonnen).
@@ -73,6 +73,8 @@ function Overview({ go }: { go: (t: Tab) => void }) {
         pickup: m.some((x) => x.fulfillment_type === 'pickup'), delivery: m.some((x) => x.fulfillment_type === 'local_delivery'),
         slots: !!fs.data?.slots_enabled, payOnPickup: !!fs.data?.pay_on_pickup, notify: fs.data?.notify_ready !== false,
         qrMode: ((fs.data?.qr_mode as QrMode) || 'view'), qrCounter: fs.data?.qr_pay_counter !== false, qrOnline: !!fs.data?.qr_pay_online,
+        // QR-REKENING-1b — op de tafelrekening betaalt de gast op het einde, niet per bestelling.
+        qrCheck: fs.data?.qr_flow === 'check',
         groups: groups.count ?? 0,
         menu: menu.count ?? 0,
       };
@@ -121,7 +123,7 @@ function Overview({ go }: { go: (t: Tab) => void }) {
             <ul className="grid gap-1.5 text-sm">
               <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.orderingHub.stand')}</span><span>{qrLabel}</span></li>
               {data.qrMode === 'order' ? (
-                <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.marketing.creditPurchaseDialog.afrekenen')}</span><span>{[data.qrCounter && t('admin.orderingHub.pay_counter'), data.qrOnline && t('admin.orderingHub.pay_online')].filter(Boolean).join(' / ')}</span></li>
+                <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.marketing.creditPurchaseDialog.afrekenen')}</span><span>{data.qrCheck ? t('admin.qrFlow.check_short') : [data.qrCounter && t('admin.orderingHub.pay_counter'), data.qrOnline && t('admin.orderingHub.pay_online')].filter(Boolean).join(' / ')}</span></li>
               ) : null}
               <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.orderingHub.menukaart')}</span>
                 <a href={`https://${slug}.sellqo.shop/menu`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">{slug}.sellqo.shop/menu<ExternalLink className="h-3 w-3" /></a></li>

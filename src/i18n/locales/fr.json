@@ -6165,7 +6165,7 @@
       "qr_view": "Consultation seule",
       "qr_view_text": "Carte numérique, la commande se fait auprès du personnel",
       "qr_order": "Commander à table",
-      "qr_order_text": "Les clients commandent via le QR code ; la cuisine le reçoit aussitôt, avec le numéro de table",
+      "qr_order_text": "Les clients commandent eux-mêmes via le code QR, avec le numéro de table",
       "tab_overview": "Aperçu",
       "tab_webshop": "Boutique en ligne : à emporter et livraison",
       "tab_qr": "Menu QR sur place",
@@ -8892,7 +8892,11 @@
       "auto_title": "Confirmer automatiquement",
       "auto_desc": "Une caisse ouverte met directement les nouvelles commandes sur l'addition, sans que personne ne touche Confirmer. Uniquement pour les tables de votre plan de salle (chacune avec son propre code QR).",
       "auto_warning": "Attention : personne ne vérifie la commande d'abord. Si un article est épuisé ou en cas de problème, le personnel doit corriger l'addition après coup. N'activez ceci que si vous suivez bien votre stock (marquez les produits « Épuisé » sur la Carte).",
-      "pay_on_check": "Les commandes à table arrivent sur l'addition : le client paie à la fin, à la caisse (espèces, virement, …). Réglable dans Commander › Menu QR."
+      "pay_on_check": "Les commandes à table arrivent sur l'addition : le client paie à la fin, à la caisse (espèces, virement, …). Réglable dans Commander › Menu QR.",
+      "offline_title": "Votre menu QR n'est pas encore visible pour les clients",
+      "offline_desc": "Votre établissement est encore hors ligne. Mettez-le en ligne sous Boutique en ligne › Ouvrir la boutique ; la commande à domicile reste désactivée.",
+      "offline_link": "Aller à « Ouvrir la boutique »",
+      "check_short": "Sur l'addition de la table, à la fin"
     }
   },
   "billing": {

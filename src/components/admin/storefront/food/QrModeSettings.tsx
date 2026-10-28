@@ -28,13 +28,19 @@ export function QrModeSettings() {
     queryKey: ['qr-mode', tenantId],
     enabled: !!tenantId,
     queryFn: async () => {
-      const { data: raw, error } = await supabase.from('fulfillment_settings').select('qr_mode, qr_pay_counter, qr_pay_online, qr_flow, qr_auto_accept' as 'qr_mode').eq('tenant_id', tenantId!).maybeSingle();
+      const [{ data: raw, error }, ts] = await Promise.all([
+        supabase.from('fulfillment_settings').select('qr_mode, qr_pay_counter, qr_pay_online, qr_flow, qr_auto_accept' as 'qr_mode').eq('tenant_id', tenantId!).maybeSingle(),
+        // QR-REKENING-1b — het QR-menu is pas zichtbaar als de zaak online staat (Webshop › Winkel openen).
+        supabase.from('tenant_theme_settings').select('shop_live').eq('tenant_id', tenantId!).maybeSingle(),
+      ]);
       if (error) throw error;
       const row = raw as { qr_mode?: string | null; qr_pay_counter?: boolean | null; qr_pay_online?: boolean | null; qr_flow?: string | null; qr_auto_accept?: boolean | null } | null;
       return {
         qr_mode: (row?.qr_mode as QrMode) || 'view', qr_pay_counter: row?.qr_pay_counter !== false, qr_pay_online: !!row?.qr_pay_online,
         // QR-REKENING-1
         qr_flow: (row?.qr_flow === 'check' ? 'check' : 'order') as QrFlow, qr_auto_accept: row?.qr_auto_accept === true,
+        // Onbekend (fout bij lezen) = geen melding: nooit een valse waarschuwing.
+        shop_live: ts.error ? true : ts.data?.shop_live === true,
       };
     },
   });
@@ -83,6 +89,16 @@ export function QrModeSettings() {
             </button>
           ))}
         </div>
+        {mode !== 'off' && data && !data.shop_live ? (
+          <div role="status" className="flex gap-2 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+            <Info className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              <span className="block font-medium">{t('admin.qrFlow.offline_title')}</span>
+              <span className="block">{t('admin.qrFlow.offline_desc')}</span>
+              <Link to="/admin/storefront" className="font-medium underline">{t('admin.qrFlow.offline_link')}</Link>
+            </span>
+          </div>
+        ) : null}
         {mode === 'order' ? (
           <div className="space-y-2 rounded-lg border p-4">
             {/* QR-REKENING-1: waar komt een bestelling aan tafel terecht? */}
@@ -116,11 +132,12 @@ export function QrModeSettings() {
               {[counter && t('admin.storefront.food.qrModeSettings.aan_de_toog'), online && t('admin.storefront.food.qrModeSettings.meteen_online')].filter(Boolean).join(' · ') || t('admin.horecaPay.qr_none')}
               {' · '}<Link to="/admin/pos?tab=betalen" className="font-medium text-primary underline">{t('admin.horecaPay.qr_set_in_pay')}</Link>
             </p>
-            </> : null}
+            {/* De GKS-tip gaat over "aan de toog" en hoort dus enkel bij elke bestelling apart afrekenen. */}
             <p className="flex gap-2 rounded-md bg-muted/60 p-2.5 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               {t('admin.storefront.food.qrModeSettings.restaurant_met_een_witte_kassa_gks')}
             </p>
+            </> : null}
           </div>
         ) : null}
         <div className="flex justify-end">

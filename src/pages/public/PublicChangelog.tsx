@@ -16,6 +16,7 @@ const changelogEntries: Array<{
 }> = [
   { version: '2026.13z', dateKey: 'oct_2026', changes: [
     { id: 'horeca_qr_tab', type: 'feature' },
+    { id: 'horeca_qr_menu_visible', type: 'improvement' },
   ]},
   { version: '2026.13y', dateKey: 'oct_2026', changes: [
     { id: 'horeca_payments_transfer', type: 'feature' },

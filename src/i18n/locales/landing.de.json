@@ -2283,6 +2283,10 @@
         "horeca_qr_tab": {
           "title": "Am Tisch per QR bestellen, auf die Tischrechnung",
           "description": "Unter Bestellen › QR-Menü wählen Sie jetzt, ob eine Bestellung über den QR-Code am Tisch sofort bezahlt wird oder auf die Tischrechnung kommt. Bei der Tischrechnung gibt der Gast seine Bestellung ohne Bezahlung weiter. SellQo Kassa zeigt eine orange Schaltfläche mit der Zahl der wartenden Bestellungen; mit einem Tippen setzen Sie alles eines Tisches auf die Rechnung und schicken es als Runde an Küche und Bar. Lehnen Sie ab, sieht der Gast den Grund. Der Tisch bezahlt am Ende alles zusammen. Automatisches Bestätigen ist möglich, aber standardmäßig aus."
+        },
+        "horeca_qr_menu_visible": {
+          "title": "QR-Einstellungen zeigen, ob Ihr Menü sichtbar ist",
+          "description": "Unter Bestellen › QR-Menü sehen Sie jetzt sofort, wenn Ihr QR-Menü für Gäste noch nicht sichtbar ist, weil Ihr Betrieb offline ist, mit einem Link zum Onlineschalten. Am Tisch verschwinden der Rabattcode und die Versandzeile aus dem Warenkorb: Bei Bestellungen auf die Tischrechnung gilt der Preis der Karte."
         }
       },
       "copyLink": "Link kopieren",

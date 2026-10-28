@@ -2283,6 +2283,10 @@
         "horeca_qr_tab": {
           "title": "Bestellen aan tafel via de QR, op de tafelrekening",
           "description": "Je kiest nu onder Bestellen › QR-menu of een bestelling via de QR-code op tafel meteen betaald wordt, of op de tafelrekening komt. Op de tafelrekening geeft de gast zijn bestelling door zonder te betalen. Op SellQo Kassa verschijnt een oranje knop met het aantal wachtende bestellingen; met één tik zet je alles van een tafel op de rekening en gaat het als ronde naar keuken en bar. Weiger je, dan ziet de gast de reden. De tafel betaalt op het einde alles samen. Automatisch bevestigen kan, maar staat standaard uit."
+        },
+        "horeca_qr_menu_visible": {
+          "title": "QR-instellingen tonen of je menu zichtbaar is",
+          "description": "Onder Bestellen › QR-menu zie je nu meteen als je QR-menu nog niet zichtbaar is voor gasten, omdat je zaak offline staat, met een link om ze online te zetten. Aan tafel verdwijnen de kortingscode en de verzendregel uit het mandje: bij bestellen op de tafelrekening geldt de prijs van de kaart."
         }
       },
       "copyLink": "Kopieer link",

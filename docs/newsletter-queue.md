@@ -14,7 +14,9 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 Onder Bestellen › QR-menu kies je of een bestelling via de QR-code op tafel meteen betaald wordt, of op de tafelrekening komt. Op de tafelrekening geeft de gast zijn bestelling door zonder te betalen. Op de kassa verschijnt een oranje knop met het aantal wachtende bestellingen; met één tik zet je alles van een tafel op de rekening en gaat het naar keuken en bar. Weiger je, dan ziet de gast waarom. Op het einde betaalt de tafel alles samen.
 Wat betekent dit voor jou? Gasten wachten niet op de bediening om te bestellen, en jij betaalt geen transactiekost per drankje: één rekening, één betaling.
 
-i18n: `public.changelog.changes.horeca_qr_tab`
+Kleine aanvulling (QR-REKENING-1b): onder Bestellen › QR-menu zie je meteen als je menu nog niet zichtbaar is omdat je zaak offline staat, met een link om ze online te zetten.
+
+i18n: `public.changelog.changes.horeca_qr_tab`, `public.changelog.changes.horeca_qr_menu_visible`
 
 ### 2026.13y — Betalen instellen per zaak, en afrekenen met een overschrijving (feature, 28-10-2026)
 

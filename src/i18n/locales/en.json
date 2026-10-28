@@ -6438,7 +6438,7 @@
       "qr_view": "View only",
       "qr_view_text": "Digital menu; guests order with the staff",
       "qr_order": "Order at the table",
-      "qr_order_text": "Guests order via the QR code; the kitchen gets it right away, with the table number",
+      "qr_order_text": "Guests order themselves via the QR code, with the table number included",
       "tab_overview": "Overview",
       "tab_webshop": "Webshop: pickup & delivery",
       "tab_qr": "QR menu on site",
@@ -9165,7 +9165,11 @@
       "auto_title": "Confirm automatically",
       "auto_desc": "An open till puts new orders on the bill straight away, without anyone tapping Confirm. Only for tables from your floor plan (each with its own QR code).",
       "auto_warning": "Note: nobody checks the order first. If something is sold out or goes wrong, staff have to fix it on the bill afterwards. Only turn this on if you keep your stock up to date (mark products \"Sold out\" on the Menu).",
-      "pay_on_check": "Table orders go onto the table's bill: the guest pays at the end, at the till (cash, bank transfer, …). Set in Ordering › QR menu."
+      "pay_on_check": "Table orders go onto the table's bill: the guest pays at the end, at the till (cash, bank transfer, …). Set in Ordering › QR menu.",
+      "offline_title": "Your QR menu isn't visible to guests yet",
+      "offline_desc": "Your venue is still offline. Put it online under Webshop › Open your store; ordering for delivery or pickup stays off.",
+      "offline_link": "Go to Open your store",
+      "check_short": "On the table's bill, at the end"
     }
   },
   "product_form": {

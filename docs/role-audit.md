@@ -1,3 +1,34 @@
+## QR-REKENING-1b — QR-menu aan tafel: geen korting of verzending op de tafelrekening, en zichtbaarheid in de instellingen — 28 oktober 2026
+
+**Aanleiding:** vier punten uit de wandeling van QR-REKENING-1 (zie daar, "Gevonden tijdens de wandeling"). Akke 28-10: "Akkoord doorpakken".
+
+**Root cause:**
+- `sellqo-storefront` `winkelmandje.tsx` en `CartUI.tsx` (lade en totalen) toonden aan tafel het kortingscodeveld, de kortingen en de regel "Verzending". `table_request_place` rekent met `unit_price` zonder korting, dus een gast zag een lager totaal dan wat op de rekening kwam. `TableCheckRequest` toonde `cart.total` (na korting).
+- `producten.$slug.tsx` toonde aan tafel "Verzendkosten worden berekend bij het afrekenen".
+- `QrModeSettings.tsx`: de GKS-tip over "aan de toog" stond ook bij de tafelrekening; `admin.orderingHub.qr_order_text` beloofde "de keuken krijgt het meteen" (bij de tafelrekening bevestigt eerst de bediening).
+- Het QR-menu is enkel zichtbaar als `tenant_theme_settings.shop_live` aan staat (`sellqo-storefront` `shop.ts` → "We openen binnenkort"). Die schakelaar staat enkel onder Webshop › Winkel openen; de QR-instellingen zeiden er niets over.
+
+**Uitgevoerd:**
+- `sellqo-storefront`:
+  - aan tafel op de tafelrekening geen kortingscodeveld en geen kortingen (pagina en lade), totaal = subtotaal; `TableCheckRequest` toont en bewaart het subtotaal;
+  - aan tafel (beide stromen) geen regel "Verzending" in het mandje en geen verzendzin op de productpagina.
+- Admin:
+  - `QrModeSettings`: leest `shop_live` mee. Staat het QR-menu aan en de zaak offline, dan verschijnt een melding met een link naar `/admin/storefront` (één plek per taak: geen tweede schakelaar). Bij een leesfout geen melding. De GKS-tip staat enkel nog bij "elke bestelling apart afrekenen";
+  - `ShopOpenCard` ververst daarna ook de QR-instellingen;
+  - `OrderingHub`: de regel "Afrekenen" toont bij de tafelrekening "Op de tafelrekening, op het einde".
+- i18n (5 talen): `admin.qrFlow.offline_*`, `admin.qrFlow.check_short`, neutralere `admin.orderingHub.qr_order_text`.
+- Changelog: extra wijziging `horeca_qr_menu_visible` in 2026.13z (die versie is nog niet gecommuniceerd). Nieuwsbrief-item 2026.13z aangevuld. Helpartikel `qr-tafelrekening` aangevuld (migratie `20261028130000`, md5-guard).
+
+**Security-keuzes:** n.v.t.: enkel een extra `select shop_live` (bestaande RLS op `tenant_theme_settings`) en weergave.
+
+**Gedeelde paden:** geen. `storefront-api`, gedeelde tabellen en de kassa-kern zijn niet geraakt.
+
+**Verificatie:** `sellqo-storefront`: `tsc` en `vite build` groen. Admin: tsc gelijk aan de baseline (27), lint onder de baseline, i18n-pariteit, used keys en dode knoppen ok.
+
+**Bewust ongemoeid / Vervolg:**
+- Een korting op een QR-bestelling geeft de bediening op de kassa (`discount_line`).
+- Of een horeca-zaak zonder webshop "Winkel online" beter op een eigen plek krijgt (bv. Bestellen › QR-menu als hoofdschakelaar), is een productkeuze voor later; nu is het een melding met link.
+
 ## QR-REKENING-1 — bestellen via de QR aan tafel op de tafelrekening (kassa 0.8.0) — 28 oktober 2026
 
 **Aanleiding:** Belgaleiro wil dat gasten aan tafel bestellen zonder meteen te betalen: alles op de rekening van de tafel, op het einde één betaling (één Stripe-kost in plaats van één per drankje). Akke 28-10: standaard bevestigt de bediening; automatisch bevestigen instelbaar met waarschuwing; robuust bij drukte, geen crashes. Plan: projectdoc `claude/horeca-werkplek-plan.md`, batch 3.

@@ -59,6 +59,8 @@ export function ShopOpenCard() {
     if (!written || written.length === 0) { toast.error(t('common.saveNoPermission')); return; }
     toast.success(patch.shop_live === true ? t('admin.storefront.shopOpenCard.je_winkel_staat_online') : patch.shop_live === false ? t('admin.storefront.shopOpenCard.je_winkel_staat_offline') : patch.shop_ordering ? t('admin.storefront.shopOpenCard.online_bestellen_staat_aan') : t('admin.storefront.shopOpenCard.online_bestellen_staat_uit'));
     await qc.invalidateQueries({ queryKey: ['shop-open', tenantId] });
+    // QR-REKENING-1b — de QR-instellingen tonen of het menu zichtbaar is.
+    await qc.invalidateQueries({ queryKey: ['qr-mode', tenantId] });
   };
 
   if (isLoading || !data) return <Card><CardContent className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card>;

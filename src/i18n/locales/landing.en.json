@@ -2283,6 +2283,10 @@
         "horeca_qr_tab": {
           "title": "Ordering at the table via the QR code, on the table's tab",
           "description": "Under Ordering › QR menu you now choose whether an order placed with the QR code on the table is paid straight away or goes on the table's tab. With the tab, the guest sends their order without paying. SellQo Kassa shows an orange button with the number of waiting orders; one tap puts everything from a table on the tab and sends it as a round to the kitchen and bar. If you decline, the guest sees the reason. The table pays for everything together at the end. Automatic confirmation is available but off by default."
+        },
+        "horeca_qr_menu_visible": {
+          "title": "QR settings show whether your menu is visible",
+          "description": "Under Ordering › QR menu you now see straight away when your QR menu isn't visible to guests yet because your venue is offline, with a link to put it online. At the table, the discount code and the shipping line disappear from the cart: when ordering on the table's bill, the menu price applies."
         }
       },
       "copyLink": "Copy link",
