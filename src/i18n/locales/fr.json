@@ -843,6 +843,14 @@
           "order_refunded": {
             "label": "Remboursé",
             "description": "Lorsqu'une commande a été remboursée"
+          },
+          "table_check_refunded": {
+            "label": "Paiement de table en ligne remboursé",
+            "description": "Lorsqu'un paiement en ligne d'une addition de table a été remboursé automatiquement parce que l'addition avait changé entre-temps"
+          },
+          "table_check_refund_failed": {
+            "label": "Échec du remboursement d'un paiement de table",
+            "description": "Lorsqu'un paiement en ligne d'une addition de table devait être remboursé mais que le remboursement a échoué : faites-le vous-même dans Stripe"
           }
         },
         "customers": {

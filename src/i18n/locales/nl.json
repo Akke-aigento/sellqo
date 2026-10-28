@@ -815,6 +815,14 @@
           "order_refunded": {
             "label": "Terugbetaald",
             "description": "Wanneer een bestelling is terugbetaald"
+          },
+          "table_check_refunded": {
+            "label": "Online tafelbetaling teruggestort",
+            "description": "Wanneer een online betaling van een tafelrekening automatisch werd teruggestort omdat de rekening intussen veranderd was"
+          },
+          "table_check_refund_failed": {
+            "label": "Terugstorten tafelbetaling mislukt",
+            "description": "Wanneer een online betaling van een tafelrekening teruggestort moest worden maar dat niet lukte: doe het zelf in Stripe"
           }
         },
         "customers": {

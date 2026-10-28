@@ -815,6 +815,14 @@
           "order_refunded": {
             "label": "Refunded",
             "description": "When an order has been refunded"
+          },
+          "table_check_refunded": {
+            "label": "Online table payment refunded",
+            "description": "When an online table bill payment was refunded automatically because the bill had changed in the meantime"
+          },
+          "table_check_refund_failed": {
+            "label": "Table payment refund failed",
+            "description": "When an online table bill payment had to be refunded but the refund failed: do it yourself in Stripe"
           }
         },
         "customers": {

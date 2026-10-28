@@ -57,6 +57,8 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "payments/order_refunded": { category: "payments", inApp: true, email: false },
   "payments/payment_duplicate": { category: "payments", inApp: true, email: false }, // prioriteit high → mailt toch (planEmail)
   "payments/payment_unprocessed": { category: "payments", inApp: true, email: false }, // BILLING-SAFE-1, urgent → mailt toch (planEmail)
+  "payments/table_check_refunded": { category: "payments", inApp: true, email: false }, // REKENING-ONLINE-1
+  "payments/table_check_refund_failed": { category: "payments", inApp: true, email: false }, // REKENING-ONLINE-1
   "customers/customer_new": { category: "customers", inApp: true, email: false },
   "customers/customer_first_order": { category: "customers", inApp: true, email: false },
   "customers/customer_vip": { category: "customers", inApp: true, email: false },

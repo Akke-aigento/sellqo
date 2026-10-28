@@ -142,6 +142,9 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       // NOTIF-TYPES-1: handle_payment_notification stuurt deze met categorie payments.
       { type: 'order_payment_failed', defaultInApp: true, defaultEmail: false },
       { type: 'order_refunded', defaultInApp: true, defaultEmail: false },
+      // REKENING-ONLINE-1: online tafelbetaling automatisch teruggestort, of terugstorten mislukt.
+      { type: 'table_check_refunded', defaultInApp: true, defaultEmail: false },
+      { type: 'table_check_refund_failed', defaultInApp: true, defaultEmail: false },
     ]
   },
   {

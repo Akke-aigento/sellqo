@@ -843,6 +843,14 @@
           "order_refunded": {
             "label": "Erstattet",
             "description": "Wenn eine Bestellung erstattet wurde"
+          },
+          "table_check_refunded": {
+            "label": "Online-Tischzahlung erstattet",
+            "description": "Wenn eine Online-Zahlung einer Tischrechnung automatisch erstattet wurde, weil sich die Rechnung inzwischen geändert hatte"
+          },
+          "table_check_refund_failed": {
+            "label": "Erstattung der Tischzahlung fehlgeschlagen",
+            "description": "Wenn eine Online-Zahlung einer Tischrechnung erstattet werden musste, die Erstattung aber fehlschlug: bitte selbst in Stripe erstatten"
           }
         },
         "customers": {
