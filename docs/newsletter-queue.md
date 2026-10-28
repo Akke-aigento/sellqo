@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13x — Een rustige werkplek voor horeca (improvement, 28-10-2026)
+
+**Status:** wacht op de publish van de admin (WERKPLEK-1, commit 08bfc7d); daarna klaar voor verzending.
+
+**Voor wie:** horecazaken zonder webshop- of eventspakket.
+
+**Enkel wat je zaak nodig heeft** (oktober 2026)
+In je menu en instellingen staat nu alleen wat een zaak gebruikt: bestellingen, je kaart, de keuken, de kassa, betalingen en rapporten. Klanten, kortingen, marketing en webshopinstellingen zijn weg; neem je een webshop erbij, dan komen ze vanzelf terug. Op je gsm staan de kaart en de keuken onderaan, en een kassa openen gaat altijd naar SellQo Kassa.
+Wat betekent dit voor jou? Minder zoeken, sneller vinden, ook voor wie maar af en toe in het beheer komt.
+
+i18n: `public.changelog.changes.horeca_workspace`
+
 ### 2026.13w — Muntenkaart-status op de bestelling, geen ticketmail na annuleren (improvement, 26-10-2026)
 
 **Status:** klaar voor verzending (EVENT-409-1 live sinds 27-10-2026: send-ticket-confirmation, storefront-api, admin en helpartikel; de native app volgt met de volgende build).
