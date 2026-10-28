@@ -5770,6 +5770,7 @@ export type Database = {
           created_at: string
           device_name: string | null
           id: string
+          install_id: string | null
           last_seen_at: string
           os: string | null
           p256dh: string | null
@@ -5783,6 +5784,7 @@ export type Database = {
           created_at?: string
           device_name?: string | null
           id?: string
+          install_id?: string | null
           last_seen_at?: string
           os?: string | null
           p256dh?: string | null
@@ -5796,6 +5798,7 @@ export type Database = {
           created_at?: string
           device_name?: string | null
           id?: string
+          install_id?: string | null
           last_seen_at?: string
           os?: string | null
           p256dh?: string | null
@@ -8582,6 +8585,63 @@ export type Database = {
           },
           {
             foreignKeyName: "horeca_commands_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      horeca_notify_devices: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          events: string[]
+          install_id: string
+          kind: string
+          lang: string
+          name: string
+          personal: boolean
+          station_ids: string[]
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          events?: string[]
+          install_id: string
+          kind?: string
+          lang?: string
+          name: string
+          personal?: boolean
+          station_ids?: string[]
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          events?: string[]
+          install_id?: string
+          kind?: string
+          lang?: string
+          name?: string
+          personal?: boolean
+          station_ids?: string[]
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horeca_notify_devices_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horeca_notify_devices_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -24489,6 +24549,15 @@ export type Database = {
       }
       horeca_bump: { Args: { p_tenant_id: string }; Returns: number }
       horeca_check_json: { Args: { p_check_id: string }; Returns: Json }
+      horeca_device_notify: {
+        Args: {
+          p_ctx: Json
+          p_event: string
+          p_station_id: string
+          p_tenant_id: string
+        }
+        Returns: undefined
+      }
       horeca_line_part_cents: {
         Args: {
           l: Database["public"]["Tables"]["check_lines"]["Row"]
@@ -24499,6 +24568,39 @@ export type Database = {
       horeca_line_total: {
         Args: { l: Database["public"]["Tables"]["check_lines"]["Row"] }
         Returns: number
+      }
+      horeca_notify_device_remove: {
+        Args: { p_install_id: string; p_tenant_id: string }
+        Returns: undefined
+      }
+      horeca_notify_device_save: {
+        Args: {
+          p_events: string[]
+          p_install_id: string
+          p_kind: string
+          p_lang: string
+          p_name: string
+          p_personal: boolean
+          p_station_ids: string[]
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      horeca_notify_devices_list: {
+        Args: { p_tenant_id: string }
+        Returns: Json
+      }
+      horeca_notify_targets: {
+        Args: { p_event: string; p_station_id: string; p_tenant_id: string }
+        Returns: {
+          auth: string
+          install_id: string
+          kind: string
+          lang: string
+          p256dh: string
+          platform: string
+          token: string
+        }[]
       }
       horeca_online_terminal: { Args: { p_tenant_id: string }; Returns: string }
       horeca_open_qty: { Args: { p_line_id: string }; Returns: number }
