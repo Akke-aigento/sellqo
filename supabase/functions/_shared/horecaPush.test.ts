@@ -2,6 +2,7 @@
 import { buildHorecaPush, HORECA_EVENTS, HORECA_PUSH_TEXTS } from "./horecaPush.ts";
 // Bron: src/i18n/languages.ts (SUPPORTED_LANGUAGES). Een nieuwe taal daar hoort ook in HORECA_PUSH_TEXTS.
 import { LANG_CODES } from "../../../src/i18n/languages.ts";
+import { webPushTopic } from "./webpush.ts";
 
 const assert = (c: unknown, m: string) => { if (!c) throw new Error(m); };
 const LANGS: string[] = [...LANG_CODES];
@@ -56,4 +57,16 @@ Deno.test("online betaald: bedrag, fooi, en 'rest' enkel als de rekening openbli
   const closed = buildHorecaPush("paid_online", { table: "S1", amount_cents: 1250, rest_open: false }, "nl");
   assert(!/rest|fooi/.test(closed!.body), closed!.body);
   assert(buildHorecaPush("qr_request", {}, "nl")!.body.startsWith("Zonder tafel"), "zonder tafel");
+});
+
+Deno.test("web push Topic: 32 base64url-tekens, vast per tag (Apple weigerde 'sq-ticket-default': BadWebPushTopic)", async () => {
+  const tags = ["sq-qr", "sq-ticket-default", "sq-ticket-3d8cf072", "sq-ready-", "sq-paid-abc", "0f0e1d2c-3b4a-5968-7766-554433221100"];
+  const seen = new Set<string>();
+  for (const tag of tags) {
+    const t = await webPushTopic(tag);
+    assert(/^[A-Za-z0-9_-]{32}$/.test(t), `topic voor ${tag} ongeldig: ${t}`);
+    assert(t === await webPushTopic(tag), `topic voor ${tag} niet stabiel`);
+    seen.add(t);
+  }
+  assert(seen.size === tags.length, "twee tags geven hetzelfde topic");
 });

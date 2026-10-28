@@ -111,6 +111,14 @@ export async function vapidAuthorization(endpoint: string, privateJwk: JsonWebKe
   return `vapid t=${header}.${payload}.${bytesToB64u(sig)}, k=${VAPID_PUBLIC_KEY}`;
 }
 
+/** RFC 8030 Topic: maximaal 32 tekens uit het base64url-alfabet. Apple eist bovendien een geldige
+ *  base64url-lengte (17 tekens geeft 400 BadWebPushTopic). Daarom: vaste 32 hex-tekens uit SHA-256
+ *  van de tag. Dezelfde tag geeft altijd hetzelfde topic, dus samenvoegen blijft werken. */
+export async function webPushTopic(tag: string): Promise<string> {
+  const h = new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(tag)));
+  return Array.from(h.slice(0, 16), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /** Eén melding naar één web-abonnement. Gooit nooit; fouten zitten in het resultaat. */
 export async function sendWebPush(
   sub: WebPushSubscription,
@@ -129,7 +137,7 @@ export async function sendWebPush(
         "content-type": "application/octet-stream",
         ttl: String(ttlSeconds),
         urgency: "high",
-        ...(payload.tag ? { topic: payload.tag.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 32) } : {}),
+        ...(payload.tag ? { topic: await webPushTopic(payload.tag) } : {}),
       },
       body: buf(body),
     });

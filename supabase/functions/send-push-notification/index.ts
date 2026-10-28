@@ -33,9 +33,9 @@ serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-  // Versiestempel om een herdeploy zonder neveneffect na te meten (SUB-UNIFY-2A; nu MELDING-1). Geen auth, geen data.
+  // Versiestempel om een herdeploy zonder neveneffect na te meten (SUB-UNIFY-2A; nu MELDING-1b). Geen auth, geen data.
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "MELDING-1" }), {
+    return new Response(JSON.stringify({ ok: true, version: "MELDING-1b" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
