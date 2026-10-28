@@ -4,6 +4,7 @@
     "https://esm.sh/@supabase/supabase-js@2.57.2": "./stubs/supabaseFake.ts",
     "https://esm.sh/stripe@18.5.0": "./stubs/stripe.ts",
     "https://esm.sh/pdf-lib@1.17.1": "npm:pdf-lib@1.17.1",
-    "https://esm.sh/qrcode-generator@1.4.4?target=deno": "npm:qrcode-generator@1.4.4"
+    "https://esm.sh/qrcode-generator@1.4.4?target=deno": "npm:qrcode-generator@1.4.4",
+    "https://esm.sh/resend@2.0.0": "./stubs/resend.ts"
   }
 }

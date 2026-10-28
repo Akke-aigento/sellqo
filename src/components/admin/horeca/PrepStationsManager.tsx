@@ -2,6 +2,7 @@
 // Een ronde van SellQo Kassa maakt per post een eigen keukenbon. Zonder posten komt alles
 // op één bon, zoals vandaag.
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Beer, ChefHat, Plus, Star, Trash2, UtensilsCrossed } from 'lucide-react';
@@ -57,7 +58,11 @@ export function PrepStationsManager() {
       <Card>
         <CardHeader>
           <CardTitle>{t('admin.prepStations.title')}</CardTitle>
-          <CardDescription>{t('admin.prepStations.intro')}</CardDescription>
+          <CardDescription>
+            {t('admin.prepStations.intro')}{' '}
+            {/* PRINT-2: printer per post staat op één plek (Kassa › Bon & printers); hier enkel een link. */}
+            <Link to="/admin/pos?tab=printers" className="underline">{t('admin.prepStations.printer_link')}</Link>
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {isLoading ? <div className="h-20 animate-pulse rounded-md bg-muted" /> : stations.length === 0 ? (

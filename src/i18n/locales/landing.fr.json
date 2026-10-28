@@ -2299,6 +2299,10 @@
         "horeca_menu_layout": {
           "title": "Une carte plus claire, aussi sur votre téléphone",
           "description": "Sur la Carte, le nom et le prix sont désormais affichés en grand en haut, avec deux boutons clairs en dessous : À la carte et Disponible ou Épuisé. La photo de votre carte, le collage d'une liste et la carte de départ sont regroupés sous Ajouter des produits. Sélectionner et changer l'ordre se font via un bouton en haut, pour que la liste reste lisible. S'il n'y a encore rien à la carte, la page vous dit quoi faire."
+        },
+        "horeca_printers_receipts": {
+          "title": "Imprimantes à tickets et preuve de paiement par e-mail",
+          "description": "Dans Caisse › Tickets & imprimantes, vous connectez une imprimante à tickets Star (CloudPRNT). L'imprimante récupère elle-même ses tickets : aucune tablette ni PC ne doit rester allumé. Choisissez une imprimante par poste : les tournées de la caisse, les commandes QR et les commandes en ligne en sortent immédiatement. Vous pouvez aussi imprimer une preuve de paiement après chaque paiement à la caisse, et l'envoyer par e-mail après un paiement en ligne via le QR de la table. Si un client veut son ticket par e-mail, touchez Envoyer le ticket après le paiement. La caisse ne le demande jamais d'elle-même."
         }
       },
       "copyLink": "Copier le lien",

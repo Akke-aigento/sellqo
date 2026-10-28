@@ -1,3 +1,89 @@
+## PRINT-2 — bonprinters, printer per post, betaalbewijs afdrukken en mailen, kassa 0.11.0 — 28 oktober 2026
+
+**Root cause / aanleiding:**
+- PRINT-1 (24-10) zette `printers`, `print_jobs` en de edge function `cloudprnt` live. Op 28-10 waren er 0 printers, want er bestond geen scherm om er een te koppelen.
+- Keukenbonnen drukken liep via het printvenster van het toestel (`Kitchen.tsx`, auto-print per toestel). Op een iPad is dat één venster per bon.
+- Een bon mailen bestond nergens.
+- Akke (28-10): bon per mail als vaste instelling, "niet steeds vragen bij afrekenen".
+
+**Uitgevoerd:**
+- **Migratie `20261028230000_print_2.sql`:**
+  - nieuwe kolommen: `printers.lang`, `prep_stations.printer_id`, en op `horeca_pay_settings`: `receipt_print`, `receipt_printer_id`, `mail_online`, `mail_button`;
+  - een guard die een printer van een andere zaak weigert;
+  - `print_jobs.kind` verbreed met `test` en `betaalbewijs`;
+  - de tabel `horeca_receipt_mails` (enkel een SHA-256 van het adres);
+  - de functies `horeca_receipt_data()` (enkel service_role) en `horeca_print_call()`;
+  - de trigger `horeca_print_tr` op `kitchen_tickets`, `orders` (WHEN `service_type is not null`), `check_payments` en `check_online_payments`.
+- **Edge function `horeca-print`:**
+  - keuken-/barbon naar de printer van de post, webshoporder naar de standaardpost, betaalbewijs na afrekenen aan de kassa;
+  - testafdruk met de sessie van een tenant_admin;
+  - dedupe met `ticket:`, `order:`, `receipt:<id>`.
+- **Edge function `horeca-receipt-mail`:**
+  - online na betaling via de QR (adres uit de Stripe-checkout, één mail per betaling);
+  - knop "Mail bon" in de kassa (teamlid; hoogstens 3 per betaling en 300 per dag).
+- **Gedeelde code:**
+  - `_shared/horecaPrint.ts`: opmaak als tekst en mail-HTML, 5 talen, nooit bedragen op een productiebon, altijd "DIT IS GEEN GELDIG BTW-KASTICKET" op het betaalbewijs;
+  - `_shared/horecaReceipt.ts`: correcties samenvoegen.
+- **Admin:** nieuwe tab Kassa › Bon & printers (`HorecaPrinters.tsx`, `?tab=printers`, enkel met het horecaspoor), met:
+  - printer toevoegen: het token toont één keer, server-URL plus Basic-auth of `?key=`;
+  - testafdruk, nieuwe sleutel, aan/uit;
+  - printer per post;
+  - instellingen voor de bon.
+  
+  Bestellen › Posten linkt ernaartoe.
+- **Kassa-app (fiscale release 0.11.0, geen wijziging aan fiscale berichten):**
+  - `MailReceipt.tsx`: de knop verschijnt pas na afrekenen, en het veld pas na een tik;
+  - `payActions` geeft `paymentId` terug;
+  - `paySettings.mail_button`.
+- **Waarom `src/kassa/print` niet hergebruikt is:** die laag drukt enkel ondertekende FDM-events af en importeert zonder extensies, wat Deno niet laadt. De servercode maakt alleen niet-fiscale documenten.
+- **Helpartikel en paper trail:**
+  - `bon-en-printers` (`20261028231000_print_2_docs.sql`);
+  - changelog 2026.14d `horeca_printers_receipts` (5 talen);
+  - nieuwsbrief;
+  - i18n 5 talen.
+- **Tests:**
+  - `_shared/horecaPrint.test.ts` (7);
+  - `scripts/promo-compare/horecaPrint.test.ts` (7);
+  - `horecaReceiptMail.test.ts` (5);
+  - `payDialog.test.tsx` (+2).
+  
+  Alle tests staan in de CI.
+
+**Security-keuzes:**
+- `horeca_receipt_mails` en `horeca_receipt_data` zijn enkel voor service_role; authenticated mag niets.
+- Een printer koppelen kan enkel als tenant_admin (bestaande RLS van PRINT-1). Het token wordt client-side gemaakt en alleen als SHA-256 opgeslagen.
+- `horeca-print` en `horeca-receipt-mail` hebben `verify_jwt = false`. Databankaanroepen vragen `X-Internal-Secret`. Een testafdruk of "Mail bon" vraagt een sessie; voor de kassa wordt die gecontroleerd vóór de betaling opgezocht wordt, zodat er geen orakel ontstaat.
+- Het plafond voor mails wordt vastgelegd vóór het versturen.
+- Bij een geregistreerde kassa (FDM, `fiscal_event_id` of `horeca_tenant_fiscal`) maakt de server geen betaalbewijs, mail of keukenbon.
+- Een online betaling (tenders enkel `online`) geeft geen bon op de kassaprinter.
+
+**Gedeelde-paden-waarschuwing:**
+- `orders` krijgt enkel een AFTER-trigger met een WHEN-voorwaarde, een vroege uitstap zonder printer en `exception when others` (afdrukken houdt nooit een order tegen). Er is geen kolom gewijzigd.
+- De custom frontends schrijven orders via `storefront-api`: hun gedrag is ongewijzigd, want zij hebben geen printers.
+- `prep_stations` en `horeca_pay_settings` zijn horeca-tabellen. `storefront-api` is niet geraakt.
+
+**Verificatie (vóór de uitrol):**
+- De migratie heb ik live 2× gedraaid in een transactie met rollback. De md5 was gelijk aan het bestand, ze is idempotent, en de triggers en kolommen staan er.
+- Getest in die transactie:
+  - zonder printer gebeurt er geen aanroep, met een printer precies één;
+  - een webshop-kitchen_ticket geeft geen aanroep;
+  - een vreemde printer wordt geweigerd, zowel op `prep_stations` als op `horeca_pay_settings`;
+  - authenticated heeft geen rechten.
+- De versie na de review is nog niet opnieuw in de rollback-test gedraaid. Dat gebeurt bij de uitrol: één transactie, dus alles of niets.
+- tsc 27 (baseline), lint ok, `vitest src/kassa` 288 groen, i18n-pariteit ok, build ok.
+- `deno check` en de deno-tests van de nieuwe code zijn groen (lokaal met een import map). De drie bekende lokale esm.sh-stappen falen enkel lokaal.
+- Visueel: tijdelijk harnas met het echte `HorecaPrinters` op 390 en 1280, licht en donker, in nl, en en uk. Geen overloop, geen consolefouten. Het koppelvenster is gecontroleerd.
+- Review-agent: geen blokkerende fout in de code.
+  - Verwerkt: online betaling drukt geen kassabon af; "eerder online betaald" op een volledige online betaling; plafond eerst vastleggen; sessie vóór lookup; fooi niet in de online betaalwijze; deelbetaling van een afgesplitst deel; een uitgezette printer blijft zichtbaar; fout in de fiscale query; geen serverkeukenbon bij GKS.
+  - De opmerking "src/kassa in een gewone batch" volgt het horecaplan: versiebump, en nog geen certificaat.
+
+**Bewust ongemoeid / Vervolg:**
+- Geen test met een echte Star-printer: Belgaleiro heeft er geen. Nog te testen op hardware: Basic-auth, de `?key=`-URL, de tekstcodering (accenten, Cyrillisch). Eerst dan "klaar voor printers" melden.
+- Het kasticket van een geregistreerde kassa via de cloud kan nog niet (QR, PRT-03). Epson komt later.
+- Een mislukte online mail wordt niet automatisch opnieuw geprobeerd.
+- `printers_lang_check` staat vast op 5 talen. Een nieuwe taal vraagt een migratie (vermeld in de migratie).
+- De auto-print per toestel op het keukenscherm blijft bestaan, als terugval zonder cloudprinter.
+
 ## SOCIAL-WEEKS-1 — Social planning: weken toeklapbaar, met samenvatting per status — 28 oktober 2026
 
 **Aanleiding:** Akke 28-10: "reeds geposte weken en aankomende weken toeklapbaar, nu is het niet overzichtelijk."

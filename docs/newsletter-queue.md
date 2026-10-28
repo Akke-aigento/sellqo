@@ -4,9 +4,21 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14d — Bonprinters en betaalbewijs per mail (feature, 28-10-2026)
+
+**Status:** wacht op migratie, deploy van horeca-print en horeca-receipt-mail, publish van de admin en het helpartikel (PRINT-2). Een test met een echte Star-printer staat nog open.
+
+**Voor wie:** horecazaken met SellQo Kassa (Kassa › Bon & printers).
+
+**De bon komt vanzelf uit de printer** (oktober 2026)
+Koppel een Star-bonprinter en kies per post welke printer de bonnen afdrukt: rondes van de kassa, QR-bestellingen en webshoporders komen er meteen uit, zonder dat er een tablet of pc aan moet staan. Na het afrekenen kan het betaalbewijs automatisch afgedrukt worden, na een online betaling via de QR aan tafel krijgt de gast het per mail, en met de knop Mail bon stuur je het naar een klant die erom vraagt.
+Wat betekent dit voor jou? Geen bonnenblok en geen printvenster meer in de rush, en de kassa vraagt nooit zelf om een e-mailadres.
+
+i18n: `public.changelog.changes.horeca_printers_receipts`
+
 ### 2026.14c — Een overzichtelijkere kaart, ook op je gsm (improvement, 28-10-2026)
 
-**Status:** wacht op publish van de admin en het helpartikel (KAART-LOOK-1).
+**Status:** live sinds 28-10 (admin gepubliceerd, helpartikel bijgewerkt); klaar voor de nieuwsbrief.
 
 **Voor wie:** horecazaken (Bestellen › Kaart).
 

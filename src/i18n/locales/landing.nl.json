@@ -2299,6 +2299,10 @@
         "horeca_menu_layout": {
           "title": "Een overzichtelijkere kaart, ook op je gsm",
           "description": "Op de Kaart staan naam en prijs nu groot bovenaan, met daaronder twee duidelijke knopjes: Op de kaart en Beschikbaar of Op. Foto van je kaart, lijst plakken en de startkaart zitten samen onder Producten toevoegen. Selecteren en de volgorde aanpassen doe je via een knop bovenaan, zodat de lijst rustig blijft. Staat er nog niets op de kaart, dan zegt de pagina wat je moet doen."
+        },
+        "horeca_printers_receipts": {
+          "title": "Bonprinters en betaalbewijs per mail",
+          "description": "In Kassa › Bon & printers koppel je een Star-bonprinter (CloudPRNT). De printer haalt zelf zijn bonnen op, dus er hoeft geen tablet of pc aan te staan. Per post kies je een printer: rondes van de kassa, QR-bestellingen en webshoporders komen er meteen uit. Je kan ook een betaalbewijs laten afdrukken na elke betaling aan de kassa en het betaalbewijs mailen na een online betaling via de QR aan tafel. Vraagt een klant zijn bon per mail, dan tik je na het afrekenen op Mail bon. De kassa vraagt er nooit zelf naar."
         }
       },
       "copyLink": "Kopieer link",

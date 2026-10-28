@@ -12,8 +12,9 @@ export type TerminalMode = 'none' | 'standalone';
 export type SettingMethod = 'cash' | 'transfer' | 'card' | 'cheque_meal' | 'voucher';
 export const SETTING_METHODS: SettingMethod[] = ['cash', 'transfer', 'card', 'cheque_meal', 'voucher'];
 
-export interface PaySettings { methods: SettingMethod[]; terminal: TerminalMode; kassa_tip: boolean }
-export const DEFAULT_PAY_SETTINGS: PaySettings = { methods: ['cash', 'transfer'], terminal: 'none', kassa_tip: true };
+/** PRINT-2: mail_button = knop "Mail bon" op het afrekenscherm (standaard aan; de kassa vraagt nooit zelf). */
+export interface PaySettings { methods: SettingMethod[]; terminal: TerminalMode; kassa_tip: boolean; mail_button?: boolean }
+export const DEFAULT_PAY_SETTINGS: PaySettings = { methods: ['cash', 'transfer'], terminal: 'none', kassa_tip: true, mail_button: true };
 
 /** Normaliseer een rij uit de database (of een cache) tot geldige instellingen. */
 export function normalizePaySettings(row: Partial<PaySettings> | null | undefined): PaySettings {
@@ -23,6 +24,7 @@ export function normalizePaySettings(row: Partial<PaySettings> | null | undefine
     methods: methods.length ? methods : DEFAULT_PAY_SETTINGS.methods,
     terminal: row.terminal === 'standalone' ? 'standalone' : 'none',
     kassa_tip: row.kassa_tip !== false,
+    mail_button: row.mail_button !== false,
   };
 }
 
@@ -55,7 +57,7 @@ export function useKassaPaySettings(tenantId: string | undefined): PaySettings {
     staleTime: 60_000,
     queryFn: async () => {
       const { data: row, error } = await supabase.from('horeca_pay_settings' as never)
-        .select('methods, terminal, kassa_tip').eq('tenant_id' as never, tenantId as never).maybeSingle();
+        .select('methods, terminal, kassa_tip, mail_button').eq('tenant_id' as never, tenantId as never).maybeSingle();
       if (error) throw error;
       const s = normalizePaySettings(row as Partial<PaySettings> | null);
       writeCache(tenantId!, s);

@@ -440,6 +440,12 @@ verify_jwt = false
 [functions.horeca-device-push]
 verify_jwt = false
 
+[functions.horeca-print]
+verify_jwt = false
+
+[functions.horeca-receipt-mail]
+verify_jwt = false
+
 [functions.test-printful-connection]
 verify_jwt = false
 

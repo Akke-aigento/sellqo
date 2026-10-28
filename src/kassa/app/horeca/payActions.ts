@@ -60,7 +60,8 @@ export type PayFailure = 'offline' | 'no_insz' | 'fiscal_not_configured' | 'fdm_
   | 'server' | 'changed' | 'plan' | 'nothing' | 'pending_elsewhere' | 'nothing_sent' | 'being_paid' | 'signed_rejected';
 
 export type PayOutcome =
-  | { ok: true; pending: boolean; receiptNumber: string | null; plan: PaymentPlan; signed: SignedEvent | null; reason?: undefined; detail?: undefined }
+  // PRINT-2: paymentId = check_payments.id (voor "Mail bon"); null zolang de betaling nog in de wachtrij staat.
+  | { ok: true; pending: boolean; receiptNumber: string | null; plan: PaymentPlan; signed: SignedEvent | null; paymentId?: string | null; reason?: undefined; detail?: undefined }
   | { ok: false; reason: PayFailure; detail?: string; pending?: undefined; receiptNumber?: undefined; plan?: undefined; signed?: undefined };
 
 /**
@@ -144,7 +145,7 @@ const inFlight = new Set<string>();
 let retrying: Promise<RetryResult> | null = null;
 type RetryResult = { done: number; rejected: { payment: PayPayload; error: string }[] };
 
-async function submit(ctx: Pick<ActionCtx, 'runtime'>, p: PayPayload): Promise<RpcResult<{ ok: boolean; receipt_number?: string | null }>> {
+async function submit(ctx: Pick<ActionCtx, 'runtime'>, p: PayPayload): Promise<RpcResult<{ ok: boolean; receipt_number?: string | null; payment_id?: string | null }>> {
   inFlight.add(p.id);
   try {
     if (!(await ctx.runtime.flushOutbox())) return { data: null, error: { message: 'outbox' } };
@@ -336,7 +337,7 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
     drop(tenantId, payload.id);
     forgetPaymentId(tenantId, c.id);
     await ctx.store.refresh();
-    return { ok: true, pending: false, receiptNumber: r.data?.receipt_number ?? null, plan, signed };
+    return { ok: true, pending: false, receiptNumber: r.data?.receipt_number ?? null, plan, signed, paymentId: r.data?.payment_id ?? payload.id };
   } catch (e) {
     return { ok: false, reason: 'offline', detail: e instanceof Error ? e.message : String(e) };
   }

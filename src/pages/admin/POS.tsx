@@ -35,6 +35,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HorecaNotifyDevices } from '@/components/admin/horeca/HorecaNotifyDevices';
 import { KassaStaffTab } from '@/components/admin/pos/KassaStaffTab';
 import { HorecaPaySettings } from '@/components/admin/pos/HorecaPaySettings';
+import { HorecaPrinters } from '@/components/admin/pos/HorecaPrinters';
 import { KassaDevicesStatus } from '@/components/admin/pos/KassaDevicesStatus';
 import { useKassaDevices } from '@/hooks/useKassaDevices';
 import { usePOSTerminals, usePOSSessions } from '@/hooks/usePOS';
@@ -54,7 +55,8 @@ export default function POSPage() {
   const { hasTrack: hasTrackForTabs } = useTracks();
   const payTab = hasTrackForTabs('horeca');
   const rawTab = searchParams.get('tab');
-  const tab = rawTab === 'personeel' ? 'personeel' : rawTab === 'betalen' && payTab ? 'betalen' : 'terminals';
+  // PRINT-2: ?tab=printers — Bon & printers (horecaspoor).
+  const tab = rawTab === 'personeel' ? 'personeel' : rawTab === 'betalen' && payTab ? 'betalen' : rawTab === 'printers' && payTab ? 'printers' : 'terminals';
   const setTab = (v: string) => {
     const next = new URLSearchParams(searchParams);
     if (v === 'terminals') next.delete('tab'); else next.set('tab', v);
@@ -153,10 +155,16 @@ export default function POSPage() {
           <TabsTrigger value="terminals">{t('admin.pOS.tabs.terminals')}</TabsTrigger>
           <TabsTrigger value="personeel">{t('admin.pOS.tabs.staff')}</TabsTrigger>
           {payTab ? <TabsTrigger value="betalen">{t('admin.pOS.tabs.pay')}</TabsTrigger> : null}
+          {payTab ? <TabsTrigger value="printers">{t('admin.pOS.tabs.printers')}</TabsTrigger> : null}
         </TabsList>
         {payTab ? (
           <TabsContent value="betalen" className="mt-4 max-w-3xl">
             <HorecaPaySettings />
+          </TabsContent>
+        ) : null}
+        {payTab ? (
+          <TabsContent value="printers" className="mt-4 max-w-3xl">
+            <HorecaPrinters />
           </TabsContent>
         ) : null}
         <TabsContent value="personeel" className="mt-4">

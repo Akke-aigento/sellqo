@@ -2299,6 +2299,10 @@
         "horeca_menu_layout": {
           "title": "Eine übersichtlichere Karte, auch auf dem Handy",
           "description": "Auf der Karte stehen Name und Preis jetzt groß oben, darunter zwei klare Schaltflächen: Auf der Karte und Verfügbar oder Aus. Foto der Karte, Liste einfügen und die Startkarte finden Sie gemeinsam unter Produkte hinzufügen. Auswählen und die Reihenfolge ändern erledigen Sie über eine Schaltfläche oben, damit die Liste übersichtlich bleibt. Steht noch nichts auf der Karte, sagt Ihnen die Seite, was zu tun ist."
+        },
+        "horeca_printers_receipts": {
+          "title": "Bondrucker und Zahlungsbeleg per Mail",
+          "description": "Unter Kasse › Belege & Drucker verbindest du einen Star-Bondrucker (CloudPRNT). Der Drucker holt seine Bons selbst ab, kein Tablet oder PC muss eingeschaltet bleiben. Pro Station wählst du einen Drucker: Runden der Kasse, QR-Bestellungen und Webshop-Bestellungen kommen sofort heraus. Du kannst außerdem nach jeder Zahlung an der Kasse einen Zahlungsbeleg drucken und ihn nach einer Online-Zahlung über den QR am Tisch mailen. Möchte ein Kunde seinen Beleg per Mail, tippst du nach dem Bezahlen auf Beleg mailen. Die Kasse fragt nie von selbst danach."
         }
       },
       "copyLink": "Link kopieren",

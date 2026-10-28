@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { useTenant } from '@/hooks/useTenant';
 import { cn } from '@/lib/utils';
 import { buildKasticket, renderHtml } from '../../print';
+import { MailReceipt } from './MailReceipt';
 import type { ActionCtx } from '../horeca/actions';
 import { changeDue, equalSplit, parseEuroInput, planPayment, transferDue, type PaymentPlan, type Tender, type TenderMethod, type TipMethod } from '../horeca/pay';
 import { availableTenders, availableTipMethods, useKassaPaySettings } from '../horeca/paySettings';
@@ -163,6 +164,8 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
                 </button>
               </div>
             ) : null}
+            {/* PRINT-2: betaalbewijs mailen — niet bij een geregistreerde kassa (daar is het kasticket het document). */}
+            {!done.pending && !done.signed && done.paymentId && paySettings.mail_button !== false ? <MailReceipt paymentId={done.paymentId} /> : null}
           </div>
           <DialogFooter><button type="button" onClick={onPaid} className="h-12 w-full rounded-md bg-primary font-semibold text-primary-foreground">{t('kassa.pay.done')}</button></DialogFooter>
         </DialogContent>

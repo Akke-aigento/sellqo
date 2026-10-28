@@ -129,3 +129,32 @@ describe('PayDialog — online betaald aan tafel (REKENING-ONLINE-1)', () => {
     expect((screen.getByText(/kassa.pay.confirm/).closest('button') as HTMLButtonElement).disabled).toBe(true);
   });
 });
+
+describe('PayDialog — knop "Mail bon" (PRINT-2)', () => {
+  const paid = { ok: true, pending: false, receiptNumber: 'K-1', signed: null, paymentId: 'pay-1',
+    plan: { total: 608, cash: 0, cashDue: 0, rounding: 0, tip: 0, tipMethod: null, tenders: [{ method: 'card', amount_cents: 608 }] } };
+  const payAndWait = async () => {
+    render(<PayDialog ctx={ctx} check={check} onClose={() => {}} onPaid={() => {}} />);
+    fireEvent.click(screen.getByText(/kassa.pay.confirm/).closest('button')!);
+    return screen.findByText('kassa.pay.paidTitle');
+  };
+
+  it('na afrekenen: knop zichtbaar, pas na een tik een adresveld (de kassa vraagt nooit zelf)', async () => {
+    Object.assign(settings, { methods: ['cash', 'card'], terminal: 'standalone', kassa_tip: false, mail_button: true });
+    const { payCheck } = await import('../horeca/payActions');
+    (payCheck as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(paid);
+    await payAndWait();
+    expect(screen.queryByLabelText('kassa.pay.mailLabel')).toBeNull();
+    fireEvent.click(screen.getByText('kassa.pay.mailButton').closest('button')!);
+    expect(screen.getByLabelText('kassa.pay.mailLabel')).toBeTruthy();
+  });
+
+  it('knop uit in de instellingen: geen knop', async () => {
+    Object.assign(settings, { mail_button: false });
+    const { payCheck } = await import('../horeca/payActions');
+    (payCheck as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(paid);
+    await payAndWait();
+    expect(screen.queryByText('kassa.pay.mailButton')).toBeNull();
+    Object.assign(settings, { mail_button: true });
+  });
+});

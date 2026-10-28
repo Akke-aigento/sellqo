@@ -2299,6 +2299,10 @@
         "horeca_menu_layout": {
           "title": "A clearer menu, also on your phone",
           "description": "On the Menu, the name and price are now shown large at the top, with two clear buttons below: On the menu and Available or Sold out. Photo of your menu, pasting a list and the starter menu are together under Add products. Selecting and changing the order happen through a button at the top, so the list stays calm. If nothing is on the menu yet, the page tells you what to do."
+        },
+        "horeca_printers_receipts": {
+          "title": "Receipt printers and email receipts",
+          "description": "In POS › Receipts & printers you connect a Star receipt printer (CloudPRNT). The printer fetches its own tickets, so no tablet or PC has to stay on. Choose a printer per station: rounds from the POS, QR orders and web shop orders come straight out of it. You can also print a payment receipt after every payment at the POS, and email the receipt after an online payment via the table QR. If a customer wants their receipt by email, tap Email receipt after payment. The POS never asks on its own."
         }
       },
       "copyLink": "Copy link",
