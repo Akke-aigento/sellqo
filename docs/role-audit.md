@@ -64,13 +64,12 @@
   - Storefront `f11fca6` gedeployed (GH "Build en deploy" groen); `demo-pizzeria.sellqo.shop/rekening` geeft 200 met titel "Je rekening".
   - Publish admin (Akke, ±13:50) bewezen: de live bundel (`index-DiOdPCLD.js`) bevat `sellqo-kassa-0.9.0`, `horeca_check_online_pay` en `online_split`.
   - Helpartikels (`20261028141000`) gedraaid, ook vanuit de GitHub-bytes met md5-check (`e4bdfc45…`): `qr-online-betalen` nieuw (/admin/pos), `kassa-afrekenen` en `qr-tafelrekening` bijgewerkt; snapshot `snapshots.sellqo_20261028_doc_articles_ro1`.
-  - Stripe-webhook-events (`checkout.session.expired`, `async_payment_*`): niet kunnen nakijken, de Stripe-dashboard laadde niet in de Chrome-tab ("We couldn't load the Dashboard", 3 pogingen). Open bij Akke.
+  - Stripe-webhook-events op het Connect-endpoint "SellQo Connect" (`we_1TM6a02…`): `checkout.session.expired` stond al aan; `checkout.session.async_payment_succeeded` en `_failed` door Akke toegevoegd (28-10, ±18:17), nu 11 events. De 13 % foutratio op dat endpoint is één mislukte levering (`checkout.session.completed`, 23-10 22:32:59), 17 s later met 200 OK opnieuw verstuurd; lage aantallen, geen verlies.
 
 **Bewust ongemoeid / Vervolg:**
 - Vasthouding 10 min tegenover een Stripe-sessie van 31 min (bewust: een verlaten betaalpagina blokkeert de kassa niet). Blijft er één randgeval: de losse kaartterminal wordt al aangeslagen vóór de kassa bevestigt, net terwijl een gast online afrondt. Dan moet de bediening dat zelf rechtzetten.
 - Lukt een terugstorting eerst niet en later wel, dan volgt nog één melding "teruggestort" die de eerdere "mislukt" rechtzet (ronde 2).
 - Een echte betaling met Stripe is nog niet getest: de testwinkel heeft geen gekoppeld Stripe-account. Eerste echte test bij een zaak met Stripe, klein bedrag.
-- Webhook-events `checkout.session.expired` en `async_payment_*` moeten op het Connect-endpoint aanstaan (Stripe-dashboard).
 - De sessie van de kassa "Online (QR)" blijft open (rapporten gebruiken enkel gesloten shifts).
 - Geen nieuwe feature-sleutel: gating via het horecaspoor, zoals BETAAL-1 (plan, 28-10).
 
