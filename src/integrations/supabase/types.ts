@@ -4247,6 +4247,106 @@ export type Database = {
           },
         ]
       }
+      check_online_payments: {
+        Row: {
+          amount_cents: number
+          check_id: string
+          created_at: string
+          fee_cents: number
+          hold_until: string
+          id: string
+          kind: string
+          lines: Json
+          paid_at: string | null
+          reason: string | null
+          refund_failed_notified_at: string | null
+          refund_id: string | null
+          refund_notified_at: string | null
+          settled_check_id: string | null
+          share_k: number | null
+          share_n: number | null
+          status: string
+          stripe_payment_intent: string | null
+          stripe_session_id: string | null
+          table_label: string | null
+          tenant_id: string
+          tip_cents: number
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          check_id: string
+          created_at?: string
+          fee_cents?: number
+          hold_until: string
+          id: string
+          kind: string
+          lines?: Json
+          paid_at?: string | null
+          reason?: string | null
+          refund_failed_notified_at?: string | null
+          refund_id?: string | null
+          refund_notified_at?: string | null
+          settled_check_id?: string | null
+          share_k?: number | null
+          share_n?: number | null
+          status?: string
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string | null
+          table_label?: string | null
+          tenant_id: string
+          tip_cents?: number
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          check_id?: string
+          created_at?: string
+          fee_cents?: number
+          hold_until?: string
+          id?: string
+          kind?: string
+          lines?: Json
+          paid_at?: string | null
+          reason?: string | null
+          refund_failed_notified_at?: string | null
+          refund_id?: string | null
+          refund_notified_at?: string | null
+          settled_check_id?: string | null
+          share_k?: number | null
+          share_n?: number | null
+          status?: string
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string | null
+          table_label?: string | null
+          tenant_id?: string
+          tip_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_online_payments_check_id_fkey"
+            columns: ["check_id"]
+            isOneToOne: false
+            referencedRelation: "dining_checks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "check_online_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "check_online_payments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       check_payments: {
         Row: {
           check_id: string
@@ -5884,6 +5984,7 @@ export type Database = {
           name: string | null
           next_grouping_id: number
           next_seq: number
+          online_credit_cents: number
           opened_at: string
           opened_by: string | null
           paying_payment_id: string | null
@@ -5908,6 +6009,7 @@ export type Database = {
           name?: string | null
           next_grouping_id?: number
           next_seq?: number
+          online_credit_cents?: number
           opened_at?: string
           opened_by?: string | null
           paying_payment_id?: string | null
@@ -5932,6 +6034,7 @@ export type Database = {
           name?: string | null
           next_grouping_id?: number
           next_seq?: number
+          online_credit_cents?: number
           opened_at?: string
           opened_by?: string | null
           paying_payment_id?: string | null
@@ -8490,6 +8593,9 @@ export type Database = {
         Row: {
           kassa_tip: boolean
           methods: string[]
+          online_pay: boolean
+          online_split: boolean
+          online_tip: boolean
           tenant_id: string
           terminal: string
           updated_at: string
@@ -8498,6 +8604,9 @@ export type Database = {
         Insert: {
           kassa_tip?: boolean
           methods?: string[]
+          online_pay?: boolean
+          online_split?: boolean
+          online_tip?: boolean
           tenant_id: string
           terminal?: string
           updated_at?: string
@@ -8506,6 +8615,9 @@ export type Database = {
         Update: {
           kassa_tip?: boolean
           methods?: string[]
+          online_pay?: boolean
+          online_split?: boolean
+          online_tip?: boolean
           tenant_id?: string
           terminal?: string
           updated_at?: string
@@ -24377,10 +24489,18 @@ export type Database = {
       }
       horeca_bump: { Args: { p_tenant_id: string }; Returns: number }
       horeca_check_json: { Args: { p_check_id: string }; Returns: Json }
+      horeca_line_part_cents: {
+        Args: {
+          l: Database["public"]["Tables"]["check_lines"]["Row"]
+          q: number
+        }
+        Returns: number
+      }
       horeca_line_total: {
         Args: { l: Database["public"]["Tables"]["check_lines"]["Row"] }
         Returns: number
       }
+      horeca_online_terminal: { Args: { p_tenant_id: string }; Returns: string }
       horeca_open_qty: { Args: { p_line_id: string }; Returns: number }
       horeca_pay: {
         Args: { p_device_id: string; p_payment: Json; p_tenant_id: string }
@@ -25037,6 +25157,40 @@ export type Database = {
       sync_order_from_returns: {
         Args: { _order_id: string }
         Returns: undefined
+      }
+      table_check_pay_mark: {
+        Args: {
+          p_payment_id: string
+          p_refund_id: string
+          p_session_id: string
+          p_status: string
+        }
+        Returns: Json
+      }
+      table_check_pay_settle: {
+        Args: {
+          p_amount_total_cents: number
+          p_payment_id: string
+          p_payment_intent: string
+        }
+        Returns: Json
+      }
+      table_check_pay_start: {
+        Args: {
+          p_kind: string
+          p_lines: Json
+          p_payment_id: string
+          p_share_k: number
+          p_share_n: number
+          p_table_id: string
+          p_tenant_id: string
+          p_tip_cents: number
+        }
+        Returns: Json
+      }
+      table_check_view: {
+        Args: { p_table_id: string; p_tenant_id: string }
+        Returns: Json
       }
       table_request_place: {
         Args: {
