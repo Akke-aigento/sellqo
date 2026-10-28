@@ -1663,7 +1663,6 @@
       "pay": "Bezahlen",
       "pay_status": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
       "printers": "Belege & Drucker",
-      "printers_status": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
       "alerts": "Benachrichtigungen pro Gerät",
       "devices_count_one": "{{count}} Gerät",
       "devices_count_other": "{{count}} Geräte",
@@ -1678,7 +1677,11 @@
       "staff_count_few": "{{count}} Mitarbeiter",
       "staff_count_many": "{{count}} Mitarbeiter",
       "devices_count_few": "{{count}} Geräte",
-      "devices_count_many": "{{count}} Geräte"
+      "devices_count_many": "{{count}} Geräte",
+      "printers_status_one": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
+      "printers_status_few": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
+      "printers_status_many": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
+      "printers_status_other": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}"
     }
   },
   "languages": {
@@ -6278,7 +6281,8 @@
       "tab_stations": "Stationen",
       "tab_menu": "Karte",
       "menu_count": "Auf der Karte: {{count}}",
-      "menu_empty": "Noch nichts: starte mit der Startkarte"
+      "menu_empty": "Noch nichts: starte mit der Startkarte",
+      "all_settings": "Alle Gastronomie-Einstellungen"
     },
     "kitchen": {
       "col_new": "Neu",

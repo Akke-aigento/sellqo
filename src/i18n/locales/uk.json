@@ -1643,14 +1643,17 @@
       "pay": "Оплата",
       "pay_status": "{{count}} способи оплати · онлайн-оплата {{online}}",
       "printers": "Чеки та принтери",
-      "printers_status": "{{count}} принтери · друк підтвердження {{print}} · e-mail {{mail}}",
       "alerts": "Сповіщення на пристрій",
       "devices_count_one": "{{count}} пристрій",
       "devices_count_few": "{{count}} пристрої",
       "devices_count_many": "{{count}} пристроїв",
       "devices_count_other": "{{count}} пристроїв",
       "on": "увімк.",
-      "off": "вимк."
+      "off": "вимк.",
+      "printers_status_one": "{{count}} принтер · друк підтвердження {{print}} · e-mail {{mail}}",
+      "printers_status_few": "{{count}} принтери · друк підтвердження {{print}} · e-mail {{mail}}",
+      "printers_status_many": "{{count}} принтерів · друк підтвердження {{print}} · e-mail {{mail}}",
+      "printers_status_other": "{{count}} принтерів · друк підтвердження {{print}} · e-mail {{mail}}"
     }
   },
   "languages": {
@@ -6565,7 +6568,8 @@
       "tab_stations": "Пости",
       "tab_menu": "Меню",
       "menu_count": "У меню: {{count}}",
-      "menu_empty": "Поки нічого: почніть зі стартового меню"
+      "menu_empty": "Поки нічого: почніть зі стартового меню",
+      "all_settings": "Усі налаштування горека"
     },
     "kitchen": {
       "col_new": "Нові",

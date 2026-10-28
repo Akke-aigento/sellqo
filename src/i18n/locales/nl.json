@@ -1635,7 +1635,6 @@
       "pay": "Betalen",
       "pay_status": "{{count}} betaalwijzen · online betalen {{online}}",
       "printers": "Bon & printers",
-      "printers_status": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
       "alerts": "Meldingen per toestel",
       "devices_count_one": "{{count}} toestel",
       "devices_count_other": "{{count}} toestellen",
@@ -1650,7 +1649,11 @@
       "staff_count_few": "{{count}} medewerkers",
       "staff_count_many": "{{count}} medewerkers",
       "devices_count_few": "{{count}} toestellen",
-      "devices_count_many": "{{count}} toestellen"
+      "devices_count_many": "{{count}} toestellen",
+      "printers_status_one": "{{count}} printer · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
+      "printers_status_few": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
+      "printers_status_many": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
+      "printers_status_other": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}"
     }
   },
   "languages": {
@@ -7226,7 +7229,8 @@
       "tab_stations": "Posten",
       "tab_menu": "Kaart",
       "menu_count": "Op de kaart: {{count}}",
-      "menu_empty": "Nog niets: begin met de startkaart"
+      "menu_empty": "Nog niets: begin met de startkaart",
+      "all_settings": "Alle horeca-instellingen"
     },
     "pos": {
       "pOSKitchenPanel": {

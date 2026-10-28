@@ -1663,7 +1663,6 @@
       "pay": "Paiements",
       "pay_status": "{{count}} moyens de paiement · paiement en ligne {{online}}",
       "printers": "Tickets & imprimantes",
-      "printers_status": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
       "alerts": "Alertes par appareil",
       "devices_count_one": "{{count}} appareil",
       "devices_count_other": "{{count}} appareils",
@@ -1678,7 +1677,11 @@
       "staff_count_few": "{{count}} membres du personnel",
       "staff_count_many": "{{count}} membres du personnel",
       "devices_count_few": "{{count}} appareils",
-      "devices_count_many": "{{count}} appareils"
+      "devices_count_many": "{{count}} appareils",
+      "printers_status_one": "{{count}} imprimante · imprimer la preuve {{print}} · e-mail {{mail}}",
+      "printers_status_few": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
+      "printers_status_many": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
+      "printers_status_other": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}"
     }
   },
   "languages": {
@@ -6278,7 +6281,8 @@
       "tab_stations": "Postes",
       "tab_menu": "Carte",
       "menu_count": "Sur la carte : {{count}}",
-      "menu_empty": "Rien encore : commence par la carte de départ"
+      "menu_empty": "Rien encore : commence par la carte de départ",
+      "all_settings": "Tous les réglages horeca"
     },
     "kitchen": {
       "col_new": "Nouveau",

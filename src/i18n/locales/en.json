@@ -1635,7 +1635,6 @@
       "pay": "Payments",
       "pay_status": "{{count}} payment methods · online payment {{online}}",
       "printers": "Receipts & printers",
-      "printers_status": "{{count}} printers · print receipt {{print}} · email {{mail}}",
       "alerts": "Alerts per device",
       "devices_count_one": "{{count}} device",
       "devices_count_other": "{{count}} devices",
@@ -1650,7 +1649,11 @@
       "staff_count_few": "{{count}} staff members",
       "staff_count_many": "{{count}} staff members",
       "devices_count_few": "{{count}} devices",
-      "devices_count_many": "{{count}} devices"
+      "devices_count_many": "{{count}} devices",
+      "printers_status_one": "{{count}} printer · print receipt {{print}} · email {{mail}}",
+      "printers_status_few": "{{count}} printers · print receipt {{print}} · email {{mail}}",
+      "printers_status_many": "{{count}} printers · print receipt {{print}} · email {{mail}}",
+      "printers_status_other": "{{count}} printers · print receipt {{print}} · email {{mail}}"
     }
   },
   "languages": {
@@ -6551,7 +6554,8 @@
       "tab_stations": "Stations",
       "tab_menu": "Menu",
       "menu_count": "On the menu: {{count}}",
-      "menu_empty": "Nothing yet: start with the starter menu"
+      "menu_empty": "Nothing yet: start with the starter menu",
+      "all_settings": "All hospitality settings"
     },
     "kitchen": {
       "col_new": "New",

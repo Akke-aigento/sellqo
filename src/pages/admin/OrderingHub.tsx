@@ -5,7 +5,7 @@
 // Producten, extra's en keuken zijn gedeeld. Alleen met de horeca-module.
 import { Link, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowRight, Bike, BookOpen, ChefHat, ExternalLink, Globe, Pizza, QrCode, UtensilsCrossed } from 'lucide-react';
+import { ArrowRight, Bike, ChevronRight, BookOpen, ChefHat, ExternalLink, Globe, Pizza, QrCode, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
@@ -158,6 +158,10 @@ function Overview({ go }: { go: (t: Tab) => void }) {
             <span><span className="block font-medium">{t('admin.orderingHub.kassa')}</span><span className="block text-sm text-muted-foreground">{t('admin.orderingHub.ter_plaatse_meenemen_en_telefoon')}</span></span>
           </Link>
         </div>
+        {/* WANDELING: alle horeca-instellingen met hun stand, op één overzicht (enkel links). */}
+        <Link to="/admin/settings?section=horeca" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+          {t('admin.orderingHub.all_settings')} <ChevronRight className="h-4 w-4" aria-hidden />
+        </Link>
       </div>
     </div>
   );
