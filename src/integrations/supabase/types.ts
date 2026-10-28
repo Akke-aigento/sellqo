@@ -7982,6 +7982,8 @@ export type Database = {
           paused_until: string | null
           pay_on_pickup: boolean
           prep_minutes: number
+          qr_auto_accept: boolean
+          qr_flow: string
           qr_mode: string
           qr_pay_counter: boolean
           qr_pay_online: boolean
@@ -8001,6 +8003,8 @@ export type Database = {
           paused_until?: string | null
           pay_on_pickup?: boolean
           prep_minutes?: number
+          qr_auto_accept?: boolean
+          qr_flow?: string
           qr_mode?: string
           qr_pay_counter?: boolean
           qr_pay_online?: boolean
@@ -8020,6 +8024,8 @@ export type Database = {
           paused_until?: string | null
           pay_on_pickup?: boolean
           prep_minutes?: number
+          qr_auto_accept?: boolean
+          qr_flow?: string
           qr_mode?: string
           qr_pay_counter?: boolean
           qr_pay_online?: boolean
@@ -8475,6 +8481,48 @@ export type Database = {
             foreignKeyName: "horeca_commands_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      horeca_pay_settings: {
+        Row: {
+          kassa_tip: boolean
+          methods: string[]
+          tenant_id: string
+          terminal: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          kassa_tip?: boolean
+          methods?: string[]
+          tenant_id: string
+          terminal?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          kassa_tip?: boolean
+          methods?: string[]
+          tenant_id?: string
+          terminal?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "horeca_pay_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horeca_pay_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
             referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
@@ -19224,6 +19272,91 @@ export type Database = {
           },
         ]
       }
+      table_requests: {
+        Row: {
+          cart_id: string | null
+          check_id: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          device_id: string | null
+          dining_table_id: string | null
+          guest_name: string | null
+          id: string
+          item_count: number
+          items: Json
+          line_ids: string[] | null
+          note: string | null
+          reason: string | null
+          status: string
+          table_label: string
+          tenant_id: string
+          total_cents: number
+        }
+        Insert: {
+          cart_id?: string | null
+          check_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          device_id?: string | null
+          dining_table_id?: string | null
+          guest_name?: string | null
+          id: string
+          item_count: number
+          items: Json
+          line_ids?: string[] | null
+          note?: string | null
+          reason?: string | null
+          status?: string
+          table_label: string
+          tenant_id: string
+          total_cents: number
+        }
+        Update: {
+          cart_id?: string | null
+          check_id?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          device_id?: string | null
+          dining_table_id?: string | null
+          guest_name?: string | null
+          id?: string
+          item_count?: number
+          items?: Json
+          line_ids?: string[] | null
+          note?: string | null
+          reason?: string | null
+          status?: string
+          table_label?: string
+          tenant_id?: string
+          total_cents?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_requests_dining_table_id_fkey"
+            columns: ["dining_table_id"]
+            isOneToOne: false
+            referencedRelation: "dining_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_invitations: {
         Row: {
           accepted_at: string | null
@@ -24263,6 +24396,24 @@ export type Database = {
       }
       horeca_round5: { Args: { p_cents: number }; Returns: number }
       horeca_snapshot: { Args: { p_tenant_id: string }; Returns: Json }
+      horeca_table_request_accept: {
+        Args: {
+          p_device_id: string
+          p_request_id: string
+          p_staff_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
+      horeca_table_request_reject: {
+        Args: {
+          p_reason: string
+          p_request_id: string
+          p_staff_id: string
+          p_tenant_id: string
+        }
+        Returns: Json
+      }
       horeca_tenant_fiscal: { Args: { p_tenant_id: string }; Returns: boolean }
       horeca_vat_label: { Args: { p_rate: number }; Returns: string }
       increment_campaign_bounced: {
@@ -24886,6 +25037,18 @@ export type Database = {
       sync_order_from_returns: {
         Args: { _order_id: string }
         Returns: undefined
+      }
+      table_request_place: {
+        Args: {
+          p_cart_id: string
+          p_guest_name: string
+          p_note: string
+          p_request_id: string
+          p_table_id: string
+          p_table_label: string
+          p_tenant_id: string
+        }
+        Returns: Json
       }
       tenant_has_business_module: {
         Args: { _module: string; _tenant_id: string }
