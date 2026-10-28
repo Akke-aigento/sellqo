@@ -79,6 +79,8 @@ export class HorecaStore {
   rejections: Rejection[] = [];
   /** QR-REKENING-1: openstaande tafelaanvragen (oudste eerst), ververst samen met de rekeningen. */
   requests: TableRequest[] = [];
+  /** MELDING-1: de aanvragen zijn minstens één keer geladen (vóór die tijd is een lege lijst geen nulmeting). */
+  requestsLoaded = false;
   /**
    * TAFEL-2: wordt vóór elk versturen aangeroepen (de runtime schrijft daar ondertekende events
    * weg die nog op het toestel wachten). false = nog niet gelukt: niets versturen, want de
@@ -125,7 +127,7 @@ export class HorecaStore {
         this.transport.snapshot(this.tenantId),
         this.transport.requests ? this.transport.requests(this.tenantId).catch(() => null) : Promise.resolve(null),
       ]);
-      if (reqs) this.requests = reqs;
+      if (reqs) { this.requests = reqs; this.requestsLoaded = true; }
       this.setSnapshot(snap);
       this.online = true;
     } catch {

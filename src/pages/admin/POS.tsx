@@ -32,6 +32,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { HorecaNotifyDevices } from '@/components/admin/horeca/HorecaNotifyDevices';
 import { KassaStaffTab } from '@/components/admin/pos/KassaStaffTab';
 import { HorecaPaySettings } from '@/components/admin/pos/HorecaPaySettings';
 import { KassaDevicesStatus } from '@/components/admin/pos/KassaDevicesStatus';
@@ -343,6 +344,8 @@ export default function POSPage() {
         </Card>
       )}
 
+          {/* MELDING-1: toestellen die horeca-meldingen krijgen (enkel met het horecaspoor). */}
+          {payTab ? <HorecaNotifyDevices /> : null}
         </TabsContent>
       </Tabs>
 

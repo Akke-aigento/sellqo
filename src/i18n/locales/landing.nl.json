@@ -2291,6 +2291,10 @@
         "horeca_check_online_pay": {
           "title": "Gasten betalen de tafelrekening online, ook gesplitst",
           "description": "Via de QR-code op tafel zien gasten hun rekening en betalen ze zelf met Bancontact, kaart of wallet: alles, enkel hun eigen items, of gelijk gedeeld. Fooi kan met 5, 10 of 15 % of een eigen bedrag. De betaling komt meteen op de rekening; is alles betaald, dan sluit de tafel vanzelf. Betaalt maar een deel online, dan rekent de kassa de rest af en telt het online deel mee. Kan een betaling niet meer op de rekening (bv. intussen aan de kassa afgerekend), dan wordt ze automatisch teruggestort. Aanzetten doe je onder Kassa › Betalen. Niet beschikbaar met een geregistreerde kassa (GKS)."
+        },
+        "horeca_device_alerts": {
+          "title": "Meldingen per toestel voor kassa, keuken en bar",
+          "description": "Elk toestel in de zaak krijgt nu enkel wat het nodig heeft: de kassa een melding bij een QR-bestelling, een bon die klaar is en een online betaling; het keuken- of barscherm bij elke nieuwe bon voor die post. Ook als het scherm dicht is, via de SellQo-app of als app op het beginscherm (op iPhone en iPad voeg je SellQo Kassa of SellQo Keuken toe aan je beginscherm). Nieuwe bonnen van dezelfde post komen samen in één melding. Op het open scherm klinkt een belletje en het scherm kan wakker blijven. Deze meldingen komen niet in je belletje, en op een gedeelde kassa staan je persoonlijke meldingen standaard uit. Je beheert alles onder Kassa (POS) › Kassa's."
         }
       },
       "copyLink": "Kopieer link",

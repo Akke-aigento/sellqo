@@ -1316,7 +1316,9 @@
         "description": "Des notifications web sont actives sur un appareil avec le même système d'exploitation. Si SellQo est aussi sur ce téléphone comme app web sur l'écran d'accueil, vous recevez tout en double. L'app est prioritaire.",
         "keep": "Non, un autre appareil",
         "remove": "Oui, désactiver les notifications web"
-      }
+      },
+      "horecaHint": "Les appareils de caisse et de cuisine de l'établissement (commandes QR, bons, paiements en ligne) se règlent sous",
+      "horecaLink": "Caisse (POS) › Caisses"
     },
     "logoUpload": {
       "logo": "Logo",
@@ -11179,6 +11181,95 @@
         "askStaff": "Demandez au personnel",
         "other": "Autre raison"
       }
+    },
+    "signals": {
+      "button": "Notifications et son",
+      "qr": "Commandé via QR : table {{tables}}",
+      "ready": "Prêt : {{label}}",
+      "paid": "{{label}} a payé en ligne : {{amount}}"
+    }
+  },
+  "deviceAlerts": {
+    "title": "Notifications sur cet appareil",
+    "intro": "Le son et l'écran ne concernent que cet écran. Les notifications arrivent aussi quand l'écran est éteint.",
+    "loading": "Chargement…",
+    "sound": {
+      "label": "Son pour les nouvelles notifications",
+      "hint": "Une sonnerie (et une vibration) tant que cet écran est ouvert."
+    },
+    "wake": {
+      "label": "Garder l'écran allumé",
+      "hint": "L'écran ne se met pas en veille tant que cette page est ouverte. Laissez l'appareil sur le chargeur.",
+      "unsupported": "Cet appareil ne peut pas garder l'écran allumé. Désactivez le verrouillage automatique dans les réglages de l'appareil.",
+      "blocked": "L'appareil ne l'autorise pas pour l'instant (p. ex. économie d'énergie). Cela refonctionne dès que c'est désactivé."
+    },
+    "push": {
+      "title": "Aussi quand l'écran est éteint",
+      "needsInstall": "Sur iPhone et iPad, les notifications ne fonctionnent que depuis l'app sur l'écran d'accueil. Touchez Partager, puis Sur l'écran d'accueil, ouvrez l'app depuis là et activez-les ici.",
+      "unsupported": "Ce navigateur ne peut pas recevoir de notifications. Utilisez Chrome, Edge ou Safari, ou l'app SellQo.",
+      "denied": "Les notifications sont bloquées pour SellQo sur cet appareil. Autorisez-les dans les réglages du navigateur ou de l'appareil.",
+      "onAs": "Activé comme « {{name}} ». Cet appareil reçoit :",
+      "nothing": "Rien de coché pour l'instant.",
+      "personalOn": "Aussi les notifications personnelles de la personne connectée ici (factures, boutique en ligne …).",
+      "personalOff": "Pas de notifications personnelles de la personne connectée ici : seulement ce qui figure ci-dessus.",
+      "manage": "Modifier dans Caisse (POS) › Caisses",
+      "manageElsewhere": "Vous pouvez le modifier sur sellqo.app, sous Caisse (POS) › Caisses.",
+      "disable": "Désactiver sur cet appareil",
+      "enable": "Activer les notifications",
+      "enabledToast": "Les notifications sont activées sur cet appareil",
+      "disabledToast": "Cet appareil ne reçoit plus de notifications horeca",
+      "deniedToast": "Les notifications ne sont pas autorisées sur cet appareil",
+      "errorToast": "Cela n'a pas fonctionné",
+      "offHint": {
+        "kassa": "Cet appareil recevra alors une notification pour une commande QR, un bon prêt et un paiement en ligne.",
+        "station": "Cet appareil recevra alors une notification pour chaque nouveau bon de ce poste.",
+        "phone": "Cet appareil recevra alors une notification pour une commande QR et un paiement en ligne. Vous pourrez en ajouter ensuite.",
+        "other": "Vous choisissez ensuite ce que reçoit cet appareil."
+      }
+    },
+    "event": {
+      "qr_request": "Commande QR en attente de confirmation",
+      "ticket_new": "Nouveau bon (tous les postes)",
+      "ticket_new_for": "Nouveau bon pour {{stations}}",
+      "ticket_ready": "Bon prêt",
+      "paid_online": "Client a payé en ligne"
+    },
+    "kind": {
+      "kassa": "Caisse",
+      "station": "Poste (cuisine, bar …)",
+      "phone": "Téléphone ou tablette",
+      "other": "Autre appareil"
+    },
+    "defaultName": {
+      "phone": "Téléphone",
+      "station": "Écran cuisine"
+    },
+    "manage": {
+      "title": "Notifications par appareil",
+      "intro": "Quels appareils reçoivent une notification pour une commande QR, un bon nouveau ou prêt et un paiement en ligne. Ces notifications ne vont pas dans la cloche. Ajoutez un appareil depuis l'appareil lui-même : dans la caisse ou sur l'écran cuisine via la cloche, ou ici avec « Ajouter cet appareil ».",
+      "addThis": "Ajouter cet appareil",
+      "empty": "Pas encore d'appareils.",
+      "loadError": "Les appareils n'ont pas pu être chargés.",
+      "name": "Nom",
+      "kind": "Type d'appareil",
+      "thisDevice": "Cet appareil",
+      "pushOn": "Push actif · {{os}} · vu {{when}}",
+      "pushOff": "Pas d'abonnement push actif : ouvrez SellQo sur cet appareil et réactivez les notifications.",
+      "receives": "Reçoit une notification pour",
+      "stations": "Postes",
+      "allStations": "Aucun choisi = tous les postes",
+      "personal": "Notifications personnelles",
+      "personalHint": "Aussi les notifications de la personne connectée sur cet appareil (factures, boutique en ligne …). Désactivé sur une caisse partagée ou un écran cuisine.",
+      "save": "Enregistrer",
+      "saved": "Enregistré",
+      "remove": "Supprimer",
+      "removed": "Appareil supprimé",
+      "removeTitle": "Supprimer « {{name}} » ?",
+      "removeText": "Cet appareil ne recevra plus de notifications horeca. Les notifications personnelles de la personne connectée restent comme réglé sous Paramètres › Mes notifications.",
+      "cancel": "Annuler",
+      "nameRequired": "Donnez un nom à l'appareil",
+      "error": "Cela n'a pas fonctionné",
+      "removeTextShared": "Cet appareil ne recevra alors plus aucune notification : ni notifications horeca, ni notifications personnelles de la personne connectée. Pour le réutiliser, réactivez les notifications sur l'appareil lui-même."
     }
   }
 }

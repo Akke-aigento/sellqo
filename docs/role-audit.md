@@ -1,3 +1,68 @@
+## MELDING-1 — meldingen per toestel en per post (kassa, keuken, bar), kassa 0.10.0 — 28 oktober 2026
+
+**Root cause:**
+- Push volgde enkel de gebruiker. `send-push-notification` stuurt elke melding naar alle `device_tokens` van iedereen in het team. Een kassatablet aangemeld met de account van de eigenaar kreeg dus zijn facturen en webshoporders, en zijn gsm zou elke keukenbon krijgen.
+- Er bestonden geen horeca-meldingen: geen melding bij een QR-bestelling, een nieuwe of klare bon, of een online betaling.
+- Kassa (`useHoreca.ts`, poll 2 s): geen geluid bij een nieuwe QR-bestelling, scherm kon in slaap vallen. Keukenscherm (`Kitchen.tsx`): wel een belletje, maar ook geen "scherm wakker". Geen beginscherm-manifest voor `/kassa` of `/admin/keuken`, terwijl web push op iOS enkel vanuit een beginscherm-app werkt.
+
+**Uitgevoerd:**
+- Migratie `20261028180000_melding_1.sql`:
+  - `device_tokens.install_id` (additief): vaste ID per installatie, zodat een profiel een tokenrotatie overleeft.
+  - Tabel `horeca_notify_devices` (zaak + installatie: naam, soort, events, posten, persoonlijk aan/uit, taal). RLS: lezen voor leden van de zaak, schrijven enkel via de RPC's.
+  - RPC's `horeca_notify_device_save` / `_remove` / `_devices_list` (tenant_admin of staff; posten moeten van de zaak zijn), `horeca_notify_targets` (enkel service_role; enkel tokens van wie nog een rol in de zaak heeft).
+  - `horeca_device_notify` + triggerfunctie `horeca_device_push_tr` op `table_requests` (insert, pending), `kitchen_tickets` (insert new of ready; update naar ready), `check_online_payments` (update naar paid) en `orders` (webshop-, afhaal- en leverorders zodra ze in de keuken horen: betaald of betalen bij afhalen). Zonder profiel voor de zaak meteen terug (geen tellingen); elke fout wordt een waarschuwing, nooit een mislukte ronde of betaling.
+- Edge function `horeca-device-push` (nieuw, `verify_jwt = false`, enkel met `X-Internal-Secret`): ontvangers via `horeca_notify_targets`, tekst in de taal van het toestel (`_shared/horecaPush.ts`, 5 talen), web push + FCM, dode tokens opruimen. Samenvoegen per post via tag (web: tag/Topic + `renotify`, Android: tag, iOS: `apns-collapse-id`). GET-stempel `MELDING-1`.
+- `_shared/fcm.ts`: FCM-token en service account verhuisd uit `send-push-notification` (geen gedragswijziging).
+- `send-push-notification`: toestellen met een profiel `personal = false` krijgen geen persoonlijke meldingen meer; stempel `MELDING-1`. Neemt ook de meldingstypes van REKENING-ONLINE-1 mee (`notificationDefaults.ts`).
+- `_shared/notificationRoutes.ts`: `horeca_*`-types → `/kassa` of `/admin/keuken` (tik op een melding in de native app).
+- Client:
+  - `src/lib/installId.ts`; `webPush.ts` en `native/pushRegistration.ts` zetten `install_id`.
+  - `src/lib/deviceAlerts.ts`, `DeviceAlertsDialog` ("Meldingen op dit toestel": geluid, scherm wakker, push), `HorecaNotifyDevices` (Kassa (POS) › Kassa's, enkel met het horecaspoor).
+  - Kassa: knop in de kopbalk; `KassaLive` (boven het PIN-scherm, één poll) met `useKassaSignals` (belletje en melding bij QR-bestelling, klare bon, online betaling; venster van een uur + wat dit toestel al zag, want `status_at` komt van de klok van het keukentoestel), `useWakeLock`; `useAppShell` + `public/kassa.webmanifest`.
+  - Keukenscherm: knop "Meldingen op dit toestel", scherm wakker, `public/keuken.webmanifest`; belletje verhuisd naar `src/lib/ding.ts` (nu ook trillen).
+  - Instellingen › Mijn meldingen: verwijzing naar Kassa (POS) › Kassa's voor horecazaken.
+  - `public/sw.js`: `renotify` bij een tag.
+  - `KASSA_SW_VERSION` → `sellqo-kassa-0.10.0` (geen wijziging aan fiscale berichten).
+- i18n 5 talen (`deviceAlerts.*`, `kassa.signals.*`, `settings.myDevices.horecaHint/horecaLink`); changelog 2026.14b `horeca_device_alerts`; helpartikel `meldingen-per-toestel` (`20261028181000`); nieuwsbrief.
+
+**Security-keuzes:**
+- Profielen schrijven enkel via security-definer-RPC's met `has_tenant_role`; posten worden tegen de zaak gecontroleerd. Direct schrijven op de tabel is ingetrokken.
+- `horeca_notify_targets` en `horeca_device_notify` zijn niet uitvoerbaar door anon/authenticated. De edge function weigert zonder intern geheim.
+- Wie uit het team gaat, krijgt niets meer: ontvangers vereisen een rol in de zaak.
+- Persoonlijke meldingen standaard uit op gedeelde toestellen (kassa, post) (beslissing Akke 28-10).
+
+**Gedeelde-paden-waarschuwing:**
+- `send-push-notification` bedient alle winkels. De nieuwe filter raakt enkel toestellen met een profiel `personal = false`; zonder profiel (alle niet-horecawinkels) verandert er niets. De FCM-verhuis is code-identiek.
+- `device_tokens` krijgt enkel een nullable kolom.
+- Triggers op `kitchen_tickets` draaien voor elke winkel; zonder profiel stoppen ze na één indexlookup.
+
+**Review (aparte agent):**
+- Ronde 1: geen blockers, vijf majors, alle vijf opgelost:
+  - de filter op persoonlijke meldingen gold voor álle winkels: nu per zaak;
+  - signalen en scherm wakker vielen weg op het PIN-scherm: verhuisd naar `KassaLive`;
+  - uitzetten of een mislukte save liet de push-inschrijving staan, zodat een gedeelde tablet persoonlijke meldingen kreeg: nu eerst het profiel, uitzetten schrijft uit, en verwijderen op afstand zet een gedeeld toestel stil;
+  - webshoporders gaven geen `ticket_new`: trigger op `orders`;
+  - een deploy vóór de migratie brak alle pushes: tolerant lezen.
+- Ronde 1, minors (verwerkt): nulmeting QR pas na de eerste lading, gedeelde AudioContext (iPad), TTL 15 min, klantnaam niet als "tafel", link per soort toestel (een gsm opent nooit "kassa koppelen"), QR-telling op 4 uur, link vanuit "Dit toestel toevoegen". Bewust niet: een eigen feature-sleutel (spoor-gating zoals de rest van het horecaplan, beslissing 28-10).
+- Ronde 2: vier punten, opgelost:
+  - uitzetten op een gedeeld native toestel zette het enkel tot de volgende appstart uit (de app schrijft zich opnieuw in): nu stilzetten;
+  - een stilgezet toestel kon op het toestel zelf niet opnieuw aangezet worden: de dialoog behandelt het als nieuw;
+  - NULL-val in de orders-trigger (`payment_method` null): `coalesce`;
+  - het return type van `horeca_notify_targets` wijzigde: `drop function` vóór de create.
+- Ronde 2, extra: `<Toaster />` in de aparte Kassa-app (`src/kassa/app/main.tsx`); daar waren meldingen in beeld anders onzichtbaar, ook de bestaande.
+
+**Verificatie:**
+- Deno: `horecaPush.test.ts` (6) en `horecaDevicePush.test.ts` (5, echte handler), `deno check` van beide functies tegen de echte supabase-types.
+- Vitest: `signals.test.tsx` (4: nulmeting, enkel nieuw en één keer, achterlopende klok van een keukentoestel, niets overslaan bij een fout); kassa en meldingstests groen.
+- tsc gelijk aan de baseline (27), lint onder de baseline, i18n-pariteit en used keys ok; `npm run build` en de Kassa-build groen.
+- Migratie offline geparsed (31 statements, plpgsql-bodies ok).
+- Live: nog niet gedraaid.
+
+**Bewust ongemoeid / Vervolg:**
+- Een toestel met push én een open scherm hoort een melding mogelijk twee keer (belletje in beeld en de systeemmelding): een browser moet elke push tonen.
+- Native Kassa-app in de stores (betere push op iPad) blijft een aparte stap.
+- `create-notification` en `generate-subscription-invoices` gebruiken `notificationDefaults.ts` ook; de nieuwe types gedragen zich zoals de terugval, dus geen deploy nodig.
+
 ## REKENING-ONLINE-1 — gasten betalen de tafelrekening online: alles, eigen items of gelijk delen (kassa 0.9.0) — 28 oktober 2026
 
 **Aanleiding:** batch 4 van het horecaplan. Akke 28-10: alle drie de manieren nu, platformfee = zelfde regel als online orders, online betalingen op een aparte kassa "Online (QR)". Fooi 5/10/15 % + eigen bedrag, aan/uit (beslissing 28-10).

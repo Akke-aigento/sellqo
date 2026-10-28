@@ -22,6 +22,9 @@ self.addEventListener("push", (event) => {
     icon: "/web-app-manifest-192x192.png",
     badge: "/web-app-manifest-192x192.png",
     tag: data.tag || undefined,
+    // MELDING-1: een melding met dezelfde tag vervangt de vorige ("Keuken: 3 nieuwe bonnen"),
+    // en moet dan opnieuw afgaan in plaats van stil te vervangen.
+    renotify: !!data.tag,
     data: { url: data.url || "/admin" },
   };
   event.waitUntil(self.registration.showNotification(title, options));

@@ -2291,6 +2291,10 @@
         "horeca_check_online_pay": {
           "title": "Gäste bezahlen die Tischrechnung online, auf Wunsch geteilt",
           "description": "Über den QR-Code am Tisch sehen Gäste ihre Rechnung und bezahlen selbst mit Bancontact, Karte oder Wallet: alles, nur die eigenen Positionen oder zu gleichen Teilen. Ein Trinkgeld von 5, 10 oder 15 % oder ein eigener Betrag ist möglich. Die Zahlung steht sofort auf der Rechnung; ist alles bezahlt, schließt sich der Tisch von selbst. Wird nur ein Teil online bezahlt, rechnet die Kasse den Rest ab und berücksichtigt den Online-Teil. Kann eine Zahlung nicht mehr auf die Rechnung (etwa weil zwischenzeitlich an der Kasse abgerechnet wurde), wird sie automatisch erstattet. Aktivieren Sie es unter Kasse › Bezahlen. Nicht verfügbar mit einer registrierten Kasse (GKS)."
+        },
+        "horeca_device_alerts": {
+          "title": "Benachrichtigungen pro Gerät für Kasse, Küche und Bar",
+          "description": "Jedes Gerät in Ihrem Betrieb erhält jetzt nur, was es braucht: die Kasse eine Benachrichtigung bei einer QR-Bestellung, einem fertigen Bon und einer Online-Zahlung; der Küchen- oder Barbildschirm bei jedem neuen Bon für diese Station. Auch bei ausgeschaltetem Bildschirm, über die SellQo-App oder als App auf dem Home-Bildschirm (auf iPhone und iPad fügen Sie SellQo Kassa oder SellQo Keuken zum Home-Bildschirm hinzu). Neue Bons derselben Station werden zu einer Benachrichtigung zusammengefasst. Auf einem offenen Bildschirm ertönt ein Klingelton, und der Bildschirm kann wach bleiben. Diese Benachrichtigungen erscheinen nicht in Ihrer Glocke, und an einer gemeinsamen Kasse sind Ihre persönlichen Benachrichtigungen standardmäßig aus. Alles verwalten Sie unter Kasse (POS) › Kassen."
         }
       },
       "copyLink": "Link kopieren",

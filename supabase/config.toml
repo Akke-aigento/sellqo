@@ -437,6 +437,9 @@ verify_jwt = false
 [functions.send-push-notification]
 verify_jwt = false
 
+[functions.horeca-device-push]
+verify_jwt = false
+
 [functions.test-printful-connection]
 verify_jwt = false
 

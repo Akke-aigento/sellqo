@@ -55,6 +55,8 @@ export const CATEGORY_LIST_ROUTES: Readonly<Record<string, string>> = {
 export const FALLBACK_ROUTE = "/admin/notifications";
 
 /** Types die naar een vaste pagina gaan, los van hun categorie. */
+const HORECA_PATHS = new Set(["/kassa", "/admin/keuken", "/admin/pos"]);
+
 const TYPE_ROUTES: Readonly<Record<string, string>> = {
   ai_credits_low: "/admin/billing",
   ai_credits_empty: "/admin/billing",
@@ -63,6 +65,12 @@ const TYPE_ROUTES: Readonly<Record<string, string>> = {
   trial_expiring: "/admin/billing",
   trial_expired: "/admin/billing",
   trial_converted: "/admin/billing",
+  // MELDING-1: horeca-meldingen per toestel (horeca-device-push, nooit in het belletje); terugval als
+  // de melding geen (geldig) pad meestuurt.
+  horeca_qr_request: "/kassa",
+  horeca_ticket_new: "/admin/keuken",
+  horeca_ticket_ready: "/kassa",
+  horeca_paid_online: "/kassa",
   // INKOOP-6: facturen-inbox
   supplier_invoice_received: "/admin/supplier-documents",
   supplier_invoice_review: "/admin/supplier-documents",
@@ -179,6 +187,10 @@ export function notificationRoute(n: NotificationLike): string {
 
   const item = itemRoute(category, type, n.data);
   if (item) return item;
+
+  // MELDING-1: een horeca-melding kiest zelf het scherm per soort toestel (kassa, keuken of admin).
+  // Enkel deze vaste paden; al de rest valt terug op TYPE_ROUTES.
+  if (type.startsWith("horeca_") && typeof n.action_url === "string" && HORECA_PATHS.has(n.action_url)) return n.action_url;
 
   if (TYPE_ROUTES[type]) return TYPE_ROUTES[type];
 

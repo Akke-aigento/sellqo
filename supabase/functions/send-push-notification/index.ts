@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { resolvePushEnabled } from "../_shared/notificationDefaults.ts";
 import { notificationRoute } from "../_shared/notificationRoutes.ts";
 import { sendWebPush } from "../_shared/webpush.ts";
+import { getFcmAccessToken, type ServiceAccount } from "../_shared/fcm.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,80 +29,13 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-function b64url(input: ArrayBuffer | string): string {
-  const bytes = typeof input === "string"
-    ? new TextEncoder().encode(input)
-    : new Uint8Array(input);
-  let str = "";
-  for (const b of bytes) str += String.fromCharCode(b);
-  return btoa(str).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function pemToPkcs8(pem: string): Uint8Array {
-  const body = pem
-    .replace(/-----BEGIN PRIVATE KEY-----/, "")
-    .replace(/-----END PRIVATE KEY-----/, "")
-    .replace(/\s+/g, "");
-  const raw = atob(body);
-  const out = new Uint8Array(raw.length);
-  for (let i = 0; i < raw.length; i++) out[i] = raw.charCodeAt(i);
-  return out;
-}
-
-interface ServiceAccount {
-  project_id: string;
-  client_email: string;
-  private_key: string;
-}
-
-async function getFcmAccessToken(sa: ServiceAccount): Promise<string> {
-  const now = Math.floor(Date.now() / 1000);
-  const header = { alg: "RS256", typ: "JWT" };
-  const claims = {
-    iss: sa.client_email,
-    scope: "https://www.googleapis.com/auth/firebase.messaging",
-    aud: "https://oauth2.googleapis.com/token",
-    iat: now,
-    exp: now + 3600,
-  };
-  const unsigned = `${b64url(JSON.stringify(header))}.${b64url(JSON.stringify(claims))}`;
-  const key = await crypto.subtle.importKey(
-    "pkcs8",
-    pemToPkcs8(sa.private_key.replace(/\\n/g, "\n")) as unknown as BufferSource, // BUILD-GREEN-1: TS 5.7-lib
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
-    false,
-    ["sign"],
-  );
-  const sig = await crypto.subtle.sign(
-    "RSASSA-PKCS1-v1_5",
-    key,
-    new TextEncoder().encode(unsigned),
-  );
-  const jwt = `${unsigned}.${b64url(sig)}`;
-
-  const res = await fetch("https://oauth2.googleapis.com/token", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
-      assertion: jwt,
-    }),
-  });
-  const body = await res.json();
-  if (!res.ok || !body.access_token) {
-    throw new Error(`Google OAuth token exchange failed: ${res.status} ${JSON.stringify(body)}`);
-  }
-  return body.access_token as string;
-}
-
 serve(async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
-  // SUB-UNIFY-2A: versiestempel om de herdeploy (nieuwe meldingsdefault plan_ended) zonder
-  // neveneffect na te meten. Geen auth, geen data.
+  // Versiestempel om een herdeploy zonder neveneffect na te meten (SUB-UNIFY-2A; nu MELDING-1). Geen auth, geen data.
   if (req.method === "GET") {
-    return new Response(JSON.stringify({ ok: true, version: "SUB-UNIFY-2A" }), {
+    return new Response(JSON.stringify({ ok: true, version: "MELDING-1" }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
@@ -220,13 +154,44 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     // 4. Devices
-    const { data: devices, error: devErr } = await supabase
+    // MELDING-1: install_id is nieuw. Bestaat de kolom (nog) niet, dan zonder lezen: een deploy vóór
+    // de migratie mag de persoonlijke pushes van geen enkele winkel breken.
+    type TokenRow = { token: string; platform: string; user_id: string; p256dh: string | null; auth: string | null; install_id?: string | null };
+    const first = await supabase
       .from("device_tokens")
-      .select("token, platform, user_id, p256dh, auth")
+      .select("token, platform, user_id, p256dh, auth, install_id")
       .in("user_id", targetUsers);
+    let rawDevices = first.data as TokenRow[] | null;
+    let devErr = first.error;
+    if (devErr && (devErr as { code?: string }).code === "42703") {
+      const fallback = await supabase
+        .from("device_tokens")
+        .select("token, platform, user_id, p256dh, auth")
+        .in("user_id", targetUsers);
+      rawDevices = fallback.data as TokenRow[] | null;
+      devErr = fallback.error;
+    }
     if (devErr) throw devErr;
 
-    if (!devices || devices.length === 0) {
+    // MELDING-1: een gedeeld toestel van DEZE zaak (kassa, keukenscherm) met "persoonlijke meldingen uit"
+    // krijgt de meldingen van de aangemelde gebruiker niet; enkel zijn horeca-meldingen
+    // (horeca-device-push). Per zaak: een profiel bij zaak A mag de meldingen van zaak B nooit stilzetten.
+    // Lukt het opzoeken niet, dan geen filter (liever een melding te veel dan geen enkele).
+    const installIds = [...new Set((rawDevices ?? []).map((d: { install_id?: string | null }) => d.install_id).filter((x): x is string => !!x))];
+    let sharedInstalls = new Set<string>();
+    if (installIds.length > 0) {
+      const { data: shared, error: sharedErr } = await supabase
+        .from("horeca_notify_devices")
+        .select("install_id")
+        .eq("tenant_id", payload.tenant_id)
+        .in("install_id", installIds)
+        .eq("personal", false);
+      if (sharedErr) console.error("horeca_notify_devices lookup failed (no filter applied):", sharedErr.message);
+      else sharedInstalls = new Set((shared ?? []).map((r: { install_id: string }) => r.install_id));
+    }
+    const devices = (rawDevices ?? []).filter((d: { install_id?: string | null }) => !d.install_id || !sharedInstalls.has(d.install_id));
+
+    if (devices.length === 0) {
       return json({ skipped: true, reason: "no_devices" });
     }
 

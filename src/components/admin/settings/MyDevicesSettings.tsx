@@ -12,6 +12,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
+import { useTracks } from '@/hooks/useBusinessModules';
 import { supabase } from '@/integrations/supabase/client';
 import {
   currentWebPushEndpoint, findRecentNativeSameOs, getWebPushState, subscribeWebPush,
@@ -28,6 +29,7 @@ import {
  */
 export function MyDevicesSettings() {
   const { t } = useTranslation();
+  const { hasTrack } = useTracks();
   const { user } = useAuth();
   const { toast } = useToast();
   const dateLocale = useDateFnsLocale();
@@ -132,6 +134,13 @@ export function MyDevicesSettings() {
           {t('settings.myDevices.title')}
         </CardTitle>
         <CardDescription>{t('settings.myDevices.description')}</CardDescription>
+        {/* MELDING-1: horeca-meldingen per toestel staan op één plek: Kassa (POS) › Kassa's. */}
+        {hasTrack('horeca') ? (
+          <p className="text-sm text-muted-foreground">
+            {t('settings.myDevices.horecaHint')}{' '}
+            <a href="/admin/pos" className="underline underline-offset-2">{t('settings.myDevices.horecaLink')}</a>
+          </p>
+        ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
         {state !== null && state !== 'native-app' && (

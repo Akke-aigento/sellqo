@@ -2291,6 +2291,10 @@
         "horeca_check_online_pay": {
           "title": "Les clients paient l'addition en ligne, partagée s'ils le souhaitent",
           "description": "Avec le code QR sur la table, les clients voient leur addition et la paient eux-mêmes par Bancontact, carte ou portefeuille : tout, uniquement leurs propres articles, ou à parts égales. Ils peuvent ajouter un pourboire de 5, 10 ou 15 % ou un montant libre. Le paiement est aussitôt porté sur l'addition ; une fois tout payé, la table se clôture d'elle-même. Si seule une partie est payée en ligne, la caisse encaisse le reste en tenant compte de la partie en ligne. Si un paiement ne peut plus être porté sur l'addition (par exemple parce qu'elle a été réglée à la caisse entre-temps), il est remboursé automatiquement. Activez-le sous Caisse › Paiements. Indisponible avec une caisse enregistreuse (SCE)."
+        },
+        "horeca_device_alerts": {
+          "title": "Notifications par appareil pour la caisse, la cuisine et le bar",
+          "description": "Chaque appareil de votre établissement ne reçoit plus que ce dont il a besoin : la caisse une notification pour une commande QR, un bon prêt et un paiement en ligne ; l'écran de cuisine ou de bar pour chaque nouveau bon de ce poste. Aussi quand l'écran est éteint, via l'app SellQo ou en app sur l'écran d'accueil (sur iPhone et iPad, ajoutez SellQo Kassa ou SellQo Keuken à votre écran d'accueil). Les nouveaux bons d'un même poste sont regroupés en une seule notification. Sur un écran ouvert, une sonnerie retentit et l'écran peut rester allumé. Ces notifications ne vont pas dans votre cloche, et sur une caisse partagée vos notifications personnelles sont désactivées par défaut. Tout se gère sous Caisse (POS) › Caisses."
         }
       },
       "copyLink": "Copier le lien",

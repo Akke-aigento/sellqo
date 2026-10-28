@@ -1288,7 +1288,9 @@
         "description": "Er staan web-meldingen aan op een toestel met hetzelfde besturingssysteem. Staat SellQo op deze telefoon ook als webapp op het beginscherm, dan krijg je alles dubbel. De app heeft voorrang.",
         "keep": "Nee, ander toestel",
         "remove": "Ja, web-meldingen uitzetten"
-      }
+      },
+      "horecaHint": "Kassa- en keukentoestellen van de zaak (QR-bestellingen, bonnen, online betalingen) stel je in onder",
+      "horecaLink": "Kassa (POS) › Kassa's"
     },
     "logoUpload": {
       "logo": "Logo",
@@ -11181,6 +11183,95 @@
         "askStaff": "Vraag het aan de bediening",
         "other": "Andere reden"
       }
+    },
+    "signals": {
+      "button": "Meldingen en geluid",
+      "qr": "Via de QR besteld: tafel {{tables}}",
+      "ready": "Klaar: {{label}}",
+      "paid": "{{label}} betaalde online: {{amount}}"
+    }
+  },
+  "deviceAlerts": {
+    "title": "Meldingen op dit toestel",
+    "intro": "Geluid en scherm gelden enkel voor dit scherm. Meldingen komen ook binnen als het scherm dicht is.",
+    "loading": "Laden…",
+    "sound": {
+      "label": "Geluid bij nieuwe meldingen",
+      "hint": "Een belletje (en trilling) zolang dit scherm open staat."
+    },
+    "wake": {
+      "label": "Scherm wakker houden",
+      "hint": "Het scherm valt niet in slaap zolang deze pagina open staat. Hou het toestel aan de lader.",
+      "unsupported": "Dit toestel kan het scherm niet wakker houden. Zet de automatische vergrendeling uit in de instellingen van het toestel.",
+      "blocked": "Het toestel staat het nu niet toe (bv. batterijbesparing). Het lukt opnieuw zodra dat uit staat."
+    },
+    "push": {
+      "title": "Ook als het scherm dicht is",
+      "needsInstall": "Op iPhone en iPad werken meldingen enkel vanuit de app op het beginscherm. Tik op Deel en dan op Zet op beginscherm, open de app van daar en zet het hier aan.",
+      "unsupported": "Deze browser kan geen meldingen ontvangen. Gebruik Chrome, Edge of Safari, of de SellQo-app.",
+      "denied": "Meldingen zijn geblokkeerd voor SellQo op dit toestel. Zet ze aan in de instellingen van de browser of het toestel.",
+      "onAs": "Aan als „{{name}}”. Dit toestel krijgt:",
+      "nothing": "Nog niets aangevinkt.",
+      "personalOn": "Ook de persoonlijke meldingen van wie hier aangemeld is (facturen, webshop …).",
+      "personalOff": "Geen persoonlijke meldingen van wie hier aangemeld is: enkel wat hierboven staat.",
+      "manage": "Aanpassen in Kassa (POS) › Kassa's",
+      "manageElsewhere": "Aanpassen kan op sellqo.app, onder Kassa (POS) › Kassa's.",
+      "disable": "Uitzetten op dit toestel",
+      "enable": "Meldingen aanzetten",
+      "enabledToast": "Meldingen staan aan op dit toestel",
+      "disabledToast": "Dit toestel krijgt geen horeca-meldingen meer",
+      "deniedToast": "Meldingen zijn niet toegestaan op dit toestel",
+      "errorToast": "Het lukte niet",
+      "offHint": {
+        "kassa": "Dit toestel krijgt dan een melding bij een QR-bestelling, een bon die klaar is en een online betaling.",
+        "station": "Dit toestel krijgt dan een melding bij elke nieuwe bon voor deze post.",
+        "phone": "Dit toestel krijgt dan een melding bij een QR-bestelling en een online betaling. Je kiest daarna zelf wat erbij komt.",
+        "other": "Je kiest daarna zelf wat dit toestel krijgt."
+      }
+    },
+    "event": {
+      "qr_request": "QR-bestelling wacht op bevestiging",
+      "ticket_new": "Nieuwe bon (alle posten)",
+      "ticket_new_for": "Nieuwe bon voor {{stations}}",
+      "ticket_ready": "Bon is klaar",
+      "paid_online": "Gast betaalde online"
+    },
+    "kind": {
+      "kassa": "Kassa",
+      "station": "Post (keuken, bar …)",
+      "phone": "Gsm of tablet",
+      "other": "Ander toestel"
+    },
+    "defaultName": {
+      "phone": "Gsm",
+      "station": "Keukenscherm"
+    },
+    "manage": {
+      "title": "Meldingen per toestel",
+      "intro": "Welke toestellen een melding krijgen bij een QR-bestelling, een nieuwe of klare bon en een online betaling. Deze meldingen komen niet in het belletje. Een toestel voeg je toe op het toestel zelf: in de kassa of op het keukenscherm via het belletje, of hier met „Dit toestel toevoegen”.",
+      "addThis": "Dit toestel toevoegen",
+      "empty": "Nog geen toestellen.",
+      "loadError": "De toestellen konden niet geladen worden.",
+      "name": "Naam",
+      "kind": "Soort toestel",
+      "thisDevice": "Dit toestel",
+      "pushOn": "Push actief · {{os}} · laatst gezien {{when}}",
+      "pushOff": "Geen actieve push-inschrijving: open SellQo op dat toestel en zet meldingen opnieuw aan.",
+      "receives": "Krijgt een melding bij",
+      "stations": "Posten",
+      "allStations": "Niets gekozen = alle posten",
+      "personal": "Persoonlijke meldingen",
+      "personalHint": "Ook de meldingen van wie op dit toestel aangemeld is (facturen, webshop …). Uit op een gedeelde kassa of een keukenscherm.",
+      "save": "Opslaan",
+      "saved": "Opgeslagen",
+      "remove": "Verwijderen",
+      "removed": "Toestel verwijderd",
+      "removeTitle": "„{{name}}” verwijderen?",
+      "removeText": "Dit toestel krijgt geen horeca-meldingen meer. Persoonlijke meldingen van wie er aangemeld is, blijven zoals ingesteld onder Instellingen › Mijn meldingen.",
+      "cancel": "Annuleren",
+      "nameRequired": "Geef het toestel een naam",
+      "error": "Het lukte niet",
+      "removeTextShared": "Dit toestel krijgt dan geen enkele melding meer: geen horeca-meldingen en geen persoonlijke meldingen van wie er aangemeld is. Wil je het opnieuw gebruiken, zet dan op het toestel zelf de meldingen weer aan."
     }
   }
 }

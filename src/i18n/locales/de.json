@@ -1316,7 +1316,9 @@
         "description": "Auf einem Gerät mit demselben Betriebssystem sind Web-Benachrichtigungen aktiv. Ist SellQo auf diesem Telefon auch als Web-App auf dem Home-Bildschirm, erhalten Sie alles doppelt. Die App hat Vorrang.",
         "keep": "Nein, anderes Gerät",
         "remove": "Ja, Web-Benachrichtigungen deaktivieren"
-      }
+      },
+      "horecaHint": "Kassen- und Küchengeräte des Betriebs (QR-Bestellungen, Bons, Online-Zahlungen) richten Sie ein unter",
+      "horecaLink": "Kasse (POS) › Kassen"
     },
     "logoUpload": {
       "logo": "Logo",
@@ -11179,6 +11181,95 @@
         "askStaff": "Bitte beim Personal fragen",
         "other": "Anderer Grund"
       }
+    },
+    "signals": {
+      "button": "Benachrichtigungen und Ton",
+      "qr": "Per QR bestellt: Tisch {{tables}}",
+      "ready": "Fertig: {{label}}",
+      "paid": "{{label}} hat online bezahlt: {{amount}}"
+    }
+  },
+  "deviceAlerts": {
+    "title": "Benachrichtigungen auf diesem Gerät",
+    "intro": "Ton und Bildschirm gelten nur für diesen Bildschirm. Benachrichtigungen kommen auch an, wenn der Bildschirm aus ist.",
+    "loading": "Wird geladen…",
+    "sound": {
+      "label": "Ton bei neuen Benachrichtigungen",
+      "hint": "Ein Klingelton (und Vibration), solange dieser Bildschirm geöffnet ist."
+    },
+    "wake": {
+      "label": "Bildschirm wach halten",
+      "hint": "Der Bildschirm geht nicht in den Ruhezustand, solange diese Seite geöffnet ist. Lassen Sie das Gerät am Ladegerät.",
+      "unsupported": "Dieses Gerät kann den Bildschirm nicht wach halten. Schalten Sie die automatische Sperre in den Geräteeinstellungen aus.",
+      "blocked": "Das Gerät erlaubt es gerade nicht (z. B. Energiesparmodus). Es funktioniert wieder, sobald das aus ist."
+    },
+    "push": {
+      "title": "Auch bei ausgeschaltetem Bildschirm",
+      "needsInstall": "Auf iPhone und iPad funktionieren Benachrichtigungen nur aus der App auf dem Home-Bildschirm. Tippen Sie auf Teilen und dann auf Zum Home-Bildschirm, öffnen Sie die App von dort und schalten Sie sie hier ein.",
+      "unsupported": "Dieser Browser kann keine Benachrichtigungen empfangen. Verwenden Sie Chrome, Edge oder Safari oder die SellQo-App.",
+      "denied": "Benachrichtigungen sind für SellQo auf diesem Gerät blockiert. Erlauben Sie sie in den Browser- oder Geräteeinstellungen.",
+      "onAs": "Aktiv als „{{name}}“. Dieses Gerät erhält:",
+      "nothing": "Noch nichts ausgewählt.",
+      "personalOn": "Auch die persönlichen Benachrichtigungen der hier angemeldeten Person (Rechnungen, Webshop …).",
+      "personalOff": "Keine persönlichen Benachrichtigungen der hier angemeldeten Person: nur das oben Genannte.",
+      "manage": "Ändern unter Kasse (POS) › Kassen",
+      "manageElsewhere": "Sie können das auf sellqo.app unter Kasse (POS) › Kassen ändern.",
+      "disable": "Auf diesem Gerät ausschalten",
+      "enable": "Benachrichtigungen einschalten",
+      "enabledToast": "Benachrichtigungen sind auf diesem Gerät aktiv",
+      "disabledToast": "Dieses Gerät erhält keine Gastro-Benachrichtigungen mehr",
+      "deniedToast": "Benachrichtigungen sind auf diesem Gerät nicht erlaubt",
+      "errorToast": "Das hat nicht geklappt",
+      "offHint": {
+        "kassa": "Dieses Gerät erhält dann eine Benachrichtigung bei einer QR-Bestellung, einem fertigen Bon und einer Online-Zahlung.",
+        "station": "Dieses Gerät erhält dann bei jedem neuen Bon für diese Station eine Benachrichtigung.",
+        "phone": "Dieses Gerät erhält dann eine Benachrichtigung bei einer QR-Bestellung und einer Online-Zahlung. Weiteres können Sie danach hinzufügen.",
+        "other": "Sie wählen danach, was dieses Gerät erhält."
+      }
+    },
+    "event": {
+      "qr_request": "QR-Bestellung wartet auf Bestätigung",
+      "ticket_new": "Neuer Bon (alle Stationen)",
+      "ticket_new_for": "Neuer Bon für {{stations}}",
+      "ticket_ready": "Bon ist fertig",
+      "paid_online": "Gast hat online bezahlt"
+    },
+    "kind": {
+      "kassa": "Kasse",
+      "station": "Station (Küche, Bar …)",
+      "phone": "Handy oder Tablet",
+      "other": "Anderes Gerät"
+    },
+    "defaultName": {
+      "phone": "Handy",
+      "station": "Küchenbildschirm"
+    },
+    "manage": {
+      "title": "Benachrichtigungen pro Gerät",
+      "intro": "Welche Geräte bei einer QR-Bestellung, einem neuen oder fertigen Bon und einer Online-Zahlung benachrichtigt werden. Diese Benachrichtigungen erscheinen nicht in der Glocke. Ein Gerät fügen Sie auf dem Gerät selbst hinzu: in der Kasse oder auf dem Küchenbildschirm über die Glocke, oder hier mit „Dieses Gerät hinzufügen“.",
+      "addThis": "Dieses Gerät hinzufügen",
+      "empty": "Noch keine Geräte.",
+      "loadError": "Die Geräte konnten nicht geladen werden.",
+      "name": "Name",
+      "kind": "Geräteart",
+      "thisDevice": "Dieses Gerät",
+      "pushOn": "Push aktiv · {{os}} · zuletzt gesehen {{when}}",
+      "pushOff": "Kein aktives Push-Abonnement: Öffnen Sie SellQo auf diesem Gerät und schalten Sie die Benachrichtigungen wieder ein.",
+      "receives": "Wird benachrichtigt bei",
+      "stations": "Stationen",
+      "allStations": "Nichts gewählt = alle Stationen",
+      "personal": "Persönliche Benachrichtigungen",
+      "personalHint": "Auch die Benachrichtigungen der auf diesem Gerät angemeldeten Person (Rechnungen, Webshop …). Aus bei einer gemeinsamen Kasse oder einem Küchenbildschirm.",
+      "save": "Speichern",
+      "saved": "Gespeichert",
+      "remove": "Entfernen",
+      "removed": "Gerät entfernt",
+      "removeTitle": "„{{name}}“ entfernen?",
+      "removeText": "Dieses Gerät erhält keine Gastro-Benachrichtigungen mehr. Persönliche Benachrichtigungen der angemeldeten Person bleiben wie unter Einstellungen › Meine Benachrichtigungen eingestellt.",
+      "cancel": "Abbrechen",
+      "nameRequired": "Geben Sie dem Gerät einen Namen",
+      "error": "Das hat nicht geklappt",
+      "removeTextShared": "Dieses Gerät erhält dann gar keine Benachrichtigungen mehr: keine Gastro-Benachrichtigungen und keine persönlichen Benachrichtigungen der angemeldeten Person. Um es wieder zu nutzen, schalten Sie die Benachrichtigungen auf dem Gerät selbst wieder ein."
     }
   }
 }

@@ -3,7 +3,7 @@
 // een tablet aan de muur: grote knoppen, belletje bij een nieuwe bestelling.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, Bike, ChevronDown, Maximize2, Phone, Printer, Store, Undo2, UtensilsCrossed } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, BellRing, Bike, ChevronDown, Maximize2, Phone, Printer, Store, Undo2, UtensilsCrossed } from 'lucide-react';
 import { useTenant } from '@/hooks/useTenant';
 import { printTicket, type TicketLabels } from '@/components/admin/kitchen/printTicket';
 import type { TFunction } from 'i18next';
@@ -15,6 +15,10 @@ import { cardsForStation, minutesLeft, NEXT_STATUS, PREV_STATUS, type KitchenCar
 import { useTranslation } from 'react-i18next';
 import { useHideAdminBottomNav } from '@/hooks/useAdminBottomNav';
 import { usePrepStations } from '@/hooks/usePrepStations';
+import { ding, readFlag } from '@/lib/ding';
+import { useWakeLock } from '@/hooks/useWakeLock';
+import { useAppShell } from '@/hooks/useAppShell';
+import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
 
 const COLUMNS: { status: KitchenStatus; titleKey: string }[] = [
   { status: 'new', titleKey: 'admin.kitchen.col_new' },
@@ -27,6 +31,7 @@ const SERVICE = {
   eat_in: { labelKey: 'admin.kitchen.svc_eat_in', icon: UtensilsCrossed, cls: 'bg-emerald-100 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-100' },
 } as const;
 const SOUND_KEY = 'sq_kitchen_sound';
+const WAKE_KEY = 'sq_kitchen_wake';
 const PRINT_KEY = 'sq_kitchen_autoprint';
 const STATION_KEY = 'sq_kitchen_station';
 
@@ -137,23 +142,6 @@ function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh }: {
   );
 }
 
-// Kort belletje met WebAudio (geen bestand nodig).
-function ding() {
-  try {
-    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-    const ctx = new Ctx();
-    [0, 0.18].forEach((t, i) => {
-      const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.type = 'sine'; o.frequency.value = i ? 1320 : 880;
-      g.gain.setValueAtTime(0.0001, ctx.currentTime + t);
-      g.gain.exponentialRampToValueAtTime(0.4, ctx.currentTime + t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + t + 0.5);
-      o.connect(g).connect(ctx.destination); o.start(ctx.currentTime + t); o.stop(ctx.currentTime + t + 0.55);
-    });
-    setTimeout(() => ctx.close(), 1200);
-  } catch { /* geen audio beschikbaar */ }
-}
-
 export default function KitchenPage() {
   const { t, i18n } = useTranslation();
   const [now, setNow] = useState(() => Date.now());
@@ -172,6 +160,11 @@ export default function KitchenPage() {
   // HORECA-0 — het keukenscherm ligt over de admin heen: de navigatiepil van de
   // admin (ook z-50, later in de DOM) mag er niet over zweven.
   useHideAdminBottomNav(true);
+  // MELDING-1: scherm wakker (per toestel, standaard aan), push als het scherm dicht is, eigen beginscherm-app.
+  useAppShell('/keuken.webmanifest', 'Keuken', '#111827');
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [wake, setWake] = useState(() => readFlag(WAKE_KEY, true));
+  const wakeActive = useWakeLock(wake);
   const [sound, setSound] = useState(() => { try { return localStorage.getItem(SOUND_KEY) === '1'; } catch { return false; } });
   const [autoPrint, setAutoPrint] = useState(() => { try { return localStorage.getItem(PRINT_KEY) === '1'; } catch { return false; } });
   const { currentTenant } = useTenant();
@@ -244,6 +237,9 @@ export default function KitchenPage() {
           <Button variant={sound ? 'secondary' : 'outline'} size="sm" onClick={toggleSound} aria-label={sound ? t('admin.kitchen.geluid_aan') : t('admin.kitchen.geluid_uit')}>
             {sound ? <Bell className="h-4 w-4 sm:mr-1.5" /> : <BellOff className="h-4 w-4 sm:mr-1.5" />}<span className="hidden sm:inline">{sound ? t('admin.kitchen.geluid_aan') : t('admin.kitchen.geluid_uit')}</span>
           </Button>
+          <Button variant="outline" size="icon" onClick={() => setAlertsOpen(true)} aria-label={t('deviceAlerts.title')} title={t('deviceAlerts.title')}>
+            <BellRing className="h-4 w-4" />
+          </Button>
           <Button variant="outline" size="icon" className="hidden sm:inline-flex" aria-label={t('admin.kitchen.fullscreen')}
             onClick={() => (document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => undefined)}>
             <Maximize2 className="h-4 w-4" />
@@ -251,6 +247,12 @@ export default function KitchenPage() {
         </div>
       </header>
 
+      {alertsOpen && currentTenant ? (
+        <DeviceAlertsDialog open={alertsOpen} onOpenChange={setAlertsOpen} tenantId={currentTenant.id} kind="station"
+          defaultName={stations.find((x) => x.id === activeStation)?.name ?? t('deviceAlerts.defaultName.station')}
+          stationId={activeStation} stationNames={new Map(stations.map((x) => [x.id, x.name]))}
+          wakeKey={WAKE_KEY} wakeDefault onWakeChange={setWake} wakeActive={wakeActive} manageHref="/admin/pos" />
+      ) : null}
       {/* Gsm en tablet staand: tabbladen per kolom (HORECA-0: drie kolommen pas vanaf 1024 px). */}
       <div className="flex gap-1 border-b bg-background px-2 py-2 lg:hidden">
         {COLUMNS.map((c) => (

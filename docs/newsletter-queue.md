@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14b — Meldingen per toestel voor kassa, keuken en bar (feature, 28-10-2026)
+
+**Status:** wacht op migratie, deploy van horeca-device-push en send-push-notification, en publish van de admin (MELDING-1); de native Kassa-app volgt met de volgende build.
+
+**Voor wie:** horecazaken met SellQo Kassa en/of een keukenscherm.
+
+**Elke post zijn eigen melding** (oktober 2026)
+Elk toestel in je zaak krijgt nu enkel wat het nodig heeft. De kassa krijgt een melding bij een QR-bestelling, een bon die klaar is en een online betaling. Het keuken- of barscherm krijgt elke nieuwe bon voor die post, ook als het scherm dicht is. Nieuwe bonnen komen samen in één melding, op het open scherm klinkt een belletje, en het scherm kan wakker blijven. Op een gedeelde kassa staan jouw persoonlijke meldingen standaard uit. Alles beheer je onder Kassa (POS) › Kassa's.
+Wat betekent dit voor jou? Geen bestelling meer die blijft liggen omdat niemand op het scherm keek, en geen facturen van de eigenaar op het keukenscherm.
+
+i18n: `public.changelog.changes.horeca_device_alerts`
+
 ### 2026.14a — Gasten betalen de tafelrekening online, ook gesplitst (feature, 28-10-2026)
 
 **Status:** wacht op migratie, deploy van storefront-api en stripe-connect-webhook, publish van de admin en deploy van het QR-menu (REKENING-ONLINE-1); de native Kassa-app volgt met de volgende build.

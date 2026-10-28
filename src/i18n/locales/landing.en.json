@@ -2291,6 +2291,10 @@
         "horeca_check_online_pay": {
           "title": "Guests pay the table bill online, split if they like",
           "description": "With the QR code on the table, guests see their bill and pay it themselves with Bancontact, card or wallet: everything, only their own items, or split equally. They can add a tip of 5, 10 or 15% or their own amount. The payment goes on the bill straight away; once everything is paid, the table closes by itself. If only part is paid online, the till settles the rest and counts the online part. If a payment can no longer go on the bill (for example because it was settled at the till in the meantime), it is refunded automatically. Switch it on under Till › Payments. Not available with a registered till (GKS)."
+        },
+        "horeca_device_alerts": {
+          "title": "Alerts per device for till, kitchen and bar",
+          "description": "Every device in your venue now only gets what it needs: the till an alert for a QR order, a ticket that's ready and an online payment; the kitchen or bar screen for every new ticket for that station. Also when the screen is off, through the SellQo app or as an app on the home screen (on iPhone and iPad you add SellQo Kassa or SellQo Keuken to your home screen). New tickets for the same station are combined into one alert. On an open screen a chime sounds and the screen can stay awake. These alerts don't go to your bell, and on a shared till your personal alerts are off by default. You manage it all under Point of sale (POS) › Tills."
         }
       },
       "copyLink": "Copy link",

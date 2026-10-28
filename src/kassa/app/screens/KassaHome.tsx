@@ -2,13 +2,13 @@
 // wissel), tabbladen Tafels · Toog · Kas · Rapporten, en de geopende rekening of toogverkoop.
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Banknote, Clock, FileBarChart, LayoutGrid, Loader2, LogOut, ShoppingBag, Users, Wifi, WifiOff } from 'lucide-react';
+import { Banknote, Bell, BellOff, Clock, FileBarChart, LayoutGrid, Loader2, LogOut, ShoppingBag, Users, Wifi, WifiOff } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { cn } from '@/lib/utils';
 import { clock, isClockedIn } from '../attendance';
 import { useKassaSession } from '../session';
 import type { KassaRuntime } from '../runtime';
-import { useHoreca } from '../horeca/useHoreca';
 import type { ActionCtx } from '../horeca/actions';
 import { TablesScreen } from './TablesScreen';
 import { CheckScreen } from './CheckScreen';
@@ -18,16 +18,18 @@ import { lastService } from '../horeca/counter';
 import { useAutoAccept } from '../horeca/requests';
 import { RequestInbox, RequestInboxButton } from './RequestInbox';
 import { useAutoAcceptRunner } from '../horeca/autoAccept';
+import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
+import type { HorecaStore } from '../horeca/store';
+import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from '../alerts';
 
 type Tab = 'tables' | 'counter' | 'cash' | 'reports';
 const TABS: { id: Tab; icon: typeof LayoutGrid }[] = [
   { id: 'tables', icon: LayoutGrid }, { id: 'counter', icon: ShoppingBag }, { id: 'cash', icon: Banknote }, { id: 'reports', icon: FileBarChart },
 ];
 
-export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: KassaRuntime; terminalName: string; onForgetDevice: () => void }) {
+export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice }: { runtime: KassaRuntime; store: HorecaStore; alerts: KassaAlerts; terminalName: string; onForgetDevice: () => void }) {
   const { t } = useTranslation();
   const { staff, employeeId, lock } = useKassaSession();
-  const store = useHoreca(runtime.device.tenantId, runtime.device.deviceUuid);
   const { data: plan } = useFloorPlan();
   const [openCheck, setOpenCheck] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('tables');
@@ -38,6 +40,9 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
   // QR-REKENING-1: bestellingen via de QR aan tafel.
   const [inboxOpen, setInboxOpen] = useState(false);
   const autoAccept = useAutoAccept(runtime.device.tenantId);
+  // MELDING-1: geluid en melding op het open scherm, scherm wakker, push als het scherm dicht is.
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const { sound } = alerts;
 
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((x) => [x.id, x.label])), [plan]);
   const ctx: ActionCtx | null = useMemo(() => (staff ? {
@@ -86,6 +91,10 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
           </p>
         </div>
         <RequestInboxButton count={store.requests.length} onClick={() => setInboxOpen(true)} />
+        <button type="button" onClick={() => setAlertsOpen(true)} title={t('kassa.signals.button')} aria-label={t('kassa.signals.button')}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border">
+          {sound ? <Bell className="h-4 w-4" aria-hidden /> : <BellOff className="h-4 w-4 text-muted-foreground" aria-hidden />}
+        </button>
         <button type="button" onClick={toggleClock} disabled={clockBusy} title={t(clockedIn ? 'kassa.home.clockOut' : 'kassa.home.clockIn')}
           className={cn('flex h-11 items-center gap-1.5 rounded-md px-3 text-sm font-semibold disabled:opacity-50', clockedIn ? 'border' : 'bg-primary text-primary-foreground')}>
           {clockBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
@@ -98,6 +107,11 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
         </button>
       </header>
       {message && <p role="status" className="border-b bg-muted px-3 py-1.5 text-sm">{message}</p>}
+      {alertsOpen ? (
+        <DeviceAlertsDialog open={alertsOpen} onOpenChange={setAlertsOpen} tenantId={runtime.device.tenantId} kind="kassa" defaultName={terminalName}
+          soundKey={KASSA_SOUND_KEY} soundDefault onSoundChange={alerts.setSound} wakeKey={KASSA_WAKE_KEY} wakeDefault onWakeChange={alerts.setWake} wakeActive={alerts.wakeActive}
+          manageHref={Capacitor.isNativePlatform() ? undefined : '/admin/pos'} />
+      ) : null}
       {inboxOpen ? <RequestInbox ctx={ctx} requests={store.requests} open={inboxOpen} onClose={() => setInboxOpen(false)} /> : null}
       {runtime.isFiscal && !employeeId && <p role="alert" className="border-b bg-destructive/10 px-3 py-1.5 text-sm text-destructive">{t('kassa.home.noInsz')}</p>}
 

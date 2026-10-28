@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
+import { getInstallId } from '@/lib/installId';
 
 type NativePlatform = 'ios' | 'android';
 
@@ -36,8 +37,10 @@ async function upsertToken(userId: string, token: string, platform: NativePlatfo
         // dubbele-melding-check (NativeWebPushDuplicateDialog).
         os: platform,
         device_name: `${platform} device`,
+        // MELDING-1: profiel per toestel (horeca_notify_devices) hangt hieraan.
+        install_id: getInstallId(),
         last_seen_at: new Date().toISOString(),
-      },
+      } as never,
       { onConflict: 'token' },
     );
 

@@ -13,6 +13,12 @@ import { DeviceSetup } from './screens/DeviceSetup';
 import { PinLock } from './screens/PinLock';
 import { KassaHome } from './screens/KassaHome';
 import { useKassaBackground } from './useKassaBackground';
+import { useAppShell } from '@/hooks/useAppShell';
+import { useHoreca } from './horeca/useHoreca';
+import { useKassaSignals } from './useKassaSignals';
+import { useWakeLock } from '@/hooks/useWakeLock';
+import { readFlag } from '@/lib/ding';
+import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from './alerts';
 
 function Spinner() {
   const { t } = useTranslation();
@@ -61,12 +67,28 @@ function Device() {
     );
   }
   if (!runtime || !terminal || currentTenant?.id !== device.tenantId) return <Spinner />;
-  if (!staff) return <div className="min-h-screen py-6" style={{ paddingTop: 'max(1.5rem, var(--safe-top))' }}><PinLock tenantId={device.tenantId} deviceUuid={device.deviceUuid} /></div>;
-  return <KassaHome runtime={runtime} terminalName={terminal.name} onForgetDevice={reset} />;
+  return <KassaLive runtime={runtime} terminalName={terminal.name} onForgetDevice={reset} />;
+}
+
+/** MELDING-1 — draait zolang de kassa gekoppeld is, ook op het PIN-scherm: één poll (store), meldingen
+ *  met geluid bij een QR-bestelling, klare bon of online betaling, en het scherm wakker houden. Een kassa
+ *  die in rust vergrendeld staat, moet net dan blijven melden. */
+function KassaLive({ runtime, terminalName, onForgetDevice }: { runtime: KassaRuntime; terminalName: string; onForgetDevice: () => void }) {
+  const { staff } = useKassaSession();
+  const store = useHoreca(runtime.device.tenantId, runtime.device.deviceUuid);
+  const [sound, setSound] = useState(() => readFlag(KASSA_SOUND_KEY, true));
+  const [wake, setWake] = useState(() => readFlag(KASSA_WAKE_KEY, true));
+  const wakeActive = useWakeLock(wake);
+  useKassaSignals(runtime.device.tenantId, store.requests, store.requestsLoaded, sound);
+  const alerts: KassaAlerts = { sound, setSound, wake, setWake, wakeActive };
+  if (!staff) return <div className="min-h-screen py-6" style={{ paddingTop: 'max(1.5rem, var(--safe-top))' }}><PinLock tenantId={runtime.device.tenantId} deviceUuid={runtime.device.deviceUuid} /></div>;
+  return <KassaHome runtime={runtime} store={store} alerts={alerts} terminalName={terminalName} onForgetDevice={onForgetDevice} />;
 }
 
 export function KassaApp() {
   const { user, loading } = useAuth();
+  // MELDING-1: "SellQo Kassa" als beginscherm-app (op iPad/iPhone nodig voor meldingen).
+  useAppShell('/kassa.webmanifest', 'Kassa', '#0f172a');
   if (loading) return <Spinner />;
   if (!user) return <SignIn />;
   return (

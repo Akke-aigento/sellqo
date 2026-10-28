@@ -1288,7 +1288,9 @@
         "description": "Web notifications are on for a device with the same operating system. If SellQo is also on this phone as a web app on the home screen, you get everything twice. The app takes priority.",
         "keep": "No, another device",
         "remove": "Yes, turn off web notifications"
-      }
+      },
+      "horecaHint": "Till and kitchen devices of the venue (QR orders, tickets, online payments) are set up under",
+      "horecaLink": "Point of sale (POS) › Tills"
     },
     "logoUpload": {
       "logo": "Logo",
@@ -11179,6 +11181,95 @@
         "askStaff": "Please ask the staff",
         "other": "Other reason"
       }
+    },
+    "signals": {
+      "button": "Alerts and sound",
+      "qr": "Ordered via QR: table {{tables}}",
+      "ready": "Ready: {{label}}",
+      "paid": "{{label}} paid online: {{amount}}"
+    }
+  },
+  "deviceAlerts": {
+    "title": "Alerts on this device",
+    "intro": "Sound and screen only apply to this screen. Alerts also arrive when the screen is off.",
+    "loading": "Loading…",
+    "sound": {
+      "label": "Sound for new alerts",
+      "hint": "A chime (and vibration) while this screen is open."
+    },
+    "wake": {
+      "label": "Keep screen awake",
+      "hint": "The screen won't go to sleep while this page is open. Keep the device on the charger.",
+      "unsupported": "This device can't keep the screen awake. Turn off auto-lock in the device settings.",
+      "blocked": "The device doesn't allow it right now (e.g. battery saver). It works again once that's off."
+    },
+    "push": {
+      "title": "Also when the screen is off",
+      "needsInstall": "On iPhone and iPad, alerts only work from the app on the home screen. Tap Share, then Add to Home Screen, open the app from there and turn it on here.",
+      "unsupported": "This browser can't receive alerts. Use Chrome, Edge or Safari, or the SellQo app.",
+      "denied": "Alerts are blocked for SellQo on this device. Allow them in the browser or device settings.",
+      "onAs": "On as “{{name}}”. This device gets:",
+      "nothing": "Nothing selected yet.",
+      "personalOn": "Also the personal alerts of whoever is signed in here (invoices, webshop …).",
+      "personalOff": "No personal alerts of whoever is signed in here: only what's listed above.",
+      "manage": "Change in Point of sale (POS) › Tills",
+      "manageElsewhere": "You can change this on sellqo.app, under Point of sale (POS) › Tills.",
+      "disable": "Turn off on this device",
+      "enable": "Turn on alerts",
+      "enabledToast": "Alerts are on for this device",
+      "disabledToast": "This device no longer gets hospitality alerts",
+      "deniedToast": "Alerts are not allowed on this device",
+      "errorToast": "That didn't work",
+      "offHint": {
+        "kassa": "This device will then get an alert for a QR order, a ticket that's ready and an online payment.",
+        "station": "This device will then get an alert for every new ticket for this station.",
+        "phone": "This device will then get an alert for a QR order and an online payment. You can add more afterwards.",
+        "other": "You choose afterwards what this device gets."
+      }
+    },
+    "event": {
+      "qr_request": "QR order waiting for confirmation",
+      "ticket_new": "New ticket (all stations)",
+      "ticket_new_for": "New ticket for {{stations}}",
+      "ticket_ready": "Ticket is ready",
+      "paid_online": "Guest paid online"
+    },
+    "kind": {
+      "kassa": "Till",
+      "station": "Station (kitchen, bar …)",
+      "phone": "Phone or tablet",
+      "other": "Other device"
+    },
+    "defaultName": {
+      "phone": "Phone",
+      "station": "Kitchen screen"
+    },
+    "manage": {
+      "title": "Alerts per device",
+      "intro": "Which devices get an alert for a QR order, a new or ready ticket and an online payment. These alerts don't go to the bell. You add a device on the device itself: in the till or on the kitchen screen via the bell icon, or here with “Add this device”.",
+      "addThis": "Add this device",
+      "empty": "No devices yet.",
+      "loadError": "The devices could not be loaded.",
+      "name": "Name",
+      "kind": "Device type",
+      "thisDevice": "This device",
+      "pushOn": "Push active · {{os}} · last seen {{when}}",
+      "pushOff": "No active push subscription: open SellQo on that device and turn alerts on again.",
+      "receives": "Gets an alert for",
+      "stations": "Stations",
+      "allStations": "None selected = all stations",
+      "personal": "Personal alerts",
+      "personalHint": "Also the alerts of whoever is signed in on this device (invoices, webshop …). Off on a shared till or kitchen screen.",
+      "save": "Save",
+      "saved": "Saved",
+      "remove": "Remove",
+      "removed": "Device removed",
+      "removeTitle": "Remove “{{name}}”?",
+      "removeText": "This device will no longer get hospitality alerts. Personal alerts of whoever is signed in stay as set under Settings › My notifications.",
+      "cancel": "Cancel",
+      "nameRequired": "Give the device a name",
+      "error": "That didn't work",
+      "removeTextShared": "This device will then get no alerts at all: no hospitality alerts and no personal alerts of whoever is signed in. To use it again, turn alerts back on on the device itself."
     }
   }
 }

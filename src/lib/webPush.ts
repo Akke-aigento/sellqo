@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
+import { getInstallId } from '@/lib/installId';
 
 /**
  * WEBPUSH-1 — web push voor de SellQo-webapp (beginscherm-app of browser).
@@ -189,8 +190,10 @@ export async function subscribeWebPush(userId: string): Promise<SubscribeResult>
         p256dh,
         auth,
         device_name: describeDevice(os),
+        // MELDING-1: profiel per toestel (horeca_notify_devices) hangt hieraan.
+        install_id: getInstallId(),
         last_seen_at: new Date().toISOString(),
-      },
+      } as never,
       { onConflict: 'token' },
     );
     if (error) {
@@ -231,7 +234,7 @@ export async function touchWebPushSubscription(userId: string): Promise<void> {
     if (!sub) return;
     await supabase
       .from('device_tokens')
-      .update({ last_seen_at: new Date().toISOString() })
+      .update({ last_seen_at: new Date().toISOString(), install_id: getInstallId() } as never)
       .eq('token', sub.endpoint)
       .eq('user_id', userId);
   } catch {

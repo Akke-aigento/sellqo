@@ -116,6 +116,8 @@ export async function sendWebPush(
   sub: WebPushSubscription,
   payload: WebPushPayload,
   privateJwk: JsonWebKey,
+  /** Hoelang de pushdienst het bericht bewaart als het toestel offline is (standaard een dag). */
+  ttlSeconds = 86400,
 ): Promise<WebPushResult> {
   try {
     const body = await encryptPayload(sub, enc.encode(JSON.stringify(payload)));
@@ -125,7 +127,7 @@ export async function sendWebPush(
         authorization: await vapidAuthorization(sub.endpoint, privateJwk),
         "content-encoding": "aes128gcm",
         "content-type": "application/octet-stream",
-        ttl: "86400",
+        ttl: String(ttlSeconds),
         urgency: "high",
         ...(payload.tag ? { topic: payload.tag.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 32) } : {}),
       },

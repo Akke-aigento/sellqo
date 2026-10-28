@@ -8,6 +8,7 @@ import { installGlobalErrorHandlers } from '@/lib/clientErrors';
 import { RootErrorBoundary } from '@/components/AppErrorBoundary';
 import { AuthProvider } from '@/hooks/useAuth';
 import { KassaApp } from './KassaApp';
+import { Toaster } from '@/components/ui/sonner';
 
 installGlobalErrorHandlers();
 const queryClient = new QueryClient({ defaultOptions: { queries: { refetchOnWindowFocus: false, staleTime: 30_000 } } });
@@ -17,6 +18,8 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <KassaApp />
+        {/* MELDING-1: meldingen in beeld (QR-bestelling, klare bon, online betaling) ook in de aparte Kassa-app. */}
+        <Toaster />
       </AuthProvider>
     </QueryClientProvider>
   </RootErrorBoundary>,
