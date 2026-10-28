@@ -210,6 +210,12 @@
       "media": "Médias",
       "platform_overview": "Aperçu de la plateforme",
       "email_automations": "Automatisations"
+    },
+    "bottom": {
+      "today": "Aujourd'hui",
+      "kassa": "Caisse",
+      "kitchen": "Cuisine",
+      "menu": "Carte"
     }
   },
   "settings": {
@@ -315,6 +321,10 @@
       },
       "channels_basic": {
         "title": "Notifications et communication"
+      },
+      "horeca": {
+        "title": "Horeca",
+        "description": "Carte, QR, salle, postes, caisse et imprimantes"
       }
     },
     "sections": {
@@ -343,7 +353,8 @@
       "reviews": "Avis",
       "fulfillment_api": "API de préparation",
       "platform_tools": "Outils de la plateforme",
-      "modules": "Modules"
+      "modules": "Modules",
+      "horeca": "Réglages horeca"
     },
     "business": {
       "subtitle": "Gérez les informations de votre boutique et de votre entreprise",
@@ -1627,6 +1638,47 @@
         "confirmBody": "Cela rétablit tous les paramètres de retour à leurs valeurs par défaut. Cette action est irréversible.",
         "confirm": "Réinitialiser"
       }
+    },
+    "horecaHub": {
+      "title": "Réglages horeca",
+      "intro": "Tout ce que votre établissement configure, avec l'état actuel. Touchez une ligne pour la modifier à sa place.",
+      "group_ordering": "Commandes",
+      "group_kassa": "Caisse (POS)",
+      "qr": "Menu QR à table",
+      "qr_mode_view": "Les clients consultent la carte",
+      "qr_mode_order": "Les clients commandent à table",
+      "qr_mode_off": "Désactivé",
+      "floor": "Plan de salle",
+      "tables_one": "{{count}} table",
+      "tables_other": "{{count}} tables",
+      "stations": "Postes (cuisine, bar …)",
+      "stations_count_one": "{{count}} poste",
+      "stations_count_other": "{{count}} postes",
+      "terminals": "Caisses",
+      "terminals_count_one": "{{count}} caisse",
+      "terminals_count_other": "{{count}} caisses",
+      "staff": "Personnel et codes PIN",
+      "staff_count_one": "{{count}} membre du personnel",
+      "staff_count_other": "{{count}} membres du personnel",
+      "pay": "Paiements",
+      "pay_status": "{{count}} moyens de paiement · paiement en ligne {{online}}",
+      "printers": "Tickets & imprimantes",
+      "printers_status": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
+      "alerts": "Alertes par appareil",
+      "devices_count_one": "{{count}} appareil",
+      "devices_count_other": "{{count}} appareils",
+      "on": "activé",
+      "off": "désactivé",
+      "tables_few": "{{count}} tables",
+      "tables_many": "{{count}} tables",
+      "stations_count_few": "{{count}} postes",
+      "stations_count_many": "{{count}} postes",
+      "terminals_count_few": "{{count}} caisses",
+      "terminals_count_many": "{{count}} caisses",
+      "staff_count_few": "{{count}} membres du personnel",
+      "staff_count_many": "{{count}} membres du personnel",
+      "devices_count_few": "{{count}} appareils",
+      "devices_count_many": "{{count}} appareils"
     }
   },
   "languages": {
@@ -7325,7 +7377,8 @@
         "pay": "Paiements",
         "printers": "Tickets & imprimantes"
       },
-      "openKassaApp": "Ouvrir l’app caisse"
+      "openKassaApp": "Ouvrir l’app caisse",
+      "empty_horeca_hint": "Ouvrez ensuite l'application caisse sur votre tablette ou téléphone et choisissez cette caisse."
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Paramètres du terminal",

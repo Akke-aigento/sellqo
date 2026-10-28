@@ -1362,7 +1362,7 @@
         },
         "addon_billing": {
           "title": "Add-ons and box-office tickets correctly on your invoice",
-          "description": "An add-on (webshop or horeca) added mid-month is charged pro rata and now appears as its own line on your invoice. When you stop an add-on, it runs until the end of the paid period. Tickets sold at the till or manually are added with their ticket fee to your next invoice; without a monthly plan you get a usage invoice once €5 is outstanding. Events Vast now shows the end of your 12-month contract."
+          "description": "An add-on (webshop or horeca) added mid-month is charged pro rata and now appears as its own line on your invoice. When you stop an add-on, it runs until the end of the paid period. Tickets sold at the POS or manually are added with their ticket fee to your next invoice; without a monthly plan you get a usage invoice once €5 is outstanding. Events Vast now shows the end of your 12-month contract."
         },
         "discount_code_case_insensitive": {
           "title": "Discount codes are no longer case-sensitive",
@@ -2009,8 +2009,8 @@
           "description": "When a customer checks out an order of €0, for example with a 100% discount code, they now get the confirmation right away instead of after about ten seconds. The invoice, the order confirmation and the ticket email are sent afterwards, in the same order as before."
         },
         "admin_dead_controls_cleanup": {
-          "title": "Fewer buttons that did nothing in the translation hub, your profile and the till",
-          "description": "The translation hub no longer shows switches for automatic translation: they were saved, but nothing ever used them. You translate per item or in bulk. A gift card you print at the till now gets a real QR code with the card code, instead of a box that only looked like one. The camera button in your profile, which was always disabled, is gone. An AI suggestion about stock now takes you to your low-stock products instead of a purchasing page where you could not create anything."
+          "title": "Fewer buttons that did nothing in the translation hub, your profile and the POS",
+          "description": "The translation hub no longer shows switches for automatic translation: they were saved, but nothing ever used them. You translate per item or in bulk. A gift card you print at the POS now gets a real QR code with the card code, instead of a box that only looked like one. The camera button in your profile, which was always disabled, is gone. An AI suggestion about stock now takes you to your low-stock products instead of a purchasing page where you could not create anything."
         },
         "homepage_sections_slideshow_logos_columns": {
           "title": "Four new homepage sections, video that loads only after a click, and an image picker",
@@ -2078,7 +2078,7 @@
         },
         "horeca_channels": {
           "title": "Choose per dish where it can be ordered",
-          "description": "Food & drink businesses now choose per dish whether it can be ordered online, at the table via the QR code, only shown on the menu, or sold at the till. One menu, one stock. With \"Sold out for today\" a dish is sold out everywhere in one tap, and it comes back automatically at 05:00 the next morning."
+          "description": "Food & drink businesses now choose per dish whether it can be ordered online, at the table via the QR code, only shown on the menu, or sold at the POS. One menu, one stock. With \"Sold out for today\" a dish is sold out everywhere in one tap, and it comes back automatically at 05:00 the next morning."
         },
         "social_reminder_on_time": {
           "title": "Your reminder to post manually now arrives right on time",
@@ -2221,12 +2221,12 @@
           "description": "If something goes wrong in the admin or the app, you see a recovery screen with “Try again” and “Reload page” instead of a white screen. After a new SellQo version, an open screen reloads itself once if a part is missing. The error reaches us automatically, so we can fix it before you have to call us."
         },
         "pos_offline_queue_safe": {
-          "title": "Till: no more lost sales on a bad connection",
-          "description": "If the wifi drops while you ring up a cash sale, the till keeps the sale and sends it on as soon as the connection is back. A sale that doesn't go through right away is retried until it arrives, also after restarting the till, and is never booked twice. The “Waiting” button shows how many sales are still on their way and how many are being retried."
+          "title": "POS: no more lost sales on a bad connection",
+          "description": "If the wifi drops while you ring up a cash sale, the POS keeps the sale and sends it on as soon as the connection is back. A sale that doesn't go through right away is retried until it arrives, also after restarting the POS, and is never booked twice. The “Waiting” button shows how many sales are still on their way and how many are being retried."
         },
         "kassa_staff_pin": {
-          "title": "Till staff with their own PIN, and the till app",
-          "description": "Under Till › Staff you add your staff with a role, a number and a PIN of 4 to 6 digits. On the till (SellQo Till, also at /kassa in your browser) everyone picks their name and taps their code; after two minutes without a tap the till locks itself. Five wrong attempts block the PIN for five minutes. Staff clock in and out on the till. If you want a registered till (GKS) later, enter each staff member's national register number: it is stored encrypted and never appears on a receipt or screen."
+          "title": "POS staff with their own PIN, and the POS app",
+          "description": "Under Point of sale (POS) › Staff you add your staff with a role, a number and a PIN of 4 to 6 digits. On the POS (SellQo Kassa, also at /kassa in your browser) everyone picks their name and taps their code; after two minutes without a tap the POS locks itself. Five wrong attempts block the PIN for five minutes. Staff clock in and out on the POS. If you want a registered POS (GKS) later, enter each staff member's national register number: it is stored encrypted and never appears on a receipt or screen."
         },
         "floor_plan_tables": {
           "title": "Floor plan with its own QR code per table",
@@ -2238,23 +2238,23 @@
         },
         "table_payment": {
           "title": "Payment on SellQo Kassa",
-          "description": "On SellQo Kassa you can now settle a table or a check on a name. Choose cash or card for the full amount, split equally into 2 to 6 parts each with its own payment method, or combine cash, card, meal vouchers and vouchers yourself. Cash is rounded to 5 cents and the till shows the change; a tip is recorded separately, outside your turnover. If one guest wants to pay separately, choose 'Pay separately': what they had goes to a separate part of the check and the rest stays on the table. The total always comes from the orders that were sent, never from the device, and every payment shows up straight away in your till sales and stock. On a registered till the sale is signed first and you get the VAT receipt to print."
+          "description": "On SellQo Kassa you can now settle a table or a check on a name. Choose cash or card for the full amount, split equally into 2 to 6 parts each with its own payment method, or combine cash, card, meal vouchers and vouchers yourself. Cash is rounded to 5 cents and the POS shows the change; a tip is recorded separately, outside your turnover. If one guest wants to pay separately, choose 'Pay separately': what they had goes to a separate part of the check and the rest stays on the table. The total always comes from the orders that were sent, never from the device, and every payment shows up straight away in your POS sales and stock. On a registered POS the sale is signed first and you get the VAT receipt to print."
         },
         "kassa_device_status": {
-          "title": "See whether your till devices are still connected",
-          "description": "Under Till › Tills you see, per till, when each SellQo Kassa device last checked in and whether actions are still waiting on that device to be sent. A device that hasn’t checked in for more than five minutes, or that still has something waiting, turns orange."
+          "title": "See whether your POS devices are still connected",
+          "description": "Under Point of sale (POS) › Terminals you see, per POS, when each SellQo Kassa device last checked in and whether actions are still waiting on that device to be sent. A device that hasn’t checked in for more than five minutes, or that still has something waiting, turns orange."
         },
         "kassa_counter_reports": {
           "title": "Counter sales, cash and X/Z reports on SellQo Kassa",
-          "description": "Under the Counter tab you sell without a table: tap products, choose eat in or take away, and pay straight away. For take away, the VAT rate you set on the product under 'VAT for take away' applies, for example 6% for a takeaway meal. A kitchen ticket only goes to your kitchen if you switch it on. Under Cash you record money into or out of the drawer with a reason, and open or close a shift with a count; the till shows what was expected and the difference. Under Reports you make an X report (running totals) or a Z report (close the day, numbered in sequence). Only the owner or a manager can make a Z report. If you forget to close a day, the till makes the Z report itself the next day."
+          "description": "Under the Counter tab you sell without a table: tap products, choose eat in or take away, and pay straight away. For take away, the VAT rate you set on the product under 'VAT for take away' applies, for example 6% for a takeaway meal. A kitchen ticket only goes to your kitchen if you switch it on. Under Cash you record money into or out of the drawer with a reason, and open or close a shift with a count; the POS shows what was expected and the difference. Under Reports you make an X report (running totals) or a Z report (close the day, numbered in sequence). Only the owner or a manager can make a Z report. If you forget to close a day, the POS makes the Z report itself the next day."
         },
         "horeca_menu_editor": {
           "title": "Your menu in a few minutes: the new Menu tab",
-          "description": "Under Ordering › Menu you see all your products per category on one screen. Type a name and a price, press Enter and it is on the menu. You change the name, price, sold out today and where it is sold (webshop, table, QR menu, till) right in the row. Set the VAT once per category, for eat in and takeaway; new products take it over. With the starter menu you tick the classics of a café, with Paste a list you bring over a whole list from Excel or an email in one go, and with Photo of your menu the AI reads names, prices and headings from a photo of your menu or chalkboard (5 AI credits per photo, only if reading succeeds). You always see a preview first; products already on your menu are not created twice. They are the same products as in your till, QR menu and webshop."
+          "description": "Under Ordering › Menu you see all your products per category on one screen. Type a name and a price, press Enter and it is on the menu. You change the name, price, sold out today and where it is sold (webshop, table, QR menu, POS) right in the row. Set the VAT once per category, for eat in and takeaway; new products take it over. With the starter menu you tick the classics of a café, with Paste a list you bring over a whole list from Excel or an email in one go, and with Photo of your menu the AI reads names, prices and headings from a photo of your menu or chalkboard (5 AI credits per photo, only if reading succeeds). You always see a preview first; products already on your menu are not created twice. They are the same products as in your POS, QR menu and webshop."
         },
         "kassa_product_quick_edit": {
           "title": "Sold out or a new price, straight from SellQo Kassa",
-          "description": "Long-press a product on SellQo Kassa to mark it sold out for today, put it back on sale or change its price. Only the owner or a manager can do this, and every change is stored with who made it and on which device. It applies right away to your till, QR menu and webshop; bills that are already open keep their price. The menu on the till now also shows the correct VAT rate per product."
+          "description": "Long-press a product on SellQo Kassa to mark it sold out for today, put it back on sale or change its price. Only the owner or a manager can do this, and every change is stored with who made it and on which device. It applies right away to your POS, QR menu and webshop; bills that are already open keep their price. The menu on the POS now also shows the correct VAT rate per product."
         },
         "horeca_menu_panel": {
           "title": "Your menu even faster: everything about a product in one panel, and you choose the order",
@@ -2274,11 +2274,11 @@
         },
         "horeca_workspace": {
           "title": "A calmer workspace for hospitality",
-          "description": "On a hospitality plan without a webshop, the menu and settings now show only what a venue needs: dashboard, orders, menu, kitchen, till, payments, reports and settings. Customers, discounts, marketing, translations, returns and reviews leave the menu; they come back as soon as you have a webshop or events plan. On your phone, the menu and the kitchen sit in the bottom bar, and opening a till always opens SellQo Kassa."
+          "description": "On a hospitality plan without a webshop, the menu and settings now show only what a venue needs: dashboard, orders, menu, kitchen, POS, payments, reports and settings. Customers, discounts, marketing, translations, returns and reviews leave the menu; they come back as soon as you have a webshop or events plan. On your phone, the menu and the kitchen sit in the bottom bar, and opening a POS always opens SellQo Kassa."
         },
         "horeca_payments_transfer": {
-          "title": "Set up payments per venue, and take bank transfers at the till",
-          "description": "Under Till › Payments you choose which payment methods SellQo Kassa shows: cash, bank transfer, meal vouchers and vouchers. You also choose whether you have a card terminal and whether you offer tips. Without a terminal, \"card\" disappears. For a bank transfer, the till shows a QR code with the amount, your account number and a reference. The customer scans it with their banking app and you confirm the payment went through. How guests pay via the table QR code is now set there too. The daily report lists bank transfer as a separate payment method."
+          "title": "Set up payments per venue, and take bank transfers at the POS",
+          "description": "Under Point of sale (POS) › Payments you choose which payment methods SellQo Kassa shows: cash, bank transfer, meal vouchers and vouchers. You also choose whether you have a card terminal and whether you offer tips. Without a terminal, \"card\" disappears. For a bank transfer, the POS shows a QR code with the amount, your account number and a reference. The customer scans it with their banking app and you confirm the payment went through. How guests pay via the table QR code is now set there too. The daily report lists bank transfer as a separate payment method."
         },
         "horeca_qr_tab": {
           "title": "Ordering at the table via the QR code, on the table's tab",
@@ -2290,11 +2290,11 @@
         },
         "horeca_check_online_pay": {
           "title": "Guests pay the table bill online, split if they like",
-          "description": "With the QR code on the table, guests see their bill and pay it themselves with Bancontact, card or wallet: everything, only their own items, or split equally. They can add a tip of 5, 10 or 15% or their own amount. The payment goes on the bill straight away; once everything is paid, the table closes by itself. If only part is paid online, the till settles the rest and counts the online part. If a payment can no longer go on the bill (for example because it was settled at the till in the meantime), it is refunded automatically. Switch it on under Till › Payments. Not available with a registered till (GKS)."
+          "description": "With the QR code on the table, guests see their bill and pay it themselves with Bancontact, card or wallet: everything, only their own items, or split equally. They can add a tip of 5, 10 or 15% or their own amount. The payment goes on the bill straight away; once everything is paid, the table closes by itself. If only part is paid online, the POS settles the rest and counts the online part. If a payment can no longer go on the bill (for example because it was settled at the POS in the meantime), it is refunded automatically. Switch it on under Point of sale (POS) › Payments. Not available with a registered POS (GKS)."
         },
         "horeca_device_alerts": {
-          "title": "Alerts per device for till, kitchen and bar",
-          "description": "Every device in your venue now only gets what it needs: the till an alert for a QR order, a ticket that's ready and an online payment; the kitchen or bar screen for every new ticket for that station. Also when the screen is off, through the SellQo app or as an app on the home screen (on iPhone and iPad you add SellQo Kassa or SellQo Keuken to your home screen). New tickets for the same station are combined into one alert. On an open screen a chime sounds and the screen can stay awake. These alerts don't go to your bell, and on a shared till your personal alerts are off by default. You manage it all under Point of sale (POS) › Tills."
+          "title": "Alerts per device for POS, kitchen and bar",
+          "description": "Every device in your venue now only gets what it needs: the POS an alert for a QR order, a ticket that's ready and an online payment; the kitchen or bar screen for every new ticket for that station. Also when the screen is off, through the SellQo app or as an app on the home screen (on iPhone and iPad you add SellQo Kassa or SellQo Keuken to your home screen). New tickets for the same station are combined into one alert. On an open screen a chime sounds and the screen can stay awake. These alerts don't go to your bell, and on a shared POS your personal alerts are off by default. You manage it all under Point of sale (POS) › Terminals."
         },
         "horeca_menu_layout": {
           "title": "A clearer menu, also on your phone",

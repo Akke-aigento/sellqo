@@ -204,7 +204,8 @@ export default function AdminDashboard() {
         return (
           <div className="flex flex-col gap-4">
             <KitchenHeroCard cards={kitchen.cards} isLoading={kitchen.isLoading} nowMs={nowMs} canOpenKitchen={canOpenKitchen} />
-            <HorecaTiles data={revenue.data} cards={kitchen.cards} canRevenue={canRevenue} />
+            {/* WANDELING: omzet en verkopen van vandaag staan al groot in de omzetkaart; hier enkel als die verborgen is. */}
+            <HorecaTiles data={revenue.data} cards={kitchen.cards} canRevenue={canRevenue && !visible.some((c) => c.id === 'today')} />
           </div>
         );
       case 'today':

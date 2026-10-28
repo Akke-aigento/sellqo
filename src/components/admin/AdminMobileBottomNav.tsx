@@ -15,9 +15,17 @@ import { useTracks } from '@/hooks/useBusinessModules';
  * rechtencontrole.
  */
 const TAB_IDS = ['dashboard', 'orders', 'products', 'inbox'];
-// WERKPLEK-1 — een horecawinkel zonder webshop of events: de kaart en de keuken zijn de
-// snelkoppelingen die een barman op zijn gsm nodig heeft (Inbox bestaat daar niet).
-const HORECA_TAB_IDS = ['dashboard', 'orders', 'ordering', 'kitchen'];
+// WANDELING (28-10) — een horecazaak schakelt de hele dag tussen dezelfde vier plekken: de cijfers
+// van vandaag, de kassa, de keuken en de kaart (iets op "op" zetten). Bestellingen (webshop) en de
+// rest zitten in het menu bovenaan. De kassa opent de kassa-app zelf (/kassa), niet het beheer
+// ervan; met dezelfde rechten als het menu-item Kassa (POS). Korte labels, want de pil is smal.
+// Zaken met ook een webshop of events: bestellingen blijven, de keuken en de kaart erbij.
+const HORECA_TAB_IDS = ['dashboard', 'pos', 'kitchen', 'ordering'];
+const HORECA_MIXED_TAB_IDS = ['dashboard', 'orders', 'kitchen', 'ordering'];
+const HORECA_URL: Record<string, string> = { pos: '/kassa' };
+const HORECA_LABEL: Record<string, string> = {
+  dashboard: 'navigation.bottom.today', pos: 'navigation.bottom.kassa', kitchen: 'navigation.bottom.kitchen', ordering: 'navigation.bottom.menu',
+};
 
 export function AdminMobileBottomNav() {
   const location = useLocation();
@@ -26,8 +34,11 @@ export function AdminMobileBottomNav() {
   const { isItemBlocked } = useNavItemVisibility();
 
   const { hasTrack } = useTracks();
-  const horecaOnly = hasTrack('horeca') && !hasTrack('webshop') && !hasTrack('events');
-  const tabs = findNavItems(horecaOnly ? HORECA_TAB_IDS : TAB_IDS).filter((item) => !isItemBlocked(item));
+  const horeca = hasTrack('horeca');
+  const horecaOnly = horeca && !hasTrack('webshop') && !hasTrack('events');
+  const ids = horecaOnly ? HORECA_TAB_IDS : horeca ? HORECA_MIXED_TAB_IDS : TAB_IDS;
+  const tabs = findNavItems(ids).filter((item) => !isItemBlocked(item))
+    .map((item) => (horeca ? { ...item, url: HORECA_URL[item.id] ?? item.url, titleKey: HORECA_LABEL[item.id] ?? item.titleKey } : item));
 
   // Prefix-match, net als de zijbalk. Met een strikte vergelijking was op
   // /admin/orders/123 géén tab actief — je verloor je plaats zodra je een
@@ -78,12 +89,9 @@ export function AdminMobileBottomNav() {
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          return (
-            <Link
-              key={tab.id}
-              to={tab.url}
-              aria-current={isActive(tab.url) ? 'page' : undefined}
-              className={cn(
+          // De kassa-app is een eigen app (eigen bundel en PWA): een gewone link, geen route in het beheer.
+          const external = tab.url === '/kassa';
+          const className = cn(
                 // flex-auto (1 1 auto), niet flex-1 (1 1 0%). Met basis nul
                 // draagt een item niets bij aan de intrinsieke breedte van de
                 // pil, dus ook w-max zag een lege container en gaf elk item
@@ -97,8 +105,10 @@ export function AdminMobileBottomNav() {
                 isActive(tab.url)
                   ? 'bg-primary/10 text-primary'
                   : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
+              );
+          const current = isActive(tab.url) ? 'page' as const : undefined;
+          const content = (
+            <>
               <div className="relative">
                 {Icon && <Icon className="h-5 w-5" />}
                 {tab.id === 'inbox' && count > 0 && (
@@ -106,7 +116,12 @@ export function AdminMobileBottomNav() {
                 )}
               </div>
               <span className="max-w-full truncate">{t(tab.titleKey)}</span>
-            </Link>
+            </>
+          );
+          return external ? (
+            <a key={tab.id} href={tab.url} aria-current={current} className={className}>{content}</a>
+          ) : (
+            <Link key={tab.id} to={tab.url} aria-current={current} className={className}>{content}</Link>
           );
         })}
       </nav>

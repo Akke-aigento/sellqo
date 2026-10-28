@@ -179,6 +179,8 @@ export default function POSPage() {
             <h3 className="text-lg font-semibold mb-2">{t('admin.pOS.geen_terminals')}</h3>
             <p className="text-muted-foreground text-center mb-4">
               {t('admin.pOS.maak_je_eerste_kassaterminal_aan_om')}
+              {/* WANDELING: voor een horecazaak de volgorde — eerst een kassa, dan de kassa-app op het toestel. */}
+              {payTab ? <span className="mt-1 block text-sm">{t('admin.pOS.empty_horeca_hint')}</span> : null}
             </p>
             <Button onClick={() => setShowCreateDialog(true)}>
               <Plus className="mr-2 h-4 w-4" />

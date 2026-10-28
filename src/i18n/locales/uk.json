@@ -182,6 +182,12 @@
       "media": "Медіа",
       "platform_overview": "Огляд платформи",
       "email_automations": "Автоматизації"
+    },
+    "bottom": {
+      "today": "Сьогодні",
+      "kassa": "Каса",
+      "kitchen": "Кухня",
+      "menu": "Меню"
     }
   },
   "settings": {
@@ -287,6 +293,10 @@
       },
       "channels_basic": {
         "title": "Сповіщення та комунікація"
+      },
+      "horeca": {
+        "title": "Горека",
+        "description": "Меню, QR, зал, пости, каса та принтери"
       }
     },
     "sections": {
@@ -315,7 +325,8 @@
       "reviews": "Відгуки",
       "fulfillment_api": "API виконання замовлень",
       "platform_tools": "Інструменти платформи",
-      "modules": "Модулі"
+      "modules": "Модулі",
+      "horeca": "Налаштування горека"
     },
     "business": {
       "subtitle": "Керуйте інформацією про свій магазин і компанію",
@@ -1599,6 +1610,47 @@
         "confirmBody": "Це поверне всі налаштування повернень до типових значень. Цю дію не можна скасувати.",
         "confirm": "Скинути"
       }
+    },
+    "horecaHub": {
+      "title": "Налаштування горека",
+      "intro": "Усе, що налаштовує ваш заклад, із поточним станом. Торкніться рядка, щоб змінити його на своєму місці.",
+      "group_ordering": "Замовлення",
+      "group_kassa": "Каса (POS)",
+      "qr": "QR-меню на столі",
+      "qr_mode_view": "Гості переглядають меню",
+      "qr_mode_order": "Гості замовляють за столом",
+      "qr_mode_off": "Вимкнено",
+      "floor": "План залу",
+      "tables_one": "{{count}} стіл",
+      "tables_few": "{{count}} столи",
+      "tables_many": "{{count}} столів",
+      "tables_other": "{{count}} столів",
+      "stations": "Пости (кухня, бар …)",
+      "stations_count_one": "{{count}} пост",
+      "stations_count_few": "{{count}} пости",
+      "stations_count_many": "{{count}} постів",
+      "stations_count_other": "{{count}} постів",
+      "terminals": "Каси",
+      "terminals_count_one": "{{count}} каса",
+      "terminals_count_few": "{{count}} каси",
+      "terminals_count_many": "{{count}} кас",
+      "terminals_count_other": "{{count}} кас",
+      "staff": "Персонал і PIN-коди",
+      "staff_count_one": "{{count}} працівник",
+      "staff_count_few": "{{count}} працівники",
+      "staff_count_many": "{{count}} працівників",
+      "staff_count_other": "{{count}} працівників",
+      "pay": "Оплата",
+      "pay_status": "{{count}} способи оплати · онлайн-оплата {{online}}",
+      "printers": "Чеки та принтери",
+      "printers_status": "{{count}} принтери · друк підтвердження {{print}} · e-mail {{mail}}",
+      "alerts": "Сповіщення на пристрій",
+      "devices_count_one": "{{count}} пристрій",
+      "devices_count_few": "{{count}} пристрої",
+      "devices_count_many": "{{count}} пристроїв",
+      "devices_count_other": "{{count}} пристроїв",
+      "on": "увімк.",
+      "off": "вимк."
     }
   },
   "languages": {
@@ -7612,7 +7664,8 @@
         "pay": "Оплата",
         "printers": "Чеки та принтери"
       },
-      "openKassaApp": "Відкрити застосунок каси"
+      "openKassaApp": "Відкрити застосунок каси",
+      "empty_horeca_hint": "Потім відкрийте застосунок каси на планшеті чи телефоні й оберіть цю касу."
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Налаштування термінала",

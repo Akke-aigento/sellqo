@@ -167,7 +167,7 @@ export function HorecaTiles({ data, cards, canRevenue }: { data: CockpitRevenueD
   const change = data?.hourly.changePct ?? null;
 
   return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+    <div className={cn('grid grid-cols-2 gap-3 md:gap-4', canRevenue && 'md:grid-cols-4')}>
       {canRevenue && (
         <>
           <div className={tile}>

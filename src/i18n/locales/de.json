@@ -210,6 +210,12 @@
       "media": "Medien",
       "platform_overview": "Plattformübersicht",
       "email_automations": "Automatisierungen"
+    },
+    "bottom": {
+      "today": "Heute",
+      "kassa": "Kasse",
+      "kitchen": "Küche",
+      "menu": "Karte"
     }
   },
   "settings": {
@@ -315,6 +321,10 @@
       },
       "channels_basic": {
         "title": "Benachrichtigungen & Kommunikation"
+      },
+      "horeca": {
+        "title": "Gastronomie",
+        "description": "Karte, QR, Saal, Stationen, Kasse und Drucker"
       }
     },
     "sections": {
@@ -343,7 +353,8 @@
       "reviews": "Bewertungen",
       "fulfillment_api": "Fulfillment-API",
       "platform_tools": "Plattform-Tools",
-      "modules": "Module"
+      "modules": "Module",
+      "horeca": "Gastronomie-Einstellungen"
     },
     "business": {
       "subtitle": "Verwalten Sie Ihre Shop- und Unternehmensdaten",
@@ -1627,6 +1638,47 @@
         "confirmBody": "Dadurch werden alle Rücksendeeinstellungen auf die Standardwerte zurückgesetzt. Dies kann nicht rückgängig gemacht werden.",
         "confirm": "Zurücksetzen"
       }
+    },
+    "horecaHub": {
+      "title": "Gastronomie-Einstellungen",
+      "intro": "Alles, was dein Betrieb einstellt, mit dem aktuellen Stand. Tippe auf eine Zeile, um sie an ihrem festen Platz zu ändern.",
+      "group_ordering": "Bestellungen",
+      "group_kassa": "Kasse (POS)",
+      "qr": "QR-Menü am Tisch",
+      "qr_mode_view": "Gäste sehen die Karte",
+      "qr_mode_order": "Gäste bestellen am Tisch",
+      "qr_mode_off": "Aus",
+      "floor": "Saalplan",
+      "tables_one": "{{count}} Tisch",
+      "tables_other": "{{count}} Tische",
+      "stations": "Stationen (Küche, Bar …)",
+      "stations_count_one": "{{count}} Station",
+      "stations_count_other": "{{count}} Stationen",
+      "terminals": "Kassen",
+      "terminals_count_one": "{{count}} Kasse",
+      "terminals_count_other": "{{count}} Kassen",
+      "staff": "Personal und PINs",
+      "staff_count_one": "{{count}} Mitarbeiter",
+      "staff_count_other": "{{count}} Mitarbeiter",
+      "pay": "Bezahlen",
+      "pay_status": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
+      "printers": "Belege & Drucker",
+      "printers_status": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
+      "alerts": "Benachrichtigungen pro Gerät",
+      "devices_count_one": "{{count}} Gerät",
+      "devices_count_other": "{{count}} Geräte",
+      "on": "an",
+      "off": "aus",
+      "tables_few": "{{count}} Tische",
+      "tables_many": "{{count}} Tische",
+      "stations_count_few": "{{count}} Stationen",
+      "stations_count_many": "{{count}} Stationen",
+      "terminals_count_few": "{{count}} Kassen",
+      "terminals_count_many": "{{count}} Kassen",
+      "staff_count_few": "{{count}} Mitarbeiter",
+      "staff_count_many": "{{count}} Mitarbeiter",
+      "devices_count_few": "{{count}} Geräte",
+      "devices_count_many": "{{count}} Geräte"
     }
   },
   "languages": {
@@ -7325,7 +7377,8 @@
         "pay": "Bezahlen",
         "printers": "Belege & Drucker"
       },
-      "openKassaApp": "Kassen-App öffnen"
+      "openKassaApp": "Kassen-App öffnen",
+      "empty_horeca_hint": "Danach öffnest du die Kassen-App auf deinem Tablet oder Handy und wählst diese Kasse."
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Terminaleinstellungen",

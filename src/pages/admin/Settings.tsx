@@ -63,7 +63,8 @@ import { useCan, type Resource } from '@/hooks/useCan';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useEmailLogoAutoBackfill } from '@/hooks/useEmailLogoBackfill';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
-import { Wrench, Blocks } from 'lucide-react';
+import { Wrench, Blocks, UtensilsCrossed } from 'lucide-react';
+import { HorecaSettingsHub } from '@/components/admin/settings/HorecaSettingsHub';
 import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { tracksAllow, type Track } from '@/lib/tracks';
@@ -118,6 +119,16 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'branding', titleKey: 'settings.sections.branding', icon: Palette, component: BrandingSettings, requiredRead: 'settings_general' },
       { id: 'domain', titleKey: 'settings.sections.domain', icon: Globe, component: MultiDomainSettings, requiredRead: 'settings_general' },
       { id: 'modules', titleKey: 'settings.sections.modules', icon: Blocks, component: BusinessModulesSettings, adminOnly: true },
+    ],
+  },
+  {
+    // WANDELING (28-10) — Instellingen › Horeca: overzicht met links naar de vaste plekken
+    // (Bestellen en Kassa), geen tweede bewerkplek.
+    id: 'horeca',
+    titleKey: 'settings.groups.horeca.title',
+    descriptionKey: 'settings.groups.horeca.description',
+    sections: [
+      { id: 'horeca', tracks: ['horeca'], titleKey: 'settings.sections.horeca', icon: UtensilsCrossed, component: HorecaSettingsHub, requiredRead: 'settings_general' },
     ],
   },
   {

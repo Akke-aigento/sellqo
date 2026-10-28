@@ -182,6 +182,12 @@
       "media": "Media",
       "platform_overview": "Platformoverzicht",
       "email_automations": "Automatiseringen"
+    },
+    "bottom": {
+      "today": "Vandaag",
+      "kassa": "Kassa",
+      "kitchen": "Keuken",
+      "menu": "Kaart"
     }
   },
   "settings": {
@@ -287,6 +293,10 @@
       },
       "channels_basic": {
         "title": "Meldingen & communicatie"
+      },
+      "horeca": {
+        "title": "Horeca",
+        "description": "Kaart, QR, zaal, posten, kassa en printers"
       }
     },
     "sections": {
@@ -315,7 +325,8 @@
       "reviews": "Reviews",
       "fulfillment_api": "Fulfillment API",
       "platform_tools": "Platform Tools",
-      "modules": "Modules"
+      "modules": "Modules",
+      "horeca": "Horeca-instellingen"
     },
     "business": {
       "subtitle": "Beheer je winkel- en bedrijfsinformatie",
@@ -1599,6 +1610,47 @@
         "confirmBody": "Dit zet alle retourinstellingen terug naar de standaardwaarden. Dit kan niet ongedaan worden gemaakt.",
         "confirm": "Reset"
       }
+    },
+    "horecaHub": {
+      "title": "Horeca-instellingen",
+      "intro": "Alles wat je zaak instelt, met de huidige stand. Tik op een regel om het aan te passen op zijn vaste plek.",
+      "group_ordering": "Bestellen",
+      "group_kassa": "Kassa (POS)",
+      "qr": "QR-menu aan tafel",
+      "qr_mode_view": "Gasten bekijken de kaart",
+      "qr_mode_order": "Gasten bestellen aan tafel",
+      "qr_mode_off": "Uit",
+      "floor": "Zaalplan",
+      "tables_one": "{{count}} tafel",
+      "tables_other": "{{count}} tafels",
+      "stations": "Posten (keuken, bar …)",
+      "stations_count_one": "{{count}} post",
+      "stations_count_other": "{{count}} posten",
+      "terminals": "Kassa's",
+      "terminals_count_one": "{{count}} kassa",
+      "terminals_count_other": "{{count}} kassa's",
+      "staff": "Personeel en pincodes",
+      "staff_count_one": "{{count}} medewerker",
+      "staff_count_other": "{{count}} medewerkers",
+      "pay": "Betalen",
+      "pay_status": "{{count}} betaalwijzen · online betalen {{online}}",
+      "printers": "Bon & printers",
+      "printers_status": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
+      "alerts": "Meldingen per toestel",
+      "devices_count_one": "{{count}} toestel",
+      "devices_count_other": "{{count}} toestellen",
+      "on": "aan",
+      "off": "uit",
+      "tables_few": "{{count}} tafels",
+      "tables_many": "{{count}} tafels",
+      "stations_count_few": "{{count}} posten",
+      "stations_count_many": "{{count}} posten",
+      "terminals_count_few": "{{count}} kassa's",
+      "terminals_count_many": "{{count}} kassa's",
+      "staff_count_few": "{{count}} medewerkers",
+      "staff_count_many": "{{count}} medewerkers",
+      "devices_count_few": "{{count}} toestellen",
+      "devices_count_many": "{{count}} toestellen"
     }
   },
   "languages": {
@@ -7598,7 +7650,7 @@
       "overzicht_van_de_laatste_kassadagen": "Overzicht van de laatste kassadagen",
       "nieuwe_terminal_aanmaken": "Nieuwe Terminal Aanmaken",
       "bijv_winkel_amsterdam": "bijv. Winkel Amsterdam",
-      "beheer_je_kassaterminals_en_start_een": "Beheer je kassaterminals en start een verkoopddag",
+      "beheer_je_kassaterminals_en_start_een": "Beheer je kassaterminals en start een verkoopdag",
       "nieuwe_terminal": "Nieuwe Terminal",
       "maak_je_eerste_kassaterminal_aan_om": "Maak je eerste kassaterminal aan om te beginnen met verkopen.",
       "terminal_aanmaken": "Terminal Aanmaken",
@@ -7612,7 +7664,8 @@
         "pay": "Betalen",
         "printers": "Bon & printers"
       },
-      "openKassaApp": "Kassa-app openen"
+      "openKassaApp": "Kassa-app openen",
+      "empty_horeca_hint": "Daarna open je de kassa-app op je tablet of gsm en kies je deze kassa."
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Terminal Instellingen",

@@ -182,6 +182,12 @@
       "media": "Media",
       "platform_overview": "Platform overview",
       "email_automations": "Automations"
+    },
+    "bottom": {
+      "today": "Today",
+      "kassa": "POS",
+      "kitchen": "Kitchen",
+      "menu": "Menu"
     }
   },
   "settings": {
@@ -287,6 +293,10 @@
       },
       "channels_basic": {
         "title": "Notifications & communication"
+      },
+      "horeca": {
+        "title": "Hospitality",
+        "description": "Menu, QR, floor plan, stations, POS and printers"
       }
     },
     "sections": {
@@ -315,7 +325,8 @@
       "reviews": "Reviews",
       "fulfillment_api": "Fulfilment API",
       "platform_tools": "Platform tools",
-      "modules": "Modules"
+      "modules": "Modules",
+      "horeca": "Hospitality settings"
     },
     "business": {
       "subtitle": "Manage your store and company information",
@@ -1289,8 +1300,8 @@
         "keep": "No, another device",
         "remove": "Yes, turn off web notifications"
       },
-      "horecaHint": "Till and kitchen devices of the venue (QR orders, tickets, online payments) are set up under",
-      "horecaLink": "Point of sale (POS) › Tills"
+      "horecaHint": "POS and kitchen devices of the venue (QR orders, tickets, online payments) are set up under",
+      "horecaLink": "Point of sale (POS) › Terminals"
     },
     "logoUpload": {
       "logo": "Logo",
@@ -1599,6 +1610,47 @@
         "confirmBody": "This restores all return settings to their default values. This cannot be undone.",
         "confirm": "Reset"
       }
+    },
+    "horecaHub": {
+      "title": "Hospitality settings",
+      "intro": "Everything your venue sets up, with its current state. Tap a line to change it in its own place.",
+      "group_ordering": "Ordering",
+      "group_kassa": "Point of sale (POS)",
+      "qr": "QR menu at the table",
+      "qr_mode_view": "Guests view the menu",
+      "qr_mode_order": "Guests order at the table",
+      "qr_mode_off": "Off",
+      "floor": "Floor plan",
+      "tables_one": "{{count}} table",
+      "tables_other": "{{count}} tables",
+      "stations": "Stations (kitchen, bar …)",
+      "stations_count_one": "{{count}} station",
+      "stations_count_other": "{{count}} stations",
+      "terminals": "Terminals",
+      "terminals_count_one": "{{count}} terminal",
+      "terminals_count_other": "{{count}} terminals",
+      "staff": "Staff and PINs",
+      "staff_count_one": "{{count}} staff member",
+      "staff_count_other": "{{count}} staff members",
+      "pay": "Payments",
+      "pay_status": "{{count}} payment methods · online payment {{online}}",
+      "printers": "Receipts & printers",
+      "printers_status": "{{count}} printers · print receipt {{print}} · email {{mail}}",
+      "alerts": "Alerts per device",
+      "devices_count_one": "{{count}} device",
+      "devices_count_other": "{{count}} devices",
+      "on": "on",
+      "off": "off",
+      "tables_few": "{{count}} tables",
+      "tables_many": "{{count}} tables",
+      "stations_count_few": "{{count}} stations",
+      "stations_count_many": "{{count}} stations",
+      "terminals_count_few": "{{count}} terminals",
+      "terminals_count_many": "{{count}} terminals",
+      "staff_count_few": "{{count}} staff members",
+      "staff_count_many": "{{count}} staff members",
+      "devices_count_few": "{{count}} devices",
+      "devices_count_many": "{{count}} devices"
     }
   },
   "languages": {
@@ -6742,7 +6794,7 @@
         "betalingsmethodes": "Payment methods",
         "pin_kaart": "PIN / Card",
         "contante_omzet": "Cash sales",
-        "verwacht_in_kas": "Expected in till",
+        "verwacht_in_kas": "Expected in the cash drawer",
         "geteld_bedrag": "Counted amount",
         "kloppend": "Balanced",
         "kasstortingen": "Cash deposits",
@@ -6834,7 +6886,7 @@
         "geen_readers_gevonden": "No readers found",
         "registreer_een_stripe_terminal_reader_om": "Register a Stripe Terminal reader to accept card payments",
         "bijv_seagull_local_apple": "e.g. seagull-local-apple",
-        "bijv_kassa_1": "e.g. Till 1",
+        "bijv_kassa_1": "e.g. POS 1",
         "stripe_terminal_readers": "Stripe Terminal readers",
         "beheer_je_pinautomaten_voor_kaartbetalingen": "Manage your card terminals for card payments",
         "reader_toevoegen": "Add reader",
@@ -6939,10 +6991,10 @@
           "qr_menu_in_je_zaak": "QR menu in your venue",
           "wat_ziet_een_klant_die_de": "What does a customer see who scans the QR code on the table or at the bar?",
           "hoe_rekent_de_klant_af": "How does the customer pay?",
-          "na_de_maaltijd_via_je_eigen": "After the meal, through your own till. The order reaches the kitchen as \"to be paid\".",
+          "na_de_maaltijd_via_je_eigen": "After the meal, through your own POS. The order reaches the kitchen as \"to be paid\".",
           "meteen_online": "Online right away",
           "bancontact_kaart_of_apple_pay_zoals": "Bancontact, card or Apple Pay, as in the webshop.",
-          "restaurant_met_een_witte_kassa_gks": "Restaurant with a certified till (GKS / \"witte kassa\")? Keep \"at the counter\" on: SellQo sends the order to the kitchen, your certified till records the sale."
+          "restaurant_met_een_witte_kassa_gks": "Restaurant with a certified POS (GKS / \"witte kassa\")? Keep \"at the counter\" on: SellQo sends the order to the kitchen, your certified POS records the sale."
         },
         "fulfillmentSettings": {
           "kost": "Cost (€)",
@@ -7024,7 +7076,7 @@
         "channel_menu": "Show on the QR menu",
         "channel_menu_desc": "Visible on the menu, even if it cannot be ordered.",
         "channel_pos": "POS",
-        "channel_pos_desc": "Can be sold at the till.",
+        "channel_pos_desc": "Can be sold at the POS.",
         "channels_none": "This item is switched off everywhere, so it is not for sale anywhere.",
         "sold_out_title": "Sold out for today",
         "sold_out_desc": "Sold out everywhere until 05:00 tomorrow morning. No need to track stock.",
@@ -7034,7 +7086,7 @@
         "sold_out_action": "Sold out for today",
         "sold_out_undo": "Put back on sale",
         "pos_sold_out": "{{name}} is sold out for today",
-        "pos_not_available": "{{name}} is not for sale at the till",
+        "pos_not_available": "{{name}} is not for sale at the POS",
         "qr_tables_from_floor_plan": "You have a floor plan: every table has its own secure QR code. Print the table stickers from the floor plan. Plain table numbers no longer work in your venue.",
         "qr_open_floor_plan": "Go to floor plan"
       },
@@ -7543,9 +7595,9 @@
       "snelknoppen": "Quick buttons",
       "verkopen": "Sell",
       "snelknop_toevoegen": "Add quick button",
-      "kassadag_openen": "Open till day",
+      "kassadag_openen": "Open sales day",
       "startbedrag": "Opening float (€)",
-      "kassadag_sluiten": "Close till day",
+      "kassadag_sluiten": "Close sales day",
       "eindbedrag": "Closing amount (€)",
       "contante_betaling": "Cash payment",
       "ontvangen_bedrag": "Amount received (€)",
@@ -7581,7 +7633,7 @@
       "printer": "Printer",
       "kassalade": "Cash drawer",
       "recente_sessies": "Recent sessions",
-      "overzicht_van_de_laatste_kassadagen": "Overview of the latest till days",
+      "overzicht_van_de_laatste_kassadagen": "Overview of the latest sales days",
       "nieuwe_terminal_aanmaken": "Create new terminal",
       "bijv_winkel_amsterdam": "e.g. Leuven store",
       "beheer_je_kassaterminals_en_start_een": "Manage your POS terminals and start a sales day",
@@ -7593,12 +7645,13 @@
       "geef_je_kassaterminal_een_naam_en": "Give your POS terminal a name and an optional location.",
       "nog_open_sinds": "Still open since {{date}}",
       "tabs": {
-        "terminals": "Tills",
+        "terminals": "Terminals",
         "staff": "Staff",
         "pay": "Payments",
         "printers": "Receipts & printers"
       },
-      "openKassaApp": "Open till app"
+      "openKassaApp": "Open POS app",
+      "empty_horeca_hint": "Then open the POS app on your tablet or phone and choose this terminal."
     },
     "pOSTerminalSettings": {
       "terminal_instellingen": "Terminal settings",
@@ -8130,7 +8183,7 @@
         },
         "pos-overview": {
           "title": "POS overview",
-          "description": "Till statistics and sessions"
+          "description": "POS statistics and sessions"
         },
         "marketplace": {
           "title": "Marketplaces",
@@ -8551,13 +8604,13 @@
         "greeting_afternoon": "Good afternoon",
         "greeting_evening": "Good evening",
         "greeting_name": "{{greeting}}, {{name}}",
-        "pos_open": "Till open since {{time}}"
+        "pos_open": "POS open since {{time}}"
       },
       "no_access": "Your role doesn't give access to these figures.",
       "load_failed": "The figures couldn't be loaded. Please try again shortly.",
       "channels": {
         "webshop": "Webshop",
-        "pos": "Till",
+        "pos": "POS",
         "bol_com": "bol",
         "amazon": "Amazon",
         "shopify": "Shopify",
@@ -8687,7 +8740,7 @@
         "empty": "Nothing came in during the last two days.",
         "order_from": "{{name}} · {{amount}}",
         "order": "Order · {{amount}}",
-        "pos": "Till receipt · {{amount}}",
+        "pos": "POS receipt · {{amount}}",
         "customer": "New customer: {{name}}",
         "customer_sub": "customer account created",
         "someone": "someone",
@@ -8788,7 +8841,7 @@
       },
       "menu": {
         "title": "Sold out today",
-        "help": "One tap and it is sold out everywhere: online, at the table and at the till. It comes back tomorrow at 05:00.",
+        "help": "One tap and it is sold out everywhere: online, at the table and at the POS. It comes back tomorrow at 05:00.",
         "empty": "No products sold yet to show here.",
         "back_on": "Back on",
         "mark_out": "Sold out",
@@ -8803,11 +8856,11 @@
       }
     },
     "kassaStaff": {
-      "intro": "Everyone who works at the till signs in with their own PIN. For a registered till (GKS) each staff member also needs a national register number; it never appears on a receipt.",
+      "intro": "Everyone who works at the POS signs in with their own PIN. For a registered POS (GKS) each staff member also needs a national register number; it never appears on a receipt.",
       "add": "Add staff member",
       "loadError": "Staff could not be loaded.",
-      "emptyTitle": "No till staff yet",
-      "emptyBody": "Add your staff with a PIN. They pick their name on the till and tap their code.",
+      "emptyTitle": "No POS staff yet",
+      "emptyBody": "Add your staff with a PIN. They pick their name on the POS and tap their code.",
       "inactive": "Inactive",
       "locked": "Locked",
       "inszOk": "National no. set",
@@ -8815,7 +8868,7 @@
       "addTitle": "New staff member",
       "editTitle": "Edit staff member",
       "dialogIntro": "You can set the PIN and national register number here, but never view them again.",
-      "name": "Name on the till",
+      "name": "Name on the POS",
       "number": "Number",
       "numberAuto": "auto",
       "role": "Role",
@@ -8834,10 +8887,10 @@
       "pinRule": "A PIN has 4 to 6 digits.",
       "insz": "National register number",
       "inszSetOn": "Set on {{date}}",
-      "inszHelp": "Required for a registered till. Stored encrypted and only sent to the fiscal data module.",
+      "inszHelp": "Required for a registered POS. Stored encrypted and only sent to the fiscal data module.",
       "inszInvalid": "This national register number is not valid (check digits).",
       "inszClear": "Remove national register number",
-      "canUsePos": "May use the till",
+      "canUsePos": "May use the POS",
       "active": "Active",
       "saved": "Staff member saved",
       "saveError": "Saving failed. Please try again.",
@@ -8969,7 +9022,7 @@
       "search": "Search the menu",
       "paste": "Paste a list",
       "summary": "Products: {{count}} · on the menu: {{active}}",
-      "sharedNote": "the same products as in your till, QR menu and webshop",
+      "sharedNote": "the same products as in your POS, QR menu and webshop",
       "empty": {
         "title": "Your menu is still empty",
         "body": "Start with the starter menu, paste a list, or type a name and a price below."
@@ -8992,13 +9045,13 @@
         "online": "Webshop (pickup and delivery)",
         "table": "Order at the table (QR)",
         "menu": "Visible on the QR menu",
-        "pos": "Till"
+        "pos": "POS"
       },
       "channelShort": {
         "online": "Web",
         "table": "Table",
         "menu": "Menu",
-        "pos": "Till"
+        "pos": "POS"
       },
       "oneChannel": "Keep at least one place on, or take the product off the menu.",
       "openFull": "All settings for {{name}}",
@@ -9143,7 +9196,7 @@
       "offMenu": "Not on the menu",
       "available": "Available",
       "soldOutToday": "Sold out · undo",
-      "noneOnHint": "Nothing on the menu yet. Set a product to “On the menu” to show it in your till, QR menu and webshop.",
+      "noneOnHint": "Nothing on the menu yet. Set a product to “On the menu” to show it in your POS, QR menu and webshop.",
       "mode": {
         "select": "Select",
         "sort": "Order",
@@ -9153,7 +9206,7 @@
       }
     },
     "horecaPay": {
-      "kassa_title": "Paying at the till",
+      "kassa_title": "Paying at the POS",
       "kassa_desc": "What SellQo Kassa shows at checkout. Turn on what your venue offers; when you grow (say, a card terminal), change it here.",
       "methods": "Payment methods",
       "method": {
@@ -9175,22 +9228,22 @@
       "change": "Change",
       "terminal": "Card terminal",
       "terminal_none": "No terminal",
-      "terminal_none_desc": "The till does not show \"card\".",
+      "terminal_none_desc": "The POS does not show \"card\".",
       "terminal_standalone": "Standalone terminal",
-      "terminal_standalone_desc": "You key in the amount on the terminal yourself; the till records \"card\".",
-      "kassa_tip": "Tips at the till",
+      "terminal_standalone_desc": "You key in the amount on the terminal yourself; the POS records \"card\".",
+      "kassa_tip": "Tips at the POS",
       "kassa_tip_desc": "Enter a tip separately at checkout (cash, card or bank transfer).",
       "qr_title": "Paying via the table QR code",
       "qr_desc_order": "Your QR menu is set to ordering at the table. This is how guests pay:",
       "qr_desc_off": "Your QR menu is not set to ordering at the table; this choice applies once you turn that on.",
       "qr_to_menu": "Set up QR menu",
       "qr_none": "nothing chosen yet",
-      "qr_set_in_pay": "Set in Till › Payments",
+      "qr_set_in_pay": "Set in POS › Payments",
       "saved": "Payment settings saved",
       "save_failed": "Could not save: {{reason}}",
       "online_pay": "Guests pay online at the table",
       "online_pay_desc": "Through the QR code, guests see their bill and pay with Bancontact, card or wallet (Stripe). It goes on the bill straight away; the table closes by itself once everything is paid.",
-      "online_fiscal": "With a registered till (GKS), only the till can close a bill. Paying online at the table isn't possible then.",
+      "online_fiscal": "With a registered POS (GKS), only the POS can close a bill. Paying online at the table isn't possible then.",
       "online_no_stripe": "Connect your Stripe account first to receive online payments.",
       "online_to_stripe": "Go to Payments",
       "online_split": "Allow splitting",
@@ -9201,13 +9254,13 @@
     "qrFlow": {
       "title": "Where does a table order go?",
       "check_title": "On the table's bill (recommended)",
-      "check_desc": "Staff confirm the order on the till; it goes onto the table's bill. The guest pays at the end, all at once.",
+      "check_desc": "Staff confirm the order on the POS; it goes onto the table's bill. The guest pays at the end, all at once.",
       "order_title": "Pay for each order separately",
       "order_desc": "Each order is a separate order the guest pays straight away (at the counter or online).",
       "auto_title": "Confirm automatically",
-      "auto_desc": "An open till puts new orders on the bill straight away, without anyone tapping Confirm. Only for tables from your floor plan (each with its own QR code).",
+      "auto_desc": "An open POS puts new orders on the bill straight away, without anyone tapping Confirm. Only for tables from your floor plan (each with its own QR code).",
       "auto_warning": "Note: nobody checks the order first. If something is sold out or goes wrong, staff have to fix it on the bill afterwards. Only turn this on if you keep your stock up to date (mark products \"Sold out\" on the Menu).",
-      "pay_on_check": "Table orders go onto the table's bill: the guest pays at the end, at the till (cash, bank transfer, …). Set in Ordering › QR menu.",
+      "pay_on_check": "Table orders go onto the table's bill: the guest pays at the end, at the POS (cash, bank transfer, …). Set in Ordering › QR menu.",
       "offline_title": "Your QR menu isn't visible to guests yet",
       "offline_desc": "Your venue is still offline. Put it online under Webshop › Open your store; ordering for delivery or pickup stays off.",
       "offline_link": "Go to Open your store",
@@ -10901,7 +10954,7 @@
       "close": "Close"
     },
     "signIn": {
-      "title": "Sign in the till",
+      "title": "Sign in to the POS",
       "intro": "Sign this device in once with your SellQo account. Your staff then work with a PIN.",
       "email": "Email address",
       "password": "Password",
@@ -10909,13 +10962,13 @@
       "error": "Sign-in failed. Check your email address and password."
     },
     "setup": {
-      "title": "Which till is this?",
-      "intro": "Choose the till that runs on this device. The device remembers it.",
+      "title": "Which POS terminal is this?",
+      "intro": "Choose the POS terminal that runs on this device. The device remembers it.",
       "business": "Business",
-      "loadError": "The tills could not be loaded.",
-      "noTerminals": "There is no till yet. Create one in SellQo under Point of sale (POS).",
+      "loadError": "The POS terminals could not be loaded.",
+      "noTerminals": "There is no POS terminal yet. Create one in SellQo under Point of sale (POS).",
       "noBusiness": "This account does not belong to any business.",
-      "terminalGone": "The chosen till no longer exists. Choose again."
+      "terminalGone": "The chosen POS terminal no longer exists. Choose again."
     },
     "pin": {
       "whoAreYou": "Who are you?",
@@ -10926,9 +10979,9 @@
       "error": "Sign-in failed. Please try again.",
       "wrong": "Wrong PIN. {{n}} attempts left.",
       "locked": "Too many wrong attempts. Wait 5 minutes or ask a manager for a new PIN.",
-      "inactive": "You may not use the till (anymore). Ask a manager.",
+      "inactive": "You may not use the POS (anymore). Ask a manager.",
       "loadError": "Staff could not be loaded. Check the connection.",
-      "noStaff": "There is no till staff yet. Add staff in SellQo under Till › Staff."
+      "noStaff": "There is no POS staff yet. Add staff in SellQo under POS › Staff."
     },
     "home": {
       "switchUser": "Switch",
@@ -10937,18 +10990,18 @@
       "clockedIn": "Clocked in.",
       "clockedOut": "Clocked out.",
       "clockError": {
-        "no_insz": "Your national register number is missing. A manager can add it under Till › Staff.",
-        "fiscal_not_configured": "This till is not yet set up as a registered till.",
+        "no_insz": "Your national register number is missing. A manager can add it under POS › Staff.",
+        "fiscal_not_configured": "This POS is not yet set up as a registered POS.",
         "fdm_not_available": "The fiscal data module is not connected yet.",
         "rejected": "The fiscal data module refused. Try again or ask a manager.",
         "unreachable": "The fiscal data module cannot be reached. Your clock-in or clock-out is kept and sent shortly.",
         "error": "Something went wrong. Please try again."
       },
-      "noInsz": "Without a national register number you cannot register anything on this registered till.",
-      "changeTerminal": "Choose another till",
+      "noInsz": "Without a national register number you cannot register anything on this registered POS.",
+      "changeTerminal": "Choose another POS terminal",
       "live": "Live",
       "offline": "Offline · {{n}} pending actions",
-      "tabs": "Till sections",
+      "tabs": "POS sections",
       "tab": {
         "tables": "Tables",
         "counter": "Counter",
@@ -10959,7 +11012,7 @@
     "fiscalMode": {
       "off": "non-fiscal mode",
       "simulator": "test mode (simulator)",
-      "fdm": "registered till"
+      "fdm": "registered POS"
     },
     "tables": {
       "namePlaceholder": "Name (e.g. Jan)",
@@ -11026,8 +11079,8 @@
       "error": {
         "nothing": "There is nothing to send.",
         "offline": "No connection. Your order is kept; try again shortly.",
-        "no_insz": "Your national register number is missing; without it you cannot send anything on a registered till.",
-        "fiscal_not_configured": "This till is not yet set up as a registered till.",
+        "no_insz": "Your national register number is missing; without it you cannot send anything on a registered POS.",
+        "fiscal_not_configured": "This POS is not yet set up as a registered POS.",
         "fdm_not_available": "The fiscal data module is not connected yet.",
         "fdm_rejected": "The fiscal data module refused. Nothing was sent.",
         "fdm_unreachable": "The fiscal data module cannot be reached. Nothing was sent; try again.",
@@ -11070,7 +11123,7 @@
       "confirm": "Paid · {{amount}}",
       "paidTitle": "Paid",
       "pendingTitle": "Paid, waiting for connection",
-      "pendingText": "The sale is registered, but SellQo cannot be reached for a moment. This till sends the payment on automatically; keep this device on. Until then the check stays locked.",
+      "pendingText": "The sale is registered, but SellQo cannot be reached for a moment. This POS sends the payment on automatically; keep this device on. Until then the check stays locked.",
       "receiptNo": "Receipt number",
       "ticket": "Receipt",
       "print": "Print receipt",
@@ -11081,12 +11134,12 @@
       "pendingRejected": "A registered payment was refused: {{error}}. Please contact SellQo.",
       "error": {
         "plan": "The payment methods don’t add up to the total.",
-        "offline": "No connection. Payment is only possible when the till is online.",
-        "no_insz": "Your national register number is missing; without it you cannot take payment on a registered till.",
-        "fiscal_not_configured": "This till is not yet set up as a registered till.",
+        "offline": "No connection. Payment is only possible when the POS is online.",
+        "no_insz": "Your national register number is missing; without it you cannot take payment on a registered POS.",
+        "fiscal_not_configured": "This POS is not yet set up as a registered POS.",
         "fdm_not_available": "The fiscal data module is not connected yet.",
         "fdm_rejected": "The fiscal data module refused. Nothing was paid.",
-        "fdm_unreachable": "The fiscal data module isn’t answering. The till resends the same sale automatically; until then this check stays locked. Don’t pay it again.",
+        "fdm_unreachable": "The fiscal data module isn’t answering. The POS resends the same sale automatically; until then this check stays locked. Don’t pay it again.",
         "server": "Not done: {{detail}}",
         "changed": "A colleague just changed this check. Check it and pay again.",
         "nothing": "There is nothing on this check.",
@@ -11148,7 +11201,7 @@
       },
       "confirm": "Confirm",
       "shiftOpenSince": "Shift open since {{time}} · opening float {{amount}}",
-      "noShift": "No shift is running on this till. The first sale opens one automatically, with an opening float of € 0.",
+      "noShift": "No shift is running on this POS. The first sale opens one automatically, with an opening float of € 0.",
       "doneIn": "{{amount}} recorded into the drawer.",
       "doneOut": "{{amount}} recorded out of the drawer.",
       "shiftOpened": "Shift opened.",
@@ -11162,8 +11215,8 @@
       "pendingRejected": "SellQo refused a signed cash or report action: {{error}}. Please contact SellQo.",
       "error": {
         "offline": "No connection. Try again.",
-        "no_insz": "Your national register number is missing. A manager can fill it in under Till › Staff.",
-        "fiscal_not_configured": "This business uses a black box, but this till is not set up as a registered till.",
+        "no_insz": "Your national register number is missing. A manager can fill it in under POS › Staff.",
+        "fiscal_not_configured": "This business uses a black box, but this POS is not set up as a registered POS.",
         "fdm_not_available": "The black box is not connected yet.",
         "fdm_rejected": "The black box refused. Nothing was recorded.",
         "fdm_unreachable": "The black box is not answering. The action is saved and will be resent automatically; do not enter it again.",
@@ -11178,7 +11231,7 @@
       "z": "Z report",
       "zHint": "Close the day",
       "zNo": "Z report no. {{n}}",
-      "zRoleOnly": "Only the owner or a manager can make a Z report. If a Z report is forgotten, the till makes it itself the next day.",
+      "zRoleOnly": "Only the owner or a manager can make a Z report. If a Z report is forgotten, the POS makes it itself the next day.",
       "recent": "Latest reports",
       "none": "No reports yet.",
       "zConfirmTitle": "Close the day?",
@@ -11221,8 +11274,8 @@
         "offline": "No connection. Try again.",
         "closed": "This business day has already been closed with a Z report.",
         "not_allowed": "Only the owner or a manager can make a Z report.",
-        "no_insz": "Your national register number is missing. A manager can fill it in under Till › Staff.",
-        "fiscal_not_configured": "This business uses a black box. Make the report on a registered till.",
+        "no_insz": "Your national register number is missing. A manager can fill it in under POS › Staff.",
+        "fiscal_not_configured": "This business uses a black box. Make the report on a registered POS.",
         "fdm_not_available": "The black box is not connected yet.",
         "fdm_rejected": "The black box refused. No report was made.",
         "fdm_unreachable": "The black box is not answering. The report is saved and will be resent automatically.",
@@ -11233,7 +11286,7 @@
     },
     "productEdit": {
       "hint": "Long-press to edit",
-      "intro": "The owner or a manager approves with their PIN. Applies right away to the till, QR menu and webshop; open bills keep their price.",
+      "intro": "The owner or a manager approves with their PIN. Applies right away to the POS, QR menu and webshop; open bills keep their price.",
       "soldOut": "Sold out today",
       "backIn": "Back in stock",
       "price": "Price",
@@ -11305,8 +11358,8 @@
       "nothing": "Nothing selected yet.",
       "personalOn": "Also the personal alerts of whoever is signed in here (invoices, webshop …).",
       "personalOff": "No personal alerts of whoever is signed in here: only what's listed above.",
-      "manage": "Change in Point of sale (POS) › Tills",
-      "manageElsewhere": "You can change this on sellqo.app, under Point of sale (POS) › Tills.",
+      "manage": "Change in Point of sale (POS) › Terminals",
+      "manageElsewhere": "You can change this on sellqo.app, under Point of sale (POS) › Terminals.",
       "disable": "Turn off on this device",
       "enable": "Turn on alerts",
       "enabledToast": "Alerts are on for this device",
@@ -11328,7 +11381,7 @@
       "paid_online": "Guest paid online"
     },
     "kind": {
-      "kassa": "Till",
+      "kassa": "POS",
       "station": "Station (kitchen, bar …)",
       "phone": "Phone or tablet",
       "other": "Other device"
@@ -11339,7 +11392,7 @@
     },
     "manage": {
       "title": "Alerts per device",
-      "intro": "Which devices get an alert for a QR order, a new or ready ticket and an online payment. These alerts don't go to the bell. You add a device on the device itself: in the till or on the kitchen screen via the bell icon, or here with “Add this device”.",
+      "intro": "Which devices get an alert for a QR order, a new or ready ticket and an online payment. These alerts don't go to the bell. You add a device on the device itself: in the POS or on the kitchen screen via the bell icon, or here with “Add this device”.",
       "addThis": "Add this device",
       "empty": "No devices yet.",
       "loadError": "The devices could not be loaded.",
@@ -11352,7 +11405,7 @@
       "stations": "Stations",
       "allStations": "None selected = all stations",
       "personal": "Personal alerts",
-      "personalHint": "Also the alerts of whoever is signed in on this device (invoices, webshop …). Off on a shared till or kitchen screen.",
+      "personalHint": "Also the alerts of whoever is signed in on this device (invoices, webshop …). Off on a shared POS or kitchen screen.",
       "save": "Save",
       "saved": "Saved",
       "remove": "Remove",
