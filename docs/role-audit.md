@@ -51,6 +51,7 @@
 - Visueel in Chromium met een tijdelijk harnas: de echte `KaartManager` met nepdata, na afloop verwijderd. Getest op 390 en 1280, donker en licht, Nederlands en Engels, met het menu "Producten toevoegen" en de selecteermodus.
 - Gezien en meteen opgelost: knopjes die over twee regels braken door een te lange tekst, en afgekapte voorbeeldteksten.
 - Lint onder de baseline, tsc gelijk aan de baseline (27), Kaart-tests 25 groen, i18n-pariteit ok.
+- Live (28-10): commit c962408, CI groen. Na de publish staan `horeca_menu_layout` en `noneOnHint` in de live bundel (`index-CztIbcVt.js`). Migratie `20261028200000` gedraaid met snapshot `snapshots.sellqo_20261028_doc_articles_kaartlook1` (1 rij). `horeca-kaart` bevat nu "Op · terugzetten" en "Producten toevoegen" (nieuwe md5 c6ab9df2…). Geregistreerd in `schema_migrations`.
 
 **Bewust ongemoeid / Vervolg:**
 - Kassa (POS) › Kassa's en Bestellen › Overzicht krijgen dezelfde stijl in WANDELING.
