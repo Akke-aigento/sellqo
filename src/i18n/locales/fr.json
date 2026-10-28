@@ -6310,7 +6310,7 @@
       "back_to_admin": "Retour à l’administration",
       "title": "Cuisine",
       "summary": "{{new}} nouveaux · {{preparing}} en cours · {{ready}} prêts · {{nextHour}} dans l’heure",
-      "auto_print_hint": "Imprimer automatiquement les nouveaux bons sur cet appareil",
+      "auto_print_hint": "Imprimer automatiquement les nouveaux tickets via l'imprimante de cet appareil (fenêtre d'impression). Connectez une imprimante Star dans Caisse › Tickets & imprimantes : elle imprime sans que cet écran soit ouvert.",
       "fullscreen": "Plein écran",
       "load_error": "Impossible de charger les commandes. L’écran va réessayer.",
       "loading": "Chargement…",
@@ -6332,8 +6332,8 @@
       "niets_klaar_om_mee_te_geven": "Rien de prêt à remettre.",
       "geluid_aan": "Son activé",
       "geluid_uit": "Son désactivé",
-      "auto_print_aan": "Impression auto activée",
-      "auto_print_uit": "Impression auto désactivée",
+      "auto_print_aan": "Impression ici activée",
+      "auto_print_uit": "Impression ici désactivée",
       "pause_online": "Suspendre les commandes en ligne",
       "pause_hint": "Le retrait et la livraison via la boutique en ligne n’acceptent plus de nouvelles commandes pendant un moment. La commande à table continue de fonctionner.",
       "pause_minutes": "{{count}} minutes",
@@ -9053,7 +9053,10 @@
       "done": "Terminé",
       "copy": "Copier",
       "save_failed": "Non enregistré : {{reason}}",
-      "receipt_print_first": "Ajoutez d'abord une imprimante."
+      "receipt_print_first": "Ajoutez d'abord une imprimante.",
+      "no_station_row": "Tickets sans poste",
+      "no_station_hint_none": "Vous n'avez pas de postes : tous les tickets de cuisine vont vers cette imprimante.",
+      "no_station_hint_rest": "Pour les tickets qui n'appartiennent à aucun poste (pas de poste par défaut)."
     }
   },
   "billing": {

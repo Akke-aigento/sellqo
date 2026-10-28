@@ -23,9 +23,14 @@ export function KitchenPauseControl({ now }: { now: number }) {
     enabled: !!tenantId,
     refetchInterval: 30_000,
     queryFn: async () => {
-      const { data: row, error } = await supabase.from('fulfillment_settings').select('paused_until').eq('tenant_id', tenantId!).maybeSingle();
-      if (error) throw error;
-      return row?.paused_until ?? null;
+      const [fs, ts] = await Promise.all([
+        supabase.from('fulfillment_settings').select('paused_until').eq('tenant_id', tenantId!).maybeSingle(),
+        supabase.from('tenant_theme_settings').select('shop_live, shop_ordering').eq('tenant_id', tenantId!).maybeSingle(),
+      ]);
+      if (fs.error) throw fs.error;
+      // WANDELING: de pauze geldt enkel voor bestellen via de webshop. Staat die niet open, dan is de knop
+      // een dode knop (behalve om een lopende pauze op te heffen).
+      return { until: fs.data?.paused_until ?? null, webshop: !!ts.data?.shop_live && !!ts.data?.shop_ordering };
     },
   });
   const set = useMutation({
@@ -40,8 +45,9 @@ export function KitchenPauseControl({ now }: { now: number }) {
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
-  const until = data ? new Date(data) : null;
+  const until = data?.until ? new Date(data.until) : null;
   const paused = !!until && until.getTime() > now;
+  if (!paused && !data?.webshop) return null;
   if (paused) {
     return (
       <Button variant="destructive" size="sm" onClick={() => set.mutate(null)} disabled={set.isPending}>

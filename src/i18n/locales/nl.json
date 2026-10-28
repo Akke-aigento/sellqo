@@ -7515,8 +7515,8 @@
       "niets_klaar_om_mee_te_geven": "Niets klaar om mee te geven.",
       "geluid_aan": "Geluid aan",
       "geluid_uit": "Geluid uit",
-      "auto_print_aan": "Auto-print aan",
-      "auto_print_uit": "Auto-print uit",
+      "auto_print_aan": "Afdrukken hier aan",
+      "auto_print_uit": "Afdrukken hier uit",
       "col_new": "Nieuw",
       "col_preparing": "In bereiding",
       "col_ready": "Klaar",
@@ -7546,7 +7546,7 @@
       "back_to_admin": "Terug naar de admin",
       "title": "Keuken",
       "summary": "{{new}} nieuw · {{preparing}} bezig · {{ready}} klaar · {{nextHour}} het komende uur",
-      "auto_print_hint": "Nieuwe bonnen automatisch afdrukken op dit toestel",
+      "auto_print_hint": "Nieuwe bonnen automatisch afdrukken via de printer van dit toestel (printvenster). Een Star-bonprinter koppel je in Kassa › Bon & printers: die drukt af zonder dat dit scherm open staat.",
       "fullscreen": "Volledig scherm",
       "load_error": "Bestellingen laden lukte niet. Het scherm probeert het opnieuw.",
       "loading": "Laden…",
@@ -9340,7 +9340,10 @@
       "done": "Klaar",
       "copy": "Kopiëren",
       "save_failed": "Niet opgeslagen: {{reason}}",
-      "receipt_print_first": "Voeg eerst een printer toe."
+      "receipt_print_first": "Voeg eerst een printer toe.",
+      "no_station_row": "Bonnen zonder post",
+      "no_station_hint_none": "Je hebt geen posten: alle keukenbonnen gaan naar deze printer.",
+      "no_station_hint_rest": "Voor bonnen die bij geen post horen (je hebt geen standaardpost)."
     }
   },
   "product_form": {

@@ -214,7 +214,8 @@ export default function KitchenPage() {
 
   return (
     // HORECA-0 — notch en statusbalk (app) en de home-balk onderaan respecteren.
-    <div className="fixed inset-0 z-50 flex flex-col bg-muted/40" style={{ paddingTop: 'var(--safe-top)', paddingBottom: 'var(--safe-bottom)' }}>
+    // WANDELING: een dekkende achtergrond. Met enkel bg-muted/40 schemerde de zijbalk van het beheer door het keukenscherm.
+    <div className="fixed inset-0 z-50 flex flex-col bg-background" style={{ paddingTop: 'var(--safe-top)', paddingBottom: 'var(--safe-bottom)', backgroundImage: 'linear-gradient(hsl(var(--muted) / 0.4), hsl(var(--muted) / 0.4))' }}>
       <header className="flex items-center gap-2 sm:gap-3 border-b bg-background px-3 sm:px-4 py-3">
         <Button asChild variant="ghost" size="icon" aria-label={t('admin.kitchen.back_to_admin')}><Link to="/admin"><ArrowLeft className="h-5 w-5" /></Link></Button>
         <h1 className="text-lg sm:text-xl font-bold truncate">{t('admin.kitchen.title')}</h1>

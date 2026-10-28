@@ -6583,7 +6583,7 @@
       "back_to_admin": "Back to the admin",
       "title": "Kitchen",
       "summary": "{{new}} new · {{preparing}} in progress · {{ready}} ready · {{nextHour}} in the next hour",
-      "auto_print_hint": "Print new tickets automatically on this device",
+      "auto_print_hint": "Print new tickets automatically through this device's printer (print dialog). Connect a Star receipt printer in POS › Receipts & printers: it prints without this screen being open.",
       "fullscreen": "Full screen",
       "load_error": "Could not load orders. The screen will try again.",
       "loading": "Loading…",
@@ -6605,8 +6605,8 @@
       "niets_klaar_om_mee_te_geven": "Nothing ready to hand over.",
       "geluid_aan": "Sound on",
       "geluid_uit": "Sound off",
-      "auto_print_aan": "Auto-print on",
-      "auto_print_uit": "Auto-print off",
+      "auto_print_aan": "Print here on",
+      "auto_print_uit": "Print here off",
       "pause_online": "Pause online orders",
       "pause_hint": "Pickup and delivery via the webshop stop taking new orders for a while. Ordering at the table keeps working.",
       "pause_minutes": "{{count}} minutes",
@@ -9326,7 +9326,10 @@
       "done": "Done",
       "copy": "Copy",
       "save_failed": "Not saved: {{reason}}",
-      "receipt_print_first": "Add a printer first."
+      "receipt_print_first": "Add a printer first.",
+      "no_station_row": "Tickets without a station",
+      "no_station_hint_none": "You have no stations: all kitchen tickets go to this printer.",
+      "no_station_hint_rest": "For tickets that belong to no station (you have no default station)."
     }
   },
   "product_form": {

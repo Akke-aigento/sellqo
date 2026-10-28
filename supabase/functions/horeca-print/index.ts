@@ -19,7 +19,7 @@ import {
 } from "../_shared/horecaPrint.ts";
 import { receiptModelFromData, type ReceiptData } from "../_shared/horecaReceipt.ts";
 
-const VERSION = "PRINT-2";
+const VERSION = "PRINT-2b";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const corsHeaders = {
@@ -76,15 +76,24 @@ function variantOnly(title: string | null, addons: string[]): string | null {
 
 const asService = (s: unknown) => (s === "pickup" || s === "local_delivery" || s === "eat_in" ? s : null);
 
+/** PRINT-2b: printer voor bonnen zonder post (een zaak zonder posten, of zonder standaardpost). */
+async function fallbackPrinter(db: Db, tenantId: string): Promise<Printer | null> {
+  const { data } = await db.from("horeca_pay_settings").select("ticket_printer_id").eq("tenant_id", tenantId).maybeSingle();
+  return activePrinter(db, (data as { ticket_printer_id?: string | null } | null)?.ticket_printer_id);
+}
+
 async function printTicket(db: Db, id: string) {
   const { data: t } = await db.from("kitchen_tickets").select("*").eq("id", id).maybeSingle();
   if (!t) return { skipped: "not_found" };
   const stationId = t.station_id ?? (await db.from("prep_stations").select("id").eq("tenant_id", t.tenant_id)
     .eq("is_default", true).eq("is_active", true).limit(1).maybeSingle()).data?.id ?? null;
-  if (!stationId) return { skipped: "no_station" };
-  const { data: st } = await db.from("prep_stations").select("id, name, kind, printer_id").eq("id", stationId).maybeSingle();
-  const printer = await activePrinter(db, st?.printer_id);
-  if (!st || !printer) return { skipped: "no_printer" };
+  const { data: st } = stationId
+    ? await db.from("prep_stations").select("id, name, kind, printer_id").eq("id", stationId).maybeSingle()
+    : { data: null };
+  // Een bon van een post gaat enkel naar de printer van die post; een bon zonder post naar de printer
+  // voor "bonnen zonder post" (Kassa › Bon & printers).
+  const printer = st ? await activePrinter(db, st.printer_id) : await fallbackPrinter(db, t.tenant_id);
+  if (!printer) return { skipped: "no_printer" };
   const source = t.source === "phone" || t.source === "table" || t.source === "pos" ? t.source : "pos";
   const items: ProductionItem[] = (Array.isArray(t.items) ? t.items : []).map((i: Record<string, unknown>) => ({
     quantity: Number(i.quantity) || 1,
@@ -93,13 +102,13 @@ async function printTicket(db: Db, id: string) {
     addons: addonNames(i.addons),
   }));
   const ticket: ProductionTicket = {
-    storeName: await storeName(db, t.tenant_id), station: st.name ?? null, source, service: asService(t.service_type),
+    storeName: await storeName(db, t.tenant_id), station: st?.name ?? null, source, service: asService(t.service_type),
     table: source === "table" ? t.table_label ?? null : null,
     customer: source === "table" && t.table_label && t.customer_label === t.table_label ? null : t.customer_label ?? null,
     phone: t.customer_phone ?? null, requestedTime: t.requested_time ?? null, createdAt: t.created_at, note: t.note ?? null, items,
   };
-  const text = renderProductionTicket(ticket, st.kind, printer.lang, printer.width_chars);
-  return enqueue(db, printer, st.kind === "bar" ? "bar" : "keuken", text, `ticket:${id}`);
+  const text = renderProductionTicket(ticket, st?.kind ?? null, printer.lang, printer.width_chars);
+  return enqueue(db, printer, st?.kind === "bar" ? "bar" : "keuken", text, `ticket:${id}`);
 }
 
 async function printOrder(db: Db, id: string) {
@@ -109,19 +118,19 @@ async function printOrder(db: Db, id: string) {
   if (!o) return { skipped: "not_found" };
   const { data: st } = await db.from("prep_stations").select("id, name, kind, printer_id").eq("tenant_id", o.tenant_id)
     .eq("is_default", true).eq("is_active", true).limit(1).maybeSingle();
-  const printer = await activePrinter(db, st?.printer_id);
-  if (!st || !printer) return { skipped: "no_printer" };
+  const printer = st ? await activePrinter(db, st.printer_id) : await fallbackPrinter(db, o.tenant_id);
+  if (!printer) return { skipped: "no_printer" };
   const items: ProductionItem[] = ((o.order_items ?? []) as Record<string, unknown>[]).map((i) => {
     const addons = addonNames(i.addons);
     return { quantity: Number(i.quantity) || 1, name: String(i.product_name ?? ""), detail: variantOnly((i.variant_title as string | null) ?? null, addons), addons };
   });
   const ticket: ProductionTicket = {
-    storeName: await storeName(db, o.tenant_id), station: st.name ?? null, source: "webshop", service: asService(o.service_type),
+    storeName: await storeName(db, o.tenant_id), station: st?.name ?? null, source: "webshop", service: asService(o.service_type),
     table: o.table_label ?? null, customer: o.customer_name || o.order_number || null, phone: o.customer_phone ?? null,
     requestedTime: o.requested_time ?? null, createdAt: o.created_at, note: o.notes ?? null, items,
   };
-  const text = renderProductionTicket(ticket, st.kind, printer.lang, printer.width_chars);
-  return enqueue(db, printer, st.kind === "bar" ? "bar" : "keuken", text, `order:${id}`);
+  const text = renderProductionTicket(ticket, st?.kind ?? null, printer.lang, printer.width_chars);
+  return enqueue(db, printer, st?.kind === "bar" ? "bar" : "keuken", text, `order:${id}`);
 }
 
 async function printReceipt(db: Db, id: string) {

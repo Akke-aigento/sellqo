@@ -13,7 +13,7 @@ import { sendWebPush } from "../_shared/webpush.ts";
 import { getFcmAccessToken, readServiceAccount } from "../_shared/fcm.ts";
 import { buildHorecaPush, HORECA_EVENTS, HORECA_PUSH_TTL_SECONDS, type HorecaPushCtx } from "../_shared/horecaPush.ts";
 
-const VERSION = "MELDING-1b";
+const VERSION = "MELDING-1c";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const corsHeaders = {

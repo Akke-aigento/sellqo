@@ -16,11 +16,18 @@ const PR = '9a9a0000-0000-4000-8000-000000000001';
 const TK = '7c7c0000-0000-4000-8000-000000000001';
 const TK2 = '7c7c0000-0000-4000-8000-000000000002';
 const PAY = '8d8d0000-0000-4000-8000-000000000001';
+// PRINT-2b: een zaak zonder posten, met een printer voor "bonnen zonder post".
+const T2 = '4e4e0000-0000-4000-8000-000000000002';
+const PR2 = '9a9a0000-0000-4000-8000-000000000002';
+const TK3 = '7c7c0000-0000-4000-8000-000000000003';
 
 const db = new FakeDb({
   internal_config: [{ key: 'internal_webhook_secret', value: 'geheim' }],
-  tenants: [{ id: T, name: 'Belgaleiro' }],
-  printers: [{ id: PR, tenant_id: T, name: 'Keuken', protocol: 'star_cloudprnt', width_chars: 42, lang: 'nl', is_active: true }],
+  tenants: [{ id: T, name: 'Belgaleiro' }, { id: T2, name: 'Frituur' }],
+  printers: [
+    { id: PR, tenant_id: T, name: 'Keuken', protocol: 'star_cloudprnt', width_chars: 42, lang: 'nl', is_active: true },
+    { id: PR2, tenant_id: T2, name: 'Toog', protocol: 'star_cloudprnt', width_chars: 48, lang: 'nl', is_active: true },
+  ],
   prep_stations: [
     { id: ST, tenant_id: T, name: 'Keuken', kind: 'kitchen', printer_id: PR, is_default: true, is_active: true },
     { id: ST2, tenant_id: T, name: 'Bar', kind: 'bar', printer_id: null, is_default: false, is_active: true },
@@ -30,8 +37,10 @@ const db = new FakeDb({
       items: [{ name: 'Croque', quantity: 2, note: 'zonder ui', addons: [{ name: 'Extra kaas' }] }], total: 25 },
     { id: TK2, tenant_id: T, source: 'table', service_type: 'eat_in', table_label: 'B7', customer_label: 'B7', station_id: ST2, created_at: '2026-10-28T19:00:00Z',
       items: [{ name: 'Pils', quantity: 1 }], total: 3 },
+    { id: TK3, tenant_id: T2, source: 'pos', service_type: 'pickup', customer_label: 'Jan', station_id: null, created_at: '2026-10-28T19:00:00Z',
+      items: [{ name: 'Grote friet', quantity: 1 }], total: 4 },
   ],
-  horeca_pay_settings: [{ tenant_id: T, receipt_print: true, receipt_printer_id: PR }],
+  horeca_pay_settings: [{ tenant_id: T, receipt_print: true, receipt_printer_id: PR }, { tenant_id: T2, ticket_printer_id: PR2 }],
 });
 
 let receipt: any = null;
@@ -54,7 +63,7 @@ const jobs = () => db.writes.filter((w) => w.table === 'print_jobs' && w.insert)
 
 Deno.test('GET geeft de versiestempel, zonder data', async () => {
   const j = await (await handler(new Request('https://f/horeca-print'))).json();
-  assert(j.ok === true && j.version === 'PRINT-2', JSON.stringify(j));
+  assert(j.ok === true && j.version === 'PRINT-2b', JSON.stringify(j));
 });
 
 Deno.test('zonder of met fout geheim → 401, geen printopdracht', async () => {
@@ -102,4 +111,11 @@ Deno.test('betaalbewijs: wel buiten GKS, nooit bij een geregistreerde kassa', as
 Deno.test('testafdruk zonder sessie → 401, ook met het interne geheim', async () => {
   const r = await post({ kind: 'test', printer_id: PR });
   assert(r.status === 401, JSON.stringify(r));
+});
+
+Deno.test('zaak zonder posten: bon gaat naar de printer voor bonnen zonder post (PRINT-2b)', async () => {
+  const r = await post({ kind: 'ticket', id: TK3 });
+  assert(r.status === 200 && r.json.queued === true, JSON.stringify(r.json));
+  const j = jobs().at(-1);
+  assert(j.printer_id === PR2 && j.tenant_id === T2 && j.kind === 'keuken' && j.payload_text.includes('1 x Grote friet'), JSON.stringify(j));
 });

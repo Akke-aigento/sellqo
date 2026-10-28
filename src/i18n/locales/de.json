@@ -6310,7 +6310,7 @@
       "back_to_admin": "Zurück zum Admin",
       "title": "Küche",
       "summary": "{{new}} neu · {{preparing}} in Arbeit · {{ready}} fertig · {{nextHour}} in der nächsten Stunde",
-      "auto_print_hint": "Neue Bons auf diesem Gerät automatisch drucken",
+      "auto_print_hint": "Neue Bons automatisch über den Drucker dieses Geräts drucken (Druckfenster). Einen Star-Bondrucker verbindest du unter Kasse › Belege & Drucker: Er druckt, ohne dass dieser Bildschirm offen ist.",
       "fullscreen": "Vollbild",
       "load_error": "Bestellungen konnten nicht geladen werden. Der Bildschirm versucht es erneut.",
       "loading": "Wird geladen…",
@@ -6332,8 +6332,8 @@
       "niets_klaar_om_mee_te_geven": "Nichts fertig zur Übergabe.",
       "geluid_aan": "Ton an",
       "geluid_uit": "Ton aus",
-      "auto_print_aan": "Autodruck an",
-      "auto_print_uit": "Autodruck aus",
+      "auto_print_aan": "Hier drucken an",
+      "auto_print_uit": "Hier drucken aus",
       "pause_online": "Online-Bestellungen pausieren",
       "pause_hint": "Abholung und Lieferung über den Webshop nehmen vorübergehend keine neuen Bestellungen an. Bestellen am Tisch funktioniert weiter.",
       "pause_minutes": "{{count}} Minuten",
@@ -9053,7 +9053,10 @@
       "done": "Fertig",
       "copy": "Kopieren",
       "save_failed": "Nicht gespeichert: {{reason}}",
-      "receipt_print_first": "Füge zuerst einen Drucker hinzu."
+      "receipt_print_first": "Füge zuerst einen Drucker hinzu.",
+      "no_station_row": "Bons ohne Station",
+      "no_station_hint_none": "Du hast keine Stationen: Alle Küchenbons gehen an diesen Drucker.",
+      "no_station_hint_rest": "Für Bons, die zu keiner Station gehören (du hast keine Standardstation)."
     }
   },
   "billing": {

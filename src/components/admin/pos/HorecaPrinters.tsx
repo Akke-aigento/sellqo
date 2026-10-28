@@ -27,7 +27,7 @@ import { LANG_CODES } from '@/i18n/languages';
 
 interface PrinterRow { id: string; name: string; width_chars: number; lang: string; is_active: boolean; last_seen_at: string | null; last_status: string | null }
 interface StationRow { id: string; name: string; kind: string; is_default: boolean; printer_id: string | null }
-interface ReceiptSettings { receipt_print: boolean; receipt_printer_id: string | null; mail_online: boolean; mail_button: boolean; online_pay: boolean }
+interface ReceiptSettings { receipt_print: boolean; receipt_printer_id: string | null; ticket_printer_id: string | null; mail_online: boolean; mail_button: boolean; online_pay: boolean }
 
 const WIDTHS = [48, 42, 32] as const;
 const NONE = 'none';
@@ -79,7 +79,7 @@ export function HorecaPrinters() {
           .eq('tenant_id' as never, tenantId as never).eq('protocol' as never, 'star_cloudprnt' as never).order('created_at' as never),
         supabase.from('prep_stations' as never).select('id, name, kind, is_default, printer_id')
           .eq('tenant_id' as never, tenantId as never).eq('is_active' as never, true as never).order('sort' as never),
-        supabase.from('horeca_pay_settings' as never).select('receipt_print, receipt_printer_id, mail_online, mail_button, online_pay')
+        supabase.from('horeca_pay_settings' as never).select('receipt_print, receipt_printer_id, ticket_printer_id, mail_online, mail_button, online_pay')
           .eq('tenant_id' as never, tenantId as never).maybeSingle(),
         supabase.from('pos_terminals').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId!).eq('settings->fiscal->>mode' as never, 'fdm' as never),
       ]);
@@ -92,7 +92,7 @@ export function HorecaPrinters() {
         printers: (p.data ?? []) as unknown as PrinterRow[],
         stations: (s.data ?? []) as unknown as StationRow[],
         receipt: {
-          receipt_print: rs?.receipt_print === true, receipt_printer_id: rs?.receipt_printer_id ?? null,
+          receipt_print: rs?.receipt_print === true, receipt_printer_id: rs?.receipt_printer_id ?? null, ticket_printer_id: rs?.ticket_printer_id ?? null,
           mail_online: rs?.mail_online === true, mail_button: rs?.mail_button !== false, online_pay: rs?.online_pay === true,
         } as ReceiptSettings,
         fiscal: (f.count ?? 0) > 0,
@@ -247,6 +247,16 @@ export function HorecaPrinters() {
           <CardDescription>{t('admin.horecaPrint.stations_desc')}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* PRINT-2b: bonnen zonder post (geen posten, of geen standaardpost) hebben ook een printer nodig. */}
+          {data.stations.length === 0 || !data.stations.some((s) => s.is_default) ? (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <Label htmlFor="st-none" className="text-sm">{t('admin.horecaPrint.no_station_row')}</Label>
+                <p className="text-xs text-muted-foreground">{data.stations.length === 0 ? t('admin.horecaPrint.no_station_hint_none') : t('admin.horecaPrint.no_station_hint_rest')}</p>
+              </div>
+              {printerSelect(data.receipt.ticket_printer_id, (v) => saveReceipt({ ticket_printer_id: v === NONE ? null : v }), 'st-none', active.length === 0)}
+            </div>
+          ) : null}
           {data.stations.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {t('admin.horecaPrint.no_stations')}{' '}
