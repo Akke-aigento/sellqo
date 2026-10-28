@@ -121,7 +121,9 @@ begin
   if cart.stripe_session_id is not null then raise exception 'CART_IN_PAYMENT' using errcode = '55000'; end if;
   -- (De storefront wist dan het mandje: de gast begint met een nieuw.)
 
-  -- Rem bij drukte: per tafel en per zaak.
+  -- Rem bij drukte: per tafel en per zaak. Aanvragen van dezelfde tafel na elkaar (slot per tafel),
+  -- anders tellen gelijktijdige aanvragen elkaar niet mee (stresstest 28-10: 8 i.p.v. 6 per minuut).
+  perform pg_advisory_xact_lock(hashtextextended('table_request_place:' || p_tenant_id::text || ':' || btrim(p_table_label), 0));
   if (select count(*) from public.table_requests r where r.tenant_id = p_tenant_id and r.table_label = btrim(p_table_label)
         and r.created_at > now() - interval '1 minute') >= 6 then
     raise exception 'TOO_MANY_REQUESTS' using errcode = '54000';

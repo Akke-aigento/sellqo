@@ -408,7 +408,8 @@ await check('SEC-DOMAIN-2: resolve_domain, get_seo en get_sitemap_data alleen ge
   });
   const ok = await S.resolveDomain(ddb, { hostname: 'shop.example.nl' });
   assert(ok.tenant_id === V && ok.dns_verified === true, `geverifieerd: ${JSON.stringify(ok)}`);
-  assert(JSON.stringify(Object.keys(ok)) === JSON.stringify(['tenant_id', 'tenant_slug', 'tenant_name', 'locale', 'is_canonical', 'dns_verified', 'ssl_active', 'use_custom_frontend', 'custom_frontend_url', 'shop_live', 'shop_ordering', 'qr_mode', 'all_domains']), 'sleutels ongewijzigd');
+  assert(JSON.stringify(Object.keys(ok)) === JSON.stringify(['tenant_id', 'tenant_slug', 'tenant_name', 'locale', 'is_canonical', 'dns_verified', 'ssl_active', 'use_custom_frontend', 'custom_frontend_url', 'shop_live', 'shop_ordering', 'qr_mode', 'qr_flow', 'all_domains']), 'sleutels ongewijzigd (QR-REKENING-1: qr_flow erbij, additief)');
+  assert(ok.qr_flow === 'order', `qr_flow zonder instelling = order: ${ok.qr_flow}`);
   assert(ok.all_domains.map((d: any) => d.domain).join() === 'shop.example.be,shop.example.nl', `all_domains: ${JSON.stringify(ok.all_domains)}`);
   for (const h of ['vreemd-domein.example', 'uit.example', 'bestaat-niet.example']) {
     let msg = '';
