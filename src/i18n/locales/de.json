@@ -8721,10 +8721,10 @@
       "oneChannel": "Lass mindestens einen Ort an oder nimm das Produkt von der Karte.",
       "openFull": "Alle Einstellungen von {{name}}",
       "quickAdd": "Produkt hinzufügen",
-      "quickAddPlaceholder": "Name, z. B. Duvel 4,50",
+      "quickAddPlaceholder": "Neues Produkt",
       "add": "Hinzufügen",
       "newCategory": "Kategorie hinzufügen",
-      "newCategoryPlaceholder": "Neue Kategorie, z. B. Heißgetränke",
+      "newCategoryPlaceholder": "Neue Kategorie",
       "categoryAdded": "Kategorie {{name}} ist bereit",
       "categorySettings": "Einstellungen von {{name}}",
       "categoryName": "Name der Kategorie",
@@ -8854,6 +8854,20 @@
         "extras": "Extras und Allergene",
         "allergenCount": "Allergene: {{count}}",
         "allergens": "Allergene"
+      },
+      "addProducts": "Produkte hinzufügen",
+      "newCategoryShort": "Kategorie",
+      "onMenu": "Auf der Karte",
+      "offMenu": "Nicht auf der Karte",
+      "available": "Verfügbar",
+      "soldOutToday": "Aus · rückgängig",
+      "noneOnHint": "Noch nichts auf der Karte. Setzen Sie ein Produkt auf „Auf der Karte“, um es in Kasse, QR-Menü und Webshop zu zeigen.",
+      "mode": {
+        "select": "Auswählen",
+        "sort": "Reihenfolge",
+        "done": "Fertig",
+        "sortHint": "Ziehen Sie Produkte und Kategorien in die richtige Reihenfolge. Tippen Sie auf das Häkchen, wenn Sie fertig sind.",
+        "selectHint": "Haken Sie Produkte an, um sie gemeinsam zu ändern. Tippen Sie auf Fertig, wenn Sie fertig sind."
       }
     },
     "horecaPay": {

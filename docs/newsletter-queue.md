@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14c — Een overzichtelijkere kaart, ook op je gsm (improvement, 28-10-2026)
+
+**Status:** wacht op publish van de admin en het helpartikel (KAART-LOOK-1).
+
+**Voor wie:** horecazaken (Bestellen › Kaart).
+
+**Je kaart in één oogopslag** (oktober 2026)
+Op de Kaart staan naam en prijs nu groot bovenaan, met daaronder twee duidelijke knopjes: Op de kaart en Beschikbaar of Op. Toevoegen via foto, lijst of startkaart zit samen onder één knop, en selecteren of de volgorde aanpassen doe je via een knop bovenaan.
+Wat betekent dit voor jou? Aan de toog met één tik iets op "op" zetten, zonder te zoeken wat een icoontje betekent.
+
+i18n: `public.changelog.changes.horeca_menu_layout`
+
 ### 2026.14b — Meldingen per toestel voor kassa, keuken en bar (feature, 28-10-2026)
 
 **Status:** wacht op migratie, deploy van horeca-device-push en send-push-notification, en publish van de admin (MELDING-1); de native Kassa-app volgt met de volgende build.

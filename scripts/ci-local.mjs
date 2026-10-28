@@ -59,6 +59,10 @@ for (const s of steps.filter(x => x.run)) {
   results.push([s.name, r.status === 0 ? 'ok' : `FAIL (exit ${r.status})`]);
 }
 
+// Een rode rooktest stopt vóór zijn eigen `rm`: de tijdelijke kopie mag niet blijven staan
+// (die telt anders mee in de lint en in git status).
+try { fs.rmSync(new URL('../supabase/functions/storefront-api/__smoke.ts', import.meta.url), { force: true }); } catch { /* niets */ }
+
 console.log('\n── ci:local ──');
 for (const [n, r] of results) console.log(`${r.startsWith('FAIL') ? '✗' : r === 'ok' ? '✓' : '·'} ${n}: ${r}`);
 process.exit(results.some(([, r]) => r.startsWith('FAIL')) ? 1 : 0);

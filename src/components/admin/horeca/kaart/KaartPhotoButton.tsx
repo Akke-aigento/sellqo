@@ -1,7 +1,7 @@
 // KAART-2 — "Foto van je kaart": foto kiezen of nemen → verkleinen in de browser → de AI leest
 // namen, prijzen en kopjes → het voorbeeld van KaartImportDialog. Kost KAART_PHOTO_CREDITS per
 // foto (enkel als het lezen lukt); niets wordt aangemaakt zonder "Toevoegen".
-import { useRef, useState } from 'react';
+import { useRef, useState, type MutableRefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Camera, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -41,7 +41,14 @@ async function shrink(file: File): Promise<string> {
   }
 }
 
-export function KaartPhotoButton({ onRows }: { onRows: (rows: Omit<PreviewRow, 'key' | 'include'>[]) => void }) {
+/** KAART-LOOK-1: `openRef` laat een menu-item ("Producten toevoegen") de camera/bestandskeuze openen;
+ *  met `hideTrigger` toont dit onderdeel zelf geen knop. Het venster blijft zo bestaan, ook als het
+ *  menu sluit. */
+export function KaartPhotoButton({ onRows, openRef, hideTrigger }: {
+  onRows: (rows: Omit<PreviewRow, 'key' | 'include'>[]) => void;
+  openRef?: MutableRefObject<(() => void) | null>;
+  hideTrigger?: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const { currentTenant } = useTenant();
   const { credits, refetch } = useAICredits();
@@ -54,6 +61,7 @@ export function KaartPhotoButton({ onRows }: { onRows: (rows: Omit<PreviewRow, '
   const [buy, setBuy] = useState(false);
   const available = credits?.available ?? 0;
   const enough = isUnlimited || available >= KAART_PHOTO_CREDITS;
+  if (openRef) openRef.current = () => input.current?.click();
 
   const read = async () => {
     if (!file || !currentTenant?.id) return;
@@ -86,7 +94,7 @@ export function KaartPhotoButton({ onRows }: { onRows: (rows: Omit<PreviewRow, '
 
   return (
     <>
-      <Button variant="outline" onClick={() => input.current?.click()}><Camera className="mr-2 h-4 w-4" />{t('admin.kaart.photo.button')}</Button>
+      {hideTrigger ? null : <Button variant="outline" onClick={() => input.current?.click()}><Camera className="mr-2 h-4 w-4" />{t('admin.kaart.photo.button')}</Button>}
       <input ref={input} type="file" accept="image/jpeg,image/png,image/webp" capture="environment" className="hidden"
         onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; if (f) setFile(f); }} />
       <Dialog open={!!file} onOpenChange={(o) => { if (!o && !busy) setFile(null); }}>

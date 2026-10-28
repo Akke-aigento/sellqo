@@ -1,3 +1,39 @@
+## KAART-LOOK-1 — de Kaart overzichtelijker: twee regels per product, knopjes met tekst — 28 oktober 2026
+
+**Root cause:**
+- `KaartManager.tsx` (`ProductRow`) zette greep, vinkje, schakelaar, foto-icoon, naam, prijs en een knop met enkel een icoon op één regel. Op 390 px brak de naam over twee regels ("Stress / Duvel").
+- De schakelaar was in donkere modus haast onzichtbaar. Het rondje met de streep ("op voor vandaag") had geen tekst.
+- Oranje stond op elk vinkje, elke schakelaar en elke knop. Foto, plakken en startkaart waren drie losse knoppen.
+- Melding van Akke (screenshot 28-10): "top functioneel, maar het oog wil ook wat". Zijn melding dat de zwevende balk over "Add category" viel, klopte niet: de pagina heeft genoeg ruimte onderaan (`--admin-nav-offset` + `pb-28`). De screenshot was niet tot onderaan gescrold.
+
+**Uitgevoerd:**
+- Ontwerp eerst (Design-canvas, optie A en B op 390 en A op 1280); Akke koos A.
+- `KaartManager.tsx`:
+  - Op gsm staan naam en prijs bovenaan, met daaronder de knopjes "Op de kaart / Niet op de kaart" en "Beschikbaar / Op · terugzetten". Vanaf sm staat alles op één regel, in vaste kolommen.
+  - Greep en vinkje verschijnen enkel in de modi Volgorde en Selecteren (knoppen bovenaan, met een hint).
+  - "Producten toevoegen" opent een menu met foto, plakken en startkaart.
+  - Hint als niets op de kaart staat.
+  - Nieuw product: op gsm een plusknop, zodat het naamveld ruimte heeft. Categorie toevoegen staat op één regel.
+  - Het lege foto-icoon is weg.
+  - "Op de kaart" is vol navy in lichte modus en heeft een oranje tint in donkere modus.
+- `KaartPhotoButton.tsx`: `openRef` + `hideTrigger`, zodat het menu de camera opent en het venster blijft bestaan als het menu sluit.
+- i18n 5 talen (`admin.kaart.addProducts`, `mode.*`, `onMenu`, `offMenu`, `available`, `soldOutToday`, `noneOnHint`, `newCategoryShort`; kortere `quickAddPlaceholder` en `newCategoryPlaceholder`).
+- Changelog 2026.14c `horeca_menu_layout`, nieuwsbrief, helpartikel `horeca-kaart` bijgewerkt (`20261028200000`, md5-guard, 4 vervangingen read-only nagekeken: elk precies één treffer).
+- `scripts/ci-local.mjs` ruimt de tijdelijke `__smoke.ts` op. Een rode rooktest liet die anders staan, en de lint telde hem mee (+234).
+
+**Security-keuzes:** n.v.t. Enkel UI; dezelfde mutaties en rechten (`canEdit`, `canFull`).
+
+**Gedeelde-paden-waarschuwing:** n.v.t. Geen gedeelde tabellen of edge functions.
+
+**Verificatie:**
+- Visueel in Chromium met een tijdelijk harnas: de echte `KaartManager` met nepdata, na afloop verwijderd. Getest op 390 en 1280, donker en licht, Nederlands en Engels, met het menu "Producten toevoegen" en de selecteermodus.
+- Gezien en meteen opgelost: knopjes die over twee regels braken door een te lange tekst, en afgekapte voorbeeldteksten.
+- Lint onder de baseline, tsc gelijk aan de baseline (27), Kaart-tests 25 groen, i18n-pariteit ok.
+
+**Bewust ongemoeid / Vervolg:**
+- Kassa (POS) › Kassa's en Bestellen › Overzicht krijgen dezelfde stijl in WANDELING.
+- "Till" vs "POS" in het Engels: voorstel om overal "POS" te gebruiken, ook in WANDELING.
+
 ## MELDING-1 — meldingen per toestel en per post (kassa, keuken, bar), kassa 0.10.0 — 28 oktober 2026
 
 **Root cause:**

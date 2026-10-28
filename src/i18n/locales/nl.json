@@ -9008,10 +9008,10 @@
       "oneChannel": "Laat minstens één plek aan staan, of haal het product van de kaart.",
       "openFull": "Alle instellingen van {{name}}",
       "quickAdd": "Product toevoegen",
-      "quickAddPlaceholder": "Naam, bv. Duvel 4,50",
+      "quickAddPlaceholder": "Nieuw product",
       "add": "Toevoegen",
       "newCategory": "Categorie toevoegen",
-      "newCategoryPlaceholder": "Nieuwe categorie, bv. Warme dranken",
+      "newCategoryPlaceholder": "Nieuwe categorie",
       "categoryAdded": "Categorie {{name}} staat klaar",
       "categorySettings": "Instellingen van {{name}}",
       "categoryName": "Naam van de categorie",
@@ -9141,6 +9141,20 @@
         "extras": "Extra's en allergenen",
         "allergenCount": "allergenen: {{count}}",
         "allergens": "Allergenen"
+      },
+      "addProducts": "Producten toevoegen",
+      "newCategoryShort": "Categorie",
+      "onMenu": "Op de kaart",
+      "offMenu": "Niet op de kaart",
+      "available": "Beschikbaar",
+      "soldOutToday": "Op · terugzetten",
+      "noneOnHint": "Nog niets op de kaart. Zet een product op „Op de kaart” om het te tonen in je kassa, QR-menu en webshop.",
+      "mode": {
+        "select": "Selecteren",
+        "sort": "Volgorde",
+        "done": "Klaar",
+        "sortHint": "Sleep producten en categorieën in de juiste volgorde. Tik op het vinkje als je klaar bent.",
+        "selectHint": "Vink producten aan om ze samen aan te passen. Tik op Klaar als je klaar bent."
       }
     },
     "horecaPay": {

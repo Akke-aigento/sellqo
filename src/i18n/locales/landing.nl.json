@@ -2295,6 +2295,10 @@
         "horeca_device_alerts": {
           "title": "Meldingen per toestel voor kassa, keuken en bar",
           "description": "Elk toestel in de zaak krijgt nu enkel wat het nodig heeft: de kassa een melding bij een QR-bestelling, een bon die klaar is en een online betaling; het keuken- of barscherm bij elke nieuwe bon voor die post. Ook als het scherm dicht is, via de SellQo-app of als app op het beginscherm (op iPhone en iPad voeg je SellQo Kassa of SellQo Keuken toe aan je beginscherm). Nieuwe bonnen van dezelfde post komen samen in één melding. Op het open scherm klinkt een belletje en het scherm kan wakker blijven. Deze meldingen komen niet in je belletje, en op een gedeelde kassa staan je persoonlijke meldingen standaard uit. Je beheert alles onder Kassa (POS) › Kassa's."
+        },
+        "horeca_menu_layout": {
+          "title": "Een overzichtelijkere kaart, ook op je gsm",
+          "description": "Op de Kaart staan naam en prijs nu groot bovenaan, met daaronder twee duidelijke knopjes: Op de kaart en Beschikbaar of Op. Foto van je kaart, lijst plakken en de startkaart zitten samen onder Producten toevoegen. Selecteren en de volgorde aanpassen doe je via een knop bovenaan, zodat de lijst rustig blijft. Staat er nog niets op de kaart, dan zegt de pagina wat je moet doen."
         }
       },
       "copyLink": "Kopieer link",

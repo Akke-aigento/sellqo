@@ -8994,10 +8994,10 @@
       "oneChannel": "Keep at least one place on, or take the product off the menu.",
       "openFull": "All settings for {{name}}",
       "quickAdd": "Add product",
-      "quickAddPlaceholder": "Name, e.g. Duvel 4.50",
+      "quickAddPlaceholder": "New product",
       "add": "Add",
       "newCategory": "Add category",
-      "newCategoryPlaceholder": "New category, e.g. Hot drinks",
+      "newCategoryPlaceholder": "New category",
       "categoryAdded": "Category {{name}} is ready",
       "categorySettings": "Settings for {{name}}",
       "categoryName": "Category name",
@@ -9127,6 +9127,20 @@
         "extras": "Extras and allergens",
         "allergenCount": "allergens: {{count}}",
         "allergens": "Allergens"
+      },
+      "addProducts": "Add products",
+      "newCategoryShort": "Category",
+      "onMenu": "On the menu",
+      "offMenu": "Not on the menu",
+      "available": "Available",
+      "soldOutToday": "Sold out · undo",
+      "noneOnHint": "Nothing on the menu yet. Set a product to “On the menu” to show it in your till, QR menu and webshop.",
+      "mode": {
+        "select": "Select",
+        "sort": "Order",
+        "done": "Done",
+        "sortHint": "Drag products and categories into the right order. Tap the check mark when you're done.",
+        "selectHint": "Tick products to change them together. Tap Done when you're done."
       }
     },
     "horecaPay": {

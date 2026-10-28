@@ -2295,6 +2295,10 @@
         "horeca_device_alerts": {
           "title": "Notifications par appareil pour la caisse, la cuisine et le bar",
           "description": "Chaque appareil de votre établissement ne reçoit plus que ce dont il a besoin : la caisse une notification pour une commande QR, un bon prêt et un paiement en ligne ; l'écran de cuisine ou de bar pour chaque nouveau bon de ce poste. Aussi quand l'écran est éteint, via l'app SellQo ou en app sur l'écran d'accueil (sur iPhone et iPad, ajoutez SellQo Kassa ou SellQo Keuken à votre écran d'accueil). Les nouveaux bons d'un même poste sont regroupés en une seule notification. Sur un écran ouvert, une sonnerie retentit et l'écran peut rester allumé. Ces notifications ne vont pas dans votre cloche, et sur une caisse partagée vos notifications personnelles sont désactivées par défaut. Tout se gère sous Caisse (POS) › Caisses."
+        },
+        "horeca_menu_layout": {
+          "title": "Une carte plus claire, aussi sur votre téléphone",
+          "description": "Sur la Carte, le nom et le prix sont désormais affichés en grand en haut, avec deux boutons clairs en dessous : À la carte et Disponible ou Épuisé. La photo de votre carte, le collage d'une liste et la carte de départ sont regroupés sous Ajouter des produits. Sélectionner et changer l'ordre se font via un bouton en haut, pour que la liste reste lisible. S'il n'y a encore rien à la carte, la page vous dit quoi faire."
         }
       },
       "copyLink": "Copier le lien",

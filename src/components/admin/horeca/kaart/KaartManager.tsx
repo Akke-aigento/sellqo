@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight, CircleSlash, ClipboardPaste, FolderPlus, GripVertical, ImageIcon, Loader2, Plus, Search, Settings2, Sparkles, X } from 'lucide-react';
+import { ArrowUpDown, Camera, Check, ChevronDown, ChevronRight, ClipboardPaste, FolderPlus, GripVertical, Loader2, Plus, Search, Settings2, Sparkles, X } from 'lucide-react';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -46,6 +46,10 @@ export function KaartManager() {
   const [newCat, setNewCat] = useState('');
   // KAART-3: het product dat open staat in het paneel.
   const [openId, setOpenId] = useState<string | null>(null);
+  // KAART-LOOK-1: selecteren en volgorde zijn een modus; anders staan greep en vinkje niet op elke rij.
+  const [mode, setMode] = useState<'none' | 'select' | 'sort'>('none');
+  const [addOpen, setAddOpen] = useState(false);
+  const photoOpen = useRef<(() => void) | null>(null);
   const qc = useQueryClient();
   const { currentTenant } = useTenant();
   const sensors = useSensors(
@@ -103,7 +107,9 @@ export function KaartManager() {
     qc.setQueryData<KaartData>(kaartKey(currentTenant?.id), (d) => d && ({ ...d, categories: ordered.map((c, i) => ({ ...c, sort_order: i })) }));
     m.reorder.mutate({ kind: 'categories', ids: ordered.map((c) => c.id) }, { onError: fail });
   };
-  const canDrag = canFull && !term;
+  const canDrag = canFull && !term && mode === 'sort';
+  const showSelect = canFull && mode === 'select';
+  const pickMode = (m2: 'select' | 'sort') => { setMode((cur) => (cur === m2 ? 'none' : m2)); setSelected(new Set()); };
 
   const addCategory = () => {
     const name = newCat.trim();
@@ -120,17 +126,40 @@ export function KaartManager() {
       <div className="flex flex-wrap items-center gap-2">
         <label className="relative min-w-0 flex-1 basis-56">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.kaart.search')} aria-label={t('admin.kaart.search')} className="pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('admin.kaart.search')} aria-label={t('admin.kaart.search')} className="h-11 pl-9 sm:h-10" />
         </label>
         {canFull ? (
-          <div className="flex flex-wrap gap-2">
-            <KaartPhotoButton onRows={(rows) => setDialog({ source: 'photo', rows })} />
-            <Button variant="outline" onClick={() => setDialog({ source: 'paste' })}><ClipboardPaste className="mr-2 h-4 w-4" />{t('admin.kaart.paste')}</Button>
-            <Button variant="outline" onClick={() => setDialog({ source: 'starter' })}><Sparkles className="mr-2 h-4 w-4" />{t('admin.kaart.starter.button')}</Button>
+          <div className="flex w-full items-center gap-2 sm:w-auto">
+            {/* Foto, plakken en startkaart achter één knop; de fotoknop zelf blijft gemonteerd voor zijn venster. */}
+            <KaartPhotoButton hideTrigger openRef={photoOpen} onRows={(rows) => setDialog({ source: 'photo', rows })} />
+            <Popover open={addOpen} onOpenChange={setAddOpen}>
+              <PopoverTrigger asChild>
+                <Button className="h-11 flex-1 sm:h-10 sm:flex-none"><Plus className="mr-2 h-4 w-4" />{t('admin.kaart.addProducts')}</Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-1">
+                <Button variant="ghost" className="h-11 w-full justify-start" onClick={() => { setAddOpen(false); photoOpen.current?.(); }}><Camera className="mr-2 h-4 w-4" />{t('admin.kaart.photo.button')}</Button>
+                <Button variant="ghost" className="h-11 w-full justify-start" onClick={() => { setAddOpen(false); setDialog({ source: 'paste' }); }}><ClipboardPaste className="mr-2 h-4 w-4" />{t('admin.kaart.paste')}</Button>
+                <Button variant="ghost" className="h-11 w-full justify-start" onClick={() => { setAddOpen(false); setDialog({ source: 'starter' }); }}><Sparkles className="mr-2 h-4 w-4" />{t('admin.kaart.starter.button')}</Button>
+              </PopoverContent>
+            </Popover>
+            <Button variant={mode === 'select' ? 'secondary' : 'ghost'} className="h-11 sm:h-10" aria-pressed={mode === 'select'} onClick={() => pickMode('select')}>
+              {mode === 'select' ? t('admin.kaart.mode.done') : t('admin.kaart.mode.select')}
+            </Button>
+            <Button variant={mode === 'sort' ? 'secondary' : 'ghost'} size="icon" className="h-11 w-11 shrink-0 sm:h-10 sm:w-10" aria-pressed={mode === 'sort'}
+              onClick={() => pickMode('sort')} aria-label={mode === 'sort' ? t('admin.kaart.mode.done') : t('admin.kaart.mode.sort')} title={t('admin.kaart.mode.sort')} disabled={!!term}>
+              {mode === 'sort' ? <Check className="h-4 w-4" /> : <ArrowUpDown className="h-4 w-4" />}
+            </Button>
           </div>
         ) : null}
       </div>
-      <p className="text-sm text-muted-foreground">{t('admin.kaart.summary', { count: products.length, active: activeCount })} · {t('admin.kaart.sharedNote')}</p>
+      <p className="text-sm text-muted-foreground">
+        {mode === 'sort' ? t('admin.kaart.mode.sortHint') : mode === 'select' ? t('admin.kaart.mode.selectHint')
+          : <>{t('admin.kaart.summary', { count: products.length, active: activeCount })} · {t('admin.kaart.sharedNote')}</>}
+      </p>
+
+      {products.length > 0 && activeCount === 0 && !term ? (
+        <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">{t('admin.kaart.noneOnHint')}</div>
+      ) : null}
 
       {!products.length && !term ? (
         <div className="rounded-lg border border-dashed p-6 text-center">
@@ -158,7 +187,7 @@ export function KaartManager() {
                 {cat?.is_active === false ? <span className="rounded bg-muted px-1.5 text-xs text-muted-foreground">{t('admin.kaart.hiddenCategory')}</span> : null}
                 <span className="ml-auto flex items-center gap-2">
                   {cat ? <VatBadge cat={cat} rateOf={vat.rateOf} /> : null}
-                  {canFull && ids.length ? (
+                  {showSelect && ids.length ? (
                     <Checkbox checked={allSel} onCheckedChange={(v) => toggleSel(ids, v === true)} aria-label={t('admin.kaart.selectAll', { name: cat?.name ?? t('admin.kaart.noCategory') })} />
                   ) : null}
                   {canFull && cat ? <CategorySettings cat={cat} productIds={products.filter((p) => p.category_id === cat.id).map((p) => p.id)} onError={fail} /> : null}
@@ -170,10 +199,10 @@ export function KaartManager() {
                 <SortableContext items={ids} strategy={verticalListSortingStrategy}>
                   <div className="divide-y">
                     {items.map((p) => (
-                      <ProductRow key={p.id} p={p} canEdit={canEdit} canPrice={canFull} canDrag={canDrag} selected={selected.has(p.id)}
+                      <ProductRow key={p.id} p={p} canEdit={canEdit} canPrice={canFull} canDrag={canDrag} showSelect={showSelect} selected={selected.has(p.id)}
                         onSelect={(on) => toggleSel([p.id], on)} onOpen={() => setOpenId(p.id)} onError={fail} />
                     ))}
-                    {canFull && !term ? <QuickAdd categoryId={cat?.id ?? null} onError={fail} /> : null}
+                    {canFull && !term && mode === 'none' ? <QuickAdd categoryId={cat?.id ?? null} onError={fail} /> : null}
                   </div>
                 </SortableContext>
               </DndContext>
@@ -185,15 +214,15 @@ export function KaartManager() {
         </SortableContext>
       </DndContext>
 
-      {canFull && !term ? (
-        <div className="flex flex-wrap items-center gap-2">
+      {canFull && !term && mode === 'none' ? (
+        <div className="flex items-center gap-2 sm:max-w-md">
           <Input value={newCat} onChange={(e) => setNewCat(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addCategory(); }}
-            placeholder={t('admin.kaart.newCategoryPlaceholder')} aria-label={t('admin.kaart.newCategory')} maxLength={80} className="max-w-xs" />
-          <Button variant="outline" onClick={addCategory} disabled={!newCat.trim() || m.createCategory.isPending}><FolderPlus className="mr-2 h-4 w-4" />{t('admin.kaart.newCategory')}</Button>
+            placeholder={t('admin.kaart.newCategoryPlaceholder')} aria-label={t('admin.kaart.newCategory')} maxLength={80} className="h-11 min-w-0 flex-1 border-dashed sm:h-10" />
+          <Button variant="outline" className="h-11 shrink-0 sm:h-10" onClick={addCategory} disabled={!newCat.trim() || m.createCategory.isPending}><FolderPlus className="mr-2 h-4 w-4" />{t('admin.kaart.newCategoryShort')}</Button>
         </div>
       ) : null}
 
-      {canFull && selected.size > 0 ? (
+      {showSelect && selected.size > 0 ? (
         <BulkBar ids={[...selected]} categories={categories} products={products} onDone={() => setSelected(new Set())} onError={fail} />
       ) : null}
 
@@ -283,11 +312,12 @@ function SortableSection({ id, canDrag, label, header, body }: { id: string; can
 }
 
 /**
- * Eén product: greep, aan/uit, naam (tik = alles in het paneel), prijs in de lijn, "op".
- * Kanalen, foto, extra's en de rest staan in het paneel: één tik en je bent er.
+ * Eén product (KAART-LOOK-1). Gsm: naam en prijs bovenaan, daaronder twee knopjes met tekst
+ * ("Op de kaart" en "Beschikbaar"/"Op voor vandaag"). Vanaf sm: alles op één regel.
+ * Greep en vinkje enkel in de modus Volgorde of Selecteren. Tik op de naam = alles in het paneel.
  */
-function ProductRow({ p, canEdit, canPrice, canDrag, selected, onSelect, onOpen, onError }: {
-  p: KaartProduct; canEdit: boolean; canPrice: boolean; canDrag: boolean; selected: boolean;
+function ProductRow({ p, canEdit, canPrice, canDrag, showSelect, selected, onSelect, onOpen, onError }: {
+  p: KaartProduct; canEdit: boolean; canPrice: boolean; canDrag: boolean; showSelect: boolean; selected: boolean;
   onSelect: (on: boolean) => void; onOpen: () => void; onError: (e: unknown) => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -296,35 +326,43 @@ function ProductRow({ p, canEdit, canPrice, canDrag, selected, onSelect, onOpen,
   const qc = useQueryClient();
   const out = isSoldOutNow(p.sold_out_until);
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } = useSortable({ id: p.id, disabled: !canDrag });
+  const chip = 'inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-semibold transition-colors disabled:opacity-50 sm:min-h-8 sm:text-xs';
   return (
     <div ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={cn('flex items-center gap-x-1.5 bg-background px-2 py-1.5 sm:gap-x-3 sm:px-3 sm:py-2', !p.is_active && 'bg-muted/30', selected && 'bg-primary/5', isDragging && 'relative z-10 shadow-lg')}>
+      className={cn('flex flex-wrap items-center gap-x-3 gap-y-2 bg-background px-3 py-3 sm:flex-nowrap sm:py-2', selected && 'bg-primary/5', isDragging && 'relative z-10 shadow-lg')}>
       {canDrag ? (
         <button type="button" ref={setActivatorNodeRef} {...attributes} {...listeners} aria-label={t('admin.kaart.dragProduct', { name: p.name })}
-          className="flex h-9 w-6 cursor-grab touch-none items-center justify-center rounded text-muted-foreground hover:bg-muted active:cursor-grabbing">
-          <GripVertical className="h-4 w-4" />
+          className="flex h-11 w-8 cursor-grab touch-none items-center justify-center rounded text-muted-foreground hover:bg-muted active:cursor-grabbing">
+          <GripVertical className="h-5 w-5" />
         </button>
       ) : null}
-      {canPrice ? <Checkbox checked={selected} onCheckedChange={(v) => onSelect(v === true)} aria-label={t('admin.kaart.select', { name: p.name })} /> : null}
-      <Switch checked={p.is_active} disabled={!canEdit} onCheckedChange={(v) => m.updateProduct.mutate({ id: p.id, patch: { is_active: v } }, { onError })}
-        aria-label={p.is_active ? t('admin.kaart.hide', { name: p.name }) : t('admin.kaart.show', { name: p.name })} />
+      {showSelect ? <Checkbox checked={selected} onCheckedChange={(v) => onSelect(v === true)} aria-label={t('admin.kaart.select', { name: p.name })} /> : null}
       <button type="button" onClick={onOpen} aria-label={t('admin.kaart.openProduct', { name: p.name })}
-        className={cn('flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md px-1 text-left hover:bg-muted/60', !p.is_active && 'text-muted-foreground')}>
-        {p.featured_image ? <img src={p.featured_image} alt="" className="h-8 w-8 shrink-0 rounded object-cover" /> : <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground/50" aria-hidden />}
-        {/* KAART-4: op een gsm mag de naam over twee regels ("Tripel va…" zegt een barman niets). */}
-        <span className="line-clamp-2 break-words font-medium leading-tight sm:line-clamp-1">{p.name}</span>
-        <ChevronRight className="ml-auto hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" aria-hidden />
+        className={cn('flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-md text-left hover:bg-muted/60 sm:min-h-10 sm:px-1', !p.is_active && 'text-muted-foreground')}>
+        {p.featured_image ? <img src={p.featured_image} alt="" className="h-9 w-9 shrink-0 rounded object-cover" /> : null}
+        <span className="break-words text-base font-semibold leading-snug sm:text-sm sm:font-medium">{p.name}</span>
       </button>
-      <InlineText value={priceToInput(p.price, i18n.language)} disabled={!canPrice} onInvalid={() => toast.error(t('admin.kaart.badPrice'))} label={t('admin.kaart.col.price')} inputMode="decimal" className="w-[4.5rem] shrink-0 text-right tabular-nums sm:w-24"
+      <InlineText value={priceToInput(p.price, i18n.language)} disabled={!canPrice} onInvalid={() => toast.error(t('admin.kaart.badPrice'))} label={t('admin.kaart.col.price')} inputMode="decimal"
+        className={cn('h-10 w-24 shrink-0 text-right text-base font-semibold tabular-nums sm:h-9 sm:text-sm', !p.is_active && 'text-muted-foreground')}
         validate={(v) => priceFromInput(v) !== null}
         onCommit={(v) => { const n = priceFromInput(v); if (n !== null && Number(n) !== p.price) m.updateProduct.mutate({ id: p.id, patch: { price: Number(n) } }, { onError }); }} />
-      {/* Op een gsm enkel het icoon (alles op één lijn); rood = op. */}
-      <Button type="button" size="sm" variant={out ? 'destructive' : 'outline'} disabled={!canEdit || soldOut.isPending} className="h-9 w-9 justify-center px-0 sm:w-40 sm:px-3"
-        onClick={() => soldOut.mutate({ productId: p.id, soldOut: !out }, { onSettled: () => qc.invalidateQueries({ queryKey: ['kaart'] }) })} aria-pressed={out}
-        aria-label={out ? t('admin.storefront.food.sold_out_undo') : t('admin.storefront.food.sold_out_action')}>
-        <CircleSlash className="h-4 w-4 sm:mr-1 sm:h-3.5 sm:w-3.5" />
-        <span className="hidden sm:inline">{out ? t('admin.kaart.soldOut') : t('admin.kaart.markSoldOut')}</span>
-      </Button>
+      {/* Gsm: eigen regel (w-full); vanaf sm: naast de prijs. */}
+      <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
+        <button type="button" disabled={!canEdit} aria-pressed={p.is_active}
+          onClick={() => m.updateProduct.mutate({ id: p.id, patch: { is_active: !p.is_active } }, { onError })}
+          aria-label={p.is_active ? t('admin.kaart.hide', { name: p.name }) : t('admin.kaart.show', { name: p.name })}
+          className={cn(chip, 'sm:w-36 sm:justify-center', p.is_active ? 'border-primary bg-primary text-primary-foreground dark:border-primary/40 dark:bg-primary/10 dark:text-primary' : 'border-border text-muted-foreground hover:bg-muted')}>
+          {p.is_active ? <Check className="h-4 w-4" aria-hidden /> : null}
+          {p.is_active ? t('admin.kaart.onMenu') : t('admin.kaart.offMenu')}
+        </button>
+        <button type="button" disabled={!canEdit || soldOut.isPending} aria-pressed={out}
+          onClick={() => soldOut.mutate({ productId: p.id, soldOut: !out }, { onSettled: () => qc.invalidateQueries({ queryKey: ['kaart'] }) })}
+          aria-label={out ? t('admin.storefront.food.sold_out_undo') : t('admin.storefront.food.sold_out_action')}
+          className={cn(chip, 'sm:w-44 sm:justify-center', out ? 'border-destructive bg-destructive text-destructive-foreground' : 'border-border text-muted-foreground hover:bg-muted')}>
+          {out ? t('admin.kaart.soldOutToday') : t('admin.kaart.available')}
+        </button>
+      </div>
+      <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" aria-hidden />
     </div>
   );
 }
@@ -378,11 +416,13 @@ function QuickAdd({ categoryId, onError }: { categoryId: string | null; onError:
     });
   };
   return (
-    <form className="flex flex-wrap items-center gap-2 px-3 py-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
-      <Plus className="h-4 w-4 text-muted-foreground" aria-hidden />
-      <Input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} maxLength={150} placeholder={t('admin.kaart.quickAddPlaceholder')} aria-label={t('admin.kaart.quickAdd')} className="h-9 min-w-0 flex-1 basis-24 sm:basis-40" />
-      <Input ref={priceRef} value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" placeholder={priceToInput(0, i18n.language)} aria-label={t('admin.kaart.col.price')} className="h-9 w-20 text-right tabular-nums sm:w-24" />
-      <Button type="submit" size="sm" className="h-9" disabled={!name.trim() || m.add.isPending}>{m.add.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : t('admin.kaart.add')}</Button>
+    <form className="flex items-center gap-2 px-3 py-3 sm:py-2" onSubmit={(e) => { e.preventDefault(); submit(); }}>
+      <Plus className="hidden h-4 w-4 shrink-0 text-muted-foreground sm:block" aria-hidden />
+      <Input ref={nameRef} value={name} onChange={(e) => setName(e.target.value)} maxLength={150} placeholder={t('admin.kaart.quickAddPlaceholder')} aria-label={t('admin.kaart.quickAdd')} className="h-11 min-w-0 flex-1 sm:h-9" />
+      <Input ref={priceRef} value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" placeholder={priceToInput(0, i18n.language)} aria-label={t('admin.kaart.col.price')} className="h-11 w-20 shrink-0 text-right tabular-nums sm:h-9 sm:w-24" />
+      <Button type="submit" variant={name.trim() ? 'default' : 'outline'} aria-label={t('admin.kaart.add')} className="h-11 w-11 shrink-0 px-0 sm:h-9 sm:w-auto sm:px-3" disabled={!name.trim() || m.add.isPending}>
+        {m.add.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Plus className="h-5 w-5 sm:hidden" aria-hidden /><span className="hidden sm:inline">{t('admin.kaart.add')}</span></>}
+      </Button>
     </form>
   );
 }
