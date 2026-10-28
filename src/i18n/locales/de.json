@@ -8881,7 +8881,16 @@
       "qr_none": "noch nichts gewählt",
       "qr_set_in_pay": "Einstellbar unter Kasse › Bezahlen",
       "saved": "Zahlungseinstellungen gespeichert",
-      "save_failed": "Speichern fehlgeschlagen: {{reason}}"
+      "save_failed": "Speichern fehlgeschlagen: {{reason}}",
+      "online_pay": "Gäste bezahlen am Tisch online",
+      "online_pay_desc": "Über den QR-Code sehen Gäste ihre Rechnung und bezahlen mit Bancontact, Karte oder Wallet (Stripe). Die Zahlung steht sofort auf der Rechnung; der Tisch schließt sich von selbst, wenn alles bezahlt ist.",
+      "online_fiscal": "Mit einer registrierten Kasse (GKS) kann nur die Kasse eine Rechnung abschließen. Online-Zahlung am Tisch ist dann nicht möglich.",
+      "online_no_stripe": "Verbinden Sie zuerst Ihr Stripe-Konto, um Online-Zahlungen zu empfangen.",
+      "online_to_stripe": "Zu Zahlungen",
+      "online_split": "Aufteilen erlauben",
+      "online_split_desc": "Gäste können ihre eigenen Positionen bezahlen oder die Rechnung gleichmäßig teilen.",
+      "online_tip": "Trinkgeld anbieten",
+      "online_tip_desc": "Gäste wählen 5, 10 oder 15 % oder einen eigenen Betrag. Trinkgeld erscheint separat in Ihren Berichten."
     },
     "qrFlow": {
       "title": "Wohin geht eine Tischbestellung?",
@@ -10946,7 +10955,8 @@
         "cheque_meal": "Essensgutschein",
         "voucher": "Gutschein",
         "other": "Andere",
-        "transfer": "Überweisung"
+        "transfer": "Überweisung",
+        "online": "Online (QR)"
       },
       "methodLabel": "Zahlungsmittel",
       "amount": "Betrag",
@@ -10999,7 +11009,9 @@
         "hint": "Lassen Sie den Kunden den QR-Code mit seiner Banking-App scannen. SellQo sieht die Zahlung nicht selbst eingehen: Prüfen Sie, ob sie geklappt hat.",
         "seen": "Überweisung erfolgt (in der Banking-App gesehen)",
         "noIban": "In Ihren Firmendaten ist keine Kontonummer hinterlegt. Tragen Sie sie unter Einstellungen › Firmendaten ein oder wählen Sie eine andere Zahlungsart."
-      }
+      },
+      "onlineCredit": "Gäste haben bereits {{paid}} online bezahlt (von {{total}}). Unten nur der Rest.",
+      "onlineBusy": "Ein Gast bezahlt diese Rechnung gerade online. Warten Sie kurz oder versuchen Sie es gleich erneut."
     },
     "counter": {
       "name": "Theke",

@@ -9154,7 +9154,16 @@
       "qr_none": "nothing chosen yet",
       "qr_set_in_pay": "Set in Till › Payments",
       "saved": "Payment settings saved",
-      "save_failed": "Could not save: {{reason}}"
+      "save_failed": "Could not save: {{reason}}",
+      "online_pay": "Guests pay online at the table",
+      "online_pay_desc": "Through the QR code, guests see their bill and pay with Bancontact, card or wallet (Stripe). It goes on the bill straight away; the table closes by itself once everything is paid.",
+      "online_fiscal": "With a registered till (GKS), only the till can close a bill. Paying online at the table isn't possible then.",
+      "online_no_stripe": "Connect your Stripe account first to receive online payments.",
+      "online_to_stripe": "Go to Payments",
+      "online_split": "Allow splitting",
+      "online_split_desc": "Guests can pay for their own items or split the bill equally.",
+      "online_tip": "Offer a tip",
+      "online_tip_desc": "Guests choose 5, 10 or 15% or their own amount. Tips show separately in your reports."
     },
     "qrFlow": {
       "title": "Where does a table order go?",
@@ -10946,7 +10955,8 @@
         "cheque_meal": "Meal voucher",
         "voucher": "Voucher",
         "other": "Other",
-        "transfer": "Bank transfer"
+        "transfer": "Bank transfer",
+        "online": "Online (QR)"
       },
       "methodLabel": "Payment method",
       "amount": "Amount",
@@ -10999,7 +11009,9 @@
         "hint": "Let the customer scan the QR code with their banking app. SellQo does not see the payment come in: check that it went through.",
         "seen": "Transfer completed (seen in the banking app)",
         "noIban": "There is no account number in your company details. Add it under Settings › Company details, or choose another payment method."
-      }
+      },
+      "onlineCredit": "Guests already paid {{paid}} online (of {{total}}). Only the rest below.",
+      "onlineBusy": "A guest is paying this bill online right now. Wait a moment or try again shortly."
     },
     "counter": {
       "name": "Counter",

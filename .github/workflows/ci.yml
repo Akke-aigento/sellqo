@@ -157,7 +157,7 @@ jobs:
       - name: Edge functions (test storefront-resolve en lifecycle-sweep)
         env:
           DENO_NO_PACKAGE_JSON: "1"
-        run: deno test --allow-env --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/resolve.test.ts scripts/promo-compare/lifecycle-sweep.test.ts scripts/promo-compare/addon-lines.test.ts scripts/promo-compare/event409.test.ts scripts/promo-compare/tableRequest.test.ts scripts/promo-compare/ticketResend.test.ts scripts/promo-compare/billingSafe.test.ts scripts/promo-compare/generateInvoice.test.ts scripts/promo-compare/odooSync.test.ts scripts/promo-compare/payoutLink.test.ts scripts/promo-compare/billingLock.test.ts scripts/promo-compare/supplierInvoices.test.ts scripts/promo-compare/supplierInbox.test.ts
+        run: deno test --allow-env --no-lock --node-modules-dir=none --import-map=scripts/promo-compare/import_map.resolve.json scripts/promo-compare/resolve.test.ts scripts/promo-compare/lifecycle-sweep.test.ts scripts/promo-compare/addon-lines.test.ts scripts/promo-compare/event409.test.ts scripts/promo-compare/tableRequest.test.ts scripts/promo-compare/tableCheckPay.test.ts scripts/promo-compare/ticketResend.test.ts scripts/promo-compare/billingSafe.test.ts scripts/promo-compare/generateInvoice.test.ts scripts/promo-compare/odooSync.test.ts scripts/promo-compare/payoutLink.test.ts scripts/promo-compare/billingLock.test.ts scripts/promo-compare/supplierInvoices.test.ts scripts/promo-compare/supplierInbox.test.ts
 
       # R10 (CATALOG-FILTERS-1b): rooktest van de echte storefront-api-functies tegen een
       # thenable nep-databank. Vangt o.a. `await` op een querybuilder, wat deno check mist.

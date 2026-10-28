@@ -17,7 +17,9 @@ import type { PaymentType } from '../../fiscal/types';
 
 // BETAAL-1: 'transfer' = overschrijving via EPC-QR (de klant betaalt in zijn bankapp, het personeel
 // bevestigt). Welke betaalwijzen een kassa toont, volgt uit horeca_pay_settings (paySettings.ts).
-export type TenderMethod = 'cash' | 'card' | 'transfer' | 'cheque_meal' | 'voucher' | 'other';
+// REKENING-ONLINE-1: 'online' = wat gasten al via de QR betaalden (voorschot op de rekening). Nooit
+// zelf te kiezen (niet in TENDER_METHODS): de kassa zet het er automatisch bij. Enkel buiten GKS.
+export type TenderMethod = 'cash' | 'card' | 'transfer' | 'cheque_meal' | 'voucher' | 'other' | 'online';
 export const TENDER_METHODS: TenderMethod[] = ['cash', 'card', 'transfer', 'cheque_meal', 'voucher', 'other'];
 
 /** reference: enkel bij een overschrijving, de gestructureerde mededeling uit de QR. */
@@ -92,8 +94,9 @@ const FISCAL: Record<TenderMethod, { type: PaymentType; name: string }> = {
   cheque_meal: { type: 'CHEQUE_MEAL', name: 'MAALTIJDCHEQUE' },
   voucher: { type: 'VOUCHER_OTHER', name: 'BON' },
   other: { type: 'OTHER', name: 'ANDERE' },
+  online: { type: 'OTHER', name: 'ONLINE' },
 };
-const ORDER: Record<TenderMethod, number> = { cheque_meal: 0, voucher: 0, cash: 1, card: 2, transfer: 2, other: 2 };
+const ORDER: Record<TenderMethod, number> = { cheque_meal: 0, voucher: 0, cash: 1, card: 2, transfer: 2, other: 2, online: 2 };
 export const DRAWER = { id: '1', name: 'Lade 1' } as const;
 
 /** Fiscale betaallijnen (financials) voor signSale. */

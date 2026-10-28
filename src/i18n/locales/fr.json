@@ -8881,7 +8881,16 @@
       "qr_none": "rien de choisi",
       "qr_set_in_pay": "Réglable dans Caisse › Paiements",
       "saved": "Réglages de paiement enregistrés",
-      "save_failed": "Échec de l'enregistrement : {{reason}}"
+      "save_failed": "Échec de l'enregistrement : {{reason}}",
+      "online_pay": "Les clients paient en ligne à table",
+      "online_pay_desc": "Via le code QR, les clients voient leur addition et paient par Bancontact, carte ou portefeuille (Stripe). Le paiement est aussitôt porté sur l'addition ; la table se clôture d'elle-même une fois tout payé.",
+      "online_fiscal": "Avec une caisse enregistreuse (SCE), seule la caisse peut clôturer une addition. Le paiement en ligne à table n'est alors pas possible.",
+      "online_no_stripe": "Connectez d'abord votre compte Stripe pour recevoir des paiements en ligne.",
+      "online_to_stripe": "Aller aux paiements",
+      "online_split": "Autoriser le partage",
+      "online_split_desc": "Les clients peuvent payer leurs propres articles ou partager l'addition à parts égales.",
+      "online_tip": "Proposer un pourboire",
+      "online_tip_desc": "Les clients choisissent 5, 10 ou 15 % ou leur propre montant. Le pourboire apparaît séparément dans vos rapports."
     },
     "qrFlow": {
       "title": "Où va une commande à table ?",
@@ -10946,7 +10955,8 @@
         "cheque_meal": "Chèque-repas",
         "voucher": "Bon",
         "other": "Autre",
-        "transfer": "Virement"
+        "transfer": "Virement",
+        "online": "En ligne (QR)"
       },
       "methodLabel": "Moyen de paiement",
       "amount": "Montant",
@@ -10999,7 +11009,9 @@
         "hint": "Laissez le client scanner le code QR avec son application bancaire. SellQo ne voit pas le paiement arriver : vérifiez qu'il a réussi.",
         "seen": "Virement effectué (vu dans l'application bancaire)",
         "noIban": "Aucun numéro de compte dans les données de votre entreprise. Ajoutez-le dans Réglages › Données de l'entreprise, ou choisissez un autre moyen de paiement."
-      }
+      },
+      "onlineCredit": "Les clients ont déjà payé {{paid}} en ligne (sur {{total}}). Ci-dessous, uniquement le reste.",
+      "onlineBusy": "Un client paie cette addition en ligne en ce moment. Patientez un instant ou réessayez sous peu."
     },
     "counter": {
       "name": "Comptoir",

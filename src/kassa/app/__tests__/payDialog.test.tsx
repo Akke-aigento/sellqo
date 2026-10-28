@@ -105,3 +105,27 @@ describe('SplitDialog', () => {
     expect(onConfirm).toHaveBeenCalledWith([{ lineId: 'l1', qty: 2 }]);
   });
 });
+
+describe('PayDialog — online betaald aan tafel (REKENING-ONLINE-1)', () => {
+  it('voorschot telt mee als "online"; aan de kassa enkel de rest', async () => {
+    Object.assign(settings, { methods: ['cash', 'transfer', 'card'], terminal: 'standalone', kassa_tip: true });
+    const { payCheck } = await import('../horeca/payActions');
+    (payCheck as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ ok: false, reason: 'server' });
+    render(<PayDialog ctx={ctx} check={{ ...check, online_credit_cents: 200 }} onClose={() => {}} onPaid={() => {}} />);
+    expect(screen.getByText(/kassa.pay.onlineCredit/)).toBeTruthy();
+    // 6,08 totaal − 2,00 online = 4,08 aan de kassa
+    expect((screen.getAllByLabelText('kassa.pay.amount')[0] as HTMLInputElement).value).toBe('4,08');
+    fireEvent.click(screen.getByText(/kassa.pay.confirm/).closest('button')!);
+    await Promise.resolve();
+    const tenders = (payCheck as unknown as ReturnType<typeof vi.fn>).mock.calls.at(-1)?.[2];
+    expect(tenders[0]).toEqual({ method: 'online', amount_cents: 200 });
+    expect(tenders.reduce((s: number, x: { amount_cents: number }) => s + x.amount_cents, 0)).toBe(608);
+  });
+
+  it('terwijl een gast online betaalt: melding en niet bevestigen', () => {
+    const until = new Date(Date.now() + 5 * 60_000).toISOString();
+    render(<PayDialog ctx={ctx} check={{ ...check, online_pending_until: until }} onClose={() => {}} onPaid={() => {}} />);
+    expect(screen.getByText('kassa.pay.onlineBusy')).toBeTruthy();
+    expect((screen.getByText(/kassa.pay.confirm/).closest('button') as HTMLButtonElement).disabled).toBe(true);
+  });
+});

@@ -36,6 +36,8 @@ export function usePOSTerminals() {
         .from('pos_terminals')
         .select('*')
         .eq('tenant_id', currentTenant.id)
+        // REKENING-ONLINE-1: de kassa "Online (QR)" (online betalingen aan tafel) is geen toestel.
+        .is('settings->>virtual' as never, null)
         .order('name');
 
       if (error) throw error;

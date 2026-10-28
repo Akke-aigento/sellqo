@@ -31,7 +31,19 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
   const euro = (c: number) => formatEuro(c, i18n.language);
   // Wat nog niet verstuurd is, gaat bij afrekenen eerst mee; het totaal telt het dus al mee.
   // Aan de toog (TAFEL-3) zijn de ontwerp-lijnen zelf wat afgerekend wordt.
-  const total = useMemo(() => payableTotal(check) + (isCounter(check) ? 0 : check.lines.filter((l) => l.state === 'draft').reduce((s, l) => s + lineTotalCents(l), 0)), [check]);
+  const fullTotal = useMemo(() => payableTotal(check) + (isCounter(check) ? 0 : check.lines.filter((l) => l.state === 'draft').reduce((s, l) => s + lineTotalCents(l), 0)), [check]);
+  // REKENING-ONLINE-1: wat gasten al online betaalden, telt mee als 'online'; aan de kassa enkel de rest.
+  const credit = check.online_credit_cents ?? 0;
+  const total = Math.max(0, fullTotal - credit);
+  // Review: na afloop van de vasthouding opnieuw rekenen (de server stuurt daar geen nieuwe versie voor).
+  const pendingUntil = check.online_pending_until ? new Date(check.online_pending_until).getTime() : 0;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!pendingUntil || pendingUntil <= Date.now()) return;
+    const id = setTimeout(() => setNow(Date.now()), pendingUntil - Date.now() + 500);
+    return () => clearTimeout(id);
+  }, [pendingUntil]);
+  const onlineBusy = pendingUntil > now;
   // BETAAL-1: enkel de betaalwijzen die de zaak aanbiedt (Kassa › Betalen).
   const paySettings = useKassaPaySettings(currentTenant?.id);
   const methods = useMemo(() => availableTenders(paySettings), [paySettings]);
@@ -95,10 +107,11 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
   const patch = (i: number, r: Partial<Row>) => setRows((xs) => xs.map((x, j) => (j === i ? { ...x, ...r } : x)));
 
   const confirm = async () => {
-    if (!plan || !tenders || transferBlocked) return;
+    if (!plan || !tenders || transferBlocked || onlineBusy) return;
     setBusy(true);
     setError(null);
-    const o = await payCheck(ctx, check.id, tenders, plan.tip, plan.tipMethod, { kitchen });
+    const all: Tender[] = credit > 0 ? [{ method: 'online', amount_cents: credit }, ...tenders] : tenders;
+    const o = await payCheck(ctx, check.id, all, plan.tip, plan.tipMethod, { kitchen });
     setBusy(false);
     if (!o.ok) {
       setError(o.reason === 'plan' ? t('kassa.pay.error.plan') : t(`kassa.pay.error.${o.reason}`, { detail: o.detail ?? '' }));
@@ -164,6 +177,10 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
       <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader><DialogTitle>{t('kassa.pay.title', { amount: euro(total) })}</DialogTitle></DialogHeader>
         <div className="space-y-4">
+          {credit > 0 ? (
+            <p className="rounded-md bg-emerald-50 p-3 text-sm text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100">{t('kassa.pay.onlineCredit', { paid: euro(credit), total: euro(fullTotal) })}</p>
+          ) : null}
+          {onlineBusy ? <p role="alert" className="rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">{t('kassa.pay.onlineBusy')}</p> : null}
           <div className={cn('grid gap-2', quick.length >= 3 ? 'grid-cols-3' : 'grid-cols-2')}>
             {quick.map((m) => {
               const Icon = m === 'cash' ? Banknote : m === 'card' ? CreditCard : Landmark;
@@ -270,7 +287,7 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
         </div>
         <DialogFooter className="gap-2">
           <button type="button" onClick={onClose} disabled={busy} className="h-12 rounded-md border px-4">{t('kassa.common.cancel')}</button>
-          <button type="button" onClick={confirm} disabled={!plan || busy || transferBlocked} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 font-semibold text-primary-foreground disabled:opacity-40">
+          <button type="button" onClick={confirm} disabled={!plan || busy || transferBlocked || onlineBusy} className="flex h-12 flex-1 items-center justify-center gap-2 rounded-md bg-primary px-4 font-semibold text-primary-foreground disabled:opacity-40">
             {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : null}{t('kassa.pay.confirm', { amount: euro(total + (plan?.rounding ?? 0)) })}
           </button>
         </DialogFooter>

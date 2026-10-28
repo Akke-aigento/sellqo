@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14a — Gasten betalen de tafelrekening online, ook gesplitst (feature, 28-10-2026)
+
+**Status:** wacht op migratie, deploy van storefront-api en stripe-connect-webhook, publish van de admin en deploy van het QR-menu (REKENING-ONLINE-1); de native Kassa-app volgt met de volgende build.
+
+**Voor wie:** horecazaken met het QR-menu op de tafelrekening, Stripe gekoppeld en zonder geregistreerde kassa (GKS).
+
+**Vrienden aan tafel? Iedereen betaalt zijn deel** (oktober 2026)
+Via de QR-code op tafel zien je gasten hun rekening en betalen ze zelf: alles, enkel hun eigen items, of gelijk gedeeld. Fooi kan met 5, 10 of 15 % of een eigen bedrag. Het komt meteen op de rekening; is alles betaald, dan sluit de tafel vanzelf. Betaalt maar een deel online, dan rekent de kassa de rest af. Aanzetten doe je onder Kassa › Betalen.
+Wat betekent dit voor jou? Minder wachten op de rekening aan het einde van de avond, en geen gedoe met splitsen aan de toog.
+
+i18n: `public.changelog.changes.horeca_check_online_pay`
+
 ### 2026.13z — Bestellen aan tafel via de QR, op de tafelrekening (feature, 28-10-2026)
 
 **Status:** wacht op migratie, storefront-api-deploy, publish van de admin en deploy van het QR-menu (QR-REKENING-1); de native Kassa-app volgt met de volgende build.

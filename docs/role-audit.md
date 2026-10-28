@@ -1,3 +1,62 @@
+## REKENING-ONLINE-1 — gasten betalen de tafelrekening online: alles, eigen items of gelijk delen (kassa 0.9.0) — 28 oktober 2026
+
+**Aanleiding:** batch 4 van het horecaplan. Akke 28-10: alle drie de manieren nu, platformfee = zelfde regel als online orders, online betalingen op een aparte kassa "Online (QR)". Fooi 5/10/15 % + eigen bedrag, aan/uit (beslissing 28-10).
+
+**Root cause / vertrekpunt:**
+- Een tafelrekening (`dining_checks`) kon enkel aan de kassa afgesloten worden (`horeca_pay`, met medewerker en toestel). Online betalen bestond enkel voor losse QR-orders.
+- `horeca_pay` sluit altijd de hele rekening; splitsen per persoon gebeurde via `move_lines` (deelrekening). Deelbetalingen op één rekening bestonden niet.
+
+**Uitgevoerd:**
+- **Migratie `20261028140000_rekening_online_1.sql`:**
+  - `horeca_pay_settings.online_pay` (standaard uit), `online_tip`, `online_split`; `dining_checks.online_credit_cents` (voorschot bij gelijk delen); fooiwijze `online`.
+  - Tabel `check_online_payments` (full/lines/share, bedrag, fooi, fee, status pending/paid/expired/refund_needed/refunded, vasthouding `hold_until` 10 min, Stripe-sessie en payment intent, `refund_notified_at`). RLS: lezen voor leden; geen client-writes.
+  - `horeca_line_part_cents` (bedrag van q stuks, exact zoals `move_lines`), `horeca_online_terminal` (kassa "Online (QR)", `settings.virtual = 'online'`), `table_check_view`, `table_check_pay_start`, `table_check_pay_settle`, `table_check_pay_mark` — alle vier enkel service_role.
+  - Afsluiten gebeurt door `horeca_pay` zelf, als de eerste beheerder van de zaak (`request.jwt.claim.sub`), op de kassa "Online (QR)", met een transactie-instelling `sellqo.online_settle` die `horeca_pay` enkel aanvaardt samen met `auth.role() = 'service_role'`. Boek-id afgeleid van de betaling (md5).
+  - Patches met md5-guard en snapshot (`snapshots.sellqo_20261028_fn_rekening_online_1`):
+    - `horeca_pay`: betaalwijze `online` (enkel = het voorschot aan de kassa, of alles online), geen afrekenen tijdens een online vasthouding, voorschot groter dan het totaal = duidelijke fout;
+    - `horeca_check_json`: `online_credit_cents`, `online_pending_until`;
+    - `horeca_apply_one`: niet verplaatsen/splitsen tijdens een online betaling of na een voorschot; de rekening mag nooit onder het voorschot zakken;
+    - `kassa_report_data`: online fooi als fooi `online`.
+- **`storefront-api`** (additief): acties `table_check_get`, `table_check_pay` (Stripe Checkout op het connected account, 31 min, fee = overage-regel op het bedrag zonder fooi), `table_check_pay_status` (rondt af bij terugkeer), `table_check_pay_cancel` (vrijgeven). Enkel met een tafel uit het zaalplan (QR-token). Stempel `REKENING-ONLINE-1`.
+- **`_shared/tableCheckPay.ts`** + **`stripe-connect-webhook`**: afronden bij `checkout.session.completed` en `async_payment_succeeded`; vrijgeven bij `expired`/`async_payment_failed`. Klopt de rekening niet meer: automatisch terugstorten (idempotency key, fee terug) en één melding (`payments`).
+- **Kassa 0.9.0:** betaalwijze `online` (fiscaal OTHER "ONLINE", enkel buiten GKS); het afrekenvenster toont wat al online betaald is en vraagt enkel de rest; niet bevestigen terwijl een gast online betaalt. De kassa "Online (QR)" staat niet tussen de toestellen.
+- **Admin:** Kassa › Betalen › Afrekenen via de QR aan tafel: online betalen, splitsen, fooi (uit zonder Stripe of met een geregistreerde kassa).
+- **`sellqo-storefront`:** pagina `/rekening` (alles / mijn items / gelijk delen, fooi, terug van Stripe), link "Je rekening" in het menu en na het doorgeven.
+- i18n (5 talen), changelog 2026.14a, helpartikels (`20261028141000`), nieuwsbrief. CI: `tableCheckPay.test.ts`.
+
+**Security-keuzes:**
+- Alle nieuwe functies: `security definer`, `search_path = ''`, execute enkel service_role.
+- Het online afsluitpad in `horeca_pay` vraagt de transactie-instelling én `auth.role() = 'service_role'`; een gast of medewerker kan het niet bereiken.
+- De rekening van een tafel is zichtbaar voor wie de QR-code van die tafel heeft (zoals het bestellen).
+
+**Gedeelde paden:** `storefront-api` (additief: vier acties, stempel), `stripe-connect-webhook` (nieuwe takken enkel voor `metadata.type = 'table_check'`; bestaande order-flow onaangeroerd), `_shared/tableCheckPay.ts` (nieuw, enkel door die twee gebruikt). `pos_terminals`: een virtuele rij per zaak die online betaalt.
+
+**Review (geld/fiscaal, aparte agent):**
+- Ronde 1: 4 majors en 9 minors.
+  - M1: een online deel kon afgerond worden terwijl de kassa afrekende.
+  - M2: het voorschot kon groter worden dan de rekening (annuleren of korting).
+  - M3: dubbele terugstortingen en alarmen bij gelijktijdig afronden.
+  - M4: uitgestelde betaalmethodes werden nooit afgerond.
+  - Minors: boek-id, vasthouding, opnieuw proberen, exacte bedragen, kassa-timer, fee op fooi.
+  - Alles verwerkt, behalve wat onder Vervolg staat.
+- Ronde 2: geen blockers. 1 major: de controle "rekening niet onder het voorschot" stond eerst bij elke handeling en blokkeerde zo de volgende ronde in plaats van de annulering zelf. Nu telt ze alle niet-geannuleerde lijnen, zodat de annulering of korting zelf geweigerd wordt; nagekeken dat `void_line` en `discount_line` doorvallen naar die controle.
+- Ronde 2, minors (verwerkt): de melding "teruggestort" zet een eerdere "mislukt" recht; na terugkeer uit de browsercache een nieuw betaal-id; opnieuw starten met dezelfde id vergelijkt ook n/k en de items.
+
+**Verificatie:**
+- Kassa: vitest 282 groen (2 nieuw).
+- Deno: 25 handler- en moduletests groen, `deno check` storefront-api + webhook, rooktest groen.
+- tsc gelijk aan de baseline (27); lint onder de baseline; i18n-pariteit, used keys en dode knoppen ok.
+- Storefront: tsc en build groen.
+- Migratie: offline geparsed; elke patch-vervanging read-only nagekeken (precies één keer, md5 klopt).
+- Live: nog niet gedraaid (wacht op go).
+
+**Bewust ongemoeid / Vervolg:**
+- Vasthouding 10 min tegenover een Stripe-sessie van 31 min (bewust: een verlaten betaalpagina blokkeert de kassa niet). Blijft er één randgeval: de losse kaartterminal wordt al aangeslagen vóór de kassa bevestigt, net terwijl een gast online afrondt. Dan moet de bediening dat zelf rechtzetten.
+- Lukt een terugstorting eerst niet en later wel, dan volgt geen tweede melding.
+- Webhook-events `checkout.session.expired` en `async_payment_*` moeten op het Connect-endpoint aanstaan (Stripe-dashboard).
+- De sessie van de kassa "Online (QR)" blijft open (rapporten gebruiken enkel gesloten shifts).
+- Geen nieuwe feature-sleutel: gating via het horecaspoor, zoals BETAAL-1 (plan, 28-10).
+
 ## QR-REKENING-1b — QR-menu aan tafel: geen korting of verzending op de tafelrekening, en zichtbaarheid in de instellingen — 28 oktober 2026
 
 **Aanleiding:** vier punten uit de wandeling van QR-REKENING-1 (zie daar, "Gevonden tijdens de wandeling"). Akke 28-10: "Akkoord doorpakken".

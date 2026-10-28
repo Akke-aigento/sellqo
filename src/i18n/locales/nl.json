@@ -9168,7 +9168,16 @@
       "qr_none": "nog niets gekozen",
       "qr_set_in_pay": "Instellen bij Kassa › Betalen",
       "saved": "Betaalinstellingen bewaard",
-      "save_failed": "Bewaren lukte niet: {{reason}}"
+      "save_failed": "Bewaren lukte niet: {{reason}}",
+      "online_pay": "Gasten betalen online aan tafel",
+      "online_pay_desc": "Via de QR-code zien gasten hun rekening en betalen ze met Bancontact, kaart of wallet (Stripe). Het komt meteen op de rekening; de tafel sluit vanzelf als alles betaald is.",
+      "online_fiscal": "Met een geregistreerde kassa (GKS) sluit enkel de kassa een rekening af. Online betalen aan tafel kan dan niet.",
+      "online_no_stripe": "Koppel eerst je Stripe-account om online betalingen te ontvangen.",
+      "online_to_stripe": "Naar Betalingen",
+      "online_split": "Splitsen toestaan",
+      "online_split_desc": "Gasten kunnen hun eigen items betalen of de rekening gelijk delen.",
+      "online_tip": "Fooi aanbieden",
+      "online_tip_desc": "Gasten kiezen 5, 10 of 15 % of een eigen bedrag. De fooi staat apart in je rapporten."
     },
     "qrFlow": {
       "title": "Waar komt een bestelling aan tafel terecht?",
@@ -10948,7 +10957,8 @@
         "cheque_meal": "Maaltijdcheque",
         "voucher": "Bon",
         "other": "Andere",
-        "transfer": "Overschrijving"
+        "transfer": "Overschrijving",
+        "online": "Online (QR)"
       },
       "methodLabel": "Betaalmiddel",
       "amount": "Bedrag",
@@ -11001,7 +11011,9 @@
         "hint": "Laat de klant de QR-code scannen met zijn bankapp. SellQo ziet de betaling niet zelf binnenkomen: kijk na dat ze gelukt is.",
         "seen": "Overschrijving gelukt (gezien in de bankapp)",
         "noIban": "Er staat geen rekeningnummer bij je bedrijfsgegevens. Vul het in via Instellingen › Bedrijfsgegevens, of kies een andere betaalwijze."
-      }
+      },
+      "onlineCredit": "Gasten betaalden al {{paid}} online (van {{total}}). Hieronder enkel de rest.",
+      "onlineBusy": "Een gast betaalt deze rekening nu online. Wacht even of probeer zo meteen opnieuw."
     },
     "counter": {
       "name": "Toog",

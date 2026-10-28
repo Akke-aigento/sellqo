@@ -9,6 +9,7 @@ import { resolveCustomerContactEmail } from "../_shared/customerContact.ts";
 import { computeCartPromotions, round2 as promoRound2, type PromotionResult } from "../_shared/promotionEngine.ts";
 import { parseOptionFilter, productMatches, buildOptionFacets, buildTagFacets, type DbRow, type SupabaseLike } from "../_shared/catalogFilters.ts";
 import { resolveTableInput, tenantHasFloorPlan } from "../_shared/diningTables.ts";
+import { refundReasonText, settleTableCheckPayment, type RefundClient, type SettleRpcClient } from "../_shared/tableCheckPay.ts";
 import { AddonError, addonsLabel, applicableGroups, resolveAddonSelection, type AddonGroup } from "../_shared/productAddons.ts";
 import { computeSlots, orderingBlocked, postalCodeAllowed, type FulfillmentSettings, type ServiceType } from "../_shared/fulfillmentSlots.ts";
 import { CART_RESTORE_SESSION_PREFIX, verifyCartRestore } from "../_shared/cartRestoreToken.ts";
@@ -19,7 +20,7 @@ import { cachedShopStatus } from "../_shared/shopStatus.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "qr-rekening-1",
+  "X-SellQo-Api-Rev": "rekening-online-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -1014,6 +1015,168 @@ async function tableRequestStatus(supabase: SupabaseLike, tenantId: string, para
     .eq('id', requestId).eq('tenant_id', tenantId).maybeSingle();
   if (error) throw error;
   if (!data) return { success: false, error: { code: 'NOT_FOUND', message: 'Bestelling niet gevonden' } };
+  return data;
+}
+
+// REKENING-ONLINE-1 — de rekening van de tafel bekijken en (een deel) online betalen.
+// Enkel met een tafel uit het zaalplan (QR-token): een vrij tafelnummer kan iedereen typen.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const CHECK_PAY_ERRORS: Record<string, string> = {
+  CHECK_PAY_OFF: 'Online betalen staat uit in deze zaak. Betaal aan de kassa.',
+  CHECK_PAY_FISCAL: 'In deze zaak reken je af aan de kassa.',
+  CHECK_PAY_NO_SPLIT: 'Splitsen kan hier enkel aan de kassa.',
+  CHECK_NOT_FOUND: 'Er staat nog niets op de rekening van deze tafel.',
+  CHECK_NOTHING_OPEN: 'De rekening van deze tafel is al betaald.',
+  CHECK_PAY_BUSY: 'Iemand aan je tafel is net aan het betalen. Probeer het zo meteen opnieuw.',
+  CHECK_PAY_SHARES_STARTED: 'Er is al een deel betaald door gelijk te delen. Kies "gelijk delen" of betaal de rest.',
+  CHECK_LINES_CHANGED: 'De rekening veranderde net. Kies je items opnieuw.',
+  CHECK_LINES_TAKEN: 'Iemand anders betaalt een van die items al. Kies je items opnieuw.',
+  CHECK_PAY_INVALID: 'Betalen lukte niet, probeer het opnieuw.',
+};
+async function tableForCheck(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.table_token });
+  if (!resolved.ok) return { ok: false as const, error: { code: resolved.code, message: resolved.message } };
+  if (!resolved.table.table_id) return { ok: false as const, error: { code: 'NO_FLOOR_PLAN', message: 'Je rekening bekijken kan enkel met de QR-code op je tafel.' } };
+  return { ok: true as const, table: resolved.table };
+}
+function checkPayError(e: { message?: string } | null | undefined) {
+  const code = String(e?.message || '').split(/[:\s]/)[0];
+  return CHECK_PAY_ERRORS[code] ? { success: false, error: { code, message: CHECK_PAY_ERRORS[code] } } : null;
+}
+async function stripeClient() {
+  const Stripe = (await import("https://esm.sh/stripe@14.21.0")).default;
+  return new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', { apiVersion: '2023-10-16' });
+}
+
+async function tableCheckGet(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const t = await tableForCheck(supabase, tenantId, params);
+  if (!t.ok) return { success: false, error: t.error };
+  const { data, error } = await supabase.rpc('table_check_view', { p_tenant_id: tenantId, p_table_id: t.table.table_id });
+  if (error) throw error;
+  return { table_label: t.table.label, ...(data as Record<string, unknown>) };
+}
+
+async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const paymentId = String(params.payment_id ?? '');
+  const kind = String(params.kind ?? '');
+  const successUrl = typeof params.success_url === 'string' ? params.success_url : '';
+  const cancelUrl = typeof params.cancel_url === 'string' ? params.cancel_url : '';
+  if (!UUID_RE.test(paymentId) || !['full', 'lines', 'share'].includes(kind) || !successUrl || !cancelUrl) {
+    return { success: false, error: { code: 'CHECK_PAY_INVALID', message: CHECK_PAY_ERRORS.CHECK_PAY_INVALID } };
+  }
+  const t = await tableForCheck(supabase, tenantId, params);
+  if (!t.ok) return { success: false, error: t.error };
+  const int = (v: unknown) => (typeof v === 'number' && Number.isInteger(v) ? v : null);
+  const lines = Array.isArray(params.lines)
+    ? (params.lines as Record<string, unknown>[]).slice(0, 60).map((l) => ({ line_id: String(l?.line_id ?? ''), qty: int(l?.qty) }))
+    : [];
+  if (lines.some((l) => !UUID_RE.test(l.line_id) || l.qty == null)) return { success: false, error: { code: 'CHECK_PAY_INVALID', message: CHECK_PAY_ERRORS.CHECK_PAY_INVALID } };
+  const { data, error } = await supabase.rpc('table_check_pay_start', {
+    p_tenant_id: tenantId, p_table_id: t.table.table_id, p_payment_id: paymentId, p_kind: kind, p_lines: lines,
+    p_share_n: int(params.share_n), p_share_k: int(params.share_k), p_tip_cents: int(params.tip_cents) ?? 0,
+  });
+  if (error) { const m = checkPayError(error); if (m) return m; throw error; }
+  const start = data as { payment_id: string; status: string; amount_cents: number; tip_cents: number; table_label: string | null; stripe_session_id?: string | null; duplicate?: boolean };
+  if (start.status !== 'pending') return { success: false, error: { code: 'CHECK_PAY_INVALID', message: CHECK_PAY_ERRORS.CHECK_PAY_INVALID } };
+
+  const { data: tenant } = await supabase.from('tenants').select('stripe_account_id, currency, name').eq('id', tenantId).maybeSingle();
+  const account = tenant?.stripe_account_id as string | undefined;
+  if (!account) return { success: false, error: { code: 'CHECK_PAY_OFF', message: CHECK_PAY_ERRORS.CHECK_PAY_OFF } };
+  const stripe = await stripeClient();
+
+  // Opnieuw tikken met dezelfde betaling: dezelfde betaalpagina.
+  if (start.duplicate && start.stripe_session_id) {
+    const old = await stripe.checkout.sessions.retrieve(start.stripe_session_id, { stripeAccount: account });
+    if (old.status === 'open' && old.url) return { payment_id: paymentId, checkout_url: old.url };
+    return { success: false, error: { code: 'CHECK_PAY_INVALID', message: CHECK_PAY_ERRORS.CHECK_PAY_INVALID } };
+  }
+
+  const currency = String(tenant?.currency || 'EUR').toLowerCase();
+  const label = start.table_label ? `Tafel ${start.table_label}` : 'Je tafel';
+  const what = kind === 'full' ? 'rekening' : kind === 'share' ? 'jouw deel van de rekening' : 'jouw items';
+  const lineItems: Record<string, unknown>[] = [{ price_data: { currency, product_data: { name: `${label} — ${what}` }, unit_amount: start.amount_cents }, quantity: 1 }];
+  if (start.tip_cents > 0) lineItems.push({ price_data: { currency, product_data: { name: 'Fooi' }, unit_amount: start.tip_cents }, quantity: 1 });
+  // Platformfee: dezelfde regel als online orders (overage boven de pakketlimiet, LIMITS-1),
+  // berekend op de rekening zelf, niet op de fooi (die is voor het personeel).
+  const feeCents = Math.min(await orderOverageFeeCents(supabase, tenantId, [], start.amount_cents), start.amount_cents);
+  const metadata = { type: 'table_check', table_check_payment_id: paymentId, tenant_id: tenantId, ...(feeCents > 0 ? { platform_order_fee_cents: String(feeCents) } : {}) };
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment', line_items: lineItems, success_url: successUrl, cancel_url: cancelUrl, metadata,
+    expires_at: Math.floor(Date.now() / 1000) + STRIPE_SESSION_MINUTES * 60,
+    payment_intent_data: { application_fee_amount: feeCents, metadata },
+  } as never, { stripeAccount: account });
+  const { error: markError } = await supabase.rpc('table_check_pay_mark', { p_payment_id: paymentId, p_status: 'session', p_session_id: session.id, p_refund_id: null });
+  if (markError) throw markError;
+  if (feeCents > 0) await supabase.from('check_online_payments').update({ fee_cents: feeCents }).eq('id', paymentId);
+  return { payment_id: paymentId, checkout_url: session.url };
+}
+
+// Stand van een online betaling. Terug van Stripe en betaald: meteen afronden (de webhook kan
+// later komen; afronden is idempotent).
+async function tableCheckPayStatus(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const paymentId = String(params.payment_id ?? '');
+  if (!UUID_RE.test(paymentId)) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
+  const read = async () => (await supabase.from('check_online_payments')
+    .select('id, status, kind, amount_cents, tip_cents, table_label, reason, stripe_session_id, paid_at, created_at')
+    .eq('id', paymentId).eq('tenant_id', tenantId).maybeSingle()).data as Record<string, unknown> | null;
+  let row = await read();
+  if (!row) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
+  if (row.status === 'pending' && row.stripe_session_id) {
+    const { data: tenant } = await supabase.from('tenants').select('stripe_account_id').eq('id', tenantId).maybeSingle();
+    const account = tenant?.stripe_account_id as string | undefined;
+    if (account) {
+      const stripe = await stripeClient();
+      try {
+        const session = await stripe.checkout.sessions.retrieve(String(row.stripe_session_id), { stripeAccount: account });
+        if (session.payment_status === 'paid') {
+          await settleTableCheckPayment(supabase as unknown as SettleRpcClient, stripe as unknown as RefundClient, {
+            paymentId, tenantId, amountTotalCents: session.amount_total ?? 0,
+            paymentIntent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null,
+            stripeAccount: account, tableLabel: row.table_label as string | null,
+          });
+          row = await read();
+        } else if (session.status === 'expired') {
+          await supabase.rpc('table_check_pay_mark', { p_payment_id: paymentId, p_status: 'expired', p_session_id: null, p_refund_id: null });
+          row = await read();
+        }
+      } catch (e) {
+        console.error('[table_check_pay_status]', e instanceof Error ? e.message : e);
+      }
+    }
+  }
+  const r = row!;
+  return {
+    payment_id: r.id, status: r.status, kind: r.kind, amount_cents: r.amount_cents, tip_cents: r.tip_cents, table_label: r.table_label,
+    reason: r.status === 'refunded' || r.status === 'refund_needed' ? refundReasonText(r.reason as string | null) : null,
+    paid_at: r.paid_at,
+  };
+}
+
+// De gast brak af (terug van Stripe zonder te betalen): de vasthouding vrijgeven.
+async function tableCheckPayCancel(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const paymentId = String(params.payment_id ?? '');
+  if (!UUID_RE.test(paymentId)) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
+  const { data: row } = await supabase.from('check_online_payments').select('id, status, stripe_session_id')
+    .eq('id', paymentId).eq('tenant_id', tenantId).maybeSingle();
+  if (!row) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
+  if (row.status !== 'pending') return { status: row.status };
+  if (row.stripe_session_id) {
+    const { data: tenant } = await supabase.from('tenants').select('stripe_account_id').eq('id', tenantId).maybeSingle();
+    if (tenant?.stripe_account_id) {
+      const stripe = await stripeClient();
+      try {
+        const session = await stripe.checkout.sessions.retrieve(String(row.stripe_session_id), { stripeAccount: tenant.stripe_account_id });
+        // Toch betaald (andere tab): niets vrijgeven, de status-oproep rondt af.
+        if (session.payment_status === 'paid') return { status: 'pending' };
+        if (session.status === 'open') await stripe.checkout.sessions.expire(String(row.stripe_session_id), { stripeAccount: tenant.stripe_account_id });
+      } catch (e) {
+        console.error('[table_check_pay_cancel]', e instanceof Error ? e.message : e);
+        return { status: 'pending' };
+      }
+    }
+  }
+  const { data, error } = await supabase.rpc('table_check_pay_mark', { p_payment_id: paymentId, p_status: 'expired', p_session_id: null, p_refund_id: null });
+  if (error) throw error;
   return data;
 }
 
@@ -5848,12 +6011,14 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
   'checkout_complete', 'checkout_place_order', 'checkout_create_session',
   // QR-REKENING-1: een tafelaanvraag is ook een bestelling.
   'table_request_place',
+  // REKENING-ONLINE-1: online een rekening betalen.
+  'table_check_pay',
 ]);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'QR-REKENING-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'REKENING-ONLINE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -5975,6 +6140,11 @@ serve(async (req) => {
       case 'resolve_table': result = await resolveTable(supabase, tenant_id, params); break;
       case 'table_request_place': result = await tableRequestPlace(supabase, tenant_id, params); break;
       case 'table_request_status': result = await tableRequestStatus(supabase, tenant_id, params); break;
+      // REKENING-ONLINE-1
+      case 'table_check_get': result = await tableCheckGet(supabase, tenant_id, params); break;
+      case 'table_check_pay': result = await tableCheckPay(supabase, tenant_id, params); break;
+      case 'table_check_pay_status': result = await tableCheckPayStatus(supabase, tenant_id, params); break;
+      case 'table_check_pay_cancel': result = await tableCheckPayCancel(supabase, tenant_id, params); break;
       case 'get_fulfillment_slots': result = await getFulfillmentSlots(supabase, tenant_id, params); break;
       case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
       case 'checkout_select_payment_method': result = await checkoutSelectPaymentMethod(supabase, tenant_id, params); break;

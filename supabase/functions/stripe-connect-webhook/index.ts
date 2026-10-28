@@ -5,6 +5,7 @@ import { resolveLineVatBatch, resolveLineVatSync, extractVatFromGross } from "..
 import { handleSubscriptionChargeWebhook } from "../_shared/subscriptionCharge.ts";
 import { notifyPayout, type PayoutClient } from "../_shared/payoutNotification.ts";
 import { amountMismatchNote, discountRoundingToleranceCents, stripeAmountMismatch } from "../_shared/stripeAmountCheck.ts";
+import { settleTableCheckPayment, type RefundClient, type SettleRpcClient } from "../_shared/tableCheckPay.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -293,9 +294,58 @@ serve(async (req) => {
       }
       // ========================================================
 
+      // REKENING-ONLINE-1 — betaalpagina van een tafelrekening verlopen: de vasthouding vrijgeven.
+      case "checkout.session.expired": {
+        const expired = event.data.object as Stripe.Checkout.Session;
+        if (expired.metadata?.type === 'table_check' && expired.metadata?.table_check_payment_id) {
+          const { error } = await supabaseClient.rpc('table_check_pay_mark', {
+            p_payment_id: expired.metadata.table_check_payment_id, p_status: 'expired', p_session_id: null, p_refund_id: null,
+          });
+          logStep("Table check session expired", { sessionId: expired.id, error: error?.message });
+        }
+        break;
+      }
+
+      // REKENING-ONLINE-1 (review M4) — uitgestelde betaalmethode van een tafelrekening is toch gelukt:
+      // afronden (terugstorten als de rekening intussen veranderde) of mislukt: vrijgeven.
+      case "checkout.session.async_payment_succeeded":
+      case "checkout.session.async_payment_failed": {
+        const asyncSession = event.data.object as Stripe.Checkout.Session;
+        if (asyncSession.metadata?.type === 'table_check' && asyncSession.metadata?.table_check_payment_id) {
+          if (event.type === "checkout.session.async_payment_succeeded") {
+            const outcome = await settleTableCheckPayment(supabaseClient as unknown as SettleRpcClient, stripe as unknown as RefundClient, {
+              paymentId: asyncSession.metadata.table_check_payment_id,
+              tenantId: asyncSession.metadata.tenant_id || '',
+              amountTotalCents: asyncSession.amount_total ?? 0,
+              paymentIntent: typeof asyncSession.payment_intent === 'string' ? asyncSession.payment_intent : asyncSession.payment_intent?.id ?? null,
+              stripeAccount: event.account || '',
+            });
+            logStep("Table check async payment settled", { sessionId: asyncSession.id, outcome });
+          } else {
+            await supabaseClient.rpc('table_check_pay_mark', { p_payment_id: asyncSession.metadata.table_check_payment_id, p_status: 'expired', p_session_id: null, p_refund_id: null });
+          }
+        }
+        break;
+      }
+
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         logStep("Checkout session completed", { sessionId: session.id });
+
+        // REKENING-ONLINE-1 — online betaling van een tafelrekening: afronden op de rekening
+        // (idempotent; de gast die terugkomt van Stripe doet hetzelfde).
+        if (session.metadata?.type === 'table_check' && session.metadata?.table_check_payment_id) {
+          if (session.payment_status !== 'paid') { logStep("Table check session not paid yet", { sessionId: session.id }); break; }
+          const outcome = await settleTableCheckPayment(supabaseClient as unknown as SettleRpcClient, stripe as unknown as RefundClient, {
+            paymentId: session.metadata.table_check_payment_id,
+            tenantId: session.metadata.tenant_id || '',
+            amountTotalCents: session.amount_total ?? 0,
+            paymentIntent: typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null,
+            stripeAccount: event.account || '',
+          });
+          logStep("Table check payment settled", { sessionId: session.id, outcome });
+          break;
+        }
 
         const cartId = session.metadata?.cart_id;
         const orderId = session.metadata?.order_id;

@@ -53,6 +53,10 @@ export interface Check {
   parent_reference?: string | null;
   /** Een toestel rekent deze rekening nu af (claim): niets wijzigen. */
   paying?: boolean;
+  /** REKENING-ONLINE-1: al online betaald door gasten (gelijk delen), telt mee als betaalwijze 'online'. */
+  online_credit_cents?: number;
+  /** REKENING-ONLINE-1: een gast betaalt nu online (tot dit tijdstip): niet afrekenen. */
+  online_pending_until?: string | null;
   /** TAFEL-3: 'counter' = verkoop aan de toog (directe verkoop, geen ronde naar de FDM). */
   kind?: 'table' | 'counter';
   /** TAFEL-3: enkel aan de toog — bepaalt het btw-tarief (meenemen = afhaaltarief). */

@@ -2287,6 +2287,10 @@
         "horeca_qr_menu_visible": {
           "title": "QR-Einstellungen zeigen, ob Ihr Menü sichtbar ist",
           "description": "Unter Bestellen › QR-Menü sehen Sie jetzt sofort, wenn Ihr QR-Menü für Gäste noch nicht sichtbar ist, weil Ihr Betrieb offline ist, mit einem Link zum Onlineschalten. Am Tisch verschwinden der Rabattcode und die Versandzeile aus dem Warenkorb: Bei Bestellungen auf die Tischrechnung gilt der Preis der Karte."
+        },
+        "horeca_check_online_pay": {
+          "title": "Gäste bezahlen die Tischrechnung online, auf Wunsch geteilt",
+          "description": "Über den QR-Code am Tisch sehen Gäste ihre Rechnung und bezahlen selbst mit Bancontact, Karte oder Wallet: alles, nur die eigenen Positionen oder zu gleichen Teilen. Ein Trinkgeld von 5, 10 oder 15 % oder ein eigener Betrag ist möglich. Die Zahlung steht sofort auf der Rechnung; ist alles bezahlt, schließt sich der Tisch von selbst. Wird nur ein Teil online bezahlt, rechnet die Kasse den Rest ab und berücksichtigt den Online-Teil. Kann eine Zahlung nicht mehr auf die Rechnung (etwa weil zwischenzeitlich an der Kasse abgerechnet wurde), wird sie automatisch erstattet. Aktivieren Sie es unter Kasse › Bezahlen. Nicht verfügbar mit einer registrierten Kasse (GKS)."
         }
       },
       "copyLink": "Link kopieren",

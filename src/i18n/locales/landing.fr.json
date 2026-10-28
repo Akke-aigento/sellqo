@@ -2287,6 +2287,10 @@
         "horeca_qr_menu_visible": {
           "title": "Les réglages QR indiquent si votre menu est visible",
           "description": "Sous Commandes › Menu QR, vous voyez désormais tout de suite si votre menu QR n'est pas encore visible pour les clients parce que votre établissement est hors ligne, avec un lien pour le mettre en ligne. À table, le code de réduction et la ligne de livraison disparaissent du panier : pour une commande sur l'addition de la table, le prix de la carte s'applique."
+        },
+        "horeca_check_online_pay": {
+          "title": "Les clients paient l'addition en ligne, partagée s'ils le souhaitent",
+          "description": "Avec le code QR sur la table, les clients voient leur addition et la paient eux-mêmes par Bancontact, carte ou portefeuille : tout, uniquement leurs propres articles, ou à parts égales. Ils peuvent ajouter un pourboire de 5, 10 ou 15 % ou un montant libre. Le paiement est aussitôt porté sur l'addition ; une fois tout payé, la table se clôture d'elle-même. Si seule une partie est payée en ligne, la caisse encaisse le reste en tenant compte de la partie en ligne. Si un paiement ne peut plus être porté sur l'addition (par exemple parce qu'elle a été réglée à la caisse entre-temps), il est remboursé automatiquement. Activez-le sous Caisse › Paiements. Indisponible avec une caisse enregistreuse (SCE)."
         }
       },
       "copyLink": "Copier le lien",

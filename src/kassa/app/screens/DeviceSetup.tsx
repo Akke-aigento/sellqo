@@ -19,7 +19,9 @@ export function DeviceSetup({ onDone }: { onDone: (d: DeviceConfig) => void }) {
     let alive = true;
     setTerminals(null);
     (async () => {
-      const { data, error: e } = await supabase.from('pos_terminals').select('id, name, location_name, status').eq('tenant_id', currentTenant.id).order('name');
+      const { data, error: e } = await supabase.from('pos_terminals').select('id, name, location_name, status').eq('tenant_id', currentTenant.id)
+        // REKENING-ONLINE-1: de kassa "Online (QR)" is geen toestel.
+        .is('settings->>virtual' as never, null).order('name');
       if (!alive) return;
       if (e) setError(true); else setTerminals((data ?? []) as TerminalRow[]);
     })();

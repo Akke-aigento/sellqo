@@ -2287,6 +2287,10 @@
         "horeca_qr_menu_visible": {
           "title": "QR-instellingen tonen of je menu zichtbaar is",
           "description": "Onder Bestellen › QR-menu zie je nu meteen als je QR-menu nog niet zichtbaar is voor gasten, omdat je zaak offline staat, met een link om ze online te zetten. Aan tafel verdwijnen de kortingscode en de verzendregel uit het mandje: bij bestellen op de tafelrekening geldt de prijs van de kaart."
+        },
+        "horeca_check_online_pay": {
+          "title": "Gasten betalen de tafelrekening online, ook gesplitst",
+          "description": "Via de QR-code op tafel zien gasten hun rekening en betalen ze zelf met Bancontact, kaart of wallet: alles, enkel hun eigen items, of gelijk gedeeld. Fooi kan met 5, 10 of 15 % of een eigen bedrag. De betaling komt meteen op de rekening; is alles betaald, dan sluit de tafel vanzelf. Betaalt maar een deel online, dan rekent de kassa de rest af en telt het online deel mee. Kan een betaling niet meer op de rekening (bv. intussen aan de kassa afgerekend), dan wordt ze automatisch teruggestort. Aanzetten doe je onder Kassa › Betalen. Niet beschikbaar met een geregistreerde kassa (GKS)."
         }
       },
       "copyLink": "Kopieer link",

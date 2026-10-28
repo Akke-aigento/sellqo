@@ -27,6 +27,8 @@ const TICK_METHODS: Exclude<SettingMethod, 'card'>[] = ['cash', 'transfer', 'che
 const TERMINALS: TerminalMode[] = ['none', 'standalone'];
 
 interface QrPay { mode: string; flow: 'order' | 'check'; counter: boolean; online: boolean }
+/** REKENING-ONLINE-1: de gast betaalt de tafelrekening online (horeca_pay_settings.online_*). */
+interface OnlinePay { pay: boolean; tip: boolean; split: boolean }
 
 export function HorecaPaySettings() {
   const { t } = useTranslation();
@@ -34,32 +36,39 @@ export function HorecaPaySettings() {
   const { user } = useAuth();
   const tenantId = currentTenant?.id;
   const iban = (currentTenant as { iban?: string | null } | null)?.iban?.trim() || '';
+  const stripeOk = !!currentTenant?.stripe_charges_enabled;
   const qc = useQueryClient();
 
   const { data, isLoading } = useQuery({
     queryKey: ['horeca-pay-settings', tenantId],
     enabled: !!tenantId,
     queryFn: async () => {
-      const [pay, qr] = await Promise.all([
-        supabase.from('horeca_pay_settings' as never).select('methods, terminal, kassa_tip').eq('tenant_id' as never, tenantId as never).maybeSingle(),
+      const [pay, qr, fiscal] = await Promise.all([
+        supabase.from('horeca_pay_settings' as never).select('methods, terminal, kassa_tip, online_pay, online_tip, online_split').eq('tenant_id' as never, tenantId as never).maybeSingle(),
         supabase.from('fulfillment_settings').select('qr_mode, qr_pay_counter, qr_pay_online, qr_flow' as 'qr_mode').eq('tenant_id', tenantId!).maybeSingle(),
+        // Met een geregistreerde kassa (FDM) sluit enkel de kassa een rekening af: geen online betalen.
+        supabase.from('pos_terminals').select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId!).eq('settings->fiscal->>mode' as never, 'fdm' as never),
       ]);
       if (pay.error) throw pay.error;
       if (qr.error) throw qr.error;
+      const o = pay.data as { online_pay?: boolean | null; online_tip?: boolean | null; online_split?: boolean | null } | null;
       const q = qr.data as { qr_mode?: string | null; qr_pay_counter?: boolean | null; qr_pay_online?: boolean | null; qr_flow?: string | null } | null;
       return {
         pay: normalizePaySettings(pay.data as Partial<PaySettings> | null),
         qr: { mode: q?.qr_mode || 'view', flow: q?.qr_flow === 'check' ? 'check' : 'order', counter: q?.qr_pay_counter !== false, online: !!q?.qr_pay_online } as QrPay,
+        online: { pay: o?.online_pay === true, tip: o?.online_tip !== false, split: o?.online_split !== false } as OnlinePay,
+        fiscal: (fiscal.count ?? 0) > 0,
       };
     },
   });
 
   const [pay, setPay] = useState<PaySettings | null>(null);
   const [qr, setQr] = useState<QrPay | null>(null);
+  const [online, setOnline] = useState<OnlinePay | null>(null);
   const [saving, setSaving] = useState(false);
-  useEffect(() => { if (data) { setPay(data.pay); setQr(data.qr); } }, [data]);
+  useEffect(() => { if (data) { setPay(data.pay); setQr(data.qr); setOnline(data.online); } }, [data]);
 
-  if (isLoading || !pay || !qr || !data) {
+  if (isLoading || !pay || !qr || !online || !data) {
     return <Card><CardContent className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></CardContent></Card>;
   }
 
@@ -73,8 +82,10 @@ export function HorecaPaySettings() {
   };
 
   const sameMethods = (a: string[], b: string[]) => a.length === b.length && a.every((x) => b.includes(x));
+  const onlineChanged = online.pay !== data.online.pay || online.tip !== data.online.tip || online.split !== data.online.split;
   const dirty = !sameMethods(pay.methods, data.pay.methods) || pay.terminal !== data.pay.terminal || pay.kassa_tip !== data.pay.kassa_tip
-    || qr.counter !== data.qr.counter || qr.online !== data.qr.online;
+    || qr.counter !== data.qr.counter || qr.online !== data.qr.online || onlineChanged;
+  const onlineBlocked = !stripeOk || data.fiscal;
   const noMethod = pay.methods.length === 0;
   const qrNoWay = qr.mode === 'order' && qr.flow === 'order' && !qr.counter && !qr.online;
   const transferNoIban = pay.methods.includes('transfer') && !iban;
@@ -85,11 +96,12 @@ export function HorecaPaySettings() {
     const now = new Date().toISOString();
     // Review Mag-3: enkel opslaan wat wijzigde, zodat een kassa-wijziging nooit de QR-stand
     // van bij het laden terugschrijft (en omgekeerd).
-    const payChanged = !sameMethods(pay.methods, data.pay.methods) || pay.terminal !== data.pay.terminal || pay.kassa_tip !== data.pay.kassa_tip;
+    const payChanged = !sameMethods(pay.methods, data.pay.methods) || pay.terminal !== data.pay.terminal || pay.kassa_tip !== data.pay.kassa_tip || onlineChanged;
     const qrChanged = qr.counter !== data.qr.counter || qr.online !== data.qr.online;
     const a = payChanged
       ? await supabase.from('horeca_pay_settings' as never).upsert(
-          { tenant_id: tenantId, methods: pay.methods, terminal: pay.terminal, kassa_tip: pay.kassa_tip, updated_at: now, updated_by: user?.id ?? null } as never,
+          { tenant_id: tenantId, methods: pay.methods, terminal: pay.terminal, kassa_tip: pay.kassa_tip,
+            online_pay: online.pay && !onlineBlocked, online_tip: online.tip, online_split: online.split, updated_at: now, updated_by: user?.id ?? null } as never,
           { onConflict: 'tenant_id' },
         )
       : { error: null };
@@ -170,7 +182,29 @@ export function HorecaPaySettings() {
         </CardHeader>
         <CardContent className="space-y-3">
           {/* QR-REKENING-1: op de tafelrekening betaalt de gast op het einde, niet per bestelling. */}
-          {qr.flow === 'check' ? <p className="text-sm text-muted-foreground">{t('admin.qrFlow.pay_on_check')}</p> : <>
+          {qr.flow === 'check' ? <>
+          <p className="text-sm text-muted-foreground">{t('admin.qrFlow.pay_on_check')}</p>
+          {/* REKENING-ONLINE-1: de gast betaalt de rekening (of zijn deel) zelf online. */}
+          <div className="space-y-2 rounded-lg border p-3">
+            <label className="flex items-center justify-between gap-4">
+              <span><span className="block text-sm font-medium">{t('admin.horecaPay.online_pay')}</span><span className="block text-xs text-muted-foreground">{t('admin.horecaPay.online_pay_desc')}</span></span>
+              <Switch checked={online.pay && !onlineBlocked} disabled={onlineBlocked} onCheckedChange={(v) => setOnline({ ...online, pay: v })} />
+            </label>
+            {data.fiscal ? <p className="text-xs text-muted-foreground">{t('admin.horecaPay.online_fiscal')}</p> : !stripeOk ? (
+              <p className="text-xs text-muted-foreground">{t('admin.horecaPay.online_no_stripe')} <Link to="/admin/payments" className="font-medium underline">{t('admin.horecaPay.online_to_stripe')}</Link></p>
+            ) : null}
+            {online.pay && !onlineBlocked ? <>
+              <label className="flex items-center justify-between gap-4 border-t pt-2">
+                <span><span className="block text-sm font-medium">{t('admin.horecaPay.online_split')}</span><span className="block text-xs text-muted-foreground">{t('admin.horecaPay.online_split_desc')}</span></span>
+                <Switch checked={online.split} onCheckedChange={(v) => setOnline({ ...online, split: v })} />
+              </label>
+              <label className="flex items-center justify-between gap-4 border-t pt-2">
+                <span><span className="block text-sm font-medium">{t('admin.horecaPay.online_tip')}</span><span className="block text-xs text-muted-foreground">{t('admin.horecaPay.online_tip_desc')}</span></span>
+                <Switch checked={online.tip} onCheckedChange={(v) => setOnline({ ...online, tip: v })} />
+              </label>
+            </> : null}
+          </div>
+          </> : <>
           <label className="flex items-start gap-2 text-sm">
             <Checkbox checked={qr.counter} onCheckedChange={(v) => setQr({ ...qr, counter: v === true })} className="mt-0.5" />
             <span><span className="font-medium">{t('admin.storefront.food.qrModeSettings.aan_de_toog')}</span><span className="block text-muted-foreground">{t('admin.storefront.food.qrModeSettings.na_de_maaltijd_via_je_eigen')}</span></span>
