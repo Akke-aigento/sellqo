@@ -2271,6 +2271,10 @@
         "order_tickets_status_resend": {
           "title": "Status der Markenkarte in der Bestellung, und keine Ticket-E-Mail mehr nach einer Stornierung",
           "description": "Im Block Tickets und Marken einer Bestellung siehst du jetzt neben dem Guthaben auch den Status der Markenkarte: Aktiv, Gesperrt, Erstattung beantragt oder Erstattet. Ist die Bestellung storniert oder vollständig erstattet, verschwindet die Schaltfläche Tickets erneut mailen: Diese Tickets gelten nicht mehr. Bei einer Teilerstattung kannst du sie weiterhin erneut mailen."
+        },
+        "horeca_workspace": {
+          "title": "Ein aufgeräumter Arbeitsbereich für die Gastronomie",
+          "description": "Mit einem Gastronomie-Paket ohne Webshop zeigen Menü und Einstellungen nur noch, was ein Betrieb braucht: Dashboard, Bestellungen, Karte, Küche, Kasse, Zahlungen, Berichte und Einstellungen. Kunden, Rabatte, Marketing, Übersetzungen, Retouren und Bewertungen verschwinden aus dem Menü; sie kommen zurück, sobald Sie ein Webshop- oder Event-Paket haben. Auf dem Handy liegen Karte und Küche in der unteren Leiste, und eine Kasse öffnen führt immer zu SellQo Kassa."
         }
       },
       "copyLink": "Link kopieren",

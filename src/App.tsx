@@ -125,6 +125,7 @@ import { EventsModuleGate } from "./components/admin/events/EventsModuleGate";
 import EventDashboardPage from "./pages/admin/EventDashboard";
 import EventDetailPage from "./pages/admin/EventDetail";
 import POSTerminalPage from "./pages/admin/POSTerminal";
+import { ClassicPosGate } from "./components/admin/pos/ClassicPosGate";
 import KitchenPage from "./pages/admin/Kitchen";
 import OrderingHubPage from "./pages/admin/OrderingHub";
 import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
@@ -344,7 +345,7 @@ const App = () => (
               <Route path="events/venues" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><VenueListPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events/venues/:venueId" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><VenueDesignerPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events/:eventId" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><EventDetailPage /></EventsModuleGate></RouteGuard>} />
-              <Route path="pos/:terminalId" element={<POSTerminalPage />} />
+              <Route path="pos/:terminalId" element={<ClassicPosGate><POSTerminalPage /></ClassicPosGate>} />
               <Route path="pos/terminals/:terminalId" element={<POSTerminalSettingsPage />} />
               <Route path="storefront" element={<RouteGuard requireRead="themes"><StorefrontPage /></RouteGuard>} />
               {/* EDITOR-1: "Aanpassen" — volledig scherm over de admin heen. Opslaan vraagt themes-schrijfrechten (RLS). */}

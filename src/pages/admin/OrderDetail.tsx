@@ -1,3 +1,4 @@
+import { useRouteAllowed } from '@/hooks/useRouteAllowed';
 import { useParams, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Truck, CheckCircle, XCircle, FileText, Download, Mail, FileCode, MessageSquare, RotateCcw } from 'lucide-react';
@@ -55,6 +56,7 @@ const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 export default function OrderDetailPage() {
+  const routeAllowed = useRouteAllowed();
   const { t } = useTranslation();
   const dateLocale = useDateFnsLocale();
   const { id } = useParams<{ id: string }>();
@@ -417,7 +419,7 @@ export default function OrderDetailPage() {
                     <MessageSquare className="h-3.5 w-3.5 mr-1" />
                     {t('admin.marketing.aIContentLibrary.email')}
                   </Button>
-                  {order.customer_id && (
+                  {order.customer_id && routeAllowed('/admin/customers') && (
                     <Button 
                       variant="outline" 
                       size="sm"

@@ -65,6 +65,8 @@ import { useEmailLogoAutoBackfill } from '@/hooks/useEmailLogoBackfill';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
 import { Wrench, Blocks } from 'lucide-react';
 import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
+import { useTracks } from '@/hooks/useBusinessModules';
+import { tracksAllow, type Track } from '@/lib/tracks';
 
 interface SettingsSection {
   id: string;
@@ -79,6 +81,11 @@ interface SettingsSection {
    * Geen waarde = zichtbaar voor iedereen (persoonlijke instellingen).
    */
   requiredRead?: Resource;
+  /**
+   * WERKPLEK-1 — sporen waarin deze sectie bestaat (zelfde regel als het menu, TRACKS-1).
+   * Leeg = kern, voor elke winkel.
+   */
+  tracks?: Track[];
 }
 
 interface SettingsGroup {
@@ -150,7 +157,7 @@ const settingsGroups: SettingsGroup[] = [
     titleKey: 'settings.groups.returns.title',
     descriptionKey: 'settings.groups.returns.description',
     sections: [
-      { id: 'return-settings', titleKey: 'settings.sections.return_settings', icon: Undo2, component: ReturnSettingsPage, requiredRead: 'settings_general' },
+      { id: 'return-settings', tracks: ['webshop'], titleKey: 'settings.sections.return_settings', icon: Undo2, component: ReturnSettingsPage, requiredRead: 'settings_general' },
     ],
   },
   {
@@ -160,13 +167,13 @@ const settingsGroups: SettingsGroup[] = [
     sections: [
       { id: 'shop-notifications', titleKey: 'settings.sections.shop_notifications', icon: Bell, component: NotificationSettings, requiredRead: 'settings_general' },
       { id: 'customer-communication', titleKey: 'settings.sections.customer_communication', icon: MessageSquare, component: CustomerCommunicationSettings, requiredRead: 'settings_general' },
-      { id: 'inbound-email', titleKey: 'settings.sections.inbound_email', icon: Inbox, component: InboundEmailSettings, requiredRead: 'settings_general' },
-      { id: 'ai-assistant', titleKey: 'settings.sections.ai_assistant', icon: Bot, component: AIAssistantSettings, featureKey: 'ai_marketing', requiredRead: 'marketing' },
-      { id: 'whatsapp', titleKey: 'settings.sections.whatsapp', icon: MessageCircle, component: WhatsAppSettings, featureKey: 'whatsapp', requiredRead: 'marketing' },
-      { id: 'newsletter', titleKey: 'settings.sections.newsletter', icon: Mail, component: NewsletterSettings, featureKey: 'newsletter', requiredRead: 'marketing' },
-      { id: 'social', titleKey: 'settings.sections.social', icon: Share2, component: SocialMediaHub, featureKey: 'social_commerce', requiredRead: 'marketing' },
-      { id: 'reviews', titleKey: 'settings.sections.reviews', icon: Star, component: ReviewsHub, requiredRead: 'marketing' },
-      { id: 'fulfillment-api', titleKey: 'settings.sections.fulfillment_api', icon: Network, component: FulfillmentAPISettings, adminOnly: true, featureKey: 'fulfillment_api' },
+      { id: 'inbound-email', tracks: ['webshop', 'events'], titleKey: 'settings.sections.inbound_email', icon: Inbox, component: InboundEmailSettings, requiredRead: 'settings_general' },
+      { id: 'ai-assistant', tracks: ['webshop', 'events'], titleKey: 'settings.sections.ai_assistant', icon: Bot, component: AIAssistantSettings, featureKey: 'ai_marketing', requiredRead: 'marketing' },
+      { id: 'whatsapp', tracks: ['webshop', 'events'], titleKey: 'settings.sections.whatsapp', icon: MessageCircle, component: WhatsAppSettings, featureKey: 'whatsapp', requiredRead: 'marketing' },
+      { id: 'newsletter', tracks: ['webshop', 'events'], titleKey: 'settings.sections.newsletter', icon: Mail, component: NewsletterSettings, featureKey: 'newsletter', requiredRead: 'marketing' },
+      { id: 'social', tracks: ['webshop', 'events'], titleKey: 'settings.sections.social', icon: Share2, component: SocialMediaHub, featureKey: 'social_commerce', requiredRead: 'marketing' },
+      { id: 'reviews', tracks: ['webshop'], titleKey: 'settings.sections.reviews', icon: Star, component: ReviewsHub, requiredRead: 'marketing' },
+      { id: 'fulfillment-api', tracks: ['webshop'], titleKey: 'settings.sections.fulfillment_api', icon: Network, component: FulfillmentAPISettings, adminOnly: true, featureKey: 'fulfillment_api' },
     ],
   },
 ];
@@ -194,6 +201,7 @@ export default function SettingsPage() {
   const { isFeatureGranted } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const isMobile = useIsMobile();
+  const { hasTrack } = useTracks();
 
   // PERM-2 — hooks kunnen niet in een loop; lees de gebruikte rechten hier uit.
   const canReadSettingsGeneral = useCan('read', 'settings_general');
@@ -219,6 +227,8 @@ export default function SettingsPage() {
   ];
 
   const isSectionFeatureVisible = (section: SettingsSection): boolean => {
+    // WERKPLEK-1: buiten de sporen van de winkel bestaat de sectie niet (beheerweergave ziet alles via hasTrack).
+    if (!tracksAllow(section.tracks, hasTrack)) return false;
     if (!section.featureKey) return true;
     if (isPlatformAdmin && isAdminView) return true;
     if (isFeatureGranted(section.featureKey)) return true;
@@ -269,6 +279,7 @@ export default function SettingsPage() {
         s =>
           s.id === activeSection &&
           (!s.adminOnly || isTenantAdmin) &&
+          isSectionFeatureVisible(s) &&
           isSectionPermitted(s),
       ) ??
     allGroups.flatMap(g => g.sections).find(s => s.id === 'profile');
@@ -298,7 +309,7 @@ export default function SettingsPage() {
             className="-ml-2"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Instellingen
+            {t('settings.title')}
           </Button>
           {activeSectionMeta && (
             <h2 className="text-lg font-semibold truncate">

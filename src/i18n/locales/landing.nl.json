@@ -2271,6 +2271,10 @@
         "order_tickets_status_resend": {
           "title": "Status van de muntenkaart op de bestelling, en geen ticketmail meer na annuleren",
           "description": "In het blok Tickets en munten van een bestelling zie je nu naast het saldo ook de status van de muntenkaart: Actief, Geblokkeerd, Terugbetaling gevraagd of Terugbetaald. Is de bestelling geannuleerd of volledig terugbetaald, dan staat de knop Tickets opnieuw mailen er niet meer: die tickets gelden niet meer. Bij een gedeeltelijke terugbetaling kan je ze nog wel opnieuw mailen."
+        },
+        "horeca_workspace": {
+          "title": "Een rustige werkplek voor horeca",
+          "description": "Heb je een horecapakket zonder webshop, dan zie je in het menu en in de instellingen enkel wat een zaak nodig heeft: dashboard, bestellingen, kaart, keuken, kassa, betalingen, rapporten en instellingen. Klanten, kortingen, marketing, vertalingen, retouren en reviews verdwijnen uit het menu; ze komen terug zodra je een webshop- of eventspakket hebt. Op je gsm staan de kaart en de keuken in de onderbalk, en een kassa openen gaat altijd naar SellQo Kassa."
         }
       },
       "copyLink": "Kopieer link",

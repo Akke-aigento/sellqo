@@ -2271,6 +2271,10 @@
         "order_tickets_status_resend": {
           "title": "Statut de la carte de jetons sur la commande, et plus d'e-mail de billets après une annulation",
           "description": "Dans le bloc Billets et jetons d'une commande, vous voyez maintenant le statut de la carte de jetons à côté du solde : Active, Bloquée, Remboursement demandé ou Remboursée. Si la commande est annulée ou entièrement remboursée, le bouton Renvoyer les billets disparaît : ces billets ne sont plus valables. En cas de remboursement partiel, vous pouvez toujours les renvoyer."
+        },
+        "horeca_workspace": {
+          "title": "Un espace de travail épuré pour l'horeca",
+          "description": "Avec une formule horeca sans boutique en ligne, le menu et les réglages n'affichent plus que ce dont un établissement a besoin : tableau de bord, commandes, carte, cuisine, caisse, paiements, rapports et réglages. Clients, réductions, marketing, traductions, retours et avis quittent le menu ; ils reviennent dès que vous avez une formule boutique en ligne ou événements. Sur votre téléphone, la carte et la cuisine se trouvent dans la barre du bas, et ouvrir une caisse ouvre toujours SellQo Kassa."
         }
       },
       "copyLink": "Copier le lien",

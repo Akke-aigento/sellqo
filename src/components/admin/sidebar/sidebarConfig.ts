@@ -120,7 +120,7 @@ export const MARKETING_ALLOWED_ITEMS = [
 // DAGELIJKS - Meest gebruikte functies
 const dailyItems: NavItem[] = [
   { id: 'dashboard', titleKey: 'navigation.dashboard', url: '/admin', icon: LayoutDashboard },
-  { id: 'inbox', titleKey: 'navigation.items.inbox', url: '/admin/messages', icon: MessageSquare, badge: true, requireRead: 'inbox' },
+  { id: 'inbox', tracks: ['webshop', 'events'], titleKey: 'navigation.items.inbox', url: '/admin/messages', icon: MessageSquare, badge: true, requireRead: 'inbox' },
   {
     id: 'orders',
     titleKey: 'navigation.orders',
@@ -151,6 +151,8 @@ const dailyItems: NavItem[] = [
   },
   {
     id: 'customers',
+    // WERKPLEK-1: horeca-only winkels hebben geen klantenbestand nodig (gasten bestellen anoniem).
+    tracks: ['webshop', 'events'],
     titleKey: 'navigation.customers',
     url: '/admin/customers',
     icon: Users,
@@ -190,34 +192,38 @@ const salesItems: NavItem[] = [
   { id: 'payments', titleKey: 'navigation.items.payments', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'], requireRead: 'payments' },
   {
     id: 'promotions',
+    // WERKPLEK-1: kortingen horen bij webshop en events; horeca krijgt ze via een webshop-add-on.
+    tracks: ['webshop', 'events'],
     titleKey: 'navigation.items.promotions',
     url: '/admin/promotions',
     icon: Percent,
     requireRead: 'discount_codes',
     children: [
       { id: 'promo-codes', titleKey: 'navigation.items.promo_codes', url: '/admin/promotions', requireRead: 'discount_codes', landing: true },
-      { id: 'promo-bundles', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_bundles', url: '/admin/promotions/bundles', featureKey: 'promo_bundles', requireRead: 'discount_codes' },
-      { id: 'promo-bogo', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_bogo', url: '/admin/promotions/bogo', featureKey: 'promo_bogo', requireRead: 'discount_codes' },
-      { id: 'promo-volume', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_volume', url: '/admin/promotions/volume', featureKey: 'promo_volume', requireRead: 'volume_discounts' },
-      { id: 'promo-auto', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_auto', url: '/admin/promotions/auto', requireRead: 'discount_codes' },
-      { id: 'promo-gifts', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_gifts', url: '/admin/promotions/gifts', requireRead: 'discount_codes' },
-      { id: 'promo-loyalty', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_loyalty', url: '/admin/promotions/loyalty', featureKey: 'loyalty_program', requireRead: 'loyalty' },
-      { id: 'promo-giftcards', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.promo_giftcards', url: '/admin/promotions/gift-cards', featureKey: 'promo_giftcards', requireRead: 'discount_codes' },
+      { id: 'promo-bundles', tracks: ['webshop'], titleKey: 'navigation.items.promo_bundles', url: '/admin/promotions/bundles', featureKey: 'promo_bundles', requireRead: 'discount_codes' },
+      { id: 'promo-bogo', tracks: ['webshop'], titleKey: 'navigation.items.promo_bogo', url: '/admin/promotions/bogo', featureKey: 'promo_bogo', requireRead: 'discount_codes' },
+      { id: 'promo-volume', tracks: ['webshop'], titleKey: 'navigation.items.promo_volume', url: '/admin/promotions/volume', featureKey: 'promo_volume', requireRead: 'volume_discounts' },
+      { id: 'promo-auto', tracks: ['webshop'], titleKey: 'navigation.items.promo_auto', url: '/admin/promotions/auto', requireRead: 'discount_codes' },
+      { id: 'promo-gifts', tracks: ['webshop'], titleKey: 'navigation.items.promo_gifts', url: '/admin/promotions/gifts', requireRead: 'discount_codes' },
+      { id: 'promo-loyalty', tracks: ['webshop'], titleKey: 'navigation.items.promo_loyalty', url: '/admin/promotions/loyalty', featureKey: 'loyalty_program', requireRead: 'loyalty' },
+      { id: 'promo-giftcards', tracks: ['webshop'], titleKey: 'navigation.items.promo_giftcards', url: '/admin/promotions/gift-cards', featureKey: 'promo_giftcards', requireRead: 'discount_codes' },
     ],
   },
 ];
 
 // MARKETING - Campagnes en content
+// WERKPLEK-1 (28-10): marketing hoort bij webshop en events. Een horecawinkel zonder
+// add-on ziet hier niets; neemt ze een webshop-add-on, dan komt alles terug.
 const marketingItems: NavItem[] = [
   // MARKETING-2/3: één geheel. AI is geen aparte plek meer maar een knop in Social ("Post met AI")
   // en E-mail ("Maak met AI"); de AI Content Hub-route stuurt door (AIHubRedirect).
   // SOCIAL-GATE-1: enkel voor ontgrendelde winkels (granted_features 'social_planner', slotje in
   // beheerweergave). Geen plan bevat deze key; zie useSocialAccess.
-  { id: 'social-planner', titleKey: 'navigation.items.social', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing', featureKey: 'social_planner' },
-  { id: 'campaigns', titleKey: 'navigation.items.email', url: '/admin/marketing', icon: Mail, requireRead: 'marketing' },
+  { id: 'social-planner', tracks: ['webshop', 'events'], titleKey: 'navigation.items.social', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing', featureKey: 'social_planner' },
+  { id: 'campaigns', tracks: ['webshop', 'events'], titleKey: 'navigation.items.email', url: '/admin/marketing', icon: Mail, requireRead: 'marketing' },
   // MAIL-UX-1: Automatiseringen (MAIL-2a) is een tabblad van E-mail (?tab=automations), geen eigen item meer.
-  { id: 'media', titleKey: 'navigation.items.media', url: '/admin/marketing/media', icon: Images, requireRead: 'marketing' },
-  { id: 'seo', titleKey: 'navigation.items.seo', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },
+  { id: 'media', tracks: ['webshop', 'events'], titleKey: 'navigation.items.media', url: '/admin/marketing/media', icon: Images, requireRead: 'marketing' },
+  { id: 'seo', tracks: ['webshop', 'events'], titleKey: 'navigation.items.seo', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },
   // MARKETING-2: Ads verhuisd uit Verkoop naar Marketing.
   {
     id: 'ads',
@@ -239,7 +245,7 @@ const marketingItems: NavItem[] = [
 
 // BEHEER - Administratieve functies
 const managementItems: NavItem[] = [
-  { id: 'translations', titleKey: 'navigation.items.translations', url: '/admin/marketing/translations', icon: Languages, requireRead: 'cms' },
+  { id: 'translations', tracks: ['webshop', 'events'], titleKey: 'navigation.items.translations', url: '/admin/marketing/translations', icon: Languages, requireRead: 'cms' },
   // SIDEBAR-CLEAN-1: één item; Documenten zit als knop op de Leveranciers-pagina.
   // Id 'purchasing' blijft (tenant_feature_overrides.hidden_pages verwijst ernaar).
   { id: 'purchasing', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers', activeAlso: ['/admin/supplier-documents'] },
@@ -264,7 +270,7 @@ const managementItems: NavItem[] = [
 const systemItems: NavItem[] = [
   // SIDEBAR-CLEAN-1: Notificaties weg — de bel in de header linkt al naar /admin/notifications.
   // SIDEBAR-CLEAN-1: één item (het kind herhaalde dezelfde URL); Importeren zit als knop op de Connect-pagina.
-  { id: 'integrations', titleKey: 'navigation.items.integrations', url: '/admin/connect', icon: Cable, featureKey: 'apiAccess', excludeRoles: ['marketing'], requireRead: 'integrations' },
+  { id: 'integrations', tracks: ['webshop', 'events'], titleKey: 'navigation.items.integrations', url: '/admin/connect', icon: Cable, featureKey: 'apiAccess', excludeRoles: ['marketing'], requireRead: 'integrations' },
   { id: 'billing', titleKey: 'navigation.items.billing', url: '/admin/billing', icon: Receipt, excludeRoles: ['marketing'], requireRead: 'platform_billing' },
   { id: 'settings', titleKey: 'navigation.settings', url: '/admin/settings', icon: Settings, excludeRoles: ['marketing'], requireRead: 'settings_general' },
   { id: 'help', titleKey: 'navigation.items.help', url: '/admin/help', icon: HelpCircle },

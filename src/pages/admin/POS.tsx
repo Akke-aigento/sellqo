@@ -38,6 +38,7 @@ import { useKassaDevices } from '@/hooks/useKassaDevices';
 import { usePOSTerminals, usePOSSessions } from '@/hooks/usePOS';
 import type { POSTerminal } from '@/types/pos';
 import { useTranslation } from 'react-i18next';
+import { useTracks } from '@/hooks/useBusinessModules';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { formatSessionOpenedAt, isStaleOpenSession } from '@/lib/posSessionTime';
 
@@ -101,8 +102,11 @@ export default function POSPage() {
     return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{t('admin.productForm.beschikbaar')}</Badge>;
   };
 
+  // WERKPLEK-1 — zonder webshopspoor opent een kassa altijd SellQo Kassa, nooit de klassieke kassa.
+  const { hasTrack } = useTracks();
+  const classicPos = hasTrack('webshop');
   const handleOpenPOS = (terminal: POSTerminal) => {
-    navigate(`/admin/pos/${terminal.id}`);
+    navigate(classicPos ? `/admin/pos/${terminal.id}` : '/kassa');
   };
 
   if (isLoading) {

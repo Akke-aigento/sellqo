@@ -1,3 +1,4 @@
+import { useRouteAllowed } from '@/hooks/useRouteAllowed';
 import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -90,6 +91,7 @@ export function CategoryFormDialog({
   onSubmit,
   isLoading,
 }: CategoryFormDialogProps) {
+  const routeAllowed = useRouteAllowed();
   const isEditing = !!category;
   const [activeTab, setActiveTab] = useState('general');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -590,12 +592,14 @@ export function CategoryFormDialog({
                       </p>
                     </div>
                   </div>
+                  {routeAllowed('/admin/marketing/translations') && (
                   <Link to="/admin/marketing/translations">
                     <Button type="button" variant="outline" size="sm">
                       <ExternalLink className="h-4 w-4 mr-2" />
                       Vertaal Hub
                     </Button>
                   </Link>
+                  )}
                 </div>
               </TabsContent>
 

@@ -1,3 +1,26 @@
+## WERKPLEK-1 — afgebakende werkplek voor horeca: menu, instellingen en kassa per spoor — 28 oktober 2026
+
+**Aanleiding:** eerste horecaklant (Belgaleiro, Horeca Small). Akke 28-10: "wanneer men inlogt geen sidebalk vol met zever", alles instelbaar, geen maatwerk per klant. Plan: projectdoc `claude/horeca-werkplek-plan.md`.
+
+**Nulmeting** (testwinkel `test-horeca-small`, 3d8cf072-6bec-41dd-b01b-fef166ac9742, Horeca Small, geen add-ons, billing_exempt): 20 menu-items en 21 instellingensecties. Oorzaak: items zonder `tracks` zijn kern (TRACKS-1) en de instellingen kenden geen sporen.
+
+**Wijzigingen:**
+- `sidebarConfig.ts`: Inbox, Klanten (+ Klantgroepen), Promoties, E-mail, Media, Social, SEO, Vertalingen en Connect krijgen `tracks: ['webshop', 'events']`. De promotie-subitems gaan van `['webshop', 'horeca']` naar `['webshop']`. Webshop- en eventwinkels zien niets anders. Een horecawinkel ziet ze terug zodra ze een webshop- of eventspoor heeft.
+- Horeca-only, top-level: dashboard, orders, products, pos, ordering, kitchen, storefront, payments, purchasing, reports, billing, settings, help (vastgelegd in `src/test/tracks.test.ts`).
+- `Settings.tsx`: secties krijgen `tracks`. Retouren, Reviews en Fulfilment API → webshop. Inbound e-mail, AI-assistent, WhatsApp, Nieuwsbrief en Social → webshop + events. Een deeplink naar een verborgen sectie valt nu terug op Mijn profiel; voorheen werd de sectie getoond als de feature ontbrak. Hardgecodeerd "Instellingen" (mobiele terugknop) → `t('settings.title')`.
+- `useRouteAllowed` (nieuw): dezelfde regel als menu en TrackGate, voor links vanuit gedeelde schermen. Toegepast op: orderdetail → klantprofiel, cockpit-taak Berichten, productformulier/categorie/vertaalbadge → Vertalingen, fotobibliotheek → Media. Geen knop leidt nog naar "niet in je pakket".
+- Kassa: zonder webshopspoor opent een kassa op `/admin/pos` altijd `/kassa`. `/admin/pos/:terminalId` (klassieke kassa) stuurt door naar `/kassa` (`ClassicPosGate`). `/admin/pos` zelf blijft als kassabeheer (kassa's aanmaken, toestellen, personeel), want SellQo Kassa kiest daar zijn `pos_terminals`.
+- Mobiele onderbalk horeca-only: dashboard, orders, ordering, kitchen (was products, inbox).
+- CI: `src/test/tracks.test.ts` in de vitest-stap.
+
+**Bewust niet gedaan:**
+- Producten blijft zichtbaar voor horeca naast de Kaart (open vraag aan Akke).
+- De QR-, Zaal- en Posten-tabs blijven in Bestellen. HORECA-1 heeft ze daar bewust samengebracht, en ze verhuizen pas wanneer de betaalinstellingen (BETAAL-1) een vaste plek krijgen.
+
+**Checks:** tsc zonder nieuwe fouten (baseline lokaal 27, door een npm- i.p.v. bun-install), lint onder de baseline, i18n-pariteit, gebruikte keys, dode knoppen, vitest tracks/sidebarConfig/marketingTabs (27/27).
+
+Changelog 2026.13x `horeca_workspace` (5 talen).
+
 ## INKOOP-6 — instellingen facturen-inbox, afzenders controleren, terugknop — 28 oktober 2026
 
 **Akke 27-10 (23u59):**

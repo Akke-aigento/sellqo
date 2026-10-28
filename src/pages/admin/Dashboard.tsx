@@ -1,3 +1,4 @@
+import { useRouteAllowed } from '@/hooks/useRouteAllowed';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, AlertTriangle } from 'lucide-react';
@@ -46,6 +47,7 @@ import { cn } from '@/lib/utils';
 // kaarten in de volgorde die de gebruiker koos. Het oude DashboardGrid
 // (src/components/admin/DashboardGrid.tsx) wordt niet meer gerenderd maar blijft staan tot fase 4.
 export default function AdminDashboard() {
+  const routeAllowed = useRouteAllowed();
   const { t } = useTranslation();
   const { currentTenant, loading: tenantLoading } = useTenant();
   const { isPlatformAdmin } = useAuth();
@@ -156,7 +158,7 @@ export default function AdminDashboard() {
     ...(webshop && canOrders && shipping.data
       ? [{ key: 'ship', count: shipping.data.openCount, label: t('admin.cockpit.todo.ship'), href: '/admin/orders', oldestAgeMs: shipping.data.oldestAgeMs, tone: 'urgent' as const }]
       : []),
-    ...(canInbox && unread.data !== undefined
+    ...(canInbox && routeAllowed('/admin/messages') && unread.data !== undefined
       ? [{ key: 'inbox', count: unread.data, label: t('admin.cockpit.todo.messages'), href: '/admin/messages', tone: 'normal' as const }]
       : []),
     ...(webshop && canInvoices && quotes.data !== undefined

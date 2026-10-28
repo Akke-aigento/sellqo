@@ -1,3 +1,4 @@
+import { useRouteAllowed } from '@/hooks/useRouteAllowed';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -165,6 +166,7 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
 };
 
 export default function ProductForm() {
+  const routeAllowed = useRouteAllowed();
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const horeca = useHorecaModule();
@@ -2081,7 +2083,7 @@ export default function ProductForm() {
                           <Languages className="h-4 w-4 text-primary" />
                       <span className="text-sm font-medium">{t('admin.productForm.vertalingen_2')}</span>
                     </div>
-                    <Link to="/admin/marketing/translations" className={readOnly ? 'hidden' : undefined}>
+                    <Link to="/admin/marketing/translations" className={readOnly || !routeAllowed('/admin/marketing/translations') ? 'hidden' : undefined}>
                       <Button type="button" variant="outline" size="sm"><ExternalLink className="h-3 w-3 mr-1" />{t('admin.productForm.vertaal_hub')}</Button>
                     </Link>
                   </div>

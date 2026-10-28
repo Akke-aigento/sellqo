@@ -1,3 +1,4 @@
+import { useRouteAllowed } from '@/hooks/useRouteAllowed';
 import { Languages, Check, Clock, AlertCircle, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -38,6 +39,7 @@ export function TranslationStatusBadge({
   onQuickTranslate,
   isTranslating,
 }: TranslationStatusBadgeProps) {
+  const routeAllowed = useRouteAllowed();
   const { currentTenant } = useTenant();
   const sourceLang = (currentTenant as any)?.language || 'nl';
 
@@ -175,7 +177,7 @@ export function TranslationStatusBadge({
         </Button>
       )}
 
-      {entityId && (
+      {entityId && routeAllowed('/admin/marketing/translations') && (
         <Link to="/admin/marketing/translations">
           <Button type="button" variant="ghost" size="sm">
             <ExternalLink className="h-3 w-3 mr-1" />

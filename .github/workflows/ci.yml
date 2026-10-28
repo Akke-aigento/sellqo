@@ -59,8 +59,8 @@ jobs:
       # INVOICE-INTEGRITY-1: gerichte vitest-run. De volledige suite draait (nog) niet in CI;
       # deze tests bewaken creditnota-bedragen en de pariteit van de meldingsdefaults (die
       # brak op 27-10 ongemerkt door een e-maildefault).
-      - name: Vitest (creditnota's, meldingsdefaults, platformcijfers)
-        run: npx vitest run src/lib/creditNoteLines.test.ts src/test/notificationDefaults.test.ts src/lib/platformBillingOverview.test.ts
+      - name: Vitest (creditnota's, meldingsdefaults, platformcijfers, sporen)
+        run: npx vitest run src/lib/creditNoteLines.test.ts src/test/notificationDefaults.test.ts src/lib/platformBillingOverview.test.ts src/test/tracks.test.ts
 
       # 3. i18n-pariteit. Het script eindigt met exit 1 zodra één taal een key
       #    mist, waardoor deze step vanzelf rood wordt.

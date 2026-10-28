@@ -2271,6 +2271,10 @@
         "order_tickets_status_resend": {
           "title": "Token card status on the order, and no ticket email after cancelling",
           "description": "In the Tickets and tokens block of an order you now see the token card's status next to its balance: Active, Blocked, Refund requested or Refunded. If the order is cancelled or fully refunded, the Email tickets again button is gone: those tickets are no longer valid. With a partial refund you can still email them again."
+        },
+        "horeca_workspace": {
+          "title": "A calmer workspace for hospitality",
+          "description": "On a hospitality plan without a webshop, the menu and settings now show only what a venue needs: dashboard, orders, menu, kitchen, till, payments, reports and settings. Customers, discounts, marketing, translations, returns and reviews leave the menu; they come back as soon as you have a webshop or events plan. On your phone, the menu and the kitchen sit in the bottom bar, and opening a till always opens SellQo Kassa."
         }
       },
       "copyLink": "Copy link",

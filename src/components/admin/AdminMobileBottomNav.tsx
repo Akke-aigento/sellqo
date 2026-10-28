@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { useUnreadMessagesCount } from '@/hooks/useUnreadMessagesCount';
 import { findNavItems } from './sidebar/sidebarConfig';
 import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
+import { useTracks } from '@/hooks/useBusinessModules';
 
 /**
  * De vier snelkoppelingen in de balk, op id uit `sidebarConfig`.
@@ -14,6 +15,9 @@ import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
  * rechtencontrole.
  */
 const TAB_IDS = ['dashboard', 'orders', 'products', 'inbox'];
+// WERKPLEK-1 — een horecawinkel zonder webshop of events: de kaart en de keuken zijn de
+// snelkoppelingen die een barman op zijn gsm nodig heeft (Inbox bestaat daar niet).
+const HORECA_TAB_IDS = ['dashboard', 'orders', 'ordering', 'kitchen'];
 
 export function AdminMobileBottomNav() {
   const location = useLocation();
@@ -21,7 +25,9 @@ export function AdminMobileBottomNav() {
   const { count } = useUnreadMessagesCount();
   const { isItemBlocked } = useNavItemVisibility();
 
-  const tabs = findNavItems(TAB_IDS).filter((item) => !isItemBlocked(item));
+  const { hasTrack } = useTracks();
+  const horecaOnly = hasTrack('horeca') && !hasTrack('webshop') && !hasTrack('events');
+  const tabs = findNavItems(horecaOnly ? HORECA_TAB_IDS : TAB_IDS).filter((item) => !isItemBlocked(item));
 
   // Prefix-match, net als de zijbalk. Met een strikte vergelijking was op
   // /admin/orders/123 géén tab actief — je verloor je plaats zodra je een

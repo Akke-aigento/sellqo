@@ -1,3 +1,4 @@
+import { useRouteAllowed } from '@/hooks/useRouteAllowed';
 import { useCallback, useMemo, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Copy, ExternalLink, ImageIcon, Loader2, Search, Trash2, Upload } from 'lucide-react';
@@ -27,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 const PREVIEW = 10;
 
 export function ProductPhotoLibraryCard() {
+  const routeAllowed = useRouteAllowed();
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const { assets, isLoading, deleteAsset } = useMediaAssets('products');
@@ -82,7 +84,7 @@ export function ProductPhotoLibraryCard() {
             </CardDescription>
           </div>
           {/* MARKETING-2: de mediabibliotheek is een eigen plek onder Marketing (niet meer achter AI). */}
-          {canOpenMedia && (
+          {canOpenMedia && routeAllowed('/admin/marketing/media') && (
             <Button asChild variant="outline" size="sm" className="shrink-0">
               <Link to="/admin/marketing/media">
                 <ExternalLink className="mr-2 h-4 w-4" />
