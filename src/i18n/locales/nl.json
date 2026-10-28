@@ -9169,6 +9169,17 @@
       "qr_set_in_pay": "Instellen bij Kassa › Betalen",
       "saved": "Betaalinstellingen bewaard",
       "save_failed": "Bewaren lukte niet: {{reason}}"
+    },
+    "qrFlow": {
+      "title": "Waar komt een bestelling aan tafel terecht?",
+      "check_title": "Op de tafelrekening (aanbevolen)",
+      "check_desc": "De bediening bevestigt de bestelling op de kassa; ze komt op de rekening van de tafel. De gast betaalt op het einde, alles samen.",
+      "order_title": "Elke bestelling apart afrekenen",
+      "order_desc": "Elke bestelling is een aparte bestelling die de gast meteen betaalt (aan de toog of online).",
+      "auto_title": "Automatisch bevestigen",
+      "auto_desc": "Een kassa die openstaat zet nieuwe bestellingen meteen op de rekening, zonder dat iemand op Bevestigen tikt. Enkel voor tafels uit je zaalplan (met een eigen QR-code per tafel).",
+      "auto_warning": "Let op: niemand kijkt de bestelling eerst na. Is iets op of gaat er iets mis, dan moet de bediening dat achteraf rechtzetten op de rekening. Zet dit enkel aan als je je voorraad goed opvolgt (zet producten op \"Op\" op de Kaart).",
+      "pay_on_check": "Bestellingen aan tafel komen op de tafelrekening: de gast betaalt op het einde, aan de kassa (contant, overschrijving, …). Instellen bij Bestellen › QR-menu."
     }
   },
   "product_form": {
@@ -11126,6 +11137,26 @@
       "pickApprover": "Kies wie goedkeurt",
       "pin": "PIN",
       "noApprovers": "Er is nog geen eigenaar of verantwoordelijke met een PIN. Stel dat in onder Personeel."
+    },
+    "requests": {
+      "button": "QR · {{count}}",
+      "title": "Bestellingen aan tafel ({{count}})",
+      "table": "Tafel {{label}}",
+      "waiting": "wacht {{min}} min",
+      "acceptAll": "Alles op de rekening ({{count}})",
+      "ago": "{{min}} min geleden",
+      "error": "Lukte niet: {{error}}",
+      "accept": "Op de rekening",
+      "reject": "Weigeren",
+      "notSent": "Tafel {{table}}: op de rekening gezet, maar nog niet verstuurd ({{reason}}). Verstuur de ronde vanaf de rekening.",
+      "autoFailed": "Tafel {{table}}: automatisch bevestigen lukte niet ({{error}}). De bestelling staat in de inbox.",
+      "badge": "QR {{count}}",
+      "reason": {
+        "soldOut": "Iets is op",
+        "kitchenClosed": "Keuken is dicht",
+        "askStaff": "Vraag het aan de bediening",
+        "other": "Andere reden"
+      }
     }
   }
 }

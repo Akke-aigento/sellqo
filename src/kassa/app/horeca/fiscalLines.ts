@@ -55,12 +55,13 @@ export function lineSpecsOf(l: CheckLine): LineSpec[] {
 }
 
 /** De lijnen van de volgende ronde: alle ontwerp-lijnen, in volgorde (EVT-04). */
-export function roundLines(c: Check): CheckLine[] {
-  return c.lines.filter((l) => l.state === 'draft' && !l.pending).sort((a, b) => a.seq - b.seq);
+/** QR-REKENING-1: `only` = enkel deze lijnen (een bevestigde tafelaanvraag), niet wat een collega nog aantikt. */
+export function roundLines(c: Check, only?: ReadonlySet<string>): CheckLine[] {
+  return c.lines.filter((l) => l.state === 'draft' && !l.pending && (!only || only.has(l.id))).sort((a, b) => a.seq - b.seq);
 }
 
-export function roundSpecs(c: Check): LineSpec[] {
-  return roundLines(c).flatMap(lineSpecsOf);
+export function roundSpecs(c: Check, only?: ReadonlySet<string>): LineSpec[] {
+  return roundLines(c, only).flatMap(lineSpecsOf);
 }
 
 /**

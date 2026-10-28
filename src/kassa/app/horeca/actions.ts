@@ -65,18 +65,18 @@ async function commitSigned(ctx: ActionCtx, cmd: Command, eventId: string | null
 }
 
 /** Verstuur de open ronde naar keuken/bar (en de FDM). */
-export async function sendRound(ctx: ActionCtx, checkId: string): Promise<ActionOutcome> {
+export async function sendRound(ctx: ActionCtx, checkId: string, only?: ReadonlySet<string>): Promise<ActionOutcome> {
   try {
     await ctx.store.flush();
     if (ctx.store.pendingCount) return { ok: false, reason: 'offline' };
     const c = ctx.store.check(checkId);
     if (!c) return { ok: false, reason: 'server', detail: 'check_missing' };
-    const lines = roundLines(c);
+    const lines = roundLines(c, only);
     if (!lines.length) return { ok: false, reason: 'nothing' };
     const signed = await signOrFail(ctx, async () => {
       const data = buildOrder(ctx.runtime.posContext(), await ctx.runtime.meta('signOrder', ctx.employeeId as string, 'NONE'), {
         costCenter: costCenterOf(c, ctx.tableLabel(c.table_id)),
-        lines: roundSpecs(c),
+        lines: roundSpecs(c, only),
       });
       return ctx.runtime.sign('signOrder', data, { staffId: ctx.staffId });
     });

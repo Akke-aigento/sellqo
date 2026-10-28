@@ -2279,6 +2279,10 @@
         "horeca_payments_transfer": {
           "title": "Paramétrer les paiements par établissement, et encaisser par virement",
           "description": "Sous Caisse › Paiements, vous choisissez les moyens de paiement que SellQo Kassa affiche : espèces, virement, chèques-repas et bons. Vous indiquez aussi si vous avez un terminal de paiement et si vous proposez le pourboire. Sans terminal, « carte » disparaît. Pour un virement, la caisse affiche un code QR avec le montant, votre numéro de compte et une communication. Le client le scanne avec son application bancaire et vous confirmez que le paiement a réussi. La façon dont les clients paient via le QR à table se règle désormais au même endroit. Le rapport journalier indique le virement comme moyen de paiement distinct."
+        },
+        "horeca_qr_tab": {
+          "title": "Commander à table via le QR, sur l'addition de la table",
+          "description": "Sous Commandes › Menu QR, vous choisissez désormais si une commande passée avec le code QR sur la table est payée tout de suite ou ajoutée à l'addition de la table. Avec l'addition, le client transmet sa commande sans payer. SellQo Kassa affiche un bouton orange avec le nombre de commandes en attente ; d'un seul geste, vous ajoutez tout ce qu'une table a commandé à l'addition et l'envoyez en cuisine et au bar. Si vous refusez, le client voit la raison. La table paie tout ensemble à la fin. La confirmation automatique est possible, mais désactivée par défaut."
         }
       },
       "copyLink": "Copier le lien",

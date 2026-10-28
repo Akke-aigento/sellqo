@@ -44,6 +44,13 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen }: Props) {
     status[tableId] = c.bill_requested_at ? 'attention' : 'occupied';
     badges[tableId] = `${formatEuro(checkTotalCents(c), i18n.language)} · ${minutesSince(lastActivity(c), now)}′`;
   }
+  // QR-REKENING-1: een tafel met een openstaande QR-bestelling springt eruit.
+  const qrPending = new Map<string, number>();
+  for (const r of store.requests) if (r.dining_table_id) qrPending.set(r.dining_table_id, (qrPending.get(r.dining_table_id) ?? 0) + 1);
+  for (const [tableId, n] of qrPending) {
+    status[tableId] = 'attention';
+    badges[tableId] = [t('kassa.requests.badge', { count: n }), badges[tableId]].filter(Boolean).join(' · ');
+  }
 
   const openTable = (tb: Pick<FloorTable, 'id'>) => {
     const existing = byTable.get(tb.id);
@@ -108,12 +115,13 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen }: Props) {
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-6">
                   {tables.map((tb) => {
                     const c = byTable.get(tb.id);
+                    const qr = qrPending.get(tb.id) ?? 0;
                     return (
                       <button key={tb.id} type="button" onClick={() => openTable(tb)}
                         className={cn('flex min-h-16 flex-col items-center justify-center rounded-lg border-2 p-2 text-center',
-                          !c ? 'border-slate-300 bg-background' : c.bill_requested_at ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950')}>
+                          qr ? 'border-amber-500 bg-amber-50 dark:bg-amber-950' : !c ? 'border-slate-300 bg-background' : c.bill_requested_at ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950')}>
                         <span className="font-bold">{tb.label}</span>
-                        {c ? <span className="text-xs">{badges[tb.id]}</span> : <span className="text-xs text-muted-foreground">{t('kassa.tables.free')}</span>}
+                        {c || qr ? <span className="text-xs">{badges[tb.id]}</span> : <span className="text-xs text-muted-foreground">{t('kassa.tables.free')}</span>}
                       </button>
                     );
                   })}

@@ -12,6 +12,7 @@
 // - Versturen, korting, verplaatsen: wachten op de server (geld/fiscaal), geen optimisme.
 import { supabase } from '@/integrations/supabase/client';
 import type { Check, CheckLine, Snapshot } from './types';
+import type { TableRequest } from './requests';
 
 export type CommandKind =
   | 'open_check' | 'add_line' | 'change_qty' | 'set_note' | 'void_line' | 'discount_line'
@@ -32,6 +33,8 @@ export interface Transport {
   apply(tenantId: string, deviceId: string, cmds: Command[]): Promise<{ version: number; results: CommandResult[] }>;
   snapshot(tenantId: string): Promise<Snapshot>;
   version(tenantId: string): Promise<number>;
+  /** QR-REKENING-1: openstaande tafelaanvragen. Optioneel (testtransports laten het weg). */
+  requests?(tenantId: string): Promise<TableRequest[]>;
 }
 
 export const supabaseTransport: Transport = {
@@ -50,6 +53,14 @@ export const supabaseTransport: Transport = {
     if (error) throw error;
     return Number((data as { version?: number } | null)?.version ?? 0);
   },
+  async requests(tenantId) {
+    const { data, error } = await supabase.from('table_requests' as never)
+      .select('id, dining_table_id, table_label, items, item_count, total_cents, guest_name, note, created_at')
+      .eq('tenant_id' as never, tenantId as never).eq('status' as never, 'pending' as never)
+      .order('created_at' as never, { ascending: true }).limit(300);
+    if (error) throw error;
+    return (data ?? []) as unknown as TableRequest[];
+  },
 };
 
 function storageKey(tenantId: string) { return `sq_kassa_queue|${tenantId}`; }
@@ -66,6 +77,8 @@ export class HorecaStore {
   online = true;
   lastSyncAt: number | null = null;
   rejections: Rejection[] = [];
+  /** QR-REKENING-1: openstaande tafelaanvragen (oudste eerst), ververst samen met de rekeningen. */
+  requests: TableRequest[] = [];
   /**
    * TAFEL-2: wordt vóór elk versturen aangeroepen (de runtime schrijft daar ondertekende events
    * weg die nog op het toestel wachten). false = nog niet gelukt: niets versturen, want de
@@ -107,7 +120,13 @@ export class HorecaStore {
 
   async refresh() {
     try {
-      this.setSnapshot(await this.transport.snapshot(this.tenantId));
+      // Aanvragen ophalen mag mislukken zonder de rekeningen te blokkeren: dan blijft de vorige lijst staan.
+      const [snap, reqs] = await Promise.all([
+        this.transport.snapshot(this.tenantId),
+        this.transport.requests ? this.transport.requests(this.tenantId).catch(() => null) : Promise.resolve(null),
+      ]);
+      if (reqs) this.requests = reqs;
+      this.setSnapshot(snap);
       this.online = true;
     } catch {
       this.online = false;

@@ -19,7 +19,7 @@ import { cachedShopStatus } from "../_shared/shopStatus.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "horeca-channels-1",
+  "X-SellQo-Api-Rev": "qr-rekening-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -263,7 +263,7 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
     supabase.from('tenants').select('id, slug, name').eq('id', domain.tenant_id).single(), // RESOLVE-FIX-1
     supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url, shop_live, shop_ordering').eq('tenant_id', domain.tenant_id).maybeSingle(),
     supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', domain.tenant_id).eq('is_active', true).eq('dns_verified', true), // SEC-DOMAIN-2
-    supabase.from('fulfillment_settings').select('qr_mode').eq('tenant_id', domain.tenant_id).maybeSingle(),
+    supabase.from('fulfillment_settings').select('qr_mode, qr_flow').eq('tenant_id', domain.tenant_id).maybeSingle(),
   ]);
 
   if (!tenant) throw new Error('Tenant not found for domain');
@@ -276,6 +276,8 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
     shop_live: themeSettings?.shop_live === true, shop_ordering: themeSettings?.shop_ordering === true,
     // HORECA-1 — additief: QR-menu alleen bekijken of bestellen aan tafel.
     qr_mode: fsQr?.qr_mode || 'view',
+    // QR-REKENING-1 — additief: 'check' = bestellen aan tafel komt op de tafelrekening (tafelaanvraag).
+    qr_flow: fsQr?.qr_flow === 'check' ? 'check' : 'order',
     all_domains: (allDomains || []).map((d: any) => ({ domain: d.domain, locale: d.locale, is_canonical: d.is_canonical })),
   };
 }
@@ -961,6 +963,58 @@ async function checkoutTable(supabase: SupabaseLike, tenantId: string, params: R
   }).eq('id', cartId).eq('tenant_id', tenantId);
   if (error) throw error;
   return buildCartResponse(supabase, tenantId, cartId);
+}
+
+// QR-REKENING-1 — nieuwe actie: het tafelmandje doorgeven als tafelaanvraag (geen order, geen
+// betaling). De bediening zet ze op de rekening van de tafel via SellQo Kassa. Idempotent op
+// request_id; het mandje wordt in dezelfde transactie afgesloten (table_request_place).
+const TABLE_REQUEST_ERRORS: Record<string, string> = {
+  TABLE_REQUESTS_OFF: 'Bestellen op de tafelrekening staat uit in deze zaak',
+  CART_NOT_FOUND: 'Je mandje is niet meer geldig, kies je bestelling opnieuw',
+  CART_EMPTY: 'Je mandje is leeg',
+  CART_ALREADY_ORDERED: 'Deze bestelling werd al doorgegeven',
+  TOO_MANY_REQUESTS: 'Even geduld: er komen veel bestellingen tegelijk binnen. Probeer het zo meteen opnieuw.',
+  TABLE_REQUEST_TOO_BIG: 'Dat is wel heel veel in één keer. Vraag het even aan de bediening.',
+  TABLE_REQUEST_INVALID: 'Bestellen lukte niet, probeer het opnieuw',
+  CART_IN_PAYMENT: 'Voor dit mandje loopt al een online betaling. Vraag het even aan de bediening.',
+  TABLE_REQUEST_MIXED: 'Tickets en cadeaubonnen kan je niet op de tafelrekening zetten. Haal ze uit je mandje.',
+};
+async function tableRequestPlace(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const requestId = String(params.request_id ?? '');
+  const cartId = String(params.cart_id ?? '');
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuid.test(requestId) || !uuid.test(cartId)) return { success: false, error: { code: 'TABLE_REQUEST_INVALID', message: TABLE_REQUEST_ERRORS.TABLE_REQUEST_INVALID } };
+  const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.table_token });
+  if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
+  const str = (v: unknown, n: number) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, n) : null);
+  const { data, error } = await supabase.rpc('table_request_place', {
+    p_tenant_id: tenantId, p_request_id: requestId, p_cart_id: cartId,
+    p_table_id: resolved.table.table_id ?? null, p_table_label: resolved.table.label,
+    p_guest_name: str(params.guest_name, 100), p_note: str(params.note, 500),
+  });
+  if (error) {
+    const msg = String(error.message || '');
+    const [code, product] = msg.split(':');
+    if (code === 'SOLD_OUT') return { success: false, error: { code, message: `${product} is op voor vandaag` } };
+    if (code === 'NOT_AVAILABLE' || code === 'NOT_AVAILABLE_AT_TABLE') return { success: false, error: { code, message: `${product} kan je nu niet aan tafel bestellen` } };
+    if (TABLE_REQUEST_ERRORS[code]) return { success: false, error: { code, message: TABLE_REQUEST_ERRORS[code] } };
+    throw error;
+  }
+  return data;
+}
+
+// QR-REKENING-1 — stand van een tafelaanvraag voor de gast (pending / accepted / rejected + reden).
+// Enkel met de aanvraag-ID (onraadbaar, enkel in de browser van wie bestelde) en enkel deze zaak.
+async function tableRequestStatus(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const requestId = String(params.request_id ?? '');
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)) {
+    return { success: false, error: { code: 'NOT_FOUND', message: 'Bestelling niet gevonden' } };
+  }
+  const { data, error } = await supabase.from('table_requests').select('id, status, reason, table_label, item_count, total_cents, created_at, decided_at')
+    .eq('id', requestId).eq('tenant_id', tenantId).maybeSingle();
+  if (error) throw error;
+  if (!data) return { success: false, error: { code: 'NOT_FOUND', message: 'Bestelling niet gevonden' } };
+  return data;
 }
 
 // ZAAL-H1 — nieuwe actie: QR-token (of vrij tafelnummer) → tafel, voor de storefront.
@@ -5792,12 +5846,14 @@ function checkIpActionRateLimit(key: string, limit: number, windowMs: number): b
 /** BILLING-LOCK-2 — acties die een bestelling of betaling starten. */
 const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
   'checkout_complete', 'checkout_place_order', 'checkout_create_session',
+  // QR-REKENING-1: een tafelaanvraag is ook een bestelling.
+  'table_request_place',
 ]);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'BILLING-LOCK-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'QR-REKENING-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -5917,6 +5973,8 @@ serve(async (req) => {
       case 'checkout_table': result = await checkoutTable(supabase, tenant_id, params); break;
       // ZAAL-H1 — nieuwe actie (additief): QR-token → tafel.
       case 'resolve_table': result = await resolveTable(supabase, tenant_id, params); break;
+      case 'table_request_place': result = await tableRequestPlace(supabase, tenant_id, params); break;
+      case 'table_request_status': result = await tableRequestStatus(supabase, tenant_id, params); break;
       case 'get_fulfillment_slots': result = await getFulfillmentSlots(supabase, tenant_id, params); break;
       case 'checkout_complete': result = await checkoutComplete(supabase, tenant_id, { ...params, user_agent: userAgent }); break;
       case 'checkout_select_payment_method': result = await checkoutSelectPaymentMethod(supabase, tenant_id, params); break;

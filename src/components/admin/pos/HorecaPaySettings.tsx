@@ -26,7 +26,7 @@ import { normalizePaySettings, type PaySettings, type SettingMethod, type Termin
 const TICK_METHODS: Exclude<SettingMethod, 'card'>[] = ['cash', 'transfer', 'cheque_meal', 'voucher'];
 const TERMINALS: TerminalMode[] = ['none', 'standalone'];
 
-interface QrPay { mode: string; counter: boolean; online: boolean }
+interface QrPay { mode: string; flow: 'order' | 'check'; counter: boolean; online: boolean }
 
 export function HorecaPaySettings() {
   const { t } = useTranslation();
@@ -42,14 +42,14 @@ export function HorecaPaySettings() {
     queryFn: async () => {
       const [pay, qr] = await Promise.all([
         supabase.from('horeca_pay_settings' as never).select('methods, terminal, kassa_tip').eq('tenant_id' as never, tenantId as never).maybeSingle(),
-        supabase.from('fulfillment_settings').select('qr_mode, qr_pay_counter, qr_pay_online').eq('tenant_id', tenantId!).maybeSingle(),
+        supabase.from('fulfillment_settings').select('qr_mode, qr_pay_counter, qr_pay_online, qr_flow' as 'qr_mode').eq('tenant_id', tenantId!).maybeSingle(),
       ]);
       if (pay.error) throw pay.error;
       if (qr.error) throw qr.error;
-      const q = qr.data as { qr_mode?: string | null; qr_pay_counter?: boolean | null; qr_pay_online?: boolean | null } | null;
+      const q = qr.data as { qr_mode?: string | null; qr_pay_counter?: boolean | null; qr_pay_online?: boolean | null; qr_flow?: string | null } | null;
       return {
         pay: normalizePaySettings(pay.data as Partial<PaySettings> | null),
-        qr: { mode: q?.qr_mode || 'view', counter: q?.qr_pay_counter !== false, online: !!q?.qr_pay_online } as QrPay,
+        qr: { mode: q?.qr_mode || 'view', flow: q?.qr_flow === 'check' ? 'check' : 'order', counter: q?.qr_pay_counter !== false, online: !!q?.qr_pay_online } as QrPay,
       };
     },
   });
@@ -76,7 +76,7 @@ export function HorecaPaySettings() {
   const dirty = !sameMethods(pay.methods, data.pay.methods) || pay.terminal !== data.pay.terminal || pay.kassa_tip !== data.pay.kassa_tip
     || qr.counter !== data.qr.counter || qr.online !== data.qr.online;
   const noMethod = pay.methods.length === 0;
-  const qrNoWay = qr.mode === 'order' && !qr.counter && !qr.online;
+  const qrNoWay = qr.mode === 'order' && qr.flow === 'order' && !qr.counter && !qr.online;
   const transferNoIban = pay.methods.includes('transfer') && !iban;
 
   const save = async () => {
@@ -169,6 +169,8 @@ export function HorecaPaySettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* QR-REKENING-1: op de tafelrekening betaalt de gast op het einde, niet per bestelling. */}
+          {qr.flow === 'check' ? <p className="text-sm text-muted-foreground">{t('admin.qrFlow.pay_on_check')}</p> : <>
           <label className="flex items-start gap-2 text-sm">
             <Checkbox checked={qr.counter} onCheckedChange={(v) => setQr({ ...qr, counter: v === true })} className="mt-0.5" />
             <span><span className="font-medium">{t('admin.storefront.food.qrModeSettings.aan_de_toog')}</span><span className="block text-muted-foreground">{t('admin.storefront.food.qrModeSettings.na_de_maaltijd_via_je_eigen')}</span></span>
@@ -178,6 +180,7 @@ export function HorecaPaySettings() {
             <span><span className="font-medium">{t('admin.storefront.food.qrModeSettings.meteen_online')}</span><span className="block text-muted-foreground">{t('admin.storefront.food.qrModeSettings.bancontact_kaart_of_apple_pay_zoals')}</span></span>
           </label>
           {qrNoWay ? <p role="alert" className="text-sm text-destructive">{t('admin.storefront.food.qr_pay_required')}</p> : null}
+          </>}
         </CardContent>
       </Card>
 

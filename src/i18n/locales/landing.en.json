@@ -2279,6 +2279,10 @@
         "horeca_payments_transfer": {
           "title": "Set up payments per venue, and take bank transfers at the till",
           "description": "Under Till › Payments you choose which payment methods SellQo Kassa shows: cash, bank transfer, meal vouchers and vouchers. You also choose whether you have a card terminal and whether you offer tips. Without a terminal, \"card\" disappears. For a bank transfer, the till shows a QR code with the amount, your account number and a reference. The customer scans it with their banking app and you confirm the payment went through. How guests pay via the table QR code is now set there too. The daily report lists bank transfer as a separate payment method."
+        },
+        "horeca_qr_tab": {
+          "title": "Ordering at the table via the QR code, on the table's tab",
+          "description": "Under Ordering › QR menu you now choose whether an order placed with the QR code on the table is paid straight away or goes on the table's tab. With the tab, the guest sends their order without paying. SellQo Kassa shows an orange button with the number of waiting orders; one tap puts everything from a table on the tab and sends it as a round to the kitchen and bar. If you decline, the guest sees the reason. The table pays for everything together at the end. Automatic confirmation is available but off by default."
         }
       },
       "copyLink": "Copy link",

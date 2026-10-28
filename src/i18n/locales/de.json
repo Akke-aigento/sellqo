@@ -8882,6 +8882,17 @@
       "qr_set_in_pay": "Einstellbar unter Kasse › Bezahlen",
       "saved": "Zahlungseinstellungen gespeichert",
       "save_failed": "Speichern fehlgeschlagen: {{reason}}"
+    },
+    "qrFlow": {
+      "title": "Wohin geht eine Tischbestellung?",
+      "check_title": "Auf die Tischrechnung (empfohlen)",
+      "check_desc": "Das Personal bestätigt die Bestellung an der Kasse; sie kommt auf die Rechnung des Tisches. Der Gast bezahlt am Ende, alles zusammen.",
+      "order_title": "Jede Bestellung einzeln bezahlen",
+      "order_desc": "Jede Bestellung ist eine eigene Bestellung, die der Gast sofort bezahlt (an der Theke oder online).",
+      "auto_title": "Automatisch bestätigen",
+      "auto_desc": "Eine geöffnete Kasse setzt neue Bestellungen sofort auf die Rechnung, ohne dass jemand auf Bestätigen tippt. Nur für Tische aus Ihrem Raumplan (jeweils mit eigenem QR-Code).",
+      "auto_warning": "Achtung: Niemand prüft die Bestellung vorher. Ist etwas ausverkauft oder geht etwas schief, muss das Personal das nachträglich auf der Rechnung korrigieren. Schalten Sie das nur ein, wenn Sie Ihren Bestand gut pflegen (Produkte auf der Karte als \"Ausverkauft\" markieren).",
+      "pay_on_check": "Tischbestellungen kommen auf die Tischrechnung: Der Gast bezahlt am Ende an der Kasse (bar, Überweisung, …). Einstellbar unter Bestellen › QR-Menü."
     }
   },
   "billing": {
@@ -11124,6 +11135,26 @@
       "pickApprover": "Wähle, wer freigibt",
       "pin": "PIN",
       "noApprovers": "Es gibt noch keinen Inhaber oder Verantwortlichen mit PIN. Richte das unter Personal ein."
+    },
+    "requests": {
+      "button": "QR · {{count}}",
+      "title": "Tischbestellungen ({{count}})",
+      "table": "Tisch {{label}}",
+      "waiting": "wartet {{min}} Min.",
+      "acceptAll": "Alles auf die Rechnung ({{count}})",
+      "ago": "vor {{min}} Min.",
+      "error": "Fehlgeschlagen: {{error}}",
+      "accept": "Auf die Rechnung",
+      "reject": "Ablehnen",
+      "notSent": "Tisch {{table}}: auf die Rechnung gesetzt, aber noch nicht gesendet ({{reason}}). Senden Sie die Runde von der Rechnung aus.",
+      "autoFailed": "Tisch {{table}}: automatisches Bestätigen fehlgeschlagen ({{error}}). Die Bestellung liegt im Eingang.",
+      "badge": "QR {{count}}",
+      "reason": {
+        "soldOut": "Etwas ist ausverkauft",
+        "kitchenClosed": "Küche ist geschlossen",
+        "askStaff": "Bitte beim Personal fragen",
+        "other": "Anderer Grund"
+      }
     }
   }
 }

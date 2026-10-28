@@ -9155,6 +9155,17 @@
       "qr_set_in_pay": "Set in Till › Payments",
       "saved": "Payment settings saved",
       "save_failed": "Could not save: {{reason}}"
+    },
+    "qrFlow": {
+      "title": "Where does a table order go?",
+      "check_title": "On the table's bill (recommended)",
+      "check_desc": "Staff confirm the order on the till; it goes onto the table's bill. The guest pays at the end, all at once.",
+      "order_title": "Pay for each order separately",
+      "order_desc": "Each order is a separate order the guest pays straight away (at the counter or online).",
+      "auto_title": "Confirm automatically",
+      "auto_desc": "An open till puts new orders on the bill straight away, without anyone tapping Confirm. Only for tables from your floor plan (each with its own QR code).",
+      "auto_warning": "Note: nobody checks the order first. If something is sold out or goes wrong, staff have to fix it on the bill afterwards. Only turn this on if you keep your stock up to date (mark products \"Sold out\" on the Menu).",
+      "pay_on_check": "Table orders go onto the table's bill: the guest pays at the end, at the till (cash, bank transfer, …). Set in Ordering › QR menu."
     }
   },
   "product_form": {
@@ -11124,6 +11135,26 @@
       "pickApprover": "Pick who approves",
       "pin": "PIN",
       "noApprovers": "There is no owner or manager with a PIN yet. Set one up under Staff."
+    },
+    "requests": {
+      "button": "QR · {{count}}",
+      "title": "Table orders ({{count}})",
+      "table": "Table {{label}}",
+      "waiting": "waiting {{min}} min",
+      "acceptAll": "Add all to the bill ({{count}})",
+      "ago": "{{min}} min ago",
+      "error": "Didn't work: {{error}}",
+      "accept": "Add to the bill",
+      "reject": "Decline",
+      "notSent": "Table {{table}}: added to the bill, but not sent yet ({{reason}}). Send the round from the bill.",
+      "autoFailed": "Table {{table}}: automatic confirmation failed ({{error}}). The order is in the inbox.",
+      "badge": "QR {{count}}",
+      "reason": {
+        "soldOut": "Something is sold out",
+        "kitchenClosed": "Kitchen is closed",
+        "askStaff": "Please ask the staff",
+        "other": "Other reason"
+      }
     }
   }
 }

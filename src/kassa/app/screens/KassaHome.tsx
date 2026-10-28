@@ -15,6 +15,9 @@ import { CheckScreen } from './CheckScreen';
 import { CashScreen } from './CashScreen';
 import { ReportsScreen } from './ReportsScreen';
 import { lastService } from '../horeca/counter';
+import { useAutoAccept } from '../horeca/requests';
+import { RequestInbox, RequestInboxButton } from './RequestInbox';
+import { useAutoAcceptRunner } from '../horeca/autoAccept';
 
 type Tab = 'tables' | 'counter' | 'cash' | 'reports';
 const TABS: { id: Tab; icon: typeof LayoutGrid }[] = [
@@ -32,11 +35,15 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
   const [clockedIn, setClockedIn] = useState(() => (staff ? isClockedIn(runtime.device.tenantId, staff.id) : false));
   const [clockBusy, setClockBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  // QR-REKENING-1: bestellingen via de QR aan tafel.
+  const [inboxOpen, setInboxOpen] = useState(false);
+  const autoAccept = useAutoAccept(runtime.device.tenantId);
 
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((x) => [x.id, x.label])), [plan]);
   const ctx: ActionCtx | null = useMemo(() => (staff ? {
     store, runtime, staffId: staff.id, staffName: staff.display_name, staffRole: staff.role, employeeId, tableLabel: (id: string | null) => (id ? labels.get(id) ?? null : null),
   } : null), [store, runtime, staff, employeeId, labels]);
+  useAutoAcceptRunner(ctx, autoAccept, store.requests);
   if (!staff || !ctx) return null;
 
   // Toog: een nieuwe verkoop openen (geen tafel). Na afrekenen meteen de volgende klant.
@@ -78,6 +85,7 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
             <span aria-hidden>·</span>{terminalName}<span aria-hidden>·</span>{t(`kassa.fiscalMode.${runtime.fiscal.mode}`)}
           </p>
         </div>
+        <RequestInboxButton count={store.requests.length} onClick={() => setInboxOpen(true)} />
         <button type="button" onClick={toggleClock} disabled={clockBusy} title={t(clockedIn ? 'kassa.home.clockOut' : 'kassa.home.clockIn')}
           className={cn('flex h-11 items-center gap-1.5 rounded-md px-3 text-sm font-semibold disabled:opacity-50', clockedIn ? 'border' : 'bg-primary text-primary-foreground')}>
           {clockBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock className="h-4 w-4" />}
@@ -90,6 +98,7 @@ export function KassaHome({ runtime, terminalName, onForgetDevice }: { runtime: 
         </button>
       </header>
       {message && <p role="status" className="border-b bg-muted px-3 py-1.5 text-sm">{message}</p>}
+      {inboxOpen ? <RequestInbox ctx={ctx} requests={store.requests} open={inboxOpen} onClose={() => setInboxOpen(false)} /> : null}
       {runtime.isFiscal && !employeeId && <p role="alert" className="border-b bg-destructive/10 px-3 py-1.5 text-sm text-destructive">{t('kassa.home.noInsz')}</p>}
 
       <nav className="flex border-b" role="tablist" aria-label={t('kassa.home.tabs')}>

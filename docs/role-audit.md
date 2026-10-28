@@ -1,3 +1,58 @@
+## QR-REKENING-1 — bestellen via de QR aan tafel op de tafelrekening (kassa 0.8.0) — 28 oktober 2026
+
+**Aanleiding:** Belgaleiro wil dat gasten aan tafel bestellen zonder meteen te betalen: alles op de rekening van de tafel, op het einde één betaling (één Stripe-kost in plaats van één per drankje). Akke 28-10: standaard bevestigt de bediening; automatisch bevestigen instelbaar met waarschuwing; robuust bij drukte, geen crashes. Plan: projectdoc `claude/horeca-werkplek-plan.md`, batch 3.
+
+**Root cause / vertrekpunt:**
+- Een QR-bestelling werd altijd een losse order die meteen betaald moest worden (`TableCheckout` in `sellqo-storefront` → `checkout_complete`). Er was geen weg van het QR-menu naar een rekening (`dining_checks`) op SellQo Kassa.
+
+**Uitgevoerd:**
+- **Migratie `20261028120000_qr_rekening_1.sql`:**
+  - `fulfillment_settings.qr_flow` ('order' standaard = gedrag zoals voorheen, 'check') en `qr_auto_accept` (standaard false);
+  - tabel `table_requests`: een tafelaanvraag is geen order (geen betaling, voorraad of omzet). Kolommen o.a. `items` (ter info, prijs uit het mandje), `status` pending/accepted/rejected, `reason`, `check_id`, `line_ids`;
+  - `table_request_place` (enkel service_role): idempotent op aanvraag-ID en op mandje (rijlock), rem 6/tafel/min, 10 openstaand per tafel, 300 per zaak; weigert op, inactief, niet aan tafel, inactieve variant, tickets/cadeaubonnen en mandjes met een lopende Stripe-sessie; zet het mandje op `converted`;
+  - `horeca_table_request_accept`: rijlock op de aanvraag + advisory lock per tafel, open hoofdrekening zoeken of openen, elke lijn via `horeca_apply_one` (prijs, btw, extra's uit de databank); idempotent, en bij een herhaling geeft hij de nog onverstuurde lijnen terug;
+  - `horeca_table_request_reject` met reden (sleutel of eigen tekst).
+- **`storefront-api`** (additief, akkoord Akke 28-10): `resolve_domain` geeft `qr_flow` mee; nieuwe acties `table_request_place` en `table_request_status`; `table_request_place` staat in `CLOSED_SHOP_BLOCKED_ACTIONS`. Versiestempel `QR-REKENING-1`.
+- **SellQo Kassa 0.8.0:**
+  - `horeca/requests.ts`, `horeca/autoAccept.ts`, `screens/RequestInbox.tsx`: inbox per tafel (oudste eerst), "Alles op de rekening", per aanvraag eigen status en fout; bevestigen = RPC → refresh → `sendRound` met enkel de lijnen van de aanvraag (`fiscalLines.roundLines/roundSpecs(c, only)`);
+  - automatisch bevestigen: één toestel werkt de achterstand af, één tegelijk; enkel tafels uit het zaalplan;
+  - `store.ts` haalt de aanvragen op samen met de rekeningen; een fout daarbij houdt de vorige lijst en blokkeert de rekeningen niet;
+  - `TablesScreen`: oranje tegel met "QR n".
+- **Admin:** `QrModeSettings` (Bestellen › QR-menu): keuze "Op de tafelrekening" / "Elke bestelling apart afrekenen" en de schakelaar automatisch bevestigen met waarschuwing. `HorecaPaySettings` toont bij 'check' dat er aan de kassa afgerekend wordt.
+- **`sellqo-storefront`:** `TableCheckRequest.tsx` (nieuw): doorgeven zonder betaling, één aanvraag-ID per bestelling (hergebruikt bij een nieuwe poging), stand per bestelling met afnemende polling (3/10/30 s), bewaard in de browser. Knoppen "Bestelling doorgeven" in mandje en lade. Rem per IP (8/min) in de server function.
+- i18n `kassa.requests.*` en `admin.qrFlow.*` in 5 talen; changelog 2026.13z `horeca_qr_tab`; helpartikels (migratie `20261028121000`); nieuwsbrief-item.
+- CI: `requests.test.tsx` in de vitest-stap, `tableRequest.test.ts` in de deno-stap.
+
+**Security-keuzes:**
+- `table_requests`: geen anon; lezen voor leden; geen schrijfrechten voor clients. Plaatsen enkel via service_role (storefront-api), bevestigen/weigeren met `has_tenant_role` (tenant_admin, staff) en de medewerkercontrole van `horeca_apply_one`. Alle functies `security definer` met `search_path = ''`.
+- Status opvragen kan enkel met de (onraadbare) aanvraag-ID en enkel binnen de zaak.
+- Een vrij tafelnummer kan iedereen typen: daarom geen automatisch bevestigen zonder zaalplan, plus remmen per tafel, per zaak en per IP.
+
+**Gedeelde paden:** `storefront-api` (gedeeld met de custom frontends): enkel twee nieuwe acties en één nieuw veld in `resolve_domain`; bestaande acties en contracten ongewijzigd. `fulfillment_settings` krijgt twee kolommen met een default die het oude gedrag behoudt. `tenant_theme_settings` niet geraakt.
+
+**Review (geld/fiscaal, aparte agent):**
+- Ronde 1, 4 majors en 6 minors, allemaal verwerkt behalve 2 kleine (zie Vervolg):
+  - M1, extra's dubbel in het getoonde bedrag;
+  - M2, lijnen konden onverstuurd blijven na een verloren antwoord;
+  - M3, automatisch bevestigen bleef hangen bij een achterstand;
+  - M4, remmen te omzeilen met verzonnen tafelnummers.
+- Ronde 2: geen blockers, 2 majors en 3 minors, allemaal verwerkt:
+  - opnieuw versturen kon op een GKS-kassa een tweede P/ORDER voor dezelfde lijnen ondertekenen. Nu verstuurt enkel het toestel dat bevestigde; een ander toestel meldt na 30 s dat er nog lijnen wachten (versturen vanaf de rekening);
+  - de IP-rem trof alle gasten op de wifi van de zaak samen. Nu per IP + tafel, 30/min, en enkel `cf-connecting-ip`;
+  - automatisch bevestigen stopt bij vergrendelen of wisselen van medewerker; een mandje met een oude Stripe-sessie wordt losgelaten; de stand-polling stopt na 45 min.
+
+**Verificatie:**
+- `npx vitest run src/kassa`: 280 groen (14 nieuwe tests: aanvragen, inbox, opnieuw versturen per toestel, automatisch bevestigen).
+- Migraties offline geparsed (pglast, ook de plpgsql-bodies); alle verwezen kolommen, functies en de enum `app_role` live nagetrokken.
+- deno: `tableRequest.test.ts` + `event409` + `resolve`: 15 groen; `deno check` storefront-api ok.
+- tsc gelijk aan de baseline; lint onder de baseline; i18n-pariteit, used keys en dode knoppen ok.
+- `sellqo-storefront`: `tsc` en `vite build` groen.
+- Live: nog niet gedraaid (wacht op go).
+
+**Bewust ongemoeid / Vervolg:**
+- Geen `horeca_commands`-rij per bevestiging (audit van commando's), en een rekening die de bediening onder een andere naam opende, wordt niet herkend als die van de tafel (enkel zonder zaalplan). Extra's worden pas bij bevestigen nagekeken.
+- Afrekenen online van de tafelrekening, ook gesplitst: REKENING-ONLINE-1.
+
 ## BETAAL-1 — betaalinstellingen per zaak en overschrijving (EPC-QR) in SellQo Kassa (kassa 0.7.0) — 28 oktober 2026
 
 **Aanleiding:** eerste horecaklant (Belgaleiro) heeft geen terminal: cash + overschrijving via QR. Akke 28-10: alles instelbaar, geen maatwerk; groeien (terminal erbij) = schakelaar. Plan: projectdoc `claude/horeca-werkplek-plan.md`.

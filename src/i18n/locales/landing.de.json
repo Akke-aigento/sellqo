@@ -2279,6 +2279,10 @@
         "horeca_payments_transfer": {
           "title": "Zahlungen pro Betrieb einstellen und per Überweisung abrechnen",
           "description": "Unter Kasse › Bezahlen wählen Sie, welche Zahlungsarten SellQo Kassa zeigt: bar, Überweisung, Essensgutscheine und Gutscheine. Sie legen auch fest, ob Sie ein Kartenterminal haben und ob Sie Trinkgeld anbieten. Ohne Terminal verschwindet \"Karte\". Bei einer Überweisung zeigt die Kasse einen QR-Code mit Betrag, Ihrer Kontonummer und einem Verwendungszweck. Der Kunde scannt ihn mit seiner Banking-App, und Sie bestätigen, dass die Zahlung geklappt hat. Wie Gäste über den QR-Code am Tisch bezahlen, stellen Sie jetzt ebenfalls dort ein. Im Tagesbericht steht die Überweisung als eigene Zahlungsart."
+        },
+        "horeca_qr_tab": {
+          "title": "Am Tisch per QR bestellen, auf die Tischrechnung",
+          "description": "Unter Bestellen › QR-Menü wählen Sie jetzt, ob eine Bestellung über den QR-Code am Tisch sofort bezahlt wird oder auf die Tischrechnung kommt. Bei der Tischrechnung gibt der Gast seine Bestellung ohne Bezahlung weiter. SellQo Kassa zeigt eine orange Schaltfläche mit der Zahl der wartenden Bestellungen; mit einem Tippen setzen Sie alles eines Tisches auf die Rechnung und schicken es als Runde an Küche und Bar. Lehnen Sie ab, sieht der Gast den Grund. Der Tisch bezahlt am Ende alles zusammen. Automatisches Bestätigen ist möglich, aber standardmäßig aus."
         }
       },
       "copyLink": "Link kopieren",

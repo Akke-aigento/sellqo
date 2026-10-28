@@ -2279,6 +2279,10 @@
         "horeca_payments_transfer": {
           "title": "Betalen instellen per zaak, en afrekenen met een overschrijving",
           "description": "Onder Kassa › Betalen kies je welke betaalwijzen SellQo Kassa toont: contant, overschrijving, maaltijdcheques en bonnen. Je kiest er ook of je een betaalterminal hebt en of je fooi aanbiedt. Zonder terminal verdwijnt \"kaart\". Bij een overschrijving toont de kassa een QR-code met het bedrag, je rekeningnummer en een mededeling. De klant scant die met zijn bankapp en jij bevestigt dat de betaling gelukt is. Ook hoe gasten aan tafel via de QR afrekenen, stel je nu daar in. In het dagrapport staat overschrijving als aparte betaalwijze."
+        },
+        "horeca_qr_tab": {
+          "title": "Bestellen aan tafel via de QR, op de tafelrekening",
+          "description": "Je kiest nu onder Bestellen › QR-menu of een bestelling via de QR-code op tafel meteen betaald wordt, of op de tafelrekening komt. Op de tafelrekening geeft de gast zijn bestelling door zonder te betalen. Op SellQo Kassa verschijnt een oranje knop met het aantal wachtende bestellingen; met één tik zet je alles van een tafel op de rekening en gaat het als ronde naar keuken en bar. Weiger je, dan ziet de gast de reden. De tafel betaalt op het einde alles samen. Automatisch bevestigen kan, maar staat standaard uit."
         }
       },
       "copyLink": "Kopieer link",

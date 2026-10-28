@@ -8882,6 +8882,17 @@
       "qr_set_in_pay": "Réglable dans Caisse › Paiements",
       "saved": "Réglages de paiement enregistrés",
       "save_failed": "Échec de l'enregistrement : {{reason}}"
+    },
+    "qrFlow": {
+      "title": "Où va une commande à table ?",
+      "check_title": "Sur l'addition de la table (recommandé)",
+      "check_desc": "Le personnel confirme la commande sur la caisse ; elle arrive sur l'addition de la table. Le client paie à la fin, tout ensemble.",
+      "order_title": "Payer chaque commande séparément",
+      "order_desc": "Chaque commande est une commande séparée que le client paie tout de suite (au comptoir ou en ligne).",
+      "auto_title": "Confirmer automatiquement",
+      "auto_desc": "Une caisse ouverte met directement les nouvelles commandes sur l'addition, sans que personne ne touche Confirmer. Uniquement pour les tables de votre plan de salle (chacune avec son propre code QR).",
+      "auto_warning": "Attention : personne ne vérifie la commande d'abord. Si un article est épuisé ou en cas de problème, le personnel doit corriger l'addition après coup. N'activez ceci que si vous suivez bien votre stock (marquez les produits « Épuisé » sur la Carte).",
+      "pay_on_check": "Les commandes à table arrivent sur l'addition : le client paie à la fin, à la caisse (espèces, virement, …). Réglable dans Commander › Menu QR."
     }
   },
   "billing": {
@@ -11124,6 +11135,26 @@
       "pickApprover": "Choisissez qui approuve",
       "pin": "Code PIN",
       "noApprovers": "Il n’y a pas encore de propriétaire ou de responsable avec un code PIN. Configurez-le sous Personnel."
+    },
+    "requests": {
+      "button": "QR · {{count}}",
+      "title": "Commandes à table ({{count}})",
+      "table": "Table {{label}}",
+      "waiting": "attend depuis {{min}} min",
+      "acceptAll": "Tout sur l'addition ({{count}})",
+      "ago": "il y a {{min}} min",
+      "error": "Échec : {{error}}",
+      "accept": "Sur l'addition",
+      "reject": "Refuser",
+      "notSent": "Table {{table}} : ajouté à l'addition, mais pas encore envoyé ({{reason}}). Envoyez la tournée depuis l'addition.",
+      "autoFailed": "Table {{table}} : la confirmation automatique a échoué ({{error}}). La commande est dans la boîte de réception.",
+      "badge": "QR {{count}}",
+      "reason": {
+        "soldOut": "Un article est épuisé",
+        "kitchenClosed": "La cuisine est fermée",
+        "askStaff": "Demandez au personnel",
+        "other": "Autre raison"
+      }
     }
   }
 }
