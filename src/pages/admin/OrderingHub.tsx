@@ -23,7 +23,8 @@ import { FloorPlanEditor } from '@/components/admin/floorplan/FloorPlanEditor';
 import { PrepStationsManager } from '@/components/admin/horeca/PrepStationsManager';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { useTranslation } from 'react-i18next';
-import { ModuleOffCard } from '@/components/admin/ModuleOffCard';
+import { ModuleGateLoading, ModuleOffCard } from '@/components/admin/ModuleOffCard';
+import { useTracks } from '@/hooks/useBusinessModules';
 import { KaartManager } from '@/components/admin/horeca/kaart/KaartManager';
 
 // KAART-4 — de Kaart staat vooraan en is de standaardtab: dat is wat een barman hier het vaakst
@@ -165,11 +166,13 @@ function Overview({ go }: { go: (t: Tab) => void }) {
 export default function OrderingHubPage() {
   const { t } = useTranslation();
   const horeca = useHorecaModule();
+  const { ready } = useTracks();
   const [params, setParams] = useSearchParams();
   const raw = params.get('tab');
   const tab: Tab = TABS.some((tb) => tb.id === raw) ? (raw as Tab) : DEFAULT_TAB;
   const go = (t: Tab) => setParams((p) => { const n = new URLSearchParams(p); if (t === DEFAULT_TAB) n.delete('tab'); else n.set('tab', t); return n; }, { replace: true });
 
+  if (!ready) return <ModuleGateLoading />;
   if (!horeca) return <ModuleOffCard module="horeca" />;
 
   return (

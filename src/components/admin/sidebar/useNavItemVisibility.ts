@@ -31,7 +31,7 @@ export function useNavItemVisibility() {
   const { isPageHidden, isFeatureGranted } = useTenantPageOverrides();
   const { subscription } = useTenantSubscription();
   const { isAdminView } = usePlatformViewMode();
-  const { hasTrack } = useTracks();
+  const { hasTrack, ready: tracksReady } = useTracks();
 
 
   // H4a — whitelist via permissie-matrix. Filter rollen per-tenant (matcht
@@ -126,11 +126,12 @@ export function useNavItemVisibility() {
     (item: NavItem): boolean =>
       isResourceHidden(item.requireRead) ||
       // TRACKS-1 — buiten de sporen van de winkel (platformadmin in beheerweergave ziet alles).
-      !tracksAllow(item.tracks, hasTrack) ||
+      // WANDELING: zolang de sporen laden enkel kernitems, anders flitst het webshopmenu bij een horecazaak.
+      !(tracksReady ? tracksAllow(item.tracks, hasTrack) : !item.tracks?.length) ||
       isItemRoleHidden(item) ||
       isItemFeatureHidden(item) ||
       isItemPageOverridden(item),
-    [isResourceHidden, hasTrack, isItemRoleHidden, isItemFeatureHidden, isItemPageOverridden],
+    [isResourceHidden, hasTrack, tracksReady, isItemRoleHidden, isItemFeatureHidden, isItemPageOverridden],
   );
 
   /** `isItemBlocked` plus de persoonlijke voorkeuren. Voor de zijbalk. */

@@ -2,7 +2,7 @@
 // Add-ons zijn betalend: de winkel ziet uitleg en een link naar de pakketten; alleen een
 // platformadmin kan het hier meteen aanzetten (de database weigert het voor anderen).
 import { Link } from 'react-router-dom';
-import { Lock } from 'lucide-react';
+import { Loader2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -38,6 +38,15 @@ export function ModuleOffCard({ module }: { module: BusinessModule }) {
           )}
         </CardContent>
       </Card>
+    </div>
+  );
+}
+
+/** WANDELING: zolang winkel en pakket laden, een spinner in plaats van "Niet in je pakket". */
+export function ModuleGateLoading() {
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
     </div>
   );
 }

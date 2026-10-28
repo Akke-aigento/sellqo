@@ -2,10 +2,11 @@
 // Zonder module toont de route de vriendelijke "module staat uit"-kaart.
 import type { ReactNode } from 'react';
 import { useBusinessModules } from '@/hooks/useBusinessModules';
-import { ModuleOffCard } from '@/components/admin/ModuleOffCard';
+import { ModuleGateLoading, ModuleOffCard } from '@/components/admin/ModuleOffCard';
 
 export function EventsModuleGate({ children }: { children: ReactNode }) {
-  const { has } = useBusinessModules();
+  const { has, ready } = useBusinessModules();
+  if (!ready) return <ModuleGateLoading />;
   if (!has('events')) return <ModuleOffCard module="events" />;
   return <>{children}</>;
 }

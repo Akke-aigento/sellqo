@@ -38,7 +38,7 @@ export function useTracks() {
   const { isAdminView } = usePlatformViewMode();
   const { isFeatureGranted } = useTenantPageOverrides();
   const { subscription, isLoading } = useTenantSubscription();
-  const { currentTenant } = useTenant();
+  const { currentTenant, loading: tenantLoading } = useTenant();
 
   const bypass = isPlatformAdmin && isAdminView;
   const tracks = tenantTracks({
@@ -50,7 +50,12 @@ export function useTracks() {
 
   const hasTrack = useCallback((t: Track): boolean => bypass || tracks.includes(t), [bypass, tracks]);
 
-  return { tracks, planTrack, hasTrack, ready: !isLoading || !currentTenant, bypass };
+  // WANDELING (29-10): ook wachten op de winkel zelf. Met enkel `!currentTenant` was ready true zolang de
+  // winkel nog laadde, en flitste "Niet in je pakket" (en het webshopmenu) bij elke paginalading.
+  // Met een winkel: wachten op het abonnement (zoals voorheen; een refreshTenants verandert daar niets aan,
+  // zodat een pagina niet wegspringt). Zonder winkel: pas klaar als de winkels geladen zijn.
+  const ready = currentTenant ? !isLoading : !tenantLoading;
+  return { tracks, planTrack, hasTrack, ready, bypass };
 }
 
 /** Antwoord uit een niet-2xx-antwoord van een edge function (FunctionsHttpError). */
@@ -66,7 +71,7 @@ export function useBusinessModules() {
   const { t } = useTranslation();
   const { isPlatformAdmin } = useAuth();
   const { currentTenant, refreshTenants } = useTenant();
-  const { hasTrack, planTrack, tracks } = useTracks();
+  const { hasTrack, planTrack, tracks, ready } = useTracks();
   const [saving, setSaving] = useState(false);
   const chosen = tenantModules(currentTenant);
 
@@ -117,5 +122,5 @@ export function useBusinessModules() {
     return true;
   }, [currentTenant?.id, refreshTenants, t, isPlatformAdmin]);
 
-  return { has, chosen, setModule, saving, planTrack, tracks, canManage: isPlatformAdmin };
+  return { has, ready, chosen, setModule, saving, planTrack, tracks, canManage: isPlatformAdmin };
 }

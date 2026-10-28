@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useBusinessModules } from '@/hooks/useBusinessModules';
-import { ModuleOffCard } from '@/components/admin/ModuleOffCard';
+import { ModuleGateLoading, ModuleOffCard } from '@/components/admin/ModuleOffCard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -78,7 +78,8 @@ export default function EventDashboard() {
   const { t, i18n } = useTranslation();
   const [showPast, setShowPast] = useState(false);
   const [doorOpen, setDoorOpen] = useState(false);
-  const eventsModule = useBusinessModules().has('events');
+  const { has: hasModule, ready: modulesReady } = useBusinessModules();
+  const eventsModule = hasModule('events');
 
   // Events binnen het venster (middernacht-veilige ondergrens).
   const { data: events = [], isLoading } = useQuery({
@@ -145,6 +146,7 @@ export default function EventDashboard() {
     refetchInterval: 30000,
   });
 
+  if (!modulesReady) return <ModuleGateLoading />;
   if (!eventsModule) return <ModuleOffCard module="events" />;
 
   return (
