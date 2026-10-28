@@ -57,6 +57,26 @@
 - Kassa (POS) › Kassa's en Bestellen › Overzicht krijgen dezelfde stijl in WANDELING.
 - "Till" vs "POS" in het Engels: voorstel om overal "POS" te gebruiken, ook in WANDELING.
 
+## MELDING-1b — web push naar iPhone geweigerd (BadWebPushTopic) — 28 oktober 2026
+
+**Root cause:** `_shared/webpush.ts` zette de tag als Topic-header (`sq-ticket-default`, 17 tekens). Apple (web.push.apple.com) aanvaardt alleen een geldige base64url-lengte en gaf `400 {"reason":"BadWebPushTopic"}`. Die fout stond in de functielogs; `net._http_response` toonde alleen `web_failed: 1`. Persoonlijke meldingen werkten wel, omdat hun topic (uuid afgekapt op 32) toevallig geldig was.
+
+**Uitgevoerd:**
+- `_shared/webpush.ts`: `webPushTopic(tag)` geeft de eerste 16 bytes van SHA-256 in hex, altijd 32 tekens. Een tag geeft altijd hetzelfde topic, dus het samenvoegen blijft werken.
+- Nieuwe test in `horecaPush.test.ts`.
+- Versiestempels `horeca-device-push` en `send-push-notification` naar `MELDING-1b`, ook in `scripts/promo-compare/horecaDevicePush.test.ts`.
+
+**Security-keuzes:** n.v.t.
+
+**Gedeelde-paden-waarschuwing:** `webpush.ts` wordt ook gebruikt door `send-push-notification`. Het topic voor persoonlijke meldingen verandert mee, maar blijft uniek per melding. Er is geen gedragsverschil voor de gebruiker.
+
+**Verificatie:**
+- Live stempels: allebei `MELDING-1b`.
+- Testbon in test-horeca-small: vóór de fix `web_failed: 1`, na de fix `web_sent: 1`. De testbonnen zijn daarna geannuleerd.
+- CI groen op `dbe9b5e`. De eerste run (`2b81aff`) faalde omdat ik bij de stempelbump scripts/promo-compare niet had nagekeken.
+
+**Vervolg:** Akke's iPhone staat als profiel "Kitchen screen" (station, persoonlijk uit). Voor dagelijks gebruik als gsm: profiel "Gsm" kiezen.
+
 ## MELDING-1 — meldingen per toestel en per post (kassa, keuken, bar), kassa 0.10.0 — 28 oktober 2026
 
 **Root cause:**
