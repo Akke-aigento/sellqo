@@ -6,8 +6,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { addDays, format } from 'date-fns';
-import { CheckCheck, Link2, Loader2, Sparkles } from 'lucide-react';
+import { format } from 'date-fns';
+import { ChevronsDownUp, ChevronsUpDown, Link2, Loader2, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { PageHeader } from '@/components/ui/page-header';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -23,8 +23,9 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { GatedButton } from '@/components/permissions/GatedButton';
 import { SocialPlannerCard } from '@/components/admin/marketing/social/SocialPlannerCard';
+import { SocialPlannerWeek } from '@/components/admin/marketing/social/SocialPlannerWeek';
+import { weekKind, weekNeedsAction } from '@/lib/social/weeks';
 import { SocialImageTextEditor } from '@/components/admin/marketing/social/SocialImageTextEditor';
 import { SocialMediaViewer } from '@/components/admin/marketing/social/SocialMediaViewer';
 import { SocialTranslateDialog } from '@/components/admin/marketing/social/SocialTranslateDialog';
@@ -37,7 +38,7 @@ import { SocialChannels } from '@/components/admin/marketing/social/SocialChanne
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { postMedia } from '@/lib/social/media';
 import { useTenant } from '@/hooks/useTenant';
-import { useSocialPlanner, type PlannerPost } from '@/hooks/useSocialPlanner';
+import { useSocialPlanner, type PlannerPost, type PlannerWeek } from '@/hooks/useSocialPlanner';
 import { useSocialChannelStatus } from '@/hooks/useSocialChannelStatus';
 import { useDateFnsLocale } from '@/hooks/useDateFnsLocale';
 import { useCan } from '@/hooks/useCan';
@@ -86,6 +87,37 @@ export default function SocialPlanner() {
     if (next.get('tab') === 'create') next.delete('tab');
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams, showAI]);
+
+  // SOCIAL-WEEKS-1: welke weken open staan. Standaard deze week en weken die actie vragen;
+  // wat je zelf open- of dichtklapt, onthoudt de browser per winkel (enkel gemak, geen data).
+  const weeksStorageKey = currentTenant?.id ? `sellqo.socialPlanner.openWeeks.${currentTenant.id}` : null;
+  const [weekOverrides, setWeekOverrides] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (!weeksStorageKey) return;
+    try {
+      const raw = window.localStorage.getItem(weeksStorageKey);
+      setWeekOverrides(raw ? JSON.parse(raw) : {});
+    } catch {
+      setWeekOverrides({});
+    }
+  }, [weeksStorageKey]);
+  const saveWeekOverrides = useCallback((next: Record<string, boolean>) => {
+    setWeekOverrides(next);
+    if (!weeksStorageKey) return;
+    try {
+      window.localStorage.setItem(weeksStorageKey, JSON.stringify(next));
+    } catch {
+      // opslag niet beschikbaar: enkel voor deze sessie onthouden
+    }
+  }, [weeksStorageKey]);
+  const isWeekOpen = useCallback((week: PlannerWeek) =>
+    weekOverrides[week.weekStart] ?? (weekKind(week.weekStart) === 'this' || weekNeedsAction(week)),
+  [weekOverrides]);
+  const setWeekOpen = (weekStart: string, open: boolean) =>
+    saveWeekOverrides({ ...weekOverrides, [weekStart]: open });
+  const allOpen = useMemo(() => weeks.length > 0 && weeks.every(isWeekOpen), [weeks, isWeekOpen]);
+  const setAllWeeksOpen = (open: boolean) =>
+    saveWeekOverrides(Object.fromEntries(weeks.map((w) => [w.weekStart, open])));
 
   const [busyId, setBusyId] = useState<string | null>(null);
   const [editing, setEditing] = useState<PlannerPost | null>(null);
@@ -257,10 +289,20 @@ export default function SocialPlanner() {
         </Alert>
       )}
 
-      {pendingCount > 0 && (
-        <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-          {t('admin.socialPlanner.waiting', { count: pendingCount })}
-        </p>
+      {(pendingCount > 0 || weeks.length > 1) && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          {pendingCount > 0 ? (
+            <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
+              {t('admin.socialPlanner.waiting', { count: pendingCount })}
+            </p>
+          ) : <span />}
+          {weeks.length > 1 && (
+            <Button variant="ghost" size="sm" onClick={() => setAllWeeksOpen(!allOpen)}>
+              {allOpen ? <ChevronsDownUp className="h-4 w-4 mr-1" /> : <ChevronsUpDown className="h-4 w-4 mr-1" />}
+              {t(allOpen ? 'admin.socialPlanner.weekGroup.collapseAll' : 'admin.socialPlanner.weekGroup.expandAll')}
+            </Button>
+          )}
+        </div>
       )}
 
       {isLoading ? (
@@ -273,31 +315,16 @@ export default function SocialPlanner() {
         </p>
       ) : (
         weeks.map((week) => {
-          const start = new Date(week.weekStart);
           const weekBusy = busyId === `week:${week.pendingIds.join(',')}`;
           return (
-            <section key={week.weekStart} className="space-y-3">
-              <div className="py-2 flex flex-wrap items-center justify-between gap-2 border-b">
-                <h2 className="text-base font-semibold">
-                  {t('admin.socialPlanner.week', {
-                    from: format(start, 'd MMM', { locale }),
-                    to: format(addDays(start, 6), 'd MMM', { locale }),
-                  })}
-                </h2>
-                {week.pendingIds.length > 0 && (
-                  <GatedButton
-                    action="write"
-                    resource="marketing"
-                    size="sm"
-                    onClick={() => handleApprove(week.pendingIds, true)}
-                    disabled={weekBusy}
-                  >
-                    {weekBusy ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <CheckCheck className="h-4 w-4 mr-1" />}
-                    {t('admin.socialPlanner.approveWeek', { count: week.pendingIds.length })}
-                  </GatedButton>
-                )}
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <SocialPlannerWeek
+              key={week.weekStart}
+              week={week}
+              open={isWeekOpen(week)}
+              onOpenChange={(open) => setWeekOpen(week.weekStart, open)}
+              busy={weekBusy}
+              onApproveWeek={() => handleApprove(week.pendingIds, true)}
+            >
                 {week.posts.map((post) => (
                   <SocialPlannerCard
                     key={post.id}
@@ -316,8 +343,7 @@ export default function SocialPlanner() {
                     media={mediaOf(post)}
                   />
                 ))}
-              </div>
-            </section>
+            </SocialPlannerWeek>
           );
         })
       )}

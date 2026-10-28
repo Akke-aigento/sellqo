@@ -8104,6 +8104,13 @@
         "button": "Publication avec l’IA",
         "title": "Publication avec l’IA",
         "description": "L’IA rédige une publication pour votre boutique. Vous choisissez le moment ; la publication arrive dans votre planning et n’est mise en ligne qu’après votre approbation."
+      },
+      "weekGroup": {
+        "thisWeek": "Cette semaine",
+        "nextWeek": "Semaine prochaine",
+        "past": "Passée",
+        "expandAll": "Tout déplier",
+        "collapseAll": "Tout replier"
       }
     },
     "aiCredits": {

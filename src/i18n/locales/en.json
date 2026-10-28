@@ -8377,6 +8377,13 @@
         "button": "Post with AI",
         "title": "Post with AI",
         "description": "AI writes a post for your shop. You pick the moment; the post goes into your planning and only goes live once you approve it."
+      },
+      "weekGroup": {
+        "thisWeek": "This week",
+        "nextWeek": "Next week",
+        "past": "Past",
+        "expandAll": "Expand all",
+        "collapseAll": "Collapse all"
       }
     },
     "aiCredits": {

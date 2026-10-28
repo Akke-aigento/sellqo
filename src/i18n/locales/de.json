@@ -8104,6 +8104,13 @@
         "button": "Beitrag mit KI",
         "title": "Beitrag mit KI",
         "description": "Die KI schreibt einen Beitrag für Ihren Shop. Sie wählen den Zeitpunkt; der Beitrag landet in Ihrer Planung und geht erst online, wenn Sie ihn genehmigen."
+      },
+      "weekGroup": {
+        "thisWeek": "Diese Woche",
+        "nextWeek": "Nächste Woche",
+        "past": "Vorbei",
+        "expandAll": "Alle aufklappen",
+        "collapseAll": "Alle zuklappen"
       }
     },
     "aiCredits": {

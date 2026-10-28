@@ -1,3 +1,25 @@
+## SOCIAL-WEEKS-1 — Social planning: weken toeklapbaar, met samenvatting per status — 28 oktober 2026
+
+**Aanleiding:** Akke 28-10: "reeds geposte weken en aankomende weken toeklapbaar, nu is het niet overzichtelijk."
+
+**Root cause:** `src/pages/admin/SocialPlanner.tsx` toonde elke week (vanaf vorige week, plus oudere posts die actie vragen) altijd volledig open, met alle kaarten. Bij vijf merken met 7–10 items per week werd dat een lange scroll.
+
+**Uitgevoerd:**
+- `src/components/admin/marketing/social/SocialPlannerWeek.tsx` (nieuw): één week als `Collapsible`. Kop: chevron, "Week van … tot …", label Deze week / Volgende week / Voorbij, en per status een telling (mislukt, wacht op goedkeuring, opnieuw maken, zelf posten, ingepland, gepubliceerd; labels = de bestaande `admin.socialPlanner.status.*`). "Week goedkeuren" blijft in de kop, ook als de week dicht is.
+- `src/lib/social/weeks.ts` (nieuw): `weekKind` en `weekNeedsAction`.
+- `src/pages/admin/SocialPlanner.tsx`: weken via `SocialPlannerWeek`; standaard open = deze week + elke week met iets om goed te keuren, iets mislukt of iets dat opnieuw gemaakt wordt. Wat je zelf open- of dichtklapt, onthoudt de browser per winkel (`localStorage`, met try/catch; enkel gemak). Knop "Alles openklappen / dichtklappen".
+- i18n: `admin.socialPlanner.weekGroup.*` in nl, en, fr, de, uk.
+
+**Security-keuzes:** n.v.t. Geen query, RLS of mutatie gewijzigd; enkel weergave. `localStorage` bevat enkel weekdatums en open/dicht.
+
+**Gedeelde-paden-waarschuwing:** geen. Enkel de admin-pagina Social planning (achter `granted_features` 'social_planner'); geen storefront, gedeelde tabel of edge function.
+
+**Verificatie:** eslint op de drie bestanden: 0 fouten, 0 waarschuwingen. `tsc --noEmit -p tsconfig.app.json`: geen fouten in deze bestanden (27 bestaande fouten elders, door een lokale installatie zonder lockfile). `vite build`: ok. `i18n-parity`: volledige pariteit. Weergave nagekeken op 390 en 1280 px met testdata (vorige, deze, volgende en latere week).
+
+**Bewust ongemoeid / Vervolg:**
+- Geen publieke changelog, nieuwsbrief of `doc_articles`: Social planning is (nog) geen klantfeature (masterplan socials, 19-10) en enkel zichtbaar voor de vijf eigen merken.
+- Hoeveel weken terug de pagina ophaalt, is ongewijzigd (vanaf vorige week + openstaande oudere posts).
+
 ## KAART-LOOK-1 — de Kaart overzichtelijker: twee regels per product, knopjes met tekst — 28 oktober 2026
 
 **Root cause:**

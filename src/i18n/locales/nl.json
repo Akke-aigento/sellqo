@@ -8391,6 +8391,13 @@
         "button": "Post met AI",
         "title": "Post met AI",
         "description": "AI schrijft een post voor je winkel. Je kiest zelf het moment; de post komt in de planning en gaat pas online als je hem goedkeurt."
+      },
+      "weekGroup": {
+        "thisWeek": "Deze week",
+        "nextWeek": "Volgende week",
+        "past": "Voorbij",
+        "expandAll": "Alles openklappen",
+        "collapseAll": "Alles dichtklappen"
       }
     },
     "aiCredits": {
