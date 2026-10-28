@@ -9344,6 +9344,31 @@
       "no_station_row": "Bonnen zonder post",
       "no_station_hint_none": "Je hebt geen posten: alle keukenbonnen gaan naar deze printer.",
       "no_station_hint_rest": "Voor bonnen die bij geen post horen (je hebt geen standaardpost)."
+    },
+    "posToasts": {
+      "terminal_created": "Kassa aangemaakt",
+      "terminal_updated": "Kassa bijgewerkt",
+      "terminal_deleted": "Kassa verwijderd",
+      "day_opened": "Dag geopend",
+      "day_opened_desc": "De kassadag is gestart.",
+      "day_closed": "Dag afgesloten",
+      "day_closed_desc": "De kassadag is afgesloten.",
+      "sale_done": "Verkoop voltooid",
+      "sale_cancelled": "Transactie geannuleerd",
+      "refund_done": "Retour verwerkt",
+      "refund_done_desc": "De transactie is succesvol geretourneerd.",
+      "refund_error": "Fout bij retour",
+      "cash_move_done": "Kasmutatie geregistreerd",
+      "quick_added": "Snelknop toegevoegd",
+      "quick_removed": "Snelknop verwijderd",
+      "cart_parked": "Winkelwagen geparkeerd",
+      "cart_resumed": "Winkelwagen hervat",
+      "cart_parked_deleted": "Geparkeerde winkelwagen verwijderd",
+      "error": "Fout",
+      "delete_title": "Kassa {{name}} verwijderen?",
+      "delete_body": "Toestellen die met deze kassa werken, moeten daarna een andere kassa kiezen. Dit kan je niet ongedaan maken.",
+      "delete_confirm": "Verwijderen",
+      "cancel": "Annuleren"
     }
   },
   "product_form": {

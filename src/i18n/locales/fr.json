@@ -9057,6 +9057,31 @@
       "no_station_row": "Tickets sans poste",
       "no_station_hint_none": "Vous n'avez pas de postes : tous les tickets de cuisine vont vers cette imprimante.",
       "no_station_hint_rest": "Pour les tickets qui n'appartiennent à aucun poste (pas de poste par défaut)."
+    },
+    "posToasts": {
+      "terminal_created": "Caisse créée",
+      "terminal_updated": "Caisse mise à jour",
+      "terminal_deleted": "Caisse supprimée",
+      "day_opened": "Journée ouverte",
+      "day_opened_desc": "La journée de caisse a commencé.",
+      "day_closed": "Journée clôturée",
+      "day_closed_desc": "La journée de caisse est clôturée.",
+      "sale_done": "Vente terminée",
+      "sale_cancelled": "Transaction annulée",
+      "refund_done": "Retour traité",
+      "refund_done_desc": "La transaction a été retournée.",
+      "refund_error": "Échec du retour",
+      "cash_move_done": "Mouvement de caisse enregistré",
+      "quick_added": "Bouton rapide ajouté",
+      "quick_removed": "Bouton rapide supprimé",
+      "cart_parked": "Panier mis en attente",
+      "cart_resumed": "Panier repris",
+      "cart_parked_deleted": "Panier en attente supprimé",
+      "error": "Erreur",
+      "delete_title": "Supprimer la caisse {{name}} ?",
+      "delete_body": "Les appareils qui utilisent cette caisse devront en choisir une autre. Action irréversible.",
+      "delete_confirm": "Supprimer",
+      "cancel": "Annuler"
     }
   },
   "billing": {

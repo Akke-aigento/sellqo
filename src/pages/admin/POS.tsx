@@ -30,6 +30,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HorecaNotifyDevices } from '@/components/admin/horeca/HorecaNotifyDevices';
@@ -67,6 +68,8 @@ export default function POSPage() {
   // LIVE-1 — hartslag van SellQo Kassa-toestellen per kassa.
   const { data: kassaDevices = [] } = useKassaDevices();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  // WANDELING: een kassa verwijderen gebeurde met één tik, zonder bevestiging.
+  const [toDelete, setToDelete] = useState<POSTerminal | null>(null);
   const [newTerminalName, setNewTerminalName] = useState('');
   const [newTerminalLocation, setNewTerminalLocation] = useState('');
 
@@ -223,7 +226,7 @@ export default function POSPage() {
                           {t('admin.translationHub.instellingen')}
                         </DropdownMenuItem>
                         <DropdownMenuItem 
-                          onClick={() => deleteTerminal.mutate(terminal.id)}
+                          onClick={() => setToDelete(terminal)}
                           className="text-destructive"
                         >
                           {t('common.delete')}
@@ -401,6 +404,21 @@ export default function POSPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!toDelete} onOpenChange={(o) => { if (!o) setToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('admin.posToasts.delete_title', { name: toDelete?.name ?? '' })}</AlertDialogTitle>
+            <AlertDialogDescription>{t('admin.posToasts.delete_body')}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t('admin.posToasts.cancel')}</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => { if (toDelete) deleteTerminal.mutate(toDelete.id); setToDelete(null); }}>
+              {t('admin.posToasts.delete_confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

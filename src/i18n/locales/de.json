@@ -9057,6 +9057,31 @@
       "no_station_row": "Bons ohne Station",
       "no_station_hint_none": "Du hast keine Stationen: Alle Küchenbons gehen an diesen Drucker.",
       "no_station_hint_rest": "Für Bons, die zu keiner Station gehören (du hast keine Standardstation)."
+    },
+    "posToasts": {
+      "terminal_created": "Kasse angelegt",
+      "terminal_updated": "Kasse aktualisiert",
+      "terminal_deleted": "Kasse gelöscht",
+      "day_opened": "Tag geöffnet",
+      "day_opened_desc": "Der Kassentag hat begonnen.",
+      "day_closed": "Tag abgeschlossen",
+      "day_closed_desc": "Der Kassentag ist abgeschlossen.",
+      "sale_done": "Verkauf abgeschlossen",
+      "sale_cancelled": "Transaktion storniert",
+      "refund_done": "Rückgabe verarbeitet",
+      "refund_done_desc": "Die Transaktion wurde zurückgegeben.",
+      "refund_error": "Rückgabe fehlgeschlagen",
+      "cash_move_done": "Kassenbewegung erfasst",
+      "quick_added": "Schnelltaste hinzugefügt",
+      "quick_removed": "Schnelltaste entfernt",
+      "cart_parked": "Warenkorb geparkt",
+      "cart_resumed": "Warenkorb fortgesetzt",
+      "cart_parked_deleted": "Geparkter Warenkorb gelöscht",
+      "error": "Fehler",
+      "delete_title": "Kasse {{name}} löschen?",
+      "delete_body": "Geräte, die diese Kasse nutzen, müssen danach eine andere wählen. Das kann nicht rückgängig gemacht werden.",
+      "delete_confirm": "Löschen",
+      "cancel": "Abbrechen"
     }
   },
   "billing": {

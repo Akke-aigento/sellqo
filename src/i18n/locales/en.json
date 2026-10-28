@@ -9330,6 +9330,31 @@
       "no_station_row": "Tickets without a station",
       "no_station_hint_none": "You have no stations: all kitchen tickets go to this printer.",
       "no_station_hint_rest": "For tickets that belong to no station (you have no default station)."
+    },
+    "posToasts": {
+      "terminal_created": "POS terminal created",
+      "terminal_updated": "POS terminal updated",
+      "terminal_deleted": "POS terminal deleted",
+      "day_opened": "Day opened",
+      "day_opened_desc": "The sales day has started.",
+      "day_closed": "Day closed",
+      "day_closed_desc": "The sales day is closed.",
+      "sale_done": "Sale completed",
+      "sale_cancelled": "Transaction cancelled",
+      "refund_done": "Return processed",
+      "refund_done_desc": "The transaction was returned.",
+      "refund_error": "Return failed",
+      "cash_move_done": "Cash movement recorded",
+      "quick_added": "Quick button added",
+      "quick_removed": "Quick button removed",
+      "cart_parked": "Cart parked",
+      "cart_resumed": "Cart resumed",
+      "cart_parked_deleted": "Parked cart deleted",
+      "error": "Error",
+      "delete_title": "Delete POS terminal {{name}}?",
+      "delete_body": "Devices that use this terminal must then choose another one. This cannot be undone.",
+      "delete_confirm": "Delete",
+      "cancel": "Cancel"
     }
   },
   "product_form": {

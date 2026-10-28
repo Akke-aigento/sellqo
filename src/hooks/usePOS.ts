@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import i18n from 'i18next';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from './useTenant';
 import { useAuth } from './useAuth';
@@ -68,10 +69,10 @@ export function usePOSTerminals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-terminals', currentTenant?.id] });
-      toast({ title: 'Terminal aangemaakt' });
+      toast({ title: i18n.t('admin.posToasts.terminal_created') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -86,10 +87,10 @@ export function usePOSTerminals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-terminals', currentTenant?.id] });
-      toast({ title: 'Terminal bijgewerkt' });
+      toast({ title: i18n.t('admin.posToasts.terminal_updated') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -104,10 +105,10 @@ export function usePOSTerminals() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-terminals', currentTenant?.id] });
-      toast({ title: 'Terminal verwijderd' });
+      toast({ title: i18n.t('admin.posToasts.terminal_deleted') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -192,10 +193,10 @@ export function usePOSSessions(terminalId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['pos-active-session'] });
-      toast({ title: 'Dag geopend', description: 'De kassadag is gestart.' });
+      toast({ title: i18n.t('admin.posToasts.day_opened'), description: i18n.t('admin.posToasts.day_opened_desc') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -226,10 +227,10 @@ export function usePOSSessions(terminalId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-sessions'] });
       queryClient.invalidateQueries({ queryKey: ['pos-active-session'] });
-      toast({ title: 'Dag afgesloten', description: 'De kassadag is afgesloten.' });
+      toast({ title: i18n.t('admin.posToasts.day_closed'), description: i18n.t('admin.posToasts.day_closed_desc') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -388,10 +389,10 @@ export function usePOSTransactions(sessionId?: string) {
       queryClient.invalidateQueries({ queryKey: ['pos-transactions'] });
       // Invalidate product queries to reflect stock changes from database trigger
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast({ title: 'Verkoop voltooid' });
+      toast({ title: i18n.t('admin.posToasts.sale_done') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -413,10 +414,10 @@ export function usePOSTransactions(sessionId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-transactions'] });
-      toast({ title: 'Transactie geannuleerd' });
+      toast({ title: i18n.t('admin.posToasts.sale_cancelled') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -479,10 +480,10 @@ export function usePOSTransactions(sessionId?: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-transactions'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast({ title: 'Retour verwerkt', description: 'De transactie is succesvol geretourneerd.' });
+      toast({ title: i18n.t('admin.posToasts.refund_done'), description: i18n.t('admin.posToasts.refund_done_desc') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout bij retour', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.refund_error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -550,10 +551,10 @@ export function usePOSCashMovements(sessionId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-cash-movements'] });
-      toast({ title: 'Kasmutatie geregistreerd' });
+      toast({ title: i18n.t('admin.posToasts.cash_move_done') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -619,10 +620,10 @@ export function usePOSQuickButtons(terminalId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-quick-buttons'] });
-      toast({ title: 'Snelknop toegevoegd' });
+      toast({ title: i18n.t('admin.posToasts.quick_added') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -633,10 +634,10 @@ export function usePOSQuickButtons(terminalId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-quick-buttons'] });
-      toast({ title: 'Snelknop verwijderd' });
+      toast({ title: i18n.t('admin.posToasts.quick_removed') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -728,10 +729,10 @@ export function usePOSParkedCarts(terminalId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-parked-carts'] });
-      toast({ title: 'Winkelwagen geparkeerd' });
+      toast({ title: i18n.t('admin.posToasts.cart_parked') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -763,10 +764,10 @@ export function usePOSParkedCarts(terminalId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-parked-carts'] });
-      toast({ title: 'Winkelwagen hervat' });
+      toast({ title: i18n.t('admin.posToasts.cart_resumed') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
@@ -777,10 +778,10 @@ export function usePOSParkedCarts(terminalId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pos-parked-carts'] });
-      toast({ title: 'Geparkeerde winkelwagen verwijderd' });
+      toast({ title: i18n.t('admin.posToasts.cart_parked_deleted') });
     },
     onError: (error: Error) => {
-      toast({ title: 'Fout', description: error.message, variant: 'destructive' });
+      toast({ title: i18n.t('admin.posToasts.error'), description: error.message, variant: 'destructive' });
     },
   });
 
