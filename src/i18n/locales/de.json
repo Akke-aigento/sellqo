@@ -312,6 +312,9 @@
       "platform": {
         "title": "Plattform-Tools",
         "description": "Verwaltungstools für die Plattform"
+      },
+      "channels_basic": {
+        "title": "Benachrichtigungen & Kommunikation"
       }
     },
     "sections": {
@@ -7308,7 +7311,8 @@
       "nog_open_sinds": "Noch offen seit {{date}}",
       "tabs": {
         "terminals": "Kassen",
-        "staff": "Personal"
+        "staff": "Personal",
+        "pay": "Bezahlen"
       },
       "openKassaApp": "Kassen-App öffnen"
     },
@@ -8841,6 +8845,43 @@
         "allergenCount": "Allergene: {{count}}",
         "allergens": "Allergene"
       }
+    },
+    "horecaPay": {
+      "kassa_title": "Bezahlen an der Kasse",
+      "kassa_desc": "Was SellQo Kassa beim Abrechnen zeigt. Schalten Sie ein, was Ihr Betrieb anbietet; wachsen Sie (z. B. kommt ein Terminal dazu), ändern Sie es hier.",
+      "methods": "Zahlungsarten",
+      "method": {
+        "cash": "Bar",
+        "transfer": "Überweisung (QR)",
+        "cheque_meal": "Essensgutscheine",
+        "voucher": "Gutscheine"
+      },
+      "method_hint": {
+        "cash": "Auf 5 Cent gerundet, mit Wechselgeld.",
+        "transfer": "Der Kunde scannt einen QR-Code mit seiner Banking-App; das Personal bestätigt.",
+        "cheque_meal": "Essensgutscheine auf Papier oder elektronisch.",
+        "voucher": "Eigene Gutscheine oder Wertgutscheine."
+      },
+      "need_method": "Wählen Sie mindestens eine Zahlungsart.",
+      "no_iban": "Für Überweisungen brauchen Sie eine Kontonummer in Ihren Firmendaten.",
+      "to_company": "Zu den Firmendaten",
+      "iban_used": "Der QR-Code verwendet Ihr Konto {{iban}}.",
+      "change": "Ändern",
+      "terminal": "Kartenterminal",
+      "terminal_none": "Kein Terminal",
+      "terminal_none_desc": "Die Kasse zeigt keine \"Karte\".",
+      "terminal_standalone": "Eigenständiges Terminal",
+      "terminal_standalone_desc": "Sie tippen den Betrag selbst am Terminal ein; die Kasse erfasst \"Karte\".",
+      "kassa_tip": "Trinkgeld an der Kasse",
+      "kassa_tip_desc": "Beim Abrechnen ein Trinkgeld separat eingeben (bar, Karte oder Überweisung).",
+      "qr_title": "Bezahlen über den QR-Code am Tisch",
+      "qr_desc_order": "Ihr QR-Menü steht auf Bestellen am Tisch. So bezahlt der Gast:",
+      "qr_desc_off": "Ihr QR-Menü steht nicht auf Bestellen am Tisch; diese Wahl gilt, sobald Sie das einschalten.",
+      "qr_to_menu": "QR-Menü einrichten",
+      "qr_none": "noch nichts gewählt",
+      "qr_set_in_pay": "Einstellbar unter Kasse › Bezahlen",
+      "saved": "Zahlungseinstellungen gespeichert",
+      "save_failed": "Speichern fehlgeschlagen: {{reason}}"
     }
   },
   "billing": {
@@ -10889,7 +10930,8 @@
         "card": "Karte",
         "cheque_meal": "Essensgutschein",
         "voucher": "Gutschein",
-        "other": "Andere"
+        "other": "Andere",
+        "transfer": "Überweisung"
       },
       "methodLabel": "Zahlungsmittel",
       "amount": "Betrag",
@@ -10934,7 +10976,15 @@
         "signed_rejected": "Der Verkauf ist registriert, aber SellQo hat die Zahlung abgelehnt ({{detail}}). Die Rechnung bleibt gesperrt; bitte SellQo kontaktieren."
       },
       "lockedRejected": "Dieser Verkauf ist registriert, aber nicht gebucht. Nichts mehr ändern und SellQo informieren.",
-      "lockedPaying": "Diese Rechnung wird gerade auf einem anderen Gerät kassiert."
+      "lockedPaying": "Diese Rechnung wird gerade auf einem anderen Gerät kassiert.",
+      "transfer": {
+        "amount": "Betrag",
+        "iban": "Konto",
+        "reference": "Verwendungszweck",
+        "hint": "Lassen Sie den Kunden den QR-Code mit seiner Banking-App scannen. SellQo sieht die Zahlung nicht selbst eingehen: Prüfen Sie, ob sie geklappt hat.",
+        "seen": "Überweisung erfolgt (in der Banking-App gesehen)",
+        "noIban": "In Ihren Firmendaten ist keine Kontonummer hinterlegt. Tragen Sie sie unter Einstellungen › Firmendaten ein oder wählen Sie eine andere Zahlungsart."
+      }
     },
     "counter": {
       "name": "Theke",

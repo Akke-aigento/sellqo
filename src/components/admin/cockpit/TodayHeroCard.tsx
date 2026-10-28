@@ -12,6 +12,8 @@ interface Props {
   isLoading: boolean;
   isError: boolean;
   newCustomers: number | null;
+  /** WERKPLEK-1/BETAAL-1: zonder klantenbestand (horeca-only) geen tegel "nieuwe klanten". */
+  showCustomers?: boolean;
 }
 
 const W = 520;
@@ -19,7 +21,7 @@ const H = 124;
 const BASE = 112;
 
 /** DASH-2b — omzet vandaag, met een lijn per uur tegenover dezelfde weekdag vorige week. */
-export function TodayHeroCard({ canRead, data, isLoading, isError, newCustomers }: Props) {
+export function TodayHeroCard({ canRead, data, isLoading, isError, newCustomers, showCustomers = true }: Props) {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const currency = currentTenant?.currency || 'EUR';
@@ -83,7 +85,7 @@ export function TodayHeroCard({ canRead, data, isLoading, isError, newCustomers 
               )}
             </span>
           </div>
-          <dl className="grid grid-cols-3 gap-4 md:gap-7">
+          <dl className={cn('grid gap-4 md:gap-7', showCustomers ? 'grid-cols-3' : 'grid-cols-2')}>
             <div className="flex flex-col gap-0.5">
               <dt className="text-xs text-white/70 md:text-sm">{t('admin.cockpit.today.orders_short')}</dt>
               <dd className="text-xl font-bold tabular-nums md:text-2xl">{data.todayOrders}</dd>
@@ -94,10 +96,12 @@ export function TodayHeroCard({ canRead, data, isLoading, isError, newCustomers 
                 {avg === null ? '–' : formatCurrency(avg, currency)}
               </dd>
             </div>
-            <div className="flex flex-col gap-0.5">
-              <dt className="text-xs text-white/70 md:text-sm">{t('admin.cockpit.today.new_customers')}</dt>
-              <dd className="text-xl font-bold tabular-nums md:text-2xl">{newCustomers ?? '–'}</dd>
-            </div>
+            {showCustomers ? (
+              <div className="flex flex-col gap-0.5">
+                <dt className="text-xs text-white/70 md:text-sm">{t('admin.cockpit.today.new_customers')}</dt>
+                <dd className="text-xl font-bold tabular-nums md:text-2xl">{newCustomers ?? '–'}</dd>
+              </div>
+            ) : null}
           </dl>
         </div>
 

@@ -1,5 +1,6 @@
 // HORECA-1 — QR-menu in de zaak: uit, alleen bekijken of bestellen aan tafel, en hoe
-// de klant aan tafel afrekent (aan de toog en/of meteen online).
+// de klant aan tafel afrekent (aan de toog en/of meteen online). Sinds BETAAL-1 stel je dat laatste
+// in bij Kassa › Betalen; hier staat de stand met een link.
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Info, Loader2 } from 'lucide-react';
@@ -8,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { QR_MODES, type QrMode } from './qrModes';
 import { useTranslation } from 'react-i18next';
@@ -31,15 +32,16 @@ export function QrModeSettings() {
   const [mode, setMode] = useState<QrMode>('view');
   const [counter, setCounter] = useState(true);
   const [online, setOnline] = useState(false);
+  // BETAAL-1: counter/online worden enkel nog gelezen (getoond en meegestuurd); wijzigen gebeurt in Kassa › Betalen.
   const [saving, setSaving] = useState(false);
   useEffect(() => { if (data) { setMode(data.qr_mode); setCounter(data.qr_pay_counter); setOnline(data.qr_pay_online); } }, [data]);
 
-  const dirty = !!data && (mode !== data.qr_mode || counter !== data.qr_pay_counter || online !== data.qr_pay_online);
+  const dirty = !!data && mode !== data.qr_mode;
   const save = async () => {
     if (!tenantId) return;
     if (mode === 'order' && !counter && !online) { toast.error(t('admin.storefront.food.qr_pay_required')); return; }
     setSaving(true);
-    const { error } = await supabase.from('fulfillment_settings').upsert({ tenant_id: tenantId, qr_mode: mode, qr_pay_counter: counter, qr_pay_online: online, updated_at: new Date().toISOString() }, { onConflict: 'tenant_id' });
+    const { error } = await supabase.from('fulfillment_settings').upsert({ tenant_id: tenantId, qr_mode: mode, updated_at: new Date().toISOString() }, { onConflict: 'tenant_id' });
     setSaving(false);
     if (error) { toast.error(t('admin.storefront.food.save_failed_reason', { reason: error.message })); return; }
     toast.success(t('admin.storefront.food.qr_saved'));
@@ -66,16 +68,13 @@ export function QrModeSettings() {
           ))}
         </div>
         {mode === 'order' ? (
-          <div className="space-y-3 rounded-lg border p-4">
+          <div className="space-y-2 rounded-lg border p-4">
+            {/* BETAAL-1: hoe de klant aan tafel afrekent, staat bij de andere betaalinstellingen (Kassa › Betalen). */}
             <p className="text-sm font-medium">{t('admin.storefront.food.qrModeSettings.hoe_rekent_de_klant_af')}</p>
-            <label className="flex items-start gap-2 text-sm">
-              <Checkbox checked={counter} onCheckedChange={(v) => setCounter(v === true)} className="mt-0.5" />
-              <span><span className="font-medium">{t('admin.storefront.food.qrModeSettings.aan_de_toog')}</span><span className="block text-muted-foreground">{t('admin.storefront.food.qrModeSettings.na_de_maaltijd_via_je_eigen')}</span></span>
-            </label>
-            <label className="flex items-start gap-2 text-sm">
-              <Checkbox checked={online} onCheckedChange={(v) => setOnline(v === true)} className="mt-0.5" />
-              <span><span className="font-medium">{t('admin.storefront.food.qrModeSettings.meteen_online')}</span><span className="block text-muted-foreground">{t('admin.storefront.food.qrModeSettings.bancontact_kaart_of_apple_pay_zoals')}</span></span>
-            </label>
+            <p className="text-sm text-muted-foreground">
+              {[counter && t('admin.storefront.food.qrModeSettings.aan_de_toog'), online && t('admin.storefront.food.qrModeSettings.meteen_online')].filter(Boolean).join(' · ') || t('admin.horecaPay.qr_none')}
+              {' · '}<Link to="/admin/pos?tab=betalen" className="font-medium text-primary underline">{t('admin.horecaPay.qr_set_in_pay')}</Link>
+            </p>
             <p className="flex gap-2 rounded-md bg-muted/60 p-2.5 text-xs text-muted-foreground">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
               {t('admin.storefront.food.qrModeSettings.restaurant_met_een_witte_kassa_gks')}

@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.13y — Betalen instellen per zaak, en afrekenen met een overschrijving (feature, 28-10-2026)
+
+**Status:** wacht op migratie + publish (BETAAL-1); de native Kassa-app volgt met de volgende build.
+
+**Voor wie:** horecazaken met SellQo Kassa.
+
+**Geen terminal? Laat je klant betalen met een QR-code** (oktober 2026)
+Onder Kassa › Betalen kies je wat je zaak aanbiedt: contant, overschrijving, maaltijdcheques, bonnen, een betaalterminal en fooi. Kies je overschrijving, dan toont de kassa een QR-code met het bedrag en je rekeningnummer. Je klant scant die met zijn bankapp, jij bevestigt, klaar. In je dagrapport staat overschrijving apart.
+Wat betekent dit voor jou? Geen terminal nodig om elektronisch betaald te worden, en een kassa die enkel toont wat jij aanbiedt.
+
+i18n: `public.changelog.changes.horeca_payments_transfer`
+
 ### 2026.13x — Een rustige werkplek voor horeca (improvement, 28-10-2026)
 
 **Status:** wacht op de publish van de admin (WERKPLEK-1, commit 08bfc7d); daarna klaar voor verzending.

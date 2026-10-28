@@ -9,7 +9,8 @@ import { FdmSimulator } from '../../fiscal/simulator/fdmSimulator';
 import { validateMutation } from '../../fiscal/schema';
 import { TEST_POS, testMeta } from '../../fiscal/testSetup';
 import { consolidatedSpecs, costCenterOf, eventCostCenterReference } from '../horeca/fiscalLines';
-import { changeDue, equalSplit, normalizedTenders, parseEuroInput, paymentSpecs, planPayment, PaymentPlanError } from '../horeca/pay';
+import { changeDue, equalSplit, normalizedTenders, parseEuroInput, paymentSpecs, planPayment, PaymentPlanError, transferDue } from '../horeca/pay';
+import { availableTenders, availableTipMethods, normalizePaySettings, DEFAULT_PAY_SETTINGS } from '../horeca/paySettings';
 import { isDefinitiveRejection, payableTotal } from '../horeca/payActions';
 import type { Check, CheckLine } from '../horeca/types';
 
@@ -133,5 +134,42 @@ describe('afrekenen van een (deel)rekening', () => {
     const disc = line({ price_changes: [{ grouping_id: 1, id: 'D', name: '10%', scope: 'LINE', type: 'PUBLIC', amount_cents: -200 }] });
     const draft = line({ state: 'draft', round_id: null });
     expect(payableTotal({ lines: [a, corr, disc, draft] })).toBe(2000 + 1800);
+  });
+});
+
+// BETAAL-1 — overschrijving als betaalmiddel.
+describe('overschrijving (BETAAL-1)', () => {
+  it('fiscaal: OTHER "OVERSCHRIJVING", na contant, fooi via overschrijving als TIP', () => {
+    const p = planPayment(1000, [{ method: 'transfer', amount_cents: 600, reference: '+++000/0000/00097+++' }, { method: 'cash', amount_cents: 400 }], 150, 'transfer');
+    const s = paymentSpecs(p);
+    expect(s.map((x) => [x.type, x.name, x.amountType, x.amount])).toEqual([
+      ['CASH', 'CONTANT', 'PAYMENT', 400],
+      ['OTHER', 'OVERSCHRIJVING', 'PAYMENT', 600],
+      ['OTHER', 'OVERSCHRIJVING', 'TIP', 150],
+    ]);
+    expect(s.find((x) => x.amountType === 'TIP')).not.toHaveProperty('drawer');
+    expect(transferDue(p)).toBe(750);
+  });
+  it('geen afronding op een overschrijving', () => {
+    const p = planPayment(608, [{ method: 'transfer', amount_cents: 608 }]);
+    expect(p.rounding).toBe(0);
+    expect(transferDue(p)).toBe(608);
+  });
+});
+
+describe('betaalinstellingen (BETAAL-1)', () => {
+  it('standaard: cash + overschrijving, geen terminal, fooi aan', () => {
+    expect(normalizePaySettings(null)).toEqual(DEFAULT_PAY_SETTINGS);
+    expect(availableTenders(DEFAULT_PAY_SETTINGS)).toEqual(['cash', 'transfer']);
+    expect(availableTipMethods(DEFAULT_PAY_SETTINGS)).toEqual(['cash', 'transfer']);
+  });
+  it('kaart enkel met een terminal; fooi uit = geen fooiwijzen', () => {
+    const s = normalizePaySettings({ methods: ['card', 'cash', 'cheque_meal'], terminal: 'none', kassa_tip: false });
+    expect(availableTenders(s)).toEqual(['cash', 'cheque_meal']);
+    expect(availableTipMethods(s)).toEqual([]);
+    expect(availableTenders({ ...s, terminal: 'standalone' })).toEqual(['cash', 'card', 'cheque_meal']);
+  });
+  it('onbekende of lege waarden vallen terug op de standaard', () => {
+    expect(normalizePaySettings({ methods: ['bitcoin' as never], terminal: 'x' as never })).toEqual(DEFAULT_PAY_SETTINGS);
   });
 });

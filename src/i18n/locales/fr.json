@@ -312,6 +312,9 @@
       "platform": {
         "title": "Outils de la plateforme",
         "description": "Outils de gestion de la plateforme"
+      },
+      "channels_basic": {
+        "title": "Notifications et communication"
       }
     },
     "sections": {
@@ -7308,7 +7311,8 @@
       "nog_open_sinds": "Toujours ouverte depuis le {{date}}",
       "tabs": {
         "terminals": "Caisses",
-        "staff": "Personnel"
+        "staff": "Personnel",
+        "pay": "Paiements"
       },
       "openKassaApp": "Ouvrir l’app caisse"
     },
@@ -8841,6 +8845,43 @@
         "allergenCount": "allergènes : {{count}}",
         "allergens": "Allergènes"
       }
+    },
+    "horecaPay": {
+      "kassa_title": "Payer à la caisse",
+      "kassa_desc": "Ce que SellQo Kassa affiche à l'encaissement. Activez ce que votre établissement propose ; si vous évoluez (par ex. un terminal), modifiez-le ici.",
+      "methods": "Moyens de paiement",
+      "method": {
+        "cash": "Espèces",
+        "transfer": "Virement (QR)",
+        "cheque_meal": "Chèques-repas",
+        "voucher": "Bons"
+      },
+      "method_hint": {
+        "cash": "Arrondi à 5 centimes, avec rendu de monnaie.",
+        "transfer": "Le client scanne un code QR avec son application bancaire ; le personnel confirme.",
+        "cheque_meal": "Chèques-repas papier ou électroniques.",
+        "voucher": "Vos propres bons ou bons de valeur."
+      },
+      "need_method": "Choisissez au moins un moyen de paiement.",
+      "no_iban": "Pour les virements, il faut un numéro de compte dans les données de votre entreprise.",
+      "to_company": "Vers les données de l'entreprise",
+      "iban_used": "Le code QR utilise votre compte {{iban}}.",
+      "change": "Modifier",
+      "terminal": "Terminal de paiement",
+      "terminal_none": "Pas de terminal",
+      "terminal_none_desc": "La caisse n'affiche pas « carte ».",
+      "terminal_standalone": "Terminal autonome",
+      "terminal_standalone_desc": "Vous saisissez vous-même le montant sur le terminal ; la caisse note « carte ».",
+      "kassa_tip": "Pourboire à la caisse",
+      "kassa_tip_desc": "Saisir un pourboire séparément à l'encaissement (espèces, carte ou virement).",
+      "qr_title": "Payer via le QR à table",
+      "qr_desc_order": "Votre menu QR permet de commander à table. Voici comment le client paie :",
+      "qr_desc_off": "Votre menu QR ne permet pas encore de commander à table ; ce choix s'applique dès que vous l'activez.",
+      "qr_to_menu": "Configurer le menu QR",
+      "qr_none": "rien de choisi",
+      "qr_set_in_pay": "Réglable dans Caisse › Paiements",
+      "saved": "Réglages de paiement enregistrés",
+      "save_failed": "Échec de l'enregistrement : {{reason}}"
     }
   },
   "billing": {
@@ -10889,7 +10930,8 @@
         "card": "Carte",
         "cheque_meal": "Chèque-repas",
         "voucher": "Bon",
-        "other": "Autre"
+        "other": "Autre",
+        "transfer": "Virement"
       },
       "methodLabel": "Moyen de paiement",
       "amount": "Montant",
@@ -10934,7 +10976,15 @@
         "signed_rejected": "La vente est enregistrée, mais SellQo a refusé le paiement ({{detail}}). L’addition reste verrouillée ; contactez SellQo."
       },
       "lockedRejected": "Cette vente est enregistrée mais non comptabilisée. Ne modifiez rien et prévenez SellQo.",
-      "lockedPaying": "Cette addition est en cours d’encaissement sur un autre appareil."
+      "lockedPaying": "Cette addition est en cours d’encaissement sur un autre appareil.",
+      "transfer": {
+        "amount": "Montant",
+        "iban": "Compte",
+        "reference": "Communication",
+        "hint": "Laissez le client scanner le code QR avec son application bancaire. SellQo ne voit pas le paiement arriver : vérifiez qu'il a réussi.",
+        "seen": "Virement effectué (vu dans l'application bancaire)",
+        "noIban": "Aucun numéro de compte dans les données de votre entreprise. Ajoutez-le dans Réglages › Données de l'entreprise, ou choisissez un autre moyen de paiement."
+      }
     },
     "counter": {
       "name": "Comptoir",

@@ -2275,6 +2275,10 @@
         "horeca_workspace": {
           "title": "Ein aufgeräumter Arbeitsbereich für die Gastronomie",
           "description": "Mit einem Gastronomie-Paket ohne Webshop zeigen Menü und Einstellungen nur noch, was ein Betrieb braucht: Dashboard, Bestellungen, Karte, Küche, Kasse, Zahlungen, Berichte und Einstellungen. Kunden, Rabatte, Marketing, Übersetzungen, Retouren und Bewertungen verschwinden aus dem Menü; sie kommen zurück, sobald Sie ein Webshop- oder Event-Paket haben. Auf dem Handy liegen Karte und Küche in der unteren Leiste, und eine Kasse öffnen führt immer zu SellQo Kassa."
+        },
+        "horeca_payments_transfer": {
+          "title": "Zahlungen pro Betrieb einstellen und per Überweisung abrechnen",
+          "description": "Unter Kasse › Bezahlen wählen Sie, welche Zahlungsarten SellQo Kassa zeigt: bar, Überweisung, Essensgutscheine und Gutscheine. Sie legen auch fest, ob Sie ein Kartenterminal haben und ob Sie Trinkgeld anbieten. Ohne Terminal verschwindet \"Karte\". Bei einer Überweisung zeigt die Kasse einen QR-Code mit Betrag, Ihrer Kontonummer und einem Verwendungszweck. Der Kunde scannt ihn mit seiner Banking-App, und Sie bestätigen, dass die Zahlung geklappt hat. Wie Gäste über den QR-Code am Tisch bezahlen, stellen Sie jetzt ebenfalls dort ein. Im Tagesbericht steht die Überweisung als eigene Zahlungsart."
         }
       },
       "copyLink": "Link kopieren",

@@ -1,3 +1,57 @@
+## BETAAL-1 — betaalinstellingen per zaak en overschrijving (EPC-QR) in SellQo Kassa (kassa 0.7.0) — 28 oktober 2026
+
+**Aanleiding:** eerste horecaklant (Belgaleiro) heeft geen terminal: cash + overschrijving via QR. Akke 28-10: alles instelbaar, geen maatwerk; groeien (terminal erbij) = schakelaar. Plan: projectdoc `claude/horeca-werkplek-plan.md`.
+
+**Root cause / vertrekpunt:**
+- `src/kassa/app/horeca/pay.ts` kende enkel cash, card, cheque_meal, voucher en other; fooi enkel cash/card. "Kaart" stond er altijd, ook zonder terminal.
+- `horeca_pay` (TAFEL-3) en `check_payments.tip_method` dwongen dezelfde lijst af.
+- Er was geen plek voor kassa-instellingen. De QR-betaalschakelaars stonden in Bestellen › QR.
+
+**Uitgevoerd:**
+- **Migratie `20261028110000_betaal_1_horeca_payments.sql`:**
+  - nieuwe tabel `horeca_pay_settings` (methods, terminal none/standalone, kassa_tip). Geen rij = cash + transfer, geen terminal, fooi aan;
+  - `horeca_pay` gepatcht op de live definitie met md5-guard (`e601413f…`): `transfer` als betaalmiddel en als fooiwijze, `record_transaction` → `bank_transfer`. Delta en vervangingen worden gecontroleerd, en de patch is idempotent;
+  - `check_payments_tip_method_check` aanvaardt `transfer`.
+- **Kassa (0.7.0):**
+  - `pay.ts`: `transfer` = fiscaal `OTHER` "OVERSCHRIJVING", elektronisch na contant; fooi via overschrijving = TIP zonder lade; `transferDue`.
+  - `paySettings.ts` (nieuw): de hook leest `horeca_pay_settings`, met een lokale cache per winkel voor offline gebruik.
+  - `PayDialog.tsx`:
+    - knoppen en keuzelijst volgen de instellingen; kaart enkel met terminal; fooiveld enkel als fooi aan staat;
+    - bij overschrijving een EPC-QR (`tenants.iban`, bedrag = overschrijvingsdeel + fooi via overschrijving, OGM in regel 11);
+    - "Betaald" pas na "Overschrijving gelukt" voor exact dat bedrag. Zonder IBAN verschijnt een melding en kan je niet bevestigen.
+  - Rapporten: overschrijving staat er vanzelf als eigen betaalwijze.
+- **Admin:**
+  - `/admin/pos?tab=betalen` met `HorecaPaySettings` (enkel met horecaspoor): betaalwijzen, terminal, fooi, en "afrekenen via de QR aan tafel" (`fulfillment_settings.qr_pay_*`, verhuisd uit `QrModeSettings`, dat nu de stand en een link toont en `qr_pay_*` niet meer schrijft). Opslaan schrijft enkel wat wijzigde.
+  - Extra's: de instellingengroep "SellQo Connect" heet voor winkels zonder webshop- of eventspoor "Meldingen & communicatie". De tegel "Nieuwe klanten" op het dashboard verdwijnt als Klanten niet in het pakket zit.
+- **Overig:**
+  - i18n: `kassa.pay.method.transfer`, `kassa.pay.transfer.*`, `admin.horecaPay.*`, `admin.pOS.tabs.pay`, `settings.groups.channels_basic`, in 5 talen.
+  - CI: `pay.test.ts`, `payDialog.test.tsx` en `paySettings.test.tsx` staan in de vitest-stap.
+
+**Security-keuzes:**
+- `horeca_pay_settings`: geen anon. Lezen voor leden (`get_user_tenant_ids`), insert en update enkel `tenant_admin` (en platformadmin via `has_tenant_role`). Geen delete.
+- Geen gevoelige data. Het IBAN blijft enkel in `tenants`.
+
+**Gedeelde paden:** `storefront-api` en `tenant_theme_settings` zijn niet geraakt. `fulfillment_settings` wordt enkel geschreven met dezelfde kolommen als voorheen (`qr_pay_*`).
+
+**Review (geld/fiscaal, twee rondes, aparte agent):**
+- **B1, renderlus.** Zolang de instellingen uit de cache komen (offline, bij een fout, tijdens het laden), gaf de hook bij elke render een nieuw object. Opgelost: de cache wordt één keer gelezen (`useMemo`), het effect is idempotent en de deps staan op de inhoud. Nieuwe test.
+- **Mag-1:** "gezien" wordt nu afgeleid uit het bedrag.
+- **Mag-2:** een verborgen fooi telt niet mee.
+- **Mag-3:** enkel opslaan wat wijzigde.
+- Tweede ronde: geen nieuwe bevindingen.
+
+**Volgorde bij uitrol (review M1):** eerst de migratie, dan de natrek op md5/constraint/tabel, dan de publish. Anders toont de kassa "Overschrijving" terwijl `horeca_pay` het nog weigert.
+
+**Bewust:**
+- De standaard zonder terminal verbergt "kaart" voor winkels zonder instellingsrij (M2). Live is `check_payments` leeg, dus niemand wordt geraakt.
+- De OGM komt uit de klok (10 cijfers, enkel voor visuele controle) en staat in EPC-regel 11, zoals de bestaande helper.
+- De admin-invalidatie bereikt een draaiende native kassa niet. Nieuwe instellingen komen er binnen na 60 s, bij het volgende afrekenvenster.
+- Fiscaal "OTHER/OVERSCHRIJVING" staat als vraag op de lijst voor de Q&A met de FOD.
+
+**Verificatie:** tsc zonder nieuwe fouten, lint onder de baseline, i18n-pariteit, gebruikte keys, dode knoppen, `npx vitest run src/kassa` (266 groen, 1 overgeslagen, zoals voorheen) en tracks.
+
+Changelog 2026.13y `horeca_payments_transfer` (5 talen). Helpartikels: migratie `20261028111000_betaal_1_doc_articles.sql` (`kassa-afrekenen`, `horeca-werkplek`, md5-guards).
+
 ## WERKPLEK-1 — afgebakende werkplek voor horeca: menu, instellingen en kassa per spoor — 28 oktober 2026
 
 **Aanleiding:** eerste horecaklant (Belgaleiro, Horeca Small). Akke 28-10: "wanneer men inlogt geen sidebalk vol met zever", alles instelbaar, geen maatwerk per klant. Plan: projectdoc `claude/horeca-werkplek-plan.md`.

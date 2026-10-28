@@ -2275,6 +2275,10 @@
         "horeca_workspace": {
           "title": "Un espace de travail épuré pour l'horeca",
           "description": "Avec une formule horeca sans boutique en ligne, le menu et les réglages n'affichent plus que ce dont un établissement a besoin : tableau de bord, commandes, carte, cuisine, caisse, paiements, rapports et réglages. Clients, réductions, marketing, traductions, retours et avis quittent le menu ; ils reviennent dès que vous avez une formule boutique en ligne ou événements. Sur votre téléphone, la carte et la cuisine se trouvent dans la barre du bas, et ouvrir une caisse ouvre toujours SellQo Kassa."
+        },
+        "horeca_payments_transfer": {
+          "title": "Paramétrer les paiements par établissement, et encaisser par virement",
+          "description": "Sous Caisse › Paiements, vous choisissez les moyens de paiement que SellQo Kassa affiche : espèces, virement, chèques-repas et bons. Vous indiquez aussi si vous avez un terminal de paiement et si vous proposez le pourboire. Sans terminal, « carte » disparaît. Pour un virement, la caisse affiche un code QR avec le montant, votre numéro de compte et une communication. Le client le scanne avec son application bancaire et vous confirmez que le paiement a réussi. La façon dont les clients paient via le QR à table se règle désormais au même endroit. Le rapport journalier indique le virement comme moyen de paiement distinct."
         }
       },
       "copyLink": "Copier le lien",

@@ -15,11 +15,15 @@ import { cashRoundingDelta, roundCash5 } from '../../fiscal/rounding';
 import type { PaymentSpec } from '../../fiscal/builders';
 import type { PaymentType } from '../../fiscal/types';
 
-export type TenderMethod = 'cash' | 'card' | 'cheque_meal' | 'voucher' | 'other';
-export const TENDER_METHODS: TenderMethod[] = ['cash', 'card', 'cheque_meal', 'voucher', 'other'];
+// BETAAL-1: 'transfer' = overschrijving via EPC-QR (de klant betaalt in zijn bankapp, het personeel
+// bevestigt). Welke betaalwijzen een kassa toont, volgt uit horeca_pay_settings (paySettings.ts).
+export type TenderMethod = 'cash' | 'card' | 'transfer' | 'cheque_meal' | 'voucher' | 'other';
+export const TENDER_METHODS: TenderMethod[] = ['cash', 'card', 'transfer', 'cheque_meal', 'voucher', 'other'];
 
-export interface Tender { method: TenderMethod; amount_cents: number }
-export type TipMethod = 'cash' | 'card';
+/** reference: enkel bij een overschrijving, de gestructureerde mededeling uit de QR. */
+export interface Tender { method: TenderMethod; amount_cents: number; reference?: string }
+export type TipMethod = 'cash' | 'card' | 'transfer';
+export const TIP_METHODS: TipMethod[] = ['cash', 'card', 'transfer'];
 
 export interface PaymentPlan {
   total: number;
@@ -69,6 +73,12 @@ export function changeDue(plan: PaymentPlan, given: number): number {
   return Math.max(0, given - due);
 }
 
+/** BETAAL-1: wat de klant overschrijft — het overschrijvingsdeel plus een fooi via overschrijving. */
+export function transferDue(plan: PaymentPlan): number {
+  const part = plan.tenders.filter((t) => t.method === 'transfer').reduce((s, t) => s + t.amount_cents, 0);
+  return part + (plan.tipMethod === 'transfer' ? plan.tip : 0);
+}
+
 /** Wat de klant contant afgerond moet betalen voor een bedrag (voor de knoppen). */
 export const cashAmountFor = (cents: number) => roundCash5(cents);
 
@@ -76,11 +86,14 @@ const FISCAL: Record<TenderMethod, { type: PaymentType; name: string }> = {
   cash: { type: 'CASH', name: 'CONTANT' },
   // De betaalterminal staat los van de kassa: debet of krediet kennen we niet.
   card: { type: 'CARD_UNKNOWN', name: 'KAART' },
+  // BETAAL-1: de FDM kent geen apart type voor een overschrijving; OTHER met een duidelijke naam
+  // (vraag opgenomen voor de Q&A met de FOD, eisenmatrix §14).
+  transfer: { type: 'OTHER', name: 'OVERSCHRIJVING' },
   cheque_meal: { type: 'CHEQUE_MEAL', name: 'MAALTIJDCHEQUE' },
   voucher: { type: 'VOUCHER_OTHER', name: 'BON' },
   other: { type: 'OTHER', name: 'ANDERE' },
 };
-const ORDER: Record<TenderMethod, number> = { cheque_meal: 0, voucher: 0, cash: 1, card: 2, other: 2 };
+const ORDER: Record<TenderMethod, number> = { cheque_meal: 0, voucher: 0, cash: 1, card: 2, transfer: 2, other: 2 };
 export const DRAWER = { id: '1', name: 'Lade 1' } as const;
 
 /** Fiscale betaallijnen (financials) voor signSale. */
@@ -102,7 +115,7 @@ export function paymentSpecs(plan: PaymentPlan): PaymentSpec[] {
     out.push({ id: id(), name: FISCAL[t.method].name, type: FISCAL[t.method].type, inputMethod: 'MANUAL', amount: t.amount_cents, amountType: 'PAYMENT' });
   }
   if (plan.tip > 0 && plan.tipMethod) {
-    const m = plan.tipMethod === 'cash' ? FISCAL.cash : FISCAL.card;
+    const m = FISCAL[plan.tipMethod];
     out.push({ id: id(), name: m.name, type: m.type, inputMethod: 'MANUAL', amount: plan.tip, amountType: 'TIP', ...(plan.tipMethod === 'cash' ? { drawer: { ...DRAWER } } : {}) });
   }
   return out;

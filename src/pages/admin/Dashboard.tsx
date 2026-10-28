@@ -208,7 +208,7 @@ export default function AdminDashboard() {
           </div>
         );
       case 'today':
-        return <TodayHeroCard {...revenueProps} newCustomers={canCustomers ? newCustomers.data ?? null : null} />;
+        return <TodayHeroCard {...revenueProps} newCustomers={canCustomers ? newCustomers.data ?? null : null} showCustomers={routeAllowed('/admin/customers')} />;
       case 'goal':
         return <GoalCard canRead={revenueProps.canRead} canEdit={isShopAdmin} data={revenue.data} isLoading={revenueLoading} />;
       case 'rush':

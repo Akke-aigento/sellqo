@@ -2275,6 +2275,10 @@
         "horeca_workspace": {
           "title": "A calmer workspace for hospitality",
           "description": "On a hospitality plan without a webshop, the menu and settings now show only what a venue needs: dashboard, orders, menu, kitchen, till, payments, reports and settings. Customers, discounts, marketing, translations, returns and reviews leave the menu; they come back as soon as you have a webshop or events plan. On your phone, the menu and the kitchen sit in the bottom bar, and opening a till always opens SellQo Kassa."
+        },
+        "horeca_payments_transfer": {
+          "title": "Set up payments per venue, and take bank transfers at the till",
+          "description": "Under Till › Payments you choose which payment methods SellQo Kassa shows: cash, bank transfer, meal vouchers and vouchers. You also choose whether you have a card terminal and whether you offer tips. Without a terminal, \"card\" disappears. For a bank transfer, the till shows a QR code with the amount, your account number and a reference. The customer scans it with their banking app and you confirm the payment went through. How guests pay via the table QR code is now set there too. The daily report lists bank transfer as a separate payment method."
         }
       },
       "copyLink": "Copy link",

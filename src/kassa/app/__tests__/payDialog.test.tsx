@@ -5,7 +5,11 @@ import { describe, expect, it, vi } from 'vitest';
 import type { ActionCtx } from '../horeca/actions';
 import type { Check, CheckLine } from '../horeca/types';
 
-vi.mock('@/hooks/useTenant', () => ({ useTenant: () => ({ currentTenant: { name: 'Café Test' } }) }));
+const tenant: { name: string; iban?: string } = { name: 'Café Test' };
+vi.mock('@/hooks/useTenant', () => ({ useTenant: () => ({ currentTenant: tenant }) }));
+// BETAAL-1: instellingen van de zaak; standaard alles aan met een losse terminal.
+const settings = { methods: ['cash', 'transfer', 'card', 'cheque_meal', 'voucher'], terminal: 'standalone', kassa_tip: true };
+vi.mock('../horeca/paySettings', async (orig) => ({ ...(await orig<object>()), useKassaPaySettings: () => settings }));
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string, o?: Record<string, unknown>) => (o ? `${k} ${JSON.stringify(o)}` : k), i18n: { language: 'nl' } }),
 }));
@@ -43,6 +47,50 @@ describe('PayDialog', () => {
     render(<PayDialog ctx={ctx} check={check} onClose={() => {}} onPaid={() => {}} />);
     fireEvent.change(screen.getAllByLabelText('kassa.pay.amount')[0], { target: { value: '5' } });
     expect(screen.getByText(/kassa.pay.remaining/)).toBeTruthy();
+    expect((screen.getByText(/kassa.pay.confirm/).closest('button') as HTMLButtonElement).disabled).toBe(true);
+  });
+});
+
+describe('PayDialog — betaalinstellingen en overschrijving (BETAAL-1)', () => {
+  const quickButtons = () => screen.getAllByRole('button').filter((b) => b.className.includes('h-14')).map((b) => b.textContent?.trim());
+
+  it('zonder terminal geen kaart; enkel de betaalwijzen van de zaak', () => {
+    Object.assign(settings, { methods: ['cash', 'transfer'], terminal: 'none', kassa_tip: true });
+    render(<PayDialog ctx={ctx} check={check} onClose={() => {}} onPaid={() => {}} />);
+    expect(quickButtons()).toEqual(['kassa.pay.method.cash', 'kassa.pay.method.transfer']);
+    const options = [...(screen.getByLabelText('kassa.pay.methodLabel') as HTMLSelectElement).options].map((o) => o.value);
+    expect(options).toEqual(['cash', 'transfer']);
+  });
+
+  it('fooi uit = geen fooiveld', () => {
+    Object.assign(settings, { methods: ['cash'], terminal: 'none', kassa_tip: false });
+    render(<PayDialog ctx={ctx} check={check} onClose={() => {}} onPaid={() => {}} />);
+    expect(screen.queryByLabelText('kassa.pay.tip')).toBeNull();
+  });
+
+  it('overschrijving: QR met bedrag en mededeling, bevestigen pas na "gelukt"', () => {
+    Object.assign(settings, { methods: ['cash', 'transfer'], terminal: 'none', kassa_tip: true });
+    tenant.iban = 'BE68 5390 0754 7034';
+    render(<PayDialog ctx={ctx} check={check} onClose={() => {}} onPaid={() => {}} />);
+    fireEvent.click(screen.getAllByText('kassa.pay.method.transfer').find((e) => e.tagName === 'BUTTON' && e.closest('.grid'))!);
+    expect(screen.getByText('kassa.pay.transfer.amount').nextElementSibling?.textContent).toContain('6,08');
+    expect(screen.getByText(/^\+\+\+\d{3}\/\d{4}\/\d{5}\+\+\+$/)).toBeTruthy();
+    const confirm = () => screen.getByText(/kassa.pay.confirm/).closest('button') as HTMLButtonElement;
+    expect(confirm().disabled).toBe(true);
+    fireEvent.click(screen.getByLabelText('kassa.pay.transfer.seen'));
+    expect(confirm().disabled).toBe(false);
+    // Fooi via overschrijving gaat mee in het bedrag van de QR, en vraagt opnieuw bevestiging.
+    fireEvent.change(screen.getByLabelText('kassa.pay.tip'), { target: { value: '1' } });
+    fireEvent.click(screen.getAllByText('kassa.pay.method.transfer').find((e) => e.getAttribute('aria-pressed') !== null)!);
+    expect(screen.getByText('kassa.pay.transfer.amount').nextElementSibling?.textContent).toContain('7,08');
+    expect(confirm().disabled).toBe(true);
+  });
+
+  it('overschrijving zonder rekeningnummer: melding en geen bevestiging', () => {
+    Object.assign(settings, { methods: ['transfer'], terminal: 'none', kassa_tip: true });
+    delete tenant.iban;
+    render(<PayDialog ctx={ctx} check={check} onClose={() => {}} onPaid={() => {}} />);
+    expect(screen.getByText('kassa.pay.transfer.noIban')).toBeTruthy();
     expect((screen.getByText(/kassa.pay.confirm/).closest('button') as HTMLButtonElement).disabled).toBe(true);
   });
 });

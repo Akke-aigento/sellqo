@@ -33,6 +33,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { KassaStaffTab } from '@/components/admin/pos/KassaStaffTab';
+import { HorecaPaySettings } from '@/components/admin/pos/HorecaPaySettings';
 import { KassaDevicesStatus } from '@/components/admin/pos/KassaDevicesStatus';
 import { useKassaDevices } from '@/hooks/useKassaDevices';
 import { usePOSTerminals, usePOSSessions } from '@/hooks/usePOS';
@@ -48,7 +49,11 @@ export default function POSPage() {
   const navigate = useNavigate();
   // PERSONEEL-1 — tabs bovenaan, deeplinkbaar (?tab=terminals|personeel).
   const [searchParams, setSearchParams] = useSearchParams();
-  const tab = searchParams.get('tab') === 'personeel' ? 'personeel' : 'terminals';
+  // BETAAL-1: ?tab=betalen — betaalinstellingen van SellQo Kassa (enkel met het horecaspoor).
+  const { hasTrack: hasTrackForTabs } = useTracks();
+  const payTab = hasTrackForTabs('horeca');
+  const rawTab = searchParams.get('tab');
+  const tab = rawTab === 'personeel' ? 'personeel' : rawTab === 'betalen' && payTab ? 'betalen' : 'terminals';
   const setTab = (v: string) => {
     const next = new URLSearchParams(searchParams);
     if (v === 'terminals') next.delete('tab'); else next.set('tab', v);
@@ -103,8 +108,7 @@ export default function POSPage() {
   };
 
   // WERKPLEK-1 — zonder webshopspoor opent een kassa altijd SellQo Kassa, nooit de klassieke kassa.
-  const { hasTrack } = useTracks();
-  const classicPos = hasTrack('webshop');
+  const classicPos = hasTrackForTabs('webshop');
   const handleOpenPOS = (terminal: POSTerminal) => {
     navigate(classicPos ? `/admin/pos/${terminal.id}` : '/kassa');
   };
@@ -147,7 +151,13 @@ export default function POSPage() {
         <TabsList>
           <TabsTrigger value="terminals">{t('admin.pOS.tabs.terminals')}</TabsTrigger>
           <TabsTrigger value="personeel">{t('admin.pOS.tabs.staff')}</TabsTrigger>
+          {payTab ? <TabsTrigger value="betalen">{t('admin.pOS.tabs.pay')}</TabsTrigger> : null}
         </TabsList>
+        {payTab ? (
+          <TabsContent value="betalen" className="mt-4 max-w-3xl">
+            <HorecaPaySettings />
+          </TabsContent>
+        ) : null}
         <TabsContent value="personeel" className="mt-4">
           <KassaStaffTab />
         </TabsContent>

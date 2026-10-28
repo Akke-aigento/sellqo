@@ -284,6 +284,9 @@
       "platform": {
         "title": "Platform tools",
         "description": "Management tools for the platform"
+      },
+      "channels_basic": {
+        "title": "Notifications & communication"
       }
     },
     "sections": {
@@ -7581,7 +7584,8 @@
       "nog_open_sinds": "Still open since {{date}}",
       "tabs": {
         "terminals": "Tills",
-        "staff": "Staff"
+        "staff": "Staff",
+        "pay": "Payments"
       },
       "openKassaApp": "Open till app"
     },
@@ -9114,6 +9118,43 @@
         "allergenCount": "allergens: {{count}}",
         "allergens": "Allergens"
       }
+    },
+    "horecaPay": {
+      "kassa_title": "Paying at the till",
+      "kassa_desc": "What SellQo Kassa shows at checkout. Turn on what your venue offers; when you grow (say, a card terminal), change it here.",
+      "methods": "Payment methods",
+      "method": {
+        "cash": "Cash",
+        "transfer": "Bank transfer (QR)",
+        "cheque_meal": "Meal vouchers",
+        "voucher": "Vouchers"
+      },
+      "method_hint": {
+        "cash": "Rounded to 5 cents, with change.",
+        "transfer": "The customer scans a QR code with their banking app; staff confirm.",
+        "cheque_meal": "Paper or electronic meal vouchers.",
+        "voucher": "Your own vouchers or gift vouchers."
+      },
+      "need_method": "Choose at least one payment method.",
+      "no_iban": "For bank transfers you need an account number in your company details.",
+      "to_company": "Go to company details",
+      "iban_used": "The QR code uses your account {{iban}}.",
+      "change": "Change",
+      "terminal": "Card terminal",
+      "terminal_none": "No terminal",
+      "terminal_none_desc": "The till does not show \"card\".",
+      "terminal_standalone": "Standalone terminal",
+      "terminal_standalone_desc": "You key in the amount on the terminal yourself; the till records \"card\".",
+      "kassa_tip": "Tips at the till",
+      "kassa_tip_desc": "Enter a tip separately at checkout (cash, card or bank transfer).",
+      "qr_title": "Paying via the table QR code",
+      "qr_desc_order": "Your QR menu is set to ordering at the table. This is how guests pay:",
+      "qr_desc_off": "Your QR menu is not set to ordering at the table; this choice applies once you turn that on.",
+      "qr_to_menu": "Set up QR menu",
+      "qr_none": "nothing chosen yet",
+      "qr_set_in_pay": "Set in Till › Payments",
+      "saved": "Payment settings saved",
+      "save_failed": "Could not save: {{reason}}"
     }
   },
   "product_form": {
@@ -10889,7 +10930,8 @@
         "card": "Card",
         "cheque_meal": "Meal voucher",
         "voucher": "Voucher",
-        "other": "Other"
+        "other": "Other",
+        "transfer": "Bank transfer"
       },
       "methodLabel": "Payment method",
       "amount": "Amount",
@@ -10934,7 +10976,15 @@
         "signed_rejected": "The sale is registered, but SellQo refused the payment ({{detail}}). The check stays locked; please contact SellQo."
       },
       "lockedRejected": "This sale is registered but not booked. Don’t change anything and notify SellQo.",
-      "lockedPaying": "This check is being paid on another device right now."
+      "lockedPaying": "This check is being paid on another device right now.",
+      "transfer": {
+        "amount": "Amount",
+        "iban": "Account",
+        "reference": "Reference",
+        "hint": "Let the customer scan the QR code with their banking app. SellQo does not see the payment come in: check that it went through.",
+        "seen": "Transfer completed (seen in the banking app)",
+        "noIban": "There is no account number in your company details. Add it under Settings › Company details, or choose another payment method."
+      }
     },
     "counter": {
       "name": "Counter",

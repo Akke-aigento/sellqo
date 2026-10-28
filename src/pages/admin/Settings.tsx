@@ -335,7 +335,8 @@ export default function SettingsPage() {
                     return (
                       <div key={group.id}>
                         <h3 className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                          {t(group.titleKey)}
+                          {/* BETAAL-1: zonder webshop of events blijven hier enkel meldingen en klantcommunicatie over. */}
+                          {t(group.id === 'channels' && !hasTrack('webshop') && !hasTrack('events') ? 'settings.groups.channels_basic.title' : group.titleKey)}
                         </h3>
                         <div className="space-y-1">
                           {visibleSections.map((section) => {

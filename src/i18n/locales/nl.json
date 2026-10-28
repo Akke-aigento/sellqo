@@ -284,6 +284,9 @@
       "platform": {
         "title": "Platform Tools",
         "description": "Beheertools voor het platform"
+      },
+      "channels_basic": {
+        "title": "Meldingen & communicatie"
       }
     },
     "sections": {
@@ -7595,7 +7598,8 @@
       "nog_open_sinds": "Nog open sinds {{date}}",
       "tabs": {
         "terminals": "Kassa's",
-        "staff": "Personeel"
+        "staff": "Personeel",
+        "pay": "Betalen"
       },
       "openKassaApp": "Kassa-app openen"
     },
@@ -9128,6 +9132,43 @@
         "allergenCount": "allergenen: {{count}}",
         "allergens": "Allergenen"
       }
+    },
+    "horecaPay": {
+      "kassa_title": "Betalen aan de kassa",
+      "kassa_desc": "Wat SellQo Kassa toont bij het afrekenen. Zet aan wat je zaak aanbiedt; groei je (bv. een terminal erbij), dan pas je het hier aan.",
+      "methods": "Betaalwijzen",
+      "method": {
+        "cash": "Contant",
+        "transfer": "Overschrijving (QR)",
+        "cheque_meal": "Maaltijdcheques",
+        "voucher": "Bonnen"
+      },
+      "method_hint": {
+        "cash": "Met afronding op 5 cent en wisselgeld.",
+        "transfer": "De klant scant een QR-code met zijn bankapp; het personeel bevestigt.",
+        "cheque_meal": "Papieren of elektronische maaltijdcheques.",
+        "voucher": "Eigen bonnen of waardebonnen."
+      },
+      "need_method": "Kies minstens één betaalwijze.",
+      "no_iban": "Voor overschrijvingen heb je een rekeningnummer nodig in je bedrijfsgegevens.",
+      "to_company": "Naar bedrijfsgegevens",
+      "iban_used": "De QR-code gebruikt je rekening {{iban}}.",
+      "change": "Wijzigen",
+      "terminal": "Betaalterminal",
+      "terminal_none": "Geen terminal",
+      "terminal_none_desc": "De kassa toont geen \"kaart\".",
+      "terminal_standalone": "Losse terminal",
+      "terminal_standalone_desc": "Je tikt het bedrag zelf in op de terminal; de kassa noteert \"kaart\".",
+      "kassa_tip": "Fooi aan de kassa",
+      "kassa_tip_desc": "Een fooi apart ingeven bij het afrekenen (contant, kaart of overschrijving).",
+      "qr_title": "Afrekenen via de QR aan tafel",
+      "qr_desc_order": "Je QR-menu staat op bestellen aan tafel. Zo rekent de klant af:",
+      "qr_desc_off": "Je QR-menu staat nu niet op bestellen aan tafel; deze keuze geldt zodra je dat aanzet.",
+      "qr_to_menu": "QR-menu instellen",
+      "qr_none": "nog niets gekozen",
+      "qr_set_in_pay": "Instellen bij Kassa › Betalen",
+      "saved": "Betaalinstellingen bewaard",
+      "save_failed": "Bewaren lukte niet: {{reason}}"
     }
   },
   "product_form": {
@@ -10891,7 +10932,8 @@
         "card": "Kaart",
         "cheque_meal": "Maaltijdcheque",
         "voucher": "Bon",
-        "other": "Andere"
+        "other": "Andere",
+        "transfer": "Overschrijving"
       },
       "methodLabel": "Betaalmiddel",
       "amount": "Bedrag",
@@ -10936,7 +10978,15 @@
         "signed_rejected": "De verkoop is geregistreerd, maar SellQo weigerde de betaling ({{detail}}). De rekening blijft vergrendeld; neem contact op met SellQo."
       },
       "lockedRejected": "Deze verkoop is geregistreerd maar niet geboekt. Niets meer aan doen en SellQo verwittigen.",
-      "lockedPaying": "Deze rekening wordt nu afgerekend op een ander toestel."
+      "lockedPaying": "Deze rekening wordt nu afgerekend op een ander toestel.",
+      "transfer": {
+        "amount": "Bedrag",
+        "iban": "Rekening",
+        "reference": "Mededeling",
+        "hint": "Laat de klant de QR-code scannen met zijn bankapp. SellQo ziet de betaling niet zelf binnenkomen: kijk na dat ze gelukt is.",
+        "seen": "Overschrijving gelukt (gezien in de bankapp)",
+        "noIban": "Er staat geen rekeningnummer bij je bedrijfsgegevens. Vul het in via Instellingen › Bedrijfsgegevens, of kies een andere betaalwijze."
+      }
     },
     "counter": {
       "name": "Toog",
