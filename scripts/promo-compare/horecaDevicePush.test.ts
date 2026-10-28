@@ -38,7 +38,7 @@ const post = async (body: unknown, secret: string | null = 'geheim') => {
 Deno.test('GET geeft de versiestempel, zonder data', async () => {
   const r = await handler(new Request('https://f/horeca-device-push'));
   const j = await r.json();
-  assert(j.ok === true && j.version === 'MELDING-1', JSON.stringify(j));
+  assert(j.ok === true && j.version === 'MELDING-1b', JSON.stringify(j));
 });
 
 Deno.test('zonder of met fout geheim → 401, geen databankvraag naar ontvangers', async () => {
