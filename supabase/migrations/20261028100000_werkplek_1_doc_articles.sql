@@ -28,7 +28,7 @@ values (
 <li><strong>Dashboard</strong>: je dag in één oogopslag, met wat er in de keuken klaarstaat.</li>
 <li><strong>Bestellingen</strong>: alle bestellingen, van de kassa, de QR-code aan tafel en online.</li>
 <li><strong>Kassa</strong>: hier maak je je kassa's aan en beheer je je personeel en pincodes. Een kassa openen gaat altijd naar SellQo Kassa.</li>
-<li><strong>Bestellen</strong>: je kaart, extra's en allergenen, je QR-menu, je zaalplan en je posten (bar, keuken).</li>
+<li><strong>Bestellen</strong>: je kaart (hier beheer je al je producten en categorieën), extra's en allergenen, je QR-menu, je zaalplan en je posten (bar, keuken).</li>
 <li><strong>Keuken</strong>: het keukenscherm. Kies per scherm welke post het toont.</li>
 <li><strong>Betalingen</strong>, <strong>Rapporten</strong>, <strong>Inkoop</strong>, <strong>Instellingen</strong> en <strong>Help</strong>.</li>
 </ul>
