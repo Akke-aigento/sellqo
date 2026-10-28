@@ -40,6 +40,8 @@ comment on table public.horeca_pay_settings is 'BETAAL-1: betaalwijzen, terminal
 
 revoke all on public.horeca_pay_settings from anon;
 grant select, insert, update on public.horeca_pay_settings to authenticated;
+-- De standaardrechten van het schema geven authenticated ook delete/truncate/references/trigger.
+revoke delete, truncate, references, trigger on public.horeca_pay_settings from authenticated;
 alter table public.horeca_pay_settings enable row level security;
 
 drop policy if exists horeca_pay_settings_select on public.horeca_pay_settings;

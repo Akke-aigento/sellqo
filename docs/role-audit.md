@@ -40,6 +40,11 @@
 - **Mag-3:** enkel opslaan wat wijzigde.
 - Tweede ronde: geen nieuwe bevindingen.
 
+**Live (28-10, 10:0x):**
+- De migratie is gedraaid via `query_database` en nagetrokken: de tabel, RLS en de drie policies staan er.
+- Grants: enkel select/insert/update voor authenticated. De standaardrechten van het schema gaven ook delete en truncate; die zijn ingetrokken, en de revoke staat ook in het migratiebestand.
+- `horeca_pay` bevat alle drie de vervangingen (md5 nu `b3d1d631…`). De constraint aanvaardt `transfer`.
+
 **Volgorde bij uitrol (review M1):** eerst de migratie, dan de natrek op md5/constraint/tabel, dan de publish. Anders toont de kassa "Overschrijving" terwijl `horeca_pay` het nog weigert.
 
 **Bewust:**
