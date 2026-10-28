@@ -1661,7 +1661,6 @@
       "staff_count_one": "{{count}} membre du personnel",
       "staff_count_other": "{{count}} membres du personnel",
       "pay": "Paiements",
-      "pay_status": "{{count}} moyens de paiement · paiement en ligne {{online}}",
       "printers": "Tickets & imprimantes",
       "alerts": "Alertes par appareil",
       "devices_count_one": "{{count}} appareil",
@@ -1681,7 +1680,11 @@
       "printers_status_one": "{{count}} imprimante · imprimer la preuve {{print}} · e-mail {{mail}}",
       "printers_status_few": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
       "printers_status_many": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
-      "printers_status_other": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}"
+      "printers_status_other": "{{count}} imprimantes · imprimer la preuve {{print}} · e-mail {{mail}}",
+      "pay_status_one": "{{count}} moyen de paiement · paiement en ligne {{online}}",
+      "pay_status_few": "{{count}} moyens de paiement · paiement en ligne {{online}}",
+      "pay_status_many": "{{count}} moyens de paiement · paiement en ligne {{online}}",
+      "pay_status_other": "{{count}} moyens de paiement · paiement en ligne {{online}}"
     }
   },
   "languages": {

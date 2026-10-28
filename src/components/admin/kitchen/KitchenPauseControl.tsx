@@ -5,6 +5,7 @@ import { PauseCircle, PlayCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
+import { useTracks } from '@/hooks/useBusinessModules';
 import { useTenant } from '@/hooks/useTenant';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -16,6 +17,7 @@ export function KitchenPauseControl({ now }: { now: number }) {
   const { t, i18n } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
+  const { hasTrack } = useTracks();
   const qc = useQueryClient();
   const key = ['kitchen-pause', tenantId];
   const { data } = useQuery({
@@ -28,9 +30,9 @@ export function KitchenPauseControl({ now }: { now: number }) {
         supabase.from('tenant_theme_settings').select('shop_live, shop_ordering').eq('tenant_id', tenantId!).maybeSingle(),
       ]);
       if (fs.error) throw fs.error;
-      // WANDELING: de pauze geldt enkel voor bestellen via de webshop. Staat die niet open, dan is de knop
-      // een dode knop (behalve om een lopende pauze op te heffen).
-      return { until: fs.data?.paused_until ?? null, webshop: !!ts.data?.shop_live && !!ts.data?.shop_ordering };
+      // WANDELING: de pauze geldt enkel voor bestellen via de webshop (ook een eigen frontend). Een horecazaak
+      // zonder webshop en zonder online bestellen krijgt geen dode knop; bij twijfel (fout) blijft hij staan.
+      return { until: fs.data?.paused_until ?? null, webshop: !!ts.error || (!!ts.data?.shop_live && !!ts.data?.shop_ordering) };
     },
   });
   const set = useMutation({
@@ -47,7 +49,7 @@ export function KitchenPauseControl({ now }: { now: number }) {
 
   const until = data?.until ? new Date(data.until) : null;
   const paused = !!until && until.getTime() > now;
-  if (!paused && !data?.webshop) return null;
+  if (!paused && data && !data.webshop && !hasTrack('webshop')) return null;
   if (paused) {
     return (
       <Button variant="destructive" size="sm" onClick={() => set.mutate(null)} disabled={set.isPending}>

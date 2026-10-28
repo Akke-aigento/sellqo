@@ -49,7 +49,7 @@ export default function POSTerminalSettingsPage() {
   const { terminalId } = useParams<{ terminalId: string }>();
   const navigate = useNavigate();
   const { terminals, updateTerminal, deleteTerminal, isLoading } = usePOSTerminals();
-  const { hasTrack } = useTracks();
+  const { hasTrack, ready: tracksReady } = useTracks();
   const classicPos = hasTrack('webshop');
   
   const terminal = terminals.find(t => t.id === terminalId);
@@ -258,7 +258,7 @@ export default function POSTerminalSettingsPage() {
         
         {/* WANDELING: hardware, bonnen en afrekenen hieronder gelden enkel voor de klassieke kassa (winkel).
             SellQo Kassa (horeca) regelt dat op één plek: Kassa › Betalen en Kassa › Bon & printers. */}
-        {classicPos ? (
+        {!tracksReady ? null : classicPos ? (
           <>
         {/* Capabilities */}
         <Card>

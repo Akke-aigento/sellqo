@@ -25,6 +25,7 @@ import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { useTranslation } from 'react-i18next';
 import { ModuleGateLoading, ModuleOffCard } from '@/components/admin/ModuleOffCard';
 import { useTracks } from '@/hooks/useBusinessModules';
+import { useCan } from '@/hooks/useCan';
 import { KaartManager } from '@/components/admin/horeca/kaart/KaartManager';
 
 // KAART-4 — de Kaart staat vooraan en is de standaardtab: dat is wat een barman hier het vaakst
@@ -51,6 +52,7 @@ function Status({ on, children }: { on: boolean; children: React.ReactNode }) {
 
 function Overview({ go }: { go: (t: Tab) => void }) {
   const { t } = useTranslation();
+  const canSettings = useCan('read', 'settings_general');
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const slug = currentTenant?.slug || '';
@@ -159,9 +161,11 @@ function Overview({ go }: { go: (t: Tab) => void }) {
           </Link>
         </div>
         {/* WANDELING: alle horeca-instellingen met hun stand, op één overzicht (enkel links). */}
-        <Link to="/admin/settings?section=horeca" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
-          {t('admin.orderingHub.all_settings')} <ChevronRight className="h-4 w-4" aria-hidden />
-        </Link>
+        {canSettings ? (
+          <Link to="/admin/settings?section=horeca" className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+            {t('admin.orderingHub.all_settings')} <ChevronRight className="h-4 w-4" aria-hidden />
+          </Link>
+        ) : null}
       </div>
     </div>
   );

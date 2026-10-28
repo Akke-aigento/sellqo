@@ -119,3 +119,12 @@ Deno.test('zaak zonder posten: bon gaat naar de printer voor bonnen zonder post 
   const j = jobs().at(-1);
   assert(j.printer_id === PR2 && j.tenant_id === T2 && j.kind === 'keuken' && j.payload_text.includes('1 x Grote friet'), JSON.stringify(j));
 });
+
+Deno.test('bon van een post zonder printer gaat nooit naar de printer voor bonnen zonder post', async () => {
+  const db2 = (globalThis as any).__fakeDb;
+  db2.tables.horeca_pay_settings[0].ticket_printer_id = PR;
+  const before = jobs().length;
+  const r = await post({ kind: 'ticket', id: TK2 });
+  assert(r.json.skipped === 'no_printer' && jobs().length === before, JSON.stringify(r.json));
+  db2.tables.horeca_pay_settings[0].ticket_printer_id = undefined;
+});

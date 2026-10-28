@@ -1633,7 +1633,6 @@
       "staff_count_one": "{{count}} staff member",
       "staff_count_other": "{{count}} staff members",
       "pay": "Payments",
-      "pay_status": "{{count}} payment methods · online payment {{online}}",
       "printers": "Receipts & printers",
       "alerts": "Alerts per device",
       "devices_count_one": "{{count}} device",
@@ -1653,7 +1652,11 @@
       "printers_status_one": "{{count}} printer · print receipt {{print}} · email {{mail}}",
       "printers_status_few": "{{count}} printers · print receipt {{print}} · email {{mail}}",
       "printers_status_many": "{{count}} printers · print receipt {{print}} · email {{mail}}",
-      "printers_status_other": "{{count}} printers · print receipt {{print}} · email {{mail}}"
+      "printers_status_other": "{{count}} printers · print receipt {{print}} · email {{mail}}",
+      "pay_status_one": "{{count}} payment method · online payment {{online}}",
+      "pay_status_few": "{{count}} payment methods · online payment {{online}}",
+      "pay_status_many": "{{count}} payment methods · online payment {{online}}",
+      "pay_status_other": "{{count}} payment methods · online payment {{online}}"
     }
   },
   "languages": {

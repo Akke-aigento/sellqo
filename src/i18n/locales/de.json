@@ -1661,7 +1661,6 @@
       "staff_count_one": "{{count}} Mitarbeiter",
       "staff_count_other": "{{count}} Mitarbeiter",
       "pay": "Bezahlen",
-      "pay_status": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
       "printers": "Belege & Drucker",
       "alerts": "Benachrichtigungen pro Gerät",
       "devices_count_one": "{{count}} Gerät",
@@ -1681,7 +1680,11 @@
       "printers_status_one": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
       "printers_status_few": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
       "printers_status_many": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
-      "printers_status_other": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}"
+      "printers_status_other": "{{count}} Drucker · Beleg drucken {{print}} · mailen {{mail}}",
+      "pay_status_one": "{{count}} Zahlungsart · Online-Zahlung {{online}}",
+      "pay_status_few": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
+      "pay_status_many": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
+      "pay_status_other": "{{count}} Zahlungsarten · Online-Zahlung {{online}}"
     }
   },
   "languages": {

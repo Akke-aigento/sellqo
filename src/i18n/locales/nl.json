@@ -1633,7 +1633,6 @@
       "staff_count_one": "{{count}} medewerker",
       "staff_count_other": "{{count}} medewerkers",
       "pay": "Betalen",
-      "pay_status": "{{count}} betaalwijzen · online betalen {{online}}",
       "printers": "Bon & printers",
       "alerts": "Meldingen per toestel",
       "devices_count_one": "{{count}} toestel",
@@ -1653,7 +1652,11 @@
       "printers_status_one": "{{count}} printer · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
       "printers_status_few": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
       "printers_status_many": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
-      "printers_status_other": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}"
+      "printers_status_other": "{{count}} printers · betaalbewijs afdrukken {{print}} · mailen {{mail}}",
+      "pay_status_one": "{{count}} betaalwijze · online betalen {{online}}",
+      "pay_status_few": "{{count}} betaalwijzen · online betalen {{online}}",
+      "pay_status_many": "{{count}} betaalwijzen · online betalen {{online}}",
+      "pay_status_other": "{{count}} betaalwijzen · online betalen {{online}}"
     }
   },
   "languages": {

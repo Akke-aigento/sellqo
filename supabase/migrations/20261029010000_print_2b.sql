@@ -6,8 +6,9 @@
 --   horeca_printer_ref_guard controleert ook die kolom (printer van dezelfde zaak).
 --   horeca_print_tr: bon zonder post → printer voor bonnen zonder post; een bon van een post blijft enkel
 --   naar de printer van die post gaan.
--- Hoort bij edge function horeca-print PRINT-2b (fallbackPrinter). Volgorde: eerst de functie deployen,
--- dan deze migratie (anders slaat de oude functie zulke bonnen gewoon over: geen schade).
+-- Hoort bij edge function horeca-print PRINT-2b (fallbackPrinter). VOLGORDE: (1) horeca-print deployen,
+-- (2) deze migratie, (3) pas dan de admin publiceren: Bon & printers leest ticket_printer_id en geeft een
+-- fout zolang de kolom ontbreekt.
 -- Additief. Terugdraaien (handmatig): de definities van horeca_print_tr en horeca_printer_ref_guard
 -- uit 20261028230000_print_2.sql opnieuw draaien; alter table public.horeca_pay_settings drop column if exists ticket_printer_id;
 -- drop trigger trg_horeca_pay_settings_printer + opnieuw aanmaken zoals in 20261028230000.

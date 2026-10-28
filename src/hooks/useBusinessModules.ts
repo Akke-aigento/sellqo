@@ -5,7 +5,7 @@
 //    afgedwongen door de trigger tenants_protect_platform_columns),
 //  - of een platformadmin het ontgrendeld heeft (tenant_feature_overrides.granted_features).
 // Platformadmins in beheerweergave zien alles. Zie src/lib/tracks.ts.
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +33,8 @@ export function tenantModules(tenant: unknown): BusinessModule[] {
  * TRACKS-1 — de sporen van de huidige winkel. `ready` is false zolang het
  * abonnement laadt; bewaak pagina's pas daarna (anders flitst "niet in je pakket").
  */
+const TRACKS_CACHE_KEY = 'sq_last_tracks';
+
 export function useTracks() {
   const { isPlatformAdmin } = useAuth();
   const { isAdminView } = usePlatformViewMode();
@@ -48,13 +50,29 @@ export function useTracks() {
   });
   const planTrack = tenantTracks({ planTrack: (subscription?.pricing_plan as { track?: unknown } | undefined)?.track })[0];
 
-  const hasTrack = useCallback((t: Track): boolean => bypass || tracks.includes(t), [bypass, tracks]);
-
   // WANDELING (29-10): ook wachten op de winkel zelf. Met enkel `!currentTenant` was ready true zolang de
   // winkel nog laadde, en flitste "Niet in je pakket" (en het webshopmenu) bij elke paginalading.
   // Met een winkel: wachten op het abonnement (zoals voorheen; een refreshTenants verandert daar niets aan,
   // zodat een pagina niet wegspringt). Zonder winkel: pas klaar als de winkels geladen zijn.
   const ready = currentTenant ? !isLoading : !tenantLoading;
+
+  // Tijdens het laden: de sporen van de vorige keer op dit toestel, zodat het menu meteen klopt (een
+  // horecazaak ziet geen webshopmenu, een webshop geen springend menu). Pagina's wachten wel op `ready`.
+  const cached = useMemo<Track[] | null>(() => {
+    try {
+      const raw = localStorage.getItem(TRACKS_CACHE_KEY);
+      const list = raw ? (JSON.parse(raw) as unknown) : null;
+      return Array.isArray(list) ? TRACKS.filter((t) => list.includes(t)) : null;
+    } catch { return null; }
+  }, []);
+  const tracksKey = tracks.join(',');
+  useEffect(() => {
+    if (!ready || !currentTenant) return;
+    try { localStorage.setItem(TRACKS_CACHE_KEY, JSON.stringify(tracksKey.split(','))); } catch { /* opslag vol of uit */ }
+  }, [ready, currentTenant, tracksKey]);
+  const effective = ready || !cached?.length ? tracks : cached;
+
+  const hasTrack = useCallback((t: Track): boolean => bypass || effective.includes(t), [bypass, effective]);
   return { tracks, planTrack, hasTrack, ready, bypass };
 }
 

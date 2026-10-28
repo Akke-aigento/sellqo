@@ -1641,7 +1641,6 @@
       "staff_count_many": "{{count}} працівників",
       "staff_count_other": "{{count}} працівників",
       "pay": "Оплата",
-      "pay_status": "{{count}} способи оплати · онлайн-оплата {{online}}",
       "printers": "Чеки та принтери",
       "alerts": "Сповіщення на пристрій",
       "devices_count_one": "{{count}} пристрій",
@@ -1653,7 +1652,11 @@
       "printers_status_one": "{{count}} принтер · друк підтвердження {{print}} · e-mail {{mail}}",
       "printers_status_few": "{{count}} принтери · друк підтвердження {{print}} · e-mail {{mail}}",
       "printers_status_many": "{{count}} принтерів · друк підтвердження {{print}} · e-mail {{mail}}",
-      "printers_status_other": "{{count}} принтерів · друк підтвердження {{print}} · e-mail {{mail}}"
+      "printers_status_other": "{{count}} принтерів · друк підтвердження {{print}} · e-mail {{mail}}",
+      "pay_status_one": "{{count}} спосіб оплати · онлайн-оплата {{online}}",
+      "pay_status_few": "{{count}} способи оплати · онлайн-оплата {{online}}",
+      "pay_status_many": "{{count}} способів оплати · онлайн-оплата {{online}}",
+      "pay_status_other": "{{count}} способів оплати · онлайн-оплата {{online}}"
     }
   },
   "languages": {
