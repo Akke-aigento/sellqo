@@ -22,6 +22,9 @@
 - Harnas `kassa-setup` op 390/1280 met lege cache: zaakvoerder maakt "Kassa 1" aan en is gekoppeld (insert-rij nagekeken), personeel ziet geen knop, geen consolefouten.
 - Docs-migratie droog getest op live (md5-guard en anker ok, teruggedraaid).
 
+**Live**
+- Live (29-10): main 7e0e860, CI groen. Na Akkes publish: `noTerminalsAdmin` en "Maak er hier meteen een aan" in `index-C7g14MJh.js`. Docs `20261029040000_kassa_start_1_docs` gedraaid (md5 a043465a… van GitHub): `kassa-tafels-rekeningen` bevat de nieuwe sectie, geregistreerd in `schema_migrations`.
+
 **Bewust ongemoeid / Vervolg**
 - Geen automatische kassa bij het aanzetten van horeca: de knop dekt ook "alle kassa's verwijderd".
 - Uitrol: push → CI → publish → `20261029040000_kassa_start_1_docs`.
