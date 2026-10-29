@@ -29,6 +29,9 @@
 - Harnas `kassa-home` op 390/1024/1280: overloop 0 px; zaalplan op 390 gedraaid en schermvullend; kolom Binnenkomend naast het plan op 1024/1280 (QR tafel 5 + 2 barbonnen), op 390 onder Bar; Keuken toont 2 keukenbonnen; taal English en terug naar de zaak werkt.
 - Docs-migratie droog getest op live (md5-guards en ankers ok, teruggedraaid).
 
+**Live**
+- Live (29-10): main f8b0271, CI groen. Na Akkes publish: `index-BUUzM2Iq.js` bevat `sellqo-kassa-0.14.0`, `kassa_bar_kitchen` en "Binnenkomend". Docs `20261029060000_kassa_ux_2_docs` gedraaid (md5 591b8061… van GitHub): beide artikels bijgewerkt, geregistreerd in `schema_migrations`.
+
 **Bewust ongemoeid / Vervolg**
 - Afrekenscherm (`PayDialog`) nog altijd ongewijzigd.
 - Zonder post van het type Bar toont Bar enkel QR-bestellingen (met uitleg hoe je een barpost maakt).
