@@ -16,13 +16,15 @@ export interface FloorPlanViewProps {
   /** TAFEL-1: extra regel per tafel (bedrag · minuten). */
   badges?: Record<string, string | undefined>;
   onTableClick?: (table: FloorTable) => void;
+  /** KASSA-UX-3: lang drukken op een tafel (kassa: actiemenu). */
+  onTableLongPress?: (table: FloorTable) => void;
   /** Welke ruimte eerst open staat (standaard de eerste). */
   initialAreaId?: string;
   maxHeight?: number;
   className?: string;
 }
 
-export function FloorPlanView({ areas, tables, markers, status, badges, onTableClick, initialAreaId, maxHeight, className }: FloorPlanViewProps) {
+export function FloorPlanView({ areas, tables, markers, status, badges, onTableClick, onTableLongPress, initialAreaId, maxHeight, className }: FloorPlanViewProps) {
   const { t } = useTranslation();
   const sorted = useMemo(() => [...areas].filter((a) => a.is_active).sort((a, b) => a.sort - b.sort || a.name.localeCompare(b.name)), [areas]);
   const [picked, setPicked] = useState<string | undefined>(initialAreaId);
@@ -52,6 +54,7 @@ export function FloorPlanView({ areas, tables, markers, status, badges, onTableC
         status={status}
         badges={badges}
         onTableClick={onTableClick}
+        onTableLongPress={onTableLongPress}
         maxHeight={maxHeight}
       />
     </div>

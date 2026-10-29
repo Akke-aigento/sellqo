@@ -19,6 +19,8 @@ export interface FloorCanvasProps {
   /** Ids met een waarschuwing (overlap, dubbel label): rode rand. */
   warnIds?: Set<string>;
   onTableClick?: (table: FloorTable) => void;
+  /** KASSA-UX-3: lang drukken (550 ms) op een tafel; de klik daarna telt niet. Enkel zonder slepen (onMove). */
+  onTableLongPress?: (table: FloorTable) => void;
   onMarkerClick?: (marker: FloorMarker) => void;
   /** Bewerken: slepen met raster-snap. Zonder deze prop is het plan alleen-lezen. */
   onMove?: (kind: 'table' | 'marker', id: string, pos: { x: number; y: number }) => void;
@@ -50,13 +52,22 @@ const MARKER_CLASS: Record<FloorMarker['kind'], string> = {
 interface Drag { kind: 'table' | 'marker'; id: string; startX: number; startY: number; px: number; py: number; moved: boolean }
 
 export function FloorCanvas(props: FloorCanvasProps) {
-  const { area, tables, markers, status, badges, selectedId, warnIds, onTableClick, onMarkerClick, onMove, onBackgroundClick, maxHeight, className } = props;
+  const { area, tables, markers, status, badges, selectedId, warnIds, onTableClick, onTableLongPress, onMarkerClick, onMove, onBackgroundClick, maxHeight, className } = props;
   const { t } = useTranslation();
   const [wrapRef, width] = useElementWidth<HTMLDivElement>();
   const cell = fitCell(area, width || 640, maxHeight);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [preview, setPreview] = useState<{ id: string; x: number; y: number } | null>(null);
   const suppressClick = useRef(false);
+  // KASSA-UX-3: lang drukken (alleen-lezen plan). Bewegen van meer dan 8 px annuleert.
+  const press = useRef<{ timer: number; x: number; y: number } | null>(null);
+  const cancelPress = () => { if (press.current) { window.clearTimeout(press.current.timer); press.current = null; } };
+  const startPress = (e: React.PointerEvent, tb: FloorTable) => {
+    if (onMove || !onTableLongPress) return;
+    cancelPress();
+    press.current = { x: e.clientX, y: e.clientY, timer: window.setTimeout(() => { press.current = null; suppressClick.current = true; onTableLongPress(tb); }, 550) };
+  };
+  const movePress = (e: React.PointerEvent) => { if (press.current && Math.hypot(e.clientX - press.current.x, e.clientY - press.current.y) > 8) cancelPress(); };
 
   const startDrag = (e: React.PointerEvent, kind: 'table' | 'marker', item: { id: string; x: number; y: number }) => {
     if (!onMove || e.button !== 0) return;
@@ -136,7 +147,7 @@ export function FloorCanvas(props: FloorCanvasProps) {
               data-status={st || undefined}
               aria-label={st ? t('admin.floorPlan.table_aria_status', { label: tb.label, status: t(`admin.floorPlan.status_${st}`) }) : t('admin.floorPlan.table_aria', { label: tb.label, seats: tb.seats })}
               aria-pressed={selectedId ? selectedId === tb.id : undefined}
-              className={cn('absolute flex select-none items-center justify-center border-2 font-semibold shadow-sm',
+              className={cn('absolute flex select-none items-center justify-center border-2 font-semibold shadow-sm [-webkit-touch-callout:none]',
                 tb.shape === 'round' ? 'rounded-full' : 'rounded-md',
                 st ? STATUS_CLASS[st] : 'border-slate-500 bg-background text-foreground',
                 tb.kind === 'standing' && !st && 'border-dashed',
@@ -145,10 +156,12 @@ export function FloorCanvas(props: FloorCanvasProps) {
                 warnIds?.has(tb.id) && 'border-red-600',
                 selectedId === tb.id && 'ring-2 ring-primary ring-offset-1')}
               style={{ ...box({ ...tb, ...p }), fontSize }}
-              onPointerDown={(e: React.PointerEvent) => startDrag(e, 'table', tb)}
-              onPointerMove={(e: React.PointerEvent) => moveDrag(e, tb)}
-              onPointerUp={endDrag}
-              onPointerCancel={endDrag}
+              onPointerDown={(e: React.PointerEvent) => { startDrag(e, 'table', tb); startPress(e, tb); }}
+              onPointerMove={(e: React.PointerEvent) => { moveDrag(e, tb); movePress(e); }}
+              onPointerUp={() => { endDrag(); cancelPress(); }}
+              onPointerCancel={() => { endDrag(); cancelPress(); }}
+              onPointerLeave={cancelPress}
+              onContextMenu={onTableLongPress && !onMove ? (e: React.MouseEvent) => { e.preventDefault(); cancelPress(); onTableLongPress(tb); } : undefined}
               onClick={() => { if (suppressClick.current) { suppressClick.current = false; return; } onTableClick?.(tb); }}
             >
               {/* Label blijft rechtop, ook als de tafel gedraaid is. */}

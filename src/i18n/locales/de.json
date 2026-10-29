@@ -11086,7 +11086,10 @@
       "viewList": "Liste",
       "noPlan": "Noch kein Raumplan. Zeichne deine Tische in SellQo unter Bestellen › Raumplan; Rechnungen auf Namen funktionieren schon.",
       "free": "frei",
-      "counter": "Theke / Schnellverkauf"
+      "counter": "Theke / Schnellverkauf",
+      "noTabs": "Noch keine Rechnungen auf einen Namen.",
+      "allTabs": "Alle ({{count}})",
+      "allTabsTitle": "Rechnungen auf einen Namen ({{count}})"
     },
     "checks": {
       "rejected": "Nicht ausgeführt: {{error}}",
@@ -11158,7 +11161,12 @@
       "summary_other": "{{count}} Artikel",
       "showLines": "Rechnung",
       "summary_few": "{{count}} Artikel",
-      "summary_many": "{{count}} Artikel"
+      "summary_many": "{{count}} Artikel",
+      "billConfirmTitle": "Zwischenrechnung für {{title}}?",
+      "billConfirmText": "Du erstellst eine Zwischenrechnung über {{amount}}. Der Tisch wird blau; nachbestellen geht danach noch.",
+      "billConfirmYes": "Zwischenrechnung erstellen",
+      "quickChoiceHint": "Jeder Tipp fügt eins hinzu. Tippe auf Fertig, wenn alles da ist.",
+      "done": "Fertig"
     },
     "pay": {
       "button": "Kassieren",
@@ -11248,8 +11256,9 @@
         "eat_in": "Vor Ort",
         "takeaway": "Zum Mitnehmen"
       },
-      "kitchenOn": "Küchenbon",
-      "kitchenOff": "Kein Küchenbon"
+      "noKitchenNote": "Ohne Küchenbon (ändern über ⋯)",
+      "withoutKitchen": "Ohne Küchenbon",
+      "withKitchen": "Mit Küchenbon"
     },
     "cash": {
       "in": "Einlage",
@@ -11417,6 +11426,14 @@
       "empty": "Noch nichts eingegangen. Neue QR-Bestellungen und Bons für die Bar erscheinen hier.",
       "emptyNoBar": "Noch nichts eingegangen. QR-Bestellungen erscheinen hier. Willst du auch die Bons der Bar sehen? Lege unter Bestellen › Stationen eine Station vom Typ Bar an.",
       "tickets": "{{name}} ({{count}})"
+    },
+    "tableActions": {
+      "open": "Offene Rechnung: {{amount}}",
+      "toCheck": "Zur Rechnung",
+      "openTable": "Tisch öffnen",
+      "free": "Tisch freigeben",
+      "freeConfirm": "{{title}} hat eine leere Rechnung. Freigeben?",
+      "bill": "Zwischenrechnung"
     }
   },
   "deviceAlerts": {

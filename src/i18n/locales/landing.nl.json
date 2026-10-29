@@ -2323,6 +2323,10 @@
         "kassa_bar_kitchen": {
           "title": "SellQo Kassa: barscherm, keuken en zaalplan op je gsm",
           "description": "Bovenaan de kassa wissel je met één tik tussen Zaal, Bar en Keuken, en elk toestel onthoudt waar het stond. Onder Bar zie je wat er binnenkomt: bestellingen via de QR aan tafel en de bonnen voor je bar. Op een tablet staat die kolom naast je zaalplan. Keuken toont het keukenscherm in de kassa zelf. Op je gsm draait het zaalplan een kwartslag, zodat je tafels groot genoeg zijn. En de kassa spreekt de taal van je zaak."
+        },
+        "kassa_quick_tap_2": {
+          "title": "SellQo Kassa: sneller tikken aan de bar en lang drukken op tafels",
+          "description": "Kies je een formaat zoals 25, 33 of 50 cl, dan blijft het venster open: tik vijf keer en je hebt 5 pinten op één lijn. Lang drukken op een tafel geeft een menu om de rekening te openen, een voorlopige rekening te maken (met bevestiging), te verplaatsen of samen te voegen. Tabs op naam staan op één rij en verschuiven je zaalplan niet meer. In Keuken en Bar blijft het scherm open, en de keukenbon aan de toog gaat vanzelf."
         }
       },
       "copyLink": "Kopieer link",

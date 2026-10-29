@@ -30,7 +30,7 @@ export function RequestInboxButton({ count, onClick }: { count: number; onClick:
   );
 }
 
-export function RequestList({ ctx, requests }: { ctx: ActionCtx; requests: TableRequest[] }) {
+export function RequestList({ ctx, requests, beforeAction }: { ctx: ActionCtx; requests: TableRequest[]; /** KASSA-UX-3: PIN-bewaking op een scherm dat niet vergrendelt (Bar). */ beforeAction?: () => boolean }) {
   const { t, i18n } = useTranslation();
   const euro = (c: number) => formatEuro(c, i18n.language);
   const groups = useMemo(() => groupByTable(requests), [requests]);
@@ -51,6 +51,7 @@ export function RequestList({ ctx, requests }: { ctx: ActionCtx; requests: Table
 
   const accept = async (r: TableRequest) => {
     if (state[r.id]?.busy) return;
+    if (beforeAction && !beforeAction()) return;
     patch(r.id, { busy: true });
     const o = await runAccept(ctx, r, t);
     patch(r.id, 'error' in o ? { error: o.error } : {});
@@ -60,6 +61,7 @@ export function RequestList({ ctx, requests }: { ctx: ActionCtx; requests: Table
     for (const r of rs) await accept(r);
   };
   const reject = async (r: TableRequest, reason: string) => {
+    if (beforeAction && !beforeAction()) return;
     patch(r.id, { busy: true });
     setRejecting(null);
     setCustom('');

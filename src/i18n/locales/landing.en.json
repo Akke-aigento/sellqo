@@ -2323,6 +2323,10 @@
         "kassa_bar_kitchen": {
           "title": "SellQo Kassa: bar screen, kitchen and floor plan on your phone",
           "description": "At the top of the till you switch between Floor, Bar and Kitchen with one tap, and each device remembers where it was. Bar shows what comes in: QR orders from the tables and the tickets for your bar. On a tablet that column sits next to your floor plan. Kitchen shows the kitchen screen inside the till. On your phone the floor plan turns a quarter so your tables are big enough. And the till speaks the language of your business."
+        },
+        "kassa_quick_tap_2": {
+          "title": "SellQo Kassa: faster tapping at the bar and long-press on tables",
+          "description": "When you pick a size such as 25, 33 or 50 cl, the window stays open: tap five times and you have 5 pints on one line. Long-pressing a table gives a menu to open the bill, create an interim bill (with confirmation), move or merge. Tabs on a name sit on one row and no longer shift your floor plan. In Kitchen and Bar the screen stays open, and the kitchen ticket at the bar is automatic."
         }
       },
       "copyLink": "Copy link",

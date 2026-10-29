@@ -4,19 +4,39 @@
 // Pure functies; de kassa stuurt de bestaande commando's add_line en change_qty.
 import type { Check, CheckLine } from './types';
 
-/** Een ontwerp-lijn waar een volgende tik van hetzelfde product bij mag. */
-export function isMergeable(l: CheckLine, productId: string): boolean {
+/** Zelfde verzameling extra's (volgorde maakt niet uit). */
+const sameAddons = (l: CheckLine, addonIds: string[]) => {
+  const have = l.addons.map((a) => a.option_id).sort();
+  const want = [...addonIds].sort();
+  return have.length === want.length && have.every((x, i) => x === want[i]);
+};
+
+/** Een ontwerp-lijn waar een volgende tik van hetzelfde product (met dezelfde extra's) bij mag. */
+export function isMergeable(l: CheckLine, productId: string, addonIds: string[] = []): boolean {
   return l.state === 'draft' && l.product_id === productId && l.qty > 0 && !l.corrects_line_id
-    && l.addons.length === 0 && !l.note && l.price_changes.length === 0;
+    && sameAddons(l, addonIds) && !l.note && l.price_changes.length === 0;
 }
 
 export type TapPlan = { kind: 'add' } | { kind: 'qty'; lineId: string; qty: number };
 
-/** Wat een tik op een product doet: optellen op de laatste passende ontwerp-lijn, anders een nieuwe lijn. */
-export function planTap(check: Pick<Check, 'lines'> | undefined, productId: string, hasAddons: boolean): TapPlan {
-  if (!check || hasAddons) return { kind: 'add' };
-  const hit = [...check.lines].sort((a, b) => b.seq - a.seq).find((l) => isMergeable(l, productId));
+/**
+ * Wat een tik op een product doet: optellen op de laatste passende ontwerp-lijn, anders een nieuwe lijn.
+ * KASSA-UX-3: ook met extra's (5× Pils 25 cl op één lijn), zolang de keuze precies dezelfde is.
+ */
+export function planTap(check: Pick<Check, 'lines'> | undefined, productId: string, addonIds: string[] = []): TapPlan {
+  if (!check) return { kind: 'add' };
+  const hit = [...check.lines].sort((a, b) => b.seq - a.seq).find((l) => isMergeable(l, productId, addonIds));
   return hit ? { kind: 'qty', lineId: hit.id, qty: Math.min(999, hit.qty + 1) } : { kind: 'add' };
+}
+
+/** Aantal van een product met precies deze extra's in de lopende ronde (teller in het formaatvenster). */
+export function draftCountWith(check: Pick<Check, 'lines'> | undefined, productId: string, addonIds: string[]): number {
+  return (check?.lines ?? []).filter((l) => isMergeable(l, productId, addonIds)).reduce((s, l) => s + l.qty, 0);
+}
+
+/** KASSA-UX-3: één verplichte keuze uit één groep (bv. 25/33/50 cl) → snel-tikvenster dat open blijft. */
+export function isQuickChoice(groups: { min: number; max: number | null; options: unknown[] }[]): boolean {
+  return groups.length === 1 && groups[0].min === 1 && groups[0].max === 1 && groups[0].options.length > 0;
 }
 
 /** "−" op een tegel: de laatste ontwerp-lijn van dat product één minder (0 = weg). null = niets te verminderen. */

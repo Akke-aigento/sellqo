@@ -18,7 +18,7 @@ import { kitchenOn, rememberKitchen, rememberService, type CounterService } from
 import { roundLines } from '../horeca/fiscalLines';
 import { discountLine, moveCheck, moveLines, requestBill, sendRound, type ActionCtx, type ActionOutcome } from '../horeca/actions';
 import { useCatalog, usePopularLines, type CatalogProduct } from '../horeca/useCatalog';
-import { categoryDot, categoryTone, draftCounts, itemCount, planMinus, planTap, popularIds } from '../horeca/quickTap';
+import { categoryDot, categoryTone, draftCountWith, draftCounts, isQuickChoice, itemCount, planMinus, planTap, popularIds } from '../horeca/quickTap';
 import { formatEuro } from '../horeca/format';
 import { hasPendingPay, isRejectedPay } from '../horeca/payActions';
 import { PayDialog, SplitDialog } from './PayDialog';
@@ -27,6 +27,8 @@ import { useLongPress } from '../useLongPress';
 
 interface Props {
   ctx: ActionCtx; checkId: string; onBack: () => void; onOpen?: (checkId: string, opts?: { pay?: boolean }) => void; initialPay?: boolean;
+  /** KASSA-UX-3: meteen het venster "verplaatsen of samenvoegen" (lang drukken op een tafel). */
+  initialMove?: boolean;
   /** Na afrekenen. TAFEL-3: aan de toog opent de kassa meteen de volgende verkoop. */
   onPaid?: (counter: boolean) => void;
 }
@@ -36,7 +38,7 @@ const POPULAR = '__popular';
 const ALL = '__all';
 const DISCOUNTS = [10, 20, 50] as const;
 
-export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay = false }: Props) {
+export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay = false, initialMove = false }: Props) {
   const { t, i18n } = useTranslation();
   const { store } = ctx;
   const check = store.check(checkId);
@@ -55,7 +57,8 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   const [splitting, setSplitting] = useState(false);
   const [lineSheet, setLineSheet] = useState<CheckLine | null>(null);
   const [addonFor, setAddonFor] = useState<CatalogProduct | null>(null);
-  const [moving, setMoving] = useState<null | { lines: CheckLine[] | 'all' }>(null);
+  const [moving, setMoving] = useState<null | { lines: CheckLine[] | 'all' }>(initialMove ? { lines: 'all' } : null);
+  const [confirmBill, setConfirmBill] = useState(false);
   const [kitchen, setKitchen] = useState(kitchenOn);
   // KASSA-0.6: lang drukken op een product = op/terug of prijs, goedgekeurd met de PIN van
   // een eigenaar of verantwoordelijke (de server controleert).
@@ -126,17 +129,22 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
     store.enqueue({ id: crypto.randomUUID(), kind: 'add_line', check_id: check.id, line_id: crypto.randomUUID(), product_id: p.id, qty: 1, addon_ids: addonIds, staff_id: ctx.staffId });
   };
 
-  const tapProduct = (p: CatalogProduct) => {
-    if (p.sold_out) return;
-    if (p.addonGroups.length) { setAddonFor(p); return; }
+  /** Eén erbij: optellen op een lijn met precies hetzelfde product en dezelfde extra's, anders een nieuwe lijn. */
+  const addOne = (p: CatalogProduct, addonIds: string[] = []) => {
     // Trillen waar het toestel dat kan (Android); de oplichting is er altijd.
     try { navigator.vibrate?.(12); } catch { /* geen trilfunctie */ }
     if (flashTimer.current) clearTimeout(flashTimer.current);
     setFlash(p.id);
     flashTimer.current = setTimeout(() => setFlash(null), 180);
-    const plan = planTap(check, p.id, false);
+    const fresh = store.check(check.id) ?? check;
+    const plan = planTap(fresh, p.id, addonIds);
     if (plan.kind === 'qty') store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: plan.lineId, qty: plan.qty, staff_id: ctx.staffId });
-    else addProduct(p);
+    else addProduct(p, addonIds);
+  };
+  const tapProduct = (p: CatalogProduct) => {
+    if (p.sold_out) return;
+    if (p.addonGroups.length) { setAddonFor(p); return; }
+    addOne(p);
   };
   const minusProduct = (p: CatalogProduct) => {
     const m = planMinus(check, p.id);
@@ -176,6 +184,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
     onOpen?.(to, { pay: true });
   };
   const doBill = async () => {
+    setConfirmBill(false);
     setBusy('bill');
     report(await requestBill(ctx, check.id), t('kassa.checks.billRequested'));
     setBusy(null);
@@ -272,6 +281,12 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
             <button type="button" aria-label={t('kassa.checks.more')} className="flex h-11 w-11 items-center justify-center rounded-md border"><MoreHorizontal className="h-5 w-5" /></button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
+            {/* KASSA-UX-3: de keukenbon aan de toog gaat vanzelf (enkel wat niet naar de bar gaat); hier de uitzondering. */}
+            {counter && (
+              <DropdownMenuItem onClick={() => { rememberKitchen(!kitchen); setKitchen(!kitchen); }}>
+                {t(kitchen ? 'kassa.counter.withoutKitchen' : 'kassa.counter.withKitchen')}
+              </DropdownMenuItem>
+            )}
             {!counter && <DropdownMenuItem disabled={locked || !sentAny && !drafts} onClick={() => void openSplit()}>{t('kassa.pay.split')}</DropdownMenuItem>}
             {!counter && <DropdownMenuItem disabled={locked || !!check.split_of} onClick={() => setMoving({ lines: 'all' })}>{t('kassa.checks.moveCheck')}</DropdownMenuItem>}
             {!sentAny && !locked && (
@@ -304,19 +319,16 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
         </p>
       ) : null}
       {counter ? (
-        <div className="grid grid-cols-3 gap-2 border-t p-2" style={{ paddingBottom: 'max(0.5rem, var(--safe-bottom))' }}>
-          <button type="button" aria-pressed={kitchen} onClick={() => { rememberKitchen(!kitchen); setKitchen(!kitchen); }}
-            className={cn('flex h-14 items-center justify-center gap-2 rounded-lg border text-base font-semibold', kitchen ? 'border-primary text-primary' : 'text-muted-foreground')}>
-            <ChefHat className="h-5 w-5" /> <span className="truncate">{t(kitchen ? 'kassa.counter.kitchenOn' : 'kassa.counter.kitchenOff')}</span>
-          </button>
+        <div className="grid gap-2 border-t p-2" style={{ paddingBottom: 'max(0.5rem, var(--safe-bottom))' }}>
+          {!kitchen && <p className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground"><ChefHat className="h-3.5 w-3.5" aria-hidden />{t('kassa.counter.noKitchenNote')}</p>}
           <button type="button" onClick={() => setPaying(true)} disabled={locked || !!busy || !visible.length}
-            className="col-span-2 flex h-14 items-center justify-center gap-2 rounded-lg bg-primary text-base font-semibold text-primary-foreground disabled:opacity-40">
+            className="flex h-14 items-center justify-center gap-2 rounded-lg bg-primary text-base font-semibold text-primary-foreground disabled:opacity-40">
             <Wallet className="h-5 w-5" /> {t('kassa.pay.button')} · {euro(checkTotalCents(check))}
           </button>
         </div>
       ) : (
       <div className="grid grid-cols-3 gap-2 border-t p-2" style={{ paddingBottom: 'max(0.5rem, var(--safe-bottom))' }}>
-        <button type="button" onClick={doBill} disabled={locked || !!busy || !sentAny && !drafts}
+        <button type="button" onClick={() => setConfirmBill(true)} disabled={locked || !!busy || !sentAny && !drafts}
           className="flex h-14 items-center justify-center gap-2 rounded-lg border text-base font-semibold disabled:opacity-40">
           {busy === 'bill' ? <Loader2 className="h-5 w-5 animate-spin" /> : <Receipt className="h-5 w-5" />} {t('kassa.checks.bill')}
         </button>
@@ -357,9 +369,23 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
         />
       )}
 
+      <Dialog open={confirmBill} onOpenChange={setConfirmBill}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>{t('kassa.checks.billConfirmTitle', { title })}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('kassa.checks.billConfirmText', { amount: euro(checkTotalCents(check)) })}</p>
+          <DialogFooter className="gap-2">
+            <button type="button" onClick={() => setConfirmBill(false)} className="h-11 rounded-md border px-4">{t('kassa.common.cancel')}</button>
+            <button type="button" onClick={() => void doBill()} className="h-11 rounded-md bg-primary px-4 font-semibold text-primary-foreground">{t('kassa.checks.billConfirmYes')}</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {editing ? <ProductQuickEdit ctx={ctx} product={catalog?.products.find((x) => x.id === editing.id) ?? editing} onClose={() => setEditing(null)} /> : null}
       {addonFor && (
-        <AddonDialog product={addonFor} onClose={() => setAddonFor(null)} onConfirm={(ids) => { addProduct(addonFor, ids); setAddonFor(null); }} />
+        isQuickChoice(addonFor.addonGroups)
+          ? <QuickChoiceDialog product={addonFor} countFor={(ids) => draftCountWith(store.check(check.id) ?? check, addonFor.id, ids)}
+              onAdd={(ids) => addOne(addonFor, ids)} onClose={() => setAddonFor(null)} />
+          : <AddonDialog product={addonFor} onClose={() => setAddonFor(null)} onConfirm={(ids) => { addOne(addonFor, ids); setAddonFor(null); }} />
       )}
 
       {moving && plan && (
@@ -459,6 +485,34 @@ function LineDialog(p: {
           </div>
         )}
         <DialogFooter><button type="button" onClick={p.onClose} className="h-11 rounded-md border px-4">{t('kassa.common.close')}</button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** KASSA-UX-3 — één verplichte keuze (bv. 25/33/50 cl): elke tik = één erbij, het venster blijft open. */
+function QuickChoiceDialog({ product, countFor, onAdd, onClose }: { product: CatalogProduct; countFor: (ids: string[]) => number; onAdd: (ids: string[]) => void; onClose: () => void }) {
+  const { t, i18n } = useTranslation();
+  const g = product.addonGroups[0];
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle>{product.name}</DialogTitle></DialogHeader>
+        <p className="text-sm text-muted-foreground">{t('kassa.checks.quickChoiceHint')}</p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {g.options.map((o) => {
+            const n = countFor([o.id]);
+            return (
+              <button key={o.id} type="button" onClick={() => onAdd([o.id])}
+                className={cn('relative flex min-h-20 flex-col items-center justify-center rounded-lg border-2 p-2 text-center active:scale-[0.97]', n > 0 ? 'border-primary bg-primary/5' : 'border-border')}>
+                <span className="text-base font-semibold">{o.name}</span>
+                <span className="text-xs text-muted-foreground">{formatEuro(product.price_cents + o.price_cents, i18n.language)}</span>
+                {n > 0 && <span className="absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">{n}</span>}
+              </button>
+            );
+          })}
+        </div>
+        <DialogFooter><button type="button" onClick={onClose} className="h-12 w-full rounded-md bg-primary font-semibold text-primary-foreground sm:w-auto sm:px-6">{t('kassa.checks.done')}</button></DialogFooter>
       </DialogContent>
     </Dialog>
   );

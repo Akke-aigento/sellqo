@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminHref, draftCounts, itemCount, planMinus, planTap, popularIds } from '../horeca/quickTap';
+import { adminHref, draftCountWith, draftCounts, isQuickChoice, itemCount, planMinus, planTap, popularIds } from '../horeca/quickTap';
 import type { CheckLine } from '../horeca/types';
 
 const line = (p: Partial<CheckLine> & { id: string; seq: number }): CheckLine => ({
@@ -10,15 +10,25 @@ const line = (p: Partial<CheckLine> & { id: string; seq: number }): CheckLine =>
 
 describe('KASSA-UX-1 sneltikken', () => {
   it('telt een tweede tik op dezelfde ontwerp-lijn op', () => {
-    expect(planTap({ lines: [line({ id: 'a', seq: 1, qty: 2 })] }, 'pils', false)).toEqual({ kind: 'qty', lineId: 'a', qty: 3 });
+    expect(planTap({ lines: [line({ id: 'a', seq: 1, qty: 2 })] }, 'pils')).toEqual({ kind: 'qty', lineId: 'a', qty: 3 });
   });
   it('maakt een nieuwe lijn bij extra’s, een opmerking, een verstuurde lijn of een ander product', () => {
-    expect(planTap({ lines: [line({ id: 'a', seq: 1 })] }, 'pils', true)).toEqual({ kind: 'add' });
-    expect(planTap({ lines: [line({ id: 'a', seq: 1, note: 'zonder schuim' })] }, 'pils', false)).toEqual({ kind: 'add' });
-    expect(planTap({ lines: [line({ id: 'a', seq: 1, state: 'sent' })] }, 'pils', false)).toEqual({ kind: 'add' });
-    expect(planTap({ lines: [line({ id: 'a', seq: 1, product_id: 'cola' })] }, 'pils', false)).toEqual({ kind: 'add' });
-    expect(planTap({ lines: [line({ id: 'a', seq: 1, addons: [{ option_id: 'o', name: 'citroen', price_cents: 0 }] })] }, 'pils', false)).toEqual({ kind: 'add' });
-    expect(planTap(undefined, 'pils', false)).toEqual({ kind: 'add' });
+    expect(planTap({ lines: [line({ id: 'a', seq: 1 })] }, 'pils', ['25cl'])).toEqual({ kind: 'add' });
+    expect(planTap({ lines: [line({ id: 'a', seq: 1, note: 'zonder schuim' })] }, 'pils')).toEqual({ kind: 'add' });
+    expect(planTap({ lines: [line({ id: 'a', seq: 1, state: 'sent' })] }, 'pils')).toEqual({ kind: 'add' });
+    expect(planTap({ lines: [line({ id: 'a', seq: 1, product_id: 'cola' })] }, 'pils')).toEqual({ kind: 'add' });
+    expect(planTap({ lines: [line({ id: 'a', seq: 1, addons: [{ option_id: 'o', name: 'citroen', price_cents: 0 }] })] }, 'pils')).toEqual({ kind: 'add' });
+    expect(planTap(undefined, 'pils')).toEqual({ kind: 'add' });
+  });
+  it('KASSA-UX-3: zelfde maat telt op dezelfde lijn op, een andere maat krijgt een eigen lijn', () => {
+    const lines = [line({ id: 'a', seq: 1, qty: 2, addons: [{ option_id: '25cl', name: '25 cl', price_cents: 0 }] })];
+    expect(planTap({ lines }, 'pils', ['25cl'])).toEqual({ kind: 'qty', lineId: 'a', qty: 3 });
+    expect(planTap({ lines }, 'pils', ['50cl'])).toEqual({ kind: 'add' });
+    expect(draftCountWith({ lines }, 'pils', ['25cl'])).toBe(2);
+    expect(draftCountWith({ lines }, 'pils', ['50cl'])).toBe(0);
+    expect(isQuickChoice([{ min: 1, max: 1, options: [1, 2, 3] }])).toBe(true);
+    expect(isQuickChoice([{ min: 0, max: 2, options: [1] }])).toBe(false);
+    expect(isQuickChoice([{ min: 1, max: 1, options: [1] }, { min: 0, max: 1, options: [1] }])).toBe(false);
   });
   it('"−" vermindert de laatste ontwerp-lijn en raakt nooit verstuurde lijnen', () => {
     const lines = [line({ id: 'a', seq: 1, state: 'sent', qty: 4 }), line({ id: 'b', seq: 2, qty: 2 })];

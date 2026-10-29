@@ -2323,6 +2323,10 @@
         "kassa_bar_kitchen": {
           "title": "SellQo Kassa : écran bar, cuisine et plan de salle sur votre téléphone",
           "description": "En haut de la caisse, vous passez de Salle à Bar ou Cuisine d’un seul geste, et chaque appareil se souvient de son écran. Bar affiche ce qui arrive : les commandes QR des tables et les bons pour votre bar. Sur une tablette, cette colonne se trouve à côté de votre plan de salle. Cuisine affiche l’écran cuisine dans la caisse même. Sur votre téléphone, le plan de salle pivote d’un quart de tour pour que vos tables soient assez grandes. Et la caisse parle la langue de votre établissement."
+        },
+        "kassa_quick_tap_2": {
+          "title": "SellQo Kassa : encodage plus rapide au bar et appui long sur les tables",
+          "description": "Quand vous choisissez un format comme 25, 33 ou 50 cl, la fenêtre reste ouverte : touchez cinq fois et vous avez 5 pintes sur une ligne. Un appui long sur une table ouvre un menu pour ouvrir l’addition, créer une addition provisoire (avec confirmation), déplacer ou fusionner. Les additions à un nom tiennent sur une ligne et ne décalent plus votre plan de salle. En Cuisine et au Bar, l’écran reste ouvert, et le bon cuisine au comptoir est automatique."
         }
       },
       "copyLink": "Copier le lien",

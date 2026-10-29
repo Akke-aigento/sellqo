@@ -2323,6 +2323,10 @@
         "kassa_bar_kitchen": {
           "title": "SellQo Kassa: Barbildschirm, Küche und Raumplan auf dem Handy",
           "description": "Oben in der Kasse wechselst du mit einem Tipp zwischen Saal, Bar und Küche, und jedes Gerät merkt sich, wo es war. Unter Bar siehst du, was hereinkommt: QR-Bestellungen von den Tischen und die Bons für deine Bar. Auf einem Tablet steht diese Spalte neben deinem Raumplan. Küche zeigt den Küchenbildschirm direkt in der Kasse. Auf dem Handy dreht sich der Raumplan um eine Vierteldrehung, damit deine Tische groß genug sind. Und die Kasse spricht die Sprache deines Betriebs."
+        },
+        "kassa_quick_tap_2": {
+          "title": "SellQo Kassa: schneller tippen an der Bar und lang drücken auf Tische",
+          "description": "Wählst du eine Größe wie 25, 33 oder 50 cl, bleibt das Fenster offen: fünfmal tippen und du hast 5 Pils auf einer Zeile. Lang drücken auf einen Tisch öffnet ein Menü, um die Rechnung zu öffnen, eine Zwischenrechnung zu erstellen (mit Bestätigung), zu verschieben oder zusammenzulegen. Rechnungen auf einen Namen stehen in einer Zeile und verschieben deinen Raumplan nicht mehr. In Küche und Bar bleibt der Bildschirm offen, und der Küchenbon an der Theke kommt automatisch."
         }
       },
       "copyLink": "Link kopieren",

@@ -293,3 +293,14 @@
   stroke-dasharray: 250;
   animation: drawLine 1.5s ease-out forwards;
 }
+
+/* KASSA-UX-3 — iOS zoomt in op een invulveld met tekst kleiner dan 16 px (en zoomt niet terug uit).
+   Op aanraakschermen tot tabletbreedte krijgen velden daarom minstens 16 px. Geldt in de hele app
+   (kassa, beheer, webshop-admin); op laptop en desktop verandert er niets. */
+@media (pointer: coarse) and (max-width: 1024px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em) !important;
+  }
+}

@@ -18,7 +18,10 @@ import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
 import { clock, isClockedIn } from '../attendance';
 import { useKassaSession } from '../session';
 import type { KassaRuntime } from '../runtime';
-import type { ActionCtx } from '../horeca/actions';
+import { requestBill, type ActionCtx } from '../horeca/actions';
+import { checkTotalCents, type Check } from '../horeca/types';
+import { formatEuro } from '../horeca/format';
+import { toast } from 'sonner';
 import { TablesScreen } from './TablesScreen';
 import { CheckScreen } from './CheckScreen';
 import { CashScreen } from './CashScreen';
@@ -59,7 +62,7 @@ function useWide(min = 1024): boolean {
 
 export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice }: { runtime: KassaRuntime; store: HorecaStore; alerts: KassaAlerts; terminalName: string; onForgetDevice: () => void }) {
   const { t, i18n } = useTranslation();
-  const { staff, employeeId, lock } = useKassaSession();
+  const { staff, employeeId, lock, setIdlePaused, guard } = useKassaSession();
   const { data: plan } = useFloorPlan();
   const [openCheck, setOpenCheck] = useState<string | null>(null);
   const [view, setView] = useState<View>('tables');
@@ -76,7 +79,17 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   const [confirmForget, setConfirmForget] = useState(false);
   const { sound } = alerts;
   const [mode, setModeState] = useState<Mode>(readMode);
-  const setMode = (m: Mode) => { setModeState(m); setView('tables'); try { localStorage.setItem(MODE_KEY, m); } catch { /* privémodus */ } };
+  const isDisplay = (m: Mode) => m === 'keuken' || m === 'bar';
+  const setMode = (m: Mode) => {
+    // KASSA-UX-3: uit Keuken/Bar terug naar Zaal na de wachttijd = eerst je PIN.
+    if (isDisplay(mode) && !isDisplay(m) && !guard()) return;
+    setModeState(m); setView('tables');
+    try { localStorage.setItem(MODE_KEY, m); } catch { /* privémodus */ }
+  };
+  // Keuken en Bar zijn schermen aan de muur: daar niet vergrendelen bij inactiviteit.
+  useEffect(() => { setIdlePaused(mode === 'keuken' || mode === 'bar'); }, [mode, setIdlePaused]);
+  const [initialMove, setInitialMove] = useState(false);
+  const [tableAction, setTableAction] = useState<{ tableId: string; checkId: string | null } | null>(null);
   const wide = useWide();
   const { currentTenant } = useTenant();
   const tenantLanguage = (currentTenant as { language?: string | null } | null)?.language ?? null;
@@ -118,7 +131,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
     setCounterMode(true);
     setOpenCheck(id);
   };
-  const goHome = () => { setOpenCheck(null); setAutoPay(false); setCounterMode(false); setView('tables'); };
+  const goHome = () => { setOpenCheck(null); setAutoPay(false); setInitialMove(false); setCounterMode(false); setView('tables'); };
 
   const toggleClock = async () => {
     setClockBusy(true);
@@ -145,10 +158,10 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
       {openCheck ? (
         <>
           {offlineBar}
-          <CheckScreen key={openCheck} ctx={ctx} checkId={openCheck} initialPay={autoPay}
+          <CheckScreen key={openCheck} ctx={ctx} checkId={openCheck} initialPay={autoPay} initialMove={initialMove}
             onBack={goHome}
             onPaid={(counter) => { setOpenCheck(null); setAutoPay(false); if (counter && counterMode) newCounterSale(); else goHome(); }}
-            onOpen={(id, o) => { setAutoPay(!!o?.pay); setOpenCheck(id); }} />
+            onOpen={(id, o) => { setAutoPay(!!o?.pay); setInitialMove(false); setOpenCheck(id); }} />
         </>
       ) : (
         <>
@@ -236,12 +249,13 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
             </div>
           ) : mode === 'bar' ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-muted/40" style={{ paddingBottom: 'var(--safe-bottom)' }}>
-              <BarPanel ctx={ctx} requests={store.requests} cards={barCards} barName={barStation?.name ?? null} wide board={board(barFresh)} />
+              <BarPanel ctx={ctx} requests={store.requests} cards={barCards} barName={barStation?.name ?? null} wide board={board(barFresh)} beforeAction={guard} />
             </div>
           ) : (
             <div className="flex min-h-0 flex-1" style={{ paddingBottom: 'var(--safe-bottom)' }}>
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-                <TablesScreen store={store} staffId={staff.id} tableLabel={ctx.tableLabel} onCounter={newCounterSale} onOpen={(id) => { setAutoPay(false); setCounterMode(false); setOpenCheck(id); }} />
+                <TablesScreen store={store} staffId={staff.id} tableLabel={ctx.tableLabel} onCounter={newCounterSale} onOpen={(id) => { setAutoPay(false); setCounterMode(false); setOpenCheck(id); }}
+                  onTableAction={(tableId, checkId) => setTableAction({ tableId, checkId })} />
               </div>
               {wide && (
                 <aside className="flex w-[380px] shrink-0 flex-col overflow-y-auto border-l bg-muted/40 xl:w-[420px]" aria-label={t('kassa.bar.incoming')}>
@@ -258,6 +272,17 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
           soundKey={KASSA_SOUND_KEY} soundDefault onSoundChange={alerts.setSound} wakeKey={KASSA_WAKE_KEY} wakeDefault onWakeChange={alerts.setWake} wakeActive={alerts.wakeActive}
           manageHref={Capacitor.isNativePlatform() ? undefined : '/admin/pos'} />
       ) : null}
+      {tableAction && (
+        <TableActions ctx={ctx} label={ctx.tableLabel(tableAction.tableId) ?? '?'} check={tableAction.checkId ? store.check(tableAction.checkId) ?? null : null}
+          onClose={() => setTableAction(null)}
+          onOpen={() => {
+            const a = tableAction; setTableAction(null);
+            let id = a.checkId;
+            if (!id) { id = crypto.randomUUID(); store.enqueue({ id: crypto.randomUUID(), kind: 'open_check', check_id: id, table_id: a.tableId, staff_id: staff.id }); }
+            setAutoPay(false); setCounterMode(false); setInitialMove(false); setOpenCheck(id);
+          }}
+          onMove={() => { const a = tableAction; setTableAction(null); if (a.checkId) { setAutoPay(false); setCounterMode(false); setInitialMove(true); setOpenCheck(a.checkId); } }} />
+      )}
       <Dialog open={confirmForget} onOpenChange={setConfirmForget}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
@@ -271,5 +296,66 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+/**
+ * KASSA-UX-3 — lang drukken op een tafel: openen, voorlopige rekening (met bevestiging), verplaatsen of
+ * samenvoegen, of een lege tafel vrijgeven. Geen slepen: met natte vingers voeg je zo per ongeluk samen.
+ */
+function TableActions({ ctx, label, check, onClose, onOpen, onMove }: {
+  ctx: ActionCtx; label: string; check: Check | null; onClose: () => void; onOpen: () => void; onMove: () => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const [confirm, setConfirm] = useState<null | 'bill' | 'free'>(null);
+  const [busy, setBusy] = useState(false);
+  const visible = check ? check.lines.filter((l) => l.state !== 'void') : [];
+  const hasSent = visible.some((l) => l.state === 'sent');
+  const canBill = !!check && !check.paying && visible.length > 0;
+  const canFree = !!check && !check.paying && visible.length === 0;
+  const title = t('kassa.checks.table', { label });
+  const doBill = async () => {
+    if (!check) return;
+    setBusy(true);
+    const o = await requestBill(ctx, check.id);
+    setBusy(false);
+    if (o.ok) { toast.success(t('kassa.checks.billRequested')); onClose(); } else toast.error(t(`kassa.checks.error.${o.reason}`, { detail: o.detail ?? '' }));
+  };
+  const doFree = async () => {
+    if (!check) return;
+    setBusy(true);
+    const r = await ctx.store.applyNow({ id: crypto.randomUUID(), kind: 'void_check', check_id: check.id, staff_id: ctx.staffId }).catch(() => null);
+    setBusy(false);
+    if (r?.ok) onClose(); else toast.error(t('kassa.checks.error.server', { detail: r?.error ?? '' }));
+  };
+  const btn = 'flex h-12 w-full items-center justify-center rounded-md border text-base font-semibold disabled:opacity-40';
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{check ? t('kassa.tableActions.open', { amount: formatEuro(checkTotalCents(check), i18n.language) }) : t('kassa.tables.free')}</DialogDescription>
+        </DialogHeader>
+        {confirm ? (
+          <div className="space-y-3">
+            <p className="text-sm">{confirm === 'bill' ? t('kassa.checks.billConfirmText', { amount: formatEuro(checkTotalCents(check!), i18n.language) }) : t('kassa.tableActions.freeConfirm', { title })}</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" className={btn} onClick={() => setConfirm(null)} disabled={busy}>{t('kassa.common.cancel')}</button>
+              <button type="button" className={cn(btn, 'border-transparent bg-primary text-primary-foreground')} disabled={busy}
+                onClick={() => void (confirm === 'bill' ? doBill() : doFree())}>
+                {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : confirm === 'bill' ? t('kassa.checks.billConfirmYes') : t('kassa.tableActions.free')}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="grid gap-2">
+            <button type="button" className={cn(btn, 'border-transparent bg-primary text-primary-foreground')} onClick={onOpen}>{t(check ? 'kassa.tableActions.toCheck' : 'kassa.tableActions.openTable')}</button>
+            {canBill && <button type="button" className={btn} onClick={() => setConfirm('bill')}>{t('kassa.tableActions.bill')}</button>}
+            {check && !check.paying && (hasSent || visible.length > 0) && <button type="button" className={btn} onClick={onMove}>{t('kassa.checks.moveCheck')}</button>}
+            {canFree && <button type="button" className={btn} onClick={() => setConfirm('free')}>{t('kassa.tableActions.free')}</button>}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

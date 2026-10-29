@@ -11088,7 +11088,10 @@
       "viewList": "Lijst",
       "noPlan": "Nog geen zaalplan. Teken je tafels in SellQo onder Bestellen › Zaalplan; rekeningen op naam werken al.",
       "free": "vrij",
-      "counter": "Toog / snelverkoop"
+      "counter": "Toog / snelverkoop",
+      "noTabs": "Nog geen rekeningen op naam.",
+      "allTabs": "Alle ({{count}})",
+      "allTabsTitle": "Rekeningen op naam ({{count}})"
     },
     "checks": {
       "rejected": "Niet gelukt: {{error}}",
@@ -11160,7 +11163,12 @@
       "summary_other": "{{count}} stuks",
       "showLines": "Rekening",
       "summary_few": "{{count}} stuks",
-      "summary_many": "{{count}} stuks"
+      "summary_many": "{{count}} stuks",
+      "billConfirmTitle": "Voorlopige rekening voor {{title}}?",
+      "billConfirmText": "Je maakt een voorlopige rekening van {{amount}}. De tafel kleurt blauw; bijbestellen kan daarna nog.",
+      "billConfirmYes": "Voorlopige rekening maken",
+      "quickChoiceHint": "Elke tik is er één bij. Tik op Klaar als je alles hebt.",
+      "done": "Klaar"
     },
     "pay": {
       "button": "Afrekenen",
@@ -11250,8 +11258,9 @@
         "eat_in": "Ter plaatse",
         "takeaway": "Meenemen"
       },
-      "kitchenOn": "Keukenbon",
-      "kitchenOff": "Geen keukenbon"
+      "noKitchenNote": "Zonder keukenbon (aanpassen via ⋯)",
+      "withoutKitchen": "Zonder keukenbon",
+      "withKitchen": "Met keukenbon"
     },
     "cash": {
       "in": "Kas in",
@@ -11419,6 +11428,14 @@
       "empty": "Niets binnengekomen. Nieuwe QR-bestellingen en bonnen voor de bar verschijnen hier.",
       "emptyNoBar": "Niets binnengekomen. QR-bestellingen verschijnen hier. Wil je ook de bonnen voor de bar zien? Maak een post van het type Bar onder Bestellen › Posten.",
       "tickets": "{{name}} ({{count}})"
+    },
+    "tableActions": {
+      "open": "Open rekening: {{amount}}",
+      "toCheck": "Naar de rekening",
+      "openTable": "Tafel openen",
+      "free": "Tafel vrijgeven",
+      "freeConfirm": "{{title}} heeft een lege rekening. Vrijgeven?",
+      "bill": "Voorlopige rekening"
     }
   },
   "deviceAlerts": {

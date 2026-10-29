@@ -11086,7 +11086,10 @@
       "viewList": "Liste",
       "noPlan": "Pas encore de plan de salle. Dessinez vos tables dans SellQo sous Commandes › Plan de salle ; les additions au nom fonctionnent déjà.",
       "free": "libre",
-      "counter": "Comptoir / vente rapide"
+      "counter": "Comptoir / vente rapide",
+      "noTabs": "Pas encore d’additions à un nom.",
+      "allTabs": "Tout ({{count}})",
+      "allTabsTitle": "Additions à un nom ({{count}})"
     },
     "checks": {
       "rejected": "Échec : {{error}}",
@@ -11158,7 +11161,12 @@
       "summary_other": "{{count}} articles",
       "showLines": "Addition",
       "summary_few": "{{count}} articles",
-      "summary_many": "{{count}} articles"
+      "summary_many": "{{count}} articles",
+      "billConfirmTitle": "Addition provisoire pour {{title}} ?",
+      "billConfirmText": "Vous créez une addition provisoire de {{amount}}. La table devient bleue ; on peut encore commander ensuite.",
+      "billConfirmYes": "Créer l’addition provisoire",
+      "quickChoiceHint": "Chaque touche en ajoute un. Touchez Terminé quand tout est là.",
+      "done": "Terminé"
     },
     "pay": {
       "button": "Encaisser",
@@ -11248,8 +11256,9 @@
         "eat_in": "Sur place",
         "takeaway": "À emporter"
       },
-      "kitchenOn": "Bon cuisine",
-      "kitchenOff": "Pas de bon cuisine"
+      "noKitchenNote": "Sans bon cuisine (modifier via ⋯)",
+      "withoutKitchen": "Sans bon cuisine",
+      "withKitchen": "Avec bon cuisine"
     },
     "cash": {
       "in": "Entrée de caisse",
@@ -11417,6 +11426,14 @@
       "empty": "Rien n’est arrivé. Les nouvelles commandes QR et les bons pour le bar apparaissent ici.",
       "emptyNoBar": "Rien n’est arrivé. Les commandes QR apparaissent ici. Vous voulez aussi voir les bons du bar ? Créez un poste de type Bar sous Commandes › Postes.",
       "tickets": "{{name}} ({{count}})"
+    },
+    "tableActions": {
+      "open": "Addition ouverte : {{amount}}",
+      "toCheck": "Vers l’addition",
+      "openTable": "Ouvrir la table",
+      "free": "Libérer la table",
+      "freeConfirm": "{{title}} a une addition vide. La libérer ?",
+      "bill": "Addition provisoire"
     }
   },
   "deviceAlerts": {

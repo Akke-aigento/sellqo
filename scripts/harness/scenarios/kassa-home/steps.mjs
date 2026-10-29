@@ -15,7 +15,11 @@ export async function run(page, { width, shot, log }) {
   await page.waitForTimeout(400);
   await shot('1-tafel-open');
   await page.getByRole('button', { name: /Van de tap/ }).click();
-  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /^Pils/ }).first().click();
+  // KASSA-UX-3: Pils heeft een formaat → het venster blijft open, elke tik telt.
+  await page.getByRole('button', { name: /^Pils/ }).first().click();
+  for (let i = 0; i < 3; i++) await page.getByRole('button', { name: /^25 cl/ }).click();
+  await shot('2a-formaat');
+  await page.getByRole('button', { name: 'Klaar', exact: true }).click();
   await page.getByRole('button', { name: /Frisdrank/ }).click();
   await page.getByRole('button', { name: /^Cola €/ }).first().click();
   await page.getByRole('button', { name: /Van de tap/ }).click();
@@ -29,7 +33,21 @@ export async function run(page, { width, shot, log }) {
   log('lijnen', JSON.stringify(lines.map((x) => x.replace(/\s+/g, ' '))));
   await shot('3-rekening');
   await page.getByRole('button', { name: 'Terug naar de tafels' }).click();
-  await page.getByRole('button', { name: /Toog \/ snelverkoop/ }).click();
+  await page.waitForTimeout(200);
+  await shot('3b-tabs');
+  await page.getByRole('button', { name: /^Alle \(/ }).click();
+  await page.waitForTimeout(200);
+  log('tabs in lijst', await page.getByRole('dialog').getByRole('listitem').count());
+  await shot('3c-alle-tabs');
+  await page.keyboard.press('Escape');
+  // Lang drukken op tafel 4 (lijst op gsm, plan elders): actiemenu.
+  const t4 = page.getByRole('button', { name: width < 600 ? /^4 / : /^Tafel 4[,:]/ }).first();
+  await t4.dispatchEvent('contextmenu');
+  await page.waitForTimeout(250);
+  log('actiemenu', JSON.stringify(await page.getByRole('dialog').getByRole('button').allInnerTexts()));
+  await shot('3d-tafelacties');
+  await page.keyboard.press('Escape');
+  await page.getByRole('button', { name: /Toog \/ snelverkoop|^Toog$/ }).first().click();
   await page.waitForTimeout(300);
   await shot('4-toog');
   await page.getByRole('button', { name: 'Terug naar de tafels' }).click();

@@ -4,6 +4,16 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14j — SellQo Kassa: sneller tikken aan de bar en lang drukken op tafels (improvement, 29-10-2026)
+
+**Status:** wacht op push, publish van de admin en de helpartikels (KASSA-UX-3).
+
+**Vijf pinten, vijf tikken** (oktober 2026)
+Kies je een formaat zoals 25, 33 of 50 cl, dan blijft het venster open: elke tik is er één bij, en alles komt op één lijn. Lang drukken op een tafel geeft een menu om de rekening te openen, een voorlopige rekening te maken, te verplaatsen of samen te voegen. Tabs op naam staan op één rij, en in Keuken en Bar blijft het scherm open.
+Wat betekent dit voor jou? Minder tikken in de drukte, en geen per ongeluk gemaakte voorlopige rekening meer.
+
+i18n: `public.changelog.changes.kassa_quick_tap_2`
+
 ### 2026.14i — SellQo Kassa: barscherm, keuken en zaalplan op je gsm (feature, 29-10-2026)
 
 **Status:** wacht op push, publish van de admin en de helpartikels (KASSA-UX-2).

@@ -11086,7 +11086,10 @@
       "viewList": "List",
       "noPlan": "No floor plan yet. Draw your tables in SellQo under Ordering › Floor plan; checks on a name already work.",
       "free": "free",
-      "counter": "Bar / quick sale"
+      "counter": "Bar / quick sale",
+      "noTabs": "No tabs on a name yet.",
+      "allTabs": "All ({{count}})",
+      "allTabsTitle": "Tabs on a name ({{count}})"
     },
     "checks": {
       "rejected": "Not done: {{error}}",
@@ -11158,7 +11161,12 @@
       "summary_other": "{{count}} items",
       "showLines": "Bill",
       "summary_few": "{{count}} items",
-      "summary_many": "{{count}} items"
+      "summary_many": "{{count}} items",
+      "billConfirmTitle": "Interim bill for {{title}}?",
+      "billConfirmText": "You are creating an interim bill of {{amount}}. The table turns blue; more can still be ordered afterwards.",
+      "billConfirmYes": "Create interim bill",
+      "quickChoiceHint": "Each tap adds one. Tap Done when you have everything.",
+      "done": "Done"
     },
     "pay": {
       "button": "Pay",
@@ -11248,8 +11256,9 @@
         "eat_in": "Eat in",
         "takeaway": "Take away"
       },
-      "kitchenOn": "Kitchen ticket",
-      "kitchenOff": "No kitchen ticket"
+      "noKitchenNote": "No kitchen ticket (change via ⋯)",
+      "withoutKitchen": "No kitchen ticket",
+      "withKitchen": "With kitchen ticket"
     },
     "cash": {
       "in": "Cash in",
@@ -11417,6 +11426,14 @@
       "empty": "Nothing has come in. New QR orders and tickets for the bar appear here.",
       "emptyNoBar": "Nothing has come in. QR orders appear here. Want to see the bar tickets too? Create a station of type Bar under Ordering › Stations.",
       "tickets": "{{name}} ({{count}})"
+    },
+    "tableActions": {
+      "open": "Open bill: {{amount}}",
+      "toCheck": "Go to the bill",
+      "openTable": "Open table",
+      "free": "Free table",
+      "freeConfirm": "{{title}} has an empty bill. Free it?",
+      "bill": "Interim bill"
     }
   },
   "deviceAlerts": {

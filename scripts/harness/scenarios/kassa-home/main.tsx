@@ -20,7 +20,9 @@ const check = (id: string, table: string, lines: CheckLine[], bill = false): Che
   id, table_id: table, name: null, status: 'open', guests: null, opened_at: new Date(now - 40 * 60_000).toISOString(), bill_requested_at: bill ? new Date().toISOString() : null,
   reference: id, version: 1, next_grouping_id: 1, lines,
 });
+const named = (id: string, name: string, cents: number): Check => ({ ...check(id, '', [line(Number(id.slice(1)) + 100, 'Pils', cents, 1)]), table_id: null, name });
 const checks: Check[] = [
+  ...['Jef', 'Marleen', 'Koen', 'Sofie V', 'Tom', 'An', 'Wim', 'Lotte'].map((n, i) => named(`n${i}`, n, 280 * (i + 1))),
   check('c1', 't-4', [line(1, 'Pils', 280, 4), line(2, 'Kriek', 420, 2), line(3, 'Bittergarnituur (8 st.)', 750, 1)]),
   check('c2', 't-Ter-2', [line(4, 'Aperol spritz', 950, 2)], true),
   check('c3', 't-B2', [line(5, 'Wit bier', 340, 1)]),

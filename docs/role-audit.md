@@ -1,3 +1,38 @@
+## KASSA-UX-3 — sneller aan de bar: formaatvenster, lang drukken op tafels, vaste tabs-rij, schermen zonder slot (kassa 0.15.0) — 29 oktober 2026
+
+**Aanleiding**
+- Akke (29-10, na KASSA-UX-2 op zijn gsm): Afgewerkt ontbrak bij Bar; "bill requested" ging te snel; tafelstatus niet aan te passen (lang drukken + haptiek, reserveren); vervelende auto-zoom bij "Op naam"; "Kitchen ticket" linksonder aan de toog onduidelijk; formaat (cl) kiezen liet geen snel tikken toe; veel tabs op naam deden het zaalplan verschuiven; vaste klanten op het plan; geen slepen om samen te voegen (natte vingers).
+- Recon: `CheckScreen` voorrekening zonder bevestiging (`doBill`, in GKS een ondertekend P/PRE_BILL); iOS zoomt bij velden < 16 px (naamveld `text-sm`); `AddonDialog` sloot na elke keuze en `planTap` voegde enkel lijnen zonder extra's samen; De Wissel: groep "Formaat" (min 1, max 1) op Van de tap; tabs op naam in een `flex-wrap` boven het plan; `session.tsx` vergrendelt na 2 min ook een keukenscherm in de kassa; de server maakt aan de toog al enkel een keukenbon voor wat niet naar een bar-post gaat.
+
+**Uitgevoerd**
+- `horeca/quickTap.ts`: samenvoegen ook met dezelfde extra's (`planTap(check, product, addonIds)`), `draftCountWith`, `isQuickChoice`.
+- `CheckScreen.tsx`: `QuickChoiceDialog` (één verplichte keuze: elke tik +1, teller per keuze, Klaar); bevestiging vóór de voorlopige rekening; keukenbon-knop weg aan de toog → ⋯ "Zonder/Met keukenbon" + korte melding als hij uit staat; `initialMove`.
+- `TablesScreen.tsx`: vaste kopregel (Toog · Op naam · plan/lijst) en één rij tabs op naam (horizontaal vegen) + **Alle (n)** met zoeken; lang drukken op een tafel (plan en lijst).
+- `FloorCanvas`/`FloorPlanView`: optionele `onTableLongPress` (550 ms, bewegen annuleert, rechtsklik), geen iOS-callout. Enkel zonder slepen (`onMove`), de editor merkt niets.
+- `KassaHome.tsx`: `TableActions` (naar de rekening of tafel openen, voorlopige rekening met bevestiging, verplaatsen/samenvoegen, lege tafel vrijgeven); `setIdlePaused` in Keuken/Bar; terug naar Zaal na de wachttijd = PIN.
+- `session.tsx`: `setIdlePaused` en `guard()`; tikken in Keuken/Bar telt niet als activiteit. QR-bestelling aanvaarden/weigeren vanuit Bar loopt via `guard()`.
+- `StationViews.tsx`: Afgewerkt bij Bar (uitklappen, laatste 30, terug).
+- `src/index.css`: velden ≥ 16 px op aanraakschermen tot 1024 px (hele app: kassa, beheer).
+- `src/kassa/version.ts`: 0.15.0. Geen wijziging aan fiscale berichten of de server.
+- i18n: `kassa.tableActions.*`, `kassa.counter.withKitchen/withoutKitchen/noKitchenNote`, `kassa.checks.billConfirm*`, `quickChoiceHint`, `done`, `kassa.tables.noTabs/allTabs*` in 5 talen; `kassa.counter.kitchenOn/Off` weg (ongebruikt).
+- Harnas `kassa-home`: Pils met formaat, 8 tabs op naam, lang drukken op tafel 4.
+- Paper trail: changelog 2026.14j `kassa_quick_tap_2` (5 talen), helpartikels `kassa-tafels-rekeningen` + `kassa-toog-kas-rapporten` (`20261029070000_kassa_ux_3_docs.sql`), nieuwsbrief.
+
+**Security-keuzes**
+- Geen policy of grant. USR-01 blijft: in Keuken/Bar vergrendelt het scherm niet, maar elke registrerende handeling (QR op de rekening) en terug naar Zaal vraagt na de wachttijd eerst de PIN (`guard`). Bonstatus (keuken/bar) is geen fiscale handeling.
+
+**Gedeelde-paden-waarschuwing**
+- `FloorCanvas` (ook de zaalplan-editor): enkel een optionele prop; zonder `onTableLongPress` gedraagt het zich exact als voorheen. `index.css`: de 16-px-regel geldt ook in het beheer op tablets en gsm's (bewust: dezelfde auto-zoom).
+
+**Verificatie**
+- Vitest kassa/keuken/zaalplan groen (nieuw: formaat samenvoegen, `isQuickChoice`, sessie-pauze + guard); tsc 27 = baseline; lint 0 op de gewijzigde bestanden; i18n-pariteit ok; `npm run build` en `build:kassa` ok.
+- Harnas `kassa-home` 390/1024/1280: 3× "25 cl" + "−" → één lijn "2× Pils + 25 cl"; 8 tabs → één rij + Alle (8) met 8 items; lang drukken op tafel 4 → Naar de rekening · Voorlopige rekening · Verplaatsen of samenvoegen; overloop 0 px.
+- Docs-migratie droog getest op live (md5-guards en ankers ok, teruggedraaid).
+
+**Bewust ongemoeid / Vervolg**
+- Reserveren in het tafelmenu komt met RESERVATIE-1 (een reservatie is enkel een laag over de tafel en raakt nooit een open rekening — Akke, 29-10). Vaste klanten op het plan: VASTE-KLANT-1.
+- Uitrol: push → CI → publish → `20261029070000_kassa_ux_3_docs`.
+
 ## KASSA-UX-2 — Zaal · Bar · Keuken, barscherm, zaalplan op gsm, taal van de zaak (kassa 0.14.0) — 29 oktober 2026
 
 **Aanleiding**
