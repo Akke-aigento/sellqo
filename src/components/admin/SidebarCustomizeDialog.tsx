@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import {
   Dialog,
   DialogContent,
@@ -109,6 +110,10 @@ export function SidebarCustomizeDialog({
           </div>
         </ScrollArea>
 
+        {/* ONDERBALK-1: de onderbalk op de gsm stel je in bij Instellingen › Mijn onderbalk. */}
+        <Link to="/admin/settings?section=bottom-nav" onClick={() => onOpenChange(false)} className="text-sm text-primary hover:underline">
+          {t('settings.bottomNav.link')}
+        </Link>
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button
             variant="outline"

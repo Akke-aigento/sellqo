@@ -326,7 +326,8 @@
       "fulfillment_api": "Fulfillment API",
       "platform_tools": "Platform Tools",
       "modules": "Modules",
-      "horeca": "Horeca-instellingen"
+      "horeca": "Horeca-instellingen",
+      "bottom_nav": "Mijn onderbalk"
     },
     "business": {
       "subtitle": "Beheer je winkel- en bedrijfsinformatie",
@@ -1657,6 +1658,20 @@
       "pay_status_few": "{{count}} betaalwijzen · online betalen {{online}}",
       "pay_status_many": "{{count}} betaalwijzen · online betalen {{online}}",
       "pay_status_other": "{{count}} betaalwijzen · online betalen {{online}}"
+    },
+    "bottomNav": {
+      "title": "Mijn onderbalk op de gsm",
+      "intro": "Kies de {{min}} tot {{max}} plekken die je onderaan op je gsm wil, in jouw volgorde. Dit geldt enkel voor jou, in deze zaak.",
+      "yours": "Jouw snelkoppelingen",
+      "default": "Standaard (nog niets gekozen)",
+      "up": "Omhoog",
+      "down": "Omlaag",
+      "remove": "Weghalen",
+      "reset": "Terug naar de standaard",
+      "add": "Toevoegen",
+      "full": "De balk is vol ({{max}}). Haal er eerst een weg.",
+      "save_failed": "Niet opgeslagen: {{reason}}",
+      "link": "Onderbalk op je gsm aanpassen"
     }
   },
   "languages": {

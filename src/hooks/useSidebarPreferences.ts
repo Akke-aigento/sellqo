@@ -8,6 +8,8 @@ export interface SidebarPreferences {
   user_id: string;
   tenant_id: string;
   hidden_items: string[];
+  /** ONDERBALK-1: snelkoppelingen in de gsm-onderbalk (menu-item-id's, volgorde). Null = standaard. */
+  bottom_nav?: string[] | null;
   created_at: string;
   updated_at: string;
 }
@@ -60,6 +62,25 @@ export function useSidebarPreferences() {
     },
   });
 
+  // ONDERBALK-1: enkel bottom_nav meesturen, zodat de verborgen menu-items (hidden_items) blijven staan.
+  const updateBottomNav = useMutation({
+    mutationFn: async (items: string[] | null) => {
+      if (!user?.id || !currentTenant?.id) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('sidebar_preferences')
+        .upsert({
+          user_id: user.id,
+          tenant_id: currentTenant.id,
+          bottom_nav: items && items.length ? items.slice(0, 5) : null,
+          updated_at: new Date().toISOString(),
+        } as never, { onConflict: 'user_id,tenant_id' });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sidebar-preferences'] });
+    },
+  });
+
   const toggleItem = (itemId: string) => {
     const currentHidden = preferences?.hidden_items || [];
     const newHidden = currentHidden.includes(itemId)
@@ -85,5 +106,8 @@ export function useSidebarPreferences() {
     showAllItems,
     updatePreferences: updatePreferences.mutate,
     isUpdating: updatePreferences.isPending,
+    bottomNav: preferences?.bottom_nav ?? null,
+    setBottomNav: updateBottomNav.mutateAsync,
+    isSavingBottomNav: updateBottomNav.isPending,
   };
 }

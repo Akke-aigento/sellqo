@@ -354,7 +354,8 @@
       "fulfillment_api": "API de préparation",
       "platform_tools": "Outils de la plateforme",
       "modules": "Modules",
-      "horeca": "Réglages horeca"
+      "horeca": "Réglages horeca",
+      "bottom_nav": "Ma barre du bas"
     },
     "business": {
       "subtitle": "Gérez les informations de votre boutique et de votre entreprise",
@@ -1685,6 +1686,20 @@
       "pay_status_few": "{{count}} moyens de paiement · paiement en ligne {{online}}",
       "pay_status_many": "{{count}} moyens de paiement · paiement en ligne {{online}}",
       "pay_status_other": "{{count}} moyens de paiement · paiement en ligne {{online}}"
+    },
+    "bottomNav": {
+      "title": "Ma barre du bas sur le téléphone",
+      "intro": "Choisissez les {{min}} à {{max}} endroits que vous voulez en bas de votre téléphone, dans votre ordre. Cela ne vaut que pour vous, dans cet établissement.",
+      "yours": "Vos raccourcis",
+      "default": "Par défaut (rien choisi)",
+      "up": "Monter",
+      "down": "Descendre",
+      "remove": "Retirer",
+      "reset": "Revenir au réglage par défaut",
+      "add": "Ajouter",
+      "full": "La barre est pleine ({{max}}). Retirez-en d'abord un.",
+      "save_failed": "Non enregistré : {{reason}}",
+      "link": "Personnaliser la barre du bas sur votre téléphone"
     }
   },
   "languages": {

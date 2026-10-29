@@ -5,6 +5,8 @@ import { useUnreadMessagesCount } from '@/hooks/useUnreadMessagesCount';
 import { findNavItems } from './sidebar/sidebarConfig';
 import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
 import { useTracks } from '@/hooks/useBusinessModules';
+import { useSidebarPreferences } from '@/hooks/useSidebarPreferences';
+import { bottomNavLabelKey, bottomNavUrl, resolveBottomNavIds } from './sidebar/bottomNav';
 
 /**
  * De vier snelkoppelingen in de balk, op id uit `sidebarConfig`.
@@ -14,18 +16,8 @@ import { useTracks } from '@/hooks/useBusinessModules';
  * betekende tot 12 september hardgecodeerde Nederlandse labels en geen enkele
  * rechtencontrole.
  */
-const TAB_IDS = ['dashboard', 'orders', 'products', 'inbox'];
-// WANDELING (28-10) — een horecazaak schakelt de hele dag tussen dezelfde vier plekken: de cijfers
-// van vandaag, de kassa, de keuken en de kaart (iets op "op" zetten). Bestellingen (webshop) en de
-// rest zitten in het menu bovenaan. De kassa opent de kassa-app zelf (/kassa), niet het beheer
-// ervan; met dezelfde rechten als het menu-item Kassa (POS). Korte labels, want de pil is smal.
-// Zaken met ook een webshop of events: bestellingen blijven, de keuken en de kaart erbij.
-const HORECA_TAB_IDS = ['dashboard', 'pos', 'kitchen', 'ordering'];
-const HORECA_MIXED_TAB_IDS = ['dashboard', 'orders', 'kitchen', 'ordering'];
-const HORECA_URL: Record<string, string> = { pos: '/kassa' };
-const HORECA_LABEL: Record<string, string> = {
-  dashboard: 'navigation.bottom.today', pos: 'navigation.bottom.kassa', kitchen: 'navigation.bottom.kitchen', ordering: 'navigation.bottom.menu',
-};
+// ONDERBALK-1 — iedereen kiest zelf zijn snelkoppelingen (Instellingen › Mijn onderbalk); wie niets
+// kiest, krijgt de standaard van zijn spoor. Regels (standaard, korte labels, kassa-app): ./sidebar/bottomNav.
 
 export function AdminMobileBottomNav() {
   const location = useLocation();
@@ -34,11 +26,11 @@ export function AdminMobileBottomNav() {
   const { isItemBlocked } = useNavItemVisibility();
 
   const { hasTrack } = useTracks();
-  const horeca = hasTrack('horeca');
-  const horecaOnly = horeca && !hasTrack('webshop') && !hasTrack('events');
-  const ids = horecaOnly ? HORECA_TAB_IDS : horeca ? HORECA_MIXED_TAB_IDS : TAB_IDS;
-  const tabs = findNavItems(ids).filter((item) => !isItemBlocked(item))
-    .map((item) => (horeca ? { ...item, url: HORECA_URL[item.id] ?? item.url, titleKey: HORECA_LABEL[item.id] ?? item.titleKey } : item));
+  const { bottomNav } = useSidebarPreferences();
+  const ctx = { horeca: hasTrack('horeca'), webshop: hasTrack('webshop'), events: hasTrack('events') };
+  const allowed = (id: string) => { const item = findNavItems([id])[0]; return !!item && !item.disabled && !isItemBlocked(item); };
+  const tabs = findNavItems(resolveBottomNavIds(bottomNav, allowed, ctx))
+    .map((item) => ({ ...item, url: bottomNavUrl(item, ctx), titleKey: bottomNavLabelKey(item, ctx) }));
 
   // Prefix-match, net als de zijbalk. Met een strikte vergelijking was op
   // /admin/orders/123 géén tab actief — je verloor je plaats zodra je een

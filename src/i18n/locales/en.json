@@ -326,7 +326,8 @@
       "fulfillment_api": "Fulfilment API",
       "platform_tools": "Platform tools",
       "modules": "Modules",
-      "horeca": "Hospitality settings"
+      "horeca": "Hospitality settings",
+      "bottom_nav": "My bottom bar"
     },
     "business": {
       "subtitle": "Manage your store and company information",
@@ -1657,6 +1658,20 @@
       "pay_status_few": "{{count}} payment methods · online payment {{online}}",
       "pay_status_many": "{{count}} payment methods · online payment {{online}}",
       "pay_status_other": "{{count}} payment methods · online payment {{online}}"
+    },
+    "bottomNav": {
+      "title": "My bottom bar on the phone",
+      "intro": "Choose the {{min}} to {{max}} places you want at the bottom of your phone, in your order. This only applies to you, in this business.",
+      "yours": "Your shortcuts",
+      "default": "Default (nothing chosen yet)",
+      "up": "Move up",
+      "down": "Move down",
+      "remove": "Remove",
+      "reset": "Back to the default",
+      "add": "Add",
+      "full": "The bar is full ({{max}}). Remove one first.",
+      "save_failed": "Not saved: {{reason}}",
+      "link": "Customise the bottom bar on your phone"
     }
   },
   "languages": {

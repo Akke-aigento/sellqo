@@ -63,7 +63,8 @@ import { useCan, type Resource } from '@/hooks/useCan';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useEmailLogoAutoBackfill } from '@/hooks/useEmailLogoBackfill';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
-import { Wrench, Blocks, UtensilsCrossed } from 'lucide-react';
+import { Wrench, Blocks, PanelBottom, UtensilsCrossed } from 'lucide-react';
+import { MyBottomNavSettings } from '@/components/admin/settings/MyBottomNavSettings';
 import { HorecaSettingsHub } from '@/components/admin/settings/HorecaSettingsHub';
 import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
 import { useTracks } from '@/hooks/useBusinessModules';
@@ -107,6 +108,8 @@ const settingsGroups: SettingsGroup[] = [
       // voor zichzelf kunnen aanzetten. Welke categorieën iemand ziet, filtert
       // het scherm zelf op rol.
       { id: 'my-notifications', titleKey: 'settings.sections.my_notifications', icon: Smartphone, component: MyNotificationSettings },
+      // ONDERBALK-1 — persoonlijk, zoals meldingen: geen requiredRead.
+      { id: 'bottom-nav', titleKey: 'settings.sections.bottom_nav', icon: PanelBottom, component: MyBottomNavSettings },
       { id: 'team', titleKey: 'settings.sections.team', icon: Users, component: TeamSettings, adminOnly: true },
     ],
   },
