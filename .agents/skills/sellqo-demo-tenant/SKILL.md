@@ -79,6 +79,14 @@ Modules:
 - **Verzending:** `shipping` met `countries`; horeca `pickup` en `local_delivery` met `postal_codes`, `min_order_amount` en `free_above`.
 - **Horeca `fulfillment_settings`:** tijdsloten aan, uren op ELKE dag (0 = zondag), zodat een demo altijd tijdsloten toont. Verder `pay_on_pickup`, `notify_ready`, `qr_mode 'order'` en `qr_pay_counter`.
 - **Claims kloppen met de instellingen:** geen "online betalen" in een usp als dat uitstaat, en openingsuren gelijk aan de tijdsloten.
+- **Horeca-demo voor de kassa (DEMO-KASSA-1).** De generator maakt dit niet; zonder is de kassa niet te tonen. Neem DEMO-KASSA-1 in de role-audit als voorbeeld:
+  - btw per categorie (`default_vat_rate_id`, eten ook `default_takeaway_vat_rate_id`) en op elk product; een product zonder btw valt op de kassa op;
+  - zaalplan: `dining_areas` (bv. Binnen, Terras), `floor_markers` (toog, ingang) en `dining_tables` (toogplaatsen `bar_seat` + tafels);
+  - posten `prep_stations` (Bar standaard, Keuken) met `prep_station_routes` voor de eetcategorieën;
+  - `horeca_pay_settings` (zonder Stripe: cash + overschrijving, `online_pay false`), één `pos_terminals`-rij;
+  - personeel `pos_cashiers` met rollen owner/manager/waiter en PIN via `extensions.crypt(pin, extensions.gen_salt('bf'))`;
+  - `fulfillment_settings.qr_mode 'order'`, `qr_flow 'check'`.
+  Geen open rekeningen vooraf: de nachtelijke reset ruimt ze niet op en afsluiten kan enkel met `horeca_apply_one void_check`.
 
 ## 4. Events-demo (zaalplan, DEMO-2)
 - Zaal in `venues`, `venue_sections`, `venue_price_classes` en `venue_seats` (rooster x/y; een gangpad is een lege x).
