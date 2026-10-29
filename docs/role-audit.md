@@ -1,3 +1,33 @@
+## DEMO-KASSA-1 — Café De Wissel volledig ingericht voor een kassademo — 29 oktober 2026
+
+**Aanleiding**
+- Akke (29-10): "dat test cafe moet echt volledig zijn om een deftige demonstratie te geven". `demo-bar` (Café De Wissel) had 14 producten zonder btw-tarief, geen zaalplan (enkel een lege, inactieve "Binnen" van een test op 24-10), geen posten, geen kassa en geen personeel. De kassa en het zaalplan waren dus niet te tonen.
+
+**Uitgevoerd** (live-data via `query_database`, geen code, geen migratie)
+- Snapshots vooraf: `snapshots.demobar_20261029_{products,categories,fulfillment}`.
+- Kaart: categorieën Wijnen en Kleine honger erbij, volgorde tap → speciaal → wijn → cocktails → fris & warm → bittergarnituur → kleine honger. Standaard-btw per categorie (dranken 21 %, eten 12 % ter plaatse / 6 % meenemen); de 14 bestaande producten kregen het tarief van hun categorie. 16 nieuwe producten (4 wijnen, 7 frisdranken/warm, 5 gerechten) met allergenen, zonder voorraadopvolging, kanalen online/tafel/menu/kassa. 30 actieve producten, allemaal met btw en foto.
+- Foto's: 16 beelden via nano-studio in de vaste stijl van de winkel (`ops.demo_img`, 96 credits).
+- Zaalplan: "Binnen" (hergebruikt, actief gezet, naamloze toog vervangen door "Toog" + "Ingang") met 4 toogplaatsen B1–B4 en tafels 1–8; "Terras" met Ter-1–Ter-4 en label "Straatkant". 16 plaatsen.
+- Posten: Bar (standaard) en Keuken; Bittergarnituur en Kleine honger gaan naar de keuken.
+- Betalen: cash en overschrijving, geen terminal, fooi aan de kassa, online betalen uit (geen Stripe op de demo), mailknop aan.
+- Kassa "Kassa 1" (Toog) en personeel Akke (zaakvoerder, PIN 1111), Sofie (verantwoordelijke, 2222), Tom (bediening, 3333); PIN's gehasht met `extensions.crypt` zoals `kassa_staff_save`.
+- QR: bestellen op de rekening (`qr_mode order`, `qr_flow check`), handmatig aanvaarden.
+
+**Security-keuzes**
+- Geen policy of grant geraakt. Demo-PIN's zijn bewust triviaal: demotenant, `is_demo`, geen echte gelden.
+
+**Gedeelde-paden-waarschuwing**
+- n.v.t.: enkel rijen van tenant `dfa62de5-…` (demo-bar, SellQo-theme). Geen schemawijziging.
+
+**Verificatie**
+- Droogtest met `TESTRESULT` (teruggedraaid): areas=2 tables=16 stations=2 routes=2 staff=3 terms=1 prods=30 novat=0, PIN-check ok; daarna echte run, natrek identiek. 0 producten zonder foto of btw.
+- Live (`net.http_get`): `/menu?tafel=4` 200 met tafelbadge, Huiswijn, Croque monsieur en Kleine honger, geen "uitverkocht"; homepage 200 met de nieuwe producten en `ai-images`-foto's.
+
+**Bewust ongemoeid / Vervolg**
+- Geen openstaande rekeningen vooraf aangemaakt: de nachtelijke reset ruimt rekeningen niet op en ze afsluiten kan enkel via `horeca_apply_one void_check`. In de demo maak je ze live aan.
+- Online betalen niet te tonen zonder Stripe-koppeling op de demo.
+- Foto's nog visueel na te kijken door Akke (sandbox kan de opslag niet openen).
+
 ## KASSA-START-1 — kassa aanmaken vanuit de kassa-app (kassa 0.12.0) + harnas — 29 oktober 2026
 
 **Root cause**
