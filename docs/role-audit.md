@@ -1,3 +1,18 @@
+## DEMO-KASSA-2 — Café De Wissel: extra's en een grotere eetkaart — 29 oktober 2026
+
+**Aanleiding**
+- Akke (29-10): "de extra's en een wat uitgebreidere etenskaart … gewoon om eens uittesten".
+
+**Uitgevoerd** (live-data via `query_database`, enkel demo-tenant `dfa62de5-…`)
+- Snapshots vooraf: `snapshots.demobar_20261029b_{products,categories,addon_groups}`.
+- Categorieën **Hoofdgerechten** en **Desserts** (12 % ter plaatse, 6 % meenemen), beide naar de post Keuken.
+- 10 gerechten: steak friet, vol-au-vent, stoofvlees met friet, burger De Wissel, garnaal- en kaaskroketten, caesar salade, dame blanche, chocolademousse, pannenkoeken (allergenen ingevuld, kanalen online/tafel/menu/kassa).
+- Extra's: Cuisson en Saus bij je steak (verplicht, één keuze), Extra bij je gerecht (frietjes, slaatje, mayonaise), Extra bij Kleine honger (kaas, spiegelei), Erbij bij desserts (slagroom), en **Hoeveelheid** bij Wijnen (glas, karaf 50 cl, fles — één verplichte keuze, dus het snel-tikvenster van KASSA-UX-3).
+- 10 foto's via nano-studio in de stijl van de winkel (60 credits).
+
+**Verificatie**
+- 40 actieve producten, 0 zonder btw; 9 groepen extra's met 24 opties; 4 routes naar de keuken.
+
 ## KASSA-UX-3 — sneller aan de bar: formaatvenster, lang drukken op tafels, vaste tabs-rij, schermen zonder slot (kassa 0.15.0) — 29 oktober 2026
 
 **Aanleiding**
