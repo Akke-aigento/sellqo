@@ -29,11 +29,14 @@ export interface FloorCanvasProps {
   className?: string;
 }
 
+// KASSA-UX-1: dezelfde kleuren als de lijstweergave van de kassa (groen bezet, blauw rekening
+// gevraagd, amber QR-bestelling). Enkel de kassa geeft een status mee; de editor niet.
 const STATUS_CLASS: Record<TableStatus, string> = {
-  free: 'border-emerald-600 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100',
-  occupied: 'border-amber-600 bg-amber-100 text-amber-950 dark:bg-amber-900 dark:text-amber-50',
-  attention: 'border-red-600 bg-red-100 text-red-950 dark:bg-red-900 dark:text-red-50',
-  reserved: 'border-sky-600 bg-sky-100 text-sky-950 dark:bg-sky-900 dark:text-sky-50',
+  free: 'border-slate-400 bg-background text-foreground',
+  occupied: 'border-emerald-600 bg-emerald-50 text-emerald-950 dark:bg-emerald-950 dark:text-emerald-50',
+  bill: 'border-blue-600 bg-blue-50 text-blue-950 dark:bg-blue-950 dark:text-blue-50',
+  attention: 'border-amber-500 bg-amber-100 text-amber-950 dark:bg-amber-900 dark:text-amber-50',
+  reserved: 'border-violet-600 bg-violet-50 text-violet-950 dark:bg-violet-950 dark:text-violet-50',
 };
 
 const MARKER_CLASS: Record<FloorMarker['kind'], string> = {

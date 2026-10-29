@@ -8963,6 +8963,7 @@
       "status_occupied": "occupied",
       "status_attention": "needs attention",
       "status_reserved": "reserved",
+      "status_bill": "bill requested",
       "marker_bar": "Bar",
       "marker_door": "Door",
       "marker_wall": "Wall",
@@ -11058,13 +11059,15 @@
       "changeTerminal": "Choose another POS terminal",
       "live": "Live",
       "offline": "Offline · {{n}} pending actions",
-      "tabs": "POS sections",
       "tab": {
-        "tables": "Tables",
-        "counter": "Counter",
         "cash": "Cash",
         "reports": "Reports"
-      }
+      },
+      "menu": "Menu",
+      "toAdmin": "Go to SellQo admin",
+      "backToTables": "Back to tables",
+      "changeTerminalConfirm": "Unlink this device from {{name}}? You will then pick a till again.",
+      "changeTerminalYes": "Unlink"
     },
     "fiscalMode": {
       "off": "non-fiscal mode",
@@ -11078,7 +11081,8 @@
       "viewPlan": "Floor plan",
       "viewList": "List",
       "noPlan": "No floor plan yet. Draw your tables in SellQo under Ordering › Floor plan; checks on a name already work.",
-      "free": "free"
+      "free": "free",
+      "counter": "Bar / quick sale"
     },
     "checks": {
       "rejected": "Not done: {{error}}",
@@ -11089,7 +11093,6 @@
       "more": "More",
       "moveCheck": "Move or merge check",
       "deleteCheck": "Delete empty check",
-      "tabLines": "Check ({{n}})",
       "tabMenu": "Menu",
       "empty": "Nothing ordered yet. Tap a product.",
       "total": "Total",
@@ -11143,7 +11146,15 @@
         "fdm_unreachable": "The fiscal data module cannot be reached. Nothing was sent; try again.",
         "server": "Not done: {{detail}}",
         "changed": "A colleague just changed this check. Check it and try again."
-      }
+      },
+      "popular": "Popular",
+      "closeSearch": "Close search",
+      "minusOne": "One {{name}} less",
+      "summary_one": "{{count}} item",
+      "summary_other": "{{count}} items",
+      "showLines": "Bill",
+      "summary_few": "{{count}} items",
+      "summary_many": "{{count}} items"
     },
     "pay": {
       "button": "Pay",

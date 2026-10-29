@@ -2315,6 +2315,10 @@
         "kassa_first_terminal": {
           "title": "Create a POS terminal from the Kassa app",
           "description": "If you open SellQo Kassa on a device and your business has no POS terminal yet, you can create one right on that screen as the owner. The device is linked to it straight away and you can start. No need to go back to the admin first."
+        },
+        "kassa_quick_tap": {
+          "title": "SellQo Kassa: faster tapping and always a way back",
+          "description": "Tapping a product again adds to the same line (3× Pils instead of three lines), and the button shows how many are in this round, with a − to take one off. The menu opens on your best sellers. On your phone the item count and total are always visible at the bottom. The bar is a fixed button above your tables, and Cash, Reports and the way back to SellQo admin are in the menu at the top right."
         }
       },
       "copyLink": "Copy link",

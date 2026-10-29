@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14h — SellQo Kassa: sneller tikken en altijd de weg terug (improvement, 29-10-2026)
+
+**Status:** wacht op push, publish van de admin en de helpartikels (KASSA-UX-1).
+
+**Voor wie:** horecazaken met SellQo Kassa.
+
+**Tikken zoals achter de toog** (oktober 2026)
+Tik je een product nog eens, dan telt het op dezelfde lijn op: 3× Pils in plaats van drie lijnen. Op de knop zie je hoeveel er in deze ronde staan, en met − haal je er één af. De kaart opent op je meest verkochte producten, en op je gsm zie je onderaan altijd het aantal en het totaal. De toog is een vaste knop bovenaan je tafels; Kas, Rapporten en de weg terug naar je beheer staan in het menu rechtsboven.
+Wat betekent dit voor jou? Minder tikken per ronde, een duidelijkere keukenbon en nooit meer vastzitten in de kassa.
+
+i18n: `public.changelog.changes.kassa_quick_tap`
+
 ### 2026.14g — Een kassa aanmaken vanuit de kassa-app (improvement, 29-10-2026)
 
 **Status:** wacht op push, publish van de admin en het helpartikel (KASSA-START-1).

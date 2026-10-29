@@ -8977,6 +8977,7 @@
       "status_occupied": "bezet",
       "status_attention": "vraagt aandacht",
       "status_reserved": "gereserveerd",
+      "status_bill": "rekening gevraagd",
       "marker_bar": "Toog",
       "marker_door": "Deur",
       "marker_wall": "Muur",
@@ -11060,13 +11061,15 @@
       "changeTerminal": "Andere kassa kiezen",
       "live": "Live",
       "offline": "Offline · {{n}} wachtende acties",
-      "tabs": "Onderdelen van de kassa",
       "tab": {
-        "tables": "Tafels",
-        "counter": "Toog",
         "cash": "Kas",
         "reports": "Rapporten"
-      }
+      },
+      "menu": "Menu",
+      "toAdmin": "Naar SellQo-beheer",
+      "backToTables": "Terug naar de tafels",
+      "changeTerminalConfirm": "Dit toestel loskoppelen van {{name}}? Daarna kies je opnieuw een kassa.",
+      "changeTerminalYes": "Loskoppelen"
     },
     "fiscalMode": {
       "off": "niet-fiscale modus",
@@ -11080,7 +11083,8 @@
       "viewPlan": "Zaalplan",
       "viewList": "Lijst",
       "noPlan": "Nog geen zaalplan. Teken je tafels in SellQo onder Bestellen › Zaalplan; rekeningen op naam werken al.",
-      "free": "vrij"
+      "free": "vrij",
+      "counter": "Toog / snelverkoop"
     },
     "checks": {
       "rejected": "Niet gelukt: {{error}}",
@@ -11091,7 +11095,6 @@
       "more": "Meer",
       "moveCheck": "Rekening verplaatsen of samenvoegen",
       "deleteCheck": "Lege rekening schrappen",
-      "tabLines": "Rekening ({{n}})",
       "tabMenu": "Kaart",
       "empty": "Nog niets besteld. Tik een product aan.",
       "total": "Totaal",
@@ -11145,7 +11148,15 @@
         "fdm_unreachable": "De zwarte doos is niet bereikbaar. Er is niets verstuurd; probeer opnieuw.",
         "server": "Niet gelukt: {{detail}}",
         "changed": "Een collega wijzigde deze rekening net. Kijk ze na en probeer opnieuw."
-      }
+      },
+      "popular": "Populair",
+      "closeSearch": "Zoeken sluiten",
+      "minusOne": "Eén {{name}} minder",
+      "summary_one": "{{count}} stuk",
+      "summary_other": "{{count}} stuks",
+      "showLines": "Rekening",
+      "summary_few": "{{count}} stuks",
+      "summary_many": "{{count}} stuks"
     },
     "pay": {
       "button": "Afrekenen",

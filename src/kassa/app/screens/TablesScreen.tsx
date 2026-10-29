@@ -1,8 +1,10 @@
 // TAFEL-1 — startscherm van de bediening: het live zaalplan (vrij / bezet / rekening gevraagd),
 // rekeningen op naam als chips, en "+ Op naam". Op een gsm kan je naar een lijst wisselen.
-import { useMemo, useState } from 'react';
+// KASSA-UX-1: de toog is een vaste tegel bovenaan (geen tabblad meer), het plan past altijd
+// op het scherm, en plan en lijst gebruiken dezelfde kleuren.
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutGrid, List, Plus } from 'lucide-react';
+import { LayoutGrid, List, Plus, ShoppingBag } from 'lucide-react';
 import { FloorPlanView } from '@/components/admin/floorplan/FloorPlanView';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import type { FloorTable, TableStatus } from '@/lib/floorplan';
@@ -11,17 +13,33 @@ import { checkTotalCents, type Check } from '../horeca/types';
 import type { HorecaStore } from '../horeca/store';
 import { formatEuro, minutesSince } from '../horeca/format';
 
-interface Props { store: HorecaStore; staffId: string; tableLabel: (id: string | null) => string | null; onOpen: (checkId: string) => void }
+interface Props { store: HorecaStore; staffId: string; tableLabel: (id: string | null) => string | null; onOpen: (checkId: string) => void; onCounter: () => void }
+
+/** Hoogte van een element volgen, zodat het zaalplan in de beschikbare ruimte past. */
+function useHeight(): [(el: HTMLElement | null) => void, number] {
+  const [el, setEl] = useState<HTMLElement | null>(null);
+  const [h, setH] = useState(0);
+  useEffect(() => {
+    if (!el) return;
+    setH(el.clientHeight);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((e) => { const v = e[0]?.contentRect.height; if (typeof v === 'number') setH(Math.floor(v)); });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [el]);
+  return [useCallback((x: HTMLElement | null) => setEl(x), []), h];
+}
 
 function lastActivity(c: Check): string {
   return c.lines.reduce((m, l) => (l.created_at > m ? l.created_at : m), c.opened_at);
 }
 
-export function TablesScreen({ store, staffId, tableLabel, onOpen }: Props) {
+export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter }: Props) {
   const { t, i18n } = useTranslation();
   const { data: plan, isLoading } = useFloorPlan();
   const [mode, setMode] = useState<'plan' | 'list'>(() => (typeof window !== 'undefined' && window.innerWidth < 640 ? 'list' : 'plan'));
   const [naming, setNaming] = useState(false);
+  const [planBox, planHeight] = useHeight();
   const [name, setName] = useState('');
   const checks = store.checks;
   // Hoofdrekening per tafel; deelrekeningen (apart afrekenen) staan als chip bovenaan. Is de
@@ -41,7 +59,7 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen }: Props) {
   const badges: Record<string, string> = {};
   const now = Date.now();
   for (const [tableId, c] of byTable) {
-    status[tableId] = c.bill_requested_at ? 'attention' : 'occupied';
+    status[tableId] = c.bill_requested_at ? 'bill' : 'occupied';
     badges[tableId] = `${formatEuro(checkTotalCents(c), i18n.language)} · ${minutesSince(lastActivity(c), now)}′`;
   }
   // QR-REKENING-1: een tafel met een openstaande QR-bestelling springt eruit.
@@ -73,6 +91,10 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen }: Props) {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 p-3">
       <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={onCounter}
+          className="flex h-12 items-center gap-2 rounded-lg bg-primary px-4 text-base font-semibold text-primary-foreground active:scale-[0.98]">
+          <ShoppingBag className="h-5 w-5" aria-hidden /> {t('kassa.tables.counter')}
+        </button>
         {named.map((c) => (
           <button key={c.id} type="button" onClick={() => onOpen(c.id)}
             className={cn('flex h-11 items-center gap-2 rounded-full border px-4 text-sm font-semibold', c.bill_requested_at ? 'border-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-950 dark:text-blue-100' : 'border-emerald-500 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100')}>
@@ -103,7 +125,11 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen }: Props) {
       {isLoading ? <div className="h-64 animate-pulse rounded-lg bg-muted" /> : !plan || plan.tables.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">{t('kassa.tables.noPlan')}</p>
       ) : mode === 'plan' ? (
-        <FloorPlanView areas={plan.areas} tables={plan.tables} markers={plan.markers} status={status} badges={badges} onTableClick={openTable} />
+        // Het plan past in de ruimte die overblijft (min. de rij met ruimtes erboven).
+        <div ref={planBox} className="min-h-[16rem] flex-1">
+          <FloorPlanView areas={plan.areas} tables={plan.tables} markers={plan.markers} status={status} badges={badges} onTableClick={openTable}
+            maxHeight={planHeight ? Math.max(200, planHeight - (plan.areas.filter((a) => a.is_active).length > 1 ? 48 : 0)) : undefined} />
+        </div>
       ) : (
         <div className="space-y-4">
           {plan.areas.map((a) => {

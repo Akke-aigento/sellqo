@@ -2315,6 +2315,10 @@
         "kassa_first_terminal": {
           "title": "Een kassa aanmaken vanuit de kassa-app",
           "description": "Open je SellQo Kassa op een toestel en heeft je zaak nog geen kassa, dan maak je er als zaakvoerder meteen een aan op dat scherm. Het toestel hangt er dan aan en je kan beginnen. Je hoeft dus niet eerst terug naar het beheer."
+        },
+        "kassa_quick_tap": {
+          "title": "SellQo Kassa: sneller tikken en altijd de weg terug",
+          "description": "Een product nog eens tikken telt op dezelfde lijn op (3× Pils in plaats van drie lijnen), en op de knop zie je hoeveel er in deze ronde staan, met een − om er één af te halen. De kaart opent op je meest verkochte producten. Op je gsm zie je onderaan altijd het aantal en het totaal. De toog is een vaste knop bovenaan je tafels, en Kas, Rapporten en de weg terug naar SellQo-beheer staan in het menu rechtsboven."
         }
       },
       "copyLink": "Kopieer link",

@@ -8690,6 +8690,7 @@
       "status_occupied": "occupée",
       "status_attention": "demande de l'attention",
       "status_reserved": "réservée",
+      "status_bill": "addition demandée",
       "marker_bar": "Comptoir",
       "marker_door": "Porte",
       "marker_wall": "Mur",
@@ -11058,13 +11059,15 @@
       "changeTerminal": "Choisir une autre caisse",
       "live": "En direct",
       "offline": "Hors ligne · {{n}} actions en attente",
-      "tabs": "Sections de la caisse",
       "tab": {
-        "tables": "Tables",
-        "counter": "Comptoir",
         "cash": "Caisse",
         "reports": "Rapports"
-      }
+      },
+      "menu": "Menu",
+      "toAdmin": "Vers l’administration SellQo",
+      "backToTables": "Retour aux tables",
+      "changeTerminalConfirm": "Dissocier cet appareil de {{name}} ? Vous choisirez ensuite à nouveau une caisse.",
+      "changeTerminalYes": "Dissocier"
     },
     "fiscalMode": {
       "off": "mode non fiscal",
@@ -11078,7 +11081,8 @@
       "viewPlan": "Plan de salle",
       "viewList": "Liste",
       "noPlan": "Pas encore de plan de salle. Dessinez vos tables dans SellQo sous Commandes › Plan de salle ; les additions au nom fonctionnent déjà.",
-      "free": "libre"
+      "free": "libre",
+      "counter": "Comptoir / vente rapide"
     },
     "checks": {
       "rejected": "Échec : {{error}}",
@@ -11089,7 +11093,6 @@
       "more": "Plus",
       "moveCheck": "Déplacer ou fusionner l’addition",
       "deleteCheck": "Supprimer l’addition vide",
-      "tabLines": "Addition ({{n}})",
       "tabMenu": "Carte",
       "empty": "Rien commandé pour l’instant. Touchez un produit.",
       "total": "Total",
@@ -11143,7 +11146,15 @@
         "fdm_unreachable": "La boîte noire est injoignable. Rien n’a été envoyé ; réessayez.",
         "server": "Échec : {{detail}}",
         "changed": "Un collègue vient de modifier cette addition. Vérifiez et réessayez."
-      }
+      },
+      "popular": "Populaire",
+      "closeSearch": "Fermer la recherche",
+      "minusOne": "Un {{name}} en moins",
+      "summary_one": "{{count}} article",
+      "summary_other": "{{count}} articles",
+      "showLines": "Addition",
+      "summary_few": "{{count}} articles",
+      "summary_many": "{{count}} articles"
     },
     "pay": {
       "button": "Encaisser",

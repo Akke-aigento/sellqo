@@ -22,8 +22,16 @@ Exit 1 bij een paginafout of console-error. Playwright komt uit `PLAYWRIGHT_PATH
   vanuit `steps.mjs`.
 - `aliases.json` — `{ "<import-pad zoals in de code>": "mocks/<bestand>.ts" }`. Een sleutel die met `/`
   begint en eindigt, is een regex (bv. `"/^\\./sidebar/useNavItemVisibility$/"` voor een relatieve import).
-- `steps.mjs` (optioneel) — `export const setup = { … }` (wordt `window.__harness`) en
+- `steps.mjs` (optioneel) — `export const setup = { … }` (wordt `window.__harness`),
+  `export const widths = [390, 1024, 1280]` om andere breedtes te nemen (1024 = tablet liggend, 1024×768) en
   `export async function run(page, { width, shot, log })` voor klikken; `shot('naam')` maakt een extra screenshot.
+
+Scenario's: `kassa-setup` (eerste toestel), `onderbalk` (gsm-onderbalk), `kassa-home` (een dienst op de kassa met
+het zaalplan en de kaart van Café De Wissel: tafel, tikken, rekening, toog, ⋯-menu; meet ook horizontale overloop).
 
 Lessen: mock het spoorfilter (`isItemBlocked`) bewust, anders zie je items die de echte app verbergt.
 Nooit `pkill -f` op de vite-server; `shoot.mjs` stopt hem zelf.
+Geef je een echte store (bv. `HorecaStore` met een nep-transport) als prop door, abonneer er dan zelf op
+(`store.subscribe(rerender)`): anders hertekent er niets en lijkt het of tikken niets doet.
+Een ontbrekende export in een mock geeft een leeg scherm en een time-out; kijk dan in de vite-uitvoer
+(`--serve`) naar "No matching export".

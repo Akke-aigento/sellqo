@@ -50,7 +50,8 @@ export interface FloorMarker extends Placed {
 }
 
 /** Live status per tafel (TAFEL-1): vrij, bezet, wil afrekenen… Kleur komt uit het component. */
-export type TableStatus = 'free' | 'occupied' | 'attention' | 'reserved';
+/** KASSA-UX-1: 'bill' = rekening gevraagd (blauw); 'attention' = QR-bestelling wacht (amber). */
+export type TableStatus = 'free' | 'occupied' | 'attention' | 'reserved' | 'bill';
 
 /** Grenzen uit de migratie (checks op dining_areas/dining_tables). */
 export const GRID_LIMITS = {

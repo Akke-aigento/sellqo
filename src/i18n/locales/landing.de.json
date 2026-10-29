@@ -2315,6 +2315,10 @@
         "kassa_first_terminal": {
           "title": "Eine Kasse direkt in der Kassa-App anlegen",
           "description": "Öffnest du SellQo Kassa auf einem Gerät und dein Betrieb hat noch keine Kasse, legst du als Betriebsleitung direkt auf diesem Bildschirm eine an. Das Gerät wird sofort damit verknüpft und du kannst loslegen, ohne erst zurück in die Verwaltung zu müssen."
+        },
+        "kassa_quick_tap": {
+          "title": "SellQo Kassa: schneller tippen und immer ein Weg zurück",
+          "description": "Tippst du ein Produkt noch einmal, zählt es auf derselben Zeile weiter (3× Pils statt drei Zeilen), und auf der Taste siehst du, wie viele in dieser Runde sind, mit einem −, um eins abzuziehen. Die Karte öffnet mit deinen meistverkauften Produkten. Auf dem Handy siehst du unten immer Anzahl und Summe. Die Theke ist eine feste Taste über deinen Tischen, und Kasse, Berichte und der Weg zurück zur SellQo-Verwaltung stehen im Menü oben rechts."
         }
       },
       "copyLink": "Link kopieren",

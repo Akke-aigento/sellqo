@@ -2315,6 +2315,10 @@
         "kassa_first_terminal": {
           "title": "Créer une caisse depuis l'app Kassa",
           "description": "Si vous ouvrez SellQo Kassa sur un appareil et que votre établissement n'a pas encore de caisse, vous pouvez en créer une directement sur cet écran en tant que gérant. L'appareil y est lié aussitôt et vous pouvez commencer, sans repasser par l'administration."
+        },
+        "kassa_quick_tap": {
+          "title": "SellQo Kassa : encodage plus rapide et toujours un retour",
+          "description": "Toucher à nouveau un produit l’ajoute à la même ligne (3× Pils au lieu de trois lignes), et le bouton indique combien il y en a dans cette tournée, avec un − pour en retirer un. La carte s’ouvre sur vos meilleures ventes. Sur votre téléphone, le nombre d’articles et le total restent visibles en bas. Le comptoir est un bouton fixe au-dessus de vos tables, et Caisse, Rapports et le retour vers l’administration SellQo se trouvent dans le menu en haut à droite."
         }
       },
       "copyLink": "Copier le lien",

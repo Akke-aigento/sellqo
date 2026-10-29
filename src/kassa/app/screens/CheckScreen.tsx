@@ -2,9 +2,12 @@
 // Tik op een product = +1 (meteen zichtbaar). Tik op een lijn = aantal, opmerking, annuleren
 // met reden, korting/van het huis, verplaatsen. Onderaan: Rekening (voorrekening), Verstuur
 // (ronde naar keuken/bar) en Afrekenen (TAFEL-2). Apart afrekenen = deelrekening.
-import { useMemo, useState } from 'react';
+// KASSA-UX-1: zelfde product nog eens tikken telt op dezelfde lijn op; de tegel toont het aantal
+// in deze ronde met een "−"; op een gsm toont een balk onderaan aantal en totaal en wisselt
+// tussen kaart en rekening; de kaart opent op Populair (of de eerste categorie), niet op alles.
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChefHat, Loader2, MoreHorizontal, Search, Send, Receipt, Wallet } from 'lucide-react';
+import { ArrowLeft, ChefHat, ChevronDown, ChevronUp, Flame, Loader2, Minus, MoreHorizontal, Search, Send, Receipt, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -14,7 +17,8 @@ import { checkTotalCents, isCounter, lineTotalCents, type Check, type CheckLine 
 import { kitchenOn, rememberKitchen, rememberService, type CounterService } from '../horeca/counter';
 import { roundLines } from '../horeca/fiscalLines';
 import { discountLine, moveCheck, moveLines, requestBill, sendRound, type ActionCtx, type ActionOutcome } from '../horeca/actions';
-import { useCatalog, type CatalogProduct } from '../horeca/useCatalog';
+import { useCatalog, usePopularLines, type CatalogProduct } from '../horeca/useCatalog';
+import { categoryDot, categoryTone, draftCounts, itemCount, planMinus, planTap, popularIds } from '../horeca/quickTap';
 import { formatEuro } from '../horeca/format';
 import { hasPendingPay, isRejectedPay } from '../horeca/payActions';
 import { PayDialog, SplitDialog } from './PayDialog';
@@ -28,6 +32,8 @@ interface Props {
 }
 
 const VOID_REASONS = ['mistake', 'customer', 'broken', 'other'] as const;
+const POPULAR = '__popular';
+const ALL = '__all';
 const DISCOUNTS = [10, 20, 50] as const;
 
 export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay = false }: Props) {
@@ -36,9 +42,14 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   const check = store.check(checkId);
   const { data: catalog } = useCatalog(store.tenantId);
   const { data: plan } = useFloorPlan();
+  const { data: soldLines } = usePopularLines(store.tenantId);
   const [tab, setTab] = useState<'lines' | 'menu'>('menu');
   const [cat, setCat] = useState<string | null>(null);
   const [q, setQ] = useState('');
+  const [searching, setSearching] = useState(false);
+  // Korte oplichting van de tegel die net getikt is.
+  const [flash, setFlash] = useState<string | null>(null);
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [busy, setBusy] = useState<null | 'send' | 'bill' | 'move' | 'discount' | 'split'>(null);
   const [paying, setPaying] = useState(initialPay);
   const [splitting, setSplitting] = useState(false);
@@ -51,11 +62,24 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   const [editing, setEditing] = useState<CatalogProduct | null>(null);
   const euro = (c: number) => formatEuro(c, i18n.language);
 
+  const popular = useMemo(() => {
+    const all = catalog?.products ?? [];
+    return popularIds(soldLines ?? [], new Set(all.map((p) => p.id)));
+  }, [catalog, soldLines]);
+  // Standaard: Populair als er genoeg verkoopgegevens zijn, anders de eerste categorie.
+  const activeCat = cat ?? (popular.length ? POPULAR : catalog?.categories[0]?.id ?? ALL);
+  const catIndex = useMemo(() => new Map((catalog?.categories ?? []).map((c, i) => [c.id, i])), [catalog]);
   const products = useMemo(() => {
     const all = catalog?.products ?? [];
     const term = q.trim().toLowerCase();
-    return all.filter((p) => (term ? p.name.toLowerCase().includes(term) : !cat || p.category_id === cat));
-  }, [catalog, cat, q]);
+    if (term) return all.filter((p) => p.name.toLowerCase().includes(term));
+    if (activeCat === ALL) return all;
+    if (activeCat === POPULAR) {
+      const byId = new Map(all.map((p) => [p.id, p]));
+      return popular.map((id) => byId.get(id)).filter(Boolean) as CatalogProduct[];
+    }
+    return all.filter((p) => p.category_id === activeCat);
+  }, [catalog, activeCat, q, popular]);
 
   if (!check) {
     return (
@@ -104,8 +128,19 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
 
   const tapProduct = (p: CatalogProduct) => {
     if (p.sold_out) return;
-    if (p.addonGroups.length) setAddonFor(p);
+    if (p.addonGroups.length) { setAddonFor(p); return; }
+    // Trillen waar het toestel dat kan (Android); de oplichting is er altijd.
+    try { navigator.vibrate?.(12); } catch { /* geen trilfunctie */ }
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    setFlash(p.id);
+    flashTimer.current = setTimeout(() => setFlash(null), 180);
+    const plan = planTap(check, p.id, false);
+    if (plan.kind === 'qty') store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: plan.lineId, qty: plan.qty, staff_id: ctx.staffId });
     else addProduct(p);
+  };
+  const minusProduct = (p: CatalogProduct) => {
+    const m = planMinus(check, p.id);
+    if (m) store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: m.lineId, qty: m.qty, staff_id: ctx.staffId });
   };
 
   const doSend = async () => {
@@ -169,30 +204,45 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
       <ul className="flex-1 space-y-1.5 overflow-y-auto p-3">
         {visible.length === 0 ? <li className="py-8 text-center text-sm text-muted-foreground">{t('kassa.checks.empty')}</li> : visible.sort((a, b) => a.seq - b.seq).map(lineRow)}
       </ul>
-      <div className="flex items-center justify-between border-t px-3 py-2 text-lg font-bold">
+      {/* Op gsm staat het totaal al in de balk onderaan. */}
+      <div className="hidden items-center justify-between border-t px-3 py-2 text-lg font-bold lg:flex">
         <span>{t('kassa.checks.total')}</span><span className="tabular-nums">{euro(checkTotalCents(check))}</span>
       </div>
     </div>
   );
 
+  const counts = draftCounts(check);
+  const chip = (id: string, label: ReactNode, dot?: string) => (
+    <button key={id} type="button" aria-pressed={activeCat === id} onClick={() => setCat(id)}
+      className={cn('flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-semibold',
+        activeCat === id ? 'border-primary bg-primary text-primary-foreground' : 'bg-background')}>
+      {dot ? <span aria-hidden className={cn('h-2.5 w-2.5 rounded-full', dot)} /> : null}{label}
+    </button>
+  );
   const menuPanel = (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
-      <label className="relative block">
-        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('kassa.checks.search')} aria-label={t('kassa.checks.search')} className="h-11 w-full rounded-md border bg-background pl-9 pr-3" />
-      </label>
-      {!q && (
-        <div className="flex gap-1.5 overflow-x-auto pb-1">
-          <button type="button" onClick={() => setCat(null)} className={cn('h-10 whitespace-nowrap rounded-full border px-3 text-sm', !cat && 'border-primary bg-primary text-primary-foreground')}>{t('kassa.checks.allCategories')}</button>
-          {catalog?.categories.map((c) => (
-            <button key={c.id} type="button" onClick={() => setCat(c.id)} className={cn('h-10 whitespace-nowrap rounded-full border px-3 text-sm', cat === c.id && 'border-primary bg-primary text-primary-foreground')}>{c.name}</button>
-          ))}
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 p-2 sm:p-3">
+      {searching ? (
+        <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
+          <label className="relative block min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('kassa.checks.search')} aria-label={t('kassa.checks.search')} className="h-11 w-full rounded-md border bg-background pl-9 pr-3" />
+          </label>
+          <button type="button" aria-label={t('kassa.checks.closeSearch')} onClick={() => { setSearching(false); setQ(''); }} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md border"><X className="h-5 w-5" /></button>
+        </form>
+      ) : (
+        // Alle categorieën in één oogopslag (meerdere rijen), niet verstopt achter horizontaal scrollen.
+        <div className="flex min-w-0 flex-wrap gap-1.5">
+          <button type="button" aria-label={t('kassa.checks.search')} onClick={() => setSearching(true)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border"><Search className="h-4 w-4" /></button>
+          {popular.length > 0 && chip(POPULAR, <><Flame className="h-4 w-4" aria-hidden />{t('kassa.checks.popular')}</>)}
+          {catalog?.categories.map((c, i) => chip(c.id, c.name, categoryDot(i)))}
+          {chip(ALL, t('kassa.checks.allCategories'))}
         </div>
       )}
-      <div className="grid flex-1 auto-rows-min grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3 xl:grid-cols-4">
+      <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-3 gap-1.5 overflow-y-auto sm:grid-cols-4 sm:gap-2 md:grid-cols-5 xl:grid-cols-6">
         {!catalog ? <Loader2 className="h-5 w-5 animate-spin" aria-label={t('kassa.common.loading')} /> : products.map((p) => (
-          <ProductTile key={p.id} p={p} onTap={() => tapProduct(p)} onLong={() => setEditing(p)}
-            label={p.sold_out ? t('kassa.checks.soldOut') : euro(p.price_cents)} editHint={t('kassa.productEdit.hint')} />
+          <ProductTile key={p.id} p={p} count={counts.get(p.id) ?? 0} flash={flash === p.id} tone={categoryTone(p.category_id ? catIndex.get(p.category_id) ?? -1 : -1)}
+            onTap={() => tapProduct(p)} onLong={() => setEditing(p)} onMinus={() => minusProduct(p)}
+            label={p.sold_out ? t('kassa.checks.soldOut') : euro(p.price_cents)} editHint={t('kassa.productEdit.hint')} minusLabel={t('kassa.checks.minusOne', { name: p.name })} />
         ))}
       </div>
     </div>
@@ -206,6 +256,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
           <p className="truncate text-lg font-bold">{title}</p>
           {check.bill_requested_at ? <p className="text-xs text-blue-700 dark:text-blue-300">{t('kassa.checks.billRequestedBadge')}</p> : null}
         </div>
+        <span className="hidden text-lg font-bold tabular-nums lg:inline">{euro(checkTotalCents(check))}</span>
         {counter && (
           <div className="flex rounded-md border" role="group" aria-label={t('kassa.counter.serviceLabel')}>
             {(['eat_in', 'takeaway'] as const).map((s) => (
@@ -233,19 +284,19 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
         </DropdownMenu>
       </div>
 
-      <div className="flex border-b lg:hidden" role="tablist">
-        {(['lines', 'menu'] as const).map((x) => (
-          <button key={x} type="button" role="tab" aria-selected={tab === x} onClick={() => setTab(x)}
-            className={cn('h-11 flex-1 text-sm font-semibold', tab === x ? 'border-b-2 border-primary' : 'text-muted-foreground')}>
-            {x === 'lines' ? t('kassa.checks.tabLines', { n: visible.length }) : t('kassa.checks.tabMenu')}
-          </button>
-        ))}
+      <div className="flex min-h-0 min-w-0 flex-1">
+        <div className={cn('min-h-0 min-w-0 flex-col border-r lg:flex lg:w-[38%]', tab === 'lines' ? 'flex w-full' : 'hidden')}>{linesPanel}</div>
+        <div className={cn('min-h-0 min-w-0 flex-1 flex-col lg:flex', tab === 'menu' ? 'flex' : 'hidden')}>{menuPanel}</div>
       </div>
 
-      <div className="flex min-h-0 flex-1">
-        <div className={cn('min-h-0 flex-col border-r lg:flex lg:w-[42%]', tab === 'lines' ? 'flex w-full' : 'hidden')}>{linesPanel}</div>
-        <div className={cn('min-h-0 flex-1 flex-col lg:flex', tab === 'menu' ? 'flex' : 'hidden')}>{menuPanel}</div>
-      </div>
+      {/* Gsm/kleine tablet: aantal en totaal altijd in beeld; tikken wisselt tussen kaart en rekening. */}
+      <button type="button" onClick={() => setTab(tab === 'menu' ? 'lines' : 'menu')} aria-expanded={tab === 'lines'}
+        className="flex h-12 items-center gap-2 border-t bg-muted/60 px-3 text-left lg:hidden">
+        <span className="min-w-0 flex-1 truncate font-semibold">{t('kassa.checks.summary', { count: itemCount(check) })} · <span className="tabular-nums">{euro(checkTotalCents(check))}</span></span>
+        <span className="flex items-center gap-1 text-sm font-semibold text-primary">
+          {tab === 'menu' ? <>{t('kassa.checks.showLines')}<ChevronUp className="h-4 w-4" /></> : <>{t('kassa.checks.tabMenu')}<ChevronDown className="h-4 w-4" /></>}
+        </span>
+      </button>
 
       {locked ? (
         <p role="alert" className={cn('border-t px-3 py-2 text-sm', rejected ? 'bg-destructive/10 text-destructive' : 'bg-amber-100 text-amber-900 dark:bg-amber-950 dark:text-amber-100')}>
@@ -509,16 +560,31 @@ function MoveDialog(p: {
   );
 }
 
-/** KASSA-0.6 — producttegel: tikken = +1; lang drukken = op/terug of prijs aanpassen. */
-function ProductTile({ p, onTap, onLong, label, editHint }: { p: CatalogProduct; onTap: () => void; onLong: () => void; label: string; editHint: string }) {
+/** KASSA-0.6 — producttegel: tikken = +1; lang drukken = op/terug of prijs aanpassen.
+ *  KASSA-UX-1: badge met het aantal in deze ronde, "−" om er één af te halen, kleurstreep per categorie. */
+function ProductTile({ p, count, flash, tone, onTap, onLong, onMinus, label, editHint, minusLabel }: {
+  p: CatalogProduct; count: number; flash: boolean; tone: string; onTap: () => void; onLong: () => void; onMinus: () => void; label: string; editHint: string; minusLabel: string;
+}) {
   const lp = useLongPress(onLong, true);
   // Een uitverkocht product blijft aanraakbaar (lang drukken om het terug te zetten).
   return (
-    <button type="button" aria-disabled={p.sold_out || undefined} title={editHint}
-      onClick={() => { if (lp.consumeClick()) return; if (p.sold_out) { toast.info(`${p.name}: ${label}`); return; } onTap(); }} {...lp.handlers}
-      className={cn('flex min-h-20 select-none flex-col justify-between rounded-lg border bg-card p-2.5 text-left [-webkit-touch-callout:none] active:scale-[0.98] disabled:opacity-40', p.sold_out && 'opacity-40')}>
-      <span className="line-clamp-2 text-sm font-semibold">{p.name}</span>
-      <span className="text-sm tabular-nums text-muted-foreground">{label}</span>
-    </button>
+    <div className="relative">
+      <button type="button" aria-disabled={p.sold_out || undefined} title={editHint}
+        onClick={() => { if (lp.consumeClick()) return; if (p.sold_out) { toast.info(`${p.name}: ${label}`); return; } onTap(); }} {...lp.handlers}
+        className={cn('flex min-h-[4.5rem] w-full select-none flex-col justify-between rounded-lg border border-l-4 bg-card p-2 text-left transition-colors [-webkit-touch-callout:none] active:scale-[0.97] sm:min-h-20',
+          tone, p.sold_out && 'opacity-40', count > 0 && 'bg-primary/5 ring-1 ring-primary/40', flash && 'bg-primary/15')}>
+        <span className={cn('line-clamp-2 text-sm font-semibold leading-tight', count > 0 && 'pr-6')}>{p.name}</span>
+        <span className="text-xs tabular-nums text-muted-foreground">{label}</span>
+      </button>
+      {count > 0 && (
+        <>
+          <span aria-hidden className="pointer-events-none absolute right-1 top-1 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">{count}</span>
+          <button type="button" aria-label={minusLabel} onClick={onMinus}
+            className="absolute bottom-0 right-0 flex h-11 w-11 items-center justify-center rounded-br-lg rounded-tl-lg border-l border-t bg-background/90 active:bg-muted">
+            <Minus className="h-4 w-4" />
+          </button>
+        </>
+      )}
+    </div>
   );
 }

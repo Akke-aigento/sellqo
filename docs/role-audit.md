@@ -1,3 +1,43 @@
+## KASSA-UX-1 — kassa-bediening: één thuis, opgeteld tikken, altijd de weg terug (kassa 0.13.0) — 29 oktober 2026
+
+**Root cause**
+- Akke (29-10, na DEMO-KASSA-1): "ik kan niet terug naar de menu's, dashboard … sneltikmenu is niet sneltik". Nagemeten met het nieuwe harnas `kassa-home` (zaalplan en kaart van Café De Wissel):
+  - `bottomNav.ts:44` stuurt een zaak met enkel horeca naar `/kassa`; in de hele kassa stond geen link naar `/admin` (0 in de klik-test). In de app is er geen terugknop van de browser.
+  - Binnen een rekening stonden 4 balken boven elkaar (kopbalk, Tafels/Toog/Kas/Rapporten, rekening, Rekening/Kaart). "Andere kassa kiezen" ontkoppelde het toestel met één tik, zonder bevestiging (`KassaHome.tsx`, footer).
+  - `CheckScreen.tsx`: elke tik was een eigen `add_line` (3× Pils = drie lijnen, ook op de keukenbon; de server voegt niets samen); geen aantal op de tegel; op gsm stond de rekening op een ander tabblad; de kaart opende op "Alles" (30 producten, 2 kolommen). Op 390 px was het rekeningscherm ±870 px breed: de rij categorieën duwde alles opzij (geen `min-w-0`).
+  - Tabblad Toog opende bij elke tik een nieuwe verkoop. Zaalplan amber voor bezet, lijst groen; het plan paste niet op het scherm.
+- Fiere-recon (Lovable-project De Fiere Margriet, read-only): overgenomen één tik = +1 met badge en −, bon altijd in beeld, snelverkoop als vaste tegel, terug = één tik. Niet overgenomen: PIN via `btoa` op het toestel, totaal uit de bon op het scherm, rechtstreekse deletes, hardcoded categorieën, knopjes van 20–28 px.
+
+**Uitgevoerd**
+- `src/kassa/app/horeca/quickTap.ts` (nieuw, puur): `planTap` (zelfde product zonder extra's/opmerking/prijswijziging op een ontwerp-lijn → `change_qty` +1), `planMinus`, `draftCounts`, `itemCount`, `popularIds` (min. 4 producten), categoriekleuren, `ADMIN_LINK_ROLES` (owner, manager), `adminHref` (in de SellQo-app `/admin`, in de aparte Kassa-app `https://sellqo.app/admin` in een nieuw venster). Test `__tests__/quickTap.test.ts` (6), toegevoegd aan de Vitest-stap in CI samen met `floorPlanView.test.tsx`.
+- `KassaHome.tsx`: geen tabbladen meer. Kopbalk: wie · verbinding · QR-bestellingen · Wissel · ⋯ (Kas, Rapporten, in/uitklokken, Meldingen en geluid, Naar SellQo-beheer voor owner/manager, Andere kassa kiezen met bevestiging). In een rekening enkel de balk van die rekening (plus een offline-balk als de verbinding weg is). Kas/Rapporten met een terugbalk.
+- `TablesScreen.tsx`: knop **Toog / snelverkoop** bovenaan; status `bill` voor rekening gevraagd; het plan krijgt de beschikbare hoogte (`maxHeight`).
+- `CheckScreen.tsx`: tikken via `planTap`; badge + −-knop (44 px) op de tegel; korte oplichting + `navigator.vibrate` waar het kan; kaart opent op Populair (of de eerste categorie), Alles achteraan, categorieën met kleur en over meerdere rijen; zoeken achter een vergrootglas; rooster 3/4/5/6 kolommen; op gsm een balk "n stuks · €" die tussen kaart en rekening wisselt (tabbladen weg); totaal in de kopbalk vanaf 1024 px; `min-w-0` tegen de overloop.
+- `useCatalog.ts`: `usePopularLines` — de laatste 1000 verstuurde `check_lines` van 30 dagen (enkel rangorde, geen getoond cijfer; RLS `check_lines_select` = leden van de zaak).
+- `FloorCanvas.tsx` / `lib/floorplan/types.ts`: `TableStatus` + `bill` (additief); kleuren gelijk aan de lijst (groen bezet, blauw rekening, amber QR). Enkel de kassa geeft statussen mee, de editor niet.
+- `src/kassa/version.ts`: 0.13.0. Geen wijziging aan fiscale berichten, events of de server: alleen bestaande commando's (`add_line`, `change_qty` op ontwerp-lijnen, vóór FDM/ronde).
+- i18n: 12 nieuwe keys in 5 talen (meervoud `summary_*`), 4 ongebruikte weg (`kassa.home.tabs`, `home.tab.tables/counter`, `checks.tabLines`); `admin.floorPlan.status_bill`.
+- Harnas: scenario `kassa-home` (3 breedtes, meet overloop), `shoot.mjs` leest `widths` uit het scenario, README aangevuld.
+- Paper trail: changelog 2026.14h `kassa_quick_tap` (5 talen), helpartikels `kassa-tafels-rekeningen` + `kassa-toog-kas-rapporten` (`20261029050000_kassa_ux_1_docs.sql`), nieuwsbrief.
+
+**Security-keuzes**
+- Geen policy of grant. "Naar beheer" is enkel een link; de rechten in het beheer blijven die van de aangemelde account. Getoond voor owner/manager van de PIN-sessie (zelfde set als `PRODUCT_EDIT_ROLES`).
+- Populair leest `check_lines` binnen de bestaande RLS.
+
+**Gedeelde-paden-waarschuwing**
+- `FloorCanvas`/`TableStatus` worden gedeeld met de zaalplan-editor: die geeft geen `status` mee, dus de nieuwe kleuren raken enkel de kassa. `TableStatus` is additief uitgebreid. Geen storefront-pad of gedeelde tabel geraakt.
+
+**Verificatie**
+- `npx vitest run src/kassa`: 297 groen (1 overgeslagen, bestaand); `floorPlanView.test` 5/5. tsc 27 = baseline (niets in kassa/floorplan). Lint 0 fouten op de gewijzigde bestanden. i18n-pariteit ok. `npm run build:kassa` en `npm run build` ok.
+- Harnas `kassa-home` op 390/1024/1280: overloop 0 px (was ±480 px op 390); 3× Pils + Cola + "−" → lijnen "2× Pils" en "1× Cola" (één lijn per product); Populair opent eerst; "Naar SellQo-beheer" zichtbaar voor een verantwoordelijke; toog-tegel opent een toogverkoop; geen consolefouten.
+- Docs-migratie droog getest op live (md5-guards en ankers ok, teruggedraaid).
+
+**Bewust ongemoeid / Vervolg**
+- Afrekenscherm (`PayDialog`) niet gewijzigd: dat is een eigen wandeling (aantal tikken tot betaald, splitsen).
+- Gsm-weergave van de rekening blijft een wissel binnen hetzelfde scherm, geen schuifpaneel.
+- Populair vastzetten of zelf kiezen: later in Instellingen › Horeca als Akke het vraagt.
+- Uitrol: push → CI → publish → `20261029050000_kassa_ux_1_docs` → wandeling op de demo (Café De Wissel).
+
 ## DEMO-KASSA-1 — Café De Wissel volledig ingericht voor een kassademo — 29 oktober 2026
 
 **Aanleiding**

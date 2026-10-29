@@ -8690,6 +8690,7 @@
       "status_occupied": "besetzt",
       "status_attention": "braucht Aufmerksamkeit",
       "status_reserved": "reserviert",
+      "status_bill": "Rechnung verlangt",
       "marker_bar": "Theke",
       "marker_door": "Tür",
       "marker_wall": "Wand",
@@ -11058,13 +11059,15 @@
       "changeTerminal": "Andere Kasse wählen",
       "live": "Live",
       "offline": "Offline · {{n}} wartende Aktionen",
-      "tabs": "Bereiche der Kasse",
       "tab": {
-        "tables": "Tische",
-        "counter": "Theke",
         "cash": "Kasse",
         "reports": "Berichte"
-      }
+      },
+      "menu": "Menü",
+      "toAdmin": "Zur SellQo-Verwaltung",
+      "backToTables": "Zurück zu den Tischen",
+      "changeTerminalConfirm": "Dieses Gerät von {{name}} trennen? Danach wählst du erneut eine Kasse.",
+      "changeTerminalYes": "Trennen"
     },
     "fiscalMode": {
       "off": "nicht-fiskalischer Modus",
@@ -11078,7 +11081,8 @@
       "viewPlan": "Raumplan",
       "viewList": "Liste",
       "noPlan": "Noch kein Raumplan. Zeichne deine Tische in SellQo unter Bestellen › Raumplan; Rechnungen auf Namen funktionieren schon.",
-      "free": "frei"
+      "free": "frei",
+      "counter": "Theke / Schnellverkauf"
     },
     "checks": {
       "rejected": "Nicht ausgeführt: {{error}}",
@@ -11089,7 +11093,6 @@
       "more": "Mehr",
       "moveCheck": "Rechnung verschieben oder zusammenlegen",
       "deleteCheck": "Leere Rechnung löschen",
-      "tabLines": "Rechnung ({{n}})",
       "tabMenu": "Karte",
       "empty": "Noch nichts bestellt. Tippe ein Produkt an.",
       "total": "Summe",
@@ -11143,7 +11146,15 @@
         "fdm_unreachable": "Die Blackbox ist nicht erreichbar. Nichts wurde gesendet; erneut versuchen.",
         "server": "Nicht ausgeführt: {{detail}}",
         "changed": "Eine Kollegin oder ein Kollege hat diese Rechnung gerade geändert. Prüfen und erneut versuchen."
-      }
+      },
+      "popular": "Beliebt",
+      "closeSearch": "Suche schließen",
+      "minusOne": "Ein {{name}} weniger",
+      "summary_one": "{{count}} Artikel",
+      "summary_other": "{{count}} Artikel",
+      "showLines": "Rechnung",
+      "summary_few": "{{count}} Artikel",
+      "summary_many": "{{count}} Artikel"
     },
     "pay": {
       "button": "Kassieren",

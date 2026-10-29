@@ -1,4 +1,5 @@
-// Harnas — start vite voor één scenario en maakt screenshots op 390 en 1280 px. Zie README.md.
+// Harnas — start vite voor één scenario en maakt screenshots op 390 en 1280 px (of de breedtes
+// uit `export const widths` in steps.mjs, bv. 1024 voor een tablet). Zie README.md.
 import { createServer } from 'vite';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -24,8 +25,9 @@ const out = '/tmp/harness'; fs.mkdirSync(out, { recursive: true });
 const errors = []; const shots = [];
 const browser = await chromium.launch();
 try {
-  for (const width of [390, 1280]) {
-    const page = await browser.newPage({ viewport: { width, height: width < 600 ? 844 : 900 } });
+  for (const width of steps.widths ?? [390, 1280]) {
+    // gsm staand, tablet liggend (1024×768), desktop.
+    const page = await browser.newPage({ viewport: { width, height: width < 600 ? 844 : width <= 1100 ? 768 : 900 } });
     page.on('pageerror', (e) => errors.push(`[${width}] ${e}`));
     page.on('console', (m) => { if (m.type() === 'error') errors.push(`[${width}] ${m.text()}`); });
     await page.addInitScript((setup) => { window.__harness = setup; }, steps.setup ?? {});

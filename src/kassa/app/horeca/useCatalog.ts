@@ -87,3 +87,24 @@ export function useCatalog(tenantId: string | null) {
     },
   });
 }
+
+/**
+ * KASSA-UX-1 — "Populair" op de kassa: de meest verkochte producten uit de recentste verstuurde
+ * kassalijnen (max. 1000, laatste 30 dagen). Enkel een rangorde om sneller te tikken; geen cijfer
+ * dat ergens getoond wordt.
+ */
+export function usePopularLines(tenantId: string | null) {
+  return useQuery({
+    queryKey: ['kassa-popular', tenantId],
+    enabled: !!tenantId,
+    staleTime: 60 * 60_000,
+    queryFn: async (): Promise<{ product_id: string | null; qty: number }[]> => {
+      const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+      const { data, error } = await supabase.from('check_lines').select('product_id, qty')
+        .eq('tenant_id', tenantId!).eq('state', 'sent').gt('qty', 0).gte('created_at', since)
+        .order('created_at', { ascending: false }).limit(1000);
+      if (error) throw error;
+      return (data ?? []) as { product_id: string | null; qty: number }[];
+    },
+  });
+}
