@@ -6639,7 +6639,9 @@
       "source_table": "Table",
       "cancelled_item": "Cancel",
       "station": "Station",
-      "all_stations": "All stations"
+      "all_stations": "All stations",
+      "to_kassa": "Till",
+      "waited_short": "{{count}} min"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -11067,7 +11069,9 @@
       "toAdmin": "Go to SellQo admin",
       "backToTables": "Back to tables",
       "changeTerminalConfirm": "Unlink this device from {{name}}? You will then pick a till again.",
-      "changeTerminalYes": "Unlink"
+      "changeTerminalYes": "Unlink",
+      "language": "Language",
+      "languageShop": "Language of the business ({{lang}})"
     },
     "fiscalMode": {
       "off": "non-fiscal mode",
@@ -11401,6 +11405,18 @@
       "qr": "Ordered via QR: table {{tables}}",
       "ready": "Ready: {{label}}",
       "paid": "{{label}} paid online: {{amount}}"
+    },
+    "mode": {
+      "label": "Screen",
+      "zaal": "Floor",
+      "bar": "Bar",
+      "keuken": "Kitchen"
+    },
+    "bar": {
+      "incoming": "Incoming",
+      "empty": "Nothing has come in. New QR orders and tickets for the bar appear here.",
+      "emptyNoBar": "Nothing has come in. QR orders appear here. Want to see the bar tickets too? Create a station of type Bar under Ordering › Stations.",
+      "tickets": "{{name}} ({{count}})"
     }
   },
   "deviceAlerts": {

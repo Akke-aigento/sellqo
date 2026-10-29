@@ -2319,6 +2319,10 @@
         "kassa_quick_tap": {
           "title": "SellQo Kassa: schneller tippen und immer ein Weg zurück",
           "description": "Tippst du ein Produkt noch einmal, zählt es auf derselben Zeile weiter (3× Pils statt drei Zeilen), und auf der Taste siehst du, wie viele in dieser Runde sind, mit einem −, um eins abzuziehen. Die Karte öffnet mit deinen meistverkauften Produkten. Auf dem Handy siehst du unten immer Anzahl und Summe. Die Theke ist eine feste Taste über deinen Tischen, und Kasse, Berichte und der Weg zurück zur SellQo-Verwaltung stehen im Menü oben rechts."
+        },
+        "kassa_bar_kitchen": {
+          "title": "SellQo Kassa: Barbildschirm, Küche und Raumplan auf dem Handy",
+          "description": "Oben in der Kasse wechselst du mit einem Tipp zwischen Saal, Bar und Küche, und jedes Gerät merkt sich, wo es war. Unter Bar siehst du, was hereinkommt: QR-Bestellungen von den Tischen und die Bons für deine Bar. Auf einem Tablet steht diese Spalte neben deinem Raumplan. Küche zeigt den Küchenbildschirm direkt in der Kasse. Auf dem Handy dreht sich der Raumplan um eine Vierteldrehung, damit deine Tische groß genug sind. Und die Kasse spricht die Sprache deines Betriebs."
         }
       },
       "copyLink": "Link kopieren",

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next';
 import { LayoutGrid, List, Plus, ShoppingBag } from 'lucide-react';
 import { FloorPlanView } from '@/components/admin/floorplan/FloorPlanView';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
-import type { FloorTable, TableStatus } from '@/lib/floorplan';
+import { quarterTurn, quarterTurnHelps, type FloorTable, type TableStatus } from '@/lib/floorplan';
 import { cn } from '@/lib/utils';
 import { checkTotalCents, type Check } from '../horeca/types';
 import type { HorecaStore } from '../horeca/store';
@@ -15,19 +15,21 @@ import { formatEuro, minutesSince } from '../horeca/format';
 
 interface Props { store: HorecaStore; staffId: string; tableLabel: (id: string | null) => string | null; onOpen: (checkId: string) => void; onCounter: () => void }
 
-/** Hoogte van een element volgen, zodat het zaalplan in de beschikbare ruimte past. */
-function useHeight(): [(el: HTMLElement | null) => void, number] {
+const VIEW_KEY = 'sq_kassa_tables_view';
+
+/** Afmetingen van een element volgen, zodat het zaalplan in de beschikbare ruimte past. */
+function useSize(): [(el: HTMLElement | null) => void, { w: number; h: number }] {
   const [el, setEl] = useState<HTMLElement | null>(null);
-  const [h, setH] = useState(0);
+  const [size, setSize] = useState({ w: 0, h: 0 });
   useEffect(() => {
     if (!el) return;
-    setH(el.clientHeight);
+    setSize({ w: el.clientWidth, h: el.clientHeight });
     if (typeof ResizeObserver === 'undefined') return;
-    const ro = new ResizeObserver((e) => { const v = e[0]?.contentRect.height; if (typeof v === 'number') setH(Math.floor(v)); });
+    const ro = new ResizeObserver((e) => { const r = e[0]?.contentRect; if (r) setSize({ w: Math.floor(r.width), h: Math.floor(r.height) }); });
     ro.observe(el);
     return () => ro.disconnect();
   }, [el]);
-  return [useCallback((x: HTMLElement | null) => setEl(x), []), h];
+  return [useCallback((x: HTMLElement | null) => setEl(x), []), size];
 }
 
 function lastActivity(c: Check): string {
@@ -37,9 +39,11 @@ function lastActivity(c: Check): string {
 export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter }: Props) {
   const { t, i18n } = useTranslation();
   const { data: plan, isLoading } = useFloorPlan();
-  const [mode, setMode] = useState<'plan' | 'list'>(() => (typeof window !== 'undefined' && window.innerWidth < 640 ? 'list' : 'plan'));
+  // KASSA-UX-2: standaard het zaalplan (past nu ook op een gsm); de keuze plan/lijst onthoudt dit toestel.
+  const [mode, setModeState] = useState<'plan' | 'list'>(() => { try { return localStorage.getItem(VIEW_KEY) === 'list' ? 'list' : 'plan'; } catch { return 'plan'; } });
+  const setMode = (m: 'plan' | 'list') => { setModeState(m); try { localStorage.setItem(VIEW_KEY, m); } catch { /* privémodus */ } };
   const [naming, setNaming] = useState(false);
-  const [planBox, planHeight] = useHeight();
+  const [planBox, box] = useSize();
   const [name, setName] = useState('');
   const checks = store.checks;
   // Hoofdrekening per tafel; deelrekeningen (apart afrekenen) staan als chip bovenaan. Is de
@@ -69,6 +73,18 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter }: 
     status[tableId] = 'attention';
     badges[tableId] = [t('kassa.requests.badge', { count: n }), badges[tableId]].filter(Boolean).join(' · ');
   }
+
+  // KASSA-UX-2: op een gsm in staande stand een kwartslag draaien als de tafels daar groter van worden.
+  const multiArea = (plan?.areas.filter((a) => a.is_active).length ?? 0) > 1;
+  const planH = box.h ? Math.max(200, box.h - (multiArea ? 48 : 0)) : 0;
+  const shown = useMemo(() => {
+    if (!plan) return null;
+    const active = plan.areas.filter((a) => a.is_active);
+    const biggest = active.reduce<typeof active[number] | null>((m, a) => (!m || a.grid_w * a.grid_h > m.grid_w * m.grid_h ? a : m), null);
+    if (!biggest || !quarterTurnHelps(biggest, box.w, planH)) return plan;
+    const tables = quarterTurn(plan.areas, plan.tables);
+    return { areas: tables.areas, tables: tables.items, markers: quarterTurn(plan.areas, plan.markers).items };
+  }, [plan, box.w, planH]);
 
   const openTable = (tb: Pick<FloorTable, 'id'>) => {
     const existing = byTable.get(tb.id);
@@ -127,8 +143,8 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter }: 
       ) : mode === 'plan' ? (
         // Het plan past in de ruimte die overblijft (min. de rij met ruimtes erboven).
         <div ref={planBox} className="min-h-[16rem] flex-1">
-          <FloorPlanView areas={plan.areas} tables={plan.tables} markers={plan.markers} status={status} badges={badges} onTableClick={openTable}
-            maxHeight={planHeight ? Math.max(200, planHeight - (plan.areas.filter((a) => a.is_active).length > 1 ? 48 : 0)) : undefined} />
+          <FloorPlanView areas={(shown ?? plan).areas} tables={(shown ?? plan).tables} markers={(shown ?? plan).markers} status={status} badges={badges} onTableClick={openTable}
+            maxHeight={planH || undefined} />
         </div>
       ) : (
         <div className="space-y-4">

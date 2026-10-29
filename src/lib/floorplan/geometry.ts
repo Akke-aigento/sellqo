@@ -122,3 +122,31 @@ export function findFreeSpot(area: Pick<FloorArea, 'grid_w' | 'grid_h'>, others:
   }
   return null;
 }
+
+/**
+ * KASSA-UX-2 — een kwartslag gedraaid zaalplan (met de klok mee), om op een gsm in staande stand
+ * de lange kant in de hoogte te zetten. Elke vorm draait mee rond haar middelpunt: het vak wordt
+ * h×w en komt op x' = grid_h − y − h, y' = x. De eigen draaiing van een tafel blijft, de labels
+ * blijven dus rechtop. Pure functie; de databank verandert niets.
+ */
+export function quarterTurn<A extends { grid_w: number; grid_h: number }, P extends { x: number; y: number; w: number; h: number; area_id: string }>(
+  areas: A[], items: P[],
+): { areas: A[]; items: P[] } {
+  const byId = new Map(areas.map((a) => [(a as unknown as { id: string }).id, a]));
+  return {
+    areas: areas.map((a) => ({ ...a, grid_w: a.grid_h, grid_h: a.grid_w })),
+    items: items.map((p) => {
+      const a = byId.get(p.area_id);
+      if (!a) return p;
+      return { ...p, x: a.grid_h - p.y - p.h, y: p.x, w: p.h, h: p.w };
+    }),
+  };
+}
+
+/** Geeft een kwartslag grotere vakjes in deze ruimte (minstens 20 % groter)? */
+export function quarterTurnHelps(area: Pick<FloorArea, 'grid_w' | 'grid_h'>, widthPx: number, heightPx: number): boolean {
+  if (widthPx <= 0 || heightPx <= 0 || area.grid_w <= area.grid_h) return false;
+  const now = Math.min(widthPx / area.grid_w, heightPx / area.grid_h);
+  const turned = Math.min(widthPx / area.grid_h, heightPx / area.grid_w);
+  return turned >= now * 1.2;
+}

@@ -1,4 +1,6 @@
 // QR-REKENING-1 — inbox met wat gasten via de QR aan tafel bestelden.
+// KASSA-UX-2: geen apart venster meer maar een lijst die in de kolom "Binnenkomend" van het
+// barscherm staat (tablet: naast het zaalplan; gsm: onder Bar).
 //
 // Gemaakt voor drukte: per tafel gegroepeerd (oudste eerst), "Alles van tafel X" in één tik, en
 // elke aanvraag apart met haar eigen status. Een fout bij één aanvraag blijft bij die aanvraag
@@ -7,7 +9,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BellRing, Check as CheckIcon, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import type { ActionCtx } from '../horeca/actions';
 import { groupByTable, rejectRequest, type TableRequest } from '../horeca/requests';
@@ -18,7 +19,7 @@ const REASONS = ['soldOut', 'kitchenClosed', 'askStaff'] as const;
 
 type ItemState = { busy?: boolean; error?: string };
 
-/** Knop in de kopbalk: aantal openstaande aanvragen; opent de inbox. */
+/** Knop in de kopbalk: aantal openstaande aanvragen; opent het barscherm. */
 export function RequestInboxButton({ count, onClick }: { count: number; onClick: () => void }) {
   const { t } = useTranslation();
   if (!count) return null;
@@ -29,7 +30,7 @@ export function RequestInboxButton({ count, onClick }: { count: number; onClick:
   );
 }
 
-export function RequestInbox({ ctx, requests, open, onClose }: { ctx: ActionCtx; requests: TableRequest[]; open: boolean; onClose: () => void }) {
+export function RequestList({ ctx, requests }: { ctx: ActionCtx; requests: TableRequest[] }) {
   const { t, i18n } = useTranslation();
   const euro = (c: number) => formatEuro(c, i18n.language);
   const groups = useMemo(() => groupByTable(requests), [requests]);
@@ -39,13 +40,12 @@ export function RequestInbox({ ctx, requests, open, onClose }: { ctx: ActionCtx;
   const [now, setNow] = useState(() => Date.now());
   const alive = useRef(true);
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
-  useEffect(() => { if (!open) return; const id = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(id); }, [open]);
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(id); }, []);
   // Wat niet meer openstaat (door ons of een collega verwerkt), verdwijnt ook uit de lokale stand.
   useEffect(() => {
     const ids = new Set(requests.map((r) => r.id));
     setState((s) => (Object.keys(s).every((k) => ids.has(k)) ? s : Object.fromEntries(Object.entries(s).filter(([k]) => ids.has(k)))));
   }, [requests]);
-  useEffect(() => { if (open && requests.length === 0) onClose(); }, [open, requests.length, onClose]);
 
   const patch = (id: string, v: ItemState) => { if (alive.current) setState((s) => ({ ...s, [id]: v })); };
 
@@ -68,9 +68,6 @@ export function RequestInbox({ ctx, requests, open, onClose }: { ctx: ActionCtx;
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-h-[92vh] overflow-y-auto sm:max-w-2xl">
-        <DialogHeader><DialogTitle>{t('kassa.requests.title', { count: requests.length })}</DialogTitle></DialogHeader>
         <div className="space-y-3">
           {groups.map((g) => {
             const busyAll = g.requests.some((r) => state[r.id]?.busy);
@@ -141,7 +138,5 @@ export function RequestInbox({ ctx, requests, open, onClose }: { ctx: ActionCtx;
             );
           })}
         </div>
-      </DialogContent>
-    </Dialog>
   );
 }

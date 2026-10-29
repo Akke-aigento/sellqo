@@ -160,4 +160,13 @@ describe('wachtrij en optimistische weergave', () => {
     expect(c.lines.find((l) => l.id === 'neg')).toMatchObject({ qty: -1, neg_reason: 'CORRECTION', corrects_line_id: sent.id });
     expect(c.lines.find((l) => l.id === sent.id)?.open_qty).toBe(1);
   });
+
+  it('KASSA-UX-2: lege rekening schrappen is meteen weg; met verstuurde lijnen blijft ze', () => {
+    const empty = new Map([['chk-1', check([line({ state: 'draft', round_id: null })])]]);
+    applyOptimistic(empty, { id: 'v', kind: 'void_check', check_id: 'chk-1' }, new Map());
+    expect(empty.get('chk-1')?.status).toBe('void');
+    const sentOne = new Map([['chk-1', check([line({ qty: 1, open_qty: 1 })])]]);
+    applyOptimistic(sentOne, { id: 'v', kind: 'void_check', check_id: 'chk-1' }, new Map());
+    expect(sentOne.get('chk-1')?.status).toBe('open');
+  });
 });

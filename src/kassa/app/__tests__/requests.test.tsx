@@ -17,7 +17,7 @@ vi.mock('@/integrations/supabase/client', () => ({ supabase: { rpc: (...a: unkno
 vi.mock('sonner', () => ({ toast: { warning: vi.fn(), error: vi.fn() } }));
 
 const { groupByTable } = await import('../horeca/requests');
-const { RequestInbox } = await import('../screens/RequestInbox');
+const { RequestList } = await import('../screens/RequestInbox');
 const { acceptRequest } = await import('../horeca/requests');
 const { useAutoAcceptRunner } = await import('../horeca/autoAccept');
 const { renderHook } = await import('@testing-library/react');
@@ -72,7 +72,7 @@ describe('roundLines met een selectie', () => {
   });
 });
 
-describe('RequestInbox', () => {
+describe('RequestList', () => {
   const store = { tenantId: 't', deviceId: 'd', refresh: vi.fn(async () => {}), check: () => undefined, flush: async () => {}, pendingCount: 0 };
   const ctx = { store, runtime: { isFiscal: false }, staffId: 's1', staffName: 'Jan', employeeId: null, tableLabel: () => null } as unknown as ActionCtx;
 
@@ -80,7 +80,7 @@ describe('RequestInbox', () => {
     rpc.mockReset();
     rpc.mockResolvedValue({ data: { ok: true, duplicate: true, check_id: 'c1', line_ids: [], version: 2 }, error: null });
     const reqs = [req('a', '4', '2026-10-28T10:00:00Z'), req('c', '4', '2026-10-28T10:02:00Z'), req('b', '7', '2026-10-28T10:01:00Z')];
-    render(<RequestInbox ctx={ctx} requests={reqs} open onClose={() => {}} />);
+    render(<RequestList ctx={ctx} requests={reqs} />);
     expect(screen.getByText(/kassa.requests.table .*"label":"4"/)).toBeTruthy();
     fireEvent.click(screen.getByText(/kassa.requests.acceptAll/));
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2));
@@ -90,7 +90,7 @@ describe('RequestInbox', () => {
   it('een fout bij één aanvraag blijft bij die aanvraag en laat de rest werken', async () => {
     rpc.mockReset();
     rpc.mockResolvedValueOnce({ data: null, error: { message: 'product is op', code: '22023' } });
-    render(<RequestInbox ctx={ctx} requests={[req('a', '4', '2026-10-28T10:00:00Z'), req('b', '7', '2026-10-28T10:01:00Z')]} open onClose={() => {}} />);
+    render(<RequestList ctx={ctx} requests={[req('a', '4', '2026-10-28T10:00:00Z'), req('b', '7', '2026-10-28T10:01:00Z')]} />);
     fireEvent.click(screen.getAllByText('kassa.requests.accept')[0]);
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('product is op'));
     expect(screen.getAllByText('kassa.requests.accept')).toHaveLength(2);
@@ -99,7 +99,7 @@ describe('RequestInbox', () => {
   it('weigeren met een snelle reden', async () => {
     rpc.mockReset();
     rpc.mockResolvedValue({ data: { ok: true }, error: null });
-    render(<RequestInbox ctx={ctx} requests={[req('a', '4', '2026-10-28T10:00:00Z')]} open onClose={() => {}} />);
+    render(<RequestList ctx={ctx} requests={[req('a', '4', '2026-10-28T10:00:00Z')]} />);
     fireEvent.click(screen.getByText('kassa.requests.reject'));
     fireEvent.click(screen.getByText('kassa.requests.reason.soldOut'));
     await waitFor(() => expect(rpc).toHaveBeenCalledWith('horeca_table_request_reject', expect.objectContaining({ p_request_id: 'a', p_reason: 'soldOut' })));

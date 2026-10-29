@@ -6366,7 +6366,9 @@
       "source_table": "Table",
       "cancelled_item": "Annuler",
       "station": "Poste",
-      "all_stations": "Tous les postes"
+      "all_stations": "Tous les postes",
+      "to_kassa": "Caisse",
+      "waited_short": "{{count}} min"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -11067,7 +11069,9 @@
       "toAdmin": "Vers l’administration SellQo",
       "backToTables": "Retour aux tables",
       "changeTerminalConfirm": "Dissocier cet appareil de {{name}} ? Vous choisirez ensuite à nouveau une caisse.",
-      "changeTerminalYes": "Dissocier"
+      "changeTerminalYes": "Dissocier",
+      "language": "Langue",
+      "languageShop": "Langue de l’établissement ({{lang}})"
     },
     "fiscalMode": {
       "off": "mode non fiscal",
@@ -11401,6 +11405,18 @@
       "qr": "Commandé via QR : table {{tables}}",
       "ready": "Prêt : {{label}}",
       "paid": "{{label}} a payé en ligne : {{amount}}"
+    },
+    "mode": {
+      "label": "Écran",
+      "zaal": "Salle",
+      "bar": "Bar",
+      "keuken": "Cuisine"
+    },
+    "bar": {
+      "incoming": "Entrant",
+      "empty": "Rien n’est arrivé. Les nouvelles commandes QR et les bons pour le bar apparaissent ici.",
+      "emptyNoBar": "Rien n’est arrivé. Les commandes QR apparaissent ici. Vous voulez aussi voir les bons du bar ? Créez un poste de type Bar sous Commandes › Postes.",
+      "tickets": "{{name}} ({{count}})"
     }
   },
   "deviceAlerts": {

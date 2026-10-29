@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildTemplate, chunk, clampToArea, compareLabels, dragTo, duplicateLabel, duplicateLabels, findFreeSpot,
-  findOverlaps, fitCell, isValidLabel, labelSeries, nextLabel, normRotation, overlappingIds, placeTemplate,
+  findOverlaps, fitCell, quarterTurn, quarterTurnHelps, isValidLabel, labelSeries, nextLabel, normRotation, overlappingIds, placeTemplate,
   rotatedBox, snap, splitLabel, stickerCell, tableQrUrl, TOKEN_RE,
 } from './index';
 
@@ -149,5 +149,19 @@ describe('QR', () => {
     expect(last.row).toBe(3);
     expect(last.x + last.w).toBeCloseTo(202, 5);
     expect(last.y + last.h).toBeCloseTo(289, 5);
+  });
+});
+
+describe('KASSA-UX-2 kwartslag (gsm staand)', () => {
+  const area = { id: 'a', grid_w: 40, grid_h: 24 };
+  it('draait vakken met de klok mee rond hun middelpunt', () => {
+    const { areas, items } = quarterTurn([area], [{ id: 't', area_id: 'a', x: 26, y: 3, w: 6, h: 4 }]);
+    expect(areas[0]).toMatchObject({ grid_w: 24, grid_h: 40 });
+    expect(items[0]).toMatchObject({ x: 24 - 3 - 4, y: 26, w: 4, h: 6 });
+  });
+  it('enkel als het de vakjes echt groter maakt', () => {
+    expect(quarterTurnHelps(area, 366, 640)).toBe(true);   // gsm staand
+    expect(quarterTurnHelps(area, 1000, 600)).toBe(false); // tablet liggend
+    expect(quarterTurnHelps({ grid_w: 20, grid_h: 30 }, 366, 640)).toBe(false); // al staand
   });
 });

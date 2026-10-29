@@ -1,6 +1,7 @@
 // KASSA-UX-1: een dienst doorlopen op gsm, tablet en desktop.
 // Zaalplan → tafel 4 → 3× Pils (moet één lijn "3× Pils" worden) + 1 Cola → − op Pils → terug →
-// toog-tegel → ⋯-menu (Kas, Rapporten, Naar beheer). Meet ook of de pagina breder wordt dan het scherm.
+// toog-tegel → ⋯-menu (Kas, Rapporten, Naar beheer) → (KASSA-UX-2) Bar en Keuken, een barbon op Klaar.
+// Meet ook of de pagina breder wordt dan het scherm.
 export const setup = {};
 export const widths = [390, 1024, 1280];
 const overflow = (page) => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -40,4 +41,29 @@ export async function run(page, { width, shot, log }) {
   await page.waitForTimeout(300);
   await shot('6-kas');
   log('overflow eind px', await overflow(page));
+  // KASSA-UX-2: terug naar Zaal (tablet: kolom Binnenkomend ernaast), dan Bar en Keuken.
+  await page.getByRole('button', { name: 'Terug naar de tafels' }).click();
+  await page.waitForTimeout(300);
+  log('binnenkomend naast zaalplan', await page.getByRole('complementary').count());
+  await shot('7-zaal');
+  await page.getByRole('button', { name: /^Bar/ }).click();
+  await page.waitForTimeout(300);
+  await shot('8-bar');
+  await page.getByRole('button', { name: /^Start|^Starten|bereiden/i }).first().click().catch(() => log('geen startknop'));
+  await page.getByRole('button', { name: /^Keuken/ }).click();
+  await page.waitForTimeout(300);
+  log('keukenbonnen', await page.locator('article').count());
+  await shot('9-keuken');
+  log('overflow keuken px', await overflow(page));
+  // Taal: start in de taal van de zaak (nl); kies op dit toestel English en terug.
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('menuitem', { name: 'Taal' }).click();
+  await page.getByRole('menuitem', { name: /English/ }).click();
+  await page.waitForTimeout(300);
+  log('na English', await page.getByRole('button', { name: /^Floor/ }).count(), await page.getByRole('button', { name: /^Kitchen/ }).count());
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('menuitem', { name: 'Language' }).click();
+  await page.getByRole('menuitem', { name: /Language of the business/ }).click();
+  await page.waitForTimeout(300);
+  log('terug naar zaak', await page.getByRole('button', { name: /^Zaal/ }).count());
 }

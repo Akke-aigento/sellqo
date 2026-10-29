@@ -46,3 +46,15 @@ describe('KASSA-UX-1 sneltikken', () => {
     expect(adminHref('/', 'https://sellqo.app')).toEqual({ href: 'https://sellqo.app/admin', external: true });
   });
 });
+
+describe('KASSA-UX-2 taal van de kassa', () => {
+  it('volgt de zaak, tenzij het toestel iets anders koos', async () => {
+    const { kassaLanguage } = await import('../language');
+    expect(kassaLanguage('nl', null)).toBe('nl');
+    expect(kassaLanguage('fr-BE', null)).toBe('fr');
+    expect(kassaLanguage('es', null)).toBe('nl');
+    expect(kassaLanguage(null, null)).toBe('nl');
+    expect(kassaLanguage('nl', 'en')).toBe('en');
+    expect(kassaLanguage('nl', 'xx')).toBe('nl');
+  });
+});

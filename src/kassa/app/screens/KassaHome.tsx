@@ -3,12 +3,16 @@
 // Kopbalk: wie · verbinding · QR-bestellingen · Wissel · ⋯-menu (Kas, Rapporten, klokken,
 // meldingen, naar beheer, andere kassa). In een rekening blijft enkel de balk van die rekening
 // over: meer plaats voor de kaart, en terug is altijd één tik.
-import { useMemo, useState } from 'react';
+// KASSA-UX-2: bovenaan wissel je met één tik tussen Zaal, Bar en Keuken (per toestel onthouden).
+// Op een tablet staat de kolom Binnenkomend (QR-bestellingen + barbonnen) naast het zaalplan.
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Banknote, Bell, BellOff, Clock, ExternalLink, FileBarChart, Loader2, LogOut, MoreHorizontal, Users, Wifi, WifiOff } from 'lucide-react';
+import { ArrowLeft, Banknote, Bell, BellOff, Check as CheckIcon, ChefHat, Clock, ExternalLink, FileBarChart, LayoutGrid, Loader2, LogOut, MoreHorizontal, Languages, Users, Wifi, WifiOff, Wine } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
+import { deviceLanguage, kassaLanguage, setDeviceLanguage } from '../language';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
 import { clock, isClockedIn } from '../attendance';
@@ -21,7 +25,13 @@ import { CashScreen } from './CashScreen';
 import { ReportsScreen } from './ReportsScreen';
 import { lastService } from '../horeca/counter';
 import { useAutoAccept } from '../horeca/requests';
-import { RequestInbox, RequestInboxButton } from './RequestInbox';
+import { RequestInboxButton } from './RequestInbox';
+import { BarPanel, KitchenView } from './StationViews';
+import { useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
+import { useFreshCards, useStationChoice } from '@/components/admin/kitchen/kitchenBoardUtils';
+import { cardsForStation, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
+import { useTenant } from '@/hooks/useTenant';
+import { cn } from '@/lib/utils';
 import { useAutoAcceptRunner } from '../horeca/autoAccept';
 import { ADMIN_LINK_ROLES, adminHref } from '../horeca/quickTap';
 import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
@@ -29,9 +39,26 @@ import type { HorecaStore } from '../horeca/store';
 import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from '../alerts';
 
 type View = 'tables' | 'cash' | 'reports';
+type Mode = 'zaal' | 'bar' | 'keuken';
+const MODE_KEY = 'sq_kassa_mode';
+const readMode = (): Mode => { try { const v = localStorage.getItem(MODE_KEY); return v === 'bar' || v === 'keuken' ? v : 'zaal'; } catch { return 'zaal'; } };
+
+/** Breed genoeg voor zaalplan + kolom Binnenkomend naast elkaar (tablet liggend, desktop). */
+function useWide(min = 1024): boolean {
+  const q = `(min-width: ${min}px)`;
+  const [wide, setWide] = useState(() => typeof window !== 'undefined' && window.matchMedia?.(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia?.(q);
+    if (!m) return;
+    const on = () => setWide(m.matches);
+    m.addEventListener('change', on);
+    return () => m.removeEventListener('change', on);
+  }, [q]);
+  return wide;
+}
 
 export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice }: { runtime: KassaRuntime; store: HorecaStore; alerts: KassaAlerts; terminalName: string; onForgetDevice: () => void }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { staff, employeeId, lock } = useKassaSession();
   const { data: plan } = useFloorPlan();
   const [openCheck, setOpenCheck] = useState<string | null>(null);
@@ -42,13 +69,39 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   const [clockedIn, setClockedIn] = useState(() => (staff ? isClockedIn(runtime.device.tenantId, staff.id) : false));
   const [clockBusy, setClockBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  // QR-REKENING-1: bestellingen via de QR aan tafel.
-  const [inboxOpen, setInboxOpen] = useState(false);
+  // QR-REKENING-1: bestellingen via de QR aan tafel (KASSA-UX-2: in de kolom Binnenkomend).
   const autoAccept = useAutoAccept(runtime.device.tenantId);
   // MELDING-1: geluid en melding op het open scherm, scherm wakker, push als het scherm dicht is.
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [confirmForget, setConfirmForget] = useState(false);
   const { sound } = alerts;
+  const [mode, setModeState] = useState<Mode>(readMode);
+  const setMode = (m: Mode) => { setModeState(m); setView('tables'); try { localStorage.setItem(MODE_KEY, m); } catch { /* privémodus */ } };
+  const wide = useWide();
+  const { currentTenant } = useTenant();
+  const tenantLanguage = (currentTenant as { language?: string | null } | null)?.language ?? null;
+  const [langChoice, setLangChoice] = useState<string | null>(deviceLanguage);
+  const pickLanguage = (code: string | null) => {
+    setDeviceLanguage(code);
+    setLangChoice(code);
+    void i18n.changeLanguage(kassaLanguage(tenantLanguage, code));
+  };
+  const shopLangLabel = SUPPORTED_LANGUAGES.find((l) => l.code === kassaLanguage(tenantLanguage, null))?.label ?? '';
+
+  // Bonnen (keuken en bar) uit het gedeelde keukenbord; één lichte poll per toestel.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
+  const { cards: allCards, isLoading: boardLoading, error: boardError, setStatus } = useKitchenBoard(now);
+  const kitchen = useStationChoice(allCards, (st) => st.find((x) => x.kind === 'kitchen')?.id ?? null);
+  const barStation = kitchen.stations.find((x) => x.kind === 'bar') ?? null;
+  const barCards = useMemo(() => (barStation ? cardsForStation(allCards, barStation.id, kitchen.defaultStation) : []), [allCards, barStation, kitchen.defaultStation]);
+  const showBar = mode === 'bar' || (mode === 'zaal' && wide);
+  const barFresh = useFreshCards(barCards, boardLoading, { sound: sound && showBar });
+  const kitchenFresh = useFreshCards(kitchen.cards, boardLoading, { sound: sound && mode === 'keuken' });
+  const onMove = useCallback((card: KitchenCard, status: KitchenStatus) => setStatus.mutate({ card, status }), [setStatus]);
+  const board = (fresh: Set<string>) => ({ now, busy: setStatus.isPending, fresh, storeName: currentTenant?.name ?? '', onMove });
+  const barCount = store.requests.length + barCards.filter((c) => c.status === 'new').length;
+  const kitchenCount = kitchen.cards.filter((c) => c.status === 'new').length;
 
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((x) => [x.id, x.label])), [plan]);
   const ctx: ActionCtx | null = useMemo(() => (staff ? {
@@ -113,7 +166,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
                 <span className="hidden sm:inline" aria-hidden>·</span><span className="hidden truncate sm:inline">{t(`kassa.fiscalMode.${runtime.fiscal.mode}`)}</span>
               </p>
             </div>
-            <RequestInboxButton count={store.requests.length} onClick={() => setInboxOpen(true)} />
+            {!showBar && <RequestInboxButton count={store.requests.length} onClick={() => setMode('bar')} />}
             <button type="button" onClick={lock} className="flex h-11 items-center gap-1.5 rounded-md border px-3 text-sm font-semibold">
               <Users className="h-4 w-4" aria-hidden /> {t('kassa.home.switchUser')}
             </button>
@@ -127,6 +180,20 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
                 <DropdownMenuItem className="h-11" disabled={clockBusy} onClick={() => void toggleClock()}>
                   {clockBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}{t(clockedIn ? 'kassa.home.clockOut' : 'kassa.home.clockIn')}
                 </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger className="h-11"><Languages className="mr-2 h-4 w-4" />{t('kassa.home.language')}</DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent className="w-60">
+                    <DropdownMenuItem className="h-11" onClick={() => pickLanguage(null)}>
+                      <CheckIcon className={cn('mr-2 h-4 w-4', langChoice && 'invisible')} />{t('kassa.home.languageShop', { lang: shopLangLabel })}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    {SUPPORTED_LANGUAGES.map((l) => (
+                      <DropdownMenuItem key={l.code} className="h-11" onClick={() => pickLanguage(l.code)}>
+                        <CheckIcon className={cn('mr-2 h-4 w-4', langChoice !== l.code && 'invisible')} />{l.flag} {l.label}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuItem className="h-11" onClick={() => setAlertsOpen(true)}>
                   {sound ? <Bell className="mr-2 h-4 w-4" /> : <BellOff className="mr-2 h-4 w-4" />}{t('kassa.signals.button')}
                 </DropdownMenuItem>
@@ -139,6 +206,17 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
             </DropdownMenu>
           </header>
           {message && <p role="status" className="border-b bg-muted px-3 py-1.5 text-sm">{message}</p>}
+          {view === 'tables' && (
+            <nav className="grid grid-cols-3 gap-1 border-b p-1.5" aria-label={t('kassa.mode.label')}>
+              {([['zaal', LayoutGrid, 0], ['bar', Wine, barCount], ['keuken', ChefHat, kitchenCount]] as const).map(([m, Icon, n]) => (
+                <button key={m} type="button" aria-pressed={mode === m} onClick={() => setMode(m)}
+                  className={cn('relative flex h-11 items-center justify-center gap-1.5 rounded-md text-sm font-semibold', mode === m ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted')}>
+                  <Icon className="h-4 w-4" aria-hidden />{t(`kassa.mode.${m}`)}
+                  {n > 0 && <span className={cn('rounded-full px-1.5 text-xs font-bold', mode === m ? 'bg-primary-foreground text-primary' : 'bg-amber-500 text-white')}>{n}</span>}
+                </button>
+              ))}
+            </nav>
+          )}
           {runtime.isFiscal && !employeeId && <p role="alert" className="border-b bg-destructive/10 px-3 py-1.5 text-sm text-destructive">{t('kassa.home.noInsz')}</p>}
 
           {view !== 'tables' && (
@@ -147,11 +225,31 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
               <p className="text-lg font-bold">{t(`kassa.home.tab.${view}`)}</p>
             </div>
           )}
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" style={{ paddingBottom: 'var(--safe-bottom)' }}>
-            {view === 'cash' ? <CashScreen ctx={ctx} />
-              : view === 'reports' ? <ReportsScreen ctx={ctx} staffRole={staff.role} />
-              : <TablesScreen store={store} staffId={staff.id} tableLabel={ctx.tableLabel} onCounter={newCounterSale} onOpen={(id) => { setAutoPay(false); setCounterMode(false); setOpenCheck(id); }} />}
-          </div>
+          {view === 'cash' || view === 'reports' ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" style={{ paddingBottom: 'var(--safe-bottom)' }}>
+              {view === 'cash' ? <CashScreen ctx={ctx} /> : <ReportsScreen ctx={ctx} staffRole={staff.role} />}
+            </div>
+          ) : mode === 'keuken' ? (
+            <div className="flex min-h-0 flex-1 flex-col bg-muted/40" style={{ paddingBottom: 'var(--safe-bottom)' }}>
+              <KitchenView cards={kitchen.cards} stations={kitchen.stations} activeStation={kitchen.activeStation} onStation={kitchen.choose}
+                isLoading={boardLoading} error={boardError} board={board(kitchenFresh)} />
+            </div>
+          ) : mode === 'bar' ? (
+            <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-muted/40" style={{ paddingBottom: 'var(--safe-bottom)' }}>
+              <BarPanel ctx={ctx} requests={store.requests} cards={barCards} barName={barStation?.name ?? null} wide board={board(barFresh)} />
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-1" style={{ paddingBottom: 'var(--safe-bottom)' }}>
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+                <TablesScreen store={store} staffId={staff.id} tableLabel={ctx.tableLabel} onCounter={newCounterSale} onOpen={(id) => { setAutoPay(false); setCounterMode(false); setOpenCheck(id); }} />
+              </div>
+              {wide && (
+                <aside className="flex w-[380px] shrink-0 flex-col overflow-y-auto border-l bg-muted/40 xl:w-[420px]" aria-label={t('kassa.bar.incoming')}>
+                  <BarPanel ctx={ctx} requests={store.requests} cards={barCards} barName={barStation?.name ?? null} wide={false} board={board(barFresh)} />
+                </aside>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -160,7 +258,6 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
           soundKey={KASSA_SOUND_KEY} soundDefault onSoundChange={alerts.setSound} wakeKey={KASSA_WAKE_KEY} wakeDefault onWakeChange={alerts.setWake} wakeActive={alerts.wakeActive}
           manageHref={Capacitor.isNativePlatform() ? undefined : '/admin/pos'} />
       ) : null}
-      {inboxOpen ? <RequestInbox ctx={ctx} requests={store.requests} open={inboxOpen} onClose={() => setInboxOpen(false)} /> : null}
       <Dialog open={confirmForget} onOpenChange={setConfirmForget}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>

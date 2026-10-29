@@ -29,7 +29,10 @@ const transport: Transport = {
   apply: () => new Promise(() => {}),
   snapshot: async () => ({ version: 1, checks }),
   version: async () => 1,
-  requests: async () => [],
+  requests: async () => [{
+    id: 'r1', dining_table_id: 't-5', table_label: '5', item_count: 3, total_cents: 1460, guest_name: 'Lotte', note: null, created_at: new Date(now - 4 * 60_000).toISOString(),
+    items: [{ product_id: 'p-tap-1', variant_id: null, qty: 2, name: 'Pils', unit_price_cents: 280, addons: [] }, { product_id: 'p-hon-1', variant_id: null, qty: 1, name: 'Croque monsieur', unit_price_cents: 750, addons: [] }],
+  }],
 };
 const store = new HorecaStore('t1', 'dev1', transport, 1e9);
 const runtime = { device: { tenantId: 't1', deviceUuid: 'dev1', terminalRowId: 'k1' }, fiscal: { mode: 'off' }, isFiscal: false } as never;

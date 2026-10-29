@@ -286,5 +286,9 @@ export function applyOptimistic(m: Map<string, Check>, cmd: Command, hints: Map<
     c.service = (cmd.service as 'eat_in' | 'takeaway') ?? c.service ?? null;
   } else if (cmd.kind === 'rename_check') {
     c.name = (cmd.name as string) || null;
+  } else if (cmd.kind === 'void_check') {
+    // KASSA-UX-2: een lege rekening (bv. een toogverkoop zonder iets) meteen weg, niet pas na de server.
+    // De server weigert void_check op een rekening met verstuurde lijnen; dan blijft ze hier ook staan.
+    if (!c.lines.some((l) => l.state === 'sent')) c.status = 'void';
   }
 }

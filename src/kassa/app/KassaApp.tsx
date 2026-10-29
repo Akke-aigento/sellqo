@@ -19,6 +19,7 @@ import { useKassaSignals } from './useKassaSignals';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { readFlag } from '@/lib/ding';
 import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from './alerts';
+import { kassaLanguage } from './language';
 
 function Spinner() {
   const { t } = useTranslation();
@@ -26,7 +27,7 @@ function Spinner() {
 }
 
 function Device() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { tenants, loading, currentTenant, setCurrentTenant } = useTenant();
   const { staff } = useKassaSession();
   const [device, setDevice] = useState<DeviceConfig | null>(() => loadDevice());
@@ -41,6 +42,13 @@ function Device() {
     const tnt = tenants.find((x) => x.id === device.tenantId);
     if (tnt) setCurrentTenant(tnt);
   }, [valid, device, currentTenant, tenants, setCurrentTenant]);
+  // KASSA-UX-2: de kassa spreekt de taal van de zaak (of wat dit toestel koos in het ⋯-menu).
+  const tenantLanguage = (currentTenant as { language?: string | null } | null)?.language ?? null;
+  useEffect(() => {
+    if (!valid || currentTenant?.id !== device?.tenantId) return;
+    const lang = kassaLanguage(tenantLanguage);
+    if (i18n.language !== lang) void i18n.changeLanguage(lang);
+  }, [valid, currentTenant?.id, device?.tenantId, tenantLanguage, i18n]);
   useEffect(() => {
     if (!device || !valid) return;
     let alive = true;

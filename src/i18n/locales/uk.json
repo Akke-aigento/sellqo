@@ -6653,7 +6653,9 @@
       "source_table": "Стіл",
       "cancelled_item": "Скасувати",
       "station": "Пост",
-      "all_stations": "Усі пости"
+      "all_stations": "Усі пости",
+      "to_kassa": "Каса",
+      "waited_short": "{{count}} хв"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -11067,7 +11069,9 @@
       "toAdmin": "До керування SellQo",
       "backToTables": "Назад до столів",
       "changeTerminalConfirm": "Від’єднати цей пристрій від {{name}}? Потім ви знову оберете касу.",
-      "changeTerminalYes": "Від’єднати"
+      "changeTerminalYes": "Від’єднати",
+      "language": "Мова",
+      "languageShop": "Мова закладу ({{lang}})"
     },
     "fiscalMode": {
       "off": "нефіскальний режим",
@@ -11401,6 +11405,18 @@
       "qr": "Замовлено через QR: стіл {{tables}}",
       "ready": "Готово: {{label}}",
       "paid": "{{label}} оплатив онлайн: {{amount}}"
+    },
+    "mode": {
+      "label": "Екран",
+      "zaal": "Зал",
+      "bar": "Бар",
+      "keuken": "Кухня"
+    },
+    "bar": {
+      "incoming": "Вхідні",
+      "empty": "Нічого не надійшло. Нові QR-замовлення та чеки для бару з’являться тут.",
+      "emptyNoBar": "Нічого не надійшло. QR-замовлення з’являються тут. Хочеш бачити й чеки для бару? Створи пост типу «Бар» у розділі Замовлення › Пости.",
+      "tickets": "{{name}} ({{count}})"
     }
   },
   "deviceAlerts": {

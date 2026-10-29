@@ -2319,6 +2319,10 @@
         "kassa_quick_tap": {
           "title": "SellQo Kassa : encodage plus rapide et toujours un retour",
           "description": "Toucher à nouveau un produit l’ajoute à la même ligne (3× Pils au lieu de trois lignes), et le bouton indique combien il y en a dans cette tournée, avec un − pour en retirer un. La carte s’ouvre sur vos meilleures ventes. Sur votre téléphone, le nombre d’articles et le total restent visibles en bas. Le comptoir est un bouton fixe au-dessus de vos tables, et Caisse, Rapports et le retour vers l’administration SellQo se trouvent dans le menu en haut à droite."
+        },
+        "kassa_bar_kitchen": {
+          "title": "SellQo Kassa : écran bar, cuisine et plan de salle sur votre téléphone",
+          "description": "En haut de la caisse, vous passez de Salle à Bar ou Cuisine d’un seul geste, et chaque appareil se souvient de son écran. Bar affiche ce qui arrive : les commandes QR des tables et les bons pour votre bar. Sur une tablette, cette colonne se trouve à côté de votre plan de salle. Cuisine affiche l’écran cuisine dans la caisse même. Sur votre téléphone, le plan de salle pivote d’un quart de tour pour que vos tables soient assez grandes. Et la caisse parle la langue de votre établissement."
         }
       },
       "copyLink": "Copier le lien",

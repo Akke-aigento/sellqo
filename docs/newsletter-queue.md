@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14i — SellQo Kassa: barscherm, keuken en zaalplan op je gsm (feature, 29-10-2026)
+
+**Status:** wacht op push, publish van de admin en de helpartikels (KASSA-UX-2).
+
+**Voor wie:** horecazaken met SellQo Kassa.
+
+**De toog, de bar en de keuken op één toestel** (oktober 2026)
+Bovenaan de kassa wissel je met één tik tussen Zaal, Bar en Keuken. Onder Bar zie je wat er binnenkomt: bestellingen via de QR aan tafel en de bonnen voor je bar. Op een tablet staat die kolom naast je zaalplan. Keuken toont het keukenscherm in de kassa zelf. Op je gsm vult het zaalplan nu je scherm, en de kassa spreekt de taal van je zaak.
+Wat betekent dit voor jou? Eén tablet aan de toog volstaat om te bestellen, QR-bestellingen te aanvaarden en de drankjes af te werken.
+
+i18n: `public.changelog.changes.kassa_bar_kitchen`
+
 ### 2026.14h — SellQo Kassa: sneller tikken en altijd de weg terug (improvement, 29-10-2026)
 
 **Status:** wacht op push, publish van de admin en de helpartikels (KASSA-UX-1).

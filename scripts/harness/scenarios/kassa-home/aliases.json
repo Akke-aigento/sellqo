@@ -5,5 +5,7 @@
   "/^\\.\\./horeca/useCatalog$/": "mocks/catalog.ts",
   "/^\\.\\./horeca/requests$/": "mocks/requests.ts",
   "/^\\.\\./horeca/autoAccept$/": "mocks/autoAccept.ts",
-  "/^\\.\\./attendance$/": "mocks/attendance.ts"
+  "/^\\.\\./attendance$/": "mocks/attendance.ts",
+  "@/components/admin/kitchen/useKitchenBoard": "mocks/kitchenBoard.ts",
+  "@/hooks/usePrepStations": "mocks/prep.ts"
 }

@@ -1,3 +1,39 @@
+## KASSA-UX-2 — Zaal · Bar · Keuken, barscherm, zaalplan op gsm, taal van de zaak (kassa 0.14.0) — 29 oktober 2026
+
+**Aanleiding**
+- Akke (29-10, na KASSA-UX-1, screenshot op zijn iPhone): "ik mis het scherm aan de bar waar je de orders ziet binnenkomen op tafel en ook bestelling kunt plaatsen … gemakkelijk switchen van keukenscherm en bestelscherm/barscherm … cafe layout is veel te klein op gsm".
+- Recon: bonnen per post bestonden enkel op `/admin/keuken` (`Kitchen.tsx`, 311 regels, één bestand), buiten de kassa en niet in de aparte Kassa-app. QR-bestellingen enkel via een teller-knop en een dialoog (`RequestInbox`). Het zaalplan (Binnen 40×24) schaalde op 390 px naar ±9 px per vakje (`fitCell` op de breedte). De kassa volgde de taal van het toestel (`preferredLanguage`/browser), daarom Engels op Akkes gsm.
+
+**Uitgevoerd**
+- `src/components/admin/kitchen/KitchenBoard.tsx` (nieuw): `TicketCard` (nu met `linkOrders` en een `compact`-variant voor de bar), `KitchenColumns`, `StationSelect` — uit `Kitchen.tsx` gehaald, ongewijzigd in gedrag. `kitchenBoardUtils.ts` (nieuw): `hhmm`, `sourceName`, `whoName`, `ticketLabels`, `useStationChoice` (nu met een terugval-post; "alle posten" bewaard als `all`), `useFreshCards`.
+- `src/pages/admin/Kitchen.tsx`: gebruikt het gedeelde bord; nieuwe knop **Kassa** voor zaken met het spoor horeca.
+- `src/kassa/app/screens/KassaHome.tsx`: schakelaar **Zaal · Bar · Keuken** (per toestel, `sq_kassa_mode`) met tellers; Zaal op ≥ 1024 px = zaalplan + kolom **Binnenkomend**; Bar en Keuken over het hele scherm. Eén poll van het keukenbord per toestel (bestaande `useKitchenBoard`, 10 s). Belletje voor nieuwe barbonnen als de bar in beeld is, voor keukenbonnen in Keuken. ⋯ › **Taal**.
+- `screens/StationViews.tsx` (nieuw): `BarPanel` (QR-bestellingen + bonnen van de post met soort `bar`) en `KitchenView` (keukenbord, standaard de post met soort `kitchen`).
+- `screens/RequestInbox.tsx`: de dialoog werd `RequestList` (inline); de teller in de kopbalk opent nu Bar.
+- `TablesScreen.tsx` + `lib/floorplan/geometry.ts`: `quarterTurn`/`quarterTurnHelps` — op een staand scherm draait het plan een kwartslag als de vakjes ≥ 20 % groter worden (390 px: ±9 → ±15 px). Labels blijven rechtop. Standaard het zaalplan, keuze plan/lijst per toestel (`sq_kassa_tables_view`).
+- `src/kassa/app/language.ts` (nieuw) + `KassaApp.tsx`: de kassa start in `tenants.language`; keuze per toestel in `sq_kassa_lang`; raakt `preferredLanguage` van het beheer niet.
+- `horeca/store.ts` `applyOptimistic`: `void_check` zet een rekening zonder verstuurde lijnen meteen op `void` (een lege toogverkoop bleef anders als chip "Toog € 0,00" staan tot de server antwoordde).
+- `src/kassa/version.ts`: 0.14.0. Geen wijziging aan fiscale berichten of de server.
+- i18n: `kassa.mode.*`, `kassa.bar.*`, `kassa.home.language*`, `admin.kitchen.to_kassa`, `admin.kitchen.waited_short` in 5 talen.
+- Harnas `kassa-home`: mocks voor bonnen en posten, QR-bestelling op tafel 5, stappen voor Zaal/Bar/Keuken en de taalkeuze.
+- Paper trail: changelog 2026.14i `kassa_bar_kitchen` (5 talen), helpartikels `kassa-tafels-rekeningen` + `keukenscherm-en-tafelbestelling` (`20261029060000_kassa_ux_2_docs.sql`), nieuwsbrief.
+
+**Security-keuzes**
+- Geen policy of grant. Het keukenbord in de kassa gebruikt dezelfde query's en RLS als `/admin/keuken` (lid van de zaak). Status van een bon wijzigen = bestaande update op `kitchen_tickets`, zoals op het keukenscherm (geen fiscaal event).
+
+**Gedeelde-paden-waarschuwing**
+- `Kitchen.tsx` (pizzeria's, frituren zonder kassa) draait nu op het gedeelde bord: zelfde kolommen, knoppen, belletje en automatisch printen; enkel de knop Kassa is nieuw (spoor horeca). `useStationChoice` bewaart "alle posten" voortaan als `all`; een bestaande lege sleutel blijft "alle posten". `geometry.ts` krijgt enkel nieuwe functies.
+
+**Verificatie**
+- `npx vitest run src/kassa src/components/admin/kitchen src/lib/floorplan src/test/floorPlanView.test.tsx`: 346 groen (1 overgeslagen, bestaand); nieuw: kwartslag (2), taal (1), lege rekening schrappen (1); `requests.test` op `RequestList`. tsc 27 = baseline. Lint 0 op de gewijzigde bestanden. i18n-pariteit ok. `npm run build` en `npm run build:kassa` ok.
+- Harnas `kassa-home` op 390/1024/1280: overloop 0 px; zaalplan op 390 gedraaid en schermvullend; kolom Binnenkomend naast het plan op 1024/1280 (QR tafel 5 + 2 barbonnen), op 390 onder Bar; Keuken toont 2 keukenbonnen; taal English en terug naar de zaak werkt.
+- Docs-migratie droog getest op live (md5-guards en ankers ok, teruggedraaid).
+
+**Bewust ongemoeid / Vervolg**
+- Afrekenscherm (`PayDialog`) nog altijd ongewijzigd.
+- Zonder post van het type Bar toont Bar enkel QR-bestellingen (met uitleg hoe je een barpost maakt).
+- Uitrol: push → CI → publish → `20261029060000_kassa_ux_2_docs`.
+
 ## KASSA-UX-1 — kassa-bediening: één thuis, opgeteld tikken, altijd de weg terug (kassa 0.13.0) — 29 oktober 2026
 
 **Root cause**

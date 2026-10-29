@@ -6366,7 +6366,9 @@
       "source_table": "Tisch",
       "cancelled_item": "Storno",
       "station": "Station",
-      "all_stations": "Alle Stationen"
+      "all_stations": "Alle Stationen",
+      "to_kassa": "Kasse",
+      "waited_short": "{{count}} Min."
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -11067,7 +11069,9 @@
       "toAdmin": "Zur SellQo-Verwaltung",
       "backToTables": "Zurück zu den Tischen",
       "changeTerminalConfirm": "Dieses Gerät von {{name}} trennen? Danach wählst du erneut eine Kasse.",
-      "changeTerminalYes": "Trennen"
+      "changeTerminalYes": "Trennen",
+      "language": "Sprache",
+      "languageShop": "Sprache des Betriebs ({{lang}})"
     },
     "fiscalMode": {
       "off": "nicht-fiskalischer Modus",
@@ -11401,6 +11405,18 @@
       "qr": "Per QR bestellt: Tisch {{tables}}",
       "ready": "Fertig: {{label}}",
       "paid": "{{label}} hat online bezahlt: {{amount}}"
+    },
+    "mode": {
+      "label": "Ansicht",
+      "zaal": "Saal",
+      "bar": "Bar",
+      "keuken": "Küche"
+    },
+    "bar": {
+      "incoming": "Eingehend",
+      "empty": "Noch nichts eingegangen. Neue QR-Bestellungen und Bons für die Bar erscheinen hier.",
+      "emptyNoBar": "Noch nichts eingegangen. QR-Bestellungen erscheinen hier. Willst du auch die Bons der Bar sehen? Lege unter Bestellen › Stationen eine Station vom Typ Bar an.",
+      "tickets": "{{name}} ({{count}})"
     }
   },
   "deviceAlerts": {

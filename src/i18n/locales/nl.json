@@ -7596,7 +7596,9 @@
       "source_table": "Tafel",
       "cancelled_item": "Annuleer",
       "station": "Post",
-      "all_stations": "Alle posten"
+      "all_stations": "Alle posten",
+      "to_kassa": "Kassa",
+      "waited_short": "{{count}} min"
     },
     "allergens": {
       "gluten": "Gluten (granen)",
@@ -11069,7 +11071,9 @@
       "toAdmin": "Naar SellQo-beheer",
       "backToTables": "Terug naar de tafels",
       "changeTerminalConfirm": "Dit toestel loskoppelen van {{name}}? Daarna kies je opnieuw een kassa.",
-      "changeTerminalYes": "Loskoppelen"
+      "changeTerminalYes": "Loskoppelen",
+      "language": "Taal",
+      "languageShop": "Taal van de zaak ({{lang}})"
     },
     "fiscalMode": {
       "off": "niet-fiscale modus",
@@ -11403,6 +11407,18 @@
       "qr": "Via de QR besteld: tafel {{tables}}",
       "ready": "Klaar: {{label}}",
       "paid": "{{label}} betaalde online: {{amount}}"
+    },
+    "mode": {
+      "label": "Scherm",
+      "zaal": "Zaal",
+      "bar": "Bar",
+      "keuken": "Keuken"
+    },
+    "bar": {
+      "incoming": "Binnenkomend",
+      "empty": "Niets binnengekomen. Nieuwe QR-bestellingen en bonnen voor de bar verschijnen hier.",
+      "emptyNoBar": "Niets binnengekomen. QR-bestellingen verschijnen hier. Wil je ook de bonnen voor de bar zien? Maak een post van het type Bar onder Bestellen › Posten.",
+      "tickets": "{{name}} ({{count}})"
     }
   },
   "deviceAlerts": {
