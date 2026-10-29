@@ -3,8 +3,8 @@ name: sellqo-engineering-rules
 description: Harde engineering-regels voor het sellqo-project. Altijd toepassen
   bij werk aan edge functions, storage/documenten (PDF's, exports, downloads),
   auth/sessies, dependency-imports, foutafhandeling in deliverables, native
-  Capacitor-plugins, of verificatie van een batch. Elke regel is betaald met
-  echte productie-debugging.
+  Capacitor-plugins, verificatie van een batch, of een gewijzigd scherm
+  (harnas op 390/1280). Elke regel is betaald met echte productie-debugging.
 ---
 
 # SellQo Engineering-Regels
@@ -367,3 +367,21 @@ toe). Losse checks uit het hoofd draaien mist er altijd één.
 twee nieuwe meldingstypes stonden niet in `NOTIFICATION_CONFIG` en
 `notificationDefaults.ts`. Lokaal waren tsc, lint, i18n en de tests groen, maar
 die ene node-check was niet gedraaid.
+
+## R17 — Elk gewijzigd scherm gaat vóór "klaar" door het harnas, op 390 én 1280 px.
+`node scripts/harness/shoot.mjs <scenario>` draait één component in Vite met
+gemockte hooks en maakt met Playwright screenshots op 390 en 1280 px
+(`/tmp/harness/`); exit 1 bij een paginafout of console-error. Werkwijze en hoe je
+een scenario toevoegt: `scripts/harness/README.md`.
+**Regel:**
+- een nieuw of gewijzigd scherm krijgt een scenario in `scripts/harness/scenarios/`
+  (of breidt een bestaand uit), met de klikstappen in `steps.mjs`;
+- bekijk de screenshots echt (labels, afgekapte tekst, taal); groen is niet genoeg;
+- mock spoor- en rechtenfilters bewust: een te ruime mock toont items die de echte
+  app verbergt;
+- het harnas bewijst opmaak en klikgedrag, géén dataflow. Schrijfacties klik je
+  daarnaast één keer echt door op sellqo.app (R14).
+**Incident (ONDERBALK-1 en KASSA-START-1, 29 okt 2026):** het harnas werd per batch
+opnieuw met de hand opgebouwd en daarna weggegooid. Bij ONDERBALK-1 ving het een
+lijst met andere labels dan de balk erboven ("Point of sale (P…" naast "Kassa"); de
+eerste versie stond per ongeluk in het Engels omdat de taal ná i18n werd gezet.

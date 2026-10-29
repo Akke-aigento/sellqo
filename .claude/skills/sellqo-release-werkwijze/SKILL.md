@@ -169,6 +169,12 @@ Regels voor een blogartikel:
   en een gepubliceerde post nooit stil overschreven wordt. Via `query_database`
   met de JSON in `$bj$…$bj$::jsonb` (±25 KB per aanroep gaat), daarna md5 per
   veld vergelijken met de bronbestanden.
+- **Te groot voor één aanroep** (een artikel van ±850 woorden met vier vertalingen
+  is al ±37 KB): splits. Eerst de `INSERT … ON CONFLICT … WHERE status='draft'`
+  met NL + `translations` = {en}; daarna `UPDATE blog_posts SET translations =
+  translations || $bj${"fr":…,"de":…}$bj$::jsonb WHERE slug=… AND status='draft'`,
+  en zo verder per één à twee talen. Daarna de md5-check per veld en per taal
+  (5 velden × 5 talen). (Blogreeks 2026.13x–14f, 29 okt 2026.)
 - **Cover**: 16:9 (de blog toont `aspect-[16/9]`). Genereren via `nano-studio`
   in image-mode met een bestaande cover uit `marketing-assets/blog/` als
   stijlreferentie (`model` nano-banana-pro, `aspect_ratio` 16:9, prompt zonder
