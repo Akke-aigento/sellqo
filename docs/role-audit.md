@@ -32,6 +32,9 @@
 - Harnas `kassa-home` op 390/1024/1280: overloop 0 px (was ±480 px op 390); 3× Pils + Cola + "−" → lijnen "2× Pils" en "1× Cola" (één lijn per product); Populair opent eerst; "Naar SellQo-beheer" zichtbaar voor een verantwoordelijke; toog-tegel opent een toogverkoop; geen consolefouten.
 - Docs-migratie droog getest op live (md5-guards en ankers ok, teruggedraaid).
 
+**Live**
+- Live (29-10): main 8a6661e, CI groen. Na Akkes publish: `index-C81jSROJ.js` bevat "Toog / snelverkoop", "Naar SellQo-beheer", `kassa_quick_tap` en `sellqo-kassa-0.13.0`. Docs `20261029050000_kassa_ux_1_docs` gedraaid (md5 d36dac4e… van GitHub): beide artikels bijgewerkt, geregistreerd in `schema_migrations`.
+
 **Bewust ongemoeid / Vervolg**
 - Afrekenscherm (`PayDialog`) niet gewijzigd: dat is een eigen wandeling (aantal tikken tot betaald, splitsen).
 - Gsm-weergave van de rekening blijft een wissel binnen hetzelfde scherm, geen schuifpaneel.
