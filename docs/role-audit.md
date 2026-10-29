@@ -27,6 +27,9 @@
 - Harnas (Playwright, gemockte hooks) op 390 en 1280 px: voorbeeld = balk, omhoog/weghalen/toevoegen werkt, labels gelijk tussen lijst en balk, geen consolefouten.
 - Live droogtest (transactie met `raise exception` op het einde): kolom + check weigert 6 items en null, 5 kan; `authenticated` heeft UPDATE op de kolom. Docs-keten wandeling_docs → onderbalk_1_docs: artikel 1, zin erin. Daarna nagekeken: niets blijft staan (kolom 0, artikel 0, md5 werkplek ongewijzigd).
 
+**Live**
+- Live (29-10): main be3ae4a (fast-forward), CI groen. Migratie `20261029030000_onderbalk_1` gedraaid (md5 01edd4d8… van GitHub), kolom + check staan erin. Na Akkes publish: `bottom-nav` in de live bundel (`index-CHIvnyNv.js`). Daarna `20261029031000_onderbalk_1_docs`: artikel `onderbalk-aanpassen` staat, `horeca-werkplek` bevat "Mijn onderbalk". Alle drie geregistreerd in `schema_migrations`.
+
 **Bewust ongemoeid / Vervolg**
 - De kassa-app (`src/kassa/`) heeft geen onderbalk; niet aangeraakt.
 - Geen standaard per zaak die de zaakvoerder voor iedereen kiest; kan later als schakelaar in Instellingen › Horeca.
@@ -110,6 +113,9 @@ Nachtrun (Akke sliep). Live doorlopen op de testwinkel (Test Horeca Small, tenan
 - De Kaart-stijl doortrekken naar de kassakaarten en Overzicht: niet gebouwd, want zonder kassa in de testwinkel kon ik het resultaat niet live beoordelen.
 - Twee testwinkels heten "Test Horeca Small" (test-horeca-small en test-horeca). Een hernoeming laat ik aan Akke.
 - Op 390 px heb ik het niet live gemeten in het echte beheer.
+
+**Live**
+- Live (29-10): main be3ae4a, CI groen. horeca-print (stempel PRINT-2b) en horeca-device-push (MELDING-1c) gedeployed via de Lovable-agent, gemeten met GET (nulmeting PRINT-2 / MELDING-1b); geen agent-commits. Migratie `20261029010000_print_2b` gedraaid (md5 33d5f33f…), snapshot `ops.print_2b_prev_functions` 2 rijen, trigger en guard lezen `ticket_printer_id`. Na de publish: `ticket_printer_id` in `index-CHIvnyNv.js`. Docs `20261029011000` en `20261029020000` gedraaid; `bon-en-printers` en `horeca-werkplek` bijgewerkt. Geregistreerd in `schema_migrations`.
 
 ## PRINT-2 — bonprinters, printer per post, betaalbewijs afdrukken en mailen, kassa 0.11.0 — 28 oktober 2026
 
