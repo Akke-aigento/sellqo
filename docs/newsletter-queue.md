@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14f — Kies zelf je snelkoppelingen onderaan op je gsm (feature, 29-10-2026)
+
+**Status:** gaat mee met de uitrol van WANDELING (merge, migratie onderbalk_1, publish, daarna het helpartikel).
+
+**Voor wie:** iedereen die SellQo op de gsm gebruikt.
+
+**Jouw balk, jouw volgorde** (oktober 2026)
+In Instellingen › Mijn onderbalk kies je zelf welke 2 tot 5 plekken onderaan op je gsm staan, en in welke volgorde. Elke collega stelt zijn eigen balk samen; wie niets kiest, houdt de standaard die bij de zaak past.
+Wat betekent dit voor jou? De kok heeft Keuken en Kaart onder de duim, de zaakvoerder Vandaag en Rapporten.
+
+i18n: `public.changelog.changes.bottom_nav_choice`
+
 ### 2026.14e — Je horecadag: sneller schakelen en alles op één overzicht (improvement, 29-10-2026)
 
 **Status:** wacht op merge van branch night-wandeling naar main, publish van de admin, migraties PRINT-2b + docs en deploy van horeca-print en horeca-device-push (WANDELING).

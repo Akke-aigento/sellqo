@@ -2307,6 +2307,10 @@
         "horeca_walkthrough": {
           "title": "Je horecadag: sneller schakelen en alles op één overzicht",
           "description": "Op je gsm staan onderaan nu de vier plekken waar je de hele dag tussen wisselt: Vandaag, Kassa (opent SellQo Kassa), Keuken en Kaart. In Instellingen › Horeca zie je al je horeca-instellingen met hun huidige stand. Heb je geen posten, dan kies je in Bon & printers een printer voor alle keukenbonnen. Verder: het keukenscherm is niet langer doorzichtig, de pauzeknop voor online bestellingen verschijnt enkel als je webshop bestellingen aanneemt, een kassa verwijderen vraagt eerst een bevestiging, en bij het laden van een pagina flitst niet langer even \"niet in je pakket\"."
+        },
+        "bottom_nav_choice": {
+          "title": "Kies zelf je snelkoppelingen onderaan op je gsm",
+          "description": "In Instellingen › Mijn onderbalk kies je zelf welke 2 tot 5 plekken onderaan op je gsm staan, en in welke volgorde. Je keuze geldt enkel voor jou, in deze zaak: elke collega stelt zijn eigen balk samen. Kies je niets, dan houd je de standaard die bij je zaak past."
         }
       },
       "copyLink": "Kopieer link",

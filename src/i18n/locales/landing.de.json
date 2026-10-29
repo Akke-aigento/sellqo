@@ -2307,6 +2307,10 @@
         "horeca_walkthrough": {
           "title": "Dein Gastro-Tag: schneller wechseln, alles in einer Übersicht",
           "description": "Auf dem Handy enthält die Leiste unten jetzt die vier Orte, zwischen denen du den ganzen Tag wechselst: Heute, Kasse (öffnet SellQo Kassa), Küche und Karte. Unter Einstellungen › Gastronomie siehst du alle Gastro-Einstellungen mit ihrem aktuellen Stand. Ohne Stationen wählst du unter Belege & Drucker einen Drucker für alle Küchenbons. Außerdem: Der Küchenbildschirm ist nicht mehr durchsichtig, die Pausetaste für Online-Bestellungen erscheint nur, wenn dein Webshop Bestellungen annimmt, das Löschen einer Kasse fragt nach einer Bestätigung, und Seiten zeigen beim Laden nicht mehr kurz „nicht in deinem Paket“."
+        },
+        "bottom_nav_choice": {
+          "title": "Wähle deine eigenen Verknüpfungen unten auf dem Handy",
+          "description": "Unter Einstellungen › Meine untere Leiste wählst du, welche 2 bis 5 Orte unten auf deinem Handy stehen und in welcher Reihenfolge. Deine Auswahl gilt nur für dich, in diesem Betrieb: Jede Kollegin und jeder Kollege stellt die eigene Leiste zusammen. Wählst du nichts, behältst du den Standard, der zu deinem Betrieb passt."
         }
       },
       "copyLink": "Link kopieren",

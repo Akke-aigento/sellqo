@@ -1,3 +1,37 @@
+## ONDERBALK-1 — zelf je snelkoppelingen in de gsm-onderbalk kiezen — 29 oktober 2026
+
+**Root cause / aanleiding**
+- Akke (29-10, na de WANDELING): "dat ze hun favorieten in de onderbalk kunnen aanpassen ... wel in de instellingen natuurlijk". Na de WANDELING stond de balk vast per spoor (`AdminMobileBottomNav.tsx`, constanten per spoor). Een kok en een zaakvoerder wisselen tussen andere plekken.
+- Beslist met Akke: per persoon (niet per zaak), max 5 items, standaard 4 (de sporen-standaard uit de WANDELING).
+
+**Uitgevoerd**
+- `supabase/migrations/20261029030000_onderbalk_1.sql`: `sidebar_preferences.bottom_nav text[]` + check (≤ 5 items, geen null), idempotent.
+- `src/components/admin/sidebar/bottomNav.ts` (nieuw, puur): standaard per spoor, `resolveBottomNavIds` (dubbels en niet-toegelaten items eruit, max 5, < 2 over = standaard), korte labels en de kassa-URL.
+- `AdminMobileBottomNav.tsx`: leest de eigen keuze, filtert op `isItemBlocked` (rechten, pakket, sporen) en `disabled`.
+- `useSidebarPreferences.ts`: `bottomNav` + `setBottomNav` (upsert van enkel `bottom_nav`, rest van de rij blijft).
+- `src/components/admin/settings/MyBottomNavSettings.tsx` (nieuw): Instellingen › Mijn onderbalk (`?section=bottom-nav`, groep account): voorbeeldbalk, volgorde, weghalen (min 2), toevoegen per menugroep (max 5), terug naar de standaard. Bewaart meteen.
+- `SidebarCustomizeDialog.tsx`: link naar de nieuwe sectie (één plek per taak; het dialoogvenster blijft over het zijmenu gaan).
+- i18n `settings.sections.bottom_nav` + `settings.bottomNav.*` in 5 talen.
+- `bottomNav.test.ts` (4 tests), toegevoegd aan de Vitest-stap in `ci.yml`.
+- Paper trail: changelog 2026.14f `bottom_nav_choice` (5 talen), helpartikel `onderbalk-aanpassen` + één zin in `horeca-werkplek` (`20261029031000_onderbalk_1_docs.sql`), nieuwsbrief.
+
+**Security-keuzes**
+- `sidebar_preferences` heeft RLS op `auth.uid() = user_id`; de nieuwe kolom valt daaronder. Een eigen keuze geeft geen toegang: de balk filtert altijd opnieuw op `isItemBlocked`, en de pagina's zelf blijven hun eigen rechtencheck doen.
+- Geen gevoelige data; geen nieuwe grants.
+
+**Gedeelde-paden-waarschuwing**
+- n.v.t.: `sidebar_preferences` is geen storefront-tabel en komt niet in `storefront-api`. Custom frontends merken niets.
+
+**Verificatie**
+- vitest CI-lijst 10 bestanden / 210 tests groen; tsc 27 = baseline; lint schoon op de gewijzigde bestanden; i18n-pariteit 10458/10458.
+- Harnas (Playwright, gemockte hooks) op 390 en 1280 px: voorbeeld = balk, omhoog/weghalen/toevoegen werkt, labels gelijk tussen lijst en balk, geen consolefouten.
+- Live droogtest (transactie met `raise exception` op het einde): kolom + check weigert 6 items en null, 5 kan; `authenticated` heeft UPDATE op de kolom. Docs-keten wandeling_docs → onderbalk_1_docs: artikel 1, zin erin. Daarna nagekeken: niets blijft staan (kolom 0, artikel 0, md5 werkplek ongewijzigd).
+
+**Bewust ongemoeid / Vervolg**
+- De kassa-app (`src/kassa/`) heeft geen onderbalk; niet aangeraakt.
+- Geen standaard per zaak die de zaakvoerder voor iedereen kiest; kan later als schakelaar in Instellingen › Horeca.
+- Uitrol samen met de WANDELING: migratie `onderbalk_1` vóór de publish, `onderbalk_1_docs` ná `wandeling_docs`.
+
 ## WANDELING — horeca-wandeling: onderbalk, Instellingen › Horeca, laadflitsen, keuken, kassa, POS-naamgeving, PRINT-2b — 29 oktober 2026
 
 Nachtrun (Akke sliep). Live doorlopen op de testwinkel (Test Horeca Small, tenantweergave, EN, 1280 px) via Claude in Chrome; 390 px enkel lokaal (harnas), want het venster van Akkes Chrome liet zich niet verkleinen. Branch `night-wandeling`, niets op main, niets gepubliceerd of gedeployed. Bevindingen per scherm: zie het verslag (Docs).

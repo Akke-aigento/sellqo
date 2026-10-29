@@ -2307,6 +2307,10 @@
         "horeca_walkthrough": {
           "title": "Votre journée horeca : passer plus vite d'un écran à l'autre, tout dans un aperçu",
           "description": "Sur votre téléphone, la barre du bas contient désormais les quatre endroits entre lesquels vous passez toute la journée : Aujourd'hui, Caisse (ouvre SellQo Kassa), Cuisine et Carte. Réglages › Horeca affiche tous vos réglages horeca avec leur état actuel. Sans postes, choisissez une imprimante pour tous les tickets de cuisine dans Tickets & imprimantes. Aussi : l'écran de cuisine n'est plus transparent, le bouton de pause des commandes en ligne n'apparaît que si votre boutique prend des commandes, supprimer une caisse demande une confirmation, et les pages n'affichent plus brièvement « pas dans votre formule » au chargement."
+        },
+        "bottom_nav_choice": {
+          "title": "Choisissez vous-même vos raccourcis en bas de votre téléphone",
+          "description": "Dans Paramètres › Ma barre du bas, vous choisissez les 2 à 5 endroits affichés en bas de votre téléphone, et leur ordre. Votre choix ne vaut que pour vous, dans cet établissement : chaque collègue compose sa propre barre. Si vous ne choisissez rien, vous gardez la barre par défaut adaptée à votre activité."
         }
       },
       "copyLink": "Copier le lien",

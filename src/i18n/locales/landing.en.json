@@ -2307,6 +2307,10 @@
         "horeca_walkthrough": {
           "title": "Your hospitality day: switch faster, everything in one overview",
           "description": "On your phone, the bar at the bottom now holds the four places you switch between all day: Today, POS (opens SellQo Kassa), Kitchen and Menu. Settings › Hospitality shows all your hospitality settings with their current state. Without stations, choose a printer for all kitchen tickets in Receipts & printers. Also: the kitchen screen is no longer see-through, the pause button for online orders only appears when your web shop takes orders, deleting a POS terminal now asks for confirmation, and pages no longer briefly flash \"not in your plan\" while loading."
+        },
+        "bottom_nav_choice": {
+          "title": "Choose your own shortcuts at the bottom of your phone",
+          "description": "In Settings › My bottom bar you choose which 2 to 5 places sit at the bottom of your phone, and in which order. Your choice only applies to you, in this business: every colleague sets up their own bar. If you choose nothing, you keep the default that fits your business."
         }
       },
       "copyLink": "Copy link",
