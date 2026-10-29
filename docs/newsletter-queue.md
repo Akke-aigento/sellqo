@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14g — Een kassa aanmaken vanuit de kassa-app (improvement, 29-10-2026)
+
+**Status:** wacht op push, publish van de admin en het helpartikel (KASSA-START-1).
+
+**Voor wie:** horecazaken die SellQo Kassa voor het eerst openen.
+
+**Meteen aan de slag op je tablet** (oktober 2026)
+Heeft je zaak nog geen kassa, dan maak je er als zaakvoerder een aan op het eerste scherm van SellQo Kassa. Het toestel hangt er meteen aan.
+Wat betekent dit voor jou? Eén stap minder bij de start, zonder heen en weer naar het beheer.
+
+i18n: `public.changelog.changes.kassa_first_terminal`
+
 ### 2026.14f — Kies zelf je snelkoppelingen onderaan op je gsm (feature, 29-10-2026)
 
 **Status:** gaat mee met de uitrol van WANDELING (merge, migratie onderbalk_1, publish, daarna het helpartikel).

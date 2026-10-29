@@ -2311,6 +2311,10 @@
         "bottom_nav_choice": {
           "title": "Choisissez vous-même vos raccourcis en bas de votre téléphone",
           "description": "Dans Paramètres › Ma barre du bas, vous choisissez les 2 à 5 endroits affichés en bas de votre téléphone, et leur ordre. Votre choix ne vaut que pour vous, dans cet établissement : chaque collègue compose sa propre barre. Si vous ne choisissez rien, vous gardez la barre par défaut adaptée à votre activité."
+        },
+        "kassa_first_terminal": {
+          "title": "Créer une caisse depuis l'app Kassa",
+          "description": "Si vous ouvrez SellQo Kassa sur un appareil et que votre établissement n'a pas encore de caisse, vous pouvez en créer une directement sur cet écran en tant que gérant. L'appareil y est lié aussitôt et vous pouvez commencer, sans repasser par l'administration."
         }
       },
       "copyLink": "Copier le lien",

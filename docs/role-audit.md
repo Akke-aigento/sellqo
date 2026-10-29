@@ -1,3 +1,31 @@
+## KASSA-START-1 — kassa aanmaken vanuit de kassa-app (kassa 0.12.0) + harnas — 29 oktober 2026
+
+**Root cause**
+- Akke (29-10): "we moeten daarvoor eerst een POS aanmaken, hier zat de fout". `src/kassa/app/screens/DeviceSetup.tsx` toonde zonder kassa enkel de tekst `kassa.setup.noTerminals` ("Maak er een aan in SellQo onder Kassa"), zonder knop: een doodlopend eerste scherm voor elke nieuwe horecazaak. Het beheer (`POS.tsx`) had wel al een knop.
+
+**Uitgevoerd**
+- `DeviceSetup.tsx`: geen kassa + zaakvoerder → naamveld (voorstel "Kassa 1") en **Kassa aanmaken**; insert in `pos_terminals` met dezelfde velden als `usePOS.createTerminal`, daarna `saveDevice` → het toestel hangt er meteen aan. Fout → melding met reden. Geen recht → uitleg wie het kan.
+- `src/kassa/app/setup.ts` (nieuw): `canCreateTerminal` = platformbeheer of `tenant_admin` van deze zaak (spiegel van RLS `pos_terminals_insert`). Test `__tests__/setup.test.ts`, toegevoegd aan de Vitest-stap in CI.
+- `src/kassa/version.ts`: 0.12.0. Geen wijziging aan fiscale berichten, events of tickets.
+- i18n `kassa.setup.*` in 5 talen (noTerminals herschreven voor personeel; noTerminalsAdmin, newName, defaultName, create, createFailed nieuw).
+- `scripts/harness/` (nieuw): herbruikbaar harnas (`node scripts/harness/shoot.mjs <scenario>`) met scenario's `kassa-setup` en `onderbalk`; README met de werkwijze.
+- Paper trail: changelog 2026.14g `kassa_first_terminal` (5 talen), helpartikel `kassa-tafels-rekeningen` + sectie "De eerste keer op een toestel" (`20261029040000_kassa_start_1_docs.sql`), nieuwsbrief.
+
+**Security-keuzes**
+- Geen nieuwe policy of grant. De knop volgt de bestaande RLS (`pos_terminals_insert`: platform_admin of tenant_admin); de server blijft de echte grens, de knop verbergt enkel wat toch zou falen.
+
+**Gedeelde-paden-waarschuwing**
+- n.v.t.: `pos_terminals` is geen storefront-tabel; custom frontends merken niets.
+
+**Verificatie**
+- `npx vitest run src/kassa`: 291 groen (1 overgeslagen, bestaand); setup.test 3/3. tsc 27 = baseline. Lint schoon op de gewijzigde bestanden en `scripts/harness`. i18n-pariteit ok. `npm run build:kassa` ok.
+- Harnas `kassa-setup` op 390/1280 met lege cache: zaakvoerder maakt "Kassa 1" aan en is gekoppeld (insert-rij nagekeken), personeel ziet geen knop, geen consolefouten.
+- Docs-migratie droog getest op live (md5-guard en anker ok, teruggedraaid).
+
+**Bewust ongemoeid / Vervolg**
+- Geen automatische kassa bij het aanzetten van horeca: de knop dekt ook "alle kassa's verwijderd".
+- Uitrol: push → CI → publish → `20261029040000_kassa_start_1_docs`.
+
 ## ONDERBALK-1 — zelf je snelkoppelingen in de gsm-onderbalk kiezen — 29 oktober 2026
 
 **Root cause / aanleiding**

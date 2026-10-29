@@ -2311,6 +2311,10 @@
         "bottom_nav_choice": {
           "title": "Kies zelf je snelkoppelingen onderaan op je gsm",
           "description": "In Instellingen › Mijn onderbalk kies je zelf welke 2 tot 5 plekken onderaan op je gsm staan, en in welke volgorde. Je keuze geldt enkel voor jou, in deze zaak: elke collega stelt zijn eigen balk samen. Kies je niets, dan houd je de standaard die bij je zaak past."
+        },
+        "kassa_first_terminal": {
+          "title": "Een kassa aanmaken vanuit de kassa-app",
+          "description": "Open je SellQo Kassa op een toestel en heeft je zaak nog geen kassa, dan maak je er als zaakvoerder meteen een aan op dat scherm. Het toestel hangt er dan aan en je kan beginnen. Je hoeft dus niet eerst terug naar het beheer."
         }
       },
       "copyLink": "Kopieer link",

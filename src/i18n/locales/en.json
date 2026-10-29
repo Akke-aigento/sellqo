@@ -11018,9 +11018,14 @@
       "intro": "Choose the POS terminal that runs on this device. The device remembers it.",
       "business": "Business",
       "loadError": "The POS terminals could not be loaded.",
-      "noTerminals": "There is no POS terminal yet. Create one in SellQo under Point of sale (POS).",
+      "noTerminals": "There is no POS terminal yet. Ask the business owner to create one: in the Kassa app or in SellQo under Point of sale (POS).",
       "noBusiness": "This account does not belong to any business.",
-      "terminalGone": "The chosen POS terminal no longer exists. Choose again."
+      "terminalGone": "The chosen POS terminal no longer exists. Choose again.",
+      "noTerminalsAdmin": "This business has no POS terminal yet. Create one right here; this device will be linked to it.",
+      "newName": "Name of the POS terminal",
+      "defaultName": "POS 1",
+      "create": "Create POS terminal",
+      "createFailed": "Could not create the POS terminal: {{reason}}"
     },
     "pin": {
       "whoAreYou": "Who are you?",

@@ -11020,9 +11020,14 @@
       "intro": "Kies de kassa die op dit toestel draait. Dat onthoudt het toestel.",
       "business": "Zaak",
       "loadError": "De kassa's konden niet geladen worden.",
-      "noTerminals": "Er is nog geen kassa. Maak er een aan in SellQo onder Kassa.",
+      "noTerminals": "Er is nog geen kassa. Vraag de zaakvoerder om er een aan te maken: in de kassa-app of in SellQo onder Kassa (POS).",
       "noBusiness": "Dit account hoort bij geen enkele zaak.",
-      "terminalGone": "De gekozen kassa bestaat niet meer. Kies opnieuw."
+      "terminalGone": "De gekozen kassa bestaat niet meer. Kies opnieuw.",
+      "noTerminalsAdmin": "Er is nog geen kassa in deze zaak. Maak er hier meteen een aan; dit toestel wordt er dan aan gekoppeld.",
+      "newName": "Naam van de kassa",
+      "defaultName": "Kassa 1",
+      "create": "Kassa aanmaken",
+      "createFailed": "Kassa aanmaken lukte niet: {{reason}}"
     },
     "pin": {
       "whoAreYou": "Wie ben je?",

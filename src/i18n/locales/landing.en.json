@@ -2311,6 +2311,10 @@
         "bottom_nav_choice": {
           "title": "Choose your own shortcuts at the bottom of your phone",
           "description": "In Settings › My bottom bar you choose which 2 to 5 places sit at the bottom of your phone, and in which order. Your choice only applies to you, in this business: every colleague sets up their own bar. If you choose nothing, you keep the default that fits your business."
+        },
+        "kassa_first_terminal": {
+          "title": "Create a POS terminal from the Kassa app",
+          "description": "If you open SellQo Kassa on a device and your business has no POS terminal yet, you can create one right on that screen as the owner. The device is linked to it straight away and you can start. No need to go back to the admin first."
         }
       },
       "copyLink": "Copy link",

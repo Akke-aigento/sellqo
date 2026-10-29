@@ -11018,9 +11018,14 @@
       "intro": "Choisissez la caisse qui tourne sur cet appareil. L’appareil s’en souvient.",
       "business": "Établissement",
       "loadError": "Les caisses n’ont pas pu être chargées.",
-      "noTerminals": "Il n’y a pas encore de caisse. Créez-en une dans SellQo sous Caisse.",
+      "noTerminals": "Il n'y a pas encore de caisse. Demandez au gérant d'en créer une : dans l'app Kassa ou dans SellQo sous Caisse (POS).",
       "noBusiness": "Ce compte n’appartient à aucun établissement.",
-      "terminalGone": "La caisse choisie n’existe plus. Choisissez à nouveau."
+      "terminalGone": "La caisse choisie n’existe plus. Choisissez à nouveau.",
+      "noTerminalsAdmin": "Cet établissement n'a pas encore de caisse. Créez-en une ici ; cet appareil y sera lié.",
+      "newName": "Nom de la caisse",
+      "defaultName": "Caisse 1",
+      "create": "Créer la caisse",
+      "createFailed": "Impossible de créer la caisse : {{reason}}"
     },
     "pin": {
       "whoAreYou": "Qui êtes-vous ?",

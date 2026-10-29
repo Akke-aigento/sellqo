@@ -2311,6 +2311,10 @@
         "bottom_nav_choice": {
           "title": "Wähle deine eigenen Verknüpfungen unten auf dem Handy",
           "description": "Unter Einstellungen › Meine untere Leiste wählst du, welche 2 bis 5 Orte unten auf deinem Handy stehen und in welcher Reihenfolge. Deine Auswahl gilt nur für dich, in diesem Betrieb: Jede Kollegin und jeder Kollege stellt die eigene Leiste zusammen. Wählst du nichts, behältst du den Standard, der zu deinem Betrieb passt."
+        },
+        "kassa_first_terminal": {
+          "title": "Eine Kasse direkt in der Kassa-App anlegen",
+          "description": "Öffnest du SellQo Kassa auf einem Gerät und dein Betrieb hat noch keine Kasse, legst du als Betriebsleitung direkt auf diesem Bildschirm eine an. Das Gerät wird sofort damit verknüpft und du kannst loslegen, ohne erst zurück in die Verwaltung zu müssen."
         }
       },
       "copyLink": "Link kopieren",

@@ -11018,9 +11018,14 @@
       "intro": "Wähle die Kasse, die auf diesem Gerät läuft. Das Gerät merkt sich das.",
       "business": "Betrieb",
       "loadError": "Die Kassen konnten nicht geladen werden.",
-      "noTerminals": "Es gibt noch keine Kasse. Lege eine in SellQo unter Kasse an.",
+      "noTerminals": "Es gibt noch keine Kasse. Bitte die Betriebsleitung, eine anzulegen: in der Kassa-App oder in SellQo unter Kasse (POS).",
       "noBusiness": "Dieses Konto gehört zu keinem Betrieb.",
-      "terminalGone": "Die gewählte Kasse existiert nicht mehr. Bitte neu wählen."
+      "terminalGone": "Die gewählte Kasse existiert nicht mehr. Bitte neu wählen.",
+      "noTerminalsAdmin": "Dein Betrieb hat noch keine Kasse. Lege hier direkt eine an; dieses Gerät wird dann damit verknüpft.",
+      "newName": "Name der Kasse",
+      "defaultName": "Kasse 1",
+      "create": "Kasse anlegen",
+      "createFailed": "Kasse konnte nicht angelegt werden: {{reason}}"
     },
     "pin": {
       "whoAreYou": "Wer bist du?",
