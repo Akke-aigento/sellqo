@@ -5168,7 +5168,43 @@
         "label": "Essen oder Getränk",
         "hint": "Für Essen und Getränke einschalten. Dann trägst du Allergene und Ernährungslabels ein.",
         "hint_horeca": "Für Essen und Getränke einschalten. Dann trägst du Allergene und Ernährungslabels ein und wählst Küchenstation, Extras und Verkaufskanäle."
-      }
+      },
+      "types": {
+        "physical": {
+          "label": "Physisches Produkt",
+          "description": "Etwas, das du versendest, abholen lässt oder an der Theke verkaufst"
+        },
+        "digital": {
+          "label": "Digitales Produkt",
+          "description": "Downloads und Lizenzen (noch nicht automatisch geliefert)"
+        },
+        "service": {
+          "label": "Dienstleistung",
+          "description": "Ohne Lieferung, z. B. ein Termin oder eine Arbeit"
+        },
+        "subscription": {
+          "label": "Abo",
+          "description": "Wiederkehrende Zahlung (noch nicht verfügbar)"
+        },
+        "bundle": {
+          "label": "Bündel",
+          "description": "Mehrere Produkte zusammen, z. B. ein Menü oder Paket"
+        },
+        "gift_card": {
+          "label": "Geschenkkarte",
+          "description": "Geschenkkarte mit Wert (noch nicht automatisch geliefert)"
+        },
+        "ticket": {
+          "label": "Ticket / Event",
+          "description": "Tickets für ein Event mit Terminen und Kapazität"
+        }
+      },
+      "undelivered": {
+        "title": "Dieser Produkttyp wird noch nicht automatisch geliefert",
+        "body": "Nach der Zahlung bekommt der Kunde keinen Download, keinen Geschenkkartencode und kein Abo. Wähle einen anderen Typ oder liefere selbst. Neue Produkte können diesen Typ nicht mehr wählen."
+      },
+      "variant_stock_total": "Gesamt: {{total}} Stück über {{count}} aktive Varianten. Ändere den Bestand im Tab Varianten.",
+      "low_stock_hint": "Du bekommst eine Meldung, sobald der Bestand darunter fällt."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -5795,7 +5831,9 @@
         "voorraadsync_werkt_pas_na_koppeling_met": "Die Lagerbestandssynchronisierung funktioniert erst nach Verknüpfung mit Ihrem bestehenden Bol.com-Angebot",
         "waarschuwing": "Warnung",
         "waarschuwing_2": "Warnung",
-        "wordt_verwerkt": "Wird verarbeitet"
+        "wordt_verwerkt": "Wird verarbeitet",
+        "none_connected": "Du hast noch keinen Verkaufskanal verbunden.",
+        "connect_channel": "Kanal verbinden"
       },
       "dashboardMarketplaceWidget": {
         "sellqo_connect": "SellQo Connect",

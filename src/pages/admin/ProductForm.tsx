@@ -42,6 +42,7 @@ import { ProductDescriptionEditor } from '@/components/admin/products/ProductDes
 import { MediaLibraryPickerDialog } from '@/components/admin/products/MediaLibraryPickerDialog';
 import { SortableProductImages } from '@/components/admin/products/SortableProductImages';
 import { defaultIsFood, productFormSections } from '@/lib/productFormSections';
+import { useMarketplaceConnections } from '@/hooks/useMarketplaceConnections';
 import { StandardizeUploadDialog } from '@/components/admin/products/StandardizeUploadDialog';
 import { useMediaSettings } from '@/hooks/useMediaSettings';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
@@ -168,6 +169,10 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
   ticket: <Ticket className="h-6 w-6" />,
 };
 
+// PRODUCT-FORM-2: de configuratie voor digitale levering en cadeaukaarten is verborgen tot
+// SellQo die na betaling echt levert (eigen batches). De data blijft in de database.
+const SHOW_UNDELIVERED_CONFIG = false;
+
 // PRODUCT-FORM-1: vaste klassen (Tailwind ziet geen samengestelde namen).
 const TAB_COLS: Record<number, string> = { 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4', 5: 'sm:grid-cols-5' };
 
@@ -194,6 +199,20 @@ export default function ProductForm() {
   const [searchParams, setSearchParams] = useSearchParams();
   
   const { currentTenant } = useTenant();
+  // PRODUCT-FORM-2: tabs Marketplaces en Advertenties enkel met een actieve koppeling.
+  const { activeConnections: activeMarketplaceConnections } = useMarketplaceConnections();
+  const { data: adsConnected } = useQuery({
+    queryKey: ['ad-platform-connected', currentTenant?.id],
+    enabled: !!currentTenant?.id,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('ad_platform_connections')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', currentTenant!.id)
+        .eq('is_active', true);
+      return (count ?? 0) > 0;
+    },
+  });
   // PROD-TRIGGER-1 — commerciële velden zijn voor rollen die uitsluitend
   // `marketing` of `warehouse` zijn niet schrijfbaar (DB-trigger
   // `guard_product_commercial_fields`). Zonder deze UI-afscherming krijgt de
@@ -371,7 +390,11 @@ export default function ProductForm() {
 
   // PRODUCT-FORM-1: welke onderdelen deze winkel bij dit product ziet.
   const isFood = form.watch('is_food');
-  const sections = productFormSections({ webshop: webshopModule, horeca, events: eventsModule, productType, isFood });
+  const sections = productFormSections({
+    webshop: webshopModule, horeca, events: eventsModule, productType, isFood,
+    hasMarketplace: activeMarketplaceConnections.length > 0,
+    hasAds: !!adsConnected,
+  });
   const bundlePricingModel = form.watch('bundle_pricing_model');
 
   // PRODUCT-FORM-2 — btw-tarief per product. Zonder vat_rate_id rekent de backend
@@ -718,6 +741,8 @@ export default function ProductForm() {
        sku: data.sku?.trim() || null,
        barcode: data.barcode?.trim() || null,
        featured_image: featuredImage,
+       // PRODUCT-FORM-2: fysieke producten en bundels worden verzonden, de rest niet.
+       requires_shipping: data.product_type === 'physical' || data.product_type === 'bundle',
      };
     let productId = id;
     if (isEditing && id) {
@@ -907,13 +932,19 @@ export default function ProductForm() {
                                 {productTypeIcons[type]}
                               </div>
                               <div className="text-center">
-                                <p className="font-medium text-sm">{info.label}</p>
-                                <p className="text-xs text-muted-foreground mt-1">{info.description}</p>
+                                <p className="font-medium text-sm">{t(`admin.productForm.types.${type}.label`, { defaultValue: info.label })}</p>
+                                <p className="text-xs text-muted-foreground mt-1">{t(`admin.productForm.types.${type}.description`, { defaultValue: info.description })}</p>
                               </div>
                             </button>
                           );
                         })}
                       </div>
+                      {sections.undeliveredWarning && (
+                        <div role="alert" className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100">
+                          <p className="font-medium">{t('admin.productForm.undelivered.title')}</p>
+                          <p className="mt-1">{t('admin.productForm.undelivered.body')}</p>
+                        </div>
+                      )}
                       {/* PRODUCT-FORM-1: voeding of drank bepaalt allergenen en (met horeca) keuken, extra's en kanalen. */}
                       {sections.foodToggle && (
                         <FormField control={form.control} name="is_food" render={({ field }) => (
@@ -932,7 +963,7 @@ export default function ProductForm() {
                   </Card>
 
                   {/* Digital delivery options */}
-                  {isDigital && (
+                  {SHOW_UNDELIVERED_CONFIG && isDigital && (
                     <Card>
                       <CardHeader>
                         <CardTitle>{t('admin.productForm.leveringsmethode')}</CardTitle>
@@ -1271,9 +1302,10 @@ export default function ProductForm() {
                             <div className="md:col-span-2 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
                               <p className="font-medium text-foreground mb-1">{t('admin.productForm.voorraad_wordt_per_variant_beheerd')}</p>
                               <p>
-                                Totaal: {product.product_variants.filter(v => v.is_active).reduce((sum, v) => sum + (v.stock || 0), 0)} stuks 
-                                over {product.product_variants.filter(v => v.is_active).length} actieve varianten. 
-                                Pas de voorraad aan in het tabblad "Varianten".
+                                {t('admin.productForm.variant_stock_total', {
+                                  total: product.product_variants.filter(v => v.is_active).reduce((sum, v) => sum + (v.stock || 0), 0),
+                                  count: product.product_variants.filter(v => v.is_active).length,
+                                })}
                               </p>
                             </div>
                           ) : (
@@ -1290,36 +1322,19 @@ export default function ProductForm() {
                             <FormItem>
                               <FormLabel>{t('admin.productForm.lage_voorraad_drempel')}</FormLabel>
                               <FormControl><Input {...field} type="number" min="0" disabled={!canEditStock} /></FormControl>
-                              <FormDescription>{canEditStock ? 'Ontvang een waarschuwing bij deze voorraad' : adminManagedHint}</FormDescription>
+                              <FormDescription>{canEditStock ? t('admin.productForm.low_stock_hint') : adminManagedHint}</FormDescription>
                               <FormMessage />
                             </FormItem>
                           )} />
-                          <FormField control={form.control} name="allow_backorder" render={({ field }) => (
-                            <FormItem className="flex items-center justify-between rounded-lg border p-3 md:col-span-2">
-                              <div>
-                                <FormLabel>{t('admin.productForm.backorders_toestaan')}</FormLabel>
-                                <FormDescription>{t('admin.productForm.klanten_kunnen_bestellen_als_uitverkocht')}</FormDescription>
-                              </div>
-                              <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                            </FormItem>
-                          )} />
+                          {/* PRODUCT-FORM-2: "Backorders toestaan" weggehaald: storefront-api las het nooit
+                              (bestellen bij voorraad 0 werd altijd geweigerd). Het veld blijft in de database. */}
                         </div>
                       )}
 
+                      {/* PRODUCT-FORM-2: de schakelaar "Verzending vereist" deed niets in de checkout (enkel
+                          de Odoo-export las hem). Hij volgt nu het producttype (zie onSubmit). */}
                       {sections.shipping && (<>
-                      <FormField control={form.control} name="requires_shipping" render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                          <div>
-                            <FormLabel>{t('admin.productForm.verzending_vereist')}</FormLabel>
-                            <FormDescription>{isDigital ? t('admin.productForm.digitale_producten_vereisen_geen_verzending') : t('admin.productForm.dit_is_een_fysiek_product')}</FormDescription>
-                          </div>
-                          <FormControl>
-                            <Switch checked={field.value} onCheckedChange={field.onChange} disabled={isDigital || productType === 'service'} />
-                          </FormControl>
-                        </FormItem>
-                      )} />
-
-                      {form.watch('requires_shipping') && (
+                      {(productType === 'physical' || productType === 'bundle') && (
                         <FormField control={form.control} name="weight" render={({ field }) => (
                           <FormItem>
                             <FormLabel>{t('admin.products.specs.dimensionsFields.gewicht_kg')}</FormLabel>
@@ -1333,7 +1348,7 @@ export default function ProductForm() {
                   </Card>
 
                   {/* Conditional: Digital Files */}
-                  {isDigital && (
+                  {SHOW_UNDELIVERED_CONFIG && isDigital && (
                     <>
                       {!id ? (
                         <Card>
@@ -1443,7 +1458,7 @@ export default function ProductForm() {
                   )}
 
                   {/* Conditional: Gift Card */}
-                  {isGiftCard && (
+                  {SHOW_UNDELIVERED_CONFIG && isGiftCard && (
                     <Card>
                       <CardHeader>
                         <CardTitle className="flex items-center gap-2"><Gift className="h-5 w-5" />{t('admin.productForm.cadeaukaart_configuratie')}</CardTitle>

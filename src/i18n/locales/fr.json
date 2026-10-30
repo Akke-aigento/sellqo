@@ -5168,7 +5168,43 @@
         "label": "Nourriture ou boisson",
         "hint": "Activez pour la nourriture et les boissons. Vous pouvez alors indiquer les allergènes et les labels alimentaires.",
         "hint_horeca": "Activez pour la nourriture et les boissons. Vous pouvez alors indiquer les allergènes et les labels alimentaires, et choisir le poste en cuisine, les suppléments et les canaux de vente."
-      }
+      },
+      "types": {
+        "physical": {
+          "label": "Produit physique",
+          "description": "Un article expédié, à retirer ou vendu au comptoir"
+        },
+        "digital": {
+          "label": "Produit numérique",
+          "description": "Téléchargements et licences (pas encore livrés automatiquement)"
+        },
+        "service": {
+          "label": "Service",
+          "description": "Sans livraison, p. ex. un rendez-vous ou un travail"
+        },
+        "subscription": {
+          "label": "Abonnement",
+          "description": "Paiement récurrent (pas encore disponible)"
+        },
+        "bundle": {
+          "label": "Lot",
+          "description": "Plusieurs produits ensemble, p. ex. un menu ou un pack"
+        },
+        "gift_card": {
+          "label": "Carte cadeau",
+          "description": "Carte cadeau avec une valeur (pas encore livrée automatiquement)"
+        },
+        "ticket": {
+          "label": "Billet / événement",
+          "description": "Billets pour un événement avec dates et capacité"
+        }
+      },
+      "undelivered": {
+        "title": "Ce type de produit n’est pas encore livré automatiquement",
+        "body": "Après paiement, le client ne reçoit ni téléchargement, ni code de carte cadeau, ni abonnement. Choisissez un autre type ou livrez vous-même. Les nouveaux produits ne peuvent plus choisir ce type."
+      },
+      "variant_stock_total": "Total : {{total}} unités sur {{count}} variantes actives. Modifiez le stock dans l’onglet Variantes.",
+      "low_stock_hint": "Vous recevez une notification dès que le stock passe sous ce seuil."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -5795,7 +5831,9 @@
         "voorraadsync_werkt_pas_na_koppeling_met": "La synchronisation du stock ne fonctionne qu'une fois associée à votre offre Bol.com existante",
         "waarschuwing": "Avertissement",
         "waarschuwing_2": "Avertissement",
-        "wordt_verwerkt": "En cours de traitement"
+        "wordt_verwerkt": "En cours de traitement",
+        "none_connected": "Vous n’avez encore connecté aucun canal de vente.",
+        "connect_channel": "Connecter un canal"
       },
       "dashboardMarketplaceWidget": {
         "sellqo_connect": "SellQo Connect",

@@ -2388,6 +2388,10 @@
         "product_form_sections": {
           "title": "Die Produktseite zeigt nur, was zu deinem Produkt passt",
           "description": "Mit dem neuen Schalter „Essen oder Getränk“ siehst du Allergene und Ernährungslabels nur bei Essen und Getränken, und Küchenstation, Extras und Kanäle nur, wenn du auch Gastronomie betreibst. Versand, Marktplätze und Werbung erscheinen nur mit einem Webshop, und die Produkttypen folgen deinem Tarif. Bestehende Gerichte stehen bereits auf Essen; nichts wird gelöscht."
+        },
+        "product_form_cleanup": {
+          "title": "Produktseite aufgeräumt",
+          "description": "Typen, die SellQo nach der Zahlung noch nicht liefert (digital, Geschenkkarte, Abo), kannst du für neue Produkte nicht mehr wählen; ein bestehendes Produkt zeigt einen klaren Hinweis. Die Schalter „Nachbestellungen erlauben“ und „Versand erforderlich“ hatten in deinem Webshop keine Wirkung und sind weg: Der Versand folgt jetzt dem Produkttyp. Marktplätze und Werbung siehst du nur mit einem verbundenen Kanal. Alles ist übersetzt."
         }
       },
       "copyLink": "Link kopieren",

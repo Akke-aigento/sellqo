@@ -2388,6 +2388,10 @@
         "product_form_sections": {
           "title": "La fiche produit n’affiche que ce qui convient à votre produit",
           "description": "Avec le nouvel interrupteur « Nourriture ou boisson », les allergènes et labels alimentaires n’apparaissent que pour la nourriture et les boissons, et le poste en cuisine, les suppléments et les canaux seulement si vous faites aussi de l’horeca. Livraison, marketplaces et publicités n’apparaissent qu’avec une boutique en ligne, et les types de produit suivent votre formule. Les plats existants sont déjà marqués comme nourriture ; rien n’est supprimé."
+        },
+        "product_form_cleanup": {
+          "title": "Fiche produit simplifiée",
+          "description": "Les types que SellQo ne livre pas encore après paiement (numérique, carte cadeau, abonnement) ne peuvent plus être choisis pour de nouveaux produits ; un produit existant affiche un avertissement clair. Les interrupteurs « Autoriser les précommandes » et « Livraison requise » n’avaient aucun effet dans votre boutique et ont disparu : la livraison suit désormais le type de produit. Marketplaces et publicités n’apparaissent que si un canal est connecté. Tout est traduit."
         }
       },
       "copyLink": "Copier le lien",

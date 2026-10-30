@@ -2388,6 +2388,10 @@
         "product_form_sections": {
           "title": "Product page only shows what fits your product",
           "description": "With the new \"Food or drink\" switch you only see allergens and dietary labels for food and drink, and kitchen station, extras and channels only if you also run hospitality. Shipping, marketplaces and ads only appear with a webshop, and the product types follow your plan. Existing dishes are already set to food; nothing is deleted."
+        },
+        "product_form_cleanup": {
+          "title": "Product page cleaned up",
+          "description": "Types SellQo does not deliver after payment yet (digital, gift card, subscription) can no longer be chosen for new products; an existing product shows a clear notice. The \"Allow backorders\" and \"Requires shipping\" switches did nothing in your webshop and are gone: shipping now follows the product type. Marketplaces and ads only appear when you have a channel connected. Everything is translated."
         }
       },
       "copyLink": "Copy link",

@@ -5441,7 +5441,43 @@
         "label": "Food or drink",
         "hint": "Turn on for food and drink. You can then fill in allergens and dietary labels.",
         "hint_horeca": "Turn on for food and drink. You can then fill in allergens and dietary labels, and choose the kitchen station, extras and where the product is sold."
-      }
+      },
+      "types": {
+        "physical": {
+          "label": "Physical product",
+          "description": "Something you ship, offer for pickup or sell at the counter"
+        },
+        "digital": {
+          "label": "Digital product",
+          "description": "Downloads and licences (not delivered automatically yet)"
+        },
+        "service": {
+          "label": "Service",
+          "description": "No delivery, e.g. an appointment or work"
+        },
+        "subscription": {
+          "label": "Subscription",
+          "description": "Recurring payment (not available yet)"
+        },
+        "bundle": {
+          "label": "Bundle",
+          "description": "Several products together, e.g. a menu or package"
+        },
+        "gift_card": {
+          "label": "Gift card",
+          "description": "Gift card with a value (not delivered automatically yet)"
+        },
+        "ticket": {
+          "label": "Ticket / event",
+          "description": "Tickets for an event with dates and capacity"
+        }
+      },
+      "undelivered": {
+        "title": "This product type is not delivered automatically yet",
+        "body": "After payment the customer gets no download, gift card code or subscription. Choose another type or deliver it yourself. New products can no longer use this type."
+      },
+      "variant_stock_total": "Total: {{total}} units across {{count}} active variants. Change stock in the Variants tab.",
+      "low_stock_hint": "You get a notification as soon as stock drops below this."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -6068,7 +6104,9 @@
         "voorraadsync_werkt_pas_na_koppeling_met": "Stock sync only works once it is linked to your existing Bol.com offer",
         "waarschuwing": "Warning",
         "waarschuwing_2": "Warning",
-        "wordt_verwerkt": "Processing"
+        "wordt_verwerkt": "Processing",
+        "none_connected": "You haven’t connected a sales channel yet.",
+        "connect_channel": "Connect a channel"
       },
       "dashboardMarketplaceWidget": {
         "sellqo_connect": "SellQo Connect",

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Sparkles, ShoppingBag, Package, RefreshCw, Loader2, Check, AlertCircle, ExternalLink, Save, CheckCircle2, XCircle, Clock, Building2, Search, Link2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -978,8 +979,17 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
 
   return (
     <div className="space-y-6">
+      {/* PRODUCT-FORM-2: enkel gekoppelde kanalen; zonder koppeling één verwijzing naar Connect. */}
+      {!hasBolConnection && !hasAmazonConnection && !hasShopifyConnection && !hasWooCommerceConnection && !hasOdooConnection && !hasEbayConnection && (
+        <Card>
+          <CardContent className="py-8 text-center text-sm text-muted-foreground">
+            <p>{t('admin.marketplace.productMarketplaceTab.none_connected')}</p>
+            <Button asChild variant="outline" className="mt-3"><Link to="/admin/connect">{t('admin.marketplace.productMarketplaceTab.connect_channel')}</Link></Button>
+          </CardContent>
+        </Card>
+      )}
       {/* Bol.com Section */}
-      <Card>
+      {hasBolConnection && (<Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1357,10 +1367,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             </div>
           </CardContent>
         )}
-      </Card>
+      </Card>)}
 
       {/* Amazon Section */}
-      <Card>
+      {hasAmazonConnection && (<Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1690,10 +1700,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             </div>
           </CardContent>
         )}
-      </Card>
+      </Card>)}
 
       {/* Shopify Section */}
-      <Card>
+      {hasShopifyConnection && (<Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1902,10 +1912,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             </div>
           </CardContent>
         )}
-      </Card>
+      </Card>)}
 
       {/* WooCommerce Section */}
-      <Card>
+      {hasWooCommerceConnection && (<Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -2114,10 +2124,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             </div>
           </CardContent>
         )}
-      </Card>
+      </Card>)}
 
       {/* Odoo Section */}
-      <Card>
+      {hasOdooConnection && (<Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -2319,10 +2329,10 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             </div>
           </CardContent>
         )}
-      </Card>
+      </Card>)}
 
       {/* eBay Section */}
-      <Card>
+      {hasEbayConnection && (<Card>
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -2460,7 +2470,7 @@ export function ProductMarketplaceTab({ product, onRefresh }: ProductMarketplace
             </div>
           </CardContent>
         )}
-      </Card>
+      </Card>)}
 
       {/* Social Commerce Channels */}
       <ProductSocialChannels product={product} onRefresh={onRefresh} />

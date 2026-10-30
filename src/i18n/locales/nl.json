@@ -5522,7 +5522,43 @@
         "label": "Voeding of drank",
         "hint": "Zet aan voor eten en drinken. Dan vul je allergenen en dieetlabels in.",
         "hint_horeca": "Zet aan voor eten en drinken. Dan vul je allergenen en dieetlabels in, en kies je keukenstation, extra's en waar het product te koop is."
-      }
+      },
+      "types": {
+        "physical": {
+          "label": "Fysiek product",
+          "description": "Iets dat je verzendt, laat afhalen of aan de toog verkoopt"
+        },
+        "digital": {
+          "label": "Digitaal product",
+          "description": "Downloads en licenties (nog niet automatisch geleverd)"
+        },
+        "service": {
+          "label": "Dienst",
+          "description": "Zonder levering, bv. een afspraak of werk"
+        },
+        "subscription": {
+          "label": "Abonnement",
+          "description": "Terugkerende betaling (nog niet beschikbaar)"
+        },
+        "bundle": {
+          "label": "Bundel",
+          "description": "Meerdere producten samen, bv. een menu of pakket"
+        },
+        "gift_card": {
+          "label": "Cadeaukaart",
+          "description": "Cadeaukaart met waarde (nog niet automatisch geleverd)"
+        },
+        "ticket": {
+          "label": "Ticket / event",
+          "description": "Tickets voor een evenement met datums en capaciteit"
+        }
+      },
+      "undelivered": {
+        "title": "Dit producttype wordt nog niet automatisch geleverd",
+        "body": "Na betaling krijgt de klant geen download, cadeaukaartcode of abonnement. Kies een ander type of lever zelf. Nieuwe producten kunnen dit type niet meer kiezen."
+      },
+      "variant_stock_total": "Totaal: {{total}} stuks over {{count}} actieve varianten. Pas de voorraad aan in het tabblad Varianten.",
+      "low_stock_hint": "Je krijgt een melding zodra de voorraad hieronder zakt."
     },
     "promotions": {
       "autoDiscountFormDialog": {
@@ -6354,7 +6390,9 @@
           "used_good": "Gebruikt - Goed",
           "used_acceptable": "Gebruikt - Acceptabel"
         },
-        "offer_id_opgeslagen": "Offer ID {{id}}… is automatisch opgeslagen"
+        "offer_id_opgeslagen": "Offer ID {{id}}… is automatisch opgeslagen",
+        "none_connected": "Je hebt nog geen verkoopkanaal gekoppeld.",
+        "connect_channel": "Kanaal koppelen"
       },
       "dashboardMarketplaceWidget": {
         "nog_niet_gesynchroniseerd": "Nog niet gesynchroniseerd",

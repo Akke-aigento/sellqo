@@ -9,6 +9,10 @@
 // - Extra's, kanalen, keukenstation en btw bij meenemen: horeca-spoor én voeding.
 // - Verzending, marketplaces (bol.com e.a.) en advertenties: enkel met het webshop-spoor.
 // - Producttypes per spoor; het huidige type blijft altijd zichtbaar (bestaande data).
+// PRODUCT-FORM-2 (deepdive 30-10): Digitaal, Cadeaukaart en Abonnement worden na betaling
+// niet geleverd (geen download, geen cadeaukaartcode, geen terugkerende betaling). Ze zijn
+// niet meer kiesbaar; een bestaand product van zo'n type krijgt een waarschuwing.
+// Marketplaces en advertenties enkel als de winkel er een koppeling voor heeft.
 // Niets hier verbergt data: een verborgen veld wordt niet gewist en blijft bewaard.
 import type { ProductType } from '@/types/product';
 
@@ -18,14 +22,21 @@ export interface ProductFormContext {
   events: boolean;
   productType: ProductType;
   isFood: boolean;
+  /** Minstens één actieve marketplace-koppeling (bol, Amazon, …). */
+  hasMarketplace?: boolean;
+  /** Minstens één actieve advertentiekoppeling. */
+  hasAds?: boolean;
 }
+
+/** Typen die SellQo vandaag niet levert na betaling. */
+export const UNDELIVERED_TYPES: ProductType[] = ['digital', 'gift_card', 'subscription'];
 
 const ALL_TYPES: ProductType[] = ['physical', 'digital', 'service', 'subscription', 'bundle', 'gift_card', 'ticket'];
 
 export function productTypesFor(c: Pick<ProductFormContext, 'webshop' | 'horeca' | 'events' | 'productType'>): ProductType[] {
   const allowed = new Set<ProductType>();
-  if (c.webshop) ['physical', 'digital', 'service', 'subscription', 'bundle', 'gift_card'].forEach((t) => allowed.add(t as ProductType));
-  if (c.horeca) ['physical', 'bundle', 'gift_card'].forEach((t) => allowed.add(t as ProductType));
+  if (c.webshop) ['physical', 'service', 'bundle'].forEach((t) => allowed.add(t as ProductType));
+  if (c.horeca) ['physical', 'bundle'].forEach((t) => allowed.add(t as ProductType));
   if (c.events) ['ticket', 'physical'].forEach((t) => allowed.add(t as ProductType));
   if (allowed.size === 0) allowed.add('physical');
   allowed.add(c.productType);
@@ -48,8 +59,9 @@ export function productFormSections(c: ProductFormContext) {
     allergens: food,
     horecaCards: c.horeca && food,
     shipping: c.webshop,
-    marketplacesTab: c.webshop,
-    adsTab: c.webshop,
+    marketplacesTab: c.webshop && !!c.hasMarketplace,
+    adsTab: c.webshop && !!c.hasAds,
+    undeliveredWarning: UNDELIVERED_TYPES.includes(c.productType),
     productTypes: productTypesFor(c),
   };
 }

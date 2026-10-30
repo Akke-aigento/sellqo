@@ -1,3 +1,35 @@
+## PRODUCT-FORM-2 — productpagina opgeruimd na deepdive — 30 oktober 2026
+
+**Aanleiding / beslissingen**
+- Akke (30-10): "deepdive, volgens mij staan hier veel zaken die niet werken". Rapport: projectdoc `claude/productpagina-deepdive-en-assistent-plan.md`. Beslissingen: dode typen verbergen (later echt bouwen); enkel de Powerstation rechtzetten.
+
+**Root cause (nagetrokken met grep/SQL)**
+- Digitaal/Cadeaukaart/Abonnement: na betaling wordt niets geleverd (geen functie leest de leveringsvelden; `process-gift-card-purchase` heeft geen aanroeper; `gift_cards` 0, `license_keys` 0).
+- `allow_backorder`: storefront-api leest het niet (`index.ts:3143`). `requires_shipping`: checkout leest het niet, enkel de Odoo-export.
+- Marketplaces: 6 kanaal-editors terwijl er platformbreed 1 koppeling is. Advertenties: `ads_product_channel_map` 0 rijen.
+
+**Uitgevoerd**
+- `productFormSections`: dode typen niet kiesbaar (huidig type blijft), `undeliveredWarning`, marketplaces/ads enkel met koppeling. Tests 9/9.
+- `ProductForm`: waarschuwing bij dode typen; configuratiekaarten digitaal/cadeaukaart verborgen (`SHOW_UNDELIVERED_CONFIG`); backorder- en verzendschakelaar weg, `requires_shipping` volgt het type bij opslaan; queries op actieve marketplace- en advertentiekoppelingen; typelabels en voorraadteksten vertaald.
+- `ProductMarketplaceTab`: enkel gekoppelde kanalen + lege staat met link naar Connect.
+- `FloatingSaveBar`: Opslaan/Annuleren/Opslaan... via i18n (geldt voor elke pagina die hem gebruikt).
+- Data (go Akke): VanXcel 500W Powerstation van digitaal naar fysiek + verzending (snapshot `snapshots.vanxcel_20261030_powerstation`).
+- Changelog 2026.14s `product_form_cleanup`.
+
+**Security-keuzes**
+- n.v.t.: enkel UI en één datacorrectie onder bestaande RLS.
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-functie geraakt. `requires_shipping` wordt nergens in de checkout gelezen; het nu automatisch zetten verandert dus niets voor webshops, enkel de Odoo-export klopt beter.
+
+**Verificatie**
+- vitest 9/9, i18n-pariteit ok, gebruikte keys ok, dode knoppen = baseline, tsc 27 = baseline, lint 1457 → 1455.
+
+**Bewust ongemoeid / Vervolg**
+- Loveke Cadeaukaart blijft actief (keuze Akke). Powerstation staat in Odoo nog als dienst (aparte go).
+- Valse "niet opgeslagen" bij het openen van een product: oorzaak nog niet gevonden (vermoeden: een veldcomponent die bij het laden een waarde terugschrijft).
+- Echte levering van digitale producten en cadeaukaarten: eigen batches.
+
 ## AI-AGENT-1 — hulpassistent zet acties klaar (voorraad, prijs, uitverkocht) — 30 oktober 2026
 
 **Aanleiding / beslissingen**

@@ -17,8 +17,8 @@ export function FloatingSaveBar({
   isSaving = false, 
   onSave, 
   onCancel, 
-  saveLabel = 'Opslaan',
-  cancelLabel = 'Annuleren',
+  saveLabel,
+  cancelLabel,
 }: FloatingSaveBarProps) {
   const { t } = useTranslation();
   if (!isDirty) return null;
@@ -37,11 +37,11 @@ export function FloatingSaveBar({
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" onClick={onCancel} disabled={isSaving}>
             <X className="h-4 w-4 mr-1" />
-            {cancelLabel}
+            {cancelLabel ?? t('common.cancel')}
           </Button>
           <Button size="sm" onClick={onSave} disabled={isSaving}>
             <Save className="h-4 w-4 mr-1" />
-            {isSaving ? 'Opslaan...' : saveLabel}
+            {isSaving ? t('common.saving') : (saveLabel ?? t('common.save'))}
           </Button>
         </div>
       </div>

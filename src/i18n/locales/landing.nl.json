@@ -2388,6 +2388,10 @@
         "product_form_sections": {
           "title": "Productpagina toont enkel wat bij je product past",
           "description": "Met de nieuwe schakelaar \"Voeding of drank\" zie je allergenen en dieetlabels enkel bij eten en drinken, en keukenstation, extra's en kanalen enkel als je ook horeca doet. Verzending, marketplaces en advertenties zie je enkel met een webshop, en de producttypes volgen je pakket. Bestaande gerechten staan al op voeding; niets wordt gewist."
+        },
+        "product_form_cleanup": {
+          "title": "Productpagina opgeruimd",
+          "description": "Typen die SellQo na betaling nog niet levert (digitaal, cadeaukaart, abonnement) kies je niet meer voor nieuwe producten; een bestaand product krijgt een duidelijke melding. De schakelaars \"Backorders toestaan\" en \"Verzending vereist\" deden niets in je webshop en zijn weg: verzending volgt nu het producttype. Marketplaces en advertenties zie je enkel als je een kanaal gekoppeld hebt. Alles is vertaald."
         }
       },
       "copyLink": "Kopieer link",
