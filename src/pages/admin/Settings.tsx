@@ -120,7 +120,7 @@ const settingsGroups: SettingsGroup[] = [
     sections: [
       { id: 'company', titleKey: 'settings.sections.company', icon: Building2, component: BusinessSettings, requiredRead: 'settings_general' },
       { id: 'branding', titleKey: 'settings.sections.branding', icon: Palette, component: BrandingSettings, requiredRead: 'settings_general' },
-      { id: 'domain', titleKey: 'settings.sections.domain', icon: Globe, component: MultiDomainSettings, requiredRead: 'settings_general' },
+      { id: 'domain', tracks: ['webshop', 'events'], titleKey: 'settings.sections.domain', icon: Globe, component: MultiDomainSettings, requiredRead: 'settings_general' },
       { id: 'modules', titleKey: 'settings.sections.modules', icon: Blocks, component: BusinessModulesSettings, adminOnly: true },
     ],
   },
@@ -142,7 +142,7 @@ const settingsGroups: SettingsGroup[] = [
     // alleen wat over de frontend zelf gaat.
     descriptionKey: 'settings.groups.webshop.description',
     sections: [
-      { id: 'webshop-general', titleKey: 'settings.sections.webshop_general', icon: Globe, component: StorefrontSettings, requiredRead: 'settings_general' },
+      { id: 'webshop-general', tracks: ['webshop'], titleKey: 'settings.sections.webshop_general', icon: Globe, component: StorefrontSettings, requiredRead: 'settings_general' },
     ],
   },
   {

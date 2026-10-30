@@ -2327,6 +2327,10 @@
         "kassa_quick_tap_2": {
           "title": "SellQo Kassa: sneller tikken aan de bar en lang drukken op tafels",
           "description": "Kies je een formaat zoals 25, 33 of 50 cl, dan blijft het venster open: tik vijf keer en je hebt 5 pinten op één lijn. Lang drukken op een tafel geeft een menu om de rekening te openen, een voorlopige rekening te maken (met bevestiging), te verplaatsen of samen te voegen. Tabs op naam staan op één rij en verschuiven je zaalplan niet meer. In Keuken en Bar blijft het scherm open, en de keukenbon aan de toog gaat vanzelf."
+        },
+        "menu_per_track": {
+          "title": "Je menu toont alleen wat bij jouw zaak hoort",
+          "description": "Een horecazaak ziet Kassa, Zaal, Kaart, Bestellingen en Keuken, zonder webshop-, marketing- of eventonderdelen. Instellingen toont enkel de onderdelen die bij je zaak horen. Een webshop of eventzaak ziet dezelfde zijbalk als voorheen."
         }
       },
       "copyLink": "Kopieer link",

@@ -1,3 +1,38 @@
+## TRACKS-2 — het menu per zaaktype: horeca ziet enkel horeca (29-30 oktober 2026)
+
+**Aanleiding**
+- Akke (30-10, eerste horecaaccount zonder platformadmin): "er staat veel te veel in … sidebar webshop in horeca … ook in de instellingen horeca". Doel: één duidelijke weg per taak; een menu dat alleen toont wat de zaak gebruikt.
+
+**Root cause**
+- Het trackfilter bestond al (`tracksAllow`), maar veel items hadden geen track en waren dus voor iedereen zichtbaar: Webshop (`storefront`), Betalingen (kern, bewust), Rapporten-analyse, en in Instellingen de domeinen en de webshop-instellingen.
+
+**Uitgevoerd**
+- `sidebarConfig.ts`: `storefront` → `['webshop']`; `reports-analytics` → `['webshop','events']`.
+- Horeca: `ordering` (Zaal) → `/admin/bestellen?tab=zaal`; nieuw item `horeca-menu` (Kaart) → `/admin/bestellen?tab=menu`, enkel horeca (conform de bestaande WERKPLEK-1-regel: horeca beheert producten op de Kaart).
+- `AdminSidebar.tsx`: een horecazaak zonder webshop opent de Kassa op `/kassa` (zelfde regel als de onderbalk, `bottomNavUrl`).
+- `Settings.tsx`: `domain` → `['webshop','events']`; `webshop-general` → `['webshop']`.
+- `visibleNavIds(tracks)` (puur, voor controle) en nieuwe test `horecaMenu.test.ts` (5 tests) per spoor; `tracks.test.ts` bijgewerkt waar het gedrag bewust is veranderd (horeca-lijst).
+- Betalingen blijft kernpagina (bestaande test): iedereen ziet het.
+- Keuken blijft in het menu voor horeca: zaken zonder kassa (pizzeria, frituur) gebruiken het; in de kassa zit het ook.
+- Geen database- of kassa-wijziging. Geen versie-ophoging (geen fiscale code).
+- Changelog 2026.14k `menu_per_track` (5 talen); nieuwsbrief.
+
+**Security-keuzes**
+- Geen policy of grant. Zichtbaarheid is alleen menu; toegang tot pagina's blijft via rol en `requireRead`.
+
+**Gedeelde-paden-waarschuwing**
+- Een webshop- of eventzaak ziet dezelfde zijbalk als voorheen, behalve: Webshop-item en de domeinen/webshop-instellingen zijn nu gebonden aan het webshop-spoor (events zien domeinen nog). Een events-account zonder webshopplan verliest het item Webshop: bewust (de webshopbouwer hoort daar niet).
+- Een combinatie horeca + webshop krijgt Kaart én Producten: twee plekken voor hetzelfde product. Nog te beslissen (zie hieronder).
+
+**Verificatie**
+- `vitest` sidebar + tracks: 24 groen; alle admin- en testsuites: 843 groen. tsc 27 = baseline. Lint 0. i18n-pariteit ok. `npm run build` ok.
+- Nog niet visueel gecontroleerd met een horecaaccount: volgende stap (screenshots gsm/desktop).
+
+**Bewust ongemoeid / Vervolg**
+- Instellingen › Horeca bevat nog geen webshop-rijen; de overige instellingen (betaalmethodes, printers) horen bij de zaak.
+- Keuken in de zijbalk: beslissen of het naar de kassa verhuist voor zaken met een kassa.
+- Klanten voor horeca (reservaties, vaste klanten): later, met RESERVATIE-1/VASTE-KLANT-1.
+
 ## INVITE-FLOW-1 — uitnodiging accepteren voor een bestaand account (ingelogd of niet) — 30 oktober 2026
 
 **Aanleiding**

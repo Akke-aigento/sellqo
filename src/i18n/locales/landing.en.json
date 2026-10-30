@@ -2327,6 +2327,10 @@
         "kassa_quick_tap_2": {
           "title": "SellQo Kassa: faster tapping at the bar and long-press on tables",
           "description": "When you pick a size such as 25, 33 or 50 cl, the window stays open: tap five times and you have 5 pints on one line. Long-pressing a table gives a menu to open the bill, create an interim bill (with confirmation), move or merge. Tabs on a name sit on one row and no longer shift your floor plan. In Kitchen and Bar the screen stays open, and the kitchen ticket at the bar is automatic."
+        },
+        "menu_per_track": {
+          "title": "Your menu only shows what fits your business",
+          "description": "A hospitality business sees Till, Floor, Menu, Orders and Kitchen, without webshop, marketing or event parts. Settings only shows the parts that belong to your business. A webshop or event business sees the same sidebar as before."
         }
       },
       "copyLink": "Copy link",

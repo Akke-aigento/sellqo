@@ -69,7 +69,7 @@ describe('werkplek per spoor', () => {
 
   it('horeca-only: geen webshop-, marketing- of klantenpagina’s', () => {
     expect(visibleTop((t) => t === 'horeca')).toEqual([
-      'dashboard', 'orders', 'pos', 'ordering', 'kitchen', 'storefront', 'payments',
+      'dashboard', 'orders', 'pos', 'ordering', 'horeca-menu', 'kitchen', 'payments',
       'purchasing', 'reports', 'billing', 'settings', 'help',
     ]);
   });

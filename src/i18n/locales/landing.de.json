@@ -2327,6 +2327,10 @@
         "kassa_quick_tap_2": {
           "title": "SellQo Kassa: schneller tippen an der Bar und lang drücken auf Tische",
           "description": "Wählst du eine Größe wie 25, 33 oder 50 cl, bleibt das Fenster offen: fünfmal tippen und du hast 5 Pils auf einer Zeile. Lang drücken auf einen Tisch öffnet ein Menü, um die Rechnung zu öffnen, eine Zwischenrechnung zu erstellen (mit Bestätigung), zu verschieben oder zusammenzulegen. Rechnungen auf einen Namen stehen in einer Zeile und verschieben deinen Raumplan nicht mehr. In Küche und Bar bleibt der Bildschirm offen, und der Küchenbon an der Theke kommt automatisch."
+        },
+        "menu_per_track": {
+          "title": "Dein Menü zeigt nur, was zu deinem Betrieb passt",
+          "description": "Ein Gastronomiebetrieb sieht Kasse, Saal, Karte, Bestellungen und Küche, ohne Webshop-, Marketing- oder Eventbereiche. Die Einstellungen zeigen nur die Teile deines Betriebs. Ein Webshop oder Eventbetrieb sieht dieselbe Seitenleiste wie bisher."
         }
       },
       "copyLink": "Link kopieren",

@@ -39,7 +39,7 @@ import {
 
 import type { AppRole } from '@/hooks/useAuth';
 import type { Resource } from '@/hooks/useCan';
-import type { Track } from '@/lib/tracks';
+import { tracksAllow, type Track } from '@/lib/tracks';
 
 export interface NavItem {
   id: string;
@@ -171,7 +171,9 @@ const dailyItems: NavItem[] = [
 const salesItems: NavItem[] = [
   { id: 'pos', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.pos', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'], requireRead: 'pos' },
   // HORECA-1 / TRACKS-1 — horeca-spoor: alleen voor winkels die het hebben.
-  { id: 'ordering', tracks: ['horeca'], titleKey: 'navigation.items.ordering', url: '/admin/bestellen', icon: UtensilsCrossed, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'orders' },
+  { id: 'ordering', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_floor', url: '/admin/bestellen?tab=zaal', icon: UtensilsCrossed, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'orders' },
+  // TRACKS-2: horeca beheert de kaart op de tab Kaart van de bestelpagina (zie WERKPLEK-1 hierboven).
+  { id: 'horeca-menu', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_menu', url: '/admin/bestellen?tab=menu', icon: BookOpen, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'products' },
   { id: 'kitchen', tracks: ['horeca'], titleKey: 'navigation.items.kitchen', url: '/admin/keuken', icon: ChefHat, excludeRoles: ['marketing', 'accountant'], requireRead: 'orders' },
   {
     id: 'event-dashboard',
@@ -190,7 +192,7 @@ const salesItems: NavItem[] = [
       { id: 'ticket-checkin', titleKey: 'navigation.items.ticket_checkin', url: '/admin/checkin', allowedRoles: ['platform_admin', 'tenant_admin', 'staff'] },
     ],
   },
-  { id: 'storefront', titleKey: 'navigation.items.storefront', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'], requireRead: 'themes' },
+  { id: 'storefront', tracks: ['webshop'], titleKey: 'navigation.items.storefront', url: '/admin/storefront', icon: Globe, featureKey: 'webshop_builder', excludeRoles: ['marketing'], requireRead: 'themes' },
   { id: 'payments', titleKey: 'navigation.items.payments', url: '/admin/payments', icon: Banknote, excludeRoles: ['marketing'], requireRead: 'payments' },
   {
     id: 'promotions',
@@ -261,7 +263,7 @@ const managementItems: NavItem[] = [
     requireRead: 'products',
     children: [
       { id: 'reports-overview', titleKey: 'navigation.items.reports_overview', url: '/admin/reports', requireRead: 'reports_financial', landing: true },
-      { id: 'reports-analytics', titleKey: 'navigation.analytics', url: '/admin/analytics', requireRead: 'reports_analytics' },
+      { id: 'reports-analytics', tracks: ['webshop', 'events'], titleKey: 'navigation.analytics', url: '/admin/analytics', requireRead: 'reports_analytics' },
       { id: 'reports-stock', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.reports_stock', url: '/admin/reports/stock', requireRead: 'products' },
     ],
   },
@@ -370,4 +372,22 @@ export function getAllMenuItems(): { id: string; titleKey: string; groupKey: str
   }
 
   return items;
+}
+
+/**
+ * TRACKS-2 — welke items zijn zichtbaar voor een zaak met deze sporen (alleen de spoorregel; rol,
+ * abonnement en voorkeuren komen daar nog bovenop). Kern-items zonder spoor blijven overal.
+ * Gebruikt door de test die elk spoor vastlegt, zodat een nieuwe tag nooit stil een spoor verandert.
+ */
+export function visibleNavIds(tracks: readonly Track[]): string[] {
+  const has = (t: Track) => tracks.includes(t);
+  const out: string[] = [];
+  for (const group of sidebarGroups) {
+    for (const item of group.items) {
+      if (!tracksAllow(item.tracks, has)) continue;
+      out.push(item.id);
+      for (const child of item.children ?? []) if (tracksAllow(child.tracks, has)) out.push(child.id);
+    }
+  }
+  return out;
 }

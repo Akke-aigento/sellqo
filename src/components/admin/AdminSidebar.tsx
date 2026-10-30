@@ -12,6 +12,8 @@ import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
 import { sidebarGroups, platformGroup, getAllMenuItems, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
 import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
+import { bottomNavUrl } from './sidebar/bottomNav';
+import { useTracks } from '@/hooks/useBusinessModules';
 import { InboxBadge } from './sidebar/InboxBadge';
 import { AdsAiBadge } from './sidebar/AdsAiBadge';
 import { GroupedTenantPicker } from './sidebar/GroupedTenantPicker';
@@ -65,6 +67,10 @@ export function AdminSidebar() {
   // niet toe. Ze zijn verhuisd naar useNavItemVisibility zodat beide weergaven
   // dezelfde definitie gebruiken; zie de toelichting daar.
   const { shouldHideItem, isItemSubscriptionBlocked } = useNavItemVisibility();
+  // TRACKS-2: een horecazaak zonder webshop opent de Kassa in de kassa-app (/kassa), niet het kassabeheer.
+  const { hasTrack } = useTracks();
+  const navCtx = { horeca: hasTrack('horeca'), webshop: hasTrack('webshop'), events: hasTrack('events') };
+  const sidebarHref = (item: NavItem) => bottomNavUrl(item, navCtx);
 
   // SIDEBAR-CLEAN-1 — één actief item: de langste menu-URL die de huidige
   // route dekt. Zo licht /admin/promotions/customer-groups enkel Klantgroepen
@@ -243,7 +249,7 @@ export function AdminSidebar() {
       );
     }
 
-    return renderLeaf(item, item.url);
+    return renderLeaf(item, sidebarHref(item));
   };
 
   const renderLeaf = (item: NavItem, href: string) => {

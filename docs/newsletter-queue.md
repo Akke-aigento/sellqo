@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14k — Je menu toont alleen wat bij jouw zaak hoort (improvement, 30-10-2026)
+
+**Status:** wacht op push en publish (TRACKS-2).
+
+**Voor wie:** alle zaken; horeca het meest merkbaar.
+
+**Een korter menu** (oktober 2026)
+Een horecazaak ziet Kassa, Zaal, Kaart, Bestellingen en Keuken, zonder webshop-, marketing- of eventonderdelen. Instellingen toont alleen de onderdelen die bij je zaak horen.
+Wat betekent dit voor jou? Minder zoeken, geen onderdelen die je niet gebruikt.
+
+i18n: `public.changelog.changes.menu_per_track`
+
 ### 2026.14j — SellQo Kassa: sneller tikken aan de bar en lang drukken op tafels (improvement, 29-10-2026)
 
 **Status:** wacht op push, publish van de admin en de helpartikels (KASSA-UX-3).

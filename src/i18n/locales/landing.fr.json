@@ -2327,6 +2327,10 @@
         "kassa_quick_tap_2": {
           "title": "SellQo Kassa : encodage plus rapide au bar et appui long sur les tables",
           "description": "Quand vous choisissez un format comme 25, 33 ou 50 cl, la fenêtre reste ouverte : touchez cinq fois et vous avez 5 pintes sur une ligne. Un appui long sur une table ouvre un menu pour ouvrir l’addition, créer une addition provisoire (avec confirmation), déplacer ou fusionner. Les additions à un nom tiennent sur une ligne et ne décalent plus votre plan de salle. En Cuisine et au Bar, l’écran reste ouvert, et le bon cuisine au comptoir est automatique."
+        },
+        "menu_per_track": {
+          "title": "Votre menu ne montre que ce qui correspond à votre commerce",
+          "description": "Un établissement horeca voit Caisse, Salle, Carte, Commandes et Cuisine, sans les éléments boutique en ligne, marketing ou événements. Les Paramètres n’affichent que les éléments de votre commerce. Une boutique en ligne ou un commerce d’événements voit la même barre latérale qu’avant."
         }
       },
       "copyLink": "Copier le lien",
