@@ -27,7 +27,11 @@
 - deno test `aiActions` 7/7, deno check beide functies ok, tsc 27 = baseline, lint 1457 → 1455, build ok.
 - Review-agent op de diff (geld/voorraad-regel): geen blockers. Verwerkt: credit eerst atomisch afboeken en terugboeken bij een mislukte actie (`use_ai_credits` gaf stil `false`); idempotentie-sleutel per kaart (geen dubbele +10 na een verloren antwoord) + ref tegen dubbele tik; ook platformadmin-acties gelogd (0 credits); `null` wordt nooit stil 0; add-modus bewaart het gevraagde aantal; laatste tool-ronde `tool_choice: none` (nooit een leeg antwoord); voorstel draagt `tenant_id`; voorstellen gaan als samenvatting mee in de historie; `"`/`\` uit de zoekterm. Niet verwerkt: inactieve producten blijven voorstelbaar (bewust: voorraad aanvullen vóór je iets activeert).
 
+- Live (30-10, ~22:00): push `ef20c0b`, CI groen. Migraties `20261030233000` (85 producten op voeding) en `20261030234000` (`ai_actions` op enterprise, events_vast, horeca, horeca_big, pro, starter) gedraaid en geregistreerd. Deploy-only (0,4 credits, geen agent-commits): stempels `ai-help-assistant` en `ai-assistant-action` = `AI-AGENT-1` (nulmeting `AI-LANG-1` / 404). POST zonder login → 401. Publish: `index-CA4tM0bV.js` bevat `is_food`, `ai-assistant-action`, `feat_ai_actions`. Helpartikels `20261030234100` gedraaid.
+- Eindtest in Chrome (Café De Wissel, gsm-breedte, UI in het Engels): "Please change the price of the pancakes to 9.50 euro" → Engelstalige kaart "Change price · Pannenkoeken €7.50 → €9.50" → Uitvoeren → prijs 9,50 + `ai_usage_log` (`ai_actions`, 0 credits want intern, idempotentie-sleutel, voor/na). Testwijziging daarna teruggezet op 7,50 (`update … where price = 9.50`).
+
 **Bewust ongemoeid / Vervolg**
+- Het hulpwidget staat enkel op het dashboard en /admin/help (`AdminLayout.tsx:35`). Voor een "echte assistent" overal: aparte beslissing.
 - Meer acties (product aan/uit, categorie, korting) pas na gebruik van deze drie. Geen bulk ("alle pizza's +1 euro") in v1.
 
 ## PRODUCT-FORM-1 — productpagina volgt soort product en sporen; "Voeding of drank" — 30 oktober 2026
@@ -90,7 +94,7 @@
 **Bewust ongemoeid / Vervolg**
 - PRODUCT-FORM-1 (productpagina per type) en AI-AGENT-1 (actieve assistent): eerst ontwerp + beslissingen.
 - Hardcoded NL in `PlanFeatureDetailDialog` ("Alle features van het … plan", "Upgrade naar …") en `useAIImages`-toasts: aparte i18n-sweep.
-- RESERVATIE-2-uitrol staat nog open (storefront-api live `REKENING-ONLINE-1`, `reservation-mail` niet gedeployed, docs-migratie `20261030220100` niet gedraaid).
+- RESERVATIE-2-uitrol afgewerkt op 30-10 (~22:00, go Akke): deploy-only `storefront-api` + `reservation-mail` (0,2 credits), stempels beide `RESERVATIE-2` (nulmeting `REKENING-ONLINE-1` / 404); enkel RESERVATIE-2 ging mee (geen `_shared`-wijziging sinds `eea7571`). VanXcel `get_products` en `resolve_domain` ok (nieuw additief veld `reservations_online: false`). Docs `20261030220100` gedraaid. `sellqo-storefront` was al gepusht (`1712384`); `demo-bar.sellqo.shop/reserveren` = 404 zolang online reserveren uit staat (bedoeld). Open: kassa-app 0.19.0 (native build).
 
 ## RESERVATIE-2 — online reserveren door gasten (aanvraag → bevestigen → mail) (kassa 0.19.0) — 30 oktober 2026
 

@@ -6,7 +6,7 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ### 2026.14r — De hulpassistent zet wijzigingen voor je klaar (feature, 30-10-2026)
 
-**Status:** live na migraties + deploy `ai-help-assistant` en `ai-assistant-action` + publish (AI-AGENT-1, PRODUCT-FORM-1).
+**Status:** live sinds 30-10-2026 (AI-AGENT-1, PRODUCT-FORM-1).
 
 **Je assistent steekt nu zelf de handen uit de mouwen** (oktober 2026)
 Typ "vul de voorraad van de zwarte hoodie M aan met 10" of "zet de lasagne op uitverkocht voor vandaag", en de hulpassistent zet het voor je klaar. Je ziet meteen wat er verandert; pas als jij op Uitvoeren tikt, gebeurt het. Eén AI-credit per actie, in alle betaalde plannen.
@@ -18,7 +18,7 @@ i18n: `public.changelog.changes.ai_actions`, `product_form_sections`
 
 ### 2026.14q — Foto's herschikken en echte transparantie (feature + bugfixes, 30-10-2026)
 
-**Status:** live na publish + deploy van `ai-generate-image` en `ai-help-assistant` (MEDIA-FIX-1).
+**Status:** live sinds 30-10-2026 (MEDIA-FIX-1).
 
 **Jouw foto's, in jouw volgorde** (oktober 2026)
 Sleep de foto's van een product in de volgorde die jij wil, of gebruik de pijltjes op je gsm. De eerste foto is de hoofdfoto, en je webshop volgt dezelfde volgorde. En kies je "Transparant" bij AI-achtergrond, dan krijg je nu een PNG met een echt doorzichtige achtergrond in plaats van een ingetekend dambord.
@@ -30,7 +30,7 @@ i18n: `public.changelog.changes.photo_order`, `bg_remove_transparent`, `photo_li
 
 ### 2026.14p — Online reserveren: gasten vragen zelf een tafel aan (feature, 30-10-2026)
 
-**Status:** wacht op push, migratie, deploy en publish (RESERVATIE-2).
+**Status:** live sinds 30-10-2026 voor webshop en beheer; kassa-app 0.19.0 volgt met de volgende native build (RESERVATIE-2).
 
 **Reserveren terwijl jij tapt** (oktober 2026)
 Zet online reserveren aan en je webshop krijgt een knop "Reserveren". Gasten kiezen een dag, een uur en het aantal personen; jij bevestigt met één tik in de kassa of het beheer, en zij krijgen meteen een mail.
