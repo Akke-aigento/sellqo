@@ -8662,6 +8662,7 @@ export type Database = {
           receipt_printer_id: string | null
           tenant_id: string
           terminal: string
+          ticket_printer_id: string | null
           updated_at: string
           updated_by: string | null
         }
@@ -8677,6 +8678,7 @@ export type Database = {
           receipt_printer_id?: string | null
           tenant_id: string
           terminal?: string
+          ticket_printer_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -8692,6 +8694,7 @@ export type Database = {
           receipt_printer_id?: string | null
           tenant_id?: string
           terminal?: string
+          ticket_printer_id?: string | null
           updated_at?: string
           updated_by?: string | null
         }
@@ -8715,6 +8718,13 @@ export type Database = {
             columns: ["tenant_id"]
             isOneToOne: true
             referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "horeca_pay_settings_ticket_printer_id_fkey"
+            columns: ["ticket_printer_id"]
+            isOneToOne: false
+            referencedRelation: "printers"
             referencedColumns: ["id"]
           },
         ]
@@ -15857,6 +15867,63 @@ export type Database = {
           },
         ]
       }
+      reservation_settings: {
+        Row: {
+          days_ahead: number
+          late_minutes: number
+          lead_minutes: number
+          max_guests_per_slot: number
+          max_party: number
+          min_notice_minutes: number
+          online_enabled: boolean
+          online_hours: Json
+          slot_minutes: number
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          days_ahead?: number
+          late_minutes?: number
+          lead_minutes?: number
+          max_guests_per_slot?: number
+          max_party?: number
+          min_notice_minutes?: number
+          online_enabled?: boolean
+          online_hours?: Json
+          slot_minutes?: number
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          days_ahead?: number
+          late_minutes?: number
+          lead_minutes?: number
+          max_guests_per_slot?: number
+          max_party?: number
+          min_notice_minutes?: number
+          online_enabled?: boolean
+          online_hours?: Json
+          slot_minutes?: number
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservation_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservation_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       return_items: {
         Row: {
           condition: string | null
@@ -17373,6 +17440,7 @@ export type Database = {
       }
       sidebar_preferences: {
         Row: {
+          bottom_nav: string[] | null
           created_at: string | null
           hidden_items: string[] | null
           id: string
@@ -17381,6 +17449,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          bottom_nav?: string[] | null
           created_at?: string | null
           hidden_items?: string[] | null
           id?: string
@@ -17389,6 +17458,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          bottom_nav?: string[] | null
           created_at?: string | null
           hidden_items?: string[] | null
           id?: string
@@ -19602,6 +19672,88 @@ export type Database = {
           },
           {
             foreignKeyName: "table_requests_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      table_reservations: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          duration_min: number
+          email: string | null
+          guests: number
+          id: string
+          mail_sent_at: string | null
+          name: string
+          note: string | null
+          phone: string | null
+          request_id: string | null
+          source: string
+          starts_at: string
+          status: string
+          table_id: string | null
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          duration_min?: number
+          email?: string | null
+          guests?: number
+          id?: string
+          mail_sent_at?: string | null
+          name: string
+          note?: string | null
+          phone?: string | null
+          request_id?: string | null
+          source?: string
+          starts_at: string
+          status?: string
+          table_id?: string | null
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          duration_min?: number
+          email?: string | null
+          guests?: number
+          id?: string
+          mail_sent_at?: string | null
+          name?: string
+          note?: string | null
+          phone?: string | null
+          request_id?: string | null
+          source?: string
+          starts_at?: string
+          status?: string
+          table_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "table_reservations_table_id_fkey"
+            columns: ["table_id"]
+            isOneToOne: false
+            referencedRelation: "dining_tables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_reservations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_public_info"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "table_reservations_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "tenants"
@@ -25127,6 +25279,14 @@ export type Database = {
       repair_orphaned_user_roles: { Args: never; Returns: Json }
       request_token_refund: {
         Args: { p_code: string; p_iban: string }
+        Returns: Json
+      }
+      reservation_request_place: {
+        Args: { p_req: Json; p_tenant_id: string }
+        Returns: Json
+      }
+      reservation_slots: {
+        Args: { p_date: string; p_tenant_id: string }
         Returns: Json
       }
       reset_monthly_ai_credits:
