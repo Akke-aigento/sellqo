@@ -8780,7 +8780,17 @@
       "defaultOption": "{{name}} (Standard)",
       "noStation": "Keine Station",
       "error": "Nicht ausgeführt: {{detail}}",
-      "printer_link": "Den Drucker pro Station wählst du in Kasse › Belege & Drucker."
+      "printer_link": "Den Drucker pro Station wählst du in Kasse › Belege & Drucker.",
+      "productHint": "Ein einzelnes Produkt woanders zubereiten? Wähle das beim Produkt selbst unter „Zubereitet an“.",
+      "product": {
+        "title": "Zubereitet an",
+        "intro": "Wo dieses Produkt zubereitet wird: Der Bon erscheint auf dem Bildschirm (und Drucker) dieser Station.",
+        "followCategory": "Nach Kategorie: {{category}} → {{station}}",
+        "followDefault": "Standardstation: {{station}}",
+        "none": "Du hast noch keine Stationen wie Küche oder Bar.",
+        "manage": "Stationen verwalten",
+        "note": "Eine Wahl hier hat Vorrang vor der Kategorie. So wird die Salami an der Theke geschnitten, während die übrigen Snacks in die Küche gehen."
+      }
     },
     "kaart": {
       "search": "Karte durchsuchen",
@@ -11443,7 +11453,10 @@
       "openTable": "Tisch öffnen",
       "free": "Tisch freigeben",
       "freeConfirm": "{{title}} hat eine leere Rechnung. Freigeben?",
-      "bill": "Zwischenrechnung"
+      "bill": "Zwischenrechnung",
+      "unbill": "Rechnungswunsch zurücknehmen",
+      "unbillConfirm": "{{title}} wieder auf besetzt setzen? Die bereits erstellte Zwischenrechnung bleibt gespeichert.",
+      "unbillDone": "Tisch ist wieder besetzt"
     }
   },
   "deviceAlerts": {

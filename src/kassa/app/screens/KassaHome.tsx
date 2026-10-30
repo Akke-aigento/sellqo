@@ -307,7 +307,7 @@ function TableActions({ ctx, label, check, onClose, onOpen, onMove }: {
   ctx: ActionCtx; label: string; check: Check | null; onClose: () => void; onOpen: () => void; onMove: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const [confirm, setConfirm] = useState<null | 'bill' | 'free'>(null);
+  const [confirm, setConfirm] = useState<null | 'bill' | 'free' | 'unbill'>(null);
   const [busy, setBusy] = useState(false);
   const visible = check ? check.lines.filter((l) => l.state !== 'void') : [];
   const hasSent = visible.some((l) => l.state === 'sent');
@@ -328,6 +328,16 @@ function TableActions({ ctx, label, check, onClose, onOpen, onMove }: {
     setBusy(false);
     if (r?.ok) onClose(); else toast.error(t('kassa.checks.error.server', { detail: r?.error ?? '' }));
   };
+  // KASSA-UX-4: rekening per ongeluk gevraagd → status terug naar bezet. Geen fiscaal event: de
+  // ondertekende voorlopige rekening blijft bestaan, enkel de tafelstatus verandert.
+  const canUnbill = !!check && !check.paying && !!check.bill_requested_at;
+  const doUnbill = async () => {
+    if (!check) return;
+    setBusy(true);
+    const r = await ctx.store.applyNow({ id: crypto.randomUUID(), kind: 'cancel_bill', check_id: check.id, staff_id: ctx.staffId }).catch(() => null);
+    setBusy(false);
+    if (r?.ok) { toast.success(t('kassa.tableActions.unbillDone')); onClose(); } else toast.error(t('kassa.checks.error.server', { detail: r?.error ?? '' }));
+  };
   const btn = 'flex h-12 w-full items-center justify-center rounded-md border text-base font-semibold disabled:opacity-40';
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -338,18 +348,20 @@ function TableActions({ ctx, label, check, onClose, onOpen, onMove }: {
         </DialogHeader>
         {confirm ? (
           <div className="space-y-3">
-            <p className="text-sm">{confirm === 'bill' ? t('kassa.checks.billConfirmText', { amount: formatEuro(checkTotalCents(check!), i18n.language) }) : t('kassa.tableActions.freeConfirm', { title })}</p>
+            <p className="text-sm">{confirm === 'bill' ? t('kassa.checks.billConfirmText', { amount: formatEuro(checkTotalCents(check!), i18n.language) })
+              : confirm === 'unbill' ? t('kassa.tableActions.unbillConfirm', { title }) : t('kassa.tableActions.freeConfirm', { title })}</p>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" className={btn} onClick={() => setConfirm(null)} disabled={busy}>{t('kassa.common.cancel')}</button>
               <button type="button" className={cn(btn, 'border-transparent bg-primary text-primary-foreground')} disabled={busy}
-                onClick={() => void (confirm === 'bill' ? doBill() : doFree())}>
-                {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : confirm === 'bill' ? t('kassa.checks.billConfirmYes') : t('kassa.tableActions.free')}
+                onClick={() => void (confirm === 'bill' ? doBill() : confirm === 'unbill' ? doUnbill() : doFree())}>
+                {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : confirm === 'bill' ? t('kassa.checks.billConfirmYes') : confirm === 'unbill' ? t('kassa.tableActions.unbill') : t('kassa.tableActions.free')}
               </button>
             </div>
           </div>
         ) : (
           <div className="grid gap-2">
             <button type="button" className={cn(btn, 'border-transparent bg-primary text-primary-foreground')} onClick={onOpen}>{t(check ? 'kassa.tableActions.toCheck' : 'kassa.tableActions.openTable')}</button>
+            {canUnbill && <button type="button" className={btn} onClick={() => setConfirm('unbill')}>{t('kassa.tableActions.unbill')}</button>}
             {canBill && <button type="button" className={btn} onClick={() => setConfirm('bill')}>{t('kassa.tableActions.bill')}</button>}
             {check && !check.paying && (hasSent || visible.length > 0) && <button type="button" className={btn} onClick={onMove}>{t('kassa.checks.moveCheck')}</button>}
             {canFree && <button type="button" className={btn} onClick={() => setConfirm('free')}>{t('kassa.tableActions.free')}</button>}

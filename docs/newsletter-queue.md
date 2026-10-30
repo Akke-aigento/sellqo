@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14m — SellQo Kassa: + en − op elke lijn, vegen, en een rekening-vraag intrekken (improvement, 30-10-2026)
+
+**Status:** wacht op push, publish en de migraties (KASSA-UX-4).
+
+**Voor wie:** horecazaken met SellQo Kassa.
+
+**Sneller corrigeren in de drukte** (oktober 2026)
+Elke lijn op de rekening heeft nu een − en een +, en naar links vegen haalt een lijn weg. Ook in het formaatvenster (25, 33, 50 cl) staat een −. Staat een tafel per ongeluk op "rekening gevraagd", dan zet je ze met lang drukken terug op bezet. En per product kies je waar het bereid wordt: de salami aan de toog, de rest van de hapjes in de keuken.
+Wat betekent dit voor jou? Minder tikken, en geen tafel meer die blauw blijft door één misser.
+
+i18n: `public.changelog.changes.kassa_quick_tap_3`
+
 ### 2026.14l — Een nog korter menu voor horeca en events (improvement, 30-10-2026)
 
 **Status:** wacht op push en publish (TRACKS-3).

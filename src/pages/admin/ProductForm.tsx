@@ -73,6 +73,7 @@ import { ProductAddonsCard } from '@/components/admin/storefront/food/ProductAdd
 import { ProductAllergensCard } from '@/components/admin/storefront/food/ProductAllergensCard';
 import { useHorecaModule } from '@/hooks/useHorecaModule';
 import { ProductChannelsCard } from '@/components/admin/storefront/food/ProductChannelsCard';
+import { ProductStationCard } from '@/components/admin/horeca/ProductStationCard';
 import { useBusinessModules } from '@/hooks/useBusinessModules';
 import {
   Select,
@@ -1801,6 +1802,8 @@ export default function ProductForm() {
                   {horeca && isEditing && id ? <ProductAddonsCard productId={id} categoryIds={selectedCategoryIds} /> : null}
                   {/* HORECA-CHANNELS-1 — online / aan tafel / op de kaart / kassa, en op voor vandaag */}
                   {horeca && isEditing && id ? <ProductChannelsCard productId={id} /> : null}
+                  {/* KASSA-UX-4 — bereiden aan (keuken, bar, …): wint van de categorie */}
+                  {horeca && isEditing && id ? <ProductStationCard productId={id} /> : null}
                   {/* ALLERGEN-1 — allergenen en dieetlabels (horeca-module) */}
                   {horeca && isEditing && id ? <ProductAllergensCard productId={id} /> : null}
 

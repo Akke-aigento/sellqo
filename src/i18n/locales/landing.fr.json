@@ -2335,6 +2335,10 @@
         "menu_per_track_2": {
           "title": "Un menu encore plus court pour l’horeca et les événements",
           "description": "L’horeca voit désormais dix éléments dans la barre latérale : Aujourd’hui, Commandes, Caisse, Salle, Carte, Paiements, Rapports, Abonnement, Paramètres et Aide. Un commerce d’événements ne voit plus les clients, le marketing, le SEO, les traductions ni les intégrations dans la barre latérale. Rien n’a disparu : ce qui a quitté la barre latérale s’ouvre via Paramètres › Autres outils. Une boutique en ligne voit la même barre latérale qu’avant."
+        },
+        "kassa_quick_tap_3": {
+          "title": "SellQo Kassa : + et − sur chaque ligne, glisser pour supprimer, et annuler une demande d’addition",
+          "description": "Dans la liste de l’addition, chaque ligne a un − et un +, et glisser vers la gauche supprime une ligne. Sur une ligne déjà envoyée, la caisse demande d’abord pourquoi vous annulez. La fenêtre des formats (25, 33 ou 50 cl) a désormais aussi un − par format. Une table passée par erreur en « addition demandée » revient à occupée avec un appui long. Et pour chaque produit, vous choisissez dans SellQo où il est préparé : cuisine, bar ou un autre poste. Ce choix l’emporte sur la catégorie : le salami peut se couper au bar et le reste partir en cuisine."
         }
       },
       "copyLink": "Copier le lien",

@@ -133,6 +133,7 @@ export function PrepStationsManager() {
               ))}
             </ul>
           )}
+          {stations.length > 0 && <p className="mt-3 text-sm text-muted-foreground">{t('admin.prepStations.productHint')}</p>}
         </CardContent>
       </Card>
     </div>

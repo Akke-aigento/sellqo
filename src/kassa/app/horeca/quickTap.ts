@@ -47,6 +47,26 @@ export function planMinus(check: Pick<Check, 'lines'> | undefined, productId: st
   return hit ? { lineId: hit.id, qty: hit.qty - 1 } : null;
 }
 
+/** KASSA-UX-4: "−" in het formaatvenster: de laatste passende ontwerp-lijn met precies deze extra's één minder. */
+export function planMinusWith(check: Pick<Check, 'lines'> | undefined, productId: string, addonIds: string[]): { lineId: string; qty: number } | null {
+  if (!check) return null;
+  const hit = [...check.lines].sort((a, b) => b.seq - a.seq).find((l) => isMergeable(l, productId, addonIds));
+  return hit ? { lineId: hit.id, qty: hit.qty - 1 } : null;
+}
+
+/**
+ * KASSA-UX-4: wat "−" of naar links vegen op een lijn in het rekeninglijstje doet.
+ * - ontwerp-lijn: meteen één minder (−) of weg (vegen), er ging nog niets naar keuken/FDM;
+ * - verstuurde lijn: annuleren met reden (de bestaande correctieflow, nooit stil wijzigen);
+ * - negatieve, geschrapte of volledig geannuleerde lijnen: niets.
+ */
+export type LineEdit = 'draft' | 'sent' | null;
+export function lineEditKind(l: CheckLine): LineEdit {
+  if (l.qty <= 0 || l.corrects_line_id || l.state === 'void') return null;
+  if (l.state === 'draft') return 'draft';
+  return l.state === 'sent' && l.open_qty > 0 ? 'sent' : null;
+}
+
 /** Aantal per product in de lopende ronde (ontwerp-lijnen), voor de badge op de tegel. */
 export function draftCounts(check: Pick<Check, 'lines'> | undefined): Map<string, number> {
   const m = new Map<string, number>();

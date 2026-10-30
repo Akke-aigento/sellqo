@@ -2335,6 +2335,10 @@
         "menu_per_track_2": {
           "title": "Een nog korter menu voor horeca en events",
           "description": "Horeca ziet in de zijbalk nog tien onderdelen: Vandaag, Bestellingen, Kassa, Zaal, Kaart, Betalingen, Rapporten, Abonnement, Instellingen en Help. Een eventzaak ziet geen klanten-, marketing-, SEO-, vertaal- of koppelingsonderdelen meer in de zijbalk. Niets is weg: wat uit de zijbalk ging, open je via Instellingen › Meer onderdelen. Een webshop ziet dezelfde zijbalk als voorheen."
+        },
+        "kassa_quick_tap_3": {
+          "title": "SellQo Kassa: + en − op elke lijn, vegen om weg te halen, en een rekening-vraag intrekken",
+          "description": "In het lijstje van de rekening heeft elke lijn een − en een +, en naar links vegen haalt een lijn weg. Op een verstuurde lijn vraagt de kassa eerst waarom je annuleert. In het formaatvenster (25, 33 of 50 cl) staat nu ook een − per maat. Staat een tafel per ongeluk op ‘rekening gevraagd’, dan zet je ze met lang drukken terug op bezet. En per product kies je in SellQo waar het bereid wordt: keuken, bar of een andere post. Dat wint van de categorie, zodat de salami aan de toog kan en de rest naar de keuken."
         }
       },
       "copyLink": "Kopieer link",

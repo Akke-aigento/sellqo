@@ -1,3 +1,47 @@
+## KASSA-UX-4 — + en − op lijnen, vegen, "−" per maat, rekening-vraag intrekken, "Bereiden aan" per product (kassa 0.16.0) — 30 oktober 2026
+
+**Aanleiding**
+- Akke (30-10): (1) waar wordt beslist of iets naar bar of keuken gaat, en kan dat per product (salami aan de toog, grote gerechten in de keuken)? (2) In het formaatvenster ontbreekt de "−" die de tegels wel hebben. (3) Een tafel die per ongeluk op "rekening gevraagd" staat, kan niet terug ("dit hadden we toch afgesproken"). (4) In het lijstje met tikkingen: vegen om te verwijderen, en + en − per lijn in plaats van eerst openklikken.
+
+**Root cause**
+- (1) De server kende al productroutes (`horeca_apply_one`: productroute → categorieroute → standaardpost; unieke index `prep_station_routes_prod_uq`), maar er was geen scherm om ze te zetten: enkel per categorie in Bestellen › Posten.
+- (2) `QuickChoiceDialog` (KASSA-UX-3) had enkel optellen.
+- (3) `request_bill` zet `dining_checks.bill_requested_at`; er bestond geen commando om dat terug te zetten.
+- (4) `lineRow` was één knop die `LineDialog` opende.
+
+**Uitgevoerd**
+- Server: `20261030120000_kassa_cancel_bill.sql` voegt in `horeca_apply_one` een tak `cancel_bill` toe (zet `bill_requested_at = null`, `version + 1`). Patch via `pg_get_functiondef` + `replace` op het anker `rename_check` (precies één keer), idempotent. Geen fiscaal event: de ondertekende PRE_BILL blijft. `kassa_counter_guard` hoeft niet mee (toogrekeningen vragen geen rekening).
+- `store.ts`: `CommandKind` + `cancel_bill`, optimistisch `bill_requested_at = null`.
+- `quickTap.ts`: `planMinusWith` (− op precies die maat), `lineEditKind` (ontwerp = meteen, verstuurd = annuleren met reden, correcties = niets). Tests in `quickTap.test.ts` (+3, staat al in CI).
+- `CheckScreen.tsx`: nieuw `LineRow` met − en + (44 px) en naar links vegen (≥ 80 px, `touch-action: pan-y` zodat verticaal scrollen blijft). Ontwerp-lijn: − = `change_qty`, vegen = `void_line`. Verstuurde lijn: − en vegen openen `LineDialog` meteen op "waarom annuleren" (1 stuk), zonder kortingsblok. + gebruikt dezelfde sneltik (op de ontwerp-lijn met dezelfde extra's, anders een nieuwe). Formaatvenster: "−" rechtsonder per maat. ⋯-menu: "Rekening-vraag intrekken" met bevestiging.
+- `KassaHome.tsx` (lang drukken op een tafel): "Rekening-vraag intrekken" met bevestiging, enkel als de rekening gevraagd is.
+- Admin: `ProductStationCard` ("Bereiden aan") in het productformulier (horeca, bij bewerken), naast Kanalen en Extra's: "Volgens categorie: X → Bar" of een post; bewaart meteen (`routeProduct` in `usePrepStations.ts`, delete + insert per product_id). Bestellen › Posten verwijst ernaar.
+- `KASSA_SW_VERSION` 0.16.0. i18n 5 talen (`kassa.tableActions.unbill*`, `admin.prepStations.product.*`, `productHint`). Changelog 2026.14m `kassa_quick_tap_3`. Helpartikel: `20261030120100_kassa_ux_4_docs.sql`. Nieuwsbrief.
+
+**Security-keuzes**
+- `cancel_bill` loopt door dezelfde `horeca_apply_one` (security definer, tenant- en medewerkercontrole, rij-lock). Productroutes: bestaande RLS `prep_station_routes_write` (enkel tenant_admin); een medewerker zonder die rol krijgt een foutmelding, geen stille mislukking.
+
+**Fiscaal (GKS)**
+- Fiscale release 0.16.0 (UI-gedrag in `src/kassa/`). Geen nieuw of gewijzigd FDM-bericht: annuleren van verstuurde lijnen blijft de bestaande correctieflow (`void_line` → negatieve lijn → ondertekend bij versturen), en intrekken van de rekening-vraag raakt `fiscal_events` niet (dry-run: aantal events ongewijzigd).
+
+**Gedeelde-paden-waarschuwing**
+- `horeca_apply_one` bedient kassa, QR en toog: enkel een nieuwe `elsif`-tak, geen bestaande tak gewijzigd (patch op anker, md5 vooraf `bb08b84a66e4bfe8ceb7dea2212a8bc4`). `prep_station_routes` bestond al met productroutes; storefront en custom frontends raken die tabel niet.
+
+**Verificatie**
+- Dry-run op live (demo-bar, alles teruggedraaid): `cancel_bill` op een open rekening → `bill_requested_at` null, version 8 → 9, status open, fiscal_events ongewijzigd; daarna md5 van de functie weer `bb08b84a…`.
+- Dry-run docs: UX-3-docs + UX-4-docs na elkaar → alle vier de nieuwe zinnen aanwezig (teruggedraaid).
+- `vitest src/kassa`: 304 groen. tsc 27 = baseline. Lint 0 (ProductForm 17 = baseline). i18n-pariteit ok. `npm run build` en `build:kassa` ok (0.16.0 in beide bundels).
+- Harnas `kassa-home` 390/1024/1280: − in het formaatvenster (3 → 2), + op Cola (1 → 2), vegen haalt Cola weg, − op een verstuurde lijn opent "Waarom?", lang drukken op een tafel met rekening gevraagd toont "Rekening-vraag intrekken" en de bevestiging. Geen horizontale overloop.
+
+**Samenhang**
+- Bar/keuken-keuze: twee plekken met één taak elk: per categorie (Bestellen › Posten) en per uitzondering (product › Bereiden aan); elk verwijst naar de ander. Keukenscherm en printers volgen de bestaande post.
+- Lijnen aanpassen: + en − op de lijn doen hetzelfde als in het lijnvenster; het lijnvenster blijft voor opmerking, korting en verplaatsen.
+
+**Bewust ongemoeid / Vervolg**
+- "Voorlopige rekening" verstuurt eerst de open ronde naar keuken/bar en ondertekent daarna (zo was het al: de FDM wil eerst de ORDER).
+- Uitrol: push → CI → publish (admin + kassa-app) → `20261030120000_kassa_cancel_bill` (vóór iemand de knop gebruikt; tot dan geeft de knop een serverfout) → `20261029070000_kassa_ux_3_docs` (nog niet gedraaid!) → `20261030120100_kassa_ux_4_docs`.
+- Daarna: RESERVATIE-1 (raakt nooit een open rekening), VASTE-KLANT-1.
+
 ## TRACKS-3 — zijbalk horeca en events nog korter, de rest via Instellingen › Meer onderdelen (30 oktober 2026)
 
 **Aanleiding**

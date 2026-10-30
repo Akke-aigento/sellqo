@@ -2335,6 +2335,10 @@
         "menu_per_track_2": {
           "title": "Ein noch kürzeres Menü für Gastronomie und Events",
           "description": "Die Gastronomie sieht in der Seitenleiste jetzt zehn Punkte: Heute, Bestellungen, Kasse, Saal, Karte, Zahlungen, Berichte, Abonnement, Einstellungen und Hilfe. Ein Eventbetrieb sieht Kunden, Marketing, SEO, Übersetzungen und Integrationen nicht mehr in der Seitenleiste. Nichts ist weg: Was aus der Seitenleiste verschwunden ist, öffnest du über Einstellungen › Weitere Bereiche. Ein Webshop sieht dieselbe Seitenleiste wie bisher."
+        },
+        "kassa_quick_tap_3": {
+          "title": "SellQo Kassa: + und − auf jeder Zeile, Wischen zum Entfernen und Rechnungswunsch zurücknehmen",
+          "description": "In der Liste der Rechnung hat jede Zeile ein − und ein +, und Wischen nach links entfernt eine Zeile. Bei einer bereits gesendeten Zeile fragt die Kasse zuerst nach dem Grund. Im Größenfenster (25, 33 oder 50 cl) gibt es jetzt auch ein − pro Größe. Steht ein Tisch versehentlich auf „Rechnung gewünscht“, setzt du ihn mit langem Drücken wieder auf besetzt. Und pro Produkt wählst du in SellQo, wo es zubereitet wird: Küche, Bar oder eine andere Station. Das hat Vorrang vor der Kategorie, so kann die Salami an der Theke geschnitten werden und der Rest geht in die Küche."
         }
       },
       "copyLink": "Link kopieren",

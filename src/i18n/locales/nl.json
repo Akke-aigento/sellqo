@@ -9067,7 +9067,17 @@
       "defaultOption": "{{name}} (standaard)",
       "noStation": "Geen post",
       "error": "Niet gelukt: {{detail}}",
-      "printer_link": "Een printer per post kies je in Kassa › Bon & printers."
+      "printer_link": "Een printer per post kies je in Kassa › Bon & printers.",
+      "productHint": "Eén product ergens anders laten bereiden? Kies dat bij het product zelf, onder \"Bereiden aan\".",
+      "product": {
+        "title": "Bereiden aan",
+        "intro": "Waar dit product klaargemaakt wordt: de bon verschijnt op het scherm (en de printer) van die post.",
+        "followCategory": "Volgens categorie: {{category}} → {{station}}",
+        "followDefault": "Standaardpost: {{station}}",
+        "none": "Je hebt nog geen posten zoals keuken of bar.",
+        "manage": "Posten beheren",
+        "note": "Een keuze hier wint van de categorie. Zo kan de salami aan de toog, terwijl de rest van de hapjes naar de keuken gaat."
+      }
     },
     "kaart": {
       "search": "Zoek op de kaart",
@@ -11445,7 +11455,10 @@
       "openTable": "Tafel openen",
       "free": "Tafel vrijgeven",
       "freeConfirm": "{{title}} heeft een lege rekening. Vrijgeven?",
-      "bill": "Voorlopige rekening"
+      "bill": "Voorlopige rekening",
+      "unbill": "Rekening-vraag intrekken",
+      "unbillConfirm": "{{title}} terug op bezet zetten? De voorlopige rekening die al gemaakt is, blijft bewaard.",
+      "unbillDone": "Tafel staat terug op bezet"
     }
   },
   "deviceAlerts": {

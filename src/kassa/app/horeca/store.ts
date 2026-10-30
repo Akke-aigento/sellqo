@@ -18,7 +18,9 @@ export type CommandKind =
   | 'open_check' | 'add_line' | 'change_qty' | 'set_note' | 'void_line' | 'discount_line'
   | 'send_round' | 'request_bill' | 'rename_check' | 'move_check' | 'move_lines' | 'void_check'
   /** TAFEL-3: toog — ter plaatse of meenemen. */
-  | 'set_service';
+  | 'set_service'
+  /** KASSA-UX-4: rekening-vraag intrekken (status terug naar bezet; de voorrekening blijft). */
+  | 'cancel_bill';
 
 export interface Command { id: string; kind: CommandKind; check_id: string; staff_id?: string | null; [k: string]: unknown }
 export interface CommandResult { id: string; ok: boolean; error?: string; code?: string; duplicate?: boolean; check?: Check; target?: Check }
@@ -284,6 +286,8 @@ export function applyOptimistic(m: Map<string, Check>, cmd: Command, hints: Map<
     if (l && l.state === 'draft') { l.note = (cmd.note as string) || null; l.pending = true; }
   } else if (cmd.kind === 'set_service') {
     c.service = (cmd.service as 'eat_in' | 'takeaway') ?? c.service ?? null;
+  } else if (cmd.kind === 'cancel_bill') {
+    c.bill_requested_at = null;
   } else if (cmd.kind === 'rename_check') {
     c.name = (cmd.name as string) || null;
   } else if (cmd.kind === 'void_check') {

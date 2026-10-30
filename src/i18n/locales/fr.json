@@ -8780,7 +8780,17 @@
       "defaultOption": "{{name}} (par défaut)",
       "noStation": "Aucun poste",
       "error": "Échec : {{detail}}",
-      "printer_link": "Choisissez une imprimante par poste dans Caisse › Tickets & imprimantes."
+      "printer_link": "Choisissez une imprimante par poste dans Caisse › Tickets & imprimantes.",
+      "productHint": "Un seul produit préparé ailleurs ? Choisissez-le sur le produit lui-même, sous « Préparé à ».",
+      "product": {
+        "title": "Préparé à",
+        "intro": "Où ce produit est préparé : le bon apparaît sur l’écran (et l’imprimante) de ce poste.",
+        "followCategory": "Selon la catégorie : {{category}} → {{station}}",
+        "followDefault": "Poste par défaut : {{station}}",
+        "none": "Vous n’avez pas encore de postes comme la cuisine ou le bar.",
+        "manage": "Gérer les postes",
+        "note": "Un choix ici l’emporte sur la catégorie. Ainsi, le salami se coupe au bar pendant que les autres amuse-bouches vont en cuisine."
+      }
     },
     "kaart": {
       "search": "Rechercher dans la carte",
@@ -11443,7 +11453,10 @@
       "openTable": "Ouvrir la table",
       "free": "Libérer la table",
       "freeConfirm": "{{title}} a une addition vide. La libérer ?",
-      "bill": "Addition provisoire"
+      "bill": "Addition provisoire",
+      "unbill": "Annuler la demande d’addition",
+      "unbillConfirm": "Remettre {{title}} sur occupée ? L’addition provisoire déjà établie reste enregistrée.",
+      "unbillDone": "La table est de nouveau occupée"
     }
   },
   "deviceAlerts": {

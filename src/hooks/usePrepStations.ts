@@ -86,5 +86,18 @@ export function usePrepStationMutations() {
     onSuccess: done,
   });
 
-  return { save, setDefault, remove, routeCategory };
+  /** KASSA-UX-4: één product naar een post (wint van de categorie); `null` = volgens de categorie. */
+  const routeProduct = useMutation({
+    mutationFn: async ({ productId, stationId }: { productId: string; stationId: string | null }) => {
+      const del = await table('prep_station_routes').delete().eq('tenant_id', tenantId!).eq('product_id', productId);
+      if (del.error) throw del.error;
+      if (stationId) {
+        const { error } = await table('prep_station_routes').insert({ tenant_id: tenantId!, station_id: stationId, product_id: productId } as never);
+        if (error) throw error;
+      }
+    },
+    onSuccess: done,
+  });
+
+  return { save, setDefault, remove, routeCategory, routeProduct };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adminHref, draftCountWith, draftCounts, isQuickChoice, itemCount, planMinus, planTap, popularIds } from '../horeca/quickTap';
+import { adminHref, draftCountWith, draftCounts, isQuickChoice, itemCount, lineEditKind, planMinus, planMinusWith, planTap, popularIds } from '../horeca/quickTap';
 import type { CheckLine } from '../horeca/types';
 
 const line = (p: Partial<CheckLine> & { id: string; seq: number }): CheckLine => ({
@@ -66,5 +66,26 @@ describe('KASSA-UX-2 taal van de kassa', () => {
     expect(kassaLanguage(null, null)).toBe('nl');
     expect(kassaLanguage('nl', 'en')).toBe('en');
     expect(kassaLanguage('nl', 'xx')).toBe('nl');
+  });
+});
+
+describe('KASSA-UX-4 formaatvenster en rekeninglijst', () => {
+  const c25 = [{ option_id: '25cl', name: '25 cl', price_cents: 0 }];
+  const c50 = [{ option_id: '50cl', name: '50 cl', price_cents: 150 }];
+  it('"−" in het formaatvenster haalt er één af van precies die maat', () => {
+    const lines = [line({ id: 'a', seq: 1, qty: 3, addons: c25 }), line({ id: 'b', seq: 2, qty: 1, addons: c50 })];
+    expect(planMinusWith({ lines }, 'pils', ['25cl'])).toEqual({ lineId: 'a', qty: 2 });
+    expect(planMinusWith({ lines }, 'pils', ['50cl'])).toEqual({ lineId: 'b', qty: 0 });
+    expect(planMinusWith({ lines }, 'pils', ['33cl'])).toBeNull();
+  });
+  it('"−" raakt nooit een verstuurde lijn van die maat', () => {
+    expect(planMinusWith({ lines: [line({ id: 'a', seq: 1, qty: 2, state: 'sent', addons: c25 })] }, 'pils', ['25cl'])).toBeNull();
+  });
+  it('lijst: ontwerp = meteen aanpassen, verstuurd = annuleren met reden, correcties = niets', () => {
+    expect(lineEditKind(line({ id: 'a', seq: 1 }))).toBe('draft');
+    expect(lineEditKind(line({ id: 'a', seq: 1, state: 'sent', open_qty: 2 }))).toBe('sent');
+    expect(lineEditKind(line({ id: 'a', seq: 1, state: 'sent', open_qty: 0 }))).toBeNull();
+    expect(lineEditKind(line({ id: 'a', seq: 1, qty: -1, corrects_line_id: 'x' }))).toBeNull();
+    expect(lineEditKind(line({ id: 'a', seq: 1, state: 'void' }))).toBeNull();
   });
 });

@@ -14,6 +14,9 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.14m', dateKey: 'oct_2026', changes: [
+    { id: 'kassa_quick_tap_3', type: 'improvement' },
+  ]},
   { version: '2026.14l', dateKey: 'oct_2026', changes: [
     { id: 'menu_per_track_2', type: 'improvement' },
   ]},

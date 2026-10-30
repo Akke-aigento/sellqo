@@ -2335,6 +2335,10 @@
         "menu_per_track_2": {
           "title": "An even shorter menu for hospitality and events",
           "description": "Hospitality now sees ten items in the sidebar: Today, Orders, Till, Floor, Menu, Payments, Reports, Subscription, Settings and Help. An event business no longer sees customers, marketing, SEO, translations or integrations in the sidebar. Nothing is gone: what left the sidebar opens from Settings › More tools. A webshop sees the same sidebar as before."
+        },
+        "kassa_quick_tap_3": {
+          "title": "SellQo Kassa: + and − on every line, swipe to remove, and withdraw a bill request",
+          "description": "In the bill list every line has a − and a +, and swiping left removes a line. On a line that was already sent, the till first asks why you cancel. The size window (25, 33 or 50 cl) now also has a − per size. If a table was set to ‘bill requested’ by mistake, a long press sets it back to occupied. And for each product you choose in SellQo where it is prepared: kitchen, bar or another station. That overrides the category, so the salami can be cut at the bar while the rest goes to the kitchen."
         }
       },
       "copyLink": "Copy link",

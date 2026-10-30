@@ -9053,7 +9053,17 @@
       "defaultOption": "{{name}} (default)",
       "noStation": "No station",
       "error": "Not done: {{detail}}",
-      "printer_link": "Choose a printer per station in POS › Receipts & printers."
+      "printer_link": "Choose a printer per station in POS › Receipts & printers.",
+      "productHint": "Want a single product prepared elsewhere? Choose it on the product itself, under \"Prepared at\".",
+      "product": {
+        "title": "Prepared at",
+        "intro": "Where this product is prepared: the ticket appears on that station’s screen (and printer).",
+        "followCategory": "By category: {{category}} → {{station}}",
+        "followDefault": "Default station: {{station}}",
+        "none": "You have no stations such as kitchen or bar yet.",
+        "manage": "Manage stations",
+        "note": "A choice here overrides the category. That way the salami is cut at the bar while the rest of the snacks go to the kitchen."
+      }
     },
     "kaart": {
       "search": "Search the menu",
@@ -11443,7 +11453,10 @@
       "openTable": "Open table",
       "free": "Free table",
       "freeConfirm": "{{title}} has an empty bill. Free it?",
-      "bill": "Interim bill"
+      "bill": "Interim bill",
+      "unbill": "Withdraw bill request",
+      "unbillConfirm": "Set {{title}} back to occupied? The interim bill that was already made stays on record.",
+      "unbillDone": "Table is back to occupied"
     }
   },
   "deviceAlerts": {

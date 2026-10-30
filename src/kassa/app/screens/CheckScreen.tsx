@@ -5,9 +5,9 @@
 // KASSA-UX-1: zelfde product nog eens tikken telt op dezelfde lijn op; de tegel toont het aantal
 // in deze ronde met een "−"; op een gsm toont een balk onderaan aantal en totaal en wisselt
 // tussen kaart en rekening; de kaart opent op Populair (of de eerste categorie), niet op alles.
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChefHat, ChevronDown, ChevronUp, Flame, Loader2, Minus, MoreHorizontal, Search, Send, Receipt, Wallet, X } from 'lucide-react';
+import { ArrowLeft, ChefHat, ChevronDown, ChevronUp, Flame, Loader2, Minus, MoreHorizontal, Plus, Search, Send, Receipt, Trash2, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -18,7 +18,7 @@ import { kitchenOn, rememberKitchen, rememberService, type CounterService } from
 import { roundLines } from '../horeca/fiscalLines';
 import { discountLine, moveCheck, moveLines, requestBill, sendRound, type ActionCtx, type ActionOutcome } from '../horeca/actions';
 import { useCatalog, usePopularLines, type CatalogProduct } from '../horeca/useCatalog';
-import { categoryDot, categoryTone, draftCountWith, draftCounts, isQuickChoice, itemCount, planMinus, planTap, popularIds } from '../horeca/quickTap';
+import { categoryDot, categoryTone, draftCountWith, draftCounts, isQuickChoice, itemCount, lineEditKind, planMinus, planMinusWith, planTap, popularIds } from '../horeca/quickTap';
 import { formatEuro } from '../horeca/format';
 import { hasPendingPay, isRejectedPay } from '../horeca/payActions';
 import { PayDialog, SplitDialog } from './PayDialog';
@@ -56,6 +56,9 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   const [paying, setPaying] = useState(initialPay);
   const [splitting, setSplitting] = useState(false);
   const [lineSheet, setLineSheet] = useState<CheckLine | null>(null);
+  // KASSA-UX-4: verstuurde lijn via − of vegen → het venster opent meteen op "waarom annuleren".
+  const [lineSheetVoid, setLineSheetVoid] = useState(false);
+  const [confirmUnbill, setConfirmUnbill] = useState(false);
   const [addonFor, setAddonFor] = useState<CatalogProduct | null>(null);
   const [moving, setMoving] = useState<null | { lines: CheckLine[] | 'all' }>(initialMove ? { lines: 'all' } : null);
   const [confirmBill, setConfirmBill] = useState(false);
@@ -146,6 +149,23 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
     if (p.addonGroups.length) { setAddonFor(p); return; }
     addOne(p);
   };
+  // KASSA-UX-4: + en − rechtstreeks op een lijn in de rekening, en naar links vegen = weg.
+  const productOf = (l: CheckLine) => (l.product_id ? catalog?.products.find((x) => x.id === l.product_id) : undefined);
+  const openLine = (l: CheckLine, voidFirst = false) => { setLineSheetVoid(voidFirst); setLineSheet(l); };
+  const linePlus = (l: CheckLine) => {
+    const p = productOf(l);
+    if (p && !p.sold_out) addOne(p, l.addons.map((a) => a.option_id));
+  };
+  const lineMinus = (l: CheckLine) => {
+    const kind = lineEditKind(l);
+    if (kind === 'draft') store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: l.id, qty: l.qty - 1, staff_id: ctx.staffId });
+    else if (kind === 'sent') openLine(l, true);
+  };
+  const lineRemove = (l: CheckLine) => {
+    const kind = lineEditKind(l);
+    if (kind === 'draft') store.enqueue({ id: crypto.randomUUID(), kind: 'void_line', check_id: check.id, line_id: l.id, new_line_id: crypto.randomUUID(), reason: 'mistake', qty: l.qty, staff_id: ctx.staffId });
+    else if (kind === 'sent') openLine(l, true);
+  };
   const minusProduct = (p: CatalogProduct) => {
     const m = planMinus(check, p.id);
     if (m) store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: m.lineId, qty: m.qty, staff_id: ctx.staffId });
@@ -189,24 +209,22 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
     report(await requestBill(ctx, check.id), t('kassa.checks.billRequested'));
     setBusy(null);
   };
+  const doUnbill = async () => {
+    setConfirmUnbill(false);
+    const r = await store.applyNow({ id: crypto.randomUUID(), kind: 'cancel_bill', check_id: check.id, staff_id: ctx.staffId }).catch(() => null);
+    if (r?.ok) toast.success(t('kassa.tableActions.unbillDone')); else toast.error(t('kassa.checks.error.server', { detail: r?.error ?? '' }));
+  };
 
-  const lineRow = (l: CheckLine) => (
-    <li key={l.id}>
-      <button type="button" onClick={() => setLineSheet(l)}
-        className={cn('flex w-full items-start gap-2 rounded-md border px-3 py-2 text-left',
-          l.state === 'draft' && 'border-primary/60 bg-primary/5', l.qty < 0 && 'text-destructive', l.pending && 'opacity-70')}>
-        <span className="w-8 shrink-0 font-bold">{l.qty}×</span>
-        <span className="min-w-0 flex-1">
-          <span className="block truncate font-medium">{l.name}</span>
-          {l.addons.length ? <span className="block truncate text-xs text-muted-foreground">+ {l.addons.map((a) => a.name).join(', ')}</span> : null}
-          {l.note ? <span className="block truncate text-xs italic text-muted-foreground">“{l.note}”</span> : null}
-          {l.price_changes.map((p) => <span key={p.grouping_id} className="block text-xs text-emerald-700 dark:text-emerald-400">{p.name} {euro(p.amount_cents)}</span>)}
-          {l.neg_reason ? <span className="block text-xs">{t(`kassa.checks.reason.${l.neg_reason}`)}</span> : null}
-        </span>
-        <span className="shrink-0 tabular-nums">{euro(lineTotalCents(l))}</span>
-      </button>
-    </li>
-  );
+  const lineRow = (l: CheckLine) => {
+    const kind = locked ? null : lineEditKind(l);
+    const p = productOf(l);
+    return (
+      <LineRow key={l.id} line={l} canEdit={kind} canPlus={!!kind && !!p && !p.sold_out} total={euro(lineTotalCents(l))}
+        reason={l.neg_reason ? t(`kassa.checks.reason.${l.neg_reason}`) : null} priceChanges={l.price_changes.map((pc) => ({ id: pc.grouping_id, text: `${pc.name} ${euro(pc.amount_cents)}` }))}
+        labels={{ plus: t('kassa.checks.more1'), minus: t('kassa.checks.less'), remove: kind === 'sent' ? t('kassa.checks.cancelLine') : t('kassa.checks.remove') }}
+        onOpen={() => openLine(l)} onPlus={() => linePlus(l)} onMinus={() => lineMinus(l)} onRemove={() => lineRemove(l)} />
+    );
+  };
 
   const linesPanel = (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -287,6 +305,9 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
                 {t(kitchen ? 'kassa.counter.withoutKitchen' : 'kassa.counter.withKitchen')}
               </DropdownMenuItem>
             )}
+            {!counter && check.bill_requested_at && !locked && (
+              <DropdownMenuItem onClick={() => setConfirmUnbill(true)}>{t('kassa.tableActions.unbill')}</DropdownMenuItem>
+            )}
             {!counter && <DropdownMenuItem disabled={locked || !sentAny && !drafts} onClick={() => void openSplit()}>{t('kassa.pay.split')}</DropdownMenuItem>}
             {!counter && <DropdownMenuItem disabled={locked || !!check.split_of} onClick={() => setMoving({ lines: 'all' })}>{t('kassa.checks.moveCheck')}</DropdownMenuItem>}
             {!sentAny && !locked && (
@@ -352,7 +373,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
       )}
 
       {lineSheet && (
-        <LineDialog line={check.lines.find((l) => l.id === lineSheet.id) ?? lineSheet} busy={busy === 'discount'} canMove={!counter} onClose={() => setLineSheet(null)}
+        <LineDialog key={`${lineSheet.id}-${lineSheetVoid}`} line={check.lines.find((l) => l.id === lineSheet.id) ?? lineSheet} busy={busy === 'discount'} canMove={!counter} voidFirst={lineSheetVoid} onClose={() => setLineSheet(null)}
           onQty={(qty) => store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: lineSheet.id, qty, staff_id: ctx.staffId })}
           onNote={(note) => store.enqueue({ id: crypto.randomUUID(), kind: 'set_note', check_id: check.id, line_id: lineSheet.id, note, staff_id: ctx.staffId })}
           onVoid={(reason, qty) => {
@@ -380,11 +401,26 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
         </DialogContent>
       </Dialog>
 
+      <Dialog open={confirmUnbill} onOpenChange={setConfirmUnbill}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>{t('kassa.tableActions.unbill')}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('kassa.tableActions.unbillConfirm', { title })}</p>
+          <DialogFooter className="gap-2">
+            <button type="button" onClick={() => setConfirmUnbill(false)} className="h-11 rounded-md border px-4">{t('kassa.common.cancel')}</button>
+            <button type="button" onClick={() => void doUnbill()} className="h-11 rounded-md bg-primary px-4 font-semibold text-primary-foreground">{t('kassa.tableActions.unbill')}</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {editing ? <ProductQuickEdit ctx={ctx} product={catalog?.products.find((x) => x.id === editing.id) ?? editing} onClose={() => setEditing(null)} /> : null}
       {addonFor && (
         isQuickChoice(addonFor.addonGroups)
           ? <QuickChoiceDialog product={addonFor} countFor={(ids) => draftCountWith(store.check(check.id) ?? check, addonFor.id, ids)}
-              onAdd={(ids) => addOne(addonFor, ids)} onClose={() => setAddonFor(null)} />
+              onAdd={(ids) => addOne(addonFor, ids)} onClose={() => setAddonFor(null)}
+              onMinus={(ids) => {
+                const m = planMinusWith(store.check(check.id) ?? check, addonFor.id, ids);
+                if (m) store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: m.lineId, qty: m.qty, staff_id: ctx.staffId });
+              }} />
           : <AddonDialog product={addonFor} onClose={() => setAddonFor(null)} onConfirm={(ids) => { addOne(addonFor, ids); setAddonFor(null); }} />
       )}
 
@@ -419,12 +455,14 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
 function LineDialog(p: {
   line: CheckLine; busy: boolean; canMove: boolean; onClose: () => void; onQty: (q: number) => void; onNote: (n: string) => void;
   onVoid: (reason: string, qty: number) => void; onDiscount: (d: { percent?: number; name: string }) => void; onMove: () => void;
+  /** KASSA-UX-4: meteen de vraag "waarom annuleren" (verstuurde lijn via − of vegen). */
+  voidFirst?: boolean;
 }) {
   const { t } = useTranslation();
   const l = p.line;
   const [note, setNote] = useState(l.note ?? '');
-  const [voidQty, setVoidQty] = useState(l.state === 'draft' ? l.qty : Math.max(1, l.open_qty));
-  const [askReason, setAskReason] = useState(false);
+  const [voidQty, setVoidQty] = useState(l.state === 'draft' ? l.qty : p.voidFirst ? 1 : Math.max(1, l.open_qty));
+  const [askReason, setAskReason] = useState(!!p.voidFirst && l.state === 'sent');
   const editable = l.state === 'draft';
   const canAct = l.qty > 0 && (editable || l.open_qty > 0);
   return (
@@ -446,7 +484,7 @@ function LineDialog(p: {
                 <button type="submit" className="h-11 rounded-md border px-3 text-sm font-semibold">{t('kassa.common.save')}</button>
               </form>
             )}
-            <div className="space-y-2">
+            {!askReason && <div className="space-y-2">
               <p className="text-sm font-semibold">{t('kassa.checks.discount')}</p>
               <div className="flex flex-wrap gap-2">
                 {DISCOUNTS.map((d) => (
@@ -456,7 +494,7 @@ function LineDialog(p: {
                 <button type="button" disabled={p.busy || l.price_changes.length > 0} onClick={() => p.onDiscount({ percent: 100, name: t('kassa.checks.onTheHouse') })}
                   className="h-11 rounded-md border px-3 text-sm font-semibold disabled:opacity-40">{t('kassa.checks.onTheHouse')}</button>
               </div>
-            </div>
+            </div>}
             {!askReason ? (
               <div className={cn('grid gap-2', p.canMove ? 'grid-cols-2' : 'grid-cols-1')}>
                 {p.canMove && <button type="button" onClick={p.onMove} className="h-11 rounded-md border text-sm font-semibold">{t('kassa.checks.moveLine')}</button>}
@@ -491,7 +529,9 @@ function LineDialog(p: {
 }
 
 /** KASSA-UX-3 — één verplichte keuze (bv. 25/33/50 cl): elke tik = één erbij, het venster blijft open. */
-function QuickChoiceDialog({ product, countFor, onAdd, onClose }: { product: CatalogProduct; countFor: (ids: string[]) => number; onAdd: (ids: string[]) => void; onClose: () => void }) {
+function QuickChoiceDialog({ product, countFor, onAdd, onMinus, onClose }: {
+  product: CatalogProduct; countFor: (ids: string[]) => number; onAdd: (ids: string[]) => void; onMinus: (ids: string[]) => void; onClose: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const g = product.addonGroups[0];
   return (
@@ -502,13 +542,22 @@ function QuickChoiceDialog({ product, countFor, onAdd, onClose }: { product: Cat
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {g.options.map((o) => {
             const n = countFor([o.id]);
+            // KASSA-UX-4: zelfde "−" rechtsonder als op de producttegels.
             return (
-              <button key={o.id} type="button" onClick={() => onAdd([o.id])}
-                className={cn('relative flex min-h-20 flex-col items-center justify-center rounded-lg border-2 p-2 text-center active:scale-[0.97]', n > 0 ? 'border-primary bg-primary/5' : 'border-border')}>
-                <span className="text-base font-semibold">{o.name}</span>
-                <span className="text-xs text-muted-foreground">{formatEuro(product.price_cents + o.price_cents, i18n.language)}</span>
-                {n > 0 && <span className="absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">{n}</span>}
-              </button>
+              <div key={o.id} className="relative">
+                <button type="button" onClick={() => onAdd([o.id])}
+                  className={cn('relative flex min-h-20 w-full flex-col items-center justify-center rounded-lg border-2 p-2 text-center active:scale-[0.97]', n > 0 ? 'border-primary bg-primary/5' : 'border-border')}>
+                  <span className="text-base font-semibold">{o.name}</span>
+                  <span className="text-xs text-muted-foreground">{formatEuro(product.price_cents + o.price_cents, i18n.language)}</span>
+                  {n > 0 && <span className="absolute right-1.5 top-1.5 flex h-6 min-w-6 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold text-primary-foreground">{n}</span>}
+                </button>
+                {n > 0 && (
+                  <button type="button" aria-label={t('kassa.checks.minusOne', { name: `${product.name} ${o.name}` })} onClick={() => onMinus([o.id])}
+                    className="absolute bottom-0 right-0 flex h-11 w-11 items-center justify-center rounded-br-lg rounded-tl-lg border-l-2 border-t-2 border-primary bg-background/90 active:bg-muted">
+                    <Minus className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             );
           })}
         </div>
@@ -640,5 +689,77 @@ function ProductTile({ p, count, flash, tone, onTap, onLong, onMinus, label, edi
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * KASSA-UX-4 — één lijn in de rekening: tik op de naam = details (zoals voorheen), + en − meteen,
+ * naar links vegen = weg. Ontwerp-lijnen verdwijnen meteen; een verstuurde lijn opent de vraag
+ * "waarom annuleren" (fiscale correctie, nooit stil wijzigen).
+ */
+const SWIPE_AT = 80;
+function LineRow({ line: l, canEdit, canPlus, total, reason, priceChanges, labels, onOpen, onPlus, onMinus, onRemove }: {
+  line: CheckLine; canEdit: 'draft' | 'sent' | null; canPlus: boolean; total: string; reason: string | null;
+  priceChanges: { id: number; text: string }[]; labels: { plus: string; minus: string; remove: string };
+  onOpen: () => void; onPlus: () => void; onMinus: () => void; onRemove: () => void;
+}) {
+  const [dx, setDx] = useState(0);
+  const start = useRef<{ x: number; y: number; id: number; swiping: boolean } | null>(null);
+  const moved = useRef(false);
+  const onDown = (e: RPointerEvent) => {
+    if (!canEdit) return;
+    start.current = { x: e.clientX, y: e.clientY, id: e.pointerId, swiping: false };
+    moved.current = false;
+  };
+  const onMove = (e: RPointerEvent) => {
+    const s0 = start.current;
+    if (!s0 || s0.id !== e.pointerId) return;
+    const ddx = e.clientX - s0.x;
+    const ddy = e.clientY - s0.y;
+    if (!s0.swiping) {
+      if (Math.abs(ddy) > 10 && Math.abs(ddy) > Math.abs(ddx)) { start.current = null; return; } // verticaal scrollen
+      if (ddx < -10) { s0.swiping = true; moved.current = true; (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId); }
+    }
+    if (s0.swiping) setDx(Math.max(-140, Math.min(0, ddx)));
+  };
+  const onUp = () => {
+    const s0 = start.current;
+    start.current = null;
+    if (s0?.swiping && dx <= -SWIPE_AT) onRemove();
+    setDx(0);
+  };
+  return (
+    <li className="relative overflow-hidden rounded-md">
+      {dx < 0 && (
+        <div aria-hidden className={cn('absolute inset-0 flex items-center justify-end gap-2 px-4 text-sm font-semibold text-destructive-foreground', dx <= -SWIPE_AT ? 'bg-destructive' : 'bg-destructive/70')}>
+          <Trash2 className="h-5 w-5" />{labels.remove}
+        </div>
+      )}
+      <div style={{ transform: dx ? `translateX(${dx}px)` : undefined, touchAction: 'pan-y' }}
+        onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp}
+        className={cn('relative flex items-stretch rounded-md border bg-background', dx === 0 && 'transition-transform',
+          l.state === 'draft' && 'border-primary/60 shadow-[inset_0_0_0_999px_hsl(var(--primary)/0.05)]', l.qty < 0 && 'text-destructive')}>
+        <button type="button" onClick={() => { if (moved.current) { moved.current = false; return; } onOpen(); }}
+          className={cn('flex min-w-0 flex-1 items-start gap-2 px-3 py-2 text-left', l.pending && 'opacity-70')}>
+          <span className="w-8 shrink-0 font-bold">{l.qty}×</span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate font-medium">{l.name}</span>
+            {l.addons.length ? <span className="block truncate text-xs text-muted-foreground">+ {l.addons.map((a) => a.name).join(', ')}</span> : null}
+            {l.note ? <span className="block truncate text-xs italic text-muted-foreground">“{l.note}”</span> : null}
+            {priceChanges.map((p) => <span key={p.id} className="block text-xs text-emerald-700 dark:text-emerald-400">{p.text}</span>)}
+            {reason ? <span className="block text-xs">{reason}</span> : null}
+          </span>
+          <span className="shrink-0 tabular-nums">{total}</span>
+        </button>
+        {canEdit && (
+          <div className="flex shrink-0 items-center gap-1 pr-1.5">
+            <button type="button" aria-label={`${labels.minus}: ${l.name}`} onClick={onMinus}
+              className="flex h-11 w-11 items-center justify-center rounded-full border active:bg-muted"><Minus className="h-4 w-4" /></button>
+            <button type="button" aria-label={`${labels.plus}: ${l.name}`} onClick={onPlus} disabled={!canPlus}
+              className="flex h-11 w-11 items-center justify-center rounded-full border active:bg-muted disabled:opacity-30"><Plus className="h-4 w-4" /></button>
+          </div>
+        )}
+      </div>
+    </li>
   );
 }
