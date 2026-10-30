@@ -5163,6 +5163,11 @@
         "move_left": "Avancer",
         "move_right": "Reculer",
         "hint": "Glissez ou utilisez les flèches pour changer l’ordre. La première photo est la photo principale et apparaît dans cet ordre sur votre boutique."
+      },
+      "is_food": {
+        "label": "Nourriture ou boisson",
+        "hint": "Activez pour la nourriture et les boissons. Vous pouvez alors indiquer les allergènes et les labels alimentaires.",
+        "hint_horeca": "Activez pour la nourriture et les boissons. Vous pouvez alors indiquer les allergènes et les labels alimentaires, et choisir le poste en cuisine, les suppléments et les canaux de vente."
       }
     },
     "promotions": {

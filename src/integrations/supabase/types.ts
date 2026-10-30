@@ -14937,6 +14937,7 @@ export type Database = {
           imported_at: string | null
           is_active: boolean | null
           is_featured: boolean | null
+          is_food: boolean
           last_inventory_sync: string | null
           license_generator: string | null
           low_stock_threshold: number | null
@@ -15075,6 +15076,7 @@ export type Database = {
           imported_at?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_food?: boolean
           last_inventory_sync?: string | null
           license_generator?: string | null
           low_stock_threshold?: number | null
@@ -15213,6 +15215,7 @@ export type Database = {
           imported_at?: string | null
           is_active?: boolean | null
           is_featured?: boolean | null
+          is_food?: boolean
           last_inventory_sync?: string | null
           license_generator?: string | null
           low_stock_threshold?: number | null

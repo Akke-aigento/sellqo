@@ -5163,6 +5163,11 @@
         "move_left": "Nach vorne",
         "move_right": "Nach hinten",
         "hint": "Ziehen oder die Pfeile nutzen, um die Reihenfolge zu ändern. Das erste Foto ist das Hauptfoto und erscheint in dieser Reihenfolge in deinem Webshop."
+      },
+      "is_food": {
+        "label": "Essen oder Getränk",
+        "hint": "Für Essen und Getränke einschalten. Dann trägst du Allergene und Ernährungslabels ein.",
+        "hint_horeca": "Für Essen und Getränke einschalten. Dann trägst du Allergene und Ernährungslabels ein und wählst Küchenstation, Extras und Verkaufskanäle."
       }
     },
     "promotions": {

@@ -5436,6 +5436,11 @@
         "move_left": "Move forward",
         "move_right": "Move back",
         "hint": "Drag or use the arrows to change the order. The first photo is the main photo and appears in this order on your webshop."
+      },
+      "is_food": {
+        "label": "Food or drink",
+        "hint": "Turn on for food and drink. You can then fill in allergens and dietary labels.",
+        "hint_horeca": "Turn on for food and drink. You can then fill in allergens and dietary labels, and choose the kitchen station, extras and where the product is sold."
       }
     },
     "promotions": {

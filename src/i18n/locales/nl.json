@@ -5517,6 +5517,11 @@
         "move_left": "Naar voren",
         "move_right": "Naar achteren",
         "hint": "Sleep of gebruik de pijltjes om de volgorde te wijzigen. De eerste foto is de hoofdfoto en komt zo ook op je webshop."
+      },
+      "is_food": {
+        "label": "Voeding of drank",
+        "hint": "Zet aan voor eten en drinken. Dan vul je allergenen en dieetlabels in.",
+        "hint_horeca": "Zet aan voor eten en drinken. Dan vul je allergenen en dieetlabels in, en kies je keukenstation, extra's en waar het product te koop is."
       }
     },
     "promotions": {

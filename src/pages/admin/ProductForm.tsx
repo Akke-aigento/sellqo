@@ -41,6 +41,7 @@ import { ProductSpecificationsSection } from '@/components/admin/products/Produc
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { MediaLibraryPickerDialog } from '@/components/admin/products/MediaLibraryPickerDialog';
 import { SortableProductImages } from '@/components/admin/products/SortableProductImages';
+import { defaultIsFood, productFormSections } from '@/lib/productFormSections';
 import { StandardizeUploadDialog } from '@/components/admin/products/StandardizeUploadDialog';
 import { useMediaSettings } from '@/hooks/useMediaSettings';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
@@ -116,6 +117,8 @@ const productSchema = z.object({
   vat_rate_id: z.string().nullable().optional(),
   // TAFEL-3: btw bij meenemen aan de toog (enkel horeca). Leeg = het gewone tarief.
   takeaway_vat_rate_id: z.string().nullable().optional(),
+  // PRODUCT-FORM-1: voeding of drank.
+  is_food: z.boolean().default(false),
   sku: z.string().max(100).optional().default(''),
   barcode: z.string().max(100).optional().default(''),
   stock: z.coerce.number().int().min(0, 'admin.productForm.validation.voorraad_moet_0_of_hoger_zijn').default(0),
@@ -165,6 +168,9 @@ const productTypeIcons: Record<ProductType, React.ReactNode> = {
   ticket: <Ticket className="h-6 w-6" />,
 };
 
+// PRODUCT-FORM-1: vaste klassen (Tailwind ziet geen samengestelde namen).
+const TAB_COLS: Record<number, string> = { 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4', 5: 'sm:grid-cols-5' };
+
 export default function ProductForm() {
   const routeAllowed = useRouteAllowed();
   // WERKPLEK-1: horeca-only heeft geen productlijst; terug gaat naar de Kaart.
@@ -172,7 +178,9 @@ export default function ProductForm() {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const horeca = useHorecaModule();
-  const eventsModule = useBusinessModules().has('events');
+  const businessModules = useBusinessModules();
+  const eventsModule = businessModules.has('events');
+  const webshopModule = businessModules.has('webshop');
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const isEditing = !!id;
@@ -284,6 +292,7 @@ export default function ProductForm() {
       weight: null,
       requires_shipping: true,
       product_type: 'physical',
+      is_food: defaultIsFood({ horeca }),
       digital_delivery_type: null,
       download_limit: null,
       download_expiry_hours: 72,
@@ -330,6 +339,7 @@ export default function ProductForm() {
       weight: product.weight,
       requires_shipping: product.requires_shipping,
       product_type: product.product_type || 'physical',
+      is_food: product.is_food ?? false,
       digital_delivery_type: product.digital_delivery_type || null,
       download_limit: product.download_limit || null,
       download_expiry_hours: product.download_expiry_hours || 72,
@@ -353,6 +363,15 @@ export default function ProductForm() {
   const isGiftCard = productType === 'gift_card';
   const isBundle = productType === 'bundle';
   const isTicket = productType === 'ticket';
+  // PRODUCT-FORM-1: de sporen laden soms na het formulier; bij een nieuw product volgt de
+  // standaard van "voeding" dan alsnog, zolang de gebruiker de schakelaar niet aanraakte.
+  useEffect(() => {
+    if (!isEditing && !form.getFieldState('is_food').isDirty) form.setValue('is_food', defaultIsFood({ horeca }));
+  }, [horeca, isEditing, form]);
+
+  // PRODUCT-FORM-1: welke onderdelen deze winkel bij dit product ziet.
+  const isFood = form.watch('is_food');
+  const sections = productFormSections({ webshop: webshopModule, horeca, events: eventsModule, productType, isFood });
   const bundlePricingModel = form.watch('bundle_pricing_model');
 
   // PRODUCT-FORM-2 — btw-tarief per product. Zonder vat_rate_id rekent de backend
@@ -837,11 +856,15 @@ export default function ProductForm() {
             {/* Alleen-lezen: enkel het tabblad Product. Vertalingen, marketplaces en
                 advertenties zijn beheerschermen met eigen opslaan-acties. */}
             {!readOnly && (
-            <TabsList className={cn('flex w-full overflow-x-auto sm:grid', hasSizeGuide ? 'sm:grid-cols-5' : 'sm:grid-cols-4')}>
+            <TabsList className={cn('flex w-full overflow-x-auto sm:grid', TAB_COLS[2 + Number(sections.marketplacesTab) + Number(sections.adsTab) + Number(hasSizeGuide)])}>
               <TabsTrigger value="product" className="shrink-0">{t('admin.stockReport.colName')}</TabsTrigger>
               <TabsTrigger value="translations" className="shrink-0" disabled={!isEditing}>{t('admin.productForm.vertalingen')}</TabsTrigger>
-              <TabsTrigger value="marketplaces" className="shrink-0">{t('admin.productForm.marketplaces')}</TabsTrigger>
-              <TabsTrigger value="ads" className="shrink-0" disabled={!isEditing}>{t('admin.products.productAdsSection.advertenties')}</TabsTrigger>
+              {sections.marketplacesTab && (
+                <TabsTrigger value="marketplaces" className="shrink-0">{t('admin.productForm.marketplaces')}</TabsTrigger>
+              )}
+              {sections.adsTab && (
+                <TabsTrigger value="ads" className="shrink-0" disabled={!isEditing}>{t('admin.products.productAdsSection.advertenties')}</TabsTrigger>
+              )}
               {hasSizeGuide && (
                 <TabsTrigger value="sizechart" className="shrink-0">{t('admin.sizeChart.tab')}</TabsTrigger>
               )}
@@ -864,7 +887,7 @@ export default function ProductForm() {
                     </CardHeader>
                     <CardContent>
                       <div className="grid gap-4 md:grid-cols-3">
-                        {(Object.keys(productTypeInfo) as ProductType[]).filter((type) => type !== 'ticket' || eventsModule || productType === 'ticket').map((type) => {
+                        {sections.productTypes.map((type) => {
                           const info = productTypeInfo[type];
                           const isSelected = productType === type;
                           return (
@@ -891,6 +914,20 @@ export default function ProductForm() {
                           );
                         })}
                       </div>
+                      {/* PRODUCT-FORM-1: voeding of drank bepaalt allergenen en (met horeca) keuken, extra's en kanalen. */}
+                      {sections.foodToggle && (
+                        <FormField control={form.control} name="is_food" render={({ field }) => (
+                          <FormItem className="mt-4 flex items-center justify-between gap-4 rounded-lg border p-3">
+                            <div>
+                              <FormLabel>{t('admin.productForm.is_food.label')}</FormLabel>
+                              <FormDescription>
+                                {horeca ? t('admin.productForm.is_food.hint_horeca') : t('admin.productForm.is_food.hint')}
+                              </FormDescription>
+                            </div>
+                            <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} disabled={readOnly} /></FormControl>
+                          </FormItem>
+                        )} />
+                      )}
                     </CardContent>
                   </Card>
 
@@ -1149,7 +1186,7 @@ export default function ProductForm() {
                           </FormItem>
                         )} />
                         {/* TAFEL-3 — btw bij meenemen aan de toog van SellQo Kassa (bv. 6 % voor een afhaalmaaltijd). */}
-                        {horeca && (
+                        {sections.horecaCards && (
                           <FormField control={form.control} name="takeaway_vat_rate_id" render={({ field }) => (
                             <FormItem>
                               <FormLabel>{t('admin.productForm.takeaway_vat_label')}</FormLabel>
@@ -1269,6 +1306,7 @@ export default function ProductForm() {
                         </div>
                       )}
 
+                      {sections.shipping && (<>
                       <FormField control={form.control} name="requires_shipping" render={({ field }) => (
                         <FormItem className="flex items-center justify-between rounded-lg border p-3">
                           <div>
@@ -1290,6 +1328,7 @@ export default function ProductForm() {
                           </FormItem>
                         )} />
                       )}
+                      </>)}
                     </CardContent>
                   </Card>
 
@@ -1808,13 +1847,13 @@ export default function ProductForm() {
                   )}
 
                   {/* DEMO-1 — extra's (horeca-module) */}
-                  {horeca && isEditing && id ? <ProductAddonsCard productId={id} categoryIds={selectedCategoryIds} /> : null}
+                  {sections.horecaCards && isEditing && id ? <ProductAddonsCard productId={id} categoryIds={selectedCategoryIds} /> : null}
                   {/* HORECA-CHANNELS-1 — online / aan tafel / op de kaart / kassa, en op voor vandaag */}
-                  {horeca && isEditing && id ? <ProductChannelsCard productId={id} /> : null}
+                  {sections.horecaCards && isEditing && id ? <ProductChannelsCard productId={id} /> : null}
                   {/* KASSA-UX-4 — bereiden aan (keuken, bar, …): wint van de categorie */}
-                  {horeca && isEditing && id ? <ProductStationCard productId={id} /> : null}
+                  {sections.horecaCards && isEditing && id ? <ProductStationCard productId={id} /> : null}
                   {/* ALLERGEN-1 — allergenen en dieetlabels (horeca-module) */}
-                  {horeca && isEditing && id ? <ProductAllergensCard productId={id} /> : null}
+                  {sections.allergens && isEditing && id ? <ProductAllergensCard productId={id} /> : null}
 
                   {/* Events & Datums (alleen bij ticket) */}
                   {isTicket && (isEditing && id ? (
