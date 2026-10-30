@@ -6301,8 +6301,38 @@
           "invalid_price": "Dieser Preis ist ungültig.",
           "invalid_amount": "Diese Menge ist ungültig.",
           "generic": "Das hat nicht geklappt. Versuch es erneut oder ändere es selbst.",
-          "variant_not_found": "Wähle zuerst die richtige Variante."
-        }
+          "variant_not_found": "Wähle zuerst die richtige Variante.",
+          "code_exists": "Diesen Rabattcode gibt es schon.",
+          "invalid_code": "Dieser Code ist ungültig (3–30 Buchstaben oder Ziffern).",
+          "invalid_value": "Dieser Rabattwert ist ungültig.",
+          "invalid_name": "Dieser Produktname ist ungültig.",
+          "invalid_active": "Das kann nicht an- oder ausgeschaltet werden.",
+          "stale": "Ein Preis hat sich inzwischen geändert. Frag den Vorschlag erneut an.",
+          "date_in_past": "Dieses Enddatum liegt in der Vergangenheit."
+        },
+        "title_active": "Produkt an/aus",
+        "title_create_product": "Neues Produkt (Entwurf)",
+        "title_bulk_price": "Preise ändern",
+        "title_discount_code": "Neuer Rabattcode",
+        "on": "An",
+        "off": "Aus",
+        "create_as_draft": "Wird als Entwurf angelegt: nicht sichtbar, bis du es selbst live schaltest.",
+        "free_shipping": "Kostenloser Versand",
+        "valid_until": "gültig bis {{date}}",
+        "min_order": "ab {{amount}}",
+        "open_product": "Produkt öffnen"
+      },
+      "aiTable": {
+        "product": "Produkt",
+        "quantity": "Menge",
+        "revenue": "Umsatz",
+        "name": "Name",
+        "sku": "SKU",
+        "price": "Preis",
+        "cost_price": "Einkaufspreis",
+        "stock": "Bestand",
+        "active": "Aktiv",
+        "more": "… und {{count}} weitere. Lade die CSV für die vollständige Liste herunter."
       }
     },
     "floatingSaveBar": {

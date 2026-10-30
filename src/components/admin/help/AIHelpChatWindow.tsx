@@ -11,9 +11,10 @@ import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
 import { useTenant } from '@/hooks/useTenant';
 import { AIActionCard, type AIActionProposal } from './AIActionCard';
+import { AITableCard, type AITable } from './AITableCard';
 
 // AI-AGENT-1: een antwoord kan voorstellen bevatten (kaarten met Uitvoeren/Annuleren).
-type Message = { role: 'user' | 'assistant'; content: string; actions?: AIActionProposal[] };
+type Message = { role: 'user' | 'assistant'; content: string; actions?: AIActionProposal[]; tables?: AITable[] };
 
 interface AIHelpChatWindowProps {
   onClose: () => void;
@@ -132,6 +133,15 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
           if (jsonStr === '[DONE]') break;
           try {
             const parsed = JSON.parse(jsonStr);
+            // AI-AGENT-2: lijst/top als tabel met CSV-download.
+            if (parsed.sellqo_table && Array.isArray(parsed.sellqo_table.rows)) {
+              const tb = parsed.sellqo_table as AITable;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant') return prev.map((m, i) => i === prev.length - 1 ? { ...m, tables: [...(m.tables ?? []), tb] } : m);
+                return [...prev, { role: 'assistant', content: '', tables: [tb] }];
+              });
+            }
             if (Array.isArray(parsed.sellqo_actions)) {
               const acts = parsed.sellqo_actions as AIActionProposal[];
               setMessages(prev => {
@@ -169,6 +179,15 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
           if (jsonStr === '[DONE]') continue;
           try {
             const parsed = JSON.parse(jsonStr);
+            // AI-AGENT-2: lijst/top als tabel met CSV-download.
+            if (parsed.sellqo_table && Array.isArray(parsed.sellqo_table.rows)) {
+              const tb = parsed.sellqo_table as AITable;
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant') return prev.map((m, i) => i === prev.length - 1 ? { ...m, tables: [...(m.tables ?? []), tb] } : m);
+                return [...prev, { role: 'assistant', content: '', tables: [tb] }];
+              });
+            }
             if (Array.isArray(parsed.sellqo_actions)) {
               const acts = parsed.sellqo_actions as AIActionProposal[];
               setMessages(prev => {
@@ -245,6 +264,7 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
               {msg.role === 'assistant' ? (
                 <div className="prose prose-sm max-w-none text-foreground prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:mt-2 prose-headings:mb-1 prose-headings:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-code:bg-background/50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-a:text-primary prose-a:underline">
                   {msg.content ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: MarkdownLink }}>{msg.content}</ReactMarkdown> : null}
+                  {msg.tables?.map((tb, k) => <AITableCard key={`t-${i}-${k}`} table={tb} />)}
                   {msg.actions?.map((a, k) => <AIActionCard key={`${i}-${k}`} proposal={a} tenantId={currentTenant?.id} />)}
                 </div>
               ) : (

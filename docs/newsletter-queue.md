@@ -4,6 +4,16 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14t — Vraag je assistent naar je cijfers (feature, 30-10-2026)
+
+**Status:** wacht op go: push, migraties, deploy, publish (AI-AGENT-2).
+
+**"Wat was mijn omzet vorige zaterdag?"** (oktober 2026)
+Je assistent kent nu je cijfers: omzet, winst, je best verkopende producten en lijsten die je als Excel-bestand downloadt. En hij doet meer voor je: een nieuw product klaarzetten, prijzen van een hele categorie aanpassen of een kortingscode maken. Altijd pas na jouw ja.
+Wat betekent dit voor jou? Geen rapporten meer zoeken: vraag het gewoon, in je eigen taal.
+
+i18n: `public.changelog.changes.ai_agent_2`
+
 ### 2026.14r — De hulpassistent zet wijzigingen voor je klaar (feature, 30-10-2026)
 
 **Status:** live sinds 30-10-2026 (AI-AGENT-1, PRODUCT-FORM-1).

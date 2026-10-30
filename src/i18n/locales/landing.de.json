@@ -373,7 +373,7 @@
       "name_events_vast": "Events Fix",
       "name_horeca": "Gastro Klein",
       "name_horeca_big": "Gastro Groß",
-      "feat_ai_actions": "KI-Assistent, der Bestand, Preise und Ausverkauft für dich vorbereitet"
+      "feat_ai_actions": "KI-Assistent, der deine Zahlen kennt und Änderungen für dich vorbereitet"
     },
     "faq": {
       "heading": "Häufige Fragen",
@@ -2392,6 +2392,10 @@
         "product_form_cleanup": {
           "title": "Produktseite aufgeräumt",
           "description": "Typen, die SellQo nach der Zahlung noch nicht liefert (digital, Geschenkkarte, Abo), kannst du für neue Produkte nicht mehr wählen; ein bestehendes Produkt zeigt einen klaren Hinweis. Die Schalter „Nachbestellungen erlauben“ und „Versand erforderlich“ hatten in deinem Webshop keine Wirkung und sind weg: Der Versand folgt jetzt dem Produkttyp. Marktplätze und Werbung siehst du nur mit einem verbundenen Kanal. Alles ist übersetzt."
+        },
+        "ai_agent_2": {
+          "title": "Frag den Assistenten nach deinen Zahlen und lass ihn mehr erledigen",
+          "description": "Frag „Wie hoch war mein Umsatz letzten Samstag?“, „Wie hoch war mein Gewinn im Oktober?“ oder „Mach eine Liste der Produkte ohne Foto“: Du bekommst die Antwort mit denselben Zahlen wie in deinem Dashboard, und Listen als Tabelle mit CSV-Download. Der Assistent kann jetzt auch ein neues Produkt als Entwurf anlegen, Produkte an- oder ausschalten, Preise einer ganzen Kategorie ändern und einen Rabattcode erstellen, immer erst nach deiner Bestätigung. Ab jetzt speichert SellQo den Einkaufspreis bei jedem Verkauf, damit dein Gewinn genau wird."
         }
       },
       "copyLink": "Link kopieren",

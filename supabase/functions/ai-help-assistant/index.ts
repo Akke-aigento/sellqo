@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { hasRequiredRole } from "../_shared/authRoles.ts";
-import { AI_ACTION_TOOLS, buildProposal, planAllowsActions, type ActionProposal } from "../_shared/aiActions.ts";
-import { findProducts, loadProduct } from "../_shared/aiActionsDb.ts";
+import { AI_ACTION_TOOLS, MAX_BULK, bulkNewPrice, buildCreateProduct, buildProposal, planAllowsActions, slugify, type ActionProposal } from "../_shared/aiActions.ts";
+import { fetchCosts, fetchItems, fetchSales, findCategory, findProducts, listProducts, loadProduct, productsForBulk } from "../_shared/aiActionsDb.ts";
+import { LIST_FILTERS, brusselsYmd, discountFactors, isRevenueOrder, parseRange, profitEstimate, salesSummary, topProducts, type ListFilter } from "../_shared/aiInsights.ts";
+import { AI_EXTRA_ACTION_TOOLS, AI_READ_TOOLS, checkDiscount } from "../_shared/aiTools.ts";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
@@ -13,7 +15,7 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "AI-AGENT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "AI-AGENT-2" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -209,11 +211,23 @@ ${planMatrix || "Geen abonnementen bekend."}
 
     // AI-AGENT-1: acties (voorraad, prijs, uitverkocht) voor tenant_admin/staff in plannen met
     // ai_actions. Platformadmins mogen altijd (support), ook zonder plan.
-    const canAct = (isPlatformAdmin || planAllowsActions(currentPlan?.features))
-      && hasRequiredRole(auth, tenantId, ["tenant_admin", "staff"]);
+    const planOk = isPlatformAdmin || planAllowsActions(currentPlan?.features);
+    const canAct = planOk && hasRequiredRole(auth, tenantId, ["tenant_admin", "staff"]);
+    // AI-AGENT-2: cijfers lezen mag ook de boekhouder.
+    const canRead = planOk && hasRequiredRole(auth, tenantId, ["tenant_admin", "staff", "accountant"]);
+    const todayYmd = brusselsYmd(new Date());
+    const weekday = new Intl.DateTimeFormat("nl-BE", { timeZone: "Europe/Brussels", weekday: "long" }).format(new Date());
+    const readRules = canRead
+      ? `## Cijfers van deze winkel
+- Vandaag is het ${weekday} ${todayYmd} (Europe/Brussels). Reken relatieve datums ("vorige zaterdag", "vorige maand") hiermee om naar YYYY-MM-DD.
+- Voor elk getal over omzet, winst, verkopen, producten of voorraad gebruik je ALTIJD een tool. Verzin nooit cijfers en schat niet uit je hoofd.
+- Een winst is altijd een schatting: noem de dekking en de producten zonder kostprijs, en stel voor om die kostprijzen in te vullen.
+- Bij een lijst toont de app de volledige tabel met een downloadknop; vat in je antwoord enkel samen (aantal, opvallendste regels).
+- Bedragen in euro met 2 decimalen, in de notatie van de taal van de gebruiker.`
+      : "";
     const actionRules = canAct
       ? `## Acties (je kunt wijzigingen klaarzetten)
-- Je kunt voorraad aanpassen, verkoopprijzen wijzigen en producten voor vandaag uitverkocht (of weer beschikbaar) zetten met de tools.
+- Je kunt voorraad aanpassen, verkoopprijzen wijzigen (ook voor meerdere producten tegelijk), producten voor vandaag uitverkocht (of weer beschikbaar) zetten, producten aan- of uitzetten, een nieuw product als concept aanmaken en een kortingscode maken.
 - Zoek ALTIJD eerst het product met find_products en gebruik het id uit het resultaat. Vind je meerdere producten die passen, vraag dan welk product bedoeld is in plaats van te gokken. Heeft een product varianten, vraag dan welke variant.
 - Een propose_*-tool voert NIETS uit: de gebruiker ziet een kaart met Uitvoeren en Annuleren. Zeg dus kort wat je hebt klaargezet en dat de gebruiker het hieronder bevestigt. Zeg NOOIT dat het al gebeurd is.
 - Elke uitgevoerde actie kost 1 AI-credit. Maximaal 5 voorstellen per antwoord. Geen acties op vragen die er niet om vragen.`
@@ -225,6 +239,8 @@ ${planMatrix || "Geen abonnementen bekend."}
 ${commonHeader}
 
 ${isPlatformAdmin ? adminRules : tenantRules}
+
+${readRules}
 
 ${actionRules}`;
 
@@ -262,7 +278,9 @@ ${actionRules}`;
     // AI-AGENT-1: met acties eerst een niet-streamende ronde met tools (zoeken wordt meteen
     // uitgevoerd, voorstellen gevalideerd maar NIET uitgevoerd). Het antwoord gaat daarna als
     // dezelfde SSE-vorm naar de client, met de voorstellen als extra event `sellqo_actions`.
-    if (canAct) {
+    if (canAct || canRead) {
+      const tools = [...(canRead ? AI_READ_TOOLS : []), ...(canAct ? [...AI_ACTION_TOOLS, ...AI_EXTRA_ACTION_TOOLS] : [])];
+      const tables: Array<{ title: string; columns: string[]; rows: unknown[][] }> = [];
       const convo: Array<Record<string, unknown>> = [...messages];
       const proposals: ActionProposal[] = [];
       let text = "";
@@ -271,7 +289,7 @@ ${actionRules}`;
           method: "POST",
           headers: { Authorization: `Bearer ${lovableApiKey}`, "Content-Type": "application/json" },
           // Laatste ronde: geen tools meer, zodat er altijd een tekstantwoord komt.
-          body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages: convo, tools: AI_ACTION_TOOLS, tool_choice: round === 4 ? "none" : "auto" }),
+          body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages: convo, tools, tool_choice: round === 4 ? "none" : "auto" }),
         });
         if (!r.ok) { console.error("AI gateway (acties):", r.status, await r.text()); return gatewayError(r.status); }
         const j = await r.json();
@@ -284,10 +302,87 @@ ${actionRules}`;
           try { args = JSON.parse(c.function?.arguments || "{}"); } catch { /* leeg */ }
           const name = c.function?.name;
           let out: unknown;
-          if (name === "find_products") {
+          if (name === "find_products" && (canAct || canRead)) {
             const found = await findProducts(adminClient, tenantId, String(args.query || ""));
             out = found.map((p) => ({ id: p.id, name: p.name, price: p.price, stock: p.track_inventory === false ? "not tracked" : p.stock, sold_out_today: !!p.sold_out_until && new Date(p.sold_out_until) > new Date(), variants: p.variants.map((v) => ({ id: v.id, name: v.name, stock: v.track_inventory === false ? "not tracked" : v.stock })) }));
-          } else if (typeof name === "string" && name.startsWith("propose_")) {
+          } else if (canRead && (name === "sales_summary" || name === "profit_estimate" || name === "top_products")) {
+            const range = parseRange(args.from, args.to);
+            if (!range.ok) out = { error: range.error };
+            else if (name !== "sales_summary" && range.days > 92) out = { error: "range_too_long_max_92_days_split_it" };
+            else {
+              const { orders, pos, truncated } = await fetchSales(adminClient, tenantId, range.startIso, range.endIso);
+              const trunc = truncated ? { truncated: true, warning: "Too many sales for one question: numbers are incomplete. Tell the user and suggest a shorter period." } : {};
+              if (name === "sales_summary") out = { ...salesSummary(orders, pos, range), ...trunc };
+              else {
+                const revOrders = orders.filter(isRevenueOrder);
+                const revIds = new Set(revOrders.map((o) => o.id));
+                const items = await fetchItems(adminClient, [...revIds]);
+                const factors = discountFactors(revOrders, items);
+                if (name === "profit_estimate") {
+                  const costs = await fetchCosts(adminClient, tenantId, [...new Set(items.map((i) => i.product_id).filter(Boolean) as string[])]);
+                  out = { from: range.from, to: range.to, ...profitEstimate(items, revIds, costs, factors), pos_tickets_not_included: pos.filter((p) => !p.order_id).length, ...trunc };
+                } else {
+                  const by = args.by === "quantity" ? "quantity" : "revenue";
+                  const top = topProducts(items, revIds, by, Number(args.limit) || 10, factors);
+                  tables.push({ title: `Top ${top.length} (${range.from} → ${range.to})`, columns: ["product", "quantity", "revenue"], rows: top.map((t) => [t.name, t.quantity, t.revenue]) });
+                  out = { from: range.from, to: range.to, by, products: top.slice(0, 15), shown_as_table: true, ...trunc };
+                }
+              }
+            }
+          } else if (canRead && name === "list_products") {
+            const filter = (LIST_FILTERS as readonly string[]).includes(String(args.filter)) ? args.filter as ListFilter : "all";
+            const res = await listProducts(adminClient, tenantId, filter, String(args.query || ""), Number(args.limit) || 200);
+            tables.push({ title: `${filter} (${res.total})`, columns: ["name", "sku", "price", "cost_price", "stock", "active"], rows: res.rows.map((x) => [x.name, x.sku, x.price, x.cost_price, x.stock, x.active]) });
+            out = { filter, total: res.total, first_rows: res.rows.slice(0, 20), shown_as_table: true };
+          } else if (canAct && name === "propose_create_product") {
+            if (proposals.length >= 5) out = { error: "max_5_proposals" };
+            else {
+              const cat = args.category_name ? await findCategory(adminClient, tenantId, String(args.category_name)) : null;
+              const base = slugify(String(args.name || ""));
+              const { data: slugRows } = await adminClient.from("products").select("slug").eq("tenant_id", tenantId).like("slug", `${base}%`).limit(300);
+              const res = buildCreateProduct({ ...args, category_name: cat?.name ?? null }, new Set(((slugRows ?? []) as Array<{ slug: string }>).map((x) => x.slug)), cat?.id ?? null);
+              if (res.ok) { res.value.tenant_id = tenantId; proposals.push(res.value); out = { status: "waiting_for_user_confirmation", proposal: res.value, category_found: !!cat }; }
+              else out = { error: res.error };
+            }
+          } else if (canAct && name === "propose_bulk_price" && proposals.length >= 5) {
+            out = { error: "max_5_proposals" };
+          } else if (canAct && name === "propose_discount_code" && proposals.length >= 5) {
+            out = { error: "max_5_proposals" };
+          } else if (canAct && name === "propose_bulk_price") {
+            const cat = args.category_name ? await findCategory(adminClient, tenantId, String(args.category_name)) : null;
+            if (args.category_name && !cat) out = { error: "category_not_found" };
+            else {
+              const list = await productsForBulk(adminClient, tenantId, cat?.id ?? null, String(args.query || ""));
+              if (!list.length) out = { error: "no_products_found" };
+              else if (list.length > MAX_BULK) out = { error: "too_many_products_max_50" };
+              else {
+                // Producten met een eigen variantprijs: die prijs verandert niet mee, dus niet in bulk.
+                const { data: vp } = await adminClient.from("product_variants").select("product_id").eq("tenant_id", tenantId).in("product_id", list.map((p) => p.id)).not("price", "is", null);
+                const withVariantPrice = new Set(((vp ?? []) as Array<{ product_id: string }>).map((x) => x.product_id));
+                const items = list.filter((p) => !withVariantPrice.has(p.id))
+                  .map((p) => ({ product_id: p.id, product_name: p.name, before: Number(p.price), after: bulkNewPrice(Number(p.price), args.mode, args.value) }))
+                  .filter((x) => x.after != null && x.after !== x.before);
+                if (!items.length) out = { error: "no_change" };
+                else {
+                  const prop: ActionProposal = { kind: "bulk_price", product_id: "", variant_id: null, product_name: cat?.name ?? String(args.query || ""), before: null, after: items.length, tenant_id: tenantId, payload: { mode: args.mode, value: args.value, items } };
+                  proposals.push(prop);
+                  out = { status: "waiting_for_user_confirmation", products: items.length, skipped_variant_priced: withVariantPrice.size };
+                }
+              }
+            }
+          } else if (canAct && name === "propose_discount_code") {
+            const res = checkDiscount(args);
+            if (!res.ok) out = { error: res.error };
+            else {
+              const { count } = await adminClient.from("discount_codes").select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).ilike("code", String(res.value.code).replace(/[%_]/g, (m) => `\\${m}`));
+              if ((count ?? 0) > 0) out = { error: "code_exists" };
+              else {
+                const prop: ActionProposal = { kind: "discount_code", product_id: "", variant_id: null, product_name: res.value.code as string, before: null, after: Number(res.value.discount_value), tenant_id: tenantId, payload: res.value };
+                proposals.push(prop);
+                out = { status: "waiting_for_user_confirmation", proposal: res.value };
+              }
+            }
+          } else if (canAct && typeof name === "string" && name.startsWith("propose_")) {
             if (proposals.length >= 5) out = { error: "max_5_proposals" };
             else {
               const product = await loadProduct(adminClient, tenantId, String(args.product_id || ""));
@@ -305,6 +400,7 @@ ${actionRules}`;
       const chunks = [
         `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`,
         ...(proposals.length ? [`data: ${JSON.stringify({ sellqo_actions: proposals })}\n\n`] : []),
+        ...tables.map((tb) => `data: ${JSON.stringify({ sellqo_table: tb })}\n\n`),
         "data: [DONE]\n\n",
       ];
       return new Response(new ReadableStream({ start(ctl) { for (const c of chunks) ctl.enqueue(enc.encode(c)); ctl.close(); } }), {

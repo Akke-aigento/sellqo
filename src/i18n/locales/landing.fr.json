@@ -373,7 +373,7 @@
       "name_events_vast": "Événements Fixe",
       "name_horeca": "Horeca Petit",
       "name_horeca_big": "Horeca Grand",
-      "feat_ai_actions": "Assistant IA qui prépare pour vous les changements de stock, de prix et d’épuisé"
+      "feat_ai_actions": "Assistant IA qui connaît vos chiffres et prépare les changements pour vous"
     },
     "faq": {
       "heading": "Questions fréquentes",
@@ -2392,6 +2392,10 @@
         "product_form_cleanup": {
           "title": "Fiche produit simplifiée",
           "description": "Les types que SellQo ne livre pas encore après paiement (numérique, carte cadeau, abonnement) ne peuvent plus être choisis pour de nouveaux produits ; un produit existant affiche un avertissement clair. Les interrupteurs « Autoriser les précommandes » et « Livraison requise » n’avaient aucun effet dans votre boutique et ont disparu : la livraison suit désormais le type de produit. Marketplaces et publicités n’apparaissent que si un canal est connecté. Tout est traduit."
+        },
+        "ai_agent_2": {
+          "title": "Interrogez l’assistant sur vos chiffres et confiez-lui plus de travail",
+          "description": "Demandez « quel était mon chiffre d’affaires samedi dernier ? », « quel était mon bénéfice en octobre ? » ou « fais une liste des produits sans photo » : vous obtenez la réponse avec les mêmes chiffres que votre tableau de bord, et les listes en tableau avec téléchargement CSV. L’assistant peut aussi créer un nouveau produit en brouillon, activer ou désactiver des produits, modifier les prix d’une catégorie entière et créer un code de réduction, toujours après votre confirmation. Désormais SellQo enregistre le prix de revient à chaque vente, pour un bénéfice exact."
         }
       },
       "copyLink": "Copier le lien",

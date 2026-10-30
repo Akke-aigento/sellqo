@@ -1,3 +1,33 @@
+## AI-AGENT-2 — assistent kent je cijfers (omzet, winst, top, lijsten + CSV) en doet meer (product, aan/uit, bulkprijs, kortingscode) — 30 oktober 2026
+
+**Aanleiding / beslissingen**
+- Akke (30-10): "hij moet echt alles weten en kunnen". Gekozen: A (cijfers), B (meer acties), C (marktadvies) + "denk mega creatief". Visie: projectdoc `claude/ai-assistent-visie.md`. C (marktadvies) vraagt een web-zoekbron: voorstel Parallel-connector van Lovable (kost credits), aparte beslissing.
+- Plan-scope: onder `ai_actions` (betaalde plannen); label `feat_ai_actions` bijgewerkt in 5 talen. Lezen: tenant_admin/staff/accountant. Wijzigen: tenant_admin/staff.
+
+**Uitgevoerd**
+- `_shared/aiInsights.ts` (+ deno-test 8): omzet- en kanaalregel letterlijk gelijk aan `src/lib/salesStats.ts` + `cockpitRevenue.ts` (één bron per getal), dagen in Europe/Brussels (zomer/wintertijd getest), winst = omzet excl. btw − kostprijs (bewaarde kostprijs vóór huidige), kortingscodes per order naar rato verdeeld (les Fonske 27-10), top-producten.
+- `_shared/aiTools.ts`: tools `sales_summary`, `profit_estimate`, `top_products`, `list_products`, `propose_set_active`, `propose_create_product`, `propose_bulk_price`, `propose_discount_code`; `checkDiscount`; einde-dag Brussel.
+- `_shared/aiActionsDb.ts`: paginering met afkapmelding, items in blokken, kostprijzen, lijsten met filters, categorie zoeken, bulkselectie.
+- `ai-help-assistant` (stempel `AI-AGENT-2`): datum van vandaag in de prompt, regels "verzin nooit cijfers", tabellen als event `sellqo_table`; max. 92 dagen voor winst/top.
+- `ai-assistant-action` (stempel `AI-AGENT-2`): product aan/uit; nieuw product als inactief concept (slug uniek, categorie van de winkel, koppeltabel); bulkprijs bindend (exact de getoonde prijzen, anders 409 `stale`; producten met eigen variantprijs uitgesloten; nooit naar €0 behalve "set"); kortingscode (hoofdletterongevoelig uniek, einddatum = 23:59:59 Brussel, niet in het verleden).
+- Migratie `20261030235000_ai_agent_2_cost_snapshot.sql`: `order_items.cost_price` + trigger die de kostprijs (variant, dan product) vastlegt, **enkel van de winkel van de order**.
+- Client: `AITableCard` (tabel + CSV met ; en BOM), `AIActionCard` voor de nieuwe soorten (lijst oud → nieuw, link "Product openen"). i18n 5 talen. Changelog 2026.14t `ai_agent_2`. Helpartikel `20261030235100`.
+
+**Security-keuzes**
+- Review-agent (2e ronde, geld/data): blocker gevonden en opgelost: de security-definer-trigger zocht kostprijs op product-id zonder winkelcontrole (RLS op `order_items` controleert enkel de order), waardoor een medewerker de kostprijs van een andere winkel in een eigen orderregel kon krijgen. Nu tenant via de order. Verder verwerkt: max. 5 voorstellen ook voor bulk/korting, bindende bulkprijs, hoofdletterongevoelige code, DST-correcte einddatum, afkapmelding, categoriekoppeling gerapporteerd.
+- `order_items.cost_price`: klant-API's selecteren vaste kolommen (`storefront-customer-api:325`); `order_items(*)` enkel intern (labels, bol). Geen lek naar klanten.
+- Geen policy of grant gewijzigd; schrijven met de JWT van de gebruiker.
+
+**Gedeelde-paden-waarschuwing**
+- `order_items` is gedeeld met alle kanalen: enkel een additieve kolom + BEFORE INSERT-trigger die niets weigert (bij twijfel blijft de kostprijs leeg).
+
+**Verificatie**
+- deno test aiInsights 8 + aiActions 7 groen, deno check beide functies ok, i18n ok, tsc 27 = baseline, lint 1457 → 1456, build ok.
+
+**Bewust ongemoeid / Vervolg**
+- C marktadvies (web-zoekbron), ochtendbriefing, foto als invoer, overal in de app: zie visie.
+- Categorie van een product wijzigen via de assistent: nog niet.
+
 ## PRODUCT-FORM-2 — productpagina opgeruimd na deepdive — 30 oktober 2026
 
 **Aanleiding / beslissingen**

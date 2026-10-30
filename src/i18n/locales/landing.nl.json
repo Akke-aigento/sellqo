@@ -373,7 +373,7 @@
       "name_events_vast": "Events Vast",
       "name_horeca": "Horeca Small",
       "name_horeca_big": "Horeca Big",
-      "feat_ai_actions": "AI-assistent die voorraad, prijzen en uitverkocht voor je klaarzet"
+      "feat_ai_actions": "AI-assistent die je cijfers kent en wijzigingen voor je klaarzet"
     },
     "faq": {
       "heading": "Veelgestelde vragen",
@@ -2392,6 +2392,10 @@
         "product_form_cleanup": {
           "title": "Productpagina opgeruimd",
           "description": "Typen die SellQo na betaling nog niet levert (digitaal, cadeaukaart, abonnement) kies je niet meer voor nieuwe producten; een bestaand product krijgt een duidelijke melding. De schakelaars \"Backorders toestaan\" en \"Verzending vereist\" deden niets in je webshop en zijn weg: verzending volgt nu het producttype. Marketplaces en advertenties zie je enkel als je een kanaal gekoppeld hebt. Alles is vertaald."
+        },
+        "ai_agent_2": {
+          "title": "Vraag de assistent naar je cijfers en laat hem meer werk doen",
+          "description": "Vraag \"wat was mijn omzet vorige zaterdag?\", \"wat was mijn winst in oktober?\" of \"maak een lijst van producten zonder foto\": je krijgt het antwoord met dezelfde cijfers als je dashboard, en lijsten als tabel met CSV-download. De assistent kan nu ook een nieuw product als concept aanmaken, producten aan- of uitzetten, prijzen voor een hele categorie aanpassen en een kortingscode maken, altijd pas na jouw bevestiging. Vanaf nu bewaart SellQo de kostprijs bij elke verkoop, zodat je winst exact wordt."
         }
       },
       "copyLink": "Kopieer link",

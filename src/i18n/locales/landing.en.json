@@ -373,7 +373,7 @@
       "name_events_vast": "Events Fixed",
       "name_horeca": "Hospitality Small",
       "name_horeca_big": "Hospitality Big",
-      "feat_ai_actions": "AI assistant that prepares stock, price and sold-out changes for you"
+      "feat_ai_actions": "AI assistant that knows your numbers and prepares changes for you"
     },
     "faq": {
       "heading": "Frequently asked questions",
@@ -2392,6 +2392,10 @@
         "product_form_cleanup": {
           "title": "Product page cleaned up",
           "description": "Types SellQo does not deliver after payment yet (digital, gift card, subscription) can no longer be chosen for new products; an existing product shows a clear notice. The \"Allow backorders\" and \"Requires shipping\" switches did nothing in your webshop and are gone: shipping now follows the product type. Marketplaces and ads only appear when you have a channel connected. Everything is translated."
+        },
+        "ai_agent_2": {
+          "title": "Ask the assistant about your numbers and let it do more",
+          "description": "Ask \"what was my revenue last Saturday?\", \"what was my profit in October?\" or \"make a list of products without a photo\": you get the answer with the same numbers as your dashboard, and lists as a table with CSV download. The assistant can now also create a new product as a draft, switch products on or off, change prices for a whole category and create a discount code, always only after you confirm. From now on SellQo stores the cost price with every sale, so your profit becomes exact."
         }
       },
       "copyLink": "Copy link",

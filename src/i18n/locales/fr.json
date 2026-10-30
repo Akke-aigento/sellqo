@@ -6301,8 +6301,38 @@
           "invalid_price": "Ce prix n’est pas valide.",
           "invalid_amount": "Cette quantité n’est pas valide.",
           "generic": "Cela n’a pas fonctionné. Réessayez ou modifiez-le vous-même.",
-          "variant_not_found": "Choisissez d’abord la bonne variante."
-        }
+          "variant_not_found": "Choisissez d’abord la bonne variante.",
+          "code_exists": "Ce code de réduction existe déjà.",
+          "invalid_code": "Ce code n’est pas valide (3 à 30 lettres ou chiffres).",
+          "invalid_value": "Cette valeur de réduction n’est pas valide.",
+          "invalid_name": "Ce nom de produit n’est pas valide.",
+          "invalid_active": "Impossible d’activer ou de désactiver ceci.",
+          "stale": "Un prix a changé entre-temps. Redemandez la proposition.",
+          "date_in_past": "Cette date de fin est dans le passé."
+        },
+        "title_active": "Produit activé/désactivé",
+        "title_create_product": "Nouveau produit (brouillon)",
+        "title_bulk_price": "Modifier les prix",
+        "title_discount_code": "Nouveau code de réduction",
+        "on": "Activé",
+        "off": "Désactivé",
+        "create_as_draft": "Créé en brouillon : invisible tant que vous ne le publiez pas vous-même.",
+        "free_shipping": "Livraison gratuite",
+        "valid_until": "valable jusqu’au {{date}}",
+        "min_order": "à partir de {{amount}}",
+        "open_product": "Ouvrir le produit"
+      },
+      "aiTable": {
+        "product": "Produit",
+        "quantity": "Quantité",
+        "revenue": "Chiffre d’affaires",
+        "name": "Nom",
+        "sku": "SKU",
+        "price": "Prix",
+        "cost_price": "Prix de revient",
+        "stock": "Stock",
+        "active": "Actif",
+        "more": "… et {{count}} de plus. Téléchargez le CSV pour la liste complète."
       }
     },
     "floatingSaveBar": {

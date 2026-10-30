@@ -6219,8 +6219,38 @@
           "invalid_price": "Deze prijs is niet geldig.",
           "invalid_amount": "Dit aantal is niet geldig.",
           "generic": "Het lukte niet. Probeer het opnieuw of pas het zelf aan.",
-          "variant_not_found": "Kies eerst de juiste variant."
-        }
+          "variant_not_found": "Kies eerst de juiste variant.",
+          "code_exists": "Deze kortingscode bestaat al.",
+          "invalid_code": "Deze code is niet geldig (3-30 letters of cijfers).",
+          "invalid_value": "Deze kortingswaarde is niet geldig.",
+          "invalid_name": "Deze productnaam is niet geldig.",
+          "invalid_active": "Dit kan niet aan- of uitgezet worden.",
+          "stale": "Een prijs is intussen veranderd. Vraag het voorstel opnieuw.",
+          "date_in_past": "Die einddatum ligt in het verleden."
+        },
+        "title_active": "Product aan/uit",
+        "title_create_product": "Nieuw product (concept)",
+        "title_bulk_price": "Prijzen aanpassen",
+        "title_discount_code": "Nieuwe kortingscode",
+        "on": "Aan",
+        "off": "Uit",
+        "create_as_draft": "Wordt aangemaakt als concept: nog niet zichtbaar tot je het zelf live zet.",
+        "free_shipping": "Gratis verzending",
+        "valid_until": "geldig tot {{date}}",
+        "min_order": "vanaf {{amount}}",
+        "open_product": "Product openen"
+      },
+      "aiTable": {
+        "product": "Product",
+        "quantity": "Aantal",
+        "revenue": "Omzet",
+        "name": "Naam",
+        "sku": "SKU",
+        "price": "Prijs",
+        "cost_price": "Kostprijs",
+        "stock": "Voorraad",
+        "active": "Actief",
+        "more": "… en nog {{count}}. Download de CSV voor de volledige lijst."
       }
     },
     "reports": {

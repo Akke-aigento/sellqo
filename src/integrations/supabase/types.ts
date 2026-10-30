@@ -11242,6 +11242,7 @@ export type Database = {
       order_items: {
         Row: {
           addons: Json | null
+          cost_price: number | null
           created_at: string | null
           event_detail_id: string | null
           gift_card_id: string | null
@@ -11265,6 +11266,7 @@ export type Database = {
         }
         Insert: {
           addons?: Json | null
+          cost_price?: number | null
           created_at?: string | null
           event_detail_id?: string | null
           gift_card_id?: string | null
@@ -11288,6 +11290,7 @@ export type Database = {
         }
         Update: {
           addons?: Json | null
+          cost_price?: number | null
           created_at?: string | null
           event_detail_id?: string | null
           gift_card_id?: string | null

@@ -6574,8 +6574,38 @@
           "invalid_price": "This price is not valid.",
           "invalid_amount": "This quantity is not valid.",
           "generic": "That didn't work. Try again or change it yourself.",
-          "variant_not_found": "Choose the right variant first."
-        }
+          "variant_not_found": "Choose the right variant first.",
+          "code_exists": "This discount code already exists.",
+          "invalid_code": "This code is not valid (3–30 letters or digits).",
+          "invalid_value": "This discount value is not valid.",
+          "invalid_name": "This product name is not valid.",
+          "invalid_active": "This cannot be switched on or off.",
+          "stale": "A price changed in the meantime. Ask for the proposal again.",
+          "date_in_past": "That end date is in the past."
+        },
+        "title_active": "Product on/off",
+        "title_create_product": "New product (draft)",
+        "title_bulk_price": "Change prices",
+        "title_discount_code": "New discount code",
+        "on": "On",
+        "off": "Off",
+        "create_as_draft": "Created as a draft: not visible until you put it live yourself.",
+        "free_shipping": "Free shipping",
+        "valid_until": "valid until {{date}}",
+        "min_order": "from {{amount}}",
+        "open_product": "Open product"
+      },
+      "aiTable": {
+        "product": "Product",
+        "quantity": "Quantity",
+        "revenue": "Revenue",
+        "name": "Name",
+        "sku": "SKU",
+        "price": "Price",
+        "cost_price": "Cost price",
+        "stock": "Stock",
+        "active": "Active",
+        "more": "… and {{count}} more. Download the CSV for the full list."
       }
     },
     "floatingSaveBar": {

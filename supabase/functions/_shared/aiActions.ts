@@ -16,11 +16,12 @@ export const AI_ACTION_CREDITS = 1;
 export const MAX_PRICE = 100000;
 export const MAX_STOCK_STEP = 100000;
 
-export type ActionKind = "stock" | "price" | "sold_out";
+export type ActionKind = "stock" | "price" | "sold_out" | "active" | "create_product" | "bulk_price" | "discount_code";
 
 export interface ProductSnapshot {
   id: string;
   name: string;
+  is_active?: boolean;
   price: number;
   stock: number | null;
   track_inventory: boolean | null;
@@ -43,7 +44,47 @@ export interface ActionProposal {
   amount?: number;
   /** De winkel waarvoor het voorstel geldt (server zet dit). */
   tenant_id?: string;
+  /** AI-AGENT-2: extra gegevens per soort (nieuw product, bulkregels, kortingscode). */
+  payload?: Record<string, unknown>;
 }
+
+// ── AI-AGENT-2: extra acties ────────────────────────────────────────────────
+export const MAX_BULK = 50;
+export const DISCOUNT_TYPES = ["percentage", "fixed_amount", "free_shipping"] as const;
+
+export function slugify(name: string): string {
+  return name.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "product";
+}
+
+/** Nieuwe prijs bij een bulkwijziging, afgerond op 2 decimalen (of op ,x0/,x5 als round_to). */
+export function bulkNewPrice(current: number, mode: unknown, value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  let p: number;
+  if (mode === "percent") p = current * (1 + value / 100);
+  else if (mode === "amount") p = current + value;
+  else if (mode === "set") p = value;
+  else return null;
+  p = Math.round(p * 100) / 100;
+  // Bijtellen/procent mag nooit op €0 uitkomen (bv. -100%); enkel "set" mag een exacte prijs zetten.
+  if (mode !== "set" && p <= 0) return null;
+  return p < 0 || p > MAX_PRICE ? null : p;
+}
+
+export function buildCreateProduct(args: Record<string, unknown>, existingSlugs: Set<string>, categoryId: string | null): Result<ActionProposal> {
+  const name = typeof args.name === "string" ? args.name.trim().slice(0, 150) : "";
+  if (name.length < 2) return { ok: false, error: "invalid_name" };
+  if (typeof args.price !== "number" || !Number.isFinite(args.price) || args.price < 0 || args.price > MAX_PRICE) return { ok: false, error: "invalid_price" };
+  const price = Math.round(args.price * 100) / 100;
+  const base = slugify(name);
+  let slug = base;
+  for (let i = 2; existingSlugs.has(slug) && i < 200; i++) slug = `${base}-${i}`;
+  const description = typeof args.description === "string" ? args.description.slice(0, 4000) : "";
+  return { ok: true, value: {
+    kind: "create_product", product_id: "", variant_id: null, product_name: name, before: null, after: price,
+    payload: { name, slug, price, description, category_id: categoryId, category_name: categoryId ? args.category_name ?? null : null, is_food: args.is_food === true },
+  } };
+}
+
 
 export const AI_ACTION_TOOLS = [
   {
@@ -154,6 +195,12 @@ export function buildProposal(
     if (before === args.sold_out) return { ok: false, error: "no_change" };
     return { ok: true, value: { kind: "sold_out", product_id: product.id, variant_id: null, product_name: product.name, before, after: args.sold_out } };
   }
+  if (tool === "propose_set_active") {
+    if (typeof args.active !== "boolean") return { ok: false, error: "invalid_active" };
+    const before = (product as ProductSnapshot & { is_active?: boolean }).is_active !== false;
+    if (before === args.active) return { ok: false, error: "no_change" };
+    return { ok: true, value: { kind: "active", product_id: product.id, variant_id: null, product_name: product.name, before, after: args.active } };
+  }
   return { ok: false, error: "unknown_tool" };
 }
 
@@ -175,6 +222,7 @@ export function revalidate(
   }
   if (action.kind === "price") return buildProposal("propose_price_change", { new_price: action.after }, product, now);
   if (action.kind === "sold_out") return buildProposal("propose_sold_out", { sold_out: action.after }, product, now);
+  if (action.kind === "active") return buildProposal("propose_set_active", { active: action.after }, product, now);
   return { ok: false, error: "unknown_kind" };
 }
 
