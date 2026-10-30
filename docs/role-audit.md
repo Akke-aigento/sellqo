@@ -1,3 +1,41 @@
+## MEDIA-FIX-1 — buglijst 30-10: gsm-menu sellqo.app, plannamen, bibliotheek-scroll, fotovolgorde, transparante achtergrond, taal hulpassistent — 30 oktober 2026
+
+**Aanleiding**
+- Buglijst Akke (30-10). Akke: "je doet alles van hier uit, je doet het zelf". Vertaling: "foute vertaling was idd enkel op sellqo".
+
+**Root cause**
+- Gsm-menu: `LandingNavbar.tsx` zet `onDark` op false zodra het menu opengaat (logo/icoon donker), maar de balk bleef `bg-transparent` zolang je niet gescrold had → donkere tekst op de donkere hero.
+- Vertaling: live in 5 talen nagelopen. Alleen de plannamen bleven onvertaald: `PricingSection` toont `pricing_plans.name` rauw ("Events Vast", "Horeca Small/Big" in EN/FR/DE/UK). Studio Akke: ok.
+- Bibliotheek-scroll: `MediaLibraryPickerDialog` gebruikte een Radix `ScrollArea` met enkel `max-h`; de viewport is `h-full` van een hoogte zonder vaste waarde, groeit mee en scrolt dus nooit.
+- Fotovolgorde: `ProductForm` kende enkel "maak hoofdfoto"; de knoppen stonden achter hover (bestaat niet op touch).
+- Dambord: `ai-generate-image` stuurde "make it transparent" naar `gemini-3.1-flash-image-preview`. Een beeldmodel kan geen alfakanaal maken en tekent het dambord in de foto. Drie aanroepers: fotobewerker, bulk Foto's, mediabibliotheek.
+- Taal hulpassistent: prompt en kennisbank Nederlands + regel "standaard Nederlands"; de UI-taal ging niet mee. Bovendien stond de vraag dubbel in de historie.
+
+**Uitgevoerd**
+- `LandingNavbar.tsx`: balk krijgt een vlak als het menu open is.
+- `planLines.ts`: `planDisplayName(plan, t)` met `landing.pricing.name_<id>` (5 talen; Free/Starter/Pro/Enterprise vallen terug op de DB-naam). Gebruikt in `PricingSection`, `PlanSelectionStep`, `PlanComparisonCards`, `PlanFeatureDetailDialog`, `Billing` (toasts). Alle copy in `landing.{en,fr,de,uk}.json` die de plannamen noemt mee aangepast (15 per taal), zodat kaart en FAQ dezelfde naam dragen. NL ongewijzigd.
+- `MediaLibraryPickerDialog.tsx`: native `overflow-y-auto` + `overscroll-contain`; "x toevoegen" via i18n.
+- Nieuw `SortableProductImages.tsx` (dnd-kit: muis, touch met korte druk, toetsenbord; pijltjes altijd zichtbaar). `ProductForm`: positie 1 = hoofdfoto, `featured_image` volgt na herschikken; bij laden staat de hoofdfoto vooraan (zoals storefront-api ze uitlevert).
+- `ai-generate-image` (stempel `BG-REMOVE-1`): bij transparant-intentie een effen sleutelkleur (magenta, of groen als de bron veel magenta bevat) i.p.v. "transparent"; antwoord bevat `keyColor`.
+- Nieuw `src/lib/chromaKey.ts` (+ test in CI): flood fill vanaf de rand, zachte rand + despill; geen effen rand = foto ongemoeid. `useAIImages`: kiest de sleutelkleur, knipt na het antwoord, uploadt een nieuwe PNG, vervangt de galerijrij (insert + delete van de tussenversie). Mislukt het, dan blijft de effen versie.
+- `ai-help-assistant` (stempel `AI-LANG-1`): taalregel als laatste systeeminstructie vóór de vraag, `ui_language` uit de client als terugval, geen dubbele vraag meer in de historie.
+- Changelog 2026.14q (6 items, 5 talen), nieuwsbrief-wachtrij, helpartikel `20261030230100_media_fix_1_docs.sql`.
+
+**Security-keuzes**
+- Geen policy gewijzigd. De transparante PNG gaat naar `ai-images/<tenant_id>/…` (bestaande INSERT-policy per tenantmap). `ai_generated_images` heeft geen UPDATE-policy; die is bewust niet toegevoegd: nieuwe rij (INSERT) + oude weg (DELETE), beide al toegestaan per tenant.
+
+**Gedeelde-paden-waarschuwing (eerste wet)**
+- Geen storefront-functie geraakt. De fotovolgorde loopt via de bestaande `images`/`featured_image`; storefront-api zet de hoofdfoto al vooraan en volgt de array (r. 781, 1587). Custom frontends krijgen dezelfde vorm.
+
+**Verificatie**
+- vitest `chromaKey` 4/4. i18n-pariteit ok, gebruikte keys ok, dode knoppen ok, edge-pins ok. tsc: 27 = baseline (geen fout in een geraakt bestand). Lint 1457 → 1454. `vite build` ok. deno check `ai-generate-image` + `ai-help-assistant` ok.
+- Live (na deploy): versiestempels, bundel, gsm-menu en prijzen in 5 talen. Zie hieronder.
+
+**Bewust ongemoeid / Vervolg**
+- PRODUCT-FORM-1 (productpagina per type) en AI-AGENT-1 (actieve assistent): eerst ontwerp + beslissingen.
+- Hardcoded NL in `PlanFeatureDetailDialog` ("Alle features van het … plan", "Upgrade naar …") en `useAIImages`-toasts: aparte i18n-sweep.
+- RESERVATIE-2-uitrol staat nog open (storefront-api live `REKENING-ONLINE-1`, `reservation-mail` niet gedeployed, docs-migratie `20261030220100` niet gedraaid).
+
 ## RESERVATIE-2 — online reserveren door gasten (aanvraag → bevestigen → mail) (kassa 0.19.0) — 30 oktober 2026
 
 **Aanleiding**

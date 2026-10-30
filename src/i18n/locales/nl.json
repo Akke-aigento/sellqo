@@ -5264,7 +5264,9 @@
       "product_toevoegen": "Product toevoegen",
       "mediaLibraryPickerDialog": {
         "nog_geen_afbeeldingen_in_je_bibliotheek": "Nog geen afbeeldingen in je bibliotheek",
-        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Selecteer bestaande afbeeldingen of upload nieuwe naar je mediabibliotheek."
+        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Selecteer bestaande afbeeldingen of upload nieuwe naar je mediabibliotheek.",
+        "add": "Toevoegen",
+        "add_count": "{{count}} toevoegen"
       },
       "productPhotoLibraryCard": {
         "sleep_foto_s_hierheen_of_klik": "Sleep foto's hierheen of klik om te uploaden",
@@ -5509,7 +5511,13 @@
       "vat_rate_inactive": "(inactief)",
       "takeaway_vat_label": "Btw bij meenemen",
       "takeaway_vat_same": "Zelfde als hierboven",
-      "takeaway_vat_hint": "Enkel voor SellQo Kassa: dit tarief geldt als je aan de toog \"meenemen\" kiest, bijvoorbeeld 6 % voor een afhaalmaaltijd."
+      "takeaway_vat_hint": "Enkel voor SellQo Kassa: dit tarief geldt als je aan de toog \"meenemen\" kiest, bijvoorbeeld 6 % voor een afhaalmaaltijd.",
+      "photo_order": {
+        "drag": "Sleep om te verplaatsen",
+        "move_left": "Naar voren",
+        "move_right": "Naar achteren",
+        "hint": "Sleep of gebruik de pijltjes om de volgorde te wijzigen. De eerste foto is de hoofdfoto en komt zo ook op je webshop."
+      }
     },
     "promotions": {
       "autoDiscountFormDialog": {

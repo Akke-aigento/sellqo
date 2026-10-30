@@ -24,6 +24,8 @@ interface GenerateImageRequest {
   marketingText?: string;
   platformPreset?: 'instagram_post' | 'instagram_story' | 'facebook_banner' | 'email_header' | 'linkedin_post' | 'custom';
   enhancementType?: 'generate' | 'enhance' | 'background_remove' | 'overlay';
+  // BG-REMOVE-1: sleutelkleur voor echte transparantie (de browser knipt hem weg).
+  keyColor?: 'magenta' | 'green';
 }
 
 // Platform preset dimensions
@@ -55,6 +57,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // BG-REMOVE-1: neveneffectvrije versiestempel om de deploy te bewijzen.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "BG-REMOVE-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -73,6 +79,10 @@ serve(async (req) => {
       platformPreset,
       enhancementType = sourceImageUrl ? 'enhance' : 'generate',
     } = body;
+    // BG-REMOVE-1: een beeldmodel kan geen alfakanaal maken; "make it transparent" gaf een
+    // ingetekend dambord. Vraag in plaats daarvan een effen sleutelkleur; de client knipt die weg.
+    const wantsAlpha = enhancementType === 'background_remove' && (!!body.keyColor || /transparent/i.test(prompt || ''));
+    const keyColor: 'magenta' | 'green' = body.keyColor === 'green' ? 'green' : 'magenta';
 
     // Tenant-lidmaatschap én rol controleren vóór er ook maar één credit
     // afgeboekt wordt. Hiervoor stond hier alleen een `auth.getUser()`: elke
@@ -139,6 +149,9 @@ serve(async (req) => {
       if (marketingText) {
         enhancedPrompt += ` Add the text "${marketingText}" in a modern, eye-catching font that complements the image.`;
       }
+    } else if (sourceImageUrl && enhancementType === 'background_remove' && wantsAlpha) {
+      const hex = keyColor === 'green' ? '#00FF00' : '#FF00FF';
+      enhancedPrompt = `Cut out the main product and place it on a perfectly flat, uniform, pure ${keyColor} (${hex}) background that fills the entire image edge to edge. No shadows, no reflections, no gradients, no floor, no checkerboard pattern, no border. Keep the product's edges crisp and its colors unchanged.`;
     } else if (sourceImageUrl && enhancementType === 'background_remove') {
       enhancedPrompt = `Remove the background from this image and replace it with a clean, professional ${prompt || 'white'} background. Keep the main subject perfectly intact.`;
     } else if (sourceImageUrl && enhancementType === 'overlay') {
@@ -269,6 +282,7 @@ serve(async (req) => {
       height,
       enhancementType,
       platformPreset,
+      keyColor: wantsAlpha ? keyColor : undefined,
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

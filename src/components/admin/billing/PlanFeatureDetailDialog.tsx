@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { planDisplayName } from '@/lib/planLines';
 import type { PricingPlan, PricingPlanFeatures } from '@/types/billing';
 
 interface PlanFeatureDetailDialogProps {
@@ -158,7 +159,7 @@ export function PlanFeatureDetailDialog({
         <div className={cn('bg-gradient-to-br px-6 pt-8 pb-5', tierGradient.header)}>
           <DialogHeader>
             <div className="flex items-center justify-center gap-2">
-              <DialogTitle className="text-2xl font-extrabold tracking-tight">{plan.name}</DialogTitle>
+              <DialogTitle className="text-2xl font-extrabold tracking-tight">{planDisplayName(plan, t)}</DialogTitle>
               {plan.highlighted && (
                 <Badge className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-0 shadow-sm">
                   <Crown className="h-3 w-3 mr-1" />

@@ -14,7 +14,6 @@ import {
   Loader2,
   Upload,
   X,
-  Star,
   Package,
   Download,
   Briefcase,
@@ -29,7 +28,6 @@ import {
   Gift,
   Languages,
   ExternalLink,
-  Wand2,
   Library,
   Ticket
 } from 'lucide-react';
@@ -42,6 +40,7 @@ import { ProductEventDatesTab } from '@/components/admin/products/ProductEventDa
 import { ProductSpecificationsSection } from '@/components/admin/products/ProductSpecificationsSection';
 import { ProductDescriptionEditor } from '@/components/admin/products/ProductDescriptionEditor';
 import { MediaLibraryPickerDialog } from '@/components/admin/products/MediaLibraryPickerDialog';
+import { SortableProductImages } from '@/components/admin/products/SortableProductImages';
 import { StandardizeUploadDialog } from '@/components/admin/products/StandardizeUploadDialog';
 import { useMediaSettings } from '@/hooks/useMediaSettings';
 import { AIFieldAssistant } from '@/components/admin/ai/AIFieldAssistant';
@@ -316,7 +315,10 @@ export default function ProductForm() {
       track_inventory: product.track_inventory,
       allow_backorder: product.allow_backorder,
       low_stock_threshold: product.low_stock_threshold,
-      images: product.images || [],
+      // PHOTO-ORDER-1: hoofdfoto vooraan, zoals storefront-api ze ook uitlevert.
+      images: product.featured_image && (product.images || []).includes(product.featured_image)
+        ? [product.featured_image, ...(product.images || []).filter((i) => i !== product.featured_image)]
+        : (product.images || []),
       featured_image: product.featured_image || (product.images && product.images.length > 0 ? product.images[0] : ''),
       category_id: product.category_id || '',
       tags: product.tags || [],
@@ -618,6 +620,13 @@ export default function ProductForm() {
     if (form.getValues('featured_image') === url) {
       form.setValue('featured_image', images[0] || '', { shouldDirty: true });
     }
+  };
+
+  // PHOTO-ORDER-1: positie 1 = hoofdfoto. Na herschikken volgt featured_image de eerste foto,
+  // zodat formulier, admin-lijst en webshops dezelfde volgorde tonen.
+  const reorderImages = (next: string[]) => {
+    form.setValue('images', next, { shouldDirty: true });
+    form.setValue('featured_image', next[0] || '', { shouldDirty: true });
   };
 
   const setFeaturedImage = (url: string) => {
@@ -1870,37 +1879,15 @@ export default function ProductForm() {
                           <Library className="mr-2 h-4 w-4" />
                           {t('admin.products.variantExtraImagesDialog.kies_uit_bibliotheek')}
                         </Button>
-                        {form.watch('images').length > 0 && (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {form.watch('images').map((url, index) => (
-                              <div key={url} className={cn(
-                                "relative group aspect-square rounded-lg overflow-hidden border-2",
-                                form.watch('featured_image') === url ? "border-primary" : "border-transparent"
-                              )}>
-                                <img src={url} alt={t('admin.productForm.product_nummer', { number: index + 1 })} className="w-full h-full object-cover" />
-                                <div className={cn('absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2', readOnly && 'hidden')}>
-                                  <Button type="button" size="icon" variant="secondary" onClick={() => setFeaturedImage(url)} title={t('admin.productForm.maak_hoofdafbeelding')}>
-                                    <Star className={cn("h-4 w-4", form.watch('featured_image') === url && "fill-amber-500 text-amber-500")} />
-                                  </Button>
-                                  <Button type="button" size="icon" variant="secondary" onClick={() => { setImageEditorUrl(url); setImageEditorOpen(true); }} title={t('admin.productForm.ai_bewerken')}>
-                                    <Wand2 className="h-4 w-4" />
-                                  </Button>
-                                  <Button type="button" size="icon" variant="secondary" onClick={() => downloadImage(url, `product-${index + 1}`)} title={t('admin.marketing.mediaAssetsLibrary.downloaden')}>
-                                    <Download className="h-4 w-4" />
-                                  </Button>
-                                  <Button type="button" size="icon" variant="destructive" onClick={() => removeImage(url)} title={t('common.delete')}>
-                                    <X className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                                {form.watch('featured_image') === url && (
-                                  <div className="absolute top-2 left-2">
-                                    <span className="bg-primary text-primary-foreground text-xs px-2 py-1 rounded">{t('admin.products.productPhotosManager.hoofd')}</span>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                        <SortableProductImages
+                          images={form.watch('images') || []}
+                          readOnly={readOnly}
+                          onReorder={reorderImages}
+                          onMakeFeatured={setFeaturedImage}
+                          onEdit={(url) => { setImageEditorUrl(url); setImageEditorOpen(true); }}
+                          onDownload={(url, index) => downloadImage(url, `product-${index + 1}`)}
+                          onRemove={removeImage}
+                        />
                       </div>
                     </CardContent>
                   </Card>

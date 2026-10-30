@@ -5201,7 +5201,9 @@
       "limiet_bereikt_upgrade_je_plan": "Ліміт вичерпано — оновіть свій тариф",
       "mediaLibraryPickerDialog": {
         "nog_geen_afbeeldingen_in_je_bibliotheek": "У вашій бібліотеці ще немає зображень",
-        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Виберіть наявні зображення або завантажте нові до своєї медіабібліотеки."
+        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Виберіть наявні зображення або завантажте нові до своєї медіабібліотеки.",
+        "add": "Додати",
+        "add_count": "Додати {{count}}"
       },
       "nog_geen_producten": "Ще немає товарів.",
       "nog_geen_producten_voeg_je_eerste": "Ще немає товарів. Додайте свій перший товар!",
@@ -5442,7 +5444,13 @@
       "vat_rate_inactive": "(неактивна)",
       "takeaway_vat_label": "ПДВ з собою",
       "takeaway_vat_same": "Як вище",
-      "takeaway_vat_hint": "Лише для SellQo Kassa: ця ставка діє, коли на стійці ви обираєте «з собою», наприклад 6 % для страви з собою."
+      "takeaway_vat_hint": "Лише для SellQo Kassa: ця ставка діє, коли на стійці ви обираєте «з собою», наприклад 6 % для страви з собою.",
+      "photo_order": {
+        "drag": "Перетягніть, щоб перемістити",
+        "move_left": "Вперед",
+        "move_right": "Назад",
+        "hint": "Перетягуйте або використовуйте стрілки, щоб змінити порядок. Перше фото є головним і в такому порядку з’являється у вашому магазині."
+      }
     },
     "promotions": {
       "autoDiscountFormDialog": {

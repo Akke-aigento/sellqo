@@ -17,7 +17,7 @@ interface AIHelpChatWindowProps {
 }
 
 export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -88,6 +88,8 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
           message: trimmed,
           conversation_history: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
           current_route: location.pathname,
+          // AI-LANG-1: app-taal als terugval wanneer de taal van het bericht onduidelijk is.
+          ui_language: i18n.language,
         }),
       });
 

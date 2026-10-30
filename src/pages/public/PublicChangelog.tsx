@@ -14,6 +14,14 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.14q', dateKey: 'oct_2026', changes: [
+    { id: 'photo_order', type: 'feature' },
+    { id: 'bg_remove_transparent', type: 'bugfix' },
+    { id: 'photo_library_scroll', type: 'bugfix' },
+    { id: 'ai_help_language', type: 'bugfix' },
+    { id: 'plan_names_i18n', type: 'improvement' },
+    { id: 'landing_menu_contrast', type: 'bugfix' },
+  ]},
   { version: '2026.14p', dateKey: 'oct_2026', changes: [
     { id: 'reservations_online', type: 'feature' },
   ]},

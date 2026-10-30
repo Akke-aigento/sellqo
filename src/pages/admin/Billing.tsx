@@ -38,6 +38,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { planDisplayName } from '@/lib/planLines';
 import type { PricingPlan, PricingPlanFeatures } from '@/types/billing';
 
 const SUPPORT_EMAIL = 'info@sellqo.app';
@@ -375,12 +376,12 @@ export default function BillingPage() {
           toast.success(t('billing.plan_change.success_cancel_now'));
         }
       } else if (res.downgrade) {
-        toast.success(t('billing.plan_change.success_downgrade', { plan: plan.name }));
+        toast.success(t('billing.plan_change.success_downgrade', { plan: planDisplayName(plan, t) }));
       } else if (res.awaiting_payment) {
         // Pay-first upgrade without a usable mandate: a payment request was sent.
-        toast.info(t('billing.pending_upgrade.created', { plan: plan.name }));
+        toast.info(t('billing.pending_upgrade.created', { plan: planDisplayName(plan, t) }));
       } else {
-        toast.success(t('billing.plan_change.success_upgrade', { plan: plan.name }));
+        toast.success(t('billing.plan_change.success_upgrade', { plan: planDisplayName(plan, t) }));
       }
     } catch (err) {
       toast.error(t('billing.plan_change.error'), {

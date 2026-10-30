@@ -368,7 +368,11 @@
       "addon_price": "+ {{price}} per maand",
       "lim_orders_overage": "{{n}} bestellingen per maand inbegrepen, daarna {{pct}}% per bestelling",
       "lim_mails": "{{n}} marketingmails per maand",
-      "lim_mails_unlimited": "Onbeperkt aantal marketingmails"
+      "lim_mails_unlimited": "Onbeperkt aantal marketingmails",
+      "name_events_flex": "Events Flex",
+      "name_events_vast": "Events Vast",
+      "name_horeca": "Horeca Small",
+      "name_horeca_big": "Horeca Big"
     },
     "faq": {
       "heading": "Veelgestelde vragen",
@@ -2351,6 +2355,30 @@
         "reservations_online": {
           "title": "Online reserveren: gasten vragen zelf een tafel aan",
           "description": "Zet onder Bestellen › Reservaties online reserveren aan en kies je uren per weekdag, het maximum aantal personen per aankomstuur, het grootste gezelschap en hoe ver vooruit. Je webshop krijgt een knop Reserveren. Een aanvraag staat oranje in je beheer en op de kassa; jij bevestigt of weigert, en de gast krijgt daarover meteen een mail. Pas na bevestigen kleurt de tafel. Standaard staat het uit."
+        },
+        "photo_order": {
+          "title": "Foto's van een product herschikken",
+          "description": "Sleep de foto's van een product in de gewenste volgorde, of gebruik de pijltjes (handig op je gsm). De eerste foto is de hoofdfoto. Je webshop toont ze in dezelfde volgorde, ook een eigen webshop op SellQo."
+        },
+        "bg_remove_transparent": {
+          "title": "Achtergrond verwijderen geeft nu echte transparantie",
+          "description": "Met \"Transparant\" in de fotobewerker, of in bulk bij Foto's en in de mediabibliotheek, kreeg je soms een grijs-wit dambord ín de foto. Je krijgt nu een PNG met een echt doorzichtige achtergrond. Lukt het knippen niet, dan krijg je een effen achtergrond in plaats van een half weggeknipte foto."
+        },
+        "photo_library_scroll": {
+          "title": "Scrollen in \"Kies uit bibliotheek\"",
+          "description": "In het venster om foto's uit je bibliotheek te kiezen kon je niet scrollen, waardoor je na een zoekopdracht niet aan alle foto's geraakte. Dat werkt nu, ook op je gsm."
+        },
+        "ai_help_language": {
+          "title": "Hulpassistent antwoordt in jouw taal",
+          "description": "Stel je de hulpassistent een vraag in het Engels, Frans, Duits of Oekraïens, dan krijg je nu ook antwoord in die taal, in plaats van in het Nederlands."
+        },
+        "plan_names_i18n": {
+          "title": "Plannamen in jouw taal",
+          "description": "De namen van de horeca- en eventsplannen worden nu vertaald op de prijzenpagina, bij de keuze van je plan en onder Abonnement."
+        },
+        "landing_menu_contrast": {
+          "title": "Menu op de gsm weer leesbaar",
+          "description": "Op sellqo.app werd het menu op je gsm onleesbaar zodra je het opende bovenaan de pagina. De balk krijgt nu een eigen achtergrond."
         }
       },
       "copyLink": "Kopieer link",

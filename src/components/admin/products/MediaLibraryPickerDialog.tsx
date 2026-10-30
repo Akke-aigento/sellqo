@@ -4,7 +4,6 @@ import { Check, ImageIcon, Loader2, Search, Upload } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { useMediaAssets } from '@/hooks/useMediaAssets';
 import { useImageUpload } from '@/hooks/useImageUpload';
 import { useTenant } from '@/hooks/useTenant';
@@ -111,7 +110,9 @@ export function MediaLibraryPickerDialog({
           )}
         </div>
 
-        <ScrollArea className="flex-1 min-h-[200px] max-h-[45vh] -mx-2 px-2">
+        {/* MEDIA-SCROLL-1: Radix ScrollArea met enkel max-h scrolt niet (de viewport is h-full van
+            een hoogte zonder vaste waarde en groeit dus mee). Native overflow werkt ook met touch. */}
+        <div className="flex-1 min-h-[200px] max-h-[45vh] overflow-y-auto overscroll-contain -mx-2 px-2">
           {isLoading ? (
             <div className="py-12 flex justify-center">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -148,12 +149,12 @@ export function MediaLibraryPickerDialog({
               })}
             </div>
           )}
-        </ScrollArea>
+        </div>
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>{t('common.cancel')}</Button>
           <Button type="button" onClick={handleConfirm} disabled={selected.length === 0}>
-            {selected.length > 0 ? `${selected.length} toevoegen` : 'Toevoegen'}
+            {selected.length > 0 ? t('admin.products.mediaLibraryPickerDialog.add_count', { count: selected.length }) : t('admin.products.mediaLibraryPickerDialog.add')}
           </Button>
         </DialogFooter>
       </DialogContent>

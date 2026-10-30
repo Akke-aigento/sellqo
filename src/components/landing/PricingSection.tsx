@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
 import { useAuth } from '@/hooks/useAuth';
 import type { PricingPlan } from '@/types/billing';
-import { eur, planLines } from '@/lib/planLines';
+import { eur, planDisplayName, planLines } from '@/lib/planLines';
 import { SETUP_PRICE } from '@/lib/priceVars';
 import { usePlatformAddons } from '@/hooks/usePlatformAddons';
 
@@ -38,7 +38,7 @@ function PlanCard({ plan, yearly, featured }: { plan: PricingPlan; yearly: boole
       {featured ? (
         <span className="absolute -top-3 left-6 rounded-full bg-accent px-3 py-0.5 text-xs font-semibold text-accent-foreground">{k(`badge_${plan.id}`, { defaultValue: k('most_chosen') })}</span>
       ) : null}
-      <h3 className="text-xl font-bold text-foreground">{plan.name}</h3>
+      <h3 className="text-xl font-bold text-foreground">{planDisplayName(plan, t)}</h3>
       <p className="mt-1 min-h-[2.5rem] text-sm text-muted-foreground">{k(`desc_${plan.id}`)}</p>
       <div className="mt-5">
         {isEnterprise ? (

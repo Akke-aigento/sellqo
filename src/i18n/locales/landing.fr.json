@@ -283,7 +283,7 @@
     },
     "pricing": {
       "heading": "Des prix honnêtes, pour chaque type de commerce",
-      "subheading": "Vous pouvez toujours commencer gratuitement. Aucun frais par commande, résiliable chaque mois (Events Vast : engagement de {{vast_term}} mois).",
+      "subheading": "Vous pouvez toujours commencer gratuitement. Aucun frais par commande, résiliable chaque mois (Événements Fixe : engagement de {{vast_term}} mois).",
       "monthly": "Mensuel",
       "yearly": "Annuel",
       "save2months": "Économisez 2 mois",
@@ -352,7 +352,7 @@
       "setup_p3": "Horaires de retrait, zones de livraison et paiements",
       "setup_p4": "Codes QR pour vos tables, prêts à imprimer",
       "setup_cta": "Demander le pack de démarrage",
-      "foot_trial": "Formules payantes : 14 jours gratuits, sans carte de crédit. Ensuite, votre abonnement démarre : automatiquement par domiciliation ou carte, ou via une demande de paiement. Résiliable chaque mois, sauf Events Vast (engagement de {{vast_term}} mois).",
+      "foot_trial": "Formules payantes : 14 jours gratuits, sans carte de crédit. Ensuite, votre abonnement démarre : automatiquement par domiciliation ou carte, ou via une demande de paiement. Résiliable chaque mois, sauf Événements Fixe (engagement de {{vast_term}} mois).",
       "foot_payments": "Les paiements en ligne passent par votre propre compte Stripe, aux tarifs habituels de Stripe. SellQo ne prend rien par commande, sauf les frais fixes par billet vendu.",
       "foot_qr": "Virement avec code QR : votre client paie via son appli bancaire, sans frais pour vous.",
       "from_short": "dès",
@@ -368,14 +368,18 @@
       "addon_price": "+ {{price}} par mois",
       "lim_orders_overage": "{{n}} commandes par mois incluses, puis {{pct}} % par commande",
       "lim_mails": "{{n}} e-mails marketing par mois",
-      "lim_mails_unlimited": "E-mails marketing illimités"
+      "lim_mails_unlimited": "E-mails marketing illimités",
+      "name_events_flex": "Événements Flex",
+      "name_events_vast": "Événements Fixe",
+      "name_horeca": "Horeca Petit",
+      "name_horeca_big": "Horeca Grand"
     },
     "faq": {
       "heading": "Questions fréquentes",
       "items": [
         {
           "q": "Comment fonctionne l'essai gratuit ?",
-          "a": "Vous utilisez une formule payante gratuitement pendant 14 jours, sans carte de crédit. Ensuite, votre abonnement démarre sur la formule choisie. Si vous avez configuré une domiciliation ou une carte, le paiement est automatique ; sinon, vous recevez une demande de paiement par e-mail. Votre boutique reste toujours en ligne. Si rien n'est payé après les rappels et un délai de grâce, vous ne pouvez plus rien modifier dans votre administration. Free et Events Flex ne nécessitent pas d'essai : ils ne coûtent rien par mois."
+          "a": "Vous utilisez une formule payante gratuitement pendant 14 jours, sans carte de crédit. Ensuite, votre abonnement démarre sur la formule choisie. Si vous avez configuré une domiciliation ou une carte, le paiement est automatique ; sinon, vous recevez une demande de paiement par e-mail. Votre boutique reste toujours en ligne. Si rien n'est payé après les rappels et un délai de grâce, vous ne pouvez plus rien modifier dans votre administration. Free et Événements Flex ne nécessitent pas d'essai : ils ne coûtent rien par mois."
         },
         {
           "q": "Comment payer mon abonnement ?",
@@ -387,11 +391,11 @@
         },
         {
           "q": "Que contient la formule Restauration ?",
-          "a": "Horeca Small ({{horeca_price}} par mois) vous offre un site de commande pour l’emporter et la livraison, un menu QR à consulter ou pour commander à table, un écran cuisine, la caisse, les suppléments et les allergènes. Horeca Big ({{horeca_big_price}} par mois) s’adresse aux établissements très fréquentés, avec plus d’utilisateurs et un support prioritaire. Vous souhaitez que nous mettions votre carte en ligne et préparions tout ? C’est possible avec le pack de démarrage à {{setup_price}}, une seule fois."
+          "a": "Horeca Petit ({{horeca_price}} par mois) vous offre un site de commande pour l’emporter et la livraison, un menu QR à consulter ou pour commander à table, un écran cuisine, la caisse, les suppléments et les allergènes. Horeca Grand ({{horeca_big_price}} par mois) s’adresse aux établissements très fréquentés, avec plus d’utilisateurs et un support prioritaire. Vous souhaitez que nous mettions votre carte en ligne et préparions tout ? C’est possible avec le pack de démarrage à {{setup_price}}, une seule fois."
         },
         {
           "q": "Combien coûte SellQo pour les événements ?",
-          "a": "Avec Events Flex, vous ne payez rien par mois et {{flex_fee}} par billet payé, sans pourcentage. Vous vendez des billets toute l’année ? Events Vast coûte {{vast_price}} par mois (engagement de {{vast_term}} mois) et {{vast_fee}} par billet. Les frais sont déduits automatiquement du paiement en ligne ; les billets gratuits ne coûtent rien."
+          "a": "Avec Événements Flex, vous ne payez rien par mois et {{flex_fee}} par billet payé, sans pourcentage. Vous vendez des billets toute l’année ? Événements Fixe coûte {{vast_price}} par mois (engagement de {{vast_term}} mois) et {{vast_fee}} par billet. Les frais sont déduits automatiquement du paiement en ligne ; les billets gratuits ne coûtent rien."
         },
         {
           "q": "Y a-t-il des frais en plus de l'abonnement ?",
@@ -540,7 +544,7 @@
         "proof_text": "Une tournée des bars à Louvain qui vend tous ses billets avec SellQo : dates, types de billets et billets QR par e-mail.",
         "demo_live": "Voir fonskecrawl.com",
         "why_title": "Les plateformes de billetterie gagnent sur chaque billet",
-        "why_text": "Souvent, vous ou votre visiteur payez un pourcentage plus des frais fixes par billet, et votre liste de clients reste chez eux. Avec Events Flex, vous ne payez rien par mois et {{flex_fee}} par billet vendu, sans pourcentage. Vous vendez sous votre propre nom et construisez votre propre public.",
+        "why_text": "Souvent, vous ou votre visiteur payez un pourcentage plus des frais fixes par billet, et votre liste de clients reste chez eux. Avec Événements Flex, vous ne payez rien par mois et {{flex_fee}} par billet vendu, sans pourcentage. Vous vendez sous votre propre nom et construisez votre propre public.",
         "features_title": "De la vente jusqu'à l'entrée",
         "f_dates": "Plusieurs dates",
         "f_dates_text": "Un événement avec autant de dates que vous voulez, chacune avec son horaire, son lieu et sa capacité.",
@@ -557,7 +561,7 @@
         "f_overview": "Vue par événement",
         "f_overview_text": "Combien de billets sont vendus et combien de personnes sont déjà entrées, par date.",
         "f_pay": "Coût fixe par billet",
-        "f_pay_text": "Les visiteurs paient en ligne par Bancontact ou carte. Avec Events Flex, {{flex_fee}} par billet payé est déduit automatiquement. Les billets gratuits ne coûtent rien.",
+        "f_pay_text": "Les visiteurs paient en ligne par Bancontact ou carte. Avec Événements Flex, {{flex_fee}} par billet payé est déduit automatiquement. Les billets gratuits ne coûtent rien.",
         "s1_title": "Créez votre événement",
         "s1_text": "Dates, lieu, types de billets et prix. Prêt en quelques minutes.",
         "s2_title": "Vendez en ligne",
@@ -567,7 +571,7 @@
         "demo_title": "Voyez-le en action",
         "demo_text": "Choisissez un siège dans une salle de concert de démo, découvrez un festival avec billets journaliers et VIP, ou voyez comment The Fonske Crawl à Louvain vend ses billets avec SellQo.",
         "q1": "Combien coûte SellQo pour les événements ?",
-        "q1_a": "Avec Events Flex, vous ne payez rien par mois et {{flex_fee}} par billet payé. Vous vendez beaucoup de billets toute l’année ? Events Vast est plus avantageux : {{vast_price}} par mois (engagement de {{vast_term}} mois) et {{vast_fee}} par billet, avec un plan de salle. Les frais sont déduits automatiquement du paiement en ligne ; les billets gratuits ne coûtent rien. Stripe facture en plus ses frais de paiement habituels.",
+        "q1_a": "Avec Événements Flex, vous ne payez rien par mois et {{flex_fee}} par billet payé. Vous vendez beaucoup de billets toute l’année ? Événements Fixe est plus avantageux : {{vast_price}} par mois (engagement de {{vast_term}} mois) et {{vast_fee}} par billet, avec un plan de salle. Les frais sont déduits automatiquement du paiement en ligne ; les billets gratuits ne coûtent rien. Stripe facture en plus ses frais de paiement habituels.",
         "q2": "Puis-je proposer plusieurs dates et types de billets ?",
         "q2_a": "Oui. Chaque événement peut avoir plusieurs dates, et par date vous vendez différents types de billets, par exemple un early bird avec son prix, sa période de vente et son quota.",
         "q3": "Comment contrôler les entrées ?",
@@ -1362,7 +1366,7 @@
         },
         "addon_billing": {
           "title": "Modules et billets en caisse correctement sur votre facture",
-          "description": "Un module (boutique en ligne ou horeca) ajouté en cours de mois est facturé au prorata et figure désormais sur une ligne distincte de votre facture. Si vous arrêtez un module, il reste actif jusqu'à la fin de la période payée. Les billets vendus en caisse ou manuellement figurent avec leurs frais sur votre prochaine facture ; sans abonnement mensuel, vous recevez une facture de consommation dès que 5 € sont dus. Events Vast affiche désormais la fin de votre contrat de 12 mois."
+          "description": "Un module (boutique en ligne ou horeca) ajouté en cours de mois est facturé au prorata et figure désormais sur une ligne distincte de votre facture. Si vous arrêtez un module, il reste actif jusqu'à la fin de la période payée. Les billets vendus en caisse ou manuellement figurent avec leurs frais sur votre prochaine facture ; sans abonnement mensuel, vous recevez une facture de consommation dès que 5 € sont dus. Événements Fixe affiche désormais la fin de votre contrat de 12 mois."
         },
         "discount_code_case_insensitive": {
           "title": "Les codes de réduction ne sont plus sensibles à la casse",
@@ -2074,7 +2078,7 @@
         },
         "plans_tracks": {
           "title": "Nouvelles formules par type d’activité",
-          "description": "SellQo propose désormais trois parcours clairs : boutique en ligne, horeca et événements. Vous ne voyez que ce qui appartient à votre formule, et vous ajoutez une deuxième partie en option (boutique {{addon_webshop_price}} ou horeca {{addon_horeca_price}} par mois, billets avec des frais fixes par billet). Nouveau : Horeca Big ({{horeca_big_price}} par mois) et Events Vast ({{vast_price}} par mois pendant {{vast_term}} mois, {{vast_fee}} par billet et un plan de salle). Events Flex coûte {{flex_fee}} par billet payé. Les boutiques existantes gardent tout ce qu’elles avaient."
+          "description": "SellQo propose désormais trois parcours clairs : boutique en ligne, horeca et événements. Vous ne voyez que ce qui appartient à votre formule, et vous ajoutez une deuxième partie en option (boutique {{addon_webshop_price}} ou horeca {{addon_horeca_price}} par mois, billets avec des frais fixes par billet). Nouveau : Horeca Grand ({{horeca_big_price}} par mois) et Événements Fixe ({{vast_price}} par mois pendant {{vast_term}} mois, {{vast_fee}} par billet et un plan de salle). Événements Flex coûte {{flex_fee}} par billet payé. Les boutiques existantes gardent tout ce qu’elles avaient."
         },
         "horeca_channels": {
           "title": "Choisir par plat où il peut être commandé",
@@ -2351,6 +2355,30 @@
         "reservations_online": {
           "title": "Réservation en ligne : vos clients demandent eux-mêmes une table",
           "description": "Sous Commandes › Réservations, activez la réservation en ligne et choisissez vos heures par jour, le nombre maximum de personnes par heure d’arrivée, le plus grand groupe et jusqu’à quand à l’avance. Votre boutique en ligne reçoit un bouton Reserveren. Une demande apparaît en orange dans votre gestion et sur la caisse ; vous confirmez ou refusez, et le client reçoit aussitôt un e-mail. La table ne devient violette qu’après confirmation. Désactivé par défaut."
+        },
+        "photo_order": {
+          "title": "Réorganiser les photos d’un produit",
+          "description": "Faites glisser les photos d’un produit dans l’ordre voulu, ou utilisez les flèches (pratique sur votre téléphone). La première photo est la photo principale. Votre boutique les affiche dans le même ordre, y compris une boutique sur mesure sur SellQo."
+        },
+        "bg_remove_transparent": {
+          "title": "La suppression d’arrière-plan donne une vraie transparence",
+          "description": "Avec « Transparent » dans l’éditeur photo, ou en lot dans Photos et la médiathèque, un damier gris et blanc apparaissait parfois dans la photo. Vous obtenez maintenant un PNG à fond réellement transparent. Si le détourage échoue, vous obtenez un fond uni plutôt qu’une photo à moitié détourée."
+        },
+        "photo_library_scroll": {
+          "title": "Défilement dans « Choisir dans la bibliothèque »",
+          "description": "Impossible de faire défiler la fenêtre de choix de photos de votre bibliothèque : après une recherche, certaines photos restaient inaccessibles. C’est réglé, aussi sur votre téléphone."
+        },
+        "ai_help_language": {
+          "title": "L’assistant d’aide répond dans votre langue",
+          "description": "Posez une question à l’assistant d’aide en français, anglais, allemand ou ukrainien : la réponse arrive maintenant dans cette langue, et non plus en néerlandais."
+        },
+        "plan_names_i18n": {
+          "title": "Noms des formules dans votre langue",
+          "description": "Les noms des formules horeca et événements sont désormais traduits sur la page des tarifs, lors du choix de votre formule et dans Abonnement."
+        },
+        "landing_menu_contrast": {
+          "title": "Menu mobile à nouveau lisible",
+          "description": "Sur sellqo.app, le menu sur téléphone devenait illisible quand vous l’ouvriez en haut de la page. La barre a maintenant son propre fond."
         }
       },
       "copyLink": "Copier le lien",

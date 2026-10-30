@@ -5187,7 +5187,9 @@
       "limiet_bereikt_upgrade_je_plan": "Limit reached — upgrade your plan",
       "mediaLibraryPickerDialog": {
         "nog_geen_afbeeldingen_in_je_bibliotheek": "No images in your library yet",
-        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Select existing images or upload new ones to your media library."
+        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Select existing images or upload new ones to your media library.",
+        "add": "Add",
+        "add_count": "Add {{count}}"
       },
       "nog_geen_producten": "No products yet.",
       "nog_geen_producten_voeg_je_eerste": "No products yet. Add your first product!",
@@ -5428,7 +5430,13 @@
       "vat_rate_inactive": "(inactive)",
       "takeaway_vat_label": "VAT for take away",
       "takeaway_vat_same": "Same as above",
-      "takeaway_vat_hint": "Only for SellQo Kassa: this rate applies when you choose \"take away\" at the counter, for example 6% for a takeaway meal."
+      "takeaway_vat_hint": "Only for SellQo Kassa: this rate applies when you choose \"take away\" at the counter, for example 6% for a takeaway meal.",
+      "photo_order": {
+        "drag": "Drag to move",
+        "move_left": "Move forward",
+        "move_right": "Move back",
+        "hint": "Drag or use the arrows to change the order. The first photo is the main photo and appears in this order on your webshop."
+      }
     },
     "promotions": {
       "autoDiscountFormDialog": {

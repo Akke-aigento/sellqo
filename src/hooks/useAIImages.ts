@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import { keyOutUrl, pickKeyColorForUrl, type KeyColor } from '@/lib/chromaKey';
 
 export interface AIGeneratedImage {
   id: string;
@@ -52,15 +53,49 @@ export function useAIImages() {
       platformPreset?: string;
       enhancementType?: 'generate' | 'enhance' | 'background_remove' | 'overlay';
     }) => {
+      // BG-REMOVE-1: bij "achtergrond verwijderen" eerst een sleutelkleur kiezen die niet in de
+      // foto voorkomt; de edge function laat het model die als effen achtergrond zetten.
+      const wantsAlpha = params.enhancementType === 'background_remove' && !!params.sourceImageUrl;
+      const keyColor: KeyColor | undefined = wantsAlpha ? await pickKeyColorForUrl(params.sourceImageUrl!) : undefined;
+
       const response = await supabase.functions.invoke('ai-generate-image', {
         body: {
           tenantId: currentTenant?.id,
           ...params,
+          ...(keyColor ? { keyColor } : {}),
         },
       });
 
       if (response.error) throw new Error(response.error.message);
-      return response.data;
+      const data = response.data;
+      if (!data?.keyColor || !data?.imageUrl || !currentTenant?.id) return data;
+
+      // Sleutelkleur wegknippen → PNG met echte transparantie, als nieuw bestand (de oude URL
+      // kan al in de CDN-cache zitten). Lukt het niet, dan blijft de effen achtergrond staan:
+      // nooit een half weggeknipte foto teruggeven.
+      try {
+        const blob = await keyOutUrl(data.imageUrl, data.keyColor as KeyColor);
+        if (!blob) return data;
+        const path = `${currentTenant.id}/${Date.now()}-transparent.png`;
+        const up = await supabase.storage.from('ai-images').upload(path, blob, { contentType: 'image/png', upsert: false });
+        if (up.error) return data;
+        const url = supabase.storage.from('ai-images').getPublicUrl(path).data.publicUrl;
+        // Galerij bijwerken: nieuwe rij met de transparante versie, de tussenversie weg.
+        if (data.savedId) {
+          const { data: old } = await supabase.from('ai_generated_images').select('*').eq('id', data.savedId).maybeSingle();
+          if (old) {
+            const { id: _id, created_at: _c, ...rest } = old as Record<string, unknown>;
+            const ins = await supabase.from('ai_generated_images').insert({ ...rest, image_url: url, storage_path: path } as never);
+            if (!ins.error) {
+              await supabase.from('ai_generated_images').delete().eq('id', data.savedId);
+              if (data.storagePath) await supabase.storage.from('ai-images').remove([data.storagePath]);
+            }
+          }
+        }
+        return { ...data, imageUrl: url, storagePath: path, transparent: true };
+      } catch {
+        return data;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-images'] });

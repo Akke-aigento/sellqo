@@ -46,3 +46,12 @@ export function planLines(plan: PricingPlan, t: TFunction, lng: string): { lines
 
 export const eur = (n: number, lng: string) =>
   new Intl.NumberFormat(lng, { style: 'currency', currency: 'EUR', minimumFractionDigits: Number.isInteger(n) ? 0 : 2 }).format(n);
+
+/**
+ * PLANS-I18N-1 — weergavenaam van een plan. pricing_plans.name is één (Nederlands/Engels)
+ * label; per taal staat de naam in landing.pricing.name_<id>. Free/Starter/Pro/Enterprise
+ * hebben geen sleutel en vallen terug op de DB-naam. Enkel voor weergave: nooit gebruiken
+ * om op te matchen (getTierKey e.d. blijven plan.name lezen).
+ */
+export const planDisplayName = (plan: { id: string; name: string }, t: TFunction) =>
+  t(`landing.pricing.name_${plan.id}`, { defaultValue: plan.name });

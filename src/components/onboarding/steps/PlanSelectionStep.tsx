@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePricingPlans } from '@/hooks/usePricingPlans';
 import { cn } from '@/lib/utils';
-import { eur, planLines } from '@/lib/planLines';
+import { eur, planDisplayName, planLines } from '@/lib/planLines';
 
 type Sector = 'retail' | 'horeca' | 'events';
 // TRACKS-1 — elke sector toont alleen de plannen van zijn spoor (pricing_plans.track);
@@ -70,7 +70,7 @@ export function PlanSelectionStep({ selectedPlanId, sector = 'retail', onSelectP
                   <span className="absolute -top-2.5 right-4 rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">{k('recommended')}</span>
                 ) : null}
                 <span className="flex items-center justify-between gap-2">
-                  <span className="text-lg font-semibold">{plan.name}</span>
+                  <span className="text-lg font-semibold">{planDisplayName(plan, t)}</span>
                   {on ? <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary"><Check className="h-4 w-4 text-primary-foreground" /></span> : null}
                 </span>
                 <span className="mt-2">

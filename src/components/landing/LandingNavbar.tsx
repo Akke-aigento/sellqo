@@ -50,7 +50,10 @@ export function LandingNavbar({ tone = 'light' }: { tone?: 'light' | 'dark' } = 
     <nav
       className={cn(
         'fixed top-0 left-0 right-0 z-50 pt-safe transition-all duration-300',
-        isScrolled
+        // MKT-NAV-1: met het mobiele menu open schakelen logo en icoon naar de lichte
+        // variant (onDark = false). De balk moet dan ook een vlak krijgen, anders staat
+        // donkere tekst op de donkere hero en hangt het witte menu er los onder.
+        isScrolled || isMobileMenuOpen
           ? 'bg-background/95 backdrop-blur-md shadow-sm border-b border-border'
           : 'bg-transparent'
       )}

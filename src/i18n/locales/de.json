@@ -4914,7 +4914,9 @@
       "limiet_bereikt_upgrade_je_plan": "Limit erreicht — führen Sie ein Upgrade durch",
       "mediaLibraryPickerDialog": {
         "nog_geen_afbeeldingen_in_je_bibliotheek": "Noch keine Bilder in Ihrer Bibliothek",
-        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Wählen Sie vorhandene Bilder aus oder laden Sie neue in Ihre Medienbibliothek hoch."
+        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Wählen Sie vorhandene Bilder aus oder laden Sie neue in Ihre Medienbibliothek hoch.",
+        "add": "Hinzufügen",
+        "add_count": "{{count}} hinzufügen"
       },
       "nog_geen_producten": "Noch keine Produkte.",
       "nog_geen_producten_voeg_je_eerste": "Noch keine Produkte. Fügen Sie Ihr erstes Produkt hinzu!",
@@ -5155,7 +5157,13 @@
       "vat_rate_inactive": "(inaktiv)",
       "takeaway_vat_label": "MwSt. zum Mitnehmen",
       "takeaway_vat_same": "Wie oben",
-      "takeaway_vat_hint": "Nur für SellQo Kassa: Dieser Satz gilt, wenn du an der Theke „zum Mitnehmen“ wählst, zum Beispiel 6 % für ein Essen zum Mitnehmen."
+      "takeaway_vat_hint": "Nur für SellQo Kassa: Dieser Satz gilt, wenn du an der Theke „zum Mitnehmen“ wählst, zum Beispiel 6 % für ein Essen zum Mitnehmen.",
+      "photo_order": {
+        "drag": "Zum Verschieben ziehen",
+        "move_left": "Nach vorne",
+        "move_right": "Nach hinten",
+        "hint": "Ziehen oder die Pfeile nutzen, um die Reihenfolge zu ändern. Das erste Foto ist das Hauptfoto und erscheint in dieser Reihenfolge in deinem Webshop."
+      }
     },
     "promotions": {
       "autoDiscountFormDialog": {

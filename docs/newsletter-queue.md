@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14q — Foto's herschikken en echte transparantie (feature + bugfixes, 30-10-2026)
+
+**Status:** live na publish + deploy van `ai-generate-image` en `ai-help-assistant` (MEDIA-FIX-1).
+
+**Jouw foto's, in jouw volgorde** (oktober 2026)
+Sleep de foto's van een product in de volgorde die jij wil, of gebruik de pijltjes op je gsm. De eerste foto is de hoofdfoto, en je webshop volgt dezelfde volgorde. En kies je "Transparant" bij AI-achtergrond, dan krijg je nu een PNG met een echt doorzichtige achtergrond in plaats van een ingetekend dambord.
+Wat betekent dit voor jou? Je productpagina's tonen meteen de foto die jij het sterkst vindt, en vrijstaande productfoto's zonder extra programma.
+
+Ook opgelost: scrollen in "Kies uit bibliotheek", de hulpassistent antwoordt in de taal waarin je hem aanspreekt, plannamen in je eigen taal, en het gsm-menu op sellqo.app is weer leesbaar.
+
+i18n: `public.changelog.changes.photo_order`, `bg_remove_transparent`, `photo_library_scroll`, `ai_help_language`, `plan_names_i18n`, `landing_menu_contrast`
+
 ### 2026.14p — Online reserveren: gasten vragen zelf een tafel aan (feature, 30-10-2026)
 
 **Status:** wacht op push, migratie, deploy en publish (RESERVATIE-2).

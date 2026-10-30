@@ -4914,7 +4914,9 @@
       "limiet_bereikt_upgrade_je_plan": "Limite atteinte — passez à une formule supérieure",
       "mediaLibraryPickerDialog": {
         "nog_geen_afbeeldingen_in_je_bibliotheek": "Aucune image dans votre bibliothèque pour l'instant",
-        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Sélectionnez des images existantes ou téléversez-en de nouvelles dans votre médiathèque."
+        "selecteer_bestaande_afbeeldingen_of_upload_nieuwe": "Sélectionnez des images existantes ou téléversez-en de nouvelles dans votre médiathèque.",
+        "add": "Ajouter",
+        "add_count": "Ajouter {{count}}"
       },
       "nog_geen_producten": "Aucun produit pour l'instant.",
       "nog_geen_producten_voeg_je_eerste": "Aucun produit pour l'instant. Ajoutez votre premier produit !",
@@ -5155,7 +5157,13 @@
       "vat_rate_inactive": "(inactif)",
       "takeaway_vat_label": "TVA à emporter",
       "takeaway_vat_same": "Identique à ci-dessus",
-      "takeaway_vat_hint": "Uniquement pour SellQo Kassa : ce taux s’applique quand vous choisissez « à emporter » au comptoir, par exemple 6 % pour un repas à emporter."
+      "takeaway_vat_hint": "Uniquement pour SellQo Kassa : ce taux s’applique quand vous choisissez « à emporter » au comptoir, par exemple 6 % pour un repas à emporter.",
+      "photo_order": {
+        "drag": "Glisser pour déplacer",
+        "move_left": "Avancer",
+        "move_right": "Reculer",
+        "hint": "Glissez ou utilisez les flèches pour changer l’ordre. La première photo est la photo principale et apparaît dans cet ordre sur votre boutique."
+      }
     },
     "promotions": {
       "autoDiscountFormDialog": {

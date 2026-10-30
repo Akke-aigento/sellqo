@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
+import { planDisplayName } from '@/lib/planLines';
 import { PlanFeatureDetailDialog } from './PlanFeatureDetailDialog';
 import type { PricingPlan, PricingPlanFeatures, BillingInterval } from '@/types/billing';
 
@@ -233,7 +234,7 @@ export function PlanComparisonCards({
                     <span className="text-foreground">{tier.icon}</span>
                   </div>
 
-                  <span className="text-base font-bold tracking-wide uppercase text-muted-foreground">{plan.name}</span>
+                  <span className="text-base font-bold tracking-wide uppercase text-muted-foreground">{planDisplayName(plan, t)}</span>
 
                   <div className="mt-2">
                     <span className="text-4xl font-extrabold tracking-tight text-foreground">
@@ -409,7 +410,7 @@ export function PlanComparisonCards({
                       disabled={isLoading || selectionDisabled}
                     >
                       <span className="text-xs font-normal opacity-90">Upgrade naar</span>
-                      <span className="text-sm font-semibold">{plan.name}</span>
+                      <span className="text-sm font-semibold">{planDisplayName(plan, t)}</span>
                     </Button>
                   ) : (
                     <Button

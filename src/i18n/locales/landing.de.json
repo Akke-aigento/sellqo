@@ -283,7 +283,7 @@
     },
     "pricing": {
       "heading": "Faire Preise, für jede Art von Geschäft",
-      "subheading": "Kostenlos starten geht immer. Keine Gebühren pro Bestellung, monatlich kündbar (Events Vast läuft {{vast_term}} Monate).",
+      "subheading": "Kostenlos starten geht immer. Keine Gebühren pro Bestellung, monatlich kündbar (Events Fix läuft {{vast_term}} Monate).",
       "monthly": "Monatlich",
       "yearly": "Jährlich",
       "save2months": "Spare 2 Monate",
@@ -352,7 +352,7 @@
       "setup_p3": "Abholzeiten, Liefergebiete und Zahlungen",
       "setup_p4": "QR-Codes für Ihre Tische, druckfertig",
       "setup_cta": "Startpaket anfragen",
-      "foot_trial": "Bezahlte Tarife: 14 Tage kostenlos, ohne Kreditkarte. Danach startet Ihr Abo: automatisch per Lastschrift oder Karte oder mit einer Zahlungsaufforderung. Monatlich kündbar, außer Events Vast ({{vast_term}} Monate Laufzeit).",
+      "foot_trial": "Bezahlte Tarife: 14 Tage kostenlos, ohne Kreditkarte. Danach startet Ihr Abo: automatisch per Lastschrift oder Karte oder mit einer Zahlungsaufforderung. Monatlich kündbar, außer Events Fix ({{vast_term}} Monate Laufzeit).",
       "foot_payments": "Online-Zahlungen laufen über Ihr eigenes Stripe-Konto zu den üblichen Stripe-Tarifen. SellQo berechnet nichts pro Bestellung, außer der festen Gebühr pro verkauftem Ticket.",
       "foot_qr": "Überweisung per QR-Code: Ihr Kunde zahlt in seiner Banking-App, ohne Kosten für Sie.",
       "from_short": "ab",
@@ -368,7 +368,11 @@
       "addon_price": "+ {{price}} pro Monat",
       "lim_orders_overage": "{{n}} Bestellungen pro Monat inklusive, danach {{pct}} % pro Bestellung",
       "lim_mails": "{{n}} Marketing-E-Mails pro Monat",
-      "lim_mails_unlimited": "Unbegrenzt viele Marketing-E-Mails"
+      "lim_mails_unlimited": "Unbegrenzt viele Marketing-E-Mails",
+      "name_events_flex": "Events Flex",
+      "name_events_vast": "Events Fix",
+      "name_horeca": "Gastro Klein",
+      "name_horeca_big": "Gastro Groß"
     },
     "faq": {
       "heading": "Häufige Fragen",
@@ -387,11 +391,11 @@
         },
         {
           "q": "Was ist im Gastronomie-Tarif enthalten?",
-          "a": "Horeca Small ({{horeca_price}} pro Monat) bietet Ihnen eine Bestellseite für Abholung und Lieferung, ein QR-Menü zum Ansehen oder Bestellen am Tisch, einen Küchenbildschirm, die Kasse, Extras und Allergene. Horeca Big ({{horeca_big_price}} pro Monat) ist für viel besuchte Betriebe, mit mehr Nutzern und bevorzugtem Support. Sollen wir Ihre Karte einpflegen und alles einrichten? Das geht mit dem Startpaket für einmalig {{setup_price}}."
+          "a": "Gastro Klein ({{horeca_price}} pro Monat) bietet Ihnen eine Bestellseite für Abholung und Lieferung, ein QR-Menü zum Ansehen oder Bestellen am Tisch, einen Küchenbildschirm, die Kasse, Extras und Allergene. Gastro Groß ({{horeca_big_price}} pro Monat) ist für viel besuchte Betriebe, mit mehr Nutzern und bevorzugtem Support. Sollen wir Ihre Karte einpflegen und alles einrichten? Das geht mit dem Startpaket für einmalig {{setup_price}}."
         },
         {
           "q": "Was kostet SellQo für Events?",
-          "a": "Mit Events Flex zahlen Sie nichts pro Monat und {{flex_fee}} pro bezahltem Ticket, ohne Prozentsatz. Sie verkaufen das ganze Jahr Tickets? Events Vast kostet {{vast_price}} pro Monat ({{vast_term}} Monate Laufzeit) und {{vast_fee}} pro Ticket. Die Gebühr wird automatisch von der Online-Zahlung abgezogen; kostenlose Tickets kosten nichts."
+          "a": "Mit Events Flex zahlen Sie nichts pro Monat und {{flex_fee}} pro bezahltem Ticket, ohne Prozentsatz. Sie verkaufen das ganze Jahr Tickets? Events Fix kostet {{vast_price}} pro Monat ({{vast_term}} Monate Laufzeit) und {{vast_fee}} pro Ticket. Die Gebühr wird automatisch von der Online-Zahlung abgezogen; kostenlose Tickets kosten nichts."
         },
         {
           "q": "Gibt es Kosten zusätzlich zum Abo?",
@@ -567,7 +571,7 @@
         "demo_title": "In Aktion sehen",
         "demo_text": "Wählen Sie einen Platz in einem Demo-Konzertsaal, sehen Sie sich ein Festival mit Tagestickets und VIP an, oder wie The Fonske Crawl in Löwen seine Tickets mit SellQo verkauft.",
         "q1": "Was kostet SellQo für Events?",
-        "q1_a": "Mit Events Flex zahlen Sie nichts pro Monat und {{flex_fee}} pro bezahltem Ticket. Sie verkaufen das ganze Jahr viele Tickets? Dann ist Events Vast günstiger: {{vast_price}} pro Monat ({{vast_term}} Monate Laufzeit) und {{vast_fee}} pro Ticket, inklusive Saalplan. Die Gebühr wird automatisch von der Online-Zahlung abgezogen; kostenlose Tickets kosten nichts. Stripe berechnet zusätzlich seine üblichen Zahlungsgebühren.",
+        "q1_a": "Mit Events Flex zahlen Sie nichts pro Monat und {{flex_fee}} pro bezahltem Ticket. Sie verkaufen das ganze Jahr viele Tickets? Dann ist Events Fix günstiger: {{vast_price}} pro Monat ({{vast_term}} Monate Laufzeit) und {{vast_fee}} pro Ticket, inklusive Saalplan. Die Gebühr wird automatisch von der Online-Zahlung abgezogen; kostenlose Tickets kosten nichts. Stripe berechnet zusätzlich seine üblichen Zahlungsgebühren.",
         "q2": "Kann ich mehrere Termine und Ticketarten anbieten?",
         "q2_a": "Ja. Jedes Event kann mehrere Termine haben, und pro Termin verkaufen Sie verschiedene Ticketarten, etwa Early Bird mit eigenem Preis, Verkaufszeitraum und Kontingent.",
         "q3": "Wie lasse ich Gäste ein?",
@@ -1362,7 +1366,7 @@
         },
         "addon_billing": {
           "title": "Add-ons und Kassentickets korrekt auf deiner Rechnung",
-          "description": "Ein Add-on (Webshop oder Gastronomie), das du mitten im Monat hinzufügst, wird anteilig berechnet und steht jetzt als eigene Zeile auf deiner Rechnung. Beendest du ein Add-on, läuft es bis zum Ende des bezahlten Zeitraums. An der Kasse oder manuell verkaufte Tickets kommen mit ihrer Ticketgebühr auf die nächste Rechnung; ohne Monatsabo erhältst du eine Verbrauchsrechnung, sobald 5 € offen sind. Events Vast zeigt jetzt das Ende deines 12-Monats-Vertrags."
+          "description": "Ein Add-on (Webshop oder Gastronomie), das du mitten im Monat hinzufügst, wird anteilig berechnet und steht jetzt als eigene Zeile auf deiner Rechnung. Beendest du ein Add-on, läuft es bis zum Ende des bezahlten Zeitraums. An der Kasse oder manuell verkaufte Tickets kommen mit ihrer Ticketgebühr auf die nächste Rechnung; ohne Monatsabo erhältst du eine Verbrauchsrechnung, sobald 5 € offen sind. Events Fix zeigt jetzt das Ende deines 12-Monats-Vertrags."
         },
         "discount_code_case_insensitive": {
           "title": "Rabattcodes unterscheiden nicht mehr zwischen Groß- und Kleinschreibung",
@@ -2074,7 +2078,7 @@
         },
         "plans_tracks": {
           "title": "Neue Tarife für jede Art von Betrieb",
-          "description": "SellQo hat jetzt drei klare Bereiche: Webshop, Gastronomie und Events. Sie sehen nur, was zu Ihrem Tarif gehört, und buchen einen zweiten Bereich als Add-on (Webshop {{addon_webshop_price}} oder Gastronomie {{addon_horeca_price}} pro Monat, Tickets mit fester Gebühr pro Ticket). Neu sind Horeca Big ({{horeca_big_price}} pro Monat) und Events Vast ({{vast_price}} pro Monat für {{vast_term}} Monate, {{vast_fee}} pro Ticket und ein Saalplan). Events Flex kostet {{flex_fee}} pro bezahltem Ticket. Bestehende Shops behalten alles, was sie hatten."
+          "description": "SellQo hat jetzt drei klare Bereiche: Webshop, Gastronomie und Events. Sie sehen nur, was zu Ihrem Tarif gehört, und buchen einen zweiten Bereich als Add-on (Webshop {{addon_webshop_price}} oder Gastronomie {{addon_horeca_price}} pro Monat, Tickets mit fester Gebühr pro Ticket). Neu sind Gastro Groß ({{horeca_big_price}} pro Monat) und Events Fix ({{vast_price}} pro Monat für {{vast_term}} Monate, {{vast_fee}} pro Ticket und ein Saalplan). Events Flex kostet {{flex_fee}} pro bezahltem Ticket. Bestehende Shops behalten alles, was sie hatten."
         },
         "horeca_channels": {
           "title": "Pro Gericht wählen, wo es bestellbar ist",
@@ -2351,6 +2355,30 @@
         "reservations_online": {
           "title": "Online reservieren: Gäste fragen selbst einen Tisch an",
           "description": "Schalte unter Bestellen › Reservierungen das Online-Reservieren ein und wähle deine Zeiten pro Wochentag, die maximale Personenzahl pro Ankunftszeit, die größte Gruppe und wie weit im Voraus. Dein Webshop bekommt eine Schaltfläche Reserveren. Eine Anfrage erscheint orange in der Verwaltung und in der Kasse; du bestätigst oder lehnst ab, und der Gast bekommt sofort eine E-Mail. Erst nach der Bestätigung wird der Tisch lila. Standardmäßig aus."
+        },
+        "photo_order": {
+          "title": "Produktfotos neu anordnen",
+          "description": "Zieh die Fotos eines Produkts in die gewünschte Reihenfolge oder nutze die Pfeile (praktisch am Handy). Das erste Foto ist das Hauptfoto. Dein Webshop zeigt sie in derselben Reihenfolge, auch ein eigener Webshop auf SellQo."
+        },
+        "bg_remove_transparent": {
+          "title": "Hintergrund entfernen ergibt jetzt echte Transparenz",
+          "description": "Mit „Transparent“ im Fotoeditor oder gesammelt unter Fotos und in der Mediathek bekamst du manchmal ein grau-weißes Schachbrett im Foto. Jetzt bekommst du ein PNG mit wirklich transparentem Hintergrund. Klappt das Freistellen nicht, bekommst du einen einfarbigen Hintergrund statt eines halb freigestellten Fotos."
+        },
+        "photo_library_scroll": {
+          "title": "Scrollen in „Aus Bibliothek wählen“",
+          "description": "Im Fenster zur Fotoauswahl aus deiner Bibliothek konntest du nicht scrollen, deshalb waren nach einer Suche nicht alle Fotos erreichbar. Das funktioniert jetzt, auch am Handy."
+        },
+        "ai_help_language": {
+          "title": "Der Hilfe-Assistent antwortet in deiner Sprache",
+          "description": "Stellst du dem Hilfe-Assistenten eine Frage auf Deutsch, Englisch, Französisch oder Ukrainisch, bekommst du die Antwort jetzt in dieser Sprache statt auf Niederländisch."
+        },
+        "plan_names_i18n": {
+          "title": "Tarifnamen in deiner Sprache",
+          "description": "Die Namen der Gastro- und Event-Tarife werden jetzt auf der Preisseite, bei der Tarifwahl und unter Abo übersetzt."
+        },
+        "landing_menu_contrast": {
+          "title": "Handy-Menü wieder lesbar",
+          "description": "Auf sellqo.app wurde das Menü am Handy unlesbar, wenn du es oben auf der Seite geöffnet hast. Die Leiste hat jetzt einen eigenen Hintergrund."
         }
       },
       "copyLink": "Link kopieren",

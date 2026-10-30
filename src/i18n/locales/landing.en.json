@@ -283,7 +283,7 @@
     },
     "pricing": {
       "heading": "Fair prices, for every kind of business",
-      "subheading": "You can always start for free. No fees per order, cancel monthly (Events Vast runs {{vast_term}} months).",
+      "subheading": "You can always start for free. No fees per order, cancel monthly (Events Fixed runs {{vast_term}} months).",
       "monthly": "Monthly",
       "yearly": "Yearly",
       "save2months": "Save 2 months",
@@ -352,7 +352,7 @@
       "setup_p3": "Pickup hours, delivery zones and payments",
       "setup_p4": "QR codes for your tables, ready to print",
       "setup_cta": "Request the setup package",
-      "foot_trial": "Paid plans: 14 days free, no credit card. Then your subscription starts: automatically by direct debit or card, or with a payment request. Cancel monthly, except Events Vast ({{vast_term}}-month term).",
+      "foot_trial": "Paid plans: 14 days free, no credit card. Then your subscription starts: automatically by direct debit or card, or with a payment request. Cancel monthly, except Events Fixed ({{vast_term}}-month term).",
       "foot_payments": "Online payments run through your own Stripe account, at Stripe's usual rates. SellQo charges nothing per order, except the fixed fee per ticket sold.",
       "foot_qr": "Bank transfer with a QR code: your customer pays in their banking app, at no cost to you.",
       "from_short": "from",
@@ -368,7 +368,11 @@
       "addon_price": "+ {{price}} per month",
       "lim_orders_overage": "{{n}} orders per month included, then {{pct}}% per order",
       "lim_mails": "{{n}} marketing emails per month",
-      "lim_mails_unlimited": "Unlimited marketing emails"
+      "lim_mails_unlimited": "Unlimited marketing emails",
+      "name_events_flex": "Events Flex",
+      "name_events_vast": "Events Fixed",
+      "name_horeca": "Hospitality Small",
+      "name_horeca_big": "Hospitality Big"
     },
     "faq": {
       "heading": "Frequently asked questions",
@@ -387,11 +391,11 @@
         },
         {
           "q": "What's in the Hospitality plan?",
-          "a": "Horeca Small ({{horeca_price}} per month) gives you an ordering site for pickup and delivery, a QR menu to browse or order at the table, a kitchen screen, the POS, extras and allergens. Horeca Big ({{horeca_big_price}} per month) is for busy venues, with more users and priority support. Want us to add your menu and set everything up? That is the setup package at {{setup_price}}, one-off."
+          "a": "Hospitality Small ({{horeca_price}} per month) gives you an ordering site for pickup and delivery, a QR menu to browse or order at the table, a kitchen screen, the POS, extras and allergens. Hospitality Big ({{horeca_big_price}} per month) is for busy venues, with more users and priority support. Want us to add your menu and set everything up? That is the setup package at {{setup_price}}, one-off."
         },
         {
           "q": "What does SellQo cost for events?",
-          "a": "With Events Flex you pay nothing per month and {{flex_fee}} per paid ticket, no percentage. Selling tickets all year? Events Vast costs {{vast_price}} per month ({{vast_term}}-month term) and {{vast_fee}} per ticket. The fee is deducted automatically from the online payment; free tickets cost nothing."
+          "a": "With Events Flex you pay nothing per month and {{flex_fee}} per paid ticket, no percentage. Selling tickets all year? Events Fixed costs {{vast_price}} per month ({{vast_term}}-month term) and {{vast_fee}} per ticket. The fee is deducted automatically from the online payment; free tickets cost nothing."
         },
         {
           "q": "Are there extra costs on top of the subscription?",
@@ -567,7 +571,7 @@
         "demo_title": "See it in action",
         "demo_text": "Pick a seat in a demo concert hall, look at a festival with day tickets and VIP, or see how The Fonske Crawl in Leuven sells its tickets with SellQo.",
         "q1": "What does SellQo cost for events?",
-        "q1_a": "With Events Flex you pay nothing per month and {{flex_fee}} per paid ticket. Selling lots of tickets all year? Events Vast is cheaper: {{vast_price}} per month ({{vast_term}}-month term) and {{vast_fee}} per ticket, with a seating plan included. The fee is deducted automatically from the online payment; free tickets cost nothing. Stripe charges its usual payment fees on top.",
+        "q1_a": "With Events Flex you pay nothing per month and {{flex_fee}} per paid ticket. Selling lots of tickets all year? Events Fixed is cheaper: {{vast_price}} per month ({{vast_term}}-month term) and {{vast_fee}} per ticket, with a seating plan included. The fee is deducted automatically from the online payment; free tickets cost nothing. Stripe charges its usual payment fees on top.",
         "q2": "Can I offer multiple dates and ticket types?",
         "q2_a": "Yes. Each event can have multiple dates, and per date you sell different ticket types, for example an early bird with its own price, sales period and quantity.",
         "q3": "How do I check guests in?",
@@ -1362,7 +1366,7 @@
         },
         "addon_billing": {
           "title": "Add-ons and box-office tickets correctly on your invoice",
-          "description": "An add-on (webshop or horeca) added mid-month is charged pro rata and now appears as its own line on your invoice. When you stop an add-on, it runs until the end of the paid period. Tickets sold at the POS or manually are added with their ticket fee to your next invoice; without a monthly plan you get a usage invoice once €5 is outstanding. Events Vast now shows the end of your 12-month contract."
+          "description": "An add-on (webshop or horeca) added mid-month is charged pro rata and now appears as its own line on your invoice. When you stop an add-on, it runs until the end of the paid period. Tickets sold at the POS or manually are added with their ticket fee to your next invoice; without a monthly plan you get a usage invoice once €5 is outstanding. Events Fixed now shows the end of your 12-month contract."
         },
         "discount_code_case_insensitive": {
           "title": "Discount codes are no longer case-sensitive",
@@ -2074,7 +2078,7 @@
         },
         "plans_tracks": {
           "title": "New plans for every kind of business",
-          "description": "SellQo now has three clear tracks: webshop, food & drink and events. You only see what belongs to your plan, and you add a second part as an add-on (webshop {{addon_webshop_price}} or food & drink {{addon_horeca_price}} per month, tickets with a fixed fee per ticket). New are Horeca Big ({{horeca_big_price}} per month) and Events Vast ({{vast_price}} per month for {{vast_term}} months, {{vast_fee}} per ticket and a seating plan). Events Flex costs {{flex_fee}} per paid ticket. Existing shops keep everything they had."
+          "description": "SellQo now has three clear tracks: webshop, food & drink and events. You only see what belongs to your plan, and you add a second part as an add-on (webshop {{addon_webshop_price}} or food & drink {{addon_horeca_price}} per month, tickets with a fixed fee per ticket). New are Hospitality Big ({{horeca_big_price}} per month) and Events Fixed ({{vast_price}} per month for {{vast_term}} months, {{vast_fee}} per ticket and a seating plan). Events Flex costs {{flex_fee}} per paid ticket. Existing shops keep everything they had."
         },
         "horeca_channels": {
           "title": "Choose per dish where it can be ordered",
@@ -2351,6 +2355,30 @@
         "reservations_online": {
           "title": "Online reservations: guests request a table themselves",
           "description": "Under Ordering › Reservations, turn on online reservations and choose your hours per weekday, the maximum guests per arrival time, the largest party and how far ahead. Your webshop gets a Reserveren button. A request shows up in orange in your admin and on the till; you confirm or decline, and the guest gets an email right away. The table only turns purple after you confirm. It's off by default."
+        },
+        "photo_order": {
+          "title": "Reorder product photos",
+          "description": "Drag a product's photos into the order you want, or use the arrows (handy on your phone). The first photo is the main photo. Your webshop shows them in the same order, including a custom webshop on SellQo."
+        },
+        "bg_remove_transparent": {
+          "title": "Background removal now gives real transparency",
+          "description": "With \"Transparent\" in the photo editor, or in bulk under Photos and in the media library, you sometimes got a grey-and-white checkerboard painted into the photo. You now get a PNG with a truly transparent background. If the cut-out fails, you get a plain background instead of a half-cut photo."
+        },
+        "photo_library_scroll": {
+          "title": "Scrolling in \"Choose from library\"",
+          "description": "You couldn't scroll in the window for choosing photos from your library, so after a search you couldn't reach every photo. That works now, on your phone too."
+        },
+        "ai_help_language": {
+          "title": "Help assistant replies in your language",
+          "description": "Ask the help assistant a question in English, French, German or Ukrainian and you now get the answer in that language, instead of in Dutch."
+        },
+        "plan_names_i18n": {
+          "title": "Plan names in your language",
+          "description": "The names of the hospitality and events plans are now translated on the pricing page, when choosing your plan and under Subscription."
+        },
+        "landing_menu_contrast": {
+          "title": "Phone menu readable again",
+          "description": "On sellqo.app, the menu on your phone became unreadable when you opened it at the top of the page. The bar now gets its own background."
         }
       },
       "copyLink": "Copy link",
