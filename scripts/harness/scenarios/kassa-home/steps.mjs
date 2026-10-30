@@ -12,6 +12,8 @@ export async function run(page, { width, shot, log }) {
   await shot('0-zaalplan');
   // RESERVATIE-1: tafel 2 paars, tafel 4 bezet met "res.", lijst van vandaag, lang drukken op tafel 2.
   log('overflow zaal px', await overflow(page));
+  // VASTE-KLANT-1: vaste plek 'Bompa Ré' op het plan.
+  log('vaste klant', await page.getByRole('button', { name: /Bompa Ré/ }).count());
   await page.getByRole('button', { name: /^Reservaties vandaag/ }).click();
   await page.waitForTimeout(200);
   log('lijst reservaties', (await page.getByRole('dialog').innerText()).replace(/\s+/g, ' ').slice(0, 260));

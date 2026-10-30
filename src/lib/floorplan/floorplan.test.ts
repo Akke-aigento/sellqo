@@ -105,7 +105,13 @@ describe('labels', () => {
     expect(isValidLabel('Ter-1')).toBe(true);
     expect(isValidLabel('-1')).toBe(false);
     expect(isValidLabel('<b>')).toBe(false);
-    expect(isValidLabel('x'.repeat(17))).toBe(false);
+    expect(isValidLabel('x'.repeat(20))).toBe(true);
+    expect(isValidLabel('x'.repeat(21))).toBe(false);
+    // VASTE-KLANT-1: namen met accenten en apostrof (zelfde regel als de check in de migratie).
+    expect(isValidLabel('Bompa Ré')).toBe(true);
+    expect(isValidLabel("O'Neill")).toBe(true);
+    expect(isValidLabel('Éric')).toBe(true);
+    expect(isValidLabel("'Jef")).toBe(false);
   });
   it('sorteert natuurlijk', () => {
     expect(['B10', 'B2', 'B1'].sort(compareLabels)).toEqual(['B1', 'B2', 'B10']);

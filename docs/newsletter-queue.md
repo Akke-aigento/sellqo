@@ -4,6 +4,16 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14o — Vaste klanten krijgen een eigen plek op je zaalplan (feature, 30-10-2026)
+
+**Status:** wacht op push, migratie en publish (VASTE-KLANT-1).
+
+**Jef heeft zijn plek** (oktober 2026)
+Zet je vaste klanten met hun naam op het zaalplan. Op de kassa tik je op "Jef" en zijn rekening opent, altijd op dezelfde plek. Namen mogen nu tot 20 tekens, ook met accenten.
+Wat betekent dit voor jou? Geen zoeken meer tussen de rekeningen op naam.
+
+i18n: `public.changelog.changes.regulars_1`
+
 ### 2026.14n — Reservaties: tafels reserveren in je beheer en op de kassa (feature, 30-10-2026)
 
 **Status:** wacht op push, migratie en publish (RESERVATIE-1).

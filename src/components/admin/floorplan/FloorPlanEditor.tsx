@@ -93,7 +93,7 @@ export function FloorPlanEditor() {
     const base = defaultTable(kind);
     const spot = findFreeSpot(area, occupied, base.w, base.h);
     if (!spot) { toast.error(t('admin.floorPlan.no_space')); return; }
-    const prefix = kind === 'bar_seat' ? 'B' : kind === 'standing' ? 'S' : '';
+    const prefix = kind === 'bar_seat' ? 'B' : kind === 'standing' ? 'S' : kind === 'regular' ? t('admin.floorPlan.regular_prefix') : '';
     const label = nextLabel(allTables.filter((x) => x.area_id === area.id).map((x) => x.label), prefix);
     m.insertItems.mutateAsync({ areaId: area.id, tables: [{ ...base, label, x: spot.x, y: spot.y, rotation: 0 }] })
       .then((ids) => { if (ids[0]) setSel({ kind: 'table', id: ids[0] }); })
@@ -260,8 +260,8 @@ export function FloorPlanEditor() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start">
-                  <DropdownMenuItem disabled={tables.length === 0} onSelect={() => void printQr(tables)}>{t('admin.floorPlan.qr_print_area', { area: area?.name ?? '', count: tables.length })}</DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => void printQr(allTables)}>{t('admin.floorPlan.qr_print_all', { count: allTables.length })}</DropdownMenuItem>
+                  <DropdownMenuItem disabled={tables.length === 0} onSelect={() => void printQr(tables.filter((x) => x.kind !== 'regular'))}>{t('admin.floorPlan.qr_print_area', { area: area?.name ?? '', count: tables.filter((x) => x.kind !== 'regular').length })}</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => void printQr(allTables.filter((x) => x.kind !== 'regular'))}>{t('admin.floorPlan.qr_print_all', { count: allTables.filter((x) => x.kind !== 'regular').length })}</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>

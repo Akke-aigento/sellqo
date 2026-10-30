@@ -99,6 +99,8 @@ export function TablePanel({ table, areas, onPatch, onRotate, onDelete, onDuplic
         <Button type="button" size="sm" variant="outline" onClick={onDuplicate}><Copy className="mr-1.5 h-4 w-4" />{t('admin.floorPlan.duplicate')}</Button>
         <Button type="button" size="sm" variant="outline" className="text-destructive" onClick={() => setConfirm('delete')}><Trash2 className="mr-1.5 h-4 w-4" />{t('admin.floorPlan.delete')}</Button>
       </div>
+      {/* VASTE-KLANT-1: een vaste klant heeft geen tafel met een sticker. */}
+      {table.kind === 'regular' ? <p className="rounded-md border p-3 text-xs text-muted-foreground">{t('admin.floorPlan.regular_help')}</p> : (
       <div className="space-y-2 rounded-md border p-3">
         <p className="text-sm font-medium">{t('admin.floorPlan.qr_title')}</p>
         <p className="text-xs text-muted-foreground">{t('admin.floorPlan.qr_help')}</p>
@@ -107,6 +109,7 @@ export function TablePanel({ table, areas, onPatch, onRotate, onDelete, onDuplic
           <Button type="button" size="sm" variant="outline" onClick={() => setConfirm('renew')}><RefreshCw className="mr-1.5 h-4 w-4" />{t('admin.floorPlan.qr_renew')}</Button>
         </div>
       </div>
+      )}
 
       <AlertDialog open={confirm !== null} onOpenChange={(o) => { if (!o) setConfirm(null); }}>
         <AlertDialogContent>

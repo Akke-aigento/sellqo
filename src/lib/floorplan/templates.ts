@@ -76,6 +76,8 @@ export function placeTemplate(
 export function defaultTable(kind: TableKind): Pick<NewTable, 'kind' | 'shape' | 'seats' | 'w' | 'h'> {
   if (kind === 'bar_seat') return { kind, shape: 'round', seats: 1, w: 1, h: 1 };
   if (kind === 'standing') return { kind, shape: 'round', seats: 0, w: 1, h: 1 };
+  // VASTE-KLANT-1: een pil met de naam, breed genoeg om te lezen.
+  if (kind === 'regular') return { kind, shape: 'rect', seats: 1, w: 3, h: 1 };
   return { kind, shape: 'square', seats: 4, w: 2, h: 2 };
 }
 

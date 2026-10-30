@@ -124,9 +124,11 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   const kitchenCount = kitchen.cards.filter((c) => c.status === 'new').length;
 
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((x) => [x.id, x.label])), [plan]);
+  const regulars = useMemo(() => new Set((plan?.tables ?? []).filter((x) => x.kind === 'regular').map((x) => x.id)), [plan]);
   const ctx: ActionCtx | null = useMemo(() => (staff ? {
     store, runtime, staffId: staff.id, staffName: staff.display_name, staffRole: staff.role, employeeId, tableLabel: (id: string | null) => (id ? labels.get(id) ?? null : null),
-  } : null), [store, runtime, staff, employeeId, labels]);
+    isRegular: (id: string | null) => !!id && regulars.has(id),
+  } : null), [store, runtime, staff, employeeId, labels, regulars]);
   useAutoAcceptRunner(ctx, autoAccept, store.requests);
   if (!staff || !ctx) return null;
 

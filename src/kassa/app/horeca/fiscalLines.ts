@@ -93,7 +93,10 @@ export function consolidatedSpecs(c: Check): LineSpec[] {
 }
 
 /** costCenter van een rekening (TBL-01/02): tafel = TABLE, op naam = CUSTOMER; reference = sessie. */
-export function costCenterOf(c: Pick<Check, 'id' | 'table_id' | 'name' | 'reference' | 'split_of' | 'parent_reference'>, tableLabel: string | null): CostCenterInput {
+export function costCenterOf(c: Pick<Check, 'id' | 'table_id' | 'name' | 'reference' | 'split_of' | 'parent_reference'>, tableLabel: string | null, regular = false): CostCenterInput {
+  // VASTE-KLANT-1: de vaste plek van een klant op het plan is fiscaal een rekening op naam
+  // (CUSTOMER, TBL-01), geen tafel. Een deelrekening krijgt geen CHAIR (enkel onder TABLE).
+  if (c.table_id && regular) return costCenter('CUSTOMER', (tableLabel || c.name || c.id).slice(0, 40), c.reference);
   // TAFEL-2: deelrekening van een tafel = TABLE (reference van de hoofdrekening) › CHAIR
   // (eigen reference), zoals UC4119bis. Max. 2 niveaus (TBL-01).
   // Het CHAIR-id = begin van de eigen reference (vast vóór de server het deel aanmaakt, kort

@@ -148,7 +148,7 @@ export function FloorCanvas(props: FloorCanvasProps) {
               aria-label={st ? t('admin.floorPlan.table_aria_status', { label: tb.label, status: t(`admin.floorPlan.status_${st}`) }) : t('admin.floorPlan.table_aria', { label: tb.label, seats: tb.seats })}
               aria-pressed={selectedId ? selectedId === tb.id : undefined}
               className={cn('absolute flex select-none items-center justify-center border-2 font-semibold shadow-sm [-webkit-touch-callout:none]',
-                tb.shape === 'round' ? 'rounded-full' : 'rounded-md',
+                tb.shape === 'round' || tb.kind === 'regular' ? 'rounded-full' : 'rounded-md',
                 st ? STATUS_CLASS[st] : 'border-slate-500 bg-background text-foreground',
                 tb.kind === 'standing' && !st && 'border-dashed',
                 interactive && 'cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary',

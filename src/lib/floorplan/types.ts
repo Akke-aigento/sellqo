@@ -2,11 +2,12 @@
 // floor_markers). Alle posities en maten zijn rastereenheden, nooit pixels: het plan
 // schaalt zo naar elk scherm (gsm, tablet aan de toog, kassascherm).
 
-export type TableKind = 'table' | 'bar_seat' | 'standing';
+/** VASTE-KLANT-1: 'regular' = vaste klant met een eigen plek op het plan (rekening op naam). */
+export type TableKind = 'table' | 'bar_seat' | 'standing' | 'regular';
 export type TableShape = 'round' | 'square' | 'rect';
 export type MarkerKind = 'bar' | 'door' | 'wall' | 'plant' | 'text';
 
-export const TABLE_KINDS: TableKind[] = ['table', 'bar_seat', 'standing'];
+export const TABLE_KINDS: TableKind[] = ['table', 'bar_seat', 'standing', 'regular'];
 export const TABLE_SHAPES: TableShape[] = ['round', 'square', 'rect'];
 export const MARKER_KINDS: MarkerKind[] = ['bar', 'door', 'wall', 'plant', 'text'];
 
@@ -56,10 +57,11 @@ export type TableStatus = 'free' | 'occupied' | 'attention' | 'reserved' | 'bill
 /** Grenzen uit de migratie (checks op dining_areas/dining_tables). */
 export const GRID_LIMITS = {
   minW: 8, maxW: 120, minH: 6, maxH: 80,
-  tableMaxSize: 40, seatsMax: 99, labelMax: 16,
+  tableMaxSize: 40, seatsMax: 99, labelMax: 20,
 } as const;
 
 export const DEFAULT_GRID = { w: 40, h: 24 } as const;
 
 /** Zelfde regel als de check in de migratie: begint met letter/cijfer, max. 16 tekens. */
-export const LABEL_RE = /^[A-Za-z0-9][A-Za-z0-9 _./-]{0,15}$/;
+// VASTE-KLANT-1: ook letters met accenten en een apostrof, tot 20 tekens ("Bompa Ré", "O'Neill").
+export const LABEL_RE = /^[\p{L}\p{N}][\p{L}\p{N} _./'-]{0,19}$/u;

@@ -2343,6 +2343,10 @@
         "reservations_1": {
           "title": "Reservations: book tables in your admin and on the till",
           "description": "Under Ordering › Reservations and on SellQo Kassa (long-press a table, or the Reservations button) you note a reservation with name, time, number of guests and optionally a mobile number. On the floor plan the table turns purple from one hour ahead (adjustable). If guests with an open bill are still seated, the table stays occupied and shows the reservation time: a reservation never changes a bill. Tap the purple table when the guests arrive. Mobile numbers are deleted automatically after 30 days. Reservations are included in all hospitality plans."
+        },
+        "regulars_1": {
+          "title": "Regulars get their own spot on your floor plan",
+          "description": "In the floor plan editor, Add table now also offers Regular: a spot with your regular's name, e.g. \"Jef\" or \"Bompa Ré\". On SellQo Kassa a tap opens their bill, always in the same spot. Names can now be up to 20 characters, including accents and an apostrophe. On the receipt their bill appears as a bill on a name."
         }
       },
       "copyLink": "Copy link",

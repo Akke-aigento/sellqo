@@ -257,6 +257,21 @@
    "rotation": 0,
    "qr_token": "qTer-4",
    "is_active": true
+  },
+  {
+   "id": "t-jef",
+   "area_id": "b822bede-9e62-46f0-988a-c121643e610c",
+   "label": "Bompa Ré",
+   "kind": "regular",
+   "shape": "rect",
+   "seats": 1,
+   "x": 24,
+   "y": 19,
+   "w": 4,
+   "h": 1,
+   "rotation": 0,
+   "qr_token": "qjef",
+   "is_active": true
   }
  ],
  "markers": [

@@ -8988,7 +8988,7 @@
       "shape_square": "Square",
       "shape_rect": "Rectangular",
       "field_label": "Table name",
-      "label_invalid": "Up to 16 characters: letters, digits, space and - / . _ (start with a letter or digit).",
+      "label_invalid": "Up to 20 characters: letters (accents allowed), digits, space and - / . _ ' (start with a letter or digit).",
       "field_kind": "Type",
       "field_shape": "Shape",
       "field_seats": "Seats",
@@ -9026,7 +9026,10 @@
       "error_label_taken": "That name already exists in this area. Choose another name.",
       "error_no_rights": "You do not have permission to change the floor plan. Ask an administrator of the venue.",
       "error_invalid": "This value is not allowed: check name, size and position.",
-      "error_save": "Saving failed: {{reason}}"
+      "error_save": "Saving failed: {{reason}}",
+      "kind_regular": "Regular",
+      "regular_prefix": "Regular ",
+      "regular_help": "A regular gets their own spot on the floor plan: give it their name (e.g. \"Jef\"). On the till a tap opens their bill. There is no QR sticker, because nobody orders here themselves."
     },
     "prepStations": {
       "title": "Preparation stations",

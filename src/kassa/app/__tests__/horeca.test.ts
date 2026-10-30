@@ -21,6 +21,15 @@ const check = (lines: CheckLine[], over: Partial<Check> = {}): Check => ({
 
 beforeEach(() => { n = 0; });
 
+describe('VASTE-KLANT-1 costCenter', () => {
+  it('vaste plek van een klant = CUSTOMER met de naam, ook als deelrekening (geen CHAIR)', () => {
+    expect(costCenterOf(check([]), 'Jef', true)).toEqual({ id: 'Jef', type: 'CUSTOMER', reference: 'chk-1' });
+    const part = costCenterOf(check([], { id: 'chk-2', reference: 'chk-2', split_of: 'chk-1', parent_reference: 'chk-1' } as Partial<Check>), 'Jef', true);
+    expect(part).toEqual({ id: 'Jef', type: 'CUSTOMER', reference: 'chk-2' });
+    expect(costCenterOf(check([]), 'B1').type).toBe('TABLE');
+  });
+});
+
 describe('rekeninglijnen → fiscale lijnen', () => {
   it('supplement met prijs = eigen lijn (UC4120bis), zonder prijs enkel keuken', () => {
     const l = line({ addons: [{ option_id: 'mayo', name: 'Mayonaise', price_cents: 250 }, { option_id: 'ketchup', name: 'Ketchup', price_cents: 0 }] });

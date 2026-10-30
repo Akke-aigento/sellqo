@@ -2343,6 +2343,10 @@
         "reservations_1": {
           "title": "Reservierungen: Tische in der Verwaltung und an der Kasse reservieren",
           "description": "Unter Bestellen › Reservierungen und in SellQo Kassa (langes Drücken auf einen Tisch oder die Schaltfläche Reservierungen) notierst du eine Reservierung mit Name, Uhrzeit, Personenzahl und optional einer Handynummer. Im Raumplan wird der Tisch eine Stunde vorher lila (einstellbar). Sitzen noch Gäste mit einer offenen Rechnung dort, bleibt der Tisch besetzt und zeigt die Reservierungszeit: Eine Reservierung ändert nie eine Rechnung. Tippe auf den lila Tisch, wenn die Gäste da sind. Handynummern werden nach 30 Tagen automatisch gelöscht. Reservierungen sind in allen Gastronomie-Paketen enthalten."
+        },
+        "regulars_1": {
+          "title": "Stammgäste bekommen einen eigenen Platz in deinem Raumplan",
+          "description": "Im Raumplan-Editor bietet Tisch hinzufügen jetzt auch Stammgast: ein Platz mit dem Namen deines Stammgasts, z. B. „Jef“ oder „Bompa Ré“. In SellQo Kassa öffnet ein Tippen seine Rechnung, immer am selben Platz. Namen dürfen jetzt bis zu 20 Zeichen lang sein, auch mit Akzenten und Apostroph. Auf dem Kassenbon erscheint seine Rechnung als Rechnung auf einen Namen."
         }
       },
       "copyLink": "Link kopieren",

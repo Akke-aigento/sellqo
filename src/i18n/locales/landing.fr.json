@@ -2343,6 +2343,10 @@
         "reservations_1": {
           "title": "Réservations : réservez des tables dans votre gestion et sur la caisse",
           "description": "Sous Commandes › Réservations et sur SellQo Kassa (appui long sur une table, ou le bouton Réservations), vous notez une réservation avec le nom, l’heure, le nombre de personnes et éventuellement un numéro de GSM. Sur le plan de salle, la table devient violette une heure à l’avance (réglable). Si des clients avec une addition ouverte sont encore à table, elle reste occupée et affiche l’heure de la réservation : une réservation ne modifie jamais une addition. Touchez la table violette quand les clients arrivent. Les numéros de GSM sont supprimés automatiquement après 30 jours. Les réservations sont incluses dans toutes les formules horeca."
+        },
+        "regulars_1": {
+          "title": "Vos habitués ont leur propre place sur le plan de salle",
+          "description": "Dans l’éditeur du plan de salle, Ajouter une table propose désormais aussi Habitué : une place au nom de votre habitué, p. ex. « Jef » ou « Bompa Ré ». Sur SellQo Kassa, un appui ouvre son addition, toujours au même endroit. Les noms peuvent compter jusqu’à 20 caractères, accents et apostrophe compris. Sur le ticket de caisse, son addition figure comme addition à un nom."
         }
       },
       "copyLink": "Copier le lien",

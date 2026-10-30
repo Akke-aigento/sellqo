@@ -2343,6 +2343,10 @@
         "reservations_1": {
           "title": "Reservaties: tafels reserveren in je beheer en op de kassa",
           "description": "Onder Bestellen › Reservaties en op SellQo Kassa (lang drukken op een tafel, of de knop Reservaties) noteer je een reservatie met naam, uur, aantal personen en eventueel een gsm-nummer. Op het zaalplan kleurt de tafel paars vanaf een uur vooraf (instelbaar). Zitten er nog gasten met een open rekening, dan blijft de tafel bezet en staat het reservatie-uur erbij: een reservatie verandert nooit iets aan een rekening. Tik op de paarse tafel als de gasten er zijn. Gsm-nummers worden na 30 dagen automatisch gewist. Reservaties zitten in alle horecapakketten."
+        },
+        "regulars_1": {
+          "title": "Vaste klanten krijgen een eigen plek op je zaalplan",
+          "description": "In de zaalplan-editor kies je bij Tafel toevoegen nu ook Vaste klant: een plek met de naam van je vaste klant, bv. \"Jef\" of \"Bompa Ré\". Op SellQo Kassa opent een tik zijn rekening, elke keer op dezelfde plek. Namen mogen nu tot 20 tekens tellen, ook met accenten en een apostrof. Op het kasticket staat zijn rekening als rekening op naam."
         }
       },
       "copyLink": "Kopieer link",

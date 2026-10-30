@@ -1,3 +1,35 @@
+## VASTE-KLANT-1 — vaste klanten als eigen plek op het zaalplan (kassa 0.18.0) — 30 oktober 2026
+
+**Aanleiding**
+- Akke (29-10): "vaste klanten op het plan". Beslissingen: eigen soort (niet een tafel met een naam), en fiscaal CUSTOMER (30-10).
+
+**Root cause / vertrekpunt**
+- `dining_tables.kind` kende enkel table/bar_seat/standing; labels max. 16 tekens zonder accenten (`dining_tables_label_check`, `LABEL_RE`), dus "Bompa Ré" of "O'Neill" kon niet.
+
+**Uitgevoerd**
+- Migratie `20261030210000_vaste_klant_1.sql`: kind + `'regular'`; label `^[[:alnum:]][[:alnum:] _./'-]{0,19}$` (strikt ruimer, alle soorten).
+- `src/lib/floorplan`: `TableKind` + `regular`, `LABEL_RE` met `\p{L}` (zelfde regel), `labelMax` 20, `defaultTable('regular')` = pil 3×1.
+- Editor: soort "Vaste klant" (standaardnaam "Klant 1", hernoemen), geen QR-blok in het paneel, niet in de stickervellen. Canvas: pil (rounded-full).
+- Kassa: `ActionCtx.isRegular`; `costCenterOf(c, label, regular)` → `CUSTOMER` met de naam (ook bij deelrekening, geen CHAIR). Alle aanroepen (ronde, voorrekening, verplaatsen, samenvoegen, afrekenen) geven het mee.
+- Tests: label met accenten/apostrof/20 tekens; costCenter CUSTOMER (ook deelrekening), gewone tafel blijft TABLE.
+- `KASSA_SW_VERSION` 0.18.0. i18n `admin.floorPlan.kind_regular`, `regular_prefix`, `regular_help`, `label_invalid` (5 talen). Changelog 2026.14o `regulars_1`. Helpartikel `20261030210100_vaste_klant_1_docs.sql`. Nieuwsbrief.
+
+**Security-keuzes**
+- n.v.t.: geen policy of grant; enkel twee check-constraints ruimer.
+
+**Fiscaal (GKS)**
+- Fiscale release 0.18.0 met een wijziging in het fiscale pad: de rekening van een vaste klant gaat als costCenter `CUSTOMER` (TBL-01, rekening op naam) in plaats van `TABLE`. Verplaatsen tussen een tafel en een vaste klant = COST_CENTER_CHANGE TABLE ↔ CUSTOMER (toegelaten, één-op-één). Te vermelden in de fiscale changelog.
+
+**Gedeelde-paden-waarschuwing**
+- `dining_tables` wordt door de QR-flow gelezen (op token). Een vaste klant krijgt wel een token (kolomstandaard), maar geen sticker; bestaande tafels en labels blijven geldig (check bij het toevoegen gevalideerd).
+
+**Verificatie**
+- Dry-run live (teruggedraaid): bestaande 18 rijen valideren; "Bompa Ré" als regular ok; label "<x>" geweigerd.
+- vitest floorplan + horeca: 40 groen. Harnas 390/1024/1280: plek "Bompa Ré" op het plan, overloop 0.
+
+**Bewust ongemoeid / Vervolg**
+- Rekeningen op naam (chips) blijven bestaan; een vaste klant met een plek staat er niet dubbel bij zolang zijn rekening aan zijn plek hangt.
+
 ## RESERVATIE-1 — tafelreservaties als laag boven het zaalplan (kassa 0.17.0) — 30 oktober 2026
 
 **Aanleiding**

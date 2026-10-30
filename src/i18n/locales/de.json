@@ -8715,7 +8715,7 @@
       "shape_square": "Quadratisch",
       "shape_rect": "Rechteckig",
       "field_label": "Name des Tisches",
-      "label_invalid": "Höchstens 16 Zeichen: Buchstaben, Ziffern, Leerzeichen und - / . _ (mit Buchstabe oder Ziffer beginnen).",
+      "label_invalid": "Höchstens 20 Zeichen: Buchstaben (auch mit Akzent), Ziffern, Leerzeichen und - / . _ ' (mit Buchstabe oder Ziffer beginnen).",
       "field_kind": "Art",
       "field_shape": "Form",
       "field_seats": "Plätze",
@@ -8753,7 +8753,10 @@
       "error_label_taken": "Dieser Name existiert in diesem Bereich bereits. Wählen Sie einen anderen Namen.",
       "error_no_rights": "Sie haben keine Berechtigung, den Raumplan zu ändern. Fragen Sie einen Administrator des Betriebs.",
       "error_invalid": "Dieser Wert ist nicht zulässig: Prüfen Sie Name, Größe und Position.",
-      "error_save": "Speichern fehlgeschlagen: {{reason}}"
+      "error_save": "Speichern fehlgeschlagen: {{reason}}",
+      "kind_regular": "Stammgast",
+      "regular_prefix": "Stammgast ",
+      "regular_help": "Ein Stammgast hat seinen eigenen Platz im Raumplan: gib ihm seinen Namen (z. B. „Jef“). In der Kasse öffnet ein Tippen seine Rechnung. Es gibt keinen QR-Aufkleber, denn hier bestellt niemand selbst."
     },
     "prepStations": {
       "title": "Zubereitungsstationen",

@@ -8715,7 +8715,7 @@
       "shape_square": "Carrée",
       "shape_rect": "Rectangulaire",
       "field_label": "Nom de la table",
-      "label_invalid": "16 caractères maximum : lettres, chiffres, espace et - / . _ (commencez par une lettre ou un chiffre).",
+      "label_invalid": "20 caractères maximum : lettres (accents compris), chiffres, espace et - / . _ ' (commencez par une lettre ou un chiffre).",
       "field_kind": "Type",
       "field_shape": "Forme",
       "field_seats": "Places",
@@ -8753,7 +8753,10 @@
       "error_label_taken": "Ce nom existe déjà dans cet espace. Choisissez un autre nom.",
       "error_no_rights": "Vous n'avez pas le droit de modifier le plan de salle. Demandez à un administrateur de l'établissement.",
       "error_invalid": "Cette valeur n'est pas autorisée : vérifiez le nom, la taille et la position.",
-      "error_save": "Échec de l'enregistrement : {{reason}}"
+      "error_save": "Échec de l'enregistrement : {{reason}}",
+      "kind_regular": "Habitué",
+      "regular_prefix": "Habitué ",
+      "regular_help": "Un habitué a sa propre place sur le plan de salle : donnez-lui son nom (p. ex. « Jef »). Sur la caisse, un appui ouvre son addition. Pas d’autocollant QR, personne ne commande soi-même ici."
     },
     "prepStations": {
       "title": "Postes de préparation",

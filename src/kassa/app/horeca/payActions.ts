@@ -271,7 +271,7 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
         data = buildSale(ctx.runtime.posContext(), await ctx.runtime.meta('signSale', ctx.employeeId, 'PAPER'), {
           lines: consolidatedSpecs(c),
           payments: paymentSpecs(plan),
-          costCenter: counter ? null : costCenterOf(c, ctx.tableLabel(c.table_id)),
+          costCenter: counter ? null : costCenterOf(c, ctx.tableLabel(c.table_id), !!ctx.isRegular?.(c.table_id)),
         });
       } catch (e) {
         if (e instanceof FiscalUnavailableError) return fail({ ok: false, reason: e.message as 'fiscal_not_configured' });

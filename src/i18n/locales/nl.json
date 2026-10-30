@@ -9002,7 +9002,7 @@
       "shape_square": "Vierkant",
       "shape_rect": "Rechthoekig",
       "field_label": "Naam van de tafel",
-      "label_invalid": "Maximaal 16 tekens: letters, cijfers, spatie en - / . _ (begin met een letter of cijfer).",
+      "label_invalid": "Maximaal 20 tekens: letters (ook met accenten), cijfers, spatie en - / . _ ' (begin met een letter of cijfer).",
       "field_kind": "Soort",
       "field_shape": "Vorm",
       "field_seats": "Stoelen",
@@ -9040,7 +9040,10 @@
       "error_label_taken": "Die naam bestaat al in deze ruimte. Kies een andere naam.",
       "error_no_rights": "Je hebt geen rechten om het zaalplan aan te passen. Vraag het aan een beheerder van de zaak.",
       "error_invalid": "Deze waarde kan niet: controleer naam, maat en positie.",
-      "error_save": "Bewaren mislukt: {{reason}}"
+      "error_save": "Bewaren mislukt: {{reason}}",
+      "kind_regular": "Vaste klant",
+      "regular_prefix": "Klant ",
+      "regular_help": "Een vaste klant heeft een eigen plek op het zaalplan: geef hem zijn naam (bv. \"Jef\"). Op de kassa opent een tik zijn rekening. Er is geen QR-sticker, want hier bestelt niemand zelf."
     },
     "prepStations": {
       "title": "Bereidingsposten",

@@ -23,6 +23,8 @@ export interface ActionCtx {
   staffName: string;
   employeeId: string | null;
   tableLabel: (tableId: string | null) => string | null;
+  /** VASTE-KLANT-1: true = vaste plek van een klant (fiscaal CUSTOMER). Optioneel. */
+  isRegular?: (tableId: string | null) => boolean;
   /** KASSA-0.6: rol van de medewerker met de PIN (owner/manager mogen producten aanpassen). */
   staffRole?: string;
 }
@@ -75,7 +77,7 @@ export async function sendRound(ctx: ActionCtx, checkId: string, only?: Readonly
     if (!lines.length) return { ok: false, reason: 'nothing' };
     const signed = await signOrFail(ctx, async () => {
       const data = buildOrder(ctx.runtime.posContext(), await ctx.runtime.meta('signOrder', ctx.employeeId as string, 'NONE'), {
-        costCenter: costCenterOf(c, ctx.tableLabel(c.table_id)),
+        costCenter: costCenterOf(c, ctx.tableLabel(c.table_id), !!ctx.isRegular?.(c.table_id)),
         lines: roundSpecs(c, only),
       });
       return ctx.runtime.sign('signOrder', data, { staffId: ctx.staffId });
@@ -104,7 +106,7 @@ export async function requestBill(ctx: ActionCtx, checkId: string): Promise<Acti
     if (!specs.length) return { ok: false, reason: 'nothing' };
     const signed = await signOrFail(ctx, async () => {
       const data = buildPreBill(ctx.runtime.posContext(), await ctx.runtime.meta('signPreBill', ctx.employeeId as string, 'PAPER'), {
-        costCenter: costCenterOf(c, ctx.tableLabel(c.table_id)),
+        costCenter: costCenterOf(c, ctx.tableLabel(c.table_id), !!ctx.isRegular?.(c.table_id)),
         lines: specs,
       });
       return ctx.runtime.sign('signPreBill', data, { staffId: ctx.staffId });
@@ -155,8 +157,8 @@ export async function moveLines(ctx: ActionCtx, req: MoveRequest): Promise<Actio
       const signed = await signOrFail(ctx, async () => {
         const { from: fromLines, to: toLines } = transferSpecs(sentMoves);
         const data = buildCostCenterChange(ctx.runtime.posContext(), await ctx.runtime.meta('signCostCenterChange', ctx.employeeId as string, 'NONE'),
-          [{ costCenter: costCenterOf(from, ctx.tableLabel(from.table_id)), lines: fromLines }],
-          [{ costCenter: costCenterOf(target, ctx.tableLabel(target.table_id)), lines: toLines }]);
+          [{ costCenter: costCenterOf(from, ctx.tableLabel(from.table_id), !!ctx.isRegular?.(from.table_id)), lines: fromLines }],
+          [{ costCenter: costCenterOf(target, ctx.tableLabel(target.table_id), !!ctx.isRegular?.(target.table_id)), lines: toLines }]);
         return ctx.runtime.sign('signCostCenterChange', data, { staffId: ctx.staffId });
       });
       if (isOutcome(signed)) return signed;
@@ -204,8 +206,8 @@ export async function moveCheck(ctx: ActionCtx, checkId: string, to: { tableId: 
         const { from, to: toLines } = transferSpecs(moved);
         const target = { ...c, table_id: to.tableId, name: to.tableId ? c.name : to.name };
         const data = buildCostCenterChange(ctx.runtime.posContext(), await ctx.runtime.meta('signCostCenterChange', ctx.employeeId as string, 'NONE'),
-          [{ costCenter: costCenterOf(c, ctx.tableLabel(c.table_id)), lines: from }],
-          [{ costCenter: costCenterOf(target, ctx.tableLabel(to.tableId)), lines: toLines }]);
+          [{ costCenter: costCenterOf(c, ctx.tableLabel(c.table_id), !!ctx.isRegular?.(c.table_id)), lines: from }],
+          [{ costCenter: costCenterOf(target, ctx.tableLabel(to.tableId), !!ctx.isRegular?.(to.tableId)), lines: toLines }]);
         return ctx.runtime.sign('signCostCenterChange', data, { staffId: ctx.staffId });
       });
       if (isOutcome(signed)) return signed;
