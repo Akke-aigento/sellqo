@@ -25,96 +25,96 @@ interface PlanFeatureDetailDialogProps {
 }
 
 interface FeatureCategory {
-  label: string;
+  labelKey: string;
   icon: React.ReactNode;
   color: string;
-  items: { label: string; key: keyof PricingPlanFeatures }[];
+  items: { key: keyof PricingPlanFeatures }[];
 }
 
 const featureCategories: FeatureCategory[] = [
   {
-    label: 'Webshop & Tools',
+    labelKey: 'cat_webshop',
     icon: <Package className="h-4 w-4" />,
     color: 'bg-blue-50 text-blue-700 border-blue-200',
     items: [
-      { label: 'Webshop Builder', key: 'webshop_builder' },
-      { label: 'Visual Editor', key: 'visual_editor' },
-      { label: 'Eigen domein', key: 'customDomain' },
-      { label: 'Geen watermerk', key: 'removeWatermark' },
-      { label: 'White-label', key: 'whiteLabel' },
+      { key: 'webshop_builder' },
+      { key: 'visual_editor' },
+      { key: 'customDomain' },
+      { key: 'removeWatermark' },
+      { key: 'whiteLabel' },
     ],
   },
   {
-    label: 'AI Tools',
+    labelKey: 'cat_ai',
     icon: <Sparkles className="h-4 w-4" />,
     color: 'bg-purple-50 text-purple-700 border-purple-200',
     items: [
-      { label: 'AI Marketing', key: 'ai_marketing' },
-      { label: 'AI Copywriting', key: 'ai_copywriting' },
-      { label: 'AI Afbeeldingen', key: 'ai_images' },
-      { label: 'AI SEO', key: 'ai_seo' },
-      { label: 'AI Business Coach', key: 'ai_coach' },
-      { label: 'AI Chatbot', key: 'ai_chatbot' },
-      { label: 'AI A/B Testing', key: 'ai_ab_testing' },
+      { key: 'ai_marketing' },
+      { key: 'ai_copywriting' },
+      { key: 'ai_images' },
+      { key: 'ai_seo' },
+      { key: 'ai_coach' },
+      { key: 'ai_chatbot' },
+      { key: 'ai_ab_testing' },
     ],
   },
   {
-    label: 'SellQo Connect',
+    labelKey: 'cat_connect',
     icon: <Zap className="h-4 w-4" />,
     color: 'bg-teal-50 text-teal-700 border-teal-200',
     items: [
-      { label: 'API toegang', key: 'apiAccess' },
-      { label: 'Webhooks', key: 'webhooks' },
-      { label: 'SellQo Connect — Bol.com', key: 'bol_com' },
-      { label: 'SellQo Connect — VVB Labels', key: 'bol_vvb_labels' },
-      { label: 'SellQo Connect — Amazon', key: 'amazon' },
-      { label: 'SellQo Connect — eBay', key: 'ebay' },
-      { label: 'SellQo Connect — Social Commerce', key: 'social_commerce' },
-      { label: 'SellQo Connect — WhatsApp', key: 'whatsapp' },
+      { key: 'apiAccess' },
+      { key: 'webhooks' },
+      { key: 'bol_com' },
+      { key: 'bol_vvb_labels' },
+      { key: 'amazon' },
+      { key: 'ebay' },
+      { key: 'social_commerce' },
+      { key: 'whatsapp' },
     ],
   },
   {
-    label: 'Promoties & Loyaliteit',
+    labelKey: 'cat_promo',
     icon: <Crown className="h-4 w-4" />,
     color: 'bg-amber-50 text-amber-700 border-amber-200',
     items: [
-      { label: 'Bundel aanbiedingen', key: 'promo_bundles' },
-      { label: 'Buy One Get One', key: 'promo_bogo' },
-      { label: 'Volume kortingen', key: 'promo_volume' },
-      { label: 'Cadeaubonnen', key: 'promo_giftcards' },
-      { label: 'Loyaliteitsprogramma', key: 'loyalty_program' },
-      { label: 'Abonnementen', key: 'recurring_subscriptions' },
-      { label: 'Gamification & Badges', key: 'gamification' },
+      { key: 'promo_bundles' },
+      { key: 'promo_bogo' },
+      { key: 'promo_volume' },
+      { key: 'promo_giftcards' },
+      { key: 'loyalty_program' },
+      { key: 'recurring_subscriptions' },
+      { key: 'gamification' },
     ],
   },
   {
-    label: 'Facturatie & Betalingen',
+    labelKey: 'cat_billing',
     icon: <ShoppingCart className="h-4 w-4" />,
     color: 'bg-green-50 text-green-700 border-green-200',
     items: [
-      { label: 'POS Kassa', key: 'pos' },
-      { label: 'Factur-X e-facturen', key: 'facturX' },
-      { label: 'Peppol e-invoicing', key: 'peppol' },
-      { label: 'Multi-valuta', key: 'multiCurrency' },
+      { key: 'pos' },
+      { key: 'facturX' },
+      { key: 'peppol' },
+      { key: 'multiCurrency' },
     ],
   },
   {
-    label: 'Geavanceerd',
+    labelKey: 'cat_advanced',
     icon: <Star className="h-4 w-4" />,
     color: 'bg-slate-50 text-slate-700 border-slate-200',
     items: [
-      { label: 'Geavanceerde analytics', key: 'advancedAnalytics' },
-      { label: 'Prioriteit support', key: 'prioritySupport' },
-      { label: 'Shop Health Score', key: 'shop_health' },
-      { label: 'Live Activity Feed', key: 'live_activity' },
-      { label: 'Multi-warehouse', key: 'multi_warehouse' },
+      { key: 'advancedAnalytics' },
+      { key: 'prioritySupport' },
+      { key: 'shop_health' },
+      { key: 'live_activity' },
+      { key: 'multi_warehouse' },
     ],
   },
 ];
 
-function formatLimit(value: number | null) {
-  if (value === null) return 'Onbeperkt';
-  return value.toLocaleString('nl-NL');
+function formatLimit(value: number | null, unlimited: string, locale: string) {
+  if (value === null) return unlimited;
+  return value.toLocaleString(locale);
 }
 
 function getTierGradient(planName: string): { header: string; button: string } {
@@ -137,8 +137,10 @@ export function PlanFeatureDetailDialog({
   currentPlanSortOrder = 0,
   isLoading,
 }: PlanFeatureDetailDialogProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   if (!plan) return null;
+  const fmt = (v: number | null) => formatLimit(v, t('billing.plan_detail.unlimited'), i18n.language || 'nl');
+  const planName = planDisplayName(plan, t);
 
   const isCurrent = plan.id === currentPlanId;
   const isUpgrade = plan.sort_order > currentPlanSortOrder;
@@ -159,16 +161,16 @@ export function PlanFeatureDetailDialog({
         <div className={cn('bg-gradient-to-br px-6 pt-8 pb-5', tierGradient.header)}>
           <DialogHeader>
             <div className="flex items-center justify-center gap-2">
-              <DialogTitle className="text-2xl font-extrabold tracking-tight">{planDisplayName(plan, t)}</DialogTitle>
+              <DialogTitle className="text-2xl font-extrabold tracking-tight">{planName}</DialogTitle>
               {plan.highlighted && (
                 <Badge className="bg-gradient-to-r from-teal-500 to-emerald-500 text-white border-0 shadow-sm">
                   <Crown className="h-3 w-3 mr-1" />
-                  Populair
+                  {t('billing.plan_detail.popular')}
                 </Badge>
               )}
             </div>
             <DialogDescription className="sr-only">
-              Alle features van het {plan.name} plan
+              {t('billing.plan_detail.all_features', { plan: planName })}
             </DialogDescription>
           </DialogHeader>
 
@@ -176,14 +178,14 @@ export function PlanFeatureDetailDialog({
             <span className="text-5xl font-extrabold tracking-tight">
               €{monthlyPrice}
             </span>
-            <span className="text-muted-foreground text-lg">/mnd</span>
+            <span className="text-muted-foreground text-lg">{t('billing.plan_detail.per_month')}</span>
           </div>
 
           {/* Feature progress bar */}
           <div className="mt-4 max-w-[200px] mx-auto">
             <div className="flex justify-between text-[11px] text-muted-foreground mb-1">
-              <span>{enabledCount} features</span>
-              <span>{totalCount} totaal</span>
+              <span>{t('billing.plan_detail.features_count', { count: enabledCount })}</span>
+              <span>{t('billing.plan_detail.total_count', { count: totalCount })}</span>
             </div>
             <div className="h-2 rounded-full bg-white/60 overflow-hidden shadow-inner">
               <div
@@ -197,12 +199,12 @@ export function PlanFeatureDetailDialog({
         {/* Limits grid */}
         <div className="px-6 py-4 grid grid-cols-4 gap-2 border-b">
           {[
-            { icon: <Package className="h-4 w-4 text-blue-500" />, label: 'Producten', value: formatLimit(plan.limit_products) },
-            { icon: <ShoppingCart className="h-4 w-4 text-green-500" />, label: 'Orders/mnd', value: formatLimit(plan.limit_orders) },
-            { icon: <UserPlus className="h-4 w-4 text-amber-500" />, label: 'Team', value: String(plan.limit_users) },
+            { icon: <Package className="h-4 w-4 text-blue-500" />, label: t('billing.usage_labels.products'), value: fmt(plan.limit_products) },
+            { icon: <ShoppingCart className="h-4 w-4 text-green-500" />, label: t('billing.plan_detail.orders_per_month'), value: fmt(plan.limit_orders) },
+            { icon: <UserPlus className="h-4 w-4 text-amber-500" />, label: t('billing.usage_labels.users'), value: String(plan.limit_users) },
             // MAIL-LIMIT-UI: uit pricing_plans.limit_marketing_emails_monthly (null = onbeperkt).
             ...(plan.limit_marketing_emails_monthly === undefined ? [] : [
-              { icon: <Mail className="h-4 w-4 text-purple-500" />, label: t('billing.plan_limits.marketing_emails'), value: formatLimit(plan.limit_marketing_emails_monthly) },
+              { icon: <Mail className="h-4 w-4 text-purple-500" />, label: t('billing.plan_limits.marketing_emails'), value: fmt(plan.limit_marketing_emails_monthly) },
             ]),
           ].map((item) => (
             <div key={item.label} className="text-center p-2.5 rounded-xl bg-muted/40">
@@ -219,14 +221,14 @@ export function PlanFeatureDetailDialog({
             {featureCategories.map((category) => {
               const enabledInCat = category.items.filter(item => plan.features?.[item.key]).length;
               return (
-                <div key={category.label}>
+                <div key={category.labelKey}>
                   <div className={cn(
                     'flex items-center justify-between px-3 py-1.5 rounded-lg border mb-2',
                     category.color
                   )}>
                     <h4 className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
                       {category.icon}
-                      {category.label}
+                      {t(`billing.plan_detail.categories.${category.labelKey}`)}
                     </h4>
                     <span className="text-[10px] font-medium">{enabledInCat}/{category.items.length}</span>
                   </div>
@@ -250,7 +252,7 @@ export function PlanFeatureDetailDialog({
                               <X className="h-2.5 w-2.5 text-muted-foreground/30" />
                             </div>
                           )}
-                          <span className="text-xs">{item.label}</span>
+                          <span className="text-xs">{t(`billing.plan_detail.features.${item.key}`)}</span>
                         </div>
                       );
                     })}
@@ -266,7 +268,7 @@ export function PlanFeatureDetailDialog({
           {isCurrent ? (
             <Button className="w-full" variant="outline" disabled>
               <Check className="h-4 w-4 mr-1" />
-              Huidig plan
+              {t('billing.plan_detail.current')}
             </Button>
           ) : isUpgrade ? (
             <Button
@@ -278,7 +280,7 @@ export function PlanFeatureDetailDialog({
               disabled={isLoading}
             >
               <ArrowUp className="h-4 w-4 mr-1" />
-              Upgrade naar {plan.name}
+              {t('billing.plan_detail.upgrade_to', { plan: planName })}
             </Button>
           ) : (
             <Button
@@ -291,7 +293,7 @@ export function PlanFeatureDetailDialog({
               disabled={isLoading}
             >
               <ArrowDown className="h-4 w-4 mr-1" />
-              Downgrade naar {plan.name}
+              {t('billing.plan_detail.downgrade_to', { plan: planName })}
             </Button>
           )}
         </div>

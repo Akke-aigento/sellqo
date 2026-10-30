@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useToast } from '@/hooks/use-toast';
+import i18n from 'i18next';
 import { keyOutUrl, pickKeyColorForUrl, type KeyColor } from '@/lib/chromaKey';
 
 export interface AIGeneratedImage {
@@ -99,15 +100,15 @@ export function useAIImages() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-images'] });
-      toast({ title: 'Afbeelding gegenereerd!' });
+      toast({ title: i18n.t('ai_images_toast.generated') });
     },
     onError: (error: Error) => {
       if (error.message.includes('402')) {
-        toast({ title: 'Onvoldoende AI credits', variant: 'destructive' });
+        toast({ title: i18n.t('ai_images_toast.no_credits'), variant: 'destructive' });
       } else if (error.message.includes('429')) {
-        toast({ title: 'Te veel verzoeken', description: 'Probeer het over een minuut opnieuw.', variant: 'destructive' });
+        toast({ title: i18n.t('ai_images_toast.rate_limited'), description: i18n.t('ai_images_toast.rate_limited_desc'), variant: 'destructive' });
       } else {
-        toast({ title: 'Fout bij genereren', description: error.message, variant: 'destructive' });
+        toast({ title: i18n.t('ai_images_toast.generate_error'), description: error.message, variant: 'destructive' });
       }
     },
   });
@@ -130,7 +131,7 @@ export function useAIImages() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ai-images'] });
-      toast({ title: 'Afbeelding verwijderd' });
+      toast({ title: i18n.t('ai_images_toast.deleted') });
     },
   });
 

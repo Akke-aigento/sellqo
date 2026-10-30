@@ -4,6 +4,13 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14u — Productpagina zonder valse "niet opgeslagen" (bugfix, 31-10-2026)
+
+**Status:** wacht op publish (samen met 2026.14s/14t).
+
+Opende je een product, dan stond er meteen "niet opgeslagen" zonder dat je iets had gewijzigd. Dat is opgelost. Ook het plandetail bij Abonnement, de meldingen bij AI-afbeeldingen en de slogan in het SellQo-logo staan nu in jouw taal.
+i18n: `public.changelog.changes.product_form_fixes`
+
 ### 2026.14t — Vraag je assistent naar je cijfers (feature, 30-10-2026)
 
 **Status:** wacht op go: push, migraties, deploy, publish (AI-AGENT-2).

@@ -2409,6 +2409,64 @@
     },
     "plan_limits": {
       "marketing_emails": "Маркетингові листи на місяць"
+    },
+    "plan_detail": {
+      "popular": "Популярний",
+      "all_features": "Усі функції тарифу {{plan}}",
+      "per_month": "/міс",
+      "features_count": "Функцій: {{count}}",
+      "total_count": "Усього: {{count}}",
+      "unlimited": "Без обмежень",
+      "orders_per_month": "Замовлень/міс",
+      "current": "Поточний тариф",
+      "upgrade_to": "Перейти на {{plan}}",
+      "downgrade_to": "Понизити до {{plan}}",
+      "categories": {
+        "cat_webshop": "Вебмагазин та інструменти",
+        "cat_ai": "AI-інструменти",
+        "cat_connect": "SellQo Connect",
+        "cat_promo": "Акції та лояльність",
+        "cat_billing": "Рахунки та платежі",
+        "cat_advanced": "Розширені"
+      },
+      "features": {
+        "webshop_builder": "Конструктор магазину",
+        "visual_editor": "Візуальний редактор",
+        "customDomain": "Власний домен",
+        "removeWatermark": "Без водяного знака",
+        "whiteLabel": "White-label",
+        "ai_marketing": "AI-маркетинг",
+        "ai_copywriting": "AI-копірайтинг",
+        "ai_images": "AI-зображення",
+        "ai_seo": "AI-SEO",
+        "ai_coach": "AI бізнес-коуч",
+        "ai_chatbot": "AI-чатбот",
+        "ai_ab_testing": "AI A/B-тестування",
+        "apiAccess": "Доступ до API",
+        "webhooks": "Вебхуки",
+        "bol_com": "SellQo Connect — Bol.com",
+        "bol_vvb_labels": "SellQo Connect — етикетки VVB",
+        "amazon": "SellQo Connect — Amazon",
+        "ebay": "SellQo Connect — eBay",
+        "social_commerce": "SellQo Connect — соціальна комерція",
+        "whatsapp": "SellQo Connect — WhatsApp",
+        "promo_bundles": "Пакетні пропозиції",
+        "promo_bogo": "Купи один — отримай другий",
+        "promo_volume": "Знижки за обсяг",
+        "promo_giftcards": "Подарункові картки",
+        "loyalty_program": "Програма лояльності",
+        "recurring_subscriptions": "Підписки",
+        "gamification": "Гейміфікація та значки",
+        "pos": "POS-каса",
+        "facturX": "Електронні рахунки Factur-X",
+        "peppol": "Електронні рахунки Peppol",
+        "multiCurrency": "Мультивалютність",
+        "advancedAnalytics": "Розширена аналітика",
+        "prioritySupport": "Пріоритетна підтримка",
+        "shop_health": "Оцінка стану магазину",
+        "live_activity": "Стрічка активності наживо",
+        "multi_warehouse": "Кілька складів"
+      }
     }
   },
   "admin_billing": {
@@ -11765,5 +11823,13 @@
     "noticeDay": "напередодні",
     "noHoursWarning": "Онлайн-бронювання увімкнено, але годин ще немає: гості не бачать вільного часу.",
     "onlineHow": "Коли онлайн-бронювання увімкнено, у твоєму магазині з’являється кнопка «Reserveren». Запит видно тут і на касі (помаранчевим). Номери мобільних видаляються через 30 днів."
+  },
+  "ai_images_toast": {
+    "generated": "Зображення створено!",
+    "no_credits": "Недостатньо AI-кредитів",
+    "rate_limited": "Забагато запитів",
+    "rate_limited_desc": "Спробуйте ще раз за хвилину.",
+    "generate_error": "Не вдалося створити",
+    "deleted": "Зображення видалено"
   }
 }

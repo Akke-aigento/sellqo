@@ -2396,6 +2396,10 @@
         "ai_agent_2": {
           "title": "Frag den Assistenten nach deinen Zahlen und lass ihn mehr erledigen",
           "description": "Frag „Wie hoch war mein Umsatz letzten Samstag?“, „Wie hoch war mein Gewinn im Oktober?“ oder „Mach eine Liste der Produkte ohne Foto“: Du bekommst die Antwort mit denselben Zahlen wie in deinem Dashboard, und Listen als Tabelle mit CSV-Download. Der Assistent kann jetzt auch ein neues Produkt als Entwurf anlegen, Produkte an- oder ausschalten, Preise einer ganzen Kategorie ändern und einen Rabattcode erstellen, immer erst nach deiner Bestätigung. Ab jetzt speichert SellQo den Einkaufspreis bei jedem Verkauf, damit dein Gewinn genau wird."
+        },
+        "product_form_fixes": {
+          "title": "Produktseite zeigt nicht mehr fälschlich „nicht gespeichert“",
+          "description": "Wenn du ein Produkt geöffnet hast, stand die Speicherleiste sofort auf „nicht gespeichert“, obwohl du nichts geändert hattest. Das ist behoben, und Speichern kann deinen Mehrwertsteuersatz nicht mehr leeren. Die Tarifdetails unter Abonnement, die Meldungen bei KI-Bildern und der Slogan im SellQo-Logo erscheinen jetzt auch in deiner Sprache."
         }
       },
       "copyLink": "Link kopieren",

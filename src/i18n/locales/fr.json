@@ -9427,6 +9427,64 @@
     },
     "plan_limits": {
       "marketing_emails": "E-mails marketing par mois"
+    },
+    "plan_detail": {
+      "popular": "Populaire",
+      "all_features": "Toutes les fonctionnalités du forfait {{plan}}",
+      "per_month": "/mois",
+      "features_count": "{{count}} fonctionnalités",
+      "total_count": "{{count}} au total",
+      "unlimited": "Illimité",
+      "orders_per_month": "Commandes/mois",
+      "current": "Forfait actuel",
+      "upgrade_to": "Passer à {{plan}}",
+      "downgrade_to": "Rétrograder vers {{plan}}",
+      "categories": {
+        "cat_webshop": "Boutique & outils",
+        "cat_ai": "Outils IA",
+        "cat_connect": "SellQo Connect",
+        "cat_promo": "Promotions & fidélité",
+        "cat_billing": "Facturation & paiements",
+        "cat_advanced": "Avancé"
+      },
+      "features": {
+        "webshop_builder": "Créateur de boutique",
+        "visual_editor": "Éditeur visuel",
+        "customDomain": "Domaine personnalisé",
+        "removeWatermark": "Sans filigrane",
+        "whiteLabel": "Marque blanche",
+        "ai_marketing": "Marketing IA",
+        "ai_copywriting": "Rédaction IA",
+        "ai_images": "Images IA",
+        "ai_seo": "SEO IA",
+        "ai_coach": "Coach business IA",
+        "ai_chatbot": "Chatbot IA",
+        "ai_ab_testing": "Tests A/B IA",
+        "apiAccess": "Accès API",
+        "webhooks": "Webhooks",
+        "bol_com": "SellQo Connect — Bol.com",
+        "bol_vvb_labels": "SellQo Connect — étiquettes VVB",
+        "amazon": "SellQo Connect — Amazon",
+        "ebay": "SellQo Connect — eBay",
+        "social_commerce": "SellQo Connect — Social commerce",
+        "whatsapp": "SellQo Connect — WhatsApp",
+        "promo_bundles": "Offres groupées",
+        "promo_bogo": "Un acheté, un offert",
+        "promo_volume": "Remises sur volume",
+        "promo_giftcards": "Cartes cadeaux",
+        "loyalty_program": "Programme de fidélité",
+        "recurring_subscriptions": "Abonnements",
+        "gamification": "Gamification & badges",
+        "pos": "Caisse POS",
+        "facturX": "Factures électroniques Factur-X",
+        "peppol": "Facturation électronique Peppol",
+        "multiCurrency": "Multidevise",
+        "advancedAnalytics": "Analyses avancées",
+        "prioritySupport": "Support prioritaire",
+        "shop_health": "Score de santé de la boutique",
+        "live_activity": "Flux d’activité en direct",
+        "multi_warehouse": "Multi-entrepôts"
+      }
     }
   },
   "product_form": {
@@ -11765,5 +11823,13 @@
     "noticeDay": "la veille",
     "noHoursWarning": "La réservation en ligne est activée, mais aucune heure n’est encore définie : les clients ne voient aucune heure libre.",
     "onlineHow": "Avec la réservation en ligne, votre boutique affiche un bouton « Reserveren ». Une demande apparaît ici et sur la caisse (orange). Les numéros de GSM sont supprimés après 30 jours."
+  },
+  "ai_images_toast": {
+    "generated": "Image générée !",
+    "no_credits": "Crédits IA insuffisants",
+    "rate_limited": "Trop de requêtes",
+    "rate_limited_desc": "Réessayez dans une minute.",
+    "generate_error": "Échec de la génération",
+    "deleted": "Image supprimée"
   }
 }

@@ -2409,6 +2409,64 @@
     },
     "plan_limits": {
       "marketing_emails": "Marketingmails per maand"
+    },
+    "plan_detail": {
+      "popular": "Populair",
+      "all_features": "Alle functies van het {{plan}}-plan",
+      "per_month": "/mnd",
+      "features_count": "{{count}} functies",
+      "total_count": "{{count}} totaal",
+      "unlimited": "Onbeperkt",
+      "orders_per_month": "Orders/mnd",
+      "current": "Huidig plan",
+      "upgrade_to": "Upgrade naar {{plan}}",
+      "downgrade_to": "Downgrade naar {{plan}}",
+      "categories": {
+        "cat_webshop": "Webshop & tools",
+        "cat_ai": "AI-tools",
+        "cat_connect": "SellQo Connect",
+        "cat_promo": "Promoties & loyaliteit",
+        "cat_billing": "Facturatie & betalingen",
+        "cat_advanced": "Geavanceerd"
+      },
+      "features": {
+        "webshop_builder": "Webshop Builder",
+        "visual_editor": "Visual Editor",
+        "customDomain": "Eigen domein",
+        "removeWatermark": "Geen watermerk",
+        "whiteLabel": "White-label",
+        "ai_marketing": "AI-marketing",
+        "ai_copywriting": "AI-copywriting",
+        "ai_images": "AI-afbeeldingen",
+        "ai_seo": "AI-SEO",
+        "ai_coach": "AI Business Coach",
+        "ai_chatbot": "AI-chatbot",
+        "ai_ab_testing": "AI A/B-testen",
+        "apiAccess": "API-toegang",
+        "webhooks": "Webhooks",
+        "bol_com": "SellQo Connect — Bol.com",
+        "bol_vvb_labels": "SellQo Connect — VVB-labels",
+        "amazon": "SellQo Connect — Amazon",
+        "ebay": "SellQo Connect — eBay",
+        "social_commerce": "SellQo Connect — Social Commerce",
+        "whatsapp": "SellQo Connect — WhatsApp",
+        "promo_bundles": "Bundelaanbiedingen",
+        "promo_bogo": "Buy One Get One",
+        "promo_volume": "Volumekortingen",
+        "promo_giftcards": "Cadeaubonnen",
+        "loyalty_program": "Loyaliteitsprogramma",
+        "recurring_subscriptions": "Abonnementen",
+        "gamification": "Gamification & badges",
+        "pos": "POS-kassa",
+        "facturX": "Factur-X e-facturen",
+        "peppol": "Peppol e-facturatie",
+        "multiCurrency": "Multi-valuta",
+        "advancedAnalytics": "Geavanceerde analytics",
+        "prioritySupport": "Prioriteitssupport",
+        "shop_health": "Shop Health Score",
+        "live_activity": "Live activiteitenfeed",
+        "multi_warehouse": "Meerdere magazijnen"
+      }
     }
   },
   "admin_billing": {
@@ -11767,5 +11825,13 @@
     "noticeDay": "de dag voordien",
     "noHoursWarning": "Online reserveren staat aan, maar er zijn nog geen uren: gasten zien nog geen vrije uren.",
     "onlineHow": "Staat online reserveren aan, dan krijgt je webshop een knop \"Reserveren\". Een aanvraag verschijnt hier en in de kassa (oranje). Gsm-nummers worden na 30 dagen gewist."
+  },
+  "ai_images_toast": {
+    "generated": "Afbeelding gegenereerd!",
+    "no_credits": "Onvoldoende AI-credits",
+    "rate_limited": "Te veel verzoeken",
+    "rate_limited_desc": "Probeer het over een minuut opnieuw.",
+    "generate_error": "Fout bij genereren",
+    "deleted": "Afbeelding verwijderd"
   }
 }

@@ -9427,6 +9427,64 @@
     },
     "plan_limits": {
       "marketing_emails": "Marketing-E-Mails pro Monat"
+    },
+    "plan_detail": {
+      "popular": "Beliebt",
+      "all_features": "Alle Funktionen des Tarifs {{plan}}",
+      "per_month": "/Monat",
+      "features_count": "{{count}} Funktionen",
+      "total_count": "{{count}} gesamt",
+      "unlimited": "Unbegrenzt",
+      "orders_per_month": "Bestellungen/Monat",
+      "current": "Aktueller Tarif",
+      "upgrade_to": "Upgrade auf {{plan}}",
+      "downgrade_to": "Downgrade auf {{plan}}",
+      "categories": {
+        "cat_webshop": "Webshop & Tools",
+        "cat_ai": "KI-Tools",
+        "cat_connect": "SellQo Connect",
+        "cat_promo": "Aktionen & Kundenbindung",
+        "cat_billing": "Rechnungen & Zahlungen",
+        "cat_advanced": "Erweitert"
+      },
+      "features": {
+        "webshop_builder": "Webshop-Builder",
+        "visual_editor": "Visueller Editor",
+        "customDomain": "Eigene Domain",
+        "removeWatermark": "Kein Wasserzeichen",
+        "whiteLabel": "White-Label",
+        "ai_marketing": "KI-Marketing",
+        "ai_copywriting": "KI-Texte",
+        "ai_images": "KI-Bilder",
+        "ai_seo": "KI-SEO",
+        "ai_coach": "KI-Business-Coach",
+        "ai_chatbot": "KI-Chatbot",
+        "ai_ab_testing": "KI-A/B-Tests",
+        "apiAccess": "API-Zugang",
+        "webhooks": "Webhooks",
+        "bol_com": "SellQo Connect — Bol.com",
+        "bol_vvb_labels": "SellQo Connect — VVB-Etiketten",
+        "amazon": "SellQo Connect — Amazon",
+        "ebay": "SellQo Connect — eBay",
+        "social_commerce": "SellQo Connect — Social Commerce",
+        "whatsapp": "SellQo Connect — WhatsApp",
+        "promo_bundles": "Bundle-Angebote",
+        "promo_bogo": "Kauf eins, bekomm eins",
+        "promo_volume": "Mengenrabatte",
+        "promo_giftcards": "Geschenkgutscheine",
+        "loyalty_program": "Treueprogramm",
+        "recurring_subscriptions": "Abonnements",
+        "gamification": "Gamification & Abzeichen",
+        "pos": "POS-Kasse",
+        "facturX": "Factur-X-E-Rechnungen",
+        "peppol": "Peppol-E-Rechnungen",
+        "multiCurrency": "Mehrere Währungen",
+        "advancedAnalytics": "Erweiterte Analysen",
+        "prioritySupport": "Priorisierter Support",
+        "shop_health": "Shop-Health-Score",
+        "live_activity": "Live-Aktivitäten",
+        "multi_warehouse": "Mehrere Lager"
+      }
     }
   },
   "product_form": {
@@ -11765,5 +11823,13 @@
     "noticeDay": "am Vortag",
     "noHoursWarning": "Online reservieren ist an, aber es gibt noch keine Zeiten: Gäste sehen keine freien Zeiten.",
     "onlineHow": "Ist online reservieren an, bekommt dein Webshop eine Schaltfläche „Reserveren“. Eine Anfrage erscheint hier und in der Kasse (orange). Handynummern werden nach 30 Tagen gelöscht."
+  },
+  "ai_images_toast": {
+    "generated": "Bild erstellt!",
+    "no_credits": "Nicht genug KI-Credits",
+    "rate_limited": "Zu viele Anfragen",
+    "rate_limited_desc": "Versuch es in einer Minute erneut.",
+    "generate_error": "Erstellen fehlgeschlagen",
+    "deleted": "Bild gelöscht"
   }
 }

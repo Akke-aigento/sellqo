@@ -1,3 +1,34 @@
+## PRODUCT-FORM-3 — valse "niet opgeslagen", tagline/plandetail/AI-meldingen vertaald, Powerstation-Odoo nagetrokken — 31 oktober 2026
+
+**Root cause**
+- Valse "niet opgeslagen": Radix Select vuurt binnen een `<form>` bij het laden `onValueChange("")` af zolang de btw-tarieven nog niet geladen zijn. `ProductForm.tsx` (btw-velden, ±r. 1201 en 1229) nam die lege waarde over: `dirtyFields = {vat_rate_id, takeaway_vat_rate_id}`, waarde `""` tegenover het opgeslagen id (gemeten via de React-fiber op een De Wissel-product). Opslaan zou `""` naar een uuid-kolom sturen (fout, geen dataverlies).
+- Tagline: `SellqoLogo` variant `tagline` is een PNG met de NL-slogan ingebakken; in EN/FR/DE/UK stond dus NL in de navbar, footer en loginpagina.
+- `PlanFeatureDetailDialog.tsx` was volledig hardcoded NL (categorieën, 36 functienamen, limieten, knoppen); `useAIImages.ts` had 5 NL-toasts.
+
+**Uitgevoerd**
+- `ProductForm.tsx`: lege waarden in beide btw-Selects genegeerd; in `submitData` `vat_rate_id`/`takeaway_vat_rate_id` `|| null`.
+- `SellqoLogo.tsx` + nieuw `src/assets/logo-wordmark.png` (uitsnede van de tagline-PNG, 32 KB): NL houdt de PNG; andere talen tekenen dezelfde opbouw als SVG met `auth.tagline` (bestaande key, 5 talen). Alt-teksten vertaald.
+- `PlanFeatureDetailDialog.tsx`: alles via `billing.plan_detail.*` (nieuw, 5 talen); plannaam via `planDisplayName`; getallen in de taal van de gebruiker.
+- `useAIImages.ts`: toasts via `ai_images_toast.*` (nieuw, 5 talen).
+- Changelog `2026.14u` (`product_form_fixes`, bugfix) in 5 talen.
+
+**Security-keuzes** — n.v.t.: enkel frontend en vertalingen, geen RLS/grants/functies.
+
+**Gedeelde-paden-waarschuwing** — geen gedeelde paden geraakt (geen storefront-api, geen gedeelde tabellen).
+
+**Verificatie**
+- SQL: geen btw-id verloren. VanXcel (48) en Loveke (11) hadden er nooit een; De Wissel 42/42 met tarief.
+- `tsc` 27 fouten = baseline (geen in gewijzigde bestanden); lint 1457 → 1456; i18n-parity, used-keys, dead-buttons groen; vitest `src/lib` groen; build ok.
+- Playwright op de build: navbar na scrollen in EN/NL op 1280 en FR/UK op 390, slogan in de juiste taal en dezelfde verhouding als de PNG.
+
+**Powerstation in Odoo — correctie**
+- Eerder genoteerd als "staat in Odoo als dienst". Nagetrokken op 31-10: geen Odoo-marketplacekoppeling (`marketplace_connections` type odoo: 0), geen enkel product met `odoo_product_id`, en in Odoo (nomadix-bv, `product.template`, ook inactief) geen product op naam "Power"/"500W" of SKU 1501. Die bewering was afgeleid uit `create-odoo-product` (`requires_shipping` uit = dienst), niet gemeten. Niets gewijzigd in Odoo.
+
+**Bewust ongemoeid / Vervolg**
+- `create-odoo-product` stuurt `type: 'product'`; Odoo 18 kent enkel `consu`/`service`/`combo` (+ `is_storable`). Een export zou dus falen. Wordt pas relevant als iemand de Odoo-productkoppeling aanzet; geparkeerd.
+- VanXcel-bundels staan op `requires_shipping = false`. Checkout leest het veld niet; enkel een Odoo-export zou ze als dienst maken. Vanaf de volgende opslag zet PRODUCT-FORM-2 ze op true. Niet in bulk aangepast (geen go).
+- Publish samen met PRODUCT-FORM-2 en AI-AGENT-2, na Akkes functie-deploy.
+
 ## AI-AGENT-2 — assistent kent je cijfers (omzet, winst, top, lijsten + CSV) en doet meer (product, aan/uit, bulkprijs, kortingscode) — 30 oktober 2026
 
 **Aanleiding / beslissingen**
@@ -61,7 +92,7 @@
 - vitest 9/9, i18n-pariteit ok, gebruikte keys ok, dode knoppen = baseline, tsc 27 = baseline, lint 1457 → 1455.
 
 **Bewust ongemoeid / Vervolg**
-- Loveke Cadeaukaart blijft actief (keuze Akke). Powerstation staat in Odoo nog als dienst (aparte go).
+- Loveke Cadeaukaart blijft actief (keuze Akke). Powerstation in Odoo: correctie 31-10, zie PRODUCT-FORM-3 — hij staat niet in Odoo.
 - Valse "niet opgeslagen" bij het openen van een product: oorzaak nog niet gevonden (vermoeden: een veldcomponent die bij het laden een waarde terugschrijft).
 - Echte levering van digitale producten en cadeaukaarten: eigen batches.
 

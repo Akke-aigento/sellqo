@@ -2409,6 +2409,64 @@
     },
     "plan_limits": {
       "marketing_emails": "Marketing emails per month"
+    },
+    "plan_detail": {
+      "popular": "Popular",
+      "all_features": "All features of the {{plan}} plan",
+      "per_month": "/mo",
+      "features_count": "{{count}} features",
+      "total_count": "{{count}} total",
+      "unlimited": "Unlimited",
+      "orders_per_month": "Orders/mo",
+      "current": "Current plan",
+      "upgrade_to": "Upgrade to {{plan}}",
+      "downgrade_to": "Downgrade to {{plan}}",
+      "categories": {
+        "cat_webshop": "Webshop & tools",
+        "cat_ai": "AI tools",
+        "cat_connect": "SellQo Connect",
+        "cat_promo": "Promotions & loyalty",
+        "cat_billing": "Invoicing & payments",
+        "cat_advanced": "Advanced"
+      },
+      "features": {
+        "webshop_builder": "Webshop Builder",
+        "visual_editor": "Visual Editor",
+        "customDomain": "Custom domain",
+        "removeWatermark": "No watermark",
+        "whiteLabel": "White-label",
+        "ai_marketing": "AI marketing",
+        "ai_copywriting": "AI copywriting",
+        "ai_images": "AI images",
+        "ai_seo": "AI SEO",
+        "ai_coach": "AI Business Coach",
+        "ai_chatbot": "AI chatbot",
+        "ai_ab_testing": "AI A/B testing",
+        "apiAccess": "API access",
+        "webhooks": "Webhooks",
+        "bol_com": "SellQo Connect — Bol.com",
+        "bol_vvb_labels": "SellQo Connect — VVB labels",
+        "amazon": "SellQo Connect — Amazon",
+        "ebay": "SellQo Connect — eBay",
+        "social_commerce": "SellQo Connect — Social commerce",
+        "whatsapp": "SellQo Connect — WhatsApp",
+        "promo_bundles": "Bundle deals",
+        "promo_bogo": "Buy one get one",
+        "promo_volume": "Volume discounts",
+        "promo_giftcards": "Gift cards",
+        "loyalty_program": "Loyalty program",
+        "recurring_subscriptions": "Subscriptions",
+        "gamification": "Gamification & badges",
+        "pos": "POS checkout",
+        "facturX": "Factur-X e-invoices",
+        "peppol": "Peppol e-invoicing",
+        "multiCurrency": "Multi-currency",
+        "advancedAnalytics": "Advanced analytics",
+        "prioritySupport": "Priority support",
+        "shop_health": "Shop health score",
+        "live_activity": "Live activity feed",
+        "multi_warehouse": "Multi-warehouse"
+      }
     }
   },
   "import": {
@@ -11765,5 +11823,13 @@
     "noticeDay": "the day before",
     "noHoursWarning": "Online reservations are on, but there are no hours yet: guests won’t see any free times.",
     "onlineHow": "With online reservations on, your webshop gets a \"Reserveren\" button. A request shows up here and on the till (orange). Mobile numbers are deleted after 30 days."
+  },
+  "ai_images_toast": {
+    "generated": "Image generated!",
+    "no_credits": "Not enough AI credits",
+    "rate_limited": "Too many requests",
+    "rate_limited_desc": "Try again in a minute.",
+    "generate_error": "Generation failed",
+    "deleted": "Image deleted"
   }
 }

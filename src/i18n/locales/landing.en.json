@@ -2396,6 +2396,10 @@
         "ai_agent_2": {
           "title": "Ask the assistant about your numbers and let it do more",
           "description": "Ask \"what was my revenue last Saturday?\", \"what was my profit in October?\" or \"make a list of products without a photo\": you get the answer with the same numbers as your dashboard, and lists as a table with CSV download. The assistant can now also create a new product as a draft, switch products on or off, change prices for a whole category and create a discount code, always only after you confirm. From now on SellQo stores the cost price with every sale, so your profit becomes exact."
+        },
+        "product_form_fixes": {
+          "title": "Product page no longer wrongly shows \"unsaved changes\"",
+          "description": "When you opened a product, the save bar immediately showed \"unsaved changes\" even though you hadn't changed anything. That's fixed, and saving can no longer clear your VAT rate. The plan details under Subscription, the AI image notifications and the slogan in the SellQo logo now also appear in your language."
         }
       },
       "copyLink": "Copy link",

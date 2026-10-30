@@ -157,6 +157,9 @@ const productSchema = z.object({
 type FormValues = z.infer<typeof productSchema>;
 
 /** PRODUCT-FORM-2 — Select-waarde voor "geen vat_rate_id" (Radix Select aanvaardt geen lege string). */
+// PRODUCT-FORM-3: Radix Select vuurt binnen een <form> bij het laden onValueChange("") af zolang
+// de opties (btw-tarieven) nog niet geladen zijn. Die lege waarde werd overgenomen: het formulier
+// stond meteen op "niet opgeslagen" en opslaan stuurde "" naar een uuid-kolom. Lege waarden negeren.
 const VAT_DEFAULT_OPTION = '__shop_default__';
 
 const productTypeIcons: Record<ProductType, React.ReactNode> = {
@@ -741,6 +744,9 @@ export default function ProductForm() {
        sku: data.sku?.trim() || null,
        barcode: data.barcode?.trim() || null,
        featured_image: featuredImage,
+       // PRODUCT-FORM-3: een lege string is nooit een geldig btw-id (uuid-kolom).
+       vat_rate_id: data.vat_rate_id || null,
+       takeaway_vat_rate_id: data.takeaway_vat_rate_id || null,
        // PRODUCT-FORM-2: fysieke producten en bundels worden verzonden, de rest niet.
        requires_shipping: data.product_type === 'physical' || data.product_type === 'bundle',
      };
@@ -1195,7 +1201,7 @@ export default function ProductForm() {
                             <FormLabel>{t('admin.productForm.vat_rate_label')}</FormLabel>
                             <Select
                               value={field.value || VAT_DEFAULT_OPTION}
-                              onValueChange={(v) => field.onChange(v === VAT_DEFAULT_OPTION ? null : v)}
+                              onValueChange={(v) => { if (!v) return; field.onChange(v === VAT_DEFAULT_OPTION ? null : v); }}
                               disabled={!canEditCommercial}
                             >
                               <FormControl>
@@ -1223,7 +1229,7 @@ export default function ProductForm() {
                               <FormLabel>{t('admin.productForm.takeaway_vat_label')}</FormLabel>
                               <Select
                                 value={field.value || VAT_DEFAULT_OPTION}
-                                onValueChange={(v) => field.onChange(v === VAT_DEFAULT_OPTION ? null : v)}
+                                onValueChange={(v) => { if (!v) return; field.onChange(v === VAT_DEFAULT_OPTION ? null : v); }}
                                 disabled={!canEditCommercial}
                               >
                                 <FormControl>

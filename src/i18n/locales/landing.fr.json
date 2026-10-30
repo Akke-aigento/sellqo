@@ -2396,6 +2396,10 @@
         "ai_agent_2": {
           "title": "Interrogez l’assistant sur vos chiffres et confiez-lui plus de travail",
           "description": "Demandez « quel était mon chiffre d’affaires samedi dernier ? », « quel était mon bénéfice en octobre ? » ou « fais une liste des produits sans photo » : vous obtenez la réponse avec les mêmes chiffres que votre tableau de bord, et les listes en tableau avec téléchargement CSV. L’assistant peut aussi créer un nouveau produit en brouillon, activer ou désactiver des produits, modifier les prix d’une catégorie entière et créer un code de réduction, toujours après votre confirmation. Désormais SellQo enregistre le prix de revient à chaque vente, pour un bénéfice exact."
+        },
+        "product_form_fixes": {
+          "title": "La page produit n’affiche plus à tort « modifications non enregistrées »",
+          "description": "En ouvrant un produit, la barre d’enregistrement affichait aussitôt « non enregistré » alors que vous n’aviez rien modifié. C’est corrigé, et l’enregistrement ne peut plus effacer votre taux de TVA. Le détail des forfaits dans Abonnement, les notifications des images IA et le slogan du logo SellQo s’affichent désormais aussi dans votre langue."
         }
       },
       "copyLink": "Copier le lien",
