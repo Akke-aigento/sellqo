@@ -11518,5 +11518,16 @@
       "error": "Das hat nicht geklappt",
       "removeTextShared": "Dieses Gerät erhält dann gar keine Benachrichtigungen mehr: keine Gastro-Benachrichtigungen und keine persönlichen Benachrichtigungen der angemeldeten Person. Um es wieder zu nutzen, schalten Sie die Benachrichtigungen auf dem Gerät selbst wieder ein."
     }
+  },
+  "acceptInvitation": {
+    "loginRequiredTitle": "Melde dich an, um die Einladung anzunehmen",
+    "loginRequiredDescription": "Für {{email}} existiert bereits ein Konto. Melde dich an; danach wird die Einladung zu {{tenantName}} automatisch angenommen.",
+    "emailLabel": "E-Mail",
+    "passwordLabel": "Passwort",
+    "loginButton": "Anmelden und annehmen",
+    "loggingIn": "Anmeldung...",
+    "forgotPassword": "Passwort vergessen?",
+    "loginFailed": "Anmeldung fehlgeschlagen",
+    "loginFailedDescription": "Prüfe dein Passwort oder nutze „Passwort vergessen“."
   }
 }

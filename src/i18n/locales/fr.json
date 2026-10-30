@@ -11518,5 +11518,16 @@
       "error": "Cela n'a pas fonctionné",
       "removeTextShared": "Cet appareil ne recevra alors plus aucune notification : ni notifications horeca, ni notifications personnelles de la personne connectée. Pour le réutiliser, réactivez les notifications sur l'appareil lui-même."
     }
+  },
+  "acceptInvitation": {
+    "loginRequiredTitle": "Connectez-vous pour accepter l'invitation",
+    "loginRequiredDescription": "Un compte existe déjà pour {{email}}. Connectez-vous : l'invitation à {{tenantName}} sera ensuite acceptée automatiquement.",
+    "emailLabel": "E-mail",
+    "passwordLabel": "Mot de passe",
+    "loginButton": "Se connecter et accepter",
+    "loggingIn": "Connexion...",
+    "forgotPassword": "Mot de passe oublié ?",
+    "loginFailed": "Échec de la connexion",
+    "loginFailedDescription": "Vérifiez votre mot de passe ou utilisez « Mot de passe oublié »."
   }
 }

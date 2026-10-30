@@ -11520,5 +11520,16 @@
       "error": "Het lukte niet",
       "removeTextShared": "Dit toestel krijgt dan geen enkele melding meer: geen horeca-meldingen en geen persoonlijke meldingen van wie er aangemeld is. Wil je het opnieuw gebruiken, zet dan op het toestel zelf de meldingen weer aan."
     }
+  },
+  "acceptInvitation": {
+    "loginRequiredTitle": "Log in om de uitnodiging te accepteren",
+    "loginRequiredDescription": "Er bestaat al een account voor {{email}}. Log in; de uitnodiging voor {{tenantName}} wordt daarna automatisch geaccepteerd.",
+    "emailLabel": "E-mail",
+    "passwordLabel": "Wachtwoord",
+    "loginButton": "Inloggen en accepteren",
+    "loggingIn": "Inloggen...",
+    "forgotPassword": "Wachtwoord vergeten?",
+    "loginFailed": "Inloggen mislukt",
+    "loginFailedDescription": "Controleer je wachtwoord of gebruik 'Wachtwoord vergeten'."
   }
 }

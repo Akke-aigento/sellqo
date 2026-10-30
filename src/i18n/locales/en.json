@@ -11518,5 +11518,16 @@
       "error": "That didn't work",
       "removeTextShared": "This device will then get no alerts at all: no hospitality alerts and no personal alerts of whoever is signed in. To use it again, turn alerts back on on the device itself."
     }
+  },
+  "acceptInvitation": {
+    "loginRequiredTitle": "Log in to accept the invitation",
+    "loginRequiredDescription": "An account already exists for {{email}}. Log in and the invitation to {{tenantName}} will be accepted automatically.",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "loginButton": "Log in and accept",
+    "loggingIn": "Logging in...",
+    "forgotPassword": "Forgot password?",
+    "loginFailed": "Login failed",
+    "loginFailedDescription": "Check your password or use 'Forgot password'."
   }
 }

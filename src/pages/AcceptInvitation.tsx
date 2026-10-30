@@ -20,6 +20,7 @@ interface InviteData {
   tenantId: string;
   expiresAt: string;
   alreadyMember: boolean;
+  accountExists: boolean;
   invitedByName: string | null;
 }
 
@@ -31,6 +32,7 @@ type FlowState =
   | { kind: 'already_accepted' }
   | { kind: 'already_member'; tenantId: string; tenantName: string }
   | { kind: 'wrong_account'; currentEmail: string; invite: InviteData }
+  | { kind: 'login_required'; invite: InviteData }
   | { kind: 'new_account_setup'; invite: InviteData }
   | { kind: 'accepting'; invite: InviteData }
   | { kind: 'success'; tenantId: string; tenantName: string; role: Role }
@@ -44,6 +46,25 @@ const ROLE_LABEL_KEYS: Record<string, string> = {
   viewer: 'settings.team.roles.viewer.label',
   marketing: 'settings.team.roles.marketing.label',
 };
+
+// supabase-js geeft bij een non-2xx-respons alleen een generieke melding; de echte
+// JSON-body (met `error` en `code`) zit in error.context.
+type FunctionErrorBody = { error?: unknown; code?: unknown };
+
+async function readFunctionError(
+  data: FunctionErrorBody | null | undefined,
+  error: { message?: string; context?: { json?: () => Promise<unknown> } } | null | undefined,
+): Promise<{ message: string; code?: string } | null> {
+  if (data?.error) return { message: String(data.error), code: data.code ? String(data.code) : undefined };
+  if (!error) return null;
+  try {
+    const body = (await error.context?.json?.()) as FunctionErrorBody | undefined;
+    if (body?.error) return { message: String(body.error), code: body.code ? String(body.code) : undefined };
+  } catch {
+    /* geen JSON-body */
+  }
+  return { message: error.message || 'Onbekende fout' };
+}
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -97,6 +118,7 @@ export default function AcceptInvitation() {
         tenantId: data.tenantId,
         expiresAt: data.expiresAt,
         alreadyMember: !!data.alreadyMember,
+        accountExists: !!data.accountExists,
         invitedByName: data.invitedByName ?? null,
       };
       switch (data.status) {
@@ -117,14 +139,14 @@ export default function AcceptInvitation() {
       }
       // status pending / valid
       if (!user) {
-        // Als de invite-email nog geen tenant-link heeft, is dit altijd de
-        // veilige standaardflow: wachtwoord instellen + daarna accepteren.
-        // Geen oud-wachtwoord-login dead-end meer.
-        setState({ kind: 'new_account_setup', invite });
+        // Bestaand account: inloggen en daarna accepteren (geen wachtwoord overschrijven, SEC-INVITE-1).
+        // Nieuw adres: wachtwoord instellen en daarna accepteren.
+        setState(invite.accountExists ? { kind: 'login_required', invite } : { kind: 'new_account_setup', invite });
         return;
       }
       if (user.email?.toLowerCase() === invite.email.toLowerCase()) {
-        setState({ kind: 'new_account_setup', invite });
+        // Al ingelogd met het uitnodigingsadres: direct accepteren, geen wachtwoordvraag.
+        setState({ kind: 'accepting', invite });
       } else {
         setState({ kind: 'wrong_account', currentEmail: user.email || '', invite });
       }
@@ -162,8 +184,9 @@ export default function AcceptInvitation() {
       const { data, error } = await supabase.functions.invoke('accept-team-invitation', {
         body: { token },
       });
-      const apiError = data?.error || error?.message;
-      const code = data?.code;
+      const failure = await readFunctionError(data, error);
+      const apiError = failure?.message;
+      const code = failure?.code;
       if (apiError) {
         console.error('[AcceptInvitation/accept]', { apiError, code, invite });
         if (code === 'EMAIL_MISMATCH') {
@@ -263,7 +286,8 @@ export default function AcceptInvitation() {
       const { data, error } = await supabase.functions.invoke('create-invite-account', {
         body: { token, password },
       });
-      const apiError = data?.error || error?.message;
+      const failure = await readFunctionError(data, error);
+      const apiError = failure?.message;
       if (apiError) {
         console.error('[AcceptInvitation/signup]', apiError);
         setState({
@@ -289,6 +313,25 @@ export default function AcceptInvitation() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleLogin = async (invite: InviteData, e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email: invite.email,
+      password,
+    });
+    setBusy(false);
+    if (signInErr) {
+      toast({
+        title: t('acceptInvitation.loginFailed'),
+        description: t('acceptInvitation.loginFailedDescription'),
+        variant: 'destructive',
+      });
+      return;
+    }
+    // Auth-state wijzigt → de effect herberekent de flow → 'accepting'.
   };
 
   const handleSwitchAccount = async (invite: InviteData) => {
@@ -429,6 +472,47 @@ export default function AcceptInvitation() {
               {busy ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
               Uitloggen en doorgaan als {state.invite.email}
             </Button>
+          </CardContent>
+        </Card>
+      </Shell>
+    );
+  }
+
+  if (state.kind === 'login_required') {
+    const { invite } = state;
+    return (
+      <Shell>
+        <Card>
+          <CardHeader className="text-center">
+            <Lock className="h-12 w-12 text-primary mx-auto mb-2" />
+            <CardTitle>{t('acceptInvitation.loginRequiredTitle')}</CardTitle>
+            <CardDescription>
+              {t('acceptInvitation.loginRequiredDescription', { email: invite.email, tenantName: invite.tenantName })}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={(e) => handleLogin(invite, e)} className="space-y-4">
+              <div className="space-y-2">
+                <Label>{t('acceptInvitation.emailLabel')}</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input value={invite.email} disabled className="pl-10 bg-muted" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="li-password">{t('acceptInvitation.passwordLabel')}</Label>
+                <Input id="li-password" type="password" value={password}
+                  onChange={(e) => setPassword(e.target.value)} required />
+              </div>
+              <Button type="submit" className="w-full" disabled={busy}>
+                {busy ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> {t('acceptInvitation.loggingIn')}</> : t('acceptInvitation.loginButton')}
+              </Button>
+              <div className="text-center">
+                <Link to="/auth" className="text-sm text-muted-foreground underline">
+                  {t('acceptInvitation.forgotPassword')}
+                </Link>
+              </div>
+            </form>
           </CardContent>
         </Card>
       </Shell>

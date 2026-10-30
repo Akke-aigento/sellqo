@@ -1,3 +1,34 @@
+## INVITE-FLOW-1 — uitnodiging accepteren voor een bestaand account (ingelogd of niet) — 30 oktober 2026
+
+**Aanleiding**
+- Akke (30-10): uitnodiging voor Café De Wissel (demo-tenant `dfa62de5-…`) naar akke@studioakke.com, een account dat al bestaat (eigenaar van SellQo Speeltuin). Op sellqo.app/invite/<token> ingelogd als dat account: de pagina toonde een wachtwoordformulier en daarna "Edge Function returned a non-2xx status code".
+
+**Root cause**
+- `src/pages/AcceptInvitation.tsx`, `resolveFlow`: ingelogd met het uitnodigingsadres → `new_account_setup` (wachtwoordformulier) in plaats van `accepting`. Daardoor riep de pagina `create-invite-account` aan.
+- `create-invite-account` weigert correct een bestaand account (409 `account_exists`, SEC-INVITE-1). Niet-ingelogd met bestaand account kreeg dezelfde doodlopende route.
+- Foutmelding: supabase-js geeft bij non-2xx alleen de generieke tekst; de echte body (`error`, `code`) in `error.context` werd niet gelezen.
+
+**Uitgevoerd**
+- `AcceptInvitation.tsx`: `InviteData.accountExists` (uit `fetch-invitation`, bestond al); ingelogd + zelfde adres → `accepting`; niet-ingelogd + bestaand account → nieuwe state `login_required` (inline loginformulier, na inloggen herberekent de effect de flow); wachtwoordformulier alleen bij een nieuw adres; `readFunctionError` leest de JSON-body uit `error.context`, in `handleCreateAccount` en `doAccept`.
+- i18n: namespace `acceptInvitation` (10 keys) in `nl`, `en`, `fr`, `de`, `uk`.
+- Ongewijzigd: `create-invite-account`, `accept-team-invitation`, `fetch-invitation`, auth-config, DB.
+
+**Security-keuzes**
+- SEC-INVITE-1 blijft: een bestaand account wordt nooit overschreven. Bestaande accounts loggen eerst in met het eigen wachtwoord; `accept-team-invitation` checkt daarna het e-mailadres server-side (EMAIL_MISMATCH). Geen policy- of grant-wijziging.
+
+**Gedeelde-paden-waarschuwing**
+- Geen gedeeld pad geraakt: alleen de publieke invite-pagina en de vijf locale-bestanden (enkel toevoegingen).
+
+**Verificatie**
+- `scripts/i18n-parity.mjs`: 10518/10518 keys in alle vijf talen.
+- `eslint src/pages/AcceptInvitation.tsx`: 8 fouten, gelijk aan de baseline (alle `any` in bestaande code; de nieuwe helper is getypeerd).
+- `tsc --noEmit -p tsconfig.app.json`: zie hieronder.
+
+**Bewust ongemoeid / Vervolg**
+- Bestaande hardcoded Nederlandse teksten in de pagina (wachtwoordformulier, foutkaarten) zijn niet naar i18n gehaald; dat is een aparte opruimbatch.
+- Nog open voor Akke: store-wisselaar in de admin-UI (niet geverifieerd); changelog-entry, `doc_articles` en nieuwsbrief-item voor deze fix (versienummer en tekst eerst afstemmen).
+- Live-verificatie pas na push naar main en `deploy_project` op het Lovable-project (sellqo.app is Lovable-gehost).
+
 ## DEMO-KASSA-2 — Café De Wissel: extra's en een grotere eetkaart — 29 oktober 2026
 
 **Aanleiding**
