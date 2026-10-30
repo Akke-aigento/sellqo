@@ -104,6 +104,18 @@ Vóór de migratie: `rg -n "<doeltabel>\s*\(" src supabase/functions` en
 naar `vat_rates`) brak de product-export en de export "lage voorraad" van
 13:46 tot de fix in `4aaa2df` (KAART-livegang, zelfde dag).
 
+### SECURITY DEFINER die op een foreign key opzoekt: zelf de tenant controleren
+RLS controleert enkel de rij die geschreven wordt, niet waar haar FK's naartoe
+wijzen. Een `security definer`-trigger of -functie die via `product_id`,
+`variant_id`, `customer_id`, … iets opzoekt, leest anders data van een andere
+winkel. Bepaal eerst de tenant via de eigen rij of zijn ouder (bv.
+`orders.tenant_id` via `order_id`) en filter elke lookup op die tenant.
+**Incident (AI-AGENT-2, 30 okt 2026, gevonden in review vóór livegang):**
+`order_items_cost_snapshot` kopieerde de kostprijs op product-id. De RLS op
+`order_items` checkt enkel de order, dus een medewerker kon een orderregel met
+een product-id van een andere winkel invoegen en diens kostprijs teruglezen.
+Fix: tenant via de order, `and p.tenant_id = v_tenant`.
+
 ## Checklist per batch
 - [ ] Recon: blast-radius bepaald (`grep` in src/ én functions/)
 - [ ] Baseline gemeten (rol-impersonatie + counts)
@@ -115,4 +127,5 @@ naar `vat_rates`) brak de product-export en de export "lage voorraad" van
 - [ ] Guard-trigger met definer-uitzondering test `current_user`
 - [ ] Smoke-test met veel testdata: notificaties + push uit, factuurgat ingecalculeerd
 - [ ] Nieuwe FK: bestaande embeds naar die tabel gegrept en waar nodig `!fk_naam` gezet
+- [ ] SECURITY DEFINER-lookup via een FK filtert op de tenant van de eigen rij
 
