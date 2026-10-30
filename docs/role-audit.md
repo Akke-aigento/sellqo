@@ -29,7 +29,9 @@
 
 **Verificatie**
 - vitest `chromaKey` 4/4. i18n-pariteit ok, gebruikte keys ok, dode knoppen ok, edge-pins ok. tsc: 27 = baseline (geen fout in een geraakt bestand). Lint 1457 → 1454. `vite build` ok. deno check `ai-generate-image` + `ai-help-assistant` ok.
-- Live (na deploy): versiestempels, bundel, gsm-menu en prijzen in 5 talen. Zie hieronder.
+- Live (30-10, ~21:25): deploy-only via de Lovable-agent (0,4 credits; agent-commits enkel `types.ts` + `sitemap.xml`). Stempels `ai-generate-image` = `BG-REMOVE-1` (nulmeting: geen GET), `ai-help-assistant` = `AI-LANG-1` (nulmeting `SCHEMA-FIX-1`). Eerste `deploy_project` kwam stil niet door (bundel bleef `index-tw-d25_6.js`), de tweede wel: `index-C7ljLqpn.js` bevat `Hospitality Small`, `photo_order`, `ui_language`, `-transparent.png`. Helpartikel gedraaid + geregistreerd (`20261030230100`). Chrome op 390 px: menu open = lichte balk met leesbaar logo; EN-prijzen tonen Hospitality Small/Big en Events Flex/Fixed, ook in de ondertitel. Productpagina 390 px: greep, pijltjes en knoppen zichtbaar.
+- Niet live getest: het eigenlijke wegknippen (vraagt een AI-run met credits op een echte foto) en slepen met 2+ foto's (geen testproduct met meerdere foto's in de geselecteerde winkel).
+- Gezien, bestaand: het tagline-logo op sellqo.app toont "Jouw webshop. Simpel online." ook in EN/FR/DE/UK; de opslaanbalk van het productformulier mengt talen en toont "Unsaved changes" al bij het openen.
 
 **Bewust ongemoeid / Vervolg**
 - PRODUCT-FORM-1 (productpagina per type) en AI-AGENT-1 (actieve assistent): eerst ontwerp + beslissingen.
