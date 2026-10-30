@@ -24,6 +24,11 @@
 **Verificatie**
 - deno test aiInsights 8 + aiActions 7 groen, deno check beide functies ok, i18n ok, tsc 27 = baseline, lint 1457 → 1456, build ok.
 
+**Uitrolstatus (30-10, ~22:35)**
+- Push `d38e78e`, CI groen. Migratie `20261030235000` live en geregistreerd; trigger getest in een teruggedraaide transactie: eigen product → 0,36 (kostprijs), product van een andere winkel → leeg. Geen testrijen achtergebleven.
+- Deploy van `ai-help-assistant` + `ai-assistant-action`: **geblokkeerd, Lovable-workspace zonder credits**. Daarom ook NIET gepubliceerd: de prijzenpagina (`feat_ai_actions`) en changelog 2026.14t/14s zouden anders functies beloven die live nog niet draaien. Helpartikel `20261030235100` nog niet gedraaid.
+- Te doen na het opladen van credits: deploy-only beide functies → stempels `AI-AGENT-2` → publish → bundelcheck → helpartikel → live testvraag.
+
 **Bewust ongemoeid / Vervolg**
 - C marktadvies (web-zoekbron), ochtendbriefing, foto als invoer, overal in de app: zie visie.
 - Categorie van een product wijzigen via de assistent: nog niet.
