@@ -372,7 +372,8 @@
       "name_events_flex": "Events Flex",
       "name_events_vast": "Events Fixed",
       "name_horeca": "Hospitality Small",
-      "name_horeca_big": "Hospitality Big"
+      "name_horeca_big": "Hospitality Big",
+      "feat_ai_actions": "AI assistant that prepares stock, price and sold-out changes for you"
     },
     "faq": {
       "heading": "Frequently asked questions",
@@ -2379,6 +2380,14 @@
         "landing_menu_contrast": {
           "title": "Phone menu readable again",
           "description": "On sellqo.app, the menu on your phone became unreadable when you opened it at the top of the page. The bar now gets its own background."
+        },
+        "ai_actions": {
+          "title": "The help assistant prepares changes for you",
+          "description": "Ask the help assistant to top up stock, change a price or mark a dish as sold out for today. It shows a card with the current and the new value; only when you tap Do it does anything change. Each completed action costs 1 AI credit. In all paid plans."
+        },
+        "product_form_sections": {
+          "title": "Product page only shows what fits your product",
+          "description": "With the new \"Food or drink\" switch you only see allergens and dietary labels for food and drink, and kitchen station, extras and channels only if you also run hospitality. Shipping, marketplaces and ads only appear with a webshop, and the product types follow your plan. Existing dishes are already set to food; nothing is deleted."
         }
       },
       "copyLink": "Copy link",

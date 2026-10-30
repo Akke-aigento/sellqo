@@ -6242,7 +6242,30 @@
       },
       "selecteer_een_artikel_om_te_lezen": "Wählen Sie einen Artikel zum Lesen",
       "vind_antwoorden_op_je_vragen": "Finden Sie Antworten auf Ihre Fragen",
-      "vraag_het_de_assistent": "Fragen Sie den Assistenten"
+      "vraag_het_de_assistent": "Fragen Sie den Assistenten",
+      "aiActions": {
+        "title_stock": "Bestand anpassen",
+        "title_price": "Preis ändern",
+        "title_sold_out": "Heute ausverkauft",
+        "sold_out": "Ausverkauft",
+        "available": "Verfügbar",
+        "execute": "Ausführen",
+        "cost": "1 KI-Credit",
+        "done": "Erledigt.",
+        "cancelled": "Abgebrochen, nichts wurde geändert.",
+        "errors": {
+          "feature_not_in_plan": "Aktionen des Assistenten sind nicht in deinem Tarif enthalten.",
+          "insufficient_credits": "Du hast keine KI-Credits mehr. Nichts wurde geändert.",
+          "no_change": "Nichts zu ändern: der Wert ist bereits so.",
+          "product_not_found": "Dieses Produkt gibt es in deinem Shop nicht mehr.",
+          "variant_required": "Wähle zuerst eine Variante.",
+          "stock_not_tracked": "Für dieses Produkt wird kein Bestand geführt.",
+          "invalid_price": "Dieser Preis ist ungültig.",
+          "invalid_amount": "Diese Menge ist ungültig.",
+          "generic": "Das hat nicht geklappt. Versuch es erneut oder ändere es selbst.",
+          "variant_not_found": "Wähle zuerst die richtige Variante."
+        }
+      }
     },
     "floatingSaveBar": {
       "onopgeslagen_wijzigingen": "Ungespeicherte Änderungen"

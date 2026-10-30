@@ -9,8 +9,11 @@ import { supabase } from '@/integrations/supabase/client';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useTranslation } from 'react-i18next';
+import { useTenant } from '@/hooks/useTenant';
+import { AIActionCard, type AIActionProposal } from './AIActionCard';
 
-type Message = { role: 'user' | 'assistant'; content: string };
+// AI-AGENT-1: een antwoord kan voorstellen bevatten (kaarten met Uitvoeren/Annuleren).
+type Message = { role: 'user' | 'assistant'; content: string; actions?: AIActionProposal[] };
 
 interface AIHelpChatWindowProps {
   onClose: () => void;
@@ -18,6 +21,7 @@ interface AIHelpChatWindowProps {
 
 export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
   const { t, i18n } = useTranslation();
+  const { currentTenant } = useTenant();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -86,10 +90,18 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
         },
         body: JSON.stringify({
           message: trimmed,
-          conversation_history: [...messages, userMsg].map(m => ({ role: m.role, content: m.content })),
+          // AI-AGENT-1: voorstellen meesturen als korte samenvatting, zodat de assistent weet wat hij klaarzette.
+          conversation_history: [...messages, userMsg].map(m => ({
+            role: m.role,
+            content: m.actions?.length
+              ? `${m.content}\n[proposed: ${m.actions.map((a) => `${a.kind} ${a.product_name} ${String(a.before)} -> ${String(a.after)}`).join('; ')}]`.trim()
+              : m.content,
+          })),
           current_route: location.pathname,
           // AI-LANG-1: app-taal als terugval wanneer de taal van het bericht onduidelijk is.
           ui_language: i18n.language,
+          // AI-AGENT-1: de geselecteerde winkel (server controleert het lidmaatschap).
+          tenant_id: currentTenant?.id,
         }),
       });
 
@@ -120,6 +132,14 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
           if (jsonStr === '[DONE]') break;
           try {
             const parsed = JSON.parse(jsonStr);
+            if (Array.isArray(parsed.sellqo_actions)) {
+              const acts = parsed.sellqo_actions as AIActionProposal[];
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant') return prev.map((m, i) => i === prev.length - 1 ? { ...m, actions: acts } : m);
+                return [...prev, { role: 'assistant', content: '', actions: acts }];
+              });
+            }
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantSoFar += content;
@@ -149,6 +169,14 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
           if (jsonStr === '[DONE]') continue;
           try {
             const parsed = JSON.parse(jsonStr);
+            if (Array.isArray(parsed.sellqo_actions)) {
+              const acts = parsed.sellqo_actions as AIActionProposal[];
+              setMessages(prev => {
+                const last = prev[prev.length - 1];
+                if (last?.role === 'assistant') return prev.map((m, i) => i === prev.length - 1 ? { ...m, actions: acts } : m);
+                return [...prev, { role: 'assistant', content: '', actions: acts }];
+              });
+            }
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) {
               assistantSoFar += content;
@@ -216,7 +244,8 @@ export function AIHelpChatWindow({ onClose }: AIHelpChatWindowProps) {
             )}>
               {msg.role === 'assistant' ? (
                 <div className="prose prose-sm max-w-none text-foreground prose-p:my-1 prose-ul:my-1 prose-ol:my-1 prose-li:my-0 prose-headings:mt-2 prose-headings:mb-1 prose-headings:text-foreground prose-strong:text-foreground prose-code:text-foreground prose-code:bg-background/50 prose-code:px-1 prose-code:rounded prose-code:before:content-none prose-code:after:content-none prose-a:text-primary prose-a:underline">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: MarkdownLink }}>{msg.content}</ReactMarkdown>
+                  {msg.content ? <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: MarkdownLink }}>{msg.content}</ReactMarkdown> : null}
+                  {msg.actions?.map((a, k) => <AIActionCard key={`${i}-${k}`} proposal={a} tenantId={currentTenant?.id} />)}
                 </div>
               ) : (
                 msg.content

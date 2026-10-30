@@ -6242,7 +6242,30 @@
       },
       "selecteer_een_artikel_om_te_lezen": "Sélectionnez un article à lire",
       "vind_antwoorden_op_je_vragen": "Trouvez des réponses à vos questions",
-      "vraag_het_de_assistent": "Demandez à l'assistant"
+      "vraag_het_de_assistent": "Demandez à l'assistant",
+      "aiActions": {
+        "title_stock": "Ajuster le stock",
+        "title_price": "Modifier le prix",
+        "title_sold_out": "Épuisé aujourd’hui",
+        "sold_out": "Épuisé",
+        "available": "Disponible",
+        "execute": "Exécuter",
+        "cost": "1 crédit IA",
+        "done": "C’est fait.",
+        "cancelled": "Annulé, rien n’a été modifié.",
+        "errors": {
+          "feature_not_in_plan": "Les actions de l’assistant ne sont pas incluses dans votre formule.",
+          "insufficient_credits": "Vous n’avez plus de crédits IA. Rien n’a été modifié.",
+          "no_change": "Rien à modifier : la valeur est déjà celle-ci.",
+          "product_not_found": "Ce produit n’existe plus dans votre boutique.",
+          "variant_required": "Choisissez d’abord une variante.",
+          "stock_not_tracked": "Le stock n’est pas suivi pour ce produit.",
+          "invalid_price": "Ce prix n’est pas valide.",
+          "invalid_amount": "Cette quantité n’est pas valide.",
+          "generic": "Cela n’a pas fonctionné. Réessayez ou modifiez-le vous-même.",
+          "variant_not_found": "Choisissez d’abord la bonne variante."
+        }
+      }
     },
     "floatingSaveBar": {
       "onopgeslagen_wijzigingen": "Modifications non enregistrées"

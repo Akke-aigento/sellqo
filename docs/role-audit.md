@@ -1,3 +1,57 @@
+## AI-AGENT-1 — hulpassistent zet acties klaar (voorraad, prijs, uitverkocht) — 30 oktober 2026
+
+**Aanleiding / beslissingen**
+- Akke (30-10): "een echte assistent, geen passieve". Beslissingen: altijd eerst bevestigen; alle betaalde plannen; 1 AI-credit per uitgevoerde actie.
+- Plan-scope: alle sporen · sleutel `ai_actions` (nieuw) · label `landing.pricing.feat_ai_actions` (5 talen) · geen grandfather (nieuwe functie).
+
+**Root cause / vertrekpunt**
+- `ai-help-assistant` had geen tools; bovendien nam het de eerste winkel van de gebruiker (`user_roles … limit 1`), niet de geselecteerde. Met acties zou dat de voorraad van een andere winkel raken.
+
+**Uitgevoerd**
+- `_shared/aiActions.ts` (puur, deno-test): tools `find_products`, `propose_stock_change` (add/set, varianten verplicht, enkel opgevolgde voorraad), `propose_price_change` (0–100.000, 2 decimalen), `propose_sold_out`; `revalidate()` herrekent vlak vóór uitvoeren ("zet op 14" blijft 14, "+10" blijft +10).
+- `_shared/aiActionsDb.ts`: zoeken/laden altijd met `tenant_id`; plan via actief of proefabonnement.
+- `ai-help-assistant` (stempel `AI-AGENT-1`): `tenant_id` uit de client (gecontroleerd door `authenticateRequest`); met `ai_actions` + rol tenant_admin/staff een tool-lus (max. 5 rondes, max. 5 voorstellen), antwoord in dezelfde SSE-vorm + event `sellqo_actions`. Zonder: prompt legt uit waar het in de app kan. Abonnement nu ook `trialing`.
+- Nieuw `ai-assistant-action` (stempel `AI-AGENT-1`): rol + plan + hervalidatie, uitvoeren met de JWT van de gebruiker via `record_stock_movement` (notitie "AI-assistent"), `products.update` (RLS) of `set_product_sold_out_today`; daarna `use_ai_credits(1, 'ai_actions', …)` met voor/na als metadata (= auditspoor in `ai_usage_log`).
+- Client: `AIActionCard` (Uitvoeren/Annuleren, foutcodes vertaald), `AIHelpChatWindow` stuurt `tenant_id`, leest `sellqo_actions`.
+- Migratie `20261030234000_ai_agent_1.sql`: `ai_actions` op starter, pro, enterprise, horeca, horeca_big, events_vast (vaste lijst). Prijzenpagina toont de regel via `FEATURE_LINES`.
+- Changelog 2026.14r `ai_actions`, helpartikels (`20261030234100_ai_agent_1_docs.sql`), nieuwsbrief.
+
+**Security-keuzes**
+- Voorstellen schrijven nooit. Uitvoeren: rol tenant_admin/staff (platformadmin mag), plan-vlag, product van deze winkel, waarden opnieuw berekend; wat de client als "before" meestuurt telt niet. De RPC's controleren zelf het tenantlidmaatschap (`record_stock_movement`) of draaien onder RLS.
+- `use_ai_credits` is niet uitvoerbaar voor gebruikers: afboeken server-side, pas na een gelukte actie. Geen policy of grant gewijzigd.
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-functie of gedeelde tabel geraakt. `pricing_plans.features` krijgt een extra sleutel; `planLines` toont enkel sleutels uit `FEATURE_LINES`.
+
+**Verificatie**
+- deno test `aiActions` 7/7, deno check beide functies ok, tsc 27 = baseline, lint 1457 → 1455, build ok.
+- Review-agent op de diff (geld/voorraad-regel): geen blockers. Verwerkt: credit eerst atomisch afboeken en terugboeken bij een mislukte actie (`use_ai_credits` gaf stil `false`); idempotentie-sleutel per kaart (geen dubbele +10 na een verloren antwoord) + ref tegen dubbele tik; ook platformadmin-acties gelogd (0 credits); `null` wordt nooit stil 0; add-modus bewaart het gevraagde aantal; laatste tool-ronde `tool_choice: none` (nooit een leeg antwoord); voorstel draagt `tenant_id`; voorstellen gaan als samenvatting mee in de historie; `"`/`\` uit de zoekterm. Niet verwerkt: inactieve producten blijven voorstelbaar (bewust: voorraad aanvullen vóór je iets activeert).
+
+**Bewust ongemoeid / Vervolg**
+- Meer acties (product aan/uit, categorie, korting) pas na gebruik van deze drie. Geen bulk ("alle pizza's +1 euro") in v1.
+
+## PRODUCT-FORM-1 — productpagina volgt soort product en sporen; "Voeding of drank" — 30 oktober 2026
+
+**Aanleiding / beslissing**
+- Akke (30-10): "allergenen horen niet bij een product dat geen voeding is; het moet afhangen van type en pakket". Beslissing: schakelaar per product.
+
+**Root cause**
+- `ProductForm.tsx` toonde allergenen, extra's, kanalen, keukenstation en btw bij meenemen op basis van de horeca-*module* van de winkel, voor elk product. Verzending, marketplaces en advertenties stonden er voor iedereen. Live: Vinotheek Lemmens (geen horeca) heeft allergenen op 9 wijnen, dus voeding is niet hetzelfde als horeca.
+
+**Uitgevoerd**
+- Migratie `20261030233000_product_form_1.sql`: `products.is_food boolean not null default false`; grandfather enkel bij het aanmaken van de kolom (vaste grens 30-10 21:30): fysiek/bundel met allergenen, dieet, btw bij meenemen of extra's, of van een winkel met horeca (add-on of plan). Impact vooraf gemeten: 85 producten (De Wissel 42, Fiamma 17, Mirabelle 14, Lemmens 9, Test Horeca Small 3); geen custom-frontend-winkel.
+- `src/lib/productFormSections.ts` (+ vitest in CI): één bron voor wat zichtbaar is. Verborgen velden worden niet gewist.
+- `ProductForm`: schakelaar in de kaart Producttype (fysiek/bundel), standaard aan bij horeca; secties en tabs volgen `productFormSections`. `types.ts` + `types/product.ts`: `is_food`.
+
+**Security-keuzes**
+- n.v.t.: nieuwe kolom op `products` onder de bestaande RLS; geen grant/policy.
+
+**Gedeelde-paden-waarschuwing**
+- `products` hoort niet bij de eerste-wet-tabellen; storefront-api selecteert vaste kolommen (geen `select('*')` op products), dus custom frontends zien niets.
+
+**Bewust ongemoeid / Vervolg**
+- `productTypeInfo`-labels zijn hardcoded NL (bestaand). De Kaart (horeca) bewerkt allergenen rechtstreeks en blijft dat doen.
+
 ## MEDIA-FIX-1 — buglijst 30-10: gsm-menu sellqo.app, plannamen, bibliotheek-scroll, fotovolgorde, transparante achtergrond, taal hulpassistent — 30 oktober 2026
 
 **Aanleiding**

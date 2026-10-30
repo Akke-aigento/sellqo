@@ -6529,7 +6529,30 @@
       },
       "selecteer_een_artikel_om_te_lezen": "Виберіть статтю для читання",
       "vind_antwoorden_op_je_vragen": "Знайдіть відповіді на свої запитання",
-      "vraag_het_de_assistent": "Запитайте асистента"
+      "vraag_het_de_assistent": "Запитайте асистента",
+      "aiActions": {
+        "title_stock": "Змінити залишок",
+        "title_price": "Змінити ціну",
+        "title_sold_out": "Розпродано сьогодні",
+        "sold_out": "Розпродано",
+        "available": "Доступно",
+        "execute": "Виконати",
+        "cost": "1 AI-кредит",
+        "done": "Виконано.",
+        "cancelled": "Скасовано, нічого не змінено.",
+        "errors": {
+          "feature_not_in_plan": "Дії помічника не входять у твій тариф.",
+          "insufficient_credits": "У тебе закінчилися AI-кредити. Нічого не змінено.",
+          "no_change": "Нічого змінювати: значення вже таке.",
+          "product_not_found": "Цього товару більше немає у твоєму магазині.",
+          "variant_required": "Спочатку обери варіант.",
+          "stock_not_tracked": "Для цього товару залишок не відстежується.",
+          "invalid_price": "Ця ціна недійсна.",
+          "invalid_amount": "Ця кількість недійсна.",
+          "generic": "Не вдалося. Спробуй ще раз або зміни вручну.",
+          "variant_not_found": "Спочатку обери правильний варіант."
+        }
+      }
     },
     "floatingSaveBar": {
       "onopgeslagen_wijzigingen": "Незбережені зміни"

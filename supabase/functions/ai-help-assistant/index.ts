@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { hasRequiredRole } from "../_shared/authRoles.ts";
+import { AI_ACTION_TOOLS, buildProposal, planAllowsActions, type ActionProposal } from "../_shared/aiActions.ts";
+import { findProducts, loadProduct } from "../_shared/aiActionsDb.ts";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
 
 const corsHeaders = {
@@ -10,7 +13,7 @@ const corsHeaders = {
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   // SCHEMA-FIX-1: neveneffectvrije versiestempel om de deploy te bewijzen.
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "AI-LANG-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "AI-AGENT-1" }), { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -22,7 +25,7 @@ serve(async (req) => {
 
     const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
-    const { message, conversation_history = [], current_route = "", ui_language = "" } = await req.json();
+    const { message, conversation_history = [], current_route = "", ui_language = "", tenant_id: requestedTenantId = "" } = await req.json();
     if (!message?.trim()) {
       return new Response(JSON.stringify({ error: "Message required" }), { status: 400, headers: corsHeaders });
     }
@@ -48,10 +51,13 @@ serve(async (req) => {
       .limit(1)
       .single();
 
-    if (!userRole?.tenant_id) {
+    // AI-AGENT-1: de winkel die in de app geselecteerd is (gecontroleerd door authenticateRequest
+    // hieronder). Vroeger altijd de eerste winkel van de gebruiker: met acties zou dat de
+    // voorraad van een andere winkel kunnen raken.
+    const tenantId = /^[0-9a-f-]{36}$/i.test(String(requestedTenantId)) ? String(requestedTenantId) : userRole?.tenant_id;
+    if (!tenantId) {
       return new Response(JSON.stringify({ error: "No tenant found" }), { status: 403, headers: corsHeaders });
     }
-    const tenantId = userRole.tenant_id;
 
     // Full auth + tenant check + role map (platform_admin detection)
     const auth = await authenticateRequest(req, tenantId);
@@ -125,9 +131,10 @@ serve(async (req) => {
       .from("tenant_subscriptions")
       .select("plan_id, status")
       .eq("tenant_id", tenantId)
-      .eq("status", "active")
+      .in("status", ["active", "trialing"])
+      .order("created_at", { ascending: false })
       .limit(1)
-      .single();
+      .maybeSingle();
 
     const planId = subscription?.plan_id || null;
 
@@ -200,11 +207,26 @@ ${planMatrix || "Geen abonnementen bekend."}
 8. Verwijs waar mogelijk naar het relevante documentatie-artikel.
 9. Wanneer je naar een documentatie-artikel verwijst, gebruik UITSLUITEND een markdown-link in het formaat [Artikeltitel](link) waarbij je de Link-waarde letterlijk uit je kennisbank overneemt. Verzin NOOIT zelf URL's of paden; bestaat er geen Link-regel voor het artikel, verwijs dan alleen met de titel zonder link.`;
 
+    // AI-AGENT-1: acties (voorraad, prijs, uitverkocht) voor tenant_admin/staff in plannen met
+    // ai_actions. Platformadmins mogen altijd (support), ook zonder plan.
+    const canAct = (isPlatformAdmin || planAllowsActions(currentPlan?.features))
+      && hasRequiredRole(auth, tenantId, ["tenant_admin", "staff"]);
+    const actionRules = canAct
+      ? `## Acties (je kunt wijzigingen klaarzetten)
+- Je kunt voorraad aanpassen, verkoopprijzen wijzigen en producten voor vandaag uitverkocht (of weer beschikbaar) zetten met de tools.
+- Zoek ALTIJD eerst het product met find_products en gebruik het id uit het resultaat. Vind je meerdere producten die passen, vraag dan welk product bedoeld is in plaats van te gokken. Heeft een product varianten, vraag dan welke variant.
+- Een propose_*-tool voert NIETS uit: de gebruiker ziet een kaart met Uitvoeren en Annuleren. Zeg dus kort wat je hebt klaargezet en dat de gebruiker het hieronder bevestigt. Zeg NOOIT dat het al gebeurd is.
+- Elke uitgevoerde actie kost 1 AI-credit. Maximaal 5 voorstellen per antwoord. Geen acties op vragen die er niet om vragen.`
+      : `## Acties
+- Je kunt zelf niets wijzigen. Vraagt de gebruiker om iets aan te passen (voorraad, prijs, uitverkocht), leg dan kort uit waar dat in de app kan.${isPlatformAdmin ? "" : " Vermeld dat de assistent dit in de betaalde plannen zelf kan klaarzetten om te bevestigen."}`;
+
     const systemPrompt = `Je bent de SellQo Hulp Assistent — een vriendelijke, geduldige en deskundige assistent${isPlatformAdmin ? " voor platform-admins" : " die tenant-gebruikers helpt met het SellQo platform"}.
 
 ${commonHeader}
 
-${isPlatformAdmin ? adminRules : tenantRules}`;
+${isPlatformAdmin ? adminRules : tenantRules}
+
+${actionRules}`;
 
     // AI-LANG-1: de prompt en de kennisbank zijn Nederlands, en "standaard Nederlands" won het
     // van een Engelse vraag. De taalregel staat nu als laatste systeeminstructie, vlak vóór de
@@ -224,6 +246,71 @@ ${isPlatformAdmin ? adminRules : tenantRules}`;
       { role: "system", content: languageRule },
       { role: "user", content: message },
     ];
+
+    const gatewayError = (status: number) => {
+      if (status === 429) return new Response(JSON.stringify({ error: "Te veel verzoeken, probeer het later opnieuw." }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (status === 402) return new Response(JSON.stringify({ error: "AI-service credits zijn op." }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      return new Response(JSON.stringify({ error: "AI-service fout" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    };
+    const logUnanswered = async (text: string) => {
+      if (!text.includes("[UNANSWERED]")) return;
+      try {
+        await adminClient.from("ai_help_unanswered").insert({ tenant_id: tenantId, user_id: userId, question: message, current_route: current_route || null });
+      } catch (e) { console.error("Failed to log unanswered question:", e); }
+    };
+
+    // AI-AGENT-1: met acties eerst een niet-streamende ronde met tools (zoeken wordt meteen
+    // uitgevoerd, voorstellen gevalideerd maar NIET uitgevoerd). Het antwoord gaat daarna als
+    // dezelfde SSE-vorm naar de client, met de voorstellen als extra event `sellqo_actions`.
+    if (canAct) {
+      const convo: Array<Record<string, unknown>> = [...messages];
+      const proposals: ActionProposal[] = [];
+      let text = "";
+      for (let round = 0; round < 5; round++) {
+        const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${lovableApiKey}`, "Content-Type": "application/json" },
+          // Laatste ronde: geen tools meer, zodat er altijd een tekstantwoord komt.
+          body: JSON.stringify({ model: "google/gemini-3-flash-preview", messages: convo, tools: AI_ACTION_TOOLS, tool_choice: round === 4 ? "none" : "auto" }),
+        });
+        if (!r.ok) { console.error("AI gateway (acties):", r.status, await r.text()); return gatewayError(r.status); }
+        const j = await r.json();
+        const m = j.choices?.[0]?.message ?? {};
+        const calls = Array.isArray(m.tool_calls) ? m.tool_calls : [];
+        if (!calls.length) { text = m.content || ""; break; }
+        convo.push({ role: "assistant", content: m.content ?? "", tool_calls: calls });
+        for (const c of calls) {
+          let args: Record<string, unknown> = {};
+          try { args = JSON.parse(c.function?.arguments || "{}"); } catch { /* leeg */ }
+          const name = c.function?.name;
+          let out: unknown;
+          if (name === "find_products") {
+            const found = await findProducts(adminClient, tenantId, String(args.query || ""));
+            out = found.map((p) => ({ id: p.id, name: p.name, price: p.price, stock: p.track_inventory === false ? "not tracked" : p.stock, sold_out_today: !!p.sold_out_until && new Date(p.sold_out_until) > new Date(), variants: p.variants.map((v) => ({ id: v.id, name: v.name, stock: v.track_inventory === false ? "not tracked" : v.stock })) }));
+          } else if (typeof name === "string" && name.startsWith("propose_")) {
+            if (proposals.length >= 5) out = { error: "max_5_proposals" };
+            else {
+              const product = await loadProduct(adminClient, tenantId, String(args.product_id || ""));
+              const res = buildProposal(name, args, product);
+              if (res.ok) { res.value.tenant_id = tenantId; proposals.push(res.value); out = { status: "waiting_for_user_confirmation", proposal: res.value }; }
+              else out = { error: res.error };
+            }
+          } else out = { error: "unknown_tool" };
+          convo.push({ role: "tool", tool_call_id: c.id, content: JSON.stringify(out) });
+        }
+      }
+      if (!text.trim() && !proposals.length) text = ui_language?.startsWith?.("nl") || !ui_language ? "Dat lukte me niet. Kun je je vraag anders formuleren?" : "I couldn't do that. Could you rephrase your question?";
+      await logUnanswered(text);
+      const enc = new TextEncoder();
+      const chunks = [
+        `data: ${JSON.stringify({ choices: [{ delta: { content: text } }] })}\n\n`,
+        ...(proposals.length ? [`data: ${JSON.stringify({ sellqo_actions: proposals })}\n\n`] : []),
+        "data: [DONE]\n\n",
+      ];
+      return new Response(new ReadableStream({ start(ctl) { for (const c of chunks) ctl.enqueue(enc.encode(c)); ctl.close(); } }), {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
 
     // Call Lovable AI Gateway with streaming
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {

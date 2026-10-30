@@ -6515,7 +6515,30 @@
       },
       "selecteer_een_artikel_om_te_lezen": "Select an article to read",
       "vind_antwoorden_op_je_vragen": "Find answers to your questions",
-      "vraag_het_de_assistent": "Ask the assistant"
+      "vraag_het_de_assistent": "Ask the assistant",
+      "aiActions": {
+        "title_stock": "Adjust stock",
+        "title_price": "Change price",
+        "title_sold_out": "Sold out today",
+        "sold_out": "Sold out",
+        "available": "Available",
+        "execute": "Do it",
+        "cost": "1 AI credit",
+        "done": "Done.",
+        "cancelled": "Cancelled, nothing was changed.",
+        "errors": {
+          "feature_not_in_plan": "Assistant actions are not included in your plan.",
+          "insufficient_credits": "You have no AI credits left. Nothing was changed.",
+          "no_change": "Nothing to change: the value is already like this.",
+          "product_not_found": "This product no longer exists in your shop.",
+          "variant_required": "Choose a variant first.",
+          "stock_not_tracked": "Stock is not tracked for this product.",
+          "invalid_price": "This price is not valid.",
+          "invalid_amount": "This quantity is not valid.",
+          "generic": "That didn't work. Try again or change it yourself.",
+          "variant_not_found": "Choose the right variant first."
+        }
+      }
     },
     "floatingSaveBar": {
       "onopgeslagen_wijzigingen": "Unsaved changes"

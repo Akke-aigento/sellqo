@@ -372,7 +372,8 @@
       "name_events_flex": "Events Flex",
       "name_events_vast": "Events Fix",
       "name_horeca": "Gastro Klein",
-      "name_horeca_big": "Gastro Groß"
+      "name_horeca_big": "Gastro Groß",
+      "feat_ai_actions": "KI-Assistent, der Bestand, Preise und Ausverkauft für dich vorbereitet"
     },
     "faq": {
       "heading": "Häufige Fragen",
@@ -2379,6 +2380,14 @@
         "landing_menu_contrast": {
           "title": "Handy-Menü wieder lesbar",
           "description": "Auf sellqo.app wurde das Menü am Handy unlesbar, wenn du es oben auf der Seite geöffnet hast. Die Leiste hat jetzt einen eigenen Hintergrund."
+        },
+        "ai_actions": {
+          "title": "Der Hilfe-Assistent bereitet Änderungen für dich vor",
+          "description": "Bitte den Hilfe-Assistenten, den Bestand aufzufüllen, einen Preis zu ändern oder ein Gericht für heute als ausverkauft zu markieren. Er zeigt eine Karte mit dem aktuellen und dem neuen Wert; erst wenn du auf Ausführen tippst, ändert sich etwas. Jede ausgeführte Aktion kostet 1 KI-Credit. In allen bezahlten Tarifen."
+        },
+        "product_form_sections": {
+          "title": "Die Produktseite zeigt nur, was zu deinem Produkt passt",
+          "description": "Mit dem neuen Schalter „Essen oder Getränk“ siehst du Allergene und Ernährungslabels nur bei Essen und Getränken, und Küchenstation, Extras und Kanäle nur, wenn du auch Gastronomie betreibst. Versand, Marktplätze und Werbung erscheinen nur mit einem Webshop, und die Produkttypen folgen deinem Tarif. Bestehende Gerichte stehen bereits auf Essen; nichts wird gelöscht."
         }
       },
       "copyLink": "Link kopieren",

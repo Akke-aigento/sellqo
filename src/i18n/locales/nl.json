@@ -6162,7 +6162,30 @@
       "helpcenter": "Helpcenter",
       "vind_antwoorden_op_je_vragen": "Vind antwoorden op je vragen",
       "selecteer_een_artikel_om_te_lezen": "Selecteer een artikel om te lezen",
-      "vraag_het_de_assistent": "Vraag het de assistent"
+      "vraag_het_de_assistent": "Vraag het de assistent",
+      "aiActions": {
+        "title_stock": "Voorraad aanpassen",
+        "title_price": "Prijs aanpassen",
+        "title_sold_out": "Uitverkocht vandaag",
+        "sold_out": "Uitverkocht",
+        "available": "Beschikbaar",
+        "execute": "Uitvoeren",
+        "cost": "1 AI-credit",
+        "done": "Uitgevoerd.",
+        "cancelled": "Geannuleerd, er is niets gewijzigd.",
+        "errors": {
+          "feature_not_in_plan": "Acties van de assistent zitten niet in je plan.",
+          "insufficient_credits": "Je hebt geen AI-credits meer. Er is niets gewijzigd.",
+          "no_change": "Er valt niets te wijzigen: de waarde is intussen al zo.",
+          "product_not_found": "Dit product bestaat niet (meer) in je winkel.",
+          "variant_required": "Kies eerst een variant.",
+          "stock_not_tracked": "Voor dit product wordt geen voorraad opgevolgd.",
+          "invalid_price": "Deze prijs is niet geldig.",
+          "invalid_amount": "Dit aantal is niet geldig.",
+          "generic": "Het lukte niet. Probeer het opnieuw of pas het zelf aan.",
+          "variant_not_found": "Kies eerst de juiste variant."
+        }
+      }
     },
     "reports": {
       "globalDateRangePicker": {

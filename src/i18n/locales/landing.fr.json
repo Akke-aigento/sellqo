@@ -372,7 +372,8 @@
       "name_events_flex": "Événements Flex",
       "name_events_vast": "Événements Fixe",
       "name_horeca": "Horeca Petit",
-      "name_horeca_big": "Horeca Grand"
+      "name_horeca_big": "Horeca Grand",
+      "feat_ai_actions": "Assistant IA qui prépare pour vous les changements de stock, de prix et d’épuisé"
     },
     "faq": {
       "heading": "Questions fréquentes",
@@ -2379,6 +2380,14 @@
         "landing_menu_contrast": {
           "title": "Menu mobile à nouveau lisible",
           "description": "Sur sellqo.app, le menu sur téléphone devenait illisible quand vous l’ouvriez en haut de la page. La barre a maintenant son propre fond."
+        },
+        "ai_actions": {
+          "title": "L’assistant d’aide prépare les changements pour vous",
+          "description": "Demandez à l’assistant d’aide de réapprovisionner un stock, de modifier un prix ou de marquer un plat comme épuisé pour aujourd’hui. Il affiche une carte avec la valeur actuelle et la nouvelle ; rien ne change tant que vous n’avez pas appuyé sur Exécuter. Chaque action exécutée coûte 1 crédit IA. Dans toutes les formules payantes."
+        },
+        "product_form_sections": {
+          "title": "La fiche produit n’affiche que ce qui convient à votre produit",
+          "description": "Avec le nouvel interrupteur « Nourriture ou boisson », les allergènes et labels alimentaires n’apparaissent que pour la nourriture et les boissons, et le poste en cuisine, les suppléments et les canaux seulement si vous faites aussi de l’horeca. Livraison, marketplaces et publicités n’apparaissent qu’avec une boutique en ligne, et les types de produit suivent votre formule. Les plats existants sont déjà marqués comme nourriture ; rien n’est supprimé."
         }
       },
       "copyLink": "Copier le lien",

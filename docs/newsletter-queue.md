@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14r — De hulpassistent zet wijzigingen voor je klaar (feature, 30-10-2026)
+
+**Status:** live na migraties + deploy `ai-help-assistant` en `ai-assistant-action` + publish (AI-AGENT-1, PRODUCT-FORM-1).
+
+**Je assistent steekt nu zelf de handen uit de mouwen** (oktober 2026)
+Typ "vul de voorraad van de zwarte hoodie M aan met 10" of "zet de lasagne op uitverkocht voor vandaag", en de hulpassistent zet het voor je klaar. Je ziet meteen wat er verandert; pas als jij op Uitvoeren tikt, gebeurt het. Eén AI-credit per actie, in alle betaalde plannen.
+Wat betekent dit voor jou? Minder klikken tussen de klanten door, zonder dat er iets verandert zonder jouw ja.
+
+Ook nieuw: je productpagina toont enkel wat bij je product past. Allergenen zie je enkel bij eten en drinken.
+
+i18n: `public.changelog.changes.ai_actions`, `product_form_sections`
+
 ### 2026.14q — Foto's herschikken en echte transparantie (feature + bugfixes, 30-10-2026)
 
 **Status:** live na publish + deploy van `ai-generate-image` en `ai-help-assistant` (MEDIA-FIX-1).

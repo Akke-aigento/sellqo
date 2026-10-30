@@ -372,7 +372,8 @@
       "name_events_flex": "Events Flex",
       "name_events_vast": "Events Vast",
       "name_horeca": "Horeca Small",
-      "name_horeca_big": "Horeca Big"
+      "name_horeca_big": "Horeca Big",
+      "feat_ai_actions": "AI-assistent die voorraad, prijzen en uitverkocht voor je klaarzet"
     },
     "faq": {
       "heading": "Veelgestelde vragen",
@@ -2379,6 +2380,14 @@
         "landing_menu_contrast": {
           "title": "Menu op de gsm weer leesbaar",
           "description": "Op sellqo.app werd het menu op je gsm onleesbaar zodra je het opende bovenaan de pagina. De balk krijgt nu een eigen achtergrond."
+        },
+        "ai_actions": {
+          "title": "De hulpassistent zet wijzigingen voor je klaar",
+          "description": "Vraag de hulpassistent om de voorraad aan te vullen, een prijs aan te passen of een gerecht voor vandaag op uitverkocht te zetten. Hij toont een kaart met de huidige en de nieuwe waarde; pas als jij op Uitvoeren tikt, gebeurt het. Elke uitgevoerde actie kost 1 AI-credit. In alle betaalde plannen."
+        },
+        "product_form_sections": {
+          "title": "Productpagina toont enkel wat bij je product past",
+          "description": "Met de nieuwe schakelaar \"Voeding of drank\" zie je allergenen en dieetlabels enkel bij eten en drinken, en keukenstation, extra's en kanalen enkel als je ook horeca doet. Verzending, marketplaces en advertenties zie je enkel met een webshop, en de producttypes volgen je pakket. Bestaande gerechten staan al op voeding; niets wordt gewist."
         }
       },
       "copyLink": "Kopieer link",

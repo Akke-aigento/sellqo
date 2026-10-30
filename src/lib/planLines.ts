@@ -16,6 +16,8 @@ const FEATURE_LINES: { key: string; label: string }[] = [
   { key: 'loyalty_program', label: 'feat_loyalty' },
   { key: 'event_seating', label: 'feat_seating' },
   { key: 'prioritySupport', label: 'feat_priority' },
+  // AI-AGENT-1: de hulpassistent zet acties klaar (bevestigen, 1 AI-credit per actie).
+  { key: 'ai_actions', label: 'feat_ai_actions' },
 ];
 
 export function planLines(plan: PricingPlan, t: TFunction, lng: string): { lines: string[]; note: string | null } {
