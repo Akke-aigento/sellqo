@@ -2,7 +2,7 @@
 type Res = { data: unknown; error: null };
 function chain(): unknown {
   const q: Record<string, unknown> = {};
-  for (const m of ['select', 'eq', 'neq', 'in', 'is', 'gte', 'lte', 'order', 'limit', 'single', 'maybeSingle', 'insert', 'update', 'upsert', 'delete']) q[m] = () => q;
+  for (const m of ['select', 'eq', 'neq', 'in', 'is', 'gte', 'lte', 'lt', 'gt', 'order', 'limit', 'single', 'maybeSingle', 'insert', 'update', 'upsert', 'delete']) q[m] = () => q;
   q.then = (ok: (r: Res) => unknown) => Promise.resolve({ data: null, error: null }).then(ok);
   return q;
 }

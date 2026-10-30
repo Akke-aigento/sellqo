@@ -7,7 +7,7 @@
 // Op een tablet staat de kolom Binnenkomend (QR-bestellingen + barbonnen) naast het zaalplan.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Banknote, Bell, BellOff, Check as CheckIcon, ChefHat, Clock, ExternalLink, FileBarChart, LayoutGrid, Loader2, LogOut, MoreHorizontal, Languages, Users, Wifi, WifiOff, Wine } from 'lucide-react';
+import { ArrowLeft, Banknote, Bell, BellOff, Check as CheckIcon, ChefHat, Clock, ExternalLink, FileBarChart, LayoutGrid, Loader2, LogOut, MoreHorizontal, Languages, Plus, Users, Wifi, WifiOff, Wine } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -40,6 +40,10 @@ import { ADMIN_LINK_ROLES, adminHref } from '../horeca/quickTap';
 import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
 import type { HorecaStore } from '../horeca/store';
 import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from '../alerts';
+import { reservationsByTable, reservationsForDay, timeLabel, type Reservation, type ReservationStatus, type TableReservation } from '@/lib/horeca/reservations';
+import { ReservationDialog } from '@/components/horeca/ReservationDialog';
+import { ReservationList } from '@/components/horeca/ReservationList';
+import { saveReservation, setReservationStatus } from '../horeca/reservationActions';
 
 type View = 'tables' | 'cash' | 'reports';
 type Mode = 'zaal' | 'bar' | 'keuken';
@@ -90,6 +94,9 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   useEffect(() => { setIdlePaused(mode === 'keuken' || mode === 'bar'); }, [mode, setIdlePaused]);
   const [initialMove, setInitialMove] = useState(false);
   const [tableAction, setTableAction] = useState<{ tableId: string; checkId: string | null } | null>(null);
+  // RESERVATIE-1: lijst van vandaag en het reservatievenster (nieuw of wijzigen).
+  const [resListOpen, setResListOpen] = useState(false);
+  const [resEdit, setResEdit] = useState<{ reservation: Reservation | null; tableId: string | null } | null>(null);
   const wide = useWide();
   const { currentTenant } = useTenant();
   const tenantLanguage = (currentTenant as { language?: string | null } | null)?.language ?? null;
@@ -148,6 +155,23 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
     const { href, external } = adminHref(window.location.pathname, PUBLIC_SITE_URL);
     if (external) window.open(href, '_blank', 'noopener'); else window.location.assign(href);
   };
+
+  // RESERVATIE-1 — een laag: nooit een rekening sluiten of wijzigen. Aangekomen op een tafel die nog
+  // een open rekening heeft = enkel de status; de nieuwe gasten krijgen niet de rekening van de vorige.
+  const resByTable = reservationsByTable(store.reservations, now, store.reservationSettings);
+  const markStatus = (r: Reservation, st: ReservationStatus) =>
+    setReservationStatus(store, r, st).catch((e: unknown) => toast.error(t('reservations.saveFailed', { detail: e instanceof Error ? e.message : String(e) })));
+  const seatReservation = (r: Reservation) => {
+    void markStatus(r, 'seated');
+    setResListOpen(false);
+    setTableAction(null);
+    if (!r.table_id) return;
+    if (store.checks.some((c) => c.table_id === r.table_id)) { toast.info(t('reservations.tableBusy', { label: ctx.tableLabel(r.table_id) ?? '?' })); return; }
+    const id = crypto.randomUUID();
+    store.enqueue({ id: crypto.randomUUID(), kind: 'open_check', check_id: id, table_id: r.table_id, guests: r.guests, staff_id: staff.id });
+    setAutoPay(false); setCounterMode(false); setInitialMove(false); setOpenCheck(id);
+  };
+  const tablesForPicker = (plan?.tables ?? []).filter((x) => x.is_active !== false).map((x) => ({ id: x.id, label: x.label }));
 
   const offlineBar = !store.online
     ? <p role="status" className="flex items-center gap-1.5 border-b bg-destructive/10 px-3 py-1 text-sm text-destructive"><WifiOff className="h-4 w-4" aria-hidden />{t('kassa.home.offline', { n: store.pendingCount })}</p>
@@ -255,7 +279,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
             <div className="flex min-h-0 flex-1" style={{ paddingBottom: 'var(--safe-bottom)' }}>
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
                 <TablesScreen store={store} staffId={staff.id} tableLabel={ctx.tableLabel} onCounter={newCounterSale} onOpen={(id) => { setAutoPay(false); setCounterMode(false); setOpenCheck(id); }}
-                  onTableAction={(tableId, checkId) => setTableAction({ tableId, checkId })} />
+                  onTableAction={(tableId, checkId) => setTableAction({ tableId, checkId })} onReservations={() => setResListOpen(true)} />
               </div>
               {wide && (
                 <aside className="flex w-[380px] shrink-0 flex-col overflow-y-auto border-l bg-muted/40 xl:w-[420px]" aria-label={t('kassa.bar.incoming')}>
@@ -274,14 +298,41 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
       ) : null}
       {tableAction && (
         <TableActions ctx={ctx} label={ctx.tableLabel(tableAction.tableId) ?? '?'} check={tableAction.checkId ? store.check(tableAction.checkId) ?? null : null}
+          reservation={resByTable.get(tableAction.tableId)}
+          onReserve={() => { const a = tableAction; setTableAction(null); setResEdit({ reservation: null, tableId: a.tableId }); }}
+          onEditReservation={(r) => { setTableAction(null); setResEdit({ reservation: r, tableId: r.table_id }); }}
+          onReservationStatus={(r, st) => { setTableAction(null); void markStatus(r, st); }}
           onClose={() => setTableAction(null)}
           onOpen={() => {
             const a = tableAction; setTableAction(null);
+            const r = resByTable.get(a.tableId)?.reservation;
+            if (!a.checkId && r) { seatReservation(r); return; }
             let id = a.checkId;
             if (!id) { id = crypto.randomUUID(); store.enqueue({ id: crypto.randomUUID(), kind: 'open_check', check_id: id, table_id: a.tableId, staff_id: staff.id }); }
             setAutoPay(false); setCounterMode(false); setInitialMove(false); setOpenCheck(id);
           }}
           onMove={() => { const a = tableAction; setTableAction(null); if (a.checkId) { setAutoPay(false); setCounterMode(false); setInitialMove(true); setOpenCheck(a.checkId); } }} />
+      )}
+      {resListOpen && (
+        <Dialog open onOpenChange={(o) => !o && setResListOpen(false)}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{t('reservations.today')}</DialogTitle>
+              <DialogDescription>{t('reservations.todayHint', { minutes: store.reservationSettings.lead_minutes })}</DialogDescription>
+            </DialogHeader>
+            <button type="button" onClick={() => { setResListOpen(false); setResEdit({ reservation: null, tableId: null }); }}
+              className="flex h-11 items-center justify-center gap-1.5 rounded-md border border-dashed text-sm font-semibold"><Plus className="h-4 w-4" />{t('reservations.new')}</button>
+            <ReservationList list={reservationsForDay(store.reservations, new Date(now))} settings={store.reservationSettings} tableLabel={ctx.tableLabel} now={now}
+              emptyText={t('reservations.emptyToday')} onSeat={seatReservation}
+              onEdit={(r) => { setResListOpen(false); setResEdit({ reservation: r, tableId: r.table_id }); }}
+              onStatus={(r, st) => void markStatus(r, st)} />
+          </DialogContent>
+        </Dialog>
+      )}
+      {resEdit && (
+        <ReservationDialog initial={resEdit.reservation} tables={tablesForPicker} defaultTableId={resEdit.tableId}
+          onClose={() => setResEdit(null)}
+          onSave={async (input) => { await saveReservation(store, input, resEdit.reservation); toast.success(t('reservations.saved')); }} />
       )}
       <Dialog open={confirmForget} onOpenChange={setConfirmForget}>
         <DialogContent className="sm:max-w-sm">
@@ -303,8 +354,11 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
  * KASSA-UX-3 — lang drukken op een tafel: openen, voorlopige rekening (met bevestiging), verplaatsen of
  * samenvoegen, of een lege tafel vrijgeven. Geen slepen: met natte vingers voeg je zo per ongeluk samen.
  */
-function TableActions({ ctx, label, check, onClose, onOpen, onMove }: {
+function TableActions({ ctx, label, check, reservation, onClose, onOpen, onMove, onReserve, onEditReservation, onReservationStatus }: {
   ctx: ActionCtx; label: string; check: Check | null; onClose: () => void; onOpen: () => void; onMove: () => void;
+  /** RESERVATIE-1: reservatie die nu op deze tafel staat (paars), of niets. */
+  reservation?: TableReservation;
+  onReserve: () => void; onEditReservation: (r: Reservation) => void; onReservationStatus: (r: Reservation, s: ReservationStatus) => void;
 }) {
   const { t, i18n } = useTranslation();
   const [confirm, setConfirm] = useState<null | 'bill' | 'free' | 'unbill'>(null);
@@ -360,11 +414,27 @@ function TableActions({ ctx, label, check, onClose, onOpen, onMove }: {
           </div>
         ) : (
           <div className="grid gap-2">
-            <button type="button" className={cn(btn, 'border-transparent bg-primary text-primary-foreground')} onClick={onOpen}>{t(check ? 'kassa.tableActions.toCheck' : 'kassa.tableActions.openTable')}</button>
+            <button type="button" className={cn(btn, 'border-transparent bg-primary text-primary-foreground')} onClick={onOpen}>{t(check ? 'kassa.tableActions.toCheck' : reservation ? 'reservations.seat' : 'kassa.tableActions.openTable')}</button>
             {canUnbill && <button type="button" className={btn} onClick={() => setConfirm('unbill')}>{t('kassa.tableActions.unbill')}</button>}
             {canBill && <button type="button" className={btn} onClick={() => setConfirm('bill')}>{t('kassa.tableActions.bill')}</button>}
             {check && !check.paying && (hasSent || visible.length > 0) && <button type="button" className={btn} onClick={onMove}>{t('kassa.checks.moveCheck')}</button>}
             {canFree && <button type="button" className={btn} onClick={() => setConfirm('free')}>{t('kassa.tableActions.free')}</button>}
+            {reservation ? (
+              <div className="space-y-2 rounded-md border border-violet-500 bg-violet-50 p-2 text-violet-950 dark:bg-violet-950 dark:text-violet-50">
+                <p className="text-sm font-semibold">
+                  {t('reservations.onTable', { time: timeLabel(reservation.reservation.starts_at, i18n.language), name: reservation.reservation.name, guests: reservation.reservation.guests })}
+                  {reservation.late ? ` · ${t('reservations.late')}` : ''}
+                </p>
+                {reservation.reservation.note ? <p className="text-xs italic">“{reservation.reservation.note}”</p> : null}
+                <div className="grid grid-cols-3 gap-2">
+                  <button type="button" className={cn(btn, 'h-11 text-sm')} onClick={() => onEditReservation(reservation.reservation)}>{t('reservations.edit')}</button>
+                  <button type="button" className={cn(btn, 'h-11 text-sm')} onClick={() => onReservationStatus(reservation.reservation, 'no_show')}>{t('reservations.noShow')}</button>
+                  <button type="button" className={cn(btn, 'h-11 text-sm text-destructive')} onClick={() => onReservationStatus(reservation.reservation, 'cancelled')}>{t('reservations.cancel')}</button>
+                </div>
+              </div>
+            ) : (
+              <button type="button" className={btn} onClick={onReserve}>{t('reservations.reserve')}</button>
+            )}
           </div>
         )}
       </DialogContent>

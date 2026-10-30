@@ -327,7 +327,7 @@
       "lim_users_one": "1 Benutzer",
       "lim_users": "{{n}} Teammitglieder",
       "lim_users_unlimited": "Unbegrenzt viele Teammitglieder",
-      "feat_horeca": "Bestellseite, QR-Menü und Küchenbildschirm",
+      "feat_horeca": "Bestellseite, QR-Menü, Küchenbildschirm und Reservierungen",
       "feat_events": "Tickets, QR per E-Mail und Einlass",
       "feat_webshop": "Webshop unter ihrgeschaeft.sellqo.shop",
       "feat_pos": "Kasse",
@@ -2339,6 +2339,10 @@
         "kassa_quick_tap_3": {
           "title": "SellQo Kassa: + und − auf jeder Zeile, Wischen zum Entfernen und Rechnungswunsch zurücknehmen",
           "description": "In der Liste der Rechnung hat jede Zeile ein − und ein +, und Wischen nach links entfernt eine Zeile. Bei einer bereits gesendeten Zeile fragt die Kasse zuerst nach dem Grund. Im Größenfenster (25, 33 oder 50 cl) gibt es jetzt auch ein − pro Größe. Steht ein Tisch versehentlich auf „Rechnung gewünscht“, setzt du ihn mit langem Drücken wieder auf besetzt. Und pro Produkt wählst du in SellQo, wo es zubereitet wird: Küche, Bar oder eine andere Station. Das hat Vorrang vor der Kategorie, so kann die Salami an der Theke geschnitten werden und der Rest geht in die Küche."
+        },
+        "reservations_1": {
+          "title": "Reservierungen: Tische in der Verwaltung und an der Kasse reservieren",
+          "description": "Unter Bestellen › Reservierungen und in SellQo Kassa (langes Drücken auf einen Tisch oder die Schaltfläche Reservierungen) notierst du eine Reservierung mit Name, Uhrzeit, Personenzahl und optional einer Handynummer. Im Raumplan wird der Tisch eine Stunde vorher lila (einstellbar). Sitzen noch Gäste mit einer offenen Rechnung dort, bleibt der Tisch besetzt und zeigt die Reservierungszeit: Eine Reservierung ändert nie eine Rechnung. Tippe auf den lila Tisch, wenn die Gäste da sind. Handynummern werden nach 30 Tagen automatisch gelöscht. Reservierungen sind in allen Gastronomie-Paketen enthalten."
         }
       },
       "copyLink": "Link kopieren",

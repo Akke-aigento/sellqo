@@ -179,7 +179,7 @@ const salesItems: NavItem[] = [
   // HORECA-1 / TRACKS-1 — horeca-spoor: alleen voor winkels die het hebben.
   { id: 'ordering', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_floor', url: '/admin/bestellen?tab=zaal', icon: UtensilsCrossed, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'orders' },
   // TRACKS-2: horeca beheert de kaart op de tab Kaart van de bestelpagina (zie WERKPLEK-1 hierboven).
-  { id: 'horeca-menu', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_menu', url: '/admin/bestellen?tab=menu', icon: BookOpen, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'products' },
+  { id: 'horeca-menu', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_menu', url: '/admin/bestellen?tab=kaart', icon: BookOpen, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'products' },
   { id: 'kitchen', tracks: ['horeca'], sidebarTracks: [], titleKey: 'navigation.items.kitchen', url: '/admin/keuken', icon: ChefHat, excludeRoles: ['marketing', 'accountant'], requireRead: 'orders' },
   {
     id: 'event-dashboard',

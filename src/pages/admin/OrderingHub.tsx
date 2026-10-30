@@ -21,6 +21,7 @@ import { QrModeSettings } from '@/components/admin/storefront/food/QrModeSetting
 import { QR_MODES, type QrMode } from '@/components/admin/storefront/food/qrModes';
 import { FloorPlanEditor } from '@/components/admin/floorplan/FloorPlanEditor';
 import { PrepStationsManager } from '@/components/admin/horeca/PrepStationsManager';
+import { ReservationsManager } from '@/components/admin/horeca/ReservationsManager';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { useTranslation } from 'react-i18next';
 import { ModuleGateLoading, ModuleOffCard } from '@/components/admin/ModuleOffCard';
@@ -39,6 +40,8 @@ const TABS = [
   { id: 'qr', labelKey: 'admin.orderingHub.tab_qr' },
   // ZAAL-H1 — tafels, ruimtes en QR-stickers per tafel.
   { id: 'zaal', labelKey: 'admin.orderingHub.tab_floor' },
+  // RESERVATIE-1 — reservaties per dag; de kassa toont ze op het zaalplan.
+  { id: 'reservaties', labelKey: 'reservations.title' },
   // TAFEL-1 — keuken, bar, … en welke categorie waarheen (één bon per post).
   { id: 'posten', labelKey: 'admin.orderingHub.tab_stations' },
   { id: 'extras', labelKey: 'admin.orderingHub.tab_extras' },
@@ -208,6 +211,7 @@ export default function OrderingHubPage() {
         {tab === 'webshop' ? <FulfillmentSettings /> : null}
         {tab === 'qr' ? <div className="space-y-6"><QrModeSettings /><MenuQrManager onOpenFloorPlan={() => go('zaal')} /></div> : null}
         {tab === 'zaal' ? <FloorPlanEditor /> : null}
+        {tab === 'reservaties' ? <ReservationsManager /> : null}
         {tab === 'posten' ? <PrepStationsManager /> : null}
         {tab === 'extras' ? <AddonGroupsManager /> : null}
         {tab === 'allergens' ? <AllergenChart /> : null}

@@ -1,3 +1,48 @@
+## RESERVATIE-1 — tafelreservaties als laag boven het zaalplan (kassa 0.17.0) — 30 oktober 2026
+
+**Aanleiding**
+- Akke (29-10): tafelstatus aanpassen en reserveren via lang drukken. Harde regel: "als er nog een rekening of bestellingen (alle statussen buiten vrij) is, dat die auto reservatie status niet alles verwijdert". Beslissingen 30-10: reservaties in alle horecaplannen; gsm optioneel, na 30 dagen gewist; "paars vanaf" instelbaar (standaard 60 min).
+
+**Root cause / vertrekpunt**
+- `TableStatus` kende al `'reserved'` (paars in `FloorCanvas`), maar niets zette het; er was geen reservatietabel.
+
+**Uitgevoerd**
+- Migratie `20261030200000_reservatie_1.sql`: `table_reservations` (naam, personen, gsm, opmerking, start, duur, status booked/seated/cancelled/no_show) en `reservation_settings` (lead_minutes, late_minutes). Triggers: tafel van dezelfde zaak, `updated_at`, `horeca_bump` (elke kassa ververst binnen een poll). Cron `purge-reservation-phones-daily` (03:35) wist enkel het gsm-nummer na 30 dagen. Geen delete-policy: annuleren = status.
+- `src/lib/horeca/reservations.ts`: pure logica (`isActiveOnPlan`, `isLate`, `reservationsByTable`, `reservationsForDay`, `nextHalfHour`) + lezen/schrijven. Tests `reservations.test.ts` (6, in CI).
+- Kassa: `store.ts` laadt reservaties en instellingen bij elke verversing; `reservationActions.ts`; zaalplan paars met "20:00 · Peeters (4)" (open rekening wint: tafel blijft groen met "res. 20:00"); tik op een paarse tafel = tafel openen + aangekomen; lang drukken = Reserveren / Gasten zijn er / Wijzigen / Niet gekomen / Annuleren; knop Reservaties met de lijst van vandaag. Aangekomen op een tafel met nog een open rekening opent die rekening NIET (de nieuwe gasten krijgen niet de rekening van de vorigen).
+- Gedeeld: `ReservationDialog` en `ReservationList` (`src/components/horeca/`).
+- Beheer: tab **Reservaties** in Bestellen (`ReservationsManager`: per dag, nieuw/wijzigen, instellingen "paars vanaf" en "te laat na"); rij in Instellingen › Horeca (link, één plek per taak).
+- Gevonden en rechtgezet: zijbalk "Kaart" linkte naar `?tab=menu` (bestaat niet; landde via de terugval) → `?tab=kaart`.
+- Prijzenpagina: `feat_horeca` vermeldt nu ook reservaties (5 talen). Plan-scope: bestaande sleutel `horeca` (Horeca Small en Big), geen nieuwe sleutel, geen grandfathering nodig.
+- `KASSA_SW_VERSION` 0.17.0. i18n `reservations.*` (5 talen). Changelog 2026.14n `reservations_1`. Helpartikels `20261030200100_reservatie_1_docs.sql` (nieuw artikel `reservaties` + paragraaf in `kassa-tafels-rekeningen`). Nieuwsbrief.
+
+**Security-keuzes**
+- RLS: lezen/schrijven reservaties enkel `tenant_admin`/`staff` (en platformadmin); marketing/boekhouding zien geen namen of gsm-nummers. Instellingen schrijven enkel `tenant_admin`. Trigger is security definer met vaste `search_path`. Geen publieke policy, geen kolom op `tenant_theme_settings` (stroomt niet naar custom frontends).
+
+**De regel van Akke, hoe die afgedwongen is**
+- Geen enkele reservatiecode raakt `dining_checks`: geen kolom, geen trigger, geen cron. De kleur wordt in de kassa berekend; een open rekening wint altijd. Dry-run: een reservatie maken en op aangekomen zetten liet de hash van alle rekeningen van De Wissel ongewijzigd.
+
+**Fiscaal (GKS)**
+- Fiscale release 0.17.0 (UI in `src/kassa/`), geen nieuw of gewijzigd FDM-bericht.
+
+**Verificatie**
+- Dry-run op live (alles teruggedraaid): insert + seated als platformadmin, version 63→66, rekeningen ongewijzigd, vreemde gebruiker 42501, purge wist het gsm-nummer, cron aanwezig. Docs-dry-run: conflictdoel en anker ok.
+- vitest kassa + lib + sidebar + tracks: 335 groen. tsc 27 = baseline. Lint 0. i18n-pariteit ok. `npm run build` en `build:kassa` ok (0.17.0 in beide).
+- Harnas 390/1024/1280: tafel 2 paars "20:07 · Peeters (4)", tafel 4 bezet met "res. 20:27", lijst van vandaag, menu van een gereserveerde tafel, venster Reserveren; geen horizontale overloop.
+
+**Samenhang**
+| Plek | Doet nu |
+|---|---|
+| Bestellen › Reservaties | beheer per dag + instellingen (enige bewerkplek voor de instellingen) |
+| Instellingen › Horeca | enkel een link met de huidige stand |
+| Kassa › zaalplan | weergave + snelle acties (zelfde lijst) |
+| Prijzenpagina | `feat_horeca` vermeldt reservaties |
+
+**Bewust ongemoeid / Vervolg**
+- Online reserveren door gasten (webshop/QR): aparte batch, raakt `storefront-api` (eerste wet).
+- Geen meldingen of mails bij een reservatie.
+- Uitrol: push → CI → `20261030200000_reservatie_1` (vóór de publish; additief) → publish admin + kassa → `20261030200100_reservatie_1_docs` → demoreservaties voor Café De Wissel.
+
 ## KASSA-UX-4 — + en − op lijnen, vegen, "−" per maat, rekening-vraag intrekken, "Bereiden aan" per product (kassa 0.16.0) — 30 oktober 2026
 
 **Aanleiding**

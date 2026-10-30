@@ -327,7 +327,7 @@
       "lim_users_one": "1 utilisateur",
       "lim_users": "{{n}} membres d'équipe",
       "lim_users_unlimited": "Membres d'équipe illimités",
-      "feat_horeca": "Site de commande, menu QR et écran de cuisine",
+      "feat_horeca": "Site de commande, menu QR, écran de cuisine et réservations",
       "feat_events": "Billets, QR par e-mail et contrôle d'accès",
       "feat_webshop": "Boutique sur votrecommerce.sellqo.shop",
       "feat_pos": "Caisse",
@@ -2339,6 +2339,10 @@
         "kassa_quick_tap_3": {
           "title": "SellQo Kassa : + et − sur chaque ligne, glisser pour supprimer, et annuler une demande d’addition",
           "description": "Dans la liste de l’addition, chaque ligne a un − et un +, et glisser vers la gauche supprime une ligne. Sur une ligne déjà envoyée, la caisse demande d’abord pourquoi vous annulez. La fenêtre des formats (25, 33 ou 50 cl) a désormais aussi un − par format. Une table passée par erreur en « addition demandée » revient à occupée avec un appui long. Et pour chaque produit, vous choisissez dans SellQo où il est préparé : cuisine, bar ou un autre poste. Ce choix l’emporte sur la catégorie : le salami peut se couper au bar et le reste partir en cuisine."
+        },
+        "reservations_1": {
+          "title": "Réservations : réservez des tables dans votre gestion et sur la caisse",
+          "description": "Sous Commandes › Réservations et sur SellQo Kassa (appui long sur une table, ou le bouton Réservations), vous notez une réservation avec le nom, l’heure, le nombre de personnes et éventuellement un numéro de GSM. Sur le plan de salle, la table devient violette une heure à l’avance (réglable). Si des clients avec une addition ouverte sont encore à table, elle reste occupée et affiche l’heure de la réservation : une réservation ne modifie jamais une addition. Touchez la table violette quand les clients arrivent. Les numéros de GSM sont supprimés automatiquement après 30 jours. Les réservations sont incluses dans toutes les formules horeca."
         }
       },
       "copyLink": "Copier le lien",

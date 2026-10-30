@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14n — Reservaties: tafels reserveren in je beheer en op de kassa (feature, 30-10-2026)
+
+**Status:** wacht op push, migratie en publish (RESERVATIE-1).
+
+**Voor wie:** alle horecazaken (in elk horecapakket).
+
+**Je zaalplan weet wie er komt** (oktober 2026)
+Noteer een reservatie onder Bestellen › Reservaties of op de kassa met lang drukken op een tafel. Een uur vooraf kleurt de tafel paars met naam en uur. Zitten er nog gasten, dan blijft hun rekening gewoon open: een reservatie verandert nooit iets aan een rekening.
+Wat betekent dit voor jou? Geen papieren boekje meer naast de kassa, en geen dubbel verkochte tafel.
+
+i18n: `public.changelog.changes.reservations_1`
+
 ### 2026.14m — SellQo Kassa: + en − op elke lijn, vegen, en een rekening-vraag intrekken (improvement, 30-10-2026)
 
 **Status:** wacht op push, publish en de migraties (KASSA-UX-4).

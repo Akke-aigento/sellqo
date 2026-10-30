@@ -6,7 +6,7 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Bell, ChevronRight, CreditCard, LayoutGrid, Loader2, Monitor, Printer, QrCode, Users, UtensilsCrossed } from 'lucide-react';
+import { Bell, CalendarClock, ChevronRight, CreditCard, LayoutGrid, Loader2, Monitor, Printer, QrCode, Users, UtensilsCrossed } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
@@ -30,7 +30,7 @@ export function HorecaSettingsHub() {
         return n ?? 0;
       };
       const active = (q: never) => (q as unknown as { eq: (c: string, v: boolean) => never }).eq('is_active', true);
-      const [pay, qr, tables, stations, printers, devices, terminals, staff] = await Promise.all([
+      const [pay, qr, tables, stations, printers, devices, terminals, staff, res] = await Promise.all([
         supabase.from('horeca_pay_settings' as never).select('methods, online_pay, mail_online, receipt_print').eq('tenant_id' as never, tenantId as never).maybeSingle(),
         supabase.from('fulfillment_settings').select('qr_mode' as 'tenant_id').eq('tenant_id', tenantId!).maybeSingle(),
         count('dining_tables', active),
@@ -39,6 +39,8 @@ export function HorecaSettingsHub() {
         count('horeca_notify_devices'),
         count('pos_terminals'),
         count('pos_cashiers', active),
+        // RESERVATIE-1: "paars vanaf" (standaard 60 min).
+        supabase.from('reservation_settings' as never).select('lead_minutes').eq('tenant_id' as never, tenantId as never).maybeSingle(),
       ]);
       const p = pay.data as { methods?: string[] | null; online_pay?: boolean | null; mail_online?: boolean | null; receipt_print?: boolean | null } | null;
       return {
@@ -48,6 +50,7 @@ export function HorecaSettingsHub() {
         mailOnline: p?.mail_online === true,
         qrMode: (qr.data as { qr_mode?: string | null } | null)?.qr_mode || 'view',
         tables, stations, printers, devices, terminals, staff,
+        leadMinutes: (res.data as { lead_minutes?: number } | null)?.lead_minutes ?? 60,
       };
     },
   });
@@ -63,6 +66,7 @@ export function HorecaSettingsHub() {
       rows: [
         { icon: QrCode, title: t('settings.horecaHub.qr'), status: t(`settings.horecaHub.qr_mode_${data.qrMode === 'order' ? 'order' : data.qrMode === 'off' ? 'off' : 'view'}`), to: '/admin/bestellen?tab=qr' },
         { icon: LayoutGrid, title: t('settings.horecaHub.floor'), status: t('settings.horecaHub.tables', { count: data.tables }), to: '/admin/bestellen?tab=zaal' },
+        { icon: CalendarClock, title: t('reservations.title'), status: data.leadMinutes >= 1440 ? t('reservations.leadAllDay') : t('reservations.hubStatus', { count: data.leadMinutes }), to: '/admin/bestellen?tab=reservaties' },
         { icon: UtensilsCrossed, title: t('settings.horecaHub.stations'), status: t('settings.horecaHub.stations_count', { count: data.stations }), to: '/admin/bestellen?tab=posten' },
       ],
     },

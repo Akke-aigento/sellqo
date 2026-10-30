@@ -13,6 +13,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Check, CheckLine, Snapshot } from './types';
 import type { TableRequest } from './requests';
+import { DEFAULT_RESERVATION_SETTINGS, fetchReservationSettings, fetchReservations, type Reservation, type ReservationSettings } from '@/lib/horeca/reservations';
 
 export type CommandKind =
   | 'open_check' | 'add_line' | 'change_qty' | 'set_note' | 'void_line' | 'discount_line'
@@ -37,6 +38,8 @@ export interface Transport {
   version(tenantId: string): Promise<number>;
   /** QR-REKENING-1: openstaande tafelaanvragen. Optioneel (testtransports laten het weg). */
   requests?(tenantId: string): Promise<TableRequest[]>;
+  /** RESERVATIE-1: reservaties van vandaag en de twee volgende dagen, plus de instellingen. Optioneel. */
+  reservations?(tenantId: string): Promise<{ list: Reservation[]; settings: ReservationSettings }>;
 }
 
 export const supabaseTransport: Transport = {
@@ -63,6 +66,12 @@ export const supabaseTransport: Transport = {
     if (error) throw error;
     return (data ?? []) as unknown as TableRequest[];
   },
+  async reservations(tenantId) {
+    const from = new Date(); from.setHours(0, 0, 0, 0);
+    const to = new Date(from); to.setDate(to.getDate() + 3);
+    const [list, settings] = await Promise.all([fetchReservations(tenantId, from.toISOString(), to.toISOString()), fetchReservationSettings(tenantId)]);
+    return { list, settings };
+  },
 };
 
 function storageKey(tenantId: string) { return `sq_kassa_queue|${tenantId}`; }
@@ -83,6 +92,9 @@ export class HorecaStore {
   requests: TableRequest[] = [];
   /** MELDING-1: de aanvragen zijn minstens één keer geladen (vóór die tijd is een lege lijst geen nulmeting). */
   requestsLoaded = false;
+  /** RESERVATIE-1: een laag boven het zaalplan; raakt de rekeningen nooit. */
+  reservations: Reservation[] = [];
+  reservationSettings: ReservationSettings = DEFAULT_RESERVATION_SETTINGS;
   /**
    * TAFEL-2: wordt vóór elk versturen aangeroepen (de runtime schrijft daar ondertekende events
    * weg die nog op het toestel wachten). false = nog niet gelukt: niets versturen, want de
@@ -125,11 +137,13 @@ export class HorecaStore {
   async refresh() {
     try {
       // Aanvragen ophalen mag mislukken zonder de rekeningen te blokkeren: dan blijft de vorige lijst staan.
-      const [snap, reqs] = await Promise.all([
+      const [snap, reqs, res] = await Promise.all([
         this.transport.snapshot(this.tenantId),
         this.transport.requests ? this.transport.requests(this.tenantId).catch(() => null) : Promise.resolve(null),
+        this.transport.reservations ? this.transport.reservations(this.tenantId).catch(() => null) : Promise.resolve(null),
       ]);
       if (reqs) { this.requests = reqs; this.requestsLoaded = true; }
+      if (res) { this.reservations = res.list; this.reservationSettings = res.settings; }
       this.setSnapshot(snap);
       this.online = true;
     } catch {
@@ -150,6 +164,12 @@ export class HorecaStore {
       this.emit();
     }
     if (this.queue.length) this.scheduleFlush();
+  }
+
+  /** RESERVATIE-1: lokaal meteen tonen wat net bewaard werd (de volgende poll haalt de serverstand). */
+  patchReservation(id: string, patch: Partial<Reservation>) {
+    this.reservations = this.reservations.map((r) => (r.id === id ? { ...r, ...patch } : r));
+    this.emit();
   }
 
   hint(productId: string, h: ProductHint) { this.hints.set(productId, h); }

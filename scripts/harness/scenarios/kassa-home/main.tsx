@@ -30,6 +30,15 @@ const checks: Check[] = [
 const transport: Transport = {
   apply: () => new Promise(() => {}),
   snapshot: async () => ({ version: 1, checks }),
+  // RESERVATIE-1: tafel 2 vrij en gereserveerd (paars), tafel 4 bezet met een latere reservatie, één voor vanavond.
+  reservations: async () => ({
+    settings: { lead_minutes: 60, late_minutes: 15 },
+    list: [
+      { id: 'r-a', table_id: 't-2', name: 'Peeters', guests: 4, phone: '0470 12 34 56', note: 'verjaardag', starts_at: new Date(now + 20 * 60_000).toISOString(), duration_min: 120, status: 'booked' },
+      { id: 'r-b', table_id: 't-4', name: 'Janssens', guests: 2, phone: null, note: null, starts_at: new Date(now + 40 * 60_000).toISOString(), duration_min: 120, status: 'booked' },
+      { id: 'r-c', table_id: 't-7', name: 'Claes', guests: 6, phone: null, note: null, starts_at: new Date(now + 180 * 60_000).toISOString(), duration_min: 120, status: 'booked' },
+    ],
+  }),
   version: async () => 1,
   requests: async () => [{
     id: 'r1', dining_table_id: 't-5', table_label: '5', item_count: 3, total_cents: 1460, guest_name: 'Lotte', note: null, created_at: new Date(now - 4 * 60_000).toISOString(),

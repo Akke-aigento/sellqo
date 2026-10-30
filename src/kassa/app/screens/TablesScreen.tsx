@@ -4,7 +4,10 @@
 // op het scherm, en plan en lijst gebruiken dezelfde kleuren.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LayoutGrid, List, Plus, ShoppingBag, Users } from 'lucide-react';
+import { CalendarClock, LayoutGrid, List, Plus, ShoppingBag, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { reservationsByTable, reservationsForDay, timeLabel } from '@/lib/horeca/reservations';
+import { setReservationStatus } from '../horeca/reservationActions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLongPress } from '../useLongPress';
 import { FloorPlanView } from '@/components/admin/floorplan/FloorPlanView';
@@ -19,6 +22,8 @@ interface Props {
   store: HorecaStore; staffId: string; tableLabel: (id: string | null) => string | null; onOpen: (checkId: string) => void; onCounter: () => void;
   /** KASSA-UX-3: lang drukken op een tafel → menu met acties (tafel-id, rekening of null). */
   onTableAction?: (tableId: string, checkId: string | null) => void;
+  /** RESERVATIE-1: lijst met de reservaties van vandaag. */
+  onReservations?: () => void;
 }
 
 const VIEW_KEY = 'sq_kassa_tables_view';
@@ -42,7 +47,7 @@ function lastActivity(c: Check): string {
   return c.lines.reduce((m, l) => (l.created_at > m ? l.created_at : m), c.opened_at);
 }
 
-export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, onTableAction }: Props) {
+export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, onTableAction, onReservations }: Props) {
   const { t, i18n } = useTranslation();
   const { data: plan, isLoading } = useFloorPlan();
   // KASSA-UX-2: standaard het zaalplan (past nu ook op een gsm); de keuze plan/lijst onthoudt dit toestel.
@@ -74,6 +79,18 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, on
     status[tableId] = c.bill_requested_at ? 'bill' : 'occupied';
     badges[tableId] = `${formatEuro(checkTotalCents(c), i18n.language)} · ${minutesSince(lastActivity(c), now)}′`;
   }
+  // RESERVATIE-1: een reservatie is een laag. Vrije tafel → paars met uur en naam; staat er nog een
+  // rekening op, dan blijft de tafel bezet en staat het uur van de reservatie er enkel bij.
+  const reserved = reservationsByTable(store.reservations, now, store.reservationSettings);
+  for (const [tableId, { reservation: r, late }] of reserved) {
+    if (byTable.has(tableId)) {
+      badges[tableId] = `${badges[tableId]} · ${t('reservations.badgeShort', { time: timeLabel(r.starts_at, i18n.language) })}`;
+      continue;
+    }
+    status[tableId] = 'reserved';
+    badges[tableId] = [`${timeLabel(r.starts_at, i18n.language)} · ${r.name} (${r.guests})`, late ? t('reservations.late') : null].filter(Boolean).join(' · ');
+  }
+  const todayCount = reservationsForDay(store.reservations, new Date(now)).filter((r) => r.status === 'booked').length;
   // QR-REKENING-1: een tafel met een openstaande QR-bestelling springt eruit.
   const qrPending = new Map<string, number>();
   for (const r of store.requests) if (r.dining_table_id) qrPending.set(r.dining_table_id, (qrPending.get(r.dining_table_id) ?? 0) + 1);
@@ -99,6 +116,9 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, on
     if (existing) return onOpen(existing.id);
     const id = crypto.randomUUID();
     store.enqueue({ id: crypto.randomUUID(), kind: 'open_check', check_id: id, table_id: tb.id, staff_id: staffId });
+    // RESERVATIE-1: wie een gereserveerde tafel opent, zet de gasten op "aangekomen" (los van de rekening).
+    const r = reserved.get(tb.id)?.reservation;
+    if (r) setReservationStatus(store, r, 'seated').catch(() => toast.error(t('reservations.seatFailed')));
     onOpen(id);
   };
 
@@ -129,8 +149,15 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, on
         <button type="button" onClick={() => setNaming(true)} className="flex h-12 shrink-0 items-center gap-1 rounded-lg border border-dashed px-3 text-sm font-semibold">
           <Plus className="h-4 w-4" /> {t('kassa.tables.onName')}
         </button>
+        {onReservations && (
+          <button type="button" onClick={onReservations} aria-label={t('reservations.todayAria', { count: todayCount })}
+            className={cn('ml-auto flex h-12 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold', todayCount > 0 && 'border-violet-500 text-violet-900 dark:text-violet-100')}>
+            <CalendarClock className="h-5 w-5" aria-hidden /><span className="hidden md:inline">{t('reservations.title')}</span>
+            {todayCount > 0 && <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-violet-600 px-1.5 text-xs font-bold text-white">{todayCount}</span>}
+          </button>
+        )}
         {plan && plan.tables.length > 0 && (
-          <div className="ml-auto flex shrink-0 rounded-md border">
+          <div className={cn('flex shrink-0 rounded-md border', !onReservations && 'ml-auto')}>
             <button type="button" aria-pressed={mode === 'plan'} aria-label={t('kassa.tables.viewPlan')} onClick={() => setMode('plan')} className={cn('flex h-11 w-11 items-center justify-center', mode === 'plan' && 'bg-muted')}><LayoutGrid className="h-4 w-4" /></button>
             <button type="button" aria-pressed={mode === 'list'} aria-label={t('kassa.tables.viewList')} onClick={() => setMode('list')} className={cn('flex h-11 w-11 items-center justify-center', mode === 'list' && 'bg-muted')}><List className="h-4 w-4" /></button>
           </div>
@@ -205,12 +232,13 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, on
                   {tables.map((tb) => {
                     const c = byTable.get(tb.id);
                     const qr = qrPending.get(tb.id) ?? 0;
+                    const res = !c && status[tb.id] === 'reserved';
                     return (
                       <TableTile key={tb.id} onTap={() => openTable(tb)} onLong={() => longPress(tb.id)}
                         className={cn('flex min-h-16 w-full select-none flex-col items-center justify-center rounded-lg border-2 p-2 text-center [-webkit-touch-callout:none]',
-                          qr ? 'border-amber-500 bg-amber-50 dark:bg-amber-950' : !c ? 'border-slate-300 bg-background' : c.bill_requested_at ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950')}>
+                          qr ? 'border-amber-500 bg-amber-50 dark:bg-amber-950' : res ? 'border-violet-600 bg-violet-50 text-violet-950 dark:bg-violet-950 dark:text-violet-50' : !c ? 'border-slate-300 bg-background' : c.bill_requested_at ? 'border-blue-500 bg-blue-50 dark:bg-blue-950' : 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950')}>
                         <span className="font-bold">{tb.label}</span>
-                        {c || qr ? <span className="text-xs">{badges[tb.id]}</span> : <span className="text-xs text-muted-foreground">{t('kassa.tables.free')}</span>}
+                        {c || qr || res ? <span className="text-xs">{badges[tb.id]}</span> : <span className="text-xs text-muted-foreground">{t('kassa.tables.free')}</span>}
                       </TableTile>
                     );
                   })}

@@ -327,7 +327,7 @@
       "lim_users_one": "1 user",
       "lim_users": "{{n}} team members",
       "lim_users_unlimited": "Unlimited team members",
-      "feat_horeca": "Ordering site, QR menu and kitchen screen",
+      "feat_horeca": "Ordering site, QR menu, kitchen screen and reservations",
       "feat_events": "Tickets, QR by email and check-in",
       "feat_webshop": "Webshop at yourbusiness.sellqo.shop",
       "feat_pos": "POS",
@@ -2339,6 +2339,10 @@
         "kassa_quick_tap_3": {
           "title": "SellQo Kassa: + and − on every line, swipe to remove, and withdraw a bill request",
           "description": "In the bill list every line has a − and a +, and swiping left removes a line. On a line that was already sent, the till first asks why you cancel. The size window (25, 33 or 50 cl) now also has a − per size. If a table was set to ‘bill requested’ by mistake, a long press sets it back to occupied. And for each product you choose in SellQo where it is prepared: kitchen, bar or another station. That overrides the category, so the salami can be cut at the bar while the rest goes to the kitchen."
+        },
+        "reservations_1": {
+          "title": "Reservations: book tables in your admin and on the till",
+          "description": "Under Ordering › Reservations and on SellQo Kassa (long-press a table, or the Reservations button) you note a reservation with name, time, number of guests and optionally a mobile number. On the floor plan the table turns purple from one hour ahead (adjustable). If guests with an open bill are still seated, the table stays occupied and shows the reservation time: a reservation never changes a bill. Tap the purple table when the guests arrive. Mobile numbers are deleted automatically after 30 days. Reservations are included in all hospitality plans."
         }
       },
       "copyLink": "Copy link",
