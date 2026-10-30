@@ -2347,6 +2347,10 @@
         "regulars_1": {
           "title": "Regulars get their own spot on your floor plan",
           "description": "In the floor plan editor, Add table now also offers Regular: a spot with your regular's name, e.g. \"Jef\" or \"Bompa Ré\". On SellQo Kassa a tap opens their bill, always in the same spot. Names can now be up to 20 characters, including accents and an apostrophe. On the receipt their bill appears as a bill on a name."
+        },
+        "reservations_online": {
+          "title": "Online reservations: guests request a table themselves",
+          "description": "Under Ordering › Reservations, turn on online reservations and choose your hours per weekday, the maximum guests per arrival time, the largest party and how far ahead. Your webshop gets a Reserveren button. A request shows up in orange in your admin and on the till; you confirm or decline, and the guest gets an email right away. The table only turns purple after you confirm. It's off by default."
         }
       },
       "copyLink": "Copy link",

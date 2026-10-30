@@ -40,7 +40,7 @@ import { ADMIN_LINK_ROLES, adminHref } from '../horeca/quickTap';
 import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
 import type { HorecaStore } from '../horeca/store';
 import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from '../alerts';
-import { reservationsByTable, reservationsForDay, timeLabel, type Reservation, type ReservationStatus, type TableReservation } from '@/lib/horeca/reservations';
+import { pendingRequests, reservationsByTable, reservationsForDay, timeLabel, type Reservation, type ReservationStatus, type TableReservation } from '@/lib/horeca/reservations';
 import { ReservationDialog } from '@/components/horeca/ReservationDialog';
 import { ReservationList } from '@/components/horeca/ReservationList';
 import { saveReservation, setReservationStatus } from '../horeca/reservationActions';
@@ -324,7 +324,18 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
             </DialogHeader>
             <button type="button" onClick={() => { setResListOpen(false); setResEdit({ reservation: null, tableId: null }); }}
               className="flex h-11 items-center justify-center gap-1.5 rounded-md border border-dashed text-sm font-semibold"><Plus className="h-4 w-4" />{t('reservations.new')}</button>
-            <ReservationList list={reservationsForDay(store.reservations, new Date(now))} settings={store.reservationSettings} tableLabel={ctx.tableLabel} now={now}
+            {/* RESERVATIE-2: online aanvragen (alle dagen) eerst, dan vandaag. */}
+            {pendingRequests(store.reservations).length > 0 && (
+              <section className="space-y-2">
+                <h3 className="text-sm font-bold uppercase tracking-wide text-amber-700 dark:text-amber-300">{t('reservations.pendingTitle', { count: pendingRequests(store.reservations).length })}</h3>
+                <ReservationList list={pendingRequests(store.reservations)} settings={store.reservationSettings} tableLabel={ctx.tableLabel} now={now} showDate
+                  emptyText="" onSeat={seatReservation}
+                  onEdit={(r) => { setResListOpen(false); setResEdit({ reservation: r, tableId: r.table_id }); }}
+                  onStatus={(r, st) => void markStatus(r, st)} />
+                <h3 className="pt-2 text-sm font-bold uppercase tracking-wide text-muted-foreground">{t('reservations.today')}</h3>
+              </section>
+            )}
+            <ReservationList list={reservationsForDay(store.reservations, new Date(now)).filter((r) => r.status !== 'requested')} settings={store.reservationSettings} tableLabel={ctx.tableLabel} now={now}
               emptyText={t('reservations.emptyToday')} onSeat={seatReservation}
               onEdit={(r) => { setResListOpen(false); setResEdit({ reservation: r, tableId: r.table_id }); }}
               onStatus={(r, st) => void markStatus(r, st)} />

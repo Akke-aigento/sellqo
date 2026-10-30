@@ -1,3 +1,34 @@
+## RESERVATIE-2 — online reserveren door gasten (aanvraag → bevestigen → mail) (kassa 0.19.0) — 30 oktober 2026
+
+**Aanleiding**
+- Akke (30-10): "Ja voor beide" (vaste klanten + online reserveren). Beslissingen: aanvraag die het personeel bevestigt; mail bij bevestigen/weigeren; storefront-api additief uitbreiden (akkoord eerste wet).
+
+**Uitgevoerd**
+- Migratie `20261030220000_reservatie_2.sql`: `table_reservations` + email, source (staff/online), request_id (uniek per zaak), mail_sent_at; status + requested/declined. `reservation_settings` + online_enabled (standaard UIT), online_hours, slot_minutes, max_guests_per_slot, max_party, days_ahead, min_notice_minutes. `reservation_slots(tenant, datum)` en `reservation_request_place(tenant, aanvraag)` (security definer, enkel service_role): uren, sluitingsdagen, termijn, grootste gezelschap, capaciteit per aankomstuur met advisory lock, rem (30/u per zaak, 3 open per e-mail), idempotent op request_id, melding `customers/reservation_request`. Trigger `reservation_mail_tr`: requested → booked/declined bij een online aanvraag = `reservation-mail` (X-Internal-Secret).
+- Nieuwe edge function `reservation-mail` (+ `_shared/reservationMail.ts`, nl/en/fr/de, met deno-test in CI): één mail per reservatie (mail_sent_at eerst gezet, bij fout terug leeg).
+- `storefront-api` (additief): acties `get_reservation_slots` en `reservation_request` (IP-limiet 5/10 min zoals contactformulier, geblokkeerd bij een dichte winkel, lokveld `website`), veld `reservations_online` in `resolve_domain`; stempel `RESERVATIE-2` (event409/tableCheckPay-tests mee), `smoke.ts` verwacht de nieuwe sleutel.
+- `sellqo-storefront`: pagina `/reserveren` (dag, personen, vrije uren, gegevens, lokveld), knop Reserveren in de header (gsm: icoon), `reservations` in de shop-vlaggen.
+- Beheer: kaart "Online reserveren" (uren per weekdag, kwartier/halfuur/uur, max. per aankomstuur, grootste gezelschap, dagen vooruit, ten laatste) en een oranje blok met openstaande aanvragen (Bevestigen/Wijzigen/Weigeren).
+- Kassa 0.19.0: oranje teller op de knop Reservaties, aanvragen bovenaan de lijst. Een aanvraag kleurt geen tafel.
+- i18n `reservations.*` (5 talen). Changelog 2026.14p `reservations_online`. Helpartikel `20261030220100_reservatie_2_docs.sql`. Nieuwsbrief.
+
+**Afwijking van het plan**
+- De push naar horecatoestellen ("Nieuwe reservatie") zit er niet in: dat vraagt een nieuw event in `horecaPush.ts`, de toestelprofielen en een deploy van `horeca-device-push`. Nu: melding in het belletje + oranje teller in de kassa. Vervolgbatch.
+
+**Security-keuzes**
+- Gasten schrijven nooit rechtstreeks: enkel via storefront-api (service role) → `reservation_request_place`, dat alles opnieuw controleert. Beide functies zijn ingetrokken voor anon/authenticated. RLS van RESERVATIE-1 ongewijzigd (enkel zaakvoerder/personeel lezen). Geen kolom op gedeelde tabellen.
+
+**Gedeelde-paden-waarschuwing (eerste wet)**
+- `storefront-api`: twee nieuwe acties en één nieuw veld in `resolve_domain`; geen bestaande actie, sleutel of antwoordvorm gewijzigd. Custom frontends roepen de nieuwe acties niet aan; het extra veld negeren ze. `reservation_settings` staat los van `tenant_theme_settings` (stroomt niet door via `select('*')`).
+
+**Verificatie**
+- Dry-run live (teruggedraaid): 5 vrije uren; aanvraag → requested; zelfde request_id → duplicate; te vol → RESERVATION_FULL; ongeldig uur → RESERVATION_SLOT; te groot → RESERVATION_PARTY; bevestigen zet precies 1 mailaanvraag in de pg_net-wachtrij; 1 melding.
+- Lokaal: storefront-api rooktest groen, deno-tests 25 + reservationMail groen, deno check storefront-api en reservation-mail ok. vitest 313 groen. tsc 27 = baseline. Lint 0. i18n ok. Storefront: tsc + build ok; Playwright tegen een nep-API op 390/1280: formulier, uur kiezen, versturen → "Aanvraag ontvangen", header-knop, overloop 0.
+
+**Bewust ongemoeid / Vervolg**
+- Push naar horecatoestellen; meertaligheid van de storefront (bestaat nog niet); mail aan de zaak bij een nieuwe aanvraag.
+- Uitrol: push sellqo → CI → `20261030220000_reservatie_2` → deploy `storefront-api` + `reservation-mail` (Lovable-agent, deploy-only, versiestempels meten) → publish admin + kassa → push sellqo-storefront → `20261030220100_reservatie_2_docs`.
+
 ## VASTE-KLANT-1 — vaste klanten als eigen plek op het zaalplan (kassa 0.18.0) — 30 oktober 2026
 
 **Aanleiding**

@@ -36,6 +36,7 @@ const transport: Transport = {
     list: [
       { id: 'r-a', table_id: 't-2', name: 'Peeters', guests: 4, phone: '0470 12 34 56', note: 'verjaardag', starts_at: new Date(now + 20 * 60_000).toISOString(), duration_min: 120, status: 'booked' },
       { id: 'r-b', table_id: 't-4', name: 'Janssens', guests: 2, phone: null, note: null, starts_at: new Date(now + 40 * 60_000).toISOString(), duration_min: 120, status: 'booked' },
+      { id: 'r-d', table_id: null, name: 'Online Wouters', guests: 5, phone: null, email: 'wouters@example.com', source: 'online', note: null, starts_at: new Date(now + 26 * 3600_000).toISOString(), duration_min: 120, status: 'requested' },
       { id: 'r-c', table_id: 't-7', name: 'Claes', guests: 6, phone: null, note: null, starts_at: new Date(now + 180 * 60_000).toISOString(), duration_min: 120, status: 'booked' },
     ],
   }),

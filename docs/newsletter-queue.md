@@ -4,6 +4,16 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14p — Online reserveren: gasten vragen zelf een tafel aan (feature, 30-10-2026)
+
+**Status:** wacht op push, migratie, deploy en publish (RESERVATIE-2).
+
+**Reserveren terwijl jij tapt** (oktober 2026)
+Zet online reserveren aan en je webshop krijgt een knop "Reserveren". Gasten kiezen een dag, een uur en het aantal personen; jij bevestigt met één tik in de kassa of het beheer, en zij krijgen meteen een mail.
+Wat betekent dit voor jou? Minder telefoontjes in de drukte, en jij houdt de laatste beslissing.
+
+i18n: `public.changelog.changes.reservations_online`
+
 ### 2026.14o — Vaste klanten krijgen een eigen plek op je zaalplan (feature, 30-10-2026)
 
 **Status:** wacht op push, migratie en publish (VASTE-KLANT-1).

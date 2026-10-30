@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/integrations/supabase/client', () => ({ supabase: {} }));
-import { isActiveOnPlan, isLate, nextHalfHour, reservationsByTable, reservationsForDay, type Reservation } from './reservations';
+import { isActiveOnPlan, isLate, nextHalfHour, pendingRequests, reservationsByTable, reservationsForDay, validRange, type Reservation } from './reservations';
 
 const s = { lead_minutes: 60, late_minutes: 15 };
 const at = (h: number, m = 0) => new Date(2026, 9, 30, h, m).getTime();
@@ -44,5 +44,20 @@ describe('RESERVATIE-1 laag boven het zaalplan', () => {
     expect(nextHalfHour(new Date(2026, 9, 30, 19, 10)).getMinutes()).toBe(30);
     const d = nextHalfHour(new Date(2026, 9, 30, 19, 40));
     expect([d.getHours(), d.getMinutes()]).toEqual([20, 0]);
+  });
+});
+
+describe('RESERVATIE-2 online aanvragen', () => {
+  it('een aanvraag kleurt geen tafel (pas na bevestigen) en komt eerst in de daglijst', () => {
+    const req = res({ id: 'req', status: 'requested' });
+    expect(isActiveOnPlan(req, at(20), s)).toBe(false);
+    const day = reservationsForDay([res({ id: 'b', starts_at: new Date(at(19)).toISOString() }), req, res({ id: 'x', status: 'declined' })], new Date(at(12)));
+    expect(day.map((r) => r.id)).toEqual(['req', 'b', 'x']);
+    expect(pendingRequests([req, res({ id: 'b' })]).map((r) => r.id)).toEqual(['req']);
+  });
+  it('uurbereik: van vóór of gelijk aan tot, formaat HH:MM', () => {
+    expect(validRange(['18:00', '21:30'])).toBe(true);
+    expect(validRange(['21:00', '18:00'])).toBe(false);
+    expect(validRange(['8:00', '9:00'])).toBe(false);
   });
 });

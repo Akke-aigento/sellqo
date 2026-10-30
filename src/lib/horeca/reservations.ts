@@ -6,7 +6,8 @@
 // "geannuleerd" zet altijd een mens.
 import { supabase } from '@/integrations/supabase/client';
 
-export type ReservationStatus = 'booked' | 'seated' | 'cancelled' | 'no_show';
+/** RESERVATIE-2: 'requested' = online aangevraagd, nog niet bevestigd; 'declined' = geweigerd. */
+export type ReservationStatus = 'requested' | 'booked' | 'seated' | 'cancelled' | 'no_show' | 'declined';
 export interface Reservation {
   id: string;
   table_id: string | null;
@@ -17,9 +18,36 @@ export interface Reservation {
   starts_at: string;
   duration_min: number;
   status: ReservationStatus;
+  /** RESERVATIE-2: online aanvragen hebben een e-mailadres (bevestiging per mail). */
+  email?: string | null;
+  source?: 'staff' | 'online';
 }
 export interface ReservationSettings { lead_minutes: number; late_minutes: number }
 export const DEFAULT_RESERVATION_SETTINGS: ReservationSettings = { lead_minutes: 60, late_minutes: 15 };
+
+/** RESERVATIE-2: online reserveren (beheer). Uren per weekdag (0 = zondag): eerste en laatste aankomstuur. */
+export interface OnlineReservationSettings {
+  online_enabled: boolean;
+  online_hours: Record<string, [string, string][]>;
+  slot_minutes: 15 | 30 | 60;
+  max_guests_per_slot: number;
+  max_party: number;
+  days_ahead: number;
+  min_notice_minutes: number;
+}
+export const DEFAULT_ONLINE_SETTINGS: OnlineReservationSettings = {
+  online_enabled: false, online_hours: {}, slot_minutes: 15, max_guests_per_slot: 20, max_party: 8, days_ahead: 30, min_notice_minutes: 120,
+};
+
+/** Geldig uurbereik "HH:MM"–"HH:MM" (van ≤ tot). */
+export function validRange(r: [string, string]): boolean {
+  return /^\d{2}:\d{2}$/.test(r[0]) && /^\d{2}:\d{2}$/.test(r[1]) && r[0] <= r[1];
+}
+
+/** Openstaande online aanvragen (wachten op bevestiging). */
+export function pendingRequests(list: Reservation[]): Reservation[] {
+  return list.filter((r) => r.status === 'requested');
+}
 
 const MIN = 60_000;
 const startMs = (r: Pick<Reservation, 'starts_at'>) => new Date(r.starts_at).getTime();
@@ -59,7 +87,8 @@ export function sameLocalDay(iso: string, day: Date): boolean {
 
 /** Lijst voor één dag: geboekt en aangekomen, op uur; geannuleerd en niet gekomen achteraan. */
 export function reservationsForDay(list: Reservation[], day: Date): Reservation[] {
-  const order = (r: Reservation) => (r.status === 'booked' || r.status === 'seated' ? 0 : 1);
+  // Aanvragen eerst (die wachten op een antwoord), dan geboekt/aangekomen, de rest achteraan.
+  const order = (r: Reservation) => (r.status === 'requested' ? 0 : r.status === 'booked' || r.status === 'seated' ? 1 : 2);
   return list.filter((r) => sameLocalDay(r.starts_at, day)).sort((a, b) => order(a) - order(b) || startMs(a) - startMs(b));
 }
 
@@ -78,7 +107,7 @@ export function timeLabel(iso: string, lng: string): string {
 }
 
 // ── Lezen en schrijven (RLS: zaakvoerder en personeel) ────────────────────────────────────────
-const COLS = 'id, table_id, name, guests, phone, note, starts_at, duration_min, status';
+const COLS = 'id, table_id, name, guests, phone, email, note, starts_at, duration_min, status, source';
 const table = () => supabase.from('table_reservations' as never);
 
 export async function fetchReservations(tenantId: string, fromIso: string, toIso: string): Promise<Reservation[]> {
@@ -89,11 +118,38 @@ export async function fetchReservations(tenantId: string, fromIso: string, toIso
   return (data ?? []) as unknown as Reservation[];
 }
 
+/** RESERVATIE-2: alle openstaande online aanvragen vanaf vandaag (ook verder dan de geladen dagen). */
+export async function fetchPendingRequests(tenantId: string, fromIso: string): Promise<Reservation[]> {
+  const { data, error } = await table().select(COLS)
+    .eq('tenant_id' as never, tenantId as never).eq('status' as never, 'requested' as never).gte('starts_at' as never, fromIso as never)
+    .order('starts_at' as never, { ascending: true }).limit(200);
+  if (error) throw error;
+  return (data ?? []) as unknown as Reservation[];
+}
+
 export async function fetchReservationSettings(tenantId: string): Promise<ReservationSettings> {
   const { data, error } = await supabase.from('reservation_settings' as never).select('lead_minutes, late_minutes')
     .eq('tenant_id' as never, tenantId as never).maybeSingle();
   if (error) throw error;
   return (data as ReservationSettings | null) ?? DEFAULT_RESERVATION_SETTINGS;
+}
+
+export async function fetchOnlineSettings(tenantId: string): Promise<OnlineReservationSettings> {
+  const { data, error } = await supabase.from('reservation_settings' as never)
+    .select('online_enabled, online_hours, slot_minutes, max_guests_per_slot, max_party, days_ahead, min_notice_minutes')
+    .eq('tenant_id' as never, tenantId as never).maybeSingle();
+  if (error) throw error;
+  return { ...DEFAULT_ONLINE_SETTINGS, ...((data as Partial<OnlineReservationSettings> | null) ?? {}) };
+}
+
+export async function saveOnlineSettings(tenantId: string, s: OnlineReservationSettings): Promise<void> {
+  const hours: Record<string, [string, string][]> = {};
+  for (const [d, ranges] of Object.entries(s.online_hours)) {
+    const ok = ranges.filter(validRange);
+    if (ok.length) hours[d] = ok;
+  }
+  const { error } = await supabase.from('reservation_settings' as never).upsert({ tenant_id: tenantId, ...s, online_hours: hours } as never);
+  if (error) throw error;
 }
 
 export async function saveReservationSettings(tenantId: string, s: ReservationSettings): Promise<void> {

@@ -12,8 +12,9 @@ import { useTenant } from '@/hooks/useTenant';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { ReservationDialog } from '@/components/horeca/ReservationDialog';
 import { ReservationList } from '@/components/horeca/ReservationList';
+import { OnlineReservationsCard } from './OnlineReservationsCard';
 import {
-  createReservation, fetchReservationSettings, fetchReservations, reservationsForDay, saveReservationSettings, updateReservation,
+  createReservation, fetchPendingRequests, fetchReservationSettings, fetchReservations, reservationsForDay, saveReservationSettings, updateReservation,
   type Reservation, type ReservationSettings, type ReservationStatus,
 } from '@/lib/horeca/reservations';
 
@@ -37,6 +38,12 @@ export function ReservationsManager() {
     queryKey: listKey,
     enabled: !!tenantId,
     queryFn: () => fetchReservations(tenantId!, day.toISOString(), addDays(day, 1).toISOString()),
+  });
+  // RESERVATIE-2: online aanvragen die op een antwoord wachten (alle dagen).
+  const { data: pending } = useQuery({
+    queryKey: ['reservations', tenantId, 'pending'],
+    enabled: !!tenantId,
+    queryFn: () => { const d = new Date(); d.setHours(0, 0, 0, 0); return fetchPendingRequests(tenantId!, d.toISOString()); },
   });
   const settingsKey = ['reservation-settings', tenantId];
   const { data: settings } = useQuery({ queryKey: settingsKey, enabled: !!tenantId, queryFn: () => fetchReservationSettings(tenantId!) });
@@ -62,6 +69,20 @@ export function ReservationsManager() {
 
   return (
     <div className="space-y-6">
+      {pending && pending.length > 0 && (
+        <Card className="border-amber-500">
+          <CardHeader>
+            <CardTitle>{t('reservations.pendingTitle', { count: pending.length })}</CardTitle>
+            <CardDescription>{t('reservations.pendingIntro')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ReservationList list={pending} settings={s} tableLabel={(id) => (id ? labels.get(id) ?? null : null)} now={Date.now()} showDate emptyText=""
+              onSeat={(r) => setStatus.mutate({ id: r.id, status: 'seated' })}
+              onEdit={(r) => setEdit({ reservation: r })}
+              onStatus={(r, status) => setStatus.mutate({ id: r.id, status })} />
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>{t('reservations.title')}</CardTitle>
@@ -76,7 +97,7 @@ export function ReservationsManager() {
             <Button className="w-full sm:ml-auto sm:w-auto" onClick={() => setEdit({ reservation: null })}><Plus className="mr-1 h-4 w-4" />{t('reservations.new')}</Button>
           </div>
           {isLoading ? <Loader2 className="mx-auto h-5 w-5 animate-spin" aria-label={t('common.loading')} /> : (
-            <ReservationList list={reservationsForDay(list ?? [], day)} settings={s} tableLabel={(id) => (id ? labels.get(id) ?? null : null)} now={Date.now()}
+            <ReservationList list={reservationsForDay(list ?? [], day).filter((r) => r.status !== 'requested')} settings={s} tableLabel={(id) => (id ? labels.get(id) ?? null : null)} now={Date.now()}
               emptyText={t('reservations.emptyDay')}
               onSeat={(r) => setStatus.mutate({ id: r.id, status: 'seated' })}
               onEdit={(r) => setEdit({ reservation: r })}
@@ -108,6 +129,8 @@ export function ReservationsManager() {
           <p className="text-xs text-muted-foreground sm:col-span-2">{t('reservations.privacyNote')}</p>
         </CardContent>
       </Card>
+
+      <OnlineReservationsCard />
 
       {edit && (
         <ReservationDialog initial={edit.reservation} tables={tables} defaultDate={day} onClose={() => setEdit(null)}

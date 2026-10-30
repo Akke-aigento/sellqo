@@ -13,7 +13,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { Check, CheckLine, Snapshot } from './types';
 import type { TableRequest } from './requests';
-import { DEFAULT_RESERVATION_SETTINGS, fetchReservationSettings, fetchReservations, type Reservation, type ReservationSettings } from '@/lib/horeca/reservations';
+import { DEFAULT_RESERVATION_SETTINGS, fetchPendingRequests, fetchReservationSettings, fetchReservations, type Reservation, type ReservationSettings } from '@/lib/horeca/reservations';
 
 export type CommandKind =
   | 'open_check' | 'add_line' | 'change_qty' | 'set_note' | 'void_line' | 'discount_line'
@@ -69,8 +69,14 @@ export const supabaseTransport: Transport = {
   async reservations(tenantId) {
     const from = new Date(); from.setHours(0, 0, 0, 0);
     const to = new Date(from); to.setDate(to.getDate() + 3);
-    const [list, settings] = await Promise.all([fetchReservations(tenantId, from.toISOString(), to.toISOString()), fetchReservationSettings(tenantId)]);
-    return { list, settings };
+    const [list, pending, settings] = await Promise.all([
+      fetchReservations(tenantId, from.toISOString(), to.toISOString()),
+      fetchPendingRequests(tenantId, from.toISOString()),
+      fetchReservationSettings(tenantId),
+    ]);
+    // RESERVATIE-2: aanvragen verder dan drie dagen erbij (voor de lijst "Aanvragen").
+    const ids = new Set(list.map((r) => r.id));
+    return { list: [...list, ...pending.filter((r) => !ids.has(r.id))], settings };
   },
 };
 

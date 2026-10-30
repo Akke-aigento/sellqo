@@ -2347,6 +2347,10 @@
         "regulars_1": {
           "title": "Vos habitués ont leur propre place sur le plan de salle",
           "description": "Dans l’éditeur du plan de salle, Ajouter une table propose désormais aussi Habitué : une place au nom de votre habitué, p. ex. « Jef » ou « Bompa Ré ». Sur SellQo Kassa, un appui ouvre son addition, toujours au même endroit. Les noms peuvent compter jusqu’à 20 caractères, accents et apostrophe compris. Sur le ticket de caisse, son addition figure comme addition à un nom."
+        },
+        "reservations_online": {
+          "title": "Réservation en ligne : vos clients demandent eux-mêmes une table",
+          "description": "Sous Commandes › Réservations, activez la réservation en ligne et choisissez vos heures par jour, le nombre maximum de personnes par heure d’arrivée, le plus grand groupe et jusqu’à quand à l’avance. Votre boutique en ligne reçoit un bouton Reserveren. Une demande apparaît en orange dans votre gestion et sur la caisse ; vous confirmez ou refusez, et le client reçoit aussitôt un e-mail. La table ne devient violette qu’après confirmation. Désactivé par défaut."
         }
       },
       "copyLink": "Copier le lien",

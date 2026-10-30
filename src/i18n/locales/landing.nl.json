@@ -2347,6 +2347,10 @@
         "regulars_1": {
           "title": "Vaste klanten krijgen een eigen plek op je zaalplan",
           "description": "In de zaalplan-editor kies je bij Tafel toevoegen nu ook Vaste klant: een plek met de naam van je vaste klant, bv. \"Jef\" of \"Bompa Ré\". Op SellQo Kassa opent een tik zijn rekening, elke keer op dezelfde plek. Namen mogen nu tot 20 tekens tellen, ook met accenten en een apostrof. Op het kasticket staat zijn rekening als rekening op naam."
+        },
+        "reservations_online": {
+          "title": "Online reserveren: gasten vragen zelf een tafel aan",
+          "description": "Zet onder Bestellen › Reservaties online reserveren aan en kies je uren per weekdag, het maximum aantal personen per aankomstuur, het grootste gezelschap en hoe ver vooruit. Je webshop krijgt een knop Reserveren. Een aanvraag staat oranje in je beheer en op de kassa; jij bevestigt of weigert, en de gast krijgt daarover meteen een mail. Pas na bevestigen kleurt de tafel. Standaard staat het uit."
         }
       },
       "copyLink": "Kopieer link",

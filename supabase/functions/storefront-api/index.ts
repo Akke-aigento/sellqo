@@ -260,11 +260,13 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
   }
   if (!domain) throw new Error('Domain not found');
 
-  const [{ data: tenant }, { data: themeSettings }, { data: allDomains }, { data: fsQr }] = await Promise.all([
+  const [{ data: tenant }, { data: themeSettings }, { data: allDomains }, { data: fsQr }, { data: resv }] = await Promise.all([
     supabase.from('tenants').select('id, slug, name').eq('id', domain.tenant_id).single(), // RESOLVE-FIX-1
     supabase.from('tenant_theme_settings').select('use_custom_frontend, custom_frontend_url, shop_live, shop_ordering').eq('tenant_id', domain.tenant_id).maybeSingle(),
     supabase.from('tenant_domains').select('domain, locale, is_canonical').eq('tenant_id', domain.tenant_id).eq('is_active', true).eq('dns_verified', true), // SEC-DOMAIN-2
     supabase.from('fulfillment_settings').select('qr_mode, qr_flow').eq('tenant_id', domain.tenant_id).maybeSingle(),
+    // RESERVATIE-2 — additief: staat online reserveren aan?
+    supabase.from('reservation_settings').select('online_enabled').eq('tenant_id', domain.tenant_id).maybeSingle(),
   ]);
 
   if (!tenant) throw new Error('Tenant not found for domain');
@@ -279,6 +281,8 @@ async function resolveDomain(supabase: any, params: Record<string, unknown>) {
     qr_mode: fsQr?.qr_mode || 'view',
     // QR-REKENING-1 — additief: 'check' = bestellen aan tafel komt op de tafelrekening (tafelaanvraag).
     qr_flow: fsQr?.qr_flow === 'check' ? 'check' : 'order',
+    // RESERVATIE-2 — additief: online reserveren (de pagina /reserveren in de standaardshop).
+    reservations_online: resv?.online_enabled === true,
     all_domains: (allDomains || []).map((d: any) => ({ domain: d.domain, locale: d.locale, is_canonical: d.is_canonical })),
   };
 }
@@ -999,6 +1003,43 @@ async function tableRequestPlace(supabase: SupabaseLike, tenantId: string, param
     if (code === 'SOLD_OUT') return { success: false, error: { code, message: `${product} is op voor vandaag` } };
     if (code === 'NOT_AVAILABLE' || code === 'NOT_AVAILABLE_AT_TABLE') return { success: false, error: { code, message: `${product} kan je nu niet aan tafel bestellen` } };
     if (TABLE_REQUEST_ERRORS[code]) return { success: false, error: { code, message: TABLE_REQUEST_ERRORS[code] } };
+    throw error;
+  }
+  return data;
+}
+
+// RESERVATIE-2 — online reserveren (nieuwe acties, additief). De gast vraagt aan; het personeel
+// bevestigt in SellQo Kassa of het beheer. Alle regels (uren, maximum, termijn, rem) zitten in de
+// databank (reservation_slots / reservation_request_place), zodat geen frontend ze kan omzeilen.
+const RESERVATION_ERRORS: Record<string, string> = {
+  RESERVATION_CLOSED: 'Online reserveren staat uit in deze zaak',
+  RESERVATION_INVALID: 'Controleer je naam, e-mailadres, dag en uur',
+  RESERVATION_PARTY: 'Voor zo’n groot gezelschap neem je best rechtstreeks contact op met de zaak',
+  RESERVATION_SLOT: 'Dat uur is niet (meer) beschikbaar. Kies een ander uur.',
+  RESERVATION_FULL: 'Op dat uur is er niet genoeg plaats meer. Kies een ander uur.',
+  TOO_MANY_REQUESTS: 'Even geduld: er komen veel aanvragen tegelijk binnen. Probeer het zo meteen opnieuw.',
+};
+async function getReservationSlots(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const date = String(params.date ?? '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { enabled: false, slots: [] };
+  const { data, error } = await supabase.rpc('reservation_slots', { p_tenant_id: tenantId, p_date: date });
+  if (error) throw error;
+  return data ?? { enabled: false, slots: [] };
+}
+async function reservationRequest(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  // Lokveld: mensen zien het niet, spambots vullen het in. Stil "gelukt" zonder iets te bewaren.
+  if (typeof params.website === 'string' && params.website.trim()) return { id: null, status: 'requested' };
+  const str = (v: unknown, n: number) => (typeof v === 'string' ? v.trim().slice(0, n) : '');
+  const { data, error } = await supabase.rpc('reservation_request_place', {
+    p_tenant_id: tenantId,
+    p_req: {
+      request_id: str(params.request_id, 36), name: str(params.name, 60), email: str(params.email, 200), phone: str(params.phone, 30),
+      note: str(params.note, 200), guests: Number(params.guests), date: str(params.date, 10), time: str(params.time, 5),
+    },
+  });
+  if (error) {
+    const code = String(error.message || '').split(':')[0];
+    if (RESERVATION_ERRORS[code]) return { success: false, error: { code, message: RESERVATION_ERRORS[code] } };
     throw error;
   }
   return data;
@@ -6013,12 +6054,14 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
   'table_request_place',
   // REKENING-ONLINE-1: online een rekening betalen.
   'table_check_pay',
+  // RESERVATIE-2: een dichte winkel neemt ook geen reservaties aan.
+  'reservation_request',
 ]);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'REKENING-ONLINE-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'RESERVATIE-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -6046,7 +6089,7 @@ serve(async (req) => {
 
     // UNIFIED-MAIL-1: de contact-aliassen delen de bucket van submit_contact_form,
     // zodat een alias geen manier is om de limiet te omzeilen.
-    if (action === 'newsletter_subscribe' || action === 'submit_contact_form' || isContactFormAlias(action)) {
+    if (action === 'newsletter_subscribe' || action === 'submit_contact_form' || action === 'reservation_request' || isContactFormAlias(action)) {
       const rlAction = isContactFormAlias(action) ? 'submit_contact_form' : action;
       const rlKey = `${rlAction}:${tenant_id}:${clientIp}`;
       if (!checkIpActionRateLimit(rlKey, 5, 10 * 60 * 1000)) {
@@ -6140,6 +6183,9 @@ serve(async (req) => {
       case 'resolve_table': result = await resolveTable(supabase, tenant_id, params); break;
       case 'table_request_place': result = await tableRequestPlace(supabase, tenant_id, params); break;
       case 'table_request_status': result = await tableRequestStatus(supabase, tenant_id, params); break;
+      // RESERVATIE-2 — online reserveren.
+      case 'get_reservation_slots': result = await getReservationSlots(supabase, tenant_id, params); break;
+      case 'reservation_request': result = await reservationRequest(supabase, tenant_id, params); break;
       // REKENING-ONLINE-1
       case 'table_check_get': result = await tableCheckGet(supabase, tenant_id, params); break;
       case 'table_check_pay': result = await tableCheckPay(supabase, tenant_id, params); break;

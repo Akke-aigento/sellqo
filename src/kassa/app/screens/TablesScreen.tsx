@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CalendarClock, LayoutGrid, List, Plus, ShoppingBag, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { reservationsByTable, reservationsForDay, timeLabel } from '@/lib/horeca/reservations';
+import { pendingRequests, reservationsByTable, reservationsForDay, timeLabel } from '@/lib/horeca/reservations';
 import { setReservationStatus } from '../horeca/reservationActions';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLongPress } from '../useLongPress';
@@ -91,6 +91,8 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, on
     badges[tableId] = [`${timeLabel(r.starts_at, i18n.language)} · ${r.name} (${r.guests})`, late ? t('reservations.late') : null].filter(Boolean).join(' · ');
   }
   const todayCount = reservationsForDay(store.reservations, new Date(now)).filter((r) => r.status === 'booked').length;
+  // RESERVATIE-2: online aanvragen die op een antwoord wachten (alle dagen).
+  const pendingCount = pendingRequests(store.reservations).length;
   // QR-REKENING-1: een tafel met een openstaande QR-bestelling springt eruit.
   const qrPending = new Map<string, number>();
   for (const r of store.requests) if (r.dining_table_id) qrPending.set(r.dining_table_id, (qrPending.get(r.dining_table_id) ?? 0) + 1);
@@ -150,10 +152,11 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, on
           <Plus className="h-4 w-4" /> {t('kassa.tables.onName')}
         </button>
         {onReservations && (
-          <button type="button" onClick={onReservations} aria-label={t('reservations.todayAria', { count: todayCount })}
-            className={cn('ml-auto flex h-12 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold', todayCount > 0 && 'border-violet-500 text-violet-900 dark:text-violet-100')}>
+          <button type="button" onClick={onReservations} aria-label={pendingCount ? `${t('reservations.todayAria', { count: todayCount })}, ${t('reservations.pendingAria', { count: pendingCount })}` : t('reservations.todayAria', { count: todayCount })}
+            className={cn('ml-auto flex h-12 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold', pendingCount > 0 ? 'border-amber-500 text-amber-900 dark:text-amber-100' : todayCount > 0 && 'border-violet-500 text-violet-900 dark:text-violet-100')}>
             <CalendarClock className="h-5 w-5" aria-hidden /><span className="hidden md:inline">{t('reservations.title')}</span>
             {todayCount > 0 && <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-violet-600 px-1.5 text-xs font-bold text-white">{todayCount}</span>}
+            {pendingCount > 0 && <span title={t('reservations.pendingAria', { count: pendingCount })} className="flex h-6 min-w-6 items-center justify-center rounded-full bg-amber-500 px-1.5 text-xs font-bold text-white">{pendingCount}</span>}
           </button>
         )}
         {plan && plan.tables.length > 0 && (

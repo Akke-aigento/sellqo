@@ -2347,6 +2347,10 @@
         "regulars_1": {
           "title": "Stammgäste bekommen einen eigenen Platz in deinem Raumplan",
           "description": "Im Raumplan-Editor bietet Tisch hinzufügen jetzt auch Stammgast: ein Platz mit dem Namen deines Stammgasts, z. B. „Jef“ oder „Bompa Ré“. In SellQo Kassa öffnet ein Tippen seine Rechnung, immer am selben Platz. Namen dürfen jetzt bis zu 20 Zeichen lang sein, auch mit Akzenten und Apostroph. Auf dem Kassenbon erscheint seine Rechnung als Rechnung auf einen Namen."
+        },
+        "reservations_online": {
+          "title": "Online reservieren: Gäste fragen selbst einen Tisch an",
+          "description": "Schalte unter Bestellen › Reservierungen das Online-Reservieren ein und wähle deine Zeiten pro Wochentag, die maximale Personenzahl pro Ankunftszeit, die größte Gruppe und wie weit im Voraus. Dein Webshop bekommt eine Schaltfläche Reserveren. Eine Anfrage erscheint orange in der Verwaltung und in der Kasse; du bestätigst oder lehnst ab, und der Gast bekommt sofort eine E-Mail. Erst nach der Bestätigung wird der Tisch lila. Standardmäßig aus."
         }
       },
       "copyLink": "Link kopieren",
