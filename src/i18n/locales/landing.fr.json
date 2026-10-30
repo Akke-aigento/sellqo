@@ -2331,6 +2331,10 @@
         "menu_per_track": {
           "title": "Votre menu ne montre que ce qui correspond à votre commerce",
           "description": "Un établissement horeca voit Caisse, Salle, Carte, Commandes et Cuisine, sans les éléments boutique en ligne, marketing ou événements. Les Paramètres n’affichent que les éléments de votre commerce. Une boutique en ligne ou un commerce d’événements voit la même barre latérale qu’avant."
+        },
+        "menu_per_track_2": {
+          "title": "Un menu encore plus court pour l’horeca et les événements",
+          "description": "L’horeca voit désormais dix éléments dans la barre latérale : Aujourd’hui, Commandes, Caisse, Salle, Carte, Paiements, Rapports, Abonnement, Paramètres et Aide. Un commerce d’événements ne voit plus les clients, le marketing, le SEO, les traductions ni les intégrations dans la barre latérale. Rien n’a disparu : ce qui a quitté la barre latérale s’ouvre via Paramètres › Autres outils. Une boutique en ligne voit la même barre latérale qu’avant."
         }
       },
       "copyLink": "Copier le lien",

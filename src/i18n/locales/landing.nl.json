@@ -2331,6 +2331,10 @@
         "menu_per_track": {
           "title": "Je menu toont alleen wat bij jouw zaak hoort",
           "description": "Een horecazaak ziet Kassa, Zaal, Kaart, Bestellingen en Keuken, zonder webshop-, marketing- of eventonderdelen. Instellingen toont enkel de onderdelen die bij je zaak horen. Een webshop of eventzaak ziet dezelfde zijbalk als voorheen."
+        },
+        "menu_per_track_2": {
+          "title": "Een nog korter menu voor horeca en events",
+          "description": "Horeca ziet in de zijbalk nog tien onderdelen: Vandaag, Bestellingen, Kassa, Zaal, Kaart, Betalingen, Rapporten, Abonnement, Instellingen en Help. Een eventzaak ziet geen klanten-, marketing-, SEO-, vertaal- of koppelingsonderdelen meer in de zijbalk. Niets is weg: wat uit de zijbalk ging, open je via Instellingen › Meer onderdelen. Een webshop ziet dezelfde zijbalk als voorheen."
         }
       },
       "copyLink": "Kopieer link",

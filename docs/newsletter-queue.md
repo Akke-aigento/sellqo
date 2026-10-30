@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14l — Een nog korter menu voor horeca en events (improvement, 30-10-2026)
+
+**Status:** wacht op push en publish (TRACKS-3).
+
+**Voor wie:** horeca- en eventzaken.
+
+**Tien knoppen, niet meer** (oktober 2026)
+Een horecazaak ziet in de zijbalk nog Vandaag, Bestellingen, Kassa, Zaal, Kaart, Betalingen, Rapporten, Abonnement, Instellingen en Help. Wat uit de zijbalk ging, staat nog altijd klaar onder Instellingen › Meer onderdelen.
+Wat betekent dit voor jou? Een rustig menu, en niets kwijt.
+
+i18n: `public.changelog.changes.menu_per_track_2`
+
 ### 2026.14k — Je menu toont alleen wat bij jouw zaak hoort (improvement, 30-10-2026)
 
 **Status:** wacht op push en publish (TRACKS-2).

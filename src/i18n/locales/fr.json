@@ -325,6 +325,10 @@
       "horeca": {
         "title": "Horeca",
         "description": "Carte, QR, salle, postes, caisse et imprimantes"
+      },
+      "more": {
+        "title": "Autres outils",
+        "description": "Ce que votre commerce peut utiliser mais qui n’est pas dans votre menu"
       }
     },
     "sections": {
@@ -355,7 +359,8 @@
       "platform_tools": "Outils de la plateforme",
       "modules": "Modules",
       "horeca": "Réglages horeca",
-      "bottom_nav": "Ma barre du bas"
+      "bottom_nav": "Ma barre du bas",
+      "more_tools": "Autres outils"
     },
     "business": {
       "subtitle": "Gérez les informations de votre boutique et de votre entreprise",
@@ -1700,6 +1705,11 @@
       "full": "La barre est pleine ({{max}}). Retirez-en d'abord un.",
       "save_failed": "Non enregistré : {{reason}}",
       "link": "Personnaliser la barre du bas sur votre téléphone"
+    },
+    "moreTools": {
+      "title": "Autres outils",
+      "intro": "Vous pouvez utiliser ces outils, mais ils ne sont pas dans votre menu pour le garder court.",
+      "none": "Tout ce que votre commerce utilise est déjà dans votre menu."
     }
   },
   "languages": {

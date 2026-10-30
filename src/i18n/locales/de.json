@@ -325,6 +325,10 @@
       "horeca": {
         "title": "Gastronomie",
         "description": "Karte, QR, Saal, Stationen, Kasse und Drucker"
+      },
+      "more": {
+        "title": "Weitere Bereiche",
+        "description": "Was dein Betrieb nutzen kann, aber nicht im Menü steht"
       }
     },
     "sections": {
@@ -355,7 +359,8 @@
       "platform_tools": "Plattform-Tools",
       "modules": "Module",
       "horeca": "Gastronomie-Einstellungen",
-      "bottom_nav": "Meine untere Leiste"
+      "bottom_nav": "Meine untere Leiste",
+      "more_tools": "Weitere Bereiche"
     },
     "business": {
       "subtitle": "Verwalten Sie Ihre Shop- und Unternehmensdaten",
@@ -1700,6 +1705,11 @@
       "full": "Die Leiste ist voll ({{max}}). Entferne zuerst eine.",
       "save_failed": "Nicht gespeichert: {{reason}}",
       "link": "Untere Leiste auf dem Handy anpassen"
+    },
+    "moreTools": {
+      "title": "Weitere Bereiche",
+      "intro": "Diese Bereiche kannst du nutzen, sie stehen aber nicht im Menü, damit es kurz bleibt.",
+      "none": "Alles, was dein Betrieb nutzt, steht schon im Menü."
     }
   },
   "languages": {

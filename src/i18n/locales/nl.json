@@ -297,6 +297,10 @@
       "horeca": {
         "title": "Horeca",
         "description": "Kaart, QR, zaal, posten, kassa en printers"
+      },
+      "more": {
+        "title": "Meer onderdelen",
+        "description": "Wat je zaak kan gebruiken maar niet in je menu staat"
       }
     },
     "sections": {
@@ -327,7 +331,8 @@
       "platform_tools": "Platform Tools",
       "modules": "Modules",
       "horeca": "Horeca-instellingen",
-      "bottom_nav": "Mijn onderbalk"
+      "bottom_nav": "Mijn onderbalk",
+      "more_tools": "Meer onderdelen"
     },
     "business": {
       "subtitle": "Beheer je winkel- en bedrijfsinformatie",
@@ -1672,6 +1677,11 @@
       "full": "De balk is vol ({{max}}). Haal er eerst een weg.",
       "save_failed": "Niet opgeslagen: {{reason}}",
       "link": "Onderbalk op je gsm aanpassen"
+    },
+    "moreTools": {
+      "title": "Meer onderdelen",
+      "intro": "Deze onderdelen kan je gebruiken, maar ze staan niet in je menu om het kort te houden.",
+      "none": "Alles wat je zaak gebruikt, staat al in je menu."
     }
   },
   "languages": {

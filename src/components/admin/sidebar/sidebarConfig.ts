@@ -73,6 +73,11 @@ export interface NavItem {
    */
   tracks?: Track[];
   /**
+   * TRACKS-3 — in welke sporen het item in de zijbalk staat. Leeg/afwezig = zoals `tracks`.
+   * Staat het er niet, dan blijft de pagina bereikbaar (toegang = `tracks`) via Instellingen › Meer onderdelen.
+   */
+  sidebarTracks?: Track[];
+  /**
    * TRACKS-1 — bewaak alleen de lijstpagina zelf, niet de subroutes. Voor
    * Producten: eventwinkels bewerken combitickets en munten via /admin/products/:id/edit.
    */
@@ -131,7 +136,7 @@ const dailyItems: NavItem[] = [
       { id: 'orders-all', titleKey: 'navigation.items.orders_all', url: '/admin/orders', requireRead: 'orders', landing: true },
       { id: 'orders-fulfillment', tracks: ['webshop'], titleKey: 'navigation.items.orders_fulfillment', url: '/admin/fulfillment', excludeRoles: ['marketing'], requireRead: 'orders' },
       { id: 'orders-returns', tracks: ['webshop'], titleKey: 'navigation.items.orders_returns', url: '/admin/returns', excludeRoles: ['warehouse', 'marketing'], requireRead: 'returns' },
-      { id: 'orders-invoices', titleKey: 'navigation.items.orders_invoices', url: '/admin/orders/invoices', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
+      { id: 'orders-invoices', sidebarTracks: ['webshop', 'events'], titleKey: 'navigation.items.orders_invoices', url: '/admin/orders/invoices', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
       { id: 'orders-quotes', tracks: ['webshop'], titleKey: 'navigation.items.orders_quotes', url: '/admin/orders/quotes', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
       { id: 'orders-subscriptions', tracks: ['webshop'], titleKey: 'navigation.items.orders_subscriptions', url: '/admin/orders/subscriptions', excludeRoles: ['warehouse', 'marketing'], requireRead: 'invoices' },
     ],
@@ -153,6 +158,7 @@ const dailyItems: NavItem[] = [
   },
   {
     id: 'customers',
+    sidebarTracks: ['webshop'],
     // WERKPLEK-1: horeca-only winkels hebben geen klantenbestand nodig (gasten bestellen anoniem).
     tracks: ['webshop', 'events'],
     titleKey: 'navigation.customers',
@@ -174,7 +180,7 @@ const salesItems: NavItem[] = [
   { id: 'ordering', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_floor', url: '/admin/bestellen?tab=zaal', icon: UtensilsCrossed, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'orders' },
   // TRACKS-2: horeca beheert de kaart op de tab Kaart van de bestelpagina (zie WERKPLEK-1 hierboven).
   { id: 'horeca-menu', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_menu', url: '/admin/bestellen?tab=menu', icon: BookOpen, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'products' },
-  { id: 'kitchen', tracks: ['horeca'], titleKey: 'navigation.items.kitchen', url: '/admin/keuken', icon: ChefHat, excludeRoles: ['marketing', 'accountant'], requireRead: 'orders' },
+  { id: 'kitchen', tracks: ['horeca'], sidebarTracks: [], titleKey: 'navigation.items.kitchen', url: '/admin/keuken', icon: ChefHat, excludeRoles: ['marketing', 'accountant'], requireRead: 'orders' },
   {
     id: 'event-dashboard',
     tracks: ['events'],
@@ -223,11 +229,11 @@ const marketingItems: NavItem[] = [
   // en E-mail ("Maak met AI"); de AI Content Hub-route stuurt door (AIHubRedirect).
   // SOCIAL-GATE-1: enkel voor ontgrendelde winkels (granted_features 'social_planner', slotje in
   // beheerweergave). Geen plan bevat deze key; zie useSocialAccess.
-  { id: 'social-planner', tracks: ['webshop', 'events'], titleKey: 'navigation.items.social', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing', featureKey: 'social_planner' },
+  { id: 'social-planner', tracks: ['webshop', 'events'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.social', url: '/admin/marketing/social', icon: CalendarCheck, requireRead: 'marketing', featureKey: 'social_planner' },
   { id: 'campaigns', tracks: ['webshop', 'events'], titleKey: 'navigation.items.email', url: '/admin/marketing', icon: Mail, requireRead: 'marketing' },
   // MAIL-UX-1: Automatiseringen (MAIL-2a) is een tabblad van E-mail (?tab=automations), geen eigen item meer.
-  { id: 'media', tracks: ['webshop', 'events'], titleKey: 'navigation.items.media', url: '/admin/marketing/media', icon: Images, requireRead: 'marketing' },
-  { id: 'seo', tracks: ['webshop', 'events'], titleKey: 'navigation.items.seo', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },
+  { id: 'media', tracks: ['webshop', 'events'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.media', url: '/admin/marketing/media', icon: Images, requireRead: 'marketing' },
+  { id: 'seo', tracks: ['webshop', 'events'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.seo', url: '/admin/marketing/seo', icon: Search, featureKey: 'ai_seo', requireRead: 'seo' },
   // MARKETING-2: Ads verhuisd uit Verkoop naar Marketing.
   {
     id: 'ads',
@@ -249,10 +255,10 @@ const marketingItems: NavItem[] = [
 
 // BEHEER - Administratieve functies
 const managementItems: NavItem[] = [
-  { id: 'translations', tracks: ['webshop', 'events'], titleKey: 'navigation.items.translations', url: '/admin/marketing/translations', icon: Languages, requireRead: 'cms' },
+  { id: 'translations', tracks: ['webshop', 'events'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.translations', url: '/admin/marketing/translations', icon: Languages, requireRead: 'cms' },
   // SIDEBAR-CLEAN-1: één item; Documenten zit als knop op de Leveranciers-pagina.
   // Id 'purchasing' blijft (tenant_feature_overrides.hidden_pages verwijst ernaar).
-  { id: 'purchasing', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers', activeAlso: ['/admin/supplier-documents'] },
+  { id: 'purchasing', tracks: ['webshop', 'horeca'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers', activeAlso: ['/admin/supplier-documents'] },
   {
     id: 'reports',
     titleKey: 'navigation.items.reports',
@@ -263,8 +269,8 @@ const managementItems: NavItem[] = [
     requireRead: 'products',
     children: [
       { id: 'reports-overview', titleKey: 'navigation.items.reports_overview', url: '/admin/reports', requireRead: 'reports_financial', landing: true },
-      { id: 'reports-analytics', tracks: ['webshop', 'events'], titleKey: 'navigation.analytics', url: '/admin/analytics', requireRead: 'reports_analytics' },
-      { id: 'reports-stock', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.reports_stock', url: '/admin/reports/stock', requireRead: 'products' },
+      { id: 'reports-analytics', tracks: ['webshop', 'events'], sidebarTracks: ['webshop'], titleKey: 'navigation.analytics', url: '/admin/analytics', requireRead: 'reports_analytics' },
+      { id: 'reports-stock', tracks: ['webshop', 'horeca'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.reports_stock', url: '/admin/reports/stock', requireRead: 'products' },
     ],
   },
   { id: 'shipping', tracks: ['webshop'], titleKey: 'navigation.shipping', url: '/admin/shipping', icon: Truck, excludeRoles: ['marketing'] },
@@ -274,7 +280,7 @@ const managementItems: NavItem[] = [
 const systemItems: NavItem[] = [
   // SIDEBAR-CLEAN-1: Notificaties weg — de bel in de header linkt al naar /admin/notifications.
   // SIDEBAR-CLEAN-1: één item (het kind herhaalde dezelfde URL); Importeren zit als knop op de Connect-pagina.
-  { id: 'integrations', tracks: ['webshop', 'events'], titleKey: 'navigation.items.integrations', url: '/admin/connect', icon: Cable, featureKey: 'apiAccess', excludeRoles: ['marketing'], requireRead: 'integrations' },
+  { id: 'integrations', tracks: ['webshop', 'events'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.integrations', url: '/admin/connect', icon: Cable, featureKey: 'apiAccess', excludeRoles: ['marketing'], requireRead: 'integrations' },
   { id: 'billing', titleKey: 'navigation.items.billing', url: '/admin/billing', icon: Receipt, excludeRoles: ['marketing'], requireRead: 'platform_billing' },
   { id: 'settings', titleKey: 'navigation.settings', url: '/admin/settings', icon: Settings, excludeRoles: ['marketing'], requireRead: 'settings_general' },
   { id: 'help', titleKey: 'navigation.items.help', url: '/admin/help', icon: HelpCircle },
@@ -384,9 +390,32 @@ export function visibleNavIds(tracks: readonly Track[]): string[] {
   const out: string[] = [];
   for (const group of sidebarGroups) {
     for (const item of group.items) {
-      if (!tracksAllow(item.tracks, has)) continue;
+      if (!inSidebar(item, has)) continue;
       out.push(item.id);
-      for (const child of item.children ?? []) if (tracksAllow(child.tracks, has)) out.push(child.id);
+      for (const child of item.children ?? []) if (inSidebar(child, has)) out.push(child.id);
+    }
+  }
+  return out;
+}
+
+/** TRACKS-3 — staat dit item in de zijbalk van een zaak met deze sporen? (toegang én zijbalkspoor) */
+export function inSidebar(item: Pick<NavItem, 'tracks' | 'sidebarTracks'>, has: (t: Track) => boolean): boolean {
+  if (!tracksAllow(item.tracks, has)) return false;
+  if (!item.sidebarTracks) return true;
+  return item.sidebarTracks.some(has);
+}
+
+/**
+ * TRACKS-3 — onderdelen die deze zaak mag gebruiken maar niet in de zijbalk staan (Instellingen ›
+ * Meer onderdelen), zodat geen enkele pagina onvindbaar wordt.
+ */
+export function moreNavItems(has: (t: Track) => boolean): NavItem[] {
+  const out: NavItem[] = [];
+  for (const group of sidebarGroups) {
+    for (const item of group.items) {
+      if (!tracksAllow(item.tracks, has)) continue;
+      if (!inSidebar(item, has)) { out.push(item); continue; }
+      for (const child of item.children ?? []) if (tracksAllow(child.tracks, has) && !inSidebar(child, has)) out.push(child);
     }
   }
   return out;

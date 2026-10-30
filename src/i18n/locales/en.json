@@ -297,6 +297,10 @@
       "horeca": {
         "title": "Hospitality",
         "description": "Menu, QR, floor plan, stations, POS and printers"
+      },
+      "more": {
+        "title": "More tools",
+        "description": "What your business can use but is not in your menu"
       }
     },
     "sections": {
@@ -327,7 +331,8 @@
       "platform_tools": "Platform tools",
       "modules": "Modules",
       "horeca": "Hospitality settings",
-      "bottom_nav": "My bottom bar"
+      "bottom_nav": "My bottom bar",
+      "more_tools": "More tools"
     },
     "business": {
       "subtitle": "Manage your store and company information",
@@ -1672,6 +1677,11 @@
       "full": "The bar is full ({{max}}). Remove one first.",
       "save_failed": "Not saved: {{reason}}",
       "link": "Customise the bottom bar on your phone"
+    },
+    "moreTools": {
+      "title": "More tools",
+      "intro": "You can use these tools, but they are not in your menu to keep it short.",
+      "none": "Everything your business uses is already in your menu."
     }
   },
   "languages": {

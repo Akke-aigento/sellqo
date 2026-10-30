@@ -63,9 +63,10 @@ import { useCan, type Resource } from '@/hooks/useCan';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useEmailLogoAutoBackfill } from '@/hooks/useEmailLogoBackfill';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
-import { Wrench, Blocks, PanelBottom, UtensilsCrossed } from 'lucide-react';
+import { Wrench, Blocks, PanelBottom, UtensilsCrossed, LayoutGrid } from 'lucide-react';
 import { MyBottomNavSettings } from '@/components/admin/settings/MyBottomNavSettings';
 import { HorecaSettingsHub } from '@/components/admin/settings/HorecaSettingsHub';
+import { MoreToolsSettings } from '@/components/admin/settings/MoreToolsSettings';
 import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { tracksAllow, type Track } from '@/lib/tracks';
@@ -132,6 +133,15 @@ const settingsGroups: SettingsGroup[] = [
     descriptionKey: 'settings.groups.horeca.description',
     sections: [
       { id: 'horeca', tracks: ['horeca'], titleKey: 'settings.sections.horeca', icon: UtensilsCrossed, component: HorecaSettingsHub, requiredRead: 'settings_general' },
+    ],
+  },
+  {
+    // TRACKS-3 — wat niet in de korte zijbalk van horeca of events staat, staat hier.
+    id: 'more',
+    titleKey: 'settings.groups.more.title',
+    descriptionKey: 'settings.groups.more.description',
+    sections: [
+      { id: 'more-tools', tracks: ['horeca', 'events'], titleKey: 'settings.sections.more_tools', icon: LayoutGrid, component: MoreToolsSettings },
     ],
   },
   {

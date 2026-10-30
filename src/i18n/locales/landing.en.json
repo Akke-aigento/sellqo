@@ -2331,6 +2331,10 @@
         "menu_per_track": {
           "title": "Your menu only shows what fits your business",
           "description": "A hospitality business sees Till, Floor, Menu, Orders and Kitchen, without webshop, marketing or event parts. Settings only shows the parts that belong to your business. A webshop or event business sees the same sidebar as before."
+        },
+        "menu_per_track_2": {
+          "title": "An even shorter menu for hospitality and events",
+          "description": "Hospitality now sees ten items in the sidebar: Today, Orders, Till, Floor, Menu, Payments, Reports, Subscription, Settings and Help. An event business no longer sees customers, marketing, SEO, translations or integrations in the sidebar. Nothing is gone: what left the sidebar opens from Settings › More tools. A webshop sees the same sidebar as before."
         }
       },
       "copyLink": "Copy link",

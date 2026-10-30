@@ -10,7 +10,7 @@ import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
-import { sidebarGroups, platformGroup, getAllMenuItems, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
+import { sidebarGroups, platformGroup, getAllMenuItems, inSidebar, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
 import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
 import { bottomNavUrl } from './sidebar/bottomNav';
 import { useTracks } from '@/hooks/useBusinessModules';
@@ -71,6 +71,8 @@ export function AdminSidebar() {
   const { hasTrack } = useTracks();
   const navCtx = { horeca: hasTrack('horeca'), webshop: hasTrack('webshop'), events: hasTrack('events') };
   const sidebarHref = (item: NavItem) => bottomNavUrl(item, navCtx);
+  // TRACKS-3: een item kan bereikbaar zijn maar niet in de zijbalk staan (Instellingen › Meer onderdelen).
+  const hideInSidebar = (item: NavItem) => shouldHideItem(item) || !inSidebar(item, hasTrack);
 
   // SIDEBAR-CLEAN-1 — één actief item: de langste menu-URL die de huidige
   // route dekt. Zo licht /admin/promotions/customer-groups enkel Klantgroepen
@@ -182,7 +184,7 @@ export function AdminSidebar() {
 
   const renderNavItem = (item: NavItem) => {
     // Check if item is hidden (by preference or by role)
-    if (shouldHideItem(item)) return null;
+    if (hideInSidebar(item)) return null;
 
     const itemIsPageHidden = isPageHidden(item.id);
 
@@ -190,7 +192,7 @@ export function AdminSidebar() {
     // landingskind of, als dat verborgen is, naar het eerste zichtbare kind);
     // de chevron klapt het submenu open of dicht.
     if (item.children && item.children.length > 0) {
-      const visibleChildren = item.children.filter(child => !shouldHideItem(child));
+      const visibleChildren = item.children.filter(child => !hideInSidebar(child));
       const landing = item.children.find((c) => c.landing);
       const landingVisible = landing ? visibleChildren.includes(landing) : false;
       const subItems = visibleChildren.filter((c) => !c.landing);
@@ -273,12 +275,12 @@ export function AdminSidebar() {
 
   const renderGroup = (group: NavGroup) => {
     const visibleItems = group.items.filter(item => {
-      if (shouldHideItem(item)) return false;
+      if (hideInSidebar(item)) return false;
       // Een parent met landingskind heeft minstens één zichtbaar kind nodig
       // (anders is er geen pagina om naartoe te linken); zonder landingskind
       // is de parent zelf de pagina.
       if (item.children?.some((c) => c.landing)) {
-        return item.children.some(child => !shouldHideItem(child));
+        return item.children.some(child => !hideInSidebar(child));
       }
       return true;
     });

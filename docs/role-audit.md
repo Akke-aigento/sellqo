@@ -1,3 +1,31 @@
+## TRACKS-3 — zijbalk horeca en events nog korter, de rest via Instellingen › Meer onderdelen (30 oktober 2026)
+
+**Aanleiding**
+- Akke (30-10, na de publish van TRACKS-2): "voor webshop denk ik wel dat we er zijn … voor horeca en events niet, staat megaveel dat onnodig is". Akkoord op het voorstel: "Ja bouwen die handel".
+
+**Root cause**
+- `tracks` op een NavItem regelt twee dingen tegelijk: zichtbaarheid in de zijbalk én toegang tot de pagina (`findTrackRule` bewaakt routes). Een item uit de zijbalk halen door zijn tracks te beperken zou de pagina blokkeren voor zaken die hem wél gebruiken (bv. Inkoop voor een café).
+
+**Uitgevoerd**
+- `sidebarConfig.ts`: nieuw veld `sidebarTracks?: Track[]` (enkel zijbalk, geen toegang). Gezet op: orders-invoices `['webshop','events']`; kitchen `[]`; social-planner, media, seo, translations, purchasing, reports-analytics, reports-stock, integrations, customers `['webshop']`. Helpers `inSidebar`, `moreNavItems`; `visibleNavIds` gebruikt `inSidebar`.
+- `AdminSidebar.tsx`: `hideInSidebar` = bestaande verberg-regels + `!inSidebar`.
+- Nieuw `MoreToolsSettings.tsx` + Instellingen-groep "Meer onderdelen" (enkel horeca/events): lijst met links naar alles wat toegestaan is maar niet in de zijbalk staat, met dezelfde rol- en blokkeerfilters als de zijbalk.
+- Horeca-zijbalk: Vandaag, Bestellingen, Kassa, Zaal, Kaart, Betalingen, Rapporten, Abonnement, Instellingen, Help. Keuken zit in de Kassa en blijft bereikbaar via Meer onderdelen.
+- i18n 5 talen (`settings.groups.more.*`, `settings.sections.more_tools`, `settings.moreTools.*`); changelog 2026.14l `menu_per_track_2`; nieuwsbrief.
+
+**Security-keuzes**
+- Geen. `sidebarTracks` is puur weergave; toegang blijft `tracks` + rol + `requireRead`.
+
+**Gedeelde-paden-waarschuwing**
+- Webshop: `moreNavItems` is leeg, zijbalk identiek (test). Combinaties (horeca + webshop) zien elk item dat bij minstens één van hun sporen in de zijbalk hoort.
+
+**Verificatie**
+- `horecaMenu.test.ts` herschreven: exacte horeca-lijst, events-snoei, "meer"-lijsten per spoor, webshop leeg, combinatie, Kassa-URL, unieke items. Sidebar + tracks: 25 groen. tsc = baseline. Lint 0. i18n-pariteit ok.
+
+**Bewust ongemoeid / Vervolg**
+- `tracks.test.ts` (toegangsniveau) ongewijzigd: geen pagina is ontoegankelijk geworden.
+- Instellingen per spoor verder snoeien: na screenshots van Akke.
+
 ## TRACKS-2 — het menu per zaaktype: horeca ziet enkel horeca (29-30 oktober 2026)
 
 **Aanleiding**

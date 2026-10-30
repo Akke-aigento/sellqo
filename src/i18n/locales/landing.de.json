@@ -2331,6 +2331,10 @@
         "menu_per_track": {
           "title": "Dein Menü zeigt nur, was zu deinem Betrieb passt",
           "description": "Ein Gastronomiebetrieb sieht Kasse, Saal, Karte, Bestellungen und Küche, ohne Webshop-, Marketing- oder Eventbereiche. Die Einstellungen zeigen nur die Teile deines Betriebs. Ein Webshop oder Eventbetrieb sieht dieselbe Seitenleiste wie bisher."
+        },
+        "menu_per_track_2": {
+          "title": "Ein noch kürzeres Menü für Gastronomie und Events",
+          "description": "Die Gastronomie sieht in der Seitenleiste jetzt zehn Punkte: Heute, Bestellungen, Kasse, Saal, Karte, Zahlungen, Berichte, Abonnement, Einstellungen und Hilfe. Ein Eventbetrieb sieht Kunden, Marketing, SEO, Übersetzungen und Integrationen nicht mehr in der Seitenleiste. Nichts ist weg: Was aus der Seitenleiste verschwunden ist, öffnest du über Einstellungen › Weitere Bereiche. Ein Webshop sieht dieselbe Seitenleiste wie bisher."
         }
       },
       "copyLink": "Link kopieren",
