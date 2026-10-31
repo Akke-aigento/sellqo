@@ -29,14 +29,20 @@ import {
   addonIsBilled, addonLineDescription, addonPrice, applyCommitmentToCancel, commitmentBlocksSwitch, commitmentEnd, tenantIsNotBilled,
   type AddonRow,
 } from "../_shared/addonBilling.ts";
-import { activateAddonLine, addonsNetFor, clearBilledModules, endAddonLines, hasAddonLines, setTenantModule } from "../_shared/addonLines.ts";
+import { activateAddonLine, addonsNetFor, clearBilledModules, endAddonLines, hasAddonLines, loadAddons, releaseEmptyBareSubscription, setTenantModule } from "../_shared/addonLines.ts";
+import {
+  addonDisableGuard, addonEnableGuard, addonStatus, addonsToBillOnActivation, firstPeriodTotals, inTrial, loadTrackUsage,
+} from "../_shared/addonSelfServe.ts";
+import { loadBillingState } from "../_shared/billingGuard.ts";
+import { isAddonRequestCycle } from "../_shared/billingState.ts";
+import { publicPayUrl } from "../_shared/payCheckout.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-type Action = "activate" | "switch" | "cancel" | "addon" | "ensure_usage";
+type Action = "activate" | "switch" | "cancel" | "addon" | "ensure_usage" | "package";
 type Interval = "monthly" | "yearly";
 
 interface SyncBody {
@@ -47,6 +53,8 @@ interface SyncBody {
   /** BILL-ADDON-1: action 'addon' — welke add-on, aan of uit. */
   addon_id?: string;
   enabled?: boolean;
+  /** ADDON-SELF-1: platformadmin zet een spoor uit ondanks lopend werk. */
+  force?: boolean;
 }
 
 const VAT_RATE = 21;
@@ -110,7 +118,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 Deno.serve(async (req) => {
   // Versiestempel om een deploy zonder neveneffect na te meten (geen auth, geen data).
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "BILL-ADDON-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "ADDON-SELF-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -144,9 +152,13 @@ Deno.serve(async (req) => {
     const tenantId = body.tenant_id;
     const action = body.action as Action;
     // BILL-ADDON-1: 'addon' en 'ensure_usage' raken het plan niet; ze werken op het huidige plan.
-    const isAddonAction = action === "addon" || action === "ensure_usage";
+    // ADDON-SELF-1: 'package' (alleen lezen) evenmin.
+    const isAddonAction = action === "addon" || action === "ensure_usage" || action === "package";
     let planId = body.plan_id;
-    if (isAddonAction && !planId && tenantId) {
+    // ADDON-SELF-1 (review): voor deze acties NOOIT het plan uit het verzoek. Een zaakvoerder kon
+    // anders plan_id 'free' meesturen en zo de proefperiode-tak omzeilen (kaal abonnement → plan
+    // nooit geactiveerd of aangerekend). Altijd het plan zoals het in de databank staat.
+    if (isAddonAction && tenantId) {
       const { data: tsRow } = await supabase.from("tenant_subscriptions").select("plan_id").eq("tenant_id", tenantId).maybeSingle();
       planId = (tsRow?.plan_id as string | undefined) ?? "free";
     }
@@ -161,7 +173,7 @@ Deno.serve(async (req) => {
     if (!["monthly", "yearly"].includes(interval)) {
       return jsonResponse({ success: false, error: "billing_interval invalid" }, 400);
     }
-    if (!["activate", "switch", "cancel", "addon", "ensure_usage"].includes(action)) {
+    if (!["activate", "switch", "cancel", "addon", "ensure_usage", "package"].includes(action)) {
       return jsonResponse({ success: false, error: "action invalid" }, 400);
     }
     // ensure_usage is alleen voor de runner (systeemaanroep).
@@ -170,6 +182,7 @@ Deno.serve(async (req) => {
     }
 
     // Authorization: platform admin OR tenant_admin for this tenant (of systeem)
+    let callerIsPlatformAdmin = isSystemCall;
     if (!isSystemCall) {
       const { data: roles, error: rolesErr } = await supabase
         .from("user_roles")
@@ -183,10 +196,9 @@ Deno.serve(async (req) => {
       if (!isPlatformAdmin && !isTenantAdmin) {
         return jsonResponse({ success: false, error: "Forbidden" }, 403);
       }
-      // BILL-ADDON-1: add-ons zet voorlopig alleen SellQo aan of uit (TRACKS-1).
-      if (action === "addon" && !isPlatformAdmin) {
-        return jsonResponse({ success: false, error: "Forbidden" }, 403);
-      }
+      // ADDON-SELF-1: de zaakvoerder (tenant_admin van déze winkel) zet zelf add-ons aan of
+      // uit. De guards hieronder (addonEnableGuard/addonDisableGuard) maken dat waterdicht.
+      callerIsPlatformAdmin = isPlatformAdmin;
     }
 
     // ---- Load supporting rows ----
@@ -262,7 +274,16 @@ Deno.serve(async (req) => {
         })
         .select("id")
         .single();
-      if (insErr) throw insErr;
+      if (insErr) {
+        // ADDON-SELF-1 (review): gelijktijdig verzoek maakte dezelfde klant al aan → die hergebruiken.
+        if ((insErr as { code?: string }).code === "23505") {
+          const { data: again, error: againErr } = await supabase
+            .from("customers").select("id").eq("tenant_id", internalTenantId).eq("email", billingEmail).maybeSingle();
+          if (againErr) throw againErr;
+          if (again?.id) return again.id as string;
+        }
+        throw insErr;
+      }
       return inserted.id as string;
     }
 
@@ -304,7 +325,11 @@ Deno.serve(async (req) => {
         vat_rate: VAT_RATE,
         sort_order: 0,
       });
-      if (lineErr) throw lineErr;
+      if (lineErr) {
+        // ADDON-SELF-1 (review ronde 2): nooit een actief abonnement zonder planregel laten staan.
+        await supabase.from("subscriptions").update({ status: "cancelled", end_date: startISO }).eq("id", sub.id);
+        throw lineErr;
+      }
 
       return { id: sub.id as string };
     }
@@ -313,7 +338,19 @@ Deno.serve(async (req) => {
      * BILL-ADDON-1: maandelijks facturatieabonnement zonder planregel, voor een €0-plan
      * (Free, Flex) met kassa-ticketfees of een betaalde add-on. Koppelt het aan de winkel.
      */
-    async function createBareBillingSubscription(label: string): Promise<{ id: string; customerId: string }> {
+    async function createBareBillingSubscription(
+      label: string,
+      opts: {
+        /** ADDON-SELF-1: eerste factuurdatum (standaard vandaag). */
+        nextInvoiceISO?: string;
+        /**
+         * ADDON-SELF-1 (G2): koppel enkel als tenant_subscriptions.billing_subscription_id nog
+         * deze waarde heeft (compare-and-swap). Verliest een gelijktijdig verzoek, dan wordt
+         * het eigen kale abonnement meteen gestopt en geeft dit null.
+         */
+        expectLinked?: string | null;
+      } = {},
+    ): Promise<{ id: string; customerId: string } | null> {
       const customerId = await ensureBillingCustomer((currentSub?.billing_customer_id as string | null) ?? null);
       const todayISO = toISODate(new Date());
       const { data: sub, error: subErr } = await supabase
@@ -325,7 +362,7 @@ Deno.serve(async (req) => {
           interval: "monthly",
           interval_count: 1,
           start_date: todayISO,
-          next_invoice_date: todayISO,
+          next_invoice_date: opts.nextInvoiceISO ?? todayISO,
           status: "active",
           auto_send: true,
           generate_days_before: GENERATE_DAYS_BEFORE,
@@ -333,11 +370,20 @@ Deno.serve(async (req) => {
         .select("id")
         .single();
       if (subErr) throw subErr;
-      const { error: tsErr } = await supabase
+      let link = supabase
         .from("tenant_subscriptions")
         .update({ billing_customer_id: customerId, billing_subscription_id: sub.id, billing_interval: "monthly" })
         .eq("tenant_id", tenantId);
+      if (opts.expectLinked !== undefined) {
+        link = opts.expectLinked === null ? link.is("billing_subscription_id", null) : link.eq("billing_subscription_id", opts.expectLinked);
+      }
+      const { data: linked, error: tsErr } = await link.select("id");
       if (tsErr) throw tsErr;
+      if (opts.expectLinked !== undefined && !(linked ?? []).length) {
+        await supabase.from("subscriptions").update({ status: "cancelled", end_date: todayISO }).eq("id", sub.id);
+        log("Bare billing subscription lost a concurrent request — cancelled", { tenantId, billing_subscription_id: sub.id });
+        return null;
+      }
       return { id: sub.id as string, customerId };
     }
 
@@ -410,6 +456,8 @@ Deno.serve(async (req) => {
       vatRate: number;
       kind: "upgrade" | "addon";
       addonId?: string | null;
+      /** ADDON-SELF-1: eerste maand op een kaal abonnement; de webhook laat de periode bij de betaling starten. */
+      firstPeriod?: boolean;
     }): Promise<ProrationCharge> {
       const requestedMode = (p.paymentMode ?? "mandate") as "mandate" | "manual";
 
@@ -471,6 +519,7 @@ Deno.serve(async (req) => {
             description: p.description, quantity: 1, unit_price: p.deltaNet, vat_rate: p.vatRate,
             kind: p.kind === "addon" ? "addon" : "plan",
             ...(p.addonId ? { addon_id: p.addonId } : {}),
+            ...(p.firstPeriod ? { first_period: true } : {}),
           }],
           ...(prNumber ? { payment_request_number: prNumber } : {}),
         })
@@ -586,7 +635,178 @@ Deno.serve(async (req) => {
     }
 
     const setBusinessModule = (track: string, on: boolean) => setTenantModule(supabase, tenantId, track, on);
+
+    /** ADDON-SELF-1 (review): de vaste betaallink (PAY-LINK-1) van een cyclus, nooit de Stripe-sessie van ≤ 24 u. */
+    async function payUrlForCycle(cycleId: string): Promise<string | null> {
+      const { data } = await supabase.from("payment_links").select("token").eq("kind", "cycle").eq("billing_cycle_id", cycleId).maybeSingle();
+      return data?.token ? publicPayUrl(data.token as string) : null;
+    }
+
+    /** ADDON-SELF-1: sporen die SellQo gratis ontgrendelde (tenant_feature_overrides). */
+    async function loadGranted(): Promise<string[]> {
+      const { data, error } = await supabase
+        .from("tenant_feature_overrides").select("granted_features").eq("tenant_id", tenantId).maybeSingle();
+      if (error) throw error;
+      return ((data?.granted_features ?? []) as unknown[]).filter((x): x is string => typeof x === "string");
+    }
+
+    /**
+     * BILL-ADDON-1 pro rata voor een add-on halverwege de periode. ADDON-SELF-1: één berekening
+     * voor het aanzetten én de prijs die de zaakvoerder vooraf ziet (action 'package').
+     */
+    async function addonProration(subId: string, iv: Interval, unit: number, nextInvoiceDate: string | null, todayISO: string) {
+      const { data: subLines, error: slErr } = await supabase
+        .from("subscription_lines")
+        .select("id, quantity, unit_price, vat_rate, sort_order, kind, end_date")
+        .eq("subscription_id", subId)
+        .order("sort_order", { ascending: true });
+      if (slErr) throw slErr;
+      const period = await resolveRunningPeriod(supabase, subId, iv, nextInvoiceDate, todayISO);
+      // deno-lint-ignore no-explicit-any
+      const liveLines = ((subLines ?? []) as any[]).filter((l) => !l.end_date);
+      const currentNet = liveLines.reduce((sum: number, l) => sum + Number(l.quantity ?? 1) * Number(l.unit_price ?? 0), 0);
+      return computeProration({
+        period,
+        lines: liveLines,
+        newNet: +(currentNet + unit).toFixed(2),
+        currentInterval: iv,
+        targetInterval: iv,
+        todayISO,
+      });
+    }
     const clearModules = () => clearBilledModules(supabase, tenantId);
+
+    // ================================= PAKKET (ADDON-SELF-1) ============
+    // Alleen lezen: plan, sporen en per add-on de status en wat aanzetten vandaag kost. De
+    // kaart "Je pakket" (zaakvoerder én platformbeheer) toont exact wat 'addon' zal aanrekenen.
+    if (action === "package") {
+      const todayISO = toISODate(new Date());
+      const planTrack = ((currentSub as { pricing_plan?: { track?: string | null } | null } | null)?.pricing_plan?.track) ?? "webshop";
+      const granted = await loadGranted();
+      const notBilledShop = tenantIsNotBilled(tenant as Record<string, boolean | null>);
+      const billingState = notBilledShop ? "active" : await loadBillingState(supabase, tenantId as string);
+      const modules = (((tenant as { business_modules?: string[] | null }).business_modules) ?? []) as string[];
+      const trial = inTrial(currentSub as { trial_end?: string | null } | null);
+      const planIsPaid = Number(targetPlan.monthly_price) > 0 || Number(targetPlan.yearly_price) > 0;
+
+      let liveSubId = (currentSub?.billing_subscription_id as string | null) ?? null;
+      // deno-lint-ignore no-explicit-any
+      let liveSub: any = null;
+      if (liveSubId) {
+        const { data } = await supabase.from("subscriptions").select("id, interval, next_invoice_date, status").eq("id", liveSubId).maybeSingle();
+        if (data?.status === "active") liveSub = data;
+        else liveSubId = null;
+      }
+      const iv: Interval = liveSub?.interval === "yearly" ? "yearly" : "monthly";
+      // deno-lint-ignore no-explicit-any
+      let lines: any[] = [];
+      // deno-lint-ignore no-explicit-any
+      let openCycles: any[] = [];
+      let renewalFrom: string | null = null;
+      const anySubId = (currentSub?.billing_subscription_id as string | null) ?? null;
+      if (anySubId) {
+        const [{ data: l, error: lErr }, { data: c, error: cErr }] = await Promise.all([
+          supabase.from("subscription_lines").select("addon_id, end_date").eq("subscription_id", anySubId).eq("kind", "addon"),
+          supabase.from("billing_cycles").select("id, lines, total, status, checkout_session_url, payment_request_number")
+            .eq("subscription_id", anySubId).eq("cycle_type", "proration").is("target_plan_id", null).is("invoice_id", null)
+            .in("status", ["pending", "awaiting_payment", "processing", "reopened"]),
+        ]);
+        if (lErr) throw lErr;
+        if (cErr) throw cErr;
+        lines = l ?? [];
+        openCycles = c ?? [];
+      }
+      if (liveSubId) {
+        const { data: nc } = await supabase.from("billing_cycles").select("period_start")
+          .eq("subscription_id", liveSubId).eq("cycle_type", "recurring").gt("period_start", todayISO).neq("status", "cancelled").limit(1);
+        renewalFrom = nc?.length ? String(nc[0].period_start) : null;
+      }
+      // Zelfde regel als guardOpenProration: élke open pro rata (ook een planupgrade) blokkeert.
+      let anyProrationOpen = false;
+      if (liveSubId) {
+        const { data: op } = await supabase.from("billing_cycles").select("id, status, created_at")
+          .eq("subscription_id", liveSubId).eq("cycle_type", "proration")
+          .in("status", ["pending", "awaiting_payment", "processing", "reopened"]);
+        // Een 'pending' ouder dan STALE_PENDING_MS ruimt guardOpenProration op en blokkeert dus niet.
+        anyProrationOpen = ((op ?? []) as { status: string; created_at: string }[]).some((c) =>
+          !(c.status === "pending" && Date.now() - new Date(c.created_at).getTime() > STALE_PENDING_MS));
+      }
+      const locked = !callerIsPlatformAdmin && ["past_due", "restricted", "suspended"].includes(billingState);
+
+      const addons = [];
+      for (const a of (await loadAddons(supabase)).values()) {
+        if (a.active === false && !modules.includes(a.track)) continue;
+        const billed = addonIsBilled(a) && !notBilledShop;
+        const line = lines.find((x) => x.addon_id === a.id) ?? null;
+        const pending = openCycles.find((c) => Array.isArray(c.lines) && c.lines[0]?.addon_id === a.id) ?? null;
+        const moduleOn = modules.includes(a.track);
+        const status = addonStatus({ track: a.track, planTrack, granted, moduleOn, line, pendingCycle: !!pending, trial, billed });
+
+        // Wat kost aanzetten vandaag? Zelfde takken als action 'addon'.
+        // deno-lint-ignore no-explicit-any
+        let quote: any = null;
+        if (status === "stopping") {
+          // Een geplande stop intrekken kost niets, tenzij de volgende periode al zonder de add-on klaarstaat.
+          quote = renewalFrom && line?.end_date && renewalFrom > String(line.end_date)
+            ? { kind: "renewal_pending", available_from: renewalFrom }
+            : { kind: "resume", total: 0 };
+        } else if (status === "off") {
+          if (locked) quote = { kind: "locked" };
+          else if (!billed) quote = { kind: "free", total: 0 };
+          else if (!currentSub) quote = { kind: "needs_plan" };
+          else if (!liveSubId && planIsPaid && trial) quote = { kind: "trial", total: 0, billed_from: currentSub?.trial_end ?? null };
+          else if (!liveSubId && planIsPaid) quote = { kind: "needs_plan" };
+          else if (!liveSubId) {
+            const nextInvoiceISO = advanceDate(todayISO, "monthly");
+            quote = { kind: "first_month", total: firstPeriodTotals(addonPrice(a, "monthly"), VAT_RATE).total, interval: "monthly", next_invoice_date: nextInvoiceISO };
+          } else if (anyProrationOpen) quote = { kind: "payment_open" };
+          else if (renewalFrom) quote = { kind: "renewal_pending", available_from: renewalFrom };
+          else {
+            const pr = await addonProration(liveSubId, iv, addonPrice(a, iv), (liveSub?.next_invoice_date as string | null) ?? null, todayISO);
+            quote = pr.delta_net <= 0
+              ? { kind: "boundary", total: 0, interval: iv }
+              : { kind: "pro_rata", total: pr.total, period_end: pr.period_end, remaining_days: pr.remaining_days, period_days: pr.period_days, interval: iv };
+          }
+        }
+        // Wanneer stopt uitzetten? Betaald + lopende periode: op de volgende factuurdatum.
+        let stopsAt: string | null = null;
+        if ((status === "on" || status === "stopping") && line && billed && liveSub?.next_invoice_date && String(liveSub.next_invoice_date) > todayISO) {
+          // Laatste betaalde dag = de dag vóór de volgende factuurdatum (zelfde als 'addon' uit).
+          const d = new Date(`${String(liveSub.next_invoice_date)}T00:00:00Z`);
+          d.setUTCDate(d.getUTCDate() - 1);
+          stopsAt = isoDate(d);
+        }
+        const usage = moduleOn && status !== "in_plan" && status !== "included"
+          ? await loadTrackUsage(supabase, tenantId as string, a.track, todayISO)
+          : null;
+        addons.push({
+          id: a.id,
+          track: a.track,
+          name: a.name,
+          monthly_price: Number(a.monthly_price),
+          yearly_price: Number(a.yearly_price),
+          ticket_fee: Number(a.ticket_fee ?? 0),
+          billed,
+          status,
+          end_date: line?.end_date ?? null,
+          stops_at: stopsAt,
+          quote,
+          pending: pending ? { total: Number(pending.total ?? 0), pay_url: await payUrlForCycle(pending.id), payment_request_number: pending.payment_request_number ?? null } : null,
+          usage,
+        });
+      }
+      return jsonResponse({
+        success: true,
+        action: "package",
+        plan: { id: targetPlan.id, name: targetPlan.name, track: planTrack, interval: iv, monthly_price: Number(targetPlan.monthly_price), yearly_price: Number(targetPlan.yearly_price) },
+        trial,
+        trial_end: currentSub?.trial_end ?? null,
+        billing_state: billingState,
+        not_billed: notBilledShop,
+        can_manage: true,
+        addons,
+      });
+    }
 
     // ================================= ADD-ON (BILL-ADDON-1) =============
     if (action === "addon") {
@@ -602,12 +822,21 @@ Deno.serve(async (req) => {
       if (!addon) return jsonResponse({ success: false, error: "Add-on not found" }, 404);
       const a = addon as AddonRow;
       const planTrack = ((currentSub as { pricing_plan?: { track?: string | null } | null } | null)?.pricing_plan?.track) ?? "webshop";
-      if (enabled && a.track === planTrack) {
-        return jsonResponse({ success: false, error: "Dit spoor zit al in je plan", code: "addon_in_plan" }, 409);
-      }
       const notBilled = tenantIsNotBilled(tenant as Record<string, boolean | null>) || !addonIsBilled(a);
       const billingSubId = (currentSub?.billing_subscription_id as string | null) ?? null;
       const todayISO = toISODate(new Date());
+
+      // ADDON-SELF-1: guards (zelfde voor zaakvoerder en platformadmin, op force na).
+      if (enabled) {
+        const granted = await loadGranted();
+        const billingState = callerIsPlatformAdmin ? "active" : await loadBillingState(supabase, tenantId as string);
+        const g = addonEnableGuard({ isPlatformAdmin: callerIsPlatformAdmin, addon: a, planTrack, granted, billingState });
+        if (g) return jsonResponse({ success: false, error: g.code, code: g.code }, g.status);
+      } else if ((((tenant as { business_modules?: string[] | null }).business_modules) ?? []).includes(a.track)) {
+        const usage = await loadTrackUsage(supabase, tenantId as string, a.track, todayISO);
+        const g = addonDisableGuard({ isPlatformAdmin: callerIsPlatformAdmin, force: body.force === true, track: a.track, usage });
+        if (g) return jsonResponse({ success: false, error: g.code, code: g.code, usage: g.usage }, g.status);
+      }
 
       // ---- UIT: tot het einde van de betaalde periode (keuze Akke 17-10) ----
       if (!enabled) {
@@ -616,19 +845,29 @@ Deno.serve(async (req) => {
           // hem bij betaling weer aan).
           const { data: openCycles, error: ocErr } = await supabase
             .from("billing_cycles")
-            .select("id, lines")
+            .select("id, lines, cycle_type, target_plan_id, mode")
             .eq("subscription_id", billingSubId)
             .eq("cycle_type", "proration")
             .is("target_plan_id", null)
             .is("invoice_id", null)
-            .in("status", ["pending", "awaiting_payment", "reopened"]);
+            // ADDON-SELF-1 (review): ook een verlopen verzoek kan ingetrokken worden.
+            .in("status", ["pending", "awaiting_payment", "reopened", "expired"]);
           if (ocErr) throw ocErr;
-          for (const c of (openCycles ?? []) as { id: string; lines: unknown }[]) {
+          for (const c of (openCycles ?? []) as { id: string; lines: unknown; cycle_type?: string | null; target_plan_id?: string | null; mode?: string | null }[]) {
             const first = Array.isArray(c.lines) ? (c.lines[0] as { addon_id?: string } | undefined) : undefined;
             if (first?.addon_id !== a.id) continue;
+            // ADDON-SELF-1 (review ronde 3): enkel een verzoek mag vervallen. Een via het mandaat
+            // aangerekende cyclus (add-on stond al aan) is schuld en blijft open voor de gewone aanmaning.
+            if (!isAddonRequestCycle(c)) continue;
             const { error: cErr } = await supabase.from("billing_cycles").update({ status: "cancelled" }).eq("id", c.id).is("invoice_id", null);
             if (cErr) throw cErr;
             log("Open add-on pro rata cancelled", { tenantId, addon: a.id, billing_cycle_id: c.id });
+          }
+          // Kaal abonnement dat enkel voor dit verzoek bestond (Free/Flex): opruimen.
+          if (await releaseEmptyBareSubscription(supabase, billingSubId, todayISO)) {
+            log("Bare billing subscription released", { tenantId, billing_subscription_id: billingSubId });
+            await setBusinessModule(a.track, false);
+            return jsonResponse({ success: true, action: "addon", enabled: false, effective_at: new Date().toISOString() });
           }
           const { data: line } = await supabase
             .from("subscription_lines")
@@ -679,24 +918,72 @@ Deno.serve(async (req) => {
         const { data: chk } = await supabase.from("subscriptions").select("status").eq("id", liveBillingSubId).maybeSingle();
         if (chk?.status !== "active") liveBillingSubId = null;
       }
+      const planIsPaid = Number(targetPlan.monthly_price) > 0 || Number(targetPlan.yearly_price) > 0;
+      if (!liveBillingSubId && planIsPaid && inTrial(currentSub as { trial_end?: string | null })) {
+        // ADDON-SELF-1 / B1: tijdens de proefperiode gratis; bij de activatie van het plan
+        // komt de add-on mee op het eerste betaalabonnement (addonsToBillOnActivation).
+        await setBusinessModule(a.track, true);
+        log("Add-on on during trial", { tenantId, addon: a.id, trial_end: currentSub.trial_end });
+        return jsonResponse({ success: true, action: "addon", enabled: true, trial: true, billed_from: currentSub.trial_end });
+      }
       if (!liveBillingSubId) {
-        // Free of Flex zonder facturatieabonnement: maandabonnement met alleen de add-on,
-        // eerste maand meteen aangerekend (zoals een plan activeren).
-        if (Number(targetPlan.monthly_price) > 0 || Number(targetPlan.yearly_price) > 0) {
+        // Free of Flex zonder facturatieabonnement. ADDON-SELF-1 (G1): pay-first. Tot 31-10 stond
+        // het spoor hier meteen aan, vóór betaling. Nu: kaal facturatieabonnement (eerste
+        // factuurdatum over een maand, nog zonder regel) + een cyclus voor de eerste maand; het
+        // spoor gaat pas aan na betaling (mandaat hier, anders de webhook: effectuateAddonCycle).
+        if (planIsPaid) {
           return jsonResponse({ success: false, error: "Geen actief facturatieabonnement", code: "addon_needs_plan" }, 409);
         }
-        const bare = await createBareBillingSubscription(a.name);
-        await activateAddonLine(supabase, { subscriptionId: bare.id, tenantId: tenantId as string, addon: a, interval: "monthly", vatRate: VAT_RATE });
-        let invoked = false;
-        try {
-          const { error: invErr } = await supabase.functions.invoke("generate-subscription-invoices", { body: { subscription_id: bare.id } });
-          if (invErr) throw invErr;
-          invoked = true;
-        } catch (e) {
-          console.error(`[SYNC-TENANT-PLAN] generate invoke failed: ${errMsg(e)}`);
+        const nextInvoiceISO = advanceDate(todayISO, "monthly");
+        const periodEnd = (() => {
+          const d = new Date(`${nextInvoiceISO}T00:00:00Z`);
+          d.setUTCDate(d.getUTCDate() - 1);
+          return isoDate(d);
+        })();
+        const bare = await createBareBillingSubscription(a.name, { nextInvoiceISO, expectLinked: billingSubId });
+        if (!bare) {
+          return jsonResponse({ success: false, error: "Er staat al een betaling open. Rond die eerst af.", code: "proration_cycle_open" }, 409);
         }
-        log("Add-on on with new billing subscription", { tenantId, addon: a.id, billing_subscription_id: bare.id, invoked });
-        return jsonResponse({ success: true, action: "addon", enabled: true, billing_subscription_id: bare.id, invoice_generation_invoked: invoked });
+        const first = firstPeriodTotals(addonPrice(a, "monthly"), VAT_RATE);
+        const charge = await createAndChargeProration({
+          billingSubId: bare.id,
+          paymentMode: null,
+          customerId: bare.customerId,
+          targetPlanId: null,
+          targetInterval: "monthly",
+          description: `${a.name}: eerste maand (${nlDate(todayISO)} t/m ${nlDate(periodEnd)})`,
+          todayISO,
+          periodEnd,
+          deltaNet: first.net,
+          vatAmount: first.vat,
+          total: first.total,
+          vatRate: VAT_RATE,
+          kind: "addon",
+          addonId: a.id,
+          firstPeriod: true,
+        });
+        if (charge.conflict) {
+          return jsonResponse({ success: false, error: "Er staat al een betaling open. Rond die eerst af.", code: "proration_cycle_open" }, 409);
+        }
+        if (charge.charged) {
+          await activateAddonLine(supabase, { subscriptionId: bare.id, tenantId: tenantId as string, addon: a, interval: "monthly", vatRate: VAT_RATE });
+          log("Add-on first month charged and on", { tenantId, addon: a.id, billing_subscription_id: bare.id, cycle: charge.cycleId });
+          return jsonResponse({ success: true, action: "addon", enabled: true, billing_cycle_id: charge.cycleId, pro_rata_total: first.total, awaiting_payment: false });
+        }
+        const sentFirst = await sendPaymentRequest(charge.cycleId);
+        log("Add-on first month awaiting payment", { tenantId, addon: a.id, billing_subscription_id: bare.id, cycle: charge.cycleId });
+        return jsonResponse({
+          success: true,
+          action: "addon",
+          enabled: false,
+          pending: true,
+          billing_cycle_id: charge.cycleId,
+          pro_rata_total: first.total,
+          awaiting_payment: true,
+          payment_request_number: sentFirst.prNumber ?? charge.prNumber,
+          checkout_session_url: sentFirst.checkoutUrl,
+          pay_url: await payUrlForCycle(charge.cycleId),
+        });
       }
       const { data: billingSub, error: bsErr } = await supabase
         .from("subscriptions")
@@ -760,24 +1047,7 @@ Deno.serve(async (req) => {
 
       // Pro rata zoals een upgrade. De add-on gaat pas aan na betaling: meteen bij een
       // geslaagd mandaat, anders in de webhook zodra het betaalverzoek betaald is.
-      const { data: subLines, error: slErr } = await supabase
-        .from("subscription_lines")
-        .select("id, quantity, unit_price, vat_rate, sort_order, kind, end_date")
-        .eq("subscription_id", subId)
-        .order("sort_order", { ascending: true });
-      if (slErr) throw slErr;
-      const period = await resolveRunningPeriod(supabase, subId, iv, (billingSub.next_invoice_date as string | null) ?? null, todayISO);
-      // deno-lint-ignore no-explicit-any
-      const liveLines = ((subLines ?? []) as any[]).filter((l) => !l.end_date);
-      const currentNet = liveLines.reduce((sum: number, l) => sum + Number(l.quantity ?? 1) * Number(l.unit_price ?? 0), 0);
-      const proration = computeProration({
-        period,
-        lines: liveLines,
-        newNet: +(currentNet + unit).toFixed(2),
-        currentInterval: iv,
-        targetInterval: iv,
-        todayISO,
-      });
+      const proration = await addonProration(subId, iv, unit, (billingSub.next_invoice_date as string | null) ?? null, todayISO);
       const shopTenantId = tenantId as string;
 
       if (proration.delta_net <= 0) {
@@ -839,6 +1109,7 @@ Deno.serve(async (req) => {
         awaiting_payment: true,
         payment_request_number: sent.prNumber ?? charge.prNumber,
         checkout_session_url: sent.checkoutUrl,
+        pay_url: await payUrlForCycle(charge.cycleId),
       });
     }
 
@@ -861,7 +1132,7 @@ Deno.serve(async (req) => {
         }
       }
       if (!currentSub) return jsonResponse({ success: true, action: "ensure_usage", skipped: "no_plan" });
-      const sub = await createBareBillingSubscription("verbruik");
+      const sub = (await createBareBillingSubscription("verbruik"))!;
       log("Usage billing subscription created", { tenantId, billing_subscription_id: sub.id });
       return jsonResponse({ success: true, action: "ensure_usage", billing_subscription_id: sub.id });
     }
@@ -1140,10 +1411,19 @@ Deno.serve(async (req) => {
       const customerId = await ensureBillingCustomer(currentSub?.billing_customer_id ?? null);
 
       let billingSubId = currentSub?.billing_subscription_id as string | null;
+      let createdNewSub = false;
+      let reusedPrev: { status: string; end_date: string | null } | null = null;
+      // ADDON-SELF-1 (review ronde 2): alles tot en met het koppelen in tenant_subscriptions is
+      // terugdraaibaar. Faalt er iets, dan blijft er nooit een actief, ongekoppeld abonnement staan
+      // (de runner zou het factureren, een nieuwe poging maakt er een tweede: dubbel aangerekend).
+      try {
       if (!billingSubId) {
         const created = await createBillingSubscription(customerId, targetPlan, interval, todayISO);
         billingSubId = created.id;
+        createdNewSub = true;
       } else {
+        const { data: prevRow } = await supabase.from("subscriptions").select("status, end_date").eq("id", billingSubId).maybeSingle();
+        reusedPrev = prevRow ? { status: prevRow.status as string, end_date: (prevRow.end_date as string | null) ?? null } : null;
         // Reuse van een gestopt abonnement: alle regels opnieuw. BILL-ADDON-1: de add-ons zijn
         // bij het stoppen uitgezet (business_modules), dus hun oude regels mogen niet mee.
         await supabase.from("subscription_lines").delete().eq("subscription_id", billingSubId);
@@ -1169,6 +1449,23 @@ Deno.serve(async (req) => {
             name: `${(tenant as any).billing_company_name || tenant.name} — ${targetPlan.name} (${interval})`,
           })
           .eq("id", billingSubId);
+      }
+
+      // ADDON-SELF-1 / B1: elk betaald spoor dat aan staat (bv. bijgenomen tijdens de
+      // proefperiode) komt mee op dit eerste betaalabonnement. Nooit een spoor aan zonder
+      // factuurregel; gratis ontgrendelde sporen en events (€0) nooit.
+      if (!tenantIsNotBilled(tenant as Record<string, boolean | null>)) {
+        const planTrackNew = ((targetPlan as { track?: string | null }).track) ?? "webshop";
+        const toBill = addonsToBillOnActivation(
+          (tenant as { business_modules?: string[] | null }).business_modules,
+          planTrackNew,
+          await loadGranted(),
+          (await loadAddons(supabase)).values(),
+        );
+        for (const addonRow of toBill) {
+          await activateAddonLine(supabase, { subscriptionId: billingSubId as string, tenantId: tenantId as string, addon: addonRow, interval, vatRate: VAT_RATE });
+        }
+        if (toBill.length) log("Add-ons carried onto first billing subscription", { tenantId, addons: toBill.map((x) => x.id) });
       }
 
       const periodEndISO = advanceDate(todayISO, interval);
@@ -1197,6 +1494,16 @@ Deno.serve(async (req) => {
           { onConflict: "tenant_id" },
         );
       if (tsErr) throw tsErr;
+      } catch (e) {
+        if (billingSubId && createdNewSub) {
+          await supabase.from("subscriptions").update({ status: "cancelled", end_date: todayISO }).eq("id", billingSubId);
+          log("Activation aborted — new billing subscription cancelled", { tenantId, billing_subscription_id: billingSubId });
+        } else if (billingSubId && reusedPrev && reusedPrev.status !== "active") {
+          await supabase.from("subscriptions").update({ status: reusedPrev.status, end_date: reusedPrev.end_date ?? todayISO }).eq("id", billingSubId);
+          log("Activation aborted — reused billing subscription restored", { tenantId, billing_subscription_id: billingSubId });
+        }
+        throw e;
+      }
 
       // Invoke generate-subscription-invoices for immediate first invoice
       let invoked = false;

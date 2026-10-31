@@ -15,6 +15,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { denyUnlessCron } from "../_shared/marketplaceSyncAuth.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
+import { isAddonRequestCycle } from "../_shared/billingState.ts";
+import { releaseEmptyBareSubscription } from "../_shared/addonLines.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -60,7 +62,7 @@ serve(async (req) => {
 
     const { data: cycles, error } = await supabase
       .from("billing_cycles")
-      .select("id, tenant_id, customer_id, status, invoice_id, payment_request_number, due_date, grace_until, reminder_level, last_reminder_at, checkout_session_created_at")
+      .select("id, tenant_id, customer_id, subscription_id, status, invoice_id, payment_request_number, due_date, grace_until, reminder_level, last_reminder_at, checkout_session_created_at, cycle_type, target_plan_id, lines, mode")
       .in("status", ["awaiting_payment", "reopened"])
       .is("invoice_id", null)
       .order("due_date", { ascending: true })
@@ -83,6 +85,23 @@ serve(async (req) => {
         }
 
         const level = Number(cycle.reminder_level) || 0;
+
+        // ADDON-SELF-1: een onbetaald add-onverzoek vervalt gewoon (geannuleerd, geen 'expired',
+        // geen laatste aanmaning): de winkel kreeg het spoor nooit, dus er is geen schuld. Een
+        // kaal abonnement dat er enkel voor bestond, wordt opgeruimd.
+        if (cycle.grace_until && daysBetween(cycle.grace_until, today) > 0 && isAddonRequestCycle(cycle)) {
+          const { error: cxErr } = await supabase
+            .from("billing_cycles")
+            .update({ status: "cancelled", last_reminder_at: new Date().toISOString() })
+            .eq("id", cycle.id)
+            .in("status", ["awaiting_payment", "reopened"])
+            .is("invoice_id", null);
+          if (cxErr) throw cxErr;
+          if (cycle.subscription_id) await releaseEmptyBareSubscription(supabase, cycle.subscription_id, today);
+          summary.expired++;
+          log("Add-on request lapsed (cancelled)", { billing_cycle_id: cycle.id });
+          continue;
+        }
 
         // Level 3 — grace window elapsed → expire (status only).
         if (cycle.grace_until && daysBetween(cycle.grace_until, today) > 0) {

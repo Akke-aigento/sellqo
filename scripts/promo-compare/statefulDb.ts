@@ -45,6 +45,8 @@ class Q {
   neq(c: string, v: any) { this.filters.push((r) => r[c] != null && String(r[c]) !== String(v)); return this; }
   in(c: string, vs: any[]) { const s = new Set(vs.map(String)); this.filters.push((r) => s.has(String(r[c]))); return this; }
   gte(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] >= v); return this; }
+  gt(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] > v); return this; }
+  lt(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] < v); return this; }
   lte(c: string, v: any) { this.filters.push((r) => r[c] != null && r[c] <= v); return this; }
   // Zoals SQL ILIKE: hoofdletterongevoelig, % = willekeurig.
   ilike(c: string, v: string) {

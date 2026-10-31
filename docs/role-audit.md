@@ -1,3 +1,61 @@
+## ADDON-SELF-1 — de zaakvoerder zet zelf een spoor aan (betaald, pay-first), één pakketkaart (2026.14w) — 31 oktober 2026
+
+Keuzes Akke 31-10 ("go aanbevolen"): B1 add-on gratis tijdens de proefperiode en mee op het eerste betaalabonnement; B2 de add-on volgt het interval van het plan; B3 uitzetten met lopend werk wordt geweigerd. Plan: projectdoc `claude/addon-self-1-plan.md`.
+
+**Root cause / aanleiding**
+- `sync-tenant-plan` action `addon` (BILL-ADDON-1) stond enkel open voor platform_admin (r. 187). Café De Wissel toonde het volledige webshopmenu omdat het plan (Enterprise) het spoor bepaalt; een zaak kon zelf niets bijnemen of combineren.
+- Openzetten zonder meer was niet waterdicht:
+  - G1: Free/Flex zonder facturatieabonnement zette het spoor meteen aan, vóór betaling (`createBareBillingSubscription` + `activateAddonLine`).
+  - G2: een dubbelklik maakte twee kale facturatieabonnementen.
+  - G4: een gratis ontgrendeld spoor (`granted_features`) kon toch aangerekend worden.
+  - G5: uitzetten met open rekeningen, verkochte tickets of open orders.
+  - G6: bijnemen met een openstaande betaling.
+
+**Uitgevoerd**
+- `_shared/addonSelfServe.ts` (nieuw): pure guards `addonEnableGuard` / `addonDisableGuard`, `inTrial`, `addonsToBillOnActivation`, `addonStatus`, `firstPeriodTotals`, plus `loadTrackUsage` (dining_checks open; komende scheduled events met tickets valid/checked_in; betaalde webshop-/bol-orders pending/processing).
+- `sync-tenant-plan` (stempel `ADDON-SELF-1`):
+  - `addon` ook voor tenant_admin van díe winkel; guards voor aan (in_plan, granted, account_locked, inactive) en uit (addon_in_use, platformadmin kan `force`).
+  - B1: proefperiode (betaald plan, geen facturatieabonnement) → spoor gratis aan. `activate` zet elk betaald spoor dat aan staat (niet van het plan, niet granted) als regel op het eerste betaalabonnement.
+  - G1: Free/Flex → kaal abonnement met eerste factuurdatum over een maand, zonder regel, plus een pro-rata-cyclus voor de eerste maand. Het spoor gaat pas aan na betaling (mandaat hier, anders de webhook `effectuateAddonCycle`).
+  - G2: compare-and-swap op `tenant_subscriptions.billing_subscription_id`; de verliezer stopt zijn kale abonnement en krijgt 409 `proration_cycle_open`.
+  - Nieuwe leesactie `package`: plan, sporen, status en `quote` per add-on, met dezelfde pro-rataberekening (`addonProration`) als het aanzetten.
+- UI:
+  - `useTenantPackage` (nieuw) en `BusinessModulesSettings` = kaart "Je pakket" met status, prijs, bevestigingsvenster met het bedrag van vandaag, betaalknop en een uitzetvenster met het lopende werk. Staat in Instellingen › Modules én in Platformbeheer › winkel › Facturatie (`tenantId`).
+  - `ModuleOffCard` linkt naar Instellingen › Modules (nooit meer rechtstreeks aanzetten zonder prijs).
+  - `useBusinessModules` zonder `setModule`.
+- i18n `admin.modules.*` (39 nieuwe keys) in nl/en/fr/de/uk.
+- Paper trail: changelog 2026.14w `addon_self_serve` (5 talen), helpartikel `onderdeel-bijnemen` (`20261031160000_addon_self_1_docs.sql`), nieuwsbrief.
+
+- Review (3 rondes, aparte agent, met de businessregels erbij). Gevonden en gefikst:
+  - blocker: `plan_id` uit het verzoek → nu altijd uit de databank;
+  - een onbetaald verzoek zette een Free-winkel in leesmodus en sloot ze. Nu is een add-onverzoek (`isAddonRequestCycle`: pro rata, geen plan, `lines[0].kind='addon'`, mode ≠ mandate) geen schuld in `billingState` (server én app). Het vervalt bij het einde van de respijt (`process-cycle-reminders`), kan ingetrokken worden (ook verlopen), en `releaseEmptyBareSubscription` ruimt het kale abonnement op;
+  - mandaatcyclus (SEPA processing, add-on al aan) blijft wél schuld; uitzetten wist ze niet;
+  - activatie volledig terugdraaibaar tot het koppelen (geen wees-abonnement, geen dubbele aanrekening);
+  - `first_period`-markering: enkel de eerste maand op een kaal abonnement start bij de betaling;
+  - betaling op een net ingetrokken verzoek wordt niet afgeboekt + melding `payment_on_cancelled_request`; betaald maar intussen gratis ontgrendeld → melding `addon_paid_but_granted`;
+  - vaste betaallink (PAY-LINK-1), stopdatum = laatste betaalde dag, pakketprijs = exact wat `addon` doet (open upgrade, stale pending, op slot, stop intrekken), dubbelklik bij nieuwe klant (23505), platformweergave zonder redirect.
+
+**Security-keuzes**
+- Rechten in de functie: enkel `tenant_admin` met `tenant_id` = de winkel, of `platform_admin`. Staff, accountant en andere winkels krijgen 403 (getest), ook op `package`.
+- Geen RLS, grants of tabellen gewijzigd. `business_modules` blijft enkel server-side schrijfbaar (`tenants_protect_platform_columns`).
+
+**Gedeelde-paden-waarschuwing**
+- `sync-tenant-plan` bedient plan activeren, wisselen, opzeggen, verbruik en add-ons. De wijzigingen in `activate` voegen enkel add-onregels toe als er een betaald spoor aan staat (live 31-10: geen niet-demo winkel met zo'n spoor buiten Fonske, events = €0). `createBareBillingSubscription` houdt voor `ensure_usage` hetzelfde gedrag (opties zijn optioneel).
+- Geen storefront-/custom-frontendpaden geraakt.
+
+**Verificatie**
+- `deno check` sync-tenant-plan en generate-subscription-invoices tegen de echte npm-types: schoon.
+- `deno test _shared/addonSelfServe.test.ts`: 6/6. Handlertest `scripts/promo-compare/addonSelfServe.test.ts` (echte handler, schrijvende nep-databank): 10/10. Volledige CI-harnas-suite: 142 + nieuwe, groen.
+- Harnas uitgebreid: `statefulDb` gt/lt, Stripe-stub ook als type (TS2709).
+- 32 functies die de gewijzigde gedeelde bestanden (transitief) importeren: `deno check` schoon. Rooktest `storefront-api` groen. Harnas-suite 150/150, `_shared/addonSelfServe.test.ts` 8/8, vitest billingState + tracks 41/41.
+- tsc (kladkopie): geen fouten in gewijzigde bestanden. eslint op gewijzigde bestanden: schoon. i18n-pariteit: volledig.
+
+**Bewust ongemoeid / Vervolg**
+- Van spoor wisselen als klant (webshop → horeca): enkel via SellQo.
+- Twee gelijktijdige eerste activaties kunnen twee `customers`-rijen bij SellQo maken (bestaand gedrag `ensureBillingCustomer`).
+- Uitrol (volgorde): push → CI groen → deploy-only van de 32 functies (lijst: ads-bolcom-manage, ai-business-coach, ai-generate-email, ai-generate-social, ai-kaart-photo, ai-optimize-marketplace-content, ai-product-field-assistant, ai-product-promo-kit, automation-scheduler, create-bank-transfer-order, create-checkout-session, duplicate-product, generate-subscription-invoices, mail-billing-api, move-supplier-document, newsletter-invite, platform-stripe-webhook, process-campaign-queue, process-cycle-reminders, render-campaign-preview, run-csv-import, send-campaign-batch, send-test-email, social-post-publish, social-publish-due, social-translate-post, storefront-api, stripe-connect-webhook, subscription-lifecycle-sweep, sync-billing-state, sync-tenant-plan, update-order-fulfillment-status) → stempel sync-tenant-plan `ADDON-SELF-1` nameten → docs-migratie → publish sellqo.app (pas dan staat de knop live).
+- Na de deploy het verloop op live meten: een add-onverzoek mag `tenant_subscriptions.status` nooit naar past_due/restricted/suspended brengen.
+
 ## PLAN-DIALOG-1 — dood plan-keuzemenu in "Tenant bewerken" vervangen door een link — 31 oktober 2026
 
 **Root cause**

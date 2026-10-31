@@ -4,6 +4,16 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14w — Zelf een webshop, horeca of events bijnemen (feature, 31-10-2026)
+
+**Status:** wacht op go: push, deploy sync-tenant-plan, docs-migratie, publish.
+
+**Een webshop bij je café? Of horeca bij je winkel? Zet het zelf aan** (oktober 2026)
+In Instellingen › Modules zet je als beheerder zelf een extra onderdeel aan. Je ziet vooraf exact wat je vandaag betaalt, enkel voor de resterende dagen van je periode, en wat het daarna per maand kost. Het staat aan zodra de betaling binnen is; in je proefperiode is het gratis. Uitzetten kan altijd, tot het einde van wat je al betaalde.
+Wat betekent dit voor jou? Groeien zonder te wachten op SellQo, en nooit een verrassing op je factuur.
+
+i18n: `public.changelog.changes.addon_self_serve`
+
 ### 2026.14v — Printful-bestellingen gaan vanzelf in productie (feature, 31-10-2026)
 
 **Status:** wacht op go: push, migratie, deploy, publish (PRINTFUL-AUTO-1 live sinds 31-10, PRINTFUL-AUTO-2 volgt).

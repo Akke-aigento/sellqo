@@ -2404,6 +2404,10 @@
         "printful_auto_forward": {
           "title": "Printful-bestellingen gaan nu vanzelf in productie",
           "description": "Zet in SellQo Connect › Fulfilment \"Betaalde bestellingen automatisch doorsturen\" aan, en een betaalde bestelling met Printful-producten staat binnen enkele seconden bij Printful. Annuleer of terugbetaal je ze volledig, dan annuleert SellQo ze ook bij Printful zolang de productie niet gestart is. Gemengde bestellingen stuur je met één klik door voor enkel de Printful-producten. Loopt er iets mis, houdt Printful een bestelling tegen of is het totaal € 0, dan krijg je meteen een dringende melding als push en per mail."
+        },
+        "addon_self_serve": {
+          "title": "Zet zelf een webshop, horeca of events bij je plan",
+          "description": "In Instellingen › Modules zet je als beheerder zelf een extra onderdeel aan: een webshop bij je horecazaak, horeca bij je winkel of events. Je ziet vooraf exact wat je vandaag betaalt (enkel de resterende dagen van je periode) en wat het daarna kost. Het onderdeel staat aan zodra de betaling binnen is. In je proefperiode is het gratis. Uitzetten kan wanneer je wil: het loopt tot het einde van de betaalde periode, en zolang er nog rekeningen, tickets of bestellingen openstaan, houdt SellQo het aan."
         }
       },
       "copyLink": "Kopieer link",

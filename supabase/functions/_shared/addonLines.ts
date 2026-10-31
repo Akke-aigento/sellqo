@@ -1,6 +1,9 @@
 // BILL-ADDON-1 — add-onregels op het platform-facturatieabonnement lezen en herprijzen.
 // Gebruikt door sync-tenant-plan, planEffectuate en generate-subscription-invoices.
 import { addonLineDescription, addonPrice, type AddonRow, tenantIsNotBilled } from "./addonBilling.ts";
+import { advanceDate } from "./billingDates.ts";
+import { isAddonRequestCycle } from "./billingState.ts";
+import { notifyOnce } from "./billingAlerts.ts";
 
 // deno-lint-ignore no-explicit-any
 type Sb = any;
@@ -146,22 +149,76 @@ export async function activateAddonLine(
  */
 export async function effectuateAddonCycle(
   supabase: Sb,
-  cycle: { subscription_id?: string | null; lines?: unknown },
+  cycle: { id?: string | null; tenant_id?: string | null; subscription_id?: string | null; lines?: unknown; mode?: string | null },
+  todayISO: string = new Date().toISOString().slice(0, 10),
 ): Promise<boolean> {
-  const first = Array.isArray(cycle.lines) ? (cycle.lines[0] as { kind?: string; addon_id?: string } | undefined) : undefined;
+  const first = Array.isArray(cycle.lines) ? (cycle.lines[0] as { kind?: string; addon_id?: string; first_period?: boolean } | undefined) : undefined;
   if (!first || first.kind !== "addon" || !first.addon_id || !cycle.subscription_id) return false;
   const addons = await loadAddons(supabase);
   const addon = addons.get(first.addon_id);
   if (!addon) return false;
   const { data: ts } = await supabase
     .from("tenant_subscriptions").select("tenant_id").eq("billing_subscription_id", cycle.subscription_id).maybeSingle();
-  const { data: sub } = await supabase.from("subscriptions").select("interval, status").eq("id", cycle.subscription_id).maybeSingle();
+  const { data: sub } = await supabase.from("subscriptions").select("interval, status, next_invoice_date").eq("id", cycle.subscription_id).maybeSingle();
   if (!ts?.tenant_id || !sub || sub.status !== "active") return false;
-  await activateAddonLine(supabase, {
-    subscriptionId: cycle.subscription_id,
-    tenantId: ts.tenant_id,
-    addon,
-    interval: sub.interval === "yearly" ? "yearly" : "monthly",
-  });
+  // ADDON-SELF-1 (review): intussen gratis ontgrendeld door SellQo → geen regel, nooit verder
+  // aanrekenen. De betaalde pro rata vraagt dan een manuele terugbetaling (gelogd).
+  const { data: ov } = await supabase
+    .from("tenant_feature_overrides").select("granted_features").eq("tenant_id", ts.tenant_id).maybeSingle();
+  if (((ov?.granted_features ?? []) as unknown[]).includes(addon.track)) {
+    console.warn(`[ADDON] ${addon.id} betaald maar intussen gratis ontgrendeld voor ${ts.tenant_id}: geen regel, manueel terugbetalen`);
+    // Melding bij SellQo (eigenaar van de cyclus), één keer per cyclus: niemand leest webhooklogs.
+    if (cycle.tenant_id) {
+      await notifyOnce(supabase, {
+        tenantId: cycle.tenant_id,
+        category: "payments",
+        type: "addon_paid_but_granted",
+        priority: "high",
+        title: `Add-on betaald maar gratis ontgrendeld: ${addon.name}`,
+        message: cycle.mode === "mandate"
+          ? `Winkel ${ts.tenant_id} betaalde ${addon.name} via het mandaat, maar SellQo ontgrendelde dat spoor intussen gratis. De add-onregel staat al op het abonnement en wordt verder aangerekend: zet de add-on uit in het platformbeheer, betaal de pro rata terug en crediteer de factuur.`
+          : `Winkel ${ts.tenant_id} betaalde ${addon.name}, maar SellQo ontgrendelde dat spoor intussen gratis. Er komt geen factuurregel; betaal de pro rata terug en crediteer de factuur.`,
+        dedupeKey: `addon_granted:${cycle.id ?? cycle.subscription_id}`,
+        data: { billing_cycle_id: cycle.id ?? null, shop_tenant_id: ts.tenant_id, addon_id: addon.id },
+      });
+    }
+    return true;
+  }
+  const iv = sub.interval === "yearly" ? "yearly" : "monthly";
+  await activateAddonLine(supabase, { subscriptionId: cycle.subscription_id, tenantId: ts.tenant_id, addon, interval: iv });
+  // Eerste maand op een kaal abonnement (Free/Flex, gemarkeerd first_period): de periode start bij
+  // de betaling, niet bij het verzoek. Nooit bij een gewone pro rata (die loopt tot de bestaande datum).
+  // Via het mandaat stond de add-on al aan vanaf dag 0 (periode loopt vanaf het verzoek): niet opschuiven.
+  if (first.first_period === true && cycle.mode !== "mandate") {
+    const next = advanceDate(todayISO, iv);
+    const { error: nErr } = await supabase.from("subscriptions").update({ next_invoice_date: next }).eq("id", cycle.subscription_id);
+    if (nErr) throw nErr;
+  }
+  return true;
+}
+
+/**
+ * ADDON-SELF-1: een kaal facturatieabonnement (Free/Flex) dat enkel bestond voor een add-onverzoek
+ * dat nooit betaald werd: stoppen en ontkoppelen. Enkel als het geen enkele regel heeft en elke
+ * cyclus erop een geannuleerd add-onverzoek is. Geeft true als het opgeruimd werd.
+ */
+export async function releaseEmptyBareSubscription(supabase: Sb, subscriptionId: string, todayISO: string): Promise<boolean> {
+  const { count, error: lErr } = await supabase
+    .from("subscription_lines").select("id", { count: "exact", head: true }).eq("subscription_id", subscriptionId);
+  if (lErr) throw lErr;
+  if ((count ?? 0) > 0) return false;
+  const { data: cycles, error: cErr } = await supabase
+    .from("billing_cycles").select("id, status, cycle_type, target_plan_id, lines, mode").eq("subscription_id", subscriptionId);
+  if (cErr) throw cErr;
+  const list = (cycles ?? []) as { status: string; cycle_type?: string | null; target_plan_id?: string | null; lines?: unknown }[];
+  if (!list.length) return false;
+  const onlyDeadRequests = list.every((c) => c.status === "cancelled" && isAddonRequestCycle(c));
+  if (!onlyDeadRequests) return false;
+  const { error: sErr } = await supabase
+    .from("subscriptions").update({ status: "cancelled", end_date: todayISO }).eq("id", subscriptionId).eq("status", "active");
+  if (sErr) throw sErr;
+  const { error: tErr } = await supabase
+    .from("tenant_subscriptions").update({ billing_subscription_id: null }).eq("billing_subscription_id", subscriptionId);
+  if (tErr) throw tErr;
   return true;
 }

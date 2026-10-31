@@ -6,6 +6,8 @@
 // dit is een typecheck-stub, geen nagebouwde Stripe-API. Gebruikt een functie een nieuw
 // Stripe-type, voeg het hier toe (lijst: grep -rhoE "Stripe\.[A-Z][A-Za-z.]*" supabase/functions).
 const Stripe: any = class {};
+// Ook als type (`stripe: Stripe` in _shared/stripe.ts), anders TS2709.
+type Stripe = any;
 
 declare namespace Stripe {
   type Event = any;

@@ -95,7 +95,7 @@ serve(async (req) => {
         const [c, i] = await Promise.all([
           supabase
             .from("billing_cycles")
-            .select("id, status, due_date, grace_until, total, invoice_id, checkout_session_url, payment_request_number")
+            .select("id, status, due_date, grace_until, total, invoice_id, checkout_session_url, payment_request_number, cycle_type, target_plan_id, lines, mode")
             .eq("customer_id", customerId)
             .in("status", ["awaiting_payment", "reopened", "expired"]),
           supabase

@@ -14,6 +14,9 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.14w', dateKey: 'oct_2026', changes: [
+    { id: 'addon_self_serve', type: 'feature' },
+  ]},
   { version: '2026.14v', dateKey: 'oct_2026', changes: [
     { id: 'printful_auto_forward', type: 'feature' },
   ]},

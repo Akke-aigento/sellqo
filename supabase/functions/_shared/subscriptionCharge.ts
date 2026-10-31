@@ -13,6 +13,7 @@ import { resolveInvoiceFiscalFields } from "./invoiceFiscalFields.ts";
 import { announceReopen, refreshStateForCustomer } from "./billingReopen.ts";
 import { tenantPeriodAfterSettle } from "./tenantPeriod.ts";
 import { invoiceLinesFromSnapshot } from "./addonBilling.ts";
+import { isAddonRequestCycle } from "./billingState.ts";
 import { effectuateAddonCycle } from "./addonLines.ts";
 import {
   classifyPayment,
@@ -514,7 +515,7 @@ async function handleCycleCharge(
   const { data: cycle, error: cErr } = await supabase
     .from("billing_cycles")
     .select(
-      "id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, status, invoice_id, due_date, grace_until, cycle_type, target_plan_id, target_interval, description, payment_request_number, stripe_payment_intent_id, lines",
+      "id, tenant_id, customer_id, subscription_id, period_start, period_end, subtotal, vat_amount, total, status, invoice_id, due_date, grace_until, cycle_type, target_plan_id, target_interval, description, payment_request_number, stripe_payment_intent_id, lines, mode",
     )
     .eq("id", cycleId)
     .maybeSingle();
@@ -814,7 +815,7 @@ async function handleCycleCharge(
     if (lineErr) throw new Error(`factuurregels: ${lineErr.message}`);
   }
 
-  const { data: settled, error: setErr } = await supabase
+  let settleQ = supabase
     .from("billing_cycles")
     .update({
       status: "settled",
@@ -822,18 +823,35 @@ async function handleCycleCharge(
       stripe_payment_intent_id: intent.id,
     })
     .eq("id", cycle.id)
-    .is("invoice_id", null)
-    .select("id");
+    .is("invoice_id", null);
+  // ADDON-SELF-1: een add-onverzoek dat net ingetrokken of vervallen is (cancelled), nooit
+  // alsnog afboeken: de add-on gaat dan niet aan, dus de betaling moet terug (melding hieronder).
+  if (isAddonRequestCycle(cycle)) settleQ = settleQ.neq("status", "cancelled");
+  const { data: settled, error: setErr } = await settleQ.select("id");
   if (setErr) throw new Error(`cyclus afboeken: ${setErr.message}`);
   if (!settled || settled.length === 0) {
     // BILLING-SAFE-1: een gelijktijdige levering van dezelfde betaling heeft dezelfde
     // (hergebruikte) factuur al gekoppeld — dan is er niets dubbel.
     const { data: now, error: nowErr } = await supabase
       .from("billing_cycles")
-      .select("invoice_id")
+      .select("invoice_id, status")
       .eq("id", cycle.id)
       .maybeSingle();
     if (nowErr) throw new Error(`cyclus herlezen: ${nowErr.message}`);
+    if (now?.status === "cancelled" && !now.invoice_id) {
+      log("Payment on a cancelled add-on request — not settled", { cycleId, invoiceId: invoice.id, intent: intent.id });
+      await notifyOnce(supabase, {
+        tenantId: cycle.tenant_id,
+        category: "payments",
+        type: "payment_on_cancelled_request",
+        priority: "high",
+        title: `Betaling op ingetrokken add-onverzoek ${cycle.payment_request_number ?? ""}`.trim(),
+        message: `Er kwam een betaling binnen (Stripe ${intent.id}) op een add-onverzoek dat net ingetrokken of vervallen was. De add-on staat niet aan. Betaal terug of zet de add-on manueel aan, en crediteer factuur ${invoiceNumber}.`,
+        dedupeKey: `cancelled_request:${cycle.id}`,
+        data: { billing_cycle_id: cycle.id, invoice_id: invoice.id, payment_intent_id: intent.id },
+      });
+      return true;
+    }
     if (now?.invoice_id === invoice.id) {
       log("Cycle settled by a concurrent delivery of the same payment", { cycleId, invoiceId: invoice.id });
       return true;

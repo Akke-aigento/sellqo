@@ -13,6 +13,7 @@ import {
 } from '@/hooks/usePlatformBillingOverview';
 import { TenantOverviewTab } from '@/components/platform/TenantOverviewTab';
 import { TenantSubscriptionTab } from '@/components/platform/TenantSubscriptionTab';
+import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
 import { TenantCreditsTab } from '@/components/platform/TenantCreditsTab';
 import { TenantInvoicesTab } from '@/components/platform/TenantInvoicesTab';
 import { TenantModulesTab } from '@/components/platform/TenantModulesTab';
@@ -122,6 +123,8 @@ export default function TenantDetail() {
             <div className="space-y-6">
               <TenantOverviewTab tenantId={tenantId!} />
               <TenantSubscriptionTab tenantId={tenantId!} />
+              {/* ADDON-SELF-1: plan + sporen van deze winkel, zelfde kaart als de zaakvoerder ziet. */}
+              <BusinessModulesSettings tenantId={tenantId!} />
               <TenantInvoicesTab tenantId={tenantId!} />
             </div>
           )}

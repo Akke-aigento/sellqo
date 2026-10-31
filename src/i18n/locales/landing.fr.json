@@ -2404,6 +2404,10 @@
         "printful_auto_forward": {
           "title": "Les commandes Printful partent désormais seules en production",
           "description": "Activez « Transférer automatiquement les commandes payées » dans SellQo Connect › Fulfilment : une commande payée contenant des produits Printful arrive chez Printful en quelques secondes. Si vous l'annulez ou la remboursez entièrement, SellQo l'annule aussi chez Printful tant que la production n'a pas commencé. Les commandes mixtes se transfèrent en un clic pour les seuls produits Printful. En cas de problème, de commande bloquée par Printful ou de total à 0 €, vous recevez immédiatement une notification urgente, en push et par e-mail."
+        },
+        "addon_self_serve": {
+          "title": "Ajoute toi-même une boutique en ligne, l'horeca ou les événements à ton forfait",
+          "description": "Dans Paramètres › Modules, en tant qu'administrateur, tu actives toi-même un module supplémentaire : une boutique en ligne pour ton établissement horeca, l'horeca pour ton magasin, ou les événements. Tu vois à l'avance exactement ce que tu paies aujourd'hui (uniquement les jours restants de ta période) et ce que cela coûte ensuite. Le module s'active dès réception du paiement. Pendant ton essai, c'est gratuit. Tu peux le désactiver quand tu veux : il reste actif jusqu'à la fin de la période payée, et tant que des additions, billets ou commandes sont encore ouverts, SellQo le garde actif."
         }
       },
       "copyLink": "Copier le lien",

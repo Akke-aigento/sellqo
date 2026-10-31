@@ -26,7 +26,7 @@
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { getStripeContext } from "../_shared/stripe.ts";
 import { mintMandateSetupLink } from "../_shared/mandateToken.ts";
-import { resolveBillingState, addDays, toISODate } from "../_shared/billingState.ts";
+import { isAddonRequestCycle, resolveBillingState, addDays, toISODate } from "../_shared/billingState.ts";
 import { computeVatTotals } from "../_shared/billingMoney.ts";
 import { callVies, cleanVatNumber, parseVatCountry, isEuCountry } from "../_shared/vies.ts";
 
@@ -652,7 +652,7 @@ async function subscriptionStatus(admin: SupabaseClient, tenant: BillingTenant, 
 
   const { data: cycles, error: cyclesErr } = await admin
     .from("billing_cycles")
-    .select("id, status, due_date, grace_until, total, invoice_id, checkout_session_url, payment_request_number, period_start, updated_at")
+    .select("id, status, due_date, grace_until, total, invoice_id, checkout_session_url, payment_request_number, period_start, updated_at, cycle_type, target_plan_id, lines, mode")
     .eq("subscription_id", sub.id)
     .eq("tenant_id", tenant.id)
     .order("period_start", { ascending: true });
@@ -664,7 +664,7 @@ async function subscriptionStatus(admin: SupabaseClient, tenant: BillingTenant, 
   // Oudste openstaande vervaldag, met dezelfde definitie van "open" als resolveBillingState.
   const OPEN = new Set(["awaiting_payment", "reopened", "expired"]);
   const openDue = all
-    .filter((c) => OPEN.has(c.status) && !c.invoice_id && c.due_date)
+    .filter((c) => OPEN.has(c.status) && !c.invoice_id && c.due_date && !isAddonRequestCycle(c))
     .map((c) => c.due_date as string)
     .sort();
   const oudsteVervaldag = openDue[0] ?? null;

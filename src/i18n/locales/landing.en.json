@@ -2404,6 +2404,10 @@
         "printful_auto_forward": {
           "title": "Printful orders now go into production on their own",
           "description": "Turn on \"Forward paid orders automatically\" in SellQo Connect › Fulfilment, and a paid order with Printful products reaches Printful within seconds. If you cancel or fully refund it, SellQo also cancels it at Printful as long as production has not started. Mixed orders can be forwarded with one click for just the Printful products. If something goes wrong, Printful puts an order on hold or the total is €0, you get an urgent notification right away, as a push and by email."
+        },
+        "addon_self_serve": {
+          "title": "Add a webshop, hospitality or events to your plan yourself",
+          "description": "In Settings › Modules, as an admin you can turn on an extra module yourself: a webshop for your restaurant, hospitality for your shop, or events. You see upfront exactly what you pay today (only the remaining days of your period) and what it costs after that. The module turns on as soon as the payment is in. During your trial it's free. You can turn it off whenever you like: it runs until the end of the paid period, and as long as tabs, tickets or orders are still open, SellQo keeps it on."
         }
       },
       "copyLink": "Copy link",

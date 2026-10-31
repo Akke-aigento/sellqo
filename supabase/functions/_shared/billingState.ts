@@ -79,6 +79,26 @@ export interface CycleInput {
   /** PAY-LINK-1: de vaste betaallink, als de aanroeper hem kent. */
   pay_url?: string | null;
   payment_request_number?: string | null;
+  /** ADDON-SELF-1: om een onbetaald add-onverzoek te herkennen (zie isAddonRequestCycle). */
+  cycle_type?: string | null;
+  target_plan_id?: string | null;
+  lines?: unknown;
+  /** 'mandate' = de add-on ging al aan vóór de betaling binnen was (SEPA processing): dat is wél schuld. */
+  mode?: string | null;
+}
+
+/**
+ * ADDON-SELF-1: een pro-rata-cyclus voor een add-on (geen planwissel, lines[0].kind = 'addon')
+ * is een verzoek, geen schuld. Pay-first: het spoor gaat pas aan na betaling, dus wie niet
+ * betaalt kreeg ook niets. Zo'n cyclus mag een winkel nooit in leesmodus zetten of sluiten.
+ */
+export function isAddonRequestCycle(c: Pick<CycleInput, "cycle_type" | "target_plan_id" | "lines" | "mode">): boolean {
+  if (c.cycle_type !== "proration" || c.target_plan_id) return false;
+  // Via het mandaat aangerekend = de add-on staat al aan (ook als SEPA later faalt): echte schuld.
+  // Een mandaat dat meteen weigert, valt terug op mode 'manual' (betaalverzoek, add-on nog uit).
+  if (c.mode === "mandate") return false;
+  const first = Array.isArray(c.lines) ? (c.lines[0] as { kind?: string } | undefined) : undefined;
+  return first?.kind === "addon";
 }
 
 export interface InvoiceInput {
@@ -132,7 +152,7 @@ export function resolveBillingState(input: {
   now: string | Date;
 }): BillingStateResult {
   const today = toISODate(input.now);
-  const cycles = (input.cycles ?? []).filter((c) => OPEN_CYCLE_STATUSES.has(c.status) && !c.invoice_id);
+  const cycles = (input.cycles ?? []).filter((c) => OPEN_CYCLE_STATUSES.has(c.status) && !c.invoice_id && !isAddonRequestCycle(c));
   const invoices = (input.invoices ?? []).filter((i) => OPEN_INVOICE_STATUSES.has(i.status));
 
   let state: BillingState = "active";

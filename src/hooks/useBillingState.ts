@@ -48,7 +48,8 @@ export function useBillingState(): BillingStateResult & { isLoading: boolean } {
       const [cycles, invoices] = await Promise.all([
         supabase
           .from('billing_cycles')
-          .select('id, status, due_date, grace_until, total, invoice_id, checkout_session_url, payment_request_number')
+          // ADDON-SELF-1: zelfde velden als de server, zodat een onbetaald add-onverzoek ook hier geen schuld is.
+          .select('id, status, due_date, grace_until, total, invoice_id, checkout_session_url, payment_request_number, cycle_type, target_plan_id, lines, mode')
           .eq('customer_id', customerId)
           .in('status', ['awaiting_payment', 'reopened', 'expired']),
         supabase

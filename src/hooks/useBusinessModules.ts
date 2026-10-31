@@ -5,10 +5,7 @@
 //    afgedwongen door de trigger tenants_protect_platform_columns),
 //  - of een platformadmin het ontgrendeld heeft (tenant_feature_overrides.granted_features).
 // Platformadmins in beheerweergave zien alles. Zie src/lib/tracks.ts.
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
-import { useTranslation } from 'react-i18next';
-import { supabase } from '@/integrations/supabase/client';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { useTenant } from '@/hooks/useTenant';
@@ -76,69 +73,11 @@ export function useTracks() {
   return { tracks, planTrack, hasTrack, ready, bypass };
 }
 
-/** Antwoord uit een niet-2xx-antwoord van een edge function (FunctionsHttpError). */
-async function readErrorBody(error: unknown): Promise<{ code?: string; available_from?: string } | undefined> {
-  try {
-    const ctx = (error as { context?: Response } | null)?.context;
-    if (ctx && typeof ctx.json === 'function') return (await ctx.clone().json()) as { code?: string; available_from?: string };
-  } catch { /* geen json */ }
-  return undefined;
-}
-
 export function useBusinessModules() {
-  const { t } = useTranslation();
-  const { isPlatformAdmin } = useAuth();
-  const { currentTenant, refreshTenants } = useTenant();
+  const { currentTenant } = useTenant();
   const { hasTrack, planTrack, tracks, ready } = useTracks();
-  const [saving, setSaving] = useState(false);
   const chosen = tenantModules(currentTenant);
-
   const has = useCallback((m: BusinessModule): boolean => hasTrack(m), [hasTrack]);
-
-  /**
-   * Zet een add-on aan of uit. TRACKS-1: alleen platformadmins. BILL-ADDON-1: via
-   * sync-tenant-plan, zodat de add-on ook op de factuur komt (aan = pro rata meteen,
-   * uit = einde van de betaalde periode). Winkels die SellQo niet factureert: alleen de module.
-   */
-  const setModule = useCallback(async (m: BusinessModule, on: boolean) => {
-    if (!currentTenant?.id || !isPlatformAdmin) return false;
-    setSaving(true);
-    const { data, error } = await supabase.functions.invoke('sync-tenant-plan', {
-      body: { tenant_id: currentTenant.id, action: 'addon', addon_id: `addon_${m}`, enabled: on },
-    });
-    setSaving(false);
-    const res = (data ?? {}) as {
-      success?: boolean; code?: string; effective_at?: string; pro_rata_total?: number;
-      awaiting_payment?: boolean; pending?: boolean; available_from?: string;
-    };
-    if (error || !res.success) {
-      const body = res.code ? res : await readErrorBody(error);
-      const code = body?.code;
-      if (code === 'addon_needs_plan') toast.error(t('admin.modules.needs_plan'));
-      else if (code === 'renewal_pending' && body?.available_from) {
-        toast.error(t('admin.modules.renewal_pending', { date: new Date(body.available_from).toLocaleDateString() }));
-      } else if (code === 'proration_cycle_open') toast.error(t('admin.modules.payment_open'));
-      else toast.error(t('admin.modules.save_failed'));
-      return false;
-    }
-    // Manueel betalen: de add-on gaat pas aan zodra het betaalverzoek betaald is.
-    if (on && res.pending) {
-      toast.info(t('admin.modules.pro_rata_requested', {
-        amount: (res.pro_rata_total ?? 0).toLocaleString(undefined, { style: 'currency', currency: 'EUR' }),
-      }));
-      return false;
-    }
-    if (!on && res.effective_at && new Date(res.effective_at).getTime() > Date.now() + 60_000) {
-      toast.info(t('admin.modules.off_at_period_end', { date: new Date(res.effective_at).toLocaleDateString() }));
-    }
-    if (on && (res.pro_rata_total ?? 0) > 0) {
-      toast.info(t('admin.modules.pro_rata_charged', {
-        amount: (res.pro_rata_total ?? 0).toLocaleString(undefined, { style: 'currency', currency: 'EUR' }),
-      }));
-    }
-    await refreshTenants();
-    return true;
-  }, [currentTenant?.id, refreshTenants, t, isPlatformAdmin]);
-
-  return { has, ready, chosen, setModule, saving, planTrack, tracks, canManage: isPlatformAdmin };
+  // ADDON-SELF-1: aan/uit zetten gaat via useTenantPackage (prijs vooraf, pay-first).
+  return { has, ready, chosen, planTrack, tracks };
 }

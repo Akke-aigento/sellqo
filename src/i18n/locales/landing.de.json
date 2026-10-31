@@ -2404,6 +2404,10 @@
         "printful_auto_forward": {
           "title": "Printful-Bestellungen gehen jetzt von selbst in Produktion",
           "description": "Schalten Sie in SellQo Connect › Fulfilment „Bezahlte Bestellungen automatisch weiterleiten“ ein, und eine bezahlte Bestellung mit Printful-Produkten ist innerhalb von Sekunden bei Printful. Stornieren oder erstatten Sie sie vollständig, storniert SellQo sie auch bei Printful, solange die Produktion nicht begonnen hat. Gemischte Bestellungen leiten Sie mit einem Klick nur für die Printful-Produkte weiter. Geht etwas schief, hält Printful eine Bestellung an oder beträgt die Summe 0 €, erhalten Sie sofort eine dringende Benachrichtigung per Push und E-Mail."
+        },
+        "addon_self_serve": {
+          "title": "Füge deinem Tarif selbst einen Webshop, Gastronomie oder Events hinzu",
+          "description": "Unter Einstellungen › Module schaltest du als Admin selbst ein zusätzliches Modul ein: einen Webshop für deinen Gastronomiebetrieb, Gastronomie für deinen Laden oder Events. Du siehst vorab genau, was du heute zahlst (nur die restlichen Tage deines Zeitraums) und was es danach kostet. Das Modul wird eingeschaltet, sobald die Zahlung eingegangen ist. In deiner Testphase ist es kostenlos. Ausschalten kannst du es jederzeit: Es läuft bis zum Ende des bezahlten Zeitraums, und solange noch Rechnungen, Tickets oder Bestellungen offen sind, lässt SellQo es eingeschaltet."
         }
       },
       "copyLink": "Link kopieren",
