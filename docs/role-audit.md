@@ -1,3 +1,22 @@
+## KASSA-UX-5 — lijst met tabs op naam opent zonder toetsenbord (kassa 0.19.1) — 31 oktober 2026
+
+**Root cause**
+- `src/kassa/app/screens/TablesScreen.tsx`: het venster "Tabs op naam" is een Radix-`Dialog`. Die geeft bij het openen de focus aan het eerste invoerveld (het zoekveld), dus op gsm/tablet springt het toetsenbord meteen open. Akke (31-10): "irritant, de mannen gaan toch scrollen".
+
+**Uitgevoerd**
+- `TablesScreen.tsx`: `onOpenAutoFocus={(e) => e.preventDefault()}` op de `DialogContent`. Het zoekveld blijft; het toetsenbord komt pas na een tik erin. Het veld "Nieuwe tab op naam" (`autoFocus`) blijft bewust: daar typ je meteen.
+- `version.ts`: `KASSA_SW_VERSION` 0.19.1.
+
+**Security-keuzes** — n.v.t. (enkel focusgedrag).
+**Gedeelde-paden-waarschuwing** — geen gedeeld pad geraakt.
+
+**Verificatie**
+- Geen fiscaal bericht, geen eis-ID geraakt. `npx vitest run src/kassa` niet lokaal gedraaid (dependency-installatie in de sandbox tegengehouden); CI na de push.
+
+**Bewust ongemoeid / Vervolg**
+- De productzoeker in `CheckScreen.tsx` houdt `autoFocus`: die opent enkel na een tik op het vergrootglas.
+- In de native kassa-app pas zichtbaar na een nieuwe build.
+
 ## LOGO-DARK-1 — SellQo-logo met slogan leesbaar in het donkere thema — 31 oktober 2026
 
 **Root cause**

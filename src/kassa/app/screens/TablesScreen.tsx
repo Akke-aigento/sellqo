@@ -196,7 +196,8 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, on
 
       {allTabs && (
         <Dialog open onOpenChange={(o) => { if (!o) { setAllTabs(false); setTabQuery(''); } }}>
-          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
+          {/* KASSA-UX-5: geen toetsenbord bij openen; het personeel scrolt. Zoeken = eerst in het veld tikken. */}
+          <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md" onOpenAutoFocus={(e) => e.preventDefault()}>
             <DialogHeader><DialogTitle>{t('kassa.tables.allTabsTitle', { count: named.length })}</DialogTitle></DialogHeader>
             <input value={tabQuery} onChange={(e) => setTabQuery(e.target.value)} placeholder={t('kassa.checks.search')} aria-label={t('kassa.checks.search')}
               className="h-11 w-full rounded-md border bg-background px-3 text-base" />
