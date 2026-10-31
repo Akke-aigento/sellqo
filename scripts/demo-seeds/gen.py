@@ -83,8 +83,11 @@ def shop_sql(shop):
     pay = '["bank_transfer"]' if not shop['horeca'] else '[]'
     L.append(f"""INSERT INTO tenants (id, name, slug, owner_email, owner_name, address, postal_code, city, country, currency, language, tax_percentage, primary_color, payment_methods_enabled, is_demo, billing_exempt, platform_newsletter_opt_in, notification_email, iban, bic, bank_transfer_acknowledged_manual)
 VALUES (t, {q(shop['name'])}, {q(shop['slug'])}, {q(shop['slug'] + '@sellqo.app')}, 'SellQo Demo', 'Voorbeeldstraat {10 + SHOPS.index(shop) * 2}', '3000', 'Leuven', 'BE', 'EUR', 'nl', {shop['tax']}, {q(shop['color'])}, '{pay}'::jsonb, true, true, false, 'info@sellqo.app', 'BE00 0000 0000 0000', 'DEMOBEBB', true);""")
-    L.append("UPDATE tenant_subscriptions SET plan_id='enterprise', status='active', trial_end=null WHERE tenant_id=t;")
-    L.append("UPDATE tenants SET subscription_plan='enterprise', subscription_status='active' WHERE id=t;")
+    # Het plan bepaalt het hoofdspoor (pricing_plans.track): Enterprise hangt aan webshop en gaf een
+    # horecademo het volledige webshopmenu (Café De Wissel, 31-10-2026). Horeca = Horeca Small.
+    plan = 'horeca' if shop['horeca'] else 'enterprise'
+    L.append(f"UPDATE tenant_subscriptions SET plan_id='{plan}', status='active', trial_end=null WHERE tenant_id=t;")
+    L.append(f"UPDATE tenants SET subscription_plan='{plan}', subscription_status='active' WHERE id=t;")
     L.append(f"DELETE FROM customers WHERE tenant_id='{SELLQO_TENANT}' AND email={q(shop['slug'] + '@sellqo.app')};")
     if shop['horeca']:
         L.append("UPDATE tenants SET business_modules = array['horeca'] WHERE id=t;")
