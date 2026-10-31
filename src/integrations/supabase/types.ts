@@ -25237,15 +25237,26 @@ export type Database = {
         Args: { p_tenant_id: string }
         Returns: number
       }
-      printful_auto_forward_notify: {
-        Args: { p_order: string; p_reason: string; p_tenant: string }
-        Returns: undefined
+      printful_auto_cancel_order: {
+        Args: { p_order_id: string }
+        Returns: string
       }
       printful_auto_forward_order: {
         Args: { p_order_id: string }
         Returns: string
       }
       printful_auto_forward_sweep: { Args: never; Returns: number }
+      printful_notify: {
+        Args: {
+          p_message: string
+          p_order: string
+          p_priority: string
+          p_tenant: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
