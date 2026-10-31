@@ -141,6 +141,7 @@ export function firstPeriodTotals(net: number, vatRate: number): { net: number; 
 // ---------------------------------------------------------------------------
 // I/O: lopend werk per spoor. Bewust smal (head-counts), zodat het snel blijft.
 // deno-lint-ignore no-explicit-any
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Sb = any;
 
 export async function loadTrackUsage(supabase: Sb, tenantId: string, track: string, todayISO: string): Promise<TrackUsage> {

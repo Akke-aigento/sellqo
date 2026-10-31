@@ -691,6 +691,7 @@ Deno.serve(async (req) => {
 
       let liveSubId = (currentSub?.billing_subscription_id as string | null) ?? null;
       // deno-lint-ignore no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let liveSub: any = null;
       if (liveSubId) {
         const { data } = await supabase.from("subscriptions").select("id, interval, next_invoice_date, status").eq("id", liveSubId).maybeSingle();
@@ -699,8 +700,10 @@ Deno.serve(async (req) => {
       }
       const iv: Interval = liveSub?.interval === "yearly" ? "yearly" : "monthly";
       // deno-lint-ignore no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let lines: any[] = [];
       // deno-lint-ignore no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let openCycles: any[] = [];
       let renewalFrom: string | null = null;
       const anySubId = (currentSub?.billing_subscription_id as string | null) ?? null;
@@ -744,6 +747,7 @@ Deno.serve(async (req) => {
 
         // Wat kost aanzetten vandaag? Zelfde takken als action 'addon'.
         // deno-lint-ignore no-explicit-any
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let quote: any = null;
         if (status === "stopping") {
           // Een geplande stop intrekken kost niets, tenzij de volgende periode al zonder de add-on klaarstaat.
