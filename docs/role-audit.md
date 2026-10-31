@@ -1,3 +1,17 @@
+## LOGO-DARK-1 — SellQo-logo met slogan leesbaar in het donkere thema — 31 oktober 2026
+
+**Root cause**
+- `SellqoLogo variant="tagline"` (aanmeldpagina, marketingheader, footer) keek niet naar het thema. De NL-afbeelding `logo-tagline.png` en de SVG voor de andere talen tekenden "Sell" en de slogan altijd in navy `#0a1f58`, ook op een donkere achtergrond. De `full`-variant (admin-sidebar) wisselde wel al naar `logo-dark.png`.
+
+**Uitgevoerd (enkel frontend)**
+- Nieuw: `src/assets/logo-wordmark-dark.png`, afgeleid van `logo-wordmark.png`. "Sell" is wit, de tas blijft oranje en het hengsel navy, net als in `logo-dark.png`.
+- In het donkere thema (of met `onDark`) tekent de tagline-variant ook voor NL de SVG, met het donkere woordmerk en tekst `#f8fafc`. Het lichte thema blijft ongewijzigd (NL = de afbeelding).
+- Visueel nagekeken: NL en EN, op wit, `#0f172a` en `#1e293b`.
+
+**Bewust ongemoeid / Vervolg**
+- Het navy hengsel heeft weinig contrast op donker, maar zo staat het ook in het officiële `logo-dark.png`.
+- tsc niet lokaal gedraaid (dependency-installatie werd in de sandbox tegengehouden); CI na de push afwachten.
+
 ## LOVEKE-PRIJS-1 — Loveke-prijzen en kostprijzen op basis van de Printful-raming — 31 oktober 2026
 
 **Root cause**

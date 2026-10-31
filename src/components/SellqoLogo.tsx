@@ -4,6 +4,7 @@ import logoDark from '@/assets/logo-dark.png';
 import logoIcon from '@/assets/logo-icon.png';
 import logoTagline from '@/assets/logo-tagline.png';
 import logoWordmark from '@/assets/logo-wordmark.png';
+import logoWordmarkDark from '@/assets/logo-wordmark-dark.png';
 import { useTranslation } from 'react-i18next';
 
 interface SellqoLogoProps {
@@ -34,7 +35,11 @@ export function SellqoLogo({ variant = 'full', className = '', width, onDark = f
     // LOGO-I18N-1: de tagline zit in de NL-afbeelding gebakken. Voor de andere talen
     // tekenen we dezelfde opbouw (woordmerk links, twee regels rechts) als SVG,
     // zodat hij net zo meeschaalt als de afbeelding.
-    if (!i18n.language?.startsWith('nl')) {
+    // LOGO-DARK-1: de NL-afbeelding is navy-op-transparant en heeft geen donkere versie.
+    // In het donkere thema tekenen we daarom ook NL als SVG, met het lichte woordmerk
+    // en witte tekst.
+    const dark = onDark || resolvedTheme === 'dark';
+    if (dark || !i18n.language?.startsWith('nl')) {
       const [line1, ...rest] = tagline.split(/(?<=\.)\s+/);
       const line2 = rest.join(' ');
       // Breedte schatten (±56 eenheden per teken bij deze korps); de viewBox groeit mee.
@@ -48,8 +53,8 @@ export function SellqoLogo({ variant = 'full', className = '', width, onDark = f
           className={className}
           style={width ? { width: `${width * (vbWidth / 1920)}px`, height: 'auto' } : undefined}
         >
-          <image href={logoWordmark} x={75} y={268} width={881} height={354} />
-          <g fill="#0a1f58" fontWeight={700} fontSize={106} fontFamily="Poppins, Inter, Arial, sans-serif">
+          <image href={dark ? logoWordmarkDark : logoWordmark} x={75} y={268} width={881} height={354} />
+          <g fill={dark ? '#f8fafc' : '#0a1f58'}fontWeight={700} fontSize={106} fontFamily="Poppins, Inter, Arial, sans-serif">
             <text x={1089} y={448}>{line1}</text>
             {line2 && <text x={1089} y={566}>{line2}</text>}
           </g>
