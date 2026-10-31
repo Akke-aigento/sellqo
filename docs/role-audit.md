@@ -1,3 +1,51 @@
+## PRINTFUL-AUTO-1 — betaalde bestellingen automatisch naar Printful — 31 oktober 2026
+
+**Root cause**
+- Loveke's eerste echte bestelling (#0001, 31-10 08:50 UTC, betaald) verscheen niet bij Printful. Er bestond geen automatisch pad: `forward-printful-order` werd enkel aangeroepen door de knop in `PrintfulOrderCard.tsx`. `tenant_printful_settings.auto_forward_orders` stond op `true`, maar BLOG-FIX-1 had de schakelaar weggehaald omdat geen backend de kolom las. `printful_order_links` had 0 rijen voor Loveke.
+- Tweede fout, die ook de manuele knop zou breken: het verzendadres van custom frontends (Loveke) bevat geen naam (enkel street/postal_code/city/country/company). De forward eiste een naam → 422 "naam ontbreekt".
+
+**Uitgevoerd**
+- `supabase/migrations/20261031100000_printful_auto_1.sql`:
+  - `printful_auto_forward_order(order_id)`: opt-in van de winkel, betaald, credentials, élke fysieke regel gemapt (gemengde orders niet automatisch), claim `printful_order_links` met status `queued` (UNIQUE tenant_id, order_id), daarna `net.http_post` met `x-cron-secret`, dat bij het uitvoeren uit `internal_config` gelezen wordt.
+  - Hold (link `failed` + melding) bij een geannuleerde of geretourneerde order, een Stripe-bedragverschil (`internal_notes`-marker van `amountMismatchNote`) of een tweede order met dezelfde `stripe_checkout_session_id` (er is geen UNIQUE; live 0 dubbels).
+  - Triggers `trg_printful_auto_forward` (orders, INSERT/UPDATE OF payment_status, WHEN paid) en `trg_printful_auto_forward_items` (order_items, INSERT). Er zijn twee nodig omdat de Stripe-webhook de order als `paid` aanmaakt en de regels pas in een aparte request toevoegt.
+  - Vangnet `printful_auto_forward_sweep()` + cron `printful-auto-forward-sweep` (*/15, puur SQL): `queued`/`forwarding` ouder dan 15 min → `failed` + melding, zonder opnieuw te proberen.
+  - Meldingen via `printful_auto_forward_notify` (category `integrations`, type `integration_error`, dedupe `printful_forward:<order>`). Een mislukte melding draait niets terug.
+- `forward-printful-order/index.ts`:
+  - Nieuw auto-pad (`auto: true`, `isAuthorizedCronRequest`): atomaire claim `queued → forwarding`, betaal- en annuleerstatus opnieuw gecontroleerd, bij een fout `markAutoFailed` (link `failed` + melding).
+  - GET-versiestempel `printful-auto-1`.
+  - Handmatig pad: 409 bij `queued`/`forwarding`/`confirmed`.
+  - `writeFailed` overschrijft nooit een bevestigde order of een order met `printful_order_id`.
+  - Een fout bij het wegschrijven van de link na een geslaagde Printful-call wordt enkel gelogd.
+  - Naam valt terug op `orders.customer_name`, daarna `company`; `company` gaat mee naar Printful.
+- `PrintfulPodSettings.tsx`: schakelaar "Betaalde bestellingen automatisch doorsturen" terug. `PrintfulOrderCard.tsx`: badge "Wordt doorgestuurd…", en geen knop tijdens een forward of na bevestiging.
+- i18n `admin.printful.auto_forward_label/_hint`, `admin.printful.order.queued` in nl/en/fr/de/uk.
+
+**Security-keuzes**
+- Alle nieuwe functies: SECURITY DEFINER, `search_path=public`, REVOKE van PUBLIC/anon/authenticated (live nagetrokken: geen execute voor anon en authenticated). `printful_auto_forward_order` en de sweep zijn enkel voor service_role.
+- Het auto-pad aanvaardt enkel `x-cron-secret` (internal_config) of de service-key; de anon-key niet. Er staat geen secret in de migratie (de repo is publiek; gescand op `eyJ`).
+- De onbeveiligde GET geeft enkel de versiestring terug.
+
+**Gedeelde-paden-waarschuwing**
+- De triggers staan op `orders` en `order_items` voor alle tenants. De eerste check is goedkoop (opt-in in `tenant_printful_settings`; live enkel Loveke), en elke uitzondering wordt gevangen (`RAISE WARNING`), zodat checkout en imports nooit falen door deze koppeling.
+- `storefront-api`, `storefront-customer-api` en `storefront-resolve` zijn niet aangeraakt.
+
+**Verificatie**
+- Twee rondes review door een aparte agent (geld-rakend). Ronde 1: 2 blockers + 7 should-fix, allemaal opgelost behalve S6 (zie vervolg). Ronde 2: geen blockers.
+- `deno check` met de echte supabase-js-types: groen. Lint: 1457 → 1456. i18n-pariteit: volledig. CI op `9f188f9`: groen.
+- Deploy: nulmeting GET 500 (oude versie), na de deploy GET 200 `{"version":"printful-auto-1"}`. Main bleef op `9f188f9`.
+- Migratie via de connector; live nagetrokken: 5 functies, 2 triggers, cron actief.
+- #0001 via `printful_auto_forward_order` (hetzelfde pad als de trigger): `queued`, en ~4 s later `confirmed`, Printful-order **183840963**, kosten Printful € 104,15 (subtotaal 93,06 + verzending 11,09). Geen meldingen, pg_net-wachtrij leeg.
+- sellqo.app gepubliceerd. De live bundel `index-DUkCVMcH.js` bevat de nieuwe schakelaar en de NL-tekst.
+
+**Bewust ongemoeid / Vervolg**
+- S6: Stripe-testmodus wordt niet onderscheiden. Een test-checkout die een `paid` order oplevert, zou een echte Printful-order bevestigen. Na te gaan of test-events de Connect-webhook kunnen bereiken.
+- Geen UNIQUE op `orders.stripe_checkout_session_id` (enkel de hold in de forward). Een eigen batch, want het raakt checkout.
+- Annuleren of terugbetalen na een forward annuleert niets bij Printful.
+- Gemengde orders (Printful + eigen voorraad) gaan niet automatisch; ze blijven bij de knop.
+- Changelog, doc_articles en nieuwsbrief: nog niet gedaan.
+- Printful feature-gating: Printful zelf heeft nog geen feature-sleutel in `pricing_plans.features` (bestaande toestand, niet door deze batch).
+
 ## PRODUCT-FORM-3 — valse "niet opgeslagen", tagline/plandetail/AI-meldingen vertaald, Powerstation-Odoo nagetrokken — 31 oktober 2026
 
 **Root cause**
