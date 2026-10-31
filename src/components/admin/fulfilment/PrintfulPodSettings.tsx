@@ -35,11 +35,13 @@ export function PrintfulPodSettings({ tenantId }: Props) {
 
   const [syncEnabled, setSyncEnabled] = useState(false);
   const [autoConfirm, setAutoConfirm] = useState(false);
+  const [autoForward, setAutoForward] = useState(false);
 
   useEffect(() => {
     if (settings) {
       setSyncEnabled(settings.printful_sync_enabled);
       setAutoConfirm(settings.auto_confirm);
+      setAutoForward(settings.auto_forward_orders);
     }
   }, [settings]);
 
@@ -50,11 +52,12 @@ export function PrintfulPodSettings({ tenantId }: Props) {
   const configured = !!status.data?.configured;
   const lastOk = status.data?.last_test_ok;
 
-  // BLOG-FIX-1: de schakelaar "automatisch doorsturen" (auto_forward_orders) is weg —
-  // geen enkele backend las hem. De kolom blijft staan; doorsturen gebeurt per bestelling.
-  const handleToggle = (key: 'printful_sync_enabled' | 'auto_confirm', value: boolean) => {
+  // PRINTFUL-AUTO-1: "automatisch doorsturen" is terug en werkt nu echt — de DB-trigger
+  // printful_auto_forward_order stuurt een betaalde bestelling met Printful-producten door.
+  const handleToggle = (key: 'printful_sync_enabled' | 'auto_confirm' | 'auto_forward_orders', value: boolean) => {
     if (key === 'printful_sync_enabled') setSyncEnabled(value);
     if (key === 'auto_confirm') setAutoConfirm(value);
+    if (key === 'auto_forward_orders') setAutoForward(value);
     upsert.mutate({ [key]: value });
   };
 
@@ -153,6 +156,18 @@ export function PrintfulPodSettings({ tenantId }: Props) {
             <Switch
               checked={syncEnabled}
               onCheckedChange={(v) => handleToggle('printful_sync_enabled', v)}
+              disabled={!canWrite || !configured}
+            />
+          </div>
+
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <Label>{t('admin.printful.auto_forward_label')}</Label>
+              <p className="text-xs text-muted-foreground">{t('admin.printful.auto_forward_hint')}</p>
+            </div>
+            <Switch
+              checked={autoForward}
+              onCheckedChange={(v) => handleToggle('auto_forward_orders', v)}
               disabled={!canWrite || !configured}
             />
           </div>

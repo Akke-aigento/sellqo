@@ -7727,6 +7727,8 @@
       "settings_description": "Déterminez comment SellQo fonctionne avec votre boutique Printful.",
       "sync_enabled_label": "Intégration Printful active",
       "sync_enabled_hint": "Activez ou désactivez l'intégration sans supprimer votre token.",
+      "auto_forward_label": "Transférer automatiquement les commandes payées",
+      "auto_forward_hint": "Activé = dès qu'une commande contenant des produits Printful est payée, SellQo l'envoie lui-même à Printful. En cas d'échec, vous recevez une notification et pouvez réessayer depuis la commande.",
       "auto_confirm_label": "Confirmer immédiatement les commandes chez Printful",
       "auto_confirm_hint": "Activé = une commande transférée est confirmée immédiatement et passe en production. Désactivé = elle arrive chez Printful en brouillon, et vous la confirmez vous-même là-bas.",
       "import_title": "Importer des produits",
@@ -7737,6 +7739,7 @@
       "cancel": "Annuler",
       "disconnect_confirm": "Déconnecter",
       "order": {
+        "queued": "Transfert en cours…",
         "not_forwarded": "Pas encore transférée",
         "draft": "Brouillon chez Printful",
         "confirmed": "Confirmée",

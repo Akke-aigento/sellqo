@@ -8058,6 +8058,8 @@
       "settings_description": "Decide how SellQo works with your Printful store.",
       "sync_enabled_label": "Printful integration active",
       "sync_enabled_hint": "Turn the integration on or off without removing your token.",
+      "auto_forward_label": "Forward paid orders automatically",
+      "auto_forward_hint": "On = as soon as an order with Printful products is paid, SellQo sends it to Printful itself. If that fails, you get a notification and can retry from the order.",
       "auto_confirm_label": "Confirm orders at Printful right away",
       "auto_confirm_hint": "On = a forwarded order is confirmed immediately and goes into production. Off = it arrives at Printful as a draft, and you confirm it there yourself.",
       "import_title": "Import products",
@@ -8068,6 +8070,7 @@
       "cancel": "Cancel",
       "disconnect_confirm": "Disconnect",
       "order": {
+        "queued": "Being forwarded…",
         "not_forwarded": "Not forwarded yet",
         "draft": "Draft at Printful",
         "confirmed": "Confirmed",

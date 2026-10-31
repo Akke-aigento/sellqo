@@ -8072,6 +8072,8 @@
       "settings_description": "Bepaal hoe SellQo met je Printful-winkel samenwerkt.",
       "sync_enabled_label": "Printful-koppeling actief",
       "sync_enabled_hint": "Zet de koppeling aan of uit zonder je token te verwijderen.",
+      "auto_forward_label": "Betaalde bestellingen automatisch doorsturen",
+      "auto_forward_hint": "Aan = zodra een bestelling met Printful-producten betaald is, stuurt SellQo ze zelf naar Printful. Lukt dat niet, dan krijg je een melding en kan je het in de bestelling opnieuw proberen.",
       "auto_confirm_label": "Bestellingen direct bevestigen bij Printful",
       "auto_confirm_hint": "Aan = een doorgestuurde bestelling wordt meteen bevestigd en gaat in productie. Uit = ze komt als concept bij Printful, en je bevestigt ze daar zelf.",
       "import_title": "Producten importeren",
@@ -8082,6 +8084,7 @@
       "cancel": "Annuleer",
       "disconnect_confirm": "Verbreek verbinding",
       "order": {
+        "queued": "Wordt doorgestuurd…",
         "not_forwarded": "Nog niet doorgestuurd",
         "draft": "Concept bij Printful",
         "confirmed": "Bevestigd",

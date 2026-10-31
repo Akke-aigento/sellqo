@@ -28,6 +28,10 @@ export function PrintfulOrderCard({ tenantId, orderId }: Props) {
   if (!status.data?.configured || !settings?.printful_sync_enabled) return null;
 
   const failed = link?.status === 'failed';
+  // PRINTFUL-AUTO-1: tijdens een automatische forward en na bevestiging geen knop (de server
+  // weigert dan ook) — opnieuw sturen kan Printful laten dubbel produceren.
+  const busy = link?.status === 'queued' || link?.status === 'forwarding';
+  const locked = busy || link?.status === 'confirmed';
 
   return (
     <Card>
@@ -39,6 +43,7 @@ export function PrintfulOrderCard({ tenantId, orderId }: Props) {
       <CardContent className="space-y-3">
         <div className="flex flex-wrap items-center gap-2 text-sm">
           {!link && <Badge variant="outline">{t('admin.printful.order.not_forwarded')}</Badge>}
+          {busy && <Badge variant="secondary">{t('admin.printful.order.queued')}</Badge>}
           {link?.status === 'draft' && <Badge variant="secondary">{t('admin.printful.order.draft')}</Badge>}
           {link?.status === 'confirmed' && <Badge>{t('admin.printful.order.confirmed')}</Badge>}
           {link?.status === 'canceled' && <Badge variant="outline">{t('admin.printful.order.canceled')}</Badge>}
@@ -52,6 +57,7 @@ export function PrintfulOrderCard({ tenantId, orderId }: Props) {
           <p className="text-xs text-destructive break-words">{link.last_error}</p>
         )}
 
+        {!locked && (
         <Button
           size="sm"
           variant={failed ? 'outline' : 'default'}
@@ -66,6 +72,7 @@ export function PrintfulOrderCard({ tenantId, orderId }: Props) {
               : <Package className="w-4 h-4 mr-2" />}
           {failed ? t('admin.printful.order.retry') : link ? t('admin.printful.order.forward_again') : t('admin.printful.order.forward')}
         </Button>
+        )}
       </CardContent>
     </Card>
   );
