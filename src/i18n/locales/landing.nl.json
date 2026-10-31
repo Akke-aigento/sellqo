@@ -2400,6 +2400,10 @@
         "product_form_fixes": {
           "title": "Productpagina toont niet meer onterecht \"niet opgeslagen\"",
           "description": "Open je een product, dan stond de opslaanbalk meteen op \"niet opgeslagen\" terwijl je nog niets had gewijzigd. Dat is opgelost, en opslaan kan je btw-tarief niet meer leegmaken. Daarnaast zijn het plandetail bij Abonnement, de meldingen bij AI-afbeeldingen en de slogan in het SellQo-logo nu in jouw taal."
+        },
+        "printful_auto_forward": {
+          "title": "Printful-bestellingen gaan nu vanzelf in productie",
+          "description": "Zet in SellQo Connect › Fulfilment \"Betaalde bestellingen automatisch doorsturen\" aan, en een betaalde bestelling met Printful-producten staat binnen enkele seconden bij Printful. Annuleer of terugbetaal je ze volledig, dan annuleert SellQo ze ook bij Printful zolang de productie niet gestart is. Gemengde bestellingen stuur je met één klik door voor enkel de Printful-producten. Loopt er iets mis, houdt Printful een bestelling tegen of is het totaal € 0, dan krijg je meteen een dringende melding als push en per mail."
         }
       },
       "copyLink": "Kopieer link",

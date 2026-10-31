@@ -5,7 +5,7 @@
 //
 // Deliberately does NOT reuse tracking-webhook: that path serves the proven
 // Bol/carrier flow and must stay untouched. This is a thin, dedicated update.
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
+import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.57.2';
 import { sha256Hex } from '../_shared/printfulApi.ts';
 
 const corsHeaders = {
@@ -77,8 +77,36 @@ function pickString(obj: Record<string, unknown>, ...keys: string[]): string | n
   return null;
 }
 
+// PRINTFUL-AUTO-2 — Printful-zijdige problemen kwamen enkel stil in de link terecht. Nu
+// krijgt de winkel een dringende melding (push + mail) bij mislukt, on hold of een
+// annulering die niet van SellQo kwam.
+const WEBHOOK_VERSION = 'printful-auto-2';
+
+async function notifyPrintfulIssue(
+  admin: SupabaseClient,
+  tenantId: string,
+  orderId: string,
+  title: string,
+  message: string,
+): Promise<void> {
+  const { data: order } = await admin.from('orders').select('order_number').eq('id', orderId).maybeSingle();
+  const number = (order as { order_number?: string } | null)?.order_number ?? orderId.slice(0, 8);
+  const { error } = await admin.from('notifications').insert({
+    tenant_id: tenantId,
+    category: 'integrations',
+    type: 'printful_order_failed',
+    priority: 'urgent',
+    title: title.replace('{n}', number),
+    message,
+    action_url: `/admin/orders/${orderId}`,
+    data: { order_id: orderId, dedupe_key: `printful_issue:${orderId}` },
+  });
+  if (error) console.error('[printful-webhook] notify failed:', error.message);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'GET') return json({ ok: true, version: WEBHOOK_VERSION });
 
   const admin = createClient(
     Deno.env.get('SUPABASE_URL')!,
@@ -130,11 +158,11 @@ Deno.serve(async (req) => {
     const externalId = payload.data?.order?.external_id ?? null;
 
     // Match the link row, always scoped to this tenant.
-    let link: { id: string; order_id: string; tenant_id: string } | null = null;
+    let link: { id: string; order_id: string; tenant_id: string; status: string } | null = null;
     if (pfOrderId) {
       const { data } = await admin
         .from('printful_order_links')
-        .select('id, order_id, tenant_id')
+        .select('id, order_id, tenant_id, status')
         .eq('tenant_id', tenantId)
         .eq('printful_order_id', pfOrderId)
         .maybeSingle();
@@ -145,7 +173,7 @@ Deno.serve(async (req) => {
       if (asUuid) {
         const { data } = await admin
           .from('printful_order_links')
-          .select('id, order_id, tenant_id')
+          .select('id, order_id, tenant_id, status')
           .eq('tenant_id', tenantId)
           .eq('order_id', asUuid)
           .maybeSingle();
@@ -260,6 +288,21 @@ Deno.serve(async (req) => {
       .eq('id', link.id)
       .eq('tenant_id', tenantId);
     if (linkErr) console.error('[printful-webhook] link update failed:', linkErr.message);
+
+    const ownCancel = link.status === 'canceling' || link.status === 'canceled' || link.status === 'cancel_failed';
+    if (type === 'order_failed') {
+      await notifyPrintfulIssue(admin, tenantId, link.order_id,
+        'Bestelling {n} mislukt bij Printful',
+        `Printful meldt dat de bestelling mislukt is${reason ? ` (${reason})` : ''}. Ze wordt niet geproduceerd. Kijk de bestelling na in Printful.`);
+    } else if (type === 'order_put_hold') {
+      await notifyPrintfulIssue(admin, tenantId, link.order_id,
+        'Bestelling {n} staat on hold bij Printful',
+        `Printful heeft de bestelling tegengehouden${reason ? ` (${reason})` : ''}. Vaak is dat een betaalprobleem bij Printful of een adres dat niet klopt. Tot je het oplost in Printful, wordt er niets geproduceerd.`);
+    } else if (type === 'order_canceled' && !ownCancel) {
+      await notifyPrintfulIssue(admin, tenantId, link.order_id,
+        'Bestelling {n} geannuleerd door Printful',
+        `Printful heeft de bestelling geannuleerd${reason ? ` (${reason})` : ''}. De klant krijgt niets: verstuur opnieuw of betaal de klant terug.`);
+    }
 
     return json({ received: true, type });
   } catch (err) {

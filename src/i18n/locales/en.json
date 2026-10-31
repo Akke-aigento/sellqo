@@ -1176,6 +1176,18 @@
           "supplier_invoice_odoo_error": {
             "label": "Purchase invoice not sent to Odoo",
             "description": "When sending to Odoo keeps failing"
+          },
+          "printful_order_failed": {
+            "label": "Printful: order not forwarded",
+            "description": "A paid order did not reach Printful, or Printful put it on hold. It will not be produced until you fix it."
+          },
+          "printful_order_canceled": {
+            "label": "Printful: order cancelled",
+            "description": "A cancelled or refunded order was also cancelled at Printful."
+          },
+          "printful_cancel_failed": {
+            "label": "Printful: cancellation failed",
+            "description": "A cancelled order could no longer be cancelled at Printful."
           }
         }
       }
@@ -8059,7 +8071,7 @@
       "sync_enabled_label": "Printful integration active",
       "sync_enabled_hint": "Turn the integration on or off without removing your token.",
       "auto_forward_label": "Forward paid orders automatically",
-      "auto_forward_hint": "On = as soon as an order with Printful products is paid, SellQo sends it to Printful itself. If that fails, you get a notification and can retry from the order.",
+      "auto_forward_hint": "On = as soon as an order with only Printful products is paid, SellQo sends it to Printful itself. If you then cancel or fully refund it, SellQo also cancels it at Printful as long as production has not started. Mixed orders, €0 orders and anything that goes wrong reach you as an urgent notification (push and email).",
       "auto_confirm_label": "Confirm orders at Printful right away",
       "auto_confirm_hint": "On = a forwarded order is confirmed immediately and goes into production. Off = it arrives at Printful as a draft, and you confirm it there yourself.",
       "import_title": "Import products",
@@ -8070,6 +8082,12 @@
       "cancel": "Cancel",
       "disconnect_confirm": "Disconnect",
       "order": {
+        "canceling": "Being cancelled…",
+        "cancel_failed": "Cancellation failed",
+        "forward_partial": "Forward only the Printful products",
+        "cancel": "Cancel at Printful",
+        "cancel_confirm_title": "Cancel this order at Printful?",
+        "cancel_confirm_description": "Printful can only cancel while production has not started. If it works, nothing is produced and Printful refunds the cost. The order in SellQo itself does not change.",
         "queued": "Being forwarded…",
         "not_forwarded": "Not forwarded yet",
         "draft": "Draft at Printful",
@@ -8109,6 +8127,7 @@
         "import": "Import"
       },
       "toast": {
+        "order_canceled": "Order cancelled at Printful",
         "call_failed": "Request failed",
         "unknown_error": "Unknown error",
         "connection_ok": "Connection OK",

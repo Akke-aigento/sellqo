@@ -2400,6 +2400,10 @@
         "product_form_fixes": {
           "title": "Product page no longer wrongly shows \"unsaved changes\"",
           "description": "When you opened a product, the save bar immediately showed \"unsaved changes\" even though you hadn't changed anything. That's fixed, and saving can no longer clear your VAT rate. The plan details under Subscription, the AI image notifications and the slogan in the SellQo logo now also appear in your language."
+        },
+        "printful_auto_forward": {
+          "title": "Printful orders now go into production on their own",
+          "description": "Turn on \"Forward paid orders automatically\" in SellQo Connect › Fulfilment, and a paid order with Printful products reaches Printful within seconds. If you cancel or fully refund it, SellQo also cancels it at Printful as long as production has not started. Mixed orders can be forwarded with one click for just the Printful products. If something goes wrong, Printful puts an order on hold or the total is €0, you get an urgent notification right away, as a push and by email."
         }
       },
       "copyLink": "Copy link",

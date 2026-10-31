@@ -295,6 +295,10 @@ export const NOTIFICATION_CONFIG: NotificationCategoryConfig[] = [
       { type: 'integration_error', defaultInApp: true, defaultEmail: false },
       // INKOOP-6
       { type: 'supplier_invoice_odoo_error', defaultInApp: true, defaultEmail: false },
+      // PRINTFUL-AUTO-2 — fouten zijn urgent: push én mail, ook zonder e-mailschakelaar.
+      { type: 'printful_order_failed', defaultInApp: true, defaultEmail: false },
+      { type: 'printful_order_canceled', defaultInApp: true, defaultEmail: false },
+      { type: 'printful_cancel_failed', defaultInApp: true, defaultEmail: false },
     ]
   },
 ];

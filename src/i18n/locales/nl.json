@@ -1176,6 +1176,18 @@
           "supplier_invoice_odoo_error": {
             "label": "Inkoopfactuur niet naar Odoo",
             "description": "Wanneer doorsturen naar Odoo blijft mislukken"
+          },
+          "printful_order_failed": {
+            "label": "Printful: bestelling niet doorgestuurd",
+            "description": "Een betaalde bestelling ging niet naar Printful, of Printful hield ze tegen. Ze wordt niet geproduceerd tot je het oplost."
+          },
+          "printful_order_canceled": {
+            "label": "Printful: bestelling geannuleerd",
+            "description": "Een geannuleerde of terugbetaalde bestelling is ook bij Printful geannuleerd."
+          },
+          "printful_cancel_failed": {
+            "label": "Printful: annuleren mislukt",
+            "description": "Een geannuleerde bestelling kon bij Printful niet meer geannuleerd worden."
           }
         }
       }
@@ -8073,7 +8085,7 @@
       "sync_enabled_label": "Printful-koppeling actief",
       "sync_enabled_hint": "Zet de koppeling aan of uit zonder je token te verwijderen.",
       "auto_forward_label": "Betaalde bestellingen automatisch doorsturen",
-      "auto_forward_hint": "Aan = zodra een bestelling met Printful-producten betaald is, stuurt SellQo ze zelf naar Printful. Lukt dat niet, dan krijg je een melding en kan je het in de bestelling opnieuw proberen.",
+      "auto_forward_hint": "Aan = zodra een bestelling met enkel Printful-producten betaald is, stuurt SellQo ze zelf naar Printful. Annuleer of terugbetaal je ze daarna volledig, dan annuleert SellQo ze ook bij Printful zolang de productie niet gestart is. Gemengde bestellingen, bestellingen van € 0 en alles wat misloopt krijg je als dringende melding (push en mail).",
       "auto_confirm_label": "Bestellingen direct bevestigen bij Printful",
       "auto_confirm_hint": "Aan = een doorgestuurde bestelling wordt meteen bevestigd en gaat in productie. Uit = ze komt als concept bij Printful, en je bevestigt ze daar zelf.",
       "import_title": "Producten importeren",
@@ -8084,6 +8096,12 @@
       "cancel": "Annuleer",
       "disconnect_confirm": "Verbreek verbinding",
       "order": {
+        "canceling": "Wordt geannuleerd…",
+        "cancel_failed": "Annuleren mislukt",
+        "forward_partial": "Enkel Printful-producten doorsturen",
+        "cancel": "Annuleren bij Printful",
+        "cancel_confirm_title": "Bestelling annuleren bij Printful?",
+        "cancel_confirm_description": "Printful annuleert enkel zolang de productie nog niet gestart is. Lukt het, dan wordt er niets geproduceerd en betaalt Printful de kost terug. De bestelling in SellQo zelf verandert niet.",
         "queued": "Wordt doorgestuurd…",
         "not_forwarded": "Nog niet doorgestuurd",
         "draft": "Concept bij Printful",
@@ -8123,6 +8141,7 @@
         "import": "Importeren"
       },
       "toast": {
+        "order_canceled": "Bestelling geannuleerd bij Printful",
         "call_failed": "Aanroep mislukt",
         "unknown_error": "Onbekende fout",
         "connection_ok": "Verbinding OK",

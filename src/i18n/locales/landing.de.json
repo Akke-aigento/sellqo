@@ -2400,6 +2400,10 @@
         "product_form_fixes": {
           "title": "Produktseite zeigt nicht mehr fälschlich „nicht gespeichert“",
           "description": "Wenn du ein Produkt geöffnet hast, stand die Speicherleiste sofort auf „nicht gespeichert“, obwohl du nichts geändert hattest. Das ist behoben, und Speichern kann deinen Mehrwertsteuersatz nicht mehr leeren. Die Tarifdetails unter Abonnement, die Meldungen bei KI-Bildern und der Slogan im SellQo-Logo erscheinen jetzt auch in deiner Sprache."
+        },
+        "printful_auto_forward": {
+          "title": "Printful-Bestellungen gehen jetzt von selbst in Produktion",
+          "description": "Schalten Sie in SellQo Connect › Fulfilment „Bezahlte Bestellungen automatisch weiterleiten“ ein, und eine bezahlte Bestellung mit Printful-Produkten ist innerhalb von Sekunden bei Printful. Stornieren oder erstatten Sie sie vollständig, storniert SellQo sie auch bei Printful, solange die Produktion nicht begonnen hat. Gemischte Bestellungen leiten Sie mit einem Klick nur für die Printful-Produkte weiter. Geht etwas schief, hält Printful eine Bestellung an oder beträgt die Summe 0 €, erhalten Sie sofort eine dringende Benachrichtigung per Push und E-Mail."
         }
       },
       "copyLink": "Link kopieren",

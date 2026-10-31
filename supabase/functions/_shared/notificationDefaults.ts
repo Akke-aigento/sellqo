@@ -138,6 +138,10 @@ export const NOTIFICATION_DEFAULTS: Readonly<Record<string, TypeDefaults>> = {
   "integrations/integration_disconnected": { category: "integrations", inApp: true, email: false },
   "integrations/integration_error": { category: "integrations", inApp: true, email: false },
   "integrations/supplier_invoice_odoo_error": { category: "integrations", inApp: true, email: false },
+  // PRINTFUL-AUTO-2 — urgent/high → mailt toch (planEmail), push staat standaard aan.
+  "integrations/printful_order_failed": { category: "integrations", inApp: true, email: false },
+  "integrations/printful_order_canceled": { category: "integrations", inApp: true, email: false },
+  "integrations/printful_cancel_failed": { category: "integrations", inApp: true, email: false },
 };
 
 /** Push staat voor elk type standaard aan — ook voor een type dat hier (nog) niet staat. */

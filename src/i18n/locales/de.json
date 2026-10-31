@@ -1204,6 +1204,18 @@
           "supplier_invoice_odoo_error": {
             "label": "Einkaufsrechnung nicht an Odoo",
             "description": "Wenn das Senden an Odoo wiederholt fehlschlägt"
+          },
+          "printful_order_failed": {
+            "label": "Printful: Bestellung nicht weitergeleitet",
+            "description": "Eine bezahlte Bestellung ist nicht bei Printful angekommen, oder Printful hat sie angehalten. Sie wird erst produziert, wenn Sie das Problem lösen."
+          },
+          "printful_order_canceled": {
+            "label": "Printful: Bestellung storniert",
+            "description": "Eine stornierte oder erstattete Bestellung wurde auch bei Printful storniert."
+          },
+          "printful_cancel_failed": {
+            "label": "Printful: Stornierung fehlgeschlagen",
+            "description": "Eine stornierte Bestellung konnte bei Printful nicht mehr storniert werden."
           }
         }
       }
@@ -7728,7 +7740,7 @@
       "sync_enabled_label": "Printful-Verknüpfung aktiv",
       "sync_enabled_hint": "Schalten Sie die Verknüpfung ein oder aus, ohne Ihr Token zu löschen.",
       "auto_forward_label": "Bezahlte Bestellungen automatisch weiterleiten",
-      "auto_forward_hint": "An = sobald eine Bestellung mit Printful-Produkten bezahlt ist, sendet SellQo sie selbst an Printful. Klappt das nicht, erhalten Sie eine Benachrichtigung und können es in der Bestellung erneut versuchen.",
+      "auto_forward_hint": "An = sobald eine Bestellung mit ausschließlich Printful-Produkten bezahlt ist, sendet SellQo sie selbst an Printful. Stornieren oder erstatten Sie sie danach vollständig, storniert SellQo sie auch bei Printful, solange die Produktion nicht begonnen hat. Gemischte Bestellungen, Bestellungen über 0 € und alles, was schiefgeht, erhalten Sie als dringende Benachrichtigung (Push und E-Mail).",
       "auto_confirm_label": "Bestellungen sofort bei Printful bestätigen",
       "auto_confirm_hint": "An = eine weitergeleitete Bestellung wird sofort bestätigt und geht in Produktion. Aus = sie kommt als Entwurf bei Printful an, und Sie bestätigen sie dort selbst.",
       "import_title": "Produkte importieren",
@@ -7739,6 +7751,12 @@
       "cancel": "Abbrechen",
       "disconnect_confirm": "Verbindung trennen",
       "order": {
+        "canceling": "Wird storniert…",
+        "cancel_failed": "Stornierung fehlgeschlagen",
+        "forward_partial": "Nur die Printful-Produkte weiterleiten",
+        "cancel": "Bei Printful stornieren",
+        "cancel_confirm_title": "Bestellung bei Printful stornieren?",
+        "cancel_confirm_description": "Printful kann nur stornieren, solange die Produktion noch nicht begonnen hat. Klappt es, wird nichts produziert und Printful erstattet die Kosten. Die Bestellung in SellQo selbst ändert sich nicht.",
         "queued": "Wird weitergeleitet…",
         "not_forwarded": "Noch nicht weitergeleitet",
         "draft": "Entwurf bei Printful",
@@ -7778,6 +7796,7 @@
         "import": "Importieren"
       },
       "toast": {
+        "order_canceled": "Bestellung bei Printful storniert",
         "call_failed": "Anfrage fehlgeschlagen",
         "unknown_error": "Unbekannter Fehler",
         "connection_ok": "Verbindung OK",

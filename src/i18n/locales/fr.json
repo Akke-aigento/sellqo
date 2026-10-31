@@ -1204,6 +1204,18 @@
           "supplier_invoice_odoo_error": {
             "label": "Facture d'achat non envoyée à Odoo",
             "description": "Lorsque l'envoi vers Odoo échoue à répétition"
+          },
+          "printful_order_failed": {
+            "label": "Printful : commande non transmise",
+            "description": "Une commande payée n'est pas arrivée chez Printful, ou Printful l'a bloquée. Elle ne sera pas produite tant que vous n'aurez pas réglé le problème."
+          },
+          "printful_order_canceled": {
+            "label": "Printful : commande annulée",
+            "description": "Une commande annulée ou remboursée a aussi été annulée chez Printful."
+          },
+          "printful_cancel_failed": {
+            "label": "Printful : échec de l'annulation",
+            "description": "Une commande annulée n'a plus pu être annulée chez Printful."
           }
         }
       }
@@ -7728,7 +7740,7 @@
       "sync_enabled_label": "Intégration Printful active",
       "sync_enabled_hint": "Activez ou désactivez l'intégration sans supprimer votre token.",
       "auto_forward_label": "Transférer automatiquement les commandes payées",
-      "auto_forward_hint": "Activé = dès qu'une commande contenant des produits Printful est payée, SellQo l'envoie lui-même à Printful. En cas d'échec, vous recevez une notification et pouvez réessayer depuis la commande.",
+      "auto_forward_hint": "Activé = dès qu'une commande ne contenant que des produits Printful est payée, SellQo l'envoie lui-même à Printful. Si vous l'annulez ou la remboursez ensuite entièrement, SellQo l'annule aussi chez Printful tant que la production n'a pas commencé. Les commandes mixtes, les commandes à 0 € et tout problème vous parviennent en notification urgente (push et e-mail).",
       "auto_confirm_label": "Confirmer immédiatement les commandes chez Printful",
       "auto_confirm_hint": "Activé = une commande transférée est confirmée immédiatement et passe en production. Désactivé = elle arrive chez Printful en brouillon, et vous la confirmez vous-même là-bas.",
       "import_title": "Importer des produits",
@@ -7739,6 +7751,12 @@
       "cancel": "Annuler",
       "disconnect_confirm": "Déconnecter",
       "order": {
+        "canceling": "Annulation en cours…",
+        "cancel_failed": "Échec de l'annulation",
+        "forward_partial": "Transférer uniquement les produits Printful",
+        "cancel": "Annuler chez Printful",
+        "cancel_confirm_title": "Annuler cette commande chez Printful ?",
+        "cancel_confirm_description": "Printful ne peut annuler que tant que la production n'a pas commencé. Si cela fonctionne, rien n'est produit et Printful rembourse le coût. La commande dans SellQo ne change pas.",
         "queued": "Transfert en cours…",
         "not_forwarded": "Pas encore transférée",
         "draft": "Brouillon chez Printful",
@@ -7778,6 +7796,7 @@
         "import": "Importer"
       },
       "toast": {
+        "order_canceled": "Commande annulée chez Printful",
         "call_failed": "La requête a échoué",
         "unknown_error": "Erreur inconnue",
         "connection_ok": "Connexion OK",

@@ -4,6 +4,16 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14v — Printful-bestellingen gaan vanzelf in productie (feature, 31-10-2026)
+
+**Status:** wacht op go: push, migratie, deploy, publish (PRINTFUL-AUTO-1 live sinds 31-10, PRINTFUL-AUTO-2 volgt).
+
+**Verkoop je via Printful? Dan hoef je niets meer door te sturen** (oktober 2026)
+Zodra een klant betaalt, staat de bestelling binnen enkele seconden bij Printful. Annuleer of terugbetaal je ze, dan annuleert SellQo ze ook bij Printful zolang er nog niets gedrukt is. En loopt er iets mis, of houdt Printful een bestelling tegen, dan hoor je het meteen: een pushbericht op je gsm en een mail.
+Wat betekent dit voor jou? Geen bestelling die blijft liggen, en geen productie van iets dat je al terugbetaalde.
+
+i18n: `public.changelog.changes.printful_auto_forward`
+
 ### 2026.14u — Productpagina zonder valse "niet opgeslagen" (bugfix, 31-10-2026)
 
 **Status:** wacht op publish (samen met 2026.14s/14t).

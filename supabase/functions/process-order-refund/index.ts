@@ -108,7 +108,10 @@ serve(async (req) => {
 
           stripeRefundId = refund.id;
           refundMethod = "stripe";
-          refundStatus = refund.status === "succeeded" ? "processed" : "pending";
+          // PRINTFUL-AUTO-2: 'processed' bestaat niet in refund_status_enum (pending,
+          // approved_for_refund, initiated, completed, failed, denied, not_applicable). De insert in
+          // returns faalde daardoor na een geslaagde Stripe-refund en de order bleef op 'paid'.
+          refundStatus = refund.status === "succeeded" ? "completed" : "pending";
           console.log(`Stripe refund created: ${refund.id} for order ${order.order_number}`);
         } catch (stripeError) {
           console.error("Stripe refund failed:", stripeError);
@@ -138,7 +141,7 @@ serve(async (req) => {
         customer_id: order.customer_id || null,
         marketplace_return_id: null,
         marketplace_connection_id: null,
-        status: refundStatus === "processed" ? "approved" : "registered",
+        status: refundStatus === "completed" ? "approved" : "registered",
         return_reason: reason,
         customer_name: order.customer_name,
         items: returnItems,

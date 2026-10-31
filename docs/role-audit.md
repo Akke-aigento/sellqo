@@ -1,3 +1,60 @@
+## PRINTFUL-AUTO-2 — Printful zonder gaten: annuleren, gemengde orders, meldingen, kostenraming — 31 oktober 2026
+
+**Root cause**
+- Na PRINTFUL-AUTO-1 bleven er gaten over:
+  - Een geannuleerde of terugbetaalde bestelling bleef bij Printful in productie.
+  - Gemengde bestellingen en bestellingen van € 0 werden stil overgeslagen of automatisch geproduceerd.
+  - Printful-zijdige problemen (order_failed, order_put_hold, order_canceled) kwamen enkel stil in `printful_order_links` terecht (`printful-webhook/index.ts`, linkUpdate zonder melding).
+  - Fouten gebruikten het generieke type `integration_error`.
+  - SellQo kende de Printful-kost nergens, waardoor marge niet te berekenen was.
+- Correctie op AUTO-1: daar stond onder vervolg dat Printful geen feature-sleutel heeft. Dat is niet nagekeken; volgens het helpartikel is Printful beschikbaar vanaf Starter. Deze batch raakt de gating niet.
+
+**Uitgevoerd**
+- `supabase/migrations/20261031120000_printful_auto_2.sql`:
+  - `printful_notify(...)` (vervangt `printful_auto_forward_notify`): eigen types `integrations/printful_order_failed` (urgent), `printful_order_canceled` (medium) en `printful_cancel_failed` (urgent). Een falende melding draait niets terug.
+  - `printful_auto_forward_order`: extra holds voor gemengde bestellingen, totaal ≤ € 0 en `tenants.is_demo` (Stripe-testmodus, zie `_shared/stripe.ts`). Elke hold zet de link op `failed` met de reden en stuurt een urgente melding.
+  - `printful_auto_cancel_order` + trigger `trg_printful_auto_cancel` (orders: status → cancelled, of payment_status → refunded). Overslaan als de order al verzonden of geretourneerd is (`shipped_at`, status shipped/delivered/returned/partially_returned) of als de laatste retour `refund_status = 'failed'` heeft. Daarna claim confirmed/draft → `canceling` en pg_net naar `forward-printful-order` (action cancel).
+  - Sweep: `canceling` > 15 min → `cancel_failed` + melding. Nieuw vangnet: confirmed/draft-links met een geannuleerde of terugbetaalde, niet-verzonden order worden alsnog geannuleerd.
+  - Sweep: elke annulering apart afgeschermd (één slechte rij houdt het vangnet niet tegen).
+- Helpartikel `printful-print-on-demand-koppelen` bijgewerkt (ON CONFLICT DO UPDATE).
+- `forward-printful-order` (versie `printful-auto-2`):
+  - Acties `forward` / `cancel` / `estimate`.
+  - Cancel: `DELETE /orders/{id|@external_id}`. Handmatig enkel voor tenant_admin; de auto-claim gebeurt atomair via `updated_at`.
+  - `partial` stuurt bij een gemengde bestelling enkel de gekoppelde regels door (de server antwoordt anders `code: mixed_order`).
+  - `estimate` (`POST /orders/estimate-costs`) heeft geen neveneffect.
+  - Pakbon met korting.
+  - Geannuleerd vóór het doorsturen → link `canceled`, zonder alarm.
+  - Na een automatische forward hercheckt de functie de order en annuleert meteen bij een annulering in de tussentijd.
+- `printful-webhook` (versie `printful-auto-2`): urgente melding bij order_failed, order_put_hold en een order_canceled die niet van SellQo kwam.
+- Meldingstypes geregistreerd in `_shared/notificationDefaults.ts` + `src/types/notification.ts` + i18n (5 talen).
+- `PrintfulOrderCard.tsx` + `usePrintfulOrderLink.ts`:
+  - Statussen canceling/cancel_failed.
+  - Knop "Annuleren bij Printful" (AlertDialog, enkel beheerder).
+  - Bij een gemengde bestelling "Enkel Printful-producten doorsturen".
+  - De reden wordt altijd getoond.
+- `process-order-refund`: bestaande bug rechtgezet. Een geslaagde Stripe-refund schreef `refund_status = 'processed'`, dat niet in `refund_status_enum` staat (live nagetrokken). De returns-insert faalde, de functie gaf een fout terug en de order bleef `paid`, terwijl het geld al terug was. Nu `completed`, met retourstatus `approved`.
+- Hint van de schakelaar uitgebreid. Changelog 2026.14v (5 talen), nieuwsbrief-wachtrij.
+
+**Security-keuzes**
+- Nieuwe SQL-functies: SECURITY DEFINER, `search_path=public`, REVOKE van PUBLIC/anon/authenticated; enkel service_role mag uitvoeren.
+- Annuleren via de knop vereist tenant_admin (server + UI). Het auto-pad vereist het interne secret.
+- `estimate` vereist het secret of tenant_admin en toont enkel de kosten van de eigen winkel.
+
+**Verificatie (vóór uitrol)**
+- Twee reviewrondes door een aparte agent. Ronde 1: 0 blockers, 6 should-fix (S1–S5 opgelost, S6 gedocumenteerd). Ronde 2: 0 blockers, R1/R2 en N1 opgelost.
+- `deno check` groen (forward-printful-order, printful-webhook, process-order-refund). Vitest notificaties: 158/158. `check-notification-sources`: ok. i18n-pariteit: volledig. Lint: onder de baseline.
+
+**Gedeelde-paden-waarschuwing**
+- `_shared/notificationDefaults.ts` kreeg 3 data-regels. De importers (billingAlerts → generate-subscription-invoices, platform-stripe-webhook, stripe-connect-webhook, sync-billing-state) gebruiken enkel billing-types. Bovendien gedraagt een onbekend type zich identiek (email false, behalve bij urgent/high; push hangt niet af van het type). Die functies zijn bewust niet herdeployed; create-notification en send-push-notification wel.
+- De annuleertrigger staat op `orders` voor alle tenants. Hij stopt meteen als er geen Printful-link bestaat, en vangt elke uitzondering op.
+- Gedragswijziging: automatisch annuleren geldt voor elke order bij Printful, ook bij handmatig doorsturen.
+
+**Bewust ongemoeid / Vervolg**
+- Een geannuleerde Printful-order kan niet opnieuw doorgestuurd worden (Printful hergebruikt external_id vermoedelijk niet). Dat staat in het helpartikel.
+- `process-order-refund` zet de order ook bij een mislukte Stripe-refund op `refunded` (bestaand gedrag). De annulering vangt dit af via `returns.refund_status = 'failed'`; die status zelf rechtzetten is een eigen batch.
+- Een terugbetaling vanuit het Stripe-dashboard (`charge.refunded`) wordt niet verwerkt en annuleert dus niets.
+- Geen UNIQUE op `orders.stripe_checkout_session_id` (ongewijzigd sinds AUTO-1).
+
 ## PRINTFUL-AUTO-1 — betaalde bestellingen automatisch naar Printful — 31 oktober 2026
 
 **Root cause**
