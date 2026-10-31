@@ -27,6 +27,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  // PRINTFUL-AUTO-2: versiestempel om de deploy zonder neveneffect na te meten.
+  if (req.method === "GET") {
+    return new Response(JSON.stringify({ ok: true, version: "printful-auto-2" }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const authHeader = req.headers.get("Authorization");
