@@ -1,3 +1,34 @@
+## LOVEKE-PRIJS-1 — Loveke-prijzen en kostprijzen op basis van de Printful-raming — 31 oktober 2026
+
+**Root cause**
+- Met gratis verzending bleef er bij tees, petten en mokken bijna niets over (tee €0,34 winst, tee 2XL −€0,96 per stuk). Gemeten met de nieuwe `estimate`-actie van forward-printful-order. Gekalibreerd: de raming van #0001 (€104,15) is gelijk aan wat Printful echt aanrekende.
+- Tanktop XL (variant 1bc9cf1a…): Printful levert die enkel naar Australië en Nieuw-Zeeland. Een Europese klant kon hem kopen, maar zou hem nooit krijgen.
+
+**Uitgevoerd (data, Akke's go: optie A, verzending blijft gratis)**
+- 37 varianten kregen een nieuwe prijs en een `cost_price`. De kostprijs is Printful-product + verzending voor één stuk, excl. btw; Printful rekent 0% aan. De verzending zit erin omdat Loveke ze betaalt; zo valt de winst nooit te hoog uit. Digitalisering van petten (eenmalig per ontwerp) niet inbegrepen.
+- Prijzen:
+  - tees €29,95 (2XL €31,95)
+  - tanktop €27,95 (2XL €29,95)
+  - bodysuit €29,95 (ongewijzigd)
+  - kids-hoodie €49,95
+  - hoodie €59,95 / €61,95 (2XL) / €63,95 (3XL)
+  - sweatshirt €59,95 (2XL €61,95)
+  - petten €29,95
+  - mok €24,95
+- Tanktop XL: `is_active = false`.
+- `products.price` en `cost_price` = laagste actieve variant.
+
+**Verificatie**
+- storefront-api `get_products` en `get_product` (hoodie, tanktop) tonen de nieuwe prijzen, de XL-tank is weg, en `cost_price` lekt niet naar de site.
+- Productteksten bevatten geen oude prijzen. De IG-weekroutine leest de prijzen live uit SellQo.
+
+**Terugdraaien**
+- `snapshots.loveke_20261031_products` en `snapshots.loveke_20261031_product_variants` (price, compare_at_price, cost_price, is_active).
+
+**Bewust ongemoeid / Vervolg**
+- Drie IG-posts die al online staan, tonen nog de oude prijs in het beeld: tee 18-10, hoodie 21-10, sweatshirt 24-10. De caption kan in Instagram aangepast worden; het beeld niet.
+- `retail_price` in Printful zelf (enkel informatief) is niet bijgewerkt.
+
 ## PRINTFUL-AUTO-2 — Printful zonder gaten: annuleren, gemengde orders, meldingen, kostenraming — 31 oktober 2026
 
 **Root cause**
