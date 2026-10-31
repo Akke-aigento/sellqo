@@ -64,7 +64,7 @@ Verder:
 - Overschrijving: `iban 'BE00 0000 0000 0000'`, `bic 'DEMOBEBB'`, `bank_transfer_acknowledged_manual true`.
 
 De triggers bij de insert doen drie dingen. Ruim ze meteen op:
-1. Ze maken een trial-abonnement aan. Zet `tenant_subscriptions` op `plan_id 'enterprise'`, `status 'active'`, `trial_end null`, en `tenants.subscription_plan/status` op enterprise/active.
+1. Ze maken een trial-abonnement aan. Zet `tenant_subscriptions` op het plan van het spoor van de demo: horeca → `plan_id 'horeca'` (Horeca Small), events → `'events_vast'`, webshop → `'enterprise'`. Verder `status 'active'`, `trial_end null`, en `tenants.subscription_plan/status` op dat plan/active. Nooit Enterprise voor een horeca- of eventsdemo: het plan bepaalt het hoofdspoor (`pricing_plans.track`), en Enterprise hangt aan webshop. De zaak krijgt dan het volledige webshopmenu (Café De Wissel, 31-10-2026).
 2. `register_tenant_as_sellqo_customer` maakt een klantrij aan in de SellQo-tenant `d03c63fe-48c6-4ff7-a30b-7506ea3e71ab`. Verwijder die rij (op e-mail).
 3. Een adminrol wordt overgeslagen zonder `auth.uid()`. Dat is goed zo: Akke beheert de winkel als platform_admin.
 
