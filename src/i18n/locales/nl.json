@@ -9603,6 +9603,10 @@
       "delete_body": "Toestellen die met deze kassa werken, moeten daarna een andere kassa kiezen. Dit kan je niet ongedaan maken.",
       "delete_confirm": "Verwijderen",
       "cancel": "Annuleren"
+    },
+    "tenantForm": {
+      "planMoved": "Plan en status van het abonnement wijzig je op de detailpagina van de winkel, onder Facturatie.",
+      "planMovedLink": "Naar het abonnement"
     }
   },
   "product_form": {

@@ -9589,6 +9589,10 @@
       "delete_body": "Devices that use this terminal must then choose another one. This cannot be undone.",
       "delete_confirm": "Delete",
       "cancel": "Cancel"
+    },
+    "tenantForm": {
+      "planMoved": "You change the subscription plan and status on the shop's detail page, under Billing.",
+      "planMovedLink": "Go to subscription"
     }
   },
   "product_form": {

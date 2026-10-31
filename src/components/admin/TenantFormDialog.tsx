@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -67,6 +69,7 @@ export function TenantFormDialog({
   onSubmit,
   isLoading,
 }: TenantFormDialogProps) {
+  const { t } = useTranslation();
   const form = useForm<TenantFormData>({
     resolver: zodResolver(tenantSchema),
     defaultValues: {
@@ -352,54 +355,17 @@ export function TenantFormDialog({
               </TabsContent>
 
               <TabsContent value="settings" className="space-y-4 mt-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="subscription_plan"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Abonnement</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecteer plan" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="starter">Starter</SelectItem>
-                            <SelectItem value="professional">Professional</SelectItem>
-                            <SelectItem value="enterprise">Enterprise</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="subscription_status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecteer status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="trial">Trial</SelectItem>
-                            <SelectItem value="active">Actief</SelectItem>
-                            <SelectItem value="suspended">Opgeschort</SelectItem>
-                            <SelectItem value="cancelled">Geannuleerd</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                {/* PLAN-DIALOG-1: plan en status hier schreven naar de dode kolommen tenants.subscription_plan/
+                    subscription_status (zonder horeca/events, met een onbestaand "professional"). Het echte
+                    abonnement (tenant_subscriptions) wijzig je enkel op de detailpagina › Facturatie. */}
+                <p className="rounded-md border bg-muted/40 p-3 text-sm text-muted-foreground">
+                  {t('admin.tenantForm.planMoved')}{' '}
+                  {tenant?.id ? (
+                    <Link to={`/admin/platform/tenants/${tenant.id}`} className="font-medium text-primary underline-offset-4 hover:underline" onClick={() => onOpenChange(false)}>
+                      {t('admin.tenantForm.planMovedLink')}
+                    </Link>
+                  ) : null}
+                </p>
 
                 <div className="grid grid-cols-2 gap-4">
                   <FormField

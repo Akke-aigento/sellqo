@@ -9258,6 +9258,10 @@
       "delete_body": "Les appareils qui utilisent cette caisse devront en choisir une autre. Action irréversible.",
       "delete_confirm": "Supprimer",
       "cancel": "Annuler"
+    },
+    "tenantForm": {
+      "planMoved": "Le forfait et le statut de l'abonnement se modifient sur la page détaillée de la boutique, sous Facturation.",
+      "planMovedLink": "Vers l'abonnement"
     }
   },
   "billing": {

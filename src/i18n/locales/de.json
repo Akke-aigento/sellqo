@@ -9258,6 +9258,10 @@
       "delete_body": "Geräte, die diese Kasse nutzen, müssen danach eine andere wählen. Das kann nicht rückgängig gemacht werden.",
       "delete_confirm": "Löschen",
       "cancel": "Abbrechen"
+    },
+    "tenantForm": {
+      "planMoved": "Tarif und Status des Abos änderst du auf der Detailseite des Shops unter Abrechnung.",
+      "planMovedLink": "Zum Abo"
     }
   },
   "billing": {

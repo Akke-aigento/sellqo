@@ -1,3 +1,22 @@
+## PLAN-DIALOG-1 — dood plan-keuzemenu in "Tenant bewerken" vervangen door een link — 31 oktober 2026
+
+**Root cause**
+- `src/components/admin/TenantFormDialog.tsx` (tab Instellingen): de keuzemenu's Abonnement (Starter/Professional/Enterprise, hardcoded) en Status schreven naar `tenants.subscription_plan/subscription_status`. Die kolommen zijn dood: het plan komt uit `tenant_subscriptions`. De horeca- en eventsplannen ontbraken, en "professional" bestaat niet (het plan heet `pro`). Akke probeerde De Wissel daar naar Horeca Small te zetten (31-10); dat kon niet.
+
+**Uitgevoerd**
+- `TenantFormDialog.tsx`: beide keuzemenu's weg; in de plaats een korte uitleg met een link naar de detailpagina van de winkel (Facturatie › abonnement). De formulierwaarden zelf blijven (standaard starter/trial bij aanmaken), dus het opslaan verandert niet.
+- i18n `admin.tenantForm.planMoved` en `planMovedLink` in nl/en/fr/de/uk.
+
+**Security-keuzes** — n.v.t. (enkel platformadmin-UI, geen rechten geraakt).
+**Gedeelde-paden-waarschuwing** — geen gedeeld pad geraakt.
+
+**Verificatie**
+- `node scripts/i18n-parity.mjs`: volledige pariteit. tsc niet lokaal (dependency-installatie in de sandbox tegengehouden); CI na de push.
+- Data: Café De Wissel staat op `horeca` (Horeca Small), nagemeten 31-10 13:50 UTC; Akke wisselde het via het abonnementsscherm.
+
+**Bewust ongemoeid / Vervolg**
+- Pizzeria Fiamma, Bistro Mirabelle (→ Horeca Small), Zaal De Linde en Zomerfest (→ Events Vast) staan nog op Enterprise; Akke zet ze om via het abonnementsscherm. Skill `sellqo-demo-tenant` en `scripts/demo-seeds/gen.py` zijn al rechtgezet (1cef4b3, 44217ec).
+
 ## KASSA-UX-5 — lijst met tabs op naam opent zonder toetsenbord (kassa 0.19.1) — 31 oktober 2026
 
 **Root cause**
