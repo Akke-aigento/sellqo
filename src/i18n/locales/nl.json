@@ -6885,7 +6885,12 @@
           "empty": "Er zijn nog geen actieve gerechten.",
           "missing": "Bij {{count}} gerecht(en) staan geen allergenen. Kijk na of dat klopt: op de kaart lijkt een lege rij op \"bevat geen allergenen\". Je vult ze in bij het product.",
           "updated": "Bijgewerkt op {{date}}",
-          "print_footer": "● = bevat dit allergeen. Heb je een allergie? Vraag het gerust aan ons personeel."
+          "print_footer": "● = bevat dit allergeen. Heb je een allergie? Vraag het gerust aan ons personeel.",
+          "state_missing": "niet ingevuld",
+          "state_none": "geen allergenen",
+          "missing_todo": "Bij {{count}} gerecht(en) zijn de allergenen nog niet ingevuld. Vink de allergenen aan die erin zitten, of \"Bevat geen van de 14 allergenen\" als er geen in zitten. Zolang dat niet gebeurd is, ziet een gast op het QR-menu dat de allergenen niet ingevuld zijn.",
+          "todo_title": "Nog in te vullen",
+          "all_done": "Bij alle gerechten zijn de allergenen ingevuld."
         },
         "channels_title": "Waar te bestellen",
         "channels_desc": "Eén kaart voor je webshop, je QR-menu en de kassa. Wat hier uit staat, kan daar niet besteld worden.",
@@ -9516,6 +9521,11 @@
         "none_short": "–",
         "missing_aria": "{{name}}: geen kostprijs ingevuld",
         "pct_aria": "{{name}}: foodcost {{pct}}"
+      },
+      "allergenState": {
+        "none": "geen allergenen",
+        "missing": "allergenen niet ingevuld",
+        "banner": "Bij {{count}} product(en) op je kaart zijn de allergenen nog niet ingevuld. Bekijk welke."
       }
     },
     "horecaPay": {

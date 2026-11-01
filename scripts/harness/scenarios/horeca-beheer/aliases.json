@@ -17,5 +17,6 @@
   "/^\\./useKaart$/": "mocks/kaart.ts",
   "@/utils/floorQrPdf": "mocks/qrpdf.ts",
   "/^\\./useTenant$/": "mocks/tenant.ts",
-  "/^\\./useAuth$/": "mocks/auth.ts"
+  "/^\\./useAuth$/": "mocks/auth.ts",
+  "@/components/admin/horeca/kaart/useKaart": "mocks/kaart.ts"
 }

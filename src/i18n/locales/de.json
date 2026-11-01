@@ -6952,7 +6952,12 @@
           "empty": "Es gibt noch keine aktiven Gerichte.",
           "missing": "Bei {{count}} Gericht(en) sind keine Allergene angegeben. Prüfen Sie, ob das stimmt: Auf der Karte liest sich eine leere Zeile wie „enthält keine Allergene“. Sie tragen sie beim Produkt ein.",
           "updated": "Aktualisiert am {{date}}",
-          "print_footer": "● = enthält dieses Allergen. Haben Sie eine Allergie? Fragen Sie gern unser Personal."
+          "print_footer": "● = enthält dieses Allergen. Haben Sie eine Allergie? Fragen Sie gern unser Personal.",
+          "state_missing": "nicht angegeben",
+          "state_none": "keine Allergene",
+          "missing_todo": "Bei {{count}} Gericht(en) sind die Allergene noch nicht angegeben. Hake die enthaltenen Allergene an oder „Enthält keines der 14 Allergene“, wenn keine enthalten sind. Bis dahin sehen Gäste im QR-Menü, dass die Allergene nicht angegeben sind.",
+          "todo_title": "Noch anzugeben",
+          "all_done": "Bei allen Gerichten sind die Allergene angegeben."
         },
         "channels_title": "Wo bestellbar",
         "channels_desc": "Eine Karte für Webshop, QR-Menü und Kasse. Was hier aus ist, kann dort nicht bestellt werden.",
@@ -9171,6 +9176,11 @@
         "none_short": "–",
         "missing_aria": "{{name}}: kein Einkaufspreis",
         "pct_aria": "{{name}}: Wareneinsatz {{pct}}"
+      },
+      "allergenState": {
+        "none": "keine Allergene",
+        "missing": "Allergene nicht angegeben",
+        "banner": "Bei {{count}} Produkt(en) auf deiner Karte sind die Allergene noch nicht angegeben. Sieh nach, welche."
       }
     },
     "horecaPay": {

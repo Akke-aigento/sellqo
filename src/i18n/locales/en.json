@@ -7283,7 +7283,12 @@
           "empty": "There are no active dishes yet.",
           "missing": "{{count}} dish(es) have no allergens set. Check that this is correct: on the chart an empty row reads as \"contains no allergens\". You can fill them in on the product.",
           "updated": "Updated on {{date}}",
-          "print_footer": "● = contains this allergen. Do you have an allergy? Feel free to ask our staff."
+          "print_footer": "● = contains this allergen. Do you have an allergy? Feel free to ask our staff.",
+          "state_missing": "not filled in",
+          "state_none": "no allergens",
+          "missing_todo": "Allergens are not filled in yet for {{count}} dish(es). Tick the allergens they contain, or \"Contains none of the 14 allergens\" if there are none. Until then, guests see on the QR menu that the allergens are not filled in.",
+          "todo_title": "Still to fill in",
+          "all_done": "Allergens are filled in for every dish."
         },
         "channels_title": "Where to order",
         "channels_desc": "One menu for your webshop, QR menu and POS. Whatever is off here cannot be ordered there.",
@@ -9502,6 +9507,11 @@
         "none_short": "–",
         "missing_aria": "{{name}}: no cost price set",
         "pct_aria": "{{name}}: food cost {{pct}}"
+      },
+      "allergenState": {
+        "none": "no allergens",
+        "missing": "allergens not filled in",
+        "banner": "Allergens are not filled in yet for {{count}} product(s) on your menu. See which ones."
       }
     },
     "horecaPay": {

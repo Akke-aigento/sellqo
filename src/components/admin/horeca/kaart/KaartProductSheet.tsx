@@ -21,6 +21,7 @@ import { ProductAllergensCard } from '@/components/admin/storefront/food/Product
 import { ProductAddonsCard } from '@/components/admin/storefront/food/ProductAddonsCard';
 import { isSoldOutNow, useSoldOutToday } from '@/components/admin/storefront/food/useSoldOutToday';
 import { priceFromInput, priceToInput } from './parseKaart';
+import { AllergenStateLabel } from './AllergenStateLabel';
 import { foodCostLabel, foodCostPct, isFoodCostHigh, FOODCOST_WARN_PCT } from './foodCost';
 import { useKaartMutations, useKaartVat, type KaartCategory, type KaartProduct } from './useKaart';
 
@@ -300,7 +301,7 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
               bewerken; extra's koppelen enkel de beheerder (RLS op product_addon_groups). */}
           {canEdit ? <section className="rounded-lg border">
             <button type="button" onClick={() => { if (extras) void qc.invalidateQueries({ queryKey: ['kaart'] }); setExtras((v) => !v); }} aria-expanded={extras} className="flex min-h-11 w-full items-center justify-between px-3 text-left text-sm font-semibold">
-              <span>{t(canAddons ? 'admin.kaart.sheet.extras' : 'admin.kaart.sheet.allergens')}{(p.allergens?.length ?? 0) > 0 ? <span className="ml-2 font-normal text-muted-foreground">{t('admin.kaart.sheet.allergenCount', { count: p.allergens!.length })}</span> : null}</span>
+              <span>{t(canAddons ? 'admin.kaart.sheet.extras' : 'admin.kaart.sheet.allergens')}<AllergenStateLabel allergens={p.allergens} declared={p.allergens_declared} /></span>
               <ChevronDown className={cn('h-4 w-4 shrink-0 transition-transform', extras && 'rotate-180')} />
             </button>
             {extras ? (

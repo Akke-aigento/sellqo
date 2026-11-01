@@ -4,8 +4,11 @@ const cats = (data.categories as { id: string; name: string }[]).map((c, i) => (
 const costs = [0.95, null, 3.9, 1.2, 0.6, 2.4, 5.5, 0.4];
 const products = (data.products as { id: string; name: string; price_cents: number; category_id: string }[]).map((p, i) => ({
   id: p.id, name: p.name, price: p.price_cents / 100, category_id: p.category_id, is_active: true, channels: null, sold_out_until: null,
-  vat_rate_id: 'v21', takeaway_vat_rate_id: null, menu_position: i, short_description: null, allergens: [], featured_image: null, images: [], cost_price: costs[i % costs.length],
+  vat_rate_id: 'v21', takeaway_vat_rate_id: null, menu_position: i, short_description: null, allergens: i % 3 === 0 ? ['gluten', 'milk'] : [], allergens_declared: i % 3 !== 2, hide_from_storefront: false,
+  featured_image: null, images: [], cost_price: costs[i % costs.length],
 }));
+export const KAART_TYPES = ['physical', 'service', 'digital'];
+export const onAllergenChart = (p: { is_active: boolean | null; hide_from_storefront?: boolean | null }) => p.is_active === true && p.hide_from_storefront !== true;
 export const kaartKey = (id?: string) => ['kaart', id];
 export const byMenuOrder = () => 0;
 export function useKaart() { return { data: { categories: cats, products }, isLoading: false }; }

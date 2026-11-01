@@ -7,6 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { useVatRates } from '@/hooks/useVatRates';
 import { VAT_BY_KIND, type VatKind } from './starterKaart';
+import { isMissingColumn } from '@/components/admin/storefront/food/allergenState';
 
 export interface KaartCategory {
   id: string;
@@ -35,7 +36,14 @@ export interface KaartProduct {
   images: string[] | null;
   /** KAART-MARGE-1: kostprijs excl. btw (products.cost_price), voor de foodcost. */
   cost_price: number | null;
+  /** ALLERGEEN-ADMIN-1: allergenen bewust vastgelegd (ook "geen"); undefined = kolom nog niet gemigreerd. */
+  allergens_declared?: boolean;
+  /** ALLERGEEN-ADMIN-1: zelfde selectie als de allergenenkaart (niet op de menukaart = telt niet mee). */
+  hide_from_storefront?: boolean | null;
 }
+
+/** ALLERGEEN-ADMIN-1 — staat op de allergenenkaart én telt mee voor "niet ingevuld" (één bron). */
+export const onAllergenChart = (p: { is_active: boolean | null; hide_from_storefront?: boolean | null }) => p.is_active === true && p.hide_from_storefront !== true;
 
 /** Volgorde zoals op de kassa: positie, dan naam (zonder positie achteraan). */
 export const byMenuOrder = (a: Pick<KaartProduct, 'menu_position' | 'name'>, b: Pick<KaartProduct, 'menu_position' | 'name'>) =>
@@ -51,13 +59,25 @@ export type BulkChange =
   | { apply_category_vat: true };
 
 /** Tickets, cadeaubonnen, abonnementen en bundels horen niet op een horecakaart. */
-const KAART_TYPES = ['physical', 'service', 'digital'];
+export const KAART_TYPES = ['physical', 'service', 'digital'];
 
 type Rpc = (fn: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string; code?: string } | null }>;
 // bind: zonder supabase als `this` faalt elke aanroep live ("reading 'rest'").
 const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
 
 export const kaartKey = (tenantId: string | undefined) => ['kaart', tenantId];
+
+const PRODUCT_COLS = 'id, name, price, category_id, is_active, channels, sold_out_until, vat_rate_id, takeaway_vat_rate_id, menu_position, short_description, allergens, featured_image, images, cost_price, hide_from_storefront';
+/**
+ * ALLERGEEN-ADMIN-1: met allergens_declared. Staat de admin live vóór migratie 20261101230340, dan
+ * bestaat de kolom nog niet (42703): opnieuw zonder, zodat de Kaart niet leeg valt.
+ */
+async function fetchKaartProducts(tenantId: string) {
+  const q = (cols: string) => supabase.from('products').select(cols as typeof PRODUCT_COLS)
+    .eq('tenant_id', tenantId).in('product_type', KAART_TYPES as never).order('name').limit(2000);
+  const first = await q(`${PRODUCT_COLS}, allergens_declared`);
+  return isMissingColumn(first.error) ? q(PRODUCT_COLS) : first;
+}
 
 export function useKaart() {
   const { currentTenant } = useTenant();
@@ -69,8 +89,7 @@ export function useKaart() {
       const [cats, prods] = await Promise.all([
         supabase.from('categories').select('id, name, sort_order, is_active, default_vat_rate_id, default_takeaway_vat_rate_id')
           .eq('tenant_id', tenantId!).order('sort_order').order('name'),
-        supabase.from('products').select('id, name, price, category_id, is_active, channels, sold_out_until, vat_rate_id, takeaway_vat_rate_id, menu_position, short_description, allergens, featured_image, images, cost_price')
-          .eq('tenant_id', tenantId!).in('product_type', KAART_TYPES as never).order('name').limit(2000),
+        fetchKaartProducts(tenantId!),
       ]);
       if (cats.error) throw cats.error;
       if (prods.error) throw prods.error;

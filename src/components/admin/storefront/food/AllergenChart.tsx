@@ -3,7 +3,8 @@
 // hebben (KB 17/07/2014). Deze kaart haalt alles uit de productgegevens en drukt af op A4 liggend.
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Loader2, Printer, TriangleAlert } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Loader2, Pencil, Printer, TriangleAlert } from 'lucide-react';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -12,8 +13,12 @@ import { useTenant } from '@/hooks/useTenant';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ALLERGENS } from './allergens';
+import { allergenState, isMissingColumn, type AllergenState } from './allergenState';
+import { KAART_TYPES } from '@/components/admin/horeca/kaart/useKaart';
 
-interface Row { name: string; allergens: string[] }
+// ALLERGEEN-ADMIN-1 — elke rij weet of ze "geen" (bewust), "niet ingevuld" of een aantal heeft.
+// Extra's (product_addon_options) hebben geen verklaring: daar blijft een lege rij gewoon leeg.
+interface Row { name: string; allergens: string[]; state?: AllergenState }
 interface Group { title: string; rows: Row[] }
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
@@ -24,7 +29,7 @@ function printChart(groups: Group[], t: TFunction, shopName: string, lang: strin
   const head = ALLERGENS.map((a) => `<th class="al"><span>${esc(t(`admin.allergens.${a}`))}</span></th>`).join('');
   const body = groups.map((g) => `
     <tr class="grp"><td colspan="${ALLERGENS.length + 1}">${esc(g.title)}</td></tr>
-    ${g.rows.map((r) => `<tr><td class="nm">${esc(r.name)}</td>${ALLERGENS.map((a) => `<td class="c">${r.allergens.includes(a) ? '●' : ''}</td>`).join('')}</tr>`).join('')}`).join('');
+    ${g.rows.map((r) => `<tr><td class="nm">${esc(r.name)}${r.state?.kind === 'missing' ? ` <em class="q">(${esc(t('admin.storefront.food.allergenChart.state_missing'))})</em>` : r.state?.kind === 'none' ? ` <span class="q">(${esc(t('admin.storefront.food.allergenChart.state_none'))})</span>` : ''}</td>${ALLERGENS.map((a) => `<td class="c">${r.allergens.includes(a) ? '●' : ''}</td>`).join('')}</tr>`).join('')}`).join('');
   const date = new Date().toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' });
   w.document.open();
   w.document.write(`<!doctype html><html lang="${esc(lang)}"><head><meta charset="utf-8"><title>${esc(t('admin.storefront.food.allergenChart.title'))}</title>
@@ -40,6 +45,7 @@ th.al span{writing-mode:vertical-rl;transform:rotate(180deg);white-space:nowrap;
 td.c{text-align:center;font-size:12px}
 td.nm{white-space:nowrap}
 tr.grp td{background:#eee;font-weight:700}
+.q{font-size:9.5px;color:#555}
 tr{break-inside:avoid}
 .foot{font-size:10px;color:#555;margin-top:8px}
 </style></head><body>
@@ -55,6 +61,15 @@ tr{break-inside:avoid}
   setTimeout(go, 800);
 }
 
+/** Met allergens_declared; bestaat de kolom nog niet (admin live vóór de migratie), dan zonder. */
+async function fetchChartProducts(tenantId: string) {
+  const q = (cols: string) => supabase.from('products').select(cols as 'id, name, category_id, allergens')
+    .eq('tenant_id', tenantId).eq('is_active', true).eq('hide_from_storefront', false)
+    .in('product_type', KAART_TYPES as never).order('name');
+  const first = await q('id, name, category_id, allergens, allergens_declared');
+  return isMissingColumn(first.error) ? q('id, name, category_id, allergens') : first;
+}
+
 export function AllergenChart() {
   const { t, i18n } = useTranslation();
   const { currentTenant } = useTenant();
@@ -65,8 +80,7 @@ export function AllergenChart() {
     enabled: !!tenantId,
     queryFn: async () => {
       const [prods, cats, groups] = await Promise.all([
-        supabase.from('products').select('id, name, category_id, allergens')
-          .eq('tenant_id', tenantId!).eq('is_active', true).eq('hide_from_storefront', false).order('name'),
+        fetchChartProducts(tenantId!),
         supabase.from('categories').select('id, name, sort_order').eq('tenant_id', tenantId!),
         supabase.from('product_addon_groups').select('name, sort_order, product_addon_options(name, allergens, is_active, sort_order)')
           .eq('tenant_id', tenantId!).eq('is_active', true).order('sort_order', { ascending: true }),
@@ -79,15 +93,16 @@ export function AllergenChart() {
   });
 
   const { groups, missing } = useMemo(() => {
-    if (!data) return { groups: [] as Group[], missing: 0 };
+    if (!data) return { groups: [] as Group[], missing: [] as { id: string; name: string }[] };
     const cats = [...data.categories].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     const byCat = new Map<string | null, Row[]>();
-    let missing = 0;
-    for (const p of data.products) {
-      const al = (p.allergens as string[] | null) || [];
-      if (!al.length) missing += 1;
+    const missing: { id: string; name: string }[] = [];
+    for (const p of data.products as unknown as { id: string; name: string; category_id: string | null; allergens: string[] | null; allergens_declared?: boolean }[]) {
+      const al = p.allergens || [];
+      const state = allergenState(al, p.allergens_declared);
+      if (state.kind === 'missing') missing.push({ id: p.id, name: p.name });
       const k = p.category_id && cats.some((c) => c.id === p.category_id) ? p.category_id : null;
-      byCat.set(k, [...(byCat.get(k) || []), { name: p.name, allergens: al }]);
+      byCat.set(k, [...(byCat.get(k) || []), { name: p.name, allergens: al, state }]);
     }
     const out: Group[] = cats.filter((c) => byCat.has(c.id)).map((c) => ({ title: c.name, rows: byCat.get(c.id)! }));
     if (byCat.has(null)) out.push({ title: t('admin.storefront.food.allergenChart.other'), rows: byCat.get(null)! });
@@ -117,12 +132,26 @@ export function AllergenChart() {
           <p className="text-sm text-muted-foreground">{t('admin.storefront.food.allergenChart.empty')}</p>
         ) : (
           <>
-            {missing ? (
-              <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
-                <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-                <span>{t('admin.storefront.food.allergenChart.missing', { count: missing })}</span>
+            {missing.length ? (
+              <div className="space-y-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+                <p className="flex items-start gap-2">
+                  <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>{t('admin.storefront.food.allergenChart.missing_todo', { count: missing.length })}</span>
+                </p>
+                <p className="text-xs font-semibold uppercase tracking-wide">{t('admin.storefront.food.allergenChart.todo_title')}</p>
+                <ul className="flex flex-wrap gap-1.5">
+                  {missing.map((m) => (
+                    <li key={m.id}>
+                      <Link to={`/admin/products/${m.id}/edit`} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-amber-400 bg-background px-3 text-xs font-medium text-foreground hover:bg-amber-100 dark:hover:bg-amber-900">
+                        <Pencil className="h-3 w-3" aria-hidden />{m.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            ) : null}
+            ) : (
+              <p className="text-sm text-muted-foreground">{t('admin.storefront.food.allergenChart.all_done')}</p>
+            )}
             <div className="overflow-x-auto rounded-md border">
               <table className="w-full border-collapse text-sm">
                 <thead>
@@ -149,6 +178,13 @@ export function AllergenChart() {
   );
 }
 
+function RowState({ state }: { state?: AllergenState }) {
+  const { t } = useTranslation();
+  if (state?.kind === 'missing') return <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-900 dark:text-amber-50">{t('admin.storefront.food.allergenChart.state_missing')}</span>;
+  if (state?.kind === 'none') return <span className="ml-2 text-xs text-muted-foreground">{t('admin.storefront.food.allergenChart.state_none')}</span>;
+  return null;
+}
+
 function GroupRows({ group }: { group: Group }) {
   return (
     <>
@@ -157,7 +193,10 @@ function GroupRows({ group }: { group: Group }) {
       </tr>
       {group.rows.map((r, i) => (
         <tr key={`${r.name}-${i}`} className="border-t">
-          <td className="sticky left-0 whitespace-nowrap bg-background p-2">{r.name}</td>
+          <td className="sticky left-0 whitespace-nowrap bg-background p-2">
+            {r.name}
+            <RowState state={r.state} />
+          </td>
           {ALLERGENS.map((a) => (
             <td key={a} className="p-1 text-center">{r.allergens.includes(a) ? <span className="text-primary">●</span> : null}</td>
           ))}
