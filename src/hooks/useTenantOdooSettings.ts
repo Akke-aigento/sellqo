@@ -51,11 +51,12 @@ export function useTenantOdooSettings(tenantId: string | undefined) {
     mutationFn: async (updates: Partial<Omit<TenantOdooSettings, 'tenant_id' | 'b2c_dummy_partner_odoo_id' | 'pos_z_enabled_at' | 'pos_z_backfill_from'>>) => {
       if (!tenantId) throw new Error('tenant_id required');
       const payload = { tenant_id: tenantId, ...updates };
-      const { data, error } = await supabase
-        .from('tenant_odoo_settings')
-        .upsert(payload as never, { onConflict: 'tenant_id' }) // KASSA-ODOO-1: pos_z_* staat nog niet in de gegenereerde types
-        .select()
-        .single();
+      // KASSA-ODOO-1 (review 2 B1): bestaat de rij al, dan een gewone UPDATE i.p.v. een upsert
+      // (INSERT … ON CONFLICT laat BEFORE INSERT-triggers lopen op een voorgestelde rij).
+      // `as never`: pos_z_* staat nog niet in de gegenereerde types.
+      const { data, error } = query.data
+        ? await supabase.from('tenant_odoo_settings').update(updates as never).eq('tenant_id', tenantId).select().single()
+        : await supabase.from('tenant_odoo_settings').upsert(payload as never, { onConflict: 'tenant_id' }).select().single();
       if (error) throw error;
       return data as TenantOdooSettings;
     },

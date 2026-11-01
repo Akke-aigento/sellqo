@@ -73,12 +73,15 @@ class FakeOdoo implements PosZOdoo {
     const m = this.moves.get(id)!;
     return { id, name: m.data.name, state: m.state, move_type: m.data.move_type, partner_id: m.data.partner_id, invoice_date: m.data.invoice_date };
   }
-  findMove(name: string, journalId: number, moveType: string) {
+  findMoves(name: string, journalId: number | null, moveType: string) {
+    const out: OdooMoveHead[] = [];
     for (const [id, m] of this.moves) {
-      if (m.data.name === name && m.data.journal_id === journalId && m.data.move_type === moveType && m.state !== "cancel") return Promise.resolve(this.head(id));
+      if (m.data.name === name && (journalId == null || m.data.journal_id === journalId) && m.data.move_type === moveType && m.state !== "cancel") out.push(this.head(id));
     }
-    return Promise.resolve(null);
+    return Promise.resolve(out);
   }
+  /** Boekingsdatum zoals Odoo ze zou zetten (een vergrendelde periode verschuift ze). */
+  shiftDate: string | null = null;
   getMove(id: number) { return Promise.resolve(this.moves.has(id) ? this.head(id) : null); }
   createMove(data: Record<string, unknown>) {
     if (this.failCreate) return Promise.reject(new Error("Odoo: periode afgesloten"));
@@ -108,7 +111,7 @@ class FakeOdoo implements PosZOdoo {
     }
     const sign = m.data.move_type === "out_invoice" ? -1 : 1;
     return Promise.resolve({
-      id, state: m.state, amount_untaxed: untaxed / 100, amount_tax: tax / 100, amount_total: (untaxed + tax) / 100,
+      id, state: m.state, invoice_date: m.data.invoice_date, date: this.shiftDate ?? m.data.invoice_date, amount_untaxed: untaxed / 100, amount_tax: tax / 100, amount_total: (untaxed + tax) / 100,
       productLines, taxLines: [...taxBy].map(([tax_id, v]) => ({ tax_id, balance: sign * v / 100 })), otherLines: [],
     });
   }
@@ -135,7 +138,7 @@ function world(reports: any[] = [z("z1", 1, "2026-10-30", [V21, V12])]) {
     kassa_reports: reports,
     odoo_pos_z_sync_log: [],
     notifications: [],
-    tenant_odoo_settings: [{ tenant_id: T, odoo_journal_id: "7", channel_partner_ids: {} }],
+    tenant_odoo_settings: [{ tenant_id: T, odoo_journal_id: "7", channel_partner_ids: {}, pos_z_sync_enabled: true, odoo_sync_enabled: true }],
     tenant_odoo_credentials: [{ tenant_id: T, odoo_url: "https://x.odoo.com", odoo_db: "x" }],
   });
 }
@@ -180,7 +183,7 @@ Deno.test("crash na het aanmaken: de volgende run hergebruikt het concept, nooit
   odoo.failReadOnce = true;
   const r1 = await run(db, odoo);
   eq(r1.reports.map((x) => x.status), ["failed"], "eerste poging faalt");
-  eq(db.notifications("integration_error").map((n) => n.data.dedupe_key), ["odoo_pos_z_failed:z1"], "melding");
+  eq(db.notifications("integration_error").map((n) => n.data.dedupe_key), ["odoo_pos_z_failed:z1:r0"], "melding");
   const r2 = await run(db, odoo);
   eq(r2.reports.map((x) => x.status), ["synced"], "tweede poging lukt");
   eq([odoo.creates, odoo.posts], [1, 1], "zelfde boeking");
@@ -194,7 +197,7 @@ Deno.test("afwijking in Odoo: concept blijft staan, melding met dedupe-sleutel, 
   const r = await run(db, odoo);
   eq(r.reports.map((x) => x.status), ["failed"], "niet geboekt");
   eq([odoo.posts, [...odoo.moves.values()][0].state], [0, "draft"], "concept");
-  eq(db.notifications("integration_error").map((n) => n.data.dedupe_key), ["odoo_pos_z_mismatch:z1"], "één melding");
+  eq(db.notifications("integration_error").map((n) => n.data.dedupe_key), ["odoo_pos_z_mismatch:z1:r0"], "één melding");
   await run(db, odoo);
   await run(db, odoo);
   eq([db.notifications("integration_error").length, odoo.creates], [1, 1], "geen tweede melding of boeking");
@@ -213,7 +216,9 @@ Deno.test("lege Z, historische Z en Z vóór de startdatum worden nooit geboekt"
   ]);
   const odoo = new FakeOdoo();
   const r = await run(db, odoo);
-  eq(r.reports.map((x) => [x.report_id, x.status]), [["z1", "skipped"]], "enkel de lege Z, als skipped");
+  eq(r.reports.map((x) => [x.report_id, x.status]), [["z1", "skipped"], ["z2", "skipped"]], "lege Z en historische Z als skipped");
+  eq(db.tables.odoo_pos_z_sync_log.map((l) => l.error_message), ["lege Z (geen omzet)", "historische import"], "reden gelogd");
+  eq((await run(db, odoo)).reports.length, 0, "volgende run: niets meer open");
   eq(odoo.writes, 0, "niets in Odoo");
 });
 
@@ -323,12 +328,12 @@ Deno.test("review 1.4: backoff: 3× elk uur, dan dagelijks, na 10 needs_review e
   tick(24 * 3600_000); await go(); eq(log().attempts, 4, "na een dag opnieuw");
   for (let i = 5; i <= 10; i++) { tick(24 * 3600_000); await go(); }
   eq([log().sync_status, log().attempts], ["needs_review", 10], "eindstatus");
-  ok(db.notifications("integration_error").some((n) => n.data.dedupe_key === "odoo_pos_z_needs_review:z1"), "melding needs_review");
+  ok(db.notifications("integration_error").some((n) => n.data.dedupe_key === "odoo_pos_z_needs_review:z1:r0"), "melding needs_review");
   tick(30 * 24 * 3600_000); const r = await go();
   eq([r.reports.length, log().attempts], [0, 10], "geen pogingen meer");
   eq(db.tables.odoo_pos_z_sync_log.length, 1, "één logregel");
   // Na 'Opnieuw proberen' (RPC odoo_pos_z_retry: failed, attempts 0) en een opgeloste Odoo.
-  Object.assign(log(), { sync_status: "failed", attempts: 0 }); odoo.failCreate = false;
+  Object.assign(log(), { sync_status: "failed", attempts: 0, retry_round: 1 }); odoo.failCreate = false;
   eq((await go()).reports.map((x) => x.status), ["synced"], "na retry geboekt");
   // Aanvaard (RPC odoo_pos_z_accept) telt als afgehandeld.
   const db2 = world(); db2.tables.odoo_pos_z_sync_log.push({ id: "a1", tenant_id: T, kassa_report_id: "z1", sync_status: "accepted", created_at: "2026-10-31T10:00:00Z", attempts: 4 });
@@ -369,4 +374,49 @@ Deno.test("review 1.7: kleine dagen krijgen geen regel met omgekeerd teken", () 
     const p = splitGrossForOdoo(g, vatInGross(g, 21) + d, 21);
     if (!p || p.some((x) => x <= 0)) throw new Error(`${g}/${d}: ${JSON.stringify(p)}`);
   }
+});
+
+Deno.test("review 2.5: Odoo verschuift de boekingsdatum (vergrendelde periode): concept + melding", async () => {
+  const db = world(); const odoo = new FakeOdoo(); odoo.shiftDate = "2026-11-01";
+  const r = await run(db, odoo);
+  ok(r.reports[0].status === "failed" && r.reports[0].error?.includes("boekingsdatum"), JSON.stringify(r.reports[0]));
+  eq(odoo.posts, 0, "niet geboekt");
+});
+
+Deno.test("review 2.13: schakelaar intussen uit = stoppen vóór de claim", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  db.tables.tenant_odoo_settings[0].pos_z_sync_enabled = false; // de geladen settings zeggen nog 'aan'
+  const r = await run(db, odoo);
+  eq([r.reports.map((x) => x.status), odoo.creates, db.tables.odoo_pos_z_sync_log.length], [["stopped"], 0, 0], "niets geclaimd");
+});
+
+Deno.test("review 2 M1: uitgesteld telt niet als poging, wel als uitstel; na 5 een melding", async () => {
+  // Een Odoo die zo traag antwoordt dat het budget vlak na de claim verloopt.
+  const db3 = world(); db3.tables.odoo_pos_z_sync_log.push({ id: "d3", tenant_id: T, kassa_report_id: "z1", sync_status: "failed", created_at: "2026-10-31T10:00:00Z", attempts: 1, deferrals: 4, retry_round: 0, finished_at: "2026-10-31T10:00:00Z" });
+  const slow = new FakeOdoo();
+  const deadline = Date.now() + 50;
+  slow.journal = async (id: number) => { await new Promise((res) => setTimeout(res, 0)); return { id, name: "Verkopen", type: "sale" }; };
+  slow.findTax = async () => { await new Promise((res) => setTimeout(res, 80)); return 141; };
+  await run(db3, slow, settings(), { deadline });
+  const row = db3.tables.odoo_pos_z_sync_log[0];
+  eq([row.sync_status, row.attempts, row.deferrals], ["failed", 1, 5], "poging niet geteld, uitstel wel");
+  ok(db3.notifications("integration_error").some((n) => n.data.dedupe_key === "odoo_pos_z_deferred:z1:r0"), "melding na 5");
+});
+
+Deno.test("review 2.8/2.9: boeking met de oude (gecachete) verzamelklant in een ander dagboek wordt hergebruikt", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  odoo.partners.set(55, "Kassa oud — Café Test");
+  // Een eerdere run boekte in dagboek 7 met partner 55 en crashte vóór de log (geen odoo_move_id).
+  odoo.moves.set(60, { data: { name: "Z-2026-00001", journal_id: 7, move_type: "out_invoice", partner_id: 55, invoice_date: "2026-10-30",
+    invoice_line_ids: [[0, 0, { price_unit: 15, tax_ids: [[6, 0, [141]]] }], [0, 0, { price_unit: 16, tax_ids: [[6, 0, [142]]] }]] }, state: "draft" });
+  const r = await run(db, odoo, settings({ pos_z_journal_id: "9", pos_z_journal_name: "Kassa", channel_partner_ids: { pos_z: 55 } }));
+  eq([r.reports.map((x) => [x.status, x.odoo_move_id]), odoo.creates], [[["synced", 60]], 0], "hergebruikt zonder dagboekfilter");
+});
+
+Deno.test("review 2.11: na 'Opnieuw proberen' komen de meldingen opnieuw (ronde in de dedupe-sleutel)", async () => {
+  const db = world(); const odoo = new FakeOdoo(); odoo.failCreate = true;
+  await run(db, odoo);
+  Object.assign(db.tables.odoo_pos_z_sync_log[0], { sync_status: "failed", attempts: 0, retry_round: 1 });
+  await run(db, odoo);
+  eq(db.notifications("integration_error").map((n) => n.data.dedupe_key), ["odoo_pos_z_failed:z1:r0", "odoo_pos_z_failed:z1:r1"], "twee rondes, twee meldingen");
 });

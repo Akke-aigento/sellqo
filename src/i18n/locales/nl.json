@@ -2906,7 +2906,7 @@
       "enable_label": "Z-rapporten van de kassa naar Odoo",
       "enable_help": "Standaard uit. Aan = SellQo kijkt elk uur of er nieuwe Z-rapporten zijn.",
       "from_label": "Vanaf bedrijfsdag",
-      "from_help": "Standaard vandaag. Een vroegere dag vraagt een bevestiging met het aantal Z-rapporten dat dan geboekt wordt.",
+      "from_help": "Standaard de huidige bedrijfsdag van je kassa. Een vroegere dag vraagt een bevestiging met het aantal Z-rapporten dat dan geboekt wordt.",
       "journal_label": "Kassadagboek",
       "journal_same": "Zelfde als het verkoopdagboek",
       "journal_taken": "in gebruik",
@@ -2928,6 +2928,9 @@
       "cancel": "Annuleren",
       "accept_title": "Z {{no}} aanvaarden",
       "accept_note_label": "Odoo-nummer of uitleg",
+      "saved": "Kassa-instellingen voor Odoo opgeslagen.",
+      "business_day": "Huidige bedrijfsdag van je kassa: {{date}}.",
+      "accept_concept": "SellQo maakte in Odoo al een concept {{name}} (Odoo-id {{id}}). Verwijder of annuleer dit concept in Odoo als je de Z met de hand boekte, anders staat de omzet dubbel.",
       "status": {
         "pending": "Bezig",
         "synced": "Geboekt",

@@ -1,7 +1,7 @@
 // KASSA-ODOO-1 harnas — de log-rijen komen uit window.__harness.log; rpc's geven vaste antwoorden
 // en worden bijgehouden in window.__rpc (zodat steps.mjs kan nagaan wat er aangeroepen werd).
 type Res = { data: unknown; error: { message: string } | null };
-const H = ((window as unknown as { __harness?: Record<string, unknown> }).__harness ?? {}) as { log?: Array<Record<string, unknown>>; count?: number };
+const H = ((window as unknown as { __harness?: Record<string, unknown> }).__harness ?? {}) as { log?: Array<Record<string, unknown>>; count?: number; businessDay?: string };
 const w = window as unknown as { __rpc?: Array<{ name: string; args: unknown }> };
 function chain(res: () => Res) {
   const q: Record<string, unknown> = {};
@@ -16,6 +16,7 @@ export const supabase = {
   rpc: (name: string, args: unknown) => {
     (w.__rpc ||= []).push({ name, args });
     if (name === 'odoo_pos_z_backfill_count') return Promise.resolve({ data: H.count ?? 3, error: null });
+    if (name === 'odoo_pos_z_business_day') return Promise.resolve({ data: H.businessDay ?? '2026-10-31', error: null });
     return Promise.resolve({ data: { ok: true }, error: null });
   },
 };

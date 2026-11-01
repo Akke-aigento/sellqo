@@ -2561,7 +2561,7 @@
       "enable_label": "Envoyer les rapports Z de la caisse vers Odoo",
       "enable_help": "Désactivé par défaut. Activé = SellQo vérifie chaque heure s'il y a de nouveaux rapports Z.",
       "from_label": "À partir du jour d'activité",
-      "from_help": "Aujourd'hui par défaut. Un jour antérieur demande une confirmation avec le nombre de rapports Z qui seront alors comptabilisés.",
+      "from_help": "Par défaut le jour d'activité actuel de votre caisse. Un jour antérieur demande une confirmation avec le nombre de rapports Z qui seront alors comptabilisés.",
       "journal_label": "Journal de caisse",
       "journal_same": "Identique au journal de ventes",
       "journal_taken": "utilisé",
@@ -2583,6 +2583,9 @@
       "cancel": "Annuler",
       "accept_title": "Accepter le Z {{no}}",
       "accept_note_label": "Numéro Odoo ou explication",
+      "saved": "Paramètres de caisse pour Odoo enregistrés.",
+      "business_day": "Jour d'activité actuel de votre caisse : {{date}}.",
+      "accept_concept": "SellQo a déjà créé un brouillon {{name}} dans Odoo (ID Odoo {{id}}). Supprimez ou annulez ce brouillon dans Odoo si vous avez comptabilisé le Z à la main, sinon le chiffre d'affaires apparaît deux fois.",
       "status": {
         "pending": "En cours",
         "synced": "Comptabilisé",

@@ -1,6 +1,6 @@
 -- KASSA-ODOO-1 — helpartikel "Kassa-omzet naar Odoo" (kassa-naar-odoo, /admin/connect).
--- Nieuw artikel in Facturatie & Boekhouding (a0000001-…-009, enkel live). Bestaat het al, dan
--- blijft het ongemoeid (on conflict do nothing). PAS DRAAIEN NA 20261101230500 en de publish van
+-- Nieuw artikel in Facturatie & Boekhouding (a0000001-…-009, enkel live). Bestaat het al (eigen
+-- slug), dan wordt enkel deze rij bijgewerkt (on conflict (doc_level, slug) do update). PAS DRAAIEN NA 20261101230500 en de publish van
 -- de admin (de schakelaar moet zichtbaar zijn).
 -- Handmatig terugdraaien: delete from public.doc_articles where doc_level = 'tenant' and slug = 'kassa-naar-odoo';
 
@@ -15,11 +15,11 @@ values ('tenant', 'a0000001-0000-0000-0000-000000000009', '/admin/connect', 'kas
 <ol>
   <li>Ga naar <strong>SellQo Connect › Odoo Boekhouding</strong>. De Odoo-verbinding en de facturensync moeten al werken.</li>
   <li>Zet <strong>Z-rapporten van de kassa naar Odoo</strong> aan.</li>
-  <li>Kies <strong>vanaf welke bedrijfsdag</strong>. Standaard is dat vandaag: Z-rapporten van vóór die dag blijven buiten Odoo, zodat niets dubbel komt wat je boekhouder al met de hand boekte. Kies je een dag in het verleden, dan toont SellQo eerst hoeveel Z-rapporten er dan geboekt worden en vraagt het je bevestiging.</li>
+  <li>Kies <strong>vanaf welke bedrijfsdag</strong>. Standaard is dat de huidige bedrijfsdag van je kassa (die begint op het afkapuur, standaard 6 uur): Z-rapporten van vóór die dag blijven buiten Odoo, zodat niets dubbel komt wat je boekhouder al met de hand boekte. Kies je een dag in het verleden, dan toont SellQo eerst hoeveel Z-rapporten er dan geboekt worden en vraagt het je bevestiging.</li>
   <li>Kies eventueel een eigen <strong>kassadagboek</strong>. Laat je het leeg, dan gebruikt SellQo het verkoopdagboek van je facturen. Een apart verkoopdagboek (bv. "Kassa") houdt de nummering van je facturen en je Z-boekingen uit elkaar; dat raden we aan.</li>
   <li>Opslaan. SellQo kijkt elk uur of er nieuwe Z-rapporten zijn.</li>
 </ol>
-<p>Standaard staat dit uit. Zonder schakelaar en zonder startdatum boekt SellQo niets.</p>
+<p>Standaard staat dit uit. Zonder schakelaar en zonder startdatum boekt SellQo niets. Zet je de facturensync uit, dan gaat ook dit uit; opnieuw aanzetten begint weer bij de huidige bedrijfsdag.</p>
 
 <h2>Wat er in Odoo komt</h2>
 <ul>
@@ -39,13 +39,13 @@ values ('tenant', 'a0000001-0000-0000-0000-000000000009', '/admin/connect', 'kas
 
 <h2>Controle en meldingen</h2>
 <p>SellQo maakt de boeking eerst als concept, leest de bedragen in Odoo terug en boekt ze pas definitief als alles tot op de cent gelijk is aan het Z-rapport, per btw-tarief. Wijkt er iets af, dan blijft het concept staan en krijg je een melding. Kijk dan het concept in Odoo na (bv. een btw-code die hernoemd werd). Staat <strong>Automatisch boeken in Odoo</strong> uit, dan blijven ook kloppende boekingen concept en boekt je boekhouder ze zelf.</p>
-<p>Een Z-rapport wordt nooit twee keer geboekt, ook niet als een run halverwege stopt: SellQo vindt het concept dan terug en werkt het af.</p>
+<p>SellQo zorgt dat een Z-rapport niet dubbel geboekt wordt, ook als een run halverwege stopt: het vindt de boeking van de vorige poging terug en werkt ze af. Verwijder, annuleer of hernoem je zelf een concept in Odoo, kijk dan na wat er in Odoo staat vóór je <strong>Opnieuw proberen</strong> of <strong>Aanvaarden</strong> kiest.</p>
 
 <h2>Als een Z-rapport niet lukt</h2>
 <ul>
   <li>SellQo probeert het de eerste drie keer elk uur opnieuw, daarna één keer per dag.</li>
   <li>Na tien pogingen staat het Z-rapport op <strong>Nakijken</strong> en probeert SellQo niet meer vanzelf. Je krijgt dan een melding.</li>
-  <li>Onder <strong>Laatste Z-rapporten</strong> zie je wat er misging. Boekte je de Z met de hand in Odoo, kies dan <strong>Aanvaarden</strong> en geef het Odoo-nummer: SellQo bewaart wie dat deed en boekt die Z nooit meer. Is het probleem opgelost (bv. een btw-code die ontbrak), kies dan <strong>Opnieuw proberen</strong>.</li>
+  <li>Onder <strong>Laatste Z-rapporten</strong> zie je wat er misging. Boekte je de Z met de hand in Odoo, verwijder of annuleer dan eerst een eventueel concept dat SellQo maakte (SellQo toont het Odoo-id), kies <strong>Aanvaarden</strong> en geef het Odoo-nummer: SellQo bewaart wie dat deed en boekt die Z nooit meer. Is het probleem opgelost (bv. een btw-code die ontbrak), kies dan <strong>Opnieuw proberen</strong>.</li>
 </ul>
 
 <h2>Opgelet</h2>
@@ -54,4 +54,6 @@ values ('tenant', 'a0000001-0000-0000-0000-000000000009', '/admin/connect', 'kas
   <li>Een retourdag (meer terug dan verkocht) komt als creditnota in Odoo.</li>
 </ul>
 $c$, 40, true)
-on conflict (doc_level, slug) do nothing;
+on conflict (doc_level, slug) do update
+  set category_id = excluded.category_id, context_path = excluded.context_path, title = excluded.title,
+      excerpt = excluded.excerpt, content = excluded.content, sort_order = excluded.sort_order, updated_at = now();

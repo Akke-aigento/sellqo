@@ -58,9 +58,14 @@ type MoveHeadRow = { id: number; name: string; state: string; move_type: string;
 const moveHead = (m: MoveHeadRow): OdooMoveHead =>
   ({ id: m.id, name: m.name, state: m.state, move_type: m.move_type, partner_id: m2oId(m.partner_id), invoice_date: m.invoice_date || null });
 
-function odooApiFor(env: OdooEnv, uid: number): PosZOdoo {
+/** Review 2 M1: een Odoo-aanroep wacht nooit langer dan het restbudget van de winkel (max. 30 s).
+ *  Per aanvraag een eigen object: een isolate kan aanvragen gelijktijdig bedienen. */
+interface Budget { deadline: number }
+const callTimeout = (b: Budget) => Math.max(1_000, Math.min(30_000, b.deadline - Date.now()));
+
+function odooApiFor(env: OdooEnv, uid: number, budget: Budget): PosZOdoo {
   const kw = (model: string, method: string, args: unknown[], kwargs: Record<string, unknown> = {}) =>
-    withTimeout(odooExecKw(env, uid, model, method, args, kwargs));
+    withTimeout(odooExecKw(env, uid, model, method, args, kwargs), callTimeout(budget));
   const partnerTypeMode = createPartnerTypeResolver((fields) =>
     kw("res.partner", "fields_get", [fields], { attributes: ["type", "readonly"] }) as Promise<Record<string, { type?: string; readonly?: boolean }>>);
   return {
@@ -101,11 +106,11 @@ function odooApiFor(env: OdooEnv, uid: number): PosZOdoo {
       const r = await kw("res.partner", "search_read", [[["id", "=", id]]], { fields: ["name"], limit: 1 }) as Array<{ name: string }>;
       return r?.[0]?.name ?? null;
     },
-    async findMove(name, journalId, moveType) {
-      const r = await kw("account.move", "search_read",
-        [[["name", "=", name], ["journal_id", "=", journalId], ["move_type", "=", moveType], ["state", "!=", "cancel"]]],
-        { fields: MOVE_HEAD_FIELDS, limit: 1 }) as MoveHeadRow[];
-      return r?.[0] ? moveHead(r[0]) : null;
+    async findMoves(name, journalId, moveType) {
+      const domain: unknown[] = [["name", "=", name], ["move_type", "=", moveType], ["state", "!=", "cancel"]];
+      if (journalId != null) domain.push(["journal_id", "=", journalId]);
+      const r = await kw("account.move", "search_read", [domain], { fields: MOVE_HEAD_FIELDS, limit: 10, order: "id" }) as MoveHeadRow[];
+      return (r ?? []).map(moveHead);
     },
     async getMove(id) {
       // search_read i.p.v. read: een verwijderde boeking geeft null, geen fout.
@@ -116,7 +121,9 @@ function odooApiFor(env: OdooEnv, uid: number): PosZOdoo {
       return await kw("account.move", "create", [data]) as number;
     },
     async readMove(id): Promise<OdooMoveRead> {
-      const [mv] = await kw("account.move", "read", [[id], ["state", "amount_untaxed", "amount_tax", "amount_total"]]) as Array<{ state: string; amount_untaxed: number; amount_tax: number; amount_total: number }>;
+      const [mv] = await kw("account.move", "read", [[id], ["state", "amount_untaxed", "amount_tax", "amount_total", "invoice_date", "date"]]) as Array<{
+        state: string; amount_untaxed: number; amount_tax: number; amount_total: number; invoice_date: string | false; date: string | false;
+      }>;
       const lines = await kw("account.move.line", "search_read", [[["move_id", "=", id]]],
         { fields: ["display_type", "tax_ids", "tax_line_id", "price_subtotal", "balance"] }) as Array<{
           display_type: string | false; tax_ids: number[]; tax_line_id: M2o; price_subtotal: number; balance: number;
@@ -131,7 +138,7 @@ function odooApiFor(env: OdooEnv, uid: number): PosZOdoo {
         // Tegenboeking (klant) en tekstregels horen erbij; al de rest met een bedrag is verdacht.
         else if (!["payment_term", "line_section", "line_note"].includes(dt)) otherLines.push({ display_type: dt || "onbekend", balance: Number(l.balance) || 0 });
       }
-      return { id, state: mv?.state ?? "unknown", amount_untaxed: mv?.amount_untaxed ?? 0, amount_tax: mv?.amount_tax ?? 0, amount_total: mv?.amount_total ?? 0, productLines, taxLines, otherLines };
+      return { id, state: mv?.state ?? "unknown", invoice_date: mv?.invoice_date || null, date: mv?.date || null, amount_untaxed: mv?.amount_untaxed ?? 0, amount_tax: mv?.amount_tax ?? 0, amount_total: mv?.amount_total ?? 0, productLines, taxLines, otherLines };
     },
     async post(id) {
       await kw("account.move", "action_post", [[id]]);
@@ -139,7 +146,7 @@ function odooApiFor(env: OdooEnv, uid: number): PosZOdoo {
   };
 }
 
-async function odooFor(supabase: SupabaseClient, tenantId: string): Promise<{ api: PosZOdoo | null; note?: string }> {
+async function odooFor(supabase: SupabaseClient, tenantId: string, budget: Budget): Promise<{ api: PosZOdoo | null; note?: string }> {
   const { data: cred, error } = await supabase
     .from("tenant_odoo_credentials")
     .select("odoo_url, odoo_db, odoo_login, api_key_ciphertext")
@@ -153,8 +160,8 @@ async function odooFor(supabase: SupabaseClient, tenantId: string): Promise<{ ap
     login: cred.odoo_login,
     apiKey: await decryptOdooKey(cred.api_key_ciphertext),
   };
-  const uid = await withTimeout(odooAuthenticate(env));
-  return { api: odooApiFor(env, uid) };
+  const uid = await withTimeout(odooAuthenticate(env), callTimeout(budget));
+  return { api: odooApiFor(env, uid, budget) };
 }
 
 const SETTINGS_COLS = "tenant_id, odoo_sync_enabled, odoo_journal_id, odoo_journal_name, odoo_auto_post, channel_aliases, channel_partner_ids, pos_z_sync_enabled, pos_z_sync_from, pos_z_journal_id, pos_z_journal_name, pos_z_enabled_at, pos_z_backfill_from";
@@ -215,13 +222,18 @@ Deno.serve(async (req) => {
     }
     queue.sort((a, b) => String(a.prepared.result.oldest_open ?? "9999").localeCompare(String(b.prepared.result.oldest_open ?? "9999")));
 
-    for (const { t, label, prepared } of queue) {
+    for (const [i, { t, label, prepared }] of queue.entries()) {
       if (Date.now() > deadline) { perTenant[label] = { ...prepared.result, skipped: "tijdsbudget op, volgende run" }; continue; }
+      // Review 2 M1: elke winkel een eerlijk deel van wat rest (minstens 15 s), zodat één trage Odoo
+      // de andere niet stillegt.
+      const left = deadline - Date.now();
+      const tenantDeadline = Date.now() + Math.max(15_000, Math.floor(left / (queue.length - i)));
+      const budget: Budget = { deadline: Math.min(deadline, tenantDeadline) };
       try {
         let odoo: PosZOdoo | null = null;
         let odooNote: string | undefined;
         try {
-          const o = await odooFor(supabase, t.id);
+          const o = await odooFor(supabase, t.id, budget);
           odoo = o.api;
           odooNote = o.note;
         } catch (e) {
@@ -229,7 +241,7 @@ Deno.serve(async (req) => {
         }
         perTenant[label] = await runPreparedZ({
           db: supabase, tenantId: t.id, tenantName: t.name || "SellQo", settings: settingsById.get(t.id)!,
-          dryRun, prepared, odoo, odooNote, deadline,
+          dryRun, prepared, odoo, odooNote, deadline: budget.deadline,
         });
       } catch (e) {
         perTenant[label] = { error: errMsg(e) };

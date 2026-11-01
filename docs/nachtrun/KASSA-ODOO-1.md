@@ -90,7 +90,7 @@ vergeten kan worden. Wie de cron nog niet wil: dat ene bestand later draaien.
   claim-index weigert een tweede pending/synced, laat meerdere failed toe; cron 1×, doc 1×.
 - `node scripts/i18n-parity.mjs` → volledige pariteit (5 talen, 10900 keys), exit 0.
 - `npx eslint` op alle gewijzigde/nieuwe bestanden → 0 problemen (baseline OdooAccountingSettings: 0).
-- `npx tsc --noEmit -p tsconfig.app.json` (volledig, na review 1) → exit 0, 0 fouten. (De eerste
+- `npx tsc --noEmit -p tsconfig.app.json` (volledig, na review 1 én na review 2) → exit 0, 0 fouten. (De eerste
   twee pogingen vóór review 1 werden door de sandbox OOM-gekild, exit 137.)
 - `useTenantOdooSettings.upsert`: payload `as never` tot Lovable `types.ts` regenereert (de
   `pos_z_*`-kolommen bestaan nog niet in de gegenereerde types).
@@ -124,6 +124,28 @@ kreeg `HARNESS_CACHE_DIR` (identiek aan de andere nachtrun-branches).
 Migratie-timestamps ongewijzigd (230500/230501/230502); de inhoud van 230500 en 230501 is uitgebreid
 (niet live gedraaid, dus veilig). Nieuwe statussen in de check en de claim-index: `needs_review`,
 `accepted`.
+
+## Review 2 → fixes
+
+| # | Punt | Fix | Bewijs |
+|---|---|---|---|
+| B1 BLOKKER | Upsert-pad | Twee triggers. BEFORE INSERT/UPDATE (`_guard`) schoont enkel op en zet (beschermde kolommen terugzetten, `pos_z_enabled_at` bij aanzetten, wissen bij uitzetten) en raakt bij INSERT **geen payloadkolommen** (wat een BEFORE INSERT-trigger zet, belandt in EXCLUDED; eerste versie zette `pos_z_sync_enabled` daar op false en schakelde zo via de upsert alles uit). AFTER INSERT/UPDATE (`_check`, security definer) weigert de eindstaat. Hook: bestaat de rij, dan `update().eq('tenant_id')`, anders `upsert`. | Lokale Postgres 16 als `authenticated`, met PostgREST-vorm `INSERT … ON CONFLICT (tenant_id) DO UPDATE SET <payload> = excluded.<…>`: aanzetten dag 1 ok; dag 2 (aanzetmoment een dag terug) dagboek wijzigen ok; verleden zonder bevestiging geweigerd (upsert én update); telling 2 → bevestigen → gewone upsert-save ok, schakelaar blijft aan, backfill bewaard; nieuwe winkel via insert-pad met verleden geweigerd, met bedrijfsdag ok. |
+| H2 | Bevestiging = aanzetten | `odoo_pos_z_confirm_backfill(tenant, from, count, journal_id, journal_name)` zet in dezelfde transactie de schakelaar aan, de startdatum, het dagboek en de bevestiging; weigert als de factuursync uit staat. De UI slaat na de bevestiging niets meer apart op. | SQL: bevestigen terwijl factuursync uit → geweigerd; daarna aan → bevestigen zet aan. Harnas: rpc's count + confirm, geen losse save. |
+| M1 | Budget | `deferrals` op de log: een `DeadlineError` telt niet als poging maar wel als uitstel, na 5 melding `odoo_pos_z_deferred:<id>:r<ronde>`. Per winkel een eerlijk deel van het restbudget (min. 15 s). Elke Odoo-aanroep (ook authenticate) heeft een time-out ≤ restbudget van de winkel (max. 30 s), per aanvraag (geen globale toestand in de isolate). | Test "review 2 M1". |
+| 4 | Factuursync uit | `_guard`: `odoo_sync_enabled` false ⇒ `pos_z_sync_enabled` false + `pos_z_enabled_at`/backfill gewist; `_check` weigert Z aan zonder factuursync. | SQL stap 5. |
+| 5 | Datums teruglezen | `readMove` leest `invoice_date` en `date`; `compareMove` meldt een afwijking van de bedrijfsdag (bv. vergrendelde periode) → concept + melding. | Test "review 2.5". |
+| 7 | config.toml | `[functions.sync-odoo-pos-z] verify_jwt = false`. | — |
+| 8 | Klant bij hergebruik | Aanvaard als partner = huidige verzamelklant, de gecachete id van bij de start, of een partner met de huidige naam. | Test "review 2.8/2.9". |
+| 9 | Zoeken zonder dagboek | Volgorde: id uit de log → naam+soort in het dagboek (vreemde boeking blokkeert, Odoo eist unieke naam) → naam+soort in elk dagboek (enkel de onze). | Idem. |
+| 10 | Accept-dialoog | Toont het Odoo-concept (naam + id) met "verwijder of annuleer dit concept in Odoo". | Harnas-PNG `-aanvaarden`. |
+| 11 | Dedupe per ronde | `retry_round` op de log (RPC retry +1); sleutels `…:<id>:r<ronde>`. | Test "review 2.11"; SQL: retry → round 1. |
+| 12 | Historisch | Stap 1 filtert `data->historical_import is null`; komt er toch een in de batch, dan als `skipped` gelogd ("historische import"). | Test "lege Z, historische Z…". |
+| 13 | Schakelaar opnieuw lezen | Vlak vóór elke claim `pos_z_sync_enabled` en `odoo_sync_enabled` opnieuw lezen; uit = stoppen. | Test "review 2.13". |
+| 14 | Bedrijfsdag | Trigger rekent met `kassa_business_day` (afkapuur); RPC `odoo_pos_z_business_day` geeft de UI-standaard en de UI toont "Huidige bedrijfsdag van je kassa". Functie (tweede slot) staat één kalenderdag marge toe. | SQL stap 8; harnas (startdatum 31-10 i.p.v. 01-11). |
+| 15 | Helpartikel | `on conflict (doc_level, slug) do update` (enkel de eigen slug); "nooit twee keer" genuanceerd; bedrijfsdag, factuursync-uit en concept verwijderen bij aanvaarden toegevoegd. | — |
+
+Punt 6 (orders met sales_channel 'pos' + factuur) trekt de coördinator live na.
+Opgemerkt, niet aangeraakt: de sluitknop van de shadcn-`Dialog` heeft een vaste Engelse sr-only-tekst "Close" (bestaand component).
 
 ## Bewust ongemoeid / Vervolg
 

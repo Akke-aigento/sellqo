@@ -2561,7 +2561,7 @@
       "enable_label": "Z-Berichte der Kasse nach Odoo senden",
       "enable_help": "Standardmäßig aus. An = SellQo prüft stündlich, ob es neue Z-Berichte gibt.",
       "from_label": "Ab Geschäftstag",
-      "from_help": "Standardmäßig heute. Ein früherer Tag verlangt eine Bestätigung mit der Anzahl der Z-Berichte, die dann gebucht werden.",
+      "from_help": "Standardmäßig der aktuelle Geschäftstag deiner Kasse. Ein früherer Tag verlangt eine Bestätigung mit der Anzahl der Z-Berichte, die dann gebucht werden.",
       "journal_label": "Kassenjournal",
       "journal_same": "Wie das Verkaufsjournal",
       "journal_taken": "in Verwendung",
@@ -2583,6 +2583,9 @@
       "cancel": "Abbrechen",
       "accept_title": "Z {{no}} akzeptieren",
       "accept_note_label": "Odoo-Nummer oder Erklärung",
+      "saved": "Kasseneinstellungen für Odoo gespeichert.",
+      "business_day": "Aktueller Geschäftstag deiner Kasse: {{date}}.",
+      "accept_concept": "SellQo hat in Odoo bereits einen Entwurf {{name}} angelegt (Odoo-ID {{id}}). Lösche oder storniere diesen Entwurf in Odoo, wenn du den Z von Hand gebucht hast, sonst steht der Umsatz doppelt.",
       "status": {
         "pending": "In Bearbeitung",
         "synced": "Gebucht",

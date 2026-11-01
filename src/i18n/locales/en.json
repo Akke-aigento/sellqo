@@ -2892,7 +2892,7 @@
       "enable_label": "Send till Z reports to Odoo",
       "enable_help": "Off by default. On = SellQo checks for new Z reports every hour.",
       "from_label": "From business day",
-      "from_help": "Today by default. An earlier day asks for confirmation with the number of Z reports that will then be booked.",
+      "from_help": "By default the current business day of your till. An earlier day asks for confirmation with the number of Z reports that will then be booked.",
       "journal_label": "Till journal",
       "journal_same": "Same as the sales journal",
       "journal_taken": "in use",
@@ -2914,6 +2914,9 @@
       "cancel": "Cancel",
       "accept_title": "Accept Z {{no}}",
       "accept_note_label": "Odoo number or explanation",
+      "saved": "Till settings for Odoo saved.",
+      "business_day": "Current business day of your till: {{date}}.",
+      "accept_concept": "SellQo already created a draft {{name}} in Odoo (Odoo ID {{id}}). Delete or cancel this draft in Odoo if you booked the Z by hand, otherwise the revenue appears twice.",
       "status": {
         "pending": "In progress",
         "synced": "Booked",

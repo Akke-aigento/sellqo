@@ -34,7 +34,7 @@ const dateNl = (iso: string) => iso.split('-').reverse().join('-');
 
 type PosZLogRow = {
   id: string; report_no: number | null; booking_date: string | null; sync_status: string;
-  odoo_move_name: string | null; error_message: string | null; created_at: string;
+  odoo_move_name: string | null; odoo_move_id: string | null; error_message: string | null; created_at: string;
 };
 
 /** RPC's van KASSA-ODOO-1 staan (nog) niet in de gegenereerde types. Rechtstreeks op de client (R14). */
@@ -72,6 +72,15 @@ export function OdooPosZCard({ tenantId, settings, isLoading, canWrite, configur
   const [accepting, setAccepting] = useState<PosZLogRow | null>(null);
   const [acceptNote, setAcceptNote] = useState('');
 
+  // Review 2 punt 14: de huidige bedrijfsdag van de kassa (afkapuur), niet de kalenderdag.
+  const businessDay = useQuery({
+    queryKey: ['odoo-pos-z-business-day', tenantId],
+    enabled: !!tenantId && canWrite,
+    staleTime: 5 * 60_000,
+    queryFn: () => posZRpc<string>('odoo_pos_z_business_day', { p_tenant_id: tenantId }),
+  });
+  const currentDay = businessDay.data ?? brusselsDate(new Date());
+
   useEffect(() => {
     if (settings) {
       setEnabled(settings.pos_z_sync_enabled ?? false);
@@ -92,8 +101,8 @@ export function OdooPosZCard({ tenantId, settings, isLoading, canWrite, configur
 
   const handleToggle = (on: boolean) => {
     setEnabled(on);
-    // Aanzetten = altijd vandaag (Brussel). Vroeger kan enkel na bevestiging bij Opslaan.
-    if (on && !baseline.enabled) setFrom(brusselsDate(new Date()));
+    // Aanzetten = de huidige bedrijfsdag. Vroeger kan enkel na bevestiging bij Opslaan.
+    if (on && !baseline.enabled) setFrom(currentDay);
   };
 
   const save = () => {
@@ -110,7 +119,8 @@ export function OdooPosZCard({ tenantId, settings, isLoading, canWrite, configur
     // Een startdatum vóór het aanzetten (of vóór een eerder bevestigde datum) vraagt een expliciete
     // bevestiging met het aantal Z's dat dan geboekt wordt. De server dwingt dit ook af (trigger).
     if (enabled && from) {
-      const enabledDay = settings?.pos_z_sync_enabled && settings.pos_z_enabled_at ? brusselsDate(new Date(settings.pos_z_enabled_at)) : brusselsDate(new Date());
+      // Al aan: de dag van het aanzetten (de server rekent exact met de bedrijfsdag en weigert anders).
+      const enabledDay = settings?.pos_z_sync_enabled && settings.pos_z_enabled_at ? brusselsDate(new Date(settings.pos_z_enabled_at)) : currentDay;
       const allowedFrom = [enabledDay, settings?.pos_z_backfill_from].filter(Boolean).sort()[0] as string;
       if (from < allowedFrom) {
         setBusy(true);
@@ -132,9 +142,15 @@ export function OdooPosZCard({ tenantId, settings, isLoading, canWrite, configur
     if (!backfill) return;
     setBusy(true);
     try {
-      await posZRpc('odoo_pos_z_confirm_backfill', { p_tenant_id: tenantId, p_from: backfill.from, p_count: backfill.count });
+      // Review 2 H2: bevestigen en aanzetten (met het dagboek) in één transactie op de server.
+      const j = journal === POS_JOURNAL_SAME ? null : journals.data?.find(x => String(x.id) === journal);
+      await posZRpc('odoo_pos_z_confirm_backfill', {
+        p_tenant_id: tenantId, p_from: backfill.from, p_count: backfill.count,
+        p_journal_id: j ? String(j.id) : '', p_journal_name: j?.name ?? '',
+      });
       setBackfill(null);
-      save();
+      toast.success(t('admin.odooPosZ.saved'));
+      qc.invalidateQueries({ queryKey: ['tenant_odoo_settings', tenantId] });
     } catch (e) {
       toast.error(errText(e));
     } finally {
@@ -148,7 +164,7 @@ export function OdooPosZCard({ tenantId, settings, isLoading, canWrite, configur
     queryFn: async () => {
       // De tabel staat (nog) niet in de gegenereerde types (zelfde patroon als src/kassa).
       // De laatste 5, plus alles wat aandacht vraagt (mislukt of na te kijken).
-      const cols = 'id, report_no, booking_date, sync_status, odoo_move_name, error_message, created_at';
+      const cols = 'id, report_no, booking_date, sync_status, odoo_move_name, odoo_move_id, error_message, created_at';
       const [recent, attention] = await Promise.all([
         supabase.from('odoo_pos_z_sync_log' as never).select(cols)
           .eq('tenant_id' as never, tenantId as never).order('created_at' as never, { ascending: false }).limit(5),
@@ -224,6 +240,7 @@ export function OdooPosZCard({ tenantId, settings, isLoading, canWrite, configur
               disabled={!canWrite || !enabled || !available}
             />
             <p className="text-xs text-muted-foreground mt-1">{t('admin.odooPosZ.from_help')}</p>
+            {enabled && <p className="text-xs text-muted-foreground mt-1">{t('admin.odooPosZ.business_day', { date: dateNl(currentDay) })}</p>}
           </div>
           <div className="min-w-0">
             <Label htmlFor="pos-z-journal">{t('admin.odooPosZ.journal_label')}</Label>
@@ -312,6 +329,11 @@ export function OdooPosZCard({ tenantId, settings, isLoading, canWrite, configur
             <DialogTitle>{t('admin.odooPosZ.accept_title', { no: accepting?.report_no ?? '?' })}</DialogTitle>
             <DialogDescription>{t('admin.odooPosZ.accept_prompt', { no: accepting?.report_no ?? '?' })}</DialogDescription>
           </DialogHeader>
+          {accepting?.odoo_move_id && (
+            <p className="text-sm rounded-md border border-amber-300 bg-amber-50 p-2 text-amber-900">
+              {t('admin.odooPosZ.accept_concept', { id: accepting.odoo_move_id, name: accepting.odoo_move_name ?? '' })}
+            </p>
+          )}
           <div className="space-y-1">
             <Label htmlFor="pos-z-accept-note">{t('admin.odooPosZ.accept_note_label')}</Label>
             <Textarea id="pos-z-accept-note" value={acceptNote} onChange={e => setAcceptNote(e.target.value)} rows={3} maxLength={500} />
