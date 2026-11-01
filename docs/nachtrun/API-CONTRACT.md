@@ -2,7 +2,8 @@
 
 Voor de bouwer van `sellqo-storefront`. Alles is **additief**: bestaande acties, parameters en
 velden blijven werken zoals voorheen. Versiestempel na deploy: `GET storefront-api` →
-`{ "ok": true, "version": "QR-STATUS-1" }`, header `X-SellQo-Api-Rev: qr-status-1`.
+`{ "ok": true, "version": "ALLERGEEN-VERKLAARD-1" }`, header `X-SellQo-Api-Rev: allergeen-verklaard-1`
+(was `QR-STATUS-1` vóór §5).
 
 ## Envelop (ongewijzigd)
 
@@ -133,3 +134,19 @@ Fouten (`data.success === false`):
 
 Stand opvolgen: `table_request_status` met `call_ids` (§3d). `status: "handled"` = personeel
 tikte "Afgehandeld" in de kassa.
+
+## 5. ALLERGEEN-VERKLAARD-1 — "bevat geen allergenen" vs "niet ingevuld"
+
+`get_products` (elk product) en `get_product`: naast de bestaande `allergens?: string[]` en
+`dietary?: string[]` (enkel aanwezig als niet leeg, ongewijzigd) nu ook:
+
+- `allergens_declared: true` — enkel aanwezig als de zaak de allergenen bewust vastlegde. Anders
+  ontbreekt de sleutel (nooit `false`).
+
+Lezen in de storefront:
+
+| `allergens` | `allergens_declared` | toon |
+|---|---|---|
+| niet leeg | `true` | de allergenen (zoals nu) |
+| ontbreekt | `true` | "Bevat geen van de 14 allergenen" |
+| ontbreekt | ontbreekt | niet ingevuld: "Vraag de bediening naar allergenen" (niets beweren) |

@@ -20,7 +20,7 @@ import { cachedShopStatus } from "../_shared/shopStatus.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "qr-status-1",
+  "X-SellQo-Api-Rev": "allergeen-verklaard-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -830,10 +830,13 @@ async function getProduct(supabase: any, tenantId: string, params: Record<string
 
 // ALLERGEN-1 — allergenen (14 EU-codes) en dieetlabels, alleen als ze ingevuld zijn,
 // zodat de respons voor andere winkels byte-gelijk blijft.
-function foodInfo(p: { allergens?: string[] | null; dietary?: string[] | null }): { allergens?: string[]; dietary?: string[] } {
+// ALLERGEEN-VERKLAARD-1 — additief: `allergens_declared: true` enkel als de zaak de allergenen bewust
+// vastlegde (products.allergens_declared). Zo kan een frontend "bevat geen van de 14 allergenen"
+// onderscheiden van "niet ingevuld". Anders geen sleutel: de respons blijft byte-gelijk.
+function foodInfo(p: { allergens?: string[] | null; dietary?: string[] | null; allergens_declared?: boolean | null }): { allergens?: string[]; dietary?: string[]; allergens_declared?: true } {
   const a = Array.isArray(p.allergens) ? p.allergens : [];
   const d = Array.isArray(p.dietary) ? p.dietary : [];
-  return { ...(a.length ? { allergens: a } : {}), ...(d.length ? { dietary: d } : {}) };
+  return { ...(a.length ? { allergens: a } : {}), ...(d.length ? { dietary: d } : {}), ...(p.allergens_declared === true ? { allergens_declared: true as const } : {}) };
 }
 
 // ============== FOOD-1: EXTRA'S, AFHALEN EN LEVEREN ==============
@@ -1682,6 +1685,16 @@ async function getProducts(supabase: any, tenantId: string, params: Record<strin
 
   // Fetch variant data for all products
   const productIds = filtered.map((p: any) => p.id);
+  // ALLERGEEN-VERKLAARD-1 — aparte, foutbestendige lees: de hoofdquery (kolommen expliciet) blijft
+  // ongewijzigd, en vóór de migratie (kolom bestaat niet) valt dit stil weg.
+  if (productIds.length) {
+    const { data: decl, error: declErr } = await supabase.from('products').select('id, allergens_declared')
+      .eq('tenant_id', tenantId).in('id', productIds).eq('allergens_declared', true);
+    if (!declErr) {
+      const declared = new Set(((decl || []) as DbRow[]).map((r) => String(r.id)));
+      for (const p of filtered as DbRow[]) if (declared.has(String(p.id))) p.allergens_declared = true;
+    }
+  }
   let variantMap: Record<string, any[]> = {};
   if (productIds.length > 0) {
     const { data: allVariants } = await supabase
@@ -6315,7 +6328,7 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'QR-STATUS-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'ALLERGEEN-VERKLAARD-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);

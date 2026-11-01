@@ -7254,7 +7254,7 @@
         "allergens_title": "Allergens",
         "allergens_desc": "Which of the 14 allergens are in this dish? Your customer sees them on the product page and the menu before ordering (required for distance selling).",
         "dietary_title": "Labels",
-        "allergens_none_hint": "Nothing checked: the store then lists no allergens for this dish. If in doubt, check with your supplier.",
+        "allergens_none_hint": "Nothing checked: not filled in yet. Your customer then sees no allergen information. If the dish really contains none, check “Contains none of the 14 allergens”. If in doubt, check with your supplier.",
         "closed_title": "Closing days",
         "closed_desc": "Holiday or bank holiday? On these days nobody can order pickup or delivery. Ordering at the table simply follows your venue.",
         "closed_date": "Date",
@@ -7296,7 +7296,9 @@
         "pos_sold_out": "{{name}} is sold out for today",
         "pos_not_available": "{{name}} is not for sale at the POS",
         "qr_tables_from_floor_plan": "You have a floor plan: every table has its own secure QR code. Print the table stickers from the floor plan. Plain table numbers no longer work in your venue.",
-        "qr_open_floor_plan": "Go to floor plan"
+        "qr_open_floor_plan": "Go to floor plan",
+        "allergens_none_label": "Contains none of the 14 allergens",
+        "allergens_none_disabled": "Not available while an allergen is checked."
       },
       "schema": {
         "themeGallery": {
