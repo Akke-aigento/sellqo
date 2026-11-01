@@ -338,7 +338,7 @@ export function compareMove(plan: ZPlan, mv: OdooMoveRead, rateOfTax: Map<number
 
 export type Db = { from: (table: string) => any };
 
-export interface OdooMoveHead { id: number; name: string; state: string; move_type: string; partner_id: number | null; invoice_date: string | null }
+export interface OdooMoveHead { id: number; name: string; state: string; move_type: string; partner_id: number | null; invoice_date: string | null; journal_id?: number | null }
 
 export interface PosZOdoo {
   journal(id: number): Promise<{ id: number; name: string; type: string } | null>;
@@ -372,6 +372,8 @@ export interface PosZSettings {
   pos_z_enabled_at?: string | null;
   /** Vroegste bevestigde startdatum (enkel via de RPC odoo_pos_z_confirm_backfill). */
   pos_z_backfill_from?: string | null;
+  /** Bedrijfsdag van het aanzetten, bewaard door de trigger (fixcheck punt 2). */
+  pos_z_enabled_day?: string | null;
 }
 
 export interface ZResult {
@@ -415,6 +417,24 @@ export class DeadlineError extends Error {
   constructor() { super("tijdsbudget op, volgende run"); }
 }
 
+/** Hoogste time-out per Odoo-aanroep. */
+export const ODOO_CALL_TIMEOUT_MS = 30_000;
+
+/**
+ * Time-out rond een Odoo-aanroep. Was ms door het tijdsbudget ingekort (< 30 s) en loopt hij af,
+ * dan is dat een DeadlineError: geen echte poging (fixcheck punt 3). Anders een gewone fout.
+ */
+export function withBudgetTimeout<T>(p: Promise<T>, ms = ODOO_CALL_TIMEOUT_MS): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const byBudget = ms < ODOO_CALL_TIMEOUT_MS;
+  return Promise.race([
+    p,
+    new Promise<T>((_, rej) => {
+      timer = setTimeout(() => rej(byBudget ? new DeadlineError() : new Error(`Odoo antwoordde niet binnen ${ms / 1000}s`)), ms);
+    }),
+  ]).finally(() => clearTimeout(timer));
+}
+
 /** Elke Odoo-aanroep pas na een blik op de klok. */
 export function guardOdoo(odoo: PosZOdoo, deadline: number): PosZOdoo {
   const g = <A extends unknown[], R>(f: (...a: A) => Promise<R>) => (...a: A): Promise<R> =>
@@ -455,6 +475,23 @@ const addDays = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00
 /** Odoo-URL vergelijkbaar maken (hoofdletters, slash, poort 443). */
 export function normalizeOdooUrlKey(u: string | null | undefined): string {
   return String(u ?? "").trim().toLowerCase().replace(/\/+$/, "").replace(/:443$/, "");
+}
+
+/** Dagboeken (factuur- en kassadagboek) van andere tenants op dezelfde Odoo (genormaliseerde url + db). */
+async function foreignJournals(db: Db, tenantId: string): Promise<Set<string>> {
+  const out = new Set<string>();
+  const { data: me } = await db.from("tenant_odoo_credentials").select("odoo_url, odoo_db").eq("tenant_id", tenantId).maybeSingle();
+  if (!me) return out;
+  const { data: sameDb } = await db.from("tenant_odoo_credentials").select("tenant_id, odoo_url").eq("odoo_db", me.odoo_db).neq("tenant_id", tenantId);
+  const ids = ((sameDb ?? []) as { tenant_id: string; odoo_url: string }[])
+    .filter((r) => normalizeOdooUrlKey(r.odoo_url) === normalizeOdooUrlKey(me.odoo_url)).map((r) => r.tenant_id);
+  if (!ids.length) return out;
+  const { data: rows, error } = await db.from("tenant_odoo_settings").select("tenant_id, odoo_journal_id, pos_z_journal_id").in("tenant_id", ids);
+  if (error) throw new Error(`dagboekcontrole: ${errMsg(error)}`);
+  for (const r of (rows ?? []) as { odoo_journal_id: string | null; pos_z_journal_id: string | null }[]) {
+    for (const j of [r.odoo_journal_id, r.pos_z_journal_id]) if (j) out.add(String(j));
+  }
+  return out;
 }
 
 /** R8: een dagboek van een andere tenant op dezelfde Odoo (url + db) is taboe. */
@@ -501,7 +538,7 @@ async function loadReportsData(db: Db, tenantId: string, ids: string[]): Promise
 export interface LogRow {
   id: string; kassa_report_id: string; sync_status: string; created_at: string;
   attempts: number | null; finished_at: string | null; odoo_move_id: string | null;
-  deferrals?: number | null; retry_round?: number | null;
+  deferrals?: number | null; retry_round?: number | null; odoo_journal_id?: string | null;
 }
 
 /** Na zoveel uitgestelde runs (tijdsbudget) een melding (review 2 M1). */
@@ -511,7 +548,7 @@ async function loadLogs(db: Db, tenantId: string): Promise<LogRow[]> {
   const out: LogRow[] = [];
   for (let off = 0; ; off += 1000) {
     const { data, error } = await db.from("odoo_pos_z_sync_log")
-      .select("id, kassa_report_id, sync_status, created_at, attempts, finished_at, odoo_move_id, deferrals, retry_round")
+      .select("id, kassa_report_id, sync_status, created_at, attempts, finished_at, odoo_move_id, odoo_journal_id, deferrals, retry_round")
       .eq("tenant_id", tenantId)
       .order("created_at", { ascending: true })
       .range(off, off + 999);
@@ -550,6 +587,8 @@ export interface PreparedTenant {
   work: null | {
     from: string; journalId: number; journalName: string | null; label: string; partnerName: string;
     batch: ZLite[]; failedRow: Map<string, LogRow>;
+    /** Dagboeken die deze winkel zelf gebruikt(e), zonder die van andere winkels op dezelfde Odoo. */
+    ownJournals: Set<string>;
   };
 }
 
@@ -580,7 +619,8 @@ export async function prepareTenantZ(args: TenantArgs): Promise<PreparedTenant> 
       await notifyTenant(db, tenantId, "no_enabled_at", now(), "het aanzetmoment ontbreekt; zet de schakelaar opnieuw aan.");
       return done({ ...res, error: "aanzetmoment (pos_z_enabled_at) ontbreekt" });
     }
-    const minDay = [addDays(brusselsDate(new Date(settings.pos_z_enabled_at)), -1), settings.pos_z_backfill_from].filter(Boolean).sort()[0] as string;
+    const enabledDay = settings.pos_z_enabled_day ?? addDays(brusselsDate(new Date(settings.pos_z_enabled_at)), -1);
+    const minDay = [enabledDay, settings.pos_z_backfill_from].filter(Boolean).sort()[0] as string;
     if (from < minDay) {
       await notifyTenant(db, tenantId, "from_unconfirmed", now(), `de startdatum ${dateNl(from)} ligt vóór het aanzetten en is niet bevestigd.`);
       return done({ ...res, error: `startdatum ${from} vóór het aanzetmoment zonder bevestiging` });
@@ -633,7 +673,12 @@ export async function prepareTenantZ(args: TenantArgs): Promise<PreparedTenant> 
   res.oldest_open = open.length ? open.map((r) => r.booking_date).sort()[0] : null;
   for (const r of reports) if (busy.has(r.id)) res.reports.push({ report_id: r.id, report_no: r.report_no, booking_date: r.booking_date, status: "busy" });
   if (!batch.length) return done(res);
-  return { result: res, work: { from, journalId, journalName: journalName ?? null, label, partnerName, batch, failedRow } };
+  // Fixcheck punt 1: hergebruik buiten het huidige dagboek enkel in dagboeken die deze winkel zelf
+  // gebruikt(e) (instellingen + log), nooit in een dagboek van een andere winkel op dezelfde Odoo.
+  const foreign = await foreignJournals(db, tenantId);
+  const ownJournals = new Set<string>([String(journalId), settings.odoo_journal_id, settings.pos_z_journal_id,
+    ...logs.map((l) => l.odoo_journal_id)].filter((j): j is string => !!j && !foreign.has(String(j))).map(String));
+  return { result: res, work: { from, journalId, journalName: journalName ?? null, label, partnerName, batch, failedRow, ownJournals } };
 }
 
 /** Stap 2: de batch boeken (of tonen bij een proefrun). */
@@ -644,7 +689,7 @@ export async function runPreparedZ(args: TenantArgs & {
   const now = args.now ?? (() => new Date());
   const res = prepared.result;
   if (!prepared.work) return res;
-  const { journalId, journalName, label, partnerName, batch, failedRow } = prepared.work;
+  const { journalId, journalName, label, partnerName, batch, failedRow, ownJournals } = prepared.work;
   const odoo = args.odoo ? guardOdoo(args.odoo, args.deadline) : null;
 
   const checks: string[] = [];
@@ -798,15 +843,21 @@ export async function runPreparedZ(args: TenantArgs & {
         odooLines.push([0, 0, { name: l.name, quantity: 1, price_unit: l.price_unit, tax_ids: [[6, 0, [taxId]]] }]);
       }
       const pid = await partner();
-      // Is dit echt deze Z? Zelfde naam, soort en bedrijfsdag, en als klant de huidige verzamelklant,
-      // de gecachete van bij de start, of een partner met de huidige naam (review 2 punt 8).
+      // Is dit echt deze Z? Zelfde naam, soort en bedrijfsdag, ALTIJD in een eigen dagboek (nooit dat
+      // van een andere winkel op dezelfde Odoo), en als klant de huidige verzamelklant, een partner met
+      // de huidige naam, of de gecachete id van bij de start. Die laatste is client-schrijfbaar, maar
+      // telt enkel samen met het eigen-dagboekvereiste (fixcheck punt 1).
+      const ownJournal = (m: OdooMoveHead) => m.journal_id != null && ownJournals.has(String(m.journal_id));
       const ours = async (m: OdooMoveHead | null): Promise<boolean> => {
         if (!m || m.state === "cancel" || m.name !== plan.name || m.move_type !== plan.moveType) return false;
         if (String(m.invoice_date ?? "").slice(0, 10) !== plan.bookingDate) return false;
-        if (m.partner_id != null && (m.partner_id === pid || m.partner_id === initialPartnerId)) return true;
-        return m.partner_id != null && (await odoo!.partnerName(m.partner_id)) === partnerName;
+        if (!ownJournal(m) || m.partner_id == null) return false;
+        if (m.partner_id === pid) return true;
+        if (m.partner_id === initialPartnerId) return true;
+        return (await odoo!.partnerName(m.partner_id)) === partnerName;
       };
       let moveId: number | null = null;
+      let moveJournal: number = journalId;
       // Review 1 (punt 8): eerst de boeking van een vorige poging, ongeacht het dagboek.
       const prevMoveId = Number(prev?.odoo_move_id);
       if (Number.isFinite(prevMoveId) && prevMoveId > 0) {
@@ -814,21 +865,23 @@ export async function runPreparedZ(args: TenantArgs & {
         if (pm && pm.state !== "cancel") {
           if (!(await ours(pm))) throw new Error(`De Odoo-boeking van de vorige poging (Odoo-id ${pm.id}, ${pm.name}) hoort niet meer bij deze Z. Niets gewijzigd.`);
           moveId = pm.id;
+          moveJournal = Number(pm.journal_id ?? journalId);
         }
       }
       if (!moveId) {
         // In het dagboek: een vreemde boeking met dezelfde naam blokkeert (Odoo eist een unieke naam).
         const inJournal = await odoo!.findMoves(plan.name, journalId, plan.moveType);
         for (const m of inJournal) {
-          if (await ours(m)) { moveId = m.id; break; }
+          if (await ours(m)) { moveId = m.id; moveJournal = journalId; break; }
         }
         if (!moveId && inJournal.length) {
           throw new Error(`In Odoo bestaat al een boeking ${plan.name} in dit dagboek die niet bij deze Z hoort (Odoo-id ${inJournal[0].id}). Niets gewijzigd.`);
         }
-        // Daarna in elk dagboek (bv. na een wissel van kassadagboek): enkel hergebruiken als het de onze is.
+        // Daarna in de andere eigen dagboeken (bv. na een wissel van kassadagboek), nooit in dat van
+        // een andere winkel op dezelfde Odoo (ours() filtert op ownJournals).
         if (!moveId) {
           for (const m of await odoo!.findMoves(plan.name, null, plan.moveType)) {
-            if (await ours(m)) { moveId = m.id; break; }
+            if (await ours(m)) { moveId = m.id; moveJournal = Number(m.journal_id ?? journalId); break; }
           }
         }
       }
@@ -845,7 +898,7 @@ export async function runPreparedZ(args: TenantArgs & {
           invoice_line_ids: odooLines,
         });
       }
-      await db.from("odoo_pos_z_sync_log").update({ odoo_move_id: String(moveId) }).eq("id", logId);
+      await db.from("odoo_pos_z_sync_log").update({ odoo_move_id: String(moveId), odoo_journal_id: String(moveJournal) }).eq("id", logId);
       const mv = await odoo!.readMove(moveId);
       const diffs = compareMove(plan, mv, rateOfTax);
       if (diffs.length) {
