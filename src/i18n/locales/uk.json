@@ -2923,6 +2923,11 @@
       "accept_done": "Z-звіт прийнято.",
       "retry": "Спробувати ще раз",
       "retry_done": "SellQo спробує цей Z-звіт знову під час наступного запуску.",
+      "backfill_title": "Провести Z-звіти за минулі дні?",
+      "backfill_ok": "Так, провести Z-звітів: {{count}}",
+      "cancel": "Скасувати",
+      "accept_title": "Прийняти Z {{no}}",
+      "accept_note_label": "Номер Odoo або пояснення",
       "status": {
         "pending": "Виконується",
         "synced": "Проведено",

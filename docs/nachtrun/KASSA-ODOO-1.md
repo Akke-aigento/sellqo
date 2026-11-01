@@ -110,6 +110,17 @@ vergeten kan worden. Wie de cron nog niet wil: dat ene bestand later draaien.
 | 8 | Herpoging, URL, partner | Eerst de `odoo_move_id` uit de log lezen (`getMove`, ongeacht dagboek), enkel hergebruiken als naam, soort, klant en dag kloppen; anders weigeren. `journalTakenByOther` filtert op db en vergelijkt de URL genormaliseerd (hoofdletters, slash, :443). Gecachete partner enkel als de naam nog klopt. | Tests "review 1.8" (ander dagboek, geen tweede create; hernoemde partner) en "review 1.3" (URL met hoofdletters en slash). |
 | 9 | Kanaalsleutel | `pos_z` (code, UI, i18n `admin.odooChannels.channels.pos_z`). | Test "echte run" (`channel_partner_ids.pos_z`). |
 
+**Na review 1 (coördinator):** R13 (geen `window.prompt/alert/confirm` in de admin). De kaart is
+verhuisd naar een eigen component `src/components/admin/accounting/OdooPosZCard.tsx` (props uit
+OdooAccountingSettings, geen gedragswijziging). De bevestiging van een startdatum in het verleden is
+een `AlertDialog` met het aantal Z's ("Ja, 3 Z-rapporten boeken"); Aanvaarden is een `Dialog` met
+een verplicht notitieveld (≥ 3 tekens, zoals de RPC). i18n: `backfill_title`, `backfill_ok`, `cancel`,
+`accept_title`, `accept_note_label` in 5 talen. Harnas-scenario `scripts/harness/scenarios/odoo-pos-z`
+(kaart uit → aan met verleden → bevestigingsdialoog → RPC's count + confirm + opslaan; kaart aan met
+needs_review/failed/synced/accepted, Aanvaarden + Opnieuw proberen, aanvaard-dialoog → RPC accept),
+390 en 1280: geen horizontale overloop, geen console-fouten, PNG's nagekeken. `scripts/harness/vite.config.ts`
+kreeg `HARNESS_CACHE_DIR` (identiek aan de andere nachtrun-branches).
+
 Migratie-timestamps ongewijzigd (230500/230501/230502); de inhoud van 230500 en 230501 is uitgebreid
 (niet live gedraaid, dus veilig). Nieuwe statussen in de check en de claim-index: `needs_review`,
 `accepted`.

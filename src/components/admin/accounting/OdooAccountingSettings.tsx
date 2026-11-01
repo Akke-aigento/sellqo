@@ -9,8 +9,8 @@ import { Info, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { useCan } from '@/hooks/useCan';
 import { useTenantOdooSettings } from '@/hooks/useTenantOdooSettings';
 import { useOdooConnection } from '@/hooks/useOdooConnection';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { useQuery } from '@tanstack/react-query';
+import { OdooPosZCard } from './OdooPosZCard';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -28,23 +28,6 @@ const DEFAULT_CHANNEL_LABELS: Record<string, string> = {
   pos_z: 'Kassaverkopen',
 };
 const KNOWN_MARKETPLACES = new Set(['bol_com', 'amazon', 'ebay']);
-
-/** Select-waarde voor "zelfde als het verkoopdagboek" (Radix staat geen lege waarde toe). */
-const POS_JOURNAL_SAME = '__same__';
-
-/** Kalenderdag in Brussel (JJJJ-MM-DD), zoals de trigger op tenant_odoo_settings rekent. */
-function brusselsDate(d: Date): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
-}
-
-type PosZLogRow = { id: string; report_no: number | null; booking_date: string | null; sync_status: string; odoo_move_name: string | null; error_message: string | null; created_at: string };
-
-/** RPC's van KASSA-ODOO-1 staan (nog) niet in de gegenereerde types. */
-async function posZRpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.rpc(name as never, args as never);
-  if (error) throw new Error(error.message);
-  return data as T;
-}
 
 interface Props {
   tenantId: string;
@@ -64,10 +47,6 @@ export function OdooAccountingSettings({ tenantId }: Props) {
   const [autoPost, setAutoPost] = useState(true);
   // INKOOP-3: inkoopfacturen uit SellQo meteen als concept naar Odoo.
   const [pushSupplierDocs, setPushSupplierDocs] = useState(false);
-  // KASSA-ODOO-1: Z-rapporten van de kassa naar Odoo. Standaard uit, eigen opslaan.
-  const [posZEnabled, setPosZEnabled] = useState(false);
-  const [posZFrom, setPosZFrom] = useState('');
-  const [posZJournal, setPosZJournal] = useState(POS_JOURNAL_SAME);
 
   const [url, setUrl] = useState('');
   const [db, setDb] = useState('');
@@ -147,9 +126,6 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       setPeppolSendEnabled(settings.peppol_send_enabled ?? true);
       setAutoPost(settings.odoo_auto_post ?? true);
       setPushSupplierDocs(settings.push_supplier_documents ?? false);
-      setPosZEnabled(settings.pos_z_sync_enabled ?? false);
-      setPosZFrom(settings.pos_z_sync_from ?? '');
-      setPosZJournal(settings.pos_z_journal_id || POS_JOURNAL_SAME);
     }
   }, [settings]);
 
@@ -164,96 +140,6 @@ export function OdooAccountingSettings({ tenantId }: Props) {
 
   const selectedJournal = journals.data?.find(j => String(j.id) === journalId);
   const configured = !!status.data?.configured;
-
-  const posZBaseline = {
-    enabled: settings?.pos_z_sync_enabled ?? false,
-    from: settings?.pos_z_sync_from ?? '',
-    journal: settings?.pos_z_journal_id || POS_JOURNAL_SAME,
-  };
-  const posZDirty = !isLoading && (posZEnabled !== posZBaseline.enabled || posZFrom !== posZBaseline.from || posZJournal !== posZBaseline.journal);
-  const posZJournalRow = journals.data?.find(x => String(x.id) === posZJournal);
-  // De factuursync moet opgeslagen aan staan: de Z-boekingen gebruiken die verbinding en instellingen.
-  const posZAvailable = configured && (settings?.odoo_sync_enabled ?? false);
-
-  const qc = useQueryClient();
-  const [posZBusy, setPosZBusy] = useState(false);
-
-  const handleTogglePosZ = (on: boolean) => {
-    setPosZEnabled(on);
-    // Review 1: aanzetten = altijd vandaag (Brussel). Vroeger kan enkel na bevestiging bij Opslaan.
-    if (on && !posZBaseline.enabled) setPosZFrom(brusselsDate(new Date()));
-  };
-
-  const handleSavePosZ = async () => {
-    const j = posZJournal === POS_JOURNAL_SAME ? null : journals.data?.find(x => String(x.id) === posZJournal);
-    setPosZBusy(true);
-    try {
-      // Een startdatum vóór het aanzetten (of vóór een eerder bevestigde datum) vraagt een expliciete
-      // bevestiging met het aantal Z's dat dan geboekt wordt. De server dwingt dit ook af (trigger).
-      if (posZEnabled && posZFrom) {
-        const enabledDay = settings?.pos_z_sync_enabled && settings.pos_z_enabled_at ? brusselsDate(new Date(settings.pos_z_enabled_at)) : brusselsDate(new Date());
-        const allowedFrom = [enabledDay, settings?.pos_z_backfill_from].filter(Boolean).sort()[0] as string;
-        if (posZFrom < allowedFrom) {
-          const count = await posZRpc<number>('odoo_pos_z_backfill_count', { p_tenant_id: tenantId, p_from: posZFrom });
-          if (!window.confirm(t('admin.odooPosZ.backfill_confirm', { count, date: posZFrom.split('-').reverse().join('-') }))) return;
-          await posZRpc('odoo_pos_z_confirm_backfill', { p_tenant_id: tenantId, p_from: posZFrom, p_count: count });
-        }
-      }
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-      return;
-    } finally {
-      setPosZBusy(false);
-    }
-    // upsert meldt zelf succes of fout.
-    upsert.mutate({
-      pos_z_sync_enabled: posZEnabled,
-      pos_z_sync_from: posZFrom || null,
-      pos_z_journal_id: j ? String(j.id) : null,
-      pos_z_journal_name: j?.name ?? null,
-    });
-  };
-
-  const posZLog = useQuery({
-    queryKey: ['odoo-pos-z-log', tenantId],
-    enabled: !!tenantId && !!settings?.pos_z_sync_enabled,
-    queryFn: async () => {
-      // De tabel staat (nog) niet in de gegenereerde types (zelfde patroon als src/kassa).
-      // De laatste 5, plus alles wat aandacht vraagt (mislukt of na te kijken).
-      const cols = 'id, report_no, booking_date, sync_status, odoo_move_name, error_message, created_at';
-      const [recent, attention] = await Promise.all([
-        supabase.from('odoo_pos_z_sync_log' as never).select(cols)
-          .eq('tenant_id' as never, tenantId as never).order('created_at' as never, { ascending: false }).limit(5),
-        supabase.from('odoo_pos_z_sync_log' as never).select(cols)
-          .eq('tenant_id' as never, tenantId as never).in('sync_status' as never, ['failed', 'needs_review'] as never)
-          .order('created_at' as never, { ascending: false }).limit(20),
-      ]);
-      const rows = [...((attention.data || []) as unknown as PosZLogRow[]), ...((recent.data || []) as unknown as PosZLogRow[])];
-      return rows.filter((r, i) => rows.findIndex(x => x.id === r.id) === i);
-    },
-  });
-
-  const handleAcceptZ = async (row: PosZLogRow) => {
-    const note = window.prompt(t('admin.odooPosZ.accept_prompt', { no: row.report_no ?? '?' }));
-    if (note === null) return;
-    try {
-      await posZRpc('odoo_pos_z_accept', { p_log_id: row.id, p_note: note });
-      toast.success(t('admin.odooPosZ.accept_done'));
-      qc.invalidateQueries({ queryKey: ['odoo-pos-z-log', tenantId] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
-
-  const handleRetryZ = async (row: PosZLogRow) => {
-    try {
-      await posZRpc('odoo_pos_z_retry', { p_log_id: row.id });
-      toast.success(t('admin.odooPosZ.retry_done'));
-      qc.invalidateQueries({ queryKey: ['odoo-pos-z-log', tenantId] });
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : String(e));
-    }
-  };
 
   // Compare against stored row when present, otherwise against defaults so the
   // first-ever save (no row yet) is not permanently blocked.
@@ -556,103 +442,16 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       )}
 
       {configured && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('admin.odooPosZ.title')}</CardTitle>
-            <CardDescription>{t('admin.odooPosZ.description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!posZAvailable && (
-              <p className="text-xs text-amber-700">{t('admin.odooPosZ.needs_sync')}</p>
-            )}
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <Label htmlFor="pos-z-enabled">{t('admin.odooPosZ.enable_label')}</Label>
-                <p className="text-xs text-muted-foreground mt-1">{t('admin.odooPosZ.enable_help')}</p>
-              </div>
-              <Switch
-                id="pos-z-enabled"
-                checked={posZEnabled}
-                disabled={!canWrite || isLoading || (!posZAvailable && !posZEnabled)}
-                onCheckedChange={handleTogglePosZ}
-              />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="pos-z-from">{t('admin.odooPosZ.from_label')}</Label>
-                <Input
-                  id="pos-z-from"
-                  type="date"
-                  className="mt-1"
-                  value={posZFrom}
-                  onChange={e => setPosZFrom(e.target.value)}
-                  disabled={!canWrite || !posZEnabled || !posZAvailable}
-                />
-                <p className="text-xs text-muted-foreground mt-1">{t('admin.odooPosZ.from_help')}</p>
-              </div>
-              <div>
-                <Label htmlFor="pos-z-journal">{t('admin.odooPosZ.journal_label')}</Label>
-                <Select value={posZJournal} onValueChange={setPosZJournal}
-                  disabled={!canWrite || !posZEnabled || !posZAvailable || journals.isLoading}>
-                  <SelectTrigger id="pos-z-journal" className="mt-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={POS_JOURNAL_SAME}>{t('admin.odooPosZ.journal_same')}</SelectItem>
-                    {(journals.data || []).map(j => (
-                      <SelectItem key={j.id} value={String(j.id)} disabled={j.claimed_by_other_tenant}>
-                        {j.name}{j.code ? ` (${j.code})` : ''}{j.claimed_by_other_tenant ? ` — ${t('admin.odooPosZ.journal_taken')}` : ''}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">{t('admin.odooPosZ.journal_help')}</p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
-              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-              <span>{t('admin.odooPosZ.rules_note')}</span>
-            </div>
-
-            {settings?.pos_z_sync_enabled && (
-              <div className="space-y-1">
-                <p className="text-sm font-medium">{t('admin.odooPosZ.recent_title')}</p>
-                {(posZLog.data || []).length === 0 ? (
-                  <p className="text-xs text-muted-foreground">{t('admin.odooPosZ.recent_empty')}</p>
-                ) : (
-                  (posZLog.data || []).map(l => (
-                    <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-1 last:border-b-0 text-sm">
-                      <span>{t('admin.odooPosZ.recent_row', { no: l.report_no ?? '?', name: l.odoo_move_name ?? '—' })}</span>
-                      <span className="flex flex-wrap items-center gap-2">
-                        <span className={['failed', 'needs_review'].includes(l.sync_status) ? 'text-xs text-red-600' : 'text-xs text-muted-foreground'}>
-                          {t(`admin.odooPosZ.status.${l.sync_status}`)}
-                        </span>
-                        {canWrite && ['failed', 'needs_review'].includes(l.sync_status) && (
-                          <Button size="sm" variant="outline" onClick={() => handleAcceptZ(l)}>{t('admin.odooPosZ.accept')}</Button>
-                        )}
-                        {canWrite && l.sync_status === 'needs_review' && (
-                          <Button size="sm" variant="ghost" onClick={() => handleRetryZ(l)}>{t('admin.odooPosZ.retry')}</Button>
-                        )}
-                      </span>
-                      {['failed', 'needs_review'].includes(l.sync_status) && l.error_message && (
-                        <p className="basis-full text-xs text-muted-foreground break-words">{l.error_message}</p>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-            )}
-
-            <div className="flex justify-end">
-              <Button onClick={handleSavePosZ}
-                disabled={!canWrite || !posZDirty || upsert.isPending || posZBusy || (posZEnabled && (!posZAvailable || !posZFrom)) || !!posZJournalRow?.claimed_by_other_tenant}>
-                {upsert.isPending || posZBusy ? t('admin.odooPosZ.saving') : t('admin.odooPosZ.save')}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <OdooPosZCard
+          tenantId={tenantId}
+          settings={settings}
+          isLoading={isLoading}
+          canWrite={canWrite}
+          configured={configured}
+          journals={journals}
+          saving={upsert.isPending}
+          onSave={(u) => upsert.mutate(u)}
+        />
       )}
 
       {configured && (

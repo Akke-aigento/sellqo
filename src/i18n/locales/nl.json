@@ -2923,6 +2923,11 @@
       "accept_done": "Z-rapport aanvaard.",
       "retry": "Opnieuw proberen",
       "retry_done": "SellQo probeert dit Z-rapport bij de volgende run opnieuw.",
+      "backfill_title": "Z-rapporten uit het verleden boeken?",
+      "backfill_ok": "Ja, {{count}} Z-rapporten boeken",
+      "cancel": "Annuleren",
+      "accept_title": "Z {{no}} aanvaarden",
+      "accept_note_label": "Odoo-nummer of uitleg",
       "status": {
         "pending": "Bezig",
         "synced": "Geboekt",

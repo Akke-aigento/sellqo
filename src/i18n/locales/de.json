@@ -2578,6 +2578,11 @@
       "accept_done": "Z-Bericht akzeptiert.",
       "retry": "Erneut versuchen",
       "retry_done": "SellQo versucht diesen Z-Bericht beim nächsten Lauf erneut.",
+      "backfill_title": "Z-Berichte aus der Vergangenheit buchen?",
+      "backfill_ok": "Ja, {{count}} Z-Berichte buchen",
+      "cancel": "Abbrechen",
+      "accept_title": "Z {{no}} akzeptieren",
+      "accept_note_label": "Odoo-Nummer oder Erklärung",
       "status": {
         "pending": "In Bearbeitung",
         "synced": "Gebucht",

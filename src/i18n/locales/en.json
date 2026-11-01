@@ -2909,6 +2909,11 @@
       "accept_done": "Z report accepted.",
       "retry": "Try again",
       "retry_done": "SellQo will try this Z report again on the next run.",
+      "backfill_title": "Book Z reports from the past?",
+      "backfill_ok": "Yes, book {{count}} Z reports",
+      "cancel": "Cancel",
+      "accept_title": "Accept Z {{no}}",
+      "accept_note_label": "Odoo number or explanation",
       "status": {
         "pending": "In progress",
         "synced": "Booked",

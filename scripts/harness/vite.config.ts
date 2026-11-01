@@ -23,6 +23,8 @@ export default defineConfig({
     { find: '@', replacement: path.resolve(__dirname, '../../src') },
   ] },
   server: { port: Number(process.env.HARNESS_PORT ?? 5199), strictPort: true },
-  cacheDir: '/tmp/harness-vite-cache',
+  // Eigen cache per sessie/worktree (HARNESS_CACHE_DIR): parallelle harnassen delen anders één
+  // optimize-cache en geven elkaar '504 Outdated Optimize Dep'.
+  cacheDir: process.env.HARNESS_CACHE_DIR ?? '/tmp/harness-vite-cache',
   logLevel: 'warn',
 });

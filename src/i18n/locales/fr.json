@@ -2578,6 +2578,11 @@
       "accept_done": "Rapport Z accepté.",
       "retry": "Réessayer",
       "retry_done": "SellQo réessaiera ce rapport Z lors du prochain passage.",
+      "backfill_title": "Comptabiliser des rapports Z passés ?",
+      "backfill_ok": "Oui, comptabiliser {{count}} rapports Z",
+      "cancel": "Annuler",
+      "accept_title": "Accepter le Z {{no}}",
+      "accept_note_label": "Numéro Odoo ou explication",
       "status": {
         "pending": "En cours",
         "synced": "Comptabilisé",
