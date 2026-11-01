@@ -3,9 +3,11 @@
 // Dezelfde producten als in Producten, de kassa, het QR-menu en de webshop: geen kopie.
 import { useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
+import { allergenState } from '@/components/admin/storefront/food/allergenState';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpDown, Calculator, Camera, Check, ChevronDown, ChevronRight, ClipboardPaste, FolderPlus, GripVertical, Loader2, Plus, Search, Settings2, Sparkles, X } from 'lucide-react';
+import { ArrowUpDown, Calculator, Camera, Check, ChevronDown, ChevronRight, ClipboardPaste, FolderPlus, GripVertical, Loader2, Plus, Search, Settings2, Sparkles, TriangleAlert, X } from 'lucide-react';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -22,7 +24,7 @@ import { isSoldOutNow, useSoldOutToday } from '@/components/admin/storefront/foo
 import { nameKey, parseKaartText, priceFromInput, priceToInput } from './parseKaart';
 import { KaartImportDialog, type ImportSource, type PreviewRow } from './KaartImportDialog';
 import { KaartPhotoButton } from './KaartPhotoButton';
-import { kaartErrorKey, kaartKey, useKaart, useKaartMutations, useKaartVat, type BulkChange, type KaartCategory, type KaartProduct } from './useKaart';
+import { onAllergenChart, kaartErrorKey, kaartKey, useKaart, useKaartMutations, useKaartVat, type BulkChange, type KaartCategory, type KaartProduct } from './useKaart';
 import { KaartProductSheet } from './KaartProductSheet';
 import { FOODCOST_WARN_PCT, foodCostLabel, foodCostPct, isFoodCostHigh } from './foodCost';
 import { useTenant } from '@/hooks/useTenant';
@@ -129,6 +131,8 @@ export function KaartManager() {
   if (isLoading) return <Loader2 className="h-6 w-6 animate-spin" aria-label={t('common.loading')} />;
 
   const activeCount = products.filter((p) => p.is_active).length;
+  // ALLERGEEN-ADMIN-1: actieve producten waarvan de allergenen nog niet ingevuld zijn (ook niet "geen").
+  const allergenMissing = products.filter((p) => onAllergenChart(p) && allergenState(p.allergens, p.allergens_declared).kind === 'missing').length;
 
   return (
     <div className="space-y-4 pb-28">
@@ -170,6 +174,14 @@ export function KaartManager() {
         {mode === 'sort' ? t('admin.kaart.mode.sortHint') : mode === 'select' ? t('admin.kaart.mode.selectHint')
           : <>{t('admin.kaart.summary', { count: products.length, active: activeCount })} · {t('admin.kaart.sharedNote')}{showFc ? <> · {t('admin.kaart.cost.legend', { warn: FOODCOST_WARN_PCT })}</> : null}</>}
       </p>
+
+      {canEdit && allergenMissing > 0 && !term && mode === 'none' ? (
+        <Link to="/admin/bestellen?tab=allergens" className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">
+          <TriangleAlert className="h-4 w-4 shrink-0" aria-hidden />
+          <span className="flex-1">{t('admin.kaart.allergenState.banner', { count: allergenMissing })}</span>
+          <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+        </Link>
+      ) : null}
 
       {products.length > 0 && activeCount === 0 && !term ? (
         <div className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">{t('admin.kaart.noneOnHint')}</div>

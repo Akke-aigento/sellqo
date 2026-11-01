@@ -6963,7 +6963,12 @@
           "empty": "Il n'y a pas encore de plats actifs.",
           "missing": "{{count}} plat(s) n'ont aucun allergène renseigné. Vérifiez que c'est correct : sur le tableau, une ligne vide se lit comme « ne contient aucun allergène ». Vous pouvez les renseigner sur le produit.",
           "updated": "Mis à jour le {{date}}",
-          "print_footer": "● = contient cet allergène. Vous avez une allergie ? N'hésitez pas à demander à notre personnel."
+          "print_footer": "● = contient cet allergène. Vous avez une allergie ? N'hésitez pas à demander à notre personnel.",
+          "state_missing": "non renseigné",
+          "state_none": "aucun allergène",
+          "missing_todo": "Les allergènes ne sont pas encore renseignés pour {{count}} plat(s). Coche les allergènes présents, ou « Ne contient aucun des 14 allergènes » s’il n’y en a pas. D’ici là, les clients voient sur le menu QR que les allergènes ne sont pas renseignés.",
+          "todo_title": "À renseigner",
+          "all_done": "Les allergènes sont renseignés pour tous les plats."
         },
         "channels_title": "Où commander",
         "channels_desc": "Une seule carte pour votre boutique en ligne, votre menu QR et la caisse. Ce qui est désactivé ici ne peut pas y être commandé.",
@@ -9182,6 +9187,11 @@
         "none_short": "–",
         "missing_aria": "{{name}} : aucun prix de revient",
         "pct_aria": "{{name}} : food cost {{pct}}"
+      },
+      "allergenState": {
+        "none": "aucun allergène",
+        "missing": "allergènes non renseignés",
+        "banner": "Les allergènes ne sont pas encore renseignés pour {{count}} produit(s) de ta carte. Voir lesquels."
       }
     },
     "horecaPay": {

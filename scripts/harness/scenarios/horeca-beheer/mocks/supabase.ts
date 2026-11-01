@@ -1,13 +1,21 @@
-// Elke query geeft niets terug (lege lijst / null).
+// Elke query geeft niets terug (lege lijst / null), behalve products en categories: daar de kaart van
+// Café De Wissel met de drie allergenenstanden (ALLERGEEN-ADMIN-1).
+import data from '../../kassa-home/data.json';
 type Res = { data: unknown; error: null };
-function chain(): unknown {
+const products = (data.products as { id: string; name: string; category_id: string }[]).map((p, i) => ({
+  id: p.id, name: p.name, category_id: p.category_id,
+  allergens: i % 3 === 0 ? ['gluten', 'milk'] : [], allergens_declared: i % 3 === 0 || i % 3 === 1,
+}));
+const categories = (data.categories as { id: string; name: string }[]).map((c, i) => ({ id: c.id, name: c.name, sort_order: i }));
+const rows: Record<string, unknown> = { products, categories };
+function chain(table?: string): unknown {
   const q: Record<string, unknown> = {};
   for (const m of ['select', 'eq', 'neq', 'in', 'is', 'gte', 'lte', 'lt', 'gt', 'order', 'limit', 'single', 'maybeSingle', 'insert', 'update', 'upsert', 'delete']) q[m] = () => q;
-  q.then = (ok: (r: Res) => unknown) => Promise.resolve({ data: null, error: null }).then(ok);
+  q.then = (ok: (r: Res) => unknown) => Promise.resolve({ data: (table && rows[table]) ?? null, error: null }).then(ok);
   return q;
 }
 export const supabase = {
-  from: () => chain(),
+  from: (table: string) => chain(table),
   rpc: () => chain(),
   channel: () => ({ on() { return this; }, subscribe() { return this; } }),
   removeChannel: () => {},
