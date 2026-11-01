@@ -2408,6 +2408,70 @@
         "addon_self_serve": {
           "title": "Ajoute toi-même une boutique en ligne, l'horeca ou les événements à ton forfait",
           "description": "Dans Paramètres › Modules, en tant qu'administrateur, tu actives toi-même un module supplémentaire : une boutique en ligne pour ton établissement horeca, l'horeca pour ton magasin, ou les événements. Tu vois à l'avance exactement ce que tu paies aujourd'hui (uniquement les jours restants de ta période) et ce que cela coûte ensuite. Le module s'active dès réception du paiement. Pendant ton essai, c'est gratuit. Tu peux le désactiver quand tu veux : il reste actif jusqu'à la fin de la période payée, et tant que des additions, billets ou commandes sont encore ouverts, SellQo le garde actif."
+        },
+        "qr_menu_order_sheet": {
+          "title": "Commander depuis ta carte sans aller-retour",
+          "description": "Quand ton client touche un plat dans ton menu QR, il choisit le format, les suppléments et la quantité dans une fenêtre, sans quitter la carte. Un plat sans choix s'ajoute directement avec « + »."
+        },
+        "qr_menu_allergen_filter": {
+          "title": "Tes clients filtrent ta carte par allergène",
+          "description": "Sur ta carte, ton client choisit par exemple « sans gluten » ou « sans fruits à coque », et les plats contenant cet allergène disparaissent. Les plats dont tu n'as pas encore rempli les allergènes sont affichés à part, avec l'invitation à demander au personnel, pour qu'ils ne paraissent jamais sûrs."
+        },
+        "qr_table_ordering_fixes": {
+          "title": "Commander plus facilement à table",
+          "description": "À table, tes clients restent sur ta carte au lieu d'arriver dans ta boutique en ligne. Ils voient quel plat vient d'être épuisé et le retirent tout de suite, choisissent eux-mêmes leur heure de retrait et ajoutent une demande de réservation à leur agenda en un geste. Un menu QR en consultation seule n'affiche plus de boutons de commande."
+        },
+        "qr_order_progress": {
+          "title": "Tes clients voient où en est leur commande",
+          "description": "Après avoir commandé via le code QR ou pour un retrait, ton client voit si sa commande est reçue, en cuisine, prête ou servie. Cela découle automatiquement des bons sur ton écran de cuisine ; tu n'as rien à faire de plus."
+        },
+        "qr_staff_call": {
+          "title": "Tes clients appellent le service ou demandent l'addition via le code QR",
+          "description": "Tes clients touchent le QR de leur table pour appeler le service ou demander l'addition. Tu le vois tout de suite sur la caisse sous Entrant, avec une notification sur tes appareils, et tu touches Traité une fois passé à la table. Une demande de réservation en ligne donne aussi une notification sur ta caisse, avec le nombre de personnes et l'heure."
+        },
+        "checkout_retry_safe": {
+          "title": "Plus de message d'erreur après une connexion instable au paiement",
+          "description": "Si la connexion coupe juste après le paiement et que ton client réessaie, il voit simplement la confirmation de sa commande, sans qu'une deuxième commande soit créée. Si un client paie l'addition de la table en ligne et que ça échoue, il continue le paiement ou recommence sans que l'addition reste bloquée."
+        },
+        "allergens_declared": {
+          "title": "Une distinction claire entre « aucun allergène » et « pas encore rempli »",
+          "description": "Dans l'éditeur de produit, tu coches désormais explicitement « Ne contient aucun des 14 allergènes ». Ton client voit alors sur ta carte que c'est vérifié. Sur ta Carte et ton tableau des allergènes, tu vois tout de suite quels plats ne sont pas encore remplis, avec une liste à compléter, et la copie d'un produit reprend ce choix."
+        },
+        "kitchen_tickets_safe": {
+          "title": "Allergies et remarques ne se perdent plus entre la cuisine et le bar",
+          "description": "Une remarque de ton client via le QR (p. ex. une allergie) figure désormais sur chaque bon de cette commande, y compris en cuisine. Remarques et allergènes s'affichent en grand sur l'écran de cuisine et sur le bon imprimé. Au bar, tu termines un bon en un geste et le service reçoit quand même un signal, les bons en retard passent au rouge, et ta caisse prévient quand une imprimante de bons n'imprime pas."
+        },
+        "dining_courses": {
+          "title": "Services à table : entrée, plat et dessert envoyés séparément en cuisine",
+          "description": "Active « Utiliser les services » dans Carte › Configuration › Postes et ta caisse attribue un service à chaque commande, par catégorie ou choisi toi-même sur l'addition. Les services suivants attendent que tu les lances en un geste, et la cuisine voit par service ce qu'il faut faire maintenant et ce qui suit. Si tu laisses l'option désactivée, rien ne change."
+        },
+        "kassa_manager_approval": {
+          "title": "Remises et annulations demandent désormais l'accord d'un responsable",
+          "description": "Les propriétaires et responsables accordent une remise, offrent quelque chose, annulent une commande déjà envoyée et sortent de l'argent de la caisse immédiatement ; les autres collaborateurs demandent d'abord le code PIN d'un responsable. Tu vois ainsi toujours qui a autorisé quoi. Quand un propriétaire ou un responsable est connecté, la caisse se verrouille après 2 minutes d'inactivité au maximum."
+        },
+        "kassa_shortcuts": {
+          "title": "Travailler plus vite à la caisse",
+          "description": "Tu répètes une tournée en un geste, récupères une ligne balayée, choisis un pourboire de 5 %, 10 % ou l'arrondi, et en partage égal tu encaisses personne par personne. Après une pause, ton nom est déjà sélectionné, tu règles toi-même après combien de minutes la caisse se verrouille, tu mets une vente au comptoir sur un nom ou une table, et dans « Mon service » tu vois ton chiffre d'affaires et tes pourboires du jour."
+        },
+        "kassa_staff_hours": {
+          "title": "Les heures de ton personnel de caisse, identiques sur chaque appareil",
+          "description": "Tu pointes sur une tablette et chaque caisse le sait. Dans l'administration, sous Caisse › Personnel, tu vois les heures prestées par semaine, clôtures les services oubliés, corriges avec un motif et télécharges un CSV pour ton secrétariat social. Tu y vois aussi comment les pourboires de chaque jour se répartissent selon les heures prestées. Les heures sont comptées à partir de cette mise à jour."
+        },
+        "horeca_reports_admin": {
+          "title": "Tes rapports horeca dans l'administration SellQo",
+          "description": "Sous Rapports › Horeca, tu retrouves tous tes rapports Z à imprimer ou à transmettre en CSV à ton comptable. Tu y vois aussi tes produits les plus vendus, ton chiffre d'affaires par heure et par collaborateur, et ce que rapportent en moyenne une addition et un couvert."
+        },
+        "horeca_sidebar_live_floor": {
+          "title": "Un menu horeca plus court et une vue en direct de ta salle",
+          "description": "Si tu as uniquement un établissement horeca, ton menu suit maintenant l'ordre de ta journée : Aujourd'hui, Appli caisse, Salle, Cuisine, Commandes, Carte, Paiements, Rapports, Achats. Sous Salle, tu vois en direct quelles tables sont ouvertes, pour quel montant et depuis quand ; tu modifies ton plan de salle dans l'onglet à côté. Les réglages de ta Carte sont regroupés sous Configuration."
+        },
+        "kaart_food_cost": {
+          "title": "Prix de revient et food cost sur ta Carte",
+          "description": "Saisis le prix de revient d'un produit sur la Carte et tu vois tout de suite le food cost : le prix de revient par rapport au prix de vente hors TVA. Avec le bouton Food cost, tu affiches une colonne pour tous tes produits ; au-dessus de 35 %, le chiffre passe au rouge. Seules les personnes autorisées à voir les prix de revient les voient."
+        },
+        "kassa_z_to_odoo": {
+          "title": "Le chiffre d'affaires de ta caisse vers Odoo, si tu l'actives",
+          "description": "Tes réglages comptables Odoo comprennent désormais « Chiffre d'affaires de la caisse vers Odoo ». Si tu l'actives, SellQo comptabilise chaque rapport Z clôturé, à partir du jour que tu choisis, en une seule écriture avec le chiffre d'affaires par taux de TVA, identique au centime à ton rapport Z. C'est désactivé par défaut. Les pourboires et les paiements ne sont pas comptabilisés ; si Odoo diffère, l'écriture reste un brouillon et tu reçois une notification. Disponible dans les forfaits avec la connexion Odoo."
         }
       },
       "copyLink": "Copier le lien",
@@ -2419,7 +2483,8 @@
         "q2_2026": "T2 2026",
         "aug_2026": "Août 2026",
         "sep_2026": "Septembre 2026",
-        "oct_2026": "Octobre 2026"
+        "oct_2026": "Octobre 2026",
+        "nov_2026": "Novembre 2026"
       },
       "filters": {
         "all": "Tout",

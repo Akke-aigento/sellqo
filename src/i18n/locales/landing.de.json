@@ -2408,6 +2408,70 @@
         "addon_self_serve": {
           "title": "Füge deinem Tarif selbst einen Webshop, Gastronomie oder Events hinzu",
           "description": "Unter Einstellungen › Module schaltest du als Admin selbst ein zusätzliches Modul ein: einen Webshop für deinen Gastronomiebetrieb, Gastronomie für deinen Laden oder Events. Du siehst vorab genau, was du heute zahlst (nur die restlichen Tage deines Zeitraums) und was es danach kostet. Das Modul wird eingeschaltet, sobald die Zahlung eingegangen ist. In deiner Testphase ist es kostenlos. Ausschalten kannst du es jederzeit: Es läuft bis zum Ende des bezahlten Zeitraums, und solange noch Rechnungen, Tickets oder Bestellungen offen sind, lässt SellQo es eingeschaltet."
+        },
+        "qr_menu_order_sheet": {
+          "title": "Bestellen von deiner Speisekarte ohne Hin und Her",
+          "description": "Tippt dein Gast in deinem QR-Menü auf ein Gericht, wählt er Größe, Extras und Menge in einem Fenster, ohne die Speisekarte zu verlassen. Ein Gericht ohne Auswahl fügt er mit „+“ sofort hinzu."
+        },
+        "qr_menu_allergen_filter": {
+          "title": "Deine Gäste filtern deine Speisekarte nach Allergenen",
+          "description": "Auf deiner Speisekarte wählt dein Gast zum Beispiel „ohne Gluten“ oder „ohne Nüsse“, und die Gerichte mit diesem Allergen verschwinden. Gerichte, bei denen du die Allergene noch nicht ausgefüllt hast, stehen separat mit dem Hinweis, beim Personal nachzufragen, damit sie nie als sicher erscheinen."
+        },
+        "qr_table_ordering_fixes": {
+          "title": "Flüssiger bestellen am Tisch",
+          "description": "Am Tisch bleiben deine Gäste auf deiner Speisekarte statt in deinem Webshop. Sie sehen, welches Gericht gerade aus ist, und entfernen es sofort, wählen bei Abholung ihre Uhrzeit selbst und tragen eine Reservierungsanfrage mit einem Tipp in ihren Kalender ein. Ein QR-Menü nur zum Ansehen zeigt keine Bestellknöpfe mehr."
+        },
+        "qr_order_progress": {
+          "title": "Deine Gäste sehen, wie weit ihre Bestellung ist",
+          "description": "Nach der Bestellung per QR-Code oder zur Abholung sieht dein Gast, ob seine Bestellung eingegangen, in der Küche, fertig oder serviert ist. Das ergibt sich automatisch aus den Bons auf deinem Küchenbildschirm; du musst nichts extra tun."
+        },
+        "qr_staff_call": {
+          "title": "Gäste rufen die Bedienung oder bitten per QR-Code um die Rechnung",
+          "description": "Deine Gäste tippen auf den QR-Code ihres Tisches, um die Bedienung zu rufen oder um die Rechnung zu bitten. Du siehst es sofort an der Kasse unter Eingehend, mit einer Benachrichtigung auf deinen Geräten, und tippst auf Erledigt, wenn du dort warst. Auch eine Online-Reservierungsanfrage löst jetzt eine Benachrichtigung an deiner Kasse aus, mit Personenzahl und Uhrzeit."
+        },
+        "checkout_retry_safe": {
+          "title": "Keine Fehlermeldung mehr nach einer wackeligen Verbindung beim Bezahlen",
+          "description": "Bricht die Verbindung direkt nach dem Bezahlen ab und versucht es dein Kunde erneut, sieht er einfach die Bestätigung seiner Bestellung, ohne dass eine zweite Bestellung entsteht. Bezahlt ein Gast die Tischrechnung online und geht dabei etwas schief, zahlt er weiter oder beginnt neu, ohne dass die Rechnung hängen bleibt."
+        },
+        "allergens_declared": {
+          "title": "Klarer Unterschied zwischen „keine Allergene“ und „noch nicht ausgefüllt“",
+          "description": "Im Produkteditor hakst du jetzt ausdrücklich „Enthält keines der 14 Allergene“ an. Dein Gast sieht dann auf deiner Speisekarte, dass es geprüft ist. Auf deiner Karte und deiner Allergenkarte siehst du sofort, welche Gerichte noch nicht ausgefüllt sind, mit einer Liste zum Abarbeiten, und eine Kopie eines Produkts übernimmt diese Angabe."
+        },
+        "kitchen_tickets_safe": {
+          "title": "Allergien und Anmerkungen gehen zwischen Küche und Bar nicht mehr verloren",
+          "description": "Eine Anmerkung deines Gastes per QR (z. B. eine Allergie) steht jetzt auf jedem Bon dieser Bestellung, auch in der Küche. Anmerkungen und Allergene stehen groß auf dem Küchenbildschirm und auf dem gedruckten Bon. An der Bar schließt du einen Bon mit einem Tipp ab und die Bedienung bekommt trotzdem ein Signal, verspätete Bons werden rot, und deine Kasse warnt, wenn ein Bondrucker nicht druckt."
+        },
+        "dining_courses": {
+          "title": "Gänge am Tisch: Vorspeise, Hauptgericht und Dessert getrennt in die Küche",
+          "description": "Schalte unter Karte › Einrichten › Stationen „Gänge verwenden“ ein, und deine Kasse gibt jeder Bestellung einen Gang, je Kategorie oder selbst auf der Rechnung gewählt. Spätere Gänge warten, bis du sie mit einem Tipp freigibst, und die Küche sieht je Gang, was jetzt dran ist und was noch kommt. Lässt du es aus, ändert sich nichts."
+        },
+        "kassa_manager_approval": {
+          "title": "Rabatte und Stornos brauchen jetzt die Freigabe einer verantwortlichen Person",
+          "description": "Inhaber und Verantwortliche geben Rabatt, geben etwas aufs Haus, stornieren eine bereits gesendete Bestellung und entnehmen Bargeld sofort; andere Mitarbeitende fragen zuerst die PIN einer verantwortlichen Person ab. So siehst du immer, wer was erlaubt hat. Ist ein Inhaber oder eine verantwortliche Person angemeldet, sperrt sich die Kasse nach höchstens 2 Minuten ohne Nutzung."
+        },
+        "kassa_shortcuts": {
+          "title": "Schneller arbeiten an der Kasse",
+          "description": "Du wiederholst eine Runde mit einem Tipp, holst eine weggewischte Zeile zurück, wählst Trinkgeld mit 5 %, 10 % oder Aufrunden und rechnest beim gleichmäßigen Teilen Person für Person ab. Nach einer Pause ist dein Name schon ausgewählt, du stellst selbst ein, nach wie vielen Minuten die Kasse sperrt, einen Thekenverkauf setzt du auf einen Namen oder einen Tisch, und unter „Meine Schicht“ siehst du deinen Umsatz und dein Trinkgeld von heute."
+        },
+        "kassa_staff_hours": {
+          "title": "Stunden deines Kassenpersonals, auf jedem Gerät gleich",
+          "description": "Stempelst du auf einem Tablet ein, weiß es jede Kasse. In der Verwaltung unter Kasse › Personal siehst du die gearbeiteten Stunden pro Woche, schließt vergessene Schichten ab, korrigierst mit einer Begründung und lädst eine CSV für deine Lohnabrechnung herunter. Du siehst dort auch, wie das Trinkgeld pro Tag nach den gearbeiteten Stunden verteilt wird. Die Stunden zählen ab diesem Update."
+        },
+        "horeca_reports_admin": {
+          "title": "Deine Gastronomie-Berichte in der SellQo-Verwaltung",
+          "description": "Unter Berichte › Gastronomie findest du alle deine Z-Berichte zum Drucken oder als CSV für deine Buchhaltung. Du siehst dort auch deine meistverkauften Produkte, deinen Umsatz pro Stunde und pro Mitarbeitendem und was eine Rechnung und ein Gedeck im Schnitt einbringen."
+        },
+        "horeca_sidebar_live_floor": {
+          "title": "Ein kürzeres Gastronomie-Menü und ein Live-Blick auf deinen Saal",
+          "description": "Hast du nur einen Gastronomiebetrieb, folgt dein Menü jetzt dem Ablauf deines Tages: Heute, Kassen-App, Saal, Küche, Bestellungen, Karte, Zahlungen, Berichte, Einkauf. Unter Saal siehst du live, welche Tische offen sind, mit welchem Betrag und seit wann; deinen Saalplan bearbeitest du im Tab daneben. Die Einstellungen deiner Karte stehen gesammelt unter Einrichten."
+        },
+        "kaart_food_cost": {
+          "title": "Einkaufspreis und Wareneinsatz auf deiner Karte",
+          "description": "Trag bei einem Produkt auf der Karte den Einkaufspreis ein, und du siehst sofort den Wareneinsatz: den Einkaufspreis im Verhältnis zum Verkaufspreis ohne MwSt. Mit dem Knopf Wareneinsatz blendest du eine Spalte für alle deine Produkte ein; über 35 % wird die Zahl rot. Nur wer Einkaufspreise sehen darf, sieht sie."
+        },
+        "kassa_z_to_odoo": {
+          "title": "Dein Kassenumsatz nach Odoo, wenn du es einschaltest",
+          "description": "Deine Odoo-Buchhaltungseinstellungen enthalten jetzt „Kassenumsatz nach Odoo“. Schaltest du es ein, bucht SellQo jeden abgeschlossenen Z-Bericht ab dem Tag, den du wählst, als eine Buchung mit dem Umsatz je MwSt.-Satz, auf den Cent gleich deinem Z-Bericht. Standardmäßig ist es aus. Trinkgeld und Zahlungen werden nicht gebucht; weicht Odoo ab, bleibt die Buchung ein Entwurf und du bekommst eine Benachrichtigung. Verfügbar in Tarifen mit der Odoo-Anbindung."
         }
       },
       "copyLink": "Link kopieren",
@@ -2419,7 +2483,8 @@
         "q2_2026": "Q2 2026",
         "aug_2026": "August 2026",
         "sep_2026": "September 2026",
-        "oct_2026": "Oktober 2026"
+        "oct_2026": "Oktober 2026",
+        "nov_2026": "November 2026"
       },
       "filters": {
         "all": "Alle",

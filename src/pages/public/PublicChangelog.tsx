@@ -14,6 +14,24 @@ const changelogEntries: Array<{
   dateKey: string;
   changes: Array<{ id: string; type: 'feature' | 'improvement' | 'bugfix' | 'security' }>;
 }> = [
+  { version: '2026.14x', dateKey: 'nov_2026', changes: [
+    { id: 'qr_menu_order_sheet', type: 'feature' },
+    { id: 'qr_menu_allergen_filter', type: 'feature' },
+    { id: 'qr_table_ordering_fixes', type: 'improvement' },
+    { id: 'qr_order_progress', type: 'feature' },
+    { id: 'qr_staff_call', type: 'feature' },
+    { id: 'checkout_retry_safe', type: 'bugfix' },
+    { id: 'allergens_declared', type: 'feature' },
+    { id: 'kitchen_tickets_safe', type: 'improvement' },
+    { id: 'dining_courses', type: 'feature' },
+    { id: 'kassa_manager_approval', type: 'security' },
+    { id: 'kassa_shortcuts', type: 'improvement' },
+    { id: 'kassa_staff_hours', type: 'feature' },
+    { id: 'horeca_reports_admin', type: 'feature' },
+    { id: 'horeca_sidebar_live_floor', type: 'improvement' },
+    { id: 'kaart_food_cost', type: 'feature' },
+    { id: 'kassa_z_to_odoo', type: 'feature' },
+  ]},
   { version: '2026.14w', dateKey: 'oct_2026', changes: [
     { id: 'addon_self_serve', type: 'feature' },
   ]},

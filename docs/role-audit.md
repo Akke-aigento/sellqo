@@ -1,3 +1,420 @@
+## NACHTRUN 1-2 nov 2026 — rollenwandeling uitgewerkt
+
+Onbewaakte nachtrun op de bevindingen van de rollenwandeling (zaakvoerder, ober, keuken/bar, gast, boekhouder). Per batch staat hieronder een gecondenseerde entry; de volledige verslagen (recon, ankers, testcijfers, screenshots) staan in `docs/nachtrun/<ID>.md`, het storefront-contract in `docs/nachtrun/API-CONTRACT.md`.
+
+**Batches**
+- Kassa: KASSA-RECHTEN-1, KASSA-UX-6, PERSONEEL-2 (kassakant), GANGEN-1 (kassakant), OBER-ROEPEN-1 (kassakant).
+- Keuken/bar: KEUKEN-VEILIG-1 (incl. 1b), GANGEN-1.
+- API (`storefront-api`, gedeeld): QR-IDEMP-1, STATUS-1, OBER-ROEPEN-1 (+ RESERVATIE-MELDING-1), ALLERGEEN-VERKLAARD-1.
+- Beheer: ALLERGEEN-ADMIN-1, HORECA-ZIJBALK-1, KAART-MARGE-1, PERSONEEL-2 (urenoverzicht), RAPPORT-HORECA-1.
+- Boekhouding: KASSA-ODOO-1 (branch `night-odoo`, wordt later gemerged).
+- Storefront (repo `sellqo-storefront`, branch `night-menu`): MENU-SHEET-1, MENU-ALLERGEEN-1, MENU-SNEL-1 + de storefront-kant van QR-IDEMP-1/STATUS-1/OBER-ROEPEN-1.
+
+**Kassa-versie:** `KASSA_SW_VERSION` = `sellqo-kassa-0.20.0` (`src/kassa/version.ts`; de commentaarregel somt per batch op wat erin zit). Geen nieuwe of gewijzigde fiscale berichttypes; WORK_IN/OUT ongewijzigd. Nieuwe native build nodig (de app draait gebundelde code).
+
+**Reviews (aparte review-agent op de diff)**
+- KASSA-RECHTEN-1 (+ KASSA-UX-6): 1 review, alle punten gefikst (o.a. aantal van een lijn met korting vast, owner-uitzondering via sessietoken, akkoord gebonden aan bedrag, kas uit met akkoord).
+- KASSA-ODOO-1 (geld-rakend): 2 reviews; review 1 gefikst, **status: na review 2, fixes in uitvoering** (worktree `sellqo-odoo`, nog niet gecommit bij het schrijven van deze entry).
+
+**Changelog:** 2026.14x (16 changes, 5 talen). **Nieuwsbrief:** 16 items onder Openstaand.
+
+**Uitrol:** niets gepusht, gedeployed of naar de DB geschreven. Volgorde (migraties, deploys, publish, app-build, docs-migraties) staat in `docs/nachtrun/UITROL.md`; per stap Akke's go.
+
+## KASSA-RECHTEN-1 — korting, gratis, annuleren en kas uit enkel met akkoord van een verantwoordelijke — 1-2 november 2026
+
+Details: `docs/nachtrun/KASSA-RECHTEN-1.md`.
+
+**Root cause**
+- Elke kassamedewerker kon zonder goedkeuring korting geven, iets "van het huis" geven en verstuurde lijnen annuleren: `LineDialog` in `src/kassa/app/screens/CheckScreen.tsx` en `discountLine` in `src/kassa/app/horeca/actions.ts` stuurden `discount_line`/`void_line` zonder rolcontrole; `horeca_apply` controleerde enkel `has_tenant_role(tenant_admin, staff)` (`20261024130000_tafel_1_checks.sql` r. 346) en `horeca_apply_one` voerde ze uit voor elke `staff_id` (r. 540-607). Geldlek zonder spoor van wie het toeliet.
+
+**Uitgevoerd**
+- `supabase/migrations/20261101230250_kassa_rechten_1.sql`: tabel `kassa_approvals` (eenmalig akkoord, gebonden aan actie + rekening + lijn + percent/bedrag/aantal, 5 min geldig; kas uit 30 min); `kassa_approve` (PIN + rol owner/manager + `can_use_pos`, lockout zoals `kassa_staff_login`, spoor in `fiscal_audit_log`); `kassa_require_approval` (intern); ankerpatch op `horeca_apply_one` (marker `KASSA-RECHTEN-1`) vóór `discount_line` en `void_line` op een verstuurde lijn, plus een weigering van `change_qty` op lijnen met korting/correctie; patch op `kassa_cash_move` (kas uit vraagt akkoord); sessietokens `kassa_staff_sessions` (alleen sha256 bewaard, ingetrokken bij Wissel en vergrendelen) via `kassa_staff_login`/`kassa_staff_logout`.
+- `src/kassa/app/horeca/approvals.ts`, `screens/ApprovalDialog.tsx` (nieuw); `actions.ts` (`discountLine(..., approvalId)`, `voidLine`, `42501` → `not_allowed`); `CheckScreen.tsx` (`guarded(...)`, schildje op knoppen die een akkoord vragen); `CashScreen.tsx` (akkoord vóór ondertekenen kas uit); `quickTap.ts` `qtyLocked()`; owner/manager vergrendelt na hoogstens 2 min.
+- i18n `kassa.approval.*`, `kassa.checks.error.not_allowed` in nl/en/fr/de/uk.
+
+**Security-keuzes**
+- PIN-controle in een aparte RPC, niet in het commando: binnen `horeca_apply` zou een foute PIN meerollen (lockout telt niet) en komt er nooit een PIN in de offline-wachtrij.
+- `kassa_approvals` en `kassa_staff_sessions`: RLS aan, `revoke all` voor anon/authenticated; `kassa_require_approval` niet uitvoerbaar voor authenticated; `kassa_approve` met `has_tenant_role` + rekening van de zaak.
+- Owner-uitzondering enkel met een geldig sessietoken van precies die `staff_id`. Restrisico (eerlijk): het token is een bearer-geheim op het toestel; offline vergrendeld blijft het geldig tot het einde van de bedrijfsdag; `horeca_apply_one` kent het toestel niet.
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-paden of gedeelde storefront-tabellen. `horeca_apply_one` wordt ook gebruikt door `table_request_accept` (`add_line`) en `table_check_pay_settle` (`move_lines`): die commando's raken de nieuwe controle niet. Commandotakken zelf byte-identiek; fiscale events ongewijzigd.
+
+**Verificatie**
+- `scripts/gks/sql/run.sh` (PG16, migraties 2× = idempotent, samen met KEUKEN-VEILIG-1): alle bestaande suites groen + `test_kassa_nachtrun.sql` 69 controles (ober geweigerd, akkoord eenmalig/verlopen/gebonden aan bedrag, 10× gratis → 9× min geweigerd, token-gevallen, kas uit, rollback-instructies).
+- Ankers read-only tegen de live definitie: 1×. tsc exit 0, eslint 0, i18n-parity ok, `vitest run src/kassa` 332 groen. Harnas `kassa-rechten` 390/1280.
+
+**Bewust ongemoeid / Vervolg**
+- Productprijs aanpassen via REST door wie schrijfrechten heeft: aparte batch (review #3).
+- Rapport "kortingen/annuleringen per goedkeurder" kan uit `kassa_approvals` + `fiscal_audit_log`; niet gebouwd.
+- Een `void_line` van een ober die van vóór de migratie in een offline-wachtrij staat, wordt geweigerd (gewenst). Uitrol: migratie vóór de kassa-frontend.
+
+## KASSA-UX-6 — kassa-ergonomie uit de rollenwandeling — 1-2 november 2026
+
+Details: `docs/nachtrun/KASSA-UX-6.md`.
+
+**Root cause**
+- `CheckScreen.tsx`: "rekening schrappen" zonder bevestiging (ook met lijnen), lijnopmerking verloren bij Sluiten zonder Opslaan, vegen verwijderde zonder weg terug, geen "herhaal vorige ronde", toogverkoop niet op naam (`canMove={!counter}`, server `kassa_counter_guard` weigerde `move_*`).
+- `session.tsx`/`PinLock.tsx`: vaste 2 min vergrendeling en daarna naam opnieuw kiezen.
+- `PayDialog.tsx`: contant-snelknoppen vanaf €20, fooi enkel vrij veld, gelijk delen zonder begeleiding per persoon.
+- Fooi per ober zat in de data (`reportActions.ts` `tips_cents`) maar niet in het X/Z-rapport; geen eigen dienstoverzicht. Modus Bar zonder toogknop. Kas tellen enkel als één totaal.
+
+**Uitgevoerd**
+- `CheckScreen.tsx`: bevestiging bij schrappen met aantal en bedrag; opmerking bewaard bij sluiten; vegen met **Ongedaan maken** (niet bij lijnen met korting); ⋯ → **Herhaal vorige ronde**; toog → **Op naam of naar een tafel zetten**.
+- `session.tsx` + `PinLock.tsx`: laatste medewerker voorgekozen na inactiviteit (niet na Wissel); vergrendeltijd per zaak via `horeca_pay_settings.kassa_lock_minutes` (1/2/5/10/nooit, standaard 2; owner/manager altijd ≤ 2) — instelling `HorecaLockSetting.tsx` in Kassa › Personeel.
+- `PayDialog.tsx`: €5/€10, fooi 5 %/10 %/Rond af (contant vanaf het afgeronde bedrag), per persoon afrekenen bij gelijk delen (fiscaal nog altijd één afrekening met meerdere betaalmiddelen).
+- `reportHtml.ts`/`ReportsScreen.tsx`: fooi per medewerker; nieuw `MyShiftScreen.tsx` (**Mijn dienst**) via RPC `kassa_my_shift`. `KassaHome.tsx`: toogknop in modus Bar. `CashScreen.tsx`: tellen per biljet en munt (één DRAWER_DECLARATION).
+- `src/kassa/app/horeca/kassaUx.ts` (pure functies). Migratie `20261101230260_kassa_ux_6.sql`: kolom + check, `kassa_my_shift`, ankerpatch `kassa_counter_guard` (toog → tab enkel zonder verstuurde lijnen, `move_lines` enkel volledig, `split` geweigerd, btw naar ter plaatse).
+- i18n `kassa.ux6.*`, `kassa.home.tab.shift`, `admin.kassaLock.*` in 5 talen.
+
+**Security-keuzes**
+- `kassa_my_shift`: security definer, `has_tenant_role(tenant_admin, staff)`, enkel lezen; zelfde vertrouwensmodel als het X-rapport. `kassa_lock_minutes` onder de bestaande RLS van `horeca_pay_settings` (schrijven enkel tenant_admin).
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-paden. `kassa_counter_guard` draait enkel binnen `horeca_apply` en doet niets voor niet-toogrekeningen (vroege `return null`).
+
+**Verificatie**
+- SQL-suites groen (toog → "Piet", 6 % → 12 %; half verplaatsen en split geweigerd; `kassa_my_shift` = staff-regel van `kassa_report_data`). Vitest `kassaUx6.test.ts` (8) en `kassaUx6Ui.test.tsx` (3) groen. Harnas `kassa-rechten` 390/1280 zonder overloop of console-fouten.
+
+**Bewust ongemoeid / Vervolg**
+- Geen wisselgeld per persoon (één afronding over de som, PAY-02). Ongedaan maken = nieuwe lijn. In modus Bar vergrendelt de kassa niet (bestaand, KASSA-UX-3).
+
+## KEUKEN-VEILIG-1 — opmerkingen en allergenen op elke bon, bar in één tik — 1-2 november 2026
+
+Details (incl. KEUKEN-VEILIG-1b): `docs/nachtrun/KEUKEN-VEILIG-1.md`.
+
+**Root cause** (elf punten, elk nagetrokken)
+- `horeca_table_request_accept` (`20261028120000_qr_rekening_1.sql` r. 257-266) zette de QR-opmerking enkel op lijn 1; `send_round` vulde `kitchen_tickets.note` niet → "allergie noten" kon op de barbon belanden en nooit in de keuken.
+- Geen allergenen op de bon (`products.allergens`/`product_addon_options.allergens` niet in `kitchen_tickets.items`); opmerking viel weg naast een variant (`cardFromTicket`, `horeca-print`); `set_note` wiste de gang (`course = nullif(cmd->>'course','')`).
+- Lijnopmerkingen klein en grijs; één mutatie blokkeerde alle knoppen; peilen elke 10 s, ook op de achtergrond; bar 3 tikken; geluid op `/admin/keuken` standaard uit; "te laat" enkel voor weborders; printerfouten stil.
+
+**Uitgevoerd**
+- Migratie `20261101230200_keuken_veilig_1.sql` (ankerpatch, marker, vorige definities in `ops.keuken_veilig_1_prev_functions`): `horeca_line_allergens`; `send_round` zet de QR-opmerking op elke bon van de ronde en `allergens` per regel; `set_note` laat de gang staan; `horeca_pay` met allergenen.
+- 1b: `20261101230210_keuken_veilig_1b_bar_ready.sql` patcht `horeca_device_push_tr`: een barbon nieuw → afgewerkt geeft toch `ticket_ready` (niet dubbel); `useKassaSignals.ts` idem; allergenen van extra's bij webshoporders; post Bar op `/admin/keuken` = één-tik-flow.
+- Frontend: `kitchenModel.ts`, `KitchenBoard.tsx` (opmerking bovenaan in amber kader, lijnopmerking vet, allergenen als rode labels, rode rand bij te laat), `useKitchenBoard.ts` (3 s op keuken/bar, niet op de achtergrond, `busyKeys`), `printTicket.ts`, `StationViews.tsx`, `TablesScreen.tsx` ("Klaar om op te dienen"), `Kitchen.tsx` (geluid standaard aan + autoplay-hint), `printHealth.ts` + `PrintHealthBanner.tsx` (mislukte/hangende bonnen, stille printers).
+- Edge: `_shared/horecaPrint.ts` en `horeca-print/index.ts` (opmerking bovenaan, `>> LIJNOPMERKING`, `!! ALLERGENEN`), versie `KEUKEN-VEILIG-1b`.
+- i18n `admin.kitchen.*`, `kassa.tables.readyBadge` in 5 talen.
+
+**Security-keuzes**
+- Geen RLS/policies/grants op tabellen gewijzigd. `horeca_line_allergens` zonder execute voor public/anon/authenticated; gepatchte functies blijven security definer met `search_path ''`. Printerbanner leest `printers` (kolom-grant zonder `token_hash`) en `print_jobs` via bestaande policies.
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-paden. `horeca_apply_one`/`horeca_pay` additief (extra kolom in een insert, extra sleutel in `items`, `case` in `set_note`); geen fiscale events geraakt. `_shared/horecaPrint.ts` ook in `horeca-receipt-mail`: betaalbewijs ongewijzigd (test groen) — beide functies mee deployen. `useKitchenBoard` op het dashboard blijft 10 s.
+
+**Verificatie**
+- PG16: migraties 2×, `test_keuken_veilig.sql` 11/11, `test_keuken_veilig_1b.sql` groen, alle kassasuites 0 `f`. tsc exit 0; vitest kitchen + horeca + kassa 331 groen; `deno test horecaPrint.test.ts` en `deno check horeca-print` groen; eslint 0; i18n-parity ok. Harnas `kassa-home` 390/1024/1280.
+
+**Bewust ongemoeid / Vervolg**
+- Op een GKS-kassa (FDM) drukt de server geen keukenbonnen af; daar enkel scherm. `horeca_table_request_accept` ongewijzigd (opmerking blijft ook op lijn 1).
+- Natrek na migratie: marker in `horeca_apply_one`, `horeca_pay`, `horeca_device_push_tr`; vingerafdruk `GET horeca-print` → `KEUKEN-VEILIG-1b`.
+
+## GANGEN-1 — gangen aan tafel en "gang vrijgeven" — 1-2 november 2026
+
+Details: `docs/nachtrun/GANGEN-1.md`.
+
+**Root cause**
+- `check_lines.course` bestond (TAFEL-1) en `send_round` sorteerde al op gang, maar de kassa gaf nooit een gang mee (`addProduct` in `CheckScreen.tsx`): alles ging in één keer naar de keuken, en een gang later afroepen kon niet.
+
+**Ontwerpkeuze (fiscaal)**
+- Vrijgeven = een latere gewone ronde (P/ORDER zoals altijd); `fire_course` hoogt enkel `dining_checks.course_fired` op (niet fiscaal, zoals `rename_check`). Lijnen van een latere gang blijven ontwerp-lijnen. Geen wijziging aan `fiscal_events`, FDM-berichten of builders.
+- **Open punt voor de FOD-check:** de keuken ziet ter info welke lijnen nog wachten (`waiting: true`, niet besteld). Bevestigen dat dat op een productiebon mag; zo niet, één voorwaarde in `send_round`.
+
+**Uitgevoerd**
+- Migratie `20261101230220_gangen_1.sql` (hangt af van 230200): `horeca_pay_settings.courses_enabled` (standaard false) en `course_by_category`; `dining_checks.course_fired`; `horeca_check_json` + `course_fired`; `horeca_apply_one` commando `fire_course` en wachtende lijnen als `waiting` in `items` (enkel met gangen aan).
+- Kassa: `courses.ts` (nieuw, puur), `paySettings.ts`, `actions.ts` (`fireCourse`, `requestBill` verstuurt alles), `store.ts`, `quickTap.ts`, `CheckScreen.tsx` (gangbalk, "‹gang› vrijgeven (n)"), `KassaHome.tsx`.
+- Keuken: `kitchenModel.ts`, `KitchenBoard.tsx`, `printTicket.ts`, `_shared/horecaPrint.ts`, `horeca-print` (koppen per gang, blok "wacht op vrijgave"; versie `GANGEN-1`).
+- Beheer: `CoursesSettings.tsx` in Kaart › Instellen › Posten. i18n `admin.courses.*` in 5 talen.
+
+**Security-keuzes**
+- Geen nieuwe tabellen, policies of grants; nieuwe kolommen onder de bestaande RLS. `fire_course` loopt door `horeca_apply` (rolcontrole, aan de toog geweigerd).
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-paden. Met `courses_enabled = false` (standaard, alle bestaande zaken) verandert niets aan de bonnen; `course_fired` is een extra JSON-sleutel.
+
+**Verificatie**
+- PG16: migratie 2×, `test_gangen.sql` 12/12, bestaande kassasuites 0 `f`. Vitest kassa + kitchen + horeca 367 groen (`courses.test.ts` 12, o.a. "vrijgeven = fire_course + send_round, geen fiscal_event_id"). `deno test horecaPrint` 9/9. tsc exit 0, eslint 0, i18n-parity ok. Harnas `kassa-home` en `gangen-instelling`.
+
+**Bewust ongemoeid / Vervolg**
+- Geen gangen aan de toog, in de QR-bestelling of bij webshoporders. Preview op een oudere bon wordt niet bijgewerkt. Migratievolgorde 230200 → 230210 → 230220 verplicht.
+
+## QR-IDEMP-1 — afrekenen en tafelrekening online betalen veilig herhalen — 1-2 november 2026
+
+Details: `docs/nachtrun/QR-IDEMP-1.md`, contract `docs/nachtrun/API-CONTRACT.md` §1-2.
+
+**Root cause**
+- `storefront-api` `checkoutComplete`: een mandje met `checkout_status = 'converted'` gaf altijd `ORDER_ALREADY_PAID`. Kwam het eerste antwoord niet aan en probeerde de gast opnieuw, dan zag hij een fout voor een gelukte bestelling; `orders` kent geen mandje-ID.
+- `tableCheckPay`: een nieuwe poging na een netwerkfout werd door de oude vastgehouden (`CHECK_PAY_BUSY`/`CHECK_LINES_TAKEN`); de url van een open sessie was niet op te vragen.
+
+**Uitgevoerd**
+- Migratie `20261101230310_qr_idemp_1.sql`: `storefront_carts.converted_order_id uuid` (additief, geen FK).
+- `storefront-api/index.ts`: `converted_order_id` zetten na omzetten (fout = enkel log); herhaalde `checkout_complete` geeft de vorm van de eerste keer + `duplicate: true` (order via `converted_order_id` of Stripe-sessie, altijd binnen de tenant); `bankTransferResponse` en `releaseCheckPayment` als helpers (gedrag identiek); `table_check_pay` met optioneel `release_payment_ids` (max. 5, enkel dezelfde tafel); `table_check_pay_status` + `checkout_url`.
+
+**Security-keuzes**
+- Geen RLS/grants. Herhaling geeft enkel de order van het (onraadbare) mandje-ID binnen dezelfde tenant (getest met een order van een andere tenant → oude fout). `converted_order_id` gaat nooit als ruwe kolom naar een frontend. Een betaalde sessie wordt nooit vrijgegeven.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api` is gedeeld met de zes custom frontends. Alles additief behalve één gedragswijziging: een omgezet mandje waarvan de order gevonden wordt, geeft succes i.p.v. `ORDER_ALREADY_PAID`. Veilig: exact de vorm van een geslaagde `checkout_complete` voor dezelfde order, puur lezen (geen dubbele order, voorraad of mail); niet gevonden = oude fout byte-gelijk.
+
+**Verificatie**
+- `deno check` storefront-api groen; `scripts/promo-compare/qrStatus.test.ts` (nieuw, 17) groen; bestaande harnassen (tableRequest, tableCheckPay, event409, resolve, billingLock, ticketResend, horecaDevicePush) groen; rooktest `smoke.ts` groen.
+
+**Bewust ongemoeid / Vervolg**
+- Twee gelijktijdige `checkout_complete` op een nog niet omgezet mandje kunnen elk een order maken (bestaande race); vervolg: atomische claim op `storefront_carts`. `stripe-connect-webhook` niet gewijzigd en hoeft niet mee.
+
+## STATUS-1 — de gast volgt zijn bestelling — 1-2 november 2026
+
+Details: `docs/nachtrun/STATUS-1.md`, contract §3.
+
+**Root cause**
+- `table_request_status` gaf enkel pending/accepted/rejected; de keukenvoortgang (`kitchen_tickets.status` per ronde en post) bereikte de gast niet. Voor orders (QR-order, afhalen, levering) bestond geen statusactie.
+
+**Uitgevoerd** (enkel `storefront-api/index.ts`, geen migratie)
+- `table_request_status` additief: oude vorm + `progress`; nieuw `request_ids` (max. 20), `order_id`, `call_ids` (max. 10). Voortgang per aanvraag via `line_ids` → `check_lines` → `kitchen_tickets` van precies die ronde en post; per order via `kitchen_tickets.order_id`. `stage`: queued/preparing/ready/served/cancelled.
+
+**Security-keuzes**
+- Geen nieuwe rechten; service role in de edge function, altijd `.eq('tenant_id', …)`, enkel op ID's die de gast zelf kreeg (getest: andere tenant → niets). Geen bedragen, andere tafels of personeelsnamen in de respons.
+
+**Gedeelde-paden-waarschuwing**
+- Oud antwoord krijgt één sleutel (`progress`) bij; niets hernoemd of weg; nieuwe parameters optioneel.
+
+**Verificatie**
+- `deno check` groen; `qrStatus.test.ts` (exacte sleutels oude vorm, lijst, order, oproepen, andere tenant) groen.
+
+**Bewust ongemoeid / Vervolg**
+- Geen realtime: de storefront pollt. "Opgediend" = keukenbon afgewerkt; er is geen apart "op tafel"-moment.
+
+## OBER-ROEPEN-1 — gasten roepen de bediening of vragen de rekening (+ RESERVATIE-MELDING-1) — 1-2 november 2026
+
+Details: `docs/nachtrun/OBER-ROEPEN-1.md`, contract §4.
+
+**Root cause**
+- Vanaf een gescande tafel kon een gast de bediening niet roepen of de rekening vragen. Reservatie-aanvragen (`reservation_request_place`) gingen al als melding/push/mail naar de zaakvoerder, maar niet naar de gedeelde kassa- en posttoestellen (`horeca_notify_devices`, `personal = false`).
+
+**Uitgevoerd**
+- Migratie `20261101230300_ober_roepen_1.sql`: tabel `table_calls` (waiter|bill, open|handled, `repeat_count`); `table_call_place` (service_role, idempotent op oproep-ID, advisory lock, binnen 2 min dezelfde oproep, max. 100 open per zaak); `horeca_table_call_handle` (authenticated, rolcheck, `horeca_bump`); trigger `table_call_push_tr` → `horeca_device_notify(..., 'qr_request', ctx.call)`.
+- Migratie `20261101230320_reservatie_melding_1.sql`: trigger op `table_reservations` (online + requested) → toestelmelding zonder naam van de gast.
+- Docs-migratie `20261101230330_ober_roepen_1_docs.sql`: helpartikel `tafel-oproepen` (/kassa).
+- `storefront-api`: actie `table_call` (QR-token, `TABLE_CALL_OFF` bij `qr_mode = 'off'`, IP-rem 10/10 min, geblokkeerd bij dichte winkel); stempel `QR-STATUS-1`.
+- `_shared/horecaPush.ts` + `horeca-device-push` (stempel `OBER-ROEPEN-1`): teksten oproep/rekening/"2e keer" en reservatie-aanvraag in 5 talen.
+- Kassa: `requests.ts`, `store.ts` (fout of ontbrekende tabel blokkeert niets), `RequestInbox.tsx` (`CallList`, **Afgehandeld**), `StationViews.tsx`, `KassaHome.tsx`, `useKassaSignals.ts`/`KassaApp.tsx`. i18n `kassa.calls.*` + drie bestaande teksten bijgewerkt.
+
+**Security-keuzes**
+- `table_calls`: RLS aan, enkel SELECT voor leden (`get_user_tenant_ids`), geen anon-rechten, schrijven enkel via security definer. Geen persoonsgegevens; ook de reservatiepush bevat geen naam/e-mail/telefoon. Spamrem per tafel/soort, per zaak, per IP, dichte winkel = 423.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api`: enkel een nieuwe actie. `horeca-device-push`: bestaande teksten byte-gelijk (test groen), enkel extra takken voor `ctx.call`/`ctx.reservation`. Geen gedeelde storefront-tabel geraakt. Geen fiscale wijziging: een oproep raakt geen rekening.
+
+**Verificatie**
+- `deno check` storefront-api + horeca-device-push groen; `horecaPush.test.ts` 9/9; `qrStatus.test.ts` (table_call) groen; `calls.test.tsx` 7/7; `vitest run src/kassa` 265 groen; lint gelijk aan baseline; i18n-parity ok. Harnas `kassa-home` met twee oproepen op 390/1024/1280.
+
+**Bewust ongemoeid / Vervolg**
+- **Scope-regel nog te bevestigen door Akke:** geen instelling "oproepen aan/uit" (werkt zodra het QR-menu aanstaat) en geen eigen feature-sleutel. Voorstel: schakelaar onder Kaart › Instellen › QR-menu.
+- Een `bill`-oproep sluit niet vanzelf bij afrekenen; na 3 u verdwijnt een open oproep uit de kassa. Geen kleur op het zaalplan. `category_id` van het helpartikel live natrekken.
+
+## ALLERGEEN-VERKLAARD-1 — "bevat geen allergenen" is niet meer hetzelfde als "niet ingevuld" — 1-2 november 2026
+
+Details: `docs/nachtrun/ALLERGEEN-VERKLAARD-1.md`, contract §5.
+
+**Root cause**
+- `products.allergens` is `text[] not null default '{}'` (`20261014020000_allergen_1.sql`): een lege lijst betekent zowel "niet ingevuld" als "bevat niets", en `foodInfo()` in `storefront-api` laat ze weg. Voor verkoop op afstand (EU 1169/2011) mag een zaak niet de indruk wekken dat iets allergeenvrij is als niemand het nakeek. Live 01-11: 344 producten, 67 met minstens één allergeen.
+
+**Uitgevoerd**
+- Migratie `20261101230340_allergeen_verklaard_1.sql`: `products.allergens_declared boolean not null default false`; backfill `true` waar al een allergeen staat (vaste tijdsgrens); trigger `products_allergens_declared` (minstens één allergeen ⇒ true, op elk schrijfpad).
+- `storefront-api`: `foodInfo` + `allergens_declared: true` enkel als true (anders byte-gelijk); `get_products` hoofdquery ongewijzigd, aparte foutbestendige lees voor de vlag; stempel `ALLERGEEN-VERKLAARD-1`.
+- `ProductAllergensCard.tsx`: vinkje **"Bevat geen van de 14 allergenen"** (uit zolang een allergeen aangevinkt staat; laatste allergeen weg = terug "niet ingevuld"). i18n in 5 talen.
+
+**Security-keuzes**
+- Geen RLS/grants. Triggerfunctie niet security definer, vaste `search_path`, execute ingetrokken. Kolom niet gevoelig en niet op `tenant_theme_settings`.
+
+**Gedeelde-paden-waarschuwing**
+- `storefront-api`: enkel een nieuwe sleutel bij verklaarde producten. Live nagetrokken: geen enkel product van de zes custom-frontendtenants heeft een allergeen, dus na de backfill blijft hun respons byte-gelijk. Een te vroege deploy (vóór de migratie) breekt de catalogus niet (aparte lees faalt stil).
+
+**Verificatie**
+- `deno check` groen; `allergenDeclared.test.ts` 3/3; bestaande harnassen + rooktest (met twee nieuwe `foodInfo`-asserties) groen; `ProductAllergensCard.test.tsx` 3/3; lint gelijk aan baseline; i18n-parity ok; harnas `allergenen` 390/1280.
+
+**Bewust ongemoeid / Vervolg**
+- Kaart, allergenenkaart en `kaart_duplicate_product`: opgepakt in ALLERGEEN-ADMIN-1. Extra's hebben geen verklaring.
+
+## ALLERGEEN-ADMIN-1 — "geen" vs "niet ingevuld" op de Kaart en de allergenenkaart — 1-2 november 2026
+
+Details: `docs/nachtrun/ALLERGEEN-ADMIN-1.md`.
+
+**Root cause**
+- Na ALLERGEEN-VERKLAARD-1 kent `products` drie standen, de admin toonde er twee: `KaartProductSheet.tsx` enkel een aantal, `AllergenChart.tsx` telde elk leeg product als ontbrekend en drukte een lege rij af die op "bevat geen" leek, `useKaart.ts` las de vlag niet. `kaart_duplicate_product` (`20261024210000_kaart_3_menu_order.sql`) kopieerde de verklaring niet.
+
+**Uitgevoerd**
+- `allergenState.ts` (+ test), `AllergenStateLabel.tsx`; `KaartProductSheet.tsx` (kop met drie standen); `useKaart.ts` (vlag + fallback bij 42703, `onAllergenChart`); `KaartManager.tsx` (amber balk met het aantal niet-ingevulde producten); `AllergenChart.tsx` (drie standen, lijst "Nog in te vullen", afdruk met standen, zelfde selectie als de Kaart = één bron).
+- Migraties `20261101230420_allergeen_admin_1_duplicate.sql` (vereist 230340) en `20261101230430_allergeen_admin_1_docs.sql` (helpartikel `allergenen-invullen`). i18n in 5 talen.
+
+**Security-keuzes**
+- `kaart_duplicate_product`: signatuur, security definer, `search_path ''`, rolcontrole en grants ongewijzigd; één kolom extra uit de bronrij van dezelfde tenant. Geen RLS/policies.
+
+**Gedeelde-paden-waarschuwing**
+- Geen kolomwijziging op `products`; `storefront-api` niet aangeraakt.
+
+**Verificatie**
+- Vitest 79 groen; i18n-parity ok; eslint 0; tsc exit 0; harnas `horeca-beheer` 390/1280 (Kaart-balk en allergenenkaart tonen dezelfde 10 producten).
+
+**Bewust ongemoeid / Vervolg**
+- Geen bulkactie "geen allergenen" op de Kaart. Ongebruikte key `allergenChart.missing` blijft staan.
+
+## HORECA-ZIJBALK-1 — kortere horeca-zijbalk, live Zaal, Bestellen opgesplitst — 1-2 november 2026
+
+Details (incl. inventaris en ronde 3): `docs/nachtrun/HORECA-ZIJBALK-1.md`.
+
+**Root cause**
+- `sidebarConfig.ts` kende enkel de webshopordening: horeca-items verspreid over vier groepen, zonder Keuken en Inkoop. "Zaalplan" (`ordering`) opende de editor (`/admin/bestellen?tab=zaal`), geen live beeld; items met `?tab=` lichtten nooit op (`activeUrl` vergelijkt enkel pathname). Onderbalk-label "Kaart" opende het zaalplan. `OrderingHub.tsx` had negen tabs op één rij. Instellingen › Horeca zei niets over GKS.
+- Ronde 3: gsm-zijbalk zonder `SheetTitle` (a11y + console-error); Odoo-instellingen stonden enkel in SellQo Connect, onbereikbaar voor horeca-only.
+
+**Uitgevoerd**
+- `sidebarConfig.ts` (`sidebarLayout`): horeca-only Vandaag · Kassa-app · Zaal · Keuken · Bestellingen │ Kaart · Betalingen · Rapporten · Inkoop │ Instellingen · Help; horeca + webshop/events: eigen groep Horeca. Id's ongewijzigd. `bottomNav.ts`, `AdminSidebar.tsx` mee.
+- Nieuw `/admin/zaal` (`Floor.tsx`, `LiveFloorOverview.tsx`, `useLiveChecks.ts`, `liveFloor.ts`): tab Live (open rekeningen, bedrag via `checkTotalCents` uit de kassa, peilt `horeca_state.version`) en Zaalplan bewerken. `?tab=zaal` redirect.
+- `OrderingHub.tsx`: Kaart · Overzicht · Reservaties · Instellen (tweede rij QR-menu · Posten · Extra's · Allergenen · Afhalen & leveren); alle oude `?tab=` blijven geldig.
+- `HorecaSettingsHub.tsx`: GKS-melding (geen datum, geen belofte).
+- Ronde 3: `sidebar.tsx` sr-only titel; `accountingLink.ts` + `AccountingSettings.tsx` + sectie `accounting` in Instellingen (enkel horeca zonder webshop/events, `hideWithTracks`) — één plek per winkel; link vanuit Rapporten › Horeca.
+- Migratie `20261101230400_horeca_zijbalk_1_docs.sql` (padteksten in 9 artikels, `horeca-werkplek` herschreven, nieuw `zaal-live-overzicht`; snapshot vooraf). i18n 48 keys in 5 talen.
+
+**Security-keuzes**
+- Geen RLS/policies/grants. Live Zaal leest enkel (`horeca_state`, `horeca_snapshot`), nooit `horeca_apply`. `/admin/zaal` achter `RouteGuard orders` + horeca-gate + TrackGate. Geen gating weggehaald of toegevoegd (Odoo-kaart bewaakt zelf `odoo_sync`).
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-paden of edge functions; `src/kassa/**` niet gewijzigd (enkel type + pure functie geïmporteerd). Webshop-only zijbalk identiek (test `toBe(sidebarGroups)`).
+
+**Verificatie**
+- Vitest 81 groen; i18n-parity ok; eslint gelijk aan baseline; tsc exit 0; harnas `horeca-beheer` 390/1280 zonder fouten of overloop. Migratie-replace vooraf gesimuleerd met een SELECT op de live `doc_articles`.
+
+**Bewust ongemoeid / Vervolg**
+- **Beslispunt Akke:** `pricing_plans.features.odoo_sync` is false op Horeca Small en Big (live 01-11). Een horecazaak ziet bij Boekhouding dus de upgradekaart, en "Kassa-omzet naar Odoo" (KASSA-ODOO-1) valt erachter. Aanbeveling: `odoo_sync` (of eigen sleutel) aan Horeca Big + `landing.pricing.feat_*`-label (plan-scope-regel 28-10).
+- Reservaties/QR-aanvragen nog niet op Live Zaal. Ongebruikte key `admin.orderingHub.bestellen`. `npm run build` bij het samenvoegen draaien.
+
+## KAART-MARGE-1 — kostprijs en foodcost op de Kaart — 1-2 november 2026
+
+Details: `docs/nachtrun/KAART-MARGE-1.md`.
+
+**Root cause**
+- `products.cost_price` bestond (productformulier, voorraadrapport), maar `useKaart.ts`, `KaartProductSheet.tsx` en `KaartManager.tsx` toonden of bewerkten hem niet; een horecazaak beheert haar producten enkel op de Kaart.
+
+**Uitgevoerd**
+- `foodCost.ts` (+ test): foodcost = kost / (prijs incl. ÷ (1 + btw)) × 100, drempel 35 %. `useKaart.ts` (`cost_price`, `useKaartVat().defaultRate`), `KaartProductSheet.tsx` (veld "Kostprijs (excl. btw)" + chip), `KaartManager.tsx` (knop Foodcost, chip per rij). i18n `admin.kaart.cost.*` in 5 talen. Docs-migratie `20261101230410_kaart_marge_1_docs.sql` (sectie in `horeca-kaart`; in het nachtrunverslag nog als 230500 vermeld, bij de merge hernummerd zodat hij niet botst met KASSA-ODOO-1).
+
+**Security-keuzes**
+- Geen schema/RLS/grants. UI volgt `PERMISSION_MATRIX.product_costs` (zoals het productformulier); staff ziet niets (harnas). Bestaand: `cost_price` is via RLS leesbaar voor elk winkellid, de verberging is UI-matig.
+
+**Gedeelde-paden-waarschuwing**
+- Geen kolomwijziging op `products`; geen edge functions.
+
+**Verificatie**
+- Vitest 70 groen; i18n-parity ok; eslint 0; harnas `horeca-beheer` (`kaart`, `kaart&role=staff`) 390/1280. Echte schrijfactie op sellqo.app pas na publish.
+
+**Bewust ongemoeid / Vervolg**
+- Geen bulk-kostprijs, geen extra's/varianten in de foodcost, drempel vast (instelling per zaak kan later).
+
+## PERSONEEL-2 — in/uitklokken op de server, urenoverzicht, correcties, CSV en fooienpot — 1-2 november 2026
+
+Details: `docs/nachtrun/PERSONEEL-2.md`.
+
+**Root cause**
+- `src/kassa/app/attendance.ts` (PERSONEEL-1) bewaarde "ingeklokt" enkel in `localStorage` en schreef niet-fiscaal enkel een auditregel: inklokken op tablet A was onbekend op tablet B, en er bestond geen urenregistratie of overzicht. `KassaHome.tsx` las de stand één keer bij het mounten.
+
+**Uitgevoerd**
+- Migratie `20261101230600_personeel_2_uren.sql`: `kassa_shifts` (enkel afsluiten toegelaten, geen delete/truncate, verwijzing naar het fiscale WORK_IN/OUT-event), `kassa_shift_corrections` (append-only: adjust/void/add), view `kassa_shifts_effective`, RPC's `kassa_clock_state`, `kassa_clock`, `kassa_shift_correct`, `kassa_hours_report`. Docs-migratie `20261101230610_personeel_2_docs.sql`.
+- `attendance.ts`: eerst serverstand; fiscaal pad (`buildWorkInOut` → `runtime.sign`) ongewijzigd, daarna `kassa_clock` met het event-id; `localStorage` enkel cache. `KassaHome.tsx`: stand bij elke (wissel van) medewerker.
+- Beheer: `KassaHoursCard.tsx` in Kassa › Personeel (week, uren per dag, open shifts afsluiten, correctie met reden, shift toevoegen, CSV per week, fooienpot per dag); `useKassaHours.ts`, `kassaHours.ts` (+ test). i18n in 5 talen.
+
+**Security-keuzes**
+- Geen schrijfrechten voor authenticated op beide tabellen; lezen enkel `tenant_admin` (loongegevens). `kassa_clock`: rolcheck, actieve medewerker van de zaak, fiscaal event-id gecontroleerd, advisory lock. Correcties enkel `tenant_admin`, verplichte reden, max. 24 u, niet in de toekomst. `fiscal_events`/`fiscal_audit_log` enkel gelezen.
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-contract of gedeelde webshoptabel; alles additief.
+
+**Verificatie**
+- PG16: alle suites groen + `test_personeel2.sql` (stand over toestellen, dubbel in/uit = noop, staff leest/corrigeert niet, vals event geweigerd, update/delete op de bron geweigerd ook als superuser, correcties, fooien per dag, anon geweigerd). Vitest kassa 262 + `kassaHours.test.ts` 6/6; i18n-parity, check-i18n-used-keys, check-dead-buttons, eslint 0. Harnas `kassa-uren` 390/1280.
+
+**Bewust ongemoeid / Vervolg**
+- Uren starten vanaf de deploy (oude localStorage-klokacties niet herberekend). Fooienpot = rapport, geen boeking; fooi uit de klassieke kassa telt niet mee. Na de migratie `column_privileges`/`pg_policies` natrekken.
+
+## RAPPORT-HORECA-1 — Rapporten › Horeca: Z-archief, CSV voor de boekhouder en analyse — 1-2 november 2026
+
+Details: `docs/nachtrun/RAPPORT-HORECA-1.md`.
+
+**Root cause**
+- Z-rapporten waren enkel in de kassa-app te zien (`ReportsScreen.tsx`, laatste 30); in `/admin/reports` bestond niets voor horeca (geen archief, export of analyse).
+
+**Uitgevoerd**
+- Migratie `20261101230620_rapport_horeca_1.sql`: RPC `horeca_analysis(p_tenant_id, p_from_day, p_to_day)` (bedrijfsdagen via `kassa_day_start`; totalen, productmix, per uur, per dag, per medewerker). Docs-migratie `20261101230630_rapport_horeca_1_docs.sql` (`horeca-rapporten`).
+- `Reports.tsx`: tabs deeplinkbaar, tab **Horeca** enkel met horecaspoor. `HorecaReportsTab.tsx`: Z-archief (openen/afdrukken), CSV per Z (maatstaf en btw per tarief, betaalwijzen, afronding, fooien, kas in/uit, kortingen, annuleringen), analyse (tegels, toppers + CSV, omzet per uur, per medewerker). `useHorecaReports.ts`, `horecaReports.ts` (+ test). `reportHtml.ts` rechtstreeks hergebruikt; `src/kassa/` niet gewijzigd.
+
+**Eén bron per getal**
+- Omzet = `pos_transactions` completed zonder `order_id` (regel van de cockpit, `cockpitRevenue.ts`); fooien = `check_payments.tip_cents` zoals het Z-rapport; Z-cijfers ongewijzigd uit `kassa_reports.data`.
+
+**Security-keuzes**
+- `horeca_analysis`: security definer, `has_tenant_role(tenant_admin, accountant)`; staff en andere zaken geweigerd. Z-archief via de bestaande RLS op `kassa_reports`. Geen schrijfacties.
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-contract, gedeelde tabel of edge function.
+
+**Verificatie**
+- PG16 (`test_personeel2.sql` dekt de analyse: omzet, couverts, fooi, productmix, per uur, rollen). `horecaReports.test.ts` 3/3; i18n-parity, used-keys, dead-buttons, eslint 0. Harnas `rapport-horeca` 390/1280 (overloop van 158 px gefixt).
+
+**Bewust ongemoeid / Vervolg**
+- Geen ondertekend fiscaal rapport in beheer (in een GKS-zaak is het kassarapport officieel). Labelopbouw staat twee keer (kassa + beheer); vervolg `reportLabels`-helper in een kassa-release. Analyse per dag nog niet getoond.
+
+## KASSA-ODOO-1 — Z-rapporten van SellQo Kassa naar Odoo — 1-2 november 2026
+
+Details: `/home/claude/sellqo-odoo/docs/nachtrun/KASSA-ODOO-1.md` (branch `night-odoo`; komt na de merge in `docs/nachtrun/`). **Status: na review 2, fixes in uitvoering.**
+
+**Root cause**
+- `sync-odoo-invoices` boekt enkel `invoices` en `credit_notes`; geen enkele functie las `kassa_reports`, `pos_transactions` of `check_payments`. Kassaverkoop maakt geen factuur of order (`horeca_pay`, `usePOS.ts` `p_order_id: null`), dus de dagontvangsten van de kassa kwamen nooit in Odoo.
+
+**Uitgevoerd**
+- `_shared/odooPosZ.ts` (nieuw, pure rekenregels + `syncTenantZ`), `sync-odoo-pos-z/index.ts` (GET = versie; POST enkel cron/service, `dryRun` mogelijk).
+- Regels: één Z = één Odoo-boeking (`out_invoice`, `out_refund` bij negatief), omzet per btw-tarief met de prijs-inclusieve codes op exacte naam ("21% incl."/"12% incl."/"6% incl.", 0% netto), verdeling over regels zodat Odoo's afronding per regel exact de Z-btw geeft; fooien en betalingen niet geboekt (enkel info in de notitie); concept → teruglezen → pas bij exacte gelijkheid boeken, anders concept + melding; idempotent via claim-index op `odoo_pos_z_sync_log`; nooit demo, historische of Z's vóór de startdatum.
+- Migraties `20261101230500_kassa_odoo_1.sql` (kolommen op `tenant_odoo_settings`, `pos_z_sync_enabled` standaard **uit**; logtabel; guard-triggers; RPC's backfill/accept/retry/business_day), `20261101230501_kassa_odoo_1_docs.sql` (helpartikel `kassa-naar-odoo`), `20261101230502_kassa_odoo_1_cron.sql` (elk uur om :47; zonder schakelaar één lege SELECT).
+- `manage-odoo-connection`: `claimed_by_other_tenant` telt ook het kassadagboek. UI `OdooPosZCard.tsx` (schakelaar, startdatum = bedrijfsdag, kassadagboek, laatste Z's met Aanvaarden/Opnieuw proberen, dialogen i.p.v. `window.confirm`). i18n `admin.odooPosZ.*` in 5 talen.
+- Review 1 (startdatum + bevestiging in de server, compare-and-swap, meldingen per winkel, backoff/needs_review, DB-last, tijdsbudget) gefikst. Review 2 (o.a. blokker upsert-pad via BEFORE INSERT-trigger → twee triggers; bevestiging = aanzetten in één transactie; uitstel-teller; datums teruglezen; dedupe per ronde; schakelaar vlak vóór de claim herlezen; bedrijfsdag) in uitvoering.
+
+**Security-keuzes**
+- `odoo_pos_z_sync_log`: RLS aan, SELECT voor platform_admin en tenant_admin/accountant van de winkel, schrijven enkel service_role. Edge function zonder gebruikersauth (enkel `x-cron-secret`/service-key). Guard-triggers maken de backfill-kolommen alleen-lezen voor clients; RPC's security definer met `search_path ''` en rolcheck. Odoo-URL/key via de bestaande helpers.
+
+**Gedeelde-paden-waarschuwing**
+- Geen storefront-paden. `sync-odoo-invoices` en `_shared/odooBooking.ts` niet gewijzigd; gedeeld zijn de verkoopdagboeken en `channel_partner_ids` (nieuwe sleutel `pos_z`, read-modify-write zoals `ensureChannelPartner`). `src/kassa/` niet aangeraakt.
+
+**Verificatie**
+- `deno check` en `deno test` (`_shared/odooPosZ.test.ts`, `scripts/promo-compare/odooPosZ.test.ts`, `odooBooking.test.ts`) groen; triggers/RPC's op lokale PG16 als `authenticated`, met PostgREST-upsertvorm; migraties 2× idempotent; i18n-parity ok; eslint 0; tsc exit 0 (na review 1 en 2); harnas `odoo-pos-z` 390/1280. Niet gedaan: echte Odoo-proefrun.
+
+**Bewust ongemoeid / Vervolg**
+- **Beslispunt Akke/boekhouder:** veel regels op drukke dagen (1.000 koffies → 250 regels) vs. één regel per tarief met enkele centen verschil, of een diversenboeking. Aanbeveling: huidige aanpak.
+- Btw-codenamen in nomadix-bv niet live nagekeken (functie faalt duidelijk als ze anders heten). Eerste echte run: `dryRun` per tenant, dan één Z met autoPost uit. Dubbele omzet als een zaak voor een kassaverkoop ook een SellQo-factuur maakt: gemeld, niet afgevangen.
+- Plan: zie het beslispunt bij HORECA-ZIJBALK-1 (`odoo_sync` niet in de horecaplannen).
+- CI: beide deno-testbestanden toevoegen. Uitrol: migratie → deploy `sync-odoo-pos-z` + `manage-odoo-connection` (GET → `KASSA-ODOO-1`) → publish → docs + cron → proefrun.
+
+## MENU-SHEET-1, MENU-ALLERGEEN-1, MENU-SNEL-1 + storefront-kant QR-IDEMP-1/STATUS-1/OBER-ROEPEN-1 — QR-menu en tafelbestelling — 1-2 november 2026
+
+**Code in repo `sellqo-storefront`** (branch `night-menu`, commits `4557275`, `9bfc7b8`, `761c629`), niet in deze repo. Details: `docs/nachtrun/MENU-STOREFRONT.md` in die repo.
+
+**Root cause**
+- MENU-SHEET-1: de "+" op `/menu` was een `aria-hidden` span in een link naar de productpagina (`ShopChrome.tsx` r. 407/421): ±18-20 tikken voor 4 items, en aan tafel belandde de gast in de webshop.
+- MENU-ALLERGEEN-1: zonder ingevulde allergenen toonde de kaart niets, wat een gast leest als "bevat niets"; geen filter.
+- MENU-SNEL-1: aan tafel linkten lade en mandje naar de webshop, uitverkochte regels hielden een tafelbestelling tegen zonder aanwijzing, een afhaalslot werd automatisch gekozen, "Je rekening" stond ook bij tafels zonder token, reserveren had geen eerlijke uit/fout-meldingen.
+
+**Uitgevoerd**
+- `MenuSheet.tsx` (bestelvenster, a11y: dialog, focus trap, Escape), `productChoice.ts` (logica uit de productpagina gehaald, gedrag ongewijzigd), `MenuList` met echte knop, `menu.tsx` (gerecht zonder keuzes meteen toevoegen + toast).
+- Allergenen: label "Allergenen niet ingevuld, vraag de bediening", filter "zonder …" (gerechten met het allergeen weg, onbekende in een aparte sectie, nooit als veilig), drie standen met `allergens_declared` (ALLERGEEN-VERKLAARD-1).
+- Tafelafwerking: `CartUI.tsx`, `winkelmandje.tsx`, `producten.$slug.tsx`, `menu.tsx` (QR-view zonder "+"), `rekening.tsx`, `afrekenen.tsx` (zelf afhaaluur kiezen), `TableCheckRequest.tsx`, `TableCheckout.tsx`, `bestelling.tsx`, `reserveren.tsx` (+ `.ics` via `src/lib/ics.ts`). Tafel-cookie bewust 3 u met glijdende verlenging (geen 6 u: de tafeltoken is statisch).
+- API-kant: `retry.ts` (enkel netwerkfouten, max. 3), herpoging `checkout_complete`/`table_check_pay` met `release_payment_ids`, "Verder betalen", `OrderProgress.tsx`, `StaffCall.tsx` (Ober roepen / Rekening vragen).
+
+**Security-keuzes**
+- Prijzen en kanalen blijven server-side gecontroleerd. `flags.tableToken` is een boolean (token nooit naar de browser). De tafel voor `table_call` komt uit httpOnly-cookies; extra rem per IP+tafel in de worker.
+
+**Gedeelde-paden-waarschuwing**
+- Geen wijziging aan `storefront-api` vanuit deze repo; enkel de nieuwe additieve velden/acties uit het contract. Deze storefront bedient enkel SellQo-theme-winkels, niet de zes custom frontends. Degradatie: zonder de nieuwe API vallen knoppen, status, hervatten en `duplicate` stil terug op het oude gedrag (getest).
+
+**Verificatie**
+- `npx tsc --noEmit` en `npx vite build` exit 0 (geen lint-script in die repo). Playwright 390/1280 tegen een nep-API: `run.mjs` 90/90, `run-old.mjs` (oude API) 8/8, `run-allergen.mjs` 20/20, 0 JS-fouten.
+
+**Bewust ongemoeid / Vervolg**
+- `cart_get` zou additief `sold_out_today` per regel kunnen geven. Ober roepen in QR-view-modus kan later. Geen testrunner in die repo (harnas staat erbuiten). Smoketest op SellQo Speeltuin / Demo Bakkerij na deploy van API + storefront.
+
 ## ADDON-SELF-1 — de zaakvoerder zet zelf een spoor aan (betaald, pay-first), één pakketkaart (2026.14w) — 31 oktober 2026
 
 Keuzes Akke 31-10 ("go aanbevolen"): B1 add-on gratis tijdens de proefperiode en mee op het eerste betaalabonnement; B2 de add-on volgt het interval van het plan; B3 uitzetten met lopend werk wordt geweigerd. Plan: projectdoc `claude/addon-self-1-plan.md`.

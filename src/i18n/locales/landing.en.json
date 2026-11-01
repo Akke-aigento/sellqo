@@ -2408,6 +2408,70 @@
         "addon_self_serve": {
           "title": "Add a webshop, hospitality or events to your plan yourself",
           "description": "In Settings › Modules, as an admin you can turn on an extra module yourself: a webshop for your restaurant, hospitality for your shop, or events. You see upfront exactly what you pay today (only the remaining days of your period) and what it costs after that. The module turns on as soon as the payment is in. During your trial it's free. You can turn it off whenever you like: it runs until the end of the paid period, and as long as tabs, tickets or orders are still open, SellQo keeps it on."
+        },
+        "qr_menu_order_sheet": {
+          "title": "Order from your menu without going back and forth",
+          "description": "When your guest taps a dish in your QR menu, they choose size, extras and quantity in a window without leaving the menu. A dish without choices is added straight away with \"+\"."
+        },
+        "qr_menu_allergen_filter": {
+          "title": "Your guests filter your menu by allergen",
+          "description": "On your menu, your guest picks for example \"without gluten\" or \"without nuts\", and the dishes with that allergen disappear. Dishes whose allergens you haven't filled in yet are shown separately with a request to ask the staff, so they never look safe."
+        },
+        "qr_table_ordering_fixes": {
+          "title": "Smoother ordering at the table",
+          "description": "At the table, your guests stay on your menu instead of ending up in your webshop. They see which dish has just run out and remove it straight away, choose their own pickup time, and add a reservation request to their calendar with one tap. A view-only QR menu no longer shows order buttons."
+        },
+        "qr_order_progress": {
+          "title": "Your guests see how far along their order is",
+          "description": "After ordering via the QR code or for pickup, your guest sees whether their order has been received, is in the kitchen, is ready or has been served. This follows automatically from the tickets on your kitchen screen; you don't need to do anything extra."
+        },
+        "qr_staff_call": {
+          "title": "Guests call for service or ask for the bill via the QR code",
+          "description": "Your guests tap their table QR to call for service or ask for the bill. You see it right away on the till under Incoming, with a notification on your devices, and tap Done once you've been by. An online reservation request now also shows a notification on your till, with the number of people and the time."
+        },
+        "checkout_retry_safe": {
+          "title": "No more error after a shaky connection at checkout",
+          "description": "If the connection drops right after checkout and your customer tries again, they simply see the confirmation of their order, without a second order being created. If a guest pays the table bill online and something goes wrong, they can continue paying or start over without the bill getting stuck."
+        },
+        "allergens_declared": {
+          "title": "A clear difference between \"no allergens\" and \"not filled in yet\"",
+          "description": "In the product editor you now explicitly tick \"Contains none of the 14 allergens\". Your guest then sees on your menu that it has been checked. On your Menu and your allergen chart you immediately see which dishes haven't been filled in yet, with a list to work through, and a copy of a product keeps that choice."
+        },
+        "kitchen_tickets_safe": {
+          "title": "Allergies and notes no longer get lost between kitchen and bar",
+          "description": "A note from your guest via the QR code (e.g. an allergy) now appears on every ticket of that order, including in the kitchen. Notes and allergens are shown large on the kitchen screen and on the printed ticket. At the bar you complete a ticket with one tap and the staff still get a signal, late tickets turn red, and your till warns you when a ticket printer isn't printing."
+        },
+        "dining_courses": {
+          "title": "Courses at the table: starter, main and dessert sent to the kitchen separately",
+          "description": "Turn on \"Use courses\" in Menu › Setup › Stations and your till gives every order a course, per category or chosen yourself on the bill. Later courses wait until you release them with one tap, and the kitchen sees per course what is needed now and what is still to come. If you leave it off, nothing changes."
+        },
+        "kassa_manager_approval": {
+          "title": "Discounts and cancellations now need a manager's approval",
+          "description": "Owners and managers can give a discount, give something on the house, cancel an order that was already sent and take cash out of the till straight away; other staff first ask for a manager's PIN. That way you always see who allowed what. When an owner or manager is signed in, the till locks after at most 2 minutes without use."
+        },
+        "kassa_shortcuts": {
+          "title": "Working faster at the till",
+          "description": "You repeat a round with one tap, bring back a line you swiped away, choose a tip of 5%, 10% or round up, and when splitting equally you settle person by person. After a break your name is already selected, you set yourself after how many minutes the till locks, you move a counter sale to a name or a table, and in \"My shift\" you see your sales and tips for today."
+        },
+        "kassa_staff_hours": {
+          "title": "Hours of your till staff, the same on every device",
+          "description": "Clock in on one tablet and every till knows it. In the admin under Point of sale › Staff you see the hours worked per week, close forgotten shifts, correct them with a reason and download a CSV for your payroll provider. You also see how tips per day are split according to the hours worked. Hours are counted from this update."
+        },
+        "horeca_reports_admin": {
+          "title": "Your hospitality reports in the SellQo admin",
+          "description": "Under Reports › Hospitality you find all your Z reports to print or to hand to your accountant as a CSV. You also see your best-selling products, your sales per hour and per staff member, and what a bill and a cover bring in on average."
+        },
+        "horeca_sidebar_live_floor": {
+          "title": "A shorter hospitality menu and a live view of your floor",
+          "description": "If you only run a hospitality business, your menu now follows the order of your day: Today, POS app, Floor, Kitchen, Orders, Menu, Payments, Reports, Purchasing. Under Floor you see live which tables are open, for how much and since when; you edit your floor plan on the tab next to it. The settings of your Menu are grouped under Setup."
+        },
+        "kaart_food_cost": {
+          "title": "Cost price and food cost on your Menu",
+          "description": "Enter the cost price of a product on the Menu and you immediately see the food cost: the cost price compared with the selling price excluding VAT. With the Food cost button you turn on a column for all your products; above 35% the figure turns red. Only people allowed to see cost prices can see them."
+        },
+        "kassa_z_to_odoo": {
+          "title": "Your till revenue to Odoo, if you turn it on",
+          "description": "Your Odoo accounting settings now include \"Till revenue to Odoo\". If you turn it on, SellQo books every closed Z report from the day you choose as one entry with the revenue per VAT rate, matching your Z report to the cent. It is off by default. Tips and payments are not booked; if Odoo differs, the entry stays a draft and you get a notification. Available in plans that include the Odoo integration."
         }
       },
       "copyLink": "Copy link",
@@ -2419,7 +2483,8 @@
         "q2_2026": "Q2 2026",
         "aug_2026": "August 2026",
         "sep_2026": "September 2026",
-        "oct_2026": "October 2026"
+        "oct_2026": "October 2026",
+        "nov_2026": "November 2026"
       },
       "filters": {
         "all": "All",

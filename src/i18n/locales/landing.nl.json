@@ -2408,6 +2408,70 @@
         "addon_self_serve": {
           "title": "Zet zelf een webshop, horeca of events bij je plan",
           "description": "In Instellingen › Modules zet je als beheerder zelf een extra onderdeel aan: een webshop bij je horecazaak, horeca bij je winkel of events. Je ziet vooraf exact wat je vandaag betaalt (enkel de resterende dagen van je periode) en wat het daarna kost. Het onderdeel staat aan zodra de betaling binnen is. In je proefperiode is het gratis. Uitzetten kan wanneer je wil: het loopt tot het einde van de betaalde periode, en zolang er nog rekeningen, tickets of bestellingen openstaan, houdt SellQo het aan."
+        },
+        "qr_menu_order_sheet": {
+          "title": "Bestellen vanaf je menukaart zonder heen en weer",
+          "description": "Tikt je gast in je QR-menu op een gerecht, dan kiest hij formaat, extra's en aantal in een venster, zonder de menukaart te verlaten. Een gerecht zonder keuzes voegt hij met \"+\" meteen toe."
+        },
+        "qr_menu_allergen_filter": {
+          "title": "Je gasten filteren je menukaart op allergenen",
+          "description": "Op je menukaart kiest je gast bijvoorbeeld \"zonder gluten\" of \"zonder noten\", en de gerechten met dat allergeen verdwijnen. Gerechten waarvan je de allergenen nog niet invulde, staan apart met de vraag om het aan de bediening te vragen, zodat ze nooit als veilig ogen."
+        },
+        "qr_table_ordering_fixes": {
+          "title": "Vlotter bestellen aan tafel",
+          "description": "Aan tafel blijven je gasten op je menukaart in plaats van in je webshop. Ze zien welk gerecht net op is en halen het meteen weg, kiezen bij afhalen zelf hun uur en zetten een reservatie-aanvraag met één tik in hun agenda. Een QR-menu dat enkel om te bekijken is, toont geen bestelknoppen meer."
+        },
+        "qr_order_progress": {
+          "title": "Je gasten zien hoe ver hun bestelling staat",
+          "description": "Na het bestellen via de QR-code of bij afhalen ziet je gast of zijn bestelling ontvangen is, in de keuken is, klaar is of opgediend werd. Dat volgt vanzelf uit de bonnen op je keukenscherm; je hoeft niets extra te doen."
+        },
+        "qr_staff_call": {
+          "title": "Gasten roepen de bediening of vragen de rekening via de QR-code",
+          "description": "Je gasten tikken op hun tafel-QR om de bediening te roepen of de rekening te vragen. Je ziet het meteen op de kassa bij Binnenkomend, met een melding op je toestellen, en tikt op Afgehandeld als je langs geweest bent. Ook een online reservatie-aanvraag geeft nu een melding op je kassa, met het aantal personen en het uur."
+        },
+        "checkout_retry_safe": {
+          "title": "Geen foutmelding meer na een haperende verbinding bij het afrekenen",
+          "description": "Valt de verbinding weg net na het afrekenen en probeert je klant opnieuw, dan ziet hij gewoon de bevestiging van zijn bestelling, zonder dat er een tweede bestelling ontstaat. Betaalt een gast de tafelrekening online en loopt dat mis, dan betaalt hij verder of begint hij opnieuw zonder dat de rekening vastloopt."
+        },
+        "allergens_declared": {
+          "title": "Duidelijk onderscheid tussen \"geen allergenen\" en \"nog niet ingevuld\"",
+          "description": "In de producteditor vink je nu uitdrukkelijk \"Bevat geen van de 14 allergenen\" aan. Op je menukaart ziet je gast dan dat het nagekeken is. Op je Kaart en je allergenenkaart zie je meteen welke gerechten nog niet ingevuld zijn, met een lijst om af te werken, en een kopie van een product neemt die keuze mee."
+        },
+        "kitchen_tickets_safe": {
+          "title": "Allergieën en opmerkingen vallen niet meer weg tussen keuken en bar",
+          "description": "Een opmerking van je gast via de QR (bv. een allergie) staat nu op elke bon van die bestelling, ook in de keuken. Opmerkingen en allergenen staan groot op het keukenscherm en op de afgedrukte bon. Aan de bar werk je een bon af met één tik en krijgt de bediening toch een seintje, te late bonnen kleuren rood, en je kassa waarschuwt als een bonprinter niet afdrukt."
+        },
+        "dining_courses": {
+          "title": "Gangen aan tafel: voorgerecht, hoofdgerecht en dessert apart naar de keuken",
+          "description": "Zet in Kaart › Instellen › Posten \"Gangen gebruiken\" aan en je kassa geeft elke bestelling een gang, per categorie of zelf gekozen op de rekening. Latere gangen wachten tot je ze met één tik vrijgeeft, en de keuken ziet per gang wat nu moet en wat nog komt. Laat je het uit, dan verandert er niets."
+        },
+        "kassa_manager_approval": {
+          "title": "Korting en annuleren vragen nu het akkoord van een verantwoordelijke",
+          "description": "Korting geven, iets van het huis geven, een al verstuurde bestelling annuleren en geld uit de kassa nemen doen eigenaars en verantwoordelijken meteen; andere medewerkers vragen eerst de PIN van een verantwoordelijke. Zo zie je altijd wie wat toeliet. Is een eigenaar of verantwoordelijke aangemeld, dan vergrendelt de kassa na hoogstens 2 minuten zonder gebruik."
+        },
+        "kassa_shortcuts": {
+          "title": "Sneller werken aan de kassa",
+          "description": "Je herhaalt een ronde met één tik, haalt een weggeveegde lijn terug, kiest fooi met 5 %, 10 % of afronden en rekent bij gelijk delen persoon per persoon af. Na een pauze staat je naam al klaar, je stelt zelf in na hoeveel minuten de kassa vergrendelt, een toogverkoop zet je op naam of aan een tafel, en in \"Mijn dienst\" zie je je omzet en fooi van vandaag."
+        },
+        "kassa_staff_hours": {
+          "title": "Uren van je kassapersoneel, op elk toestel hetzelfde",
+          "description": "Klok je in op de ene tablet, dan weet elke kassa het. In het beheer onder Kassa › Personeel zie je per week de gewerkte uren, sluit je vergeten shifts af, corrigeer je met een reden en download je een CSV voor je sociaal secretariaat. Je ziet er ook hoe de fooien per dag volgens de gewerkte uren verdeeld worden. De uren tellen vanaf deze update."
+        },
+        "horeca_reports_admin": {
+          "title": "Je horecarapporten in SellQo-beheer",
+          "description": "Onder Rapporten › Horeca vind je al je Z-rapporten terug om af te drukken of als CSV aan je boekhouder te geven. Je ziet er ook je best verkochte producten, je omzet per uur en per medewerker, en wat een rekening en een couvert gemiddeld opbrengen."
+        },
+        "horeca_sidebar_live_floor": {
+          "title": "Een korter horecamenu en een live zicht op je zaal",
+          "description": "Heb je enkel een horecazaak, dan staat je menu nu in de volgorde van je dag: Vandaag, Kassa-app, Zaal, Keuken, Bestellingen, Kaart, Betalingen, Rapporten, Inkoop. Onder Zaal zie je live welke tafels open staan, voor hoeveel en sinds wanneer; je zaalplan bewerk je op de tab ernaast. De instellingen van je Kaart staan samen onder Instellen."
+        },
+        "kaart_food_cost": {
+          "title": "Kostprijs en foodcost op je Kaart",
+          "description": "Vul bij een product op de Kaart de kostprijs in en je ziet meteen de foodcost: de kostprijs tegenover de verkoopprijs zonder btw. Met de knop Foodcost zet je een kolom aan voor al je producten; boven 35 % kleurt het getal rood. Enkel wie kostprijzen mag zien, ziet ze."
+        },
+        "kassa_z_to_odoo": {
+          "title": "Je kassa-omzet naar Odoo, als je dat aanzet",
+          "description": "Bij je Odoo-boekhoudinstellingen staat nu \"Kassa-omzet naar Odoo\". Zet je het aan, dan boekt SellQo elk afgesloten Z-rapport vanaf de dag die je kiest als één boeking met de omzet per btw-tarief, tot op de cent gelijk aan je Z-rapport. Het staat standaard uit. Fooien en betalingen worden niet geboekt; wijkt Odoo af, dan blijft de boeking een concept en krijg je een melding. Beschikbaar in plannen met de Odoo-koppeling."
         }
       },
       "copyLink": "Kopieer link",
@@ -2419,7 +2483,8 @@
         "q2_2026": "Q2 2026",
         "aug_2026": "Augustus 2026",
         "sep_2026": "September 2026",
-        "oct_2026": "Oktober 2026"
+        "oct_2026": "Oktober 2026",
+        "nov_2026": "November 2026"
       },
       "filters": {
         "all": "Alles",

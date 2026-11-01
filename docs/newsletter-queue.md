@@ -4,6 +4,138 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14x — Nachtrun horeca: QR-menu, keuken, kassa, uren, rapporten en Odoo (16 items, 02-11-2026)
+
+**Status:** wacht op go: uitrol volgens `docs/nachtrun/UITROL.md` (migraties, deploys `storefront-api`/`horeca-print`/`horeca-receipt-mail`/`horeca-device-push`/`sync-odoo-pos-z`/`manage-odoo-connection`, publish sellqo.app en de storefront, nieuwe native build kassa-app 0.20.0). KASSA-ODOO-1 pas na review 2 en de merge van `night-odoo`. Bundelen per onderwerp (2-4 items per nieuwsbrief), niet alle 16 tegelijk.
+
+#### 2026.14x — Bestellen vanaf je menukaart zonder heen en weer (feature, 02-11-2026)
+
+**Bestellen in een venster, niet op een nieuwe pagina** (november 2026)
+Tikt je gast in je QR-menu op een gerecht, dan kiest hij formaat, extra's en aantal in een venster, zonder de menukaart te verlaten. Een gerecht zonder keuzes voegt hij met "+" meteen toe.
+Wat betekent dit voor jou? Minder tikken voor je gasten, dus sneller een bestelling binnen.
+
+i18n: `public.changelog.changes.qr_menu_order_sheet`
+
+#### 2026.14x — Je gasten filteren je menukaart op allergenen (feature, 02-11-2026)
+
+**"Zonder gluten" met één tik** (november 2026)
+Op je menukaart kiest je gast bijvoorbeeld "zonder gluten" of "zonder noten", en de gerechten met dat allergeen verdwijnen. Gerechten waarvan je de allergenen nog niet invulde, staan apart met de vraag om het aan de bediening te vragen.
+Wat betekent dit voor jou? Minder vragen aan tafel, en nooit een gerecht dat ten onrechte veilig lijkt.
+
+i18n: `public.changelog.changes.qr_menu_allergen_filter`
+
+#### 2026.14x — Vlotter bestellen aan tafel (improvement, 02-11-2026)
+
+**Je gasten blijven op je menukaart** (november 2026)
+Aan tafel blijven je gasten op je menukaart in plaats van in je webshop. Ze zien welk gerecht net op is en halen het meteen weg, kiezen bij afhalen zelf hun uur en zetten een reservatie-aanvraag met één tik in hun agenda.
+Wat betekent dit voor jou? Minder vastgelopen bestellingen en minder uitleg aan tafel.
+
+i18n: `public.changelog.changes.qr_table_ordering_fixes`
+
+#### 2026.14x — Je gasten zien hoe ver hun bestelling staat (feature, 02-11-2026)
+
+**"Is mijn eten al onderweg?"** (november 2026)
+Na het bestellen via de QR-code of bij afhalen ziet je gast of zijn bestelling ontvangen is, in de keuken is, klaar is of opgediend werd. Dat volgt vanzelf uit de bonnen op je keukenscherm.
+Wat betekent dit voor jou? Minder gasten die de bediening aanklampen om te vragen hoe lang het nog duurt.
+
+i18n: `public.changelog.changes.qr_order_progress`
+
+#### 2026.14x — Ober roepen en de rekening vragen via de QR-code (feature, 02-11-2026)
+
+**Je gasten hoeven niet meer te zwaaien** (november 2026)
+Je gasten tikken op hun tafel-QR om de bediening te roepen of de rekening te vragen. Je ziet het meteen op de kassa bij Binnenkomend, met een melding op je toestellen. Ook een online reservatie-aanvraag geeft nu een melding op je kassa.
+Wat betekent dit voor jou? Je ziet wie je nodig heeft, ook als je met je rug naar de zaal staat.
+
+i18n: `public.changelog.changes.qr_staff_call`
+
+#### 2026.14x — Geen foutmelding meer na een haperende verbinding (bugfix, 02-11-2026)
+
+Valt de verbinding weg net na het afrekenen en probeert je klant opnieuw, dan ziet hij gewoon de bevestiging van zijn bestelling, zonder tweede bestelling. Online een tafelrekening betalen loopt na een netwerkfout niet meer vast.
+i18n: `public.changelog.changes.checkout_retry_safe`
+
+#### 2026.14x — "Geen allergenen" of "nog niet ingevuld" (feature, 02-11-2026)
+
+**Laat zien dat je het nagekeken hebt** (november 2026)
+In de producteditor vink je nu uitdrukkelijk "Bevat geen van de 14 allergenen" aan. Je gast ziet op je menukaart dat het nagekeken is, en op je Kaart en je allergenenkaart zie je meteen welke gerechten je nog moet invullen.
+Wat betekent dit voor jou? Een volledige allergeneninfo zonder giswerk, voor jou en voor je gasten.
+
+i18n: `public.changelog.changes.allergens_declared`
+
+#### 2026.14x — Allergieën en opmerkingen op elke bon (improvement, 02-11-2026)
+
+**De keuken ziet de allergie, ook als de gast ze bij zijn drankje typte** (november 2026)
+Een opmerking van je gast via de QR staat nu op elke bon van die bestelling, en opmerkingen en allergenen staan groot op het keukenscherm en op de afgedrukte bon. Aan de bar werk je een bon af met één tik, te late bonnen kleuren rood en je kassa waarschuwt als een bonprinter niet afdrukt.
+Wat betekent dit voor jou? Minder kans dat een allergie of opmerking onderweg verloren gaat.
+
+i18n: `public.changelog.changes.kitchen_tickets_safe`
+
+#### 2026.14x — Gangen aan tafel (feature, 02-11-2026)
+
+**Het dessert pas als jij het zegt** (november 2026)
+Zet in Kaart › Instellen › Posten "Gangen gebruiken" aan en je kassa geeft elke bestelling een gang. Latere gangen wachten tot je ze met één tik vrijgeeft, en de keuken ziet per gang wat nu moet en wat nog komt. Laat je het uit, dan verandert er niets.
+Wat betekent dit voor jou? Geen dessert dat al klaarstaat terwijl het hoofdgerecht nog op tafel komt.
+
+i18n: `public.changelog.changes.dining_courses`
+
+#### 2026.14x — Korting en annuleren met akkoord van een verantwoordelijke (security, 02-11-2026)
+
+**Je ziet altijd wie wat toeliet** (november 2026)
+Korting, iets van het huis, een verstuurde bestelling annuleren en geld uit de kassa nemen doen eigenaars en verantwoordelijken meteen; andere medewerkers vragen eerst de PIN van een verantwoordelijke.
+Wat betekent dit voor jou? Je medewerkers merken dit: bij die handelingen vraagt de kassa nu een PIN. Spreek af wie dat akkoord geeft.
+
+i18n: `public.changelog.changes.kassa_manager_approval`
+
+#### 2026.14x — Sneller werken aan de kassa (improvement, 02-11-2026)
+
+**Herhaal een ronde met één tik** (november 2026)
+Je herhaalt een ronde met één tik, haalt een weggeveegde lijn terug, kiest fooi met 5 %, 10 % of afronden en rekent bij gelijk delen persoon per persoon af. Je stelt zelf in na hoeveel minuten de kassa vergrendelt, en in "Mijn dienst" zie je je omzet en fooi van vandaag.
+Wat betekent dit voor jou? Minder tikken in de drukte, en je personeel ziet zelf wat het verdiende.
+
+i18n: `public.changelog.changes.kassa_shortcuts`
+
+#### 2026.14x — Uren van je kassapersoneel (feature, 02-11-2026)
+
+**Inklokken op de ene tablet, uitklokken op de andere** (november 2026)
+Elke kassa weet wie ingeklokt is. In het beheer onder Kassa › Personeel zie je per week de gewerkte uren, corrigeer je vergeten shifts met een reden en download je een CSV voor je sociaal secretariaat. De uren tellen vanaf deze update.
+Wat betekent dit voor jou? Geen urenbriefjes meer overtypen.
+
+i18n: `public.changelog.changes.kassa_staff_hours`
+
+#### 2026.14x — Je horecarapporten in het beheer (feature, 02-11-2026)
+
+**Al je Z-rapporten op één plek** (november 2026)
+Onder Rapporten › Horeca vind je al je Z-rapporten terug om af te drukken of als CSV aan je boekhouder te geven, met je best verkochte producten, je omzet per uur en per medewerker, en wat een rekening en een couvert gemiddeld opbrengen.
+Wat betekent dit voor jou? Je boekhouder krijgt zijn cijfers zonder dat je de kassa moet openen.
+
+i18n: `public.changelog.changes.horeca_reports_admin`
+
+#### 2026.14x — Een korter horecamenu en een live zicht op je zaal (improvement, 02-11-2026)
+
+**Je menu in de volgorde van je dag** (november 2026)
+Heb je enkel een horecazaak, dan staat je menu nu in de volgorde van je dag: Vandaag, Kassa-app, Zaal, Keuken, Bestellingen, Kaart, Betalingen, Rapporten, Inkoop. Onder Zaal zie je live welke tafels open staan, voor hoeveel en sinds wanneer.
+Wat betekent dit voor jou? Minder zoeken, en vanaf je laptop zien wat er in de zaal gebeurt.
+
+i18n: `public.changelog.changes.horeca_sidebar_live_floor`
+
+#### 2026.14x — Kostprijs en foodcost op je Kaart (feature, 02-11-2026)
+
+**Weet wat een gerecht je echt oplevert** (november 2026)
+Vul bij een product op de Kaart de kostprijs in en je ziet meteen de foodcost: de kostprijs tegenover de verkoopprijs zonder btw. Met de knop Foodcost zet je een kolom aan voor al je producten; boven 35 % kleurt het getal rood.
+Wat betekent dit voor jou? Je ziet in één oogopslag welke gerechten te weinig marge hebben.
+
+i18n: `public.changelog.changes.kaart_food_cost`
+
+#### 2026.14x — Je kassa-omzet naar Odoo, als je dat aanzet (feature, 02-11-2026)
+
+**Status:** pas na review 2 en de merge van `night-odoo`; beslispunt `odoo_sync` in de horecaplannen staat open (role-audit HORECA-ZIJBALK-1).
+
+**Je Z-rapport in je boekhouding, tot op de cent** (november 2026)
+Bij je Odoo-boekhoudinstellingen zet je "Kassa-omzet naar Odoo" aan. SellQo boekt dan elk afgesloten Z-rapport vanaf de dag die je kiest als één boeking met de omzet per btw-tarief. Het staat standaard uit; fooien en betalingen worden niet geboekt, en wijkt Odoo af, dan blijft de boeking een concept en krijg je een melding.
+Wat betekent dit voor jou? Je dagontvangsten van de kassa komen in Odoo zonder overtypen.
+Beschikbaar in plannen met de Odoo-koppeling.
+
+i18n: `public.changelog.changes.kassa_z_to_odoo`
+
 ### 2026.14w — Zelf een webshop, horeca of events bijnemen (feature, 31-10-2026)
 
 **Status:** wacht op go: push, deploy sync-tenant-plan, docs-migratie, publish.
