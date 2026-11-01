@@ -9499,6 +9499,29 @@
       "minutes_many": "{{count}} Minuten",
       "minutes_other": "{{count}} Minuten",
       "never_hint": "Mitarbeitende bleiben angemeldet, bis jemand auf Wechseln tippt. Inhaber und Verantwortliche sperren immer nach 2 Minuten. Wähle das nur, wenn sonst niemand an die Kasse kommt."
+    },
+    "courses": {
+      "auto": "Automatisch",
+      "c1": "Vorspeise",
+      "c2": "Hauptgericht",
+      "c3": "Dessert",
+      "cN": "Gang {{n}}",
+      "none": "Kein Gang",
+      "active": "Gang für das, was du eintippst",
+      "fire": "{{name}} freigeben ({{count}})",
+      "fired": "{{name}} freigegeben und an die Küche geschickt",
+      "waiting": "wartet",
+      "waiting_title": "Wartet auf Freigabe · noch nicht zubereiten",
+      "lineCourse": "Gang dieser Position",
+      "settings_title": "Gänge am Tisch",
+      "settings_desc": "Vorspeise, Hauptgericht und Dessert gehen getrennt an die Küche: spätere Gänge warten in der Kasse, bis du sie freigibst. Ausgeschaltet geht alles sofort mit, wie bisher.",
+      "enabled": "Gänge verwenden",
+      "category_title": "Standardgang pro Kategorie",
+      "category_hint": "Automatisch: Was an die Bar geht, bekommt keinen Gang, der Rest ist Hauptgericht. In der Kasse wählst du oben auf der Rechnung auch selbst einen Gang.",
+      "category_for": "Gang für {{name}}",
+      "opt_auto": "Automatisch",
+      "no_categories": "Noch keine Kategorien auf deiner Karte.",
+      "saved": "Gänge gespeichert"
     }
   },
   "billing": {

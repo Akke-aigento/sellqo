@@ -10,6 +10,7 @@ import { FiscalUnavailableError } from '../runtime';
 import { consolidatedSpecs, costCenterOf, roundLines, roundSpecs, transferSpecs } from './fiscalLines';
 import type { Command, CommandResult, HorecaStore } from './store';
 import type { Check, CheckLine } from './types';
+import { releaseIds, sendableIds } from './courses';
 
 export type ActionOutcome =
   | { ok: true; result?: CommandResult; reason?: undefined; detail?: undefined }
@@ -32,6 +33,8 @@ export interface ActionCtx {
    * eigenaar/verantwoordelijke korting, annuleren of kas uit zonder akkoord. Leeft enkel in het geheugen.
    */
   staffToken?: string | null;
+  /** GANGEN-1: gangen staan aan in deze zaak (latere gangen wachten tot ze vrijgegeven worden). */
+  coursesEnabled?: boolean;
 }
 
 /** Het sessietoken mee met de commando's waar de server het nodig heeft (enkel daar). */
@@ -82,12 +85,14 @@ export async function sendRound(ctx: ActionCtx, checkId: string, only?: Readonly
     if (ctx.store.pendingCount) return { ok: false, reason: 'offline' };
     const c = ctx.store.check(checkId);
     if (!c) return { ok: false, reason: 'server', detail: 'check_missing' };
-    const lines = roundLines(c, only);
+    // GANGEN-1: zonder expliciete keuze gaan wachtende gangen niet mee (ze blijven ontwerp, geen P/ORDER).
+    const pick = only ?? (ctx.coursesEnabled ? sendableIds(c, true) : undefined);
+    const lines = roundLines(c, pick);
     if (!lines.length) return { ok: false, reason: 'nothing' };
     const signed = await signOrFail(ctx, async () => {
       const data = buildOrder(ctx.runtime.posContext(), await ctx.runtime.meta('signOrder', ctx.employeeId as string, 'NONE'), {
         costCenter: costCenterOf(c, ctx.tableLabel(c.table_id), !!ctx.isRegular?.(c.table_id)),
-        lines: roundSpecs(c, only),
+        lines: roundSpecs(c, pick),
       });
       return ctx.runtime.sign('signOrder', data, { staffId: ctx.staffId });
     });
@@ -101,11 +106,30 @@ export async function sendRound(ctx: ActionCtx, checkId: string, only?: Readonly
   }
 }
 
+/**
+ * GANGEN-1 — gang vrijgeven: eerst de stand op de server (fire_course, niet fiscaal), dan de lijnen tot en
+ * met die gang als gewone ronde (P/ORDER). Lukt het versturen niet, dan wachten ze niet meer en gaan ze
+ * met de gewone knop "Versturen" mee.
+ */
+export async function fireCourse(ctx: ActionCtx, checkId: string, course: number): Promise<ActionOutcome> {
+  try {
+    const r = await ctx.store.applyNow({ id: crypto.randomUUID(), kind: 'fire_course', check_id: checkId, course, staff_id: ctx.staffId });
+    if (!r.ok) return serverOutcome(r);
+  } catch (e) {
+    return { ok: false, reason: 'offline', detail: e instanceof Error ? e.message : String(e) };
+  }
+  const c = ctx.store.check(checkId);
+  if (!c) return { ok: false, reason: 'server', detail: 'check_missing' };
+  const ids = releaseIds(c, course);
+  return ids.size ? sendRound(ctx, checkId, ids) : { ok: true };
+}
+
 /** Voorlopige rekening (EVT-07/08): eerst een open ronde versturen, dan de PRE_BILL. */
 export async function requestBill(ctx: ActionCtx, checkId: string): Promise<ActionOutcome> {
   const c0 = ctx.store.check(checkId);
   if (c0 && roundLines(c0).length) {
-    const sent = await sendRound(ctx, checkId);
+    // GANGEN-1: de voorrekening vraagt alles verstuurd, ook gangen die nog wachtten.
+    const sent = await sendRound(ctx, checkId, new Set(roundLines(c0).map((l) => l.id)));
     if (!sent.ok) return sent;
   }
   try {

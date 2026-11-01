@@ -25,6 +25,9 @@ export interface ProductionItem {
   note?: string | null;
   /** KEUKEN-VEILIG-1: EU-allergeencodes (products.allergens + extra's). */
   allergens?: string[];
+  /** GANGEN-1: gang (1..3) en "wacht op vrijgave" (ter info, niet maken). */
+  course?: number | null;
+  waiting?: boolean;
 }
 
 export interface ProductionTicket {
@@ -82,6 +85,8 @@ type Texts = {
   test: string; testBody: string;
   /** KEUKEN-VEILIG-1 */
   noteTitle: string; allergens: string; allergen: Record<string, string>;
+  /** GANGEN-1 */
+  course: Record<number, string>; waitingTitle: string;
   mailSubject: (store: string) => string; mailHeading: string; mailIntro: (store: string) => string;
 };
 
@@ -100,6 +105,7 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     test: "TESTAFDRUK", testBody: "Deze printer is goed gekoppeld aan SellQo.",
     noteTitle: "OPMERKING", allergens: "ALLERGENEN",
     allergen: { gluten: "Gluten", crustaceans: "Schaaldieren", eggs: "Eieren", fish: "Vis", peanuts: "Pinda’s", soy: "Soja", milk: "Melk", nuts: "Noten", celery: "Selder", mustard: "Mosterd", sesame: "Sesamzaad", sulphites: "Sulfieten", lupin: "Lupine", molluscs: "Weekdieren" },
+    course: { 1: "VOORGERECHT", 2: "HOOFDGERECHT", 3: "DESSERT" }, waitingTitle: "WACHT OP VRIJGAVE - NIET MAKEN",
     mailSubject: (s) => `Je betaalbewijs van ${s}`, mailHeading: "Je betaalbewijs", mailIntro: (s) => `Bedankt voor je bezoek aan ${s}. Hieronder vind je je betaalbewijs.`,
   },
   en: {
@@ -116,6 +122,7 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     test: "TEST PRINT", testBody: "This printer is connected to SellQo.",
     noteTitle: "NOTE", allergens: "ALLERGENS",
     allergen: { gluten: "Gluten", crustaceans: "Crustaceans", eggs: "Eggs", fish: "Fish", peanuts: "Peanuts", soy: "Soy", milk: "Milk", nuts: "Tree nuts", celery: "Celery", mustard: "Mustard", sesame: "Sesame", sulphites: "Sulphites", lupin: "Lupin", molluscs: "Molluscs" },
+    course: { 1: "STARTER", 2: "MAIN COURSE", 3: "DESSERT" }, waitingTitle: "WAITING FOR RELEASE - DO NOT MAKE",
     mailSubject: (s) => `Your payment receipt from ${s}`, mailHeading: "Your payment receipt", mailIntro: (s) => `Thank you for visiting ${s}. Your payment receipt is below.`,
   },
   fr: {
@@ -132,6 +139,7 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     test: "IMPRESSION TEST", testBody: "Cette imprimante est bien connectée à SellQo.",
     noteTitle: "REMARQUE", allergens: "ALLERGÈNES",
     allergen: { gluten: "Gluten", crustaceans: "Crustacés", eggs: "Œufs", fish: "Poisson", peanuts: "Arachides", soy: "Soja", milk: "Lait", nuts: "Fruits à coque", celery: "Céleri", mustard: "Moutarde", sesame: "Sésame", sulphites: "Sulfites", lupin: "Lupin", molluscs: "Mollusques" },
+    course: { 1: "ENTRÉE", 2: "PLAT", 3: "DESSERT" }, waitingTitle: "EN ATTENTE - NE PAS PRÉPARER",
     mailSubject: (s) => `Votre preuve de paiement de ${s}`, mailHeading: "Votre preuve de paiement", mailIntro: (s) => `Merci de votre visite chez ${s}. Voici votre preuve de paiement.`,
   },
   de: {
@@ -148,6 +156,7 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     test: "TESTDRUCK", testBody: "Dieser Drucker ist mit SellQo verbunden.",
     noteTitle: "HINWEIS", allergens: "ALLERGENE",
     allergen: { gluten: "Gluten", crustaceans: "Krebstiere", eggs: "Eier", fish: "Fisch", peanuts: "Erdnüsse", soy: "Soja", milk: "Milch", nuts: "Schalenfrüchte", celery: "Sellerie", mustard: "Senf", sesame: "Sesam", sulphites: "Sulfite", lupin: "Lupinen", molluscs: "Weichtiere" },
+    course: { 1: "VORSPEISE", 2: "HAUPTGERICHT", 3: "DESSERT" }, waitingTitle: "WARTET AUF FREIGABE - NICHT ZUBEREITEN",
     mailSubject: (s) => `Dein Zahlungsbeleg von ${s}`, mailHeading: "Dein Zahlungsbeleg", mailIntro: (s) => `Danke für deinen Besuch bei ${s}. Unten findest du deinen Zahlungsbeleg.`,
   },
   uk: {
@@ -164,6 +173,7 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     test: "ТЕСТОВИЙ ДРУК", testBody: "Цей принтер підключено до SellQo.",
     noteTitle: "ПРИМІТКА", allergens: "АЛЕРГЕНИ",
     allergen: { gluten: "Глютен", crustaceans: "Ракоподібні", eggs: "Яйця", fish: "Риба", peanuts: "Арахіс", soy: "Соя", milk: "Молоко", nuts: "Горіхи", celery: "Селера", mustard: "Гірчиця", sesame: "Кунжут", sulphites: "Сульфіти", lupin: "Люпин", molluscs: "Молюски" },
+    course: { 1: "ЗАКУСКА", 2: "ОСНОВНА СТРАВА", 3: "ДЕСЕРТ" }, waitingTitle: "ЧЕКАЄ НА ПОДАЧУ - НЕ ГОТУВАТИ",
     mailSubject: (s) => `Ваше підтвердження оплати від ${s}`, mailHeading: "Ваше підтвердження оплати", mailIntro: (s) => `Дякуємо за візит до ${s}. Нижче ваше підтвердження оплати.`,
   },
 };
@@ -255,7 +265,17 @@ export function renderProductionTicket(t: ProductionTicket, stationKind: string 
   } else {
     out.push(rule(w));
   }
-  for (const it of t.items) {
+  // GANGEN-1: per gang een kop (enkel als de bon gangen heeft); wat nog wacht apart onderaan.
+  const now = t.items.filter((i) => !i.waiting);
+  const waiting = t.items.filter((i) => i.waiting);
+  const withCourses = now.some((i) => i.course) || waiting.length > 0;
+  const courseName = (n: number) => L.course[n] ?? String(n);
+  let lastCourse: number | null | undefined = undefined;
+  for (const it of now) {
+    if (withCourses && (it.course ?? null) !== lastCourse) {
+      lastCourse = it.course ?? null;
+      if (lastCourse != null) out.push(`[ ${courseName(lastCourse)} ]`.slice(0, w));
+    }
     // Een annulering in een ronde komt als negatief aantal: die moet de keuken zien ("-1 x").
     const q = `${Math.round(Number(it.quantity)) || 1} x `;
     const name = wrap(it.name || "?", w - q.length);
@@ -266,6 +286,11 @@ export function renderProductionTicket(t: ProductionTicket, stationKind: string 
     if (it.note) out.push(...wrap(`>> ${it.note.toUpperCase()}`, w - q.length).map((d) => " ".repeat(q.length) + d));
     const alg = (it.allergens ?? []).filter(Boolean);
     if (alg.length) out.push(...wrap(`!! ${L.allergens}: ${alg.map((a) => L.allergen[a] ?? a).join(", ").toUpperCase()}`, w - q.length).map((d) => " ".repeat(q.length) + d));
+  }
+  if (waiting.length) {
+    out.push(rule(w, "."));
+    out.push(...wrap(L.waitingTitle, w));
+    for (const it of waiting) out.push(...wrap(`(${Math.round(Number(it.quantity)) || 1} x ${it.name}${it.course ? ` - ${courseName(it.course)}` : ""})`, w));
   }
   out.push(rule(w));
   out.push(...center(`${L.ordered} ${hhmm(t.createdAt, lang)} · ${L.printed} ${hhmm(new Date().toISOString(), lang)}`, w));

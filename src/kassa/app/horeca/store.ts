@@ -24,7 +24,9 @@ export type CommandKind =
   /** TAFEL-3: toog — ter plaatse of meenemen. */
   | 'set_service'
   /** KASSA-UX-4: rekening-vraag intrekken (status terug naar bezet; de voorrekening blijft). */
-  | 'cancel_bill';
+  | 'cancel_bill'
+  /** GANGEN-1: gang vrijgeven (niet fiscaal). */
+  | 'fire_course';
 
 export interface Command { id: string; kind: CommandKind; check_id: string; staff_id?: string | null; [k: string]: unknown }
 export interface CommandResult { id: string; ok: boolean; error?: string; code?: string; duplicate?: boolean; check?: Check; target?: Check }
@@ -330,9 +332,16 @@ export function applyOptimistic(m: Map<string, Check>, cmd: Command, hints: Map<
     }
   } else if (cmd.kind === 'set_note') {
     const l = c.lines.find((x) => x.id === cmd.line_id);
-    if (l && l.state === 'draft') { l.note = (cmd.note as string) || null; l.pending = true; }
+    if (l && l.state === 'draft') {
+      l.note = (cmd.note as string) || null;
+      // GANGEN-1: een andere gang voor deze lijn (zonder 'course' blijft de gang staan, zoals de server).
+      if ('course' in cmd) l.course = (cmd.course as number | null) ?? null;
+      l.pending = true;
+    }
   } else if (cmd.kind === 'set_service') {
     c.service = (cmd.service as 'eat_in' | 'takeaway') ?? c.service ?? null;
+  } else if (cmd.kind === 'fire_course') {
+    c.course_fired = Math.max(c.course_fired ?? 0, Number(cmd.course) || 0) || null;
   } else if (cmd.kind === 'cancel_bill') {
     c.bill_requested_at = null;
   } else if (cmd.kind === 'rename_check') {

@@ -66,6 +66,26 @@ Deno.test("KEUKEN-VEILIG-1: opmerking bovenaan, lijnopmerking en allergenen op d
   }
 });
 
+Deno.test("GANGEN-1: kop per gang en wachtende gang apart, in elke taal en breedte", () => {
+  const t3: ProductionTicket = {
+    ...ticket, note: null,
+    items: [
+      { quantity: 1, name: "Carpaccio", course: 1 },
+      { quantity: 2, name: "Tiramisu", course: 3, waiting: true },
+    ],
+  };
+  for (const w of PRINT_WIDTHS) {
+    for (const lang of LANG_CODES as readonly string[]) {
+      const text = renderProductionTicket(t3, "kitchen", lang, w);
+      for (const line of text.split("\n")) assert(line.length <= w, `regel breder dan ${w}: "${line}"`);
+      const L = HORECA_PRINT_TEXTS[lang];
+      assert(text.includes(L.course[1].slice(0, w - 4)), `${lang}: kop gang 1 ontbreekt`);
+      assert(text.indexOf("Carpaccio") < text.indexOf("Tiramisu"), `${lang}: volgorde`);
+      assert(text.replace(/\s+/g, " ").includes("(2 x Tiramisu"), `${lang}: wachtende gang ontbreekt`);
+    }
+  }
+});
+
 Deno.test("betaalbewijs: niet geldig als kasticket, correcties weg, bedragen kloppen", () => {
   const m = receiptModelFromData(data);
   assert(m.lines.length === 1 && m.lines[0].name === "Pils", `correctie niet weggevallen: ${JSON.stringify(m.lines)}`);

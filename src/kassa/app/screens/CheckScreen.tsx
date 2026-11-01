@@ -9,6 +9,8 @@
 // anders eerst hun PIN (ApprovalDialog; de server controleert).
 // KASSA-UX-6: lege rekening schrappen met bevestiging, opmerking bewaart bij sluiten, vegen = weg met
 // "Ongedaan maken", "Herhaal vorige ronde" in het ⋯-menu, een toogverkoop op naam of naar een tafel.
+// GANGEN-1: met gangen aan (instelling van de zaak) krijgt elke aangetikte lijn een gang (per categorie, of de
+// gekozen gang bovenaan); latere gangen wachten als ontwerp tot "Gang … vrijgeven" (zie horeca/courses.ts).
 import { useMemo, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, ChefHat, ChevronDown, ChevronUp, Flame, Loader2, Minus, MoreHorizontal, Plus, Search, Send, Receipt, ShieldCheck, Trash2, Wallet, X } from 'lucide-react';
@@ -20,7 +22,10 @@ import { cn } from '@/lib/utils';
 import { checkTotalCents, isCounter, lineTotalCents, type Check, type CheckLine } from '../horeca/types';
 import { kitchenOn, rememberKitchen, rememberService, type CounterService } from '../horeca/counter';
 import { roundLines } from '../horeca/fiscalLines';
-import { discountLine, moveCheck, moveLines, requestBill, sendRound, voidLine, type ActionCtx, type ActionOutcome } from '../horeca/actions';
+import { discountLine, fireCourse, moveCheck, moveLines, requestBill, sendRound, voidLine, type ActionCtx, type ActionOutcome } from '../horeca/actions';
+import { COURSES, courseFor, goesToBar, isHeld, nextHeldCourse, sendableIds, type Course } from '../horeca/courses';
+import { useKassaCourseSettings } from '../horeca/paySettings';
+import { usePrepStations } from '@/hooks/usePrepStations';
 import { approvalFor, needsApproval, type ApprovalAction, type ApprovalBind } from '../horeca/approvals';
 import { lastRoundLines } from '../horeca/kassaUx';
 import { ApprovalDialog } from './ApprovalDialog';
@@ -76,6 +81,10 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   // KASSA-0.6: lang drukken op een product = op/terug of prijs, goedgekeurd met de PIN van
   // een eigenaar of verantwoordelijke (de server controleert).
   const [editing, setEditing] = useState<CatalogProduct | null>(null);
+  // GANGEN-1: instelling van de zaak, posten (drank = bar = geen gang) en de gekozen gang (null = automatisch).
+  const courseSettings = useKassaCourseSettings(store.tenantId);
+  const { data: prep } = usePrepStations();
+  const [activeCourse, setActiveCourse] = useState<Course | null>(null);
   const euro = (c: number) => formatEuro(c, i18n.language);
 
   const popular = useMemo(() => {
@@ -114,7 +123,14 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   const pendingHere = hasPendingPay(store.tenantId, check.id);
   const locked = pendingHere || !!check.paying;
   const visible = check.lines.filter((l) => l.state !== 'void');
-  const drafts = roundLines(check).length + check.lines.filter((l) => l.pending && l.state === 'draft').length;
+  // GANGEN-1: enkel aan tafel (niet aan de toog), en enkel als de zaak gangen aanzette.
+  const coursesOn = courseSettings.enabled && !isCounter(check);
+  const nextHeld = coursesOn ? nextHeldCourse(check, true) : null;
+  const heldCount = coursesOn ? check.lines.filter((l) => isHeld(check, l, true)).length : 0;
+  const courseName = (c: number) => t(`admin.courses.c${c}`, { defaultValue: t('admin.courses.cN', { n: c }) });
+  /** Gang voor een nieuwe lijn van dit product (undefined = gangen uit: niets meegeven). */
+  const courseOf = (p: CatalogProduct): number | null | undefined => (coursesOn ? courseFor(courseSettings, p, activeCourse, goesToBar(prep, p)) : undefined);
+  const drafts = (coursesOn ? sendableIds(check, true).size : roundLines(check).length) + check.lines.filter((l) => l.pending && l.state === 'draft').length;
   const sentAny = check.lines.some((l) => l.state === 'sent');
   // TAFEL-3: toogverkoop — geen ronde, geen voorrekening, niet verplaatsen; meteen afrekenen.
   const counter = isCounter(check);
@@ -135,24 +151,25 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
     return false;
   };
 
-  const addProduct = (p: CatalogProduct, addonIds: string[] = []) => {
+  const addProduct = (p: CatalogProduct, addonIds: string[] = [], course?: number | null) => {
     const addons = p.addonGroups.flatMap((g) => g.options).filter((o) => addonIds.includes(o.id)).map((o) => ({ option_id: o.id, name: o.name, price_cents: o.price_cents }));
     // KASSA-0.6: aan de toog bij meenemen het meeneemtarief, zoals de server (kassa_product_vat_rate).
     store.hint(p.id, { name: p.name, unit_price_cents: p.price_cents, vat_label: counter && service === 'takeaway' ? p.vat_label_takeaway : p.vat_label, addons });
-    store.enqueue({ id: crypto.randomUUID(), kind: 'add_line', check_id: check.id, line_id: crypto.randomUUID(), product_id: p.id, qty: 1, addon_ids: addonIds, staff_id: ctx.staffId });
+    store.enqueue({ id: crypto.randomUUID(), kind: 'add_line', check_id: check.id, line_id: crypto.randomUUID(), product_id: p.id, qty: 1, addon_ids: addonIds,
+      ...(course != null ? { course } : {}), staff_id: ctx.staffId });
   };
 
   /** Eén erbij: optellen op een lijn met precies hetzelfde product en dezelfde extra's, anders een nieuwe lijn. */
-  const addOne = (p: CatalogProduct, addonIds: string[] = []) => {
+  const addOne = (p: CatalogProduct, addonIds: string[] = [], course: number | null | undefined = courseOf(p)) => {
     // Trillen waar het toestel dat kan (Android); de oplichting is er altijd.
     try { navigator.vibrate?.(12); } catch { /* geen trilfunctie */ }
     if (flashTimer.current) clearTimeout(flashTimer.current);
     setFlash(p.id);
     flashTimer.current = setTimeout(() => setFlash(null), 180);
     const fresh = store.check(check.id) ?? check;
-    const plan = planTap(fresh, p.id, addonIds);
+    const plan = planTap(fresh, p.id, addonIds, course);
     if (plan.kind === 'qty') store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: plan.lineId, qty: plan.qty, staff_id: ctx.staffId });
-    else addProduct(p, addonIds);
+    else addProduct(p, addonIds, course);
   };
   const tapProduct = (p: CatalogProduct) => {
     if (p.sold_out) return;
@@ -164,7 +181,8 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   const openLine = (l: CheckLine, voidFirst = false) => { setLineSheetVoid(voidFirst); setLineSheet(l); };
   const linePlus = (l: CheckLine) => {
     const p = productOf(l);
-    if (p && !p.sold_out) addOne(p, l.addons.map((a) => a.option_id));
+    // GANGEN-1: + op een lijn blijft in de gang van die lijn.
+    if (p && !p.sold_out) addOne(p, l.addons.map((a) => a.option_id), coursesOn ? l.course ?? null : undefined);
   };
   const lineMinus = (l: CheckLine) => {
     const kind = lineEditKind(l);
@@ -220,6 +238,13 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
     if (m) store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: m.lineId, qty: m.qty, staff_id: ctx.staffId });
   };
 
+  // GANGEN-1: gang vrijgeven = stand op de server + die lijnen als gewone ronde (P/ORDER).
+  const doFire = async (course: number) => {
+    setBusy('send');
+    const o = await fireCourse(ctx, check.id, course);
+    setBusy(null);
+    report(o, t('admin.courses.fired', { name: courseName(course) }));
+  };
   const doSend = async () => {
     setBusy('send');
     const o = await sendRound(ctx, check.id);
@@ -275,6 +300,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
     const p = productOf(l);
     return (
       <LineRow key={l.id} line={l} canEdit={kind} canPlus={!!kind && !!p && !p.sold_out} total={euro(lineTotalCents(l))}
+        course={coursesOn && l.course != null && l.qty > 0 ? { label: courseName(l.course), held: isHeld(check, l, true), heldLabel: t('admin.courses.waiting') } : null}
         reason={l.neg_reason ? t(`kassa.checks.reason.${l.neg_reason}`) : null} priceChanges={l.price_changes.map((pc) => ({ id: pc.grouping_id, text: `${pc.name} ${euro(pc.amount_cents)}` }))}
         labels={{ plus: t('kassa.checks.more1'), minus: t('kassa.checks.less'), remove: kind === 'sent' ? t('kassa.checks.cancelLine') : t('kassa.checks.remove') }}
         onOpen={() => openLine(l)} onPlus={() => linePlus(l)} onMinus={() => lineMinus(l)} onRemove={() => lineRemove(l)} />
@@ -376,6 +402,26 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
         </DropdownMenu>
       </div>
 
+      {coursesOn ? (
+        // GANGEN-1: gekozen gang voor wat je nu aantikt, en de volgende wachtende gang vrijgeven.
+        <div className="flex flex-wrap items-center gap-1.5 border-b px-2 py-1.5">
+          <div className="flex flex-wrap gap-1" role="group" aria-label={t('admin.courses.active')}>
+            {([null, ...COURSES] as (Course | null)[]).map((c) => (
+              <button key={c ?? 'auto'} type="button" aria-pressed={activeCourse === c} onClick={() => setActiveCourse(c)}
+                className={cn('h-11 rounded-full border px-3 text-sm font-semibold', activeCourse === c ? 'border-primary bg-primary text-primary-foreground' : 'bg-background')}>
+                {c ? courseName(c) : t('admin.courses.auto')}
+              </button>
+            ))}
+          </div>
+          {nextHeld != null ? (
+            <button type="button" onClick={() => void doFire(nextHeld)} disabled={locked || !!busy}
+              className="ml-auto flex h-11 items-center gap-1.5 rounded-md bg-amber-500 px-3 text-sm font-bold text-white disabled:opacity-40">
+              <ChefHat className="h-4 w-4" aria-hidden />{t('admin.courses.fire', { name: courseName(nextHeld), count: heldCount })}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="flex min-h-0 min-w-0 flex-1">
         <div className={cn('min-h-0 min-w-0 flex-col border-r lg:flex lg:w-[38%]', tab === 'lines' ? 'flex w-full' : 'hidden')}>{linesPanel}</div>
         <div className={cn('min-h-0 min-w-0 flex-1 flex-col lg:flex', tab === 'menu' ? 'flex' : 'hidden')}>{menuPanel}</div>
@@ -432,6 +478,8 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
         <LineDialog key={`${lineSheet.id}-${lineSheetVoid}`} line={check.lines.find((l) => l.id === lineSheet.id) ?? lineSheet} busy={busy === 'discount'} canMove={!counter} voidFirst={lineSheetVoid} onClose={() => setLineSheet(null)}
           onQty={(qty) => store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: lineSheet.id, qty, staff_id: ctx.staffId })}
           onNote={(note) => store.enqueue({ id: crypto.randomUUID(), kind: 'set_note', check_id: check.id, line_id: lineSheet.id, note, staff_id: ctx.staffId })}
+          courses={coursesOn ? [{ value: null, label: t('admin.courses.none') }, ...COURSES.map((c) => ({ value: c as number | null, label: courseName(c) }))] : undefined}
+          onCourse={(course, note) => store.enqueue({ id: crypto.randomUUID(), kind: 'set_note', check_id: check.id, line_id: lineSheet.id, note, course, staff_id: ctx.staffId })}
           approvalNeeded={{ discount: needsApproval(ctx, 'discount'), void: needsApproval(ctx, approvalFor('void', lineSheet)) }}
           onVoid={(reason, qty) => {
             const l = lineSheet;
@@ -494,10 +542,10 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
       {editing ? <ProductQuickEdit ctx={ctx} product={catalog?.products.find((x) => x.id === editing.id) ?? editing} onClose={() => setEditing(null)} /> : null}
       {addonFor && (
         isQuickChoice(addonFor.addonGroups)
-          ? <QuickChoiceDialog product={addonFor} countFor={(ids) => draftCountWith(store.check(check.id) ?? check, addonFor.id, ids)}
+          ? <QuickChoiceDialog product={addonFor} countFor={(ids) => draftCountWith(store.check(check.id) ?? check, addonFor.id, ids, courseOf(addonFor))}
               onAdd={(ids) => addOne(addonFor, ids)} onClose={() => setAddonFor(null)}
               onMinus={(ids) => {
-                const m = planMinusWith(store.check(check.id) ?? check, addonFor.id, ids);
+                const m = planMinusWith(store.check(check.id) ?? check, addonFor.id, ids, courseOf(addonFor));
                 if (m) store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: m.lineId, qty: m.qty, staff_id: ctx.staffId });
               }} />
           : <AddonDialog product={addonFor} onClose={() => setAddonFor(null)} onConfirm={(ids) => { addOne(addonFor, ids); setAddonFor(null); }} />
@@ -538,6 +586,9 @@ function LineDialog(p: {
   onVoid: (reason: string, qty: number) => void; onDiscount: (d: { percent?: number; name: string }) => void; onMove: () => void;
   /** KASSA-UX-4: meteen de vraag "waarom annuleren" (verstuurde lijn via − of vegen). */
   voidFirst?: boolean;
+  /** GANGEN-1: gang van een ontwerp-lijn wijzigen (enkel met gangen aan). */
+  courses?: { value: number | null; label: string }[];
+  onCourse?: (course: number | null, note: string) => void;
 }) {
   const { t } = useTranslation();
   const l = p.line;
@@ -567,6 +618,16 @@ function LineDialog(p: {
               </div>
             )}
             {editable && qtyLocked(l) ? <p className="text-center text-xs text-muted-foreground">{t('kassa.ux6.qtyLocked')}</p> : null}
+            {editable && p.courses && p.onCourse && (
+              <div className="flex flex-wrap gap-1.5" role="group" aria-label={t('admin.courses.lineCourse')}>
+                {p.courses.map((c) => (
+                  <button key={c.value ?? 'none'} type="button" aria-pressed={(l.course ?? null) === c.value} onClick={() => p.onCourse?.(c.value, note)}
+                    className={cn('h-11 rounded-full border px-3 text-sm font-semibold', (l.course ?? null) === c.value ? 'border-primary bg-primary text-primary-foreground' : '')}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            )}
             {editable && (
               <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); p.onNote(note); p.onClose(); }}>
                 <input value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} placeholder={t('kassa.checks.notePlaceholder')} aria-label={t('kassa.checks.note')} className="h-11 flex-1 rounded-md border bg-background px-3" />
@@ -790,8 +851,10 @@ function ProductTile({ p, count, flash, tone, onTap, onLong, onMinus, label, edi
  * "waarom annuleren" (fiscale correctie, nooit stil wijzigen).
  */
 const SWIPE_AT = 80;
-function LineRow({ line: l, canEdit, canPlus, total, reason, priceChanges, labels, onOpen, onPlus, onMinus, onRemove }: {
+function LineRow({ line: l, canEdit, canPlus, total, reason, priceChanges, labels, onOpen, onPlus, onMinus, onRemove, course }: {
   line: CheckLine; canEdit: 'draft' | 'sent' | null; canPlus: boolean; total: string; reason: string | null;
+  /** GANGEN-1: gang van de lijn; held = wacht op vrijgave. */
+  course?: { label: string; held: boolean; heldLabel: string } | null;
   priceChanges: { id: number; text: string }[]; labels: { plus: string; minus: string; remove: string };
   onOpen: () => void; onPlus: () => void; onMinus: () => void; onRemove: () => void;
 }) {
@@ -836,6 +899,11 @@ function LineRow({ line: l, canEdit, canPlus, total, reason, priceChanges, label
           <span className="w-8 shrink-0 font-bold">{l.qty}×</span>
           <span className="min-w-0 flex-1">
             <span className="block truncate font-medium">{l.name}</span>
+            {course ? (
+              <span className={cn('mt-0.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs font-semibold', course.held ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100' : 'bg-muted text-muted-foreground')}>
+                {course.label}{course.held ? ` · ${course.heldLabel}` : ''}
+              </span>
+            ) : null}
             {l.addons.length ? <span className="block truncate text-xs text-muted-foreground">+ {l.addons.map((a) => a.name).join(', ')}</span> : null}
             {l.note ? <span className="block truncate text-xs italic text-muted-foreground">“{l.note}”</span> : null}
             {priceChanges.map((p) => <span key={p.id} className="block text-xs text-emerald-700 dark:text-emerald-400">{p.text}</span>)}

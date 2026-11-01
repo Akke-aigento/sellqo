@@ -38,6 +38,7 @@ import { cardsForStation, readyCheckIds, type KitchenCard, type KitchenStatus } 
 import { useTenant } from '@/hooks/useTenant';
 import { cn } from '@/lib/utils';
 import { useAutoAcceptRunner } from '../horeca/autoAccept';
+import { useKassaCourseSettings } from '../horeca/paySettings';
 import { ADMIN_LINK_ROLES, adminHref } from '../horeca/quickTap';
 import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
 import { PrintHealthBanner } from '@/components/horeca/PrintHealthBanner';
@@ -142,10 +143,13 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
 
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((x) => [x.id, x.label])), [plan]);
   const regulars = useMemo(() => new Set((plan?.tables ?? []).filter((x) => x.kind === 'regular').map((x) => x.id)), [plan]);
+  const courseSettings = useKassaCourseSettings(runtime.device.tenantId);
   const ctx: ActionCtx | null = useMemo(() => (staff ? {
     store, runtime, staffId: staff.id, staffName: staff.display_name, staffRole: staff.role, staffToken, employeeId, tableLabel: (id: string | null) => (id ? labels.get(id) ?? null : null),
     isRegular: (id: string | null) => !!id && regulars.has(id),
-  } : null), [store, runtime, staff, staffToken, employeeId, labels, regulars]);
+    // GANGEN-1: latere gangen wachten tot ze vrijgegeven worden (instelling van de zaak, standaard uit).
+    coursesEnabled: courseSettings.enabled,
+  } : null), [store, runtime, staff, staffToken, employeeId, labels, regulars, courseSettings.enabled]);
   useAutoAcceptRunner(ctx, autoAccept, store.requests);
   if (!staff || !ctx) return null;
 

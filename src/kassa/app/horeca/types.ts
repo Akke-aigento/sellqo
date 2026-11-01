@@ -61,6 +61,8 @@ export interface Check {
   kind?: 'table' | 'counter';
   /** TAFEL-3: enkel aan de toog — bepaalt het btw-tarief (meenemen = afhaaltarief). */
   service?: 'eat_in' | 'takeaway' | null;
+  /** GANGEN-1: hoogste vrijgegeven gang (null/afwezig = nog geen; zie courses.ts). */
+  course_fired?: number | null;
   lines: CheckLine[];
 }
 

@@ -8,6 +8,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { TenderMethod, TipMethod } from './pay';
 import { DEFAULT_LOCK_MINUTES, normalizeLockMinutes } from './kassaUx';
+import { DEFAULT_COURSE_SETTINGS, normalizeCourseSettings, type CourseSettings } from './courses';
 
 export type TerminalMode = 'none' | 'standalone';
 export type SettingMethod = 'cash' | 'transfer' | 'card' | 'cheque_meal' | 'voucher';
@@ -94,4 +95,31 @@ export function useKassaLockMinutes(tenantId: string | undefined): number {
     },
   });
   return data ?? cached ?? DEFAULT_LOCK_MINUTES;
+}
+
+/**
+ * GANGEN-1 — gangen aan/uit en de standaardgang per categorie (horeca_pay_settings, Bestellen › Posten).
+ * Standaard uit. Zoals de vergrendeltijd: eigen query met een lokale kopie, zodat een ontbrekende kolom of
+ * geen netwerk de kassa nooit tegenhoudt (dan gewoon zonder gangen).
+ */
+export function useKassaCourseSettings(tenantId: string | undefined): CourseSettings {
+  const key = tenantId ? `sq_kassa_courses:${tenantId}` : null;
+  const cached = useMemo(() => {
+    if (!key) return null;
+    try { const raw = localStorage.getItem(key); return raw ? normalizeCourseSettings(JSON.parse(raw)) : null; } catch { return null; }
+  }, [key]);
+  const { data } = useQuery({
+    queryKey: ['kassa-course-settings', tenantId],
+    enabled: !!tenantId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: row, error } = await supabase.from('horeca_pay_settings' as never)
+        .select('courses_enabled, course_by_category').eq('tenant_id' as never, tenantId as never).maybeSingle();
+      if (error) throw error;
+      const r = row as { courses_enabled?: boolean; course_by_category?: unknown } | null;
+      try { localStorage.setItem(key!, JSON.stringify(r ?? {})); } catch { /* geen opslag */ }
+      return normalizeCourseSettings(r);
+    },
+  });
+  return data ?? cached ?? DEFAULT_COURSE_SETTINGS;
 }

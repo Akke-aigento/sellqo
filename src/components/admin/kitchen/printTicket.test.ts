@@ -34,6 +34,14 @@ describe('ticketHtml', () => {
     expect(h.indexOf('Zonder ui')).toBeLessThan(h.indexOf('Margherita'));
     expect(h).toContain('<div class="t">Opmerking</div>');
   });
+  it('GANGEN-1: kop per gang en wachtende gang apart', () => {
+    const h = ticketHtml({ ...card, note: null, items: [
+      { quantity: 1, name: 'Carpaccio', detail: null, addons: [], note: null, allergens: [], course: 1 },
+      { quantity: 2, name: 'Tiramisu', detail: null, addons: [], note: null, allergens: [], course: 3, waiting: true },
+    ] }, 'X', { ...L, course: (n) => (n === 1 ? 'Voorgerecht' : 'Dessert'), waitingTitle: 'Wacht op vrijgave' });
+    expect(h).toContain('<div class="crs">Voorgerecht</div>');
+    expect(h).toContain('<div class="wait"><div class="t">Wacht op vrijgave</div><div>2x Tiramisu · Dessert</div></div>');
+  });
   it('escapet klantgegevens', () => {
     expect(ticketHtml(card, 'X', L)).toContain('Jan &lt;b&gt;');
   });

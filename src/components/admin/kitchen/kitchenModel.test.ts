@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildBoard, cardAllergens, cardFromOrder, cardFromTicket, cardsForStation, flowNext, flowPrev, isLate, notifiesCustomer, orderBelongsInKitchen, readyCheckIds, type OrderRow, type TicketRow } from './kitchenModel';
+import { buildBoard, cardAllergens, cardFromOrder, cardFromTicket, cardsForStation, flowNext, flowPrev, isLate, itemGroups, notifiesCustomer, orderBelongsInKitchen, readyCheckIds, type OrderRow, type TicketRow } from './kitchenModel';
 
 const NOW = Date.parse('2026-10-13T16:00:00Z');
 const order = (over: Partial<OrderRow> = {}): OrderRow => ({
@@ -131,5 +131,19 @@ describe('KEUKEN-VEILIG-1', () => {
     const r = cardFromTicket(ticket({ id: 'x', status: 'ready', check_id: 'chk1', source: 'table' }));
     const n = cardFromTicket(ticket({ id: 'y', status: 'new', check_id: 'chk2', source: 'table' }));
     expect([...readyCheckIds([r, n])]).toEqual(['chk1']);
+  });
+});
+
+describe('GANGEN-1', () => {
+  it('gang en "wacht op vrijgave" uit de bon; per gang gegroepeerd, wachtende apart', () => {
+    const c = cardFromTicket(ticket({ items: [
+      { name: 'Cola', quantity: 2 },
+      { name: 'Carpaccio', quantity: 1, course: 1 },
+      { name: 'Tiramisu', quantity: 2, course: 3, waiting: true },
+    ] }));
+    const g = itemGroups(c);
+    expect(g.now.map((x) => [x.course, x.items.map((i) => i.name)])).toEqual([[null, ['Cola']], [1, ['Carpaccio']]]);
+    expect(g.waiting.map((i) => i.name)).toEqual(['Tiramisu']);
+    expect(cardAllergens({ ...c, items: c.items.map((i) => ({ ...i, allergens: i.waiting ? ['milk'] : [] })) })).toEqual([]);
   });
 });

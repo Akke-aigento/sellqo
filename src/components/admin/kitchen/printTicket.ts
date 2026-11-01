@@ -2,7 +2,7 @@
 // Een verborgen iframe in plaats van een pop-up: werkt ook voor automatisch afdrukken
 // (geen pop-upblokkering). Volledig stil afdrukken kan met Chrome in kioskmodus
 // (--kiosk-printing); anders toont de browser het printvenster.
-import type { KitchenCard } from './kitchenModel';
+import { itemGroups, type KitchenCard, type KitchenItem } from './kitchenModel';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
@@ -19,6 +19,9 @@ export interface TicketLabels {
   noteTitle?: string;
   allergensTitle?: string;
   allergen?: (code: string) => string;
+  /** GANGEN-1: naam van een gang en de kop boven wat nog op vrijgave wacht. */
+  course?: (n: number) => string;
+  waitingTitle?: string;
 }
 
 export function ticketHtml(card: KitchenCard, storeName: string, L: TicketLabels): string {
@@ -26,12 +29,18 @@ export function ticketHtml(card: KitchenCard, storeName: string, L: TicketLabels
   const when = card.requestedTime ? hhmm(card.requestedTime) : L.asap;
   const allergen = (code: string) => (L.allergen ? L.allergen(code) : code);
   // KEUKEN-VEILIG-1: lijnopmerking en allergenen vet en omkaderd, niet klein en grijs.
-  const items = card.items.map((it) => `
+  // GANGEN-1: per gang een kop; wat nog wacht op vrijgave apart onderaan (niet maken).
+  const { now, waiting } = itemGroups(card);
+  const withCourses = now.some((g) => g.course != null) || waiting.length > 0;
+  const courseName = (n: number) => (L.course ? L.course(n) : String(n));
+  const itemHtml = (list: KitchenItem[]) => list.map((it) => `
     <div class="it"><b>${it.quantity}x</b> ${esc(it.name)}</div>
     ${it.detail ? `<div class="sub">${esc(it.detail)}</div>` : ''}
     ${it.addons.map((a) => `<div class="sub">+ ${esc(a)}</div>`).join('')}
     ${it.note ? `<div class="lnote">&gt;&gt; ${esc(it.note)}</div>` : ''}
     ${it.allergens?.length ? `<div class="alg">${esc(L.allergensTitle ?? '!')}: ${esc(it.allergens.map(allergen).join(', '))}</div>` : ''}`).join('');
+  const items = now.map((g) => `${withCourses && g.course != null ? `<div class="crs">${esc(courseName(g.course))}</div>` : ''}${itemHtml(g.items)}`).join('')
+    + (waiting.length ? `<div class="wait"><div class="t">${esc(L.waitingTitle ?? '')}</div>${waiting.map((it) => `<div>${it.quantity}x ${esc(it.name)}${it.course ? ` · ${esc(courseName(it.course))}` : ''}</div>`).join('')}</div>` : '');
   const pay = card.paid ? L.paid : card.total != null ? L.toPayAmount(`EUR ${card.total.toFixed(2).replace('.', ',')}`) : L.toPay;
   const who = L.who(card);
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(L.order)}</title><style>
@@ -42,6 +51,8 @@ export function ticketHtml(card: KitchenCard, storeName: string, L: TicketLabels
     hr { border: 0; border-top: 1px dashed #000; margin: 2mm 0; } .note { border: 2px solid #000; padding: 1.5mm; margin: 2mm 0; font-weight: 800; font-size: 14pt; }
     .note .t { font-size: 10pt; text-transform: uppercase; }
     .lnote { padding-left: 6mm; font-size: 13pt; font-weight: 800; }
+    .crs { margin-top: 2mm; font-size: 11pt; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #000; }
+    .wait { margin-top: 3mm; border: 1px dashed #000; padding: 1mm; font-size: 10pt; color: #444; } .wait .t { font-weight: 700; text-transform: uppercase; }
     .alg { margin-left: 6mm; font-size: 11pt; font-weight: 800; border: 1px solid #000; padding: 0.5mm 1mm; display: inline-block; }
   </style></head><body>
     <div class="c">${esc(storeName)}</div>

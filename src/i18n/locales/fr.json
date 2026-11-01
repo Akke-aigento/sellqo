@@ -9499,6 +9499,29 @@
       "minutes_many": "{{count}} minutes",
       "minutes_other": "{{count}} minutes",
       "never_hint": "Le personnel reste connecté jusqu'à ce que quelqu'un touche Changer. Un propriétaire ou un responsable se verrouille toujours après 2 minutes. Ne choisissez cela que si personne d'autre n'a accès à la caisse."
+    },
+    "courses": {
+      "auto": "Automatique",
+      "c1": "Entrée",
+      "c2": "Plat",
+      "c3": "Dessert",
+      "cN": "Service {{n}}",
+      "none": "Pas de service",
+      "active": "Service pour ce que tu ajoutes",
+      "fire": "Lancer : {{name}} ({{count}})",
+      "fired": "{{name}} lancé et envoyé en cuisine",
+      "waiting": "en attente",
+      "waiting_title": "En attente · ne pas encore préparer",
+      "lineCourse": "Service de cette ligne",
+      "settings_title": "Services à table",
+      "settings_desc": "Entrée, plat et dessert partent séparément en cuisine : les services suivants attendent dans la caisse jusqu'à ce que tu les lances. Désactivé, tout part tout de suite, comme maintenant.",
+      "enabled": "Utiliser les services",
+      "category_title": "Service par défaut par catégorie",
+      "category_hint": "Automatique : ce qui va au bar n'a pas de service, le reste est un plat. Dans la caisse, tu peux aussi choisir un service en haut de l'addition.",
+      "category_for": "Service pour {{name}}",
+      "opt_auto": "Automatique",
+      "no_categories": "Pas encore de catégories sur ta carte.",
+      "saved": "Services enregistrés"
     }
   },
   "billing": {

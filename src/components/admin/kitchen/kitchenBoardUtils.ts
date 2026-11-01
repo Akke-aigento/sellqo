@@ -29,6 +29,8 @@ export function ticketLabels(t: TFunction, lang: string): TicketLabels {
     footer: (ordered, printed) => t('admin.kitchen.print_footer', { ordered, printed }),
     noteTitle: t('admin.kitchen.note_title'), allergensTitle: t('admin.kitchen.allergens_title'),
     allergen: (code) => allergenName(code, t),
+    course: (n) => t(`admin.courses.c${n}`, { defaultValue: t('admin.courses.cN', { n }) }),
+    waitingTitle: t('admin.courses.waiting_title'),
   };
 }
 

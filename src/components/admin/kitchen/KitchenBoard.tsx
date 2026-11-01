@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { printTicket } from './printTicket';
-import { ASAP_LATE_MIN, BAR_LATE_MIN, flowNext, flowPrev, isLate, minutesLeft, NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenFlow, type KitchenItem, type KitchenStatus } from './kitchenModel';
+import { ASAP_LATE_MIN, BAR_LATE_MIN, flowNext, flowPrev, isLate, itemGroups, minutesLeft, NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenFlow, type KitchenItem, type KitchenStatus } from './kitchenModel';
 import { allergenName, hhmm, sourceName, ticketLabels, whoName } from './kitchenBoardUtils';
 
 const COLUMNS: { status: KitchenStatus; titleKey: string }[] = [
@@ -49,6 +49,55 @@ function ItemExtras({ it }: { it: KitchenItem }) {
         </span>
       ) : null}
     </>
+  );
+}
+
+/**
+ * Regels van een bon. GANGEN-1: per gang een kopje (enkel als de bon gangen heeft), en wat nog op vrijgave
+ * wacht grijs en apart onderaan ("niet maken").
+ */
+function ItemList({ card, compact = false }: { card: KitchenCard; compact?: boolean }) {
+  const { t } = useTranslation();
+  const { now, waiting } = itemGroups(card);
+  const courseName = (c: number) => t(`admin.courses.c${c}`, { defaultValue: t('admin.courses.cN', { n: c }) });
+  const withCourses = now.some((g) => g.course != null) || waiting.length > 0;
+  const row = (it: KitchenItem, i: number) => compact ? (
+    <li key={i} className={cn('leading-tight', it.quantity < 0 && 'text-destructive line-through')}>
+      <span className="font-bold">{Math.abs(it.quantity)}×</span> <span className="font-semibold">{it.name}</span>
+      {it.detail || it.addons.length ? <span className="text-sm text-muted-foreground"> · {[it.detail, ...it.addons].filter(Boolean).join(', ')}</span> : null}
+      <ItemExtras it={it} />
+    </li>
+  ) : (
+    <li key={i} className={cn('leading-tight', it.quantity < 0 && 'text-destructive')}>
+      {/* TAFEL-1: een annulering uit een tafelronde komt als negatief aantal binnen. */}
+      {it.quantity < 0 ? <span className="mr-1 rounded bg-destructive px-1.5 py-0.5 text-xs font-bold uppercase text-destructive-foreground">{t('admin.kitchen.cancelled_item')}</span> : null}
+      <span className="text-lg font-bold">{Math.abs(it.quantity)}×</span> <span className={cn('text-lg font-semibold', it.quantity < 0 && 'line-through')}>{it.name}</span>
+      {it.detail ? <span className="block pl-7 text-sm text-muted-foreground">{it.detail}</span> : null}
+      {it.addons.length ? <span className="block pl-7 text-sm font-semibold text-primary">+ {it.addons.join(', + ')}</span> : null}
+      <ItemExtras it={it} />
+    </li>
+  );
+  return (
+    <div className="space-y-2">
+      {now.map((g, gi) => (
+        <section key={gi}>
+          {withCourses && g.course != null ? <h4 className="mb-0.5 text-xs font-bold uppercase tracking-wide text-muted-foreground">{courseName(g.course)}</h4> : null}
+          <ul className={compact ? 'space-y-0.5' : 'space-y-1.5'}>{g.items.map(row)}</ul>
+        </section>
+      ))}
+      {waiting.length ? (
+        <section className="rounded-md border border-dashed bg-muted/50 px-2 py-1.5 text-muted-foreground" aria-label={t('admin.courses.waiting_title')}>
+          <h4 className="text-xs font-bold uppercase tracking-wide">{t('admin.courses.waiting_title')}</h4>
+          <ul className="space-y-0.5 text-sm">
+            {waiting.map((it, i) => (
+              <li key={i} className="leading-tight">
+                <span className="font-semibold">{Math.abs(it.quantity)}×</span> {it.name}{it.course ? <span> · {courseName(it.course)}</span> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+    </div>
   );
 }
 
@@ -97,15 +146,7 @@ export function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh,
           </span>
         </header>
         {card.note ? <TicketNote note={card.note} /> : null}
-        <ul className="space-y-0.5">
-          {card.items.map((it, i) => (
-            <li key={i} className={cn('leading-tight', it.quantity < 0 && 'text-destructive line-through')}>
-              <span className="font-bold">{Math.abs(it.quantity)}×</span> <span className="font-semibold">{it.name}</span>
-              {it.detail || it.addons.length ? <span className="text-sm text-muted-foreground"> · {[it.detail, ...it.addons].filter(Boolean).join(', ')}</span> : null}
-              <ItemExtras it={it} />
-            </li>
-          ))}
-        </ul>
+        <ItemList card={card} compact />
         <footer className="flex items-center gap-2">
           {prev ? (
             <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onBack} disabled={busy} aria-label={t('admin.kitchen.move_back')}><Undo2 className="h-4 w-4" /></Button>
@@ -148,18 +189,7 @@ export function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh,
 
       {card.note ? <TicketNote note={card.note} large /> : null}
 
-      <ul className="space-y-1.5">
-        {card.items.map((it, i) => (
-          <li key={i} className={cn('leading-tight', it.quantity < 0 && 'text-destructive')}>
-            {/* TAFEL-1: een annulering uit een tafelronde komt als negatief aantal binnen. */}
-            {it.quantity < 0 ? <span className="mr-1 rounded bg-destructive px-1.5 py-0.5 text-xs font-bold uppercase text-destructive-foreground">{t('admin.kitchen.cancelled_item')}</span> : null}
-            <span className="text-lg font-bold">{Math.abs(it.quantity)}×</span> <span className={cn('text-lg font-semibold', it.quantity < 0 && 'line-through')}>{it.name}</span>
-            {it.detail ? <span className="block pl-7 text-sm text-muted-foreground">{it.detail}</span> : null}
-            {it.addons.length ? <span className="block pl-7 text-sm font-semibold text-primary">+ {it.addons.join(', + ')}</span> : null}
-            <ItemExtras it={it} />
-          </li>
-        ))}
-      </ul>
+      <ItemList card={card} />
 
       {/* HORECA-0 — op een smalle kolom mag de actieknop naar een eigen regel. */}
       <footer className="mt-auto flex flex-wrap items-center gap-2">
@@ -222,7 +252,7 @@ export function KitchenColumns({ cards, now, isLoading, error, busyKeys, fresh, 
           {byStatus.done.map((c) => (
             <li key={c.key} className="flex items-center gap-3 py-1.5">
               <span className="w-12 font-semibold tabular-nums">{hhmm(c.requestedTime || c.createdAt, i18n.language)}</span>
-              <span className="flex-1 truncate">{sourceName(c, t)} · {whoName(c, t) || '—'} · {c.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</span>
+              <span className="flex-1 truncate">{sourceName(c, t)} · {whoName(c, t) || '—'} · {c.items.filter((i) => !i.waiting).map((i) => `${i.quantity}× ${i.name}`).join(', ')}</span>
               <Button variant="ghost" size="sm" disabled={busyKeys.has(c.key)} onClick={() => move(c, flow === 'bar' ? flowPrev(c, 'bar') : 'ready')}><Undo2 className="mr-1 h-3.5 w-3.5" />{t('common.back')}</Button>
             </li>
           ))}
