@@ -63,7 +63,7 @@ const jobs = () => db.writes.filter((w) => w.table === 'print_jobs' && w.insert)
 
 Deno.test('GET geeft de versiestempel, zonder data', async () => {
   const j = await (await handler(new Request('https://f/horeca-print'))).json();
-  assert(j.ok === true && j.version === 'PRINT-2b', JSON.stringify(j));
+  assert(j.ok === true && j.version === 'GANGEN-1', JSON.stringify(j));
 });
 
 Deno.test('zonder of met fout geheim → 401, geen printopdracht', async () => {
