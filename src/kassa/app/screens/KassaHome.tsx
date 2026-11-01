@@ -32,14 +32,15 @@ import { lastService } from '../horeca/counter';
 import { useAutoAccept } from '../horeca/requests';
 import { RequestInboxButton } from './RequestInbox';
 import { BarPanel, KitchenView } from './StationViews';
-import { useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
+import { BOARD_POLL_FAST, useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
 import { useFreshCards, useStationChoice } from '@/components/admin/kitchen/kitchenBoardUtils';
-import { cardsForStation, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
+import { cardsForStation, readyCheckIds, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
 import { useTenant } from '@/hooks/useTenant';
 import { cn } from '@/lib/utils';
 import { useAutoAcceptRunner } from '../horeca/autoAccept';
 import { ADMIN_LINK_ROLES, adminHref } from '../horeca/quickTap';
 import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
+import { PrintHealthBanner } from '@/components/horeca/PrintHealthBanner';
 import type { HorecaStore } from '../horeca/store';
 import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from '../alerts';
 import { pendingRequests, reservationsByTable, reservationsForDay, timeLabel, type Reservation, type ReservationStatus, type TableReservation } from '@/lib/horeca/reservations';
@@ -121,7 +122,10 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   // Bonnen (keuken en bar) uit het gedeelde keukenbord; één lichte poll per toestel.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
-  const { cards: allCards, isLoading: boardLoading, error: boardError, setStatus } = useKitchenBoard(now);
+  // KEUKEN-VEILIG-1: elke 3 s (zoals de rekeningen) zolang er bonnen in beeld staan (Keuken, Bar, of de kolom
+  // Binnenkomend naast het zaalplan); enkel het zaalplan op een gsm (tellers) blijft op 10 s. Nooit in de achtergrond.
+  const { cards: allCards, isLoading: boardLoading, error: boardError, setStatus, busyKeys } =
+    useKitchenBoard(now, true, mode === 'zaal' && !wide ? undefined : BOARD_POLL_FAST);
   const kitchen = useStationChoice(allCards, (st) => st.find((x) => x.kind === 'kitchen')?.id ?? null);
   const barStation = kitchen.stations.find((x) => x.kind === 'bar') ?? null;
   const barCards = useMemo(() => (barStation ? cardsForStation(allCards, barStation.id, kitchen.defaultStation) : []), [allCards, barStation, kitchen.defaultStation]);
@@ -129,9 +133,12 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   const barFresh = useFreshCards(barCards, boardLoading, { sound: sound && showBar });
   const kitchenFresh = useFreshCards(kitchen.cards, boardLoading, { sound: sound && mode === 'keuken' });
   const onMove = useCallback((card: KitchenCard, status: KitchenStatus) => setStatus.mutate({ card, status }), [setStatus]);
-  const board = (fresh: Set<string>) => ({ now, busy: setStatus.isPending, fresh, storeName: currentTenant?.name ?? '', onMove });
+  // KEUKEN-VEILIG-1: "bezig" per bon (vroeger blokkeerde één tik alle bonnen).
+  const board = (fresh: Set<string>) => ({ now, busyKeys, fresh, storeName: currentTenant?.name ?? '', onMove });
   const barCount = store.requests.length + store.calls.length + barCards.filter((c) => c.status === 'new').length;
   const kitchenCount = kitchen.cards.filter((c) => c.status === 'new').length;
+  // KEUKEN-VEILIG-1: "klaar" zichtbaar op de tafel in het zaalplan (naast de melding van MELDING-1).
+  const readyChecks = useMemo(() => readyCheckIds(allCards), [allCards]);
 
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((x) => [x.id, x.label])), [plan]);
   const regulars = useMemo(() => new Set((plan?.tables ?? []).filter((x) => x.kind === 'regular').map((x) => x.id)), [plan]);
@@ -261,6 +268,8 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
             </DropdownMenu>
           </header>
           {message && <p role="status" className="border-b bg-muted px-3 py-1.5 text-sm">{message}</p>}
+          {/* KEUKEN-VEILIG-1: een bon die niet afdrukt, mag niet stil blijven. */}
+          <PrintHealthBanner tenantId={runtime.device.tenantId} />
           {view === 'tables' && (
             <nav className="grid grid-cols-3 gap-1 border-b p-1.5" aria-label={t('kassa.mode.label')}>
               {([['zaal', LayoutGrid, 0], ['bar', Wine, barCount], ['keuken', ChefHat, kitchenCount]] as const).map(([m, Icon, n]) => (
@@ -304,7 +313,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
             <div className="flex min-h-0 flex-1" style={{ paddingBottom: 'var(--safe-bottom)' }}>
               <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
                 <TablesScreen store={store} staffId={staff.id} tableLabel={ctx.tableLabel} onCounter={newCounterSale} onOpen={(id) => { setAutoPay(false); setCounterMode(false); setOpenCheck(id); }}
-                  onTableAction={(tableId, checkId) => setTableAction({ tableId, checkId })} onReservations={() => setResListOpen(true)} />
+                  onTableAction={(tableId, checkId) => setTableAction({ tableId, checkId })} onReservations={() => setResListOpen(true)} readyChecks={readyChecks} />
               </div>
               {wide && (
                 <aside className="flex w-[380px] shrink-0 flex-col overflow-y-auto border-l bg-muted/40 xl:w-[420px]" aria-label={t('kassa.bar.incoming')}>

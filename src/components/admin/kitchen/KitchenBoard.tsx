@@ -3,13 +3,13 @@
 // De pagina's zelf houden hun eigen kopbalk (terug, geluid, printer, meldingen).
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Bike, ChevronDown, Phone, Printer, Store, Undo2, UtensilsCrossed } from 'lucide-react';
+import { AlertTriangle, Bike, ChevronDown, MessageSquareWarning, Phone, Printer, Store, Undo2, UtensilsCrossed } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { printTicket } from './printTicket';
-import { minutesLeft, NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenStatus } from './kitchenModel';
-import { hhmm, sourceName, ticketLabels, whoName } from './kitchenBoardUtils';
+import { ASAP_LATE_MIN, BAR_LATE_MIN, flowNext, flowPrev, isLate, minutesLeft, NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenFlow, type KitchenItem, type KitchenStatus } from './kitchenModel';
+import { allergenName, hhmm, sourceName, ticketLabels, whoName } from './kitchenBoardUtils';
 
 const COLUMNS: { status: KitchenStatus; titleKey: string }[] = [
   { status: 'new', titleKey: 'admin.kitchen.col_new' },
@@ -23,8 +23,38 @@ const SERVICE = {
 } as const;
 const euro = (n: number) => new Intl.NumberFormat('nl-BE', { style: 'currency', currency: 'EUR' }).format(n);
 
+/** KEUKEN-VEILIG-1 — de algemene opmerking (allergie!) groot en bovenaan de bon, niet onderaan. */
+function TicketNote({ note, large }: { note: string; large?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <p role="note" className={cn('flex items-start gap-2 rounded-md border-2 border-amber-500 bg-amber-100 px-3 py-2 font-bold text-amber-950 dark:bg-amber-900/50 dark:text-amber-50', large ? 'text-base' : 'text-sm')}>
+      <MessageSquareWarning className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+      <span><span className="sr-only">{t('admin.kitchen.note_title')}: </span>{note}</span>
+    </p>
+  );
+}
+
+/** KEUKEN-VEILIG-1 — opmerking per lijn en allergenen: vet en in kleur, op scherm en op papier. */
+function ItemExtras({ it }: { it: KitchenItem }) {
+  const { t } = useTranslation();
+  return (
+    <>
+      {it.note ? <span className="mt-0.5 block pl-7 text-base font-bold text-amber-700 dark:text-amber-300">» {it.note}</span> : null}
+      {it.allergens.length ? (
+        <span className="mt-0.5 flex flex-wrap items-center gap-1 pl-7">
+          <AlertTriangle className="h-3.5 w-3.5 text-red-600" aria-label={t('admin.kitchen.allergens_title')} />
+          {it.allergens.map((a) => (
+            <span key={a} className="rounded bg-red-100 px-1.5 py-0.5 text-xs font-bold text-red-800 dark:bg-red-900/50 dark:text-red-100">{allergenName(a, t)}</span>
+          ))}
+        </span>
+      ) : null}
+    </>
+  );
+}
+
 /** i18n-key van de hoofdknop op een bon. */
-function actionKey(c: KitchenCard): string {
+function actionKey(c: KitchenCard, flow: KitchenFlow = 'kitchen'): string {
+  if (flow === 'bar') return 'admin.kitchen.action_bar_done';
   if (c.status === 'new') return 'admin.kitchen.action_start';
   if (c.status === 'preparing') return 'admin.kitchen.action_ready';
   return c.service === 'local_delivery' ? 'admin.kitchen.action_handed_over' : c.service === 'eat_in' ? 'admin.kitchen.action_served' : 'admin.kitchen.action_picked_up';
@@ -35,7 +65,7 @@ function Countdown({ card, now }: { card: KitchenCard; now: number }) {
   const m = minutesLeft(card, now);
   if (!card.requestedTime) {
     const waited = -m;
-    return <span className={cn('text-sm font-semibold', waited >= 20 ? 'text-red-600' : 'text-muted-foreground')}>{t('admin.kitchen.asap_waited', { count: waited })}</span>;
+    return <span className={cn('text-sm font-semibold', waited >= ASAP_LATE_MIN ? 'text-red-600' : 'text-muted-foreground')}>{t('admin.kitchen.asap_waited', { count: waited })}</span>;
   }
   if (m < 0) return <span className="text-sm font-bold text-red-600">{t('admin.kitchen.minutes_late', { count: -m })}</span>;
   if (m === 0) return <span className="text-sm font-bold text-orange-600">{t('admin.kitchen.now')}</span>;
@@ -44,39 +74,45 @@ function Countdown({ card, now }: { card: KitchenCard; now: number }) {
   </span>;
 }
 
-export function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh, linkOrders = true, compact = false }: {
+export function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh, linkOrders = true, compact = false, flow = 'kitchen' }: {
   card: KitchenCard; now: number; onAdvance: () => void; onBack: () => void; onPrint: () => void; busy: boolean; fresh: boolean;
   /** KASSA-UX-2: in de kassa (geen router) geen link naar de bestelling. */
   linkOrders?: boolean;
   /** KASSA-UX-2: barbon — tafel en wachttijd groot, enkel wat er gemaakt moet worden en de knoppen. */
   compact?: boolean;
+  /** KEUKEN-VEILIG-1: 'bar' = één tik klaar/opgediend. */
+  flow?: KitchenFlow;
 }) {
   const { t, i18n } = useTranslation();
+  const next = flowNext(card, flow);
+  const prev = flowPrev(card, flow);
   if (compact) {
+    const barLate = isLate(card, now, BAR_LATE_MIN);
     return (
-      <article className={cn('flex flex-col gap-2 rounded-xl border-2 bg-card p-3 shadow-sm', fresh ? 'animate-pulse border-primary' : 'border-border')}>
+      <article className={cn('flex flex-col gap-2 rounded-xl border-2 bg-card p-3 shadow-sm', fresh ? 'animate-pulse border-primary' : barLate ? 'border-red-500' : 'border-border')}>
         <header className="flex items-baseline justify-between gap-2">
           <span className="min-w-0 truncate text-xl font-bold">{whoName(card, t) || sourceName(card, t)}</span>
-          <span className={cn('shrink-0 text-sm font-semibold tabular-nums', -minutesLeft(card, now) >= 10 ? 'text-red-600' : 'text-muted-foreground')}>
+          <span className={cn('shrink-0 text-sm font-semibold tabular-nums', barLate ? 'text-red-600' : 'text-muted-foreground')}>
             {t('admin.kitchen.waited_short', { count: Math.max(0, -minutesLeft(card, now)) })}
           </span>
         </header>
+        {card.note ? <TicketNote note={card.note} /> : null}
         <ul className="space-y-0.5">
           {card.items.map((it, i) => (
             <li key={i} className={cn('leading-tight', it.quantity < 0 && 'text-destructive line-through')}>
               <span className="font-bold">{Math.abs(it.quantity)}×</span> <span className="font-semibold">{it.name}</span>
               {it.detail || it.addons.length ? <span className="text-sm text-muted-foreground"> · {[it.detail, ...it.addons].filter(Boolean).join(', ')}</span> : null}
+              <ItemExtras it={it} />
             </li>
           ))}
         </ul>
-        {card.note ? <p className="rounded-md bg-amber-100 px-2 py-1 text-sm font-semibold text-amber-950 dark:bg-amber-900/40 dark:text-amber-100">“{card.note}”</p> : null}
         <footer className="flex items-center gap-2">
-          {PREV_STATUS[card.status] ? (
+          {prev ? (
             <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onBack} disabled={busy} aria-label={t('admin.kitchen.move_back')}><Undo2 className="h-4 w-4" /></Button>
           ) : null}
-          {NEXT_STATUS[card.status] ? (
-            <Button className={cn('h-11 flex-1 text-base font-bold', card.status === 'preparing' && 'bg-emerald-600 hover:bg-emerald-700')} onClick={onAdvance} disabled={busy}>
-              {t(actionKey(card))}
+          {next ? (
+            <Button className={cn('h-11 flex-1 text-base font-bold', (card.status === 'preparing' || flow === 'bar') && 'bg-emerald-600 hover:bg-emerald-700')} onClick={onAdvance} disabled={busy}>
+              {t(actionKey(card, flow))}
             </Button>
           ) : null}
         </footer>
@@ -84,10 +120,11 @@ export function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh,
     );
   }
   const svc = card.service ? SERVICE[card.service] : null;
-  const late = card.requestedTime ? minutesLeft(card, now) < 0 : false;
+  // KEUKEN-VEILIG-1: te laat geldt voor elke bon (kassa, QR, telefoon, web), niet enkel met gekozen tijd.
+  const late = isLate(card, now);
   return (
     <article className={cn('flex flex-col gap-3 rounded-xl border-2 bg-card p-4 shadow-sm transition-colors',
-      late && card.status !== 'ready' ? 'border-red-500' : 'border-border', fresh && 'animate-pulse border-primary')}>
+      late ? 'border-red-500' : 'border-border', fresh && 'animate-pulse border-primary')}>
       <header className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <div className="text-3xl font-bold tabular-nums leading-none">{hhmm(card.requestedTime || card.createdAt, i18n.language)}</div>
@@ -109,6 +146,8 @@ export function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh,
         </div>
       ) : null}
 
+      {card.note ? <TicketNote note={card.note} large /> : null}
+
       <ul className="space-y-1.5">
         {card.items.map((it, i) => (
           <li key={i} className={cn('leading-tight', it.quantity < 0 && 'text-destructive')}>
@@ -117,11 +156,10 @@ export function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh,
             <span className="text-lg font-bold">{Math.abs(it.quantity)}×</span> <span className={cn('text-lg font-semibold', it.quantity < 0 && 'line-through')}>{it.name}</span>
             {it.detail ? <span className="block pl-7 text-sm text-muted-foreground">{it.detail}</span> : null}
             {it.addons.length ? <span className="block pl-7 text-sm font-semibold text-primary">+ {it.addons.join(', + ')}</span> : null}
+            <ItemExtras it={it} />
           </li>
         ))}
       </ul>
-
-      {card.note ? <p className="rounded-md bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-950 dark:bg-amber-900/40 dark:text-amber-100">“{card.note}”</p> : null}
 
       {/* HORECA-0 — op een smalle kolom mag de actieknop naar een eigen regel. */}
       <footer className="mt-auto flex flex-wrap items-center gap-2">
@@ -130,12 +168,12 @@ export function TicketCard({ card, now, onAdvance, onBack, onPrint, busy, fresh,
           {card.paid ? t('admin.kitchen.paid') : card.total != null ? t('admin.kitchen.to_pay_amount', { amount: euro(card.total) }) : t('admin.kitchen.to_pay')}
         </span>
         <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onPrint} aria-label={t('admin.kitchen.print_ticket')}><Printer className="h-4 w-4" /></Button>
-        {PREV_STATUS[card.status] ? (
+        {prev ? (
           <Button variant="ghost" size="icon" className="h-11 w-11" onClick={onBack} disabled={busy} aria-label={t('admin.kitchen.move_back')}><Undo2 className="h-4 w-4" /></Button>
         ) : null}
-        {NEXT_STATUS[card.status] ? (
-          <Button className={cn('h-11 min-w-28 flex-1 sm:flex-none text-base font-bold', card.status === 'preparing' && 'bg-emerald-600 hover:bg-emerald-700')} onClick={onAdvance} disabled={busy}>
-            {t(actionKey(card))}
+        {next ? (
+          <Button className={cn('h-11 min-w-28 flex-1 sm:flex-none text-base font-bold', (card.status === 'preparing' || flow === 'bar') && 'bg-emerald-600 hover:bg-emerald-700')} onClick={onAdvance} disabled={busy}>
+            {t(actionKey(card, flow))}
           </Button>
         ) : null}
       </footer>
@@ -157,9 +195,12 @@ export function StationSelect({ stations, value, onChange, className }: { statio
 }
 
 /** De drie kolommen (nieuw, in bereiding, klaar) plus wat al afgewerkt is. Op gsm en tablet staand: tabbladen. */
-export function KitchenColumns({ cards, now, isLoading, error, busy, fresh, storeName, onMove, linkOrders = true }: {
-  cards: KitchenCard[]; now: number; isLoading: boolean; error: unknown; busy: boolean; fresh: Set<string>; storeName: string;
+export function KitchenColumns({ cards, now, isLoading, error, busyKeys, fresh, storeName, onMove, linkOrders = true, flow = 'kitchen' }: {
+  /** KEUKEN-VEILIG-1: welke bonnen nu bezig zijn (per bon, niet het hele bord). */
+  cards: KitchenCard[]; now: number; isLoading: boolean; error: unknown; busyKeys: ReadonlySet<string>; fresh: Set<string>; storeName: string;
   onMove: (card: KitchenCard, status: KitchenStatus) => void; linkOrders?: boolean;
+  /** KEUKEN-VEILIG-1b: post Bar gekozen → de barflow van de kassa (één lijst, één tik "Klaar"). */
+  flow?: KitchenFlow;
 }) {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<KitchenStatus>('new');
@@ -171,6 +212,44 @@ export function KitchenColumns({ cards, now, isLoading, error, busy, fresh, stor
     return m;
   }, [cards]);
   const move = (card: KitchenCard, status: KitchenStatus | null) => { if (status) onMove(card, status); };
+  const doneList = byStatus.done.length ? (
+    <footer className="max-h-[40vh] overflow-y-auto border-t bg-background px-4 py-2">
+      <button type="button" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone} className="flex h-10 items-center gap-1 text-sm font-semibold text-muted-foreground">
+        <ChevronDown className={cn('h-4 w-4 transition-transform', showDone && 'rotate-180')} />{t('admin.kitchen.done_count', { count: byStatus.done.length })}
+      </button>
+      {showDone ? (
+        <ul className="mt-2 divide-y text-sm">
+          {byStatus.done.map((c) => (
+            <li key={c.key} className="flex items-center gap-3 py-1.5">
+              <span className="w-12 font-semibold tabular-nums">{hhmm(c.requestedTime || c.createdAt, i18n.language)}</span>
+              <span className="flex-1 truncate">{sourceName(c, t)} · {whoName(c, t) || '—'} · {c.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</span>
+              <Button variant="ghost" size="sm" disabled={busyKeys.has(c.key)} onClick={() => move(c, flow === 'bar' ? flowPrev(c, 'bar') : 'ready')}><Undo2 className="mr-1 h-3.5 w-3.5" />{t('common.back')}</Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </footer>
+  ) : null;
+  if (flow === 'bar') {
+    // KEUKEN-VEILIG-1b: zoals de bar in SellQo Kassa — alles wat nog open staat, oudste eerst, één tik.
+    const open = [...byStatus.new, ...byStatus.preparing, ...byStatus.ready].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return (
+      <>
+        {error ? <p className="m-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{t('admin.kitchen.load_error')}</p> : null}
+        <main className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+          {isLoading ? <p className="text-sm text-muted-foreground">{t('admin.kitchen.loading')}</p> : null}
+          {!isLoading && !open.length ? <p className="rounded-xl border-2 border-dashed p-6 text-center text-sm text-muted-foreground">{t('admin.kitchen.no_new')}</p> : null}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {open.map((c) => (
+              <TicketCard key={c.key} card={c} now={now} busy={busyKeys.has(c.key)} fresh={fresh.has(c.key)} linkOrders={linkOrders} compact flow="bar"
+                onAdvance={() => move(c, flowNext(c, 'bar'))} onBack={() => move(c, flowPrev(c, 'bar'))} onPrint={() => printTicket(c, storeName, ticketLabels(t, i18n.language))} />
+            ))}
+          </div>
+        </main>
+        {doneList}
+      </>
+    );
+  }
   return (
     <>
       {/* Gsm en tablet staand: tabbladen per kolom (HORECA-0: drie kolommen pas vanaf 1024 px). */}
@@ -199,7 +278,7 @@ export function KitchenColumns({ cards, now, isLoading, error, busy, fresh, stor
                 </p>
               ) : null}
               {byStatus[col.status].map((c) => (
-                <TicketCard key={c.key} card={c} now={now} busy={busy} fresh={fresh.has(c.key)} linkOrders={linkOrders}
+                <TicketCard key={c.key} card={c} now={now} busy={busyKeys.has(c.key)} fresh={fresh.has(c.key)} linkOrders={linkOrders}
                   onAdvance={() => move(c, NEXT_STATUS[c.status])} onBack={() => move(c, PREV_STATUS[c.status])} onPrint={() => printTicket(c, storeName, ticketLabels(t, i18n.language))} />
               ))}
             </div>
@@ -207,24 +286,7 @@ export function KitchenColumns({ cards, now, isLoading, error, busy, fresh, stor
         ))}
       </main>
 
-      {byStatus.done.length ? (
-        <footer className="max-h-[40vh] overflow-y-auto border-t bg-background px-4 py-2">
-          <button type="button" onClick={() => setShowDone((v) => !v)} className="flex items-center gap-1 text-sm font-semibold text-muted-foreground">
-            <ChevronDown className={cn('h-4 w-4 transition-transform', showDone && 'rotate-180')} />{t('admin.kitchen.done_count', { count: byStatus.done.length })}
-          </button>
-          {showDone ? (
-            <ul className="mt-2 divide-y text-sm">
-              {byStatus.done.map((c) => (
-                <li key={c.key} className="flex items-center gap-3 py-1.5">
-                  <span className="w-12 font-semibold tabular-nums">{hhmm(c.requestedTime || c.createdAt, i18n.language)}</span>
-                  <span className="flex-1 truncate">{sourceName(c, t)} · {whoName(c, t) || '—'} · {c.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</span>
-                  <Button variant="ghost" size="sm" onClick={() => move(c, 'ready')}><Undo2 className="mr-1 h-3.5 w-3.5" />{t('common.back')}</Button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </footer>
-      ) : null}
+      {doneList}
     </>
   );
 }

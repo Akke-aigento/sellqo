@@ -27,8 +27,13 @@ export function ticketLabels(t: TFunction, lang: string): TicketLabels {
     source: (c) => sourceName(c, t), who: (c) => whoName(c, t),
     toPayAmount: (amount) => t('admin.kitchen.print_to_pay_amount', { amount }),
     footer: (ordered, printed) => t('admin.kitchen.print_footer', { ordered, printed }),
+    noteTitle: t('admin.kitchen.note_title'), allergensTitle: t('admin.kitchen.allergens_title'),
+    allergen: (code) => allergenName(code, t),
   };
 }
+
+/** KEUKEN-VEILIG-1 — naam van een EU-allergeen in de taal van het scherm (onbekende code: de code zelf). */
+export const allergenName = (code: string, t: TFunction) => t(`admin.allergens.${code}`, { defaultValue: code });
 
 const ALL = 'all';
 

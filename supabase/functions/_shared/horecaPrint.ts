@@ -21,6 +21,10 @@ export interface ProductionItem {
   name: string;
   detail?: string | null;
   addons?: string[];
+  /** KEUKEN-VEILIG-1: opmerking bij deze lijn (los van de variant, nooit weggelaten). */
+  note?: string | null;
+  /** KEUKEN-VEILIG-1: EU-allergeencodes (products.allergens + extra's). */
+  allergens?: string[];
 }
 
 export interface ProductionTicket {
@@ -76,6 +80,8 @@ type Texts = {
   method: Record<string, string>;
   thanks: string;
   test: string; testBody: string;
+  /** KEUKEN-VEILIG-1 */
+  noteTitle: string; allergens: string; allergen: Record<string, string>;
   mailSubject: (store: string) => string; mailHeading: string; mailIntro: (store: string) => string;
 };
 
@@ -92,6 +98,8 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     method: { cash: "Contant", card: "Kaart", transfer: "Overschrijving", cheque_meal: "Maaltijdcheque", voucher: "Bon", other: "Andere", online: "Online" },
     thanks: "Bedankt en tot ziens!",
     test: "TESTAFDRUK", testBody: "Deze printer is goed gekoppeld aan SellQo.",
+    noteTitle: "OPMERKING", allergens: "ALLERGENEN",
+    allergen: { gluten: "Gluten", crustaceans: "Schaaldieren", eggs: "Eieren", fish: "Vis", peanuts: "Pinda’s", soy: "Soja", milk: "Melk", nuts: "Noten", celery: "Selder", mustard: "Mosterd", sesame: "Sesamzaad", sulphites: "Sulfieten", lupin: "Lupine", molluscs: "Weekdieren" },
     mailSubject: (s) => `Je betaalbewijs van ${s}`, mailHeading: "Je betaalbewijs", mailIntro: (s) => `Bedankt voor je bezoek aan ${s}. Hieronder vind je je betaalbewijs.`,
   },
   en: {
@@ -106,6 +114,8 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     method: { cash: "Cash", card: "Card", transfer: "Bank transfer", cheque_meal: "Meal voucher", voucher: "Voucher", other: "Other", online: "Online" },
     thanks: "Thank you and see you soon!",
     test: "TEST PRINT", testBody: "This printer is connected to SellQo.",
+    noteTitle: "NOTE", allergens: "ALLERGENS",
+    allergen: { gluten: "Gluten", crustaceans: "Crustaceans", eggs: "Eggs", fish: "Fish", peanuts: "Peanuts", soy: "Soy", milk: "Milk", nuts: "Tree nuts", celery: "Celery", mustard: "Mustard", sesame: "Sesame", sulphites: "Sulphites", lupin: "Lupin", molluscs: "Molluscs" },
     mailSubject: (s) => `Your payment receipt from ${s}`, mailHeading: "Your payment receipt", mailIntro: (s) => `Thank you for visiting ${s}. Your payment receipt is below.`,
   },
   fr: {
@@ -120,6 +130,8 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     method: { cash: "Espèces", card: "Carte", transfer: "Virement", cheque_meal: "Chèque-repas", voucher: "Bon", other: "Autre", online: "En ligne" },
     thanks: "Merci et à bientôt !",
     test: "IMPRESSION TEST", testBody: "Cette imprimante est bien connectée à SellQo.",
+    noteTitle: "REMARQUE", allergens: "ALLERGÈNES",
+    allergen: { gluten: "Gluten", crustaceans: "Crustacés", eggs: "Œufs", fish: "Poisson", peanuts: "Arachides", soy: "Soja", milk: "Lait", nuts: "Fruits à coque", celery: "Céleri", mustard: "Moutarde", sesame: "Sésame", sulphites: "Sulfites", lupin: "Lupin", molluscs: "Mollusques" },
     mailSubject: (s) => `Votre preuve de paiement de ${s}`, mailHeading: "Votre preuve de paiement", mailIntro: (s) => `Merci de votre visite chez ${s}. Voici votre preuve de paiement.`,
   },
   de: {
@@ -134,6 +146,8 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     method: { cash: "Bar", card: "Karte", transfer: "Überweisung", cheque_meal: "Essensgutschein", voucher: "Gutschein", other: "Andere", online: "Online" },
     thanks: "Danke und bis bald!",
     test: "TESTDRUCK", testBody: "Dieser Drucker ist mit SellQo verbunden.",
+    noteTitle: "HINWEIS", allergens: "ALLERGENE",
+    allergen: { gluten: "Gluten", crustaceans: "Krebstiere", eggs: "Eier", fish: "Fisch", peanuts: "Erdnüsse", soy: "Soja", milk: "Milch", nuts: "Schalenfrüchte", celery: "Sellerie", mustard: "Senf", sesame: "Sesam", sulphites: "Sulfite", lupin: "Lupinen", molluscs: "Weichtiere" },
     mailSubject: (s) => `Dein Zahlungsbeleg von ${s}`, mailHeading: "Dein Zahlungsbeleg", mailIntro: (s) => `Danke für deinen Besuch bei ${s}. Unten findest du deinen Zahlungsbeleg.`,
   },
   uk: {
@@ -148,6 +162,8 @@ export const HORECA_PRINT_TEXTS: Record<string, Texts> = {
     method: { cash: "Готівка", card: "Картка", transfer: "Переказ", cheque_meal: "Талон на харчування", voucher: "Ваучер", other: "Інше", online: "Онлайн" },
     thanks: "Дякуємо і до зустрічі!",
     test: "ТЕСТОВИЙ ДРУК", testBody: "Цей принтер підключено до SellQo.",
+    noteTitle: "ПРИМІТКА", allergens: "АЛЕРГЕНИ",
+    allergen: { gluten: "Глютен", crustaceans: "Ракоподібні", eggs: "Яйця", fish: "Риба", peanuts: "Арахіс", soy: "Соя", milk: "Молоко", nuts: "Горіхи", celery: "Селера", mustard: "Гірчиця", sesame: "Кунжут", sulphites: "Сульфіти", lupin: "Люпин", molluscs: "Молюски" },
     mailSubject: (s) => `Ваше підтвердження оплати від ${s}`, mailHeading: "Ваше підтвердження оплати", mailIntro: (s) => `Дякуємо за візит до ${s}. Нижче ваше підтвердження оплати.`,
   },
 };
@@ -230,7 +246,15 @@ export function renderProductionTicket(t: ProductionTicket, stationKind: string 
   out.push(...center(where, w));
   const who = [t.table ? t.customer && t.customer !== t.table ? t.customer : null : t.customer, t.phone].filter(Boolean).join(" · ");
   if (who) out.push(...center(who, w));
-  out.push(rule(w));
+  // KEUKEN-VEILIG-1: de algemene opmerking (allergie van de gast!) bovenaan, omkaderd, vóór de regels.
+  if (t.note) {
+    out.push(rule(w, "*"));
+    out.push(...center(`!! ${L.noteTitle} !!`, w));
+    out.push(...wrap(t.note.toUpperCase(), w));
+    out.push(rule(w, "*"));
+  } else {
+    out.push(rule(w));
+  }
   for (const it of t.items) {
     // Een annulering in een ronde komt als negatief aantal: die moet de keuken zien ("-1 x").
     const q = `${Math.round(Number(it.quantity)) || 1} x `;
@@ -238,8 +262,11 @@ export function renderProductionTicket(t: ProductionTicket, stationKind: string 
     out.push(q + name[0], ...name.slice(1).map((n) => " ".repeat(q.length) + n));
     if (it.detail) out.push(...wrap(it.detail, w - q.length).map((d) => " ".repeat(q.length) + d));
     for (const a of it.addons ?? []) out.push(...wrap(`+ ${a}`, w - q.length).map((d) => " ".repeat(q.length) + d));
+    // KEUKEN-VEILIG-1: lijnopmerking en allergenen vallen op (pijlen, hoofdletters); platte tekst kent geen vet.
+    if (it.note) out.push(...wrap(`>> ${it.note.toUpperCase()}`, w - q.length).map((d) => " ".repeat(q.length) + d));
+    const alg = (it.allergens ?? []).filter(Boolean);
+    if (alg.length) out.push(...wrap(`!! ${L.allergens}: ${alg.map((a) => L.allergen[a] ?? a).join(", ").toUpperCase()}`, w - q.length).map((d) => " ".repeat(q.length) + d));
   }
-  if (t.note) { out.push(rule(w)); out.push(...wrap(t.note, w)); }
   out.push(rule(w));
   out.push(...center(`${L.ordered} ${hhmm(t.createdAt, lang)} · ${L.printed} ${hhmm(new Date().toISOString(), lang)}`, w));
   return out.join("\n") + "\n\n\n";

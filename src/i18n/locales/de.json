@@ -6504,7 +6504,18 @@
       "station": "Station",
       "all_stations": "Alle Stationen",
       "to_kassa": "Kasse",
-      "waited_short": "{{count}} Min."
+      "waited_short": "{{count}} Min.",
+      "status_failed": "Der Bon konnte nicht aktualisiert werden. Versuch es noch einmal.",
+      "note_title": "Hinweis",
+      "allergens_title": "Allergene",
+      "action_bar_done": "Fertig",
+      "sound_tap_hint": "Tippe einmal auf den Bildschirm, um den Ton für neue Bons einzuschalten.",
+      "print_health_title": "Drucker:",
+      "print_health_failed": "nicht gedruckt: {{count}}",
+      "print_health_stuck": "warten auf den Drucker: {{count}}",
+      "print_health_offline": "keine Verbindung mit {{names}}",
+      "print_health_hint": "Prüf den Drucker (an, Papier, Netzwerk) und gib die Bons in der Zwischenzeit mündlich weiter.",
+      "print_health_seen": "Gesehen"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -11510,7 +11521,8 @@
       "counter": "Theke / Schnellverkauf",
       "noTabs": "Noch keine Rechnungen auf einen Namen.",
       "allTabs": "Alle ({{count}})",
-      "allTabsTitle": "Rechnungen auf einen Namen ({{count}})"
+      "allTabsTitle": "Rechnungen auf einen Namen ({{count}})",
+      "readyBadge": "Bereit zum Servieren"
     },
     "checks": {
       "rejected": "Nicht ausgeführt: {{error}}",

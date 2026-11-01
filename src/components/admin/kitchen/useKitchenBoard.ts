@@ -1,46 +1,67 @@
-// FOOD-2 — data voor het keukenscherm. Polling (10 s) in plaats van realtime: één lichte
-// query per tablet, geen WAL-listeners (zie de kostenlessen over realtime).
+// FOOD-2 — data voor het keukenscherm. Polling in plaats van realtime: één lichte query per
+// tablet, geen WAL-listeners (zie de kostenlessen over realtime).
+// KEUKEN-VEILIG-1: het keuken-/barscherm peilt elke 3 s (zoals de rekeningen), het dashboard blijft
+// op 10 s. Enkel zolang het scherm zichtbaar is (geen poll in de achtergrond), en afgewerkte
+// tafel-/kassabonnen ouder dan 12 uur komen niet meer mee (die toont het bord toch niet).
 import { useMemo } from 'react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useMutationState, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { buildBoard, notifiesCustomer, type KitchenCard, type KitchenStatus, type OrderRow, type TicketRow } from './kitchenModel';
+import { addonOptionIds, buildBoard, notifiesCustomer, type KitchenCard, type KitchenStatus, type OrderRow, type TicketRow } from './kitchenModel';
 
 const WINDOW_MS = 3 * 24 * 3600_000;
+const DONE_KEEP_MS = 12 * 3600_000;
+/** Keuken- en barscherm (kassa en /admin/keuken). */
+export const BOARD_POLL_FAST = 3_000;
+const BOARD_POLL_DEFAULT = 10_000;
 
-export function useKitchenBoard(nowMs: number, enabled = true) {
+export function useKitchenBoard(nowMs: number, enabled = true, intervalMs = BOARD_POLL_DEFAULT) {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const tenantId = currentTenant?.id;
   const qc = useQueryClient();
   const key = ['kitchen-board', tenantId];
+  const mutationKey = ['kitchen-board-status', tenantId];
 
   const query = useQuery({
     queryKey: key,
     enabled: enabled && !!tenantId,
-    refetchInterval: 10_000,
-    refetchIntervalInBackground: true,
+    refetchInterval: intervalMs,
+    // Verborgen tabblad of scherm uit: niet peilen (DB-kost). Bij terugkomen haalt react-query meteen op.
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       const since = new Date(Date.now() - WINDOW_MS).toISOString();
+      const doneSince = new Date(Date.now() - DONE_KEEP_MS).toISOString();
       const [o, t] = await Promise.all([
         supabase.from('orders')
-          .select('id, order_number, created_at, service_type, requested_time, customer_name, customer_phone, notes, total, payment_status, payment_method, status, shipping_address, table_label, order_items(product_name, variant_title, quantity, addons)')
+          .select('id, order_number, created_at, service_type, requested_time, customer_name, customer_phone, notes, total, payment_status, payment_method, status, shipping_address, table_label, order_items(product_name, variant_title, quantity, addons, products(allergens))')
           .eq('tenant_id', tenantId!).not('service_type', 'is', null).gte('created_at', since)
           .order('created_at', { ascending: false }).limit(300),
+        // Webshopbonnen altijd (ze bepalen de status van hun order), andere bonnen enkel open of recent.
         supabase.from('kitchen_tickets').select('*').eq('tenant_id', tenantId!).gte('created_at', since)
+          .or(`order_id.not.is.null,status.in.(new,preparing,ready),status_at.gte.${doneSince}`)
           .order('created_at', { ascending: false }).limit(500),
       ]);
       if (o.error) throw o.error;
       if (t.error) throw t.error;
-      return { orders: (o.data || []) as unknown as OrderRow[], tickets: (t.data || []) as unknown as TicketRow[] };
+      const orders = (o.data || []) as unknown as OrderRow[];
+      // KEUKEN-VEILIG-1b: allergenen van gekozen extra's (webshop). Enkel een vraag als er extra's zijn.
+      const optionIds = [...new Set(orders.flatMap((x) => (x.order_items || []).flatMap((i) => addonOptionIds(i.addons))))].slice(0, 300);
+      let addonAllergens: [string, string[]][] = [];
+      if (optionIds.length) {
+        const a = await supabase.from('product_addon_options').select('id, allergens').eq('tenant_id', tenantId!).in('id', optionIds);
+        if (!a.error) addonAllergens = ((a.data || []) as { id: string; allergens: string[] | null }[]).map((x) => [x.id, x.allergens ?? []]);
+      }
+      return { orders, tickets: (t.data || []) as unknown as TicketRow[], addonAllergens };
     },
   });
 
-  const cards = useMemo(() => (query.data ? buildBoard(query.data.orders, query.data.tickets, nowMs) : []), [query.data, nowMs]);
+  const cards = useMemo(() => (query.data ? buildBoard(query.data.orders, query.data.tickets, nowMs, undefined, new Map(query.data.addonAllergens)) : []), [query.data, nowMs]);
 
   const setStatus = useMutation({
+    mutationKey,
     mutationFn: async ({ card, status }: { card: KitchenCard; status: KitchenStatus }) => {
       const now = new Date().toISOString();
       if (card.ticketId && !card.ticketId.startsWith('tmp-')) {
@@ -75,7 +96,9 @@ export function useKitchenBoard(nowMs: number, enabled = true) {
       }
       return { prev };
     },
-    onError: (_e, _v, ctx) => { if (ctx?.prev) qc.setQueryData(key, ctx.prev); },
+    // KEUKEN-VEILIG-1: meerdere bonnen tegelijk mogelijk; bij een fout niet de hele lijst terugzetten
+    // (dat zou ook de klik op een andere bon ongedaan maken), wel melden. onSettled haalt de echte stand op.
+    onError: () => { toast.error(t('admin.kitchen.status_failed')); },
     // FOOD-3 — klant mailen bij "Klaar" (afhalen) of "Meegegeven" (levering). Best-effort:
     // de functie doet het maar één keer en respecteert de winkelinstelling.
     onSuccess: async (_d, { card, status }) => {
@@ -87,5 +110,12 @@ export function useKitchenBoard(nowMs: number, enabled = true) {
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
-  return { cards, isLoading: query.isLoading, error: query.error, setStatus, lastUpdated: query.dataUpdatedAt };
+  // KEUKEN-VEILIG-1: "bezig" per bon, niet voor het hele bord (een tik op één bon blokkeerde alle knoppen).
+  const pendingKeys = useMutationState({
+    filters: { mutationKey, status: 'pending' },
+    select: (m) => (m.state.variables as { card?: KitchenCard } | undefined)?.card?.key ?? '',
+  });
+  const busyKeys = useMemo(() => new Set(pendingKeys.filter(Boolean)), [pendingKeys]);
+
+  return { cards, isLoading: query.isLoading, error: query.error, setStatus, busyKeys, lastUpdated: query.dataUpdatedAt };
 }

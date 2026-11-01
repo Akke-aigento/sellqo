@@ -6849,7 +6849,18 @@
       "station": "Пост",
       "all_stations": "Усі пости",
       "to_kassa": "Каса",
-      "waited_short": "{{count}} хв"
+      "waited_short": "{{count}} хв",
+      "status_failed": "Не вдалося оновити чек. Спробуйте ще раз.",
+      "note_title": "Примітка",
+      "allergens_title": "Алергени",
+      "action_bar_done": "Готово",
+      "sound_tap_hint": "Торкніться екрана один раз, щоб увімкнути сигнал для нових чеків.",
+      "print_health_title": "Принтер:",
+      "print_health_failed": "не надруковано: {{count}}",
+      "print_health_stuck": "чекають на принтер: {{count}}",
+      "print_health_offline": "немає зв'язку з {{names}}",
+      "print_health_hint": "Перевірте принтер (живлення, папір, мережа) і тим часом передавайте замовлення усно.",
+      "print_health_seen": "Зрозуміло"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -11510,7 +11521,8 @@
       "counter": "Барна стійка / швидкий продаж",
       "noTabs": "Ще немає рахунків на ім’я.",
       "allTabs": "Усі ({{count}})",
-      "allTabsTitle": "Рахунки на ім’я ({{count}})"
+      "allTabsTitle": "Рахунки на ім’я ({{count}})",
+      "readyBadge": "Готово до подачі"
     },
     "checks": {
       "rejected": "Не виконано: {{error}}",

@@ -24,6 +24,8 @@ interface Props {
   onTableAction?: (tableId: string, checkId: string | null) => void;
   /** RESERVATIE-1: lijst met de reservaties van vandaag. */
   onReservations?: () => void;
+  /** KEUKEN-VEILIG-1: rekeningen met een bon die klaar staat (keuken/bar → zaal). */
+  readyChecks?: ReadonlySet<string>;
 }
 
 const VIEW_KEY = 'sq_kassa_tables_view';
@@ -47,7 +49,7 @@ function lastActivity(c: Check): string {
   return c.lines.reduce((m, l) => (l.created_at > m ? l.created_at : m), c.opened_at);
 }
 
-export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, onTableAction, onReservations }: Props) {
+export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, onTableAction, onReservations, readyChecks }: Props) {
   const { t, i18n } = useTranslation();
   const { data: plan, isLoading } = useFloorPlan();
   // KASSA-UX-2: standaard het zaalplan (past nu ook op een gsm); de keuze plan/lijst onthoudt dit toestel.
@@ -78,6 +80,8 @@ export function TablesScreen({ store, staffId, tableLabel, onOpen, onCounter, on
   for (const [tableId, c] of byTable) {
     status[tableId] = c.bill_requested_at ? 'bill' : 'occupied';
     badges[tableId] = `${formatEuro(checkTotalCents(c), i18n.language)} · ${minutesSince(lastActivity(c), now)}′`;
+    // KEUKEN-VEILIG-1: de keuken (of bar) zette een bon van deze tafel op klaar: ophalen en opdienen.
+    if (readyChecks?.has(c.id)) badges[tableId] = `${t('kassa.tables.readyBadge')} · ${badges[tableId]}`;
   }
   // RESERVATIE-1: een reservatie is een laag. Vrije tafel → paars met uur en naam; staat er nog een
   // rekening op, dan blijft de tafel bezet en staat het uur van de reservatie er enkel bij.

@@ -6835,7 +6835,18 @@
       "station": "Station",
       "all_stations": "All stations",
       "to_kassa": "Till",
-      "waited_short": "{{count}} min"
+      "waited_short": "{{count}} min",
+      "status_failed": "The ticket could not be updated. Please try again.",
+      "note_title": "Note",
+      "allergens_title": "Allergens",
+      "action_bar_done": "Done",
+      "sound_tap_hint": "Tap the screen once to turn on the chime for new tickets.",
+      "print_health_title": "Printer:",
+      "print_health_failed": "not printed: {{count}}",
+      "print_health_stuck": "waiting for the printer: {{count}}",
+      "print_health_offline": "no connection with {{names}}",
+      "print_health_hint": "Check the printer (power, paper, network) and pass the tickets on verbally in the meantime.",
+      "print_health_seen": "Got it"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -11510,7 +11521,8 @@
       "counter": "Bar / quick sale",
       "noTabs": "No tabs on a name yet.",
       "allTabs": "All ({{count}})",
-      "allTabsTitle": "Tabs on a name ({{count}})"
+      "allTabsTitle": "Tabs on a name ({{count}})",
+      "readyBadge": "Ready to serve"
     },
     "checks": {
       "rejected": "Not done: {{error}}",

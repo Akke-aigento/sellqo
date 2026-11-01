@@ -8,7 +8,7 @@ import { ArrowLeft, Bell, BellOff, BellRing, Maximize2, MonitorSmartphone, Print
 import { useTenant } from '@/hooks/useTenant';
 import { printTicket } from '@/components/admin/kitchen/printTicket';
 import { Button } from '@/components/ui/button';
-import { useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
+import { BOARD_POLL_FAST, useKitchenBoard } from '@/components/admin/kitchen/useKitchenBoard';
 import { KitchenPauseControl } from '@/components/admin/kitchen/KitchenPauseControl';
 import { KitchenColumns, StationSelect } from '@/components/admin/kitchen/KitchenBoard';
 import { hhmm, ticketLabels, useFreshCards, useStationChoice } from '@/components/admin/kitchen/kitchenBoardUtils';
@@ -16,10 +16,11 @@ import { minutesLeft, type KitchenCard } from '@/components/admin/kitchen/kitche
 import { useTranslation } from 'react-i18next';
 import { useHideAdminBottomNav } from '@/hooks/useAdminBottomNav';
 import { useTracks } from '@/hooks/useBusinessModules';
-import { ding, readFlag } from '@/lib/ding';
+import { audioBlocked, ding, readFlag } from '@/lib/ding';
 import { useWakeLock } from '@/hooks/useWakeLock';
 import { useAppShell } from '@/hooks/useAppShell';
 import { DeviceAlertsDialog } from '@/components/horeca/DeviceAlertsDialog';
+import { PrintHealthBanner } from '@/components/horeca/PrintHealthBanner';
 
 const SOUND_KEY = 'sq_kitchen_sound';
 const WAKE_KEY = 'sq_kitchen_wake';
@@ -29,7 +30,7 @@ export default function KitchenPage() {
   const { t, i18n } = useTranslation();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
-  const { cards: allCards, isLoading, error, setStatus } = useKitchenBoard(now);
+  const { cards: allCards, isLoading, error, setStatus, busyKeys } = useKitchenBoard(now, true, BOARD_POLL_FAST);
   // TAFEL-1 — dit scherm toont één post (bar, keuken, …) of alles; per toestel onthouden.
   const { stations, activeStation, cards, choose } = useStationChoice(allCards);
   // HORECA-0 — het keukenscherm ligt over de admin heen: de navigatiepil van de
@@ -40,7 +41,17 @@ export default function KitchenPage() {
   const [alertsOpen, setAlertsOpen] = useState(false);
   const [wake, setWake] = useState(() => readFlag(WAKE_KEY, true));
   const wakeActive = useWakeLock(wake);
-  const [sound, setSound] = useState(() => { try { return localStorage.getItem(SOUND_KEY) === '1'; } catch { return false; } });
+  // KEUKEN-VEILIG-1: geluid standaard aan (een gemiste bon is erger dan een belletje); de schakelaar blijft.
+  const [sound, setSound] = useState(() => readFlag(SOUND_KEY, true));
+  // Autoplay: tot de eerste tik op dit scherm speelt de browser geen geluid. Zeg dat, in plaats van stil te falen.
+  const [needsTap, setNeedsTap] = useState(false);
+  useEffect(() => {
+    if (!sound) { setNeedsTap(false); return; }
+    setNeedsTap(audioBlocked());
+    const off = () => setTimeout(() => setNeedsTap(audioBlocked()), 50);
+    window.addEventListener('pointerdown', off);
+    return () => window.removeEventListener('pointerdown', off);
+  }, [sound]);
   const [autoPrint, setAutoPrint] = useState(() => { try { return localStorage.getItem(PRINT_KEY) === '1'; } catch { return false; } });
   const { currentTenant } = useTenant();
   const storeName = currentTenant?.name || '';
@@ -110,7 +121,16 @@ export default function KitchenPage() {
           wakeKey={WAKE_KEY} wakeDefault onWakeChange={setWake} wakeActive={wakeActive} manageHref="/admin/pos" />
       ) : null}
 
-      <KitchenColumns cards={cards} now={now} isLoading={isLoading} error={error} busy={setStatus.isPending} fresh={fresh} storeName={storeName}
+      {needsTap ? (
+        <button type="button" onClick={() => ding()} className="flex min-h-11 items-center justify-center gap-2 border-b bg-amber-100 px-3 py-2 text-sm font-semibold text-amber-950 dark:bg-amber-900/50 dark:text-amber-50">
+          <Bell className="h-4 w-4" aria-hidden />{t('admin.kitchen.sound_tap_hint')}
+        </button>
+      ) : null}
+      <PrintHealthBanner tenantId={currentTenant?.id} />
+
+      {/* KEUKEN-VEILIG-1b: post Bar gekozen = de één-tik-barflow, zoals in de kassa. */}
+      <KitchenColumns cards={cards} now={now} isLoading={isLoading} error={error} busyKeys={busyKeys} fresh={fresh} storeName={storeName}
+        flow={stations.find((x) => x.id === activeStation)?.kind === 'bar' ? 'bar' : 'kitchen'}
         onMove={(card, status) => setStatus.mutate({ card, status })} />
     </div>
   );

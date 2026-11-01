@@ -41,6 +41,15 @@ export function ding(): void {
   try { navigator.vibrate?.([120, 80, 120]); } catch { /* geen trilfunctie */ }
 }
 
+/**
+ * KEUKEN-VEILIG-1 — mag deze pagina al geluid maken? Een browser houdt audio tegen tot de eerste tik
+ * (autoplay-regels). true = nog geblokkeerd; na een tik hervat de gedeelde context vanzelf.
+ */
+export function audioBlocked(): boolean {
+  const ctx = context();
+  return !ctx || ctx.state !== 'running';
+}
+
 /** Aan/uit per toestel, bewaard in deze browser. `fallback` = de stand als er nog niets bewaard is. */
 export function readFlag(key: string, fallback: boolean): boolean {
   try {

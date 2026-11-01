@@ -47,6 +47,25 @@ Deno.test("productiebon: geen bedrag, nergens breder dan de printer, annulering 
   }
 });
 
+Deno.test("KEUKEN-VEILIG-1: opmerking bovenaan, lijnopmerking en allergenen op de bon, in elke taal en breedte", () => {
+  const t2: ProductionTicket = {
+    ...ticket, note: "QR Ann · allergie noten",
+    items: [{ quantity: 1, name: "Burger", detail: "Groot", note: "zonder ui", allergens: ["gluten", "nuts"] }],
+  };
+  for (const w of PRINT_WIDTHS) {
+    for (const lang of LANG_CODES as readonly string[]) {
+      const text = renderProductionTicket(t2, "kitchen", lang, w);
+      for (const line of text.split("\n")) assert(line.length <= w, `regel breder dan ${w}: "${line}"`);
+      const L = HORECA_PRINT_TEXTS[lang];
+      assert(text.includes(L.noteTitle), `${lang}: kop opmerking ontbreekt`);
+      assert(text.indexOf("ALLERGIE") < text.indexOf("Burger"), `${lang}: algemene opmerking niet bovenaan`);
+      assert(text.replace(/\s+/g, " ").includes(">> ZONDER UI"), `${lang}: lijnopmerking ontbreekt`);
+      assert(text.replace(/\s+/g, " ").includes(L.allergen.nuts.toUpperCase()), `${lang}: allergeen ontbreekt`);
+      assert(Object.keys(L.allergen).length === 14, `${lang}: niet alle 14 allergenen`);
+    }
+  }
+});
+
 Deno.test("betaalbewijs: niet geldig als kasticket, correcties weg, bedragen kloppen", () => {
   const m = receiptModelFromData(data);
   assert(m.lines.length === 1 && m.lines[0].name === "Pils", `correctie niet weggevallen: ${JSON.stringify(m.lines)}`);
