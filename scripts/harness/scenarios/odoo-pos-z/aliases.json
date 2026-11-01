@@ -1,0 +1,3 @@
+{
+  "@/integrations/supabase/client": "mocks/supabase.ts"
+}

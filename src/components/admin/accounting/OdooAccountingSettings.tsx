@@ -10,6 +10,7 @@ import { useCan } from '@/hooks/useCan';
 import { useTenantOdooSettings } from '@/hooks/useTenantOdooSettings';
 import { useOdooConnection } from '@/hooks/useOdooConnection';
 import { useQuery } from '@tanstack/react-query';
+import { OdooPosZCard } from './OdooPosZCard';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -22,6 +23,9 @@ const DEFAULT_CHANNEL_LABELS: Record<string, string> = {
   ebay: 'eBay verkopen',
   subscription: 'Abonnementen',
   manual: 'Handmatige verkopen',
+  // KASSA-ODOO-1: verzamelklant van de Z-boekingen (zelfde sleutel en standaard als
+  // _shared/odooPosZ.ts; niet 'pos', dat is een orders.sales_channel).
+  pos_z: 'Kassaverkopen',
 };
 const KNOWN_MARKETPLACES = new Set(['bol_com', 'amazon', 'ebay']);
 
@@ -84,8 +88,9 @@ export function OdooAccountingSettings({ tenantId }: Props) {
     const s = new Set<string>(orderChannels.data || []);
     s.add('subscription');
     s.add('manual');
-    // Preserve a stable ordering: marketplaces first, then webshop/sub/manual.
-    const order = ['bol_com', 'amazon', 'ebay', 'webshop', 'subscription', 'manual'];
+    if (settings?.pos_z_sync_enabled) s.add('pos_z');
+    // Preserve a stable ordering: marketplaces first, then webshop/sub/manual/pos.
+    const order = ['bol_com', 'amazon', 'ebay', 'webshop', 'subscription', 'manual', 'pos_z'];
     const extras = Array.from(s).filter(c => !order.includes(c)).sort();
     return [...order.filter(c => s.has(c)), ...extras];
   })();
@@ -123,6 +128,7 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       setPushSupplierDocs(settings.push_supplier_documents ?? false);
     }
   }, [settings]);
+
 
   useEffect(() => {
     if (status.data?.configured) {
@@ -433,6 +439,19 @@ export function OdooAccountingSettings({ tenantId }: Props) {
             ))}
           </CardContent>
         </Card>
+      )}
+
+      {configured && (
+        <OdooPosZCard
+          tenantId={tenantId}
+          settings={settings}
+          isLoading={isLoading}
+          canWrite={canWrite}
+          configured={configured}
+          journals={journals}
+          saving={upsert.isPending}
+          onSave={(u) => upsert.mutate(u)}
+        />
       )}
 
       {configured && (

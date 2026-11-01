@@ -2907,13 +2907,55 @@
         "amazon": "Amazon",
         "ebay": "eBay",
         "subscription": "Abonnementen",
-        "manual": "Handmatig"
+        "manual": "Handmatig",
+        "pos_z": "Kassa (Z-rapporten)"
       }
     },
     "odooAutoPost": {
       "label": "Automatisch boeken in Odoo",
       "help": "Uit = boekingen komen als concept binnen; je boekhouder boekt en verstuurt Peppol zelf vanuit Odoo.",
       "peppolDisabledNote": "Automatische Peppol-verzending vereist Automatisch boeken."
+    },
+    "odooPosZ": {
+      "title": "Kassa-omzet naar Odoo",
+      "description": "Boekt elk afgesloten Z-rapport van SellQo Kassa als één boeking in Odoo: de omzet per btw-tarief, tot op de cent gelijk aan het Z-rapport.",
+      "needs_sync": "Zet eerst de Odoo-facturatiesync aan en sla op: de Z-boekingen gebruiken dezelfde verbinding.",
+      "enable_label": "Z-rapporten van de kassa naar Odoo",
+      "enable_help": "Standaard uit. Aan = SellQo kijkt elk uur of er nieuwe Z-rapporten zijn.",
+      "from_label": "Vanaf bedrijfsdag",
+      "from_help": "Standaard de huidige bedrijfsdag van je kassa. Een vroegere dag vraagt een bevestiging met het aantal Z-rapporten dat dan geboekt wordt.",
+      "journal_label": "Kassadagboek",
+      "journal_same": "Zelfde als het verkoopdagboek",
+      "journal_taken": "in gebruik",
+      "journal_help": "Een apart verkoopdagboek (bv. Kassa) houdt de nummering van facturen en Z-boekingen uit elkaar.",
+      "rules_note": "Fooien en betalingen worden niet geboekt; ze staan enkel ter info in de notitie. De boeking wordt pas definitief als Odoo per btw-tarief gelijk is aan het Z-rapport, anders blijft ze concept en krijg je een melding.",
+      "recent_title": "Laatste Z-rapporten",
+      "recent_empty": "Nog geen Z-rapporten doorgestuurd.",
+      "recent_row": "Z {{no}} · {{name}}",
+      "save": "Opslaan",
+      "saving": "Opslaan…",
+      "backfill_confirm": "De startdatum {{date}} ligt in het verleden. Daardoor worden {{count}} Z-rapporten in Odoo geboekt. Werden die al met de hand geboekt, dan staan ze dubbel. Doorgaan?",
+      "accept": "Aanvaarden",
+      "accept_prompt": "Z {{no}} met de hand in Odoo geboekt? Geef het Odoo-nummer of een korte uitleg:",
+      "accept_done": "Z-rapport aanvaard.",
+      "retry": "Opnieuw proberen",
+      "retry_done": "SellQo probeert dit Z-rapport bij de volgende run opnieuw.",
+      "backfill_title": "Z-rapporten uit het verleden boeken?",
+      "backfill_ok": "Ja, {{count}} Z-rapporten boeken",
+      "cancel": "Annuleren",
+      "accept_title": "Z {{no}} aanvaarden",
+      "accept_note_label": "Odoo-nummer of uitleg",
+      "saved": "Kassa-instellingen voor Odoo opgeslagen.",
+      "business_day": "Huidige bedrijfsdag van je kassa: {{date}}.",
+      "accept_concept": "SellQo maakte in Odoo al een concept {{name}} (Odoo-id {{id}}). Verwijder of annuleer dit concept in Odoo als je de Z met de hand boekte, anders staat de omzet dubbel.",
+      "status": {
+        "pending": "Bezig",
+        "synced": "Geboekt",
+        "failed": "Mislukt",
+        "skipped": "Leeg, overgeslagen",
+        "needs_review": "Nakijken",
+        "accepted": "Aanvaard (met de hand)"
+      }
     },
     "invoiceRefund": {
       "action": "Terugbetalen & crediteren",

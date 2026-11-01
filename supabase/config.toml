@@ -530,6 +530,10 @@ verify_jwt = false
 [functions.link-stripe-payouts]
 verify_jwt = false
 
+# KASSA-ODOO-1: enkel cron/service (x-cron-secret via denyUnlessCron), zoals link-stripe-payouts.
+[functions.sync-odoo-pos-z]
+verify_jwt = false
+
 [functions.import-supplier-invoices]
 verify_jwt = false
 

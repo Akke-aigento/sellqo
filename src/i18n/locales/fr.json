@@ -2562,13 +2562,55 @@
         "amazon": "Amazon",
         "ebay": "eBay",
         "subscription": "Abonnements",
-        "manual": "Manuel"
+        "manual": "Manuel",
+        "pos_z": "Caisse (rapports Z)"
       }
     },
     "odooAutoPost": {
       "label": "Comptabiliser automatiquement dans Odoo",
       "help": "Désactivé = les écritures arrivent en brouillon ; votre comptable les valide et envoie Peppol depuis Odoo.",
       "peppolDisabledNote": "L'envoi Peppol automatique nécessite la comptabilisation automatique."
+    },
+    "odooPosZ": {
+      "title": "Chiffre d'affaires de la caisse vers Odoo",
+      "description": "Comptabilise chaque rapport Z clôturé de SellQo Kassa en une seule écriture dans Odoo : le chiffre d'affaires par taux de TVA, identique au centime près au rapport Z.",
+      "needs_sync": "Activez d'abord la synchronisation des factures Odoo et enregistrez : les écritures Z utilisent la même connexion.",
+      "enable_label": "Envoyer les rapports Z de la caisse vers Odoo",
+      "enable_help": "Désactivé par défaut. Activé = SellQo vérifie chaque heure s'il y a de nouveaux rapports Z.",
+      "from_label": "À partir du jour d'activité",
+      "from_help": "Par défaut le jour d'activité actuel de votre caisse. Un jour antérieur demande une confirmation avec le nombre de rapports Z qui seront alors comptabilisés.",
+      "journal_label": "Journal de caisse",
+      "journal_same": "Identique au journal de ventes",
+      "journal_taken": "utilisé",
+      "journal_help": "Un journal de ventes séparé (p. ex. Caisse) garde la numérotation des factures et des écritures Z distincte.",
+      "rules_note": "Les pourboires et les paiements ne sont pas comptabilisés ; ils figurent uniquement à titre d'information dans la note. L'écriture n'est validée que si Odoo correspond au rapport Z pour chaque taux de TVA ; sinon elle reste en brouillon et vous recevez une notification.",
+      "recent_title": "Derniers rapports Z",
+      "recent_empty": "Aucun rapport Z envoyé pour l'instant.",
+      "recent_row": "Z {{no}} · {{name}}",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "backfill_confirm": "La date de début {{date}} est dans le passé. {{count}} rapports Z seront donc comptabilisés dans Odoo. S'ils ont déjà été comptabilisés à la main, ils apparaîtront deux fois. Continuer ?",
+      "accept": "Accepter",
+      "accept_prompt": "Z {{no}} comptabilisé à la main dans Odoo ? Indiquez le numéro Odoo ou une courte explication :",
+      "accept_done": "Rapport Z accepté.",
+      "retry": "Réessayer",
+      "retry_done": "SellQo réessaiera ce rapport Z lors du prochain passage.",
+      "backfill_title": "Comptabiliser des rapports Z passés ?",
+      "backfill_ok": "Oui, comptabiliser {{count}} rapports Z",
+      "cancel": "Annuler",
+      "accept_title": "Accepter le Z {{no}}",
+      "accept_note_label": "Numéro Odoo ou explication",
+      "saved": "Paramètres de caisse pour Odoo enregistrés.",
+      "business_day": "Jour d'activité actuel de votre caisse : {{date}}.",
+      "accept_concept": "SellQo a déjà créé un brouillon {{name}} dans Odoo (ID Odoo {{id}}). Supprimez ou annulez ce brouillon dans Odoo si vous avez comptabilisé le Z à la main, sinon le chiffre d'affaires apparaît deux fois.",
+      "status": {
+        "pending": "En cours",
+        "synced": "Comptabilisé",
+        "failed": "Échec",
+        "skipped": "Vide, ignoré",
+        "needs_review": "À vérifier",
+        "accepted": "Accepté (à la main)"
+      }
     },
     "invoiceRefund": {
       "action": "Rembourser & créditer",

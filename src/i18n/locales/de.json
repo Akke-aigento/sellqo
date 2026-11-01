@@ -2562,13 +2562,55 @@
         "amazon": "Amazon",
         "ebay": "eBay",
         "subscription": "Abonnements",
-        "manual": "Manuell"
+        "manual": "Manuell",
+        "pos_z": "Kasse (Z-Berichte)"
       }
     },
     "odooAutoPost": {
       "label": "Automatisch buchen in Odoo",
       "help": "Aus = Buchungen kommen als Entwurf an; dein Buchhalter bucht und sendet Peppol selbst aus Odoo.",
       "peppolDisabledNote": "Automatischer Peppol-Versand erfordert automatisches Buchen."
+    },
+    "odooPosZ": {
+      "title": "Kassenumsatz nach Odoo",
+      "description": "Bucht jeden abgeschlossenen Z-Bericht von SellQo Kassa als eine Buchung in Odoo: den Umsatz pro Steuersatz, auf den Cent gleich dem Z-Bericht.",
+      "needs_sync": "Schalte zuerst die Odoo-Rechnungssynchronisierung ein und speichere: die Z-Buchungen nutzen dieselbe Verbindung.",
+      "enable_label": "Z-Berichte der Kasse nach Odoo senden",
+      "enable_help": "Standardmäßig aus. An = SellQo prüft stündlich, ob es neue Z-Berichte gibt.",
+      "from_label": "Ab Geschäftstag",
+      "from_help": "Standardmäßig der aktuelle Geschäftstag deiner Kasse. Ein früherer Tag verlangt eine Bestätigung mit der Anzahl der Z-Berichte, die dann gebucht werden.",
+      "journal_label": "Kassenjournal",
+      "journal_same": "Wie das Verkaufsjournal",
+      "journal_taken": "in Verwendung",
+      "journal_help": "Ein eigenes Verkaufsjournal (z. B. Kasse) hält die Nummerierung von Rechnungen und Z-Buchungen getrennt.",
+      "rules_note": "Trinkgelder und Zahlungen werden nicht gebucht; sie stehen nur zur Information in der Notiz. Die Buchung wird erst endgültig, wenn Odoo pro Steuersatz dem Z-Bericht entspricht, sonst bleibt sie Entwurf und du bekommst eine Meldung.",
+      "recent_title": "Letzte Z-Berichte",
+      "recent_empty": "Noch keine Z-Berichte gesendet.",
+      "recent_row": "Z {{no}} · {{name}}",
+      "save": "Speichern",
+      "saving": "Speichern…",
+      "backfill_confirm": "Das Startdatum {{date}} liegt in der Vergangenheit. Dadurch werden {{count}} Z-Berichte in Odoo gebucht. Wurden sie schon von Hand gebucht, stehen sie doppelt. Fortfahren?",
+      "accept": "Akzeptieren",
+      "accept_prompt": "Z {{no}} von Hand in Odoo gebucht? Gib die Odoo-Nummer oder eine kurze Erklärung an:",
+      "accept_done": "Z-Bericht akzeptiert.",
+      "retry": "Erneut versuchen",
+      "retry_done": "SellQo versucht diesen Z-Bericht beim nächsten Lauf erneut.",
+      "backfill_title": "Z-Berichte aus der Vergangenheit buchen?",
+      "backfill_ok": "Ja, {{count}} Z-Berichte buchen",
+      "cancel": "Abbrechen",
+      "accept_title": "Z {{no}} akzeptieren",
+      "accept_note_label": "Odoo-Nummer oder Erklärung",
+      "saved": "Kasseneinstellungen für Odoo gespeichert.",
+      "business_day": "Aktueller Geschäftstag deiner Kasse: {{date}}.",
+      "accept_concept": "SellQo hat in Odoo bereits einen Entwurf {{name}} angelegt (Odoo-ID {{id}}). Lösche oder storniere diesen Entwurf in Odoo, wenn du den Z von Hand gebucht hast, sonst steht der Umsatz doppelt.",
+      "status": {
+        "pending": "In Bearbeitung",
+        "synced": "Gebucht",
+        "failed": "Fehlgeschlagen",
+        "skipped": "Leer, übersprungen",
+        "needs_review": "Prüfen",
+        "accepted": "Akzeptiert (von Hand)"
+      }
     },
     "invoiceRefund": {
       "action": "Erstatten & gutschreiben",
