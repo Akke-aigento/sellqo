@@ -116,6 +116,25 @@ winkel. Bepaal eerst de tenant via de eigen rij of zijn ouder (bv.
 een product-id van een andere winkel invoegen en diens kostprijs teruglezen.
 Fix: tenant via de order, `and p.tenant_id = v_tenant`.
 
+### Upsert vuurt de BEFORE INSERT-trigger, ook als het een update wordt
+PostgREST-`upsert` is `INSERT … ON CONFLICT DO UPDATE`. De BEFORE INSERT-trigger
+draait eerst op de *voorgestelde* rij, ook als de rij al bestaat. Validatie die
+naar de eindstaat moet kijken ("startdatum mag niet vóór X") hoort daarom in een
+AFTER INSERT OR UPDATE-trigger; de BEFORE-trigger enkel kolommen opschonen of
+zetten. Test elk guard-trigger ook via het upsert-pad dat de UI gebruikt.
+**Incident (KASSA-ODOO-1, review 2, 1 nov 2026, vóór livegang):** de guard op
+`tenant_odoo_settings` weigerde vanaf dag 2 elke Opslaan, omdat de INSERT-tak
+`enabled_at = now()` zette en dan de bestaande startdatum als "verleden" afkeurde.
+
+### Een claim of vrijgave op een statusrij is pas veilig als compare-and-swap
+"Zet verlopen `pending` terug op `failed`" met enkel `.eq('status','pending')`
+raakt ook de verse claim die een andere run net op dezelfde rij zette. Filter op
+de geziene versie (`created_at`, `attempts` of een versiekolom) en behandel 0
+geraakte rijen als "iemand anders was eerst". Geldt voor elke claimtabel
+(odoo-sync-logs, printful_order_links, …).
+**Incident (KASSA-ODOO-1, review 1, 1 nov 2026, vóór livegang):** twee runs op
+een verlopen claim konden elk een Odoo-boeking aanmaken.
+
 ## Checklist per batch
 - [ ] Recon: blast-radius bepaald (`grep` in src/ én functions/)
 - [ ] Baseline gemeten (rol-impersonatie + counts)
@@ -128,4 +147,5 @@ Fix: tenant via de order, `and p.tenant_id = v_tenant`.
 - [ ] Smoke-test met veel testdata: notificaties + push uit, factuurgat ingecalculeerd
 - [ ] Nieuwe FK: bestaande embeds naar die tabel gegrept en waar nodig `!fk_naam` gezet
 - [ ] SECURITY DEFINER-lookup via een FK filtert op de tenant van de eigen rij
-
+- [ ] Guard-trigger ook via het upsert-pad getest; eindstaat-validatie in AFTER
+- [ ] Claims/vrijgaves filteren op de geziene versie (compare-and-swap)
