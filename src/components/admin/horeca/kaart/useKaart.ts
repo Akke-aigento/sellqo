@@ -33,6 +33,8 @@ export interface KaartProduct {
   allergens: string[] | null;
   featured_image: string | null;
   images: string[] | null;
+  /** KAART-MARGE-1: kostprijs excl. btw (products.cost_price), voor de foodcost. */
+  cost_price: number | null;
 }
 
 /** Volgorde zoals op de kassa: positie, dan naam (zonder positie achteraan). */
@@ -67,14 +69,14 @@ export function useKaart() {
       const [cats, prods] = await Promise.all([
         supabase.from('categories').select('id, name, sort_order, is_active, default_vat_rate_id, default_takeaway_vat_rate_id')
           .eq('tenant_id', tenantId!).order('sort_order').order('name'),
-        supabase.from('products').select('id, name, price, category_id, is_active, channels, sold_out_until, vat_rate_id, takeaway_vat_rate_id, menu_position, short_description, allergens, featured_image, images')
+        supabase.from('products').select('id, name, price, category_id, is_active, channels, sold_out_until, vat_rate_id, takeaway_vat_rate_id, menu_position, short_description, allergens, featured_image, images, cost_price')
           .eq('tenant_id', tenantId!).in('product_type', KAART_TYPES as never).order('name').limit(2000),
       ]);
       if (cats.error) throw cats.error;
       if (prods.error) throw prods.error;
       return {
         categories: (cats.data ?? []) as unknown as KaartCategory[],
-        products: ((prods.data ?? []) as unknown as KaartProduct[]).map((p) => ({ ...p, price: Number(p.price) })).sort(byMenuOrder),
+        products: ((prods.data ?? []) as unknown as KaartProduct[]).map((p) => ({ ...p, price: Number(p.price), cost_price: p.cost_price === null || p.cost_price === undefined ? null : Number(p.cost_price) })).sort(byMenuOrder),
       };
     },
   });
@@ -84,6 +86,8 @@ export function useKaart() {
 export function useKaartVat() {
   const { currentTenant } = useTenant();
   const country = (currentTenant?.country || 'BE').toUpperCase();
+  const tenantId = currentTenant?.id;
+  const taxPct = currentTenant?.tax_percentage;
   const { vatRates, isLoading } = useVatRates(country);
   return useMemo(() => {
     const rates = vatRates.filter((r) => r.is_active !== false);
@@ -92,8 +96,11 @@ export function useKaartVat() {
       const [here, away] = VAT_BY_KIND[kind];
       return [byRate(here), byRate(away)];
     };
-    return { rates, isLoading, forKind, rateOf: (id: string | null) => rates.find((r) => r.id === id)?.rate ?? null };
-  }, [vatRates, isLoading]);
+    // KAART-MARGE-1: standaardtarief zoals de kassa (useCatalog): het standaardtarief van de zaak,
+    // anders tax_percentage, anders 21.
+    const defaultRate = Number(rates.find((r) => r.tenant_id === tenantId && r.is_default)?.rate ?? (Number(taxPct) || 21));
+    return { rates, isLoading, forKind, defaultRate, rateOf: (id: string | null) => rates.find((r) => r.id === id)?.rate ?? null };
+  }, [vatRates, isLoading, tenantId, taxPct]);
 }
 
 export function useKaartMutations() {
@@ -151,7 +158,7 @@ export function useKaartMutations() {
         ...d, products: d.products.map((x) => (x.id === v.id ? { ...x, ...Object.fromEntries(Object.keys(v.patch).map((k) => [k, old[k as keyof KaartProduct]])) } : x)),
       }));
     },
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<KaartProduct, 'name' | 'price' | 'is_active' | 'channels' | 'short_description' | 'featured_image' | 'images' | 'vat_rate_id' | 'takeaway_vat_rate_id'>> }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: Partial<Pick<KaartProduct, 'name' | 'price' | 'is_active' | 'channels' | 'short_description' | 'featured_image' | 'images' | 'vat_rate_id' | 'takeaway_vat_rate_id' | 'cost_price'>> }) => {
       const { error } = await supabase.from('products').update(patch as never).eq('id', id).eq('tenant_id', tenantId!);
       if (error) throw error;
     },

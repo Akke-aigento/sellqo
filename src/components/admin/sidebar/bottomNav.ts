@@ -18,8 +18,9 @@ export interface BottomNavContext {
  * - Anders: Dashboard · Bestellingen · Producten · Inbox.
  */
 export function defaultBottomNavIds(c: BottomNavContext): string[] {
-  if (c.horeca && !c.webshop && !c.events) return ['dashboard', 'pos', 'kitchen', 'ordering'];
-  if (c.horeca) return ['dashboard', 'orders', 'kitchen', 'ordering'];
+  // HORECA-ZIJBALK-1: 'ordering' is nu de Zaal; de Kaart is 'horeca-menu'.
+  if (c.horeca && !c.webshop && !c.events) return ['dashboard', 'pos', 'kitchen', 'horeca-menu'];
+  if (c.horeca) return ['dashboard', 'orders', 'kitchen', 'horeca-menu'];
   return ['dashboard', 'orders', 'products', 'inbox'];
 }
 
@@ -27,13 +28,24 @@ export function defaultBottomNavIds(c: BottomNavContext): string[] {
 const SHORT_LABEL: Record<string, string> = {
   pos: 'navigation.bottom.kassa',
   kitchen: 'navigation.bottom.kitchen',
-  ordering: 'navigation.bottom.menu',
+  ordering: 'navigation.bottom.floor',
+  'horeca-menu': 'navigation.bottom.menu',
 };
 
 /** Label in de balk. Een horecazaak noemt het dashboard "Vandaag". */
 export function bottomNavLabelKey(item: Pick<NavItem, 'id' | 'titleKey'>, c: BottomNavContext): string {
   if (item.id === 'dashboard' && c.horeca) return 'navigation.bottom.today';
   return SHORT_LABEL[item.id] ?? item.titleKey;
+}
+
+/**
+ * HORECA-ZIJBALK-1 — label in de zijbalk. Een horecazaak noemt het dashboard "Vandaag" (zoals de
+ * onderbalk); zonder webshop opent Kassa de kassa-app zelf en heet het "Kassa-app".
+ */
+export function sidebarLabelKey(item: Pick<NavItem, 'id' | 'titleKey'>, c: BottomNavContext): string {
+  if (item.id === 'dashboard' && c.horeca) return 'navigation.bottom.today';
+  if (item.id === 'pos' && c.horeca && !c.webshop) return 'navigation.items.pos_app';
+  return item.titleKey;
 }
 
 /**

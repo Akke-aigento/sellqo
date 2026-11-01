@@ -21,6 +21,7 @@ import { ProductAllergensCard } from '@/components/admin/storefront/food/Product
 import { ProductAddonsCard } from '@/components/admin/storefront/food/ProductAddonsCard';
 import { isSoldOutNow, useSoldOutToday } from '@/components/admin/storefront/food/useSoldOutToday';
 import { priceFromInput, priceToInput } from './parseKaart';
+import { foodCostLabel, foodCostPct, isFoodCostHigh, FOODCOST_WARN_PCT } from './foodCost';
 import { useKaartMutations, useKaartVat, type KaartCategory, type KaartProduct } from './useKaart';
 
 interface Props {
@@ -31,6 +32,9 @@ interface Props {
   canFull: boolean;
   /** Extra's koppelen: enkel de beheerder (RLS op product_addon_groups). */
   canAddons: boolean;
+  /** KAART-MARGE-1: kostprijs zien (product_costs read) en aanpassen (product_costs write). */
+  canSeeCost?: boolean;
+  canEditCost?: boolean;
   onClose: () => void;
   /** Na "Maat toevoegen": het nieuwe product openen. */
   onOpen: (id: string) => void;
@@ -39,7 +43,7 @@ interface Props {
 
 const cents = (n: number) => Math.round(n * 100);
 
-export function KaartProductSheet({ product, categories, canEdit, canFull, canAddons, onClose, onOpen, onError }: Props) {
+export function KaartProductSheet({ product, categories, canEdit, canFull, canAddons, canSeeCost = false, canEditCost = false, onClose, onOpen, onError }: Props) {
   const { t, i18n } = useTranslation();
   const m = useKaartMutations();
   const vat = useKaartVat();
@@ -50,6 +54,7 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
   const [desc, setDesc] = useState('');
+  const [cost, setCost] = useState('');
   const [more, setMore] = useState(false);
   const [extras, setExtras] = useState(false);
   const [size, setSize] = useState<null | { name: string; price: string }>(null);
@@ -61,6 +66,7 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
     setName(product.name);
     setPrice(priceToInput(product.price, i18n.language));
     setDesc(product.short_description ?? '');
+    setCost(product.cost_price === null ? '' : priceToInput(product.cost_price, i18n.language));
     setSize(null);
     setMore(false);
     setExtras(false);
@@ -79,6 +85,20 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
 
   if (!product) return null;
   const p = product;
+  // KAART-MARGE-1: leeg = geen kostprijs (null); ongeldig = undefined (niet bewaren).
+  const costValue = (raw: string): number | null | undefined => {
+    if (!raw.trim()) return null;
+    const v = priceFromInput(raw);
+    return v === null ? undefined : Number(v);
+  };
+  const commitCost = () => {
+    const c = costValue(cost);
+    if (c === undefined) { toast.error(t('admin.kaart.badPrice')); setCost(p.cost_price === null ? '' : priceToInput(p.cost_price, i18n.language)); return; }
+    if (c !== p.cost_price) save({ cost_price: c });
+  };
+  const vatHere = Number(vat.rateOf(p.vat_rate_id) ?? vat.defaultRate);
+  const shownCost = costValue(cost);
+  const fc = foodCostPct(p.price, shownCost === undefined ? p.cost_price : shownCost, vatHere);
   // Sluiten (kruisje, Escape, naast het paneel tikken) bewaart eerst wat nog getypt staat:
   // daar komt geen blur meer.
   const close = () => {
@@ -89,6 +109,8 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
     if (canEdit && d !== (p.short_description ?? '')) patch.short_description = d || null;
     const n = priceFromInput(price);
     if (canFull && n !== null && Number(n) !== p.price) patch.price = Number(n);
+    const c = costValue(cost);
+    if (canEditCost && c !== undefined && c !== p.cost_price) patch.cost_price = c;
     if (Object.keys(patch).length) m.updateProduct.mutate({ id: p.id, patch }, { onError });
     // Allergenen bewaart hun eigen kaart; de teller in de Kaart ververst hier.
     void qc.invalidateQueries({ queryKey: ['kaart'] });
@@ -204,6 +226,26 @@ export function KaartProductSheet({ product, categories, canEdit, canFull, canAd
                 ))}
               </div>
               <p className="text-xs text-muted-foreground">{t('admin.kaart.sheet.categoryHint')}</p>
+            </section>
+          ) : null}
+
+          {canSeeCost ? (
+            <section className="space-y-2">
+              <Label htmlFor={`kaart-cost-${p.id}`} className="text-sm font-semibold">{t('admin.kaart.cost.label')}</Label>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="relative w-36">
+                  <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                  <Input id={`kaart-cost-${p.id}`} value={cost} disabled={!canEditCost} inputMode="decimal" placeholder={priceToInput(0, i18n.language)}
+                    onChange={(e) => setCost(e.target.value)} onBlur={commitCost} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                    className="h-11 pl-7 text-right tabular-nums" />
+                </div>
+                {fc !== null ? (
+                  <span className={cn('rounded-full border px-3 py-1 text-sm font-semibold tabular-nums', isFoodCostHigh(fc) ? 'border-destructive bg-destructive/10 text-destructive' : 'border-emerald-600/50 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100')}>
+                    {t('admin.kaart.cost.pct', { pct: foodCostLabel(fc) })}
+                  </span>
+                ) : null}
+              </div>
+              <p className="text-xs text-muted-foreground">{t('admin.kaart.cost.hint', { rate: vatHere, warn: FOODCOST_WARN_PCT })}</p>
             </section>
           ) : null}
 

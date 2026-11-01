@@ -5,7 +5,7 @@ import { useMemo, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useTranslation } from 'react-i18next';
-import { ArrowUpDown, Camera, Check, ChevronDown, ChevronRight, ClipboardPaste, FolderPlus, GripVertical, Loader2, Plus, Search, Settings2, Sparkles, X } from 'lucide-react';
+import { ArrowUpDown, Calculator, Camera, Check, ChevronDown, ChevronRight, ClipboardPaste, FolderPlus, GripVertical, Loader2, Plus, Search, Settings2, Sparkles, X } from 'lucide-react';
 import { DndContext, KeyboardSensor, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -24,9 +24,12 @@ import { KaartImportDialog, type ImportSource, type PreviewRow } from './KaartIm
 import { KaartPhotoButton } from './KaartPhotoButton';
 import { kaartErrorKey, kaartKey, useKaart, useKaartMutations, useKaartVat, type BulkChange, type KaartCategory, type KaartProduct } from './useKaart';
 import { KaartProductSheet } from './KaartProductSheet';
+import { FOODCOST_WARN_PCT, foodCostLabel, foodCostPct, isFoodCostHigh } from './foodCost';
 import { useTenant } from '@/hooks/useTenant';
 
 const NONE = '__none__';
+// KAART-MARGE-1: de foodcost-kolom aan of uit, onthouden per toestel.
+const FOODCOST_KEY = 'sq_kaart_foodcost';
 
 export function KaartManager() {
   const { t } = useTranslation();
@@ -36,6 +39,12 @@ export function KaartManager() {
   const roles = useScopedRoles();
   const canFull = canEdit && !!roles?.some((r) => r === 'platform_admin' || r === 'tenant_admin' || r === 'staff');
   const canAddons = canEdit && !!roles?.some((r) => r === 'platform_admin' || r === 'tenant_admin');
+  // KAART-MARGE-1: kostprijs zoals op het productformulier (H4b): zien = product_costs read, aanpassen = write.
+  const canSeeCost = useCan('read', 'product_costs');
+  const canEditCost = useCan('write', 'product_costs');
+  const [fcOn, setFcOn] = useState(() => { try { return localStorage.getItem(FOODCOST_KEY) === '1'; } catch { return false; } });
+  const toggleFc = () => setFcOn((v) => { try { localStorage.setItem(FOODCOST_KEY, v ? '0' : '1'); } catch { /* privémodus */ } return !v; });
+  const showFc = canSeeCost && fcOn;
   const { data, isLoading } = useKaart();
   const m = useKaartMutations();
   const vat = useKaartVat();
@@ -151,10 +160,15 @@ export function KaartManager() {
             </Button>
           </div>
         ) : null}
+        {canSeeCost ? (
+          <Button variant={fcOn ? 'secondary' : 'ghost'} className="h-11 sm:h-10" aria-pressed={fcOn} onClick={toggleFc}>
+            <Calculator className="mr-2 h-4 w-4" />{t('admin.kaart.cost.toggle')}
+          </Button>
+        ) : null}
       </div>
       <p className="text-sm text-muted-foreground">
         {mode === 'sort' ? t('admin.kaart.mode.sortHint') : mode === 'select' ? t('admin.kaart.mode.selectHint')
-          : <>{t('admin.kaart.summary', { count: products.length, active: activeCount })} · {t('admin.kaart.sharedNote')}</>}
+          : <>{t('admin.kaart.summary', { count: products.length, active: activeCount })} · {t('admin.kaart.sharedNote')}{showFc ? <> · {t('admin.kaart.cost.legend', { warn: FOODCOST_WARN_PCT })}</> : null}</>}
       </p>
 
       {products.length > 0 && activeCount === 0 && !term ? (
@@ -200,6 +214,7 @@ export function KaartManager() {
                   <div className="divide-y">
                     {items.map((p) => (
                       <ProductRow key={p.id} p={p} canEdit={canEdit} canPrice={canFull} canDrag={canDrag} showSelect={showSelect} selected={selected.has(p.id)}
+                        foodCost={showFc ? foodCostPct(p.price, p.cost_price, Number(vat.rateOf(p.vat_rate_id) ?? vat.defaultRate)) : undefined}
                         onSelect={(on) => toggleSel([p.id], on)} onOpen={() => setOpenId(p.id)} onError={fail} />
                     ))}
                     {canFull && !term && mode === 'none' ? <QuickAdd categoryId={cat?.id ?? null} onError={fail} /> : null}
@@ -228,6 +243,7 @@ export function KaartManager() {
 
       {openId ? (
         <KaartProductSheet product={products.find((p) => p.id === openId) ?? null} categories={categories} canEdit={canEdit} canFull={canFull} canAddons={canAddons}
+          canSeeCost={canSeeCost} canEditCost={canEditCost}
           onClose={() => setOpenId(null)} onOpen={setOpenId} onError={fail} />
       ) : null}
 
@@ -316,8 +332,10 @@ function SortableSection({ id, canDrag, label, header, body }: { id: string; can
  * ("Op de kaart" en "Beschikbaar"/"Op voor vandaag"). Vanaf sm: alles op één regel.
  * Greep en vinkje enkel in de modus Volgorde of Selecteren. Tik op de naam = alles in het paneel.
  */
-function ProductRow({ p, canEdit, canPrice, canDrag, showSelect, selected, onSelect, onOpen, onError }: {
+function ProductRow({ p, canEdit, canPrice, canDrag, showSelect, selected, foodCost, onSelect, onOpen, onError }: {
   p: KaartProduct; canEdit: boolean; canPrice: boolean; canDrag: boolean; showSelect: boolean; selected: boolean;
+  /** KAART-MARGE-1: undefined = kolom uit; null = geen kostprijs ingevuld. */
+  foodCost?: number | null;
   onSelect: (on: boolean) => void; onOpen: () => void; onError: (e: unknown) => void;
 }) {
   const { t, i18n } = useTranslation();
@@ -348,6 +366,14 @@ function ProductRow({ p, canEdit, canPrice, canDrag, showSelect, selected, onSel
         onCommit={(v) => { const n = priceFromInput(v); if (n !== null && Number(n) !== p.price) m.updateProduct.mutate({ id: p.id, patch: { price: Number(n) } }, { onError }); }} />
       {/* Gsm: eigen regel (w-full); vanaf sm: naast de prijs. */}
       <div className="flex w-full flex-wrap gap-2 sm:w-auto sm:flex-nowrap">
+        {foodCost !== undefined ? (
+          // Tik = paneel open (daar vul je de kostprijs in); geen apart, dood knopje.
+          <button type="button" onClick={onOpen} aria-label={foodCost === null ? t('admin.kaart.cost.missing_aria', { name: p.name }) : t('admin.kaart.cost.pct_aria', { name: p.name, pct: foodCostLabel(foodCost) })}
+            className={cn('inline-flex min-h-10 items-center justify-center rounded-full border px-3 text-sm font-semibold tabular-nums sm:min-h-8 sm:w-20 sm:text-xs',
+              foodCost === null ? 'border-dashed text-muted-foreground' : isFoodCostHigh(foodCost) ? 'border-destructive bg-destructive/10 text-destructive' : 'border-emerald-600/50 bg-emerald-50 text-emerald-900 dark:bg-emerald-950 dark:text-emerald-100')}>
+            {foodCost === null ? t('admin.kaart.cost.none_short') : foodCostLabel(foodCost)}
+          </button>
+        ) : null}
         <button type="button" disabled={!canEdit} aria-pressed={p.is_active}
           onClick={() => m.updateProduct.mutate({ id: p.id, patch: { is_active: !p.is_active } }, { onError })}
           aria-label={p.is_active ? t('admin.kaart.hide', { name: p.name }) : t('admin.kaart.show', { name: p.name })}

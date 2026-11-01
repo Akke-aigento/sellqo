@@ -138,7 +138,8 @@
       "sales": "Verkauf",
       "marketing": "Marketing",
       "management": "Verwaltung",
-      "system": "System"
+      "system": "System",
+      "horeca": "Gastronomie"
     },
     "items": {
       "inbox": "Posteingang",
@@ -209,13 +210,16 @@
       "email": "E-Mail",
       "media": "Medien",
       "platform_overview": "Plattformübersicht",
-      "email_automations": "Automatisierungen"
+      "email_automations": "Automatisierungen",
+      "floor": "Saal",
+      "pos_app": "Kassen-App"
     },
     "bottom": {
       "today": "Heute",
       "kassa": "Kasse",
       "kitchen": "Küche",
-      "menu": "Karte"
+      "menu": "Karte",
+      "floor": "Saal"
     }
   },
   "settings": {
@@ -1702,7 +1706,11 @@
       "pay_status_one": "{{count}} Zahlungsart · Online-Zahlung {{online}}",
       "pay_status_few": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
       "pay_status_many": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
-      "pay_status_other": "{{count}} Zahlungsarten · Online-Zahlung {{online}}"
+      "pay_status_other": "{{count}} Zahlungsarten · Online-Zahlung {{online}}",
+      "gks_title": "SellQo Kassa ist noch kein registriertes Kassensystem (GKS)",
+      "gks_body": "SellQo Kassa ist (noch) nicht als registriertes Kassensystem (GKS 2.0) zertifiziert.",
+      "gks_rule": "Verkaufst du mehr als 25.000 € pro Jahr (ohne MwSt.) an Mahlzeiten zum Verzehr vor Ort, oder hat deine aktuelle Kasse ein fiskalisches Datenmodul (FDM, die „Blackbox“), dann bist du GKS-pflichtig. Nutze SellQo dann nicht als registrierende Kasse, solange SellQo Kassa nicht zertifiziert ist.",
+      "gks_doubt": "Unsicher, ob das für dein Lokal gilt? Frag deine Steuerberatung."
     },
     "bottomNav": {
       "title": "Meine untere Leiste auf dem Handy",
@@ -6426,7 +6434,9 @@
       "tab_menu": "Karte",
       "menu_count": "Auf der Karte: {{count}}",
       "menu_empty": "Noch nichts: starte mit der Startkarte",
-      "all_settings": "Alle Gastronomie-Einstellungen"
+      "all_settings": "Alle Gastronomie-Einstellungen",
+      "tab_setup": "Einrichten",
+      "page_title": "Karte & Bestellen"
     },
     "kitchen": {
       "col_new": "Neu",
@@ -9149,6 +9159,16 @@
         "done": "Fertig",
         "sortHint": "Ziehen Sie Produkte und Kategorien in die richtige Reihenfolge. Tippen Sie auf das Häkchen, wenn Sie fertig sind.",
         "selectHint": "Haken Sie Produkte an, um sie gemeinsam zu ändern. Tippen Sie auf Fertig, wenn Sie fertig sind."
+      },
+      "cost": {
+        "label": "Einkaufspreis (ohne MwSt.)",
+        "pct": "Wareneinsatz {{pct}}",
+        "hint": "Wareneinsatz = Einkaufspreis ÷ Verkaufspreis ohne MwSt. ({{rate}} %). Über {{warn}} % wird er rot. Gäste und Personal sehen das nicht.",
+        "toggle": "Wareneinsatz",
+        "legend": "Wareneinsatz = Einkaufspreis ÷ Preis ohne MwSt., rot über {{warn}} %",
+        "none_short": "–",
+        "missing_aria": "{{name}}: kein Einkaufspreis",
+        "pct_aria": "{{name}}: Wareneinsatz {{pct}}"
       }
     },
     "horecaPay": {
@@ -9407,6 +9427,34 @@
         "vatRate": "MwSt. {{rate}}%",
         "tip": "Trinkgeld {{method}}"
       }
+    },
+    "liveFloor": {
+      "intro": "Was gerade in deinem Lokal offen ist. Rechnungen öffnen und abrechnen machst du in SellQo Kassa.",
+      "tab_live": "Live",
+      "tab_edit": "Raumplan bearbeiten",
+      "stat_tables": "Belegte Tische",
+      "stat_checks": "Offene Rechnungen",
+      "stat_total": "Offen",
+      "live": "Live · aktualisiert alle 10 Sekunden",
+      "updated": "aktualisiert um {{time}}",
+      "error": "Die offenen Rechnungen konnten nicht geladen werden. Es wird erneut versucht.",
+      "no_plan_title": "Noch kein Raumplan",
+      "no_plan_body": "Zeichne deinen Raum, dann siehst du hier pro Tisch, was offen ist. Die Liste unten funktioniert auch ohne Plan.",
+      "edit_plan": "Raumplan zeichnen",
+      "list_title": "Offene Rechnungen",
+      "none": "Keine offenen Rechnungen.",
+      "part": "{{title}} · Teil {{n}}",
+      "open_for": "seit {{duration}} offen",
+      "minutes": "{{m}} Min.",
+      "hours": "{{h}} Std. {{mm}}",
+      "guests": "{{n}} Pers.",
+      "state_open": "Belegt",
+      "state_bill": "Rechnung angefordert",
+      "state_paying": "Wird abgerechnet",
+      "counter": "Theke",
+      "unnamed": "Rechnung ohne Namen",
+      "readonly_hint": "Diese Übersicht ist schreibgeschützt und aktualisiert sich alle 10 Sekunden. SellQo Kassa zeigt Änderungen sofort.",
+      "open_kassa": "SellQo Kassa öffnen"
     }
   },
   "billing": {

@@ -9,8 +9,8 @@ const all = () => true;
 
 describe('onderbalk', () => {
   it('standaard per spoor', () => {
-    expect(defaultBottomNavIds(horecaOnly)).toEqual(['dashboard', 'pos', 'kitchen', 'ordering']);
-    expect(defaultBottomNavIds(mixed)).toEqual(['dashboard', 'orders', 'kitchen', 'ordering']);
+    expect(defaultBottomNavIds(horecaOnly)).toEqual(['dashboard', 'pos', 'kitchen', 'horeca-menu']);
+    expect(defaultBottomNavIds(mixed)).toEqual(['dashboard', 'orders', 'kitchen', 'horeca-menu']);
     expect(defaultBottomNavIds(shop)).toEqual(['dashboard', 'orders', 'products', 'inbox']);
   });
 
@@ -21,7 +21,7 @@ describe('onderbalk', () => {
 
   it('te weinig over (rechten of pakket veranderd) of niets gekozen: de standaard, zonder verboden items', () => {
     expect(resolveBottomNavIds(['kitchen'], all, horecaOnly)).toEqual(defaultBottomNavIds(horecaOnly));
-    expect(resolveBottomNavIds(null, (id) => id !== 'pos', horecaOnly)).toEqual(['dashboard', 'kitchen', 'ordering']);
+    expect(resolveBottomNavIds(null, (id) => id !== 'pos', horecaOnly)).toEqual(['dashboard', 'kitchen', 'horeca-menu']);
   });
 
   it('kassa opent de kassa-app enkel bij horeca zonder webshop; korte labels', () => {
@@ -30,5 +30,8 @@ describe('onderbalk', () => {
     expect(bottomNavLabelKey({ id: 'dashboard', titleKey: 'navigation.dashboard' }, horecaOnly)).toBe('navigation.bottom.today');
     expect(bottomNavLabelKey({ id: 'dashboard', titleKey: 'navigation.dashboard' }, shop)).toBe('navigation.dashboard');
     expect(bottomNavLabelKey({ id: 'pos', titleKey: 'navigation.items.pos' }, shop)).toBe('navigation.bottom.kassa');
+    // HORECA-ZIJBALK-1: 'ordering' is de Zaal, 'horeca-menu' de Kaart.
+    expect(bottomNavLabelKey({ id: 'ordering', titleKey: 'navigation.items.floor' }, horecaOnly)).toBe('navigation.bottom.floor');
+    expect(bottomNavLabelKey({ id: 'horeca-menu', titleKey: 'admin.orderingHub.tab_menu' }, horecaOnly)).toBe('navigation.bottom.menu');
   });
 });
