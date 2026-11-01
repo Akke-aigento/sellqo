@@ -105,6 +105,13 @@ describe('KEUKEN-VEILIG-1', () => {
     const c = cardFromOrder(order({ order_items: [{ product_name: 'Pita', variant_title: null, quantity: 1, addons: [], products: { allergens: ['milk'] } }] }), undefined);
     expect(cardAllergens(c)).toEqual(['milk']);
   });
+  it('KEUKEN-VEILIG-1b: webshop — allergenen van de gekozen extra\'s erbij', () => {
+    const o = order({ order_items: [{ product_name: 'Pizza', variant_title: null, quantity: 1, products: { allergens: ['gluten'] },
+      addons: [{ group_id: 'g', group: 'Extra', option_id: 'opt-ans', name: 'Ansjovis', price: 1 }, { name: 'zonder id' }] }] });
+    const c = buildBoard([o], [], NOW, undefined, new Map([['opt-ans', ['fish']]]))[0];
+    expect(c.items[0].allergens).toEqual(['fish', 'gluten']);
+    expect(cardFromOrder(o, undefined).items[0].allergens).toEqual(['gluten']);
+  });
   it('te laat geldt ook voor bonnen zonder gekozen tijd (kassa, QR)', () => {
     const asap = cardFromTicket(ticket({ created_at: '2026-10-13T15:30:00Z' }));
     expect(isLate(asap, NOW)).toBe(true);

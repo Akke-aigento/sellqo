@@ -89,7 +89,8 @@ export function KitchenView({ cards, stations, activeStation, onStation, isLoadi
           <StationSelect stations={stations} value={activeStation} onChange={onStation} className="h-11 max-w-[14rem]" />
         </div>
       ) : null}
-      <KitchenColumns cards={cards} now={board.now} isLoading={isLoading} error={error} busyKeys={board.busyKeys} fresh={board.fresh} storeName={board.storeName}
+      <KitchenColumns flow={stations.find((x) => x.id === activeStation)?.kind === 'bar' ? 'bar' : 'kitchen'}
+        cards={cards} now={board.now} isLoading={isLoading} error={error} busyKeys={board.busyKeys} fresh={board.fresh} storeName={board.storeName}
         onMove={board.onMove} linkOrders={false} />
     </div>
   );

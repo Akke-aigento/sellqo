@@ -195,10 +195,12 @@ export function StationSelect({ stations, value, onChange, className }: { statio
 }
 
 /** De drie kolommen (nieuw, in bereiding, klaar) plus wat al afgewerkt is. Op gsm en tablet staand: tabbladen. */
-export function KitchenColumns({ cards, now, isLoading, error, busyKeys, fresh, storeName, onMove, linkOrders = true }: {
+export function KitchenColumns({ cards, now, isLoading, error, busyKeys, fresh, storeName, onMove, linkOrders = true, flow = 'kitchen' }: {
   /** KEUKEN-VEILIG-1: welke bonnen nu bezig zijn (per bon, niet het hele bord). */
   cards: KitchenCard[]; now: number; isLoading: boolean; error: unknown; busyKeys: ReadonlySet<string>; fresh: Set<string>; storeName: string;
   onMove: (card: KitchenCard, status: KitchenStatus) => void; linkOrders?: boolean;
+  /** KEUKEN-VEILIG-1b: post Bar gekozen → de barflow van de kassa (één lijst, één tik "Klaar"). */
+  flow?: KitchenFlow;
 }) {
   const { t, i18n } = useTranslation();
   const [tab, setTab] = useState<KitchenStatus>('new');
@@ -210,6 +212,44 @@ export function KitchenColumns({ cards, now, isLoading, error, busyKeys, fresh, 
     return m;
   }, [cards]);
   const move = (card: KitchenCard, status: KitchenStatus | null) => { if (status) onMove(card, status); };
+  const doneList = byStatus.done.length ? (
+    <footer className="max-h-[40vh] overflow-y-auto border-t bg-background px-4 py-2">
+      <button type="button" onClick={() => setShowDone((v) => !v)} aria-expanded={showDone} className="flex h-10 items-center gap-1 text-sm font-semibold text-muted-foreground">
+        <ChevronDown className={cn('h-4 w-4 transition-transform', showDone && 'rotate-180')} />{t('admin.kitchen.done_count', { count: byStatus.done.length })}
+      </button>
+      {showDone ? (
+        <ul className="mt-2 divide-y text-sm">
+          {byStatus.done.map((c) => (
+            <li key={c.key} className="flex items-center gap-3 py-1.5">
+              <span className="w-12 font-semibold tabular-nums">{hhmm(c.requestedTime || c.createdAt, i18n.language)}</span>
+              <span className="flex-1 truncate">{sourceName(c, t)} · {whoName(c, t) || '—'} · {c.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</span>
+              <Button variant="ghost" size="sm" disabled={busyKeys.has(c.key)} onClick={() => move(c, flow === 'bar' ? flowPrev(c, 'bar') : 'ready')}><Undo2 className="mr-1 h-3.5 w-3.5" />{t('common.back')}</Button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </footer>
+  ) : null;
+  if (flow === 'bar') {
+    // KEUKEN-VEILIG-1b: zoals de bar in SellQo Kassa — alles wat nog open staat, oudste eerst, één tik.
+    const open = [...byStatus.new, ...byStatus.preparing, ...byStatus.ready].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    return (
+      <>
+        {error ? <p className="m-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">{t('admin.kitchen.load_error')}</p> : null}
+        <main className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-4">
+          {isLoading ? <p className="text-sm text-muted-foreground">{t('admin.kitchen.loading')}</p> : null}
+          {!isLoading && !open.length ? <p className="rounded-xl border-2 border-dashed p-6 text-center text-sm text-muted-foreground">{t('admin.kitchen.no_new')}</p> : null}
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {open.map((c) => (
+              <TicketCard key={c.key} card={c} now={now} busy={busyKeys.has(c.key)} fresh={fresh.has(c.key)} linkOrders={linkOrders} compact flow="bar"
+                onAdvance={() => move(c, flowNext(c, 'bar'))} onBack={() => move(c, flowPrev(c, 'bar'))} onPrint={() => printTicket(c, storeName, ticketLabels(t, i18n.language))} />
+            ))}
+          </div>
+        </main>
+        {doneList}
+      </>
+    );
+  }
   return (
     <>
       {/* Gsm en tablet staand: tabbladen per kolom (HORECA-0: drie kolommen pas vanaf 1024 px). */}
@@ -246,24 +286,7 @@ export function KitchenColumns({ cards, now, isLoading, error, busyKeys, fresh, 
         ))}
       </main>
 
-      {byStatus.done.length ? (
-        <footer className="max-h-[40vh] overflow-y-auto border-t bg-background px-4 py-2">
-          <button type="button" onClick={() => setShowDone((v) => !v)} className="flex items-center gap-1 text-sm font-semibold text-muted-foreground">
-            <ChevronDown className={cn('h-4 w-4 transition-transform', showDone && 'rotate-180')} />{t('admin.kitchen.done_count', { count: byStatus.done.length })}
-          </button>
-          {showDone ? (
-            <ul className="mt-2 divide-y text-sm">
-              {byStatus.done.map((c) => (
-                <li key={c.key} className="flex items-center gap-3 py-1.5">
-                  <span className="w-12 font-semibold tabular-nums">{hhmm(c.requestedTime || c.createdAt, i18n.language)}</span>
-                  <span className="flex-1 truncate">{sourceName(c, t)} · {whoName(c, t) || '—'} · {c.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</span>
-                  <Button variant="ghost" size="sm" onClick={() => move(c, 'ready')}><Undo2 className="mr-1 h-3.5 w-3.5" />{t('common.back')}</Button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </footer>
-      ) : null}
+      {doneList}
     </>
   );
 }

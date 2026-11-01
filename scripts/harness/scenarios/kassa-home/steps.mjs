@@ -142,6 +142,12 @@ export async function run(page, { width, shot, log }) {
   log('rode rand (te laat)', await page.locator('article.border-red-500').count());
   await shot('9-keuken');
   log('overflow keuken px', await overflow(page));
+  // KEUKEN-VEILIG-1b: post Bar gekozen in Keuken = de één-tik-barflow (één lijst, knop Klaar).
+  await page.getByRole('combobox', { name: 'Post' }).selectOption({ label: 'Bar' }).catch(() => log('geen postkeuze'));
+  await page.waitForTimeout(250);
+  log('bar-post knoppen', JSON.stringify(await page.locator('article').first().getByRole('button').allInnerTexts()));
+  await shot('9b-keuken-post-bar');
+  await page.getByRole('combobox', { name: 'Post' }).selectOption({ label: 'Keuken' }).catch(() => {});
   // Taal: start in de taal van de zaak (nl); kies op dit toestel English en terug.
   await page.getByRole('button', { name: 'Menu' }).click();
   await page.getByRole('menuitem', { name: 'Taal' }).click();

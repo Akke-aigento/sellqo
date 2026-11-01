@@ -77,6 +77,15 @@ export function allergenCodes(raw: unknown): string[] {
 export const cardAllergens = (c: KitchenCard): string[] =>
   [...new Set(c.items.filter((i) => i.quantity > 0).flatMap((i) => i.allergens))].sort();
 
+/** KEUKEN-VEILIG-1b — option_id's van de gekozen extra's van een webshopregel (storefront ChosenAddon). */
+export function addonOptionIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((a) => (a && typeof a === 'object' && 'option_id' in a ? String((a as { option_id: unknown }).option_id ?? '') : '')).filter(Boolean);
+}
+
+/** Allergenen per extra (option_id → codes), uit product_addon_options. */
+export type AddonAllergens = ReadonlyMap<string, string[]>;
+
 function addonNames(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
   return raw.map((a) => (a && typeof a === 'object' && 'name' in a ? String((a as { name: unknown }).name ?? '') : '')).filter(Boolean);
@@ -106,7 +115,7 @@ export function orderBelongsInKitchen(o: OrderRow): boolean {
   return o.payment_status === 'paid' || o.payment_method === 'pay_on_pickup';
 }
 
-export function cardFromOrder(o: OrderRow, ticket: TicketRow | undefined): KitchenCard {
+export function cardFromOrder(o: OrderRow, ticket: TicketRow | undefined, addonAllergens?: AddonAllergens): KitchenCard {
   return {
     key: `o:${o.id}`,
     source: 'webshop',
@@ -126,7 +135,8 @@ export function cardFromOrder(o: OrderRow, ticket: TicketRow | undefined): Kitch
       const addons = addonNames(i.addons);
       return {
         quantity: Number(i.quantity) || 1, name: i.product_name || '', detail: variantOnly(i.variant_title, addons), addons,
-        note: null, allergens: allergenCodes(i.products?.allergens),
+        // KEUKEN-VEILIG-1b: ook de allergenen van de gekozen extra's (zoals aan de kassa en via de QR).
+        note: null, allergens: allergenCodes([...(i.products?.allergens ?? []), ...addonOptionIds(i.addons).flatMap((id) => addonAllergens?.get(id) ?? [])]),
       };
     }),
     total: o.total != null ? Number(o.total) : null,
@@ -193,10 +203,10 @@ export const dueAt = (c: KitchenCard) => new Date(c.requestedTime || c.createdAt
  * 12 uur (voor "terugzetten"). Een vooruitbestelling voor later dan `horizonMs`
  * verschijnt pas als ze dichterbij komt.
  */
-export function buildBoard(orders: OrderRow[], tickets: TicketRow[], nowMs: number, horizonMs = 18 * 3600_000): KitchenCard[] {
+export function buildBoard(orders: OrderRow[], tickets: TicketRow[], nowMs: number, horizonMs = 18 * 3600_000, addonAllergens?: AddonAllergens): KitchenCard[] {
   const byOrder = new Map(tickets.filter((t) => t.order_id).map((t) => [t.order_id as string, t]));
   const cards = [
-    ...orders.filter(orderBelongsInKitchen).map((o) => cardFromOrder(o, byOrder.get(o.id))),
+    ...orders.filter(orderBelongsInKitchen).map((o) => cardFromOrder(o, byOrder.get(o.id), addonAllergens)),
     ...tickets.filter((t) => !t.order_id).map(cardFromTicket),
   ];
   return cards

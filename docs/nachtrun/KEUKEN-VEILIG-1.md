@@ -82,7 +82,20 @@ Elf bevindingen uit de rollenwandeling, elk nagetrokken in de code (en de ankers
 - Na de migratie natrekken: `select position('KEUKEN-VEILIG-1' in pg_get_functiondef('public.horeca_apply_one'::regproc)) > 0;` (idem `horeca_pay`) en `select count(*) from ops.keuken_veilig_1_prev_functions;` = 2.
 - doc_articles/newsletter: niet geschreven (hoofdsessie).
 
+## Vervolg in dezelfde batch — KEUKEN-VEILIG-1b (beslissingen van de hoofdsessie, 1-11)
+
+1. **Bar-signaal**: de ober krijgt ook voor drank "klaar".
+   - Migratie `supabase/migrations/20261101230210_keuken_veilig_1b_bar_ready.sql`: patcht `horeca_device_push_tr` (één anker, live 1× nagetrokken, marker `KEUKEN-VEILIG-1b`, vorige definitie in `ops.keuken_veilig_1b_prev_functions`). `ticket_ready` gaat nu ook uit als een bon van een **barpost** van nieuw/in bereiding rechtstreeks naar afgewerkt springt. Stond de bon eerst op klaar (`old.status = 'ready'`), dan geen tweede melding. Keukenbonnen die afgewerkt worden zonder klaar: geen melding (ongewijzigd).
+   - Kassamelding (`src/kassa/app/useKassaSignals.ts`): leest eenmalig de barposten (`prep_stations.kind = 'bar'`) en vraagt `status = ready` **of** (`status = done` en barpost). Een afgewerkte barbon meldt enkel als hij op dit toestel nooit als klaar voorbijkwam (geen dubbele melding). Test uitgebreid in `src/kassa/app/__tests__/signals.test.tsx`.
+   - Lokale SQL-test: `scripts/gks/sql/test_keuken_veilig_1b.sql` (stub van `horeca_device_notify`): barbon in één tik → 1 melding, keukenbon afgewerkt → 0, klaar dan afgewerkt → 1 (niet 2). Migratie 2× gedraaid (idempotent).
+2. **Allergenen van extra's bij webshoporders**: kan, want `order_items.addons` bevat de `option_id` (storefront `ChosenAddon`; live nog geen orders met extra's). `useKitchenBoard` haalt enkel bij orders met extra's `product_addon_options(id, allergens)` op (eigen zaak); `horeca-print` (`printOrder`) doet hetzelfde. Versie `horeca-print` → `KEUKEN-VEILIG-1b`. Geen migratie nodig.
+3. **/admin/keuken (en Keuken in de kassa) met post "Bar"**: `KitchenColumns` krijgt `flow`; post Bar = één lijst open bonnen (oudste eerst), compacte kaarten met één knop **Klaar**, "terug" in de afgewerkte lijst zet de bon op nieuw. Harnas-stap `9b-keuken-post-bar` (390/1024/1280) bekeken.
+
+**Verificatie 1b**: volledige `npx tsc --noEmit -p tsconfig.app.json` → **exit 0** (nu wel gelukt). `npx vitest run src/components/admin/kitchen src/components/horeca src/kassa` → 331 groen, 1 overgeslagen, 0 rood (qr.js staat intussen in de gedeelde node_modules). `deno check horeca-print` → 0. eslint op de gewijzigde bestanden → 0. Harnas `kassa-home` → exit 0.
+
+**Uitrol (bijgewerkt)**: (1) `horeca-print` + `horeca-receipt-mail` deployen (vingerafdruk `GET horeca-print` → `KEUKEN-VEILIG-1b`), (2) migraties 20261101230200 en 20261101230210, (3) frontend publiceren + app-build. Natrek: `select position('KEUKEN-VEILIG-1b' in pg_get_functiondef('public.horeca_device_push_tr'::regproc)) > 0;`
+
 ## Changelog (NL)
 
 **Allergieën en opmerkingen vallen niet meer weg tussen keuken en bar**
-Een opmerking van je gast via de QR (bv. een allergie) staat nu op elke bon van die bestelling, ook in de keuken, en opmerkingen en allergenen van je producten staan groot op het scherm en op de afgedrukte bon. Aan de bar werk je een bon af met één tik, te late bonnen kleuren rood en je kassa waarschuwt als een bonprinter niet afdrukt.
+Een opmerking van je gast via de QR (bv. een allergie) staat nu op elke bon van die bestelling, ook in de keuken, en opmerkingen en allergenen van je producten staan groot op het scherm en op de afgedrukte bon. Aan de bar werk je een bon af met één tik (de bediening krijgt toch een seintje dat de drank klaar is), te late bonnen kleuren rood en je kassa waarschuwt als een bonprinter niet afdrukt.

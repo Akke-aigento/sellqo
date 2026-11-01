@@ -19,7 +19,7 @@ import {
 } from "../_shared/horecaPrint.ts";
 import { receiptModelFromData, type ReceiptData } from "../_shared/horecaReceipt.ts";
 
-const VERSION = "KEUKEN-VEILIG-1";
+const VERSION = "KEUKEN-VEILIG-1b";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const corsHeaders = {
@@ -80,6 +80,12 @@ function allergenCodes(raw: unknown): string[] {
   return [...new Set(raw.filter((a): a is string => typeof a === "string" && a.length > 0))].sort();
 }
 
+/** KEUKEN-VEILIG-1b — option_id's van de gekozen extra's van een webshopregel. */
+function addonOptionIds(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((a) => (a && typeof a === "object" && "option_id" in a ? String((a as { option_id: unknown }).option_id ?? "") : "")).filter(Boolean);
+}
+
 const asService = (s: unknown) => (s === "pickup" || s === "local_delivery" || s === "eat_in" ? s : null);
 
 /** PRINT-2b: printer voor bonnen zonder post (een zaak zonder posten, of zonder standaardpost). */
@@ -133,9 +139,20 @@ async function printOrder(db: Db, id: string) {
     .eq("is_default", true).eq("is_active", true).limit(1).maybeSingle();
   const printer = st ? await activePrinter(db, st.printer_id) : await fallbackPrinter(db, o.tenant_id);
   if (!printer) return { skipped: "no_printer" };
-  const items: ProductionItem[] = ((o.order_items ?? []) as Record<string, unknown>[]).map((i) => {
+  const rows = (o.order_items ?? []) as Record<string, unknown>[];
+  // KEUKEN-VEILIG-1b: ook de allergenen van de gekozen extra's.
+  const optionIds = [...new Set(rows.flatMap((i) => addonOptionIds(i.addons)))];
+  const addonAllergens = new Map<string, unknown>();
+  if (optionIds.length) {
+    const { data: opts } = await db.from("product_addon_options").select("id, allergens").eq("tenant_id", o.tenant_id).in("id", optionIds);
+    for (const x of (opts ?? []) as { id: string; allergens: unknown }[]) addonAllergens.set(x.id, x.allergens);
+  }
+  const items: ProductionItem[] = rows.map((i) => {
     const addons = addonNames(i.addons);
-    const allergens = allergenCodes((i.products as { allergens?: unknown } | null)?.allergens);
+    const allergens = allergenCodes([
+      ...allergenCodes((i.products as { allergens?: unknown } | null)?.allergens),
+      ...addonOptionIds(i.addons).flatMap((id) => allergenCodes(addonAllergens.get(id))),
+    ]);
     return { quantity: Number(i.quantity) || 1, name: String(i.product_name ?? ""), detail: variantOnly((i.variant_title as string | null) ?? null, addons), addons, allergens };
   });
   const ticket: ProductionTicket = {

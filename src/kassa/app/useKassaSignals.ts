@@ -39,8 +39,12 @@ export function useKassaSignals(tenantId: string, requests: TableRequest[], requ
   // Klare bonnen en online betalingen: alles van het laatste uur, en enkel melden wat dit toestel nog
   // niet zag (id + tijdstip). Geen cursor op tijd: status_at komt van de klok van het keukentoestel,
   // en twee toestellen met een verschillende klok mogen elkaar geen meldingen laten missen.
+  // KEUKEN-VEILIG-1b: de barpost werkt een bon in één tik af (nieuw → afgewerkt, zonder 'klaar'). Zo'n
+  // bon telt ook als "klaar" voor de bediening; stond hij al eerder op klaar, dan geen tweede melding.
   useEffect(() => {
     const seen = new Set<string>();
+    const readyIds = new Set<string>();
+    let barIds: string[] | null = null;
     let primed = false;
     let alive = true;
     let busy = false;
@@ -48,20 +52,29 @@ export function useKassaSignals(tenantId: string, requests: TableRequest[], requ
       if (busy || document.visibilityState !== 'visible') return;
       busy = true;
       try {
+        if (barIds === null) {
+          const st = await supabase.from('prep_stations').select('id').eq('tenant_id', tenantId).eq('kind', 'bar');
+          if (!alive || st.error) return;
+          barIds = ((st.data ?? []) as { id: string }[]).map((x) => x.id);
+        }
         const since = new Date(Date.now() - WINDOW_MS).toISOString();
+        const tickets = supabase.from('kitchen_tickets').select('id, table_label, customer_label, status, status_at').eq('tenant_id', tenantId);
         const [ready, paid] = await Promise.all([
-          supabase.from('kitchen_tickets').select('id, table_label, customer_label, status_at')
-            .eq('tenant_id', tenantId).eq('status', 'ready').gt('status_at', since).order('status_at', { ascending: false }).limit(50),
+          (barIds.length ? tickets.or(`status.eq.ready,and(status.eq.done,station_id.in.(${barIds.join(',')}))`) : tickets.eq('status', 'ready'))
+            .gt('status_at', since).order('status_at', { ascending: false }).limit(50),
           supabase.from('check_online_payments' as never).select('id, table_label, amount_cents, tip_cents, paid_at')
             .eq('tenant_id' as never, tenantId as never).eq('status' as never, 'paid' as never).gt('paid_at' as never, since as never)
             .order('paid_at' as never, { ascending: false }).limit(50),
         ]);
         if (!alive || ready.error || paid.error) return; // bij een fout: volgende keer opnieuw, niets is als gezien gemarkeerd
-        const r = ((ready.data ?? []) as { id: string; table_label: string | null; customer_label: string | null; status_at: string }[])
-          .filter((x) => !seen.has(`r:${x.id}:${x.status_at}`));
+        const rows = (ready.data ?? []) as { id: string; table_label: string | null; customer_label: string | null; status?: string; status_at: string }[];
+        // Een afgewerkte barbon enkel als hij nooit als "klaar" voorbijkwam (geen dubbele melding).
+        const keyOf = (x: (typeof rows)[number]) => (x.status === 'done' ? `d:${x.id}` : `r:${x.id}:${x.status_at}`);
+        const r = rows.filter((x) => !seen.has(keyOf(x)) && !(x.status === 'done' && readyIds.has(x.id)));
+        rows.forEach((x) => { if (x.status !== 'done') readyIds.add(x.id); });
         const p = ((paid.data ?? []) as unknown as { id: string; table_label: string | null; amount_cents: number; tip_cents: number }[])
           .filter((x) => !seen.has(`p:${x.id}`));
-        r.forEach((x) => seen.add(`r:${x.id}:${x.status_at}`));
+        r.forEach((x) => seen.add(keyOf(x)));
         p.forEach((x) => seen.add(`p:${x.id}`));
         // De eerste lading telt nooit als nieuw.
         if (!primed) { primed = true; return; }

@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
 import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
-import { buildBoard, notifiesCustomer, type KitchenCard, type KitchenStatus, type OrderRow, type TicketRow } from './kitchenModel';
+import { addonOptionIds, buildBoard, notifiesCustomer, type KitchenCard, type KitchenStatus, type OrderRow, type TicketRow } from './kitchenModel';
 
 const WINDOW_MS = 3 * 24 * 3600_000;
 const DONE_KEEP_MS = 12 * 3600_000;
@@ -46,11 +46,19 @@ export function useKitchenBoard(nowMs: number, enabled = true, intervalMs = BOAR
       ]);
       if (o.error) throw o.error;
       if (t.error) throw t.error;
-      return { orders: (o.data || []) as unknown as OrderRow[], tickets: (t.data || []) as unknown as TicketRow[] };
+      const orders = (o.data || []) as unknown as OrderRow[];
+      // KEUKEN-VEILIG-1b: allergenen van gekozen extra's (webshop). Enkel een vraag als er extra's zijn.
+      const optionIds = [...new Set(orders.flatMap((x) => (x.order_items || []).flatMap((i) => addonOptionIds(i.addons))))].slice(0, 300);
+      let addonAllergens: [string, string[]][] = [];
+      if (optionIds.length) {
+        const a = await supabase.from('product_addon_options').select('id, allergens').eq('tenant_id', tenantId!).in('id', optionIds);
+        if (!a.error) addonAllergens = ((a.data || []) as { id: string; allergens: string[] | null }[]).map((x) => [x.id, x.allergens ?? []]);
+      }
+      return { orders, tickets: (t.data || []) as unknown as TicketRow[], addonAllergens };
     },
   });
 
-  const cards = useMemo(() => (query.data ? buildBoard(query.data.orders, query.data.tickets, nowMs) : []), [query.data, nowMs]);
+  const cards = useMemo(() => (query.data ? buildBoard(query.data.orders, query.data.tickets, nowMs, undefined, new Map(query.data.addonAllergens)) : []), [query.data, nowMs]);
 
   const setStatus = useMutation({
     mutationKey,

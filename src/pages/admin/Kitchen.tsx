@@ -128,7 +128,9 @@ export default function KitchenPage() {
       ) : null}
       <PrintHealthBanner tenantId={currentTenant?.id} />
 
+      {/* KEUKEN-VEILIG-1b: post Bar gekozen = de één-tik-barflow, zoals in de kassa. */}
       <KitchenColumns cards={cards} now={now} isLoading={isLoading} error={error} busyKeys={busyKeys} fresh={fresh} storeName={storeName}
+        flow={stations.find((x) => x.id === activeStation)?.kind === 'bar' ? 'bar' : 'kitchen'}
         onMove={(card, status) => setStatus.mutate({ card, status })} />
     </div>
   );

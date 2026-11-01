@@ -5,22 +5,28 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook } from '@testing-library/react';
 
 type Row = Record<string, unknown>;
-const state: { ready: Row[]; paid: Row[]; fail: boolean; filters: { table: string; gt: [string, string] | null }[] } = { ready: [], paid: [], fail: false, filters: [] };
+const state: { ready: Row[]; paid: Row[]; bars: string[]; fail: boolean; filters: { table: string; gt: [string, string] | null }[] } = { ready: [], paid: [], bars: [], fail: false, filters: [] };
 
 function builder(table: string) {
   let gt: [string, string] | null = null;
   let asc = true;
   let limit = 100;
+  let orExpr: string | null = null;
   const b = {
     select: () => b, eq: () => b,
+    or: (e: string) => { orExpr = e; return b; },
     gt: (col: string, v: string) => { gt = [col, v]; return b; },
     order: (_c: string, o?: { ascending?: boolean }) => { asc = o?.ascending !== false; return b; },
     limit: (n: number) => { limit = n; return b; },
     then: (res: (v: unknown) => unknown) => {
       state.filters.push({ table, gt });
       if (state.fail) return Promise.resolve({ data: null, error: { message: 'x' } }).then(res);
+      if (table === 'prep_stations') return Promise.resolve({ data: state.bars.map((id) => ({ id })), error: null }).then(res);
       const col = table === 'kitchen_tickets' ? 'status_at' : 'paid_at';
-      let rows = (table === 'kitchen_tickets' ? state.ready : state.paid).filter((r) => !gt || String(r[col]) > gt[1]);
+      let rows = (table === 'kitchen_tickets'
+        // KEUKEN-VEILIG-1b: zonder status = klaar; afgewerkt enkel voor een barpost (via .or()).
+        ? state.ready.filter((r) => (r.status ?? 'ready') === 'ready' || (!!orExpr && r.status === 'done' && state.bars.includes(String(r.station_id))))
+        : state.paid).filter((r) => !gt || String(r[col]) > gt[1]);
       rows = [...rows].sort((a, c) => (String(a[col]) < String(c[col]) ? -1 : 1));
       if (!asc) rows.reverse();
       return Promise.resolve({ data: rows.slice(0, limit), error: null }).then(res);
@@ -39,7 +45,7 @@ vi.mock('@/lib/ding', () => ({ ding: vi.fn() }));
 import { useKassaSignals } from '../useKassaSignals';
 import { ding } from '@/lib/ding';
 
-const flush = async () => { await act(async () => { await Promise.resolve(); await Promise.resolve(); await Promise.resolve(); }); };
+const flush = async () => { await act(async () => { for (let i = 0; i < 8; i++) await Promise.resolve(); }); };
 
 describe('useKassaSignals', () => {
   beforeEach(() => {
@@ -47,6 +53,7 @@ describe('useKassaSignals', () => {
     vi.setSystemTime(new Date('2026-10-28T10:10:00Z'));
     state.ready = [{ id: 'old', table_label: '1', customer_label: null, status_at: '2026-10-28T10:00:00Z' }];
     state.paid = [];
+    state.bars = [];
     state.fail = false;
     state.filters = [];
     toastSuccess.mockClear(); toastPlain.mockClear(); vi.mocked(ding).mockClear();
@@ -79,6 +86,21 @@ describe('useKassaSignals', () => {
     await flush();
     expect(toastSuccess).toHaveBeenCalledTimes(1);
     expect(String(toastSuccess.mock.calls[0][0])).toMatch(/kassa\.signals\.ready.*9/);
+  });
+
+  it('KEUKEN-VEILIG-1b: barbon in één tik afgewerkt = melding "klaar"; eerst klaar en dan afgewerkt = geen tweede', async () => {
+    state.bars = ['bar'];
+    state.ready.push({ id: 'k1', table_label: '3', customer_label: null, status: 'ready', station_id: 'bar', status_at: '2026-10-28T10:08:00Z' });
+    renderHook(() => useKassaSignals('t1', [], true, false));
+    await flush();
+    state.ready.push({ id: 'b1', table_label: '6', customer_label: null, status: 'done', station_id: 'bar', status_at: '2026-10-28T10:09:00Z' });
+    state.ready.push({ id: 'kd', table_label: '8', customer_label: null, status: 'done', station_id: 'keuken', status_at: '2026-10-28T10:09:00Z' });
+    const k1 = state.ready.find((r) => r.id === 'k1')!;
+    k1.status = 'done'; k1.status_at = '2026-10-28T10:09:30Z';
+    await act(async () => { vi.advanceTimersByTime(10_000); });
+    await flush();
+    expect(toastSuccess).toHaveBeenCalledTimes(1);
+    expect(String(toastSuccess.mock.calls[0][0])).toMatch(/kassa\.signals\.ready.*6/);
   });
 
   it('een fout slaat niets over', async () => {
