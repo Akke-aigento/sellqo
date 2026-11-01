@@ -11,6 +11,8 @@ Deze regel bestaat omdat de codebase historisch is dichtgeslibd met hardcoded Ne
 
 **Scope:** admin UI + SellQo-based storefront. NIET de custom tenant-frontends — die hebben een eigen i18n-setup en vallen buiten deze skill.
 
+**Twee storefronts, twee standen (nachtrun 1 nov 2026).** "SellQo-based storefront" in deze skill = de renderer in déze repo (`src/pages/storefront`, `src/components/storefront`, via `t()`). De aparte repo `Akke-aigento/sellqo-storefront` (TanStack Start, o.a. `/menu`, `/rekening`, `/reserveren`) heeft **geen** i18n: alles is hardcoded Nederlands, ook `<html lang="nl">`. Dat is bekende schuld (spoor "meertalige storefront"), geen vrijbrief: nieuwe tekst daar zet je gegroepeerd in één bestand per scherm zodat de latere i18n-batch hem in één keer kan oppakken, en je beweert nooit dat die storefront meertalig is.
+
 Welke tenants dat zijn is een databasevraag, geen lijst om te onthouden — een opsomming met namen veroudert stil (Benny Rich stond twee weken buiten de lijst nadat zijn vlag aanging):
 
 ```sql

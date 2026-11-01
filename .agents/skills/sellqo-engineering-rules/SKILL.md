@@ -385,3 +385,17 @@ een scenario toevoegt: `scripts/harness/README.md`.
 opnieuw met de hand opgebouwd en daarna weggegooid. Bij ONDERBALK-1 ving het een
 lijst met andere labels dan de balk erboven ("Point of sale (P…" naast "Kassa"); de
 eerste versie stond per ongeluk in het Engels omdat de taal ná i18n werd gezet.
+
+## R18 — Elke handeling die geld kost, controleert de server op de rol van de kassamedewerker.
+Korting, "van het huis", het annuleren van een verstuurde lijn, een retour: de
+server (bv. `horeca_apply_one`) controleert de kassarol (owner/manager) of een
+goedkeuring met PIN van zo iemand. `has_tenant_role(... 'staff')` alleen is niet
+genoeg: elke kassamedewerker logt in als `staff`.
+**Regel:**
+- de knop verbergen of een PIN-dialoog tonen in de app is UX, geen beveiliging;
+  de controle hoort server-side;
+- hergebruik het approver-patroon van `ProductQuickEdit` / `productActions`;
+- de fiscale events blijven dezelfde; enkel wie ze mag uitlokken verandert.
+**Incident (rollenwandeling, 1 nov 2026):** korting −10/20/50 % en gratis kon elke
+medewerker zonder goedkeuring geven; de server keek enkel naar `tenant_admin`/`staff`.
+Opgelost in KASSA-RECHTEN-1.
