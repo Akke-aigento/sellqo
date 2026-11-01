@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { getReportPresetRange, type ReportPresetKey } from '@/lib/reportDateRanges';
 import {
@@ -14,6 +15,7 @@ import {
   FileCode,
   FileCheck,
   Calculator,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +26,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { GlobalDateRangePicker, DateRange } from '@/components/admin/reports/GlobalDateRangePicker';
 import { ReportCard } from '@/components/admin/reports/ReportCard';
+import { HorecaReportsTab } from '@/components/admin/reports/HorecaReportsTab';
+import { useTracks } from '@/hooks/useBusinessModules';
 import { OPEN_INVOICE_STATUSES } from '@/lib/invoiceStatuses';
 import {
   useAgingExport,
@@ -38,6 +42,17 @@ const Reports = () => {
   const { t } = useTranslation();
   const { currentTenant } = useTenant();
   const [dateRange, setDateRange] = useState<DateRange>(() => getReportPresetRange(QUICK_PRESETS[0]));
+  // RAPPORT-HORECA-1 — tabs deeplinkbaar (?tab=aangiftes|boekhouding|horeca); Horeca enkel met het horecaspoor.
+  const { hasTrack } = useTracks();
+  const horeca = hasTrack('horeca');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const rawTab = searchParams.get('tab');
+  const tab = rawTab === 'boekhouding' ? 'boekhouding' : rawTab === 'horeca' && horeca ? 'horeca' : 'aangiftes';
+  const setTab = (v: string) => {
+    const next = new URLSearchParams(searchParams);
+    if (v === 'aangiftes') next.delete('tab'); else next.set('tab', v);
+    setSearchParams(next, { replace: true });
+  };
 
   const { exportAgingReport, isExporting: isExportingAging } = useAgingExport();
   const { exportVatReport, exportIcListing, exportQBundle, exportIntervatBundle, isExporting: isExportingVat, isBundling } = useVatExport();
@@ -175,8 +190,8 @@ const Reports = () => {
       </Card>
 
       {/* Report Categories */}
-      <Tabs defaultValue="aangiftes" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2 max-w-md">
+      <Tabs value={tab} onValueChange={setTab} className="space-y-4">
+        <TabsList className={`grid w-full ${horeca ? 'grid-cols-3 max-w-lg' : 'grid-cols-2 max-w-md'}`}>
           <TabsTrigger value="aangiftes" className="gap-2">
             <FileCheck className="h-4 w-4" />
             Aangiftes
@@ -185,6 +200,12 @@ const Reports = () => {
             <Calculator className="h-4 w-4" />
             Boekhouding
           </TabsTrigger>
+          {horeca ? (
+            <TabsTrigger value="horeca" className="gap-2">
+              <UtensilsCrossed className="h-4 w-4" />
+              {t('admin.horecaReports.tab')}
+            </TabsTrigger>
+          ) : null}
         </TabsList>
 
         <TabsContent value="aangiftes" className="space-y-4">
@@ -229,6 +250,12 @@ const Reports = () => {
             />
           </div>
         </TabsContent>
+
+        {horeca ? (
+          <TabsContent value="horeca" className="space-y-4">
+            <HorecaReportsTab from={dateRange.from} to={dateRange.to} />
+          </TabsContent>
+        ) : null}
       </Tabs>
     </div>
   );
