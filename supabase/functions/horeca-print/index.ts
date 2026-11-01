@@ -19,7 +19,7 @@ import {
 } from "../_shared/horecaPrint.ts";
 import { receiptModelFromData, type ReceiptData } from "../_shared/horecaReceipt.ts";
 
-const VERSION = "PRINT-2b";
+const VERSION = "KEUKEN-VEILIG-1";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const corsHeaders = {
@@ -74,6 +74,12 @@ function variantOnly(title: string | null, addons: string[]): string | null {
   return title.endsWith(` · ${suffix}`) ? title.slice(0, -(suffix.length + 3)) || null : title;
 }
 
+/** KEUKEN-VEILIG-1 — allergeencodes uit een jsonb-array. */
+function allergenCodes(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.filter((a): a is string => typeof a === "string" && a.length > 0))].sort();
+}
+
 const asService = (s: unknown) => (s === "pickup" || s === "local_delivery" || s === "eat_in" ? s : null);
 
 /** PRINT-2b: printer voor bonnen zonder post (een zaak zonder posten, of zonder standaardpost). */
@@ -95,12 +101,19 @@ async function printTicket(db: Db, id: string) {
   const printer = st ? await activePrinter(db, st.printer_id) : await fallbackPrinter(db, t.tenant_id);
   if (!printer) return { skipped: "no_printer" };
   const source = t.source === "phone" || t.source === "table" || t.source === "pos" ? t.source : "pos";
-  const items: ProductionItem[] = (Array.isArray(t.items) ? t.items : []).map((i: Record<string, unknown>) => ({
-    quantity: Number(i.quantity) || 1,
-    name: String(i.name ?? ""),
-    detail: i.variant ? String(i.variant) : i.note ? String(i.note) : null,
-    addons: addonNames(i.addons),
-  }));
+  // KEUKEN-VEILIG-1: variant en opmerking apart (vroeger viel de opmerking weg naast een variant); de
+  // algemene QR-opmerking staat op de bon zelf (t.note) en wordt bij lijn 1 niet herhaald.
+  const items: ProductionItem[] = (Array.isArray(t.items) ? t.items : []).map((i: Record<string, unknown>) => {
+    const note = i.note ? String(i.note) : null;
+    return {
+      quantity: Number(i.quantity) || 1,
+      name: String(i.name ?? ""),
+      detail: i.variant ? String(i.variant) : null,
+      addons: addonNames(i.addons),
+      note: note && note !== t.note ? note : null,
+      allergens: allergenCodes(i.allergens),
+    };
+  });
   const ticket: ProductionTicket = {
     storeName: await storeName(db, t.tenant_id), station: st?.name ?? null, source, service: asService(t.service_type),
     table: source === "table" ? t.table_label ?? null : null,
@@ -113,7 +126,7 @@ async function printTicket(db: Db, id: string) {
 
 async function printOrder(db: Db, id: string) {
   const { data: o } = await db.from("orders")
-    .select("id, tenant_id, order_number, created_at, service_type, requested_time, customer_name, customer_phone, notes, table_label, order_items(product_name, variant_title, quantity, addons)")
+    .select("id, tenant_id, order_number, created_at, service_type, requested_time, customer_name, customer_phone, notes, table_label, order_items(product_name, variant_title, quantity, addons, products(allergens))")
     .eq("id", id).maybeSingle();
   if (!o) return { skipped: "not_found" };
   const { data: st } = await db.from("prep_stations").select("id, name, kind, printer_id").eq("tenant_id", o.tenant_id)
@@ -122,7 +135,8 @@ async function printOrder(db: Db, id: string) {
   if (!printer) return { skipped: "no_printer" };
   const items: ProductionItem[] = ((o.order_items ?? []) as Record<string, unknown>[]).map((i) => {
     const addons = addonNames(i.addons);
-    return { quantity: Number(i.quantity) || 1, name: String(i.product_name ?? ""), detail: variantOnly((i.variant_title as string | null) ?? null, addons), addons };
+    const allergens = allergenCodes((i.products as { allergens?: unknown } | null)?.allergens);
+    return { quantity: Number(i.quantity) || 1, name: String(i.product_name ?? ""), detail: variantOnly((i.variant_title as string | null) ?? null, addons), addons, allergens };
   });
   const ticket: ProductionTicket = {
     storeName: await storeName(db, o.tenant_id), station: st?.name ?? null, source: "webshop", service: asService(o.service_type),

@@ -1,7 +1,7 @@
 // KASSA-UX-2 — het barscherm en het keukenscherm in SellQo Kassa.
 //
 // Binnenkomend (bar): QR-bestellingen per tafel (op de rekening zetten of weigeren) en de bonnen
-// voor de post Bar (nieuw → klaar → opgediend). Op een tablet staat dit naast het zaalplan, op een
+// voor de post Bar (KEUKEN-VEILIG-1: één tik = klaar en opgediend). Op een tablet staat dit naast het zaalplan, op een
 // gsm onder "Bar". Keuken: hetzelfde bord als /admin/keuken (KitchenBoard), met de keuze van de post.
 // Geen eigen data: de bonnen komen uit useKitchenBoard, de QR-bestellingen uit de HorecaStore.
 import { useState } from 'react';
@@ -11,13 +11,13 @@ import { cn } from '@/lib/utils';
 import { KitchenColumns, StationSelect, TicketCard } from '@/components/admin/kitchen/KitchenBoard';
 import { ticketLabels } from '@/components/admin/kitchen/kitchenBoardUtils';
 import { printTicket } from '@/components/admin/kitchen/printTicket';
-import { NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
+import { flowNext, flowPrev, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
 import type { PrepStation } from '@/hooks/usePrepStations';
 import type { ActionCtx } from '../horeca/actions';
 import type { TableRequest } from '../horeca/requests';
 import { RequestList } from './RequestInbox';
 
-interface Board { now: number; busy: boolean; fresh: Set<string>; storeName: string; onMove: (card: KitchenCard, status: KitchenStatus) => void }
+interface Board { now: number; busyKeys: ReadonlySet<string>; fresh: Set<string>; storeName: string; onMove: (card: KitchenCard, status: KitchenStatus) => void }
 
 /** Bonnen die aan de bar nog iets vragen (niet afgewerkt of geannuleerd). */
 const openCards = (cards: KitchenCard[]) => cards.filter((c) => c.status === 'new' || c.status === 'preparing' || c.status === 'ready');
@@ -48,9 +48,9 @@ export function BarPanel({ ctx, requests, cards, barName, wide, board, beforeAct
           <h3 className="text-base font-bold">{t('kassa.bar.tickets', { name: barName, count: open.length })}</h3>
           <div className={cn('grid gap-3', wide && 'sm:grid-cols-2 xl:grid-cols-3')}>
             {open.map((c) => (
-              <TicketCard key={c.key} card={c} now={board.now} busy={board.busy} fresh={board.fresh.has(c.key)} linkOrders={false} compact
-                onAdvance={() => { const s = NEXT_STATUS[c.status]; if (s) board.onMove(c, s); }}
-                onBack={() => { const s = PREV_STATUS[c.status]; if (s) board.onMove(c, s); }}
+              <TicketCard key={c.key} card={c} now={board.now} busy={board.busyKeys.has(c.key)} fresh={board.fresh.has(c.key)} linkOrders={false} compact flow="bar"
+                onAdvance={() => { const s = flowNext(c, 'bar'); if (s) board.onMove(c, s); }}
+                onBack={() => { const s = flowPrev(c, 'bar'); if (s) board.onMove(c, s); }}
                 onPrint={() => printTicket(c, board.storeName, ticketLabels(t, i18n.language))} />
             ))}
           </div>
@@ -66,7 +66,7 @@ export function BarPanel({ ctx, requests, cards, barName, wide, board, beforeAct
               {done.map((c) => (
                 <li key={c.key} className="flex items-center gap-2 py-1.5">
                   <span className="min-w-0 flex-1 truncate"><span className="font-semibold">{c.table ? t('admin.kitchen.table', { table: c.table }) : c.customer ?? '—'}</span> · {c.items.map((i) => `${i.quantity}× ${i.name}`).join(', ')}</span>
-                  <button type="button" onClick={() => board.onMove(c, 'ready')} className="flex h-10 shrink-0 items-center gap-1 rounded-md px-2 text-muted-foreground hover:bg-muted">
+                  <button type="button" disabled={board.busyKeys.has(c.key)} onClick={() => { const s = flowPrev(c, 'bar'); if (s) board.onMove(c, s); }} className="flex h-10 shrink-0 items-center gap-1 rounded-md px-2 text-muted-foreground hover:bg-muted">
                     <Undo2 className="h-3.5 w-3.5" />{t('common.back')}
                   </button>
                 </li>
@@ -89,7 +89,7 @@ export function KitchenView({ cards, stations, activeStation, onStation, isLoadi
           <StationSelect stations={stations} value={activeStation} onChange={onStation} className="h-11 max-w-[14rem]" />
         </div>
       ) : null}
-      <KitchenColumns cards={cards} now={board.now} isLoading={isLoading} error={error} busy={board.busy} fresh={board.fresh} storeName={board.storeName}
+      <KitchenColumns cards={cards} now={board.now} isLoading={isLoading} error={error} busyKeys={board.busyKeys} fresh={board.fresh} storeName={board.storeName}
         onMove={board.onMove} linkOrders={false} />
     </div>
   );

@@ -6,7 +6,16 @@ export type KitchenStatus = 'new' | 'preparing' | 'ready' | 'done' | 'cancelled'
 export type KitchenSource = 'webshop' | 'pos' | 'phone' | 'table';
 export type ServiceKind = 'pickup' | 'local_delivery' | 'eat_in';
 
-export interface KitchenItem { quantity: number; name: string; detail: string | null; addons: string[] }
+export interface KitchenItem {
+  quantity: number; name: string;
+  /** Variant/formaat ("Groot"). */
+  detail: string | null;
+  addons: string[];
+  /** KEUKEN-VEILIG-1: opmerking bij deze lijn ("zonder ui"); los van de variant, zodat ze nooit wegvalt. */
+  note: string | null;
+  /** KEUKEN-VEILIG-1: EU-allergenen (codes) van het product en de extra's. */
+  allergens: string[];
+}
 export interface KitchenCard {
   key: string;
   source: KitchenSource;
@@ -31,6 +40,8 @@ export interface KitchenCard {
   notified: boolean;
   /** TAFEL-1: bereidingspost (keuken, bar, …) van een tafelronde; null = geen post. */
   stationId: string | null;
+  /** KEUKEN-VEILIG-1: rekening van een tafel-/toogbon (voor "klaar" op het zaalplan). */
+  checkId?: string | null;
 }
 
 export interface OrderRow {
@@ -39,20 +50,32 @@ export interface OrderRow {
   payment_status: string | null; payment_method: string | null; status: string | null;
   shipping_address: unknown;
   table_label?: string | null;
-  order_items: { product_name: string | null; variant_title: string | null; quantity: number | null; addons: unknown }[] | null;
+  order_items: { product_name: string | null; variant_title: string | null; quantity: number | null; addons: unknown;
+    /** KEUKEN-VEILIG-1: allergenen van het product (join products). */
+    products?: { allergens: string[] | null } | null }[] | null;
 }
 export interface TicketRow {
   id: string; source: string; order_id: string | null; service_type: string | null; requested_time: string | null;
   customer_label: string | null; customer_phone: string | null; note: string | null; items: unknown; total: number | null;
   paid: boolean; status: string; status_at: string; created_at: string; notified_at?: string | null;
   /** TAFEL-1: ronde van een tafelrekening (één bon per station). */
-  table_label?: string | null; station_id?: string | null; round_id?: string | null;
+  table_label?: string | null; station_id?: string | null; round_id?: string | null; check_id?: string | null;
 }
 
 const asService = (s: string | null | undefined): ServiceKind | null =>
   s === 'pickup' || s === 'local_delivery' || s === 'eat_in' ? s : null;
 const asStatus = (s: string | null | undefined): KitchenStatus =>
   s === 'preparing' || s === 'ready' || s === 'done' || s === 'cancelled' ? s : 'new';
+
+/** KEUKEN-VEILIG-1 — allergeencodes uit een jsonb-array (onbekende vormen = geen). */
+export function allergenCodes(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.filter((a): a is string => typeof a === 'string' && a.length > 0))].sort();
+}
+
+/** KEUKEN-VEILIG-1 — allergenen van een hele bon (voor de samenvatting bovenaan). */
+export const cardAllergens = (c: KitchenCard): string[] =>
+  [...new Set(c.items.filter((i) => i.quantity > 0).flatMap((i) => i.allergens))].sort();
 
 function addonNames(raw: unknown): string[] {
   if (!Array.isArray(raw)) return [];
@@ -101,7 +124,10 @@ export function cardFromOrder(o: OrderRow, ticket: TicketRow | undefined): Kitch
     note: o.notes,
     items: (o.order_items || []).map((i) => {
       const addons = addonNames(i.addons);
-      return { quantity: Number(i.quantity) || 1, name: i.product_name || '', detail: variantOnly(i.variant_title, addons), addons };
+      return {
+        quantity: Number(i.quantity) || 1, name: i.product_name || '', detail: variantOnly(i.variant_title, addons), addons,
+        note: null, allergens: allergenCodes(i.products?.allergens),
+      };
     }),
     total: o.total != null ? Number(o.total) : null,
     paid: o.payment_status === 'paid',
@@ -130,21 +156,34 @@ export function cardFromTicket(t: TicketRow): KitchenCard {
     phone: t.customer_phone,
     address: null,
     note: t.note,
-    items: items.map((i) => ({
-      quantity: Number(i.quantity) || 1,
-      name: String(i.name ?? ''),
+    items: items.map((i) => {
       // TAFEL-1: opmerking per lijn ("zonder ui") en annuleringen (negatief aantal) uit een ronde.
-      detail: i.variant ? String(i.variant) : i.note ? String(i.note) : null,
-      addons: addonNames(i.addons),
-    })),
+      // KEUKEN-VEILIG-1: variant en opmerking apart (vroeger won de variant en viel de opmerking weg).
+      // De algemene QR-opmerking staat sinds KEUKEN-VEILIG-1 op de bon zelf (t.note); op lijn 1 staat
+      // dezelfde tekst nog eens: daar niet herhalen.
+      const note = i.note ? String(i.note) : null;
+      return {
+        quantity: Number(i.quantity) || 1,
+        name: String(i.name ?? ''),
+        detail: i.variant ? String(i.variant) : null,
+        addons: addonNames(i.addons),
+        note: note && note !== t.note ? note : null,
+        allergens: allergenCodes(i.allergens),
+      };
+    }),
     total: t.total != null ? Number(t.total) : null,
     paid: t.paid,
     status: asStatus(t.status),
     statusAt: t.status_at,
     notified: !!t.notified_at,
     stationId: t.station_id ?? null,
+    checkId: t.check_id ?? null,
   };
 }
+
+/** KEUKEN-VEILIG-1 — rekeningen met een bon die klaar staat om op te dienen (zaalplan). */
+export const readyCheckIds = (cards: KitchenCard[]): Set<string> =>
+  new Set(cards.filter((c) => c.status === 'ready' && c.checkId).map((c) => c.checkId as string));
 
 /** Moment waarop de bestelling klaar moet zijn: gekozen tijd, anders besteltijd. */
 export const dueAt = (c: KitchenCard) => new Date(c.requestedTime || c.createdAt).getTime();
@@ -174,6 +213,23 @@ export const PREV_STATUS: Record<KitchenStatus, KitchenStatus | null> = {
   new: null, preparing: 'new', ready: 'preparing', done: 'ready', cancelled: null,
 };
 
+/**
+ * KEUKEN-VEILIG-1 — de barpost: één tik en de bon is klaar én opgediend (een drankje maak je en geef
+ * je mee; "in bereiding" voegt niets toe). Wat nog op "in bereiding" of "klaar" stond, ook in één tik.
+ * Terug zet een afgewerkte bon weer op nieuw. De keuken houdt NEXT_STATUS/PREV_STATUS.
+ */
+export const BAR_NEXT_STATUS: Record<KitchenStatus, KitchenStatus | null> = {
+  new: 'done', preparing: 'done', ready: 'done', done: null, cancelled: null,
+};
+export const BAR_PREV_STATUS: Record<KitchenStatus, KitchenStatus | null> = {
+  new: null, preparing: 'new', ready: 'new', done: 'new', cancelled: null,
+};
+
+/** KEUKEN-VEILIG-1 — welke stappen een bon doorloopt: keuken (nieuw → in bereiding → klaar → opgediend) of bar (één tik). */
+export type KitchenFlow = 'kitchen' | 'bar';
+export const flowNext = (c: Pick<KitchenCard, 'status'>, flow: KitchenFlow = 'kitchen') => (flow === 'bar' ? BAR_NEXT_STATUS : NEXT_STATUS)[c.status];
+export const flowPrev = (c: Pick<KitchenCard, 'status'>, flow: KitchenFlow = 'kitchen') => (flow === 'bar' ? BAR_PREV_STATUS : PREV_STATUS)[c.status];
+
 /** FOOD-3 — welke klik verwittigt de webshopklant? Klaar bij afhalen, meegegeven bij levering. */
 export function notifiesCustomer(card: KitchenCard, status: KitchenStatus): boolean {
   if (!card.orderId || card.notified) return false;
@@ -182,6 +238,21 @@ export function notifiesCustomer(card: KitchenCard, status: KitchenStatus): bool
 
 /** Minuten tot het afhaal-/levermoment (negatief = te laat). */
 export const minutesLeft = (c: KitchenCard, nowMs: number) => Math.round((dueAt(c) - nowMs) / 60_000);
+
+/** Na hoeveel minuten wachten een bon zonder gekozen tijd (kassa, QR, telefoon, tafel) te laat is. */
+export const ASAP_LATE_MIN = 20;
+/** Aan de bar gaat het sneller: een drankbon die 10 minuten wacht, is te laat. */
+export const BAR_LATE_MIN = 10;
+
+/**
+ * KEUKEN-VEILIG-1 — te laat, voor élke bon: met een gekozen tijd (webshop) zodra die voorbij is,
+ * zonder (kassa, QR, telefoon) na `asapMin` minuten wachten. Een klare of afgewerkte bon is nooit te laat.
+ */
+export function isLate(c: KitchenCard, nowMs: number, asapMin = ASAP_LATE_MIN): boolean {
+  if (c.status === 'ready' || c.status === 'done' || c.status === 'cancelled') return false;
+  const m = minutesLeft(c, nowMs);
+  return c.requestedTime ? m < 0 : -m >= asapMin;
+}
 
 /**
  * TAFEL-1 — bonnen voor één bereidingspost. `null` = alles. Bonnen zonder post (webshop,

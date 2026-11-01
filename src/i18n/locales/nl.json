@@ -7782,7 +7782,18 @@
       "station": "Post",
       "all_stations": "Alle posten",
       "to_kassa": "Kassa",
-      "waited_short": "{{count}} min"
+      "waited_short": "{{count}} min",
+      "status_failed": "De bon kon niet bijgewerkt worden. Probeer opnieuw.",
+      "note_title": "Opmerking",
+      "allergens_title": "Allergenen",
+      "action_bar_done": "Klaar",
+      "sound_tap_hint": "Tik één keer op het scherm om het belletje voor nieuwe bonnen aan te zetten.",
+      "print_health_title": "Printer:",
+      "print_health_failed": "niet afgedrukt: {{count}}",
+      "print_health_stuck": "wachten op de printer: {{count}}",
+      "print_health_offline": "geen verbinding met {{names}}",
+      "print_health_hint": "Kijk de printer na (aan, papier, netwerk) en geef de bonnen intussen mondeling door.",
+      "print_health_seen": "Gezien"
     },
     "allergens": {
       "gluten": "Gluten (granen)",
@@ -11345,7 +11356,8 @@
       "counter": "Toog / snelverkoop",
       "noTabs": "Nog geen rekeningen op naam.",
       "allTabs": "Alle ({{count}})",
-      "allTabsTitle": "Rekeningen op naam ({{count}})"
+      "allTabsTitle": "Rekeningen op naam ({{count}})",
+      "readyBadge": "Klaar om op te dienen"
     },
     "checks": {
       "rejected": "Niet gelukt: {{error}}",

@@ -6494,7 +6494,18 @@
       "station": "Poste",
       "all_stations": "Tous les postes",
       "to_kassa": "Caisse",
-      "waited_short": "{{count}} min"
+      "waited_short": "{{count}} min",
+      "status_failed": "Le bon n'a pas pu être mis à jour. Réessaie.",
+      "note_title": "Remarque",
+      "allergens_title": "Allergènes",
+      "action_bar_done": "Prêt",
+      "sound_tap_hint": "Touche l'écran une fois pour activer la sonnerie des nouveaux bons.",
+      "print_health_title": "Imprimante :",
+      "print_health_failed": "non imprimés : {{count}}",
+      "print_health_stuck": "en attente de l'imprimante : {{count}}",
+      "print_health_offline": "pas de connexion avec {{names}}",
+      "print_health_hint": "Vérifie l'imprimante (allumée, papier, réseau) et transmets les bons oralement en attendant.",
+      "print_health_seen": "Vu"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -11343,7 +11354,8 @@
       "counter": "Comptoir / vente rapide",
       "noTabs": "Pas encore d’additions à un nom.",
       "allTabs": "Tout ({{count}})",
-      "allTabsTitle": "Additions à un nom ({{count}})"
+      "allTabsTitle": "Additions à un nom ({{count}})",
+      "readyBadge": "Prêt à servir"
     },
     "checks": {
       "rejected": "Échec : {{error}}",

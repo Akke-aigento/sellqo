@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildBoard, cardFromOrder, cardFromTicket, cardsForStation, notifiesCustomer, orderBelongsInKitchen, type OrderRow, type TicketRow } from './kitchenModel';
+import { buildBoard, cardAllergens, cardFromOrder, cardFromTicket, cardsForStation, flowNext, flowPrev, isLate, notifiesCustomer, orderBelongsInKitchen, readyCheckIds, type OrderRow, type TicketRow } from './kitchenModel';
 
 const NOW = Date.parse('2026-10-13T16:00:00Z');
 const order = (over: Partial<OrderRow> = {}): OrderRow => ({
@@ -26,7 +26,7 @@ describe('kitchenModel', () => {
 
   it('haalt de extra\'s uit de varianttitel', () => {
     const c = cardFromOrder(order(), undefined);
-    expect(c.items[0]).toEqual({ quantity: 2, name: 'Margherita', detail: 'Groot', addons: ['Extra kaas', 'Ham'] });
+    expect(c.items[0]).toEqual({ quantity: 2, name: 'Margherita', detail: 'Groot', addons: ['Extra kaas', 'Ham'], note: null, allergens: [] });
     expect(c.status).toBe('new');
   });
 
@@ -89,4 +89,40 @@ describe('bereidingsposten (TAFEL-1)', () => {
   it('standaardpost krijgt ook bonnen zonder post', () => expect(cardsForStation(cards, 'keuken', 'keuken').map((c) => c.ticketId)).toEqual(['b', 'c']));
   it('zonder standaardpost: bonnen zonder post overal', () => expect(cardsForStation(cards, 'bar', null).map((c) => c.ticketId)).toEqual(['a', 'c']));
   it('tafelbon draagt tafel en post', () => { expect(cards[0].table).toBe('4'); expect(cards[0].stationId).toBe('bar'); expect(cards[0].customer).toBeNull(); });
+});
+
+describe('KEUKEN-VEILIG-1', () => {
+  it('variant en lijnopmerking allebei, allergenen per regel', () => {
+    const c = cardFromTicket(ticket({ items: [{ name: 'Burger', quantity: 1, variant: 'Groot', note: 'zonder ui', allergens: ['sesame', 'gluten', 'gluten', 3] }] }));
+    expect(c.items[0]).toMatchObject({ detail: 'Groot', note: 'zonder ui', allergens: ['gluten', 'sesame'] });
+  });
+  it('de algemene QR-opmerking staat op de bon en wordt bij lijn 1 niet herhaald', () => {
+    const c = cardFromTicket(ticket({ note: 'QR Ann · allergie noten', items: [{ name: 'Cola', quantity: 1, note: 'QR Ann · allergie noten' }, { name: 'Burger', quantity: 1, note: 'zonder ui' }] }));
+    expect(c.note).toBe('QR Ann · allergie noten');
+    expect(c.items.map((i) => i.note)).toEqual([null, 'zonder ui']);
+  });
+  it('webshop: allergenen van het product', () => {
+    const c = cardFromOrder(order({ order_items: [{ product_name: 'Pita', variant_title: null, quantity: 1, addons: [], products: { allergens: ['milk'] } }] }), undefined);
+    expect(cardAllergens(c)).toEqual(['milk']);
+  });
+  it('te laat geldt ook voor bonnen zonder gekozen tijd (kassa, QR)', () => {
+    const asap = cardFromTicket(ticket({ created_at: '2026-10-13T15:30:00Z' }));
+    expect(isLate(asap, NOW)).toBe(true);
+    expect(isLate(cardFromTicket(ticket({ created_at: '2026-10-13T15:50:00Z' })), NOW)).toBe(false);
+    expect(isLate({ ...asap, status: 'ready' }, NOW)).toBe(false);
+    expect(isLate(cardFromOrder(order({ requested_time: '2026-10-13T15:55:00Z' }), undefined), NOW)).toBe(true);
+    expect(isLate(cardFromTicket(ticket({ created_at: '2026-10-13T15:48:00Z' })), NOW, 10)).toBe(true);
+  });
+  it('bar: één tik klaar en opgediend; keuken behoudt de stappen', () => {
+    expect(flowNext({ status: 'new' }, 'bar')).toBe('done');
+    expect(flowNext({ status: 'preparing' }, 'bar')).toBe('done');
+    expect(flowPrev({ status: 'done' }, 'bar')).toBe('new');
+    expect(flowNext({ status: 'new' })).toBe('preparing');
+    expect(flowNext({ status: 'preparing' })).toBe('ready');
+  });
+  it('klare bonnen per rekening (zaalplan)', () => {
+    const r = cardFromTicket(ticket({ id: 'x', status: 'ready', check_id: 'chk1', source: 'table' }));
+    const n = cardFromTicket(ticket({ id: 'y', status: 'new', check_id: 'chk2', source: 'table' }));
+    expect([...readyCheckIds([r, n])]).toEqual(['chk1']);
+  });
 });

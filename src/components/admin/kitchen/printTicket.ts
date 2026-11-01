@@ -15,15 +15,23 @@ export interface TicketLabels {
   who: (card: KitchenCard) => string;
   toPayAmount: (amount: string) => string;
   footer: (ordered: string, printed: string) => string;
+  /** KEUKEN-VEILIG-1: kop boven de opmerking van de klant/gast en de naam van een allergeen (code → tekst). */
+  noteTitle?: string;
+  allergensTitle?: string;
+  allergen?: (code: string) => string;
 }
 
 export function ticketHtml(card: KitchenCard, storeName: string, L: TicketLabels): string {
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString(L.lang, { hour: '2-digit', minute: '2-digit' });
   const when = card.requestedTime ? hhmm(card.requestedTime) : L.asap;
+  const allergen = (code: string) => (L.allergen ? L.allergen(code) : code);
+  // KEUKEN-VEILIG-1: lijnopmerking en allergenen vet en omkaderd, niet klein en grijs.
   const items = card.items.map((it) => `
     <div class="it"><b>${it.quantity}x</b> ${esc(it.name)}</div>
     ${it.detail ? `<div class="sub">${esc(it.detail)}</div>` : ''}
-    ${it.addons.map((a) => `<div class="sub">+ ${esc(a)}</div>`).join('')}`).join('');
+    ${it.addons.map((a) => `<div class="sub">+ ${esc(a)}</div>`).join('')}
+    ${it.note ? `<div class="lnote">&gt;&gt; ${esc(it.note)}</div>` : ''}
+    ${it.allergens?.length ? `<div class="alg">${esc(L.allergensTitle ?? '!')}: ${esc(it.allergens.map(allergen).join(', '))}</div>` : ''}`).join('');
   const pay = card.paid ? L.paid : card.total != null ? L.toPayAmount(`EUR ${card.total.toFixed(2).replace('.', ',')}`) : L.toPay;
   const who = L.who(card);
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(L.order)}</title><style>
@@ -31,15 +39,18 @@ export function ticketHtml(card: KitchenCard, storeName: string, L: TicketLabels
     body { font-family: ui-monospace, Menlo, Consolas, monospace; width: 72mm; margin: 0; color: #000; font-size: 12pt; }
     .c { text-align: center; } .big { font-size: 20pt; font-weight: 800; } .mid { font-size: 14pt; font-weight: 700; }
     .it { font-size: 14pt; margin-top: 2mm; } .sub { padding-left: 6mm; font-size: 11pt; }
-    hr { border: 0; border-top: 1px dashed #000; margin: 2mm 0; } .note { border: 1px solid #000; padding: 1.5mm; margin-top: 2mm; font-weight: 700; }
+    hr { border: 0; border-top: 1px dashed #000; margin: 2mm 0; } .note { border: 2px solid #000; padding: 1.5mm; margin: 2mm 0; font-weight: 800; font-size: 14pt; }
+    .note .t { font-size: 10pt; text-transform: uppercase; }
+    .lnote { padding-left: 6mm; font-size: 13pt; font-weight: 800; }
+    .alg { margin-left: 6mm; font-size: 11pt; font-weight: 800; border: 1px solid #000; padding: 0.5mm 1mm; display: inline-block; }
   </style></head><body>
     <div class="c">${esc(storeName)}</div>
     <div class="c big">${esc(card.service ? L.service[card.service] : L.order)} ${esc(when)}</div>
     <div class="c mid">${esc(L.source(card))}</div>
     ${who || card.phone ? `<div class="c">${esc([who, card.phone].filter(Boolean).join(' · '))}</div>` : ''}
     ${card.address ? `<div class="c">${esc(card.address)}</div>` : ''}
+    ${card.note ? `<div class="note">${L.noteTitle ? `<div class="t">${esc(L.noteTitle)}</div>` : ''}${esc(card.note)}</div>` : ''}
     <hr>${items}
-    ${card.note ? `<div class="note">${esc(card.note)}</div>` : ''}
     <hr><div class="c mid">${pay}</div>
     <div class="c" style="font-size:9pt">${esc(L.footer(hhmm(card.createdAt), hhmm(new Date().toISOString())))}</div>
   </body></html>`;

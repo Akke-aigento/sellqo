@@ -123,14 +123,23 @@ export async function run(page, { width, shot, log }) {
   await page.getByRole('button', { name: 'Terug naar de tafels' }).click();
   await page.waitForTimeout(300);
   log('binnenkomend naast zaalplan', await page.getByRole('complementary').count());
+  log('tafel 4 klaar', (await page.getByRole('button', { name: width < 600 ? /^4 / : /^Tafel 4[,:]/ }).first().innerText().catch(() => '—')).replace(/\s+/g, ' '));
   await shot('7-zaal');
   await page.getByRole('button', { name: /^Bar/ }).click();
   await page.waitForTimeout(300);
   await shot('8-bar');
-  await page.getByRole('button', { name: /^Start|^Starten|bereiden/i }).first().click().catch(() => log('geen startknop'));
+  // KEUKEN-VEILIG-1: printerwaarschuwing, QR-opmerking op elke bon, allergenen, bar = één tik "Klaar".
+  log('printerwaarschuwing', (await page.getByRole('alert').filter({ hasText: 'Printer' }).first().innerText().catch(() => '—')).replace(/\s+/g, ' '));
+  log('bar-knoppen', JSON.stringify(await page.locator('article').first().getByRole('button').allInnerTexts()));
+  await page.locator('article').first().getByRole('button', { name: 'Klaar', exact: true }).click().catch(() => log('geen Klaar-knop op de barbon'));
+  await page.waitForTimeout(200);
+  log('barbonnen open na één tik', await page.locator('article').count());
+  await shot('8b-bar-na-klaar');
   await page.getByRole('button', { name: /^Keuken/ }).click();
   await page.waitForTimeout(300);
   log('keukenbonnen', await page.locator('article').count());
+  log('opmerkingen op keukenbonnen', await page.getByRole('note').count());
+  log('rode rand (te laat)', await page.locator('article.border-red-500').count());
   await shot('9-keuken');
   log('overflow keuken px', await overflow(page));
   // Taal: start in de taal van de zaak (nl); kies op dit toestel English en terug.
