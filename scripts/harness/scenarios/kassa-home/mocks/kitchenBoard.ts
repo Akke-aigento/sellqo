@@ -2,7 +2,7 @@
 import { useReducer } from 'react';
 import { cardFromTicket, type KitchenStatus, type TicketRow, type KitchenCard } from '@/components/admin/kitchen/kitchenModel';
 const ago = (m: number) => new Date(Date.now() - m * 60_000).toISOString();
-type Item = [number, string] | [number, string, { note?: string; allergens?: string[] }];
+type Item = [number, string] | [number, string, { note?: string; allergens?: string[]; course?: number; waiting?: boolean }];
 const row = (id: string, station: string, table: string, items: Item[], status: string, min: number, extra: Partial<TicketRow> = {}): TicketRow => ({
   id, source: 'table', order_id: null, service_type: 'eat_in', requested_time: null, customer_label: table, customer_phone: null, note: null,
   items: items.map(([quantity, name, x]) => ({ quantity, name, ...(x ?? {}) })), total: null, paid: false, status, status_at: ago(min), created_at: ago(min),
@@ -13,7 +13,8 @@ const QR = 'QR Lotte · allergie noten, graag zonder';
 const tickets: TicketRow[] = [
   row('k1', 's-bar', '4', [[4, 'Pils', { note: QR }], [2, 'Kriek']], 'new', 2, { note: QR }),
   row('k2', 's-bar', 'Ter-2', [[2, 'Aperol spritz', { allergens: ['sulphites'] }]], 'preparing', 12),
-  row('k3', 's-keuken', '4', [[1, 'Bittergarnituur (8 st.)', { allergens: ['gluten', 'milk', 'mustard'] }]], 'new', 3, { note: QR }),
+  // GANGEN-1: gang 1 nu, croque (gang 2) wacht op vrijgave.
+  row('k3', 's-keuken', '4', [[1, 'Bittergarnituur (8 st.)', { allergens: ['gluten', 'milk', 'mustard'], course: 1 }], [2, 'Croque monsieur', { course: 2, waiting: true }]], 'new', 3, { note: QR }),
   row('k4', 's-keuken', 'B2', [[2, 'Croque monsieur', { note: 'één zonder hesp', allergens: ['gluten', 'milk'] }]], 'preparing', 24),
   row('k5', 's-keuken', '4', [[1, 'Kaaskroketten']], 'ready', 1, { check_id: 'c1' }),
 ];

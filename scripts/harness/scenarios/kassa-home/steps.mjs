@@ -2,7 +2,7 @@
 // Zaalplan → tafel 4 → 3× Pils (moet één lijn "3× Pils" worden) + 1 Cola → − op Pils → terug →
 // toog-tegel → ⋯-menu (Kas, Rapporten, Naar beheer) → (KASSA-UX-2) Bar en Keuken, een barbon op Klaar.
 // Meet ook of de pagina breder wordt dan het scherm.
-export const setup = {};
+export const setup = { courses: { courses_enabled: true, course_by_category: { hon: 2, bit: 1 } } };
 export const widths = [390, 1024, 1280];
 const overflow = (page) => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
 export async function run(page, { width, shot, log }) {
@@ -58,6 +58,19 @@ export async function run(page, { width, shot, log }) {
   await page.waitForTimeout(250);
   log('overflow px', await overflow(page));
   await shot('2-na-4-tikken');
+  // GANGEN-1: gangbalk; Kaas en salami (categorie = voorgerecht) en Soep met "Dessert" gekozen → wacht.
+  log('gangbalk', JSON.stringify(await page.getByRole('group', { name: 'Gang voor wat je aantikt' }).getByRole('button').allInnerTexts()));
+  await page.getByRole('button', { name: 'Bittergarnituur', exact: true }).click();
+  await page.getByRole('button', { name: /^Kaas en salami/ }).first().click();
+  await page.getByRole('button', { name: 'Dessert', exact: true }).click();
+  await page.getByRole('button', { name: /Kleine honger/ }).click();
+  await page.getByRole('button', { name: /^Soep van de dag/ }).first().click();
+  await page.getByRole('button', { name: 'Automatisch', exact: true }).click();
+  await page.waitForTimeout(200);
+  log('vrijgeefknop', JSON.stringify(await page.getByRole('button', { name: /vrijgeven/ }).allInnerTexts()));
+  log('versturen', JSON.stringify(await page.getByRole('button', { name: /Verstuur/ }).allInnerTexts()));
+  await shot('2b-gangen');
+  await page.getByRole('button', { name: /Van de tap/ }).click();
   await page.getByRole('button', { name: 'Eén Pils minder' }).click();
   await page.waitForTimeout(200);
   if (width < 1024) { await page.getByRole('button', { name: /stuks/ }).click(); await page.waitForTimeout(200); }
@@ -139,6 +152,7 @@ export async function run(page, { width, shot, log }) {
   await page.waitForTimeout(300);
   log('keukenbonnen', await page.locator('article').count());
   log('opmerkingen op keukenbonnen', await page.getByRole('note').count());
+  log('wacht op vrijgave (keuken)', await page.getByRole('region', { name: /Wacht op vrijgave/ }).count());
   log('rode rand (te laat)', await page.locator('article.border-red-500').count());
   await shot('9-keuken');
   log('overflow keuken px', await overflow(page));

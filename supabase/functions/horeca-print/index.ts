@@ -19,7 +19,7 @@ import {
 } from "../_shared/horecaPrint.ts";
 import { receiptModelFromData, type ReceiptData } from "../_shared/horecaReceipt.ts";
 
-const VERSION = "KEUKEN-VEILIG-1b";
+const VERSION = "GANGEN-1";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const corsHeaders = {
@@ -118,6 +118,9 @@ async function printTicket(db: Db, id: string) {
       addons: addonNames(i.addons),
       note: note && note !== t.note ? note : null,
       allergens: allergenCodes(i.allergens),
+      // GANGEN-1: gang en "wacht op vrijgave" (ter info op de bon).
+      course: Number.isInteger(Number(i.course)) && Number(i.course) > 0 ? Number(i.course) : null,
+      waiting: i.waiting === true,
     };
   });
   const ticket: ProductionTicket = {

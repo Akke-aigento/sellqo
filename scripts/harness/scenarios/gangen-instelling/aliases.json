@@ -1,0 +1,5 @@
+{
+  "@/integrations/supabase/client": "mocks/supabase.ts",
+  "@/hooks/useTenant": "mocks/tenant.ts",
+  "@/hooks/useAuth": "mocks/auth.ts"
+}

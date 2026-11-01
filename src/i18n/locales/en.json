@@ -9809,6 +9809,29 @@
       "minutes_many": "{{count}} minutes",
       "minutes_other": "{{count}} minutes",
       "never_hint": "The till stays signed in until someone taps Switch. Only do this if nobody else can reach the till."
+    },
+    "courses": {
+      "auto": "Automatic",
+      "c1": "Starter",
+      "c2": "Main course",
+      "c3": "Dessert",
+      "cN": "Course {{n}}",
+      "none": "No course",
+      "active": "Course for what you add",
+      "fire": "Release {{name}} ({{count}})",
+      "fired": "{{name}} released and sent to the kitchen",
+      "waiting": "waiting",
+      "waiting_title": "Waiting for release · do not make yet",
+      "lineCourse": "Course of this line",
+      "settings_title": "Courses at the table",
+      "settings_desc": "Starter, main course and dessert go to the kitchen separately: later courses wait in the till until you release them. Switched off, everything is sent at once, as now.",
+      "enabled": "Use courses",
+      "category_title": "Default course per category",
+      "category_hint": "Automatic: whatever goes to the bar gets no course, everything else is a main course. In the till you can also pick a course at the top of the bill.",
+      "category_for": "Course for {{name}}",
+      "opt_auto": "Automatic",
+      "no_categories": "No categories on your menu yet.",
+      "saved": "Courses saved"
     }
   },
   "product_form": {

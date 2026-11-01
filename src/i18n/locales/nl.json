@@ -9823,6 +9823,29 @@
       "minutes_many": "{{count}} minuten",
       "minutes_other": "{{count}} minuten",
       "never_hint": "De kassa blijft aangemeld tot iemand op Wissel tikt. Doe dit enkel als niemand anders aan de kassa kan."
+    },
+    "courses": {
+      "auto": "Automatisch",
+      "c1": "Voorgerecht",
+      "c2": "Hoofdgerecht",
+      "c3": "Dessert",
+      "cN": "Gang {{n}}",
+      "none": "Geen gang",
+      "active": "Gang voor wat je aantikt",
+      "fire": "{{name}} vrijgeven ({{count}})",
+      "fired": "{{name}} vrijgegeven en naar de keuken gestuurd",
+      "waiting": "wacht",
+      "waiting_title": "Wacht op vrijgave · nog niet maken",
+      "lineCourse": "Gang van deze lijn",
+      "settings_title": "Gangen aan tafel",
+      "settings_desc": "Voorgerecht, hoofdgerecht en dessert apart naar de keuken: latere gangen wachten in de kassa tot je ze vrijgeeft. Staat dit uit, dan gaat alles meteen mee, zoals nu.",
+      "enabled": "Gangen gebruiken",
+      "category_title": "Standaardgang per categorie",
+      "category_hint": "Automatisch: wat naar de bar gaat krijgt geen gang, de rest is hoofdgerecht. In de kassa kies je bovenaan de rekening ook zelf een gang.",
+      "category_for": "Gang voor {{name}}",
+      "opt_auto": "Automatisch",
+      "no_categories": "Nog geen categorieën op je kaart.",
+      "saved": "Gangen bewaard"
     }
   },
   "product_form": {

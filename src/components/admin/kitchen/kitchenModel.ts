@@ -15,6 +15,10 @@ export interface KitchenItem {
   note: string | null;
   /** KEUKEN-VEILIG-1: EU-allergenen (codes) van het product en de extra's. */
   allergens: string[];
+  /** GANGEN-1: gang (1 voorgerecht, 2 hoofdgerecht, 3 dessert); null = geen. */
+  course?: number | null;
+  /** GANGEN-1: ter info — wacht op vrijgave, nog niet besteld (niet maken). */
+  waiting?: boolean;
 }
 export interface KitchenCard {
   key: string;
@@ -75,7 +79,18 @@ export function allergenCodes(raw: unknown): string[] {
 
 /** KEUKEN-VEILIG-1 — allergenen van een hele bon (voor de samenvatting bovenaan). */
 export const cardAllergens = (c: KitchenCard): string[] =>
-  [...new Set(c.items.filter((i) => i.quantity > 0).flatMap((i) => i.allergens))].sort();
+  [...new Set(c.items.filter((i) => i.quantity > 0 && !i.waiting).flatMap((i) => i.allergens))].sort();
+
+/** GANGEN-1 — wat nu gemaakt moet worden, per gang gegroepeerd (volgorde van de bon), en wat nog wacht. */
+export function itemGroups(c: Pick<KitchenCard, 'items'>): { now: { course: number | null; items: KitchenItem[] }[]; waiting: KitchenItem[] } {
+  const now: { course: number | null; items: KitchenItem[] }[] = [];
+  for (const it of c.items.filter((i) => !i.waiting)) {
+    const course = it.course ?? null;
+    const last = now[now.length - 1];
+    if (last && last.course === course) last.items.push(it); else now.push({ course, items: [it] });
+  }
+  return { now, waiting: c.items.filter((i) => i.waiting) };
+}
 
 /** KEUKEN-VEILIG-1b — option_id's van de gekozen extra's van een webshopregel (storefront ChosenAddon). */
 export function addonOptionIds(raw: unknown): string[] {
@@ -179,6 +194,8 @@ export function cardFromTicket(t: TicketRow): KitchenCard {
         addons: addonNames(i.addons),
         note: note && note !== t.note ? note : null,
         allergens: allergenCodes(i.allergens),
+        course: Number.isInteger(Number(i.course)) && Number(i.course) > 0 ? Number(i.course) : null,
+        waiting: i.waiting === true,
       };
     }),
     total: t.total != null ? Number(t.total) : null,

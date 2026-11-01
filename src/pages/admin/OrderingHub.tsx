@@ -20,6 +20,7 @@ import { MenuQrManager } from '@/components/admin/storefront/food/MenuQrManager'
 import { QrModeSettings } from '@/components/admin/storefront/food/QrModeSettings';
 import { QR_MODES, type QrMode } from '@/components/admin/storefront/food/qrModes';
 import { PrepStationsManager } from '@/components/admin/horeca/PrepStationsManager';
+import { CoursesSettings } from '@/components/admin/horeca/CoursesSettings';
 import { ReservationsManager } from '@/components/admin/horeca/ReservationsManager';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { useTranslation } from 'react-i18next';
@@ -234,7 +235,8 @@ export default function OrderingHubPage() {
         {tab === 'webshop' ? <FulfillmentSettings /> : null}
         {tab === 'qr' ? <div className="space-y-6"><QrModeSettings /><MenuQrManager onOpenFloorPlan={() => navigate(FLOOR_EDIT_URL)} /></div> : null}
         {tab === 'reservaties' ? <ReservationsManager /> : null}
-        {tab === 'posten' ? <PrepStationsManager /> : null}
+        {/* GANGEN-1: gangen horen bij de keukenroutering (welke post, welke gang). */}
+        {tab === 'posten' ? <div className="space-y-6"><PrepStationsManager /><div className="max-w-3xl"><CoursesSettings /></div></div> : null}
         {tab === 'extras' ? <AddonGroupsManager /> : null}
         {tab === 'allergens' ? <AllergenChart /> : null}
       </div>
