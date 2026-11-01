@@ -12,7 +12,7 @@ interface Props { tenantId: string; deviceUuid: string }
 
 // Tegenvelden (`reason?: undefined`) houden de union leesbaar zonder strictNullChecks.
 type LoginResult =
-  | { ok: true; staff: KassaStaff; employee_id: string | null; reason?: undefined; attempts_left?: undefined }
+  | { ok: true; staff: KassaStaff; employee_id: string | null; session?: { token: string; expires_at: string } | null; reason?: undefined; attempts_left?: undefined }
   | { ok: false; reason: 'wrong_pin' | 'locked' | 'inactive'; attempts_left?: number; locked_until?: string; staff?: undefined; employee_id?: undefined };
 
 export function PinLock({ tenantId, deviceUuid }: Props) {
@@ -59,7 +59,7 @@ export function PinLock({ tenantId, deviceUuid }: Props) {
     setPin('');
     if (error) { setMessage(t('kassa.pin.error')); return; }
     const r = data as unknown as LoginResult;
-    if (r.ok) { signIn(r.staff, r.employee_id); return; }
+    if (r.ok) { signIn(r.staff, r.employee_id, r.session?.token ?? null); return; }
     if (r.reason === 'locked') setMessage(t('kassa.pin.locked'));
     else if (r.reason === 'inactive') setMessage(t('kassa.pin.inactive'));
     else setMessage(t('kassa.pin.wrong', { n: r.attempts_left ?? 0 }));

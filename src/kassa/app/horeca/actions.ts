@@ -27,7 +27,15 @@ export interface ActionCtx {
   isRegular?: (tableId: string | null) => boolean;
   /** KASSA-0.6: rol van de medewerker met de PIN (owner/manager mogen producten aanpassen). */
   staffRole?: string;
+  /**
+   * KASSA-RECHTEN-1 (review 1): sessietoken van de aanmelding (kassa_staff_login). Enkel daarmee doet een
+   * eigenaar/verantwoordelijke korting, annuleren of kas uit zonder akkoord. Leeft enkel in het geheugen.
+   */
+  staffToken?: string | null;
 }
+
+/** Het sessietoken mee met de commando's waar de server het nodig heeft (enkel daar). */
+export const tokenOf = (ctx: Pick<ActionCtx, 'staffToken'>) => (ctx.staffToken ? { staff_token: ctx.staffToken } : {});
 
 async function signOrFail(ctx: ActionCtx, fn: () => Promise<{ kind: string; eventId?: string; errors?: unknown }>): Promise<{ eventId: string | null } | ActionOutcome> {
   if (!ctx.runtime.isFiscal) return { eventId: null };
@@ -186,7 +194,7 @@ export async function discountLine(ctx: ActionCtx, checkId: string, lineId: stri
       id: crypto.randomUUID(), kind: 'discount_line', check_id: checkId, line_id: lineId,
       neg_line_id: crypto.randomUUID(), new_line_id: crypto.randomUUID(),
       ...(d.percent != null ? { percent: d.percent } : { amount_cents: d.amountCents }), name: d.name, staff_id: ctx.staffId,
-      ...(approvalId ? { approval_id: approvalId } : {}),
+      ...(approvalId ? { approval_id: approvalId } : tokenOf(ctx)),
     }));
   } catch (e) {
     return { ok: false, reason: 'offline', detail: e instanceof Error ? e.message : String(e) };
@@ -200,7 +208,7 @@ export async function discountLine(ctx: ActionCtx, checkId: string, lineId: stri
  */
 export async function voidLine(ctx: ActionCtx, checkId: string, lineId: string, reason: string, qty: number, approvalId?: string): Promise<ActionOutcome> {
   const cmd = { id: crypto.randomUUID(), kind: 'void_line' as const, check_id: checkId, line_id: lineId, new_line_id: crypto.randomUUID(), reason, qty, staff_id: ctx.staffId };
-  if (!approvalId) { ctx.store.enqueue(cmd); return { ok: true }; }
+  if (!approvalId) { ctx.store.enqueue({ ...cmd, ...tokenOf(ctx) }); return { ok: true }; }
   try {
     return serverOutcome(await ctx.store.applyNow({ ...cmd, approval_id: approvalId }));
   } catch (e) {

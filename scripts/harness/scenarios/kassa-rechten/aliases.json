@@ -8,5 +8,8 @@
   "/^\\.\\./attendance$/": "mocks/attendance.ts",
   "@/components/admin/kitchen/useKitchenBoard": "mocks/kitchenBoard.ts",
   "@/hooks/usePrepStations": "mocks/prep.ts",
-  "/^\\.\\./\\.\\./print$/": "mocks/print.ts"
+  "/^\\.\\./\\.\\./print$/": "mocks/print.ts",
+  "/^\\./printHealth$/": "mocks/printHealth.ts",
+  "qr.js/lib/ErrorCorrectLevel": "mocks/qrjs.ts",
+  "qr.js/lib/QRCode": "mocks/qrjs.ts"
 }

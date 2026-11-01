@@ -10,7 +10,7 @@ import type { ActionCtx } from './horeca/actions';
 import { DRAWER } from './horeca/pay';
 import { runFiscalOp, type FiscalOp, type FiscalOpOutcome } from './fiscalOps';
 
-type Ctx = Pick<ActionCtx, 'runtime' | 'staffId' | 'employeeId'>;
+type Ctx = Pick<ActionCtx, 'runtime' | 'staffId' | 'employeeId' | 'staffToken'>;
 
 export interface ShiftResult { session_id: string; opening_cents?: number; expected_cents?: number; counted_cents?: number; difference_cents?: number; duplicate?: boolean }
 
@@ -32,15 +32,22 @@ async function signsFor(ctx: Ctx, amountCents: number, amountType: 'MONEY_IN_OUT
   }
 }
 
-/** Geld in of uit de lade, met reden (bv. "wisselgeld", "brood bij de bakker"). */
-export async function cashMove(ctx: Ctx, direction: 'in' | 'out', amountCents: number, reason: string): Promise<FiscalOpOutcome<{ ok: boolean; session_id: string }>> {
+/**
+ * Geld in of uit de lade, met reden (bv. "wisselgeld", "brood bij de bakker").
+ * KASSA-RECHTEN-1 (review 1): kas uit = eigenaar/verantwoordelijke (sessietoken) of hun akkoord
+ * (approvalId, gebonden aan dit bedrag). Het akkoord wordt gevraagd VÓÓR het ondertekenen.
+ */
+export async function cashMove(ctx: Ctx, direction: 'in' | 'out', amountCents: number, reason: string, approvalId?: string): Promise<FiscalOpOutcome<{ ok: boolean; session_id: string }>> {
   if (!Number.isSafeInteger(amountCents) || amountCents <= 0) return { ok: false, reason: 'server', detail: 'amount' };
   const id = crypto.randomUUID();
   const signs = await signsFor(ctx, direction === 'in' ? amountCents : -amountCents, 'MONEY_IN_OUT');
   if (!Array.isArray(signs)) return signs;
   return runFiscalOp(ctx.runtime, {
     id, rpc: 'kassa_cash_move', eventField: 'fiscal_event_id', signs, staffId: ctx.staffId, status: 'unsigned', at: new Date().toISOString(),
-    payload: { id, terminal_id: ctx.runtime.device.terminalRowId, staff_id: ctx.staffId, direction, amount_cents: amountCents, reason: reason.trim() },
+    payload: {
+      id, terminal_id: ctx.runtime.device.terminalRowId, staff_id: ctx.staffId, direction, amount_cents: amountCents, reason: reason.trim(),
+      ...(direction === 'out' ? (approvalId ? { approval_id: approvalId } : ctx.staffToken ? { staff_token: ctx.staffToken } : {}) : {}),
+    },
   });
 }
 

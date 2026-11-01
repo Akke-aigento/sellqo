@@ -12,6 +12,8 @@ import { parseEuroInput } from '../horeca/pay';
 import { formatEuro } from '../horeca/format';
 import { DENOMINATIONS, countTotal } from '../horeca/kassaUx';
 import { cashMove, shift, type ShiftResult } from '../cashActions';
+import { needsApproval } from '../horeca/approvals';
+import { ApprovalDialog } from './ApprovalDialog';
 import type { FiscalOpOutcome } from '../fiscalOps';
 
 interface OpenShift { id: string; opened_at: string; opening_cash: number }
@@ -44,12 +46,16 @@ export function CashScreen({ ctx }: { ctx: ActionCtx }) {
 
   const fail = (o: FiscalOpOutcome<unknown>) => (o.ok ? '' : t(`kassa.cash.error.${o.reason}`, { detail: o.detail ?? '' }));
 
-  const submit = async () => {
+  // KASSA-RECHTEN-1 (review 1): kas uit door een andere medewerker = eerst het akkoord (vóór het ondertekenen).
+  const [askApproval, setAskApproval] = useState(false);
+  const submit = async (approvalId?: string) => {
     if (!mode || cents === null || !valid) return;
+    if (mode === 'out' && !approvalId && needsApproval(ctx, 'cash_out')) { setAskApproval(true); return; }
+    setAskApproval(false);
     setBusy(true);
     setMessage(null);
     if (mode === 'in' || mode === 'out') {
-      const o = await cashMove(ctx, mode, cents, reason);
+      const o = await cashMove(ctx, mode, cents, reason, approvalId);
       setBusy(false);
       if (!o.ok) { setMessage({ ok: false, text: fail(o) }); return; }
       setMessage({ ok: true, text: o.pending ? t('kassa.cash.pending') : t(mode === 'in' ? 'kassa.cash.doneIn' : 'kassa.cash.doneOut', { amount: euro(cents) }) });
@@ -107,6 +113,7 @@ export function CashScreen({ ctx }: { ctx: ActionCtx }) {
       {mode && (
         <form className="space-y-3 rounded-lg border p-3" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
           <p className="font-semibold">{t(`kassa.cash.title.${mode}`)}</p>
+          {mode === 'out' && needsApproval(ctx, 'cash_out') ? <p className="text-xs text-muted-foreground">{t('kassa.approval.hint')}</p> : null}
           {mode === 'open' || mode === 'close' ? <p className="text-sm text-muted-foreground">{t('kassa.cash.countHint')}</p> : null}
           {(mode === 'open' || mode === 'close') && !counts ? (
             <button type="button" onClick={() => setCounts({})} className="flex h-11 items-center gap-2 rounded-md border px-3 text-sm font-semibold">
@@ -156,6 +163,11 @@ export function CashScreen({ ctx }: { ctx: ActionCtx }) {
           </div>
         </form>
       )}
+
+      {askApproval && mode === 'out' && cents !== null ? (
+        <ApprovalDialog ctx={ctx} action="cash_out" checkId={null} lineId={null} bind={{ amountCents: cents }}
+          what={`${euro(cents)} · ${reason.trim()}`} onApproved={(id) => submit(id)} onClose={() => setAskApproval(false)} />
+      ) : null}
 
       {message && (
         <p role={message.ok ? 'status' : 'alert'} className={cn('rounded-md p-3 text-sm', message.ok ? 'bg-muted' : 'bg-destructive/10 text-destructive')}>{message.text}</p>

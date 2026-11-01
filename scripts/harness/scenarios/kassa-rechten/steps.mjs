@@ -127,6 +127,15 @@ async function steps(page, { width, shot, log }) {
   log('kas totaal veld', await page.getByLabel('Bedrag').inputValue().catch(() => '?'));
   await shot('12-kas-tellen');
   log('overflow kas px', await overflow(page));
+  // Review 1: kas uit door een ober = eerst het akkoord van een verantwoordelijke (vóór het ondertekenen).
+  await page.getByRole('button', { name: 'Kas uit' }).click();
+  await page.getByLabel('Bedrag').fill('20');
+  await page.getByLabel('Reden', { exact: true }).fill('Brood bij de bakker');
+  await page.getByRole('button', { name: 'Bevestigen' }).click();
+  await page.waitForTimeout(300);
+  log('kas uit akkoord', await dialogText(page));
+  await shot('12b-kas-uit-akkoord');
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Terug naar de tafels' }).click();
   await page.getByRole('button', { name: /^Bar/ }).click();
   await page.waitForTimeout(300);

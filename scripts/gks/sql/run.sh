@@ -37,8 +37,14 @@ for T in test_fiscal_events.sql test_personeel.sql test_tafel.sql test_pay.sql t
 done
 # Latere kassamigraties (nachtrun 1-2 nov) en hun tests, na de bovenstaande (die de regels van vóór
 # KASSA-RECHTEN-1 testen: korting/annuleren zonder akkoord).
+# KEUKEN-VEILIG-1 patcht horeca_apply_one vóór KASSA-RECHTEN-1 (ankermethode, beide moeten samen kunnen).
+# Live bestaande kolommen/tabellen die de preludes niet kennen, hier nabootsen.
+$P -d $DB -c "alter table public.product_addon_options add column if not exists allergens text[] not null default '{}';
+  alter table public.kitchen_tickets add column if not exists note text;
+  create table if not exists public.table_requests (id uuid primary key, tenant_id uuid, check_id uuid, status text, guest_name text, note text, line_ids uuid[]);" >/dev/null
 for M in ../../../supabase/migrations/20261028110000_betaal_1_horeca_payments.sql \
          ../../../supabase/migrations/20261030120000_kassa_cancel_bill.sql \
+         ../../../supabase/migrations/20261101230200_keuken_veilig_1.sql \
          ../../../supabase/migrations/20261101230250_kassa_rechten_1.sql \
          ../../../supabase/migrations/20261101230260_kassa_ux_6.sql; do
   $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }

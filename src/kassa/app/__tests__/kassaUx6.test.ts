@@ -2,6 +2,8 @@
 // fooi-knoppen, snelknoppen contant, telling per biljet/munt, vergrendeltijden.
 import { describe, expect, it } from 'vitest';
 import { approvalFor, needsApproval } from '../horeca/approvals';
+import { planMinus, qtyLocked } from '../horeca/quickTap';
+import { effectiveLockMinutes } from '../horeca/staffSession';
 import { DENOMINATIONS, cashGivenOptions, countTotal, lastRoundLines, normalizeLockMinutes, tipSuggestions } from '../horeca/kassaUx';
 import type { CheckLine } from '../horeca/types';
 
@@ -12,9 +14,13 @@ const line = (over: Partial<CheckLine>): CheckLine => ({
 });
 
 describe('KASSA-RECHTEN-1: akkoord nodig', () => {
-  it('eigenaar en verantwoordelijke meteen; ober, barman en zonder rol via PIN', () => {
-    expect(needsApproval({ staffRole: 'owner' }, 'discount')).toBe(false);
-    expect(needsApproval({ staffRole: 'manager' }, 'void_sent')).toBe(false);
+  it('eigenaar en verantwoordelijke meteen (met sessietoken); ober, barman en zonder rol via PIN', () => {
+    expect(needsApproval({ staffRole: 'owner', staffToken: 'a'.repeat(64) }, 'discount')).toBe(false);
+    expect(needsApproval({ staffRole: 'manager', staffToken: 'b'.repeat(64) }, 'void_sent')).toBe(false);
+    expect(needsApproval({ staffRole: 'manager', staffToken: 'b'.repeat(64) }, 'cash_out')).toBe(false);
+    // Review 1: zonder token keurt de eigenaar zelf goed met zijn PIN (de server aanvaardt de uitzondering niet).
+    expect(needsApproval({ staffRole: 'owner', staffToken: null }, 'discount')).toBe(true);
+    expect(needsApproval({ staffRole: 'waiter', staffToken: 'c'.repeat(64) }, 'cash_out')).toBe(true);
     expect(needsApproval({ staffRole: 'waiter' }, 'discount')).toBe(true);
     expect(needsApproval({ staffRole: 'bartender' }, 'void_sent')).toBe(true);
     expect(needsApproval({ staffRole: undefined }, 'discount')).toBe(true);
@@ -71,5 +77,26 @@ describe('KASSA-UX-6: kas tellen', () => {
     expect(normalizeLockMinutes('0')).toBe(0);
     expect(normalizeLockMinutes(3)).toBe(2);
     expect(normalizeLockMinutes(null)).toBe(2);
+  });
+});
+
+describe('Review 1: aantal ligt vast met korting; vergrendeltijd eigenaar', () => {
+  it('qtyLocked bij korting, correctie of tegenboeking; − op de tegel slaat die lijnen over', () => {
+    const pc = [{ grouping_id: 1, id: 'D', name: 'Gratis', scope: 'LINE' as const, type: 'PUBLIC' as const, amount_cents: -2800 }];
+    expect(qtyLocked(line({ price_changes: pc }))).toBe(true);
+    expect(qtyLocked(line({ corrects_line_id: 'x' }))).toBe(true);
+    expect(qtyLocked(line({ neg_reason: 'CORRECTION' }))).toBe(true);
+    expect(qtyLocked(line({}))).toBe(false);
+    const lines = [line({ id: 'free', seq: 2, state: 'draft', qty: 10, price_changes: pc }), line({ id: 'plain', seq: 1, state: 'draft', qty: 2 })];
+    expect(planMinus({ lines }, 'p')).toEqual({ lineId: 'plain', qty: 1 });
+    expect(planMinus({ lines: [lines[0]] }, 'p')).toBeNull();
+  });
+  it('eigenaar/verantwoordelijke hoogstens 2 minuten, ook bij "nooit"; anderen volgen de zaak', () => {
+    expect(effectiveLockMinutes(0, 'owner')).toBe(2);
+    expect(effectiveLockMinutes(10, 'manager')).toBe(2);
+    expect(effectiveLockMinutes(1, 'owner')).toBe(1);
+    expect(effectiveLockMinutes(0, 'waiter')).toBe(0);
+    expect(effectiveLockMinutes(10, 'bartender')).toBe(10);
+    expect(effectiveLockMinutes(5, undefined)).toBe(5);
   });
 });

@@ -9816,13 +9816,13 @@
     },
     "kassaLock": {
       "title": "Kassa vergrendelen",
-      "desc": "Na hoeveel minuten zonder aanraking SellQo Kassa terug om een PIN vraagt. Na vergrendelen staat de laatste medewerker al gekozen.",
+      "desc": "Na hoeveel minuten zonder aanraking SellQo Kassa terug om een PIN vraagt. Na vergrendelen staat de laatste medewerker al gekozen. Eigenaars en verantwoordelijken vergrendelen altijd na hoogstens 2 minuten.",
       "never": "Nooit",
       "minutes_one": "{{count}} minuut",
       "minutes_few": "{{count}} minuten",
       "minutes_many": "{{count}} minuten",
       "minutes_other": "{{count}} minuten",
-      "never_hint": "De kassa blijft aangemeld tot iemand op Wissel tikt. Doe dit enkel als niemand anders aan de kassa kan."
+      "never_hint": "Medewerkers blijven aangemeld tot iemand op Wissel tikt. Een eigenaar of verantwoordelijke vergrendelt altijd na 2 minuten. Kies dit enkel als niemand anders aan de kassa kan."
     }
   },
   "product_form": {
@@ -11885,7 +11885,8 @@
       "title": "PIN van een verantwoordelijke",
       "intro": {
         "discount": "Korting of gratis geven vraagt het akkoord van een eigenaar of verantwoordelijke: {{what}}.",
-        "void_sent": "Een verstuurde lijn annuleren vraagt het akkoord van een eigenaar of verantwoordelijke: {{what}}."
+        "void_sent": "Een verstuurde lijn annuleren vraagt het akkoord van een eigenaar of verantwoordelijke: {{what}}.",
+        "cash_out": "Geld uit de lade nemen vraagt het akkoord van een eigenaar of verantwoordelijke: {{what}}."
       },
       "confirm": "Goedkeuren",
       "hint": "Vraagt de PIN van een eigenaar of verantwoordelijke.",
@@ -11936,7 +11937,8 @@
       "shiftTotal": "Omzet",
       "shiftTips": "Fooi",
       "shiftHint": "Wat jij vandaag afrekende, met de fooi erbij. Dezelfde cijfers als jouw regel in het X-rapport.",
-      "deleteCheck": "Rekening schrappen"
+      "deleteCheck": "Rekening schrappen",
+      "qtyLocked": "Op deze lijn staat een korting: het aantal ligt vast. Haal de lijn weg en tik opnieuw."
     }
   },
   "deviceAlerts": {

@@ -103,3 +103,11 @@
 - Beschrijving: Je herhaalt een ronde met één tik, haalt een weggeveegde lijn terug, kiest fooi met 5 %,
   10 % of afronden en rekent bij gelijk delen persoon per persoon af. Na een pauze staat je naam al klaar,
   je stelt zelf in na hoeveel minuten de kassa vergrendelt, en in "Mijn dienst" zie je je omzet en fooi van vandaag.
+
+### Review 1 → fixes (1 november 2026)
+- `split: true` vanaf een toogverkoop wordt geweigerd in `kassa_counter_guard` (migratie 230260); getest.
+- "Rond af" vertrekt bij volledig contant van het afgeronde contante bedrag (`cashDue`); vitest.
+- Vergrendeltijd: eigenaar/verantwoordelijke altijd hoogstens 2 min (ook bij "nooit"); teksten in het beheer aangevuld.
+- Rollback-instructie in de header: `replace(def, <blok>, '')` per functie i.p.v. de snapshot terugzetten; getest.
+- Het aantal van een lijn met korting ligt vast (zie KASSA-RECHTEN-1 #1); Herhaal/Ongedaan maken zijn niet geraakt.
+- Harnasscenario `kassa-rechten` bijgewerkt na de merge (nieuwe mocks van kassa-home) en uitgebreid met kas uit.

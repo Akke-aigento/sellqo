@@ -21,6 +21,7 @@ import { readFlag } from '@/lib/ding';
 import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from './alerts';
 import { kassaLanguage } from './language';
 import { useKassaLockMinutes } from './horeca/paySettings';
+import { effectiveLockMinutes, revokeStaffToken } from './horeca/staffSession';
 
 function Spinner() {
   const { t } = useTranslation();
@@ -85,7 +86,8 @@ function Device() {
 function KassaLive({ runtime, terminalName, onForgetDevice }: { runtime: KassaRuntime; terminalName: string; onForgetDevice: () => void }) {
   const { staff, setIdleMs } = useKassaSession();
   // KASSA-UX-6: vergrendeltijd per zaak (Kassa › Personeel), 0 = nooit.
-  const lockMinutes = useKassaLockMinutes(runtime.device.tenantId);
+  // Review 1: eigenaar/verantwoordelijke altijd hoogstens 2 minuten.
+  const lockMinutes = effectiveLockMinutes(useKassaLockMinutes(runtime.device.tenantId), staff?.role);
   useEffect(() => { setIdleMs(lockMinutes * 60_000); }, [lockMinutes, setIdleMs]);
   const store = useHoreca(runtime.device.tenantId, runtime.device.deviceUuid);
   const [sound, setSound] = useState(() => readFlag(KASSA_SOUND_KEY, true));
@@ -105,7 +107,7 @@ export function KassaApp() {
   if (!user) return <SignIn />;
   return (
     <TenantProvider>
-      <KassaSessionProvider>
+      <KassaSessionProvider onEnd={(token) => revokeStaffToken(loadDevice()?.tenantId, token)}>
         <Device />
       </KassaSessionProvider>
     </TenantProvider>

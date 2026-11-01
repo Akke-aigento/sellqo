@@ -69,7 +69,7 @@ function useWide(min = 1024): boolean {
 
 export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice }: { runtime: KassaRuntime; store: HorecaStore; alerts: KassaAlerts; terminalName: string; onForgetDevice: () => void }) {
   const { t, i18n } = useTranslation();
-  const { staff, employeeId, lock, setIdlePaused, guard } = useKassaSession();
+  const { staff, employeeId, staffToken, lock, setIdlePaused, guard } = useKassaSession();
   const { data: plan } = useFloorPlan();
   const [openCheck, setOpenCheck] = useState<string | null>(null);
   const [view, setView] = useState<View>('tables');
@@ -143,9 +143,9 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((x) => [x.id, x.label])), [plan]);
   const regulars = useMemo(() => new Set((plan?.tables ?? []).filter((x) => x.kind === 'regular').map((x) => x.id)), [plan]);
   const ctx: ActionCtx | null = useMemo(() => (staff ? {
-    store, runtime, staffId: staff.id, staffName: staff.display_name, staffRole: staff.role, employeeId, tableLabel: (id: string | null) => (id ? labels.get(id) ?? null : null),
+    store, runtime, staffId: staff.id, staffName: staff.display_name, staffRole: staff.role, staffToken, employeeId, tableLabel: (id: string | null) => (id ? labels.get(id) ?? null : null),
     isRegular: (id: string | null) => !!id && regulars.has(id),
-  } : null), [store, runtime, staff, employeeId, labels, regulars]);
+  } : null), [store, runtime, staff, staffToken, employeeId, labels, regulars]);
   useAutoAcceptRunner(ctx, autoAccept, store.requests);
   if (!staff || !ctx) return null;
 
