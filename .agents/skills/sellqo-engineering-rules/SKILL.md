@@ -396,6 +396,11 @@ genoeg: elke kassamedewerker logt in als `staff`.
   de controle hoort server-side;
 - hergebruik het approver-patroon van `ProductQuickEdit` / `productActions`;
 - de fiscale events blijven dezelfde; enkel wie ze mag uitlokken verandert.
+- een korting die als vast bedrag op een lijn staat, bevriest die lijn: het aantal
+  wijzigen kan pas na het weghalen van de korting, op de server én in elke UI die het
+  aantal aanpast (review 1 nov: 10× Pils gratis, dan 9× min = −€25,20 op de rekening);
+- de owner/manager-uitzondering hangt aan een bewezen sessie (PIN-token), niet aan een
+  `staff_id` die het toestel zelf meestuurt.
 **Incident (rollenwandeling, 1 nov 2026):** korting −10/20/50 % en gratis kon elke
 medewerker zonder goedkeuring geven; de server keek enkel naar `tenant_admin`/`staff`.
 Opgelost in KASSA-RECHTEN-1.
