@@ -1,13 +1,16 @@
 // TAFEL-3 — Kas: shift openen met begintelling, kas in/uit met reden, shift sluiten met
 // eindtelling (verwacht, geteld, verschil). Fiscaal gaat elke handeling eerst langs de FDM.
+// KASSA-UX-6: bij openen/sluiten optioneel tellen per biljet en munt; dat vult het totaal in (het
+// blijft één bedrag, net zoals wie meteen het totaal intikt). Fiscaal verandert er niets.
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowDownToLine, ArrowUpFromLine, Loader2, LockKeyhole, Unlock } from 'lucide-react';
+import { ArrowDownToLine, ArrowUpFromLine, Calculator, Loader2, LockKeyhole, Unlock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import type { ActionCtx } from '../horeca/actions';
 import { parseEuroInput } from '../horeca/pay';
 import { formatEuro } from '../horeca/format';
+import { DENOMINATIONS, countTotal } from '../horeca/kassaUx';
 import { cashMove, shift, type ShiftResult } from '../cashActions';
 import type { FiscalOpOutcome } from '../fiscalOps';
 
@@ -25,6 +28,8 @@ export function CashScreen({ ctx }: { ctx: ActionCtx }) {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [closed, setClosed] = useState<ShiftResult | null>(null);
+  // KASSA-UX-6: telling per biljet/munt (null = dicht).
+  const [counts, setCounts] = useState<Record<number, string> | null>(null);
 
   const load = async () => {
     const { data } = await supabase.from('pos_sessions').select('id, opened_at, opening_cash')
@@ -61,7 +66,14 @@ export function CashScreen({ ctx }: { ctx: ActionCtx }) {
     void load();
   };
 
-  const startMode = (m: typeof mode) => { setMode(m); setAmount(''); setReason(''); setMessage(null); setClosed(null); };
+  const startMode = (m: typeof mode) => { setMode(m); setAmount(''); setReason(''); setMessage(null); setClosed(null); setCounts(null); };
+  const countCents = (c: Record<number, string> | null) => countTotal(Object.fromEntries(Object.entries(c ?? {}).map(([k, x]) => [Number(k), x ? Number(x) : 0])));
+  const setCount = (d: number, v: string) => {
+    const next = { ...(counts ?? {}), [d]: v.replace(/\D/g, '').slice(0, 5) };
+    setCounts(next);
+    const total = countCents(next);
+    setAmount((total / 100).toFixed(2).replace('.', i18n.language.startsWith('en') ? '.' : ','));
+  };
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-4 p-3">
@@ -96,6 +108,30 @@ export function CashScreen({ ctx }: { ctx: ActionCtx }) {
         <form className="space-y-3 rounded-lg border p-3" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
           <p className="font-semibold">{t(`kassa.cash.title.${mode}`)}</p>
           {mode === 'open' || mode === 'close' ? <p className="text-sm text-muted-foreground">{t('kassa.cash.countHint')}</p> : null}
+          {(mode === 'open' || mode === 'close') && !counts ? (
+            <button type="button" onClick={() => setCounts({})} className="flex h-11 items-center gap-2 rounded-md border px-3 text-sm font-semibold">
+              <Calculator className="h-4 w-4" aria-hidden />{t('kassa.ux6.countByDenomination')}
+            </button>
+          ) : null}
+          {(mode === 'open' || mode === 'close') && counts ? (
+            <fieldset className="space-y-2 rounded-md bg-muted/60 p-2">
+              <legend className="sr-only">{t('kassa.ux6.countByDenomination')}</legend>
+              <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                {DENOMINATIONS.map((d) => (
+                  <label key={d} className="flex items-center gap-2 rounded-md border bg-background px-2">
+                    <span className="w-16 shrink-0 text-sm font-semibold tabular-nums">{euro(d)}</span>
+                    <span aria-hidden className="text-muted-foreground">×</span>
+                    <input inputMode="numeric" value={counts[d] ?? ''} onChange={(e) => setCount(d, e.target.value)} placeholder="0"
+                      aria-label={t('kassa.ux6.countOf', { value: euro(d) })} className="h-10 w-full min-w-0 bg-transparent text-right tabular-nums outline-none" />
+                  </label>
+                ))}
+              </div>
+              <p className="flex items-center justify-between text-sm">
+                <button type="button" onClick={() => setCounts(null)} className="h-9 rounded-md border bg-background px-3">{t('kassa.ux6.countClose')}</button>
+                <span className="font-semibold tabular-nums">{t('kassa.ux6.countTotal', { amount: euro(countCents(counts)) })}</span>
+              </p>
+            </fieldset>
+          ) : null}
           <input inputMode="decimal" autoFocus value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0,00" aria-label={t('kassa.cash.amount')}
             className={cn('h-12 w-full rounded-md border bg-background px-3 text-right text-lg tabular-nums', amount && cents === null && 'border-destructive')} />
           {needsReason && (

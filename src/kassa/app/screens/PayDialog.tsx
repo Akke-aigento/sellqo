@@ -4,6 +4,9 @@
 // eigen betaalmiddel (één btw-kasticket, UC4119). Vrij: betaalmiddelen en bedragen zelf.
 // Contant toont het afgeronde bedrag (5 cent) en het wisselgeld; fooi staat apart.
 // Na afloop: bonnummer, wisselgeld en (geregistreerde kassa) het kasticket om af te drukken.
+// KASSA-UX-6: snelknoppen €5/€10 bij contant, fooi 5 %/10 %/rond af, en bij gelijk delen een
+// "volgende persoon"-stap per deel. Fiscaal identiek: het blijft één afrekening met meerdere
+// betaalmiddelen (UC4119), pas verstuurd bij "Bevestig".
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Banknote, CreditCard, Landmark, Loader2, Minus, Plus, Printer, Trash2 } from 'lucide-react';
@@ -21,6 +24,7 @@ import { availableTenders, availableTipMethods, useKassaPaySettings } from '../h
 import { payableTotal, payCheck, type PayOutcome } from '../horeca/payActions';
 import { isCounter, lineTotalCents, type Check } from '../horeca/types';
 import { formatEuro } from '../horeca/format';
+import { cashGivenOptions, tipSuggestions } from '../horeca/kassaUx';
 
 const toInput = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
 
@@ -103,8 +107,11 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
   const rest = total - entered;
   const givenCents = given.trim() ? parseEuroInput(given) : null;
 
-  const setAll = (method: TenderMethod) => { setRows([{ method, amount: toInput(total) }]); setError(null); };
-  const split = (n: number) => { setRows(equalSplit(total, n).map((c, i) => ({ method: rows[i]?.method ?? firstMethod, amount: toInput(c) }))); setError(null); };
+  // KASSA-UX-6: bij gelijk delen één persoon tegelijk (null = geen stappen, bv. vrij ingevuld).
+  const [person, setPerson] = useState<number | null>(null);
+  const setAll = (method: TenderMethod) => { setRows([{ method, amount: toInput(total) }]); setPerson(null); setError(null); };
+  const split = (n: number) => { setRows(equalSplit(total, n).map((c, i) => ({ method: rows[i]?.method ?? firstMethod, amount: toInput(c) }))); setPerson(0); setError(null); };
+  const tips = tipSuggestions(total);
   const patch = (i: number, r: Partial<Row>) => setRows((xs) => xs.map((x, j) => (j === i ? { ...x, ...r } : x)));
 
   const confirm = async () => {
@@ -202,9 +209,35 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
             ))}
           </div>
 
+          {person !== null && rows.length > 1 && person < rows.length ? (
+            <div className="space-y-2 rounded-lg border-2 border-primary p-3" aria-live="polite">
+              <p className="flex items-baseline justify-between gap-2">
+                <span className="font-semibold">{t('kassa.ux6.person', { n: person + 1, of: rows.length })}</span>
+                <span className="text-lg font-bold tabular-nums">{euro(parseEuroInput(rows[person].amount) ?? 0)}</span>
+              </p>
+              <div className={cn('grid gap-2', quick.length >= 3 ? 'grid-cols-3' : 'grid-cols-2')} role="group" aria-label={t('kassa.pay.methodLabel')}>
+                {quick.map((m) => (
+                  <button key={m} type="button" aria-pressed={rows[person].method === m} onClick={() => patch(person, { method: m })}
+                    className={cn('h-12 rounded-md border-2 text-sm font-semibold', rows[person].method === m && 'border-primary bg-primary/10')}>{t(`kassa.pay.method.${m}`)}</button>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <button type="button" disabled={person === 0} onClick={() => setPerson(person - 1)} className="h-11 rounded-md border px-3 text-sm disabled:opacity-30">{t('kassa.ux6.prevPerson')}</button>
+                <button type="button" onClick={() => setPerson(person + 1)} className="h-11 flex-1 rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground">
+                  {person + 1 < rows.length ? t('kassa.ux6.nextPerson') : t('kassa.ux6.allPersons')}
+                </button>
+              </div>
+            </div>
+          ) : person !== null && rows.length > 1 ? (
+            <p className="flex items-center justify-between gap-2 rounded-md bg-muted p-2 text-sm">
+              <span>{t('kassa.ux6.personsDone', { n: rows.length })}</span>
+              <button type="button" onClick={() => setPerson(0)} className="h-9 rounded-md border bg-background px-3 font-semibold">{t('kassa.ux6.againPersons')}</button>
+            </p>
+          ) : null}
+
           <ul className="space-y-2">
             {rows.map((r, i) => (
-              <li key={i} className="flex items-center gap-2">
+              <li key={i} className={cn('flex items-center gap-2', person === i && rows.length > 1 && 'rounded-md ring-2 ring-primary ring-offset-1')}>
                 <select value={r.method} onChange={(e) => patch(i, { method: e.target.value as TenderMethod })} aria-label={t('kassa.pay.methodLabel')} className="h-11 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm">
                   {methods.map((m) => <option key={m} value={m}>{t(`kassa.pay.method.${m}`)}</option>)}
                 </select>
@@ -231,7 +264,7 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
               {plan.rounding !== 0 ? <p className="text-xs text-muted-foreground">{t('kassa.pay.roundingNote', { amount: euro(plan.rounding) })}</p> : null}
               <div className="flex flex-wrap items-center gap-2">
                 <input inputMode="decimal" value={given} onChange={(e) => setGiven(e.target.value)} placeholder={t('kassa.pay.given')} aria-label={t('kassa.pay.given')} className="h-11 w-28 rounded-md border bg-background px-2 text-right tabular-nums" />
-                {[plan.cashDue, 2000, 5000, 10000].filter((v, i, a) => a.indexOf(v) === i && v >= plan.cashDue).map((v) => (
+                {cashGivenOptions(plan.cashDue).map((v) => (
                   <button key={v} type="button" onClick={() => setGiven(toInput(v))} className="h-10 rounded-md border px-2 text-sm tabular-nums">{euro(v)}</button>
                 ))}
               </div>
@@ -278,6 +311,14 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
             <span className="text-sm">{t('kassa.pay.tip')}</span>
             <input inputMode="decimal" value={tip} onChange={(e) => setTip(e.target.value)} placeholder="0,00" aria-label={t('kassa.pay.tip')}
               className={cn('h-11 w-24 rounded-md border bg-background px-2 text-right tabular-nums', tipCents === null && 'border-destructive')} />
+            {/* KASSA-UX-6: snel een fooi; het veld blijft aanpasbaar. "Rond af" = tot de volgende hele euro. */}
+            {([['5', tips.pct5], ['10', tips.pct10]] as const).map(([pct, c]) => (
+              <button key={pct} type="button" disabled={c <= 0} onClick={() => setTip(toInput(c))} aria-pressed={tipCents === c && c > 0}
+                className={cn('h-10 rounded-md border px-2.5 text-sm font-semibold tabular-nums disabled:opacity-30', tipCents === c && c > 0 && 'border-primary bg-primary/10')}>{pct} %</button>
+            ))}
+            <button type="button" disabled={tips.roundUp <= 0} onClick={() => setTip(toInput(tips.roundUp))} aria-pressed={tipCents === tips.roundUp && tips.roundUp > 0}
+              title={tips.roundUp > 0 ? euro(total + tips.roundUp) : undefined}
+              className={cn('h-10 rounded-md border px-2.5 text-sm font-semibold disabled:opacity-30', tipCents === tips.roundUp && tips.roundUp > 0 && 'border-primary bg-primary/10')}>{t('kassa.ux6.roundUp')}</button>
             <div className="flex rounded-md border" role="group" aria-label={t('kassa.pay.tipMethod')}>
               {tipMethods.map((m) => (
                 <button key={m} type="button" aria-pressed={tipMethod === m} onClick={() => setTipMethod(m)} className={cn('h-10 px-3 text-sm', tipMethod === m && 'bg-muted font-semibold')}>{t(`kassa.pay.method.${m}`)}</button>

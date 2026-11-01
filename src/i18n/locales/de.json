@@ -9455,6 +9455,16 @@
       "unnamed": "Rechnung ohne Namen",
       "readonly_hint": "Diese Übersicht ist schreibgeschützt und aktualisiert sich alle 10 Sekunden. SellQo Kassa zeigt Änderungen sofort.",
       "open_kassa": "SellQo Kassa öffnen"
+    },
+    "kassaLock": {
+      "title": "Kasse sperren",
+      "desc": "Nach wie vielen Minuten ohne Berührung SellQo Kassa wieder nach einer PIN fragt. Nach dem Sperren ist die letzte Person schon ausgewählt.",
+      "never": "Nie",
+      "minutes_one": "{{count}} Minute",
+      "minutes_few": "{{count}} Minuten",
+      "minutes_many": "{{count}} Minuten",
+      "minutes_other": "{{count}} Minuten",
+      "never_hint": "Die Kasse bleibt angemeldet, bis jemand auf Wechseln tippt. Mach das nur, wenn sonst niemand an die Kasse kommt."
     }
   },
   "billing": {
@@ -11468,7 +11478,8 @@
       "offline": "Offline · {{n}} wartende Aktionen",
       "tab": {
         "cash": "Kasse",
-        "reports": "Berichte"
+        "reports": "Berichte",
+        "shift": "Meine Schicht"
       },
       "menu": "Menü",
       "toAdmin": "Zur SellQo-Verwaltung",
@@ -11560,7 +11571,8 @@
         "fdm_rejected": "Die Blackbox hat abgelehnt. Nichts wurde gesendet.",
         "fdm_unreachable": "Die Blackbox ist nicht erreichbar. Nichts wurde gesendet; erneut versuchen.",
         "server": "Nicht ausgeführt: {{detail}}",
-        "changed": "Eine Kollegin oder ein Kollege hat diese Rechnung gerade geändert. Prüfen und erneut versuchen."
+        "changed": "Eine Kollegin oder ein Kollege hat diese Rechnung gerade geändert. Prüfen und erneut versuchen.",
+        "not_allowed": "Dafür braucht es die Zustimmung des Inhabers oder einer verantwortlichen Person (oder sie ist abgelaufen). Versuche es erneut."
       },
       "popular": "Beliebt",
       "closeSearch": "Suche schließen",
@@ -11852,6 +11864,63 @@
       "bill": "Tisch {{label}} möchte zahlen",
       "repeat": "{{count}}× gerufen",
       "handle": "Erledigt"
+    },
+    "approval": {
+      "title": "PIN einer verantwortlichen Person",
+      "intro": {
+        "discount": "Rabatt oder etwas aufs Haus braucht die Zustimmung des Inhabers oder einer verantwortlichen Person: {{what}}.",
+        "void_sent": "Eine bereits gesendete Zeile zu stornieren braucht die Zustimmung des Inhabers oder einer verantwortlichen Person: {{what}}."
+      },
+      "confirm": "Freigeben",
+      "hint": "Braucht die PIN des Inhabers oder einer verantwortlichen Person.",
+      "error": {
+        "not_allowed": "Nur der Inhaber oder eine verantwortliche Person kann das freigeben.",
+        "invalid": "Diese Freigabe geht nicht: Wähle eine Person und versuche es erneut.",
+        "wrong_pin": "Falsche PIN.",
+        "locked": "Zu viele Fehlversuche. Diese PIN ist für 5 Minuten gesperrt.",
+        "offline": "Keine Verbindung. Freigeben geht nur online.",
+        "server": "Hat nicht geklappt. Versuche es erneut."
+      }
+    },
+    "ux6": {
+      "removed": "{{qty}}× {{name}} entfernt",
+      "undo": "Rückgängig",
+      "repeat_one": "{{count}} Stück erneut hinzugefügt",
+      "repeat_few": "{{count}} Stück erneut hinzugefügt",
+      "repeat_many": "{{count}} Stück erneut hinzugefügt",
+      "repeat_other": "{{count}} Stück erneut hinzugefügt",
+      "repeatSkipped_one": "{{count}} Produkt ist ausverkauft oder nicht mehr verfügbar",
+      "repeatSkipped_few": "{{count}} Produkte sind ausverkauft oder nicht mehr verfügbar",
+      "repeatSkipped_many": "{{count}} Produkte sind ausverkauft oder nicht mehr verfügbar",
+      "repeatSkipped_other": "{{count}} Produkte sind ausverkauft oder nicht mehr verfügbar",
+      "repeatNothing": "Aus der letzten Runde ist nichts mehr offen.",
+      "repeatRound": "Letzte Runde wiederholen",
+      "counterToTab": "Auf einen Namen oder Tisch setzen",
+      "deleteTitle": "{{title}} löschen?",
+      "deleteText_one": "Darauf steht {{count}} Stück ({{amount}}), noch nicht gesendet. Es verschwindet ganz.",
+      "deleteText_few": "Darauf stehen {{count}} Stück ({{amount}}), noch nicht gesendet. Sie verschwinden ganz.",
+      "deleteText_many": "Darauf stehen {{count}} Stück ({{amount}}), noch nicht gesendet. Sie verschwinden ganz.",
+      "deleteText_other": "Darauf stehen {{count}} Stück ({{amount}}), noch nicht gesendet. Sie verschwinden ganz.",
+      "person": "Person {{n}} von {{of}}",
+      "prevPerson": "Zurück",
+      "nextPerson": "Nächste Person",
+      "allPersons": "Alle gewählt",
+      "personsDone": "Zahlungsart für alle {{n}} Personen gewählt. Prüfe und bestätige.",
+      "againPersons": "Erneut pro Person",
+      "roundUp": "Aufrunden",
+      "countByDenomination": "Nach Scheinen und Münzen zählen",
+      "countOf": "Anzahl {{value}}",
+      "countClose": "Zählung schließen",
+      "countTotal": "Gezählt: {{amount}}",
+      "staffTip": "Trinkgeld",
+      "shiftSince": "Geschäftstag seit {{at}}",
+      "refresh": "Aktualisieren",
+      "shiftError": "Deine Schicht konnte nicht geladen werden. Versuche es erneut.",
+      "shiftCount": "Kassiert",
+      "shiftTotal": "Umsatz",
+      "shiftTips": "Trinkgeld",
+      "shiftHint": "Was du heute kassiert hast, mit Trinkgeld. Dieselben Zahlen wie deine Zeile im X-Bericht.",
+      "deleteCheck": "Rechnung löschen"
     }
   },
   "deviceAlerts": {

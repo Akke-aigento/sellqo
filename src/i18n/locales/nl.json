@@ -9800,6 +9800,16 @@
       "unnamed": "Rekening zonder naam",
       "readonly_hint": "Dit overzicht is alleen-lezen en ververst elke 10 seconden. SellQo Kassa zelf toont wijzigingen meteen.",
       "open_kassa": "SellQo Kassa openen"
+    },
+    "kassaLock": {
+      "title": "Kassa vergrendelen",
+      "desc": "Na hoeveel minuten zonder aanraking SellQo Kassa terug om een PIN vraagt. Na vergrendelen staat de laatste medewerker al gekozen.",
+      "never": "Nooit",
+      "minutes_one": "{{count}} minuut",
+      "minutes_few": "{{count}} minuten",
+      "minutes_many": "{{count}} minuten",
+      "minutes_other": "{{count}} minuten",
+      "never_hint": "De kassa blijft aangemeld tot iemand op Wissel tikt. Doe dit enkel als niemand anders aan de kassa kan."
     }
   },
   "product_form": {
@@ -11470,7 +11480,8 @@
       "offline": "Offline · {{n}} wachtende acties",
       "tab": {
         "cash": "Kas",
-        "reports": "Rapporten"
+        "reports": "Rapporten",
+        "shift": "Mijn dienst"
       },
       "menu": "Menu",
       "toAdmin": "Naar SellQo-beheer",
@@ -11562,7 +11573,8 @@
         "fdm_rejected": "De zwarte doos weigerde. Er is niets verstuurd.",
         "fdm_unreachable": "De zwarte doos is niet bereikbaar. Er is niets verstuurd; probeer opnieuw.",
         "server": "Niet gelukt: {{detail}}",
-        "changed": "Een collega wijzigde deze rekening net. Kijk ze na en probeer opnieuw."
+        "changed": "Een collega wijzigde deze rekening net. Kijk ze na en probeer opnieuw.",
+        "not_allowed": "Hiervoor is het akkoord van een eigenaar of verantwoordelijke nodig (of het is verlopen). Probeer opnieuw."
       },
       "popular": "Populair",
       "closeSearch": "Zoeken sluiten",
@@ -11854,6 +11866,63 @@
       "bill": "Tafel {{label}} vraagt de rekening",
       "repeat": "{{count}}× geroepen",
       "handle": "Afgehandeld"
+    },
+    "approval": {
+      "title": "PIN van een verantwoordelijke",
+      "intro": {
+        "discount": "Korting of gratis geven vraagt het akkoord van een eigenaar of verantwoordelijke: {{what}}.",
+        "void_sent": "Een verstuurde lijn annuleren vraagt het akkoord van een eigenaar of verantwoordelijke: {{what}}."
+      },
+      "confirm": "Goedkeuren",
+      "hint": "Vraagt de PIN van een eigenaar of verantwoordelijke.",
+      "error": {
+        "not_allowed": "Enkel een eigenaar of verantwoordelijke kan dit goedkeuren.",
+        "invalid": "Deze goedkeuring kan niet: kies een goedkeurder en probeer opnieuw.",
+        "wrong_pin": "Verkeerde PIN.",
+        "locked": "Te veel foute pogingen. Deze PIN is 5 minuten geblokkeerd.",
+        "offline": "Geen verbinding. Goedkeuren kan enkel online.",
+        "server": "Niet gelukt. Probeer opnieuw."
+      }
+    },
+    "ux6": {
+      "removed": "{{qty}}× {{name}} weggehaald",
+      "undo": "Ongedaan maken",
+      "repeat_one": "{{count}} stuk opnieuw toegevoegd",
+      "repeat_few": "{{count}} stuks opnieuw toegevoegd",
+      "repeat_many": "{{count}} stuks opnieuw toegevoegd",
+      "repeat_other": "{{count}} stuks opnieuw toegevoegd",
+      "repeatSkipped_one": "{{count}} product is op of niet meer beschikbaar",
+      "repeatSkipped_few": "{{count}} producten zijn op of niet meer beschikbaar",
+      "repeatSkipped_many": "{{count}} producten zijn op of niet meer beschikbaar",
+      "repeatSkipped_other": "{{count}} producten zijn op of niet meer beschikbaar",
+      "repeatNothing": "Uit de vorige ronde staat niets meer open.",
+      "repeatRound": "Herhaal vorige ronde",
+      "counterToTab": "Op naam of naar een tafel zetten",
+      "deleteTitle": "{{title}} schrappen?",
+      "deleteText_one": "Er staat {{count}} stuk op ({{amount}}), nog niet verstuurd. Het verdwijnt helemaal.",
+      "deleteText_few": "Er staan {{count}} stuks op ({{amount}}), nog niet verstuurd. Ze verdwijnen helemaal.",
+      "deleteText_many": "Er staan {{count}} stuks op ({{amount}}), nog niet verstuurd. Ze verdwijnen helemaal.",
+      "deleteText_other": "Er staan {{count}} stuks op ({{amount}}), nog niet verstuurd. Ze verdwijnen helemaal.",
+      "person": "Persoon {{n}} van {{of}}",
+      "prevPerson": "Vorige",
+      "nextPerson": "Volgende persoon",
+      "allPersons": "Iedereen gekozen",
+      "personsDone": "Betaalwijze van alle {{n}} personen gekozen. Kijk na en bevestig.",
+      "againPersons": "Opnieuw per persoon",
+      "roundUp": "Rond af",
+      "countByDenomination": "Tellen per biljet en munt",
+      "countOf": "Aantal van {{value}}",
+      "countClose": "Telling sluiten",
+      "countTotal": "Geteld: {{amount}}",
+      "staffTip": "fooi",
+      "shiftSince": "Bedrijfsdag sinds {{at}}",
+      "refresh": "Vernieuwen",
+      "shiftError": "Je dienst kon niet geladen worden. Probeer opnieuw.",
+      "shiftCount": "Afgerekend",
+      "shiftTotal": "Omzet",
+      "shiftTips": "Fooi",
+      "shiftHint": "Wat jij vandaag afrekende, met de fooi erbij. Dezelfde cijfers als jouw regel in het X-rapport.",
+      "deleteCheck": "Rekening schrappen"
     }
   },
   "deviceAlerts": {

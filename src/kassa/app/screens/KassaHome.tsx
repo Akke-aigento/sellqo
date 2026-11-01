@@ -5,9 +5,10 @@
 // over: meer plaats voor de kaart, en terug is altijd één tik.
 // KASSA-UX-2: bovenaan wissel je met één tik tussen Zaal, Bar en Keuken (per toestel onthouden).
 // Op een tablet staat de kolom Binnenkomend (QR-bestellingen + barbonnen) naast het zaalplan.
+// KASSA-UX-6: in modus Bar een knop Toogverkoop (zonder eerst naar Zaal), en "Mijn dienst" in het ⋯-menu.
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Banknote, Bell, BellOff, Check as CheckIcon, ChefHat, Clock, ExternalLink, FileBarChart, LayoutGrid, Loader2, LogOut, MoreHorizontal, Languages, Plus, Users, Wifi, WifiOff, Wine } from 'lucide-react';
+import { ArrowLeft, Banknote, Bell, BellOff, Check as CheckIcon, ChefHat, Clock, ExternalLink, FileBarChart, HandCoins, LayoutGrid, Loader2, LogOut, MoreHorizontal, Languages, Plus, ShoppingBag, Users, Wifi, WifiOff, Wine } from 'lucide-react';
 import { Capacitor } from '@capacitor/core';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -26,6 +27,7 @@ import { TablesScreen } from './TablesScreen';
 import { CheckScreen } from './CheckScreen';
 import { CashScreen } from './CashScreen';
 import { ReportsScreen } from './ReportsScreen';
+import { MyShiftScreen } from './MyShiftScreen';
 import { lastService } from '../horeca/counter';
 import { useAutoAccept } from '../horeca/requests';
 import { RequestInboxButton } from './RequestInbox';
@@ -45,7 +47,7 @@ import { ReservationDialog } from '@/components/horeca/ReservationDialog';
 import { ReservationList } from '@/components/horeca/ReservationList';
 import { saveReservation, setReservationStatus } from '../horeca/reservationActions';
 
-type View = 'tables' | 'cash' | 'reports';
+type View = 'tables' | 'cash' | 'reports' | 'shift';
 type Mode = 'zaal' | 'bar' | 'keuken';
 const MODE_KEY = 'sq_kassa_mode';
 const readMode = (): Mode => { try { const v = localStorage.getItem(MODE_KEY); return v === 'bar' || v === 'keuken' ? v : 'zaal'; } catch { return 'zaal'; } };
@@ -229,6 +231,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
               <DropdownMenuContent align="end" className="w-64">
                 <DropdownMenuItem className="h-11" onClick={() => setView('cash')}><Banknote className="mr-2 h-4 w-4" />{t('kassa.home.tab.cash')}</DropdownMenuItem>
                 <DropdownMenuItem className="h-11" onClick={() => setView('reports')}><FileBarChart className="mr-2 h-4 w-4" />{t('kassa.home.tab.reports')}</DropdownMenuItem>
+                <DropdownMenuItem className="h-11" onClick={() => setView('shift')}><HandCoins className="mr-2 h-4 w-4" />{t('kassa.home.tab.shift')}</DropdownMenuItem>
                 <DropdownMenuItem className="h-11" disabled={clockBusy} onClick={() => void toggleClock()}>
                   {clockBusy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Clock className="mr-2 h-4 w-4" />}{t(clockedIn ? 'kassa.home.clockOut' : 'kassa.home.clockIn')}
                 </DropdownMenuItem>
@@ -277,9 +280,9 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
               <p className="text-lg font-bold">{t(`kassa.home.tab.${view}`)}</p>
             </div>
           )}
-          {view === 'cash' || view === 'reports' ? (
+          {view === 'cash' || view === 'reports' || view === 'shift' ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" style={{ paddingBottom: 'var(--safe-bottom)' }}>
-              {view === 'cash' ? <CashScreen ctx={ctx} /> : <ReportsScreen ctx={ctx} staffRole={staff.role} />}
+              {view === 'cash' ? <CashScreen ctx={ctx} /> : view === 'shift' ? <MyShiftScreen ctx={ctx} /> : <ReportsScreen ctx={ctx} staffRole={staff.role} />}
             </div>
           ) : mode === 'keuken' ? (
             <div className="flex min-h-0 flex-1 flex-col bg-muted/40" style={{ paddingBottom: 'var(--safe-bottom)' }}>
@@ -288,6 +291,13 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
             </div>
           ) : mode === 'bar' ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-muted/40" style={{ paddingBottom: 'var(--safe-bottom)' }}>
+              {/* KASSA-UX-6: de barman verkoopt aan de toog zonder eerst naar Zaal (na de wachttijd eerst de PIN). */}
+              <div className="flex justify-end border-b bg-background px-2 py-1.5">
+                <button type="button" onClick={() => { if (guard()) newCounterSale(); }}
+                  className="flex h-12 items-center gap-2 rounded-lg bg-primary px-4 text-base font-semibold text-primary-foreground active:scale-[0.98]">
+                  <ShoppingBag className="h-5 w-5" aria-hidden />{t('kassa.tables.counter')}
+                </button>
+              </div>
               <BarPanel ctx={ctx} requests={store.requests} calls={store.calls} cards={barCards} barName={barStation?.name ?? null} wide board={board(barFresh)} beforeAction={guard} />
             </div>
           ) : (

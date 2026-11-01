@@ -20,6 +20,7 @@ import { useWakeLock } from '@/hooks/useWakeLock';
 import { readFlag } from '@/lib/ding';
 import { KASSA_SOUND_KEY, KASSA_WAKE_KEY, type KassaAlerts } from './alerts';
 import { kassaLanguage } from './language';
+import { useKassaLockMinutes } from './horeca/paySettings';
 
 function Spinner() {
   const { t } = useTranslation();
@@ -82,7 +83,10 @@ function Device() {
  *  met geluid bij een QR-bestelling, klare bon of online betaling, en het scherm wakker houden. Een kassa
  *  die in rust vergrendeld staat, moet net dan blijven melden. */
 function KassaLive({ runtime, terminalName, onForgetDevice }: { runtime: KassaRuntime; terminalName: string; onForgetDevice: () => void }) {
-  const { staff } = useKassaSession();
+  const { staff, setIdleMs } = useKassaSession();
+  // KASSA-UX-6: vergrendeltijd per zaak (Kassa › Personeel), 0 = nooit.
+  const lockMinutes = useKassaLockMinutes(runtime.device.tenantId);
+  useEffect(() => { setIdleMs(lockMinutes * 60_000); }, [lockMinutes, setIdleMs]);
   const store = useHoreca(runtime.device.tenantId, runtime.device.deviceUuid);
   const [sound, setSound] = useState(() => readFlag(KASSA_SOUND_KEY, true));
   const [wake, setWake] = useState(() => readFlag(KASSA_WAKE_KEY, true));

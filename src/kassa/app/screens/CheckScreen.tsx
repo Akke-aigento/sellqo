@@ -5,9 +5,13 @@
 // KASSA-UX-1: zelfde product nog eens tikken telt op dezelfde lijn op; de tegel toont het aantal
 // in deze ronde met een "−"; op een gsm toont een balk onderaan aantal en totaal en wisselt
 // tussen kaart en rekening; de kaart opent op Populair (of de eerste categorie), niet op alles.
+// KASSA-RECHTEN-1: korting, van het huis en een verstuurde lijn annuleren = meteen voor eigenaar/verantwoordelijke,
+// anders eerst hun PIN (ApprovalDialog; de server controleert).
+// KASSA-UX-6: lege rekening schrappen met bevestiging, opmerking bewaart bij sluiten, vegen = weg met
+// "Ongedaan maken", "Herhaal vorige ronde" in het ⋯-menu, een toogverkoop op naam of naar een tafel.
 import { useMemo, useRef, useState, type PointerEvent as RPointerEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ChefHat, ChevronDown, ChevronUp, Flame, Loader2, Minus, MoreHorizontal, Plus, Search, Send, Receipt, Trash2, Wallet, X } from 'lucide-react';
+import { ArrowLeft, ChefHat, ChevronDown, ChevronUp, Flame, Loader2, Minus, MoreHorizontal, Plus, Search, Send, Receipt, ShieldCheck, Trash2, Wallet, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
@@ -16,7 +20,10 @@ import { cn } from '@/lib/utils';
 import { checkTotalCents, isCounter, lineTotalCents, type Check, type CheckLine } from '../horeca/types';
 import { kitchenOn, rememberKitchen, rememberService, type CounterService } from '../horeca/counter';
 import { roundLines } from '../horeca/fiscalLines';
-import { discountLine, moveCheck, moveLines, requestBill, sendRound, type ActionCtx, type ActionOutcome } from '../horeca/actions';
+import { discountLine, moveCheck, moveLines, requestBill, sendRound, voidLine, type ActionCtx, type ActionOutcome } from '../horeca/actions';
+import { approvalFor, needsApproval, type ApprovalAction } from '../horeca/approvals';
+import { lastRoundLines } from '../horeca/kassaUx';
+import { ApprovalDialog } from './ApprovalDialog';
 import { useCatalog, usePopularLines, type CatalogProduct } from '../horeca/useCatalog';
 import { categoryDot, categoryTone, draftCountWith, draftCounts, isQuickChoice, itemCount, lineEditKind, planMinus, planMinusWith, planTap, popularIds } from '../horeca/quickTap';
 import { formatEuro } from '../horeca/format';
@@ -62,6 +69,9 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   const [addonFor, setAddonFor] = useState<CatalogProduct | null>(null);
   const [moving, setMoving] = useState<null | { lines: CheckLine[] | 'all' }>(initialMove ? { lines: 'all' } : null);
   const [confirmBill, setConfirmBill] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  // KASSA-RECHTEN-1: wachtend op het akkoord van een eigenaar/verantwoordelijke.
+  const [approval, setApproval] = useState<null | { action: ApprovalAction; lineId: string | null; what: string; run: (approvalId: string) => Promise<void> }>(null);
   const [kitchen, setKitchen] = useState(kitchenOn);
   // KASSA-0.6: lang drukken op een product = op/terug of prijs, goedgekeurd met de PIN van
   // een eigenaar of verantwoordelijke (de server controleert).
@@ -163,8 +173,46 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   };
   const lineRemove = (l: CheckLine) => {
     const kind = lineEditKind(l);
-    if (kind === 'draft') store.enqueue({ id: crypto.randomUUID(), kind: 'void_line', check_id: check.id, line_id: l.id, new_line_id: crypto.randomUUID(), reason: 'mistake', qty: l.qty, staff_id: ctx.staffId });
-    else if (kind === 'sent') openLine(l, true);
+    if (kind === 'draft') {
+      store.enqueue({ id: crypto.randomUUID(), kind: 'void_line', check_id: check.id, line_id: l.id, new_line_id: crypto.randomUUID(), reason: 'mistake', qty: l.qty, staff_id: ctx.staffId });
+      // KASSA-UX-6: vegen is snel en dus ook snel per ongeluk. Ongedaan maken = dezelfde lijn opnieuw
+      // aantikken (zelfde product, extra's, aantal en opmerking). Een lijn met korting kwam zonder korting
+      // terug; daarom dan geen knop maar enkel de melding.
+      const p = productOf(l);
+      const undo = !!p && !p.sold_out && l.price_changes.length === 0 && !l.corrects_line_id;
+      toast(t('kassa.ux6.removed', { qty: l.qty, name: l.name }), undo && p ? {
+        duration: 6000,
+        action: { label: t('kassa.ux6.undo'), onClick: () => restoreLine(l, p) },
+      } : { duration: 3000 });
+    } else if (kind === 'sent') openLine(l, true);
+  };
+  const restoreLine = (l: CheckLine, p: CatalogProduct) => {
+    store.hint(p.id, { name: p.name, unit_price_cents: l.unit_price_cents, vat_label: l.vat_label, addons: l.addons });
+    store.enqueue({ id: crypto.randomUUID(), kind: 'add_line', check_id: check.id, line_id: crypto.randomUUID(), product_id: p.id, qty: l.qty,
+      addon_ids: l.addons.map((a) => a.option_id), ...(l.note ? { note: l.note } : {}), ...(l.course != null ? { course: l.course } : {}), staff_id: ctx.staffId });
+  };
+  // KASSA-UX-6: "Herhaal vorige ronde" — de lijnen van de laatst verstuurde ronde opnieuw als ontwerp
+  // (wat nog openstaat; geannuleerde stuks niet). Producten die op zijn of niet meer bestaan, vallen weg.
+  const repeat = lastRoundLines(check);
+  const repeatRound = () => {
+    let added = 0;
+    let skipped = 0;
+    for (const l of repeat) {
+      const p = productOf(l);
+      const qty = l.open_qty > 0 ? l.open_qty : 0;
+      if (!qty) continue;
+      if (!p || p.sold_out) { skipped += 1; continue; }
+      restoreLine({ ...l, qty }, p);
+      added += qty;
+    }
+    if (added) toast.success(t('kassa.ux6.repeat', { count: added }));
+    if (skipped) toast.info(t('kassa.ux6.repeatSkipped', { count: skipped }));
+    if (!added && !skipped) toast.info(t('kassa.ux6.repeatNothing'));
+  };
+  /** KASSA-RECHTEN-1: meteen (eigenaar/verantwoordelijke), of eerst het akkoord met hun PIN. */
+  const guarded = (action: ApprovalAction | null, lineId: string | null, what: string, run: (approvalId?: string) => Promise<void>) => {
+    if (action && needsApproval(ctx, action)) setApproval({ action, lineId, what, run });
+    else void run();
   };
   const minusProduct = (p: CatalogProduct) => {
     const m = planMinus(check, p.id);
@@ -208,6 +256,12 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
     setBusy('bill');
     report(await requestBill(ctx, check.id), t('kassa.checks.billRequested'));
     setBusy(null);
+  };
+  // KASSA-UX-6: een rekening met lijnen schrappen vraagt eerst een bevestiging (een lege meteen).
+  const doDelete = async () => {
+    setConfirmDelete(false);
+    const r = await store.applyNow({ id: crypto.randomUUID(), kind: 'void_check', check_id: check.id, staff_id: ctx.staffId }).catch(() => null);
+    if (r?.ok) onBack(); else toast.error(t('kassa.checks.error.server', { detail: r?.error ?? '' }));
   };
   const doUnbill = async () => {
     setConfirmUnbill(false);
@@ -310,11 +364,12 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
             )}
             {!counter && <DropdownMenuItem disabled={locked || !sentAny && !drafts} onClick={() => void openSplit()}>{t('kassa.pay.split')}</DropdownMenuItem>}
             {!counter && <DropdownMenuItem disabled={locked || !!check.split_of} onClick={() => setMoving({ lines: 'all' })}>{t('kassa.checks.moveCheck')}</DropdownMenuItem>}
+            {/* KASSA-UX-6: dezelfde lijnen van de vorige ronde nog eens (enkel aan tafel, daar zijn rondes). */}
+            {!counter && repeat.length > 0 && <DropdownMenuItem disabled={locked} onClick={repeatRound}>{t('kassa.ux6.repeatRound')}</DropdownMenuItem>}
+            {/* KASSA-UX-6: een toogverkoop op naam (tab) of naar een tafel zetten — zelfde verplaatsvenster. */}
+            {counter && <DropdownMenuItem disabled={locked || !visible.length} onClick={() => setMoving({ lines: 'all' })}>{t('kassa.ux6.counterToTab')}</DropdownMenuItem>}
             {!sentAny && !locked && (
-              <DropdownMenuItem onClick={async () => {
-                const r = await store.applyNow({ id: crypto.randomUUID(), kind: 'void_check', check_id: check.id, staff_id: ctx.staffId }).catch(() => null);
-                if (r?.ok) onBack(); else toast.error(t('kassa.checks.error.server', { detail: r?.error ?? '' }));
-              }}>{t('kassa.checks.deleteCheck')}</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => (visible.length ? setConfirmDelete(true) : void doDelete())}>{t(visible.length ? 'kassa.ux6.deleteCheck' : 'kassa.checks.deleteCheck')}</DropdownMenuItem>
             )}
           </DropdownMenuContent>
         </DropdownMenu>
@@ -376,15 +431,22 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
         <LineDialog key={`${lineSheet.id}-${lineSheetVoid}`} line={check.lines.find((l) => l.id === lineSheet.id) ?? lineSheet} busy={busy === 'discount'} canMove={!counter} voidFirst={lineSheetVoid} onClose={() => setLineSheet(null)}
           onQty={(qty) => store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: lineSheet.id, qty, staff_id: ctx.staffId })}
           onNote={(note) => store.enqueue({ id: crypto.randomUUID(), kind: 'set_note', check_id: check.id, line_id: lineSheet.id, note, staff_id: ctx.staffId })}
+          approvalNeeded={{ discount: needsApproval(ctx, 'discount'), void: needsApproval(ctx, approvalFor('void', lineSheet)) }}
           onVoid={(reason, qty) => {
-            store.enqueue({ id: crypto.randomUUID(), kind: 'void_line', check_id: check.id, line_id: lineSheet.id, new_line_id: crypto.randomUUID(), reason, qty, staff_id: ctx.staffId });
-            setLineSheet(null);
+            const l = lineSheet;
+            guarded(approvalFor('void', l), l.id, `${qty}× ${l.name}`, async (approvalId) => {
+              const o = await voidLine(ctx, check.id, l.id, reason, qty, approvalId);
+              if (report(o)) { setApproval(null); setLineSheet(null); }
+            });
           }}
-          onDiscount={async (d) => {
-            setBusy('discount');
-            const ok = report(await discountLine(ctx, check.id, lineSheet.id, d));
-            setBusy(null);
-            if (ok) setLineSheet(null);
+          onDiscount={(d) => {
+            const l = lineSheet;
+            guarded('discount', l.id, `${d.name} · ${l.qty}× ${l.name}`, async (approvalId) => {
+              setBusy('discount');
+              const ok = report(await discountLine(ctx, check.id, l.id, d, approvalId));
+              setBusy(null);
+              if (ok) { setApproval(null); setLineSheet(null); }
+            });
           }}
           onMove={() => { setMoving({ lines: [lineSheet] }); setLineSheet(null); }}
         />
@@ -411,6 +473,22 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>{t('kassa.ux6.deleteTitle', { title })}</DialogTitle></DialogHeader>
+          <p className="text-sm text-muted-foreground">{t('kassa.ux6.deleteText', { count: itemCount(check), amount: euro(checkTotalCents(check)) })}</p>
+          <DialogFooter className="gap-2">
+            <button type="button" onClick={() => setConfirmDelete(false)} className="h-11 rounded-md border px-4">{t('kassa.common.cancel')}</button>
+            <button type="button" onClick={() => void doDelete()} className="h-11 rounded-md bg-destructive px-4 font-semibold text-destructive-foreground">{t('kassa.ux6.deleteCheck')}</button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {approval && (
+        <ApprovalDialog ctx={ctx} action={approval.action} checkId={check.id} lineId={approval.lineId} what={approval.what}
+          onApproved={(id) => approval.run(id)} onClose={() => setApproval(null)} />
+      )}
 
       {editing ? <ProductQuickEdit ctx={ctx} product={catalog?.products.find((x) => x.id === editing.id) ?? editing} onClose={() => setEditing(null)} /> : null}
       {addonFor && (
@@ -454,6 +532,8 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
 
 function LineDialog(p: {
   line: CheckLine; busy: boolean; canMove: boolean; onClose: () => void; onQty: (q: number) => void; onNote: (n: string) => void;
+  /** KASSA-RECHTEN-1: deze knoppen vragen eerst de PIN van een verantwoordelijke (schildje). */
+  approvalNeeded?: { discount: boolean; void: boolean };
   onVoid: (reason: string, qty: number) => void; onDiscount: (d: { percent?: number; name: string }) => void; onMove: () => void;
   /** KASSA-UX-4: meteen de vraag "waarom annuleren" (verstuurde lijn via − of vegen). */
   voidFirst?: boolean;
@@ -465,8 +545,14 @@ function LineDialog(p: {
   const [askReason, setAskReason] = useState(!!p.voidFirst && l.state === 'sent');
   const editable = l.state === 'draft';
   const canAct = l.qty > 0 && (editable || l.open_qty > 0);
+  // KASSA-UX-6: een getypte opmerking gaat nooit stil verloren — sluiten zonder "Opslaan" bewaart ze ook.
+  const close = () => {
+    if (editable && canAct && note.trim() !== (l.note ?? '').trim()) p.onNote(note);
+    p.onClose();
+  };
+  const shield = <ShieldCheck className="h-4 w-4 shrink-0" aria-hidden />;
   return (
-    <Dialog open onOpenChange={(o) => !o && p.onClose()}>
+    <Dialog open onOpenChange={(o) => !o && close()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>{l.qty}× {l.name}</DialogTitle></DialogHeader>
         {!canAct ? <p className="text-sm text-muted-foreground">{t('kassa.checks.lineLocked')}</p> : (
@@ -489,11 +575,12 @@ function LineDialog(p: {
               <div className="flex flex-wrap gap-2">
                 {DISCOUNTS.map((d) => (
                   <button key={d} type="button" disabled={p.busy || l.price_changes.length > 0} onClick={() => p.onDiscount({ percent: d, name: t('kassa.checks.discountName', { n: d }) })}
-                    className="h-11 rounded-md border px-3 text-sm font-semibold disabled:opacity-40">−{d} %</button>
+                    className="flex h-11 items-center gap-1 rounded-md border px-3 text-sm font-semibold disabled:opacity-40">{p.approvalNeeded?.discount && shield}−{d} %</button>
                 ))}
                 <button type="button" disabled={p.busy || l.price_changes.length > 0} onClick={() => p.onDiscount({ percent: 100, name: t('kassa.checks.onTheHouse') })}
-                  className="h-11 rounded-md border px-3 text-sm font-semibold disabled:opacity-40">{t('kassa.checks.onTheHouse')}</button>
+                  className="flex h-11 items-center gap-1 rounded-md border px-3 text-sm font-semibold disabled:opacity-40">{p.approvalNeeded?.discount && shield}{t('kassa.checks.onTheHouse')}</button>
               </div>
+              {p.approvalNeeded?.discount ? <p className="text-xs text-muted-foreground">{t('kassa.approval.hint')}</p> : null}
             </div>}
             {!askReason ? (
               <div className={cn('grid gap-2', p.canMove ? 'grid-cols-2' : 'grid-cols-1')}>
@@ -513,6 +600,7 @@ function LineDialog(p: {
                   </div>
                 )}
                 <p className="text-sm font-semibold">{t('kassa.checks.why')}</p>
+                {p.approvalNeeded?.void ? <p className="flex items-center gap-1 text-xs text-muted-foreground">{shield}{t('kassa.approval.hint')}</p> : null}
                 <div className="grid grid-cols-2 gap-2">
                   {VOID_REASONS.map((r) => (
                     <button key={r} type="button" onClick={() => p.onVoid(r, voidQty)} className="h-11 rounded-md border text-sm">{t(`kassa.checks.voidReason.${r}`)}</button>
@@ -522,7 +610,7 @@ function LineDialog(p: {
             )}
           </div>
         )}
-        <DialogFooter><button type="button" onClick={p.onClose} className="h-11 rounded-md border px-4">{t('kassa.common.close')}</button></DialogFooter>
+        <DialogFooter><button type="button" onClick={close} className="h-11 rounded-md border px-4">{t('kassa.common.close')}</button></DialogFooter>
       </DialogContent>
     </Dialog>
   );
@@ -623,7 +711,8 @@ function MoveDialog(p: {
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const byTable = new Map(p.checks.filter((c) => c.table_id && !c.split_of).map((c) => [c.table_id as string, c]));
-  const others = p.checks.filter((c) => c.id !== p.check.id && (!c.table_id || c.split_of));
+  // Een toogverkoop is nooit een doel (de server weigert het).
+  const others = p.checks.filter((c) => c.id !== p.check.id && !isCounter(c) && (!c.table_id || c.split_of));
   return (
     <Dialog open onOpenChange={(o) => !o && p.onClose()}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">

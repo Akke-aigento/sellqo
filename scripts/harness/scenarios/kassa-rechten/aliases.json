@@ -1,0 +1,12 @@
+{
+  "@/integrations/supabase/client": "mocks/supabase.ts",
+  "@/hooks/useTenant": "mocks/tenant.ts",
+  "@/hooks/useFloorPlan": "mocks/floorplan.ts",
+  "/^\\.\\./horeca/useCatalog$/": "mocks/catalog.ts",
+  "/^\\.\\./horeca/requests$/": "mocks/requests.ts",
+  "/^\\.\\./horeca/autoAccept$/": "mocks/autoAccept.ts",
+  "/^\\.\\./attendance$/": "mocks/attendance.ts",
+  "@/components/admin/kitchen/useKitchenBoard": "mocks/kitchenBoard.ts",
+  "@/hooks/usePrepStations": "mocks/prep.ts",
+  "/^\\.\\./\\.\\./print$/": "mocks/print.ts"
+}

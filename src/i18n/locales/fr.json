@@ -9455,6 +9455,16 @@
       "unnamed": "Addition sans nom",
       "readonly_hint": "Cette vue est en lecture seule et s’actualise toutes les 10 secondes. SellQo Kassa affiche les changements immédiatement.",
       "open_kassa": "Ouvrir SellQo Kassa"
+    },
+    "kassaLock": {
+      "title": "Verrouiller la caisse",
+      "desc": "Après combien de minutes sans contact SellQo Kassa redemande un PIN. Après le verrouillage, le dernier membre du personnel est déjà sélectionné.",
+      "never": "Jamais",
+      "minutes_one": "{{count}} minute",
+      "minutes_few": "{{count}} minutes",
+      "minutes_many": "{{count}} minutes",
+      "minutes_other": "{{count}} minutes",
+      "never_hint": "La caisse reste connectée jusqu'à ce que quelqu'un touche Changer. Ne faites cela que si personne d'autre n'a accès à la caisse."
     }
   },
   "billing": {
@@ -11468,7 +11478,8 @@
       "offline": "Hors ligne · {{n}} actions en attente",
       "tab": {
         "cash": "Caisse",
-        "reports": "Rapports"
+        "reports": "Rapports",
+        "shift": "Mon service"
       },
       "menu": "Menu",
       "toAdmin": "Vers l’administration SellQo",
@@ -11560,7 +11571,8 @@
         "fdm_rejected": "La boîte noire a refusé. Rien n’a été envoyé.",
         "fdm_unreachable": "La boîte noire est injoignable. Rien n’a été envoyé ; réessayez.",
         "server": "Échec : {{detail}}",
-        "changed": "Un collègue vient de modifier cette addition. Vérifiez et réessayez."
+        "changed": "Un collègue vient de modifier cette addition. Vérifiez et réessayez.",
+        "not_allowed": "Il faut l'accord d'un propriétaire ou d'un responsable (ou l'accord a expiré). Réessayez."
       },
       "popular": "Populaire",
       "closeSearch": "Fermer la recherche",
@@ -11852,6 +11864,63 @@
       "bill": "La table {{label}} demande l’addition",
       "repeat": "appelé {{count}}×",
       "handle": "Traité"
+    },
+    "approval": {
+      "title": "PIN d'un responsable",
+      "intro": {
+        "discount": "Accorder une remise ou offrir un article demande l'accord d'un propriétaire ou d'un responsable : {{what}}.",
+        "void_sent": "Annuler une ligne déjà envoyée demande l'accord d'un propriétaire ou d'un responsable : {{what}}."
+      },
+      "confirm": "Approuver",
+      "hint": "Demande le PIN d'un propriétaire ou d'un responsable.",
+      "error": {
+        "not_allowed": "Seul un propriétaire ou un responsable peut approuver ceci.",
+        "invalid": "Cette approbation est impossible : choisissez un approbateur et réessayez.",
+        "wrong_pin": "PIN incorrect.",
+        "locked": "Trop de tentatives erronées. Ce PIN est bloqué pendant 5 minutes.",
+        "offline": "Pas de connexion. L'approbation ne fonctionne qu'en ligne.",
+        "server": "Échec. Réessayez."
+      }
+    },
+    "ux6": {
+      "removed": "{{qty}}× {{name}} retiré",
+      "undo": "Annuler",
+      "repeat_one": "{{count}} article ajouté à nouveau",
+      "repeat_few": "{{count}} articles ajoutés à nouveau",
+      "repeat_many": "{{count}} articles ajoutés à nouveau",
+      "repeat_other": "{{count}} articles ajoutés à nouveau",
+      "repeatSkipped_one": "{{count}} produit est épuisé ou n'est plus disponible",
+      "repeatSkipped_few": "{{count}} produits sont épuisés ou ne sont plus disponibles",
+      "repeatSkipped_many": "{{count}} produits sont épuisés ou ne sont plus disponibles",
+      "repeatSkipped_other": "{{count}} produits sont épuisés ou ne sont plus disponibles",
+      "repeatNothing": "Plus rien n'est ouvert de la tournée précédente.",
+      "repeatRound": "Répéter la tournée précédente",
+      "counterToTab": "Mettre sur un nom ou une table",
+      "deleteTitle": "Supprimer {{title}} ?",
+      "deleteText_one": "Il y a {{count}} article ({{amount}}), pas encore envoyé. Il disparaîtra complètement.",
+      "deleteText_few": "Il y a {{count}} articles ({{amount}}), pas encore envoyés. Ils disparaîtront complètement.",
+      "deleteText_many": "Il y a {{count}} articles ({{amount}}), pas encore envoyés. Ils disparaîtront complètement.",
+      "deleteText_other": "Il y a {{count}} articles ({{amount}}), pas encore envoyés. Ils disparaîtront complètement.",
+      "person": "Personne {{n}} sur {{of}}",
+      "prevPerson": "Précédente",
+      "nextPerson": "Personne suivante",
+      "allPersons": "Tout le monde a choisi",
+      "personsDone": "Mode de paiement choisi pour les {{n}} personnes. Vérifiez et confirmez.",
+      "againPersons": "Encore par personne",
+      "roundUp": "Arrondir",
+      "countByDenomination": "Compter par billet et pièce",
+      "countOf": "Nombre de {{value}}",
+      "countClose": "Fermer le comptage",
+      "countTotal": "Compté : {{amount}}",
+      "staffTip": "pourboire",
+      "shiftSince": "Journée d'activité depuis {{at}}",
+      "refresh": "Actualiser",
+      "shiftError": "Votre service n'a pas pu être chargé. Réessayez.",
+      "shiftCount": "Encaissé",
+      "shiftTotal": "Chiffre d'affaires",
+      "shiftTips": "Pourboire",
+      "shiftHint": "Ce que vous avez encaissé aujourd'hui, pourboire compris. Les mêmes chiffres que votre ligne dans le rapport X.",
+      "deleteCheck": "Supprimer l'addition"
     }
   },
   "deviceAlerts": {
