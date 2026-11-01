@@ -110,3 +110,35 @@ Idempotent; handmatig terugdraaien staat bovenaan. Draaien **na** de publish van
 - **Opgeruimd:** dode "Kaart"-label op de onderbalk die het zaalplan opende; items die nooit oplichtten.
 - **Bewust blijven staan:** `admin.orderingHub.bestellen` (ongebruikte key); SellQo-plan voor horeca-only enkel via Meer onderdelen; webshop-only zijbalk identiek.
 - **Sweep:** `grep -rn "bestellen?tab=zaal\|tab_floor"` → enkel nog de redirect in OrderingHub; `?tab=qr|posten|extras|reservaties`-links (HorecaPaySettings, HorecaPrinters, ProductStationCard, ProductAddonsCard, Storefront `?section=`-HUB, reservatienotificaties) werken ongewijzigd.
+
+## 5. Aanvulling (ronde 3) — gsm-zijbalk a11y, boekhouding voor horeca, harnas parallel — 1 november 2026
+
+**Root cause**
+- `src/components/ui/sidebar.tsx`: de gsm-zijbalk (Radix `Sheet`) had geen `SheetTitle`/`SheetDescription` → console-error "DialogContent requires a DialogTitle" en geen naam voor schermlezers.
+- SellQo Connect (`/admin/connect`, item `integrations`: `tracks ['webshop','events']`, `sidebarTracks ['webshop']`, `featureKey apiAccess`) bestaat niet voor een zaak met enkel horeca (TrackGate → "niet in je pakket"). De Odoo-koppeling (`OdooAccountingCard` + `OdooAccountingSettings`) stond enkel daar, dus horeca-only vond haar boekhoudinstellingen nergens.
+
+**Uitgevoerd**
+- `src/components/ui/sidebar.tsx`: `SheetHeader.sr-only` met `SheetTitle`/`SheetDescription` (i18n `navigation.sheet_title|sheet_desc`). Harnasfilter op die melding weggehaald; harnas draait zonder fouten.
+- Nieuw `src/lib/accountingLink.ts` (+ test): één plek per winkel — horeca zonder webshop/events → `/admin/settings?section=accounting`; anders `/admin/connect?tab=accounting` (bestaande tab).
+- Nieuw `src/components/admin/settings/AccountingSettings.tsx`: dezelfde `OdooAccountingCard` + dialoog met `OdooAccountingSettings` als in Connect, geen kopie van logica.
+- `src/pages/admin/Settings.tsx`: sectie `accounting` in de groep Financieel, `tracks ['horeca']`, nieuw veld `hideWithTracks ['webshop','events']` (zo nooit twee plekken), `requiredRead settings_financial`.
+- `src/components/admin/reports/HorecaReportsTab.tsx`: link "Boekhouding (Odoo)" bovenaan Rapporten › Horeca (Z-archief) naar `accountingUrl(hasTrack)`.
+- `scripts/harness/shoot.mjs`: `HARNESS_TIMEOUT` (default 30000) voor goto, networkidle en stappen. `scripts/harness/README.md`: sectie "Parallel draaien" (eigen `HARNESS_CACHE_DIR`/`HARNESS_PORT`, opwarmen via `--serve`, lazy schermen + vers tabblad).
+- Harnas `horeca-beheer`: schermen `settings-accounting` (zonder en met `odoo_sync`) en `reports`.
+- i18n 9 keys × 5 talen.
+
+**Security-keuzes / gating**
+- Geen gating weggehaald of toegevoegd. `apiAccess` blijft op Connect; de Odoo-kaart bewaakt zelf `checkFeature('odoo_sync')` en toont zonder dat recht de bestaande upgradekaart (geen dode link). Edge functions `manage-odoo-connection` e.a. ongewijzigd. Rechten: sectie achter `settings_financial`; `OdooAccountingSettings` gebruikt intern `useCan`.
+- `hideWithTracks`: in de platform-beheerweergave (hasTrack = alles) is de sectie verborgen; daar staat Connect open.
+
+**Verificatie**
+- vitest 12 bestanden, 81 tests groen (incl. `src/lib/accountingLink.test.ts` — toevoegen aan de Vitest-stap van ci.yml); i18n-parity exit 0; eslint gelijk aan baseline (0 fouten, 1 bestaande warning); `tsc` exit 0, 0 fouten.
+- Harnas 390/1280 exit 0 zonder filter: upsell zonder `odoo_sync`, kaart "Niet verbonden / Verbind Odoo" met `odoo_sync`, rapportlink → `/admin/settings?section=accounting`.
+
+**Beslispunt voor Akke (live gemeten 01-11, read-only)**
+- `pricing_plans.features.odoo_sync` is **false** op Horeca Small en Horeca Big (true enkel op webshop Pro/Enterprise). Een horecazaak ziet dus altijd de upgradekaart, met de bestaande tekst "Beschikbaar op Pro of Enterprise" (webshopplannen). De kaart "Kassa-omzet naar Odoo" van bouwer ODOO (night-odoo) zal voor horeca-only achter dezelfde vergrendeling vallen als ze `odoo_sync` gebruikt. Aanbeveling: `odoo_sync` (of een eigen sleutel) aan Horeca Big toevoegen via een planmigratie + `landing.pricing.feat_*`-label (plan-scope-regel 28-10), en de upgradetekst van `OdooAccountingCard` per spoor maken (die is ook nog hardcoded Nederlands, bestaand).
+
+**Samenhang**
+- Bestond al: Connect › Boekhouding (webshop/events), Rapporten › Horeca (Z-archief), Instellingen › Financieel.
+- Aangepast: horeca-only krijgt Instellingen › Boekhouding; elke winkel ziet precies één plek (getest).
+- Bewust blijven staan: Connect zelf (en `apiAccess`) blijft webshop/events; geen nieuw zijbalk-item.

@@ -5,7 +5,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
-import { Download, FileText, Printer } from 'lucide-react';
+import { BookOpen, ChevronRight, Download, FileText, Printer } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useTracks } from '@/hooks/useBusinessModules';
+import { accountingUrl } from '@/lib/accountingLink';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -27,6 +30,8 @@ export function HorecaReportsTab({ from, to }: { from: Date; to: Date }) {
   const euro = (c: number) => formatEuro(c, i18n.language);
   const dt = (iso: string) => new Date(iso).toLocaleString(i18n.language, { dateStyle: 'short', timeStyle: 'short' });
   const a = analysis.data;
+  // HORECA-ZIJBALK-1: van het Z-archief naar de boekhoudkoppeling (Odoo); plan-gating zit op die plek.
+  const { hasTrack } = useTracks();
   const hours = useMemo(() => (a ? activeHours(a) : []), [a]);
   const maxHour = Math.max(1, ...hours.map((h) => h.cents));
   const top = a?.products.slice(0, 10) ?? [];
@@ -66,6 +71,14 @@ export function HorecaReportsTab({ from, to }: { from: Date; to: Date }) {
 
   return (
     <div className="space-y-4">
+      <Link to={accountingUrl(hasTrack)} className="flex min-h-12 items-center gap-3 rounded-lg border bg-card px-4 py-2 text-sm hover:bg-muted/50">
+        <BookOpen className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">{t('admin.horecaReports.accountingLink')}</span>
+          <span className="block text-xs text-muted-foreground">{t('admin.horecaReports.accountingHint')}</span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+      </Link>
       <Card>
         <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:space-y-0">
           <div>

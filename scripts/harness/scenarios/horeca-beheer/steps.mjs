@@ -2,7 +2,7 @@
 export const setup = {};
 const screens = [
   ['sidebar', ''], ['sidebar', '&tracks=horeca,webshop'], ['zaal', ''], ['zaal-edit', ''],
-  ['bestellen', ''], ['bestellen', '&tab=qr'], ['bestellen', '&tab=allergens'], ['bestellen', '&tab=zaal'], ['settings', ''], ['kaart', ''], ['kaart', '&role=staff'],
+  ['bestellen', ''], ['bestellen', '&tab=qr'], ['bestellen', '&tab=allergens'], ['bestellen', '&tab=zaal'], ['settings', ''], ['settings-accounting', ''], ['settings-accounting', '&plan=pro'], ['reports', ''], ['kaart', ''], ['kaart', '&role=staff'],
 ];
 // Per scherm een vers tabblad: tien schermen na elkaar in één tabblad laat chromium hier crashen
 // (geheugen); fouten tellen net zoals in shoot.mjs.
@@ -13,9 +13,7 @@ export async function run(page, { width, log }) {
   for (const [s, extra] of screens) {
     const p = await browser.newPage({ viewport: page.viewportSize() });
     p.on('pageerror', (e) => errors.push(`[${width} ${s}${extra}] ${e}`));
-    // Bestaand, buiten deze batch: de gsm-zijbalk (src/components/ui/sidebar.tsx, Sheet) heeft geen
-    // DialogTitle; Radix meldt dat als console-error. Gemeld in de paper trail, hier niet meegeteld.
-    p.on('console', (m) => { if (m.type() === 'error' && !m.text().includes('requires a `DialogTitle`')) errors.push(`[${width} ${s}${extra}] ${m.text()}`); });
+    p.on('console', (m) => { if (m.type() === 'error') errors.push(`[${width} ${s}${extra}] ${m.text()}`); });
     const name = `${s}${extra.replace(/[&=,]/g, '_')}`;
     const shot = (n) => p.screenshot({ path: `/tmp/harness/horeca-beheer-${width}-${n}.png`, fullPage: true });
     await p.goto(`${base}?screen=${s}${extra}`);
@@ -39,7 +37,8 @@ export async function run(page, { width, log }) {
       await shot(`${name}-sheet`);
     } else {
       if (extra === '&tab=allergens') log(name, 'todo:', (await p.locator('a[href^="/admin/products/"]').allInnerTexts()).join(' | '), '| standen:', (await p.locator('td span.rounded-full, td span.text-xs').allInnerTexts()).slice(0, 6).join(' / '));
-      if (s !== 'sidebar' && s !== 'settings') log(name, 'tabs:', (await p.locator('[role="tab"][aria-selected="true"]').allInnerTexts()).join(' | '));
+      if (s === 'settings-accounting' || s === 'reports') log(name, 'tekst:', (await p.locator('#root').innerText()).slice(0, 220).replace(/\n/g, ' · '), '| links:', await p.locator('a').evaluateAll((as) => as.map((a) => a.getAttribute('href'))));
+      if (s !== 'sidebar' && s !== 'settings' && s !== 'settings-accounting' && s !== 'reports') log(name, 'tabs:', (await p.locator('[role="tab"][aria-selected="true"]').allInnerTexts()).join(' | '));
       const over = await p.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
       if (over > 0) log(name, 'HORIZONTALE OVERLOOP', over);
       await shot(name);

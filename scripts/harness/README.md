@@ -35,3 +35,33 @@ Geef je een echte store (bv. `HorecaStore` met een nep-transport) als prop door,
 (`store.subscribe(rerender)`): anders hertekent er niets en lijkt het of tikken niets doet.
 Een ontbrekende export in een mock geeft een leeg scherm en een time-out; kijk dan in de vite-uitvoer
 (`--serve`) naar "No matching export".
+
+## Parallel draaien (meerdere worktrees)
+
+Elke worktree die tegelijk een harnas draait, krijgt een **eigen cache en poort**. Anders
+her-optimaliseert vite in de ene worktree de dependencies van de andere en breekt de pagina met
+"Failed to fetch dynamically imported module", of faalt de start op "Port … is already in use".
+
+```bash
+HARNESS_CACHE_DIR=/tmp/harness-cache-<worktree> HARNESS_PORT=52xx node scripts/harness/shoot.mjs <scenario>
+```
+
+| Variabele | Standaard | Wat |
+|---|---|---|
+| `HARNESS_CACHE_DIR` | `/tmp/harness-vite-cache` | vite-cache (dep-optimalisatie) |
+| `HARNESS_PORT` | `5199` | poort van de dev-server |
+| `HARNESS_TIMEOUT` | `30000` | ms voor de eerste lading (`goto` + `networkidle`) en elke stap |
+
+**Koude start.** De eerste Tailwind-verwerking van `src/index.css` kan onder CPU-krapte langer dan
+30 s duren. Zet dan `HARNESS_TIMEOUT=180000`, of warm eerst op:
+
+```bash
+HARNESS_CACHE_DIR=… HARNESS_PORT=52xx node scripts/harness/shoot.mjs <scenario> --serve &
+curl --noproxy '*' -s -o /dev/null "http://localhost:52xx/@fs$PWD/src/index.css"   # wacht tot 200
+```
+
+en stop de server daarna (`ps -eo pid,args | awk '$3=="scripts/harness/shoot.mjs"'`, nooit `pkill -f`).
+
+**Veel schermen in één scenario.** Laad schermen lazy in `main.tsx` (`?screen=…`) en open per scherm
+een vers tabblad (zie `scenarios/horeca-beheer`): tien schermen na elkaar in één tabblad liet chromium
+in de sandbox crashen op geheugen.

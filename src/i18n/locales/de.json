@@ -220,7 +220,9 @@
       "kitchen": "Küche",
       "menu": "Karte",
       "floor": "Saal"
-    }
+    },
+    "sheet_title": "Menü",
+    "sheet_desc": "Alle Bereiche von SellQo"
   },
   "settings": {
     "title": "Einstellungen",
@@ -364,7 +366,8 @@
       "modules": "Module",
       "horeca": "Gastronomie-Einstellungen",
       "bottom_nav": "Meine untere Leiste",
-      "more_tools": "Weitere Bereiche"
+      "more_tools": "Weitere Bereiche",
+      "accounting": "Buchhaltung"
     },
     "business": {
       "subtitle": "Verwalten Sie Ihre Shop- und Unternehmensdaten",
@@ -1730,6 +1733,12 @@
       "title": "Weitere Bereiche",
       "intro": "Diese Bereiche kannst du nutzen, sie stehen aber nicht im Menü, damit es kurz bleibt.",
       "none": "Alles, was dein Betrieb nutzt, steht schon im Menü."
+    },
+    "accounting": {
+      "title": "Buchhaltung (Odoo)",
+      "intro": "Verbinde deine eigene Odoo-Buchhaltung: SellQo bucht deine Rechnungen und Gutschriften dort automatisch.",
+      "dialog_title": "Odoo-Buchhaltung",
+      "dialog_desc": "Verbinde dein eigenes Odoo und richte die Synchronisierung ein."
     }
   },
   "languages": {
@@ -9449,7 +9458,9 @@
         "netRate": "Bemessungsgrundlage {{rate}}%",
         "vatRate": "MwSt. {{rate}}%",
         "tip": "Trinkgeld {{method}}"
-      }
+      },
+      "accountingLink": "Buchhaltung (Odoo)",
+      "accountingHint": "Verbinde Odoo: deine Rechnungen und Gutschriften landen dann automatisch dort."
     },
     "liveFloor": {
       "intro": "Was gerade in deinem Lokal offen ist. Rechnungen öffnen und abrechnen machst du in SellQo Kassa.",

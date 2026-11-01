@@ -10,6 +10,8 @@ const [scenario, ...flags] = process.argv.slice(2);
 if (!scenario) { console.error('Gebruik: node scripts/harness/shoot.mjs <scenario> [--serve]'); process.exit(2); }
 process.env.HARNESS_SCENARIO = scenario;
 const port = Number(process.env.HARNESS_PORT ?? 5199);
+// Time-out voor de eerste lading (koude vite-start kan onder CPU-krapte > 30 s duren).
+const timeout = Number(process.env.HARNESS_TIMEOUT ?? 30000);
 
 const server = await createServer({ configFile: path.join(here, 'vite.config.ts') });
 await server.listen();
@@ -31,8 +33,10 @@ try {
     page.on('pageerror', (e) => errors.push(`[${width}] ${e}`));
     page.on('console', (m) => { if (m.type() === 'error') errors.push(`[${width}] ${m.text()}`); });
     await page.addInitScript((setup) => { window.__harness = setup; }, steps.setup ?? {});
+    page.setDefaultTimeout(timeout);
+    page.setDefaultNavigationTimeout(timeout);
     await page.goto(url);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout });
     await page.waitForTimeout(800);
     const shot = async (name) => { const f = `${out}/${scenario}-${width}${name ? `-${name}` : ''}.png`; await page.screenshot({ path: f, fullPage: true }); shots.push(f); };
     await shot('');

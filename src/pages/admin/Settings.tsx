@@ -63,10 +63,11 @@ import { useCan, type Resource } from '@/hooks/useCan';
 import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { useEmailLogoAutoBackfill } from '@/hooks/useEmailLogoBackfill';
 import { useTenantSubscription } from '@/hooks/useTenantSubscription';
-import { Wrench, Blocks, PanelBottom, UtensilsCrossed, LayoutGrid } from 'lucide-react';
+import { Wrench, Blocks, PanelBottom, UtensilsCrossed, LayoutGrid, BookOpen } from 'lucide-react';
 import { MyBottomNavSettings } from '@/components/admin/settings/MyBottomNavSettings';
 import { HorecaSettingsHub } from '@/components/admin/settings/HorecaSettingsHub';
 import { MoreToolsSettings } from '@/components/admin/settings/MoreToolsSettings';
+import { AccountingSettings } from '@/components/admin/settings/AccountingSettings';
 import { BusinessModulesSettings } from '@/components/admin/settings/BusinessModulesSettings';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { tracksAllow, type Track } from '@/lib/tracks';
@@ -89,6 +90,8 @@ interface SettingsSection {
    * Leeg = kern, voor elke winkel.
    */
   tracks?: Track[];
+  /** HORECA-ZIJBALK-1: verborgen zodra de winkel een van deze sporen heeft (daar staat het elders). */
+  hideWithTracks?: Track[];
 }
 
 interface SettingsGroup {
@@ -165,6 +168,8 @@ const settingsGroups: SettingsGroup[] = [
       { id: 'invoicing', titleKey: 'settings.sections.invoicing', icon: FileText, component: InvoiceAutomationSettings, requiredRead: 'settings_financial' },
       { id: 'peppol', titleKey: 'settings.sections.peppol', icon: Network, component: PeppolSettings, featureKey: 'peppol', requiredRead: 'settings_financial' },
       { id: 'compliance', titleKey: 'settings.sections.compliance', icon: FileCheck, component: InvoiceComplianceCard, requiredRead: 'settings_financial' },
+      // HORECA-ZIJBALK-1: horeca zonder webshop/events heeft geen SellQo Connect; de Odoo-koppeling staat dan hier.
+      { id: 'accounting', tracks: ['horeca'], hideWithTracks: ['webshop', 'events'], titleKey: 'settings.sections.accounting', icon: BookOpen, component: AccountingSettings, requiredRead: 'settings_financial' },
     ],
   },
   {
@@ -253,6 +258,7 @@ export default function SettingsPage() {
   const isSectionFeatureVisible = (section: SettingsSection): boolean => {
     // WERKPLEK-1: buiten de sporen van de winkel bestaat de sectie niet (beheerweergave ziet alles via hasTrack).
     if (!tracksAllow(section.tracks, hasTrack)) return false;
+    if (section.hideWithTracks?.some(hasTrack)) return false;
     if (!section.featureKey) return true;
     if (isPlatformAdmin && isAdminView) return true;
     if (isFeatureGranted(section.featureKey)) return true;

@@ -192,7 +192,9 @@
       "kitchen": "Keuken",
       "menu": "Kaart",
       "floor": "Zaal"
-    }
+    },
+    "sheet_title": "Menu",
+    "sheet_desc": "Alle onderdelen van SellQo"
   },
   "settings": {
     "title": "Instellingen",
@@ -336,7 +338,8 @@
       "modules": "Modules",
       "horeca": "Horeca-instellingen",
       "bottom_nav": "Mijn onderbalk",
-      "more_tools": "Meer onderdelen"
+      "more_tools": "Meer onderdelen",
+      "accounting": "Boekhouding"
     },
     "business": {
       "subtitle": "Beheer je winkel- en bedrijfsinformatie",
@@ -1702,6 +1705,12 @@
       "title": "Meer onderdelen",
       "intro": "Deze onderdelen kan je gebruiken, maar ze staan niet in je menu om het kort te houden.",
       "none": "Alles wat je zaak gebruikt, staat al in je menu."
+    },
+    "accounting": {
+      "title": "Boekhouding (Odoo)",
+      "intro": "Koppel je eigen Odoo-boekhouding: SellQo boekt je facturen en creditnota's daar automatisch in.",
+      "dialog_title": "Odoo-boekhouding",
+      "dialog_desc": "Verbind je eigen Odoo en stel de synchronisatie in."
     }
   },
   "languages": {
@@ -9794,7 +9803,9 @@
         "netRate": "Maatstaf {{rate}}%",
         "vatRate": "Btw {{rate}}%",
         "tip": "Fooi {{method}}"
-      }
+      },
+      "accountingLink": "Boekhouding (Odoo)",
+      "accountingHint": "Koppel Odoo: je facturen en creditnota's komen er dan automatisch in."
     },
     "liveFloor": {
       "intro": "Wat er nu open staat in je zaak. Rekeningen openen en afrekenen doe je op SellQo Kassa.",

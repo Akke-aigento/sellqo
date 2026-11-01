@@ -18,5 +18,9 @@
   "@/utils/floorQrPdf": "mocks/qrpdf.ts",
   "/^\\./useTenant$/": "mocks/tenant.ts",
   "/^\\./useAuth$/": "mocks/auth.ts",
-  "@/components/admin/horeca/kaart/useKaart": "mocks/kaart.ts"
+  "@/components/admin/horeca/kaart/useKaart": "mocks/kaart.ts",
+  "@/hooks/useUsageLimits": "mocks/usage.ts",
+  "@/hooks/useOdooConnection": "mocks/odoo.ts",
+  "@/hooks/useTenantOdooSettings": "mocks/odoo.ts",
+  "@/hooks/useHorecaReports": "mocks/horecaReports.ts"
 }

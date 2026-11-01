@@ -10,7 +10,7 @@ import { H } from './mocks/h';
 const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 const entry: Record<string, string> = {
   sidebar: '/admin', zaal: '/admin/zaal', 'zaal-edit': '/admin/zaal?tab=bewerken', bestellen: `/admin/bestellen${H.tab ? `?tab=${H.tab}` : ''}`,
-  settings: '/admin/settings', kaart: '/admin/bestellen',
+  settings: '/admin/settings', kaart: '/admin/bestellen', 'settings-accounting': '/admin/settings?section=accounting', reports: '/admin/reports',
 };
 // Enkel het gevraagde scherm laden (alles samen is te zwaar voor een koude vite-start).
 const Sidebar = lazy(async () => {
@@ -21,7 +21,9 @@ const Floor = lazy(() => import('@/pages/admin/Floor'));
 const Hub = lazy(() => import('@/pages/admin/OrderingHub'));
 const Settings = lazy(async () => { const m = await import('@/components/admin/settings/HorecaSettingsHub'); return { default: () => <div className="max-w-3xl p-4"><m.HorecaSettingsHub /></div> }; });
 const Kaart = lazy(async () => { const m = await import('@/components/admin/horeca/kaart/KaartManager'); return { default: () => <div className="p-4"><m.KaartManager /></div> }; });
-const Screen = { sidebar: Sidebar, zaal: Floor, 'zaal-edit': Floor, bestellen: Hub, settings: Settings, kaart: Kaart }[H.screen] ?? Sidebar;
+const Accounting = lazy(async () => { const m = await import('@/components/admin/settings/AccountingSettings'); return { default: () => <div className="max-w-3xl p-4"><m.AccountingSettings /></div> }; });
+const Reports = lazy(async () => { const m = await import('@/components/admin/reports/HorecaReportsTab'); return { default: () => <div className="p-4"><m.HorecaReportsTab from={new Date('2026-10-01')} to={new Date('2026-10-31')} /></div> }; });
+const Screen = { sidebar: Sidebar, zaal: Floor, 'zaal-edit': Floor, bestellen: Hub, settings: Settings, kaart: Kaart, 'settings-accounting': Accounting, reports: Reports }[H.screen] ?? Sidebar;
 const screen = <Suspense fallback={null}><Screen /></Suspense>;
 
 createRoot(document.getElementById('root')!).render(

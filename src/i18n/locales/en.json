@@ -192,7 +192,9 @@
       "kitchen": "Kitchen",
       "menu": "Menu",
       "floor": "Floor"
-    }
+    },
+    "sheet_title": "Menu",
+    "sheet_desc": "All parts of SellQo"
   },
   "settings": {
     "title": "Settings",
@@ -336,7 +338,8 @@
       "modules": "Modules",
       "horeca": "Hospitality settings",
       "bottom_nav": "My bottom bar",
-      "more_tools": "More tools"
+      "more_tools": "More tools",
+      "accounting": "Accounting"
     },
     "business": {
       "subtitle": "Manage your store and company information",
@@ -1702,6 +1705,12 @@
       "title": "More tools",
       "intro": "You can use these tools, but they are not in your menu to keep it short.",
       "none": "Everything your business uses is already in your menu."
+    },
+    "accounting": {
+      "title": "Accounting (Odoo)",
+      "intro": "Connect your own Odoo accounting: SellQo books your invoices and credit notes there automatically.",
+      "dialog_title": "Odoo accounting",
+      "dialog_desc": "Connect your own Odoo and set up the sync."
     }
   },
   "languages": {
@@ -9780,7 +9789,9 @@
         "netRate": "Taxable amount {{rate}}%",
         "vatRate": "VAT {{rate}}%",
         "tip": "Tip {{method}}"
-      }
+      },
+      "accountingLink": "Accounting (Odoo)",
+      "accountingHint": "Connect Odoo: your invoices and credit notes then land there automatically."
     },
     "liveFloor": {
       "intro": "What is open in your venue right now. Opening and settling bills happens on SellQo Kassa.",
