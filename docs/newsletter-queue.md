@@ -6,7 +6,7 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ### 2026.14x — Nachtrun horeca: QR-menu, keuken, kassa, uren, rapporten en Odoo (16 items, 02-11-2026)
 
-**Status:** wacht op go: uitrol volgens `docs/nachtrun/UITROL.md` (migraties, deploys `storefront-api`/`horeca-print`/`horeca-receipt-mail`/`horeca-device-push`/`sync-odoo-pos-z`/`manage-odoo-connection`, publish sellqo.app en de storefront, nieuwe native build kassa-app 0.20.0). KASSA-ODOO-1 pas na review 2 en de merge van `night-odoo`. Bundelen per onderwerp (2-4 items per nieuwsbrief), niet alle 16 tegelijk.
+**Status:** wacht op go: uitrol volgens `docs/nachtrun/UITROL.md` (migraties, deploys `storefront-api`/`horeca-print`/`horeca-receipt-mail`/`horeca-device-push`/`sync-odoo-pos-z`/`manage-odoo-connection`, publish sellqo.app en de storefront, nieuwe native build kassa-app 0.20.0). Bundelen per onderwerp (2-4 items per nieuwsbrief), niet alle 16 tegelijk.
 
 #### 2026.14x — Bestellen vanaf je menukaart zonder heen en weer (feature, 02-11-2026)
 
@@ -127,7 +127,7 @@ i18n: `public.changelog.changes.kaart_food_cost`
 
 #### 2026.14x — Je kassa-omzet naar Odoo, als je dat aanzet (feature, 02-11-2026)
 
-**Status:** pas na review 2 en de merge van `night-odoo`; beslispunt `odoo_sync` in de horecaplannen staat open (role-audit HORECA-ZIJBALK-1).
+**Status:** reviews afgerond en gemerged; beslispunt `odoo_sync` in de horecaplannen staat open (role-audit HORECA-ZIJBALK-1).
 
 **Je Z-rapport in je boekhouding, tot op de cent** (november 2026)
 Bij je Odoo-boekhoudinstellingen zet je "Kassa-omzet naar Odoo" aan. SellQo boekt dan elk afgesloten Z-rapport vanaf de dag die je kiest als één boeking met de omzet per btw-tarief. Het staat standaard uit; fooien en betalingen worden niet geboekt, en wijkt Odoo af, dan blijft de boeking een concept en krijg je een melding.

@@ -14,7 +14,7 @@ Onbewaakte nachtrun op de bevindingen van de rollenwandeling (zaakvoerder, ober,
 
 **Reviews (aparte review-agent op de diff)**
 - KASSA-RECHTEN-1 (+ KASSA-UX-6): 1 review, alle punten gefikst (o.a. aantal van een lijn met korting vast, owner-uitzondering via sessietoken, akkoord gebonden aan bedrag, kas uit met akkoord).
-- KASSA-ODOO-1 (geld-rakend): 2 reviews; review 1 gefikst, **status: na review 2, fixes in uitvoering** (worktree `sellqo-odoo`, nog niet gecommit bij het schrijven van deze entry).
+- KASSA-ODOO-1 (geld-rakend): review 1 (12 bevindingen), review 2 (blokker upsert-pad + 14 punten) en een fixcheck (3 punten), alles gefikst; oordeel fixcheck: uitrolbaar met schakelaar standaard uit. Gemerged uit `night-odoo` (laatste commit `0620733`).
 
 **Changelog:** 2026.14x (16 changes, 5 talen). **Nieuwsbrief:** 16 items onder Openstaand.
 
@@ -361,7 +361,7 @@ Details: `docs/nachtrun/RAPPORT-HORECA-1.md`.
 
 ## KASSA-ODOO-1 — Z-rapporten van SellQo Kassa naar Odoo — 1-2 november 2026
 
-Details: `/home/claude/sellqo-odoo/docs/nachtrun/KASSA-ODOO-1.md` (branch `night-odoo`; komt na de merge in `docs/nachtrun/`). **Status: na review 2, fixes in uitvoering.**
+Details: `docs/nachtrun/KASSA-ODOO-1.md` (secties Review 1/2 → fixes en Fixcheck → fixes). **Status: review 1, review 2 en fixcheck verwerkt; uitrolbaar met de schakelaar standaard uit.**
 
 **Root cause**
 - `sync-odoo-invoices` boekt enkel `invoices` en `credit_notes`; geen enkele functie las `kassa_reports`, `pos_transactions` of `check_payments`. Kassaverkoop maakt geen factuur of order (`horeca_pay`, `usePOS.ts` `p_order_id: null`), dus de dagontvangsten van de kassa kwamen nooit in Odoo.
@@ -390,7 +390,7 @@ Details: `/home/claude/sellqo-odoo/docs/nachtrun/KASSA-ODOO-1.md` (branch `night
 
 ## MENU-SHEET-1, MENU-ALLERGEEN-1, MENU-SNEL-1 + storefront-kant QR-IDEMP-1/STATUS-1/OBER-ROEPEN-1 — QR-menu en tafelbestelling — 1-2 november 2026
 
-**Code in repo `sellqo-storefront`** (branch `night-menu`, commits `4557275`, `9bfc7b8`, `761c629`), niet in deze repo. Details: `docs/nachtrun/MENU-STOREFRONT.md` in die repo.
+**Code in repo `sellqo-storefront`** (branch `night-menu`, commits `4557275`, `9bfc7b8`, `761c629`, `b167194`, `44acb1e`), niet in deze repo. Details: `docs/nachtrun/MENU-STOREFRONT.md` in die repo.
 
 **Root cause**
 - MENU-SHEET-1: de "+" op `/menu` was een `aria-hidden` span in een link naar de productpagina (`ShopChrome.tsx` r. 407/421): ±18-20 tikken voor 4 items, en aan tafel belandde de gast in de webshop.
