@@ -11679,8 +11679,8 @@
     },
     "bar": {
       "incoming": "Binnenkomend",
-      "empty": "Niets binnengekomen. Nieuwe QR-bestellingen en bonnen voor de bar verschijnen hier.",
-      "emptyNoBar": "Niets binnengekomen. QR-bestellingen verschijnen hier. Wil je ook de bonnen voor de bar zien? Maak een post van het type Bar onder Bestellen › Posten.",
+      "empty": "Niets binnengekomen. Nieuwe QR-bestellingen, oproepen van tafels en bonnen voor de bar verschijnen hier.",
+      "emptyNoBar": "Niets binnengekomen. QR-bestellingen en oproepen van tafels verschijnen hier. Wil je ook de bonnen voor de bar zien? Maak een post van het type Bar onder Bestellen › Posten.",
       "tickets": "{{name}} ({{count}})"
     },
     "tableActions": {
@@ -11693,6 +11693,13 @@
       "unbill": "Rekening-vraag intrekken",
       "unbillConfirm": "{{title}} terug op bezet zetten? De voorlopige rekening die al gemaakt is, blijft bewaard.",
       "unbillDone": "Tafel staat terug op bezet"
+    },
+    "calls": {
+      "title": "Oproepen van tafels ({{count}})",
+      "waiter": "Tafel {{label}} roept de bediening",
+      "bill": "Tafel {{label}} vraagt de rekening",
+      "repeat": "{{count}}× geroepen",
+      "handle": "Afgehandeld"
     }
   },
   "deviceAlerts": {
@@ -11734,7 +11741,7 @@
       }
     },
     "event": {
-      "qr_request": "QR-bestelling wacht op bevestiging",
+      "qr_request": "QR-bestelling, oproep van een tafel of reservatie-aanvraag",
       "ticket_new": "Nieuwe bon (alle posten)",
       "ticket_new_for": "Nieuwe bon voor {{stations}}",
       "ticket_ready": "Bon is klaar",

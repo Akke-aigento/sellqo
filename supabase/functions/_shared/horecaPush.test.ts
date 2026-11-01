@@ -70,3 +70,24 @@ Deno.test("web push Topic: 32 base64url-tekens, vast per tag (Apple weigerde 'sq
   }
   assert(seen.size === tags.length, "twee tags geven hetzelfde topic");
 });
+
+Deno.test("OBER-ROEPEN-1: oproep van een tafel in elke taal, eigen tag per oproep", () => {
+  for (const lang of Object.keys(HORECA_PUSH_TEXTS)) {
+    for (const call of ["waiter", "bill"]) {
+      const m = buildHorecaPush("qr_request", { table: "4", call, ref: "abcdef123456", repeat: 2 }, lang);
+      assert(m && m.title && m.body && m.tag === "sq-call-abcdef12", `${lang}/${call}: ${JSON.stringify(m)}`);
+      assert(!/undefined|null|NaN/.test(m!.title + m!.body), `${lang}/${call}: ${m!.title} | ${m!.body}`);
+    }
+  }
+  assert(buildHorecaPush("qr_request", { table: "4", call: "bill" }, "nl")!.title === "Tafel 4 vraagt de rekening", "nl rekening");
+  assert(buildHorecaPush("qr_request", { table: "4", call: "waiter" }, "nl")!.body === "Afhandelen in de kassa.", "nl eerste keer");
+});
+
+Deno.test("RESERVATIE-MELDING-1: reservatie-aanvraag in elke taal, zonder naam, link naar reservaties", () => {
+  for (const lang of Object.keys(HORECA_PUSH_TEXTS)) {
+    const m = buildHorecaPush("qr_request", { reservation: true, guests: 4, at: "02/11 19:30", ref: "abcdef123456" }, lang, null, "phone");
+    assert(m && m.title && m.body.includes("19:30") && m.tag === "sq-res-abcdef12" && m.url === "/admin/bestellen?tab=reservaties", `${lang}: ${JSON.stringify(m)}`);
+    assert(!/undefined|null|NaN/.test(m!.title + m!.body), `${lang}: ${m!.title} | ${m!.body}`);
+  }
+  assert(buildHorecaPush("qr_request", { reservation: true, guests: 2, at: "x" }, "nl", null, "kassa")!.url === "/kassa", "kassa opent de kassa");
+});

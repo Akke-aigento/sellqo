@@ -85,7 +85,7 @@ Deno.test('status: teruggestort → leesbare reden; onbekend → NOT_FOUND', asy
 
 Deno.test('GET-stempel REKENING-ONLINE-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'RESERVATIE-2', 'stempel');
+  assert((await r.json()).version === 'QR-STATUS-1', 'stempel');
 });
 
 // --- afrond-module ------------------------------------------------------------------------------

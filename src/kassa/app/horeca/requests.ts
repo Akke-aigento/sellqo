@@ -87,3 +87,25 @@ export function useAutoAccept(tenantId: string | undefined): boolean {
   });
   return data === true;
 }
+
+// OBER-ROEPEN-1 — oproepen van een tafel via de QR: de bediening roepen of de rekening vragen.
+// Geen bestelling: enkel "gezien en afgehandeld" (horeca_table_call_handle, idempotent).
+export type TableCallKind = 'waiter' | 'bill';
+export interface TableCall {
+  id: string;
+  dining_table_id: string | null;
+  table_label: string;
+  kind: TableCallKind;
+  repeat_count: number;
+  last_called_at: string;
+  created_at: string;
+}
+
+export async function handleCall(ctx: ActionCtx, call: Pick<TableCall, 'id'>): Promise<{ ok: boolean; error?: string }> {
+  const { error } = await supabase.rpc('horeca_table_call_handle' as never, {
+    p_tenant_id: ctx.store.tenantId, p_call_id: call.id, p_staff_id: ctx.staffId,
+  } as never);
+  if (error) return { ok: false, error: error.message };
+  await ctx.store.refresh();
+  return { ok: true };
+}

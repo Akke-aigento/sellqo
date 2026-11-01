@@ -41,6 +41,11 @@ const transport: Transport = {
     ],
   }),
   version: async () => 1,
+  // OBER-ROEPEN-1: tafel 7 roept de bediening (2×), terras 2 vraagt de rekening.
+  calls: async () => [
+    { id: 'call-1', dining_table_id: 't-7', table_label: '7', kind: 'waiter', repeat_count: 2, last_called_at: new Date(now - 60_000).toISOString(), created_at: new Date(now - 3 * 60_000).toISOString() },
+    { id: 'call-2', dining_table_id: 't-Ter-2', table_label: 'Ter 2', kind: 'bill', repeat_count: 1, last_called_at: new Date(now - 30_000).toISOString(), created_at: new Date(now - 30_000).toISOString() },
+  ],
   requests: async () => [{
     id: 'r1', dining_table_id: 't-5', table_label: '5', item_count: 3, total_cents: 1460, guest_name: 'Lotte', note: null, created_at: new Date(now - 4 * 60_000).toISOString(),
     items: [{ product_id: 'p-tap-1', variant_id: null, qty: 2, name: 'Pils', unit_price_cents: 280, addons: [] }, { product_id: 'p-hon-1', variant_id: null, qty: 1, name: 'Croque monsieur', unit_price_cents: 750, addons: [] }],

@@ -11677,8 +11677,8 @@
     },
     "bar": {
       "incoming": "Eingehend",
-      "empty": "Noch nichts eingegangen. Neue QR-Bestellungen und Bons für die Bar erscheinen hier.",
-      "emptyNoBar": "Noch nichts eingegangen. QR-Bestellungen erscheinen hier. Willst du auch die Bons der Bar sehen? Lege unter Bestellen › Stationen eine Station vom Typ Bar an.",
+      "empty": "Noch nichts eingegangen. Neue QR-Bestellungen, Rufe von Tischen und Bons für die Bar erscheinen hier.",
+      "emptyNoBar": "Noch nichts eingegangen. QR-Bestellungen und Rufe von Tischen erscheinen hier. Willst du auch die Bons der Bar sehen? Lege unter Bestellen › Stationen eine Station vom Typ Bar an.",
       "tickets": "{{name}} ({{count}})"
     },
     "tableActions": {
@@ -11691,6 +11691,13 @@
       "unbill": "Rechnungswunsch zurücknehmen",
       "unbillConfirm": "{{title}} wieder auf besetzt setzen? Die bereits erstellte Zwischenrechnung bleibt gespeichert.",
       "unbillDone": "Tisch ist wieder besetzt"
+    },
+    "calls": {
+      "title": "Rufe von Tischen ({{count}})",
+      "waiter": "Tisch {{label}} ruft die Bedienung",
+      "bill": "Tisch {{label}} möchte zahlen",
+      "repeat": "{{count}}× gerufen",
+      "handle": "Erledigt"
     }
   },
   "deviceAlerts": {
@@ -11732,7 +11739,7 @@
       }
     },
     "event": {
-      "qr_request": "QR-Bestellung wartet auf Bestätigung",
+      "qr_request": "QR-Bestellung, Ruf eines Tisches oder Reservierungsanfrage",
       "ticket_new": "Neuer Bon (alle Stationen)",
       "ticket_new_for": "Neuer Bon für {{stations}}",
       "ticket_ready": "Bon ist fertig",

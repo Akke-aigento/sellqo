@@ -12,7 +12,10 @@
 // - Versturen, korting, verplaatsen: wachten op de server (geld/fiscaal), geen optimisme.
 import { supabase } from '@/integrations/supabase/client';
 import type { Check, CheckLine, Snapshot } from './types';
-import type { TableRequest } from './requests';
+import type { TableCall, TableRequest } from './requests';
+
+/** OBER-ROEPEN-1: een vergeten oproep blijft niet eeuwig in Binnenkomend staan (3 uur). */
+const CALL_MAX_AGE_MS = 3 * 60 * 60 * 1000;
 import { DEFAULT_RESERVATION_SETTINGS, fetchPendingRequests, fetchReservationSettings, fetchReservations, type Reservation, type ReservationSettings } from '@/lib/horeca/reservations';
 
 export type CommandKind =
@@ -38,6 +41,8 @@ export interface Transport {
   version(tenantId: string): Promise<number>;
   /** QR-REKENING-1: openstaande tafelaanvragen. Optioneel (testtransports laten het weg). */
   requests?(tenantId: string): Promise<TableRequest[]>;
+  /** OBER-ROEPEN-1: open oproepen van tafels (bediening/rekening). Optioneel. */
+  calls?(tenantId: string): Promise<TableCall[]>;
   /** RESERVATIE-1: reservaties van vandaag en de twee volgende dagen, plus de instellingen. Optioneel. */
   reservations?(tenantId: string): Promise<{ list: Reservation[]; settings: ReservationSettings }>;
 }
@@ -65,6 +70,15 @@ export const supabaseTransport: Transport = {
       .order('created_at' as never, { ascending: true }).limit(300);
     if (error) throw error;
     return (data ?? []) as unknown as TableRequest[];
+  },
+  async calls(tenantId) {
+    const { data, error } = await supabase.from('table_calls' as never)
+      .select('id, dining_table_id, table_label, kind, repeat_count, last_called_at, created_at')
+      .eq('tenant_id' as never, tenantId as never).eq('status' as never, 'open' as never)
+      .gt('last_called_at' as never, new Date(Date.now() - CALL_MAX_AGE_MS).toISOString() as never)
+      .order('created_at' as never, { ascending: true }).limit(100);
+    if (error) throw error;
+    return (data ?? []) as unknown as TableCall[];
   },
   async reservations(tenantId) {
     const from = new Date(); from.setHours(0, 0, 0, 0);
@@ -98,6 +112,10 @@ export class HorecaStore {
   requests: TableRequest[] = [];
   /** MELDING-1: de aanvragen zijn minstens één keer geladen (vóór die tijd is een lege lijst geen nulmeting). */
   requestsLoaded = false;
+  /** OBER-ROEPEN-1: open oproepen van tafels (oudste eerst). */
+  calls: TableCall[] = [];
+  /** OBER-ROEPEN-1: de oproepen zijn minstens één keer geladen (nulmeting voor de meldingen). */
+  callsLoaded = false;
   /** RESERVATIE-1: een laag boven het zaalplan; raakt de rekeningen nooit. */
   reservations: Reservation[] = [];
   reservationSettings: ReservationSettings = DEFAULT_RESERVATION_SETTINGS;
@@ -143,12 +161,15 @@ export class HorecaStore {
   async refresh() {
     try {
       // Aanvragen ophalen mag mislukken zonder de rekeningen te blokkeren: dan blijft de vorige lijst staan.
-      const [snap, reqs, res] = await Promise.all([
+      const [snap, reqs, res, calls] = await Promise.all([
         this.transport.snapshot(this.tenantId),
         this.transport.requests ? this.transport.requests(this.tenantId).catch(() => null) : Promise.resolve(null),
         this.transport.reservations ? this.transport.reservations(this.tenantId).catch(() => null) : Promise.resolve(null),
+        // OBER-ROEPEN-1: vóór de migratie bestaat de tabel niet; dan gewoon geen oproepen.
+        this.transport.calls ? this.transport.calls(this.tenantId).catch(() => null) : Promise.resolve(null),
       ]);
       if (reqs) { this.requests = reqs; this.requestsLoaded = true; }
+      if (calls) { this.calls = calls; this.callsLoaded = true; }
       if (res) { this.reservations = res.list; this.reservationSettings = res.settings; }
       this.setSnapshot(snap);
       this.online = true;

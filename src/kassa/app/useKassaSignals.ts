@@ -11,12 +11,12 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { ding } from '@/lib/ding';
 import { formatEuro } from './horeca/format';
-import type { TableRequest } from './horeca/requests';
+import type { TableCall, TableRequest } from './horeca/requests';
 
 const POLL_MS = 10_000;
 const WINDOW_MS = 60 * 60_000;
 
-export function useKassaSignals(tenantId: string, requests: TableRequest[], requestsLoaded: boolean, sound: boolean) {
+export function useKassaSignals(tenantId: string, requests: TableRequest[], requestsLoaded: boolean, sound: boolean, /** OBER-ROEPEN-1 */ calls?: TableCall[] | null) {
   const { t, i18n } = useTranslation();
   const soundRef = useRef(sound);
   soundRef.current = sound;
@@ -35,6 +35,20 @@ export function useKassaSignals(tenantId: string, requests: TableRequest[], requ
     const tables = [...new Set(fresh.map((r) => r.table_label))].join(', ');
     toast(t('kassa.signals.qr', { tables }), { duration: 8000 });
   }, [requests, requestsLoaded, t]);
+
+  // OBER-ROEPEN-1: een tafel roept de bediening of vraagt de rekening (ook opnieuw na 2 min).
+  // Nieuw = een id + aantal keren geroepen dat we nog niet zagen. null = nog niet geladen.
+  const seenCall = useRef<Set<string> | null>(null);
+  useEffect(() => {
+    if (!calls) return;
+    const keys = calls.map((c) => `${c.id}:${c.repeat_count}`);
+    if (seenCall.current === null) { seenCall.current = new Set(keys); return; }
+    const fresh = calls.filter((c) => !seenCall.current!.has(`${c.id}:${c.repeat_count}`));
+    keys.forEach((k) => seenCall.current!.add(k));
+    if (!fresh.length) return;
+    if (soundRef.current) ding();
+    for (const c of fresh) toast(t(c.kind === 'bill' ? 'kassa.calls.bill' : 'kassa.calls.waiter', { label: c.table_label }), { duration: 10000 });
+  }, [calls, t]);
 
   // Klare bonnen en online betalingen: alles van het laatste uur, en enkel melden wat dit toestel nog
   // niet zag (id + tijdstip). Geen cursor op tijd: status_at komt van de klok van het keukentoestel,
