@@ -19,21 +19,25 @@ export function ProductAllergensCard({ productId }: { productId: string }) {
   const { data, isLoading } = useQuery({
     queryKey: key,
     queryFn: async () => {
-      const { data: row, error } = await supabase.from('products').select('allergens, dietary').eq('id', productId).single();
+      // ALLERGEEN-VERKLAARD-1: allergens_declared = de allergenen zijn bewust vastgelegd (ook "geen").
+      // (types.ts kent de kolom pas na de regeneratie door Lovable: daarom de ruime cast.)
+      const { data, error } = await supabase.from('products').select('allergens, dietary, allergens_declared' as 'allergens, dietary').eq('id', productId).single();
       if (error) throw error;
-      return { allergens: row.allergens || [], dietary: row.dietary || [] };
+      const row = data as unknown as { allergens: string[] | null; dietary: string[] | null; allergens_declared?: boolean | null };
+      return { allergens: row.allergens || [], dietary: row.dietary || [], declared: row.allergens_declared === true };
     },
   });
   const [allergens, setAllergens] = useState<string[]>([]);
   const [dietary, setDietary] = useState<string[]>([]);
-  useEffect(() => { if (data) { setAllergens(data.allergens); setDietary(data.dietary); } }, [data]);
+  const [declared, setDeclared] = useState(false);
+  useEffect(() => { if (data) { setAllergens(data.allergens); setDietary(data.dietary); setDeclared(data.declared); } }, [data]);
 
   const save = useMutation({
-    mutationFn: async (next: { allergens: string[]; dietary: string[] }) => {
-      const { error } = await supabase.from('products').update(next).eq('id', productId);
+    mutationFn: async (next: { allergens: string[]; dietary: string[]; allergens_declared: boolean }) => {
+      const { error } = await supabase.from('products').update(next as never).eq('id', productId);
       if (error) throw error;
     },
-    onError: () => { toast.error(t('admin.storefront.food.save_failed')); if (data) { setAllergens(data.allergens); setDietary(data.dietary); } },
+    onError: () => { toast.error(t('admin.storefront.food.save_failed')); if (data) { setAllergens(data.allergens); setDietary(data.dietary); setDeclared(data.declared); } },
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 
@@ -45,8 +49,16 @@ export function ProductAllergensCard({ productId }: { productId: string }) {
       ? (on && code === 'vegan' && !next.includes('vegetarian') ? [...next, 'vegetarian'] : next)
       : dietary;
     const nextAllergens = list === 'allergens' ? next : allergens;
-    setAllergens(nextAllergens); setDietary(nextDietary);
-    save.mutate({ allergens: nextAllergens, dietary: nextDietary });
+    // Minstens één allergeen = verklaard (de databank dwingt dat ook af). Haal je het laatste weg, dan
+    // is het weer "niet ingevuld" tot je "bevat geen" aanvinkt. Dieetlabels laten de keuze staan.
+    const nextDeclared = list === 'allergens' ? nextAllergens.length > 0 : declared;
+    setAllergens(nextAllergens); setDietary(nextDietary); setDeclared(nextDeclared);
+    save.mutate({ allergens: nextAllergens, dietary: nextDietary, allergens_declared: nextDeclared });
+  };
+  const setNone = (on: boolean) => {
+    if (allergens.length) return;
+    setDeclared(on);
+    save.mutate({ allergens: [], dietary, allergens_declared: on });
   };
 
   return (
@@ -69,6 +81,14 @@ export function ProductAllergensCard({ productId }: { productId: string }) {
                 </div>
               ))}
             </div>
+            {/* ALLERGEEN-VERKLAARD-1 — "bevat geen" is iets anders dan "niet ingevuld". */}
+            <div className="flex items-start gap-2 rounded-md border px-3 py-2">
+              <Checkbox id={`al-none-${productId}`} checked={declared && !allergens.length} disabled={allergens.length > 0} onCheckedChange={(v) => setNone(v === true)} className="mt-0.5" />
+              <div>
+                <Label htmlFor={`al-none-${productId}`} className={allergens.length ? 'font-normal text-muted-foreground' : 'font-normal'}>{t('admin.storefront.food.allergens_none_label')}</Label>
+                {allergens.length ? <p className="text-xs text-muted-foreground">{t('admin.storefront.food.allergens_none_disabled')}</p> : null}
+              </div>
+            </div>
             <div>
               <p className="mb-2 text-sm font-medium">{t('admin.storefront.food.dietary_title')}</p>
               <div className="flex flex-wrap gap-x-5 gap-y-2">
@@ -80,7 +100,7 @@ export function ProductAllergensCard({ productId }: { productId: string }) {
                 ))}
               </div>
             </div>
-            {!allergens.length ? <p className="text-xs text-muted-foreground">{t('admin.storefront.food.allergens_none_hint')}</p> : null}
+            {!allergens.length && !declared ? <p className="text-xs text-muted-foreground">{t('admin.storefront.food.allergens_none_hint')}</p> : null}
           </>
         )}
       </CardContent>

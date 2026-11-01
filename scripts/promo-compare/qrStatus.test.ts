@@ -212,7 +212,7 @@ Deno.test('table_call: QR staat uit → TABLE_CALL_OFF', async () => {
   }
 });
 
-Deno.test('GET-stempel QR-STATUS-1', async () => {
+Deno.test('GET-stempel ALLERGEEN-VERKLAARD-1', async () => {
   const r = await handler(new Request('https://f/storefront-api', { method: 'GET' }));
-  assert((await r.json()).version === 'QR-STATUS-1' && r.headers.get('X-SellQo-Api-Rev') === 'qr-status-1', 'stempel');
+  assert((await r.json()).version === 'ALLERGEEN-VERKLAARD-1' && r.headers.get('X-SellQo-Api-Rev') === 'allergeen-verklaard-1', 'stempel');
 });

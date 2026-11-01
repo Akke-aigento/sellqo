@@ -6933,7 +6933,7 @@
         "allergens_title": "Allergene",
         "allergens_desc": "Welche der 14 Allergene sind in diesem Gericht? Ihr Kunde sieht sie vor der Bestellung auf der Produktseite und der Speisekarte (Pflicht beim Fernabsatz).",
         "dietary_title": "Merkmale",
-        "allergens_none_hint": "Nichts angekreuzt: Der Shop nennt dann keine Allergene für dieses Gericht. Fragen Sie im Zweifel bei Ihrem Lieferanten nach.",
+        "allergens_none_hint": "Nichts angekreuzt: noch nicht ausgefüllt. Ihr Kunde sieht dann keine Allergeninformationen. Enthält das Gericht wirklich keine, kreuzen Sie „Enthält keines der 14 Allergene“ an. Fragen Sie im Zweifel bei Ihrem Lieferanten nach.",
         "closed_title": "Schließtage",
         "closed_desc": "Urlaub oder Feiertag? An diesen Tagen kann niemand Abholung oder Lieferung bestellen. Bestellen am Tisch richtet sich einfach nach Ihrem Lokal.",
         "closed_date": "Datum",
@@ -6975,7 +6975,9 @@
         "pos_sold_out": "{{name}} ist für heute ausverkauft",
         "pos_not_available": "{{name}} ist an der Kasse nicht erhältlich",
         "qr_tables_from_floor_plan": "Sie haben einen Raumplan: Jeder Tisch hat einen eigenen, gesicherten QR-Code. Drucken Sie die Tischaufkleber im Raumplan. Einfache Tischnummern funktionieren in Ihrem Betrieb nicht mehr.",
-        "qr_open_floor_plan": "Zum Raumplan"
+        "qr_open_floor_plan": "Zum Raumplan",
+        "allergens_none_label": "Enthält keines der 14 Allergene",
+        "allergens_none_disabled": "Nicht möglich, solange ein Allergen angekreuzt ist."
       },
       "schema": {
         "themeGallery": {

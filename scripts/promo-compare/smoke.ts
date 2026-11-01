@@ -242,6 +242,9 @@ await check('pauze en sluitingsdag (PAUSE-1)', async () => {
 await check('allergenen alleen als ingevuld (ALLERGEN-1)', async () => {
   assert(JSON.stringify(S.foodInfo({ allergens: [], dietary: [] })) === '{}', 'leeg = geen sleutels (respons ongewijzigd)');
   assert(JSON.stringify(S.foodInfo({})) === '{}', 'ontbrekend = geen sleutels');
+  // ALLERGEEN-VERKLAARD-1 — enkel true geeft een sleutel; false/ontbrekend blijft byte-gelijk.
+  assert(JSON.stringify(S.foodInfo({ allergens: [], dietary: [], allergens_declared: true })) === '{"allergens_declared":true}', 'verklaard geen');
+  assert(JSON.stringify(S.foodInfo({ allergens: [], dietary: [], allergens_declared: false })) === '{}', 'niet verklaard = geen sleutel');
   const r = S.foodInfo({ allergens: ['gluten', 'milk'], dietary: ['vegetarian'] });
   assert(r.allergens?.join() === 'gluten,milk' && r.dietary?.join() === 'vegetarian', JSON.stringify(r));
 });

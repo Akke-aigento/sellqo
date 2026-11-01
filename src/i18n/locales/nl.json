@@ -6866,7 +6866,7 @@
         "allergens_title": "Allergenen",
         "allergens_desc": "Welke van de 14 allergenen zitten in dit gerecht? Je klant ziet ze op de productpagina en de menukaart, vóór hij bestelt (verplicht bij verkoop op afstand).",
         "dietary_title": "Kenmerken",
-        "allergens_none_hint": "Niets aangevinkt: de winkel vermeldt dan geen allergenen bij dit gerecht. Twijfel je, vraag het na bij je leverancier.",
+        "allergens_none_hint": "Niets aangevinkt: nog niet ingevuld. Je klant ziet dan geen allergeneninformatie. Bevat het gerecht er echt geen, vink dan „Bevat geen van de 14 allergenen” aan. Twijfel je, vraag het na bij je leverancier.",
         "closed_title": "Sluitingsdagen",
         "closed_desc": "Vakantie of feestdag? Op deze dagen kan niemand afhalen of laten leveren. Bestellen aan tafel volgt gewoon je zaak.",
         "closed_date": "Datum",
@@ -6908,7 +6908,9 @@
         "pos_sold_out": "{{name}} is op voor vandaag",
         "pos_not_available": "{{name}} is niet te koop aan de kassa",
         "qr_tables_from_floor_plan": "Je hebt een zaalplan: elke tafel heeft een eigen, beveiligde QR-code. Druk de tafelstickers af vanuit het zaalplan. Losse tafelnummers werken in jouw zaak niet meer.",
-        "qr_open_floor_plan": "Naar het zaalplan"
+        "qr_open_floor_plan": "Naar het zaalplan",
+        "allergens_none_label": "Bevat geen van de 14 allergenen",
+        "allergens_none_disabled": "Kan niet zolang er een allergeen aangevinkt staat."
       },
       "shopOpenCard": {
         "klanten_kunnen_afrekenen_uit_je_winkel": "Klanten kunnen afrekenen. Uit = je winkel toont je producten, zonder winkelmandje.",
