@@ -379,6 +379,8 @@ een scenario toevoegt: `scripts/harness/README.md`.
 - bekijk de screenshots echt (labels, afgekapte tekst, taal); groen is niet genoeg;
 - mock spoor- en rechtenfilters bewust: een te ruime mock toont items die de echte
   app verbergt;
+- draaien er meerdere worktrees tegelijk: eigen `HARNESS_CACHE_DIR`, `HARNESS_PORT` en
+  zo nodig `HARNESS_TIMEOUT` (zie README, "Parallel draaien");
 - het harnas bewijst opmaak en klikgedrag, géén dataflow. Schrijfacties klik je
   daarnaast één keer echt door op sellqo.app (R14).
 **Incident (ONDERBALK-1 en KASSA-START-1, 29 okt 2026):** het harnas werd per batch
