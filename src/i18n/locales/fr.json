@@ -11677,8 +11677,8 @@
     },
     "bar": {
       "incoming": "Entrant",
-      "empty": "Rien n’est arrivé. Les nouvelles commandes QR et les bons pour le bar apparaissent ici.",
-      "emptyNoBar": "Rien n’est arrivé. Les commandes QR apparaissent ici. Vous voulez aussi voir les bons du bar ? Créez un poste de type Bar sous Commandes › Postes.",
+      "empty": "Rien n’est arrivé. Les nouvelles commandes QR, les appels des tables et les bons pour le bar apparaissent ici.",
+      "emptyNoBar": "Rien n’est arrivé. Les commandes QR et les appels des tables apparaissent ici. Vous voulez aussi voir les bons du bar ? Créez un poste de type Bar sous Commandes › Postes.",
       "tickets": "{{name}} ({{count}})"
     },
     "tableActions": {
@@ -11691,6 +11691,13 @@
       "unbill": "Annuler la demande d’addition",
       "unbillConfirm": "Remettre {{title}} sur occupée ? L’addition provisoire déjà établie reste enregistrée.",
       "unbillDone": "La table est de nouveau occupée"
+    },
+    "calls": {
+      "title": "Appels des tables ({{count}})",
+      "waiter": "La table {{label}} appelle le service",
+      "bill": "La table {{label}} demande l’addition",
+      "repeat": "appelé {{count}}×",
+      "handle": "Traité"
     }
   },
   "deviceAlerts": {
@@ -11732,7 +11739,7 @@
       }
     },
     "event": {
-      "qr_request": "Commande QR en attente de confirmation",
+      "qr_request": "Commande QR, appel d’une table ou demande de réservation",
       "ticket_new": "Nouveau bon (tous les postes)",
       "ticket_new_for": "Nouveau bon pour {{stations}}",
       "ticket_ready": "Bon prêt",

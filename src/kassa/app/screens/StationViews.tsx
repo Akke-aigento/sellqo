@@ -14,20 +14,20 @@ import { printTicket } from '@/components/admin/kitchen/printTicket';
 import { NEXT_STATUS, PREV_STATUS, type KitchenCard, type KitchenStatus } from '@/components/admin/kitchen/kitchenModel';
 import type { PrepStation } from '@/hooks/usePrepStations';
 import type { ActionCtx } from '../horeca/actions';
-import type { TableRequest } from '../horeca/requests';
-import { RequestList } from './RequestInbox';
+import type { TableCall, TableRequest } from '../horeca/requests';
+import { CallList, RequestList } from './RequestInbox';
 
 interface Board { now: number; busy: boolean; fresh: Set<string>; storeName: string; onMove: (card: KitchenCard, status: KitchenStatus) => void }
 
 /** Bonnen die aan de bar nog iets vragen (niet afgewerkt of geannuleerd). */
 const openCards = (cards: KitchenCard[]) => cards.filter((c) => c.status === 'new' || c.status === 'preparing' || c.status === 'ready');
 
-export function BarPanel({ ctx, requests, cards, barName, wide, board, beforeAction }: {
-  ctx: ActionCtx; requests: TableRequest[]; cards: KitchenCard[]; barName: string | null; wide: boolean; board: Board; beforeAction?: () => boolean;
+export function BarPanel({ ctx, requests, calls = [], cards, barName, wide, board, beforeAction }: {
+  ctx: ActionCtx; requests: TableRequest[]; /** OBER-ROEPEN-1 */ calls?: TableCall[]; cards: KitchenCard[]; barName: string | null; wide: boolean; board: Board; beforeAction?: () => boolean;
 }) {
   const { t, i18n } = useTranslation();
   const open = openCards(cards);
-  const empty = !requests.length && !open.length;
+  const empty = !requests.length && !open.length && !calls.length;
   // KASSA-UX-3: zoals op het keukenscherm — wat al opgediend is, uitklapbaar onderaan, met "terug".
   const done = cards.filter((c) => c.status === 'done').sort((a, b) => new Date(b.statusAt).getTime() - new Date(a.statusAt).getTime()).slice(0, 30);
   const [showDone, setShowDone] = useState(false);
@@ -36,6 +36,12 @@ export function BarPanel({ ctx, requests, cards, barName, wide, board, beforeAct
       {!wide && <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-muted-foreground"><Inbox className="h-4 w-4" aria-hidden />{t('kassa.bar.incoming')}</h2>}
       {empty ? (
         <p className="rounded-xl border-2 border-dashed p-6 text-center text-sm text-muted-foreground">{t(barName ? 'kassa.bar.empty' : 'kassa.bar.emptyNoBar')}</p>
+      ) : null}
+      {calls.length ? (
+        <section className="space-y-2">
+          <h3 className="text-base font-bold">{t('kassa.calls.title', { count: calls.length })}</h3>
+          <CallList ctx={ctx} calls={calls} beforeAction={beforeAction} />
+        </section>
       ) : null}
       {requests.length ? (
         <section className="space-y-2">

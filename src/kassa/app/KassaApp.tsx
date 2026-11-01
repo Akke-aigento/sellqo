@@ -87,7 +87,7 @@ function KassaLive({ runtime, terminalName, onForgetDevice }: { runtime: KassaRu
   const [sound, setSound] = useState(() => readFlag(KASSA_SOUND_KEY, true));
   const [wake, setWake] = useState(() => readFlag(KASSA_WAKE_KEY, true));
   const wakeActive = useWakeLock(wake);
-  useKassaSignals(runtime.device.tenantId, store.requests, store.requestsLoaded, sound);
+  useKassaSignals(runtime.device.tenantId, store.requests, store.requestsLoaded, sound, store.callsLoaded ? store.calls : null);
   const alerts: KassaAlerts = { sound, setSound, wake, setWake, wakeActive };
   if (!staff) return <div className="min-h-screen py-6" style={{ paddingTop: 'max(1.5rem, var(--safe-top))' }}><PinLock tenantId={runtime.device.tenantId} deviceUuid={runtime.device.deviceUuid} /></div>;
   return <KassaHome runtime={runtime} store={store} alerts={alerts} terminalName={terminalName} onForgetDevice={onForgetDevice} />;

@@ -23,6 +23,15 @@ export interface HorecaPushCtx {
   kind?: string | null;
   /** paid_online: de rekening van de tafel staat na deze betaling nog open. */
   rest_open?: boolean | null;
+  /** OBER-ROEPEN-1: qr_request met een oproep van de tafel ('waiter' | 'bill') i.p.v. een bestelling. */
+  call?: string | null;
+  /** OBER-ROEPEN-1: hoeveelste keer deze tafel roept (zelfde oproep). */
+  repeat?: number | null;
+  /** RESERVATIE-MELDING-1: qr_request voor een nieuwe online reservatie-aanvraag (zonder naam). */
+  reservation?: boolean | null;
+  guests?: number | null;
+  /** Tijdstip zoals de zaak het leest, al opgemaakt ("02/11 19:30"). */
+  at?: string | null;
 }
 
 export interface HorecaPushMessage {
@@ -47,6 +56,11 @@ type Texts = {
   paidTip: (tip: string) => string;
   paidRest: string;
   kitchen: string;
+  callWaiter: (table: string) => string;
+  callBill: (table: string) => string;
+  callBody: (n: number) => string;
+  resTitle: string;
+  resBody: (guests: number, at: string) => string;
 };
 
 export const HORECA_PUSH_TEXTS: Record<string, Texts> = {
@@ -64,6 +78,11 @@ export const HORECA_PUSH_TEXTS: Record<string, Texts> = {
     paidTip: (tip) => `+ ${tip} fooi`,
     paidRest: "De kassa rekent de rest af.",
     kitchen: "Keuken",
+    callWaiter: (t) => `${cap(t)} roept de bediening`,
+    callBill: (t) => `${cap(t)} vraagt de rekening`,
+    callBody: (n) => (n > 1 ? `${n}e keer. Afhandelen in de kassa.` : "Afhandelen in de kassa."),
+    resTitle: "Nieuwe reservatie-aanvraag",
+    resBody: (g, at) => `${g} pers. · ${at}. Bevestig of weiger.`,
   },
   en: {
     table: (t) => `table ${t}`,
@@ -79,6 +98,11 @@ export const HORECA_PUSH_TEXTS: Record<string, Texts> = {
     paidTip: (tip) => `+ ${tip} tip`,
     paidRest: "Settle the rest on the POS.",
     kitchen: "Kitchen",
+    callWaiter: (t) => `${cap(t)} is calling for service`,
+    callBill: (t) => `${cap(t)} asks for the bill`,
+    callBody: (n) => (n > 1 ? `Call #${n}. Handle it on the POS.` : "Handle it on the POS."),
+    resTitle: "New reservation request",
+    resBody: (g, at) => `${g} guests · ${at}. Confirm or decline.`,
   },
   fr: {
     table: (t) => `table ${t}`,
@@ -94,6 +118,11 @@ export const HORECA_PUSH_TEXTS: Record<string, Texts> = {
     paidTip: (tip) => `+ ${tip} de pourboire`,
     paidRest: "La caisse encaisse le reste.",
     kitchen: "Cuisine",
+    callWaiter: (t) => `${cap(t)} appelle le service`,
+    callBill: (t) => `${cap(t)} demande l’addition`,
+    callBody: (n) => (n > 1 ? `${n}e appel. À traiter à la caisse.` : "À traiter à la caisse."),
+    resTitle: "Nouvelle demande de réservation",
+    resBody: (g, at) => `${g} pers. · ${at}. Confirmez ou refusez.`,
   },
   de: {
     table: (t) => `Tisch ${t}`,
@@ -109,6 +138,11 @@ export const HORECA_PUSH_TEXTS: Record<string, Texts> = {
     paidTip: (tip) => `+ ${tip} Trinkgeld`,
     paidRest: "Den Rest an der Kasse abrechnen.",
     kitchen: "Küche",
+    callWaiter: (t) => `${cap(t)} ruft die Bedienung`,
+    callBill: (t) => `${cap(t)} möchte zahlen`,
+    callBody: (n) => (n > 1 ? `${n}. Ruf. An der Kasse erledigen.` : "An der Kasse erledigen."),
+    resTitle: "Neue Reservierungsanfrage",
+    resBody: (g, at) => `${g} Pers. · ${at}. Bestätigen oder ablehnen.`,
   },
   uk: {
     table: (t) => `стіл ${t}`,
@@ -124,6 +158,11 @@ export const HORECA_PUSH_TEXTS: Record<string, Texts> = {
     paidTip: (tip) => `+ ${tip} чайових`,
     paidRest: "Решту розрахуйте на касі.",
     kitchen: "Кухня",
+    callWaiter: (t) => `${cap(t)} кличе офіціанта`,
+    callBill: (t) => `${cap(t)} просить рахунок`,
+    callBody: (n) => (n > 1 ? `Виклик №${n}. Обробіть на касі.` : "Обробіть на касі."),
+    resTitle: "Новий запит на бронювання",
+    resBody: (g, at) => `${g} ос. · ${at}. Підтвердьте або відхиліть.`,
   },
 };
 
@@ -157,6 +196,24 @@ export function buildHorecaPush(event: string, ctx: HorecaPushCtx, lang: string,
   const count = Math.max(1, Number(ctx.count ?? 1) || 1);
   switch (event) {
     case "qr_request":
+      // OBER-ROEPEN-1 — een oproep van de tafel (ober of rekening) loopt via hetzelfde profiel.
+      // RESERVATIE-MELDING-1 — een nieuwe online reservatie-aanvraag (zonder naam: gedeeld toestel).
+      if (ctx.reservation) {
+        return {
+          title: L.resTitle,
+          body: L.resBody(Math.max(1, Number(ctx.guests ?? 1) || 1), String(ctx.at ?? "")),
+          url: kind === "kassa" ? "/kassa" : "/admin/bestellen?tab=reservaties",
+          tag: `sq-res-${String(ctx.ref ?? "").slice(0, 8)}`,
+        };
+      }
+      if (ctx.call === "waiter" || ctx.call === "bill") {
+        return {
+          title: ctx.call === "bill" ? L.callBill(table) : L.callWaiter(table),
+          body: L.callBody(Math.max(1, Number(ctx.repeat ?? 1) || 1)),
+          url,
+          tag: `sq-call-${String(ctx.ref ?? "").slice(0, 8)}`,
+        };
+      }
       return {
         title: L.qrTitle(count),
         body: `${cap(table)}${ctx.items ? ` · ${L.items(Number(ctx.items))}` : ""}. ${L.qrBody}`,

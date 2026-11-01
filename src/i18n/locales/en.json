@@ -11677,8 +11677,8 @@
     },
     "bar": {
       "incoming": "Incoming",
-      "empty": "Nothing has come in. New QR orders and tickets for the bar appear here.",
-      "emptyNoBar": "Nothing has come in. QR orders appear here. Want to see the bar tickets too? Create a station of type Bar under Ordering › Stations.",
+      "empty": "Nothing has come in. New QR orders, table calls and tickets for the bar appear here.",
+      "emptyNoBar": "Nothing has come in. QR orders and table calls appear here. Want to see the bar tickets too? Create a station of type Bar under Ordering › Stations.",
       "tickets": "{{name}} ({{count}})"
     },
     "tableActions": {
@@ -11691,6 +11691,13 @@
       "unbill": "Withdraw bill request",
       "unbillConfirm": "Set {{title}} back to occupied? The interim bill that was already made stays on record.",
       "unbillDone": "Table is back to occupied"
+    },
+    "calls": {
+      "title": "Table calls ({{count}})",
+      "waiter": "Table {{label}} is calling for service",
+      "bill": "Table {{label}} asks for the bill",
+      "repeat": "called {{count}}×",
+      "handle": "Done"
     }
   },
   "deviceAlerts": {
@@ -11732,7 +11739,7 @@
       }
     },
     "event": {
-      "qr_request": "QR order waiting for confirmation",
+      "qr_request": "QR order, table call or reservation request",
       "ticket_new": "New ticket (all stations)",
       "ticket_new_for": "New ticket for {{stations}}",
       "ticket_ready": "Ticket is ready",

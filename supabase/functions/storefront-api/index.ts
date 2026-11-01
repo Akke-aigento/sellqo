@@ -20,7 +20,7 @@ import { cachedShopStatus } from "../_shared/shopStatus.ts";
 
 const corsHeaders = {
   // PLANS-2 — versiestempel: bewijst een deploy zonder neveneffect (lees de header).
-  "X-SellQo-Api-Rev": "rekening-online-1",
+  "X-SellQo-Api-Rev": "qr-status-1",
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -1047,15 +1047,178 @@ async function reservationRequest(supabase: SupabaseLike, tenantId: string, para
 
 // QR-REKENING-1 — stand van een tafelaanvraag voor de gast (pending / accepted / rejected + reden).
 // Enkel met de aanvraag-ID (onraadbaar, enkel in de browser van wie bestelde) en enkel deze zaak.
-async function tableRequestStatus(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
-  const requestId = String(params.request_id ?? '');
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(requestId)) {
-    return { success: false, error: { code: 'NOT_FOUND', message: 'Bestelling niet gevonden' } };
+// STATUS-1 — additief: `progress` (keukenvoortgang uit de bonnen), en daarnaast een lijst
+// (`request_ids`), een order (`order_id`, qr_flow = order / afhalen / levering) en oproepen
+// (`call_ids`, OBER-ROEPEN-1). Het oude antwoord voor enkel `request_id` blijft gelijk + progress.
+const STATUS_UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+type KitchenStage = 'awaiting_confirmation' | 'rejected' | 'confirmed' | 'queued' | 'preparing' | 'ready' | 'served' | 'cancelled';
+type Progress = { stage: KitchenStage; stations: { name: string | null; status: string }[]; updated_at: string | null };
+
+function uuidList(v: unknown, max: number): string[] {
+  if (!Array.isArray(v)) return [];
+  return [...new Set(v.map((x) => String(x ?? '').toLowerCase()))].filter((x) => STATUS_UUID.test(x)).slice(0, max);
+}
+
+/** Voortgang uit keukenbonnen: alles afgewerkt → served; alles klaar of afgewerkt → ready; iets bezig → preparing. */
+function stageFromTickets(tickets: { status: string }[], fallback: KitchenStage): KitchenStage {
+  if (!tickets.length) return fallback;
+  const live = tickets.filter((t) => t.status !== 'cancelled');
+  if (!live.length) return 'cancelled';
+  if (live.every((t) => t.status === 'done')) return 'served';
+  if (live.every((t) => t.status === 'ready' || t.status === 'done')) return 'ready';
+  if (live.some((t) => t.status === 'preparing' || t.status === 'ready' || t.status === 'done')) return 'preparing';
+  return 'queued';
+}
+
+async function stationNames(supabase: SupabaseLike, tenantId: string, ids: (string | null)[]): Promise<Map<string, string>> {
+  const want = [...new Set(ids.filter((x): x is string => !!x))];
+  const out = new Map<string, string>();
+  if (!want.length) return out;
+  const { data } = await supabase.from('prep_stations').select('id, name').eq('tenant_id', tenantId).in('id', want);
+  for (const r of (data ?? []) as DbRow[]) out.set(String(r.id), String(r.name));
+  return out;
+}
+
+function progressFrom(tickets: DbRow[], names: Map<string, string>, fallback: KitchenStage, baseUpdated: string | null): Progress {
+  const stamps = tickets.map((t) => String(t.status_at ?? '')).filter(Boolean).sort();
+  return {
+    stage: stageFromTickets(tickets as { status: string }[], fallback),
+    stations: tickets.map((t) => ({ name: t.station_id ? names.get(String(t.station_id)) ?? null : null, status: String(t.status) })),
+    updated_at: stamps.length ? stamps[stamps.length - 1] : baseUpdated,
+  };
+}
+
+/** Voortgang van tafelaanvragen: via hun lijnen (line_ids) → ronde + post → keukenbon van die ronde en post. */
+async function requestProgress(supabase: SupabaseLike, tenantId: string, rows: DbRow[]): Promise<Map<string, Progress>> {
+  const out = new Map<string, Progress>();
+  const lineIds = [...new Set(rows.filter((r) => r.status === 'accepted').flatMap((r) => (Array.isArray(r.line_ids) ? r.line_ids as string[] : [])))];
+  let lines: DbRow[] = [];
+  let tickets: DbRow[] = [];
+  if (lineIds.length) {
+    lines = ((await supabase.from('check_lines').select('id, round_id, station_id, state').eq('tenant_id', tenantId).in('id', lineIds.slice(0, 600))).data ?? []) as DbRow[];
+    const roundIds = [...new Set(lines.map((l) => l.round_id).filter(Boolean) as string[])];
+    if (roundIds.length) {
+      tickets = ((await supabase.from('kitchen_tickets').select('id, round_id, station_id, status, status_at').eq('tenant_id', tenantId).in('round_id', roundIds)).data ?? []) as DbRow[];
+    }
   }
-  const { data, error } = await supabase.from('table_requests').select('id, status, reason, table_label, item_count, total_cents, created_at, decided_at')
-    .eq('id', requestId).eq('tenant_id', tenantId).maybeSingle();
+  const names = await stationNames(supabase, tenantId, tickets.map((t) => (t.station_id as string | null) ?? null));
+  for (const r of rows) {
+    if (r.status === 'pending') { out.set(String(r.id), { stage: 'awaiting_confirmation', stations: [], updated_at: String(r.created_at ?? '') || null }); continue; }
+    if (r.status === 'rejected') { out.set(String(r.id), { stage: 'rejected', stations: [], updated_at: (r.decided_at as string | null) ?? null }); continue; }
+    const mine = new Set(Array.isArray(r.line_ids) ? r.line_ids as string[] : []);
+    const myLines = lines.filter((l) => mine.has(String(l.id)) && l.state === 'sent' && l.round_id);
+    // Enkel de bon(nen) van de post(en) waar de lijnen van deze aanvraag zitten.
+    const keys = new Set(myLines.map((l) => `${l.round_id}|${l.station_id ?? ''}`));
+    const mineTickets = tickets.filter((t) => keys.has(`${t.round_id}|${t.station_id ?? ''}`));
+    out.set(String(r.id), progressFrom(mineTickets, names, 'confirmed', (r.decided_at as string | null) ?? null));
+  }
+  return out;
+}
+
+const REQUEST_STATUS_COLS = 'id, status, reason, table_label, item_count, total_cents, created_at, decided_at, line_ids';
+function publicRequest(r: DbRow, progress: Progress | undefined) {
+  return {
+    id: r.id, status: r.status, reason: r.reason, table_label: r.table_label, item_count: r.item_count,
+    total_cents: r.total_cents, created_at: r.created_at, decided_at: r.decided_at,
+    progress: progress ?? { stage: 'confirmed', stations: [], updated_at: null },
+  };
+}
+
+async function orderProgress(supabase: SupabaseLike, tenantId: string, orderId: string) {
+  const { data: o, error } = await supabase.from('orders')
+    .select('id, order_number, status, service_type, requested_time, table_label, created_at, updated_at')
+    .eq('id', orderId).eq('tenant_id', tenantId).maybeSingle();
   if (error) throw error;
-  if (!data) return { success: false, error: { code: 'NOT_FOUND', message: 'Bestelling niet gevonden' } };
+  if (!o) return null;
+  const { data: tk } = await supabase.from('kitchen_tickets').select('id, station_id, status, status_at').eq('tenant_id', tenantId).eq('order_id', orderId);
+  const tickets = (tk ?? []) as DbRow[];
+  const names = await stationNames(supabase, tenantId, tickets.map((t) => (t.station_id as string | null) ?? null));
+  const cancelled = o.status === 'cancelled';
+  const progress = cancelled
+    ? { stage: 'cancelled' as KitchenStage, stations: [], updated_at: (o.updated_at as string | null) ?? null }
+    : progressFrom(tickets, names, 'confirmed', (o.created_at as string | null) ?? null);
+  return {
+    id: o.id, order_number: o.order_number, status: cancelled ? 'cancelled' : 'received',
+    service_type: o.service_type ?? null, requested_time: o.requested_time ?? null, table_label: o.table_label ?? null,
+    created_at: o.created_at, progress,
+  };
+}
+
+async function tableRequestStatus(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const requestIds = uuidList(params.request_ids, 20);
+  const orderId = typeof params.order_id === 'string' && STATUS_UUID.test(params.order_id) ? params.order_id : null;
+  const callIds = uuidList(params.call_ids, 10);
+  const single = String(params.request_id ?? '');
+  const extended = Array.isArray(params.request_ids) || params.order_id != null || Array.isArray(params.call_ids);
+
+  if (!extended) {
+    // Oud pad (QR-REKENING-1): zelfde foutcodes en velden, + progress.
+    if (!STATUS_UUID.test(single)) return { success: false, error: { code: 'NOT_FOUND', message: 'Bestelling niet gevonden' } };
+    const { data, error } = await supabase.from('table_requests').select(REQUEST_STATUS_COLS)
+      .eq('id', single).eq('tenant_id', tenantId).maybeSingle();
+    if (error) throw error;
+    if (!data) return { success: false, error: { code: 'NOT_FOUND', message: 'Bestelling niet gevonden' } };
+    const prog = await requestProgress(supabase, tenantId, [data as DbRow]);
+    return publicRequest(data as DbRow, prog.get(String(data.id)));
+  }
+
+  const out: Record<string, unknown> = {};
+  const ids = [...new Set([...requestIds, ...(STATUS_UUID.test(single) ? [single.toLowerCase()] : [])])];
+  if (ids.length) {
+    const { data, error } = await supabase.from('table_requests').select(REQUEST_STATUS_COLS).eq('tenant_id', tenantId).in('id', ids);
+    if (error) throw error;
+    const rows = (data ?? []) as DbRow[];
+    const prog = await requestProgress(supabase, tenantId, rows);
+    const byId = new Map(rows.map((r) => [String(r.id).toLowerCase(), r]));
+    if (Array.isArray(params.request_ids)) {
+      out.requests = requestIds.filter((id) => byId.has(id)).map((id) => publicRequest(byId.get(id)!, prog.get(String(byId.get(id)!.id))));
+    }
+    if (STATUS_UUID.test(single)) {
+      const r = byId.get(single.toLowerCase());
+      out.request = r ? publicRequest(r, prog.get(String(r.id))) : null;
+    }
+  } else if (Array.isArray(params.request_ids)) {
+    out.requests = [];
+  }
+  if (params.order_id != null) out.order = orderId ? await orderProgress(supabase, tenantId, orderId) : null;
+  if (Array.isArray(params.call_ids)) {
+    if (!callIds.length) out.calls = [];
+    else {
+      const { data, error } = await supabase.from('table_calls').select('id, kind, status, created_at, handled_at').eq('tenant_id', tenantId).in('id', callIds);
+      if (error) throw error;
+      out.calls = data ?? [];
+    }
+  }
+  return out;
+}
+
+// OBER-ROEPEN-1 — nieuwe actie: de gast roept vanaf zijn tafel de bediening ('waiter') of vraagt de
+// rekening ('bill'). Komt in SellQo Kassa in de kolom Binnenkomend. Rem en idempotentie zitten in
+// table_call_place (één per tafel per soort per 2 min, max. 100 open per zaak); hier bovenop per IP.
+const TABLE_CALL_ERRORS: Record<string, string> = {
+  TABLE_CALL_OFF: 'Oproepen via de QR-code staat uit in deze zaak',
+  TABLE_CALL_INVALID: 'Oproepen lukte niet, probeer het opnieuw',
+  TOO_MANY_REQUESTS: 'Even geduld: er komen veel oproepen tegelijk binnen. Vraag het even aan de bediening.',
+};
+async function tableCall(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const kind = String(params.kind ?? '');
+  const callId = params.call_id == null || params.call_id === '' ? null : String(params.call_id);
+  if (!['waiter', 'bill'].includes(kind) || (callId !== null && !UUID_RE.test(callId))) {
+    return { success: false, error: { code: 'TABLE_CALL_INVALID', message: TABLE_CALL_ERRORS.TABLE_CALL_INVALID } };
+  }
+  const fs = await loadFulfillmentSettings(supabase, tenantId);
+  // Zelfde standaard als resolve_domain: geen instelling = 'view' (QR-menu staat aan).
+  if ((fs?.qr_mode || 'view') === 'off') return { success: false, error: { code: 'TABLE_CALL_OFF', message: TABLE_CALL_ERRORS.TABLE_CALL_OFF } };
+  const resolved = await resolveTableInput(supabase, tenantId, { table: params.table, table_token: params.table_token });
+  if (!resolved.ok) return { success: false, error: { code: resolved.code, message: resolved.message } };
+  const { data, error } = await supabase.rpc('table_call_place', {
+    p_tenant_id: tenantId, p_call_id: callId, p_table_id: resolved.table.table_id ?? null, p_table_label: resolved.table.label, p_kind: kind,
+  });
+  if (error) {
+    const code = String(error.message || '').split(/[:\s]/)[0];
+    if (TABLE_CALL_ERRORS[code]) return { success: false, error: { code, message: TABLE_CALL_ERRORS[code] } };
+    throw error;
+  }
   return data;
 }
 
@@ -1112,6 +1275,23 @@ async function tableCheckPay(supabase: SupabaseLike, tenantId: string, params: R
     ? (params.lines as Record<string, unknown>[]).slice(0, 60).map((l) => ({ line_id: String(l?.line_id ?? ''), qty: int(l?.qty) }))
     : [];
   if (lines.some((l) => !UUID_RE.test(l.line_id) || l.qty == null)) return { success: false, error: { code: 'CHECK_PAY_INVALID', message: CHECK_PAY_ERRORS.CHECK_PAY_INVALID } };
+  // QR-IDEMP-1 — additief: oude pogingen van deze browser (na een netwerkfout) eerst vrijgeven,
+  // anders houden ze 10 min de rekening of de items vast. Enkel pogingen op de rekening van
+  // déze tafel; onbekende of afgeronde id's worden stil overgeslagen.
+  const release = Array.isArray(params.release_payment_ids)
+    ? [...new Set((params.release_payment_ids as unknown[]).map((x) => String(x ?? '')))].filter((x) => UUID_RE.test(x) && x !== paymentId).slice(0, 5)
+    : [];
+  if (release.length) {
+    const { data: open } = await supabase.from('dining_checks').select('id')
+      .eq('tenant_id', tenantId).eq('table_id', t.table.table_id).eq('status', 'open').is('split_of', null)
+      .order('opened_at', { ascending: true }).limit(1).maybeSingle();
+    if (open?.id) {
+      for (const id of release) {
+        try { await releaseCheckPayment(supabase, tenantId, id, String(open.id)); }
+        catch (e) { console.warn('[QR-IDEMP-1] vrijgeven mislukt', id, e instanceof Error ? e.message : e); }
+      }
+    }
+  }
   const { data, error } = await supabase.rpc('table_check_pay_start', {
     p_tenant_id: tenantId, p_table_id: t.table.table_id, p_payment_id: paymentId, p_kind: kind, p_lines: lines,
     p_share_n: int(params.share_n), p_share_k: int(params.share_k), p_tip_cents: int(params.tip_cents) ?? 0,
@@ -1162,6 +1342,9 @@ async function tableCheckPayStatus(supabase: SupabaseLike, tenantId: string, par
     .eq('id', paymentId).eq('tenant_id', tenantId).maybeSingle()).data as Record<string, unknown> | null;
   let row = await read();
   if (!row) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
+  // QR-IDEMP-1 — additief: de url van een nog open Stripe-sessie, zodat de gast na een
+  // netwerkfout verder kan betalen zonder een nieuwe poging (die de oude 10 min vasthoudt).
+  let checkoutUrl: string | null = null;
   if (row.status === 'pending' && row.stripe_session_id) {
     const { data: tenant } = await supabase.from('tenants').select('stripe_account_id').eq('id', tenantId).maybeSingle();
     const account = tenant?.stripe_account_id as string | undefined;
@@ -1179,6 +1362,8 @@ async function tableCheckPayStatus(supabase: SupabaseLike, tenantId: string, par
         } else if (session.status === 'expired') {
           await supabase.rpc('table_check_pay_mark', { p_payment_id: paymentId, p_status: 'expired', p_session_id: null, p_refund_id: null });
           row = await read();
+        } else if (session.status === 'open' && session.url) {
+          checkoutUrl = session.url;
         }
       } catch (e) {
         console.error('[table_check_pay_status]', e instanceof Error ? e.message : e);
@@ -1190,16 +1375,19 @@ async function tableCheckPayStatus(supabase: SupabaseLike, tenantId: string, par
     payment_id: r.id, status: r.status, kind: r.kind, amount_cents: r.amount_cents, tip_cents: r.tip_cents, table_label: r.table_label,
     reason: r.status === 'refunded' || r.status === 'refund_needed' ? refundReasonText(r.reason as string | null) : null,
     paid_at: r.paid_at,
+    checkout_url: r.status === 'pending' ? checkoutUrl : null,
   };
 }
 
 // De gast brak af (terug van Stripe zonder te betalen): de vasthouding vrijgeven.
-async function tableCheckPayCancel(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
-  const paymentId = String(params.payment_id ?? '');
-  if (!UUID_RE.test(paymentId)) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
-  const { data: row } = await supabase.from('check_online_payments').select('id, status, stripe_session_id')
+// QR-IDEMP-1 — de logica staat in releaseCheckPayment, zodat table_check_pay ook oude pogingen
+// van dezelfde browser kan vrijgeven (release_payment_ids). Gedrag van deze actie: ongewijzigd.
+async function releaseCheckPayment(supabase: SupabaseLike, tenantId: string, paymentId: string, onlyCheckId?: string): Promise<Record<string, unknown> | null> {
+  const { data: row } = await supabase.from('check_online_payments').select('id, status, stripe_session_id, check_id')
     .eq('id', paymentId).eq('tenant_id', tenantId).maybeSingle();
-  if (!row) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
+  if (!row) return null;
+  // Vrijgeven bij een nieuwe poging: enkel op dezelfde rekening (tafel), nooit elders.
+  if (onlyCheckId && row.check_id !== onlyCheckId) return null;
   if (row.status !== 'pending') return { status: row.status };
   if (row.stripe_session_id) {
     const { data: tenant } = await supabase.from('tenants').select('stripe_account_id').eq('id', tenantId).maybeSingle();
@@ -1218,7 +1406,15 @@ async function tableCheckPayCancel(supabase: SupabaseLike, tenantId: string, par
   }
   const { data, error } = await supabase.rpc('table_check_pay_mark', { p_payment_id: paymentId, p_status: 'expired', p_session_id: null, p_refund_id: null });
   if (error) throw error;
-  return data;
+  return data as Record<string, unknown>;
+}
+
+async function tableCheckPayCancel(supabase: SupabaseLike, tenantId: string, params: Record<string, unknown>) {
+  const paymentId = String(params.payment_id ?? '');
+  if (!UUID_RE.test(paymentId)) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
+  const res = await releaseCheckPayment(supabase, tenantId, paymentId);
+  if (!res) return { success: false, error: { code: 'NOT_FOUND', message: 'Betaling niet gevonden' } };
+  return res;
 }
 
 // ZAAL-H1 — nieuwe actie: QR-token (of vrij tafelnummer) → tafel, voor de storefront.
@@ -4152,6 +4348,13 @@ async function createOrderFromCart(supabase: any, tenantId: string, cart: any, p
     checkout_status: 'converted',
     updated_at: new Date().toISOString(),
   }).eq('id', cart.id);
+  // QR-IDEMP-1 — onthouden welke order uit dit mandje kwam (voor een herhaalde checkout_complete).
+  // Apart en zonder foutpropagatie: vóór de migratie bestaat de kolom niet, en dat mag de
+  // bestelling nooit tegenhouden.
+  {
+    const { error: linkErr } = await supabase.from('storefront_carts').update({ converted_order_id: order.id }).eq('id', cart.id).eq('tenant_id', tenantId);
+    if (linkErr) console.warn('[QR-IDEMP-1] converted_order_id niet gezet:', linkErr.message);
+  }
 
   // DISCOUNT-LIMIT-1 — hier stond increment_discount_usage, bij elke order (ook een nog
   // niet betaalde overschrijving) en alleen in dit pad, niet bij Stripe. Gebruik wordt nu
@@ -4454,6 +4657,90 @@ async function runAfterResponse(work: Promise<unknown>): Promise<void> {
   await work;
 }
 
+// QR-IDEMP-1 — antwoord van een overschrijvingsorder, ongewijzigd uit checkoutComplete gehaald
+// zodat een herhaalde checkout_complete (duplicate) exact hetzelfde antwoord kan geven.
+function bankTransferResponse(order: { id: string; order_number: string; total: number }, tenantData: Record<string, unknown> | null, currency: string, userAgent: string | undefined) {
+  // Build EPC QR code payload with BIC and structured reference
+  const iban = String(tenantData?.iban || '');
+  const bic = String(tenantData?.bic || '');
+  const name = String(tenantData?.name || '');
+  const amount = Number(order.total).toFixed(2);
+  const ref = order.order_number;
+  console.log('QR EPC payload data:', { iban, bic, name, amount, ref });
+  const qrPayload = [
+    "BCD",                            // 1: Service Tag
+    "002",                            // 2: Version
+    "1",                              // 3: UTF-8
+    "SCT",                            // 4: SEPA Credit Transfer
+    bic,                              // 5: BIC
+    name,                             // 6: Beneficiary Name
+    iban.replace(/\s/g, ''),          // 7: IBAN zonder spaties
+    `EUR${Number(amount).toFixed(2)}`,// 8: Amount
+    "",                               // 9: Purpose (leeg)
+    "",                               // 10: Structured Reference (leeg)
+    ref,                              // 11: Unstructured Remittance (bestelnummer)
+    "",                               // 12: Display text (leeg)
+  ].join("\n");
+
+  const isMobile = isMobileUserAgent(userAgent);
+  const hideQrMobile = tenantData?.bank_transfer_hide_qr_mobile === true;
+  const suppressQr = isMobile && hideQrMobile;
+
+  return {
+    order_id: order.id,
+    order_number: order.order_number,
+    status: 'awaiting_payment',
+    payment_type: 'qr',
+    total: order.total,
+    currency,
+    bank_details: {
+      account_holder: name,
+      iban,
+      bic,
+      reference: ref,
+    },
+    qr_data: suppressQr ? null : {
+      payload: qrPayload,
+      image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`,
+    },
+  };
+}
+
+// QR-IDEMP-1 — de order die uit dit mandje ontstond. Twee sporen, beide uniek per mandje:
+//   1. storefront_carts.converted_order_id (gezet door createOrderFromCart sinds deze batch);
+//   2. de Stripe-sessie van het mandje (orders.stripe_checkout_session_id), voor Stripe-orders
+//      die de webhook of checkout_verify_payment aanmaakte.
+// Altijd binnen deze tenant. Geen order gevonden → null (de aanroeper geeft de oude fout).
+async function orderForConvertedCart(supabase: SupabaseLike, tenantId: string, cart: DbRow): Promise<DbRow | null> {
+  const cols = 'id, order_number, total, currency, payment_method, payment_status, status';
+  if (typeof cart.converted_order_id === 'string' && UUID_RE.test(cart.converted_order_id)) {
+    const { data } = await supabase.from('orders').select(cols).eq('id', cart.converted_order_id).eq('tenant_id', tenantId).maybeSingle();
+    if (data) return data as DbRow;
+  }
+  if (typeof cart.stripe_session_id === 'string' && cart.stripe_session_id) {
+    const { data } = await supabase.from('orders').select(cols).eq('stripe_checkout_session_id', cart.stripe_session_id).eq('tenant_id', tenantId).maybeSingle();
+    if (data) return data as DbRow;
+  }
+  return null;
+}
+
+async function duplicateCheckoutResponse(supabase: SupabaseLike, tenantId: string, cart: DbRow, userAgent: string | undefined) {
+  const order = await orderForConvertedCart(supabase, tenantId, cart);
+  if (!order) return null;
+  const currency = String(order.currency || cart.currency || 'EUR');
+  const base = { order_id: order.id, order_number: order.order_number, total: Number(order.total), currency };
+  const paid = order.payment_status === 'paid';
+  if (!paid && order.payment_method === 'pay_on_pickup') {
+    return { ...base, status: 'awaiting_payment', payment_type: 'manual', pay_on_pickup: true, duplicate: true };
+  }
+  if (!paid && order.payment_method === 'bank_transfer') {
+    const { data: tenantData } = await supabase.from('tenants').select('iban, bic, name, bank_transfer_hide_qr_mobile').eq('id', tenantId).maybeSingle();
+    return { ...bankTransferResponse({ id: String(order.id), order_number: String(order.order_number), total: Number(order.total) }, (tenantData ?? null) as Record<string, unknown> | null, currency, userAgent), duplicate: true };
+  }
+  // Betaald (Stripe, gratis order of overschrijving al binnen): naar de bevestiging.
+  return { success: true, ...base, status: 'completed', payment_type: 'none', duplicate: true };
+}
+
 async function checkoutComplete(supabase: any, tenantId: string, params: Record<string, unknown>) {
   const cartId = params.cart_id as string;
   const paymentMethodId = params.payment_method_id as string || params.payment_method as string;
@@ -4466,7 +4753,14 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
   // Get full cart with items
   const cart = await getCartForCheckout(supabase, tenantId, cartId);
   if (!cart) return { success: false, error: { code: 'CART_NOT_FOUND', message: 'Cart niet gevonden' } };
-  if (cart.checkout_status === 'converted') return { success: false, error: { code: 'ORDER_ALREADY_PAID', message: 'Deze bestelling is al afgerond' } };
+  if (cart.checkout_status === 'converted') {
+    // QR-IDEMP-1 — een herhaling (netwerkfout, dubbel tikken) van een al afgeronde checkout krijgt
+    // het antwoord van de eerste keer terug, met duplicate: true. Enkel als de order van precies dit
+    // mandje teruggevonden wordt; anders de oude foutmelding.
+    const dup = await duplicateCheckoutResponse(supabase, tenantId, cart, params.user_agent as string | undefined);
+    if (dup) return dup;
+    return { success: false, error: { code: 'ORDER_ALREADY_PAID', message: 'Deze bestelling is al afgerond' } };
+  }
   if (cart.cartItems.length === 0) return { success: false, error: { code: 'CART_EMPTY', message: 'Cart is leeg' } };
 
   // HORECA-CHANNELS-1 — vlak vóór de bestelling: niets dat op is voor vandaag, en alleen wat
@@ -4901,50 +5195,7 @@ async function checkoutComplete(supabase: any, tenantId: string, params: Record<
       }).catch(() => {});
     } catch {}
 
-    // Build EPC QR code payload with BIC and structured reference
-    const iban = tenantData?.iban || '';
-    const bic = tenantData?.bic || '';
-    const name = tenantData?.name || '';
-    const amount = order.total.toFixed(2);
-    const ref = order.order_number;
-    console.log('QR EPC payload data:', { iban, bic, name, amount, ref });
-    const qrPayload = [
-      "BCD",                            // 1: Service Tag
-      "002",                            // 2: Version
-      "1",                              // 3: UTF-8
-      "SCT",                            // 4: SEPA Credit Transfer
-      bic,                              // 5: BIC
-      name,                             // 6: Beneficiary Name
-      iban.replace(/\s/g, ''),          // 7: IBAN zonder spaties
-      `EUR${Number(amount).toFixed(2)}`,// 8: Amount
-      "",                               // 9: Purpose (leeg)
-      "",                               // 10: Structured Reference (leeg)
-      ref,                              // 11: Unstructured Remittance (bestelnummer)
-      "",                               // 12: Display text (leeg)
-    ].join("\n");
-
-    const isMobile = isMobileUserAgent(params.user_agent as string | undefined);
-    const hideQrMobile = tenantData?.bank_transfer_hide_qr_mobile === true;
-    const suppressQr = isMobile && hideQrMobile;
-
-    return {
-      order_id: order.id,
-      order_number: order.order_number,
-      status: 'awaiting_payment',
-      payment_type: 'qr',
-      total: order.total,
-      currency,
-      bank_details: {
-        account_holder: name,
-        iban,
-        bic,
-        reference: ref,
-      },
-      qr_data: suppressQr ? null : {
-        payload: qrPayload,
-        image_url: `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrPayload)}`,
-      },
-    };
+    return bankTransferResponse(order, tenantData, currency, params.user_agent as string | undefined);
   }
 
   // FOOD-2 — betalen bij afhalen of levering: order meteen aanmaken (nog te betalen),
@@ -5622,7 +5873,8 @@ async function checkoutPlaceOrder(supabase: any, tenantId: string, params: Recor
   // customer_note can be added after order is created
 
   // Step 6: Complete
-  const completeResult = await checkoutComplete(supabase, tenantId, {
+  // QR-IDEMP-1 — expliciet type: checkoutComplete heeft nu ook een duplicate-antwoord.
+  const completeResult: { order_id?: unknown; order_number?: unknown; checkout_url?: unknown; total?: unknown } = await checkoutComplete(supabase, tenantId, {
     cart_id,
     payment_method_id: payment_method,
     success_url: success_url || (params.origin ? `${params.origin}/order-confirmation` : undefined),
@@ -6056,12 +6308,14 @@ const CLOSED_SHOP_BLOCKED_ACTIONS: ReadonlySet<string> = new Set([
   'table_check_pay',
   // RESERVATIE-2: een dichte winkel neemt ook geen reservaties aan.
   'reservation_request',
+  // OBER-ROEPEN-1: een dichte winkel heeft ook geen bediening.
+  'table_call',
 ]);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   // Versiestempel voor deploy-verificatie (neveneffectvrij); bij elke batch ophogen.
-  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'RESERVATIE-2' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ ok: true, version: 'QR-STATUS-1' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
   try {
     const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
@@ -6089,6 +6343,13 @@ serve(async (req) => {
 
     // UNIFIED-MAIL-1: de contact-aliassen delen de bucket van submit_contact_form,
     // zodat een alias geen manier is om de limiet te omzeilen.
+    // OBER-ROEPEN-1 — table_call: 10 per 10 min per IP (de databank remt daarnaast per tafel).
+    if (action === 'table_call' && !checkIpActionRateLimit(`table_call:${tenant_id}:${clientIp}`, 10, 10 * 60 * 1000)) {
+      return new Response(
+        JSON.stringify({ success: false, error: { code: 'RATE_LIMITED', message: 'Te veel oproepen. Probeer het over enkele minuten opnieuw.' } }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'Retry-After': '600' } }
+      );
+    }
     if (action === 'newsletter_subscribe' || action === 'submit_contact_form' || action === 'reservation_request' || isContactFormAlias(action)) {
       const rlAction = isContactFormAlias(action) ? 'submit_contact_form' : action;
       const rlKey = `${rlAction}:${tenant_id}:${clientIp}`;
@@ -6183,6 +6444,8 @@ serve(async (req) => {
       case 'resolve_table': result = await resolveTable(supabase, tenant_id, params); break;
       case 'table_request_place': result = await tableRequestPlace(supabase, tenant_id, params); break;
       case 'table_request_status': result = await tableRequestStatus(supabase, tenant_id, params); break;
+      // OBER-ROEPEN-1 — de bediening of de rekening roepen vanaf de tafel.
+      case 'table_call': result = await tableCall(supabase, tenant_id, params); break;
       // RESERVATIE-2 — online reserveren.
       case 'get_reservation_slots': result = await getReservationSlots(supabase, tenant_id, params); break;
       case 'reservation_request': result = await reservationRequest(supabase, tenant_id, params); break;

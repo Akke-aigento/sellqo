@@ -7,11 +7,11 @@
 // staan; ze laat nooit het venster of de kassa vallen.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { BellRing, Check as CheckIcon, Loader2, X } from 'lucide-react';
+import { BellRing, Check as CheckIcon, Hand, Loader2, ReceiptEuro, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import type { ActionCtx } from '../horeca/actions';
-import { groupByTable, rejectRequest, type TableRequest } from '../horeca/requests';
+import { groupByTable, handleCall, rejectRequest, type TableCall, type TableRequest } from '../horeca/requests';
 import { runAccept } from '../horeca/autoAccept';
 import { formatEuro, minutesSince } from '../horeca/format';
 
@@ -140,5 +140,56 @@ export function RequestList({ ctx, requests, beforeAction }: { ctx: ActionCtx; r
             );
           })}
         </div>
+  );
+}
+
+/**
+ * OBER-ROEPEN-1 — oproepen van tafels (bediening roepen, rekening vragen), oudste eerst. Eén knop:
+ * "Afgehandeld". Een fout blijft bij die oproep staan; de lijst valt nooit.
+ */
+export function CallList({ ctx, calls, beforeAction }: { ctx: ActionCtx; calls: TableCall[]; beforeAction?: () => boolean }) {
+  const { t } = useTranslation();
+  const [state, setState] = useState<Record<string, ItemState>>({});
+  const [now, setNow] = useState(() => Date.now());
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(id); }, []);
+  useEffect(() => {
+    const ids = new Set(calls.map((c) => c.id));
+    setState((s) => (Object.keys(s).every((k) => ids.has(k)) ? s : Object.fromEntries(Object.entries(s).filter(([k]) => ids.has(k)))));
+  }, [calls]);
+  const handle = async (c: TableCall) => {
+    if (state[c.id]?.busy) return;
+    if (beforeAction && !beforeAction()) return;
+    setState((s) => ({ ...s, [c.id]: { busy: true } }));
+    const o = await handleCall(ctx, c).catch((e) => ({ ok: false, error: e instanceof Error ? e.message : String(e) }));
+    if (alive.current) setState((s) => ({ ...s, [c.id]: o.ok ? {} : { error: o.error } }));
+  };
+  return (
+    <ul className="space-y-2">
+      {calls.map((c) => {
+        const st = state[c.id] ?? {};
+        const Icon = c.kind === 'bill' ? ReceiptEuro : Hand;
+        return (
+          <li key={c.id} className="rounded-lg border border-amber-300 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950">
+            <div className="flex flex-wrap items-center gap-3">
+              <Icon className="h-6 w-6 shrink-0 text-amber-700 dark:text-amber-300" aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="font-bold">{t(c.kind === 'bill' ? 'kassa.calls.bill' : 'kassa.calls.waiter', { label: c.table_label })}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('kassa.requests.ago', { min: minutesSince(c.created_at, now) })}
+                  {c.repeat_count > 1 ? <> · <span className="font-semibold text-amber-800 dark:text-amber-200">{t('kassa.calls.repeat', { count: c.repeat_count })}</span></> : null}
+                </p>
+              </div>
+              <button type="button" disabled={st.busy} onClick={() => void handle(c)}
+                className="flex h-12 shrink-0 items-center gap-2 rounded-md bg-primary px-4 font-semibold text-primary-foreground disabled:opacity-50">
+                {st.busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <CheckIcon className="h-5 w-5" />} {t('kassa.calls.handle')}
+              </button>
+            </div>
+            {st.error ? <p role="alert" className="mt-2 text-sm text-destructive">{t('kassa.requests.error', { error: st.error })}</p> : null}
+          </li>
+        );
+      })}
+    </ul>
   );
 }

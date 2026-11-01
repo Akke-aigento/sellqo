@@ -120,7 +120,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   const kitchenFresh = useFreshCards(kitchen.cards, boardLoading, { sound: sound && mode === 'keuken' });
   const onMove = useCallback((card: KitchenCard, status: KitchenStatus) => setStatus.mutate({ card, status }), [setStatus]);
   const board = (fresh: Set<string>) => ({ now, busy: setStatus.isPending, fresh, storeName: currentTenant?.name ?? '', onMove });
-  const barCount = store.requests.length + barCards.filter((c) => c.status === 'new').length;
+  const barCount = store.requests.length + store.calls.length + barCards.filter((c) => c.status === 'new').length;
   const kitchenCount = kitchen.cards.filter((c) => c.status === 'new').length;
 
   const labels = useMemo(() => new Map((plan?.tables ?? []).map((x) => [x.id, x.label])), [plan]);
@@ -205,7 +205,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
                 <span className="hidden sm:inline" aria-hidden>·</span><span className="hidden truncate sm:inline">{t(`kassa.fiscalMode.${runtime.fiscal.mode}`)}</span>
               </p>
             </div>
-            {!showBar && <RequestInboxButton count={store.requests.length} onClick={() => setMode('bar')} />}
+            {!showBar && <RequestInboxButton count={store.requests.length + store.calls.length} onClick={() => setMode('bar')} />}
             <button type="button" onClick={lock} className="flex h-11 items-center gap-1.5 rounded-md border px-3 text-sm font-semibold">
               <Users className="h-4 w-4" aria-hidden /> {t('kassa.home.switchUser')}
             </button>
@@ -275,7 +275,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
             </div>
           ) : mode === 'bar' ? (
             <div className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-muted/40" style={{ paddingBottom: 'var(--safe-bottom)' }}>
-              <BarPanel ctx={ctx} requests={store.requests} cards={barCards} barName={barStation?.name ?? null} wide board={board(barFresh)} beforeAction={guard} />
+              <BarPanel ctx={ctx} requests={store.requests} calls={store.calls} cards={barCards} barName={barStation?.name ?? null} wide board={board(barFresh)} beforeAction={guard} />
             </div>
           ) : (
             <div className="flex min-h-0 flex-1" style={{ paddingBottom: 'var(--safe-bottom)' }}>
@@ -285,7 +285,7 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
               </div>
               {wide && (
                 <aside className="flex w-[380px] shrink-0 flex-col overflow-y-auto border-l bg-muted/40 xl:w-[420px]" aria-label={t('kassa.bar.incoming')}>
-                  <BarPanel ctx={ctx} requests={store.requests} cards={barCards} barName={barStation?.name ?? null} wide={false} board={board(barFresh)} />
+                  <BarPanel ctx={ctx} requests={store.requests} calls={store.calls} cards={barCards} barName={barStation?.name ?? null} wide={false} board={board(barFresh)} />
                 </aside>
               )}
             </div>
