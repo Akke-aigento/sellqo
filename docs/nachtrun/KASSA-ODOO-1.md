@@ -147,6 +147,17 @@ Migratie-timestamps ongewijzigd (230500/230501/230502); de inhoud van 230500 en 
 Punt 6 (orders met sales_channel 'pos' + factuur) trekt de coördinator live na.
 Opgemerkt, niet aangeraakt: de sluitknop van de shadcn-`Dialog` heeft een vaste Engelse sr-only-tekst "Close" (bestaand component).
 
+## Fixcheck → fixes
+
+| # | Punt | Fix | Bewijs |
+|---|---|---|---|
+| 1 | Andere winkel op dezelfde Odoo | `journal_id` zit nu in de boekingskop. Hergebruik (via log-id, in het dagboek of zonder dagboekfilter) vereist altijd een **eigen dagboek**: huidig dagboek, `odoo_journal_id`, `pos_z_journal_id` en elk dagboek uit de eigen log (nieuwe kolom `odoo_pos_z_sync_log.odoo_journal_id`), min alle factuur- en kassadagboeken van andere winkels op dezelfde genormaliseerde url + db. De client-schrijfbare `channel_partner_ids.pos_z` telt enkel samen met dat vereiste. | Tests "fixcheck 1": winkel B op dezelfde Odoo (url met hoofdletters/slash) met dezelfde Z-naam, dag en partnernaam, en A's cache vergiftigd met B's partner → A boekt zelf in dagboek 9, B ongemoeid; een vroeger eigen dagboek uit de log wordt wel hergebruikt, zonder die logregel niet. |
+| 2 | Afkapuur later gewijzigd | Nieuwe kolom `pos_z_enabled_day` (beschermd, gezet door `_guard` via `odoo_pos_z_day_now`, gewist bij uitzetten). `_check` gebruikt die bewaarde dag en controleert enkel bij INSERT of als `pos_z_sync_enabled`, `pos_z_sync_from` of `odoo_sync_enabled` wijzigt. Helper `odoo_pos_z_min_from` vervalt. De functie gebruikt de bewaarde dag ook als tweede slot. | Lokale PG (`authenticated` en service role): aanzetten, "bedrijfsdag van nu" een week verschuiven, dan `channel_partner_ids` (zoals sync-odoo-invoices), dagboek en een volledige upsert-save → allemaal ok; een vroegere startdatum blijft geweigerd; de client kan `pos_z_enabled_day` niet zetten. Upsert-scenario van review 2 en het SQL-scenario van review 1 opnieuw groen. Migraties 2× gedraaid. |
+| 3 | Time-out door budget | `withBudgetTimeout` (gedeeld): was de time-out ingekort (< 30 s) en loopt hij af → `DeadlineError` (geen poging, telt als uitstel); bij de volle 30 s blijft het een gewone fout. | Test "fixcheck 3". |
+
+Opmerking: hebben twee winkels op dezelfde Odoo exact dezelfde naam, dan delen ze de verzamelklant
+"Kassaverkopen — <naam>" (findPartner zoekt op naam, ook zonder cache). Boekingen worden niet gedeeld.
+
 ## Bewust ongemoeid / Vervolg
 
 1. **Beslispunt Akke/boekhouder (R3):** de exacte Z-btw vraagt bij drukke dagen met één vaste

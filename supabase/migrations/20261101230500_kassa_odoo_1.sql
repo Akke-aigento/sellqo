@@ -29,13 +29,13 @@
 --   drop trigger if exists tenant_odoo_settings_pos_z_guard on public.tenant_odoo_settings;
 --   drop trigger if exists tenant_odoo_settings_pos_z_check on public.tenant_odoo_settings;
 --   drop function if exists public.tenant_odoo_settings_pos_z_guard(), public.tenant_odoo_settings_pos_z_check(),
---     public.odoo_pos_z_min_from(uuid, timestamptz, date), public.odoo_pos_z_can_manage(uuid), public.odoo_pos_z_business_day(uuid),
+--     public.odoo_pos_z_day_now(uuid), public.odoo_pos_z_can_manage(uuid), public.odoo_pos_z_business_day(uuid),
 --     public.odoo_pos_z_backfill_count(uuid, date), public.odoo_pos_z_confirm_backfill(uuid, date, integer, text, text),
 --     public.odoo_pos_z_accept(uuid, text), public.odoo_pos_z_retry(uuid);
 --   drop table if exists public.odoo_pos_z_sync_log;
 --   alter table public.tenant_odoo_settings drop column if exists pos_z_sync_enabled,
 --     drop column if exists pos_z_sync_from, drop column if exists pos_z_journal_id,
---     drop column if exists pos_z_journal_name, drop column if exists pos_z_enabled_at,
+--     drop column if exists pos_z_journal_name, drop column if exists pos_z_enabled_at, drop column if exists pos_z_enabled_day,
 --     drop column if exists pos_z_backfill_from, drop column if exists pos_z_backfill_confirmed_at,
 --     drop column if exists pos_z_backfill_confirmed_by;
 
@@ -44,6 +44,9 @@ alter table public.tenant_odoo_settings add column if not exists pos_z_sync_from
 alter table public.tenant_odoo_settings add column if not exists pos_z_journal_id text;
 alter table public.tenant_odoo_settings add column if not exists pos_z_journal_name text;
 alter table public.tenant_odoo_settings add column if not exists pos_z_enabled_at timestamptz;
+-- Bedrijfsdag van het aanzetten, bewaard (fixcheck punt 2): een later gewijzigd afkapuur verschuift
+-- de grens niet en laat dus geen enkele UPDATE op de rij falen.
+alter table public.tenant_odoo_settings add column if not exists pos_z_enabled_day date;
 alter table public.tenant_odoo_settings add column if not exists pos_z_backfill_from date;
 alter table public.tenant_odoo_settings add column if not exists pos_z_backfill_confirmed_at timestamptz;
 alter table public.tenant_odoo_settings add column if not exists pos_z_backfill_confirmed_by uuid;
@@ -64,6 +67,8 @@ create table if not exists public.odoo_pos_z_sync_log (
   move_type text check (move_type is null or move_type in ('out_invoice', 'out_refund')),
   odoo_move_id text,
   odoo_move_name text,
+  -- Dagboek van de Odoo-boeking (fixcheck punt 1: hergebruik enkel in eigen dagboeken).
+  odoo_journal_id text,
   odoo_state text,
   amounts jsonb,
   error_message text,
@@ -98,6 +103,27 @@ revoke all on public.odoo_pos_z_sync_log from anon, authenticated;
 grant select on public.odoo_pos_z_sync_log to authenticated;
 grant all on public.odoo_pos_z_sync_log to service_role;
 
+-- Huidige bedrijfsdag voor de BEFORE-trigger (die als de aanroeper draait en kassa_business_day niet
+-- mag uitvoeren). Een ingelogde gebruiker krijgt enkel antwoord voor een winkel die hij beheert.
+create or replace function public.odoo_pos_z_day_now(p_tenant_id uuid)
+returns date
+language plpgsql
+stable
+security definer
+set search_path to ''
+as $$
+begin
+  if auth.uid() is not null and not public.is_platform_admin(auth.uid())
+     and not exists (select 1 from public.user_roles ur where ur.user_id = auth.uid() and ur.tenant_id = p_tenant_id
+                     and ur.role in ('tenant_admin', 'accountant')) then
+    raise exception 'geen toegang' using errcode = '42501';
+  end if;
+  return public.kassa_business_day(p_tenant_id, now());
+end;
+$$;
+revoke all on function public.odoo_pos_z_day_now(uuid) from public, anon;
+grant execute on function public.odoo_pos_z_day_now(uuid) to authenticated;
+
 -- ── Startdatum: triggers (review 1 punt 1, review 2 B1/4/14) ───────────────────────────────
 -- Twee triggers, omdat PostgREST een upsert als INSERT … ON CONFLICT DO UPDATE stuurt: de BEFORE
 -- INSERT-trigger ziet dan de voorgestelde rij (zonder de bestaande enabled_at/backfill), ook als
@@ -116,25 +142,29 @@ declare
 begin
   if tg_op = 'INSERT' then
     if not v_priv then
-      new.pos_z_enabled_at := null; new.pos_z_backfill_from := null;
+      new.pos_z_enabled_at := null; new.pos_z_enabled_day := null; new.pos_z_backfill_from := null;
       new.pos_z_backfill_confirmed_at := null; new.pos_z_backfill_confirmed_by := null;
     end if;
     -- Let op: bij een upsert is dit de VOORGESTELDE rij en wat we hier zetten, belandt in EXCLUDED.
     -- Daarom hier geen payloadkolommen (pos_z_sync_enabled, …) wijzigen; enkel de beschermde.
-    if coalesce(new.pos_z_sync_enabled, false) and new.pos_z_enabled_at is null then new.pos_z_enabled_at := now(); end if;
+    if coalesce(new.pos_z_sync_enabled, false) and new.pos_z_enabled_at is null then
+      new.pos_z_enabled_at := now();
+      new.pos_z_enabled_day := public.odoo_pos_z_day_now(new.tenant_id);
+    end if;
     return new;
   end if;
   if not v_priv then
-    new.pos_z_enabled_at := old.pos_z_enabled_at; new.pos_z_backfill_from := old.pos_z_backfill_from;
+    new.pos_z_enabled_at := old.pos_z_enabled_at; new.pos_z_enabled_day := old.pos_z_enabled_day; new.pos_z_backfill_from := old.pos_z_backfill_from;
     new.pos_z_backfill_confirmed_at := old.pos_z_backfill_confirmed_at; new.pos_z_backfill_confirmed_by := old.pos_z_backfill_confirmed_by;
   end if;
   -- Review 2 punt 4: de factuursync uit = ook de Z-sync uit (zelfde verbinding en dagboek).
   if not coalesce(new.odoo_sync_enabled, false) then new.pos_z_sync_enabled := false; end if;
   if coalesce(new.pos_z_sync_enabled, false) and not coalesce(old.pos_z_sync_enabled, false) then
     new.pos_z_enabled_at := now();
+    new.pos_z_enabled_day := public.odoo_pos_z_day_now(new.tenant_id);
   elsif not coalesce(new.pos_z_sync_enabled, false) then
     -- Uit = aanzetmoment en bevestiging weg: opnieuw aanzetten = opnieuw vanaf de huidige bedrijfsdag.
-    new.pos_z_enabled_at := null; new.pos_z_backfill_from := null;
+    new.pos_z_enabled_at := null; new.pos_z_enabled_day := null; new.pos_z_backfill_from := null;
     new.pos_z_backfill_confirmed_at := null; new.pos_z_backfill_confirmed_by := null;
   end if;
   return new;
@@ -144,21 +174,10 @@ drop trigger if exists tenant_odoo_settings_pos_z_guard on public.tenant_odoo_se
 create trigger tenant_odoo_settings_pos_z_guard before insert or update on public.tenant_odoo_settings
   for each row execute function public.tenant_odoo_settings_pos_z_guard();
 
--- Vroegste toegestane startdatum: de bedrijfsdag (afkapuur van de kassa) van het aanzetten, of een
--- vroegere dag die via odoo_pos_z_confirm_backfill bevestigd werd (review 2 punt 14).
-create or replace function public.odoo_pos_z_min_from(p_tenant_id uuid, p_enabled_at timestamptz, p_backfill date)
-returns date
-language sql
-stable
-security definer
-set search_path to ''
-as $$
-  select least(public.kassa_business_day(p_tenant_id, coalesce(p_enabled_at, now())), coalesce(p_backfill, 'infinity'::date));
-$$;
-revoke all on function public.odoo_pos_z_min_from(uuid, timestamptz, date) from public, anon, authenticated;
-
 -- AFTER: eindstaat controleren (security definer voor kassa_business_day; weigeren = hele
--- opdracht terug).
+-- opdracht terug). Deze migratie draaide nog nergens; een eerdere versie had een helper
+-- odoo_pos_z_min_from, die vervalt.
+drop function if exists public.odoo_pos_z_min_from(uuid, timestamptz, date);
 create or replace function public.tenant_odoo_settings_pos_z_check()
 returns trigger
 language plpgsql
@@ -166,6 +185,14 @@ security definer
 set search_path to ''
 as $$
 begin
+  -- Fixcheck punt 2: enkel controleren bij een nieuwe rij of als een van de Z-velden wijzigt. Andere
+  -- schrijfacties (bv. sync-odoo-invoices op channel_partner_ids) gaan altijd door.
+  if tg_op = 'UPDATE'
+     and new.pos_z_sync_enabled is not distinct from old.pos_z_sync_enabled
+     and new.pos_z_sync_from is not distinct from old.pos_z_sync_from
+     and new.odoo_sync_enabled is not distinct from old.odoo_sync_enabled then
+    return null;
+  end if;
   if coalesce(new.pos_z_sync_enabled, false) then
     if not coalesce(new.odoo_sync_enabled, false) then
       raise exception 'zet eerst de Odoo-facturatiesync aan' using errcode = '22023';
@@ -173,7 +200,9 @@ begin
     if new.pos_z_sync_from is null then
       raise exception 'kies vanaf welke bedrijfsdag de Z-rapporten naar Odoo gaan' using errcode = '22023';
     end if;
-    if new.pos_z_sync_from < public.odoo_pos_z_min_from(new.tenant_id, new.pos_z_enabled_at, new.pos_z_backfill_from) then
+    -- Grens = de BEWAARDE bedrijfsdag van het aanzetten (of een bevestigde vroegere dag).
+    if new.pos_z_sync_from < least(coalesce(new.pos_z_enabled_day, public.kassa_business_day(new.tenant_id, now())),
+                                   coalesce(new.pos_z_backfill_from, 'infinity'::date)) then
       raise exception 'een startdatum vóór de huidige bedrijfsdag moet eerst bevestigd worden (met het aantal Z-rapporten dat dan geboekt wordt)' using errcode = '42501';
     end if;
   end if;

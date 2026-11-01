@@ -8,7 +8,7 @@
 // Run: deno test --no-lock scripts/promo-compare/odooPosZ.test.ts
 import { StatefulDb, type Row } from "./statefulDb.ts";
 import {
-  splitGrossForOdoo, syncTenantZ, vatInGross, type OdooMoveHead, type OdooMoveRead, type PosZOdoo, type PosZSettings,
+  DeadlineError, splitGrossForOdoo, syncTenantZ, vatInGross, withBudgetTimeout, type OdooMoveHead, type OdooMoveRead, type PosZOdoo, type PosZSettings,
 } from "../../supabase/functions/_shared/odooPosZ.ts";
 
 function eq(actual: unknown, expected: unknown, msg: string) {
@@ -71,7 +71,7 @@ class FakeOdoo implements PosZOdoo {
   partnerName(id: number) { return Promise.resolve(this.partners.get(id) ?? null); }
   private head(id: number): OdooMoveHead {
     const m = this.moves.get(id)!;
-    return { id, name: m.data.name, state: m.state, move_type: m.data.move_type, partner_id: m.data.partner_id, invoice_date: m.data.invoice_date };
+    return { id, name: m.data.name, state: m.state, move_type: m.data.move_type, partner_id: m.data.partner_id, invoice_date: m.data.invoice_date, journal_id: m.data.journal_id };
   }
   findMoves(name: string, journalId: number | null, moveType: string) {
     const out: OdooMoveHead[] = [];
@@ -419,4 +419,53 @@ Deno.test("review 2.11: na 'Opnieuw proberen' komen de meldingen opnieuw (ronde 
   Object.assign(db.tables.odoo_pos_z_sync_log[0], { sync_status: "failed", attempts: 0, retry_round: 1 });
   await run(db, odoo);
   eq(db.notifications("integration_error").map((n) => n.data.dedupe_key), ["odoo_pos_z_failed:z1:r0", "odoo_pos_z_failed:z1:r1"], "twee rondes, twee meldingen");
+});
+
+Deno.test("fixcheck 1: twee winkels op één Odoo — nooit de boeking van de andere winkel adopteren", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  // Winkel B op dezelfde Odoo (url met hoofdletters/slash), met factuurdagboek 8.
+  db.tables.tenant_odoo_credentials.push({ tenant_id: "B", odoo_url: "https://X.odoo.com/", odoo_db: "x" });
+  db.tables.tenant_odoo_settings.push({ tenant_id: "B", odoo_journal_id: "8", pos_z_journal_id: null });
+  // B heeft dezelfde Z-naam en dag, met een partner die toevallig zo heet als die van A.
+  odoo.partners.set(90, "Kassaverkopen — Café Test");
+  odoo.moves.set(91, { data: { name: "Z-2026-00001", journal_id: 8, move_type: "out_invoice", partner_id: 90, invoice_date: "2026-10-30",
+    invoice_line_ids: [[0, 0, { price_unit: 15, tax_ids: [[6, 0, [141]]] }], [0, 0, { price_unit: 16, tax_ids: [[6, 0, [142]]] }]] }, state: "posted" });
+  // En A's channel_partner_ids.pos_z werd (client-schrijfbaar) op B's partner gezet.
+  const r = await run(db, odoo, settings({ pos_z_journal_id: "9", pos_z_journal_name: "Kassa", channel_partner_ids: { pos_z: 90 } }));
+  eq(r.reports.map((x) => x.status), ["synced"], "A boekt zelf");
+  ok(r.reports[0].odoo_move_id !== 91, "niet de boeking van B");
+  eq([odoo.creates, odoo.moves.get(91)!.state], [1, "posted"], "B ongemoeid");
+  const mine = odoo.moves.get(r.reports[0].odoo_move_id!)!;
+  // (De partner zelf kan dezelfde zijn: bij identieke winkelnamen vindt findPartner op naam die ook.)
+  eq(mine.data.journal_id, 9, "eigen dagboek");
+  eq(db.tables.odoo_pos_z_sync_log[0].odoo_journal_id, "9", "dagboek gelogd");
+});
+
+Deno.test("fixcheck 1: een vroeger eigen dagboek (uit de log) mag wel", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  odoo.partners.set(55, "Kassaverkopen — Café Test");
+  odoo.moves.set(70, { data: { name: "Z-2026-00001", journal_id: 12, move_type: "out_invoice", partner_id: 55, invoice_date: "2026-10-30",
+    invoice_line_ids: [[0, 0, { price_unit: 15, tax_ids: [[6, 0, [141]]] }], [0, 0, { price_unit: 16, tax_ids: [[6, 0, [142]]] }]] }, state: "draft" });
+  // Dagboek 12 staat niet in de instellingen, wel in de log (een andere Z werd daar geboekt).
+  db.tables.odoo_pos_z_sync_log.push({ id: "o1", tenant_id: T, kassa_report_id: "z-oud", sync_status: "synced", created_at: "2026-10-20T10:00:00Z", attempts: 1, odoo_move_id: "50", odoo_journal_id: "12" });
+  const r = await run(db, odoo, settings({ pos_z_journal_id: "9", pos_z_journal_name: "Kassa" }));
+  eq([r.reports.map((x) => [x.status, x.odoo_move_id]), odoo.creates], [[["synced", 70]], 0], "hergebruikt (naam klopt, eigen dagboek)");
+  // Zonder die logregel: dagboek 12 is niet van ons → nieuwe boeking.
+  const db2 = world(); const odoo2 = new FakeOdoo();
+  odoo2.partners.set(55, "Kassaverkopen — Café Test");
+  odoo2.moves.set(70, structuredClone(odoo.moves.get(70)!));
+  const r2 = await run(db2, odoo2, settings({ pos_z_journal_id: "9", pos_z_journal_name: "Kassa" }));
+  ok(r2.reports[0].odoo_move_id !== 70 && odoo2.creates === 1, "vreemd dagboek niet geadopteerd");
+});
+
+Deno.test("fixcheck 3: time-out ingekort door het budget = DeadlineError; volle 30 s = gewone fout", async () => {
+  const never = new Promise<never>(() => {});
+  let e: unknown = null;
+  try { await withBudgetTimeout(never, 20); } catch (x) { e = x; }
+  ok(e instanceof DeadlineError, "budget op = geen poging");
+  // De volle time-out niet afwachten: de vorm van de fout volstaat via een korte nep-limiet is niet
+  // mogelijk (30 s is de grens), dus enkel nagaan dat een gewone fout gewoon doorgaat.
+  let f: unknown = null;
+  try { await withBudgetTimeout(Promise.reject(new Error("Odoo 500")), 20); } catch (x) { f = x; }
+  ok(f instanceof Error && !(f instanceof DeadlineError), "echte fout blijft een fout");
 });

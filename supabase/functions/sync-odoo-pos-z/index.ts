@@ -17,6 +17,7 @@ import { assertValidOdooUrl, odooAuthenticate, odooExecKw, type OdooEnv } from "
 import { createPartnerTypeResolver, partnerTypeFields } from "../_shared/odooPartnerType.ts";
 import {
   INCL_TAX_NAME,
+  withBudgetTimeout,
   POS_Z_VERSION,
   prepareTenantZ,
   runPreparedZ,
@@ -41,22 +42,18 @@ function errMsg(e: unknown): string {
   try { return JSON.stringify(e); } catch { return String(e); }
 }
 
-/** Elke Odoo-aanroep hoogstens 30 s. */
-function withTimeout<T>(p: Promise<T>, ms = 30_000): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  return Promise.race([
-    p,
-    new Promise<T>((_, rej) => { timer = setTimeout(() => rej(new Error(`Odoo antwoordde niet binnen ${ms / 1000}s`)), ms); }),
-  ]).finally(() => clearTimeout(timer));
-}
+// Elke Odoo-aanroep hoogstens 30 s; ingekort door het budget = DeadlineError (zie _shared/odooPosZ.ts).
+const withTimeout = withBudgetTimeout;
 
 type M2o = [number, string] | false | null | undefined;
 const m2oId = (v: M2o): number | null => (Array.isArray(v) ? Number(v[0]) : null);
 
-const MOVE_HEAD_FIELDS = ["id", "name", "state", "move_type", "partner_id", "invoice_date"];
-type MoveHeadRow = { id: number; name: string; state: string; move_type: string; partner_id: M2o; invoice_date: string | false };
-const moveHead = (m: MoveHeadRow): OdooMoveHead =>
-  ({ id: m.id, name: m.name, state: m.state, move_type: m.move_type, partner_id: m2oId(m.partner_id), invoice_date: m.invoice_date || null });
+const MOVE_HEAD_FIELDS = ["id", "name", "state", "move_type", "partner_id", "invoice_date", "journal_id"];
+type MoveHeadRow = { id: number; name: string; state: string; move_type: string; partner_id: M2o; invoice_date: string | false; journal_id: M2o };
+const moveHead = (m: MoveHeadRow): OdooMoveHead => ({
+  id: m.id, name: m.name, state: m.state, move_type: m.move_type, partner_id: m2oId(m.partner_id),
+  invoice_date: m.invoice_date || null, journal_id: m2oId(m.journal_id),
+});
 
 /** Review 2 M1: een Odoo-aanroep wacht nooit langer dan het restbudget van de winkel (max. 30 s).
  *  Per aanvraag een eigen object: een isolate kan aanvragen gelijktijdig bedienen. */
@@ -164,7 +161,7 @@ async function odooFor(supabase: SupabaseClient, tenantId: string, budget: Budge
   return { api: odooApiFor(env, uid, budget) };
 }
 
-const SETTINGS_COLS = "tenant_id, odoo_sync_enabled, odoo_journal_id, odoo_journal_name, odoo_auto_post, channel_aliases, channel_partner_ids, pos_z_sync_enabled, pos_z_sync_from, pos_z_journal_id, pos_z_journal_name, pos_z_enabled_at, pos_z_backfill_from";
+const SETTINGS_COLS = "tenant_id, odoo_sync_enabled, odoo_journal_id, odoo_journal_name, odoo_auto_post, channel_aliases, channel_partner_ids, pos_z_sync_enabled, pos_z_sync_from, pos_z_journal_id, pos_z_journal_name, pos_z_enabled_at, pos_z_backfill_from, pos_z_enabled_day";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
