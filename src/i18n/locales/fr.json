@@ -2546,7 +2546,7 @@
         "ebay": "eBay",
         "subscription": "Abonnements",
         "manual": "Manuel",
-        "pos": "Caisse (rapports Z)"
+        "pos_z": "Caisse (rapports Z)"
       }
     },
     "odooAutoPost": {
@@ -2561,7 +2561,7 @@
       "enable_label": "Envoyer les rapports Z de la caisse vers Odoo",
       "enable_help": "Désactivé par défaut. Activé = SellQo vérifie chaque heure s'il y a de nouveaux rapports Z.",
       "from_label": "À partir du jour d'activité",
-      "from_help": "Les rapports Z plus anciens restent hors d'Odoo, pour que rien de ce qui a déjà été comptabilisé à la main n'arrive deux fois.",
+      "from_help": "Aujourd'hui par défaut. Un jour antérieur demande une confirmation avec le nombre de rapports Z qui seront alors comptabilisés.",
       "journal_label": "Journal de caisse",
       "journal_same": "Identique au journal de ventes",
       "journal_taken": "utilisé",
@@ -2572,11 +2572,19 @@
       "recent_row": "Z {{no}} · {{name}}",
       "save": "Enregistrer",
       "saving": "Enregistrement…",
+      "backfill_confirm": "La date de début {{date}} est dans le passé. {{count}} rapports Z seront donc comptabilisés dans Odoo. S'ils ont déjà été comptabilisés à la main, ils apparaîtront deux fois. Continuer ?",
+      "accept": "Accepter",
+      "accept_prompt": "Z {{no}} comptabilisé à la main dans Odoo ? Indiquez le numéro Odoo ou une courte explication :",
+      "accept_done": "Rapport Z accepté.",
+      "retry": "Réessayer",
+      "retry_done": "SellQo réessaiera ce rapport Z lors du prochain passage.",
       "status": {
         "pending": "En cours",
         "synced": "Comptabilisé",
         "failed": "Échec",
-        "skipped": "Vide, ignoré"
+        "skipped": "Vide, ignoré",
+        "needs_review": "À vérifier",
+        "accepted": "Accepté (à la main)"
       }
     },
     "invoiceRefund": {

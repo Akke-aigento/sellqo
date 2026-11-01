@@ -15,7 +15,7 @@ values ('tenant', 'a0000001-0000-0000-0000-000000000009', '/admin/connect', 'kas
 <ol>
   <li>Ga naar <strong>SellQo Connect › Odoo Boekhouding</strong>. De Odoo-verbinding en de facturensync moeten al werken.</li>
   <li>Zet <strong>Z-rapporten van de kassa naar Odoo</strong> aan.</li>
-  <li>Kies <strong>vanaf welke bedrijfsdag</strong>. Z-rapporten van vóór die dag blijven buiten Odoo, zodat niets dubbel komt wat je boekhouder al met de hand boekte.</li>
+  <li>Kies <strong>vanaf welke bedrijfsdag</strong>. Standaard is dat vandaag: Z-rapporten van vóór die dag blijven buiten Odoo, zodat niets dubbel komt wat je boekhouder al met de hand boekte. Kies je een dag in het verleden, dan toont SellQo eerst hoeveel Z-rapporten er dan geboekt worden en vraagt het je bevestiging.</li>
   <li>Kies eventueel een eigen <strong>kassadagboek</strong>. Laat je het leeg, dan gebruikt SellQo het verkoopdagboek van je facturen. Een apart verkoopdagboek (bv. "Kassa") houdt de nummering van je facturen en je Z-boekingen uit elkaar; dat raden we aan.</li>
   <li>Opslaan. SellQo kijkt elk uur of er nieuwe Z-rapporten zijn.</li>
 </ol>
@@ -24,7 +24,7 @@ values ('tenant', 'a0000001-0000-0000-0000-000000000009', '/admin/connect', 'kas
 <h2>Wat er in Odoo komt</h2>
 <ul>
   <li>Eén boeking per Z-rapport, met als nummer <em>Z-jaar-nummer</em> (bv. Z-2026-00042) en als datum de bedrijfsdag.</li>
-  <li>Als klant één verzamelklant, standaard <em>Kassaverkopen — jouw winkel</em>. De naam pas je aan bij <strong>Kanaal-weergave in Odoo</strong> (kanaal Kassa).</li>
+  <li>Als klant één verzamelklant, standaard <em>Kassaverkopen — jouw winkel</em>. De naam pas je aan bij <strong>Kanaal-weergave in Odoo</strong> (kanaal Kassa (Z-rapporten)).</li>
   <li>De omzet per btw-tarief (21, 12, 6 en 0 %), met dezelfde btw-codes als je webshopfacturen: de prijs-inclusieve codes "21% incl.", "12% incl." en "6% incl.", en "0%".</li>
   <li>De btw is die van het Z-rapport: per ticket afgerond, zoals de kassa het doet. Odoo rondt per regel af. Om dezelfde btw te krijgen, verdeelt SellQo de omzet van een tarief over meerdere regels ("btw-afronding per ticket"). Het totaal per tarief blijft gelijk aan het Z-rapport.</li>
   <li>In de notitie van de boeking staan ter info de betaalwijzen, fooien, afronding contant, kas in/uit, annulaties en correcties.</li>
@@ -40,6 +40,13 @@ values ('tenant', 'a0000001-0000-0000-0000-000000000009', '/admin/connect', 'kas
 <h2>Controle en meldingen</h2>
 <p>SellQo maakt de boeking eerst als concept, leest de bedragen in Odoo terug en boekt ze pas definitief als alles tot op de cent gelijk is aan het Z-rapport, per btw-tarief. Wijkt er iets af, dan blijft het concept staan en krijg je een melding. Kijk dan het concept in Odoo na (bv. een btw-code die hernoemd werd). Staat <strong>Automatisch boeken in Odoo</strong> uit, dan blijven ook kloppende boekingen concept en boekt je boekhouder ze zelf.</p>
 <p>Een Z-rapport wordt nooit twee keer geboekt, ook niet als een run halverwege stopt: SellQo vindt het concept dan terug en werkt het af.</p>
+
+<h2>Als een Z-rapport niet lukt</h2>
+<ul>
+  <li>SellQo probeert het de eerste drie keer elk uur opnieuw, daarna één keer per dag.</li>
+  <li>Na tien pogingen staat het Z-rapport op <strong>Nakijken</strong> en probeert SellQo niet meer vanzelf. Je krijgt dan een melding.</li>
+  <li>Onder <strong>Laatste Z-rapporten</strong> zie je wat er misging. Boekte je de Z met de hand in Odoo, kies dan <strong>Aanvaarden</strong> en geef het Odoo-nummer: SellQo bewaart wie dat deed en boekt die Z nooit meer. Is het probleem opgelost (bv. een btw-code die ontbrak), kies dan <strong>Opnieuw proberen</strong>.</li>
+</ul>
 
 <h2>Opgelet</h2>
 <ul>

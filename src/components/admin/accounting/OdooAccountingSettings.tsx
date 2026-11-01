@@ -9,7 +9,8 @@ import { Info, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { useCan } from '@/hooks/useCan';
 import { useTenantOdooSettings } from '@/hooks/useTenantOdooSettings';
 import { useOdooConnection } from '@/hooks/useOdooConnection';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertTriangle } from 'lucide-react';
 import { Link } from 'react-router-dom';
@@ -22,13 +23,28 @@ const DEFAULT_CHANNEL_LABELS: Record<string, string> = {
   ebay: 'eBay verkopen',
   subscription: 'Abonnementen',
   manual: 'Handmatige verkopen',
-  // KASSA-ODOO-1: verzamelklant van de Z-boekingen (zelfde standaard als _shared/odooPosZ.ts).
-  pos: 'Kassaverkopen',
+  // KASSA-ODOO-1: verzamelklant van de Z-boekingen (zelfde sleutel en standaard als
+  // _shared/odooPosZ.ts; niet 'pos', dat is een orders.sales_channel).
+  pos_z: 'Kassaverkopen',
 };
 const KNOWN_MARKETPLACES = new Set(['bol_com', 'amazon', 'ebay']);
 
 /** Select-waarde voor "zelfde als het verkoopdagboek" (Radix staat geen lege waarde toe). */
 const POS_JOURNAL_SAME = '__same__';
+
+/** Kalenderdag in Brussel (JJJJ-MM-DD), zoals de trigger op tenant_odoo_settings rekent. */
+function brusselsDate(d: Date): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Brussels', year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+}
+
+type PosZLogRow = { id: string; report_no: number | null; booking_date: string | null; sync_status: string; odoo_move_name: string | null; error_message: string | null; created_at: string };
+
+/** RPC's van KASSA-ODOO-1 staan (nog) niet in de gegenereerde types. */
+async function posZRpc<T>(name: string, args: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.rpc(name as never, args as never);
+  if (error) throw new Error(error.message);
+  return data as T;
+}
 
 interface Props {
   tenantId: string;
@@ -93,9 +109,9 @@ export function OdooAccountingSettings({ tenantId }: Props) {
     const s = new Set<string>(orderChannels.data || []);
     s.add('subscription');
     s.add('manual');
-    if (settings?.pos_z_sync_enabled) s.add('pos');
+    if (settings?.pos_z_sync_enabled) s.add('pos_z');
     // Preserve a stable ordering: marketplaces first, then webshop/sub/manual/pos.
-    const order = ['bol_com', 'amazon', 'ebay', 'webshop', 'subscription', 'manual', 'pos'];
+    const order = ['bol_com', 'amazon', 'ebay', 'webshop', 'subscription', 'manual', 'pos_z'];
     const extras = Array.from(s).filter(c => !order.includes(c)).sort();
     return [...order.filter(c => s.has(c)), ...extras];
   })();
@@ -159,14 +175,37 @@ export function OdooAccountingSettings({ tenantId }: Props) {
   // De factuursync moet opgeslagen aan staan: de Z-boekingen gebruiken die verbinding en instellingen.
   const posZAvailable = configured && (settings?.odoo_sync_enabled ?? false);
 
+  const qc = useQueryClient();
+  const [posZBusy, setPosZBusy] = useState(false);
+
   const handleTogglePosZ = (on: boolean) => {
     setPosZEnabled(on);
-    // Aanzetten zonder startdatum = vandaag: nooit stil terugwerkend boeken.
-    if (on && !posZFrom) setPosZFrom(new Date().toISOString().slice(0, 10));
+    // Review 1: aanzetten = altijd vandaag (Brussel). Vroeger kan enkel na bevestiging bij Opslaan.
+    if (on && !posZBaseline.enabled) setPosZFrom(brusselsDate(new Date()));
   };
 
-  const handleSavePosZ = () => {
+  const handleSavePosZ = async () => {
     const j = posZJournal === POS_JOURNAL_SAME ? null : journals.data?.find(x => String(x.id) === posZJournal);
+    setPosZBusy(true);
+    try {
+      // Een startdatum vóór het aanzetten (of vóór een eerder bevestigde datum) vraagt een expliciete
+      // bevestiging met het aantal Z's dat dan geboekt wordt. De server dwingt dit ook af (trigger).
+      if (posZEnabled && posZFrom) {
+        const enabledDay = settings?.pos_z_sync_enabled && settings.pos_z_enabled_at ? brusselsDate(new Date(settings.pos_z_enabled_at)) : brusselsDate(new Date());
+        const allowedFrom = [enabledDay, settings?.pos_z_backfill_from].filter(Boolean).sort()[0] as string;
+        if (posZFrom < allowedFrom) {
+          const count = await posZRpc<number>('odoo_pos_z_backfill_count', { p_tenant_id: tenantId, p_from: posZFrom });
+          if (!window.confirm(t('admin.odooPosZ.backfill_confirm', { count, date: posZFrom.split('-').reverse().join('-') }))) return;
+          await posZRpc('odoo_pos_z_confirm_backfill', { p_tenant_id: tenantId, p_from: posZFrom, p_count: count });
+        }
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+      return;
+    } finally {
+      setPosZBusy(false);
+    }
+    // upsert meldt zelf succes of fout.
     upsert.mutate({
       pos_z_sync_enabled: posZEnabled,
       pos_z_sync_from: posZFrom || null,
@@ -180,14 +219,41 @@ export function OdooAccountingSettings({ tenantId }: Props) {
     enabled: !!tenantId && !!settings?.pos_z_sync_enabled,
     queryFn: async () => {
       // De tabel staat (nog) niet in de gegenereerde types (zelfde patroon als src/kassa).
-      const { data } = await supabase.from('odoo_pos_z_sync_log' as never)
-        .select('id, report_no, booking_date, sync_status, odoo_move_name, error_message, created_at')
-        .eq('tenant_id' as never, tenantId as never)
-        .order('created_at' as never, { ascending: false })
-        .limit(5);
-      return (data || []) as unknown as Array<{ id: string; report_no: number | null; booking_date: string | null; sync_status: string; odoo_move_name: string | null; error_message: string | null }>;
+      // De laatste 5, plus alles wat aandacht vraagt (mislukt of na te kijken).
+      const cols = 'id, report_no, booking_date, sync_status, odoo_move_name, error_message, created_at';
+      const [recent, attention] = await Promise.all([
+        supabase.from('odoo_pos_z_sync_log' as never).select(cols)
+          .eq('tenant_id' as never, tenantId as never).order('created_at' as never, { ascending: false }).limit(5),
+        supabase.from('odoo_pos_z_sync_log' as never).select(cols)
+          .eq('tenant_id' as never, tenantId as never).in('sync_status' as never, ['failed', 'needs_review'] as never)
+          .order('created_at' as never, { ascending: false }).limit(20),
+      ]);
+      const rows = [...((attention.data || []) as unknown as PosZLogRow[]), ...((recent.data || []) as unknown as PosZLogRow[])];
+      return rows.filter((r, i) => rows.findIndex(x => x.id === r.id) === i);
     },
   });
+
+  const handleAcceptZ = async (row: PosZLogRow) => {
+    const note = window.prompt(t('admin.odooPosZ.accept_prompt', { no: row.report_no ?? '?' }));
+    if (note === null) return;
+    try {
+      await posZRpc('odoo_pos_z_accept', { p_log_id: row.id, p_note: note });
+      toast.success(t('admin.odooPosZ.accept_done'));
+      qc.invalidateQueries({ queryKey: ['odoo-pos-z-log', tenantId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const handleRetryZ = async (row: PosZLogRow) => {
+    try {
+      await posZRpc('odoo_pos_z_retry', { p_log_id: row.id });
+      toast.success(t('admin.odooPosZ.retry_done'));
+      qc.invalidateQueries({ queryKey: ['odoo-pos-z-log', tenantId] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   // Compare against stored row when present, otherwise against defaults so the
   // first-ever save (no row yet) is not permanently blocked.
@@ -559,9 +625,20 @@ export function OdooAccountingSettings({ tenantId }: Props) {
                   (posZLog.data || []).map(l => (
                     <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-1 last:border-b-0 text-sm">
                       <span>{t('admin.odooPosZ.recent_row', { no: l.report_no ?? '?', name: l.odoo_move_name ?? '—' })}</span>
-                      <span className={l.sync_status === 'failed' ? 'text-xs text-red-600' : 'text-xs text-muted-foreground'}>
-                        {t(`admin.odooPosZ.status.${l.sync_status}`)}
+                      <span className="flex flex-wrap items-center gap-2">
+                        <span className={['failed', 'needs_review'].includes(l.sync_status) ? 'text-xs text-red-600' : 'text-xs text-muted-foreground'}>
+                          {t(`admin.odooPosZ.status.${l.sync_status}`)}
+                        </span>
+                        {canWrite && ['failed', 'needs_review'].includes(l.sync_status) && (
+                          <Button size="sm" variant="outline" onClick={() => handleAcceptZ(l)}>{t('admin.odooPosZ.accept')}</Button>
+                        )}
+                        {canWrite && l.sync_status === 'needs_review' && (
+                          <Button size="sm" variant="ghost" onClick={() => handleRetryZ(l)}>{t('admin.odooPosZ.retry')}</Button>
+                        )}
                       </span>
+                      {['failed', 'needs_review'].includes(l.sync_status) && l.error_message && (
+                        <p className="basis-full text-xs text-muted-foreground break-words">{l.error_message}</p>
+                      )}
                     </div>
                   ))
                 )}
@@ -570,8 +647,8 @@ export function OdooAccountingSettings({ tenantId }: Props) {
 
             <div className="flex justify-end">
               <Button onClick={handleSavePosZ}
-                disabled={!canWrite || !posZDirty || upsert.isPending || (posZEnabled && (!posZAvailable || !posZFrom)) || !!posZJournalRow?.claimed_by_other_tenant}>
-                {upsert.isPending ? t('admin.odooPosZ.saving') : t('admin.odooPosZ.save')}
+                disabled={!canWrite || !posZDirty || upsert.isPending || posZBusy || (posZEnabled && (!posZAvailable || !posZFrom)) || !!posZJournalRow?.claimed_by_other_tenant}>
+                {upsert.isPending || posZBusy ? t('admin.odooPosZ.saving') : t('admin.odooPosZ.save')}
               </Button>
             </div>
           </CardContent>

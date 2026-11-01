@@ -2891,7 +2891,7 @@
         "ebay": "eBay",
         "subscription": "Abonnementen",
         "manual": "Handmatig",
-        "pos": "Kassa (Z-rapporten)"
+        "pos_z": "Kassa (Z-rapporten)"
       }
     },
     "odooAutoPost": {
@@ -2906,7 +2906,7 @@
       "enable_label": "Z-rapporten van de kassa naar Odoo",
       "enable_help": "Standaard uit. Aan = SellQo kijkt elk uur of er nieuwe Z-rapporten zijn.",
       "from_label": "Vanaf bedrijfsdag",
-      "from_help": "Oudere Z-rapporten blijven buiten Odoo, zodat niets dubbel komt wat al met de hand geboekt werd.",
+      "from_help": "Standaard vandaag. Een vroegere dag vraagt een bevestiging met het aantal Z-rapporten dat dan geboekt wordt.",
       "journal_label": "Kassadagboek",
       "journal_same": "Zelfde als het verkoopdagboek",
       "journal_taken": "in gebruik",
@@ -2917,11 +2917,19 @@
       "recent_row": "Z {{no}} · {{name}}",
       "save": "Opslaan",
       "saving": "Opslaan…",
+      "backfill_confirm": "De startdatum {{date}} ligt in het verleden. Daardoor worden {{count}} Z-rapporten in Odoo geboekt. Werden die al met de hand geboekt, dan staan ze dubbel. Doorgaan?",
+      "accept": "Aanvaarden",
+      "accept_prompt": "Z {{no}} met de hand in Odoo geboekt? Geef het Odoo-nummer of een korte uitleg:",
+      "accept_done": "Z-rapport aanvaard.",
+      "retry": "Opnieuw proberen",
+      "retry_done": "SellQo probeert dit Z-rapport bij de volgende run opnieuw.",
       "status": {
         "pending": "Bezig",
         "synced": "Geboekt",
         "failed": "Mislukt",
-        "skipped": "Leeg, overgeslagen"
+        "skipped": "Leeg, overgeslagen",
+        "needs_review": "Nakijken",
+        "accepted": "Aanvaard (met de hand)"
       }
     },
     "invoiceRefund": {

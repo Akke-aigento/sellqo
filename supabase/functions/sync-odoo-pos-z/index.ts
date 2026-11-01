@@ -18,11 +18,14 @@ import { createPartnerTypeResolver, partnerTypeFields } from "../_shared/odooPar
 import {
   INCL_TAX_NAME,
   POS_Z_VERSION,
-  syncTenantZ,
+  prepareTenantZ,
+  runPreparedZ,
   ZERO_TAX_NAME,
+  type OdooMoveHead,
   type OdooMoveRead,
   type PosZOdoo,
   type PosZSettings,
+  type PreparedTenant,
 } from "../_shared/odooPosZ.ts";
 
 const corsHeaders = {
@@ -49,6 +52,11 @@ function withTimeout<T>(p: Promise<T>, ms = 30_000): Promise<T> {
 
 type M2o = [number, string] | false | null | undefined;
 const m2oId = (v: M2o): number | null => (Array.isArray(v) ? Number(v[0]) : null);
+
+const MOVE_HEAD_FIELDS = ["id", "name", "state", "move_type", "partner_id", "invoice_date"];
+type MoveHeadRow = { id: number; name: string; state: string; move_type: string; partner_id: M2o; invoice_date: string | false };
+const moveHead = (m: MoveHeadRow): OdooMoveHead =>
+  ({ id: m.id, name: m.name, state: m.state, move_type: m.move_type, partner_id: m2oId(m.partner_id), invoice_date: m.invoice_date || null });
 
 function odooApiFor(env: OdooEnv, uid: number): PosZOdoo {
   const kw = (model: string, method: string, args: unknown[], kwargs: Record<string, unknown> = {}) =>
@@ -89,16 +97,20 @@ function odooApiFor(env: OdooEnv, uid: number): PosZOdoo {
         comment: "SellQo Kassa: dagontvangsten per Z-rapport (geen individuele klanten)",
       }]) as number;
     },
-    async partnerExists(id) {
-      const ids = await kw("res.partner", "search", [[["id", "=", id]]], { limit: 1 }) as number[];
-      return !!ids?.length;
+    async partnerName(id) {
+      const r = await kw("res.partner", "search_read", [[["id", "=", id]]], { fields: ["name"], limit: 1 }) as Array<{ name: string }>;
+      return r?.[0]?.name ?? null;
     },
     async findMove(name, journalId, moveType) {
       const r = await kw("account.move", "search_read",
         [[["name", "=", name], ["journal_id", "=", journalId], ["move_type", "=", moveType], ["state", "!=", "cancel"]]],
-        { fields: ["id", "state", "partner_id", "invoice_date"], limit: 1 }) as Array<{ id: number; state: string; partner_id: M2o; invoice_date: string | false }>;
-      const m = r?.[0];
-      return m ? { id: m.id, state: m.state, partner_id: m2oId(m.partner_id), invoice_date: m.invoice_date || null } : null;
+        { fields: MOVE_HEAD_FIELDS, limit: 1 }) as MoveHeadRow[];
+      return r?.[0] ? moveHead(r[0]) : null;
+    },
+    async getMove(id) {
+      // search_read i.p.v. read: een verwijderde boeking geeft null, geen fout.
+      const r = await kw("account.move", "search_read", [[["id", "=", id]]], { fields: MOVE_HEAD_FIELDS, limit: 1 }) as MoveHeadRow[];
+      return r?.[0] ? moveHead(r[0]) : null;
     },
     async createMove(data) {
       return await kw("account.move", "create", [data]) as number;
@@ -145,7 +157,7 @@ async function odooFor(supabase: SupabaseClient, tenantId: string): Promise<{ ap
   return { api: odooApiFor(env, uid) };
 }
 
-const SETTINGS_COLS = "tenant_id, odoo_sync_enabled, odoo_journal_id, odoo_journal_name, odoo_auto_post, channel_aliases, channel_partner_ids, pos_z_sync_enabled, pos_z_sync_from, pos_z_journal_id, pos_z_journal_name";
+const SETTINGS_COLS = "tenant_id, odoo_sync_enabled, odoo_journal_id, odoo_journal_name, odoo_auto_post, channel_aliases, channel_partner_ids, pos_z_sync_enabled, pos_z_sync_from, pos_z_journal_id, pos_z_journal_name, pos_z_enabled_at, pos_z_backfill_from";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -182,11 +194,29 @@ Deno.serve(async (req) => {
     if (tErr) throw new Error(`tenants: ${tErr.message}`);
 
     const perTenant: Record<string, unknown> = {};
+    // Stap 1 zonder Odoo: wat staat er open? Dan de winkel met de oudste open Z eerst (review 1,
+    // punt 6), en enkel inloggen in Odoo waar er werk is.
+    const queue: Array<{ t: { id: string; name: string }; label: string; prepared: PreparedTenant }> = [];
     for (const t of (tenants ?? []) as Array<{ id: string; name: string; is_demo: boolean | null }>) {
       const label = `${t.name} (${t.id})`;
       // R8: demo-tenants nooit (ook geen proefrun: daar staat nep-omzet).
       if (t.is_demo) { perTenant[label] = { skipped: "demo" }; continue; }
-      if (Date.now() > deadline) { perTenant[label] = { skipped: "tijdsbudget op, volgende run" }; continue; }
+      try {
+        const prepared = await prepareTenantZ({
+          db: supabase, tenantId: t.id, tenantName: t.name || "SellQo", settings: settingsById.get(t.id)!,
+          dryRun, maxPerRun: Number(body.maxPerRun) || 20, fromDate, reportIds,
+        });
+        if (!prepared.work) perTenant[label] = prepared.result;
+        else queue.push({ t, label, prepared });
+      } catch (e) {
+        perTenant[label] = { error: errMsg(e) };
+        console.error(`sync-odoo-pos-z ${label}: ${errMsg(e)}`);
+      }
+    }
+    queue.sort((a, b) => String(a.prepared.result.oldest_open ?? "9999").localeCompare(String(b.prepared.result.oldest_open ?? "9999")));
+
+    for (const { t, label, prepared } of queue) {
+      if (Date.now() > deadline) { perTenant[label] = { ...prepared.result, skipped: "tijdsbudget op, volgende run" }; continue; }
       try {
         let odoo: PosZOdoo | null = null;
         let odooNote: string | undefined;
@@ -197,10 +227,9 @@ Deno.serve(async (req) => {
         } catch (e) {
           odooNote = `Odoo: ${errMsg(e)}`;
         }
-        perTenant[label] = await syncTenantZ({
-          db: supabase, odoo, odooNote, tenantId: t.id, tenantName: t.name || "SellQo",
-          settings: settingsById.get(t.id)!, dryRun, deadline, maxPerRun: Number(body.maxPerRun) || 20,
-          fromDate, reportIds,
+        perTenant[label] = await runPreparedZ({
+          db: supabase, tenantId: t.id, tenantName: t.name || "SellQo", settings: settingsById.get(t.id)!,
+          dryRun, prepared, odoo, odooNote, deadline,
         });
       } catch (e) {
         perTenant[label] = { error: errMsg(e) };

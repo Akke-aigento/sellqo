@@ -47,10 +47,18 @@ export const ZERO_TAX_NAME = "0%";
  *  een halve cent afronding mee, dus een verschil van E cent vraagt minstens 2E regels (300 koffies
  *  van 2,60: E = 37 cent, 75 regels; 1.000 koffies: 249 regels). */
 export const MAX_LINES_PER_RATE = 400;
-/** Standaardnaam van de verzamelklant (channel_aliases.pos overschrijft). */
+/** Kanaalsleutel in channel_aliases/channel_partner_ids. Niet 'pos': dat is een orders.sales_channel
+ *  dat sync-odoo-invoices ook als kanaal gebruikt (review 1, punt 9). */
+export const POS_Z_CHANNEL = "pos_z";
+/** Standaardnaam van de verzamelklant (channel_aliases.pos_z overschrijft). */
 export const DEFAULT_POS_LABEL = "Kassaverkopen";
 /** Een claim zonder afloop ouder dan dit = onderbroken run. */
 export const STALE_PENDING_MS = 30 * 60_000;
+/** Backoff (review 1, punt 4): tot zoveel pogingen elke run, daarna één per dag. */
+export const HOURLY_ATTEMPTS = 3;
+/** Na zoveel pogingen: eindstatus needs_review, geen automatische pogingen meer. */
+export const MAX_ATTEMPTS = 10;
+export const DAILY_MS = 24 * 3600_000;
 
 // ---------------------------------------------------------------- rekenen (centen, gehele getallen)
 
@@ -94,8 +102,11 @@ export function splitGrossForOdoo(gross: number, vat: number, rate: number, maxL
   const amounts: number[] = [];
   for (let a = 100; a <= 100 + 2 * (100 + rate); a++) amounts.push(a);
   for (let a = 1; a < 100; a++) amounts.push(a);
-  for (let m = 1; m < maxLines; m++) {
-    for (const strict of [true, false]) {
+  // Review 1 (punt 7): eerst over ALLE m een oplossing zoeken waarbij de rest het teken van de
+  // omzet houdt; pas als die er niet is (kleine dag) een rest met omgekeerd teken. Beide zijn
+  // even exact; dit kiest enkel de leesbaarste.
+  for (const strict of [true, false]) {
+    for (let m = 1; m < maxLines; m++) {
       for (const a of amounts) {
         const A = s * a;
         const R = gross - m * A;
@@ -207,7 +218,8 @@ export function buildNarration(r: ZReportRow, rates: ZRate[], exact: boolean, sp
   lines.push("Omzet per btw-tarief volgens het Z-rapport:");
   for (const x of rates) lines.push(`  ${x.rate}%: bruto ${eurNl(x.gross)}, maatstaf ${eurNl(x.net)}, btw ${eurNl(x.vat)}`);
   if (split) lines.push("Btw is per ticket afgerond zoals de FDM. De regels \"btw-afronding per ticket\" verdelen de omzet zodat Odoo per regel dezelfde btw rekent; de som per tarief is die van het Z-rapport.");
-  if (!exact) lines.push("LET OP: de btw-verdeling over regels lukte niet. Odoo rekent hierdoor een andere btw dan het Z-rapport; pas het btw-bedrag in dit concept aan naar het Z-rapport en boek het dan.");
+  // Review 1 (punt 4): bij een inclusieve btw-code kan je het btw-bedrag niet los aanpassen.
+  if (!exact) lines.push("LET OP: de btw-verdeling over regels lukte niet. Odoo rekent hierdoor een andere btw dan het Z-rapport. Pas de regels van dit concept aan tot Odoo per tarief dezelfde maatstaf en btw toont als het Z-rapport, of boek deze Z apart met de hand. Aanvaard de boeking daarna in SellQo (Odoo Boekhouding › Laatste Z-rapporten).");
   const pays = Array.isArray(d.payments) ? d.payments : [];
   if (pays.length) lines.push(`Betaalwijzen (info, geen betaling geboekt): ${pays.map((p: any) => `${methodNl(p?.method)} ${eurNl(Number(p?.cents) || 0)}`).join(", ")}.`);
   const tips = Array.isArray(d.tips) ? d.tips.filter((t: any) => Number(t?.cents)) : [];
@@ -319,14 +331,19 @@ export function compareMove(plan: ZPlan, mv: OdooMoveRead, rateOfTax: Map<number
 
 export type Db = { from: (table: string) => any };
 
+export interface OdooMoveHead { id: number; name: string; state: string; move_type: string; partner_id: number | null; invoice_date: string | null }
+
 export interface PosZOdoo {
   journal(id: number): Promise<{ id: number; name: string; type: string } | null>;
   /** Exacte naam (INCL_TAX_NAME / ZERO_TAX_NAME), verkoop, juiste inclusief-instelling. Gooit als ze ontbreekt. */
   findTax(rate: number, included: boolean): Promise<number>;
   findPartner(name: string): Promise<number | null>;
   createPartner(name: string): Promise<number>;
-  partnerExists(id: number): Promise<boolean>;
-  findMove(name: string, journalId: number, moveType: string): Promise<{ id: number; state: string; partner_id: number | null; invoice_date: string | null } | null>;
+  /** Naam van een partner, null als die niet (meer) bestaat. */
+  partnerName(id: number): Promise<string | null>;
+  findMove(name: string, journalId: number, moveType: string): Promise<OdooMoveHead | null>;
+  /** Een boeking op id, ongeacht dagboek (review 1, punt 8). null als ze niet bestaat. */
+  getMove(id: number): Promise<OdooMoveHead | null>;
   createMove(data: Record<string, unknown>): Promise<number>;
   readMove(id: number): Promise<OdooMoveRead>;
   post(id: number): Promise<void>;
@@ -343,13 +360,17 @@ export interface PosZSettings {
   pos_z_sync_from: string | null;
   pos_z_journal_id: string | null;
   pos_z_journal_name: string | null;
+  /** Gezet door de trigger bij het aanzetten (review 1, punt 1). */
+  pos_z_enabled_at?: string | null;
+  /** Vroegste bevestigde startdatum (enkel via de RPC odoo_pos_z_confirm_backfill). */
+  pos_z_backfill_from?: string | null;
 }
 
 export interface ZResult {
   report_id: string;
   report_no: number | null;
   booking_date: string;
-  status: "synced" | "failed" | "skipped" | "busy" | "would_book" | "would_skip" | "invalid";
+  status: "synced" | "failed" | "skipped" | "busy" | "needs_review" | "would_book" | "would_skip" | "invalid" | "deferred";
   name?: string;
   move_type?: string;
   odoo_move_id?: number;
@@ -359,6 +380,7 @@ export interface ZResult {
   per_rate?: ZRate[];
   lines?: { name: string; price_unit: number; rate: number }[];
   exact?: boolean;
+  attempts?: number;
   error?: string;
 }
 
@@ -371,11 +393,34 @@ export interface TenantZResult {
   checks?: string[];
   reports: ZResult[];
   remaining: number;
+  /** Bedrijfsdag van de oudste open Z (voor de volgorde over tenants). */
+  oldest_open?: string | null;
 }
 
 function errMsg(e: unknown): string {
   if (e instanceof Error) return e.message;
   try { return JSON.stringify(e); } catch { return String(e); }
+}
+
+/** Tijdsbudget op: geen poging, telt niet mee voor de backoff (review 1, punt 6). */
+export class DeadlineError extends Error {
+  constructor() { super("tijdsbudget op, volgende run"); }
+}
+
+/** Elke Odoo-aanroep pas na een blik op de klok. */
+export function guardOdoo(odoo: PosZOdoo, deadline: number): PosZOdoo {
+  const g = <A extends unknown[], R>(f: (...a: A) => Promise<R>) => (...a: A): Promise<R> =>
+    Date.now() > deadline ? Promise.reject(new DeadlineError()) : f(...a);
+  return {
+    journal: g(odoo.journal.bind(odoo)), findTax: g(odoo.findTax.bind(odoo)), findPartner: g(odoo.findPartner.bind(odoo)),
+    createPartner: g(odoo.createPartner.bind(odoo)), partnerName: g(odoo.partnerName.bind(odoo)), findMove: g(odoo.findMove.bind(odoo)),
+    getMove: g(odoo.getMove.bind(odoo)), createMove: g(odoo.createMove.bind(odoo)), readMove: g(odoo.readMove.bind(odoo)), post: g(odoo.post.bind(odoo)),
+  };
+}
+
+/** Kalenderdag in Brussel (JJJJ-MM-DD). */
+export function brusselsDate(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Brussels", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
 }
 
 async function notify(db: Db, tenantId: string, dedupeKey: string, title: string, message: string, data: Record<string, unknown>) {
@@ -391,14 +436,27 @@ async function notify(db: Db, tenantId: string, dedupeKey: string, title: string
   if (error && (error as { code?: string }).code !== "23505") console.error("odooPosZ notify:", errMsg(error));
 }
 
+/** Review 1 (punt 3): een fout op winkelniveau meldt één keer per soort en per dag. */
+function notifyTenant(db: Db, tenantId: string, kind: string, now: Date, message: string) {
+  return notify(db, tenantId, `odoo_pos_z_tenant:${kind}:${brusselsDate(now)}`, "Kassa-omzet niet naar Odoo",
+    `De Z-rapporten van de kassa kunnen niet naar Odoo: ${message}`, { kind });
+}
+
 const addDays = (iso: string, days: number) => new Date(Date.parse(`${iso}T00:00:00Z`) + days * 86400_000).toISOString().slice(0, 10);
+
+/** Odoo-URL vergelijkbaar maken (hoofdletters, slash, poort 443). */
+export function normalizeOdooUrlKey(u: string | null | undefined): string {
+  return String(u ?? "").trim().toLowerCase().replace(/\/+$/, "").replace(/:443$/, "");
+}
 
 /** R8: een dagboek van een andere tenant op dezelfde Odoo (url + db) is taboe. */
 async function journalTakenByOther(db: Db, tenantId: string, journalId: number): Promise<boolean> {
   const { data: me } = await db.from("tenant_odoo_credentials").select("odoo_url, odoo_db").eq("tenant_id", tenantId).maybeSingle();
   if (!me) return false;
-  const { data: others } = await db.from("tenant_odoo_credentials").select("tenant_id").eq("odoo_url", me.odoo_url).eq("odoo_db", me.odoo_db).neq("tenant_id", tenantId);
-  const ids = ((others ?? []) as { tenant_id: string }[]).map((r) => r.tenant_id);
+  // Op db filteren, de URL genormaliseerd in het geheugen vergelijken (review 1, punt 8).
+  const { data: sameDb } = await db.from("tenant_odoo_credentials").select("tenant_id, odoo_url").eq("odoo_db", me.odoo_db).neq("tenant_id", tenantId);
+  const ids = ((sameDb ?? []) as { tenant_id: string; odoo_url: string }[])
+    .filter((r) => normalizeOdooUrlKey(r.odoo_url) === normalizeOdooUrlKey(me.odoo_url)).map((r) => r.tenant_id);
   if (!ids.length) return false;
   const { data: rows, error } = await db.from("tenant_odoo_settings").select("tenant_id, odoo_journal_id, pos_z_journal_id").in("tenant_id", ids);
   if (error) throw new Error(`dagboekcontrole: ${errMsg(error)}`);
@@ -406,29 +464,40 @@ async function journalTakenByOther(db: Db, tenantId: string, journalId: number):
     .some((r) => String(r.odoo_journal_id ?? "") === String(journalId) || String(r.pos_z_journal_id ?? "") === String(journalId));
 }
 
-async function loadReports(db: Db, tenantId: string, from: string, reportIds?: string[]): Promise<ZReportRow[]> {
-  const out: ZReportRow[] = [];
+interface ZLite { id: string; report_no: number | null; booking_date: string }
+
+/** Review 1 (punt 5): eerst enkel id, nummer en dag (geen data-jsonb). */
+async function loadReportIds(db: Db, tenantId: string, from: string, reportIds?: string[]): Promise<ZLite[]> {
+  const out: ZLite[] = [];
   for (let off = 0; ; off += 1000) {
-    let q = db.from("kassa_reports")
-      .select("id, tenant_id, kind, report_no, booking_date, period_start, period_end, data")
-      .eq("tenant_id", tenantId)
-      .eq("kind", "Z")
-      .gte("booking_date", from);
+    let q = db.from("kassa_reports").select("id, report_no, booking_date").eq("tenant_id", tenantId).eq("kind", "Z").gte("booking_date", from);
     if (reportIds?.length) q = q.in("id", reportIds);
     const { data, error } = await q.order("report_no", { ascending: true }).range(off, off + 999);
     if (error) throw new Error(`kassa_reports: ${errMsg(error)}`);
-    out.push(...((data ?? []) as ZReportRow[]));
+    out.push(...((data ?? []) as ZLite[]));
     if (!data || data.length < 1000) return out;
   }
 }
 
-interface LogRow { id: string; kassa_report_id: string; sync_status: string; created_at: string; attempts: number | null }
+async function loadReportsData(db: Db, tenantId: string, ids: string[]): Promise<Map<string, ZReportRow>> {
+  if (!ids.length) return new Map();
+  const { data, error } = await db.from("kassa_reports")
+    .select("id, tenant_id, kind, report_no, booking_date, period_start, period_end, data")
+    .eq("tenant_id", tenantId).in("id", ids);
+  if (error) throw new Error(`kassa_reports: ${errMsg(error)}`);
+  return new Map(((data ?? []) as ZReportRow[]).map((r) => [r.id, r]));
+}
+
+export interface LogRow {
+  id: string; kassa_report_id: string; sync_status: string; created_at: string;
+  attempts: number | null; finished_at: string | null; odoo_move_id: string | null;
+}
 
 async function loadLogs(db: Db, tenantId: string): Promise<LogRow[]> {
   const out: LogRow[] = [];
   for (let off = 0; ; off += 1000) {
     const { data, error } = await db.from("odoo_pos_z_sync_log")
-      .select("id, kassa_report_id, sync_status, created_at, attempts")
+      .select("id, kassa_report_id, sync_status, created_at, attempts, finished_at, odoo_move_id")
       .eq("tenant_id", tenantId)
       .order("created_at", { ascending: true })
       .range(off, off + 999);
@@ -438,79 +507,138 @@ async function loadLogs(db: Db, tenantId: string): Promise<LogRow[]> {
   }
 }
 
-export async function syncTenantZ(args: {
+/** Mag een mislukte Z nu opnieuw? (review 1, punt 4) */
+export function retryDue(l: Pick<LogRow, "attempts" | "finished_at">, now: Date): boolean {
+  const n = l.attempts ?? 1;
+  if (n >= MAX_ATTEMPTS) return false;
+  if (n < HOURLY_ATTEMPTS) return true;
+  const last = l.finished_at ? Date.parse(l.finished_at) : 0;
+  return now.getTime() - last >= DAILY_MS;
+}
+
+const first = (x: any) => (Array.isArray(x) ? x[0] : x);
+
+export interface TenantArgs {
   db: Db;
-  odoo: PosZOdoo | null;
-  odooNote?: string;
   tenantId: string;
   tenantName: string;
   settings: PosZSettings;
   dryRun: boolean;
-  deadline: number;
   maxPerRun?: number;
   fromDate?: string | null;
   reportIds?: string[];
   now?: () => Date;
-}): Promise<TenantZResult> {
-  const { db, odoo, tenantId, settings, dryRun } = args;
+}
+
+export interface PreparedTenant {
+  result: TenantZResult;
+  /** null = klaar (overgeslagen, fout of niets te doen). */
+  work: null | {
+    from: string; journalId: number; journalName: string | null; label: string; partnerName: string;
+    batch: ZLite[]; failedRow: Map<string, LogRow>;
+  };
+}
+
+/**
+ * Stap 1 (zonder Odoo): instellingen, startdatum, dagboek, welke Z's open staan. Verlopen claims
+ * worden hier vrijgegeven. Index.ts doet dit voor alle tenants en begint met de oudste open Z.
+ */
+export async function prepareTenantZ(args: TenantArgs): Promise<PreparedTenant> {
+  const { db, tenantId, settings, dryRun } = args;
   const now = args.now ?? (() => new Date());
   const res: TenantZResult = { reports: [], remaining: 0 };
+  const done = (r: TenantZResult): PreparedTenant => ({ result: r, work: null });
   const maxPerRun = Math.min(Math.max(args.maxPerRun ?? 20, 1), 100);
 
   // R8: standaard uit. Een proefrun mag een tenant met de schakelaar uit bekijken.
-  if (!dryRun && settings.pos_z_sync_enabled !== true) return { ...res, skipped: "kassa-naar-Odoo staat uit" };
-  if (!dryRun && settings.odoo_sync_enabled !== true) return { ...res, skipped: "Odoo-sync staat uit" };
-  const today = now().toISOString().slice(0, 10);
-  const from = args.fromDate ?? settings.pos_z_sync_from ?? (dryRun ? addDays(today, -31) : null);
-  if (!from || !/^\d{4}-\d{2}-\d{2}$/.test(from)) return { ...res, skipped: "geen startdatum (pos_z_sync_from)" };
+  if (!dryRun && settings.pos_z_sync_enabled !== true) return done({ ...res, skipped: "kassa-naar-Odoo staat uit" });
+  if (!dryRun && settings.odoo_sync_enabled !== true) return done({ ...res, skipped: "Odoo-sync staat uit" });
+  const today = brusselsDate(now());
+  const from = (dryRun ? args.fromDate : null) ?? settings.pos_z_sync_from ?? (dryRun ? addDays(today, -31) : null);
+  if (!from || !/^\d{4}-\d{2}-\d{2}$/.test(from)) return done({ ...res, skipped: "geen startdatum (pos_z_sync_from)" });
   res.from = from;
+
+  // Review 1 (punt 1), tweede slot naast de trigger: nooit vóór het aanzetmoment, tenzij de
+  // terugwerkende kracht via de RPC bevestigd werd (pos_z_backfill_from). Zelfde regel als de
+  // trigger op tenant_odoo_settings: Brusselse kalenderdag van het aanzetten, zonder marge.
+  if (!dryRun) {
+    if (!settings.pos_z_enabled_at) {
+      await notifyTenant(db, tenantId, "no_enabled_at", now(), "het aanzetmoment ontbreekt; zet de schakelaar opnieuw aan.");
+      return done({ ...res, error: "aanzetmoment (pos_z_enabled_at) ontbreekt" });
+    }
+    const minDay = [brusselsDate(new Date(settings.pos_z_enabled_at)), settings.pos_z_backfill_from].filter(Boolean).sort()[0] as string;
+    if (from < minDay) {
+      await notifyTenant(db, tenantId, "from_unconfirmed", now(), `de startdatum ${dateNl(from)} ligt vóór het aanzetten en is niet bevestigd.`);
+      return done({ ...res, error: `startdatum ${from} vóór het aanzetmoment zonder bevestiging` });
+    }
+  }
 
   const journalId = Number(settings.pos_z_journal_id || settings.odoo_journal_id);
   const journalName = settings.pos_z_journal_id ? settings.pos_z_journal_name : settings.odoo_journal_name;
-  if (!Number.isFinite(journalId) || journalId <= 0) return { ...res, error: "Geen Odoo-dagboek ingesteld voor de kassa of de facturen." };
+  if (!Number.isFinite(journalId) || journalId <= 0) {
+    if (!dryRun) await notifyTenant(db, tenantId, "no_journal", now(), "er is geen Odoo-dagboek ingesteld.");
+    return done({ ...res, error: "Geen Odoo-dagboek ingesteld voor de kassa of de facturen." });
+  }
   res.journal_id = journalId;
   if (await journalTakenByOther(db, tenantId, journalId)) {
-    return { ...res, error: `Odoo-dagboek ${journalId} wordt al gebruikt door een andere winkel op dezelfde Odoo.` };
+    if (!dryRun) await notifyTenant(db, tenantId, "journal_taken", now(), `Odoo-dagboek ${journalId} wordt al gebruikt door een andere winkel op dezelfde Odoo.`);
+    return done({ ...res, error: `Odoo-dagboek ${journalId} wordt al gebruikt door een andere winkel op dezelfde Odoo.` });
   }
 
-  const label = (settings.channel_aliases?.pos ?? "").trim() || DEFAULT_POS_LABEL;
+  const label = (settings.channel_aliases?.[POS_Z_CHANNEL] ?? "").trim() || DEFAULT_POS_LABEL;
   const partnerName = `${label} — ${args.tenantName}`;
   res.partner = partnerName;
 
-  // Welke Z's? Nooit eerder geclaimd (pending vers, synced, skipped) en niet historisch.
-  const reports = (await loadReports(db, tenantId, from, args.reportIds)).filter((r) => !r.data?.historical_import);
+  const reports = await loadReportIds(db, tenantId, from, args.reportIds);
   const logs = await loadLogs(db, tenantId);
-  const done = new Set<string>();
+  const closed = new Set<string>(); // synced, skipped, accepted, needs_review: nooit automatisch
   const busy = new Set<string>();
-  const failedBefore = new Set<string>();
-  // Eén logregel per Z: een nieuwe poging hergebruikt de laatste 'failed'-rij (geen hourly bloat).
+  const waiting = new Set<string>(); // backoff
   const failedRow = new Map<string, LogRow>();
   for (const l of logs) {
-    if (l.sync_status === "synced" || l.sync_status === "skipped") done.add(l.kassa_report_id);
-    else if (l.sync_status === "failed") { failedBefore.add(l.kassa_report_id); failedRow.set(l.kassa_report_id, l); }
+    if (["synced", "skipped", "accepted", "needs_review"].includes(l.sync_status)) closed.add(l.kassa_report_id);
+    else if (l.sync_status === "failed") failedRow.set(l.kassa_report_id, l);
     else if (l.sync_status === "pending") {
       if (now().getTime() - Date.parse(l.created_at) < STALE_PENDING_MS) busy.add(l.kassa_report_id);
       else if (!dryRun) {
-        // Onderbroken run: de claim vrijgeven. Een eventueel concept in Odoo wordt bij de
-        // volgende poging op naam teruggevonden en hergebruikt (R6).
-        await db.from("odoo_pos_z_sync_log").update({ sync_status: "failed", error_message: "onderbroken run (claim verlopen)", finished_at: now().toISOString() })
-          .eq("id", l.id).eq("sync_status", "pending");
-        failedBefore.add(l.kassa_report_id);
-        failedRow.set(l.kassa_report_id, { ...l, sync_status: "failed" });
-      }
+        // Onderbroken run: de claim vrijgeven, enkel als ze nog is wat we zagen (review 1, punt 2).
+        const { data: rel } = await db.from("odoo_pos_z_sync_log")
+          .update({ sync_status: "failed", error_message: "onderbroken run (claim verlopen)", finished_at: now().toISOString() })
+          .eq("id", l.id).eq("sync_status", "pending").eq("created_at", l.created_at).eq("attempts", l.attempts ?? 1)
+          .select("id");
+        if (first(rel)?.id) failedRow.set(l.kassa_report_id, { ...l, sync_status: "failed", finished_at: now().toISOString() });
+        else busy.add(l.kassa_report_id);
+      } else busy.add(l.kassa_report_id);
     }
   }
-  const open = reports.filter((r) => !done.has(r.id) && !busy.has(r.id));
-  const ordered = [...open.filter((r) => !failedBefore.has(r.id)), ...open.filter((r) => failedBefore.has(r.id))];
+  for (const [id, l] of failedRow) if (!retryDue(l, now())) waiting.add(id);
+  const open = reports.filter((r) => !closed.has(r.id) && !busy.has(r.id) && !waiting.has(r.id));
+  const ordered = [...open.filter((r) => !failedRow.has(r.id)), ...open.filter((r) => failedRow.has(r.id))];
   const batch = ordered.slice(0, maxPerRun);
   res.remaining = ordered.length - batch.length;
+  res.oldest_open = open.length ? open.map((r) => r.booking_date).sort()[0] : null;
   for (const r of reports) if (busy.has(r.id)) res.reports.push({ report_id: r.id, report_no: r.report_no, booking_date: r.booking_date, status: "busy" });
-  if (!batch.length) return res;
+  if (!batch.length) return done(res);
+  return { result: res, work: { from, journalId, journalName: journalName ?? null, label, partnerName, batch, failedRow } };
+}
 
-  // Odoo vooraf: dagboek (verkoop, naam ongewijzigd). Bij een proefrun enkel melden.
+/** Stap 2: de batch boeken (of tonen bij een proefrun). */
+export async function runPreparedZ(args: TenantArgs & {
+  prepared: PreparedTenant; odoo: PosZOdoo | null; odooNote?: string; deadline: number;
+}): Promise<TenantZResult> {
+  const { db, tenantId, settings, dryRun, prepared } = args;
+  const now = args.now ?? (() => new Date());
+  const res = prepared.result;
+  if (!prepared.work) return res;
+  const { journalId, journalName, label, partnerName, batch, failedRow } = prepared.work;
+  const odoo = args.odoo ? guardOdoo(args.odoo, args.deadline) : null;
+
   const checks: string[] = [];
   if (!odoo) {
-    if (!dryRun) return { ...res, error: args.odooNote ?? "Geen Odoo-verbinding" };
+    if (!dryRun) {
+      await notifyTenant(db, tenantId, "odoo_connection", now(), args.odooNote ?? "geen Odoo-verbinding");
+      return { ...res, error: args.odooNote ?? "Geen Odoo-verbinding" };
+    }
     checks.push(`Odoo niet gelezen: ${args.odooNote ?? "geen verbinding"}`);
   } else {
     try {
@@ -519,10 +647,9 @@ export async function syncTenantZ(args: {
       if (j.type !== "sale") throw new Error(`Odoo-dagboek ${j.name} is geen verkoopdagboek (type=${j.type}).`);
       if (journalName && j.name !== journalName) throw new Error(`Odoo-dagboek heet nu '${j.name}' i.p.v. '${journalName}'. Kies het opnieuw in de instellingen.`);
     } catch (e) {
+      if (e instanceof DeadlineError) return { ...res, remaining: res.remaining + batch.length };
       if (!dryRun) {
-        // Eén melding per dagboek (de dedupe-index houdt herhalingen tegen).
-        await notify(db, tenantId, `odoo_pos_z_journal:${journalId}`, "Kassa-omzet niet naar Odoo",
-          `De Z-rapporten van de kassa kunnen niet naar Odoo: ${errMsg(e)}`, { journal_id: journalId });
+        await notifyTenant(db, tenantId, "journal", now(), errMsg(e));
         return { ...res, error: errMsg(e) };
       }
       checks.push(errMsg(e));
@@ -543,35 +670,41 @@ export async function syncTenantZ(args: {
   let partnerId: number | null = null;
   const partner = async (): Promise<number> => {
     if (partnerId) return partnerId;
-    const cached = Number(settings.channel_partner_ids?.pos);
-    if (Number.isFinite(cached) && cached > 0 && await odoo!.partnerExists(cached)) return (partnerId = cached);
+    // Gecachet id enkel als die partner nog bestaat én (nog) zo heet (review 1, punt 8).
+    const cached = Number(settings.channel_partner_ids?.[POS_Z_CHANNEL]);
+    if (Number.isFinite(cached) && cached > 0 && await odoo!.partnerName(cached) === partnerName) return (partnerId = cached);
     const found = await odoo!.findPartner(partnerName);
     partnerId = found ?? await odoo!.createPartner(partnerName);
-    const ids = { ...(settings.channel_partner_ids ?? {}), pos: partnerId };
+    const ids = { ...(settings.channel_partner_ids ?? {}), [POS_Z_CHANNEL]: partnerId };
     await db.from("tenant_odoo_settings").update({ channel_partner_ids: ids }).eq("tenant_id", tenantId);
     settings.channel_partner_ids = ids;
     return partnerId;
   };
 
-  for (const r of batch) {
-    const base: ZResult = { report_id: r.id, report_no: r.report_no, booking_date: r.booking_date, status: "failed" };
+  const data = await loadReportsData(db, tenantId, batch.map((b) => b.id));
+
+  for (const lite of batch) {
+    const base: ZResult = { report_id: lite.id, report_no: lite.report_no, booking_date: lite.booking_date, status: "failed" };
     if (Date.now() > args.deadline) { res.remaining += 1; continue; }
+    const r = data.get(lite.id);
+    if (!r || r.data?.historical_import) continue; // R8 (historisch) of intussen weg
+    const prev = failedRow.get(r.id);
     const planned = planZBooking(r, { partnerLabel: label });
     if (!planned.ok) {
+      // Een ongeldige Z wordt niet vanzelf geldig: meteen needs_review, geen herhaling.
       const out: ZResult = { ...base, status: "invalid", error: planned.reason };
       if (!dryRun) {
-        const prev = failedRow.get(r.id);
         if (prev) {
-          await db.from("odoo_pos_z_sync_log").update({ error_message: planned.reason, attempts: (prev.attempts ?? 1) + 1, finished_at: now().toISOString() })
-            .eq("id", prev.id).eq("sync_status", "failed");
+          await db.from("odoo_pos_z_sync_log").update({ sync_status: "needs_review", error_message: planned.reason, finished_at: now().toISOString() })
+            .eq("id", prev.id).eq("sync_status", "failed").eq("attempts", prev.attempts ?? 1);
         } else {
           await db.from("odoo_pos_z_sync_log").insert({
             tenant_id: tenantId, kassa_report_id: r.id, report_no: r.report_no, booking_date: r.booking_date,
-            sync_status: "failed", error_message: planned.reason, finished_at: now().toISOString(),
+            sync_status: "needs_review", attempts: 1, error_message: planned.reason, finished_at: now().toISOString(),
           });
         }
-        await notify(db, tenantId, `odoo_pos_z_failed:${r.id}`, `Z-rapport ${r.report_no ?? "?"} niet naar Odoo`,
-          `Z-rapport ${r.report_no ?? "?"} (${dateNl(r.booking_date)}) kon niet geboekt worden: ${planned.reason}.`, { kassa_report_id: r.id });
+        await notify(db, tenantId, `odoo_pos_z_needs_review:${r.id}`, `Z-rapport ${r.report_no ?? "?"} niet naar Odoo`,
+          `Z-rapport ${r.report_no ?? "?"} (${dateNl(r.booking_date)}) kan niet geboekt worden: ${planned.reason}. Boek het met de hand en aanvaard het in SellQo.`, { kassa_report_id: r.id });
       }
       res.reports.push(out);
       continue;
@@ -585,10 +718,10 @@ export async function syncTenantZ(args: {
     // R7: lege Z.
     if (plan.empty) {
       if (dryRun) { res.reports.push({ ...summary, status: "would_skip" }); continue; }
-      const { error } = await db.from("odoo_pos_z_sync_log").insert({
-        tenant_id: tenantId, kassa_report_id: r.id, report_no: r.report_no, booking_date: r.booking_date,
-        sync_status: "skipped", error_message: "lege Z (geen omzet)", odoo_move_name: plan.name, finished_at: now().toISOString(),
-      });
+      const patch = { sync_status: "skipped", error_message: "lege Z (geen omzet)", odoo_move_name: plan.name, finished_at: now().toISOString() };
+      const { error } = prev
+        ? await db.from("odoo_pos_z_sync_log").update(patch).eq("id", prev.id).eq("sync_status", "failed").eq("attempts", prev.attempts ?? 1)
+        : await db.from("odoo_pos_z_sync_log").insert({ tenant_id: tenantId, kassa_report_id: r.id, report_no: r.report_no, booking_date: r.booking_date, attempts: 1, ...patch });
       res.reports.push({ ...summary, status: error ? "busy" : "skipped", ...(error && error.code !== "23505" ? { error: errMsg(error) } : {}) });
       continue;
     }
@@ -607,23 +740,17 @@ export async function syncTenantZ(args: {
       continue;
     }
 
-    // R6: claimen. De unieke index laat maar één pending/synced/skipped-rij per Z toe.
+    // R6: claimen. Een eerdere mislukte poging: diezelfde rij, compare-and-swap op status én
+    // aantal pogingen (review 1, punt 2). Anders een nieuwe rij; de unieke index weigert een tweede.
+    const attempts = (prev?.attempts ?? 0) + 1;
     const amounts = { untaxed: plan.expected.untaxed, tax: plan.expected.tax, total: plan.expected.total, per_rate: plan.perRate, exact: plan.exact };
-    // Een eerdere mislukte poging: diezelfde rij terug op pending zetten (voorwaardelijk op
-    // 'failed', dus een gelijktijdige run kan ze niet ook nemen; de unieke index weigert een
-    // tweede pending). Anders een nieuwe rij.
-    const prev = failedRow.get(r.id);
+    const claimPatch = { sync_status: "pending", odoo_move_name: plan.name, move_type: plan.moveType, amounts, attempts, error_message: null, finished_at: null };
     const { data: claim, error: claimErr } = prev
-      ? await db.from("odoo_pos_z_sync_log").update({
-          sync_status: "pending", created_at: now().toISOString(), finished_at: null, error_message: null,
-          odoo_move_name: plan.name, move_type: plan.moveType, amounts, attempts: (prev.attempts ?? 1) + 1,
-        }).eq("id", prev.id).eq("sync_status", "failed").select("id").maybeSingle()
-      : await db.from("odoo_pos_z_sync_log").insert({
-          tenant_id: tenantId, kassa_report_id: r.id, report_no: r.report_no, booking_date: r.booking_date,
-          sync_status: "pending", odoo_move_name: plan.name, move_type: plan.moveType, amounts,
-        }).select("id").single();
-    // (update … maybeSingle geeft één rij; defensief ook een lijst aanvaarden)
-    const claimRow = Array.isArray(claim) ? claim[0] : claim;
+      ? await db.from("odoo_pos_z_sync_log").update({ ...claimPatch, created_at: now().toISOString() })
+          .eq("id", prev.id).eq("sync_status", "failed").eq("attempts", prev.attempts ?? 1).select("id").maybeSingle()
+      : await db.from("odoo_pos_z_sync_log").insert({ tenant_id: tenantId, kassa_report_id: r.id, report_no: r.report_no, booking_date: r.booking_date, ...claimPatch })
+          .select("id").single();
+    const claimRow = first(claim);
     if (claimErr || !claimRow?.id) {
       res.reports.push({ ...summary, status: "busy", ...(claimErr && claimErr.code !== "23505" ? { error: errMsg(claimErr) } : {}) });
       continue;
@@ -638,26 +765,37 @@ export async function syncTenantZ(args: {
         odooLines.push([0, 0, { name: l.name, quantity: 1, price_unit: l.price_unit, tax_ids: [[6, 0, [taxId]]] }]);
       }
       const pid = await partner();
-      let moveId: number;
-      const ex = await odoo!.findMove(plan.name, journalId, plan.moveType);
-      if (ex) {
-        // Hergebruik enkel als het echt deze Z is (zelfde verzamelklant en bedrijfsdag).
-        if (ex.partner_id !== pid || String(ex.invoice_date ?? "").slice(0, 10) !== plan.bookingDate) {
-          throw new Error(`In Odoo bestaat al een boeking ${plan.name} in dit dagboek die niet bij deze Z hoort (Odoo-id ${ex.id}). Niets gewijzigd.`);
+      // Is dit echt deze Z? Zelfde naam, soort, verzamelklant en bedrijfsdag.
+      const ours = (m: OdooMoveHead | null) => !!m && m.state !== "cancel" && m.name === plan.name && m.move_type === plan.moveType
+        && m.partner_id === pid && String(m.invoice_date ?? "").slice(0, 10) === plan.bookingDate;
+      let moveId: number | null = null;
+      // Review 1 (punt 8): eerst de boeking van een vorige poging, ongeacht het dagboek.
+      const prevMoveId = Number(prev?.odoo_move_id);
+      if (Number.isFinite(prevMoveId) && prevMoveId > 0) {
+        const pm = await odoo!.getMove(prevMoveId);
+        if (pm && pm.state !== "cancel") {
+          if (!ours(pm)) throw new Error(`De Odoo-boeking van de vorige poging (Odoo-id ${pm.id}, ${pm.name}) hoort niet meer bij deze Z. Niets gewijzigd.`);
+          moveId = pm.id;
         }
-        moveId = ex.id;
-      } else {
-        moveId = await odoo!.createMove({
-          move_type: plan.moveType,
-          partner_id: pid,
-          invoice_date: plan.bookingDate,
-          name: plan.name,
-          journal_id: journalId,
-          ref: plan.ref,
-          narration: plan.narration,
-          fiscal_position_id: false,
-          invoice_line_ids: odooLines,
-        });
+      }
+      if (!moveId) {
+        const ex = await odoo!.findMove(plan.name, journalId, plan.moveType);
+        if (ex) {
+          if (!ours(ex)) throw new Error(`In Odoo bestaat al een boeking ${plan.name} in dit dagboek die niet bij deze Z hoort (Odoo-id ${ex.id}). Niets gewijzigd.`);
+          moveId = ex.id;
+        } else {
+          moveId = await odoo!.createMove({
+            move_type: plan.moveType,
+            partner_id: pid,
+            invoice_date: plan.bookingDate,
+            name: plan.name,
+            journal_id: journalId,
+            ref: plan.ref,
+            narration: plan.narration,
+            fiscal_position_id: false,
+            invoice_line_ids: odooLines,
+          });
+        }
       }
       await db.from("odoo_pos_z_sync_log").update({ odoo_move_id: String(moveId) }).eq("id", logId);
       const mv = await odoo!.readMove(moveId);
@@ -678,17 +816,35 @@ export async function syncTenantZ(args: {
       await db.from("odoo_pos_z_sync_log").update({
         sync_status: "synced", odoo_move_id: String(moveId), odoo_state: state, error_message: null, finished_at: now().toISOString(),
       }).eq("id", logId);
-      res.reports.push({ ...summary, status: "synced", odoo_move_id: moveId, odoo_state: state });
+      res.reports.push({ ...summary, status: "synced", odoo_move_id: moveId, odoo_state: state, attempts });
     } catch (e) {
       const msg = errMsg(e);
-      await db.from("odoo_pos_z_sync_log").update({ sync_status: "failed", error_message: msg, finished_at: now().toISOString() }).eq("id", logId);
-      if (!mismatchNotified) {
+      if (e instanceof DeadlineError) {
+        // Geen echte poging: de teller terug, geen melding.
+        await db.from("odoo_pos_z_sync_log").update({ sync_status: "failed", attempts: attempts - 1, error_message: msg, finished_at: now().toISOString() }).eq("id", logId);
+        res.reports.push({ ...summary, status: "deferred", error: msg });
+        res.remaining += 1;
+        continue;
+      }
+      const final = attempts >= MAX_ATTEMPTS;
+      await db.from("odoo_pos_z_sync_log").update({ sync_status: final ? "needs_review" : "failed", error_message: msg, finished_at: now().toISOString() }).eq("id", logId);
+      if (final) {
+        await notify(db, tenantId, `odoo_pos_z_needs_review:${r.id}`, `Z-rapport ${plan.reportNo} na ${attempts} pogingen niet in Odoo`,
+          `Z-rapport ${plan.reportNo} (${dateNl(plan.bookingDate)}) lukte niet na ${attempts} pogingen: ${msg}. SellQo probeert niet meer vanzelf. Boek het met de hand en aanvaard het, of kies "Opnieuw proberen".`,
+          { kassa_report_id: r.id, number: plan.name });
+      } else if (!mismatchNotified) {
         await notify(db, tenantId, `odoo_pos_z_failed:${r.id}`, `Z-rapport ${plan.reportNo} niet naar Odoo`,
           `Z-rapport ${plan.reportNo} (${dateNl(plan.bookingDate)}) kon niet in Odoo geboekt worden: ${msg}`, { kassa_report_id: r.id, number: plan.name });
       }
-      res.reports.push({ ...summary, status: "failed", error: msg });
+      res.reports.push({ ...summary, status: final ? "needs_review" : "failed", error: msg, attempts });
     }
   }
   if (checks.length) res.checks = checks;
   return res;
+}
+
+/** Beide stappen na elkaar (tests en losse aanroep). */
+export async function syncTenantZ(args: TenantArgs & { odoo: PosZOdoo | null; odooNote?: string; deadline: number }): Promise<TenantZResult> {
+  const prepared = await prepareTenantZ(args);
+  return runPreparedZ({ ...args, prepared });
 }

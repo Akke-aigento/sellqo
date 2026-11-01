@@ -2877,7 +2877,7 @@
         "ebay": "eBay",
         "subscription": "Subscriptions",
         "manual": "Manual",
-        "pos": "Till (Z reports)"
+        "pos_z": "Till (Z reports)"
       }
     },
     "odooAutoPost": {
@@ -2892,7 +2892,7 @@
       "enable_label": "Send till Z reports to Odoo",
       "enable_help": "Off by default. On = SellQo checks for new Z reports every hour.",
       "from_label": "From business day",
-      "from_help": "Older Z reports stay out of Odoo, so nothing that was already booked by hand ends up twice.",
+      "from_help": "Today by default. An earlier day asks for confirmation with the number of Z reports that will then be booked.",
       "journal_label": "Till journal",
       "journal_same": "Same as the sales journal",
       "journal_taken": "in use",
@@ -2903,11 +2903,19 @@
       "recent_row": "Z {{no}} · {{name}}",
       "save": "Save",
       "saving": "Saving…",
+      "backfill_confirm": "The start date {{date}} is in the past. This books {{count}} Z reports in Odoo. If they were already booked by hand, they will appear twice. Continue?",
+      "accept": "Accept",
+      "accept_prompt": "Z {{no}} booked by hand in Odoo? Enter the Odoo number or a short explanation:",
+      "accept_done": "Z report accepted.",
+      "retry": "Try again",
+      "retry_done": "SellQo will try this Z report again on the next run.",
       "status": {
         "pending": "In progress",
         "synced": "Booked",
         "failed": "Failed",
-        "skipped": "Empty, skipped"
+        "skipped": "Empty, skipped",
+        "needs_review": "Needs review",
+        "accepted": "Accepted (by hand)"
       }
     },
     "invoiceRefund": {

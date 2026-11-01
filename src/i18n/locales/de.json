@@ -2546,7 +2546,7 @@
         "ebay": "eBay",
         "subscription": "Abonnements",
         "manual": "Manuell",
-        "pos": "Kasse (Z-Berichte)"
+        "pos_z": "Kasse (Z-Berichte)"
       }
     },
     "odooAutoPost": {
@@ -2561,7 +2561,7 @@
       "enable_label": "Z-Berichte der Kasse nach Odoo senden",
       "enable_help": "Standardmäßig aus. An = SellQo prüft stündlich, ob es neue Z-Berichte gibt.",
       "from_label": "Ab Geschäftstag",
-      "from_help": "Ältere Z-Berichte bleiben außerhalb von Odoo, damit nichts doppelt ankommt, was schon von Hand gebucht wurde.",
+      "from_help": "Standardmäßig heute. Ein früherer Tag verlangt eine Bestätigung mit der Anzahl der Z-Berichte, die dann gebucht werden.",
       "journal_label": "Kassenjournal",
       "journal_same": "Wie das Verkaufsjournal",
       "journal_taken": "in Verwendung",
@@ -2572,11 +2572,19 @@
       "recent_row": "Z {{no}} · {{name}}",
       "save": "Speichern",
       "saving": "Speichern…",
+      "backfill_confirm": "Das Startdatum {{date}} liegt in der Vergangenheit. Dadurch werden {{count}} Z-Berichte in Odoo gebucht. Wurden sie schon von Hand gebucht, stehen sie doppelt. Fortfahren?",
+      "accept": "Akzeptieren",
+      "accept_prompt": "Z {{no}} von Hand in Odoo gebucht? Gib die Odoo-Nummer oder eine kurze Erklärung an:",
+      "accept_done": "Z-Bericht akzeptiert.",
+      "retry": "Erneut versuchen",
+      "retry_done": "SellQo versucht diesen Z-Bericht beim nächsten Lauf erneut.",
       "status": {
         "pending": "In Bearbeitung",
         "synced": "Gebucht",
         "failed": "Fehlgeschlagen",
-        "skipped": "Leer, übersprungen"
+        "skipped": "Leer, übersprungen",
+        "needs_review": "Prüfen",
+        "accepted": "Akzeptiert (von Hand)"
       }
     },
     "invoiceRefund": {

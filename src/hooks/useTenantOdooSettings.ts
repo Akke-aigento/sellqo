@@ -24,6 +24,10 @@ export interface TenantOdooSettings {
   /** KASSA-ODOO-1: eigen kassadagboek; leeg = het verkoopdagboek. */
   pos_z_journal_id?: string | null;
   pos_z_journal_name?: string | null;
+  /** KASSA-ODOO-1 (trigger, enkel lezen): wanneer aangezet. */
+  pos_z_enabled_at?: string | null;
+  /** KASSA-ODOO-1 (RPC, enkel lezen): vroegste bevestigde startdatum. */
+  pos_z_backfill_from?: string | null;
 }
 
 export function useTenantOdooSettings(tenantId: string | undefined) {
@@ -44,7 +48,7 @@ export function useTenantOdooSettings(tenantId: string | undefined) {
   });
 
   const upsert = useMutation({
-    mutationFn: async (updates: Partial<Omit<TenantOdooSettings, 'tenant_id' | 'b2c_dummy_partner_odoo_id'>>) => {
+    mutationFn: async (updates: Partial<Omit<TenantOdooSettings, 'tenant_id' | 'b2c_dummy_partner_odoo_id' | 'pos_z_enabled_at' | 'pos_z_backfill_from'>>) => {
       if (!tenantId) throw new Error('tenant_id required');
       const payload = { tenant_id: tenantId, ...updates };
       const { data, error } = await supabase

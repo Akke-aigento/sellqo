@@ -8,7 +8,7 @@
 // Run: deno test --no-lock scripts/promo-compare/odooPosZ.test.ts
 import { StatefulDb, type Row } from "./statefulDb.ts";
 import {
-  syncTenantZ, vatInGross, type OdooMoveRead, type PosZOdoo, type PosZSettings,
+  splitGrossForOdoo, syncTenantZ, vatInGross, type OdooMoveHead, type OdooMoveRead, type PosZOdoo, type PosZSettings,
 } from "../../supabase/functions/_shared/odooPosZ.ts";
 
 function eq(actual: unknown, expected: unknown, msg: string) {
@@ -21,9 +21,15 @@ const TAX: Record<string, number> = { "21:true": 141, "12:true": 142, "6:true": 
 
 /** Nep-databank met de unieke claim-index van odoo_pos_z_sync_log en de dedupe-index van notifications. */
 class Db extends StatefulDb {
+  /** Wordt vóór elke update op de log uitgevoerd (om een gelijktijdige run na te spelen). */
+  beforeLogUpdate: (() => void) | null = null;
   override from(t: string) {
     const q: any = super.from(t);
     const tables = this.tables;
+    if (t === "odoo_pos_z_sync_log") {
+      const upd = q.update.bind(q);
+      q.update = (p: Row) => { const f = this.beforeLogUpdate; this.beforeLogUpdate = null; f?.(); return upd(p); };
+    }
     if (t === "odoo_pos_z_sync_log" || t === "notifications") {
       const insert = q.insert.bind(q);
       q.insert = (r: Row) => {
@@ -50,6 +56,7 @@ class FakeOdoo implements PosZOdoo {
   writes = 0;
   partners = new Map<number, string>();
   failReadOnce = false;
+  failCreate = false;
   /** Rondt als een Odoo die per document afrondt (round_globally): geeft een afwijking. */
   roundGlobally = false;
   journals: Record<number, { id: number; name: string; type: string }> = { 7: { id: 7, name: "Verkopen", type: "sale" }, 9: { id: 9, name: "Kassa", type: "sale" } };
@@ -61,16 +68,22 @@ class FakeOdoo implements PosZOdoo {
   }
   findPartner(name: string) { for (const [id, n] of this.partners) if (n === name) return Promise.resolve(id); return Promise.resolve(null); }
   createPartner(name: string) { this.writes++; const id = ++this.seq; this.partners.set(id, name); return Promise.resolve(id); }
-  partnerExists(id: number) { return Promise.resolve(this.partners.has(id)); }
+  partnerName(id: number) { return Promise.resolve(this.partners.get(id) ?? null); }
+  private head(id: number): OdooMoveHead {
+    const m = this.moves.get(id)!;
+    return { id, name: m.data.name, state: m.state, move_type: m.data.move_type, partner_id: m.data.partner_id, invoice_date: m.data.invoice_date };
+  }
   findMove(name: string, journalId: number, moveType: string) {
     for (const [id, m] of this.moves) {
-      if (m.data.name === name && m.data.journal_id === journalId && m.data.move_type === moveType && m.state !== "cancel") {
-        return Promise.resolve({ id, state: m.state, partner_id: m.data.partner_id, invoice_date: m.data.invoice_date });
-      }
+      if (m.data.name === name && m.data.journal_id === journalId && m.data.move_type === moveType && m.state !== "cancel") return Promise.resolve(this.head(id));
     }
     return Promise.resolve(null);
   }
-  createMove(data: Record<string, unknown>) { this.creates++; this.writes++; const id = ++this.seq; this.moves.set(id, { data, state: "draft" }); return Promise.resolve(id); }
+  getMove(id: number) { return Promise.resolve(this.moves.has(id) ? this.head(id) : null); }
+  createMove(data: Record<string, unknown>) {
+    if (this.failCreate) return Promise.reject(new Error("Odoo: periode afgesloten"));
+    this.creates++; this.writes++; const id = ++this.seq; this.moves.set(id, { data, state: "draft" }); return Promise.resolve(id);
+  }
   readMove(id: number): Promise<OdooMoveRead> {
     if (this.failReadOnce) { this.failReadOnce = false; return Promise.reject(new Error("Odoo time-out")); }
     const m = this.moves.get(id)!;
@@ -105,7 +118,9 @@ class FakeOdoo implements PosZOdoo {
 const settings = (extra: Partial<PosZSettings> = {}): PosZSettings => ({
   odoo_sync_enabled: true, odoo_journal_id: "7", odoo_journal_name: "Verkopen", odoo_auto_post: true,
   channel_aliases: {}, channel_partner_ids: {}, pos_z_sync_enabled: true, pos_z_sync_from: "2026-10-01",
-  pos_z_journal_id: null, pos_z_journal_name: null, ...extra,
+  pos_z_journal_id: null, pos_z_journal_name: null,
+  // Aangezet op 1 okt (Brussel); terugwerkend enkel met bevestiging.
+  pos_z_enabled_at: "2026-10-01T08:00:00Z", pos_z_backfill_from: null, ...extra,
 });
 
 const z = (id: string, no: number, day: string, vats: any[], extra: Record<string, unknown> = {}) => ({
@@ -154,7 +169,7 @@ Deno.test("echte run: één boeking, gepost, log synced; tweede run doet niets",
   eq(mv.data.invoice_line_ids.map((l: any) => [l[2].price_unit, l[2].quantity, l[2].tax_ids[0][2][0]]), [[15, 1, 141], [16, 1, 142]], "regels bruto, inclusief");
   ok(String(mv.data.narration).includes("Fooien (geen omzet, niet geboekt)"), "fooi enkel info");
   eq(odoo.partners.get(mv.data.partner_id), "Kassaverkopen — Café Test", "verzamelklant");
-  eq(db.tables.tenant_odoo_settings[0].channel_partner_ids, { pos: mv.data.partner_id }, "partner bewaard");
+  eq(db.tables.tenant_odoo_settings[0].channel_partner_ids, { pos_z: mv.data.partner_id }, "partner bewaard onder pos_z");
   eq(db.tables.odoo_pos_z_sync_log.map((l) => [l.sync_status, l.odoo_state]), [["synced", "posted"]], "log");
   const again = await run(db, odoo);
   eq([again.reports.length, odoo.creates, odoo.posts], [0, 1, 1], "idempotent");
@@ -227,7 +242,7 @@ Deno.test("concept-modus (odoo_auto_post uit): boeking blijft concept, wel synce
 
 Deno.test("een verse claim van een andere run: overslaan; een verlopen claim: opnieuw proberen", async () => {
   const db = world(); const odoo = new FakeOdoo();
-  db.tables.odoo_pos_z_sync_log.push({ id: "c1", tenant_id: T, kassa_report_id: "z1", sync_status: "pending", created_at: new Date().toISOString() });
+  db.tables.odoo_pos_z_sync_log.push({ id: "c1", tenant_id: T, kassa_report_id: "z1", sync_status: "pending", created_at: new Date().toISOString(), attempts: 1 });
   const r = await run(db, odoo);
   eq([r.reports.map((x) => x.status), odoo.creates], [["busy"], 0], "bezig");
   db.tables.odoo_pos_z_sync_log[0].created_at = new Date(Date.now() - 3_600_000).toISOString();
@@ -241,4 +256,117 @@ Deno.test("een bestaande Odoo-boeking met dezelfde naam maar een andere klant wo
   const r = await run(db, odoo);
   ok(r.reports[0].status === "failed" && r.reports[0].error?.includes("niet bij deze Z"), JSON.stringify(r.reports));
   eq(odoo.creates, 0, "geen create");
+});
+
+const at = (iso: string) => () => new Date(iso);
+
+Deno.test("review 1.1: startdatum vóór het aanzetten (Brusselse dag) zonder bevestiging = niets, met melding", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  // 31-10 23:30 UTC = 1 november 00:30 in Brussel: 31 oktober is al verleden.
+  const s = settings({ pos_z_enabled_at: "2026-10-31T23:30:00Z", pos_z_sync_from: "2026-10-30" });
+  const r = await run(db, odoo, s, { now: at("2026-11-01T10:00:00Z") });
+  ok(r.error?.includes("zonder bevestiging"), String(r.error));
+  eq([odoo.writes, db.tables.odoo_pos_z_sync_log.length], [0, 0], "niets geboekt");
+  eq(db.notifications("integration_error").map((n) => n.data.dedupe_key), ["odoo_pos_z_tenant:from_unconfirmed:2026-11-01"], "melding met datum");
+  // Bevestigd via de RPC (pos_z_backfill_from): wel.
+  const r2 = await run(db, odoo, { ...s, pos_z_backfill_from: "2026-10-30" }, { now: at("2026-11-01T10:00:00Z") });
+  eq(r2.reports.map((x) => x.status), ["synced"], "na bevestiging");
+  // Een echte run negeert fromDate uit de body.
+  const db3 = world(); const r3 = await run(db3, new FakeOdoo(), s, { now: at("2026-11-01T10:00:00Z"), fromDate: "2026-11-01" });
+  ok(r3.error?.includes("zonder bevestiging"), "body.fromDate omzeilt niets");
+  const r4 = await run(world(), new FakeOdoo(), settings({ pos_z_enabled_at: null }));
+  ok(r4.error?.includes("aanzetmoment"), "zonder aanzetmoment niets");
+});
+
+Deno.test("review 1.2: een verlopen claim die intussen door een andere run genomen werd, wordt niet vrijgegeven", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  const old = new Date(Date.now() - 3_600_000).toISOString();
+  db.tables.odoo_pos_z_sync_log.push({ id: "c1", tenant_id: T, kassa_report_id: "z1", sync_status: "pending", created_at: old, attempts: 1 });
+  // Net vóór onze vrijgave neemt een andere run de claim over (nieuwe created_at).
+  db.beforeLogUpdate = () => { db.tables.odoo_pos_z_sync_log[0].created_at = new Date().toISOString(); };
+  const r = await run(db, odoo);
+  eq([r.reports.map((x) => x.status), odoo.creates, db.tables.odoo_pos_z_sync_log[0].sync_status], [["busy"], 0, "pending"], "afgeblijven");
+});
+
+Deno.test("review 1.2: failed → pending enkel op de geziene poging (compare-and-swap)", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  db.tables.odoo_pos_z_sync_log.push({ id: "f1", tenant_id: T, kassa_report_id: "z1", sync_status: "failed", created_at: "2026-10-31T10:00:00Z", attempts: 1, finished_at: "2026-10-31T10:00:00Z" });
+  db.beforeLogUpdate = () => { db.tables.odoo_pos_z_sync_log[0].attempts = 2; db.tables.odoo_pos_z_sync_log[0].sync_status = "pending"; };
+  const r = await run(db, odoo);
+  eq([r.reports.map((x) => x.status), odoo.creates], [["busy"], 0], "andere run was sneller");
+});
+
+Deno.test("review 1.3: fouten op winkelniveau melden (verbinding, dagboek van een ander), één keer per dag", async () => {
+  const db = world();
+  const r = await run(db, null, settings(), { odooNote: "Odoo-authenticatie mislukt", now: at("2026-11-01T10:00:00Z") });
+  eq(r.error, "Odoo-authenticatie mislukt", "fout");
+  await run(db, null, settings(), { odooNote: "Odoo-authenticatie mislukt", now: at("2026-11-01T11:00:00Z") });
+  await run(db, null, settings(), { odooNote: "Odoo-authenticatie mislukt", now: at("2026-11-02T10:00:00Z") });
+  eq(db.notifications("integration_error").map((n) => n.data.dedupe_key),
+    ["odoo_pos_z_tenant:odoo_connection:2026-11-01", "odoo_pos_z_tenant:odoo_connection:2026-11-02"], "één per dag");
+  const db2 = world();
+  db2.tables.tenant_odoo_credentials.push({ tenant_id: "other", odoo_url: "https://X.odoo.com/", odoo_db: "x" });
+  db2.tables.tenant_odoo_settings.push({ tenant_id: "other", odoo_journal_id: "7", pos_z_journal_id: null });
+  const r2 = await run(db2, new FakeOdoo());
+  ok(r2.error?.includes("andere winkel"), "URL genormaliseerd (hoofdletters, slash)");
+  ok(db2.notifications("integration_error")[0].data.dedupe_key.startsWith("odoo_pos_z_tenant:journal_taken:"), "gemeld");
+});
+
+Deno.test("review 1.4: backoff: 3× elk uur, dan dagelijks, na 10 needs_review en stilte", async () => {
+  const db = world(); const odoo = new FakeOdoo(); odoo.failCreate = true;
+  let t = Date.parse("2026-11-01T10:00:00Z");
+  const tick = (ms: number) => { t += ms; };
+  const go = () => run(db, odoo, settings(), { now: () => new Date(t) });
+  const log = () => db.tables.odoo_pos_z_sync_log[0];
+  for (let i = 1; i <= 3; i++) { await go(); eq([log().sync_status, log().attempts], ["failed", i], `uur ${i}`); tick(3600_000); }
+  await go(); eq(log().attempts, 3, "4de uur: wacht (dagelijks)");
+  tick(24 * 3600_000); await go(); eq(log().attempts, 4, "na een dag opnieuw");
+  for (let i = 5; i <= 10; i++) { tick(24 * 3600_000); await go(); }
+  eq([log().sync_status, log().attempts], ["needs_review", 10], "eindstatus");
+  ok(db.notifications("integration_error").some((n) => n.data.dedupe_key === "odoo_pos_z_needs_review:z1"), "melding needs_review");
+  tick(30 * 24 * 3600_000); const r = await go();
+  eq([r.reports.length, log().attempts], [0, 10], "geen pogingen meer");
+  eq(db.tables.odoo_pos_z_sync_log.length, 1, "één logregel");
+  // Na 'Opnieuw proberen' (RPC odoo_pos_z_retry: failed, attempts 0) en een opgeloste Odoo.
+  Object.assign(log(), { sync_status: "failed", attempts: 0 }); odoo.failCreate = false;
+  eq((await go()).reports.map((x) => x.status), ["synced"], "na retry geboekt");
+  // Aanvaard (RPC odoo_pos_z_accept) telt als afgehandeld.
+  const db2 = world(); db2.tables.odoo_pos_z_sync_log.push({ id: "a1", tenant_id: T, kassa_report_id: "z1", sync_status: "accepted", created_at: "2026-10-31T10:00:00Z", attempts: 4 });
+  eq((await run(db2, new FakeOdoo())).reports.length, 0, "aanvaarde Z nooit opnieuw");
+});
+
+Deno.test("review 1.4: ongeldige Z = meteen needs_review, geen herhaling", async () => {
+  const db = world([z("z1", 1, "2026-10-30", [{ rate: 9, gross_cents: 109, vat_cents: 9, net_cents: 100 }])]);
+  await run(db, new FakeOdoo()); await run(db, new FakeOdoo());
+  eq(db.tables.odoo_pos_z_sync_log.map((l) => l.sync_status), ["needs_review"], "één rij, nagekeken");
+});
+
+Deno.test("review 1.6: tijdsbudget op vóór de Odoo-aanroep: niets geschreven, geen poging geteld", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  const r = await run(db, odoo, settings(), { deadline: Date.now() - 1 });
+  eq([odoo.writes, db.tables.odoo_pos_z_sync_log.length, r.remaining], [0, 0, 1], "uitgesteld");
+});
+
+Deno.test("review 1.8: herpoging zoekt eerst de Odoo-boeking van de vorige poging, ook in een ander dagboek", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  odoo.failReadOnce = true;
+  await run(db, odoo); // boeking in dagboek 7, teruglezen faalt
+  eq(db.tables.odoo_pos_z_sync_log[0].odoo_move_id != null, true, "move-id gelogd");
+  const r = await run(db, odoo, settings({ pos_z_journal_id: "9", pos_z_journal_name: "Kassa" }));
+  eq([r.reports.map((x) => x.status), odoo.creates], [["synced"], 1], "hergebruikt, geen tweede boeking");
+});
+
+Deno.test("review 1.8: gecachete partner die intussen anders heet, wordt niet gebruikt", async () => {
+  const db = world(); const odoo = new FakeOdoo();
+  odoo.partners.set(77, "Iets anders");
+  await run(db, odoo, settings({ channel_partner_ids: { pos_z: 77 } }));
+  const mv = [...odoo.moves.values()][0];
+  eq(odoo.partners.get(mv.data.partner_id), "Kassaverkopen — Café Test", "juiste verzamelklant");
+});
+
+Deno.test("review 1.7: kleine dagen krijgen geen regel met omgekeerd teken", () => {
+  for (let g = 50; g <= 2000; g++) for (const d of [-2, -1, 1, 2]) {
+    const p = splitGrossForOdoo(g, vatInGross(g, 21) + d, 21);
+    if (!p || p.some((x) => x <= 0)) throw new Error(`${g}/${d}: ${JSON.stringify(p)}`);
+  }
 });
