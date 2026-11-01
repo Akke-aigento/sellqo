@@ -22,8 +22,13 @@ const DEFAULT_CHANNEL_LABELS: Record<string, string> = {
   ebay: 'eBay verkopen',
   subscription: 'Abonnementen',
   manual: 'Handmatige verkopen',
+  // KASSA-ODOO-1: verzamelklant van de Z-boekingen (zelfde standaard als _shared/odooPosZ.ts).
+  pos: 'Kassaverkopen',
 };
 const KNOWN_MARKETPLACES = new Set(['bol_com', 'amazon', 'ebay']);
+
+/** Select-waarde voor "zelfde als het verkoopdagboek" (Radix staat geen lege waarde toe). */
+const POS_JOURNAL_SAME = '__same__';
 
 interface Props {
   tenantId: string;
@@ -43,6 +48,10 @@ export function OdooAccountingSettings({ tenantId }: Props) {
   const [autoPost, setAutoPost] = useState(true);
   // INKOOP-3: inkoopfacturen uit SellQo meteen als concept naar Odoo.
   const [pushSupplierDocs, setPushSupplierDocs] = useState(false);
+  // KASSA-ODOO-1: Z-rapporten van de kassa naar Odoo. Standaard uit, eigen opslaan.
+  const [posZEnabled, setPosZEnabled] = useState(false);
+  const [posZFrom, setPosZFrom] = useState('');
+  const [posZJournal, setPosZJournal] = useState(POS_JOURNAL_SAME);
 
   const [url, setUrl] = useState('');
   const [db, setDb] = useState('');
@@ -84,8 +93,9 @@ export function OdooAccountingSettings({ tenantId }: Props) {
     const s = new Set<string>(orderChannels.data || []);
     s.add('subscription');
     s.add('manual');
-    // Preserve a stable ordering: marketplaces first, then webshop/sub/manual.
-    const order = ['bol_com', 'amazon', 'ebay', 'webshop', 'subscription', 'manual'];
+    if (settings?.pos_z_sync_enabled) s.add('pos');
+    // Preserve a stable ordering: marketplaces first, then webshop/sub/manual/pos.
+    const order = ['bol_com', 'amazon', 'ebay', 'webshop', 'subscription', 'manual', 'pos'];
     const extras = Array.from(s).filter(c => !order.includes(c)).sort();
     return [...order.filter(c => s.has(c)), ...extras];
   })();
@@ -121,8 +131,12 @@ export function OdooAccountingSettings({ tenantId }: Props) {
       setPeppolSendEnabled(settings.peppol_send_enabled ?? true);
       setAutoPost(settings.odoo_auto_post ?? true);
       setPushSupplierDocs(settings.push_supplier_documents ?? false);
+      setPosZEnabled(settings.pos_z_sync_enabled ?? false);
+      setPosZFrom(settings.pos_z_sync_from ?? '');
+      setPosZJournal(settings.pos_z_journal_id || POS_JOURNAL_SAME);
     }
   }, [settings]);
+
 
   useEffect(() => {
     if (status.data?.configured) {
@@ -134,6 +148,46 @@ export function OdooAccountingSettings({ tenantId }: Props) {
 
   const selectedJournal = journals.data?.find(j => String(j.id) === journalId);
   const configured = !!status.data?.configured;
+
+  const posZBaseline = {
+    enabled: settings?.pos_z_sync_enabled ?? false,
+    from: settings?.pos_z_sync_from ?? '',
+    journal: settings?.pos_z_journal_id || POS_JOURNAL_SAME,
+  };
+  const posZDirty = !isLoading && (posZEnabled !== posZBaseline.enabled || posZFrom !== posZBaseline.from || posZJournal !== posZBaseline.journal);
+  const posZJournalRow = journals.data?.find(x => String(x.id) === posZJournal);
+  // De factuursync moet opgeslagen aan staan: de Z-boekingen gebruiken die verbinding en instellingen.
+  const posZAvailable = configured && (settings?.odoo_sync_enabled ?? false);
+
+  const handleTogglePosZ = (on: boolean) => {
+    setPosZEnabled(on);
+    // Aanzetten zonder startdatum = vandaag: nooit stil terugwerkend boeken.
+    if (on && !posZFrom) setPosZFrom(new Date().toISOString().slice(0, 10));
+  };
+
+  const handleSavePosZ = () => {
+    const j = posZJournal === POS_JOURNAL_SAME ? null : journals.data?.find(x => String(x.id) === posZJournal);
+    upsert.mutate({
+      pos_z_sync_enabled: posZEnabled,
+      pos_z_sync_from: posZFrom || null,
+      pos_z_journal_id: j ? String(j.id) : null,
+      pos_z_journal_name: j?.name ?? null,
+    });
+  };
+
+  const posZLog = useQuery({
+    queryKey: ['odoo-pos-z-log', tenantId],
+    enabled: !!tenantId && !!settings?.pos_z_sync_enabled,
+    queryFn: async () => {
+      // De tabel staat (nog) niet in de gegenereerde types (zelfde patroon als src/kassa).
+      const { data } = await supabase.from('odoo_pos_z_sync_log' as never)
+        .select('id, report_no, booking_date, sync_status, odoo_move_name, error_message, created_at')
+        .eq('tenant_id' as never, tenantId as never)
+        .order('created_at' as never, { ascending: false })
+        .limit(5);
+      return (data || []) as unknown as Array<{ id: string; report_no: number | null; booking_date: string | null; sync_status: string; odoo_move_name: string | null; error_message: string | null }>;
+    },
+  });
 
   // Compare against stored row when present, otherwise against defaults so the
   // first-ever save (no row yet) is not permanently blocked.
@@ -431,6 +485,95 @@ export function OdooAccountingSettings({ tenantId }: Props) {
                 </span>
               </div>
             ))}
+          </CardContent>
+        </Card>
+      )}
+
+      {configured && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{t('admin.odooPosZ.title')}</CardTitle>
+            <CardDescription>{t('admin.odooPosZ.description')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!posZAvailable && (
+              <p className="text-xs text-amber-700">{t('admin.odooPosZ.needs_sync')}</p>
+            )}
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="pos-z-enabled">{t('admin.odooPosZ.enable_label')}</Label>
+                <p className="text-xs text-muted-foreground mt-1">{t('admin.odooPosZ.enable_help')}</p>
+              </div>
+              <Switch
+                id="pos-z-enabled"
+                checked={posZEnabled}
+                disabled={!canWrite || isLoading || (!posZAvailable && !posZEnabled)}
+                onCheckedChange={handleTogglePosZ}
+              />
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="pos-z-from">{t('admin.odooPosZ.from_label')}</Label>
+                <Input
+                  id="pos-z-from"
+                  type="date"
+                  className="mt-1"
+                  value={posZFrom}
+                  onChange={e => setPosZFrom(e.target.value)}
+                  disabled={!canWrite || !posZEnabled || !posZAvailable}
+                />
+                <p className="text-xs text-muted-foreground mt-1">{t('admin.odooPosZ.from_help')}</p>
+              </div>
+              <div>
+                <Label htmlFor="pos-z-journal">{t('admin.odooPosZ.journal_label')}</Label>
+                <Select value={posZJournal} onValueChange={setPosZJournal}
+                  disabled={!canWrite || !posZEnabled || !posZAvailable || journals.isLoading}>
+                  <SelectTrigger id="pos-z-journal" className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={POS_JOURNAL_SAME}>{t('admin.odooPosZ.journal_same')}</SelectItem>
+                    {(journals.data || []).map(j => (
+                      <SelectItem key={j.id} value={String(j.id)} disabled={j.claimed_by_other_tenant}>
+                        {j.name}{j.code ? ` (${j.code})` : ''}{j.claimed_by_other_tenant ? ` — ${t('admin.odooPosZ.journal_taken')}` : ''}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground mt-1">{t('admin.odooPosZ.journal_help')}</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-2 text-xs text-muted-foreground bg-muted/50 rounded-md p-2">
+              <Info className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+              <span>{t('admin.odooPosZ.rules_note')}</span>
+            </div>
+
+            {settings?.pos_z_sync_enabled && (
+              <div className="space-y-1">
+                <p className="text-sm font-medium">{t('admin.odooPosZ.recent_title')}</p>
+                {(posZLog.data || []).length === 0 ? (
+                  <p className="text-xs text-muted-foreground">{t('admin.odooPosZ.recent_empty')}</p>
+                ) : (
+                  (posZLog.data || []).map(l => (
+                    <div key={l.id} className="flex flex-wrap items-center justify-between gap-2 border-b py-1 last:border-b-0 text-sm">
+                      <span>{t('admin.odooPosZ.recent_row', { no: l.report_no ?? '?', name: l.odoo_move_name ?? '—' })}</span>
+                      <span className={l.sync_status === 'failed' ? 'text-xs text-red-600' : 'text-xs text-muted-foreground'}>
+                        {t(`admin.odooPosZ.status.${l.sync_status}`)}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            <div className="flex justify-end">
+              <Button onClick={handleSavePosZ}
+                disabled={!canWrite || !posZDirty || upsert.isPending || (posZEnabled && (!posZAvailable || !posZFrom)) || !!posZJournalRow?.claimed_by_other_tenant}>
+                {upsert.isPending ? t('admin.odooPosZ.saving') : t('admin.odooPosZ.save')}
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

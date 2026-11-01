@@ -17,6 +17,13 @@ export interface TenantOdooSettings {
   odoo_auto_post: boolean;
   /** INKOOP-3: inkoopfacturen meteen als concept naar Odoo. */
   push_supplier_documents: boolean;
+  /** KASSA-ODOO-1: Z-rapporten van SellQo Kassa naar Odoo (standaard uit). */
+  pos_z_sync_enabled?: boolean;
+  /** KASSA-ODOO-1: enkel Z-rapporten vanaf deze bedrijfsdag (JJJJ-MM-DD). */
+  pos_z_sync_from?: string | null;
+  /** KASSA-ODOO-1: eigen kassadagboek; leeg = het verkoopdagboek. */
+  pos_z_journal_id?: string | null;
+  pos_z_journal_name?: string | null;
 }
 
 export function useTenantOdooSettings(tenantId: string | undefined) {
@@ -42,7 +49,7 @@ export function useTenantOdooSettings(tenantId: string | undefined) {
       const payload = { tenant_id: tenantId, ...updates };
       const { data, error } = await supabase
         .from('tenant_odoo_settings')
-        .upsert(payload, { onConflict: 'tenant_id' })
+        .upsert(payload as never, { onConflict: 'tenant_id' }) // KASSA-ODOO-1: pos_z_* staat nog niet in de gegenereerde types
         .select()
         .single();
       if (error) throw error;

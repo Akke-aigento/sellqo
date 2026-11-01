@@ -153,14 +153,17 @@ Deno.serve(async (req) => {
         .eq('odoo_db', env.db)
         .neq('tenant_id', tenantId);
       const otherTenantIds = (otherCreds || []).map((r: { tenant_id: string }) => r.tenant_id);
-      let claimed: Record<string, string> = {};
+      const claimed: Record<string, string> = {};
       if (otherTenantIds.length) {
+        // KASSA-ODOO-1: ook het kassadagboek (pos_z_journal_id) van een andere winkel telt als
+        // bezet. select('*') zodat dit ook werkt vóór de migratie die de kolom toevoegt.
         const { data: claimedRows } = await supabase
           .from('tenant_odoo_settings')
-          .select('tenant_id, odoo_journal_id')
-          .in('tenant_id', otherTenantIds)
-          .not('odoo_journal_id', 'is', null);
-        claimed = Object.fromEntries((claimedRows || []).map((r: { tenant_id: string; odoo_journal_id: string }) => [String(r.odoo_journal_id), r.tenant_id]));
+          .select('*')
+          .in('tenant_id', otherTenantIds);
+        for (const r of (claimedRows || []) as Array<{ tenant_id: string; odoo_journal_id: string | null; pos_z_journal_id?: string | null }>) {
+          for (const j of [r.odoo_journal_id, r.pos_z_journal_id]) if (j) claimed[String(j)] = r.tenant_id;
+        }
       }
 
       return jsonResponse({

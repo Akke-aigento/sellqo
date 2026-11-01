@@ -2545,13 +2545,39 @@
         "amazon": "Amazon",
         "ebay": "eBay",
         "subscription": "Abonnements",
-        "manual": "Manuel"
+        "manual": "Manuel",
+        "pos": "Caisse (rapports Z)"
       }
     },
     "odooAutoPost": {
       "label": "Comptabiliser automatiquement dans Odoo",
       "help": "Désactivé = les écritures arrivent en brouillon ; votre comptable les valide et envoie Peppol depuis Odoo.",
       "peppolDisabledNote": "L'envoi Peppol automatique nécessite la comptabilisation automatique."
+    },
+    "odooPosZ": {
+      "title": "Chiffre d'affaires de la caisse vers Odoo",
+      "description": "Comptabilise chaque rapport Z clôturé de SellQo Kassa en une seule écriture dans Odoo : le chiffre d'affaires par taux de TVA, identique au centime près au rapport Z.",
+      "needs_sync": "Activez d'abord la synchronisation des factures Odoo et enregistrez : les écritures Z utilisent la même connexion.",
+      "enable_label": "Envoyer les rapports Z de la caisse vers Odoo",
+      "enable_help": "Désactivé par défaut. Activé = SellQo vérifie chaque heure s'il y a de nouveaux rapports Z.",
+      "from_label": "À partir du jour d'activité",
+      "from_help": "Les rapports Z plus anciens restent hors d'Odoo, pour que rien de ce qui a déjà été comptabilisé à la main n'arrive deux fois.",
+      "journal_label": "Journal de caisse",
+      "journal_same": "Identique au journal de ventes",
+      "journal_taken": "utilisé",
+      "journal_help": "Un journal de ventes séparé (p. ex. Caisse) garde la numérotation des factures et des écritures Z distincte.",
+      "rules_note": "Les pourboires et les paiements ne sont pas comptabilisés ; ils figurent uniquement à titre d'information dans la note. L'écriture n'est validée que si Odoo correspond au rapport Z pour chaque taux de TVA ; sinon elle reste en brouillon et vous recevez une notification.",
+      "recent_title": "Derniers rapports Z",
+      "recent_empty": "Aucun rapport Z envoyé pour l'instant.",
+      "recent_row": "Z {{no}} · {{name}}",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "status": {
+        "pending": "En cours",
+        "synced": "Comptabilisé",
+        "failed": "Échec",
+        "skipped": "Vide, ignoré"
+      }
     },
     "invoiceRefund": {
       "action": "Rembourser & créditer",

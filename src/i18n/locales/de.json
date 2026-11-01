@@ -2545,13 +2545,39 @@
         "amazon": "Amazon",
         "ebay": "eBay",
         "subscription": "Abonnements",
-        "manual": "Manuell"
+        "manual": "Manuell",
+        "pos": "Kasse (Z-Berichte)"
       }
     },
     "odooAutoPost": {
       "label": "Automatisch buchen in Odoo",
       "help": "Aus = Buchungen kommen als Entwurf an; dein Buchhalter bucht und sendet Peppol selbst aus Odoo.",
       "peppolDisabledNote": "Automatischer Peppol-Versand erfordert automatisches Buchen."
+    },
+    "odooPosZ": {
+      "title": "Kassenumsatz nach Odoo",
+      "description": "Bucht jeden abgeschlossenen Z-Bericht von SellQo Kassa als eine Buchung in Odoo: den Umsatz pro Steuersatz, auf den Cent gleich dem Z-Bericht.",
+      "needs_sync": "Schalte zuerst die Odoo-Rechnungssynchronisierung ein und speichere: die Z-Buchungen nutzen dieselbe Verbindung.",
+      "enable_label": "Z-Berichte der Kasse nach Odoo senden",
+      "enable_help": "Standardmäßig aus. An = SellQo prüft stündlich, ob es neue Z-Berichte gibt.",
+      "from_label": "Ab Geschäftstag",
+      "from_help": "Ältere Z-Berichte bleiben außerhalb von Odoo, damit nichts doppelt ankommt, was schon von Hand gebucht wurde.",
+      "journal_label": "Kassenjournal",
+      "journal_same": "Wie das Verkaufsjournal",
+      "journal_taken": "in Verwendung",
+      "journal_help": "Ein eigenes Verkaufsjournal (z. B. Kasse) hält die Nummerierung von Rechnungen und Z-Buchungen getrennt.",
+      "rules_note": "Trinkgelder und Zahlungen werden nicht gebucht; sie stehen nur zur Information in der Notiz. Die Buchung wird erst endgültig, wenn Odoo pro Steuersatz dem Z-Bericht entspricht, sonst bleibt sie Entwurf und du bekommst eine Meldung.",
+      "recent_title": "Letzte Z-Berichte",
+      "recent_empty": "Noch keine Z-Berichte gesendet.",
+      "recent_row": "Z {{no}} · {{name}}",
+      "save": "Speichern",
+      "saving": "Speichern…",
+      "status": {
+        "pending": "In Bearbeitung",
+        "synced": "Gebucht",
+        "failed": "Fehlgeschlagen",
+        "skipped": "Leer, übersprungen"
+      }
     },
     "invoiceRefund": {
       "action": "Erstatten & gutschreiben",
