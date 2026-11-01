@@ -111,7 +111,9 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
   const [person, setPerson] = useState<number | null>(null);
   const setAll = (method: TenderMethod) => { setRows([{ method, amount: toInput(total) }]); setPerson(null); setError(null); };
   const split = (n: number) => { setRows(equalSplit(total, n).map((c, i) => ({ method: rows[i]?.method ?? firstMethod, amount: toInput(c) }))); setPerson(0); setError(null); };
-  const tips = tipSuggestions(total);
+  // Review 1: helemaal contant = afronden vanaf het afgeronde contante bedrag (wat de klant echt geeft).
+  const tipBase = plan && total > 0 && plan.cash === total ? plan.cashDue : total;
+  const tips = { ...tipSuggestions(total), roundUp: tipSuggestions(tipBase).roundUp };
   const patch = (i: number, r: Partial<Row>) => setRows((xs) => xs.map((x, j) => (j === i ? { ...x, ...r } : x)));
 
   const confirm = async () => {
@@ -317,7 +319,7 @@ export function PayDialog({ ctx, check, onClose, onPaid, kitchen }: { ctx: Actio
                 className={cn('h-10 rounded-md border px-2.5 text-sm font-semibold tabular-nums disabled:opacity-30', tipCents === c && c > 0 && 'border-primary bg-primary/10')}>{pct} %</button>
             ))}
             <button type="button" disabled={tips.roundUp <= 0} onClick={() => setTip(toInput(tips.roundUp))} aria-pressed={tipCents === tips.roundUp && tips.roundUp > 0}
-              title={tips.roundUp > 0 ? euro(total + tips.roundUp) : undefined}
+              title={tips.roundUp > 0 ? euro(tipBase + tips.roundUp) : undefined}
               className={cn('h-10 rounded-md border px-2.5 text-sm font-semibold disabled:opacity-30', tipCents === tips.roundUp && tips.roundUp > 0 && 'border-primary bg-primary/10')}>{t('kassa.ux6.roundUp')}</button>
             <div className="flex rounded-md border" role="group" aria-label={t('kassa.pay.tipMethod')}>
               {tipMethods.map((m) => (

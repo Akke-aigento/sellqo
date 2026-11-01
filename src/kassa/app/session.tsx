@@ -16,7 +16,9 @@ export interface KassaSessionValue {
   staff: KassaStaff | null;
   /** INSZ voor de FDM-berichten; null = niet ingesteld (fiscale handelingen geweigerd). */
   employeeId: string | null;
-  signIn: (staff: KassaStaff, employeeId: string | null) => void;
+  /** KASSA-RECHTEN-1 (review 1): sessietoken van kassa_staff_login; enkel in het geheugen, nooit in opslag. */
+  staffToken: string | null;
+  signIn: (staff: KassaStaff, employeeId: string | null, staffToken?: string | null) => void;
   lock: () => void;
   /**
    * KASSA-UX-3: scherm aan de muur (Keuken, Bar) — niet vergrendelen bij inactiviteit. Tikken in die
@@ -38,7 +40,19 @@ const Ctx = createContext<KassaSessionValue | null>(null);
 
 export const DEFAULT_IDLE_MS = 2 * 60_000;
 
-export function KassaSessionProvider({ children, idleMs: idleProp = DEFAULT_IDLE_MS }: { children: ReactNode; idleMs?: number }) {
+export function KassaSessionProvider({ children, idleMs: idleProp = DEFAULT_IDLE_MS, onEnd }: {
+  children: ReactNode; idleMs?: number;
+  /** Review 1: bij elke vergrendeling (Wissel of inactiviteit) het sessietoken intrekken op de server. */
+  onEnd?: (staffToken: string) => void;
+}) {
+  const tokenRef = useRef<string | null>(null);
+  const onEndRef = useRef(onEnd);
+  onEndRef.current = onEnd;
+  const endToken = useCallback(() => {
+    const tk = tokenRef.current;
+    tokenRef.current = null;
+    if (tk) { try { onEndRef.current?.(tk); } catch { /* best effort: offline verloopt het token einde bedrijfsdag */ } }
+  }, []);
   const [staff, setStaff] = useState<KassaStaff | null>(null);
   const [idleMs, setIdleMsState] = useState(idleProp);
   useEffect(() => { setIdleMsState(idleProp); }, [idleProp]);
@@ -54,20 +68,23 @@ export function KassaSessionProvider({ children, idleMs: idleProp = DEFAULT_IDLE
   /** "Wissel": de volgende medewerker kiest zelf zijn naam. */
   const lock = useCallback(() => {
     employeeIdRef.current = null;
+    endToken();
     staffRef.current = null;
     setResumeStaff(null);
     setStaff(null);
-  }, []);
+  }, [endToken]);
   /** Inactiviteit: dezelfde medewerker staat voorgekozen op het PIN-scherm. */
   const idleLock = useCallback(() => {
     employeeIdRef.current = null;
+    endToken();
     setResumeStaff(staffRef.current);
     staffRef.current = null;
     setStaff(null);
-  }, []);
+  }, [endToken]);
 
-  const signIn = useCallback((s: KassaStaff, employeeId: string | null) => {
+  const signIn = useCallback((s: KassaStaff, employeeId: string | null, staffToken: string | null = null) => {
     employeeIdRef.current = employeeId;
+    tokenRef.current = staffToken;
     lastActive.current = Date.now();
     staffRef.current = s;
     setResumeStaff(null);
@@ -97,7 +114,7 @@ export function KassaSessionProvider({ children, idleMs: idleProp = DEFAULT_IDLE
     return true;
   }, [idleMs, idleLock]);
 
-  const value = useMemo<KassaSessionValue>(() => ({ staff, employeeId: employeeIdRef.current, signIn, lock, setIdlePaused, guard, resumeStaff, setIdleMs }),
+  const value = useMemo<KassaSessionValue>(() => ({ staff, employeeId: employeeIdRef.current, staffToken: tokenRef.current, signIn, lock, setIdlePaused, guard, resumeStaff, setIdleMs }),
     [staff, signIn, lock, setIdlePaused, guard, resumeStaff, setIdleMs]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -21,11 +21,11 @@ import { checkTotalCents, isCounter, lineTotalCents, type Check, type CheckLine 
 import { kitchenOn, rememberKitchen, rememberService, type CounterService } from '../horeca/counter';
 import { roundLines } from '../horeca/fiscalLines';
 import { discountLine, moveCheck, moveLines, requestBill, sendRound, voidLine, type ActionCtx, type ActionOutcome } from '../horeca/actions';
-import { approvalFor, needsApproval, type ApprovalAction } from '../horeca/approvals';
+import { approvalFor, needsApproval, type ApprovalAction, type ApprovalBind } from '../horeca/approvals';
 import { lastRoundLines } from '../horeca/kassaUx';
 import { ApprovalDialog } from './ApprovalDialog';
 import { useCatalog, usePopularLines, type CatalogProduct } from '../horeca/useCatalog';
-import { categoryDot, categoryTone, draftCountWith, draftCounts, isQuickChoice, itemCount, lineEditKind, planMinus, planMinusWith, planTap, popularIds } from '../horeca/quickTap';
+import { categoryDot, categoryTone, draftCountWith, draftCounts, isQuickChoice, itemCount, lineEditKind, planMinus, planMinusWith, planTap, popularIds, qtyLocked } from '../horeca/quickTap';
 import { formatEuro } from '../horeca/format';
 import { hasPendingPay, isRejectedPay } from '../horeca/payActions';
 import { PayDialog, SplitDialog } from './PayDialog';
@@ -71,7 +71,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   const [confirmBill, setConfirmBill] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // KASSA-RECHTEN-1: wachtend op het akkoord van een eigenaar/verantwoordelijke.
-  const [approval, setApproval] = useState<null | { action: ApprovalAction; lineId: string | null; what: string; run: (approvalId: string) => Promise<void> }>(null);
+  const [approval, setApproval] = useState<null | { action: ApprovalAction; lineId: string | null; bind: ApprovalBind; what: string; run: (approvalId: string) => Promise<void> }>(null);
   const [kitchen, setKitchen] = useState(kitchenOn);
   // KASSA-0.6: lang drukken op een product = op/terug of prijs, goedgekeurd met de PIN van
   // een eigenaar of verantwoordelijke (de server controleert).
@@ -168,7 +168,8 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
   };
   const lineMinus = (l: CheckLine) => {
     const kind = lineEditKind(l);
-    if (kind === 'draft') store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: l.id, qty: l.qty - 1, staff_id: ctx.staffId });
+    // Review 1: het aantal van een lijn met korting ligt vast (knop staat uit; de server weigert het ook).
+    if (kind === 'draft' && !qtyLocked(l)) store.enqueue({ id: crypto.randomUUID(), kind: 'change_qty', check_id: check.id, line_id: l.id, qty: l.qty - 1, staff_id: ctx.staffId });
     else if (kind === 'sent') openLine(l, true);
   };
   const lineRemove = (l: CheckLine) => {
@@ -210,8 +211,8 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
     if (!added && !skipped) toast.info(t('kassa.ux6.repeatNothing'));
   };
   /** KASSA-RECHTEN-1: meteen (eigenaar/verantwoordelijke), of eerst het akkoord met hun PIN. */
-  const guarded = (action: ApprovalAction | null, lineId: string | null, what: string, run: (approvalId?: string) => Promise<void>) => {
-    if (action && needsApproval(ctx, action)) setApproval({ action, lineId, what, run });
+  const guarded = (action: ApprovalAction | null, lineId: string | null, bind: ApprovalBind, what: string, run: (approvalId?: string) => Promise<void>) => {
+    if (action && needsApproval(ctx, action)) setApproval({ action, lineId, bind, what, run });
     else void run();
   };
   const minusProduct = (p: CatalogProduct) => {
@@ -434,14 +435,14 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
           approvalNeeded={{ discount: needsApproval(ctx, 'discount'), void: needsApproval(ctx, approvalFor('void', lineSheet)) }}
           onVoid={(reason, qty) => {
             const l = lineSheet;
-            guarded(approvalFor('void', l), l.id, `${qty}× ${l.name}`, async (approvalId) => {
+            guarded(approvalFor('void', l), l.id, { qty }, `${qty}× ${l.name}`, async (approvalId) => {
               const o = await voidLine(ctx, check.id, l.id, reason, qty, approvalId);
               if (report(o)) { setApproval(null); setLineSheet(null); }
             });
           }}
           onDiscount={(d) => {
             const l = lineSheet;
-            guarded('discount', l.id, `${d.name} · ${l.qty}× ${l.name}`, async (approvalId) => {
+            guarded('discount', l.id, { percent: d.percent }, `${d.name} · ${l.qty}× ${l.name}`, async (approvalId) => {
               setBusy('discount');
               const ok = report(await discountLine(ctx, check.id, l.id, d, approvalId));
               setBusy(null);
@@ -486,7 +487,7 @@ export function CheckScreen({ ctx, checkId, onBack, onOpen, onPaid, initialPay =
       </Dialog>
 
       {approval && (
-        <ApprovalDialog ctx={ctx} action={approval.action} checkId={check.id} lineId={approval.lineId} what={approval.what}
+        <ApprovalDialog ctx={ctx} action={approval.action} checkId={check.id} lineId={approval.lineId} bind={approval.bind} what={approval.what}
           onApproved={(id) => approval.run(id)} onClose={() => setApproval(null)} />
       )}
 
@@ -559,11 +560,13 @@ function LineDialog(p: {
           <div className="space-y-4">
             {editable && (
               <div className="flex items-center justify-center gap-4">
-                <button type="button" aria-label={t('kassa.checks.less')} onClick={() => p.onQty(Math.max(0, l.qty - 1))} className="h-14 w-14 rounded-full border text-2xl font-bold">−</button>
+                {/* Review 1: met korting ligt het aantal vast (weghalen en opnieuw tikken kan wel). */}
+                <button type="button" aria-label={t('kassa.checks.less')} disabled={qtyLocked(l)} onClick={() => p.onQty(Math.max(0, l.qty - 1))} className="h-14 w-14 rounded-full border text-2xl font-bold disabled:opacity-30">−</button>
                 <span className="w-10 text-center text-2xl font-bold tabular-nums">{l.qty}</span>
-                <button type="button" aria-label={t('kassa.checks.more1')} onClick={() => p.onQty(Math.min(999, l.qty + 1))} className="h-14 w-14 rounded-full border text-2xl font-bold">+</button>
+                <button type="button" aria-label={t('kassa.checks.more1')} disabled={qtyLocked(l)} onClick={() => p.onQty(Math.min(999, l.qty + 1))} className="h-14 w-14 rounded-full border text-2xl font-bold disabled:opacity-30">+</button>
               </div>
             )}
+            {editable && qtyLocked(l) ? <p className="text-center text-xs text-muted-foreground">{t('kassa.ux6.qtyLocked')}</p> : null}
             {editable && (
               <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); p.onNote(note); p.onClose(); }}>
                 <input value={note} maxLength={200} onChange={(e) => setNote(e.target.value)} placeholder={t('kassa.checks.notePlaceholder')} aria-label={t('kassa.checks.note')} className="h-11 flex-1 rounded-md border bg-background px-3" />
@@ -842,8 +845,8 @@ function LineRow({ line: l, canEdit, canPlus, total, reason, priceChanges, label
         </button>
         {canEdit && (
           <div className="flex shrink-0 items-center gap-1 pr-1.5">
-            <button type="button" aria-label={`${labels.minus}: ${l.name}`} onClick={onMinus}
-              className="flex h-11 w-11 items-center justify-center rounded-full border active:bg-muted"><Minus className="h-4 w-4" /></button>
+            <button type="button" aria-label={`${labels.minus}: ${l.name}`} onClick={onMinus} disabled={canEdit === 'draft' && qtyLocked(l)}
+              className="flex h-11 w-11 items-center justify-center rounded-full border active:bg-muted disabled:opacity-30"><Minus className="h-4 w-4" /></button>
             <button type="button" aria-label={`${labels.plus}: ${l.name}`} onClick={onPlus} disabled={!canPlus}
               className="flex h-11 w-11 items-center justify-center rounded-full border active:bg-muted disabled:opacity-30"><Plus className="h-4 w-4" /></button>
           </div>

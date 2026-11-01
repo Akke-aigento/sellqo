@@ -9492,13 +9492,13 @@
     },
     "kassaLock": {
       "title": "Verrouiller la caisse",
-      "desc": "Après combien de minutes sans contact SellQo Kassa redemande un PIN. Après le verrouillage, le dernier membre du personnel est déjà sélectionné.",
+      "desc": "Après combien de minutes sans contact SellQo Kassa redemande un PIN. Après le verrouillage, le dernier membre du personnel est déjà sélectionné. Les propriétaires et responsables se verrouillent toujours après 2 minutes au plus.",
       "never": "Jamais",
       "minutes_one": "{{count}} minute",
       "minutes_few": "{{count}} minutes",
       "minutes_many": "{{count}} minutes",
       "minutes_other": "{{count}} minutes",
-      "never_hint": "La caisse reste connectée jusqu'à ce que quelqu'un touche Changer. Ne faites cela que si personne d'autre n'a accès à la caisse."
+      "never_hint": "Le personnel reste connecté jusqu'à ce que quelqu'un touche Changer. Un propriétaire ou un responsable se verrouille toujours après 2 minutes. Ne choisissez cela que si personne d'autre n'a accès à la caisse."
     }
   },
   "billing": {
@@ -11904,7 +11904,8 @@
       "title": "PIN d'un responsable",
       "intro": {
         "discount": "Accorder une remise ou offrir un article demande l'accord d'un propriétaire ou d'un responsable : {{what}}.",
-        "void_sent": "Annuler une ligne déjà envoyée demande l'accord d'un propriétaire ou d'un responsable : {{what}}."
+        "void_sent": "Annuler une ligne déjà envoyée demande l'accord d'un propriétaire ou d'un responsable : {{what}}.",
+        "cash_out": "Retirer de l'argent du tiroir demande l'accord d'un propriétaire ou d'un responsable : {{what}}."
       },
       "confirm": "Approuver",
       "hint": "Demande le PIN d'un propriétaire ou d'un responsable.",
@@ -11955,7 +11956,8 @@
       "shiftTotal": "Chiffre d'affaires",
       "shiftTips": "Pourboire",
       "shiftHint": "Ce que vous avez encaissé aujourd'hui, pourboire compris. Les mêmes chiffres que votre ligne dans le rapport X.",
-      "deleteCheck": "Supprimer l'addition"
+      "deleteCheck": "Supprimer l'addition",
+      "qtyLocked": "Cette ligne a une remise : la quantité est fixe. Retirez la ligne et touchez à nouveau le produit."
     }
   },
   "deviceAlerts": {

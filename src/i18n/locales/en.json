@@ -9823,13 +9823,13 @@
     },
     "kassaLock": {
       "title": "Lock the till",
-      "desc": "After how many minutes without a touch SellQo Kassa asks for a PIN again. After locking, the last staff member is already selected.",
+      "desc": "After how many minutes without a touch SellQo Kassa asks for a PIN again. After locking, the last staff member is already selected. Owners and managers always lock after 2 minutes at most.",
       "never": "Never",
       "minutes_one": "{{count}} minute",
       "minutes_few": "{{count}} minutes",
       "minutes_many": "{{count}} minutes",
       "minutes_other": "{{count}} minutes",
-      "never_hint": "The till stays signed in until someone taps Switch. Only do this if nobody else can reach the till."
+      "never_hint": "Staff stay signed in until someone taps Switch. An owner or manager always locks after 2 minutes. Only choose this if nobody else can reach the till."
     }
   },
   "product_form": {
@@ -11904,7 +11904,8 @@
       "title": "Manager PIN",
       "intro": {
         "discount": "Giving a discount or something free needs the approval of an owner or manager: {{what}}.",
-        "void_sent": "Cancelling a line that was already sent needs the approval of an owner or manager: {{what}}."
+        "void_sent": "Cancelling a line that was already sent needs the approval of an owner or manager: {{what}}.",
+        "cash_out": "Taking money out of the drawer needs the approval of an owner or manager: {{what}}."
       },
       "confirm": "Approve",
       "hint": "Needs the PIN of an owner or manager.",
@@ -11955,7 +11956,8 @@
       "shiftTotal": "Sales",
       "shiftTips": "Tips",
       "shiftHint": "What you took payment for today, plus tips. The same figures as your line in the X report.",
-      "deleteCheck": "Delete bill"
+      "deleteCheck": "Delete bill",
+      "qtyLocked": "This line has a discount: its quantity is fixed. Remove the line and tap it again."
     }
   },
   "deviceAlerts": {

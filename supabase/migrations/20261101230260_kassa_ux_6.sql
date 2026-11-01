@@ -14,8 +14,13 @@
 --    ter plaatse (zoals set_service eat_in), want een rekening aan tafel is ter plaatse.
 --    Aanpak: pg_get_functiondef + replace met unieke ankers (zoals KASSA-UX-4); idempotent.
 --
--- Handmatig terugdraaien:
---   execute de def uit snapshots.sellqo_20261101_fn_kassa_ux_6 (name = 'kassa_counter_guard');
+-- Handmatig terugdraaien (laat andere patches staan; NIET de snapshot terugzetten):
+--   do $r$ declare d text := pg_get_functiondef('public.kassa_counter_guard(uuid, jsonb)'::regprocedure); b text; begin
+--     b := substring(d from E'(  -- KASSA-UX-6: de toogverkoop wordt.*?  end if;\n\n)');
+--     d := replace(d, b, '');
+--     execute replace(d, E', ''move_check'', ''move_lines'') then', ') then');
+--   end $r$;   -- daarna: position('KASSA-UX-6' in pg_get_functiondef(...)) = 0
+--   (de definitie van vóór deze migratie staat ter controle in snapshots.sellqo_20261101_fn_kassa_ux_6)
 --   drop function if exists public.kassa_my_shift(uuid, uuid);
 --   alter table public.horeca_pay_settings drop column if exists kassa_lock_minutes;
 
@@ -81,6 +86,9 @@ declare
               || E'  if v_kind in (''move_check'', ''move_lines'') then\n'
               || E'    if exists (select 1 from public.check_lines x where x.check_id = c.id and x.state = ''sent'') then\n'
               || E'      raise exception ''deze toogverkoop kan niet meer verplaatst worden'' using errcode = ''55000'';\n'
+              || E'    end if;\n'
+              || E'    if v_kind = ''move_lines'' and coalesce((cmd ->> ''split'')::boolean, false) then\n'
+              || E'      raise exception ''een toogverkoop splits je niet: reken ze af of zet ze op naam'' using errcode = ''22023'';\n'
               || E'    end if;\n'
               || E'    if v_kind = ''move_lines'' and exists (select 1 from public.check_lines x where x.check_id = c.id and x.state = ''draft'' and x.qty > 0\n'
               || E'         and x.id::text not in (select m ->> ''line_id'' from jsonb_array_elements(coalesce(cmd -> ''moves'', ''[]''::jsonb)) m)) then\n'

@@ -8,11 +8,19 @@ import type { ActionCtx } from './actions';
 import { canApprove, type Approval } from './productActions';
 import type { CheckLine } from './types';
 
-export type ApprovalAction = 'discount' | 'void_sent';
+/** Review 1: ook "kas uit" (cash_out). */
+export type ApprovalAction = 'discount' | 'void_sent' | 'cash_out';
 
-/** Moet deze handeling eerst langs een eigenaar/verantwoordelijke? */
-export function needsApproval(ctx: Pick<ActionCtx, 'staffRole'>, action: ApprovalAction | null): boolean {
-  return action !== null && !canApprove(ctx);
+/** Waar het akkoord precies over gaat; de server vergelijkt het met het commando. */
+export interface ApprovalBind { percent?: number; amountCents?: number; qty?: number }
+
+/**
+ * Moet deze handeling eerst langs een eigenaar/verantwoordelijke? Ja, tenzij de medewerker zelf
+ * owner/manager is ÉN een sessietoken heeft (review 1: zonder token weigert de server de uitzondering;
+ * dan keurt hij met zijn eigen PIN goed in hetzelfde venster).
+ */
+export function needsApproval(ctx: Pick<ActionCtx, 'staffRole' | 'staffToken'>, action: ApprovalAction | null): boolean {
+  return action !== null && !(canApprove(ctx) && !!ctx.staffToken);
 }
 
 /** Welke goedkeuring een handeling op een lijn vraagt (null = geen). Ontwerp-lijnen weghalen blijft vrij. */
@@ -25,11 +33,16 @@ export type ApprovalOutcome =
   | { ok: true; approvalId: string; approverName: string; reason?: undefined }
   | { ok: false; reason: 'not_allowed' | 'invalid' | 'wrong_pin' | 'locked' | 'offline' | 'server'; detail?: string };
 
-export async function requestApproval(ctx: ActionCtx, req: { action: ApprovalAction; checkId: string; lineId: string | null }, approval: Approval): Promise<ApprovalOutcome> {
+export async function requestApproval(ctx: ActionCtx, req: { action: ApprovalAction; checkId: string | null; lineId: string | null; bind: ApprovalBind }, approval: Approval): Promise<ApprovalOutcome> {
   try {
     const { data, error } = await supabase.rpc('kassa_approve' as never, {
       p_tenant_id: ctx.runtime.device.tenantId, p_device_id: ctx.runtime.device.deviceUuid,
-      p: { staff_id: ctx.staffId, approver_id: approval.approverId, pin: approval.pin, action: req.action, check_id: req.checkId, line_id: req.lineId },
+      p: {
+        staff_id: ctx.staffId, approver_id: approval.approverId, pin: approval.pin, action: req.action, check_id: req.checkId, line_id: req.lineId,
+        ...(req.bind.percent != null ? { percent: req.bind.percent } : {}),
+        ...(req.bind.amountCents != null ? { amount_cents: req.bind.amountCents } : {}),
+        ...(req.bind.qty != null ? { qty: req.bind.qty } : {}),
+      },
     } as never);
     if (error) {
       const code = (error as { code?: string }).code;

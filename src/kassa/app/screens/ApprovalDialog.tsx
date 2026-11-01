@@ -9,20 +9,23 @@ import { Loader2, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { ActionCtx } from '../horeca/actions';
-import { PRODUCT_EDIT_ROLES } from '../horeca/productActions';
-import { requestApproval, type ApprovalAction } from '../horeca/approvals';
+import { PRODUCT_EDIT_ROLES, canApprove } from '../horeca/productActions';
+import { requestApproval, type ApprovalAction, type ApprovalBind } from '../horeca/approvals';
 
 interface Approver { id: string; display_name: string; role: string }
 
-export function ApprovalDialog({ ctx, action, checkId, lineId, what, onApproved, onClose }: {
-  ctx: ActionCtx; action: ApprovalAction; checkId: string; lineId: string | null;
+export function ApprovalDialog({ ctx, action, checkId, lineId, bind, what, onApproved, onClose }: {
+  ctx: ActionCtx; action: ApprovalAction; checkId: string | null; lineId: string | null;
+  /** Review 1: het akkoord geldt enkel voor dit percent/bedrag/aantal (de server vergelijkt). */
+  bind: ApprovalBind;
   /** Wat er goedgekeurd wordt, bv. "−50 % op 2× Pils". */
   what: string;
   onApproved: (approvalId: string) => void | Promise<void>; onClose: () => void;
 }) {
   const { t } = useTranslation();
   const tenantId = ctx.runtime.device.tenantId;
-  const [approverId, setApproverId] = useState('');
+  // Een eigenaar/verantwoordelijke zonder sessietoken (bv. aangemeld vóór deze versie) keurt zelf goed.
+  const [approverId, setApproverId] = useState(canApprove(ctx) ? ctx.staffId : '');
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +47,7 @@ export function ApprovalDialog({ ctx, action, checkId, lineId, what, onApproved,
     if (!ready || busy) return;
     setBusy(true);
     setError(null);
-    const o = await requestApproval(ctx, { action, checkId, lineId }, { approverId, pin });
+    const o = await requestApproval(ctx, { action, checkId, lineId, bind }, { approverId, pin });
     if (o.ok === false) {
       setBusy(false);
       setPin('');

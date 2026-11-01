@@ -51,6 +51,19 @@ describe('PayDialog — KASSA-UX-6', () => {
     expect(given.textContent).not.toContain('5,00');
   });
 
+  it('review 1: "rond af" bij volledig contant vertrekt van het afgeronde contante bedrag', () => {
+    const cola: Check = { ...check, lines: [line({ unit_price_cents: 304, qty: 2, open_qty: 2, vat_label: 'A', vat_rate: 21 })] };
+    render(<PayDialog ctx={ctx} check={cola} onClose={() => {}} onPaid={() => {}} />);
+    // Kaart (6,08): tot 7,00 = 0,92.
+    fireEvent.click(screen.getAllByText('kassa.pay.method.card').find((e) => e.tagName === 'BUTTON' && e.closest('.grid'))!);
+    fireEvent.click(screen.getByText('kassa.ux6.roundUp'));
+    expect((screen.getByLabelText('kassa.pay.tip') as HTMLInputElement).value).toBe('0,92');
+    // Contant: de klant geeft 6,10 → tot 7,00 = 0,90.
+    fireEvent.click(screen.getAllByText('kassa.pay.method.cash').find((e) => e.tagName === 'BUTTON' && e.closest('.grid'))!);
+    fireEvent.click(screen.getByText('kassa.ux6.roundUp'));
+    expect((screen.getByLabelText('kassa.pay.tip') as HTMLInputElement).value).toBe('0,90');
+  });
+
   it('gelijk delen door 3: per persoon de betaalwijze, dan "iedereen gekozen"', () => {
     render(<PayDialog ctx={ctx} check={check} onClose={() => {}} onPaid={() => {}} />);
     fireEvent.click(screen.getByText('3'));
@@ -80,6 +93,35 @@ function Probe() {
     </div>
   );
 }
+
+describe('Sessietoken — review 1', () => {
+  it('signIn bewaart het token in het geheugen; Wissel en inactiviteit trekken het in', () => {
+    vi.useFakeTimers();
+    const ended: string[] = [];
+    function TokenProbe() {
+      const { staffToken, signIn, lock } = useKassaSession();
+      return (
+        <div>
+          <span data-testid="tk">{staffToken ?? 'geen'}</span>
+          <button onClick={() => signIn(staffList[1], null, 't1')}>in1</button>
+          <button onClick={() => signIn(staffList[1], null, 't2')}>in2</button>
+          <button onClick={lock}>wissel</button>
+        </div>
+      );
+    }
+    render(<KassaSessionProvider idleMs={1000} onEnd={(tk) => ended.push(tk)}><TokenProbe /></KassaSessionProvider>);
+    act(() => { screen.getByText('in1').click(); });
+    expect(screen.getByTestId('tk').textContent).toBe('t1');
+    act(() => { screen.getByText('wissel').click(); });
+    expect(ended).toEqual(['t1']);
+    expect(screen.getByTestId('tk').textContent).toBe('geen');
+    act(() => { screen.getByText('in2').click(); });
+    act(() => { vi.advanceTimersByTime(1100); });
+    expect(ended).toEqual(['t1', 't2']);
+    expect(localStorage.getItem('t2')).toBeNull();
+    vi.useRealTimers();
+  });
+});
 
 describe('PIN-scherm — KASSA-UX-6', () => {
   it('na inactiviteit staat de laatste medewerker voorgekozen; na Wissel kies je opnieuw', async () => {

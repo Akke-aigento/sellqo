@@ -9492,13 +9492,13 @@
     },
     "kassaLock": {
       "title": "Kasse sperren",
-      "desc": "Nach wie vielen Minuten ohne Berührung SellQo Kassa wieder nach einer PIN fragt. Nach dem Sperren ist die letzte Person schon ausgewählt.",
+      "desc": "Nach wie vielen Minuten ohne Berührung SellQo Kassa wieder nach einer PIN fragt. Nach dem Sperren ist die letzte Person schon ausgewählt. Inhaber und Verantwortliche sperren immer nach höchstens 2 Minuten.",
       "never": "Nie",
       "minutes_one": "{{count}} Minute",
       "minutes_few": "{{count}} Minuten",
       "minutes_many": "{{count}} Minuten",
       "minutes_other": "{{count}} Minuten",
-      "never_hint": "Die Kasse bleibt angemeldet, bis jemand auf Wechseln tippt. Mach das nur, wenn sonst niemand an die Kasse kommt."
+      "never_hint": "Mitarbeitende bleiben angemeldet, bis jemand auf Wechseln tippt. Inhaber und Verantwortliche sperren immer nach 2 Minuten. Wähle das nur, wenn sonst niemand an die Kasse kommt."
     }
   },
   "billing": {
@@ -11904,7 +11904,8 @@
       "title": "PIN einer verantwortlichen Person",
       "intro": {
         "discount": "Rabatt oder etwas aufs Haus braucht die Zustimmung des Inhabers oder einer verantwortlichen Person: {{what}}.",
-        "void_sent": "Eine bereits gesendete Zeile zu stornieren braucht die Zustimmung des Inhabers oder einer verantwortlichen Person: {{what}}."
+        "void_sent": "Eine bereits gesendete Zeile zu stornieren braucht die Zustimmung des Inhabers oder einer verantwortlichen Person: {{what}}.",
+        "cash_out": "Geld aus der Lade nehmen braucht die Zustimmung des Inhabers oder einer verantwortlichen Person: {{what}}."
       },
       "confirm": "Freigeben",
       "hint": "Braucht die PIN des Inhabers oder einer verantwortlichen Person.",
@@ -11955,7 +11956,8 @@
       "shiftTotal": "Umsatz",
       "shiftTips": "Trinkgeld",
       "shiftHint": "Was du heute kassiert hast, mit Trinkgeld. Dieselben Zahlen wie deine Zeile im X-Bericht.",
-      "deleteCheck": "Rechnung löschen"
+      "deleteCheck": "Rechnung löschen",
+      "qtyLocked": "Auf dieser Zeile ist ein Rabatt: Die Anzahl ist fest. Entferne die Zeile und tippe neu."
     }
   },
   "deviceAlerts": {

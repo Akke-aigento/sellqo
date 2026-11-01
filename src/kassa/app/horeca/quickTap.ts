@@ -43,8 +43,16 @@ export function isQuickChoice(groups: { min: number; max: number | null; options
 export function planMinus(check: Pick<Check, 'lines'> | undefined, productId: string): { lineId: string; qty: number } | null {
   if (!check) return null;
   const hit = [...check.lines].sort((a, b) => b.seq - a.seq)
-    .find((l) => l.state === 'draft' && l.product_id === productId && l.qty > 0 && !l.corrects_line_id);
+    .find((l) => l.state === 'draft' && l.product_id === productId && l.qty > 0 && !qtyLocked(l));
   return hit ? { lineId: hit.id, qty: hit.qty - 1 } : null;
+}
+
+/**
+ * KASSA-RECHTEN-1 (review 1): het aantal van een lijn met korting, correctie of tegenboeking ligt vast —
+ * anders wordt "10× gratis" na 9× min een negatieve rekening. De server weigert het ook; weghalen kan wel.
+ */
+export function qtyLocked(l: Pick<CheckLine, 'price_changes' | 'corrects_line_id' | 'neg_reason'>): boolean {
+  return l.price_changes.length > 0 || !!l.corrects_line_id || !!l.neg_reason;
 }
 
 /** KASSA-UX-4: "−" in het formaatvenster: de laatste passende ontwerp-lijn met precies deze extra's één minder. */
