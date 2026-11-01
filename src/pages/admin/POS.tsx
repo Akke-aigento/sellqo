@@ -35,6 +35,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HorecaNotifyDevices } from '@/components/admin/horeca/HorecaNotifyDevices';
 import { KassaStaffTab } from '@/components/admin/pos/KassaStaffTab';
+import { KassaHoursCard } from '@/components/admin/pos/KassaHoursCard';
 import { HorecaPaySettings } from '@/components/admin/pos/HorecaPaySettings';
 import { HorecaPrinters } from '@/components/admin/pos/HorecaPrinters';
 import { KassaDevicesStatus } from '@/components/admin/pos/KassaDevicesStatus';
@@ -172,6 +173,8 @@ export default function POSPage() {
         ) : null}
         <TabsContent value="personeel" className="mt-4">
           <KassaStaffTab />
+          {/* PERSONEEL-2: urenoverzicht (horecaspoor, zoals Betalen en Printers). */}
+          {payTab ? <KassaHoursCard /> : null}
         </TabsContent>
         <TabsContent value="terminals" className="mt-4 space-y-6">
       {/* Terminals Grid */}

@@ -1,0 +1,4 @@
+{
+  "@/hooks/useHorecaReports": "mocks/reports.ts",
+  "@/hooks/useTenant": "mocks/tenant.ts"
+}

@@ -15,7 +15,7 @@ import { SUPPORTED_LANGUAGES } from '@/i18n/languages';
 import { deviceLanguage, kassaLanguage, setDeviceLanguage } from '../language';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
 import { PUBLIC_SITE_URL } from '@/lib/siteUrl';
-import { clock, isClockedIn } from '../attendance';
+import { clock, fetchClockState, isClockedIn } from '../attendance';
 import { useKassaSession } from '../session';
 import type { KassaRuntime } from '../runtime';
 import { requestBill, type ActionCtx } from '../horeca/actions';
@@ -75,6 +75,14 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
   const [autoPay, setAutoPay] = useState(false);
   const [clockedIn, setClockedIn] = useState(() => (staff ? isClockedIn(runtime.device.tenantId, staff.id) : false));
   const [clockBusy, setClockBusy] = useState(false);
+  // PERSONEEL-2: de knopstand komt van de server (ander toestel kan in- of uitgeklokt hebben).
+  useEffect(() => {
+    if (!staff) return;
+    let live = true;
+    setClockedIn(isClockedIn(runtime.device.tenantId, staff.id));
+    void fetchClockState(runtime.device.tenantId, staff.id).then((v) => { if (live && v !== null) setClockedIn(v); });
+    return () => { live = false; };
+  }, [runtime.device.tenantId, staff?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [message, setMessage] = useState<string | null>(null);
   // QR-REKENING-1: bestellingen via de QR aan tafel (KASSA-UX-2: in de kolom Binnenkomend).
   const autoAccept = useAutoAccept(runtime.device.tenantId);
@@ -148,7 +156,12 @@ export function KassaHome({ runtime, store, alerts, terminalName, onForgetDevice
     const dir = clockedIn ? 'out' : 'in';
     const r = await clock(runtime, staff.id, employeeId, dir);
     setClockBusy(false);
-    if (r.ok) { setClockedIn(dir === 'in'); setMessage(t(dir === 'in' ? 'kassa.home.clockedIn' : 'kassa.home.clockedOut')); }
+    if (r.ok) {
+      const now = r.clockedIn ?? dir === 'in';
+      setClockedIn(now);
+      setMessage(r.already ? t(now ? 'kassa.home.clockAlreadyIn' : 'kassa.home.clockAlreadyOut')
+        : r.notSaved ? t('kassa.home.clockNotSaved') : t(now ? 'kassa.home.clockedIn' : 'kassa.home.clockedOut'));
+    }
     else setMessage(t(`kassa.home.clockError.${r.reason ?? 'error'}`));
   };
 
