@@ -33,4 +33,18 @@ for T in test_fiscal_events.sql test_personeel.sql test_tafel.sql test_pay.sql t
   if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in $T"; fail=1; fi
   echo "$out" | tail -1
 done
+# Latere kassamigraties (nachtrun 1-2 nov) en hun tests, na de bovenstaande (die de regels van vóór
+# KASSA-RECHTEN-1 testen: korting/annuleren zonder akkoord).
+for M in ../../../supabase/migrations/20261028110000_betaal_1_horeca_payments.sql \
+         ../../../supabase/migrations/20261030120000_kassa_cancel_bill.sql \
+         ../../../supabase/migrations/20261101230250_kassa_rechten_1.sql \
+         ../../../supabase/migrations/20261101230260_kassa_ux_6.sql; do
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
+  $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }
+done
+for T in test_kassa_nachtrun.sql; do
+  out=$($P -d $DB -f $T 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in $T"; exit 1; }
+  if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in $T"; fail=1; fi
+  echo "$out" | tail -1
+done
 exit $fail

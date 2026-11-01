@@ -118,7 +118,7 @@ function ReportDialog({ ctx, report, signed, onClose }: { ctx: ActionCtx; report
         vat: t('kassa.reports.r.vat'), discounts: t('kassa.reports.r.discounts'), rounding: t('kassa.reports.r.rounding'),
         cashIn: t('kassa.reports.r.cashIn'), cashOut: t('kassa.reports.r.cashOut'), expected: t('kassa.cash.expected'), counted: t('kassa.cash.counted'),
         difference: t('kassa.cash.difference'), voided: t('kassa.reports.r.voided'), corrections: t('kassa.reports.r.corrections'),
-        drawerOpens: t('kassa.reports.r.drawerOpens'), openChecks: t('kassa.reports.r.openChecks'),
+        drawerOpens: t('kassa.reports.r.drawerOpens'), openChecks: t('kassa.reports.r.openChecks'), staffTip: t('kassa.ux6.staffTip'),
       },
       method: (m) => t(`kassa.pay.method.${m}`, { defaultValue: m }),
       euro,

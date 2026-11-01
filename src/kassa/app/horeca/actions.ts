@@ -13,7 +13,7 @@ import type { Check, CheckLine } from './types';
 
 export type ActionOutcome =
   | { ok: true; result?: CommandResult; reason?: undefined; detail?: undefined }
-  | { ok: false; reason: 'nothing' | 'offline' | 'no_insz' | 'fiscal_not_configured' | 'fdm_not_available' | 'fdm_rejected' | 'fdm_unreachable' | 'server' | 'changed'; detail?: string };
+  | { ok: false; reason: 'nothing' | 'offline' | 'no_insz' | 'fiscal_not_configured' | 'fdm_not_available' | 'fdm_rejected' | 'fdm_unreachable' | 'server' | 'changed' | 'not_allowed'; detail?: string };
 
 export interface ActionCtx {
   store: HorecaStore;
@@ -47,7 +47,8 @@ const isOutcome = (x: unknown): x is ActionOutcome => typeof x === 'object' && x
 
 function serverOutcome(r: CommandResult): ActionOutcome {
   if (r.ok) return { ok: true, result: r };
-  return { ok: false, reason: r.code === '40001' ? 'changed' : 'server', detail: r.error };
+  // KASSA-RECHTEN-1: 42501 = akkoord van een eigenaar/verantwoordelijke ontbreekt of is verlopen.
+  return { ok: false, reason: r.code === '40001' ? 'changed' : r.code === '42501' ? 'not_allowed' : 'server', detail: r.error };
 }
 
 /**
@@ -175,14 +176,33 @@ export async function moveLines(ctx: ActionCtx, req: MoveRequest): Promise<Actio
   }
 }
 
-/** Korting of "van het huis" (TX-11/13/14): enkel online, de server maakt de lijnen. */
-export async function discountLine(ctx: ActionCtx, checkId: string, lineId: string, d: { percent?: number; amountCents?: number; name: string }): Promise<ActionOutcome> {
+/**
+ * Korting of "van het huis" (TX-11/13/14): enkel online, de server maakt de lijnen.
+ * KASSA-RECHTEN-1: approvalId = akkoord van een eigenaar/verantwoordelijke (niet nodig als die zelf aan de kassa staat).
+ */
+export async function discountLine(ctx: ActionCtx, checkId: string, lineId: string, d: { percent?: number; amountCents?: number; name: string }, approvalId?: string): Promise<ActionOutcome> {
   try {
     return serverOutcome(await ctx.store.applyNow({
       id: crypto.randomUUID(), kind: 'discount_line', check_id: checkId, line_id: lineId,
       neg_line_id: crypto.randomUUID(), new_line_id: crypto.randomUUID(),
       ...(d.percent != null ? { percent: d.percent } : { amount_cents: d.amountCents }), name: d.name, staff_id: ctx.staffId,
+      ...(approvalId ? { approval_id: approvalId } : {}),
     }));
+  } catch (e) {
+    return { ok: false, reason: 'offline', detail: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+/**
+ * Lijn annuleren (TX-07). Ontwerp-lijn of eigenaar/verantwoordelijke aan de kassa: zoals voorheen in de
+ * wachtrij (optimistisch, werkt ook even offline). KASSA-RECHTEN-1: met een akkoord (verstuurde lijn,
+ * andere medewerker) meteen naar de server, zodat het eenmalige akkoord niet in de wachtrij blijft hangen.
+ */
+export async function voidLine(ctx: ActionCtx, checkId: string, lineId: string, reason: string, qty: number, approvalId?: string): Promise<ActionOutcome> {
+  const cmd = { id: crypto.randomUUID(), kind: 'void_line' as const, check_id: checkId, line_id: lineId, new_line_id: crypto.randomUUID(), reason, qty, staff_id: ctx.staffId };
+  if (!approvalId) { ctx.store.enqueue(cmd); return { ok: true }; }
+  try {
+    return serverOutcome(await ctx.store.applyNow({ ...cmd, approval_id: approvalId }));
   } catch (e) {
     return { ok: false, reason: 'offline', detail: e instanceof Error ? e.message : String(e) };
   }

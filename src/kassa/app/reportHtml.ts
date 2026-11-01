@@ -47,7 +47,11 @@ export function reportHtml(r: ReportResult, L: ReportLabels): string {
   rows.push(kv(L.row.cashOut, L.euro(d.cash.out_cents)));
   if (d.staff.length) {
     rows.push(h(L.sections.staff));
-    for (const s of d.staff) rows.push(kv(`${s.name} (${s.count})`, L.euro(s.total_cents)));
+    for (const s of d.staff) {
+      rows.push(kv(`${s.name} (${s.count})`, L.euro(s.total_cents)));
+      // KASSA-UX-6: fooi per medewerker (stond al in de cijfers, nu ook op het rapport).
+      if (s.tips_cents) rows.push(kv(`· ${L.row.staffTip ?? ''} ${s.name}`.trim(), L.euro(s.tips_cents)));
+    }
   }
   if (d.shifts.length) {
     rows.push(h(L.sections.shifts));

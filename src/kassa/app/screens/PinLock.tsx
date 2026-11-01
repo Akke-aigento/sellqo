@@ -1,6 +1,8 @@
 // PERSONEEL-1 — PIN-scherm (USR-01): kies je naam, tik je PIN. Grote knoppen, werkt met
 // één hand op een gsm en op een vaste tablet aan de bar.
-import { useEffect, useState } from 'react';
+// KASSA-UX-6: na vergrendelen door inactiviteit staat de laatste medewerker al gekozen (enkel nog de PIN);
+// "Niet …?" brengt je terug naar de namen. Na "Wissel" kiest de volgende zelf.
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Delete, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,13 +17,14 @@ type LoginResult =
 
 export function PinLock({ tenantId, deviceUuid }: Props) {
   const { t } = useTranslation();
-  const { signIn } = useKassaSession();
+  const { signIn, resumeStaff } = useKassaSession();
   const [staff, setStaff] = useState<KassaStaff[] | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [picked, setPicked] = useState<KassaStaff | null>(null);
   const [pin, setPin] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const autoPicked = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -39,6 +42,13 @@ export function PinLock({ tenantId, deviceUuid }: Props) {
     })();
     return () => { alive = false; };
   }, [tenantId]);
+
+  useEffect(() => {
+    if (autoPicked.current || !staff || !resumeStaff) return;
+    autoPicked.current = true;
+    const s = staff.find((x) => x.id === resumeStaff.id);
+    if (s) setPicked(s);
+  }, [staff, resumeStaff]);
 
   const submit = async (value: string) => {
     if (!picked || busy) return;

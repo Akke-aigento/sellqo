@@ -9636,6 +9636,16 @@
     "tenantForm": {
       "planMoved": "You change the subscription plan and status on the shop's detail page, under Billing.",
       "planMovedLink": "Go to subscription"
+    },
+    "kassaLock": {
+      "title": "Lock the till",
+      "desc": "After how many minutes without a touch SellQo Kassa asks for a PIN again. After locking, the last staff member is already selected.",
+      "never": "Never",
+      "minutes_one": "{{count}} minute",
+      "minutes_few": "{{count}} minutes",
+      "minutes_many": "{{count}} minutes",
+      "minutes_other": "{{count}} minutes",
+      "never_hint": "The till stays signed in until someone taps Switch. Only do this if nobody else can reach the till."
     }
   },
   "product_form": {
@@ -11317,7 +11327,8 @@
       "offline": "Offline · {{n}} pending actions",
       "tab": {
         "cash": "Cash",
-        "reports": "Reports"
+        "reports": "Reports",
+        "shift": "My shift"
       },
       "menu": "Menu",
       "toAdmin": "Go to SellQo admin",
@@ -11406,7 +11417,8 @@
         "fdm_rejected": "The fiscal data module refused. Nothing was sent.",
         "fdm_unreachable": "The fiscal data module cannot be reached. Nothing was sent; try again.",
         "server": "Not done: {{detail}}",
-        "changed": "A colleague just changed this check. Check it and try again."
+        "changed": "A colleague just changed this check. Check it and try again.",
+        "not_allowed": "This needs the approval of an owner or manager (or the approval expired). Try again."
       },
       "popular": "Popular",
       "closeSearch": "Close search",
@@ -11691,6 +11703,63 @@
       "unbill": "Withdraw bill request",
       "unbillConfirm": "Set {{title}} back to occupied? The interim bill that was already made stays on record.",
       "unbillDone": "Table is back to occupied"
+    },
+    "approval": {
+      "title": "Manager PIN",
+      "intro": {
+        "discount": "Giving a discount or something free needs the approval of an owner or manager: {{what}}.",
+        "void_sent": "Cancelling a line that was already sent needs the approval of an owner or manager: {{what}}."
+      },
+      "confirm": "Approve",
+      "hint": "Needs the PIN of an owner or manager.",
+      "error": {
+        "not_allowed": "Only an owner or manager can approve this.",
+        "invalid": "This approval is not possible: pick an approver and try again.",
+        "wrong_pin": "Wrong PIN.",
+        "locked": "Too many wrong attempts. This PIN is blocked for 5 minutes.",
+        "offline": "No connection. Approving only works online.",
+        "server": "That did not work. Try again."
+      }
+    },
+    "ux6": {
+      "removed": "{{qty}}× {{name}} removed",
+      "undo": "Undo",
+      "repeat_one": "{{count}} item added again",
+      "repeat_few": "{{count}} items added again",
+      "repeat_many": "{{count}} items added again",
+      "repeat_other": "{{count}} items added again",
+      "repeatSkipped_one": "{{count}} product is sold out or no longer available",
+      "repeatSkipped_few": "{{count}} products are sold out or no longer available",
+      "repeatSkipped_many": "{{count}} products are sold out or no longer available",
+      "repeatSkipped_other": "{{count}} products are sold out or no longer available",
+      "repeatNothing": "Nothing from the previous round is still open.",
+      "repeatRound": "Repeat previous round",
+      "counterToTab": "Put on a name or a table",
+      "deleteTitle": "Delete {{title}}?",
+      "deleteText_one": "There is {{count}} item on it ({{amount}}), not sent yet. It will be gone completely.",
+      "deleteText_few": "There are {{count}} items on it ({{amount}}), not sent yet. They will be gone completely.",
+      "deleteText_many": "There are {{count}} items on it ({{amount}}), not sent yet. They will be gone completely.",
+      "deleteText_other": "There are {{count}} items on it ({{amount}}), not sent yet. They will be gone completely.",
+      "person": "Person {{n}} of {{of}}",
+      "prevPerson": "Previous",
+      "nextPerson": "Next person",
+      "allPersons": "Everyone chosen",
+      "personsDone": "Payment method chosen for all {{n}} people. Check and confirm.",
+      "againPersons": "Again per person",
+      "roundUp": "Round up",
+      "countByDenomination": "Count by note and coin",
+      "countOf": "Number of {{value}}",
+      "countClose": "Close count",
+      "countTotal": "Counted: {{amount}}",
+      "staffTip": "tips",
+      "shiftSince": "Business day since {{at}}",
+      "refresh": "Refresh",
+      "shiftError": "Your shift could not be loaded. Try again.",
+      "shiftCount": "Paid",
+      "shiftTotal": "Sales",
+      "shiftTips": "Tips",
+      "shiftHint": "What you took payment for today, plus tips. The same figures as your line in the X report.",
+      "deleteCheck": "Delete bill"
     }
   },
   "deviceAlerts": {

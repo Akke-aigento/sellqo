@@ -25,28 +25,52 @@ export interface KassaSessionValue {
   setIdlePaused: (paused: boolean) => void;
   /** True = de medewerker mag verder; false = te lang inactief, de kassa is nu vergrendeld (PIN). */
   guard: () => boolean;
+  /**
+   * KASSA-UX-6: wie er stond toen de kassa door inactiviteit vergrendelde (het PIN-scherm kiest die
+   * naam alvast). Na "Wissel" (lock) is dit null: dan kiest de volgende zelf.
+   */
+  resumeStaff: KassaStaff | null;
+  /** KASSA-UX-6: wachttijd tot vergrendelen, per zaak instelbaar (ms; 0 = nooit). */
+  setIdleMs: (ms: number) => void;
 }
 
 const Ctx = createContext<KassaSessionValue | null>(null);
 
 export const DEFAULT_IDLE_MS = 2 * 60_000;
 
-export function KassaSessionProvider({ children, idleMs = DEFAULT_IDLE_MS }: { children: ReactNode; idleMs?: number }) {
+export function KassaSessionProvider({ children, idleMs: idleProp = DEFAULT_IDLE_MS }: { children: ReactNode; idleMs?: number }) {
   const [staff, setStaff] = useState<KassaStaff | null>(null);
+  const [idleMs, setIdleMsState] = useState(idleProp);
+  useEffect(() => { setIdleMsState(idleProp); }, [idleProp]);
+  const setIdleMs = useCallback((ms: number) => { setIdleMsState(Number.isFinite(ms) && ms >= 0 ? ms : DEFAULT_IDLE_MS); }, []);
+  const [resumeStaff, setResumeStaff] = useState<KassaStaff | null>(null);
+  const staffRef = useRef<KassaStaff | null>(null);
   const employeeIdRef = useRef<string | null>(null);
   const [, force] = useState(0);
   const [paused, setPaused] = useState(false);
   const pausedRef = useRef(false);
   const lastActive = useRef(Date.now());
 
+  /** "Wissel": de volgende medewerker kiest zelf zijn naam. */
   const lock = useCallback(() => {
     employeeIdRef.current = null;
+    staffRef.current = null;
+    setResumeStaff(null);
+    setStaff(null);
+  }, []);
+  /** Inactiviteit: dezelfde medewerker staat voorgekozen op het PIN-scherm. */
+  const idleLock = useCallback(() => {
+    employeeIdRef.current = null;
+    setResumeStaff(staffRef.current);
+    staffRef.current = null;
     setStaff(null);
   }, []);
 
   const signIn = useCallback((s: KassaStaff, employeeId: string | null) => {
     employeeIdRef.current = employeeId;
     lastActive.current = Date.now();
+    staffRef.current = s;
+    setResumeStaff(null);
     setStaff(s);
     force((x) => x + 1);
   }, []);
@@ -56,24 +80,25 @@ export function KassaSessionProvider({ children, idleMs = DEFAULT_IDLE_MS }: { c
     if (!staff || idleMs <= 0) return;
     if (paused) return; // Keuken/Bar: geen tijdslot; guard() bewaakt het verlaten.
     lastActive.current = Date.now();
-    let timer = window.setTimeout(lock, idleMs);
-    const bump = () => { lastActive.current = Date.now(); window.clearTimeout(timer); timer = window.setTimeout(lock, idleMs); };
+    let timer = window.setTimeout(idleLock, idleMs);
+    const bump = () => { lastActive.current = Date.now(); window.clearTimeout(timer); timer = window.setTimeout(idleLock, idleMs); };
     const events = ['pointerdown', 'keydown', 'wheel', 'touchstart'] as const;
     for (const e of events) window.addEventListener(e, bump, { passive: true });
     return () => {
       window.clearTimeout(timer);
       for (const e of events) window.removeEventListener(e, bump);
     };
-  }, [staff, idleMs, lock, paused]);
+  }, [staff, idleMs, idleLock, paused]);
 
   const setIdlePaused = useCallback((p: boolean) => { pausedRef.current = p; setPaused(p); }, []);
   const guard = useCallback(() => {
-    if (idleMs > 0 && Date.now() - lastActive.current >= idleMs) { lock(); return false; }
+    if (idleMs > 0 && Date.now() - lastActive.current >= idleMs) { idleLock(); return false; }
     if (!pausedRef.current) lastActive.current = Date.now();
     return true;
-  }, [idleMs, lock]);
+  }, [idleMs, idleLock]);
 
-  const value = useMemo<KassaSessionValue>(() => ({ staff, employeeId: employeeIdRef.current, signIn, lock, setIdlePaused, guard }), [staff, signIn, lock, setIdlePaused, guard]);
+  const value = useMemo<KassaSessionValue>(() => ({ staff, employeeId: employeeIdRef.current, signIn, lock, setIdlePaused, guard, resumeStaff, setIdleMs }),
+    [staff, signIn, lock, setIdlePaused, guard, resumeStaff, setIdleMs]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

@@ -36,6 +36,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { HorecaNotifyDevices } from '@/components/admin/horeca/HorecaNotifyDevices';
 import { KassaStaffTab } from '@/components/admin/pos/KassaStaffTab';
 import { HorecaPaySettings } from '@/components/admin/pos/HorecaPaySettings';
+import { HorecaLockSetting } from '@/components/admin/pos/HorecaLockSetting';
 import { HorecaPrinters } from '@/components/admin/pos/HorecaPrinters';
 import { KassaDevicesStatus } from '@/components/admin/pos/KassaDevicesStatus';
 import { useKassaDevices } from '@/hooks/useKassaDevices';
@@ -170,7 +171,9 @@ export default function POSPage() {
             <HorecaPrinters />
           </TabsContent>
         ) : null}
-        <TabsContent value="personeel" className="mt-4">
+        <TabsContent value="personeel" className="mt-4 space-y-4">
+          {/* KASSA-UX-6: na hoeveel minuten de kassa terug op het PIN-scherm valt. */}
+          <div className="max-w-3xl"><HorecaLockSetting /></div>
           <KassaStaffTab />
         </TabsContent>
         <TabsContent value="terminals" className="mt-4 space-y-6">

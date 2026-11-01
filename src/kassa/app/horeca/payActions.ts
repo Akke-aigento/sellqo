@@ -220,7 +220,7 @@ export async function payCheck(ctx: ActionCtx, checkId: string, tenders: Tender[
     const counter = isCounter(c0);
     if (!counter && roundLines(c0).length) {
       const sent = await sendRound(ctx, checkId);
-      if (!sent.ok) return { ok: false, reason: sent.reason === 'nothing' ? 'nothing' : sent.reason, detail: sent.detail };
+      if (!sent.ok) return { ok: false, reason: sent.reason === 'not_allowed' ? 'server' : sent.reason, detail: sent.detail }; // not_allowed (KASSA-RECHTEN-1) kan bij versturen niet voorkomen
       await ctx.store.refresh();
     }
     const c = ctx.store.check(checkId);

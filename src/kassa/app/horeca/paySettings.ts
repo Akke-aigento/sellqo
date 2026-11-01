@@ -7,6 +7,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { TenderMethod, TipMethod } from './pay';
+import { DEFAULT_LOCK_MINUTES, normalizeLockMinutes } from './kassaUx';
 
 export type TerminalMode = 'none' | 'standalone';
 export type SettingMethod = 'cash' | 'transfer' | 'card' | 'cheque_meal' | 'voucher';
@@ -65,4 +66,32 @@ export function useKassaPaySettings(tenantId: string | undefined): PaySettings {
     },
   });
   return data ?? cached ?? DEFAULT_PAY_SETTINGS;
+}
+
+/**
+ * KASSA-UX-6 — na hoeveel minuten zonder aanraking de kassa op het PIN-scherm valt (0 = nooit),
+ * ingesteld in Kassa › Personeel (horeca_pay_settings.kassa_lock_minutes). Een eigen query: ontbreekt de
+ * kolom nog (migratie niet gedraaid) of is er geen netwerk, dan blijft de vorige waarde of 2 minuten
+ * en het afrekenen lijdt er niet onder.
+ */
+export function useKassaLockMinutes(tenantId: string | undefined): number {
+  const key = tenantId ? `sq_kassa_lock_minutes:${tenantId}` : null;
+  const cached = useMemo(() => {
+    if (!key) return null;
+    try { const raw = localStorage.getItem(key); return raw === null ? null : normalizeLockMinutes(raw); } catch { return null; }
+  }, [key]);
+  const { data } = useQuery({
+    queryKey: ['kassa-lock-minutes', tenantId],
+    enabled: !!tenantId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: row, error } = await supabase.from('horeca_pay_settings' as never)
+        .select('kassa_lock_minutes').eq('tenant_id' as never, tenantId as never).maybeSingle();
+      if (error) throw error;
+      const v = normalizeLockMinutes((row as { kassa_lock_minutes?: number } | null)?.kassa_lock_minutes ?? DEFAULT_LOCK_MINUTES);
+      try { localStorage.setItem(key!, String(v)); } catch { /* geen opslag */ }
+      return v;
+    },
+  });
+  return data ?? cached ?? DEFAULT_LOCK_MINUTES;
 }
