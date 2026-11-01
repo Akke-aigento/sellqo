@@ -6,11 +6,13 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Bell, CalendarClock, ChevronRight, CreditCard, LayoutGrid, Loader2, Monitor, Printer, QrCode, Users, UtensilsCrossed } from 'lucide-react';
+import { Bell, CalendarClock, ShieldAlert, ChevronRight, CreditCard, LayoutGrid, Loader2, Monitor, Printer, QrCode, Users, UtensilsCrossed } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useTenant } from '@/hooks/useTenant';
+import { FLOOR_EDIT_URL } from '@/lib/horeca/liveFloor';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface Row { icon: LucideIcon; title: string; status: string; to: string }
 
@@ -65,7 +67,7 @@ export function HorecaSettingsHub() {
       title: t('settings.horecaHub.group_ordering'),
       rows: [
         { icon: QrCode, title: t('settings.horecaHub.qr'), status: t(`settings.horecaHub.qr_mode_${data.qrMode === 'order' ? 'order' : data.qrMode === 'off' ? 'off' : 'view'}`), to: '/admin/bestellen?tab=qr' },
-        { icon: LayoutGrid, title: t('settings.horecaHub.floor'), status: t('settings.horecaHub.tables', { count: data.tables }), to: '/admin/bestellen?tab=zaal' },
+        { icon: LayoutGrid, title: t('settings.horecaHub.floor'), status: t('settings.horecaHub.tables', { count: data.tables }), to: FLOOR_EDIT_URL },
         { icon: CalendarClock, title: t('reservations.title'), status: data.leadMinutes >= 1440 ? t('reservations.leadAllDay') : t('reservations.hubStatus', { count: data.leadMinutes }), to: '/admin/bestellen?tab=reservaties' },
         { icon: UtensilsCrossed, title: t('settings.horecaHub.stations'), status: t('settings.horecaHub.stations_count', { count: data.stations }), to: '/admin/bestellen?tab=posten' },
       ],
@@ -89,6 +91,16 @@ export function HorecaSettingsHub() {
         <CardDescription>{t('settings.horecaHub.intro')}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* HORECA-ZIJBALK-1 — eerlijke GKS-uitleg (zie CLAUDE.md §9): geen belofte, geen datum. */}
+        <Alert className="border-amber-500/60 bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-50 [&>svg]:text-amber-600">
+          <ShieldAlert className="h-4 w-4" aria-hidden />
+          <AlertTitle>{t('settings.horecaHub.gks_title')}</AlertTitle>
+          <AlertDescription className="space-y-2 text-sm">
+            <p>{t('settings.horecaHub.gks_body')}</p>
+            <p>{t('settings.horecaHub.gks_rule')}</p>
+            <p>{t('settings.horecaHub.gks_doubt')}</p>
+          </AlertDescription>
+        </Alert>
         {groups.map((g) => (
           <div key={g.title} className="space-y-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{g.title}</h3>

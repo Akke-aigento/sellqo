@@ -3,7 +3,7 @@
 //   2. QR-menu — in de zaak: menukaart bekijken of bestellen aan tafel (/menu?t=<token> per
 //      tafel uit het zaalplan, ZAAL-H1; zonder zaalplan nog /menu?tafel=N)
 // Producten, extra's en keuken zijn gedeeld. Alleen met de horeca-module.
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Bike, ChevronRight, BookOpen, ChefHat, ExternalLink, Globe, Pizza, QrCode, UtensilsCrossed } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +19,6 @@ import { AllergenChart } from '@/components/admin/storefront/food/AllergenChart'
 import { MenuQrManager } from '@/components/admin/storefront/food/MenuQrManager';
 import { QrModeSettings } from '@/components/admin/storefront/food/QrModeSettings';
 import { QR_MODES, type QrMode } from '@/components/admin/storefront/food/qrModes';
-import { FloorPlanEditor } from '@/components/admin/floorplan/FloorPlanEditor';
 import { PrepStationsManager } from '@/components/admin/horeca/PrepStationsManager';
 import { ReservationsManager } from '@/components/admin/horeca/ReservationsManager';
 import { useFloorPlan } from '@/hooks/useFloorPlan';
@@ -28,25 +27,30 @@ import { ModuleGateLoading, ModuleOffCard } from '@/components/admin/ModuleOffCa
 import { useTracks } from '@/hooks/useBusinessModules';
 import { useCan } from '@/hooks/useCan';
 import { KaartManager } from '@/components/admin/horeca/kaart/KaartManager';
+import { FLOOR_EDIT_URL } from '@/lib/horeca/liveFloor';
 
 // KAART-4 — de Kaart staat vooraan en is de standaardtab: dat is wat een barman hier het vaakst
 // komt doen. Het overzicht (webshop- en QR-status) blijft bereikbaar via ?tab=overview.
+// HORECA-ZIJBALK-1 — bovenaan enkel het dagelijkse werk; wat je eenmalig instelt staat onder
+// "Instellen" (tweede rij). Elke instel-tab houdt zijn eigen ?tab=, zodat bestaande links werken.
+// Het zaalplan verhuisde naar Zaal (/admin/zaal); ?tab=zaal stuurt daarheen door.
 const DEFAULT_TAB = 'kaart';
-const TABS = [
+const DAILY_TABS = [
   // KAART-1 — de kaart: producten snel aanmaken en bewerken (zelfde producten als overal).
   { id: 'kaart', labelKey: 'admin.orderingHub.tab_menu' },
   { id: 'overview', labelKey: 'admin.orderingHub.tab_overview' },
-  { id: 'webshop', labelKey: 'admin.orderingHub.tab_webshop' },
-  { id: 'qr', labelKey: 'admin.orderingHub.tab_qr' },
-  // ZAAL-H1 — tafels, ruimtes en QR-stickers per tafel.
-  { id: 'zaal', labelKey: 'admin.orderingHub.tab_floor' },
   // RESERVATIE-1 — reservaties per dag; de kassa toont ze op het zaalplan.
   { id: 'reservaties', labelKey: 'reservations.title' },
+] as const;
+const SETUP_TABS = [
+  { id: 'qr', labelKey: 'admin.orderingHub.tab_qr' },
   // TAFEL-1 — keuken, bar, … en welke categorie waarheen (één bon per post).
   { id: 'posten', labelKey: 'admin.orderingHub.tab_stations' },
   { id: 'extras', labelKey: 'admin.orderingHub.tab_extras' },
   { id: 'allergens', labelKey: 'admin.orderingHub.tab_allergens' },
+  { id: 'webshop', labelKey: 'admin.orderingHub.tab_webshop' },
 ] as const;
+const TABS = [...DAILY_TABS, ...SETUP_TABS];
 type Tab = (typeof TABS)[number]['id'];
 
 function Status({ on, children }: { on: boolean; children: React.ReactNode }) {
@@ -134,7 +138,7 @@ function Overview({ go }: { go: (t: Tab) => void }) {
               <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.orderingHub.menukaart')}</span>
                 <a href={`https://${slug}.sellqo.shop/menu`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">{slug}.sellqo.shop/menu<ExternalLink className="h-3 w-3" /></a></li>
               <li className="flex justify-between"><span className="text-muted-foreground">{t('admin.orderingHub.floor_plan')}</span>
-                <button type="button" onClick={() => go('zaal')} className="hover:underline">{floor && floor.tables.length > 0 ? t('admin.orderingHub.floor_summary', { tables: floor.tables.length, areas: floor.areas.length }) : t('admin.orderingHub.floor_none')}</button></li>
+                <Link to={FLOOR_EDIT_URL} className="hover:underline">{floor && floor.tables.length > 0 ? t('admin.orderingHub.floor_summary', { tables: floor.tables.length, areas: floor.areas.length }) : t('admin.orderingHub.floor_none')}</Link></li>
             </ul>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" onClick={() => go('qr')}>{t('admin.orderingHub.qr_menu_instellen_en_afdrukken')}<ArrowRight className="ml-1.5 h-4 w-4" /></Button>
@@ -182,14 +186,19 @@ export default function OrderingHubPage() {
   const raw = params.get('tab');
   const tab: Tab = TABS.some((tb) => tb.id === raw) ? (raw as Tab) : DEFAULT_TAB;
   const go = (t: Tab) => setParams((p) => { const n = new URLSearchParams(p); if (t === DEFAULT_TAB) n.delete('tab'); else n.set('tab', t); return n; }, { replace: true });
+  const navigate = useNavigate();
+  const inSetup = SETUP_TABS.some((x) => x.id === tab);
+  const tabClass = (on: boolean) => cn('whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium', on ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground');
 
+  // HORECA-ZIJBALK-1: oude links naar het zaalplan blijven werken.
+  if (raw === 'zaal') return <Navigate to={FLOOR_EDIT_URL} replace />;
   if (!ready) return <ModuleGateLoading />;
   if (!horeca) return <ModuleOffCard module="horeca" />;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 sm:p-6">
       <div>
-        <h1 className="flex items-center gap-3 text-3xl font-bold"><UtensilsCrossed className="h-8 w-8 text-primary" />{t('admin.orderingHub.bestellen')}</h1>
+        <h1 className="flex items-center gap-3 text-3xl font-bold"><UtensilsCrossed className="h-8 w-8 text-primary" />{t('admin.orderingHub.page_title')}</h1>
         <p className="mt-1 text-muted-foreground">{t('admin.orderingHub.twee_manieren_om_bij_jou_te')}</p>
         <p className="mt-1 text-sm text-muted-foreground">
           {t('admin.orderingHub.demo_intro')}{' '}
@@ -197,20 +206,33 @@ export default function OrderingHubPage() {
           <a href="https://demo-pizzeria.sellqo.shop/menu?tafel=4" target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-medium text-primary hover:underline">{t('admin.orderingHub.bestellen_aan_tafel_4')}<ExternalLink className="h-3 w-3" /></a>
         </p>
       </div>
-      <div className="flex gap-1 overflow-x-auto border-b">
-        {TABS.map((tb) => (
-          <button key={tb.id} type="button" onClick={() => go(tb.id)}
-            className={cn('whitespace-nowrap border-b-2 px-3 py-2 text-sm font-medium', tab === tb.id ? 'border-primary text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground')}>
-            {t(tb.labelKey)}
+      <div className="space-y-2">
+        <div role="tablist" className="flex gap-1 overflow-x-auto border-b">
+          {DAILY_TABS.map((tb) => (
+            <button key={tb.id} type="button" role="tab" aria-selected={tab === tb.id} onClick={() => go(tb.id)} className={tabClass(tab === tb.id)}>
+              {t(tb.labelKey)}
+            </button>
+          ))}
+          <button type="button" role="tab" aria-selected={inSetup} onClick={() => { if (!inSetup) go(SETUP_TABS[0].id); }} className={tabClass(inSetup)}>
+            {t('admin.orderingHub.tab_setup')}
           </button>
-        ))}
+        </div>
+        {inSetup ? (
+          <div role="tablist" aria-label={t('admin.orderingHub.tab_setup')} className="flex gap-1.5 overflow-x-auto pb-1">
+            {SETUP_TABS.map((tb) => (
+              <button key={tb.id} type="button" role="tab" aria-selected={tab === tb.id} onClick={() => go(tb.id)}
+                className={cn('whitespace-nowrap rounded-full border px-3 py-1.5 text-sm', tab === tb.id ? 'border-primary bg-primary text-primary-foreground' : 'bg-background hover:bg-muted')}>
+                {t(tb.labelKey)}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
       <div className="max-w-5xl">
         {tab === 'overview' ? <Overview go={go} /> : null}
         {tab === 'kaart' ? <KaartManager /> : null}
         {tab === 'webshop' ? <FulfillmentSettings /> : null}
-        {tab === 'qr' ? <div className="space-y-6"><QrModeSettings /><MenuQrManager onOpenFloorPlan={() => go('zaal')} /></div> : null}
-        {tab === 'zaal' ? <FloorPlanEditor /> : null}
+        {tab === 'qr' ? <div className="space-y-6"><QrModeSettings /><MenuQrManager onOpenFloorPlan={() => navigate(FLOOR_EDIT_URL)} /></div> : null}
         {tab === 'reservaties' ? <ReservationsManager /> : null}
         {tab === 'posten' ? <PrepStationsManager /> : null}
         {tab === 'extras' ? <AddonGroupsManager /> : null}

@@ -110,7 +110,8 @@
       "sales": "Verkoop",
       "marketing": "Marketing",
       "management": "Beheer",
-      "system": "Systeem"
+      "system": "Systeem",
+      "horeca": "Horeca"
     },
     "items": {
       "inbox": "Inbox",
@@ -181,13 +182,16 @@
       "email": "E-mail",
       "media": "Media",
       "platform_overview": "Platformoverzicht",
-      "email_automations": "Automatiseringen"
+      "email_automations": "Automatiseringen",
+      "floor": "Zaal",
+      "pos_app": "Kassa-app"
     },
     "bottom": {
       "today": "Vandaag",
       "kassa": "Kassa",
       "kitchen": "Keuken",
-      "menu": "Kaart"
+      "menu": "Kaart",
+      "floor": "Zaal"
     }
   },
   "settings": {
@@ -1674,7 +1678,11 @@
       "pay_status_one": "{{count}} betaalwijze · online betalen {{online}}",
       "pay_status_few": "{{count}} betaalwijzen · online betalen {{online}}",
       "pay_status_many": "{{count}} betaalwijzen · online betalen {{online}}",
-      "pay_status_other": "{{count}} betaalwijzen · online betalen {{online}}"
+      "pay_status_other": "{{count}} betaalwijzen · online betalen {{online}}",
+      "gks_title": "SellQo Kassa is nog geen geregistreerd kassasysteem (GKS)",
+      "gks_body": "SellQo Kassa is (nog) niet gecertificeerd als geregistreerd kassasysteem (GKS 2.0).",
+      "gks_rule": "Verkoop je meer dan € 25.000 per jaar (excl. btw) aan maaltijden die ter plaatse gegeten worden, of staat er bij je huidige kassa een fiscale datamodule (FDM, de “zwarte doos”), dan ben je GKS-plichtig. Gebruik SellQo dan niet als je registrerende kassa zolang SellQo Kassa niet gecertificeerd is.",
+      "gks_doubt": "Twijfel je of dit voor jouw zaak geldt? Vraag het na bij je boekhouder."
     },
     "bottomNav": {
       "title": "Mijn onderbalk op de gsm",
@@ -7432,7 +7440,9 @@
       "tab_menu": "Kaart",
       "menu_count": "Op de kaart: {{count}}",
       "menu_empty": "Nog niets: begin met de startkaart",
-      "all_settings": "Alle horeca-instellingen"
+      "all_settings": "Alle horeca-instellingen",
+      "tab_setup": "Instellen",
+      "page_title": "Kaart & bestellen"
     },
     "pos": {
       "pOSKitchenPanel": {
@@ -9494,6 +9504,16 @@
         "done": "Klaar",
         "sortHint": "Sleep producten en categorieën in de juiste volgorde. Tik op het vinkje als je klaar bent.",
         "selectHint": "Vink producten aan om ze samen aan te passen. Tik op Klaar als je klaar bent."
+      },
+      "cost": {
+        "label": "Kostprijs (excl. btw)",
+        "pct": "Foodcost {{pct}}",
+        "hint": "Foodcost = kostprijs ÷ verkoopprijs excl. btw ({{rate}} %). Boven {{warn}} % kleurt het rood. Gasten en personeel zien dit niet.",
+        "toggle": "Foodcost",
+        "legend": "foodcost = kostprijs ÷ prijs excl. btw, rood boven {{warn}} %",
+        "none_short": "–",
+        "missing_aria": "{{name}}: geen kostprijs ingevuld",
+        "pct_aria": "{{name}}: foodcost {{pct}}"
       }
     },
     "horecaPay": {
@@ -9650,6 +9670,34 @@
     "tenantForm": {
       "planMoved": "Plan en status van het abonnement wijzig je op de detailpagina van de winkel, onder Facturatie.",
       "planMovedLink": "Naar het abonnement"
+    },
+    "liveFloor": {
+      "intro": "Wat er nu open staat in je zaak. Rekeningen openen en afrekenen doe je op SellQo Kassa.",
+      "tab_live": "Live",
+      "tab_edit": "Zaalplan bewerken",
+      "stat_tables": "Bezette tafels",
+      "stat_checks": "Open rekeningen",
+      "stat_total": "Openstaand",
+      "live": "Live · ververst elke 10 seconden",
+      "updated": "bijgewerkt om {{time}}",
+      "error": "De open rekeningen konden niet geladen worden. Er wordt opnieuw geprobeerd.",
+      "no_plan_title": "Nog geen zaalplan",
+      "no_plan_body": "Teken je zaal, dan zie je hier per tafel wat er open staat. De lijst hieronder werkt ook zonder plan.",
+      "edit_plan": "Zaalplan tekenen",
+      "list_title": "Open rekeningen",
+      "none": "Geen open rekeningen.",
+      "part": "{{title}} · deel {{n}}",
+      "open_for": "{{duration}} open",
+      "minutes": "{{m}} min",
+      "hours": "{{h}} u {{mm}}",
+      "guests": "{{n}} pers.",
+      "state_open": "Bezet",
+      "state_bill": "Rekening gevraagd",
+      "state_paying": "Wordt afgerekend",
+      "counter": "Toog",
+      "unnamed": "Rekening zonder naam",
+      "readonly_hint": "Dit overzicht is alleen-lezen en ververst elke 10 seconden. SellQo Kassa zelf toont wijzigingen meteen.",
+      "open_kassa": "SellQo Kassa openen"
     }
   },
   "product_form": {

@@ -138,7 +138,8 @@
       "sales": "Ventes",
       "marketing": "Marketing",
       "management": "Gestion",
-      "system": "Système"
+      "system": "Système",
+      "horeca": "Horeca"
     },
     "items": {
       "inbox": "Boîte de réception",
@@ -209,13 +210,16 @@
       "email": "E-mail",
       "media": "Médias",
       "platform_overview": "Aperçu de la plateforme",
-      "email_automations": "Automatisations"
+      "email_automations": "Automatisations",
+      "floor": "Salle",
+      "pos_app": "Appli caisse"
     },
     "bottom": {
       "today": "Aujourd'hui",
       "kassa": "Caisse",
       "kitchen": "Cuisine",
-      "menu": "Carte"
+      "menu": "Carte",
+      "floor": "Salle"
     }
   },
   "settings": {
@@ -1702,7 +1706,11 @@
       "pay_status_one": "{{count}} moyen de paiement · paiement en ligne {{online}}",
       "pay_status_few": "{{count}} moyens de paiement · paiement en ligne {{online}}",
       "pay_status_many": "{{count}} moyens de paiement · paiement en ligne {{online}}",
-      "pay_status_other": "{{count}} moyens de paiement · paiement en ligne {{online}}"
+      "pay_status_other": "{{count}} moyens de paiement · paiement en ligne {{online}}",
+      "gks_title": "SellQo Kassa n’est pas encore un système de caisse enregistreuse (SCE)",
+      "gks_body": "SellQo Kassa n’est pas (encore) certifié comme système de caisse enregistreuse (SCE 2.0).",
+      "gks_rule": "Si tu vends plus de 25 000 € par an (hors TVA) de repas consommés sur place, ou si ta caisse actuelle a un module de données fiscales (FDM, la « boîte noire »), tu es soumis au SCE. N’utilise alors pas SellQo comme caisse enregistreuse tant que SellQo Kassa n’est pas certifié.",
+      "gks_doubt": "Tu ne sais pas si cela s’applique à ton établissement ? Renseigne-toi auprès de ton comptable."
     },
     "bottomNav": {
       "title": "Ma barre du bas sur le téléphone",
@@ -6426,7 +6434,9 @@
       "tab_menu": "Carte",
       "menu_count": "Sur la carte : {{count}}",
       "menu_empty": "Rien encore : commence par la carte de départ",
-      "all_settings": "Tous les réglages horeca"
+      "all_settings": "Tous les réglages horeca",
+      "tab_setup": "Configuration",
+      "page_title": "Carte & commandes"
     },
     "kitchen": {
       "col_new": "Nouveau",
@@ -9149,6 +9159,16 @@
         "done": "Terminé",
         "sortHint": "Faites glisser produits et catégories dans le bon ordre. Touchez la coche quand vous avez fini.",
         "selectHint": "Cochez des produits pour les modifier ensemble. Touchez Terminé quand vous avez fini."
+      },
+      "cost": {
+        "label": "Prix de revient (HTVA)",
+        "pct": "Food cost {{pct}}",
+        "hint": "Food cost = prix de revient ÷ prix de vente HTVA ({{rate}} %). Au-delà de {{warn}} %, il passe en rouge. Les clients et le personnel ne le voient pas.",
+        "toggle": "Food cost",
+        "legend": "food cost = prix de revient ÷ prix HTVA, rouge au-delà de {{warn}} %",
+        "none_short": "–",
+        "missing_aria": "{{name}} : aucun prix de revient",
+        "pct_aria": "{{name}} : food cost {{pct}}"
       }
     },
     "horecaPay": {
@@ -9305,6 +9325,34 @@
     "tenantForm": {
       "planMoved": "Le forfait et le statut de l'abonnement se modifient sur la page détaillée de la boutique, sous Facturation.",
       "planMovedLink": "Vers l'abonnement"
+    },
+    "liveFloor": {
+      "intro": "Ce qui est ouvert dans ton établissement en ce moment. Ouvrir et encaisser les additions se fait sur SellQo Kassa.",
+      "tab_live": "En direct",
+      "tab_edit": "Modifier le plan de salle",
+      "stat_tables": "Tables occupées",
+      "stat_checks": "Additions ouvertes",
+      "stat_total": "En cours",
+      "live": "En direct · actualisé toutes les 10 secondes",
+      "updated": "mis à jour à {{time}}",
+      "error": "Impossible de charger les additions ouvertes. Nouvel essai en cours.",
+      "no_plan_title": "Pas encore de plan de salle",
+      "no_plan_body": "Dessine ta salle pour voir ici ce qui est ouvert par table. La liste ci-dessous fonctionne aussi sans plan.",
+      "edit_plan": "Dessiner le plan de salle",
+      "list_title": "Additions ouvertes",
+      "none": "Aucune addition ouverte.",
+      "part": "{{title}} · partie {{n}}",
+      "open_for": "ouverte depuis {{duration}}",
+      "minutes": "{{m}} min",
+      "hours": "{{h}} h {{mm}}",
+      "guests": "{{n}} pers.",
+      "state_open": "Occupée",
+      "state_bill": "Addition demandée",
+      "state_paying": "Encaissement en cours",
+      "counter": "Comptoir",
+      "unnamed": "Addition sans nom",
+      "readonly_hint": "Cette vue est en lecture seule et s’actualise toutes les 10 secondes. SellQo Kassa affiche les changements immédiatement.",
+      "open_kassa": "Ouvrir SellQo Kassa"
     }
   },
   "billing": {

@@ -110,7 +110,8 @@
       "sales": "Sales",
       "marketing": "Marketing",
       "management": "Management",
-      "system": "System"
+      "system": "System",
+      "horeca": "Hospitality"
     },
     "items": {
       "inbox": "Inbox",
@@ -181,13 +182,16 @@
       "email": "Email",
       "media": "Media",
       "platform_overview": "Platform overview",
-      "email_automations": "Automations"
+      "email_automations": "Automations",
+      "floor": "Floor",
+      "pos_app": "POS app"
     },
     "bottom": {
       "today": "Today",
       "kassa": "POS",
       "kitchen": "Kitchen",
-      "menu": "Menu"
+      "menu": "Menu",
+      "floor": "Floor"
     }
   },
   "settings": {
@@ -1674,7 +1678,11 @@
       "pay_status_one": "{{count}} payment method · online payment {{online}}",
       "pay_status_few": "{{count}} payment methods · online payment {{online}}",
       "pay_status_many": "{{count}} payment methods · online payment {{online}}",
-      "pay_status_other": "{{count}} payment methods · online payment {{online}}"
+      "pay_status_other": "{{count}} payment methods · online payment {{online}}",
+      "gks_title": "SellQo Kassa is not yet a certified cash register system (GKS)",
+      "gks_body": "SellQo Kassa is not (yet) certified as a registered cash register system (GKS 2.0) under Belgian law.",
+      "gks_rule": "If you sell more than €25,000 a year (excl. VAT) in meals eaten on the premises, or your current register has a fiscal data module (FDM, the “black box”), you are required to use a GKS. In that case, do not use SellQo as your registering cash register as long as SellQo Kassa is not certified.",
+      "gks_doubt": "Not sure whether this applies to your business? Check with your accountant."
     },
     "bottomNav": {
       "title": "My bottom bar on the phone",
@@ -6757,7 +6765,9 @@
       "tab_menu": "Menu",
       "menu_count": "On the menu: {{count}}",
       "menu_empty": "Nothing yet: start with the starter menu",
-      "all_settings": "All hospitality settings"
+      "all_settings": "All hospitality settings",
+      "tab_setup": "Setup",
+      "page_title": "Menu & ordering"
     },
     "kitchen": {
       "col_new": "New",
@@ -9480,6 +9490,16 @@
         "done": "Done",
         "sortHint": "Drag products and categories into the right order. Tap the check mark when you're done.",
         "selectHint": "Tick products to change them together. Tap Done when you're done."
+      },
+      "cost": {
+        "label": "Cost price (excl. VAT)",
+        "pct": "Food cost {{pct}}",
+        "hint": "Food cost = cost price ÷ selling price excl. VAT ({{rate}} %). Above {{warn}} % it turns red. Guests and staff do not see this.",
+        "toggle": "Food cost",
+        "legend": "food cost = cost ÷ price excl. VAT, red above {{warn}} %",
+        "none_short": "–",
+        "missing_aria": "{{name}}: no cost price set",
+        "pct_aria": "{{name}}: food cost {{pct}}"
       }
     },
     "horecaPay": {
@@ -9636,6 +9656,34 @@
     "tenantForm": {
       "planMoved": "You change the subscription plan and status on the shop's detail page, under Billing.",
       "planMovedLink": "Go to subscription"
+    },
+    "liveFloor": {
+      "intro": "What is open in your venue right now. Opening and settling bills happens on SellQo Kassa.",
+      "tab_live": "Live",
+      "tab_edit": "Edit floor plan",
+      "stat_tables": "Occupied tables",
+      "stat_checks": "Open bills",
+      "stat_total": "Outstanding",
+      "live": "Live · refreshes every 10 seconds",
+      "updated": "updated at {{time}}",
+      "error": "The open bills could not be loaded. Retrying.",
+      "no_plan_title": "No floor plan yet",
+      "no_plan_body": "Draw your floor and you will see per table what is open. The list below also works without a plan.",
+      "edit_plan": "Draw floor plan",
+      "list_title": "Open bills",
+      "none": "No open bills.",
+      "part": "{{title}} · part {{n}}",
+      "open_for": "open for {{duration}}",
+      "minutes": "{{m}} min",
+      "hours": "{{h}} h {{mm}}",
+      "guests": "{{n}} guests",
+      "state_open": "Occupied",
+      "state_bill": "Bill requested",
+      "state_paying": "Being settled",
+      "counter": "Bar",
+      "unnamed": "Unnamed bill",
+      "readonly_hint": "This overview is read-only and refreshes every 10 seconds. SellQo Kassa itself shows changes right away.",
+      "open_kassa": "Open SellQo Kassa"
     }
   },
   "product_form": {

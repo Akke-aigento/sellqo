@@ -23,6 +23,8 @@ export default defineConfig({
     { find: '@', replacement: path.resolve(__dirname, '../../src') },
   ] },
   server: { port: Number(process.env.HARNESS_PORT ?? 5199), strictPort: true },
-  cacheDir: '/tmp/harness-vite-cache',
+  // Eigen cache per worktree mogelijk (HARNESS_CACHE_DIR): parallelle runs in andere worktrees
+  // her-optimaliseren anders elkaars deps ("Failed to fetch dynamically imported module").
+  cacheDir: process.env.HARNESS_CACHE_DIR ?? '/tmp/harness-vite-cache',
   logLevel: 'warn',
 });

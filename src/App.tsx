@@ -128,6 +128,7 @@ import POSTerminalPage from "./pages/admin/POSTerminal";
 import { ClassicPosGate } from "./components/admin/pos/ClassicPosGate";
 import KitchenPage from "./pages/admin/Kitchen";
 import OrderingHubPage from "./pages/admin/OrderingHub";
+import FloorPage from "./pages/admin/Floor";
 import POSTerminalSettingsPage from "./pages/admin/POSTerminalSettings";
 import SEODashboard from "./pages/admin/SEODashboard";
 import SocialPlanner from "./pages/admin/SocialPlanner";
@@ -337,6 +338,8 @@ const App = () => (
               <Route path="keuken" element={<RouteGuard requireRead="orders"><KitchenPage /></RouteGuard>} />
               {/* HORECA-1: webshop (afhalen/leveren) en QR-menu (in de zaak) op één plek. */}
               <Route path="bestellen" element={<RouteGuard requireRead="orders"><OrderingHubPage /></RouteGuard>} />
+              {/* HORECA-ZIJBALK-1: live zaaloverzicht + zaalplan bewerken (?tab=bewerken). */}
+              <Route path="zaal" element={<RouteGuard requireRead="orders"><FloorPage /></RouteGuard>} />
               <Route path="checkin" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventsModuleGate><TicketCheckinPage /></EventsModuleGate></RouteGuard>} />
               <Route path="events" element={<RouteGuard requireRole={['tenant_admin', 'staff']}><EventDashboardPage /></RouteGuard>} />
               <Route path="events/new" element={<RouteGuard requireRole={['tenant_admin']}><EventsModuleGate><EventWizardPage /></EventsModuleGate></RouteGuard>} />

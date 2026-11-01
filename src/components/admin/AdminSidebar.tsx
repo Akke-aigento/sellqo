@@ -10,9 +10,9 @@ import { useTenantPageOverrides } from '@/hooks/useTenantPageOverrides';
 import { usePlatformViewMode } from '@/hooks/usePlatformViewMode';
 import { SellqoLogo } from '@/components/SellqoLogo';
 import { SidebarCustomizeDialog } from './SidebarCustomizeDialog';
-import { sidebarGroups, platformGroup, getAllMenuItems, inSidebar, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
+import { sidebarGroups, sidebarLayout, platformGroup, getAllMenuItems, inSidebar, type NavItem, type NavGroup } from './sidebar/sidebarConfig';
 import { useNavItemVisibility } from './sidebar/useNavItemVisibility';
-import { bottomNavUrl } from './sidebar/bottomNav';
+import { bottomNavUrl, sidebarLabelKey } from './sidebar/bottomNav';
 import { useTracks } from '@/hooks/useBusinessModules';
 import { InboxBadge } from './sidebar/InboxBadge';
 import { AdsAiBadge } from './sidebar/AdsAiBadge';
@@ -71,6 +71,9 @@ export function AdminSidebar() {
   const { hasTrack } = useTracks();
   const navCtx = { horeca: hasTrack('horeca'), webshop: hasTrack('webshop'), events: hasTrack('events') };
   const sidebarHref = (item: NavItem) => bottomNavUrl(item, navCtx);
+  // HORECA-ZIJBALK-1: "Vandaag" en "Kassa-app" bij horeca; volgorde en groepen per spoor.
+  const label = (item: NavItem) => t(sidebarLabelKey(item, navCtx));
+  const groups = sidebarLayout(hasTrack);
   // TRACKS-3: een item kan bereikbaar zijn maar niet in de zijbalk staan (Instellingen › Meer onderdelen).
   const hideInSidebar = (item: NavItem) => shouldHideItem(item) || !inSidebar(item, hasTrack);
 
@@ -214,13 +217,13 @@ export function AdminSidebar() {
               <NavLink to={href} onClick={() => setOpen(true)} className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   {item.icon && <item.icon className="h-4 w-4" />}
-                  <span>{t(item.titleKey)}</span>
+                  <span>{label(item)}</span>
                 </span>
                 {renderPageToggle(item.id, item)}
               </NavLink>
             </SidebarMenuButton>
             <CollapsibleTrigger asChild>
-              <SidebarMenuAction aria-label={t(item.titleKey)} className="data-[state=open]:rotate-90 transition-transform">
+              <SidebarMenuAction aria-label={label(item)} className="data-[state=open]:rotate-90 transition-transform">
                 <ChevronRight className="h-4 w-4" />
               </SidebarMenuAction>
             </CollapsibleTrigger>
@@ -263,7 +266,7 @@ export function AdminSidebar() {
           <NavLink to={href} className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               {item.icon && <item.icon className="h-4 w-4" />}
-              <span>{t(item.titleKey)}</span>
+              <span>{label(item)}</span>
             </span>
             {item.badge && item.id === 'inbox' && <InboxBadge />}
             {renderPageToggle(item.id, item)}
@@ -397,7 +400,7 @@ export function AdminSidebar() {
             </div>
           )}
 
-          {sidebarGroups.map(group => renderGroup(group))}
+          {groups.map(group => renderGroup(group))}
 
           {isPlatformAdmin && renderGroup(platformGroup)}
         </SidebarContent>

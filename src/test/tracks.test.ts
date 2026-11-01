@@ -50,6 +50,10 @@ describe('findTrackRule', () => {
     expect(tracksFor('/admin/products')).toEqual(['webshop']);
     expect(tracksFor('/admin/products/abc/edit')).toEqual([]);
   });
+  it('HORECA-ZIJBALK-1: Zaal en Bestellen zijn horeca-pagina’s', () => {
+    expect(tracksFor('/admin/zaal')).toEqual(['horeca']);
+    expect(tracksFor('/admin/bestellen')).toEqual(['horeca']);
+  });
   it('raakt platformroutes niet', () => {
     expect(findTrackRule('/admin/platform/blog')).toBeNull();
   });

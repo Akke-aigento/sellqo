@@ -35,6 +35,7 @@ import {
   Languages,
   Wallet,
   Library,
+  LayoutGrid,
 } from 'lucide-react';
 
 import type { AppRole } from '@/hooks/useAuth';
@@ -177,10 +178,13 @@ const dailyItems: NavItem[] = [
 const salesItems: NavItem[] = [
   { id: 'pos', tracks: ['webshop', 'horeca'], titleKey: 'navigation.items.pos', url: '/admin/pos', icon: Monitor, featureKey: 'pos', excludeRoles: ['marketing'], requireRead: 'pos' },
   // HORECA-1 / TRACKS-1 — horeca-spoor: alleen voor winkels die het hebben.
-  { id: 'ordering', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_floor', url: '/admin/bestellen?tab=zaal', icon: UtensilsCrossed, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'orders' },
+  // HORECA-ZIJBALK-1: "Zaal" = het live zaaloverzicht; het zaalplan bewerken is daar een tab.
+  // Id 'ordering' blijft (sidebar_preferences en hidden_pages verwijzen naar id's).
+  { id: 'ordering', tracks: ['horeca'], titleKey: 'navigation.items.floor', url: '/admin/zaal', icon: LayoutGrid, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'orders' },
   // TRACKS-2: horeca beheert de kaart op de tab Kaart van de bestelpagina (zie WERKPLEK-1 hierboven).
-  { id: 'horeca-menu', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_menu', url: '/admin/bestellen?tab=kaart', icon: BookOpen, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'products' },
-  { id: 'kitchen', tracks: ['horeca'], sidebarTracks: [], titleKey: 'navigation.items.kitchen', url: '/admin/keuken', icon: ChefHat, excludeRoles: ['marketing', 'accountant'], requireRead: 'orders' },
+  // HORECA-ZIJBALK-1: zonder ?tab= (Kaart is de standaardtab), zodat het item ook oplicht.
+  { id: 'horeca-menu', tracks: ['horeca'], titleKey: 'admin.orderingHub.tab_menu', url: '/admin/bestellen', icon: BookOpen, excludeRoles: ['marketing', 'accountant', 'warehouse'], requireRead: 'products' },
+  { id: 'kitchen', tracks: ['horeca'], titleKey: 'navigation.items.kitchen', url: '/admin/keuken', icon: ChefHat, excludeRoles: ['marketing', 'accountant'], requireRead: 'orders' },
   {
     id: 'event-dashboard',
     tracks: ['events'],
@@ -258,7 +262,8 @@ const managementItems: NavItem[] = [
   { id: 'translations', tracks: ['webshop', 'events'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.translations', url: '/admin/marketing/translations', icon: Languages, requireRead: 'cms' },
   // SIDEBAR-CLEAN-1: één item; Documenten zit als knop op de Leveranciers-pagina.
   // Id 'purchasing' blijft (tenant_feature_overrides.hidden_pages verwijst ernaar).
-  { id: 'purchasing', tracks: ['webshop', 'horeca'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers', activeAlso: ['/admin/supplier-documents'] },
+  // HORECA-ZIJBALK-1: Inkoop staat ook in de horeca-zijbalk.
+  { id: 'purchasing', tracks: ['webshop', 'horeca'], sidebarTracks: ['webshop', 'horeca'], titleKey: 'navigation.items.purchasing', url: '/admin/suppliers', icon: Factory, excludeRoles: ['marketing'], requireRead: 'suppliers', activeAlso: ['/admin/supplier-documents'] },
   {
     id: 'reports',
     titleKey: 'navigation.items.reports',
@@ -281,7 +286,8 @@ const systemItems: NavItem[] = [
   // SIDEBAR-CLEAN-1: Notificaties weg — de bel in de header linkt al naar /admin/notifications.
   // SIDEBAR-CLEAN-1: één item (het kind herhaalde dezelfde URL); Importeren zit als knop op de Connect-pagina.
   { id: 'integrations', tracks: ['webshop', 'events'], sidebarTracks: ['webshop'], titleKey: 'navigation.items.integrations', url: '/admin/connect', icon: Cable, featureKey: 'apiAccess', excludeRoles: ['marketing'], requireRead: 'integrations' },
-  { id: 'billing', titleKey: 'navigation.items.billing', url: '/admin/billing', icon: Receipt, excludeRoles: ['marketing'], requireRead: 'platform_billing' },
+  // HORECA-ZIJBALK-1: niet in de korte horeca-zijbalk; horeca-only vindt het onder Instellingen › Meer onderdelen.
+  { id: 'billing', sidebarTracks: ['webshop', 'events'], titleKey: 'navigation.items.billing', url: '/admin/billing', icon: Receipt, excludeRoles: ['marketing'], requireRead: 'platform_billing' },
   { id: 'settings', titleKey: 'navigation.settings', url: '/admin/settings', icon: Settings, excludeRoles: ['marketing'], requireRead: 'settings_general' },
   { id: 'help', titleKey: 'navigation.items.help', url: '/admin/help', icon: HelpCircle },
 ];
@@ -308,6 +314,38 @@ export const sidebarGroups: NavGroup[] = [
   { id: 'management', titleKey: 'navigation.groups.management', items: managementItems },
   { id: 'system', titleKey: 'navigation.groups.system', items: systemItems },
 ];
+
+/**
+ * HORECA-ZIJBALK-1 — de horeca-zijbalk in de afgesproken volgorde (Akke, 1 nov 2026). Enkel id's:
+ * de items zelf (titel, rechten, sporen) blijven op één plek hierboven gedefinieerd.
+ */
+const HORECA_ONLY_LAYOUT: { id: string; titleKey: string; ids: string[] }[] = [
+  { id: 'daily', titleKey: 'navigation.groups.daily', ids: ['dashboard', 'pos', 'ordering', 'kitchen', 'orders'] },
+  { id: 'management', titleKey: 'navigation.groups.management', ids: ['horeca-menu', 'payments', 'reports', 'purchasing'] },
+  { id: 'system', titleKey: 'navigation.groups.system', ids: ['settings', 'help'] },
+];
+/** Bij horeca + webshop/events: de horeca-items samen in één groep, na Dagelijks. */
+const HORECA_GROUP_IDS = ['pos', 'ordering', 'kitchen', 'horeca-menu'];
+
+/**
+ * HORECA-ZIJBALK-1 — de groepen zoals de zijbalk ze toont voor een zaak met deze sporen.
+ * - Horeca als enige spoor: de korte horeca-lijst (HORECA_ONLY_LAYOUT).
+ * - Horeca met webshop of events: de gewone groepen, met de horeca-items in een eigen groep "Horeca".
+ * - Anders: `sidebarGroups` ongewijzigd.
+ * Zichtbaarheid (spoor, rol, abonnement) blijft per item gelden; dit bepaalt enkel volgorde en groep.
+ */
+export function sidebarLayout(has: (t: Track) => boolean): NavGroup[] {
+  if (!has('horeca')) return sidebarGroups;
+  if (!has('webshop') && !has('events')) {
+    return HORECA_ONLY_LAYOUT.map((g) => ({ id: g.id, titleKey: g.titleKey, items: findNavItems(g.ids) }));
+  }
+  const out: NavGroup[] = [];
+  for (const group of sidebarGroups) {
+    out.push({ ...group, items: group.items.filter((i) => !HORECA_GROUP_IDS.includes(i.id)) });
+    if (group.id === 'daily') out.push({ id: 'horeca', titleKey: 'navigation.groups.horeca', items: findNavItems(HORECA_GROUP_IDS) });
+  }
+  return out;
+}
 
 export const platformGroup: NavGroup = { id: 'platform', titleKey: 'navigation.platform', items: platformItems };
 
@@ -388,7 +426,7 @@ export function getAllMenuItems(): { id: string; titleKey: string; groupKey: str
 export function visibleNavIds(tracks: readonly Track[]): string[] {
   const has = (t: Track) => tracks.includes(t);
   const out: string[] = [];
-  for (const group of sidebarGroups) {
+  for (const group of sidebarLayout(has)) {
     for (const item of group.items) {
       if (!inSidebar(item, has)) continue;
       out.push(item.id);
