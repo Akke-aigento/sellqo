@@ -2443,7 +2443,7 @@
         },
         "dining_courses": {
           "title": "Gänge am Tisch: Vorspeise, Hauptgericht und Dessert getrennt in die Küche",
-          "description": "Schalte unter Karte › Einrichten › Stationen „Gänge verwenden“ ein, und deine Kasse gibt jeder Bestellung einen Gang, je Kategorie oder selbst auf der Rechnung gewählt. Spätere Gänge warten, bis du sie mit einem Tipp freigibst, und die Küche sieht je Gang, was jetzt dran ist und was noch kommt. Lässt du es aus, ändert sich nichts."
+          "description": "Schalte unter Karte › Einrichten › Stationen „Gänge verwenden“ ein, und deine Kasse gibt jeder Bestellung einen Gang, je Kategorie oder selbst auf der Rechnung gewählt. Spätere Gänge warten, bis du sie mit einem Tipp freigibst, und die Küche bekommt den Bon eines Gangs erst, wenn du ihn freigibst. Lässt du es aus, ändert sich nichts."
         },
         "kassa_manager_approval": {
           "title": "Rabatte und Stornos brauchen jetzt die Freigabe einer verantwortlichen Person",

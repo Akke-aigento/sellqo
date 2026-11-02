@@ -72,7 +72,7 @@ i18n: `public.changelog.changes.kitchen_tickets_safe`
 #### 2026.14x — Gangen aan tafel (feature, 02-11-2026)
 
 **Het dessert pas als jij het zegt** (november 2026)
-Zet in Kaart › Instellen › Posten "Gangen gebruiken" aan en je kassa geeft elke bestelling een gang. Latere gangen wachten tot je ze met één tik vrijgeeft, en de keuken ziet per gang wat nu moet en wat nog komt. Laat je het uit, dan verandert er niets.
+Zet in Kaart › Instellen › Posten "Gangen gebruiken" aan en je kassa geeft elke bestelling een gang. Latere gangen wachten tot je ze met één tik vrijgeeft, en de keuken krijgt de bon van een gang pas als je die vrijgeeft. Laat je het uit, dan verandert er niets.
 Wat betekent dit voor jou? Geen dessert dat al klaarstaat terwijl het hoofdgerecht nog op tafel komt.
 
 i18n: `public.changelog.changes.dining_courses`

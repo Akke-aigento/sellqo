@@ -2443,7 +2443,7 @@
         },
         "dining_courses": {
           "title": "Gangen aan tafel: voorgerecht, hoofdgerecht en dessert apart naar de keuken",
-          "description": "Zet in Kaart › Instellen › Posten \"Gangen gebruiken\" aan en je kassa geeft elke bestelling een gang, per categorie of zelf gekozen op de rekening. Latere gangen wachten tot je ze met één tik vrijgeeft, en de keuken ziet per gang wat nu moet en wat nog komt. Laat je het uit, dan verandert er niets."
+          "description": "Zet in Kaart › Instellen › Posten \"Gangen gebruiken\" aan en je kassa geeft elke bestelling een gang, per categorie of zelf gekozen op de rekening. Latere gangen wachten tot je ze met één tik vrijgeeft, en de keuken krijgt de bon van een gang pas als je die vrijgeeft. Laat je het uit, dan verandert er niets."
         },
         "kassa_manager_approval": {
           "title": "Korting en annuleren vragen nu het akkoord van een verantwoordelijke",

@@ -2443,7 +2443,7 @@
         },
         "dining_courses": {
           "title": "Services à table : entrée, plat et dessert envoyés séparément en cuisine",
-          "description": "Active « Utiliser les services » dans Carte › Configuration › Postes et ta caisse attribue un service à chaque commande, par catégorie ou choisi toi-même sur l'addition. Les services suivants attendent que tu les lances en un geste, et la cuisine voit par service ce qu'il faut faire maintenant et ce qui suit. Si tu laisses l'option désactivée, rien ne change."
+          "description": "Active « Utiliser les services » dans Carte › Configuration › Postes et ta caisse attribue un service à chaque commande, par catégorie ou choisi toi-même sur l'addition. Les services suivants attendent que tu les lances en un geste, et la cuisine ne reçoit le bon d'un service qu'au moment où tu le lances. Si tu laisses l'option désactivée, rien ne change."
         },
         "kassa_manager_approval": {
           "title": "Remises et annulations demandent désormais l'accord d'un responsable",

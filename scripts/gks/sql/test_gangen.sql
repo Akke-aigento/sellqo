@@ -1,6 +1,8 @@
 -- GANGEN-1 — controleert 20261101230220_gangen_1.sql (gang wacht als ontwerp, keuken ziet 'waiting', fire_course,
 -- gangen uit = niets verandert). Na test_keuken_veilig.sql op dezelfde databank (zelfde fixtures), met een minimale
 -- horeca_pay_settings (tenant_id, methods) als die nog ontbreekt. Elke regel moet t geven.
+-- Let op: draai dit vóór 20261102080020_gangen_bon_1.sql. GANGEN-BON-1 haalt de wachtende lijnen van de bon
+-- (ok_kitchen_sees_waiting geldt dan niet meer); test_gangen_bon.sql controleert de nieuwe stand.
 \set ON_ERROR_STOP 1
 insert into public.dining_tables (id, tenant_id, label) values ('77777777-0000-0000-0000-000000000009','11111111-1111-1111-1111-111111111111','G1') on conflict do nothing;
 -- GANGEN-1: voorgerecht (cola=bar zonder gang, burger gang 1), dessert gang 3 wacht.

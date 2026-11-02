@@ -15,7 +15,7 @@ Branch `night-keuken` (na `git merge night-final`, fast-forward tot `7c1cee6`). 
 - Gelezen: `src/kassa/README.md` (EVT-13: correcties zijn nieuwe events; FDM-04), `src/kassa/fiscal/builders.ts` (`buildOrder` = P/ORDER), `src/kassa/app/horeca/fiscalLines.ts` (ronde = enkel de nieuwe ontwerp-lijnen, EVT-04/06) en `actions.ts` (`sendRound` = ondertekenen → `send_round`). De eisenmatrix (projectdoc) was niet bereikbaar.
 - Een lijn van een latere gang blijft een **ontwerp-lijn** (geen P/ORDER, niet naar de keuken) tot de bediening de gang vrijgeeft. "Gang vrijgeven" = (1) `fire_course` op de server: enkel `dining_checks.course_fired` ophogen, niet fiscaal (zoals `rename_check`/`cancel_bill`), en (2) die lijnen versturen met de bestaande `sendRound` → een gewone ronde, P/ORDER zoals altijd. Niets aan `fiscal_events`, FDM-berichten of builders gewijzigd; `KASSA_SW_VERSION` niet verhoogd.
 - Alternatief (alles meteen als P/ORDER en enkel de keukenbon "vasthouden") verworpen: vraagt een bonstatus/uniciteit per (ronde, post, gang) op `kitchen_tickets` en wijkt af van de voorkeur van de opdracht.
-- **Open punt voor de FOD-check** (eisenmatrix): de keuken ziet ter info op de bon van de huidige ronde welke lijnen nog wachten (`'waiting': true`, grijs, "nog niet maken"). Die lijnen zijn nog niet besteld (geen P/ORDER). Op een GKS-kassa drukt de server geen keukenbonnen af (de kassa doet dat zelf, nog niet gebouwd); het gaat hier enkel om het scherm en de niet-fiscale serverprint. Bevestigen dat een info-vermelding van niet-bestelde lijnen op een productiebon mag; zo niet, is het één voorwaarde in `send_round` om het weg te laten.
+- **Open punt voor de FOD-check — beslist 2-11-2026, zie GANGEN-BON-1 hieronder** (eisenmatrix): de keuken ziet ter info op de bon van de huidige ronde welke lijnen nog wachten (`'waiting': true`, grijs, "nog niet maken"). Die lijnen zijn nog niet besteld (geen P/ORDER). Op een GKS-kassa drukt de server geen keukenbonnen af (de kassa doet dat zelf, nog niet gebouwd); het gaat hier enkel om het scherm en de niet-fiscale serverprint. Bevestigen dat een info-vermelding van niet-bestelde lijnen op een productiebon mag; zo niet, is het één voorwaarde in `send_round` om het weg te laten.
 - De voorrekening (`requestBill`) verstuurt eerst ook wat nog wachtte (de server eist dat alles verstuurd is). Afrekenen met wachtende lijnen: zoals elke ontwerp-lijn gaan ze mee naar de vervolgrekening (bestaand gedrag van `horeca_pay`).
 
 ## Uitgevoerd
@@ -75,7 +75,19 @@ Branch `night-keuken` (na `git merge night-final`, fast-forward tot `7c1cee6`). 
 - CI: `src/kassa/app/__tests__/courses.test.ts` aan de Vitest-stap toevoegen.
 - **Uitrol**: (1) `horeca-print` + `horeca-receipt-mail` deployen (`GET horeca-print` → `version: "GANGEN-1"`), (2) migraties 20261101230200 → 20261101230210 → 20261101230220 (volgorde verplicht), (3) frontend publiceren + nieuwe app-build. Natrek: `select position('GANGEN-1' in pg_get_functiondef('public.horeca_apply_one'::regproc)) > 0, position('course_fired' in pg_get_functiondef('public.horeca_check_json'::regproc)) > 0;` en `select count(*) from information_schema.columns where table_name in ('horeca_pay_settings','dining_checks') and column_name in ('courses_enabled','course_by_category','course_fired');` = 3.
 
+## Bijgewerkt: GANGEN-BON-1 (2-11-2026, batch VERVOLG-1)
+
+De info-preview van wachtende lijnen op de keukenbon is weggehaald. Volgens de GKS-eisenmatrix is een keuken-/barbon een gevolg van een P/ORDER (PRT-05) en hoort bij elke aanmaak van een bestelling een signOrder (EVT-06): een productiebon toont dus enkel wat in die ronde besteld wordt. Migratie `20261102080020_gangen_bon_1.sql` haalt het `|| coalesce((select jsonb_agg(... 'waiting', true ...)), '[]'::jsonb)`-blok uit `send_round` in `horeca_apply_one` (ankermethode, marker `GANGEN-BON-1`, vorige definitie in `ops.gangen_bon_1_prev_functions`).
+
+- De kassa (CheckScreen) blijft "wacht" tonen aan de bediening: dat komt uit `check_lines` (`horeca_check_json`), niet uit de bon.
+- Keukenscherm (`kitchenModel.ts`, `KitchenBoard.tsx`, `printTicket.ts`) en `_shared/horecaPrint.ts` kunnen `waiting` nog renderen; nieuwe bonnen bevatten het niet meer, dus dat blok blijft gewoon leeg. Bewust niet opgeruimd (geen deploy nodig, tests blijven geldig).
+- Gevolg voor de keuken: wat nog komt, ziet ze pas als de gang vrijgegeven wordt (dan als gewone bon).
+- Test: `scripts/gks/sql/test_gangen_bon.sql` (na `test_gangen.sql`, dat vóór deze migratie hoort te draaien).
+- Live (2-11): geen enkele zaak heeft gangen aan, geen enkele bestaande bon bevat `waiting`.
+
+Changelog-zin hieronder aangepast: "wat nog komt" staat niet meer op de bon.
+
 ## Changelog (NL)
 
 **Gangen aan tafel: voorgerecht, hoofdgerecht en dessert apart naar de keuken**
-Zet in Bestellen › Posten "Gangen gebruiken" aan en je kassa geeft elke bestelling een gang (per categorie, of zelf gekozen bovenaan de rekening). Latere gangen wachten tot je ze met één tik vrijgeeft, en de keuken ziet per gang wat nu moet en wat nog komt.
+Zet in Bestellen › Posten "Gangen gebruiken" aan en je kassa geeft elke bestelling een gang (per categorie, of zelf gekozen bovenaan de rekening). Latere gangen wachten tot je ze met één tik vrijgeeft; de keuken krijgt per gang een bon zodra je die gang vrijgeeft.

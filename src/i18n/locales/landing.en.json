@@ -2443,7 +2443,7 @@
         },
         "dining_courses": {
           "title": "Courses at the table: starter, main and dessert sent to the kitchen separately",
-          "description": "Turn on \"Use courses\" in Menu › Setup › Stations and your till gives every order a course, per category or chosen yourself on the bill. Later courses wait until you release them with one tap, and the kitchen sees per course what is needed now and what is still to come. If you leave it off, nothing changes."
+          "description": "Turn on \"Use courses\" in Menu › Setup › Stations and your till gives every order a course, per category or chosen yourself on the bill. Later courses wait until you release them with one tap, and the kitchen only gets the ticket for a course once you release it. If you leave it off, nothing changes."
         },
         "kassa_manager_approval": {
           "title": "Discounts and cancellations now need a manager's approval",
