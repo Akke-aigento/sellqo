@@ -74,6 +74,30 @@ if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "F
 echo "$out" | tail -1
 # KASSA-ACCOUNT-1 (2-11-2026): eigen identiteit per kassatoestel. De testdatabank kent niet alle live
 # tabellen/functies; sellqo.kassa_account_test=on laat de migratie die overslaan (live: fout).
+# can_create_tenant + profiles + auth.jwt() zoals live (nagetrokken 2-11-2026), voor de ankerpatch van review 1.
+$P -d $DB -c "create table if not exists public.profiles (id uuid primary key, email text, full_name text);
+  create or replace function auth.jwt() returns jsonb language sql stable as \$f\$ select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb \$f\$;
+  grant execute on function auth.jwt() to anon, authenticated, service_role;
+  create or replace function public.can_create_tenant(_user_id uuid, _owner_email text) returns boolean language sql stable security definer set search_path to 'public' as \$function\$
+  SELECT
+    (
+      lower(trim(coalesce(_owner_email, ''))) =
+        lower(trim(coalesce((SELECT email FROM public.profiles WHERE id = _user_id), '')))
+      OR
+      lower(trim(coalesce(_owner_email, ''))) =
+        lower(trim(coalesce(auth.jwt() ->> 'email', '')))
+      OR
+      (_user_id = auth.uid() AND EXISTS (SELECT 1 FROM public.profiles WHERE id = _user_id))
+    )
+    AND
+    (
+      SELECT count(DISTINCT tenant_id)
+      FROM public.user_roles
+      WHERE user_id = _user_id
+        AND role = 'tenant_admin'::app_role
+        AND tenant_id IS NOT NULL
+    ) < 10;
+\$function\$;" >/dev/null
 for M in ../../../supabase/migrations/20261102100000_kassa_account_1.sql; do
   PGOPTIONS="-c sellqo.kassa_account_test=on" $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
   PGOPTIONS="-c sellqo.kassa_account_test=on" $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }

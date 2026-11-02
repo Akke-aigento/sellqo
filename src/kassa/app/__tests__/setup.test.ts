@@ -45,6 +45,7 @@ describe('pairErrorOf / isDeviceUser', () => {
     expect(pairErrorOf(404, { error: 'invalid_code' })).toBe('invalid_code');
     expect(pairErrorOf(400, { error: 'invalid_input' })).toBe('invalid_code');
     expect(pairErrorOf(429, { error: 'rate_limited' })).toBe('rate_limited');
+    expect(pairErrorOf(409, { error: 'device_already_paired' })).toBe('device_already_paired');
     expect(pairErrorOf(500, { error: 'server' })).toBe('server');
   });
   it('enkel app_metadata.kind = kassa is een toestel', () => {

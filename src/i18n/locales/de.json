@@ -11629,7 +11629,8 @@
       "unpairConfirm": "Dieses Gerät von {{name}} trennen? Die Kasse funktioniert hier erst wieder mit einem neuen Kopplungscode aus der Verwaltung.",
       "unpairYes": "Entkoppeln",
       "toAdminWarning": "Die Verwaltung öffnet sich in einem neuen Fenster. Nutze dafür am besten ein anderes Gerät: Meldest du dich im selben Browser mit deinem eigenen Konto an, wird diese Kasse abgemeldet und muss neu gekoppelt werden.",
-      "toAdminOpen": "In neuem Fenster öffnen"
+      "toAdminOpen": "In neuem Fenster öffnen",
+      "toAdminElsewhere": "Öffne die Verwaltung auf einem anderen Gerät"
     },
     "fiscalMode": {
       "off": "nicht-fiskalischer Modus",
@@ -12078,7 +12079,8 @@
         "invalid_code": "Dieser Code stimmt nicht, wurde schon benutzt oder ist abgelaufen. Erstelle in der Verwaltung einen neuen.",
         "rate_limited": "Zu viele falsche Versuche. Warte eine Viertelstunde und versuche es erneut.",
         "offline": "Keine Verbindung. Koppeln geht nur online.",
-        "server": "Koppeln hat nicht geklappt. Versuche es erneut."
+        "server": "Koppeln hat nicht geklappt. Versuche es erneut.",
+        "device_already_paired": "Dieses Gerät ist bereits mit einer Kasse gekoppelt. Lass es zuerst in der Verwaltung entkoppeln (Kasse (POS) › Kassen) und versuche es dann erneut."
       }
     },
     "notDevice": {

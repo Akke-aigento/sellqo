@@ -11629,7 +11629,8 @@
       "unpairConfirm": "Unlink this device from {{name}}? The till will only work here again with a new pairing code from the back office.",
       "unpairYes": "Unlink",
       "toAdminWarning": "The back office opens in a new window. Preferably use another device: if you sign in with your own account in the same browser, this till is signed out and has to be linked again.",
-      "toAdminOpen": "Open in new window"
+      "toAdminOpen": "Open in new window",
+      "toAdminElsewhere": "Open the back office on another device"
     },
     "fiscalMode": {
       "off": "non-fiscal mode",
@@ -12078,7 +12079,8 @@
         "invalid_code": "This code is wrong, already used or expired. Create a new one in the back office.",
         "rate_limited": "Too many wrong attempts. Wait fifteen minutes and try again.",
         "offline": "No connection. Linking only works online.",
-        "server": "Linking failed. Please try again."
+        "server": "Linking failed. Please try again.",
+        "device_already_paired": "This device is already linked to a till. Have it unlinked in the back office first (Point of sale (POS) › Terminals), then try again."
       }
     },
     "notDevice": {

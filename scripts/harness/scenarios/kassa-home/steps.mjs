@@ -126,7 +126,8 @@ export async function run(page, { width, shot, log }) {
   await page.getByRole('button', { name: 'Terug naar de tafels' }).click();
   await page.getByRole('button', { name: 'Menu' }).click();
   await page.waitForTimeout(200);
-  log('naar beheer zichtbaar', await page.getByRole('menuitem', { name: 'Naar SellQo-beheer' }).count());
+  // KASSA-ACCOUNT-1 review 1: op het web geen knop naar beheer (gedeelde aanmelding), enkel de tip.
+  log('naar beheer (knop) zichtbaar', await page.getByRole('menuitem', { name: 'Naar SellQo-beheer' }).count(), '| tip:', await page.getByText('Open beheer op een ander toestel').count());
   await shot('5-menu');
   await page.getByRole('menuitem', { name: 'Kas', exact: true }).click();
   await page.waitForTimeout(300);

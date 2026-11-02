@@ -42,13 +42,15 @@ export function mmss(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export type PairError = 'invalid_code' | 'rate_limited' | 'offline' | 'server';
+export type PairError = 'invalid_code' | 'rate_limited' | 'device_already_paired' | 'offline' | 'server';
 
 /** Antwoord van de edge function kassa-device-pair → wat het toestel toont. */
 export function pairErrorOf(status: number | null, body: { error?: string } | null): PairError {
   if (status === null) return 'offline';
   if (status === 404 || body?.error === 'invalid_code' || status === 400) return 'invalid_code';
   if (status === 429 || body?.error === 'rate_limited') return 'rate_limited';
+  // Review 1: dit toestel-ID is al actief gekoppeld; beheer moet het eerst ontkoppelen (geen overname).
+  if (status === 409 || body?.error === 'device_already_paired') return 'device_already_paired';
   return 'server';
 }
 

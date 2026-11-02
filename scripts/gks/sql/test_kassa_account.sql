@@ -102,7 +102,7 @@ select (:'pc'::jsonb ->> 'code') ~ '^[0-9]{6}$' and (:'pc'::jsonb ->> 'token') ~
    and (:'pc'::jsonb ->> 'expires_at')::timestamptz between now() + interval '9 minutes' and now() + interval '11 minutes' as ok_code_shape;
 select :'pc'::jsonb ->> 'code' as code1, :'pc'::jsonb ->> 'token' as token1 \gset
 -- Niet-toestel mag niet zelf inruilen.
-select pg_temp.try(format('select public.kassa_pair_claim(%L, %L)', :'code1', '1.1.1.1')) = '42501' as ok_authenticated_cannot_claim;
+select pg_temp.try(format('select public.kassa_pair_claim(%L, %L, %L)', :'code1', '1.1.1.1', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa')) = '42501' as ok_authenticated_cannot_claim;
 select pg_temp.try($$select count(*) from public.kassa_pair_codes$$) = '42501' as ok_codes_not_readable;
 reset role;
 select (select count(*) = 0 from public.kassa_pair_codes where code_hash = :'code1' or token_hash = :'token1') as ok_code_not_stored_plain;
@@ -116,24 +116,24 @@ select (select count(*) = 1 from public.kassa_pair_codes where terminal_id = '5e
 
 -- ── Inruilen (service role, zoals de edge function): rate limit, eenmalig, verlopen ──
 set role service_role;
-select public.kassa_pair_claim(:'code1', '10.0.0.1') ->> 'reason' = 'invalid' as ok_replaced_code_invalid;
-select public.kassa_pair_claim('abc', '10.0.0.1') ->> 'reason' = 'invalid' as ok_garbage_invalid;
-select public.kassa_pair_claim(lpad(((:'code2'::int + 1) % 1000000)::text, 6, '0'), '10.0.0.1') ->> 'reason' = 'invalid' as ok_wrong_code_3;
-select public.kassa_pair_claim(lpad(((:'code2'::int + 2) % 1000000)::text, 6, '0'), '10.0.0.1') ->> 'reason' = 'invalid' as ok_wrong_code_4;
-select public.kassa_pair_claim(lpad(((:'code2'::int + 3) % 1000000)::text, 6, '0'), '10.0.0.1') ->> 'reason' = 'invalid' as ok_wrong_code_5;
+select public.kassa_pair_claim(:'code1', '10.0.0.1', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_replaced_code_invalid;
+select public.kassa_pair_claim('abc', '10.0.0.1', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_garbage_invalid;
+select public.kassa_pair_claim(lpad(((:'code2'::int + 1) % 1000000)::text, 6, '0'), '10.0.0.1', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_wrong_code_3;
+select public.kassa_pair_claim(lpad(((:'code2'::int + 2) % 1000000)::text, 6, '0'), '10.0.0.1', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_wrong_code_4;
+select public.kassa_pair_claim(lpad(((:'code2'::int + 3) % 1000000)::text, 6, '0'), '10.0.0.1', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_wrong_code_5;
 -- Na 5 fouten: ook de JUISTE code wordt van dit IP geweigerd (en niet verbruikt).
-select public.kassa_pair_claim(:'code2', '10.0.0.1') ->> 'reason' = 'rate_limited' as ok_ip_rate_limited;
+select public.kassa_pair_claim(:'code2', '10.0.0.1', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'rate_limited' as ok_ip_rate_limited;
 reset role;
 select (select used_at is null from public.kassa_pair_codes where code_hash = encode(digest('kassa-pair|' || :'code2', 'sha256'), 'hex')) as ok_rate_limit_does_not_consume;
 select (select count(*) = 0 from public.kassa_pair_attempts where ip_hash = '10.0.0.1') as ok_ip_not_stored_plain;
 set role service_role;
-select public.kassa_pair_claim(:'code2', '10.0.0.2') as claim1 \gset
+select public.kassa_pair_claim(:'code2', '10.0.0.2', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000001') as claim1 \gset
 select (:'claim1'::jsonb ->> 'ok')::boolean and :'claim1'::jsonb ->> 'tenant_id' = '22222222-2222-2222-2222-222222222222'
    and :'claim1'::jsonb ->> 'terminal_id' = '5e000000-0000-0000-0000-0000000000b1' and :'claim1'::jsonb ->> 'name' = 'Toog iPad' as ok_claim_by_code;
 select :'claim1'::jsonb ->> 'code_id' as code_id1 \gset
 -- Eenmalig: dezelfde code of het QR-token van dezelfde code nog eens = ongeldig.
-select public.kassa_pair_claim(:'code2', '10.0.0.3') ->> 'reason' = 'invalid' as ok_code_single_use;
-select public.kassa_pair_claim(:'token2', '10.0.0.3') ->> 'reason' = 'invalid' as ok_token_of_used_code_invalid;
+select public.kassa_pair_claim(:'code2', '10.0.0.3', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_code_single_use;
+select public.kassa_pair_claim(:'token2', '10.0.0.3', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_token_of_used_code_invalid;
 -- Koppeling vastleggen; een tweede keer kan niet.
 select public.kassa_pair_complete(:'code_id1', 'ac000000-0000-0000-0000-000000000001', 'AAAAAAAA-BBBB-4CCC-8DDD-000000000001', null) ->> 'ok' = 'true' as ok_complete;
 select pg_temp.try(format('select public.kassa_pair_complete(%L, %L, %L, null)', :'code_id1', 'ac000000-0000-0000-0000-000000000002', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000002')) = 'P0001' as ok_complete_once;
@@ -147,34 +147,59 @@ select public.kassa_pair_code_create('22222222-2222-2222-2222-222222222222', '5e
 reset role;
 select :'pc3'::jsonb ->> 'code' as code3, :'pc3'::jsonb ->> 'token' as token3 \gset
 set role service_role;
-select public.kassa_pair_claim(:'token3', '10.0.0.4') as claim3 \gset
+select public.kassa_pair_claim(:'token3', '10.0.0.4', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') as claim3 \gset
 select (:'claim3'::jsonb ->> 'ok')::boolean as ok_claim_by_token;
 select public.kassa_pair_release((:'claim3'::jsonb ->> 'code_id')::uuid);
-select (public.kassa_pair_claim(:'code3', '10.0.0.4') ->> 'ok')::boolean as ok_released_code_claimable_again;
+select (public.kassa_pair_claim(:'code3', '10.0.0.4', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'ok')::boolean as ok_released_code_claimable_again;
 reset role;
 update public.kassa_pair_codes set used_at = null, expires_at = now() - interval '1 second' where token_hash = encode(digest('kassa-pair|' || :'token3', 'sha256'), 'hex');
 set role service_role;
-select public.kassa_pair_claim(:'token3', '10.0.0.5') ->> 'reason' = 'invalid' as ok_expired_invalid;
+select public.kassa_pair_claim(:'token3', '10.0.0.5', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_expired_invalid;
 reset role;
--- Platformbrede rem: 300 fouten in 15 minuten = niemand kan nog koppelen (raden over veel IP's).
+-- Review 1 (3): platformbreed wordt NIEMAND geweigerd. Boven 300 fouten in 15 minuten worden de open 6-cijfercodes
+-- ongeldig gemaakt; het QR-token van die code blijft werken, en een juiste code van een vers IP krijgt "invalid",
+-- nooit "rate_limited".
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000002';
+select public.kassa_pair_code_create('22222222-2222-2222-2222-222222222222', '5e000000-0000-0000-0000-0000000000b2') as pc5 \gset
+reset role;
+select :'pc5'::jsonb ->> 'code' as code5, :'pc5'::jsonb ->> 'token' as token5 \gset
 insert into public.kassa_pair_attempts (ip_hash, ok) select 'x' || g, false from generate_series(1, 300) g;
 set role service_role;
-select public.kassa_pair_claim('123456', '10.0.0.99') ->> 'reason' = 'rate_limited' as ok_global_rate_limit;
+select public.kassa_pair_claim(lpad(((:'code5'::int + 7) % 1000000)::text, 6, '0'), '10.0.0.98', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_global_no_refusal;
+select public.kassa_pair_claim(:'code5', '10.0.0.99', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'reason' = 'invalid' as ok_global_codes_invalidated;
 reset role;
+select (select code_hash like 'ongeldig:%' and used_at is null from public.kassa_pair_codes where token_hash = encode(digest('kassa-pair|' || :'token5', 'sha256'), 'hex')) as ok_global_token_kept;
+set role service_role;
+select (public.kassa_pair_claim(:'token5', '10.0.0.99', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000aa') ->> 'ok')::boolean as ok_global_token_still_works;
+reset role;
+select (select count(*) = 0 from public.kassa_pair_attempts a join (values ('10.0.0.98'), ('10.0.0.99')) v(ip) on a.ip_hash = v.ip) as ok_no_plain_ip;
 delete from public.kassa_pair_attempts where ip_hash like 'x%';
+delete from public.kassa_pair_codes where token_hash = encode(digest('kassa-pair|' || :'token5', 'sha256'), 'hex');
 
--- ── Opnieuw koppelen van hetzelfde toestel trekt de vorige account in ──
+-- ── Review 1 (2): een al actief gekoppeld toestel-ID wordt niet overgenomen ──
 insert into public.kassa_device_accounts (user_id, tenant_id, terminal_id, device_uuid, name)
   values ('ac000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', '5e000000-0000-0000-0000-0000000000b2', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000003', 'Terras');
 insert into public.device_tokens (user_id, tenant_id, token) values ('ac000000-0000-0000-0000-000000000003', '22222222-2222-2222-2222-222222222222', 'tok-oud');
 set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000002';
 select public.kassa_pair_code_create('22222222-2222-2222-2222-222222222222', '5e000000-0000-0000-0000-0000000000b2') ->> 'code' as code4 \gset
 set role service_role;
-select public.kassa_pair_claim(:'code4', '10.0.0.6') ->> 'code_id' as code_id4 \gset
-select public.kassa_pair_complete(:'code_id4', 'ac000000-0000-0000-0000-000000000002', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000003', 'Terras 2') -> 'replaced' = '["ac000000-0000-0000-0000-000000000003"]'::jsonb as ok_repair_replaces;
+select public.kassa_pair_claim(:'code4', '10.0.0.6', 'AAAAAAAA-BBBB-4CCC-8DDD-000000000003') ->> 'reason' = 'device_already_paired' as ok_takeover_refused;
+-- Ook een toestel-ID van een andere zaak (DEV1, zaak B) kan niet onder een andere code.
+select public.kassa_pair_claim(:'code4', '10.0.0.6', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000001') ->> 'reason' = 'device_already_paired' as ok_takeover_dev1_refused;
 reset role;
-select (select revoked_at is not null from public.kassa_device_accounts where user_id = 'ac000000-0000-0000-0000-000000000003')
-   and (select count(*) = 0 from public.device_tokens where user_id = 'ac000000-0000-0000-0000-000000000003') as ok_old_account_revoked_tokens_gone;
+select (select used_at is null from public.kassa_pair_codes where code_hash = encode(digest('kassa-pair|' || :'code4', 'sha256'), 'hex'))
+   and (select revoked_at is null from public.kassa_device_accounts where user_id = 'ac000000-0000-0000-0000-000000000003')
+   and (select count(*) = 1 from public.device_tokens where user_id = 'ac000000-0000-0000-0000-000000000003') as ok_takeover_changes_nothing;
+-- Race: claim lukte nog, maar intussen werd het toestel-ID gekoppeld → complete weigert met KA409.
+set role service_role;
+select public.kassa_pair_claim(:'code4', '10.0.0.6', 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000bb') ->> 'code_id' as code_id4 \gset
+select pg_temp.try(format('select public.kassa_pair_complete(%L, %L, %L, null)', :'code_id4', 'ac000000-0000-0000-0000-000000000002', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000003')) = 'KA409' as ok_complete_race_refused;
+reset role;
+-- Beheer ontkoppelt de oude koppeling; daarna kan het toestel-ID opnieuw gekoppeld worden.
+update public.kassa_device_accounts set revoked_at = now() where user_id = 'ac000000-0000-0000-0000-000000000003';
+set role service_role;
+select public.kassa_pair_complete(:'code_id4', 'ac000000-0000-0000-0000-000000000002', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000003', 'Terras 2') ->> 'ok' = 'true' as ok_repair_after_unpair;
+reset role;
 
 -- ── Het toestel (DEV1: zaak B, kassa Toog, device aaaaaaaa-bbbb-4ccc-8ddd-000000000001) ──
 set role authenticated; set request.jwt.claim.sub = 'ac000000-0000-0000-0000-000000000001';
@@ -244,8 +269,16 @@ select pg_temp.try($$insert into public.fiscal_events (tenant_id, created_by, mu
   values ('22222222-2222-2222-2222-222222222222', 'aaaaaaaa-0000-0000-0000-000000000002', 'signSale', 'CPOS0031234567', 'TER-B', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000001', 2,
     '2026-11-02T13:01:00.000+01:00', '1', '2026-11-02', 'dffcd829-a0e5-41ca-a0ae-9eb887f95637', 'SIM01000001', '2026-11-02T12:01:08.000Z', 'N', 'SALE', 992, 992, '{}', '{}', repeat('a', 64))$$) = '42501' as ok_dev_fiscal_event_not_as_other_user;
 select pg_temp.rows($$select id from public.fiscal_events$$) > 0 and pg_temp.rows($$select id from public.fiscal_events where tenant_id <> '22222222-2222-2222-2222-222222222222'$$) = 0 as ok_dev_reads_own_fiscal_events;
-select pg_temp.try($$insert into public.fiscal_audit_log (tenant_id, actor_id, action, details) values ('22222222-2222-2222-2222-222222222222', 'ac000000-0000-0000-0000-000000000001', 'drawer_open', '{}')$$) = 'ok' as ok_dev_writes_audit;
-select pg_temp.try($$insert into public.fiscal_audit_log (tenant_id, actor_id, action, details) values ('11111111-1111-1111-1111-111111111111', 'ac000000-0000-0000-0000-000000000001', 'drawer_open', '{}')$$) = '42501' as ok_dev_no_audit_other_tenant;
+select pg_temp.try($$insert into public.fiscal_audit_log (tenant_id, actor_id, device_id, action, details) values ('22222222-2222-2222-2222-222222222222', 'ac000000-0000-0000-0000-000000000001', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000001', 'drawer_open', '{}')$$) = 'ok' as ok_dev_writes_audit;
+select pg_temp.try($$insert into public.fiscal_audit_log (tenant_id, actor_id, device_id, action, details) values ('11111111-1111-1111-1111-111111111111', 'ac000000-0000-0000-0000-000000000001', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000001', 'drawer_open', '{}')$$) = '42501' as ok_dev_no_audit_other_tenant;
+-- Review 1 (1): device_id gebonden aan het eigen toestel (fiscal_audit_log en fiscal_events).
+select pg_temp.try($$insert into public.fiscal_audit_log (tenant_id, actor_id, device_id, action, details) values ('22222222-2222-2222-2222-222222222222', 'ac000000-0000-0000-0000-000000000001', 'ander-toestel', 'drawer_open', '{}')$$) = '42501' as ok_dev_audit_other_device_refused;
+select pg_temp.try($$insert into public.fiscal_audit_log (tenant_id, actor_id, action, details) values ('22222222-2222-2222-2222-222222222222', 'ac000000-0000-0000-0000-000000000001', 'drawer_open', '{}')$$) = '42501' as ok_dev_audit_no_device_refused;
+select pg_temp.try($$insert into public.fiscal_events (tenant_id, created_by, mutation, pos_id, terminal_id, device_id, pos_fiscal_ticket_no, pos_date_time,
+    pos_sw_version, booking_date, booking_period_id, fdm_id, fdm_date_time, event_label, event_operation, event_counter, total_counter,
+    request_body, response_body, request_sha256)
+  values ('22222222-2222-2222-2222-222222222222', 'ac000000-0000-0000-0000-000000000001', 'signSale', 'CPOS0031234567', 'TER-B', 'aaaaaaaa-bbbb-4ccc-8ddd-000000000003', 3,
+    '2026-11-02T13:02:00.000+01:00', '1', '2026-11-02', 'dffcd829-a0e5-41ca-a0ae-9eb887f95637', 'SIM01000001', '2026-11-02T12:02:08.000Z', 'N', 'SALE', 993, 993, '{}', '{}', repeat('a', 64))$$) = '42501' as ok_dev_fiscal_event_other_device_refused;
 select pg_temp.rows($$select 1 from public.fiscal_audit_log$$) = 0 as ok_dev_cannot_read_audit;
 
 -- Wat het toestel NIET mag: prijzen via REST, varianten, zaak, klanten, facturen, orders, rollen, beheer.
@@ -284,10 +317,46 @@ reset role; insert into auth.users (id, email) values ('ac000000-0000-0000-0000-
 set role authenticated; set request.jwt.claim.sub = 'ac000000-0000-0000-0000-0000000000ff';
 select pg_temp.try($$select public.horeca_snapshot('22222222-2222-2222-2222-222222222222')$$) = '42501' as ok_stranger_snapshot_refused;
 select pg_temp.try($$select public.horeca_apply('22222222-2222-2222-2222-222222222222', 'x', '[]')$$) = '42501' as ok_stranger_apply_refused;
+-- Review 1 (7): een toestelaccount kan geen winkel aanmaken (can_create_tenant), een gewone account wel.
+reset role;
+insert into public.profiles (id, email) values ('ac000000-0000-0000-0000-000000000001', 'kassa-1@toestel.sellqo.app'), ('ac000000-0000-0000-0000-0000000000ff', 'niemand@x.test') on conflict do nothing;
+select public.can_create_tenant('ac000000-0000-0000-0000-000000000001', 'kassa-1@toestel.sellqo.app') = false as ok_device_cannot_create_tenant;
+select public.can_create_tenant('ac000000-0000-0000-0000-0000000000ff', 'niemand@x.test') = true as ok_normal_user_can_create_tenant;
+set request.jwt.claims = '{"sub":"ac000000-0000-0000-0000-0000000000ff","app_metadata":{"kind":"kassa"}}';
+select public.can_create_tenant('ac000000-0000-0000-0000-0000000000ff', 'niemand@x.test') = false as ok_kassa_jwt_cannot_create_tenant;
+set request.jwt.claims = '';
+set role authenticated; set request.jwt.claim.sub = 'ac000000-0000-0000-0000-0000000000ff';
 -- Anon: niets.
 reset role; set role anon; set request.jwt.claim.sub = '';
 select pg_temp.try($$select public.kassa_device_context()$$) = '42501' as ok_anon_no_context;
 select pg_temp.try($$select public.kassa_pair_code_create('22222222-2222-2222-2222-222222222222', '5e000000-0000-0000-0000-0000000000b1')$$) = '42501' as ok_anon_no_code;
+reset role;
+
+-- ── PRIJS-GATEN-2 × toestel: verkopen boekt voorraad af, manueel bijstellen niet ──
+reset role;
+update public.products set track_inventory = true, stock = 10 where id = 'eeeeeeee-0000-0000-0000-0000000000b1';
+-- Het echte kassapad: horeca_pay (security definer) voegt een pos_transaction in → trigger
+-- handle_pos_transaction_stock → decrement_stock → record_stock_movement('sale'), met auth.uid() = het toestel.
+set request.jwt.claim.sub = 'ac000000-0000-0000-0000-000000000001';
+select pg_temp.try($$insert into public.pos_transactions (tenant_id, terminal_id, cashier_id, status, items) values ('22222222-2222-2222-2222-222222222222', '5e000000-0000-0000-0000-0000000000b1', 'ac000000-0000-0000-0000-000000000001', 'completed', '[{"product_id":"eeeeeeee-0000-0000-0000-0000000000b1","quantity":2}]')$$) = 'ok' as ok_device_sale_trigger_ok;
+set request.jwt.claim.sub = '';
+select (select stock = 8 from public.products where id = 'eeeeeeee-0000-0000-0000-0000000000b1') as ok_device_sale_stock_down;
+select (select count(*) = 1 from public.stock_movements where product_id = 'eeeeeeee-0000-0000-0000-0000000000b1' and reason = 'sale' and delta = -2 and created_by = 'ac000000-0000-0000-0000-000000000001') as ok_device_sale_movement;
+set role authenticated; set request.jwt.claim.sub = 'ac000000-0000-0000-0000-000000000001';
+select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, -1, 'sale')$$) = 'ok' as ok_device_rsm_sale_ok;
+select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, 1, 'return')$$) = 'ok' as ok_device_rsm_return_ok;
+select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, 50, 'manual')$$) = '42501' as ok_device_manual_refused;
+select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, 50, 'adjustment')$$) = '42501' as ok_device_adjustment_refused;
+select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, 50, 'opening')$$) = '42501' as ok_device_opening_refused;
+select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-0000000000b1', null, 50, 'purchase')$$) = '42501' as ok_device_purchase_refused;
+-- Ander winkel: ook 'sale' dicht.
+select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-000000000001', null, -1, 'sale')$$) <> 'ok' as ok_device_other_tenant_sale_refused;
+select pg_temp.try($$select public.bulk_adjust_stock(array['eeeeeeee-0000-0000-0000-0000000000b1']::uuid[], 'set', 99)$$) <> 'ok' as ok_device_bulk_adjust_refused;
+reset role;
+select (select stock = 8 from public.products where id = 'eeeeeeee-0000-0000-0000-0000000000b1') as ok_device_stock_only_sale_return;
+-- Een gewone account zonder rol (viewer van A) blijft dicht, ook voor 'sale' (PRIJS-GATEN-2 ongewijzigd).
+set role authenticated; set request.jwt.claim.sub = 'aaaaaaaa-0000-0000-0000-000000000003';
+select pg_temp.try($$select public.record_stock_movement(null, 'eeeeeeee-0000-0000-0000-000000000001', null, -1, 'sale')$$) = '42501' as ok_viewer_sale_still_refused;
 reset role;
 
 -- ── Ontkoppelen werkt meteen (beheer: revoked_at; de edge function bant daarna de user) ──

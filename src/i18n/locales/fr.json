@@ -11629,7 +11629,8 @@
       "unpairConfirm": "Dissocier cet appareil de {{name}} ? La caisse ne fonctionnera à nouveau ici qu'avec un nouveau code d'association de la gestion.",
       "unpairYes": "Dissocier",
       "toAdminWarning": "La gestion s'ouvre dans une nouvelle fenêtre. Utilisez de préférence un autre appareil : si vous vous connectez avec votre propre compte dans le même navigateur, cette caisse est déconnectée et doit être associée à nouveau.",
-      "toAdminOpen": "Ouvrir dans une nouvelle fenêtre"
+      "toAdminOpen": "Ouvrir dans une nouvelle fenêtre",
+      "toAdminElsewhere": "Ouvrez la gestion sur un autre appareil"
     },
     "fiscalMode": {
       "off": "mode non fiscal",
@@ -12078,7 +12079,8 @@
         "invalid_code": "Ce code est incorrect, déjà utilisé ou expiré. Créez-en un nouveau dans la gestion.",
         "rate_limited": "Trop de tentatives erronées. Attendez un quart d'heure et réessayez.",
         "offline": "Pas de connexion. L'association ne fonctionne qu'en ligne.",
-        "server": "L'association a échoué. Veuillez réessayer."
+        "server": "L'association a échoué. Veuillez réessayer.",
+        "device_already_paired": "Cet appareil est déjà associé à une caisse. Faites-le d'abord dissocier dans la gestion (Caisse (POS) › Caisses), puis réessayez."
       }
     },
     "notDevice": {

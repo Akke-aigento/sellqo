@@ -10,7 +10,11 @@
 --   - kassa_pair_codes: eenmalige koppelcode (6 cijfers) of QR-token, 10 minuten geldig, gebonden aan zaak +
 --     kassa. Enkel gehasht bewaard. Aanmaken: kassa_pair_code_create (enkel tenant_admin). Inruilen: edge
 --     function kassa-device-pair (service role) via kassa_pair_claim / kassa_pair_complete / kassa_pair_release.
---     Rate limit: 5 fouten per IP per 15 minuten, 300 fouten platformbreed per 15 minuten (kassa_pair_attempts).
+--     Rate limit (review 1): 5 fouten per IP per 15 minuten (code én QR-token). Platformbreed weigert niets: boven 300
+--     fouten in 15 minuten worden alle open 6-cijfercodes ongeldig gemaakt (het QR-token van die codes blijft werken),
+--     zodat andermans fouten nooit een juiste code doen weigeren, en raden over veel IP's niets oplevert.
+--     Een toestel-ID (device_uuid) dat al actief gekoppeld is, wordt niet overgenomen: 'device_already_paired'
+--     (beheer ontkoppelt eerst). can_create_tenant weigert toestelaccounts (ankerpatch, review 1).
 --   - kassa_can_operate(tenant[, device]): has_tenant_role(tenant_admin, staff) OF een niet-ingetrokken toestel van
 --     die zaak. Met device: voor een toestelaccount moet p_device_id gelijk zijn aan zijn device_uuid.
 --     De tenant_admin/staff-tak blijft tijdens de overgang (KASSA-ACCOUNT-2 haalt hem weg waar beheer hem niet nodig heeft).
@@ -51,10 +55,14 @@
 --      (en de uitvoer draaien; LET OP: zonder de backslashes vangt de LIKE ook het bestaande kassa_devices_select)
 --   3. drop function if exists public.kassa_kitchen_orders(uuid), public.kassa_device_context(),
 --        public.kassa_device_unpair_self(), public.kassa_pair_code_create(uuid, uuid, text),
---        public.kassa_pair_claim(text, text), public.kassa_pair_complete(uuid, uuid, text, text),
+--        public.kassa_pair_claim(text, text, text), public.kassa_pair_complete(uuid, uuid, text, text),
 --        public.kassa_pair_release(uuid), public.kassa_can_operate(uuid, text), public.kassa_can_operate(uuid),
 --        public.kassa_device_terminal(), public.kassa_device_tenant();
 --      drop table if exists public.kassa_pair_attempts, public.kassa_pair_codes, public.kassa_device_accounts;
+--   3b. can_create_tenant: de ingevoegde regel weer weghalen:
+--      do $r$ declare d text := pg_get_functiondef('public.can_create_tenant(uuid, text)'::regprocedure); begin
+--        execute replace(d, E'    ) < 10\n    /* KASSA-ACCOUNT-1 */ AND NOT EXISTS (SELECT 1 FROM public.kassa_device_accounts a WHERE a.user_id = _user_id)\n    AND coalesce(auth.jwt() -> ''app_metadata'' ->> ''kind'', '''') <> ''kassa'';', '    ) < 10;');
+--      end $r$;
 --   4. Toestel-auth-users (app_metadata.kind = 'kassa') bannen of verwijderen via de auth-admin.
 --   De definities van vóór deze migratie staan ter controle in snapshots.sellqo_20261102_fn_kassa_account_1.
 --
@@ -73,7 +81,7 @@ create table if not exists snapshots.sellqo_20261102_fn_kassa_account_1 as
        'kassa_staff_logout', 'kassa_approve', 'kassa_product_quick_edit', 'kassa_cash_move', 'kassa_shift',
        'kassa_report_finish', 'kassa_report_begin', 'kassa_report_due', 'kassa_report_source', 'kassa_report_release',
        'kassa_clock', 'kassa_clock_state', 'kassa_my_shift', 'kassa_heartbeat', 'horeca_notify_device_save',
-       'horeca_notify_device_remove', 'horeca_notify_devices_list');
+       'horeca_notify_device_remove', 'horeca_notify_devices_list', 'can_create_tenant', 'record_stock_movement');
 revoke all on snapshots.sellqo_20261102_fn_kassa_account_1 from anon, authenticated;
 
 -- 1. Toestelaccounts -------------------------------------------------------------------------------
@@ -89,8 +97,8 @@ create table if not exists public.kassa_device_accounts (
   revoked_by uuid
 );
 comment on table public.kassa_device_accounts is 'KASSA-ACCOUNT-1: eigen auth-user per kassatoestel (niet in user_roles). revoked_at = ontkoppeld; elke kassacontrole leest deze rij.';
--- Eén actieve koppeling per toestel en zaak (opnieuw koppelen trekt de vorige in).
-create unique index if not exists kassa_device_accounts_active on public.kassa_device_accounts (tenant_id, device_uuid) where revoked_at is null;
+-- Eén actieve koppeling per toestel-ID, over alle zaken (review 1: geen overname van een toestel-ID).
+create unique index if not exists kassa_device_accounts_active_device on public.kassa_device_accounts (device_uuid) where revoked_at is null;
 create index if not exists kassa_device_accounts_terminal on public.kassa_device_accounts (terminal_id);
 alter table public.kassa_device_accounts enable row level security;
 revoke all on public.kassa_device_accounts from anon, authenticated;
@@ -240,8 +248,11 @@ grant execute on function public.kassa_pair_code_create(uuid, uuid, text) to aut
 
 -- 5. Koppelcode inruilen (enkel de edge function kassa-device-pair, service role) -----------------
 -- p_secret = 6 cijfers of het 64-hex QR-token; p_ip = IP van de aanroeper (wordt hier gehasht).
--- Antwoord: {ok: true, code_id, tenant_id, terminal_id, terminal_name, name} of {ok: false, reason: invalid|rate_limited}.
-create or replace function public.kassa_pair_claim(p_secret text, p_ip text)
+-- p_device_uuid = het toestel dat wil koppelen: al actief gekoppeld = niet claimen (reason device_already_paired).
+-- Antwoord: {ok: true, code_id, tenant_id, terminal_id, terminal_name, name} of
+--           {ok: false, reason: invalid|rate_limited|device_already_paired}.
+drop function if exists public.kassa_pair_claim(text, text);  -- vorige vorm van deze (nog niet live) migratie
+create or replace function public.kassa_pair_claim(p_secret text, p_ip text, p_device_uuid text)
 returns jsonb
 language plpgsql
 security definer
@@ -253,37 +264,50 @@ declare
   v_hash text;
   v_row public.kassa_pair_codes%rowtype;
   v_name text;
+  v_dev text := lower(btrim(coalesce(p_device_uuid, '')));
 begin
   -- Eén aanroep per IP tegelijk (anders telt de limiet niet bij gelijktijdige pogingen).
   perform pg_advisory_xact_lock(hashtextextended('kassa-pair|' || v_ip, 0));
   delete from public.kassa_pair_attempts where created_at < now() - interval '1 day';
-  if (select count(*) from public.kassa_pair_attempts where ip_hash = v_ip and not ok and created_at > now() - interval '15 minutes') >= 5
-     or (select count(*) from public.kassa_pair_attempts where not ok and created_at > now() - interval '15 minutes') >= 300 then
+  -- Per IP: 5 fouten per 15 minuten, voor de 6 cijfers én het QR-token.
+  if (select count(*) from public.kassa_pair_attempts where ip_hash = v_ip and not ok and created_at > now() - interval '15 minutes') >= 5 then
     return jsonb_build_object('ok', false, 'reason', 'rate_limited');
   end if;
   if v_secret ~ '^[0-9]{6}$' or v_secret ~ '^[0-9a-f]{64}$' then
     v_hash := encode(digest('kassa-pair|' || v_secret, 'sha256'), 'hex');
-    update public.kassa_pair_codes c set used_at = now()
+    select * into v_row from public.kassa_pair_codes c
      where (case when length(v_secret) = 6 then c.code_hash else c.token_hash end) = v_hash
        and c.used_at is null and c.expires_at > now()
-    returning c.* into v_row;
+     for update;
   end if;
   if v_row.id is null then
     insert into public.kassa_pair_attempts (ip_hash, ok) values (v_ip, false);
+    -- Platformbrede rem: niemand weigeren, wel alle open 6-cijfercodes ongeldig maken (raden over veel IP's).
+    -- Het QR-token van die codes blijft geldig; de code_hash wordt een waarde die geen invoer kan treffen.
+    if (select count(*) from public.kassa_pair_attempts where not ok and created_at > now() - interval '15 minutes') >= 300 then
+      update public.kassa_pair_codes set code_hash = 'ongeldig:' || id::text
+       where used_at is null and expires_at > now() and code_hash not like 'ongeldig:%';
+    end if;
     return jsonb_build_object('ok', false, 'reason', 'invalid');
   end if;
+  -- Overname van een toestel-ID weigeren: beheer moet eerst ontkoppelen. De code blijft geldig.
+  if exists (select 1 from public.kassa_device_accounts a where a.device_uuid = v_dev and a.revoked_at is null) then
+    insert into public.kassa_pair_attempts (ip_hash, ok) values (v_ip, true);
+    return jsonb_build_object('ok', false, 'reason', 'device_already_paired');
+  end if;
+  update public.kassa_pair_codes set used_at = now() where id = v_row.id;
   insert into public.kassa_pair_attempts (ip_hash, ok) values (v_ip, true);
   select name into v_name from public.pos_terminals where id = v_row.terminal_id;
   return jsonb_build_object('ok', true, 'code_id', v_row.id, 'tenant_id', v_row.tenant_id, 'terminal_id', v_row.terminal_id,
     'terminal_name', v_name, 'name', v_row.name);
 end;
 $$;
-revoke all on function public.kassa_pair_claim(text, text) from public, anon, authenticated;
-grant execute on function public.kassa_pair_claim(text, text) to service_role;
+revoke all on function public.kassa_pair_claim(text, text, text) from public, anon, authenticated;
+grant execute on function public.kassa_pair_claim(text, text, text) to service_role;
 
--- Na het aanmaken van de toestel-user: de koppeling vastleggen. Trekt een vorige actieve koppeling van
--- hetzelfde toestel in deze zaak in en geeft die user-id's terug (de edge function bant ze).
--- Antwoord: {ok: true, replaced: [user_id, ...]} of een fout.
+-- Na het aanmaken van de toestel-user: de koppeling vastleggen. Is het toestel-ID intussen (race) al actief
+-- gekoppeld, dan fout KA409 'device_already_paired' (geen overname; beheer ontkoppelt eerst).
+-- Antwoord: {ok: true} of een fout.
 create or replace function public.kassa_pair_complete(p_code_id uuid, p_user_id uuid, p_device_uuid text, p_name text)
 returns jsonb
 language plpgsql
@@ -293,23 +317,19 @@ as $$
 declare
   v_row public.kassa_pair_codes%rowtype;
   v_dev text := lower(btrim(coalesce(p_device_uuid, '')));
-  v_replaced uuid[];
 begin
   select * into v_row from public.kassa_pair_codes where id = p_code_id for update;
   if v_row.id is null or v_row.used_at is null or v_row.used_by is not null or v_row.used_at < now() - interval '5 minutes' then
     raise exception 'koppelcode niet (meer) geldig' using errcode = 'P0001';
   end if;
-  with r as (
-    update public.kassa_device_accounts set revoked_at = now()
-     where tenant_id = v_row.tenant_id and device_uuid = v_dev and revoked_at is null
-    returning user_id
-  ) select coalesce(array_agg(user_id), '{}') into v_replaced from r;
-  delete from public.device_tokens where user_id = any(v_replaced);
+  if exists (select 1 from public.kassa_device_accounts a where a.device_uuid = v_dev and a.revoked_at is null) then
+    raise exception 'device_already_paired' using errcode = 'KA409';
+  end if;
   insert into public.kassa_device_accounts (user_id, tenant_id, terminal_id, device_uuid, name, paired_by)
     values (p_user_id, v_row.tenant_id, v_row.terminal_id, v_dev,
             left(coalesce(nullif(btrim(p_name), ''), v_row.name), 60), v_row.created_by);
   update public.kassa_pair_codes set used_by = p_user_id where id = v_row.id;
-  return jsonb_build_object('ok', true, 'replaced', to_jsonb(v_replaced));
+  return jsonb_build_object('ok', true);
 end;
 $$;
 revoke all on function public.kassa_pair_complete(uuid, uuid, text, text) from public, anon, authenticated;
@@ -491,6 +511,7 @@ declare
   r record;
   tolerant boolean := coalesce(current_setting('sellqo.kassa_account_test', true), '') = 'on';
   dev constant text := 'tenant_id = (select public.kassa_device_tenant())';
+  devid constant text := 'device_id = (select a.device_uuid from public.kassa_device_accounts a where a.user_id = auth.uid() and a.revoked_at is null)';
 begin
   for r in select * from (values
       -- (tabel, bewerking, using, with check)
@@ -524,8 +545,10 @@ begin
       ('table_reservations', 'insert', null, dev),
       ('table_reservations', 'update', dev, dev),
       ('fiscal_events', 'select', dev, null),
-      ('fiscal_events', 'insert', null, 'created_by = auth.uid() and ' || dev || ' and public.tenant_has_business_module(tenant_id, ''horeca''::text)'),
-      ('fiscal_audit_log', 'insert', null, 'actor_id = auth.uid() and ' || dev),
+      -- Review 1: ook device_id gebonden aan het eigen toestel (terminal_id niet: dat is de fiscale terminal-ID
+      -- uit pos_terminals.settings, niet de pos_terminals.id; zie Vervolg ACCOUNT-2).
+      ('fiscal_events', 'insert', null, 'created_by = auth.uid() and ' || dev || ' and ' || devid || ' and public.tenant_has_business_module(tenant_id, ''horeca''::text)'),
+      ('fiscal_audit_log', 'insert', null, 'actor_id = auth.uid() and ' || dev || ' and ' || devid),
       ('horeca_notify_devices', 'select', dev, null),
       ('printers', 'select', dev, null),
       ('print_jobs', 'select', dev, null)
@@ -543,3 +566,69 @@ begin
   end loop;
 end
 $pol$;
+
+-- 9. Review 1: een toestelaccount maakt nooit een winkel aan (policy "Authenticated users can insert their own
+-- tenant" en de edge function create-tenant gebruiken can_create_tenant). Ankerpatch, anker precies één keer.
+do $patch$
+declare
+  sig constant text := 'public.can_create_tenant(uuid, text)';
+  d text;
+  anchor constant text := E'    ) < 10;';
+  repl constant text := E'    ) < 10\n    /* KASSA-ACCOUNT-1 */ AND NOT EXISTS (SELECT 1 FROM public.kassa_device_accounts a WHERE a.user_id = _user_id)\n    AND coalesce(auth.jwt() -> ''app_metadata'' ->> ''kind'', '''') <> ''kassa'';';
+begin
+  if to_regprocedure(sig) is null then
+    if coalesce(current_setting('sellqo.kassa_account_test', true), '') = 'on' then raise notice 'KASSA-ACCOUNT-1: % ontbreekt (testmodus)', sig; return; end if;
+    raise exception 'KASSA-ACCOUNT-1: functie % ontbreekt', sig;
+  end if;
+  d := pg_get_functiondef(to_regprocedure(sig));
+  if position('KASSA-ACCOUNT-1' in d) > 0 then raise notice 'KASSA-ACCOUNT-1: % al gepatcht', sig; return; end if;
+  if (length(d) - length(replace(d, anchor, ''))) / length(anchor) <> 1 then
+    raise exception 'KASSA-ACCOUNT-1: anker niet precies één keer gevonden in %', sig;
+  end if;
+  execute replace(d, anchor, repl);
+end
+$patch$;
+
+-- 10. PRIJS-GATEN-2 (live sinds 2-11-2026, migratie 20261102091000) laat in record_stock_movement enkel nog
+-- leden (get_user_tenant_ids) én tenant_admin/staff/warehouse boeken. Een toestelaccount haalt geen van beide,
+-- en het kassapad horeca_pay → insert pos_transactions → trigger handle_pos_transaction_stock → decrement_stock
+-- / decrement_variant_stock → record_stock_movement(..., 'sale') loopt onder de JWT van het toestel: zonder deze
+-- patch faalt elke verkoop met 42501 en draait de hele betaling terug. (handle_pos_refund_stock zet de voorraad
+-- rechtstreeks, buiten record_stock_movement: niet geraakt.)
+-- Toegelaten voor een actief toestel van precies die winkel: enkel reason 'sale' en 'return' (de CHECK op
+-- stock_movements kent: sale, return, purchase, sync, manual, opening, adjustment). Nooit manual/adjustment/
+-- opening/purchase/sync. bulk_adjust_stock blijft dicht voor toestellen (ongemoeid).
+-- Drift: stopt als de body afwijkt van de live versie na PRIJS-GATEN-2 (prosrc-md5 b1a4331d…, 2-11-2026).
+-- Handmatig terugdraaien: beide ingevoegde regels ' /* KASSA-ACCOUNT-1 */ AND NOT (…)' weer weghalen
+-- (replace op pg_get_functiondef, zoals hieronder maar omgekeerd).
+do $patch$
+declare
+  sig constant text := 'public.record_stock_movement(uuid, uuid, uuid, integer, text, text, uuid, text, uuid)';
+  -- Lidmaatschapscheck: een actief toestel van deze winkel gaat door naar de rolcheck (die geeft 42501 voor
+  -- elke andere reden dan sale/return); de rolcheck laat het toestel enkel door voor sale/return.
+  dev1 constant text := E'\n     /* KASSA-ACCOUNT-1 */ AND NOT coalesce(public.kassa_device_tenant() = v_tenant_id, false)';
+  dev2 constant text := E'\n     /* KASSA-ACCOUNT-1 */ AND NOT (p_reason IN (''sale'', ''return'') AND coalesce(public.kassa_device_tenant() = v_tenant_id, false))';
+  a1 constant text := E'     AND v_tenant_id NOT IN (SELECT public.get_user_tenant_ids(auth.uid()))';
+  a2 constant text := E'     AND NOT public.has_tenant_role(v_tenant_id, ARRAY[''tenant_admin''::app_role, ''staff''::app_role, ''warehouse''::app_role])';
+  d text;
+  src text;
+begin
+  if to_regprocedure(sig) is null then
+    if coalesce(current_setting('sellqo.kassa_account_test', true), '') = 'on' then raise notice 'KASSA-ACCOUNT-1: % ontbreekt (testmodus)', sig; return; end if;
+    raise exception 'KASSA-ACCOUNT-1: functie % ontbreekt', sig;
+  end if;
+  select prosrc into src from pg_proc where oid = to_regprocedure(sig);
+  if position('KASSA-ACCOUNT-1' in src) > 0 then raise notice 'KASSA-ACCOUNT-1: record_stock_movement al gepatcht'; return; end if;
+  if md5(src) <> 'b1a4331d6673d75ddd188cfdd826467f' then
+    raise exception 'KASSA-ACCOUNT-1: record_stock_movement wijkt af van de live versie na PRIJS-GATEN-2 (md5 %); eerst nalezen', md5(src);
+  end if;
+  d := pg_get_functiondef(to_regprocedure(sig));
+  if (length(d) - length(replace(d, a1 || ' THEN', ''))) / length(a1 || ' THEN') <> 1
+     or (length(d) - length(replace(d, a2 || ' THEN', ''))) / length(a2 || ' THEN') <> 1 then
+    raise exception 'KASSA-ACCOUNT-1: ankers niet precies één keer gevonden in record_stock_movement';
+  end if;
+  d := replace(d, a1 || ' THEN', a1 || dev1 || ' THEN');
+  d := replace(d, a2 || ' THEN', a2 || dev2 || ' THEN');
+  execute d;
+end
+$patch$;

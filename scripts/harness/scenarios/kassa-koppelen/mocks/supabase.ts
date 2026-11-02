@@ -8,6 +8,7 @@ export const supabase = {
       w.__calls.push({ name, body: opts.body });
       if (name === 'kassa-device-pair') {
         if (opts.body.code === '482913' || opts.body.code === TOKEN) return { data: { ok: true, email: 'kassa-x@toestel.sellqo.app', password: 'x'.repeat(48) }, error: null };
+        if (opts.body.code === '222222') return { data: null, error: { context: new Response(JSON.stringify({ error: 'device_already_paired' }), { status: 409 }) } };
         if (opts.body.code === '111111') return { data: null, error: { context: new Response(JSON.stringify({ error: 'rate_limited' }), { status: 429 }) } };
         return { data: null, error: { context: new Response(JSON.stringify({ error: 'invalid_code' }), { status: 404 }) } };
       }

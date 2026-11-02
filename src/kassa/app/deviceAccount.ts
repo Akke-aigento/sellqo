@@ -84,9 +84,12 @@ export async function pairThisDevice(secret: string, deviceUuid: string): Promis
   return { ok: true };
 }
 
-/** "Ontkoppel dit toestel": koppeling intrekken (best effort), lokale kassagegevens weg. Afmelden doet de aanroeper. */
+/** "Ontkoppel dit toestel": koppeling intrekken (best effort), alle sessies van de toestel-user weg (global),
+ *  lokale kassagegevens weg. De aanroeper ruimt daarna de app-staat op (useAuth().signOut). */
 export async function unpairThisDevice(): Promise<void> {
   try { await supabase.rpc('kassa_device_unpair_self' as never); } catch { /* offline: beheer kan ontkoppelen */ }
+  // Review 1: ook alle refresh-tokens van de toestel-user server-side intrekken.
+  try { await supabase.auth.signOut({ scope: 'global' }); } catch { /* offline: de koppeling is wel ingetrokken */ }
   writeCache(null);
   forgetDevice();
 }

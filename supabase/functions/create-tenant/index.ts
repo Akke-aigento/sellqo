@@ -60,7 +60,8 @@ type TenantPayload = {
 
 serve(async (req) => {
   // Versiestempel om een deploy zonder neveneffect na te meten (geen auth, geen data).
-  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "PRICE-2" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  // KASSA-ACCOUNT-1: een kassatoestel (eigen account, app_metadata.kind = 'kassa') maakt nooit een winkel aan.
+  if (req.method === "GET") return new Response(JSON.stringify({ ok: true, version: "KASSA-ACCOUNT-1" }), { headers: { ...corsHeaders, "Content-Type": "application/json" } });
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -91,6 +92,14 @@ serve(async (req) => {
       logStep("Auth failed", { error: authError?.message });
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if ((user.app_metadata as { kind?: string } | undefined)?.kind === "kassa") {
+      logStep("Tenant creation blocked: kassatoestel", { userId: user.id });
+      return new Response(JSON.stringify({ error: "Not allowed to create tenant" }), {
+        status: 403,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

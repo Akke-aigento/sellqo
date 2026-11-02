@@ -28,6 +28,11 @@ export async function run(page, { width, log }) {
       await p.getByRole('button', { name: 'Koppelen' }).click();
       await p.waitForTimeout(300);
       log(s, 'te veel:', await p.getByRole('alert').innerText());
+      await p.getByLabel('Koppelcode').fill('222222');
+      await p.getByRole('button', { name: 'Koppelen' }).click();
+      await p.waitForTimeout(300);
+      log(s, 'al gekoppeld:', await p.getByRole('alert').innerText());
+      await shot('pair-al-gekoppeld');
       await p.getByLabel('Koppelcode').fill('482 913');
       await p.getByRole('button', { name: 'Koppelen' }).click();
       await p.waitForTimeout(300);

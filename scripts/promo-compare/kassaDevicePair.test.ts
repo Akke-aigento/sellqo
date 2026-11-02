@@ -31,28 +31,36 @@ const db = new StatefulDb({
   kitchen_tickets: [],
 });
 
-// Koppelcodes zoals kassa_pair_claim: 6 cijfers of 64 hex, eenmalig, 5 fouten per IP.
-const codes: { id: string; secret: string; used: boolean; tenant_id: string; terminal_id: string }[] = [];
+// Koppelcodes zoals kassa_pair_claim: 6 cijfers of 64 hex (token), eenmalig, 5 fouten per IP; boven 300 fouten
+// platformbreed worden de open 6-cijfercodes ongeldig (token blijft), nooit iemand geweigerd; een al actief
+// gekoppeld toestel-ID = device_already_paired zonder de code te verbruiken.
+const codes: { id: string; secret: string; token: string; used: boolean; tenant_id: string; terminal_id: string; codeDead?: boolean }[] = [];
 const fails: Record<string, number> = {};
+let totalFails = 0;
 let claims = 0;
-db.rpcs.kassa_pair_claim = ({ p_secret, p_ip }) => {
+const ipSeen: string[] = [];
+db.rpcs.kassa_pair_claim = ({ p_secret, p_ip, p_device_uuid }) => {
   claims += 1;
+  ipSeen.push(p_ip);
   if ((fails[p_ip] ?? 0) >= 5) return { data: { ok: false, reason: 'rate_limited' }, error: null };
-  const c = codes.find((x) => x.secret === p_secret && !x.used);
-  if (!c) { fails[p_ip] = (fails[p_ip] ?? 0) + 1; return { data: { ok: false, reason: 'invalid' }, error: null }; }
+  const c = codes.find((x) => !x.used && ((x.secret === p_secret && !x.codeDead) || x.token === p_secret));
+  if (!c) {
+    fails[p_ip] = (fails[p_ip] ?? 0) + 1; totalFails += 1;
+    if (totalFails >= 300) for (const x of codes) if (!x.used) x.codeDead = true;
+    return { data: { ok: false, reason: 'invalid' }, error: null };
+  }
+  if (db.tables.kassa_device_accounts.some((a) => a.device_uuid === p_device_uuid && !a.revoked_at)) return { data: { ok: false, reason: 'device_already_paired' }, error: null };
   c.used = true;
   return { data: { ok: true, code_id: c.id, tenant_id: c.tenant_id, terminal_id: c.terminal_id, terminal_name: 'Toog', name: 'Toog iPad' }, error: null };
 };
 let completeFails = false;
+let completeRace = false;
 db.rpcs.kassa_pair_complete = ({ p_code_id, p_user_id, p_device_uuid, p_name }, d) => {
   if (completeFails) return { data: null, error: { message: 'koppelcode niet (meer) geldig' } };
+  if (completeRace) return { data: null, error: { code: 'KA409', message: 'device_already_paired' } };
   const c = codes.find((x) => x.id === p_code_id)!;
-  const replaced: string[] = [];
-  for (const r of d.tables.kassa_device_accounts) {
-    if (r.tenant_id === c.tenant_id && r.device_uuid === p_device_uuid && !r.revoked_at) { r.revoked_at = new Date().toISOString(); replaced.push(r.user_id); }
-  }
   d.tables.kassa_device_accounts.push({ user_id: p_user_id, tenant_id: c.tenant_id, terminal_id: c.terminal_id, device_uuid: p_device_uuid, name: p_name ?? 'Toog iPad', revoked_at: null });
-  return { data: { ok: true, replaced }, error: null };
+  return { data: { ok: true }, error: null };
 };
 const released: string[] = [];
 db.rpcs.kassa_pair_release = ({ p_code_id }) => { released.push(p_code_id); const c = codes.find((x) => x.id === p_code_id); if (c) c.used = false; return { data: null, error: null }; };
@@ -95,7 +103,12 @@ const call = async (h: H, body: unknown, headers: Record<string, string> = {}) =
   const r = await h(new Request('https://f/x', { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) }));
   return { status: r.status, json: await r.json() };
 };
-const newCode = (secret: string, tenant = T) => { const id = crypto.randomUUID(); codes.push({ id, secret, used: false, tenant_id: tenant, terminal_id: TERM }); return id; };
+const newCode = (secret: string, tenant = T) => {
+  const id = crypto.randomUUID();
+  const token = /^[0-9a-f]{64}$/.test(secret) ? secret : crypto.randomUUID().replace(/-/g, '').repeat(2);
+  codes.push({ id, secret, token, used: false, tenant_id: tenant, terminal_id: TERM });
+  return id;
+};
 
 Deno.test('GET geeft de versiestempel (alle vier de functies)', async () => {
   for (const h of [pair, revoke, receipt, orderReady]) {
@@ -137,18 +150,51 @@ Deno.test('dezelfde code nog eens = 404; QR-token werkt ook', async () => {
   assert(r.status === 200, JSON.stringify(r));
 });
 
-Deno.test('opnieuw koppelen van hetzelfde toestel: vorige account ingetrokken én gebannen', async () => {
-  const before = db.tables.kassa_device_accounts.find((x) => x.device_uuid === DEV && !x.revoked_at)!.user_id;
+Deno.test('review 1 (2): toestel-ID al actief gekoppeld = 409, geen overname, code blijft geldig; na ontkoppelen lukt het', async () => {
+  const before = db.tables.kassa_device_accounts.find((x) => x.device_uuid === DEV && !x.revoked_at)!;
   newCode('100200');
+  const n = created.length;
   const r = await call(pair, { code: '100200', device_uuid: DEV }, { 'cf-connecting-ip': '10.0.0.4' });
-  assert(r.status === 200, JSON.stringify(r));
-  assert(db.tables.kassa_device_accounts.find((x) => x.user_id === before)!.revoked_at, 'vorige niet ingetrokken');
-  assert(banned.some((b) => b.id === before && b.ban === '876000h'), 'vorige niet gebannen');
+  assert(r.status === 409 && r.json.error === 'device_already_paired', JSON.stringify(r));
+  assert(created.length === n, 'er mocht geen user aangemaakt worden');
+  assert(!before.revoked_at && !banned.some((b) => b.id === before.user_id), 'bestaande koppeling mocht niet geraakt worden');
+  assert(!codes.find((c) => c.secret === '100200')!.used, 'code mocht niet verbruikt worden');
+  before.revoked_at = new Date().toISOString(); // beheer ontkoppelt
+  const ok = await call(pair, { code: '100200', device_uuid: DEV }, { 'cf-connecting-ip': '10.0.0.4' });
+  assert(ok.status === 200, JSON.stringify(ok));
 });
 
-Deno.test('raden: na 5 fouten van hetzelfde IP = 429, ook met de juiste code', async () => {
+Deno.test('review 1 (2): race — koppelrij weigert met KA409 → 409, user weer weg, code vrij', async () => {
+  const id = newCode('100300');
+  completeRace = true;
+  const r = await call(pair, { code: '100300', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000c1' }, { 'cf-connecting-ip': '10.0.0.7' });
+  completeRace = false;
+  assert(r.status === 409 && r.json.error === 'device_already_paired', JSON.stringify(r));
+  assert(deleted.includes(created.at(-1).id) && released.includes(id), 'opruimen');
+});
+
+Deno.test('review 1 (3): veel fouten over veel IPs: niemand geweigerd (geen 429), open 6-cijfercodes ongeldig, QR-token werkt', async () => {
+  newCode('555666');
+  const token = codes.at(-1)!.token;
+  for (let i = 0; totalFails < 300; i++) await call(pair, { code: String(200000 + i), device_uuid: DEV }, { 'cf-connecting-ip': `172.16.${Math.floor(i / 4)}.${i % 4}` });
+  const r = await call(pair, { code: '555666', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000d1' }, { 'cf-connecting-ip': '192.168.9.9' });
+  assert(r.status === 404, `juiste code van een vers IP: ongeldig gemaakt, niet geweigerd (${JSON.stringify(r)})`);
+  const q = await call(pair, { code: token, device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000d1' }, { 'cf-connecting-ip': '192.168.9.9' });
+  assert(q.status === 200, JSON.stringify(q));
+});
+
+Deno.test('review 1 (4): client-IP = cf-connecting-ip, dan x-real-ip, dan het LAATSTE x-forwarded-for', async () => {
+  newCode('900100'); newCode('900200'); newCode('900300');
+  ipSeen.length = 0;
+  await call(pair, { code: '900100', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000e1' }, { 'cf-connecting-ip': '1.1.1.1', 'x-real-ip': '2.2.2.2', 'x-forwarded-for': '3.3.3.3' });
+  await call(pair, { code: '900200', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000e2' }, { 'x-real-ip': '2.2.2.2', 'x-forwarded-for': '3.3.3.3' });
+  await call(pair, { code: '900300', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000e3' }, { 'x-forwarded-for': 'vervalst, 6.6.6.6, 4.4.4.4' });
+  assert(JSON.stringify(ipSeen) === JSON.stringify(['1.1.1.1', '2.2.2.2', '4.4.4.4']), JSON.stringify(ipSeen));
+});
+
+Deno.test('raden: na 5 fouten van hetzelfde IP = 429, ook met de juiste code (ook een vervalst eerste x-forwarded-for helpt niet)', async () => {
   newCode('777777');
-  for (let i = 0; i < 5; i++) assert((await call(pair, { code: String(100000 + i), device_uuid: DEV }, { 'x-forwarded-for': '6.6.6.6, 10.0.0.1' })).status === 404, `fout ${i}`);
+  for (let i = 0; i < 5; i++) assert((await call(pair, { code: String(100000 + i), device_uuid: DEV }, { 'x-forwarded-for': `9.9.9.${i}, 10.0.0.1` })).status === 404, `fout ${i}`);
   const r = await call(pair, { code: '777777', device_uuid: DEV }, { 'x-forwarded-for': '6.6.6.6, 10.0.0.1' });
   assert(r.status === 429 && r.json.error === 'rate_limited', JSON.stringify(r));
   assert(!codes.find((c) => c.secret === '777777')!.used, 'rate limit mocht de code niet verbruiken');
@@ -158,13 +204,13 @@ Deno.test('aanmaken user mislukt: code komt vrij, geen koppelrij; koppelrij misl
   const id1 = newCode('300300');
   createFails = true;
   const n = db.tables.kassa_device_accounts.length;
-  const r1 = await call(pair, { code: '300300', device_uuid: DEV }, { 'cf-connecting-ip': '10.0.0.5' });
+  const r1 = await call(pair, { code: '300300', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000f1' }, { 'cf-connecting-ip': '10.0.0.5' });
   createFails = false;
   assert(r1.status === 500 && released.includes(id1) && db.tables.kassa_device_accounts.length === n, JSON.stringify(r1));
   assert(!JSON.stringify(r1.json).includes('boom'), 'geen interne fouttekst naar het toestel');
   const id2 = newCode('400400');
   completeFails = true;
-  const r2 = await call(pair, { code: '400400', device_uuid: DEV }, { 'cf-connecting-ip': '10.0.0.5' });
+  const r2 = await call(pair, { code: '400400', device_uuid: 'aaaaaaaa-bbbb-4ccc-8ddd-0000000000f2' }, { 'cf-connecting-ip': '10.0.0.5' });
   completeFails = false;
   assert(r2.status === 500 && released.includes(id2) && deleted.includes(created.at(-1).id), JSON.stringify(r2));
 });

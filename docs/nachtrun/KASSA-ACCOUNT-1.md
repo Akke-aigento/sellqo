@@ -1,7 +1,8 @@
 # KASSA-ACCOUNT-1 — eigen identiteit per kassatoestel — 2 november 2026
 
-Branch `account-1` (worktree `/home/claude/sellqo-account`, vanaf `origin/main` @ `0e79ce1`). Twee commits:
-1a (server) en 1b (frontend + docs). Niet gepusht, niet gedeployed, geen DB-writes. Plan en recon:
+Branch `account-1` (worktree `/home/claude/sellqo-account`), gerebased op `origin/main` @ `b3eb700`
+(PRIJS-GATEN-2). Drie commits: 1a (server), 1b (frontend + docs), 1c (security-review 1). Niet gepusht, niet
+gedeployed, geen DB-writes. Plan en recon:
 `docs/kassa-account-1-plan.md`. Akke koos optie D en alle aanbevelingen (beslispunten 1-4).
 
 ## Role-audit-blok (voor `docs/role-audit.md`)
@@ -23,9 +24,10 @@ Branch `account-1` (worktree `/home/claude/sellqo-account`, vanaf `origin/main` 
   - helpers `kassa_device_tenant()`, `kassa_device_terminal()`, `kassa_can_operate(tenant)` en
     `kassa_can_operate(tenant, device)` (toestel: `p_device_id` moet zijn eigen `device_uuid` zijn);
   - `kassa_pair_code_create` (enkel `tenant_admin`, eigen niet-virtuele kassa; nieuwe code vervangt de open code),
-    `kassa_pair_claim` / `kassa_pair_complete` / `kassa_pair_release` (enkel service role; rate limit 5 fouten per
-    IP per 15 min en 300 platformbreed; atomaire claim; opnieuw koppelen trekt de vorige koppeling van hetzelfde
-    toestel in en geeft die users terug om te bannen);
+    `kassa_pair_claim(secret, ip, device_uuid)` / `kassa_pair_complete` / `kassa_pair_release` (enkel service role;
+    rate limit 5 fouten per IP per 15 min voor code én QR-token; boven 300 fouten platformbreed worden de open
+    6-cijfercodes ongeldig gemaakt, niemand geweigerd; atomaire claim; een toestel-ID dat al actief gekoppeld is,
+    wordt niet overgenomen: `device_already_paired`, beheer ontkoppelt eerst);
   - `kassa_device_context()` (zaak: naam, taal, modules, adres/btw voor het ticket, IBAN/BIC voor de
     overschrijvings-QR; kassa; toestel), `kassa_device_unpair_self()`, `kassa_kitchen_orders(tenant)` (smalle
     orderlijst voor het keukenbord: geen e-mail, adres enkel straat/nr/postcode/gemeente bij levering);
@@ -89,7 +91,8 @@ Branch `account-1` (worktree `/home/claude/sellqo-account`, vanaf `origin/main` 
   (42501), `kassa_pair_code_create` (42501), andere winkel (RPC's 42501, tabellen 0 rijen), schrijven op
   `kassa_device_accounts` (42501), `fiscal_audit_log` lezen (0), `fiscal_events` als andere user (42501).
 - Koppelcode: enkel hashes in de databank, eenmalig, 10 min, nieuwe code vervangt de open code; rate limit per IP
-  (advisory lock per IP-hash tegen gelijktijdige pogingen) en platformbreed; de limiet verbruikt de code niet.
+  (advisory lock per IP-hash tegen gelijktijdige pogingen; IP = cf-connecting-ip, dan x-real-ip, dan het laatste
+  x-forwarded-for); de limiet verbruikt de code niet; platformbreed enkel ongeldig maken van open 6-cijfercodes.
   Wachtwoord van de toestel-user wordt nergens bewaard (harnas-test).
 - Ontkoppelen werkt meteen (elke controle leest `revoked_at`, ook met een nog geldig toegangstoken) en de user
   wordt gebannen (geen refresh meer).
@@ -108,12 +111,14 @@ Branch `account-1` (worktree `/home/claude/sellqo-account`, vanaf `origin/main` 
 - `useKitchenBoard` is gedeeld met beheer: enkel met `kassaDevice: true` (alleen `KassaHome`) loopt de RPC.
 
 **Verificatie**
-- `scripts/gks/sql/run.sh` (eigen cluster, poort 54351): alle suites "geslaagd" + nieuw
-  `test_kassa_account.sql` (108 controles). Exit 1 komt enkel van de bestaande fout in `test_kaart.sql`
-  (ook op de baseline zonder deze batch). Extra run met de migratie vóór `test_kassa_nachtrun.sql`: groen.
+- `scripts/gks/sql/run.sh` op een verse PG16-cluster (UTF8, `initdb -E UTF8 --locale=C.UTF-8`): **exit 0**, alle
+  suites geslaagd incl. PRIJS-GATEN-1/2 en `test_kassa_account.sql` (134 controles). **Correctie:** de eerdere melding "exit 1 door
+  `test_kaart.sql`" lag aan de omgeving: mijn eerste testcluster was met `SQL_ASCII` aangemaakt, waardoor
+  `kaart_slug` accenten fout vertaalde. Geen fout in de code. Extra run met de migratie vóór
+  `test_kassa_nachtrun.sql`: groen.
 - Live read-only natrek (2-11-2026): de 26 ankers staan precies één keer in de live definities; geen botsende
   tabel-/functie-/policynamen.
-- `deno test` `scripts/promo-compare/kassaDevicePair.test.ts` (9) + `horecaReceiptMail.test.ts` (5): 14/14.
+- `deno test` `scripts/promo-compare/kassaDevicePair.test.ts` (12) + `horecaReceiptMail.test.ts` (5): 17/17.
 - `deno check` (`/tmp/im_real.json`) op de 4 functies: exit 0. `node scripts/verify-edge-pins.mjs`: ok.
 - `npx tsc --noEmit -p tsconfig.app.json`: exit 0. `npx vite build`: exit 0.
 - `npx vitest run src/kassa src/components/admin/kitchen src/test/kassaTerminalDevices.test.ts`: groen.
@@ -127,9 +132,18 @@ Branch `account-1` (worktree `/home/claude/sellqo-account`, vanaf `origin/main` 
 - KASSA-ACCOUNT-2: `tenant_admin`/`staff` uit `kassa_can_operate` halen waar beheer de RPC niet gebruikt
   (eerst grep: `horeca_notify_device_*`, `kassa_report_*`, `horeca_apply` in beheer). Pas dan is "kassa met
   eigenaarsaccount" ook server-side dicht.
-- Restrisico: een toestel-user valt onder `"Authenticated users can insert their own tenant"`
-  (`can_create_tenant(auth.uid(), owner_email)`): hij zou een nieuwe, lege winkel kunnen aanmaken (geen toegang
-  tot de echte zaak). Voorstel KASSA-ACCOUNT-2: `can_create_tenant` weigert `app_metadata.kind = 'kassa'`.
+- (Gedicht in 1c) `can_create_tenant` en `create-tenant` weigeren toestelaccounts.
+- KASSA-ACCOUNT-2, uit security-review 1 (bewust niet in deze batch):
+  - (5) terminalbinding in de kassa-RPC's (een toestel kan nu nog een andere `p_terminal_id`/kassa van zijn
+    zaak opgeven, bv. in `kassa_heartbeat`); ook `fiscal_events.terminal_id` niet gebonden: dat is de fiscale
+    terminal-ID uit `pos_terminals.settings.fiscal.terminalId` (of de eerste 8 tekens van de kassa-ID), niet
+    `pos_terminals.id`, dus een binding vraagt eerst een vaste afleiding server-side;
+  - (6) `horeca_notify_device_*` binden aan `install_id`/toestel (nu kan een toestel profielen van de zaak beheren);
+  - (8) `products` select versmallen (kolommen, o.a. `cost_price`) en `kitchen_tickets` update via een RPC i.p.v.
+    een tabelbrede update-policy;
+  - (11) QR-token in de URL (`/kassa?koppel=`): aanvaard (eenmalig, 10 min, wordt meteen uit de URL gehaald).
+  - Een toestel kan `record_stock_movement`/`increment_stock` rechtstreeks aanroepen met reason `sale`/`return`
+    voor producten van zijn eigen zaak (voorraad op/af binnen de kassarechten); versmallen tot het triggerpad.
 - Restrisico: toestel-users hebben een `profiles`-rij (trigger `handle_new_user`, naam "Kassa · …"); controleer
   of platformlijsten van gebruikers ze moeten filteren.
 - Restrisico (plan): `products` select toont ook `cost_price` aan het toestel (tabelbrede grant).
@@ -141,15 +155,50 @@ Branch `account-1` (worktree `/home/claude/sellqo-account`, vanaf `origin/main` 
   `src/kassa/app/__tests__/setup.test.ts` staat al in CI (inhoud vervangen). Nieuwe deno-test:
   `scripts/promo-compare/kassaDevicePair.test.ts` (toevoegen aan de promo-compare-stap in CI).
 
+## KASSA-ACCOUNT-1c — security-review 1 — 2 november 2026
+
+Alle fixes in de nog niet live migratie `20261102100000_kassa_account_1.sql` zelf.
+
+- (1) Device-insertpolicies `fiscal_events` en `fiscal_audit_log` binden ook `device_id` aan de `device_uuid` van
+  het toestel. De kassa schrijft altijd `this.device.deviceUuid` (`runtime.ts` `posContext().deviceId` → rij
+  `device_id: data.deviceId`; `audit()` `device_id: this.device.deviceUuid`). `terminal_id` niet gebonden (zie Vervolg).
+- (2) Geen overname van een toestel-ID: `kassa_pair_claim` geeft `device_already_paired` zonder de code te
+  verbruiken, `kassa_pair_complete` weigert met `KA409` bij een race; unieke index nu op `device_uuid` over alle
+  zaken (`where revoked_at is null`). `kassa-device-pair` → HTTP 409; `PairDevice` toont de melding (5 talen).
+- (3) Geen platformbrede weigering meer. Per IP 5 fouten per 15 min (code én token). Boven 300 fouten
+  platformbreed krijgen alle open 6-cijfercodes een onbruikbare `code_hash` (`ongeldig:<id>`); het QR-token van
+  die codes blijft werken. Een juiste code wordt dus nooit geweigerd door andermans fouten, enkel ongeldig.
+- (4) Client-IP: `cf-connecting-ip`, dan `x-real-ip`, dan het laatste element van `x-forwarded-for`.
+- (7) `can_create_tenant` (ankerpatch, anker `    ) < 10;` precies één keer live, marker, snapshot) weigert als er
+  een `kassa_device_accounts`-rij voor de user is of als de JWT `app_metadata.kind = 'kassa'` draagt;
+  `create-tenant` weigert zo'n account meteen met 403 (versiestempel `KASSA-ACCOUNT-1`).
+- (9) "Ontkoppel dit toestel": na `kassa_device_unpair_self` ook `supabase.auth.signOut({ scope: 'global' })`.
+- (10) "Naar SellQo-beheer" op het web weg voor het toestel; in de plaats één regel "Open beheer op een ander
+  toestel" (5 talen). In de native Kassa-app (`Capacitor.isNativePlatform()`) blijft de knop met waarschuwing.
+- (12) Notitie in `20261102100010_kassa_account_1_docs.sql`: `toestel.sellqo.app` mag nooit mail ontvangen
+  (geen MX, geen catch-all/alias), anders kan "wachtwoord vergeten" een toestelaccount overnemen. Helpartikel
+  bijgewerkt (geen overname bij opnieuw koppelen, tip "beheer op een ander toestel", codes vervallen bij raden).
+- **PRIJS-GATEN-2 × toestel (MOET, na rebase op `b3eb700`).** Het kassapad `horeca_pay` (security definer) →
+  insert `pos_transactions` → trigger `handle_pos_transaction_stock` → `decrement_stock`/`decrement_variant_stock`
+  → `record_stock_movement(…, 'sale')` loopt onder de JWT van het toestel; sinds PRIJS-GATEN-2 faalde dat met
+  42501 en rolde de hele betaling terug. Live nagetrokken: enkel `decrement_*` (reason `sale`) en `increment_*`
+  roepen `record_stock_movement`; `handle_pos_refund_stock` zet de voorraad rechtstreeks (niet geraakt); de
+  toegelaten reasons (CHECK op `stock_movements`) zijn sale, return, purchase, sync, manual, opening, adjustment.
+  Ankerpatch op `record_stock_movement` (drift op de nieuwe prosrc-md5 `b1a4331d…`, beide ankers precies één
+  keer, marker): een actief toestel van precies die winkel komt voorbij de lidmaatschapscheck en voorbij de
+  rolcheck enkel met reason `sale` of `return`; manual/adjustment/opening/purchase/sync = 42501.
+  `bulk_adjust_stock` blijft dicht voor toestellen. Test: een toestelverkoop (trigger) laat de voorraad dalen
+  en boekt een `sale`-beweging op naam van het toestel; `manual` = 42501; een viewer blijft dicht.
+
 ## Uitrolvolgorde (per stap Akke's go)
 
 1. Migratie `20261102100000_kassa_account_1.sql`. Natrek (aparte `query_database`-aanroep):
    `select count(*) from pg_proc where pronamespace='public'::regnamespace and position('KASSA-ACCOUNT-1' in pg_get_functiondef(oid))>0`
-   → 26 gepatcht + de nieuwe functies; `select count(*) from pg_policies where policyname like 'kassa\_device\_%' and tablename <> 'kassa_device_accounts'` → 35.
+   → 26 kassa-RPC's + `can_create_tenant` + `record_stock_movement` gepatcht, plus de nieuwe functies; `select count(*) from pg_policies where policyname like 'kassa\_device\_%' and tablename <> 'kassa_device_accounts'` → 35.
    Rol-impersonatie (aparte aanroep, `begin; … rollback;`): een `authenticated` zonder lidmaatschap krijgt 42501
    op `horeca_snapshot(<De Wissel>)`.
 2. Edge functions deployen (Lovable-agent, deploy-only, "lukt iets niet: STOP"): **`kassa-device-pair`,
-   `kassa-device-revoke`, `horeca-receipt-mail`, `send-order-ready`**. Vingerafdruk: `net.http_get` op elke functie
+   `kassa-device-revoke`, `horeca-receipt-mail`, `send-order-ready`, `create-tenant`**. Vingerafdruk: `net.http_get` op elke functie
    → `{"version":"KASSA-ACCOUNT-1"}`.
 3. Publish (`deploy_project`) en bundelcheck: nieuwe `/assets/index-*.js` bevat `kassa-device-pair` en
    `sellqo-kassa-0.21.0`.

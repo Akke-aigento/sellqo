@@ -11631,7 +11631,8 @@
       "unpairConfirm": "Dit toestel loskoppelen van {{name}}? Daarna werkt de kassa hier pas weer met een nieuwe koppelcode uit beheer.",
       "unpairYes": "Ontkoppelen",
       "toAdminWarning": "Beheer opent in een nieuw venster. Doe dat liefst op een ander toestel: meld je in dezelfde browser aan met je eigen account, dan wordt deze kassa afgemeld en moet je ze opnieuw koppelen.",
-      "toAdminOpen": "Openen in nieuw venster"
+      "toAdminOpen": "Openen in nieuw venster",
+      "toAdminElsewhere": "Open beheer op een ander toestel"
     },
     "fiscalMode": {
       "off": "niet-fiscale modus",
@@ -12080,7 +12081,8 @@
         "invalid_code": "Deze code klopt niet, is al gebruikt of verlopen. Maak een nieuwe in beheer.",
         "rate_limited": "Te veel foute pogingen. Wacht een kwartier en probeer opnieuw.",
         "offline": "Geen verbinding. Koppelen kan enkel online.",
-        "server": "Koppelen lukte niet. Probeer opnieuw."
+        "server": "Koppelen lukte niet. Probeer opnieuw.",
+        "device_already_paired": "Dit toestel is al gekoppeld aan een kassa. Laat het eerst ontkoppelen in beheer (Kassa (POS) › Kassa's) en probeer dan opnieuw."
       }
     },
     "notDevice": {
