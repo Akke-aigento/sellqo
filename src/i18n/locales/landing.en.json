@@ -2492,6 +2492,18 @@
         "stock_roles": {
           "title": "Only administrators, staff and warehouse can update stock",
           "description": "From now on, only an administrator, staff member or warehouse member of your shop can adjust the stock of your products and variants (including in bulk, in the product grid or when receiving a purchase order). Roles such as marketing, accountant or viewer can still see the stock, but the controls to change it no longer appear for them. Sales through your POS and webshop keep updating stock as before."
+        },
+        "kassa_next_to_admin": {
+          "title": "Till and admin side by side on the same device",
+          "description": "The till now has its own sign-in. If you are signed in to admin, you stay signed in when you open the till, and a paired till stays paired when you go to admin. If you are signed in to admin on this device as the business owner, you pair it with one tap: choose the till and tap \"Pair this device now\". A button at the top of the pairing screen takes you back to admin. Devices that were already paired stay paired."
+        },
+        "push_device_claim": {
+          "title": "Turning on notifications works even if someone else used this device before",
+          "description": "If this device was still registered for notifications on another account (someone else signed in earlier in the same browser or app), \"Turn on notifications\" failed. SellQo now moves the registration to whoever is signed in. If it still fails, you see why. A paired till now also gets its own notifications."
+        },
+        "kitchen_header_mobile": {
+          "title": "Kitchen screen fits your phone",
+          "description": "On a narrow screen the top bar of the kitchen screen continues on a second row. All buttons (stations, pause, printing, sound, notifications and till) stay visible."
         }
       },
       "copyLink": "Copy link",

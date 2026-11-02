@@ -2492,6 +2492,18 @@
         "stock_roles": {
           "title": "Seuls les administrateurs, collaborateurs et l’entrepôt mettent encore le stock à jour",
           "description": "Désormais, seul un administrateur, un collaborateur ou un membre de l'entrepôt de ta boutique peut ajuster le stock de tes produits et variantes (y compris en masse, dans la grille produits ou à la réception d'une commande fournisseur). Les rôles comme marketing, comptable ou lecteur voient toujours le stock, mais les boutons pour le modifier ne s'affichent plus pour eux. Les ventes via ta caisse et ta boutique en ligne continuent de mettre le stock à jour comme avant."
+        },
+        "kassa_next_to_admin": {
+          "title": "Caisse et administration côte à côte sur le même appareil",
+          "description": "La caisse a désormais sa propre connexion. Si tu es connecté à l'administration, tu le restes en ouvrant la caisse, et une caisse couplée reste couplée quand tu vas dans l'administration. Si tu es connecté à l'administration sur cet appareil en tant que gérant, tu le couples en un geste : choisis la caisse et touche « Coupler cet appareil maintenant ». Un bouton en haut de l'écran de couplage te ramène à l'administration. Les appareils déjà couplés le restent."
+        },
+        "push_device_claim": {
+          "title": "Activer les notifications fonctionne même si quelqu'un d'autre a utilisé cet appareil",
+          "description": "Si cet appareil était encore inscrit aux notifications sur un autre compte (quelqu'un d'autre s'était connecté avant dans le même navigateur ou la même app), « Activer les notifications » échouait. SellQo transfère maintenant l'inscription à la personne connectée. Si cela échoue encore, tu vois pourquoi. Une caisse couplée reçoit aussi ses propres notifications."
+        },
+        "kitchen_header_mobile": {
+          "title": "L'écran cuisine tient sur ton téléphone",
+          "description": "Sur un écran étroit, la barre du haut de l'écran cuisine continue sur une deuxième ligne. Tous les boutons (postes, pause, impression, son, notifications et caisse) restent visibles."
         }
       },
       "copyLink": "Copier le lien",

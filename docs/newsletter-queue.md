@@ -4,6 +4,18 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.15c — Kassa en beheer naast elkaar op hetzelfde toestel (improvement, 02-11-2026)
+De kassa heeft voortaan een eigen aanmelding. Ben je in beheer aangemeld, dan blijf je dat als je de kassa opent, en een gekoppelde kassa blijft gekoppeld als je naar beheer gaat. Ben je op dit toestel als zaakvoerder in beheer aangemeld, dan koppel je het met één tik: kies de kassa en tik op "Dit toestel nu koppelen". Bovenaan het koppelscherm staat een knop terug naar beheer. Toestellen die al gekoppeld waren, blijven gekoppeld.
+i18n: `public.changelog.changes.kassa_next_to_admin`
+
+### 2026.15c — Meldingen aanzetten lukt ook als iemand anders dit toestel eerder gebruikte (bugfix, 02-11-2026)
+Stond dit toestel voor meldingen nog op een andere account (iemand anders meldde zich eerder in dezelfde browser of app aan), dan lukte "Meldingen aanzetten" niet. Nu zet SellQo de inschrijving over naar wie aangemeld is. Lukt het toch niet, dan zie je waarom. Ook een gekoppelde kassa krijgt nu zelf haar meldingen.
+i18n: `public.changelog.changes.push_device_claim`
+
+### 2026.15c — Keukenscherm past op je gsm (bugfix, 02-11-2026)
+Op een smal scherm loopt de bovenbalk van het keukenscherm door op een tweede rij. Alle knoppen (posten, pauze, afdrukken, geluid, meldingen en kassa) blijven zichtbaar.
+i18n: `public.changelog.changes.kitchen_header_mobile`
+
 ### 2026.15b — Voorraad bijwerken enkel nog door beheerder, medewerker of magazijn (security, 02-11-2026)
 De voorraad van je producten en varianten bijstellen (ook in bulk, via het productraster of bij het ontvangen van een inkooporder) kan voortaan enkel een beheerder, medewerker of magazijnmedewerker van je winkel. Rollen zoals marketing, boekhouder of lezer zien de voorraad nog, maar de knoppen om hem aan te passen staan voor hen niet meer op het scherm. Verkopen via je kassa en webshop werken de voorraad gewoon bij zoals voorheen.
 i18n: `public.changelog.changes.stock_roles`

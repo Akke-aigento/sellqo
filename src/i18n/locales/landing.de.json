@@ -2492,6 +2492,18 @@
         "stock_roles": {
           "title": "Bestand aktualisieren nur noch Administratoren, Mitarbeiter und Lager",
           "description": "Den Bestand deiner Produkte und Varianten anpassen (auch per Massenbearbeitung, im Produktraster oder beim Wareneingang einer Bestellung) kann ab sofort nur noch ein Administrator, Mitarbeiter oder Lagermitarbeiter deines Shops. Rollen wie Marketing, Buchhaltung oder Leser sehen den Bestand weiterhin, aber die Schaltflächen zum Ändern werden ihnen nicht mehr angezeigt. Verkäufe über deine Kasse und deinen Webshop aktualisieren den Bestand wie bisher."
+        },
+        "kassa_next_to_admin": {
+          "title": "Kasse und Verwaltung nebeneinander auf demselben Gerät",
+          "description": "Die Kasse hat jetzt eine eigene Anmeldung. Bist du in der Verwaltung angemeldet, bleibst du das, wenn du die Kasse öffnest, und eine gekoppelte Kasse bleibt gekoppelt, wenn du in die Verwaltung wechselst. Bist du auf diesem Gerät als Inhaber in der Verwaltung angemeldet, koppelst du es mit einem Tipp: Kasse wählen und auf „Dieses Gerät jetzt koppeln“ tippen. Oben im Kopplungsbildschirm bringt dich eine Schaltfläche zurück zur Verwaltung. Bereits gekoppelte Geräte bleiben gekoppelt."
+        },
+        "push_device_claim": {
+          "title": "Benachrichtigungen einschalten klappt auch, wenn jemand anderes das Gerät vorher benutzt hat",
+          "description": "War dieses Gerät für Benachrichtigungen noch auf einem anderen Konto registriert (jemand anderes hatte sich vorher im selben Browser oder in derselben App angemeldet), schlug „Benachrichtigungen einschalten“ fehl. SellQo überträgt die Registrierung jetzt auf die angemeldete Person. Klappt es trotzdem nicht, siehst du warum. Auch eine gekoppelte Kasse bekommt jetzt ihre eigenen Benachrichtigungen."
+        },
+        "kitchen_header_mobile": {
+          "title": "Küchenbildschirm passt aufs Handy",
+          "description": "Auf einem schmalen Bildschirm läuft die obere Leiste des Küchenbildschirms in einer zweiten Zeile weiter. Alle Schaltflächen (Stationen, Pause, Drucken, Ton, Benachrichtigungen und Kasse) bleiben sichtbar."
         }
       },
       "copyLink": "Link kopieren",

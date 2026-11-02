@@ -1,3 +1,64 @@
+## KASSA-MOBIEL-1 — kassa naast beheer op één toestel (eigen kassa-aanmelding, één-tik-koppelen), keukenkop op gsm, "Meldingen aanzetten" faalde (2026.15c, kassa 0.22.0) — 2 november 2026
+
+Branch `kassa-mobiel-1` vanaf `origin/main` 30bbf68. Aanleiding: test van Akke op zijn iPhone (Safari en beginscherm-app, web).
+
+**Root cause**
+- **1 + 4 — eigenaar en kassa op één toestel kon niet.** Kassa en beheer deelden één Supabase-sessie (gegenereerde client, standaard-storageKey `sb-<ref>-auth-token`). `/kassa` met een eigenaar-sessie gaf `NotADevice 'owner'` (`KassaApp.tsx` DeviceGate); de enige uitweg "Afmelden en dit toestel koppelen" meldde ook beheer af (`useAuth().signOut`), daarna `PairDevice` zonder terugknop.
+- **2 — keukenkop.** `src/pages/admin/Kitchen.tsx:86` (oud): één rij `flex` zonder wrap met 8 bedieningselementen. Harnas `keuken` op de oude code, 390 px: "Meldingen op dit toestel" en "Kassa" vallen buiten beeld.
+- **3 — "Het lukte niet" bij Meldingen aanzetten (bewezen).** `device_tokens` heeft `UNIQUE (token)` en vier RLS-policies `auth.uid() = user_id` (live `pg_policies`/`pg_indexes`, 2-11). Een browser heeft per service-worker-registratie één push-abonnement: `subscribeWebPush` (`src/lib/webPush.ts`) haalt met `getSubscription()` het bestaande endpoint op en doet `upsert(onConflict: 'token')` als de nieuwe gebruiker → `INSERT … ON CONFLICT DO UPDATE` op een rij van iemand anders → UPDATE-policy weigert (42501) → `'error'` → toast zonder beschrijving. Live: het web-token `https://web.push.apple.com/QLBF…` staat sinds 15-10 op `be6f2a43-…` (platform-account) met `install_id 01d9010f-…`; het profiel in `horeca_notify_devices` van De Wissel werd op 2-11 11:24 door `ba60e41e-…` met **dezelfde** `install_id` bewaard (zelfde browseropslag = zelfde abonnement), `last_seen_at` van het token bleef op 28-10 staan en `ba60e41e-…` heeft geen enkel token. Lokaal gereproduceerd: de oude upsert als andere gebruiker = 42501 (`test_kassa_mobiel.sql`, `ok_oude_upsert_42501`). Native (`src/native/pushRegistration.ts` `upsertToken`) had hetzelfde, daar verdween de fout in `console.error`, en `lastRegisteredToken` werd vóór het bewaren gezet (een volgende poging sloeg de bewaring over).
+- **Bijkomend gevonden:** `horeca_notify_targets` en `horeca_notify_devices_list` eisen een `user_roles`-rij voor de eigenaar van het token. Sinds KASSA-ACCOUNT-1 hoort een kassa-token bij de toestelaccount (geen rol): een gekoppelde kassa kreeg dus nooit een horeca-melding (live nagetrokken: beide functies kennen `kassa_device_accounts` niet).
+
+**Uitgevoerd**
+- Eigen kassa-aanmelding:
+  - `src/kassa/app/kassaSupabase.ts` (nieuw): `createClient` met dezelfde `VITE_SUPABASE_URL`/publishable key, `storageKey 'sb-sellqo-kassa-auth'`, `detectSessionInUrl: false`. `src/integrations/supabase/client.ts` ongewijzigd.
+  - `src/lib/supabaseScope.tsx` (nieuw): `SupabaseScopeProvider`/`useSupabaseClient()` (default = beheer-client) + `push`-identiteit.
+  - `src/kassa/app/kassaAuth.tsx` (nieuw): `KassaAuthProvider`/`useKassaAuth` (sessie van de kassa-client, offline de opgeslagen gebruiker), zet `setErrorReportClient(kassaSupabase)`, registreert in de aparte Kassa-app native push voor de toestelaccount, levert de scope.
+  - `src/kassa/app/legacySession.ts` (nieuw): eenmalige verhuis van een toestelsessie uit de standaardsleutel naar de kassa-sleutel, onder het navigator-lock `lock:<sleutel>` van de beheer-client (geen dubbel vernieuwd refresh-token), herlezen onder het lock, nooit een eigenaar-sessie; daarna `supabase.auth.signOut({scope:'local'})` zonder sessie in de opslag = geen serveraanroep, enkel SIGNED_OUT voor `AuthProvider`.
+  - `src/kassa/app/KassaApp.tsx`: `KassaAuthProvider` → `KassaRoot` → `PairDevice`/`DeviceGate`; variant `owner` weg; afmelden en ontkoppelen via de kassa-client. `src/kassa/app/main.tsx`: geen `AuthProvider` meer.
+  - Inventaris (tabel hieronder): 21 kassabestanden importeren `kassaSupabase`; gedeelde hooks `useFloorPlan`, `usePrepStations`, `useKitchenBoard`, `usePrintHealth` via `useSupabaseClient()`; `reservations.ts` en `deviceAlerts.ts` met optionele `db`; `clientErrors.ts` `setErrorReportClient`; `useAuth.tsx` `useOptionalAuth()`.
+- Flow: `screens/PairDevice.tsx` terugknop (`BackToAdmin.tsx`, nieuw) behalve in de aparte Kassa-app; `QuickPair` "Dit toestel nu koppelen" bij een beheer-sessie met `tenant_admin` (`useAdminPairTargets.ts`, nieuw: zaken + `pos_terminals` zonder virtuele, met de beheer-client); `deviceAccount.ts` `pairWithAdminSession` = beheer-client `kassa_pair_code_create` → kassa-client `kassa-device-pair` met het QR-token. Geen serverwijziging. `screens/NotADevice.tsx`: enkel `revoked`/`error`, met terugknop. `screens/KassaHome.tsx`: "Naar SellQo-beheer" weer zichtbaar op het web en in de SellQo-app (zelfde venster); aparte Kassa-app ongewijzigd (bevestigen + browser).
+- Keukenkop: `src/pages/admin/Kitchen.tsx:88,95` `flex-wrap`; onder 1024 px de knoppen op een tweede rij, vanaf `lg` één rij.
+- Push: `supabase/migrations/20261102140000_kassa_mobiel_1_device_token_claim.sql` (RPC `device_token_claim`, SECURITY DEFINER: aanmaken / bijwerken / overzetten naar `auth.uid()` enkel met bewijs van bezit: web = zelfde p256dh + auth, native = het token; anders 42501 `token_owned_elsewhere`; snapshot `snapshots.sellqo_20261102_device_tokens_kassa_mobiel_1`). `src/lib/pushTokens.ts` (nieuw) `saveDeviceToken` (RPC, terugval op de oude upsert zolang de RPC niet live is, reden + technische melding). `webPush.ts` `subscribeWebPushDetailed` + opties `db`/`scope` (eigen registratie, actieve worker afwachten). `pushRegistration.ts`: via `saveDeviceToken`, client per registratie, token pas na succes onthouden, `lastPushRegistrationFailure()`. `deviceAlerts.ts` `enablePushHere` geeft `PushOutcome`, `pushErrorToast`. `DeviceAlertsDialog.tsx` en `MyDevicesSettings.tsx`: toast met reden + `(code melding)`. i18n `deviceAlerts.push.reason.*`.
+- Kassa-push: in de kassa schrijft push in met de kassa-client en de toestelaccount, op het web met een eigen service-worker-registratie (scope `/kassa/`) zodat beheer en kassa elk een endpoint hebben; in de SellQo-app (native, één FCM-token) blijft het token bij beheer zolang daar iemand aangemeld is. `supabase/migrations/20261102140100_kassa_mobiel_1_kassa_push_targets.sql`: `horeca_notify_targets` + `horeca_notify_devices_list` tellen ook een niet-ingetrokken kassatoestel van de zaak (ankerpatch, marker, snapshot `snapshots.sellqo_20261102_fn_kassa_mobiel_1`).
+- `KASSA_SW_VERSION` 0.22.0 (`src/kassa/version.ts`). i18n nl/en/fr/de/uk: `kassa.pair.backToAdmin`, `orCode`, `quick.*`, `deviceAlerts.push.reason.*`, `kassa.home.toAdminWarning` herschreven; weg: `kassa.notDevice.owner.*`, `toPos`, `signOutAndPair`, `kassa.home.toAdminElsewhere`.
+
+| Inventaris: wat onder /kassa en de Kassa-app Supabase aanroept | Wat | Nu |
+|---|---|---|
+| `src/kassa/app/{runtime,fiscalOps,heartbeat,attendance,reportActions,deviceAccount,useKassaSignals}.ts`, `horeca/{store,payActions,paySettings,productActions,requests,staffSession,approvals,useCatalog}.ts`, `screens/{PinLock,ApprovalDialog,CashScreen,MailReceipt,MyShiftScreen,ProductQuickEdit}.tsx` | rpc, from, functions.invoke, auth | `kassaSupabase` |
+| `horeca/reservationActions.ts` → `lib/horeca/reservations.ts`; `horeca/store.ts` → `fetchReservations/PendingRequests/Settings` | from | `db`-parameter = `kassaSupabase` (beheer default) |
+| `hooks/useFloorPlan.ts`, `hooks/usePrepStations.ts`, `components/admin/kitchen/useKitchenBoard.ts`, `components/horeca/printHealth.ts` | from, rpc, functions.invoke | `useSupabaseClient()` (kassa-scope) |
+| `components/horeca/DeviceAlertsDialog.tsx` → `lib/deviceAlerts.ts`, `lib/webPush.ts`, `native/pushRegistration.ts` | from, rpc (+ device_tokens) | scope-client + push-identiteit |
+| `lib/clientErrors.ts` (`reportClientError`) | auth.getUser, from | `setErrorReportClient(kassaSupabase)` zolang de kassa draait |
+| `hooks/useAuth.tsx` | auth | niet meer in de kassa (enkel `useOptionalAuth` om een beheer-sessie te zien) |
+| `hooks/useTenant.tsx` | from, functions | niet gebruikt: de kassa levert een eigen `TenantContext` |
+| `deviceAccount.ts pairWithAdminSession`, `useAdminPairTargets.ts` | rpc `kassa_pair_code_create`, from tenants/pos_terminals | bewust de beheer-client |
+| realtime-channels, storage | — | geen in de kassaboom (`rg "channel\(|storage\."`) |
+
+**Security-keuzes**
+- Kassa-sessie en beheer-sessie strikt gescheiden; een eigenaar-sessie komt nooit in de kassa-client (verhuis enkel bij `app_metadata.kind = 'kassa'`).
+- `device_token_claim`: SECURITY DEFINER, `search_path ''`, execute enkel `authenticated`; raakt enkel de rij met dat token; overzetten enkel met bewijs van bezit. Geen policy of grant op `device_tokens` gewijzigd.
+- `horeca_notify_targets`/`_list`: enkel een niet-ingetrokken toestel van **dezelfde** zaak; persoonlijke pushes (`send-push-notification`) ongewijzigd (toestel heeft geen rol).
+- Eén-tik-koppelen: zelfde server-API als de QR (rate limit, 409 bij al gekoppeld); enkel `tenant_admin` (RPC weigert anders, 42501 → "Enkel de zaakvoerder…").
+
+**Gedeelde-paden-waarschuwing**
+- Geen wijziging aan `storefront-api`, `storefront-customer-api`, `storefront-resolve` of gedeelde storefront-tabellen. Geen edge function gewijzigd.
+- Gedeelde hooks: zonder `SupabaseScopeProvider` (heel beheer) is de client de gegenereerde client, zoals vroeger. `reservations.ts`/`deviceAlerts.ts`/`webPush.ts`/`pushRegistration.ts`: nieuwe parameters optioneel, default = vroeger gedrag. `subscribeWebPush` behoudt zijn signatuur.
+- `useAuth.tsx`: enkel `useOptionalAuth` toegevoegd.
+
+**Verificatie**
+- `npx tsc --noEmit -p tsconfig.app.json` exit 0 (logbestand, exit apart). `npm run build` exit 0, `npm run build:kassa` exit 0.
+- `npx vitest run src/kassa`: 23 bestanden, 365 groen (1 overgeslagen, bestaand). CI-vitest-stap (met de nieuwe `kassaMobiel.test.tsx` en `pushTokens.test.ts`): 37 bestanden, 427 groen.
+- `scripts/i18n-parity.mjs` en `check-i18n-used-keys.mjs` groen.
+- `scripts/gks/sql/run.sh` (PG16): alle blokken groen, nieuw `test_kassa_mobiel.sql` (oorzaak 42501, overzetten met/zonder bewijs, anon, toestel krijgt melding, ingetrokken/andere zaak niet, push-bolletje, één marker per functie); migraties 2×. Docs-migratie 2× op een wegwerpdatabank: snapshot houdt de oude inhoud.
+- ESLint op de gewijzigde bestanden tegen `HEAD`: 0 fouten voor en na; enkel `useAuth.tsx` +1 waarschuwing (react-refresh, `useOptionalAuth`), nieuwe bestanden enkel react-refresh-waarschuwingen (zelfde patroon als useAuth/useTenant).
+- Harnas: `kassa-koppelen` 390/1280 (koppelen, één tik: beheer-client maakt de code voor de gekozen kassa, kassa-client ruilt in en meldt aan; ontkoppeld/fout met terugknop; geen overloop), `keuken` 390/1024/1280 (oud: 2 knoppen buiten beeld op 390; nieuw: 0, geen overloop), `kassa-home` 390/1024/1280 (geen overloop, "Naar SellQo-beheer" zichtbaar).
+
+**Bewust ongemoeid / Vervolg**
+- Live: migraties `20261102140000` (claim), `20261102140100` (kassa-push), `20261102140200` (docs, ná de publish), publish sellqo.app. Geen edge function. Aparte Kassa-app: nieuwe native build nodig (main.tsx en de kassa-kern veranderden).
+- `send-push-notification` en `horeca-device-push` ongewijzigd. De beheer-zijde in de SellQo-app (native) blijft eigenaar van het FCM-token.
+- Een web-abonnement dat nog op een andere account staat, verhuist pas als iemand op dat toestel "Meldingen aanzetten" tikt (bewust: enkel met bewijs van bezit, geen massa-overzetting).
+- Oude toestellen die vóór 0.22.0 gekoppeld waren: hun sessie verhuist bij het eerste openen van `/kassa`. Wie eerst `/admin` opent, wordt (zoals in KASSA-ACCOUNT-1) naar `/kassa` gestuurd, waar de verhuis gebeurt.
+
 ## PRIJS-GATEN-2 — voorraad bijstellen enkel nog door beheerder, medewerker of magazijn; tenantlek in record_stock_movement dicht; productraster alleen-lezen (2026.15b) — 2 november 2026
 
 Vervolg op PRIJS-GATEN-1 (go via de hoofdsessie, 2-11). Branch `gaten-2`.
