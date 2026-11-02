@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Pencil, X, ChevronRight, ChevronDown } from 'lucide-react';
+import { Pencil, X, ChevronRight, ChevronDown, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
@@ -26,6 +26,7 @@ import { ChangesPanel } from './ChangesPanel';
 import { GRID_COLUMNS, VARIANT_EDITABLE_FIELDS, VARIANT_FIELD_MAP } from './gridTypes';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { useProductFieldAccess, PRODUCT_PRICE_FIELDS, PRODUCT_CODE_FIELDS, PRODUCT_STOCK_FIELDS, VARIANT_PRICE_FIELDS } from '@/hooks/useProductFieldAccess';
 
 interface ProductGridViewProps {
   products: Product[];
@@ -45,6 +46,22 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   const [expandedProducts, setExpandedProducts] = useState<Set<string>>(new Set());
 
   const grid = useProductGrid(products);
+
+  // PRIJS-GATEN-1 — velden die de DB-guards voor deze rol weigeren, tonen we alleen-lezen.
+  const { canEditCommercial, canEditStock } = useProductFieldAccess();
+  const isLocked = useCallback((field: string) =>
+    (!canEditCommercial && (PRODUCT_PRICE_FIELDS.has(field) || PRODUCT_CODE_FIELDS.has(field)))
+    || (!canEditStock && PRODUCT_STOCK_FIELDS.has(field)), [canEditCommercial, canEditStock]);
+  const isVariantLocked = useCallback((field: string) =>
+    !canEditCommercial && VARIANT_PRICE_FIELDS.has(field), [canEditCommercial]);
+  const lockedHint = t('product_form.field_locked');
+  // Alleen-lezen: dezelfde weergave, zonder klik of bewerken, met slotje en uitleg.
+  const readOnlyCell = (content: React.ReactNode) => (
+    <div className="relative cursor-not-allowed" title={lockedHint}>
+      <div className="pointer-events-none pl-3 opacity-70">{content}</div>
+      <Lock className="absolute left-1 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" aria-label={lockedHint} />
+    </div>
+  );
 
   // Fetch all variants for visible products
   const productIds = useMemo(() => products.map(p => p.id), [products]);
@@ -104,6 +121,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   ) => {
     // Block stock editing on products with active variants
     if (field === 'stock' && productHasVariants(productId)) return;
+    if (isLocked(field)) return;
 
     if (e.shiftKey) {
       grid.selectRange(productId, field);
@@ -112,7 +130,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
     } else {
       grid.selectCell(productId, field);
     }
-  }, [grid, productHasVariants]);
+  }, [grid, productHasVariants, isLocked]);
 
   // Handle bulk edit button click
   const handleBulkEditClick = () => {
@@ -282,7 +300,12 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   }, [grid.pendingChangesList.length, grid.editingCell]);
 
   // Render a variant cell
-  const renderVariantCell = (variant: ProductVariant, colDef: typeof GRID_COLUMNS[number]) => {
+  const renderVariantCell = (variant: ProductVariant, colDef: typeof GRID_COLUMNS[number]) =>
+    VARIANT_EDITABLE_FIELDS.has(colDef.field) && isVariantLocked(colDef.field)
+      ? readOnlyCell(renderVariantCellInner(variant, colDef))
+      : renderVariantCellInner(variant, colDef);
+
+  const renderVariantCellInner = (variant: ProductVariant, colDef: typeof GRID_COLUMNS[number]) => {
     const field = colDef.field;
     // Map product fields to variant fields
     const variantField = VARIANT_FIELD_MAP[field] || field;
@@ -294,7 +317,8 @@ export function ProductGridView({ products }: ProductGridViewProps) {
     const pendingVal = grid.variantPendingChanges.get(variant.id)?.get(variantField);
     const rawValue = pendingVal !== undefined ? pendingVal : (variant as unknown as Record<string, unknown>)[variantField];
     const hasChange = grid.hasVariantPendingChange(variant.id, variantField);
-    const isEditing = grid.editingCell?.productId === variant.id && grid.editingCell?.field === variantField;
+    const locked = isVariantLocked(field);
+    const isEditing = !locked && grid.editingCell?.productId === variant.id && grid.editingCell?.field === variantField;
     const isSelected = false;
 
     const commonProps = {
@@ -349,7 +373,12 @@ export function ProductGridView({ products }: ProductGridViewProps) {
   };
 
   // Render a cell based on type
-  const renderCell = (product: Product, colDef: typeof GRID_COLUMNS[number]) => {
+  const renderCell = (product: Product, colDef: typeof GRID_COLUMNS[number]) =>
+    colDef.editable && isLocked(colDef.field)
+      ? readOnlyCell(renderCellInner(product, colDef))
+      : renderCellInner(product, colDef);
+
+  const renderCellInner = (product: Product, colDef: typeof GRID_COLUMNS[number]) => {
     const field = colDef.field;
 
     // Stock field: show read-only calculated total when product has active variants
@@ -366,8 +395,9 @@ export function ProductGridView({ products }: ProductGridViewProps) {
       }
     }
 
-    const isEditing = grid.editingCell?.productId === product.id && grid.editingCell?.field === field;
-    const isSelected = grid.isCellSelected(product.id, field);
+    const locked = isLocked(field);
+    const isEditing = !locked && grid.editingCell?.productId === product.id && grid.editingCell?.field === field;
+    const isSelected = !locked && grid.isCellSelected(product.id, field);
     const hasChange = grid.hasPendingChange(product.id, field);
     const value = grid.getCellValue(product, field);
 
@@ -471,7 +501,8 @@ export function ProductGridView({ products }: ProductGridViewProps) {
     ? GRID_COLUMNS.find(c => c.field === bulkEditorField) 
     : null;
   
-  const canBulkEdit = grid.selectedFields.length === 1 && 
+  const canBulkEdit = grid.selectedFields.length === 1 &&
+    !isLocked(grid.selectedFields[0]) &&
     GRID_COLUMNS.find(c => c.field === grid.selectedFields[0])?.bulkEditable;
 
   return (
@@ -507,6 +538,13 @@ export function ProductGridView({ products }: ProductGridViewProps) {
           onToggleColumn={grid.toggleColumn}
         />
       </div>
+
+      {!canEditCommercial && (
+        <p className="mb-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Lock className="h-3 w-3 shrink-0" />
+          {t('product_form.grid_locked_hint')}
+        </p>
+      )}
 
       {/* Grid */}
       <div className="flex-1 border rounded-lg overflow-hidden">
@@ -565,10 +603,10 @@ export function ProductGridView({ products }: ProductGridViewProps) {
                           key={col.field}
                           className={cn(
                             'border-r p-1',
-                            col.editable && 'cursor-pointer'
+                            col.editable && !isLocked(col.field) && 'cursor-pointer'
                           )}
                           style={{ width: col.width, minWidth: col.minWidth }}
-                          onClick={(e) => col.editable && handleCellClick(e, product.id, col.field)}
+                          onClick={(e) => col.editable && !isLocked(col.field) && handleCellClick(e, product.id, col.field)}
                         >
                           {renderCell(product, col)}
                         </div>
@@ -592,7 +630,7 @@ export function ProductGridView({ products }: ProductGridViewProps) {
                             className={cn(
                               'border-r p-1',
                               col.field === 'name' && 'pl-6',
-                              VARIANT_EDITABLE_FIELDS.has(col.field) && 'cursor-pointer'
+                              VARIANT_EDITABLE_FIELDS.has(col.field) && !isVariantLocked(col.field) && 'cursor-pointer'
                             )}
                             style={{ width: col.width, minWidth: col.minWidth }}
                           >

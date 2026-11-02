@@ -40,6 +40,15 @@ describe("useCan / canWithRoles matrix", () => {
     expect(canWithRoles(["viewer"], "read", "team")).toBe(false);
   });
 
+  it("product_prices: enkel tenant_admin en staff mogen prijzen wijzigen (PRIJS-GATEN-1)", () => {
+    expect(canWithRoles(["tenant_admin"], "write", "product_prices")).toBe(true);
+    expect(canWithRoles(["staff"], "write", "product_prices")).toBe(true);
+    for (const r of ["warehouse", "marketing", "viewer", "accountant"] as const) {
+      expect(canWithRoles([r], "write", "product_prices")).toBe(false);
+      expect(canWithRoles([r], "read", "product_prices")).toBe(true);
+    }
+  });
+
   it("empty roles always returns false", () => {
     expect(canWithRoles([], "read", "orders")).toBe(false);
     expect(canWithRoles([], "write", "products")).toBe(false);

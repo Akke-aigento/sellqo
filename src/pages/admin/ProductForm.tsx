@@ -227,9 +227,11 @@ export default function ProductForm() {
     || roleNames.includes('staff');
   const isRestrictedRole = !hasBroadRole
     && (roleNames.includes('marketing') || roleNames.includes('warehouse'));
-  const canEditCommercial = !isRestrictedRole;
+  // PRIJS-GATEN-1 — prijzen, btw, sku en barcode: enkel tenant_admin/staff in de actieve winkel
+  // (default-deny, zoals de DB-guard). Voorraad blijft de regel van PROD-TRIGGER-1.
+  const canEditCommercial = useCan('write', 'product_prices');
   const canEditStock = !isRestrictedRole || roleNames.includes('warehouse');
-  const adminManagedHint = 'Wordt door een beheerder beheerd.';
+  const adminManagedHint = t('product_form.admin_managed_hint');
   const { enforceLimit } = useUsageLimits();
   const { data: product, isLoading: productLoading, isFetched: productFetched } = useProduct(id);
   const hasSizeGuide = isEditing && !!product?.size_guide;

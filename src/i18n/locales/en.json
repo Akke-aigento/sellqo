@@ -10132,7 +10132,12 @@
       "stock_min": "Stock must be 0 or higher",
       "meta_title_max": "Meta title may be max 60 characters",
       "meta_desc_max": "Meta description may be max 160 characters"
-    }
+    },
+    "admin_managed_hint": "Managed by an administrator.",
+    "prices_locked_hint": "You can't change prices with your role; an administrator or staff member does that.",
+    "grid_locked_hint": "Fields with a lock (such as prices, VAT and SKU) can't be changed with your role; an administrator or staff member does that.",
+    "field_locked": "You can't change this field with your role.",
+    "variant_compare_at_price": "Compare-at price"
   },
   "admin_billing": {
     "apply_discount": "Apply discount",

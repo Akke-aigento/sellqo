@@ -10050,7 +10050,12 @@
       "stock_min": "Le stock doit être ≥ 0",
       "meta_title_max": "Le méta-titre ne peut dépasser 60 caractères",
       "meta_desc_max": "La méta-description ne peut dépasser 160 caractères"
-    }
+    },
+    "admin_managed_hint": "Géré par un administrateur.",
+    "prices_locked_hint": "Votre rôle ne permet pas de modifier les prix ; un administrateur ou un collaborateur s’en charge.",
+    "grid_locked_hint": "Les champs avec un cadenas (prix, TVA, référence…) ne sont pas modifiables avec votre rôle ; un administrateur ou un collaborateur s’en charge.",
+    "field_locked": "Votre rôle ne permet pas de modifier ce champ.",
+    "variant_compare_at_price": "Prix barré"
   },
   "admin_billing": {
     "apply_discount": "Appliquer la remise",

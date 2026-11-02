@@ -1,0 +1,13 @@
+{
+  "@/hooks/useCan": "mocks/useCan.ts",
+  "@/hooks/useTenant": "mocks/useTenant.ts",
+  "@/hooks/useProductVariants": "mocks/useProductVariants.ts",
+  "@/hooks/useProducts": "mocks/useProducts.ts",
+  "@/hooks/useStockLedger": "mocks/useStockLedger.ts",
+  "@/hooks/useCategories": "mocks/useCategories.ts",
+  "@/hooks/useVatRates": "mocks/useVatRates.ts",
+  "@/hooks/useSocialChannels": "mocks/useSocialChannels.ts",
+  "@/hooks/useMediaAssets": "mocks/useMediaAssets.ts",
+  "@/hooks/useImageUpload": "mocks/useImageUpload.ts",
+  "@/integrations/supabase/client": "mocks/supabase.ts"
+}

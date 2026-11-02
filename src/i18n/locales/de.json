@@ -10050,7 +10050,12 @@
       "stock_min": "Bestand muss 0 oder höher sein",
       "meta_title_max": "Meta-Titel darf max. 60 Zeichen haben",
       "meta_desc_max": "Meta-Beschreibung darf max. 160 Zeichen haben"
-    }
+    },
+    "admin_managed_hint": "Wird von einem Administrator verwaltet.",
+    "prices_locked_hint": "Mit deiner Rolle kannst du keine Preise ändern; das macht ein Administrator oder Mitarbeiter.",
+    "grid_locked_hint": "Felder mit einem Schloss (z. B. Preise, MwSt. und Artikelnummer) kannst du mit deiner Rolle nicht ändern; das macht ein Administrator oder Mitarbeiter.",
+    "field_locked": "Mit deiner Rolle kannst du dieses Feld nicht ändern.",
+    "variant_compare_at_price": "Streichpreis"
   },
   "admin_billing": {
     "apply_discount": "Rabatt anwenden",

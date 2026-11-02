@@ -20,6 +20,7 @@ import { useProducts } from '@/hooks/useProducts';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
+import { useCan } from '@/hooks/useCan';
 
 function InlineStockStepper({ stock, onUpdate }: { stock: number; onUpdate: (val: number) => void }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -85,6 +86,10 @@ interface ProductVariantsTabProps {
 
 export function ProductVariantsTab({ productId, productImages = [], trackInventory = true, defaultPrice = null }: ProductVariantsTabProps) {
   const { t } = useTranslation();
+  // PRIJS-GATEN-1 — variantprijzen enkel voor tenant_admin/staff (DB-guard
+  // guard_product_variant_price_fields); andere rollen zien ze alleen-lezen.
+  const canEditPrices = useCan('write', 'product_prices');
+  const priceLockedHint = t('product_form.prices_locked_hint');
   const {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
@@ -209,6 +214,12 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
     if (!editingVariantId) return;
     const variant = variants.find(v => v.id === editingVariantId);
     const { stock, ...rest } = editVariantData;
+    if (!canEditPrices) {
+      // Niet meesturen: de DB-guard weigert prijsvelden voor deze rol.
+      delete rest.price;
+      delete rest.compare_at_price;
+      delete rest.cost_price;
+    }
     updateVariant.mutate({ id: editingVariantId, data: rest });
     if (variant && typeof stock === 'number' && stock !== variant.stock) {
       handleStockChange(editingVariantId, variant.stock ?? 0, stock);
@@ -374,6 +385,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
           <CardDescription>
             {t('admin.products.productVariantsTab.beheer_individuele_varianten_prijzen_voorraad_en')}
           </CardDescription>
+          {!canEditPrices && <p className="text-xs text-muted-foreground">{priceLockedHint}</p>}
         </CardHeader>
         <CardContent ref={variantsContainerRef}>
           {variants.length === 0 ? (
@@ -491,15 +503,15 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         </div>
                         <div>
                           <Label className="text-xs text-muted-foreground">{t('common.price')}</Label>
-                          <Input type="number" step="0.01" value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
+                          <Input type="number" step="0.01" disabled={!canEditPrices} title={canEditPrices ? undefined : priceLockedHint} value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Van-prijs</Label>
-                          <Input type="number" step="0.01" value={editVariantData.compare_at_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, compare_at_price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
+                          <Label className="text-xs text-muted-foreground">{t('product_form.variant_compare_at_price')}</Label>
+                          <Input type="number" step="0.01" disabled={!canEditPrices} title={canEditPrices ? undefined : priceLockedHint} value={editVariantData.compare_at_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, compare_at_price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
                         </div>
                         <div>
                           <Label className="text-xs text-muted-foreground">{t('admin.stockReport.colCostPrice')}</Label>
-                          <Input type="number" step="0.01" value={editVariantData.cost_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, cost_price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
+                          <Input type="number" step="0.01" disabled={!canEditPrices} title={canEditPrices ? undefined : priceLockedHint} value={editVariantData.cost_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, cost_price: e.target.value ? Number(e.target.value) : null }))} className="h-8 text-sm" />
                         </div>
                         {trackInventory && (
                         <div>
@@ -578,7 +590,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                       <TableHead className="min-w-0">{t('admin.stockReport.colVariant')}</TableHead>
                       <TableHead>SKU</TableHead>
                       <TableHead>{t('common.price')}</TableHead>
-                      <TableHead>Van-prijs</TableHead>
+                      <TableHead>{t('product_form.variant_compare_at_price')}</TableHead>
                       <TableHead>{t('admin.stockReport.colCostPrice')}</TableHead>
                       <TableHead>{t('admin.stockReport.colStock')}</TableHead>
                       <TableHead>{t('admin.marketing.aBTestingPanel.actief')}</TableHead>
@@ -654,21 +666,21 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         </TableCell>
                         <TableCell>
                           {editingVariantId === variant.id ? (
-                            <Input type="number" step="0.01" value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
+                            <Input type="number" step="0.01" disabled={!canEditPrices} title={canEditPrices ? undefined : priceLockedHint} value={editVariantData.price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
                           ) : (
                             <span>{variant.price != null ? `€${variant.price.toFixed(2)}` : '—'}</span>
                           )}
                         </TableCell>
                         <TableCell>
                           {editingVariantId === variant.id ? (
-                            <Input type="number" step="0.01" value={editVariantData.compare_at_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, compare_at_price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
+                            <Input type="number" step="0.01" disabled={!canEditPrices} title={canEditPrices ? undefined : priceLockedHint} value={editVariantData.compare_at_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, compare_at_price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
                           ) : (
                             <span className="text-sm text-muted-foreground line-through">{variant.compare_at_price != null ? `€${variant.compare_at_price.toFixed(2)}` : '—'}</span>
                           )}
                         </TableCell>
                         <TableCell>
                           {editingVariantId === variant.id ? (
-                            <Input type="number" step="0.01" value={editVariantData.cost_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, cost_price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
+                            <Input type="number" step="0.01" disabled={!canEditPrices} title={canEditPrices ? undefined : priceLockedHint} value={editVariantData.cost_price ?? ''} onChange={e => setEditVariantData(prev => ({ ...prev, cost_price: e.target.value ? Number(e.target.value) : null }))} className="w-24" />
                           ) : (
                             <span className="text-sm text-muted-foreground">{variant.cost_price != null ? `€${variant.cost_price.toFixed(2)}` : '—'}</span>
                           )}

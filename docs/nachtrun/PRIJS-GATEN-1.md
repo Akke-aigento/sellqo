@@ -108,10 +108,12 @@ Geen `storefront-api`/`storefront-customer-api` geraakt, geen gedeelde storefron
 - **Na de migratie live natrekken** (projectregel core-migratie): `select position('PRIJS-GATEN-1' in prosrc) > 0
   from pg_proc where proname in ('guard_product_commercial_fields','bulk_adjust_prices');` en
   `select tgname from pg_trigger where tgrelid = 'public.product_variants'::regclass and not tgisinternal;`.
-- **UI**: `ProductVariantsTab` en het productraster (`ProductGridView`) tonen prijsvelden ook aan warehouse; die
-  krijgt nu bij opslaan een databasefout i.p.v. een uitgeschakeld veld (zoals `ProductForm` wél doet via
-  `canEditCommercial`). Live 0 warehouse-gebruikers (`user_roles`: 16 tenant_admin, 1 marketing, 1 platform_admin),
-  dus geen acute last; kleine vervolgbatch: dezelfde `canEditCommercial`-afscherming in grid en variantentab.
+- **UI-gat** (variantentab en raster toonden prijsvelden bewerkbaar aan rollen die ze niet mogen wijzigen):
+  opgelost in dit batch-deel 2, zie hieronder.
+- Breder, niet in deze batch: `ProductVariantsTab` krijgt de `readOnly` van `ProductForm` niet mee. Een rol zonder
+  `products`-schrijfrecht (warehouse, viewer, accountant) ziet op de variantentab nog opties toevoegen, varianten
+  genereren, verwijderen en koppelen; RLS weigert die stil of met een fout. Vervolg: `readOnly`-prop doorgeven
+  en die knoppen verbergen.
 - Het kernscenario uit PRIJS-REST-RECON (kassatoestel met tenant_admin-JWT zet prijs op 0,01) sluit deze batch
   **niet**: dat is KASSA-ACCOUNT-1 (toestelaccount met beperkte rol). Wie daar de guard verder aanpast: deze
   migratie is de nieuwe basis (marker `PRIJS-GATEN-1`).
@@ -122,13 +124,58 @@ Geen `storefront-api`/`storefront-customer-api` geraakt, geen gedeelde storefron
   null` is niet automatisch 'server' (anon-JWT)." Voorstel, niet toegepast.
 - Geen `doc_articles`: niets nieuw voor de winkel om te leren (gedrag voor admin/staff ongewijzigd).
 
+## Deel 2 — UI-afscherming (zelfde batch, op vraag van de hoofdsessie)
+
+**Root cause.** `ProductVariantsTab` en `ProductGridView` (Producten › raster) hadden geen enkele rolcheck op prijsvelden:
+warehouse/marketing (en elke rol zonder prijsrecht) kreeg bewerkbare prijs-, van-prijs-, kostprijs- en btw-velden die
+de DB-guard bij opslaan weigert. Een dode affordance. `ProductForm` schermde al af, maar enkel voor marketing/warehouse,
+met de globale rollen (niet per winkel) en een hardgecodeerde Nederlandse hint.
+
+**Uitgevoerd.**
+- `src/hooks/useCan.ts`: nieuwe resource `product_prices` (read: alle rollen, write: platform_admin, tenant_admin,
+  staff), dus dezelfde regel als de DB-guards. `docs/sellqo-fase2-masterplan.md` Hoofdstuk 2: rij toegevoegd (de matrix
+  moet op beide plekken gelijk lopen). `src/hooks/useCan.test.ts`: test op de nieuwe sleutel.
+- `src/hooks/useProductFieldAccess.ts` (nieuw): `canEditCommercial` (= `useCan('write','product_prices')`, per actieve
+  winkel) en `canEditStock` (PROD-TRIGGER-1-regel), plus de veldsets per guard.
+- `ProductVariantsTab.tsx`: prijs, van-prijs en kostprijs uitgeschakeld (met tooltip) als je geen prijsrecht hebt,
+  één zichtbare uitleg onder de kaarttitel (ook op 390 px, daar is geen hover). Bij opslaan worden prijsvelden dan niet
+  meegestuurd. "Van-prijs" (label + kolomkop) via i18n.
+- `ProductGridView.tsx`: vergrendelde cellen (prijs, kostprijs, van-prijs, btw, sku, barcode; voorraad enkel voor een
+  marketing-rol) tonen dezelfde waarde gedimd met een slotje en een tooltip. Klikken, selecteren, bewerken en bulk-bewerken
+  kunnen daar niet. Op variantrijen gaan enkel de drie prijsvelden op slot (de DB-guard op varianten bewaakt enkel die).
+  Eén uitleg boven het raster.
+- `ProductForm.tsx`: `canEditCommercial = useCan('write','product_prices')` (per winkel, default-deny); de hint
+  "Wordt door een beheerder beheerd." gaat nu via i18n.
+- i18n: 5 nieuwe keys onder `product_form` (`admin_managed_hint`, `prices_locked_hint`, `grid_locked_hint`,
+  `field_locked`, `variant_compare_at_price`) in nl/en/fr/de/uk.
+- Harnas: `scripts/harness/scenarios/prijs-slot/` (variantentab + raster, warehouse en beheerder, nl en en).
+
+**Nagekeken, niets te doen.**
+- Kaart (`KaartManager`, `KaartProductSheet`): prijs, ±-knoppen, btw, bulk en snel-toevoegen hangen al aan `canFull`
+  (platform_admin/tenant_admin/staff). Kostprijs hangt aan `product_costs` write (tenant_admin), wat strenger is dan de DB.
+- Kassa `ProductQuickEdit` (`src/kassa`): de kassa meldt zich enkel aan met admin/staff, en de prijs gaat via
+  `kassa_product_quick_edit` met de PIN van een eigenaar/verantwoordelijke. De server beslist, het scherm niet. `src/kassa`
+  is niet aangeraakt.
+
+**Verificatie deel 2.**
+- `npx tsc --noEmit -p tsconfig.app.json`: exit 0.
+- `node scripts/i18n-parity.mjs`: exit 0 (volledige pariteit).
+- `npx vitest run src/hooks/useCan.test.ts src/components/admin/products src/components/admin/horeca/kaart`: 44/44 groen.
+- eslint op de gewijzigde bestanden: 23 problemen, gelijk aan de HEAD-baseline (allemaal bestaande `no-explicit-any`,
+  `no-case-declarations` en één hooks-waarschuwing). Geen nieuwe; `useProductFieldAccess.ts` geeft 0.
+- Harnas `prijs-slot` op 390 en 1280 px: exit 0. Warehouse: 3/3 variantprijsvelden uitgeschakeld, uitleg zichtbaar,
+  opslaan stuurt geen prijsvelden mee, 5 slotjes in het raster, een klik op een prijscel opent geen invoer, de naamcel
+  blijft bewerkbaar, geen horizontale overloop. Beheerder: geen uitleg, geen slotjes, velden aan. Engels gecontroleerd.
+  Screenshots nagekeken (`/tmp/harness/prijs-slot-*.png`).
+
 ## Changelog (NL, type `security`)
 
 **Titel:** Prijzen enkel nog door beheerders en medewerkers aan te passen
 
 **Beschrijving:** Prijzen, kostprijzen en btw van producten en varianten kunnen nu enkel nog gewijzigd worden door
 een beheerder of medewerker van je winkel, ook via prijzen in bulk aanpassen. Andere rollen, zoals magazijn of
-marketing, kunnen ze wel zien maar niet meer wijzigen.
+marketing, zien ze nog maar kunnen ze niet meer wijzigen. In het productraster en op de variantentab staan die
+velden voor hen op slot, met uitleg.
 
 ## Nieuwsbrief
 

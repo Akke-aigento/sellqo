@@ -10146,7 +10146,12 @@
       "stock_min": "Voorraad moet 0 of hoger zijn",
       "meta_title_max": "Meta titel mag maximaal 60 tekens zijn",
       "meta_desc_max": "Meta beschrijving mag maximaal 160 tekens zijn"
-    }
+    },
+    "admin_managed_hint": "Wordt door een beheerder beheerd.",
+    "prices_locked_hint": "Prijzen kun je met jouw rol niet wijzigen; dat doet een beheerder of medewerker.",
+    "grid_locked_hint": "Velden met een slotje (zoals prijzen, btw en artikelnummer) kun je met jouw rol niet wijzigen; dat doet een beheerder of medewerker.",
+    "field_locked": "Met jouw rol kun je dit veld niet wijzigen.",
+    "variant_compare_at_price": "Van-prijs"
   },
   "sidebar": {
     "selectStore": "Selecteer winkel",

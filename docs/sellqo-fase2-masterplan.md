@@ -283,6 +283,7 @@ Dit is de waarheid. Code in `useCan.ts` spiegelt deze tabel. Wijzigen aan deze m
 | **Customer inbox + folders** | RW | RW | RW | — | — | R |
 | **Storefront customers (eigen auth)** | — | — | — | — | — | — (eigen RLS) |
 | **Products / variants / bundles** | RW | RW | RW | R | R | R |
+| **Productprijzen (prijs, van-prijs, kostprijs, btw — producten en varianten)** (PRIJS-GATEN-1, `product_prices`; marketing: R) | RW | RW | RW | R | R | R |
 | **Product cost / supplier / purchase orders** | RW | RW | — | R | R | — |
 | **Discount codes** | RW | RW | R + ⚙ apply | R | — | R |
 | **Ads — Bolcom (actief)** | RW | RW | R | — | — | R |

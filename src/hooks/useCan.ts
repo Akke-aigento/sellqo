@@ -30,6 +30,7 @@ export type Resource =
   | "inbox"
   | "products"
   | "product_costs"
+  | "product_prices"
   | "discount_codes"
   | "ads"
   | "ad_budgets"
@@ -127,6 +128,13 @@ export const PERMISSION_MATRIX: Matrix = {
     // SEO, afbeeldingen). De commerciële kolommen worden in de database
     // bewaakt door trigger `guard_product_commercial_fields`.
     write: ["platform_admin", "tenant_admin", "staff", "marketing"],
+  },
+  product_prices: {
+    // PRIJS-GATEN-1 — prijs, van-prijs, kostprijs en btw van producten en varianten wijzigen.
+    // Spiegelt de DB-guards guard_product_commercial_fields en guard_product_variant_price_fields
+    // (default-deny): enkel tenant_admin en staff (platform_admin via de bypass).
+    read: ALL_ROLES,
+    write: ["platform_admin", "tenant_admin", "staff"],
   },
   product_costs: {
     read: ["platform_admin", "tenant_admin", "accountant", "warehouse"],

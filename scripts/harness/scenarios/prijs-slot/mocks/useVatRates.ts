@@ -1,0 +1,1 @@
+export function useVatRates() { return { vatRates: [{ id: 'vat6', name_nl: 'Verlaagd', category: 'reduced', rate: 6 }, { id: 'vat21', name_nl: 'Standaard', category: 'standard', rate: 21 }], isLoading: false }; }
