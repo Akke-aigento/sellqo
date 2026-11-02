@@ -2484,6 +2484,10 @@
         "product_prices_roles": {
           "title": "Prijzen enkel nog door beheerders en medewerkers aan te passen",
           "description": "Prijzen, kostprijzen en btw van je producten en varianten wijzigt voortaan enkel een beheerder of medewerker van je winkel, ook via prijzen in bulk aanpassen. Andere rollen, zoals magazijn of marketing, zien ze nog maar kunnen ze niet meer wijzigen; in het productraster en op de variantentab staan die velden voor hen op slot, met uitleg."
+        },
+        "qr_modules_1": {
+          "title": "Alles voor de QR aan tafel op één plek, met een schakelaar per functie",
+          "description": "Onder Kaart › Instellen › QR-menu vind je nu QR aan tafel: het QR-menu, bestellen, afrekenen door je gast en de bediening roepen, elk met een eigen schakelaar. Zo zet je bijvoorbeeld de rekening online afrekenen aan, en Ober roepen of Rekening vragen uit. Staat een schakelaar grijs, dan zie je waarom en hoe je dat oplost. Kassa › Betalen houdt de betaalwijzen van je kassa."
         }
       },
       "copyLink": "Kopieer link",

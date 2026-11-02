@@ -2484,6 +2484,10 @@
         "product_prices_roles": {
           "title": "Seuls les administrateurs et collaborateurs modifient encore les prix",
           "description": "Désormais, seul un administrateur ou un collaborateur de ta boutique peut modifier les prix, prix de revient et TVA de tes produits et variantes, y compris via la modification des prix en masse. Les autres rôles, comme entrepôt ou marketing, les voient toujours mais ne peuvent plus les modifier ; dans la grille produits et l'onglet des variantes, ces champs sont verrouillés pour eux, avec une explication."
+        },
+        "qr_modules_1": {
+          "title": "Tout pour le QR à table au même endroit, avec un interrupteur par fonction",
+          "description": "Sous Carte › Paramètres › Menu QR, tu trouves maintenant QR à table : le menu QR, la commande, le paiement par ton client et l'appel du service, chacun avec son propre interrupteur. Tu actives par exemple le paiement de l'addition en ligne, et tu désactives Appeler le service ou Demander l'addition. Si un interrupteur est grisé, tu vois pourquoi et comment y remédier. Caisse › Paiements garde les moyens de paiement de ta caisse."
         }
       },
       "copyLink": "Copier le lien",

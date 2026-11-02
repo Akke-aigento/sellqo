@@ -2484,6 +2484,10 @@
         "product_prices_roles": {
           "title": "Preise ändern nur noch Administratoren und Mitarbeiter",
           "description": "Preise, Einkaufspreise und MwSt. deiner Produkte und Varianten ändert ab sofort nur noch ein Administrator oder Mitarbeiter deines Shops, auch über die Massenänderung von Preisen. Andere Rollen wie Lager oder Marketing sehen sie weiterhin, können sie aber nicht mehr ändern; im Produktraster und im Varianten-Tab sind diese Felder für sie gesperrt, mit einer Erklärung."
+        },
+        "qr_modules_1": {
+          "title": "Alles für den QR-Code am Tisch an einem Ort, mit einem Schalter pro Funktion",
+          "description": "Unter Karte › Einstellungen › QR-Menü findest du jetzt QR am Tisch: das QR-Menü, das Bestellen, das Bezahlen durch deinen Gast und das Rufen der Bedienung, jeweils mit eigenem Schalter. So schaltest du zum Beispiel das Online-Bezahlen der Rechnung ein und Bedienung rufen oder Rechnung anfordern aus. Ist ein Schalter ausgegraut, siehst du, warum und wie du es behebst. Kasse › Bezahlen behält die Zahlungsarten deiner Kasse."
         }
       },
       "copyLink": "Link kopieren",
