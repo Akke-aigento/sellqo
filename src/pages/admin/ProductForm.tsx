@@ -1858,7 +1858,7 @@ export default function ProductForm() {
                         <CardDescription>{t('admin.productForm.beheer_productvarianten_zoals_maat_kleur_etc')}</CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <ProductVariantsTab productId={id} productImages={form.watch('images') || []} trackInventory={form.watch('track_inventory')} defaultPrice={form.watch('price')} />
+                        <ProductVariantsTab productId={id} productImages={form.watch('images') || []} trackInventory={form.watch('track_inventory')} defaultPrice={form.watch('price')} readOnly={readOnly} />
                       </CardContent>
                     </Card>
                   ) : (

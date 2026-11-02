@@ -15,12 +15,17 @@ export const VARIANT_PRICE_FIELDS = new Set(['price', 'compare_at_price', 'cost_
  * opslaan een databasefout te geven.
  *
  * - Prijzen, btw, sku en barcode: enkel tenant_admin/staff (en platform_admin) — `product_prices`.
- * - Voorraad: iedereen behalve een rol die enkel marketing is (PROD-TRIGGER-1).
+ * - Voorraad (veld): iedereen behalve een rol die enkel marketing is (PROD-TRIGGER-1).
+ * - Voorraad bijstellen op het scherm (`canAdjustStock`): wie producten mag bewerken of warehouse is,
+ *   en niet enkel marketing. Viewer en accountant krijgen geen +/−.
  */
-export function useProductFieldAccess(): { canEditCommercial: boolean; canEditStock: boolean } {
+export function useProductFieldAccess(): { canEditCommercial: boolean; canEditStock: boolean; canAdjustStock: boolean } {
   const canEditCommercial = useCan('write', 'product_prices');
+  const canWriteProducts = useCan('write', 'products');
   const roles = useScopedRoles();
+  const isWarehouse = !!roles?.includes('warehouse');
   const restricted = !canEditCommercial && !!roles?.some((r) => r === 'marketing' || r === 'warehouse');
-  const canEditStock = !restricted || !!roles?.includes('warehouse');
-  return { canEditCommercial, canEditStock };
+  const canEditStock = !restricted || isWarehouse;
+  const canAdjustStock = canEditStock && (canWriteProducts || isWarehouse);
+  return { canEditCommercial, canEditStock, canAdjustStock };
 }

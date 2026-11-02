@@ -1,3 +1,46 @@
+## PRIJS-GATEN-1 — prijzen enkel nog door beheerder of medewerker, ook op varianten en in bulk; geen dode knoppen meer op de variantentab (2026.14z) — 2 november 2026
+
+Go van Akke 2-11 (kassa-account-1-plan §1.3, `docs/nachtrun/PRIJS-REST-RECON.md`). Volledig verslag (schrijvende paden, testmatrix, screenshots): `docs/nachtrun/PRIJS-GATEN-1.md`. Branch `gaten-1`.
+
+**Root cause**
+- `bulk_adjust_prices` (SECURITY DEFINER) controleerde enkel "producten van de eigen winkel" (`get_user_tenant_ids`), geen rol.
+- `product_variants`: UPDATE-policy "Tenant staff can update product_variants" laat ook `warehouse` schrijven en er stond geen guard; een magazijnaccount kon `price`/`compare_at_price`/`cost_price` van een variant wijzigen, en `add_line` rekent die prijs.
+- `guard_product_commercial_fields` was default-allow: `IF NOT v_beperkt THEN RETURN NEW` liet elke rol buiten admin/staff/marketing/warehouse (viewer, accountant, elke toekomstige rol) alles doen. Een anon-JWT telde als "server" (geen `auth.uid()`).
+- UI: `ProductVariantsTab` en `ProductGridView` hadden geen rolcheck op prijsvelden (bewerkbaar, DB-fout bij opslaan); `ProductForm` gaf zijn `readOnly` niet door aan de variantentab, die dus opties, genereren, bewerken, foto's, verwijderen en koppelen toonde aan rollen zonder schrijfrecht op producten. `ProductForm` schermde prijzen af op globale rollen (niet per winkel) met een hardgecodeerde NL-hint.
+- `product_addon_options`: géén gat (schrijven enkel tenant_admin/platformadmin).
+
+**Uitgevoerd**
+- `supabase/migrations/20261102090000_prijs_gaten_1.sql`: drift-controle (stopt als de live body afwijkt van 2-11 en de marker mist), snapshot `snapshots.sellqo_20261102_fn_prijs_gaten_1`; `bulk_adjust_prices` + `has_tenant_role(tenant, {tenant_admin, staff})` per product; `guard_product_commercial_fields` default-deny op `price`, `compare_at_price`, `cost_price`, `vat_rate_id`, `takeaway_vat_rate_id` (enkel tenant_admin/staff, platformadmin, server; anon-JWT geweigerd); nieuw `guard_product_variant_price_fields()` + trigger `trg_guard_product_variant_price_fields` (BEFORE UPDATE OF de drie prijsvelden, winkel via het product, oude én nieuwe `product_id`).
+- `src/hooks/useCan.ts`: resource `product_prices` (write: platform_admin, tenant_admin, staff); matrix in `docs/sellqo-fase2-masterplan.md` H2 bijgewerkt; test in `useCan.test.ts`.
+- `src/hooks/useProductFieldAccess.ts` (nieuw): `canEditCommercial`, `canEditStock`, `canAdjustStock` per actieve winkel, zoals de DB-guards.
+- `ProductVariantsTab.tsx`: prop `readOnly`; prijsvelden uitgeschakeld zonder prijsrecht (niet meegestuurd); zonder schrijfrecht op producten geen opties-/genereer-/bewerk-/foto-/verwijder-/koppelknoppen en geen kolom Acties; voorraad +/− enkel voor wie dat mag (warehouse of schrijfrecht); uitleg via i18n.
+- `ProductGridView.tsx`: vergrendelde cellen alleen-lezen met slotje, tooltip en uitleg; geen klik, bewerken of bulk.
+- `ProductForm.tsx`: `canEditCommercial = useCan('write','product_prices')`, hint via i18n, `readOnly` naar de variantentab.
+- i18n: 7 keys onder `product_form` in nl/en/fr/de/uk. Changelog 2026.14z (`product_prices_roles`, security) in 5 talen; nieuwsbrief.
+- Tests: `scripts/gks/sql/test_prijs_gaten.sql` + `06_prijs_prelude.sql` in `run.sh`; harnas `scripts/harness/scenarios/prijs-slot/`.
+
+**Security-keuzes**
+- Guard test `auth.uid()` (de beller), niet `current_user`: de guard is zelf SECURITY DEFINER, dus `current_user` is daarin altijd postgres. De definer-RPC's die prijzen wijzigen (`kassa_product_quick_edit`, `kaart_bulk_update`, `bulk_adjust_prices`) eisen zelf admin/staff en passeren dus. Server (service role, cron, imports, migraties) = geen `auth.uid()` en geen anon-claim.
+- Default-deny enkel op prijs/btw; sku/barcode/voorraad-regels in de DB ongewijzigd (voorraad loopt ook via definer-paden met andere bellers).
+- Variant-guard enkel op UPDATE (INSERT is via RLS al admin/staff). De product-lookup geeft enkel een tenant-id voor de rolcheck.
+- Geen policies, grants of RLS gewijzigd.
+
+**Gedeelde-paden-waarschuwing**
+- Geen `storefront-api`/`storefront-customer-api`, geen gedeelde storefronttabel. Custom frontends lezen `products`/`product_variants` enkel via storefront-api (service role). Eerste wet: n.v.t.
+
+**Verificatie**
+- PG16 lokaal: `scripts/gks/sql/run.sh` (alle kassatests + migratie 2× + `test_prijs_gaten.sql`, 52 controles) 2× exit 0. Negatieve controle: oude definities → 18 controles rood, opnieuw migreren → 0. Drift-stop bewezen.
+- tsc exit 0; i18n-parity exit 0; vitest (`useCan.test.ts`, `src/components/admin/products`, kaart) groen; eslint op de gewijzigde bestanden gelijk aan de HEAD-baseline.
+- Harnas `prijs-slot` 390/1280 exit 0 (marketing: prijzen op slot en niet meegestuurd; warehouse: alleen-lezen met voorraad +/−; viewer: alleen-lezen zonder voorraad; beheerder: alles aan; nl en en; geen overloop).
+- Na de migratie live natrekken: marker `PRIJS-GATEN-1` in `pg_proc.prosrc` van beide functies en `trg_guard_product_variant_price_fields` in `pg_trigger`.
+
+**Bewust ongemoeid / Vervolg**
+- Het scenario "kassatoestel met eigenaars-JWT zet prijs op 0,01" sluit pas met KASSA-ACCOUNT-1; prijs-audit (PRIJS-AUDIT-1) niet gebouwd.
+- `record_stock_movement` controleert enkel lidmaatschap van de winkel, geen rol: elk lid (ook viewer) kan via de RPC voorraad bijstellen. Eigen batch.
+- Het productraster (`ProductGridView`) kent nog geen alleen-lezen-stand voor rollen zonder schrijfrecht op producten (naam, kanalen, tags blijven bewerkbaar en worden door RLS geweigerd). Eigen batch.
+- Kaart en kassa-snelbewerking volgden het patroon al (nagekeken, niets gewijzigd). `src/kassa` niet aangeraakt.
+- Skill-voorstel `sellqo-db-safety`: een guard die zelf SECURITY DEFINER is, ziet `current_user = postgres`; toets de beller via `auth.uid()`/JWT-claims, en `auth.uid() is null` is niet automatisch "server" (anon-JWT). Niet toegepast.
+
 ## VERVOLG-1 — aanbevelingen uit de nachtrun (Odoo in Horeca Big, Kostprijs, gangenbon, kassa-README, prijslek-recon) (2026.14y) — 2 november 2026
 
 Go van Akke 2-11 ("akkoord met je aanbevelingen"). Details per onderdeel: `docs/nachtrun/ODOO-HORECA-1.md`, `KOSTPRIJS-NAAM-1.md`, `GANGEN-BON-1.md`, `KASSA-README.md`, `PRIJS-REST-RECON.md`.

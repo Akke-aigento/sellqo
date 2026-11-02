@@ -2480,6 +2480,10 @@
         "cost_price_name": {
           "title": "Kostprijs heet overal hetzelfde",
           "description": "In je productformulier heet het veld nu \"Kostprijs (excl. btw)\", net als op de Kaart, in het voorraadrapport en in de helpartikels. Het is hetzelfde getal als voorheen; enkel de naam is gelijkgetrokken."
+        },
+        "product_prices_roles": {
+          "title": "Prijzen enkel nog door beheerders en medewerkers aan te passen",
+          "description": "Prijzen, kostprijzen en btw van je producten en varianten wijzigt voortaan enkel een beheerder of medewerker van je winkel, ook via prijzen in bulk aanpassen. Andere rollen, zoals magazijn of marketing, zien ze nog maar kunnen ze niet meer wijzigen; in het productraster en op de variantentab staan die velden voor hen op slot, met uitleg."
         }
       },
       "copyLink": "Kopieer link",

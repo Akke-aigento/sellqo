@@ -2480,6 +2480,10 @@
         "cost_price_name": {
           "title": "Le prix de revient porte partout le même nom",
           "description": "Dans ton formulaire produit, le champ s'appelle désormais « Prix de revient (HTVA) », comme sur la Carte, dans le rapport de stock et dans les articles d'aide. C'est le même chiffre qu'avant ; seul le nom a été harmonisé."
+        },
+        "product_prices_roles": {
+          "title": "Seuls les administrateurs et collaborateurs modifient encore les prix",
+          "description": "Désormais, seul un administrateur ou un collaborateur de ta boutique peut modifier les prix, prix de revient et TVA de tes produits et variantes, y compris via la modification des prix en masse. Les autres rôles, comme entrepôt ou marketing, les voient toujours mais ne peuvent plus les modifier ; dans la grille produits et l'onglet des variantes, ces champs sont verrouillés pour eux, avec une explication."
         }
       },
       "copyLink": "Copier le lien",

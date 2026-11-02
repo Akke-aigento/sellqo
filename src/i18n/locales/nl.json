@@ -10151,7 +10151,9 @@
     "prices_locked_hint": "Prijzen kun je met jouw rol niet wijzigen; dat doet een beheerder of medewerker.",
     "grid_locked_hint": "Velden met een slotje (zoals prijzen, btw en artikelnummer) kun je met jouw rol niet wijzigen; dat doet een beheerder of medewerker.",
     "field_locked": "Met jouw rol kun je dit veld niet wijzigen.",
-    "variant_compare_at_price": "Van-prijs"
+    "variant_compare_at_price": "Van-prijs",
+    "variants_read_only_hint": "Je kunt de varianten bekijken; aanpassen doet iemand met bewerkrechten op producten.",
+    "variants_read_only_stock_hint": "Je kunt de varianten bekijken en de voorraad bijwerken; de rest past iemand met bewerkrechten op producten aan."
   },
   "sidebar": {
     "selectStore": "Selecteer winkel",

@@ -1,5 +1,8 @@
-// PRIJS-GATEN-1 harnas — één product met twee varianten; de rol komt uit ?role= (standaard warehouse).
-export const role = new URLSearchParams(location.search).get('role') ?? 'warehouse';
+// PRIJS-GATEN-1 harnas — één product met twee varianten; de rol komt uit ?role= (standaard marketing:
+// mag producten bewerken, geen prijzen).
+export const role = new URLSearchParams(location.search).get('role') ?? 'marketing';
+/** Zoals ProductForm: readOnly = geen schrijfrecht op producten (matrix: admin, staff, marketing). */
+export const readOnly = !['platform_admin', 'tenant_admin', 'staff', 'marketing'].includes(role);
 const now = new Date().toISOString();
 export const variants = [
   { id: 'v1', product_id: 'p1', tenant_id: 't1', title: 'Groot', sku: 'PZ-G', barcode: null, price: 14, compare_at_price: 16, cost_price: 5, stock: 3, track_inventory: true, is_active: true, image_url: null, images: [], attribute_values: { Maat: 'Groot' }, weight: null, position: 0, linked_product_id: null, created_at: now, updated_at: now },

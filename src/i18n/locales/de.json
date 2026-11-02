@@ -10052,10 +10052,12 @@
       "meta_desc_max": "Meta-Beschreibung darf max. 160 Zeichen haben"
     },
     "admin_managed_hint": "Wird von einem Administrator verwaltet.",
-    "prices_locked_hint": "Mit deiner Rolle kannst du keine Preise ändern; das macht ein Administrator oder Mitarbeiter.",
-    "grid_locked_hint": "Felder mit einem Schloss (z. B. Preise, MwSt. und Artikelnummer) kannst du mit deiner Rolle nicht ändern; das macht ein Administrator oder Mitarbeiter.",
-    "field_locked": "Mit deiner Rolle kannst du dieses Feld nicht ändern.",
-    "variant_compare_at_price": "Streichpreis"
+    "prices_locked_hint": "Mit Ihrer Rolle können Sie keine Preise ändern; das macht ein Administrator oder Mitarbeiter.",
+    "grid_locked_hint": "Felder mit einem Schloss (z. B. Preise, MwSt. und Artikelnummer) können Sie mit Ihrer Rolle nicht ändern; das macht ein Administrator oder Mitarbeiter.",
+    "field_locked": "Mit Ihrer Rolle können Sie dieses Feld nicht ändern.",
+    "variant_compare_at_price": "Streichpreis",
+    "variants_read_only_hint": "Sie können die Varianten ansehen; Änderungen macht jemand mit Bearbeitungsrechten für Produkte.",
+    "variants_read_only_stock_hint": "Sie können die Varianten ansehen und den Bestand aktualisieren; den Rest ändert jemand mit Bearbeitungsrechten für Produkte."
   },
   "admin_billing": {
     "apply_discount": "Rabatt anwenden",

@@ -2480,6 +2480,10 @@
         "cost_price_name": {
           "title": "Einkaufspreis heißt überall gleich",
           "description": "In deinem Produktformular heißt das Feld jetzt „Einkaufspreis (ohne MwSt.)“, wie auf der Karte, im Lagerbericht und in den Hilfeartikeln. Es ist dieselbe Zahl wie vorher; nur der Name wurde vereinheitlicht."
+        },
+        "product_prices_roles": {
+          "title": "Preise ändern nur noch Administratoren und Mitarbeiter",
+          "description": "Preise, Einkaufspreise und MwSt. deiner Produkte und Varianten ändert ab sofort nur noch ein Administrator oder Mitarbeiter deines Shops, auch über die Massenänderung von Preisen. Andere Rollen wie Lager oder Marketing sehen sie weiterhin, können sie aber nicht mehr ändern; im Produktraster und im Varianten-Tab sind diese Felder für sie gesperrt, mit einer Erklärung."
         }
       },
       "copyLink": "Link kopieren",

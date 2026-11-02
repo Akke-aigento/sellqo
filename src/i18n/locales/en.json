@@ -10137,7 +10137,9 @@
     "prices_locked_hint": "You can't change prices with your role; an administrator or staff member does that.",
     "grid_locked_hint": "Fields with a lock (such as prices, VAT and SKU) can't be changed with your role; an administrator or staff member does that.",
     "field_locked": "You can't change this field with your role.",
-    "variant_compare_at_price": "Compare-at price"
+    "variant_compare_at_price": "Compare-at price",
+    "variants_read_only_hint": "You can view the variants; someone with edit rights on products makes changes.",
+    "variants_read_only_stock_hint": "You can view the variants and update stock; someone with edit rights on products changes the rest."
   },
   "admin_billing": {
     "apply_discount": "Apply discount",

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { History, Plus, Minus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus } from 'lucide-react';
+import { History, Plus, Minus, Trash2, Link2, Unlink, Wand2, GripVertical, Pencil, Check, X, ImagePlus, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +21,16 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { useCan } from '@/hooks/useCan';
+import { useProductFieldAccess } from '@/hooks/useProductFieldAccess';
+
+/** Alleen-lezen variantfoto (zonder schrijfrecht geen fotokiezer). */
+function VariantThumb({ url }: { url: string | null }) {
+  return (
+    <div className={cn('w-10 h-10 rounded border overflow-hidden flex items-center justify-center shrink-0', !url && 'border-dashed border-muted-foreground/30 bg-muted/50')}>
+      {url ? <img src={url} alt="" className="w-full h-full object-cover" /> : <ImageIcon className="h-4 w-4 text-muted-foreground/50" />}
+    </div>
+  );
+}
 
 function InlineStockStepper({ stock, onUpdate }: { stock: number; onUpdate: (val: number) => void }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -82,14 +92,22 @@ interface ProductVariantsTabProps {
   productImages?: string[];
   trackInventory?: boolean;
   defaultPrice?: number | null;
+  /** PRIJS-GATEN-1 deel 3 — de productpagina staat alleen-lezen (geen schrijfrecht op producten). */
+  readOnly?: boolean;
 }
 
-export function ProductVariantsTab({ productId, productImages = [], trackInventory = true, defaultPrice = null }: ProductVariantsTabProps) {
+export function ProductVariantsTab({ productId, productImages = [], trackInventory = true, defaultPrice = null, readOnly = false }: ProductVariantsTabProps) {
   const { t } = useTranslation();
   // PRIJS-GATEN-1 — variantprijzen enkel voor tenant_admin/staff (DB-guard
   // guard_product_variant_price_fields); andere rollen zien ze alleen-lezen.
   const canEditPrices = useCan('write', 'product_prices');
   const priceLockedHint = t('product_form.prices_locked_hint');
+  // PRIJS-GATEN-1 deel 3 — zonder schrijfrecht op producten geen knoppen die toch geweigerd worden
+  // (opties, genereren, bewerken, foto's, verwijderen, koppelen). Voorraad blijft voor wie dat mag
+  // (warehouse), via het voorraadlogboek.
+  const canWriteProducts = useCan('write', 'products');
+  const canWrite = canWriteProducts && !readOnly;
+  const { canAdjustStock } = useProductFieldAccess();
   const {
     variants, options, isLoading,
     createVariant, updateVariant, deleteVariant,
@@ -263,7 +281,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
   return (
     <div className="space-y-6">
       {/* Options Management */}
-      <Card>
+      {(canWrite || options.length > 0) && <Card>
         <CardHeader>
           <CardTitle>{t('admin.products.productVariantsTab.variant_opties')}</CardTitle>
           <CardDescription>
@@ -298,7 +316,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                     {option.values.map(v => (
                       <Badge key={v} variant="secondary">{v}</Badge>
                     ))}
-                    <Button
+                    {canWrite && <Button
                       type="button"
                       size="icon"
                       variant="ghost"
@@ -309,11 +327,11 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                       }}
                     >
                       <Pencil className="h-3 w-3" />
-                    </Button>
+                    </Button>}
                   </div>
                 )}
               </div>
-              <AlertDialog>
+              {canWrite && <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button type="button" size="icon" variant="ghost" className="text-destructive">
                     <Trash2 className="h-4 w-4" />
@@ -333,12 +351,12 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
-              </AlertDialog>
+              </AlertDialog>}
             </div>
           ))}
 
           {/* Add new option */}
-          <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_auto] gap-2 lg:items-end">
+          {canWrite && <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr_auto] gap-2 lg:items-end">
             <div>
               <Label className="text-xs">{t('admin.products.productVariantsTab.optienaam')}</Label>
               <Input
@@ -360,10 +378,10 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
               <Plus className="h-4 w-4 mr-1" />
               {t('common.add')}
             </Button>
-          </div>
+          </div>}
 
           {/* Generate variants button */}
-          {options.length > 0 && (
+          {canWrite && options.length > 0 && (
             <Button
               type="button"
               onClick={handleGenerateVariants}
@@ -376,7 +394,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
             </Button>
           )}
         </CardContent>
-      </Card>
+      </Card>}
 
       {/* Variants Table */}
       <Card>
@@ -385,7 +403,11 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
           <CardDescription>
             {t('admin.products.productVariantsTab.beheer_individuele_varianten_prijzen_voorraad_en')}
           </CardDescription>
-          {!canEditPrices && <p className="text-xs text-muted-foreground">{priceLockedHint}</p>}
+          {!canWrite ? (
+            <p className="text-xs text-muted-foreground">
+              {t(canAdjustStock ? 'product_form.variants_read_only_stock_hint' : 'product_form.variants_read_only_hint')}
+            </p>
+          ) : !canEditPrices && <p className="text-xs text-muted-foreground">{priceLockedHint}</p>}
         </CardHeader>
         <CardContent ref={variantsContainerRef}>
           {variants.length === 0 ? (
@@ -401,6 +423,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                   <div key={variant.id} className="border rounded-lg p-3 space-y-3">
                     {/* Top row: image + title + actions */}
                     <div className="flex items-start gap-3">
+                      {canWrite ? (
                       <Popover>
                         <PopoverTrigger asChild>
                           <button
@@ -445,6 +468,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                           )}
                         </PopoverContent>
                       </Popover>
+                      ) : <VariantThumb url={variant.image_url} />}
                       <div className="flex-1 min-w-0">
                         <span className="font-medium text-sm">{variant.title}</span>
                         <div className="flex gap-1 mt-1 flex-wrap">
@@ -463,7 +487,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                               <X className="h-4 w-4" />
                             </Button>
                           </>
-                        ) : (
+                        ) : canWrite ? (
                           <>
                             <Button type="button" size="icon" variant="ghost" className="h-8 w-8" onClick={() => startEditVariant(variant)}>
                               <Pencil className="h-4 w-4" />
@@ -491,7 +515,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                               </AlertDialogContent>
                             </AlertDialog>
                           </>
-                        )}
+                        ) : null}
                       </div>
                     </div>
                     {/* Details grid */}
@@ -546,7 +570,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                         <div>
                           <span className="text-xs text-muted-foreground block">{t('admin.stockReport.colStock')}</span>
                           {trackInventory ? (
-                            <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button type="button" variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
+                            <div className="inline-flex items-center gap-1">{canAdjustStock ? <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /> : <span className="text-sm font-mono">{variant.stock}</span>}<Button type="button" variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">{t('admin.products.productVariantsTab.niet_bijgehouden')}</span>
                           )}
@@ -565,10 +589,12 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                             <Link2 className="h-3 w-3 mr-1" />
                             {linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}
                           </Badge>
-                          <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleUnlinkProduct(variant.id)}>
+                          {canWrite && <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleUnlinkProduct(variant.id)}>
                             <Unlink className="h-3 w-3" />
-                          </Button>
+                          </Button>}
                         </>
+                      ) : !canWrite ? (
+                        <span className="text-xs text-muted-foreground">—</span>
                       ) : (
                         <Button type="button" size="sm" variant="ghost" className="h-7 text-xs" onClick={() => openLinkDialog(variant.id)}>
                           <Link2 className="h-3 w-3 mr-1" /> {t('admin.products.productVariantsTab.koppelen')}
@@ -595,13 +621,14 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                       <TableHead>{t('admin.stockReport.colStock')}</TableHead>
                       <TableHead>{t('admin.marketing.aBTestingPanel.actief')}</TableHead>
                       <TableHead className="min-w-0">{t('admin.ads.platformConnections.gekoppeld')}</TableHead>
-                      <TableHead className="w-[80px] whitespace-nowrap">{t('common.actions')}</TableHead>
+                      {canWrite && <TableHead className="w-[80px] whitespace-nowrap">{t('common.actions')}</TableHead>}
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {variants.map(variant => (
                       <TableRow key={variant.id}>
                         <TableCell>
+                          {canWrite ? (
                           <Popover>
                             <PopoverTrigger asChild>
                               <button
@@ -646,6 +673,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                               )}
                             </PopoverContent>
                           </Popover>
+                          ) : <VariantThumb url={variant.image_url} />}
                         </TableCell>
                         <TableCell className="min-w-0 max-w-[200px]">
                           <div className="min-w-0">
@@ -690,7 +718,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                             editingVariantId === variant.id ? (
                               <Input type="number" value={editVariantData.stock ?? 0} onChange={e => setEditVariantData(prev => ({ ...prev, stock: Number(e.target.value) }))} className="w-20" />
                             ) : (
-                              <div className="inline-flex items-center gap-1"><InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /><Button type="button" variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
+                              <div className="inline-flex items-center gap-1">{canAdjustStock ? <InlineStockStepper stock={variant.stock} onUpdate={(newStock) => handleStockChange(variant.id, variant.stock ?? 0, newStock)} /> : <span className="text-sm font-mono">{variant.stock}</span>}<Button type="button" variant="ghost" size="icon" className="h-6 w-6" title={t('admin.stockLedger.title')} onClick={e => { e.stopPropagation(); setLedgerVariantId(variant.id); }}><History className="h-3.5 w-3.5" /></Button></div>
                             )
                           ) : (
                             <span className="text-xs text-muted-foreground italic">—</span>
@@ -710,16 +738,19 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                                 <Link2 className="h-3 w-3 mr-1 shrink-0" />
                                 <span className="truncate">{linkableProducts.find(p => p.id === variant.linked_product_id)?.name || 'Gekoppeld'}</span>
                               </Badge>
-                              <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleUnlinkProduct(variant.id)}>
+                              {canWrite && <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={() => handleUnlinkProduct(variant.id)}>
                                 <Unlink className="h-3 w-3" />
-                              </Button>
+                              </Button>}
                             </div>
+                          ) : !canWrite ? (
+                            <span className="text-xs text-muted-foreground">—</span>
                           ) : (
                             <Button type="button" size="sm" variant="ghost" onClick={() => openLinkDialog(variant.id)}>
                               <Link2 className="h-3 w-3 mr-1" /> {t('admin.products.productVariantsTab.koppelen')}
                             </Button>
                           )}
                         </TableCell>
+                        {canWrite && (
                         <TableCell>
                           <div className="flex items-center gap-1">
                             {editingVariantId === variant.id ? (
@@ -731,7 +762,7 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                                   <X className="h-4 w-4" />
                                 </Button>
                               </>
-                            ) : (
+                            ) : canWrite ? (
                               <>
                                 <Button type="button" size="icon" variant="ghost" onClick={() => startEditVariant(variant)}>
                                   <Pencil className="h-4 w-4" />
@@ -759,9 +790,10 @@ export function ProductVariantsTab({ productId, productImages = [], trackInvento
                                   </AlertDialogContent>
                                 </AlertDialog>
                               </>
-                            )}
+                            ) : null}
                           </div>
                         </TableCell>
+                        )}
                       </TableRow>
                     ))}
                   </TableBody>

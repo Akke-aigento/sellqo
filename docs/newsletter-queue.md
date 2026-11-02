@@ -4,6 +4,10 @@ Items die in de eerstvolgende SellQo-newsletter naar tenants meegenomen worden. 
 
 ## Openstaand
 
+### 2026.14z — Prijzen enkel nog door beheerders en medewerkers aan te passen (security, 02-11-2026)
+Prijzen, kostprijzen en btw van je producten en varianten wijzigt voortaan enkel een beheerder of medewerker van je winkel, ook via prijzen in bulk aanpassen. Andere rollen, zoals magazijn of marketing, zien ze nog maar kunnen ze niet meer wijzigen; in het productraster en op de variantentab staan die velden voor hen op slot, met uitleg.
+i18n: `public.changelog.changes.product_prices_roles`
+
 ### 2026.14y — Odoo-boekhouding ook in Horeca Big (feature, 02-11-2026)
 Heb je Horeca Big, dan koppel je voortaan je eigen Odoo-boekhouding: facturen en creditnota's gaan automatisch naar Odoo, en als je dat aanzet ook de Z-rapporten van je kassa.
 i18n: `public.changelog.changes.odoo_horeca_big`

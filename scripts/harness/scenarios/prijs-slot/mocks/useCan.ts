@@ -1,6 +1,7 @@
 // Bewust zoals de echte matrix voor de twee sleutels die dit scherm leest.
 import { role } from './data';
 const WRITE: Record<string, string[]> = {
+  // products: zoals PERMISSION_MATRIX (warehouse, viewer, accountant: geen schrijfrecht).
   product_prices: ['platform_admin', 'tenant_admin', 'staff'],
   products: ['platform_admin', 'tenant_admin', 'staff', 'marketing'],
 };

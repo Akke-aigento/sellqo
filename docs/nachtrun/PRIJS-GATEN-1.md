@@ -110,10 +110,7 @@ Geen `storefront-api`/`storefront-customer-api` geraakt, geen gedeelde storefron
   `select tgname from pg_trigger where tgrelid = 'public.product_variants'::regclass and not tgisinternal;`.
 - **UI-gat** (variantentab en raster toonden prijsvelden bewerkbaar aan rollen die ze niet mogen wijzigen):
   opgelost in dit batch-deel 2, zie hieronder.
-- Breder, niet in deze batch: `ProductVariantsTab` krijgt de `readOnly` van `ProductForm` niet mee. Een rol zonder
-  `products`-schrijfrecht (warehouse, viewer, accountant) ziet op de variantentab nog opties toevoegen, varianten
-  genereren, verwijderen en koppelen; RLS weigert die stil of met een fout. Vervolg: `readOnly`-prop doorgeven
-  en die knoppen verbergen.
+- Variantentab zonder schrijfrecht op producten: opgelost in deel 3, zie hieronder.
 - Het kernscenario uit PRIJS-REST-RECON (kassatoestel met tenant_admin-JWT zet prijs op 0,01) sluit deze batch
   **niet**: dat is KASSA-ACCOUNT-1 (toestelaccount met beperkte rol). Wie daar de guard verder aanpast: deze
   migratie is de nieuwe basis (marker `PRIJS-GATEN-1`).
@@ -167,6 +164,26 @@ met de globale rollen (niet per winkel) en een hardgecodeerde Nederlandse hint.
   opslaan stuurt geen prijsvelden mee, 5 slotjes in het raster, een klik op een prijscel opent geen invoer, de naamcel
   blijft bewerkbaar, geen horizontale overloop. Beheerder: geen uitleg, geen slotjes, velden aan. Engels gecontroleerd.
   Screenshots nagekeken (`/tmp/harness/prijs-slot-*.png`).
+
+## Deel 3 — geen dode knoppen op de variantentab + paper trail (zelfde batch)
+
+**Root cause.** `ProductForm` zet de pagina alleen-lezen zonder `products`-schrijfrecht (warehouse, viewer, accountant), maar gaf
+dat niet door aan `ProductVariantsTab`. Die toonde opties toevoegen/bewerken/verwijderen, varianten genereren, bewerken, foto's,
+verwijderen en koppelen. RLS weigert die (deels stil).
+
+**Uitgevoerd.**
+- `ProductVariantsTab.tsx`: prop `readOnly`; `canWrite = useCan('write','products') && !readOnly`. Zonder schrijfrecht:
+  geen optieknoppen of invoer (de optiekaart verdwijnt als er geen opties zijn), geen genereerknop, geen potlood/foto's/prullenbak,
+  geen fotokiezer (statische thumbnail), geen koppel- of ontkoppelknop, geen kolom Acties. Voorraad +/− enkel met
+  `canAdjustStock` (schrijfrecht of warehouse, niet enkel marketing); het voorraadlogboek blijft voor iedereen. Eén uitleg onder de
+  kaarttitel (`variants_read_only_hint` / `variants_read_only_stock_hint`).
+- `useProductFieldAccess`: `canAdjustStock` erbij. `ProductForm`: `readOnly={readOnly}` naar de tab.
+- i18n: 2 extra keys; de UI-keys van deze batch in de/uk in de beleefdheidsvorm van de rest van `product_form` (Sie / ви).
+- Harnas `prijs-slot`: marketing, warehouse, viewer en beheerder, nl en en.
+- Paper trail: `docs/role-audit.md` (bovenaan), changelog 2026.14z (`product_prices_roles`, security) in alle talen van
+  `SUPPORTED_LANGUAGES`, nieuwsbrief onder Openstaand.
+
+**Verificatie deel 3.** tsc, i18n-parity, eslint-baseline, vitest en harnas: zie het eindrapport en de role-audit-entry.
 
 ## Changelog (NL, type `security`)
 
