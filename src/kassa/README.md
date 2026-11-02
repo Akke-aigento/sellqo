@@ -50,6 +50,11 @@ zelf staan met reden in `fiscal/__tests__/uc/known.ts`.
 
 1. Eerst de eis-ID opzoeken in de eisenmatrix; een nieuwe regel krijgt een ID.
 2. `npx vitest run src/kassa` moet groen zijn; het dekkingsrapport opnieuw genereren.
-3. `KASSA_SW_VERSION` ophogen en de wijziging in de fiscale changelog zetten (komt met CERT-1).
+3. Elke wijziging aan `src/kassa/` hoogt `KASSA_SW_VERSION` op (`version.ts`), nu al en niet
+   pas vanaf de certificatie: minor bij nieuw gedrag, patch bij een correctie zonder ander gedrag.
+   Zet er in de kop van `version.ts` één zin bij met de batch-ID('s) en of de fiscale berichten
+   veranderen. Bij parallel werk (nachtrun, meerdere branches) hoogt enkel wie samenvoegt één keer
+   op, niet elke branch apart. Vanaf CERT-1 komt daar de melding bij de FOD bij (≥1 maand vooraf,
+   max. 12 updates per jaar) en de fiscale changelog in het dossier.
 4. Nooit een event wijzigen of wissen: correcties zijn nieuwe events (EVT-13).
 5. Nooit een ticket afsluiten of afdrukken zonder FDM-handtekening (FDM-04, PRT-09).
