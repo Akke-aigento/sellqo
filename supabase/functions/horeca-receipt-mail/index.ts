@@ -10,13 +10,15 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { Resend } from "https://esm.sh/resend@2.0.0";
-import { authenticateRequest, AuthError, authErrorResponse, requireRole } from "../_shared/auth.ts";
+import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireRoleOrKassaDevice } from "../_shared/kassaDeviceAuth.ts";
 import { tenantSender } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail } from "../_shared/tenantEmail.ts";
 import { printTexts, renderReceiptHtml } from "../_shared/horecaPrint.ts";
 import { isMailAddress, MAILS_PER_DAY, MAILS_PER_PAYMENT, receiptModelFromData, sha256Hex, type ReceiptData } from "../_shared/horecaReceipt.ts";
 
-const VERSION = "PRINT-2";
+// KASSA-ACCOUNT-1: ook een gekoppeld kassatoestel (eigen account, niet in user_roles) mag "Mail bon".
+const VERSION = "KASSA-ACCOUNT-1";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const corsHeaders = {
@@ -84,7 +86,7 @@ serve(async (req: Request): Promise<Response> => {
     const { data } = await db.rpc("horeca_receipt_data", { p_source: source, p_id: paymentId });
     const d = data as ReceiptData | null;
     if (!d) return json({ error: "payment not found" }, 404);
-    if (auth) requireRole(auth, d.tenant_id, ["tenant_admin", "staff"]);
+    if (auth) await requireRoleOrKassaDevice(auth, db, d.tenant_id, ["tenant_admin", "staff"]);
     if (d.fiscal) return json({ skipped: "fiscal" });
     const { data: s } = await db.from("horeca_pay_settings").select("mail_online, mail_button").eq("tenant_id", d.tenant_id).maybeSingle();
 

@@ -539,3 +539,9 @@ verify_jwt = false
 
 [functions.move-supplier-document]
 verify_jwt = false
+
+[functions.kassa-device-pair]
+verify_jwt = false
+
+[functions.kassa-device-revoke]
+verify_jwt = false

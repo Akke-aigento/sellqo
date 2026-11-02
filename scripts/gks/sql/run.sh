@@ -72,4 +72,15 @@ done
 out=$($P -d $DB -f test_voorraad_rollen.sql 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in test_voorraad_rollen.sql"; exit 1; }
 if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in test_voorraad_rollen.sql"; fail=1; fi
 echo "$out" | tail -1
+# KASSA-ACCOUNT-1 (2-11-2026): eigen identiteit per kassatoestel. De testdatabank kent niet alle live
+# tabellen/functies; sellqo.kassa_account_test=on laat de migratie die overslaan (live: fout).
+for M in ../../../supabase/migrations/20261102100000_kassa_account_1.sql; do
+  PGOPTIONS="-c sellqo.kassa_account_test=on" $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT in $M"; exit 1; }
+  PGOPTIONS="-c sellqo.kassa_account_test=on" $P -d $DB -f $M >/dev/null 2>/tmp/kassa_mig.err || { cat /tmp/kassa_mig.err; echo "FOUT bij tweede keer $M"; exit 1; }
+done
+for T in test_kassa_account.sql; do
+  out=$($P -d $DB -f $T 2>&1 | grep -v NOTICE) || { echo "$out" | tail -5; echo "FOUT in $T"; exit 1; }
+  if echo "$out" | grep -qE '^ f$'; then echo "$out" | grep -B3 -E '^ f$'; echo "FOUT: controle faalt in $T"; fail=1; fi
+  echo "$out" | tail -1
+done
 exit $fail

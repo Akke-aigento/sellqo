@@ -35,7 +35,7 @@ const base = { tenant_id: T, store_name: 'Zaak', address: [], vat_number: null, 
 
 Deno.test('GET geeft de versiestempel', async () => {
   const j = await (await handler(new Request('https://f/horeca-receipt-mail'))).json();
-  assert(j.version === 'PRINT-2', JSON.stringify(j));
+  assert(j.version === 'KASSA-ACCOUNT-1', JSON.stringify(j));
 });
 
 Deno.test('ongeldige invoer → 400', async () => {

@@ -5,6 +5,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.2";
 import { authenticateRequest, AuthError, authErrorResponse } from "../_shared/auth.ts";
+import { requireRoleOrKassaDevice } from "../_shared/kassaDeviceAuth.ts";
 import { tenantSender } from "../_shared/emailSenders.ts";
 import { getTenantBrand, renderTenantEmail, resolveEmailLocale, type TenantLocale } from "../_shared/tenantEmail.ts";
 
@@ -43,7 +44,8 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
-  if (req.method === "GET") return json({ ok: true, version: "FOOD-3" });
+  // KASSA-ACCOUNT-1: ook het keukenbord op een gekoppeld kassatoestel (eigen account) mag de klant laten mailen.
+  if (req.method === "GET") return json({ ok: true, version: "KASSA-ACCOUNT-1" });
 
   try {
     const { order_id } = await req.json().catch(() => ({}));
@@ -56,8 +58,8 @@ serve(async (req) => {
       .eq("id", order_id).maybeSingle();
     if (!order) return json({ error: "Order not found" }, 404);
 
-    // Alleen iemand van deze winkel mag de klant laten mailen.
-    await authenticateRequest(req, order.tenant_id);
+    // Alleen iemand van deze winkel (of een gekoppeld kassatoestel van deze winkel) mag de klant laten mailen.
+    await requireRoleOrKassaDevice(await authenticateRequest(req), supabase, order.tenant_id, null);
 
     const { data: ticket } = await supabase.from("kitchen_tickets").select("id, status, notified_at").eq("order_id", order.id).maybeSingle();
     if (!ticket) return json({ skipped: true, reason: "no kitchen ticket" });
