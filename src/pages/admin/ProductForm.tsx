@@ -459,7 +459,7 @@ export default function ProductForm() {
   const vatRateReady = !vatRatesLoading && !(missingVatRateId && (inactiveVatRateLoading || !inactiveVatRate));
 
   // PRODUCT-FORM-2 — marge-indicatie, puur weergave. Verkoopprijs is incl. btw,
-  // inkoopprijs excl. btw: marge = (netto verkoopprijs − inkoopprijs) / netto verkoopprijs.
+  // kostprijs excl. btw: marge = (netto verkoopprijs − kostprijs) / netto verkoopprijs.
   const watchedPrice = form.watch('price');
   const watchedCost = form.watch('cost_price');
   const marginInfo = useMemo(() => {
@@ -1178,7 +1178,7 @@ export default function ProductForm() {
                             <FormMessage />
                           </FormItem>
                         )} />
-                        {/* H4b — cost_price (Inkoopprijs) verbergen voor rollen zonder
+                        {/* H4b — cost_price (Kostprijs excl. btw) verbergen voor rollen zonder
                             product_costs read recht. Vermijdt accidentele empty-save. */}
                         <PermissionGate action="read" resource="product_costs">
                           <FormField control={form.control} name="cost_price" render={({ field }) => (
@@ -1190,7 +1190,7 @@ export default function ProductForm() {
                                   <Input {...field} value={field.value ?? ''} type="number" step="0.01" min="0" className="pl-7" disabled={!canEditCommercial} />
                                 </div>
                               </FormControl>
-                              <FormDescription>{canEditCommercial ? 'Voor winstberekening (niet zichtbaar)' : adminManagedHint}</FormDescription>
+                              <FormDescription>{canEditCommercial ? t('product_form.field_cost_price_desc') : adminManagedHint}</FormDescription>
                               <FormMessage />
                             </FormItem>
                           )} />
