@@ -39,11 +39,13 @@ export function SupabaseScopeProvider({ client, userId, push, children }: Supaba
 }
 
 /** De omgeving (kassa) of null in beheer. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSupabaseScope(): SupabaseScope | null {
   return useContext(SupabaseScopeContext);
 }
 
 /** De client voor deze plek: de kassa-client binnen de kassa, anders de beheer-client. */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useSupabaseClient(): Db {
   return useContext(SupabaseScopeContext)?.client ?? supabase;
 }

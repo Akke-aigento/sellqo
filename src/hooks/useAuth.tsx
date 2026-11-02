@@ -734,6 +734,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 /** KASSA-MOBIEL-1: zoals useAuth, maar null buiten een AuthProvider (de aparte Kassa-app heeft geen beheer). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function useOptionalAuth(): AuthContextType | null {
   return useContext(AuthContext) ?? null;
 }

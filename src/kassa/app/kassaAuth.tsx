@@ -107,6 +107,7 @@ export function KassaAuthProvider({ standalone, children }: { standalone: boolea
   );
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useKassaAuth(): KassaAuthValue {
   const ctx = useContext(KassaAuthContext);
   if (!ctx) throw new Error('useKassaAuth hoort binnen KassaAuthProvider');
